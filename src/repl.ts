@@ -1,8 +1,8 @@
-import readline from "readline";
+import { createInterface } from 'readline';
 import { execute } from "./interpreter";
 
 export function startREPL(): void {
-    const rl = readline.createInterface({
+    const rl = createInterface({
       input: process.stdin,
       output: process.stdout,
       prompt: "> ",

@@ -1,5 +1,5 @@
 import { startREPL } from "./repl";
-import readline from "readline";
+import { createInterface } from 'readline';
 import * as interpreter from "./interpreter";
 
 jest.mock("readline");
@@ -11,7 +11,7 @@ describe("REPL", () => {
   let mockClose: jest.Mock;
 
   beforeEach(() => {
-    mockCreateInterface = readline.createInterface as jest.Mock;
+    mockCreateInterface = createInterface as jest.Mock;
     mockOn = jest.fn();
     mockPrompt = jest.fn();
     mockClose = jest.fn();
