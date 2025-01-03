@@ -20,8 +20,16 @@ export function tokenize(input: string): (string | number)[] {
       continue;
     }
 
+    // Remove any inline comments (everything after # on the same line)
+    const code = trimmedLine.split("#")[0].trim();
+
+    // Skip if the line is empty after removing comments
+    if (code === "") {
+      continue;
+    }
+
     // Split the line into words based on whitespace
-    const words = trimmedLine.split(/\s+/);
+    const words = code.split(/\s+/);
 
     for (const word of words) {
       if (word === "") {

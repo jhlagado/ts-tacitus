@@ -27,7 +27,7 @@ describe("Interpreter", () => {
 
   it("should handle division by zero", () => {
     expect(() => execute("5 0 /")).toThrow(
-      "Error executing word '/' \(stack: \[\]): Division by zero"
+      "Error executing word '/' (stack: []): Division by zero"
     );
   });
 

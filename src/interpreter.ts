@@ -1,77 +1,22 @@
-import { Stack, createStack, push, pop, getItems, peek } from "./stack";
+import { Stack, createStack, push, getItems } from "./stack";
 import { Dictionary, createDictionary, define, find } from "./dictionary";
-import { tokenize } from "./lexer"; // Import the lexer
+import { tokenize } from "./lexer";
+import { builtins } from "./builtins"; // Import built-in words
 
 let stack: Stack<number> = createStack<number>();
 let dictionary: Dictionary = createDictionary();
 
 /**
- * Initializes the Forth interpreter by defining core words.
+ * Initializes the Forth interpreter by loading built-in words.
  */
 export function initializeInterpreter(): void {
   stack = createStack<number>();
   dictionary = createDictionary();
 
-  define(dictionary, "+", () => {
-    const b = pop(stack);
-    const a = pop(stack);
-    if (a !== undefined && b !== undefined) {
-      push(stack, a + b);
-    }
-  });
-
-  define(dictionary, "-", () => {
-    const b = pop(stack);
-    const a = pop(stack);
-    if (a !== undefined && b !== undefined) {
-      push(stack, a - b);
-    }
-  });
-
-  define(dictionary, "*", () => {
-    const b = pop(stack);
-    const a = pop(stack);
-    if (a !== undefined && b !== undefined) {
-      push(stack, a * b);
-    }
-  });
-
-  define(dictionary, "/", () => {
-    const b = pop(stack);
-    const a = pop(stack);
-
-    if (a === undefined || b === undefined) {
-      throw new Error("Stack underflow");
-    }
-
-    if (b === 0) {
-      throw new Error("Division by zero");
-    }
-
-    push(stack, a / b);
-  });
-
-  define(dictionary, "dup", () => {
-    const a = peek(stack);
-    if (a !== undefined) {
-      push(stack, a);
-    }
-  });
-
-  define(dictionary, "drop", () => {
-    pop(stack);
-  });
-
-  define(dictionary, "swap", () => {
-    const a = pop(stack);
-    const b = pop(stack);
-    if (a !== undefined && b !== undefined) {
-      push(stack, a);
-      push(stack, b);
-    }
-  });
-
-  // Add more core words here...
+  // Load built-in words into the dictionary
+  for (const [name, word] of Object.entries(builtins)) {
+    define(dictionary, name, () => word(stack));
+  }
 }
 
 /**
