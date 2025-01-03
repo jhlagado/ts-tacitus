@@ -1,5 +1,6 @@
 import { Stack, createStack, push, pop, getItems, peek } from "./stack";
 import { Dictionary, createDictionary, define, find } from "./dictionary";
+import { tokenize } from "./lexer"; // Import the lexer
 
 let stack: Stack<number> = createStack<number>();
 let dictionary: Dictionary = createDictionary();
@@ -38,15 +39,15 @@ export function initializeInterpreter(): void {
   define(dictionary, "/", () => {
     const b = pop(stack);
     const a = pop(stack);
-  
+
     if (a === undefined || b === undefined) {
       throw new Error("Stack underflow");
     }
-  
+
     if (b === 0) {
       throw new Error("Division by zero");
     }
-  
+
     push(stack, a / b);
   });
 
@@ -80,37 +81,31 @@ export function initializeInterpreter(): void {
  * @throws {Error} If an unknown word is encountered.
  */
 export function execute(command: string): number[] {
-  const words = command.split(/\s+/); // Split command into individual words
+  const tokens = tokenize(command); // Tokenize the input
 
-  for (const word of words) {
-    if (word === "") {
-      continue; // Skip empty words (e.g., multiple spaces)
-    }
+  for (const token of tokens) {
+    if (typeof token === "number") {
+      push(stack, token); // Push numbers onto the stack
+    } else if (typeof token === "string") {
+      const fn = find(dictionary, token); // Look up the word in the dictionary
 
-    const fn = find(dictionary, word); // Look up the word in the dictionary
-
-    if (fn) {
-      try {
-        fn(); // Execute the word
-      } catch (error) {
-        const stackState = getItems(stack); // Capture the current stack state
-        const errorMessage =
-          error instanceof Error
-            ? `Error executing word '${word}' (stack: ${JSON.stringify(
-                stackState
-              )}): ${error.message}`
-            : `Unknown error executing word '${word}' (stack: ${JSON.stringify(
-                stackState
-              )})`;
-        throw new Error(errorMessage); // Rethrow with additional context
-      }
-    } else {
-      const num = parseFloat(word); // Attempt to parse the word as a number
-
-      if (!isNaN(num)) {
-        push(stack, num); // Push the number onto the stack
+      if (fn) {
+        try {
+          fn(); // Execute the word
+        } catch (error) {
+          const stackState = getItems(stack); // Capture the current stack state
+          const errorMessage =
+            error instanceof Error
+              ? `Error executing word '${token}' (stack: ${JSON.stringify(
+                  stackState
+                )}): ${error.message}`
+              : `Unknown error executing word '${token}' (stack: ${JSON.stringify(
+                  stackState
+                )})`;
+          throw new Error(errorMessage); // Rethrow with additional context
+        }
       } else {
-        throw new Error(`Unknown word: ${word}`); // Throw error for unknown words
+        throw new Error(`Unknown word: ${token}`); // Throw error for unknown words
       }
     }
   }
