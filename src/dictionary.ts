@@ -1,11 +1,10 @@
-export type Word = (...args: unknown[]) => void;
-export type Dictionary = { [name: string]: Word };
+import { Dictionary, Verb } from "./types";
 
 /**
  * Creates a new dictionary.
  * @returns A new dictionary.
  */
-export function createDictionary(): Dictionary {
+export function createDictionary<T = Verb>(): Dictionary<T> {
   return {};
 }
 
@@ -15,7 +14,11 @@ export function createDictionary(): Dictionary {
  * @param name - The name of the word.
  * @param word - The function that implements the word.
  */
-export function define(dictionary: Dictionary, name: string, word: Word): void {
+export function define<T = Verb>(
+  dictionary: Dictionary<T>,
+  name: string,
+  word: T
+): void {
   dictionary[name] = word;
 }
 
@@ -25,6 +28,9 @@ export function define(dictionary: Dictionary, name: string, word: Word): void {
  * @param name - The name of the word to find.
  * @returns The function that implements the word, or undefined if the word is not found.
  */
-export function find(dictionary: Dictionary, name: string): Word | undefined {
+export function find<T = Verb>(
+  dictionary: Dictionary<T>,
+  name: string
+): T | undefined {
   return dictionary[name];
 }

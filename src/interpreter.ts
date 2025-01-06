@@ -1,59 +1,39 @@
-import { Stack, createStack, push, getItems } from "./stack";
-import { Dictionary, createDictionary, define, find } from "./dictionary";
-import { tokenize } from "./lexer";
-import { builtins } from "./builtins"; // Import built-in words
+import { vm } from "./globalState";
+import { immediateWords } from "./builtins";
+import { Verb } from "./types";
 
-let stack: Stack<number> = createStack<number>();
-let dictionary: Dictionary = createDictionary();
-
-/**
- * Initializes the Forth interpreter by loading built-in words.
- */
-export function initializeInterpreter(): void {
-  stack = createStack<number>();
-  dictionary = createDictionary();
-
-  // Load built-in words into the dictionary
-  for (const [name, word] of Object.entries(builtins)) {
-    define(dictionary, name, () => word(stack));
+export function executeWord(word: Verb): void {
+  try {
+    word();
+  } catch (error) {
+    const stackState = vm.stack; // Capture the current stack state
+    const errorMessage =
+      error instanceof Error
+        ? `Error executing word (stack: ${JSON.stringify(stackState)}): ${
+            error.message
+          }`
+        : `Unknown error executing word (stack: ${JSON.stringify(stackState)})`;
+    throw new Error(errorMessage); // Rethrow with additional context
   }
 }
 
 /**
- * Executes a Forth command.
+ * Executes a command.
  * @param command - The command to execute.
- * @returns The current stack state.
  * @throws {Error} If an unknown word is encountered.
  */
-export function execute(command: string): number[] {
-  const tokens = tokenize(command); // Tokenize the input
+export function execute(buffer: (number | Verb)[]): void {
+  // Reset the IP to the start of the buffer
+  vm.IP = 0;
 
-  for (const token of tokens) {
-    if (typeof token === "number") {
-      push(stack, token); // Push numbers onto the stack
-    } else if (typeof token === "string") {
-      const fn = find(dictionary, token); // Look up the word in the dictionary
-
-      if (fn) {
-        try {
-          fn(); // Execute the word
-        } catch (error) {
-          const stackState = getItems(stack); // Capture the current stack state
-          const errorMessage =
-            error instanceof Error
-              ? `Error executing word '${token}' (stack: ${JSON.stringify(
-                  stackState
-                )}): ${error.message}`
-              : `Unknown error executing word '${token}' (stack: ${JSON.stringify(
-                  stackState
-                )})`;
-          throw new Error(errorMessage); // Rethrow with additional context
-        }
-      } else {
-        throw new Error(`Unknown word: ${token}`); // Throw error for unknown words
-      }
-    }
+  // Infinite loop: rely on words to control the IP
+  while (vm.running) {
+    const word = buffer[vm.IP++];
+    console.log("item", word);
+    if (word === undefined) throw new Error("Unexpected end of buffer");
+    if (typeof word === "number")
+      throw new Error("Unexpected number in buffer");
+    if (!vm.compileMode || immediateWords.includes(word)) executeWord(word);
+    else vm.compileBuffer.push(word);
   }
-
-  return getItems(stack); // Return the current stack state
 }

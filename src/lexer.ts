@@ -1,5 +1,5 @@
 /**
- * Lexer for the Forth interpreter.
+ * Lexer for the interpreter.
  * Splits input into tokens, skips comments, and parses numbers.
  */
 
@@ -8,7 +8,7 @@
  * @param input - The input string to tokenize.
  * @returns An array of tokens (words or numbers).
  */
-export function tokenize(input: string): (string | number)[] {
+export function lex(input: string): (string | number)[] {
   const tokens: (string | number)[] = [];
   const lines = input.split("\n"); // Split input into lines to handle comments
 

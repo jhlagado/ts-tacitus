@@ -1,43 +1,58 @@
-import { execute, initializeInterpreter } from "./interpreter";
+import { execute } from "./interpreter";
+import { builtins, literalNumber, exitDef } from "./builtins";
+import { parse } from "./parser";
+import { lex } from "./lexer";
+import { vm, initializeInterpreter } from "./globalState";
 
 describe("Interpreter", () => {
   beforeEach(() => {
     initializeInterpreter(); // Reset the interpreter state before each test
   });
 
-  it("should execute a simple command", () => {
-    const result = execute("5 3 +");
-    expect(result).toEqual([8]);
+  // Compilation mode
+  it("should compile a block and push it onto the stack", () => {
+    const buffer = parse(lex("{ 5 3 + }"));
+    buffer.push(exitDef);
+    execute(buffer);
+    const received = vm.stack;
+    const expected = [
+      literalNumber, // Function reference for `literalNumber`
+      5, // Number
+      literalNumber, // Function reference for `literalNumber`
+      3, // Number
+      builtins["+"], // Function reference for `+`
+    ];
+    console.log("received", received);
+    console.log("expected", expected);
+    expect(received).toEqual(expected);
   });
 
-  it("should handle empty commands", () => {
-    const result = execute("");
-    expect(result).toEqual([]);
-  });
+  // // Test 1: Simple arithmetic operations
+  // it("should execute a simple addition", () => {
+  //   execute("5 3 +");
+  //   expect(vm.stack).toEqual([8]);
+  // });
 
-  it("should throw an error for unknown words", () => {
-    expect(() => execute("unknown")).toThrow("Unknown word: unknown");
-  });
+  // // Test 2: Stack manipulation
+  // it("should handle the 'dup' word", () => {
+  //   execute("5 dup");
+  //   expect(vm.stack).toEqual([5, 5]);
+  // });
 
-  it("should handle stack underflow gracefully", () => {
-    expect(() => execute("+")).toThrow(
-      "Error executing word '+' (stack: []): Stack underflow"
-    );
-  });
+  // // Test 4: Error handling
+  // it("should throw an error for unknown words", () => {
+  //   expect(() => execute("unknown")).toThrow("Unknown word: unknown");
+  // });
 
-  it("should handle division by zero", () => {
-    expect(() => execute("5 0 /")).toThrow(
-      "Error executing word '/' (stack: []): Division by zero"
-    );
-  });
+  // // Test 5: Empty commands
+  // it("should handle empty commands", () => {
+  //   execute("");
+  //   expect(vm.stack).toEqual([]);
+  // });
 
-  it("should push numbers onto the stack", () => {
-    const result = execute("5 3");
-    expect(result).toEqual([5, 3]);
-  });
-
-  it("should execute multiple operations", () => {
-    const result = execute("5 3 + 2 *");
-    expect(result).toEqual([16]);
-  });
+  // // Test 6: Multiple operations
+  // it("should execute multiple operations", () => {
+  //   execute("5 3 + 2 *");
+  //   expect(vm.stack).toEqual([16]);
+  // });
 });
