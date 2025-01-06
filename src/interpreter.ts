@@ -1,6 +1,7 @@
 import { vm } from "./globalState";
 import { immediateWords } from "./builtins";
 import { Verb } from "./types";
+import { next, reset } from "./memory";
 
 export function executeWord(word: Verb): void {
   try {
@@ -22,13 +23,11 @@ export function executeWord(word: Verb): void {
  * @param command - The command to execute.
  * @throws {Error} If an unknown word is encountered.
  */
-export function execute(buffer: (number | Verb)[]): void {
-  // Reset the IP to the start of the buffer
-  vm.IP = 0;
-
+export function execute(): void {
   // Infinite loop: rely on words to control the IP
+  reset(vm.buffer)
   while (vm.running) {
-    const word = buffer[vm.IP++];
+    const word = next(vm.IP);
     console.log("item", word);
     if (word === undefined) throw new Error("Unexpected end of buffer");
     if (typeof word === "number")

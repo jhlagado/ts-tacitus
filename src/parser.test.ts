@@ -1,16 +1,12 @@
 import { parse } from "./parser";
-import { vm } from "./globalState";
+import { initializeInterpreter, vm } from "./globalState";
 import { builtins, literalNumber } from "./builtins";
 import { define } from "./dictionary";
 
 describe("Parser", () => {
   beforeEach(() => {
     // Reset the VM state before each test
-    vm.stack = [];
-    vm.dictionary = {};
-    vm.compileMode = false;
-    vm.compileBuffer = [];
-    vm.nestingScore = 0;
+    initializeInterpreter();
 
     // Load built-in words into the dictionary
     for (const [name, word] of Object.entries(builtins)) {

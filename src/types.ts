@@ -6,7 +6,7 @@ export type Heap = Cell[];
 
 export type Dictionary<T = Verb> = { [name: string]: T };
 
-export type Ref = { data: Cell[]; initOfs: number; ofs: number };
+export type Ref = { data: Cell[]; base: number; ofs: number };
 
 export type VM = {
   dictionary: Dictionary<Verb>;

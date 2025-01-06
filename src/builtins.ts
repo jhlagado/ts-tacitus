@@ -28,7 +28,7 @@ export const rightBrace = () => {
   if (vm.nestingScore === 0) {
     // Exit compilation mode and push the compiled block onto the stack
     vm.compileMode = false;
-    push(vm.stack, vm.compileBuffer.ofs);
+    push(vm.stack, vm.compileBuffer.base);
   } else {
     // If still in a nested block, treat "}" as a regular word
     push(vm.compileBuffer, builtins["}"]);
