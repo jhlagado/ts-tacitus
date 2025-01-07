@@ -3,56 +3,58 @@ import { builtins, literalNumber, exitDef } from "./builtins";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
+import { getData, getItems, pop } from "./memory";
 
 describe("Interpreter", () => {
   beforeEach(() => {
-    initializeInterpreter(); // Reset the interpreter state before each test
+    initializeInterpreter();
   });
 
-  // Compilation mode
   it("should compile a block and push it onto the stack", () => {
-    const buffer = parse(lex("{ 5 3 + }"));
-    buffer.push(exitDef);
-    execute(buffer);
-    const received = vm.stack;
-    const expected = [
-      literalNumber, // Function reference for `literalNumber`
-      5, // Number
-      literalNumber, // Function reference for `literalNumber`
-      3, // Number
-      builtins["+"], // Function reference for `+`
-    ];
-    console.log("received", received);
-    console.log("expected", expected);
-    expect(received).toEqual(expected);
+    const tokens = lex("{ 5 3 + }");
+    parse(tokens);
+    execute();
+    const tos = pop(vm.stack) as number;
+    const received = getData(vm.heap, tos, 6);
+    expect(received).toEqual([
+      literalNumber,
+      5,
+      literalNumber,
+      3,
+      builtins["+"],
+      exitDef,
+    ]);
   });
 
-  // // Test 1: Simple arithmetic operations
-  // it("should execute a simple addition", () => {
-  //   execute("5 3 +");
-  //   expect(vm.stack).toEqual([8]);
-  // });
+  it("should execute a simple addition", () => {
+    const tokens = lex("5 3 +");
+    parse(tokens);
+    execute();
+    const received = getItems(vm.stack);
+    expect(received).toEqual([8]);
+  });
 
-  // // Test 2: Stack manipulation
-  // it("should handle the 'dup' word", () => {
-  //   execute("5 dup");
-  //   expect(vm.stack).toEqual([5, 5]);
-  // });
+  it("should handle the 'dup' word", () => {
+    const tokens = lex("5 dup");
+    parse(tokens);
+    execute();
+    const received = getItems(vm.stack);
+    expect(received).toEqual([5, 5]);
+  });
 
-  // // Test 4: Error handling
-  // it("should throw an error for unknown words", () => {
-  //   expect(() => execute("unknown")).toThrow("Unknown word: unknown");
-  // });
+  it("should handle empty commands", () => {
+    const tokens = lex("");
+    parse(tokens);
+    execute();
+    const received = getItems(vm.stack);
+    expect(received).toEqual([]);
+  });
 
-  // // Test 5: Empty commands
-  // it("should handle empty commands", () => {
-  //   execute("");
-  //   expect(vm.stack).toEqual([]);
-  // });
-
-  // // Test 6: Multiple operations
-  // it("should execute multiple operations", () => {
-  //   execute("5 3 + 2 *");
-  //   expect(vm.stack).toEqual([16]);
-  // });
+  it("should execute multiple operations", () => {
+    const tokens = lex("5 3 + 2 *");
+    parse(tokens);
+    execute();
+    const received = getItems(vm.stack);
+    expect(received).toEqual([16]);
+  });
 });

@@ -1,7 +1,8 @@
 import { parse } from "./parser";
 import { initializeInterpreter, vm } from "./globalState";
-import { builtins, literalNumber } from "./builtins";
+import { builtins, exitDef, literalNumber } from "./builtins";
 import { define } from "./dictionary";
+import { getItems } from "./memory";
 
 describe("Parser", () => {
   beforeEach(() => {
@@ -17,39 +18,45 @@ describe("Parser", () => {
   // Test 1: Parse numbers
   it("should parse numbers into literalNumber and the number itself", () => {
     const tokens = [5, 3.14, -42];
-    const result = parse(tokens);
+    parse(tokens);
+    const result = getItems(vm.buffer);
     expect(result).toEqual([
-      literalNumber, // Function reference for `literalNumber`
+      literalNumber, //literalNumber`
       5, // Number
-      literalNumber, // Function reference for `literalNumber`
+      literalNumber, //literalNumber`
       3.14, // Number
-      literalNumber, // Function reference for `literalNumber`
+      literalNumber, //literalNumber`
       -42, // Number
+      exitDef,
     ]);
   });
 
   // Test 2: Parse words
   it("should parse known words into their corresponding functions", () => {
     const tokens = ["+", "-", "dup"];
-    const result = parse(tokens);
+    parse(tokens);
+    const result = getItems(vm.buffer);
     expect(result).toEqual([
-      builtins["+"], // Function reference for `+`
-      builtins["-"], // Function reference for `-`
-      builtins["dup"], // Function reference for `dup`
+      builtins["+"], //+`
+      builtins["-"], //-`
+      builtins["dup"], //dup`
+      exitDef,
     ]);
   });
 
   // Test 3: Parse mixed tokens
   it("should parse mixed tokens (numbers and words)", () => {
     const tokens = [5, "+", 3, "dup"];
-    const result = parse(tokens);
+    parse(tokens);
+    const result = getItems(vm.buffer);
     expect(result).toEqual([
-      literalNumber, // Function reference for `literalNumber`
+      literalNumber, //literalNumber`
       5, // Number
-      builtins["+"], // Function reference for `+`
-      literalNumber, // Function reference for `literalNumber`
+      builtins["+"], //+`
+      literalNumber, //literalNumber`
       3, // Number
-      builtins["dup"], // Function reference for `dup`
+      builtins["dup"], //dup`
+      exitDef,
     ]);
   });
 
@@ -61,25 +68,28 @@ describe("Parser", () => {
 
   // Test 5: Handle empty input
   it("should return an empty buffer for empty input", () => {
-    const tokens: (string | number)[] = [];
-    const result = parse(tokens);
-    expect(result).toEqual([]);
+    const tokens = [] as (string | number)[];
+    parse(tokens);
+    const result = getItems(vm.buffer);
+    expect(result).toEqual([exitDef]);
   });
 
   // Test 6: Handle nested compilation blocks
   it("should handle nested compilation blocks", () => {
     const tokens = ["{", 5, "}", "{", 3, "}", "+"];
-    const result = parse(tokens);
+    parse(tokens);
+    const result = getItems(vm.buffer);
     expect(result).toEqual([
-      builtins["{"], // Function reference for `{`
-      literalNumber, // Function reference for `literalNumber`
-      5, // Number
-      builtins["}"], // Function reference for `}`
-      builtins["{"], // Function reference for `{`
-      literalNumber, // Function reference for `literalNumber`
-      3, // Number
-      builtins["}"], // Function reference for `}`
-      builtins["+"], // Function reference for `+`
+      builtins["{"],
+      literalNumber,
+      5,
+      builtins["}"],
+      builtins["{"],
+      literalNumber,
+      3,
+      builtins["}"],
+      builtins["+"],
+      exitDef,
     ]);
   });
 });

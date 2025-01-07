@@ -1,22 +1,7 @@
 import { vm } from "./globalState";
 import { immediateWords } from "./builtins";
-import { Verb } from "./types";
-import { next, reset } from "./memory";
-
-export function executeWord(word: Verb): void {
-  try {
-    word();
-  } catch (error) {
-    const stackState = vm.stack; // Capture the current stack state
-    const errorMessage =
-      error instanceof Error
-        ? `Error executing word (stack: ${JSON.stringify(stackState)}): ${
-            error.message
-          }`
-        : `Unknown error executing word (stack: ${JSON.stringify(stackState)})`;
-    throw new Error(errorMessage); // Rethrow with additional context
-  }
-}
+import { getItems, next, push, reset } from "./memory";
+import { isVerb } from "./utils";
 
 /**
  * Executes a command.
@@ -25,14 +10,33 @@ export function executeWord(word: Verb): void {
  */
 export function execute(): void {
   // Infinite loop: rely on words to control the IP
-  reset(vm.buffer)
+  reset(vm.buffer);
+  vm.IP.ofs = vm.buffer.base;
   while (vm.running) {
-    const word = next(vm.IP);
-    console.log("item", word);
-    if (word === undefined) throw new Error("Unexpected end of buffer");
-    if (typeof word === "number")
+    const cell = next(vm.IP);
+    // console.log("item", cell);
+    if (cell === undefined) throw new Error("Unexpected end of buffer");
+    if (typeof cell === "number")
       throw new Error("Unexpected number in buffer");
-    if (!vm.compileMode || immediateWords.includes(word)) executeWord(word);
-    else vm.compileBuffer.push(word);
+    if (isVerb(cell)) {
+      // console.log("immediate", immediateWords.includes(cell));
+      if (vm.compileMode && !immediateWords.includes(cell)) {
+        push(vm.compileBuffer, cell);
+      } else {
+        try {
+          cell();
+        } catch (error) {
+          const stackState = JSON.stringify(getItems(vm.stack));
+          const errorMessage =
+            `Unknown error executing word (stack: ${stackState})` +
+            (error instanceof Error ? `:${error.message}` : "");
+          throw new Error(errorMessage);
+        }
+      }
+    } else if (typeof cell === "number") {
+      throw new Error(`Unexpected number: ${cell}`);
+    } else {
+      throw new Error(`Unexpected object: ${JSON.stringify(cell)}`);
+    }
   }
 }

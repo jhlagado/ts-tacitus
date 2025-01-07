@@ -41,8 +41,17 @@ export function getRef(src: Ref, ofs: number): Ref {
 //   return ref.data[ref.ofs];
 // }
 
-export function getData(ref: Ref, start: number, end: number): Cell {
-  return ref.data.slice(ref.base + start, ref.base + end);
+export function getData(ref: Ref, start: number, length: number): Cell[] {
+  console.log("start", ref.base, start, length);
+  for (let i = start; i < start + length; i++) {
+    console.log(ref.data[ref.base + i]);
+  }
+  console.log("end");
+  return ref.data.slice(ref.base + start, ref.base + start + length);
+}
+
+export function getItems(ref: Ref): Cell[] {
+  return ref.data.slice(ref.base, ref.ofs);
 }
 
 // export function set(ref: Ref, value: Cell): void {
@@ -74,10 +83,6 @@ export function reset(ref: Ref): void {
   ref.ofs = ref.base;
 }
 
-// export function next(ref: Ref): Cell {
-//   return ref.data[ref.ofs++];
-// }
-
-export function getItems(ref: Ref): Cell[] {
-  return ref.data.slice(ref.base, ref.ofs);
+export function next(ref: Ref): Cell {
+  return ref.data[ref.ofs++];
 }

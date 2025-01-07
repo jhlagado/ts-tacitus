@@ -1,5 +1,5 @@
 import { vm } from "./globalState";
-import { pop, push, reset } from "./memory";
+import { next, pop, push, reset } from "./memory";
 import { Verb } from "./types";
 
 export const leftBrace = () => {
@@ -27,6 +27,7 @@ export const rightBrace = () => {
 
   if (vm.nestingScore === 0) {
     // Exit compilation mode and push the compiled block onto the stack
+    push(vm.compileBuffer, exitDef);
     vm.compileMode = false;
     push(vm.stack, vm.compileBuffer.base);
   } else {
@@ -42,10 +43,12 @@ export const rightBrace = () => {
  */
 export const literalNumber = () => {
   console.log("Executing literalNumber");
-  // Implementation will be added later
+  const num = next(vm.IP);
   if (vm.compileMode) {
     push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, 0);
+    push(vm.compileBuffer, num);
+  } else {
+    push(vm.stack, num);
   }
 };
 

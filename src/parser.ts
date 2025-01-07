@@ -1,4 +1,4 @@
-import { literalNumber } from "./builtins";
+import { exitDef, literalNumber } from "./builtins";
 import { find } from "./dictionary";
 import { vm } from "./globalState";
 import { push, reset } from "./memory";
@@ -22,4 +22,5 @@ export function parse(tokens: (string | number)[]) {
       push(vm.buffer, fn);
     }
   }
+  push(vm.buffer, exitDef);
 }
