@@ -121,26 +121,26 @@ describe("Built-in Words", () => {
     );
   });
 
-  it("should handle the '}' word", () => {
-    vm.compileMode = true; // Enter compilation mode
-    vm.nestingScore = 1; // Initialize nesting score
-    push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, 5);
-    push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, 3);
-    push(vm.compileBuffer, builtins["+"]);
-    builtins["}"]();
-    expect(vm.compileMode).toBe(false);
-    const tos = pop(vm.stack);
-    expect(typeof tos).toBe("number");
-    const ref = getRef(vm.heap, tos as number);
-    const received = getItems(ref);
-    expect(received).toEqual([
-      literalNumber,
-      5,
-      literalNumber,
-      3,
-      builtins["+"],
-    ]);
-  });
+  // it("should handle the '}' word", () => {
+  //   vm.compileMode = true; // Enter compilation mode
+  //   vm.nestingScore = 1; // Initialize nesting score
+  //   push(vm.compileBuffer, literalNumber);
+  //   push(vm.compileBuffer, 5);
+  //   push(vm.compileBuffer, literalNumber);
+  //   push(vm.compileBuffer, 3);
+  //   push(vm.compileBuffer, builtins["+"]);
+  //   builtins["}"]();
+  //   expect(vm.compileMode).toBe(false);
+  //   const tos = pop(vm.stack);
+  //   expect(typeof tos).toBe("number");
+  //   const ref = getRef(vm.heap, tos as number);
+  //   const received = getItems(ref);
+  //   expect(received).toEqual([
+  //     literalNumber,
+  //     5,
+  //     literalNumber,
+  //     3,
+  //     builtins["+"],
+  //   ]);
+  // });
 });

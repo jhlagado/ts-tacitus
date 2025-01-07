@@ -3,7 +3,8 @@ import { builtins, literalNumber, exitDef } from "./builtins";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import { getData, getItems, pop } from "./memory";
+import { getData, getItems, pop, setData } from "./memory";
+import { Verb } from "./types";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -56,5 +57,30 @@ describe("Interpreter", () => {
     execute();
     const received = getItems(vm.stack);
     expect(received).toEqual([16]);
+  });
+
+  it("should throw an error if a number is encountered in the buffer", () => {
+    setData(vm.buffer, 0, [42]);
+    vm.running = true;
+    expect(() => execute()).toThrowError("Unexpected number in buffer");
+  });
+
+  it("should throw an error if an unknown type is encountered in the buffer", () => {
+    setData(vm.buffer, 0, [{ unknown: "type" }]);
+    vm.running = true;
+    expect(() => execute()).toThrowError(
+      'Unexpected object: {"unknown":"type"}'
+    );
+  });
+
+  it("should throw an error if executing a verb throws an error", () => {
+    const mockVerb: Verb = jest.fn(() => {
+      throw new Error("Mock error");
+    });
+    setData(vm.buffer, 0, [mockVerb]);
+    vm.running = true;
+    expect(() => execute()).toThrowError(
+      "Unknown error executing word (stack: []):Mock error"
+    );
   });
 });

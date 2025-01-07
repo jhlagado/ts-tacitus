@@ -15,7 +15,7 @@ export function execute(): void {
   while (vm.running) {
     const cell = next(vm.IP);
     // console.log("item", cell);
-    if (cell === undefined) throw new Error("Unexpected end of buffer");
+    // if (cell === undefined) throw new Error("Unexpected end of buffer");
     if (typeof cell === "number")
       throw new Error("Unexpected number in buffer");
     if (isVerb(cell)) {

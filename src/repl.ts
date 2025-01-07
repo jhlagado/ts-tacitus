@@ -2,9 +2,9 @@ import { createInterface } from "readline";
 import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
-import { exitDef } from "./builtins";
 import { initializeInterpreter } from "./globalState";
-import { reset } from "./memory";
+import { getItems, reset } from "./memory";
+import { vm } from "./globalState";
 
 /**
  * Starts the Read-Eval-Print Loop (REPL) for the interpreter.
@@ -29,13 +29,12 @@ export function startREPL(): void {
     }
 
     try {
-      const tokens = lex(command); // Tokenize the input string
       reset(vm.buffer);
-      const buffer = parse(tokens); // Parse the tokens into a buffer of instructions
-      buffer.push(exitDef)
-      const vm.IP = buffer;
-      const result = execute(buffer);
-      console.log(result);
+      const tokens = lex(command); // Tokenize the input string
+      parse(tokens); // Parse the tokens into a buffer of instructions
+      vm.IP.ofs = vm.buffer.base;
+      execute();
+      console.log(getItems(vm.stack));
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
