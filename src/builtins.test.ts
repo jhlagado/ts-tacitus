@@ -1,10 +1,9 @@
 import { initializeInterpreter, vm } from "./globalState";
-import { builtins, literalNumber } from "./builtins";
-import { getItems, getRef, pop, push } from "./memory";
+import { builtins, exitDef, literalNumber } from "./builtins";
+import { getItems, pop, push } from "./memory";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
-    console.log("Resetting VM state..."); // Debug log
     initializeInterpreter(); // Reset the interpreter state before each test
   });
 
@@ -14,7 +13,6 @@ describe("Built-in Words", () => {
     push(vm.stack, 3);
     builtins["+"]();
     const received = getItems(vm.stack);
-    console.log({ received });
     expect(received).toEqual([8]);
   });
 
@@ -108,9 +106,7 @@ describe("Built-in Words", () => {
 
   it("should handle nested '{' words", () => {
     builtins["{"](); // Enter compilation mode
-    console.log("After first '{':", vm.compileBuffer); // Debug log
     builtins["{"](); // Treat second '{' as a regular word
-    console.log("After second '{':", vm.compileBuffer); // Debug log
     const received = getItems(vm.compileBuffer);
     expect(received).toEqual([builtins["{"]]);
   });
@@ -121,26 +117,27 @@ describe("Built-in Words", () => {
     );
   });
 
-  // it("should handle the '}' word", () => {
-  //   vm.compileMode = true; // Enter compilation mode
-  //   vm.nestingScore = 1; // Initialize nesting score
-  //   push(vm.compileBuffer, literalNumber);
-  //   push(vm.compileBuffer, 5);
-  //   push(vm.compileBuffer, literalNumber);
-  //   push(vm.compileBuffer, 3);
-  //   push(vm.compileBuffer, builtins["+"]);
-  //   builtins["}"]();
-  //   expect(vm.compileMode).toBe(false);
-  //   const tos = pop(vm.stack);
-  //   expect(typeof tos).toBe("number");
-  //   const ref = getRef(vm.heap, tos as number);
-  //   const received = getItems(ref);
-  //   expect(received).toEqual([
-  //     literalNumber,
-  //     5,
-  //     literalNumber,
-  //     3,
-  //     builtins["+"],
-  //   ]);
-  // });
+  it("should handle the '}' word", () => {
+    vm.compileMode = true; // Enter compilation mode
+    vm.nestingScore = 1; // Initialize nesting score
+    push(vm.compileBuffer, literalNumber);
+    push(vm.compileBuffer, 5);
+    push(vm.compileBuffer, literalNumber);
+    push(vm.compileBuffer, 3);
+    push(vm.compileBuffer, builtins["+"]);
+    builtins["}"]();
+    expect(vm.compileMode).toBe(false);
+    const tos = pop(vm.stack);
+    expect(typeof tos).toBe("number");
+    expect(tos).toBe(vm.compileBuffer.base);
+    const received = getItems(vm.compileBuffer);
+    expect(received).toEqual([
+      literalNumber,
+      5,
+      literalNumber,
+      3,
+      builtins["+"],
+      exitDef
+    ]);
+  });
 });

@@ -6,7 +6,6 @@ import { builtins } from "./builtins";
 export let vm = {} as VM;
 
 export function initializeInterpreter(): void {
-  console.log("Initializing interpreter");
   vm.heap = createHeap(10000);
   vm.stack = allot(vm.heap, 100);
   vm.rstack = allot(vm.heap, 100);

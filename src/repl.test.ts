@@ -1,5 +1,6 @@
 import { createInterface } from "readline";
 import { startREPL } from "./repl";
+import * as parser from "./parser"; // Import the interpreter module
 import * as interpreter from "./interpreter"; // Import the interpreter module
 
 jest.mock("readline");
@@ -74,9 +75,11 @@ describe("REPL", () => {
     const consoleLogSpy = jest
       .spyOn(console, "log")
       .mockImplementation(() => {});
-    const executeSpy = jest.spyOn(interpreter, "execute").mockImplementation(() => {
-      console.log([8]); // Simulate the output of the execute function
-    });
+    const executeSpy = jest
+      .spyOn(interpreter, "execute")
+      .mockImplementation(() => {
+        console.log([8]); // Simulate the output of the execute function
+      });
 
     startREPL();
 
@@ -93,34 +96,36 @@ describe("REPL", () => {
     executeSpy.mockRestore();
   });
 
-  // it("should handle an unknown word", () => {
-  //   mockOn.mockImplementation((event, callback) => {
-  //     if (event === "line") {
-  //       callback("unknown"); // Simulate an unknown word
-  //     }
-  //   });
+  it("should handle an unknown word", () => {
+    mockOn.mockImplementation((event, callback) => {
+      if (event === "line") {
+        callback("unknown"); // Simulate an unknown word
+      }
+    });
 
-  //   const consoleErrorSpy = jest
-  //     .spyOn(console, "error")
-  //     .mockImplementation(() => {});
-  //   const executeSpy = jest.spyOn(interpreter, "execute").mockImplementation(() => {
-  //     throw new Error("Unknown word: unknown");
-  //   });
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const parseSpy = jest.spyOn(parser, "parse").mockImplementation(() => {
+      throw new Error("Unknown word: unknown");
+    });
 
-  //   startREPL();
+    startREPL();
 
-  //   // Verify 'execute' is called
-  //   expect(executeSpy).toHaveBeenCalled();
+    // Verify 'execute' is called
+    expect(parseSpy).toHaveBeenCalled();
 
-  //   // Verify the error message is logged
-  //   expect(consoleErrorSpy).toHaveBeenCalledWith("Error: Unknown word: unknown");
+    // Verify the error message is logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Error: Unknown word: unknown"
+    );
 
-  //   // Verify 'prompt' is called again after processing the command
-  //   expect(mockPrompt).toHaveBeenCalledTimes(2); // Initial + after execution
+    // Verify 'prompt' is called again after processing the command
+    expect(mockPrompt).toHaveBeenCalledTimes(2); // Initial + after execution
 
-  //   consoleErrorSpy.mockRestore();
-  //   executeSpy.mockRestore();
-  // });
+    consoleErrorSpy.mockRestore();
+    parseSpy.mockRestore();
+  });
 
   it("should handle a stack underflow error", () => {
     mockOn.mockImplementation((event, callback) => {
@@ -132,9 +137,13 @@ describe("REPL", () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    const executeSpy = jest.spyOn(interpreter, "execute").mockImplementation(() => {
-      throw new Error("Error executing word '+' (stack: []): Stack underflow");
-    });
+    const executeSpy = jest
+      .spyOn(interpreter, "execute")
+      .mockImplementation(() => {
+        throw new Error(
+          "Error executing word '+' (stack: []): Stack underflow"
+        );
+      });
 
     startREPL();
 

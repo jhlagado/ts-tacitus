@@ -24,39 +24,16 @@ export function mark(heap: Ref): Ref {
 }
 
 export function getRef(src: Ref, ofs: number): Ref {
-  return { data: src.data, base: ofs, ofs };
+  return { data: src.data, base: src.base, ofs };
 }
 
-// export function setRef(src: Ref, ref: Ref): void {
-//   ref.ofs = src.ofs;
-// }
-
-// export function forget(heap: Ref, mark: Ref) {
-//   const size = heap.ofs - mark.ofs;
-//   heap.ofs = mark.ofs;
-//   return size;
-// }
-
-// export function get(ref: Ref): Cell {
-//   return ref.data[ref.ofs];
-// }
-
 export function getData(ref: Ref, start: number, length: number): Cell[] {
-  console.log("start", ref.base, start, length);
-  for (let i = start; i < start + length; i++) {
-    console.log(ref.data[ref.base + i]);
-  }
-  console.log("end");
   return ref.data.slice(ref.base + start, ref.base + start + length);
 }
 
 export function getItems(ref: Ref): Cell[] {
   return ref.data.slice(ref.base, ref.ofs);
 }
-
-// export function set(ref: Ref, value: Cell): void {
-//   ref.data[ref.ofs] = value;
-// }
 
 export function setData(ref: Ref, start: number, values: Cell[]): void {
   for (let i = 0; i < values.length; i++) {
@@ -86,3 +63,22 @@ export function reset(ref: Ref): void {
 export function next(ref: Ref): Cell {
   return ref.data[ref.ofs++];
 }
+
+// export function setRef(src: Ref, ref: Ref): void {
+//   ref.ofs = src.ofs;
+// }
+
+// export function forget(heap: Ref, mark: Ref) {
+//   const size = heap.ofs - mark.ofs;
+//   heap.ofs = mark.ofs;
+//   return size;
+// }
+
+// export function get(ref: Ref): Cell {
+//   return ref.data[ref.ofs];
+// }
+
+// export function set(ref: Ref, value: Cell): void {
+//   ref.data[ref.ofs] = value;
+// }
+

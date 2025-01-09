@@ -3,7 +3,6 @@ import { next, pop, push, reset } from "./memory";
 import { Verb } from "./types";
 
 export const leftBrace = () => {
-  console.log(`Executing {, nestingScore: ${vm.nestingScore}`);
   if (vm.compileMode) {
     // If already in compile mode, treat "{" as a regular word
     push(vm.compileBuffer, builtins["{"]);
@@ -13,11 +12,9 @@ export const leftBrace = () => {
     reset(vm.compileBuffer);
   }
   vm.nestingScore++;
-  console.log(`exit Executing {, nestingScore: ${vm.nestingScore}`);
 };
 
 export const rightBrace = () => {
-  console.log(`Executing }, nestingScore: ${vm.nestingScore}`);
   if (!vm.compileMode) {
     throw new Error("Unexpected '}' outside compilation mode");
   }
@@ -34,7 +31,6 @@ export const rightBrace = () => {
     // If still in a nested block, treat "}" as a regular word
     push(vm.compileBuffer, builtins["}"]);
   }
-  console.log(`exit Executing }, nestingScore: ${vm.nestingScore}`);
 };
 
 /**
@@ -42,7 +38,6 @@ export const rightBrace = () => {
  * Implementation is left empty for now.
  */
 export const literalNumber = () => {
-  console.log("Executing literalNumber");
   const num = next(vm.IP);
   if (vm.compileMode) {
     push(vm.compileBuffer, literalNumber);
@@ -57,7 +52,6 @@ export const literalNumber = () => {
  * For now, this is empty. It will be used to control the IP later.
  */
 export const exitDef = () => {
-  console.log("Executing exitDef");
   vm.running = false;
   // Implementation will be added later
 };
@@ -69,7 +63,6 @@ export const immediateWords = [leftBrace, rightBrace, literalNumber];
  */
 export const builtins: Record<string, Verb> = {
   "+": () => {
-    console.log("Executing +");
     const b = pop(vm.stack);
     const a = pop(vm.stack);
     if (typeof a === "number" && typeof b === "number") {
@@ -80,7 +73,6 @@ export const builtins: Record<string, Verb> = {
   },
 
   "-": () => {
-    console.log("Executing -");
     const b = pop(vm.stack);
     const a = pop(vm.stack);
     if (typeof a === "number" && typeof b === "number") {
@@ -91,7 +83,6 @@ export const builtins: Record<string, Verb> = {
   },
 
   "*": () => {
-    console.log("Executing *");
     const b = pop(vm.stack);
     const a = pop(vm.stack);
     if (typeof a === "number" && typeof b === "number") {
@@ -102,7 +93,6 @@ export const builtins: Record<string, Verb> = {
   },
 
   "/": () => {
-    console.log("Executing /");
     const b = pop(vm.stack);
     const a = pop(vm.stack);
 
@@ -118,7 +108,6 @@ export const builtins: Record<string, Verb> = {
   },
 
   dup: () => {
-    console.log("Executing dup");
     const a = pop(vm.stack);
     if (a !== undefined) {
       push(vm.stack, a);
@@ -127,12 +116,10 @@ export const builtins: Record<string, Verb> = {
   },
 
   drop: () => {
-    console.log("Executing drop");
     pop(vm.stack);
   },
 
   swap: () => {
-    console.log("Executing swap");
     const a = pop(vm.stack);
     const b = pop(vm.stack);
     if (a !== undefined && b !== undefined) {

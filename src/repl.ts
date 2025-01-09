@@ -3,7 +3,7 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { initializeInterpreter } from "./globalState";
-import { getItems, reset } from "./memory";
+import { reset } from "./memory";
 import { vm } from "./globalState";
 
 /**
@@ -34,7 +34,6 @@ export function startREPL(): void {
       parse(tokens); // Parse the tokens into a buffer of instructions
       vm.IP.ofs = vm.buffer.base;
       execute();
-      console.log(getItems(vm.stack));
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

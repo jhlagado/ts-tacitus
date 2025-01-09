@@ -14,12 +14,9 @@ export function execute(): void {
   vm.IP.ofs = vm.buffer.base;
   while (vm.running) {
     const cell = next(vm.IP);
-    // console.log("item", cell);
-    // if (cell === undefined) throw new Error("Unexpected end of buffer");
     if (typeof cell === "number")
       throw new Error("Unexpected number in buffer");
     if (isVerb(cell)) {
-      // console.log("immediate", immediateWords.includes(cell));
       if (vm.compileMode && !immediateWords.includes(cell)) {
         push(vm.compileBuffer, cell);
       } else {
