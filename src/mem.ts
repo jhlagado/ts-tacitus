@@ -70,7 +70,6 @@ export function free(memory: Memory, pointer: number): void {
   if (pointer === NIL) return; // Nothing to free
 
   let current = pointer;
-  const oldFreeListHead = memory.freeList; // Save the current head of the free list
 
   // Traverse to the end of the chain of blocks being freed
   while (memory.data[current] !== NIL) {
@@ -78,7 +77,7 @@ export function free(memory: Memory, pointer: number): void {
   }
 
   // Make the last block in the freed chain point to the old free list head
-  memory.data[current] = oldFreeListHead;
+  memory.data[current] = memory.freeList;
 
   // Update the free list head to point to the start of the freed chain
   memory.freeList = pointer;

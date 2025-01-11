@@ -120,8 +120,8 @@ describe("Memory Allocator", () => {
       expect(ptr1).toBe(0); // First allocation starts at block 0
       expect(ptr2).toBe(16); // Second allocation starts at block 16
 
-      free(memory, ptr1); // Free the first allocation
       free(memory, ptr2); // Free the second allocation
+      free(memory, ptr1); // Free the first allocation
 
       const ptr3 = malloc(memory, 30); // Allocate 2 blocks again
       expect(ptr3).toBe(0); // Reuse the freed blocks
@@ -139,18 +139,18 @@ describe("Memory Allocator", () => {
       expect(memory.freeList).not.toBe(ptr4); // Free list should not point to the allocated block
     });
 
-    //   it("should handle allocating all memory and then freeing it", () => {
-    //     // Allocate all memory
-    //     const ptr1 = malloc(memory, MEMORY_SIZE);
-    //     expect(ptr1).toBe(0); // All memory is allocated
+      it("should handle allocating all memory and then freeing it", () => {
+        // Allocate all memory
+        const ptr1 = malloc(memory, MEMORY_SIZE);
+        expect(ptr1).toBe(0); // All memory is allocated
 
-    //     // Free all memory
-    //     free(memory, ptr1);
-    //     expect(memory.freeList).toBe(0); // Free list is restored to the beginning
+        // Free all memory
+        free(memory, ptr1);
+        expect(memory.freeList).toBe(0); // Free list is restored to the beginning
 
-    //     // Allocate again
-    //     const ptr2 = malloc(memory, 16);
-    //     expect(ptr2).toBe(0); // Reuse the freed memory
-    //   });
+        // Allocate again
+        const ptr2 = malloc(memory, 16);
+        expect(ptr2).toBe(0); // Reuse the freed memory
+      });
   });
 });
