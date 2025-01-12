@@ -3,7 +3,7 @@ import { builtins, literalNumber, exitDef } from "./builtins";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import { getData, getItems, pop, setData } from "./memory";
+import { getData, getItems, setData } from "./memory";
 import { Verb } from "./types";
 
 describe("Interpreter", () => {
