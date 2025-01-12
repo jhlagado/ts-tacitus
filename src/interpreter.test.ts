@@ -15,7 +15,7 @@ describe("Interpreter", () => {
     const tokens = lex("{ 5 3 + }");
     parse(tokens);
     execute();
-    const tos = pop(vm.stack) as number;
+    const tos = vm.pop() as number;
     const received = getData(vm.heap, tos, 6);
     expect(received).toEqual([
       literalNumber,

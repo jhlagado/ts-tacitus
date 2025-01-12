@@ -24,7 +24,7 @@ export const rightBrace = (vm: VM) => {
 
   if (vm.compiler.nestingScore === 0) {
     // Exit compilation mode and push the compiled block onto the stack
-    vm.compiler.compile(vm.compiler.compileBuffer,exitDef);
+    vm.compiler.compile(vm.compiler.compileBuffer, exitDef);
     vm.compiler.compileMode = false;
     vm.push(vm.compiler.compileBuffer.base);
   } else {
@@ -37,10 +37,10 @@ export const rightBrace = (vm: VM) => {
  * Internal function to handle literal numbers.
  */
 export const literalNumber = (vm: VM) => {
-  const num = vm.next();
+  const num = vm.next() as number;
   if (vm.compiler.compileMode) {
-    vm.push(literalNumber);
-    vm.push(num);
+    vm.compiler.compile(vm.compiler.compileBuffer, literalNumber);
+    vm.compiler.compile(vm.compiler.compileBuffer, num);
   } else {
     vm.push(num);
   }
