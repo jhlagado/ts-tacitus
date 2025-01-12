@@ -13,12 +13,6 @@ export function allot(heap: Ref, size: number): Ref {
   return ref;
 }
 
-// export function free(heap: Ref, size: number): Ref {
-//   const ref = { ...heap };
-//   heap.ofs -= size;
-//   return ref;
-// }
-
 export function mark(heap: Ref): Ref {
   return { ...heap };
 }
@@ -52,10 +46,6 @@ export function pop(ref: Ref): Cell {
   return ref.data[--ref.ofs];
 }
 
-// export function peek(ref: Ref): Cell {
-//   return ref.data[ref.ofs];
-// }
-
 export function reset(ref: Ref): void {
   ref.ofs = ref.base;
 }
@@ -63,22 +53,4 @@ export function reset(ref: Ref): void {
 export function next(ref: Ref): Cell {
   return ref.data[ref.ofs++];
 }
-
-// export function setRef(src: Ref, ref: Ref): void {
-//   ref.ofs = src.ofs;
-// }
-
-// export function forget(heap: Ref, mark: Ref) {
-//   const size = heap.ofs - mark.ofs;
-//   heap.ofs = mark.ofs;
-//   return size;
-// }
-
-// export function get(ref: Ref): Cell {
-//   return ref.data[ref.ofs];
-// }
-
-// export function set(ref: Ref, value: Cell): void {
-//   ref.data[ref.ofs] = value;
-// }
 

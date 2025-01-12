@@ -1,59 +1,56 @@
-import { vm } from "./globalState";
-import { next, pop, push, reset } from "./memory";
-import { Verb } from "./types";
+import { VM } from "./vm";
+import { reset } from "./memory";
+import { Verb } from "./types"; // Ensure Verb type is imported
 
-export const leftBrace = () => {
-  if (vm.compileMode) {
+export const leftBrace = (vm: VM) => {
+  if (vm.compiler.compileMode) {
     // If already in compile mode, treat "{" as a regular word
-    push(vm.compileBuffer, builtins["{"]);
+    vm.compiler.compile(vm.compiler.compileBuffer, builtins["{"]);
   } else {
     // Enter compilation mode
-    vm.compileMode = true;
-    reset(vm.compileBuffer);
+    vm.compiler.compileMode = true;
+    reset(vm.compiler.compileBuffer);
   }
-  vm.nestingScore++;
+  vm.compiler.nestingScore++;
 };
 
-export const rightBrace = () => {
-  if (!vm.compileMode) {
+export const rightBrace = (vm: VM) => {
+  if (!vm.compiler.compileMode) {
     throw new Error("Unexpected '}' outside compilation mode");
   }
 
   // Decrement the nesting score
-  vm.nestingScore--;
+  vm.compiler.nestingScore--;
 
-  if (vm.nestingScore === 0) {
+  if (vm.compiler.nestingScore === 0) {
     // Exit compilation mode and push the compiled block onto the stack
-    push(vm.compileBuffer, exitDef);
-    vm.compileMode = false;
-    push(vm.stack, vm.compileBuffer.base);
+    vm.compiler.compile(vm.compiler.compileBuffer,exitDef);
+    vm.compiler.compileMode = false;
+    vm.push(vm.compiler.compileBuffer.base);
   } else {
     // If still in a nested block, treat "}" as a regular word
-    push(vm.compileBuffer, builtins["}"]);
+    vm.compiler.compile(vm.compiler.compileBuffer, builtins["}"]);
   }
 };
 
 /**
  * Internal function to handle literal numbers.
- * Implementation is left empty for now.
  */
-export const literalNumber = () => {
-  const num = next(vm.IP);
-  if (vm.compileMode) {
-    push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, num);
+export const literalNumber = (vm: VM) => {
+  const num = vm.next();
+  if (vm.compiler.compileMode) {
+    vm.push(literalNumber);
+    vm.push(num);
   } else {
-    push(vm.stack, num);
+    vm.push(num);
   }
 };
 
 /**
  * Internal function to signal the end of execution.
- * For now, this is empty. It will be used to control the IP later.
  */
-export const exitDef = () => {
+export const exitDef = (vm: VM) => {
   vm.running = false;
-  // Implementation will be added later
 };
 
 export const immediateWords = [leftBrace, rightBrace, literalNumber];
@@ -62,39 +59,39 @@ export const immediateWords = [leftBrace, rightBrace, literalNumber];
  * Built-in words for the interpreter.
  */
 export const builtins: Record<string, Verb> = {
-  "+": () => {
-    const b = pop(vm.stack);
-    const a = pop(vm.stack);
+  "+": (vm: VM) => {
+    const b = vm.pop();
+    const a = vm.pop();
     if (typeof a === "number" && typeof b === "number") {
-      push(vm.stack, a + b);
+      vm.push(a + b);
     } else {
       throw new Error("Expected numbers on the stack");
     }
   },
 
-  "-": () => {
-    const b = pop(vm.stack);
-    const a = pop(vm.stack);
+  "-": (vm: VM) => {
+    const b = vm.pop();
+    const a = vm.pop();
     if (typeof a === "number" && typeof b === "number") {
-      push(vm.stack, a - b);
+      vm.push(a - b);
     } else {
       throw new Error("Expected numbers on the stack");
     }
   },
 
-  "*": () => {
-    const b = pop(vm.stack);
-    const a = pop(vm.stack);
+  "*": (vm: VM) => {
+    const b = vm.pop();
+    const a = vm.pop();
     if (typeof a === "number" && typeof b === "number") {
-      push(vm.stack, a * b);
+      vm.push(a * b);
     } else {
       throw new Error("Expected numbers on the stack");
     }
   },
 
-  "/": () => {
-    const b = pop(vm.stack);
-    const a = pop(vm.stack);
+  "/": (vm: VM) => {
+    const b = vm.pop();
+    const a = vm.pop();
 
     if (typeof a !== "number" || typeof b !== "number") {
       throw new Error("Expected numbers on the stack");
@@ -104,27 +101,27 @@ export const builtins: Record<string, Verb> = {
       throw new Error("Division by zero");
     }
 
-    push(vm.stack, a / b);
+    vm.push(a / b);
   },
 
-  dup: () => {
-    const a = pop(vm.stack);
+  dup: (vm: VM) => {
+    const a = vm.pop();
     if (a !== undefined) {
-      push(vm.stack, a);
-      push(vm.stack, a);
+      vm.push(a);
+      vm.push(a);
     }
   },
 
-  drop: () => {
-    pop(vm.stack);
+  drop: (vm: VM) => {
+    vm.pop();
   },
 
-  swap: () => {
-    const a = pop(vm.stack);
-    const b = pop(vm.stack);
+  swap: (vm: VM) => {
+    const a = vm.pop();
+    const b = vm.pop();
     if (a !== undefined && b !== undefined) {
-      push(vm.stack, a);
-      push(vm.stack, b);
+      vm.push(a);
+      vm.push(b);
     }
   },
 

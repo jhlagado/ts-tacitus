@@ -1,26 +1,20 @@
-import { exitDef, literalNumber } from "./builtins";
-import { find } from "./dictionary";
+import { literalNumber, exitDef } from "./builtins";
 import { vm } from "./globalState";
-import { push, reset } from "./memory";
+import { reset } from "./memory";
 
-/**
- * Parses tokens into a buffer of instructions.
- * @param tokens - The tokens to parse.
- * @returns A buffer of instructions (Word functions or numbers).
- */
 export function parse(tokens: (string | number)[]) {
   reset(vm.buffer);
   for (const token of tokens) {
     if (typeof token === "number") {
-      push(vm.buffer, literalNumber);
-      push(vm.buffer, token);
+      vm.compiler.compile(vm.buffer, literalNumber);
+      vm.compiler.compile(vm.buffer, token);
     } else {
-      const fn = find(vm.dictionary, token);
+      const fn = vm.compiler.dictionary[token]; // Use vm.compiler.dictionary
       if (!fn) {
         throw new Error(`Unknown word: ${token}`);
       }
-      push(vm.buffer, fn);
+      vm.compiler.compile(vm.buffer, fn);
     }
   }
-  push(vm.buffer, exitDef);
+  vm.compiler.compile(vm.buffer, exitDef);
 }

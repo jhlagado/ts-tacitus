@@ -11,7 +11,7 @@ describe("Parser", () => {
 
     // Load built-in words into the dictionary
     for (const [name, word] of Object.entries(builtins)) {
-      define(vm.dictionary, name, word);
+      define(vm.compiler.dictionary, name, word);
     }
   });
 

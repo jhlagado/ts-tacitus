@@ -1,29 +1,23 @@
 import { vm } from "./globalState";
 import { immediateWords } from "./builtins";
-import { getItems, next, push, reset } from "./memory";
 import { isVerb } from "./utils";
 
-/**
- * Executes a command.
- * @param command - The command to execute.
- * @throws {Error} If an unknown word is encountered.
- */
 export function execute(): void {
-  // Infinite loop: rely on words to control the IP
-  reset(vm.buffer);
+  vm.resetBuffer();
   vm.IP.ofs = vm.buffer.base;
   while (vm.running) {
-    const cell = next(vm.IP);
-    if (typeof cell === "number")
+    const cell = vm.next();
+    if (typeof cell === "number") {
       throw new Error("Unexpected number in buffer");
+    }
     if (isVerb(cell)) {
-      if (vm.compileMode && !immediateWords.includes(cell)) {
-        push(vm.compileBuffer, cell);
+      if (vm.compiler.compileMode && !immediateWords.includes(cell)) {
+        vm.compiler.compile(cell); // Use vm.compiler.compile for compileBuffer
       } else {
         try {
-          cell();
+          cell(vm); // Pass vm to the verb
         } catch (error) {
-          const stackState = JSON.stringify(getItems(vm.stack));
+          const stackState = JSON.stringify(vm.getStackItems());
           const errorMessage =
             `Unknown error executing word (stack: ${stackState})` +
             (error instanceof Error ? `:${error.message}` : "");

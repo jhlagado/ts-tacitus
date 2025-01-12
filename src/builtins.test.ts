@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from "./globalState";
 import { builtins, exitDef, literalNumber } from "./builtins";
-import { getItems, pop, push } from "./memory";
+import { getItems } from "./memory";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -9,128 +9,132 @@ describe("Built-in Words", () => {
 
   // Test 1: Arithmetic operations
   it("should handle the '+' word", () => {
-    push(vm.stack, 5);
-    push(vm.stack, 3);
-    builtins["+"]();
-    const received = getItems(vm.stack);
+    vm.push(5);
+    vm.push(3);
+    builtins["+"](vm); // Pass vm to the verb
+    const received = vm.getStackItems();
     expect(received).toEqual([8]);
   });
 
   it("should throw an error for '+' with insufficient stack items", () => {
-    push(vm.stack, 5);
-    expect(() => builtins["+"]()).toThrow("Stack underflow");
+    vm.push(5);
+    expect(() => builtins["+"](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '-' word", () => {
-    push(vm.stack, 5);
-    push(vm.stack, 3);
-    builtins["-"]();
-    expect(getItems(vm.stack)).toEqual([2]);
+    vm.push(5);
+    vm.push(3);
+    builtins["-"](vm);
+    expect(vm.getStackItems()).toEqual([2]);
   });
 
   it("should throw an error for '-' with insufficient stack items", () => {
-    push(vm.stack, 5);
-    expect(() => builtins["-"]()).toThrow("Stack underflow");
+    vm.push(5);
+    expect(() => builtins["-"](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '*' word", () => {
-    push(vm.stack, 5);
-    push(vm.stack, 3);
-    builtins["*"]();
-    expect(getItems(vm.stack)).toEqual([15]);
+    vm.push(5);
+    vm.push(3);
+    builtins["*"](vm);
+    expect(vm.getStackItems()).toEqual([15]);
   });
 
   it("should throw an error for '*' with insufficient stack items", () => {
-    push(vm.stack, 5);
-    expect(() => builtins["*"]()).toThrow("Stack underflow");
+    vm.push(5);
+    expect(() => builtins["*"](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '/' word", () => {
-    push(vm.stack, 6);
-    push(vm.stack, 3);
-    builtins["/"]();
-    expect(getItems(vm.stack)).toEqual([2]);
+    vm.push(6);
+    vm.push(3);
+    builtins["/"](vm);
+    expect(vm.getStackItems()).toEqual([2]);
   });
 
   it("should throw an error for '/' with insufficient stack items", () => {
-    push(vm.stack, 5);
-    expect(() => builtins["/"]()).toThrow("Stack underflow");
+    vm.push(5);
+    expect(() => builtins["/"](vm)).toThrow("Stack underflow");
   });
 
   it("should throw an error for division by zero", () => {
-    push(vm.stack, 5);
-    push(vm.stack, 0);
-    expect(() => builtins["/"]()).toThrow("Division by zero");
+    vm.push(5);
+    vm.push(0);
+    expect(() => builtins["/"](vm)).toThrow("Division by zero");
   });
 
   // Test 2: Stack manipulation
   it("should handle the 'dup' word", () => {
-    push(vm.stack, 5);
-    builtins["dup"]();
-    expect(getItems(vm.stack)).toEqual([5, 5]);
+    vm.push(5);
+    builtins["dup"](vm);
+    expect(vm.getStackItems()).toEqual([5, 5]);
   });
 
   it("should throw an error for 'dup' with an empty stack", () => {
-    expect(() => builtins["dup"]()).toThrow("Stack underflow");
+    expect(() => builtins["dup"](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'drop' word", () => {
-    push(vm.stack, 5);
-    builtins["drop"]();
-    expect(getItems(vm.stack)).toEqual([]);
+    vm.push(5);
+    builtins["drop"](vm);
+    expect(vm.getStackItems()).toEqual([]);
   });
 
   it("should throw an error for 'drop' with an empty stack", () => {
-    expect(() => builtins["drop"]()).toThrow("Stack underflow");
+    expect(() => builtins["drop"](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'swap' word", () => {
-    push(vm.stack, 5);
-    push(vm.stack, 3);
-    builtins["swap"]();
-    expect(getItems(vm.stack)).toEqual([3, 5]);
+    vm.push(5);
+    vm.push(3);
+    builtins["swap"](vm);
+    expect(vm.getStackItems()).toEqual([3, 5]);
   });
 
   it("should throw an error for 'swap' with insufficient stack items", () => {
-    push(vm.stack, 5);
-    expect(() => builtins["swap"]()).toThrow("Stack underflow");
+    vm.push(5);
+    expect(() => builtins["swap"](vm)).toThrow("Stack underflow");
   });
 
   // Test 3: Compilation mode
   it("should handle the '{' word", () => {
-    builtins["{"]();
-    const received = getItems(vm.compileBuffer);
-    expect(vm.compileMode).toBe(true);
-    expect(received).toEqual([]);
+    builtins["{"](vm);
+    expect(vm.compiler.compileMode).toBe(true);
+    expect(vm.getStackItems()).toEqual([]);
   });
 
   it("should handle nested '{' words", () => {
-    builtins["{"](); // Enter compilation mode
-    builtins["{"](); // Treat second '{' as a regular word
-    const received = getItems(vm.compileBuffer);
-    expect(received).toEqual([builtins["{"]]);
+    builtins["{"](vm); // Enter compilation mode
+    builtins["{"](vm); // Treat second '{' as a regular word
+    expect(vm.getStackItems()).toEqual([]);
+    expect(
+      vm.compiler.compileBuffer.data.slice(
+        vm.compiler.compileBuffer.base,
+        vm.compiler.compileBuffer.ofs
+      )
+    ).toEqual([builtins["{"]]);
   });
 
   it("should throw an error for '}' outside compilation mode", () => {
-    expect(() => builtins["}"]()).toThrow(
+    expect(() => builtins["}"](vm)).toThrow(
       "Unexpected '}' outside compilation mode"
     );
   });
 
   it("should handle the '}' word", () => {
-    vm.compileMode = true; // Enter compilation mode
-    vm.nestingScore = 1; // Initialize nesting score
-    push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, 5);
-    push(vm.compileBuffer, literalNumber);
-    push(vm.compileBuffer, 3);
-    push(vm.compileBuffer, builtins["+"]);
-    builtins["}"]();
-    expect(vm.compileMode).toBe(false);
-    const tos = pop(vm.stack);
+    vm.compiler.compileMode = true; // Enter compilation mode
+    vm.compiler.nestingScore = 1; // Initialize nesting score
+    vm.compiler.compile(vm.compiler.compileBuffer, literalNumber);
+    vm.compiler.compile(vm.compiler.compileBuffer, 5);
+    vm.compiler.compile(vm.compiler.compileBuffer, literalNumber);
+    vm.compiler.compile(vm.compiler.compileBuffer, 3);
+    vm.compiler.compile(vm.compiler.compileBuffer, builtins["+"]);
+    builtins["}"](vm);
+    expect(vm.compiler.compileMode).toBe(false);
+    const tos = vm.pop();
     expect(typeof tos).toBe("number");
-    expect(tos).toBe(vm.compileBuffer.base);
-    const received = getItems(vm.compileBuffer);
+    expect(tos).toBe(vm.compiler.compileBuffer.base);
+    const received = getItems(vm.compiler.compileBuffer);
     expect(received).toEqual([
       literalNumber,
       5,
