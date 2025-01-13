@@ -1,71 +1,87 @@
-// src/vm.ts
 import { initMemory } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory } from "./types";
 import { TIB, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE } from "./constants";
 
+/**
+ * Virtual Machine (VM) for executing Forth-like code.
+ */
 export class VM {
-  mem: Memory; // Memory array
-  SP: number; // Stack pointer
-  RP: number; // Return stack pointer
+  mem: Memory;
+  SP: number;
+  RP: number;
   IP: number;
   running: boolean;
   compiler: Compiler;
   dictionary: Dictionary;
 
   constructor() {
-    this.mem = initMemory(); // Initialize memory
-    this.IP = TIB; // Use vm.mem.data for instruction pointer
+    this.mem = initMemory();
+    this.IP = TIB;
     this.running = true;
-
-    // Initialize stack and return stack pointers
     this.SP = STACK;
     this.RP = RSTACK;
-
-    // Initialize the Compiler
-    this.compiler = new Compiler(this); // Pass VM instance to Compiler
-
-    // Initialize the Dictionary
+    this.compiler = new Compiler(this);
     this.dictionary = new Dictionary();
   }
 
-  // Stack operations
+  /**
+   * Pushes a value onto the stack.
+   * @param value - The value to push.
+   */
   push(value: number): void {
     if (this.SP >= STACK + STACK_SIZE) {
       throw new Error("Stack overflow");
     }
-    this.mem.data[this.SP++] = value; // Push value and increment SP
+    this.mem.data[this.SP++] = value;
   }
 
+  /**
+   * Pops a value from the stack.
+   * @returns The popped value.
+   */
   pop(): number {
     if (this.SP <= STACK) {
       throw new Error("Stack underflow");
     }
-    return this.mem.data[--this.SP]; // Decrement SP and return value
+    return this.mem.data[--this.SP];
   }
 
-  // Return stack operations
+  /**
+   * Pushes a value onto the return stack.
+   * @param value - The value to push.
+   */
   rpush(value: number): void {
     if (this.RP >= RSTACK + RSTACK_SIZE) {
       throw new Error("Return stack overflow");
     }
-    this.mem.data[this.RP++] = value; // Push value and increment RP
+    this.mem.data[this.RP++] = value;
   }
 
+  /**
+   * Pops a value from the return stack.
+   * @returns The popped value.
+   */
   rpop(): number {
     if (this.RP <= RSTACK) {
       throw new Error("Return stack underflow");
     }
-    return this.mem.data[--this.RP]; // Decrement RP and return value
+    return this.mem.data[--this.RP];
   }
 
-  // Instruction pointer operations
+  /**
+   * Reads the next value from memory and increments the instruction pointer.
+   * @returns The next value.
+   */
   next(): number {
     return this.mem.data[this.IP++];
   }
 
-  // Get items from the stack
+  /**
+   * Returns the current stack data.
+   * @returns An array of stack values.
+   */
   getStackData(): number[] {
     return this.mem.data.slice(STACK, this.SP);
   }

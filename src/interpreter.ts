@@ -20,7 +20,7 @@ export function execute(start: number): void {
         const stackState = JSON.stringify(vm.getStackData());
         const errorMessage =
           `Unknown error executing word (stack: ${stackState})` +
-          (error instanceof Error ? `:${error.message}` : "");
+          (error instanceof Error ? `: ${error.message}` : ""); // Add a space after the colon
         throw new Error(errorMessage);
       }
     }

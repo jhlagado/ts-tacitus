@@ -1,7 +1,8 @@
 import { createInterface } from "readline";
 import { startREPL } from "./repl";
-import * as parser from "./parser"; // Import the interpreter module
+import * as parser from "./parser"; // Import the parser module
 import * as interpreter from "./interpreter"; // Import the interpreter module
+import * as lexer from "./lexer"; // Import the lexer module
 
 jest.mock("readline");
 
@@ -22,6 +23,9 @@ describe("REPL", () => {
       prompt: mockPrompt,
       close: mockClose,
     });
+
+    // Reset all mocks before each test
+    jest.clearAllMocks();
   });
 
   it("should handle the 'exit' command", () => {
@@ -112,7 +116,7 @@ describe("REPL", () => {
 
     startREPL();
 
-    // Verify 'execute' is called
+    // Verify 'parse' is called
     expect(parseSpy).toHaveBeenCalled();
 
     // Verify the error message is logged
@@ -160,5 +164,63 @@ describe("REPL", () => {
 
     consoleErrorSpy.mockRestore();
     executeSpy.mockRestore();
+  });
+
+  it("should handle errors during lexing", () => {
+    mockOn.mockImplementation((event, callback) => {
+      if (event === "line") {
+        callback("invalid command"); // Simulate an invalid command
+      }
+    });
+
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const lexSpy = jest.spyOn(lexer, "lex").mockImplementation(() => {
+      throw new Error("Lexing error");
+    });
+
+    startREPL();
+
+    // Verify 'lex' is called
+    expect(lexSpy).toHaveBeenCalledWith("invalid command");
+
+    // Verify the error message is logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Error: Lexing error");
+
+    // Verify 'prompt' is called again after handling the error
+    expect(mockPrompt).toHaveBeenCalledTimes(2); // Initial + after error
+
+    consoleErrorSpy.mockRestore();
+    lexSpy.mockRestore();
+  });
+
+  it("should handle unknown errors", () => {
+    mockOn.mockImplementation((event, callback) => {
+      if (event === "line") {
+        callback("invalid command"); // Simulate an invalid command
+      }
+    });
+
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const lexSpy = jest.spyOn(lexer, "lex").mockImplementation(() => {
+      throw "Unknown error"; // Simulate a non-Error object
+    });
+
+    startREPL();
+
+    // Verify 'lex' is called
+    expect(lexSpy).toHaveBeenCalledWith("invalid command");
+
+    // Verify the unknown error message is logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Unknown error occurred");
+
+    // Verify 'prompt' is called again after handling the error
+    expect(mockPrompt).toHaveBeenCalledTimes(2); // Initial + after error
+
+    consoleErrorSpy.mockRestore();
+    lexSpy.mockRestore();
   });
 });

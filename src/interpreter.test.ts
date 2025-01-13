@@ -1,4 +1,3 @@
-// src/interpreter.test.ts
 import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
@@ -15,8 +14,6 @@ describe("Interpreter", () => {
     const tokens = lex("{ 5 3 + }");
     parse(tokens);
     execute(TIB);
-    // const tos = vm.pop();
-    // expect(tos).toBe(CODE);
     const received = vm.compiler.getCodeData();
     expect(received).toEqual([
       Op.LiteralNumber, // Use Op enum
@@ -64,8 +61,6 @@ describe("Interpreter", () => {
     const tokens = lex("{ 5 }");
     parse(tokens);
     execute(TIB);
-    // const tos = vm.pop();
-    // expect(tos).toBe(CODE);
     const received = vm.compiler.getCodeData();
     expect(received).toEqual([
       Op.LiteralNumber, // Use Op enum
@@ -79,5 +74,31 @@ describe("Interpreter", () => {
     vm.compiler.compileBuffer(999); // Invalid verb index
     vm.running = true;
     expect(() => execute(TIB)).toThrowError("Invalid opcode: 999");
+  });
+
+  // New test: Verb throws an Error object
+  it("should handle errors thrown by verbs", () => {
+    const tokens = lex("5 0 /"); // Division by zero
+    parse(tokens);
+    expect(() => execute(TIB)).toThrowError(
+      /Unknown error executing word \(stack: .*\): Division by zero/
+    );
+  });
+
+  // New test: Include stack state in error messages
+  it("should include the stack state in error messages", () => {
+    const tokens = lex("5 0 /"); // Division by zero
+    parse(tokens);
+    try {
+      execute(TIB);
+    } catch (error) {
+      if (error instanceof Error) {
+        expect(error.message).toMatch(
+          /Unknown error executing word \(stack: .*\): Division by zero/
+        );
+      } else {
+        fail("Expected an Error object");
+      }
+    }
   });
 });

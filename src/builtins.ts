@@ -1,27 +1,21 @@
-// src/builtins.ts
-
 import { VM } from "./vm";
 import { Verb } from "./types";
 import { CODE } from "./constants";
 
-// Define the Op enum
 export enum Op {
-  LeftBrace = 0, // {
-  RightBrace = 1, // }
-  LiteralNumber = 2, // literalNumber
-  ExitDef = 3, // exitDef
-  PlusOp = 4, // +
-  MinusOp = 5, // -
-  MultiplyOp = 6, // *
-  DivideOp = 7, // /
-  DupOp = 8, // dup
-  DropOp = 9, // drop
-  SwapOp = 10, // swap
+  LeftBrace = 0,
+  RightBrace = 1,
+  LiteralNumber = 2,
+  ExitDef = 3,
+  PlusOp = 4,
+  MinusOp = 5,
+  MultiplyOp = 6,
+  DivideOp = 7,
+  DupOp = 8,
+  DropOp = 9,
+  SwapOp = 10,
 }
 
-// Define all built-in words as functions
-
-// 1. Compilation words
 export const leftBrace: Verb = (vm: VM) => {
   if (vm.compiler.compileMode) {
     vm.compiler.compileCode(Op.LeftBrace);
@@ -60,7 +54,6 @@ export const exitDef: Verb = (vm: VM) => {
   vm.running = false;
 };
 
-// 2. Arithmetic words
 export const plusOp: Verb = (vm: VM) => {
   const b = vm.pop();
   const a = vm.pop();
@@ -103,7 +96,6 @@ export const divideOp: Verb = (vm: VM) => {
   vm.push(a / b);
 };
 
-// 3. Stack manipulation words
 export const dupOp: Verb = (vm: VM) => {
   const a = vm.pop();
   if (a !== undefined) {
@@ -125,7 +117,6 @@ export const swapOp: Verb = (vm: VM) => {
   }
 };
 
-// Define the opTable
 export const opTable: Record<string, Op> = {
   "{": Op.LeftBrace,
   "}": Op.RightBrace,
@@ -140,11 +131,10 @@ export const opTable: Record<string, Op> = {
   swap: Op.SwapOp,
 };
 
-// Define immediate words using Op enum values
 export const immediateWords: number[] = [
-  Op.LeftBrace, // {
-  Op.RightBrace, // }
-  Op.LiteralNumber, // literalNumber
+  Op.LeftBrace,
+  Op.RightBrace,
+  Op.LiteralNumber,
 ];
 
 export const ops: Verb[] = [
