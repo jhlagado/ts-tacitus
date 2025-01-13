@@ -5,7 +5,7 @@ export enum Op {
   LeftBrace = 0,
   RightBrace = 1,
   LiteralNumber = 2,
-  Branch = 3, // New Branch opcode
+  Branch = 3, 
   ExitDef = 4,
   PlusOp = 5,
   MinusOp = 6,
@@ -17,6 +17,7 @@ export enum Op {
 }
 
 export const leftBrace: Verb = (vm: VM) => {
+  vm.compiler.nestingScore++;
   if (vm.compiler.compileMode) {
     vm.compiler.compile(Op.LeftBrace);
     return;
@@ -37,7 +38,10 @@ export const rightBrace: Verb = (vm: VM) => {
   vm.compiler.compile(endAddress);
   vm.push(vm.compiler.getPointer());
   vm.compiler.setPointer(endAddress);
-  vm.compiler.compileMode = false;
+  vm.compiler.nestingScore--;
+  if (vm.compiler.nestingScore === 0){
+    vm.compiler.compileMode = false;
+  }
 };
 
 export const literalNumber: Verb = (vm: VM) => {
