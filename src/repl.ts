@@ -3,7 +3,7 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { initializeInterpreter } from "./globalState";
-import { TIB } from "./constants";
+import { BUFFER } from "./constants";
 
 /**
  * Starts the Read-Eval-Print Loop (REPL) for the interpreter.
@@ -30,7 +30,7 @@ export function startREPL(): void {
     try {
       const tokens = lex(command); // Tokenize the input string
       parse(tokens); // Parse the tokens into a buffer of instructions
-      execute(TIB);
+      execute(BUFFER);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

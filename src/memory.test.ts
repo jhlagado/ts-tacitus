@@ -2,10 +2,10 @@ import {
   STACK,
   RSTACK,
   STACK_SIZE,
-  TIB,
+  BUFFER,
   RSTACK_SIZE,
   PAD,
-  TIB_SIZE,
+  BUFFER_SIZE,
   CODE,
   PAD_SIZE,
   VARS,
@@ -33,8 +33,8 @@ describe("Memory Allocator", () => {
     it("should have the correct memory layout", () => {
       expect(STACK).toBe(0); // Stack starts at address 0
       expect(RSTACK).toBe(STACK + STACK_SIZE); // Return stack starts after the stack
-      expect(TIB).toBe(RSTACK + RSTACK_SIZE); // TIB starts after the return stack
-      expect(PAD).toBe(TIB + TIB_SIZE); // PAD starts after the TIB
+      expect(BUFFER).toBe(RSTACK + RSTACK_SIZE); // TIB starts after the return stack
+      expect(PAD).toBe(BUFFER + BUFFER_SIZE); // PAD starts after the TIB
       expect(CODE).toBe(PAD + PAD_SIZE); // Code area starts after the PAD
       expect(VARS).toBe(CODE + CODE_SIZE); // Variables area starts after the code area
       expect(HEAP).toBe(VARS + VARS_SIZE); // Heap starts after the variables area
@@ -43,7 +43,7 @@ describe("Memory Allocator", () => {
     it("should have the correct sizes for each region", () => {
       expect(STACK_SIZE).toBe(0x100); // Stack size
       expect(RSTACK_SIZE).toBe(0x100); // Return stack size
-      expect(TIB_SIZE).toBe(0x100); // TIB size
+      expect(BUFFER_SIZE).toBe(0x100); // TIB size
       expect(PAD_SIZE).toBe(0x100); // PAD size
       expect(CODE_SIZE).toBe(0x400); // Code area size
       expect(VARS_SIZE).toBe(0x100); // Variables area size
@@ -54,7 +54,7 @@ describe("Memory Allocator", () => {
       const totalUsedMemory =
         STACK_SIZE +
         RSTACK_SIZE +
-        TIB_SIZE +
+        BUFFER_SIZE +
         PAD_SIZE +
         CODE_SIZE +
         VARS_SIZE +

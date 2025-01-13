@@ -1,4 +1,4 @@
-import { CODE, TIB } from "./constants";
+import { CODE, BUFFER } from "./constants";
 import { VM } from "./vm";
 
 /**
@@ -14,7 +14,7 @@ export class Compiler {
     this.compileMode = false;
     this.nestingScore = 0;
     this.CP = CODE;
-    this.BP = TIB;
+    this.BP = BUFFER;
   }
 
   /**
@@ -52,7 +52,7 @@ export class Compiler {
    * Resets the buffer pointer to the start of the terminal input buffer.
    */
   resetBuffer(): void {
-    this.BP = TIB;
+    this.BP = BUFFER;
   }
 
   /**
@@ -60,6 +60,6 @@ export class Compiler {
    * @returns An array of buffer values.
    */
   getBufferData() {
-    return this.vm.mem.data.slice(TIB, this.BP);
+    return this.vm.mem.data.slice(BUFFER, this.BP);
   }
 }

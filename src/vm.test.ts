@@ -1,6 +1,6 @@
 // src/vm.test.ts
 import { VM } from "./vm";
-import { STACK_SIZE, RSTACK_SIZE, TIB } from "./constants";
+import { STACK_SIZE, RSTACK_SIZE, BUFFER } from "./constants";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 
@@ -63,9 +63,9 @@ describe("VM", () => {
   // Test 3: Instruction pointer operations
   describe("Instruction pointer operations", () => {
     it("should read values from memory using the instruction pointer", () => {
-      vm.mem.data[TIB] = 5;
-      vm.mem.data[TIB + 1] = 10;
-      vm.mem.data[TIB + 2] = 15;
+      vm.mem.data[BUFFER] = 5;
+      vm.mem.data[BUFFER + 1] = 10;
+      vm.mem.data[BUFFER + 2] = 15;
 
       expect(vm.next()).toBe(5);
       expect(vm.next()).toBe(10);
@@ -73,9 +73,9 @@ describe("VM", () => {
     });
 
     it("should increment the instruction pointer after reading", () => {
-      vm.mem.data[TIB] = 42;
+      vm.mem.data[BUFFER] = 42;
       vm.next();
-      expect(vm.IP).toBe(TIB + 1);
+      expect(vm.IP).toBe(BUFFER + 1);
     });
   });
 
