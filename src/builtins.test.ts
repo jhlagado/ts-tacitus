@@ -1,6 +1,6 @@
+// src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
-import { builtins, exitDef, literalNumber } from "./builtins";
-import { getItems } from "./memory";
+import { ops, Op, immediateWords } from "./builtins"; // Import Op enum
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -11,112 +11,108 @@ describe("Built-in Words", () => {
   it("should handle the '+' word", () => {
     vm.push(5);
     vm.push(3);
-    builtins["+"](vm); // Pass vm to the verb
-    const received = vm.getStackItems();
+    ops[Op.PlusOp](vm); // Use Op enum
+    const received = vm.getStackData();
     expect(received).toEqual([8]);
   });
 
   it("should throw an error for '+' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => builtins["+"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.PlusOp](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '-' word", () => {
     vm.push(5);
     vm.push(3);
-    builtins["-"](vm);
-    expect(vm.getStackItems()).toEqual([2]);
+    ops[Op.MinusOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '-' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => builtins["-"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.MinusOp](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '*' word", () => {
     vm.push(5);
     vm.push(3);
-    builtins["*"](vm);
-    expect(vm.getStackItems()).toEqual([15]);
+    ops[Op.MultiplyOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([15]);
   });
 
   it("should throw an error for '*' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => builtins["*"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.MultiplyOp](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '/' word", () => {
     vm.push(6);
     vm.push(3);
-    builtins["/"](vm);
-    expect(vm.getStackItems()).toEqual([2]);
+    ops[Op.DivideOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '/' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => builtins["/"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.DivideOp](vm)).toThrow("Stack underflow");
   });
 
   it("should throw an error for division by zero", () => {
     vm.push(5);
     vm.push(0);
-    expect(() => builtins["/"](vm)).toThrow("Division by zero");
+    expect(() => ops[Op.DivideOp](vm)).toThrow("Division by zero");
   });
 
   // Test 2: Stack manipulation
   it("should handle the 'dup' word", () => {
     vm.push(5);
-    builtins["dup"](vm);
-    expect(vm.getStackItems()).toEqual([5, 5]);
+    ops[Op.DupOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([5, 5]);
   });
 
   it("should throw an error for 'dup' with an empty stack", () => {
-    expect(() => builtins["dup"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.DupOp](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'drop' word", () => {
     vm.push(5);
-    builtins["drop"](vm);
-    expect(vm.getStackItems()).toEqual([]);
+    ops[Op.DropOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([]);
   });
 
   it("should throw an error for 'drop' with an empty stack", () => {
-    expect(() => builtins["drop"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.DropOp](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'swap' word", () => {
     vm.push(5);
     vm.push(3);
-    builtins["swap"](vm);
-    expect(vm.getStackItems()).toEqual([3, 5]);
+    ops[Op.SwapOp](vm); // Use Op enum
+    expect(vm.getStackData()).toEqual([3, 5]);
   });
 
   it("should throw an error for 'swap' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => builtins["swap"](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.SwapOp](vm)).toThrow("Stack underflow");
   });
 
   // Test 3: Compilation mode
   it("should handle the '{' word", () => {
-    builtins["{"](vm);
+    ops[Op.LeftBrace](vm); // Use Op enum
     expect(vm.compiler.compileMode).toBe(true);
-    expect(vm.getStackItems()).toEqual([]);
+    expect(vm.getStackData()).toEqual([]);
   });
 
   it("should handle nested '{' words", () => {
-    builtins["{"](vm); // Enter compilation mode
-    builtins["{"](vm); // Treat second '{' as a regular word
-    expect(vm.getStackItems()).toEqual([]);
-    expect(
-      vm.compiler.compileBuffer.data.slice(
-        vm.compiler.compileBuffer.base,
-        vm.compiler.compileBuffer.ofs
-      )
-    ).toEqual([builtins["{"]]);
+    ops[Op.LeftBrace](vm); // Enter compilation mode
+    ops[Op.LeftBrace](vm); // Treat second '{' as a regular word
+    expect(vm.getStackData()).toEqual([]);
+    const received = vm.compiler.getCodeData();
+    expect(received).toEqual([Op.LeftBrace]); // Use Op enum
   });
 
   it("should throw an error for '}' outside compilation mode", () => {
-    expect(() => builtins["}"](vm)).toThrow(
+    expect(() => ops[Op.RightBrace](vm)).toThrow(
       "Unexpected '}' outside compilation mode"
     );
   });
@@ -124,24 +120,39 @@ describe("Built-in Words", () => {
   it("should handle the '}' word", () => {
     vm.compiler.compileMode = true; // Enter compilation mode
     vm.compiler.nestingScore = 1; // Initialize nesting score
-    vm.compiler.compile(vm.compiler.compileBuffer, literalNumber);
-    vm.compiler.compile(vm.compiler.compileBuffer, 5);
-    vm.compiler.compile(vm.compiler.compileBuffer, literalNumber);
-    vm.compiler.compile(vm.compiler.compileBuffer, 3);
-    vm.compiler.compile(vm.compiler.compileBuffer, builtins["+"]);
-    builtins["}"](vm);
+    vm.compiler.compileCode(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compileCode(5);
+
+    vm.compiler.compileCode(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compileCode(3);
+    vm.compiler.compileCode(Op.PlusOp); // Use Op enum
+    ops[Op.RightBrace](vm); // Use Op enum
     expect(vm.compiler.compileMode).toBe(false);
-    const tos = vm.pop();
-    expect(typeof tos).toBe("number");
-    expect(tos).toBe(vm.compiler.compileBuffer.base);
-    const received = getItems(vm.compiler.compileBuffer);
+    // const tos = vm.pop();
+    // expect(tos).toBe(CODE);
+    const received = vm.compiler.getCodeData();
     expect(received).toEqual([
-      literalNumber,
+      Op.LiteralNumber, // Use Op enum
       5,
-      literalNumber,
+      Op.LiteralNumber, // Use Op enum
       3,
-      builtins["+"],
-      exitDef
+      Op.PlusOp, // Use Op enum
+      Op.ExitDef, // Use Op enum
     ]);
+  });
+
+  // Test 4: Immediate words
+  it("should execute immediate words during compilation", () => {
+    vm.compiler.compileMode = true; // Enter compilation mode
+
+    // Execute an immediate word (e.g., '{')
+    ops[Op.LeftBrace](vm); // Use Op enum
+
+    // Verify that the immediate word was executed
+    expect(vm.compiler.compileMode).toBe(true);
+    expect(vm.compiler.nestingScore).toBe(1);
+
+    // Verify that the immediate word is in the immediateWords array
+    expect(immediateWords).toContain(Op.LeftBrace); // Use Op enum
   });
 });

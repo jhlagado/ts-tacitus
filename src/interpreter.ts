@@ -1,33 +1,28 @@
+// src/interpreter.ts
 import { vm } from "./globalState";
-import { immediateWords } from "./builtins";
-import { isVerb } from "./utils";
+import { immediateWords, ops } from "./builtins"; // Import Op enum
 
-export function execute(): void {
-  vm.resetBuffer();
-  vm.IP.ofs = vm.buffer.base;
+export function execute(start: number): void {
+  vm.IP = start;
   while (vm.running) {
-    const cell = vm.next();
-    if (typeof cell === "number") {
-      throw new Error("Unexpected number in buffer");
-    }
-    if (isVerb(cell)) {
-      if (vm.compiler.compileMode && !immediateWords.includes(cell)) {
-        vm.compiler.compile(vm.compiler.compileBuffer, cell);
-      } else {
-        try {
-          cell(vm); // Pass vm to the verb
-        } catch (error) {
-          const stackState = JSON.stringify(vm.getStackItems());
-          const errorMessage =
-            `Unknown error executing word (stack: ${stackState})` +
-            (error instanceof Error ? `:${error.message}` : "");
-          throw new Error(errorMessage);
-        }
-      }
-    } else if (typeof cell === "number") {
-      throw new Error(`Unexpected number: ${cell}`);
+    const opcode = vm.next(); // opcode is a number
+    if (vm.compiler.compileMode && !immediateWords.includes(opcode)) {
+      // Compile the verb index if not an immediate word
+      vm.compiler.compileCode(opcode);
     } else {
-      throw new Error(`Unexpected object: ${JSON.stringify(cell)}`);
+      const verb = ops[opcode]; // Resolve the verb using ops array
+      if (verb === undefined) {
+        throw new Error(`Invalid opcode: ${opcode}`);
+      }
+      try {
+        verb(vm);
+      } catch (error) {
+        const stackState = JSON.stringify(vm.getStackData());
+        const errorMessage =
+          `Unknown error executing word (stack: ${stackState})` +
+          (error instanceof Error ? `:${error.message}` : "");
+        throw new Error(errorMessage);
+      }
     }
   }
 }

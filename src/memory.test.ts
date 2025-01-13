@@ -1,28 +1,24 @@
 import {
-  BLOCK_SIZE,
-  MEMORY_SIZE,
-  NIL,
   STACK,
-  STACK_SIZE,
   RSTACK,
-  RSTACK_SIZE,
+  STACK_SIZE,
   TIB,
-  TIB_SIZE,
+  RSTACK_SIZE,
   PAD,
-  PAD_SIZE,
+  TIB_SIZE,
   CODE,
-  CODE_SIZE,
+  PAD_SIZE,
   VARS,
-  VARS_SIZE,
+  CODE_SIZE,
   HEAP,
+  VARS_SIZE,
   HEAP_SIZE,
-  initMemory,
-  initHeap,
-  malloc,
-  free,
-  Memory,
-  Heap,
-} from "./mem";
+  MEMORY_SIZE,
+  BLOCK_SIZE,
+  NIL,
+} from "./constants";
+import { initMemory, initHeap, malloc, free } from "./memory";
+import { Memory, Heap } from "./types";
 
 describe("Memory Allocator", () => {
   let memory: Memory;
@@ -56,7 +52,13 @@ describe("Memory Allocator", () => {
 
     it("should fit within the total memory size", () => {
       const totalUsedMemory =
-        STACK_SIZE + RSTACK_SIZE + TIB_SIZE + PAD_SIZE + CODE_SIZE + VARS_SIZE + HEAP_SIZE;
+        STACK_SIZE +
+        RSTACK_SIZE +
+        TIB_SIZE +
+        PAD_SIZE +
+        CODE_SIZE +
+        VARS_SIZE +
+        HEAP_SIZE;
       expect(totalUsedMemory).toBeLessThanOrEqual(MEMORY_SIZE); // Ensure all regions fit in memory
     });
   });

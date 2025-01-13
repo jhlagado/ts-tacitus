@@ -1,44 +1,42 @@
-import { push, reset } from "./memory";
-import { builtins } from "./builtins";
-import { Dictionary, Ref, Verb } from "./types";
-import { define } from "./dictionary";
+// src/compiler.ts
+import { CODE, TIB } from "./constants";
+import { VM } from "./vm";
 
 export class Compiler {
   compileMode: boolean;
   nestingScore: number;
-  compileBuffer: Ref;
-  dictionary: Dictionary<Verb>; // Add dictionary
+  CP: number; // Compiler pointer
+  BP: number;
 
-  constructor(compileBuffer: Ref) {
+  constructor(private vm: VM) {
     this.compileMode = false;
     this.nestingScore = 0;
-    this.compileBuffer = compileBuffer;
-
-    // Initialize the dictionary with built-ins
-    this.dictionary = {};
-    for (const [name, word] of Object.entries(builtins)) {
-      define(this.dictionary, name, word);
-    }
+    this.CP = CODE; // Initialize CP to CODE
+    this.BP = TIB; // Initialize CP to CODE
   }
 
-  // Write a value to the compile buffer
-  compile(dest: Ref, data: Verb | number): void {
-    push(dest, data);
+  // Write a value to vm.mem.data at CP and increment CP
+  compileCode(data: number): void {
+    this.vm.mem.data[this.CP++] = data; // Write to vm.mem.data and increment CP
   }
 
-  // Reset the compile buffer
-  reset(): void {
-    reset(this.compileBuffer);
+  resetCode(): void {
+    this.CP = CODE; // Reset CP to CODE
   }
 
-  // Enter compilation mode
-  enterCompilationMode(): void {
-    this.compileMode = true;
-    this.reset();
+  getCodeData() {
+    return this.vm.mem.data.slice(CODE, this.CP);
   }
 
-  // Exit compilation mode
-  exitCompilationMode(): void {
-    this.compileMode = false;
+  compileBuffer(data: number): void {
+    this.vm.mem.data[this.BP++] = data; // Write to vm.mem.data and increment CP
+  }
+
+  resetBuffer(): void {
+    this.BP = TIB; // Reset CP to CODE
+  }
+
+  getBufferData() {
+    return this.vm.mem.data.slice(TIB, this.BP);
   }
 }

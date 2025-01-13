@@ -1,7 +1,20 @@
+// src/types.ts
+
 import { VM } from "./vm";
 
 export type Verb = (vm: VM) => void;
 export type Cell = number | string | object | Verb;
-export type Heap = Cell[];
 export type Dictionary<T = Verb> = { [name: string]: T };
-export type Ref = { data: Cell[]; base: number; ofs: number };
+
+// Memory type
+export type Memory = {
+  data: number[]; // Memory array
+};
+
+// Heap type
+export type Heap = {
+  start: number; // Start of the heap in blocks
+  size: number; // Size of the heap in blocks
+  freeList: number; // Pointer to the head of the free list
+};
+
