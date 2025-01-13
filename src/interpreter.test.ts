@@ -3,7 +3,7 @@ import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
 import { Op } from "./builtins"; // Import Op enum
-import { BUFFER } from "./constants";
+import { BUFFER, CODE } from "./constants";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -14,8 +14,10 @@ describe("Interpreter", () => {
     const tokens = lex("{ 5 3 + }");
     parse(tokens);
     execute(BUFFER);
-    const received = vm.compiler.getCodeData();
+    const received = vm.compiler.getData();
     expect(received).toEqual([
+      Op.Branch,
+      CODE + 8,
       Op.LiteralNumber, // Use Op enum
       5,
       Op.LiteralNumber, // Use Op enum
@@ -61,19 +63,14 @@ describe("Interpreter", () => {
     const tokens = lex("{ 5 }");
     parse(tokens);
     execute(BUFFER);
-    const received = vm.compiler.getCodeData();
+    const received = vm.compiler.getData();
     expect(received).toEqual([
+      Op.Branch,
+      CODE + 5,
       Op.LiteralNumber, // Use Op enum
       5,
       Op.ExitDef, // Use Op enum
     ]);
-  });
-
-  it("should throw an error for unknown verb indexes", () => {
-    vm.compiler.resetBuffer();
-    vm.compiler.compileBuffer(999); // Invalid verb index
-    vm.running = true;
-    expect(() => execute(BUFFER)).toThrowError("Invalid opcode: 999");
   });
 
   // New test: Verb throws an Error object

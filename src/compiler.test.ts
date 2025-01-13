@@ -8,9 +8,9 @@ describe("Compiler", () => {
   });
 
   it("should compile a literal number", () => {
-    vm.compiler.compileCode(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compileCode(42);
-    const received = vm.compiler.getCodeData();
+    vm.compiler.compile(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compile(42);
+    const received = vm.compiler.getData();
     expect(received).toEqual([
       Op.LiteralNumber, // Use Op enum
       42,
@@ -18,8 +18,8 @@ describe("Compiler", () => {
   });
 
   it("should compile a built-in word", () => {
-    vm.compiler.compileCode(Op.PlusOp); // Use Op enum
-    const received = vm.compiler.getCodeData();
+    vm.compiler.compile(Op.PlusOp); // Use Op enum
+    const received = vm.compiler.getData();
     expect(received).toEqual([
       Op.PlusOp, // Use Op enum
     ]);

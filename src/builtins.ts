@@ -1,6 +1,5 @@
 import { VM } from "./vm";
 import { Verb } from "./types";
-import { CODE } from "./constants";
 
 export enum Op {
   LeftBrace = 0,
@@ -19,33 +18,33 @@ export enum Op {
 
 export const leftBrace: Verb = (vm: VM) => {
   if (vm.compiler.compileMode) {
-    vm.compiler.compileCode(Op.LeftBrace);
-  } else {
-    vm.compiler.compileMode = true;
-    vm.compiler.CP = CODE;
+    vm.compiler.compile(Op.LeftBrace);
+    return;
   }
-  vm.compiler.nestingScore++;
+  vm.compiler.compileMode = true;
+  vm.compiler.compile(Op.Branch);
+  vm.push(vm.compiler.getPointer());
+  vm.compiler.compile(0);
 };
 
 export const rightBrace: Verb = (vm: VM) => {
   if (!vm.compiler.compileMode) {
     throw new Error("Unexpected '}' outside compilation mode");
   }
-  vm.compiler.nestingScore--;
-  if (vm.compiler.nestingScore === 0) {
-    vm.compiler.compileCode(Op.ExitDef);
-    vm.compiler.compileMode = false;
-    vm.push(vm.compiler.CP);
-  } else {
-    vm.compiler.compileCode(Op.RightBrace);
-  }
+  vm.compiler.compile(Op.ExitDef);
+  const endAddress = vm.compiler.getPointer();
+  vm.compiler.setPointer(vm.pop());
+  vm.compiler.compile(endAddress);
+  vm.push(vm.compiler.getPointer());
+  vm.compiler.setPointer(endAddress);
+  vm.compiler.compileMode = false;
 };
 
 export const literalNumber: Verb = (vm: VM) => {
   const num = vm.next() as number;
   if (vm.compiler.compileMode) {
-    vm.compiler.compileCode(Op.LiteralNumber);
-    vm.compiler.compileCode(num);
+    vm.compiler.compile(Op.LiteralNumber);
+    vm.compiler.compile(num);
   } else {
     vm.push(num);
   }

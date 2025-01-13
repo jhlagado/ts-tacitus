@@ -12,7 +12,7 @@ describe("Parser", () => {
   it("should parse numbers into literalNumber and the number itself", () => {
     const tokens = [5, 3.14, -42];
     parse(tokens);
-    const result = vm.compiler.getBufferData();
+    const result = vm.compiler.getData();
     expect(result).toEqual([
       opTable["literalNumber"], // Use opTable for index
       5,
@@ -27,7 +27,7 @@ describe("Parser", () => {
   it("should parse known words into their corresponding indexes", () => {
     const tokens = ["+", "-", "dup"];
     parse(tokens);
-    const result = vm.compiler.getBufferData();
+    const result = vm.compiler.getData();
     expect(result).toEqual([
       opTable["+"], // Use opTable for index
       opTable["-"], // Use opTable for index
@@ -39,7 +39,7 @@ describe("Parser", () => {
   it("should parse mixed tokens (numbers and words)", () => {
     const tokens = [5, "+", 3, "dup"];
     parse(tokens);
-    const result = vm.compiler.getBufferData();
+    const result = vm.compiler.getData();
     expect(result).toEqual([
       opTable["literalNumber"], // Use opTable for index
       5,
@@ -59,14 +59,14 @@ describe("Parser", () => {
   it("should handle empty input", () => {
     const tokens = [] as (string | number)[];
     parse(tokens);
-    const result = vm.compiler.getBufferData();
+    const result = vm.compiler.getData();
     expect(result).toEqual([opTable["exitDef"]]); // Use opTable for index
   });
 
   it("should handle nested compilation blocks", () => {
     const tokens = ["{", 5, "}", "{", 3, "}", "+"];
     parse(tokens);
-    const result = vm.compiler.getBufferData();
+    const result = vm.compiler.getData();
     expect(result).toEqual([
       opTable["{"], // Use opTable for index
       opTable["literalNumber"], // Use opTable for index

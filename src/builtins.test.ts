@@ -1,6 +1,7 @@
 // src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
 import { ops, Op, immediateWords } from "./builtins"; // Import Op enum
+import { CODE } from "./constants";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -100,15 +101,15 @@ describe("Built-in Words", () => {
   it("should handle the '{' word", () => {
     ops[Op.LeftBrace](vm); // Use Op enum
     expect(vm.compiler.compileMode).toBe(true);
-    expect(vm.getStackData()).toEqual([]);
+    expect(vm.getStackData()).toEqual([CODE + 1]);
   });
 
   it("should handle nested '{' words", () => {
     ops[Op.LeftBrace](vm); // Enter compilation mode
     ops[Op.LeftBrace](vm); // Treat second '{' as a regular word
-    expect(vm.getStackData()).toEqual([]);
-    const received = vm.compiler.getCodeData();
-    expect(received).toEqual([Op.LeftBrace]); // Use Op enum
+    expect(vm.getStackData()).toEqual([CODE + 1]);
+    const received = vm.compiler.getData();
+    expect(received).toEqual([Op.Branch, 0, Op.LeftBrace]); // Use Op enum
   });
 
   it("should throw an error for '}' outside compilation mode", () => {
@@ -118,20 +119,21 @@ describe("Built-in Words", () => {
   });
 
   it("should handle the '}' word", () => {
-    vm.compiler.compileMode = true; // Enter compilation mode
-    vm.compiler.nestingScore = 1; // Initialize nesting score
-    vm.compiler.compileCode(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compileCode(5);
+    ops[Op.LeftBrace](vm); // Enter compilation mode
+    vm.compiler.compile(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compile(5);
 
-    vm.compiler.compileCode(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compileCode(3);
-    vm.compiler.compileCode(Op.PlusOp); // Use Op enum
+    vm.compiler.compile(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compile(3);
+    vm.compiler.compile(Op.PlusOp); // Use Op enum
     ops[Op.RightBrace](vm); // Use Op enum
     expect(vm.compiler.compileMode).toBe(false);
-    // const tos = vm.pop();
-    // expect(tos).toBe(CODE);
-    const received = vm.compiler.getCodeData();
+    const tos = vm.pop();
+    expect(tos).toBe(CODE + 2);
+    const received = vm.compiler.getData();
     expect(received).toEqual([
+      Op.Branch,
+      CODE+8,
       Op.LiteralNumber, // Use Op enum
       5,
       Op.LiteralNumber, // Use Op enum
@@ -150,7 +152,6 @@ describe("Built-in Words", () => {
 
     // Verify that the immediate word was executed
     expect(vm.compiler.compileMode).toBe(true);
-    expect(vm.compiler.nestingScore).toBe(1);
 
     // Verify that the immediate word is in the immediateWords array
     expect(immediateWords).toContain(Op.LeftBrace); // Use Op enum

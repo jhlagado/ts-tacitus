@@ -1,65 +1,71 @@
 import { CODE, BUFFER } from "./constants";
 import { VM } from "./vm";
 
-/**
- * Compiler for translating tokens into executable code.
- */
 export class Compiler {
   compileMode: boolean;
+  parseMode: boolean;
   nestingScore: number;
-  CP: number;
-  BP: number;
+  private CP: number; // Compiler pointer (CODE mode)
+  private BP: number; // Buffer pointer (BUFFER mode)
 
   constructor(private vm: VM) {
     this.compileMode = false;
+    this.parseMode = false;
     this.nestingScore = 0;
     this.CP = CODE;
     this.BP = BUFFER;
   }
 
   /**
-   * Writes a value to memory at the compiler pointer (CP) and increments CP.
-   * @param data - The value to write.
+   * Returns the current pointer based on parseMode.
+   * @returns CP if not in parseMode, BP otherwise.
    */
-  compileCode(data: number): void {
-    this.vm.mem.data[this.CP++] = data;
+  getPointer(): number {
+    return this.parseMode ? this.BP : this.CP;
   }
 
   /**
-   * Resets the compiler pointer to the start of the code area.
+   * Sets the current pointer based on parseMode.
+   * @param value - The value to set the pointer to.
    */
-  resetCode(): void {
-    this.CP = CODE;
+  setPointer(value: number): void {
+    if (this.parseMode) {
+      this.BP = value;
+    } else {
+      this.CP = value;
+    }
   }
 
   /**
-   * Returns the compiled code data.
-   * @returns An array of compiled code.
+   * Resets the current pointer to its initial value based on parseMode.
    */
-  getCodeData() {
-    return this.vm.mem.data.slice(CODE, this.CP);
+  reset(): void {
+    if (this.parseMode) {
+      this.BP = BUFFER;
+    } else {
+      this.CP = CODE;
+    }
   }
 
   /**
-   * Writes a value to memory at the buffer pointer (BP) and increments BP.
-   * @param data - The value to write.
+   * Compiles a value to the appropriate memory region based on parseMode.
+   * @param data - The value to compile.
    */
-  compileBuffer(data: number): void {
-    this.vm.mem.data[this.BP++] = data;
+  compile(data: number): void {
+    if (this.parseMode) {
+      this.vm.mem.data[this.BP++] = data;
+    } else {
+      this.vm.mem.data[this.CP++] = data;
+    }
   }
 
   /**
-   * Resets the buffer pointer to the start of the terminal input buffer.
+   * Returns the compiled data from the appropriate memory region based on parseMode.
+   * @returns An array of compiled data.
    */
-  resetBuffer(): void {
-    this.BP = BUFFER;
-  }
-
-  /**
-   * Returns the buffer data.
-   * @returns An array of buffer values.
-   */
-  getBufferData() {
-    return this.vm.mem.data.slice(BUFFER, this.BP);
+  getData(): number[] {
+    const start = this.parseMode ? BUFFER : CODE;
+    const end = this.parseMode ? this.BP : this.CP;
+    return this.vm.mem.data.slice(start, end);
   }
 }
