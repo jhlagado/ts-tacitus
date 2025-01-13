@@ -6,14 +6,15 @@ export enum Op {
   LeftBrace = 0,
   RightBrace = 1,
   LiteralNumber = 2,
-  ExitDef = 3,
-  PlusOp = 4,
-  MinusOp = 5,
-  MultiplyOp = 6,
-  DivideOp = 7,
-  DupOp = 8,
-  DropOp = 9,
-  SwapOp = 10,
+  Branch = 3, // New Branch opcode
+  ExitDef = 4,
+  PlusOp = 5,
+  MinusOp = 6,
+  MultiplyOp = 7,
+  DivideOp = 8,
+  DupOp = 9,
+  DropOp = 10,
+  SwapOp = 11,
 }
 
 export const leftBrace: Verb = (vm: VM) => {
@@ -48,6 +49,15 @@ export const literalNumber: Verb = (vm: VM) => {
   } else {
     vm.push(num);
   }
+};
+
+/**
+ * Branch to a specific address in memory.
+ * The address is the next value in memory after the Branch opcode.
+ */
+export const branch: Verb = (vm: VM) => {
+  const address = vm.next() as number; // Read the address to branch to
+  vm.IP = address; // Set the instruction pointer to the new address
 };
 
 export const exitDef: Verb = (vm: VM) => {
@@ -121,6 +131,7 @@ export const opTable: Record<string, Op> = {
   "{": Op.LeftBrace,
   "}": Op.RightBrace,
   literalNumber: Op.LiteralNumber,
+  branch: Op.Branch, // Add Branch to the opTable
   exitDef: Op.ExitDef,
   "+": Op.PlusOp,
   "-": Op.MinusOp,
@@ -141,6 +152,7 @@ export const ops: Verb[] = [
   leftBrace,
   rightBrace,
   literalNumber,
+  branch, // Add the branch function to the ops array
   exitDef,
   plusOp,
   minusOp,
