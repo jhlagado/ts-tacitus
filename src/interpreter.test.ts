@@ -73,7 +73,7 @@ describe("Interpreter", () => {
   });
 
   it("should execute code block", () => {
-    const tokens = lex("{ 3 2 * } eval");
+    const tokens = lex("{3 2*} eval");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
@@ -81,7 +81,7 @@ describe("Interpreter", () => {
   });
 
   it("should execute more complex code block", () => {
-    const tokens = lex("4 { 3 2 * } eval + ");
+    const tokens = lex("4{3 2*}eval+");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
@@ -89,7 +89,7 @@ describe("Interpreter", () => {
   });
 
   it("should execute more complex nested code block", () => {
-    const tokens = lex("{ { 4 2 + } eval { 3 2 + } eval * } eval 2 + ");
+    const tokens = lex("{{4 2+}eval{3 2+}eval*}eval 2+");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
