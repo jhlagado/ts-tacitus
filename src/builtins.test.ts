@@ -1,10 +1,8 @@
 // src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
-import { ops, Op, immediateWords } from "./builtins"; // Import Op enum
-import { BUFFER, CODE } from "./constants";
+import { ops, Op } from "./builtins"; // Import Op enum
+import { CODE } from "./constants";
 import { execute } from "./interpreter";
-import { lex } from "./lexer";
-import { parse } from "./parser";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -100,64 +98,6 @@ describe("Built-in Words", () => {
     expect(() => ops[Op.Swap](vm)).toThrow("Stack underflow");
   });
 
-  // Test 3: Compilation mode
-  it("should handle the '{' word", () => {
-    ops[Op.LeftBrace](vm); // Use Op enum
-    expect(vm.compiler.compileMode).toBe(true);
-    expect(vm.getStackData()).toEqual([CODE + 1]);
-  });
-
-  it("should handle nested '{' words", () => {
-    ops[Op.LeftBrace](vm); // Enter compilation mode
-    ops[Op.LeftBrace](vm); // Treat second '{' as a regular word
-    expect(vm.getStackData()).toEqual([CODE + 1, CODE + 3]);
-    const received = vm.compiler.getData();
-    expect(received).toEqual([Op.BranchCall, 0, Op.BranchCall, 0]); // Use Op enum
-  });
-
-  it("should throw an error for '}' outside compilation mode", () => {
-    expect(() => ops[Op.RightBrace](vm)).toThrow(
-      "Unexpected '}' outside compilation mode"
-    );
-  });
-
-  it("should handle the '}' word", () => {
-    ops[Op.LeftBrace](vm); // Enter compilation mode
-    vm.compiler.compile(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compile(50);
-
-    vm.compiler.compile(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compile(30);
-    vm.compiler.compile(Op.Plus); // Use Op enum
-    ops[Op.RightBrace](vm); // Use Op enum
-    expect(vm.compiler.compileMode).toBe(false);
-    const received = vm.compiler.getData();
-    expect(received).toEqual([
-      Op.BranchCall,
-      6,
-      Op.LiteralNumber, // Use Op enum
-      50,
-      Op.LiteralNumber, // Use Op enum
-      30,
-      Op.Plus, // Use Op enum
-      Op.Exit, // Use Op enum
-    ]);
-  });
-
-  // Test 4: Immediate words
-  it("should execute immediate words during compilation", () => {
-    vm.compiler.compileMode = true; // Enter compilation mode
-
-    // Execute an immediate word (e.g., '{')
-    ops[Op.LeftBrace](vm); // Use Op enum
-
-    // Verify that the immediate word was executed
-    expect(vm.compiler.compileMode).toBe(true);
-
-    // Verify that the immediate word is in the immediateWords array
-    expect(immediateWords).toContain(Op.LeftBrace); // Use Op enum
-  });
-
   describe("Branch with Relative Jumps", () => {
     it("should handle a forward branch", () => {
       // Compile: branch +2 (skip the next instruction)
@@ -195,27 +135,5 @@ describe("Built-in Words", () => {
       expect(vm.getStackData()).toEqual([CODE + 2, 42]);
     });
 
-    it("should handle nested branches", () => {
-      // Compile: { 5 { 3 + } }
-      const tokens = lex("{ 5 { 3 + } }");
-      parse(tokens);
-      execute(BUFFER);
-      expect(vm.getStackData()).toEqual([]);
-      const received = vm.compiler.getData();
-      console.log(received);
-      expect(received).toEqual([
-        Op.BranchCall,
-        9, // Relative offset to the end of the definition
-        Op.LiteralNumber,
-        5,
-        Op.BranchCall,
-        4, // Relative offset to the end of the inner definition
-        Op.LiteralNumber,
-        3,
-        Op.Plus,
-        Op.Exit,
-        Op.Exit,
-      ]);
-    });
   });
 });

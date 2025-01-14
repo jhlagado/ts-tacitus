@@ -1,25 +1,47 @@
-// src/parser.ts
+import { Op, opTable } from "./builtins";
 import { vm } from "./globalState";
-import { Op, opTable } from "./builtins"; // Import Op enum and TIB constant
 
-export function parse(tokens: (string | number)[]) {
+export function parse(tokens: (string | number)[]): void {
   vm.compiler.compileMode = false;
-  vm.compiler.parseMode = true;
-  vm.compiler.reset();
+  vm.compiler.reset(); 
   for (const token of tokens) {
+    if (vm.debug) console.log("token", token, vm.compiler.getData());
+
     if (typeof token === "number") {
-      // Compile a literal number
-      const num = token;
-      vm.compiler.compile(Op.LiteralNumber); // Use Op enum
-      vm.compiler.compile(num);
+      console.log("literalNumber", token);
+      vm.compiler.compile(Op.LiteralNumber);
+      vm.compiler.compile(token);
+    } else if (token === "{") {
+      vm.compiler.preserve = true; 
+      vm.compiler.nestingScore++;
+      vm.compiler.compileMode = true;
+      vm.compiler.compile(Op.BranchCall);
+      vm.push(vm.compiler.getPointer()); // Push the current address for later patching
+      vm.compiler.compile(0); // Placeholder for the relative offset
+    } else if (token === "}") {
+      if (!vm.compiler.compileMode) {
+        throw new Error("Unexpected '}' outside compilation mode");
+      }
+      vm.compiler.compile(Op.Exit);
+      const branchAddress = vm.pop(); // Get the address of the branch instruction
+      const endAddress = vm.compiler.getPointer();
+      const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
+      vm.compiler.setPointer(branchAddress); // Move to the offset location
+      vm.compiler.compile(offset); // Write the relative offset
+      vm.compiler.setPointer(endAddress); // Restore the pointer
+      console.log("rightBrace 2", vm.compiler.compileMode);
+      vm.compiler.nestingScore--;
+      if (vm.compiler.nestingScore === 0) {
+        vm.compiler.compileMode = false;
+      }
     } else {
-      // Look up the word in the Op enum
-      const opcode = opTable[token as keyof typeof Op]; // Get the verb index from Op enum
+      // Look up the word in the opTable
+      const opcode = opTable[token as keyof typeof Op];
       if (opcode === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }
-      vm.compiler.compile(opcode); // Compile the verb index
+      vm.compiler.compile(opcode);
     }
   }
-  vm.compiler.compile(Op.Exit); // Use Op enum
+  vm.compiler.compile(Op.Exit); 
 }

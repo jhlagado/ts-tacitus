@@ -2,11 +2,13 @@
 
 import { initializeInterpreter, vm } from "./globalState";
 import { parse } from "./parser";
-import { opTable } from "./builtins"; // Import opTable
+import { Op } from "./builtins"; // Import opTable
+import { lex } from "./lexer";
 
 describe("Parser", () => {
   beforeEach(() => {
     initializeInterpreter(); // Reset the interpreter state before each test
+    vm.debug = true;
   });
 
   it("should parse numbers into literalNumber and the number itself", () => {
@@ -14,40 +16,40 @@ describe("Parser", () => {
     parse(tokens);
     const result = vm.compiler.getData();
     expect(result).toEqual([
-      opTable["literalNumber"], // Use opTable for index
+      Op.LiteralNumber,
       5,
-      opTable["literalNumber"], // Use opTable for index
+      Op.LiteralNumber, // Use opTable for index
       3.14,
-      opTable["literalNumber"], // Use opTable for index
+      Op.LiteralNumber, // Use opTable for index
       -42,
-      opTable["exitDef"], // Use opTable for index
+      Op.Exit, // Use opTable for index
     ]);
   });
 
   it("should parse known words into their corresponding indexes", () => {
-    const tokens = ["+", "-", "dup"];
+    const tokens = lex("+ - dup");
     parse(tokens);
     const result = vm.compiler.getData();
     expect(result).toEqual([
-      opTable["+"], // Use opTable for index
-      opTable["-"], // Use opTable for index
-      opTable["dup"], // Use opTable for index
-      opTable["exitDef"], // Use opTable for index
+      Op.Plus, // Use opTable for index
+      Op.Minus, // Use opTable for index
+      Op.Dup, // Use opTable for index
+      Op.Exit, // Use opTable for index
     ]);
   });
 
   it("should parse mixed tokens (numbers and words)", () => {
-    const tokens = [5, "+", 3, "dup"];
+    const tokens = lex("5 3 + dup");
     parse(tokens);
     const result = vm.compiler.getData();
     expect(result).toEqual([
-      opTable["literalNumber"], // Use opTable for index
+      Op.LiteralNumber, // Use opTable for index
       5,
-      opTable["+"], // Use opTable for index
-      opTable["literalNumber"], // Use opTable for index
+      Op.LiteralNumber, // Use opTable for index
       3,
-      opTable["dup"], // Use opTable for index
-      opTable["exitDef"], // Use opTable for index
+      Op.Plus, // Use opTable for index
+      Op.Dup, // Use opTable for index
+      Op.Exit, // Use opTable for index
     ]);
   });
 
@@ -60,24 +62,49 @@ describe("Parser", () => {
     const tokens = [] as (string | number)[];
     parse(tokens);
     const result = vm.compiler.getData();
-    expect(result).toEqual([opTable["exitDef"]]); // Use opTable for index
+    expect(result).toEqual([Op.Exit]); // Use opTable for index
   });
 
-  it("should handle nested compilation blocks", () => {
-    const tokens = ["{", 5, "}", "{", 3, "}", "+"];
+  it("should handle compilation blocks", () => {
+    const tokens = lex("{ 5 } { 3 } + ");
     parse(tokens);
     const result = vm.compiler.getData();
     expect(result).toEqual([
-      opTable["{"], // Use opTable for index
-      opTable["literalNumber"], // Use opTable for index
-      5,
-      opTable["}"], // Use opTable for index
-      opTable["{"], // Use opTable for index
-      opTable["literalNumber"], // Use opTable for index
+      Op.BranchCall,
       3,
-      opTable["}"], // Use opTable for index
-      opTable["+"], // Use opTable for index
-      opTable["exitDef"], // Use opTable for index
+      Op.LiteralNumber, // Use opTable for index
+      5,
+      Op.Exit,
+      Op.BranchCall,
+      3,
+      Op.LiteralNumber, // Use opTable for index
+      3,
+      Op.Exit,
+      Op.Plus, // Use opTable for index
+      Op.Exit, // Use opTable for index
+    ]);
+  });
+
+  it("should handle nested compilation blocks", () => {
+    const tokens = lex("{ { 5 } { 3 } + }");
+    parse(tokens);
+    const result = vm.compiler.getData();
+    expect(result).toEqual([
+      Op.BranchCall,
+      12,
+      Op.BranchCall,
+      3,
+      Op.LiteralNumber, // Use opTable for index
+      5,
+      Op.Exit,
+      Op.BranchCall,
+      3,
+      Op.LiteralNumber, // Use opTable for index
+      3,
+      Op.Exit,
+      Op.Plus, // Use opTable for index
+      Op.Exit, // Use opTable for index
+      Op.Exit, // Use opTable for index
     ]);
   });
 });

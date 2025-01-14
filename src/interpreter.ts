@@ -1,19 +1,14 @@
-// src/interpreter.ts
+import { immediateWords, ops } from "./builtins";
 import { vm } from "./globalState";
-import { immediateWords, ops } from "./builtins"; // Import Op enum
 
 export function execute(start: number): void {
   vm.IP = start;
-  vm.compiler.parseMode = false;
   while (vm.running) {
-    const opcode = vm.next(); // opcode is a number
-    if (vm.debug) console.log('opcode', opcode);
-
+    const opcode = vm.next();
     if (vm.compiler.compileMode && !immediateWords.includes(opcode)) {
-      // Compile the verb index if not an immediate word
       vm.compiler.compile(opcode);
     } else {
-      const verb = ops[opcode]; // Resolve the verb using ops array
+      const verb = ops[opcode];
       if (verb === undefined) {
         throw new Error(`Invalid opcode: ${opcode}`);
       }
@@ -23,10 +18,20 @@ export function execute(start: number): void {
         const stackState = JSON.stringify(vm.getStackData());
         const errorMessage =
           `Unknown error executing word (stack: ${stackState})` +
-          (error instanceof Error ? `: ${error.message}` : ""); // Add a space after the colon
+          (error instanceof Error ? `: ${error.message}` : "");
         if (vm.debug) console.log((error as Error).stack);
         throw new Error(errorMessage);
       }
     }
   }
+
+  // After execution, manage memory based on preserve flag
+  if (vm.compiler.preserve) {
+    // Preserve the compiled code: move BP to CP
+    vm.compiler.BP = vm.compiler.CP;
+  } else {
+    // Reuse memory: reset CP to BP
+    vm.compiler.reset();
+  }
+  vm.compiler.preserve = false; // Reset preserve flag
 }

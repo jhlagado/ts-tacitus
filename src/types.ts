@@ -11,11 +11,6 @@ export type Verb = (vm: VM) => void;
 export type Cell = number | string | object | Verb;
 
 /**
- * A dictionary mapping names to values of type T (default is Verb).
- */
-export type Dictionary<T = Verb> = { [name: string]: T };
-
-/**
  * Represents the memory of the VM.
  */
 export type Memory = {

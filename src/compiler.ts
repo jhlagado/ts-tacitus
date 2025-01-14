@@ -1,71 +1,57 @@
-import { CODE, BUFFER } from "./constants";
+import { CODE } from "./constants";
 import { VM } from "./vm";
 
 export class Compiler {
   compileMode: boolean;
-  parseMode: boolean;
   nestingScore: number;
-  private CP: number; // Compiler pointer (CODE mode)
-  private BP: number; // Buffer pointer (BUFFER mode)
+  CP: number; // Compile pointer (points to CODE area)
+  BP: number; // Buffer pointer (points to start of CODE area)
+  preserve: boolean;
 
   constructor(private vm: VM) {
     this.compileMode = false;
-    this.parseMode = false;
     this.nestingScore = 0;
-    this.CP = CODE;
-    this.BP = BUFFER;
+    this.CP = CODE; // Start compiling at CODE
+    this.BP = CODE; // Buffer starts at CODE
+    this.preserve = false;
   }
 
   /**
-   * Returns the current pointer based on parseMode.
-   * @returns CP if not in parseMode, BP otherwise.
+   * Returns the current compile pointer.
    */
   getPointer(): number {
-    return this.parseMode ? this.BP : this.CP;
+    return this.CP;
   }
 
   /**
-   * Sets the current pointer based on parseMode.
-   * @param value - The value to set the pointer to.
+   * Sets the compile pointer.
    */
   setPointer(value: number): void {
-    if (this.parseMode) {
-      this.BP = value;
-    } else {
-      this.CP = value;
-    }
+    this.CP = value;
   }
 
   /**
-   * Resets the current pointer to its initial value based on parseMode.
-   */
-  reset(): void {
-    if (this.parseMode) {
-      this.BP = BUFFER;
-    } else {
-      this.CP = CODE;
-    }
-  }
-
-  /**
-   * Compiles a value to the appropriate memory region based on parseMode.
-   * @param data - The value to compile.
+   * Compiles a value to the CODE area.
    */
   compile(data: number): void {
-    if (this.parseMode) {
-      this.vm.mem.data[this.BP++] = data;
-    } else {
-      this.vm.mem.data[this.CP++] = data;
-    }
+    this.vm.mem.data[this.CP++] = data;
   }
 
   /**
-   * Returns the compiled data from the appropriate memory region based on parseMode.
-   * @returns An array of compiled data.
+   * Returns the compiled data from the CODE area.
    */
   getData(): number[] {
-    const start = this.parseMode ? BUFFER : CODE;
-    const end = this.parseMode ? this.BP : this.CP;
-    return this.vm.mem.data.slice(start, end);
+    return this.vm.mem.data.slice(this.BP, this.CP);
+  }
+
+  /**
+   * Resets the compile pointer to the buffer pointer.
+   */
+  reset(): void {
+    if (this.preserve) {
+      this.BP = this.CP;
+    } else {
+      this.CP = this.BP;
+    }
   }
 }

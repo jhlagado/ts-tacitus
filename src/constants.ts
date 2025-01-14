@@ -3,20 +3,13 @@ export const BLOCK_SIZE = 16; // Each block is 16 bytes
 export const MEMORY_SIZE = 0x2000; // Total memory size (8 KB)
 export const NIL = -1; // Represents a null pointer
 
-// Memory regions and sizes
 export const STACK = 0; // Stack starts at address 0
 export const STACK_SIZE = 0x100; // Stack size (256 bytes)
 
 export const RSTACK = STACK + STACK_SIZE; // Return stack starts after the stack
 export const RSTACK_SIZE = 0x100; // Return stack size (256 bytes)
 
-export const BUFFER = RSTACK + RSTACK_SIZE; // Terminal Input Buffer starts after the return stack
-export const BUFFER_SIZE = 0x100; // BUFFER size (256 bytes)
-
-export const PAD = BUFFER + BUFFER_SIZE; // PAD starts after the TIB
-export const PAD_SIZE = 0x100; // PAD size (256 bytes)
-
-export const CODE = PAD + PAD_SIZE; // Code area starts after the PAD
+export const CODE = RSTACK + RSTACK_SIZE; 
 export const CODE_SIZE = 0x400; // Code area size (1 KB)
 
 export const VARS = CODE + CODE_SIZE; // Variables area starts after the code area

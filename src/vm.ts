@@ -2,11 +2,8 @@ import { initMemory } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory } from "./types";
-import { BUFFER, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE } from "./constants";
+import { STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./constants";
 
-/**
- * Virtual Machine (VM) for executing Forth-like code.
- */
 export class VM {
   mem: Memory;
   SP: number;
@@ -19,7 +16,7 @@ export class VM {
 
   constructor() {
     this.mem = initMemory();
-    this.IP = BUFFER;
+    this.IP = CODE; // Start execution at CODE
     this.running = true;
     this.SP = STACK;
     this.RP = RSTACK;

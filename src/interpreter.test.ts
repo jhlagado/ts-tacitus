@@ -2,35 +2,16 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import { Op } from "./builtins"; // Import Op enum
-import { BUFFER } from "./constants";
 
 describe("Interpreter", () => {
   beforeEach(() => {
     initializeInterpreter();
   });
 
-  it("should compile a block and push it onto the stack", () => {
-    const tokens = lex("{ 5 3 + }");
-    parse(tokens);
-    execute(BUFFER);
-    const received = vm.compiler.getData();
-    expect(received).toEqual([
-      Op.BranchCall,
-      6,
-      Op.LiteralNumber, // Use Op enum
-      5,
-      Op.LiteralNumber, // Use Op enum
-      3,
-      Op.Plus, // Use Op enum
-      Op.Exit, // Use Op enum
-    ]);
-  });
-
   it("should execute a simple addition", () => {
     const tokens = lex("5 3 +");
     parse(tokens);
-    execute(BUFFER);
+    execute(vm.compiler.BP);
     const received = vm.getStackData();
     expect(received).toEqual([8]);
   });
@@ -38,7 +19,7 @@ describe("Interpreter", () => {
   it("should handle the 'dup' word", () => {
     const tokens = lex("5 dup");
     parse(tokens);
-    execute(BUFFER);
+    execute(vm.compiler.BP);
     const received = vm.getStackData();
     expect(received).toEqual([5, 5]);
   });
@@ -46,7 +27,7 @@ describe("Interpreter", () => {
   it("should handle empty commands", () => {
     const tokens = lex("");
     parse(tokens);
-    execute(BUFFER);
+    execute(vm.compiler.BP);
     const received = vm.getStackData();
     expect(received).toEqual([]);
   });
@@ -54,30 +35,16 @@ describe("Interpreter", () => {
   it("should execute multiple operations", () => {
     const tokens = lex("5 3 + 2 *");
     parse(tokens);
-    execute(BUFFER);
+    execute(vm.compiler.BP);
     const received = vm.getStackData();
     expect(received).toEqual([16]);
-  });
-
-  it("should handle immediate words during compilation", () => {
-    const tokens = lex("{ 5 }");
-    parse(tokens);
-    execute(BUFFER);
-    const received = vm.compiler.getData();
-    expect(received).toEqual([
-      Op.BranchCall,
-      3,
-      Op.LiteralNumber, // Use Op enum
-      5,
-      Op.Exit, // Use Op enum
-    ]);
   });
 
   // New test: Verb throws an Error object
   it("should handle errors thrown by verbs", () => {
     const tokens = lex("5 0 /"); // Division by zero
     parse(tokens);
-    expect(() => execute(BUFFER)).toThrowError(
+    expect(() => execute(vm.compiler.BP)).toThrowError(
       /Unknown error executing word \(stack: .*\): Division by zero/
     );
   });
@@ -87,7 +54,7 @@ describe("Interpreter", () => {
     const tokens = lex("5 0 /"); // Division by zero
     parse(tokens);
     try {
-      execute(BUFFER);
+      execute(vm.compiler.BP);
     } catch (error) {
       if (error instanceof Error) {
         expect(error.message).toMatch(

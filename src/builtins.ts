@@ -16,40 +16,35 @@ export enum Op {
   Swap = 11,
 }
 
-export const leftBraceOp: Verb = (vm: VM) => {
-  vm.compiler.nestingScore++;
-  vm.compiler.compileMode = true;
-  vm.compiler.compile(Op.BranchCall);
-  vm.push(vm.compiler.getPointer()); // Push the current address for later patching
-  vm.compiler.compile(0); // Placeholder for the relative offset
+export const leftBraceOp: Verb = () => {
+  // vm.compiler.nestingScore++;
+  // vm.compiler.compileMode = true;
+  // vm.compiler.compile(Op.BranchCall);
+  // vm.push(vm.compiler.getPointer()); // Push the current address for later patching
+  // vm.compiler.compile(0); // Placeholder for the relative offset
 };
 
-export const rightBraceOp: Verb = (vm: VM) => {
-  if (!vm.compiler.compileMode) {
-    throw new Error("Unexpected '}' outside compilation mode");
-  }
-  vm.compiler.compile(Op.Exit);
-  const branchAddress = vm.pop(); // Get the address of the branch instruction
-  const endAddress = vm.compiler.getPointer();
-  const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
-  vm.compiler.setPointer(branchAddress); // Move to the offset location
-  vm.compiler.compile(offset); // Write the relative offset
-  vm.compiler.setPointer(endAddress); // Restore the pointer
-  console.log("rightBrace 2", vm.compiler.compileMode);
-  vm.compiler.nestingScore--;
-  if (vm.compiler.nestingScore === 0) {
-    vm.compiler.compileMode = false;
-  }
+export const rightBraceOp: Verb = () => {
+  // if (!vm.compiler.compileMode) {
+  //   throw new Error("Unexpected '}' outside compilation mode");
+  // }
+  // vm.compiler.compile(Op.Exit);
+  // const branchAddress = vm.pop(); // Get the address of the branch instruction
+  // const endAddress = vm.compiler.getPointer();
+  // const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
+  // vm.compiler.setPointer(branchAddress); // Move to the offset location
+  // vm.compiler.compile(offset); // Write the relative offset
+  // vm.compiler.setPointer(endAddress); // Restore the pointer
+  // console.log("rightBrace 2", vm.compiler.compileMode);
+  // vm.compiler.nestingScore--;
+  // if (vm.compiler.nestingScore === 0) {
+  //   vm.compiler.compileMode = false;
+  // }
 };
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.next() as number;
-  if (vm.compiler.compileMode) {
-    vm.compiler.compile(Op.LiteralNumber);
-    vm.compiler.compile(num);
-  } else {
-    vm.push(num);
-  }
+  vm.push(num);
 };
 
 /**
@@ -146,9 +141,9 @@ export const opTable: Record<string, Op> = {
 };
 
 export const immediateWords: number[] = [
-  Op.LeftBrace,
-  Op.RightBrace,
-  Op.LiteralNumber,
+  // Op.LeftBrace,
+  // Op.RightBrace,
+  // Op.LiteralNumber,
 ];
 
 export const ops: Verb[] = [
