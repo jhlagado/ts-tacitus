@@ -1,3 +1,5 @@
+import { isDigit, isLetter, isWhitespace, isSymbol } from "./utils";
+
 /**
  * Lexer for the interpreter.
  * Splits input into tokens, skips comments, and parses numbers.
@@ -28,22 +30,86 @@ export function lex(input: string): (string | number)[] {
       continue;
     }
 
-    // Split the line into words based on whitespace
-    const words = code.split(/\s+/);
+    // Tokenize the line
+    let current = 0;
+    while (current < code.length) {
+      const char = code[current];
 
-    for (const word of words) {
-      if (word === "") {
-        continue; // Skip empty words (e.g., multiple spaces)
+      // Skip whitespace
+      if (isWhitespace(char)) {
+        current++;
+        continue;
       }
 
-      // Check if the word is a number
-      if (/^-?\d+(\.\d+)?$/.test(word)) {
-        // Parse as a number (integer or float)
-        tokens.push(parseFloat(word));
-      } else {
-        // Treat as a regular word
+      // Handle numbers (including negative numbers)
+      if (isDigit(char) || char === "-" || char === "+" || char === ".") {
+        let numStr = "";
+        let hasDecimal = false;
+
+        // Handle negative numbers or positive numbers with explicit sign
+        if (char === "-" || char === "+") {
+          numStr += char;
+          current++;
+          if (current >= code.length || !isDigit(code[current])) {
+            // Treat standalone + or - as operators
+            tokens.push(char);
+            continue;
+          }
+        }
+
+        // Collect digits and decimal points
+        while (current < code.length) {
+          const currentChar = code[current];
+          if (isDigit(currentChar)) {
+            numStr += currentChar;
+            current++;
+          } else if (currentChar === ".") {
+            if (hasDecimal) {
+              // More than one decimal point is invalid
+              throw new Error(`Invalid number: ${numStr}.`);
+            }
+            numStr += currentChar;
+            hasDecimal = true;
+            current++;
+          } else {
+            break;
+          }
+        }
+
+        const num = parseFloat(numStr);
+        if (!isNaN(num)) {
+          tokens.push(num);
+        } else {
+          throw new Error(`Invalid number: ${numStr}`);
+        }
+        continue;
+      }
+
+      // Handle words (e.g., swap, drop, foo@bar)
+      if (isLetter(char) || char === "_") {
+        let word = "";
+        while (
+          current < code.length &&
+          (isLetter(code[current]) ||
+            isDigit(code[current]) ||
+            code[current] === "_")
+        ) {
+          word += code[current];
+          current++;
+        }
         tokens.push(word);
+        continue;
       }
+
+      // Handle standalone symbols (e.g., +, -, *, /, @, #, etc.)
+      if (isSymbol(char)) {
+        tokens.push(char);
+        current++;
+        continue;
+      }
+
+      // Handle unknown characters
+      throw new Error(`Unknown character: ${char}`);
     }
   }
 
