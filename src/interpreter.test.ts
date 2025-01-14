@@ -2,7 +2,6 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import { Op } from "./builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -73,19 +72,27 @@ describe("Interpreter", () => {
     expect(() => execute(vm.compiler.BP)).toThrow("Invalid opcode: 999");
   });
 
-  // Test for error handling with stack state
-  it("should error on division by zero", () => {
-    vm.push(5);
-    vm.push(0);
-    vm.compiler.compile(Op.Divide); // Division by zero
-    try {
-      execute(vm.compiler.BP);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).toMatch(/Division by zero/);
-      } else {
-        fail("Expected an Error object");
-      }
-    }
+  it("should execute code block", () => {
+    const tokens = lex("{ 3 2 * } eval");
+    parse(tokens);
+    execute(vm.compiler.BP);
+    const received = vm.getStackData();
+    expect(received).toEqual([6]);
+  });
+
+  it("should execute more complex code block", () => {
+    const tokens = lex("4 { 3 2 * } eval + ");
+    parse(tokens);
+    execute(vm.compiler.BP);
+    const received = vm.getStackData();
+    expect(received).toEqual([10]);
+  });
+
+  it("should execute more complex nested code block", () => {
+    const tokens = lex("{ { 4 2 + } eval { 3 2 + } eval * } eval 2 + ");
+    parse(tokens);
+    execute(vm.compiler.BP);
+    const received = vm.getStackData();
+    expect(received).toEqual([32]);
   });
 });

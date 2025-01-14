@@ -50,13 +50,13 @@ export const branchCallOp: Verb = (vm: VM) => {
 export const abortOp: Verb = (vm: VM) => {
   vm.running = false;
 };
+
 export const exitOp: Verb = (vm: VM) => {
-  vm.IP = vm.rpop();
+  vm.running = false;
 };
 
 export const callOp: Verb = (vm: VM) => {
-  vm.rpush(vm.IP);
-  vm.IP = vm.pop();
+  vm.running = false;
 };
 
 export const plusOp: Verb = (vm: VM) => {
@@ -126,7 +126,6 @@ export const ops: Verb[] = [
   literalNumberOp,
   branchCallOp, // Add the branch function to the ops array
   abortOp,
-  exitOp,
   callOp,
   plusOp,
   minusOp,
