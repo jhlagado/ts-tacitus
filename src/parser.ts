@@ -41,5 +41,5 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.compile(opcode);
     }
   }
-  vm.compiler.compile(Op.Exit);
+  vm.compiler.compile(Op.Abort);
 }

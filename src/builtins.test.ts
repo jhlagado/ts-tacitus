@@ -107,7 +107,7 @@ describe("Built-in Words", () => {
       vm.compiler.compile(42); // This should be skipped
       vm.compiler.compile(Op.LiteralNumber);
       vm.compiler.compile(100); // This should be executed
-      vm.compiler.compile(Op.Exit);
+      vm.compiler.compile(Op.Abort);
       execute(CODE);
       expect(vm.getStackData()).toEqual([CODE + 2, 100]);
     });
@@ -116,7 +116,7 @@ describe("Built-in Words", () => {
       // Compile: branch -3 (jump back to the start)
       vm.compiler.compile(Op.LiteralNumber);
       vm.compiler.compile(42);
-      vm.compiler.compile(Op.Exit);
+      vm.compiler.compile(Op.Abort);
       vm.compiler.compile(Op.BranchCall);
       vm.compiler.compile(-5); // Relative offset
       execute(CODE + 3);
@@ -129,7 +129,7 @@ describe("Built-in Words", () => {
       vm.compiler.compile(0); // Relative offset
       vm.compiler.compile(Op.LiteralNumber);
       vm.compiler.compile(42);
-      vm.compiler.compile(Op.Exit);
+      vm.compiler.compile(Op.Abort);
 
       execute(CODE);
       expect(vm.getStackData()).toEqual([CODE + 2, 42]);

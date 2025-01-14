@@ -8,7 +8,7 @@ import { lex } from "./lexer";
 describe("Parser", () => {
   beforeEach(() => {
     initializeInterpreter(); // Reset the interpreter state before each test
-    vm.debug = true;
+    // vm.debug = true;
   });
 
   it("should parse numbers into literalNumber and the number itself", () => {
@@ -22,7 +22,7 @@ describe("Parser", () => {
       3.14,
       Op.LiteralNumber, // Use opTable for index
       -42,
-      Op.Exit, // Use opTable for index
+      Op.Abort, // Use opTable for index
     ]);
   });
 
@@ -34,7 +34,7 @@ describe("Parser", () => {
       Op.Plus, // Use opTable for index
       Op.Minus, // Use opTable for index
       Op.Dup, // Use opTable for index
-      Op.Exit, // Use opTable for index
+      Op.Abort, // Use opTable for index
     ]);
   });
 
@@ -49,7 +49,7 @@ describe("Parser", () => {
       3,
       Op.Plus, // Use opTable for index
       Op.Dup, // Use opTable for index
-      Op.Exit, // Use opTable for index
+      Op.Abort, // Use opTable for index
     ]);
   });
 
@@ -62,7 +62,7 @@ describe("Parser", () => {
     const tokens = [] as (string | number)[];
     parse(tokens);
     const result = vm.compiler.getData();
-    expect(result).toEqual([Op.Exit]); // Use opTable for index
+    expect(result).toEqual([Op.Abort]); // Use opTable for index
   });
 
   it("should handle compilation blocks", () => {
@@ -81,7 +81,7 @@ describe("Parser", () => {
       3,
       Op.Exit,
       Op.Plus, // Use opTable for index
-      Op.Exit, // Use opTable for index
+      Op.Abort, // Use opTable for index
     ]);
   });
 
@@ -104,7 +104,7 @@ describe("Parser", () => {
       Op.Exit,
       Op.Plus, // Use opTable for index
       Op.Exit, // Use opTable for index
-      Op.Exit, // Use opTable for index
+      Op.Abort, // Use opTable for index
     ]);
   });
 

@@ -4,8 +4,9 @@ import { Verb } from "./types";
 export enum Op {
   LiteralNumber,
   BranchCall,
+  Abort,
   Exit,
-  Exec,
+  Call,
   Plus,
   Minus,
   Multiply,
@@ -18,8 +19,9 @@ export enum Op {
 export const opTable: Record<string, Op> = {
   literalNumber: Op.LiteralNumber,
   branch: Op.BranchCall, // Add Branch to the opTable
-  exitDef: Op.Exit,
-  "exec": Op.Exec,
+  abort: Op.Abort,
+  exit: Op.Exit,
+  call: Op.Call,
   "+": Op.Plus,
   "-": Op.Minus,
   "*": Op.Multiply,
@@ -45,12 +47,16 @@ export const branchCallOp: Verb = (vm: VM) => {
   vm.IP += offset; // Adjust the IP by the offset
 };
 
-export const exitOp: Verb = (vm: VM) => {
+export const abortOp: Verb = (vm: VM) => {
   vm.running = false;
 };
+export const exitOp: Verb = (vm: VM) => {
+  vm.IP = vm.rpop();
+};
 
-export const execOp: Verb = (vm: VM) => {
-  vm.running = false;
+export const callOp: Verb = (vm: VM) => {
+  vm.rpush(vm.IP);
+  vm.IP = vm.pop();
 };
 
 export const plusOp: Verb = (vm: VM) => {
@@ -119,8 +125,9 @@ export const swapOp: Verb = (vm: VM) => {
 export const ops: Verb[] = [
   literalNumberOp,
   branchCallOp, // Add the branch function to the ops array
+  abortOp,
   exitOp,
-  execOp,
+  callOp,
   plusOp,
   minusOp,
   multiplyOp,
