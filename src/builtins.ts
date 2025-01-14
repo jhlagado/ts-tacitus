@@ -2,17 +2,32 @@ import { VM } from "./vm";
 import { Verb } from "./types";
 
 export enum Op {
-  LiteralNumber = 0,
-  BranchCall = 1,
-  Exit = 2,
-  Plus = 3,
-  Minus = 4,
-  Multiply = 5,
-  Divide = 6,
-  Dup = 7,
-  Drop = 8,
-  Swap = 9,
+  LiteralNumber,
+  BranchCall,
+  Exit,
+  Exec,
+  Plus,
+  Minus,
+  Multiply,
+  Divide,
+  Dup,
+  Drop,
+  Swap,
 }
+
+export const opTable: Record<string, Op> = {
+  literalNumber: Op.LiteralNumber,
+  branch: Op.BranchCall, // Add Branch to the opTable
+  exitDef: Op.Exit,
+  "exec": Op.Exec,
+  "+": Op.Plus,
+  "-": Op.Minus,
+  "*": Op.Multiply,
+  "/": Op.Divide,
+  dup: Op.Dup,
+  drop: Op.Drop,
+  swap: Op.Swap,
+};
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.next() as number;
@@ -31,6 +46,10 @@ export const branchCallOp: Verb = (vm: VM) => {
 };
 
 export const exitOp: Verb = (vm: VM) => {
+  vm.running = false;
+};
+
+export const execOp: Verb = (vm: VM) => {
   vm.running = false;
 };
 
@@ -97,23 +116,11 @@ export const swapOp: Verb = (vm: VM) => {
   }
 };
 
-export const opTable: Record<string, Op> = {
-  literalNumber: Op.LiteralNumber,
-  branch: Op.BranchCall, // Add Branch to the opTable
-  exitDef: Op.Exit,
-  "+": Op.Plus,
-  "-": Op.Minus,
-  "*": Op.Multiply,
-  "/": Op.Divide,
-  dup: Op.Dup,
-  drop: Op.Drop,
-  swap: Op.Swap,
-};
-
 export const ops: Verb[] = [
   literalNumberOp,
   branchCallOp, // Add the branch function to the ops array
   exitOp,
+  execOp,
   plusOp,
   minusOp,
   multiplyOp,

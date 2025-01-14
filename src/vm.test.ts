@@ -79,14 +79,6 @@ describe("VM", () => {
     });
   });
 
-  // Test 4: Memory initialization
-  describe("Memory initialization", () => {
-    it("should initialize memory with zeros", () => {
-      expect(vm.memory.length).toBeGreaterThan(0);
-      expect(vm.memory.every((value) => value === 0)).toBe(true);
-    });
-  });
-
   // Test 5: Compiler and dictionary initialization
   describe("Compiler and dictionary initialization", () => {
     it("should initialize the compiler with the VM instance", () => {

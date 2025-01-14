@@ -1,11 +1,10 @@
-import { initMemory } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
-import { Memory } from "./types";
-import { STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./constants";
+import { STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE, MEMORY_SIZE } from "./constants";
+import { Heap } from "./heap";
 
 export class VM {
-  memory: Memory;
+  memory: number[];
   SP: number;
   RP: number;
   IP: number;
@@ -13,15 +12,17 @@ export class VM {
   compiler: Compiler;
   dictionary: Dictionary;
   debug: boolean;
-
+  heap: Heap; // Add Heap instance
+  
   constructor() {
-    this.memory = initMemory();
+    this.memory = new Array(MEMORY_SIZE).fill(0);
     this.IP = CODE; // Start execution at CODE
     this.running = true;
     this.SP = STACK;
     this.RP = RSTACK;
     this.compiler = new Compiler(this);
     this.dictionary = new Dictionary();
+    this.heap = new Heap(this.memory);
     this.debug = false;
   }
 
