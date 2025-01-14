@@ -73,17 +73,17 @@ describe("VM", () => {
     });
 
     it("should increment the instruction pointer after reading", () => {
-        vm.compiler.compile(42);
-        vm.next();
-        expect(vm.IP).toBe(CODE + 1);
+      vm.compiler.compile(42);
+      vm.next();
+      expect(vm.IP).toBe(CODE + 1);
     });
   });
 
   // Test 4: Memory initialization
   describe("Memory initialization", () => {
     it("should initialize memory with zeros", () => {
-      expect(vm.mem.data.length).toBeGreaterThan(0);
-      expect(vm.mem.data.every((value) => value === 0)).toBe(true);
+      expect(vm.memory.length).toBeGreaterThan(0);
+      expect(vm.memory.every((value) => value === 0)).toBe(true);
     });
   });
 

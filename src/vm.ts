@@ -5,7 +5,7 @@ import { Memory } from "./types";
 import { STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./constants";
 
 export class VM {
-  mem: Memory;
+  memory: Memory;
   SP: number;
   RP: number;
   IP: number;
@@ -15,7 +15,7 @@ export class VM {
   debug: boolean;
 
   constructor() {
-    this.mem = initMemory();
+    this.memory = initMemory();
     this.IP = CODE; // Start execution at CODE
     this.running = true;
     this.SP = STACK;
@@ -33,7 +33,7 @@ export class VM {
     if (this.SP >= STACK + STACK_SIZE) {
       throw new Error("Stack overflow");
     }
-    this.mem.data[this.SP++] = value;
+    this.memory[this.SP++] = value;
   }
 
   /**
@@ -44,7 +44,7 @@ export class VM {
     if (this.SP <= STACK) {
       throw new Error("Stack underflow");
     }
-    return this.mem.data[--this.SP];
+    return this.memory[--this.SP];
   }
 
   /**
@@ -55,7 +55,7 @@ export class VM {
     if (this.RP >= RSTACK + RSTACK_SIZE) {
       throw new Error("Return stack overflow");
     }
-    this.mem.data[this.RP++] = value;
+    this.memory[this.RP++] = value;
   }
 
   /**
@@ -66,7 +66,7 @@ export class VM {
     if (this.RP <= RSTACK) {
       throw new Error("Return stack underflow");
     }
-    return this.mem.data[--this.RP];
+    return this.memory[--this.RP];
   }
 
   /**
@@ -74,7 +74,7 @@ export class VM {
    * @returns The next value.
    */
   next(): number {
-    return this.mem.data[this.IP++];
+    return this.memory[this.IP++];
   }
 
   /**
@@ -82,6 +82,6 @@ export class VM {
    * @returns An array of stack values.
    */
   getStackData(): number[] {
-    return this.mem.data.slice(STACK, this.SP);
+    return this.memory.slice(STACK, this.SP);
   }
 }

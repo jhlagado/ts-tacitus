@@ -20,14 +20,14 @@ export class Compiler {
    * Compiles a value to the CODE area.
    */
   compile(data: number): void {
-    this.vm.mem.data[this.CP++] = data;
+    this.vm.memory[this.CP++] = data;
   }
 
   /**
    * Returns the compiled data from the CODE area.
    */
   getData(): number[] {
-    return this.vm.mem.data.slice(this.BP, this.CP);
+    return this.vm.memory.slice(this.BP, this.CP);
   }
 
   /**

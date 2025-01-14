@@ -6,9 +6,7 @@ import { Memory, Heap } from "./types";
  * @returns A Memory object.
  */
 export function initMemory(): Memory {
-  return {
-    data: new Array(MEMORY_SIZE).fill(0),
-  };
+  return new Array(MEMORY_SIZE).fill(0);
 }
 
 /**
@@ -24,9 +22,9 @@ export function initHeap(memory: Memory): Heap {
   };
 
   for (let i = HEAP; i < HEAP + HEAP_SIZE; i += BLOCK_SIZE) {
-    memory.data[i] = i + BLOCK_SIZE;
+    memory[i] = i + BLOCK_SIZE;
   }
-  memory.data[HEAP + HEAP_SIZE - BLOCK_SIZE] = NIL;
+  memory[HEAP + HEAP_SIZE - BLOCK_SIZE] = NIL;
 
   return heap;
 }
@@ -50,20 +48,20 @@ export function malloc(memory: Memory, heap: Heap, size: number): number {
   while (current !== NIL && blocksFound < numBlocks) {
     blocksFound++;
     prev = current;
-    current = memory.data[current];
+    current = memory[current];
   }
 
   if (blocksFound < numBlocks) {
     if (startBlock !== NIL) {
-      memory.data[prev] = heap.freeList;
+      memory[prev] = heap.freeList;
       heap.freeList = startBlock;
     }
     return NIL;
   }
 
-  memory.data[prev] = NIL;
+  memory[prev] = NIL;
   heap.freeList = current;
-  memory.data[startBlock + 1] = size;
+  memory[startBlock + 1] = size;
 
   return startBlock;
 }
@@ -80,10 +78,10 @@ export function free(memory: Memory, heap: Heap, pointer: number): void {
   let current = pointer;
   const oldFreeListHead = heap.freeList;
 
-  while (memory.data[current] !== NIL) {
-    current = memory.data[current];
+  while (memory[current] !== NIL) {
+    current = memory[current];
   }
 
-  memory.data[current] = oldFreeListHead;
+  memory[current] = oldFreeListHead;
   heap.freeList = pointer;
 }

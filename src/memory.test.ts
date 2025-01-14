@@ -44,11 +44,7 @@ describe("Memory Allocator", () => {
 
     it("should fit within the total memory size", () => {
       const totalUsedMemory =
-        STACK_SIZE +
-        RSTACK_SIZE +
-        CODE_SIZE +
-        VARS_SIZE +
-        HEAP_SIZE;
+        STACK_SIZE + RSTACK_SIZE + CODE_SIZE + VARS_SIZE + HEAP_SIZE;
       expect(totalUsedMemory).toBeLessThanOrEqual(MEMORY_SIZE); // Ensure all regions fit in memory
     });
   });
@@ -66,7 +62,7 @@ describe("Memory Allocator", () => {
 
       while (current !== NIL) {
         blockCount++;
-        current = memory.data[current];
+        current = memory[current];
       }
 
       expect(blockCount).toBe(HEAP_SIZE / BLOCK_SIZE); // All blocks should be in the free list
@@ -78,17 +74,17 @@ describe("Memory Allocator", () => {
       const ptr = malloc(memory, heap, 10); // Request 10 bytes (1 block)
       expect(ptr).toBe(HEAP); // First block is allocated
       expect(heap.freeList).toBe(HEAP + BLOCK_SIZE); // Free list points to the next block
-      expect(memory.data[ptr]).toBe(NIL); // Allocated block points to NIL
-      expect(memory.data[ptr + 1]).toBe(10); // Size is stored in the first block
+      expect(memory[ptr]).toBe(NIL); // Allocated block points to NIL
+      expect(memory[ptr + 1]).toBe(10); // Size is stored in the first block
     });
 
     it("should allocate multiple contiguous blocks", () => {
       const ptr = malloc(memory, heap, 32); // Request 32 bytes (2 blocks)
       expect(ptr).toBe(HEAP); // First block is allocated
       expect(heap.freeList).toBe(HEAP + 2 * BLOCK_SIZE); // Free list points to the next available block
-      expect(memory.data[ptr]).toBe(HEAP + BLOCK_SIZE); // First block points to the second block
-      expect(memory.data[HEAP + BLOCK_SIZE]).toBe(NIL); // Second block points to NIL
-      expect(memory.data[ptr + 1]).toBe(32); // Size is stored in the first block
+      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // First block points to the second block
+      expect(memory[HEAP + BLOCK_SIZE]).toBe(NIL); // Second block points to NIL
+      expect(memory[ptr + 1]).toBe(32); // Size is stored in the first block
     });
 
     it("should return NIL if not enough memory is available", () => {
@@ -127,15 +123,15 @@ describe("Memory Allocator", () => {
       const ptr = malloc(memory, heap, 10); // Allocate 1 block
       free(memory, heap, ptr); // Free the block
       expect(heap.freeList).toBe(HEAP); // Freed block is added back to the free list
-      expect(memory.data[ptr]).toBe(HEAP + BLOCK_SIZE); // Freed block points to the next free block
+      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // Freed block points to the next free block
     });
 
     it("should free multiple contiguous blocks", () => {
       const ptr = malloc(memory, heap, 32); // Allocate 2 blocks
       free(memory, heap, ptr); // Free the blocks
       expect(heap.freeList).toBe(HEAP); // Freed blocks are added back to the free list
-      expect(memory.data[ptr]).toBe(HEAP + BLOCK_SIZE); // First freed block points to the second
-      expect(memory.data[HEAP + BLOCK_SIZE]).toBe(HEAP + 2 * BLOCK_SIZE); // Second freed block points to the next free block
+      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // First freed block points to the second
+      expect(memory[HEAP + BLOCK_SIZE]).toBe(HEAP + 2 * BLOCK_SIZE); // Second freed block points to the next free block
     });
 
     it("should handle freeing NIL pointers", () => {

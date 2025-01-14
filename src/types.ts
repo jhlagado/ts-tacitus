@@ -13,9 +13,7 @@ export type Cell = number | string | object | Verb;
 /**
  * Represents the memory of the VM.
  */
-export type Memory = {
-  data: number[];
-};
+export type Memory = number[];
 
 /**
  * Represents the heap for memory allocation.
