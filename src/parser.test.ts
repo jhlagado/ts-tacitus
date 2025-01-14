@@ -107,4 +107,10 @@ describe("Parser", () => {
       Op.Exit, // Use opTable for index
     ]);
   });
+
+  // Test for unknown words
+  it("should throw an error for unknown words", () => {
+    const tokens = ["unknown"];
+    expect(() => parse(tokens)).toThrow("Unknown word: unknown");
+  });
 });

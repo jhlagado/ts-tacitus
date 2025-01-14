@@ -135,5 +135,15 @@ describe("Built-in Words", () => {
       expect(vm.getStackData()).toEqual([CODE + 2, 42]);
     });
 
+    // Test for dupOp with an empty stack
+    it("should throw an error for dupOp with an empty stack", () => {
+      expect(() => ops[Op.Dup](vm)).toThrow("Stack underflow");
+    });
+
+    // Test for swapOp with insufficient stack items
+    it("should throw an error for swapOp with insufficient stack items", () => {
+      vm.push(5); // Only one item on the stack
+      expect(() => ops[Op.Swap](vm)).toThrow("Stack underflow");
+    });
   });
 });

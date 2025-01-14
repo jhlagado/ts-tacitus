@@ -2,6 +2,7 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
+import { Op } from "./builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -60,6 +61,29 @@ describe("Interpreter", () => {
         expect(error.message).toMatch(
           /Unknown error executing word \(stack: .*\): Division by zero/
         );
+      } else {
+        fail("Expected an Error object");
+      }
+    }
+  });
+
+  // Test for invalid opcode
+  it("should throw an error for invalid opcode", () => {
+    vm.compiler.compile(999); // Invalid opcode
+    expect(() => execute(vm.compiler.BP)).toThrow("Invalid opcode: 999");
+  });
+
+  // Test for error handling with stack state
+  xit("should include stack state in error messages", () => {
+    vm.push(5);
+    vm.push(0);
+    vm.compiler.compile(Op.Divide); // Division by zero
+    try {
+      execute(vm.compiler.BP);
+    } catch (error) {
+      if (error instanceof Error) {
+        expect(error.message).toMatch(/Division by zero/);
+        expect(error.message).toMatch(/stack: \[5, 0\]/);
       } else {
         fail("Expected an Error object");
       }

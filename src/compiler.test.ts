@@ -24,4 +24,11 @@ describe("Compiler", () => {
       Op.Plus, // Use Op enum
     ]);
   });
+
+  it("should preserve compiled code when preserve is true", () => {
+    vm.compiler.preserve = true;
+    vm.compiler.compile(42); // Compile a value
+    vm.compiler.reset(); // Reset with preserve flag
+    expect(vm.compiler.BP).toBe(vm.compiler.CP); // BP should move to CP
+  });
 });

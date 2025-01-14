@@ -82,4 +82,22 @@ describe("Lexer", () => {
     const tokens = lex("5   3   +");
     expect(tokens).toEqual([5, 3, "+"]);
   });
+
+  // Test for skipping empty lines
+  it("should skip empty lines", () => {
+    const tokens = lex("\n\n5 3 +\n\n");
+    expect(tokens).toEqual([5, 3, "+"]);
+  });
+
+  // Test for skipping inline comments
+  it("should skip inline comments", () => {
+    const tokens = lex("5 3 + # This is a comment");
+    expect(tokens).toEqual([5, 3, "+"]);
+  });
+
+  // Test for skipping lines with only comments
+  it("should skip lines with only comments", () => {
+    const tokens = lex("# Comment 1\n# Comment 2\n5 3 +");
+    expect(tokens).toEqual([5, 3, "+"]);
+  });
 });

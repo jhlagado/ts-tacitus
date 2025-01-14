@@ -1,11 +1,11 @@
-import { immediateWords, ops } from "./builtins";
+import { ops } from "./builtins";
 import { vm } from "./globalState";
 
 export function execute(start: number): void {
   vm.IP = start;
   while (vm.running) {
     const opcode = vm.next();
-    if (vm.compiler.compileMode && !immediateWords.includes(opcode)) {
+    if (vm.compiler.compileMode) {
       vm.compiler.compile(opcode);
     } else {
       const verb = ops[opcode];
