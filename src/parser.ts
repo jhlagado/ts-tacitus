@@ -3,16 +3,15 @@ import { vm } from "./globalState";
 
 export function parse(tokens: (string | number)[]): void {
   vm.compiler.compileMode = false;
-  vm.compiler.reset(); 
+  vm.compiler.reset();
   for (const token of tokens) {
-    if (vm.debug) console.log("token", token, vm.compiler.getData());
+    if (vm.debug) console.log("token", token);
 
     if (typeof token === "number") {
-      console.log("literalNumber", token);
       vm.compiler.compile(Op.LiteralNumber);
       vm.compiler.compile(token);
     } else if (token === "{") {
-      vm.compiler.preserve = true; 
+      vm.compiler.preserve = true;
       vm.compiler.nestingScore++;
       vm.compiler.compileMode = true;
       vm.compiler.compile(Op.BranchCall);
@@ -29,7 +28,6 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.setPointer(branchAddress); // Move to the offset location
       vm.compiler.compile(offset); // Write the relative offset
       vm.compiler.setPointer(endAddress); // Restore the pointer
-      console.log("rightBrace 2", vm.compiler.compileMode);
       vm.compiler.nestingScore--;
       if (vm.compiler.nestingScore === 0) {
         vm.compiler.compileMode = false;
@@ -43,5 +41,5 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.compile(opcode);
     }
   }
-  vm.compiler.compile(Op.Exit); 
+  vm.compiler.compile(Op.Exit);
 }
