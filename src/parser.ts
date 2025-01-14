@@ -15,7 +15,7 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.nestingScore++;
       vm.compiler.compileMode = true;
       vm.compiler.compile(Op.BranchCall);
-      vm.push(vm.compiler.getPointer()); // Push the current address for later patching
+      vm.push(vm.compiler.CP); // Push the current address for later patching
       vm.compiler.compile(0); // Placeholder for the relative offset
     } else if (token === "}") {
       if (!vm.compiler.compileMode) {
@@ -23,11 +23,11 @@ export function parse(tokens: (string | number)[]): void {
       }
       vm.compiler.compile(Op.Exit);
       const branchAddress = vm.pop(); // Get the address of the branch instruction
-      const endAddress = vm.compiler.getPointer();
+      const endAddress = vm.compiler.CP;
       const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
-      vm.compiler.setPointer(branchAddress); // Move to the offset location
+      vm.compiler.CP = branchAddress; // Move to the offset location
       vm.compiler.compile(offset); // Write the relative offset
-      vm.compiler.setPointer(endAddress); // Restore the pointer
+      vm.compiler.CP = endAddress; // Restore the pointer
       vm.compiler.nestingScore--;
       if (vm.compiler.nestingScore === 0) {
         vm.compiler.compileMode = false;

@@ -17,20 +17,6 @@ export class Compiler {
   }
 
   /**
-   * Returns the current compile pointer.
-   */
-  getPointer(): number {
-    return this.CP;
-  }
-
-  /**
-   * Sets the compile pointer.
-   */
-  setPointer(value: number): void {
-    this.CP = value;
-  }
-
-  /**
    * Compiles a value to the CODE area.
    */
   compile(data: number): void {
