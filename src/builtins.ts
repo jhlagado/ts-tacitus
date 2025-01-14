@@ -17,21 +17,6 @@ export enum Op {
   Swap,
 }
 
-export const opTable: Record<string, Op> = {
-  literalNumber: Op.LiteralNumber,
-  branch: Op.BranchCall, // Add Branch to the opTable
-  abort: Op.Abort,
-  exit: Op.Exit,
-  eval: Op.Eval,
-  "+": Op.Plus,
-  "-": Op.Minus,
-  "*": Op.Multiply,
-  "/": Op.Divide,
-  dup: Op.Dup,
-  drop: Op.Drop,
-  swap: Op.Swap,
-};
-
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.next() as number;
   vm.push(num);
@@ -55,7 +40,7 @@ export const exitOp: Verb = (vm: VM) => {
   vm.IP = vm.rpop();
 };
 
-export const callOp: Verb = (vm: VM) => {
+export const evalOp: Verb = (vm: VM) => {
   vm.rpush(vm.IP);
   vm.IP = vm.pop();
 };
@@ -183,17 +168,27 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(b);
 };
 
-export const ops: Verb[] = [
-  literalNumberOp,
-  branchCallOp, // Add the branch function to the ops array
-  abortOp,
-  exitOp,
-  callOp,
-  plusOp,
-  minusOp,
-  multiplyOp,
-  divideOp,
-  dupOp,
-  dropOp,
-  swapOp,
-];
+export const builtins: Record<string, Verb> = {
+  literalNumber: literalNumberOp,
+  branch: branchCallOp,
+  abort: abortOp,
+  exit: exitOp,
+  eval: evalOp,
+  "+": plusOp,
+  "-": minusOp,
+  "*": multiplyOp,
+  "/": divideOp,
+  dup: dupOp,
+  drop: dropOp,
+  swap: swapOp,
+};
+
+export const opcodes: Record<string, number> = Object.keys(builtins).reduce(
+  (acc, key, index) => {
+    acc[key] = index;
+    return acc;
+  },
+  {} as Record<string, number>
+);
+
+export const verbs: Verb[] = Object.values(builtins);

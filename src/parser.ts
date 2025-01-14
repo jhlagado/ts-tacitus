@@ -1,4 +1,4 @@
-import { Op, opTable } from "./builtins";
+import { Op, opcodes } from "./builtins";
 import { vm } from "./globalState";
 
 export function parse(tokens: (string | number)[]): void {
@@ -34,7 +34,7 @@ export function parse(tokens: (string | number)[]): void {
       }
     } else {
       // Look up the word in the opTable
-      const opcode = opTable[token as keyof typeof Op];
+      const opcode = opcodes[token as keyof typeof Op];
       if (opcode === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }

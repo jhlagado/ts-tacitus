@@ -1,7 +1,7 @@
 // src/dictionary.test.ts
+import { builtins } from "./builtins";
 import { Dictionary } from "./dictionary";
 import { Verb } from "./types";
-import { builtins } from "./dictionary"; // Import builtins for verification
 
 describe("Dictionary", () => {
   let dictionary: Dictionary;

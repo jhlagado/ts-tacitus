@@ -1,4 +1,4 @@
-import { ops } from "./builtins";
+import { verbs } from "./builtins";
 import { vm } from "./globalState";
 
 export function execute(start: number): void {
@@ -8,7 +8,7 @@ export function execute(start: number): void {
     if (vm.compiler.compileMode) {
       vm.compiler.compile(opcode);
     } else {
-      const verb = ops[opcode];
+      const verb = verbs[opcode];
       if (verb === undefined) {
         throw new Error(
           `Invalid opcode: ${opcode} (stack: ${JSON.stringify(

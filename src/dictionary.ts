@@ -1,12 +1,7 @@
 // src/dictionary.ts
 
 import { Verb } from "./types";
-import { ops, opTable } from "./builtins"; // Import ops and opTable
-
-// Define the builtins object
-export const builtins: Record<string, Verb> = Object.fromEntries(
-  Object.entries(opTable).map(([name, index]) => [name, ops[index]])
-);
+import { builtins } from "./builtins"; // Import ops and opTable
 
 export class Dictionary {
   words: Record<string, Verb>;
