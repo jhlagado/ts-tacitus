@@ -10,14 +10,18 @@ export function execute(start: number): void {
     } else {
       const verb = ops[opcode];
       if (verb === undefined) {
-        throw new Error(`Invalid opcode: ${opcode}`);
+        throw new Error(
+          `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
+            vm.getStackData()
+          )})`
+        );
       }
       try {
         verb(vm);
       } catch (error) {
         const stackState = JSON.stringify(vm.getStackData());
         const errorMessage =
-          `Unknown error executing word (stack: ${stackState})` +
+          `Error executing word (stack: ${stackState})` +
           (error instanceof Error ? `: ${error.message}` : "");
         if (vm.debug) console.log((error as Error).stack);
         throw new Error(errorMessage);

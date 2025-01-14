@@ -1,5 +1,6 @@
 import { VM } from "./vm";
 import { Verb } from "./types";
+import { STACK } from "./constants";
 
 export enum Op {
   LiteralNumber,
@@ -60,66 +61,126 @@ export const callOp: Verb = (vm: VM) => {
 };
 
 export const plusOp: Verb = (vm: VM) => {
-  const b = vm.pop();
-  const a = vm.pop();
-  if (typeof a === "number" && typeof b === "number") {
-    vm.push(a + b);
-  } else {
-    throw new Error("Expected numbers on the stack");
+  if (vm.SP < STACK + 2) {
+    throw new Error(
+      `Stack underflow: '+' requires 2 operands (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
   }
-};
-
-export const minusOp: Verb = (vm: VM) => {
-  const b = vm.pop();
-  const a = vm.pop();
-  if (typeof a === "number" && typeof b === "number") {
-    vm.push(a - b);
-  } else {
-    throw new Error("Expected numbers on the stack");
-  }
-};
-
-export const multiplyOp: Verb = (vm: VM) => {
-  const b = vm.pop();
-  const a = vm.pop();
-  if (typeof a === "number" && typeof b === "number") {
-    vm.push(a * b);
-  } else {
-    throw new Error("Expected numbers on the stack");
-  }
-};
-
-export const divideOp: Verb = (vm: VM) => {
   const b = vm.pop();
   const a = vm.pop();
   if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error("Expected numbers on the stack");
+    throw new Error(
+      `Expected numbers on the stack for '+' operation (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  vm.push(a + b);
+};
+
+export const minusOp: Verb = (vm: VM) => {
+  if (vm.SP < STACK + 2) {
+    throw new Error(
+      `Stack underflow: '-' requires 2 operands (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  const b = vm.pop();
+  const a = vm.pop();
+  if (typeof a !== "number" || typeof b !== "number") {
+    throw new Error(
+      `Expected numbers on the stack for '-' operation (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  vm.push(a - b);
+};
+
+export const multiplyOp: Verb = (vm: VM) => {
+  if (vm.SP < STACK + 2) {
+    throw new Error(
+      `Stack underflow: '*' requires 2 operands (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  const b = vm.pop();
+  const a = vm.pop();
+  if (typeof a !== "number" || typeof b !== "number") {
+    throw new Error(
+      `Expected numbers on the stack for '*' operation (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  vm.push(a * b);
+};
+
+export const divideOp: Verb = (vm: VM) => {
+  if (vm.SP < STACK + 2) {
+    throw new Error(
+      `Stack underflow: '/' requires 2 operands (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
+  const b = vm.pop();
+  const a = vm.pop();
+  if (typeof a !== "number" || typeof b !== "number") {
+    throw new Error(
+      `Expected numbers on the stack for '/' operation (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
   }
   if (b === 0) {
-    throw new Error("Division by zero");
+    throw new Error(
+      `Division by zero (stack: ${JSON.stringify(vm.getStackData())})`
+    );
   }
   vm.push(a / b);
 };
 
 export const dupOp: Verb = (vm: VM) => {
-  const a = vm.pop();
-  if (a !== undefined) {
-    vm.push(a);
-    vm.push(a);
+  if (vm.SP < STACK + 1) {
+    throw new Error(
+      `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
   }
+  const a = vm.pop();
+  vm.push(a);
+  vm.push(a);
 };
 
 export const dropOp: Verb = (vm: VM) => {
+  if (vm.SP < STACK + 1) {
+    throw new Error(
+      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
   vm.pop();
 };
 
 export const swapOp: Verb = (vm: VM) => {
+  if (vm.SP < STACK + 2) {
+    throw new Error(
+      `Stack underflow: 'swap' requires 2 operands (stack: ${JSON.stringify(
+        vm.getStackData()
+      )})`
+    );
+  }
   const a = vm.pop();
   const b = vm.pop();
-  if (a !== undefined && b !== undefined) {
-    vm.push(a);
-    vm.push(b);
-  }
+  vm.push(a);
+  vm.push(b);
 };
 
 export const ops: Verb[] = [

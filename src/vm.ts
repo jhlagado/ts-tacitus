@@ -32,7 +32,7 @@ export class VM {
    */
   push(value: number): void {
     if (this.SP >= STACK + STACK_SIZE) {
-      throw new Error("Stack overflow");
+      throw new Error(`Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`);
     }
     this.memory[this.SP++] = value;
   }
@@ -43,7 +43,7 @@ export class VM {
    */
   pop(): number {
     if (this.SP <= STACK) {
-      throw new Error("Stack underflow");
+      throw new Error(`Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`);
     }
     return this.memory[--this.SP];
   }
@@ -54,7 +54,7 @@ export class VM {
    */
   rpush(value: number): void {
     if (this.RP >= RSTACK + RSTACK_SIZE) {
-      throw new Error("Return stack overflow");
+      throw new Error(`Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`);
     }
     this.memory[this.RP++] = value;
   }
@@ -65,7 +65,7 @@ export class VM {
    */
   rpop(): number {
     if (this.RP <= RSTACK) {
-      throw new Error("Return stack underflow");
+      throw new Error(`Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`);
     }
     return this.memory[--this.RP];
   }

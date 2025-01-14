@@ -45,7 +45,7 @@ describe("Interpreter", () => {
     const tokens = lex("5 0 /"); // Division by zero
     parse(tokens);
     expect(() => execute(vm.compiler.BP)).toThrowError(
-      /Unknown error executing word \(stack: .*\): Division by zero/
+      "Error executing word (stack: []): Division by zero (stack: [])"
     );
   });
 
@@ -57,8 +57,8 @@ describe("Interpreter", () => {
       execute(vm.compiler.BP);
     } catch (error) {
       if (error instanceof Error) {
-        expect(error.message).toMatch(
-          /Unknown error executing word \(stack: .*\): Division by zero/
+        expect(error.message).toBe(
+          "Error executing word (stack: []): Division by zero (stack: [])"
         );
       } else {
         fail("Expected an Error object");
@@ -73,7 +73,7 @@ describe("Interpreter", () => {
   });
 
   it("should execute code block", () => {
-    const tokens = lex("{3 2*} eval");
+    const tokens = lex("{3 2*}eval");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
