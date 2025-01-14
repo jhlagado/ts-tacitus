@@ -21,5 +21,5 @@ export function parse(tokens: (string | number)[]) {
       vm.compiler.compile(opcode); // Compile the verb index
     }
   }
-  vm.compiler.compile(Op.ExitDef); // Use Op enum
+  vm.compiler.compile(Op.Exit); // Use Op enum
 }

@@ -3,7 +3,7 @@ import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
 import { Op } from "./builtins"; // Import Op enum
-import { BUFFER, CODE } from "./constants";
+import { BUFFER } from "./constants";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -16,14 +16,14 @@ describe("Interpreter", () => {
     execute(BUFFER);
     const received = vm.compiler.getData();
     expect(received).toEqual([
-      Op.Branch,
-      CODE + 8,
+      Op.BranchCall,
+      6,
       Op.LiteralNumber, // Use Op enum
       5,
       Op.LiteralNumber, // Use Op enum
       3,
-      Op.PlusOp, // Use Op enum
-      Op.ExitDef, // Use Op enum
+      Op.Plus, // Use Op enum
+      Op.Exit, // Use Op enum
     ]);
   });
 
@@ -65,11 +65,11 @@ describe("Interpreter", () => {
     execute(BUFFER);
     const received = vm.compiler.getData();
     expect(received).toEqual([
-      Op.Branch,
-      CODE + 5,
+      Op.BranchCall,
+      3,
       Op.LiteralNumber, // Use Op enum
       5,
-      Op.ExitDef, // Use Op enum
+      Op.Exit, // Use Op enum
     ]);
   });
 

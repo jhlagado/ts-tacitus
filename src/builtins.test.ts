@@ -1,7 +1,10 @@
 // src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
 import { ops, Op, immediateWords } from "./builtins"; // Import Op enum
-import { CODE } from "./constants";
+import { BUFFER, CODE } from "./constants";
+import { execute } from "./interpreter";
+import { lex } from "./lexer";
+import { parse } from "./parser";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -12,89 +15,89 @@ describe("Built-in Words", () => {
   it("should handle the '+' word", () => {
     vm.push(5);
     vm.push(3);
-    ops[Op.PlusOp](vm); // Use Op enum
+    ops[Op.Plus](vm); // Use Op enum
     const received = vm.getStackData();
     expect(received).toEqual([8]);
   });
 
   it("should throw an error for '+' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => ops[Op.PlusOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Plus](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '-' word", () => {
     vm.push(5);
     vm.push(3);
-    ops[Op.MinusOp](vm); // Use Op enum
+    ops[Op.Minus](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '-' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => ops[Op.MinusOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Minus](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '*' word", () => {
     vm.push(5);
     vm.push(3);
-    ops[Op.MultiplyOp](vm); // Use Op enum
+    ops[Op.Multiply](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([15]);
   });
 
   it("should throw an error for '*' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => ops[Op.MultiplyOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Multiply](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '/' word", () => {
     vm.push(6);
     vm.push(3);
-    ops[Op.DivideOp](vm); // Use Op enum
+    ops[Op.Divide](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '/' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => ops[Op.DivideOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Divide](vm)).toThrow("Stack underflow");
   });
 
   it("should throw an error for division by zero", () => {
     vm.push(5);
     vm.push(0);
-    expect(() => ops[Op.DivideOp](vm)).toThrow("Division by zero");
+    expect(() => ops[Op.Divide](vm)).toThrow("Division by zero");
   });
 
   // Test 2: Stack manipulation
   it("should handle the 'dup' word", () => {
     vm.push(5);
-    ops[Op.DupOp](vm); // Use Op enum
+    ops[Op.Dup](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([5, 5]);
   });
 
   it("should throw an error for 'dup' with an empty stack", () => {
-    expect(() => ops[Op.DupOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Dup](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'drop' word", () => {
     vm.push(5);
-    ops[Op.DropOp](vm); // Use Op enum
+    ops[Op.Drop](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([]);
   });
 
   it("should throw an error for 'drop' with an empty stack", () => {
-    expect(() => ops[Op.DropOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Drop](vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'swap' word", () => {
     vm.push(5);
     vm.push(3);
-    ops[Op.SwapOp](vm); // Use Op enum
+    ops[Op.Swap](vm); // Use Op enum
     expect(vm.getStackData()).toEqual([3, 5]);
   });
 
   it("should throw an error for 'swap' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => ops[Op.SwapOp](vm)).toThrow("Stack underflow");
+    expect(() => ops[Op.Swap](vm)).toThrow("Stack underflow");
   });
 
   // Test 3: Compilation mode
@@ -107,9 +110,9 @@ describe("Built-in Words", () => {
   it("should handle nested '{' words", () => {
     ops[Op.LeftBrace](vm); // Enter compilation mode
     ops[Op.LeftBrace](vm); // Treat second '{' as a regular word
-    expect(vm.getStackData()).toEqual([CODE + 1]);
+    expect(vm.getStackData()).toEqual([CODE + 1, CODE + 3]);
     const received = vm.compiler.getData();
-    expect(received).toEqual([Op.Branch, 0, Op.LeftBrace]); // Use Op enum
+    expect(received).toEqual([Op.BranchCall, 0, Op.BranchCall, 0]); // Use Op enum
   });
 
   it("should throw an error for '}' outside compilation mode", () => {
@@ -121,25 +124,23 @@ describe("Built-in Words", () => {
   it("should handle the '}' word", () => {
     ops[Op.LeftBrace](vm); // Enter compilation mode
     vm.compiler.compile(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compile(5);
+    vm.compiler.compile(50);
 
     vm.compiler.compile(Op.LiteralNumber); // Use Op enum
-    vm.compiler.compile(3);
-    vm.compiler.compile(Op.PlusOp); // Use Op enum
+    vm.compiler.compile(30);
+    vm.compiler.compile(Op.Plus); // Use Op enum
     ops[Op.RightBrace](vm); // Use Op enum
     expect(vm.compiler.compileMode).toBe(false);
-    const tos = vm.pop();
-    expect(tos).toBe(CODE + 2);
     const received = vm.compiler.getData();
     expect(received).toEqual([
-      Op.Branch,
-      CODE+8,
+      Op.BranchCall,
+      6,
       Op.LiteralNumber, // Use Op enum
-      5,
+      50,
       Op.LiteralNumber, // Use Op enum
-      3,
-      Op.PlusOp, // Use Op enum
-      Op.ExitDef, // Use Op enum
+      30,
+      Op.Plus, // Use Op enum
+      Op.Exit, // Use Op enum
     ]);
   });
 
@@ -155,5 +156,66 @@ describe("Built-in Words", () => {
 
     // Verify that the immediate word is in the immediateWords array
     expect(immediateWords).toContain(Op.LeftBrace); // Use Op enum
+  });
+
+  describe("Branch with Relative Jumps", () => {
+    it("should handle a forward branch", () => {
+      // Compile: branch +2 (skip the next instruction)
+      vm.compiler.compile(Op.BranchCall);
+      vm.compiler.compile(2); // Relative offset
+      vm.compiler.compile(Op.LiteralNumber);
+      vm.compiler.compile(42); // This should be skipped
+      vm.compiler.compile(Op.LiteralNumber);
+      vm.compiler.compile(100); // This should be executed
+      vm.compiler.compile(Op.Exit);
+      execute(CODE);
+      expect(vm.getStackData()).toEqual([CODE + 2, 100]);
+    });
+
+    it("should handle a backward branch", () => {
+      // Compile: branch -3 (jump back to the start)
+      vm.compiler.compile(Op.LiteralNumber);
+      vm.compiler.compile(42);
+      vm.compiler.compile(Op.Exit);
+      vm.compiler.compile(Op.BranchCall);
+      vm.compiler.compile(-5); // Relative offset
+      execute(CODE + 3);
+      expect(vm.getStackData()).toEqual([CODE + 5, 42]); // Infinite loop, but we exit after two iterations
+    });
+
+    it("should handle a branch offset of 0", () => {
+      // Compile: branch 0 (no jump)
+      vm.compiler.compile(Op.BranchCall);
+      vm.compiler.compile(0); // Relative offset
+      vm.compiler.compile(Op.LiteralNumber);
+      vm.compiler.compile(42);
+      vm.compiler.compile(Op.Exit);
+
+      execute(CODE);
+      expect(vm.getStackData()).toEqual([CODE + 2, 42]);
+    });
+
+    it("should handle nested branches", () => {
+      // Compile: { 5 { 3 + } }
+      const tokens = lex("{ 5 { 3 + } }");
+      parse(tokens);
+      execute(BUFFER);
+      expect(vm.getStackData()).toEqual([]);
+      const received = vm.compiler.getData();
+      console.log(received);
+      expect(received).toEqual([
+        Op.BranchCall,
+        9, // Relative offset to the end of the definition
+        Op.LiteralNumber,
+        5,
+        Op.BranchCall,
+        4, // Relative offset to the end of the inner definition
+        Op.LiteralNumber,
+        3,
+        Op.Plus,
+        Op.Exit,
+        Op.Exit,
+      ]);
+    });
   });
 });

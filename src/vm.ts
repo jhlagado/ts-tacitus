@@ -15,6 +15,7 @@ export class VM {
   running: boolean;
   compiler: Compiler;
   dictionary: Dictionary;
+  debug: boolean;
 
   constructor() {
     this.mem = initMemory();
@@ -24,6 +25,7 @@ export class VM {
     this.RP = RSTACK;
     this.compiler = new Compiler(this);
     this.dictionary = new Dictionary();
+    this.debug = false;
   }
 
   /**

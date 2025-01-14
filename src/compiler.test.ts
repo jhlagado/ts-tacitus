@@ -18,10 +18,10 @@ describe("Compiler", () => {
   });
 
   it("should compile a built-in word", () => {
-    vm.compiler.compile(Op.PlusOp); // Use Op enum
+    vm.compiler.compile(Op.Plus); // Use Op enum
     const received = vm.compiler.getData();
     expect(received).toEqual([
-      Op.PlusOp, // Use Op enum
+      Op.Plus, // Use Op enum
     ]);
   });
 });

@@ -5,46 +5,44 @@ export enum Op {
   LeftBrace = 0,
   RightBrace = 1,
   LiteralNumber = 2,
-  Branch = 3, 
-  ExitDef = 4,
-  PlusOp = 5,
-  MinusOp = 6,
-  MultiplyOp = 7,
-  DivideOp = 8,
-  DupOp = 9,
-  DropOp = 10,
-  SwapOp = 11,
+  BranchCall = 3,
+  Exit = 4,
+  Plus = 5,
+  Minus = 6,
+  Multiply = 7,
+  Divide = 8,
+  Dup = 9,
+  Drop = 10,
+  Swap = 11,
 }
 
-export const leftBrace: Verb = (vm: VM) => {
+export const leftBraceOp: Verb = (vm: VM) => {
   vm.compiler.nestingScore++;
-  if (vm.compiler.compileMode) {
-    vm.compiler.compile(Op.LeftBrace);
-    return;
-  }
   vm.compiler.compileMode = true;
-  vm.compiler.compile(Op.Branch);
-  vm.push(vm.compiler.getPointer());
-  vm.compiler.compile(0);
+  vm.compiler.compile(Op.BranchCall);
+  vm.push(vm.compiler.getPointer()); // Push the current address for later patching
+  vm.compiler.compile(0); // Placeholder for the relative offset
 };
 
-export const rightBrace: Verb = (vm: VM) => {
+export const rightBraceOp: Verb = (vm: VM) => {
   if (!vm.compiler.compileMode) {
     throw new Error("Unexpected '}' outside compilation mode");
   }
-  vm.compiler.compile(Op.ExitDef);
+  vm.compiler.compile(Op.Exit);
+  const branchAddress = vm.pop(); // Get the address of the branch instruction
   const endAddress = vm.compiler.getPointer();
-  vm.compiler.setPointer(vm.pop());
-  vm.compiler.compile(endAddress);
-  vm.push(vm.compiler.getPointer());
-  vm.compiler.setPointer(endAddress);
+  const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
+  vm.compiler.setPointer(branchAddress); // Move to the offset location
+  vm.compiler.compile(offset); // Write the relative offset
+  vm.compiler.setPointer(endAddress); // Restore the pointer
+  console.log("rightBrace 2", vm.compiler.compileMode);
   vm.compiler.nestingScore--;
-  if (vm.compiler.nestingScore === 0){
+  if (vm.compiler.nestingScore === 0) {
     vm.compiler.compileMode = false;
   }
 };
 
-export const literalNumber: Verb = (vm: VM) => {
+export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.next() as number;
   if (vm.compiler.compileMode) {
     vm.compiler.compile(Op.LiteralNumber);
@@ -55,15 +53,17 @@ export const literalNumber: Verb = (vm: VM) => {
 };
 
 /**
- * Branch to a specific address in memory.
- * The address is the next value in memory after the Branch opcode.
+ * Branch Call to a relative address in memory.
+ * The offset is relative to the address after the branch instruction.
+ * Puts return address on the data stack
  */
-export const branch: Verb = (vm: VM) => {
-  const address = vm.next() as number; // Read the address to branch to
-  vm.IP = address; // Set the instruction pointer to the new address
+export const branchCallOp: Verb = (vm: VM) => {
+  const offset = vm.next() as number; // Read the relative offset
+  vm.push(vm.IP); // Push the current IP
+  vm.IP += offset; // Adjust the IP by the offset
 };
 
-export const exitDef: Verb = (vm: VM) => {
+export const exitOp: Verb = (vm: VM) => {
   vm.running = false;
 };
 
@@ -134,15 +134,15 @@ export const opTable: Record<string, Op> = {
   "{": Op.LeftBrace,
   "}": Op.RightBrace,
   literalNumber: Op.LiteralNumber,
-  branch: Op.Branch, // Add Branch to the opTable
-  exitDef: Op.ExitDef,
-  "+": Op.PlusOp,
-  "-": Op.MinusOp,
-  "*": Op.MultiplyOp,
-  "/": Op.DivideOp,
-  dup: Op.DupOp,
-  drop: Op.DropOp,
-  swap: Op.SwapOp,
+  branch: Op.BranchCall, // Add Branch to the opTable
+  exitDef: Op.Exit,
+  "+": Op.Plus,
+  "-": Op.Minus,
+  "*": Op.Multiply,
+  "/": Op.Divide,
+  dup: Op.Dup,
+  drop: Op.Drop,
+  swap: Op.Swap,
 };
 
 export const immediateWords: number[] = [
@@ -152,11 +152,11 @@ export const immediateWords: number[] = [
 ];
 
 export const ops: Verb[] = [
-  leftBrace,
-  rightBrace,
-  literalNumber,
-  branch, // Add the branch function to the ops array
-  exitDef,
+  leftBraceOp,
+  rightBraceOp,
+  literalNumberOp,
+  branchCallOp, // Add the branch function to the ops array
+  exitOp,
   plusOp,
   minusOp,
   multiplyOp,

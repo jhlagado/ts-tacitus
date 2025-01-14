@@ -7,6 +7,8 @@ export function execute(start: number): void {
   vm.compiler.parseMode = false;
   while (vm.running) {
     const opcode = vm.next(); // opcode is a number
+    if (vm.debug) console.log('opcode', opcode);
+
     if (vm.compiler.compileMode && !immediateWords.includes(opcode)) {
       // Compile the verb index if not an immediate word
       vm.compiler.compile(opcode);
@@ -22,6 +24,7 @@ export function execute(start: number): void {
         const errorMessage =
           `Unknown error executing word (stack: ${stackState})` +
           (error instanceof Error ? `: ${error.message}` : ""); // Add a space after the colon
+        if (vm.debug) console.log((error as Error).stack);
         throw new Error(errorMessage);
       }
     }
