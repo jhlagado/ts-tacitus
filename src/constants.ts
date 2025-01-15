@@ -17,3 +17,7 @@ export const VARS_SIZE = 0x100; // Variables area size (256 bytes)
 
 export const HEAP = VARS + VARS_SIZE; // Heap starts after the variables area
 export const HEAP_SIZE = 0x1000; // Heap size (4 KB)
+
+export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block
+export const STR_LEN = 1; // Index 1: Length of the string
+export const STR_DATA = 2; // Index 2: Start of string data

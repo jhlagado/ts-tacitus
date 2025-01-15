@@ -1,13 +1,11 @@
-import { HEAP, HEAP_SIZE, BLOCK_SIZE, NIL } from "./constants";
+import { HEAP, HEAP_SIZE, NIL, BLOCK_SIZE, BLOCK_NEXT } from "./constants";
 
 export class Heap {
-  start: number;
-  size: number;
+  memory: number[];
   freeList: number;
 
-  constructor(private memory: number[]) {
-    this.start = HEAP;
-    this.size = HEAP_SIZE / BLOCK_SIZE;
+  constructor(memory: number[]) {
+    this.memory = memory;
     this.freeList = HEAP;
     this.initializeFreeList();
   }
@@ -17,9 +15,9 @@ export class Heap {
    */
   private initializeFreeList(): void {
     for (let i = HEAP; i < HEAP + HEAP_SIZE; i += BLOCK_SIZE) {
-      this.memory[i] = i + BLOCK_SIZE;
+      this.memory[i + BLOCK_NEXT] = i + BLOCK_SIZE; // Use BLOCK_NEXT for the next pointer
     }
-    this.memory[HEAP + HEAP_SIZE - BLOCK_SIZE] = NIL;
+    this.memory[HEAP + HEAP_SIZE - BLOCK_SIZE + BLOCK_NEXT] = NIL; // Mark the end of the free list
   }
 
   /**
@@ -39,20 +37,20 @@ export class Heap {
     while (current !== NIL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
-      current = this.memory[current];
+      current = this.memory[current + BLOCK_NEXT]; // Use BLOCK_NEXT for traversal
     }
 
     if (blocksFound < numBlocks) {
       if (startBlock !== NIL) {
-        this.memory[prev] = this.freeList;
+        this.memory[prev + BLOCK_NEXT] = this.freeList;
         this.freeList = startBlock;
       }
       return NIL;
     }
 
-    this.memory[prev] = NIL;
+    this.memory[prev + BLOCK_NEXT] = NIL;
     this.freeList = current;
-    this.memory[startBlock + 1] = size;
+    this.memory[startBlock + 1] = size; // Store size in the first block (if needed)
 
     return startBlock;
   }
@@ -67,11 +65,11 @@ export class Heap {
     let current = pointer;
     const oldFreeListHead = this.freeList;
 
-    while (this.memory[current] !== NIL) {
-      current = this.memory[current];
+    while (this.memory[current + BLOCK_NEXT] !== NIL) {
+      current = this.memory[current + BLOCK_NEXT]; // Use BLOCK_NEXT for traversal
     }
 
-    this.memory[current] = oldFreeListHead;
+    this.memory[current + BLOCK_NEXT] = oldFreeListHead;
     this.freeList = pointer;
   }
 }

@@ -1,37 +1,28 @@
-
 import { Heap } from "./heap";
-import { HEAP, HEAP_SIZE, BLOCK_SIZE, NIL, MEMORY_SIZE } from "./constants";
+import { HEAP, HEAP_SIZE, BLOCK_SIZE, NIL, BLOCK_NEXT } from "./constants";
 
 describe("Heap", () => {
   let memory: number[];
   let heap: Heap;
 
   beforeEach(() => {
-    memory = new Array(MEMORY_SIZE).fill(0);
+    memory = new Array(HEAP_SIZE).fill(0);
     heap = new Heap(memory); // Initialize heap
   });
 
   // Test 1: Heap Initialization
   describe("Initialization", () => {
     it("should initialize the heap with the correct start address", () => {
-      expect(heap.start).toBe(HEAP);
-    });
-
-    it("should initialize the heap with the correct size", () => {
-      expect(heap.size).toBe(HEAP_SIZE / BLOCK_SIZE);
-    });
-
-    it("should initialize the free list correctly", () => {
       expect(heap.freeList).toBe(HEAP);
     });
 
-    it("should initialize the free list in memory", () => {
+    it("should initialize the free list correctly", () => {
       let current = heap.freeList;
       let blockCount = 0;
 
       while (current !== NIL) {
         blockCount++;
-        current = memory[current];
+        current = memory[current + BLOCK_NEXT]; // Use BLOCK_NEXT for traversal
       }
 
       expect(blockCount).toBe(HEAP_SIZE / BLOCK_SIZE); // All blocks should be in the free list
@@ -44,7 +35,7 @@ describe("Heap", () => {
       const ptr = heap.malloc(10); // Request 10 bytes (1 block)
       expect(ptr).toBe(HEAP); // First block is allocated
       expect(heap.freeList).toBe(HEAP + BLOCK_SIZE); // Free list points to the next block
-      expect(memory[ptr]).toBe(NIL); // Allocated block points to NIL
+      expect(memory[ptr + BLOCK_NEXT]).toBe(NIL); // Allocated block points to NIL
       expect(memory[ptr + 1]).toBe(10); // Size is stored in the first block
     });
 
@@ -52,8 +43,8 @@ describe("Heap", () => {
       const ptr = heap.malloc(32); // Request 32 bytes (2 blocks)
       expect(ptr).toBe(HEAP); // First block is allocated
       expect(heap.freeList).toBe(HEAP + 2 * BLOCK_SIZE); // Free list points to the next available block
-      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // First block points to the second block
-      expect(memory[HEAP + BLOCK_SIZE]).toBe(NIL); // Second block points to NIL
+      expect(memory[ptr + BLOCK_NEXT]).toBe(HEAP + BLOCK_SIZE); // First block points to the second block
+      expect(memory[HEAP + BLOCK_SIZE + BLOCK_NEXT]).toBe(NIL); // Second block points to NIL
       expect(memory[ptr + 1]).toBe(32); // Size is stored in the first block
     });
 
@@ -92,15 +83,17 @@ describe("Heap", () => {
       const ptr = heap.malloc(10); // Allocate 1 block
       heap.free(ptr); // Free the block
       expect(heap.freeList).toBe(HEAP); // Freed block is added back to the free list
-      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // Freed block points to the next free block
+      expect(memory[ptr + BLOCK_NEXT]).toBe(HEAP + BLOCK_SIZE); // Freed block points to the next free block
     });
 
     it("should free multiple contiguous blocks", () => {
       const ptr = heap.malloc(32); // Allocate 2 blocks
       heap.free(ptr); // Free the blocks
       expect(heap.freeList).toBe(HEAP); // Freed blocks are added back to the free list
-      expect(memory[ptr]).toBe(HEAP + BLOCK_SIZE); // First freed block points to the second
-      expect(memory[HEAP + BLOCK_SIZE]).toBe(HEAP + 2 * BLOCK_SIZE); // Second freed block points to the next free block
+      expect(memory[ptr + BLOCK_NEXT]).toBe(HEAP + BLOCK_SIZE); // First freed block points to the second
+      expect(memory[HEAP + BLOCK_SIZE + BLOCK_NEXT]).toBe(
+        HEAP + 2 * BLOCK_SIZE
+      ); // Second freed block points to the next free block
     });
 
     it("should handle freeing NIL pointers", () => {
