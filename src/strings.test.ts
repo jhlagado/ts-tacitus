@@ -1,13 +1,6 @@
-import { Heap } from "./heap";
-import {
-  stringCreate,
-  stringRead,
-  stringPrint,
-  stringSlice,
-  stringSplice,
-  stringLength,
-} from "./strings";
-import { NIL, BLOCK_SIZE, MEMORY_SIZE } from "./constants";
+import { BLOCK_SIZE, Heap } from "./heap";
+import { stringCreate, stringRead, stringPrint, stringLength } from "./strings";
+import { NIL, MEMORY_SIZE } from "./constants";
 
 describe("Strings Library", () => {
   let heap: Heap;
@@ -29,18 +22,6 @@ describe("Strings Library", () => {
     stringPrint(heap, str);
     expect(consoleSpy).toHaveBeenCalledWith("Hello, world!");
     consoleSpy.mockRestore();
-  });
-
-  it("should slice a string", () => {
-    const str = stringCreate(heap, "Hello, world!");
-    const slicedStr = stringSlice(heap, str, 0, 5);
-    expect(stringRead(heap, slicedStr)).toBe("Hello");
-  });
-
-  it("should splice a string", () => {
-    const str = stringCreate(heap, "Hello, world!");
-    const splicedStr = stringSplice(heap, str, 7, 5, "there");
-    expect(stringRead(heap, splicedStr)).toBe("Hello, there!");
   });
 
   it("should handle empty strings", () => {
@@ -83,18 +64,6 @@ describe("Strings Library", () => {
 
     it("should return 0 for an invalid string (NIL)", () => {
       expect(stringLength(heap, NIL)).toBe(0);
-    });
-
-    it("should return the correct length after splicing", () => {
-      const str = stringCreate(heap, "Hello, world!");
-      const splicedStr = stringSplice(heap, str, 7, 5, "there");
-      expect(stringLength(heap, splicedStr)).toBe(13); // "Hello, there!" has 13 characters
-    });
-
-    it("should return the correct length after slicing", () => {
-      const str = stringCreate(heap, "Hello, world!");
-      const slicedStr = stringSlice(heap, str, 0, 5);
-      expect(stringLength(heap, slicedStr)).toBe(5); // "Hello" has 5 characters
     });
   });
 });

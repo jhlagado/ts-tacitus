@@ -1,4 +1,7 @@
-import { HEAP, HEAP_SIZE, NIL, BLOCK_SIZE, BLOCK_NEXT } from "./constants";
+import { HEAP, HEAP_SIZE, NIL } from "./constants";
+
+export const BLOCK_SIZE = 16; // Each block is 16 bytes
+export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block
 
 export class Heap {
   memory: number[];

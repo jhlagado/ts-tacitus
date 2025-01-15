@@ -1,5 +1,5 @@
-import { Heap } from "./heap";
-import { HEAP, HEAP_SIZE, BLOCK_SIZE, NIL, BLOCK_NEXT } from "./constants";
+import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
+import { HEAP, HEAP_SIZE, NIL } from "./constants";
 
 describe("Heap", () => {
   let memory: number[];

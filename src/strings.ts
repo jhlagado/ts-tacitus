@@ -1,5 +1,8 @@
-import { Heap } from "./heap"; // Assuming Heap is exported from heap.ts
-import { NIL, BLOCK_SIZE, BLOCK_NEXT, STR_DATA, STR_LEN } from "./constants"; // Assuming constants are exported from constants.ts
+import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
+import { NIL } from "./constants";
+
+export const STR_LEN = 1; // Index 1: Length of the string
+export const STR_DATA = 2; // Index 2: Start of string data
 
 /**
  * Allocates a string in the heap and initializes it with the given string.
@@ -96,45 +99,4 @@ export function stringRead(heap: Heap, startBlock: number): string {
  */
 export function stringPrint(heap: Heap, startBlock: number): void {
   console.log(stringRead(heap, startBlock));
-}
-
-/**
- * Returns a substring of the string stored in the heap.
- * @param heap - The heap instance where the string is stored.
- * @param startBlock - The starting block index of the string.
- * @param start - The starting index of the substring.
- * @param end - The ending index of the substring (exclusive).
- * @returns The starting block index of the new substring, or NIL if allocation fails.
- */
-export function stringSlice(
-  heap: Heap,
-  startBlock: number,
-  start: number,
-  end: number
-): number {
-  const str = stringRead(heap, startBlock);
-  const substring = str.slice(start, end);
-  return stringCreate(heap, substring);
-}
-
-/**
- * Modifies the string stored in the heap by removing or replacing elements.
- * @param heap - The heap instance where the string is stored.
- * @param startBlock - The starting block index of the string.
- * @param start - The starting index of the modification.
- * @param deleteCount - The number of characters to remove.
- * @param newStr - The string to insert (optional).
- * @returns The starting block index of the modified string, or NIL if allocation fails.
- */
-export function stringSplice(
-  heap: Heap,
-  startBlock: number,
-  start: number,
-  deleteCount: number,
-  newStr: string = ""
-): number {
-  const str = stringRead(heap, startBlock);
-  const modifiedStr =
-    str.slice(0, start) + newStr + str.slice(start + deleteCount);
-  return stringCreate(heap, modifiedStr);
 }
