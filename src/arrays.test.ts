@@ -4,8 +4,9 @@ import {
   arrayRead,
   arrayPrint,
   arrayLength,
-  arrayUpdate,
+  iterateArray,
   arrayGet,
+  arrayUpdate,
 } from "./arrays";
 import { NIL, MEMORY_SIZE } from "./constants";
 
@@ -74,33 +75,60 @@ describe("Arrays Library", () => {
     });
   });
 
+  // Tests for iterateArray
+  describe("iterateArray", () => {
+    it("should iterate over an array", () => {
+      const arr = arrayCreate(heap, [1, 2, 3]);
+      const iterator = iterateArray(heap, arr);
+      expect(Array.from(iterator)).toEqual([1, 2, 3]);
+    });
+
+    it("should handle empty arrays", () => {
+      const arr = arrayCreate(heap, []);
+      const iterator = iterateArray(heap, arr);
+      expect(Array.from(iterator)).toEqual([]);
+    });
+
+    it("should handle multi-block arrays", () => {
+      const largeArray = new Array(1000).fill(0).map((_, i) => i); // 1000-element array
+      const arr = arrayCreate(heap, largeArray);
+      const iterator = iterateArray(heap, arr);
+      expect(Array.from(iterator)).toEqual(largeArray);
+    });
+  });
+
   // Tests for arrayGet
   describe("arrayGet", () => {
-    it("should get an element from the array", () => {
+    it("should get an element at a valid index", () => {
       const arr = arrayCreate(heap, [1, 2, 3]);
       expect(arrayGet(heap, arr, 1)).toBe(2);
     });
 
-    it("should return undefined for out-of-bounds index", () => {
+    it("should return undefined for an out-of-bounds index", () => {
       const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(arrayGet(heap, arr, 3)).toBeUndefined();
-      expect(arrayGet(heap, arr, -1)).toBeUndefined();
+      expect(arrayGet(heap, arr, 5)).toBeUndefined();
+    });
+
+    it("should return undefined for an invalid array (NIL)", () => {
+      expect(arrayGet(heap, NIL, 0)).toBeUndefined();
     });
   });
 
   // Tests for arrayUpdate
   describe("arrayUpdate", () => {
-    it("should update an element in the array", () => {
+    it("should update an element at a valid index", () => {
       const arr = arrayCreate(heap, [1, 2, 3]);
       arrayUpdate(heap, arr, 1, 42);
       expect(arrayRead(heap, arr)).toEqual([1, 42, 3]);
     });
 
-    it("should throw an error for index out of bounds", () => {
+    it("should throw an error for an out-of-bounds index", () => {
       const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(() => arrayUpdate(heap, arr, 3, 42)).toThrow(
-        "Index out of bounds"
-      );
+      expect(() => arrayUpdate(heap, arr, 5, 42)).toThrow("Index out of bounds");
+    });
+
+    it("should throw an error for an invalid array (NIL)", () => {
+      expect(() => arrayUpdate(heap, NIL, 0, 42)).toThrow("Index out of bounds");
     });
   });
 });

@@ -5,42 +5,33 @@ export const ARR_LEN = 1;
 export const ARR_DATA = 2;
 
 /**
- * Converts an array index into a heap memory index.
+ * Iterates over the elements of an array stored in the heap.
  * @param heap - The heap instance where the array is stored.
  * @param startBlock - The starting block index of the array.
- * @param index - The index of the element in the array.
- * @returns The heap memory index of the element, or NIL if the index is out of bounds.
+ * @yields The next element in the array.
  */
-function arrayIndexToHeapIndex(
+export function* iterateArray(
   heap: Heap,
-  startBlock: number,
-  index: number
-): number {
-  const length = arrayLength(heap, startBlock);
-  if (index < 0 || index >= length) {
-    return NIL; // Index out of bounds
-  }
-
+  startBlock: number
+): Generator<number, void, void> {
   let currentBlock = startBlock;
-  let elementsTraversed = 0;
+  const length = heap.memory[startBlock + ARR_LEN]; // Length is stored at ARR_LEN
+  let elementsRead = 0;
 
-  while (currentBlock !== NIL) {
-    const elementsInBlock = Math.min(
-      BLOCK_SIZE - ARR_DATA,
-      length - elementsTraversed
-    );
-
-    if (index < elementsTraversed + elementsInBlock) {
-      // Calculate the position within the current block
-      return currentBlock + ARR_DATA + (index - elementsTraversed);
+  while (currentBlock !== NIL && elementsRead < length) {
+    // Read elements from the current block
+    for (
+      let i = ARR_DATA; // Data starts at ARR_DATA
+      i < BLOCK_SIZE && elementsRead < length;
+      i++
+    ) {
+      yield heap.memory[currentBlock + i];
+      elementsRead++;
     }
 
     // Move to the next block
-    elementsTraversed += elementsInBlock;
-    currentBlock = heap.memory[currentBlock + BLOCK_NEXT];
+    currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Next block pointer is at BLOCK_NEXT
   }
-
-  return NIL; // Should not reach here if the index is valid
 }
 
 /**
@@ -54,7 +45,7 @@ export function arrayCreate(heap: Heap, array: number[]): number {
   const firstBlock = heap.malloc(BLOCK_SIZE); // Allocate the first block
   if (firstBlock === NIL) return NIL; // Allocation failed
 
-  // Store the length at STR_LEN of the first block
+  // Store the length at ARR_LEN of the first block
   heap.memory[firstBlock + ARR_LEN] = length;
 
   let currentBlock = firstBlock;
@@ -91,44 +82,13 @@ export function arrayCreate(heap: Heap, array: number[]): number {
 }
 
 /**
- * Returns the length of an array stored in the heap.
- * @param heap - The heap instance where the array is stored.
- * @param startBlock - The starting block index of the array.
- * @returns The length of the array.
- */
-export function arrayLength(heap: Heap, startBlock: number): number {
-  return heap.memory[startBlock + ARR_LEN]; // Length is stored at STR_LEN
-}
-
-/**
  * Reads an array from the heap and returns it as a JavaScript array.
  * @param heap - The heap instance where the array is stored.
  * @param startBlock - The starting block index of the array.
  * @returns The array as a JavaScript array.
  */
 export function arrayRead(heap: Heap, startBlock: number): number[] {
-  const result: number[] = [];
-  let currentBlock = startBlock;
-  const length = arrayLength(heap, startBlock);
-  let elementsRead = 0;
-
-  // Read elements from the first block (starting from ARR_DATA)
-  for (let i = ARR_DATA; i < BLOCK_SIZE && elementsRead < length; i++) {
-    result.push(heap.memory[currentBlock + i]);
-    elementsRead++;
-  }
-
-  // Read elements from subsequent blocks
-  currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Move to the next block
-  while (currentBlock !== NIL && elementsRead < length) {
-    for (let i = ARR_DATA; i < BLOCK_SIZE && elementsRead < length; i++) {
-      result.push(heap.memory[currentBlock + i]);
-      elementsRead++;
-    }
-    currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Move to the next block
-  }
-
-  return result;
+  return Array.from(iterateArray(heap, startBlock));
 }
 
 /**
@@ -138,6 +98,16 @@ export function arrayRead(heap: Heap, startBlock: number): number[] {
  */
 export function arrayPrint(heap: Heap, startBlock: number): void {
   console.log(arrayRead(heap, startBlock));
+}
+
+/**
+ * Returns the length of an array stored in the heap.
+ * @param heap - The heap instance where the array is stored.
+ * @param startBlock - The starting block index of the array.
+ * @returns The length of the array.
+ */
+export function arrayLength(heap: Heap, startBlock: number): number {
+  return heap.memory[startBlock + ARR_LEN]; // Length is stored at ARR_LEN
 }
 
 /**
@@ -152,9 +122,15 @@ export function arrayGet(
   startBlock: number,
   index: number
 ): number | undefined {
-  const heapIndex = arrayIndexToHeapIndex(heap, startBlock, index);
-  if (heapIndex === NIL) return undefined;
-  return heap.memory[heapIndex];
+  const iterator = iterateArray(heap, startBlock);
+  let currentIndex = 0;
+  for (const element of iterator) {
+    if (currentIndex === index) {
+      return element;
+    }
+    currentIndex++;
+  }
+  return undefined; // Index out of bounds
 }
 
 /**
@@ -170,9 +146,18 @@ export function arrayUpdate(
   index: number,
   value: number
 ): void {
-  const heapIndex = arrayIndexToHeapIndex(heap, startBlock, index);
-  if (heapIndex === NIL) {
-    throw new Error("Index out of bounds");
+  const iterator = iterateArray(heap, startBlock);
+  let currentIndex = 0;
+  let next = iterator.next();
+
+  while (!next.done) {
+    if (currentIndex === index) {
+      heap.memory[startBlock + ARR_DATA + index] = value;
+      return;
+    }
+    currentIndex++;
+    next = iterator.next();
   }
-  heap.memory[heapIndex] = value;
+
+  throw new Error("Index out of bounds");
 }

@@ -2,6 +2,7 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
+import { Op } from "./builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -40,7 +41,6 @@ describe("Interpreter", () => {
     expect(received).toEqual([16]);
   });
 
-  // New test: Verb throws an Error object
   it("should handle errors thrown by verbs", () => {
     const tokens = lex("5 0 /"); // Division by zero
     parse(tokens);
@@ -49,7 +49,6 @@ describe("Interpreter", () => {
     );
   });
 
-  // New test: Include stack state in error messages
   it("should include the stack state in error messages", () => {
     const tokens = lex("5 0 /"); // Division by zero
     parse(tokens);
@@ -66,7 +65,6 @@ describe("Interpreter", () => {
     }
   });
 
-  // Test for invalid opcode
   it("should throw an error for invalid opcode", () => {
     vm.compiler.compile(999); // Invalid opcode
     expect(() => execute(vm.compiler.BP)).toThrow("Invalid opcode: 999");
@@ -94,5 +92,13 @@ describe("Interpreter", () => {
     execute(vm.compiler.BP);
     const received = vm.getStackData();
     expect(received).toEqual([32]);
+  });
+
+  // New test: Test the `while (vm.running)` loop
+  it("should exit the loop when vm.running is set to false", () => {
+    const tokens = lex("abort"); // The 'abort' word sets vm.running to false
+    parse(tokens);
+    execute(vm.compiler.BP);
+    expect(vm.running).toBe(false);
   });
 });

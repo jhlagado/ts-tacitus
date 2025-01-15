@@ -1,8 +1,38 @@
 import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
 import { NIL } from "./constants";
 
-export const STR_LEN = 1; // Index 1: Length of the string
-export const STR_DATA = 2; // Index 2: Start of string data
+export const STR_LEN = 1;
+export const STR_DATA = 2;
+
+/**
+ * Iterates over the characters of a string stored in the heap.
+ * @param heap - The heap instance where the string is stored.
+ * @param startBlock - The starting block index of the string.
+ * @yields The next character in the string.
+ */
+export function* iterateString(
+  heap: Heap,
+  startBlock: number
+): Generator<string, void, void> {
+  let currentBlock = startBlock;
+  const length = heap.memory[startBlock + STR_LEN]; // Length is stored at STR_LEN
+  let charsRead = 0;
+
+  while (currentBlock !== NIL && charsRead < length) {
+    // Read characters from the current block
+    for (
+      let i = STR_DATA; // Data starts at STR_DATA
+      i < BLOCK_SIZE && charsRead < length;
+      i++
+    ) {
+      yield String.fromCharCode(heap.memory[currentBlock + i]);
+      charsRead++;
+    }
+
+    // Move to the next block
+    currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Next block pointer is at BLOCK_NEXT
+  }
+}
 
 /**
  * Allocates a string in the heap and initializes it with the given string.
@@ -52,6 +82,25 @@ export function stringCreate(heap: Heap, str: string): number {
 }
 
 /**
+ * Reads a string from the heap and returns it as a JavaScript string.
+ * @param heap - The heap instance where the string is stored.
+ * @param startBlock - The starting block index of the string.
+ * @returns The string as a JavaScript string.
+ */
+export function stringRead(heap: Heap, startBlock: number): string {
+  return Array.from(iterateString(heap, startBlock)).join("");
+}
+
+/**
+ * Prints a string stored in the heap to the console.
+ * @param heap - The heap instance where the string is stored.
+ * @param startBlock - The starting block index of the string.
+ */
+export function stringPrint(heap: Heap, startBlock: number): void {
+  console.log(stringRead(heap, startBlock));
+}
+
+/**
  * Returns the length of a string stored in the heap.
  * @param heap - The heap instance where the string is stored.
  * @param startBlock - The starting block index of the string.
@@ -62,41 +111,53 @@ export function stringLength(heap: Heap, startBlock: number): number {
 }
 
 /**
- * Reads a string from the heap and returns it as a JavaScript string.
+ * Gets a character from the string stored in the heap.
  * @param heap - The heap instance where the string is stored.
  * @param startBlock - The starting block index of the string.
- * @returns The string as a JavaScript string.
+ * @param index - The index of the character to get.
+ * @returns The character at the specified index, or undefined if the index is out of bounds.
  */
-export function stringRead(heap: Heap, startBlock: number): string {
-  let result = "";
-  let currentBlock = startBlock;
-  const length = stringLength(heap, startBlock);
-  let charsRead = 0;
-
-  // Read characters from the first block (starting from STR_DATA)
-  for (let i = STR_DATA; i < BLOCK_SIZE && charsRead < length; i++) {
-    result += String.fromCharCode(heap.memory[currentBlock + i]);
-    charsRead++;
-  }
-
-  // Read characters from subsequent blocks
-  currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Move to the next block
-  while (currentBlock !== NIL && charsRead < length) {
-    for (let i = STR_DATA; i < BLOCK_SIZE && charsRead < length; i++) {
-      result += String.fromCharCode(heap.memory[currentBlock + i]);
-      charsRead++;
+export function stringGet(
+  heap: Heap,
+  startBlock: number,
+  index: number
+): string | undefined {
+  const iterator = iterateString(heap, startBlock);
+  let currentIndex = 0;
+  for (const char of iterator) {
+    if (currentIndex === index) {
+      return char;
     }
-    currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Move to the next block
+    currentIndex++;
   }
-
-  return result;
+  return undefined; // Index out of bounds
 }
 
 /**
- * Prints a string stored in the heap to the console.
+ * Updates a character in the string stored in the heap.
  * @param heap - The heap instance where the string is stored.
  * @param startBlock - The starting block index of the string.
+ * @param index - The index of the character to update.
+ * @param value - The new character to set.
  */
-export function stringPrint(heap: Heap, startBlock: number): void {
-  console.log(stringRead(heap, startBlock));
+export function stringUpdate(
+  heap: Heap,
+  startBlock: number,
+  index: number,
+  value: string
+): void {
+  const iterator = iterateString(heap, startBlock);
+  let currentIndex = 0;
+  let next = iterator.next();
+
+  while (!next.done) {
+    if (currentIndex === index) {
+      heap.memory[startBlock + STR_DATA + index] = value.charCodeAt(0);
+      return;
+    }
+    currentIndex++;
+    next = iterator.next();
+  }
+
+  throw new Error("Index out of bounds");
 }
