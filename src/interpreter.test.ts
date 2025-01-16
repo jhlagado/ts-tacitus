@@ -2,7 +2,6 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import { Op } from "./builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
