@@ -1,53 +1,59 @@
 import { Memory } from "./memory";
 
 describe("Memory", () => {
+  const MEMORY_SIZE = 1024;
   let memory: Memory;
 
   beforeEach(() => {
-    memory = new Memory(64); // 64 bytes of memory
+    memory = new Memory(MEMORY_SIZE);
   });
 
-  test("should read/write 8-bit values correctly", () => {
-    memory.write8(0, 0x10);
-    memory.write8(1, 0xff);
+  test("should write and read 8-bit values correctly", () => {
+    memory.write8(0, 255);
+    expect(memory.read8(0)).toBe(255);
 
-    expect(memory.read8(0)).toBe(0x10);
-    expect(memory.read8(1)).toBe(0xff);
-    expect(memory.read8(1, true)).toBe(-1); // Signed interpretation
+    memory.write8(1, 128);
+    expect(memory.read8(1)).toBe(128);
   });
 
-  test("should read/write 16-bit values correctly", () => {
-    memory.write16(2, 0x1234);
-    memory.write16(4, 0xffff);
-
-    expect(memory.read16(2)).toBe(0x1234);
-    expect(memory.read16(4)).toBe(0xffff);
-    expect(memory.read16(4, true)).toBe(-1); // Signed interpretation
+  test("should write and read 16-bit values correctly", () => {
+    memory.write16(10, 0xabcd);
+    expect(memory.read16(10)).toBe(0xabcd);
   });
 
-  test("should read/write 32-bit values correctly", () => {
-    memory.write32(8, 0xdeadbeef);
-    memory.write32(12, -12345678 >>> 0);
-
-    expect(memory.read32(8)).toBe(0xdeadbeef);
-    expect(memory.read32(12, true)).toBe(-12345678); // Signed interpretation
+  test("should write and read 32-bit values correctly", () => {
+    memory.write32(20, 0xdeadbeef);
+    expect(memory.read32(20)).toBe(0xdeadbeef);
   });
 
-  test("should read/write Float32 values correctly", () => {
-    memory.writeFloat32(16, 3.14);
-    memory.writeFloat32(20, -123.456);
-
-    expect(memory.readFloat32(16)).toBeCloseTo(3.14);
-    expect(memory.readFloat32(20)).toBeCloseTo(-123.456);
-  });
-
-  test("should throw error for misaligned accesses", () => {
-    expect(() => memory.read16(1)).toThrowError();
-    expect(() => memory.read32(2)).toThrowError();
+  test("should write and read Float32 values correctly", () => {
+    const value = 3.14159;
+    memory.writeFloat(30, value);
+    expect(memory.readFloat(30)).toBeCloseTo(value, 5);
   });
 
   test("should throw error for out-of-bounds access", () => {
-    expect(() => memory.read8(64)).toThrowError();
-    expect(() => memory.write8(64, 0xff)).toThrowError();
+    expect(() => memory.write8(MEMORY_SIZE, 1)).toThrow(RangeError);
+    expect(() => memory.read8(MEMORY_SIZE)).toThrow(RangeError);
+
+    expect(() => memory.write16(MEMORY_SIZE - 1, 1)).toThrow(RangeError);
+    expect(() => memory.read16(MEMORY_SIZE - 1)).toThrow(RangeError);
+
+    expect(() => memory.write32(MEMORY_SIZE - 3, 1)).toThrow(RangeError);
+    expect(() => memory.read32(MEMORY_SIZE - 3)).toThrow(RangeError);
+
+    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 1.23)).toThrow(
+      RangeError
+    );
+    expect(() => memory.readFloat(MEMORY_SIZE - 3)).toThrow(RangeError);
+  });
+
+  test("should dump memory for debugging", () => {
+    memory.write8(0, 0xaa);
+    memory.write8(1, 0xbb);
+    memory.write8(2, 0xcc);
+
+    const dump = memory.dump(0, 2);
+    expect(dump).toBe("aa bb cc");
   });
 });

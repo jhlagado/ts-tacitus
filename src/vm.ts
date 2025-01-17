@@ -1,25 +1,25 @@
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
-import { STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE, MEMORY_SIZE } from "./constants";
+import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
 
 export class VM {
-  memory: number[];
-  SP: number;
-  RP: number;
-  IP: number;
+  memory: Memory;
+  SP: number; // Stack pointer (points to the next free slot)
+  RP: number; // Return stack pointer (points to the next free slot)
+  IP: number; // Instruction pointer
   running: boolean;
   compiler: Compiler;
   dictionary: Dictionary;
   debug: boolean;
-  heap: Heap; // Add Heap instance
-  
+  heap: Heap;
+
   constructor() {
-    this.memory = new Array(MEMORY_SIZE).fill(0);
+    this.memory = new Memory();
     this.IP = CODE; // Start execution at CODE
     this.running = true;
-    this.SP = STACK;
-    this.RP = RSTACK;
+    this.SP = STACK; // Stack starts at STACK
+    this.RP = RSTACK; // Return stack starts at RSTACK
     this.compiler = new Compiler(this);
     this.dictionary = new Dictionary();
     this.heap = new Heap(this.memory);
@@ -27,62 +27,143 @@ export class VM {
   }
 
   /**
-   * Pushes a value onto the stack.
-   * @param value - The value to push.
+   * Pushes a 32-bit value onto the stack.
    */
   push(value: number): void {
-    if (this.SP >= STACK + STACK_SIZE) {
-      throw new Error(`Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`);
+    if (this.SP + 4 > STACK + STACK_SIZE) {
+      throw new Error(
+        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
     }
-    this.memory[this.SP++] = value;
+    this.memory.write32(this.SP, value); // Write 32-bit value
+    this.SP += 4; // Move stack pointer by 4 bytes
   }
 
   /**
-   * Pops a value from the stack.
-   * @returns The popped value.
+   * Pops a 32-bit value from the stack.
    */
   pop(): number {
     if (this.SP <= STACK) {
-      throw new Error(`Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`);
+      throw new Error(
+        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
     }
-    return this.memory[--this.SP];
+    this.SP -= 4; // Move stack pointer back by 4 bytes
+    return this.memory.read32(this.SP); // Read 32-bit value
   }
 
   /**
-   * Pushes a value onto the return stack.
-   * @param value - The value to push.
+   * Pushes a 32-bit float onto the stack.
+   */
+  pushFloat(value: number): void {
+    if (this.SP + 4 > STACK + STACK_SIZE) {
+      throw new Error(
+        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
+    }
+    this.memory.writeFloat(this.SP, value); // Write 32-bit float
+    this.SP += 4; // Move stack pointer by 4 bytes
+  }
+
+  /**
+   * Pops a 32-bit float from the stack.
+   */
+  popFloat(): number {
+    if (this.SP <= STACK) {
+      throw new Error(
+        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
+    }
+    this.SP -= 4; // Move stack pointer back by 4 bytes
+    return this.memory.readFloat(this.SP); // Read 32-bit float
+  }
+
+  /**
+   * Pushes a 32-bit value onto the return stack.
    */
   rpush(value: number): void {
-    if (this.RP >= RSTACK + RSTACK_SIZE) {
-      throw new Error(`Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`);
+    if (this.RP + 4 > RSTACK + RSTACK_SIZE) {
+      throw new Error(
+        `Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
     }
-    this.memory[this.RP++] = value;
+    this.memory.write32(this.RP, value); // Write 32-bit value
+    this.RP += 4; // Move return stack pointer by 4 bytes
   }
 
   /**
-   * Pops a value from the return stack.
-   * @returns The popped value.
+   * Pops a 32-bit value from the return stack.
    */
   rpop(): number {
     if (this.RP <= RSTACK) {
-      throw new Error(`Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`);
+      throw new Error(
+        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(
+          this.getStackData()
+        )})`
+      );
     }
-    return this.memory[--this.RP];
+    this.RP -= 4; // Move return stack pointer back by 4 bytes
+    return this.memory.read32(this.RP); // Read 32-bit value
+  }
+
+  reset() {
+    this.IP = CODE;
   }
 
   /**
-   * Reads the next value from memory and increments the instruction pointer.
-   * @returns The next value.
+   * Reads the next 8-bit value from memory and increments the instruction pointer.
    */
-  next(): number {
-    return this.memory[this.IP++];
+  next8(): number {
+    const value = this.memory.read8(this.IP); // Read 8-bit value
+    this.IP += 1; // Move instruction pointer by 1 byte
+    return value;
   }
 
   /**
-   * Returns the current stack data.
-   * @returns An array of stack values.
+   * Reads the next 16-bit value from memory and increments the instruction pointer.
+   */
+  next16(): number {
+    const value = this.memory.read16(this.IP); // Read 16-bit value
+    this.IP += 2; // Move instruction pointer by 2 bytes
+    return value;
+  }
+
+  /**
+   * Reads the next 32-bit value from memory and increments the instruction pointer.
+   */
+  next32(): number {
+    const value = this.memory.read32(this.IP); // Read 32-bit value
+    this.IP += 4; // Move instruction pointer by 4 bytes
+    return value;
+  }
+
+  /**
+   * Reads the next 32-bit float from memory and increments the instruction pointer.
+   */
+  nextFloat(): number {
+    const value = this.memory.readFloat(this.IP); // Read 32-bit float
+    this.IP += 4; // Move instruction pointer by 4 bytes
+    return value;
+  }
+
+  /**
+   * Returns the current stack data as an array of 32-bit values.
    */
   getStackData(): number[] {
-    return this.memory.slice(STACK, this.SP);
+    const stackData: number[] = [];
+    for (let i = STACK; i < this.SP; i += 4) {
+      stackData.push(this.memory.read32(i)); // Read 32-bit values
+    }
+    return stackData;
   }
 }

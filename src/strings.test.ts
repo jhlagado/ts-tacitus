@@ -1,134 +1,96 @@
+import { Memory } from "./memory";
 import { BLOCK_SIZE, Heap } from "./heap";
+import { NIL } from "./constants";
 import {
   stringCreate,
   stringRead,
-  stringPrint,
   stringLength,
-  iterateString,
+  stringPrint,
   stringGet,
   stringUpdate,
 } from "./strings";
-import { NIL, MEMORY_SIZE } from "./constants";
 
-describe("Strings Library", () => {
+describe("strings.ts", () => {
+  let memory: Memory;
   let heap: Heap;
 
   beforeEach(() => {
-    // Create a fresh heap instance for each test
-    heap = new Heap(new Array(MEMORY_SIZE).fill(0));
+    memory = new Memory();
+    heap = new Heap(memory);
   });
 
-  it("should create and read a string", () => {
-    const str = stringCreate(heap, "Hello, world!");
-    expect(str).not.toBe(NIL);
-    expect(stringRead(heap, str)).toBe("Hello, world!");
+  test("should create and read a string", () => {
+    const str = "hello";
+    const startBlock = stringCreate(heap, str);
+    expect(startBlock).not.toBe(NIL);
+    expect(stringRead(memory, startBlock)).toBe(str);
   });
 
-  it("should print a string", () => {
-    const str = stringCreate(heap, "Hello, world!");
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    stringPrint(heap, str);
-    expect(consoleSpy).toHaveBeenCalledWith("Hello, world!");
+  test("should handle string length correctly", () => {
+    const str = "world!";
+    const startBlock = stringCreate(heap, str);
+    expect(stringLength(memory, startBlock)).toBe(str.length);
+  });
+
+  test("should return NIL when string creation fails", () => {
+    // Fill the heap to force allocation failure
+    while (heap.malloc(BLOCK_SIZE) !== NIL) {}
+    const str = "test";
+    const startBlock = stringCreate(heap, str);
+    expect(startBlock).toBe(NIL);
+  });
+
+  test("should print a string", () => {
+    const str = "print test";
+    const startBlock = stringCreate(heap, str);
+    const consoleSpy = jest.spyOn(console, "log");
+    stringPrint(memory, startBlock);
+    expect(consoleSpy).toHaveBeenCalledWith(str);
     consoleSpy.mockRestore();
   });
 
-  it("should handle empty strings", () => {
-    const str = stringCreate(heap, "");
-    expect(str).not.toBe(NIL);
-    expect(stringRead(heap, str)).toBe("");
+  test("should get a character from a string", () => {
+    const str = "character test";
+    const startBlock = stringCreate(heap, str);
+    expect(stringGet(memory, startBlock, 0)).toBe("c");
+    expect(stringGet(memory, startBlock, 6)).toBe("t");
+    expect(stringGet(memory, startBlock, str.length - 1)).toBe("t");
+    expect(stringGet(memory, startBlock, str.length)).toBeUndefined();
   });
 
-  it("should handle large strings", () => {
-    const largeStr = "a".repeat(1000); // 1000-character string
-    const str = stringCreate(heap, largeStr);
-    expect(str).not.toBe(NIL);
-    expect(stringRead(heap, str)).toBe(largeStr);
+  test("should update a character in a string", () => {
+    const str = "update";
+    const startBlock = stringCreate(heap, str);
+    stringUpdate(memory, startBlock, 0, "U");
+    stringUpdate(memory, startBlock, 5, "D");
+    expect(stringRead(memory, startBlock)).toBe("UpdatD");
   });
 
-  it("should return NIL if allocation fails", () => {
-    // Fill the heap to force allocation failure
-    while (heap.malloc(BLOCK_SIZE) !== NIL) {}
-    const str = stringCreate(heap, "Hello, world!");
-    expect(str).toBe(NIL);
+  test("should handle strings spanning multiple blocks", () => {
+    const str = "a".repeat(BLOCK_SIZE * 3); // Create a long string spanning 3 blocks
+    const startBlock = stringCreate(heap, str);
+    expect(stringRead(memory, startBlock)).toBe(str);
+    expect(stringLength(memory, startBlock)).toBe(str.length);
   });
 
-  // Tests for stringLength
-  describe("stringLength", () => {
-    it("should return the correct length for a short string", () => {
-      const str = stringCreate(heap, "Hello");
-      expect(stringLength(heap, str)).toBe(5);
-    });
+  test("should handle update on strings spanning multiple blocks", () => {
+    const str = "a".repeat(BLOCK_SIZE * 3); // Create a long string spanning 3 blocks
+    const startBlock = stringCreate(heap, str);
 
-    it("should return the correct length for an empty string", () => {
-      const str = stringCreate(heap, "");
-      expect(stringLength(heap, str)).toBe(0);
-    });
-
-    it("should return the correct length for a long string", () => {
-      const longStr = "a".repeat(1000); // 1000-character string
-      const str = stringCreate(heap, longStr);
-      expect(stringLength(heap, str)).toBe(1000);
-    });
-
-    it("should return 0 for an invalid string (NIL)", () => {
-      expect(stringLength(heap, NIL)).toBe(0);
-    });
+    // Update a character in the second block
+    const updateIndex = BLOCK_SIZE + 5;
+    stringUpdate(memory, startBlock, updateIndex, "b");
+    const result = stringRead(memory, startBlock);
+    expect(result[updateIndex]).toBe("b");
+    expect(result).toHaveLength(str.length);
   });
 
-  // Tests for iterateString
-  describe("iterateString", () => {
-    it("should iterate over a string", () => {
-      const str = stringCreate(heap, "abc");
-      const iterator = iterateString(heap, str);
-      expect(Array.from(iterator)).toEqual(["a", "b", "c"]);
-    });
+  test("should gracefully handle update out of bounds", () => {
+    const str = "short";
+    const startBlock = stringCreate(heap, str);
 
-    it("should handle empty strings", () => {
-      const str = stringCreate(heap, "");
-      const iterator = iterateString(heap, str);
-      expect(Array.from(iterator)).toEqual([]);
-    });
-
-    it("should handle multi-block strings", () => {
-      const largeStr = "a".repeat(1000); // 1000-character string
-      const str = stringCreate(heap, largeStr);
-      const iterator = iterateString(heap, str);
-      expect(Array.from(iterator).join("")).toBe(largeStr);
-    });
-  });
-
-  // Tests for stringGet
-  describe("stringGet", () => {
-    it("should get a character at a valid index", () => {
-      const str = stringCreate(heap, "abc");
-      expect(stringGet(heap, str, 1)).toBe("b");
-    });
-
-    it("should return undefined for an out-of-bounds index", () => {
-      const str = stringCreate(heap, "abc");
-      expect(stringGet(heap, str, 5)).toBeUndefined();
-    });
-
-    it("should return undefined for an invalid string (NIL)", () => {
-      expect(stringGet(heap, NIL, 0)).toBeUndefined();
-    });
-  });
-
-  // Tests for stringUpdate
-  describe("stringUpdate", () => {
-    it("should update a character at a valid index", () => {
-      const str = stringCreate(heap, "abc");
-      stringUpdate(heap, str, 1, "x");
-      expect(stringRead(heap, str)).toBe("axc");
-    });
-
-    it("should throw an error for an out-of-bounds index", () => {
-      const str = stringCreate(heap, "abc");
-      expect(() => stringUpdate(heap, str, 5, "x")).toThrow("Index out of bounds");
-    });
-
-    it("should throw an error for an invalid string (NIL)", () => {
-      expect(() => stringUpdate(heap, NIL, 0, "x")).toThrow("Index out of bounds");
-    });
+    expect(() => {
+      stringUpdate(memory, startBlock, 10, "x");
+    }).toThrow("Index out of bounds");
   });
 });

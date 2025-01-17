@@ -1,6 +1,5 @@
-// src/vm.test.ts
 import { VM } from "./vm";
-import { STACK_SIZE, RSTACK_SIZE, CODE } from "./constants";
+import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 
@@ -13,15 +12,22 @@ describe("VM", () => {
 
   // Test 1: Stack operations
   describe("Stack operations", () => {
-    it("should push and pop values from the stack", () => {
-      vm.push(5);
-      vm.push(10);
-      expect(vm.pop()).toBe(10);
-      expect(vm.pop()).toBe(5);
+    it("should push and pop 32-bit values from the stack", () => {
+      vm.push(0x12345678);
+      vm.push(0x9abcdef0);
+      expect(vm.pop()).toBe(0x9abcdef0);
+      expect(vm.pop()).toBe(0x12345678);
+    });
+
+    it("should push and pop 32-bit floats from the stack", () => {
+      vm.pushFloat(3.14);
+      vm.pushFloat(-123.456);
+      expect(vm.popFloat()).toBeCloseTo(-123.456);
+      expect(vm.popFloat()).toBeCloseTo(3.14);
     });
 
     it("should throw an error on stack overflow", () => {
-      for (let i = 0; i < STACK_SIZE; i++) {
+      for (let i = 0; i < STACK_SIZE / 4; i++) {
         vm.push(i);
       }
       expect(() => vm.push(42)).toThrow("Stack overflow");
@@ -41,7 +47,7 @@ describe("VM", () => {
 
   // Test 2: Return stack operations
   describe("Return stack operations", () => {
-    it("should push and pop values from the return stack", () => {
+    it("should push and pop 32-bit values from the return stack", () => {
       vm.rpush(100);
       vm.rpush(200);
       expect(vm.rpop()).toBe(200);
@@ -49,7 +55,7 @@ describe("VM", () => {
     });
 
     it("should throw an error on return stack overflow", () => {
-      for (let i = 0; i < RSTACK_SIZE; i++) {
+      for (let i = 0; i < RSTACK_SIZE / 4; i++) {
         vm.rpush(i);
       }
       expect(() => vm.rpush(42)).toThrow("Return stack overflow");
@@ -63,23 +69,23 @@ describe("VM", () => {
   // Test 3: Instruction pointer operations
   describe("Instruction pointer operations", () => {
     it("should read values from memory using the instruction pointer", () => {
-      vm.compiler.compile(5);
-      vm.compiler.compile(10);
-      vm.compiler.compile(15);
+      vm.compiler.compile32(5);
+      vm.compiler.compile32(10);
+      vm.compiler.compile32(15);
 
-      expect(vm.next()).toBe(5);
-      expect(vm.next()).toBe(10);
-      expect(vm.next()).toBe(15);
+      expect(vm.next32()).toBe(5);
+      expect(vm.next32()).toBe(10);
+      expect(vm.next32()).toBe(15);
     });
 
     it("should increment the instruction pointer after reading", () => {
-      vm.compiler.compile(42);
-      vm.next();
-      expect(vm.IP).toBe(CODE + 1);
+      vm.compiler.compile32(42);
+      vm.next32();
+      expect(vm.IP).toBe(CODE + 4);
     });
   });
 
-  // Test 5: Compiler and dictionary initialization
+  // Test 4: Compiler and dictionary initialization
   describe("Compiler and dictionary initialization", () => {
     it("should initialize the compiler with the VM instance", () => {
       expect(vm.compiler).toBeDefined();

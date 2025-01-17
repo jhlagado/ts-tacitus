@@ -1,163 +1,195 @@
 import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
 import { NIL } from "./constants";
+import { Memory } from "./memory";
 
-export const STR_LEN = 1;
-export const STR_DATA = 2;
+export const STR_LEN = 2; // Offset for storing the string length (16-bit)
+export const STR_DATA = 4; // Offset for storing the string data (16-bit)
 
 /**
- * Iterates over the characters of a string stored in the heap.
- * @param heap - The heap instance where the string is stored.
+ * Returns the length of a string stored in the heap.
+ * @param memory - The Memory instance where the heap resides.
  * @param startBlock - The starting block index of the string.
- * @yields The next character in the string.
+ * @returns The length of the string.
  */
-export function* iterateString(
-  heap: Heap,
-  startBlock: number
-): Generator<string, void, void> {
+export function stringLength(memory: Memory, startBlock: number): number {
+  return memory.read16(startBlock + STR_LEN); // Read string length (16-bit)
+}
+
+/**
+ * Prints a string stored in the heap to the console.
+ * @param memory - The Memory instance where the heap resides.
+ * @param startBlock - The starting block index of the string.
+ */
+export function stringPrint(memory: Memory, startBlock: number): void {
+  console.log(stringRead(memory, startBlock));
+}
+
+/**
+ * Finds the block and offset for a given string index.
+ * @param memory - The Memory instance where the heap resides.
+ * @param startBlock - The starting block index of the string.
+ * @param index - The index of the character to find.
+ * @returns An object containing the current block and offset, or `null` if the index is out of bounds.
+ */
+export function findStringPosition(
+  memory: Memory,
+  startBlock: number,
+  index: number
+): { block: number; offset: number } | null {
   let currentBlock = startBlock;
-  const length = heap.memory[startBlock + STR_LEN]; // Length is stored at STR_LEN
+  const length = memory.read16(currentBlock + STR_LEN); // Read string length (16-bit)
+
+  // Check if the index is out of bounds
+  if (index < 0 || index >= length) {
+    return null;
+  }
+
   let charsRead = 0;
 
-  while (currentBlock !== NIL && charsRead < length) {
-    // Read characters from the current block
-    for (
-      let i = STR_DATA; // Data starts at STR_DATA
-      i < BLOCK_SIZE && charsRead < length;
-      i++
-    ) {
-      yield String.fromCharCode(heap.memory[currentBlock + i]);
-      charsRead++;
+  while (currentBlock !== NIL && charsRead <= index) {
+    // Calculate the number of characters in the current block
+    const charsInBlock = Math.min(BLOCK_SIZE - STR_DATA, length - charsRead);
+
+    // Check if the target index is in this block
+    if (index < charsRead + charsInBlock) {
+      const offset = STR_DATA + (index - charsRead); // Calculate the offset (16-bit aligned)
+      return { block: currentBlock, offset };
     }
 
     // Move to the next block
-    currentBlock = heap.memory[currentBlock + BLOCK_NEXT]; // Next block pointer is at BLOCK_NEXT
+    charsRead += charsInBlock;
+    currentBlock = memory.read16(currentBlock + BLOCK_NEXT); // Read next block pointer (16-bit)
   }
+
+  return null; // Index is out of bounds
 }
 
 /**
  * Allocates a string in the heap and initializes it with the given string.
- * @param heap - The heap instance to use for allocation.
+ * @param heap - The Heap instance to use for allocation.
  * @param str - The string to initialize the allocated string.
  * @returns The starting block index of the allocated string, or NIL if allocation fails.
  */
 export function stringCreate(heap: Heap, str: string): number {
+  const memory = heap.memory;
   const length = str.length;
   const firstBlock = heap.malloc(BLOCK_SIZE); // Allocate the first block
   if (firstBlock === NIL) return NIL; // Allocation failed
 
-  // Store the length at STR_LEN of the first block
-  heap.memory[firstBlock + STR_LEN] = length;
+  // Store the length at STR_LEN of the first block (16-bit)
+  memory.write16(firstBlock + STR_LEN, length);
 
   let currentBlock = firstBlock;
   let strIndex = 0;
 
-  // Write characters into the first block (starting from STR_DATA)
+  // Write characters to the first block (8-bit ASCII)
   for (let i = STR_DATA; i < BLOCK_SIZE && strIndex < length; i++) {
-    heap.memory[currentBlock + i] = str.charCodeAt(strIndex);
+    memory.write8(currentBlock + i, str.charCodeAt(strIndex));
     strIndex++;
   }
 
-  // If the string is longer than the first block, allocate additional blocks
+  // If the string exceeds the first block, allocate additional blocks
   while (strIndex < length) {
     const nextBlock = heap.malloc(BLOCK_SIZE);
     if (nextBlock === NIL) {
-      // Free all allocated blocks if allocation fails
       heap.free(firstBlock);
-      return NIL;
+      return NIL; // Allocation failed
     }
-    heap.memory[currentBlock + BLOCK_NEXT] = nextBlock; // Link to the next block
+    memory.write16(currentBlock + BLOCK_NEXT, nextBlock); // Link to the next block (16-bit)
     currentBlock = nextBlock;
 
-    // Write characters into the current block (starting from STR_DATA)
+    // Write characters to the current block (8-bit ASCII)
     for (let i = STR_DATA; i < BLOCK_SIZE && strIndex < length; i++) {
-      heap.memory[currentBlock + i] = str.charCodeAt(strIndex);
+      memory.write8(currentBlock + i, str.charCodeAt(strIndex));
       strIndex++;
     }
   }
 
   // Mark the end of the string
-  heap.memory[currentBlock + BLOCK_NEXT] = NIL;
+  memory.write16(currentBlock + BLOCK_NEXT, NIL); // End of string (16-bit)
 
   return firstBlock;
 }
 
 /**
  * Reads a string from the heap and returns it as a JavaScript string.
- * @param heap - The heap instance where the string is stored.
+ * @param memory - The Memory instance where the heap resides.
  * @param startBlock - The starting block index of the string.
  * @returns The string as a JavaScript string.
  */
-export function stringRead(heap: Heap, startBlock: number): string {
-  return Array.from(iterateString(heap, startBlock)).join("");
+export function stringRead(memory: Memory, startBlock: number): string {
+  return Array.from(iterateString(memory, startBlock)).join("");
 }
 
 /**
- * Prints a string stored in the heap to the console.
- * @param heap - The heap instance where the string is stored.
+ * Iterates over the characters of a string stored in the heap.
+ * @param memory - The Memory instance where the heap resides.
  * @param startBlock - The starting block index of the string.
+ * @yields The next character in the string.
  */
-export function stringPrint(heap: Heap, startBlock: number): void {
-  console.log(stringRead(heap, startBlock));
-}
+export function* iterateString(
+  memory: Memory,
+  startBlock: number
+): Generator<string, void, void> {
+  let currentBlock = startBlock;
+  const length = memory.read16(currentBlock + STR_LEN); // Read string length (16-bit)
+  let charsRead = 0;
 
-/**
- * Returns the length of a string stored in the heap.
- * @param heap - The heap instance where the string is stored.
- * @param startBlock - The starting block index of the string.
- * @returns The length of the string.
- */
-export function stringLength(heap: Heap, startBlock: number): number {
-  return heap.memory[startBlock + STR_LEN]; // Length is stored at STR_LEN
+  while (currentBlock !== NIL && charsRead < length) {
+    for (
+      let i = STR_DATA; // Data starts at STR_DATA (16-bit aligned)
+      i < BLOCK_SIZE && charsRead < length;
+      i++
+    ) {
+      const charCode = memory.read8(currentBlock + i); // Read character (8-bit ASCII)
+      yield String.fromCharCode(charCode);
+      charsRead++;
+    }
+
+    // Move to the next block
+    currentBlock = memory.read16(currentBlock + BLOCK_NEXT); // Read next block pointer (16-bit)
+  }
 }
 
 /**
  * Gets a character from the string stored in the heap.
- * @param heap - The heap instance where the string is stored.
+ * @param memory - The Memory instance where the heap resides.
  * @param startBlock - The starting block index of the string.
  * @param index - The index of the character to get.
  * @returns The character at the specified index, or undefined if the index is out of bounds.
  */
 export function stringGet(
-  heap: Heap,
+  memory: Memory,
   startBlock: number,
   index: number
 ): string | undefined {
-  const iterator = iterateString(heap, startBlock);
-  let currentIndex = 0;
-  for (const char of iterator) {
-    if (currentIndex === index) {
-      return char;
-    }
-    currentIndex++;
+  const position = findStringPosition(memory, startBlock, index);
+  if (position === null) {
+    return undefined; // Index is out of bounds
   }
-  return undefined; // Index out of bounds
+
+  const charCode = memory.read8(position.block + position.offset); // Read character (8-bit ASCII)
+  return String.fromCharCode(charCode);
 }
 
 /**
  * Updates a character in the string stored in the heap.
- * @param heap - The heap instance where the string is stored.
+ * @param memory - The Memory instance where the heap resides.
  * @param startBlock - The starting block index of the string.
  * @param index - The index of the character to update.
  * @param value - The new character to set.
  */
 export function stringUpdate(
-  heap: Heap,
+  memory: Memory,
   startBlock: number,
   index: number,
   value: string
 ): void {
-  const iterator = iterateString(heap, startBlock);
-  let currentIndex = 0;
-  let next = iterator.next();
-
-  while (!next.done) {
-    if (currentIndex === index) {
-      heap.memory[startBlock + STR_DATA + index] = value.charCodeAt(0);
-      return;
-    }
-    currentIndex++;
-    next = iterator.next();
+  const position = findStringPosition(memory, startBlock, index);
+  if (position === null) {
+    throw new Error("Index out of bounds");
   }
 
-  throw new Error("Index out of bounds");
+  // Write the new character to memory (8-bit ASCII)
+  memory.write8(position.block + position.offset, value.charCodeAt(0));
 }

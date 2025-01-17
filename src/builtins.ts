@@ -1,6 +1,6 @@
 import { VM } from "./vm";
 import { Verb } from "./types";
-import { STACK } from "./constants";
+import { STACK } from "./memory";
 
 export enum Op {
   LiteralNumber,
@@ -18,19 +18,19 @@ export enum Op {
 }
 
 export const literalNumberOp: Verb = (vm: VM) => {
-  const num = vm.next() as number;
-  vm.push(num);
+  const num = vm.next32(); // Read the 32-bit number
+  vm.push(num); // Push the number onto the stack
 };
 
 /**
- * Branch Eval to a relative address in memory.
+ * Branch call to a relative address in memory.
  * The offset is relative to the address after the branch instruction.
  * Puts return address on the data stack
  */
 export const branchCallOp: Verb = (vm: VM) => {
-  const offset = vm.next() as number; // Read the relative offset
-  vm.push(vm.IP); // Push the current IP
-  vm.IP += offset; // Adjust the IP by the offset
+  const offset = vm.next16(); // Read the 16-bit offset
+  vm.push(vm.IP); // Push the current IP (return address) onto the stack
+  vm.IP += offset; // Adjust the IP by the relative offset
 };
 
 export const abortOp: Verb = (vm: VM) => {

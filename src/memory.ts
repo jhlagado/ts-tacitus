@@ -1,88 +1,107 @@
+export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
+
+// Define sections
+export const STACK = 0x0000; // Start address of the main stack
+export const STACK_SIZE = 256; // Stack size in bytes
+export const RSTACK = STACK + STACK_SIZE; // Start address of the return stack
+export const RSTACK_SIZE = 256; // Return stack size
+export const HEAP = RSTACK + RSTACK_SIZE; // Start address of the heap
+export const HEAP_SIZE = MEMORY_SIZE - HEAP; // Remaining memory for heap
+
+// Other sections (optional)
+export const CODE = HEAP; // Start of executable code (if needed)
+
 export class Memory {
-  private memory: Uint8Array;
+  private buffer: Uint8Array;
   private dataView: DataView;
+  public size: number;
 
-  constructor(size: number) {
-    if (size <= 0 || size % 4 !== 0) {
-      throw new Error("Memory size must be positive and aligned to 4 bytes.");
-    }
-    this.memory = new Uint8Array(size);
-    this.dataView = new DataView(this.memory.buffer);
+  constructor(size: number = MEMORY_SIZE) {
+    this.size = size;
+    this.buffer = new Uint8Array(size);
+    this.dataView = new DataView(this.buffer.buffer);
   }
 
-  private validateAddress(address: number): void {
-    if (address < 0 || address >= this.memory.length) {
-      throw new Error(`Address ${address} is out of bounds.`);
-    }
-  }
-
-  private ensureAlignment(address: number, alignment: number): void {
-    if (address % alignment !== 0) {
-      throw new Error(
-        `Address ${address} must be aligned to ${alignment} bytes.`
-      );
-    }
-  }
-
-  // Generalized 8-bit read/write (with signed flag)
-  read8(address: number, signed: boolean = false): number {
-    this.validateAddress(address);
-    const value = this.memory[address];
-    return signed && value > 127 ? value - 256 : value;
-  }
-
+  // 8-bit read/write
   write8(address: number, value: number): void {
-    this.validateAddress(address);
-    this.memory[address] = value & 0xff;
+    if (address < 0 || address >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    this.buffer[address] = value & 0xff;
   }
 
-  // Generalized 16-bit read/write (with signed flag)
-  read16(address: number, signed: boolean = false): number {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 2);
-    const value = this.dataView.getUint16(address, true);
-    return signed && value > 32767 ? value - 65536 : value;
+  read8(address: number): number {
+    if (address < 0 || address >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    return this.buffer[address];
   }
 
+  // 16-bit read/write
   write16(address: number, value: number): void {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 2);
-    this.dataView.setUint16(address, value & 0xffff, true);
+    if (address < 0 || address + 1 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    this.dataView.setUint16(address, value & 0xffff, true); // Little-endian
   }
 
-  // Generalized 32-bit read/write (with signed flag)
-  read32(address: number, signed: boolean = false): number {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 4);
-    const value = this.dataView.getUint32(address, true);
-    return signed && value > 2147483647 ? value - 4294967296 : value;
+  read16(address: number): number {
+    if (address < 0 || address + 1 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    return this.dataView.getUint16(address, true); // Little-endian
   }
 
+  // 32-bit read/write
   write32(address: number, value: number): void {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 4);
-    this.dataView.setUint32(address, value >>> 0, true);
+    if (address < 0 || address + 3 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    this.dataView.setUint32(address, value >>> 0, true); // Little-endian
   }
 
-  // Float32 read/write
-  readFloat32(address: number): number {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 4);
-    return this.dataView.getFloat32(address, true);
+  read32(address: number): number {
+    if (address < 0 || address + 3 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    return this.dataView.getUint32(address, true); // Little-endian
   }
 
-  writeFloat32(address: number, value: number): void {
-    this.validateAddress(address);
-    this.ensureAlignment(address, 4);
-    this.dataView.setFloat32(address, value, true);
+  // Float32 read/write (unaligned)
+  writeFloat(address: number, value: number): void {
+    if (address < 0 || address + 3 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    const buffer = new ArrayBuffer(4);
+    const view = new DataView(buffer);
+    view.setFloat32(0, value, true); // Little-endian
+
+    for (let i = 0; i < 4; i++) {
+      this.write8(address + i, view.getUint8(i));
+    }
   }
 
-  // Utility: Dump memory for debugging
-  dumpMemory(): void {
-    console.log(
-      Array.from(this.memory)
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join(" ")
-    );
+  readFloat(address: number): number {
+    if (address < 0 || address + 3 >= this.size) {
+      throw new RangeError(`Address ${address} is outside memory bounds`);
+    }
+    const buffer = new ArrayBuffer(4);
+    const view = new DataView(buffer);
+
+    for (let i = 0; i < 4; i++) {
+      view.setUint8(i, this.read8(address + i));
+    }
+
+    return view.getFloat32(0, true); // Little-endian
+  }
+
+  // Utility to dump memory for debugging
+  dump(start: number, end: number): string {
+    if (start < 0 || end >= this.size || start > end) {
+      throw new RangeError(`Invalid memory range [${start}, ${end}]`);
+    }
+    return Array.from(this.buffer.slice(start, end + 1))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join(" ");
   }
 }

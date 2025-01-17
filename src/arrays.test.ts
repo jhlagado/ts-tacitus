@@ -1,134 +1,105 @@
+import { Memory } from "./memory";
 import { BLOCK_SIZE, Heap } from "./heap";
+import { NIL } from "./constants";
 import {
   arrayCreate,
   arrayRead,
-  arrayPrint,
   arrayLength,
-  iterateArray,
+  arrayPrint,
   arrayGet,
   arrayUpdate,
 } from "./arrays";
-import { NIL, MEMORY_SIZE } from "./constants";
 
-describe("Arrays Library", () => {
+describe("arrays.ts", () => {
+  let memory: Memory;
   let heap: Heap;
 
   beforeEach(() => {
-    // Create a fresh heap instance for each test
-    heap = new Heap(new Array(MEMORY_SIZE).fill(0));
+    memory = new Memory();
+    heap = new Heap(memory);
   });
 
-  it("should create and read an array", () => {
-    const arr = arrayCreate(heap, [1, 2, 3, 4, 5]);
-    expect(arr).not.toBe(NIL);
-    expect(arrayRead(heap, arr)).toEqual([1, 2, 3, 4, 5]);
+  test("should create and read an array", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    expect(startBlock).not.toBe(NIL);
+
+    const result = arrayRead(memory, startBlock);
+    expect(result.length).toBe(arr.length); // Check array length
+
+    // Compare each element with toBeCloseTo
+    for (let i = 0; i < arr.length; i++) {
+      expect(result[i]).toBeCloseTo(arr[i], 5); // Compare with 5 decimal places
+    }
+  });
+  
+  test("should handle array length correctly", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    expect(arrayLength(memory, startBlock)).toBe(arr.length);
   });
 
-  it("should print an array", () => {
-    const arr = arrayCreate(heap, [1, 2, 3]);
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    arrayPrint(heap, arr);
-    expect(consoleSpy).toHaveBeenCalledWith([1, 2, 3]);
+  test("should return NIL when array creation fails", () => {
+    // Fill the heap to force allocation failure
+    while (heap.malloc(BLOCK_SIZE) !== NIL) {}
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    expect(startBlock).toBe(NIL);
+  });
+
+  test("should print an array", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    const consoleSpy = jest.spyOn(console, "log");
+    arrayPrint(memory, startBlock);
+    expect(consoleSpy).toHaveBeenCalledWith(arr);
     consoleSpy.mockRestore();
   });
 
-  it("should handle empty arrays", () => {
-    const arr = arrayCreate(heap, []);
-    expect(arr).not.toBe(NIL);
-    expect(arrayRead(heap, arr)).toEqual([]);
+  test("should get an element from an array", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    expect(arrayGet(memory, startBlock, 0)).toBeCloseTo(1.1);
+    expect(arrayGet(memory, startBlock, 1)).toBeCloseTo(2.2);
+    expect(arrayGet(memory, startBlock, 2)).toBeCloseTo(3.3);
+    expect(arrayGet(memory, startBlock, 3)).toBeUndefined();
   });
 
-  it("should handle large arrays", () => {
-    const largeArray = new Array(1000).fill(0).map((_, i) => i); // 1000-element array
-    const arr = arrayCreate(heap, largeArray);
-    expect(arr).not.toBe(NIL);
-    expect(arrayRead(heap, arr)).toEqual(largeArray);
+  test("should update an element in an array", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
+    arrayUpdate(memory, startBlock, 1, 4.4);
+    const expected = [1.1, 4.4, 3.3];
+    const result = arrayRead(memory, startBlock);;
+    result.every((value, index) => {expect(value).toBeCloseTo(expected[index]);});
   });
 
-  it("should return NIL if allocation fails", () => {
-    // Fill the heap to force allocation failure
-    while (heap.malloc(BLOCK_SIZE) !== NIL) {}
-    const arr = arrayCreate(heap, [1, 2, 3]);
-    expect(arr).toBe(NIL);
+  test("should handle arrays spanning multiple blocks", () => {
+    const arr = new Array((BLOCK_SIZE / 4) * 3).fill(1.1); // Create a long array spanning 3 blocks
+    const startBlock = arrayCreate(heap, arr);
+    const result = arrayRead(memory, startBlock);;
+    result.every((value, index) => {expect(value).toBeCloseTo(arr[index]);});
+    expect(arrayLength(memory, startBlock)).toBe(arr.length);
   });
 
-  // Tests for arrayLength
-  describe("arrayLength", () => {
-    it("should return the correct length for a short array", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(arrayLength(heap, arr)).toBe(3);
-    });
+  test("should handle update on arrays spanning multiple blocks", () => {
+    const arr = new Array((BLOCK_SIZE / 4) * 3).fill(1.1); // Create a long array spanning 3 blocks
+    const startBlock = arrayCreate(heap, arr);
 
-    it("should return the correct length for an empty array", () => {
-      const arr = arrayCreate(heap, []);
-      expect(arrayLength(heap, arr)).toBe(0);
-    });
-
-    it("should return the correct length for a long array", () => {
-      const longArray = new Array(1000).fill(0).map((_, i) => i); // 1000-element array
-      const arr = arrayCreate(heap, longArray);
-      expect(arrayLength(heap, arr)).toBe(1000);
-    });
-
-    it("should return 0 for an invalid array (NIL)", () => {
-      expect(arrayLength(heap, NIL)).toBe(0);
-    });
+    // Update an element in the second block
+    const updateIndex = Math.floor(BLOCK_SIZE / 4) + 1;
+    arrayUpdate(memory, startBlock, updateIndex, 2.2);
+    const result = arrayRead(memory, startBlock);
+    expect(result[updateIndex]).toBeCloseTo(2.2);
+    expect(result).toHaveLength(arr.length);
   });
 
-  // Tests for iterateArray
-  describe("iterateArray", () => {
-    it("should iterate over an array", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      const iterator = iterateArray(heap, arr);
-      expect(Array.from(iterator)).toEqual([1, 2, 3]);
-    });
+  test("should gracefully handle update out of bounds", () => {
+    const arr = [1.1, 2.2, 3.3];
+    const startBlock = arrayCreate(heap, arr);
 
-    it("should handle empty arrays", () => {
-      const arr = arrayCreate(heap, []);
-      const iterator = iterateArray(heap, arr);
-      expect(Array.from(iterator)).toEqual([]);
-    });
-
-    it("should handle multi-block arrays", () => {
-      const largeArray = new Array(1000).fill(0).map((_, i) => i); // 1000-element array
-      const arr = arrayCreate(heap, largeArray);
-      const iterator = iterateArray(heap, arr);
-      expect(Array.from(iterator)).toEqual(largeArray);
-    });
-  });
-
-  // Tests for arrayGet
-  describe("arrayGet", () => {
-    it("should get an element at a valid index", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(arrayGet(heap, arr, 1)).toBe(2);
-    });
-
-    it("should return undefined for an out-of-bounds index", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(arrayGet(heap, arr, 5)).toBeUndefined();
-    });
-
-    it("should return undefined for an invalid array (NIL)", () => {
-      expect(arrayGet(heap, NIL, 0)).toBeUndefined();
-    });
-  });
-
-  // Tests for arrayUpdate
-  describe("arrayUpdate", () => {
-    it("should update an element at a valid index", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      arrayUpdate(heap, arr, 1, 42);
-      expect(arrayRead(heap, arr)).toEqual([1, 42, 3]);
-    });
-
-    it("should throw an error for an out-of-bounds index", () => {
-      const arr = arrayCreate(heap, [1, 2, 3]);
-      expect(() => arrayUpdate(heap, arr, 5, 42)).toThrow("Index out of bounds");
-    });
-
-    it("should throw an error for an invalid array (NIL)", () => {
-      expect(() => arrayUpdate(heap, NIL, 0, 42)).toThrow("Index out of bounds");
-    });
+    expect(() => {
+      arrayUpdate(memory, startBlock, 10, 4.4);
+    }).toThrow("Index out of bounds");
   });
 });

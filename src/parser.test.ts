@@ -14,43 +14,37 @@ describe("Parser", () => {
   it("should parse numbers into literalNumber and the number itself", () => {
     const tokens = [5, 3.14, -42];
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([
-      Op.LiteralNumber,
-      5,
-      Op.LiteralNumber, // Use opTable for index
-      3.14,
-      Op.LiteralNumber, // Use opTable for index
-      -42,
-      Op.Abort, // Use opTable for index
-    ]);
+    vm.reset();
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(3.14);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(-42);
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should parse known words into their corresponding indexes", () => {
     const tokens = lex("+ - dup");
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([
-      Op.Plus, // Use opTable for index
-      Op.Minus, // Use opTable for index
-      Op.Dup, // Use opTable for index
-      Op.Abort, // Use opTable for index
-    ]);
+    vm.reset();
+    expect(vm.next8()).toBe(Op.Plus);
+    expect(vm.next8()).toBe(Op.Minus);
+    expect(vm.next8()).toBe(Op.Dup);
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should parse mixed tokens (numbers and words)", () => {
     const tokens = lex("5 3 + dup");
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([
-      Op.LiteralNumber, // Use opTable for index
-      5,
-      Op.LiteralNumber, // Use opTable for index
-      3,
-      Op.Plus, // Use opTable for index
-      Op.Dup, // Use opTable for index
-      Op.Abort, // Use opTable for index
-    ]);
+    vm.reset();
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(3);
+    expect(vm.next8()).toBe(Op.Plus);
+    expect(vm.next8()).toBe(Op.Dup);
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should throw an error for unknown words", () => {
@@ -61,51 +55,47 @@ describe("Parser", () => {
   it("should handle empty input", () => {
     const tokens = [] as (string | number)[];
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([Op.Abort]); // Use opTable for index
+    vm.reset();
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should handle compilation blocks", () => {
     const tokens = lex("{ 5 } { 3 } + ");
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([
-      Op.BranchCall,
-      3,
-      Op.LiteralNumber, // Use opTable for index
-      5,
-      Op.Exit,
-      Op.BranchCall,
-      3,
-      Op.LiteralNumber, // Use opTable for index
-      3,
-      Op.Exit,
-      Op.Plus, // Use opTable for index
-      Op.Abort, // Use opTable for index
-    ]);
+    vm.reset();
+    expect(vm.next8()).toBe(Op.BranchCall);
+    expect(vm.next16()).toBe(7);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.next8()).toBe(Op.Exit);
+    expect(vm.next8()).toBe(Op.BranchCall);
+    expect(vm.next16()).toBe(7);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(3);
+    expect(vm.next8()).toBe(Op.Exit);
+    expect(vm.next8()).toBe(Op.Plus);
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should handle nested compilation blocks", () => {
     const tokens = lex("{ { 5 } { 3 } + }");
     parse(tokens);
-    const result = vm.compiler.getData();
-    expect(result).toEqual([
-      Op.BranchCall,
-      12,
-      Op.BranchCall,
-      3,
-      Op.LiteralNumber, // Use opTable for index
-      5,
-      Op.Exit,
-      Op.BranchCall,
-      3,
-      Op.LiteralNumber, // Use opTable for index
-      3,
-      Op.Exit,
-      Op.Plus, // Use opTable for index
-      Op.Exit, // Use opTable for index
-      Op.Abort, // Use opTable for index
-    ]);
+    vm.reset();
+    expect(vm.next8()).toBe(Op.BranchCall);
+    expect(vm.next16()).toBe(21);
+    expect(vm.next8()).toBe(Op.BranchCall);
+    expect(vm.next16()).toBe(7);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.next8()).toBe(Op.Exit);
+    expect(vm.next8()).toBe(Op.BranchCall);
+    expect(vm.next16()).toBe(7);
+    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.nextFloat()).toBeCloseTo(3);
+    expect(vm.next8()).toBe(Op.Exit);
+    expect(vm.next8()).toBe(Op.Plus);
+    expect(vm.next8()).toBe(Op.Exit);
+    expect(vm.next8()).toBe(Op.Abort);
   });
 
   // Test for unknown words

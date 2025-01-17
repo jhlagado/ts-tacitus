@@ -8,25 +8,25 @@ export function parse(tokens: (string | number)[]): void {
     if (vm.debug) console.log("token", token);
 
     if (typeof token === "number") {
-      vm.compiler.compile(Op.LiteralNumber);
-      vm.compiler.compile(token);
+      vm.compiler.compile8(Op.LiteralNumber);
+      vm.compiler.compileFloat(token);
     } else if (token === "{") {
       vm.compiler.preserve = true;
       vm.compiler.nestingScore++;
       vm.compiler.compileMode = true;
-      vm.compiler.compile(Op.BranchCall);
+      vm.compiler.compile8(Op.BranchCall);
       vm.push(vm.compiler.CP); // Push the current address for later patching
-      vm.compiler.compile(0); // Placeholder for the relative offset
+      vm.compiler.compile16(0); // Placeholder for the relative offset
     } else if (token === "}") {
       if (!vm.compiler.compileMode) {
         throw new Error("Unexpected '}' outside compilation mode");
       }
-      vm.compiler.compile(Op.Exit);
+      vm.compiler.compile8(Op.Exit);
       const branchAddress = vm.pop(); // Get the address of the branch instruction
       const endAddress = vm.compiler.CP;
       const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
       vm.compiler.CP = branchAddress; // Move to the offset location
-      vm.compiler.compile(offset); // Write the relative offset
+      vm.compiler.compile16(offset); // Write the relative offset
       vm.compiler.CP = endAddress; // Restore the pointer
       vm.compiler.nestingScore--;
       if (vm.compiler.nestingScore === 0) {
@@ -38,8 +38,8 @@ export function parse(tokens: (string | number)[]): void {
       if (opcode === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }
-      vm.compiler.compile(opcode);
+      vm.compiler.compile8(opcode);
     }
   }
-  vm.compiler.compile(Op.Abort);
+  vm.compiler.compile8(Op.Abort);
 }
