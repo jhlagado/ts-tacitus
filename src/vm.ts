@@ -184,17 +184,21 @@ export class VM {
 
   /**
    * Reads the next 16-bit value from memory and increments the instruction pointer.
-   * @deprecated Use `nextAddress` or `nextInteger` instead.
    */
   next16(): number {
     console.warn(
       "next16 is deprecated. Use nextAddress or nextInteger instead."
     );
-    const value = this.memory.read16(this.IP); // Read 16-bit value
-    this.IP += 2; // Move instruction pointer by 2 bytes
-    return value;
-  }
 
+    // Read the 16-bit value from memory
+    const unsignedValue = this.memory.read16(this.IP);
+
+    // Interpret the 16-bit value as a signed integer
+    const signedValue = (unsignedValue << 16) >> 16; // Sign-extend to 32 bits
+
+    this.IP += 2; // Move instruction pointer by 2 bytes
+    return signedValue;
+  }
   // /**
   //  * Reads the next 32-bit value from memory and increments the instruction pointer.
   //  * @deprecated Use `nextAddress` or `nextInteger` instead.
@@ -247,17 +251,16 @@ export class VM {
   getStackData(): number[] {
     const stackData: number[] = [];
     for (let i = STACK; i < this.SP; i += 4) {
-      stackData.push(this.memory.readFloat(i)); 
+      stackData.push(this.memory.readFloat(i));
     }
     return stackData;
   }
 
   getCompileData(): number[] {
     const compileData: number[] = [];
-    for (let i = CODE; i < 32; i ++) {
-      compileData.push(this.memory.read8(i)); 
+    for (let i = CODE; i < 32; i++) {
+      compileData.push(this.memory.read8(i));
     }
     return compileData;
   }
-
 }

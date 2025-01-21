@@ -102,7 +102,7 @@ describe("Built-in Words", () => {
     xit("should handle a forward branch", () => {
       // Compile: branch +2 (skip the next instruction)
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compileInteger(2); // Relative offset
+      vm.compiler.compile16(2); // Relative offset
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(42); // This should be skipped
       vm.compiler.compile8(Op.LiteralNumber);
@@ -118,7 +118,7 @@ describe("Built-in Words", () => {
       vm.compiler.compileFloat(42);
       vm.compiler.compile8(Op.Abort);
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compileFloat(-5); // Relative offset
+      vm.compiler.compile16(-5); // Relative offset
       execute(CODE + 7);
       expect(vm.getStackData()).toEqual([CODE + 5, 42]); // Infinite loop, but we exit after two iterations
     });

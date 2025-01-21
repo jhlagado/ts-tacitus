@@ -29,10 +29,20 @@ export class Compiler {
    * Compiles a 16-bit value to the CODE area.
    */
   compile16(value: number): void {
-    this.vm.memory.write16(this.CP, value);
+    // Ensure the value is within the signed 16-bit range
+    if (value < -32768 || value > 32767) {
+      throw new Error(
+        "Value must be a 16-bit signed integer (-32768 to 32767)"
+      );
+    }
+
+    // Convert the signed value to its 16-bit two's complement representation
+    const unsignedValue = value & 0xffff; // Mask to 16 bits
+
+    // Write the 16-bit value to memory
+    this.vm.memory.write16(this.CP, unsignedValue);
     this.CP += 2; // Move to the next 16-bit aligned address
   }
-
   //   /**
   //    * Compiles a 32-bit value to the CODE area.
   //    */

@@ -69,19 +69,19 @@ describe("VM", () => {
   // Test 3: Instruction pointer operations
   describe("Instruction pointer operations", () => {
     it("should read values from memory using the instruction pointer", () => {
-      vm.compiler.compileInteger(5);
-      vm.compiler.compileInteger(10);
-      vm.compiler.compileInteger(15);
+      vm.compiler.compile16(5);
+      vm.compiler.compile16(10);
+      vm.compiler.compile16(15);
 
-      expect(vm.nextInteger()).toBe(5);
-      expect(vm.nextInteger()).toBe(10);
-      expect(vm.nextInteger()).toBe(15);
+      expect(vm.next16()).toBe(5);
+      expect(vm.next16()).toBe(10);
+      expect(vm.next16()).toBe(15);
     });
 
     it("should increment the instruction pointer after reading", () => {
-      vm.compiler.compileInteger(42);
-      vm.nextInteger();
-      expect(vm.IP).toBe(CODE + 4);
+      vm.compiler.compile16(42);
+      vm.next16();
+      expect(vm.IP).toBe(CODE + 2);
     });
   });
 

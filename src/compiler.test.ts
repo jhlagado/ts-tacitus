@@ -9,21 +9,15 @@ describe("Compiler", () => {
   });
 
   it("should compile a positive integer as a tagged pointer", () => {
-    vm.compiler.compileInteger(42); // Use compileInteger
+    vm.compiler.compile16(42); 
     vm.reset();
-    const nPtr = vm.nextFloat();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    expect(tag).toBe(TAGS.INTEGER);
-    expect(pointer).toBe(42);
+    expect(vm.next16()).toBe(42);
   });
 
   it("should compile a negative integer as a tagged pointer", () => {
-    vm.compiler.compileInteger(-42); // Use compileInteger
+    vm.compiler.compile16(-42); 
     vm.reset();
-    const nPtr = vm.nextFloat();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    expect(tag).toBe(TAGS.INTEGER);
-    expect(pointer).toBe(-42);
+    expect(vm.next16()).toBe(-42);
   });
 
   it("should compile an address as a tagged pointer", () => {
