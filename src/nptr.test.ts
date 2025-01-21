@@ -4,7 +4,7 @@ describe("NPtr Library", () => {
   // Test all tag types
   for (const [type, tag] of Object.entries(TAGS)) {
     it(`should encode and decode a ${type} tag and pointer`, () => {
-      const pointer = 0x12345; // 20-bit pointer
+      const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
       const nPtr = encodeNPtr(tag, pointer);
 
       // Check if the value is a NaN
@@ -27,8 +27,10 @@ describe("NPtr Library", () => {
   });
 
   it("should throw an error for invalid pointers", () => {
-    expect(() => encodeNPtr(TAGS.STRING, -1)).toThrow("Pointer must be a 20-bit value");
-    expect(() => encodeNPtr(TAGS.STRING, 0x100000)).toThrow("Pointer must be a 20-bit value");
+    expect(() => encodeNPtr(TAGS.ADDRESS, -1)).toThrow("Pointer must be a 20-bit value");
+    expect(() => encodeNPtr(TAGS.ADDRESS, 0x100000)).toThrow("Pointer must be a 20-bit value");
+    expect(() => encodeNPtr(TAGS.INTEGER, -524289)).toThrow("Pointer must be a 20-bit signed integer");
+    expect(() => encodeNPtr(TAGS.INTEGER, 524288)).toThrow("Pointer must be a 20-bit signed integer");
   });
 
   it("should throw an error when decoding a non-NaN value", () => {
@@ -37,7 +39,7 @@ describe("NPtr Library", () => {
 
   it("should check if a value is an NPtr value", () => {
     const pointer = 0x9ABCD; // 20-bit pointer
-    const nPtr = encodeNPtr(TAGS.POINTER, pointer);
+    const nPtr = encodeNPtr(TAGS.ADDRESS, pointer);
 
     expect(isNPtr(nPtr)).toBe(true);
     expect(isNPtr(3.14)).toBe(false);

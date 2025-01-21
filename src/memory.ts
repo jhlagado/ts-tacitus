@@ -1,3 +1,5 @@
+import { decodeNPtr, encodeNPtr, TAGS } from "./nptr";
+
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 
 // Define sections
@@ -37,35 +39,35 @@ export class Memory {
     return this.buffer[address];
   }
 
-  // 16-bit read/write
-  write16(address: number, value: number): void {
-    if (address < 0 || address + 1 >= this.size) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
+    // 16-bit read/write
+    write16(address: number, value: number): void {
+      if (address < 0 || address + 1 >= this.size) {
+        throw new RangeError(`Address ${address} is outside memory bounds`);
+      }
+      this.dataView.setUint16(address, value & 0xffff, true); // Little-endian
     }
-    this.dataView.setUint16(address, value & 0xffff, true); // Little-endian
-  }
 
-  read16(address: number): number {
-    if (address < 0 || address + 1 >= this.size) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
+    read16(address: number): number {
+      if (address < 0 || address + 1 >= this.size) {
+        throw new RangeError(`Address ${address} is outside memory bounds`);
+      }
+      return this.dataView.getUint16(address, true); // Little-endian
     }
-    return this.dataView.getUint16(address, true); // Little-endian
-  }
 
-  // 32-bit read/write
-  write32(address: number, value: number): void {
-    if (address < 0 || address + 3 >= this.size) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-    this.dataView.setUint32(address, value >>> 0, true); // Little-endian
-  }
+  //   // 32-bit read/write
+  //   write32(address: number, value: number): void {
+  //     if (address < 0 || address + 3 >= this.size) {
+  //       throw new RangeError(`Address ${address} is outside memory bounds`);
+  //     }
+  //     this.dataView.setUint32(address, value >>> 0, true); // Little-endian
+  //   }
 
-  read32(address: number): number {
-    if (address < 0 || address + 3 >= this.size) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-    return this.dataView.getUint32(address, true); // Little-endian
-  }
+  //   read32(address: number): number {
+  //     if (address < 0 || address + 3 >= this.size) {
+  //       throw new RangeError(`Address ${address} is outside memory bounds`);
+  //     }
+  //     return this.dataView.getUint32(address, true); // Little-endian
+  //   }
 
   // Float32 read/write (unaligned)
   writeFloat(address: number, value: number): void {
@@ -93,6 +95,32 @@ export class Memory {
     }
 
     return view.getFloat32(0, true); // Little-endian
+  }
+
+  writeAddress(address: number, value: number): void {
+    this.writeFloat(address, encodeNPtr(TAGS.ADDRESS, value));
+  }
+
+  readAddress(address: number): number {
+    const nPtr = this.readFloat(address); // Read the tagged pointer as a float
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.ADDRESS) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
+  }
+
+  writeInteger(address: number, value: number): void {
+    this.writeFloat(address, encodeNPtr(TAGS.INTEGER, value));
+  }
+
+  readInteger(address: number): number {
+    const nPtr = this.readFloat(address); // Read the tagged pointer as a float
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.INTEGER) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
   }
 
   // Utility to dump memory for debugging

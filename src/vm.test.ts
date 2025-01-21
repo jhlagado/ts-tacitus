@@ -12,18 +12,18 @@ describe("VM", () => {
 
   // Test 1: Stack operations
   describe("Stack operations", () => {
-    it("should push and pop 32-bit values from the stack", () => {
-      vm.push(0x12345678);
-      vm.push(0x9abcdef0);
-      expect(vm.pop()).toBe(0x9abcdef0);
-      expect(vm.pop()).toBe(0x12345678);
+    it("should push and pop 20-bit values from the stack", () => {
+      vm.pushInteger(0x12345);
+      vm.pushInteger(0x5abcd);
+      expect(vm.popInteger()).toBe(0x5abcd);
+      expect(vm.popInteger()).toBe(0x12345);
     });
 
     it("should push and pop 32-bit floats from the stack", () => {
-      vm.pushFloat(3.14);
-      vm.pushFloat(-123.456);
-      expect(vm.popFloat()).toBeCloseTo(-123.456);
-      expect(vm.popFloat()).toBeCloseTo(3.14);
+      vm.push(3.14);
+      vm.push(-123.456);
+      expect(vm.pop()).toBeCloseTo(-123.456);
+      expect(vm.pop()).toBeCloseTo(3.14);
     });
 
     it("should throw an error on stack overflow", () => {
@@ -47,7 +47,7 @@ describe("VM", () => {
 
   // Test 2: Return stack operations
   describe("Return stack operations", () => {
-    it("should push and pop 32-bit values from the return stack", () => {
+    it("should push and pop 20-bit values from the return stack", () => {
       vm.rpush(100);
       vm.rpush(200);
       expect(vm.rpop()).toBe(200);
@@ -69,18 +69,18 @@ describe("VM", () => {
   // Test 3: Instruction pointer operations
   describe("Instruction pointer operations", () => {
     it("should read values from memory using the instruction pointer", () => {
-      vm.compiler.compile32(5);
-      vm.compiler.compile32(10);
-      vm.compiler.compile32(15);
+      vm.compiler.compileInteger(5);
+      vm.compiler.compileInteger(10);
+      vm.compiler.compileInteger(15);
 
-      expect(vm.next32()).toBe(5);
-      expect(vm.next32()).toBe(10);
-      expect(vm.next32()).toBe(15);
+      expect(vm.nextInteger()).toBe(5);
+      expect(vm.nextInteger()).toBe(10);
+      expect(vm.nextInteger()).toBe(15);
     });
 
     it("should increment the instruction pointer after reading", () => {
-      vm.compiler.compile32(42);
-      vm.next32();
+      vm.compiler.compileInteger(42);
+      vm.nextInteger();
       expect(vm.IP).toBe(CODE + 4);
     });
   });

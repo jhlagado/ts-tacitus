@@ -2,6 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
+import { TAGS, decodeNPtr, encodeNPtr } from "./nptr";
 
 export class VM {
   memory: Memory;
@@ -26,40 +27,40 @@ export class VM {
     this.debug = false;
   }
 
-  /**
-   * Pushes a 32-bit value onto the stack.
-   */
-  push(value: number): void {
-    if (this.SP + 4 > STACK + STACK_SIZE) {
-      throw new Error(
-        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
-          this.getStackData()
-        )})`
-      );
-    }
-    this.memory.write32(this.SP, value); // Write 32-bit value
-    this.SP += 4; // Move stack pointer by 4 bytes
-  }
+  // /**
+  //  * Pushes a 32-bit value onto the stack.
+  //  */
+  // push(value: number): void {
+  //   if (this.SP + 4 > STACK + STACK_SIZE) {
+  //     throw new Error(
+  //       `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
+  //         this.getStackData()
+  //       )})`
+  //     );
+  //   }
+  //   this.memory.write32(this.SP, value); // Write 32-bit value
+  //   this.SP += 4; // Move stack pointer by 4 bytes
+  // }
 
-  /**
-   * Pops a 32-bit value from the stack.
-   */
-  pop(): number {
-    if (this.SP <= STACK) {
-      throw new Error(
-        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
-          this.getStackData()
-        )})`
-      );
-    }
-    this.SP -= 4; // Move stack pointer back by 4 bytes
-    return this.memory.read32(this.SP); // Read 32-bit value
-  }
+  // /**
+  //  * Pops a 32-bit value from the stack.
+  //  */
+  // pop(): number {
+  //   if (this.SP <= STACK) {
+  //     throw new Error(
+  //       `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
+  //         this.getStackData()
+  //       )})`
+  //     );
+  //   }
+  //   this.SP -= 4; // Move stack pointer back by 4 bytes
+  //   return this.memory.read32(this.SP); // Read 32-bit value
+  // }
 
   /**
    * Pushes a 32-bit float onto the stack.
    */
-  pushFloat(value: number): void {
+  push(value: number): void {
     if (this.SP + 4 > STACK + STACK_SIZE) {
       throw new Error(
         `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
@@ -74,7 +75,7 @@ export class VM {
   /**
    * Pops a 32-bit float from the stack.
    */
-  popFloat(): number {
+  pop(): number {
     if (this.SP <= STACK) {
       throw new Error(
         `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
@@ -84,6 +85,32 @@ export class VM {
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
     return this.memory.readFloat(this.SP); // Read 32-bit float
+  }
+
+  pushAddress(value: number): void {
+    this.push(encodeNPtr(TAGS.ADDRESS, value));
+  }
+
+  popAddress(): number {
+    const nPtr = this.pop();
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.ADDRESS) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
+  }
+
+  pushInteger(value: number): void {
+    this.push(encodeNPtr(TAGS.INTEGER, value));
+  }
+
+  popInteger(): number {
+    const nPtr = this.pop();
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.INTEGER) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
   }
 
   /**
@@ -97,7 +124,7 @@ export class VM {
         )})`
       );
     }
-    this.memory.write32(this.RP, value); // Write 32-bit value
+    this.memory.writeFloat(this.RP, value); // Write 32-bit value
     this.RP += 4; // Move return stack pointer by 4 bytes
   }
 
@@ -113,7 +140,33 @@ export class VM {
       );
     }
     this.RP -= 4; // Move return stack pointer back by 4 bytes
-    return this.memory.read32(this.RP); // Read 32-bit value
+    return this.memory.readFloat(this.RP); // Read 32-bit value
+  }
+
+  rpushAddress(value: number): void {
+    this.rpush(encodeNPtr(TAGS.ADDRESS, value));
+  }
+
+  rpopAddress(): number {
+    const nPtr = this.rpop();
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.ADDRESS) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
+  }
+
+  rpushInteger(value: number): void {
+    this.rpush(encodeNPtr(TAGS.INTEGER, value));
+  }
+
+  rpopInteger(): number {
+    const nPtr = this.rpop();
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.INTEGER) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
   }
 
   reset() {
@@ -131,21 +184,29 @@ export class VM {
 
   /**
    * Reads the next 16-bit value from memory and increments the instruction pointer.
+   * @deprecated Use `nextAddress` or `nextInteger` instead.
    */
   next16(): number {
+    console.warn(
+      "next16 is deprecated. Use nextAddress or nextInteger instead."
+    );
     const value = this.memory.read16(this.IP); // Read 16-bit value
     this.IP += 2; // Move instruction pointer by 2 bytes
     return value;
   }
 
-  /**
-   * Reads the next 32-bit value from memory and increments the instruction pointer.
-   */
-  next32(): number {
-    const value = this.memory.read32(this.IP); // Read 32-bit value
-    this.IP += 4; // Move instruction pointer by 4 bytes
-    return value;
-  }
+  // /**
+  //  * Reads the next 32-bit value from memory and increments the instruction pointer.
+  //  * @deprecated Use `nextAddress` or `nextInteger` instead.
+  //  */
+  // next32(): number {
+  //   console.warn(
+  //     "next32 is deprecated. Use nextAddress or nextInteger instead."
+  //   );
+  //   const value = this.memory.read32(this.IP); // Read 32-bit value
+  //   this.IP += 4; // Move instruction pointer by 4 bytes
+  //   return value;
+  // }
 
   /**
    * Reads the next 32-bit float from memory and increments the instruction pointer.
@@ -157,13 +218,46 @@ export class VM {
   }
 
   /**
+   * Reads the next address (tagged as ADDRESS) from memory and increments the instruction pointer.
+   */
+  nextAddress(): number {
+    const nPtr = this.nextFloat(); // Read the tagged pointer as a float
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.ADDRESS) {
+      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
+    }
+    return pointer;
+  }
+
+  /**
+   * Reads the next integer (tagged as INTEGER) from memory and increments the instruction pointer.
+   */
+  nextInteger(): number {
+    const nPtr = this.nextFloat(); // Read the tagged pointer as a float
+    const { tag, pointer } = decodeNPtr(nPtr);
+    if (tag !== TAGS.INTEGER) {
+      throw new Error(`Expected an INTEGER, got tag ${tag}`);
+    }
+    return pointer;
+  }
+
+  /**
    * Returns the current stack data as an array of 32-bit values.
    */
   getStackData(): number[] {
     const stackData: number[] = [];
     for (let i = STACK; i < this.SP; i += 4) {
-      stackData.push(this.memory.read32(i)); // Read 32-bit values
+      stackData.push(this.memory.readFloat(i)); 
     }
     return stackData;
   }
+
+  getCompileData(): number[] {
+    const compileData: number[] = [];
+    for (let i = CODE; i < 32; i ++) {
+      compileData.push(this.memory.read8(i)); 
+    }
+    return compileData;
+  }
+
 }

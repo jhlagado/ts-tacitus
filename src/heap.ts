@@ -20,13 +20,12 @@ export class Heap {
   private initializeFreeList(): void {
     let current = HEAP;
     while (current + BLOCK_SIZE < HEAP + HEAP_SIZE) {
-      // Write the next block address (16-bit) at the start of the current block
       this.memory.write16(current + BLOCK_NEXT, current + BLOCK_SIZE);
       current += BLOCK_SIZE;
     }
     // Mark the end of the free list
     this.memory.write16(current + BLOCK_NEXT, NIL); // Use NIL (0) to mark the end
-  }
+}
 
   /**
    * Allocates memory from the heap.

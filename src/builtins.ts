@@ -1,6 +1,7 @@
 import { VM } from "./vm";
 import { Verb } from "./types";
 import { STACK } from "./memory";
+import { decodeNPtr, TAGS } from "./nptr";
 
 export enum Op {
   LiteralNumber,
@@ -18,7 +19,7 @@ export enum Op {
 }
 
 export const literalNumberOp: Verb = (vm: VM) => {
-  const num = vm.next32(); // Read the 32-bit number
+  const num = vm.nextFloat(); // Read the 32-bit number
   vm.push(num); // Push the number onto the stack
 };
 
@@ -28,9 +29,15 @@ export const literalNumberOp: Verb = (vm: VM) => {
  * Puts return address on the data stack
  */
 export const branchCallOp: Verb = (vm: VM) => {
-  const offset = vm.next16(); // Read the 16-bit offset
-  vm.push(vm.IP); // Push the current IP (return address) onto the stack
-  vm.IP += offset; // Adjust the IP by the relative offset
+  const nPtr = vm.pop(); // Pop the tagged offset (Float32)
+  const { tag, pointer: offset } = decodeNPtr(nPtr);
+
+  if (tag !== TAGS.INTEGER) {
+    throw new Error(`Expected an INTEGER offset, got tag ${tag}`);
+  }
+
+  // Adjust the instruction pointer by the signed offset
+  vm.IP += offset;
 };
 
 export const abortOp: Verb = (vm: VM) => {
@@ -42,7 +49,7 @@ export const exitOp: Verb = (vm: VM) => {
 
 export const evalOp: Verb = (vm: VM) => {
   vm.rpush(vm.IP);
-  vm.IP = vm.pop();
+  vm.IP = vm.popAddress();
 };
 
 export const plusOp: Verb = (vm: VM) => {

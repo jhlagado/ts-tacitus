@@ -60,36 +60,36 @@ describe("Parser", () => {
   });
 
   it("should handle compilation blocks", () => {
-    const tokens = lex("{ 5 } { 3 } + ");
+    const tokens = lex("{ 50 } { 30 } + ");
     parse(tokens);
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
-    expect(vm.next16()).toBe(7);
+    expect(vm.nextInteger()).toBe(9);
     expect(vm.next8()).toBe(Op.LiteralNumber);
-    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.nextFloat()).toBeCloseTo(50);
     expect(vm.next8()).toBe(Op.Exit);
     expect(vm.next8()).toBe(Op.BranchCall);
-    expect(vm.next16()).toBe(7);
+    expect(vm.nextInteger()).toBe(9);
     expect(vm.next8()).toBe(Op.LiteralNumber);
-    expect(vm.nextFloat()).toBeCloseTo(3);
+    expect(vm.nextFloat()).toBeCloseTo(30);
     expect(vm.next8()).toBe(Op.Exit);
     expect(vm.next8()).toBe(Op.Plus);
     expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should handle nested compilation blocks", () => {
-    const tokens = lex("{ { 5 } { 3 } + }");
+    const tokens = lex("{ { 6 } { 3 } + }");
     parse(tokens);
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
-    expect(vm.next16()).toBe(21);
+    expect(vm.nextInteger()).toBe(27);
     expect(vm.next8()).toBe(Op.BranchCall);
-    expect(vm.next16()).toBe(7);
+    expect(vm.nextInteger()).toBe(9);
     expect(vm.next8()).toBe(Op.LiteralNumber);
-    expect(vm.nextFloat()).toBeCloseTo(5);
+    expect(vm.nextFloat()).toBeCloseTo(6);
     expect(vm.next8()).toBe(Op.Exit);
     expect(vm.next8()).toBe(Op.BranchCall);
-    expect(vm.next16()).toBe(7);
+    expect(vm.nextInteger()).toBe(9);
     expect(vm.next8()).toBe(Op.LiteralNumber);
     expect(vm.nextFloat()).toBeCloseTo(3);
     expect(vm.next8()).toBe(Op.Exit);

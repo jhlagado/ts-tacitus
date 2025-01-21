@@ -1,6 +1,6 @@
 import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
-import { Memory, HEAP, HEAP_SIZE } from "./memory"; // Import memory-related constants from memory.ts
-import { NIL } from "./constants"; // Import NIL from constants.ts
+import { Memory, HEAP, HEAP_SIZE } from "./memory"; 
+import { NIL } from "./constants"; 
 
 describe("Heap", () => {
   let memory: Memory;

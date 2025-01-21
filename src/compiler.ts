@@ -1,5 +1,6 @@
 import { CODE } from "./memory";
 import { VM } from "./vm";
+import { TAGS, encodeNPtr } from "./nptr";
 
 export class Compiler {
   compileMode: boolean;
@@ -32,16 +33,16 @@ export class Compiler {
     this.CP += 2; // Move to the next 16-bit aligned address
   }
 
-  /**
-   * Compiles a 32-bit value to the CODE area.
-   */
-  compile32(value: number): void {
-    this.vm.memory.write32(this.CP, value);
-    this.CP += 4; // Move to the next 32-bit aligned address
-  }
+  //   /**
+  //    * Compiles a 32-bit value to the CODE area.
+  //    */
+  //   compile32(value: number): void {
+  //     this.vm.memory.write32(this.CP, value);
+  //     this.CP += 4; // Move to the next 32-bit aligned address
+  //   }
 
   /**
-   * Compiles a 32-bit value to the CODE area.
+   * Compiles a 32-bit float to the CODE area.
    */
   compileFloat(value: number): void {
     this.vm.memory.writeFloat(this.CP, value);
@@ -49,15 +50,20 @@ export class Compiler {
   }
 
   /**
-   * Returns the compiled data from the CODE area.
+   * Compiles an integer value as a tagged pointer (nptr) and writes it as a float.
    */
-//   getData(): number[] {
-//     const data: number[] = [];
-//     for (let i = this.BP; i < this.CP; i++) {
-//       data.push(this.vm.memory.read8(i)); // Read 8-bit values
-//     }
-//     return data;
-//   }
+  compileInteger(value: number): void {
+    const nPtr = encodeNPtr(TAGS.INTEGER, value); // Tag the integer
+    this.compileFloat(nPtr); // Write the tagged pointer as a Float32
+  }
+
+  /**
+   * Compiles an address value as a tagged pointer (nptr) and writes it as a float.
+   */
+  compileAddress(value: number): void {
+    const nPtr = encodeNPtr(TAGS.ADDRESS, value); // Tag the address
+    this.compileFloat(nPtr); // Write the tagged pointer as a Float32
+  }
 
   /**
    * Resets the compile pointer to the buffer pointer.

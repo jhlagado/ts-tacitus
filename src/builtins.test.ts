@@ -102,7 +102,7 @@ describe("Built-in Words", () => {
     xit("should handle a forward branch", () => {
       // Compile: branch +2 (skip the next instruction)
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(2); // Relative offset
+      vm.compiler.compileInteger(2); // Relative offset
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(42); // This should be skipped
       vm.compiler.compile8(Op.LiteralNumber);
