@@ -71,7 +71,7 @@ describe("Interpreter", () => {
 
   it("should execute code block", () => {
     // const tokens = lex("{3 2*}eval");
-    const tokens = lex("3 2*");
+    const tokens = lex("{3 2*}");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
