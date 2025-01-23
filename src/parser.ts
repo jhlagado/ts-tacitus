@@ -24,7 +24,7 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.compile8(Op.Exit);
       const branchAddress = vm.pop(); // Get the address of the branch instruction
       const endAddress = vm.compiler.CP;
-      const offset = endAddress - (branchAddress + 1); // Calculate the relative offset
+      const offset = endAddress - (branchAddress + 2); // Calculate the relative offset
       vm.compiler.CP = branchAddress; // Move to the offset location
       vm.compiler.compile16(offset); // Write the relative offset (signed integer)
       vm.compiler.CP = endAddress; // Restore the pointer
@@ -42,4 +42,5 @@ export function parse(tokens: (string | number)[]): void {
     }
   }
   vm.compiler.compile8(Op.Abort);
+  console.log("Compiled code:", vm.memory.dump(vm.compiler.BP, vm.compiler.CP));
 }

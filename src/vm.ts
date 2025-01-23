@@ -24,38 +24,9 @@ export class VM {
     this.compiler = new Compiler(this);
     this.dictionary = new Dictionary();
     this.heap = new Heap(this.memory);
-    this.debug = true;
+    this.debug = false;
+    // this.debug = true;
   }
-
-  // /**
-  //  * Pushes a 32-bit value onto the stack.
-  //  */
-  // push(value: number): void {
-  //   if (this.SP + 4 > STACK + STACK_SIZE) {
-  //     throw new Error(
-  //       `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
-  //         this.getStackData()
-  //       )})`
-  //     );
-  //   }
-  //   this.memory.write32(this.SP, value); // Write 32-bit value
-  //   this.SP += 4; // Move stack pointer by 4 bytes
-  // }
-
-  // /**
-  //  * Pops a 32-bit value from the stack.
-  //  */
-  // pop(): number {
-  //   if (this.SP <= STACK) {
-  //     throw new Error(
-  //       `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
-  //         this.getStackData()
-  //       )})`
-  //     );
-  //   }
-  //   this.SP -= 4; // Move stack pointer back by 4 bytes
-  //   return this.memory.read32(this.SP); // Read 32-bit value
-  // }
 
   /**
    * Pushes a 32-bit float onto the stack.
@@ -186,10 +157,6 @@ export class VM {
    * Reads the next 16-bit value from memory and increments the instruction pointer.
    */
   next16(): number {
-    console.warn(
-      "next16 is deprecated. Use nextAddress or nextInteger instead."
-    );
-
     // Read the 16-bit value from memory
     const unsignedValue = this.memory.read16(this.IP);
 
@@ -199,18 +166,6 @@ export class VM {
     this.IP += 2; // Move instruction pointer by 2 bytes
     return signedValue;
   }
-  // /**
-  //  * Reads the next 32-bit value from memory and increments the instruction pointer.
-  //  * @deprecated Use `nextAddress` or `nextInteger` instead.
-  //  */
-  // next32(): number {
-  //   console.warn(
-  //     "next32 is deprecated. Use nextAddress or nextInteger instead."
-  //   );
-  //   const value = this.memory.read32(this.IP); // Read 32-bit value
-  //   this.IP += 4; // Move instruction pointer by 4 bytes
-  //   return value;
-  // }
 
   /**
    * Reads the next 32-bit float from memory and increments the instruction pointer.
@@ -258,7 +213,7 @@ export class VM {
 
   getCompileData(): number[] {
     const compileData: number[] = [];
-    for (let i = CODE; i < 32; i++) {
+    for (let i = CODE; i < this.compiler.CP; i++) {
       compileData.push(this.memory.read8(i));
     }
     return compileData;

@@ -1,25 +1,25 @@
 import { VM } from "./vm";
 import { Verb } from "./types";
 import { STACK } from "./memory";
-import { decodeNPtr, TAGS } from "./nptr";
 
 export enum Op {
-  LiteralNumber,
-  BranchCall,
-  Abort,
-  Exit,
-  Eval,
-  Plus,
-  Minus,
-  Multiply,
-  Divide,
-  Dup,
-  Drop,
-  Swap,
+  LiteralNumber, //0
+  BranchCall, //1
+  Abort, //2
+  Exit, //3
+  Eval, //4
+  Plus, //5
+  Minus, //6
+  Multiply, //7
+  Divide, //8
+  Dup, //9
+  Drop, //10
+  Swap, //11
 }
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat(); // Read the 32-bit number
+  if (vm.debug) console.log("literalNumberOp", num);
   vm.push(num); // Push the number onto the stack
 };
 
@@ -29,14 +29,9 @@ export const literalNumberOp: Verb = (vm: VM) => {
  * Puts return address on the data stack
  */
 export const branchCallOp: Verb = (vm: VM) => {
-  const nPtr = vm.pop(); // Pop the tagged offset (Float32)
-  const { tag, pointer: offset } = decodeNPtr(nPtr);
-
-  if (tag !== TAGS.INTEGER) {
-    throw new Error(`Expected an INTEGER offset, got tag ${tag}`);
-  }
-
-  // Adjust the instruction pointer by the signed offset
+  const offset = vm.next16(); // Read the relative offset
+  if (vm.debug) console.log("branchCallOp", offset);
+  vm.push(vm.IP); // Push the current IP
   vm.IP += offset;
 };
 
@@ -49,7 +44,7 @@ export const exitOp: Verb = (vm: VM) => {
 
 export const evalOp: Verb = (vm: VM) => {
   vm.rpush(vm.IP);
-  vm.IP = vm.popAddress();
+  vm.IP = vm.pop();
 };
 
 export const plusOp: Verb = (vm: VM) => {

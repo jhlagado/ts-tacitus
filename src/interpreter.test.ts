@@ -71,14 +71,14 @@ describe("Interpreter", () => {
 
   it("should execute code block", () => {
     // const tokens = lex("{3 2*}eval");
-    const tokens = lex("{3 2*}");
+    const tokens = lex("{30 20*} eval");
     parse(tokens);
     execute(vm.compiler.BP);
     const received = vm.getStackData();
-    expect(received).toEqual([6]);
+    expect(received).toEqual([600]);
   });
 
-  xit("should execute more complex code block", () => {
+  it("should execute more complex code block", () => {
     const tokens = lex("4{3 2*}eval+");
     parse(tokens);
     execute(vm.compiler.BP);
@@ -86,7 +86,7 @@ describe("Interpreter", () => {
     expect(received).toEqual([10]);
   });
 
-  xit("should execute more complex nested code block", () => {
+  it("should execute more complex nested code block", () => {
     const tokens = lex("{{4 2+}eval{3 2+}eval*}eval 2+");
     parse(tokens);
     execute(vm.compiler.BP);

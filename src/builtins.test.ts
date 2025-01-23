@@ -99,40 +99,39 @@ describe("Built-in Words", () => {
   });
 
   describe("Branch with Relative Jumps", () => {
-    xit("should handle a forward branch", () => {
+    it("should handle a forward branch", () => {
       // Compile: branch +2 (skip the next instruction)
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(2); // Relative offset
+      vm.compiler.compile16(5); // Relative offset
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(42); // This should be skipped
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(100); // This should be executed
       vm.compiler.compile8(Op.Abort);
       execute(CODE);
-      expect(vm.getStackData()).toEqual([CODE + 2, 100]);
+      expect(vm.getStackData()).toEqual([CODE + 3, 100]);
     });
 
-    xit("should handle a backward branch", () => {
+    it("should handle a backward branch", () => {
       // Compile: branch -3 (jump back to the start)
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(42);
       vm.compiler.compile8(Op.Abort);
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(-5); // Relative offset
-      execute(CODE + 7);
-      expect(vm.getStackData()).toEqual([CODE + 5, 42]); // Infinite loop, but we exit after two iterations
+      vm.compiler.compile16(-9); // Relative offset
+      execute(CODE + 6);
+      expect(vm.getStackData()).toEqual([CODE + 9, 42]); // Infinite loop, but we exit after two iterations
     });
 
-    xit("should handle a branch offset of 0", () => {
+    it("should handle a branch offset of 0", () => {
       // Compile: branch 0 (no jump)
       vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compileFloat(0); // Relative offset
+      vm.compiler.compile16(0); // Relative offset
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(42);
       vm.compiler.compile8(Op.Abort);
-
       execute(CODE);
-      expect(vm.getStackData()).toEqual([CODE + 2, 42]);
+      expect(vm.getStackData()).toEqual([CODE + 3, 42]);
     });
 
     // Test for dupOp with an empty stack

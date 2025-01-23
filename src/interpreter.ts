@@ -5,6 +5,7 @@ export function execute(start: number): void {
   vm.IP = start;
   while (vm.running) {
     const opcode = vm.next8(); // Read the 8-bit opcode
+    console.log({ opcode }, vm.IP-1);
     if (vm.compiler.compileMode) {
       vm.compiler.compile8(opcode);
     } else {
