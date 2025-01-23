@@ -32,7 +32,6 @@ describe("Interpreter", () => {
       executeProgram("15 3 /");
       expectStack([5]);
     });
-
   });
 
   // Stack manipulation
@@ -65,12 +64,6 @@ describe("Interpreter", () => {
       expect(vm.running).toBe(false);
     });
 
-    xit("should handle exit operation", () => {
-      const originalIP = vm.IP;
-      executeProgram("exit");
-      expect(vm.IP).toBe(originalIP); // Should stop execution immediately
-    });
-
     it("should handle empty program", () => {
       executeProgram("");
       expectStack([]);
@@ -94,8 +87,8 @@ describe("Interpreter", () => {
       expectStack([10]);
     });
 
-    xit("should handle multiple nested evals", () => {
-      executeProgram("1 2 swap {3 4 swap eval} eval");
+    it("should handle multiple nested evals", () => {
+      executeProgram("{1 {3 4 swap} eval 2} eval");
       expectStack([1, 4, 3, 2]);
     });
   });
@@ -120,7 +113,7 @@ describe("Interpreter", () => {
     it("should preserve stack state on error", () => {
       try {
         executeProgram("5 3 0 / +");
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         expect(vm.getStackData()).toEqual([5, 3, 0]);
       }
