@@ -3,6 +3,7 @@ import { initializeInterpreter, vm } from "./globalState";
 import { verbs, Op } from "./builtins"; // Import Op enum
 import { CODE } from "./memory";
 import { execute } from "./interpreter";
+import { toTaggedPtr, TAG } from "./tagged-ptr";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -109,7 +110,10 @@ describe("Built-in Words", () => {
       vm.compiler.compileFloat(100); // This should be executed
       vm.compiler.compile8(Op.Abort);
       execute(CODE);
-      expect(vm.getStackData()).toEqual([CODE + 3, 100]);
+      expect(vm.getStackData()).toEqual([
+        toTaggedPtr(TAG.ADDRESS, CODE + 3),
+        100,
+      ]);
     });
 
     it("should handle a backward branch", () => {
@@ -120,7 +124,10 @@ describe("Built-in Words", () => {
       vm.compiler.compile8(Op.BranchCall);
       vm.compiler.compile16(-9); // Relative offset
       execute(CODE + 6);
-      expect(vm.getStackData()).toEqual([CODE + 9, 42]); // Infinite loop, but we exit after two iterations
+      expect(vm.getStackData()).toEqual([
+        toTaggedPtr(TAG.ADDRESS, CODE + 9),
+        42,
+      ]); // Infinite loop, but we exit after two iterations
     });
 
     it("should handle a branch offset of 0", () => {
@@ -131,7 +138,10 @@ describe("Built-in Words", () => {
       vm.compiler.compileFloat(42);
       vm.compiler.compile8(Op.Abort);
       execute(CODE);
-      expect(vm.getStackData()).toEqual([CODE + 3, 42]);
+      expect(vm.getStackData()).toEqual([
+        toTaggedPtr(TAG.ADDRESS, CODE + 3),
+        42,
+      ]);
     });
 
     // Test for dupOp with an empty stack

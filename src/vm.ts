@@ -2,7 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { TAGS, decodeNPtr, encodeNPtr } from "./nptr";
+import { TAG, fromTaggedPtr, toTaggedPtr } from "./tagged-ptr";
 
 export class VM {
   memory: Memory;
@@ -59,26 +59,26 @@ export class VM {
   }
 
   pushAddress(value: number): void {
-    this.push(encodeNPtr(TAGS.ADDRESS, value));
+    this.push(toTaggedPtr(TAG.ADDRESS, value));
   }
 
   popAddress(): number {
     const nPtr = this.pop();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.ADDRESS) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.ADDRESS) {
       throw new Error(`Expected an ADDRESS, got tag ${tag}`);
     }
     return pointer;
   }
 
   pushInteger(value: number): void {
-    this.push(encodeNPtr(TAGS.INTEGER, value));
+    this.push(toTaggedPtr(TAG.INTEGER, value));
   }
 
   popInteger(): number {
     const nPtr = this.pop();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.INTEGER) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.INTEGER) {
       throw new Error(`Expected an ADDRESS, got tag ${tag}`);
     }
     return pointer;
@@ -115,26 +115,26 @@ export class VM {
   }
 
   rpushAddress(value: number): void {
-    this.rpush(encodeNPtr(TAGS.ADDRESS, value));
+    this.rpush(toTaggedPtr(TAG.ADDRESS, value));
   }
 
   rpopAddress(): number {
     const nPtr = this.rpop();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.ADDRESS) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.ADDRESS) {
       throw new Error(`Expected an ADDRESS, got tag ${tag}`);
     }
     return pointer;
   }
 
   rpushInteger(value: number): void {
-    this.rpush(encodeNPtr(TAGS.INTEGER, value));
+    this.rpush(toTaggedPtr(TAG.INTEGER, value));
   }
 
   rpopInteger(): number {
     const nPtr = this.rpop();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.INTEGER) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.INTEGER) {
       throw new Error(`Expected an ADDRESS, got tag ${tag}`);
     }
     return pointer;
@@ -181,8 +181,8 @@ export class VM {
    */
   nextAddress(): number {
     const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.ADDRESS) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.ADDRESS) {
       throw new Error(`Expected an ADDRESS, got tag ${tag}`);
     }
     return pointer;
@@ -193,8 +193,8 @@ export class VM {
    */
   nextInteger(): number {
     const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { tag, pointer } = decodeNPtr(nPtr);
-    if (tag !== TAGS.INTEGER) {
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    if (tag !== TAG.INTEGER) {
       throw new Error(`Expected an INTEGER, got tag ${tag}`);
     }
     return pointer;

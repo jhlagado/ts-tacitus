@@ -31,7 +31,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
 export const branchCallOp: Verb = (vm: VM) => {
   const offset = vm.next16(); // Read the relative offset
   if (vm.debug) console.log("branchCallOp", offset);
-  vm.push(vm.IP); // Push the current IP
+  vm.pushAddress(vm.IP); // Push the current IP
   vm.IP += offset;
 };
 
@@ -44,7 +44,7 @@ export const exitOp: Verb = (vm: VM) => {
 
 export const evalOp: Verb = (vm: VM) => {
   vm.rpush(vm.IP);
-  vm.IP = vm.pop();
+  vm.IP = vm.popAddress();
 };
 
 export const plusOp: Verb = (vm: VM) => {

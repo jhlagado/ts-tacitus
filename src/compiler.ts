@@ -1,6 +1,6 @@
 import { CODE } from "./memory";
 import { VM } from "./vm";
-import { TAGS, encodeNPtr } from "./nptr";
+import { TAG, toTaggedPtr } from "./tagged-ptr";
 
 export class Compiler {
   nestingScore: number;
@@ -61,7 +61,7 @@ export class Compiler {
    * Compiles an integer value as a tagged pointer (nptr) and writes it as a float.
    */
   compileInteger(value: number): void {
-    const nPtr = encodeNPtr(TAGS.INTEGER, value); // Tag the integer
+    const nPtr = toTaggedPtr(TAG.INTEGER, value); // Tag the integer
     this.compileFloat(nPtr); // Write the tagged pointer as a Float32
   }
 
@@ -69,7 +69,7 @@ export class Compiler {
    * Compiles an address value as a tagged pointer (nptr) and writes it as a float.
    */
   compileAddress(value: number): void {
-    const nPtr = encodeNPtr(TAGS.ADDRESS, value); // Tag the address
+    const nPtr = toTaggedPtr(TAG.ADDRESS, value); // Tag the address
     this.compileFloat(nPtr); // Write the tagged pointer as a Float32
   }
 

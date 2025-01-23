@@ -1,7 +1,7 @@
 // src/compiler.test.ts
 import { initializeInterpreter, vm } from "./globalState";
 import { Op } from "./builtins"; // Import Op enum
-import { decodeNPtr, TAGS } from "./nptr";
+import { fromTaggedPtr, TAG } from "./tagged-ptr";
 
 describe("Compiler", () => {
   beforeEach(() => {
@@ -9,13 +9,13 @@ describe("Compiler", () => {
   });
 
   it("should compile a positive integer as a tagged pointer", () => {
-    vm.compiler.compile16(42); 
+    vm.compiler.compile16(42);
     vm.reset();
     expect(vm.next16()).toBe(42);
   });
 
   it("should compile a negative integer as a tagged pointer", () => {
-    vm.compiler.compile16(-42); 
+    vm.compiler.compile16(-42);
     vm.reset();
     expect(vm.next16()).toBe(-42);
   });
@@ -24,8 +24,8 @@ describe("Compiler", () => {
     vm.compiler.compileAddress(0x12345); // Use compileAddress
     vm.reset();
     const nPtr = vm.nextFloat();
-    const { tag, pointer } = decodeNPtr(nPtr);
-    expect(tag).toBe(TAGS.ADDRESS);
+    const { tag, pointer } = fromTaggedPtr(nPtr);
+    expect(tag).toBe(TAG.ADDRESS);
     expect(pointer).toBe(0x12345);
   });
 
