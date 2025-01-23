@@ -5,28 +5,25 @@ export function execute(start: number): void {
   vm.IP = start;
   while (vm.running) {
     const opcode = vm.next8(); // Read the 8-bit opcode
-    console.log({ opcode }, vm.IP-1);
-    if (vm.compiler.compileMode) {
-      vm.compiler.compile8(opcode);
-    } else {
-      const verb = verbs[opcode];
-      if (verb === undefined) {
-        throw new Error(
-          `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
-            vm.getStackData()
-          )})`
-        );
-      }
-      try {
-        verb(vm);
-      } catch (error) {
-        const stackState = JSON.stringify(vm.getStackData());
-        const errorMessage =
-          `Error executing word (stack: ${stackState})` +
-          (error instanceof Error ? `: ${error.message}` : "");
-        if (vm.debug) console.log((error as Error).stack);
-        throw new Error(errorMessage);
-      }
+    console.log({ opcode }, vm.IP - 1);
+
+    const verb = verbs[opcode];
+    if (verb === undefined) {
+      throw new Error(
+        `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
+          vm.getStackData()
+        )})`
+      );
+    }
+    try {
+      verb(vm);
+    } catch (error) {
+      const stackState = JSON.stringify(vm.getStackData());
+      const errorMessage =
+        `Error executing word (stack: ${stackState})` +
+        (error instanceof Error ? `: ${error.message}` : "");
+      if (vm.debug) console.log((error as Error).stack);
+      throw new Error(errorMessage);
     }
   }
 

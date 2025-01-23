@@ -3,14 +3,12 @@ import { VM } from "./vm";
 import { TAGS, encodeNPtr } from "./nptr";
 
 export class Compiler {
-  compileMode: boolean;
   nestingScore: number;
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
   BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
   preserve: boolean;
 
   constructor(private vm: VM) {
-    this.compileMode = false;
     this.nestingScore = 0;
     this.CP = CODE; // Start compiling at CODE
     this.BP = CODE; // Buffer starts at CODE
