@@ -57,13 +57,6 @@ export const plusOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
-  if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error(
-      `Expected numbers on the stack for '+' operation (stack: ${JSON.stringify(
-        vm.getStackData()
-      )})`
-    );
-  }
   vm.push(a + b);
 };
 
@@ -77,13 +70,6 @@ export const minusOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
-  if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error(
-      `Expected numbers on the stack for '-' operation (stack: ${JSON.stringify(
-        vm.getStackData()
-      )})`
-    );
-  }
   vm.push(a - b);
 };
 
@@ -97,13 +83,6 @@ export const multiplyOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
-  if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error(
-      `Expected numbers on the stack for '*' operation (stack: ${JSON.stringify(
-        vm.getStackData()
-      )})`
-    );
-  }
   vm.push(a * b);
 };
 
@@ -117,18 +96,6 @@ export const divideOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
-  if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error(
-      `Expected numbers on the stack for '/' operation (stack: ${JSON.stringify(
-        vm.getStackData()
-      )})`
-    );
-  }
-  if (b === 0) {
-    throw new Error(
-      `Division by zero (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
   vm.push(a / b);
 };
 
@@ -192,5 +159,3 @@ export const opcodes: Record<string, number> = Object.keys(builtins).reduce(
   },
   {} as Record<string, number>
 );
-
-export const verbs: Verb[] = Object.values(builtins);

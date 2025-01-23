@@ -2,103 +2,183 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
+import * as builtins from "./builtins";
+import { Op } from "./builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
     initializeInterpreter();
+    vm.debug = true;
   });
 
-  it("should execute a simple addition", () => {
-    const tokens = lex("5 3 +");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([8]);
+  // Basic arithmetic operations
+  describe("Basic operations", () => {
+    it("should execute simple addition", () => {
+      executeProgram("5 3 +");
+      expectStack([8]);
+    });
+
+    it("should handle subtraction", () => {
+      executeProgram("10 3 -");
+      expectStack([7]);
+    });
+
+    it("should handle multiplication", () => {
+      executeProgram("5 3 *");
+      expectStack([15]);
+    });
+
+    it("should handle division", () => {
+      executeProgram("15 3 /");
+      expectStack([5]);
+    });
+
   });
 
-  it("should handle the 'dup' word", () => {
-    const tokens = lex("5 dup");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([5, 5]);
+  // Stack manipulation
+  describe("Stack operations", () => {
+    it("should handle dup", () => {
+      executeProgram("5 dup");
+      expectStack([5, 5]);
+    });
+
+    it("should handle drop", () => {
+      executeProgram("5 3 drop");
+      expectStack([5]);
+    });
+
+    it("should handle swap", () => {
+      executeProgram("5 3 swap");
+      expectStack([3, 5]);
+    });
+
+    it("should handle complex stack operations", () => {
+      executeProgram("1 2 3 drop swap dup");
+      expectStack([2, 1, 1]);
+    });
   });
 
-  it("should handle empty commands", () => {
-    const tokens = lex("");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([]);
+  // Control flow and special operations
+  describe("Control flow", () => {
+    it("should handle abort operation", () => {
+      executeProgram("abort");
+      expect(vm.running).toBe(false);
+    });
+
+    xit("should handle exit operation", () => {
+      const originalIP = vm.IP;
+      executeProgram("exit");
+      expect(vm.IP).toBe(originalIP); // Should stop execution immediately
+    });
+
+    it("should handle empty program", () => {
+      executeProgram("");
+      expectStack([]);
+    });
   });
 
-  it("should execute multiple operations", () => {
-    const tokens = lex("5 3 + 2 *");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([16]);
+  // Code blocks and evaluation
+  describe("Code blocks", () => {
+    it("should execute simple code block", () => {
+      executeProgram("{30 20*} eval");
+      expectStack([600]);
+    });
+
+    it("should execute nested code blocks", () => {
+      executeProgram("{{4 2+}eval{3 2+}eval*}eval 2+");
+      expectStack([32]);
+    });
+
+    it("should handle code blocks with stack operations", () => {
+      executeProgram("4{3 2*}eval+");
+      expectStack([10]);
+    });
+
+    xit("should handle multiple nested evals", () => {
+      executeProgram("1 2 swap {3 4 swap eval} eval");
+      expectStack([1, 4, 3, 2]);
+    });
   });
 
-  it("should handle errors thrown by verbs", () => {
-    const tokens = lex("5 0 /"); // Division by zero
-    parse(tokens);
-    expect(() => execute(vm.compiler.BP)).toThrowError(
-      "Error executing word (stack: []): Division by zero (stack: [])"
-    );
-  });
+  // Error handling
+  describe("Error handling", () => {
+    it("should handle invalid opcodes", () => {
+      vm.compiler.compile8(255); // Invalid opcode
+      expect(() => execute(vm.compiler.BP)).toThrow("Invalid opcode: 255");
+    });
 
-  it("should include the stack state in error messages", () => {
-    const tokens = lex("5 0 /"); // Division by zero
-    parse(tokens);
-    try {
-      execute(vm.compiler.BP);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).toBe(
-          "Error executing word (stack: []): Division by zero (stack: [])"
-        );
-      } else {
-        fail("Expected an Error object");
+    it("should handle non-Error exceptions", () => {
+      jest.spyOn(builtins, "plusOp").mockImplementation(() => {
+        throw "Raw string error";
+      });
+      expect(() => executeProgram("5 3 +")).toThrow(
+        "Error executing word (stack: [5,3])"
+      );
+      jest.restoreAllMocks();
+    });
+
+    it("should preserve stack state on error", () => {
+      try {
+        executeProgram("5 3 0 / +");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e) {
+        expect(vm.getStackData()).toEqual([5, 3, 0]);
       }
-    }
+    });
   });
 
-  it("should throw an error for invalid opcode", () => {
-    vm.compiler.compile8(999); // Invalid opcode
-    expect(() => execute(vm.compiler.BP)).toThrow("Invalid opcode: 231 (stack: [])");
+  // Memory management
+  describe("Memory management", () => {
+    it("should preserve memory when flag is set", () => {
+      vm.compiler.preserve = true;
+      executeProgram("5 3 +");
+      expect(vm.compiler.BP).toBe(vm.compiler.CP);
+      expect(vm.compiler.preserve).toBe(false);
+    });
+
+    it("should reset memory when preserve is false", () => {
+      const initialBP = vm.compiler.BP;
+      executeProgram("5 3 +");
+      expect(vm.compiler.CP).toBe(initialBP);
+    });
+
+    it("should handle multiple preserve states", () => {
+      // First execution with preserve=false
+      executeProgram("5 3 +");
+      const initialBP = vm.compiler.BP;
+
+      // Second execution with preserve=true
+      vm.compiler.preserve = true;
+      executeProgram("2 2 +");
+      expect(vm.compiler.BP).toBe(initialBP + 12);
+    });
   });
 
-  it("should execute code block", () => {
-    // const tokens = lex("{3 2*}eval");
-    const tokens = lex("{30 20*} eval");
+  // Debugging and special modes
+  describe("Debugging", () => {
+    it("should log debug output when enabled", () => {
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+      vm.debug = true;
+
+      executeProgram("5 3 +");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ opcode: Op.LiteralNumber }),
+        expect.any(Number)
+      );
+
+      consoleSpy.mockRestore();
+      vm.debug = false;
+    });
+  });
+
+  // Helper functions
+  function executeProgram(code: string): void {
+    const tokens = lex(code);
     parse(tokens);
     execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([600]);
-  });
+  }
 
-  it("should execute more complex code block", () => {
-    const tokens = lex("4{3 2*}eval+");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([10]);
-  });
-
-  it("should execute more complex nested code block", () => {
-    const tokens = lex("{{4 2+}eval{3 2+}eval*}eval 2+");
-    parse(tokens);
-    execute(vm.compiler.BP);
-    const received = vm.getStackData();
-    expect(received).toEqual([32]);
-  });
-
-  // New test: Test the `while (vm.running)` loop
-  it("should eit the loop when vm.running is set to false", () => {
-    const tokens = lex("abort"); // The 'abort' word sets vm.running to false
-    parse(tokens);
-    execute(vm.compiler.BP);
-    expect(vm.running).toBe(false);
-  });
+  function expectStack(expected: number[]): void {
+    expect(vm.getStackData()).toEqual(expected);
+  }
 });

@@ -1,22 +1,70 @@
-import { verbs } from "./builtins";
+import {
+  abortOp,
+  branchCallOp,
+  divideOp,
+  dropOp,
+  dupOp,
+  evalOp,
+  exitOp,
+  literalNumberOp,
+  minusOp,
+  multiplyOp,
+  Op,
+  plusOp,
+  swapOp,
+} from "./builtins";
 import { vm } from "./globalState";
 
 export function execute(start: number): void {
   vm.IP = start;
   while (vm.running) {
     const opcode = vm.next8(); // Read the 8-bit opcode
-    console.log({ opcode }, vm.IP - 1);
-
-    const verb = verbs[opcode];
-    if (verb === undefined) {
-      throw new Error(
-        `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
-          vm.getStackData()
-        )})`
-      );
-    }
+    if (vm.debug) console.log({ opcode }, vm.IP - 1);
     try {
-      verb(vm);
+      switch (opcode) {
+        case Op.LiteralNumber:
+          literalNumberOp(vm);
+          break;
+        case Op.BranchCall:
+          branchCallOp(vm);
+          break;
+        case Op.Abort:
+          abortOp(vm);
+          break;
+        case Op.Exit:
+          exitOp(vm);
+          break;
+        case Op.Eval:
+          evalOp(vm);
+          break;
+        case Op.Plus:
+          plusOp(vm);
+          break;
+        case Op.Minus:
+          minusOp(vm);
+          break;
+        case Op.Multiply:
+          multiplyOp(vm);
+          break;
+        case Op.Divide:
+          divideOp(vm);
+          break;
+        case Op.Dup:
+          dupOp(vm);
+          break;
+        case Op.Drop:
+          dropOp(vm);
+          break;
+        case Op.Swap:
+          swapOp(vm);
+          break;
+        default:
+          throw new Error(
+            `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
+              vm.getStackData()
+            )})`
+          );
+      }
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
       const errorMessage =

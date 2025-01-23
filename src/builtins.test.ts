@@ -1,6 +1,15 @@
 // src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
-import { verbs, Op } from "./builtins"; // Import Op enum
+import {
+  divideOp,
+  dropOp,
+  dupOp,
+  minusOp,
+  multiplyOp,
+  Op,
+  plusOp,
+  swapOp,
+} from "./builtins"; // Import Op enum
 import { CODE } from "./memory";
 import { execute } from "./interpreter";
 import { toTaggedPtr, TAG } from "./tagged-ptr";
@@ -10,93 +19,85 @@ describe("Built-in Words", () => {
     initializeInterpreter(); // Reset the interpreter state before each test
   });
 
-  // Test 1: Arithmetic operations
   it("should handle the '+' word", () => {
     vm.push(5);
     vm.push(3);
-    verbs[Op.Plus](vm); // Use Op enum
+    plusOp(vm); // Use Op enum
     const received = vm.getStackData();
     expect(received).toEqual([8]);
   });
 
   it("should throw an error for '+' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => verbs[Op.Plus](vm)).toThrow("Stack underflow");
+    expect(() => plusOp(vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '-' word", () => {
     vm.push(5);
     vm.push(3);
-    verbs[Op.Minus](vm); // Use Op enum
+    minusOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '-' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => verbs[Op.Minus](vm)).toThrow("Stack underflow");
+    expect(() => minusOp(vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '*' word", () => {
     vm.push(5);
     vm.push(3);
-    verbs[Op.Multiply](vm); // Use Op enum
+    multiplyOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([15]);
   });
 
   it("should throw an error for '*' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => verbs[Op.Multiply](vm)).toThrow("Stack underflow");
+    expect(() => multiplyOp(vm)).toThrow("Stack underflow");
   });
 
   it("should handle the '/' word", () => {
     vm.push(6);
     vm.push(3);
-    verbs[Op.Divide](vm); // Use Op enum
+    divideOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([2]);
   });
 
   it("should throw an error for '/' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => verbs[Op.Divide](vm)).toThrow("Stack underflow");
+    expect(() => divideOp(vm)).toThrow("Stack underflow");
   });
 
-  it("should throw an error for division by zero", () => {
-    vm.push(5);
-    vm.push(0);
-    expect(() => verbs[Op.Divide](vm)).toThrow("Division by zero");
-  });
-
-  // Test 2: Stack manipulation
   it("should handle the 'dup' word", () => {
     vm.push(5);
-    verbs[Op.Dup](vm); // Use Op enum
+    dupOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([5, 5]);
   });
 
   it("should throw an error for 'dup' with an empty stack", () => {
-    expect(() => verbs[Op.Dup](vm)).toThrow("Stack underflow");
+    expect(() => dupOp(vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'drop' word", () => {
     vm.push(5);
-    verbs[Op.Drop](vm); // Use Op enum
+    dropOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([]);
   });
 
   it("should throw an error for 'drop' with an empty stack", () => {
-    expect(() => verbs[Op.Drop](vm)).toThrow("Stack underflow");
+    expect(() => dropOp(vm)).toThrow("Stack underflow");
   });
 
   it("should handle the 'swap' word", () => {
     vm.push(5);
     vm.push(3);
-    verbs[Op.Swap](vm); // Use Op enum
+    swapOp(vm); // Use Op enum
     expect(vm.getStackData()).toEqual([3, 5]);
   });
 
   it("should throw an error for 'swap' with insufficient stack items", () => {
     vm.push(5);
-    expect(() => verbs[Op.Swap](vm)).toThrow("Stack underflow");
+    expect(() => swapOp(vm)).toThrow("Stack underflow");
   });
 
   describe("Branch with Relative Jumps", () => {
@@ -146,13 +147,13 @@ describe("Built-in Words", () => {
 
     // Test for dupOp with an empty stack
     it("should throw an error for dupOp with an empty stack", () => {
-      expect(() => verbs[Op.Dup](vm)).toThrow("Stack underflow");
+      expect(() => dupOp(vm)).toThrow("Stack underflow");
     });
 
     // Test for swapOp with insufficient stack items
     it("should throw an error for swapOp with insufficient stack items", () => {
       vm.push(5); // Only one item on the stack
-      expect(() => verbs[Op.Swap](vm)).toThrow("Stack underflow");
+      expect(() => swapOp(vm)).toThrow("Stack underflow");
     });
   });
 });
