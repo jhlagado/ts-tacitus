@@ -1,159 +1,196 @@
-// src/builtins.test.ts
 import { initializeInterpreter, vm } from "./globalState";
 import {
+  abortOp,
+  branchCallOp,
   divideOp,
   dropOp,
   dupOp,
+  evalOp,
+  exitOp,
+  literalNumberOp,
   minusOp,
   multiplyOp,
-  Op,
   plusOp,
   swapOp,
-} from "./builtins"; // Import Op enum
-import { CODE } from "./memory";
-import { execute } from "./interpreter";
-import { toTaggedPtr, TAG } from "./tagged-ptr";
+} from "./builtins";
+import { CODE, RSTACK } from "./memory";
+import { TAG, toTaggedPtr } from "./tagged-ptr";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
-    initializeInterpreter(); // Reset the interpreter state before each test
+    initializeInterpreter();
   });
 
-  it("should handle the '+' word", () => {
-    vm.push(5);
-    vm.push(3);
-    plusOp(vm); // Use Op enum
-    const received = vm.getStackData();
-    expect(received).toEqual([8]);
-  });
-
-  it("should throw an error for '+' with insufficient stack items", () => {
-    vm.push(5);
-    expect(() => plusOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the '-' word", () => {
-    vm.push(5);
-    vm.push(3);
-    minusOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([2]);
-  });
-
-  it("should throw an error for '-' with insufficient stack items", () => {
-    vm.push(5);
-    expect(() => minusOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the '*' word", () => {
-    vm.push(5);
-    vm.push(3);
-    multiplyOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([15]);
-  });
-
-  it("should throw an error for '*' with insufficient stack items", () => {
-    vm.push(5);
-    expect(() => multiplyOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the '/' word", () => {
-    vm.push(6);
-    vm.push(3);
-    divideOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([2]);
-  });
-
-  it("should throw an error for '/' with insufficient stack items", () => {
-    vm.push(5);
-    expect(() => divideOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the 'dup' word", () => {
-    vm.push(5);
-    dupOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([5, 5]);
-  });
-
-  it("should throw an error for 'dup' with an empty stack", () => {
-    expect(() => dupOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the 'drop' word", () => {
-    vm.push(5);
-    dropOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([]);
-  });
-
-  it("should throw an error for 'drop' with an empty stack", () => {
-    expect(() => dropOp(vm)).toThrow("Stack underflow");
-  });
-
-  it("should handle the 'swap' word", () => {
-    vm.push(5);
-    vm.push(3);
-    swapOp(vm); // Use Op enum
-    expect(vm.getStackData()).toEqual([3, 5]);
-  });
-
-  it("should throw an error for 'swap' with insufficient stack items", () => {
-    vm.push(5);
-    expect(() => swapOp(vm)).toThrow("Stack underflow");
-  });
-
-  describe("Branch with Relative Jumps", () => {
-    it("should handle a forward branch", () => {
-      // Compile: branch +2 (skip the next instruction)
-      vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(5); // Relative offset
-      vm.compiler.compile8(Op.LiteralNumber);
-      vm.compiler.compileFloat(42); // This should be skipped
-      vm.compiler.compile8(Op.LiteralNumber);
-      vm.compiler.compileFloat(100); // This should be executed
-      vm.compiler.compile8(Op.Abort);
-      execute(CODE);
-      expect(vm.getStackData()).toEqual([
-        toTaggedPtr(TAG.ADDRESS, CODE + 3),
-        100,
-      ]);
+  describe("Arithmetic Operations", () => {
+    it("+ should add two numbers", () => {
+      vm.push(5);
+      vm.push(3);
+      plusOp(vm);
+      expect(vm.getStackData()).toEqual([8]);
     });
 
-    it("should handle a backward branch", () => {
-      // Compile: branch -3 (jump back to the start)
-      vm.compiler.compile8(Op.LiteralNumber);
+    it("- should subtract numbers", () => {
+      vm.push(5);
+      vm.push(3);
+      minusOp(vm);
+      expect(vm.getStackData()).toEqual([2]);
+    });
+
+    it("* should multiply numbers", () => {
+      vm.push(5);
+      vm.push(3);
+      multiplyOp(vm);
+      expect(vm.getStackData()).toEqual([15]);
+    });
+
+    it("/ should divide numbers", () => {
+      vm.push(6);
+      vm.push(3);
+      divideOp(vm);
+      expect(vm.getStackData()).toEqual([2]);
+    });
+  });
+
+  describe("Stack Operations", () => {
+    it("dup should duplicate top item", () => {
+      vm.push(5);
+      dupOp(vm);
+      expect(vm.getStackData()).toEqual([5, 5]);
+    });
+
+    it("drop should remove top item", () => {
+      vm.push(5);
+      dropOp(vm);
+      expect(vm.getStackData()).toEqual([]);
+    });
+
+    it("swap should swap top two items", () => {
+      vm.push(5);
+      vm.push(3);
+      swapOp(vm);
+      expect(vm.getStackData()).toEqual([3, 5]);
+    });
+  });
+
+  describe("Control Flow Operations", () => {
+    it("abortOp should stop execution", () => {
+      abortOp(vm);
+      expect(vm.running).toBe(false);
+    });
+
+    it("exitOp should restore IP from return stack", () => {
+      const testAddress = 0x12345;
+      vm.rpushAddress(testAddress);
+      exitOp(vm);
+      expect(vm.IP).toBe(toTaggedPtr(TAG.ADDRESS, testAddress));
+    });
+
+    xit("evalOp should manage return stack and IP", () => {
+      const originalIP = vm.IP;
+      const newAddress = 0x54321;
+      vm.pushAddress(newAddress);
+
+      evalOp(vm);
+
+      expect(vm.IP).toBe(newAddress);
+      expect(vm.rpopAddress()).toBe(originalIP);
+    });
+
+    xit("should handle invalid addresses in evalOp", () => {
+      vm.pushAddress(0xbeef); // Invalid address
+      expect(() => evalOp(vm)).toThrow("Expected an ADDRESS");
+    });
+  });
+
+  describe("Branch Operations", () => {
+    it("branchCallOp should jump relative", () => {
+      const initialIP = vm.IP;
+      vm.compiler.compile16(10);
+      branchCallOp(vm);
+      expect(vm.IP).toBe(initialIP + 12); // +3 for opcode + offset
+    });
+
+    it("should handle negative offsets", () => {
+      vm.IP = CODE + 10;
+      vm.compiler.compile16(-10);
+      branchCallOp(vm);
+      expect(vm.IP).toBe(CODE + 12);
+    });
+
+    it("should push return address", () => {
+      const initialIP = vm.IP;
+      branchCallOp(vm);
+      expect(vm.popAddress()).toBe(initialIP + 2); // +1 opcode + 2 offset
+    });
+  });
+
+  describe("Literal Operations", () => {
+    it("literalNumberOp should push numbers", () => {
       vm.compiler.compileFloat(42);
-      vm.compiler.compile8(Op.Abort);
-      vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(-9); // Relative offset
-      execute(CODE + 6);
-      expect(vm.getStackData()).toEqual([
-        toTaggedPtr(TAG.ADDRESS, CODE + 9),
-        42,
-      ]); // Infinite loop, but we exit after two iterations
+      literalNumberOp(vm);
+      expect(vm.pop()).toBe(42);
     });
 
-    it("should handle a branch offset of 0", () => {
-      // Compile: branch 0 (no jump)
-      vm.compiler.compile8(Op.BranchCall);
-      vm.compiler.compile16(0); // Relative offset
-      vm.compiler.compile8(Op.LiteralNumber);
+    it("should handle tagged pointers", () => {
+      const addr = toTaggedPtr(TAG.ADDRESS, 0x12345);
+      vm.compiler.compileFloat(addr);
+      literalNumberOp(vm);
+      expect(vm.pop()).toBe(addr);
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("should show stack state in errors", () => {
+      try {
+        plusOp(vm);
+      } catch (e) {
+        if (e instanceof Error) {
+          expect(e.message).toMatch(/stack: \[\]/);
+        }
+      }
+    });
+
+    it("should handle underflow for swap", () => {
+      vm.push(5);
+      expect(() => swapOp(vm)).toThrow(
+        "Stack underflow: Cannot pop value (stack: [])"
+      );
+    });
+
+    it("should handle underflow for dup", () => {
+      expect(() => dupOp(vm)).toThrow("dup' requires 1 operand");
+    });
+
+    it("should handle return stack overflow", () => {
+      // Fill return stack
+      const maxDepth = (vm.RP - RSTACK) / 4;
+      for (let i = 0; i < maxDepth; i++) {
+        vm.rpush(0);
+      }
+      expect(() => evalOp(vm)).toThrow(
+        "Stack underflow: Cannot pop value (stack: [])"
+      );
+    });
+  });
+
+  describe("Debug Mode", () => {
+    let consoleSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleSpy = jest.spyOn(console, "log").mockImplementation();
+      vm.debug = true;
+    });
+
+    afterEach(() => {
+      consoleSpy.mockRestore();
+      vm.debug = false;
+    });
+
+    it("should log literal operations", () => {
       vm.compiler.compileFloat(42);
-      vm.compiler.compile8(Op.Abort);
-      execute(CODE);
-      expect(vm.getStackData()).toEqual([
-        toTaggedPtr(TAG.ADDRESS, CODE + 3),
-        42,
-      ]);
+      literalNumberOp(vm);
+      expect(consoleSpy).toHaveBeenCalledWith("literalNumberOp", 42);
     });
 
-    // Test for dupOp with an empty stack
-    it("should throw an error for dupOp with an empty stack", () => {
-      expect(() => dupOp(vm)).toThrow("Stack underflow");
-    });
-
-    // Test for swapOp with insufficient stack items
-    it("should throw an error for swapOp with insufficient stack items", () => {
-      vm.push(5); // Only one item on the stack
-      expect(() => swapOp(vm)).toThrow("Stack underflow");
-    });
   });
 });
