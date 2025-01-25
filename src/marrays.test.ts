@@ -7,6 +7,7 @@ import {
   MAX_DIMENSIONS,
   ARR_DIM,
   ARR_STRIDES,
+  ARR_DATA,
 } from "./marrays";
 import { Memory } from "./memory";
 
@@ -58,7 +59,7 @@ describe("Array Functions", () => {
 
     xit("should handle multi-block arrays", () => {
       // Create array needing multiple blocks (BLOCK_SIZE = 1024)
-      const elementsPerBlock = Math.floor((BLOCK_SIZE - 18) / 4); // 18 bytes header
+      const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4); // ARR_DATA bytes header
       const bigArray = new Array(elementsPerBlock + 10).fill(42);
 
       const startBlock = arrayCreate(heap, [1], bigArray);
@@ -84,7 +85,7 @@ describe("Array Functions", () => {
     });
 
     xit("should access elements in multi-block arrays", () => {
-      const elementsPerBlock = Math.floor((BLOCK_SIZE - 18) / 4);
+      const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
       const bigArray = new Array(elementsPerBlock + 5).fill(0).map((_, i) => i);
 
       const startBlock = arrayCreate(heap, [1], bigArray);
@@ -103,7 +104,7 @@ describe("Array Functions", () => {
     });
 
     it("should update elements in multi-block arrays", () => {
-      const elementsPerBlock = Math.floor((BLOCK_SIZE - 18) / 4);
+      const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
       const bigArray = new Array(elementsPerBlock + 5).fill(0);
 
       const startBlock = arrayCreate(heap, [1], bigArray);
@@ -132,7 +133,7 @@ describe("Array Functions", () => {
     });
 
     it("should handle full block utilization", () => {
-      const elementsPerBlock = Math.floor((BLOCK_SIZE - 18) / 4);
+      const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
       const exactFitArray = new Array(elementsPerBlock).fill(42);
 
       const startBlock = arrayCreate(heap, [1], exactFitArray);

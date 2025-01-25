@@ -4,8 +4,8 @@ import { Memory } from "./memory";
 
 export const ARR_DIM = 2; // Offset for storing the number of dimensions (16-bit)
 export const ARR_STRIDES = 4; // Offset for storing the strides (16-bit each)
-export const ARR_DATA = 18; // Offset for storing the data (after the header)
-export const MAX_DIMENSIONS = 7; // Maximum number of dimensions supported
+export const MAX_DIMENSIONS = 6; // Maximum number of dimensions supported
+export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2; // Offset for storing the data (after the header)
 
 /**
  * Allocates a multi-dimensional array in the heap.
