@@ -4,6 +4,7 @@ import { STACK } from "./memory";
 
 export enum Op {
   LiteralNumber, //0
+  BranchOp, //12 - NEW OPERATION
   BranchCall, //1
   Abort, //2
   Exit, //3
@@ -21,6 +22,11 @@ export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat(); // Read the 32-bit number
   if (vm.debug) console.log("literalNumberOp", num);
   vm.push(num); // Push the number onto the stack
+};
+
+export const branchOp: Verb = (vm: VM) => {
+  const offset = vm.next16();
+  vm.IP += offset; // Jump without pushing return address
 };
 
 /**
@@ -137,9 +143,11 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(b);
 };
 
+// Rest of builtins remains the same
 export const builtins: Record<string, Verb> = {
   literalNumber: literalNumberOp,
-  branch: branchCallOp,
+  branch: branchOp,
+  branchCall: branchCallOp,
   abort: abortOp,
   exit: exitOp,
   eval: evalOp,

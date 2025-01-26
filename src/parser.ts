@@ -3,39 +3,103 @@ import { vm } from "./globalState";
 
 export function parse(tokens: (string | number)[]): void {
   vm.compiler.reset();
-  for (const token of tokens) {
-    if (vm.debug) console.log("token", token);
+  let i = 0;
+  let currentDefinition: { name: string; branchPos: number } | null = null;
 
+  while (i < tokens.length) {
+    const token = tokens[i];
+    i++;
+
+    // Handle colon definitions
+    if (token === ":") {
+      if (currentDefinition) {
+        throw new Error("Nested definitions are not allowed");
+      }
+
+      // Get and validate name
+      const nameToken = tokens[i];
+      if (typeof nameToken !== "string" || !/^[a-zA-Z_]\w*$/.test(nameToken)) {
+        throw new Error(`Invalid definition name: ${String(nameToken)}`);
+      }
+      i++;
+
+      // Compile branch to skip definition body
+      vm.compiler.compile8(Op.BranchOp);
+      const branchPos = vm.compiler.CP;
+      vm.compiler.compile16(0); // Temporary placeholder offset
+
+      // Get start address AFTER branch instruction
+      const startAddress = vm.compiler.CP;
+
+      // Immediately add to dictionary
+      vm.dictionary.define(nameToken, (vm) => {
+        vm.IP = startAddress; // Jump directly to definition body
+      });
+
+      // Store branch position for later patching
+      currentDefinition = {
+        name: nameToken,
+        branchPos: branchPos,
+      };
+      continue;
+    }
+
+    // Handle semicolon
+    if (token === ";") {
+      if (!currentDefinition) {
+        throw new Error("Unmatched ;");
+      }
+
+      // Compile exit operation
+      vm.compiler.compile8(Op.Exit);
+
+      // Calculate branch offset (from start of BranchOp instruction)
+      const endAddress = vm.compiler.CP;
+      const branchOffset = endAddress - (currentDefinition.branchPos + 2);
+
+      // Patch branch offset
+      const prevCP = vm.compiler.CP;
+      vm.compiler.CP = currentDefinition.branchPos;
+      vm.compiler.compile16(branchOffset);
+      vm.compiler.CP = prevCP;
+
+      currentDefinition = null;
+      continue;
+    }
+
+    // Existing token handling
     if (typeof token === "number") {
-      vm.compiler.compile8(Op.LiteralNumber);      
-      vm.compiler.compileFloat(token); 
+      vm.compiler.compile8(Op.LiteralNumber);
+      vm.compiler.compileFloat(token);
     } else if (token === "{") {
       vm.compiler.preserve = true;
       vm.compiler.nestingScore++;
       vm.compiler.compile8(Op.BranchCall);
-      vm.push(vm.compiler.CP); // Push the current address for later patching
-      vm.compiler.compile16(0); // Placeholder for the relative offset (signed integer)
+      vm.push(vm.compiler.CP);
+      vm.compiler.compile16(0);
     } else if (token === "}") {
       if (vm.compiler.nestingScore === 0) {
-        throw new Error("Unexpected '}' outside compilation mode");
+        throw new Error("Unexpected '}'");
       }
       vm.compiler.compile8(Op.Exit);
-      const branchAddress = vm.pop(); // Get the address of the branch instruction
+      const branchAddress = vm.pop();
       const endAddress = vm.compiler.CP;
-      const offset = endAddress - (branchAddress + 2); // Calculate the relative offset
-      vm.compiler.CP = branchAddress; // Move to the offset location
-      vm.compiler.compile16(offset); // Write the relative offset (signed integer)
-      vm.compiler.CP = endAddress; // Restore the pointer
+      const offset = endAddress - (branchAddress + 2);
+      vm.compiler.CP = branchAddress;
+      vm.compiler.compile16(offset);
+      vm.compiler.CP = endAddress;
       vm.compiler.nestingScore--;
     } else {
-      // Look up the word in the opTable
-      const opcode = opcodes[token as keyof typeof Op];
+      const opcode = opcodes[token];
       if (opcode === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }
       vm.compiler.compile8(opcode);
     }
   }
+
+  if (currentDefinition) {
+    throw new Error(`Unclosed definition for ${currentDefinition.name}`);
+  }
   vm.compiler.compile8(Op.Abort);
-  console.log("Compiled code:", vm.memory.dump(vm.compiler.BP, vm.compiler.CP));
 }

@@ -3,11 +3,13 @@ import { fromTaggedPtr, toTaggedPtr, TAG } from "./tagged-ptr";
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 
 // Define sections
-export const STACK = 0x0000; // Start address of the main stack
-export const STACK_SIZE = 256; // Stack size in bytes
+export const STACK = 0; // Start address of the main stack
+export const STACK_SIZE = 0x100; // Stack size in bytes
 export const RSTACK = STACK + STACK_SIZE; // Start address of the return stack
-export const RSTACK_SIZE = 256; // Return stack size
-export const HEAP = RSTACK + RSTACK_SIZE; // Start address of the heap
+export const RSTACK_SIZE = 0x100; // Return stack size
+export const STRINGS = RSTACK + RSTACK_SIZE; // Start address of the heap
+export const STRINGS_SIZE = 0x400; // Remaining memory for heap
+export const HEAP = STRINGS + STRINGS_SIZE; // Start address of the heap
 export const HEAP_SIZE = MEMORY_SIZE - HEAP; // Remaining memory for heap
 
 // Other sections (optional)
