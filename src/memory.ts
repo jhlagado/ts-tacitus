@@ -18,24 +18,22 @@ export const CODE = HEAP; // Start of executable code (if needed)
 export class Memory {
   private buffer: Uint8Array;
   private dataView: DataView;
-  public size: number;
 
-  constructor(size: number = MEMORY_SIZE) {
-    this.size = size;
-    this.buffer = new Uint8Array(size);
+  constructor() {
+    this.buffer = new Uint8Array(MEMORY_SIZE);
     this.dataView = new DataView(this.buffer.buffer);
   }
 
   // 8-bit read/write
   write8(address: number, value: number): void {
-    if (address < 0 || address >= this.size) {
+    if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     this.buffer[address] = value & 0xff;
   }
 
   read8(address: number): number {
-    if (address < 0 || address >= this.size) {
+    if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     return this.buffer[address];
@@ -43,14 +41,14 @@ export class Memory {
 
   // 16-bit read/write
   write16(address: number, value: number): void {
-    if (address < 0 || address + 1 >= this.size) {
+    if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     this.dataView.setUint16(address, value & 0xffff, true); // Little-endian
   }
 
   read16(address: number): number {
-    if (address < 0 || address + 1 >= this.size) {
+    if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     return this.dataView.getUint16(address, true); // Little-endian
@@ -58,7 +56,7 @@ export class Memory {
 
   // Float32 read/write (unaligned)
   writeFloat(address: number, value: number): void {
-    if (address < 0 || address + 3 >= this.size) {
+    if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     const buffer = new ArrayBuffer(4);
@@ -71,7 +69,7 @@ export class Memory {
   }
 
   readFloat(address: number): number {
-    if (address < 0 || address + 3 >= this.size) {
+    if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     const buffer = new ArrayBuffer(4);
@@ -112,7 +110,7 @@ export class Memory {
 
   // Utility to dump memory for debugging
   dump(start: number, end: number): string {
-    if (start < 0 || end >= this.size || start > end) {
+    if (start < 0 || end >= MEMORY_SIZE || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
     return Array.from(this.buffer.slice(start, end + 1))

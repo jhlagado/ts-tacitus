@@ -22,7 +22,7 @@ export class VM {
     this.SP = STACK; // Stack starts at STACK
     this.RP = RSTACK; // Return stack starts at RSTACK
     this.compiler = new Compiler(this);
-    this.dictionary = new Dictionary();
+    this.dictionary = new Dictionary(this.memory);
     this.heap = new Heap(this.memory);
     this.debug = false;
     // this.debug = true;

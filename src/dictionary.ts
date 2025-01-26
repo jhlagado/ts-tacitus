@@ -1,23 +1,44 @@
-// src/dictionary.ts
-
+import { builtins } from "./builtins";
+import { Memory } from "./memory";
+import { StringBuffer } from "./string-buffer";
 import { Verb } from "./types";
-import { builtins } from "./builtins"; // Import ops and opTable
+
+interface DictionaryNode {
+  key: number;
+  value: Verb;
+  next: DictionaryNode | null;
+}
 
 export class Dictionary {
-  words: Record<string, Verb>;
+  private head: DictionaryNode | null;
+  private stringBuffer: StringBuffer;
 
-  constructor() {
-    // Initialize the words object with the builtins
-    this.words = { ...builtins };
+  constructor(private memory: Memory) {
+    this.head = null;
+    this.stringBuffer = new StringBuffer(this.memory);
+
+    // Initialize the dictionary with builtins
+    for (const [name, verb] of Object.entries(builtins)) {
+      this.define(name, verb);
+    }
   }
 
   // Define a new word in the dictionary
   define(name: string, word: Verb): void {
-    this.words[name] = word;
+    const key = this.stringBuffer.add(name);
+    const newNode: DictionaryNode = { key, value: word, next: this.head };
+    this.head = newNode;
   }
 
   // Find a word in the dictionary
   find(name: string): Verb | undefined {
-    return this.words[name];
+    let current = this.head;
+    while (current !== null) {
+      if (this.stringBuffer.get(current.key) === name) {
+        return current.value;
+      }
+      current = current.next;
+    }
+    return undefined;
   }
 }

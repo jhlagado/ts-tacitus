@@ -1,11 +1,10 @@
 import { Memory, MEMORY_SIZE } from "./memory";
 
 describe("Memory", () => {
-  const TEST_SIZE = 1024;
   let memory: Memory;
 
   beforeEach(() => {
-    memory = new Memory(TEST_SIZE);
+    memory = new Memory();
   });
 
   test("should write and read 8-bit values correctly", () => {
@@ -51,18 +50,18 @@ describe("Memory", () => {
     expect(memory.read16(10)).toBe(0xffff);
 
     // Edge of memory boundary
-    const lastValidAddress = TEST_SIZE - 2;
+    const lastValidAddress = MEMORY_SIZE - 2;
     memory.write16(lastValidAddress, 0xabcd);
     expect(memory.read16(lastValidAddress)).toBe(0xabcd);
   });
 
   test("should throw RangeError for 16-bit boundary violations", () => {
     // Writing 1 byte past end
-    expect(() => memory.write16(TEST_SIZE - 1, 0x1234))
+    expect(() => memory.write16(MEMORY_SIZE - 1, 0x1234))
       .toThrow(RangeError);
 
     // Reading 1 byte past end
-    expect(() => memory.read16(TEST_SIZE - 1))
+    expect(() => memory.read16(MEMORY_SIZE - 1))
       .toThrow(RangeError);
   });
 
@@ -102,18 +101,18 @@ describe("Memory", () => {
       .toThrow(RangeError);
 
     // End beyond memory
-    expect(() => memory.dump(0, TEST_SIZE))
+    expect(() => memory.dump(0, MEMORY_SIZE))
       .toThrow(RangeError);
   });
 
   test("should handle full float boundary conditions", () => {
     // Valid float at end of memory
-    const lastFloatAddress = TEST_SIZE - 4;
+    const lastFloatAddress = MEMORY_SIZE - 4;
     memory.writeFloat(lastFloatAddress, 1.234);
     expect(memory.readFloat(lastFloatAddress)).toBeCloseTo(1.234);
 
     // Invalid float at memory end
-    expect(() => memory.writeFloat(TEST_SIZE - 3, 5.678))
+    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 5.678))
       .toThrow(RangeError);
   });
 });

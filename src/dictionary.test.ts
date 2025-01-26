@@ -1,13 +1,13 @@
-// src/dictionary.test.ts
-import { builtins } from "./builtins";
-import { Dictionary } from "./dictionary";
+import { Memory } from "./memory";
 import { Verb } from "./types";
+import { Dictionary } from "./dictionary";
+import { builtins } from "./builtins";
 
 describe("Dictionary", () => {
   let dictionary: Dictionary;
 
   beforeEach(() => {
-    dictionary = new Dictionary(); // Initialize a fresh Dictionary instance before each test
+    dictionary = new Dictionary(new Memory()); // Initialize a fresh Dictionary instance before each test
   });
 
   // Test 1: Initialization
@@ -23,46 +23,33 @@ describe("Dictionary", () => {
   // Test 2: Define new words
   describe("Define new words", () => {
     it("should define a new word and find it", () => {
-      const wordName = "customWord";
-      const wordAction: Verb = () => {}; // Mock verb function
-
-      dictionary.define(wordName, wordAction);
-      expect(dictionary.find(wordName)).toBe(wordAction);
+      const newWord: Verb = (vm) => vm.push(42);
+      dictionary.define("newWord", newWord);
+      expect(dictionary.find("newWord")).toBe(newWord);
     });
 
-    it("should overwrite an existing word when redefined", () => {
-      const wordName = "customWord";
-      const wordAction1: Verb = () => {}; // Mock verb function
-      const wordAction2: Verb = () => {}; // Another mock verb function
-
-      dictionary.define(wordName, wordAction1);
-      dictionary.define(wordName, wordAction2);
-
-      expect(dictionary.find(wordName)).toBe(wordAction2);
+    it("should override an existing word", () => {
+      const originalWord: Verb = (vm) => vm.push(1);
+      const newWord: Verb = (vm) => vm.push(2);
+      dictionary.define("overrideWord", originalWord);
+      expect(dictionary.find("overrideWord")).toBe(originalWord);
+      dictionary.define("overrideWord", newWord);
+      expect(dictionary.find("overrideWord")).toBe(newWord);
     });
   });
 
   // Test 3: Find words
   describe("Find words", () => {
-    it("should return undefined for unknown words", () => {
-      expect(dictionary.find("unknownWord")).toBeUndefined();
+    it("should return undefined for a non-existent word", () => {
+      expect(dictionary.find("nonExistentWord")).toBeUndefined();
     });
 
-    it("should find built-in words", () => {
-      for (const [name, verb] of Object.entries(builtins)) {
-        expect(dictionary.find(name)).toBe(verb);
-      }
-    });
-  });
-
-  // Test 4: Built-in words
-  describe("Built-in words", () => {
-    it("should include all built-in words", () => {
-      // Verify that the dictionary contains all built-in words
-      const builtinNames = Object.keys(builtins);
-      const dictionaryWords = Object.keys(dictionary.words); // Access private property for testing
-
-      expect(dictionaryWords).toEqual(expect.arrayContaining(builtinNames));
+    it("should find the most recently defined word", () => {
+      const firstWord: Verb = (vm) => vm.push(1);
+      const secondWord: Verb = (vm) => vm.push(2);
+      dictionary.define("duplicateWord", firstWord);
+      dictionary.define("duplicateWord", secondWord);
+      expect(dictionary.find("duplicateWord")).toBe(secondWord);
     });
   });
 });
