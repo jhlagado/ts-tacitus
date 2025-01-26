@@ -4,18 +4,19 @@ import { STACK } from "./memory";
 
 export enum Op {
   LiteralNumber, //0
-  BranchOp, //12 - NEW OPERATION
-  BranchCall, //1
-  Abort, //2
-  Exit, //3
-  Eval, //4
-  Plus, //5
-  Minus, //6
-  Multiply, //7
-  Divide, //8
-  Dup, //9
-  Drop, //10
-  Swap, //11
+  Branch, //1
+  BranchCall, //2
+  Call, //3
+  Abort, //4
+  Exit, //5
+  Eval, //6
+  Plus, //7
+  Minus, //8
+  Multiply, //9
+  Divide, //10
+  Dup, //11
+  Drop, //12
+  Swap, //13
 }
 
 export const literalNumberOp: Verb = (vm: VM) => {
@@ -41,15 +42,22 @@ export const branchCallOp: Verb = (vm: VM) => {
   vm.IP += offset;
 };
 
+export const callOp: Verb = (vm: VM) => {
+  const address = vm.next16(); // Read the relative offset
+  if (vm.debug) console.log("CallOp", address);
+  vm.rpushAddress(vm.IP); // Push the current IP
+  vm.IP = address;
+};
+
 export const abortOp: Verb = (vm: VM) => {
   vm.running = false;
 };
 export const exitOp: Verb = (vm: VM) => {
-  vm.IP = vm.rpop();
+  vm.IP = vm.rpopAddress();
 };
 
 export const evalOp: Verb = (vm: VM) => {
-  vm.rpush(vm.IP);
+  vm.rpushAddress(vm.IP);
   vm.IP = vm.popAddress();
 };
 
@@ -142,28 +150,3 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(a);
   vm.push(b);
 };
-
-// Rest of builtins remains the same
-export const builtins: Record<string, Verb> = {
-  literalNumber: literalNumberOp,
-  branch: branchOp,
-  branchCall: branchCallOp,
-  abort: abortOp,
-  exit: exitOp,
-  eval: evalOp,
-  "+": plusOp,
-  "-": minusOp,
-  "*": multiplyOp,
-  "/": divideOp,
-  dup: dupOp,
-  drop: dropOp,
-  swap: swapOp,
-};
-
-export const opcodes: Record<string, number> = Object.keys(builtins).reduce(
-  (acc, key, index) => {
-    acc[key] = index;
-    return acc;
-  },
-  {} as Record<string, number>
-);

@@ -1,6 +1,8 @@
 import {
   abortOp,
   branchCallOp,
+  branchOp,
+  callOp,
   divideOp,
   dropOp,
   dupOp,
@@ -25,8 +27,14 @@ export function execute(start: number): void {
         case Op.LiteralNumber:
           literalNumberOp(vm);
           break;
+        case Op.Branch:
+          branchOp(vm);
+          break;
         case Op.BranchCall:
           branchCallOp(vm);
+          break;
+        case Op.Call:
+          callOp(vm);
           break;
         case Op.Abort:
           abortOp(vm);

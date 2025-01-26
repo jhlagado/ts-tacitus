@@ -82,23 +82,7 @@ describe("Built-in Words", () => {
       const testAddress = 0x12345;
       vm.rpushAddress(testAddress);
       exitOp(vm);
-      expect(vm.IP).toBe(toTaggedPtr(TAG.ADDRESS, testAddress));
-    });
-
-    xit("evalOp should manage return stack and IP", () => {
-      const originalIP = vm.IP;
-      const newAddress = 0x54321;
-      vm.pushAddress(newAddress);
-
-      evalOp(vm);
-
-      expect(vm.IP).toBe(newAddress);
-      expect(vm.rpopAddress()).toBe(originalIP);
-    });
-
-    xit("should handle invalid addresses in evalOp", () => {
-      vm.pushAddress(0xbeef); // Invalid address
-      expect(() => evalOp(vm)).toThrow("Expected an ADDRESS");
+      expect(vm.IP).toBe(testAddress);
     });
   });
 
@@ -191,6 +175,5 @@ describe("Built-in Words", () => {
       literalNumberOp(vm);
       expect(consoleSpy).toHaveBeenCalledWith("literalNumberOp", 42);
     });
-
   });
 });

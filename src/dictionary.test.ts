@@ -1,21 +1,12 @@
 import { Memory } from "./memory";
 import { Verb } from "./types";
 import { Dictionary } from "./dictionary";
-import { builtins } from "./builtins";
 
 describe("Dictionary", () => {
   let dictionary: Dictionary;
 
   beforeEach(() => {
     dictionary = new Dictionary(new Memory()); 
-  });
-
-  describe("Initialization", () => {
-    it("should initialize with built-in words", () => {
-      for (const [name, verb] of Object.entries(builtins)) {
-        expect(dictionary.find(name)).toBe(verb);
-      }
-    });
   });
 
   describe("Define new words", () => {

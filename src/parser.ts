@@ -1,4 +1,4 @@
-import { Op, opcodes } from "./builtins";
+import { Op } from "./builtins";
 import { vm } from "./globalState";
 
 export function parse(tokens: (string | number)[]): void {
@@ -12,6 +12,10 @@ export function parse(tokens: (string | number)[]): void {
 
     // Handle colon definitions
     if (token === ":") {
+      if (vm.compiler.nestingScore > 0) {
+        throw new Error("Cannot nest defintion inside code block");
+      }
+
       if (currentDefinition) {
         throw new Error("Nested definitions are not allowed");
       }
@@ -24,7 +28,7 @@ export function parse(tokens: (string | number)[]): void {
       i++;
 
       // Compile branch to skip definition body
-      vm.compiler.compile8(Op.BranchOp);
+      vm.compiler.compile8(Op.Branch);
       const branchPos = vm.compiler.CP;
       vm.compiler.compile16(0); // Temporary placeholder offset
 
@@ -32,9 +36,7 @@ export function parse(tokens: (string | number)[]): void {
       const startAddress = vm.compiler.CP;
 
       // Immediately add to dictionary
-      vm.dictionary.define(nameToken, (vm) => {
-        vm.IP = startAddress; // Jump directly to definition body
-      });
+      vm.dictionary.defineCall(nameToken, startAddress); // Jump directly to definition body
 
       // Store branch position for later patching
       currentDefinition = {
@@ -90,11 +92,11 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.CP = endAddress;
       vm.compiler.nestingScore--;
     } else {
-      const opcode = opcodes[token];
-      if (opcode === undefined) {
+      const compile = vm.dictionary.find(token);
+      if (compile === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }
-      vm.compiler.compile8(opcode);
+      compile(vm);
     }
   }
 

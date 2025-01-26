@@ -25,7 +25,6 @@ export class VM {
     this.dictionary = new Dictionary(this.memory);
     this.heap = new Heap(this.memory);
     this.debug = false;
-    // this.debug = true;
   }
 
   /**

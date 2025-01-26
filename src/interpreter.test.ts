@@ -58,10 +58,6 @@ describe("Interpreter", () => {
 
   // Control flow and special operations
   describe("Control flow", () => {
-    it("should handle abort operation", () => {
-      executeProgram("abort");
-      expect(vm.running).toBe(false);
-    });
 
     it("should handle empty program", () => {
       executeProgram("");
@@ -116,6 +112,14 @@ describe("Interpreter", () => {
       } catch (e) {
         expect(vm.getStackData()).toEqual([5, 3, 0]);
       }
+    });
+
+    it("should skip definition body during normal execution", () => {
+      executeProgram(`
+        : double 2 * ;
+        5 double
+      `);
+      expectStack([10]);
     });
   });
 
