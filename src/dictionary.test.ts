@@ -7,20 +7,17 @@ describe("Dictionary", () => {
   let dictionary: Dictionary;
 
   beforeEach(() => {
-    dictionary = new Dictionary(new Memory()); // Initialize a fresh Dictionary instance before each test
+    dictionary = new Dictionary(new Memory()); 
   });
 
-  // Test 1: Initialization
   describe("Initialization", () => {
     it("should initialize with built-in words", () => {
-      // Verify that all built-in words are present in the dictionary
       for (const [name, verb] of Object.entries(builtins)) {
         expect(dictionary.find(name)).toBe(verb);
       }
     });
   });
 
-  // Test 2: Define new words
   describe("Define new words", () => {
     it("should define a new word and find it", () => {
       const newWord: Verb = (vm) => vm.push(42);
@@ -38,7 +35,6 @@ describe("Dictionary", () => {
     });
   });
 
-  // Test 3: Find words
   describe("Find words", () => {
     it("should return undefined for a non-existent word", () => {
       expect(dictionary.find("nonExistentWord")).toBeUndefined();

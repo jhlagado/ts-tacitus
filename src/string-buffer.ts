@@ -37,45 +37,12 @@ export class StringBuffer {
     this.SBP = address;
   }
 
-  find(target: string): number {
-    let currentAddress = STRINGS;
-
-    while (currentAddress < this.SBP) {
-      const length = this.memory.read8(currentAddress++);
-
-      // Check if we have valid string data
-      if (currentAddress + length > this.SBP) {
-        break;
-      }
-
-      if (length !== target.length) {
-        currentAddress += length;
-        continue;
-      }
-
-      let match = true;
-      for (let i = 0; i < length; i++) {
-        const charCode = this.memory.read8(currentAddress++);
-        if (charCode !== target.charCodeAt(i)) {
-          match = false;
-          break;
-        }
-      }
-
-      if (match) {
-        return currentAddress;
-      }
-    }
-
-    return -1; 
-  }
-
   get(address: number): string {
-    let currentAddress = address;
-    const length = this.memory.read8(currentAddress++);
+    let pointer = address;
+    const length = this.memory.read8(pointer++);
     let str = "";
     for (let i = 0; i < length; i++) {
-      str += String.fromCharCode(this.memory.read8(currentAddress++));
+      str += String.fromCharCode(this.memory.read8(pointer++));
     }
     return str;
   }

@@ -109,12 +109,21 @@ export class Memory {
   }
 
   // Utility to dump memory for debugging
-  dump(start: number, end: number): string {
+  dump(start: number, end: number = 32): string {
     if (start < 0 || end >= MEMORY_SIZE || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
     return Array.from(this.buffer.slice(start, end + 1))
       .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join(" ");
+  }
+
+  dumpChars(start: number, end: number = 32): string {
+    if (start < 0 || end >= MEMORY_SIZE || start > end) {
+      throw new RangeError(`Invalid memory range [${start}, ${end}]`);
+    }
+    return Array.from(this.buffer.slice(start, end + 1))
+      .map((byte) => String.fromCharCode(byte))
       .join(" ");
   }
 }

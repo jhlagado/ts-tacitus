@@ -11,7 +11,6 @@ describe("Interpreter", () => {
     vm.debug = true;
   });
 
-  // Basic arithmetic operations
   describe("Basic operations", () => {
     it("should execute simple addition", () => {
       executeProgram("5 3 +");
