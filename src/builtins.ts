@@ -20,43 +20,43 @@ export enum Op {
 }
 
 export const literalNumberOp: Verb = (vm: VM) => {
-  const num = vm.nextFloat(); // Read the 32-bit number
+  const num = vm.nextFloat();
   if (vm.debug) console.log("literalNumberOp", num);
-  vm.push(num); // Push the number onto the stack
+  vm.push(num);
 };
 
-export const branchOp: Verb = (vm: VM) => {
+export const skipDefOp: Verb = (vm: VM) => {
   const offset = vm.next16();
-  vm.IP += offset; // Jump without pushing return address
+  if (vm.debug) console.log("branchOp", offset);
+  vm.IP += offset;
 };
 
-/**
- * Branch call to a relative address in memory.
- * The offset is relative to the address after the branch instruction.
- * Puts return address on the data stack
- */
-export const branchCallOp: Verb = (vm: VM) => {
+export const skipBlockOp: Verb = (vm: VM) => {
   const offset = vm.next16(); // Read the relative offset
   if (vm.debug) console.log("branchCallOp", offset);
-  vm.pushAddress(vm.IP); // Push the current IP
+  vm.pushAddress(vm.IP);
   vm.IP += offset;
 };
 
 export const callOp: Verb = (vm: VM) => {
-  const address = vm.next16(); // Read the relative offset
-  if (vm.debug) console.log("CallOp", address);
-  vm.rpushAddress(vm.IP); // Push the current IP
+  const address = vm.next16();
+  if (vm.debug) console.log("callOp", address);
+  vm.rpushAddress(vm.IP);
   vm.IP = address;
 };
 
 export const abortOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("abortOp");
   vm.running = false;
 };
+
 export const exitOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("exitOp");
   vm.IP = vm.rpopAddress();
 };
 
 export const evalOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("evalOp");
   vm.rpushAddress(vm.IP);
   vm.IP = vm.popAddress();
 };
@@ -71,6 +71,7 @@ export const plusOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
+  if (vm.debug) console.log("plusOp", a, b);
   vm.push(a + b);
 };
 
@@ -84,6 +85,7 @@ export const minusOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
+  if (vm.debug) console.log("minusOp", a, b);
   vm.push(a - b);
 };
 
@@ -97,6 +99,7 @@ export const multiplyOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
+  if (vm.debug) console.log("multiplyOp", a, b);
   vm.push(a * b);
 };
 
@@ -110,6 +113,7 @@ export const divideOp: Verb = (vm: VM) => {
   }
   const b = vm.pop();
   const a = vm.pop();
+  if (vm.debug) console.log("divideOp", a, b);
   vm.push(a / b);
 };
 
@@ -122,6 +126,7 @@ export const dupOp: Verb = (vm: VM) => {
     );
   }
   const a = vm.pop();
+  if (vm.debug) console.log("dupOp", a);
   vm.push(a);
   vm.push(a);
 };
@@ -134,7 +139,8 @@ export const dropOp: Verb = (vm: VM) => {
       )})`
     );
   }
-  vm.pop();
+  const a = vm.pop();
+  if (vm.debug) console.log("dropOp", a);
 };
 
 export const swapOp: Verb = (vm: VM) => {
@@ -147,6 +153,7 @@ export const swapOp: Verb = (vm: VM) => {
   }
   const a = vm.pop();
   const b = vm.pop();
+  if (vm.debug) console.log("swapOp", a, b);
   vm.push(a);
   vm.push(b);
 };

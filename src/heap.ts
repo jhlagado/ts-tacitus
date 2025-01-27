@@ -1,7 +1,7 @@
 import { NIL } from "./constants"; // Import NIL from constants.ts
 import { Memory, HEAP, HEAP_SIZE } from "./memory"; // Import memory-related constants from memory.ts
 
-export const BLOCK_SIZE = 128; // Each block is 64 bytes (or any fixed size)
+export const BLOCK_SIZE = 128; // Each block is 128 bytes
 export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block (16-bit, so occupies 2 bytes)
 
 export class Heap {
@@ -35,7 +35,10 @@ export class Heap {
   malloc(size: number): number {
     if (size <= 0) return NIL;
 
-    const numBlocks = Math.ceil(size / BLOCK_SIZE);
+    // Calculate the number of blocks needed, accounting for the 2-byte overhead
+    const usableSizePerBlock = BLOCK_SIZE - 2; // Available storage per block
+    const numBlocks = Math.ceil(size / usableSizePerBlock);
+
     let current = this.freeList;
     let prev = NIL;
     let startBlock = current;

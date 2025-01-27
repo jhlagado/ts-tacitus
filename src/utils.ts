@@ -19,6 +19,10 @@ export function isWhitespace(char: string): boolean {
 /**
  * Checks if a character is of a grouping structure
  */
-export const isGroupingChar = (char: string): boolean =>
-  "{}[]()\"'`".includes(char);
+export function isGroupingChar (char: string): boolean {
+  return "{}[]()\"'`".includes(char);
+}
 
+export function toUnsigned16(num: number): number {
+  return num & 0xFFFF;
+}

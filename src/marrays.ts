@@ -2,10 +2,12 @@ import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
 import { NIL } from "./constants";
 import { Memory } from "./memory";
 
-export const ARR_DIM = 2; // Offset for storing the number of dimensions (16-bit)
-export const ARR_STRIDES = 4; // Offset for storing the strides (16-bit each)
 export const MAX_DIMENSIONS = 6; // Maximum number of dimensions supported
+export const ARR_DIM = 2; // Offset for storing the number of dimensions (16-bit)
+export const ARR_SHAPE = ARR_DIM + 2; // Offset for storing the shape (variable length)
+export const ARR_STRIDES = ARR_SHAPE + MAX_DIMENSIONS * 2; // Offset for storing strides (16-bit each)
 export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2; // Offset for storing the data (after the header)
+export const ARR_DATA2 = BLOCK_NEXT + 2; // Offset for data in subsequent blocks (after BLOCK_NEXT pointer)
 
 /**
  * Allocates a multi-dimensional array in the heap.
@@ -44,8 +46,19 @@ export function arrayCreate(
   // Store metadata in the header
   memory.write16(firstBlock + BLOCK_NEXT, NIL); // Initialize BLOCK_NEXT to NIL
   memory.write16(firstBlock + ARR_DIM, numDimensions); // Store number of dimensions
+
+  // Write shape data
+  let shapeOffset = ARR_SHAPE;
+  for (let i = 0; i < numDimensions; i++) {
+    memory.write16(firstBlock + shapeOffset, shape[i]); // Store shape for each dimension
+    shapeOffset += 2;
+  }
+
+  // Write strides
+  let strideOffset = ARR_STRIDES;
   for (let i = 0; i < numDimensions - 1; i++) {
-    memory.write16(firstBlock + ARR_STRIDES + i * 2, strides[i]); // Store strides
+    memory.write16(firstBlock + strideOffset, strides[i]); // Store strides
+    strideOffset += 2;
   }
 
   let currentBlock = firstBlock;
@@ -71,8 +84,12 @@ export function arrayCreate(
     memory.write16(currentBlock + BLOCK_NEXT, nextBlock); // Link to the next block (16-bit)
     currentBlock = nextBlock;
 
-    // Write data to the current block
-    for (let i = 0; i + 4 <= BLOCK_SIZE && dataIndex < data.length; i += 4) {
+    // Write data to the current block (starting at ARR_DATA2)
+    for (
+      let i = ARR_DATA2; // Start at ARR_DATA2 for subsequent blocks
+      i + 4 <= BLOCK_SIZE && dataIndex < data.length;
+      i += 4
+    ) {
       memory.writeFloat(currentBlock + i, data[dataIndex]); // Store Float32 (32-bit)
       dataIndex++;
     }
@@ -105,7 +122,12 @@ export function arrayGet(
     );
   }
 
-  // Read strides (only non-redundant strides are stored)
+  // Read shape and strides
+  const shape: number[] = [];
+  for (let i = 0; i < numDimensions; i++) {
+    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2)); // Read shape
+  }
+
   const strides: number[] = [];
   for (let i = 0; i < numDimensions - 1; i++) {
     strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2)); // Read strides
@@ -117,14 +139,33 @@ export function arrayGet(
     flatIndex += indices[i] * strides[i]; // Add contributions from other dimensions
   }
 
-  // Read the element
-  const position = findArrayPosition(memory, startBlock, flatIndex);
-  if (position === null) {
-    return undefined; // Index is out of bounds
+  // Traverse the blocks to find the correct position
+  let currentBlock = startBlock;
+  let elementsRead = 0;
+
+  while (currentBlock !== NIL) {
+    // Calculate the number of elements in the current block
+    const elementsInBlock = Math.floor((BLOCK_SIZE - 2) / 4); // Each element is 4 bytes (Float32)
+
+    // Determine where the data starts in the current block
+    const dataStartOffset = currentBlock === startBlock
+      ? ARR_DATA // First block
+      : 2; // Subsequent blocks (after the BLOCK_NEXT pointer)
+
+    // Check if the target index is in this block
+    if (flatIndex < elementsRead + elementsInBlock) {
+      const offset = dataStartOffset + (flatIndex - elementsRead) * 4; // 4 bytes per element
+      return memory.readFloat(currentBlock + offset); // Read the element from the block
+    }
+
+    // Move to the next block
+    elementsRead += elementsInBlock;
+    currentBlock = memory.read16(currentBlock + BLOCK_NEXT); // Read next block pointer (16-bit)
   }
 
-  return memory.readFloat(position.block + position.offset); // Read Float32 (32-bit)
+  return undefined; // Index is out of bounds
 }
+
 
 /**
  * Updates an element in a multi-dimensional array.
@@ -186,11 +227,13 @@ function findArrayPosition(
 
   while (currentBlock !== NIL) {
     // Calculate the number of elements in the current block
-    const elementsInBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4); // Each element is 4 bytes (Float32)
+    const elementsInBlock = Math.floor((BLOCK_SIZE - 2) / 4); // Each element is 4 bytes (Float32), leaving 2 bytes for BLOCK_NEXT pointer
 
     // Check if the target index is in this block
     if (flatIndex < elementsRead + elementsInBlock) {
-      const offset = ARR_DATA + (flatIndex - elementsRead) * 4; // Calculate the offset (32-bit aligned)
+      const offset =
+        (currentBlock === startBlock ? ARR_DATA : ARR_DATA2) +
+        (flatIndex - elementsRead) * 4; // Use ARR_DATA2 for subsequent blocks
       return { block: currentBlock, offset };
     }
 
