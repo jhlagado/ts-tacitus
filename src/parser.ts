@@ -10,35 +10,29 @@ export function parse(tokens: (string | number)[]): void {
     const token = tokens[i];
     i++;
 
-    // Handle colon definitions
     if (token === ":") {
       if (vm.compiler.nestingScore > 0) {
-        throw new Error("Cannot nest defintion inside code block");
+        throw new Error("Cannot nest definition inside code block");
       }
 
       if (currentDefinition) {
         throw new Error("Nested definitions are not allowed");
       }
 
-      // Get and validate name
       const nameToken = tokens[i];
-      if (typeof nameToken !== "string" || !/^[a-zA-Z_]\w*$/.test(nameToken)) {
+      if (typeof nameToken !== "string") {
         throw new Error(`Invalid definition name: ${String(nameToken)}`);
       }
       i++;
 
-      // Compile branch to skip definition body
       vm.compiler.compile8(Op.Branch);
       const branchPos = vm.compiler.CP;
-      vm.compiler.compile16(0); // Temporary placeholder offset
+      vm.compiler.compile16(0); 
 
-      // Get start address AFTER branch instruction
       const startAddress = vm.compiler.CP;
 
-      // Immediately add to dictionary
-      vm.dictionary.defineCall(nameToken, startAddress); // Jump directly to definition body
+      vm.dictionary.defineCall(nameToken, startAddress); 
 
-      // Store branch position for later patching
       currentDefinition = {
         name: nameToken,
         branchPos: branchPos,
@@ -46,20 +40,16 @@ export function parse(tokens: (string | number)[]): void {
       continue;
     }
 
-    // Handle semicolon
     if (token === ";") {
       if (!currentDefinition) {
         throw new Error("Unmatched ;");
       }
 
-      // Compile exit operation
       vm.compiler.compile8(Op.Exit);
 
-      // Calculate branch offset (from start of BranchOp instruction)
       const endAddress = vm.compiler.CP;
       const branchOffset = endAddress - (currentDefinition.branchPos + 2);
 
-      // Patch branch offset
       const prevCP = vm.compiler.CP;
       vm.compiler.CP = currentDefinition.branchPos;
       vm.compiler.compile16(branchOffset);
@@ -69,7 +59,6 @@ export function parse(tokens: (string | number)[]): void {
       continue;
     }
 
-    // Existing token handling
     if (typeof token === "number") {
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(token);

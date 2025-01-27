@@ -56,7 +56,6 @@ describe("Interpreter", () => {
     });
   });
 
-  // Control flow and special operations
   describe("Control flow", () => {
 
     it("should handle empty program", () => {
@@ -65,7 +64,6 @@ describe("Interpreter", () => {
     });
   });
 
-  // Code blocks and evaluation
   describe("Code blocks", () => {
     it("should execute simple code block", () => {
       executeProgram("{30 20*} eval");
@@ -73,12 +71,12 @@ describe("Interpreter", () => {
     });
 
     it("should execute nested code blocks", () => {
-      executeProgram("{{4 2+}eval{3 2+}eval*}eval 2+");
+      executeProgram("{{4 2+}eval {3 2+}eval *}eval 2+");
       expectStack([32]);
     });
 
     it("should handle code blocks with stack operations", () => {
-      executeProgram("4{3 2*}eval+");
+      executeProgram("4{3 2*}eval +");
       expectStack([10]);
     });
 
