@@ -1,6 +1,6 @@
 import { NIL } from "./constants";
-import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
-import { Memory } from "./memory";
+import { BLOCK_NEXT, BLOCK_SIZE, Heap, USABLE_BLOCK_SIZE } from "./heap";
+import { HEAP_SIZE, Memory } from "./memory";
 
 describe("Heap", () => {
   let heap: Heap;
@@ -37,5 +37,96 @@ describe("Heap", () => {
     // Free the block
     heap.free(startBlock);
   });
-});
 
+  it("should return the total heap size initially", () => {
+    // Initially, the entire heap is free
+    expect(heap.available()).toBe(HEAP_SIZE);
+  });
+
+  it("should reduce available memory after allocation", () => {
+    const initialFreeMemory = heap.available();
+
+    // Allocate one block
+    const allocatedBlock = heap.malloc(64); // Allocate 64 bytes (requires one block)
+    expect(allocatedBlock).not.toBe(NIL);
+
+    // Check that available memory is reduced by USABLE_BLOCK_SIZE
+    expect(heap.available()).toBe(initialFreeMemory - BLOCK_SIZE);
+  });
+
+  it("should increase available memory after freeing", () => {
+    const initialFreeMemory = heap.available();
+
+    // Allocate one block
+    const allocatedBlock = heap.malloc(64); // Allocate 64 bytes (requires one block)
+    expect(allocatedBlock).not.toBe(NIL);
+
+    // Free the allocated block
+    heap.free(allocatedBlock);
+
+    // Check that available memory is restored to the initial value
+    expect(heap.available()).toBe(initialFreeMemory);
+  });
+
+  it("should handle multiple allocations and frees", () => {
+    const initialFreeMemory = heap.available();
+
+    // Allocate three blocks
+    const block1 = heap.malloc(USABLE_BLOCK_SIZE / 2); // Allocate 63 bytes (requires one block)
+    const block2 = heap.malloc(USABLE_BLOCK_SIZE); // Allocate 126 bytes (requires one block)
+    const block3 = heap.malloc(USABLE_BLOCK_SIZE * 2); // Allocate 252 bytes (requires two blocks)
+    expect(block1).not.toBe(NIL);
+    expect(block2).not.toBe(NIL);
+    expect(block3).not.toBe(NIL);
+
+    console.log(`After allocations: ${heap.available()}`);
+
+    // Check that available memory is reduced by 4 blocks (1 + 1 + 2)
+    expect(heap.available()).toBe(initialFreeMemory - 4 * BLOCK_SIZE);
+
+    // Free two blocks
+    heap.free(block1);
+    heap.free(block3);
+
+    console.log(`After freeing two blocks: ${heap.available()}`);
+
+    // Check that available memory is increased by 3 blocks (1 + 2)
+    expect(heap.available()).toBe(initialFreeMemory - BLOCK_SIZE); // Only block2 (1 block) remains allocated
+
+    // Free the remaining block
+    heap.free(block2);
+
+    console.log(`After freeing all blocks: ${heap.available()}`);
+
+    // Check that available memory is back to initial value
+    expect(heap.available()).toBe(initialFreeMemory);
+  });
+
+  it("should return 0 if the heap is fully allocated", () => {
+    // Allocate all blocks in the heap
+    while (heap.malloc(USABLE_BLOCK_SIZE) !== NIL) {}
+
+    // Check that available memory is 0
+    expect(heap.available()).toBe(0);
+  });
+
+  it("should restore available memory after freeing all blocks", () => {
+    const initialFreeMemory = heap.available();
+
+    // Allocate all blocks in the heap
+    const allocatedBlocks: number[] = [];
+    let block = heap.malloc(USABLE_BLOCK_SIZE);
+    while (block !== NIL) {
+      allocatedBlocks.push(block);
+      block = heap.malloc(USABLE_BLOCK_SIZE);
+    }
+
+    // Free all allocated blocks
+    for (const block of allocatedBlocks) {
+      heap.free(block);
+    }
+
+    // Check that available memory is restored to the initial value
+    expect(heap.available()).toBe(initialFreeMemory);
+  });
+});

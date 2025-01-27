@@ -108,64 +108,58 @@ export function arrayCreate(
  * @param indices - The multi-dimensional indices.
  * @returns The element at the specified indices, or undefined if out of bounds.
  */
+// Updated arrayGet function
 export function arrayGet(
   memory: Memory,
   startBlock: number,
   indices: number[]
 ): number | undefined {
-  const numDimensions = memory.read16(startBlock + ARR_DIM); // Read number of dimensions
+  const numDimensions = memory.read16(startBlock + ARR_DIM);
 
-  // Validate the number of indices
   if (indices.length !== numDimensions) {
     throw new Error(
       `Expected ${numDimensions} indices, but got ${indices.length}.`
     );
   }
 
-  // Read shape and strides
   const shape: number[] = [];
   for (let i = 0; i < numDimensions; i++) {
-    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2)); // Read shape
+    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
   }
 
   const strides: number[] = [];
   for (let i = 0; i < numDimensions - 1; i++) {
-    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2)); // Read strides
+    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2));
   }
 
-  // Calculate flat index
-  let flatIndex = indices[indices.length - 1]; // Start with the innermost index
+  let flatIndex = indices[indices.length - 1];
   for (let i = 0; i < strides.length; i++) {
-    flatIndex += indices[i] * strides[i]; // Add contributions from other dimensions
+    flatIndex += indices[i] * strides[i];
   }
 
-  // Traverse the blocks to find the correct position
   let currentBlock = startBlock;
   let elementsRead = 0;
 
   while (currentBlock !== NIL) {
-    // Calculate the number of elements in the current block
-    const elementsInBlock = Math.floor((BLOCK_SIZE - 2) / 4); // Each element is 4 bytes (Float32)
-
-    // Determine where the data starts in the current block
     const dataStartOffset = currentBlock === startBlock
-      ? ARR_DATA // First block
-      : 2; // Subsequent blocks (after the BLOCK_NEXT pointer)
+      ? ARR_DATA
+      : ARR_DATA2;
 
-    // Check if the target index is in this block
+    const elementsInBlock = Math.floor(
+      (BLOCK_SIZE - dataStartOffset) / 4
+    );
+
     if (flatIndex < elementsRead + elementsInBlock) {
-      const offset = dataStartOffset + (flatIndex - elementsRead) * 4; // 4 bytes per element
-      return memory.readFloat(currentBlock + offset); // Read the element from the block
+      const offset = dataStartOffset + (flatIndex - elementsRead) * 4;
+      return memory.readFloat(currentBlock + offset);
     }
 
-    // Move to the next block
     elementsRead += elementsInBlock;
-    currentBlock = memory.read16(currentBlock + BLOCK_NEXT); // Read next block pointer (16-bit)
+    currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
 
-  return undefined; // Index is out of bounds
+  return undefined;
 }
-
 
 /**
  * Updates an element in a multi-dimensional array.
@@ -187,6 +181,19 @@ export function arrayUpdate(
     throw new Error(
       `Expected ${numDimensions} indices, but got ${indices.length}.`
     );
+  }
+
+  // Read shape
+  const shape: number[] = [];
+  for (let i = 0; i < numDimensions; i++) {
+    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
+  }
+
+  // Validate indices against shape
+  for (let i = 0; i < numDimensions; i++) {
+    if (indices[i] >= shape[i] || indices[i] < 0) {
+      throw new Error("Index out of bounds");
+    }
   }
 
   // Read strides (only non-redundant strides are stored)
@@ -226,21 +233,22 @@ function findArrayPosition(
   let elementsRead = 0;
 
   while (currentBlock !== NIL) {
-    // Calculate the number of elements in the current block
-    const elementsInBlock = Math.floor((BLOCK_SIZE - 2) / 4); // Each element is 4 bytes (Float32), leaving 2 bytes for BLOCK_NEXT pointer
+    const dataStartOffset = currentBlock === startBlock
+      ? ARR_DATA
+      : ARR_DATA2;
 
-    // Check if the target index is in this block
+    const elementsInBlock = Math.floor(
+      (BLOCK_SIZE - dataStartOffset) / 4
+    );
+
     if (flatIndex < elementsRead + elementsInBlock) {
-      const offset =
-        (currentBlock === startBlock ? ARR_DATA : ARR_DATA2) +
-        (flatIndex - elementsRead) * 4; // Use ARR_DATA2 for subsequent blocks
+      const offset = dataStartOffset + (flatIndex - elementsRead) * 4;
       return { block: currentBlock, offset };
     }
 
-    // Move to the next block
     elementsRead += elementsInBlock;
-    currentBlock = memory.read16(currentBlock + BLOCK_NEXT); // Read next block pointer (16-bit)
+    currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
 
-  return null; // Index is out of bounds
+  return null;
 }

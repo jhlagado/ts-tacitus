@@ -3,6 +3,7 @@ import { Memory, HEAP, HEAP_SIZE } from "./memory"; // Import memory-related con
 
 export const BLOCK_SIZE = 128; // Each block is 128 bytes
 export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block (16-bit, so occupies 2 bytes)
+export const USABLE_BLOCK_SIZE = BLOCK_SIZE - 2;   // Account for the 2-byte overhead
 
 export class Heap {
   memory: Memory;
@@ -36,8 +37,7 @@ export class Heap {
     if (size <= 0) return NIL;
 
     // Calculate the number of blocks needed, accounting for the 2-byte overhead
-    const usableSizePerBlock = BLOCK_SIZE - 2; // Available storage per block
-    const numBlocks = Math.ceil(size / usableSizePerBlock);
+    const numBlocks = Math.ceil(size / USABLE_BLOCK_SIZE);
 
     let current = this.freeList;
     let prev = NIL;
@@ -86,5 +86,21 @@ export class Heap {
     // Link the freed blocks back into the free list
     this.memory.write16(current + BLOCK_NEXT, oldFreeListHead);
     this.freeList = pointer;
+  }
+
+  available(): number {
+    let current = this.freeList;
+    let freeBlocks = 0;
+  
+    // Traverse the free list and count the number of free blocks
+    while (current !== NIL) {
+      freeBlocks++;
+      current = this.memory.read16(current + BLOCK_NEXT);
+    }
+  
+    // Multiply the number of free blocks by the block size to get the total free memory
+    const totalFreeMemory = freeBlocks * BLOCK_SIZE;
+    console.log(`Free blocks: ${freeBlocks}, Total free memory: ${totalFreeMemory}`);
+    return totalFreeMemory;
   }
 }
