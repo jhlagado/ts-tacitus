@@ -37,16 +37,15 @@ describe("Heap", () => {
       expect(ptr).toBe(HEAP); // First block is allocated
       expect(heap.freeList).toBe(HEAP + BLOCK_SIZE); // Free list points to the next block
       expect(memory.read16(ptr + BLOCK_NEXT)).toBe(NIL); // Allocated block points to NIL
-      expect(memory.read16(ptr + 2)).toBe(10); // Size is stored in the second 16-bit slot
     });
 
     it("should allocate multiple contiguous blocks", () => {
-      const ptr = heap.malloc(128); // Request 128 bytes (2 blocks)
+      const doubleSize = BLOCK_SIZE * 2;
+      const ptr = heap.malloc(doubleSize); // Request 128 bytes (2 blocks)
       expect(ptr).toBe(HEAP); // First block is allocated
-      expect(heap.freeList).toBe(HEAP + 2 * BLOCK_SIZE); // Free list points to the next available block
+      expect(heap.freeList).toBe(HEAP + doubleSize); // Free list points to the next available block
       expect(memory.read16(ptr + BLOCK_NEXT)).toBe(HEAP + BLOCK_SIZE); // First block points to the second
       expect(memory.read16(HEAP + BLOCK_SIZE + BLOCK_NEXT)).toBe(NIL); // Second block points to NIL
-      expect(memory.read16(ptr + 2)).toBe(128); // Size is stored in the second 16-bit slot
     });
 
     it("should return NIL if not enough memory is available", () => {

@@ -1,7 +1,7 @@
 import { NIL } from "./constants"; // Import NIL from constants.ts
 import { Memory, HEAP, HEAP_SIZE } from "./memory"; // Import memory-related constants from memory.ts
 
-export const BLOCK_SIZE = 64; // Each block is 64 bytes
+export const BLOCK_SIZE = 128; // Each block is 64 bytes (or any fixed size)
 export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block (16-bit, so occupies 2 bytes)
 
 export class Heap {
@@ -25,7 +25,7 @@ export class Heap {
     }
     // Mark the end of the free list
     this.memory.write16(current + BLOCK_NEXT, NIL); // Use NIL (0) to mark the end
-}
+  }
 
   /**
    * Allocates memory from the heap.
@@ -41,7 +41,7 @@ export class Heap {
     let startBlock = current;
     let blocksFound = 0;
 
-    // Traverse the free list to find enough contiguous blocks
+    // Traverse the free list to find enough blocks
     while (current !== NIL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
@@ -61,9 +61,6 @@ export class Heap {
     // Update the free list to skip the allocated blocks
     this.memory.write16(prev + BLOCK_NEXT, NIL);
     this.freeList = current;
-
-    // Store the size in the first block (optional, if needed for your use case)
-    this.memory.write16(startBlock + 2, size); // Store size in the second 16-bit slot
 
     return startBlock;
   }
