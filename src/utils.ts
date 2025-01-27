@@ -28,12 +28,16 @@ export function isWhitespace(char: string): boolean {
  */
 export function isSymbol(char: string): boolean {
   const charCode = char.charCodeAt(0);
-
-  // Check ranges for common symbols
   return (
-    (charCode >= 33 && charCode <= 47) || // ! " # $ % & ' ( ) * + , - . /
-    (charCode >= 58 && charCode <= 64) || // : ; < = > ? @
-    (charCode >= 91 && charCode <= 96) || // [ \ ] ^ _ `
-    (charCode >= 123 && charCode <= 126) // { | } ~
+    (charCode >= 0x21 && charCode <= 0x2f) || // ! " # $ % & ' ( ) * + , - . /
+    (charCode >= 0x3a && charCode <= 0x40) || // : ; < = > ? @
+    (charCode >= 0x5b && charCode <= 0x60) || // [ \ ] ^ _ `
+    (charCode >= 0x7b && charCode <= 0x7e) // { | } ~  );
   );
 }
+
+/**
+ * Checks if a character is of a grouping structure
+ */
+export const isGroupingChar = (char: string): boolean =>
+  "{}[]()\"'`".includes(char);

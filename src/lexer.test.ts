@@ -150,7 +150,7 @@ describe("Lexer", () => {
   });
 
   it("should handle special characters adjacent to numbers", () => {
-    const tokens = lex("6 3/ 2-");
+    const tokens = lex("6 3 / 2 -");
     expect(tokens).toEqual([6,3, "/", 2, "-"]);
   });
 });

@@ -39,7 +39,7 @@ describe("Parser - Colon Definitions", () => {
     );
   });
 
-  xit("should validate definition names", () => {
+  it("should validate definition names", () => {
     expect(() => parse(lex(": 123bad-name ;"))).toThrow(
       "Invalid definition name: 123"
     );
