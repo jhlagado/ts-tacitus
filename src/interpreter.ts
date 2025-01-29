@@ -1,19 +1,5 @@
 import {
-  abortOp,
-  skipBlockOp,
-  skipDefOp,
-  callOp,
-  divideOp,
-  dropOp,
-  dupOp,
-  evalOp,
-  exitOp,
-  literalNumberOp,
-  minusOp,
-  multiplyOp,
-  Op,
-  plusOp,
-  swapOp,
+  executeOp,
 } from "./builtins";
 import { vm } from "./globalState";
 
@@ -23,56 +9,7 @@ export function execute(start: number): void {
     const opcode = vm.next8(); // Read the 8-bit opcode
     if (vm.debug) console.log({ opcode }, vm.IP - 1);
     try {
-      switch (opcode) {
-        case Op.LiteralNumber:
-          literalNumberOp(vm);
-          break;
-        case Op.Branch:
-          skipDefOp(vm);
-          break;
-        case Op.BranchCall:
-          skipBlockOp(vm);
-          break;
-        case Op.Call:
-          callOp(vm);
-          break;
-        case Op.Abort:
-          abortOp(vm);
-          break;
-        case Op.Exit:
-          exitOp(vm);
-          break;
-        case Op.Eval:
-          evalOp(vm);
-          break;
-        case Op.Plus:
-          plusOp(vm);
-          break;
-        case Op.Minus:
-          minusOp(vm);
-          break;
-        case Op.Multiply:
-          multiplyOp(vm);
-          break;
-        case Op.Divide:
-          divideOp(vm);
-          break;
-        case Op.Dup:
-          dupOp(vm);
-          break;
-        case Op.Drop:
-          dropOp(vm);
-          break;
-        case Op.Swap:
-          swapOp(vm);
-          break;
-        default:
-          throw new Error(
-            `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
-              vm.getStackData()
-            )})`
-          );
-      }
+      executeOp(vm, opcode);
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
       const errorMessage =

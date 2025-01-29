@@ -2,7 +2,7 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import * as builtins from "./builtins";
+import * as math from "./builtins-math";
 import { Op } from "./builtins";
 
 describe("Interpreter", () => {
@@ -94,7 +94,7 @@ describe("Interpreter", () => {
     });
 
     it("should handle non-Error exceptions", () => {
-      jest.spyOn(builtins, "plusOp").mockImplementation(() => {
+      jest.spyOn(math, "plusOp").mockImplementation(() => {
         throw "Raw string error";
       });
       expect(() => executeProgram("5 3 +")).toThrow(

@@ -1,20 +1,7 @@
+import { abortOp, exitOp, evalOp, skipDefOp, callOp, skipBlockOp, literalNumberOp } from "./builtins-control";
+import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
+import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "./globalState";
-import {
-  abortOp,
-  skipBlockOp,
-  skipDefOp,
-  callOp,
-  divideOp,
-  dropOp,
-  dupOp,
-  evalOp,
-  exitOp,
-  literalNumberOp,
-  minusOp,
-  multiplyOp,
-  plusOp,
-  swapOp,
-} from "./builtins";
 import { CODE, RSTACK } from "./memory";
 import { TAG, toTaggedPtr } from "./tagged-ptr";
 import { toUnsigned16 } from "./utils";

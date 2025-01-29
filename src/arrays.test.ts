@@ -1,5 +1,5 @@
 import { BLOCK_SIZE, Heap } from "./heap";
-import { arrayCreate, arrayGet, arrayUpdate, MAX_DIMENSIONS } from "./marrays";
+import { arrayCreate, arrayGet, arrayUpdate, MAX_DIMENSIONS } from "./arrays";
 import { Memory } from "./memory";
 import { NIL } from "./constants";
 

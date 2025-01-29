@@ -1,6 +1,6 @@
-import { Op } from "./builtins";
+import { defineBuiltins, Op } from "./builtins";
 import { Memory } from "./memory";
-import { StringBuffer } from "./string-buffer";
+import { StringBuffer } from "./strings";
 import { Verb } from "./types";
 import { VM } from "./vm";
 
@@ -9,10 +9,6 @@ interface DictionaryNode {
   value: Verb;
   next: DictionaryNode | null;
 }
-
-const compileOpcode = (opcode: number) => (vm: VM) => {
-  vm.compiler.compile8(opcode);
-};
 
 const compileCall = (address: number) => (vm: VM) => {
   vm.compiler.compile8(Op.Call);
@@ -26,16 +22,8 @@ export class Dictionary {
   constructor(private memory: Memory) {
     this.head = null;
     this.stringBuffer = new StringBuffer(this.memory);
-    this.define("eval", compileOpcode(Op.Eval));
-    this.define("+", compileOpcode(Op.Plus));
-    this.define("-", compileOpcode(Op.Minus));
-    this.define("*", compileOpcode(Op.Multiply));
-    this.define("/", compileOpcode(Op.Divide));
-    this.define("dup", compileOpcode(Op.Dup));
-    this.define("drop", compileOpcode(Op.Drop));
-    this.define("swap", compileOpcode(Op.Swap));
+    defineBuiltins(this);
   }
-
   // Define a new word in the dictionary
   define(name: string, verb: Verb): void {
     const key = this.stringBuffer.add(name);
@@ -43,7 +31,7 @@ export class Dictionary {
     this.head = newNode;
   }
 
-  defineCall(name: string, address:number): void {
+  defineCall(name: string, address: number): void {
     this.define(name, compileCall(address));
   }
 
