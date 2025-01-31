@@ -16,8 +16,8 @@ export const HEAP_SIZE = MEMORY_SIZE - HEAP; // Remaining memory for heap
 export const CODE = HEAP; // Start of executable code (if needed)
 
 export class Memory {
-  private buffer: Uint8Array;
-  private dataView: DataView;
+  buffer: Uint8Array;
+  dataView: DataView;
 
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);

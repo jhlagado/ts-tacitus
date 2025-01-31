@@ -1,9 +1,10 @@
-import { NIL } from "./constants"; // Import NIL from constants.ts
-import { Memory, HEAP, HEAP_SIZE } from "./memory"; // Import memory-related constants from memory.ts
+import { NIL } from "./constants";
+import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
 export const BLOCK_SIZE = 128; // Each block is 128 bytes
-export const BLOCK_NEXT = 0; // Index 0: Pointer to the next block (16-bit, so occupies 2 bytes)
-export const USABLE_BLOCK_SIZE = BLOCK_SIZE - 2;   // Account for the 2-byte overhead
+export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)
+export const BLOCK_REFS = 2; // Offset for reference count (2 bytes)
+export const USABLE_BLOCK_SIZE = BLOCK_SIZE - 4; // Account for header
 
 export class Heap {
   memory: Memory;
@@ -15,92 +16,106 @@ export class Heap {
     this.initializeFreeList();
   }
 
-  /**
-   * Initializes the free list for the heap.
-   */
   private initializeFreeList(): void {
     let current = HEAP;
     while (current + BLOCK_SIZE < HEAP + HEAP_SIZE) {
       this.memory.write16(current + BLOCK_NEXT, current + BLOCK_SIZE);
+      this.memory.write16(current + BLOCK_REFS, 0); // Free blocks have 0 refs
       current += BLOCK_SIZE;
     }
-    // Mark the end of the free list
-    this.memory.write16(current + BLOCK_NEXT, NIL); // Use NIL (0) to mark the end
+    this.memory.write16(current + BLOCK_NEXT, NIL);
+    this.memory.write16(current + BLOCK_REFS, 0);
   }
 
-  /**
-   * Allocates memory from the heap.
-   * @param size - The size of the memory to allocate.
-   * @returns The starting block index or NIL if allocation fails.
-   */
+  // In Heap class
   malloc(size: number): number {
     if (size <= 0) return NIL;
 
-    // Calculate the number of blocks needed, accounting for the 2-byte overhead
     const numBlocks = Math.ceil(size / USABLE_BLOCK_SIZE);
-
     let current = this.freeList;
     let prev = NIL;
     let startBlock = current;
     let blocksFound = 0;
 
-    // Traverse the free list to find enough blocks
+    // Find contiguous blocks (original logic)
     while (current !== NIL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
-      current = this.memory.read16(current + BLOCK_NEXT); // Read the next block address
+      current = this.memory.read16(current + BLOCK_NEXT);
     }
 
-    // If not enough blocks are found, roll back and return NIL
     if (blocksFound < numBlocks) {
       if (startBlock !== NIL) {
-        // Restore the free list by linking the last found block back to the free list
         this.memory.write16(prev + BLOCK_NEXT, this.freeList);
         this.freeList = startBlock;
       }
       return NIL;
     }
 
-    // Update the free list to skip the allocated blocks
-    this.memory.write16(prev + BLOCK_NEXT, NIL);
-    this.freeList = current;
+    // Link blocks and set reference counts
+    let block = startBlock;
+    for (let i = 0; i < numBlocks; i++) {
+      this.memory.write16(block + BLOCK_REFS, 1);
 
-    return startBlock;
-  }
+      // Set BLOCK_NEXT to next physical block if not last
+      if (i < numBlocks - 1) {
+        const nextBlock = block + BLOCK_SIZE;
+        this.memory.write16(block + BLOCK_NEXT, nextBlock);
+      } else {
+        this.memory.write16(block + BLOCK_NEXT, NIL);
+      }
 
-  /**
-   * Frees memory back to the heap.
-   * @param pointer - The starting block index to free.
-   */
-  free(pointer: number): void {
-    if (pointer === NIL) return;
-
-    let current = pointer;
-    const oldFreeListHead = this.freeList;
-
-    // Traverse the blocks to find the end of the allocated region
-    while (this.memory.read16(current + BLOCK_NEXT) !== NIL) {
-      current = this.memory.read16(current + BLOCK_NEXT);
+      block += BLOCK_SIZE; // Move to next physical block
     }
 
-    // Link the freed blocks back into the free list
-    this.memory.write16(current + BLOCK_NEXT, oldFreeListHead);
-    this.freeList = pointer;
+    // Update free list
+    this.freeList = current;
+    return startBlock;
+  }
+  
+  free(pointer: number): void {
+    this.decrementRef(pointer);
+  }
+
+  decrementRef(block: number): void {
+    if (block === NIL) return;
+
+    const refs = this.memory.read16(block + BLOCK_REFS) - 1;
+    this.memory.write16(block + BLOCK_REFS, refs);
+
+    if (refs === 0) {
+      const next = this.memory.read16(block + BLOCK_NEXT);
+      this.decrementRef(next);
+      this.addToFreeList(block);
+    }
+  }
+
+  private addToFreeList(block: number): void {
+    this.memory.write16(block + BLOCK_NEXT, this.freeList);
+    this.freeList = block;
+  }
+
+  incrementRef(block: number): void {
+    if (block === NIL) return;
+    const refs = this.memory.read16(block + BLOCK_REFS);
+    this.memory.write16(block + BLOCK_REFS, refs + 1);
+  }
+
+  setNextBlock(parent: number, child: number): void {
+    const oldChild = this.memory.read16(parent + BLOCK_NEXT);
+    if (oldChild !== NIL) this.decrementRef(oldChild);
+
+    this.memory.write16(parent + BLOCK_NEXT, child);
+    if (child !== NIL) this.incrementRef(child);
   }
 
   available(): number {
+    let count = 0;
     let current = this.freeList;
-    let freeBlocks = 0;
-  
-    // Traverse the free list and count the number of free blocks
     while (current !== NIL) {
-      freeBlocks++;
+      count++;
       current = this.memory.read16(current + BLOCK_NEXT);
     }
-  
-    // Multiply the number of free blocks by the block size to get the total free memory
-    const totalFreeMemory = freeBlocks * BLOCK_SIZE;
-    console.log(`Free blocks: ${freeBlocks}, Total free memory: ${totalFreeMemory}`);
-    return totalFreeMemory;
+    return count * BLOCK_SIZE;
   }
 }
