@@ -1,4 +1,4 @@
-import { Op } from "./builtins";
+import { Op } from "./ops/builtins";
 import { vm } from "./globalState";
 
 export function parse(tokens: (string | number)[]): void {
@@ -27,11 +27,11 @@ export function parse(tokens: (string | number)[]): void {
 
       vm.compiler.compile8(Op.Branch);
       const branchPos = vm.compiler.CP;
-      vm.compiler.compile16(0); 
+      vm.compiler.compile16(0);
 
       const startAddress = vm.compiler.CP;
 
-      vm.dictionary.defineCall(nameToken, startAddress); 
+      vm.dictionary.defineCall(nameToken, startAddress);
 
       currentDefinition = {
         name: nameToken,

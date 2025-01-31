@@ -1,4 +1,4 @@
-import { defineBuiltins, Op } from "./builtins";
+import { defineBuiltins, Op } from "./ops/builtins";
 import { Memory } from "./memory";
 import { StringBuffer } from "./strings";
 import { Verb } from "./types";

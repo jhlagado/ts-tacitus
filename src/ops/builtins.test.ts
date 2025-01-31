@@ -1,10 +1,18 @@
-import { abortOp, exitOp, evalOp, skipDefOp, callOp, skipBlockOp, literalNumberOp } from "./builtins-control";
+import {
+  abortOp,
+  exitOp,
+  evalOp,
+  skipDefOp,
+  callOp,
+  skipBlockOp,
+  literalNumberOp,
+} from "./builtins-interpreter";
 import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
-import { initializeInterpreter, vm } from "./globalState";
-import { CODE, RSTACK } from "./memory";
-import { TAG, toTaggedPtr } from "./tagged-ptr";
-import { toUnsigned16 } from "./utils";
+import { initializeInterpreter, vm } from "../globalState";
+import { CODE, RSTACK } from "../memory";
+import { Tag, toTaggedPtr } from "../tagged-ptr";
+import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {
   beforeEach(() => {
@@ -231,7 +239,7 @@ describe("Built-in Words", () => {
     });
 
     it("should handle tagged pointers", () => {
-      const addr = toTaggedPtr(TAG.ADDRESS, 0x12345);
+      const addr = toTaggedPtr(Tag.ADDRESS, 0x12345);
       vm.compiler.compileFloat(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);

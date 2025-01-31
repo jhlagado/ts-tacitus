@@ -1,6 +1,6 @@
 import { NIL } from "./constants";
 import { BLOCK_NEXT, BLOCK_SIZE, Heap, USABLE_BLOCK_SIZE } from "./heap";
-import { HEAP_SIZE, Memory } from "./memory";
+import { HEAP, HEAP_SIZE, Memory } from "./memory";
 
 describe("Heap", () => {
   let heap: Heap;
@@ -79,8 +79,6 @@ describe("Heap", () => {
     expect(block2).not.toBe(NIL);
     expect(block3).not.toBe(NIL);
 
-    console.log(`After allocations: ${heap.available()}`);
-
     // Check that available memory is reduced by 4 blocks (1 + 1 + 2)
     expect(heap.available()).toBe(initialFreeMemory - 4 * BLOCK_SIZE);
 
@@ -88,15 +86,11 @@ describe("Heap", () => {
     heap.free(block1);
     heap.free(block3);
 
-    console.log(`After freeing two blocks: ${heap.available()}`);
-
     // Check that available memory is increased by 3 blocks (1 + 2)
     expect(heap.available()).toBe(initialFreeMemory - BLOCK_SIZE); // Only block2 (1 block) remains allocated
 
     // Free the remaining block
     heap.free(block2);
-
-    console.log(`After freeing all blocks: ${heap.available()}`);
 
     // Check that available memory is back to initial value
     expect(heap.available()).toBe(initialFreeMemory);
@@ -128,5 +122,30 @@ describe("Heap", () => {
 
     // Check that available memory is restored to the initial value
     expect(heap.available()).toBe(initialFreeMemory);
+  });
+
+  // Additional tests to cover specific lines
+
+  it("should handle allocation of zero or negative size", () => {
+    const block = heap.malloc(0);
+    expect(block).toBe(NIL);
+
+    const negativeBlock = heap.malloc(-10);
+    expect(negativeBlock).toBe(NIL);
+  });
+
+  it("should handle freeing NIL pointer", () => {
+    heap.free(NIL);
+    // No assertion needed, just ensure no error is thrown
+  });
+
+  it("should handle freeing a block and re-allocating it", () => {
+    const block = heap.malloc(64);
+    expect(block).not.toBe(NIL);
+
+    heap.free(block);
+
+    const newBlock = heap.malloc(64);
+    expect(newBlock).toBe(block);
   });
 });

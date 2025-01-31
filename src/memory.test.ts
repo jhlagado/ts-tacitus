@@ -25,9 +25,7 @@ describe("Memory", () => {
     expect(() => memory.write8(MEMORY_SIZE, 1)).toThrow(RangeError);
     expect(() => memory.read8(MEMORY_SIZE)).toThrow(RangeError);
 
-    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 1.23)).toThrow(
-      RangeError
-    );
+    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 1.23)).toThrow(RangeError);
     expect(() => memory.readFloat(MEMORY_SIZE - 3)).toThrow(RangeError);
   });
 
@@ -57,52 +55,49 @@ describe("Memory", () => {
 
   test("should throw RangeError for 16-bit boundary violations", () => {
     // Writing 1 byte past end
-    expect(() => memory.write16(MEMORY_SIZE - 1, 0x1234))
-      .toThrow(RangeError);
+    expect(() => memory.write16(MEMORY_SIZE - 1, 0x1234)).toThrow(RangeError);
 
     // Reading 1 byte past end
-    expect(() => memory.read16(MEMORY_SIZE - 1))
-      .toThrow(RangeError);
+    expect(() => memory.read16(MEMORY_SIZE - 1)).toThrow(RangeError);
   });
 
   test("should handle tagged address pointers", () => {
     const testAddress = 0x1234;
-    
+
     // Write/read valid address
     memory.writeAddress(20, testAddress);
     expect(memory.readAddress(20)).toBe(testAddress);
 
     // Test invalid tag handling
     memory.writeFloat(24, 123.45); // Write non-tagged float
-    expect(() => memory.readAddress(24))
-      .toThrow("Value is not a NaN");
+    expect(() => memory.readAddress(24)).toThrow(
+      "Value is not a Tagged Pointer"
+    );
   });
 
   test("should handle tagged integer values", () => {
     const testValue = -12345;
-    
+
     // Write/read valid integer
     memory.writeInteger(40, testValue);
     expect(memory.readInteger(40)).toBe(testValue);
 
     // Test invalid tag handling
     memory.writeFloat(44, 3.14159); // Write non-tagged float
-    expect(() => memory.readInteger(44))
-      .toThrow("Value is not a NaN");
+    expect(() => memory.readInteger(44)).toThrow(
+      "Value is not a Tagged Pointer"
+    );
   });
 
   test("should handle invalid dump ranges", () => {
     // Start > end
-    expect(() => memory.dump(10, 5))
-      .toThrow(RangeError);
+    expect(() => memory.dump(10, 5)).toThrow(RangeError);
 
     // Negative start
-    expect(() => memory.dump(-1, 5))
-      .toThrow(RangeError);
+    expect(() => memory.dump(-1, 5)).toThrow(RangeError);
 
     // End beyond memory
-    expect(() => memory.dump(0, MEMORY_SIZE))
-      .toThrow(RangeError);
+    expect(() => memory.dump(0, MEMORY_SIZE)).toThrow(RangeError);
   });
 
   test("should handle full float boundary conditions", () => {
@@ -112,7 +107,28 @@ describe("Memory", () => {
     expect(memory.readFloat(lastFloatAddress)).toBeCloseTo(1.234);
 
     // Invalid float at memory end
-    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 5.678))
-      .toThrow(RangeError);
+    expect(() => memory.writeFloat(MEMORY_SIZE - 3, 5.678)).toThrow(RangeError);
+  });
+
+  // Additional tests to cover specific lines
+
+  test("should handle dumping memory as characters", () => {
+    memory.write8(0, 0x41); // 'A'
+    memory.write8(1, 0x42); // 'B'
+    memory.write8(2, 0x43); // 'C'
+
+    const dumpChars = memory.dumpChars(0, 2);
+    expect(dumpChars).toBe("A B C");
+  });
+
+  test("should handle invalid dumpChars ranges", () => {
+    // Start > end
+    expect(() => memory.dumpChars(10, 5)).toThrow(RangeError);
+
+    // Negative start
+    expect(() => memory.dumpChars(-1, 5)).toThrow(RangeError);
+
+    // End beyond memory
+    expect(() => memory.dumpChars(0, MEMORY_SIZE)).toThrow(RangeError);
   });
 });

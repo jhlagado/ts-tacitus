@@ -1,6 +1,6 @@
-import { VM } from "./vm";
-import { Verb } from "./types";
-import { STACK } from "./memory";
+import { VM } from "../vm";
+import { Verb } from "../types";
+import { STACK } from "../memory";
 
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < STACK + 1) {

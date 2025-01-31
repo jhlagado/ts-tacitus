@@ -1,5 +1,5 @@
-import { VM } from "./vm";
-import { Verb } from "./types";
+import { VM } from "../vm";
+import { Verb } from "../types";
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat();

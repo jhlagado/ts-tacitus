@@ -1,5 +1,5 @@
-import { VM } from "./vm";
-import { Dictionary } from "./dictionary";
+import { VM } from "../vm";
+import { Dictionary } from "../dictionary";
 
 import {
   literalNumberOp,
@@ -9,7 +9,7 @@ import {
   abortOp,
   exitOp,
   evalOp,
-} from "./builtins-control";
+} from "./builtins-interpreter";
 
 import {
   plusOp,
@@ -36,6 +36,19 @@ import {
 } from "./builtins-monadic";
 
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
+
+import {
+  absOp,
+  negOp,
+  signOp,
+  expOp,
+  lnOp,
+  logOp,
+  sqrtOp,
+  powOp,
+  avgOp,
+  prodOp,
+} from "./arithmetic-ops";
 
 export enum Op {
   // Control Flow (0-6)
@@ -107,7 +120,20 @@ export enum Op {
   // Special Forms (50-51)
   mIn, // 50 in
   mKey, // 51 m!
+
+  // Arithmetic Operators (52-63)
+  Abs, // 52 abs
+  Neg, // 53 neg
+  Sign, // 54 sign
+  Exp, // 55 exp
+  Ln, // 56 ln
+  Log, // 57 log
+  Sqrt, // 58 sqrt
+  Pow, // 59 pow
+  Avg, // 60 avg
+  Prod, // 61 prod
 }
+
 export const executeOp = (vm: VM, opcode: Op) => {
   switch (opcode) {
     // Control Flow
@@ -202,6 +228,38 @@ export const executeOp = (vm: VM, opcode: Op) => {
       swapOp(vm);
       break;
 
+    // Arithmetic Operators
+    case Op.Abs:
+      absOp(vm);
+      break;
+    case Op.Neg:
+      negOp(vm);
+      break;
+    case Op.Sign:
+      signOp(vm);
+      break;
+    case Op.Exp:
+      expOp(vm);
+      break;
+    case Op.Ln:
+      lnOp(vm);
+      break;
+    case Op.Log:
+      logOp(vm);
+      break;
+    case Op.Sqrt:
+      sqrtOp(vm);
+      break;
+    case Op.Pow:
+      powOp(vm);
+      break;
+    case Op.Avg:
+      avgOp(vm);
+      break;
+    case Op.Prod:
+      prodOp(vm);
+      break;
+
     default:
       throw new Error(
         `Invalid opcode: ${opcode} (stack: ${JSON.stringify(
@@ -245,4 +303,16 @@ export const defineBuiltins = (dict: Dictionary) => {
   dict.define("dup", compileOpcode(Op.Dup));
   dict.define("drop", compileOpcode(Op.Drop));
   dict.define("swap", compileOpcode(Op.Swap));
+
+  // Arithmetic Operators
+  dict.define("abs", compileOpcode(Op.Abs));
+  dict.define("neg", compileOpcode(Op.Neg));
+  dict.define("sign", compileOpcode(Op.Sign));
+  dict.define("exp", compileOpcode(Op.Exp));
+  dict.define("ln", compileOpcode(Op.Ln));
+  dict.define("log", compileOpcode(Op.Log));
+  dict.define("sqrt", compileOpcode(Op.Sqrt));
+  dict.define("pow", compileOpcode(Op.Pow));
+  dict.define("avg", compileOpcode(Op.Avg));
+  dict.define("prod", compileOpcode(Op.Prod));
 };

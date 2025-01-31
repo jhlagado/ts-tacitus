@@ -4,12 +4,13 @@ import {
   isNPtr,
   getTag,
   getPointer,
-  TAG,
+  Tag,
+  TAG_ANY,
 } from "./tagged-ptr";
 
 describe("NPtr Library", () => {
   // Test all tag types
-  for (const [type, tag] of Object.entries(TAG)) {
+  for (const [type, tag] of Object.entries(Tag)) {
     it(`should encode and decode a ${type} tag and pointer`, () => {
       const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
       const nPtr = toTaggedPtr(tag, pointer);
@@ -18,7 +19,10 @@ describe("NPtr Library", () => {
       expect(isNPtr(nPtr)).toBe(true);
 
       // Decode the NPtr value
-      const { tag: decodedTag, pointer: decodedPointer } = fromTaggedPtr(nPtr);
+      const { tag: decodedTag, pointer: decodedPointer } = fromTaggedPtr(
+        TAG_ANY,
+        nPtr
+      );
       expect(decodedTag).toBe(tag);
       expect(decodedPointer).toBe(pointer);
 
@@ -38,27 +42,29 @@ describe("NPtr Library", () => {
   });
 
   it("should throw an error for invalid pointers", () => {
-    expect(() => toTaggedPtr(TAG.ADDRESS, -1)).toThrow(
+    expect(() => toTaggedPtr(Tag.ADDRESS, -1)).toThrow(
       "Pointer must be a 20-bit value"
     );
-    expect(() => toTaggedPtr(TAG.ADDRESS, 0x100000)).toThrow(
+    expect(() => toTaggedPtr(Tag.ADDRESS, 0x100000)).toThrow(
       "Pointer must be a 20-bit value"
     );
-    expect(() => toTaggedPtr(TAG.INTEGER, -524289)).toThrow(
+    expect(() => toTaggedPtr(Tag.INTEGER, -524289)).toThrow(
       "Pointer must be a 20-bit signed integer"
     );
-    expect(() => toTaggedPtr(TAG.INTEGER, 524288)).toThrow(
+    expect(() => toTaggedPtr(Tag.INTEGER, 524288)).toThrow(
       "Pointer must be a 20-bit signed integer"
     );
   });
 
   it("should throw an error when decoding a non-NaN value", () => {
-    expect(() => fromTaggedPtr(3.14)).toThrow("Value is not a NaN");
+    expect(() => fromTaggedPtr(TAG_ANY, 3.14)).toThrow(
+      "Value is not a Tagged Pointer"
+    );
   });
 
   it("should check if a value is an NPtr value", () => {
     const pointer = 0x9abcd; // 20-bit pointer
-    const nPtr = toTaggedPtr(TAG.ADDRESS, pointer);
+    const nPtr = toTaggedPtr(Tag.ADDRESS, pointer);
 
     expect(isNPtr(nPtr)).toBe(true);
     expect(isNPtr(3.14)).toBe(false);

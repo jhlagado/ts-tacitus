@@ -1,4 +1,4 @@
-import { fromTaggedPtr, toTaggedPtr, TAG } from "./tagged-ptr";
+import { fromTaggedPtr, toTaggedPtr, Tag } from "./tagged-ptr";
 
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 
@@ -83,28 +83,22 @@ export class Memory {
   }
 
   writeAddress(address: number, value: number): void {
-    this.writeFloat(address, toTaggedPtr(TAG.ADDRESS, value));
+    this.writeFloat(address, toTaggedPtr(Tag.ADDRESS, value));
   }
 
   readAddress(address: number): number {
     const nPtr = this.readFloat(address); // Read the tagged pointer as a float
-    const { tag, pointer } = fromTaggedPtr(nPtr);
-    if (tag !== TAG.ADDRESS) {
-      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
-    }
+    const { pointer } = fromTaggedPtr(Tag.ADDRESS, nPtr);
     return pointer;
   }
 
   writeInteger(address: number, value: number): void {
-    this.writeFloat(address, toTaggedPtr(TAG.INTEGER, value));
+    this.writeFloat(address, toTaggedPtr(Tag.INTEGER, value));
   }
 
   readInteger(address: number): number {
     const nPtr = this.readFloat(address); // Read the tagged pointer as a float
-    const { tag, pointer } = fromTaggedPtr(nPtr);
-    if (tag !== TAG.INTEGER) {
-      throw new Error(`Expected an ADDRESS, got tag ${tag}`);
-    }
+    const { pointer } = fromTaggedPtr(Tag.INTEGER, nPtr);
     return pointer;
   }
 

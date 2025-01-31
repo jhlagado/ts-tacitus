@@ -1,4 +1,4 @@
-export const TAG = {
+export const Tag = {
   INTEGER: 0b001, // 1 (signed 20-bit integer)
   ADDRESS: 0b010, // 2 (unsigned 20-bit pointer)
   STRING: 0b011, // 3
@@ -8,6 +8,8 @@ export const TAG = {
   CUSTOM3: 0b111, // 7
 };
 
+export const TAG_ANY = 0;
+
 // Constants
 const TAG_BITS = 3; // 3 bits for the tag (2 bits in mantissa + 1 sign bit)
 const POINTER_BITS = 20; // 20 bits for the pointer
@@ -15,6 +17,20 @@ const EXPONENT_MASK = 0xff << 23; // Exponent mask for NaN
 const TAG_MANTISSA_MASK = 0b11 << POINTER_BITS; // Tag mask in mantissa (bits 20-21)
 const POINTER_MASK = (1 << POINTER_BITS) - 1; // Pointer mask (bits 0-19)
 const NAN_BIT = 1 << 22; // Force the 23rd bit of the mantissa to 1
+
+/**
+ * Returns the name of the tag given its value.
+ * @param tagValue - The value of the tag (0..7).
+ * @returns The name of the tag.
+ */
+export function tagName(tagValue: number): string {
+  for (const [key, value] of Object.entries(Tag)) {
+    if (value === tagValue) {
+      return key;
+    }
+  }
+  throw new Error(`Invalid tag value: ${tagValue}`);
+}
 
 /**
  * Encodes a 20-bit pointer and a 3-bit tag into a Float32 NaN value.
@@ -29,7 +45,7 @@ export function toTaggedPtr(tag: number, pointer: number): number {
 
   let encodedPointer: number;
 
-  if (tag === TAG.INTEGER) {
+  if (tag === Tag.INTEGER) {
     // Handle signed integers (two's complement)
     if (pointer < -524288 || pointer > 524287) {
       throw new Error(
@@ -69,12 +85,15 @@ export function toTaggedPtr(tag: number, pointer: number): number {
  * @param {number} taggedPtr - The encoded Float32 NaN value.
  * @returns {Object} - An object containing the tag and pointer.
  */
-export function fromTaggedPtr(taggedPtr: number): {
+export function fromTaggedPtr(
+  tag: number,
+  taggedPtr: number
+): {
   tag: number;
   pointer: number;
 } {
   if (!isNaN(taggedPtr)) {
-    throw new Error("Value is not a NaN");
+    throw new Error("Value is not a Tagged Pointer");
   }
 
   // Interpret the Float32 as a 32-bit integer
@@ -86,17 +105,23 @@ export function fromTaggedPtr(taggedPtr: number): {
   // Extract the tag and pointer
   const signBit = (intValue >>> 31) & 0b1; // Third tag bit from the sign bit
   const mantissaTagBits = (intValue & TAG_MANTISSA_MASK) >>> POINTER_BITS; // First two tag bits from bits 20-21
-  const tag = (signBit << 2) | mantissaTagBits; // Combine to form the 3-bit tag
-  const pointer = intValue & POINTER_MASK; // Extract the 20-bit pointer
+  const dataTag = (signBit << 2) | mantissaTagBits; // Combine to form the 3-bit tag
+  const dataPointer = intValue & POINTER_MASK; // Extract the 20-bit pointer
 
-  // Handle signed integers for the INTEGER tag
-  if (tag === TAG.INTEGER) {
-    const isNegative = (pointer & (1 << (POINTER_BITS - 1))) !== 0; // Check the sign bit
-    const signedPointer = isNegative ? pointer - (1 << POINTER_BITS) : pointer; // Convert to signed
-    return { tag, pointer: signedPointer };
+  if (tag !== TAG_ANY) {
+    if (tag !== dataTag) {
+      throw new Error(`Expected tag ${tagName(tag)}, got tag ${tagName(dataTag)}`);
+    }
   }
 
-  return { tag, pointer };
+  // Handle signed integers for the INTEGER tag
+  if (dataTag === Tag.INTEGER) {
+    const isNegative = (dataPointer & (1 << (POINTER_BITS - 1))) !== 0; // Check the sign bit
+    const signedPointer = isNegative ? dataPointer - (1 << POINTER_BITS) : dataPointer; // Convert to signed
+    return { tag: dataTag, pointer: signedPointer };
+  }
+
+  return { tag: dataTag, pointer: dataPointer };
 }
 
 /**
@@ -114,7 +139,7 @@ export function isNPtr(value: number): boolean {
  * @returns {number} - The 3-bit tag.
  */
 export function getTag(taggedPtr: number): number {
-  return fromTaggedPtr(taggedPtr).tag;
+  return fromTaggedPtr(TAG_ANY, taggedPtr).tag;
 }
 
 /**
@@ -123,5 +148,5 @@ export function getTag(taggedPtr: number): number {
  * @returns {number} - The 20-bit pointer (signed for INTEGER tag, unsigned otherwise).
  */
 export function getPointer(taggedPtr: number): number {
-  return fromTaggedPtr(taggedPtr).pointer;
+  return fromTaggedPtr(TAG_ANY, taggedPtr).pointer;
 }

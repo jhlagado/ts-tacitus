@@ -2,8 +2,8 @@ import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
 import { vm, initializeInterpreter } from "./globalState";
-import * as math from "./builtins-math";
-import { Op } from "./builtins";
+import * as math from "./ops/builtins-math";
+import { Op } from "./ops/builtins";
 
 describe("Interpreter", () => {
   beforeEach(() => {
@@ -57,7 +57,6 @@ describe("Interpreter", () => {
   });
 
   describe("Control flow", () => {
-
     it("should handle empty program", () => {
       executeProgram("");
       expectStack([]);
