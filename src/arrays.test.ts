@@ -166,7 +166,7 @@ describe("Array Functions", () => {
     const startBlock = arrayCreate(heap, shape, data);
 
     expect(() => arrayGet(heap, startBlock, [1])).toThrow(
-      `Expected ${shape.length} indices, but got 1.`
+      `Expected ${shape.length} indices, got 1.`
     );
   });
 
@@ -176,7 +176,7 @@ describe("Array Functions", () => {
     const startBlock = arrayCreate(heap, shape, data);
 
     expect(() => arrayUpdate(heap, startBlock, [1], 10)).toThrow(
-      `Expected ${shape.length} indices, but got 1.`
+      `Expected ${shape.length} indices, got 1.`
     );
   });
 

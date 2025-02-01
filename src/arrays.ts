@@ -200,7 +200,7 @@ export function arrayUpdate(
 
       // Handle reference counting for array values
       const oldValue = memory.readFloat(currentBlock + offset);
-      if (!isNaN(oldValue)) {
+      if (isNaN(oldValue)) {
         const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
         if (tag === Tag.ARRAY) heap.decrementRef(pointer);
       }
