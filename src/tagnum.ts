@@ -38,7 +38,7 @@ export function tagName(tagValue: number): string {
  * @param {number} pointer - The 20-bit pointer (0-1048575 for unsigned, -524288 to 524287 for signed).
  * @returns {number} - The encoded Float32 NaN value.
  */
-export function toTaggedPtr(tag: number, pointer: number): number {
+export function toTagNum(tag: number, pointer: number): number {
   if (tag < 1 || tag > 7) {
     throw new Error(`Tag must be a ${TAG_BITS}-bit value (1-7)`);
   }
@@ -70,36 +70,36 @@ export function toTaggedPtr(tag: number, pointer: number): number {
   const mantissaTagBits = (tag & 0b11) << POINTER_BITS; // First two tag bits go into bits 20-21
 
   // Combine the sign bit, exponent, mantissa tag bits, and pointer
-  const taggedPtr =
+  const tagNum =
     signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedPointer;
 
   // Interpret the integer as a Float32
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
-  view.setUint32(0, taggedPtr, true); // Little-endian
+  view.setUint32(0, tagNum, true); // Little-endian
   return view.getFloat32(0, true); // Return as Float32
 }
 
 /**
  * Decodes a Float32 NaN value into a 3-bit tag and a 20-bit pointer.
- * @param {number} taggedPtr - The encoded Float32 NaN value.
+ * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {Object} - An object containing the tag and pointer.
  */
-export function fromTaggedPtr(
+export function fromTagNum(
   tag: number,
-  taggedPtr: number
+  tagNum: number
 ): {
   tag: number;
   pointer: number;
 } {
-  if (!isNaN(taggedPtr)) {
+  if (!isNaN(tagNum)) {
     throw new Error("Value is not a Tagged Pointer");
   }
 
   // Interpret the Float32 as a 32-bit integer
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
-  view.setFloat32(0, taggedPtr, true); // Little-endian
+  view.setFloat32(0, tagNum, true); // Little-endian
   const intValue = view.getUint32(0, true);
 
   // Extract the tag and pointer
@@ -135,18 +135,18 @@ export function isNPtr(value: number): boolean {
 
 /**
  * Extracts the tag from an NPtr value.
- * @param {number} taggedPtr - The encoded Float32 NaN value.
+ * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {number} - The 3-bit tag.
  */
-export function getTag(taggedPtr: number): number {
-  return fromTaggedPtr(TAG_ANY, taggedPtr).tag;
+export function getTag(tagNum: number): number {
+  return fromTagNum(TAG_ANY, tagNum).tag;
 }
 
 /**
  * Extracts the pointer from an NPtr value.
- * @param {number} taggedPtr - The encoded Float32 NaN value.
+ * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {number} - The 20-bit pointer (signed for INTEGER tag, unsigned otherwise).
  */
-export function getPointer(taggedPtr: number): number {
-  return fromTaggedPtr(TAG_ANY, taggedPtr).pointer;
+export function getPointer(tagNum: number): number {
+  return fromTagNum(TAG_ANY, tagNum).pointer;
 }

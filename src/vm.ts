@@ -2,7 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTaggedPtr, toTaggedPtr } from "./tagged-ptr";
+import { Tag, fromTagNum, toTagNum } from "./tagnum";
 
 export class VM {
   memory: Memory;
@@ -58,22 +58,22 @@ export class VM {
   }
 
   pushAddress(value: number): void {
-    this.push(toTaggedPtr(Tag.ADDRESS, value));
+    this.push(toTagNum(Tag.ADDRESS, value));
   }
 
   popAddress(): number {
     const nPtr = this.pop();
-    const { pointer } = fromTaggedPtr(Tag.ADDRESS, nPtr);
+    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
     return pointer;
   }
 
   pushInteger(value: number): void {
-    this.push(toTaggedPtr(Tag.INTEGER, value));
+    this.push(toTagNum(Tag.INTEGER, value));
   }
 
   popInteger(): number {
     const nPtr = this.pop();
-    const { pointer } = fromTaggedPtr(Tag.INTEGER, nPtr);
+    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
     return pointer;
   }
 
@@ -108,22 +108,22 @@ export class VM {
   }
 
   rpushAddress(value: number): void {
-    this.rpush(toTaggedPtr(Tag.ADDRESS, value));
+    this.rpush(toTagNum(Tag.ADDRESS, value));
   }
 
   rpopAddress(): number {
     const nPtr = this.rpop();
-    const { pointer } = fromTaggedPtr(Tag.ADDRESS, nPtr);
+    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
     return pointer;
   }
 
   rpushInteger(value: number): void {
-    this.rpush(toTaggedPtr(Tag.INTEGER, value));
+    this.rpush(toTagNum(Tag.INTEGER, value));
   }
 
   rpopInteger(): number {
     const nPtr = this.rpop();
-    const { pointer } = fromTaggedPtr(Tag.INTEGER, nPtr);
+    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
     return pointer;
   }
 
@@ -168,7 +168,7 @@ export class VM {
    */
   nextAddress(): number {
     const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTaggedPtr(Tag.ADDRESS, nPtr);
+    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
     return pointer;
   }
 
@@ -177,7 +177,7 @@ export class VM {
    */
   nextInteger(): number {
     const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTaggedPtr(Tag.INTEGER, nPtr);
+    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
     return pointer;
   }
 

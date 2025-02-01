@@ -17,22 +17,22 @@ describe("Array Functions", () => {
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
     expect(startBlock).not.toBe(NIL);
-    expect(arrayGet(memory, startBlock, [1, 2])).toBe(6);
+    expect(arrayGet(heap, startBlock, [1, 2])).toBe(6);
   });
 
   it("should update elements in multi-block arrays", () => {
     const shape = [2, 3];
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
-    arrayUpdate(memory, startBlock, [1, 2], 32);
-    expect(arrayGet(memory, startBlock, [1, 2])).toBe(32);
+    arrayUpdate(heap, startBlock, [1, 2], 32);
+    expect(arrayGet(heap, startBlock, [1, 2])).toBe(32);
   });
 
   it("should access elements in multi-block arrays", () => {
     const elementsPerBlock = 10;
     const bigArray = Array.from({ length: elementsPerBlock + 5 }, (_, i) => i);
     const startBlock = arrayCreate(heap, [1], bigArray);
-    expect(arrayGet(memory, startBlock, [elementsPerBlock + 4])).toBe(
+    expect(arrayGet(heap, startBlock, [elementsPerBlock + 4])).toBe(
       elementsPerBlock + 4
     );
   });
@@ -46,15 +46,15 @@ describe("Array Functions", () => {
       expect(startBlock).not.toBe(NIL);
   
       // Verify the elements using arrayGet
-      expect(arrayGet(memory, startBlock, [0])).toBe(1);
-      expect(arrayGet(memory, startBlock, [1])).toBe(2);
-      expect(arrayGet(memory, startBlock, [2])).toBe(3);
-      expect(arrayGet(memory, startBlock, [3])).toBe(4);
-      expect(arrayGet(memory, startBlock, [4])).toBe(5);
+      expect(arrayGet(heap, startBlock, [0])).toBe(1);
+      expect(arrayGet(heap, startBlock, [1])).toBe(2);
+      expect(arrayGet(heap, startBlock, [2])).toBe(3);
+      expect(arrayGet(heap, startBlock, [3])).toBe(4);
+      expect(arrayGet(heap, startBlock, [4])).toBe(5);
   
       // Update an element and verify
-      arrayUpdate(memory, startBlock, [2], 10); // Update index 2 with value 10
-      expect(arrayGet(memory, startBlock, [2])).toBe(10);
+      arrayUpdate(heap, startBlock, [2], 10); // Update index 2 with value 10
+      expect(arrayGet(heap, startBlock, [2])).toBe(10);
     });
   
     it("should create and update a multi-dimensional array in a single block", () => {
@@ -64,16 +64,16 @@ describe("Array Functions", () => {
       expect(startBlock).not.toBe(NIL);
   
       // Verify the elements using arrayGet
-      expect(arrayGet(memory, startBlock, [0, 0])).toBe(1);
-      expect(arrayGet(memory, startBlock, [0, 1])).toBe(2);
-      expect(arrayGet(memory, startBlock, [0, 2])).toBe(3);
-      expect(arrayGet(memory, startBlock, [1, 0])).toBe(4);
-      expect(arrayGet(memory, startBlock, [1, 1])).toBe(5);
-      expect(arrayGet(memory, startBlock, [1, 2])).toBe(6);
+      expect(arrayGet(heap, startBlock, [0, 0])).toBe(1);
+      expect(arrayGet(heap, startBlock, [0, 1])).toBe(2);
+      expect(arrayGet(heap, startBlock, [0, 2])).toBe(3);
+      expect(arrayGet(heap, startBlock, [1, 0])).toBe(4);
+      expect(arrayGet(heap, startBlock, [1, 1])).toBe(5);
+      expect(arrayGet(heap, startBlock, [1, 2])).toBe(6);
   
       // Update an element and verify
-      arrayUpdate(memory, startBlock, [1, 2], 10); // Update [1, 2] with value 10
-      expect(arrayGet(memory, startBlock, [1, 2])).toBe(10);
+      arrayUpdate(heap, startBlock, [1, 2], 10); // Update [1, 2] with value 10
+      expect(arrayGet(heap, startBlock, [1, 2])).toBe(10);
     });
   
     it("should create and update a multi-block, single-dimensional array", () => {
@@ -84,12 +84,12 @@ describe("Array Functions", () => {
   
       // Verify the elements using arrayGet
       for (let i = 0; i < 20; i++) {
-        expect(arrayGet(memory, startBlock, [i])).toBe(i + 1);
+        expect(arrayGet(heap, startBlock, [i])).toBe(i + 1);
       }
   
       // Update an element and verify
-      arrayUpdate(memory, startBlock, [10], 100); // Update index 10 with value 100
-      expect(arrayGet(memory, startBlock, [10])).toBe(100);
+      arrayUpdate(heap, startBlock, [10], 100); // Update index 10 with value 100
+      expect(arrayGet(heap, startBlock, [10])).toBe(100);
     });
   
     it("should create and update a multi-block, multi-dimensional array", () => {
@@ -101,13 +101,13 @@ describe("Array Functions", () => {
       // Verify the elements using arrayGet
       for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 5; j++) {
-          expect(arrayGet(memory, startBlock, [i, j])).toBe(i * 5 + j + 1);
+          expect(arrayGet(heap, startBlock, [i, j])).toBe(i * 5 + j + 1);
         }
       }
   
       // Update an element and verify
-      arrayUpdate(memory, startBlock, [2, 3], 200); // Update [2, 3] with value 200
-      expect(arrayGet(memory, startBlock, [2, 3])).toBe(200);
+      arrayUpdate(heap, startBlock, [2, 3], 200); // Update [2, 3] with value 200
+      expect(arrayGet(heap, startBlock, [2, 3])).toBe(200);
     });
   
     it("should handle large multi-dimensional arrays spanning multiple blocks", () => {
@@ -119,13 +119,13 @@ describe("Array Functions", () => {
       // Verify the elements using arrayGet
       for (let i = 0; i < 10; i++) {
         for (let j = 0; j < 10; j++) {
-          expect(arrayGet(memory, startBlock, [i, j])).toBe(i * 10 + j + 1);
+          expect(arrayGet(heap, startBlock, [i, j])).toBe(i * 10 + j + 1);
         }
       }
   
       // Update an element and verify
-      arrayUpdate(memory, startBlock, [7, 8], 1000); // Update [7, 8] with value 1000
-      expect(arrayGet(memory, startBlock, [7, 8])).toBe(1000);
+      arrayUpdate(heap, startBlock, [7, 8], 1000); // Update [7, 8] with value 1000
+      expect(arrayGet(heap, startBlock, [7, 8])).toBe(1000);
     });
   });
   
@@ -165,7 +165,7 @@ describe("Array Functions", () => {
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
 
-    expect(() => arrayGet(memory, startBlock, [1])).toThrow(
+    expect(() => arrayGet(heap, startBlock, [1])).toThrow(
       `Expected ${shape.length} indices, but got 1.`
     );
   });
@@ -175,7 +175,7 @@ describe("Array Functions", () => {
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
 
-    expect(() => arrayUpdate(memory, startBlock, [1], 10)).toThrow(
+    expect(() => arrayUpdate(heap, startBlock, [1], 10)).toThrow(
       `Expected ${shape.length} indices, but got 1.`
     );
   });
@@ -185,7 +185,7 @@ describe("Array Functions", () => {
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
 
-    expect(() => arrayUpdate(memory, startBlock, [2, 3], 10)).toThrow(
+    expect(() => arrayUpdate(heap, startBlock, [2, 3], 10)).toThrow(
       "Index out of bounds"
     );
   });
@@ -195,6 +195,6 @@ describe("Array Functions", () => {
     const data = Array.from({ length: 20 }, (_, i) => i + 1);
     const startBlock = arrayCreate(heap, shape, data);
 
-    expect(arrayGet(memory, startBlock, [0, 15])).toBe(16);
+    expect(arrayGet(heap, startBlock, [0, 15])).toBe(16);
   });
 });

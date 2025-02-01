@@ -2,7 +2,7 @@ import { VM } from "./vm";
 import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
-import { Tag, toTaggedPtr } from "./tagged-ptr";
+import { Tag, toTagNum } from "./tagnum";
 
 describe("VM", () => {
   let vm: VM;
@@ -130,20 +130,20 @@ describe("VM", () => {
 
     it("should handle nextAddress correctly", () => {
       const addr = 0x12345;
-      vm.compiler.compileFloat(toTaggedPtr(Tag.ADDRESS, addr));
+      vm.compiler.compileFloat(toTagNum(Tag.ADDRESS, addr));
       vm.IP = CODE;
       expect(vm.nextAddress()).toBe(addr);
     });
 
     it("should handle nextInteger correctly", () => {
       const value = 0x54321;
-      vm.compiler.compileFloat(toTaggedPtr(Tag.INTEGER, value));
+      vm.compiler.compileFloat(toTagNum(Tag.INTEGER, value));
       vm.IP = CODE;
       expect(vm.nextInteger()).toBe(value);
     });
 
     it("should throw on nextAddress with non-address tag", () => {
-      vm.compiler.compileFloat(toTaggedPtr(Tag.INTEGER, 0x12345));
+      vm.compiler.compileFloat(toTagNum(Tag.INTEGER, 0x12345));
       vm.IP = CODE;
       expect(() => vm.nextAddress()).toThrow(
         "Expected tag ADDRESS, got tag INTEGER"
@@ -151,7 +151,7 @@ describe("VM", () => {
     });
 
     it("should throw on nextInteger with non-integer tag", () => {
-      vm.compiler.compileFloat(toTaggedPtr(Tag.ADDRESS, 0x12345));
+      vm.compiler.compileFloat(toTagNum(Tag.ADDRESS, 0x12345));
       vm.IP = CODE;
       expect(() => vm.nextInteger()).toThrow(
         "Expected tag INTEGER, got tag ADDRESS"

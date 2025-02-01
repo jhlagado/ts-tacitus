@@ -11,7 +11,7 @@ import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../globalState";
 import { CODE, RSTACK } from "../memory";
-import { Tag, toTaggedPtr } from "../tagged-ptr";
+import { Tag, toTaggedPtr } from "../tagnum";
 import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {

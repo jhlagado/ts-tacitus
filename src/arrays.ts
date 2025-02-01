@@ -1,21 +1,14 @@
-import { BLOCK_NEXT, BLOCK_SIZE, Heap } from "./heap";
+import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
 import { NIL } from "./constants";
-import { Memory } from "./memory";
+import { TAG_ANY, Tag, fromTagNum } from "./tagnum";
 
-export const MAX_DIMENSIONS = 6; // Maximum number of dimensions supported
-export const ARR_DIM = 2; // Offset for storing the number of dimensions (16-bit)
-export const ARR_SHAPE = ARR_DIM + 2; // Offset for storing the shape (variable length)
-export const ARR_STRIDES = ARR_SHAPE + MAX_DIMENSIONS * 2; // Offset for storing strides (16-bit each)
-export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2; // Offset for storing the data (after the header)
-export const ARR_DATA2 = BLOCK_NEXT + 2; // Offset for data in subsequent blocks (after BLOCK_NEXT pointer)
+export const MAX_DIMENSIONS = 6;
+export const ARR_DIM = 4;
+export const ARR_SHAPE = ARR_DIM + 2;
+export const ARR_STRIDES = ARR_SHAPE + MAX_DIMENSIONS * 2;
+export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2;
+export const ARR_DATA2 = 4;
 
-/**
- * Allocates a multi-dimensional array in the heap.
- * @param heap - The Heap instance to use for allocation.
- * @param shape - The shape of the array (e.g., [2, 3] for a 2x3 array).
- * @param data - The flat array of values.
- * @returns The starting block index of the allocated array, or NIL if allocation fails.
- */
 export function arrayCreate(
   heap: Heap,
   shape: number[],
@@ -24,104 +17,90 @@ export function arrayCreate(
   const memory = heap.memory;
   const numDimensions = shape.length;
 
-  // Validate the number of dimensions
   if (numDimensions > MAX_DIMENSIONS) {
     throw new Error(
       `Number of dimensions (${numDimensions}) exceeds maximum (${MAX_DIMENSIONS}).`
     );
   }
 
-  // Calculate strides (skip the stride for the innermost dimension)
+  // Calculate strides (excluding innermost dimension)
   const strides: number[] = [];
   let stride = 1;
   for (let i = numDimensions - 2; i >= 0; i--) {
-    stride *= shape[i + 1]; // Multiply by the size of the next dimension
-    strides.unshift(stride); // Prepend the stride
+    stride *= shape[i + 1];
+    strides.unshift(stride);
   }
 
-  // Allocate the first block
+  // Allocate first block with reference counting
   const firstBlock = heap.malloc(BLOCK_SIZE);
-  if (firstBlock === NIL) return NIL; // Allocation failed
+  if (firstBlock === NIL) return NIL;
 
-  // Store metadata in the header
-  memory.write16(firstBlock + BLOCK_NEXT, NIL); // Initialize BLOCK_NEXT to NIL
-  memory.write16(firstBlock + ARR_DIM, numDimensions); // Store number of dimensions
+  // Initialize header
+  memory.write16(firstBlock + ARR_DIM, numDimensions);
+  heap.setNextBlock(firstBlock, NIL);
 
   // Write shape data
-  let shapeOffset = ARR_SHAPE;
-  for (let i = 0; i < numDimensions; i++) {
-    memory.write16(firstBlock + shapeOffset, shape[i]); // Store shape for each dimension
-    shapeOffset += 2;
+  let offset = ARR_SHAPE;
+  for (const dim of shape) {
+    memory.write16(firstBlock + offset, dim);
+    offset += 2;
   }
 
   // Write strides
-  let strideOffset = ARR_STRIDES;
-  for (let i = 0; i < numDimensions - 1; i++) {
-    memory.write16(firstBlock + strideOffset, strides[i]); // Store strides
-    strideOffset += 2;
+  offset = ARR_STRIDES;
+  for (const s of strides) {
+    memory.write16(firstBlock + offset, s);
+    offset += 2;
   }
 
+  // Write data with copy-on-write awareness
   let currentBlock = firstBlock;
   let dataIndex = 0;
+  let dataOffset = ARR_DATA;
 
-  // Write data to the first block (starting at ARR_DATA)
-  for (
-    let i = ARR_DATA;
-    i + 4 <= BLOCK_SIZE && dataIndex < data.length;
-    i += 4
-  ) {
-    memory.writeFloat(currentBlock + i, data[dataIndex]); // Store Float32 (32-bit)
+  while (dataIndex < data.length) {
+    if (dataOffset + 4 > BLOCK_SIZE) {
+      const nextBlock = heap.malloc(BLOCK_SIZE);
+      if (nextBlock === NIL) {
+        heap.free(firstBlock);
+        return NIL;
+      }
+      heap.setNextBlock(currentBlock, nextBlock);
+      currentBlock = nextBlock;
+      dataOffset = ARR_DATA2;
+    }
+
+    const value = data[dataIndex];
+    if (typeof value === "number") {
+      memory.writeFloat(currentBlock + dataOffset, value);
+    } else {
+      // Handle array references
+      const { pointer, tag } = fromTagNum(Tag.ARRAY, value);
+      if (tag === Tag.ARRAY) heap.incrementRef(pointer);
+    }
+
+    dataOffset += 4;
     dataIndex++;
   }
-
-  // If the data exceeds the first block, allocate additional blocks
-  while (dataIndex < data.length) {
-    const nextBlock = heap.malloc(BLOCK_SIZE);
-    if (nextBlock === NIL) {
-      heap.free(firstBlock);
-      return NIL; // Allocation failed
-    }
-    memory.write16(currentBlock + BLOCK_NEXT, nextBlock); // Link to the next block (16-bit)
-    currentBlock = nextBlock;
-
-    // Write data to the current block (starting at ARR_DATA2)
-    for (
-      let i = ARR_DATA2; // Start at ARR_DATA2 for subsequent blocks
-      i + 4 <= BLOCK_SIZE && dataIndex < data.length;
-      i += 4
-    ) {
-      memory.writeFloat(currentBlock + i, data[dataIndex]); // Store Float32 (32-bit)
-      dataIndex++;
-    }
-  }
-
-  // Mark the end of the array
-  memory.write16(currentBlock + BLOCK_NEXT, NIL); // End of array (16-bit)
 
   return firstBlock;
 }
 
-/**
- * Reads an element from a multi-dimensional array.
- * @param memory - The Memory instance where the heap resides.
- * @param startBlock - The starting block index of the array.
- * @param indices - The multi-dimensional indices.
- * @returns The element at the specified indices, or undefined if out of bounds.
- */
-// Updated arrayGet function
 export function arrayGet(
-  memory: Memory,
+  heap: Heap,
   startBlock: number,
   indices: number[]
 ): number | undefined {
+  const memory = heap.memory;
   const numDimensions = memory.read16(startBlock + ARR_DIM);
 
   if (indices.length !== numDimensions) {
     throw new Error(
-      `Expected ${numDimensions} indices, but got ${indices.length}.`
+      `Expected ${numDimensions} indices, got ${indices.length}.`
     );
   }
 
+  // Calculate flat index
   const shape: number[] = [];
   for (let i = 0; i < numDimensions; i++) {
     shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
@@ -137,118 +116,122 @@ export function arrayGet(
     flatIndex += indices[i] * strides[i];
   }
 
+  // Traverse blocks with reference counting
   let currentBlock = startBlock;
   let elementsRead = 0;
+  const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
 
   while (currentBlock !== NIL) {
-    const dataStartOffset = currentBlock === startBlock
-      ? ARR_DATA
-      : ARR_DATA2;
+    const blockCapacity =
+      currentBlock === startBlock
+        ? elementsPerBlock
+        : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
 
-    const elementsInBlock = Math.floor(
-      (BLOCK_SIZE - dataStartOffset) / 4
-    );
+    if (flatIndex < elementsRead + blockCapacity) {
+      const offset =
+        currentBlock === startBlock
+          ? ARR_DATA + (flatIndex - elementsRead) * 4
+          : ARR_DATA2 + (flatIndex - elementsRead) * 4;
 
-    if (flatIndex < elementsRead + elementsInBlock) {
-      const offset = dataStartOffset + (flatIndex - elementsRead) * 4;
       return memory.readFloat(currentBlock + offset);
     }
 
-    elementsRead += elementsInBlock;
+    elementsRead += blockCapacity;
     currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
 
   return undefined;
 }
 
-/**
- * Updates an element in a multi-dimensional array.
- * @param memory - The Memory instance where the heap resides.
- * @param startBlock - The starting block index of the array.
- * @param indices - The multi-dimensional indices.
- * @param value - The new value to set.
- */
 export function arrayUpdate(
-  memory: Memory,
+  heap: Heap,
   startBlock: number,
   indices: number[],
   value: number
 ): void {
-  const numDimensions = memory.read16(startBlock + ARR_DIM); // Read number of dimensions
+  const memory = heap.memory;
+  const numDimensions = memory.read16(startBlock + ARR_DIM);
 
-  // Validate the number of indices
   if (indices.length !== numDimensions) {
     throw new Error(
-      `Expected ${numDimensions} indices, but got ${indices.length}.`
+      `Expected ${numDimensions} indices, got ${indices.length}.`
     );
   }
 
-  // Read shape
+  // Calculate flat index
   const shape: number[] = [];
   for (let i = 0; i < numDimensions; i++) {
     shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
   }
 
-  // Validate indices against shape
-  for (let i = 0; i < numDimensions; i++) {
-    if (indices[i] >= shape[i] || indices[i] < 0) {
-      throw new Error("Index out of bounds");
-    }
-  }
-
-  // Read strides (only non-redundant strides are stored)
   const strides: number[] = [];
   for (let i = 0; i < numDimensions - 1; i++) {
-    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2)); // Read strides
+    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2));
   }
 
-  // Calculate flat index
-  let flatIndex = indices[indices.length - 1]; // Start with the innermost index
+  let flatIndex = indices[indices.length - 1];
   for (let i = 0; i < strides.length; i++) {
-    flatIndex += indices[i] * strides[i]; // Add contributions from other dimensions
+    flatIndex += indices[i] * strides[i];
   }
 
-  // Update the element
-  const position = findArrayPosition(memory, startBlock, flatIndex);
-  if (position === null) {
-    throw new Error("Index out of bounds");
-  }
-
-  memory.writeFloat(position.block + position.offset, value); // Write Float32 (32-bit)
-}
-
-/**
- * Finds the block and offset for a given flat index.
- * @param memory - The Memory instance where the heap resides.
- * @param startBlock - The starting block index of the array.
- * @param flatIndex - The flat index of the element to find.
- * @returns An object containing the current block and offset, or `null` if the index is out of bounds.
- */
-function findArrayPosition(
-  memory: Memory,
-  startBlock: number,
-  flatIndex: number
-): { block: number; offset: number } | null {
+  // Copy-on-write implementation
   let currentBlock = startBlock;
   let elementsRead = 0;
+  const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
 
   while (currentBlock !== NIL) {
-    const dataStartOffset = currentBlock === startBlock
-      ? ARR_DATA
-      : ARR_DATA2;
+    const blockCapacity =
+      currentBlock === startBlock
+        ? elementsPerBlock
+        : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
 
-    const elementsInBlock = Math.floor(
-      (BLOCK_SIZE - dataStartOffset) / 4
-    );
+    if (flatIndex < elementsRead + blockCapacity) {
+      // Check if we need to clone the block
+      if (memory.read16(currentBlock + BLOCK_REFS) > 1) {
+        const newBlock = cloneBlock(heap, currentBlock);
+        if (currentBlock === startBlock) startBlock = newBlock;
+        currentBlock = newBlock;
+      }
 
-    if (flatIndex < elementsRead + elementsInBlock) {
-      const offset = dataStartOffset + (flatIndex - elementsRead) * 4;
-      return { block: currentBlock, offset };
+      const offset =
+        currentBlock === startBlock
+          ? ARR_DATA + (flatIndex - elementsRead) * 4
+          : ARR_DATA2 + (flatIndex - elementsRead) * 4;
+
+      // Handle reference counting for array values
+      const oldValue = memory.readFloat(currentBlock + offset);
+      if (!isNaN(oldValue)) {
+        const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
+        if (tag === Tag.ARRAY) heap.decrementRef(pointer);
+      }
+
+      memory.writeFloat(currentBlock + offset, value);
+      return;
     }
 
-    elementsRead += elementsInBlock;
+    elementsRead += blockCapacity;
     currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
 
-  return null;
+  throw new Error("Index out of bounds");
 }
+
+function cloneBlock(heap: Heap, block: number): number {
+  const newBlock = heap.malloc(BLOCK_SIZE);
+  if (newBlock === NIL) throw new Error("Out of memory");
+
+  // Copy block contents
+  heap.memory.buffer.copyWithin(newBlock, block, block + BLOCK_SIZE);
+
+  // Update reference counts
+  heap.memory.write16(newBlock + BLOCK_REFS, 1);
+
+  // Handle child blocks
+  const nextBlock = heap.memory.read16(block + BLOCK_NEXT);
+  if (nextBlock !== NIL) heap.incrementRef(nextBlock);
+
+  return newBlock;
+}
+
+// Helper function to find array position remains similar
+// but uses the new BLOCK_NEXT offset and reference counting
