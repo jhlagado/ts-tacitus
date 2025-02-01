@@ -152,39 +152,46 @@ export function arrayUpdate(
   const memory = heap.memory;
   const numDimensions = memory.read16(startBlock + ARR_DIM);
 
+  // Validate the number of indices
   if (indices.length !== numDimensions) {
     throw new Error(
       `Expected ${numDimensions} indices, got ${indices.length}.`
     );
   }
 
-  // Calculate flat index
+  // Read shape and validate bounds for each index
   const shape: number[] = [];
   for (let i = 0; i < numDimensions; i++) {
-    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
+    const dimSize = memory.read16(startBlock + ARR_SHAPE + i * 2);
+    shape.push(dimSize);
+    if (indices[i] < 0 || indices[i] >= dimSize) {
+      throw new Error("Index out of bounds");
+    }
   }
 
+  // Calculate strides (excluding innermost dimension)
   const strides: number[] = [];
-  for (let i = 0; i < numDimensions - 1; i++) {
-    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2));
+  let stride = 1;
+  for (let i = numDimensions - 2; i >= 0; i--) {
+    stride *= shape[i + 1];
+    strides.unshift(stride);
   }
 
+  // Compute flat index
   let flatIndex = indices[indices.length - 1];
   for (let i = 0; i < strides.length; i++) {
     flatIndex += indices[i] * strides[i];
   }
 
-  // Copy-on-write implementation
+  // Traverse blocks with reference counting
   let currentBlock = startBlock;
   let elementsRead = 0;
   const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
-
   while (currentBlock !== NIL) {
     const blockCapacity =
       currentBlock === startBlock
         ? elementsPerBlock
         : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
-
     if (flatIndex < elementsRead + blockCapacity) {
       // Check if we need to clone the block
       if (memory.read16(currentBlock + BLOCK_REFS) > 1) {
@@ -192,7 +199,6 @@ export function arrayUpdate(
         if (currentBlock === startBlock) startBlock = newBlock;
         currentBlock = newBlock;
       }
-
       const offset =
         currentBlock === startBlock
           ? ARR_DATA + (flatIndex - elementsRead) * 4
@@ -204,15 +210,14 @@ export function arrayUpdate(
         const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
         if (tag === Tag.ARRAY) heap.decrementRef(pointer);
       }
-
       memory.writeFloat(currentBlock + offset, value);
       return;
     }
-
     elementsRead += blockCapacity;
     currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
 
+  // If we reach here, the index is out of bounds
   throw new Error("Index out of bounds");
 }
 

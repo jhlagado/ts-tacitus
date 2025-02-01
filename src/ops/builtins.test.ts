@@ -11,7 +11,7 @@ import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../globalState";
 import { CODE, RSTACK } from "../memory";
-import { Tag, toTaggedPtr } from "../tagnum";
+import { Tag, toTagNum } from "../tagnum";
 import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {
@@ -239,7 +239,7 @@ describe("Built-in Words", () => {
     });
 
     it("should handle tagged pointers", () => {
-      const addr = toTaggedPtr(Tag.ADDRESS, 0x12345);
+      const addr = toTagNum(Tag.ADDRESS, 0x12345);
       vm.compiler.compileFloat(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);
