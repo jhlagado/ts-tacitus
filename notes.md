@@ -4,7 +4,7 @@ This vm is for a new programming language called Tacit which is intended to run 
 The language uses reverse polish notation like PostScript or Forth but it is a new language more closely modelled after array programming languages such as APL or J
 The language processes arguments by using a stack but there is a second stack for storing return addresses and there is no concept of stack frames.
 in order to prevent cyclical references, arrays are copy on write but to make this efficient, we use structural sharing (like with Clojure), this means cloning the part of the array you are updating but reusing the rest without copying. when updating an array using copy-on-write we need to clone each array block.
-This is obviously very efficient so we only do it to the block that changes and all the blocks earlier but later blocks don't need to be cloned, we can simply share their structure. This is a persistent data structure which maintains immutability by only cloning the least amount. This is like Clojure.
+This is obviously very inefficient so we only do it to the block that changes and all the blocks earlier but later blocks don't need to be cloned, we can simply share their structure. This is a persistent data structure which maintains immutability by only cloning the least amount. This is like Clojure.
 
 
 

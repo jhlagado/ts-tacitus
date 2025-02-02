@@ -36,12 +36,14 @@ export class Heap {
     let startBlock = current;
     let blocksFound = 0;
 
+    // Traverse the free list to find enough contiguous blocks
     while (current !== NIL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
       current = this.memory.read16(current + BLOCK_NEXT);
     }
 
+    // If not enough blocks are found, reset the traversed blocks and return NIL
     if (blocksFound < numBlocks) {
       if (startBlock !== NIL) {
         this.memory.write16(prev + BLOCK_NEXT, this.freeList);
@@ -50,20 +52,18 @@ export class Heap {
       return NIL;
     }
 
+    // Allocate the blocks: set reference counts and link them
     let block = startBlock;
     for (let i = 0; i < numBlocks; i++) {
-      this.memory.write16(block + BLOCK_REFS, 1);
-
-      if (i < numBlocks - 1) {
-        const nextBlock = block + BLOCK_SIZE;
-        this.memory.write16(block + BLOCK_NEXT, nextBlock);
-      } else {
-        this.memory.write16(block + BLOCK_NEXT, NIL);
-      }
-
+      this.memory.write16(block + BLOCK_REFS, 1); // Initialize reference count
+      this.memory.write16(
+        block + BLOCK_NEXT,
+        i < numBlocks - 1 ? block + BLOCK_SIZE : NIL
+      ); // Link to next block or NIL
       block += BLOCK_SIZE;
     }
 
+    // Update the free list to point to the remaining free blocks
     this.freeList = current;
     return startBlock;
   }

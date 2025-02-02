@@ -17,6 +17,7 @@ export function arrayCreate(
   const memory = heap.memory;
   const numDimensions = shape.length;
 
+  // Validate the number of dimensions
   if (numDimensions > MAX_DIMENSIONS) {
     throw new Error(
       `Number of dimensions (${numDimensions}) exceeds maximum (${MAX_DIMENSIONS}).`
@@ -24,14 +25,11 @@ export function arrayCreate(
   }
 
   // Calculate strides (excluding innermost dimension)
-  const strides: number[] = [];
-  let stride = 1;
-  for (let i = numDimensions - 2; i >= 0; i--) {
-    stride *= shape[i + 1];
-    strides.unshift(stride);
-  }
+  const strides = Array.from({ length: numDimensions - 1 }, (_, i) =>
+    shape.slice(i + 1).reduce((acc, size) => acc * size, 1)
+  );
 
-  // Allocate first block with reference counting
+  // Allocate the first block with reference counting
   const firstBlock = heap.malloc(BLOCK_SIZE);
   if (firstBlock === NIL) return NIL;
 
@@ -39,20 +37,17 @@ export function arrayCreate(
   memory.write16(firstBlock + ARR_DIM, numDimensions);
   heap.setNextBlock(firstBlock, NIL);
 
-  // Write shape data
+  // Write shape and strides data
   let offset = ARR_SHAPE;
   for (const dim of shape) {
     memory.write16(firstBlock + offset, dim);
     offset += 2;
   }
-
-  // Write strides
   offset = ARR_STRIDES;
-  for (const s of strides) {
-    memory.write16(firstBlock + offset, s);
+  for (const stride of strides) {
+    memory.write16(firstBlock + offset, stride);
     offset += 2;
   }
-
   // Write data with copy-on-write awareness
   let currentBlock = firstBlock;
   let dataIndex = 0;
@@ -94,37 +89,32 @@ export function arrayGet(
   const memory = heap.memory;
   const numDimensions = memory.read16(startBlock + ARR_DIM);
 
+  // Validate indices length
   if (indices.length !== numDimensions) {
     throw new Error(
       `Expected ${numDimensions} indices, got ${indices.length}.`
     );
   }
 
+  // Extract strides
+  const strides = Array.from({ length: numDimensions - 1 }, (_, i) =>
+    memory.read16(startBlock + ARR_STRIDES + i * 2)
+  );
+
   // Calculate flat index
-  const shape: number[] = [];
-  for (let i = 0; i < numDimensions; i++) {
-    shape.push(memory.read16(startBlock + ARR_SHAPE + i * 2));
-  }
+  const flatIndex = indices.reduce(
+    (acc, idx, i) => acc + (i < strides.length ? idx * strides[i] : idx),
+    0
+  );
 
-  const strides: number[] = [];
-  for (let i = 0; i < numDimensions - 1; i++) {
-    strides.push(memory.read16(startBlock + ARR_STRIDES + i * 2));
-  }
-
-  let flatIndex = indices[indices.length - 1];
-  for (let i = 0; i < strides.length; i++) {
-    flatIndex += indices[i] * strides[i];
-  }
-
-  // Traverse blocks with reference counting
+  // Traverse blocks to find the value
   let currentBlock = startBlock;
   let elementsRead = 0;
-  const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
 
   while (currentBlock !== NIL) {
     const blockCapacity =
       currentBlock === startBlock
-        ? elementsPerBlock
+        ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
         : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
 
     if (flatIndex < elementsRead + blockCapacity) {
@@ -132,7 +122,6 @@ export function arrayGet(
         currentBlock === startBlock
           ? ARR_DATA + (flatIndex - elementsRead) * 4
           : ARR_DATA2 + (flatIndex - elementsRead) * 4;
-
       return memory.readFloat(currentBlock + offset);
     }
 
@@ -160,45 +149,43 @@ export function arrayUpdate(
   }
 
   // Read shape and validate bounds for each index
-  const shape: number[] = [];
-  for (let i = 0; i < numDimensions; i++) {
+  const shape = Array.from({ length: numDimensions }, (_, i) => {
     const dimSize = memory.read16(startBlock + ARR_SHAPE + i * 2);
-    shape.push(dimSize);
     if (indices[i] < 0 || indices[i] >= dimSize) {
       throw new Error("Index out of bounds");
     }
-  }
+    return dimSize;
+  });
 
   // Calculate strides (excluding innermost dimension)
-  const strides: number[] = [];
-  let stride = 1;
-  for (let i = numDimensions - 2; i >= 0; i--) {
-    stride *= shape[i + 1];
-    strides.unshift(stride);
-  }
+  const strides = Array.from({ length: numDimensions - 1 }, (_, i) =>
+    shape.slice(i + 1).reduce((acc, size) => acc * size, 1)
+  );
 
   // Compute flat index
-  let flatIndex = indices[indices.length - 1];
-  for (let i = 0; i < strides.length; i++) {
-    flatIndex += indices[i] * strides[i];
-  }
+  const flatIndex = indices.reduce(
+    (acc, idx, i) => acc + (i < strides.length ? idx * strides[i] : idx),
+    0
+  );
 
   // Traverse blocks with reference counting
   let currentBlock = startBlock;
   let elementsRead = 0;
-  const elementsPerBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
+
   while (currentBlock !== NIL) {
     const blockCapacity =
       currentBlock === startBlock
-        ? elementsPerBlock
+        ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
         : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
+
     if (flatIndex < elementsRead + blockCapacity) {
-      // Check if we need to clone the block
+      // Clone block if necessary
       if (memory.read16(currentBlock + BLOCK_REFS) > 1) {
         const newBlock = cloneBlock(heap, currentBlock);
         if (currentBlock === startBlock) startBlock = newBlock;
         currentBlock = newBlock;
       }
+
       const offset =
         currentBlock === startBlock
           ? ARR_DATA + (flatIndex - elementsRead) * 4
@@ -210,9 +197,11 @@ export function arrayUpdate(
         const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
         if (tag === Tag.ARRAY) heap.decrementRef(pointer);
       }
+
       memory.writeFloat(currentBlock + offset, value);
       return;
     }
+
     elementsRead += blockCapacity;
     currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
   }
