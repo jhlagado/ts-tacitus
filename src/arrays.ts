@@ -237,6 +237,3 @@ function cloneBlock(heap: Heap, block: number): number {
 
   return newBlock;
 }
-
-// Helper function to find array position remains similar
-// but uses the new BLOCK_NEXT offset and reference counting

@@ -1,3 +1,9 @@
+Introduction
+
+This vm is for a new programming language called Tacit which is intended to run on more a restrictive system than the JavaScript VM. This is a prototype for something that may be converted to C and even assembly language. I want you to keep that in mind when making any suggestions. The memory space is only 64K and uses 16 bit pointers. The main data type is the number (a 32 bit floating point number) and the multi-dimensional array. There is an extension to the Float32 format in which the 23 bit mantissa of a NaN float is used to store tagged data. 3 bits are used for the tag and the remaining 20 bits are used for data.
+The language uses reverse polish notation like PostScript or Forth but it is a new language more closely modelled after array programming languages such as APL or J
+The language processes arguments by using a stack but there is a second stack for storing returrn addresses and there is no concept of stack frames.
+
 literal arrays
 ranges
 interned strings / symbols
@@ -7,7 +13,7 @@ interned strings / symbols
 syntax needed for n-fork
 
 a fork might be represented using parenthese ( ) or < >
-a quoted primtive e.g. `+ might be shorthand for {+} 
+a quoted primtive e.g. `+ might be shorthand for {+}
 i.e. `+/ as opposed to {+}/
 
 | **Category**                         | **Monadic**                                                                                                                    | **Dyadic**                                                             |
