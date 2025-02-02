@@ -24,30 +24,36 @@ export function arrayCreate(
     );
   }
 
-  // Calculate strides (excluding innermost dimension)
-  const strides = Array.from({ length: numDimensions - 1 }, (_, i) =>
-    shape.slice(i + 1).reduce((acc, size) => acc * size, 1)
-  );
+  // Calculate total size needed for the array
+  const totalElements = shape.reduce((acc, dim) => acc * dim, 1);
+  const totalSize = totalElements * 4; // Each element is 4 bytes
 
-  // Allocate the first block with reference counting
-  const firstBlock = heap.malloc(BLOCK_SIZE);
+  // Allocate blocks using malloc
+  const firstBlock = heap.malloc(totalSize);
   if (firstBlock === NIL) return NIL;
 
   // Initialize header
   memory.write16(firstBlock + ARR_DIM, numDimensions);
-  heap.setNextBlock(firstBlock, NIL);
 
-  // Write shape and strides data
+  // Write shape data
   let offset = ARR_SHAPE;
   for (const dim of shape) {
     memory.write16(firstBlock + offset, dim);
     offset += 2;
   }
+
+  // Calculate strides (excluding innermost dimension)
+  const strides = Array.from({ length: numDimensions - 1 }, (_, i) =>
+    shape.slice(i + 1).reduce((acc, size) => acc * size, 1)
+  );
+
+  // Write strides data
   offset = ARR_STRIDES;
   for (const stride of strides) {
     memory.write16(firstBlock + offset, stride);
     offset += 2;
   }
+
   // Write data with copy-on-write awareness
   let currentBlock = firstBlock;
   let dataIndex = 0;
@@ -55,13 +61,11 @@ export function arrayCreate(
 
   while (dataIndex < data.length) {
     if (dataOffset + 4 > BLOCK_SIZE) {
-      const nextBlock = heap.malloc(BLOCK_SIZE);
-      if (nextBlock === NIL) {
-        heap.free(firstBlock);
-        return NIL;
+      // Move to the next block using getNextBlock
+      currentBlock = heap.getNextBlock(currentBlock);
+      if (currentBlock === NIL) {
+        throw new Error("Unexpected end of allocated blocks.");
       }
-      heap.setNextBlock(currentBlock, nextBlock);
-      currentBlock = nextBlock;
       dataOffset = ARR_DATA2;
     }
 

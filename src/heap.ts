@@ -96,6 +96,13 @@ export class Heap {
     this.memory.write16(block + BLOCK_REFS, refs + 1);
   }
 
+  getNextBlock(block: number): number {
+    if (block === NIL) {
+      throw new Error("Cannot get next block of NIL.");
+    }
+    return this.memory.read16(block + BLOCK_NEXT);
+  }
+
   setNextBlock(parent: number, child: number): void {
     const oldChild = this.memory.read16(parent + BLOCK_NEXT);
     if (oldChild !== NIL) this.decrementRef(oldChild);
