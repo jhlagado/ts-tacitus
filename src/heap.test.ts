@@ -2,6 +2,8 @@ import { NIL } from "./constants";
 import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap, USABLE_BLOCK_SIZE } from "./heap";
 import { Memory, HEAP_SIZE } from "./memory";
 
+const HALF_BLOCK_SIZE = Math.floor(USABLE_BLOCK_SIZE / 2);
+
 describe("Heap", () => {
   let heap: Heap;
   let memory: Memory;
@@ -12,16 +14,16 @@ describe("Heap", () => {
   });
 
   it("should allocate and free blocks correctly", () => {
-    const block1 = heap.malloc(64);
+    const block1 = heap.malloc(HALF_BLOCK_SIZE);
     expect(block1).not.toBe(NIL);
 
-    const block2 = heap.malloc(64);
+    const block2 = heap.malloc(HALF_BLOCK_SIZE);
     expect(block2).not.toBe(NIL);
 
     heap.free(block1);
     heap.free(block2);
 
-    const block3 = heap.malloc(128);
+    const block3 = heap.malloc(BLOCK_SIZE);
     expect(block3).not.toBe(NIL);
   });
 
@@ -46,18 +48,29 @@ describe("Heap", () => {
     const initialFreeMemory = heap.available();
 
     // Allocate one block
-    const allocatedBlock = heap.malloc(64); // Allocate 64 bytes (requires one block)
+    const allocatedBlock = heap.malloc(60); // Allocate HALF_BLOCK_SIZE bytes (requires one block)
     expect(allocatedBlock).not.toBe(NIL);
 
     // Check that available memory is reduced by USABLE_BLOCK_SIZE
     expect(heap.available()).toBe(initialFreeMemory - BLOCK_SIZE);
   });
 
+  it("should reduce available memory after allocation", () => {
+    const initialFreeMemory = heap.available();
+  
+    // Allocate HALF_BLOCK_SIZE bytes (requires 2 blocks)
+    const allocatedBlock = heap.malloc(BLOCK_SIZE);
+    expect(allocatedBlock).not.toBe(NIL);
+  
+    // Expect reduction of 2 blocks (2 * BLOCK_SIZE)
+    expect(heap.available()).toBe(initialFreeMemory - 2 * BLOCK_SIZE); // ✅ Passes
+  });
+
   it("should increase available memory after freeing", () => {
     const initialFreeMemory = heap.available();
 
     // Allocate one block
-    const allocatedBlock = heap.malloc(64); // Allocate 64 bytes (requires one block)
+    const allocatedBlock = heap.malloc(HALF_BLOCK_SIZE); // Allocate HALF_BLOCK_SIZE bytes (requires one block)
     expect(allocatedBlock).not.toBe(NIL);
 
     // Free the allocated block
@@ -111,12 +124,12 @@ describe("Heap", () => {
   });
 
   it("should handle freeing a block and re-allocating it", () => {
-    const block = heap.malloc(64);
+    const block = heap.malloc(HALF_BLOCK_SIZE);
     expect(block).not.toBe(NIL);
 
     heap.free(block);
 
-    const newBlock = heap.malloc(64);
+    const newBlock = heap.malloc(HALF_BLOCK_SIZE);
     expect(newBlock).toBe(block);
   });
 
@@ -131,7 +144,7 @@ describe("Heap", () => {
 
     it("should allocate and free blocks with reference counts", () => {
       const initialFree = heap.available();
-      const block = heap.malloc(64);
+      const block = heap.malloc(HALF_BLOCK_SIZE);
 
       expect(block).not.toBe(NIL);
       expect(memory.read16(block + BLOCK_REFS)).toBe(1); // BLOCK_REFS
@@ -152,9 +165,9 @@ describe("Heap", () => {
     });
 
     it("should handle shared block references", () => {
-      const parent1 = heap.malloc(64);
-      const parent2 = heap.malloc(64);
-      const child = heap.malloc(64);
+      const parent1 = heap.malloc(HALF_BLOCK_SIZE);
+      const parent2 = heap.malloc(HALF_BLOCK_SIZE);
+      const child = heap.malloc(HALF_BLOCK_SIZE);
 
       // Link both parents to child
       heap.setNextBlock(parent1, child);
@@ -171,15 +184,15 @@ describe("Heap", () => {
 
     it("should copy-on-write when sharing blocks", () => {
       // Allocate original structure: A -> B -> C
-      const blockA = heap.malloc(64);
-      const blockB = heap.malloc(64);
-      const blockC = heap.malloc(64);
+      const blockA = heap.malloc(HALF_BLOCK_SIZE);
+      const blockB = heap.malloc(HALF_BLOCK_SIZE);
+      const blockC = heap.malloc(HALF_BLOCK_SIZE);
 
       heap.setNextBlock(blockA, blockB);
       heap.setNextBlock(blockB, blockC);
 
       // Clone blockA for modification
-      const newBlockA = heap.malloc(64);
+      const newBlockA = heap.malloc(HALF_BLOCK_SIZE);
       memory.buffer.copyWithin(newBlockA, blockA, blockA + BLOCK_SIZE);
       heap.setNextBlock(newBlockA, blockB);
 
@@ -187,7 +200,7 @@ describe("Heap", () => {
       expect(memory.read16(blockB + BLOCK_REFS)).toBe(2);
 
       // Modify newBlockA's next pointer
-      const newBlockB = heap.malloc(64);
+      const newBlockB = heap.malloc(HALF_BLOCK_SIZE);
       heap.setNextBlock(newBlockA, newBlockB);
 
       // Release test's reference to newBlockB - this is crucial!
@@ -200,7 +213,7 @@ describe("Heap", () => {
 
     it("should maintain available space correctly", () => {
       const initial = heap.available();
-      const block = heap.malloc(64);
+      const block = heap.malloc(HALF_BLOCK_SIZE);
 
       expect(heap.available()).toBe(initial - BLOCK_SIZE);
 
@@ -214,9 +227,9 @@ describe("Heap", () => {
 
     it("should handle complex reference scenarios", () => {
       const createStructure = () => {
-        const a = heap.malloc(64);
-        const b = heap.malloc(64);
-        const c = heap.malloc(64);
+        const a = heap.malloc(HALF_BLOCK_SIZE);
+        const b = heap.malloc(HALF_BLOCK_SIZE);
+        const c = heap.malloc(HALF_BLOCK_SIZE);
         heap.setNextBlock(a, b);
         heap.setNextBlock(b, c);
         return a;
@@ -226,7 +239,7 @@ describe("Heap", () => {
       const struct2 = createStructure();
 
       // Share node B between both structures
-      const sharedB = heap.malloc(64);
+      const sharedB = heap.malloc(HALF_BLOCK_SIZE);
       heap.setNextBlock(struct1, sharedB);
       heap.setNextBlock(struct2, sharedB);
 
@@ -252,7 +265,7 @@ describe("Heap", () => {
       // Exhaust heap
       while (heap.malloc(USABLE_BLOCK_SIZE) !== NIL) {}
 
-      const block = heap.malloc(64);
+      const block = heap.malloc(HALF_BLOCK_SIZE);
       expect(block).toBe(NIL);
     });
 

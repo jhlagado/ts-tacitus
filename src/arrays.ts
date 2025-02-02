@@ -34,10 +34,30 @@ export function arrayCreate(
 
   // Calculate total size needed for the array
   const totalElements = shape.reduce((acc, dim) => acc * dim, 1);
-  const totalSize = totalElements * 4; // Each element is 4 bytes
+
+  // Validate that the heap has enough memory
+  const firstBlockCapacity = Math.floor((BLOCK_SIZE - ARR_DATA) / 4);
+  const subsequentBlockCapacity = Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
+  let requiredBlocks = 1;
+  let remainingElements = totalElements - firstBlockCapacity;
+  while (remainingElements > 0) {
+    requiredBlocks++;
+    remainingElements -= subsequentBlockCapacity;
+  }
+
+  let availableBlocks = 0;
+  let current = heap.freeList;
+  while (current !== NIL) {
+    availableBlocks++;
+    current = memory.read16(current + BLOCK_NEXT);
+  }
+  if (availableBlocks < requiredBlocks) {
+    return NIL; // Not enough memory to allocate the array
+  }
 
   // Allocate blocks using malloc
-  const firstBlock = heap.malloc(totalSize);
+  const allocatedBytes = requiredBlocks * BLOCK_SIZE; // Use BLOCK_SIZE instead of USABLE_BLOCK_SIZE
+  const firstBlock = heap.malloc(allocatedBytes);
   if (firstBlock === NIL) return NIL;
 
   // Initialize header
@@ -108,7 +128,9 @@ export function arrayGet(
 
   // Validate indices length
   if (indices.length !== numDimensions) {
-    throw new Error(`Expected ${numDimensions} indices, got ${indices.length}.`);
+    throw new Error(
+      `Expected ${numDimensions} indices, got ${indices.length}.`
+    );
   }
 
   // Extract strides
@@ -123,7 +145,11 @@ export function arrayGet(
   );
 
   // Find the block and offset for the flat index
-  const { block: currentBlock, offset } = findBlockAndOffset(heap, startBlock, flatIndex);
+  const { block: currentBlock, offset } = findBlockAndOffset(
+    heap,
+    startBlock,
+    flatIndex
+  );
 
   // Read and return the value
   return memory.readFloat(currentBlock + offset);
@@ -141,13 +167,15 @@ export function arrayUpdate(
   startBlock: number,
   indices: number[],
   value: number
-): void {
+): number {
   const memory = heap.memory;
   const numDimensions = memory.read16(startBlock + ARR_DIM);
 
   // Validate the number of indices
   if (indices.length !== numDimensions) {
-    throw new Error(`Expected ${numDimensions} indices, got ${indices.length}.`);
+    throw new Error(
+      `Expected ${numDimensions} indices, got ${indices.length}.`
+    );
   }
 
   // Read shape and validate bounds for each index
@@ -184,7 +212,9 @@ export function arrayUpdate(
       // Clone block if necessary
       if (memory.read16(currentBlock + BLOCK_REFS) > 1) {
         const newBlock = cloneBlock(heap, currentBlock);
-        if (currentBlock === startBlock) startBlock = newBlock;
+        if (currentBlock === startBlock) {
+          startBlock = newBlock;
+        }
         currentBlock = newBlock; // Reassigning currentBlock
       }
 
@@ -206,10 +236,9 @@ export function arrayUpdate(
         if (tag !== TAG_NAN) heap.incrementRef(pointer); // Only increment if tag > 0
       }
 
-      // Write the new value
       memory.writeFloat(currentBlock + offset, value);
-
-      return;
+      
+      return startBlock; // Return potentially new startBlock
     }
 
     elementsRead += blockCapacity;

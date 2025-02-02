@@ -1,7 +1,7 @@
 import { NIL } from "./constants";
 import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
-export const BLOCK_SIZE = 128; // Each block is 128 bytes
+export const BLOCK_SIZE = 64; 
 export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)
 export const BLOCK_REFS = 2; // Offset for reference count (2 bytes)
 export const USABLE_BLOCK_SIZE = BLOCK_SIZE - 4; // Account for header
@@ -18,11 +18,15 @@ export class Heap {
 
   private initializeFreeList(): void {
     let current = HEAP;
+    let i=0;
+    console.log("initializest", {current});
     while (current + BLOCK_SIZE < HEAP + HEAP_SIZE) {
       this.memory.write16(current + BLOCK_NEXT, current + BLOCK_SIZE);
       this.memory.write16(current + BLOCK_REFS, 0); // Free blocks have 0 refs
       current += BLOCK_SIZE;
+      i++;
     }
+    console.log("initializeFreeList", {i, current, HEAP_SIZE});
     this.memory.write16(current + BLOCK_NEXT, NIL);
     this.memory.write16(current + BLOCK_REFS, 0);
   }
