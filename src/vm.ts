@@ -62,8 +62,8 @@ export class VM {
   }
 
   popAddress(): number {
-    const nPtr = this.pop();
-    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
+    const tagNum = this.pop();
+    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     return pointer;
   }
 
@@ -72,8 +72,8 @@ export class VM {
   }
 
   popInteger(): number {
-    const nPtr = this.pop();
-    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
+    const tagNum = this.pop();
+    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
     return pointer;
   }
 
@@ -112,8 +112,8 @@ export class VM {
   }
 
   rpopAddress(): number {
-    const nPtr = this.rpop();
-    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
+    const tagNum = this.rpop();
+    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     return pointer;
   }
 
@@ -122,8 +122,8 @@ export class VM {
   }
 
   rpopInteger(): number {
-    const nPtr = this.rpop();
-    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
+    const tagNum = this.rpop();
+    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
     return pointer;
   }
 
@@ -167,8 +167,8 @@ export class VM {
    * Reads the next address (tagged as ADDRESS) from memory and increments the instruction pointer.
    */
   nextAddress(): number {
-    const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
+    const tagNum = this.nextFloat(); // Read the tagged pointer as a float
+    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     return pointer;
   }
 
@@ -176,8 +176,8 @@ export class VM {
    * Reads the next integer (tagged as INTEGER) from memory and increments the instruction pointer.
    */
   nextInteger(): number {
-    const nPtr = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.INTEGER, nPtr);
+    const tagNum = this.nextFloat(); // Read the tagged pointer as a float
+    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
     return pointer;
   }
 

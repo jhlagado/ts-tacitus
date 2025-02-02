@@ -23,8 +23,8 @@ describe("Compiler", () => {
   it("should compile an address as a tagged pointer", () => {
     vm.compiler.compileAddress(0x12345); // Use compileAddress
     vm.reset();
-    const nPtr = vm.nextFloat();
-    const { pointer } = fromTagNum(Tag.ADDRESS, nPtr);
+    const tagNum = vm.nextFloat();
+    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     expect(pointer).toBe(0x12345);
   });
 

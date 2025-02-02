@@ -27,7 +27,6 @@ export class Heap {
     this.memory.write16(current + BLOCK_REFS, 0);
   }
 
-  // In Heap class
   malloc(size: number): number {
     if (size <= 0) return NIL;
 
@@ -37,7 +36,6 @@ export class Heap {
     let startBlock = current;
     let blocksFound = 0;
 
-    // Find contiguous blocks (original logic)
     while (current !== NIL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
@@ -52,12 +50,10 @@ export class Heap {
       return NIL;
     }
 
-    // Link blocks and set reference counts
     let block = startBlock;
     for (let i = 0; i < numBlocks; i++) {
       this.memory.write16(block + BLOCK_REFS, 1);
 
-      // Set BLOCK_NEXT to next physical block if not last
       if (i < numBlocks - 1) {
         const nextBlock = block + BLOCK_SIZE;
         this.memory.write16(block + BLOCK_NEXT, nextBlock);
@@ -65,14 +61,13 @@ export class Heap {
         this.memory.write16(block + BLOCK_NEXT, NIL);
       }
 
-      block += BLOCK_SIZE; // Move to next physical block
+      block += BLOCK_SIZE;
     }
 
-    // Update free list
     this.freeList = current;
     return startBlock;
   }
-  
+
   free(pointer: number): void {
     this.decrementRef(pointer);
   }

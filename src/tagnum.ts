@@ -125,16 +125,16 @@ export function fromTagNum(
 }
 
 /**
- * Checks if a value is an NPtr value.
+ * Checks if a value is an tagNum value.
  * @param {number} value - The value to check.
- * @returns {boolean} - True if the value is an NPtr value, false otherwise.
+ * @returns {boolean} - True if the value is an tagNum value, false otherwise.
  */
-export function isNPtr(value: number): boolean {
+export function istagNum(value: number): boolean {
   return isNaN(value);
 }
 
 /**
- * Extracts the tag from an NPtr value.
+ * Extracts the tag from an tagNum value.
  * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {number} - The 3-bit tag.
  */
@@ -143,7 +143,7 @@ export function getTag(tagNum: number): number {
 }
 
 /**
- * Extracts the pointer from an NPtr value.
+ * Extracts the pointer from an tagNum value.
  * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {number} - The 20-bit pointer (signed for INTEGER tag, unsigned otherwise).
  */

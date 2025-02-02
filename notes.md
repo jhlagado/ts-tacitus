@@ -1,8 +1,12 @@
-Introduction
+Tech notes about Tacit
 
 This vm is for a new programming language called Tacit which is intended to run on more a restrictive system than the JavaScript VM. This is a prototype for something that may be converted to C and even assembly language. I want you to keep that in mind when making any suggestions. The memory space is only 64K and uses 16 bit pointers. The main data type is the number (a 32 bit floating point number) and the multi-dimensional array. There is an extension to the Float32 format in which the 23 bit mantissa of a NaN float is used to store tagged data. 3 bits are used for the tag and the remaining 20 bits are used for data.
 The language uses reverse polish notation like PostScript or Forth but it is a new language more closely modelled after array programming languages such as APL or J
-The language processes arguments by using a stack but there is a second stack for storing returrn addresses and there is no concept of stack frames.
+The language processes arguments by using a stack but there is a second stack for storing return addresses and there is no concept of stack frames.
+in order to prevent cyclical references, arrays are copy on write but to make this efficient, we use structural sharing (like with Clojure), this means cloning the part of the array you are updating but reusing the rest without copying. when updating an array using copy-on-write we need to clone each array block.
+This is obviously very efficient so we only do it to the block that changes and all the blocks earlier but later blocks don't need to be cloned, we can simply share their structure. This is a persistent data structure which maintains immutability by only cloning the least amount. This is like Clojure.
+
+
 
 literal arrays
 ranges

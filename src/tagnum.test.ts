@@ -1,34 +1,34 @@
 import {
   toTagNum,
   fromTagNum,
-  isNPtr,
+  istagNum,
   getTag,
   getPointer,
   Tag,
   TAG_ANY,
 } from "./tagnum";
 
-describe("NPtr Library", () => {
+describe("tagNum Library", () => {
   // Test all tag types
   for (const [type, tag] of Object.entries(Tag)) {
     it(`should encode and decode a ${type} tag and pointer`, () => {
       const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
-      const nPtr = toTagNum(tag, pointer);
+      const tagNum = toTagNum(tag, pointer);
 
       // Check if the value is a NaN
-      expect(isNPtr(nPtr)).toBe(true);
+      expect(istagNum(tagNum)).toBe(true);
 
-      // Decode the NPtr value
+      // Decode the tagNum value
       const { tag: decodedTag, pointer: decodedPointer } = fromTagNum(
         TAG_ANY,
-        nPtr
+        tagNum
       );
       expect(decodedTag).toBe(tag);
       expect(decodedPointer).toBe(pointer);
 
       // Extract the tag and pointer directly
-      expect(getTag(nPtr)).toBe(tag);
-      expect(getPointer(nPtr)).toBe(pointer);
+      expect(getTag(tagNum)).toBe(tag);
+      expect(getPointer(tagNum)).toBe(pointer);
     });
   }
 
@@ -62,11 +62,11 @@ describe("NPtr Library", () => {
     );
   });
 
-  it("should check if a value is an NPtr value", () => {
+  it("should check if a value is an tagNum value", () => {
     const pointer = 0x9abcd; // 20-bit pointer
-    const nPtr = toTagNum(Tag.ADDRESS, pointer);
+    const tagNum = toTagNum(Tag.ADDRESS, pointer);
 
-    expect(isNPtr(nPtr)).toBe(true);
-    expect(isNPtr(3.14)).toBe(false);
+    expect(istagNum(tagNum)).toBe(true);
+    expect(istagNum(3.14)).toBe(false);
   });
 });

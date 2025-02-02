@@ -44,19 +44,19 @@ export class Compiler {
   }
 
   /**
-   * Compiles an integer value as a tagged pointer (nptr) and writes it as a float.
+   * Compiles an integer value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileInteger(value: number): void {
-    const nPtr = toTagNum(Tag.INTEGER, value); // Tag the integer
-    this.compileFloat(nPtr); // Write the tagged pointer as a Float32
+    const tagNum = toTagNum(Tag.INTEGER, value); // Tag the integer
+    this.compileFloat(tagNum); // Write the tagged pointer as a Float32
   }
 
   /**
-   * Compiles an address value as a tagged pointer (nptr) and writes it as a float.
+   * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileAddress(value: number): void {
-    const nPtr = toTagNum(Tag.ADDRESS, value); // Tag the address
-    this.compileFloat(nPtr); // Write the tagged pointer as a Float32
+    const tagNum = toTagNum(Tag.ADDRESS, value); // Tag the address
+    this.compileFloat(tagNum); // Write the tagged pointer as a Float32
   }
 
   /**
