@@ -9,6 +9,7 @@ export const Tag = {
 };
 
 export const TAG_ANY = 0;
+export const TAG_NAN = 0;
 
 // Constants
 const TAG_BITS = 3; // 3 bits for the tag (2 bits in mantissa + 1 sign bit)
@@ -129,9 +130,7 @@ export function fromTagNum(
  * @param {number} value - The value to check.
  * @returns {boolean} - True if the value is an tagNum value, false otherwise.
  */
-export function istagNum(value: number): boolean {
-  return isNaN(value);
-}
+export const isTagNum = isNaN;
 
 /**
  * Extracts the tag from an tagNum value.

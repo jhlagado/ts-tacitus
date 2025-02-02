@@ -1,7 +1,7 @@
 import {
   toTagNum,
   fromTagNum,
-  istagNum,
+  isTagNum,
   getTag,
   getPointer,
   Tag,
@@ -16,7 +16,7 @@ describe("tagNum Library", () => {
       const tagNum = toTagNum(tag, pointer);
 
       // Check if the value is a NaN
-      expect(istagNum(tagNum)).toBe(true);
+      expect(isTagNum(tagNum)).toBe(true);
 
       // Decode the tagNum value
       const { tag: decodedTag, pointer: decodedPointer } = fromTagNum(
@@ -66,7 +66,7 @@ describe("tagNum Library", () => {
     const pointer = 0x9abcd; // 20-bit pointer
     const tagNum = toTagNum(Tag.ADDRESS, pointer);
 
-    expect(istagNum(tagNum)).toBe(true);
-    expect(istagNum(3.14)).toBe(false);
+    expect(isTagNum(tagNum)).toBe(true);
+    expect(isTagNum(3.14)).toBe(false);
   });
 });

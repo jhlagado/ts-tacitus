@@ -1,14 +1,22 @@
 import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
 import { NIL } from "./constants";
-import { TAG_ANY, Tag, fromTagNum } from "./tagnum";
+import { TAG_ANY, TAG_NAN, isTagNum, fromTagNum, Tag } from "./tagnum";
 
-export const MAX_DIMENSIONS = 6;
-export const ARR_DIM = 4;
-export const ARR_SHAPE = ARR_DIM + 2;
-export const ARR_STRIDES = ARR_SHAPE + MAX_DIMENSIONS * 2;
-export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2;
-export const ARR_DATA2 = 4;
+// Constants for array layout in memory
+export const MAX_DIMENSIONS = 6; // Maximum number of dimensions allowed
+export const ARR_DIM = 4; // Offset for the number of dimensions (2 bytes)
+export const ARR_SHAPE = ARR_DIM + 2; // Offset for the shape data (2 bytes per dimension)
+export const ARR_STRIDES = ARR_SHAPE + MAX_DIMENSIONS * 2; // Offset for strides data (2 bytes per stride)
+export const ARR_DATA = ARR_STRIDES + MAX_DIMENSIONS * 2; // Offset for array data in the first block
+export const ARR_DATA2 = 4; // Offset for array data in subsequent blocks
 
+/**
+ * Creates a new array with the given shape and initializes it with the provided data.
+ * @param heap - The heap instance managing memory.
+ * @param shape - The shape of the array (e.g., [3, 3] for a 3x3 array).
+ * @param data - The data to populate the array with.
+ * @returns The pointer to the first block of the newly created array.
+ */
 export function arrayCreate(
   heap: Heap,
   shape: number[],
@@ -70,13 +78,11 @@ export function arrayCreate(
     }
 
     const value = data[dataIndex];
-    if (typeof value === "number") {
-      memory.writeFloat(currentBlock + dataOffset, value);
-    } else {
-      // Handle array references
-      const { pointer, tag } = fromTagNum(Tag.ARRAY, value);
-      if (tag === Tag.ARRAY) heap.incrementRef(pointer);
+    if (isTagNum(value)) {
+      const { tag, pointer } = fromTagNum(TAG_ANY, value);
+      if (tag === Tag.ARRAY) heap.incrementRef(pointer); // Increment reference count for ARRAY tags
     }
+    memory.writeFloat(currentBlock + dataOffset, value);
 
     dataOffset += 4;
     dataIndex++;
@@ -85,6 +91,13 @@ export function arrayCreate(
   return firstBlock;
 }
 
+/**
+ * Retrieves the value at the specified indices in the array.
+ * @param heap - The heap instance managing memory.
+ * @param startBlock - The pointer to the first block of the array.
+ * @param indices - The indices specifying the position in the array.
+ * @returns The value at the specified position, or undefined if out of bounds.
+ */
 export function arrayGet(
   heap: Heap,
   startBlock: number,
@@ -95,9 +108,7 @@ export function arrayGet(
 
   // Validate indices length
   if (indices.length !== numDimensions) {
-    throw new Error(
-      `Expected ${numDimensions} indices, got ${indices.length}.`
-    );
+    throw new Error(`Expected ${numDimensions} indices, got ${indices.length}.`);
   }
 
   // Extract strides
@@ -105,37 +116,26 @@ export function arrayGet(
     memory.read16(startBlock + ARR_STRIDES + i * 2)
   );
 
-  // Calculate flat index
+  // Compute flat index
   const flatIndex = indices.reduce(
     (acc, idx, i) => acc + (i < strides.length ? idx * strides[i] : idx),
     0
   );
 
-  // Traverse blocks to find the value
-  let currentBlock = startBlock;
-  let elementsRead = 0;
+  // Find the block and offset for the flat index
+  const { block: currentBlock, offset } = findBlockAndOffset(heap, startBlock, flatIndex);
 
-  while (currentBlock !== NIL) {
-    const blockCapacity =
-      currentBlock === startBlock
-        ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
-        : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
-
-    if (flatIndex < elementsRead + blockCapacity) {
-      const offset =
-        currentBlock === startBlock
-          ? ARR_DATA + (flatIndex - elementsRead) * 4
-          : ARR_DATA2 + (flatIndex - elementsRead) * 4;
-      return memory.readFloat(currentBlock + offset);
-    }
-
-    elementsRead += blockCapacity;
-    currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
-  }
-
-  return undefined;
+  // Read and return the value
+  return memory.readFloat(currentBlock + offset);
 }
 
+/**
+ * Updates the value at the specified indices in the array.
+ * @param heap - The heap instance managing memory.
+ * @param startBlock - The pointer to the first block of the array.
+ * @param indices - The indices specifying the position in the array.
+ * @param value - The new value to assign.
+ */
 export function arrayUpdate(
   heap: Heap,
   startBlock: number,
@@ -147,9 +147,7 @@ export function arrayUpdate(
 
   // Validate the number of indices
   if (indices.length !== numDimensions) {
-    throw new Error(
-      `Expected ${numDimensions} indices, got ${indices.length}.`
-    );
+    throw new Error(`Expected ${numDimensions} indices, got ${indices.length}.`);
   }
 
   // Read shape and validate bounds for each index
@@ -173,7 +171,7 @@ export function arrayUpdate(
   );
 
   // Traverse blocks with reference counting
-  let currentBlock = startBlock;
+  let currentBlock = startBlock; // Use 'let' instead of 'const'
   let elementsRead = 0;
 
   while (currentBlock !== NIL) {
@@ -187,7 +185,7 @@ export function arrayUpdate(
       if (memory.read16(currentBlock + BLOCK_REFS) > 1) {
         const newBlock = cloneBlock(heap, currentBlock);
         if (currentBlock === startBlock) startBlock = newBlock;
-        currentBlock = newBlock;
+        currentBlock = newBlock; // Reassigning currentBlock
       }
 
       const offset =
@@ -195,25 +193,75 @@ export function arrayUpdate(
           ? ARR_DATA + (flatIndex - elementsRead) * 4
           : ARR_DATA2 + (flatIndex - elementsRead) * 4;
 
-      // Handle reference counting for array values
+      // Handle reference counting for the old value
       const oldValue = memory.readFloat(currentBlock + offset);
-      if (isNaN(oldValue)) {
+      if (isTagNum(oldValue)) {
         const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
-        if (tag === Tag.ARRAY) heap.decrementRef(pointer);
+        if (tag !== TAG_NAN) heap.decrementRef(pointer); // Only decrement if tag > 0
       }
 
+      // Handle reference counting for the new value
+      if (isTagNum(value)) {
+        const { tag, pointer } = fromTagNum(TAG_ANY, value);
+        if (tag !== TAG_NAN) heap.incrementRef(pointer); // Only increment if tag > 0
+      }
+
+      // Write the new value
       memory.writeFloat(currentBlock + offset, value);
+
       return;
     }
 
     elementsRead += blockCapacity;
-    currentBlock = memory.read16(currentBlock + BLOCK_NEXT);
+    currentBlock = heap.getNextBlock(currentBlock); // Reassigning currentBlock
   }
 
   // If we reach here, the index is out of bounds
   throw new Error("Index out of bounds");
 }
 
+/**
+ * Helper function to find the block and offset for a given flat index.
+ * @param heap - The heap instance managing memory.
+ * @param startBlock - The pointer to the first block of the array.
+ * @param flatIndex - The flat index to locate.
+ * @returns An object containing the block and offset for the flat index.
+ */
+function findBlockAndOffset(
+  heap: Heap,
+  startBlock: number,
+  flatIndex: number
+): { block: number; offset: number } {
+  let currentBlock = startBlock;
+  let elementsRead = 0;
+
+  while (currentBlock !== NIL) {
+    const blockCapacity =
+      currentBlock === startBlock
+        ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
+        : Math.floor((BLOCK_SIZE - ARR_DATA2) / 4);
+
+    if (flatIndex < elementsRead + blockCapacity) {
+      const offset =
+        currentBlock === startBlock
+          ? ARR_DATA + (flatIndex - elementsRead) * 4
+          : ARR_DATA2 + (flatIndex - elementsRead) * 4;
+      return { block: currentBlock, offset };
+    }
+
+    elementsRead += blockCapacity;
+    currentBlock = heap.getNextBlock(currentBlock);
+  }
+
+  throw new Error("Index out of bounds");
+}
+
+/**
+ * Clones a block and its contents.
+ * @param heap - The heap instance managing memory.
+ * @param block - The block to clone.
+ * @returns The pointer to the newly cloned block.
+ */
 function cloneBlock(heap: Heap, block: number): number {
   const newBlock = heap.malloc(BLOCK_SIZE);
   if (newBlock === NIL) throw new Error("Out of memory");
