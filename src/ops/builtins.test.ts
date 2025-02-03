@@ -11,7 +11,7 @@ import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../globalState";
 import { CODE, RSTACK } from "../memory";
-import { Tag, toTagNum } from "../tagnum";
+import { fromTagNum, Tag, toTagNum } from "../tagnum";
 import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {
@@ -180,17 +180,17 @@ describe("Built-in Words", () => {
 
     it("exitOp should restore IP from return stack", () => {
       const testAddress = 0x12345;
-      vm.rpushAddress(testAddress);
+      vm.rpush(toTagNum(Tag.ADDRESS, testAddress));
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
 
     it("evalOp should push IP to return stack and jump", () => {
       const testAddress = 0x12345;
-      vm.pushAddress(testAddress);
+      vm.push(toTagNum(Tag.ADDRESS, testAddress));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(vm.rpopAddress()).toBe(CODE); // Original IP before eval
+      expect(fromTagNum(Tag.ADDRESS, vm.rpop()).value).toBe(CODE); // Original IP before eval
     });
 
     it("branchOp should jump relative", () => {
@@ -205,7 +205,7 @@ describe("Built-in Words", () => {
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(vm.rpopAddress()).toBe(CODE + 2); // Original IP after call
+      expect(fromTagNum(Tag.ADDRESS, vm.rpop()).value).toBe(CODE + 2); // Original IP after call
     });
   });
 
@@ -227,7 +227,8 @@ describe("Built-in Words", () => {
     it("should push return address", () => {
       const initialIP = vm.IP;
       skipBlockOp(vm);
-      expect(vm.popAddress()).toBe(initialIP + 2); // +1 opcode + 2 offset
+      const { value: pointer } = fromTagNum(Tag.ADDRESS, vm.pop());
+      expect(pointer).toBe(initialIP + 2); // +1 opcode + 2 offset
     });
   });
 

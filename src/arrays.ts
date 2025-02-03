@@ -99,7 +99,7 @@ export function arrayCreate(
 
     const value = data[dataIndex];
     if (isTagNum(value)) {
-      const { tag, pointer } = fromTagNum(TAG_ANY, value);
+      const { tag, value: pointer } = fromTagNum(TAG_ANY, value);
       if (tag === Tag.ARRAY) heap.incrementRef(pointer); // Increment reference count for ARRAY tags
     }
     memory.writeFloat(currentBlock + dataOffset, value);
@@ -226,18 +226,18 @@ export function arrayUpdate(
       // Handle reference counting for the old value
       const oldValue = memory.readFloat(currentBlock + offset);
       if (isTagNum(oldValue)) {
-        const { tag, pointer } = fromTagNum(TAG_ANY, oldValue);
+        const { tag, value: pointer } = fromTagNum(TAG_ANY, oldValue);
         if (tag !== TAG_NAN) heap.decrementRef(pointer); // Only decrement if tag > 0
       }
 
       // Handle reference counting for the new value
       if (isTagNum(value)) {
-        const { tag, pointer } = fromTagNum(TAG_ANY, value);
+        const { tag, value: pointer } = fromTagNum(TAG_ANY, value);
         if (tag !== TAG_NAN) heap.incrementRef(pointer); // Only increment if tag > 0
       }
 
       memory.writeFloat(currentBlock + offset, value);
-      
+
       return startBlock; // Return potentially new startBlock
     }
 

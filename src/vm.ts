@@ -2,7 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTagNum, toTagNum } from "./tagnum";
+import { Tag, fromTagNum } from "./tagnum";
 
 export class VM {
   memory: Memory;
@@ -57,26 +57,6 @@ export class VM {
     return this.memory.readFloat(this.SP); // Read 32-bit float
   }
 
-  pushAddress(value: number): void {
-    this.push(toTagNum(Tag.ADDRESS, value));
-  }
-
-  popAddress(): number {
-    const tagNum = this.pop();
-    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
-    return pointer;
-  }
-
-  pushInteger(value: number): void {
-    this.push(toTagNum(Tag.INTEGER, value));
-  }
-
-  popInteger(): number {
-    const tagNum = this.pop();
-    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
-    return pointer;
-  }
-
   /**
    * Pushes a 32-bit value onto the return stack.
    */
@@ -105,26 +85,6 @@ export class VM {
     }
     this.RP -= 4; // Move return stack pointer back by 4 bytes
     return this.memory.readFloat(this.RP); // Read 32-bit value
-  }
-
-  rpushAddress(value: number): void {
-    this.rpush(toTagNum(Tag.ADDRESS, value));
-  }
-
-  rpopAddress(): number {
-    const tagNum = this.rpop();
-    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
-    return pointer;
-  }
-
-  rpushInteger(value: number): void {
-    this.rpush(toTagNum(Tag.INTEGER, value));
-  }
-
-  rpopInteger(): number {
-    const tagNum = this.rpop();
-    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
-    return pointer;
   }
 
   reset() {
@@ -168,7 +128,7 @@ export class VM {
    */
   nextAddress(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
+    const { value: pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     return pointer;
   }
 
@@ -177,7 +137,7 @@ export class VM {
    */
   nextInteger(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
+    const { value: pointer } = fromTagNum(Tag.INTEGER, tagNum);
     return pointer;
   }
 

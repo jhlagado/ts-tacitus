@@ -1,7 +1,7 @@
 export const Tag = {
   INTEGER: 0b001, // 1 (signed 20-bit integer)
   ADDRESS: 0b010, // 2 (unsigned 20-bit pointer)
-  STRING: 0b011, // 3
+  BLOCK: 0b011, // 3
   ARRAY: 0b100, // 4
   CUSTOM1: 0b101, // 5
   CUSTOM2: 0b110, // 6
@@ -36,10 +36,10 @@ export function tagName(tagValue: number): string {
 /**
  * Encodes a 20-bit pointer and a 3-bit tag into a Float32 NaN value.
  * @param {number} tag - The 3-bit tag (1-7). The tag 0 is reserved for Infinity.
- * @param {number} pointer - The 20-bit pointer (0-1048575 for unsigned, -524288 to 524287 for signed).
+ * @param {number} value - The 20-bit pointer (0-1048575 for unsigned, -524288 to 524287 for signed).
  * @returns {number} - The encoded Float32 NaN value.
  */
-export function toTagNum(tag: number, pointer: number): number {
+export function toTagNum(tag: number, value: number): number {
   if (tag < 1 || tag > 7) {
     throw new Error(`Tag must be a ${TAG_BITS}-bit value (1-7)`);
   }
@@ -48,22 +48,22 @@ export function toTagNum(tag: number, pointer: number): number {
 
   if (tag === Tag.INTEGER) {
     // Handle signed integers (two's complement)
-    if (pointer < -524288 || pointer > 524287) {
+    if (value < -524288 || value > 524287) {
       throw new Error(
         `Pointer must be a 20-bit signed integer (-524288 to 524287)`
       );
     }
-    encodedPointer = pointer & POINTER_MASK; // Convert to 20-bit two's complement
+    encodedPointer = value & POINTER_MASK; // Convert to 20-bit two's complement
   } else {
     // Handle unsigned pointers
-    if (pointer < 0 || pointer >= 1 << POINTER_BITS) {
+    if (value < 0 || value >= 1 << POINTER_BITS) {
       throw new Error(
         `Pointer must be a ${POINTER_BITS}-bit value (0-${
           (1 << POINTER_BITS) - 1
         })`
       );
     }
-    encodedPointer = pointer;
+    encodedPointer = value;
   }
 
   // Extract the sign bit (third tag bit) and the mantissa tag bits
@@ -91,7 +91,7 @@ export function fromTagNum(
   tagNum: number
 ): {
   tag: number;
-  pointer: number;
+  value: number;
 } {
   if (!isNaN(tagNum)) {
     throw new Error("Value is not a Tagged Pointer");
@@ -111,18 +111,22 @@ export function fromTagNum(
 
   if (tag !== TAG_ANY) {
     if (tag !== dataTag) {
-      throw new Error(`Expected tag ${tagName(tag)}, got tag ${tagName(dataTag)}`);
+      throw new Error(
+        `Expected tag ${tagName(tag)}, got tag ${tagName(dataTag)}`
+      );
     }
   }
 
   // Handle signed integers for the INTEGER tag
   if (dataTag === Tag.INTEGER) {
     const isNegative = (dataPointer & (1 << (POINTER_BITS - 1))) !== 0; // Check the sign bit
-    const signedPointer = isNegative ? dataPointer - (1 << POINTER_BITS) : dataPointer; // Convert to signed
-    return { tag: dataTag, pointer: signedPointer };
+    const signedPointer = isNegative
+      ? dataPointer - (1 << POINTER_BITS)
+      : dataPointer; // Convert to signed
+    return { tag: dataTag, value: signedPointer };
   }
 
-  return { tag: dataTag, pointer: dataPointer };
+  return { tag: dataTag, value: dataPointer };
 }
 
 /**
@@ -147,5 +151,9 @@ export function getTag(tagNum: number): number {
  * @returns {number} - The 20-bit pointer (signed for INTEGER tag, unsigned otherwise).
  */
 export function getPointer(tagNum: number): number {
-  return fromTagNum(TAG_ANY, tagNum).pointer;
+  return fromTagNum(TAG_ANY, tagNum).value;
+}
+
+export function isHeapObject(tag: number): boolean {
+  return tag === Tag.BLOCK || tag === Tag.ARRAY;
 }

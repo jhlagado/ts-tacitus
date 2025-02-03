@@ -88,7 +88,7 @@ export class Memory {
 
   readAddress(address: number): number {
     const tagNum = this.readFloat(address); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.ADDRESS, tagNum);
+    const { value: pointer } = fromTagNum(Tag.ADDRESS, tagNum);
     return pointer;
   }
 
@@ -98,7 +98,7 @@ export class Memory {
 
   readInteger(address: number): number {
     const tagNum = this.readFloat(address); // Read the tagged pointer as a float
-    const { pointer } = fromTagNum(Tag.INTEGER, tagNum);
+    const { value: pointer } = fromTagNum(Tag.INTEGER, tagNum);
     return pointer;
   }
 

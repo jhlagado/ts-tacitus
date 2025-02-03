@@ -19,7 +19,7 @@ describe("tagNum Library", () => {
       expect(isTagNum(tagNum)).toBe(true);
 
       // Decode the tagNum value
-      const { tag: decodedTag, pointer: decodedPointer } = fromTagNum(
+      const { tag: decodedTag, value: decodedPointer } = fromTagNum(
         TAG_ANY,
         tagNum
       );
