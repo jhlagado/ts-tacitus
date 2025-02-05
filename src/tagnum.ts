@@ -1,11 +1,11 @@
 export const Tag = {
-  INTEGER: 0b001, // 1 (signed 20-bit integer)
-  ADDRESS: 0b010, // 2 (unsigned 20-bit pointer)
-  BLOCK: 0b011, // 3
-  ARRAY: 0b100, // 4
-  CUSTOM1: 0b101, // 5
-  CUSTOM2: 0b110, // 6
-  CUSTOM3: 0b111, // 7
+  INTEGER: 1, 
+  CODE: 2, 
+  BLOCK: 3, 
+  ARRAY: 4, 
+  VECTOR: 5,
+  SEQ: 6, 
+  CUSTOM: 7, 
 };
 
 export const TAG_ANY = 0;
@@ -19,18 +19,13 @@ const TAG_MANTISSA_MASK = 0b11 << POINTER_BITS; // Tag mask in mantissa (bits 20
 const POINTER_MASK = (1 << POINTER_BITS) - 1; // Pointer mask (bits 0-19)
 const NAN_BIT = 1 << 22; // Force the 23rd bit of the mantissa to 1
 
-/**
- * Returns the name of the tag given its value.
- * @param tagValue - The value of the tag (0..7).
- * @returns The name of the tag.
- */
-export function tagName(tagValue: number): string {
+function tagName(tag: number): string {
   for (const [key, value] of Object.entries(Tag)) {
-    if (value === tagValue) {
+    if (value === tag) {
       return key;
     }
   }
-  throw new Error(`Invalid tag value: ${tagValue}`);
+  throw new Error(`Invalid tag value: ${tag}`);
 }
 
 /**
@@ -93,7 +88,7 @@ export function fromTagNum(
   tag: number;
   value: number;
 } {
-  if (!isNaN(tagNum)) {
+  if (!isTagNum(tagNum)) {
     throw new Error("Value is not a Tagged Pointer");
   }
 
@@ -154,6 +149,10 @@ export function getPointer(tagNum: number): number {
   return fromTagNum(TAG_ANY, tagNum).value;
 }
 
-export function isHeapObject(tag: number): boolean {
+export function isRefCounted(tagNum: number): boolean {
+  if (!isTagNum(tagNum)) {
+    return false;
+  }
+  const { tag } = fromTagNum(TAG_ANY, tagNum);
   return tag === Tag.BLOCK || tag === Tag.ARRAY;
 }

@@ -1,7 +1,14 @@
 import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
-import { ARR_DATA, ARR_DATA2, arrayCreate, arrayGet, arrayUpdate, MAX_DIMENSIONS } from "./arrays";
+import {
+  ARR_DATA,
+  ARR_DATA2,
+  arrayCreate,
+  arrayGet,
+  arrayUpdate,
+  MAX_DIMENSIONS,
+} from "./arrays";
 import { Memory } from "./memory";
-import { NIL } from "./constants";
+import { NULL } from "./constants";
 import { toTagNum, Tag } from "./tagnum";
 
 describe("Array Functions", () => {
@@ -17,7 +24,7 @@ describe("Array Functions", () => {
     const shape = [2, 3];
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
     expect(arrayGet(heap, startBlock, [1, 2])).toBe(6);
   });
 
@@ -33,11 +40,11 @@ describe("Array Functions", () => {
     // Calculate elements per block based on actual metadata layout
     const elementsFirstBlock = Math.floor((BLOCK_SIZE - ARR_DATA) / 4); // First block elements
     const elementsSubsequentBlock = Math.floor((BLOCK_SIZE - ARR_DATA2) / 4); // Other blocks
-    
+
     // Create array that spans exactly 2 blocks
     const testElements = elementsFirstBlock + 1;
     const bigArray = Array.from({ length: testElements }, (_, i) => i);
-  
+
     // Calculate required blocks based on array layout
     let requiredBlocks = 1;
     let remainingElements = testElements - elementsFirstBlock;
@@ -45,31 +52,35 @@ describe("Array Functions", () => {
       requiredBlocks++;
       remainingElements -= elementsSubsequentBlock;
     }
-  
+
     // Validate heap capacity
     let availableBlocks = 0;
     let current = heap.freeList;
-    while (current !== NIL) {
+    while (current !== NULL) {
       availableBlocks++;
       current = heap.memory.read16(current + BLOCK_NEXT);
     }
     if (availableBlocks < requiredBlocks) {
-      throw new Error(`Need ${requiredBlocks} blocks, only ${availableBlocks} available`);
+      throw new Error(
+        `Need ${requiredBlocks} blocks, only ${availableBlocks} available`
+      );
     }
-  
+
     // Create array
     const startBlock = arrayCreate(heap, [1], bigArray);
-    expect(startBlock).not.toBe(NIL);
-  
+    expect(startBlock).not.toBe(NULL);
+
     // Verify last element in second block
-    expect(arrayGet(heap, startBlock, [testElements - 1])).toBe(testElements - 1);
+    expect(arrayGet(heap, startBlock, [testElements - 1])).toBe(
+      testElements - 1
+    );
   });
 
   it("should create and update a multi-block, single-dimensional array", () => {
     const shape = [20]; // Array of 20 elements
     const data = Array.from({ length: 20 }, (_, i) => i + 1);
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
     // Verify the elements using arrayGet
     for (let i = 0; i < 20; i++) {
@@ -85,7 +96,7 @@ describe("Array Functions", () => {
     const shape = [5]; // Array of 5 elements
     const data = [1, 2, 3, 4, 5];
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
     // Verify the elements using arrayGet
     expect(arrayGet(heap, startBlock, [0])).toBe(1);
@@ -103,7 +114,7 @@ describe("Array Functions", () => {
     const shape = [2, 3]; // 2x3 array
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
     // Verify the elements using arrayGet
     expect(arrayGet(heap, startBlock, [0, 0])).toBe(1);
@@ -122,7 +133,7 @@ describe("Array Functions", () => {
     const shape = [4, 5]; // 4x5 array (20 elements)
     const data = Array.from({ length: 20 }, (_, i) => i + 1);
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
     // Verify the elements using arrayGet
     for (let i = 0; i < 4; i++) {
@@ -140,7 +151,7 @@ describe("Array Functions", () => {
     const shape = [10, 10]; // 10x10 array (100 elements)
     const data = Array.from({ length: 100 }, (_, i) => i + 1);
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
     // Verify the elements using arrayGet
     for (let i = 0; i < 10; i++) {
@@ -162,22 +173,22 @@ describe("Array Functions", () => {
     );
   });
 
-  it("should return NIL if allocation of the first block fails", () => {
-    while (heap.malloc(BLOCK_SIZE - 2) !== NIL) {}
+  it("should return NULL if allocation of the first block fails", () => {
+    while (heap.malloc(BLOCK_SIZE - 2) !== NULL) {}
     const shape = [2, 3];
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).toBe(NIL);
+    expect(startBlock).toBe(NULL);
   });
 
-  it("should return NIL if allocation of a subsequent block fails", () => {
+  it("should return NULL if allocation of a subsequent block fails", () => {
     const shape = [1, 20];
     const data = Array.from({ length: 20 }, (_, i) => i + 1);
     while (heap.available() > BLOCK_SIZE) {
       heap.malloc(BLOCK_SIZE - 2);
     }
     const startBlock = arrayCreate(heap, shape, data);
-    expect(startBlock).toBe(NIL);
+    expect(startBlock).toBe(NULL);
   });
 
   it("should throw an error if the number of indices does not match the number of dimensions", () => {
@@ -262,13 +273,13 @@ describe("Array Functions", () => {
     const shape = [2, 3];
     const data = [1, 2, 3, 4, 5, 6];
     const startBlock = arrayCreate(heap, shape, data);
-  
+
     // Update element and get new startBlock pointer
     const newStartBlock = arrayUpdate(heap, startBlock, [1, 2], 99);
-    
+
     // Verify using the NEW pointer
     expect(arrayGet(heap, newStartBlock, [1, 2])).toBe(99);
-  
+
     // Verify original block's refcount dropped to 1
     expect(heap.memory.read16(startBlock + BLOCK_REFS)).toBe(1);
   });

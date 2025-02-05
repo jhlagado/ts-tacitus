@@ -24,7 +24,7 @@ describe("Compiler", () => {
     vm.compiler.compileAddress(0x12345); // Use compileAddress
     vm.reset();
     const tagNum = vm.nextFloat();
-    const { value: pointer } = fromTagNum(Tag.ADDRESS, tagNum);
+    const { value: pointer } = fromTagNum(Tag.CODE, tagNum);
     expect(pointer).toBe(0x12345);
   });
 

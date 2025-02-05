@@ -55,7 +55,7 @@ export class Compiler {
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileAddress(value: number): void {
-    const tagNum = toTagNum(Tag.ADDRESS, value); // Tag the address
+    const tagNum = toTagNum(Tag.CODE, value); // Tag the address
     this.compileFloat(tagNum); // Write the tagged pointer as a Float32
   }
 

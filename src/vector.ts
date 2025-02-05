@@ -1,5 +1,5 @@
 import { BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
-import { NIL } from "./constants";
+import { NULL } from "./constants";
 import { toTagNum, fromTagNum, isTagNum } from "./tagnum";
 
 // Define offsets in the vector block
@@ -22,7 +22,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   const length = data.length;
   const totalBytes = length * ELEMENT_SIZE;
   const firstBlock = heap.malloc(totalBytes + VEC_DATA);
-  if (firstBlock === NIL) return NIL;
+  if (firstBlock === NULL) return NULL;
 
   heap.memory.write16(firstBlock + VEC_SIZE, length);
   heap.memory.write16(firstBlock + VEC_RESERVED, 0);
@@ -38,7 +38,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
 
     if (offset >= BLOCK_SIZE) {
       currentBlock = heap.getNextBlock(currentBlock);
-      if (currentBlock === NIL) return NIL;
+      if (currentBlock === NULL) return NULL;
       offset = VEC_DATA;
     }
   }
@@ -53,7 +53,11 @@ export function vectorCreate(heap: Heap, data: number[]): number {
  * @param index - Index of the element.
  * @returns The retrieved value or undefined if out of bounds.
  */
-export function vectorGet(heap: Heap, vectorPtr: number, index: number): number | undefined {
+export function vectorGet(
+  heap: Heap,
+  vectorPtr: number,
+  index: number
+): number | undefined {
   if (!isTagNum(vectorPtr)) return undefined;
   const { tag, value: block } = fromTagNum(VECTOR_TAG, vectorPtr);
   if (tag !== VECTOR_TAG) return undefined;
@@ -61,9 +65,11 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
   let currentBlock = block;
   let remainingIndex = index;
 
-  while (currentBlock !== NIL) {
+  while (currentBlock !== NULL) {
     if (remainingIndex < BLOCK_CAPACITY) {
-      return heap.memory.readFloat(currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE);
+      return heap.memory.readFloat(
+        currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE
+      );
     }
     remainingIndex -= BLOCK_CAPACITY;
     currentBlock = heap.getNextBlock(currentBlock);
@@ -79,27 +85,35 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
  * @param value - New value to set.
  * @returns Updated vector pointer.
  */
-export function vectorUpdate(heap: Heap, vectorPtr: number, index: number, value: number): number {
-  if (!isTagNum(vectorPtr)) return NIL;
+export function vectorUpdate(
+  heap: Heap,
+  vectorPtr: number,
+  index: number,
+  value: number
+): number {
+  if (!isTagNum(vectorPtr)) return NULL;
   let { tag, value: block } = fromTagNum(VECTOR_TAG, vectorPtr);
-  if (tag !== VECTOR_TAG) return NIL;
+  if (tag !== VECTOR_TAG) return NULL;
 
   let currentBlock = block;
   let remainingIndex = index;
 
-  while (currentBlock !== NIL) {
+  while (currentBlock !== NULL) {
     if (remainingIndex < BLOCK_CAPACITY) {
       // Handle copy-on-write using heap.cloneBlock
       if (heap.memory.read16(currentBlock + BLOCK_REFS) > 1) {
         const newBlock = heap.cloneBlock(currentBlock);
-        if (newBlock === NIL) return NIL;
+        if (newBlock === NULL) return NULL;
         currentBlock = newBlock;
       }
-      heap.memory.writeFloat(currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE, value);
+      heap.memory.writeFloat(
+        currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
+        value
+      );
       return toTagNum(VECTOR_TAG, block);
     }
     remainingIndex -= BLOCK_CAPACITY;
     currentBlock = heap.getNextBlock(currentBlock);
   }
-  return NIL;
+  return NULL;
 }

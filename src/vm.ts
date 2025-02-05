@@ -2,7 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTagNum } from "./tagnum";
+import { Tag, fromTagNum, isRefCounted } from "./tagnum";
 
 export class VM {
   memory: Memory;
@@ -30,7 +30,10 @@ export class VM {
   /**
    * Pushes a 32-bit float onto the stack.
    */
-  push(value: number): void {
+  push(value: number, transfer: boolean = false): void {
+    if (transfer && isRefCounted(value)) {
+      this.heap.incrementRef(value);
+    }
     if (this.SP + 4 > STACK + STACK_SIZE) {
       throw new Error(
         `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
@@ -54,7 +57,12 @@ export class VM {
       );
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
-    return this.memory.readFloat(this.SP); // Read 32-bit float
+    const value = this.memory.readFloat(this.SP); // Read 32-bit float
+
+    if (isRefCounted(value)) {
+      this.heap.decrementRef(value); // 1 → 0 (frees if needed)
+    }
+    return value;
   }
 
   /**
@@ -124,11 +132,11 @@ export class VM {
   }
 
   /**
-   * Reads the next address (tagged as ADDRESS) from memory and increments the instruction pointer.
+   * Reads the next address (tagged as CODE) from memory and increments the instruction pointer.
    */
   nextAddress(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTagNum(Tag.ADDRESS, tagNum);
+    const { value: pointer } = fromTagNum(Tag.CODE, tagNum);
     return pointer;
   }
 

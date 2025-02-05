@@ -42,10 +42,10 @@ describe("tagNum Library", () => {
   });
 
   it("should throw an error for invalid pointers", () => {
-    expect(() => toTagNum(Tag.ADDRESS, -1)).toThrow(
+    expect(() => toTagNum(Tag.CODE, -1)).toThrow(
       "Pointer must be a 20-bit value"
     );
-    expect(() => toTagNum(Tag.ADDRESS, 0x100000)).toThrow(
+    expect(() => toTagNum(Tag.CODE, 0x100000)).toThrow(
       "Pointer must be a 20-bit value"
     );
     expect(() => toTagNum(Tag.INTEGER, -524289)).toThrow(
@@ -64,7 +64,7 @@ describe("tagNum Library", () => {
 
   it("should check if a value is an tagNum value", () => {
     const pointer = 0x9abcd; // 20-bit pointer
-    const tagNum = toTagNum(Tag.ADDRESS, pointer);
+    const tagNum = toTagNum(Tag.CODE, pointer);
 
     expect(isTagNum(tagNum)).toBe(true);
     expect(isTagNum(3.14)).toBe(false);

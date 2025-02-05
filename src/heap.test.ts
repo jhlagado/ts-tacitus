@@ -1,5 +1,11 @@
-import { NIL } from "./constants";
-import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap, USABLE_BLOCK_SIZE } from "./heap";
+import { NULL } from "./constants";
+import {
+  BLOCK_NEXT,
+  BLOCK_REFS,
+  BLOCK_SIZE,
+  Heap,
+  USABLE_BLOCK_SIZE,
+} from "./heap";
 import { Memory, HEAP_SIZE } from "./memory";
 
 const HALF_BLOCK_SIZE = Math.floor(USABLE_BLOCK_SIZE / 2);
@@ -15,25 +21,25 @@ describe("Heap", () => {
 
   it("should allocate and free blocks correctly", () => {
     const block1 = heap.malloc(HALF_BLOCK_SIZE);
-    expect(block1).not.toBe(NIL);
+    expect(block1).not.toBe(NULL);
 
     const block2 = heap.malloc(HALF_BLOCK_SIZE);
-    expect(block2).not.toBe(NIL);
+    expect(block2).not.toBe(NULL);
 
     heap.free(block1);
     heap.free(block2);
 
     const block3 = heap.malloc(BLOCK_SIZE);
-    expect(block3).not.toBe(NIL);
+    expect(block3).not.toBe(NULL);
   });
 
   it("should handle allocation with block overhead", () => {
     const startBlock = heap.malloc(USABLE_BLOCK_SIZE);
-    expect(startBlock).not.toBe(NIL);
+    expect(startBlock).not.toBe(NULL);
 
-    // Verify that the next block is NIL (only one block should be allocated)
+    // Verify that the next block is NULL (only one block should be allocated)
     const nextBlock = memory.read16(startBlock + BLOCK_NEXT);
-    expect(nextBlock).toBe(NIL);
+    expect(nextBlock).toBe(NULL);
 
     // Free the block
     heap.free(startBlock);
@@ -49,7 +55,7 @@ describe("Heap", () => {
 
     // Allocate one block
     const allocatedBlock = heap.malloc(60); // Allocate HALF_BLOCK_SIZE bytes (requires one block)
-    expect(allocatedBlock).not.toBe(NIL);
+    expect(allocatedBlock).not.toBe(NULL);
 
     // Check that available memory is reduced by USABLE_BLOCK_SIZE
     expect(heap.available()).toBe(initialFreeMemory - BLOCK_SIZE);
@@ -57,11 +63,11 @@ describe("Heap", () => {
 
   it("should reduce available memory after allocation", () => {
     const initialFreeMemory = heap.available();
-  
+
     // Allocate HALF_BLOCK_SIZE bytes (requires 2 blocks)
     const allocatedBlock = heap.malloc(BLOCK_SIZE);
-    expect(allocatedBlock).not.toBe(NIL);
-  
+    expect(allocatedBlock).not.toBe(NULL);
+
     // Expect reduction of 2 blocks (2 * BLOCK_SIZE)
     expect(heap.available()).toBe(initialFreeMemory - 2 * BLOCK_SIZE); // ✅ Passes
   });
@@ -71,7 +77,7 @@ describe("Heap", () => {
 
     // Allocate one block
     const allocatedBlock = heap.malloc(HALF_BLOCK_SIZE); // Allocate HALF_BLOCK_SIZE bytes (requires one block)
-    expect(allocatedBlock).not.toBe(NIL);
+    expect(allocatedBlock).not.toBe(NULL);
 
     // Free the allocated block
     heap.free(allocatedBlock);
@@ -82,7 +88,7 @@ describe("Heap", () => {
 
   it("should return 0 if the heap is fully allocated", () => {
     // Allocate all blocks in the heap
-    while (heap.malloc(USABLE_BLOCK_SIZE) !== NIL) {}
+    while (heap.malloc(USABLE_BLOCK_SIZE) !== NULL) {}
 
     // Check that available memory is 0
     expect(heap.available()).toBe(0);
@@ -94,7 +100,7 @@ describe("Heap", () => {
     // Allocate all blocks in the heap
     const allocatedBlocks: number[] = [];
     let block = heap.malloc(USABLE_BLOCK_SIZE);
-    while (block !== NIL) {
+    while (block !== NULL) {
       allocatedBlocks.push(block);
       block = heap.malloc(USABLE_BLOCK_SIZE);
     }
@@ -112,20 +118,20 @@ describe("Heap", () => {
 
   it("should handle allocation of zero or negative size", () => {
     const block = heap.malloc(0);
-    expect(block).toBe(NIL);
+    expect(block).toBe(NULL);
 
     const negativeBlock = heap.malloc(-10);
-    expect(negativeBlock).toBe(NIL);
+    expect(negativeBlock).toBe(NULL);
   });
 
-  it("should handle freeing NIL pointer", () => {
-    heap.free(NIL);
+  it("should handle freeing NULL pointer", () => {
+    heap.free(NULL);
     // No assertion needed, just ensure no error is thrown
   });
 
   it("should handle freeing a block and re-allocating it", () => {
     const block = heap.malloc(HALF_BLOCK_SIZE);
-    expect(block).not.toBe(NIL);
+    expect(block).not.toBe(NULL);
 
     heap.free(block);
 
@@ -146,7 +152,7 @@ describe("Heap", () => {
       const initialFree = heap.available();
       const block = heap.malloc(HALF_BLOCK_SIZE);
 
-      expect(block).not.toBe(NIL);
+      expect(block).not.toBe(NULL);
       expect(memory.read16(block + BLOCK_REFS)).toBe(1); // BLOCK_REFS
 
       heap.decrementRef(block);
@@ -258,15 +264,15 @@ describe("Heap", () => {
       expect(memory.read16(startBlock + BLOCK_REFS)).toBe(1);
 
       const nextBlock = memory.read16(startBlock);
-      expect(nextBlock).toBe(NIL);
+      expect(nextBlock).toBe(NULL);
     });
 
-    it("should return NIL if allocation fails", () => {
+    it("should return NULL if allocation fails", () => {
       // Exhaust heap
-      while (heap.malloc(USABLE_BLOCK_SIZE) !== NIL) {}
+      while (heap.malloc(USABLE_BLOCK_SIZE) !== NULL) {}
 
       const block = heap.malloc(HALF_BLOCK_SIZE);
-      expect(block).toBe(NIL);
+      expect(block).toBe(NULL);
     });
 
     it("should handle freeing invalid pointers", () => {

@@ -1,5 +1,5 @@
 import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
-import { NIL } from "./constants";
+import { NULL } from "./constants";
 import { TAG_ANY, TAG_NAN, isTagNum, fromTagNum, Tag } from "./tagnum";
 
 // Constants for array layout in memory
@@ -47,18 +47,18 @@ export function arrayCreate(
 
   let availableBlocks = 0;
   let current = heap.freeList;
-  while (current !== NIL) {
+  while (current !== NULL) {
     availableBlocks++;
     current = memory.read16(current + BLOCK_NEXT);
   }
   if (availableBlocks < requiredBlocks) {
-    return NIL; // Not enough memory to allocate the array
+    return NULL; // Not enough memory to allocate the array
   }
 
   // Allocate blocks using malloc
   const allocatedBytes = requiredBlocks * BLOCK_SIZE; // Use BLOCK_SIZE instead of USABLE_BLOCK_SIZE
   const firstBlock = heap.malloc(allocatedBytes);
-  if (firstBlock === NIL) return NIL;
+  if (firstBlock === NULL) return NULL;
 
   // Initialize header
   memory.write16(firstBlock + ARR_DIM, numDimensions);
@@ -91,7 +91,7 @@ export function arrayCreate(
     if (dataOffset + 4 > BLOCK_SIZE) {
       // Move to the next block using getNextBlock
       currentBlock = heap.getNextBlock(currentBlock);
-      if (currentBlock === NIL) {
+      if (currentBlock === NULL) {
         throw new Error("Unexpected end of allocated blocks.");
       }
       dataOffset = ARR_DATA2;
@@ -202,7 +202,7 @@ export function arrayUpdate(
   let currentBlock = startBlock; // Use 'let' instead of 'const'
   let elementsRead = 0;
 
-  while (currentBlock !== NIL) {
+  while (currentBlock !== NULL) {
     const blockCapacity =
       currentBlock === startBlock
         ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
@@ -264,7 +264,7 @@ function findBlockAndOffset(
   let currentBlock = startBlock;
   let elementsRead = 0;
 
-  while (currentBlock !== NIL) {
+  while (currentBlock !== NULL) {
     const blockCapacity =
       currentBlock === startBlock
         ? Math.floor((BLOCK_SIZE - ARR_DATA) / 4)
@@ -293,7 +293,7 @@ function findBlockAndOffset(
  */
 function cloneBlock(heap: Heap, block: number): number {
   const newBlock = heap.malloc(BLOCK_SIZE);
-  if (newBlock === NIL) throw new Error("Out of memory");
+  if (newBlock === NULL) throw new Error("Out of memory");
 
   // Copy block contents
   heap.memory.buffer.copyWithin(newBlock, block, block + BLOCK_SIZE);
@@ -303,7 +303,7 @@ function cloneBlock(heap: Heap, block: number): number {
 
   // Handle child blocks
   const nextBlock = heap.memory.read16(block + BLOCK_NEXT);
-  if (nextBlock !== NIL) heap.incrementRef(nextBlock);
+  if (nextBlock !== NULL) heap.incrementRef(nextBlock);
 
   return newBlock;
 }

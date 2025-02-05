@@ -83,12 +83,12 @@ export class Memory {
   }
 
   writeAddress(address: number, value: number): void {
-    this.writeFloat(address, toTagNum(Tag.ADDRESS, value));
+    this.writeFloat(address, toTagNum(Tag.CODE, value));
   }
 
   readAddress(address: number): number {
     const tagNum = this.readFloat(address); // Read the tagged pointer as a float
-    const { value: pointer } = fromTagNum(Tag.ADDRESS, tagNum);
+    const { value: pointer } = fromTagNum(Tag.CODE, tagNum);
     return pointer;
   }
 

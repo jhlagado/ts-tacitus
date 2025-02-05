@@ -1,4 +1,4 @@
-import { NIL } from "./constants";
+import { NULL } from "./constants";
 import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
 export const BLOCK_SIZE = 64;
@@ -27,33 +27,33 @@ export class Heap {
       i++;
     }
     console.log("initializeFreeList", { i, current, HEAP_SIZE });
-    this.memory.write16(current + BLOCK_NEXT, NIL);
+    this.memory.write16(current + BLOCK_NEXT, NULL);
     this.memory.write16(current + BLOCK_REFS, 0);
   }
 
   malloc(size: number): number {
-    if (size <= 0) return NIL;
+    if (size <= 0) return NULL;
 
     const numBlocks = Math.ceil(size / USABLE_BLOCK_SIZE);
     let current = this.freeList;
-    let prev = NIL;
+    let prev = NULL;
     let startBlock = current;
     let blocksFound = 0;
 
     // Traverse the free list to find enough contiguous blocks
-    while (current !== NIL && blocksFound < numBlocks) {
+    while (current !== NULL && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
       current = this.memory.read16(current + BLOCK_NEXT);
     }
 
-    // If not enough blocks are found, reset the traversed blocks and return NIL
+    // If not enough blocks are found, reset the traversed blocks and return NULL
     if (blocksFound < numBlocks) {
-      if (startBlock !== NIL) {
+      if (startBlock !== NULL) {
         this.memory.write16(prev + BLOCK_NEXT, this.freeList);
         this.freeList = startBlock;
       }
-      return NIL;
+      return NULL;
     }
 
     // Allocate the blocks: set reference counts and link them
@@ -62,8 +62,8 @@ export class Heap {
       this.memory.write16(block + BLOCK_REFS, 1); // Initialize reference count
       this.memory.write16(
         block + BLOCK_NEXT,
-        i < numBlocks - 1 ? block + BLOCK_SIZE : NIL
-      ); // Link to next block or NIL
+        i < numBlocks - 1 ? block + BLOCK_SIZE : NULL
+      ); // Link to next block or NULL
       block += BLOCK_SIZE;
     }
 
@@ -77,7 +77,7 @@ export class Heap {
   }
 
   decrementRef(block: number): void {
-    if (block === NIL) return;
+    if (block === NULL) return;
 
     const refs = this.memory.read16(block + BLOCK_REFS) - 1;
     this.memory.write16(block + BLOCK_REFS, refs);
@@ -95,24 +95,24 @@ export class Heap {
   }
 
   incrementRef(block: number): void {
-    if (block === NIL) return;
+    if (block === NULL) return;
     const refs = this.memory.read16(block + BLOCK_REFS);
     this.memory.write16(block + BLOCK_REFS, refs + 1);
   }
 
   getNextBlock(block: number): number {
-    if (block === NIL) {
-      throw new Error("Cannot get next block of NIL.");
+    if (block === NULL) {
+      throw new Error("Cannot get next block of NULL.");
     }
     return this.memory.read16(block + BLOCK_NEXT);
   }
 
   setNextBlock(parent: number, child: number): void {
     const oldChild = this.memory.read16(parent + BLOCK_NEXT);
-    if (oldChild !== NIL) this.decrementRef(oldChild);
+    if (oldChild !== NULL) this.decrementRef(oldChild);
 
     this.memory.write16(parent + BLOCK_NEXT, child);
-    if (child !== NIL) this.incrementRef(child);
+    if (child !== NULL) this.incrementRef(child);
   }
 
   /**
@@ -123,14 +123,14 @@ export class Heap {
    */
   cloneBlock(block: number): number {
     const newBlock = this.malloc(BLOCK_SIZE);
-    if (newBlock === NIL) return NIL;
+    if (newBlock === NULL) return NULL;
 
     this.memory.buffer.copyWithin(newBlock, block, block + BLOCK_SIZE);
     this.memory.write16(newBlock + BLOCK_REFS, 1);
 
     // Handle child blocks
     const nextBlock = this.memory.read16(block + BLOCK_NEXT);
-    if (nextBlock !== NIL) this.incrementRef(nextBlock);
+    if (nextBlock !== NULL) this.incrementRef(nextBlock);
 
     return newBlock;
   }
@@ -138,7 +138,7 @@ export class Heap {
   available(): number {
     let count = 0;
     let current = this.freeList;
-    while (current !== NIL) {
+    while (current !== NULL) {
       count++;
       current = this.memory.read16(current + BLOCK_NEXT);
     }
