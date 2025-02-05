@@ -1,7 +1,7 @@
 import { NIL } from "./constants";
 import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
-export const BLOCK_SIZE = 64; 
+export const BLOCK_SIZE = 64;
 export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)
 export const BLOCK_REFS = 2; // Offset for reference count (2 bytes)
 export const USABLE_BLOCK_SIZE = BLOCK_SIZE - 4; // Account for header
@@ -18,15 +18,15 @@ export class Heap {
 
   private initializeFreeList(): void {
     let current = HEAP;
-    let i=0;
-    console.log("initializest", {current});
+    let i = 0;
+    console.log("initializest", { current });
     while (current + BLOCK_SIZE < HEAP + HEAP_SIZE) {
       this.memory.write16(current + BLOCK_NEXT, current + BLOCK_SIZE);
       this.memory.write16(current + BLOCK_REFS, 0); // Free blocks have 0 refs
       current += BLOCK_SIZE;
       i++;
     }
-    console.log("initializeFreeList", {i, current, HEAP_SIZE});
+    console.log("initializeFreeList", { i, current, HEAP_SIZE });
     this.memory.write16(current + BLOCK_NEXT, NIL);
     this.memory.write16(current + BLOCK_REFS, 0);
   }
@@ -113,6 +113,26 @@ export class Heap {
 
     this.memory.write16(parent + BLOCK_NEXT, child);
     if (child !== NIL) this.incrementRef(child);
+  }
+
+  /**
+   * Clones a block and its contents.
+   * @param heap - The heap instance.
+   * @param block - The block to clone.
+   * @returns The pointer to the newly cloned block.
+   */
+  cloneBlock(block: number): number {
+    const newBlock = this.malloc(BLOCK_SIZE);
+    if (newBlock === NIL) return NIL;
+
+    this.memory.buffer.copyWithin(newBlock, block, block + BLOCK_SIZE);
+    this.memory.write16(newBlock + BLOCK_REFS, 1);
+
+    // Handle child blocks
+    const nextBlock = this.memory.read16(block + BLOCK_NEXT);
+    if (nextBlock !== NIL) this.incrementRef(nextBlock);
+
+    return newBlock;
   }
 
   available(): number {
