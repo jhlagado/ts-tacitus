@@ -8,31 +8,46 @@ export const VEC_RESERVED = 6; // 2 bytes reserved for future use
 export const VEC_DATA = 8; // Data starts after metadata
 export const VECTOR_TAG = 3; // Unique tag for vectors
 
-// Maximum elements in a single block
-const ELEMENT_SIZE = 4; // Each element is a 32-bit float
-const MAX_VECTOR_LENGTH = (BLOCK_SIZE - VEC_DATA) / ELEMENT_SIZE;
+// Each element is a 32-bit float
+const ELEMENT_SIZE = 4;
+const BLOCK_CAPACITY = Math.floor((BLOCK_SIZE - VEC_DATA) / ELEMENT_SIZE);
 
 /**
- * Creates a fixed-length vector.
+ * Creates a vector with initial data, allocating multiple blocks if necessary.
  * @param heap - The heap instance.
- * @param length - Number of elements.
+ * @param data - JavaScript array of numbers to initialize the vector.
  * @returns The pointer to the vector block.
  */
-export function vectorCreate(heap: Heap, length: number): number {
-  if (length > MAX_VECTOR_LENGTH) return NIL;
+export function vectorCreate(heap: Heap, data: number[]): number {
+  const length = data.length;
+  const totalBytes = length * ELEMENT_SIZE;
+  const firstBlock = heap.malloc(totalBytes + VEC_DATA);
+  if (firstBlock === NIL) return NIL;
 
-  const block = heap.malloc(BLOCK_SIZE);
-  if (block === NIL) return NIL;
+  heap.memory.write16(firstBlock + VEC_SIZE, length);
+  heap.memory.write16(firstBlock + VEC_RESERVED, 0);
 
-  heap.memory.write16(block + VEC_SIZE, length);
-  heap.memory.write16(block + VEC_RESERVED, 0);
-  heap.memory.write16(block + BLOCK_REFS, 1);
+  let currentBlock = firstBlock;
+  let dataIndex = 0;
+  let offset = VEC_DATA;
 
-  return toTagNum(VECTOR_TAG, block);
+  while (dataIndex < length) {
+    heap.memory.writeFloat(currentBlock + offset, data[dataIndex]);
+    offset += ELEMENT_SIZE;
+    dataIndex++;
+
+    if (offset >= BLOCK_SIZE) {
+      currentBlock = heap.getNextBlock(currentBlock);
+      if (currentBlock === NIL) return NIL;
+      offset = VEC_DATA;
+    }
+  }
+
+  return toTagNum(VECTOR_TAG, firstBlock);
 }
 
 /**
- * Retrieves an element from a vector.
+ * Retrieves an element from a vector, traversing multiple blocks if needed.
  * @param heap - The heap instance.
  * @param vectorPtr - Pointer to the vector block.
  * @param index - Index of the element.
@@ -43,14 +58,21 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
   const { tag, value: block } = fromTagNum(VECTOR_TAG, vectorPtr);
   if (tag !== VECTOR_TAG) return undefined;
 
-  const length = heap.memory.read16(block + VEC_SIZE);
-  if (index < 0 || index >= length) return undefined;
+  let currentBlock = block;
+  let remainingIndex = index;
 
-  return heap.memory.readFloat(block + VEC_DATA + index * ELEMENT_SIZE);
+  while (currentBlock !== NIL) {
+    if (remainingIndex < BLOCK_CAPACITY) {
+      return heap.memory.readFloat(currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE);
+    }
+    remainingIndex -= BLOCK_CAPACITY;
+    currentBlock = heap.getNextBlock(currentBlock);
+  }
+  return undefined;
 }
 
 /**
- * Updates an element in a vector.
+ * Updates an element in a vector, traversing blocks as necessary.
  * @param heap - The heap instance.
  * @param vectorPtr - Pointer to the vector block.
  * @param index - Index of the element.
@@ -62,16 +84,22 @@ export function vectorUpdate(heap: Heap, vectorPtr: number, index: number, value
   let { tag, value: block } = fromTagNum(VECTOR_TAG, vectorPtr);
   if (tag !== VECTOR_TAG) return NIL;
 
-  const length = heap.memory.read16(block + VEC_SIZE);
-  if (index < 0 || index >= length) return NIL;
+  let currentBlock = block;
+  let remainingIndex = index;
 
-  // Handle copy-on-write using heap.cloneBlock
-  if (heap.memory.read16(block + BLOCK_REFS) > 1) {
-    const newBlock = heap.cloneBlock(block);
-    if (newBlock === NIL) return NIL;
-    block = newBlock;
+  while (currentBlock !== NIL) {
+    if (remainingIndex < BLOCK_CAPACITY) {
+      // Handle copy-on-write using heap.cloneBlock
+      if (heap.memory.read16(currentBlock + BLOCK_REFS) > 1) {
+        const newBlock = heap.cloneBlock(currentBlock);
+        if (newBlock === NIL) return NIL;
+        currentBlock = newBlock;
+      }
+      heap.memory.writeFloat(currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE, value);
+      return toTagNum(VECTOR_TAG, block);
+    }
+    remainingIndex -= BLOCK_CAPACITY;
+    currentBlock = heap.getNextBlock(currentBlock);
   }
-
-  heap.memory.writeFloat(block + VEC_DATA + index * ELEMENT_SIZE, value);
-  return toTagNum(VECTOR_TAG, block);
+  return NIL;
 }
