@@ -1,6 +1,12 @@
 import { BLOCK_NEXT, BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
 import { NULL } from "./constants";
-import { TAG_ANY, TAG_NAN, isTagNum, fromTagNum, Tag } from "./tagnum";
+import {
+  TAG_ANY,
+  TAG_NAN,
+  isTaggedValue,
+  fromTaggedValue,
+  Tag,
+} from "./tagged-value";
 
 // Constants for array layout in memory
 export const MAX_DIMENSIONS = 6; // Maximum number of dimensions allowed
@@ -98,8 +104,8 @@ export function arrayCreate(
     }
 
     const value = data[dataIndex];
-    if (isTagNum(value)) {
-      const { tag, value: pointer } = fromTagNum(TAG_ANY, value);
+    if (isTaggedValue(value)) {
+      const { tag, value: pointer } = fromTaggedValue(TAG_ANY, value);
       if (tag === Tag.ARRAY) heap.incrementRef(pointer); // Increment reference count for ARRAY tags
     }
     memory.writeFloat(currentBlock + dataOffset, value);
@@ -225,14 +231,14 @@ export function arrayUpdate(
 
       // Handle reference counting for the old value
       const oldValue = memory.readFloat(currentBlock + offset);
-      if (isTagNum(oldValue)) {
-        const { tag, value: pointer } = fromTagNum(TAG_ANY, oldValue);
+      if (isTaggedValue(oldValue)) {
+        const { tag, value: pointer } = fromTaggedValue(TAG_ANY, oldValue);
         if (tag !== TAG_NAN) heap.decrementRef(pointer); // Only decrement if tag > 0
       }
 
       // Handle reference counting for the new value
-      if (isTagNum(value)) {
-        const { tag, value: pointer } = fromTagNum(TAG_ANY, value);
+      if (isTaggedValue(value)) {
+        const { tag, value: pointer } = fromTaggedValue(TAG_ANY, value);
         if (tag !== TAG_NAN) heap.incrementRef(pointer); // Only increment if tag > 0
       }
 

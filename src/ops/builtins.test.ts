@@ -11,7 +11,7 @@ import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../globalState";
 import { CODE, RSTACK } from "../memory";
-import { fromTagNum, Tag, toTagNum } from "../tagnum";
+import { fromTaggedValue, Tag, toTaggedValue } from "../tagged-value";
 import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {
@@ -180,17 +180,17 @@ describe("Built-in Words", () => {
 
     it("exitOp should restore IP from return stack", () => {
       const testAddress = 0x12345;
-      vm.rpush(toTagNum(Tag.CODE, testAddress));
+      vm.rpush(toTaggedValue(Tag.CODE, testAddress));
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
 
     it("evalOp should push IP to return stack and jump", () => {
       const testAddress = 0x12345;
-      vm.push(toTagNum(Tag.CODE, testAddress));
+      vm.push(toTaggedValue(Tag.CODE, testAddress));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(fromTagNum(Tag.CODE, vm.rpop()).value).toBe(CODE); // Original IP before eval
+      expect(fromTaggedValue(Tag.CODE, vm.rpop()).value).toBe(CODE); // Original IP before eval
     });
 
     it("branchOp should jump relative", () => {
@@ -205,7 +205,7 @@ describe("Built-in Words", () => {
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(fromTagNum(Tag.CODE, vm.rpop()).value).toBe(CODE + 2); // Original IP after call
+      expect(fromTaggedValue(Tag.CODE, vm.rpop()).value).toBe(CODE + 2); // Original IP after call
     });
   });
 
@@ -227,7 +227,7 @@ describe("Built-in Words", () => {
     it("should push return address", () => {
       const initialIP = vm.IP;
       skipBlockOp(vm);
-      const { value: pointer } = fromTagNum(Tag.CODE, vm.pop());
+      const { value: pointer } = fromTaggedValue(Tag.CODE, vm.pop());
       expect(pointer).toBe(initialIP + 2); // +1 opcode + 2 offset
     });
   });
@@ -240,7 +240,7 @@ describe("Built-in Words", () => {
     });
 
     it("should handle tagged pointers", () => {
-      const addr = toTagNum(Tag.CODE, 0x12345);
+      const addr = toTaggedValue(Tag.CODE, 0x12345);
       vm.compiler.compileFloat(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);

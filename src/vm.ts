@@ -2,7 +2,7 @@ import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTagNum, isRefCounted } from "./tagnum";
+import { Tag, fromTaggedValue, isRefCounted } from "./tagged-value";
 
 export class VM {
   memory: Memory;
@@ -136,7 +136,7 @@ export class VM {
    */
   nextAddress(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTagNum(Tag.CODE, tagNum);
+    const { value: pointer } = fromTaggedValue(Tag.CODE, tagNum);
     return pointer;
   }
 
@@ -145,7 +145,7 @@ export class VM {
    */
   nextInteger(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTagNum(Tag.INTEGER, tagNum);
+    const { value: pointer } = fromTaggedValue(Tag.INTEGER, tagNum);
     return pointer;
   }
 

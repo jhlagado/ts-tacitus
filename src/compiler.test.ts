@@ -1,7 +1,7 @@
 // src/compiler.test.ts
 import { initializeInterpreter, vm } from "./globalState";
 import { Op } from "./ops/builtins"; // Import Op enum
-import { fromTagNum, Tag } from "./tagnum";
+import { fromTaggedValue, Tag } from "./tagged-value";
 
 describe("Compiler", () => {
   beforeEach(() => {
@@ -24,7 +24,7 @@ describe("Compiler", () => {
     vm.compiler.compileAddress(0x12345); // Use compileAddress
     vm.reset();
     const tagNum = vm.nextFloat();
-    const { value: pointer } = fromTagNum(Tag.CODE, tagNum);
+    const { value: pointer } = fromTaggedValue(Tag.CODE, tagNum);
     expect(pointer).toBe(0x12345);
   });
 

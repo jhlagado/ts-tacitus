@@ -9,7 +9,7 @@ import {
 } from "./arrays";
 import { Memory } from "./memory";
 import { NULL } from "./constants";
-import { toTagNum, Tag } from "./tagnum";
+import { toTaggedValue, Tag } from "./tagged-value";
 
 describe("Array Functions", () => {
   let memory: Memory;
@@ -250,23 +250,23 @@ describe("Array Functions", () => {
     expect(arrayGet(heap, startBlock, [elementsPerBlock - 1])).toBe(888);
   });
 
-  it("should handle TagNum values in arrayUpdate", () => {
+  it("should handle TaggedValue values in arrayUpdate", () => {
     const shape = [2];
     const data = [1, 2];
     const startBlock = arrayCreate(heap, shape, data);
 
-    // Create another array and get its pointer as a TagNum
+    // Create another array and get its pointer as a TaggedValue
     const nestedShape = [3];
     const nestedData = [10, 20, 30];
     const nestedArrayPtr = arrayCreate(heap, nestedShape, nestedData);
-    const nestedArrayTagNum = toTagNum(Tag.ARRAY, nestedArrayPtr);
+    const nestedArrayTaggedValue = toTaggedValue(Tag.ARRAY, nestedArrayPtr);
 
-    // Update the first element with the TagNum
-    arrayUpdate(heap, startBlock, [0], nestedArrayTagNum);
+    // Update the first element with the TaggedValue
+    arrayUpdate(heap, startBlock, [0], nestedArrayTaggedValue);
 
     // Verify the updated value
     const updatedValue = arrayGet(heap, startBlock, [0]);
-    expect(updatedValue).toBe(nestedArrayTagNum);
+    expect(updatedValue).toBe(nestedArrayTaggedValue);
   });
 
   it("should clone blocks during arrayUpdate when necessary", () => {

@@ -1,72 +1,70 @@
 import {
-  toTagNum,
-  fromTagNum,
-  isTagNum,
+  toTaggedValue,
+  fromTaggedValue,
+  isTaggedValue,
   getTag,
-  getPointer,
+  getValue,
   Tag,
   TAG_ANY,
-} from "./tagnum";
+  tagNames,
+} from "./tagged-value";
 
 describe("tagNum Library", () => {
   // Test all tag types
-  for (const [type, tag] of Object.entries(Tag)) {
+  for (const [tag, type] of Object.entries(tagNames)) {
     it(`should encode and decode a ${type} tag and pointer`, () => {
       const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
-      const tagNum = toTagNum(tag, pointer);
+      const tagNum = toTaggedValue(Number(tag) as Tag, pointer);
 
       // Check if the value is a NaN
-      expect(isTagNum(tagNum)).toBe(true);
+      expect(isTaggedValue(tagNum)).toBe(true);
 
       // Decode the tagNum value
-      const { tag: decodedTag, value: decodedPointer } = fromTagNum(
+      const { tag: decodedTag, value: decodedPointer } = fromTaggedValue(
         TAG_ANY,
         tagNum
       );
-      expect(decodedTag).toBe(tag);
+      expect(decodedTag).toBe(Number(tag));
       expect(decodedPointer).toBe(pointer);
 
       // Extract the tag and pointer directly
-      expect(getTag(tagNum)).toBe(tag);
-      expect(getPointer(tagNum)).toBe(pointer);
+      expect(getTag(tagNum)).toBe(Number(tag));
+      expect(getValue(tagNum)).toBe(pointer);
     });
   }
 
   it("should throw an error for invalid tags", () => {
-    expect(() => toTagNum(0, 0x12345)).toThrow(
-      "Tag must be a 3-bit value (1-7)"
-    );
-    expect(() => toTagNum(8, 0x12345)).toThrow(
-      "Tag must be a 3-bit value (1-7)"
+    expect(() => toTaggedValue(8 as Tag, 0x12345)).toThrow(
+      "Tag must be a 3-bit value (0-7)"
     );
   });
 
   it("should throw an error for invalid pointers", () => {
-    expect(() => toTagNum(Tag.CODE, -1)).toThrow(
+    expect(() => toTaggedValue(Tag.CODE, -1)).toThrow(
       "Pointer must be a 20-bit value"
     );
-    expect(() => toTagNum(Tag.CODE, 0x100000)).toThrow(
+    expect(() => toTaggedValue(Tag.CODE, 0x100000)).toThrow(
       "Pointer must be a 20-bit value"
     );
-    expect(() => toTagNum(Tag.INTEGER, -524289)).toThrow(
+    expect(() => toTaggedValue(Tag.INTEGER, -524289)).toThrow(
       "Pointer must be a 20-bit signed integer"
     );
-    expect(() => toTagNum(Tag.INTEGER, 524288)).toThrow(
+    expect(() => toTaggedValue(Tag.INTEGER, 524288)).toThrow(
       "Pointer must be a 20-bit signed integer"
     );
   });
 
   it("should throw an error when decoding a non-NaN value", () => {
-    expect(() => fromTagNum(TAG_ANY, 3.14)).toThrow(
+    expect(() => fromTaggedValue(TAG_ANY, 3.14)).toThrow(
       "Value is not a Tagged Pointer"
     );
   });
 
   it("should check if a value is an tagNum value", () => {
     const pointer = 0x9abcd; // 20-bit pointer
-    const tagNum = toTagNum(Tag.CODE, pointer);
+    const tagNum = toTaggedValue(Tag.CODE, pointer);
 
-    expect(isTagNum(tagNum)).toBe(true);
-    expect(isTagNum(3.14)).toBe(false);
+    expect(isTaggedValue(tagNum)).toBe(true);
+    expect(isTaggedValue(3.14)).toBe(false);
   });
 });

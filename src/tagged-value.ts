@@ -1,11 +1,23 @@
-export const Tag = {
-  INTEGER: 1, 
-  CODE: 2, 
-  BLOCK: 3, 
-  ARRAY: 4, 
-  VECTOR: 5,
-  SEQ: 6, 
-  CUSTOM: 7, 
+export enum Tag {
+  NAN,
+  INTEGER,
+  CODE,
+  BLOCK,
+  VECTOR,
+  ARRAY,
+  SEQ,
+  CUSTOM,
+}
+
+export const tagNames: { [key in Tag]: string } = {
+  [Tag.NAN]: "NAN",
+  [Tag.INTEGER]: "INTEGER",
+  [Tag.CODE]: "CODE",
+  [Tag.BLOCK]: "BLOCK",
+  [Tag.VECTOR]: "VECTOR",
+  [Tag.ARRAY]: "ARRAY",
+  [Tag.SEQ]: "SEQ",
+  [Tag.CUSTOM]: "CUSTOM",
 };
 
 export const TAG_ANY = 0;
@@ -19,14 +31,7 @@ const TAG_MANTISSA_MASK = 0b11 << POINTER_BITS; // Tag mask in mantissa (bits 20
 const POINTER_MASK = (1 << POINTER_BITS) - 1; // Pointer mask (bits 0-19)
 const NAN_BIT = 1 << 22; // Force the 23rd bit of the mantissa to 1
 
-function tagName(tag: number): string {
-  for (const [key, value] of Object.entries(Tag)) {
-    if (value === tag) {
-      return key;
-    }
-  }
-  throw new Error(`Invalid tag value: ${tag}`);
-}
+export const UNDEF = toTaggedValue(TAG_NAN, 0) | (1 << 31);
 
 /**
  * Encodes a 20-bit pointer and a 3-bit tag into a Float32 NaN value.
@@ -34,9 +39,9 @@ function tagName(tag: number): string {
  * @param {number} value - The 20-bit pointer (0-1048575 for unsigned, -524288 to 524287 for signed).
  * @returns {number} - The encoded Float32 NaN value.
  */
-export function toTagNum(tag: number, value: number): number {
-  if (tag < 1 || tag > 7) {
-    throw new Error(`Tag must be a ${TAG_BITS}-bit value (1-7)`);
+export function toTaggedValue(tag: Tag, value: number): number {
+  if (tag > 7) {
+    throw new Error(`Tag must be a ${TAG_BITS}-bit value (0-7)`);
   }
 
   let encodedPointer: number;
@@ -81,14 +86,14 @@ export function toTagNum(tag: number, value: number): number {
  * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {Object} - An object containing the tag and pointer.
  */
-export function fromTagNum(
-  tag: number,
+export function fromTaggedValue(
+  tag: Tag,
   tagNum: number
 ): {
   tag: number;
   value: number;
 } {
-  if (!isTagNum(tagNum)) {
+  if (!isTaggedValue(tagNum)) {
     throw new Error("Value is not a Tagged Pointer");
   }
 
@@ -107,7 +112,9 @@ export function fromTagNum(
   if (tag !== TAG_ANY) {
     if (tag !== dataTag) {
       throw new Error(
-        `Expected tag ${tagName(tag)}, got tag ${tagName(dataTag)}`
+        `Expected tag ${tagNames[tag as Tag]}, got tag ${
+          tagNames[dataTag as Tag]
+        }`
       );
     }
   }
@@ -129,7 +136,7 @@ export function fromTagNum(
  * @param {number} value - The value to check.
  * @returns {boolean} - True if the value is an tagNum value, false otherwise.
  */
-export const isTagNum = isNaN;
+export const isTaggedValue = isNaN;
 
 /**
  * Extracts the tag from an tagNum value.
@@ -137,7 +144,7 @@ export const isTagNum = isNaN;
  * @returns {number} - The 3-bit tag.
  */
 export function getTag(tagNum: number): number {
-  return fromTagNum(TAG_ANY, tagNum).tag;
+  return fromTaggedValue(TAG_ANY, tagNum).tag;
 }
 
 /**
@@ -145,14 +152,14 @@ export function getTag(tagNum: number): number {
  * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {number} - The 20-bit pointer (signed for INTEGER tag, unsigned otherwise).
  */
-export function getPointer(tagNum: number): number {
-  return fromTagNum(TAG_ANY, tagNum).value;
+export function getValue(tagNum: number): number {
+  return fromTaggedValue(TAG_ANY, tagNum).value;
 }
 
 export function isRefCounted(tagNum: number): boolean {
-  if (!isTagNum(tagNum)) {
+  if (!isTaggedValue(tagNum)) {
     return false;
   }
-  const { tag } = fromTagNum(TAG_ANY, tagNum);
+  const { tag } = fromTaggedValue(TAG_ANY, tagNum);
   return tag === Tag.BLOCK || tag === Tag.ARRAY;
 }

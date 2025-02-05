@@ -2,7 +2,7 @@ import { VM } from "./vm";
 import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Compiler } from "./compiler";
 import { Dictionary } from "./dictionary";
-import { fromTagNum, Tag, toTagNum } from "./tagnum";
+import { fromTaggedValue, Tag, toTaggedValue } from "./tagged-value";
 
 describe("VM", () => {
   let vm: VM;
@@ -14,10 +14,10 @@ describe("VM", () => {
   // Test 1: Stack operations
   describe("Stack operations", () => {
     it("should push and pop 20-bit values from the stack", () => {
-      vm.push(toTagNum(Tag.INTEGER, 0x12345));
-      vm.push(toTagNum(Tag.INTEGER, 0x5abcd));
-      const { value: p1 } = fromTagNum(Tag.INTEGER, vm.pop());
-      const { value: p2 } = fromTagNum(Tag.INTEGER, vm.pop());
+      vm.push(toTaggedValue(Tag.INTEGER, 0x12345));
+      vm.push(toTaggedValue(Tag.INTEGER, 0x5abcd));
+      const { value: p1 } = fromTaggedValue(Tag.INTEGER, vm.pop());
+      const { value: p2 } = fromTaggedValue(Tag.INTEGER, vm.pop());
       expect(p1).toBe(0x5abcd);
       expect(p2).toBe(0x12345);
     });
@@ -48,21 +48,21 @@ describe("VM", () => {
     });
 
     it("should handle address tagging", () => {
-      vm.push(toTagNum(Tag.CODE, 0x12345));
-      const { value: pointer } = fromTagNum(Tag.CODE, vm.pop());
+      vm.push(toTaggedValue(Tag.CODE, 0x12345));
+      const { value: pointer } = fromTaggedValue(Tag.CODE, vm.pop());
       expect(pointer).toBe(0x12345);
     });
 
     it("should throw when popping address from non-address value", () => {
-      vm.push(toTagNum(Tag.INTEGER, 0x12345));
+      vm.push(toTaggedValue(Tag.INTEGER, 0x12345));
       expect(() => {
-        fromTagNum(Tag.CODE, vm.pop());
+        fromTaggedValue(Tag.CODE, vm.pop());
       }).toThrow("Expected tag CODE, got tag INTEGER");
     });
 
     it("should throw when popping integer from non-integer value", () => {
-      vm.push(toTagNum(Tag.CODE, 0x12345));
-      expect(() => fromTagNum(Tag.INTEGER, vm.pop())).toThrow(
+      vm.push(toTaggedValue(Tag.CODE, 0x12345));
+      expect(() => fromTaggedValue(Tag.INTEGER, vm.pop())).toThrow(
         "Expected tag INTEGER, got tag CODE"
       );
     });
@@ -89,25 +89,25 @@ describe("VM", () => {
     });
 
     it("should handle address tagging on return stack", () => {
-      vm.rpush(toTagNum(Tag.CODE, 0x54321));
-      expect(fromTagNum(Tag.CODE, vm.rpop()).value).toBe(0x54321);
+      vm.rpush(toTaggedValue(Tag.CODE, 0x54321));
+      expect(fromTaggedValue(Tag.CODE, vm.rpop()).value).toBe(0x54321);
     });
 
     it("should handle integer tagging on return stack", () => {
-      vm.rpush(toTagNum(Tag.INTEGER, 0x12345));
-      expect(fromTagNum(Tag.INTEGER, vm.rpop()).value).toBe(0x12345);
+      vm.rpush(toTaggedValue(Tag.INTEGER, 0x12345));
+      expect(fromTaggedValue(Tag.INTEGER, vm.rpop()).value).toBe(0x12345);
     });
 
     it("should throw when popping address from non-address on return stack", () => {
-      vm.rpush(toTagNum(Tag.INTEGER, 0x12345));
-      expect(() => fromTagNum(Tag.CODE, vm.rpop())).toThrow(
+      vm.rpush(toTaggedValue(Tag.INTEGER, 0x12345));
+      expect(() => fromTaggedValue(Tag.CODE, vm.rpop())).toThrow(
         "Expected tag CODE, got tag INTEGER"
       );
     });
 
     it("should throw when popping integer from non-integer on return stack", () => {
-      vm.rpush(toTagNum(Tag.CODE, 0x12345));
-      expect(() => fromTagNum(Tag.INTEGER, vm.rpop())).toThrow(
+      vm.rpush(toTaggedValue(Tag.CODE, 0x12345));
+      expect(() => fromTaggedValue(Tag.INTEGER, vm.rpop())).toThrow(
         "Expected tag INTEGER, got tag CODE"
       );
     });
@@ -133,20 +133,20 @@ describe("VM", () => {
 
     it("should handle nextAddress correctly", () => {
       const addr = 0x12345;
-      vm.compiler.compileFloat(toTagNum(Tag.CODE, addr));
+      vm.compiler.compileFloat(toTaggedValue(Tag.CODE, addr));
       vm.IP = CODE;
       expect(vm.nextAddress()).toBe(addr);
     });
 
     it("should handle nextInteger correctly", () => {
       const value = 0x54321;
-      vm.compiler.compileFloat(toTagNum(Tag.INTEGER, value));
+      vm.compiler.compileFloat(toTaggedValue(Tag.INTEGER, value));
       vm.IP = CODE;
       expect(vm.nextInteger()).toBe(value);
     });
 
     it("should throw on nextAddress with non-address tag", () => {
-      vm.compiler.compileFloat(toTagNum(Tag.INTEGER, 0x12345));
+      vm.compiler.compileFloat(toTaggedValue(Tag.INTEGER, 0x12345));
       vm.IP = CODE;
       expect(() => vm.nextAddress()).toThrow(
         "Expected tag CODE, got tag INTEGER"
@@ -154,7 +154,7 @@ describe("VM", () => {
     });
 
     it("should throw on nextInteger with non-integer tag", () => {
-      vm.compiler.compileFloat(toTagNum(Tag.CODE, 0x12345));
+      vm.compiler.compileFloat(toTaggedValue(Tag.CODE, 0x12345));
       vm.IP = CODE;
       expect(() => vm.nextInteger()).toThrow(
         "Expected tag INTEGER, got tag CODE"
