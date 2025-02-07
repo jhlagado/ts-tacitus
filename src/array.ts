@@ -34,26 +34,31 @@ export function arrayCreate(
   const dimensions = shape.length;
   if (dimensions > MAX_DIMENSIONS) return NULL;
 
+  // Calculate total elements
   const totalElements = shape.reduce((a, b) => a * b, 1);
+
+  // Create the vector
   const vectorPtr = vectorCreate(heap, data);
   if (vectorPtr === NULL) return NULL;
 
+  // Allocate the array block
   const arrayBlock = heap.malloc(BLOCK_SIZE);
   if (arrayBlock === NULL) return NULL;
 
+  // Write metadata
   heap.memory.write16(
     arrayBlock + ARR_VECTOR,
     fromTaggedValue(Tag.VECTOR, vectorPtr).value
   );
   heap.memory.write16(arrayBlock + ARR_DIM, dimensions);
 
+  // Calculate strides and write shape/strides
   let offset = ARR_SPEC;
-  for (let i = 0; i < dimensions; i++) {
+  let stride = 1; // Start with stride for the last dimension
+  for (let i = dimensions - 1; i >= 0; i--) {
     heap.memory.write16(arrayBlock + offset + ARR_SHAPE, shape[i]);
-    heap.memory.write16(
-      arrayBlock + offset + ARR_STRIDES,
-      totalElements / shape[i]
-    );
+    heap.memory.write16(arrayBlock + offset + ARR_STRIDES, stride);
+    stride *= shape[i]; // Update stride for the next dimension
     offset += 4;
   }
 
