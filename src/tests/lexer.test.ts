@@ -1,4 +1,4 @@
-import { lex } from "./lexer";
+import { lex } from "../lexer";
 
 describe("Lexer", () => {
   // Test 1: Simple commands
@@ -152,6 +152,6 @@ describe("Lexer", () => {
 
   it("should handle special characters adjacent to numbers", () => {
     const tokens = lex("6 3 / 2 -");
-    expect(tokens).toEqual([6,3, "/", 2, "-"]);
+    expect(tokens).toEqual([6, 3, "/", 2, "-"]);
   });
 });

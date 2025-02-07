@@ -1,4 +1,4 @@
-import { isDigit, isWhitespace, toUnsigned16 } from "./utils";
+import { isDigit, isWhitespace, toUnsigned16 } from "../utils";
 
 describe("Utils", () => {
   describe("isDigit", () => {

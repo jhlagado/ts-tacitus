@@ -6,6 +6,18 @@ The language processes arguments by using a stack but there is a second stack fo
 in order to prevent cyclical references, arrays are copy on write but to make this efficient, we use structural sharing (like with Clojure), this means cloning the part of the array you are updating but reusing the rest without copying. when updating an array using copy-on-write we need to clone each array block.
 This is obviously very inefficient so we only do it to the block that changes and all the blocks earlier but later blocks don't need to be cloned, we can simply share their structure. This is a persistent data structure which maintains immutability by only cloning the least amount. This is like Clojure.
 
+No garbage collection
+Using reference counting (see BLOCK_REF) and immutable copy on write, 
+immutability inspired by persistent data structures with structural sharing (see Clojure)
+No fragmenation problem because all blocks are the same size (BLOCK_SIZE) and larger blocks are made by linking them together (BLOCK_NEXT)
+Array laguage similar to APL or J
+Stack-based RPN language similar to PostScript and Forth, no stack frames. two stacks, one for data the other for returns, similar to Forth
+No local variables
+State is held on the stack. there may be some global variables (havent decided yet), vectors can contain pointers to other heap allocated objects though so reference counting
+decides the lifespan of objects. The main form of ownership of objects is the stack
+
+No loops or recursion. The language is based on iterators and combinators and operators such as each, reduce, scan etc and not lambda calculus. 
+Byte code compilation, RPN functions are easily composed, no closures
 
 
 literal arrays

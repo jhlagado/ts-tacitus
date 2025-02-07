@@ -1,6 +1,6 @@
-import { Memory } from "./memory";
-import { Verb } from "./types";
-import { Dictionary } from "./dictionary";
+import { Memory } from "../memory";
+import { Verb } from "../types";
+import { Dictionary } from "../dictionary";
 
 describe("Dictionary", () => {
   let dictionary: Dictionary;

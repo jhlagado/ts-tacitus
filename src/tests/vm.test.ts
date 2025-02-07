@@ -1,8 +1,8 @@
-import { VM } from "./vm";
-import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
-import { Compiler } from "./compiler";
-import { Dictionary } from "./dictionary";
-import { fromTaggedValue, Tag, toTaggedValue } from "./tagged-value";
+import { VM } from "../vm";
+import { STACK_SIZE, RSTACK_SIZE, CODE } from "../memory";
+import { Compiler } from "../compiler";
+import { Dictionary } from "../dictionary";
+import { fromTaggedValue, Tag, toTaggedValue } from "../tagged-value";
 
 describe("VM", () => {
   let vm: VM;

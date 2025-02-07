@@ -1,6 +1,6 @@
-import { Memory } from "./memory";
-import { StringBuffer } from "./strings";
-import { STRINGS, STRINGS_SIZE } from "./memory";
+import { Memory } from "../memory";
+import { StringBuffer } from "../strings";
+import { STRINGS, STRINGS_SIZE } from "../memory";
 
 describe("StringBuffer", () => {
   let memory: Memory;

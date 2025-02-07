@@ -1,12 +1,12 @@
-import { NULL } from "./constants";
+import { NULL } from "../constants";
 import {
   BLOCK_NEXT,
   BLOCK_REFS,
   BLOCK_SIZE,
   Heap,
   USABLE_BLOCK_SIZE,
-} from "./heap";
-import { Memory, HEAP_SIZE } from "./memory";
+} from "../heap";
+import { Memory, HEAP_SIZE } from "../memory";
 
 const HALF_BLOCK_SIZE = Math.floor(USABLE_BLOCK_SIZE / 2);
 

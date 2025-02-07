@@ -1,12 +1,11 @@
 import { BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
 import { NULL } from "./constants";
-import { toTaggedValue, fromTaggedValue, isTaggedValue } from "./tagged-value";
+import { toTaggedValue, fromTaggedValue, isTaggedValue, Tag } from "./tagged-value";
 
 // Define offsets in the vector block
 export const VEC_SIZE = 4; // 2 bytes for length
 export const VEC_RESERVED = 6; // 2 bytes reserved for future use
 export const VEC_DATA = 8; // Data starts after metadata
-export const VECTOR_TAG = 3; // Unique tag for vectors
 
 // Each element is a 32-bit float
 const ELEMENT_SIZE = 4;
@@ -43,7 +42,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
     }
   }
 
-  return toTaggedValue(VECTOR_TAG, firstBlock);
+  return toTaggedValue(Tag.VECTOR, firstBlock);
 }
 
 /**
@@ -59,8 +58,8 @@ export function vectorGet(
   index: number
 ): number | undefined {
   if (!isTaggedValue(vectorPtr)) return undefined;
-  const { tag, value: block } = fromTaggedValue(VECTOR_TAG, vectorPtr);
-  if (tag !== VECTOR_TAG) return undefined;
+  const { tag, value: block } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+  if (tag !== Tag.VECTOR) return undefined;
 
   let currentBlock = block;
   let remainingIndex = index;
@@ -92,8 +91,8 @@ export function vectorUpdate(
   value: number
 ): number {
   if (!isTaggedValue(vectorPtr)) return NULL;
-  let { tag, value: block } = fromTaggedValue(VECTOR_TAG, vectorPtr);
-  if (tag !== VECTOR_TAG) return NULL;
+  let { tag, value: block } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+  if (tag !== Tag.VECTOR) return NULL;
 
   let currentBlock = block;
   let remainingIndex = index;
@@ -110,7 +109,7 @@ export function vectorUpdate(
         currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value
       );
-      return toTaggedValue(VECTOR_TAG, block);
+      return toTaggedValue(Tag.VECTOR, block);
     }
     remainingIndex -= BLOCK_CAPACITY;
     currentBlock = heap.getNextBlock(currentBlock);

@@ -1,7 +1,7 @@
-import { Heap } from "./heap";
-import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
-import { NULL } from "./constants";
-import { Memory } from "./memory";
+import { Heap } from "../heap";
+import { vectorCreate, vectorGet, vectorUpdate } from "../vector";
+import { NULL } from "../constants";
+import { Memory } from "../memory";
 
 describe("Vector Operations", () => {
   let memory: Memory;

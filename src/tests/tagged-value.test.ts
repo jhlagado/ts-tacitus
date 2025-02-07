@@ -7,7 +7,7 @@ import {
   Tag,
   TAG_ANY,
   tagNames,
-} from "./tagged-value";
+} from "../tagged-value";
 
 describe("tagNum Library", () => {
   // Test all tag types

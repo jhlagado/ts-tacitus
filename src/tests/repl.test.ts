@@ -1,8 +1,8 @@
 import { createInterface } from "readline";
-import { startREPL } from "./repl";
-import * as parser from "./parser"; // Import the parser module
-import * as interpreter from "./interpreter"; // Import the interpreter module
-import * as lexer from "./lexer"; // Import the lexer module
+import { startREPL } from "../repl";
+import * as parser from "../parser"; // Import the parser module
+import * as interpreter from "../interpreter"; // Import the interpreter module
+import * as lexer from "../lexer"; // Import the lexer module
 
 jest.mock("readline");
 

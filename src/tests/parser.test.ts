@@ -1,9 +1,9 @@
 // src/parser.test.ts
 
-import { initializeInterpreter, vm } from "./globalState";
-import { parse } from "./parser";
-import { Op } from "./ops/builtins"; // Import opTable
-import { lex } from "./lexer";
+import { initializeInterpreter, vm } from "../globalState";
+import { parse } from "../parser";
+import { Op } from "../ops/builtins"; // Import opTable
+import { lex } from "../lexer";
 
 describe("Parser", () => {
   beforeEach(() => {

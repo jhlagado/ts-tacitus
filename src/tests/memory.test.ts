@@ -1,4 +1,4 @@
-import { Memory, MEMORY_SIZE } from "./memory";
+import { Memory, MEMORY_SIZE } from "../memory";
 
 describe("Memory", () => {
   let memory: Memory;
