@@ -1,5 +1,5 @@
 import { VM } from "../vm";
-import { Dictionary } from "../dictionary";
+import { Dictionary } from "../lang/dictionary";
 
 import {
   literalNumberOp,

@@ -1,0 +1,117 @@
+import { VM } from "../../vm";
+import { Verb } from "../../types";
+
+/**
+ * Returns unique elements
+ * Array: Removes duplicates.
+ * String: Unique characters.
+ * Scalar: No effect.
+ */
+export const distinctOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("distinctOp", a);
+  // Implementation here
+};
+
+/**
+ * Groups elements by value
+ * Array: Returns index groups per unique value.
+ * String: Not applicable.
+ * Scalar: No effect.
+ */
+export const groupOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("groupOp", a);
+  // Implementation here
+};
+
+/**
+ * Checks if element exists in collection
+ * Scalar in Array: Returns boolean per element.
+ * String in String: Checks substring existence.
+ * Array in Array: Returns boolean per element.
+ * Other: Error.
+ */
+export const inOp: Verb = (vm: VM) => {
+  const collection = vm.pop();
+  const element = vm.pop();
+  if (vm.debug) console.log("inOp", element, collection);
+  // Implementation here
+};
+
+/**
+ * Pattern matching
+ * String/String: Supports * wildcards.
+ * Array/String: Element-wise check.
+ * Other: Error.
+ */
+export const likeOp: Verb = (vm: VM) => {
+  const pattern = vm.pop();
+  const value = vm.pop();
+  if (vm.debug) console.log("likeOp", value, pattern);
+  // Implementation here
+};
+
+/**
+ * Filters elements based on condition
+ * Array: Returns elements where condition is 1.
+ * Table: Filters rows.
+ * Other: Error.
+ */
+export const whereOp: Verb = (vm: VM) => {
+  const condition = vm.pop();
+  if (vm.debug) console.log("whereOp", condition);
+  // Implementation here
+};
+
+/**
+ * Checks if an array contains another
+ * Array/Array: Returns 1 if all elements of second exist in first.
+ * String/String: Checks substring existence.
+ * Other: Error.
+ */
+export const containsOp: Verb = (vm: VM) => {
+  const subset = vm.pop();
+  const set = vm.pop();
+  if (vm.debug) console.log("containsOp", set, subset);
+  // Implementation here
+};
+
+/**
+ * Returns index of first match
+ * Array/Scalar: Returns index.
+ * String/String: Finds substring start.
+ * Other: Error.
+ */
+export const indexOp: Verb = (vm: VM) => {
+  const value = vm.pop();
+  const collection = vm.pop();
+  if (vm.debug) console.log("indexOp", collection, value);
+  // Implementation here
+};
+
+/**
+ * Finds elements matching condition
+ * Array/Condition: Returns matching indices.
+ * Table/Condition: Returns matching rows.
+ * Other: Error.
+ */
+export const findOp: Verb = (vm: VM) => {
+  const condition = vm.pop();
+  const collection = vm.pop();
+  if (vm.debug) console.log("findOp", collection, condition);
+  // Implementation here
+};
+
+/**
+ * Finds matches using regex
+ * String/Regex: Returns matching substrings.
+ * Array/Regex: Returns matching elements.
+ * Other: Error.
+ */
+export const grepOp: Verb = (vm: VM) => {
+  const regex = vm.pop();
+  const value = vm.pop();
+  if (vm.debug) console.log("grepOp", value, regex);
+  // Implementation here
+};

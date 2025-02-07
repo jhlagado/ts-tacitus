@@ -1,0 +1,148 @@
+import { VM } from "../../vm";
+import { Verb } from "../../types";
+
+/**
+ * Sum of elements
+ * Number: Returns the number itself.
+ * Array: Computes total sum.
+ * String: Not applicable.
+ */
+export const sumOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("sumOp", a);
+  if (Array.isArray(a)) {
+    vm.push(a.reduce((acc: number, val: number) => acc + val, 0));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Mean (average)
+ * Number: Returns the number itself.
+ * Array: Computes average.
+ * String: Not applicable.
+ */
+export const avgOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("avgOp", a);
+  if (Array.isArray(a)) {
+    vm.push(a.reduce((acc: number, val: number) => acc + val, 0) / a.length);
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Product of elements
+ * Number: Returns the number itself.
+ * Array: Computes product.
+ * String: Not applicable.
+ */
+export const prodOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("prodOp", a);
+  if (Array.isArray(a)) {
+    vm.push(a.reduce((acc: number, val: number) => acc * val, 1));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Maximum element
+ * Number: Returns the number itself.
+ * Array: Returns the highest value.
+ * String: Returns lexicographically largest value.
+ */
+export const maxOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("maxOp", a);
+  if (Array.isArray(a)) {
+    vm.push(Math.max(...a));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Minimum element
+ * Number: Returns the number itself.
+ * Array: Returns the smallest value.
+ * String: Returns lexicographically smallest value.
+ */
+export const minOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("minOp", a);
+  if (Array.isArray(a)) {
+    vm.push(Math.min(...a));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Length of collection
+ * String: Returns number of characters.
+ * Array: Returns number of elements.
+ * Number: Not applicable.
+ */
+export const lenOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("lenOp", a);
+  if (typeof a === "string" || Array.isArray(a)) {
+    vm.push(a.length);
+  } else {
+    throw new Error("lenOp: Unsupported type");
+  }
+};
+
+/**
+ * First element
+ * Array: Returns first element.
+ * String: Returns first character.
+ * Empty input: Returns error or null.
+ */
+export const firstOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("firstOp", a);
+  if (Array.isArray(a) || typeof a === "string") {
+    vm.push(a.length > 0 ? a[0] : null);
+  } else {
+    throw new Error("firstOp: Unsupported type");
+  }
+};
+
+/**
+ * Last element
+ * Array: Returns last element.
+ * String: Returns last character.
+ * Empty input: Returns error or null.
+ */
+export const lastOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("lastOp", a);
+  if (Array.isArray(a) || typeof a === "string") {
+    vm.push(a.length > 0 ? a[a.length - 1] : null);
+  } else {
+    throw new Error("lastOp: Unsupported type");
+  }
+};
+
+/**
+ * Unique elements
+ * Array: Returns unique values.
+ * String: Returns unique characters.
+ * Numbers: Not applicable.
+ */
+export const distinctOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("distinctOp", a);
+  if (Array.isArray(a)) {
+    vm.push(new Set(a).size);
+  } else if (typeof a === "string") {
+    vm.push(new Set((a as string).split("")).size);
+  } else {
+    throw new Error("distinctOp: Unsupported type");
+  }
+};

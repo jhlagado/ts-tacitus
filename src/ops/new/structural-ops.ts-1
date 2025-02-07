@@ -1,0 +1,121 @@
+import { VM } from "../../vm";
+import { Verb } from "../../types";
+
+/**
+ * Apply function to each element
+ * Array: Applies function element-wise.
+ * Scalar: Returns itself.
+ * String: Applies to characters.
+ */
+export const eachOp: Verb = (vm: VM) => {
+  //   const func = vm.pop() as (x: any) => any;
+  const a = vm.pop();
+  //   if (vm.debug) console.log("eachOp", func, a);
+  if (Array.isArray(a)) {
+    // vm.push(a.map((x: any) => func(x)));
+  } else if (typeof a === "string") {
+    // vm.push(
+    //   a
+    //     .split("")
+    //     .map((x: any) => func(x))
+    //     .join("")
+    // );
+  } else {
+    // vm.push(func(a));
+  }
+};
+
+/**
+ * Cumulative scan
+ * Array: Applies cumulative operation.
+ * Scalar: Returns itself.
+ * String: Not applicable.
+ */
+export const scanOp: Verb = (vm: VM) => {
+  //   const func = vm.pop() as (acc: any, val: any) => any;
+  const a = vm.pop();
+  //   if (vm.debug) console.log("scanOp", func, a);
+  if (Array.isArray(a)) {
+    // const result: any[] = [];
+    // a.reduce((acc: any, val: any) => {
+    //   const res = func(acc, val);
+    //   result.push(res);
+    //   return res;
+    // }, 0);
+    // vm.push(result);
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Flattens nested arrays
+ * Nested arrays: Converts into a single array.
+ * Flat arrays: No effect.
+ * Scalars: Returns itself.
+ */
+export const razeOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("razeOp", a);
+  if (Array.isArray(a)) {
+    // vm.push(a.flat(Infinity));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Reverses order of elements
+ * Array: Reverses elements.
+ * String: Reverses characters.
+ * Scalar: No effect.
+ */
+export const reverseOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("reverseOp", a);
+  if (Array.isArray(a)) {
+    // vm.push(a.reverse());
+  } else if (typeof a === "string") {
+    // vm.push((a).split("").reverse().join(""));
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Transposes array
+ * Matrix: Swaps rows and columns.
+ * Array: No effect.
+ * Scalar: No effect.
+ */
+export const flipOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("flipOp", a);
+  if (Array.isArray(a) && Array.isArray(a[0])) {
+    // const result = a[0].map((_: any, colIndex: number) =>
+    //   a.map((row: any) => row[colIndex])
+    // );
+    // vm.push(result);
+  } else {
+    vm.push(a);
+  }
+};
+
+/**
+ * Transposes multi-dimensional arrays
+ * Matrix: Swaps dimensions.
+ * String: Not applicable.
+ * Scalar: No effect.
+ */
+export const transposeOp: Verb = (vm: VM) => {
+  const a = vm.pop();
+  if (vm.debug) console.log("transposeOp", a);
+  if (Array.isArray(a) && Array.isArray(a[0])) {
+    // const result = a[0].map((_: any, colIndex: number) =>
+    //   a.map((row: any) => row[colIndex])
+    // );
+    // vm.push(result);
+  } else {
+    vm.push(a);
+  }
+};

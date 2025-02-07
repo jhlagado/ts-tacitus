@@ -1,7 +1,7 @@
-import { Compiler } from "./compiler";
-import { Dictionary } from "./dictionary";
+import { Compiler } from "./lang/compiler";
+import { Dictionary } from "./lang/dictionary";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
-import { Heap } from "./heap";
+import { Heap } from "./data/heap";
 import { Tag, fromTaggedValue, isRefCounted } from "./tagged-value";
 
 export class VM {
