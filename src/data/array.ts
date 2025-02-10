@@ -64,7 +64,7 @@ export function arrayCreate(
     offset += 4;
   }
 
-  return toTaggedValue(Tag.ARRAY, arrayBlock);
+  return toTaggedValue(Tag.VIEW, arrayBlock);
 }
 
 /**
@@ -78,10 +78,10 @@ export function arrayGet(
   heap: Heap,
   arrayPtr: number,
   indices: number[]
-): number  {
+): number {
   if (!isTaggedValue(arrayPtr)) return UNDEF;
-  const { tag, value: block } = fromTaggedValue(Tag.ARRAY, arrayPtr);
-  if (tag !== Tag.ARRAY) return UNDEF;
+  const { tag, value: block } = fromTaggedValue(Tag.VIEW, arrayPtr);
+  if (tag !== Tag.VIEW) return UNDEF;
 
   const dimensions = heap.memory.read16(block + ARR_DIM);
   if (indices.length !== dimensions) return UNDEF;
@@ -113,8 +113,8 @@ export function arrayUpdate(
   value: number
 ): number {
   if (!isTaggedValue(arrayPtr)) return UNDEF;
-  let { tag, value: block } = fromTaggedValue(Tag.ARRAY, arrayPtr);
-  if (tag !== Tag.ARRAY) return UNDEF;
+  let { tag, value: block } = fromTaggedValue(Tag.VIEW, arrayPtr);
+  if (tag !== Tag.VIEW) return UNDEF;
 
   const dimensions = heap.memory.read16(block + ARR_DIM);
   if (indices.length !== dimensions) return UNDEF;
@@ -140,5 +140,5 @@ export function arrayUpdate(
     block + ARR_VECTOR,
     fromTaggedValue(Tag.VECTOR, newVectorPtr).value
   );
-  return toTaggedValue(Tag.ARRAY, block);
+  return toTaggedValue(Tag.VIEW, block);
 }

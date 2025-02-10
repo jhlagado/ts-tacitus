@@ -4,7 +4,7 @@ export enum Tag {
   CODE,
   BLOCK,
   VECTOR,
-  ARRAY,
+  VIEW,
   SEQ,
   CUSTOM,
 }
@@ -15,7 +15,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.CODE]: "CODE",
   [Tag.BLOCK]: "BLOCK",
   [Tag.VECTOR]: "VECTOR",
-  [Tag.ARRAY]: "ARRAY",
+  [Tag.VIEW]: "VIEW",
   [Tag.SEQ]: "SEQ",
   [Tag.CUSTOM]: "CUSTOM",
 };
@@ -161,5 +161,5 @@ export function isRefCounted(tagNum: number): boolean {
     return false;
   }
   const { tag } = fromTaggedValue(TAG_ANY, tagNum);
-  return tag === Tag.BLOCK || tag === Tag.ARRAY;
+  return tag === Tag.BLOCK || tag === Tag.VIEW;
 }
