@@ -48,26 +48,25 @@ export const MAX_DIMENSIONS_VIEW = Math.floor((BLOCK_SIZE - VIEW_SPEC) / 4);
 // ----------------------------------------------------------------------
 export function viewCreate(
   heap: Heap,
-  basePtr: number,
+  basePtr: number, // Either a vector or an existing view
   offset: number,
   shape: number[]
 ): number {
   const dimensions = shape.length;
   if (dimensions > MAX_DIMENSIONS_VIEW) return UNDEF;
-
-  // Validate that basePtr is a properly tagged value
   if (!isTaggedValue(basePtr)) return UNDEF;
 
+  // Determine the underlying vector pointer and base offset.
   let baseVector: number;
   let baseOffset = 0;
   const baseTag = getTag(basePtr);
-
   if (baseTag === Tag.VECTOR) {
     // Base is a vector.
     const { value: vecBlock } = fromTaggedValue(Tag.VECTOR, basePtr);
-    baseVector = heap.memory.read16(vecBlock + 0);
+    // Here we assume that a vector's own block serves as its identity.
+    baseVector = vecBlock;
   } else if (baseTag === Tag.VIEW) {
-    // Base is a view; extract its underlying vector and offset.
+    // Base is a view; extract its underlying vector pointer and offset.
     const { value: viewBlock } = fromTaggedValue(Tag.VIEW, basePtr);
     baseVector = heap.memory.read16(viewBlock + VIEW_VECTOR);
     baseOffset = heap.memory.read16(viewBlock + VIEW_OFFSET);
@@ -75,26 +74,29 @@ export function viewCreate(
     return UNDEF;
   }
 
-  // Compute the effective offset.
+  // Calculate the effective offset.
   const effectiveOffset = baseOffset + offset;
 
-  // Allocate memory for the view.
+  // Allocate a new block for the view.
   const viewBlock = heap.malloc(BLOCK_SIZE);
   if (viewBlock === UNDEF) return UNDEF;
 
-  // Initialize the view structure.
+  // Write metadata into the view block:
+  // 1. Underlying vector pointer.
   heap.memory.write16(viewBlock + VIEW_VECTOR, baseVector);
+  // 2. Number of dimensions.
   heap.memory.write16(viewBlock + VIEW_DIM, dimensions);
+  // 3. Effective offset.
   heap.memory.write16(viewBlock + VIEW_OFFSET, effectiveOffset);
 
-  // Compute row-major strides.
+  // Compute row-major strides for the provided shape.
   let strides = new Array<number>(dimensions);
   strides[dimensions - 1] = 1;
   for (let i = dimensions - 2; i >= 0; i--) {
     strides[i] = strides[i + 1] * shape[i + 1];
   }
 
-  // Store shape and stride information.
+  // Write shape and stride for each dimension.
   let pos = VIEW_SPEC;
   for (let i = 0; i < dimensions; i++) {
     heap.memory.write16(viewBlock + pos + VIEW_SHAPE, shape[i]);
@@ -102,6 +104,7 @@ export function viewCreate(
     pos += 4;
   }
 
+  // Return the new view as a tagged pointer with Tag.VIEW.
   return toTaggedValue(Tag.VIEW, viewBlock);
 }
 
