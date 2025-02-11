@@ -27,7 +27,7 @@ describe("Sequence Base", () => {
     expect(seqNext(heap, seq)).toEqual(100);
     expect(seqNext(heap, seq)).toEqual(101);
     expect(seqNext(heap, seq)).toEqual(102);
-    expect(seqNext(heap, seq)).toBeNaN();
+    expect(seqNext(heap, seq)).toBe(UNDEF);
   });
 
   test("seqDup returns UNDEF for non-tagged sequence", () => {

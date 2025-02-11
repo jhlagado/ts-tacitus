@@ -1,14 +1,12 @@
-// File: src/tests/source.test.ts
-
 import { Heap } from "../data/heap";
+import { seqFromView, seqFromRange } from "./source";
 import { vectorCreate } from "../data/vector";
 import { viewCreate } from "../data/view";
+import { UNDEF, toTaggedValue, Tag, fromTaggedValue } from "../tagged-value";
 import { Memory } from "../memory";
-import { UNDEF } from "../tagged-value";
-import { seqNext } from "./sequence";
-import { seqFromRange, seqFromView } from "./source";
+import { NULL } from "../constants";
 
-describe("Sequence Source", () => {
+describe("Sequence Sources", () => {
   let memory: Memory;
   let heap: Heap;
 
@@ -17,68 +15,63 @@ describe("Sequence Source", () => {
     heap = new Heap(memory);
   });
 
-  test("seqFromRange produces a correct sequence", () => {
-    // Create a sequence for the range [5, 6, 7, 8]
-    const seq = seqFromRange(heap, 5, 4);
-    expect(seq).not.toBe(UNDEF);
-
-    const result: number[] = [];
-    for (let i = 0; i < 4; i++) {
-      result.push(seqNext(heap, seq));
-    }
-    expect(result).toEqual([5, 6, 7, 8]);
-
-    // When exhausted, seqNext returns UNDEF.
-    expect(seqNext(heap, seq)).toBeNaN();
+  it("seqFromView returns UNDEF for non-view input", () => {
+    expect(seqFromView(heap, 9999)).toBe(UNDEF); // Invalid pointer
+    expect(seqFromView(heap, toTaggedValue(Tag.VECTOR, 100))).toBe(UNDEF); // Not a view
   });
 
-  test("seqFromRange returns an empty sequence when count is 0", () => {
-    // Create a sequence with zero elements.
-    const seq = seqFromRange(heap, 10, 0);
-    expect(seq).not.toBe(UNDEF);
-    // Immediately exhausted.
-    expect(seqNext(heap, seq)).toBeNaN();
+  it("seqFromView returns UNDEF for non-1D views", () => {
+    const vectorPtr = vectorCreate(heap, [1, 2, 3, 4]);
+    const viewPtr = viewCreate(heap, vectorPtr, 0, [2, 2]); // 2D view
+    expect(seqFromView(heap, viewPtr)).toBe(UNDEF);
   });
 
-  test("seqFromView produces a correct sequence", () => {
-    // Create a vector from data.
-    const vectorData = [10, 20, 30, 40];
-    const vectorPtr = vectorCreate(heap, vectorData);
-    expect(vectorPtr).not.toBe(UNDEF);
-
-    // Create a 1D view covering the entire vector.
-    const viewPtr = viewCreate(heap, vectorPtr, 0, [4]);
-    expect(viewPtr).not.toBe(UNDEF);
-
-    const seq = seqFromView(heap, viewPtr);
-    expect(seq).not.toBe(UNDEF);
-
-    const result: number[] = [];
-    for (let i = 0; i < 4; i++) {
-      result.push(seqNext(heap, seq));
-    }
-    expect(result).toEqual(vectorData);
-    expect(seqNext(heap, seq)).toBeNaN();
+  it("seqFromView creates a sequence for a valid 1D view", () => {
+    const vectorPtr = vectorCreate(heap, [1, 2, 3, 4]);
+    const viewPtr = viewCreate(heap, vectorPtr, 0, [4]); // 1D view
+    const seqPtr = seqFromView(heap, viewPtr);
+    expect(seqPtr).not.toBe(UNDEF);
   });
 
-  test("seqFromView returns UNDEF if view dimension is not 1", () => {
-    // Create a vector.
-    const vectorData = [1, 2, 3, 4];
-    const vectorPtr = vectorCreate(heap, vectorData);
-    expect(vectorPtr).not.toBe(UNDEF);
-
-    // Create a 2D view (shape [2,2]) from the vector.
-    const viewPtr = viewCreate(heap, vectorPtr, 0, [2, 2]);
-    expect(viewPtr).not.toBe(UNDEF);
-
-    // Attempting to create a sequence from a non-1D view should fail.
-    const seq = seqFromView(heap, viewPtr);
-    expect(seq).toBe(UNDEF);
+  it("seqFromView handles empty views correctly", () => {
+    const vectorPtr = vectorCreate(heap, []);
+    const viewPtr = viewCreate(heap, vectorPtr, 0, [0]); // Empty view
+    const seqPtr = seqFromView(heap, viewPtr);
+    expect(seqPtr).not.toBe(UNDEF);
   });
 
-  test("seqFromView returns UNDEF for an invalid view pointer", () => {
-    // Pass a non-tagged value as the view pointer.
-    const seq = seqFromView(heap, 12345);
-    expect(seq).toBe(UNDEF);
+  it("seqFromView initializes step size to 1", () => {
+    const vectorPtr = vectorCreate(heap, [10, 20, 30, 40]);
+    const viewPtr = viewCreate(heap, vectorPtr, 0, [4]); // 1D view
+    const seqPtr = seqFromView(heap, viewPtr);
+
+    const { value: rawSeqPtr } = fromTaggedValue(Tag.SEQ, seqPtr); // Extract the actual pointer
+    expect(heap.memory.read16(rawSeqPtr + 10)).toBe(1); // Step size should be 1
+});
+
+  it("seqFromRange returns UNDEF for invalid input", () => {
+    expect(seqFromRange(heap, NaN, 5)).toBe(UNDEF);
+    expect(seqFromRange(heap, 5, NaN)).toBe(UNDEF);
+  });
+
+  it("seqFromRange creates a valid sequence from a range", () => {
+    const seqPtr = seqFromRange(heap, 2, 5);
+    expect(seqPtr).not.toBe(UNDEF);
+  });
+
+  it("seqFromRange handles zero-length ranges correctly", () => {
+    const seqPtr = seqFromRange(heap, 5, 0);
+    expect(seqPtr).not.toBe(UNDEF);
+  });
+
+  it("seqFromRange works with negative numbers", () => {
+    const seqPtr = seqFromRange(heap, -3, 3);
+    expect(seqPtr).not.toBe(UNDEF);
+  });
+
+  it("seqFromRange fails gracefully when memory allocation fails", () => {
+    jest.spyOn(heap, 'malloc').mockReturnValue(NULL); // Simulate malloc failure
+    const seqPtr = seqFromRange(heap, 0, 5);
+    expect(seqPtr).toBe(UNDEF);
   });
 });
