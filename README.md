@@ -1,143 +1,91 @@
-# Tacit Interpreter
+The README has been updated to reflect the GNU Public License. Here is the revised version:
 
-Tacit is a **RPN-based tacit array programming language** inspired by **APL** and implemented on a **Forth-style virtual machine**. This interpreter allows you to write concise, expressive, and powerful array-oriented programs using a stack-based approach.
+# Tacit Programming Language
 
----
+## Overview
 
-## Features
+Tacit is a new programming language designed to run on more restrictive systems than the JavaScript VM. It is a prototype that may be converted to C and even assembly language. The language features a unique memory management system, a stack-based execution model, and a focus on array programming inspired by languages like APL and J.
 
-- **RPN (Reverse Polish Notation)**: Operations are written in postfix notation, making the language stack-based and easy to parse.
-- **Tacit Programming**: Functions are composed without explicitly referencing their arguments, enabling a concise and expressive style.
-- **Array-Oriented**: Inspired by APL, Tacit is designed for manipulating arrays and matrices with ease.
-- **Forth-Style VM**: The interpreter is built on a Forth-like virtual machine, providing a simple and efficient runtime environment.
-- **Extensible**: New words (functions) can be defined and added to the dictionary, making the language highly customizable.
+## Key Features
 
----
+### Memory Management
+
+- **Memory Space**: The memory space is limited to 64KB, using 16-bit pointers.
+- **Main Data Types**: The primary data types are numbers (32-bit floating-point) and multi-dimensional arrays.
+- **Tagged Data**: The language extends the Float32 format to store tagged data within the 23-bit mantissa of a NaN float. 3 bits are used for the tag, and the remaining 20 bits are used for data.
+- **Reference Counting**: Uses reference counting to manage memory without garbage collection.
+- **Immutable Data Structures**: Arrays are copy-on-write but use structural sharing to prevent cyclic references and improve efficiency.
+- **Persistent Data Structures**: Maintains immutability by cloning only the necessary parts of the array, similar to Clojure.
+- **No Fragmentation**: All blocks are the same size (BLOCK_SIZE), and larger blocks are created by linking them together (BLOCK_NEXT).
+
+### Execution Model
+
+- **Stack-Based**: The language processes arguments using a stack, with a second stack for storing return addresses. There is no concept of stack frames.
+- **Reverse Polish Notation (RPN)**: Similar to PostScript and Forth, Tacit uses RPN for its stack-based execution model.
+- **No Local Variables**: State is held on the stack, and there may be some global variables. Vectors can contain pointers to other heap-allocated objects, with reference counting deciding the lifespan of objects.
+- **Ownership**: The main form of ownership of objects is the stack.
+
+### Language Design
+
+- **No Loops or Recursion**: The language is based on iterators, combinators, and operators such as `each`, `reduce`, `scan`, etc., rather than lambda calculus.
+- **Bytecode Compilation**: Functions are easily composed using bytecode compilation, with no closures.
+- **Array Language**: The language features array language capabilities similar to APL or J.
+
+## Codebase Overview
+
+### Memory Management
+
+- **Memory Layout**: The memory is divided into sections for the stack, return stack, strings, heap, and code.
+- **Memory Operations**: The `Memory` class handles low-level memory operations, including reading and writing 8-bit, 16-bit, and 32-bit values.
+- **Heap Management**: The `Heap` class manages memory allocation and deallocation, including reference counting and free list management.
+
+### Data Structures
+
+- **Arrays**: The `array.ts` file defines functions for creating, accessing, and updating arrays. Arrays support multi-dimensional data and use copy-on-write with structural sharing.
+- **Vectors**: The `vector.ts` file defines functions for creating, accessing, and updating vectors. Vectors are used to store contiguous data.
+- **Views**: The `view.ts` file defines functions for creating views on vectors, allowing for efficient access to subsets of data.
+
+### Execution Engine
+
+- **Virtual Machine**: The `VM` class in `vm.ts` manages the execution of bytecode, including stack operations, instruction pointer management, and memory access.
+- **Compiler**: The `Compiler` class in `lang/compiler.ts` handles the compilation of Tacit code into bytecode.
+- **Interpreter**: The `interpreter.ts` file defines functions for executing compiled bytecode, including error handling and debugging support.
+
+### Language Features
+
+- **Built-in Words**: The `ops/builtins.ts` file defines built-in words for arithmetic operations, stack manipulation, and control flow.
+- **Dictionary**: The `Dictionary` class in `lang/dictionary.ts` manages the definition and lookup of words in the language.
+- **Parser**: The `parser.ts` file defines functions for parsing Tacit code into a sequence of tokens and compiling it into bytecode.
+- **Lexer**: The `lexer.ts` file defines functions for tokenizing input strings into a sequence of tokens.
+
+### Sequence Processing
+
+- **Sequences**: The `seq` directory contains files for defining and processing sequences, including sources, processors, and sinks.
+- **Sequence Operations**: The `sequence.ts` file defines basic sequence operations, such as consuming the next element and duplicating sequences.
+- **Processors**: The `processor.ts` file defines functions for creating processor sequences that apply mapping or filtering functions to each element.
+- **Sinks**: The `sink.ts` file defines functions for consuming sequences and reducing them to a single value or collecting them into an array.
+
+### Utilities
+
+- **Tagged Values**: The `tagged-value.ts` file defines functions for encoding and decoding tagged values, which are used to store pointers and other metadata in a compact form.
+- **Utilities**: The `utils.ts` file defines various utility functions for character checks, bitwise operations, and other common tasks.
 
 ## Getting Started
 
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/your-username/tacit-interpreter.git
-   cd tacit-interpreter
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Run the interpreter:
-   ```bash
-   npm start
-   ```
-
-### Usage
-
-Start the REPL (Read-Eval-Print Loop) by running the interpreter. You can enter commands directly, and the interpreter will evaluate them.
-
-#### Example Commands
-
-1. **Arithmetic**:
-
-   ```tacit
-   5 3 + .  # Output: 8
-   ```
-
-2. **Stack Manipulation**:
-
-   ```tacit
-   5 dup * .  # Output: 25
-   ```
-
-3. **Array Operations**:
-
-   ```tacit
-   [1 2 3] [4 5 6] + .  # Output: [5 7 9]
-   ```
-
-4. **Defining New Words**:
-   ```tacit
-   : square dup * ;
-   5 square .  # Output: 25
-   ```
-
----
-
-## Language Overview
-
-### Stack-Based Operations
-
-Tacit uses a stack to manage data and operations. For example:
-
-- `5 3 +` pushes `5` and `3` onto the stack, then adds them, leaving `8` on the stack.
-- `.` prints the top of the stack.
-
-### Array Operations
-
-Tacit supports array operations inspired by APL:
-
-- `[1 2 3] [4 5 6] +` adds the arrays element-wise, resulting in `[5 7 9]`.
-- `[1 2 3] 2 *` multiplies each element by `2`, resulting in `[2 4 6]`.
-
-### Defining New Words
-
-You can define new words (functions) using the `:` syntax:
-
-```tacit
-: cube dup dup * * ;
-3 cube .  # Output: 27
-```
-
----
-
-## Roadmap
-
-### Short-Term Goals
-
-- **Improve Array Support**: Add more array operations (e.g., reshape, reduce, scan).
-- **Error Handling**: Enhance error messages and debugging tools.
-- **Standard Library**: Build a standard library of common functions (e.g., math, statistics).
-
-### Medium-Term Goals
-
-- **Performance Optimization**: Optimize the virtual machine for faster execution.
-- **Interactive Development Environment**: Build a web-based IDE for Tacit.
-- **Documentation**: Write comprehensive documentation and tutorials.
-
-### Long-Term Goals
-
-- **Concurrency**: Add support for parallel and concurrent execution.
-- **Interoperability**: Enable integration with other languages (e.g., JavaScript, Python).
-- **Community**: Build a community around Tacit and encourage contributions.
-
----
+To get started with Tacit, you can explore the codebase and run the tests to understand the language's features and execution model. The tests are written using Jest.
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute, please:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Submit a pull request.
-
----
+Contributions to Tacit are welcome! Please follow the existing code style and write tests for any new features or bug fixes.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Tacit is licensed under the GNU Public License. See the LICENSE file for more information.
+
+## Contact
+
+For more information about Tacit, please contact the project maintainers.
 
 ---
 
-## Acknowledgments
-
-- Inspired by **APL** and **Forth**.
-- Built with ❤️ and TypeScript.
-
----
-
-Happy coding! 🚀
+This README provides a comprehensive overview of the Tacit programming language, its features, and the structure of the codebase. It is designed to help developers understand the language's unique memory management system, execution model, and language features.
