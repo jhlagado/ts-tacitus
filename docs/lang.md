@@ -1,7 +1,3 @@
-Certainly! Here is a detailed documentation for the `lang` directory, explaining the functionality and design decisions of each component involved in the language processing aspects of Tacit:
-
----
-
 # Language Processing in Tacit
 
 ## Overview
@@ -85,6 +81,3 @@ The `lang` directory in the Tacit codebase is responsible for managing the core 
 
 The `lang` directory is a critical component of the Tacit programming language, providing the core functionalities for processing and executing Tacit code. Its design decisions, such as simplicity, efficiency, dynamic extensibility, and user-friendly interaction, are tailored to the needs of a restrictive system, ensuring robust and efficient language processing.
 
----
-
-This documentation provides a comprehensive overview of the `lang` directory, detailing the functionality, design decisions, and the reasoning behind its implementation in the Tacit programming language.
