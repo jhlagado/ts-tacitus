@@ -1,4 +1,6 @@
-import { BLOCK_REFS, BLOCK_SIZE, Heap } from "./heap";
+// File: src/vector.ts
+
+import { BLOCK_SIZE, Heap } from "./heap";
 import {
   toTaggedValue,
   fromTaggedValue,
@@ -9,9 +11,9 @@ import {
 import { NULL } from "../constants";
 
 // Define offsets in the vector block
-export const VEC_SIZE = 4; // 2 bytes for length
-export const VEC_RESERVED = 6; // 2 bytes reserved for future use
-export const VEC_DATA = 8; // Data starts after metadata
+export const VEC_SIZE = 4;      // 2 bytes for length
+export const VEC_RESERVED = 6;  // 2 bytes reserved for future use
+export const VEC_DATA = 8;      // Data starts after metadata
 
 // Each element is a 32-bit float
 const ELEMENT_SIZE = 4;
@@ -28,27 +30,26 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   const firstBlock = heap.malloc(allocationSize);
   if (firstBlock === NULL) return UNDEF;
 
-  
   // Write metadata: store the logical length and reserved field.
   heap.memory.write16(firstBlock + VEC_SIZE, length);
   heap.memory.write16(firstBlock + VEC_RESERVED, 0);
-  
+
   let currentBlock = firstBlock;
   let dataIndex = 0;
   let offset = VEC_DATA;
-  
+
   while (dataIndex < length) {
     heap.memory.writeFloat(currentBlock + offset, data[dataIndex]);
     offset += ELEMENT_SIZE;
     dataIndex++;
-    
+
     if (offset >= BLOCK_SIZE) {
       currentBlock = heap.getNextBlock(currentBlock);
       if (currentBlock === NULL) return UNDEF;
       offset = VEC_DATA;
     }
   }
-  
+
   return toTaggedValue(Tag.VECTOR, firstBlock);
 }
 
@@ -92,8 +93,7 @@ export function vectorGet(
 
 /**
  * Updates an element in a vector, traversing blocks as necessary.
- * If copy‑on‑write is triggered (i.e. the block’s ref count is > 1), then
- * the block is cloned and the chain updated accordingly.
+ * Uses the Heap's copyOnWrite method to clone a block if needed before performing the update.
  * @param heap - The heap instance.
  * @param vectorPtr - Pointer to the vector block.
  * @param index - Index of the element.
@@ -119,20 +119,16 @@ export function vectorUpdate(
   // Calculate capacity per block.
   const capacityPerBlock = Math.floor((BLOCK_SIZE - VEC_DATA) / ELEMENT_SIZE);
 
-  // We'll use these variables to traverse the chain.
+  // Traverse the chain.
   let currentBlock = firstBlock;
   let remainingIndex = index;
 
-  // If the target is in the first block, handle it here.
+  // If the target is in the first block.
   if (remainingIndex < capacityPerBlock) {
-    // Trigger copy-on-write if needed.
-    if (heap.memory.read16(currentBlock + BLOCK_REFS) > 1) {
-      const newBlock = heap.cloneBlock(currentBlock);
-      if (newBlock === NULL) return UNDEF;
-      // Since we are updating the first block, update our "firstBlock" pointer.
-      currentBlock = newBlock;
-      firstBlock = newBlock;
-    }
+    // Use copyOnWrite once.
+    currentBlock = heap.copyOnWrite(currentBlock);
+    if (currentBlock === NULL) return NULL;
+    firstBlock = currentBlock;
     heap.memory.writeFloat(
       currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
       value
@@ -140,18 +136,12 @@ export function vectorUpdate(
     return toTaggedValue(Tag.VECTOR, firstBlock);
   }
 
-  // Otherwise, traverse through the chain.
   let prevBlock = currentBlock;
   while (currentBlock !== NULL) {
     if (remainingIndex < capacityPerBlock) {
-      // We found the block that contains the element.
-      if (heap.memory.read16(currentBlock + BLOCK_REFS) > 1) {
-        const newBlock = heap.cloneBlock(currentBlock);
-        if (newBlock === NULL) return UNDEF;
-        // Update the previous block’s pointer to refer to the new block.
-        heap.setNextBlock(prevBlock, newBlock);
-        currentBlock = newBlock;
-      }
+      // Use copyOnWrite, updating the previous block's pointer if needed.
+      currentBlock = heap.copyOnWrite(currentBlock, prevBlock);
+      if (currentBlock === NULL) return NULL;
       heap.memory.writeFloat(
         currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value

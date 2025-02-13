@@ -1,3 +1,5 @@
+// File: src/heap.ts
+
 import { NULL } from "../constants";
 import { Memory, HEAP, HEAP_SIZE } from "../memory";
 
@@ -112,8 +114,8 @@ export class Heap {
   }
 
   /**
+   * cloneBlock
    * Clones a block and its contents.
-   * @param heap - The heap instance.
    * @param block - The block to clone.
    * @returns The pointer to the newly cloned block.
    */
@@ -129,6 +131,28 @@ export class Heap {
     if (nextBlock !== NULL) this.incrementRef(nextBlock);
 
     return newBlock;
+  }
+
+  /**
+   * copyOnWrite
+   * Checks if the block at 'blockPtr' is shared (ref count > 1).
+   * If so, clones the block and, if prevBlockPtr is provided (and not NULL),
+   * updates that block's next pointer to the new clone.
+   * Returns the new block pointer if a clone was performed, or the original pointer otherwise.
+   */
+  copyOnWrite(blockPtr: number, prevBlockPtr?: number): number {
+    if (blockPtr === NULL) return NULL;
+    const refs = this.memory.read16(blockPtr + BLOCK_REFS);
+    if (refs > 1) {
+      const newBlock = this.cloneBlock(blockPtr);
+      if (newBlock === NULL) return NULL;
+      if (prevBlockPtr !== undefined && prevBlockPtr !== NULL) {
+        // Update the previous block's next pointer to refer to the new clone.
+        this.memory.write16(prevBlockPtr + BLOCK_NEXT, newBlock);
+      }
+      return newBlock;
+    }
+    return blockPtr;
   }
 
   available(): number {
