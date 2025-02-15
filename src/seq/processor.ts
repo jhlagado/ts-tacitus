@@ -1,211 +1,157 @@
-// File: src/processor.ts
+// File: src/seq/processor.ts
 
-import { seqNext } from "./sequence";
-import { UNDEF } from "../tagged-value";
 import { Heap } from "../data/heap";
+import { seqDup } from "./sequence";
+import { UNDEF, Tag, toTaggedValue, fromTaggedValue } from "../tagged-value";
+import { TRUE } from "../constants";
 
-/**
- * seqMap
- * Returns a function that applies a mapping function to each element of the source sequence.
- *
- * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param mapper - Function transforming each element.
- * @returns A function that returns the next mapped element or UNDEF if exhausted.
- */
-export function seqMap(
-  heap: Heap,
-  seq: number,
-  mapper: (value: number) => number
-): () => number {
-  return () => {
-    const val = seqNext(heap, seq);
-    return val === UNDEF ? UNDEF : mapper(val);
-  };
+// Unified Sequence Block Layout offsets (each field is 2 bytes)
+export const SEQ_PARENT_VIEW = 4;  // Pointer to source sequence block
+export const SEQ_MAJOR_POS   = 6;  // Current index along parent's dimension 0
+export const SEQ_TOTAL       = 8;  // Total number of slices
+export const SEQ_SLICE_VIEW  = 10; // Pointer to reusable slice view
+export const SEQ_RANK        = 12; // Parent's rank
+
+// Extended processor fields:
+export const PROC_FLAG  = 14;  // Processor flag (nonzero means processor sequence)
+export const PROC_TYPE  = 16;  // Processor opcode
+export const PROC_PARAM = 18;  // Processor parameter
+export const PROC_STATE = 20;  // Processor state
+
+export enum ProcessorType {
+  MAP = 1,
+  FILTER = 2,
+  SCAN = 3,
+  TAKE = 4,
+  DROP = 5,
+  SLICE = 6,
+  FLATMAP = 7,
 }
 
 /**
- * seqScan
- * Returns a function that performs a scan (cumulative reduction) over the source sequence.
+ * buildProcessor is a generic helper that creates a processor sequence block.
+ * It duplicates the source sequence, copies its metadata, and writes processor-specific fields.
  *
  * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @param procType - The processor opcode.
+ * @param procParam - The processor parameter.
+ * @param procState - The initial processor state (default 0).
+ * @param majorPos - Starting major position (default 0).
+ * @param overrideTotal - If provided, overrides the total slices.
+ * @returns A tagged sequence pointer representing the processor sequence, or UNDEF on failure.
+ */
+function buildProcessor(
+  heap: Heap,
+  srcSeq: number,
+  procType: ProcessorType,
+  procParam: number,
+  procState: number = 0,
+  majorPos: number = 0,
+  overrideTotal?: number
+): number {
+  const srcDup = seqDup(heap, srcSeq);
+  if (srcDup === UNDEF) return UNDEF;
+  const srcSeqBlock = fromTaggedValue(Tag.SEQ, srcDup).value;
+  const origTotal = heap.memory.read16(srcSeqBlock + SEQ_TOTAL);
+  const total = overrideTotal !== undefined ? overrideTotal : origTotal;
+  const procBlock = heap.malloc(64);
+  if (procBlock === UNDEF) return UNDEF;
+  const rank = heap.memory.read16(srcSeqBlock + SEQ_RANK);
+  heap.memory.write16(procBlock + SEQ_PARENT_VIEW, srcSeqBlock);
+  heap.memory.write16(procBlock + SEQ_MAJOR_POS, majorPos);
+  heap.memory.write16(procBlock + SEQ_TOTAL, total);
+  heap.memory.write16(procBlock + SEQ_RANK, rank);
+  heap.memory.write16(procBlock + PROC_FLAG, TRUE);
+  heap.memory.write16(procBlock + PROC_TYPE, procType);
+  heap.memory.write16(procBlock + PROC_PARAM, procParam);
+  heap.memory.write16(procBlock + PROC_STATE, procState);
+  return toTaggedValue(Tag.SEQ, procBlock);
+}
+
+/**
+ * procMap creates a processor sequence that multiplies each element by a multiplier.
+ *
+ * @param heap - The heap instance.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @param multiplier - The multiplier value.
+ * @returns A tagged sequence pointer for the mapped sequence, or UNDEF on failure.
+ */
+export function procMap(heap: Heap, srcSeq: number, multiplier: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.MAP, multiplier);
+}
+
+/**
+ * procFilter creates a processor sequence that filters elements.
+ * Only elements greater than or equal to the threshold pass through.
+ *
+ * @param heap - The heap instance.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @param threshold - The threshold value.
+ * @returns A tagged sequence pointer for the filtered sequence, or UNDEF on failure.
+ */
+export function procFilter(heap: Heap, srcSeq: number, threshold: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.FILTER, threshold);
+}
+
+/**
+ * procScan creates a processor sequence that performs a cumulative scan.
+ *
+ * @param heap - The heap instance.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
  * @param initial - The initial accumulator value.
- * @param accumulator - Function that combines the accumulator and the next element.
- * @returns A function that returns the next accumulated value or UNDEF if exhausted.
+ * @returns A tagged sequence pointer for the scanned sequence, or UNDEF on failure.
  */
-export function seqScan(
-  heap: Heap,
-  seq: number,
-  initial: number,
-  accumulator: (acc: number, value: number) => number
-): () => number {
-  let acc = initial;
-  return () => {
-    const val = seqNext(heap, seq);
-    if (val === UNDEF) return UNDEF;
-    acc = accumulator(acc, val);
-    return acc;
-  };
+export function procScan(heap: Heap, srcSeq: number, initial: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.SCAN, 0, initial);
 }
 
 /**
- * seqFilter
- * Returns a function that filters elements from the source sequence.
+ * procTake creates a processor sequence that yields only the first n elements.
  *
  * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param predicate - Function that returns true for elements to keep.
- * @returns A function that returns the next element passing the predicate or UNDEF if exhausted.
- */
-export function seqFilter(
-  heap: Heap,
-  seq: number,
-  predicate: (value: number) => boolean
-): () => number {
-  return () => {
-    let val: number;
-    do {
-      val = seqNext(heap, seq);
-      if (val === UNDEF) return UNDEF;
-    } while (!predicate(val));
-    return val;
-  };
-}
-
-/**
- * seqTake
- * Returns a function that yields only the first n elements of the source sequence.
- *
- * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param n - Maximum number of elements to yield.
- * @returns A function that returns the next element (up to n elements) or UNDEF when done.
- */
-export function seqTake(heap: Heap, seq: number, n: number): () => number {
-  let count = 0;
-  return () => {
-    if (count >= n) return UNDEF;
-    const val = seqNext(heap, seq);
-    if (val !== UNDEF) count++;
-    return val;
-  };
-}
-
-/**
- * seqDrop
- * Returns a function that skips the first n elements of the source sequence.
- *
- * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param n - Number of elements to skip.
- * @returns A function that returns the next element after skipping n elements, or UNDEF if exhausted.
- */
-export function seqDrop(heap: Heap, seq: number, n: number): () => number {
-  // Skip n elements immediately.
-  for (let i = 0; i < n; i++) {
-    seqNext(heap, seq);
-  }
-  return () => seqNext(heap, seq);
-}
-
-/**
- * seqSlice
- * Returns a function that yields a slice of the source sequence starting at index 'start'
- * and taking the next n elements.
- *
- * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param start - The starting index to slice from.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
  * @param n - The number of elements to take.
- * @returns A function that returns the next element from the slice or UNDEF when done.
+ * @returns A tagged sequence pointer for the taken sequence, or UNDEF on failure.
  */
-export function seqSlice(
-  heap: Heap,
-  seq: number,
-  start: number,
-  n: number
-): () => number {
-  // Drop the first 'start' elements, then take the next n elements.
-  seqDrop(heap, seq, start);
-  return seqTake(heap, seq, n);
+export function procTake(heap: Heap, srcSeq: number, n: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.TAKE, n, 0, 0, n);
 }
 
 /**
- * seqFlatMap
- * Returns a function that maps each element of the source sequence to a sub-sequence
- * (using the provided mapper function) and flattens the resulting sequences into one.
+ * procDrop creates a processor sequence that skips the first n elements.
  *
  * @param heap - The heap instance.
- * @param seq - The source sequence pointer.
- * @param mapper - Function mapping each element to a sequence pointer.
- * @returns A function that returns the next flattened element or UNDEF if exhausted.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @param n - The number of elements to drop.
+ * @returns A tagged sequence pointer for the dropped sequence, or UNDEF on failure.
  */
-export function seqFlatMap(
-  heap: Heap,
-  seq: number,
-  mapper: (value: number) => number
-): () => number {
-  let currentSubSeq: (() => number) | null = null;
-  return () => {
-    while (true) {
-      if (currentSubSeq) {
-        const val = currentSubSeq();
-        if (val !== UNDEF) return val;
-        currentSubSeq = null;
-      }
-      const srcVal = seqNext(heap, seq);
-      if (srcVal === UNDEF) return UNDEF;
-      const subSeq = mapper(srcVal);
-      // Define currentSubSeq as a closure that yields the sub-sequence elements.
-      currentSubSeq = () => seqNext(heap, subSeq);
-    }
-  };
+export function procDrop(heap: Heap, srcSeq: number, n: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.DROP, n, 0, 0);
 }
 
 /**
- * seqZip
- * Returns a function that zips two sequences together into pairs.
+ * procSlice creates a processor sequence that returns a slice starting at the given index for a given count.
  *
  * @param heap - The heap instance.
- * @param seq1 - The first source sequence pointer.
- * @param seq2 - The second source sequence pointer.
- * @returns A function that returns the next pair [val1, val2] or UNDEF if either sequence is exhausted.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @param start - The starting index.
+ * @param count - The number of elements to take.
+ * @returns A tagged sequence pointer for the slice, or UNDEF on failure.
  */
-export function seqZip(
-  heap: Heap,
-  seq1: number,
-  seq2: number
-): () => [number, number] | number {
-  return () => {
-    const val1 = seqNext(heap, seq1);
-    const val2 = seqNext(heap, seq2);
-    if (val1 === UNDEF || val2 === UNDEF) return UNDEF;
-    return [val1, val2];
-  };
+export function procSlice(heap: Heap, srcSeq: number, start: number, count: number): number {
+  // Note: For slice, we want to drop the first 'start' elements.
+  return buildProcessor(heap, srcSeq, ProcessorType.SLICE, start, count, 0, count);
 }
 
 /**
- * seqConcat
- * Returns a function that concatenates two sequences.
+ * procFlatMap creates a processor sequence that applies a flat-mapping transformation.
+ * (Note: The mapper function is applied externally.)
  *
  * @param heap - The heap instance.
- * @param seq1 - The first source sequence pointer.
- * @param seq2 - The second source sequence pointer.
- * @returns A function that returns the next element from the concatenated sequence, or UNDEF if both are exhausted.
+ * @param srcSeq - A tagged sequence pointer to the source sequence.
+ * @returns A tagged sequence pointer for the flat-mapped sequence, or UNDEF on failure.
  */
-export function seqConcat(
-  heap: Heap,
-  seq1: number,
-  seq2: number
-): () => number {
-  let usingFirst = true;
-  return () => {
-    if (usingFirst) {
-      const val = seqNext(heap, seq1);
-      if (val !== UNDEF) return val;
-      usingFirst = false;
-    }
-    return seqNext(heap, seq2);
-  };
+export function procFlatMap(heap: Heap, srcSeq: number): number {
+  return buildProcessor(heap, srcSeq, ProcessorType.FLATMAP, 0);
 }
