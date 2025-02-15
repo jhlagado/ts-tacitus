@@ -19,7 +19,7 @@ import {
   getTag,
 } from "../tagged-value";
 import { NULL } from "../constants";
-import { vectorCreate } from "../data/vector";
+import { vectorCreate, VEC_SIZE } from "../data/vector";
 
 // Assume BLOCK_SIZE is 64 bytes.
 const BLOCK_SIZE = 64;
@@ -65,7 +65,7 @@ export function mseqFromView(heap: Heap, viewPtr: number): number {
 /**
  * createSliceView
  * Creates a reusable slice view from a parent view.
- * For a parent view of rank 1, the slice view is created with rank 0 (so that it unboxes to a scalar).
+ * For a parent view of rank 1, the slice view is created with dimension 0 (so that it unboxes to a scalar).
  * For a parent view of rank ≥ 2, the slice view’s rank is (parentRank – 1) and its shape is copied
  * from the parent's dimensions 1..(parentRank–1).
  *
@@ -83,7 +83,7 @@ function createSliceView(heap: Heap, parentViewPtr: number): number {
   heap.memory.write16(sliceBlock + VIEW_OFFSET, parentBaseOffset);
   const parentRank = heap.memory.read16(parentBlock + VIEW_RANK);
   if (parentRank === 1) {
-    // For a 1D parent, create a slice view with rank 0.
+    // For a 1D parent, create a slice view with dimension 0.
     heap.memory.write16(sliceBlock + VIEW_RANK, 0);
     heap.memory.write16(sliceBlock + VIEW_SPEC, 0);
     heap.memory.write16(sliceBlock + VIEW_SPEC + 2, 1);
@@ -105,7 +105,7 @@ function createSliceView(heap: Heap, parentViewPtr: number): number {
 /**
  * mseqNext
  * Returns the next slice from the sequence.
- * For a sequence created from a 1D view, the reusable slice view has rank 0 and is unboxed
+ * For a sequence created from a 1D view, the reusable slice view has dimension 0 and is unboxed
  * (using viewGet with an empty index array) to return a scalar.
  * For multidimensional sequences, it returns a sub-view (of rank = parentRank – 1)
  * along the parent's dimension 0.
@@ -188,7 +188,8 @@ export function seqDup(heap: Heap, seqPtr: number): number {
 export function seqFromVector(heap: Heap, vectorPtr: number): number {
   if (!isTaggedValue(vectorPtr) || getTag(vectorPtr) !== Tag.VECTOR)
     return UNDEF;
-  const len = heap.memory.read16(vectorPtr + 0);
+  const { value: vecBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+  const len = heap.memory.read16(vecBlock + VEC_SIZE);
   const viewPtr = viewCreate(heap, vectorPtr, 0, [len]);
   if (viewPtr === UNDEF) return UNDEF;
   return mseqFromView(heap, viewPtr);
