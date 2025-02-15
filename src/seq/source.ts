@@ -17,7 +17,7 @@ export const SEQ_TOTAL = 8; // Total number of elements (2 bytes)
 export const SEQ_STEP = 10; // Step size (2 bytes), default is 1
 
 // View Block Layout Constants
-import { VIEW_DIM, VIEW_SPEC } from "../data/view"; // Start of shape/stride data
+import { VIEW_RANK, VIEW_SPEC } from "../data/view"; // Start of shape/stride data
 
 /**
  * Create a sequence from a 1D view.
@@ -28,7 +28,7 @@ export function seqFromView(heap: Heap, viewPtr: number): number {
   if (!isTaggedValue(viewPtr) || getTag(viewPtr) !== Tag.VIEW) return UNDEF;
   const { value: viewBlock } = fromTaggedValue(Tag.VIEW, viewPtr);
   // Read dimension from view.
-  const dimensions = heap.memory.read16(viewBlock + VIEW_DIM);
+  const dimensions = heap.memory.read16(viewBlock + VIEW_RANK);
   if (dimensions !== 1) return UNDEF; // Only support 1D views for now.
 
   // The total number of elements is stored as the shape in the first dimension.
