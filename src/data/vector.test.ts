@@ -2,7 +2,7 @@
 
 import { Heap, BLOCK_REFS } from "./heap";
 import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
-import { Memory } from "../memory";
+import { Memory } from "./memory";
 import { fromTaggedValue, Tag, TAG_ANY, UNDEF } from "../tagged-value";
 import { NULL } from "../constants";
 
@@ -109,7 +109,6 @@ describe("Vector Operations", () => {
     expect(ptr1).not.toBe(ptr2);
   });
 
-
   it("vectorGet returns UNDEF for negative index", () => {
     const data = [10, 20, 30];
     const vectorPtr = vectorCreate(heap, data);
@@ -163,4 +162,3 @@ describe("Vector Operations", () => {
     expect(vectorGet(heap, updatedVectorPtr, 14)).toBeCloseTo(newValue);
   });
 });
-

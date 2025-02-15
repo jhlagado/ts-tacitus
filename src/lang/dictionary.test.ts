@@ -1,4 +1,4 @@
-import { Memory } from "../memory";
+import { Memory } from "../data/memory";
 import { Verb } from "../types";
 import { Dictionary } from "./dictionary";
 

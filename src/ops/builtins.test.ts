@@ -10,7 +10,7 @@ import {
 import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../globalState";
-import { CODE, RSTACK } from "../memory";
+import { CODE, RSTACK } from "../data/memory";
 import { fromTaggedValue, Tag, toTaggedValue } from "../tagged-value";
 import { toUnsigned16 } from "../utils";
 

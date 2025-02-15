@@ -1,4 +1,4 @@
-import { Memory, STRINGS, STRINGS_SIZE } from "../memory";
+import { Memory, STRINGS, STRINGS_SIZE } from "../data/memory";
 
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
@@ -70,7 +70,9 @@ export class StringBuffer {
 
       let existingStr = "";
       for (let i = 0; i < length; i++) {
-        existingStr += String.fromCharCode(this.memory.read8(pointer + STRING_HEADER_SIZE + i));
+        existingStr += String.fromCharCode(
+          this.memory.read8(pointer + STRING_HEADER_SIZE + i)
+        );
       }
 
       if (existingStr === str) {

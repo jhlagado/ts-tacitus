@@ -1,106 +1,211 @@
 // File: src/processor.ts
 
-import { Heap } from "../data/heap";
-import {
-  UNDEF,
-  Tag,
-  toTaggedValue,
-  fromTaggedValue,
-  getTag,
-  isTaggedValue,
-} from "../tagged-value";
 import { seqNext } from "./sequence";
-
-// We will allocate a processor sequence block with this simple layout:
-// Offset 4: underlying source sequence pointer (2 bytes)
-// Offset 6: processor type (2 bytes) — 1 for map, 2 for filter.
-// (No extra fields for now. For scan, you might add an accumulator at offset 8.)
-// We store the processor function in a global dictionary keyed by the block pointer.
-export const PROC_SEQ_SOURCE = 4;
-export const PROC_SEQ_TYPE = 6;
-
-// Processor type constants.
-export const PROC_TYPE_MAP = 1;
-export const PROC_TYPE_FILTER = 2;
-
-// Global object to store processor operations (function pointers).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const processorOps: { [key: number]: any } = {};
+import { UNDEF } from "../tagged-value";
+import { Heap } from "../data/heap";
 
 /**
- * Create a processor sequence that applies a mapping function to each element.
+ * seqMap
+ * Returns a function that applies a mapping function to each element of the source sequence.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param mapper - Function transforming each element.
+ * @returns A function that returns the next mapped element or UNDEF if exhausted.
  */
 export function seqMap(
   heap: Heap,
-  sourceSeq: number,
-  op: (x: number) => number
-): number {
-  if (!isTaggedValue(sourceSeq) || getTag(sourceSeq) !== Tag.SEQ) return UNDEF;
-
-  // Allocate a new block for the processor sequence.
-  const procBlock = heap.malloc(64);
-  if (procBlock === UNDEF) return UNDEF;
-
-  // Store the underlying source sequence block pointer.
-  const { value: srcBlock } = fromTaggedValue(Tag.SEQ, sourceSeq);
-  heap.memory.write16(procBlock + PROC_SEQ_SOURCE, srcBlock);
-  // Set processor type to map.
-  heap.memory.write16(procBlock + PROC_SEQ_TYPE, PROC_TYPE_MAP);
-
-  // Save the mapping function in the global dictionary.
-  processorOps[procBlock] = { op };
-
-  return toTaggedValue(Tag.SEQ, procBlock);
+  seq: number,
+  mapper: (value: number) => number
+): () => number {
+  return () => {
+    const val = seqNext(heap, seq);
+    return val === UNDEF ? UNDEF : mapper(val);
+  };
 }
 
 /**
- * Create a processor sequence that filters elements using a predicate.
+ * seqScan
+ * Returns a function that performs a scan (cumulative reduction) over the source sequence.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param initial - The initial accumulator value.
+ * @param accumulator - Function that combines the accumulator and the next element.
+ * @returns A function that returns the next accumulated value or UNDEF if exhausted.
+ */
+export function seqScan(
+  heap: Heap,
+  seq: number,
+  initial: number,
+  accumulator: (acc: number, value: number) => number
+): () => number {
+  let acc = initial;
+  return () => {
+    const val = seqNext(heap, seq);
+    if (val === UNDEF) return UNDEF;
+    acc = accumulator(acc, val);
+    return acc;
+  };
+}
+
+/**
+ * seqFilter
+ * Returns a function that filters elements from the source sequence.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param predicate - Function that returns true for elements to keep.
+ * @returns A function that returns the next element passing the predicate or UNDEF if exhausted.
  */
 export function seqFilter(
   heap: Heap,
-  sourceSeq: number,
-  pred: (x: number) => boolean
-): number {
-  if (!isTaggedValue(sourceSeq) || getTag(sourceSeq) !== Tag.SEQ) return UNDEF;
-
-  const procBlock = heap.malloc(64);
-  if (procBlock === UNDEF) return UNDEF;
-
-  const { value: srcBlock } = fromTaggedValue(Tag.SEQ, sourceSeq);
-  heap.memory.write16(procBlock + PROC_SEQ_SOURCE, srcBlock);
-  heap.memory.write16(procBlock + PROC_SEQ_TYPE, PROC_TYPE_FILTER);
-
-  processorOps[procBlock] = { pred };
-
-  return toTaggedValue(Tag.SEQ, procBlock);
+  seq: number,
+  predicate: (value: number) => boolean
+): () => number {
+  return () => {
+    let val: number;
+    do {
+      val = seqNext(heap, seq);
+      if (val === UNDEF) return UNDEF;
+    } while (!predicate(val));
+    return val;
+  };
 }
 
 /**
- * seqNextProcessor: Given a processor sequence (map or filter), produce the next element.
- * For map, it applies the op function to the next element of the source sequence.
- * For filter, it repeatedly retrieves the next element until one satisfies the predicate.
+ * seqTake
+ * Returns a function that yields only the first n elements of the source sequence.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param n - Maximum number of elements to yield.
+ * @returns A function that returns the next element (up to n elements) or UNDEF when done.
  */
-export function seqNextProcessor(heap: Heap, procSeq: number): number {
-  if (!isTaggedValue(procSeq) || getTag(procSeq) !== Tag.SEQ) return UNDEF;
+export function seqTake(heap: Heap, seq: number, n: number): () => number {
+  let count = 0;
+  return () => {
+    if (count >= n) return UNDEF;
+    const val = seqNext(heap, seq);
+    if (val !== UNDEF) count++;
+    return val;
+  };
+}
 
-  const { value: procBlock } = fromTaggedValue(Tag.SEQ, procSeq);
-  const type = heap.memory.read16(procBlock + PROC_SEQ_TYPE);
-  const srcBlock = heap.memory.read16(procBlock + PROC_SEQ_SOURCE);
-  // Wrap the underlying source sequence pointer back into a tagged value.
-  const sourceSeqPtr = toTaggedValue(Tag.SEQ, srcBlock);
-
-  if (type === PROC_TYPE_MAP) {
-    const element = seqNext(heap, sourceSeqPtr);
-    if (element === UNDEF) return UNDEF;
-    const { op } = processorOps[procBlock];
-    return op(element);
-  } else if (type === PROC_TYPE_FILTER) {
-    const { pred } = processorOps[procBlock];
-    while (true) {
-      const element = seqNext(heap, sourceSeqPtr);
-      if ((element)===UNDEF) return UNDEF;
-      if (pred(element)) return element;
-    }
+/**
+ * seqDrop
+ * Returns a function that skips the first n elements of the source sequence.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param n - Number of elements to skip.
+ * @returns A function that returns the next element after skipping n elements, or UNDEF if exhausted.
+ */
+export function seqDrop(heap: Heap, seq: number, n: number): () => number {
+  // Skip n elements immediately.
+  for (let i = 0; i < n; i++) {
+    seqNext(heap, seq);
   }
-  return UNDEF;
+  return () => seqNext(heap, seq);
+}
+
+/**
+ * seqSlice
+ * Returns a function that yields a slice of the source sequence starting at index 'start'
+ * and taking the next n elements.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param start - The starting index to slice from.
+ * @param n - The number of elements to take.
+ * @returns A function that returns the next element from the slice or UNDEF when done.
+ */
+export function seqSlice(
+  heap: Heap,
+  seq: number,
+  start: number,
+  n: number
+): () => number {
+  // Drop the first 'start' elements, then take the next n elements.
+  seqDrop(heap, seq, start);
+  return seqTake(heap, seq, n);
+}
+
+/**
+ * seqFlatMap
+ * Returns a function that maps each element of the source sequence to a sub-sequence
+ * (using the provided mapper function) and flattens the resulting sequences into one.
+ *
+ * @param heap - The heap instance.
+ * @param seq - The source sequence pointer.
+ * @param mapper - Function mapping each element to a sequence pointer.
+ * @returns A function that returns the next flattened element or UNDEF if exhausted.
+ */
+export function seqFlatMap(
+  heap: Heap,
+  seq: number,
+  mapper: (value: number) => number
+): () => number {
+  let currentSubSeq: (() => number) | null = null;
+  return () => {
+    while (true) {
+      if (currentSubSeq) {
+        const val = currentSubSeq();
+        if (val !== UNDEF) return val;
+        currentSubSeq = null;
+      }
+      const srcVal = seqNext(heap, seq);
+      if (srcVal === UNDEF) return UNDEF;
+      const subSeq = mapper(srcVal);
+      // Define currentSubSeq as a closure that yields the sub-sequence elements.
+      currentSubSeq = () => seqNext(heap, subSeq);
+    }
+  };
+}
+
+/**
+ * seqZip
+ * Returns a function that zips two sequences together into pairs.
+ *
+ * @param heap - The heap instance.
+ * @param seq1 - The first source sequence pointer.
+ * @param seq2 - The second source sequence pointer.
+ * @returns A function that returns the next pair [val1, val2] or UNDEF if either sequence is exhausted.
+ */
+export function seqZip(
+  heap: Heap,
+  seq1: number,
+  seq2: number
+): () => [number, number] | number {
+  return () => {
+    const val1 = seqNext(heap, seq1);
+    const val2 = seqNext(heap, seq2);
+    if (val1 === UNDEF || val2 === UNDEF) return UNDEF;
+    return [val1, val2];
+  };
+}
+
+/**
+ * seqConcat
+ * Returns a function that concatenates two sequences.
+ *
+ * @param heap - The heap instance.
+ * @param seq1 - The first source sequence pointer.
+ * @param seq2 - The second source sequence pointer.
+ * @returns A function that returns the next element from the concatenated sequence, or UNDEF if both are exhausted.
+ */
+export function seqConcat(
+  heap: Heap,
+  seq1: number,
+  seq2: number
+): () => number {
+  let usingFirst = true;
+  return () => {
+    if (usingFirst) {
+      const val = seqNext(heap, seq1);
+      if (val !== UNDEF) return val;
+      usingFirst = false;
+    }
+    return seqNext(heap, seq2);
+  };
 }

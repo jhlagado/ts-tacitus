@@ -1,7 +1,7 @@
 // File: src/tests/view.test.ts
 
 import { Heap } from "./heap";
-import { Memory } from "../memory";
+import { Memory } from "./memory";
 import { MAX_DIMENSIONS_VIEW, viewCreate, viewGet, viewUpdate } from "./view";
 import { vectorCreate } from "./vector";
 import { UNDEF } from "../tagged-value";

@@ -1,7 +1,7 @@
 // File: src/heap.ts
 
 import { NULL } from "../constants";
-import { Memory, HEAP, HEAP_SIZE } from "../memory";
+import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
 export const BLOCK_SIZE = 64;
 export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)

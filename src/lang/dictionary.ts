@@ -1,5 +1,5 @@
 import { defineBuiltins, Op } from "../ops/builtins";
-import { Memory } from "../memory";
+import { Memory } from "../data/memory";
 import { StringBuffer } from "./strings";
 import { Verb } from "../types";
 import { VM } from "../vm";

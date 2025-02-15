@@ -1,5 +1,5 @@
 import { Heap } from "./heap";
-import { Memory } from "../memory";
+import { Memory } from "./memory";
 import { arrayCreate, arrayGet, arrayUpdate, MAX_DIMENSIONS } from "./array";
 import { UNDEF } from "../tagged-value";
 

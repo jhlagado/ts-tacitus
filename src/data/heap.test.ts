@@ -8,7 +8,7 @@ import {
   Heap,
   USABLE_BLOCK_SIZE,
 } from "./heap";
-import { Memory, HEAP_SIZE } from "../memory";
+import { Memory, HEAP_SIZE } from "./memory";
 
 const HALF_BLOCK_SIZE = Math.floor(USABLE_BLOCK_SIZE / 2);
 

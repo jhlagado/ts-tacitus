@@ -1,4 +1,4 @@
-import { CODE } from "../memory";
+import { CODE } from "../data/memory";
 import { VM } from "../vm";
 import { Tag, toTaggedValue } from "../tagged-value";
 
