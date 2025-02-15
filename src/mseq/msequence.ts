@@ -26,10 +26,10 @@ const BLOCK_SIZE = 64;
 
 // Unified Sequence Block Layout (fields are 2 bytes each)
 export const MSEQ_PARENT_VIEW = 4; // Raw pointer to parent view block
-export const MSEQ_MAJOR_POS = 6; // Current index along parent's dimension 0
-export const MSEQ_TOTAL = 8; // Total number of slices (parent's dim0 size, or overridden)
-export const MSEQ_SLICE_VIEW = 10; // Raw pointer to reusable slice view block
-export const MSEQ_RANK = 12; // Parent view's rank
+export const MSEQ_MAJOR_POS = 6;     // Current index along parent's dimension 0
+export const MSEQ_TOTAL = 8;         // Total number of slices (parent's dim0 size, or overridden)
+export const MSEQ_SLICE_VIEW = 10;   // Raw pointer to reusable slice view block
+export const MSEQ_RANK = 12;         // Parent view's rank
 
 const RANGE_VIEW_MARKER = 0xffff;
 
@@ -66,8 +66,8 @@ export function mseqFromView(heap: Heap, viewPtr: number): number {
  * createSliceView
  * Creates a reusable slice view from a parent view.
  * For a parent view of rank 1, the slice view is created with dimension 0 (so that it unboxes to a scalar).
- * For a parent view of rank ≥ 2, the slice view’s rank is (parentRank – 1) and its shape is copied
- * from the parent's dimensions 1..(parentRank–1).
+ * For a parent view of rank ≥ 2, the slice view’s rank is (parentRank – 1) and its shape and stride
+ * are copied from the parent's dimensions 1..(parentRank–1).
  *
  * @param heap - The heap instance.
  * @param parentViewPtr - A tagged pointer to the parent view.
@@ -91,10 +91,12 @@ function createSliceView(heap: Heap, parentViewPtr: number): number {
     const sliceRank = parentRank - 1;
     heap.memory.write16(sliceBlock + VIEW_RANK, sliceRank);
     let parentShapeOffset = VIEW_SPEC + 4; // Skip parent's dimension 0.
-    let sliceShapeOffset = VIEW_SPEC; // Slice view's dim0 corresponds to parent's dim1.
+    let sliceShapeOffset = VIEW_SPEC;      // Slice view's dimension 0 corresponds to parent's dimension 1.
     for (let i = 1; i < parentRank; i++) {
-      const dimSize = heap.memory.read16(parentBlock + parentShapeOffset);
-      heap.memory.write16(sliceBlock + sliceShapeOffset, dimSize);
+      const shapeVal = heap.memory.read16(parentBlock + parentShapeOffset);
+      heap.memory.write16(sliceBlock + sliceShapeOffset, shapeVal);
+      const strideVal = heap.memory.read16(parentBlock + parentShapeOffset + 2);
+      heap.memory.write16(sliceBlock + sliceShapeOffset + 2, strideVal);
       parentShapeOffset += 4;
       sliceShapeOffset += 4;
     }
