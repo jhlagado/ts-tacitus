@@ -1,21 +1,35 @@
 // File: src/seq/sequence.ts
 
 import { Heap } from "../data/heap";
-import { viewGet, viewUpdateOffset, VIEW_RANK, VIEW_SPEC, VIEW_OFFSET } from "../data/view";
-import { UNDEF, Tag, toTaggedValue, fromTaggedValue, isTaggedValue, getTag } from "../tagged-value";
+import {
+  viewGet,
+  viewUpdateOffset,
+  VIEW_RANK,
+  VIEW_SPEC,
+  VIEW_OFFSET,
+} from "../data/view";
+import {
+  UNDEF,
+  Tag,
+  toTaggedValue,
+  fromTaggedValue,
+  isTaggedValue,
+  getTag,
+  isUnDef,
+} from "../tagged-value";
 import { NULL } from "../constants";
 import { ProcessorType } from "./processor";
 
 // Unified Sequence Block Layout offsets (each field is 2 bytes)
-export const SEQ_PARENT_VIEW = 4;   // Raw pointer to parent view block
-export const SEQ_MAJOR_POS   = 6;   // Current index along parent's dimension 0
-export const SEQ_TOTAL       = 8;   // Total number of slices
-export const SEQ_SLICE_VIEW  = 10;  // Pointer to reusable slice view
-export const SEQ_RANK        = 12;  // Parent view's rank
+export const SEQ_PARENT_VIEW = 4; // Raw pointer to parent view block
+export const SEQ_MAJOR_POS = 6; // Current index along parent's dimension 0
+export const SEQ_TOTAL = 8; // Total number of slices
+export const SEQ_SLICE_VIEW = 10; // Pointer to reusable slice view
+export const SEQ_RANK = 12; // Parent view's rank
 
 // Extended processor fields:
-export const PROC_FLAG  = 14; // Processor flag
-export const PROC_TYPE  = 16; // Processor opcode
+export const PROC_FLAG = 14; // Processor flag
+export const PROC_TYPE = 16; // Processor opcode
 export const PROC_PARAM = 18; // Processor parameter
 export const PROC_STATE = 20; // Processor state
 
@@ -93,12 +107,12 @@ function processorNext(heap: Heap, procBlock: number): number {
   const total = heap.memory.read16(procBlock + SEQ_TOTAL);
   let pos = heap.memory.read16(procBlock + SEQ_MAJOR_POS);
   if (pos >= total) return UNDEF;
-  
+
   const srcSeqBlock = heap.memory.read16(procBlock + SEQ_PARENT_VIEW);
   const srcSeq = toTaggedValue(Tag.SEQ, srcSeqBlock);
   let nextVal = seqNext(heap, srcSeq);
-  if (nextVal === UNDEF) return UNDEF;
-  
+  if (isUnDef(nextVal)) return UNDEF;
+
   const procType = heap.memory.read16(procBlock + PROC_TYPE);
   const procParam = heap.memory.read16(procBlock + PROC_PARAM);
   let result: number;
@@ -107,7 +121,7 @@ function processorNext(heap: Heap, procBlock: number): number {
       result = nextVal * procParam;
       break;
     case ProcessorType.FILTER:
-      while (nextVal !== UNDEF && nextVal < procParam) {
+      while (!isUnDef(nextVal) && nextVal < procParam) {
         nextVal = seqNext(heap, srcSeq);
       }
       result = nextVal;
@@ -125,7 +139,7 @@ function processorNext(heap: Heap, procBlock: number): number {
         let drops = procParam;
         while (drops > 0) {
           nextVal = seqNext(heap, srcSeq);
-          if (nextVal === UNDEF) break;
+          if (isUnDef(nextVal)) break;
           drops--;
         }
         heap.memory.write16(procBlock + PROC_STATE, 1);
@@ -139,7 +153,7 @@ function processorNext(heap: Heap, procBlock: number): number {
         let drops = procParam;
         while (drops > 0) {
           nextVal = seqNext(heap, srcSeq);
-          if (nextVal === UNDEF) break;
+          if (isUnDef(nextVal)) break;
           drops--;
         }
       }
@@ -168,6 +182,6 @@ export function seqDup(heap: Heap, seqPtr: number): number {
   if (!isTaggedValue(seqPtr)) return UNDEF;
   const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seqPtr);
   const newBlock = heap.cloneBlock(seqBlock);
-  if (newBlock === UNDEF) return UNDEF;
+  if (isUnDef(newBlock)) return UNDEF;
   return toTaggedValue(Tag.SEQ, newBlock);
 }

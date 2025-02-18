@@ -1,27 +1,24 @@
 export enum Tag {
-  NAN,
+  DONT_USE,
   INTEGER,
   CODE,
-  BLOCK,
+  UNDEF,
+  NAN,
   VECTOR,
   VIEW,
   SEQ,
-  CUSTOM,
 }
 
 export const tagNames: { [key in Tag]: string } = {
-  [Tag.NAN]: "NAN",
+  [Tag.DONT_USE]: "DONT_USE",
   [Tag.INTEGER]: "INTEGER",
   [Tag.CODE]: "CODE",
-  [Tag.BLOCK]: "BLOCK",
+  [Tag.UNDEF]: "UNDEF",
+  [Tag.NAN]: "NAN",
   [Tag.VECTOR]: "VECTOR",
   [Tag.VIEW]: "VIEW",
   [Tag.SEQ]: "SEQ",
-  [Tag.CUSTOM]: "CUSTOM",
 };
-
-export const TAG_ANY = 0;
-export const TAG_NAN = 0;
 
 // Constants
 const TAG_BITS = 3; // 3 bits for the tag (2 bits in mantissa + 1 sign bit)
@@ -29,9 +26,10 @@ const POINTER_BITS = 20; // 20 bits for the pointer
 const EXPONENT_MASK = 0xff << 23; // Exponent mask for NaN
 const TAG_MANTISSA_MASK = 0b11 << POINTER_BITS; // Tag mask in mantissa (bits 20-21)
 const POINTER_MASK = (1 << POINTER_BITS) - 1; // Pointer mask (bits 0-19)
-const NAN_BIT = 1 << 22; // Force the 23rd bit of the mantissa to 1
+const NAN_BIT = 0; // Force the 23rd bit of the mantissa to 1
 
-export const UNDEF = toTaggedValue(TAG_NAN, 0) | (1 << 31);
+export const TAG_ANY = 0;
+export const UNDEF = toTaggedValue(Tag.UNDEF, 0);
 
 /**
  * Encodes a 20-bit pointer and a 3-bit tag into a Float32 NaN value.
@@ -161,5 +159,13 @@ export function isRefCounted(tagNum: number): boolean {
     return false;
   }
   const { tag } = fromTaggedValue(TAG_ANY, tagNum);
-  return tag === Tag.BLOCK || tag === Tag.VIEW;
+  return tag > Tag.NAN;
+}
+
+export function isUnDef(tagNum: number): boolean {
+  if (!isTaggedValue(tagNum)) {
+    return false;
+  }
+  const { tag } = fromTaggedValue(TAG_ANY, tagNum);
+  return tag === Tag.UNDEF;
 }

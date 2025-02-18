@@ -8,6 +8,7 @@ import {
   Tag,
   UNDEF,
   getTag,
+  isUnDef,
 } from "../tagged-value";
 import { VEC_SIZE, vectorGet, vectorUpdate } from "./vector";
 import { NULL } from "../constants";
@@ -69,7 +70,7 @@ export function viewCreate(
   if (effectiveOffset + totalElements > vectorLength) return UNDEF;
 
   const viewBlock = heap.malloc(BLOCK_SIZE);
-  if (viewBlock === UNDEF) return UNDEF;
+  if (isUnDef(viewBlock)) return UNDEF;
 
   heap.memory.write16(viewBlock + VIEW_VECTOR, baseVector);
   heap.memory.write16(viewBlock + VIEW_RANK, dimensions);
@@ -173,7 +174,7 @@ export function viewUpdate(
     offset,
     value
   );
-  if (newVectorPtr === UNDEF) return UNDEF;
+  if (isUnDef(newVectorPtr)) return UNDEF;
   heap.memory.write16(
     viewBlock + VIEW_VECTOR,
     fromTaggedValue(Tag.VECTOR, newVectorPtr).value

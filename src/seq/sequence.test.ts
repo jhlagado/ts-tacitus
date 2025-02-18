@@ -6,7 +6,7 @@ import { vectorCreate } from "../data/vector";
 import { viewCreate, viewGet } from "../data/view";
 import { seqNext, seqDup } from "./sequence";
 import { seqFromView, seqFromVector } from "./source";
-import { UNDEF } from "../tagged-value";
+import { isUnDef, UNDEF } from "../tagged-value";
 import * as viewModule from "../data/view";
 import { NULL } from "../constants";
 
@@ -23,9 +23,9 @@ describe("Sequence Iterator (sequence)", () => {
     it("iterates over all elements in a 1D vector", () => {
       const data = [1, 2, 3, 4, 5];
       const vec = vectorCreate(heap, data);
-      expect(vec).not.toBe(UNDEF);
+      expect(isUnDef(vec)).not.toBe(true);
       const seq = seqFromVector(heap, vec);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const results: number[] = [];
       for (let i = 0; i < data.length; i++) {
         results.push(seqNext(heap, seq));
@@ -39,15 +39,15 @@ describe("Sequence Iterator (sequence)", () => {
     it("iterates over rows of a 2D view correctly", () => {
       const data = [10, 20, 30, 40, 50, 60];
       const vec = vectorCreate(heap, data);
-      expect(vec).not.toBe(UNDEF);
+      expect(isUnDef(vec)).not.toBe(true);
       const view = viewCreate(heap, vec, 0, [2, 3]); // 2 rows x 3 cols
-      expect(view).not.toBe(UNDEF);
+      expect(isUnDef(view)).not.toBe(true);
       const seq = seqFromView(heap, view);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
 
       // First row
       const row0 = seqNext(heap, seq);
-      expect(row0).not.toBe(UNDEF);
+      expect(isUnDef(row0)).not.toBe(true);
       const row0Data: number[] = [];
       for (let j = 0; j < 3; j++) {
         row0Data.push(viewGet(heap, row0, [j]));
@@ -56,7 +56,7 @@ describe("Sequence Iterator (sequence)", () => {
 
       // Second row
       const row1 = seqNext(heap, seq);
-      expect(row1).not.toBe(UNDEF);
+      expect(isUnDef(row1)).not.toBe(true);
       const row1Data: number[] = [];
       for (let j = 0; j < 3; j++) {
         row1Data.push(viewGet(heap, row1, [j]));
@@ -71,9 +71,9 @@ describe("Sequence Iterator (sequence)", () => {
     it("duplicates a sequence for independent iteration", () => {
       const data = [100, 200, 300, 400];
       const seq = seqFromVector(heap, vectorCreate(heap, data));
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const dupSeq = seqDup(heap, seq);
-      expect(dupSeq).not.toBe(UNDEF);
+      expect(isUnDef(dupSeq)).not.toBe(true);
       // Advance original sequence by one element.
       const firstOriginal = seqNext(heap, seq);
       // Duplicate should start at the beginning.
@@ -90,7 +90,7 @@ describe("Sequence Iterator (sequence)", () => {
     it("returns UNDEF when the sequence is exhausted", () => {
       const data = [5, 6];
       const seq = seqFromVector(heap, vectorCreate(heap, data));
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       expect(seqNext(heap, seq)).toEqual(5);
       expect(seqNext(heap, seq)).toEqual(6);
       expect(seqNext(heap, seq)).toBe(UNDEF);
@@ -100,14 +100,14 @@ describe("Sequence Iterator (sequence)", () => {
   describe("Error Branches", () => {
     it("seqNext returns NULL when copyOnWrite fails on the sequence block", () => {
       const seq = seqFromVector(heap, vectorCreate(heap, [10, 20]));
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const spy = jest.spyOn(heap, "copyOnWrite").mockReturnValueOnce(NULL);
       expect(seqNext(heap, seq)).toBe(NULL);
       spy.mockRestore();
     });
     it("seqNext returns NULL when copyOnWrite fails on the slice block", () => {
       const seq = seqFromVector(heap, vectorCreate(heap, [10, 20]));
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       // Advance one element (ensuring we're in the non-dynamic branch)
       expect(seqNext(heap, seq)).toEqual(10);
       const spy = jest
@@ -118,12 +118,12 @@ describe("Sequence Iterator (sequence)", () => {
     });
     it("seqNext returns NULL when viewUpdateOffset fails", () => {
       const vec = vectorCreate(heap, [1, 2, 3, 4, 5, 6]);
-      expect(vec).not.toBe(UNDEF);
+      expect(isUnDef(vec)).not.toBe(true);
       const view = viewCreate(heap, vec, 0, [2, 3]);
-      expect(view).not.toBe(UNDEF);
+      expect(isUnDef(view)).not.toBe(true);
       const seq = seqFromView(heap, view);
-      expect(seq).not.toBe(UNDEF);
-      expect(seqNext(heap, seq)).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
+      expect(isUnDef(seqNext(heap, seq))).not.toBe(true);
       const spy = jest
         .spyOn(viewModule, "viewUpdateOffset")
         .mockReturnValue(NULL);

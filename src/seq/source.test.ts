@@ -5,7 +5,7 @@ import { Memory } from "../data/memory";
 import { vectorCreate } from "../data/vector";
 import { VIEW_OFFSET, VIEW_RANK, VIEW_VECTOR, viewCreate } from "../data/view";
 import { seqFromVector, seqFromRange, seqFromView } from "./source";
-import { UNDEF, fromTaggedValue, Tag } from "../tagged-value";
+import { UNDEF, fromTaggedValue, Tag, TAG_ANY, isUnDef } from "../tagged-value";
 
 describe("Sequence Source (msource)", () => {
   let heap: Heap;
@@ -20,9 +20,16 @@ describe("Sequence Source (msource)", () => {
     it("creates a valid sequence from a 1D vector", () => {
       const data = [10, 20, 30];
       const vec = vectorCreate(heap, data);
-      expect(vec).not.toBe(UNDEF);
+
+      const t1 = fromTaggedValue(Tag.VECTOR, vec);
+      const t2 = fromTaggedValue(TAG_ANY, UNDEF);
+      console.log(t1, t2, t1 == t2);
+
+      expect(vec).toBeNaN();
+
+      expect(isUnDef(vec)).not.toBe(true);
       const seq = seqFromVector(heap, vec);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seq);
       // MSEQ_TOTAL is stored at offset 8; for a 1D vector the view's total should equal data length.
       const totalSlices = heap.memory.read16(seqBlock + 8);
@@ -34,7 +41,7 @@ describe("Sequence Source (msource)", () => {
     it("creates a sequence from a range when shape is provided and matches count", () => {
       // Provide shape that matches count, e.g. shape [4] for count = 4.
       const seq = seqFromRange(heap, 50, 4, [4]);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seq);
       const total = heap.memory.read16(seqBlock + 8); // MSEQ_TOTAL
       expect(total).toBe(4);
@@ -52,7 +59,7 @@ describe("Sequence Source (msource)", () => {
       const start = 200;
       const count = 5;
       const seq = seqFromRange(heap, start, count);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seq);
       const total = heap.memory.read16(seqBlock + 8); // MSEQ_TOTAL
       expect(total).toBe(count);
@@ -68,11 +75,11 @@ describe("Sequence Source (msource)", () => {
       // Create a 2D view by using viewCreate with shape [2, 3] so that parentRank === 2.
       const data = [1, 2, 3, 4, 5, 6];
       const vec = vectorCreate(heap, data);
-      expect(vec).not.toBe(UNDEF);
+      expect(isUnDef(vec)).not.toBe(true);
       const view = viewCreate(heap, vec, 0, [2, 3]);
-      expect(view).not.toBe(UNDEF);
+      expect(isUnDef(view)).not.toBe(true);
       const seq = seqFromView(heap, view);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       // In createSliceView, when parentRank > 1, the else branch is executed.
       // The slice view's rank should be (parentRank - 1) = 1.
       const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seq);
@@ -87,7 +94,7 @@ describe("Sequence Source (msource)", () => {
       const start = 300;
       const count = 7;
       const seq = seqFromRange(heap, start, count);
-      expect(seq).not.toBe(UNDEF);
+      expect(isUnDef(seq)).not.toBe(true);
       // In the dynamic branch, the parent's underlying vector pointer should equal RANGE_VIEW_MARKER.
       const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seq);
       const parentBlock = heap.memory.read16(seqBlock + 4); // MSEQ_PARENT_VIEW

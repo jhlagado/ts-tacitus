@@ -2,21 +2,27 @@
 
 import { Heap } from "../data/heap";
 import { seqDup } from "./sequence";
-import { UNDEF, Tag, toTaggedValue, fromTaggedValue } from "../tagged-value";
+import {
+  UNDEF,
+  Tag,
+  toTaggedValue,
+  fromTaggedValue,
+  isUnDef,
+} from "../tagged-value";
 import { TRUE } from "../constants";
 
 // Unified Sequence Block Layout offsets (each field is 2 bytes)
-export const SEQ_PARENT_VIEW = 4;  // Pointer to source sequence block
-export const SEQ_MAJOR_POS   = 6;  // Current index along parent's dimension 0
-export const SEQ_TOTAL       = 8;  // Total number of slices
-export const SEQ_SLICE_VIEW  = 10; // Pointer to reusable slice view
-export const SEQ_RANK        = 12; // Parent's rank
+export const SEQ_PARENT_VIEW = 4; // Pointer to source sequence block
+export const SEQ_MAJOR_POS = 6; // Current index along parent's dimension 0
+export const SEQ_TOTAL = 8; // Total number of slices
+export const SEQ_SLICE_VIEW = 10; // Pointer to reusable slice view
+export const SEQ_RANK = 12; // Parent's rank
 
 // Extended processor fields:
-export const PROC_FLAG  = 14;  // Processor flag (nonzero means processor sequence)
-export const PROC_TYPE  = 16;  // Processor opcode
-export const PROC_PARAM = 18;  // Processor parameter
-export const PROC_STATE = 20;  // Processor state
+export const PROC_FLAG = 14; // Processor flag (nonzero means processor sequence)
+export const PROC_TYPE = 16; // Processor opcode
+export const PROC_PARAM = 18; // Processor parameter
+export const PROC_STATE = 20; // Processor state
 
 export enum ProcessorType {
   MAP = 1,
@@ -51,12 +57,12 @@ function buildProcessor(
   overrideTotal?: number
 ): number {
   const srcDup = seqDup(heap, srcSeq);
-  if (srcDup === UNDEF) return UNDEF;
+  if (isUnDef(srcDup)) return UNDEF;
   const srcSeqBlock = fromTaggedValue(Tag.SEQ, srcDup).value;
   const origTotal = heap.memory.read16(srcSeqBlock + SEQ_TOTAL);
   const total = overrideTotal !== undefined ? overrideTotal : origTotal;
   const procBlock = heap.malloc(64);
-  if (procBlock === UNDEF) return UNDEF;
+  if (isUnDef(procBlock)) return UNDEF;
   const rank = heap.memory.read16(srcSeqBlock + SEQ_RANK);
   heap.memory.write16(procBlock + SEQ_PARENT_VIEW, srcSeqBlock);
   heap.memory.write16(procBlock + SEQ_MAJOR_POS, majorPos);
@@ -77,7 +83,11 @@ function buildProcessor(
  * @param multiplier - The multiplier value.
  * @returns A tagged sequence pointer for the mapped sequence, or UNDEF on failure.
  */
-export function procMap(heap: Heap, srcSeq: number, multiplier: number): number {
+export function procMap(
+  heap: Heap,
+  srcSeq: number,
+  multiplier: number
+): number {
   return buildProcessor(heap, srcSeq, ProcessorType.MAP, multiplier);
 }
 
@@ -90,7 +100,11 @@ export function procMap(heap: Heap, srcSeq: number, multiplier: number): number 
  * @param threshold - The threshold value.
  * @returns A tagged sequence pointer for the filtered sequence, or UNDEF on failure.
  */
-export function procFilter(heap: Heap, srcSeq: number, threshold: number): number {
+export function procFilter(
+  heap: Heap,
+  srcSeq: number,
+  threshold: number
+): number {
   return buildProcessor(heap, srcSeq, ProcessorType.FILTER, threshold);
 }
 
@@ -139,9 +153,22 @@ export function procDrop(heap: Heap, srcSeq: number, n: number): number {
  * @param count - The number of elements to take.
  * @returns A tagged sequence pointer for the slice, or UNDEF on failure.
  */
-export function procSlice(heap: Heap, srcSeq: number, start: number, count: number): number {
+export function procSlice(
+  heap: Heap,
+  srcSeq: number,
+  start: number,
+  count: number
+): number {
   // Note: For slice, we want to drop the first 'start' elements.
-  return buildProcessor(heap, srcSeq, ProcessorType.SLICE, start, count, 0, count);
+  return buildProcessor(
+    heap,
+    srcSeq,
+    ProcessorType.SLICE,
+    start,
+    count,
+    0,
+    count
+  );
 }
 
 /**

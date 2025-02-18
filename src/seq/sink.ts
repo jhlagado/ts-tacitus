@@ -2,7 +2,7 @@
 
 import { Heap } from "../data/heap";
 import { seqNext } from "./sequence";
-import { UNDEF } from "../tagged-value";
+import { isUnDef, UNDEF } from "../tagged-value";
 
 /**
  * seqReduce consumes the entire sequence and reduces it to a single value using the reducer function.
@@ -21,7 +21,7 @@ export function seqReduce(
 ): number {
   let acc = initial;
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     acc = reducer(acc, val);
   }
   return acc;
@@ -37,7 +37,7 @@ export function seqReduce(
 export function seqRealize(heap: Heap, seq: number): number[] {
   const result: number[] = [];
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     result.push(val);
   }
   return result;
@@ -56,7 +56,7 @@ export function seqForEach(
   fn: (value: number) => void
 ): void {
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     fn(val);
   }
 }
@@ -82,7 +82,7 @@ export function seqFirst(heap: Heap, seq: number): number {
 export function seqLast(heap: Heap, seq: number): number {
   let last = UNDEF;
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     last = val;
   }
   return last;
@@ -102,7 +102,7 @@ export function seqFind(
   predicate: (value: number) => boolean
 ): number {
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     if (predicate(val)) return val;
   }
   return UNDEF;
@@ -123,7 +123,7 @@ export function seqFindIndex(
 ): number {
   let index = 0;
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     if (predicate(val)) return index;
     index++;
   }
@@ -144,7 +144,7 @@ export function seqSome(
   predicate: (value: number) => boolean
 ): boolean {
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     if (predicate(val)) return true;
   }
   return false;
@@ -164,7 +164,7 @@ export function seqEvery(
   predicate: (value: number) => boolean
 ): boolean {
   let val: number;
-  while ((val = seqNext(heap, seq)) !== UNDEF) {
+  while (!isUnDef((val = seqNext(heap, seq)))) {
     if (!predicate(val)) return false;
   }
   return true;
@@ -179,7 +179,7 @@ export function seqEvery(
  */
 export function seqCount(heap: Heap, seq: number): number {
   let count = 0;
-  while (seqNext(heap, seq) !== UNDEF) {
+  while (!isUnDef(seqNext(heap, seq))) {
     count++;
   }
   return count;

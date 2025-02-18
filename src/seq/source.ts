@@ -13,6 +13,7 @@ import {
   fromTaggedValue,
   isTaggedValue,
   getTag,
+  isUnDef,
 } from "../tagged-value";
 import { vectorCreate, VEC_SIZE } from "../data/vector";
 
@@ -36,13 +37,13 @@ export function seqFromView(heap: Heap, viewPtr: number): number {
   const parentRank = heap.memory.read16(parentBlock + VIEW_RANK);
   let totalSlices = heap.memory.read16(parentBlock + VIEW_SPEC);
   const seqBlock = heap.malloc(BLOCK_SIZE);
-  if (seqBlock === UNDEF) return UNDEF;
+  if (isUnDef(seqBlock)) return UNDEF;
   heap.memory.write16(seqBlock + 4, parentBlock); // MSEQ_PARENT_VIEW offset = 4
   heap.memory.write16(seqBlock + 6, 0); // MSEQ_MAJOR_POS offset = 6
   heap.memory.write16(seqBlock + 8, totalSlices); // MSEQ_TOTAL offset = 8
   heap.memory.write16(seqBlock + 12, parentRank); // MSEQ_RANK offset = 12
   const sliceViewTagged = createSliceView(heap, viewPtr);
-  if (sliceViewTagged === UNDEF) return UNDEF;
+  if (isUnDef(sliceViewTagged)) return UNDEF;
   const { value: sliceBlock } = fromTaggedValue(Tag.VIEW, sliceViewTagged);
   heap.memory.write16(seqBlock + 10, sliceBlock); // MSEQ_SLICE_VIEW offset = 10
   return toTaggedValue(Tag.SEQ, seqBlock);
@@ -61,7 +62,7 @@ export function seqFromView(heap: Heap, viewPtr: number): number {
  */
 function createSliceView(heap: Heap, parentViewPtr: number): number {
   const sliceBlock = heap.malloc(BLOCK_SIZE);
-  if (sliceBlock === UNDEF) return UNDEF;
+  if (isUnDef(sliceBlock)) return UNDEF;
   const { value: parentBlock } = fromTaggedValue(Tag.VIEW, parentViewPtr);
   const parentVector = heap.memory.read16(parentBlock + VIEW_VECTOR);
   const parentBaseOffset = heap.memory.read16(parentBlock + VIEW_OFFSET);
@@ -104,7 +105,7 @@ export function seqFromVector(heap: Heap, vectorPtr: number): number {
   const { value: vecBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
   const len = heap.memory.read16(vecBlock + VEC_SIZE);
   const viewPtr = viewCreate(heap, vectorPtr, 0, [len]);
-  if (viewPtr === UNDEF) return UNDEF;
+  if (isUnDef(viewPtr)) return UNDEF;
   return seqFromView(heap, viewPtr);
 }
 
@@ -138,18 +139,18 @@ export function seqFromRange(
       data.push(start + i);
     }
     const vectorPtr = vectorCreate(heap, data);
-    if (vectorPtr === UNDEF) return UNDEF;
+    if (isUnDef(vectorPtr)) return UNDEF;
     const viewPtr = viewCreate(heap, vectorPtr, 0, shape);
-    if (viewPtr === UNDEF) {
+    if (isUnDef(viewPtr)) {
       heap.free(vectorPtr);
       return UNDEF;
     }
     return seqFromView(heap, viewPtr);
   } else {
     const rangeView = createDynamicRangeView(heap, start);
-    if (rangeView === UNDEF) return UNDEF;
+    if (isUnDef(rangeView)) return UNDEF;
     const seqPtr = seqFromView(heap, rangeView);
-    if (seqPtr === UNDEF) return UNDEF;
+    if (isUnDef(seqPtr)) return UNDEF;
     const { value: seqBlock } = fromTaggedValue(Tag.SEQ, seqPtr);
     heap.memory.write16(seqBlock + 8, count);
     return seqPtr;
@@ -168,7 +169,7 @@ export function seqFromRange(
  */
 function createDynamicRangeView(heap: Heap, start: number): number {
   const viewBlock = heap.malloc(BLOCK_SIZE);
-  if (viewBlock === UNDEF) return UNDEF;
+  if (isUnDef(viewBlock)) return UNDEF;
   heap.memory.write16(viewBlock + 4, RANGE_VIEW_MARKER);
   heap.memory.write16(viewBlock + VIEW_RANK, 0);
   heap.memory.write16(viewBlock + VIEW_OFFSET, start);

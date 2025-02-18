@@ -4,7 +4,7 @@ import { Heap } from "./heap";
 import { Memory } from "./memory";
 import { MAX_DIMENSIONS_VIEW, viewCreate, viewGet, viewUpdate } from "./view";
 import { vectorCreate } from "./vector";
-import { UNDEF } from "../tagged-value";
+import { isUnDef, UNDEF } from "../tagged-value";
 
 describe("View System", () => {
   let memory: Memory;
@@ -18,12 +18,12 @@ describe("View System", () => {
   it("should create a view on a vector", () => {
     const data = [1, 2, 3, 4, 5, 6, 7, 8];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).toBe(false);
 
     // Create a view that covers the entire vector.
     // The view is one-dimensional, with shape [8] and an offset of 0.
     const viewPtr = viewCreate(heap, vectorPtr, 0, [8]);
-    expect(viewPtr).not.toBe(UNDEF);
+    expect(isUnDef(viewPtr)).toBe(false);
 
     // Verify that each element matches the original data.
     for (let i = 0; i < 8; i++) {
@@ -34,15 +34,15 @@ describe("View System", () => {
   it("should update an element in a view", () => {
     const data = [10, 20, 30, 40];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).toBe(false);
 
     // Create a view over the entire vector.
     const viewPtr = viewCreate(heap, vectorPtr, 0, [4]);
-    expect(viewPtr).not.toBe(UNDEF);
+    expect(isUnDef(viewPtr)).toBe(false);
 
     // Update the element at index 2 to 99.
     const updatedView = viewUpdate(heap, viewPtr, [2], 99);
-    expect(updatedView).not.toBe(UNDEF);
+    expect(isUnDef(updatedView)).toBe(false);
     expect(viewGet(heap, updatedView, [2])).toBeCloseTo(99);
 
     // Verify other elements remain unchanged.
@@ -54,16 +54,16 @@ describe("View System", () => {
   it("should create a view of a view", () => {
     const data = [5, 6, 7, 8, 9, 10];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).toBe(false);
 
     // Create a base view covering the entire vector (1D view of length 6).
     const baseView = viewCreate(heap, vectorPtr, 0, [6]);
-    expect(baseView).not.toBe(UNDEF);
+    expect(isUnDef(baseView)).toBe(false);
 
     // Create a subview from the base view:
     // For example, start at an additional offset of 2 and take 3 elements.
     const subView = viewCreate(heap, baseView, 2, [3]);
-    expect(subView).not.toBe(UNDEF);
+    expect(isUnDef(subView)).toBe(false);
 
     // Given data = [5, 6, 7, 8, 9, 10]:
     // A base view from offset 0 gives: [5,6,7,8,9,10]
@@ -76,16 +76,16 @@ describe("View System", () => {
   it("should return UNDEF for out-of-bounds indices", () => {
     const data = [100, 200, 300];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).toBe(false);
 
     // Create a view with shape [3].
     const viewPtr = viewCreate(heap, vectorPtr, 0, [3]);
-    expect(viewPtr).not.toBe(UNDEF);
+    expect(isUnDef(viewPtr)).toBe(false);
 
     // Negative index should be out-of-bounds.
-    expect(viewGet(heap, viewPtr, [-1])).toBe(UNDEF);
+    expect(isUnDef(viewGet(heap, viewPtr, [-1]))).toBe(true);
     // Index equal to the shape length is out-of-bounds.
-    expect(viewGet(heap, viewPtr, [3])).toBe(UNDEF);
+    expect(isUnDef(viewGet(heap, viewPtr, [3]))).toBe(true);
 
     // viewUpdate should similarly return UNDEF for out-of-bound indices.
     expect(viewUpdate(heap, viewPtr, [3], 999)).toBe(UNDEF);
@@ -97,13 +97,13 @@ describe("View System", () => {
     // Data in row-major order: [1, 2, 3, 4, 5, 6]
     const data = [1, 2, 3, 4, 5, 6];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).toBe(false);
 
     // Create a 2D view with shape [2, 3].
     // In row-major order, strides should be: for last dimension: 1,
     // for the first dimension: number of columns (3).
     const viewPtr = viewCreate(heap, vectorPtr, 0, [2, 3]);
-    expect(viewPtr).not.toBe(UNDEF);
+    expect(isUnDef(viewPtr)).toBe(false);
 
     // Verify first row.
     expect(viewGet(heap, viewPtr, [0, 0])).toBeCloseTo(1);
@@ -116,7 +116,7 @@ describe("View System", () => {
 
     // Test viewUpdate in 2D.
     const updatedView = viewUpdate(heap, viewPtr, [1, 1], 99);
-    expect(updatedView).not.toBe(UNDEF);
+    expect(isUnDef(updatedView)).not.toBe(true);
     expect(viewGet(heap, updatedView, [1, 1])).toBeCloseTo(99);
   });
 
@@ -134,7 +134,7 @@ describe("View System", () => {
       const shape = new Array(MAX_DIMENSIONS_VIEW + 1).fill(2);
       // Create a valid vector base.
       const vectorPtr = vectorCreate(heap, [1, 2, 3, 4, 5, 6]);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       const viewPtr = viewCreate(heap, vectorPtr, 0, shape);
       expect(viewPtr).toBe(UNDEF);
@@ -156,11 +156,11 @@ describe("View System", () => {
     it("viewGet returns UNDEF when indices length mismatches view dimensions", () => {
       const data = [10, 20, 30, 40];
       const vectorPtr = vectorCreate(heap, data);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       // Create a one-dimensional view with 4 elements.
       const viewPtr = viewCreate(heap, vectorPtr, 0, [4]);
-      expect(viewPtr).not.toBe(UNDEF);
+      expect(isUnDef(viewPtr)).not.toBe(true);
 
       // Provide an indices array with the wrong number of elements.
       expect(viewGet(heap, viewPtr, [0, 0])).toBe(UNDEF);
@@ -169,10 +169,10 @@ describe("View System", () => {
     it("viewGet returns UNDEF for out-of-bound indices", () => {
       const data = [100, 200, 300];
       const vectorPtr = vectorCreate(heap, data);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       const viewPtr = viewCreate(heap, vectorPtr, 0, [3]);
-      expect(viewPtr).not.toBe(UNDEF);
+      expect(isUnDef(viewPtr)).not.toBe(true);
 
       // Negative index.
       expect(viewGet(heap, viewPtr, [-1])).toBe(UNDEF);
@@ -189,10 +189,10 @@ describe("View System", () => {
     it("viewUpdate returns UNDEF when indices length mismatches view dimensions", () => {
       const data = [10, 20, 30, 40];
       const vectorPtr = vectorCreate(heap, data);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       const viewPtr = viewCreate(heap, vectorPtr, 0, [4]);
-      expect(viewPtr).not.toBe(UNDEF);
+      expect(isUnDef(viewPtr)).not.toBe(true);
 
       // Provide an indices array with an incorrect number of indices.
       expect(viewUpdate(heap, viewPtr, [1, 2], 50)).toBe(UNDEF);
@@ -201,10 +201,10 @@ describe("View System", () => {
     it("viewUpdate returns UNDEF for out-of-bound indices", () => {
       const data = [5, 15, 25];
       const vectorPtr = vectorCreate(heap, data);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       const viewPtr = viewCreate(heap, vectorPtr, 0, [3]);
-      expect(viewPtr).not.toBe(UNDEF);
+      expect(isUnDef(viewPtr)).not.toBe(true);
 
       // Index 3 (when valid indices are 0,1,2) is out-of-bound.
       expect(viewUpdate(heap, viewPtr, [3], 999)).toBe(UNDEF);
@@ -215,16 +215,16 @@ describe("View System", () => {
       // Create a vector with data [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].
       const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       const vectorPtr = vectorCreate(heap, data);
-      expect(vectorPtr).not.toBe(UNDEF);
+      expect(isUnDef(vectorPtr)).not.toBe(true);
 
       // Create a base view: offset 2, shape [6]. This should cover elements 3..8.
       const view1 = viewCreate(heap, vectorPtr, 2, [6]);
-      expect(view1).not.toBe(UNDEF);
+      expect(isUnDef(view1)).not.toBe(true);
       expect(viewGet(heap, view1, [0])).toBeCloseTo(3);
 
       // Create a subview from view1: additional offset 1, shape [4]. This should cover elements 4..7.
       const view2 = viewCreate(heap, view1, 1, [4]);
-      expect(view2).not.toBe(UNDEF);
+      expect(isUnDef(view2)).not.toBe(true);
       expect(viewGet(heap, view2, [0])).toBeCloseTo(4);
       expect(viewGet(heap, view2, [3])).toBeCloseTo(7);
     });
@@ -232,7 +232,7 @@ describe("View System", () => {
 
   it("viewCreate returns UNDEF when shape is empty", () => {
     const vectorPtr = vectorCreate(heap, [1, 2, 3]);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).not.toBe(true);
 
     const viewPtr = viewCreate(heap, vectorPtr, 0, []);
     expect(viewPtr).toBe(UNDEF);
@@ -240,7 +240,7 @@ describe("View System", () => {
 
   it("viewCreate returns UNDEF when offset exceeds vector length", () => {
     const vectorPtr = vectorCreate(heap, [1, 2, 3]);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).not.toBe(true);
 
     const viewPtr = viewCreate(heap, vectorPtr, 5, [1]);
     expect(viewPtr).toBe(UNDEF);
@@ -248,10 +248,10 @@ describe("View System", () => {
 
   it("viewCreate computes strides correctly for multidimensional views", () => {
     const vectorPtr = vectorCreate(heap, [1, 2, 3, 4, 5, 6]);
-    expect(vectorPtr).not.toBe(UNDEF);
+    expect(isUnDef(vectorPtr)).not.toBe(true);
 
     const viewPtr = viewCreate(heap, vectorPtr, 0, [2, 3]);
-    expect(viewPtr).not.toBe(UNDEF);
+    expect(isUnDef(viewPtr)).not.toBe(true);
 
     expect(viewGet(heap, viewPtr, [0, 0])).toBe(1);
     expect(viewGet(heap, viewPtr, [0, 2])).toBe(3);
