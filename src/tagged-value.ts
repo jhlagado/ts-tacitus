@@ -1,12 +1,15 @@
 export enum Tag {
-  DONT_USE,
-  INTEGER,
-  CODE,
-  UNDEF,
-  NAN,
-  VECTOR,
-  VIEW,
-  SEQ,
+  DONT_USE, // 0
+  INTEGER, // 1
+  CODE, // 2
+  UNDEF, // 3
+  NAN, // 4
+  VECTOR, // 5
+  VIEW, // 6
+  SEQ, // 7
+  // DONT_USE2, // 8
+  // STRING, // 9
+  // DICT, // 10
 }
 
 export const tagNames: { [key in Tag]: string } = {
