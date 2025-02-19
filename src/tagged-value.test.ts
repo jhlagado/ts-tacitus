@@ -15,15 +15,16 @@ describe("tagNum Library", () => {
     it(`should encode and decode a ${type} tag and pointer`, () => {
       const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
       const tagNum = toTaggedValue(Number(tag) as Tag, pointer);
-
+      
       // Check if the value is a NaN
       expect(isTaggedValue(tagNum)).toBe(true);
-
+      
       // Decode the tagNum value
       const { tag: decodedTag, value: decodedPointer } = fromTaggedValue(
         TAG_ANY,
         tagNum
       );
+      console.log('encode:', tag, type, decodedTag);
       expect(decodedTag).toBe(Number(tag));
       expect(decodedPointer).toBe(pointer);
 
