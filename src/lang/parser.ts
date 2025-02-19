@@ -1,5 +1,5 @@
 import { Op } from "../ops/builtins";
-import { vm } from "../globalState";
+import { vm } from "../core/globalState";
 
 export function parse(tokens: (string | number)[]): void {
   vm.compiler.reset();

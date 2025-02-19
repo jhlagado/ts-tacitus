@@ -1,4 +1,4 @@
-import { isDigit, isWhitespace, isGroupingChar } from "../utils";
+import { isDigit, isWhitespace, isGroupingChar } from "../core/utils";
 
 export function lex(input: string): (string | number)[] {
   const tokens: (string | number)[] = [];

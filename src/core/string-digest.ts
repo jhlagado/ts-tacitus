@@ -1,10 +1,10 @@
-import { Memory, STRINGS, STRINGS_SIZE } from "../data/memory";
+import { Memory, STRINGS, STRINGS_SIZE } from "./memory";
 
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
 const NOT_FOUND = -1;
 
-export class StringBuffer {
+export class StringDigest {
   SBP: number;
 
   constructor(private memory: Memory) {
@@ -18,7 +18,7 @@ export class StringBuffer {
 
     const requiredSpace = STRING_HEADER_SIZE + str.length;
     if (this.SBP + requiredSpace > STRINGS + STRINGS_SIZE) {
-      throw new Error("String buffer overflow");
+      throw new Error("String digest overflow");
     }
 
     const startAddress = this.SBP;

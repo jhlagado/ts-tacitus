@@ -1,6 +1,6 @@
 // src/parser.test.ts
 
-import { initializeInterpreter, vm } from "../globalState";
+import { initializeInterpreter, vm } from "../core/globalState";
 import { parse } from "./parser";
 import { Op } from "../ops/builtins"; // Import opTable
 import { lex } from "./lexer";

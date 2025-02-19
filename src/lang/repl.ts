@@ -2,7 +2,7 @@ import { createInterface } from "readline";
 import { execute } from "./interpreter";
 import { parse } from "./parser";
 import { lex } from "./lexer";
-import { initializeInterpreter, vm } from "../globalState";
+import { initializeInterpreter, vm } from "../core/globalState";
 
 /**
  * Starts the Read-Eval-Print Loop (REPL) for the interpreter.

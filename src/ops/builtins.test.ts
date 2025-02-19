@@ -1,3 +1,9 @@
+import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
+import { dupOp, dropOp, swapOp } from "./builtins-stack";
+import { initializeInterpreter, vm } from "../core/globalState";
+import { CODE, RSTACK } from "../core/memory";
+import { fromTaggedValue, Tag, toTaggedValue } from "../core/tagged-value";
+import { toUnsigned16 } from "../core/utils";
 import {
   abortOp,
   exitOp,
@@ -7,12 +13,6 @@ import {
   skipBlockOp,
   literalNumberOp,
 } from "./builtins-interpreter";
-import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
-import { dupOp, dropOp, swapOp } from "./builtins-stack";
-import { initializeInterpreter, vm } from "../globalState";
-import { CODE, RSTACK } from "../data/memory";
-import { fromTaggedValue, Tag, toTaggedValue } from "../tagged-value";
-import { toUnsigned16 } from "../utils";
 
 describe("Built-in Words", () => {
   beforeEach(() => {

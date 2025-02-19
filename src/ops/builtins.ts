@@ -1,4 +1,4 @@
-import { VM } from "../vm";
+import { VM } from "../core/vm";
 import { Dictionary } from "../lang/dictionary";
 
 import {

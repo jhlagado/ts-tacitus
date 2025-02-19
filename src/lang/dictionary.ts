@@ -1,8 +1,8 @@
 import { defineBuiltins, Op } from "../ops/builtins";
-import { Memory } from "../data/memory";
-import { StringBuffer } from "./strings";
-import { Verb } from "../types";
-import { VM } from "../vm";
+import { Memory } from "../core/memory";
+import { StringDigest } from "../core/string-digest";
+import { Verb } from "../core/types";
+import { VM } from "../core/vm";
 
 interface DictionaryNode {
   key: number;
@@ -17,11 +17,11 @@ const compileCall = (address: number) => (vm: VM) => {
 
 export class Dictionary {
   private head: DictionaryNode | null;
-  private stringBuffer: StringBuffer;
+  private stringBuffer: StringDigest;
 
   constructor(private memory: Memory) {
     this.head = null;
-    this.stringBuffer = new StringBuffer(this.memory);
+    this.stringBuffer = new StringDigest(this.memory);
     defineBuiltins(this);
   }
   // Define a new word in the dictionary

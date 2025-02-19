@@ -39,7 +39,7 @@ describe("Tagged NaN Encoding", () => {
 
   it("should validate value ranges", () => {
     expect(() => toTaggedValue(Tag.INTEGER, 32768)).toThrow();
-    expect(() => toTaggedValue(Tag.STRING, -1)).toThrow();
+    expect(() => toTaggedValue(Tag.SYMBOL, -1)).toThrow();
   });
 
   it("should handle NIL constant", () => {

@@ -1,6 +1,6 @@
 // File: src/tests/heap.test.ts
 
-import { NULL } from "../constants";
+import { NULL } from "./constants";
 import {
   BLOCK_NEXT,
   BLOCK_REFS,

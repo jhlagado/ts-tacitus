@@ -1,7 +1,7 @@
 import { VM } from "./vm";
-import { STACK_SIZE, RSTACK_SIZE, CODE } from "./data/memory";
-import { Compiler } from "./lang/compiler";
-import { Dictionary } from "./lang/dictionary";
+import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
+import { Compiler } from "../lang/compiler";
+import { Dictionary } from "../lang/dictionary";
 import { fromTaggedValue, Tag, toTaggedValue } from "./tagged-value";
 
 describe("VM", () => {

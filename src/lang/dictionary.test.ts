@@ -1,5 +1,5 @@
-import { Memory } from "../data/memory";
-import { Verb } from "../types";
+import { Memory } from "../core/memory";
+import { Verb } from "../core/types";
 import { Dictionary } from "./dictionary";
 
 describe("Dictionary", () => {

@@ -1,14 +1,14 @@
 // File: src/vector.ts
 
-import { BLOCK_SIZE, Heap } from "./heap";
+import { BLOCK_SIZE, Heap } from "../core/heap";
 import {
   toTaggedValue,
   fromTaggedValue,
   isTaggedValue,
   Tag,
   NIL,
-} from "../tagged-value";
-import { NULL } from "../constants";
+} from "../core/tagged-value";
+import { NULL } from "../core/constants";
 
 // Define offsets in the vector block
 export const VEC_SIZE = 4; // 2 bytes for length

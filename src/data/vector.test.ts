@@ -1,10 +1,16 @@
 // File: src/tests/vector.test.ts
 
-import { Heap, BLOCK_REFS } from "./heap";
+import { Heap, BLOCK_REFS } from "../core/heap";
 import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
-import { Memory } from "./memory";
-import { fromTaggedValue, isNIL, Tag, TAG_ANY, NIL } from "../tagged-value";
-import { NULL } from "../constants";
+import { Memory } from "../core/memory";
+import {
+  fromTaggedValue,
+  isNIL,
+  Tag,
+  TAG_ANY,
+  NIL,
+} from "../core/tagged-value";
+import { NULL } from "../core/constants";
 
 describe("Vector Operations", () => {
   let memory: Memory;

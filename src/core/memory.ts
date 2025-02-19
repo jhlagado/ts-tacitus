@@ -1,4 +1,4 @@
-import { fromTaggedValue, toTaggedValue, Tag } from "../tagged-value";
+import { fromTaggedValue, toTaggedValue, Tag } from "../core/tagged-value";
 
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 

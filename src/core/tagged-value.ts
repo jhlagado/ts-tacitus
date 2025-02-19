@@ -3,7 +3,7 @@ export enum Tag {
   NIL = 0,
   INTEGER = 1,
   CODE = 2,
-  STRING = 4,
+  SYMBOL = 4,
   BLOCK = 5,
 }
 
@@ -12,7 +12,7 @@ export const tagNames: { [key in number]: string } = {
   [Tag.NIL]: "NIL",
   [Tag.INTEGER]: "INTEGER",
   [Tag.CODE]: "CODE",
-  [Tag.STRING]: "STRING",
+  [Tag.SYMBOL]: "SYMBOL",
   [Tag.BLOCK]: "BLOCK",
 };
 

@@ -1,6 +1,6 @@
 // File: src/heap.ts
 
-import { NULL } from "../constants";
+import { NULL } from "./constants";
 import { Memory, HEAP, HEAP_SIZE } from "./memory";
 
 export const BLOCK_SIZE = 64;

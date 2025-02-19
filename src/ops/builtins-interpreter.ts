@@ -1,6 +1,6 @@
-import { VM } from "../vm";
-import { Verb } from "../types";
-import { toTaggedValue, Tag, fromTaggedValue } from "../tagged-value";
+import { VM } from "../core/vm";
+import { Verb } from "../core/types";
+import { toTaggedValue, Tag, fromTaggedValue } from "../core/tagged-value";
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat();

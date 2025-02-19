@@ -1,5 +1,5 @@
 import { executeOp } from "../ops/builtins";
-import { vm } from "../globalState";
+import { vm } from "../core/globalState";
 
 export function execute(start: number): void {
   vm.IP = start;

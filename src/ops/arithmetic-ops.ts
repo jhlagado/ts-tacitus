@@ -1,5 +1,5 @@
-import { VM } from "../vm";
-import { Verb } from "../types";
+import { VM } from "../core/vm";
+import { Verb } from "../core/types";
 
 /**
  * Absolute value
