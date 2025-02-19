@@ -5,6 +5,9 @@ export enum Tag {
   CODE = 2,
   STRING = 4,
   BLOCK = 5,
+  SEQ = 6,
+  VECTOR = 7,
+  DICT = 8,
 }
 
 export const tagNames: { [key in number]: string } = {
@@ -14,6 +17,9 @@ export const tagNames: { [key in number]: string } = {
   [Tag.CODE]: "CODE",
   [Tag.STRING]: "STRING",
   [Tag.BLOCK]: "BLOCK",
+  [Tag.SEQ]: "SEQ",
+  [Tag.VECTOR]: "VECTOR",
+  [Tag.DICT]: "DICT",
 };
 
 // Constants
