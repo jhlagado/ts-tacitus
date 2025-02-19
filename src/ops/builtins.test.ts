@@ -179,14 +179,14 @@ describe("Built-in Words", () => {
     });
 
     it("exitOp should restore IP from return stack", () => {
-      const testAddress = 0x12345;
+      const testAddress = 0x2345;
       vm.rpush(toTaggedValue(Tag.CODE, testAddress));
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
 
     it("evalOp should push IP to return stack and jump", () => {
-      const testAddress = 0x12345;
+      const testAddress = 0x2345;
       vm.push(toTaggedValue(Tag.CODE, testAddress));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
@@ -240,7 +240,7 @@ describe("Built-in Words", () => {
     });
 
     it("should handle tagged pointers", () => {
-      const addr = toTaggedValue(Tag.CODE, 0x12345);
+      const addr = toTaggedValue(Tag.CODE, 0x2345);
       vm.compiler.compileFloat(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);

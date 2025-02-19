@@ -1,71 +1,77 @@
 import {
+  Tag,
   toTaggedValue,
   fromTaggedValue,
   isTaggedValue,
-  getTag,
   getValue,
-  Tag,
-  TAG_ANY,
-  tagNames,
+  isNIL,
+  NIL,
 } from "./tagged-value";
 
-describe("tagNum Library", () => {
-  // Test all tag types
-  for (const [tag, type] of Object.entries(tagNames)) {
-    it(`should encode and decode a ${type} tag and pointer`, () => {
-      const pointer = type === "INTEGER" ? -12345 : 0x12345; // Use signed value for INTEGER tag
-      const tagNum = toTaggedValue(Number(tag) as Tag, pointer);
-      
-      // Check if the value is a NaN
-      expect(isTaggedValue(tagNum)).toBe(true);
-      
-      // Decode the tagNum value
-      const { tag: decodedTag, value: decodedPointer } = fromTaggedValue(
-        TAG_ANY,
-        tagNum
-      );
-      console.log('encode:', tag, type, decodedTag);
-      expect(decodedTag).toBe(Number(tag));
-      expect(decodedPointer).toBe(pointer);
+describe("Tagged NaN Encoding", () => {
+  it("should encode/decode core tags", () => {
+    const tests = [
+      { tag: Tag.NIL, value: 0 },
+      { tag: Tag.INTEGER, value: -32768 },
+      { tag: Tag.CODE, value: 65535 },
+      { tag: Tag.BLOCK, value: 42 },
+    ];
 
-      // Extract the tag and pointer directly
-      expect(getTag(tagNum)).toBe(Number(tag));
-      expect(getValue(tagNum)).toBe(pointer);
+    tests.forEach(({ tag, value }) => {
+      const encoded = toTaggedValue(tag, value);
+      const decoded = fromTaggedValue(tag, encoded);
+      expect(decoded.tag).toBe(tag);
+      expect(decoded.value).toBe(value);
     });
-  }
-
-  it("should throw an error for invalid tags", () => {
-    expect(() => toTaggedValue(16 as Tag, 0x12345)).toThrow(
-      "Tag must be a 4-bit value (0-15)"
-    );
   });
 
-  it("should throw an error for invalid pointers", () => {
-    expect(() => toTaggedValue(Tag.CODE, -1)).toThrow(
-      "Pointer must be a 19-bit value (0-524287)"
-    );
-    expect(() => toTaggedValue(Tag.CODE, 0x80000)).toThrow( // 0x80000 is 524288
-      "Pointer must be a 19-bit value (0-524287)"
-    );
-    expect(() => toTaggedValue(Tag.INTEGER, -262145)).toThrow(
-      "Pointer must be a 19-bit signed integer (-262144 to 262143)"
-    );
-    expect(() => toTaggedValue(Tag.INTEGER, 262144)).toThrow(
-      "Pointer must be a 19-bit signed integer (-262144 to 262143)"
-    );
+  it("should handle extended tags", () => {
+    const encoded = toTaggedValue(127, 12345);
+    const decoded = fromTaggedValue(127, encoded);
+    expect(decoded.tag).toBe(127);
+    expect(decoded.value).toBe(12345);
   });
 
-  it("should throw an error when decoding a non-NaN value", () => {
-    expect(() => fromTaggedValue(TAG_ANY, 3.14)).toThrow(
-      "Value is not a Tagged Pointer"
-    );
+  it("should throw on invalid tags", () => {
+    expect(() => toTaggedValue(-1, 0)).toThrow("7-bit");
+    expect(() => toTaggedValue(128, 0)).toThrow("7-bit");
   });
 
-  it("should check if a value is an tagNum value", () => {
-    const value = 0x1abcd; // 20-bit pointer
-    const tagNum = toTaggedValue(Tag.CODE, value);
+  it("should validate value ranges", () => {
+    expect(() => toTaggedValue(Tag.INTEGER, 32768)).toThrow();
+    expect(() => toTaggedValue(Tag.STRING, -1)).toThrow();
+  });
 
-    expect(isTaggedValue(tagNum)).toBe(true);
+  it("should handle NIL constant", () => {
+    expect(isNIL(NIL)).toBe(true);
+    expect(getValue(NIL)).toBe(0);
+  });
+
+  it("should detect tagged values", () => {
+    expect(isTaggedValue(NIL)).toBe(true);
     expect(isTaggedValue(3.14)).toBe(false);
+  });
+
+  it("should handle tag mismatches", () => {
+    const encoded = toTaggedValue(Tag.CODE, 123);
+    expect(() => fromTaggedValue(Tag.BLOCK, encoded)).toThrow(`Tag mismatch: expected BLOCK, got CODE`);
+  });
+
+  // ... (other tests)
+
+  it("should handle extended tags", () => {
+    const maxTag = 127;
+    const maxValue = 65535;
+
+    const encoded = toTaggedValue(maxTag, maxValue);
+    const decoded = fromTaggedValue(maxTag, encoded);
+
+    expect(decoded.tag).toBe(maxTag);
+    expect(decoded.value).toBe(maxValue);
+  });
+
+  it("should handle tag mismatches", () => {
+    const encoded = toTaggedValue(Tag.CODE, 123);
+    expect(() => fromTaggedValue(Tag.BLOCK, encoded)).toThrow("CODE");
   });
 });

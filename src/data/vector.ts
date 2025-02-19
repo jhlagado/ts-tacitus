@@ -6,14 +6,14 @@ import {
   fromTaggedValue,
   isTaggedValue,
   Tag,
-  UNDEF,
+  NIL,
 } from "../tagged-value";
 import { NULL } from "../constants";
 
 // Define offsets in the vector block
-export const VEC_SIZE = 4;      // 2 bytes for length
-export const VEC_RESERVED = 6;  // 2 bytes reserved for future use
-export const VEC_DATA = 8;      // Data starts after metadata
+export const VEC_SIZE = 4; // 2 bytes for length
+export const VEC_RESERVED = 6; // 2 bytes reserved for future use
+export const VEC_DATA = 8; // Data starts after metadata
 
 // Each element is a 32-bit float
 const ELEMENT_SIZE = 4;
@@ -28,7 +28,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   const numBlocks = length === 0 ? 1 : Math.ceil(length / capacityPerBlock);
   const allocationSize = numBlocks * BLOCK_SIZE;
   const firstBlock = heap.malloc(allocationSize);
-  if (firstBlock === NULL) return UNDEF;
+  if (firstBlock === NULL) return NIL;
 
   // Write metadata: store the logical length and reserved field.
   heap.memory.write16(firstBlock + VEC_SIZE, length);
@@ -45,7 +45,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
 
     if (offset >= BLOCK_SIZE) {
       currentBlock = heap.getNextBlock(currentBlock);
-      if (currentBlock === NULL) return UNDEF;
+      if (currentBlock === NULL) return NIL;
       offset = VEC_DATA;
     }
   }
@@ -65,13 +65,13 @@ export function vectorGet(
   vectorPtr: number,
   index: number
 ): number {
-  if (!isTaggedValue(vectorPtr)) return UNDEF;
+  if (!isTaggedValue(vectorPtr)) return NIL;
   const { tag, value: firstBlock } = fromTaggedValue(Tag.BLOCK, vectorPtr);
-  if (tag !== Tag.BLOCK) return UNDEF;
+  if (tag !== Tag.BLOCK) return NIL;
 
   // Read the logical length from the first block’s header.
   const length = heap.memory.read16(firstBlock + VEC_SIZE);
-  if (index < 0 || index >= length) return UNDEF;
+  if (index < 0 || index >= length) return NIL;
 
   // Calculate the capacity per block.
   const capacityPerBlock = Math.floor((BLOCK_SIZE - VEC_DATA) / ELEMENT_SIZE);
@@ -88,7 +88,7 @@ export function vectorGet(
     remainingIndex -= capacityPerBlock;
     currentBlock = heap.getNextBlock(currentBlock);
   }
-  return UNDEF;
+  return NIL;
 }
 
 /**
@@ -106,15 +106,15 @@ export function vectorUpdate(
   index: number,
   value: number
 ): number {
-  if (!isTaggedValue(vectorPtr)) return UNDEF;
+  if (!isTaggedValue(vectorPtr)) return NIL;
   // Extract the first block pointer from the tagged vector pointer.
   let { tag, value: origFirstBlock } = fromTaggedValue(Tag.BLOCK, vectorPtr);
-  if (tag !== Tag.BLOCK) return UNDEF;
+  if (tag !== Tag.BLOCK) return NIL;
   let firstBlock = origFirstBlock;
 
   // Read the logical length from the first block.
   const length = heap.memory.read16(firstBlock + VEC_SIZE);
-  if (index < 0 || index >= length) return UNDEF;
+  if (index < 0 || index >= length) return NIL;
 
   // Calculate capacity per block.
   const capacityPerBlock = Math.floor((BLOCK_SIZE - VEC_DATA) / ELEMENT_SIZE);
@@ -152,5 +152,5 @@ export function vectorUpdate(
     prevBlock = currentBlock;
     currentBlock = heap.getNextBlock(currentBlock);
   }
-  return UNDEF;
+  return NIL;
 }

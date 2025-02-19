@@ -21,11 +21,11 @@ describe("Compiler", () => {
   });
 
   it("should compile an address as a tagged pointer", () => {
-    vm.compiler.compileAddress(0x12345); // Use compileAddress
+    vm.compiler.compileAddress(0x2345); // Use compileAddress
     vm.reset();
     const tagNum = vm.nextFloat();
     const { value: pointer } = fromTaggedValue(Tag.CODE, tagNum);
-    expect(pointer).toBe(0x12345);
+    expect(pointer).toBe(0x2345);
   });
 
   it("should compile a literal number", () => {

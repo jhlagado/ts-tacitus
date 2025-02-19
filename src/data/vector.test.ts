@@ -3,7 +3,7 @@
 import { Heap, BLOCK_REFS } from "./heap";
 import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
 import { Memory } from "./memory";
-import { fromTaggedValue, isNIL, Tag, TAG_ANY, UNDEF } from "../tagged-value";
+import { fromTaggedValue, isNIL, Tag, TAG_ANY, NIL } from "../tagged-value";
 import { NULL } from "../constants";
 
 describe("Vector Operations", () => {
@@ -47,7 +47,7 @@ describe("Vector Operations", () => {
     const vectorPtr = vectorCreate(heap, data);
     expect(isNIL(vectorPtr)).not.toBe(true);
     // Index 10 is clearly out of bounds for a vector of length 3
-    expect(vectorGet(heap, vectorPtr, 10)).toBe(UNDEF);
+    expect(vectorGet(heap, vectorPtr, 10)).toBe(NIL);
   });
 
   it("vectorUpdate returns UNDEF for out-of-bounds index", () => {
@@ -55,7 +55,7 @@ describe("Vector Operations", () => {
     const vectorPtr = vectorCreate(heap, data);
     expect(isNIL(vectorPtr)).not.toBe(true);
     // Trying to update index 10 in a vector of length 3 should fail.
-    expect(vectorUpdate(heap, vectorPtr, 10, 5.5)).toBe(UNDEF);
+    expect(vectorUpdate(heap, vectorPtr, 10, 5.5)).toBe(NIL);
   });
 
   it("vectorCreate handles empty array", () => {
@@ -65,12 +65,12 @@ describe("Vector Operations", () => {
 
   it("vectorGet on empty vector returns undefined", () => {
     const vectorPtr = vectorCreate(heap, []);
-    expect(vectorGet(heap, vectorPtr, 0)).toBe(UNDEF);
+    expect(vectorGet(heap, vectorPtr, 0)).toBe(NIL);
   });
 
   it("vectorUpdate on empty vector returns UNDEF", () => {
     const vectorPtr = vectorCreate(heap, []);
-    expect(vectorUpdate(heap, vectorPtr, 0, 1.1)).toBe(UNDEF);
+    expect(vectorUpdate(heap, vectorPtr, 0, 1.1)).toBe(NIL);
   });
 
   it("vectorCreate handles large arrays", () => {
@@ -114,7 +114,7 @@ describe("Vector Operations", () => {
     const vectorPtr = vectorCreate(heap, data);
     expect(isNIL(vectorPtr)).not.toBe(true);
     // Negative index should be out of bounds.
-    expect(vectorGet(heap, vectorPtr, -1)).toBe(UNDEF);
+    expect(vectorGet(heap, vectorPtr, -1)).toBe(NIL);
   });
 
   it("vectorUpdate returns UNDEF for negative index", () => {
@@ -122,7 +122,7 @@ describe("Vector Operations", () => {
     const vectorPtr = vectorCreate(heap, data);
     expect(isNIL(vectorPtr)).not.toBe(true);
     // Negative index should be rejected.
-    expect(vectorUpdate(heap, vectorPtr, -1, 99)).toBe(UNDEF);
+    expect(vectorUpdate(heap, vectorPtr, -1, 99)).toBe(NIL);
   });
 
   it("vectorUpdate updates element in second block without copy-on-write", () => {
