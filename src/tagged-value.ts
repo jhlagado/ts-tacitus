@@ -5,11 +5,6 @@ export enum Tag {
   CODE = 2,
   STRING = 4,
   BLOCK = 5,
-  // Extended tags up to 7 bits
-  TAG_6 = 6,
-  TAG_7 = 7,
-  // ... continue pattern up to
-  TAG_127 = 127
 }
 
 export const tagNames: { [key in number]: string } = {
@@ -19,9 +14,6 @@ export const tagNames: { [key in number]: string } = {
   [Tag.CODE]: "CODE",
   [Tag.STRING]: "STRING",
   [Tag.BLOCK]: "BLOCK",
-  ...Object.fromEntries(
-    Array.from({length: 121}, (_, i) => [i + 6, `TAG_${i + 6}`])
-  )
 };
 
 // Constants
