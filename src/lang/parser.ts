@@ -31,7 +31,7 @@ export function parse(tokens: (string | number)[]): void {
 
       const startAddress = vm.compiler.CP;
 
-      vm.dictionary.defineCall(nameToken, startAddress);
+      vm.symbolTable.defineCall(nameToken, startAddress);
 
       currentDefinition = {
         name: nameToken,
@@ -81,7 +81,7 @@ export function parse(tokens: (string | number)[]): void {
       vm.compiler.CP = endAddress;
       vm.compiler.nestingScore--;
     } else {
-      const compile = vm.dictionary.find(token);
+      const compile = vm.symbolTable.find(token);
       if (compile === undefined) {
         throw new Error(`Unknown word: ${token}`);
       }

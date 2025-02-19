@@ -1,5 +1,5 @@
 import { VM } from "../core/vm";
-import { Dictionary } from "../lang/dictionary";
+import { SymbolTable } from "../core/symbol-table";
 
 import {
   literalNumberOp,
@@ -269,7 +269,7 @@ export const executeOp = (vm: VM, opcode: Op) => {
   }
 };
 
-export const defineBuiltins = (dict: Dictionary) => {
+export const defineBuiltins = (dict: SymbolTable) => {
   const compileOpcode = (opcode: number) => (vm: VM) => {
     vm.compiler.compile8(opcode);
   };

@@ -3,7 +3,7 @@ export enum Tag {
   NIL = 0,
   INTEGER = 1,
   CODE = 2,
-  SYMBOL = 4,
+  STRING = 4,
   BLOCK = 5,
 }
 
@@ -12,7 +12,7 @@ export const tagNames: { [key in number]: string } = {
   [Tag.NIL]: "NIL",
   [Tag.INTEGER]: "INTEGER",
   [Tag.CODE]: "CODE",
-  [Tag.SYMBOL]: "SYMBOL",
+  [Tag.STRING]: "STRING",
   [Tag.BLOCK]: "BLOCK",
 };
 
@@ -32,7 +32,7 @@ export function toTaggedValue(tag: number, value: number): number {
     throw new Error("Tag must be 7-bit (0-127)");
   }
 
-  const signBit = (tag & 0x40) ? SIGN_BIT : 0;
+  const signBit = tag & 0x40 ? SIGN_BIT : 0;
   const mantissaTagBits = (tag & 0x3f) << 16;
 
   let encodedValue: number;
@@ -48,7 +48,8 @@ export function toTaggedValue(tag: number, value: number): number {
     encodedValue = value;
   }
 
-  const bits = signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
+  const bits =
+    signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
   const buffer = new ArrayBuffer(4);
   new DataView(buffer).setUint32(0, bits, true);
   return new DataView(buffer).getFloat32(0, true);
@@ -75,12 +76,14 @@ export function fromTaggedValue(
   if (expectedTag !== TAG_ANY && expectedTag !== tag) {
     const expectedName = tagNames[expectedTag] || `TAG_${expectedTag}`;
     const actualName = tagNames[tag] || `TAG_${tag}`;
-    throw new Error(`Tag mismatch: expected ${expectedName}, got ${actualName}`);
+    throw new Error(
+      `Tag mismatch: expected ${expectedName}, got ${actualName}`
+    );
   }
 
   return {
     tag,
-    value: tag === Tag.INTEGER ? (value << 16) >> 16 : value
+    value: tag === Tag.INTEGER ? (value << 16) >> 16 : value,
   };
 }
 

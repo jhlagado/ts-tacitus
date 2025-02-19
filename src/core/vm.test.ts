@@ -1,7 +1,7 @@
 import { VM } from "./vm";
 import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Compiler } from "../lang/compiler";
-import { Dictionary } from "../lang/dictionary";
+import { SymbolTable } from "./symbol-table";
 import { fromTaggedValue, Tag, toTaggedValue } from "./tagged-value";
 
 describe("VM", () => {
@@ -162,16 +162,16 @@ describe("VM", () => {
     });
   });
 
-  // Test 4: Compiler and dictionary initialization
-  describe("Compiler and dictionary initialization", () => {
+  // Test 4: Compiler and symbolTable initialization
+  describe("Compiler and symbolTable initialization", () => {
     it("should initialize the compiler with the VM instance", () => {
       expect(vm.compiler).toBeDefined();
       expect(vm.compiler instanceof Compiler).toBe(true);
     });
 
-    it("should initialize the dictionary", () => {
-      expect(vm.dictionary).toBeDefined();
-      expect(vm.dictionary instanceof Dictionary).toBe(true);
+    it("should initialize the symbolTable", () => {
+      expect(vm.symbolTable).toBeDefined();
+      expect(vm.symbolTable instanceof SymbolTable).toBe(true);
     });
 
     it("should return compiled data with getCompileData", () => {

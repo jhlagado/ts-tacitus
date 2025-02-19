@@ -116,8 +116,8 @@ describe("Parser - Colon Definitions", () => {
     const tokens = lex(code);
     parse(tokens);
 
-    // Verify dictionary entry
-    const squareWord = vm.dictionary.find("square");
+    // Verify symbolTable entry
+    const squareWord = vm.symbolTable.find("square");
     expect(squareWord).toBeDefined();
 
     // Verify compiled code structure
@@ -168,7 +168,7 @@ describe("Parser - Colon Definitions", () => {
       3 4 print_sum
     `;
     parse(lex(code));
-    const printSum = vm.dictionary.find("print_sum");
+    const printSum = vm.symbolTable.find("print_sum");
     expect(printSum).toBeDefined();
     const compiled = vm.getCompileData();
     expect(compiled.slice(0, 10)).toEqual([
@@ -189,7 +189,7 @@ describe("Parser - Colon Definitions", () => {
     const code = ": empty ;";
     parse(lex(code));
 
-    const emptyWord = vm.dictionary.find("empty");
+    const emptyWord = vm.symbolTable.find("empty");
     expect(emptyWord).toBeDefined();
 
     // Execute the empty word
@@ -204,8 +204,8 @@ describe("Parser - Colon Definitions", () => {
     `;
     parse(lex(code));
 
-    expect(vm.dictionary.find("inc")).toBeDefined();
-    expect(vm.dictionary.find("dec")).toBeDefined();
+    expect(vm.symbolTable.find("inc")).toBeDefined();
+    expect(vm.symbolTable.find("dec")).toBeDefined();
   });
 
   it("should reject definitions in code blocks", () => {
@@ -224,7 +224,7 @@ describe("Parser - Colon Definitions", () => {
     const size2 = vm.compiler.CP;
 
     expect(size1).toEqual(size2); // Should compile to same size
-    expect(vm.dictionary.find("test1")).toBeUndefined();
-    expect(vm.dictionary.find("test2")).toBeDefined();
+    expect(vm.symbolTable.find("test1")).toBeUndefined();
+    expect(vm.symbolTable.find("test2")).toBeDefined();
   });
 });

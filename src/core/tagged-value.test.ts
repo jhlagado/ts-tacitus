@@ -39,7 +39,7 @@ describe("Tagged NaN Encoding", () => {
 
   it("should validate value ranges", () => {
     expect(() => toTaggedValue(Tag.INTEGER, 32768)).toThrow();
-    expect(() => toTaggedValue(Tag.SYMBOL, -1)).toThrow();
+    expect(() => toTaggedValue(Tag.STRING, -1)).toThrow();
   });
 
   it("should handle NIL constant", () => {
@@ -54,7 +54,9 @@ describe("Tagged NaN Encoding", () => {
 
   it("should handle tag mismatches", () => {
     const encoded = toTaggedValue(Tag.CODE, 123);
-    expect(() => fromTaggedValue(Tag.BLOCK, encoded)).toThrow(`Tag mismatch: expected BLOCK, got CODE`);
+    expect(() => fromTaggedValue(Tag.BLOCK, encoded)).toThrow(
+      `Tag mismatch: expected BLOCK, got CODE`
+    );
   });
 
   // ... (other tests)

@@ -1,8 +1,9 @@
 import { Compiler } from "../lang/compiler";
-import { Dictionary } from "../lang/dictionary";
+import { SymbolTable } from "./symbol-table";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
 import { Tag, fromTaggedValue, isRefCounted } from "./tagged-value";
+import { Digest } from "./digest";
 
 export class VM {
   memory: Memory;
@@ -11,7 +12,8 @@ export class VM {
   IP: number; // Instruction pointer
   running: boolean;
   compiler: Compiler;
-  dictionary: Dictionary;
+  digest: Digest;
+  symbolTable: SymbolTable;
   debug: boolean;
   heap: Heap;
 
@@ -22,7 +24,8 @@ export class VM {
     this.SP = STACK; // Stack starts at STACK
     this.RP = RSTACK; // Return stack starts at RSTACK
     this.compiler = new Compiler(this);
-    this.dictionary = new Dictionary(this.memory);
+    this.digest = new Digest(this.memory);
+    this.symbolTable = new SymbolTable(this.digest);
     this.heap = new Heap(this.memory);
     this.debug = false;
   }

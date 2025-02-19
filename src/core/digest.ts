@@ -4,7 +4,7 @@ const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
 const NOT_FOUND = -1;
 
-export class StringDigest {
+export class Digest {
   SBP: number;
 
   constructor(private memory: Memory) {
