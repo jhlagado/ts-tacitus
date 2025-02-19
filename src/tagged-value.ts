@@ -7,6 +7,7 @@ export enum Tag {
   STRING, // 5
   CUSTOM, // 6
   BLOCK, // 7
+  // Additional tags can be added up to 15
 }
 
 export const tagNames: { [key in Tag]: string } = {
@@ -21,36 +22,36 @@ export const tagNames: { [key in Tag]: string } = {
 };
 
 // Constants
-const VALUE_BITS = 20; // 20 bits for the value
+const VALUE_BITS = 19; // 19 bits for the value
 const EXPONENT_MASK = 0xff << 23; // Exponent mask for NaN
-const TAG_MANTISSA_MASK = 0b11 << VALUE_BITS; // Tag mask in mantissa (bits 20-21)
-const VALUE_MASK = (1 << VALUE_BITS) - 1; // Pointer mask (bits 0-19)
-const NAN_BIT = 0; // Force the 23rd bit of the mantissa to 1
+const TAG_MANTISSA_MASK = 0b111 << VALUE_BITS; // Tag mask in mantissa (bits 19-21)
+const VALUE_MASK = (1 << VALUE_BITS) - 1; // Value mask (bits 0-18)
+const NAN_BIT = 1 << 22; // Set bit 22 of the mantissa to ensure NaN
 
 export const TAG_ANY = 0;
 export const UNDEF = toTaggedValue(Tag.NIL, 0);
 
 /**
- * Encodes a 20-bit value and a 3-bit tag into a Float32 NaN value.
- * @param {number} tag - The 3-bit tag (1-7). The tag 0 is reserved for Infinity.
- * @param {number} value - The 20-bit value (0-1048575 for unsigned, -524288 to 524287 for signed).
+ * Encodes a 19-bit value and a 4-bit tag into a Float32 NaN value.
+ * @param {number} tag - The 4-bit tag (0-15).
+ * @param {number} value - The 19-bit value (0-524287 for unsigned, -262144 to 262143 for signed).
  * @returns {number} - The encoded Float32 NaN value.
  */
 export function toTaggedValue(tag: Tag, value: number): number {
-  if (tag > 7) {
-    throw new Error(`Tag must be a 3-bit value (0-7)`);
+  if (tag > 15) {
+    throw new Error(`Tag must be a 4-bit value (0-15)`);
   }
 
-  let encodedPointer: number;
+  let encodedValue: number;
 
   if (tag === Tag.INTEGER) {
     // Handle signed integers (two's complement)
-    if (value < -524288 || value > 524287) {
+    if (value < -(1 << (VALUE_BITS - 1)) || value >= (1 << (VALUE_BITS - 1))) {
       throw new Error(
-        `Pointer must be a 20-bit signed integer (-524288 to 524287)`
+        `Pointer must be a ${VALUE_BITS}-bit signed integer (-${1 << (VALUE_BITS - 1)} to ${(1 << (VALUE_BITS - 1)) - 1})`
       );
     }
-    encodedPointer = value & VALUE_MASK; // Convert to 20-bit two's complement
+    encodedValue = value & VALUE_MASK; // Convert to 19-bit two's complement
   } else {
     // Handle unsigned values
     if (value < 0 || value >= 1 << VALUE_BITS) {
@@ -58,16 +59,16 @@ export function toTaggedValue(tag: Tag, value: number): number {
         `Pointer must be a ${VALUE_BITS}-bit value (0-${(1 << VALUE_BITS) - 1})`
       );
     }
-    encodedPointer = value;
+    encodedValue = value;
   }
 
-  // Extract the sign bit (third tag bit) and the mantissa tag bits
-  const signBit = (tag & 0b100) << 29; // Third tag bit goes into the sign bit
-  const mantissaTagBits = (tag & 0b11) << VALUE_BITS; // First two tag bits go into bits 20-21
+  // Extract the sign bit (fourth tag bit) and the mantissa tag bits
+  const signBit = (tag & 0b1000) << 28; // Fourth tag bit goes into the sign bit (bit 31)
+  const mantissaTagBits = (tag & 0b0111) << VALUE_BITS; // First three tag bits go into bits 19-21
 
   // Combine the sign bit, exponent, mantissa tag bits, and value
   const tagNum =
-    signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedPointer;
+    signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
 
   // Interpret the integer as a Float32
   const buffer = new ArrayBuffer(4);
@@ -77,7 +78,7 @@ export function toTaggedValue(tag: Tag, value: number): number {
 }
 
 /**
- * Decodes a Float32 NaN value into a 3-bit tag and a 20-bit value.
+ * Decodes a Float32 NaN value into a 4-bit tag and a 19-bit value.
  * @param {number} tagNum - The encoded Float32 NaN value.
  * @returns {Object} - An object containing the tag and value.
  */
@@ -99,10 +100,10 @@ export function fromTaggedValue(
   const intValue = view.getUint32(0, true);
 
   // Extract the tag and value
-  const signBit = (intValue >>> 31) & 0b1; // Third tag bit from the sign bit
-  const mantissaTagBits = (intValue & TAG_MANTISSA_MASK) >>> VALUE_BITS; // First two tag bits from bits 20-21
-  const dataTag = (signBit << 2) | mantissaTagBits; // Combine to form the 3-bit tag
-  const dataPointer = intValue & VALUE_MASK; // Extract the 20-bit value
+  const signBit = (intValue >>> 31) & 0b1; // Fourth tag bit from the sign bit
+  const mantissaTagBits = (intValue & TAG_MANTISSA_MASK) >>> VALUE_BITS; // First three tag bits from bits 19-21
+  const dataTag = (signBit << 3) | mantissaTagBits; // Combine to form the 4-bit tag
+  const dataValue = intValue & VALUE_MASK; // Extract the 19-bit value
 
   if (tag !== TAG_ANY) {
     if (tag !== dataTag) {
@@ -116,14 +117,14 @@ export function fromTaggedValue(
 
   // Handle signed integers for the INTEGER tag
   if (dataTag === Tag.INTEGER) {
-    const isNegative = (dataPointer & (1 << (VALUE_BITS - 1))) !== 0; // Check the sign bit
-    const signedPointer = isNegative
-      ? dataPointer - (1 << VALUE_BITS)
-      : dataPointer; // Convert to signed
-    return { tag: dataTag, value: signedPointer };
+    const isNegative = (dataValue & (1 << (VALUE_BITS - 1))) !== 0; // Check the sign bit
+    const signedValue = isNegative
+      ? dataValue - (1 << VALUE_BITS)
+      : dataValue; // Convert to signed
+    return { tag: dataTag, value: signedValue };
   }
 
-  return { tag: dataTag, value: dataPointer };
+  return { tag: dataTag, value: dataValue };
 }
 
 /**

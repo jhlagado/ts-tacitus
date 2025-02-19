@@ -15,10 +15,10 @@ describe("VM", () => {
   describe("Stack operations", () => {
     it("should push and pop 20-bit values from the stack", () => {
       vm.push(toTaggedValue(Tag.INTEGER, 0x12345));
-      vm.push(toTaggedValue(Tag.INTEGER, 0x5abcd));
+      vm.push(toTaggedValue(Tag.INTEGER, 0x1abcd));
       const { value: p1 } = fromTaggedValue(Tag.INTEGER, vm.pop());
       const { value: p2 } = fromTaggedValue(Tag.INTEGER, vm.pop());
-      expect(p1).toBe(0x5abcd);
+      expect(p1).toBe(0x1abcd);
       expect(p2).toBe(0x12345);
     });
 
@@ -139,7 +139,7 @@ describe("VM", () => {
     });
 
     it("should handle nextInteger correctly", () => {
-      const value = 0x54321;
+      const value = 0x14321;
       vm.compiler.compileFloat(toTaggedValue(Tag.INTEGER, value));
       vm.IP = CODE;
       expect(vm.nextInteger()).toBe(value);
