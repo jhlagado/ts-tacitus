@@ -1,66 +1,50 @@
-// File: seq/sink.ts
-
 import { Heap } from "../core/heap";
+import { VM } from "../core/vm";
 import { seqNext } from "./sequence";
-import { vectorCreate } from "../data/vector";
 import { NIL } from "../core/tagged-value";
-import { Digest } from "../core/digest";
+import { vectorCreate } from "../data/vector";
 
-/**
- * Converts a sequence into a vector.
- * Iterates through the sequence and stores the elements in a newly allocated vector.
- *
- * @param digest - The Digest instance (used for strings).
- * @param heap - The memory heap.
- * @param seqPtr - The tagged sequence pointer.
- * @returns A tagged vector containing all elements from the sequence.
- */
-export function seqToVector(digest: Digest, heap: Heap, seqPtr: number): number {
-  const elements: number[] = [];
-
+export function toVectorSink(heap: Heap, vm: VM, seq: number): number {
+  const values: number[] = [];
   while (true) {
-    const nextVal = seqNext(digest, heap, seqPtr);
-    if (nextVal === NIL) break;
-    elements.push(nextVal);
+    seqNext(heap, vm, seq);
+    const value = vm.pop();
+    if (value === NIL) {
+      break;
+    }
+    values.push(value);
   }
-
-  return vectorCreate(heap, elements);
+  return vectorCreate(heap, values);
 }
 
-/**
- * Reduces a sequence to a single value using a left fold.
- * Currently performs identity reduction by taking the last element.
- * Future implementation will accept a function argument for custom reduction.
- *
- * @param digest - The Digest instance.
- * @param heap - The memory heap.
- * @param seqPtr - The tagged sequence pointer.
- * @returns The reduced value (last element), or NIL if empty.
- */
-export function seqReduce(digest: Digest, heap: Heap, seqPtr: number): number {
-  let lastValue = NIL;
-
+export function lastSink(heap: Heap, vm: VM, seq: number): number {
+  let lastValue: number = NIL;
   while (true) {
-    const nextVal = seqNext(digest, heap, seqPtr);
-    if (nextVal === NIL) break;
-    lastValue = nextVal; // Keep the last element
-  }
-
-  return lastValue;
-}
-
-/**
- * Iterates through a sequence, performing a side effect on each element.
- * Currently just iterates through all elements (identity behavior).
- *
- * @param digest - The Digest instance.
- * @param heap - The memory heap.
- * @param seqPtr - The tagged sequence pointer.
- */
-export function seqForEach(digest: Digest, heap: Heap, seqPtr: number): void {
-  while (true) {
-    const nextVal = seqNext(digest, heap, seqPtr);
-    if (nextVal === NIL) break;
-    // Side effect placeholder (e.g., console.log for debugging)
+    seqNext(heap, vm, seq);
+    const value = vm.pop();
+    if (value === NIL) {
+      return lastValue; // Return the last valid value
+    }
+    lastValue = value;
   }
 }
+
+export function forEachSink(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  func: number
+): void {
+  while (true) {
+    seqNext(heap, vm, seq);
+    const value = vm.pop();
+    if (value === NIL) {
+      return; // Sequence is exhausted
+    }
+
+    vm.push(value);
+    vm.push(func); // Push function onto stack
+    vm.eval(); // Execute function with values from the sequence
+  }
+}
+

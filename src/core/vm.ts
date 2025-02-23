@@ -2,7 +2,7 @@ import { Compiler } from "../lang/compiler";
 import { SymbolTable } from "./symbol-table";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTaggedValue, isRefCounted } from "./tagged-value";
+import { Tag, fromTaggedValue, isRefCounted, toTaggedValue } from "./tagged-value";
 import { Digest } from "./digest";
 
 export class VM {
@@ -28,6 +28,12 @@ export class VM {
     this.symbolTable = new SymbolTable(this.digest);
     this.heap = new Heap(this.memory);
     this.debug = false;
+  }
+
+  eval() {
+    this.rpush(toTaggedValue(Tag.CODE, this.IP));
+    const { value: pointer } = fromTaggedValue(Tag.CODE, this.pop());
+    this.IP = pointer;
   }
 
   /**

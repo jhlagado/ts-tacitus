@@ -1,125 +1,83 @@
-// File: seq/sequence.ts
+// src/seq/sequence.ts
 
 import { Heap } from "../core/heap";
 import { Tag, toTaggedValue, fromTaggedValue, NIL } from "../core/tagged-value";
-import { vectorCreate, vectorGet, vectorUpdate } from "../data/vector";
-import { Digest } from "../core/digest";
+import { vectorCreate, VEC_DATA, VEC_SIZE } from "../data/vector";
+import { VM } from "../core/vm";
 
-// Sequence memory layout (same as vector but tagged as SEQ)
-export const SEQ_LEN = 0;      // Number of elements (-1 if unknown)
-export const SEQ_TYPE = 4;     // Type identifier (range, vector, string, etc.)
-export const SEQ_POS = 8;      // Current index
-export const SEQ_META = 12;    // Extra metadata (vector, function pointers, etc.)
-export const SEQ_EXTRA = 16;   // Extra space (step size, additional sequence pointers)
+// Sequence source types.
+export const SEQ_SRC_RANGE = 1;
+export const SEQ_SRC_VECTOR = 2;
+export const SEQ_SRC_MULTI_SEQUENCE = 3;
+export const SEQ_SRC_STRING = 4;
 
-// Sequence type constants
-export const SEQ_TYPE_RANGE = 1;
-export const SEQ_TYPE_VECTOR = 2;
-export const SEQ_TYPE_STRING = 3;
-export const SEQ_TYPE_MAP = 4;
-export const SEQ_TYPE_FILTER = 5;
-export const SEQ_TYPE_ZIP = 6;
+// Sequence header offsets relative to the vector's data region (which starts at VEC_DATA).
+export const SEQ_HEADER_BASE = VEC_DATA; // Base offset (8) in the block.
+export const SEQ_TYPE = SEQ_HEADER_BASE; // At offset VEC_DATA: sequence source type.
+export const SEQ_META_COUNT = SEQ_HEADER_BASE + 4; // At offset VEC_DATA + 4: number of metadata items.
+export const SEQ_META_START = SEQ_HEADER_BASE + 8; // At offset VEC_DATA + 8: metadata array begins here.
 
 /**
- * Creates a sequence, storing it as a vector first.
- * @param heap - The memory heap.
- * @param type - The sequence type identifier.
- * @param length - Number of elements (-1 if unknown).
- * @returns A tagged pointer to the sequence.
+ * Creates a sequence and stores its metadata in a vector block.
  */
-export function seqCreate(heap: Heap, type: number, length: number): number {
-  // Allocate using vectorCreate, ensuring we reserve enough metadata space
-  const vecPtr = vectorCreate(heap, new Array(4).fill(0)); // Allocate metadata
-  if (vecPtr === NIL) return NIL;
+export function seqCreate(
+  heap: Heap,
+  sourceType: number,
+  meta: number[]
+): number {
+  let cursorInit = 0;
+  if (sourceType === SEQ_SRC_RANGE) {
+    cursorInit = meta[0]; // Initialize cursor to start value for ranges
+  }
 
-  // Re-tag the pointer as SEQ instead of BLOCK
-  const { value: ptr } = fromTaggedValue(Tag.BLOCK, vecPtr);
-  heap.memory.writeFloat(ptr + SEQ_LEN, length);
-  heap.memory.writeFloat(ptr + SEQ_TYPE, type);
-  heap.memory.writeFloat(ptr + SEQ_POS, 0);
+  const headerData = [sourceType, meta.length, ...meta, cursorInit];
+  const vectorTagged = vectorCreate(heap, headerData);
 
-  return toTaggedValue(Tag.SEQ, ptr);
+  if (vectorTagged === NIL) return NIL;
+
+  const { value: seqPtr } = fromTaggedValue(Tag.BLOCK, vectorTagged);
+
+  return toTaggedValue(Tag.SEQ, seqPtr);
 }
 
 /**
- * Advances the sequence and retrieves the next value.
- * @param digest - The Digest instance (used for strings).
- * @param heap - The heap where the sequence is stored.
- * @param seqPtr - The tagged sequence pointer.
- * @returns The next value, or NIL if exhausted.
+ * Advances a sequence and pushes the next element onto the VM's stack.
+ * @returns The updated sequence pointer if modified by copy-on-write.
  */
-export function seqNext(digest: Digest, heap: Heap, seqPtr: number): number {
-  const { value: ptr } = fromTaggedValue(Tag.SEQ, seqPtr);
-  const type = heap.memory.readFloat(ptr + SEQ_TYPE);
-  const pos = heap.memory.readFloat(ptr + SEQ_POS);
-  const length = heap.memory.readFloat(ptr + SEQ_LEN);
+export function seqNext(heap: Heap, vm: VM, seq: number): number {
+  let { value: seqPtr } = fromTaggedValue(Tag.SEQ, seq);
 
-  if (length !== -1 && pos >= length) return NIL;
+  const sourceType = heap.memory.readFloat(seqPtr + SEQ_TYPE);
+  const metaCount = heap.memory.readFloat(seqPtr + SEQ_META_COUNT);
+  const cursorOffset = SEQ_META_START + metaCount * 4;
 
-  let result = NIL;
+  switch (sourceType) {
+    case SEQ_SRC_VECTOR: {
+      const taggedVecPtr = heap.memory.readFloat(seqPtr + SEQ_META_START);
 
-  switch (type) {
-    case SEQ_TYPE_RANGE: { // Range sequence
-      const start = heap.memory.readFloat(ptr + SEQ_META);
-      const step = heap.memory.readFloat(ptr + SEQ_EXTRA);
-      result = start + pos * step;
-      break;
-    }
+      const { tag, value: vecPtr } = fromTaggedValue(Tag.BLOCK, taggedVecPtr);
 
-    case SEQ_TYPE_VECTOR: { // Vector sequence
-      const vecPtr = heap.memory.readFloat(ptr + SEQ_META);
-      result = vectorGet(heap, vecPtr, pos);
-      break;
-    }
-
-    case SEQ_TYPE_STRING: { // String sequence
-      const strPtr = heap.memory.readFloat(ptr + SEQ_META);
-      const storedStr = digest.get(strPtr);
-      result = storedStr.charCodeAt(pos) || NIL;
-      break;
-    }
-
-    case SEQ_TYPE_MAP: { // Identity mapping (pass through source sequence)
-      const sourceSeq = heap.memory.readFloat(ptr + SEQ_META);
-      result = seqNext(digest, heap, sourceSeq);
-      break;
-    }
-
-    case SEQ_TYPE_FILTER: { // Identity filter (pass through source sequence)
-      const sourceSeq = heap.memory.readFloat(ptr + SEQ_META);
-      result = seqNext(digest, heap, sourceSeq);
-      break;
-    }
-
-    case SEQ_TYPE_ZIP: { // Zipped sequence
-      const seqA = heap.memory.readFloat(ptr + SEQ_META);
-      const seqB = heap.memory.readFloat(ptr + SEQ_EXTRA);
-      const valA = seqNext(digest, heap, seqA);
-      const valB = seqNext(digest, heap, seqB);
-      if (valA === NIL || valB === NIL) {
-        // Free the owned vector when done
-        const ownedVector = heap.memory.readFloat(ptr + SEQ_EXTRA + 4);
-        if (ownedVector !== NIL) heap.free(ownedVector);
-        return NIL;
+      if (tag !== Tag.BLOCK) {
+        console.error("ERROR: Expected BLOCK tag, but got:", tag);
+        vm.push(NIL);
+        return seq;
       }
 
-      // Reuse the stored vector, updating its elements
-      let ownedVector = heap.memory.readFloat(ptr + SEQ_EXTRA + 4);
-      if (ownedVector === NIL) {
-        // Allocate vector only once
-        ownedVector = vectorCreate(heap, [valA, valB]);
-        heap.memory.writeFloat(ptr + SEQ_EXTRA + 4, ownedVector);
+      const index = heap.memory.readFloat(seqPtr + cursorOffset);
+      const length = heap.memory.read16(vecPtr + VEC_SIZE);
+
+      if (index < length) {
+        const item = heap.memory.readFloat(vecPtr + VEC_DATA + index * 4);
+        vm.push(item);
+        heap.memory.writeFloat(seqPtr + cursorOffset, index + 1);
       } else {
-        // Update vector in place
-        vectorUpdate(heap, ownedVector, 0, valA);
-        vectorUpdate(heap, ownedVector, 1, valB);
+        vm.push(NIL);
       }
-
-      result = ownedVector;
       break;
     }
+    default:
+      vm.push(NIL);
   }
 
-  heap.memory.writeFloat(ptr + SEQ_POS, pos + 1);
-  return result;
+  return seq;
 }
