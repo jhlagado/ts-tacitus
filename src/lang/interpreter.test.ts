@@ -65,22 +65,22 @@ describe("Interpreter", () => {
 
   describe("Code blocks", () => {
     it("should execute simple code block", () => {
-      executeProgram("{30 20 *} eval");
+      executeProgram("(30 20 *) eval");
       expectStack([600]);
     });
 
     it("should execute nested code blocks", () => {
-      executeProgram("{{4 2 +}eval {3 2 +}eval *}eval 2 +");
+      executeProgram("((4 2 +)eval (3 2 +)eval *)eval 2 +");
       expectStack([32]);
     });
 
     it("should handle code blocks with stack operations", () => {
-      executeProgram("4{3 2 *}eval +");
+      executeProgram("4(3 2 *)eval +");
       expectStack([10]);
     });
 
     it("should handle multiple nested evals", () => {
-      executeProgram("{1 {3 4 swap} eval 2} eval");
+      executeProgram("(1 (3 4 swap) eval 2) eval");
       expectStack([1, 4, 3, 2]);
     });
   });

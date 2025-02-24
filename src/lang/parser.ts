@@ -62,13 +62,13 @@ export function parse(tokens: (string | number)[]): void {
     if (typeof token === "number") {
       vm.compiler.compile8(Op.LiteralNumber);
       vm.compiler.compileFloat(token);
-    } else if (token === "{") {
+    } else if (token === "(") {
       vm.compiler.preserve = true;
       vm.compiler.nestingScore++;
       vm.compiler.compile8(Op.BranchCall);
       vm.push(vm.compiler.CP);
       vm.compiler.compile16(0);
-    } else if (token === "}") {
+    } else if (token === ")") {
       if (vm.compiler.nestingScore === 0) {
         throw new Error("Unexpected '}'");
       }

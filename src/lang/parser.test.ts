@@ -60,7 +60,7 @@ describe("Parser", () => {
   });
 
   it("should handle compilation blocks", () => {
-    const tokens = lex("{ 50 } { 30 } + ");
+    const tokens = lex("(50) (30) + ");
     parse(tokens);
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
@@ -78,7 +78,7 @@ describe("Parser", () => {
   });
 
   it("should handle nested compilation blocks", () => {
-    const tokens = lex("{ { 6 } { 3 } + }");
+    const tokens = lex("((6) (3) +)");
     parse(tokens);
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
@@ -137,7 +137,7 @@ describe("Parser - Colon Definitions", () => {
     const code = ": foo : bar ; ;";
     expect(() => parse(lex(code))).toThrow(
       "Nested definitions are not allowed"
-    );
+   );
   });
 
   it("should validate definition names", () => {
@@ -155,7 +155,7 @@ describe("Parser - Colon Definitions", () => {
 
     expect(() => parse(lex(": test! ;"))).not.toThrow(
       "Invalid definition name: test!"
-    );
+   );
   });
 
   it("should detect unclosed definitions", () => {
@@ -164,7 +164,7 @@ describe("Parser - Colon Definitions", () => {
 
   it("should allow definitions containing blocks", () => {
     const code = `
-      : print_sum { + } eval ; 
+      : print_sum (+) eval ; 
       3 4 print_sum
     `;
     parse(lex(code));
@@ -209,10 +209,10 @@ describe("Parser - Colon Definitions", () => {
   });
 
   it("should reject definitions in code blocks", () => {
-    const code = "{ : bad ; }";
+    const code = "( : bad ; )";
     expect(() => parse(lex(code))).toThrow(
       "Cannot nest definition inside code block"
-    );
+   );
   });
 
   it("should maintain separate compilation contexts", () => {
