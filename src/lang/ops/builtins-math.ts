@@ -1,6 +1,6 @@
-import { VM } from "../core/vm";
-import { Verb } from "../core/types";
-import { STACK } from "../core/memory";
+import { VM } from "../../core/vm";
+import { Verb } from "../../core/types";
+import { STACK } from "../../core/memory";
 
 export const plusOp: Verb = (vm: VM) => {
   if (vm.SP < STACK + 2) {

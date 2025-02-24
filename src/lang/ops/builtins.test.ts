@@ -1,9 +1,9 @@
 import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
-import { initializeInterpreter, vm } from "../core/globalState";
-import { CODE, RSTACK } from "../core/memory";
-import { fromTaggedValue, Tag, toTaggedValue } from "../core/tagged-value";
-import { toUnsigned16 } from "../core/utils";
+import { initializeInterpreter, vm } from "../../core/globalState";
+import { CODE, RSTACK } from "../../core/memory";
+import { fromTaggedValue, Tag, toTaggedValue } from "../../core/tagged-value";
+import { toUnsigned16 } from "../../core/utils";
 import {
   abortOp,
   exitOp,

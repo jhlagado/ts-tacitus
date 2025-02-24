@@ -1,5 +1,5 @@
-import { VM } from "../core/vm";
-import { SymbolTable } from "../core/symbol-table";
+import { VM } from "../../core/vm";
+import { SymbolTable } from "../../core/symbol-table";
 
 import {
   literalNumberOp,

@@ -1,4 +1,4 @@
-import { executeOp } from "../ops/builtins";
+import { executeOp } from "./ops/builtins";
 import { vm } from "../core/globalState";
 
 export function execute(start: number): void {
