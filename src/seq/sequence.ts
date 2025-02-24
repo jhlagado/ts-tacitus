@@ -1,9 +1,15 @@
-// src/seq/sequence.ts
+// In src/seq/sequence.ts
 
 import { Heap } from "../core/heap";
-import { Tag, toTaggedValue, fromTaggedValue, NIL } from "../core/tagged-value";
-import { vectorCreate, VEC_DATA, VEC_SIZE } from "../data/vector";
+import {
+  Tag,
+  toTaggedValue,
+  fromTaggedValue,
+  NIL,
+  isNIL,
+} from "../core/tagged-value";
 import { VM } from "../core/vm";
+import { vectorCreate, VEC_DATA, VEC_SIZE } from "../data/vector";
 
 // Sequence source types.
 export const SEQ_SRC_RANGE = 1;
@@ -25,18 +31,15 @@ export function seqCreate(
   sourceType: number,
   meta: number[]
 ): number {
-  let cursorInit = 0;
-  if (sourceType === SEQ_SRC_RANGE) {
-    cursorInit = meta[0]; // Initialize cursor to start value for ranges
+  const headerData = [sourceType, meta.length];
+  // do not spread arrays with tagged values, they will be cannonised to NIL or NaN
+  for (let i = 0; i < meta.length; i++) {
+    headerData.push(meta[i]);
   }
-
-  const headerData = [sourceType, meta.length, ...meta, cursorInit];
+  if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
   const vectorTagged = vectorCreate(heap, headerData);
-
-  if (vectorTagged === NIL) return NIL;
-
-  const { value: seqPtr } = fromTaggedValue(Tag.BLOCK, vectorTagged);
-
+  if (isNIL(vectorTagged)) return NIL;
+  const { value: seqPtr } = fromTaggedValue(Tag.VECTOR, vectorTagged);
   return toTaggedValue(Tag.SEQ, seqPtr);
 }
 
@@ -52,29 +55,59 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
   const cursorOffset = SEQ_META_START + metaCount * 4;
 
   switch (sourceType) {
-    case SEQ_SRC_VECTOR: {
-      const taggedVecPtr = heap.memory.readFloat(seqPtr + SEQ_META_START);
-
-      const { tag, value: vecPtr } = fromTaggedValue(Tag.BLOCK, taggedVecPtr);
-
-      if (tag !== Tag.BLOCK) {
-        console.error("ERROR: Expected BLOCK tag, but got:", tag);
+    case SEQ_SRC_RANGE: {
+      const step = heap.memory.readFloat(seqPtr + SEQ_META_START + 4); // meta[1]
+      const end = heap.memory.readFloat(seqPtr + SEQ_META_START + 8); // meta[2]
+      const cursor = heap.memory.readFloat(seqPtr + cursorOffset);
+      if (cursor <= end) {
+        vm.push(toTaggedValue(Tag.INTEGER, cursor));
+        heap.memory.writeFloat(seqPtr + cursorOffset, cursor + step);
+      } else {
         vm.push(NIL);
-        return seq;
       }
-
+      break;
+    }
+    case SEQ_SRC_VECTOR: {
+      const taggedVecPtr = heap.memory.readFloat(seqPtr + SEQ_META_START); // meta[0]
+      const { value: vecPtr } = fromTaggedValue(Tag.VECTOR, taggedVecPtr);
       const index = heap.memory.readFloat(seqPtr + cursorOffset);
       const length = heap.memory.read16(vecPtr + VEC_SIZE);
-
       if (index < length) {
-        const item = heap.memory.readFloat(vecPtr + VEC_DATA + index * 4);
-        vm.push(item);
+        vm.push(heap.memory.readFloat(vecPtr + VEC_DATA + index * 4));
         heap.memory.writeFloat(seqPtr + cursorOffset, index + 1);
       } else {
         vm.push(NIL);
       }
       break;
     }
+
+    case SEQ_SRC_MULTI_SEQUENCE: {
+      for (let i = 0; i < metaCount; i++) {
+        const subSeq = heap.memory.readFloat(seqPtr + SEQ_META_START + i * 4);
+        seqNext(heap, vm, subSeq);
+        const nextValue = vm.pop();
+        vm.push(nextValue);
+        if (nextValue === NIL) {
+          vm.push(NIL);
+          return seq;
+        }
+      }
+      break;
+    }
+    case SEQ_SRC_STRING: {
+      const taggedStrPtr = heap.memory.readFloat(seqPtr + SEQ_META_START); // meta[0]
+      const { value: strPtr } = fromTaggedValue(Tag.STRING, taggedStrPtr);
+      const index = heap.memory.readFloat(seqPtr + cursorOffset);
+      const length = heap.memory.read16(strPtr + VEC_SIZE);
+      if (index < length) {
+        vm.push(heap.memory.readFloat(strPtr + VEC_DATA + index * 4));
+        heap.memory.writeFloat(seqPtr + cursorOffset, index + 1);
+      } else {
+        vm.push(NIL);
+      }
+      break;
+    }
+
     default:
       vm.push(NIL);
   }

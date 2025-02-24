@@ -50,7 +50,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
     }
   }
 
-  return toTaggedValue(Tag.BLOCK, firstBlock);
+  return toTaggedValue(Tag.VECTOR, firstBlock);
 }
 
 /**
@@ -66,8 +66,8 @@ export function vectorGet(
   index: number
 ): number {
   if (!isTaggedValue(vectorPtr)) return NIL;
-  const { tag, value: firstBlock } = fromTaggedValue(Tag.BLOCK, vectorPtr);
-  if (tag !== Tag.BLOCK) return NIL;
+  const { tag, value: firstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+  if (tag !== Tag.VECTOR) return NIL;
 
   // Read the logical length from the first block’s header.
   const length = heap.memory.read16(firstBlock + VEC_SIZE);
@@ -108,8 +108,8 @@ export function vectorUpdate(
 ): number {
   if (!isTaggedValue(vectorPtr)) return NIL;
   // Extract the first block pointer from the tagged vector pointer.
-  let { tag, value: origFirstBlock } = fromTaggedValue(Tag.BLOCK, vectorPtr);
-  if (tag !== Tag.BLOCK) return NIL;
+  let { tag, value: origFirstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+  if (tag !== Tag.VECTOR) return NIL;
   let firstBlock = origFirstBlock;
 
   // Read the logical length from the first block.
@@ -133,7 +133,7 @@ export function vectorUpdate(
       currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
       value
     );
-    return toTaggedValue(Tag.BLOCK, firstBlock);
+    return toTaggedValue(Tag.VECTOR, firstBlock);
   }
 
   let prevBlock = currentBlock;
@@ -146,7 +146,7 @@ export function vectorUpdate(
         currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value
       );
-      return toTaggedValue(Tag.BLOCK, firstBlock);
+      return toTaggedValue(Tag.VECTOR, firstBlock);
     }
     remainingIndex -= capacityPerBlock;
     prevBlock = currentBlock;

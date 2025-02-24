@@ -56,8 +56,8 @@ export function dictCreate(
 
   // Create a vector from the flattened data using vectorCreate.
   const vectorTagged = vectorCreate(heap, flattened);
-  // Unwrap the raw pointer (assumed to be tagged as Tag.BLOCK from vectorCreate).
-  const { value: rawPtr } = fromTaggedValue(Tag.BLOCK, vectorTagged);
+  // Unwrap the raw pointer (assumed to be tagged as Tag.VECTOR from vectorCreate).
+  const { value: rawPtr } = fromTaggedValue(Tag.VECTOR, vectorTagged);
   // Retag the vector pointer as a dictionary.
   return toTaggedValue(Tag.DICT, rawPtr);
 }

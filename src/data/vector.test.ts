@@ -93,7 +93,7 @@ describe("Vector Operations", () => {
     expect(isNIL(vectorPtr)).not.toBe(true);
 
     // Get the underlying block pointer from the tagged vector pointer.
-    const { value: block } = fromTaggedValue(Tag.BLOCK, vectorPtr);
+    const { value: block } = fromTaggedValue(Tag.VECTOR, vectorPtr);
     // Manually bump the reference count to simulate sharing (forcing copy-on-write).
     memory.write16(block + BLOCK_REFS, 2);
 
@@ -153,7 +153,7 @@ describe("Vector Operations", () => {
     expect(isNIL(vectorPtr)).not.toBe(true);
 
     // Extract the underlying first block from the tagged vector pointer.
-    const { value: firstBlock } = fromTaggedValue(Tag.BLOCK, vectorPtr);
+    const { value: firstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
     // Get the pointer to the second block.
     const secondBlock = heap.getNextBlock(firstBlock);
     expect(secondBlock).not.toBe(NULL);
