@@ -1,15 +1,15 @@
 // In src/seq/sequence.ts
 
-import { Heap } from "../core/heap";
+import { Heap } from "../../core/heap";
 import {
+  isNIL,
+  NIL,
+  fromTaggedValue,
   Tag,
   toTaggedValue,
-  fromTaggedValue,
-  NIL,
-  isNIL,
-} from "../core/tagged-value";
-import { VM } from "../core/vm";
-import { vectorCreate, VEC_DATA, VEC_SIZE } from "../data/vector";
+} from "../../core/tagged-value";
+import { VM } from "../../core/vm";
+import { VEC_DATA, vectorCreate, VEC_SIZE } from "../../data/vector";
 
 // Sequence source types.
 export const SEQ_SRC_RANGE = 1;

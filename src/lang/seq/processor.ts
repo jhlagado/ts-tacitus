@@ -1,7 +1,7 @@
-import { Heap } from "../core/heap";
-import { VM } from "../core/vm";
+import { Heap } from "../../core/heap";
+import { NIL } from "../../core/tagged-value";
+import { VM } from "../../core/vm";
 import { seqNext } from "./sequence";
-import { NIL } from "../core/tagged-value";
 
 export function scanProcessor(heap: Heap, vm: VM, seq: number, func: number): void {
   while (true) {

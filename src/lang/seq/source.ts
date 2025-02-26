@@ -1,4 +1,4 @@
-import { Heap } from "../core/heap";
+import { Heap } from "../../core/heap";
 import { seqCreate, SEQ_SRC_RANGE, SEQ_SRC_VECTOR, SEQ_SRC_MULTI_SEQUENCE, SEQ_SRC_STRING } from "./sequence";
 
 export function rangeSource(heap: Heap, start: number, end: number, step: number): number {

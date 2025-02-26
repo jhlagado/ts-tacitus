@@ -110,3 +110,18 @@ export function isRefCounted(tagNum: number): boolean {
 export function isNIL(tagNum: number): boolean {
   return isTaggedValue(tagNum) && getTag(tagNum) === Tag.NIL;
 }
+
+// Extend the Number prototype to override the toString method.
+export function printNum(...args: unknown[]): void {
+  const format = (num: number): string => {
+    if (isTaggedValue(num)) {
+      const { tag, value } = fromTaggedValue(TAG_ANY, num);
+      return `Tag: ${tag}, Value: ${value}`;
+    } else {
+      return num.toString();
+    }
+  };
+  console.log(
+    args.map((arg) => (typeof arg === "number" ? format(arg) : arg)).join(" ")
+  );
+}

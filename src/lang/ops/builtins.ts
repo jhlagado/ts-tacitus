@@ -9,6 +9,8 @@ import {
   abortOp,
   exitOp,
   evalOp,
+  groupLeftOp,
+  groupRightOp,
 } from "./builtins-interpreter";
 
 import {
@@ -51,87 +53,79 @@ import {
 } from "./arithmetic-ops";
 
 export enum Op {
-  // Control Flow (0-6)
-  LiteralNumber, // 0
-  Branch, // 1
-  BranchCall, // 2
-  Call, // 3
-  Abort, // 4
-  Exit, // 5
-  Eval, // 6
+  LiteralNumber,
+  Branch,
+  BranchCall,
+  Call,
+  Abort,
+  Exit,
+  Eval,
+  GroupLeft,
+  GroupRight,
 
-  // Dyadic Arithmetic (7-18)
-  Plus, // 7  +
-  Minus, // 8  -
-  Multiply, // 9  *
-  Divide, // 10 /
-  Power, // 11 ^
-  Mod, // 12 !
-  Min, // 13 &
-  Max, // 14 |
-  LessThan, // 15 <
-  GreaterThan, // 16 >
-  Equal, // 17 =
-  Match, // 18 ~
+  Plus,
+  Minus,
+  Multiply,
+  Divide,
+  Power,
+  Mod,
+  Min,
+  Max,
+  LessThan,
+  GreaterThan,
+  Equal,
+  Match,
 
-  // Monadic Arithmetic (19-28)
-  mNegate, // 19 m-
-  mReciprocal, // 20 m%
-  mFloor, // 21 m_
-  mCeiling, // 22 m^
-  mSignum, // 23 m*
-  mAbsolute, // 24 m|
-  mExp, // 25 me
-  mLn, // 26 ml
-  mSqrt, // 27 mq
-  mLog, // 28 mb
+  mNegate,
+  mReciprocal,
+  mFloor,
+  mCeiling,
+  mSignum,
+  mAbsolute,
+  mExp,
+  mLn,
+  mSqrt,
+  mLog,
 
-  // Stack Operations (29-33)
-  Dup, // 29 dup
-  Drop, // 30 drop
-  Swap, // 31 swap
-  Rot, // 32 rot
-  Over, // 33 over
+  Dup,
+  Drop,
+  Swap,
+  Rot,
+  Over,
 
-  // Dyadic Logical (34-37)
-  And, // 34 &&
-  Or, // 35 ||
-  Xor, // 36 xor
-  Nand, // 37 nand
+  And,
+  Or,
+  Xor,
+  Nand,
 
-  // Monadic Logical (38-40)
-  mNot, // 38 m~
-  mWhere, // 39 m&
-  mReverse, // 40 m|
+  mNot,
+  mWhere,
+  mReverse,
 
-  // Type Operations (41-44)
-  mType, // 41 m@
-  mString, // 42 m$
-  mGroup, // 43 m=
-  mDistinct, // 44 m?
+  mType,
+  mString,
+  mGroup,
+  mDistinct,
 
-  // List Operations (45-49)
-  Join, // 45 ,
-  Take, // 46 #
-  DropN, // 47 _
-  mEnlist, // 48 m,
-  mCount, // 49 m#
+  Join,
+  Take,
+  DropN,
+  mEnlist,
+  mCount,
 
-  // Special Forms (50-51)
-  mIn, // 50 in
-  mKey, // 51 m!
+  mIn,
+  mKey,
 
-  // Arithmetic Operators (52-63)
-  Abs, // 52 abs
-  Neg, // 53 neg
-  Sign, // 54 sign
-  Exp, // 55 exp
-  Ln, // 56 ln
-  Log, // 57 log
-  Sqrt, // 58 sqrt
-  Pow, // 59 pow
-  Avg, // 60 avg
-  Prod, // 61 prod
+  Abs,
+  Neg,
+  Sign,
+  Exp,
+  Ln,
+  Log,
+  Sqrt,
+  Pow,
+  Avg,
+  Prod,
 }
 
 export const executeOp = (vm: VM, opcode: Op) => {
@@ -157,6 +151,12 @@ export const executeOp = (vm: VM, opcode: Op) => {
       break;
     case Op.Eval:
       evalOp(vm);
+      break;
+    case Op.GroupLeft:
+      groupLeftOp(vm);
+      break;
+    case Op.GroupRight:
+      groupRightOp(vm);
       break;
 
     // Dyadic Arithmetic
@@ -276,6 +276,8 @@ export const defineBuiltins = (dict: SymbolTable) => {
 
   // Control Flow
   dict.define("eval", compileOpcode(Op.Eval));
+  dict.define("{", compileOpcode(Op.GroupLeft));
+  dict.define("}", compileOpcode(Op.GroupRight));
 
   // Dyadic Arithmetic
   dict.define("+", compileOpcode(Op.Plus));

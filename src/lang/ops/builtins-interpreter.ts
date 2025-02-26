@@ -44,3 +44,16 @@ export const evalOp: Verb = (vm: VM) => {
   const { value: pointer } = fromTaggedValue(Tag.CODE, vm.pop());
   vm.IP = pointer;
 };
+
+export const groupLeftOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("groupLeftOp");
+  vm.rpush(vm.SP);
+};
+
+export const groupRightOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("groupRightOp");
+  const sp0 = vm.rpop();
+  const sp1 = vm.SP;
+  const d = (sp1 - sp0) / 4;
+  vm.push(d);
+};

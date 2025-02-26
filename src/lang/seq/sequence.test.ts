@@ -1,11 +1,11 @@
-import { Heap } from "../core/heap";
-import { seqNext } from "../seq/sequence";
-import { rangeSource, vectorSource, stringSource, multiSequenceSource } from "../seq/source";
-import { Tag, toTaggedValue, NIL } from "../core/tagged-value";
-import { vm } from "../core/globalState";
-import { Memory } from "../core/memory";
-import { vectorCreate } from "../data/vector";
-import { stringCreate } from "../data/string";
+import { vm } from "../../core/globalState";
+import { Heap } from "../../core/heap";
+import { Memory } from "../../core/memory";
+import { toTaggedValue, Tag, NIL } from "../../core/tagged-value";
+import { stringCreate } from "../../data/string";
+import { vectorCreate } from "../../data/vector";
+import { seqNext } from "./sequence";
+import { rangeSource, vectorSource, stringSource, multiSequenceSource } from "./source";
 
 describe("Sequence Operations", () => {
   let memory: Memory;
@@ -24,7 +24,7 @@ describe("Sequence Operations", () => {
       seqNext(heap, vm, seq);
       expect(vm.pop()).toEqual(toTaggedValue(Tag.INTEGER, value));
     }
-    
+
     seqNext(heap, vm, seq);
     expect(vm.pop()).toEqual(NIL);
   });
@@ -38,21 +38,21 @@ describe("Sequence Operations", () => {
       seqNext(heap, vm, seq);
       expect(vm.pop()).toEqual(value);
     }
-    
+
     seqNext(heap, vm, seq);
     expect(vm.pop()).toEqual(NIL);
   });
 
   it("should iterate over a string sequence", () => {
-    const strPtr = stringCreate(vm.digest ,"abc");
+    const strPtr = stringCreate(vm.digest, "abc");
     const seq = stringSource(heap, strPtr);
-    const expected = ["a", "b", "c"].map(c => stringCreate(vm.digest, c));
+    const expected = ["a", "b", "c"].map((c) => stringCreate(vm.digest, c));
 
     for (let value of expected) {
       seqNext(heap, vm, seq);
       expect(vm.pop()).toEqual(value);
     }
-    
+
     seqNext(heap, vm, seq);
     expect(vm.pop()).toEqual(NIL);
   });
@@ -65,7 +65,7 @@ describe("Sequence Operations", () => {
     const expected = [
       [toTaggedValue(Tag.INTEGER, 1), 100],
       [toTaggedValue(Tag.INTEGER, 2), 200],
-      [toTaggedValue(Tag.INTEGER, 3), 300]
+      [toTaggedValue(Tag.INTEGER, 3), 300],
     ];
 
     for (let row of expected) {
@@ -74,10 +74,8 @@ describe("Sequence Operations", () => {
       const v1 = vm.pop();
       expect([v1, v2]).toEqual(row);
     }
-    
+
     seqNext(heap, vm, multiSeq);
     expect(vm.pop()).toEqual(NIL);
   });
 });
-
-
