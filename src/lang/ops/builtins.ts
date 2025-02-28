@@ -62,6 +62,7 @@ export enum Op {
   Eval,
   GroupLeft,
   GroupRight,
+  Print,
 
   Plus,
   Minus,
@@ -278,6 +279,7 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define("eval", compileOpcode(Op.Eval));
   dict.define("{", compileOpcode(Op.GroupLeft));
   dict.define("}", compileOpcode(Op.GroupRight));
+  dict.define(".", compileOpcode(Op.Print));
 
   // Dyadic Arithmetic
   dict.define("+", compileOpcode(Op.Plus));

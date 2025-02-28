@@ -1,6 +1,7 @@
 import { VM } from "../../core/vm";
 import { Verb } from "../../core/types";
 import { toTaggedValue, Tag, fromTaggedValue } from "../../core/tagged-value";
+import { formatValue } from "../../core/utils";
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat();
@@ -56,4 +57,10 @@ export const groupRightOp: Verb = (vm: VM) => {
   const sp1 = vm.SP;
   const d = (sp1 - sp0) / 4;
   vm.push(d);
+};
+
+export const printOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log("printOp");
+  const d = vm.pop();
+  console.log(formatValue(vm, d));
 };
