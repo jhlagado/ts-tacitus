@@ -1,5 +1,3 @@
-// File: src/tests/string.test.ts
-
 import { Memory } from "../core/memory";
 import { Digest } from "../core/digest";
 import { stringCreate } from "../data/string";
@@ -17,10 +15,7 @@ describe("stringCreate", () => {
   it("should create a tagged string with PrimitiveTag.STRING", () => {
     const value = "hello";
     const taggedValue = stringCreate(digest, value);
-    const { tag, value: address } = fromTaggedValue(
-      taggedValue,
-      PrimitiveTag.STRING
-    );
+    const { tag, value: address } = fromTaggedValue(taggedValue, PrimitiveTag.STRING);
     expect(tag).toBe(PrimitiveTag.STRING);
     expect(digest.get(address)).toBe(value);
   });
@@ -40,18 +35,13 @@ describe("stringCreate", () => {
   it("should handle empty strings correctly", () => {
     const value = "";
     const taggedValue = stringCreate(digest, value);
-    const { value: address } = fromTaggedValue(
-      taggedValue,
-      PrimitiveTag.STRING
-    );
+    const { value: address } = fromTaggedValue(taggedValue, PrimitiveTag.STRING);
     expect(digest.get(address)).toBe(value);
   });
 
   it("should throw an error if the string exceeds maximum length", () => {
     const longString = "a".repeat(256);
-    expect(() => stringCreate(digest, longString)).toThrow(
-      "String too long (max 255 characters)"
-    );
+    expect(() => stringCreate(digest, longString)).toThrow("String too long (max 255 characters)");
   });
 
   it("should correctly store multiple strings in sequence", () => {
@@ -61,5 +51,19 @@ describe("stringCreate", () => {
       const { value: address } = fromTaggedValue(tagged, PrimitiveTag.STRING);
       expect(digest.get(address)).toBe(strings[index]);
     });
+  });
+
+  it("should report the correct length for a non-empty string", () => {
+    const value = "hello";
+    const taggedValue = stringCreate(digest, value);
+    const { value: address } = fromTaggedValue(taggedValue, PrimitiveTag.STRING);
+    expect(digest.length(address)).toBe(value.length);
+  });
+
+  it("should report the correct length for an empty string", () => {
+    const value = "";
+    const taggedValue = stringCreate(digest, value);
+    const { value: address } = fromTaggedValue(taggedValue, PrimitiveTag.STRING);
+    expect(digest.length(address)).toBe(value.length);
   });
 });

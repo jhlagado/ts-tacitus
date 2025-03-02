@@ -53,7 +53,11 @@ export function seqCreate(
  * @returns The updated sequence pointer if modified by copy-on-write.
  */
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
-  let { value: seqPtr } = fromTaggedValue(seq, PrimitiveTag.HEAP, HeapSubType.SEQ);
+  let { value: seqPtr } = fromTaggedValue(
+    seq,
+    PrimitiveTag.HEAP,
+    HeapSubType.SEQ
+  );
 
   const sourceType = heap.memory.readFloat(seqPtr + SEQ_TYPE);
   const metaCount = heap.memory.readFloat(seqPtr + SEQ_META_COUNT);
@@ -77,7 +81,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const { value: vecPtr } = fromTaggedValue(
         taggedVecPtr,
         PrimitiveTag.HEAP,
-        HeapSubType.VECTOR,
+        HeapSubType.VECTOR
       );
       const index = heap.memory.readFloat(seqPtr + cursorOffset);
       const length = heap.memory.read16(vecPtr + VEC_SIZE);
@@ -104,17 +108,28 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       break;
     }
     case SEQ_SRC_STRING: {
+      // Retrieve the tagged string pointer stored in the sequence metadata.
       const taggedStrPtr = heap.memory.readFloat(seqPtr + SEQ_META_START); // meta[0]
       const { value: strPtr } = fromTaggedValue(
         taggedStrPtr,
-        PrimitiveTag.STRING,
+        PrimitiveTag.STRING
       );
+
+      // Read the current cursor index (stored as a float in the sequence's metadata).
       const index = heap.memory.readFloat(seqPtr + cursorOffset);
-      const length = heap.memory.read16(strPtr + VEC_SIZE);
+
+      // Read the string's length (1 byte) from its beginning.
+      const length = vm.digest.length(strPtr);
+
       if (index < length) {
-        vm.push(heap.memory.readFloat(strPtr + VEC_DATA + index * 4));
+        // Read the character code at the correct offset (skip the length byte).
+        const charCode = heap.memory.read8(strPtr + 1 + index);
+        vm.push(charCode);
+
+        // Increment the cursor index.
         heap.memory.writeFloat(seqPtr + cursorOffset, index + 1);
       } else {
+        // If the index exceeds the string's length, push NIL.
         vm.push(NIL);
       }
       break;

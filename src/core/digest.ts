@@ -38,6 +38,14 @@ export class Digest {
     this.SBP = address;
   }
 
+  length(address: number): number {
+    if (address < STRINGS || address >= STRINGS + STRINGS_SIZE) {
+      throw new Error("Address is outside memory bounds");
+    }
+
+    return this.memory.read8(address);
+  }
+
   get(address: number): string {
     if (address < STRINGS || address >= STRINGS + STRINGS_SIZE) {
       throw new Error("Address is outside memory bounds");

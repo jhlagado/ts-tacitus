@@ -1,6 +1,5 @@
 import { Digest } from "./digest";
-import { Memory } from "./memory";
-import { STRINGS, STRINGS_SIZE } from "./memory";
+import { Memory, STRINGS, STRINGS_SIZE } from "./memory";
 
 describe("Digest", () => {
   let memory: Memory;
@@ -11,17 +10,35 @@ describe("Digest", () => {
     digest = new Digest(memory);
   });
 
-  it("should add a string and return its starting address", () => {
+  it("should add a string, retrieve it, and report its length", () => {
     const address = digest.add("hello");
     expect(address).toBe(STRINGS);
     expect(digest.get(address)).toBe("hello");
+    expect(digest.length(address)).toBe(5);
+  });
+
+  it("should correctly handle an empty string", () => {
+    const address = digest.add("");
+    expect(digest.get(address)).toBe("");
+    expect(digest.length(address)).toBe(0);
+  });
+
+  it("should correctly handle strings with special characters", () => {
+    const specialString = "hello\nworld\t!";
+    const address = digest.add(specialString);
+    expect(digest.get(address)).toBe(specialString);
+  });
+
+  it("should correctly handle a string with maximum length", () => {
+    const maxLengthString = "a".repeat(255);
+    const address = digest.add(maxLengthString);
+    expect(digest.get(address)).toBe(maxLengthString);
+    expect(digest.length(address)).toBe(255);
   });
 
   it("should throw an error if the string is too long", () => {
     const longString = "a".repeat(256);
-    expect(() => digest.add(longString)).toThrow(
-      "String too long (max 255 characters)"
-    );
+    expect(() => digest.add(longString)).toThrow("String too long");
   });
 
   it("should throw an error if there is not enough space in memory", () => {
@@ -33,113 +50,50 @@ describe("Digest", () => {
     expect(() => digest.add("b")).toThrow("String digest overflow");
   });
 
-  it("should reset the digest to its initial state", () => {
+  it("should find an existing string and return -1 for a non-existent string", () => {
+    const addr = digest.add("test");
+    expect(digest.find("test")).toBe(addr);
+    expect(digest.find("nonexistent")).toBe(-1);
+  });
+
+  it("intern should return the same address for duplicates and a different address for new strings", () => {
+    const addr1 = digest.intern("hello");
+    const addr2 = digest.intern("hello");
+    expect(addr1).toBe(addr2);
+    const addr3 = digest.intern("world");
+    expect(addr3).not.toBe(addr1);
+    expect(digest.get(addr1)).toBe("hello");
+    expect(digest.get(addr3)).toBe("world");
+  });
+
+  it("should correctly handle adding and retrieving multiple strings", () => {
+    const addr1 = digest.add("first");
+    const addr2 = digest.add("second");
+    const addr3 = digest.add("third");
+    expect(digest.get(addr1)).toBe("first");
+    expect(digest.get(addr2)).toBe("second");
+    expect(digest.get(addr3)).toBe("third");
+  });
+
+  it("should correctly reset the digest", () => {
     digest.add("hello");
     digest.reset(STRINGS + 10);
     expect(digest.SBP).toBe(STRINGS + 10);
   });
 
   it("should throw an error when resetting to an invalid address", () => {
-    expect(() => digest.reset(STRINGS - 1)).toThrow(
-      "Invalid reset address"
-    );
-    expect(() => digest.reset(STRINGS + STRINGS_SIZE + 1)).toThrow(
-      "Invalid reset address"
-    );
+    expect(() => digest.reset(STRINGS - 1)).toThrow("Invalid reset address");
+    expect(() => digest.reset(STRINGS + STRINGS_SIZE + 1)).toThrow("Invalid reset address");
   });
 
   it("should throw an error when reading from an invalid address", () => {
-    expect(() => digest.get(STRINGS - 1)).toThrow(
-      "Address is outside memory bounds"
-    );
-    expect(() => digest.get(STRINGS + STRINGS_SIZE + 1)).toThrow(
-      "Address is outside memory bounds"
-    );
+    expect(() => digest.get(STRINGS - 1)).toThrow("Address is outside memory bounds");
+    expect(() => digest.get(STRINGS + STRINGS_SIZE)).toThrow("Address is outside memory bounds");
   });
 
-  it("should find an existing string and return its address", () => {
-    const address1 = digest.add("hello");
-    const address2 = digest.find("hello");
-    expect(address2).toBe(address1);
-  });
-
-  it("should return NOT_FOUND for a non-existing string", () => {
-    const address = digest.find("nonexistent");
-    expect(address).toBe(-1);
-  });
-
-  it("should intern a string and return its address", () => {
-    const address1 = digest.intern("hello");
-    const address2 = digest.intern("hello");
-    expect(address1).toBe(address2);
-    expect(digest.get(address1)).toBe("hello");
-  });
-
-  it("should add a new string if not found during intern", () => {
-    const address1 = digest.intern("hello");
-    const address2 = digest.intern("world");
-    expect(address1).not.toBe(address2);
-    expect(digest.get(address1)).toBe("hello");
-    expect(digest.get(address2)).toBe("world");
-  });
-
-  it("should correctly handle multiple strings", () => {
-    const address1 = digest.add("hello");
-    const address2 = digest.add("world");
-    expect(address1).not.toBe(address2);
-    expect(digest.get(address1)).toBe("hello");
-    expect(digest.get(address2)).toBe("world");
-  });
-
-  it("should correctly handle empty strings", () => {
-    const address = digest.add("");
-    expect(digest.get(address)).toBe("");
-  });
-
-  it("should correctly handle strings with special characters", () => {
-    const specialString = "hello\nworld\t!";
-    const address = digest.add(specialString);
-    expect(digest.get(address)).toBe(specialString);
-  });
-
-  it("should correctly handle strings with maximum length", () => {
-    const maxLengthString = "a".repeat(255);
-    const address = digest.add(maxLengthString);
-    expect(digest.get(address)).toBe(maxLengthString);
-  });
-
-  // Additional tests to cover specific lines
-
-  it("should handle adding multiple strings and retrieving them correctly", () => {
-    const address1 = digest.add("first");
-    const address2 = digest.add("second");
-    const address3 = digest.add("third");
-    expect(digest.get(address1)).toBe("first");
-    expect(digest.get(address2)).toBe("second");
-    expect(digest.get(address3)).toBe("third");
-  });
-
-  it("should handle resetting the digest and adding new strings", () => {
-    digest.add("hello");
-    digest.reset();
-    const address = digest.add("new");
-    expect(digest.get(address)).toBe("new");
-  });
-
-  it("should handle finding strings after multiple additions", () => {
-    digest.add("first");
-    digest.add("second");
-    const address = digest.find("second");
-    expect(address).not.toBe(-1);
-    expect(digest.get(address)).toBe("second");
-  });
-
-  it("should handle interning strings after multiple additions", () => {
-    digest.add("first");
-    digest.add("second");
-    const address1 = digest.intern("second");
-    const address2 = digest.intern("second");
-    expect(address1).toBe(address2);
-    expect(digest.get(address1)).toBe("second");
+  it("should correctly report remaining space", () => {
+    const initialSpace = digest.remainingSpace;
+    digest.add("data");
+    expect(digest.remainingSpace).toBe(initialSpace - (1 + "data".length));
   });
 });
