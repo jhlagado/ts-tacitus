@@ -1,6 +1,10 @@
 import { VM } from "../../core/vm";
 import { Verb } from "../../core/types";
-import { toTaggedValue, Tag, fromTaggedValue } from "../../core/tagged-value";
+import {
+  toTaggedValue,
+  PrimitiveTag,
+  fromTaggedValue,
+} from "../../core/tagged";
 import { formatValue } from "../../core/utils";
 
 export const literalNumberOp: Verb = (vm: VM) => {
@@ -18,14 +22,14 @@ export const skipDefOp: Verb = (vm: VM) => {
 export const skipBlockOp: Verb = (vm: VM) => {
   const offset = vm.next16(); // Read the relative offset
   if (vm.debug) console.log("branchCallOp", offset);
-  vm.push(toTaggedValue(Tag.CODE, vm.IP));
+  vm.push(toTaggedValue(vm.IP, PrimitiveTag.CODE));
   vm.IP += offset;
 };
 
 export const callOp: Verb = (vm: VM) => {
   const address = vm.next16();
   if (vm.debug) console.log("callOp", address);
-  vm.rpush(toTaggedValue(Tag.CODE, vm.IP));
+  vm.rpush(toTaggedValue(vm.IP, PrimitiveTag.CODE));
   vm.IP = address;
 };
 
@@ -36,13 +40,13 @@ export const abortOp: Verb = (vm: VM) => {
 
 export const exitOp: Verb = (vm: VM) => {
   if (vm.debug) console.log("exitOp");
-  vm.IP = fromTaggedValue(Tag.CODE, vm.rpop()).value;
+  vm.IP = fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value;
 };
 
 export const evalOp: Verb = (vm: VM) => {
   if (vm.debug) console.log("evalOp");
-  vm.rpush(toTaggedValue(Tag.CODE, vm.IP));
-  const { value: pointer } = fromTaggedValue(Tag.CODE, vm.pop());
+  vm.rpush(toTaggedValue(vm.IP, PrimitiveTag.CODE));
+  const { value: pointer } = fromTaggedValue(vm.pop(), PrimitiveTag.CODE);
   vm.IP = pointer;
 };
 

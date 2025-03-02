@@ -4,7 +4,12 @@ import { Memory } from "../core/memory";
 import { Digest } from "../core/digest";
 import { Heap } from "../core/heap";
 import { dictCreate, dictGet } from "../data/dict";
-import { NIL, fromTaggedValue, Tag } from "../core/tagged-value";
+import {
+  NIL,
+  fromTaggedValue,
+  PrimitiveTag,
+  HeapSubType,
+} from "../core/tagged";
 
 describe("Dictionary (dict) Tests", () => {
   let memory: Memory;
@@ -17,11 +22,14 @@ describe("Dictionary (dict) Tests", () => {
     heap = new Heap(memory);
   });
 
-  test("dictCreate returns a tagged pointer with Tag.DICT", () => {
+  test("dictCreate returns a tagged pointer with PrimitiveTag.DICT", () => {
     const entries = ["a", 1, "b", 2, "c", 3];
     const dict = dictCreate(digest, heap, entries);
-    const { tag, value } = fromTaggedValue(Tag.DICT, dict);
-    expect(tag).toBe(Tag.DICT);
+    const { value } = fromTaggedValue(
+      dict,
+      PrimitiveTag.HEAP,
+      HeapSubType.DICT
+    );
     expect(value).toBeGreaterThan(0);
   });
 
@@ -74,7 +82,11 @@ describe("Dictionary (dict) Tests", () => {
     const entries: (string | number)[] = [];
     const dict = dictCreate(digest, heap, entries);
     // For an empty vector, the header length should be 0.
-    const { value: rawPtr } = fromTaggedValue(Tag.DICT, dict);
+    const { value: rawPtr } = fromTaggedValue(
+      dict,
+      PrimitiveTag.HEAP,
+      HeapSubType.DICT,
+    );
     const totalElements = memory.read16(rawPtr + 4); // VEC_SIZE is imported as 4
     expect(totalElements).toBe(0);
     // Lookup should return NIL.

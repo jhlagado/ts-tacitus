@@ -6,10 +6,10 @@ import { Memory } from "../core/memory";
 import {
   fromTaggedValue,
   isNIL,
-  Tag,
-  TAG_ANY,
   NIL,
-} from "../core/tagged-value";
+  PrimitiveTag,
+  HeapSubType,
+} from "../core/tagged";
 import { NULL } from "../core/constants";
 
 describe("Vector Operations", () => {
@@ -93,7 +93,11 @@ describe("Vector Operations", () => {
     expect(isNIL(vectorPtr)).not.toBe(true);
 
     // Get the underlying block pointer from the tagged vector pointer.
-    const { value: block } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+    const { value: block } = fromTaggedValue(
+      vectorPtr,
+      PrimitiveTag.HEAP,
+      HeapSubType.VECTOR
+    );
     // Manually bump the reference count to simulate sharing (forcing copy-on-write).
     memory.write16(block + BLOCK_REFS, 2);
 
@@ -109,8 +113,8 @@ describe("Vector Operations", () => {
     const vectorPtr2 = vectorCreate(heap, data);
     expect(isNIL(vectorPtr1)).not.toBe(true);
     expect(isNIL(vectorPtr2)).not.toBe(true);
-    const ptr1 = fromTaggedValue(TAG_ANY, vectorPtr1).value;
-    const ptr2 = fromTaggedValue(TAG_ANY, vectorPtr2).value;
+    const ptr1 = fromTaggedValue(vectorPtr1).value;
+    const ptr2 = fromTaggedValue(vectorPtr2).value;
     // Ensure that two separate calls to vectorCreate yield distinct pointers.
     expect(ptr1).not.toBe(ptr2);
   });
@@ -153,7 +157,11 @@ describe("Vector Operations", () => {
     expect(isNIL(vectorPtr)).not.toBe(true);
 
     // Extract the underlying first block from the tagged vector pointer.
-    const { value: firstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
+    const { value: firstBlock } = fromTaggedValue(
+      vectorPtr,
+      PrimitiveTag.HEAP,
+      HeapSubType.VECTOR
+    );
     // Get the pointer to the second block.
     const secondBlock = heap.getNextBlock(firstBlock);
     expect(secondBlock).not.toBe(NULL);

@@ -5,9 +5,10 @@ import {
   isNIL,
   NIL,
   fromTaggedValue,
-  Tag,
+  PrimitiveTag,
   toTaggedValue,
-} from "../../core/tagged-value";
+  HeapSubType,
+} from "../../core/tagged";
 import { VM } from "../../core/vm";
 import { VEC_DATA, vectorCreate, VEC_SIZE } from "../../data/vector";
 
@@ -39,8 +40,12 @@ export function seqCreate(
   if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
   const vectorTagged = vectorCreate(heap, headerData);
   if (isNIL(vectorTagged)) return NIL;
-  const { value: seqPtr } = fromTaggedValue(Tag.VECTOR, vectorTagged);
-  return toTaggedValue(Tag.SEQ, seqPtr);
+  const { value: seqPtr } = fromTaggedValue(
+    vectorTagged,
+    PrimitiveTag.HEAP,
+    HeapSubType.VECTOR
+  );
+  return toTaggedValue(seqPtr, PrimitiveTag.HEAP, HeapSubType.SEQ);
 }
 
 /**
@@ -48,7 +53,7 @@ export function seqCreate(
  * @returns The updated sequence pointer if modified by copy-on-write.
  */
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
-  let { value: seqPtr } = fromTaggedValue(Tag.SEQ, seq);
+  let { value: seqPtr } = fromTaggedValue(seq, PrimitiveTag.HEAP, HeapSubType.SEQ);
 
   const sourceType = heap.memory.readFloat(seqPtr + SEQ_TYPE);
   const metaCount = heap.memory.readFloat(seqPtr + SEQ_META_COUNT);
@@ -60,7 +65,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const end = heap.memory.readFloat(seqPtr + SEQ_META_START + 8); // meta[2]
       const cursor = heap.memory.readFloat(seqPtr + cursorOffset);
       if (cursor <= end) {
-        vm.push(toTaggedValue(Tag.INTEGER, cursor));
+        vm.push(toTaggedValue(cursor, PrimitiveTag.INTEGER));
         heap.memory.writeFloat(seqPtr + cursorOffset, cursor + step);
       } else {
         vm.push(NIL);
@@ -69,7 +74,11 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
     }
     case SEQ_SRC_VECTOR: {
       const taggedVecPtr = heap.memory.readFloat(seqPtr + SEQ_META_START); // meta[0]
-      const { value: vecPtr } = fromTaggedValue(Tag.VECTOR, taggedVecPtr);
+      const { value: vecPtr } = fromTaggedValue(
+        taggedVecPtr,
+        PrimitiveTag.HEAP,
+        HeapSubType.VECTOR,
+      );
       const index = heap.memory.readFloat(seqPtr + cursorOffset);
       const length = heap.memory.read16(vecPtr + VEC_SIZE);
       if (index < length) {
@@ -96,7 +105,10 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
     }
     case SEQ_SRC_STRING: {
       const taggedStrPtr = heap.memory.readFloat(seqPtr + SEQ_META_START); // meta[0]
-      const { value: strPtr } = fromTaggedValue(Tag.STRING, taggedStrPtr);
+      const { value: strPtr } = fromTaggedValue(
+        taggedStrPtr,
+        PrimitiveTag.STRING,
+      );
       const index = heap.memory.readFloat(seqPtr + cursorOffset);
       const length = heap.memory.read16(strPtr + VEC_SIZE);
       if (index < length) {

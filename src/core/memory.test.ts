@@ -71,7 +71,7 @@ describe("Memory", () => {
     // Test invalid tag handling
     memory.writeFloat(24, 123.45); // Write non-tagged float
     expect(() => memory.readAddress(24)).toThrow(
-      "Not a tagged value"
+      "PrimitiveTag mismatch: expected 4, got 3"
     );
   });
 
@@ -85,7 +85,7 @@ describe("Memory", () => {
     // Test invalid tag handling
     memory.writeFloat(44, 3.14159); // Write non-tagged float
     expect(() => memory.readInteger(44)).toThrow(
-      "Not a tagged value"
+      "PrimitiveTag mismatch: expected 6, got 3"
     );
   });
 

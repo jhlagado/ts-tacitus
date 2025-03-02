@@ -4,11 +4,11 @@
  * New tagging scheme:
  *
  * Primitives:
- *   FLOAT:   Tag = 0         → 31 bits for float (assumed to have a 22-bit mantissa)
- *   CODE:    Tag = 100       → 29 bits for address (4-byte alignment)
- *   STRING:  Tag = 101       → 29 bits for address (4-byte alignment)
- *   INTEGER: Tag = 110       → 29 bits for signed integer (0 used for NIL)
- *   HEAP:    Tag = 111       → Indicates a heap pointer, with extra subtype bits.
+ *   FLOAT:   PrimitiveTag = 0         → 31 bits for float (assumed to have a 22-bit mantissa)
+ *   CODE:    PrimitiveTag = 100       → 29 bits for address (4-byte alignment)
+ *   STRING:  PrimitiveTag = 101       → 29 bits for address (4-byte alignment)
+ *   INTEGER: PrimitiveTag = 110       → 29 bits for signed integer (0 used for NIL)
+ *   HEAP:    PrimitiveTag = 111       → Indicates a heap pointer, with extra subtype bits.
  *
  * Heap allocated types (for values with primary tag HEAP):
  *   BLOCK:   Subtype = 000   → Combined tag: 111 000
@@ -42,11 +42,8 @@ const PRIMITIVE_VALUE_BITS = 29;
 // For HEAP values: 3-bit primary tag, 3-bit heap subtype, then remaining bits for the address.
 // We assume that heap addresses are 64-byte aligned so that their lower 6 bits are always zero.
 
-// A constant to represent "any" tag when decoding.
-export const TAG_ANY = -1;
-
 // We define NIL as the integer tagged value with a value of 0.
-export const NIL = toTaggedValue(PrimitiveTag.INTEGER, 0);
+export const NIL = toTaggedValue(0, PrimitiveTag.INTEGER);
 
 /**
  * Encodes a value into our tagged representation.
@@ -56,8 +53,8 @@ export const NIL = toTaggedValue(PrimitiveTag.INTEGER, 0);
  * @param heapSubtype - When using HEAP tag, the subtype (HeapSubType) must be provided.
  */
 export function toTaggedValue(
-  tag: PrimitiveTag,
   value: number,
+  tag: PrimitiveTag,
   heapSubtype?: HeapSubType
 ): number {
   let encoded: number;
@@ -109,49 +106,82 @@ export function toTaggedValue(
 }
 
 /**
- * Decodes a tagged value.
+ * Decodes a tagged value and asserts that it matches the expected primitive tag.
  *
- * @param encoded - The tagged number.
+ * The encoded value is assumed to follow our custom tagging scheme:
+ * - The lower 3 bits represent the primary tag.
+ * - For FLOAT (tag 0): the entire 32 bits represent the float.
+ * - For CODE (tag 4) and STRING (tag 5): the value is stored in the upper 29 bits.
+ *   An unsigned right shift (>>>) by 3 recovers the original 29-bit address.
+ * - For INTEGER (tag 6): the value is stored in the upper 29 bits and is
+ *   interpreted as a signed integer, so an arithmetic right shift (>>) is used.
+ * - For HEAP (tag 7): the next 3 bits (bits 3–5) encode the heap subtype,
+ *   and the remaining bits (after shifting right 6) represent the heap address.
+ *   The heap address is restored to its original form by shifting back left by 6.
+ *
+ * @param expectedTag - The expected primary tag (a value from PrimitiveTag).
+ * @param encoded - The encoded tagged value.
  * @returns An object containing:
- *  - tag: The primary tag (PrimitiveTag).
- *  - value: The extracted data (address, integer, or float representation).
- *  - heapSubtype: When tag is HEAP, the extracted heap subtype.
+ *   - tag: The primary tag (will equal expectedTag).
+ *   - value: The decoded numeric value.
+ *   - heapSubtype: If the tag is HEAP, the decoded heap subtype.
+ *
+ * @throws {Error} If the encoded value's tag does not match the expectedTag.
  */
-export function fromTaggedValue(encoded: number): {
-  tag: PrimitiveTag;
-  value: number;
-  heapSubtype?: HeapSubType;
-} {
-  // The primary tag is in the lower 3 bits.
+export function fromTaggedValue(
+  encoded: number,
+  expectedTag?: PrimitiveTag,
+  expectedHeapSubtype?: HeapSubType
+): { tag: PrimitiveTag; value: number; heapSubtype?: HeapSubType } {
+  // Extract the primary tag from the lower 3 bits.
   const tag = encoded & 0x7;
+
+  // Check against the expected tag, if provided.
+  if (expectedTag !== undefined && tag !== expectedTag) {
+    throw new Error(
+      `PrimitiveTag mismatch: expected ${expectedTag}, got ${tag}`
+    );
+  }
+
   let value: number;
-  let heapSubtype: HeapSubType | undefined;
+  let heapSubtype;
 
   switch (tag) {
     case PrimitiveTag.FLOAT:
-      // For FLOAT, we assume the entire value is stored as given.
+      // For FLOAT, assume the entire 32 bits represent the float.
       value = encoded;
       break;
     case PrimitiveTag.CODE:
     case PrimitiveTag.STRING:
-      // For CODE and STRING, use an *unsigned* right shift.
+      // For CODE and STRING, use an unsigned right shift to recover the 29-bit address.
       value = encoded >>> 3;
       break;
     case PrimitiveTag.INTEGER:
-      // For INTEGER, perform *arithmetic* right shift.
+      // For INTEGER, perform an arithmetic (signed) right shift.
       value = encoded >> 3;
       break;
     case PrimitiveTag.HEAP:
-      // For HEAP values, the next 3 bits encode the heap subtype.
+      // Extract the heap subtype from the next 3 bits.
       heapSubtype = (encoded >> 3) & 0x7;
-      // The rest of the bits represent the address (which was originally shifted right by 6).
+
+      if (
+        expectedHeapSubtype !== undefined &&
+        heapSubtype !== expectedHeapSubtype
+      ) {
+        throw new Error(
+          `Heap Subtype mismatch: expected ${expectedHeapSubtype}, got ${heapSubtype}`
+        );
+      }
+
+      // The remaining bits (after shifting right 6 bits) hold the heap address.
       value = encoded >> 6;
-      // Restore the 64-byte alignment by shifting left by 6.
+      // Restore the 64-byte alignment by shifting left 6 bits.
       value = value << 6;
       break;
     default:
       throw new Error("Unsupported tag in encoded value");
   }
+
   return { tag, value, heapSubtype };
 }
 
@@ -222,9 +252,9 @@ export function printNum(...args: unknown[]): void {
     if (isTaggedValue(num)) {
       const { tag, value, heapSubtype } = fromTaggedValue(num);
       if (tag === PrimitiveTag.HEAP) {
-        return `Tag: ${tag} (HEAP, subtype: ${heapSubtype}), Value (address): ${value}`;
+        return `PrimitiveTag: ${tag} (HEAP, subtype: ${heapSubtype}), Value (address): ${value}`;
       } else {
-        return `Tag: ${tag}, Value: ${value}`;
+        return `PrimitiveTag: ${tag}, Value: ${value}`;
       }
     } else {
       return num.toString();

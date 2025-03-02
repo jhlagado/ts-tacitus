@@ -2,7 +2,12 @@ import { Compiler } from "../lang/compiler";
 import { SymbolTable } from "./symbol-table";
 import { Memory, STACK, RSTACK, STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
 import { Heap } from "./heap";
-import { Tag, fromTaggedValue, isRefCounted, toTaggedValue } from "./tagged-value";
+import {
+  fromTaggedValue,
+  isRefCounted,
+  PrimitiveTag,
+  toTaggedValue,
+} from "./tagged";
 import { Digest } from "./digest";
 
 export class VM {
@@ -31,8 +36,8 @@ export class VM {
   }
 
   eval() {
-    this.rpush(toTaggedValue(Tag.CODE, this.IP));
-    const { value: pointer } = fromTaggedValue(Tag.CODE, this.pop());
+    this.rpush(toTaggedValue(this.IP, PrimitiveTag.CODE));
+    const { value: pointer } = fromTaggedValue(this.pop(), PrimitiveTag.CODE);
     this.IP = pointer;
   }
 
@@ -145,7 +150,7 @@ export class VM {
    */
   nextAddress(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(Tag.CODE, tagNum);
+    const { value: pointer } = fromTaggedValue( tagNum,PrimitiveTag.CODE);
     return pointer;
   }
 
@@ -154,7 +159,7 @@ export class VM {
    */
   nextInteger(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(Tag.INTEGER, tagNum);
+    const { value: pointer } = fromTaggedValue( tagNum,PrimitiveTag.INTEGER);
     return pointer;
   }
 

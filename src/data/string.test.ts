@@ -3,7 +3,7 @@
 import { Memory } from "../core/memory";
 import { Digest } from "../core/digest";
 import { stringCreate } from "../data/string";
-import { Tag, fromTaggedValue } from "../core/tagged-value";
+import { PrimitiveTag, fromTaggedValue } from "../core/tagged";
 
 describe("stringCreate", () => {
   let memory: Memory;
@@ -14,11 +14,14 @@ describe("stringCreate", () => {
     digest = new Digest(memory);
   });
 
-  it("should create a tagged string with Tag.STRING", () => {
+  it("should create a tagged string with PrimitiveTag.STRING", () => {
     const value = "hello";
     const taggedValue = stringCreate(digest, value);
-    const { tag, value: address } = fromTaggedValue(Tag.STRING, taggedValue);
-    expect(tag).toBe(Tag.STRING);
+    const { tag, value: address } = fromTaggedValue(
+      taggedValue,
+      PrimitiveTag.STRING
+    );
+    expect(tag).toBe(PrimitiveTag.STRING);
     expect(digest.get(address)).toBe(value);
   });
 
@@ -27,8 +30,8 @@ describe("stringCreate", () => {
     const str2 = "bar";
     const tagged1 = stringCreate(digest, str1);
     const tagged2 = stringCreate(digest, str2);
-    const { value: address1 } = fromTaggedValue(Tag.STRING, tagged1);
-    const { value: address2 } = fromTaggedValue(Tag.STRING, tagged2);
+    const { value: address1 } = fromTaggedValue(tagged1, PrimitiveTag.STRING);
+    const { value: address2 } = fromTaggedValue(tagged2, PrimitiveTag.STRING);
     expect(address1).not.toBe(address2);
     expect(digest.get(address1)).toBe(str1);
     expect(digest.get(address2)).toBe(str2);
@@ -37,7 +40,10 @@ describe("stringCreate", () => {
   it("should handle empty strings correctly", () => {
     const value = "";
     const taggedValue = stringCreate(digest, value);
-    const { value: address } = fromTaggedValue(Tag.STRING, taggedValue);
+    const { value: address } = fromTaggedValue(
+      taggedValue,
+      PrimitiveTag.STRING
+    );
     expect(digest.get(address)).toBe(value);
   });
 
@@ -52,7 +58,7 @@ describe("stringCreate", () => {
     const strings = ["first", "second", "third"];
     const taggedValues = strings.map((s) => stringCreate(digest, s));
     taggedValues.forEach((tagged, index) => {
-      const { value: address } = fromTaggedValue(Tag.STRING, tagged);
+      const { value: address } = fromTaggedValue(tagged, PrimitiveTag.STRING);
       expect(digest.get(address)).toBe(strings[index]);
     });
   });

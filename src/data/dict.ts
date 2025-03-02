@@ -1,7 +1,13 @@
 // File: src/data/dict.ts
 
 import { Digest } from "../core/digest";
-import { Tag, toTaggedValue, fromTaggedValue, NIL } from "../core/tagged-value";
+import {
+  PrimitiveTag,
+  toTaggedValue,
+  fromTaggedValue,
+  NIL,
+  HeapSubType,
+} from "../core/tagged";
 import { Heap } from "../core/heap";
 import { stringCreate } from "./string";
 import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
@@ -12,12 +18,12 @@ import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
  * Keys (even indices) must be strings.
  * The function validates the input, sorts the pairs by key (using localeCompare),
  * converts keys with stringCreate, and then creates a vector from the flattened data.
- * Finally, it re-tags the resulting pointer with Tag.DICT.
+ * Finally, it re-tags the resulting pointer with PrimitiveTag.DICT.
  *
  * @param digest - The Digest instance for interning key strings.
  * @param heap - The Heap instance for memory allocation.
  * @param entries - A flat array of key-value pairs: [key1, value1, key2, value2, ...]
- * @returns A tagged pointer (number) with Tag.DICT.
+ * @returns A tagged pointer (number) with PrimitiveTag.DICT.
  */
 export function dictCreate(
   digest: Digest,
@@ -26,7 +32,9 @@ export function dictCreate(
 ): number {
   // Validate that the array length is even.
   if (entries.length % 2 !== 0) {
-    throw new Error("The entries array must have an even number of elements (key-value pairs).");
+    throw new Error(
+      "The entries array must have an even number of elements (key-value pairs)."
+    );
   }
 
   // Build an array of [key, value] pairs.
@@ -56,10 +64,14 @@ export function dictCreate(
 
   // Create a vector from the flattened data using vectorCreate.
   const vectorTagged = vectorCreate(heap, flattened);
-  // Unwrap the raw pointer (assumed to be tagged as Tag.VECTOR from vectorCreate).
-  const { value: rawPtr } = fromTaggedValue(Tag.VECTOR, vectorTagged);
+  // Unwrap the raw pointer (assumed to be tagged as PrimitiveTag.VECTOR from vectorCreate).
+  const { value: rawPtr } = fromTaggedValue(
+    vectorTagged,
+    PrimitiveTag.HEAP,
+    HeapSubType.VECTOR
+  );
   // Retag the vector pointer as a dictionary.
-  return toTaggedValue(Tag.DICT, rawPtr);
+  return toTaggedValue(rawPtr, PrimitiveTag.HEAP, HeapSubType.DICT);
 }
 
 /**
@@ -68,7 +80,7 @@ export function dictCreate(
  *
  * @param digest - The Digest instance for key interning.
  * @param heap - The Heap instance for memory access.
- * @param dict - The tagged pointer (with Tag.DICT) representing the dictionary.
+ * @param dict - The tagged pointer (with PrimitiveTag.DICT) representing the dictionary.
  * @param key - The key string to look up.
  * @returns The associated value if found, or NIL otherwise.
  */
@@ -79,7 +91,11 @@ export function dictGet(
   key: string
 ): number {
   // Unwrap the dictionary pointer.
-  const { value: rawPtr } = fromTaggedValue(Tag.DICT, dict);
+  const { value: rawPtr } = fromTaggedValue(
+    dict,
+    PrimitiveTag.HEAP,
+    HeapSubType.DICT
+  );
   // Read the total number of elements from the vector header.
   // (Assuming the length is stored at offset VEC_SIZE as a 16-bit value.)
   const totalElements = heap.memory.read16(rawPtr + VEC_SIZE);
@@ -94,7 +110,7 @@ export function dictGet(
     // Data begins at offset VEC_DATA.
     const pairOffset = rawPtr + VEC_DATA + mid * 8;
     const taggedKey = heap.memory.readFloat(pairOffset);
-    const { value: keyAddr } = fromTaggedValue(Tag.STRING, taggedKey);
+    const { value: keyAddr } = fromTaggedValue(taggedKey, PrimitiveTag.STRING);
     const storedKey = digest.get(keyAddr);
     const cmp = storedKey.localeCompare(key);
     if (cmp === 0) {

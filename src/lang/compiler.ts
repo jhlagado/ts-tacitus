@@ -1,6 +1,6 @@
 import { CODE } from "../core/memory";
 import { VM } from "../core/vm";
-import { Tag, toTaggedValue } from "../core/tagged-value";
+import { PrimitiveTag, toTaggedValue } from "../core/tagged";
 
 export class Compiler {
   nestingScore: number;
@@ -47,7 +47,7 @@ export class Compiler {
    * Compiles an integer value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileInteger(value: number): void {
-    const tagNum = toTaggedValue(Tag.INTEGER, value); // Tag the integer
+    const tagNum = toTaggedValue(value, PrimitiveTag.INTEGER); // PrimitiveTag the integer
     this.compileFloat(tagNum); // Write the tagged pointer as a Float32
   }
 
@@ -55,7 +55,7 @@ export class Compiler {
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileAddress(value: number): void {
-    const tagNum = toTaggedValue(Tag.CODE, value); // Tag the address
+    const tagNum = toTaggedValue(value, PrimitiveTag.CODE); // PrimitiveTag the address
     this.compileFloat(tagNum); // Write the tagged pointer as a Float32
   }
 

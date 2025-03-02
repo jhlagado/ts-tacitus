@@ -5,9 +5,10 @@ import {
   toTaggedValue,
   fromTaggedValue,
   isTaggedValue,
-  Tag,
+  PrimitiveTag,
   NIL,
-} from "../core/tagged-value";
+  HeapSubType,
+} from "../core/tagged";
 import { NULL } from "../core/constants";
 
 // Define offsets in the vector block
@@ -50,7 +51,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
     }
   }
 
-  return toTaggedValue(Tag.VECTOR, firstBlock);
+  return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
 }
 
 /**
@@ -66,9 +67,11 @@ export function vectorGet(
   index: number
 ): number {
   if (!isTaggedValue(vectorPtr)) return NIL;
-  const { tag, value: firstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
-  if (tag !== Tag.VECTOR) return NIL;
-
+  const { value: firstBlock } = fromTaggedValue(
+    vectorPtr,
+    PrimitiveTag.HEAP,
+    HeapSubType.VECTOR
+  );
   // Read the logical length from the first block’s header.
   const length = heap.memory.read16(firstBlock + VEC_SIZE);
   if (index < 0 || index >= length) return NIL;
@@ -108,8 +111,11 @@ export function vectorUpdate(
 ): number {
   if (!isTaggedValue(vectorPtr)) return NIL;
   // Extract the first block pointer from the tagged vector pointer.
-  let { tag, value: origFirstBlock } = fromTaggedValue(Tag.VECTOR, vectorPtr);
-  if (tag !== Tag.VECTOR) return NIL;
+  let { value: origFirstBlock } = fromTaggedValue(
+    vectorPtr,
+    PrimitiveTag.HEAP,
+    HeapSubType.VECTOR
+  );
   let firstBlock = origFirstBlock;
 
   // Read the logical length from the first block.
@@ -133,7 +139,7 @@ export function vectorUpdate(
       currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
       value
     );
-    return toTaggedValue(Tag.VECTOR, firstBlock);
+    return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
   }
 
   let prevBlock = currentBlock;
@@ -146,7 +152,7 @@ export function vectorUpdate(
         currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value
       );
-      return toTaggedValue(Tag.VECTOR, firstBlock);
+      return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
     }
     remainingIndex -= capacityPerBlock;
     prevBlock = currentBlock;
