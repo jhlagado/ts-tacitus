@@ -8,7 +8,6 @@ import {
   getTag,
   getValue,
   isRefCounted,
-  isNIL,
   printNum,
 } from "./tagged";
 
@@ -123,14 +122,10 @@ describe("Tagged.ts Library", () => {
       expect(isRefCounted(heapVector)).toBe(false);
     });
 
-    it("isNIL should return true for NIL (INTEGER with value 0)", () => {
-      // NIL is defined as an INTEGER tagged value with 0.
-      expect(isNIL(NIL)).toBe(true);
-    });
 
     it("isNIL should return false for non-NIL values", () => {
       const intTagged = toTaggedValue(1, PrimitiveTag.INTEGER);
-      expect(isNIL(intTagged)).toBe(false);
+      expect(intTagged).not.toBe(NIL);
     });
 
     it("printNum should output correct string for INTEGER values", () => {
@@ -162,7 +157,7 @@ describe("Tagged.ts Library", () => {
 
   describe("isTaggedValue", () => {
     it("should return true for values created by toTaggedValue", () => {
-      const intTagged = toTaggedValue(5,PrimitiveTag.INTEGER);
+      const intTagged = toTaggedValue(5, PrimitiveTag.INTEGER);
       expect(isTaggedValue(intTagged)).toBe(true);
     });
     it("should return false for non-integer values", () => {

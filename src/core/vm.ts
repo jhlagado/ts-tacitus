@@ -162,15 +162,6 @@ export class VM {
   }
 
   /**
-   * Reads the next integer (tagged as INTEGER) from memory and increments the instruction pointer.
-   */
-  nextInteger(): number {
-    const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(tagNum, PrimitiveTag.INTEGER);
-    return pointer;
-  }
-
-  /**
    * Returns the current stack data as an array of 32-bit values.
    */
   getStackData(): number[] {

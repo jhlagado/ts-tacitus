@@ -1,4 +1,4 @@
-import { toTaggedValue, NIL, PrimitiveTag } from "../../core/tagged";
+import { NIL } from "../../core/tagged";
 import { VM } from "../../core/vm";
 import { stringCreate } from "../../data/string";
 import { vectorCreate } from "../../data/vector";
@@ -23,7 +23,7 @@ describe("Sequence Operations", () => {
 
     for (let value of expected) {
       seqNext(vm.heap, vm, seq);
-      expect(vm.pop()).toEqual(toTaggedValue(value, PrimitiveTag.INTEGER));
+      expect(vm.pop()).toEqual(value);
     }
 
     seqNext(vm.heap, vm, seq);
@@ -65,9 +65,9 @@ describe("Sequence Operations", () => {
     const multiSeq = multiSequenceSource(vm.heap, [seq1, seq2]);
 
     const expected = [
-      [toTaggedValue(1, PrimitiveTag.INTEGER), 100],
-      [toTaggedValue(2, PrimitiveTag.INTEGER), 200],
-      [toTaggedValue(3, PrimitiveTag.INTEGER), 300],
+      [1, 100],
+      [2, 200],
+      [3, 300],
     ];
 
     for (let row of expected) {

@@ -3,7 +3,6 @@
 import { Heap } from "../../core/heap";
 import { SEG_HEAP, SEG_STRING } from "../../core/memory";
 import {
-  isNIL,
   NIL,
   fromTaggedValue,
   PrimitiveTag,
@@ -40,7 +39,7 @@ export function seqCreate(
   }
   if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
   const vectorTagged = vectorCreate(heap, headerData);
-  if (isNIL(vectorTagged)) return NIL;
+  if (vectorTagged == NIL) return NIL;
   const { value: seqPtr } = fromTaggedValue(
     vectorTagged,
     PrimitiveTag.HEAP,
@@ -70,7 +69,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const end = heap.memory.readFloat(SEG_HEAP, seqPtr + SEQ_META_START + 8); // meta[2]
       const cursor = heap.memory.readFloat(SEG_HEAP, seqPtr + cursorOffset);
       if (cursor <= end) {
-        vm.push(toTaggedValue(cursor, PrimitiveTag.INTEGER));
+        vm.push(cursor);
         heap.memory.writeFloat(SEG_HEAP, seqPtr + cursorOffset, cursor + step);
       } else {
         vm.push(NIL);

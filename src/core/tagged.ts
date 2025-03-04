@@ -231,16 +231,6 @@ export function isRefCounted(val: number): boolean {
   );
 }
 
-/**
- * Utility: Checks if a tagged value represents NIL.
- *
- * Here NIL is defined as an INTEGER with a value of 0.
- */
-export function isNIL(val: number): boolean {
-  if (!isTaggedValue(val)) return false;
-  const decoded = fromTaggedValue(val);
-  return decoded.tag === PrimitiveTag.INTEGER && decoded.value === 0;
-}
 
 /**
  * Utility: Custom number printing for debugging.

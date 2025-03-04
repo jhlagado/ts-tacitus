@@ -44,14 +44,6 @@ export class Compiler {
   }
 
   /**
-   * Compiles an integer value as a tagged pointer (tagNum) and writes it as a float.
-   */
-  compileInteger(value: number): void {
-    const tagNum = toTaggedValue(value, PrimitiveTag.INTEGER); // PrimitiveTag the integer
-    this.compileFloat(tagNum); // Write the tagged pointer as a Float32
-  }
-
-  /**
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileAddress(value: number): void {
