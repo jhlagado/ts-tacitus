@@ -1,19 +1,31 @@
-import { fromTaggedValue, toTaggedValue, PrimitiveTag } from "../core/tagged";
+// memory.ts
 
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 
-// Define sections
-export const STACK = 0; // Start address of the main stack
-export const STACK_SIZE = 0x100; // Stack size in bytes
-export const RSTACK = STACK + STACK_SIZE; // Start address of the return stack
-export const RSTACK_SIZE = 0x100; // Return stack size
-export const STRINGS = RSTACK + RSTACK_SIZE; // Start address of the heap
-export const STRINGS_SIZE = 0x400; // Remaining memory for heap
-export const HEAP = STRINGS + STRINGS_SIZE; // Start address of the heap
-export const HEAP_SIZE = MEMORY_SIZE - HEAP; // Remaining memory for heap
+// Segment Table
+const SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
-// Other sections (optional)
-export const CODE = HEAP; // Start of executable code (if needed)
+// Segment ID mappings (aligning with PrimitiveTag where possible)
+export const SEG_STACK = 0;  // Data Stack
+export const SEG_RSTACK = 1; // Return Stack
+export const SEG_CODE = 4;   // Code execution memory (8K allocated)
+export const SEG_STRING = 5; // String storage
+export const SEG_HEAP = 7;   // Heap objects (largest segment, last)
+
+// Segment sizes
+export const STACK_SIZE = 0x0100;  // 256 bytes
+export const RSTACK_SIZE = 0x0100; // 256 bytes
+export const STRING_SIZE = 0x0800; // 2K allocated
+export const CODE_SIZE = 0x2000;   // 8K allocated
+export const HEAP_SIZE = MEMORY_SIZE - (STACK_SIZE + RSTACK_SIZE + STRING_SIZE + CODE_SIZE); // Remaining memory for heap
+
+function initializeSegments() {
+    SEGMENT_TABLE[SEG_STACK] = 0x0000;
+    SEGMENT_TABLE[SEG_RSTACK] = SEGMENT_TABLE[SEG_STACK] + STACK_SIZE;
+    SEGMENT_TABLE[SEG_STRING] = SEGMENT_TABLE[SEG_RSTACK] + RSTACK_SIZE;
+    SEGMENT_TABLE[SEG_CODE] = SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
+    SEGMENT_TABLE[SEG_HEAP] = SEGMENT_TABLE[SEG_CODE] + CODE_SIZE;
+}
 
 export class Memory {
   buffer: Uint8Array;
@@ -22,84 +34,73 @@ export class Memory {
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
     this.dataView = new DataView(this.buffer.buffer);
+    initializeSegments();
   }
 
-  // 8-bit read/write
-  write8(address: number, value: number): void {
+  resolveAddress(segment: number, offset: number): number {
+    if (segment < 0 || segment >= SEGMENT_TABLE.length) {
+      throw new RangeError(`Invalid segment ID: ${segment}`);
+    }
+    const baseAddress = SEGMENT_TABLE[segment];
+    return baseAddress + offset;
+  }
+
+  write8(segment: number, offset: number, value: number): void {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     this.buffer[address] = value & 0xff;
   }
 
-  read8(address: number): number {
+  read8(segment: number, offset: number): number {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     return this.buffer[address];
   }
 
-  // 16-bit read/write
-  write16(address: number, value: number): void {
+  write16(segment: number, offset: number, value: number): void {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
-    this.dataView.setUint16(address, value & 0xffff, true); // Little-endian
+    this.dataView.setUint16(address, value & 0xffff, true);
   }
 
-  read16(address: number): number {
+  read16(segment: number, offset: number): number {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
-    return this.dataView.getUint16(address, true); // Little-endian
+    return this.dataView.getUint16(address, true);
   }
 
-  // Float32 read/write (unaligned)
-  writeFloat(address: number, value: number): void {
+  writeFloat(segment: number, offset: number, value: number): void {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     const buffer = new ArrayBuffer(4);
     const view = new DataView(buffer);
-    view.setFloat32(0, value, true); // Little-endian
-
+    view.setFloat32(0, value, true);
     for (let i = 0; i < 4; i++) {
-      this.write8(address + i, view.getUint8(i));
+      this.write8(segment, offset + i, view.getUint8(i));
     }
   }
 
-  readFloat(address: number): number {
+  readFloat(segment: number, offset: number): number {
+    const address = this.resolveAddress(segment, offset);
     if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
     const buffer = new ArrayBuffer(4);
     const view = new DataView(buffer);
-
     for (let i = 0; i < 4; i++) {
-      view.setUint8(i, this.read8(address + i));
+      view.setUint8(i, this.read8(segment, offset + i));
     }
-
-    return view.getFloat32(0, true); // Little-endian
-  }
-
-  writeAddress(address: number, value: number): void {
-    this.writeFloat(address, toTaggedValue(value, PrimitiveTag.CODE));
-  }
-
-  readAddress(address: number): number {
-    const tagNum = this.readFloat(address); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(tagNum, PrimitiveTag.CODE);
-    return pointer;
-  }
-
-  writeInteger(address: number, value: number): void {
-    this.writeFloat(address, toTaggedValue(value, PrimitiveTag.INTEGER));
-  }
-
-  readInteger(address: number): number {
-    const tagNum = this.readFloat(address); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(tagNum, PrimitiveTag.INTEGER);
-    return pointer;
+    return view.getFloat32(0, true);
   }
 
   // Utility to dump memory for debugging

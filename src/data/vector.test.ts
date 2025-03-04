@@ -2,7 +2,7 @@
 
 import { Heap, BLOCK_REFS } from "../core/heap";
 import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
-import { Memory } from "../core/memory";
+import { Memory, SEG_HEAP } from "../core/memory";
 import {
   fromTaggedValue,
   isNIL,
@@ -10,7 +10,7 @@ import {
   PrimitiveTag,
   HeapSubType,
 } from "../core/tagged";
-import { NULL } from "../core/constants";
+import { INVALID } from "../core/constants";
 
 describe("Vector Operations", () => {
   let memory: Memory;
@@ -99,7 +99,7 @@ describe("Vector Operations", () => {
       HeapSubType.VECTOR
     );
     // Manually bump the reference count to simulate sharing (forcing copy-on-write).
-    memory.write16(block + BLOCK_REFS, 2);
+    memory.write16(SEG_HEAP, block + BLOCK_REFS, 2);
 
     const updatedVectorPtr = vectorUpdate(heap, vectorPtr, 1, 9.9);
     expect(isNIL(updatedVectorPtr)).not.toBe(true);
@@ -164,10 +164,10 @@ describe("Vector Operations", () => {
     );
     // Get the pointer to the second block.
     const secondBlock = heap.getNextBlock(firstBlock);
-    expect(secondBlock).not.toBe(NULL);
+    expect(secondBlock).not.toBe(INVALID);
 
     // Artificially bump the reference count on the second block to force copy-on-write.
-    memory.write16(secondBlock + BLOCK_REFS, 2);
+    memory.write16(SEG_HEAP, secondBlock + BLOCK_REFS, 2);
 
     // Update the element at index 14 (which resides in the second block).
     const newValue = 88.8;

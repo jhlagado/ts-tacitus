@@ -1,6 +1,6 @@
 // File: src/tests/dict.test.ts
 
-import { Memory } from "../core/memory";
+import { Memory, SEG_HEAP } from "../core/memory";
 import { Digest } from "../core/digest";
 import { Heap } from "../core/heap";
 import { dictCreate, dictGet } from "../data/dict";
@@ -10,6 +10,7 @@ import {
   PrimitiveTag,
   HeapSubType,
 } from "../core/tagged";
+import { INVALID } from "../core/constants";
 
 describe("Dictionary (dict) Tests", () => {
   let memory: Memory;
@@ -30,7 +31,7 @@ describe("Dictionary (dict) Tests", () => {
       PrimitiveTag.HEAP,
       HeapSubType.DICT
     );
-    expect(value).toBeGreaterThan(0);
+    expect(value).not.toBe(INVALID);
   });
 
   test("dictCreate throws an error for odd number of entries", () => {
@@ -87,7 +88,7 @@ describe("Dictionary (dict) Tests", () => {
       PrimitiveTag.HEAP,
       HeapSubType.DICT,
     );
-    const totalElements = memory.read16(rawPtr + 4); // VEC_SIZE is imported as 4
+    const totalElements = memory.read16(SEG_HEAP, rawPtr + 4); // VEC_SIZE is imported as 4
     expect(totalElements).toBe(0);
     // Lookup should return NIL.
     expect(dictGet(digest, heap, dict, "anything")).toBe(NIL);

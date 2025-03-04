@@ -1,4 +1,4 @@
-import { Memory, STRINGS, STRINGS_SIZE } from "./memory";
+import { Memory, SEG_STRING, STRING_SIZE } from "./memory";
 
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
@@ -8,7 +8,7 @@ export class Digest {
   SBP: number;
 
   constructor(private memory: Memory) {
-    this.SBP = STRINGS;
+    this.SBP = 0;
   }
 
   add(str: string): number {
@@ -17,69 +17,69 @@ export class Digest {
     }
 
     const requiredSpace = STRING_HEADER_SIZE + str.length;
-    if (this.SBP + requiredSpace > STRINGS + STRINGS_SIZE) {
+    if (this.SBP + requiredSpace > STRING_SIZE) {
       throw new Error("String digest overflow");
     }
 
     const startAddress = this.SBP;
 
-    this.memory.write8(this.SBP++, str.length);
+    this.memory.write8(SEG_STRING, this.SBP++, str.length);
     for (let i = 0; i < str.length; i++) {
-      this.memory.write8(this.SBP++, str.charCodeAt(i));
+      this.memory.write8(SEG_STRING, this.SBP++, str.charCodeAt(i));
     }
 
     return startAddress;
   }
 
-  reset(address: number = STRINGS): void {
-    if (address < STRINGS || address > STRINGS + STRINGS_SIZE) {
+  reset(address: number = 0): void {
+    if (address < 0 || address > 0 + STRING_SIZE) {
       throw new Error("Invalid reset address");
     }
     this.SBP = address;
   }
 
   length(address: number): number {
-    if (address < STRINGS || address >= STRINGS + STRINGS_SIZE) {
+    if (address < 0 || address >= 0 + STRING_SIZE) {
       throw new Error("Address is outside memory bounds");
     }
 
-    return this.memory.read8(address);
+    return this.memory.read8(SEG_STRING, address);
   }
 
   get(address: number): string {
-    if (address < STRINGS || address >= STRINGS + STRINGS_SIZE) {
+    if (address < 0 || address >= 0 + STRING_SIZE) {
       throw new Error("Address is outside memory bounds");
     }
 
     let pointer = address;
-    const length = this.memory.read8(pointer++);
-    if (pointer + length > STRINGS + STRINGS_SIZE) {
+    const length = this.memory.read8(SEG_STRING, pointer++);
+    if (pointer + length > 0 + STRING_SIZE) {
       throw new Error("Address is outside memory bounds");
     }
 
     let str = "";
     for (let i = 0; i < length; i++) {
-      str += String.fromCharCode(this.memory.read8(pointer++));
+      str += String.fromCharCode(this.memory.read8(SEG_STRING, pointer++));
     }
     return str;
   }
 
   get remainingSpace(): number {
-    return STRINGS + STRINGS_SIZE - this.SBP;
+    return 0 + STRING_SIZE - this.SBP;
   }
 
   find(str: string): number {
-    let pointer = STRINGS;
+    let pointer = 0;
     while (pointer < this.SBP) {
-      const length = this.memory.read8(pointer);
-      if (pointer + STRING_HEADER_SIZE + length > STRINGS + STRINGS_SIZE) {
+      const length = this.memory.read8(SEG_STRING, pointer);
+      if (pointer + STRING_HEADER_SIZE + length > 0 + STRING_SIZE) {
         throw new Error("Address is outside memory bounds");
       }
 
       let existingStr = "";
       for (let i = 0; i < length; i++) {
         existingStr += String.fromCharCode(
-          this.memory.read8(pointer + STRING_HEADER_SIZE + i)
+          this.memory.read8(SEG_STRING, pointer + STRING_HEADER_SIZE + i)
         );
       }
 

@@ -11,6 +11,7 @@ import {
 import { Heap } from "../core/heap";
 import { stringCreate } from "./string";
 import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
+import { SEG_HEAP } from "../core/memory";
 
 /**
  * Creates a dictionary (dict) from a flat array of key-value pairs.
@@ -98,7 +99,7 @@ export function dictGet(
   );
   // Read the total number of elements from the vector header.
   // (Assuming the length is stored at offset VEC_SIZE as a 16-bit value.)
-  const totalElements = heap.memory.read16(rawPtr + VEC_SIZE);
+  const totalElements = heap.memory.read16(SEG_HEAP, rawPtr + VEC_SIZE);
   // Each dictionary entry is a key-value pair, so the number of pairs is totalElements/2.
   const numPairs = totalElements / 2;
 
@@ -109,13 +110,13 @@ export function dictGet(
     // Each pair occupies 8 bytes (4 bytes for the tagged key, 4 for the value).
     // Data begins at offset VEC_DATA.
     const pairOffset = rawPtr + VEC_DATA + mid * 8;
-    const taggedKey = heap.memory.readFloat(pairOffset);
+    const taggedKey = heap.memory.readFloat(SEG_HEAP, pairOffset);
     const { value: keyAddr } = fromTaggedValue(taggedKey, PrimitiveTag.STRING);
     const storedKey = digest.get(keyAddr);
     const cmp = storedKey.localeCompare(key);
     if (cmp === 0) {
       // Key found; return the associated value (located 4 bytes after the key).
-      return heap.memory.readFloat(pairOffset + 4);
+      return heap.memory.readFloat(SEG_HEAP, pairOffset + 4);
     } else if (cmp < 0) {
       low = mid + 1;
     } else {

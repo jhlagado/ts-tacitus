@@ -1,7 +1,6 @@
 import { plusOp } from "./builtins-math";
 import { dupOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../../core/globalState";
-import { CODE, RSTACK } from "../../core/memory";
 import {
   fromTaggedValue,
   PrimitiveTag,
@@ -43,7 +42,7 @@ describe("Built-in Words", () => {
       vm.push(toTaggedValue(testAddress, PrimitiveTag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value).toBe(CODE); // Original IP before eval
+      expect(fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value).toBe(0); // Original IP before eval
     });
 
     it("branchOp should jump relative", () => {
@@ -59,7 +58,7 @@ describe("Built-in Words", () => {
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
       expect(fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value).toBe(
-        CODE + 2
+        2
       ); // Original IP after call
     });
   });
@@ -73,10 +72,10 @@ describe("Built-in Words", () => {
     });
 
     it("should handle negative offsets", () => {
-      vm.IP = CODE + 10;
+      vm.IP = 10;
       vm.compiler.compile16(-10);
       skipBlockOp(vm);
-      expect(vm.IP).toBe(CODE + 12);
+      expect(vm.IP).toBe(12);
     });
 
     it("should push return address", () => {
@@ -175,7 +174,7 @@ describe("Built-in Words", () => {
 
     it("should handle return stack overflow", () => {
       // Fill return stack.
-      const maxDepth = (vm.RP - RSTACK) / 4;
+      const maxDepth = (vm.RP) / 4;
       for (let i = 0; i < maxDepth; i++) {
         vm.rpush(0);
       }

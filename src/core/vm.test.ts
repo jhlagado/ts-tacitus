@@ -1,5 +1,5 @@
 import { VM } from "./vm";
-import { STACK_SIZE, RSTACK_SIZE, CODE } from "./memory";
+import { STACK_SIZE, RSTACK_SIZE } from "./memory";
 import { Compiler } from "../lang/compiler";
 import { SymbolTable } from "./symbol-table";
 import { fromTaggedValue, toTaggedValue, PrimitiveTag } from "./tagged";
@@ -135,32 +135,32 @@ describe("VM", () => {
     it("should increment the instruction pointer after reading", () => {
       vm.compiler.compile16(42);
       vm.next16();
-      expect(vm.IP).toBe(CODE + 2);
+      expect(vm.IP).toBe(2);
     });
 
     it("should handle nextAddress correctly", () => {
       const addr = 0x2345;
       vm.compiler.compileFloat(toTaggedValue(addr, PrimitiveTag.CODE));
-      vm.IP = CODE;
+      vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });
 
     it("should handle nextInteger correctly", () => {
       const value = 0x4321;
       vm.compiler.compileFloat(toTaggedValue(value, PrimitiveTag.INTEGER));
-      vm.IP = CODE;
+      vm.IP = 0;
       expect(vm.nextInteger()).toBe(value);
     });
 
     it("should throw on nextAddress with non-address tag", () => {
       vm.compiler.compileFloat(toTaggedValue(0x2345, PrimitiveTag.INTEGER));
-      vm.IP = CODE;
+      vm.IP = 0;
       expect(() => vm.nextAddress()).toThrow("PrimitiveTag mismatch");
     });
 
     it("should throw on nextInteger with non-integer tag", () => {
       vm.compiler.compileFloat(toTaggedValue(0x2345, PrimitiveTag.CODE));
-      vm.IP = CODE;
+      vm.IP = 0;
       expect(() => vm.nextInteger()).toThrow("PrimitiveTag mismatch");
     });
   });

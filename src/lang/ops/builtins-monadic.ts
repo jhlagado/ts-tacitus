@@ -1,9 +1,9 @@
 import { VM } from "../../core/vm";
 import { Verb } from "../../core/types";
-import { STACK } from "../../core/memory";
+import {  } from "../../core/memory";
 
 export const mNegateOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm-' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mNegateOp", a);
@@ -11,7 +11,7 @@ export const mNegateOp: Verb = (vm: VM) => {
 };
 
 export const mReciprocalOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm%' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mReciprocalOp", a);
@@ -19,7 +19,7 @@ export const mReciprocalOp: Verb = (vm: VM) => {
 };
 
 export const mFloorOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm_' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mFloorOp", a);
@@ -27,7 +27,7 @@ export const mFloorOp: Verb = (vm: VM) => {
 };
 
 export const mNotOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm~' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mNotOp", a);
@@ -35,7 +35,7 @@ export const mNotOp: Verb = (vm: VM) => {
 };
 
 export const mSignumOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm*' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mSignumOp", a);
@@ -43,7 +43,7 @@ export const mSignumOp: Verb = (vm: VM) => {
 };
 
 export const mEnlistOp: Verb = (vm: VM) => {
-  if (vm.SP < STACK + 1)
+  if (vm.SP < 1)
     throw new Error(`Stack underflow: 'm,' requires 1 operand`);
   const a = vm.pop();
   if (vm.debug) console.log("mEnlistOp", a);

@@ -2,6 +2,7 @@
  * Utility functions for character checks.
  */
 
+import { SEG_HEAP } from "./memory";
 import { isTaggedValue, fromTaggedValue, HeapSubType, PrimitiveTag } from "./tagged";
 import { VM } from "./vm";
 
@@ -81,10 +82,10 @@ export function formatValue(vm: VM, val: number): string {
           try {
             const VEC_SIZE = 4;
             const VEC_DATA = 8;
-            const len = vm.memory.read16(value + VEC_SIZE);
+            const len = vm.memory.read16(SEG_HEAP, value + VEC_SIZE);
             const elems: string[] = [];
             for (let i = 0; i < len; i++) {
-              const elem = vm.memory.readFloat(value + VEC_DATA + i * 4);
+              const elem = vm.memory.readFloat(SEG_HEAP, value + VEC_DATA + i * 4);
               elems.push(formatValue(vm, elem));
             }
             return `[ ${elems.join(" ")} ]`;

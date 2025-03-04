@@ -1,7 +1,7 @@
 // File: src/heap.ts
 
-import { NULL } from "./constants";
-import { Memory, HEAP, HEAP_SIZE } from "./memory";
+import { INVALID } from "./constants";
+import { Memory, HEAP_SIZE, SEG_HEAP } from "./memory";
 
 export const BLOCK_SIZE = 64;
 export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)
@@ -14,53 +14,54 @@ export class Heap {
 
   constructor(memory: Memory) {
     this.memory = memory;
-    this.freeList = HEAP;
+    this.freeList = 0;
     this.initializeFreeList();
   }
 
   private initializeFreeList(): void {
-    let current = HEAP;
-    while (current + BLOCK_SIZE < HEAP + HEAP_SIZE) {
-      this.memory.write16(current + BLOCK_NEXT, current + BLOCK_SIZE);
-      this.memory.write16(current + BLOCK_REFS, 0); // Free blocks have 0 refs
+    let current = 0;
+    while (current + BLOCK_SIZE < HEAP_SIZE) {
+      this.memory.write16(SEG_HEAP, current + BLOCK_NEXT, current + BLOCK_SIZE);
+      this.memory.write16(SEG_HEAP, current + BLOCK_REFS, 0); // Free blocks have 0 refs
       current += BLOCK_SIZE;
     }
-    this.memory.write16(current + BLOCK_NEXT, NULL);
-    this.memory.write16(current + BLOCK_REFS, 0);
+    this.memory.write16(SEG_HEAP, current + BLOCK_NEXT, INVALID);
+    this.memory.write16(SEG_HEAP, current + BLOCK_REFS, 0);
   }
 
   malloc(size: number): number {
-    if (size <= 0) return NULL;
+    if (size <= 0) return INVALID;
 
     const numBlocks = Math.ceil(size / USABLE_BLOCK_SIZE);
     let current = this.freeList;
-    let prev = NULL;
+    let prev = INVALID;
     let startBlock = current;
     let blocksFound = 0;
 
     // Traverse the free list to find enough contiguous blocks
-    while (current !== NULL && blocksFound < numBlocks) {
+    while (current !== INVALID && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
-      current = this.memory.read16(current + BLOCK_NEXT);
+      current = this.memory.read16(SEG_HEAP, current + BLOCK_NEXT);
     }
 
     // If not enough blocks are found, reset the traversed blocks and return NULL
     if (blocksFound < numBlocks) {
-      if (startBlock !== NULL) {
-        this.memory.write16(prev + BLOCK_NEXT, this.freeList);
+      if (startBlock !== INVALID) {
+        this.memory.write16(SEG_HEAP, prev + BLOCK_NEXT, this.freeList);
         this.freeList = startBlock;
       }
-      return NULL;
+      return INVALID;
     }
 
     // Allocate the blocks: set reference counts and link them
     let block = startBlock;
     for (let i = 0; i < numBlocks; i++) {
-      this.memory.write16(block + BLOCK_REFS, 1); // Initialize reference count
+      this.memory.write16(SEG_HEAP, block + BLOCK_REFS, 1); // Initialize reference count
       this.memory.write16(
+        SEG_HEAP,
         block + BLOCK_NEXT,
-        i < numBlocks - 1 ? block + BLOCK_SIZE : NULL
+        i < numBlocks - 1 ? block + BLOCK_SIZE : INVALID
       ); // Link to next block or NULL
       block += BLOCK_SIZE;
     }
@@ -75,42 +76,42 @@ export class Heap {
   }
 
   decrementRef(block: number): void {
-    if (block === NULL) return;
+    if (block === INVALID) return;
 
-    const refs = this.memory.read16(block + BLOCK_REFS) - 1;
-    this.memory.write16(block + BLOCK_REFS, refs);
+    const refs = this.memory.read16(SEG_HEAP, block + BLOCK_REFS) - 1;
+    this.memory.write16(SEG_HEAP, block + BLOCK_REFS, refs);
 
     if (refs === 0) {
-      const next = this.memory.read16(block + BLOCK_NEXT);
+      const next = this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
       this.decrementRef(next);
       this.addToFreeList(block);
     }
   }
 
   private addToFreeList(block: number): void {
-    this.memory.write16(block + BLOCK_NEXT, this.freeList);
+    this.memory.write16(SEG_HEAP, block + BLOCK_NEXT, this.freeList);
     this.freeList = block;
   }
 
   incrementRef(block: number): void {
-    if (block === NULL) return;
-    const refs = this.memory.read16(block + BLOCK_REFS);
-    this.memory.write16(block + BLOCK_REFS, refs + 1);
+    if (block === INVALID) return;
+    const refs = this.memory.read16(SEG_HEAP, block + BLOCK_REFS);
+    this.memory.write16(SEG_HEAP, block + BLOCK_REFS, refs + 1);
   }
 
   getNextBlock(block: number): number {
-    if (block === NULL) {
+    if (block === INVALID) {
       throw new Error("Cannot get next block of NULL.");
     }
-    return this.memory.read16(block + BLOCK_NEXT);
+    return this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
   }
 
   setNextBlock(parent: number, child: number): void {
-    const oldChild = this.memory.read16(parent + BLOCK_NEXT);
-    if (oldChild !== NULL) this.decrementRef(oldChild);
+    const oldChild = this.memory.read16(SEG_HEAP, parent + BLOCK_NEXT);
+    if (oldChild !== INVALID) this.decrementRef(oldChild);
 
-    this.memory.write16(parent + BLOCK_NEXT, child);
-    if (child !== NULL) this.incrementRef(child);
+    this.memory.write16(SEG_HEAP, parent + BLOCK_NEXT, child);
+    if (child !== INVALID) this.incrementRef(child);
   }
 
   /**
@@ -119,16 +120,39 @@ export class Heap {
    * @param block - The block to clone.
    * @returns The pointer to the newly cloned block.
    */
+  /**
+   * cloneBlock
+   * Clones a block and its contents.
+   * @param block - The block to clone.
+   * @returns The pointer to the newly cloned block.
+   */
+  /**
+   * cloneBlock
+   * Clones a block and its contents.
+   * @param block - The block to clone.
+   * @returns The pointer to the newly cloned block.
+   */
   cloneBlock(block: number): number {
-    const newBlock = this.malloc(BLOCK_SIZE);
-    if (newBlock === NULL) return NULL;
+    // Request exactly one block’s payload.
+    const newBlock = this.malloc(USABLE_BLOCK_SIZE);
+    if (newBlock === INVALID) return INVALID;
 
-    this.memory.buffer.copyWithin(newBlock, block, block + BLOCK_SIZE);
-    this.memory.write16(newBlock + BLOCK_REFS, 1);
+    // Get the base address of the heap segment.
+    // resolveAddress(SEG_HEAP, 0) returns SEGMENT_TABLE[SEG_HEAP] + 0.
+    const base = this.memory.resolveAddress(SEG_HEAP, 0);
 
-    // Handle child blocks
-    const nextBlock = this.memory.read16(block + BLOCK_NEXT);
-    if (nextBlock !== NULL) this.incrementRef(nextBlock);
+    // Manually copy BLOCK_SIZE bytes from the original block to the new block,
+    // using absolute addresses in the memory buffer.
+    for (let i = 0; i < BLOCK_SIZE; i++) {
+      this.memory.buffer[base + newBlock + i] =
+        this.memory.buffer[base + block + i];
+    }
+    // Reset the reference count on the new block.
+    this.memory.write16(SEG_HEAP, newBlock + BLOCK_REFS, 1);
+
+    // If there's a chained block, update its reference.
+    const nextBlock = this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
+    if (nextBlock !== INVALID) this.incrementRef(nextBlock);
 
     return newBlock;
   }
@@ -141,14 +165,14 @@ export class Heap {
    * Returns the new block pointer if a clone was performed, or the original pointer otherwise.
    */
   copyOnWrite(blockPtr: number, prevBlockPtr?: number): number {
-    if (blockPtr === NULL) return NULL;
-    const refs = this.memory.read16(blockPtr + BLOCK_REFS);
+    if (blockPtr === INVALID) return INVALID;
+    const refs = this.memory.read16(SEG_HEAP, blockPtr + BLOCK_REFS);
     if (refs > 1) {
       const newBlock = this.cloneBlock(blockPtr);
-      if (newBlock === NULL) return NULL;
-      if (prevBlockPtr !== undefined && prevBlockPtr !== NULL) {
+      if (newBlock === INVALID) return INVALID;
+      if (prevBlockPtr !== undefined && prevBlockPtr !== INVALID) {
         // Update the previous block's next pointer to refer to the new clone.
-        this.memory.write16(prevBlockPtr + BLOCK_NEXT, newBlock);
+        this.memory.write16(SEG_HEAP, prevBlockPtr + BLOCK_NEXT, newBlock);
       }
       return newBlock;
     }
@@ -158,9 +182,9 @@ export class Heap {
   available(): number {
     let count = 0;
     let current = this.freeList;
-    while (current !== NULL) {
+    while (current !== INVALID) {
       count++;
-      current = this.memory.read16(current + BLOCK_NEXT);
+      current = this.memory.read16(SEG_HEAP, current + BLOCK_NEXT);
     }
     return count * BLOCK_SIZE;
   }

@@ -1,6 +1,6 @@
-import { CODE } from "../core/memory";
 import { VM } from "../core/vm";
 import { PrimitiveTag, toTaggedValue } from "../core/tagged";
+import { SEG_CODE } from "../core/memory";
 
 export class Compiler {
   nestingScore: number;
@@ -10,8 +10,8 @@ export class Compiler {
 
   constructor(private vm: VM) {
     this.nestingScore = 0;
-    this.CP = CODE; // Start compiling at CODE
-    this.BP = CODE; // Buffer starts at CODE
+    this.CP = 0; // Start compiling at CODE
+    this.BP = 0; // Buffer starts at CODE
     this.preserve = false;
   }
 
@@ -19,7 +19,7 @@ export class Compiler {
    * Compiles an 8-bit value to the CODE area.
    */
   compile8(value: number): void {
-    this.vm.memory.write8(this.CP, value);
+    this.vm.memory.write8(SEG_CODE, this.CP, value);
     this.CP += 1; // Move to the next byte
   }
 
@@ -31,7 +31,7 @@ export class Compiler {
     const unsignedValue = value & 0xffff; // Mask to 16 bits
 
     // Write the 16-bit value to memory
-    this.vm.memory.write16(this.CP, unsignedValue);
+    this.vm.memory.write16(SEG_CODE, this.CP, unsignedValue);
     this.CP += 2; // Move to the next 16-bit aligned address
   }
 
@@ -39,7 +39,7 @@ export class Compiler {
    * Compiles a 32-bit float to the CODE area.
    */
   compileFloat(value: number): void {
-    this.vm.memory.writeFloat(this.CP, value);
+    this.vm.memory.writeFloat(SEG_CODE, this.CP, value);
     this.CP += 4; // Move to the next 32-bit aligned address
   }
 

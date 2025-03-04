@@ -1,5 +1,5 @@
 import { Digest } from "./digest";
-import { Memory, STRINGS, STRINGS_SIZE } from "./memory";
+import { Memory, STRING_SIZE } from "./memory";
 
 describe("Digest", () => {
   let memory: Memory;
@@ -12,7 +12,7 @@ describe("Digest", () => {
 
   it("should add a string, retrieve it, and report its length", () => {
     const address = digest.add("hello");
-    expect(address).toBe(STRINGS);
+    expect(address).toBe(0);
     expect(digest.get(address)).toBe("hello");
     expect(digest.length(address)).toBe(5);
   });
@@ -43,7 +43,7 @@ describe("Digest", () => {
 
   it("should throw an error if there is not enough space in memory", () => {
     const smallString = "a".repeat(255);
-    const numStrings = Math.floor(STRINGS_SIZE / (smallString.length + 1));
+    const numStrings = Math.floor(STRING_SIZE / (smallString.length + 1));
     for (let i = 0; i < numStrings; i++) {
       digest.add(smallString);
     }
@@ -77,18 +77,22 @@ describe("Digest", () => {
 
   it("should correctly reset the digest", () => {
     digest.add("hello");
-    digest.reset(STRINGS + 10);
-    expect(digest.SBP).toBe(STRINGS + 10);
+    digest.reset(10);
+    expect(digest.SBP).toBe(10);
   });
 
   it("should throw an error when resetting to an invalid address", () => {
-    expect(() => digest.reset(STRINGS - 1)).toThrow("Invalid reset address");
-    expect(() => digest.reset(STRINGS + STRINGS_SIZE + 1)).toThrow("Invalid reset address");
+    expect(() => digest.reset(-1)).toThrow("Invalid reset address");
+    expect(() => digest.reset(STRING_SIZE + 1)).toThrow(
+      "Invalid reset address"
+    );
   });
 
   it("should throw an error when reading from an invalid address", () => {
-    expect(() => digest.get(STRINGS - 1)).toThrow("Address is outside memory bounds");
-    expect(() => digest.get(STRINGS + STRINGS_SIZE)).toThrow("Address is outside memory bounds");
+    expect(() => digest.get(-1)).toThrow("Address is outside memory bounds");
+    expect(() => digest.get(STRING_SIZE)).toThrow(
+      "Address is outside memory bounds"
+    );
   });
 
   it("should correctly report remaining space", () => {
