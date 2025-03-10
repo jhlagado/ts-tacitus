@@ -4,22 +4,19 @@ import {
   NIL,
   toTaggedValue,
   fromTaggedValue,
-  isTaggedValue,
   getTag,
   getValue,
   isRefCounted,
-  printNum,
 } from "./tagged";
 
 describe("Tagged.ts Library", () => {
   describe("Primitive Encoding and Decoding", () => {
     it("should encode and decode a FLOAT correctly", () => {
-      // For FLOAT, we assume the value is already a 31-bit encoded number.
-      const floatValue = 0x12345678; // our sample encoded float
+      const floatValue = 123.456; // A real float value
       const tagged = toTaggedValue(floatValue, PrimitiveTag.FLOAT);
       const decoded = fromTaggedValue(tagged);
       expect(decoded.tag).toBe(PrimitiveTag.FLOAT);
-      expect(decoded.value).toBe(floatValue);
+      expect(decoded.value).toBeCloseTo(floatValue, 4); // Allow slight precision loss
     });
 
     it("should encode and decode a CODE pointer correctly", () => {
@@ -122,46 +119,9 @@ describe("Tagged.ts Library", () => {
       expect(isRefCounted(heapVector)).toBe(false);
     });
 
-
     it("isNIL should return false for non-NIL values", () => {
       const intTagged = toTaggedValue(1, PrimitiveTag.INTEGER);
       expect(intTagged).not.toBe(NIL);
-    });
-
-    it("printNum should output correct string for INTEGER values", () => {
-      const spy = jest.spyOn(console, "log").mockImplementation(() => {});
-      const intTagged = toTaggedValue(123, PrimitiveTag.INTEGER);
-      printNum(intTagged);
-      expect(spy).toHaveBeenCalled();
-      const logOutput = spy.mock.calls[0][0];
-      expect(logOutput).toContain(`PrimitiveTag: ${PrimitiveTag.INTEGER}`);
-      expect(logOutput).toContain(`Value: 123`);
-      spy.mockRestore();
-    });
-
-    it("printNum should output correct string for HEAP types", () => {
-      const spy = jest.spyOn(console, "log").mockImplementation(() => {});
-      const heapTagged = toTaggedValue(
-        0x200,
-        PrimitiveTag.HEAP,
-        HeapSubType.DICT
-      );
-      printNum(heapTagged);
-      expect(spy).toHaveBeenCalled();
-      const logOutput = spy.mock.calls[0][0];
-      expect(logOutput).toContain(`PrimitiveTag: ${PrimitiveTag.HEAP}`);
-      expect(logOutput).toContain(`subtype: ${HeapSubType.DICT}`);
-      spy.mockRestore();
-    });
-  });
-
-  describe("isTaggedValue", () => {
-    it("should return true for values created by toTaggedValue", () => {
-      const intTagged = toTaggedValue(5, PrimitiveTag.INTEGER);
-      expect(isTaggedValue(intTagged)).toBe(true);
-    });
-    it("should return false for non-integer values", () => {
-      expect(isTaggedValue(3.14)).toBe(false);
     });
   });
 });

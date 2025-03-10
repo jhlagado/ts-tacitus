@@ -5,9 +5,9 @@
  *
  * Primitives:
  *   FLOAT:   PrimitiveTag = 0         → 31 bits for float (assumed to have a 22-bit mantissa)
- *   CODE:    PrimitiveTag = 100       → 29 bits for address (4-byte alignment)
- *   STRING:  PrimitiveTag = 101       → 29 bits for address (4-byte alignment)
- *   INTEGER: PrimitiveTag = 110       → 29 bits for signed integer (0 used for NIL)
+ *   CODE:    PrimitiveTag = 001       → 29 bits for address (4-byte alignment)
+ *   STRING:  PrimitiveTag = 011       → 29 bits for address (4-byte alignment)
+ *   INTEGER: PrimitiveTag = 101       → 29 bits for signed integer (0 used for NIL)
  *   HEAP:    PrimitiveTag = 111       → Indicates a heap pointer, with extra subtype bits.
  *
  * Heap allocated types (for values with primary tag HEAP):
@@ -19,11 +19,11 @@
  */
 
 export enum PrimitiveTag {
-  FLOAT = 0, // 0
-  CODE = 4, // 100 in binary
-  STRING = 5, // 101
-  INTEGER = 6, // 110
-  HEAP = 7, // 111
+  FLOAT = 0, // 000 in binary
+  CODE = 1, // 001 in binary (LSB set to 1)
+  STRING = 3, // 011 in binary (LSB set to 1)
+  INTEGER = 5, // 101 in binary (LSB set to 1)
+  HEAP = 7, // 111 in binary (LSB set to 1)
 }
 
 export enum HeapSubType {
@@ -58,18 +58,27 @@ export function toTaggedValue(
   heapSubtype?: HeapSubType
 ): number {
   let encoded: number;
+
   switch (tag) {
     case PrimitiveTag.FLOAT:
-      // Here we assume that 'value' is already in an appropriate 31-bit encoded form.
-      // In practice you might pack an IEEE754 float into these bits.
-      encoded = value;
+      // Store the float in a buffer to get its raw bits
+      const buffer = new ArrayBuffer(4);
+      const view = new DataView(buffer);
+      view.setFloat32(0, value, true); // Store value as 32-bit float
+
+      let raw = view.getUint32(0, true); // Get raw 32-bit representation
+      raw &= 0xfffffffe; // Clear LSB for tagging
+
+      // Return the modified bit representation directly
+      encoded = raw;
       break;
+
     case PrimitiveTag.CODE:
     case PrimitiveTag.STRING:
     case PrimitiveTag.INTEGER:
-      // Ensure the value fits in 29 bits. For INTEGER, the value is signed.
       const minVal = -(1 << (PRIMITIVE_VALUE_BITS - 1));
       const maxVal = (1 << (PRIMITIVE_VALUE_BITS - 1)) - 1;
+
       if (tag === PrimitiveTag.INTEGER) {
         if (value < minVal || value > maxVal) {
           throw new Error(
@@ -81,27 +90,28 @@ export function toTaggedValue(
           throw new Error("Value out of range for primitive type");
         }
       }
-      // Left-shift the value by 3 bits and OR in the 3-bit tag.
+      // Encode: shift left 3 bits and OR in the tag.
       encoded = (value << 3) | tag;
       break;
+
     case PrimitiveTag.HEAP:
       if (heapSubtype === undefined) {
         throw new Error("Heap subtype must be provided for HEAP tagged values");
       }
-      // For HEAP pointers, assume 'value' is the address.
-      // Given 64-byte alignment, the lower 6 bits of 'value' must be 0.
       if ((value & 0x3f) !== 0) {
         throw new Error(
           "Heap address must be 64-byte aligned (lower 6 bits zero)"
         );
       }
-      // Encode as: [address >> 6] << 6 OR ([heapSubtype] << 3) OR (HEAP tag)
-      encoded = (value >> 6) << 6; // Preserve upper bits.
+      // Mask out the lower 6 bits directly.
+      encoded = value & ~0x3f;
       encoded |= (heapSubtype << 3) | PrimitiveTag.HEAP;
       break;
+
     default:
       throw new Error("Unsupported tag");
   }
+
   return encoded;
 }
 
@@ -133,10 +143,20 @@ export function fromTaggedValue(
   expectedTag?: PrimitiveTag,
   expectedHeapSubtype?: HeapSubType
 ): { tag: PrimitiveTag; value: number; heapSubtype?: HeapSubType } {
-  // Extract the primary tag from the lower 3 bits.
+  // **Step 1: Detect FLOAT (LSB = 0)**
+  if ((encoded & 0x1) === 0) {
+    // Convert raw bits back to a 32-bit float
+    const buffer = new ArrayBuffer(4);
+    const view = new DataView(buffer);
+    view.setUint32(0, encoded, true);
+    const value = view.getFloat32(0, true);
+    return { tag: PrimitiveTag.FLOAT, value };
+  }
+
+  // **Step 2: Extract the tag from the lower three bits (only for non-FLOAT values)**
   const tag = encoded & 0x7;
 
-  // Check against the expected tag, if provided.
+  // Check expected tag, if provided.
   if (expectedTag !== undefined && tag !== expectedTag) {
     throw new Error(
       `PrimitiveTag mismatch: expected ${expectedTag}, got ${tag}`
@@ -144,24 +164,20 @@ export function fromTaggedValue(
   }
 
   let value: number;
-  let heapSubtype;
+  let heapSubtype: HeapSubType | undefined;
 
   switch (tag) {
-    case PrimitiveTag.FLOAT:
-      // For FLOAT, assume the entire 32 bits represent the float.
-      value = encoded;
-      break;
     case PrimitiveTag.CODE:
     case PrimitiveTag.STRING:
-      // For CODE and STRING, use an unsigned right shift to recover the 29-bit address.
-      value = encoded >>> 3;
+      // For CODE and STRING, extract the upper 29-bit address.
+      value = (encoded & ~0x7) >>> 3;
       break;
     case PrimitiveTag.INTEGER:
-      // For INTEGER, perform an arithmetic (signed) right shift.
-      value = encoded >> 3;
+      // For INTEGER, extract the upper 29-bit signed value.
+      value = (encoded & ~0x7) >> 3;
       break;
     case PrimitiveTag.HEAP:
-      // Extract the heap subtype from the next 3 bits.
+      // Extract the heap subtype (bits 3-5).
       heapSubtype = (encoded >> 3) & 0x7;
 
       if (
@@ -173,34 +189,14 @@ export function fromTaggedValue(
         );
       }
 
-      // The remaining bits (after shifting right 6 bits) hold the heap address.
-      value = encoded >> 6;
-      // Restore the 64-byte alignment by shifting left 6 bits.
-      value = value << 6;
+      // Extract the heap address (shift right 6 to remove subtype and tag bits).
+      value = (encoded >> 6) << 6;
       break;
     default:
-      throw new Error("Unsupported tag in encoded value");
+      throw new Error(`Unsupported tag in encoded value: ${tag}`);
   }
 
   return { tag, value, heapSubtype };
-}
-
-/**
- * Determines if a given number is a tagged value produced by toTaggedValue.
- *
- * In our implementation we assume that all tagged values are integers with a valid 3-bit tag.
- */
-export function isTaggedValue(val: number): boolean {
-  return (
-    Number.isInteger(val) &&
-    [
-      PrimitiveTag.FLOAT,
-      PrimitiveTag.CODE,
-      PrimitiveTag.STRING,
-      PrimitiveTag.INTEGER,
-      PrimitiveTag.HEAP,
-    ].includes(val & 0x7)
-  );
 }
 
 /**
@@ -223,34 +219,9 @@ export function getValue(val: number): number {
  * In this design, we assume that only HEAP objects of the BLOCK subtype are ref-counted.
  */
 export function isRefCounted(val: number): boolean {
-  if (!isTaggedValue(val)) return false;
   const decoded = fromTaggedValue(val);
   return (
     decoded.tag === PrimitiveTag.HEAP &&
     decoded.heapSubtype === HeapSubType.BLOCK
-  );
-}
-
-
-/**
- * Utility: Custom number printing for debugging.
- *
- * If the number is a tagged value, it prints the tag and data.
- */
-export function printNum(...args: unknown[]): void {
-  const format = (num: number): string => {
-    if (isTaggedValue(num)) {
-      const { tag, value, heapSubtype } = fromTaggedValue(num);
-      if (tag === PrimitiveTag.HEAP) {
-        return `PrimitiveTag: ${tag} (HEAP, subtype: ${heapSubtype}), Value (address): ${value}`;
-      } else {
-        return `PrimitiveTag: ${tag}, Value: ${value}`;
-      }
-    } else {
-      return num.toString();
-    }
-  };
-  console.log(
-    args.map((arg) => (typeof arg === "number" ? format(arg) : arg)).join(" ")
   );
 }

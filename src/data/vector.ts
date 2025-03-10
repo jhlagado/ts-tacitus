@@ -2,7 +2,6 @@ import { BLOCK_SIZE, USABLE_BLOCK_SIZE, Heap } from "../core/heap";
 import {
   toTaggedValue,
   fromTaggedValue,
-  isTaggedValue,
   PrimitiveTag,
   NIL,
   HeapSubType,
@@ -70,7 +69,6 @@ export function vectorGet(
   vectorPtr: number,
   index: number
 ): number {
-  if (!isTaggedValue(vectorPtr)) return NIL;
   const { value: firstBlock } = fromTaggedValue(
     vectorPtr,
     PrimitiveTag.HEAP,
@@ -104,7 +102,6 @@ export function vectorUpdate(
   index: number,
   value: number
 ): number {
-  if (!isTaggedValue(vectorPtr)) return NIL;
   let { value: origFirstBlock } = fromTaggedValue(
     vectorPtr,
     PrimitiveTag.HEAP,

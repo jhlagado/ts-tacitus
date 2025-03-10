@@ -51,6 +51,7 @@ import {
   avgOp,
   prodOp,
 } from "./arithmetic-ops";
+import { formatValue } from "../../core/utils";
 
 export enum Op {
   LiteralNumber,
@@ -158,6 +159,10 @@ export const executeOp = (vm: VM, opcode: Op) => {
       break;
     case Op.GroupRight:
       groupRightOp(vm);
+      break;
+    case Op.Print:
+      const value = vm.pop();
+      console.log(formatValue(vm, value)); // or use console.log(formatValue(vm, value));
       break;
 
     // Dyadic Arithmetic
