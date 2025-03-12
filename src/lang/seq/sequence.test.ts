@@ -1,4 +1,4 @@
-import { NIL } from "../../core/tagged";
+import { NIL } from "../../core/tagged-value";
 import { VM } from "../../core/vm";
 import { stringCreate } from "../../data/string";
 import { vectorCreate } from "../../data/vector";

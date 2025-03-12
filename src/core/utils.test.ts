@@ -11,7 +11,7 @@ import {
   xor,
   formatValue,
 } from "./utils";
-import { toTaggedValue, PrimitiveTag, HeapSubType } from "./tagged";
+import { toTaggedValue, CoreTag, HeapTag } from "./tagged-value";
 import { VM } from "./vm";
 import { Digest } from "./digest";
 import { Memory } from "./memory";
@@ -65,10 +65,10 @@ class DummyMemory extends Memory {
     // For a vector starting at base 256 with VEC_DATA offset of 8:
     // first element is at 256 + 8 = 264, second at 256 + 8 + 4 = 268.
     if (offset === 264) {
-      return toTaggedValue(42, PrimitiveTag.INTEGER);
+      return toTaggedValue(42, false, CoreTag.INTEGER);
     }
     if (offset === 268) {
-      return toTaggedValue(99, PrimitiveTag.INTEGER);
+      return toTaggedValue(99, false, CoreTag.INTEGER);
     }
     throw new Error("readFloat error");
   }
@@ -170,38 +170,37 @@ describe("Utility Functions", () => {
   describe("formatValue function", () => {
     test("returns value.toString() for non-tagged values", () => {
       expect(
-        formatValue(dummyVM as VM, toTaggedValue(123, PrimitiveTag.FLOAT))
+        formatValue(dummyVM as VM, 123)
       ).toBe("123");
     });
 
     test("formats FLOAT tagged value", () => {
       // For FLOAT, our tagging scheme uses the raw value.
-      const taggedFloat = toTaggedValue(123.4, PrimitiveTag.FLOAT);
-      expect(formatValue(dummyVM as VM, taggedFloat)).toBe("123.4"); // 0x12345678 in decimal
+      expect(formatValue(dummyVM as VM, 123.4)).toBe("123.4"); // 0x12345678 in decimal
     });
 
     test("formats INTEGER tagged value (non-zero)", () => {
-      const taggedInt = toTaggedValue(42, PrimitiveTag.INTEGER);
+      const taggedInt = toTaggedValue(42, false, CoreTag.INTEGER);
       expect(formatValue(dummyVM as VM, taggedInt)).toBe("42");
     });
 
     test("formats INTEGER tagged value representing NIL", () => {
-      const taggedNil = toTaggedValue(0, PrimitiveTag.INTEGER);
+      const taggedNil = toTaggedValue(0, false, CoreTag.INTEGER);
       expect(formatValue(dummyVM as VM, taggedNil)).toBe("NIL");
     });
 
     test("formats CODE tagged value", () => {
-      const taggedCode = toTaggedValue(1234, PrimitiveTag.CODE);
+      const taggedCode = toTaggedValue(1234, false, CoreTag.CODE);
       expect(formatValue(dummyVM as VM, taggedCode)).toBe("CODE(1234)");
     });
 
     test("formats STRING tagged value successfully", () => {
-      const taggedString = toTaggedValue(100, PrimitiveTag.STRING);
+      const taggedString = toTaggedValue(100, false, CoreTag.STRING);
       expect(formatValue(dummyVM as VM, taggedString)).toBe(`"TestString"`);
     });
 
     test("formats STRING tagged value when digest.get throws", () => {
-      const taggedString = toTaggedValue(999, PrimitiveTag.STRING);
+      const taggedString = toTaggedValue(999, false, CoreTag.STRING);
       expect(formatValue(dummyVM as VM, taggedString)).toBe("STRING(999)");
     });
 
@@ -209,8 +208,8 @@ describe("Utility Functions", () => {
       // Use an aligned address (e.g., 320, which is 5 * 64).
       const taggedHeapBlock = toTaggedValue(
         320,
-        PrimitiveTag.HEAP,
-        HeapSubType.BLOCK
+        true,
+        HeapTag.BLOCK
       );
       expect(formatValue(dummyVM as VM, taggedHeapBlock)).toBe("BLOCK(320)");
     });
@@ -219,8 +218,8 @@ describe("Utility Functions", () => {
       // Use an aligned address (e.g., 384, which is 6 * 64).
       const taggedHeapSeq = toTaggedValue(
         384,
-        PrimitiveTag.HEAP,
-        HeapSubType.SEQ
+        true,
+        HeapTag.SEQ
       );
       expect(formatValue(dummyVM as VM, taggedHeapSeq)).toBe("SEQ(384)");
     });
@@ -229,8 +228,8 @@ describe("Utility Functions", () => {
       // Use an aligned address (e.g., 256, which is 4 * 64).
       const taggedHeapVector = toTaggedValue(
         256,
-        PrimitiveTag.HEAP,
-        HeapSubType.VECTOR
+        true,
+        HeapTag.VECTOR
       );
       // Based on our DummyMemory:
       // read16 at 256 + 4 = 260 returns 2,
@@ -243,8 +242,8 @@ describe("Utility Functions", () => {
       // Use the same aligned address as VECTOR.
       const taggedHeapDict = toTaggedValue(
         256,
-        PrimitiveTag.HEAP,
-        HeapSubType.DICT
+        true,
+        HeapTag.DICT
       );
       expect(formatValue(dummyVM as VM, taggedHeapDict)).toBe("[ 42 99 ]");
     });
@@ -265,8 +264,8 @@ describe("Utility Functions", () => {
       // Use an aligned address (e.g., 512 is 8*64).
       const taggedHeapVector = toTaggedValue(
         512,
-        PrimitiveTag.HEAP,
-        HeapSubType.VECTOR
+        true, 
+        HeapTag.VECTOR
       );
       expect(formatValue(faultyVM as VM, taggedHeapVector)).toBe("VECTOR(512)");
     });

@@ -12,9 +12,9 @@ import { Heap } from "./heap";
 import {
   fromTaggedValue,
   isRefCounted,
-  PrimitiveTag,
   toTaggedValue,
-} from "./tagged";
+  CoreTag,
+} from "./tagged-value";
 import { Digest } from "./digest";
 
 export class VM {
@@ -43,8 +43,8 @@ export class VM {
   }
 
   eval() {
-    this.rpush(toTaggedValue(this.IP, PrimitiveTag.CODE));
-    const { value: pointer } = fromTaggedValue(this.pop(), PrimitiveTag.CODE);
+    this.rpush(toTaggedValue(this.IP, false, CoreTag.CODE));
+    const { value: pointer } = fromTaggedValue(this.pop());
     this.IP = pointer;
   }
 
@@ -157,7 +157,7 @@ export class VM {
    */
   nextAddress(): number {
     const tagNum = this.nextFloat(); // Read the tagged pointer as a float
-    const { value: pointer } = fromTaggedValue(tagNum, PrimitiveTag.CODE);
+    const { value: pointer } = fromTaggedValue(tagNum);
     return pointer;
   }
 

@@ -2,10 +2,9 @@ import { BLOCK_SIZE, USABLE_BLOCK_SIZE, Heap } from "../core/heap";
 import {
   toTaggedValue,
   fromTaggedValue,
-  PrimitiveTag,
   NIL,
-  HeapSubType,
-} from "../core/tagged";
+  HeapTag,
+} from "../core/tagged-value";
 import { INVALID } from "../core/constants";
 import { SEG_HEAP } from "../core/memory";
 
@@ -15,9 +14,9 @@ import { SEG_HEAP } from "../core/memory";
 // - Bytes 4-5: VEC_SIZE (vector length)
 // - Bytes 6-7: VEC_RESERVED (reserved)
 // - Bytes 8-...: Vector data (32-bit floats)
-export const VEC_SIZE = 4;      // Offset for length (2 bytes)
-export const VEC_RESERVED = 6;  // Reserved (2 bytes)
-export const VEC_DATA = 8;      // Data starts after metadata
+export const VEC_SIZE = 4; // Offset for length (2 bytes)
+export const VEC_RESERVED = 6; // Reserved (2 bytes)
+export const VEC_DATA = 8; // Data starts after metadata
 
 // Each element is a 32-bit float (4 bytes)
 const ELEMENT_SIZE = 4;
@@ -26,7 +25,9 @@ const ELEMENT_SIZE = 4;
 // Heap block payload = USABLE_BLOCK_SIZE (which equals BLOCK_SIZE - 4).
 // In that payload, vector metadata occupies bytes [0, VEC_DATA - 4] (i.e. 4 bytes),
 // so available bytes for elements = USABLE_BLOCK_SIZE - (VEC_DATA - 4).
-const capacityPerBlock = Math.floor((USABLE_BLOCK_SIZE - (VEC_DATA - 4)) / ELEMENT_SIZE);
+const capacityPerBlock = Math.floor(
+  (USABLE_BLOCK_SIZE - (VEC_DATA - 4)) / ELEMENT_SIZE
+);
 
 export function vectorCreate(heap: Heap, data: number[]): number {
   const length = data.length;
@@ -58,7 +59,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
     }
   }
 
-  return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
+  return toTaggedValue(firstBlock, true, HeapTag.VECTOR);
 }
 
 /**
@@ -69,11 +70,7 @@ export function vectorGet(
   vectorPtr: number,
   index: number
 ): number {
-  const { value: firstBlock } = fromTaggedValue(
-    vectorPtr,
-    PrimitiveTag.HEAP,
-    HeapSubType.VECTOR
-  );
+  const { value: firstBlock } = fromTaggedValue(vectorPtr);
   const length = heap.memory.read16(SEG_HEAP, firstBlock + VEC_SIZE);
   if (index < 0 || index >= length) return NIL;
 
@@ -102,11 +99,7 @@ export function vectorUpdate(
   index: number,
   value: number
 ): number {
-  let { value: origFirstBlock } = fromTaggedValue(
-    vectorPtr,
-    PrimitiveTag.HEAP,
-    HeapSubType.VECTOR
-  );
+  let { value: origFirstBlock } = fromTaggedValue(vectorPtr);
   let firstBlock = origFirstBlock;
 
   const length = heap.memory.read16(SEG_HEAP, firstBlock + VEC_SIZE);
@@ -125,7 +118,7 @@ export function vectorUpdate(
       currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
       value
     );
-    return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
+    return toTaggedValue(firstBlock, true, HeapTag.VECTOR);
   }
 
   let prevBlock = currentBlock;
@@ -138,7 +131,7 @@ export function vectorUpdate(
         currentBlock + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value
       );
-      return toTaggedValue(firstBlock, PrimitiveTag.HEAP, HeapSubType.VECTOR);
+      return toTaggedValue(firstBlock, true, HeapTag.VECTOR);
     }
     remainingIndex -= capacityPerBlock;
     prevBlock = currentBlock;

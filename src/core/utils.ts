@@ -1,5 +1,5 @@
 import { SEG_HEAP } from "./memory";
-import { fromTaggedValue, HeapSubType, PrimitiveTag } from "./tagged";
+import { CoreTag, fromTaggedValue, HeapTag, isTaggedValue } from "./tagged-value";
 import { VM } from "./vm";
 
 // Character check functions
@@ -44,64 +44,54 @@ const VEC_DATA = 8;
  * @returns A formatted string representation of the tagged value.
  */
 export function formatValue(vm: VM, value32: number): string {
-  // We assume all numbers are canonicalized and therefore are tagged.
-  const { tag, value, heapSubtype } = fromTaggedValue(value32);
-
-  switch (tag) {
-    case PrimitiveTag.FLOAT:
-      if (Number.isNaN(value)) return "NaN";
-      // Round to 6 decimals, then parseFloat + toString() to remove trailing zeroes
-      return parseFloat(value.toFixed(4)).toString();
-    case PrimitiveTag.INTEGER:
-      return value === 0 ? "NIL" : String(value);
-    case PrimitiveTag.CODE:
-      return `CODE(${value})`;
-    case PrimitiveTag.STRING:
-      try {
-        const str = vm.digest.get(value);
-        return `"${str}"`;
-      } catch (error) {
-        console.error((error as Error).message);
-        return `STRING(${value})`;
-      }
-    case PrimitiveTag.HEAP:
-      return formatHeapValue(vm, value, heapSubtype);
-    default:
-      return `Unknown(${tag}, ${value})`;
+  if (!isTaggedValue(value32)) {
+    return value32.toString();
   }
-}
-
-/**
- * Helper function to format HEAP tagged values based on their subtype.
- *
- * @param vm - The VM instance for memory access.
- * @param value - The memory address value.
- * @param heapSubtype - The subtype of the HEAP value.
- * @returns A formatted string representation of the HEAP value.
- */
-function formatHeapValue(vm: VM, value: number, heapSubtype?: number): string {
-  switch (heapSubtype) {
-    case HeapSubType.BLOCK:
-      return `BLOCK(${value})`;
-    case HeapSubType.SEQ:
-      return `SEQ(${value})`;
-    case HeapSubType.VECTOR:
-    case HeapSubType.DICT:
-      try {
-        const len = vm.memory.read16(SEG_HEAP, value + VEC_SIZE);
-        const elems: string[] = [];
-        for (let i = 0; i < len; i++) {
-          const elem = vm.memory.readFloat(SEG_HEAP, value + VEC_DATA + i * 4);
-          elems.push(formatValue(vm, elem));
+  const { value, heap, tag } = fromTaggedValue(value32);
+  if (!heap) {
+    switch (tag) {
+      case CoreTag.INTEGER:
+        return value === 0 ? "NIL" : String(value);
+      case CoreTag.CODE:
+        return `CODE(${value})`;
+      case CoreTag.STRING:
+        try {
+          const str = vm.digest.get(value);
+          return `"${str}"`;
+        } catch (error) {
+          console.error((error as Error).message);
+          return `STRING(${value})`;
         }
-        return `[ ${elems.join(" ")} ]`;
-      } catch (error) {
-        console.error((error as Error).message);
-        return heapSubtype === HeapSubType.VECTOR
-          ? `VECTOR(${value})`
-          : `DICT(${value})`;
-      }
-    default:
-      return `Unknown HEAP subtype(${heapSubtype ?? "undefined"}, ${value})`;
+      default:
+        return `Unknown core tag (${tag}, ${value})`;
+    }
+  } else {
+    switch (tag) {
+      case HeapTag.BLOCK:
+        return `BLOCK(${value})`;
+      case HeapTag.SEQ:
+        return `SEQ(${value})`;
+      case HeapTag.VECTOR:
+      case HeapTag.DICT:
+        try {
+          const len = vm.memory.read16(SEG_HEAP, value + VEC_SIZE);
+          const elems: string[] = [];
+          for (let i = 0; i < len; i++) {
+            const elem = vm.memory.readFloat(
+              SEG_HEAP,
+              value + VEC_DATA + i * 4
+            );
+            elems.push(formatValue(vm, elem));
+          }
+          return `[ ${elems.join(" ")} ]`;
+        } catch (error) {
+          console.error((error as Error).message);
+          return tag === HeapTag.VECTOR
+            ? `VECTOR(${value})`
+            : `DICT(${value})`;
+        }
+      default:
+        return `Unknown heap tag (${tag}, ${value})`;
+    }
   }
 }

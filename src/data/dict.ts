@@ -2,12 +2,11 @@
 
 import { Digest } from "../core/digest";
 import {
-  PrimitiveTag,
   toTaggedValue,
   fromTaggedValue,
   NIL,
-  HeapSubType,
-} from "../core/tagged";
+  HeapTag,
+} from "../core/tagged-value";
 import { Heap } from "../core/heap";
 import { stringCreate } from "./string";
 import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
@@ -68,11 +67,9 @@ export function dictCreate(
   // Unwrap the raw pointer (assumed to be tagged as PrimitiveTag.VECTOR from vectorCreate).
   const { value: rawPtr } = fromTaggedValue(
     vectorTagged,
-    PrimitiveTag.HEAP,
-    HeapSubType.VECTOR
   );
   // Retag the vector pointer as a dictionary.
-  return toTaggedValue(rawPtr, PrimitiveTag.HEAP, HeapSubType.DICT);
+  return toTaggedValue(rawPtr, true, HeapTag.DICT);
 }
 
 /**
@@ -94,8 +91,6 @@ export function dictGet(
   // Unwrap the dictionary pointer.
   const { value: rawPtr } = fromTaggedValue(
     dict,
-    PrimitiveTag.HEAP,
-    HeapSubType.DICT
   );
   // Read the total number of elements from the vector header.
   // (Assuming the length is stored at offset VEC_SIZE as a 16-bit value.)
@@ -111,7 +106,7 @@ export function dictGet(
     // Data begins at offset VEC_DATA.
     const pairOffset = rawPtr + VEC_DATA + mid * 8;
     const taggedKey = heap.memory.readFloat(SEG_HEAP, pairOffset);
-    const { value: keyAddr } = fromTaggedValue(taggedKey, PrimitiveTag.STRING);
+    const { value: keyAddr } = fromTaggedValue(taggedKey);
     const storedKey = digest.get(keyAddr);
     const cmp = storedKey.localeCompare(key);
     if (cmp === 0) {

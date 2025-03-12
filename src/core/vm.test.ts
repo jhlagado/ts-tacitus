@@ -2,7 +2,7 @@ import { VM } from "./vm";
 import { STACK_SIZE, RSTACK_SIZE } from "./memory";
 import { Compiler } from "../lang/compiler";
 import { SymbolTable } from "./symbol-table";
-import { fromTaggedValue, toTaggedValue, PrimitiveTag } from "./tagged";
+import { fromTaggedValue, toTaggedValue, CoreTag } from "./tagged-value";
 
 describe("VM", () => {
   let vm: VM;
@@ -14,10 +14,10 @@ describe("VM", () => {
   // Test 1: Stack operations
   describe("Stack operations", () => {
     it("should push and pop 20-bit values from the stack", () => {
-      vm.push(0x2345);
-      vm.push(0x1bcd);
-      expect(vm.pop()).toBe(0x1bcd);
-      expect(vm.pop()).toBe(0x2345);
+      vm.push(1.2);
+      vm.push(2.4);
+      expect(vm.pop()).toBeCloseTo(2.4);
+      expect(vm.pop()).toBeCloseTo(1.2);
     });
 
     it("should push and pop 32-bit floats from the stack", () => {
@@ -46,17 +46,11 @@ describe("VM", () => {
     });
 
     it("should handle address tagging", () => {
-      vm.push(toTaggedValue(0x2345, PrimitiveTag.CODE));
-      const { value } = fromTaggedValue(vm.pop(), PrimitiveTag.CODE);
+      vm.push(toTaggedValue(0x2345, false, CoreTag.CODE));
+      const { value, heap, tag } = fromTaggedValue(vm.pop());
       expect(value).toBe(0x2345);
-    });
-
-    it("should throw when popping address from non-address value", () => {
-      vm.push(0x2345);
-      expect(() => {
-        // Expect CODE but actually get INTEGER.
-        fromTaggedValue(vm.pop(), PrimitiveTag.CODE);
-      }).toThrow("PrimitiveTag mismatch");
+      expect(heap).toBe(false);
+      expect(tag).toBe(CoreTag.CODE);
     });
   });
 
@@ -81,22 +75,15 @@ describe("VM", () => {
     });
 
     it("should handle address tagging on return stack", () => {
-      vm.rpush(toTaggedValue(0x4321, PrimitiveTag.CODE));
-      const { value, tag } = fromTaggedValue(vm.rpop(), PrimitiveTag.CODE);
-      expect(tag).toBe(PrimitiveTag.CODE);
+      vm.rpush(toTaggedValue(0x4321, false, CoreTag.CODE));
+      const { value, tag } = fromTaggedValue(vm.rpop());
+      expect(tag).toBe(CoreTag.CODE);
       expect(value).toBe(0x4321);
     });
 
     it("should handle integer tagging on return stack", () => {
       vm.rpush(0x2345);
       expect(vm.rpop()).toBe(0x2345);
-    });
-
-    it("should throw when popping address from non-address on return stack", () => {
-      vm.rpush(0x2345);
-      expect(() => fromTaggedValue(vm.rpop(), PrimitiveTag.CODE)).toThrow(
-        "PrimitiveTag mismatch"
-      );
     });
   });
 
@@ -120,7 +107,7 @@ describe("VM", () => {
 
     it("should handle nextAddress correctly", () => {
       const addr = 0x2345;
-      vm.compiler.compileFloat(toTaggedValue(addr, PrimitiveTag.CODE));
+      vm.compiler.compileFloat(toTaggedValue(addr, false, CoreTag.CODE));
       vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });
@@ -128,7 +115,7 @@ describe("VM", () => {
     it("should throw on nextAddress with non-address tag", () => {
       vm.compiler.compileFloat(0x2345);
       vm.IP = 0;
-      expect(() => vm.nextAddress()).toThrow("PrimitiveTag mismatch");
+      expect(() => vm.nextAddress()).toThrow("Not a tagged value");
     });
   });
 

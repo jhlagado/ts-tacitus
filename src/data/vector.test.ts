@@ -5,10 +5,9 @@ import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
 import { Memory, SEG_HEAP } from "../core/memory";
 import {
   fromTaggedValue,
+  isNIL,
   NIL,
-  PrimitiveTag,
-  HeapSubType,
-} from "../core/tagged";
+} from "../core/tagged-value";
 import { INVALID } from "../core/constants";
 
 describe("Vector Operations", () => {
@@ -23,13 +22,13 @@ describe("Vector Operations", () => {
   it("vectorCreate initializes correctly", () => {
     const data = [1.1, 2.2, 3.3, 4.4, 5.5];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
   });
 
   it("vectorGet retrieves correct values", () => {
     const data = [1.1, 2.2, 3.3, 4.4, 5.5];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
 
     data.forEach((value, index) => {
       expect(vectorGet(heap, vectorPtr, index)).toBeCloseTo(value);
@@ -39,18 +38,18 @@ describe("Vector Operations", () => {
   it("vectorUpdate modifies values correctly", () => {
     const data = [1.1, 2.2, 3.3, 4.4, 5.5];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
 
     const updatedValue = 9.9;
     const updatedVectorPtr = vectorUpdate(heap, vectorPtr, 2, updatedValue);
-    expect(updatedVectorPtr).not.toBe(NIL);
+    expect(isNIL(updatedVectorPtr)).toBe(false);
     expect(vectorGet(heap, updatedVectorPtr, 2)).toBeCloseTo(updatedValue);
   });
 
   it("vectorGet returns undefined for out-of-bounds index", () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
     // Index 10 is clearly out of bounds for a vector of length 3
     expect(vectorGet(heap, vectorPtr, 10)).toBe(NIL);
   });
@@ -58,14 +57,14 @@ describe("Vector Operations", () => {
   it("vectorUpdate returns UNDEF for out-of-bounds index", () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
     // Trying to update index 10 in a vector of length 3 should fail.
     expect(vectorUpdate(heap, vectorPtr, 10, 5.5)).toBe(NIL);
   });
 
   it("vectorCreate handles empty array", () => {
     const vectorPtr = vectorCreate(heap, []);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
   });
 
   it("vectorGet on empty vector returns undefined", () => {
@@ -81,7 +80,7 @@ describe("Vector Operations", () => {
   it("vectorCreate handles large arrays", () => {
     const largeData = new Array(1000).fill(3.14);
     const vectorPtr = vectorCreate(heap, largeData);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
     // Check the last element to ensure the chain of blocks was correctly created.
     expect(vectorGet(heap, vectorPtr, 999)).toBeCloseTo(3.14);
   });
@@ -89,19 +88,15 @@ describe("Vector Operations", () => {
   it("vectorUpdate triggers copy-on-write", () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
 
     // Get the underlying block pointer from the tagged vector pointer.
-    const { value: block } = fromTaggedValue(
-      vectorPtr,
-      PrimitiveTag.HEAP,
-      HeapSubType.VECTOR
-    );
+    const { value: block } = fromTaggedValue(vectorPtr);
     // Manually bump the reference count to simulate sharing (forcing copy-on-write).
     memory.write16(SEG_HEAP, block + BLOCK_REFS, 2);
 
     const updatedVectorPtr = vectorUpdate(heap, vectorPtr, 1, 9.9);
-    expect(updatedVectorPtr).not.toBe(NIL);
+    expect(isNIL(updatedVectorPtr)).toBe(false);
     // Even with copy-on-write, the updated vector should reflect the new value.
     expect(vectorGet(heap, updatedVectorPtr, 1)).toBeCloseTo(9.9);
   });
@@ -110,8 +105,8 @@ describe("Vector Operations", () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr1 = vectorCreate(heap, data);
     const vectorPtr2 = vectorCreate(heap, data);
-    expect(vectorPtr1).not.toBe(NIL);
-    expect(vectorPtr2).not.toBe(NIL);
+    expect(isNIL(vectorPtr1)).toBe(false);
+    expect(isNIL(vectorPtr2)).toBe(false);
     const ptr1 = fromTaggedValue(vectorPtr1).value;
     const ptr2 = fromTaggedValue(vectorPtr2).value;
     // Ensure that two separate calls to vectorCreate yield distinct pointers.
@@ -121,7 +116,7 @@ describe("Vector Operations", () => {
   it("vectorGet returns UNDEF for negative index", () => {
     const data = [10, 20, 30];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
     // Negative index should be out of bounds.
     expect(vectorGet(heap, vectorPtr, -1)).toBe(NIL);
   });
@@ -129,7 +124,7 @@ describe("Vector Operations", () => {
   it("vectorUpdate returns UNDEF for negative index", () => {
     const data = [10, 20, 30];
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
     // Negative index should be rejected.
     expect(vectorUpdate(heap, vectorPtr, -1, 99)).toBe(NIL);
   });
@@ -138,14 +133,14 @@ describe("Vector Operations", () => {
     // Create a vector with 15 elements so that the first block (capacity = 14) spills into a second block.
     const data = Array.from({ length: 15 }, (_, i) => i + 1); // [1, 2, ... 15]
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
 
     // Update an element that falls in the second block.
     // With capacityPerBlock = Math.floor((64 - 8) / 4) = 14,
     // index 14 will be the first element in the second block.
     const newValue = 99.9;
     const updatedVectorPtr = vectorUpdate(heap, vectorPtr, 14, newValue);
-    expect(updatedVectorPtr).not.toBe(NIL);
+    expect(isNIL(updatedVectorPtr)).toBe(false);
     expect(vectorGet(heap, updatedVectorPtr, 14)).toBeCloseTo(newValue);
   });
 
@@ -153,14 +148,10 @@ describe("Vector Operations", () => {
     // Create a vector with 15 elements so that a second block is allocated.
     const data = Array.from({ length: 15 }, (_, i) => i + 1);
     const vectorPtr = vectorCreate(heap, data);
-    expect(vectorPtr).not.toBe(NIL);
+    expect(isNIL(vectorPtr)).toBe(false);
 
     // Extract the underlying first block from the tagged vector pointer.
-    const { value: firstBlock } = fromTaggedValue(
-      vectorPtr,
-      PrimitiveTag.HEAP,
-      HeapSubType.VECTOR
-    );
+    const { value: firstBlock } = fromTaggedValue(vectorPtr);
     // Get the pointer to the second block.
     const secondBlock = heap.getNextBlock(firstBlock);
     expect(secondBlock).not.toBe(INVALID);
@@ -171,7 +162,7 @@ describe("Vector Operations", () => {
     // Update the element at index 14 (which resides in the second block).
     const newValue = 88.8;
     const updatedVectorPtr = vectorUpdate(heap, vectorPtr, 14, newValue);
-    expect(updatedVectorPtr).not.toBe(NIL);
+    expect(isNIL(updatedVectorPtr)).toBe(false);
     expect(vectorGet(heap, updatedVectorPtr, 14)).toBeCloseTo(newValue);
   });
 });

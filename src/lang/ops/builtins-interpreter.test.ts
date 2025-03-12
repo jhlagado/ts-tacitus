@@ -3,9 +3,9 @@ import { dupOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../../core/globalState";
 import {
   fromTaggedValue,
-  PrimitiveTag,
+  CoreTag,
   toTaggedValue,
-} from "../../core/tagged";
+} from "../../core/tagged-value";
 import { toUnsigned16 } from "../../core/utils";
 import {
   abortOp,
@@ -32,17 +32,17 @@ describe("Built-in Words", () => {
 
     it("exitOp should restore IP from return stack", () => {
       const testAddress = 0x2345;
-      vm.rpush(toTaggedValue(testAddress, PrimitiveTag.CODE));
+      vm.rpush(toTaggedValue(testAddress, false, CoreTag.CODE));
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
 
     it("evalOp should push IP to return stack and jump", () => {
       const testAddress = 0x2345;
-      vm.push(toTaggedValue(testAddress, PrimitiveTag.CODE));
+      vm.push(toTaggedValue(testAddress, false, CoreTag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value).toBe(0); // Original IP before eval
+      expect(fromTaggedValue(vm.rpop()).value).toBe(0); // Original IP before eval
     });
 
     it("branchOp should jump relative", () => {
@@ -57,9 +57,7 @@ describe("Built-in Words", () => {
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(fromTaggedValue(vm.rpop(), PrimitiveTag.CODE).value).toBe(
-        2
-      ); // Original IP after call
+      expect(fromTaggedValue(vm.rpop()).value).toBe(2); // Original IP after call
     });
   });
 
@@ -81,7 +79,7 @@ describe("Built-in Words", () => {
     it("should push return address", () => {
       const initialIP = vm.IP;
       skipBlockOp(vm);
-      const { value: pointer } = fromTaggedValue(vm.pop(), PrimitiveTag.CODE);
+      const { value: pointer } = fromTaggedValue(vm.pop());
       expect(pointer).toBe(initialIP + 2); // +1 opcode + 2 offset
     });
   });
@@ -94,7 +92,7 @@ describe("Built-in Words", () => {
     });
 
     it("should handle tagged pointers", () => {
-      const addr = toTaggedValue(0x2345, PrimitiveTag.CODE);
+      const addr = toTaggedValue(0x2345, false, CoreTag.CODE);
       vm.compiler.compileFloat(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);
@@ -174,7 +172,7 @@ describe("Built-in Words", () => {
 
     it("should handle return stack overflow", () => {
       // Fill return stack.
-      const maxDepth = (vm.RP) / 4;
+      const maxDepth = vm.RP / 4;
       for (let i = 0; i < maxDepth; i++) {
         vm.rpush(0);
       }

@@ -1,7 +1,7 @@
 import { Digest } from "../core/digest";
-import { PrimitiveTag, toTaggedValue } from "../core/tagged";
+import { CoreTag, toTaggedValue } from "../core/tagged-value";
 
 export function stringCreate(digest: Digest, value: string): number {
   const address = digest.add(value);
-  return toTaggedValue(address, PrimitiveTag.STRING, );
+  return toTaggedValue(address, false, CoreTag.STRING, );
 }

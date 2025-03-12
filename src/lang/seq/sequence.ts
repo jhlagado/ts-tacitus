@@ -5,10 +5,9 @@ import { SEG_HEAP, SEG_STRING } from "../../core/memory";
 import {
   NIL,
   fromTaggedValue,
-  PrimitiveTag,
   toTaggedValue,
-  HeapSubType,
-} from "../../core/tagged";
+  HeapTag,
+} from "../../core/tagged-value";
 import { VM } from "../../core/vm";
 import { VEC_DATA, vectorCreate, VEC_SIZE } from "../../data/vector";
 
@@ -40,12 +39,8 @@ export function seqCreate(
   if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
   const vectorTagged = vectorCreate(heap, headerData);
   if (vectorTagged == NIL) return NIL;
-  const { value: seqPtr } = fromTaggedValue(
-    vectorTagged,
-    PrimitiveTag.HEAP,
-    HeapSubType.VECTOR
-  );
-  return toTaggedValue(seqPtr, PrimitiveTag.HEAP, HeapSubType.SEQ);
+  const { value: seqPtr } = fromTaggedValue(vectorTagged);
+  return toTaggedValue(seqPtr, true, HeapTag.SEQ);
 }
 
 /**
@@ -53,11 +48,7 @@ export function seqCreate(
  * @returns The updated sequence pointer if modified by copy-on-write.
  */
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
-  let { value: seqPtr } = fromTaggedValue(
-    seq,
-    PrimitiveTag.HEAP,
-    HeapSubType.SEQ
-  );
+  let { value: seqPtr } = fromTaggedValue(seq);
 
   const sourceType = heap.memory.readFloat(SEG_HEAP, seqPtr + SEQ_TYPE);
   const metaCount = heap.memory.readFloat(SEG_HEAP, seqPtr + SEQ_META_COUNT);
@@ -81,11 +72,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         SEG_HEAP,
         seqPtr + SEQ_META_START
       ); // meta[0]
-      const { value: vecPtr } = fromTaggedValue(
-        taggedVecPtr,
-        PrimitiveTag.HEAP,
-        HeapSubType.VECTOR
-      );
+      const { value: vecPtr } = fromTaggedValue(taggedVecPtr);
       const index = heap.memory.readFloat(SEG_HEAP, seqPtr + cursorOffset);
       const length = heap.memory.read16(SEG_HEAP, vecPtr + VEC_SIZE);
       if (index < length) {
@@ -119,10 +106,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         SEG_HEAP,
         seqPtr + SEQ_META_START
       ); // meta[0]
-      const { value: strPtr } = fromTaggedValue(
-        taggedStrPtr,
-        PrimitiveTag.STRING
-      );
+      const { value: strPtr } = fromTaggedValue(taggedStrPtr);
 
       // Read the current cursor index (stored as a float in the sequence's metadata).
       const index = heap.memory.readFloat(SEG_HEAP, seqPtr + cursorOffset);
