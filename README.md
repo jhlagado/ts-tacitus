@@ -1,91 +1,276 @@
-The README has been updated to reflect the GNU Public License. Here is the revised version:
-
-# Tacit Programming Language
+# Memory Management in Tacit
 
 ## Overview
 
-Tacit is a new programming language designed to run on more restrictive systems than the JavaScript VM. It is a prototype that may be converted to C and even assembly language. The language features a unique memory management system, a stack-based execution model, and a focus on array programming inspired by languages like APL and J.
+The `memory.ts` file in the Tacit codebase manages the memory layout and provides low-level memory operations. It defines the structure of the memory space, including sections for the stack, return stack, strings, heap, and code within a 64KB memory space.
 
 ## Key Features
 
-### Memory Management
+### Memory Layout
 
-- **Memory Space**: The memory space is limited to 64KB, using 16-bit pointers.
-- **Main Data Types**: The primary data types are numbers (32-bit floating-point) and multi-dimensional arrays.
-- **Tagged Data**: The language extends the Float32 format to store tagged data within the 23-bit mantissa of a NaN float. 3 bits are used for the tag, and the remaining 20 bits are used for data.
-- **Reference Counting**: Uses reference counting to manage memory without garbage collection.
-- **Immutable Data Structures**: Arrays are copy-on-write but use structural sharing to prevent cyclic references and improve efficiency.
-- **Persistent Data Structures**: Maintains immutability by cloning only the necessary parts of the array, similar to Clojure.
-- **No Fragmentation**: All blocks are the same size (BLOCK_SIZE), and larger blocks are created by linking them together (BLOCK_NEXT).
+- **Memory Size**: The total memory size is 64KB (65536 bytes)
+- **Segment-Based Architecture**: Memory is divided into logical segments:
+  - **SEG_STACK**: Data stack for operation values (256 bytes)
+  - **SEG_RSTACK**: Return stack for function calls (256 bytes)
+  - **SEG_STRING**: String storage (2KB)
+  - **SEG_CODE**: Executable code (8KB)
+  - **SEG_HEAP**: Dynamic memory allocation (remaining space)
 
-### Execution Model
+### Memory Operations
 
-- **Stack-Based**: The language processes arguments using a stack, with a second stack for storing return addresses. There is no concept of stack frames.
-- **Reverse Polish Notation (RPN)**: Similar to PostScript and Forth, Tacit uses RPN for its stack-based execution model.
-- **No Local Variables**: State is held on the stack, and there may be some global variables. Vectors can contain pointers to other heap-allocated objects, with reference counting deciding the lifespan of objects.
-- **Ownership**: The main form of ownership of objects is the stack.
+- **Segment-Based Addressing**: All memory operations require a segment ID and offset
+- **Read/Write Operations**: Methods for 8-bit, 16-bit, and 32-bit float values
+- **Address Resolution**: `resolveAddress` converts segment+offset pairs to absolute addresses
+- **Bounds Checking**: All operations verify memory accesses are within valid ranges
 
-### Language Design
+## Heap Management in Tacit
 
-- **No Loops or Recursion**: The language is based on iterators, combinators, and operators such as `each`, `reduce`, `scan`, etc., rather than lambda calculus.
-- **Bytecode Compilation**: Functions are easily composed using bytecode compilation, with no closures.
-- **Array Language**: The language features array language capabilities similar to APL or J.
+### Block-Based Architecture
 
-## Codebase Overview
+- **Fixed-Size Blocks**: Each block is exactly 64 bytes
+- **Block Structure**:
+  - **BLOCK_NEXT** (2 bytes): Points to the next block in a chain
+  - **BLOCK_REFS** (2 bytes): Reference count for garbage collection
+  - **Usable Space**: 60 bytes per block (BLOCK_SIZE - 4)
 
-### Memory Management
+### Block-Based Addressing
 
-- **Memory Layout**: The memory is divided into sections for the stack, return stack, strings, heap, and code.
-- **Memory Operations**: The `Memory` class handles low-level memory operations, including reading and writing 8-bit, 16-bit, and 32-bit values.
-- **Heap Management**: The `Heap` class manages memory allocation and deallocation, including reference counting and free list management.
+- **Block Indices**: The system uses 16-bit block indices rather than byte offsets
+- **Addressing Capacity**: This approach expands addressable memory from 64KB to 4MB
+- **Address Translation**: `blockToByteOffset` converts block indices to actual byte offsets
 
-### Data Structures
+### Memory Allocation
 
-- **Arrays**: The `array.ts` file defines functions for creating, accessing, and updating arrays. Arrays support multi-dimensional data and use copy-on-write with structural sharing.
-- **Vectors**: The `vector.ts` file defines functions for creating, accessing, and updating vectors. Vectors are used to store contiguous data.
-- **Views**: The `view.ts` file defines functions for creating views on vectors, allowing for efficient access to subsets of data.
+- **Free List**: Tracks available blocks using a linked list
+- **Multi-Block Allocation**: Supports allocating contiguous blocks for larger data structures
+- **Reference Counting**: Automatically manages memory through reference counts
 
-### Execution Engine
+### Copy-on-Write Mechanism
 
-- **Virtual Machine**: The `VM` class in `vm.ts` manages the execution of bytecode, including stack operations, instruction pointer management, and memory access.
-- **Compiler**: The `Compiler` class in `lang/compiler.ts` handles the compilation of Tacit code into bytecode.
-- **Interpreter**: The `interpreter.ts` file defines functions for executing compiled bytecode, including error handling and debugging support.
+- **Immutable Updates**: Modifications to shared blocks create copies first
+- **Structural Sharing**: Unmodified parts of data structures remain shared
+- **Block Cloning**: `cloneBlock` creates copies while preserving reference integrity
 
-### Language Features
+## Data Structures
 
-- **Built-in Words**: The `ops/builtins.ts` file defines built-in words for arithmetic operations, stack manipulation, and control flow.
-- **Dictionary**: The `Dictionary` class in `lang/dictionary.ts` manages the definition and lookup of words in the language.
-- **Parser**: The `parser.ts` file defines functions for parsing Tacit code into a sequence of tokens and compiling it into bytecode.
-- **Lexer**: The `lexer.ts` file defines functions for tokenizing input strings into a sequence of tokens.
+### Vectors
 
-### Sequence Processing
+- **Implementation**: Vectors are built on top of the heap system
+- **Block Layout**:
+  - Uses heap block header (BLOCK_NEXT, BLOCK_REFS)
+  - Adds vector-specific metadata (VEC_SIZE, VEC_RESERVED)
+  - Stores elements as 32-bit floats
+- **Multi-Block Support**: Large vectors span multiple linked blocks
+- **Operations**: Create, get, update (with copy-on-write semantics)
 
-- **Sequences**: The `seq` directory contains files for defining and processing sequences, including sources, processors, and sinks.
-- **Sequence Operations**: The `sequence.ts` file defines basic sequence operations, such as consuming the next element and duplicating sequences.
-- **Processors**: The `processor.ts` file defines functions for creating processor sequences that apply mapping or filtering functions to each element.
-- **Sinks**: The `sink.ts` file defines functions for consuming sequences and reducing them to a single value or collecting them into an array.
+### Sequences
 
-### Utilities
+- **Purpose**: Abstractions for iterating over various data sources
+- **Types**:
+  - **Range Sequences**: Generate numeric sequences with start, step, end
+  - **Vector Sequences**: Iterate over elements in a vector
+  - **String Sequences**: Iterate over characters in a string
+  - **Multi-Sequences**: Combine multiple sequences (like zip operation)
+- **Architecture**:
+  - **Sources**: Create sequences from different data types
+  - **Processors**: Transform sequence elements (map, filter)
+  - **Sinks**: Consume sequences and produce results
 
-- **Tagged Values**: The `tagged-value.ts` file defines functions for encoding and decoding tagged values, which are used to store pointers and other metadata in a compact form.
-- **Utilities**: The `utils.ts` file defines various utility functions for character checks, bitwise operations, and other common tasks.
+## Technical Highlights
 
-## Getting Started
+### NaN-Boxing for Tagged Values
 
-To get started with Tacit, you can explore the codebase and run the tests to understand the language's features and execution model. The tests are written using Jest.
+- **Tagged Values**: Uses NaN-boxing to encode type information and values in 32-bit floats
+- **Types**:
+  - **Core Tags**: NIL, INTEGER, CODE, NAN, STRING
+  - **Heap Tags**: BLOCK, SEQ, VECTOR, DICT
+- **Benefits**: Efficient type checking and value extraction without separate type fields
 
-## Contributing
+### Reference Counting vs Garbage Collection
 
-Contributions to Tacit are welcome! Please follow the existing code style and write tests for any new features or bug fixes.
+- **Deterministic Cleanup**: Objects are freed immediately when reference count reaches zero
+- **Automatic Propagation**: Freeing a block decrements references to linked blocks
+- **No Collection Pauses**: Avoids the overhead of garbage collection cycles
 
-## License
+## Conclusion
 
-Tacit is licensed under the GNU Public License. See the LICENSE file for more information.
+The memory management system in Tacit is designed for efficiency within constrained environments. The block-based addressing scheme with reference counting provides a balance between flexibility and performance, while the copy-on-write mechanism enables functional programming patterns with immutable data structures. This architecture allows Tacit to manage complex data structures efficiently while maintaining a small memory footprint.
 
-## Contact
+# Language Processing in Tacit
 
-For more information about Tacit, please contact the project maintainers.
+## Overview
 
----
+The `lang` directory contains components responsible for parsing, lexing, compiling, and interpreting Tacit code. These components work together to enable the execution of Tacit programs, handling everything from tokenizing input to executing compiled bytecode.
 
-This README provides a comprehensive overview of the Tacit programming language, its features, and the structure of the codebase. It is designed to help developers understand the language's unique memory management system, execution model, and language features.
+## Key Components
+
+### Lexer (`lexer.ts`)
+
+- **Purpose**: Converts input strings into a sequence of tokens
+- **Function**: `lex`
+  - Tokenizes input into numbers, words, and special characters
+  - Handles numbers (integers, floats), words, operators, and special characters
+  - Ignores whitespace and comments (denoted by `//`)
+- **Design Decisions**:
+  - Simple and efficient tokenization focused on essential syntax elements
+  - Robust error handling that skips invalid tokens
+
+### Parser (`parser.ts`)
+
+- **Purpose**: Converts token sequences into executable bytecode
+- **Function**: `parse`
+  - Processes tokens sequentially and emits corresponding bytecode
+  - Handles numbers, words, blocks, and colon definitions
+  - Manages compilation context and nesting
+- **Key Features**:
+  - **Colon Definitions**: Supports `: word ... ;` syntax for defining new words
+  - **Code Blocks**: Handles `(...)` syntax for anonymous functions
+  - **Error Handling**: Provides clear messages for syntax errors
+
+### Compiler (`compiler.ts`)
+
+- **Purpose**: Generates bytecode for the VM to execute
+- **Functions**:
+  - `compile8`, `compile16`, `compileFloat`: Emit different-sized values
+  - `reset`: Resets the compilation state
+- **Design Decisions**:
+  - Produces compact bytecode for efficient execution
+  - Supports branch patching for control flow structures
+
+### Symbol Table (`symbol-table.ts`)
+
+- **Purpose**: Manages word definitions in the language
+- **Functions**:
+  - `define`: Registers a new word or overrides an existing one
+  - `find`: Looks up a word by name
+  - `defineCall`: Creates a word that calls a specific address
+- **Implementation**:
+  - Uses a linked list of symbol nodes for efficient lookup
+  - Supports word redefinition (later definitions override earlier ones)
+
+## Execution Model
+
+### Stack-Based Architecture
+
+- **Data Stack**: Primary stack for operands and results
+- **Return Stack**: Manages function calls and returns
+- **RPN Syntax**: Operators follow their operands (e.g., `2 3 +`)
+
+### Bytecode Execution
+
+- **Instruction Pointer**: Tracks the current execution position
+- **Opcodes**: Single-byte instructions (e.g., `Op.Plus`, `Op.Call`)
+- **Control Flow**: Supports branching, loops, and function calls
+
+## Sequence Processing
+
+Tacit implements a powerful sequence abstraction for working with collections:
+
+1. **Creation**: Sequences can be created from ranges, vectors, or strings
+2. **Transformation**: Processors like `filter` and `map` transform elements
+3. **Consumption**: Sinks like `toVector` and `forEach` produce final results
+
+This architecture enables lazy evaluation and efficient processing of data collections.
+
+## Conclusion
+
+The language processing components in Tacit provide a robust foundation for a stack-based programming language. The design emphasizes simplicity, efficiency, and functional programming patterns, making it suitable for resource-constrained environments while still offering powerful abstractions like sequences and immutable data structures.
+
+# Comprehensive Overview of the Tacit Virtual Machine
+
+## Core Architecture
+
+Tacit is a stack-based programming language with a virtual machine implementation in TypeScript. It combines elements from Forth, APL, and functional programming languages like Clojure, optimized for constrained environments.
+
+### Key Design Principles
+
+1. **Memory Efficiency**: Operates within a 64KB memory space using block-based addressing
+2. **Immutable Data Structures**: Implements copy-on-write semantics for efficient updates
+3. **Reference Counting**: Uses explicit reference counting instead of garbage collection
+4. **Stack-Based Execution**: Follows reverse Polish notation with two stacks
+5. **Functional Programming**: Supports higher-order functions and sequence abstractions
+
+## Memory Management
+
+### Segmented Memory Model
+
+- **Total Size**: 64KB addressable space
+- **Segments**:
+  - **Stack**: Data values during execution (256 bytes)
+  - **Return Stack**: Function call tracking (256 bytes)
+  - **String**: String storage (2KB)
+  - **Code**: Compiled bytecode (8KB)
+  - **Heap**: Dynamic memory allocation (remaining space)
+
+### Block-Based Heap
+
+- **Block Size**: Fixed 64-byte blocks
+- **Addressing**: Uses 16-bit block indices instead of byte offsets
+- **Capacity**: Effectively addresses up to 4MB (2^16 blocks × 64 bytes)
+- **Reference Counting**: Tracks object lifetimes with `BLOCK_REFS`
+
+### NaN-Boxing
+
+- **Tagged Values**: Encodes type information and values in 32-bit floats
+- **Type Tags**: Distinguishes between integers, strings, code pointers, and heap objects
+- **Memory Safety**: Prevents type confusion and invalid memory access
+
+## Data Structures
+
+### Vectors
+
+- **Implementation**: Linked blocks with metadata for length
+- **Operations**: Create, get, update with copy-on-write semantics
+- **Multi-Block**: Large vectors span multiple linked blocks
+
+### Sequences
+
+- **Sources**: Generate elements from ranges, vectors, strings
+- **Processors**: Transform elements (map, filter)
+- **Sinks**: Consume sequences (reduce, forEach)
+- **Lazy Evaluation**: Computes elements on demand
+
+## Language Features
+
+### Stack Operations
+
+- **Data Manipulation**: dup, swap, drop, over
+- **Arithmetic**: +, -, *, /
+- **Logic**: and, or, not, xor
+
+### Control Flow
+
+- **Conditionals**: if, else, then
+- **Loops**: while, until, repeat
+- **Function Calls**: call, exit
+
+### Word Definitions
+
+- **Syntax**: `: word ... ;`
+- **Code Blocks**: `(...)` for anonymous functions
+- **Dynamic Lookup**: Symbol table for word resolution
+
+## Implementation Details
+
+### Compiler
+
+- **Bytecode Generation**: Translates words to opcodes
+- **Branch Resolution**: Handles control flow structures
+- **Word Registration**: Adds definitions to symbol table
+
+### Interpreter
+
+- **Instruction Dispatch**: Executes opcodes
+- **Stack Management**: Maintains data and return stacks
+- **Error Handling**: Reports execution errors with context
+
+## Technical Innovations
+
+1. **Block-Based Addressing**: Expands addressable memory from 64KB to 4MB
+2. **Copy-on-Write**: Enables immutable data structures with efficient updates
+3. **Sequence Abstraction**: Provides a unified interface for collections
+4. **Reference Counting**: Deterministic memory management without GC pauses
+
+## Conclusion
+
+Tacit combines the simplicity of stack-based languages with the power of functional programming, all within a memory-efficient architecture. Its design makes it suitable for embedded systems, educational purposes, or as a foundation for domain-specific languages. The implementation demonstrates how modern programming concepts can be applied within constrained environments.
