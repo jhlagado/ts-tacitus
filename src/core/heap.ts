@@ -19,14 +19,23 @@ export class Heap {
   }
 
   private initializeFreeList(): void {
-    let current = 0;
-    while (current + BLOCK_SIZE < HEAP_SIZE) {
-      this.memory.write16(SEG_HEAP, current + BLOCK_NEXT, current + BLOCK_SIZE);
-      this.memory.write16(SEG_HEAP, current + BLOCK_REFS, 0); // Free blocks have 0 refs
-      current += BLOCK_SIZE;
+    // Calculate the number of blocks that can fit in the heap
+    const numBlocks = Math.floor(HEAP_SIZE / BLOCK_SIZE);
+    
+    // Link blocks by index (not byte offset)
+    for (let i = 0; i < numBlocks - 1; i++) {
+      this.memory.write16(SEG_HEAP, this.blockToByteOffset(i) + BLOCK_NEXT, i + 1);
+      this.memory.write16(SEG_HEAP, this.blockToByteOffset(i) + BLOCK_REFS, 0);
     }
-    this.memory.write16(SEG_HEAP, current + BLOCK_NEXT, INVALID);
-    this.memory.write16(SEG_HEAP, current + BLOCK_REFS, 0);
+    
+    // Set the last block's next pointer to INVALID
+    this.memory.write16(SEG_HEAP, this.blockToByteOffset(numBlocks - 1) + BLOCK_NEXT, INVALID);
+    this.memory.write16(SEG_HEAP, this.blockToByteOffset(numBlocks - 1) + BLOCK_REFS, 0);
+  }
+
+  // Helper method to convert block index to byte offset
+  blockToByteOffset(blockIndex: number): number {
+    return blockIndex * BLOCK_SIZE;
   }
 
   malloc(size: number): number {
@@ -38,17 +47,17 @@ export class Heap {
     let startBlock = current;
     let blocksFound = 0;
 
-    // Traverse the free list to find enough contiguous blocks
+    // Traverse the free list to find enough blocks
     while (current !== INVALID && blocksFound < numBlocks) {
       blocksFound++;
       prev = current;
-      current = this.memory.read16(SEG_HEAP, current + BLOCK_NEXT);
+      current = this.memory.read16(SEG_HEAP, this.blockToByteOffset(current) + BLOCK_NEXT);
     }
 
     // If not enough blocks are found, reset the traversed blocks and return NULL
     if (blocksFound < numBlocks) {
       if (startBlock !== INVALID) {
-        this.memory.write16(SEG_HEAP, prev + BLOCK_NEXT, this.freeList);
+        this.memory.write16(SEG_HEAP, this.blockToByteOffset(prev) + BLOCK_NEXT, this.freeList);
         this.freeList = startBlock;
       }
       return INVALID;
@@ -57,13 +66,13 @@ export class Heap {
     // Allocate the blocks: set reference counts and link them
     let block = startBlock;
     for (let i = 0; i < numBlocks; i++) {
-      this.memory.write16(SEG_HEAP, block + BLOCK_REFS, 1); // Initialize reference count
+      this.memory.write16(SEG_HEAP, this.blockToByteOffset(block) + BLOCK_REFS, 1);
       this.memory.write16(
         SEG_HEAP,
-        block + BLOCK_NEXT,
-        i < numBlocks - 1 ? block + BLOCK_SIZE : INVALID
-      ); // Link to next block or NULL
-      block += BLOCK_SIZE;
+        this.blockToByteOffset(block) + BLOCK_NEXT,
+        i < numBlocks - 1 ? block + 1 : INVALID
+      );
+      block++;
     }
 
     // Update the free list to point to the remaining free blocks
@@ -77,102 +86,93 @@ export class Heap {
 
   decrementRef(block: number): void {
     if (block === INVALID) return;
+    
+    // Check if the block index is valid before accessing memory
+    if (block * BLOCK_SIZE >= HEAP_SIZE) return;
 
-    const refs = this.memory.read16(SEG_HEAP, block + BLOCK_REFS) - 1;
-    this.memory.write16(SEG_HEAP, block + BLOCK_REFS, refs);
+    const byteOffset = this.blockToByteOffset(block);
+    const refs = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS) - 1;
+    this.memory.write16(SEG_HEAP, byteOffset + BLOCK_REFS, refs);
 
     if (refs === 0) {
-      const next = this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
+      const next = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_NEXT);
       this.decrementRef(next);
       this.addToFreeList(block);
     }
   }
 
   private addToFreeList(block: number): void {
-    this.memory.write16(SEG_HEAP, block + BLOCK_NEXT, this.freeList);
+    this.memory.write16(SEG_HEAP, this.blockToByteOffset(block) + BLOCK_NEXT, this.freeList);
     this.freeList = block;
   }
 
   incrementRef(block: number): void {
     if (block === INVALID) return;
-    const refs = this.memory.read16(SEG_HEAP, block + BLOCK_REFS);
-    this.memory.write16(SEG_HEAP, block + BLOCK_REFS, refs + 1);
+    const byteOffset = this.blockToByteOffset(block);
+    const refs = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS);
+    this.memory.write16(SEG_HEAP, byteOffset + BLOCK_REFS, refs + 1);
   }
 
   getNextBlock(block: number): number {
     if (block === INVALID) {
       throw new Error("Cannot get next block of NULL.");
     }
-    return this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
+    return this.memory.read16(SEG_HEAP, this.blockToByteOffset(block) + BLOCK_NEXT);
   }
 
   setNextBlock(parent: number, child: number): void {
-    const oldChild = this.memory.read16(SEG_HEAP, parent + BLOCK_NEXT);
+    const parentByteOffset = this.blockToByteOffset(parent);
+    const oldChild = this.memory.read16(SEG_HEAP, parentByteOffset + BLOCK_NEXT);
     if (oldChild !== INVALID) this.decrementRef(oldChild);
 
-    this.memory.write16(SEG_HEAP, parent + BLOCK_NEXT, child);
+    this.memory.write16(SEG_HEAP, parentByteOffset + BLOCK_NEXT, child);
     if (child !== INVALID) this.incrementRef(child);
   }
 
-  /**
-   * cloneBlock
-   * Clones a block and its contents.
-   * @param block - The block to clone.
-   * @returns The pointer to the newly cloned block.
-   */
-  /**
-   * cloneBlock
-   * Clones a block and its contents.
-   * @param block - The block to clone.
-   * @returns The pointer to the newly cloned block.
-   */
-  /**
-   * cloneBlock
-   * Clones a block and its contents.
-   * @param block - The block to clone.
-   * @returns The pointer to the newly cloned block.
-   */
   cloneBlock(block: number): number {
-    // Request exactly one block’s payload.
     const newBlock = this.malloc(USABLE_BLOCK_SIZE);
     if (newBlock === INVALID) return INVALID;
 
-    // Get the base address of the heap segment.
-    // resolveAddress(SEG_HEAP, 0) returns SEGMENT_TABLE[SEG_HEAP] + 0.
+    // Copy block content
+    const srcOffset = this.blockToByteOffset(block);
+    const destOffset = this.blockToByteOffset(newBlock);
+    
+    // Get the base address of the heap segment
     const base = this.memory.resolveAddress(SEG_HEAP, 0);
 
-    // Manually copy BLOCK_SIZE bytes from the original block to the new block,
-    // using absolute addresses in the memory buffer.
+    // Manually copy BLOCK_SIZE bytes
     for (let i = 0; i < BLOCK_SIZE; i++) {
-      this.memory.buffer[base + newBlock + i] =
-        this.memory.buffer[base + block + i];
+      this.memory.buffer[base + destOffset + i] = 
+        this.memory.buffer[base + srcOffset + i];
     }
-    // Reset the reference count on the new block.
-    this.memory.write16(SEG_HEAP, newBlock + BLOCK_REFS, 1);
+    
+    // Reset the reference count on the new block
+    this.memory.write16(SEG_HEAP, destOffset + BLOCK_REFS, 1);
 
-    // If there's a chained block, update its reference.
-    const nextBlock = this.memory.read16(SEG_HEAP, block + BLOCK_NEXT);
+    // If there's a chained block, update its reference
+    const nextBlock = this.memory.read16(SEG_HEAP, srcOffset + BLOCK_NEXT);
     if (nextBlock !== INVALID) this.incrementRef(nextBlock);
 
     return newBlock;
   }
 
-  /**
-   * copyOnWrite
-   * Checks if the block at 'blockPtr' is shared (ref count > 1).
-   * If so, clones the block and, if prevBlockPtr is provided (and not NULL),
-   * updates that block's next pointer to the new clone.
-   * Returns the new block pointer if a clone was performed, or the original pointer otherwise.
-   */
   copyOnWrite(blockPtr: number, prevBlockPtr?: number): number {
     if (blockPtr === INVALID) return INVALID;
-    const refs = this.memory.read16(SEG_HEAP, blockPtr + BLOCK_REFS);
+    
+    const byteOffset = this.blockToByteOffset(blockPtr);
+    const refs = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS);
+    
     if (refs > 1) {
       const newBlock = this.cloneBlock(blockPtr);
       if (newBlock === INVALID) return INVALID;
+      
       if (prevBlockPtr !== undefined && prevBlockPtr !== INVALID) {
-        // Update the previous block's next pointer to refer to the new clone.
-        this.memory.write16(SEG_HEAP, prevBlockPtr + BLOCK_NEXT, newBlock);
+        // Update the previous block's next pointer to refer to the new clone
+        this.memory.write16(
+          SEG_HEAP, 
+          this.blockToByteOffset(prevBlockPtr) + BLOCK_NEXT, 
+          newBlock
+        );
       }
       return newBlock;
     }
@@ -184,7 +184,7 @@ export class Heap {
     let current = this.freeList;
     while (current !== INVALID) {
       count++;
-      current = this.memory.read16(SEG_HEAP, current + BLOCK_NEXT);
+      current = this.memory.read16(SEG_HEAP, this.blockToByteOffset(current) + BLOCK_NEXT);
     }
     return count * BLOCK_SIZE;
   }

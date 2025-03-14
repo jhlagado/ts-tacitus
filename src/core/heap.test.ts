@@ -1,4 +1,4 @@
-// File: heap.test.ts
+// File: src/heap.test.ts
 
 import { INVALID } from "./constants";
 import {
@@ -39,8 +39,11 @@ describe("Heap", () => {
     const startBlock = heap.malloc(USABLE_BLOCK_SIZE);
     expect(startBlock).not.toBe(INVALID);
 
-    // Verify that the next block is NULL (only one block should be allocated)
-    const nextBlock = memory.read16(SEG_HEAP, startBlock + BLOCK_NEXT);
+    // Verify that the next block is INVALID (only one block should be allocated)
+    const nextBlock = memory.read16(
+      SEG_HEAP,
+      heap.blockToByteOffset(startBlock) + BLOCK_NEXT
+    );
     expect(nextBlock).toBe(INVALID);
 
     // Free the block
@@ -110,7 +113,7 @@ describe("Heap", () => {
     expect(negativeBlock).toBe(INVALID);
   });
 
-  it("should handle freeing NULL pointer", () => {
+  it("should handle freeing INVALID pointer", () => {
     expect(() => heap.free(INVALID)).not.toThrow();
   });
 
@@ -129,16 +132,18 @@ describe("Heap", () => {
     const ptr = heap.malloc(20);
     expect(ptr).not.toBe(INVALID);
     // Manually bump the reference count.
-    memory.write16(SEG_HEAP, ptr + BLOCK_REFS, 2);
+    memory.write16(SEG_HEAP, heap.blockToByteOffset(ptr) + BLOCK_REFS, 2);
     const newPtr = heap.copyOnWrite(ptr);
     expect(newPtr).not.toBe(ptr);
-    expect(memory.read16(SEG_HEAP, newPtr + BLOCK_REFS)).toBe(1);
+    expect(
+      memory.read16(SEG_HEAP, heap.blockToByteOffset(newPtr) + BLOCK_REFS)
+    ).toBe(1);
   });
 
   it("should copyOnWrite return same block when ref count is 1", () => {
     const ptr = heap.malloc(20);
     expect(ptr).not.toBe(INVALID);
-    memory.write16(SEG_HEAP, ptr + BLOCK_REFS, 1);
+    memory.write16(SEG_HEAP, heap.blockToByteOffset(ptr) + BLOCK_REFS, 1);
     const newPtr = heap.copyOnWrite(ptr);
     expect(newPtr).toBe(ptr);
   });
@@ -156,18 +161,27 @@ describe("Heap", () => {
       const initialFree = heap.available();
       const block = heap.malloc(HALF_BLOCK_SIZE);
       expect(block).not.toBe(INVALID);
-      expect(memory.read16(SEG_HEAP, block + BLOCK_REFS)).toBe(1);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(block) + BLOCK_REFS)
+      ).toBe(1);
       heap.decrementRef(block);
       expect(heap.available()).toBe(initialFree);
     });
 
     it("should manage multi-block allocations", () => {
       const block1 = heap.malloc(USABLE_BLOCK_SIZE * 2);
-      const block2 = block1 + BLOCK_SIZE;
-      expect(memory.read16(SEG_HEAP, block1 + BLOCK_REFS)).toBe(1);
-      expect(memory.read16(SEG_HEAP, block2 + BLOCK_REFS)).toBe(1);
+      // In the new system, block2 would be block1 + 1 (next block index)
+      const block2 = block1 + 1;
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(block1) + BLOCK_REFS)
+      ).toBe(1);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(block2) + BLOCK_REFS)
+      ).toBe(1);
       heap.decrementRef(block1);
-      expect(memory.read16(SEG_HEAP, block2 + BLOCK_REFS)).toBe(0);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(block2) + BLOCK_REFS)
+      ).toBe(0);
     });
 
     it("should handle shared block references", () => {
@@ -176,11 +190,17 @@ describe("Heap", () => {
       const child = heap.malloc(HALF_BLOCK_SIZE);
       heap.setNextBlock(parent1, child);
       heap.setNextBlock(parent2, child);
-      expect(memory.read16(SEG_HEAP, child + BLOCK_REFS)).toBe(3);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(child) + BLOCK_REFS)
+      ).toBe(3);
       heap.decrementRef(parent1);
-      expect(memory.read16(SEG_HEAP, child + BLOCK_REFS)).toBe(2);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(child) + BLOCK_REFS)
+      ).toBe(2);
       heap.decrementRef(parent2);
-      expect(memory.read16(SEG_HEAP, child + BLOCK_REFS)).toBe(1);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(child) + BLOCK_REFS)
+      ).toBe(1);
     });
 
     it("should copy-on-write when sharing blocks", () => {
@@ -191,7 +211,9 @@ describe("Heap", () => {
       heap.setNextBlock(blockB, blockC);
       const newBlockA = heap.cloneBlock(blockA);
       expect(newBlockA).not.toBe(INVALID);
-      expect(memory.read16(SEG_HEAP, newBlockA + BLOCK_REFS)).toBe(1);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(newBlockA) + BLOCK_REFS)
+      ).toBe(1);
     });
 
     it("should maintain available space correctly", () => {
@@ -221,14 +243,20 @@ describe("Heap", () => {
       const sharedB = heap.malloc(HALF_BLOCK_SIZE);
       heap.setNextBlock(struct1, sharedB);
       heap.setNextBlock(struct2, sharedB);
-      expect(memory.read16(SEG_HEAP, sharedB + BLOCK_REFS)).toBe(3);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(sharedB) + BLOCK_REFS)
+      ).toBe(3);
       heap.decrementRef(struct1);
-      expect(memory.read16(SEG_HEAP, sharedB + BLOCK_REFS)).toBe(2);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(sharedB) + BLOCK_REFS)
+      ).toBe(2);
       heap.decrementRef(struct2);
-      expect(memory.read16(SEG_HEAP, sharedB + BLOCK_REFS)).toBe(1);
+      expect(
+        memory.read16(SEG_HEAP, heap.blockToByteOffset(sharedB) + BLOCK_REFS)
+      ).toBe(1);
     });
 
-    it("should return NULL if allocation fails", () => {
+    it("should return INVALID if allocation fails", () => {
       while (heap.malloc(USABLE_BLOCK_SIZE) !== INVALID) {}
       const block = heap.malloc(HALF_BLOCK_SIZE);
       expect(block).toBe(INVALID);
