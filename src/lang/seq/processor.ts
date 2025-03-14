@@ -1,5 +1,5 @@
 import { Heap } from "../../core/heap";
-import { NIL } from "../../core/tagged";
+import { NIL } from "../../core/tagged-value";
 import { VM } from "../../core/vm";
 import { seqNext } from "./sequence";
 
