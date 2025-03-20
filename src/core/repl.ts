@@ -1,14 +1,14 @@
 import { createInterface } from "readline";
 import { execute } from "./interpreter";
 import { parse } from "./parser";
-import { lex } from "./lexer";
 import { initializeInterpreter, vm } from "./globalState";
 import { processFile } from "./runner";
+import { Tokenizer } from "./tokenizer"; // Import Tokenizer instead of lex
 
 /**
- * Starts the Read-Eval-Print Loop (REPL) for the interpreter.
- * @param files Optional array of file paths to process before starting interactive mode
- * @param interactiveAfterFiles Whether to enter interactive mode after processing files
+ * Starts the Read-Eval-Print Loop (REPL) for interactive interpreter use.
+ * @param files List of files to load before entering interactive mode
+ * @param interactiveAfterFiles Whether to enter interactive mode after loading files
  */
 export function startREPL(
   files: string[] = [],
@@ -16,25 +16,31 @@ export function startREPL(
 ): void {
   initializeInterpreter();
 
-  // Process files if provided
+  // Process any files provided
+  let allFilesProcessed = true;
   if (files.length > 0) {
-    console.log("File processing mode:");
+    console.log(`Loading ${files.length} file(s)...`);
+
     for (const file of files) {
       const success = processFile(file);
       if (!success) {
-        console.log("Processing stopped due to error.");
-        process.exit(1); // Exit with error code in file mode
+        console.error(`Error processing file: ${file}`);
+        allFilesProcessed = false;
       }
     }
-    console.log("All files processed successfully.");
 
-    // Exit if we're not supposed to enter interactive mode after
-    if (!interactiveAfterFiles) {
-      return;
+    if (allFilesProcessed) {
+      console.log("All files loaded successfully.");
+    } else {
+      console.log("Some files had errors but REPL will continue.");
     }
   }
 
-  // Start interactive mode
+  // Exit if not interactive mode after files
+  if (!interactiveAfterFiles) {
+    return;
+  }
+
   console.log(
     "Interactive mode (type 'exit' to quit, 'load <filepath>' to load a file):"
   );
@@ -53,14 +59,14 @@ export function startREPL(
     if (command === "exit") {
       console.log("Goodbye!");
       rl.close();
-      return; // Ensure no further processing happens
+      return;
     }
 
     // Add support for loading files during interactive mode
     if (command.startsWith("load ")) {
       const filePath = command.substring(5).trim();
       try {
-        // In interactive mode, we don't exit on file errors, just report them
+        // In interactive mode, we don't exit on file errors
         const success = processFile(filePath);
         if (!success) {
           console.log(
@@ -78,8 +84,13 @@ export function startREPL(
     }
 
     try {
-      const tokens = lex(command); // Tokenize the input string
-      parse(tokens); // Parse the tokens into a buffer of instructions
+      // Create a tokenizer instead of using lex()
+      const tokenizer = new Tokenizer(command);
+
+      // Pass tokenizer directly to parse
+      parse(tokenizer);
+
+      // Execute as before
       execute(vm.compiler.BP);
     } catch (error) {
       if (error instanceof Error) {

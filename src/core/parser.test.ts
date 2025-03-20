@@ -1,9 +1,9 @@
-// src/parser.test.ts
+// src/core/parser.test.ts
 
 import { initializeInterpreter, vm } from "./globalState";
-import { parse } from "../core/parser";
-import { Op } from "../ops/builtins"; // Import opTable
-import { lex } from "./lexer";
+import { parse } from "./parser"; // Updated path
+import { Op } from "../ops/builtins";
+import { Tokenizer } from "./tokenizer"; // Import Tokenizer instead of lex
 
 describe("Parser", () => {
   beforeEach(() => {
@@ -12,8 +12,9 @@ describe("Parser", () => {
   });
 
   it("should parse numbers into literalNumber and the number itself", () => {
-    const tokens = [5, 3.14, -42];
-    parse(tokens);
+    // Use a string with numbers instead of an array of tokens
+    parse(new Tokenizer("5 3.14 -42"));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.LiteralNumber);
     expect(vm.nextFloat()).toBeCloseTo(5);
@@ -25,8 +26,8 @@ describe("Parser", () => {
   });
 
   it("should parse known words into their corresponding indexes", () => {
-    const tokens = lex("+ - dup");
-    parse(tokens);
+    parse(new Tokenizer("+ - dup"));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.Plus);
     expect(vm.next8()).toBe(Op.Minus);
@@ -35,8 +36,8 @@ describe("Parser", () => {
   });
 
   it("should parse mixed tokens (numbers and words)", () => {
-    const tokens = lex("5 3 + dup");
-    parse(tokens);
+    parse(new Tokenizer("5 3 + dup"));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.LiteralNumber);
     expect(vm.nextFloat()).toBeCloseTo(5);
@@ -48,20 +49,21 @@ describe("Parser", () => {
   });
 
   it("should throw an error for unknown words", () => {
-    const tokens = ["unknown"];
-    expect(() => parse(tokens)).toThrow("Unknown word: unknown");
+    expect(() => parse(new Tokenizer("unknown"))).toThrow(
+      "Unknown word: unknown"
+    );
   });
 
   it("should handle empty input", () => {
-    const tokens = [] as (string | number)[];
-    parse(tokens);
+    parse(new Tokenizer(""));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.Abort);
   });
 
   it("should handle compilation blocks", () => {
-    const tokens = lex("(50) (30) + ");
-    parse(tokens);
+    parse(new Tokenizer("(50) (30) + "));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
     expect(vm.next16()).toBe(6);
@@ -78,8 +80,8 @@ describe("Parser", () => {
   });
 
   it("should handle nested compilation blocks", () => {
-    const tokens = lex("((6) (3) +)");
-    parse(tokens);
+    parse(new Tokenizer("((6) (3) +)"));
+
     vm.reset();
     expect(vm.next8()).toBe(Op.BranchCall);
     expect(vm.next16()).toBe(20);
@@ -99,10 +101,10 @@ describe("Parser", () => {
   });
 
   // Test for unknown words
-  it("should throw an error for unknown words", () => {
-    const tokens = ["unknown"];
-    expect(() => parse(tokens)).toThrow("Unknown word: unknown");
-  });
+  // it("should throw an error for unknown words", () => {
+  //   const tokens = ["unknown"];
+  //   expect(() => parse(tokens)).toThrow("Unknown word: unknown");
+  // });
 });
 
 describe("Parser - Colon Definitions", () => {
@@ -113,8 +115,7 @@ describe("Parser - Colon Definitions", () => {
 
   it("should parse simple colon definition", () => {
     const code = ": square dup * ;";
-    const tokens = lex(code);
-    parse(tokens);
+    parse(new Tokenizer(code));
 
     // Verify symbolTable entry
     const squareWord = vm.symbolTable.find("square");
@@ -135,15 +136,14 @@ describe("Parser - Colon Definitions", () => {
 
   it("should reject nested definitions", () => {
     const code = ": foo : bar ; ;";
-    expect(() => parse(lex(code))).toThrow(
+    expect(() => parse(new Tokenizer(code))).toThrow(
       "Nested definitions are not allowed"
     );
   });
 
   it("should validate definition names", () => {
     const code = ": 123name ;";
-    const tokens = lex(code);
-    parse(tokens);
+    parse(new Tokenizer(code));
     const compiled = vm.getCompileData();
     expect(compiled).toEqual([
       Op.Branch, // 0: BranchOp
@@ -153,13 +153,15 @@ describe("Parser - Colon Definitions", () => {
       Op.Abort, // 6: main abort
     ]);
 
-    expect(() => parse(lex(": test! ;"))).not.toThrow(
+    expect(() => parse(new Tokenizer(": test! ;"))).not.toThrow(
       "Invalid definition name: test!"
     );
   });
 
   it("should detect unclosed definitions", () => {
-    expect(() => parse(lex(": foo"))).toThrow("Unclosed definition for foo");
+    expect(() => parse(new Tokenizer(": foo"))).toThrow(
+      "Unclosed definition for foo"
+    );
   });
 
   it("should allow definitions containing blocks", () => {
@@ -167,7 +169,7 @@ describe("Parser - Colon Definitions", () => {
       : print_sum (+) eval ; 
       3 4 print_sum
     `;
-    parse(lex(code));
+    parse(new Tokenizer(code));
     const printSum = vm.symbolTable.find("print_sum");
     expect(printSum).toBeDefined();
     const compiled = vm.getCompileData();
@@ -187,7 +189,7 @@ describe("Parser - Colon Definitions", () => {
 
   it("should handle empty definitions", () => {
     const code = ": empty ;";
-    parse(lex(code));
+    parse(new Tokenizer(code));
 
     const emptyWord = vm.symbolTable.find("empty");
     expect(emptyWord).toBeDefined();
@@ -202,7 +204,7 @@ describe("Parser - Colon Definitions", () => {
       : inc 1 + ;
       : dec 1 - ;
     `;
-    parse(lex(code));
+    parse(new Tokenizer(code));
 
     expect(vm.symbolTable.find("inc")).toBeDefined();
     expect(vm.symbolTable.find("dec")).toBeDefined();
@@ -210,17 +212,17 @@ describe("Parser - Colon Definitions", () => {
 
   it("should reject definitions in code blocks", () => {
     const code = "( : bad ; )";
-    expect(() => parse(lex(code))).toThrow(
+    expect(() => parse(new Tokenizer(code))).toThrow(
       "Cannot nest definition inside code block"
     );
   });
 
   it("should maintain separate compilation contexts", () => {
-    parse(lex(": test1 1 + ;"));
+    parse(new Tokenizer(": test1 1 + ;"));
     const size1 = vm.compiler.CP;
 
     initializeInterpreter();
-    parse(lex(": test2 2 + ;"));
+    parse(new Tokenizer(": test2 2 + ;"));
     const size2 = vm.compiler.CP;
 
     expect(size1).toEqual(size2); // Should compile to same size

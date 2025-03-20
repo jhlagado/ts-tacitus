@@ -100,20 +100,13 @@ The memory management system in Tacit is designed for efficiency within constrai
 
 ## Overview
 
-The `lang` directory contains components responsible for parsing, lexing, compiling, and interpreting Tacit code. These components work together to enable the execution of Tacit programs, handling everything from tokenizing input to executing compiled bytecode.
+The `core` directory contains components responsible for parsing, lexing, compiling, and interpreting Tacit code. These components work together to enable the execution of Tacit programs, handling everything from tokenizing input to executing compiled bytecode.
 
 ## Key Components
 
-### Lexer (`lexer.ts`)
+### Tokenizer (`tokenizer.ts`)
 
 - **Purpose**: Converts input strings into a sequence of tokens
-- **Function**: `lex`
-  - Tokenizes input into numbers, words, and special characters
-  - Handles numbers (integers, floats), words, operators, and special characters
-  - Ignores whitespace and comments (denoted by `//`)
-- **Design Decisions**:
-  - Simple and efficient tokenization focused on essential syntax elements
-  - Robust error handling that skips invalid tokens
 
 ### Parser (`parser.ts`)
 
