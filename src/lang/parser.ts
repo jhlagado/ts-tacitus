@@ -25,6 +25,11 @@ export function parse(tokens: (string | number)[]): void {
       }
       i++;
 
+      // Add this check to prevent redefinition
+      if (vm.symbolTable.find(nameToken) !== undefined) {
+        throw new Error(`Word already defined: ${nameToken}`);
+      }
+
       vm.compiler.compile8(Op.Branch);
       const branchPos = vm.compiler.CP;
       vm.compiler.compile16(0);
@@ -37,6 +42,7 @@ export function parse(tokens: (string | number)[]): void {
         name: nameToken,
         branchPos: branchPos,
       };
+      vm.compiler.preserve = true; // Add this line to preserve definitions
       continue;
     }
 
