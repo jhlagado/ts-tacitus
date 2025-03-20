@@ -164,6 +164,49 @@ describe("Interpreter", () => {
     });
   });
 
+  describe("Colon definitions", () => {
+    it("should execute simple colon definition", () => {
+      executeProgram(`: square dup * ; 
+      3 square`);
+      expectStack([9]);
+    });
+
+    it("should handle multiple colon definitions", () => {
+      executeProgram(`
+        : square dup * ;
+        : cube dup square * ;
+        4 square
+        3 cube
+      `);
+      expectStack([16, 27]);
+    });
+
+    it("should allow colon definitions to use other definitions", () => {
+      executeProgram(`
+        : double 2 * ;
+        : quadruple double double ;
+        5 quadruple
+      `);
+      expectStack([20]);
+    });
+
+    it("should handle colon definitions with stack manipulation", () => {
+      executeProgram(`
+        : swap-and-add swap + ;
+        3 7 swap-and-add
+      `);
+      expectStack([10]);
+    });
+
+    it("should handle colon definitions with code blocks", () => {
+      executeProgram(`
+        : apply-block swap eval ;
+        (2 *) 5 apply-block
+      `);
+      expectStack([10]);
+    });
+  });
+
   // Helper functions
   function executeProgram(code: string): void {
     const tokens = lex(code);

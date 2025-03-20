@@ -16,6 +16,11 @@ export function execute(start: number): void {
         `Error executing word (stack: ${stackState})` +
         (error instanceof Error ? `: ${error.message}` : "");
       if (vm.debug) console.log((error as Error).stack);
+      
+      // Reset compiler state when an error occurs
+      vm.compiler.reset();
+      vm.compiler.preserve = false;
+      
       throw new Error(errorMessage);
     }
   }
