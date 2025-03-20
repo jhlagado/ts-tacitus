@@ -1,0 +1,102 @@
+import { VM } from "../vm";
+import { Verb } from "../types";
+
+/**
+ * Conditional execution
+ * Condition/Expression: Evaluates if 1.
+ */
+export const ifOp: Verb = (vm: VM) => {
+  const expr = vm.pop();
+  const condition = vm.pop();
+  if (vm.debug) console.log("ifOp", condition, expr);
+  // Implementation here
+};
+
+/**
+ * Conditional branching
+ * Condition/(Expr1, Expr2): Evaluates based on condition.
+ */
+export const ifElseOp: Verb = (vm: VM) => {
+  const expr2 = vm.pop();
+  const expr1 = vm.pop();
+  const condition = vm.pop();
+  if (vm.debug) console.log("ifElseOp", condition, expr1, expr2);
+  // Implementation here
+};
+
+/**
+ * Matches cases to values
+ * Value/CaseDict: Returns matching case.
+ */
+export const switchOp: Verb = (vm: VM) => {
+  const caseDict = vm.pop();
+  const value = vm.pop();
+  if (vm.debug) console.log("switchOp", value, caseDict);
+  // Implementation here
+};
+
+/**
+ * Executes first matching case
+ * Conditions/Actions: Runs first true case.
+ */
+export const caseOp: Verb = (vm: VM) => {
+  const actions = vm.pop();
+  const conditions = vm.pop();
+  if (vm.debug) console.log("caseOp", conditions, actions);
+  // Implementation here
+};
+
+/**
+ * Loop while condition holds
+ * Condition/Body: Repeats while true.
+ */
+export const whileOp: Verb = (vm: VM) => {
+  const body = vm.pop();
+  const condition = vm.pop();
+  if (vm.debug) console.log("whileOp", condition, body);
+  // Implementation here
+};
+
+/**
+ * Applies function to each element
+ * Function/Array: Maps function over elements.
+ */
+export const eachOp: Verb = (vm: VM) => {
+  const array = vm.pop();
+  const func = vm.pop();
+  if (vm.debug) console.log("eachOp", func, array);
+  // Implementation here
+};
+
+/**
+ * Applies function to elements
+ * Function/Array: Similar to each.
+ */
+export const mapOp: Verb = (vm: VM) => {
+  const array = vm.pop();
+  const func = vm.pop();
+  if (vm.debug) console.log("mapOp", func, array);
+  // Implementation here
+};
+
+/**
+ * Reduces array with function
+ * Function/Array: Aggregates left to right.
+ */
+export const foldOp: Verb = (vm: VM) => {
+  const array = vm.pop();
+  const func = vm.pop();
+  if (vm.debug) console.log("foldOp", func, array);
+  // Implementation here
+};
+
+/**
+ * Reduces array using function
+ * Function/Array: Equivalent to fold.
+ */
+export const reduceOp: Verb = (vm: VM) => {
+  const array = vm.pop();
+  const func = vm.pop();
+  if (vm.debug) console.log("reduceOp", func, array);
+  // Implementation here
+};

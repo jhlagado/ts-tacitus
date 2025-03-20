@@ -1,4 +1,4 @@
-import { Compiler } from "../lang/compiler";
+import { Compiler } from "./compiler";
 import { SymbolTable } from "./symbol-table";
 import {
   Memory,

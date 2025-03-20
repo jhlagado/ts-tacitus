@@ -1,5 +1,5 @@
-import { startREPL } from "./lang/repl";
-import { runFiles } from "./lang/runner";
+import { startREPL } from "./core/repl";
+import { runFiles } from "./core/runner";
 
 function main(): void {
   const args = process.argv.slice(2);

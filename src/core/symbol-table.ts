@@ -1,4 +1,4 @@
-import { defineBuiltins, Op } from "../lang/ops/builtins";
+import { defineBuiltins, Op } from "../ops/builtins";
 import { Digest } from "./digest";
 import { Verb } from "./types";
 import { VM } from "./vm";
