@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { execute } from "./interpreter";
 import { parse } from "./parser";
-import { lex } from "./lexer";
+import { Tokenizer } from "./tokenizer";
 import { initializeInterpreter, vm } from "./globalState";
 
 // Define the language file extension
@@ -45,8 +45,7 @@ export function processFile(filePath: string): boolean {
       if (line === "" || line.startsWith("//")) continue;
 
       try {
-        const tokens = lex(line);
-        parse(tokens);
+        parse(new Tokenizer(line));
         execute(vm.compiler.BP);
       } catch (error) {
         console.error(`Error in file ${filePathWithExt} at line ${i + 1}:`);

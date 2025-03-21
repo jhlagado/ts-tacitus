@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { execute } from "./interpreter";
 import { parse } from "./parser";
-import { lex } from "./lexer";
+import { Tokenizer } from "./tokenizer";
 import { initializeInterpreter } from "./globalState";
 
 // Create mock functions before mocking the module
@@ -14,7 +14,14 @@ jest.mock("fs");
 jest.mock("path");
 jest.mock("./interpreter");
 jest.mock("./parser");
-jest.mock("./lexer");
+jest.mock("./tokenizer", () => ({
+  Tokenizer: jest.fn().mockImplementation((input) => {
+    return {
+      input,
+      nextToken: jest.fn(),
+    };
+  }),
+}));
 jest.mock("../core/globalState", () => ({
   initializeInterpreter: jest.fn(),
   vm: {
@@ -141,9 +148,12 @@ describe("Runner", () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(lex).toHaveBeenCalledTimes(3);
+      expect(Tokenizer).toHaveBeenCalledTimes(3);
       expect(parse).toHaveBeenCalledTimes(3);
       expect(execute).toHaveBeenCalledTimes(3);
+
+      // Check that parse was called with Tokenizer instances
+      expect(parse).toHaveBeenCalledWith(expect.any(Object));
     });
 
     test("should skip empty lines and comments", () => {
@@ -158,19 +168,24 @@ describe("Runner", () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(lex).toHaveBeenCalledTimes(2);
+      expect(Tokenizer).toHaveBeenCalledTimes(2);
       expect(parse).toHaveBeenCalledTimes(2);
       expect(execute).toHaveBeenCalledTimes(2);
     });
 
-    test("should return false and stop processing on lex error", () => {
+    test("should return false and stop processing on tokenizer error", () => {
       // Arrange
       const filePath = "test.tacit";
       (fs.readFileSync as jest.Mock).mockReturnValue("line1\nline2\nline3");
-      (lex as jest.Mock)
-        .mockImplementationOnce(() => [])
+
+      // Make the Tokenizer constructor throw on the second call
+      (Tokenizer as jest.Mock)
+        .mockImplementationOnce(() => ({
+          input: "line1",
+          nextToken: jest.fn(),
+        }))
         .mockImplementationOnce(() => {
-          throw new Error("Lex error");
+          throw new Error("Tokenizer error");
         });
 
       // Act
@@ -178,8 +193,33 @@ describe("Runner", () => {
 
       // Assert
       expect(result).toBe(false);
-      expect(lex).toHaveBeenCalledTimes(2);
+      expect(Tokenizer).toHaveBeenCalledTimes(2);
       expect(parse).toHaveBeenCalledTimes(1);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error in file")
+      );
+    });
+
+    test("should return false and stop processing on parser error", () => {
+      // Arrange
+      const filePath = "test.tacit";
+      (fs.readFileSync as jest.Mock).mockReturnValue("line1\nline2\nline3");
+
+      // Make parse throw on the second call
+      (parse as jest.Mock)
+        .mockImplementationOnce(() => {})
+        .mockImplementationOnce(() => {
+          throw new Error("Parser error");
+        });
+
+      // Act
+      const result = runnerModule.processFile(filePath);
+
+      // Assert
+      expect(result).toBe(false);
+      expect(Tokenizer).toHaveBeenCalledTimes(2);
+      expect(parse).toHaveBeenCalledTimes(2);
       expect(execute).toHaveBeenCalledTimes(1);
       expect(console.error).toHaveBeenCalledWith(
         expect.stringContaining("Error in file")

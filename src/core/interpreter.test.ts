@@ -1,6 +1,6 @@
 import { execute } from "../core/interpreter";
 import { parse } from "../core/parser";
-import { lex } from "./lexer";
+import { Tokenizer } from "./tokenizer";
 import { vm, initializeInterpreter } from "./globalState";
 import * as math from "../ops/builtins-math";
 import { Op } from "../ops/builtins";
@@ -209,8 +209,7 @@ describe("Interpreter", () => {
 
   // Helper functions
   function executeProgram(code: string): void {
-    const tokens = lex(code);
-    parse(tokens);
+    parse(new Tokenizer(code));
     execute(vm.compiler.BP);
   }
 

@@ -92,6 +92,18 @@ export class Tokenizer {
       return this.readNumber();
     }
 
+    // Handle special instruction characters
+    if (char === ":" || char === ";") {
+      const value = char;
+      this.position++;
+      this.column++;
+      return {
+        type: TokenType.SPECIAL,
+        value,
+        position: startPos,
+      };
+    }
+
     // Handle grouping characters
     if (isGroupingChar(char)) {
       const value = char;
@@ -225,6 +237,32 @@ export class Tokenizer {
       tokenStr += this.input[this.position];
       this.position++;
       this.column++;
+    }
+
+    // Check if this is actually a word that starts with digits
+    // (like 123name)
+    if (
+      this.position < this.input.length &&
+      !isWhitespace(this.input[this.position]) &&
+      !isGroupingChar(this.input[this.position]) &&
+      this.input[this.position] !== "."
+    ) {
+      // Continue reading as a word
+      while (
+        this.position < this.input.length &&
+        !isWhitespace(this.input[this.position]) &&
+        !isGroupingChar(this.input[this.position])
+      ) {
+        tokenStr += this.input[this.position];
+        this.position++;
+        this.column++;
+      }
+
+      return {
+        type: TokenType.WORD,
+        value: tokenStr,
+        position: startPos,
+      };
     }
 
     // Handle decimal point
