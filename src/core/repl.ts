@@ -1,20 +1,15 @@
 import { createInterface } from "readline";
-import { execute } from "./interpreter";
-import { parse } from "./parser";
-import { initializeInterpreter, vm } from "./globalState";
-import { processFile } from "./runner";
-import { Tokenizer } from "./tokenizer"; // Import Tokenizer instead of lex
+import { executeLine, setupInterpreter } from "./executor";
+import { processFile } from "./fileProcessor";
 
 /**
- * Starts the Read-Eval-Print Loop (REPL) for interactive interpreter use.
- * @param files List of files to load before entering interactive mode
- * @param interactiveAfterFiles Whether to enter interactive mode after loading files
+ * Starts an interactive REPL session
  */
 export function startREPL(
   files: string[] = [],
   interactiveAfterFiles: boolean = true
 ): void {
-  initializeInterpreter();
+  setupInterpreter();
 
   // Process any files provided
   let allFilesProcessed = true;
@@ -66,7 +61,6 @@ export function startREPL(
     if (command.startsWith("load ")) {
       const filePath = command.substring(5).trim();
       try {
-        // In interactive mode, we don't exit on file errors
         const success = processFile(filePath);
         if (!success) {
           console.log(
@@ -84,21 +78,13 @@ export function startREPL(
     }
 
     try {
-      // Create a tokenizer instead of using lex()
-      const tokenizer = new Tokenizer(command);
-
-      // Pass tokenizer directly to parse
-      parse(tokenizer);
-
-      // Execute as before
-      execute(vm.compiler.BP);
+      executeLine(command);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
       } else {
         console.error("Unknown error occurred");
       }
-      // In interactive mode, we continue after errors
     }
 
     rl.prompt();

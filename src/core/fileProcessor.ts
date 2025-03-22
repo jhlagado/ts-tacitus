@@ -1,17 +1,12 @@
+// core/fileProcessor.ts
 import * as fs from "fs";
 import * as path from "path";
-import { execute } from "./interpreter";
-import { parse } from "./parser";
-import { Tokenizer } from "./tokenizer";
-import { initializeInterpreter, vm } from "./globalState";
+import { executeLine, setupInterpreter } from "./executor";
 
-// Define the language file extension
 export const TACIT_FILE_EXTENSION = ".tacit";
 
 /**
  * Ensures a file path has the correct extension
- * @param filePath Path to verify
- * @returns Path with proper extension
  */
 function ensureFileExtension(filePath: string): string {
   if (path.extname(filePath) === "") {
@@ -21,9 +16,8 @@ function ensureFileExtension(filePath: string): string {
 }
 
 /**
- * Processes a Tacit file through the interpreter
- * @param filePath Path to the file to process
- * @returns True if processing succeeded, false if there was an error
+ * Processes a single Tacit file
+ * @returns True if successful, false if errors occurred
  */
 export function processFile(filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
@@ -45,8 +39,7 @@ export function processFile(filePath: string): boolean {
       if (line === "" || line.startsWith("//")) continue;
 
       try {
-        parse(new Tokenizer(line));
-        execute(vm.compiler.BP);
+        executeLine(line);
       } catch (error) {
         console.error(`Error in file ${filePathWithExt} at line ${i + 1}:`);
         if (error instanceof Error) {
@@ -54,7 +47,7 @@ export function processFile(filePath: string): boolean {
         } else {
           console.error("  Unknown error occurred");
         }
-        return false; // Stop on first error in file mode
+        return false;
       }
     }
     return true;
@@ -68,19 +61,33 @@ export function processFile(filePath: string): boolean {
 }
 
 /**
- * Runs the interpreter on the specified files
- * @param files Array of file paths to process
+ * Processes multiple Tacit files
  */
-export function runFiles(files: string[]): void {
-  initializeInterpreter();
+export function processFiles(
+  files: string[],
+  exitOnError = true,
+  processFileFn: (filePath: string) => boolean = processFile
+): boolean {
+  setupInterpreter();
 
   console.log("Tacit file processing mode:");
+  let allSucceeded = true;
+
   for (const file of files) {
-    const success = processFile(file);
+    const success = processFileFn(file);
     if (!success) {
+      allSucceeded = false;
       console.log("Processing stopped due to error.");
-      process.exit(1); // Exit with error code on file error
+      if (exitOnError) {
+        process.exit(1);
+      }
+      break;
     }
   }
-  console.log("All Tacit files processed successfully.");
+
+  if (allSucceeded) {
+    console.log("All Tacit files processed successfully.");
+  }
+
+  return allSucceeded;
 }
