@@ -8,7 +8,7 @@ jest.mock("./executor");
 
 // Override process.exit (using a cast to satisfy TS)
 const mockExit = jest.fn();
-process.exit = (mockExit as unknown) as typeof process.exit;
+process.exit = mockExit as unknown as typeof process.exit;
 
 // --- Step 2. Rewire fileProcessor with a custom factory ---
 // This factory returns the real implementations but replaces processFile with a jest mock.
