@@ -1,10 +1,8 @@
 // Two separate enums: one for non–heap types and one for heap–allocated types.
 export enum CoreTag {
-  NIL = 0,
-  INTEGER = 1,
-  CODE = 2,
-  NAN = 3,
-  STRING = 4,
+  INTEGER = 0,
+  CODE = 1,
+  STRING = 2,
 }
 
 export enum HeapTag {
@@ -18,10 +16,8 @@ export type Tag = CoreTag | HeapTag;
 
 // Human–readable names for debugging.
 export const nonHeapTagNames: { [key in CoreTag]: string } = {
-  [CoreTag.NIL]: "NIL",
   [CoreTag.INTEGER]: "INTEGER",
   [CoreTag.CODE]: "CODE",
-  [CoreTag.NAN]: "NAN",
   [CoreTag.STRING]: "STRING",
 };
 
@@ -61,7 +57,7 @@ export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
     }
   } else {
     // Non–heap tags must be between NonHeapTag.NIL and NonHeapTag.STRING.
-    if (tag < CoreTag.NIL || tag > CoreTag.STRING) {
+    if (tag < CoreTag.INTEGER || tag > CoreTag.STRING) {
       throw new Error("Invalid non-heap tag");
     }
   }
@@ -159,10 +155,10 @@ export function isHeapAllocated(value: number): boolean {
 /**
  * Returns true if the tagged value represents NIL.
  */
-export function isNIL(value: number): boolean {
-  if (!isTaggedValue(value)) return false;
-  const decoded = fromTaggedValue(value);
-  return !decoded.heap && decoded.tag === CoreTag.NIL;
+export function isNIL(tagVal: number): boolean {
+  if (!isTaggedValue(tagVal)) return false;
+  const {value, heap, tag} = fromTaggedValue(tagVal);
+  return !heap && tag === CoreTag.INTEGER && value === 0;
 }
 
 /**

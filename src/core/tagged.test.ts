@@ -5,18 +5,21 @@ import {
   toTaggedValue,
   fromTaggedValue,
   isTaggedValue,
-  isRefCounted,
+  getTag,
+  getValue,
   isHeapAllocated,
+  isRefCounted,
+  isNIL,
+  printNum,
+  NIL,
 } from "./tagged";
 
 describe("Tagged NaN Encoding", () => {
   it("should encode/decode non-heap values", () => {
     const tests = [
-      { tag: CoreTag.NIL, value: 0 },
       { tag: CoreTag.INTEGER, value: -32768 },
       { tag: CoreTag.INTEGER, value: 32767 },
       { tag: CoreTag.CODE, value: 12345 },
-      { tag: CoreTag.NAN, value: 65535 },
       { tag: CoreTag.STRING, value: 42 },
     ];
     tests.forEach(({ tag, value }) => {
@@ -57,7 +60,6 @@ describe("Tagged NaN Encoding", () => {
   });
 
   it("should validate unsigned value ranges for non-INTEGER types", () => {
-    expect(() => toTaggedValue(-1, false, CoreTag.NIL)).toThrow();
     expect(() => toTaggedValue(-1, true, HeapTag.BLOCK)).toThrow();
     expect(() => toTaggedValue(65536, false, CoreTag.STRING)).toThrow();
   });
@@ -108,5 +110,37 @@ describe("Tagged NaN Encoding", () => {
 
     expect(decodedNeg.value).toBe(-32768);
     expect(decodedPos.value).toBe(32767);
+  });
+
+  // Additional tests for the remaining exported functions:
+
+  it("should return the correct tag using getTag", () => {
+    const encoded = toTaggedValue(123, false, CoreTag.CODE);
+    expect(getTag(encoded)).toBe(CoreTag.CODE);
+  });
+
+  it("should return the correct value using getValue", () => {
+    const encoded = toTaggedValue(456, true, HeapTag.SEQ);
+    expect(getValue(encoded)).toBe(456);
+  });
+
+  it("should correctly identify NIL using isNIL", () => {
+    // Create a NIL value using the NIL constant
+    expect(isNIL(NIL)).toBe(true);
+    // A non-NIL tagged value should return false.
+    const nonNil = toTaggedValue(1, false, CoreTag.INTEGER);
+    expect(isNIL(nonNil)).toBe(false);
+  });
+
+  it("should print formatted representation via printNum", () => {
+    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    const encoded = toTaggedValue(789, false, CoreTag.STRING);
+    printNum(encoded, 42, "test");
+    expect(consoleSpy).toHaveBeenCalled();
+    const output = consoleSpy.mock.calls[0][0];
+    expect(output).toContain("Tag:");
+    expect(output).toContain("Value:");
+    expect(output).toContain("test");
+    consoleSpy.mockRestore();
   });
 });
