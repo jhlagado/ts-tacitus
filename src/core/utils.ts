@@ -10,6 +10,9 @@ export const isWhitespace = (char: string): boolean => char.trim() === "";
 export const isGroupingChar = (char: string): boolean =>
   "{}[]()\"'`".includes(char);
 
+export const isSpecialChar = (char: string): boolean =>
+  "():\"'`".includes(char);
+
 // Number conversion and logical operations
 export const toUnsigned16 = (num: number): number => num & 0xffff;
 

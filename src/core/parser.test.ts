@@ -265,4 +265,32 @@ describe("Parser with Tokenizer", () => {
       expect(true).toBeTruthy();
     });
   });
+
+  // Groupings
+  describe("Groupings", () => {
+    it("should compile { 1 2 3 } with proper grouping opcodes", () => {
+      // Parse input with curly-brace grouping
+      parse(new Tokenizer("{ 1 2 3 }"));
+
+      vm.reset();
+      // Expect the GroupLeft opcode to be emitted for '{'
+      expect(vm.next8()).toBe(Op.GroupLeft);
+
+      // Check the three literal numbers
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat()).toBeCloseTo(1);
+
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat()).toBeCloseTo(2);
+
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat()).toBeCloseTo(3);
+
+      // Expect the GroupRight opcode for '}'
+      expect(vm.next8()).toBe(Op.GroupRight);
+
+      // Finally, the Abort opcode terminates the program
+      expect(vm.next8()).toBe(Op.Abort);
+    });
+  });
 });
