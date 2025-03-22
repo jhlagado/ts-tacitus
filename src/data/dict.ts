@@ -1,12 +1,7 @@
 // File: src/data/dict.ts
 
 import { Digest } from "../core/digest";
-import {
-  toTaggedValue,
-  fromTaggedValue,
-  NIL,
-  HeapTag,
-} from "../core/tagged-value";
+import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from "../core/tagged";
 import { Heap } from "../core/heap";
 import { stringCreate } from "./string";
 import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
@@ -65,9 +60,7 @@ export function dictCreate(
   // Create a vector from the flattened data using vectorCreate.
   const vectorTagged = vectorCreate(heap, flattened);
   // Unwrap the raw pointer (assumed to be tagged as PrimitiveTag.VECTOR from vectorCreate).
-  const { value: rawPtr } = fromTaggedValue(
-    vectorTagged,
-  );
+  const { value: rawPtr } = fromTaggedValue(vectorTagged);
   // Retag the vector pointer as a dictionary.
   return toTaggedValue(rawPtr, true, HeapTag.DICT);
 }
@@ -89,9 +82,7 @@ export function dictGet(
   key: string
 ): number {
   // Unwrap the dictionary pointer.
-  const { value: rawPtr } = fromTaggedValue(
-    dict,
-  );
+  const { value: rawPtr } = fromTaggedValue(dict);
   // Read the total number of elements from the vector header.
   // (Assuming the length is stored at offset VEC_SIZE as a 16-bit value.)
   const totalElements = heap.memory.read16(SEG_HEAP, rawPtr + VEC_SIZE);

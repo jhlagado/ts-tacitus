@@ -1,6 +1,6 @@
 import { VM } from "../core/vm";
 import { Verb } from "../core/types";
-import { toTaggedValue, CoreTag, fromTaggedValue } from "../core/tagged-value";
+import { toTaggedValue, CoreTag, fromTaggedValue } from "../core/tagged";
 import { formatValue } from "../core/utils";
 
 export const literalNumberOp: Verb = (vm: VM) => {
@@ -63,4 +63,12 @@ export const printOp: Verb = (vm: VM) => {
   if (vm.debug) console.log("printOp");
   const d = vm.pop();
   console.log(formatValue(vm, d));
+};
+
+export const literalStringOp: Verb = (vm: VM) => {
+  const address = vm.next16();
+  if (vm.debug) console.log("literalStringOp", address);
+  // Create tagged value for string address
+  const taggedString = toTaggedValue(address, false, CoreTag.STRING);
+  vm.push(taggedString);
 };

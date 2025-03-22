@@ -11,6 +11,7 @@ import {
   evalOp,
   groupLeftOp,
   groupRightOp,
+  literalStringOp,
 } from "./builtins-interpreter";
 
 import {
@@ -64,6 +65,7 @@ export enum Op {
   GroupLeft,
   GroupRight,
   Print,
+  LiteralString,
 
   Plus,
   Minus,
@@ -130,11 +132,14 @@ export enum Op {
   Prod,
 }
 
-export const executeOp = (vm: VM, opcode: Op) => {
+export function executeOp(vm: VM, opcode: Op) {
   switch (opcode) {
     // Control Flow
     case Op.LiteralNumber:
       literalNumberOp(vm);
+      break;
+    case Op.LiteralString:
+      literalStringOp(vm);
       break;
     case Op.Branch:
       skipDefOp(vm);

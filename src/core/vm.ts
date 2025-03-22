@@ -14,7 +14,7 @@ import {
   isRefCounted,
   toTaggedValue,
   CoreTag,
-} from "./tagged-value";
+} from "./tagged";
 import { Digest } from "./digest";
 
 export class VM {

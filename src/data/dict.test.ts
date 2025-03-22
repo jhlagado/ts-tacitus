@@ -4,7 +4,7 @@ import { Memory, SEG_HEAP } from "../core/memory";
 import { Digest } from "../core/digest";
 import { Heap } from "../core/heap";
 import { dictCreate, dictGet } from "../data/dict";
-import { NIL, fromTaggedValue } from "../core/tagged-value";
+import { NIL, fromTaggedValue } from "../core/tagged";
 import { INVALID } from "../core/constants";
 
 describe("Dictionary (dict) Tests", () => {

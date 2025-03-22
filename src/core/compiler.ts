@@ -1,5 +1,5 @@
 import { VM } from "./vm";
-import { CoreTag, toTaggedValue } from "./tagged-value";
+import { CoreTag, toTaggedValue } from "./tagged";
 import { SEG_CODE } from "./memory";
 
 export class Compiler {

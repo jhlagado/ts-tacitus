@@ -1,7 +1,7 @@
 import { Memory } from "../core/memory";
 import { Digest } from "../core/digest";
 import { stringCreate } from "../data/string";
-import { CoreTag, fromTaggedValue } from "../core/tagged-value";
+import { CoreTag, fromTaggedValue } from "../core/tagged";
 
 describe("stringCreate", () => {
   let memory: Memory;
@@ -41,7 +41,9 @@ describe("stringCreate", () => {
 
   it("should throw an error if the string exceeds maximum length", () => {
     const longString = "a".repeat(256);
-    expect(() => stringCreate(digest, longString)).toThrow("String too long (max 255 characters)");
+    expect(() => stringCreate(digest, longString)).toThrow(
+      "String too long (max 255 characters)"
+    );
   });
 
   it("should correctly store multiple strings in sequence", () => {

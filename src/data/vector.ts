@@ -1,10 +1,5 @@
 import { BLOCK_SIZE, USABLE_BLOCK_SIZE, Heap } from "../core/heap";
-import {
-  toTaggedValue,
-  fromTaggedValue,
-  NIL,
-  HeapTag,
-} from "../core/tagged-value";
+import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from "../core/tagged";
 import { INVALID } from "../core/constants";
 import { SEG_HEAP } from "../core/memory";
 
@@ -39,8 +34,16 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   if (firstBlock === INVALID) return NIL;
 
   // Write vector metadata: logical length and reserved field.
-  heap.memory.write16(SEG_HEAP, heap.blockToByteOffset(firstBlock) + VEC_SIZE, length);
-  heap.memory.write16(SEG_HEAP, heap.blockToByteOffset(firstBlock) + VEC_RESERVED, 0);
+  heap.memory.write16(
+    SEG_HEAP,
+    heap.blockToByteOffset(firstBlock) + VEC_SIZE,
+    length
+  );
+  heap.memory.write16(
+    SEG_HEAP,
+    heap.blockToByteOffset(firstBlock) + VEC_RESERVED,
+    0
+  );
 
   let currentBlock = firstBlock;
   let dataIndex = 0;
@@ -48,8 +51,8 @@ export function vectorCreate(heap: Heap, data: number[]): number {
 
   while (dataIndex < length) {
     heap.memory.writeFloat(
-      SEG_HEAP, 
-      heap.blockToByteOffset(currentBlock) + offset, 
+      SEG_HEAP,
+      heap.blockToByteOffset(currentBlock) + offset,
       data[dataIndex]
     );
     offset += ELEMENT_SIZE;
@@ -76,7 +79,7 @@ export function vectorGet(
 ): number {
   const { value: firstBlock } = fromTaggedValue(vectorPtr);
   const length = heap.memory.read16(
-    SEG_HEAP, 
+    SEG_HEAP,
     heap.blockToByteOffset(firstBlock) + VEC_SIZE
   );
   if (index < 0 || index >= length) return NIL;
@@ -88,7 +91,9 @@ export function vectorGet(
     if (remainingIndex < capacityPerBlock) {
       return heap.memory.readFloat(
         SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE
+        heap.blockToByteOffset(currentBlock) +
+          VEC_DATA +
+          remainingIndex * ELEMENT_SIZE
       );
     }
     remainingIndex -= capacityPerBlock;
@@ -110,7 +115,7 @@ export function vectorUpdate(
   let firstBlock = origFirstBlock;
 
   const length = heap.memory.read16(
-    SEG_HEAP, 
+    SEG_HEAP,
     heap.blockToByteOffset(firstBlock) + VEC_SIZE
   );
   if (index < 0 || index >= length) return NIL;
@@ -125,7 +130,9 @@ export function vectorUpdate(
     firstBlock = currentBlock;
     heap.memory.writeFloat(
       SEG_HEAP,
-      heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE,
+      heap.blockToByteOffset(currentBlock) +
+        VEC_DATA +
+        remainingIndex * ELEMENT_SIZE,
       value
     );
     return toTaggedValue(firstBlock, true, HeapTag.VECTOR);
@@ -138,7 +145,9 @@ export function vectorUpdate(
       if (currentBlock === INVALID) return INVALID;
       heap.memory.writeFloat(
         SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE,
+        heap.blockToByteOffset(currentBlock) +
+          VEC_DATA +
+          remainingIndex * ELEMENT_SIZE,
         value
       );
       return toTaggedValue(firstBlock, true, HeapTag.VECTOR);

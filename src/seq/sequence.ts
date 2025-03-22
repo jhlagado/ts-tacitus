@@ -1,12 +1,7 @@
 // In src/seq/sequence.ts
 
 import { SEG_HEAP, SEG_STRING } from "../core/memory";
-import {
-  NIL,
-  fromTaggedValue,
-  toTaggedValue,
-  HeapTag,
-} from "../core/tagged-value";
+import { NIL, fromTaggedValue, toTaggedValue, HeapTag } from "../core/tagged";
 import { VM } from "../core/vm";
 import { VEC_DATA, vectorCreate, VEC_SIZE } from "../data/vector";
 import { Heap } from "../core/heap";
@@ -51,11 +46,11 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
   let { value: seqPtr } = fromTaggedValue(seq);
 
   const sourceType = heap.memory.readFloat(
-    SEG_HEAP, 
+    SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_TYPE
   );
   const metaCount = heap.memory.readFloat(
-    SEG_HEAP, 
+    SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_META_COUNT
   );
   const cursorOffset = SEQ_META_START + metaCount * 4;
@@ -63,22 +58,22 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
   switch (sourceType) {
     case SEQ_SRC_RANGE: {
       const step = heap.memory.readFloat(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
       ); // meta[1]
       const end = heap.memory.readFloat(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8
       ); // meta[2]
       const cursor = heap.memory.readFloat(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + cursorOffset
       );
       if (cursor <= end) {
         vm.push(cursor);
         heap.memory.writeFloat(
-          SEG_HEAP, 
-          heap.blockToByteOffset(seqPtr) + cursorOffset, 
+          SEG_HEAP,
+          heap.blockToByteOffset(seqPtr) + cursorOffset,
           cursor + step
         );
       } else {
@@ -93,21 +88,23 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       ); // meta[0]
       const { value: vecPtr } = fromTaggedValue(taggedVecPtr);
       const index = heap.memory.readFloat(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + cursorOffset
       );
       const length = heap.memory.read16(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(vecPtr) + VEC_SIZE
       );
       if (index < length) {
-        vm.push(heap.memory.readFloat(
-          SEG_HEAP, 
-          heap.blockToByteOffset(vecPtr) + VEC_DATA + index * 4
-        ));
+        vm.push(
+          heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(vecPtr) + VEC_DATA + index * 4
+          )
+        );
         heap.memory.writeFloat(
-          SEG_HEAP, 
-          heap.blockToByteOffset(seqPtr) + cursorOffset, 
+          SEG_HEAP,
+          heap.blockToByteOffset(seqPtr) + cursorOffset,
           index + 1
         );
       } else {
@@ -142,7 +139,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
 
       // Read the current cursor index (stored as a float in the sequence's metadata).
       const index = heap.memory.readFloat(
-        SEG_HEAP, 
+        SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + cursorOffset
       );
 
@@ -156,8 +153,8 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
 
         // Increment the cursor index.
         heap.memory.writeFloat(
-          SEG_HEAP, 
-          heap.blockToByteOffset(seqPtr) + cursorOffset, 
+          SEG_HEAP,
+          heap.blockToByteOffset(seqPtr) + cursorOffset,
           index + 1
         );
       } else {

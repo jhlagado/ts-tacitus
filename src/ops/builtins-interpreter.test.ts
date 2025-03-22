@@ -1,11 +1,7 @@
 import { plusOp } from "./builtins-math";
 import { dupOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../core/globalState";
-import {
-  fromTaggedValue,
-  CoreTag,
-  toTaggedValue,
-} from "../core/tagged-value";
+import { fromTaggedValue, CoreTag, toTaggedValue } from "../core/tagged";
 import { toUnsigned16 } from "../core/utils";
 import {
   abortOp,

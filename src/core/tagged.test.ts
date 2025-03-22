@@ -7,7 +7,7 @@ import {
   isTaggedValue,
   isRefCounted,
   isHeapAllocated,
-} from "./tagged-value";
+} from "./tagged";
 
 describe("Tagged NaN Encoding", () => {
   it("should encode/decode non-heap values", () => {

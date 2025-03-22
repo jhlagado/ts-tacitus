@@ -1,5 +1,5 @@
 import { SEG_HEAP } from "./memory";
-import { CoreTag, fromTaggedValue, HeapTag, isTaggedValue } from "./tagged-value";
+import { CoreTag, fromTaggedValue, HeapTag, isTaggedValue } from "./tagged";
 import { VM } from "./vm";
 
 // Character check functions
@@ -86,9 +86,7 @@ export function formatValue(vm: VM, value32: number): string {
           return `[ ${elems.join(" ")} ]`;
         } catch (error) {
           console.error((error as Error).message);
-          return tag === HeapTag.VECTOR
-            ? `VECTOR(${value})`
-            : `DICT(${value})`;
+          return tag === HeapTag.VECTOR ? `VECTOR(${value})` : `DICT(${value})`;
         }
       default:
         return `Unknown heap tag (${tag}, ${value})`;

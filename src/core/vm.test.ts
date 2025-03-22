@@ -2,7 +2,7 @@ import { VM } from "./vm";
 import { STACK_SIZE, RSTACK_SIZE } from "./memory";
 import { Compiler } from "./compiler";
 import { SymbolTable } from "./symbol-table";
-import { fromTaggedValue, toTaggedValue, CoreTag } from "./tagged-value";
+import { fromTaggedValue, toTaggedValue, CoreTag } from "./tagged";
 
 describe("VM", () => {
   let vm: VM;

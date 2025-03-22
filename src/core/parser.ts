@@ -138,7 +138,12 @@ export function parse(tokenizer: Tokenizer): void {
         break;
 
       case TokenType.STRING:
-        // Handle string literals
+        // Compile string literal opcode
+        vm.compiler.compile8(Op.LiteralString);
+        // Store the string in the digest
+        const address = vm.digest.add(token.value as string);
+        // Compile the address
+        vm.compiler.compile16(address);
         break;
 
       case TokenType.SPECIAL:
