@@ -1,14 +1,9 @@
-import { Heap } from "../core/heap";
-import { NIL } from "../core/tagged";
-import { VM } from "../core/vm";
-import { seqNext } from "./sequence";
+import { Heap } from '../heap/heap';
+import { NIL } from '../core/tagged';
+import { VM } from '../core/vm';
+import { seqNext } from './sequence';
 
-export function scanProcessor(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  func: number
-): void {
+export function scanProcessor(heap: Heap, vm: VM, seq: number, func: number): void {
   while (true) {
     seqNext(heap, vm, seq); // Pushes values onto the stack
     const value = vm.pop();
@@ -22,12 +17,7 @@ export function scanProcessor(
   }
 }
 
-export function filterProcessor(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  predicate: number
-): void {
+export function filterProcessor(heap: Heap, vm: VM, seq: number, predicate: number): void {
   while (true) {
     seqNext(heap, vm, seq); // Pushes values onto the stack
     const value = vm.pop();

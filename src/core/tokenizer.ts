@@ -4,7 +4,7 @@ export enum TokenType {
   NUMBER,
   WORD,
   STRING,
-  SPECIAL, // For special characters like : and ;
+  SPECIAL, // For special characters like : and ;, etc.
   EOF,
 }
 
@@ -17,11 +17,11 @@ export interface Token {
 }
 
 export class Tokenizer {
-  private input: string;
-  private position: number;
+  public input: string;
+  public position: number;
+  public line: number;
+  public column: number;
   private pushedBack: Token | null;
-  private line: number;
-  private column: number;
 
   constructor(input: string) {
     this.input = input;
@@ -58,7 +58,7 @@ export class Tokenizer {
     const char = this.input[this.position];
     const startPos = this.position;
 
-    // Handle comments
+    // Handle comments starting with "//"
     if (
       char === "/" &&
       this.position + 1 < this.input.length &&
@@ -68,12 +68,12 @@ export class Tokenizer {
       return this.nextToken();
     }
 
-    // Handle string literals
+    // Handle string literals (starting with a double quote)
     if (char === '"') {
       return this.readString();
     }
 
-    // Handle numbers
+    // Handle numbers (including those with a sign or decimal point)
     if (
       isDigit(char) ||
       ((char === "+" || char === "-" || char === ".") &&
@@ -83,40 +83,28 @@ export class Tokenizer {
       return this.readNumber();
     }
 
-    // Handle special instruction characters (":" and ";")
+    // Handle special instruction characters (like ":" and ";")
     if (char === ":" || char === ";") {
       this.position++;
       this.column++;
-      return {
-        type: TokenType.SPECIAL,
-        value: char,
-        position: startPos,
-      };
+      return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // NEW: If the character is one of "{}[]" then return it as a WORD token.
+    // If the character is one of "{}[]", return it as a WORD token.
     if ("{}[]".includes(char)) {
       this.position++;
       this.column++;
-      return {
-        type: TokenType.WORD,
-        value: char,
-        position: startPos,
-      };
+      return { type: TokenType.WORD, value: char, position: startPos };
     }
 
     // Handle other special characters using isSpecialChar
     if (isSpecialChar(char)) {
       this.position++;
       this.column++;
-      return {
-        type: TokenType.SPECIAL,
-        value: char,
-        position: startPos,
-      };
+      return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Handle words/identifiers
+    // Otherwise, read a word/identifier.
     return this.readWord();
   }
 
@@ -154,14 +142,14 @@ export class Tokenizer {
       this.position < this.input.length &&
       this.input[this.position] !== '"'
     ) {
-      // Handle escape sequences
       if (
         this.input[this.position] === "\\" &&
         this.position + 1 < this.input.length
       ) {
         this.position++;
         this.column++;
-        switch (this.input[this.position]) {
+        const escapeChar = this.input[this.position];
+        switch (escapeChar) {
           case "n":
             value += "\n";
             break;
@@ -178,7 +166,7 @@ export class Tokenizer {
             value += "\\";
             break;
           default:
-            value += this.input[this.position];
+            value += escapeChar;
         }
       } else {
         value += this.input[this.position];
@@ -200,11 +188,7 @@ export class Tokenizer {
         `Unterminated string literal at line ${this.line}, column ${this.column}`
       );
     }
-    return {
-      type: TokenType.STRING,
-      value,
-      position: startPos,
-    };
+    return { type: TokenType.STRING, value, position: startPos };
   }
 
   private readNumber(): Token {
@@ -244,17 +228,9 @@ export class Tokenizer {
     }
     const value = Number(tokenStr);
     if (isNaN(value)) {
-      return {
-        type: TokenType.WORD,
-        value: tokenStr,
-        position: startPos,
-      };
+      return { type: TokenType.WORD, value: tokenStr, position: startPos };
     }
-    return {
-      type: TokenType.NUMBER,
-      value,
-      position: startPos,
-    };
+    return { type: TokenType.NUMBER, value, position: startPos };
   }
 
   private readWord(): Token {
@@ -269,11 +245,7 @@ export class Tokenizer {
       this.position++;
       this.column++;
     }
-    return {
-      type: TokenType.WORD,
-      value: word,
-      position: startPos,
-    };
+    return { type: TokenType.WORD, value: word, position: startPos };
   }
 
   getPosition(): { line: number; column: number } {

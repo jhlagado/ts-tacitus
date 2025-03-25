@@ -1,8 +1,8 @@
-import { Heap } from "../core/heap";
-import { NIL } from "../core/tagged";
-import { VM } from "../core/vm";
-import { vectorCreate } from "../data/vector";
-import { seqNext } from "./sequence";
+import { Heap } from '../heap/heap';
+import { NIL } from '../core/tagged';
+import { VM } from '../core/vm';
+import { vectorCreate } from '../data/vector';
+import { seqNext } from './sequence';
 
 export function toVectorSink(heap: Heap, vm: VM, seq: number): number {
   const values: number[] = [];
@@ -29,12 +29,7 @@ export function lastSink(heap: Heap, vm: VM, seq: number): number {
   }
 }
 
-export function forEachSink(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  func: number
-): void {
+export function forEachSink(heap: Heap, vm: VM, seq: number, func: number): void {
   while (true) {
     seqNext(heap, vm, seq);
     const value = vm.pop();

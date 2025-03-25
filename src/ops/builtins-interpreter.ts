@@ -2,11 +2,20 @@ import { VM } from "../core/vm";
 import { Verb } from "../core/types";
 import { toTaggedValue, CoreTag, fromTaggedValue } from "../core/tagged";
 import { formatValue } from "../core/utils";
+import { vectorCreate } from "../heap/vector";
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat();
   if (vm.debug) console.log("literalNumberOp", num);
   vm.push(num);
+};
+
+export const literalStringOp: Verb = (vm: VM) => {
+  const address = vm.next16();
+  if (vm.debug) console.log("literalStringOp", address);
+  // Create tagged value for string address
+  const taggedString = toTaggedValue(address, false, CoreTag.STRING);
+  vm.push(taggedString);
 };
 
 export const skipDefOp: Verb = (vm: VM) => {
@@ -59,16 +68,24 @@ export const groupRightOp: Verb = (vm: VM) => {
   vm.push(d);
 };
 
+export const vecLeftOp = (vm: VM) => {
+  if (vm.debug) console.log("vecLeftOp");
+  // Push the current stack pointer as marker
+  vm.rpush(vm.SP);
+};
+
+export const vecRightOp = (vm: VM) => {
+  if (vm.debug) console.log("vecRightOp");
+  const marker = vm.rpop(); // what vecLeftOp saved
+  const count = (vm.SP - marker) / 4; // Assume each stack item is 4 bytes.
+  const array = vm.popArray(count);
+  const tagVal = vectorCreate(vm.heap, array);
+  vm.push(tagVal);
+};
+
 export const printOp: Verb = (vm: VM) => {
   if (vm.debug) console.log("printOp");
   const d = vm.pop();
   console.log(formatValue(vm, d));
 };
 
-export const literalStringOp: Verb = (vm: VM) => {
-  const address = vm.next16();
-  if (vm.debug) console.log("literalStringOp", address);
-  // Create tagged value for string address
-  const taggedString = toTaggedValue(address, false, CoreTag.STRING);
-  vm.push(taggedString);
-};

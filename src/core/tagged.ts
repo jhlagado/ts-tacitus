@@ -1,8 +1,9 @@
 // Two separate enums: one for non–heap types and one for heap–allocated types.
 export enum CoreTag {
-  INTEGER = 0,
-  CODE = 1,
-  STRING = 2,
+  NUMBER = 0,
+  INTEGER = 1,
+  CODE = 2,
+  STRING = 3,
 }
 
 export enum HeapTag {
@@ -16,6 +17,7 @@ export type Tag = CoreTag | HeapTag;
 
 // Human–readable names for debugging.
 export const nonHeapTagNames: { [key in CoreTag]: string } = {
+  [CoreTag.NUMBER]: "NUMBER",
   [CoreTag.INTEGER]: "INTEGER",
   [CoreTag.CODE]: "CODE",
   [CoreTag.STRING]: "STRING",
@@ -105,8 +107,8 @@ export function fromTaggedValue(nanValue: number): {
   heap: boolean;
   tag: Tag;
 } {
-  if (!isTaggedValue(nanValue)) {
-    throw new Error("Not a tagged value");
+  if (!isNaN(nanValue)) {
+    return { value: nanValue, heap: false, tag: CoreTag.NUMBER };
   }
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
@@ -126,11 +128,6 @@ export function fromTaggedValue(nanValue: number): {
 }
 
 /**
- * Checks if a number is a NaN–boxed tagged value.
- */
-export const isTaggedValue = isNaN;
-
-/**
  * Returns the tag component from a tagged value.
  */
 export function getTag(nanValue: number): number {
@@ -148,7 +145,6 @@ export function getValue(nanValue: number): number {
  * Returns true if the tagged value is heap allocated.
  */
 export function isHeapAllocated(value: number): boolean {
-  if (!isTaggedValue(value)) return false;
   return fromTaggedValue(value).heap;
 }
 
@@ -156,7 +152,6 @@ export function isHeapAllocated(value: number): boolean {
  * Returns true if the tagged value represents NIL.
  */
 export function isNIL(tagVal: number): boolean {
-  if (!isTaggedValue(tagVal)) return false;
   const {value, heap, tag} = fromTaggedValue(tagVal);
   return !heap && tag === CoreTag.INTEGER && value === 0;
 }
@@ -165,7 +160,6 @@ export function isNIL(tagVal: number): boolean {
  * Returns true if the tagged value represents a reference-counted heap object.
  */
 export function isRefCounted(value: number): boolean {
-  if (!isTaggedValue(value)) return false;
   return fromTaggedValue(value).heap;
 }
 
@@ -174,7 +168,9 @@ export function isRefCounted(value: number): boolean {
  */
 export function printNum(...args: unknown[]): void {
   const format = (num: number): string => {
-    if (isTaggedValue(num)) {
+    if (isNaN(num)) {
+      return num.toString();
+    } else {
       const { heap, tag, value } = fromTaggedValue(num);
       let tagName: string;
       if (heap) {
@@ -183,8 +179,6 @@ export function printNum(...args: unknown[]): void {
         tagName = nonHeapTagNames[tag as CoreTag] || `NonHeapTag(${tag})`;
       }
       return `Heap: ${heap}, Tag: ${tag} (${tagName}), Value: ${value}`;
-    } else {
-      return num.toString();
     }
   };
   console.log(

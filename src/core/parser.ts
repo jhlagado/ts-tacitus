@@ -1,6 +1,7 @@
 import { Op } from "../ops/builtins";
 import { vm } from "./globalState";
 import { Token, Tokenizer, TokenType } from "./tokenizer";
+import { isWhitespace, isGroupingChar } from "./utils";
 
 export interface Definition {
   name: string;
@@ -147,7 +148,23 @@ export function parse(tokenizer: Tokenizer): void {
         break;
 
       case TokenType.SPECIAL:
-        processSpecialToken(token.value as string);
+        if (token.value === "`") {
+          // Use backtick parsing that collects a single contiguous “word” (no whitespace or groupings)
+          let sym = "";
+          while (tokenizer.position < tokenizer.input.length) {
+            const ch = tokenizer.input[tokenizer.position];
+            if (isWhitespace(ch) || isGroupingChar(ch)) break; // reject if space or grouping
+            sym += ch;
+            tokenizer.position++;
+            tokenizer.column++;
+          }
+          // Instead of a LiteralSymbol opcode, compile it as a literal string.
+          const addr = vm.digest.add(sym);
+          vm.compiler.compile8(Op.LiteralString);
+          vm.compiler.compile16(addr);
+        } else {
+          processSpecialToken(token.value as string);
+        }
         break;
 
       case TokenType.WORD:

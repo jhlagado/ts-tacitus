@@ -1,7 +1,7 @@
 // File: src/heap.ts
 
-import { INVALID } from "./constants";
-import { Memory, HEAP_SIZE, SEG_HEAP } from "./memory";
+import { INVALID } from '../core/constants';
+import { Memory, HEAP_SIZE, SEG_HEAP } from '../core/memory';
 
 export const BLOCK_SIZE = 64;
 export const BLOCK_NEXT = 0; // Offset for next block pointer (2 bytes)
@@ -21,13 +21,13 @@ export class Heap {
   private initializeFreeList(): void {
     // Calculate the number of blocks that can fit in the heap
     const numBlocks = Math.floor(HEAP_SIZE / BLOCK_SIZE);
-    
+
     // Link blocks by index (not byte offset)
     for (let i = 0; i < numBlocks - 1; i++) {
       this.memory.write16(SEG_HEAP, this.blockToByteOffset(i) + BLOCK_NEXT, i + 1);
       this.memory.write16(SEG_HEAP, this.blockToByteOffset(i) + BLOCK_REFS, 0);
     }
-    
+
     // Set the last block's next pointer to INVALID
     this.memory.write16(SEG_HEAP, this.blockToByteOffset(numBlocks - 1) + BLOCK_NEXT, INVALID);
     this.memory.write16(SEG_HEAP, this.blockToByteOffset(numBlocks - 1) + BLOCK_REFS, 0);
@@ -86,7 +86,7 @@ export class Heap {
 
   decrementRef(block: number): void {
     if (block === INVALID) return;
-    
+
     // Check if the block index is valid before accessing memory
     if (block * BLOCK_SIZE >= HEAP_SIZE) return;
 
@@ -115,7 +115,7 @@ export class Heap {
 
   getNextBlock(block: number): number {
     if (block === INVALID) {
-      throw new Error("Cannot get next block of NULL.");
+      throw new Error('Cannot get next block of NULL.');
     }
     return this.memory.read16(SEG_HEAP, this.blockToByteOffset(block) + BLOCK_NEXT);
   }
@@ -136,16 +136,15 @@ export class Heap {
     // Copy block content
     const srcOffset = this.blockToByteOffset(block);
     const destOffset = this.blockToByteOffset(newBlock);
-    
+
     // Get the base address of the heap segment
     const base = this.memory.resolveAddress(SEG_HEAP, 0);
 
     // Manually copy BLOCK_SIZE bytes
     for (let i = 0; i < BLOCK_SIZE; i++) {
-      this.memory.buffer[base + destOffset + i] = 
-        this.memory.buffer[base + srcOffset + i];
+      this.memory.buffer[base + destOffset + i] = this.memory.buffer[base + srcOffset + i];
     }
-    
+
     // Reset the reference count on the new block
     this.memory.write16(SEG_HEAP, destOffset + BLOCK_REFS, 1);
 
@@ -158,21 +157,17 @@ export class Heap {
 
   copyOnWrite(blockPtr: number, prevBlockPtr?: number): number {
     if (blockPtr === INVALID) return INVALID;
-    
+
     const byteOffset = this.blockToByteOffset(blockPtr);
     const refs = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS);
-    
+
     if (refs > 1) {
       const newBlock = this.cloneBlock(blockPtr);
       if (newBlock === INVALID) return INVALID;
-      
+
       if (prevBlockPtr !== undefined && prevBlockPtr !== INVALID) {
         // Update the previous block's next pointer to refer to the new clone
-        this.memory.write16(
-          SEG_HEAP, 
-          this.blockToByteOffset(prevBlockPtr) + BLOCK_NEXT, 
-          newBlock
-        );
+        this.memory.write16(SEG_HEAP, this.blockToByteOffset(prevBlockPtr) + BLOCK_NEXT, newBlock);
       }
       return newBlock;
     }

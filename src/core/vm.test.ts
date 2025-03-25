@@ -111,12 +111,6 @@ describe("VM", () => {
       vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });
-
-    it("should throw on nextAddress with non-address tag", () => {
-      vm.compiler.compileFloat(0x2345);
-      vm.IP = 0;
-      expect(() => vm.nextAddress()).toThrow("Not a tagged value");
-    });
   });
 
   // Test 4: Compiler and symbolTable initialization

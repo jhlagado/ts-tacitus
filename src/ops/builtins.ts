@@ -12,6 +12,8 @@ import {
   groupLeftOp,
   groupRightOp,
   literalStringOp,
+  vecLeftOp,
+  vecRightOp,
 } from "./builtins-interpreter";
 
 import {
@@ -66,6 +68,8 @@ export enum Op {
   GroupRight,
   Print,
   LiteralString,
+  VecLeft,
+  VecRight,
 
   Plus,
   Minus,
@@ -164,6 +168,12 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.GroupRight:
       groupRightOp(vm);
+      break;
+    case Op.VecLeft:
+      vecLeftOp(vm);
+      break;
+    case Op.VecRight:
+      vecRightOp(vm);
       break;
     case Op.Print:
       const value = vm.pop();
@@ -278,17 +288,20 @@ export function executeOp(vm: VM, opcode: Op) {
         )})`
       );
   }
-};
+}
 
 export const defineBuiltins = (dict: SymbolTable) => {
   const compileOpcode = (opcode: number) => (vm: VM) => {
     vm.compiler.compile8(opcode);
   };
 
-  // Control Flow
-  dict.define("eval", compileOpcode(Op.Eval));
   dict.define("{", compileOpcode(Op.GroupLeft));
   dict.define("}", compileOpcode(Op.GroupRight));
+  dict.define("[", (vm: VM) => vm.compiler.compile8(Op.VecLeft));
+  dict.define("]", (vm: VM) => vm.compiler.compile8(Op.VecRight));
+
+  // Control Flow
+  dict.define("eval", compileOpcode(Op.Eval));
   dict.define(".", compileOpcode(Op.Print));
 
   // Dyadic Arithmetic

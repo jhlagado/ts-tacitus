@@ -1,10 +1,10 @@
 // In src/seq/sequence.ts
 
-import { SEG_HEAP, SEG_STRING } from "../core/memory";
-import { NIL, fromTaggedValue, toTaggedValue, HeapTag } from "../core/tagged";
-import { VM } from "../core/vm";
-import { VEC_DATA, vectorCreate, VEC_SIZE } from "../data/vector";
-import { Heap } from "../core/heap";
+import { SEG_HEAP, SEG_STRING } from '../core/memory';
+import { NIL, fromTaggedValue, toTaggedValue, HeapTag } from '../core/tagged';
+import { VM } from '../core/vm';
+import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
+import { Heap } from '../heap/heap';
 
 // Sequence source types.
 export const SEQ_SRC_RANGE = 1;
@@ -21,11 +21,7 @@ export const SEQ_META_START = SEQ_HEADER_BASE + 8; // At offset VEC_DATA + 8: me
 /**
  * Creates a sequence and stores its metadata in a vector block.
  */
-export function seqCreate(
-  heap: Heap,
-  sourceType: number,
-  meta: number[]
-): number {
+export function seqCreate(heap: Heap, sourceType: number, meta: number[]): number {
   const headerData = [sourceType, meta.length];
   // do not spread arrays with tagged values, they will be cannonised to NIL or NaN
   for (let i = 0; i < meta.length; i++) {
@@ -45,10 +41,7 @@ export function seqCreate(
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
   let { value: seqPtr } = fromTaggedValue(seq);
 
-  const sourceType = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_TYPE
-  );
+  const sourceType = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + SEQ_TYPE);
   const metaCount = heap.memory.readFloat(
     SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_META_COUNT
@@ -65,10 +58,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8
       ); // meta[2]
-      const cursor = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + cursorOffset
-      );
+      const cursor = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
       if (cursor <= end) {
         vm.push(cursor);
         heap.memory.writeFloat(
@@ -87,26 +77,13 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         heap.blockToByteOffset(seqPtr) + SEQ_META_START
       ); // meta[0]
       const { value: vecPtr } = fromTaggedValue(taggedVecPtr);
-      const index = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + cursorOffset
-      );
-      const length = heap.memory.read16(
-        SEG_HEAP,
-        heap.blockToByteOffset(vecPtr) + VEC_SIZE
-      );
+      const index = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
+      const length = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_SIZE);
       if (index < length) {
         vm.push(
-          heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(vecPtr) + VEC_DATA + index * 4
-          )
+          heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_DATA + index * 4)
         );
-        heap.memory.writeFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(seqPtr) + cursorOffset,
-          index + 1
-        );
+        heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, index + 1);
       } else {
         vm.push(NIL);
       }
@@ -138,10 +115,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const { value: strPtr } = fromTaggedValue(taggedStrPtr);
 
       // Read the current cursor index (stored as a float in the sequence's metadata).
-      const index = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + cursorOffset
-      );
+      const index = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
 
       // Read the string's length (1 byte) from its beginning.
       const length = vm.digest.length(strPtr);
@@ -152,11 +126,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         vm.push(charCode);
 
         // Increment the cursor index.
-        heap.memory.writeFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(seqPtr) + cursorOffset,
-          index + 1
-        );
+        heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, index + 1);
       } else {
         // If the index exceeds the string's length, push NIL.
         vm.push(NIL);

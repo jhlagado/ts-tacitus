@@ -1,21 +1,9 @@
-import { Compiler } from "./compiler";
-import { SymbolTable } from "./symbol-table";
-import {
-  Memory,
-  STACK_SIZE,
-  RSTACK_SIZE,
-  SEG_STACK,
-  SEG_RSTACK,
-  SEG_CODE,
-} from "./memory";
-import { Heap } from "./heap";
-import {
-  fromTaggedValue,
-  isRefCounted,
-  toTaggedValue,
-  CoreTag,
-} from "./tagged";
-import { Digest } from "./digest";
+import { Compiler } from './compiler';
+import { SymbolTable } from './symbol-table';
+import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
+import { Heap } from '../heap/heap';
+import { fromTaggedValue, isRefCounted, toTaggedValue, CoreTag } from './tagged';
+import { Digest } from './digest';
 
 export class VM {
   memory: Memory;
@@ -57,9 +45,7 @@ export class VM {
     }
     if (this.SP + 4 > STACK_SIZE) {
       throw new Error(
-        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
-          this.getStackData()
-        )})`
+        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
     this.memory.writeFloat(SEG_STACK, this.SP, value); // Write 32-bit float
@@ -72,9 +58,7 @@ export class VM {
   pop(): number {
     if (this.SP <= 0) {
       throw new Error(
-        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(
-          this.getStackData()
-        )})`
+        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
@@ -84,6 +68,19 @@ export class VM {
       this.heap.decrementRef(value); // 1 → 0 (frees if needed)
     }
     return value;
+  }
+
+  /**
+   * Pops 'size' 32-bit values from the stack and returns them in an array.
+   * The values are returned in the order they were on the stack (bottom first).
+   */
+  popArray(size: number): number[] {
+    // unshift corrupts NaN boxing so be careful working with tagged values
+    const result: number[] = Array(size);
+    for (let i = size - 1; i >= 0; i--) {
+      result[i] = this.pop();
+    }
+    return result;
   }
 
   /**
@@ -107,9 +104,7 @@ export class VM {
   rpop(): number {
     if (this.RP <= 0) {
       throw new Error(
-        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(
-          this.getStackData()
-        )})`
+        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
     this.RP -= 4; // Move return stack pointer back by 4 bytes

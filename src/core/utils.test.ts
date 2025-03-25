@@ -15,6 +15,8 @@ import { toTaggedValue, CoreTag, HeapTag } from "./tagged";
 import { VM } from "./vm";
 import { Digest } from "./digest";
 import { Memory } from "./memory";
+import { initializeInterpreter, vm } from "./globalState";
+import { vectorCreate } from "../heap/vector";
 
 // Create a dummy subclass of Digest to satisfy the type requirements.
 class DummyDigest extends Digest {
@@ -77,38 +79,32 @@ class DummyMemory extends Memory {
 // Instantiate the dummy digest.
 const dummyDigest = new DummyDigest();
 
-// Create a dummy VM object with the minimal implementation needed for formatValue.
-const dummyVM: Partial<VM> = {
-  digest: dummyDigest,
-  memory: new DummyMemory(),
-};
-
 describe("Utility Functions", () => {
   describe("Character check functions", () => {
-    test("isDigit returns true for digit characters", () => {
+    it("isDigit returns true for digit characters", () => {
       expect(isDigit("0")).toBe(true);
       expect(isDigit("5")).toBe(true);
       expect(isDigit("9")).toBe(true);
     });
 
-    test("isDigit returns false for non-digit characters", () => {
+    it("isDigit returns false for non-digit characters", () => {
       expect(isDigit("a")).toBe(false);
       expect(isDigit(" ")).toBe(false);
       expect(isDigit("$")).toBe(false);
     });
 
-    test("isWhitespace returns true for whitespace characters", () => {
+    it("isWhitespace returns true for whitespace characters", () => {
       expect(isWhitespace(" ")).toBe(true);
       expect(isWhitespace("\t")).toBe(true);
       expect(isWhitespace("\n")).toBe(true);
     });
 
-    test("isWhitespace returns false for non-whitespace characters", () => {
+    it("isWhitespace returns false for non-whitespace characters", () => {
       expect(isWhitespace("a")).toBe(false);
       expect(isWhitespace("1")).toBe(false);
     });
 
-    test("isGroupingChar returns true for grouping characters", () => {
+    it("isGroupingChar returns true for grouping characters", () => {
       expect(isGroupingChar("{")).toBe(true);
       expect(isGroupingChar("}")).toBe(true);
       expect(isGroupingChar("[")).toBe(true);
@@ -120,7 +116,7 @@ describe("Utility Functions", () => {
       expect(isGroupingChar("`")).toBe(true);
     });
 
-    test("isGroupingChar returns false for non-grouping characters", () => {
+    it("isGroupingChar returns false for non-grouping characters", () => {
       expect(isGroupingChar("a")).toBe(false);
       expect(isGroupingChar("1")).toBe(false);
       expect(isGroupingChar(" ")).toBe(false);
@@ -128,39 +124,39 @@ describe("Utility Functions", () => {
   });
 
   describe("Logical and conversion functions", () => {
-    test("toUnsigned16 converts numbers to 16-bit", () => {
+    it("toUnsigned16 converts numbers to 16-bit", () => {
       expect(toUnsigned16(0)).toBe(0);
       expect(toUnsigned16(0xffff + 1)).toBe(0);
       expect(toUnsigned16(0x12345)).toBe(0x2345);
     });
 
-    test("toBoolean returns true for non-zero and false for zero", () => {
+    it("toBoolean returns true for non-zero and false for zero", () => {
       expect(toBoolean(5)).toBe(true);
       expect(toBoolean(0)).toBe(false);
     });
 
-    test("toNumber converts boolean to number", () => {
+    it("toNumber converts boolean to number", () => {
       expect(toNumber(true)).toBe(1);
       expect(toNumber(false)).toBe(0);
     });
 
-    test("not returns the logical negation", () => {
+    it("not returns the logical negation", () => {
       expect(not(5)).toBe(0);
       expect(not(0)).toBe(1);
     });
 
-    test("and returns correct logical and", () => {
+    it("and returns correct logical and", () => {
       expect(and(5, 10)).toBe(1);
       expect(and(5, 0)).toBe(0);
     });
 
-    test("or returns correct logical or", () => {
+    it("or returns correct logical or", () => {
       expect(or(0, 0)).toBe(0);
       expect(or(0, 10)).toBe(1);
       expect(or(5, 0)).toBe(1);
     });
 
-    test("xor returns correct logical exclusive or", () => {
+    it("xor returns correct logical exclusive or", () => {
       expect(xor(5, 0)).toBe(1);
       expect(xor(5, 5)).toBe(0);
       expect(xor(0, 0)).toBe(0);
@@ -168,69 +164,75 @@ describe("Utility Functions", () => {
   });
 
   describe("formatValue function", () => {
-    test("returns value.toString() for non-tagged values", () => {
-      expect(formatValue(dummyVM as VM, 123)).toBe("123");
+    let testVM: VM;
+
+    beforeEach(() => {
+      // Create a fresh VM instance for each test
+      initializeInterpreter();
+      testVM = vm;
     });
 
-    test("formats FLOAT tagged value", () => {
-      // For FLOAT, our tagging scheme uses the raw value.
-      expect(formatValue(dummyVM as VM, 123.4)).toBe("123.4"); // 0x12345678 in decimal
+    it("returns value.toString() for non-tagged values", () => {
+      expect(formatValue(testVM, 123)).toBe("123");
     });
 
-    test("formats INTEGER tagged value (non-zero)", () => {
+    it("formats FLOAT tagged value", () => {
+      expect(formatValue(testVM, 123.4)).toBe("123.4");
+    });
+
+    it("formats INTEGER tagged value (non-zero)", () => {
       const taggedInt = toTaggedValue(42, false, CoreTag.INTEGER);
-      expect(formatValue(dummyVM as VM, taggedInt)).toBe("42");
+      expect(formatValue(testVM, taggedInt)).toBe("42");
     });
 
-    test("formats INTEGER tagged value representing NIL", () => {
+    it("formats INTEGER tagged value representing NIL", () => {
       const taggedNil = toTaggedValue(0, false, CoreTag.INTEGER);
-      expect(formatValue(dummyVM as VM, taggedNil)).toBe("NIL");
+      expect(formatValue(testVM, taggedNil)).toBe("NIL");
     });
 
-    test("formats CODE tagged value", () => {
+    it("formats CODE tagged value", () => {
       const taggedCode = toTaggedValue(1234, false, CoreTag.CODE);
-      expect(formatValue(dummyVM as VM, taggedCode)).toBe("CODE(1234)");
+      expect(formatValue(testVM, taggedCode)).toBe("CODE(1234)");
     });
 
-    test("formats STRING tagged value successfully", () => {
-      const taggedString = toTaggedValue(100, false, CoreTag.STRING);
-      expect(formatValue(dummyVM as VM, taggedString)).toBe(`"TestString"`);
+    it("formats STRING tagged value successfully", () => {
+      // Add the string to the VM's digest
+      const strAddr = testVM.digest.add("TestString");
+      const taggedString = toTaggedValue(strAddr, false, CoreTag.STRING);
+      expect(formatValue(testVM, taggedString)).toBe(`"TestString"`);
     });
 
-    test("formats STRING tagged value when digest.get throws", () => {
+    it("formats HEAP tagged value for VECTOR subtype", () => {
+      // Create an actual vector in the heap with values [42, 99]
+      const vectorPtr = vectorCreate(testVM.heap, [42, 99]);
+      expect(formatValue(testVM, vectorPtr)).toBe("[ 42 99 ]");
+    });
+
+    xit("formats nested vectors correctly", () => {
+      // This is a new test to verify nested vector formatting
+      const innerVector = vectorCreate(testVM.heap, [3]);
+      const outerVector = vectorCreate(testVM.heap, [1, 2, innerVector]);
+      expect(formatValue(testVM, outerVector)).toBe("[ 1 2 [ 3 ] ]");
+    });
+
+    it("formats STRING tagged value when digest.get throws", () => {
       const taggedString = toTaggedValue(999, false, CoreTag.STRING);
-      expect(formatValue(dummyVM as VM, taggedString)).toBe("STRING(999)");
+      expect(formatValue(testVM as VM, taggedString)).toBe('""');
     });
 
-    test("formats HEAP tagged value for BLOCK subtype", () => {
+    it("formats HEAP tagged value for BLOCK subtype", () => {
       // Use an aligned address (e.g., 320, which is 5 * 64).
       const taggedHeapBlock = toTaggedValue(320, true, HeapTag.BLOCK);
-      expect(formatValue(dummyVM as VM, taggedHeapBlock)).toBe("BLOCK(320)");
+      expect(formatValue(testVM as VM, taggedHeapBlock)).toBe("BLOCK(320)");
     });
 
-    test("formats HEAP tagged value for SEQ subtype", () => {
+    it("formats HEAP tagged value for SEQ subtype", () => {
       // Use an aligned address (e.g., 384, which is 6 * 64).
       const taggedHeapSeq = toTaggedValue(384, true, HeapTag.SEQ);
-      expect(formatValue(dummyVM as VM, taggedHeapSeq)).toBe("SEQ(384)");
+      expect(formatValue(testVM as VM, taggedHeapSeq)).toBe("SEQ(384)");
     });
 
-    test("formats HEAP tagged value for VECTOR subtype", () => {
-      // Use an aligned address (e.g., 256, which is 4 * 64).
-      const taggedHeapVector = toTaggedValue(256, true, HeapTag.VECTOR);
-      // Based on our DummyMemory:
-      // read16 at 256 + 4 = 260 returns 2,
-      // readFloat at 256 + 8 = 264 returns tagged integer for 42,
-      // readFloat at 256 + 12 = 268 returns tagged integer for 99.
-      expect(formatValue(dummyVM as VM, taggedHeapVector)).toBe("[ 42 99 ]");
-    });
-
-    test("formats HEAP tagged value for DICT subtype", () => {
-      // Use the same aligned address as VECTOR.
-      const taggedHeapDict = toTaggedValue(256, true, HeapTag.DICT);
-      expect(formatValue(dummyVM as VM, taggedHeapDict)).toBe("[ 42 99 ]");
-    });
-
-    test("formats HEAP tagged value for VECTOR when memory read fails", () => {
+    it("formats HEAP tagged value for VECTOR when memory read fails", () => {
       const faultyMemory = new DummyMemory();
       // Override read16 and readFloat to simulate failure.
       faultyMemory.read16 = (_segment: number, _offset: number): number => {

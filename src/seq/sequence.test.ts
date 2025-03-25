@@ -1,7 +1,7 @@
 import { NIL } from "../core/tagged";
 import { VM } from "../core/vm";
-import { stringCreate } from "../data/string";
-import { vectorCreate } from "../data/vector";
+import { stringCreate } from "../core/string";
+import { vectorCreate } from "../heap/vector";
 import { seqNext } from "./sequence";
 import {
   rangeSource,

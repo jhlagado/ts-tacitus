@@ -1,5 +1,5 @@
-import { Digest } from "../core/digest";
-import { CoreTag, toTaggedValue } from "../core/tagged";
+import { Digest } from './digest';
+import { CoreTag, toTaggedValue } from './tagged';
 
 export function stringCreate(digest: Digest, value: string): number {
   const address = digest.add(value);

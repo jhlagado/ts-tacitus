@@ -1,11 +1,11 @@
 // File: src/data/dict.ts
 
-import { Digest } from "../core/digest";
-import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from "../core/tagged";
-import { Heap } from "../core/heap";
-import { stringCreate } from "./string";
-import { vectorCreate, VEC_SIZE, VEC_DATA } from "./vector";
-import { SEG_HEAP } from "../core/memory";
+import { Digest } from '../core/digest';
+import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from '../core/tagged';
+import { Heap } from './heap';
+import { stringCreate } from '../core/string';
+import { vectorCreate, VEC_SIZE, VEC_DATA } from './vector';
+import { SEG_HEAP } from '../core/memory';
 
 /**
  * Creates a dictionary (dict) from a flat array of key-value pairs.
@@ -20,16 +20,10 @@ import { SEG_HEAP } from "../core/memory";
  * @param entries - A flat array of key-value pairs: [key1, value1, key2, value2, ...]
  * @returns A tagged pointer (number) with PrimitiveTag.DICT.
  */
-export function dictCreate(
-  digest: Digest,
-  heap: Heap,
-  entries: (string | number)[]
-): number {
+export function dictCreate(digest: Digest, heap: Heap, entries: (string | number)[]): number {
   // Validate that the array length is even.
   if (entries.length % 2 !== 0) {
-    throw new Error(
-      "The entries array must have an even number of elements (key-value pairs)."
-    );
+    throw new Error('The entries array must have an even number of elements (key-value pairs).');
   }
 
   // Build an array of [key, value] pairs.
@@ -37,10 +31,10 @@ export function dictCreate(
   for (let i = 0; i < entries.length; i += 2) {
     const key = entries[i];
     const value = entries[i + 1];
-    if (typeof key !== "string") {
+    if (typeof key !== 'string') {
       throw new Error(`Key at index ${i} is not a string.`);
     }
-    if (typeof value !== "number") {
+    if (typeof value !== 'number') {
       throw new Error(`Value at index ${i + 1} is not a number.`);
     }
     pairs.push([key, value]);
@@ -75,12 +69,7 @@ export function dictCreate(
  * @param key - The key string to look up.
  * @returns The associated value if found, or NIL otherwise.
  */
-export function dictGet(
-  digest: Digest,
-  heap: Heap,
-  dict: number,
-  key: string
-): number {
+export function dictGet(digest: Digest, heap: Heap, dict: number, key: string): number {
   // Unwrap the dictionary pointer.
   const { value: rawPtr } = fromTaggedValue(dict);
   // Read the total number of elements from the vector header.

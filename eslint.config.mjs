@@ -24,10 +24,15 @@ export default [
     },
     rules: {
       ...tsPlugin.configs.recommended.rules, // TypeScript recommended rules
-      // Ignore unused function parameters that start with _
+      // Configure exactly like the JavaScript rule
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" }
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
       ],
     },
   },
@@ -40,10 +45,7 @@ export default [
     rules: {
       ...js.configs.recommended.rules, // JavaScript recommended rules
       // Ignore unused function parameters that start with _
-      "no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_" }
-      ],
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
 ];

@@ -4,7 +4,6 @@ import {
   HeapTag,
   toTaggedValue,
   fromTaggedValue,
-  isTaggedValue,
   getTag,
   getValue,
   isHeapAllocated,
@@ -64,12 +63,6 @@ describe("Tagged NaN Encoding", () => {
     expect(() => toTaggedValue(65536, false, CoreTag.STRING)).toThrow();
   });
 
-  it("should detect tagged values", () => {
-    expect(isTaggedValue(3.14)).toBe(false);
-    expect(isTaggedValue(Number.POSITIVE_INFINITY)).toBe(false);
-    expect(isTaggedValue(Number.NEGATIVE_INFINITY)).toBe(false);
-  });
-
   it("should correctly identify heap-allocated values", () => {
     const encodedHeap = toTaggedValue(100, true, HeapTag.VECTOR);
     const encodedNonHeap = toTaggedValue(100, false, CoreTag.STRING);
@@ -85,13 +78,6 @@ describe("Tagged NaN Encoding", () => {
     expect(isRefCounted(blockEncoded)).toBe(true);
     expect(isRefCounted(dictEncoded)).toBe(true);
     expect(isRefCounted(nonHeapEncoded)).toBe(false);
-  });
-
-  it("should reject non-tagged values in fromTaggedValue", () => {
-    expect(() => fromTaggedValue(3.14)).toThrow("Not a tagged value");
-    expect(() => fromTaggedValue(Number.POSITIVE_INFINITY)).toThrow(
-      "Not a tagged value"
-    );
   });
 
   it("should correctly extract tag and heap flag", () => {

@@ -1,6 +1,7 @@
 import { SEG_HEAP } from "./memory";
-import { CoreTag, fromTaggedValue, HeapTag, isTaggedValue } from "./tagged";
+import { CoreTag, fromTaggedValue, HeapTag } from "./tagged";
 import { VM } from "./vm";
+import { vectorGet } from "../heap/vector"; // Add this import
 
 // Character check functions
 export const isDigit = (char: string): boolean => char >= "0" && char <= "9";
@@ -36,7 +37,6 @@ export const xor = (a: number, b: number): number =>
 
 // Constants for vector/dict formatting
 const VEC_SIZE = 4;
-const VEC_DATA = 8;
 
 /**
  * Formats a tagged value for display.
@@ -47,26 +47,20 @@ const VEC_DATA = 8;
  * @returns A formatted string representation of the tagged value.
  */
 export function formatValue(vm: VM, value32: number): string {
-  if (!isTaggedValue(value32)) {
-    return value32.toString();
-  }
   const { value, heap, tag } = fromTaggedValue(value32);
   if (!heap) {
     switch (tag) {
+      case CoreTag.NUMBER:
+        return value32.toString();
       case CoreTag.INTEGER:
         return value === 0 ? "NIL" : String(value);
       case CoreTag.CODE:
         return `CODE(${value})`;
       case CoreTag.STRING:
-        try {
-          const str = vm.digest.get(value);
-          return `"${str}"`;
-        } catch (error) {
-          console.error((error as Error).message);
-          return `STRING(${value})`;
-        }
+        const str = vm.digest.get(value);
+        return `"${str}"`;
       default:
-        return `Unknown core tag (${tag}, ${value})`;
+        return 'NaN';
     }
   } else {
     switch (tag) {
@@ -79,13 +73,14 @@ export function formatValue(vm: VM, value32: number): string {
         try {
           const len = vm.memory.read16(SEG_HEAP, value + VEC_SIZE);
           const elems: string[] = [];
+
+          // Use vectorGet instead of direct memory access
           for (let i = 0; i < len; i++) {
-            const elem = vm.memory.readFloat(
-              SEG_HEAP,
-              value + VEC_DATA + i * 4
-            );
+            // This is the key change - use vectorGet instead of readFloat
+            const elem = vectorGet(vm.heap, value32, i);
             elems.push(formatValue(vm, elem));
           }
+
           return `[ ${elems.join(" ")} ]`;
         } catch (error) {
           console.error((error as Error).message);
