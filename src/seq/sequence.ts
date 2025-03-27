@@ -1,7 +1,7 @@
 // In src/seq/sequence.ts
 
 import { SEG_HEAP, SEG_STRING } from '../core/memory';
-import { NIL, fromTaggedValue, toTaggedValue, HeapTag } from '../core/tagged';
+import { NIL, fromTaggedValue, toTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
 import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
 import { Heap } from '../heap/heap';
@@ -9,14 +9,22 @@ import { Heap } from '../heap/heap';
 // Sequence source types.
 export const SEQ_SRC_RANGE = 1;
 export const SEQ_SRC_VECTOR = 2;
-export const SEQ_SRC_MULTI_SEQUENCE = 3;
-export const SEQ_SRC_STRING = 4;
+export const SEQ_SRC_STRING = 3;
+export const SEQ_SRC_PROCESSOR = 4;
+
+// Processor types
+export const PROC_MAP = 1;
+export const PROC_MULTI = 2;
+export const PROC_FILTER = 3;
+export const PROC_TAKE = 4;
+export const PROC_DROP = 5;
+export const PROC_MULTI_SOURCE = 6;
 
 // Sequence header offsets relative to the vector's data region (which starts at VEC_DATA).
-export const SEQ_HEADER_BASE = VEC_DATA; // Base offset (8) in the block.
-export const SEQ_TYPE = SEQ_HEADER_BASE; // At offset VEC_DATA: sequence source type.
-export const SEQ_META_COUNT = SEQ_HEADER_BASE + 4; // At offset VEC_DATA + 4: number of metadata items.
-export const SEQ_META_START = SEQ_HEADER_BASE + 8; // At offset VEC_DATA + 8: metadata array begins here.
+export const SEQ_HEADER_BASE = VEC_DATA;
+export const SEQ_TYPE = SEQ_HEADER_BASE;
+export const SEQ_META_COUNT = SEQ_HEADER_BASE + 4;
+export const SEQ_META_START = SEQ_HEADER_BASE + 8;
 
 /**
  * Creates a sequence and stores its metadata in a vector block.
@@ -49,6 +57,164 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
   const cursorOffset = SEQ_META_START + metaCount * 4;
 
   switch (sourceType) {
+    case SEQ_SRC_PROCESSOR: {
+      const source = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + SEQ_META_START
+      );
+      const procType = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + SEQ_META_START + (metaCount - 1) * 4
+      );
+
+      switch (procType) {
+        case PROC_MAP: {
+          // Get next value from source
+          seqNext(heap, vm, source);
+          const value = vm.pop();
+          if (isNIL(value)) {
+            vm.push(NIL);
+            return seq;
+          }
+
+          const func = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+          vm.push(value);
+          vm.push(func);
+          vm.eval();
+          return seq;
+        }
+        case PROC_FILTER: {
+          // Get next value from source sequence
+          seqNext(heap, vm, source);
+          const value = vm.pop();
+          if (isNIL(value)) {
+            vm.push(NIL);
+            return seq;
+          }
+
+          // Get next value from mask sequence
+          const maskSeq = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+          seqNext(heap, vm, maskSeq);
+          const maskValue = vm.pop();
+
+          if (isNIL(maskValue) || !maskValue) {
+            // Skip this value, try next
+            return seqNext(heap, vm, seq);
+          }
+
+          vm.push(value);
+          return seq;
+        }
+        case PROC_TAKE: {
+          const count = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+          const currentCount = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + cursorOffset
+          );
+
+          if (currentCount >= count) {
+            vm.push(NIL);
+            return seq;
+          }
+
+          seqNext(heap, vm, source);
+          const value = vm.pop();
+          if (isNIL(value)) {
+            vm.push(NIL);
+            return seq;
+          }
+
+          heap.memory.writeFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + cursorOffset,
+            currentCount + 1
+          );
+          vm.push(value);
+          return seq;
+        }
+        case PROC_DROP: {
+          const count = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+          const droppedCount = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + cursorOffset
+          );
+
+          if (droppedCount < count) {
+            // Still dropping values
+            seqNext(heap, vm, source);
+            const value = vm.pop();
+            if (isNIL(value)) {
+              vm.push(NIL);
+              return seq;
+            }
+            heap.memory.writeFloat(
+              SEG_HEAP,
+              heap.blockToByteOffset(seqPtr) + cursorOffset,
+              droppedCount + 1
+            );
+            return seqNext(heap, vm, seq);
+          }
+
+          // Done dropping, return next value
+          seqNext(heap, vm, source);
+          return seq;
+        }
+        case PROC_MULTI: {
+          // Read number of sequences
+          const numSequences = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+
+          // Get next value from each sequence
+          for (let i = 0; i < numSequences; i++) {
+            const subSeq = heap.memory.readFloat(
+              SEG_HEAP,
+              heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8 + i * 4
+            );
+            seqNext(heap, vm, subSeq);
+            const value = vm.pop();
+            if (isNIL(value)) {
+              vm.push(NIL);
+              return seq;
+            }
+          }
+          return seq;
+        }
+        case PROC_MULTI_SOURCE: {
+          // Get next value from each sequence
+          for (let i = 0; i < metaCount - 1; i++) {
+            const subSeq = heap.memory.readFloat(
+              SEG_HEAP,
+              heap.blockToByteOffset(seqPtr) + SEQ_META_START + i * 4
+            );
+            seqNext(heap, vm, subSeq);
+            const value = vm.pop();
+            if (isNIL(value)) {
+              vm.push(NIL);
+              return seq;
+            }
+            vm.push(value);
+          }
+          return seq;
+        }
+        default:
+          vm.push(NIL);
+          return seq;
+      }
+    }
     case SEQ_SRC_RANGE: {
       const step = heap.memory.readFloat(
         SEG_HEAP,
@@ -86,23 +252,6 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, index + 1);
       } else {
         vm.push(NIL);
-      }
-      break;
-    }
-
-    case SEQ_SRC_MULTI_SEQUENCE: {
-      for (let i = 0; i < metaCount; i++) {
-        const subSeq = heap.memory.readFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(seqPtr) + SEQ_META_START + i * 4
-        );
-        seqNext(heap, vm, subSeq);
-        const nextValue = vm.pop();
-        vm.push(nextValue);
-        if (nextValue === NIL) {
-          vm.push(NIL);
-          return seq;
-        }
       }
       break;
     }

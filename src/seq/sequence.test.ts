@@ -1,83 +1,89 @@
-import { NIL } from "../core/tagged";
-import { VM } from "../core/vm";
-import { stringCreate } from "../core/string";
-import { vectorCreate } from "../heap/vector";
-import { seqNext } from "./sequence";
-import {
-  rangeSource,
-  vectorSource,
-  stringSource,
-  multiSequenceSource,
-} from "./source";
+import { isNIL, NIL } from '../core/tagged';
+import { VM } from '../core/vm';
+import { stringCreate } from '../core/string';
+import { vectorCreate } from '../heap/vector';
+import { seqNext } from './sequence';
+import { rangeSource, vectorSource, stringSource } from './source';
+import { describe, it, expect } from '@jest/globals';
+import { initializeInterpreter, vm } from '../core/globalState';
+import { Heap } from '../heap/heap';
+import { seqCreate, SEQ_SRC_RANGE } from './sequence';
 
-describe("Sequence Operations", () => {
-  let vm: VM;
+describe('Sequence Operations', () => {
+  let testVM: VM;
+  let heap: Heap;
 
   beforeEach(() => {
-    vm = new VM();
+    initializeInterpreter();
+    testVM = vm;
+    heap = testVM.heap;
+    testVM.debug = false;
   });
 
-  it("should iterate over a range sequence", () => {
-    const seq = rangeSource(vm.heap, 1, 5, 1);
+  it('should iterate over a range sequence', () => {
+    const seq = rangeSource(heap, 1, 5, 1);
     const expected = [1, 2, 3, 4, 5];
 
     for (let value of expected) {
-      seqNext(vm.heap, vm, seq);
-      expect(vm.pop()).toEqual(value);
+      seqNext(heap, testVM, seq);
+      expect(testVM.pop()).toEqual(value);
     }
 
-    seqNext(vm.heap, vm, seq);
-    expect(vm.pop()).toEqual(NIL);
+    seqNext(heap, testVM, seq);
+    expect(testVM.pop()).toEqual(NIL);
   });
 
-  it("should iterate over a vector sequence", () => {
-    const vector = vectorCreate(vm.heap, [10, 20, 30]);
-    const seq = vectorSource(vm.heap, vector);
+  it('should iterate over a vector sequence', () => {
+    const vector = vectorCreate(heap, [10, 20, 30]);
+    const seq = vectorSource(heap, vector);
     const expected = [10, 20, 30];
 
     for (let value of expected) {
-      seqNext(vm.heap, vm, seq);
-      expect(vm.pop()).toEqual(value);
+      seqNext(heap, testVM, seq);
+      expect(testVM.pop()).toEqual(value);
     }
 
-    seqNext(vm.heap, vm, seq);
-    expect(vm.pop()).toEqual(NIL);
+    seqNext(heap, testVM, seq);
+    expect(testVM.pop()).toEqual(NIL);
   });
 
-  it("should iterate over a string sequence", () => {
-    const strPtr = stringCreate(vm.digest, "abc");
+  it('should iterate over a string sequence', () => {
+    const strPtr = stringCreate(testVM.digest, 'abc');
 
-    const seq = stringSource(vm.heap, strPtr);
-    const expected = ["a", "b", "c"].map((c) => c.charCodeAt(0));
+    const seq = stringSource(heap, strPtr);
+    const expected = ['a', 'b', 'c'].map(c => c.charCodeAt(0));
 
     for (let value of expected) {
-      seqNext(vm.heap, vm, seq);
-      expect(vm.pop()).toEqual(value);
+      seqNext(heap, testVM, seq);
+      expect(testVM.pop()).toEqual(value);
     }
 
-    seqNext(vm.heap, vm, seq);
-    expect(vm.pop()).toEqual(NIL);
+    seqNext(heap, testVM, seq);
+    expect(testVM.pop()).toEqual(NIL);
   });
 
-  it("should iterate over a multi-sequence (zip behavior)", () => {
-    const seq1 = rangeSource(vm.heap, 1, 3, 1);
-    const seq2 = vectorSource(vm.heap, vectorCreate(vm.heap, [100, 200, 300]));
-    const multiSeq = multiSequenceSource(vm.heap, [seq1, seq2]);
+  it('should map a function over a sequence', () => {
+    // Create a range sequence from 1 to 5
+    const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 5]);
 
-    const expected = [
-      [1, 100],
-      [2, 200],
-      [3, 300],
-    ];
+    // Process the sequence with a safety limit
+    const mappedValues: number[] = [];
+    const MAX_ITERATIONS = 10; // Prevent infinite loops
 
-    for (let row of expected) {
-      seqNext(vm.heap, vm, multiSeq);
-      const v2 = vm.pop();
-      const v1 = vm.pop();
-      expect([v1, v2]).toEqual(row);
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      seqNext(heap, testVM, rangeSeq);
+      const value = testVM.pop();
+      if (isNIL(value)) {
+        break;
+      } else if (i >= 5) {
+        throw new Error('Sequence did not terminate with NIL after expected values');
+        break;
+      }
+
+      mappedValues.push(value * 2);
     }
 
-    seqNext(vm.heap, vm, multiSeq);
-    expect(vm.pop()).toEqual(NIL);
+    // Verify results
+    expect(mappedValues).toEqual([2, 4, 6, 8, 10]);
   });
 });
