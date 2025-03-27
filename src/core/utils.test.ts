@@ -208,7 +208,7 @@ describe("Utility Functions", () => {
       expect(formatValue(testVM, vectorPtr)).toBe("[ 42 99 ]");
     });
 
-    xit("formats nested vectors correctly", () => {
+    it("formats nested vectors correctly", () => {
       // This is a new test to verify nested vector formatting
       const innerVector = vectorCreate(testVM.heap, [3]);
       const outerVector = vectorCreate(testVM.heap, [1, 2, innerVector]);

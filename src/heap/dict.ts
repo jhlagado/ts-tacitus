@@ -1,4 +1,4 @@
-// File: src/data/dict.ts
+// File: src/heap/dict.ts
 
 import { Digest } from '../core/digest';
 import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from '../core/tagged';

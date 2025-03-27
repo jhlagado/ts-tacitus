@@ -151,7 +151,7 @@ describe("Vector", () => {
       vm.heap.getNextBlock = originalGetNextBlock;
     });
 
-    xit("should produce a nested vector [ 1 2 [ 3 ] ]", () => {
+    it("should produce a nested vector [ 1 2 [ 3 ] ]", () => {
       // Outer vector: the outer vector will have three elements: 1, 2, and an inner vector.
       // Use vecLeftOp to mark the start and vecRightOp to build the vector.
 
@@ -190,7 +190,7 @@ describe("Vector", () => {
       expect(formatted).toBe("[ 1 2 3 ]");
     });
 
-    xit("should format a nested vector [ 1 2 [ 3 ] ]", () => {
+    it("should format a nested vector [ 1 2 [ 3 ] ]", () => {
       // First, create the inner vector.
       const inner = vectorCreate(vm.heap, [3]);
       // Then, create the outer vector.
@@ -201,7 +201,7 @@ describe("Vector", () => {
     });
 
     // Debug the nested vector test
-    xit("should format a nested vector [ 1 2 [ 3 ] ]", () => {
+    it("should format a nested vector [ 1 2 [ 3 ] ]", () => {
       const inner = vectorCreate(vm.heap, [3]);
       console.log("Inner vector tagged value:", inner);
 

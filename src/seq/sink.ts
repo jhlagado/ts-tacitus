@@ -1,7 +1,7 @@
 import { Heap } from '../heap/heap';
 import { NIL } from '../core/tagged';
 import { VM } from '../core/vm';
-import { vectorCreate } from '../data/vector';
+import { vectorCreate } from '../heap/vector';
 import { seqNext } from './sequence';
 
 export function toVectorSink(heap: Heap, vm: VM, seq: number): number {
