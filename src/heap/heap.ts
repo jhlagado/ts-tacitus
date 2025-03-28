@@ -1,4 +1,21 @@
-// File: src/heap.ts
+/**
+ * @fileoverview This file defines the `Heap` class, a crucial component of the Tacit runtime responsible for
+ * dynamic memory management. It implements a fixed-size block allocator with reference counting and
+ * a copy-on-write mechanism to ensure efficient and safe memory usage. The `Heap` class interacts closely
+ * with the `Memory` module to manage a specific segment of the overall memory space, providing functions
+ * for allocating, freeing, and manipulating memory blocks. The core data structure is a free list, which
+ * tracks available blocks, and each block includes metadata for reference counting and linking to other
+ * blocks. This design supports efficient garbage collection and memory reuse, essential for the
+ * performance and stability of the Tacit language.
+ *
+ * @architectural_observation The heap employs a fixed-size block allocation strategy, dividing the allocated memory region into blocks of equal size. Reference counting is used for automatic memory management, enabling efficient garbage collection by tracking the number of references to each block. A copy-on-write mechanism is implemented to optimize data duplication, creating copies of shared blocks only when modifications are necessary.
+ */
+/**
+ * The size of each memory block in bytes. All allocations are in multiples of this size.
+ */
+/**
+ * The size of each memory block in bytes.
+ */
 
 import { INVALID } from '../core/constants';
 import { Memory, HEAP_SIZE, SEG_HEAP } from '../core/memory';

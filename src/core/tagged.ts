@@ -1,54 +1,124 @@
-// Two separate enums: one for non–heap types and one for heap–allocated types.
+/**
+ * @file src/core/tagged.ts
+ * This file implements NaN-boxing for the Tacit language, a technique used to
+ * represent tagged values within 32-bit floating-point numbers. This allows the
+ * language to efficiently store both a value and its type information without
+ * requiring separate memory for the type.
+ *
+ * **Architectural Observations:**
+ *
+ * -   Tacit uses a 32-bit float to represent all values, including integers,
+ *     heap pointers, and other types.
+ * -   NaN-boxing is employed to embed type information (tags) within the float's
+ *     mantissa, leveraging the fact that NaNs have unused bits in their
+ *     representation.
+ * -   The sign bit of the float is used to distinguish between heap-allocated
+ *     values (sign bit set) and non-heap values (sign bit clear).
+ * -   This approach provides a compact and efficient way to represent various
+ *     data types, but it also has limitations:
+ *     -   The value portion is limited to 16 bits.
+ *     -   The number of distinct tags is limited by the available bits in the
+ *         mantissa.
+ */
+
+/**
+ * Enum representing core (non-heap) data types in Tacit.
+ */
 export enum CoreTag {
-  NUMBER = 0,
-  INTEGER = 1,
-  CODE = 2,
-  STRING = 3,
+    /** Represents a standard floating-point number. */
+    NUMBER = 0,
+    /** Represents a 16-bit integer. */
+    INTEGER = 1,
+    /** Represents executable code (likely a function pointer or similar). */
+    CODE = 2,
+    /** Represents a string literal. */
+    STRING = 3,
 }
 
+/**
+ * Enum representing heap-allocated data types in Tacit.
+ */
 export enum HeapTag {
-  BLOCK = 0,
-  SEQ = 1,
-  VECTOR = 2,
-  DICT = 3,
+    /** Represents a generic heap block. */
+    BLOCK = 0,
+    /** Represents a sequence (an iterable collection). */
+    SEQ = 1,
+    /** Represents a vector (an array-like structure). */
+    VECTOR = 2,
+    /** Represents a dictionary (a key-value store). */
+    DICT = 3,
 }
 
+/**
+ * Type alias for a Tag, which can be either a CoreTag or a HeapTag.
+ */
 export type Tag = CoreTag | HeapTag;
 
-// Human–readable names for debugging.
+/**
+ * Human-readable names for CoreTag values (for debugging).
+ */
 export const nonHeapTagNames: { [key in CoreTag]: string } = {
-  [CoreTag.NUMBER]: "NUMBER",
-  [CoreTag.INTEGER]: "INTEGER",
-  [CoreTag.CODE]: "CODE",
-  [CoreTag.STRING]: "STRING",
+    [CoreTag.NUMBER]: "NUMBER",
+    [CoreTag.INTEGER]: "INTEGER",
+    [CoreTag.CODE]: "CODE",
+    [CoreTag.STRING]: "STRING",
 };
 
+/**
+ * Human-readable names for HeapTag values (for debugging).
+ */
 export const heapTagNames: { [key in HeapTag]: string } = {
-  [HeapTag.BLOCK]: "BLOCK",
-  [HeapTag.SEQ]: "SEQ",
-  [HeapTag.VECTOR]: "VECTOR",
-  [HeapTag.DICT]: "DICT",
+    [HeapTag.BLOCK]: "BLOCK",
+    [HeapTag.SEQ]: "SEQ",
+    [HeapTag.VECTOR]: "VECTOR",
+    [HeapTag.DICT]: "DICT",
 };
 
-// Constants for the NaN–boxing scheme.
+/**
+ * Constants used in the NaN-boxing scheme.
+ */
 const VALUE_BITS = 16;
 const NAN_BIT = 1 << 22;
 const SIGN_BIT = 1 << 31;
-const TAG_MANTISSA_MASK = 0x3f << 16; // 6 bits available for the tag.
+const TAG_MANTISSA_MASK = 0x3f << 16; // 6 bits available for the tag (bits 16-21)
 const VALUE_MASK = (1 << VALUE_BITS) - 1;
 const EXPONENT_MASK = 0xff << 23;
 
-// NIL constant: a non–heap tagged value with NonHeapTag.NIL and value 0.
+/**
+ * NIL constant: a non-heap tagged value representing the absence of a value.
+ * It has a CoreTag.INTEGER tag and a value of 0.
+ */
 export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
 
 /**
- * Encodes a tagged value using NaN boxing.
+ * Encodes a value and its type tag into a single 32-bit floating-point number
+ * using NaN-boxing.
  *
- * @param value - A 16–bit number. For NonHeapTag.INTEGER the value is signed; for all other tags it must be unsigned.
- * @param heap - Boolean flag. If true, the sign bit is set and the tag is interpreted as a HeapTag.
- * @param tag - A tag value. For heap === false, this must be in the range of NonHeapTag; for heap === true, in the range of HeapTag.
+ * The NaN-boxing scheme uses the following structure:
  *
- * @returns a number that is a NaN–boxed tagged value.
+ * -   **Sign Bit (Bit 31):** Indicates whether the value is heap-allocated (1) or
+ *     non-heap (0).
+ * -   **Exponent (Bits 23-30):** Set to all 1s (0xff) to ensure the number is a NaN.
+ * -   **Mantissa (Bits 0-22):**
+ *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from CoreTag or HeapTag).
+ *     -   **Value (Bits 0-15):** 16 bits representing the actual value.  For
+ *         `CoreTag.INTEGER`, this is a signed integer; otherwise, it's an
+ *         unsigned integer.
+ * -   **NaN Bit (Bit 22):** Set to 1 to indicate a quiet NaN.
+ *
+ * @param value A 16-bit number representing the value to be encoded. For
+ *     `CoreTag.INTEGER`, this should be a signed integer (-32768 to 32767); for
+ *     other tags, it should be an unsigned integer (0 to 65535).
+ * @param heap A boolean flag indicating whether the value is heap-allocated. If
+ *     `true`, the sign bit will be set, and the tag will be interpreted as a
+ *     `HeapTag`. If `false`, the sign bit will be clear, and the tag will be
+ *     interpreted as a `CoreTag`.
+ * @param tag The tag representing the data type.  If `heap` is `false`, this
+ *     should be a value from `CoreTag`; if `heap` is `true`, it should be a value
+ *     from `HeapTag`.
+ * @returns A 32-bit floating-point number representing the NaN-boxed tagged
+ *     value.
+ * @throws {Error} If the tag or value is invalid for the given `heap` setting.
  */
 export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
   // Validate the tag based on whether the value is heap–allocated.
@@ -94,13 +164,33 @@ export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
 }
 
 /**
- * Decodes a NaN–boxed tagged value.
+ * Decodes a NaN-boxed 32-bit floating-point number into its constituent
+ * components: value, heap flag, and tag.
  *
- * @param nanValue - The value to decode.
- * @returns An object with three properties:
- *   - value: The 16-bit number (sign–extended if NonHeapTag.INTEGER).
- *   - heap: Boolean indicating if the value is heap–allocated (if the sign bit is set).
- *   - tag: The tag value (should be interpreted as NonHeapTag if heap is false, or HeapTag if heap is true).
+ * This function reverses the process performed by `toTaggedValue`, extracting
+ * the original value and its type information from the NaN-boxed representation.
+ *
+ * It handles standard floating-point numbers (which are not NaNs) as a special
+ * case, returning them with a `CoreTag.NUMBER` tag and `heap` set to `false`.
+ *
+ * For NaN-boxed values, it extracts the components as follows:
+ *
+ * -   **Heap Flag:** Determined by checking the sign bit (bit 31). If the sign
+ *     bit is set, `heap` is `true`; otherwise, it's `false`.
+ * -   **Tag:** Extracted from bits 16-21 of the mantissa using
+ *     `TAG_MANTISSA_MASK`.
+ * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
+ *     the tag is `CoreTag.INTEGER` and the value is not heap-allocated (`heap`
+ *     is `false`), the value is sign-extended to ensure correct interpretation
+ *     as a 16-bit signed integer.
+ *
+ * @param nanValue The 32-bit floating-point number representing the potentially
+ *     NaN-boxed value.
+ * @returns An object containing the decoded components:
+ *     -   `value`: The 16-bit value (sign-extended if it was a
+ *         `CoreTag.INTEGER` and not heap-allocated).
+ *     -   `heap`: A boolean indicating if the value was heap-allocated.
+ *     -   `tag`: The tag indicating the data type.
  */
 export function fromTaggedValue(nanValue: number): {
   value: number;
