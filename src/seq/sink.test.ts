@@ -66,10 +66,13 @@ describe('Sequence Operations', () => {
       const vectorSeq = seqCreate(heap, SEQ_SRC_VECTOR, [vecPtr]);
 
       const values: number[] = [];
-      testVM.compiler.preserve = true;
+
+      // Simply multiply each value by 2 in the callback
       forEach(heap, testVM, vectorSeq, value => {
-        values.push(value * 2);
+        // Ensure we're working with a plain number
+        values.push(Number(value) * 2);
       });
+
       expect(values).toEqual([2, 4, 6]);
     });
 
