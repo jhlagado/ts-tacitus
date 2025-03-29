@@ -1,16 +1,16 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import { isCode, isNumber } from '../core/tagged';
+import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../core/tagged';
 
 /**
  * Implements a ternary if operator
  * Takes three values from the stack:
- * - condition (top) - must be a number
+ * - else-clause (top) - must be a code block
  * - then-clause (middle) - must be a code block
- * - else-clause (bottom) - must be a code block
+ * - condition (bottom) - must be a number
  *
- * If condition is truthy, the then-clause is executed/pushed
- * If condition is falsy, the else-clause is executed/pushed
+ * If condition is truthy, the then-clause is executed
+ * If condition is falsy, the else-clause is executed
  */
 export const ifOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
@@ -19,9 +19,9 @@ export const ifOp: Verb = (vm: VM) => {
     );
   }
 
-  const condition = vm.pop();
-  const thenBranch = vm.pop();
   const elseBranch = vm.pop();
+  const thenBranch = vm.pop();
+  const condition = vm.pop();
 
   if (vm.debug) console.log('ifOp', condition, thenBranch, elseBranch);
 
@@ -38,6 +38,12 @@ export const ifOp: Verb = (vm: VM) => {
     throw new Error(`Type error: 'if' else-branch must be code, got: ${elseBranch}`);
   }
 
-  // If condition is truthy, push the thenBranch, otherwise push the elseBranch
-  vm.push(condition ? thenBranch : elseBranch);
+  // Select the branch to execute based on the condition
+  const selectedBranch = condition ? thenBranch : elseBranch;
+
+  // Evaluate the selected branch
+  // This is similar to evalOp in builtins-interpreter.ts
+  vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+  const { value: pointer } = fromTaggedValue(selectedBranch);
+  vm.IP = pointer;
 };
