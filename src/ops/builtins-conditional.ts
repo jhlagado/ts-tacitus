@@ -5,12 +5,16 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../co
 /**
  * Implements a ternary if operator
  * Takes three values from the stack:
- * - else-clause (top) - must be a code block
- * - then-clause (middle) - must be a code block
+ * - else-clause (top) - can be code block or a regular value
+ * - then-clause (middle) - can be code block or a regular value
  * - condition (bottom) - must be a number
  *
- * If condition is truthy, the then-clause is executed
- * If condition is falsy, the else-clause is executed
+ * If condition is truthy:
+ *   - If then-clause is code, it is executed
+ *   - If then-clause is a regular value, it is pushed onto the stack
+ * If condition is falsy:
+ *   - If else-clause is code, it is executed
+ *   - If else-clause is a regular value, it is pushed onto the stack
  */
 export const ifOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
@@ -30,20 +34,17 @@ export const ifOp: Verb = (vm: VM) => {
     throw new Error(`Type error: 'if' condition must be a number, got: ${condition}`);
   }
 
-  if (!isCode(thenBranch)) {
-    throw new Error(`Type error: 'if' then-branch must be code, got: ${thenBranch}`);
-  }
-
-  if (!isCode(elseBranch)) {
-    throw new Error(`Type error: 'if' else-branch must be code, got: ${elseBranch}`);
-  }
-
   // Select the branch to execute based on the condition
   const selectedBranch = condition ? thenBranch : elseBranch;
 
-  // Evaluate the selected branch
-  // This is similar to evalOp in builtins-interpreter.ts
-  vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
-  const { value: pointer } = fromTaggedValue(selectedBranch);
-  vm.IP = pointer;
+  // Handle the selected branch based on its type
+  if (isCode(selectedBranch)) {
+    // If it's code, execute it
+    vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+    const { value: pointer } = fromTaggedValue(selectedBranch);
+    vm.IP = pointer;
+  } else {
+    // If it's a regular value, just push it back onto the stack
+    vm.push(selectedBranch);
+  }
 };

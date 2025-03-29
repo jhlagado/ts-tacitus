@@ -53,7 +53,6 @@ describe('Tacit Basic Operations', () => {
   });
 
   test('if operator', () => {
-    // Now that we have fixed the if operator, let's enable the test again
     runTacitTestSuite(`
       // True condition - should execute the then-branch (10)
       1 (10) (20) if => 10
@@ -66,6 +65,22 @@ describe('Tacit Basic Operations', () => {
 
       // Nested if operations
       1 (2 (30) (40) if) (50) if => 30
+
+      // Using regular values instead of code blocks
+      1 10 20 if => 10
+
+      // Mix of code and regular values
+      1 (15) 20 if => 15
+      0 15 (20) if => 20
+
+      // Using eval to evaluate code blocks as conditions
+      (1) eval (10) (20) if => 10
+      (0) eval (10) (20) if => 20
+      (5 4 >) eval (15) (25) if => 15
+      (5 4 <) eval (15) (25) if => 25
+
+      // Nested eval-if pattern
+      (5 4 > (0) (1) if) eval (10) (20) if => 20
     `);
   });
 
@@ -85,6 +100,12 @@ describe('Tacit Basic Operations', () => {
 
       // Stack manipulation in code block
       3 4 (swap) eval => 4 3
+
+      // Using eval with a regular value should leave it unchanged
+      42 eval => 42
+
+      // Mix of code and regular values on stack
+      10 (5 +) eval => 15
     `);
   });
 });
