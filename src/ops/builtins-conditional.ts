@@ -16,7 +16,7 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../co
  *   - If else-clause is code, it is executed
  *   - If else-clause is a regular value, it is pushed onto the stack
  */
-export const ifOp: Verb = (vm: VM) => {
+export const simpleIfOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
     throw new Error(
       `Stack underflow: 'if' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`

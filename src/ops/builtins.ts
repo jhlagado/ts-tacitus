@@ -63,9 +63,11 @@ import {
   prodOp,
 } from './arithmetic-ops';
 
-import { ifOp } from './builtins-conditional';
+import { simpleIfOp } from './builtins-conditional';
 
 import { formatValue } from '../core/utils';
+
+import { rotOp, negRotOp } from './builtins-stack';
 
 /**
  * @enum {number} Op
@@ -154,6 +156,8 @@ export enum Op {
   Swap,
   /** Rotates the top three values on the stack (the third value moves to the top). */
   Rot,
+  /** Reverse rotates the top three values on the stack (i.e., -rot, transforming [a, b, c] into [c, a, b]). */
+  NegRot,
   /** Duplicates the second value from the top of the stack and pushes it onto the top. */
   Over,
 
@@ -219,7 +223,10 @@ export enum Op {
   /** Calculates the product of elements in a vector. */
   Prod,
 
-  /** Conditional if operation (ternary operator: condition ? then : else). */
+  /** Conditional if operation (ternary operator: condition ? then : else) based on immediate numeric condition. */
+  SimpleIf,
+
+  /** New composite if operation that can defer condition evaluation using a code block. */
   If,
 }
 
@@ -341,6 +348,12 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.Swap:
       swapOp(vm);
       break;
+    case Op.Rot:
+      rotOp(vm);
+      break;
+    case Op.NegRot:
+      negRotOp(vm);
+      break;
 
     // Arithmetic Operators
     case Op.Abs:
@@ -376,7 +389,7 @@ export function executeOp(vm: VM, opcode: Op) {
 
     // Conditional Operations
     case Op.If:
-      ifOp(vm);
+      simpleIfOp(vm);
       break;
 
     default:
@@ -451,5 +464,10 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('prod', compileOpcode(Op.Prod));
 
   // Conditional Operations
-  dict.define('if', compileOpcode(Op.If));
+  dict.define('if', (vm: VM) => {
+    vm.compiler.compile8(Op.Rot);
+    vm.compiler.compile8(Op.Eval);
+    vm.compiler.compile8(Op.NegRot);
+    vm.compiler.compile8(Op.If);
+  });
 };
