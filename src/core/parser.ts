@@ -77,6 +77,14 @@ function processToken(token: Token, state: ParserState): void {
     case TokenType.WORD:
       processWordToken(token.value as string, state);
       break;
+
+    case TokenType.GROUP_START: // Handle :{
+      vm.compiler.compile8(Op.GroupLeft);
+      break;
+
+    case TokenType.GROUP_END: // Handle }:
+      vm.compiler.compile8(Op.GroupRight);
+      break;
   }
 }
 
