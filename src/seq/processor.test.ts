@@ -2,7 +2,7 @@ import { CoreTag, NIL, toTaggedValue } from '../core/tagged';
 import { vectorCreate } from '../heap/vector';
 import { seqNext } from './sequence';
 import { rangeSource, vectorSource } from './source';
-import { multiSeq, mapSeq, filterSeq, takeSeq, dropSeq, scanSeq, chainSeq } from './processor';
+import { multiSeq, mapSeq, siftSeq, takeSeq, dropSeq, scanSeq, chainSeq } from './processor';
 import { describe, it, expect } from '@jest/globals';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { parse } from '../core/parser';
@@ -63,7 +63,7 @@ describe('Sequence Processors', () => {
     // Create another sequence to act as the mask for filtering (even numbers)
     const maskSequence = rangeSource(vm.heap, 0, 9, 2); // Will produce [0, 2, 4, 6, 8]
 
-    const filteredSeq = filterSeq(vm.heap, source, maskSequence);
+    const filteredSeq = siftSeq(vm.heap, source, maskSequence);
 
     // We expect to get values for which the mask has non-zero values (i.e., even indices)
     const expected = [2, 4, 6, 8, 10];

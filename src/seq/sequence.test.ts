@@ -8,7 +8,7 @@ import {
   SEQ_SRC_RANGE,
   SEQ_SRC_PROCESSOR,
   PROC_MAP,
-  PROC_FILTER,
+  PROC_SIFT,
   PROC_TAKE,
   PROC_DROP,
   PROC_MULTI_SOURCE,
@@ -160,20 +160,20 @@ describe('Sequence Operations', () => {
       const maskSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 2, 9]); // [1, 3, 5, 7, 9]
 
       // Create a filter processor sequence
-      const filterSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, maskSeq, PROC_FILTER]);
+      const siftedSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, maskSeq, PROC_SIFT]);
 
       // Expected results after filtering (odd numbers)
       const expected = [1, 3, 5, 7, 9];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, filterSeq);
+        seqNext(heap, testVM, siftedSeq);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, filterSeq);
+      seqNext(heap, testVM, siftedSeq);
       expect(testVM.pop()).toEqual(NIL);
     });
 

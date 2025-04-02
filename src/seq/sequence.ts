@@ -28,14 +28,16 @@ export const SEQ_SRC_PROCESSOR = 4;
 export const PROC_MAP = 1;
 /** @brief Multi processor: combines elements from multiple sequences. */
 export const PROC_MULTI = 2;
-/** @brief Filter processor: includes elements based on a condition. */
-export const PROC_FILTER = 3;
+/** @brief Sift processor: includes elements based on a mask sequence. */
+export const PROC_SIFT = 3;
 /** @brief Take processor: limits the sequence to the first n elements. */
 export const PROC_TAKE = 4;
 /** @brief Drop processor: skips the first n elements of the sequence. */
 export const PROC_DROP = 5;
 /** @brief Multi Source processor: gets the next value from multiple sequences. */
 export const PROC_MULTI_SOURCE = 6;
+/** @brief Filter processor: includes elements based on a predicate function. */
+export const PROC_FILTER = 7;
 
 // Sequence header offsets relative to the vector's data region (which starts at VEC_DATA).
 /** @brief Base offset for the sequence header within the vector's data. */
@@ -150,7 +152,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
           vm.eval();
           return seq;
         }
-        case PROC_FILTER: {
+        case PROC_SIFT: {
           // Get next value from source sequence
           seqNext(heap, vm, source);
           const value = vm.pop();
@@ -176,6 +178,35 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
 
           vm.push(value);
           // Push the value onto the stack if the mask value is truthy.
+          return seq;
+        }
+        case PROC_FILTER: {
+          // Get next value from source sequence
+          seqNext(heap, vm, source);
+          const value = vm.pop();
+          if (isNIL(value)) {
+            vm.push(NIL);
+            return seq;
+          }
+
+          // Apply the predicate function
+          const predicateFunc = heap.memory.readFloat(
+            SEG_HEAP,
+            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+          );
+          vm.push(value);
+          vm.push(predicateFunc);
+          vm.eval(); // Evaluate the predicate
+          const predicateResult = vm.pop();
+
+          // If the predicate result is NIL or falsy, skip the current value
+          if (isNIL(predicateResult) || !predicateResult) {
+            // Skip this value, try next
+            return seqNext(heap, vm, seq);
+          }
+
+          // Predicate returned true, push the original value
+          vm.push(value);
           return seq;
         }
         case PROC_TAKE: {

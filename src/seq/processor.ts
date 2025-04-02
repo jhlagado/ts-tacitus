@@ -14,10 +14,11 @@ import {
   seqCreate,
   SEQ_SRC_PROCESSOR,
   PROC_MAP,
-  PROC_FILTER,
+  PROC_SIFT,
   PROC_TAKE,
   PROC_DROP,
   PROC_MULTI_SOURCE,
+  PROC_FILTER,
 } from './sequence';
 
 /**
@@ -46,15 +47,15 @@ export function multiSeq(heap: Heap, sequences: number[]): number {
 }
 
 /**
- * Creates a filter processor sequence that only keeps values where the
+ * Creates a sift processor sequence that only keeps values where the
  * corresponding mask value is true
  * @param heap The heap object for memory management
  * @param source Pointer to the source sequence
  * @param maskSeq Pointer to the mask sequence
- * @returns Pointer to the newly created filter processor sequence
+ * @returns Pointer to the newly created sift processor sequence
  */
-export function filterSeq(heap: Heap, source: number, maskSeq: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, maskSeq, PROC_FILTER]);
+export function siftSeq(heap: Heap, source: number, maskSeq: number): number {
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, maskSeq, PROC_SIFT]);
 }
 
 /**
@@ -117,4 +118,16 @@ export function chainSeq(heap: Heap, source: number, processors: number[]): numb
   // - array of processor sequences
   // - processor type (CHAIN)
   return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, ...processors, 6]); // 6 = CHAIN
+}
+
+/**
+ * Creates a filter processor sequence that only keeps values for which
+ * the predicate function returns true.
+ * @param heap The heap object for memory management
+ * @param source Pointer to the source sequence
+ * @param predicateFunc Pointer to the predicate function
+ * @returns Pointer to the newly created filter processor sequence
+ */
+export function filterSeq(heap: Heap, source: number, predicateFunc: number): number {
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, predicateFunc, PROC_FILTER]);
 }
