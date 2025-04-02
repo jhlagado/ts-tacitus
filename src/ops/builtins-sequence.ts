@@ -5,6 +5,8 @@ import { fromTaggedValue, isNIL } from '../core/tagged';
 import { vectorSource, stringSource } from '../seq/source';
 import { HeapTag, CoreTag } from '../core/tagged';
 import { constantSource, dictionarySource } from '../seq/source';
+import { mapSeq, siftSeq, filterSeq, takeSeq, dropSeq } from '../seq/processor';
+import { toVector, count, last, forEach, reduce } from '../seq/sink';
 
 /**
  * @word range - Creates a sequence from a numerical range.
@@ -58,4 +60,157 @@ export const seqOp: Verb = (vm: VM) => {
     throw new Error('Failed to create sequence from source');
   }
   vm.push(seqPtr);
+};
+
+/**
+ * @word map - Creates a map processor sequence.
+ * ( source_seq func -- map_seq )
+ */
+export const mapOp: Verb = (vm: VM) => {
+  const func = vm.pop();
+  const sourceSeq = vm.pop();
+
+  // TODO: Validate input types (source is SEQ, func is CODE)
+
+  const mapSeqPtr = mapSeq(vm.heap, sourceSeq, func);
+  if (isNIL(mapSeqPtr)) {
+    throw new Error('Failed to create map sequence');
+  }
+  vm.push(mapSeqPtr);
+};
+
+/**
+ * @word sift - Creates a sift processor sequence (mask-based filter).
+ * ( source_seq mask_seq -- sift_seq )
+ */
+export const siftOp: Verb = (vm: VM) => {
+  const maskSeq = vm.pop();
+  const sourceSeq = vm.pop();
+
+  // TODO: Validate input types (both are SEQ)
+
+  const siftSeqPtr = siftSeq(vm.heap, sourceSeq, maskSeq);
+  if (isNIL(siftSeqPtr)) {
+    throw new Error('Failed to create sift sequence');
+  }
+  vm.push(siftSeqPtr);
+};
+
+/**
+ * @word filter - Creates a filter processor sequence (predicate-based filter).
+ * ( source_seq predicate_func -- filter_seq )
+ */
+export const filterOp: Verb = (vm: VM) => {
+  const predicateFunc = vm.pop();
+  const sourceSeq = vm.pop();
+
+  // TODO: Validate input types (source is SEQ, predicate is CODE)
+
+  const filterSeqPtr = filterSeq(vm.heap, sourceSeq, predicateFunc);
+  if (isNIL(filterSeqPtr)) {
+    throw new Error('Failed to create filter sequence');
+  }
+  vm.push(filterSeqPtr);
+};
+
+/**
+ * @word seq-take - Creates a take processor sequence.
+ * ( source_seq count -- take_seq )
+ */
+export const seqTakeOp: Verb = (vm: VM) => {
+  const count = vm.pop();
+  const sourceSeq = vm.pop();
+
+  // TODO: Validate input types (source is SEQ, count is number)
+
+  const takeSeqPtr = takeSeq(vm.heap, sourceSeq, count);
+  if (isNIL(takeSeqPtr)) {
+    throw new Error('Failed to create take sequence');
+  }
+  vm.push(takeSeqPtr);
+};
+
+/**
+ * @word seq-drop - Creates a drop processor sequence.
+ * ( source_seq count -- drop_seq )
+ */
+export const seqDropOp: Verb = (vm: VM) => {
+  const count = vm.pop();
+  const sourceSeq = vm.pop();
+
+  // TODO: Validate input types (source is SEQ, count is number)
+
+  const dropSeqPtr = dropSeq(vm.heap, sourceSeq, count);
+  if (isNIL(dropSeqPtr)) {
+    throw new Error('Failed to create drop sequence');
+  }
+  vm.push(dropSeqPtr);
+};
+
+/**
+ * @word to-vector - Consumes a sequence and collects its elements into a vector.
+ * ( seq -- vector )
+ */
+export const toVectorOp: Verb = (vm: VM) => {
+  const seq = vm.pop();
+  // TODO: Validate input type (is SEQ)
+  const vectorPtr = toVector(vm.heap, vm, seq);
+  // toVector already handles NIL sequences, returning an empty vector
+  vm.push(vectorPtr);
+};
+
+/**
+ * @word count - Consumes a sequence and pushes the number of elements.
+ * ( seq -- count )
+ */
+export const countOp: Verb = (vm: VM) => {
+  const seq = vm.pop();
+  // TODO: Validate input type (is SEQ)
+  const countValue = count(vm.heap, vm, seq);
+  vm.push(countValue);
+};
+
+/**
+ * @word last - Consumes a sequence and pushes the last element (or NIL if empty).
+ * ( seq -- last_element|NIL )
+ */
+export const lastOp: Verb = (vm: VM) => {
+  const seq = vm.pop();
+  // TODO: Validate input type (is SEQ)
+  const lastValue = last(vm.heap, vm, seq);
+  vm.push(lastValue);
+};
+
+/**
+ * @word for-each - Consumes a sequence, applying a function to each element.
+ * ( seq func -- )
+ */
+export const forEachOp: Verb = (vm: VM) => {
+  const func = vm.pop();
+  const seq = vm.pop();
+
+  // TODO: Validate input types (seq is SEQ, func is CODE)
+
+  forEach(vm.heap, vm, seq, value => {
+    vm.push(value);
+    vm.push(func);
+    vm.eval(); // Execute the function
+    vm.pop(); // Discard the result from the function call
+  });
+};
+
+/**
+ * @word reduce - Reduces a sequence to a single value using a function.
+ * ( seq initial_value func -- result )
+ * func signature: ( accumulator current_value -- next_accumulator )
+ */
+export const reduceOp: Verb = (vm: VM) => {
+  const func = vm.pop();
+  const initialValue = vm.pop();
+  const seq = vm.pop();
+
+  // TODO: Validate input types (seq is SEQ, func is CODE)
+
+  const result = reduce(vm.heap, vm, seq, func, initialValue, () => vm.eval());
+  vm.push(result);
 };

@@ -72,7 +72,20 @@ import { formatValue } from '../core/utils';
 import { rotOp, negRotOp } from './builtins-stack';
 
 // Import sequence operations
-import { rangeOp, seqOp } from './builtins-sequence';
+import {
+  rangeOp,
+  seqOp,
+  mapOp,
+  siftOp,
+  filterOp,
+  seqTakeOp,
+  seqDropOp,
+  toVectorOp,
+  countOp,
+  lastOp,
+  forEachOp,
+  reduceOp,
+} from './builtins-sequence';
 
 /**
  * @enum {number} Op
@@ -197,10 +210,6 @@ export enum Op {
 
   /** Joins two vectors into a single vector. */
   Join,
-  /** Takes the first n elements from a vector. */
-  Take,
-  /** Drops the first n elements from a vector. */
-  DropN,
   /** Enlists a value as a single-element vector. */
   mEnlist,
   /** Counts the elements in a vector. */
@@ -241,6 +250,20 @@ export enum Op {
   // Sequence Operations
   Range, // Create a range sequence
   Seq, // Create a sequence from vector/string
+
+  // Sequence Processors
+  Map, // Apply function to sequence elements
+  Sift, // Filter sequence based on mask sequence
+  Filter, // Filter sequence based on predicate function
+  SeqTake, // Take first N elements from sequence
+  SeqDrop, // Drop first N elements from sequence
+
+  // Sequence Sinks
+  ToVector,
+  Count,
+  Last,
+  ForEach,
+  Reduce,
 }
 
 /**
@@ -419,6 +442,40 @@ export function executeOp(vm: VM, opcode: Op) {
       seqOp(vm);
       break;
 
+    // Sequence Processors
+    case Op.Map:
+      mapOp(vm);
+      break;
+    case Op.Sift:
+      siftOp(vm);
+      break;
+    case Op.Filter:
+      filterOp(vm);
+      break;
+    case Op.SeqTake:
+      seqTakeOp(vm);
+      break;
+    case Op.SeqDrop:
+      seqDropOp(vm);
+      break;
+
+    // Sequence Sinks
+    case Op.ToVector:
+      toVectorOp(vm);
+      break;
+    case Op.Count:
+      countOp(vm);
+      break;
+    case Op.Last:
+      lastOp(vm);
+      break;
+    case Op.ForEach:
+      forEachOp(vm);
+      break;
+    case Op.Reduce:
+      reduceOp(vm);
+      break;
+
     default:
       throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
   }
@@ -501,6 +558,20 @@ export const defineBuiltins = (dict: SymbolTable) => {
   // Sequence Operations
   dict.define('range', compileOpcode(Op.Range));
   dict.define('seq', compileOpcode(Op.Seq));
+
+  // Sequence Processors
+  dict.define('map', compileOpcode(Op.Map));
+  dict.define('sift', compileOpcode(Op.Sift));
+  dict.define('filter', compileOpcode(Op.Filter));
+  dict.define('seq-take', compileOpcode(Op.SeqTake));
+  dict.define('seq-drop', compileOpcode(Op.SeqDrop));
+
+  // Sequence Sinks
+  dict.define('to-vector', compileOpcode(Op.ToVector));
+  dict.define('count', compileOpcode(Op.Count));
+  dict.define('last', compileOpcode(Op.Last));
+  dict.define('for-each', compileOpcode(Op.ForEach));
+  dict.define('reduce', compileOpcode(Op.Reduce));
 
   // Add other built-ins here
 };
