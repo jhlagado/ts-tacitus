@@ -14,7 +14,7 @@
 import { SEG_HEAP, SEG_STRING } from '../core/memory';
 import { NIL, fromTaggedValue, toTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
-import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
+import { VEC_DATA, vectorCreate, VEC_SIZE, vectorGet } from '../heap/vector';
 import { Heap } from '../heap/heap';
 
 // Sequence source types.
@@ -22,6 +22,8 @@ export const SEQ_SRC_RANGE = 1;
 export const SEQ_SRC_VECTOR = 2;
 export const SEQ_SRC_STRING = 3;
 export const SEQ_SRC_PROCESSOR = 4;
+export const SEQ_SRC_CONSTANT = 5;
+export const SEQ_SRC_DICT = 6;
 
 // Processor types
 /** @brief Map processor: applies a function to each element. */
@@ -396,7 +398,60 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       }
       break;
     }
+    case SEQ_SRC_CONSTANT: {
+      // This sequence always yields the same constant value.
+      const constantValue = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + SEQ_META_START
+      ); // meta[0]
+      vm.push(constantValue);
+      break;
+    }
+    case SEQ_SRC_DICT: {
+      // Dictionary sequence yields key-value pairs.
+      const dictTaggedPtr = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + SEQ_META_START
+      ); // meta[0] is the dict tagged pointer
+      const index = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+      ); // meta[1] is the current PAIR index
 
+      // A dict is a vector tagged as DICT. Get the underlying vector pointer and length.
+      const { value: vecPtr } = fromTaggedValue(dictTaggedPtr);
+      const vectorLength = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_SIZE);
+      const numPairs = vectorLength / 2;
+
+      if (index < numPairs) {
+        // Calculate offsets within the underlying vector
+        const keyOffset = index * 2;
+        const valueOffset = index * 2 + 1;
+
+        // Read key and value using vector access (treating dict as vector)
+        const key = heap.memory.readFloat(
+          SEG_HEAP,
+          heap.blockToByteOffset(vecPtr) + VEC_DATA + keyOffset * 4
+        );
+        const value = heap.memory.readFloat(
+          SEG_HEAP,
+          heap.blockToByteOffset(vecPtr) + VEC_DATA + valueOffset * 4
+        );
+
+        vm.push(key); // Push key first
+        vm.push(value); // Push value second
+
+        // Increment PAIR index for next iteration
+        heap.memory.writeFloat(
+          SEG_HEAP,
+          heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4,
+          index + 1
+        );
+      } else {
+        vm.push(NIL); // End of dictionary
+      }
+      break;
+    }
     default: {
       // Handle unknown sequence types by pushing NIL.
       vm.push(NIL);

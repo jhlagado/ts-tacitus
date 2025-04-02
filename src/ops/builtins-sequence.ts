@@ -4,6 +4,7 @@ import { rangeSource } from '../seq/source';
 import { fromTaggedValue, isNIL } from '../core/tagged';
 import { vectorSource, stringSource } from '../seq/source';
 import { HeapTag, CoreTag } from '../core/tagged';
+import { constantSource, dictionarySource } from '../seq/source';
 
 /**
  * @word range - Creates a sequence from a numerical range.
@@ -36,12 +37,21 @@ export const seqOp: Verb = (vm: VM) => {
 
   let seqPtr: number;
 
-  if (isHeap && tag === HeapTag.VECTOR) {
+  if (isHeap && tag === HeapTag.SEQ) {
+    seqPtr = sourcePtr;
+  } else if (isHeap && tag === HeapTag.VECTOR) {
     seqPtr = vectorSource(vm.heap, sourcePtr);
+  } else if (isHeap && tag === HeapTag.DICT) {
+    seqPtr = dictionarySource(vm.heap, sourcePtr);
   } else if (!isHeap && tag === CoreTag.STRING) {
     seqPtr = stringSource(vm.heap, sourcePtr);
+  } else if (!isHeap && (tag === CoreTag.INTEGER || tag === CoreTag.NUMBER)) {
+    // Handle integer (tagged) or float (untagged) input
+    seqPtr = constantSource(vm.heap, sourcePtr);
   } else {
-    throw new Error('Invalid argument for seq: Expected vector or string pointer');
+    throw new Error(
+      'Invalid argument for seq: Expected vector, string, sequence, dictionary, or number'
+    );
   }
 
   if (isNIL(seqPtr)) {
