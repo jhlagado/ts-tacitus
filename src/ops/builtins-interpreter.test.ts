@@ -151,18 +151,4 @@ describe("Built-in Words", () => {
       expect(() => evalOp(vm)).toThrow("Stack underflow");
     });
   });
-
-  describe("Debug Mode", () => {
-    let consoleSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      consoleSpy = jest.spyOn(console, "log").mockImplementation();
-      vm.debug = false;
-    });
-
-    afterEach(() => {
-      consoleSpy.mockRestore();
-      vm.debug = false;
-    });
-  });
 });
