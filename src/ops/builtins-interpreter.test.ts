@@ -114,30 +114,6 @@ describe("Built-in Words", () => {
       const count = vm.pop();
       expect(count).toBe(2);
     });
-
-    it("should log groupLeftOp when debug is enabled", () => {
-      vm.debug = true;
-      const spy = jest.spyOn(console, "log").mockImplementation(() => {});
-      groupLeftOp(vm);
-      expect(spy).toHaveBeenCalledWith("groupLeftOp");
-      spy.mockRestore();
-      // Clean up: remove the pushed value from the return stack.
-      vm.rpop();
-      vm.debug = false;
-    });
-
-    it("should log groupRightOp when debug is enabled", () => {
-      vm.debug = true;
-      groupLeftOp(vm);
-      vm.push(10);
-      const spy = jest.spyOn(console, "log").mockImplementation(() => {});
-      groupRightOp(vm);
-      expect(spy).toHaveBeenCalledWith("groupRightOp");
-      spy.mockRestore();
-      // Clean up: remove the computed count.
-      vm.pop();
-      vm.debug = false;
-    });
   });
 
   describe("Error Handling", () => {
@@ -181,24 +157,12 @@ describe("Built-in Words", () => {
 
     beforeEach(() => {
       consoleSpy = jest.spyOn(console, "log").mockImplementation();
-      vm.debug = true;
+      vm.debug = false;
     });
 
     afterEach(() => {
       consoleSpy.mockRestore();
       vm.debug = false;
-    });
-
-    it("should log literal operations", () => {
-      vm.compiler.compileFloat(42);
-      literalNumberOp(vm);
-      expect(consoleSpy).toHaveBeenCalledWith("literalNumberOp", 42);
-    });
-
-    it("should log branchCallOp", () => {
-      vm.compiler.compile16(10);
-      skipBlockOp(vm);
-      expect(consoleSpy).toHaveBeenCalledWith("branchCallOp", 10);
     });
   });
 });

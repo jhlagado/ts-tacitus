@@ -73,11 +73,16 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   let offset = VEC_DATA;
 
   while (dataIndex < length) {
-    heap.memory.writeFloat(
-      SEG_HEAP,
-      heap.blockToByteOffset(currentBlock) + offset,
-      data[dataIndex]
-    );
+    const valueToWrite = data[dataIndex];
+    if (isNaN(valueToWrite)) {
+      const decoded = fromTaggedValue(valueToWrite);
+      console.log(
+        `vectorCreate: Writing index ${dataIndex}, value: ${valueToWrite}, decoded: { heap: ${decoded.heap}, tag: ${decoded.tag}, value: ${decoded.value} }`
+      );
+    } else {
+      console.log(`vectorCreate: Writing index ${dataIndex}, value: ${valueToWrite} (not NaN)`);
+    }
+    heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(currentBlock) + offset, valueToWrite);
     dataIndex++;
     offset += ELEMENT_SIZE;
 
@@ -114,10 +119,19 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
 
   while (currentBlock !== INVALID) {
     if (remainingIndex < capacityPerBlock) {
-      return heap.memory.readFloat(
+      const retrievedValue = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE
       );
+      if (isNaN(retrievedValue)) {
+        const decoded = fromTaggedValue(retrievedValue);
+        console.log(
+          `vectorGet: Retrieved index ${index}, value: ${retrievedValue}, decoded: { heap: ${decoded.heap}, tag: ${decoded.tag}, value: ${decoded.value} }`
+        );
+      } else {
+        console.log(`vectorGet: Retrieved index ${index}, value: ${retrievedValue} (not NaN)`);
+      }
+      return retrievedValue;
     }
     remainingIndex -= capacityPerBlock;
     currentBlock = heap.getNextBlock(currentBlock);

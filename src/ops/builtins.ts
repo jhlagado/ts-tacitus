@@ -22,6 +22,8 @@ import {
   literalStringOp,
   vecLeftOp,
   vecRightOp,
+  dictLeftOp,
+  dictRightOp,
 } from './builtins-interpreter';
 
 import {
@@ -101,6 +103,10 @@ export enum Op {
   VecLeft,
   /** Marks the end of a vector literal. */
   VecRight,
+  /** Marks the beginning of a dictionary literal. */
+  DictLeft,
+  /** Marks the end of a dictionary literal. */
+  DictRight,
 
   /** Performs addition of the top two values on the stack. */
   Plus,
@@ -279,6 +285,12 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.VecRight:
       vecRightOp(vm);
       break;
+    case Op.DictLeft:
+      dictLeftOp(vm);
+      break;
+    case Op.DictRight:
+      dictRightOp(vm);
+      break;
 
     // Dyadic Arithmetic
     case Op.Plus:
@@ -415,8 +427,8 @@ export const defineBuiltins = (dict: SymbolTable) => {
     vm.compiler.compile8(opcode);
   };
 
-  dict.define('{', compileOpcode(Op.GroupLeft));
-  dict.define('}', compileOpcode(Op.GroupRight));
+  dict.define('{', compileOpcode(Op.DictLeft));
+  dict.define('}', compileOpcode(Op.DictRight));
   dict.define('[', (vm: VM) => vm.compiler.compile8(Op.VecLeft));
   dict.define(']', (vm: VM) => vm.compiler.compile8(Op.VecRight));
 

@@ -3,6 +3,7 @@ import { Verb } from '../core/types';
 import { toTaggedValue, CoreTag, fromTaggedValue, isCode } from '../core/tagged';
 import { formatValue } from '../core/utils';
 import { vectorCreate } from '../heap/vector';
+import { dictCreate } from '../heap/dict';
 
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = vm.nextFloat();
@@ -93,6 +94,47 @@ export const vecRightOp = (vm: VM) => {
   const count = (vm.SP - marker) / 4; // Assume each stack item is 4 bytes.
   const array = vm.popArray(count);
   const tagVal = vectorCreate(vm.heap, array);
+  vm.push(tagVal);
+};
+
+export const dictLeftOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log('dictLeftOp');
+  // Push the current stack pointer as marker
+  vm.rpush(vm.SP);
+};
+
+export const dictRightOp: Verb = (vm: VM) => {
+  if (vm.debug) console.log('dictRightOp');
+  const marker = vm.rpop(); // what dictLeftOp saved
+  const count = (vm.SP - marker) / 4; // Assume each stack item is 4 bytes.
+
+  if (count % 2 !== 0) {
+    throw new Error(
+      `Dictionary literal requires an even number of items (key-value pairs), got ${count}`
+    );
+  }
+
+  const taggedArray = vm.popArray(count);
+  const entries: (string | number)[] = [];
+  for (let i = 0; i < taggedArray.length; i += 2) {
+    const taggedKey = taggedArray[i];
+    const taggedValue = taggedArray[i + 1];
+
+    // Extract the key as a string
+    const { tag: keyTag, heap: keyHeap, value: keyPtr } = fromTaggedValue(taggedKey);
+    if (keyTag !== CoreTag.STRING || keyHeap) {
+      // Ensure it's a non-heap string tag
+      // Note: dictCreate also performs checks, but checking early is good.
+      // We might need to adjust this check depending on what key types are truly allowed.
+      throw new Error(`Dictionary key at index ${i} must be a string literal.`);
+    }
+    const keyString = vm.digest.get(keyPtr);
+    console.log('keyString', keyString, taggedValue);
+    entries.push(keyString);
+    entries.push(taggedValue);
+  }
+
+  const tagVal = dictCreate(vm.digest, vm.heap, entries); // Pass the processed entries
   vm.push(tagVal);
 };
 

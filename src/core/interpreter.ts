@@ -2,7 +2,7 @@ import { executeOp } from "../ops/builtins";
 import { vm } from "./globalState";
 
 export function execute(start: number): void {
-  // vm.debug = true;
+  vm.debug = false;
   vm.IP = start;
   vm.running = true;
   while (vm.running) {
