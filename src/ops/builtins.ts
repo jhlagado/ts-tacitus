@@ -71,6 +71,9 @@ import { formatValue } from '../core/utils';
 
 import { rotOp, negRotOp } from './builtins-stack';
 
+// Import sequence operations
+import { rangeOp, seqOp } from './builtins-sequence';
+
 /**
  * @enum {number} Op
  * This enum defines the opcodes for all built-in operations in Tacit.
@@ -234,6 +237,10 @@ export enum Op {
 
   /** New composite if operation that can defer condition evaluation using a code block. */
   If,
+
+  // Sequence Operations
+  Range, // Create a range sequence
+  Seq, // Create a sequence from vector/string
 }
 
 /**
@@ -404,6 +411,14 @@ export function executeOp(vm: VM, opcode: Op) {
       simpleIfOp(vm);
       break;
 
+    // Sequence Operations
+    case Op.Range:
+      rangeOp(vm);
+      break;
+    case Op.Seq:
+      seqOp(vm);
+      break;
+
     default:
       throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
   }
@@ -482,4 +497,10 @@ export const defineBuiltins = (dict: SymbolTable) => {
     vm.compiler.compile8(Op.NegRot);
     vm.compiler.compile8(Op.If);
   });
+
+  // Sequence Operations
+  dict.define('range', compileOpcode(Op.Range));
+  dict.define('seq', compileOpcode(Op.Seq));
+
+  // Add other built-ins here
 };
