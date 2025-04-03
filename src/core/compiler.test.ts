@@ -1,6 +1,6 @@
 // src/core/compiler.test.ts
+import { Op } from "../ops/opcodes";
 import { initializeInterpreter, vm } from "./globalState";
-import { Op } from "../ops/builtins"; // Import Op enum
 import { fromTaggedValue } from "./tagged";
 
 describe("Compiler", () => {

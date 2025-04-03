@@ -1,4 +1,4 @@
-import { defineBuiltins, Op } from "../ops/builtins";
+import { Op } from "../ops/opcodes";
 import { Digest } from "./digest";
 import { Verb } from "./types";
 import { VM } from "./vm";
@@ -19,7 +19,6 @@ export class SymbolTable {
 
   constructor(private digest: Digest) {
     this.head = null;
-    defineBuiltins(this);
   }
   // Define a new word in the symbolTable
   define(name: string, verb: Verb): void {

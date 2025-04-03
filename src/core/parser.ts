@@ -1,4 +1,4 @@
-import { Op } from '../ops/builtins';
+import { Op } from '../ops/opcodes';
 import { vm } from './globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from './utils';

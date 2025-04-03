@@ -4,6 +4,7 @@ import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from
 import { Heap } from '../heap/heap';
 import { fromTaggedValue, isRefCounted, toTaggedValue, CoreTag } from './tagged';
 import { Digest } from './digest';
+import { defineBuiltins } from '../ops/define-builtins';
 
 export class VM {
   memory: Memory;
@@ -25,9 +26,11 @@ export class VM {
     this.RP = 0; // Return stack starts at RSTACK
     this.compiler = new Compiler(this);
     this.digest = new Digest(this.memory);
-    this.symbolTable = new SymbolTable(this.digest);
     this.heap = new Heap(this.memory);
     this.debug = false;
+
+    this.symbolTable = new SymbolTable(this.digest);
+    defineBuiltins(this.symbolTable);
   }
 
   eval() {

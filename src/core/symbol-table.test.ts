@@ -2,12 +2,14 @@ import { Memory } from "./memory";
 import { Verb } from "./types";
 import { SymbolTable } from "./symbol-table";
 import { Digest } from "./digest";
+import { defineBuiltins } from "../ops/define-builtins";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
 
   beforeEach(() => {
     symbolTable = new SymbolTable(new Digest(new Memory()));
+    defineBuiltins(symbolTable);
   });
 
   describe("Define new words", () => {
