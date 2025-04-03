@@ -92,6 +92,209 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
   return toTaggedValue(seqPtr, true, HeapTag.SEQ);
 }
 
+// Extracted helper functions for processor sequences with explicit types
+function handleProcMap(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+): number {
+  // Get the source sequence and function pointer
+  const source: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START
+  );
+  const func: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  const { value: funcPtr } = fromTaggedValue(func);
+  seqNext(heap, vm, source);
+  const nextValue: number = vm.pop();
+  if (isNIL(nextValue)) {
+    vm.push(NIL);
+    return seq;
+  }
+  vm.push(nextValue);
+  callTacitFunction(funcPtr);
+  return seq;
+}
+
+function handleProcSift(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+): number {
+  const source: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START
+  );
+  seqNext(heap, vm, source);
+  const value: number = vm.pop();
+  if (isNIL(value)) {
+    vm.push(NIL);
+    return seq;
+  }
+  const maskSeq: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  seqNext(heap, vm, maskSeq);
+  const maskValue: number = vm.pop();
+  if (isNIL(maskValue) || !maskValue) {
+    // Skip this value, try next
+    return seqNext(heap, vm, seq);
+  }
+  vm.push(value);
+  return seq;
+}
+
+function handleProcFilter(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+): number {
+  const source: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START
+  );
+  seqNext(heap, vm, source);
+  const value: number = vm.pop();
+  if (isNIL(value)) {
+    vm.push(NIL);
+    return seq;
+  }
+  const predicateFunc: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  vm.push(value);
+  vm.push(predicateFunc);
+  vm.eval();
+  const predicateResult: number = vm.pop();
+  if (isNIL(predicateResult) || !predicateResult) {
+    return seqNext(heap, vm, seq);
+  }
+  vm.push(value);
+  return seq;
+}
+
+function handleProcTake(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+  cursorOffset: number
+): number {
+  const count: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  const currentCount: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + cursorOffset
+  );
+  if (currentCount >= count) {
+    vm.push(NIL);
+    return seq;
+  }
+  const source: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START // source pointer
+  );
+  seqNext(heap, vm, source);
+  const value: number = vm.pop();
+  if (isNIL(value)) {
+    vm.push(NIL);
+    return seq;
+  }
+  heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, currentCount + 1);
+  vm.push(value);
+  return seq;
+}
+
+function handleProcDrop(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+  cursorOffset: number
+): number {
+  const count: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  const droppedCount: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + cursorOffset
+  );
+  const source: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START
+  );
+  if (droppedCount < count) {
+    seqNext(heap, vm, source);
+    const value: number = vm.pop();
+    if (isNIL(value)) {
+      vm.push(NIL);
+      return seq;
+    }
+    heap.memory.writeFloat(
+      SEG_HEAP,
+      heap.blockToByteOffset(seqPtr) + cursorOffset,
+      droppedCount + 1
+    );
+    return seqNext(heap, vm, seq);
+  }
+  seqNext(heap, vm, source);
+  return seq;
+}
+
+function handleProcMulti(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
+  const numSequences: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
+  );
+  for (let i = 0; i < numSequences; i++) {
+    const subSeq: number = heap.memory.readFloat(
+      SEG_HEAP,
+      heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8 + i * 4
+    );
+    seqNext(heap, vm, subSeq);
+    const value: number = vm.pop();
+    if (isNIL(value)) {
+      vm.push(NIL);
+      return seq;
+    }
+  }
+  return seq;
+}
+
+function handleProcMultiSource(
+  heap: Heap,
+  vm: VM,
+  seq: number,
+  seqPtr: number,
+  metaCount: number
+): number {
+  for (let i = 0; i < metaCount - 1; i++) {
+    const subSeq: number = heap.memory.readFloat(
+      SEG_HEAP,
+      heap.blockToByteOffset(seqPtr) + SEQ_META_START + i * 4
+    );
+    seqNext(heap, vm, subSeq);
+    const value: number = vm.pop();
+    if (isNIL(value)) {
+      vm.push(NIL);
+      return seq;
+    }
+    vm.push(value);
+  }
+  return seq;
+}
+
 /**
  * @brief Advances a sequence and pushes the next element (if any) onto the VM's stack.
  *
@@ -113,240 +316,62 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
  */
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
   let { value: seqPtr } = fromTaggedValue(seq);
-
-  const sourceType = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + SEQ_TYPE);
-  const metaCount = heap.memory.readFloat(
+  const sourceType: number = heap.memory.readFloat(
+    SEG_HEAP,
+    heap.blockToByteOffset(seqPtr) + SEQ_TYPE
+  );
+  const metaCount: number = heap.memory.readFloat(
     SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_META_COUNT
   );
-  // Calculate the offset to the cursor, which tracks the current position in the sequence.
-  const cursorOffset = SEQ_META_START + metaCount * 4;
+  const cursorOffset: number = SEQ_META_START + metaCount * 4;
 
   switch (sourceType) {
     case SEQ_SRC_PROCESSOR: {
-      const source = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START
-      );
-      const procType = heap.memory.readFloat(
+      const procType: number = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + (metaCount - 1) * 4
       );
-      // Processors transform other sequences.
-
       switch (procType) {
-        case PROC_MAP: {
-          // Get the source sequence and function pointer
-          const func = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          const { value: funcPtr } = fromTaggedValue(func);
-
-          // Get the next value from the source sequence
-          seqNext(heap, vm, source);
-          const nextValue = vm.pop();
-console.log('>>>>>>>>>>>>>>>>>>>>>>>> nextValue', nextValue);
-
-          // Check if the source is exhausted
-          if (isNIL(nextValue)) {
-            vm.push(NIL);
-            return seq;
-          }
-          vm.push(nextValue);
-          callTacitFunction(funcPtr);
-          return seq;
-        }
-        case PROC_SIFT: {
-          // Get next value from source sequence
-          seqNext(heap, vm, source);
-          const value = vm.pop();
-          if (isNIL(value)) {
-            vm.push(NIL);
-            return seq;
-          }
-          // If the value from the source sequence is NIL, push NIL and return.
-
-          // Get next value from mask sequence
-          const maskSeq = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          seqNext(heap, vm, maskSeq);
-          const maskValue = vm.pop();
-
-          // If the mask value is NIL or falsy, skip the current value.
-          if (isNIL(maskValue) || !maskValue) {
-            // Skip this value, try next
-            return seqNext(heap, vm, seq);
-          }
-
-          vm.push(value);
-          // Push the value onto the stack if the mask value is truthy.
-          return seq;
-        }
-        case PROC_FILTER: {
-          // Get next value from source sequence
-          seqNext(heap, vm, source);
-          const value = vm.pop();
-          if (isNIL(value)) {
-            vm.push(NIL);
-            return seq;
-          }
-
-          // Apply the predicate function
-          const predicateFunc = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          vm.push(value);
-          vm.push(predicateFunc);
-          vm.eval(); // Evaluate the predicate
-          const predicateResult = vm.pop();
-
-          // If the predicate result is NIL or falsy, skip the current value
-          if (isNIL(predicateResult) || !predicateResult) {
-            // Skip this value, try next
-            return seqNext(heap, vm, seq);
-          }
-
-          // Predicate returned true, push the original value
-          vm.push(value);
-          return seq;
-        }
-        case PROC_TAKE: {
-          const count = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          const currentCount = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + cursorOffset
-          );
-          // Get the number of elements to take and the current count.
-
-          if (currentCount >= count) {
-            vm.push(NIL);
-            return seq;
-          }
-
-          seqNext(heap, vm, source);
-          const value = vm.pop();
-          if (isNIL(value)) {
-            vm.push(NIL);
-            return seq;
-          }
-          // If the sequence is exhausted, push NIL and return.
-
-          heap.memory.writeFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + cursorOffset,
-            currentCount + 1
-          );
-          vm.push(value);
-          // Increment the current count and push the value onto the stack.
-          return seq;
-        }
-        case PROC_DROP: {
-          const count = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          const droppedCount = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + cursorOffset
-          );
-          // Get the number of elements to drop and the current dropped count.
-
-          if (droppedCount < count) {
-            // Still dropping values
-            seqNext(heap, vm, source);
-            const value = vm.pop();
-            if (isNIL(value)) {
-              vm.push(NIL);
-              return seq;
-            }
-            heap.memory.writeFloat(
-              SEG_HEAP,
-              heap.blockToByteOffset(seqPtr) + cursorOffset,
-              droppedCount + 1
-            );
-            // Increment the dropped count and recursively call `seqNext` to drop the next value.
-            return seqNext(heap, vm, seq);
-          }
-
-          // Done dropping, return next value
-          seqNext(heap, vm, source);
-          return seq;
-        }
-        case PROC_MULTI: {
-          // Read number of sequences
-          const numSequences = heap.memory.readFloat(
-            SEG_HEAP,
-            heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-          );
-          // Read the number of sequences to combine.
-
-          // Get next value from each sequence
-          for (let i = 0; i < numSequences; i++) {
-            const subSeq = heap.memory.readFloat(
-              SEG_HEAP,
-              heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8 + i * 4
-            );
-            seqNext(heap, vm, subSeq);
-            const value = vm.pop();
-            if (isNIL(value)) {
-              vm.push(NIL);
-              return seq;
-            }
-            // If any sub-sequence is exhausted, push NIL and return.
-          }
-          return seq;
-        }
-        case PROC_MULTI_SOURCE: {
-          // Get next value from each sequence
-          for (let i = 0; i < metaCount - 1; i++) {
-            const subSeq = heap.memory.readFloat(
-              SEG_HEAP,
-              heap.blockToByteOffset(seqPtr) + SEQ_META_START + i * 4
-            );
-            seqNext(heap, vm, subSeq);
-            const value = vm.pop();
-            if (isNIL(value)) {
-              vm.push(NIL);
-              return seq;
-            }
-            // If any sub-sequence is exhausted, push NIL and return.
-            vm.push(value);
-          }
-          return seq;
-        }
+        case PROC_MAP:
+          return handleProcMap(heap, vm, seq, seqPtr);
+        case PROC_SIFT:
+          return handleProcSift(heap, vm, seq, seqPtr);
+        case PROC_FILTER:
+          return handleProcFilter(heap, vm, seq, seqPtr);
+        case PROC_TAKE:
+          return handleProcTake(heap, vm, seq, seqPtr, cursorOffset);
+        case PROC_DROP:
+          return handleProcDrop(heap, vm, seq, seqPtr, cursorOffset);
+        case PROC_MULTI:
+          return handleProcMulti(heap, vm, seq, seqPtr);
+        case PROC_MULTI_SOURCE:
+          return handleProcMultiSource(heap, vm, seq, seqPtr, metaCount);
         default:
-          // Handle unknown processor types by pushing NIL.
           vm.push(NIL);
           return seq;
       }
     }
     case SEQ_SRC_RANGE: {
-      const step = heap.memory.readFloat(
+      const step: number = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-      ); // meta[1]
-      const end = heap.memory.readFloat(
+      );
+      const end: number = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8
-      ); // meta[2]
-      // Read the step and end values for the range.
-      const cursor = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
+      );
+      const cursor: number = heap.memory.readFloat(
+        SEG_HEAP,
+        heap.blockToByteOffset(seqPtr) + cursorOffset
+      );
       if (cursor <= end) {
         vm.push(cursor);
-        // Increment the cursor for the next iteration.
         heap.memory.writeFloat(
           SEG_HEAP,
           heap.blockToByteOffset(seqPtr) + cursorOffset,
           cursor + step
         );
-        // Push the current value (cursor) onto the stack.
       } else {
         vm.push(NIL);
       }
