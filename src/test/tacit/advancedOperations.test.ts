@@ -1,4 +1,4 @@
-import { runTacitTestSuite } from './testUtils';
+import { runTacitTestSuite } from '../utils/tacitTestUtils';
 
 describe('Tacit Advanced Operations', () => {
   test('code blocks', () => {
