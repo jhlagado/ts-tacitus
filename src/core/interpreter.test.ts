@@ -3,11 +3,9 @@ import { parse } from '../core/parser';
 import { Tokenizer } from '../core/tokenizer';
 import { vm, initializeInterpreter } from '../core/globalState';
 import * as math from '../ops/builtins-math';
-import { Op } from '../ops/builtins';
 import { vectorCreate, vectorGet } from '../heap/vector';
 import { CoreTag, fromTaggedValue, HeapTag } from '../core/tagged';
 import { callTacitFunction } from './interpreter';
-import { SEG_CODE } from './memory';
 
 // Helper functions
 function expectStack(expected: number[]): void {

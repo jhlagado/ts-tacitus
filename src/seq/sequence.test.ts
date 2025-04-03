@@ -284,3 +284,129 @@ describe('Sequence Operations', () => {
     });
   });
 });
+
+describe('Enhanced Sequence Operations', () => {
+  let testVM: VM;
+  let heap: Heap;
+
+  beforeEach(() => {
+    initializeInterpreter();
+    testVM = vm;
+    heap = testVM.heap;
+    testVM.debug = false;
+  });
+
+  describe('Processor Sequences - Additional Tests', () => {
+    it('should handle mapping with an empty sequence', () => {
+      const emptySeq = seqCreate(heap, SEQ_SRC_RANGE, [0, 1, -1]); // Empty range
+      parse(new Tokenizer('2 *'));
+      const doubleFunc = toTaggedValue(testVM.compiler.BP, false, CoreTag.CODE);
+      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [emptySeq, doubleFunc, PROC_MAP]);
+
+      seqNext(heap, testVM, mapSeq);
+      expect(testVM.pop()).toEqual(NIL); // No values to map
+    });
+
+    it('should handle filtering with an invalid mask sequence', () => {
+      const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 5]);
+      const invalidMaskSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 0]); // Invalid mask
+      const siftedSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, invalidMaskSeq, PROC_SIFT]);
+
+      seqNext(heap, testVM, siftedSeq);
+      expect(testVM.pop()).toEqual(NIL); // Invalid mask should terminate sequence
+    });
+
+    it('should handle taking more elements than available', () => {
+      const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 3]); // Sequence: [1, 2, 3]
+      const takeSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 5, PROC_TAKE]);
+
+      const expected = [1, 2, 3];
+      for (let value of expected) {
+        seqNext(heap, testVM, takeSeq);
+        expect(testVM.pop()).toEqual(value);
+      }
+
+      seqNext(heap, testVM, takeSeq);
+      expect(testVM.pop()).toEqual(NIL); // No more elements to take
+    });
+
+    it('should handle dropping more elements than available', () => {
+      const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 3]); // Sequence: [1, 2, 3]
+      const dropSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 5, PROC_DROP]);
+
+      seqNext(heap, testVM, dropSeq);
+      expect(testVM.pop()).toEqual(NIL); // All elements dropped
+    });
+
+    it('should handle multi-source sequences with different lengths', () => {
+      const seq1 = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 3]); // [1, 2, 3]
+      const seq2 = seqCreate(heap, SEQ_SRC_RANGE, [10, 10, 20]); // [10, 20]
+      const multiSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [seq1, seq2, PROC_MULTI_SOURCE]);
+
+      const expected = [
+        [1, 10],
+        [2, 20],
+      ];
+
+      for (let pair of expected) {
+        seqNext(heap, testVM, multiSeq);
+        const v2 = testVM.pop();
+        const v1 = testVM.pop();
+        expect([v1, v2]).toEqual(pair);
+      }
+
+      seqNext(heap, testVM, multiSeq);
+      expect(testVM.pop()).toEqual(NIL); // Shorter sequence ends first
+    });
+  });
+
+  describe('Error Handling - Additional Tests', () => {
+    it('should handle invalid sequence type gracefully', () => {
+      const invalidSeq = seqCreate(heap, 999, [1, 1, 5]); // Invalid type
+      seqNext(heap, testVM, invalidSeq);
+      expect(testVM.pop()).toEqual(NIL); // Invalid type returns NIL
+    });
+
+    it('should handle corrupted sequence data', () => {
+      const corruptedSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 'invalid' as unknown as number]); // Corrupted data
+      seqNext(heap, testVM, corruptedSeq);
+      expect(testVM.pop()).toEqual(NIL); // Corrupted data returns NIL
+    });
+
+    it('should handle corrupted sequence data', () => {
+      // Create a corrupted sequence by bypassing type checking
+      const corruptedSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 'invalid' as unknown as number]); // Corrupted data
+      seqNext(heap, testVM, corruptedSeq);
+      expect(testVM.pop()).toEqual(NIL); // Corrupted data returns NIL
+    });
+  });
+
+  describe('Edge Cases - Additional Tests', () => {
+    it('should handle nested sequences', () => {
+      const innerSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 3]); // [1, 2, 3]
+      const outerSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [innerSeq, 2, PROC_TAKE]); // Take first 2
+
+      const expected = [1, 2];
+      for (let value of expected) {
+        seqNext(heap, testVM, outerSeq);
+        expect(testVM.pop()).toEqual(value);
+      }
+
+      seqNext(heap, testVM, outerSeq);
+      expect(testVM.pop()).toEqual(NIL); // Outer sequence ends
+    });
+
+    it('should handle sequences with non-standard step values', () => {
+      const seq = seqCreate(heap, SEQ_SRC_RANGE, [1, 2, 10]); // Sequence: [1, 3, 5, 7, 9]
+      const expected = [1, 3, 5, 7, 9];
+
+      for (let value of expected) {
+        seqNext(heap, testVM, seq);
+        expect(testVM.pop()).toEqual(value);
+      }
+
+      seqNext(heap, testVM, seq);
+      expect(testVM.pop()).toEqual(NIL); // Sequence ends
+    });
+  });
+});
