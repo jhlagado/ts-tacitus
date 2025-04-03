@@ -16,7 +16,7 @@ export function execute(start: number, breakAtIP?: number): void {
     }
 
     const opcode = vm.next8(); // Read the 8-bit opcode
-    if (vm.debug || true) console.log({ opcode }, vm.IP - 1);
+    if (vm.debug) console.log({ opcode }, vm.IP - 1);
     try {
       executeOp(vm, opcode);
     } catch (error) {

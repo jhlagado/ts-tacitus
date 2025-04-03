@@ -70,6 +70,12 @@ export class VM {
     return value;
   }
 
+  peek(): number {
+    const value = this.pop();
+    this.push(value, true); // Push back the value
+    return value;
+  }
+
   /**
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).

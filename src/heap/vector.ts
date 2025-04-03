@@ -74,14 +74,6 @@ export function vectorCreate(heap: Heap, data: number[]): number {
 
   while (dataIndex < length) {
     const valueToWrite = data[dataIndex];
-    if (isNaN(valueToWrite)) {
-      const decoded = fromTaggedValue(valueToWrite);
-      console.log(
-        `vectorCreate: Writing index ${dataIndex}, value: ${valueToWrite}, decoded: { heap: ${decoded.heap}, tag: ${decoded.tag}, value: ${decoded.value} }`
-      );
-    } else {
-      console.log(`vectorCreate: Writing index ${dataIndex}, value: ${valueToWrite} (not NaN)`);
-    }
     heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(currentBlock) + offset, valueToWrite);
     dataIndex++;
     offset += ELEMENT_SIZE;
