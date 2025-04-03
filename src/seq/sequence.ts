@@ -14,8 +14,9 @@
 import { SEG_HEAP, SEG_STRING } from '../core/memory';
 import { NIL, fromTaggedValue, toTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
-import { VEC_DATA, vectorCreate, VEC_SIZE, vectorGet } from '../heap/vector';
+import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
 import { Heap } from '../heap/heap';
+import { callTacitFunction } from '../core/interpreter';
 
 // Sequence source types.
 export const SEQ_SRC_RANGE = 1;
@@ -135,23 +136,24 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
 
       switch (procType) {
         case PROC_MAP: {
-          // Get next value from source
-          seqNext(heap, vm, source);
-          const value = vm.pop();
-          if (isNIL(value)) {
-            vm.push(NIL);
-            return seq;
-          }
-          // Apply the mapping function to the value.
-
+          // Get the source sequence and function pointer
           const func = heap.memory.readFloat(
             SEG_HEAP,
             heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
           );
-          vm.push(value);
-          // The function to be applied to values in the sequence.
-          vm.push(func);
-          vm.eval();
+          const { value: funcPtr } = fromTaggedValue(func);
+
+          // Get the next value from the source sequence
+          seqNext(heap, vm, source);
+          const nextValue = vm.pop();
+
+          // Check if the source is exhausted
+          if (isNIL(nextValue)) {
+            vm.push(NIL);
+            return seq;
+          }
+          vm.push(nextValue);
+          callTacitFunction(funcPtr);
           return seq;
         }
         case PROC_SIFT: {
