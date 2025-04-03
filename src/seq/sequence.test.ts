@@ -351,7 +351,7 @@ describe('Enhanced Sequence Operations', () => {
   describe('Processor Sequences - Map Tests', () => {
     it('should map a constant function over a sequence', () => {
       // Create a range sequence from 1 to 5
-      const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 5]);
+      const rangeSeq = rangeSource(heap, 1, 5, 1 );
 
       // Compile a constant function that always returns 42
       executeProgram('( drop 42 )');
@@ -375,99 +375,100 @@ describe('Enhanced Sequence Operations', () => {
       expect(isNIL(value)).toBe(true);
     });
 
-    // it('should map a doubling function over a sequence', () => {
-    //   // Create a range sequence from 1 to 5
-    //   const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 5]);
+    it('should map a doubling function over a sequence', () => {
+      // Create a range sequence from 1 to 5
+      const rangeSeq = rangeSource(heap, 1, 5, 1 );
 
-    //   // Compile a function that doubles its input
-    //   parse(new Tokenizer('2 *'));
-    //   const doubleFunc = toTaggedValue(testVM.compiler.BP, false, CoreTag.CODE);
+      // Compile a function that doubles its input
+      executeProgram('( 2 * )');
+      const doubleFunc = vm.pop();
 
-    //   // Create a map processor sequence
-    //   const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, doubleFunc, PROC_MAP]);
+      // Create a map processor sequence
+      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, doubleFunc, PROC_MAP]);
 
-    //   // Expected results after mapping
-    //   const expected = [2, 4, 6, 8, 10];
+      // Expected results after mapping
+      const expected = [2, 4, 6, 8, 10];
 
-    //   // Process the sequence and verify results
-    //   for (let i = 0; i < expected.length; i++) {
-    //     seqNext(heap, testVM, mapSeq);
-    //     const value = testVM.pop();
-    //     expect(value).toEqual(expected[i]);
-    //   }
+      // Process the sequence and verify results
+      for (let i = 0; i < expected.length; i++) {
+        seqNext(heap, testVM, mapSeq);
+        const value = testVM.pop();
+        expect(value).toEqual(expected[i]);
+      }
 
-    //   // Verify sequence termination
-    //   seqNext(heap, testVM, mapSeq);
-    //   expect(testVM.pop()).toEqual(NIL);
-    // });
+      // Verify sequence termination
+      seqNext(heap, testVM, mapSeq);
+      expect(testVM.pop()).toEqual(NIL);
+    });
 
-    // it('should handle mapping with an empty sequence', () => {
-    //   // Create an empty range sequence
-    //   const emptySeq = seqCreate(heap, SEQ_SRC_RANGE, [0, 1, -1]); // Empty range
+    it('should handle mapping with an empty sequence', () => {
+      // Create an empty range sequence
+      const rangeSeq = rangeSource(heap, 0, -1, 1 );
 
-    //   // Compile a function that doubles its input
-    //   parse(new Tokenizer('2 *'));
-    //   const doubleFunc = toTaggedValue(testVM.compiler.BP, false, CoreTag.CODE);
+      // Compile a function that doubles its input
+      executeProgram('( 2 * )');
+      const doubleFunc = vm.pop();
 
-    //   // Create a map processor sequence
-    //   const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [emptySeq, doubleFunc, PROC_MAP]);
+      // Create a map processor sequence
+      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, doubleFunc, PROC_MAP]);
 
-    //   // Process the sequence and verify it terminates immediately
-    //   seqNext(heap, testVM, mapSeq);
-    //   expect(testVM.pop()).toEqual(NIL); // No values to map
-    // });
+      // Process the sequence and verify it terminates immediately
+      seqNext(heap, testVM, mapSeq);
+      expect(testVM.pop()).toEqual(NIL); // No values to map
+    });
 
-    // it('should handle mapping with a tacit function', () => {
-    //   // Create a range sequence from 1 to 5
-    //   const rangeSeq = seqCreate(heap, SEQ_SRC_RANGE, [1, 1, 5]);
+    it('should handle mapping with a tacit function', () => {
+      // Create a range sequence from 1 to 5
+      const rangeSeq = rangeSource(heap, 1, 5, 1 );
 
-    //   // Compile a tacit function (e.g., square the input)
-    //   parse(new Tokenizer('dup *'));
-    //   const squareFunc = toTaggedValue(testVM.compiler.BP, false, CoreTag.CODE);
+      // Compile a tacit function (e.g., square the input)
+      executeProgram('( dup * )');
+      const squareFunc = vm.pop();
 
-    //   // Create a map processor sequence
-    //   const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, squareFunc, PROC_MAP]);
+      // Create a map processor sequence
+      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, squareFunc, PROC_MAP]);
 
-    //   // Expected results after mapping
-    //   const expected = [1, 4, 9, 16, 25];
+      // Expected results after mapping
+      const expected = [1, 4, 9, 16, 25];
 
-    //   // Process the sequence and verify results
-    //   for (let i = 0; i < expected.length; i++) {
-    //     seqNext(heap, testVM, mapSeq);
-    //     const value = testVM.pop();
-    //     expect(value).toEqual(expected[i]);
-    //   }
+      // Process the sequence and verify results
+      for (let i = 0; i < expected.length; i++) {
+        seqNext(heap, testVM, mapSeq);
+        const value = testVM.pop();
+        expect(value).toEqual(expected[i]);
+      }
 
-    //   // Verify sequence termination
-    //   seqNext(heap, testVM, mapSeq);
-    //   expect(testVM.pop()).toEqual(NIL);
-    // });
+      // Verify sequence termination
+      seqNext(heap, testVM, mapSeq);
+      expect(testVM.pop()).toEqual(NIL);
+    });
 
-    // it('should handle mapping with a nested sequence', () => {
-    //   // Create a vector sequence
-    //   const vector = vectorCreate(heap, [1, 2, 3]);
-    //   const vectorSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [vector, PROC_MAP]);
+    it('should handle mapping with a nested sequence', () => {
+      // Create a vector sequence
+      const vector = vectorCreate(heap, [1, 2, 3]);
+      const vectorSeq = vectorSource(heap, vector);
 
-    //   // Compile a function that doubles its input
-    //   parse(new Tokenizer('2 *'));
-    //   const doubleFunc = toTaggedValue(testVM.compiler.BP, false, CoreTag.CODE);
+      // Compile a function that doubles its input
+      executeProgram('( 2 * )');
+      const doubleFunc = vm.pop();
 
-    //   // Create a map processor sequence
-    //   const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [vectorSeq, doubleFunc, PROC_MAP]);
+      // Create a map processor sequence
+      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [vectorSeq, doubleFunc, PROC_MAP]);
 
-    //   // Expected results after mapping
-    //   const expected = [2, 4, 6];
+      // Expected results after mapping
+      const expected = [2, 4, 6];
 
-    //   // Process the sequence and verify results
-    //   for (let i = 0; i < expected.length; i++) {
-    //     seqNext(heap, testVM, mapSeq);
-    //     const value = testVM.pop();
-    //     expect(value).toEqual(expected[i]);
-    //   }
+      // Process the sequence and verify results
+      for (let i = 0; i < expected.length; i++) {
+        seqNext(heap, testVM, mapSeq);
+        const value = testVM.pop();
+        console.log('>>>>>',value);
+        expect(value).toEqual(expected[i]);
+      }
 
-    //   // Verify sequence termination
-    //   seqNext(heap, testVM, mapSeq);
-    //   expect(testVM.pop()).toEqual(NIL);
-    // });
+      // Verify sequence termination
+      seqNext(heap, testVM, mapSeq);
+      expect(testVM.pop()).toEqual(NIL);
+    });
   });
 });

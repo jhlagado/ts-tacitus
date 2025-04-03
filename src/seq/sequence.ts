@@ -146,6 +146,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
           // Get the next value from the source sequence
           seqNext(heap, vm, source);
           const nextValue = vm.pop();
+console.log('>>>>>>>>>>>>>>>>>>>>>>>> nextValue', nextValue);
 
           // Check if the source is exhausted
           if (isNIL(nextValue)) {
