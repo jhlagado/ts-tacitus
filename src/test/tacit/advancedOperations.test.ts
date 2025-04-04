@@ -33,9 +33,22 @@ describe('Tacit Advanced Operations', () => {
 
   test('complex conditions', () => {
     runTacitTestSuite(`
-
       // simple If
       1 (2) (3) if => 2
+    `);
+  });
+
+  test('nested if with code blocks', () => {
+    runTacitTestSuite(`
+      // Advanced if: if clauses with expressions demonstrating.
+      1 ( 5 2 + ) ( 8 3 - ) if => 7
+    `);
+  });
+
+  test('eval with stack manipulation', () => {
+    runTacitTestSuite(`
+      // Advanced eval: Evaluate a code block that swaps and adds.
+      (3 4 swap +) eval => 7
     `);
   });
 });
