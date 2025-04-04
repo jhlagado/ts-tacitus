@@ -100,19 +100,6 @@ describe('Tacit Basic Operations', () => {
     `);
   });
 
-  xtest('if operator - complex tests', () => {
-    runTacitTestSuite(`
-      // Using code blocks as conditions
-      (1) (10) (20) if => 10
-      (0) (10) (20) if => 20
-      (5 4 >) (15) (25) if => 15
-      (5 4 <) (15) (25) if => 25
-
-      // Nested if with code block condition
-      (5 4 > (0) (1) if) (10) (20) if => 20
-    `);
-  });
-
   test('if operator - minimal demonstration', () => {
     runTacitTestSuite(`
       // Basic composite if with deferred condition

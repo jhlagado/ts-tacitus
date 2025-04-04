@@ -31,21 +31,11 @@ describe('Tacit Advanced Operations', () => {
     `);
   });
 
-  // test('complex conditions', () => {
-  //   runTacitTestSuite(`
+  test('complex conditions', () => {
+    runTacitTestSuite(`
 
-  //     // simple If
-  //     1 (2) (3) if => 2
-  //   `);
-  // });
-
-  // test('string operations', () => {
-  //   runTacitTestSuite(`
-  //     // Simple string output
-  //     "Hello, World!" . => Hello, World!
-
-  //     // String with numeric value
-  //     "Result: " 5 3 + . . => Result: 8
-  //   `);
-  // });
+      // simple If
+      1 (2) (3) if => 2
+    `);
+  });
 });
