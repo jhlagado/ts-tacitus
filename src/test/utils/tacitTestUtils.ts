@@ -103,77 +103,18 @@ export function captureTacitOutput(code: string): string[] {
 }
 
 /**
- * Creates a test suite from a template string containing Tacit code
- * Allows writing tests in a more literate programming style
- *
- * Example:
- * ```
- * runTacitTestSuite(`
- *   // Test basic arithmetic
- *   5 3 + => 8
- *
- *   // Test stack operations
- *   5 dup => 5 5
- *
- *   // Test string output
- *   "Hello" . => Hello
- * `);
- * ```
+ * Execute a single Tacit test string and return the resulting stack state
+ * @param testCode The Tacit code to execute
+ * @returns Array containing the final stack values
  */
-export function runTacitTestSuite(testSuite: string): void {
-  const lines = testSuite.split('\n');
-  let currentTest = '';
-  let lineNumber = 0;
+export function runTacitTest(testCode: string): number[] {
+  // Initialize interpreter state
+  initializeInterpreter();
 
-  for (const line of lines) {
-    lineNumber++;
-    const trimmedLine = line.trim();
+  // Parse and execute the code
+  parse(new Tokenizer(testCode));
+  execute(vm.compiler.BP);
 
-    // Skip empty lines and comments
-    if (trimmedLine === '' || trimmedLine.startsWith('//')) {
-      continue;
-    }
-
-    // If this is a test assertion line
-    if (trimmedLine.includes('=>')) {
-      const [code, expectation] = trimmedLine.split('=>').map(part => part.trim());
-
-      // If we have accumulated code, prepend it
-      const fullCode = currentTest + ' ' + code;
-      currentTest = ''; // Reset accumulated code
-
-      try {
-        // Check if this is testing console output
-        if (expectation.includes('.')) {
-          const expectedOutput = expectation.replace(/\./g, '').trim();
-          const output = captureTacitOutput(fullCode);
-
-          if (!output.includes(expectedOutput)) {
-            throw new Error(
-              `Output mismatch at line ${lineNumber}:\n` +
-                `Expected: "${expectedOutput}"\n` +
-                `Actual: "${output.join(', ')}"`
-            );
-          }
-        } else {
-          // Otherwise it's testing stack values
-          const expectedStack = expectation
-            .split(' ')
-            .filter(Boolean)
-            .map(val => parseFloat(val));
-
-          testTacitCode(fullCode, expectedStack);
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(`Test failed at line ${lineNumber}: ${error.message}`);
-        } else {
-          throw new Error(`Test failed at line ${lineNumber}: Unknown error`);
-        }
-      }
-    } else {
-      // This is code to be accumulated
-      currentTest += ' ' + trimmedLine;
-    }
-  }
+  // Return the stack state after execution
+  return vm.getStackData();
 }
