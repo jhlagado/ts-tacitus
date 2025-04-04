@@ -188,15 +188,7 @@ export const lastOp: Verb = (vm: VM) => {
 export const forEachOp: Verb = (vm: VM) => {
   const func = vm.pop();
   const seq = vm.pop();
-
-  // TODO: Validate input types (seq is SEQ, func is CODE)
-
-  forEach(vm.heap, vm, seq, value => {
-    vm.push(value);
-    vm.push(func);
-    vm.eval(); // Execute the function
-    vm.pop(); // Discard the result from the function call
-  });
+  forEach(vm.heap, vm, seq, func)
 };
 
 /**

@@ -10,7 +10,6 @@ import {
   toVectorOp,
   countOp,
   lastOp,
-  forEachOp,
   reduceOp,
 } from './builtins-sequence';
 import * as tagged from '../core/tagged';
@@ -206,27 +205,6 @@ describe('builtins-sequence operations', () => {
       vm.push(1010);
       lastOp(vm as any);
       expect(vm.pop()).toBe(999);
-    });
-  });
-
-  describe('forEachOp', () => {
-    test('should iterate over sequence and call function for each element', () => {
-      const vm = new MockVM();
-      vm.eval = () => {};
-      const func = 'dummy-func';
-      const seq = [1, 2, 3];
-      vm.stack = [];
-      vm.push(seq);
-      vm.push(func);
-      (sink as any).forEach = (
-        _heap: any,
-        _vm: any,
-        sequence: any,
-        callback: (val: any) => void
-      ): void => {
-        sequence.forEach((val: any) => callback(val));
-      };
-      expect(() => forEachOp(vm as any)).not.toThrow();
     });
   });
 

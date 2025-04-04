@@ -88,6 +88,7 @@ export function captureTacitOutput(code: string): string[] {
   const originalConsoleLog = console.log;
   console.log = (...args) => {
     output.push(args.join(' '));
+    originalConsoleLog(...args);
   };
 
   try {

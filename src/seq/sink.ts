@@ -1,8 +1,9 @@
 import { Heap } from '../heap/heap';
-import { isNIL, NIL } from '../core/tagged';
+import { fromTaggedValue, isNIL, NIL } from '../core/tagged';
 import { VM } from '../core/vm';
 import { vectorCreate } from '../heap/vector';
 import { seqNext } from './sequence';
+import { callTacitFunction } from '../core/interpreter';
 
 /**
  * Collects sequence values into a vector
@@ -35,12 +36,14 @@ export function last(heap: Heap, vm: VM, seq: number): number {
 /**
  * Applies a function to each value in a sequence
  */
-export function forEach(heap: Heap, vm: VM, seq: number, callback: (value: number) => void): void {
+export function forEach(heap: Heap, vm: VM, seq: number, func: number): void {
+  const { value: funcPtr } = fromTaggedValue(func);
   while (true) {
     seqNext(heap, vm, seq);
     const value = vm.pop();
     if (isNIL(value)) return;
-    callback(value);
+    vm.push(value);
+    callTacitFunction(funcPtr);
   }
 }
 

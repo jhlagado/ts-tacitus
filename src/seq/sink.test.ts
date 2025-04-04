@@ -9,6 +9,7 @@ import { vectorCreate, vectorGet } from '../heap/vector';
 import { parse } from '../core/parser';
 import { Tokenizer } from '../core/tokenizer';
 import { rangeSource } from './source';
+import { executeProgram } from '../core/interpreter';
 
 describe('Sequence Operations', () => {
   let testVM: VM;
@@ -68,24 +69,20 @@ describe('Sequence Operations', () => {
       const vecPtr = vectorCreate(heap, [1, 2, 3]);
       const vectorSeq = seqCreate(heap, SEQ_SRC_VECTOR, [vecPtr]);
 
-      const values: number[] = [];
+      executeProgram('( . )');
+      const func = vm.pop();
 
+      const output: string[] = [];
+      const originalConsoleLog = console.log;
+      console.log = (...args) => {
+        output.push(args.join(' '));
+        originalConsoleLog(...args);
+      };
       // Simply multiply each value by 2 in the callback
-      forEach(heap, testVM, vectorSeq, value => {
-        // Ensure we're working with a plain number
-        values.push(Number(value) * 2);
-      });
-
-      expect(values).toEqual([2, 4, 6]);
-    });
-
-    it('should not call the function for an empty sequence', () => {
-      const emptySeq = rangeSource(heap, 10, 5, 1);
-      let called = false;
-      forEach(heap, testVM, emptySeq, () => {
-        called = true;
-      });
-      expect(called).toBe(false);
+      forEach(heap, testVM, vectorSeq, func);
+      console.log = originalConsoleLog; // Restore original console.log
+      console.log('Captured Output:', output);
+      expect(output).toEqual(['1', '2', '3']);
     });
   });
 

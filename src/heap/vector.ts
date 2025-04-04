@@ -115,14 +115,6 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE
       );
-      if (isNaN(retrievedValue)) {
-        const decoded = fromTaggedValue(retrievedValue);
-        console.log(
-          `vectorGet: Retrieved index ${index}, value: ${retrievedValue}, decoded: { heap: ${decoded.heap}, tag: ${decoded.tag}, value: ${decoded.value} }`
-        );
-      } else {
-        console.log(`vectorGet: Retrieved index ${index}, value: ${retrievedValue} (not NaN)`);
-      }
       return retrievedValue;
     }
     remainingIndex -= capacityPerBlock;

@@ -18,9 +18,13 @@ describe('Tacit Sequence Operations', () => {
     expect(vectorContents).toEqual([1, 2, 3, 4, 5]);
   });
 
-  xtest('for-each operation with deferred code block', () => {
-    // Capture the output of printing each item in the list using a deferred code block
+  test('debug for-each operation', () => {
+    vm.debug = true; // Enable debug mode
+    // Simplified test to debug stack underflow
     const output = captureTacitOutput('1 5 1 range ( . ) for-each');
+
+    // Log the captured output for debugging
+    console.log('Captured Output:', output);
 
     // Validate the printed output
     expect(output).toEqual(['1', '2', '3', '4', '5']);

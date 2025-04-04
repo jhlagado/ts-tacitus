@@ -5,7 +5,6 @@ import { toTaggedValue, CoreTag } from './tagged';
 import { Tokenizer } from './tokenizer';
 
 export function execute(start: number, breakAtIP?: number): void {
-  vm.debug = false;
   vm.IP = start;
   vm.running = true;
   while (vm.running) {
