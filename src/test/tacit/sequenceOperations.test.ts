@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { vectorGet } from '../../heap/vector';
 import { vm } from '../../core/globalState';
-import { runTacitTest } from '../utils/tacitTestUtils';
+import { runTacitTest } from '../tacitTestUtils';
 
 describe('Tacit Sequence Operations', () => {
   test('simple sequence to vector', () => {

@@ -178,3 +178,23 @@ export function vectorUpdate(heap: Heap, vectorPtr: number, index: number, value
   }
   return NIL;
 }
+
+/**
+ * Converts a vector into a TypeScript array.
+ *
+ * @param heap The heap instance where the vector is stored.
+ * @param vectorPtr A tagged value representing a pointer to the vector.
+ * @returns A TypeScript array containing the vector's elements.
+ */
+export function vectorToArray(heap: Heap, vectorPtr: number): number[] {
+  const { value: firstBlock } = fromTaggedValue(vectorPtr);
+  const length = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(firstBlock) + VEC_SIZE);
+  const result: number[] = [];
+
+  for (let i = 0; i < length; i++) {
+    const element = vectorGet(heap, vectorPtr, i);
+    result.push(element);
+  }
+
+  return result;
+}

@@ -1,4 +1,4 @@
-import { runTacitTest } from '../utils/tacitTestUtils';
+import { runTacitTest } from '../tacitTestUtils';
 
 describe('Tacit Basic Operations', () => {
   test('arithmetic operations', () => {

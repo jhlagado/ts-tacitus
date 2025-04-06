@@ -1,7 +1,7 @@
-import { Tokenizer } from '../../core/tokenizer';
-import { parse } from '../../core/parser';
-import { execute } from '../../core/interpreter';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { Tokenizer } from '../core/tokenizer';
+import { parse } from '../core/parser';
+import { execute } from '../core/interpreter';
+import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
  * Execute a Tacit code string and return the stack result

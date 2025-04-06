@@ -1,10 +1,9 @@
-import { runTacitTest } from '../utils/tacitTestUtils';
+import { runTacitTest } from '../tacitTestUtils';
 import { vectorGet } from '../../heap/vector';
 import { vm } from '../../core/globalState';
 
 describe('Tacit Vector Operations', () => {
   test('vector content assertions', () => {
-
     // Test a vector with specific values
     let result = runTacitTest('[ 1 2 3 4 5]');
     expect(result.length).toBe(1); // Ensure a single vector is on the stack

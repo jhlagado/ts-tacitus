@@ -1,10 +1,11 @@
 import { initializeInterpreter, vm } from "../core/globalState";
-import { vectorCreate, vectorGet, vectorUpdate } from "./vector";
+import { vectorCreate, vectorGet, vectorToArray, vectorUpdate } from "./vector";
 import { fromTaggedValue, isNIL } from "../core/tagged";
 import { formatValue } from "../core/utils";
 import { vecLeftOp, vecRightOp } from "../ops/builtins-interpreter";
 import { SEG_HEAP } from "../core/memory";
 import { INVALID } from "../core/constants";
+import { toBeCloseToArray } from "../test/utils"; // Import the utility function
 
 // Helper to create a long array
 function range(n: number): number[] {
@@ -259,5 +260,38 @@ describe("Vector", () => {
       expect(element0).toBe(3);
       expect(element1).toBe(4);
     });
+  });
+});
+
+describe("vectorToArray", () => {
+  it("should convert a vector to a TypeScript array", () => {
+    const data = [1.1, 2.2, 3.3];
+    const vectorPtr = vectorCreate(vm.heap, data);
+
+    const array = vectorToArray(vm.heap, vectorPtr);
+    toBeCloseToArray(array, data); // Directly call the utility function
+  });
+
+  it("should handle an empty vector", () => {
+    const vectorPtr = vectorCreate(vm.heap, []);
+
+    const array = vectorToArray(vm.heap, vectorPtr);
+    expect(array).toEqual([]);
+  });
+
+  it("should handle a vector with a single element", () => {
+    const data = [42];
+    const vectorPtr = vectorCreate(vm.heap, data);
+
+    const array = vectorToArray(vm.heap, vectorPtr);
+    toBeCloseToArray(array, data); // Directly call the utility function
+  });
+
+  it("should handle a vector spanning multiple blocks", () => {
+    const longArray = range(50);
+    const vectorPtr = vectorCreate(vm.heap, longArray);
+
+    const array = vectorToArray(vm.heap, vectorPtr);
+    toBeCloseToArray(array, longArray); // Directly call the utility function
   });
 });

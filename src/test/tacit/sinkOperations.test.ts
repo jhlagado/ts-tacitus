@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { vm } from '../../core/globalState';
-import { captureTacitOutput } from '../utils/tacitTestUtils';
+import { captureTacitOutput } from '../tacitTestUtils';
 
 describe('Tacit Sequence Operations', () => {
-
   test('debug for-each operation', () => {
     vm.debug = true; // Enable debug mode
     // Simplified test to debug stack underflow
@@ -27,5 +26,4 @@ describe('Tacit Sequence Operations', () => {
     // Validate the printed output
     expect(output).toEqual(['2', '4', '6', '8', '10']);
   });
-
 });
