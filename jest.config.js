@@ -1,19 +1,19 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  testEnvironment: "node",
+  testEnvironment: 'node',
   transform: {
-    "^.+\\.tsx?$": ["ts-jest", {}],
+    '^.+\\.tsx?$': ['ts-jest', {}],
   },
-  testMatch: ["**/*.test.ts", "**/*.spec.ts"],
+  testMatch: ['**/*.test.ts', '**/*.spec.ts'],
   verbose: true,
   collectCoverage: true,
   collectCoverageFrom: [
-    "**/*.ts",
-    "!**/*.test.ts",
-    "!**/node_modules/**",
-    "!src/index.ts", // Exclude index.ts from coverage
+    '**/*.ts',
+    '!**/*.test.ts',
+    '!**/node_modules/**',
+    '!src/index.ts', // Exclude index.ts from coverage
   ],
-  coverageDirectory: "coverage",
+  coverageDirectory: 'coverage',
   coverageThreshold: {
     global: {
       branches: 80,
@@ -22,4 +22,5 @@ module.exports = {
       statements: 80,
     },
   },
+  setupFilesAfterEnv: ['<rootDir>/src/test/setupTests.ts'],
 };

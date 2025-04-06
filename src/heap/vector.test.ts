@@ -1,25 +1,24 @@
-import { initializeInterpreter, vm } from "../core/globalState";
-import { vectorCreate, vectorGet, vectorToArray, vectorUpdate } from "./vector";
-import { fromTaggedValue, isNIL } from "../core/tagged";
-import { formatValue } from "../core/utils";
-import { vecLeftOp, vecRightOp } from "../ops/builtins-interpreter";
-import { SEG_HEAP } from "../core/memory";
-import { INVALID } from "../core/constants";
-import { toBeCloseToArray } from "../test/utils"; // Import the utility function
+import { initializeInterpreter, vm } from '../core/globalState';
+import { vectorCreate, vectorGet, vectorToArray, vectorUpdate } from './vector';
+import { fromTaggedValue, isNIL } from '../core/tagged';
+import { formatValue } from '../core/utils';
+import { vecLeftOp, vecRightOp } from '../ops/builtins-interpreter';
+import { SEG_HEAP } from '../core/memory';
+import { INVALID } from '../core/constants';
 
 // Helper to create a long array
 function range(n: number): number[] {
   return Array.from({ length: n }, (_, i) => i * 1.0);
 }
 
-describe("Vector", () => {
+describe('Vector', () => {
   beforeEach(() => {
     initializeInterpreter();
     // Now vm.memory and vm.heap are freshly initialized.
   });
 
   // In your tests, use vm.heap and vm.memory directly.
-  it("should create an empty vector", () => {
+  it('should create an empty vector', () => {
     const vectorPtr = vectorCreate(vm.heap, []);
     expect(isNIL(vectorPtr)).toBe(false);
 
@@ -32,19 +31,17 @@ describe("Vector", () => {
     expect(length).toBe(0);
   });
 
-  it("should create a vector with initial values", () => {
+  it('should create a vector with initial values', () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr = vectorCreate(vm.heap, data);
     expect(isNIL(vectorPtr)).toBe(false);
 
     // Verify each element using vectorGet
-    for (let i = 0; i < data.length; i++) {
-      const value = vectorGet(vm.heap, vectorPtr, i);
-      expect(value).toBeCloseTo(data[i]);
-    }
+    const vectorContents = data.map((_, i) => vectorGet(vm.heap, vectorPtr, i));
+    expect(vectorContents).toBeCloseToArray(data);
   });
 
-  it("should update a vector element", () => {
+  it('should update a vector element', () => {
     const data = [10, 20, 30];
     let vectorPtr = vectorCreate(vm.heap, data);
 
@@ -54,7 +51,7 @@ describe("Vector", () => {
     expect(updatedValue).toBe(99);
   });
 
-  it("should return NIL for out-of-bound access", () => {
+  it('should return NIL for out-of-bound access', () => {
     const data = [5, 6, 7];
     const vectorPtr = vectorCreate(vm.heap, data);
 
@@ -62,17 +59,17 @@ describe("Vector", () => {
     expect(isNIL(vectorGet(vm.heap, vectorPtr, 3))).toBe(true);
   });
 
-  it("should format a vector with elements [ 1 2 3 ]", () => {
+  it('should format a vector with elements [ 1 2 3 ]', () => {
     const data = [1, 2, 3];
     const vectorPtr = vectorCreate(vm.heap, data);
     expect(isNIL(vectorPtr)).toBe(false);
 
     const formatted = formatValue(vm, vectorPtr);
-    expect(formatted).toBe("[ 1 2 3 ]");
+    expect(formatted).toBe('[ 1 2 3 ]');
   });
 
-  describe("Vector Extended Coverage", () => {
-    it("should correctly write vector metadata (header)", () => {
+  describe('Vector Extended Coverage', () => {
+    it('should correctly write vector metadata (header)', () => {
       // Create a simple vector with a single element.
       const data = [42];
       const vectorPtr = vectorCreate(vm.heap, data);
@@ -90,7 +87,7 @@ describe("Vector", () => {
       expect(headerValue).toBe(1);
     });
 
-    it("should return NIL when vector allocation fails due to block exhaustion", () => {
+    it('should return NIL when vector allocation fails due to block exhaustion', () => {
       // Force the heap to simulate allocation failure.
       // Monkey-patch getNextBlock so that it returns an INVALID marker when called.
       const data = [10, 20, 30, 40];
@@ -106,7 +103,7 @@ describe("Vector", () => {
       vm.heap.getNextBlock = originalGetNextBlock;
     });
 
-    it("should allocate a vector spanning multiple blocks", () => {
+    it('should allocate a vector spanning multiple blocks', () => {
       // Produce an array long enough to force use of more than one heap block.
       // Adjust the count as needed based on BLOCK_SIZE and ELEMENT_SIZE.
       const longArray = range(50);
@@ -114,13 +111,11 @@ describe("Vector", () => {
       expect(isNIL(vectorPtr)).toBe(false);
 
       // Check that all elements are written correctly.
-      for (let i = 0; i < longArray.length; i++) {
-        const value = vectorGet(vm.heap, vectorPtr, i);
-        expect(value).toBeCloseTo(longArray[i]);
-      }
+      const vectorContents = longArray.map((_, i) => vectorGet(vm.heap, vectorPtr, i));
+      expect(vectorContents).toBeCloseToArray(longArray);
     });
 
-    it("should update elements correctly in a vector spanning multiple blocks", () => {
+    it('should update elements correctly in a vector spanning multiple blocks', () => {
       // Also test vectorUpdate across a larger array.
       const longArray = range(30);
       let vectorPtr = vectorCreate(vm.heap, longArray);
@@ -132,7 +127,7 @@ describe("Vector", () => {
       expect(updatedValue).toBe(999);
     });
 
-    it("should return NIL when vector allocation fails due to malloc failure", () => {
+    it('should return NIL when vector allocation fails due to malloc failure', () => {
       const originalMalloc = vm.heap.malloc;
       vm.heap.malloc = () => INVALID;
       const data = [10, 20, 30, 40];
@@ -141,7 +136,7 @@ describe("Vector", () => {
       vm.heap.malloc = originalMalloc;
     });
 
-    it("should return NIL when vector allocation fails due to block exhaustion", () => {
+    it('should return NIL when vector allocation fails due to block exhaustion', () => {
       // Use an array long enough so that more than one block is needed.
       const longData = range(50);
       const originalGetNextBlock = vm.heap.getNextBlock;
@@ -152,7 +147,7 @@ describe("Vector", () => {
       vm.heap.getNextBlock = originalGetNextBlock;
     });
 
-    it("should produce a nested vector [ 1 2 [ 3 ] ]", () => {
+    it('should produce a nested vector [ 1 2 [ 3 ] ]', () => {
       // Outer vector: the outer vector will have three elements: 1, 2, and an inner vector.
       // Use vecLeftOp to mark the start and vecRightOp to build the vector.
 
@@ -178,48 +173,45 @@ describe("Vector", () => {
 
       // Use formatValue to convert the nested vector to a string.
       const printed = formatValue(vm, outerVector);
-      expect(printed).toBe("[ 1 2 [ 3 ] ]");
+      expect(printed).toBe('[ 1 2 [ 3 ] ]');
     });
 
-    it("should format a vector with elements [ 1 2 3 ]", () => {
+    it('should format a vector with elements [ 1 2 3 ]', () => {
       const data = [1, 2, 3];
       const vectorPtr = vectorCreate(vm.heap, data);
       expect(isNIL(vectorPtr)).toBe(false); // 0 or NIL indicates allocation failure
 
       const formatted = formatValue(vm, vectorPtr);
       // Expected output: "[ 1 2 3 ]"
-      expect(formatted).toBe("[ 1 2 3 ]");
+      expect(formatted).toBe('[ 1 2 3 ]');
     });
 
-    it("should format a nested vector [ 1 2 [ 3 ] ]", () => {
+    it('should format a nested vector [ 1 2 [ 3 ] ]', () => {
       // First, create the inner vector.
       const inner = vectorCreate(vm.heap, [3]);
       // Then, create the outer vector.
       // Here we pretend that the numbers 1 and 2 and the inner vector (i.e. its tagged value) are pushed.
       const outer = vectorCreate(vm.heap, [1, 2, inner]);
       const formatted = formatValue(vm, outer);
-      expect(formatted).toBe("[ 1 2 [ 3 ] ]");
+      expect(formatted).toBe('[ 1 2 [ 3 ] ]');
     });
 
     // Debug the nested vector test
-    it("should format a nested vector [ 1 2 [ 3 ] ]", () => {
+    it('should format a nested vector [ 1 2 [ 3 ] ]', () => {
       const inner = vectorCreate(vm.heap, [3]);
-      console.log("Inner vector tagged value:", inner);
+      console.log('Inner vector tagged value:', inner);
 
       // Verify inner vector is valid
       const innerFormatted = formatValue(vm, inner);
-      console.log("Inner vector formatted:", innerFormatted); // Should be "[ 3 ]"
+      console.log('Inner vector formatted:', innerFormatted); // Should be "[ 3 ]"
 
       // Create outer vector
       const outer = vectorCreate(vm.heap, [1, 2, inner]);
 
       // Read the length from metadata to verify
       const { value: firstBlock } = fromTaggedValue(outer);
-      const length = vm.heap.memory.read16(
-        SEG_HEAP,
-        vm.heap.blockToByteOffset(firstBlock) + 4
-      );
-      console.log("Outer vector length:", length); // Should be 3
+      const length = vm.heap.memory.read16(SEG_HEAP, vm.heap.blockToByteOffset(firstBlock) + 4);
+      console.log('Outer vector length:', length); // Should be 3
 
       // Read each element to verify what's stored
       for (let i = 0; i < length; i++) {
@@ -231,17 +223,17 @@ describe("Vector", () => {
       }
 
       const formatted = formatValue(vm, outer);
-      console.log("Outer vector formatted:", formatted);
-      expect(formatted).toBe("[ 1 2 [ 3 ] ]");
+      console.log('Outer vector formatted:', formatted);
+      expect(formatted).toBe('[ 1 2 [ 3 ] ]');
     });
 
-    it("should preserve nested vector references when stored and retrieved", () => {
+    it('should preserve nested vector references when stored and retrieved', () => {
       // Create an inner vector
       const innerVecPtr = vectorCreate(vm.heap, [3, 4]);
 
       // Verify the inner vector is valid and properly tagged
       const innerType = fromTaggedValue(innerVecPtr);
-      console.log("Inner vector tag type:", innerType.tag);
+      console.log('Inner vector tag type:', innerType.tag);
 
       // Store the inner vector in an outer vector
       const outerVecPtr = vectorCreate(vm.heap, [1, 2, innerVecPtr]);
@@ -249,13 +241,13 @@ describe("Vector", () => {
       // Retrieve the inner vector reference directly
       const retrievedInnerPtr = vectorGet(vm.heap, outerVecPtr, 2);
 
-      console.log("Original inner vector ptr:", innerVecPtr);
-      console.log("Retrieved inner vector ptr:", retrievedInnerPtr);
+      console.log('Original inner vector ptr:', innerVecPtr);
+      console.log('Retrieved inner vector ptr:', retrievedInnerPtr);
 
       const element0 = vectorGet(vm.heap, retrievedInnerPtr, 0);
       const element1 = vectorGet(vm.heap, retrievedInnerPtr, 1);
 
-      console.log("Inner vector elements:", element0, element1);
+      console.log('Inner vector elements:', element0, element1);
 
       expect(element0).toBe(3);
       expect(element1).toBe(4);
@@ -263,35 +255,35 @@ describe("Vector", () => {
   });
 });
 
-describe("vectorToArray", () => {
-  it("should convert a vector to a TypeScript array", () => {
+describe('vectorToArray', () => {
+  it('should convert a vector to a TypeScript array', () => {
     const data = [1.1, 2.2, 3.3];
     const vectorPtr = vectorCreate(vm.heap, data);
 
     const array = vectorToArray(vm.heap, vectorPtr);
-    toBeCloseToArray(array, data); // Directly call the utility function
+    expect(array).toBeCloseToArray(data);
   });
 
-  it("should handle an empty vector", () => {
+  it('should handle an empty vector', () => {
     const vectorPtr = vectorCreate(vm.heap, []);
 
     const array = vectorToArray(vm.heap, vectorPtr);
     expect(array).toEqual([]);
   });
 
-  it("should handle a vector with a single element", () => {
+  it('should handle a vector with a single element', () => {
     const data = [42];
     const vectorPtr = vectorCreate(vm.heap, data);
 
     const array = vectorToArray(vm.heap, vectorPtr);
-    toBeCloseToArray(array, data); // Directly call the utility function
+    expect(array).toBeCloseToArray(data);
   });
 
-  it("should handle a vector spanning multiple blocks", () => {
+  it('should handle a vector spanning multiple blocks', () => {
     const longArray = range(50);
     const vectorPtr = vectorCreate(vm.heap, longArray);
 
     const array = vectorToArray(vm.heap, vectorPtr);
-    toBeCloseToArray(array, longArray); // Directly call the utility function
+    expect(array).toBeCloseToArray(longArray);
   });
 });
