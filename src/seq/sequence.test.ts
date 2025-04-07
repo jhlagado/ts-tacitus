@@ -461,7 +461,6 @@ describe('Enhanced Sequence Operations', () => {
       for (let i = 0; i < expected.length; i++) {
         seqNext(heap, testVM, mapSeq);
         const value = testVM.pop();
-        console.log('>>>>>', value);
         expect(value).toEqual(expected[i]);
       }
 

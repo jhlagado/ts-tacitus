@@ -65,12 +65,13 @@ export class VM {
       );
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
-    const value = this.memory.readFloat(SEG_STACK, this.SP); // Read 32-bit float
+    const tvalue = this.memory.readFloat(SEG_STACK, this.SP); // Read 32-bit float
 
-    if (isRefCounted(value)) {
+    if (isRefCounted(tvalue)) {
+      const { value } = fromTaggedValue(tvalue);
       this.heap.decrementRef(value); // 1 → 0 (frees if needed)
     }
-    return value;
+    return tvalue;
   }
 
   peek(): number {

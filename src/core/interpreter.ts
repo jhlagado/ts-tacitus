@@ -28,7 +28,7 @@ export function execute(start: number, breakAtIP?: number): void {
       // Reset compiler state when an error occurs
       vm.compiler.reset();
       vm.compiler.preserve = false;
-
+      console.log((error as Error).stack);
       throw new Error(errorMessage);
     }
   }

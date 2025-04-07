@@ -30,12 +30,3 @@ expect.extend({
     };
   },
 });
-
-// Add this declaration to extend Jest's type definitions
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeCloseToArray(expected: number[], precision?: number): R;
-    }
-  }
-}
