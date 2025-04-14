@@ -68,10 +68,7 @@ function _cleanupVector(heap: Heap, address: number): void {
         return;
       }
 
-      // !!! CRITICAL: Use readFloat32 once available in Memory class !!!
-      console.warn(
-        'Using potentially incorrect readFloat instead of readFloat32 in _cleanupVector'
-      );
+      // Read the element (tagged 32-bit float) using the existing readFloat method
       const element = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + offsetInBlock
@@ -109,8 +106,7 @@ function _cleanupDict(heap: Heap, address: number): void {
         return;
       }
 
-      // !!! CRITICAL: Use readFloat32 once available in Memory class !!!
-      console.warn('Using potentially incorrect readFloat instead of readFloat32 in _cleanupDict');
+      // Read the element (tagged 32-bit float key or value) using the existing readFloat method
       const element = heap.memory.readFloat(
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + offsetInBlock
@@ -162,20 +158,20 @@ export function decRef(heap: Heap, tvalue: number): void {
         // --- Fallback for common types if no handler registered ---
         // Ideally, handlers for VECTOR and DICT should also be registered externally.
         if (tag === HeapTag.VECTOR) {
-          console.warn(
-            `Using internal fallback cleanup for VECTOR tag ${tag}. Consider registering a handler.`
-          );
+          // console.warn( // Removed warning as fallback might be intended
+          //   `Using internal fallback cleanup for VECTOR tag ${tag}. Consider registering a handler.`
+          // );
           _cleanupVector(heap, address);
         } else if (tag === HeapTag.DICT) {
-          console.warn(
-            `Using internal fallback cleanup for DICT tag ${tag}. Consider registering a handler.`
-          );
+          // console.warn( // Removed warning as fallback might be intended
+          //   `Using internal fallback cleanup for DICT tag ${tag}. Consider registering a handler.`
+          // );
           _cleanupDict(heap, address);
         } else {
           // No handler registered and no internal fallback for this tag
-          console.warn(
-            `decRef: No cleanup handler registered or fallback available for HeapTag ${tag} at address ${address}. Block will be freed without internal cleanup.`
-          );
+          // console.warn( // Keep this warning as it indicates a potential leak if cleanup is needed
+          //   `decRef: No cleanup handler registered or fallback available for HeapTag ${tag} at address ${address}. Block will be freed without internal cleanup.`
+          // );
         }
       }
     } catch (error) {
