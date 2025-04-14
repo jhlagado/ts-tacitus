@@ -8,13 +8,11 @@
  * blocks. This design supports efficient garbage collection and memory reuse, essential for the
  * performance and stability of the Tacit language.
  *
- * @architectural_observation The heap employs a fixed-size block allocation strategy, dividing the allocated memory region into blocks of equal size. Reference counting is used for automatic memory management, enabling efficient garbage collection by tracking the number of references to each block. A copy-on-write mechanism is implemented to optimize data duplication, creating copies of shared blocks only when modifications are necessary.
- */
-/**
- * The size of each memory block in bytes. All allocations are in multiples of this size.
- */
-/**
- * The size of each memory block in bytes.
+ * @architectural_observation The heap employs a fixed-size block allocation strategy (`BLOCK_SIZE`), dividing the allocated memory region into blocks of equal size.
+ * Allocations larger than one block are handled by chaining blocks together using a pointer stored at the `BLOCK_NEXT` offset within each block's header.
+ * Reference counting is used for automatic memory management. The reference count, stored at the `BLOCK_REFS` offset in the *first* block of an allocation, tracks the number of references to the entire allocation (potentially spanning multiple chained blocks).
+ * When the reference count of the first block reaches zero via `decrementRef`, the `Heap` traverses the chain using the `BLOCK_NEXT` pointers and frees all blocks belonging to that allocation by adding them back to the free list.
+ * A copy-on-write mechanism (`copyOnWrite`) is implemented to optimize data duplication, creating copies of shared blocks only when modifications are necessary and the reference count is greater than one.
  */
 
 import { INVALID } from '../core/constants';
@@ -98,10 +96,11 @@ export class Heap {
     return startBlock;
   }
 
-  free(block: number): void {
-    console.log('!!! free', block, this.freeList);
-    this.decrementRef(block);
-  }
+  // Remove the public free method. Cleanup is handled via decrementRef.
+  // free(block: number): void {
+  //   console.log('!!! free', block, this.freeList);
+  //   this.decrementRef(block);
+  // }
 
   decrementRef(block: number): void {
     if (block === INVALID) return;
@@ -130,6 +129,19 @@ export class Heap {
     const byteOffset = this.blockToByteOffset(block);
     const refs = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS);
     this.memory.write16(SEG_HEAP, byteOffset + BLOCK_REFS, refs + 1);
+  }
+
+  /**
+   * Gets the current reference count for the allocation starting at the given block.
+   * @param block The starting block index of the allocation.
+   * @returns The current reference count. Returns 0 if block is INVALID or out of bounds.
+   */
+  getRefCount(block: number): number {
+    if (block === INVALID || block * BLOCK_SIZE >= HEAP_SIZE) {
+      return 0; // Or throw an error if preferred for invalid blocks
+    }
+    const byteOffset = this.blockToByteOffset(block);
+    return this.memory.read16(SEG_HEAP, byteOffset + BLOCK_REFS);
   }
 
   getNextBlock(block: number): number {

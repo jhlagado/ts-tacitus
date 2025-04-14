@@ -22,8 +22,8 @@ describe('Heap', () => {
     const block2 = heap.malloc(HALF_BLOCK_SIZE);
     expect(block2).not.toBe(INVALID);
 
-    heap.free(block1);
-    heap.free(block2);
+    heap.decrementRef(block1);
+    heap.decrementRef(block2);
 
     const block3 = heap.malloc(BLOCK_SIZE);
     expect(block3).not.toBe(INVALID);
@@ -37,8 +37,7 @@ describe('Heap', () => {
     const nextBlock = memory.read16(SEG_HEAP, heap.blockToByteOffset(startBlock) + BLOCK_NEXT);
     expect(nextBlock).toBe(INVALID);
 
-    // Free the block
-    heap.free(startBlock);
+    heap.decrementRef(startBlock);
   });
 
   it('should return the total heap size initially', () => {
@@ -74,7 +73,7 @@ describe('Heap', () => {
     const allocatedBlock = heap.malloc(HALF_BLOCK_SIZE);
     expect(allocatedBlock).not.toBe(INVALID);
 
-    heap.free(allocatedBlock);
+    heap.decrementRef(allocatedBlock);
     expect(heap.available()).toBe(initialFreeMemory);
   });
 
@@ -92,7 +91,7 @@ describe('Heap', () => {
       allocatedBlocks.push(block);
       block = heap.malloc(USABLE_BLOCK_SIZE);
     }
-    allocatedBlocks.forEach(b => heap.free(b));
+    allocatedBlocks.forEach(b => heap.decrementRef(b));
     expect(heap.available()).toBe(initialFreeMemory);
   });
 
@@ -105,13 +104,13 @@ describe('Heap', () => {
   });
 
   it('should handle freeing INVALID pointer', () => {
-    expect(() => heap.free(INVALID)).not.toThrow();
+    expect(() => heap.decrementRef(INVALID)).not.toThrow();
   });
 
   it('should handle freeing a block and re-allocating it', () => {
     const block = heap.malloc(HALF_BLOCK_SIZE);
     expect(block).not.toBe(INVALID);
-    heap.free(block);
+    heap.decrementRef(block);
     const newBlock = heap.malloc(HALF_BLOCK_SIZE);
     expect(newBlock).toBe(block);
   });
