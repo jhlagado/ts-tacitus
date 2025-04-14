@@ -63,7 +63,7 @@ export class Heap {
     let prev = INVALID;
     let startBlock = current;
     let blocksFound = 0;
-    console.log('malloc1', current, size, this.freeList);
+    console.warn('malloc1', current, size, this.freeList);
 
     // Traverse the free list to find enough blocks
     while (current !== INVALID && blocksFound < numBlocks) {
@@ -104,7 +104,6 @@ export class Heap {
   }
 
   decrementRef(block: number): void {
-    console.log('!!! decrementRef', block, this.freeList);
     if (block === INVALID) return;
 
     // Check if the block index is valid before accessing memory
@@ -116,7 +115,6 @@ export class Heap {
 
     if (refs === 0) {
       const next = this.memory.read16(SEG_HEAP, byteOffset + BLOCK_NEXT);
-      console.log('decrementRef2', block, this.freeList, next);
       this.decrementRef(next);
       this.addToFreeList(block);
     }
@@ -144,7 +142,7 @@ export class Heap {
   setNextBlock(parent: number, child: number): void {
     const parentByteOffset = this.blockToByteOffset(parent);
     const oldChild = this.memory.read16(SEG_HEAP, parentByteOffset + BLOCK_NEXT);
-console.log('setNextBlock', parent, child, oldChild);
+    console.log('setNextBlock', parent, child, oldChild);
     if (oldChild !== INVALID) this.decrementRef(oldChild);
 
     this.memory.write16(SEG_HEAP, parentByteOffset + BLOCK_NEXT, child);

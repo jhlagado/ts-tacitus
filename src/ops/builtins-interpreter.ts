@@ -92,7 +92,7 @@ export const vecRightOp = (vm: VM) => {
   if (vm.debug) console.log('vecRightOp');
   const marker = vm.rpop(); // what vecLeftOp saved
   const count = (vm.SP - marker) / 4; // Assume each stack item is 4 bytes.
-  const array = vm.popArray(count);
+  const array = vm.popArray(count, true);
   const tagVal = vectorCreate(vm.heap, array);
   vm.push(tagVal);
 };

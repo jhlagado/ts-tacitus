@@ -2,9 +2,10 @@ import { Compiler } from './compiler';
 import { SymbolTable } from './symbol-table';
 import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
 import { Heap } from '../heap/heap';
-import { fromTaggedValue, isRefCounted, toTaggedValue, CoreTag } from './tagged';
+import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
 import { Digest } from './digest';
 import { defineBuiltins } from '../ops/define-builtins';
+import { decRef, incRef } from '../heap/heapUtils';
 
 export class VM {
   memory: Memory;
@@ -43,8 +44,8 @@ export class VM {
    * Pushes a 32-bit float onto the stack.
    */
   push(value: number, transfer: boolean = false): void {
-    if (transfer && isRefCounted(value)) {
-      this.heap.incrementRef(value);
+    if (transfer) {
+      incRef(this.heap, value);
     }
     if (this.SP + 4 > STACK_SIZE) {
       throw new Error(
@@ -58,7 +59,7 @@ export class VM {
   /**
    * Pops a 32-bit float from the stack.
    */
-  pop(): number {
+  pop(transfer = false): number {
     if (this.SP <= 0) {
       throw new Error(
         `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
@@ -67,9 +68,8 @@ export class VM {
     this.SP -= 4; // Move stack pointer back by 4 bytes
     const tvalue = this.memory.readFloat(SEG_STACK, this.SP); // Read 32-bit float
 
-    if (isRefCounted(tvalue)) {
-      const { value } = fromTaggedValue(tvalue);
-      this.heap.decrementRef(value); // 1 → 0 (frees if needed)
+    if (!transfer) {
+      decRef(this.heap, tvalue);
     }
     return tvalue;
   }
@@ -84,11 +84,11 @@ export class VM {
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
    */
-  popArray(size: number): number[] {
+  popArray(size: number, transfer = false): number[] {
     // unshift corrupts NaN boxing so be careful working with tagged values
     const result: number[] = Array(size);
     for (let i = size - 1; i >= 0; i--) {
-      result[i] = this.pop();
+      result[i] = this.pop(transfer);
     }
     return result;
   }

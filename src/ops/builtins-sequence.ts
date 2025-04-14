@@ -68,7 +68,7 @@ export const seqOp: Verb = (vm: VM) => {
  */
 export const mapOp: Verb = (vm: VM) => {
   const func = vm.pop();
-  const sourceSeq = vm.pop();
+  const sourceSeq = vm.pop(true);
 
   // TODO: Validate input types (source is SEQ, func is CODE)
 
@@ -84,8 +84,8 @@ export const mapOp: Verb = (vm: VM) => {
  * ( source_seq mask_seq -- sift_seq )
  */
 export const siftOp: Verb = (vm: VM) => {
-  const maskSeq = vm.pop();
-  const sourceSeq = vm.pop();
+  const maskSeq = vm.pop(true);
+  const sourceSeq = vm.pop(true);
 
   // TODO: Validate input types (both are SEQ)
 
@@ -102,7 +102,7 @@ export const siftOp: Verb = (vm: VM) => {
  */
 export const filterOp: Verb = (vm: VM) => {
   const predicateFunc = vm.pop();
-  const sourceSeq = vm.pop();
+  const sourceSeq = vm.pop(true);
 
   // TODO: Validate input types (source is SEQ, predicate is CODE)
 
@@ -119,7 +119,7 @@ export const filterOp: Verb = (vm: VM) => {
  */
 export const seqTakeOp: Verb = (vm: VM) => {
   const count = vm.pop();
-  const sourceSeq = vm.pop();
+  const sourceSeq = vm.pop(true);
 
   // TODO: Validate input types (source is SEQ, count is number)
 
@@ -136,7 +136,7 @@ export const seqTakeOp: Verb = (vm: VM) => {
  */
 export const seqDropOp: Verb = (vm: VM) => {
   const count = vm.pop();
-  const sourceSeq = vm.pop();
+  const sourceSeq = vm.pop(true);
 
   // TODO: Validate input types (source is SEQ, count is number)
 
