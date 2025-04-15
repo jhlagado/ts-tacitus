@@ -2,7 +2,6 @@ import { vm } from '../core/globalState';
 import { initializeInterpreter } from '../core/globalState';
 import { vectorCreate } from './vector';
 import { decRef, incRef, getRefCount } from './heapUtils';
-import { fromTaggedValue } from '../core/tagged';
 
 describe('Reference Counting', () => {
   beforeEach(() => {
@@ -33,8 +32,6 @@ describe('Reference Counting', () => {
 
     // One more decRef should free the memory
     // Save the block address to check if it's been freed
-    const blockAddr = fromTaggedValue(vector).value;
-
     decRef(vm.heap, vector);
 
     // After freeing, getRefCount likely returns 0 instead of throwing
