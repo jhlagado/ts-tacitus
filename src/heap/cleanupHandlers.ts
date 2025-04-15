@@ -14,7 +14,11 @@ import {
   SEQ_SRC_VECTOR,
   SEQ_SRC_DICT,
   SEQ_SRC_CONSTANT,
-  SEQ_SRC_PROCESSOR, // Add other existing SEQ_SRC_ types
+  SEQ_SRC_PROCESSOR,
+  PROC_DROP,
+  PROC_MULTI,
+  PROC_MULTI_SOURCE,
+  PROC_TAKE, // Add other existing SEQ_SRC_ types
 } from '../seq/sequence'; // Adjust path if needed
 
 // Define CELL_SIZE based on 32-bit float tagged values
@@ -27,31 +31,12 @@ const SEQ_META_START = 4; // Offset where meta elements begin (uint32/float32)
 
 // --- Sequence Cleanup Helpers (Internal to this module) ---
 
-/** Reads the internal sequence source type identifier */
-function seqGetSourceType(heap: Heap, address: number): number {
-  const byteOffset = heap.blockToByteOffset(address);
-  return heap.memory.read16(SEG_HEAP, byteOffset + SEQ_TYPE);
-}
-
-/** Reads the number of metadata elements stored */
-function seqGetMetaCount(heap: Heap, address: number): number {
-  const byteOffset = heap.blockToByteOffset(address);
-  return heap.memory.read16(SEG_HEAP, byteOffset + SEQ_META_COUNT);
-}
-
 /** Reads a metadata element at a given index */
 function seqGetMetaValue(heap: Heap, address: number, metaIndex: number): number {
   const byteOffset = heap.blockToByteOffset(address);
   const metaValueOffset = byteOffset + SEQ_META_START + metaIndex * CELL_SIZE;
   // TODO: Handle block boundaries if metadata spans blocks
   return heap.memory.readFloat(SEG_HEAP, metaValueOffset);
-}
-
-/** Reads the processor type for SEQ_SRC_PROCESSOR sequences */
-function seqGetProcessorType(heap: Heap, address: number): number {
-  const metaCount = seqGetMetaCount(heap, address);
-  // Processor type is stored as the last metadata element
-  return seqGetMetaValue(heap, address, metaCount - 1);
 }
 
 // --- Exported Cleanup Handlers ---
@@ -64,22 +49,83 @@ function seqGetProcessorType(heap: Heap, address: number): number {
  */
 export function performSequenceCleanup(heap: Heap, address: number): void {
   try {
-    const sourceType = seqGetSourceType(heap, address);
+    const sourceType = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(address) + SEQ_TYPE);
+
     switch (sourceType) {
       case SEQ_SRC_PROCESSOR: {
-        const procType = seqGetProcessorType(heap, address);
+        const metaCount = heap.memory.read16(
+          SEG_HEAP,
+          heap.blockToByteOffset(address) + SEQ_META_COUNT
+        );
+        const procType = heap.memory.readFloat(
+          SEG_HEAP,
+          heap.blockToByteOffset(address) + SEQ_META_START + (metaCount - 1) * 4
+        );
+
         switch (procType) {
-          case PROC_MAP:
-          case PROC_FILTER: {
-            const innerSeq = seqGetMetaValue(heap, address, 0);
-            decRef(heap, innerSeq);
+          case PROC_MAP: {
+            // Decrement references for source sequence and function
+            const sourceSeq = seqGetMetaValue(heap, address, 0);
+            const mapFunction = seqGetMetaValue(heap, address, 1);
+            decRef(heap, sourceSeq);
+            decRef(heap, mapFunction); // Function references are heap objects
             break;
           }
+
+          case PROC_FILTER: {
+            // Decrement references for source sequence and predicate function
+            const sourceSeq = seqGetMetaValue(heap, address, 0);
+            const predicate = seqGetMetaValue(heap, address, 1);
+            decRef(heap, sourceSeq);
+            decRef(heap, predicate); // Function references are heap objects
+            break;
+          }
+
           case PROC_SIFT: {
-            const innerSeq = seqGetMetaValue(heap, address, 0);
+            // Decrement references for source sequence and mask sequence
+            const sourceSeq = seqGetMetaValue(heap, address, 0);
             const maskSeq = seqGetMetaValue(heap, address, 1);
-            decRef(heap, innerSeq);
+            decRef(heap, sourceSeq);
             decRef(heap, maskSeq);
+            break;
+          }
+
+          case PROC_TAKE:
+          case PROC_DROP: {
+            // Both take and drop reference a source sequence (count is just a number)
+            const sourceSeq = seqGetMetaValue(heap, address, 0);
+            decRef(heap, sourceSeq);
+            // No need to decref the count (meta[1]) as it's just a number, not a heap reference
+            break;
+          }
+
+          case PROC_MULTI: {
+            // Multi refers to multiple sequences, with the count at meta[1]
+            const numSequences = heap.memory.readFloat(
+              SEG_HEAP,
+              heap.blockToByteOffset(address) + SEQ_META_START + 4
+            );
+
+            // Decref each sequence (starting from meta[2])
+            for (let i = 0; i < numSequences; i++) {
+              const subSeq = heap.memory.readFloat(
+                SEG_HEAP,
+                heap.blockToByteOffset(address) + SEQ_META_START + 8 + i * 4
+              );
+              decRef(heap, subSeq);
+            }
+            break;
+          }
+
+          case PROC_MULTI_SOURCE: {
+            // Multi source refers to multiple sequences based on meta count
+            for (let i = 0; i < metaCount - 1; i++) {
+              const subSeq = heap.memory.readFloat(
+                SEG_HEAP,
+                heap.blockToByteOffset(address) + SEQ_META_START + i * 4
+              );
+              decRef(heap, subSeq);
+            }
             break;
           }
           // TODO: Add other existing PROC_ cases
