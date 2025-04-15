@@ -1,12 +1,6 @@
 import { fromTaggedValue, HeapTag, isNIL } from '../core/tagged';
-import { Heap, BLOCK_SIZE } from './heap';
-import { SEG_HEAP } from '../core/memory';
-import { INVALID } from '../core/constants';
-// Import constants directly from vector.ts
-import { VEC_SIZE, VEC_DATA } from './vector';
-
-// Define CELL_SIZE based on 32-bit float tagged values
-const CELL_SIZE = 4;
+import { Heap } from './heap'; // Removed toTaggedValue if not used elsewhere
+// REMOVED: Vector constant imports (VEC_SIZE, VEC_DATA) - cleanup logic moved out
 
 // --- Cleanup Handler Registry ---
 
@@ -19,7 +13,7 @@ const cleanupRegistry = new Map<HeapTag, CleanupHandler>();
 /**
  * Registers a cleanup handler function for a specific HeapTag.
  * This should be called during initialization (e.g., in VM setup)
- * to provide type-specific cleanup logic (like for sequences).
+ * to provide type-specific cleanup logic.
  * @param tag The HeapTag to register the handler for.
  * @param handler The function to call when an object with this tag is about to be freed.
  */
@@ -40,84 +34,8 @@ export function incRef(heap: Heap, tvalue: number): void {
   }
 }
 
-// --- Default Internal Cleanup Helpers (Can be overridden by registered handlers) ---
-// These are kept for basic types if no external handler is registered,
-// but ideally, handlers for VECTOR and DICT would also be registered externally.
-
-function _cleanupVector(heap: Heap, address: number): void {
-  try {
-    const length = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(address) + VEC_SIZE);
-    let currentBlock = address;
-    let offsetInBlock = VEC_DATA;
-
-    for (let i = 0; i < length; i++) {
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        currentBlock = heap.getNextBlock(currentBlock);
-        if (currentBlock === INVALID) {
-          console.error(
-            `_cleanupVector: Invalid block encountered at index ${i} for vector ${address}`
-          );
-          return;
-        }
-        offsetInBlock = VEC_DATA; // Assuming data starts at VEC_DATA in subsequent blocks
-      }
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        console.error(
-          `_cleanupVector: Calculated offset ${offsetInBlock} still exceeds block size for vector ${address}, index ${i}`
-        );
-        return;
-      }
-
-      // Read the element (tagged 32-bit float) using the existing readFloat method
-      const element = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + offsetInBlock
-      );
-      decRef(heap, element); // Recursive call
-      offsetInBlock += CELL_SIZE;
-    }
-  } catch (error) {
-    console.error(`Error during vector cleanup at address ${address}:`, error);
-  }
-}
-
-function _cleanupDict(heap: Heap, address: number): void {
-  try {
-    // Dicts use vectors, so cleanup is the same: iterate all key/value cells
-    const totalElements = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(address) + VEC_SIZE);
-    let currentBlock = address;
-    let offsetInBlock = VEC_DATA;
-
-    for (let i = 0; i < totalElements; i++) {
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        currentBlock = heap.getNextBlock(currentBlock);
-        if (currentBlock === INVALID) {
-          console.error(
-            `_cleanupDict: Invalid block encountered at index ${i} for dict ${address}`
-          );
-          return;
-        }
-        offsetInBlock = VEC_DATA; // Assuming data starts at VEC_DATA in subsequent blocks
-      }
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        console.error(
-          `_cleanupDict: Calculated offset ${offsetInBlock} still exceeds block size for dict ${address}, index ${i}`
-        );
-        return;
-      }
-
-      // Read the element (tagged 32-bit float key or value) using the existing readFloat method
-      const element = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + offsetInBlock
-      );
-      decRef(heap, element); // Recursive call
-      offsetInBlock += CELL_SIZE;
-    }
-  } catch (error) {
-    console.error(`Error during dictionary cleanup at address ${address}:`, error);
-  }
-}
+// REMOVED: _cleanupVector function
+// REMOVED: _cleanupDict function
 
 // --- The main decRef function ---
 
@@ -152,27 +70,15 @@ export function decRef(heap: Heap, tvalue: number): void {
       const handler = cleanupRegistry.get(tag as HeapTag);
 
       if (handler) {
-        // Call the registered handler (e.g., for sequences)
+        // Call the registered handler (e.g., for sequences, vectors, dicts)
         handler(heap, address);
       } else {
-        // --- Fallback for common types if no handler registered ---
-        // Ideally, handlers for VECTOR and DICT should also be registered externally.
-        if (tag === HeapTag.VECTOR) {
-          // console.warn( // Removed warning as fallback might be intended
-          //   `Using internal fallback cleanup for VECTOR tag ${tag}. Consider registering a handler.`
-          // );
-          _cleanupVector(heap, address);
-        } else if (tag === HeapTag.DICT) {
-          // console.warn( // Removed warning as fallback might be intended
-          //   `Using internal fallback cleanup for DICT tag ${tag}. Consider registering a handler.`
-          // );
-          _cleanupDict(heap, address);
-        } else {
-          // No handler registered and no internal fallback for this tag
-          // console.warn( // Keep this warning as it indicates a potential leak if cleanup is needed
-          //   `decRef: No cleanup handler registered or fallback available for HeapTag ${tag} at address ${address}. Block will be freed without internal cleanup.`
-          // );
-        }
+        // No handler registered for this tag. This indicates an initialization error
+        // if the tag represents an object type that requires cleanup (like vector, dict, seq).
+        // Simple blocks might not need handlers.
+        console.warn(
+          `decRef: No cleanup handler registered for HeapTag ${tag} at address ${address}. Block will be freed without internal cleanup. Potential memory leak if internal references exist.`
+        );
       }
     } catch (error) {
       // Catch errors during cleanup logic to prevent them from stopping the final free
@@ -183,7 +89,7 @@ export function decRef(heap: Heap, tvalue: number): void {
     }
 
     // --- Final Step ---
-    // Now that internal cleanup is done (via handler or fallback), tell the heap
+    // Now that internal cleanup is done (via handler), tell the heap
     // to decrement the count from 1 to 0 and free the block(s).
     heap.decrementRef(address);
   }
