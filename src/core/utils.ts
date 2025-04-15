@@ -70,7 +70,7 @@ export function formatValue(vm: VM, value32: number): string {
     switch (tag) {
       case HeapTag.BLOCK:
         return `BLOCK(${value})`;
-      case HeapTag.SEQ:
+      case HeapTag.SEQUENCE:
         return `SEQ(${value})`;
       case HeapTag.VECTOR:
       case HeapTag.DICT:

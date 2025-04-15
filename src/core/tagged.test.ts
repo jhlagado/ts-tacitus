@@ -11,10 +11,10 @@ import {
   isNIL,
   printNum,
   NIL,
-} from "./tagged";
+} from './tagged';
 
-describe("Tagged NaN Encoding", () => {
-  it("should encode/decode non-heap values", () => {
+describe('Tagged NaN Encoding', () => {
+  it('should encode/decode non-heap values', () => {
     const tests = [
       { tag: CoreTag.INTEGER, value: -32768 },
       { tag: CoreTag.INTEGER, value: 32767 },
@@ -30,10 +30,10 @@ describe("Tagged NaN Encoding", () => {
     });
   });
 
-  it("should encode/decode heap values", () => {
+  it('should encode/decode heap values', () => {
     const tests = [
       { tag: HeapTag.BLOCK, value: 0 },
-      { tag: HeapTag.SEQ, value: 1 },
+      { tag: HeapTag.SEQUENCE, value: 1 },
       { tag: HeapTag.VECTOR, value: 32767 },
       { tag: HeapTag.DICT, value: 65535 },
     ];
@@ -46,31 +46,29 @@ describe("Tagged NaN Encoding", () => {
     });
   });
 
-  it("should throw on invalid tag ranges", () => {
-    expect(() => toTaggedValue(0, false, 5 as any)).toThrow(
-      "Invalid non-heap tag"
-    );
-    expect(() => toTaggedValue(0, true, 4 as any)).toThrow("Invalid heap tag");
+  it('should throw on invalid tag ranges', () => {
+    expect(() => toTaggedValue(0, false, 5 as any)).toThrow('Invalid non-heap tag');
+    expect(() => toTaggedValue(0, true, 4 as any)).toThrow('Invalid heap tag');
   });
 
-  it("should validate value ranges for INTEGER", () => {
+  it('should validate value ranges for INTEGER', () => {
     expect(() => toTaggedValue(32768, false, CoreTag.INTEGER)).toThrow();
     expect(() => toTaggedValue(-32769, false, CoreTag.INTEGER)).toThrow();
   });
 
-  it("should validate unsigned value ranges for non-INTEGER types", () => {
+  it('should validate unsigned value ranges for non-INTEGER types', () => {
     expect(() => toTaggedValue(-1, true, HeapTag.BLOCK)).toThrow();
     expect(() => toTaggedValue(65536, false, CoreTag.STRING)).toThrow();
   });
 
-  it("should correctly identify heap-allocated values", () => {
+  it('should correctly identify heap-allocated values', () => {
     const encodedHeap = toTaggedValue(100, true, HeapTag.VECTOR);
     const encodedNonHeap = toTaggedValue(100, false, CoreTag.STRING);
     expect(isHeapAllocated(encodedHeap)).toBe(true);
     expect(isHeapAllocated(encodedNonHeap)).toBe(false);
   });
 
-  it("should correctly identify reference-counted heap objects", () => {
+  it('should correctly identify reference-counted heap objects', () => {
     const blockEncoded = toTaggedValue(200, true, HeapTag.BLOCK);
     const dictEncoded = toTaggedValue(123, true, HeapTag.DICT);
     const nonHeapEncoded = toTaggedValue(50, false, CoreTag.STRING);
@@ -80,15 +78,15 @@ describe("Tagged NaN Encoding", () => {
     expect(isRefCounted(nonHeapEncoded)).toBe(false);
   });
 
-  it("should correctly extract tag and heap flag", () => {
-    const encoded = toTaggedValue(500, true, HeapTag.SEQ);
+  it('should correctly extract tag and heap flag', () => {
+    const encoded = toTaggedValue(500, true, HeapTag.SEQUENCE);
     const decoded = fromTaggedValue(encoded);
     expect(decoded.heap).toBe(true);
-    expect(decoded.tag).toBe(HeapTag.SEQ);
+    expect(decoded.tag).toBe(HeapTag.SEQUENCE);
     expect(decoded.value).toBe(500);
   });
 
-  it("should correctly extract value for integer types", () => {
+  it('should correctly extract value for integer types', () => {
     const encodedNeg = toTaggedValue(-32768, false, CoreTag.INTEGER);
     const encodedPos = toTaggedValue(32767, false, CoreTag.INTEGER);
     const decodedNeg = fromTaggedValue(encodedNeg);
@@ -100,17 +98,17 @@ describe("Tagged NaN Encoding", () => {
 
   // Additional tests for the remaining exported functions:
 
-  it("should return the correct tag using getTag", () => {
+  it('should return the correct tag using getTag', () => {
     const encoded = toTaggedValue(123, false, CoreTag.CODE);
     expect(getTag(encoded)).toBe(CoreTag.CODE);
   });
 
-  it("should return the correct value using getValue", () => {
-    const encoded = toTaggedValue(456, true, HeapTag.SEQ);
+  it('should return the correct value using getValue', () => {
+    const encoded = toTaggedValue(456, true, HeapTag.SEQUENCE);
     expect(getValue(encoded)).toBe(456);
   });
 
-  it("should correctly identify NIL using isNIL", () => {
+  it('should correctly identify NIL using isNIL', () => {
     // Create a NIL value using the NIL constant
     expect(isNIL(NIL)).toBe(true);
     // A non-NIL tagged value should return false.
@@ -118,15 +116,15 @@ describe("Tagged NaN Encoding", () => {
     expect(isNIL(nonNil)).toBe(false);
   });
 
-  it("should print formatted representation via printNum", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+  it('should print formatted representation via printNum', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     const encoded = toTaggedValue(789, false, CoreTag.STRING);
-    printNum(encoded, 42, "test");
+    printNum(encoded, 42, 'test');
     expect(consoleSpy).toHaveBeenCalled();
     const output = consoleSpy.mock.calls[0][0];
-    expect(output).toContain("Tag:");
-    expect(output).toContain("Value:");
-    expect(output).toContain("test");
+    expect(output).toContain('Tag:');
+    expect(output).toContain('Value:');
+    expect(output).toContain('test');
     consoleSpy.mockRestore();
   });
 });

@@ -30,8 +30,8 @@ export class VM {
     this.heap = new Heap(this.memory);
     this.debug = false;
 
-    this.symbolTable = new SymbolTable(this.digest);
-    defineBuiltins(this.symbolTable);
+    this.symbolTable = new SymbolTable(this.digest); // Creates a new SymbolTable
+    defineBuiltins(this.symbolTable); // Populates the new table with built-ins
   }
 
   eval() {

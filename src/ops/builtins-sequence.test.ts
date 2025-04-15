@@ -85,7 +85,7 @@ describe('builtins-sequence operations', () => {
   describe('seqOp', () => {
     test('should return the same pointer if tag is SEQ', () => {
       const vm = new MockVM();
-      const seqPtr = { tag: HeapTag.SEQ, heap: true, id: 1 };
+      const seqPtr = { tag: HeapTag.SEQUENCE, heap: true, id: 1 };
       vm.push(seqPtr);
       seqOp(vm as any);
       expect(vm.pop()).toBe(seqPtr);

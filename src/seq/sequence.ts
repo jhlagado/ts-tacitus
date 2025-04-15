@@ -89,16 +89,11 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
 
   // Return a new tagged value representing the sequence, using the vector's data block pointer
   // and the SEQ tag.
-  return toTaggedValue(seqPtr, true, HeapTag.SEQ);
+  return toTaggedValue(seqPtr, true, HeapTag.SEQUENCE);
 }
 
 // Extracted helper functions for processor sequences with explicit types
-function handleProcMap(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-): number {
+function handleProcMap(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
   // Get the source sequence and function pointer
   const source: number = heap.memory.readFloat(
     SEG_HEAP,
@@ -120,12 +115,7 @@ function handleProcMap(
   return seq;
 }
 
-function handleProcSift(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-): number {
+function handleProcSift(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
   const source: number = heap.memory.readFloat(
     SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_META_START
@@ -150,12 +140,7 @@ function handleProcSift(
   return seq;
 }
 
-function handleProcFilter(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-): number {
+function handleProcFilter(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
   const source: number = heap.memory.readFloat(
     SEG_HEAP,
     heap.blockToByteOffset(seqPtr) + SEQ_META_START

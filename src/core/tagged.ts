@@ -42,7 +42,7 @@ export enum HeapTag {
   /** Represents a generic heap block. */
   BLOCK = 0,
   /** Represents a sequence (an iterable collection). */
-  SEQ = 1,
+  SEQUENCE = 1,
   /** Represents a vector (an array-like structure). */
   VECTOR = 2,
   /** Represents a dictionary (a key-value store). */
@@ -69,7 +69,7 @@ export const nonHeapTagNames: { [key in CoreTag]: string } = {
  */
 export const heapTagNames: { [key in HeapTag]: string } = {
   [HeapTag.BLOCK]: 'BLOCK',
-  [HeapTag.SEQ]: 'SEQ',
+  [HeapTag.SEQUENCE]: 'SEQ',
   [HeapTag.VECTOR]: 'VECTOR',
   [HeapTag.DICT]: 'DICT',
 };
@@ -300,7 +300,7 @@ export function isString(value: number): boolean {
  * Checks if the given value is a sequence.
  */
 export function isSeq(value: number): boolean {
-  return checkTagged(value, HeapTag.SEQ, true);
+  return checkTagged(value, HeapTag.SEQUENCE, true);
 }
 
 /**

@@ -39,7 +39,7 @@ export const seqOp: Verb = (vm: VM) => {
 
   let seqPtr: number;
 
-  if (isHeap && tag === HeapTag.SEQ) {
+  if (isHeap && tag === HeapTag.SEQUENCE) {
     seqPtr = sourcePtr;
   } else if (isHeap && tag === HeapTag.VECTOR) {
     seqPtr = vectorSource(vm.heap, sourcePtr);
@@ -188,7 +188,7 @@ export const lastOp: Verb = (vm: VM) => {
 export const forEachOp: Verb = (vm: VM) => {
   const func = vm.pop();
   const seq = vm.pop();
-  forEach(vm.heap, vm, seq, func)
+  forEach(vm.heap, vm, seq, func);
 };
 
 /**

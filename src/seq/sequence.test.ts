@@ -222,7 +222,7 @@ describe('Sequence Operations', () => {
     it('should correctly identify sequence types', () => {
       const rangeSeq = rangeSource(heap, 1, 5, 1);
       const { tag } = fromTaggedValue(rangeSeq);
-      expect(tag).toBe(HeapTag.SEQ);
+      expect(tag).toBe(HeapTag.SEQUENCE);
     });
 
     it('should return NIL for a NULL sequence', () => {
