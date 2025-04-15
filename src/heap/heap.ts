@@ -61,7 +61,6 @@ export class Heap {
     let prev = INVALID;
     let startBlock = current;
     let blocksFound = 0;
-    console.warn('malloc1', current, size, this.freeList);
 
     // Traverse the free list to find enough blocks
     while (current !== INVALID && blocksFound < numBlocks) {

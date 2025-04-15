@@ -246,5 +246,3 @@ export function performDictCleanup(heap: Heap, address: number): void {
     console.error(`Error during dictionary cleanup at address ${address}:`, error);
   }
 }
-
-// Add other cleanup handlers here if needed (e.g., for specific complex types)

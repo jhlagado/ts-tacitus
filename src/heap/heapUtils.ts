@@ -2,6 +2,45 @@ import { fromTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { Heap } from './heap'; // Removed toTaggedValue if not used elsewhere
 // REMOVED: Vector constant imports (VEC_SIZE, VEC_DATA) - cleanup logic moved out
 
+/**
+ * Reference Counting System
+ * -------------------------
+ * Tacitus uses manual reference counting for memory management. This approach
+ * provides predictable cleanup and explicit control over object lifetimes.
+ *
+ * Key principles:
+ *
+ * 1. All heap-allocated objects start with a reference count of 1 when created
+ * 2. When storing an object inside another (e.g., in vectors, dictionaries, or sequences),
+ *    you MUST manually call incRef() to increment its reference count
+ * 3. When removing or replacing an object, call decRef() to release the reference
+ * 4. When an object's reference count reaches 0, it is immediately freed
+ * 5. For objects containing other objects, the cleanup handler must call decRef()
+ *    on all contained objects when the parent is freed
+ *
+ * Example usage:
+ *
+ * // Storing an object in a vector
+ * function storeInVector(heap, vector, index, value) {
+ *   // Decrement ref count of existing value (if it's a heap object)
+ *   const oldValue = vectorGet(heap, vector, index);
+ *   if (isHeapAllocated(oldValue)) {
+ *     decRef(heap, oldValue);
+ *   }
+ *
+ *   // Increment ref count of new value (if it's a heap object)
+ *   if (isHeapAllocated(value)) {
+ *     incRef(heap, value);
+ *   }
+ *
+ *   // Store the value
+ *   vectorSet(heap, vector, index, value);
+ * }
+ *
+ * Note: Unlike some systems, Tacitus does NOT automatically manage references
+ * for nested objects. Reference management must be explicit.
+ */
+
 // --- Cleanup Handler Registry ---
 
 /** Type definition for a function that handles cleanup for a specific HeapTag. */
@@ -26,19 +65,23 @@ export function registerCleanupHandler(tag: HeapTag, handler: CleanupHandler): v
 
 // --- Reference Counting Functions ---
 
+/**
+ * Increments the reference count of a heap object.
+ * Must be called when storing an object reference.
+ * No effect on non-heap values.
+ */
 export function incRef(heap: Heap, tvalue: number): void {
-  // No change needed here
   const { value, heap: isHeap } = fromTaggedValue(tvalue);
   if (isHeap) {
     heap.incrementRef(value);
   }
 }
 
-// REMOVED: _cleanupVector function
-// REMOVED: _cleanupDict function
-
-// --- The main decRef function ---
-
+/**
+ * Decrements the reference count of a heap object.
+ * When count reaches 0, the object is freed.
+ * No effect on non-heap values.
+ */
 export function decRef(heap: Heap, tvalue: number): void {
   // Avoid processing NIL
   if (isNIL(tvalue)) return;
@@ -93,4 +136,16 @@ export function decRef(heap: Heap, tvalue: number): void {
     // to decrement the count from 1 to 0 and free the block(s).
     heap.decrementRef(address);
   }
+}
+
+/**
+ * Returns the current reference count of an object.
+ * Returns 0 for non-heap values or freed objects.
+ */
+export function getRefCount(heap: Heap, tvalue: number): number {
+  const { value, heap: isHeap } = fromTaggedValue(tvalue);
+  if (isHeap) {
+    return heap.getRefCount(value);
+  }
+  return 0; // Non-heap values have no ref count
 }
