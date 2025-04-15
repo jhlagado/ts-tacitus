@@ -259,18 +259,6 @@ describe('Interpreter', () => {
       consoleSpy.mockRestore();
     });
 
-    xit('should compile and execute nested vector literal [ 1 2 [ 3 ] ]', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-      // Execute a program that compiles a nested vector literal then prints it.
-      // The code [ 1 2 [ 3 ] ] . should leave an outer vector whose third element
-      // is itself a vector, and then print the nested structure.
-      executeProgram('[ 1 2 [ 3 ] ] .');
-
-      // Example expected output string. Adjust this string to match your vector printing format.
-      expect(consoleSpy).toHaveBeenCalledWith('[ 1 2 [ 3 ] ]');
-      consoleSpy.mockRestore();
-    });
-
     it('should preserve nested vector references when stored and retrieved', () => {
       // Create an inner vector
       const innerVecPtr = vectorCreate(vm.heap, [3, 4]);

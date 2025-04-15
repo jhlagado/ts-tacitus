@@ -56,19 +56,6 @@ describe('Sequence Operations', () => {
       expect(testVM.pop()).toEqual(NIL);
     });
 
-    xit('should handle a descending range sequence', () => {
-      const seq = rangeSource(heap, 10, 1, -1);
-      const expected = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-
-      for (let value of expected) {
-        seqNext(heap, testVM, seq);
-        expect(testVM.pop()).toEqual(value);
-      }
-
-      seqNext(heap, testVM, seq);
-      expect(testVM.pop()).toEqual(NIL);
-    });
-
     it('should handle an empty range sequence', () => {
       // End is less than start with positive step, produces no values
       const seq = rangeSource(heap, 5, 1, 1);
