@@ -27,37 +27,25 @@ export class VectorView {
    * (automatically walks to the correct block if i >= ELEMENTS_PER_BLOCK)
    */
   element(i: number): number {
+    // bounds check: must be within [0, length)
+    if (i < 0 || i >= this.length) {
+      throw new Error(`bad block at index ${i}`);
+    }
+
     let block = this.address;
     // jump through overflow blocks
     const fullBlocks = Math.floor(i / ELEMENTS_PER_BLOCK);
     let idxInBlock = i % ELEMENTS_PER_BLOCK;
     for (let b = 0; b < fullBlocks; b++) {
       block = this.heap.getNextBlock(block);
-      if (block === INVALID) throw new Error(`VectorView: bad block at index ${i}`);
+      if (block === INVALID) {
+        throw new Error(`bad block at index ${i}`);
+      }
     }
     const off = VEC_DATA + idxInBlock * CELL_SIZE;
     return this.heap.memory.readFloat(
       SEG_HEAP,
       this.heap.blockToByteOffset(block) + off
     );
-  }
-
-  /** Yields each 32‑bit float (tagged value) in order */
-  *elements(): Iterable<number> {
-    let block = this.address;
-    let offset = VEC_DATA;
-    for (let i = 0; i < this.length; i++) {
-      if (offset + 4 > BLOCK_SIZE) {
-        block = this.heap.getNextBlock(block);
-        if (block === INVALID) return;
-        offset = VEC_DATA;
-      }
-      const el = this.heap.memory.readFloat(
-        SEG_HEAP,
-        this.heap.blockToByteOffset(block) + offset
-      );
-      yield el;
-      offset += 4;
-    }
   }
 }
