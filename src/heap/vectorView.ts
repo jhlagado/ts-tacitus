@@ -16,10 +16,7 @@ export class VectorView {
 
   /** Number of elements in the vector */
   get length(): number {
-    return this.heap.memory.read16(
-      SEG_HEAP,
-      this.heap.blockToByteOffset(this.address) + VEC_SIZE
-    );
+    return this.heap.memory.read16(SEG_HEAP, this.heap.blockToByteOffset(this.address) + VEC_SIZE);
   }
 
   /**
@@ -43,9 +40,6 @@ export class VectorView {
       }
     }
     const off = VEC_DATA + idxInBlock * CELL_SIZE;
-    return this.heap.memory.readFloat(
-      SEG_HEAP,
-      this.heap.blockToByteOffset(block) + off
-    );
+    return this.heap.memory.readFloat(SEG_HEAP, this.heap.blockToByteOffset(block) + off);
   }
 }
