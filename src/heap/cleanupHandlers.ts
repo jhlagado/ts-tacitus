@@ -1,6 +1,6 @@
 import { Heap, BLOCK_SIZE } from './heap';
 import { SEG_HEAP } from '../core/memory';
-import { INVALID } from '../core/constants';
+import { CELL_SIZE, INVALID } from '../core/constants';
 // Import constants directly from vector.ts
 import { VEC_SIZE, VEC_DATA } from './vector';
 // Import decRef for recursive calls
@@ -8,38 +8,12 @@ import { decRef } from './heapUtils';
 import { SequenceView } from '../seq/sequenceView';
 // Import sequence constants
 import {
-  PROC_MAP,
-  PROC_FILTER,
-  PROC_SIFT, // Add other existing PROC_ types
-  SEQ_SRC_RANGE,
+  SEQ_SRC_PROCESSOR, // Add other existing SEQ_SRC_ types
   SEQ_SRC_VECTOR,
   SEQ_SRC_DICT,
   SEQ_SRC_CONSTANT,
-  SEQ_SRC_PROCESSOR,
-  PROC_DROP,
-  PROC_MULTI,
-  PROC_MULTI_SOURCE,
-  PROC_TAKE, // Add other existing SEQ_SRC_ types
+  SEQ_SRC_RANGE,
 } from '../seq/sequence'; // Adjust path if needed
-
-// Define CELL_SIZE based on 32-bit float tagged values
-const CELL_SIZE = 4;
-
-// --- Sequence Layout Constants ---
-const SEQ_META_COUNT = 2; // Offset for number of meta elements (uint16)
-const SEQ_META_START = 4; // Offset where meta elements begin (uint32/float32)
-
-// --- Sequence Cleanup Helpers (Internal to this module) ---
-
-/** Reads a metadata element at a given index */
-function seqGetMetaValue(heap: Heap, address: number, metaIndex: number): number {
-  const byteOffset = heap.blockToByteOffset(address);
-  const metaValueOffset = byteOffset + SEQ_META_START + metaIndex * CELL_SIZE;
-  // TODO: Handle block boundaries if metadata spans blocks
-  return heap.memory.readFloat(SEG_HEAP, metaValueOffset);
-}
-
-// --- Exported Cleanup Handlers ---
 
 /**
  * Cleanup handler for SEQUENCE objects.
@@ -53,30 +27,39 @@ export function performSequenceCleanup(heap: Heap, address: number): void {
 
     switch (seq.type) {
       case SEQ_SRC_PROCESSOR: {
-        // read the Proc‐opcode and all children via SequenceView
-        const procType = seq.processorType;
-        switch (procType) {
-          case PROC_MAP:
-          case PROC_FILTER:
-          case PROC_SIFT:
-          case PROC_TAKE:
-          case PROC_DROP:
-          case PROC_MULTI:
-          case PROC_MULTI_SOURCE:
-            // decref every child (source, fn, etc.)
-            for (const child of seq.children) {
-              decRef(heap, child);
-            }
-            break;
-          default:
-            console.warn(
-              `performSequenceCleanup: Unknown processor type ${procType} @ seq ${address}`
-            );
+        // decrement all meta slots except slot 0 (the opcode)
+        const count = seq.metaCount;
+        for (let i = 1; i < count; i++) {
+          decRef(heap, seq.meta(i));
         }
         break;
       }
 
-      // … the other cases (VECTOR, DICT, CONSTANT, RANGE) remain unchanged …
+      case SEQ_SRC_VECTOR: {
+        // release the underlying vector
+        decRef(heap, seq.meta(0));
+        break;
+      }
+
+      case SEQ_SRC_DICT: {
+        // release the underlying dict (vector of pairs)
+        decRef(heap, seq.meta(0));
+        break;
+      }
+
+      case SEQ_SRC_CONSTANT: {
+        // release the constant’s boxed value
+        decRef(heap, seq.meta(0));
+        break;
+      }
+
+      case SEQ_SRC_RANGE:
+        // nothing to release
+        break;
+
+      default:
+        console.warn(`performSequenceCleanup: Unknown sequence type ${seq.type} @ ${address}`);
+        break;
     }
   } catch (err) {
     console.error(`Error during sequence cleanup @ ${address}:`, err);
