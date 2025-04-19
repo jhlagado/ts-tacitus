@@ -4,7 +4,6 @@ import { HeapTag } from './tagged'; // Import HeapTag enum/type
 import {
   performSequenceCleanup,
   performVectorCleanup,
-  performDictCleanup,
 } from '../heap/cleanupHandlers'; // Import the specific handlers
 
 export const vm = new VM();
@@ -16,7 +15,7 @@ console.log('Registering heap cleanup handlers...'); // Add log for confirmation
 registerCleanupHandler(HeapTag.VECTOR, performVectorCleanup);
 
 // Register the handler for DICT types
-registerCleanupHandler(HeapTag.DICT, performDictCleanup);
+registerCleanupHandler(HeapTag.DICT, performVectorCleanup);
 
 // Register the handler for SEQUENCE types
 registerCleanupHandler(HeapTag.SEQUENCE, performSequenceCleanup);

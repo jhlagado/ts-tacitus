@@ -1,8 +1,5 @@
-import { Heap, BLOCK_SIZE } from './heap';
-import { SEG_HEAP } from '../core/memory';
-import { CELL_SIZE, INVALID } from '../core/constants';
+import { Heap } from './heap';
 // Import constants directly from vector.ts
-import { VEC_SIZE, VEC_DATA } from './vector';
 // Import decRef for recursive calls
 import { decRef } from './heapUtils';
 import { SequenceView } from '../seq/sequenceView';
@@ -14,6 +11,7 @@ import {
   SEQ_SRC_CONSTANT,
   SEQ_SRC_RANGE,
 } from '../seq/sequence'; // Adjust path if needed
+import { VectorView } from './vectorView';
 
 /**
  * Cleanup handler for SEQUENCE objects.
@@ -66,84 +64,14 @@ export function performSequenceCleanup(heap: Heap, address: number): void {
   }
 }
 
-/**
- * Cleanup handler for VECTOR objects.
- * Iterates through the vector's elements and calls decRef on each.
- * @param heap The heap instance.
- * @param address The starting address of the vector object.
- */
+/** Cleanup handler for VECTOR objects */
 export function performVectorCleanup(heap: Heap, address: number): void {
   try {
-    const length = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(address) + VEC_SIZE);
-    let currentBlock = address;
-    let offsetInBlock = VEC_DATA;
-
-    for (let i = 0; i < length; i++) {
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        currentBlock = heap.getNextBlock(currentBlock);
-        if (currentBlock === INVALID) {
-          console.error(
-            `performVectorCleanup: Invalid block encountered at index ${i} for vector ${address}`
-          );
-          return;
-        }
-        offsetInBlock = VEC_DATA;
-      }
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        console.error(
-          `performVectorCleanup: Calculated offset ${offsetInBlock} still exceeds block size for vector ${address}, index ${i}`
-        );
-        return;
-      }
-      const element = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + offsetInBlock
-      );
-      decRef(heap, element);
-      offsetInBlock += CELL_SIZE;
+    const view = new VectorView(heap, address);
+    for (let i = 0; i < view.length; i++) {
+      decRef(heap, view.element(i));
     }
   } catch (error) {
-    console.error(`Error during vector cleanup at address ${address}:`, error);
-  }
-}
-
-/**
- * Cleanup handler for DICT objects.
- * Iterates through the underlying vector's elements (keys/values) and calls decRef on each.
- * @param heap The heap instance.
- * @param address The starting address of the dictionary object.
- */
-export function performDictCleanup(heap: Heap, address: number): void {
-  try {
-    const totalElements = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(address) + VEC_SIZE);
-    let currentBlock = address;
-    let offsetInBlock = VEC_DATA;
-
-    for (let i = 0; i < totalElements; i++) {
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        currentBlock = heap.getNextBlock(currentBlock);
-        if (currentBlock === INVALID) {
-          console.error(
-            `performDictCleanup: Invalid block encountered at index ${i} for dict ${address}`
-          );
-          return;
-        }
-        offsetInBlock = VEC_DATA;
-      }
-      if (offsetInBlock + CELL_SIZE > BLOCK_SIZE) {
-        console.error(
-          `performDictCleanup: Calculated offset ${offsetInBlock} still exceeds block size for dict ${address}, index ${i}`
-        );
-        return;
-      }
-      const element = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(currentBlock) + offsetInBlock
-      );
-      decRef(heap, element);
-      offsetInBlock += CELL_SIZE;
-    }
-  } catch (error) {
-    console.error(`Error during dictionary cleanup at address ${address}:`, error);
+    console.error(`Error during vector cleanup @ ${address}:`, error);
   }
 }
