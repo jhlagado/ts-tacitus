@@ -9,7 +9,7 @@ import {
   isHeapAllocated,
   isRefCounted,
   isNIL,
-  printNum,
+  printValues,
   NIL,
 } from './tagged';
 
@@ -119,7 +119,7 @@ describe('Tagged NaN Encoding', () => {
   it('should print formatted representation via printNum', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     const encoded = toTaggedValue(789, false, CoreTag.STRING);
-    printNum(encoded, 42, 'test');
+    printValues(encoded, 42, 'test');
     expect(consoleSpy).toHaveBeenCalled();
     const output = consoleSpy.mock.calls[0][0];
     expect(output).toContain('Tag:');

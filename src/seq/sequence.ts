@@ -17,8 +17,11 @@ import { VM } from '../core/vm';
 import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
 import { Heap } from '../heap/heap';
 import { callTacitFunction } from '../core/interpreter';
+import { incRef } from '../heap/heapUtils';
+import { isHeapAllocated } from '../core/tagged';
 
-// Sequence source types.
+// --- Sequence and Processor constants ---
+
 export const SEQ_SRC_RANGE = 1;
 export const SEQ_SRC_VECTOR = 2;
 export const SEQ_SRC_STRING = 3;
@@ -26,21 +29,16 @@ export const SEQ_SRC_PROCESSOR = 4;
 export const SEQ_SRC_CONSTANT = 5;
 export const SEQ_SRC_DICT = 6;
 
-// Processor types
-/** @brief Map processor: applies a function to each element. */
+// Map onto unique opcode values (must be distinct!)
 export const PROC_MAP = 1;
-/** @brief Multi processor: combines elements from multiple sequences. */
 export const PROC_MULTI = 2;
-/** @brief Sift processor: includes elements based on a mask sequence. */
 export const PROC_SIFT = 3;
-/** @brief Take processor: limits the sequence to the first n elements. */
 export const PROC_TAKE = 4;
-/** @brief Drop processor: skips the first n elements of the sequence. */
 export const PROC_DROP = 5;
-/** @brief Multi Source processor: gets the next value from multiple sequences. */
 export const PROC_MULTI_SOURCE = 6;
-/** @brief Filter processor: includes elements based on a predicate function. */
 export const PROC_FILTER = 7;
+export const PROC_SCAN = 8;
+export const PROC_CHAIN = 9;
 
 // Sequence header offsets relative to the vector's data region (which starts at VEC_DATA).
 /** @brief Base offset for the sequence header within the vector's data. */
@@ -79,6 +77,13 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
     headerData.push(meta[i]);
   }
   if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
+
+  // ARC: bump the refcount on every heap‑allocated meta slot
+  for (const m of meta) {
+    if (isHeapAllocated(m)) {
+      incRef(heap, m);
+    }
+  }
 
   // Create the underlying vector to hold the sequence metadata.
   const vectorTagged = vectorCreate(heap, headerData);

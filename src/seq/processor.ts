@@ -10,15 +10,18 @@
  */
 
 import { Heap } from '../heap/heap';
+import { seqCreate } from './sequence';
 import {
-  seqCreate,
   SEQ_SRC_PROCESSOR,
   PROC_MAP,
+  PROC_FILTER,
   PROC_SIFT,
   PROC_TAKE,
   PROC_DROP,
+  PROC_MULTI,
   PROC_MULTI_SOURCE,
-  PROC_FILTER,
+  PROC_SCAN,
+  PROC_CHAIN,
 } from './sequence';
 
 /**
@@ -29,11 +32,7 @@ import {
  * @returns Pointer to the newly created map processor sequence
  */
 export function mapSeq(heap: Heap, source: number, func: number): number {
-  // Create a processor sequence with:
-  // - source sequence
-  // - function to apply
-  // - processor type (MAP)
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, func, PROC_MAP]);
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MAP, source, func]);
 }
 
 /**
@@ -43,7 +42,17 @@ export function mapSeq(heap: Heap, source: number, func: number): number {
  * @returns Pointer to the newly created multi-sequence processor
  */
 export function multiSeq(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [...sequences, PROC_MULTI_SOURCE]);
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MULTI, ...sequences]);
+}
+
+/**
+ * Creates a multi-source processor sequence that consumes multiple sequences in parallel
+ * @param heap The heap object for memory management
+ * @param sequences Array of pointers to the sequences to be consumed
+ * @returns Pointer to the newly created multi-source processor
+ */
+export function multiSourceSeq(heap: Heap, sequences: number[]): number {
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MULTI_SOURCE, ...sequences]);
 }
 
 /**
@@ -54,8 +63,8 @@ export function multiSeq(heap: Heap, sequences: number[]): number {
  * @param maskSeq Pointer to the mask sequence
  * @returns Pointer to the newly created sift processor sequence
  */
-export function siftSeq(heap: Heap, source: number, maskSeq: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, maskSeq, PROC_SIFT]);
+export function siftSeq(heap: Heap, source: number, mask: number): number {
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_SIFT, source, mask]);
 }
 
 /**
@@ -66,11 +75,7 @@ export function siftSeq(heap: Heap, source: number, maskSeq: number): number {
  * @returns Pointer to the newly created take processor sequence
  */
 export function takeSeq(heap: Heap, source: number, count: number): number {
-  // Create a processor sequence with:
-  // - source sequence
-  // - count
-  // - processor type (TAKE)
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, count, PROC_TAKE]);
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_TAKE, source, count]);
 }
 
 /**
@@ -81,11 +86,7 @@ export function takeSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created drop processor sequence
  */
 export function dropSeq(heap: Heap, source: number, count: number): number {
-  // Create a processor sequence with:
-  // - source sequence
-  // - count
-  // - processor type (DROP)
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, count, PROC_DROP]);
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_DROP, source, count]);
 }
 
 /**
@@ -97,12 +98,8 @@ export function dropSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created scan processor sequence
  */
 export function scanSeq(heap: Heap, source: number, func: number, initialValue: number): number {
-  // Create a processor sequence with:
-  // - source sequence
-  // - function to apply
-  // - initial value
-  // - processor type (SCAN)
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, func, initialValue, 5]); // 5 = SCAN
+  // slot[0]=PROC_SCAN, slot[1]=source, slot[2]=func, slot[3]=initialValue
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_SCAN, source, func, initialValue]);
 }
 
 /**
@@ -113,11 +110,8 @@ export function scanSeq(heap: Heap, source: number, func: number, initialValue: 
  * @returns Pointer to the newly created chain processor sequence
  */
 export function chainSeq(heap: Heap, source: number, processors: number[]): number {
-  // Create a processor sequence with:
-  // - source sequence
-  // - array of processor sequences
-  // - processor type (CHAIN)
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, ...processors, 6]); // 6 = CHAIN
+  // slot[0]=PROC_CHAIN, slot[1]=source, slots[2..]=processors
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_CHAIN, source, ...processors]);
 }
 
 /**
@@ -128,6 +122,6 @@ export function chainSeq(heap: Heap, source: number, processors: number[]): numb
  * @param predicateFunc Pointer to the predicate function
  * @returns Pointer to the newly created filter processor sequence
  */
-export function filterSeq(heap: Heap, source: number, predicateFunc: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [source, predicateFunc, PROC_FILTER]);
+export function filterSeq(heap: Heap, source: number, pred: number): number {
+  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_FILTER, source, pred]);
 }

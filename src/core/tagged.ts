@@ -320,7 +320,7 @@ export function isDict(value: number): boolean {
 /**
  * Prints a formatted representation of a tagged value.
  */
-export function printNum(...args: unknown[]): void {
+export function printValues(...args: unknown[]): void {
   const format = (num: number): string => {
     if (isNaN(num)) {
       return num.toString();
