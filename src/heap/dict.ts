@@ -1,9 +1,9 @@
 // File: src/heap/dict.ts
 
-import { Digest } from '../core/digest';
+import { Digest } from '../strings/digest';
 import { toTaggedValue, fromTaggedValue, NIL, HeapTag } from '../core/tagged';
 import { Heap } from './heap';
-import { stringCreate } from '../core/string';
+import { stringCreate } from '../strings/string';
 import { vectorCreate, VEC_SIZE, VEC_DATA } from './vector';
 import { SEG_HEAP } from '../core/memory';
 

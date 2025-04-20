@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Op } from '../ops/opcodes';
-import { initializeInterpreter, vm } from './globalState';
+import { initializeInterpreter, vm } from '../core/globalState';
 import { parse } from './parser';
 import { Tokenizer } from './tokenizer';
 

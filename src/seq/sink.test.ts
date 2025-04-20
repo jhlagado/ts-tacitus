@@ -6,10 +6,10 @@ import { toVector, last, forEach, count, reduce, find, any, all } from './sink';
 import { seqCreate, SEQ_SRC_VECTOR } from './sequence';
 import { NIL, fromTaggedValue, HeapTag, toTaggedValue, CoreTag } from '../core/tagged';
 import { vectorCreate, vectorGet } from '../heap/vector';
-import { parse } from '../core/parser';
-import { Tokenizer } from '../core/tokenizer';
+import { parse } from '../lang/parser';
+import { Tokenizer } from '../lang/tokenizer';
 import { rangeSource } from './source';
-import { executeProgram } from '../core/interpreter';
+import { executeProgram } from '../lang/interpreter';
 
 describe('Sequence Operations', () => {
   let testVM: VM;
@@ -121,11 +121,9 @@ describe('Sequence Operations', () => {
 
       expect(result).toBe(42);
     });
-
   });
 
   describe('find', () => {
-
     it('should return NIL for an empty sequence', () => {
       // Create a code block function
       parse(new Tokenizer('0 >'));

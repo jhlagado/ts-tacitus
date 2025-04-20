@@ -1,6 +1,6 @@
-import { Tokenizer } from '../core/tokenizer';
-import { parse } from '../core/parser';
-import { execute } from '../core/interpreter';
+import { Tokenizer } from '../lang/tokenizer';
+import { parse } from '../lang/parser';
+import { execute } from '../lang/interpreter';
 import { initializeInterpreter, vm } from '../core/globalState';
 
 /**

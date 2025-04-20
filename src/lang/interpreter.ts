@@ -1,7 +1,7 @@
 import { executeOp } from '../ops/builtins';
-import { vm } from './globalState';
+import { vm } from '../core/globalState';
 import { parse } from './parser';
-import { toTaggedValue, CoreTag } from './tagged';
+import { toTaggedValue, CoreTag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 
 export function execute(start: number, breakAtIP?: number): void {

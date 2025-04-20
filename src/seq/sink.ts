@@ -3,7 +3,7 @@ import { fromTaggedValue, isNIL, NIL } from '../core/tagged';
 import { VM } from '../core/vm';
 import { vectorCreate } from '../heap/vector';
 import { seqNext } from './sequence';
-import { callTacitFunction } from '../core/interpreter';
+import { callTacitFunction } from '../lang/interpreter';
 
 /**
  * Collects sequence values into a vector

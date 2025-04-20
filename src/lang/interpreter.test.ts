@@ -1,6 +1,6 @@
-import { execute, executeProgram } from '../core/interpreter';
-import { parse } from '../core/parser';
-import { Tokenizer } from '../core/tokenizer';
+import { execute, executeProgram } from './interpreter';
+import { parse } from './parser';
+import { Tokenizer } from './tokenizer';
 import { vm, initializeInterpreter } from '../core/globalState';
 import * as math from '../ops/builtins-math';
 import { vectorCreate, vectorGet } from '../heap/vector';

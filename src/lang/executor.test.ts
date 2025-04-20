@@ -2,13 +2,13 @@ import { executeLine, setupInterpreter } from './executor';
 import { parse } from './parser';
 import { execute } from './interpreter';
 import { Tokenizer } from './tokenizer';
-import { initializeInterpreter } from './globalState';
+import { initializeInterpreter } from '../core/globalState';
 
 // Mock dependencies
 jest.mock('./parser');
 jest.mock('./interpreter');
 jest.mock('./tokenizer');
-jest.mock('./globalState', () => ({
+jest.mock('../core/globalState', () => ({
   initializeInterpreter: jest.fn(),
   vm: {
     compiler: {

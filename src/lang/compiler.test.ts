@@ -1,7 +1,7 @@
 // src/core/compiler.test.ts
 import { Op } from "../ops/opcodes";
-import { initializeInterpreter, vm } from "./globalState";
-import { fromTaggedValue } from "./tagged";
+import { initializeInterpreter, vm } from "../core/globalState";
+import { fromTaggedValue } from "../core/tagged";
 
 describe("Compiler", () => {
   beforeEach(() => {

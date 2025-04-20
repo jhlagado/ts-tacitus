@@ -1,12 +1,10 @@
 import { VM } from './vm';
 import { registerCleanupHandler } from '../heap/heapUtils'; // Import the single registration function
 import { HeapTag } from './tagged'; // Import HeapTag enum/type
-import {
-  performSequenceCleanup,
-  performVectorCleanup,
-} from '../heap/cleanupHandlers'; // Import the specific handlers
+import { performVectorCleanup } from '../heap/vectorCleanup'; // Import the specific handlers
+import { performSequenceCleanup } from '../seq/seqCleanup';
 
-export const vm = new VM();
+export let vm = new VM();
 
 // --- Register specific cleanup handlers ---
 console.log('Registering heap cleanup handlers...'); // Add log for confirmation
@@ -27,9 +25,5 @@ console.log('Heap cleanup handlers registered.'); // Add log for confirmation
 // --- End of registration ---
 
 export function initializeInterpreter(): void {
-  // Reset the VM state
-  Object.assign(vm, new VM());
-  // NOTE: The handlers are registered once globally when this module loads.
-  // Re-assigning vm properties in initializeInterpreter does NOT re-run the registration code above.
-  // This is generally the desired behavior for global handlers.
+  vm = new VM();
 }

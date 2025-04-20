@@ -1,8 +1,8 @@
 // core/executor.ts
-import { Tokenizer } from "./tokenizer";
-import { parse } from "./parser";
-import { execute } from "./interpreter";
-import { initializeInterpreter, vm } from "./globalState";
+import { Tokenizer } from './tokenizer';
+import { parse } from './parser';
+import { execute } from './interpreter';
+import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
  * Executes a single line of Tacit code

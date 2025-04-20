@@ -1,6 +1,6 @@
-import { SymbolTable } from "../core/symbol-table";
-import { VM } from "../core/vm";
-import { Op } from "./opcodes";
+import { SymbolTable } from '../strings/symbol-table';
+import { VM } from '../core/vm';
+import { Op } from './opcodes';
 
 /**
  * Defines the built-in functions in the given symbol table.

@@ -1,0 +1,78 @@
+import { vm } from '../core/globalState';
+import { initializeInterpreter } from '../core/globalState';
+import { rangeSource } from './source';
+import { seqMap, seqFilter, seqTake } from './sequence';
+import { decRef } from '../heap/heapUtils';
+import { executeProgram } from '../lang/interpreter';
+
+describe('Sequence Cleanup', () => {
+  beforeEach(() => {
+    initializeInterpreter();
+  });
+
+  it('should properly cleanup sequence processors', () => {
+    // Create a range sequence (0..9)
+    const range = rangeSource(vm.heap, 0, 10, 1);
+    const initialRangeRefCount = vm.heap.getRefCount(range);
+
+    // Create a simple function for mapping
+    executeProgram('( 2 * )');
+    const mapFunction = vm.pop();
+
+    // Create a map sequence that uses the range
+    const mapSeq = seqMap(vm.heap, range, mapFunction);
+
+    // Verify range's ref count increased
+    expect(vm.heap.getRefCount(range)).toBe(initialRangeRefCount + 1);
+
+    // Disposing map sequence should decrement range's ref count
+    decRef(vm.heap, mapSeq);
+
+    // Range should be back to initial ref count
+    expect(vm.heap.getRefCount(range)).toBe(initialRangeRefCount);
+
+    // Cleanup
+    decRef(vm.heap, range);
+    decRef(vm.heap, mapFunction);
+  });
+
+  it('should properly cleanup sequence processor chains', () => {
+    // Create a processor chain: range -> map -> filter -> take
+    const range = rangeSource(vm.heap, 0, 100, 1);
+
+    // Create the mapping function
+    executeProgram('( 2 * )');
+    const mapFunction = vm.pop();
+
+    // Create the filter function
+    executeProgram('( 10 > )');
+    const filterFunction = vm.pop();
+
+    // Build sequence chain
+    const mapSeq = seqMap(vm.heap, range, mapFunction);
+    const filterSeq = seqFilter(vm.heap, mapSeq, filterFunction);
+    const takeSeq = seqTake(vm.heap, filterSeq, 10);
+
+    // Verify reference counts increased through the chain
+    expect(vm.heap.getRefCount(range)).toBe(2); // Original + mapSeq reference
+    expect(vm.heap.getRefCount(mapSeq)).toBe(2); // Original + filterSeq reference
+    expect(vm.heap.getRefCount(filterSeq)).toBe(2); // Original + takeSeq reference
+
+    // Free the final sequence
+    decRef(vm.heap, takeSeq);
+
+    // Should cascade cleanup through the chain
+    expect(vm.heap.getRefCount(filterSeq)).toBe(1);
+    decRef(vm.heap, filterSeq);
+
+    expect(vm.heap.getRefCount(mapSeq)).toBe(1);
+    decRef(vm.heap, mapSeq);
+
+    expect(vm.heap.getRefCount(range)).toBe(1);
+
+    // Cleanup everything
+    decRef(vm.heap, range);
+    decRef(vm.heap, mapFunction);
+    decRef(vm.heap, filterFunction);
+  });
+});

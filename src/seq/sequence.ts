@@ -11,14 +11,26 @@
  * - Processors allow for composable sequence transformations like map, filter, take, and drop.
  */
 
-import { SEG_HEAP, SEG_STRING } from '../core/memory';
-import { NIL, fromTaggedValue, toTaggedValue, HeapTag, isNIL } from '../core/tagged';
+import { SEG_STRING } from '../core/memory';
+import { NIL, fromTaggedValue, toTaggedValue, HeapTag } from '../core/tagged';
 import { VM } from '../core/vm';
-import { VEC_DATA, vectorCreate, VEC_SIZE } from '../heap/vector';
+import { VEC_DATA, vectorCreate } from '../heap/vector';
 import { Heap } from '../heap/heap';
-import { callTacitFunction } from '../core/interpreter';
 import { incRef } from '../heap/heapUtils';
 import { isHeapAllocated } from '../core/tagged';
+
+// --- New imports for the refactor ---
+import { SequenceView } from './sequenceView';
+import {
+  handleProcMap,
+  handleProcFilter,
+  handleProcSift,
+  handleProcTake,
+  handleProcDrop,
+  handleProcMulti,
+  handleProcMultiSource,
+} from './processorHandlers';
+import { VectorView } from '../heap/vectorView';
 
 // --- Sequence and Processor constants ---
 
@@ -69,220 +81,26 @@ export const SEQ_META_START = SEQ_HEADER_BASE + 8;
  *          allocation fails. The tag is HeapTag.SEQ, indicating that this is a sequence object.
  */
 export function seqCreate(heap: Heap, sourceType: number, meta: number[]): number {
-  const headerData = [sourceType, meta.length];
-  // Note: Do not spread arrays with tagged values directly into `headerData`.  Tagged values are
-  // NaN-boxed floats, and spreading them can lead to incorrect conversion to NIL or NaN due to how
-  // JavaScript handles NaNs.  Instead, push them individually.
-  for (let i = 0; i < meta.length; i++) {
-    headerData.push(meta[i]);
-  }
-  if (sourceType === SEQ_SRC_RANGE) headerData.push(meta[0]);
+  // build header: [ type, metaCount, ...meta, initialCursor ]
+  const headerData: number[] = [sourceType, meta.length, ...meta];
 
-  // ARC: bump the refcount on every heap‑allocated meta slot
+  // decide the one-and-only cursor slot:
+  const initialCursor =
+    sourceType === SEQ_SRC_RANGE
+      ? meta[0] // start value for range
+      : 0; // zero for everything else
+
+  headerData.push(initialCursor);
+
+  // bump every heap-allocated child in `meta`
   for (const m of meta) {
-    if (isHeapAllocated(m)) {
-      incRef(heap, m);
-    }
+    if (isHeapAllocated(m)) incRef(heap, m);
   }
 
-  // Create the underlying vector to hold the sequence metadata.
   const vectorTagged = vectorCreate(heap, headerData);
-  if (vectorTagged == NIL) return NIL;
-
-  // Extract the raw pointer to the vector's data block from the tagged value.
+  if (vectorTagged === NIL) return NIL;
   const { value: seqPtr } = fromTaggedValue(vectorTagged);
-
-  // Return a new tagged value representing the sequence, using the vector's data block pointer
-  // and the SEQ tag.
   return toTaggedValue(seqPtr, true, HeapTag.SEQUENCE);
-}
-
-// Extracted helper functions for processor sequences with explicit types
-function handleProcMap(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
-  // Get the source sequence and function pointer
-  const source: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START
-  );
-  const func: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  const { value: funcPtr } = fromTaggedValue(func);
-  seqNext(heap, vm, source);
-  const nextValue: number = vm.pop();
-  if (isNIL(nextValue)) {
-    vm.push(NIL);
-    return seq;
-  }
-  vm.push(nextValue);
-  callTacitFunction(funcPtr);
-  return seq;
-}
-
-function handleProcSift(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
-  const source: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START
-  );
-  seqNext(heap, vm, source);
-  const value: number = vm.pop();
-  if (isNIL(value)) {
-    vm.push(NIL);
-    return seq;
-  }
-  const maskSeq: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  seqNext(heap, vm, maskSeq);
-  const maskValue: number = vm.pop();
-  if (isNIL(maskValue) || !maskValue) {
-    // Skip this value, try next
-    return seqNext(heap, vm, seq);
-  }
-  vm.push(value);
-  return seq;
-}
-
-function handleProcFilter(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
-  const source: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START
-  );
-  seqNext(heap, vm, source);
-  const value: number = vm.pop();
-  if (isNIL(value)) {
-    vm.push(NIL);
-    return seq;
-  }
-  const predicateFunc: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  vm.push(value);
-  vm.push(predicateFunc);
-  vm.eval();
-  const predicateResult: number = vm.pop();
-  if (isNIL(predicateResult) || !predicateResult) {
-    return seqNext(heap, vm, seq);
-  }
-  vm.push(value);
-  return seq;
-}
-
-function handleProcTake(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-  cursorOffset: number
-): number {
-  const count: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  const currentCount: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + cursorOffset
-  );
-  if (currentCount >= count) {
-    vm.push(NIL);
-    return seq;
-  }
-  const source: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START // source pointer
-  );
-  seqNext(heap, vm, source);
-  const value: number = vm.pop();
-  if (isNIL(value)) {
-    vm.push(NIL);
-    return seq;
-  }
-  heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, currentCount + 1);
-  vm.push(value);
-  return seq;
-}
-
-function handleProcDrop(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-  cursorOffset: number
-): number {
-  const count: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  const droppedCount: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + cursorOffset
-  );
-  const source: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START
-  );
-  if (droppedCount < count) {
-    seqNext(heap, vm, source);
-    const value: number = vm.pop();
-    if (isNIL(value)) {
-      vm.push(NIL);
-      return seq;
-    }
-    heap.memory.writeFloat(
-      SEG_HEAP,
-      heap.blockToByteOffset(seqPtr) + cursorOffset,
-      droppedCount + 1
-    );
-    return seqNext(heap, vm, seq);
-  }
-  seqNext(heap, vm, source);
-  return seq;
-}
-
-function handleProcMulti(heap: Heap, vm: VM, seq: number, seqPtr: number): number {
-  const numSequences: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-  );
-  for (let i = 0; i < numSequences; i++) {
-    const subSeq: number = heap.memory.readFloat(
-      SEG_HEAP,
-      heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8 + i * 4
-    );
-    seqNext(heap, vm, subSeq);
-    const value: number = vm.pop();
-    if (isNIL(value)) {
-      vm.push(NIL);
-      return seq;
-    }
-  }
-  return seq;
-}
-
-function handleProcMultiSource(
-  heap: Heap,
-  vm: VM,
-  seq: number,
-  seqPtr: number,
-  metaCount: number
-): number {
-  for (let i = 0; i < metaCount - 1; i++) {
-    const subSeq: number = heap.memory.readFloat(
-      SEG_HEAP,
-      heap.blockToByteOffset(seqPtr) + SEQ_META_START + i * 4
-    );
-    seqNext(heap, vm, subSeq);
-    const value: number = vm.pop();
-    if (isNIL(value)) {
-      vm.push(NIL);
-      return seq;
-    }
-    vm.push(value);
-  }
-  return seq;
 }
 
 /**
@@ -305,99 +123,69 @@ function handleProcMultiSource(
  *          the VM's stack, or NIL if the sequence is exhausted.
  */
 export function seqNext(heap: Heap, vm: VM, seq: number): number {
-  let { value: seqPtr } = fromTaggedValue(seq);
-  const sourceType: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_TYPE
-  );
-  const metaCount: number = heap.memory.readFloat(
-    SEG_HEAP,
-    heap.blockToByteOffset(seqPtr) + SEQ_META_COUNT
-  );
-  const cursorOffset: number = SEQ_META_START + metaCount * 4;
+  const { value: seqPtr } = fromTaggedValue(seq);
+  const seqv = new SequenceView(heap, seqPtr);
 
-  switch (sourceType) {
+  switch (seqv.type) {
     case SEQ_SRC_PROCESSOR: {
-      const procType: number = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START + (metaCount - 1) * 4
-      );
-      switch (procType) {
+      const op = seqv.processorType; // meta[0]
+      switch (op) {
         case PROC_MAP:
-          return handleProcMap(heap, vm, seq, seqPtr);
-        case PROC_SIFT:
-          return handleProcSift(heap, vm, seq, seqPtr);
+          return handleProcMap(heap, vm, seq, seqv);
         case PROC_FILTER:
-          return handleProcFilter(heap, vm, seq, seqPtr);
+          return handleProcFilter(heap, vm, seq, seqv);
+        case PROC_SIFT:
+          return handleProcSift(heap, vm, seq, seqv);
         case PROC_TAKE:
-          return handleProcTake(heap, vm, seq, seqPtr, cursorOffset);
+          return handleProcTake(heap, vm, seq, seqv);
         case PROC_DROP:
-          return handleProcDrop(heap, vm, seq, seqPtr, cursorOffset);
+          return handleProcDrop(heap, vm, seq, seqv);
         case PROC_MULTI:
-          return handleProcMulti(heap, vm, seq, seqPtr);
+          return handleProcMulti(heap, vm, seq, seqv);
         case PROC_MULTI_SOURCE:
-          return handleProcMultiSource(heap, vm, seq, seqPtr, metaCount);
+          return handleProcMultiSource(heap, vm, seq, seqv);
         default:
           vm.push(NIL);
           return seq;
       }
     }
+
     case SEQ_SRC_RANGE: {
-      const step: number = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-      );
-      const end: number = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START + 8
-      );
-      const cursor: number = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + cursorOffset
-      );
-      if (cursor <= end) {
-        vm.push(cursor);
-        heap.memory.writeFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(seqPtr) + cursorOffset,
-          cursor + step
-        );
+      const step = seqv.meta(1);
+      const end = seqv.meta(2);
+      const cur = seqv.cursor;
+      if (cur <= end) {
+        vm.push(cur);
+        seqv.cursor = cur + step;
       } else {
         vm.push(NIL);
       }
-      break;
+      return seq;
     }
+
     case SEQ_SRC_VECTOR: {
-      const taggedVecPtr = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START
-      ); // meta[0]
-      // Read the tagged vector pointer and extract the raw pointer.
-      const { value: vecPtr } = fromTaggedValue(taggedVecPtr);
-      const index = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
-      const length = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_SIZE);
-      if (index < length) {
-        vm.push(
-          heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_DATA + index * 4)
-          // Push the element at the current index onto the stack.
-        );
-        heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, index + 1);
+      const taggedVec = seqv.meta(0);
+      const { value: vecPtr } = fromTaggedValue(taggedVec);
+      const vv = new VectorView(heap, vecPtr);
+
+      const idx = seqv.cursor;
+      if (idx < vv.length) {
+        vm.push(vv.element(idx));
+        seqv.cursor = idx + 1;
       } else {
         vm.push(NIL);
       }
-      break;
+      return seq;
     }
+
     case SEQ_SRC_STRING: {
       // Retrieve the tagged string pointer stored in the sequence metadata.
-      const taggedStrPtr = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START
-      ); // meta[0]
+      const taggedStrPtr = seqv.meta(0); // meta[0]
       // Retrieve the tagged string pointer and extract the raw pointer.
       const { value: strPtr } = fromTaggedValue(taggedStrPtr);
 
       // Read the current cursor index (stored as a float in the sequence's metadata).
-      const index = heap.memory.readFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset);
+      const index = seqv.cursor;
 
       // Read the string's length (1 byte) from its beginning.
       const length = vm.digest.length(strPtr);
@@ -408,73 +196,46 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
         vm.push(charCode);
 
         // Increment the cursor index.
-        heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(seqPtr) + cursorOffset, index + 1);
+        seqv.cursor = index + 1;
         // Push the character code onto the stack.
       } else {
         // If the index exceeds the string's length, push NIL.
         vm.push(NIL);
       }
-      break;
+      return seq;
     }
+
     case SEQ_SRC_CONSTANT: {
       // This sequence always yields the same constant value.
-      const constantValue = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START
-      ); // meta[0]
+      const constantValue = seqv.meta(0); // meta[0]
       vm.push(constantValue);
-      break;
+      return seq;
     }
+
     case SEQ_SRC_DICT: {
-      // Dictionary sequence yields key-value pairs.
-      const dictTaggedPtr = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START
-      ); // meta[0] is the dict tagged pointer
-      const index = heap.memory.readFloat(
-        SEG_HEAP,
-        heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4
-      ); // meta[1] is the current PAIR index
-
-      // A dict is a vector tagged as DICT. Get the underlying vector pointer and length.
+      // meta[0] = dict pointer
+      const dictTaggedPtr = seqv.meta(0);
       const { value: vecPtr } = fromTaggedValue(dictTaggedPtr);
-      const vectorLength = heap.memory.read16(SEG_HEAP, heap.blockToByteOffset(vecPtr) + VEC_SIZE);
-      const numPairs = vectorLength / 2;
+      const vv = new VectorView(heap, vecPtr);
 
-      if (index < numPairs) {
-        // Calculate offsets within the underlying vector
-        const keyOffset = index * 2;
-        const valueOffset = index * 2 + 1;
+      const pairIdx = seqv.cursor;
+      const pairCount = Math.floor(vv.length / 2);
 
-        // Read key and value using vector access (treating dict as vector)
-        const key = heap.memory.readFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(vecPtr) + VEC_DATA + keyOffset * 4
-        );
-        const value = heap.memory.readFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(vecPtr) + VEC_DATA + valueOffset * 4
-        );
+      if (pairIdx < pairCount) {
+        const key = vv.element(pairIdx * 2);
+        const value = vv.element(pairIdx * 2 + 1);
 
-        vm.push(key); // Push key first
-        vm.push(value); // Push value second
-
-        // Increment PAIR index for next iteration
-        heap.memory.writeFloat(
-          SEG_HEAP,
-          heap.blockToByteOffset(seqPtr) + SEQ_META_START + 4,
-          index + 1
-        );
+        vm.push(key);
+        vm.push(value);
+        seqv.cursor = pairIdx + 1;
       } else {
-        vm.push(NIL); // End of dictionary
+        vm.push(NIL);
       }
-      break;
+      return seq;
     }
-    default: {
-      // Handle unknown sequence types by pushing NIL.
-      vm.push(NIL);
-    }
-  }
 
-  return seq;
+    default:
+      vm.push(NIL);
+      return seq;
+  }
 }

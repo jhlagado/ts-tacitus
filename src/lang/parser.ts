@@ -1,7 +1,7 @@
 import { Op } from '../ops/opcodes';
-import { vm } from './globalState';
-import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isWhitespace, isGroupingChar } from './utils';
+import { vm } from '../core/globalState';
+import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
+import { isWhitespace, isGroupingChar } from '../core/utils';
 
 export interface Definition {
   name: string;

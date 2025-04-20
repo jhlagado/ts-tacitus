@@ -7,6 +7,7 @@ import { HeapTag, CoreTag } from '../core/tagged';
 import { constantSource, dictionarySource } from '../seq/source';
 import { mapSeq, siftSeq, filterSeq, takeSeq, dropSeq } from '../seq/processor';
 import { toVector, count, last, forEach, reduce } from '../seq/sink';
+import { decRef, getRefCount } from '../heap/heapUtils';
 
 /**
  * @word range - Creates a sequence from a numerical range.
@@ -26,6 +27,7 @@ export const rangeOp: Verb = (vm: VM) => {
     throw new Error('Failed to create range sequence');
   }
   vm.push(seqPtr);
+  console.warn('range', getRefCount(vm.heap, seqPtr));
 };
 
 /**
@@ -60,6 +62,7 @@ export const seqOp: Verb = (vm: VM) => {
     throw new Error('Failed to create sequence from source');
   }
   vm.push(seqPtr);
+  console.warn('seq', getRefCount(vm.heap, seqPtr));
 };
 
 /**
@@ -73,10 +76,12 @@ export const mapOp: Verb = (vm: VM) => {
   // TODO: Validate input types (source is SEQ, func is CODE)
 
   const mapSeqPtr = mapSeq(vm.heap, sourceSeq, func);
+  decRef(vm.heap, sourceSeq)
   if (isNIL(mapSeqPtr)) {
     throw new Error('Failed to create map sequence');
   }
   vm.push(mapSeqPtr);
+  console.warn('map', getRefCount(vm.heap, mapSeqPtr));
 };
 
 /**
@@ -90,6 +95,9 @@ export const siftOp: Verb = (vm: VM) => {
   // TODO: Validate input types (both are SEQ)
 
   const siftSeqPtr = siftSeq(vm.heap, sourceSeq, maskSeq);
+  decRef(vm.heap, maskSeq)
+  decRef(vm.heap, sourceSeq)
+
   if (isNIL(siftSeqPtr)) {
     throw new Error('Failed to create sift sequence');
   }
@@ -107,6 +115,7 @@ export const filterOp: Verb = (vm: VM) => {
   // TODO: Validate input types (source is SEQ, predicate is CODE)
 
   const filterSeqPtr = filterSeq(vm.heap, sourceSeq, predicateFunc);
+  decRef(vm.heap, sourceSeq)
   if (isNIL(filterSeqPtr)) {
     throw new Error('Failed to create filter sequence');
   }
@@ -124,6 +133,7 @@ export const seqTakeOp: Verb = (vm: VM) => {
   // TODO: Validate input types (source is SEQ, count is number)
 
   const takeSeqPtr = takeSeq(vm.heap, sourceSeq, count);
+  decRef(vm.heap, sourceSeq)
   if (isNIL(takeSeqPtr)) {
     throw new Error('Failed to create take sequence');
   }
@@ -141,6 +151,7 @@ export const seqDropOp: Verb = (vm: VM) => {
   // TODO: Validate input types (source is SEQ, count is number)
 
   const dropSeqPtr = dropSeq(vm.heap, sourceSeq, count);
+  decRef(vm.heap, sourceSeq)
   if (isNIL(dropSeqPtr)) {
     throw new Error('Failed to create drop sequence');
   }

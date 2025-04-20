@@ -12,7 +12,7 @@ describe('Tacit Sequence Operations', () => {
   });
 
   test('map sequence to vector', () => {
-    const result = runTacitTest('1 5 1 range () map to-vector');
+    const result = runTacitTest('1 5 1 range (2 *) map to-vector');
     expect(result.length).toBe(1); // Ensure a single vector is on the stack
     const vectorPtr = result[0];
     const vectorContents = vectorToArray(vm.heap, vectorPtr);

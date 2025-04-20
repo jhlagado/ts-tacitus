@@ -1,6 +1,6 @@
 import { NIL, fromTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
-import { stringCreate } from '../core/string';
+import { stringCreate } from '../strings/string';
 import { vectorCreate } from '../heap/vector';
 import {
   seqNext,
@@ -16,7 +16,7 @@ import { rangeSource, vectorSource, stringSource } from './source';
 import { describe, it, expect } from '@jest/globals';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { Heap } from '../heap/heap';
-import { executeProgram } from '../core/interpreter';
+import { executeProgram } from '../lang/interpreter';
 
 describe('Sequence Operations', () => {
   let testVM: VM;

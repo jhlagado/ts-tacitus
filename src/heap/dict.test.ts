@@ -1,7 +1,7 @@
 // File: src/tests/dict.test.ts
 
 import { Memory, SEG_HEAP } from '../core/memory';
-import { Digest } from '../core/digest';
+import { Digest } from '../strings/digest';
 import { Heap } from './heap';
 import { dictCreate, dictGet } from '../heap/dict';
 import { NIL, fromTaggedValue } from '../core/tagged';

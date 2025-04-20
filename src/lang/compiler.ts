@@ -1,6 +1,6 @@
-import { VM } from "./vm";
-import { CoreTag, toTaggedValue } from "./tagged";
-import { SEG_CODE } from "./memory";
+import { VM } from '../core/vm';
+import { CoreTag, toTaggedValue } from '../core/tagged';
+import { SEG_CODE } from '../core/memory';
 
 export class Compiler {
   nestingScore: number;

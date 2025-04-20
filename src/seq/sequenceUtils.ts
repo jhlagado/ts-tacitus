@@ -8,9 +8,7 @@ import {
 } from './sequence'; // Adjust path if needed
 // Import SEG_HEAP
 import { SEG_HEAP } from '../core/memory';
-
-// Define CELL_SIZE based on 32-bit float tagged values
-const CELL_SIZE = 4;
+import { CELL_SIZE } from '../core/constants';
 
 // --- Constants for Sequence Layout (Based on sequence.ts) ---
 const SEQ_TYPE = 0; // Offset for SEQ_SRC_* type (uint16)

@@ -1,4 +1,4 @@
-import { Memory, SEG_STRING, STRING_SIZE } from "./memory";
+import { Memory, SEG_STRING, STRING_SIZE } from '../core/memory';
 
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
@@ -18,7 +18,7 @@ export class Digest {
 
     const requiredSpace = STRING_HEADER_SIZE + str.length;
     if (this.SBP + requiredSpace > STRING_SIZE) {
-      throw new Error("String digest overflow");
+      throw new Error('String digest overflow');
     }
 
     const startAddress = this.SBP;
@@ -33,14 +33,14 @@ export class Digest {
 
   reset(address: number = 0): void {
     if (address < 0 || address > 0 + STRING_SIZE) {
-      throw new Error("Invalid reset address");
+      throw new Error('Invalid reset address');
     }
     this.SBP = address;
   }
 
   length(address: number): number {
     if (address < 0 || address >= 0 + STRING_SIZE) {
-      throw new Error("Address is outside memory bounds");
+      throw new Error('Address is outside memory bounds');
     }
 
     return this.memory.read8(SEG_STRING, address);
@@ -48,16 +48,16 @@ export class Digest {
 
   get(address: number): string {
     if (address < 0 || address >= 0 + STRING_SIZE) {
-      throw new Error("Address is outside memory bounds");
+      throw new Error('Address is outside memory bounds');
     }
 
     let pointer = address;
     const length = this.memory.read8(SEG_STRING, pointer++);
     if (pointer + length > 0 + STRING_SIZE) {
-      throw new Error("Address is outside memory bounds");
+      throw new Error('Address is outside memory bounds');
     }
 
-    let str = "";
+    let str = '';
     for (let i = 0; i < length; i++) {
       str += String.fromCharCode(this.memory.read8(SEG_STRING, pointer++));
     }
@@ -73,10 +73,10 @@ export class Digest {
     while (pointer < this.SBP) {
       const length = this.memory.read8(SEG_STRING, pointer);
       if (pointer + STRING_HEADER_SIZE + length > 0 + STRING_SIZE) {
-        throw new Error("Address is outside memory bounds");
+        throw new Error('Address is outside memory bounds');
       }
 
-      let existingStr = "";
+      let existingStr = '';
       for (let i = 0; i < length; i++) {
         existingStr += String.fromCharCode(
           this.memory.read8(SEG_STRING, pointer + STRING_HEADER_SIZE + i)

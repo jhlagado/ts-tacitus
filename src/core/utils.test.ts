@@ -13,7 +13,7 @@ import {
 } from './utils';
 import { toTaggedValue, CoreTag, HeapTag } from './tagged';
 import { VM } from './vm';
-import { Digest } from './digest';
+import { Digest } from '../strings/digest';
 import { Memory } from './memory';
 import { initializeInterpreter, vm } from './globalState';
 import { vectorCreate } from '../heap/vector';

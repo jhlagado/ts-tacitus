@@ -57,7 +57,11 @@ import * as sink from '../seq/sink';
 // Minimal MockVM with explicit return types.
 class MockVM {
   public stack: any[] = [];
-  public heap: any = {};
+  public heap: any = {
+    getRefCount(): number {
+      return 1;
+    }
+  };
   pop(): any {
     return this.stack.pop();
   }

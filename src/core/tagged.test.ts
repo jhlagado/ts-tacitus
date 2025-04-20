@@ -9,7 +9,6 @@ import {
   isHeapAllocated,
   isRefCounted,
   isNIL,
-  printValues,
   NIL,
 } from './tagged';
 
@@ -114,17 +113,5 @@ describe('Tagged NaN Encoding', () => {
     // A non-NIL tagged value should return false.
     const nonNil = toTaggedValue(1, false, CoreTag.INTEGER);
     expect(isNIL(nonNil)).toBe(false);
-  });
-
-  it('should print formatted representation via printNum', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const encoded = toTaggedValue(789, false, CoreTag.STRING);
-    printValues(encoded, 42, 'test');
-    expect(consoleSpy).toHaveBeenCalled();
-    const output = consoleSpy.mock.calls[0][0];
-    expect(output).toContain('Tag:');
-    expect(output).toContain('Value:');
-    expect(output).toContain('test');
-    consoleSpy.mockRestore();
   });
 });

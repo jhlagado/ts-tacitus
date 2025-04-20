@@ -1,9 +1,9 @@
-import { Compiler } from './compiler';
-import { SymbolTable } from './symbol-table';
+import { Compiler } from '../lang/compiler';
+import { SymbolTable } from '../strings/symbol-table';
 import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
 import { Heap } from '../heap/heap';
 import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
-import { Digest } from './digest';
+import { Digest } from '../strings/digest';
 import { defineBuiltins } from '../ops/define-builtins';
 import { decRef, incRef } from '../heap/heapUtils';
 
@@ -15,9 +15,9 @@ export class VM {
   running: boolean;
   compiler: Compiler;
   digest: Digest;
-  symbolTable: SymbolTable;
-  debug: boolean;
   heap: Heap;
+  debug: boolean;
+  symbolTable: SymbolTable;
 
   constructor() {
     this.memory = new Memory();

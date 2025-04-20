@@ -1,7 +1,7 @@
-import { Op } from "../ops/opcodes";
-import { Digest } from "./digest";
-import { Verb } from "./types";
-import { VM } from "./vm";
+import { Op } from '../ops/opcodes';
+import { Digest } from './digest';
+import { Verb } from '../core/types';
+import { VM } from '../core/vm';
 
 interface SymbolTableNode {
   key: number;

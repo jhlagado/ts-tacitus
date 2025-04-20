@@ -1,8 +1,8 @@
-import { Heap } from './heap';
+import { Heap } from '../heap/heap';
 // Import constants directly from vector.ts
 // Import decRef for recursive calls
-import { decRef } from './heapUtils';
-import { SequenceView } from '../seq/sequenceView';
+import { decRef } from '../heap/heapUtils';
+import { SequenceView } from './sequenceView';
 // Import sequence constants
 import {
   SEQ_SRC_PROCESSOR, // Add other existing SEQ_SRC_ types
@@ -10,8 +10,7 @@ import {
   SEQ_SRC_DICT,
   SEQ_SRC_CONSTANT,
   SEQ_SRC_RANGE,
-} from '../seq/sequence'; // Adjust path if needed
-import { VectorView } from './vectorView';
+} from './sequence'; // Adjust path if needed
 
 /**
  * Cleanup handler for SEQUENCE objects.
@@ -61,17 +60,5 @@ export function performSequenceCleanup(heap: Heap, address: number): void {
     }
   } catch (err) {
     console.error(`Error during sequence cleanup @ ${address}:`, err);
-  }
-}
-
-/** Cleanup handler for VECTOR objects */
-export function performVectorCleanup(heap: Heap, address: number): void {
-  try {
-    const view = new VectorView(heap, address);
-    for (let i = 0; i < view.length; i++) {
-      decRef(heap, view.element(i));
-    }
-  } catch (error) {
-    console.error(`Error during vector cleanup @ ${address}:`, error);
   }
 }

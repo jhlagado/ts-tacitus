@@ -317,23 +317,23 @@ export function isDict(value: number): boolean {
   return checkTagged(value, HeapTag.DICT, true);
 }
 
-/**
- * Prints a formatted representation of a tagged value.
- */
-export function printValues(...args: unknown[]): void {
-  const format = (num: number): string => {
-    if (isNaN(num)) {
-      return num.toString();
-    } else {
-      const { heap, tag, value } = fromTaggedValue(num);
-      let tagName: string;
-      if (heap) {
-        tagName = heapTagNames[tag as HeapTag] || `HeapTag(${tag})`;
-      } else {
-        tagName = nonHeapTagNames[tag as CoreTag] || `NonHeapTag(${tag})`;
-      }
-      return `Heap: ${heap}, Tag: ${tag} (${tagName}), Value: ${value}`;
-    }
-  };
-  console.log(args.map(arg => (typeof arg === 'number' ? format(arg) : String(arg))).join(' '));
-}
+// /**
+//  * Prints a formatted representation of a tagged value.
+//  */
+// export function printValues(...args: unknown[]): void {
+//   const format = (num: number): string => {
+//     if (isNaN(num)) {
+//       return num.toString();
+//     } else {
+//       const { heap, tag, value } = fromTaggedValue(num);
+//       let tagName: string;
+//       if (heap) {
+//         tagName = heapTagNames[tag as HeapTag] || `HeapTag(${tag})`;
+//       } else {
+//         tagName = nonHeapTagNames[tag as CoreTag] || `NonHeapTag(${tag})`;
+//       }
+//       return `Heap: ${heap}, Tag: ${tag} (${tagName}), Value: ${value}`;
+//     }
+//   };
+//   console.log(args.map(arg => (typeof arg === 'number' ? format(arg) : String(arg))).join(' '));
+// }

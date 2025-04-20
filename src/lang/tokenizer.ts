@@ -1,4 +1,4 @@
-import { isDigit, isWhitespace, isSpecialChar } from './utils';
+import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
 
 export enum TokenType {
   NUMBER,
