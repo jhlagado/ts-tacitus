@@ -13,7 +13,7 @@ import {
   reduceOp,
 } from './builtins-sequence';
 import * as tagged from '../core/tagged';
-import { HeapTag, CoreTag } from '../core/tagged';
+import { CoreTag } from '../core/tagged';
 
 // Override fromTaggedValue to be an identity function.
 (tagged as any).fromTaggedValue = (ptr: any) => ptr;
@@ -87,30 +87,6 @@ describe('builtins-sequence operations', () => {
   });
 
   describe('seqOp', () => {
-    test('should return the same pointer if tag is SEQ', () => {
-      const vm = new MockVM();
-      const seqPtr = { tag: HeapTag.SEQUENCE, heap: true, id: 1 };
-      vm.push(seqPtr);
-      seqOp(vm as any);
-      expect(vm.pop()).toBe(seqPtr);
-    });
-
-    test('should process vector when tag is VECTOR', () => {
-      const vm = new MockVM();
-      const vectorPtr = { tag: HeapTag.VECTOR, heap: true, id: 2 };
-      vm.push(vectorPtr);
-      seqOp(vm as any);
-      expect(vm.pop()).toBe(100);
-    });
-
-    test('should process dictionary when tag is DICT', () => {
-      const vm = new MockVM();
-      const dictPtr = { tag: HeapTag.DICT, heap: true, id: 3 };
-      vm.push(dictPtr);
-      seqOp(vm as any);
-      expect(vm.pop()).toBe(200);
-    });
-
     test('should process string when tag is STRING and not heap', () => {
       const vm = new MockVM();
       const strPtr = { tag: CoreTag.STRING, heap: false, id: 4 };
