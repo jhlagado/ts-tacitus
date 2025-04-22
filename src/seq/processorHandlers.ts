@@ -146,7 +146,6 @@ export function handleProcessorNext(vm: VM, seq: number) {
   const { value: seqPtr } = fromTaggedValue(seq);
   const seqv = new SequenceView(vm.heap, seqPtr);
   const op = seqv.processorType; // meta[0]
-  console.log('handleProcessorNext', op);
   switch (op) {
     case ProcType.MAP:
       return handleProcMap(vm, seq, seqv);

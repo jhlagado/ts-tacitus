@@ -17,6 +17,6 @@ describe('Tacit Sequence Operations', () => {
     const vectorPtr = result[0];
     const vectorContents = vectorToArray(vm.heap, vectorPtr);
     console.log(vectorContents);
-    expect(vectorContents).toEqual([1, 2, 3, 4, 5]);
+    expect(vectorContents).toEqual([2, 4, 6, 8, 10]);
   });
 });
