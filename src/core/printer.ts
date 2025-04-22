@@ -3,24 +3,19 @@ import { SequenceView } from '../seq/sequenceView';
 import { VectorView } from '../heap/vectorView';
 import { vm } from './globalState';
 
-export function printValues(...tvals: (number | string)[]): void {
-  for (let i = 0; i < tvals.length; i++) {
-    const val = tvals[i];
-    if (typeof val === 'number') {
-      printValue(tvals[i] as number, 2);
-    } else {
-      console.log(tvals[i]);
-    }
-  }
-}
-
 /**
  * Recursively prints any Tacit value (scalar, vector, dict, sequence, etc.)
  * with indentation, hex addresses, tags, and contents.
  */
-export function printValue(tval: number, indent = 0): void {
+export function printValue(tval: number, title = ''): void {
+  console.warn(title);
+  printValueRec(tval, 0);
+}
+
+function printValueRec(tval: number, indent = 0): void {
   const { value: addr, isHeap, tag } = fromTaggedValue(tval);
-  console.warn(`print: ${tag}:${toHex(addr)} = ${toHex(addr)} (${isHeap ? 'heap' : 'scalar'})`);
+  const tagName = toTagName(tag, isHeap);
+  console.warn(`print: ${tagName}:${toHex(addr)} (${isHeap ? 'heap' : 'scalar'})`);
   const prefix = `${indentStr(indent)}${isHeap ? toHex(addr) + ' ' : ''}${toTagName(
     tag,
     isHeap
@@ -38,7 +33,7 @@ export function printValue(tval: number, indent = 0): void {
       const view = new VectorView(vm.heap, addr);
       console.warn(`${prefix}Vector(len=${view.length}) [`);
       for (let i = 0; i < view.length; i++) {
-        printValue(view.element(i), indent + 1);
+        printValueRec(view.element(i), indent + 1);
       }
       console.warn(`${indentStr(indent)}]`);
       break;
@@ -48,7 +43,7 @@ export function printValue(tval: number, indent = 0): void {
       const seq = new SequenceView(vm.heap, addr);
       console.warn(`${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {`);
       for (let i = 0; i < seq.metaCount; i++) {
-        printValue(seq.meta(i), indent + 1);
+        printValueRec(seq.meta(i), indent + 1);
       }
       console.warn(`${indentStr(indent)}}`);
       break;
@@ -79,21 +74,14 @@ export function toTagName(tag: number, heap: boolean): string {
 
 function scalarRepr(tval: number): string {
   const { tag, value } = fromTaggedValue(tval);
-  let val: number | string = tval;
-  let name = 'NUMBER';
   switch (tag) {
     case CoreTag.INTEGER:
-      name = 'INTEGER';
-      val = value;
-      break;
+      return `${value}`;
     case CoreTag.CODE:
-      name = 'CODE';
-      val = '<code>';
-      break;
+      return '<code>';
     case CoreTag.STRING:
-      name = 'STRING';
-      val = vm.digest.get(value);
+      return vm.digest.get(value);
+    default:
+      return `${tval}`;
   }
-  const result = `${name}: ${val}`;
-  return result;
 }

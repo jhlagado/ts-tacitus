@@ -18,7 +18,7 @@ import { initializeInterpreter, vm } from '../core/globalState';
 import { Heap } from '../heap/heap';
 import { executeProgram } from '../lang/interpreter';
 import { SEG_STRING } from '../core/memory';
-import { printValues } from '../core/printer';
+import { printValue } from '../core/printer';
 import { SequenceView } from './sequenceView';
 
 describe('Sequence Operations', () => {
@@ -99,8 +99,7 @@ describe('Sequence Operations', () => {
       const seq = stringSource(heap, strPtr);
       const seqv = new SequenceView(heap, seq);
       const strPtr1 = seqv.meta(0);
-      printValues('-------LLLL', strPtr1);
-
+      printValue(strPtr1, '-------LLLL');
 
       const expected = ['a', 'b', 'c'].map(c => c.charCodeAt(0));
 

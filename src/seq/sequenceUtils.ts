@@ -9,6 +9,9 @@ import {
 // Import SEG_HEAP
 import { SEG_HEAP } from '../core/memory';
 import { CELL_SIZE } from '../core/constants';
+import { fromTaggedValue, HeapTag, CoreTag } from '../core/tagged';
+import { VM } from '../core/vm';
+import { vectorSource, dictionarySource, stringSource, constantSource } from './source';
 
 // --- Constants for Sequence Layout (Based on sequence.ts) ---
 const SEQ_TYPE = 0; // Offset for SEQ_SRC_* type (uint16)
@@ -113,4 +116,27 @@ export function cleanupSequence(heap: Heap, address: number): void {
   } catch (error) {
       console.error(`Error during sequence cleanup for address ${address}:`, error);
   }
+}
+
+
+export function createSequence(vm: VM, sourcePtr: number): number {
+  const { tag, isHeap } = fromTaggedValue(sourcePtr);
+
+  if (isHeap && tag === HeapTag.SEQUENCE) {
+    return sourcePtr;
+  }
+  if (isHeap && tag === HeapTag.VECTOR) {
+    return vectorSource(vm.heap, sourcePtr);
+  }
+  if (isHeap && tag === HeapTag.DICT) {
+    return dictionarySource(vm.heap, sourcePtr);
+  }
+  if (!isHeap && tag === CoreTag.STRING) {
+    return stringSource(vm.heap, sourcePtr);
+  }
+  if (!isHeap && (tag === CoreTag.INTEGER || tag === CoreTag.NUMBER)) {
+    return constantSource(vm.heap, sourcePtr);
+  }
+
+  throw new Error('Invalid argument for seq: expected sequence, vector, dict, string, or number');
 }

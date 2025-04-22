@@ -31,7 +31,7 @@ import {
   handleProcMultiSource,
 } from './processorHandlers';
 import { VectorView } from '../heap/vectorView';
-import { printValues } from '../core/printer';
+import { printValue } from '../core/printer';
 
 // --- Sequence and Processor constants ---
 
@@ -103,7 +103,7 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
   const { value: seqPtr } = fromTaggedValue(vectorTagged);
 
   const seqv = new SequenceView(heap, seqPtr);
-  printValues('=================??', seqv.meta(0));
+  printValue(seqv.meta(0), '=================??');
 
   return toTaggedValue(seqPtr, true, HeapTag.SEQUENCE);
 }
