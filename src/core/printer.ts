@@ -4,72 +4,57 @@ import { VectorView } from '../heap/vectorView';
 import { vm } from './globalState';
 
 /**
- * Recursively prints any Tacit value (scalar, vector, dict, sequence, etc.)
- * with indentation, hex addresses, tags, and contents.
+ * Recursively prints any Tacit value with indentation, hex addresses, tags, and contents.
  */
 export function printValue(tval: number, title = ''): void {
-  console.warn(title);
-  printValueRec(tval, 0);
+  console.warn(`${title}: ${formatValue(tval, 0)}`);
 }
 
-function printValueRec(tval: number, indent = 0): void {
+function formatValue(tval: number, indent = 0): string {
   const { value: addr, isHeap, tag } = fromTaggedValue(tval);
-  const tagName = toTagName(tag, isHeap);
-  console.warn(`print: ${tagName}:${toHex(addr)} (${isHeap ? 'heap' : 'scalar'})`);
-  const prefix = `${indentStr(indent)}${isHeap ? toHex(addr) + ' ' : ''}${toTagName(
-    tag,
-    isHeap
-  )}: `;
+  const name = toTagName(tag, isHeap);
+  const prefix = `${'  '.repeat(indent)}${isHeap ? `${toHex(addr)} ` : ''}${name}: `;
 
   if (!isHeap) {
     // Scalar or immediate
-    console.warn(prefix + scalarRepr(tval));
-    return;
+    return `${prefix}${scalarRepr(tval)}`;
   }
 
   // Heap‐allocated object
   switch (tag as HeapTag) {
     case HeapTag.VECTOR: {
       const view = new VectorView(vm.heap, addr);
-      console.warn(`${prefix}Vector(len=${view.length}) [`);
-      for (let i = 0; i < view.length; i++) {
-        printValueRec(view.element(i), indent + 1);
-      }
-      console.warn(`${indentStr(indent)}]`);
-      break;
+      const elems = Array.from({ length: view.length }, (_, i) =>
+        formatValue(view.element(i), indent + 1)
+      ).join('\n');
+      return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
     }
 
     case HeapTag.SEQUENCE: {
       const seq = new SequenceView(vm.heap, addr);
-      console.warn(`${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {`);
-      for (let i = 0; i < seq.metaCount; i++) {
-        printValueRec(seq.meta(i), indent + 1);
-      }
-      console.warn(`${indentStr(indent)}}`);
-      break;
+      const metas = Array.from({ length: seq.metaCount }, (_, i) =>
+        formatValue(seq.meta(i), indent + 1)
+      ).join('\n');
+      return (
+        `${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {\n` +
+        `${metas}\n` +
+        `${'  '.repeat(indent)}}`
+      );
     }
 
-    // TODO: add DICT, STRING, CONSTANT, RANGE cases here
+    // TODO: DICT, STRING, CONSTANT, RANGE
 
     default:
-      console.warn(prefix + `<unrecognized heap tag>`);
+      return `${prefix}<unrecognized heap tag>`;
   }
 }
 
-export function indentStr(level: number): string {
-  return '  '.repeat(level);
+function toHex(addr: number): string {
+  return `0x${addr.toString(16)}`;
 }
 
-export function toHex(addr: number): string {
-  return '0x' + addr.toString(16);
-}
-
-export function toTagName(tag: number, heap: boolean): string {
-  if (heap) {
-    return heapTagNames[tag as HeapTag];
-  } else {
-    return nonHeapTagNames[tag as CoreTag];
-  }
+function toTagName(tag: number, heap: boolean): string {
+  return heap ? heapTagNames[tag as HeapTag] : nonHeapTagNames[tag as CoreTag];
 }
 
 function scalarRepr(tval: number): string {
@@ -78,9 +63,9 @@ function scalarRepr(tval: number): string {
     case CoreTag.INTEGER:
       return `${value}`;
     case CoreTag.CODE:
-      return '<code>';
+      return `<code>`;
     case CoreTag.STRING:
-      return vm.digest.get(value);
+      return `"${vm.digest.get(value)}"`;
     default:
       return `${tval}`;
   }
