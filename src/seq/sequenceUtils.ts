@@ -1,11 +1,8 @@
 import { Heap } from '../heap/heap';
 import { decRef } from '../heap/heapUtils';
 // Import internal sequence type constants using correct names
-// REMOVED: PROC_SCAN, PROC_TAKE, PROC_DROP, SEQ_SRC_STRING as they are not exported/defined in sequence.ts
-import {
-  PROC_MAP, PROC_FILTER, PROC_SIFT, // Add other existing PROC_ types as needed
-  SEQ_SRC_RANGE, SEQ_SRC_VECTOR, SEQ_SRC_DICT, SEQ_SRC_CONSTANT, SEQ_SRC_PROCESSOR // Add other existing SEQ_SRC_ types as needed
-} from './sequence'; // Adjust path if needed
+// REMOVED: ProcType.SCAN, ProcType.TAKE, ProcType.DROP, SeqSourceType.STRING as they are not exported/defined in sequence.ts
+import { ProcType, SeqSourceType } from './sequence'; // Adjust path if needed
 // Import SEG_HEAP
 import { SEG_HEAP } from '../core/memory';
 import { CELL_SIZE } from '../core/constants';
@@ -14,7 +11,7 @@ import { VM } from '../core/vm';
 import { vectorSource, dictionarySource, stringSource, constantSource } from './source';
 
 // --- Constants for Sequence Layout (Based on sequence.ts) ---
-const SEQ_TYPE = 0; // Offset for SEQ_SRC_* type (uint16)
+const SEQ_TYPE = 0; // Offset for SeqSourceType.* type (uint16)
 const SEQ_META_COUNT = 2; // Offset for number of meta elements (uint16)
 const SEQ_META_START = 4; // Offset where meta elements begin (uint32/float32)
 //-----------------------------------------------------------------------------
@@ -22,7 +19,7 @@ const SEQ_META_START = 4; // Offset where meta elements begin (uint32/float32)
 
 // --- Helper Functions ---
 
-/** Reads the internal sequence source type identifier (e.g., SEQ_SRC_RANGE) */
+/** Reads the internal sequence source type identifier (e.g., SeqSourceType.RANGE) */
 function seqGetSourceType(heap: Heap, address: number): number {
     const byteOffset = heap.blockToByteOffset(address);
     return heap.memory.read16(SEG_HEAP, byteOffset + SEQ_TYPE);
@@ -47,7 +44,7 @@ function seqGetMetaValue(heap: Heap, address: number, metaIndex: number): number
     return heap.memory.readFloat(SEG_HEAP, metaValueOffset);
 }
 
-/** Reads the processor type (e.g., PROC_MAP) for SEQ_SRC_PROCESSOR sequences */
+/** Reads the processor type (e.g., ProcType.MAP) for SeqSourceType.PROCESSOR sequences */
 function seqGetProcessorType(heap: Heap, address: number): number {
     const metaCount = seqGetMetaCount(heap, address);
     // Processor type is stored as the last metadata element
@@ -61,51 +58,51 @@ export function cleanupSequence(heap: Heap, address: number): void {
     const sourceType = seqGetSourceType(heap, address);
 
     switch (sourceType) {
-      case SEQ_SRC_PROCESSOR: {
+      case SeqSourceType.PROCESSOR: {
         const procType = seqGetProcessorType(heap, address);
         switch (procType) {
-            case PROC_MAP:
-            case PROC_FILTER:
-            // REMOVED: PROC_TAKE, PROC_DROP cases
+            case ProcType.MAP:
+            case ProcType.FILTER:
+            // REMOVED: ProcType.TAKE, ProcType.DROP cases
              {
                 const innerSeq = seqGetMetaValue(heap, address, 0); // Arg 0 = inner sequence
                 decRef(heap, innerSeq);
                 break;
             }
-            case PROC_SIFT: { // Assuming meta[0]=innerSeq, meta[1]=maskSeq
+            case ProcType.SIFT: { // Assuming meta[0]=innerSeq, meta[1]=maskSeq
                 const innerSeq = seqGetMetaValue(heap, address, 0);
                 const maskSeq = seqGetMetaValue(heap, address, 1);
                 decRef(heap, innerSeq);
                 decRef(heap, maskSeq);
                 break;
             }
-            // REMOVED: PROC_SCAN case
-            // TODO: Add existing PROC_MULTI_SOURCE, PROC_CHAIN cases based on their meta layout
+            // REMOVED: ProcType.SCAN case
+            // TODO: Add existing ProcType.MULTI_SOURCE, ProcType.CHAIN cases based on their meta layout
             default:
-                 console.warn(`cleanupSequence: Unknown or unhandled processor type ${procType} for SEQ_SRC_PROCESSOR at address ${address}`);
+                 console.warn(`cleanupSequence: Unknown or unhandled processor type ${procType} for SeqSourceType.PROCESSOR at address ${address}`);
                  break;
         }
-        break; // End of SEQ_SRC_PROCESSOR case
+        break; // End of SeqSourceType.PROCESSOR case
       }
 
       // --- Source Types ---
-      case SEQ_SRC_VECTOR: { // Assuming meta[0] = vectorPtr
+      case SeqSourceType.VECTOR: { // Assuming meta[0] = vectorPtr
         const vectorPtr = seqGetMetaValue(heap, address, 0);
         decRef(heap, vectorPtr);
         break;
       }
-      case SEQ_SRC_DICT: { // Assuming meta[0] = dictPtr
+      case SeqSourceType.DICT: { // Assuming meta[0] = dictPtr
         const dictPtr = seqGetMetaValue(heap, address, 0);
         decRef(heap, dictPtr);
         break;
       }
-       case SEQ_SRC_CONSTANT: { // Assuming meta[0] = constant value
+       case SeqSourceType.CONSTANT: { // Assuming meta[0] = constant value
           const value = seqGetMetaValue(heap, address, 0);
           decRef(heap, value);
           break;
       }
-      case SEQ_SRC_RANGE:
-      // REMOVED: SEQ_SRC_STRING case
+      case SeqSourceType.RANGE:
+      // REMOVED: SeqSourceType.STRING case
         // These sources hold no internal heap pointers in their metadata
         break;
 

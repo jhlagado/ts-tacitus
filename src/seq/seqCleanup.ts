@@ -5,11 +5,7 @@ import { decRef } from '../heap/heapUtils';
 import { SequenceView } from './sequenceView';
 // Import sequence constants
 import {
-  SEQ_SRC_PROCESSOR, // Add other existing SEQ_SRC_ types
-  SEQ_SRC_VECTOR,
-  SEQ_SRC_DICT,
-  SEQ_SRC_CONSTANT,
-  SEQ_SRC_RANGE,
+  SeqSourceType,
 } from './sequence'; // Adjust path if needed
 
 /**
@@ -23,7 +19,7 @@ export function performSequenceCleanup(heap: Heap, address: number): void {
     const seq = new SequenceView(heap, address);
 
     switch (seq.type) {
-      case SEQ_SRC_PROCESSOR: {
+      case SeqSourceType.PROCESSOR: {
         // decrement all meta slots except slot 0 (the opcode)
         const count = seq.metaCount;
         for (let i = 1; i < count; i++) {
@@ -32,25 +28,25 @@ export function performSequenceCleanup(heap: Heap, address: number): void {
         break;
       }
 
-      case SEQ_SRC_VECTOR: {
+      case SeqSourceType.VECTOR: {
         // release the underlying vector
         decRef(heap, seq.meta(0));
         break;
       }
 
-      case SEQ_SRC_DICT: {
+      case SeqSourceType.DICT: {
         // release the underlying dict (vector of pairs)
         decRef(heap, seq.meta(0));
         break;
       }
 
-      case SEQ_SRC_CONSTANT: {
+      case SeqSourceType.CONSTANT: {
         // release the constant’s boxed value
         decRef(heap, seq.meta(0));
         break;
       }
 
-      case SEQ_SRC_RANGE:
+      case SeqSourceType.RANGE:
         // nothing to release
         break;
 

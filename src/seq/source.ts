@@ -1,35 +1,30 @@
 import { Heap } from '../heap/heap';
 import {
+  ProcType,
   seqCreate,
-  SEQ_SRC_RANGE,
-  SEQ_SRC_VECTOR,
-  SEQ_SRC_STRING,
-  SEQ_SRC_PROCESSOR,
-  PROC_MULTI_SOURCE,
-  SEQ_SRC_CONSTANT,
-  SEQ_SRC_DICT,
+  SeqSourceType,
 } from './sequence';
 
 export function rangeSource(heap: Heap, start: number, end: number, step: number): number {
-  return seqCreate(heap, SEQ_SRC_RANGE, [start, step, end]);
+  return seqCreate(heap, SeqSourceType.RANGE, [start, step, end]);
 }
 
 export function vectorSource(heap: Heap, vectorPtr: number): number {
-  return seqCreate(heap, SEQ_SRC_VECTOR, [vectorPtr]);
+  return seqCreate(heap, SeqSourceType.VECTOR, [vectorPtr]);
 }
 
 export function multiSequenceSource(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [...sequences, PROC_MULTI_SOURCE]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [...sequences, ProcType.MULTI_SOURCE]);
 }
 
 export function stringSource(heap: Heap, strPtr: number): number {
-  return seqCreate(heap, SEQ_SRC_STRING, [strPtr]);
+  return seqCreate(heap, SeqSourceType.STRING, [strPtr]);
 }
 
 export function constantSource(heap: Heap, value: number): number {
-  return seqCreate(heap, SEQ_SRC_CONSTANT, [value]);
+  return seqCreate(heap, SeqSourceType.CONSTANT, [value]);
 }
 
 export function dictionarySource(heap: Heap, dictPtr: number): number {
-  return seqCreate(heap, SEQ_SRC_DICT, [dictPtr, 0]);
+  return seqCreate(heap, SeqSourceType.DICT, [dictPtr, 0]);
 }

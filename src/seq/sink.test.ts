@@ -3,7 +3,7 @@ import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { Heap } from '../heap/heap';
 import { toVector, last, forEach, count, reduce, find, any, all } from './sink';
-import { seqCreate, SEQ_SRC_VECTOR } from './sequence';
+import { seqCreate, SeqSourceType } from './sequence';
 import { NIL, fromTaggedValue, HeapTag, toTaggedValue, CoreTag } from '../core/tagged';
 import { vectorCreate, vectorGet } from '../heap/vector';
 import { parse } from '../lang/parser';
@@ -67,7 +67,7 @@ describe('Sequence Operations', () => {
   describe('forEach', () => {
     it('should apply a function to each element in the sequence', () => {
       const vecPtr = vectorCreate(heap, [1, 2, 3]);
-      const vectorSeq = seqCreate(heap, SEQ_SRC_VECTOR, [vecPtr]);
+      const vectorSeq = seqCreate(heap, SeqSourceType.VECTOR, [vecPtr]);
 
       executeProgram('( . )');
       const func = vm.pop();
@@ -101,7 +101,7 @@ describe('Sequence Operations', () => {
 
     it('should properly count a vector sequence', () => {
       const vecPtr = vectorCreate(heap, [42, 43, 44, 45]);
-      const vectorSeq = seqCreate(heap, SEQ_SRC_VECTOR, [vecPtr]);
+      const vectorSeq = seqCreate(heap, SeqSourceType.VECTOR, [vecPtr]);
       const countValue = count(heap, testVM, vectorSeq);
       expect(countValue).toBe(4);
     });

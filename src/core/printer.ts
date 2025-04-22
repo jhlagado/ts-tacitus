@@ -42,7 +42,7 @@ function formatValue(tval: number, indent = 0): string {
       );
     }
 
-    // TODO: DICT, STRING, CONSTANT, RANGE
+    // TODO: other heap types
 
     default:
       return `${prefix}<unrecognized heap tag>`;

@@ -12,16 +12,8 @@
 import { Heap } from '../heap/heap';
 import { seqCreate } from './sequence';
 import {
-  SEQ_SRC_PROCESSOR,
-  PROC_MAP,
-  PROC_FILTER,
-  PROC_SIFT,
-  PROC_TAKE,
-  PROC_DROP,
-  PROC_MULTI,
-  PROC_MULTI_SOURCE,
-  PROC_SCAN,
-  PROC_CHAIN,
+  SeqSourceType,
+  ProcType
 } from './sequence';
 
 /**
@@ -32,7 +24,7 @@ import {
  * @returns Pointer to the newly created map processor sequence
  */
 export function mapSeq(heap: Heap, source: number, func: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MAP, source, func]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MAP, source, func]);
 }
 
 /**
@@ -42,7 +34,7 @@ export function mapSeq(heap: Heap, source: number, func: number): number {
  * @returns Pointer to the newly created multi-sequence processor
  */
 export function multiSeq(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MULTI, ...sequences]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MULTI, ...sequences]);
 }
 
 /**
@@ -52,7 +44,7 @@ export function multiSeq(heap: Heap, sequences: number[]): number {
  * @returns Pointer to the newly created multi-source processor
  */
 export function multiSourceSeq(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_MULTI_SOURCE, ...sequences]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MULTI_SOURCE, ...sequences]);
 }
 
 /**
@@ -64,7 +56,7 @@ export function multiSourceSeq(heap: Heap, sequences: number[]): number {
  * @returns Pointer to the newly created sift processor sequence
  */
 export function siftSeq(heap: Heap, source: number, mask: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_SIFT, source, mask]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.SIFT, source, mask]);
 }
 
 /**
@@ -75,7 +67,7 @@ export function siftSeq(heap: Heap, source: number, mask: number): number {
  * @returns Pointer to the newly created take processor sequence
  */
 export function takeSeq(heap: Heap, source: number, count: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_TAKE, source, count]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.TAKE, source, count]);
 }
 
 /**
@@ -86,7 +78,7 @@ export function takeSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created drop processor sequence
  */
 export function dropSeq(heap: Heap, source: number, count: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_DROP, source, count]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.DROP, source, count]);
 }
 
 /**
@@ -98,8 +90,8 @@ export function dropSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created scan processor sequence
  */
 export function scanSeq(heap: Heap, source: number, func: number, initialValue: number): number {
-  // slot[0]=PROC_SCAN, slot[1]=source, slot[2]=func, slot[3]=initialValue
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_SCAN, source, func, initialValue]);
+  // slot[0]=ProcType.SCAN, slot[1]=source, slot[2]=func, slot[3]=initialValue
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.SCAN, source, func, initialValue]);
 }
 
 /**
@@ -110,8 +102,8 @@ export function scanSeq(heap: Heap, source: number, func: number, initialValue: 
  * @returns Pointer to the newly created chain processor sequence
  */
 export function chainSeq(heap: Heap, source: number, processors: number[]): number {
-  // slot[0]=PROC_CHAIN, slot[1]=source, slots[2..]=processors
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_CHAIN, source, ...processors]);
+  // slot[0]=ProcType.CHAIN, slot[1]=source, slots[2..]=processors
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.CHAIN, source, ...processors]);
 }
 
 /**
@@ -123,5 +115,5 @@ export function chainSeq(heap: Heap, source: number, processors: number[]): numb
  * @returns Pointer to the newly created filter processor sequence
  */
 export function filterSeq(heap: Heap, source: number, pred: number): number {
-  return seqCreate(heap, SEQ_SRC_PROCESSOR, [PROC_FILTER, source, pred]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.FILTER, source, pred]);
 }

@@ -1,16 +1,12 @@
 import { NIL, fromTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
 import { stringCreate } from '../strings/string';
-import { vectorCreate } from '../heap/vector';
+import { vectorCreate, vectorSimpleGet } from '../heap/vector';
 import {
   seqNext,
   seqCreate,
-  SEQ_SRC_PROCESSOR,
-  PROC_MAP,
-  PROC_SIFT,
-  PROC_TAKE,
-  PROC_DROP,
-  PROC_MULTI_SOURCE,
+  SeqSourceType,
+  ProcType
 } from './sequence';
 import { rangeSource, vectorSource, stringSource } from './source';
 import { describe, it, expect } from '@jest/globals';
@@ -95,10 +91,21 @@ describe('Sequence Operations', () => {
       const len = heap.memory.read8(SEG_STRING, strAddr);
       const ch = heap.memory.read8(SEG_STRING, strAddr + 1);
       console.log('>>>>>>>>>>>>> String length:', len, 'First char:', ch, 'strAddr', strAddr);
+      printValue(strPtr, '-------STRING');
 
       const seq = stringSource(heap, strPtr);
       const seqv = new SequenceView(heap, seq);
+      printValue(seq, '-------SEQUENCE');
+      const val0 = vectorSimpleGet(vm.heap, seq, 0);
+      printValue(val0, '-------SEQUENCE 0');
+      const val1 = vectorSimpleGet(vm.heap, seq, 1);
+      printValue(val1, '-------SEQUENCE 1');
+      const val2 = vectorSimpleGet(vm.heap, seq, 2);
+      printValue(val2, '-------SEQUENCE 2');
+
       const strPtr1 = seqv.meta(0);
+      const { value: strAddr1, tag, isHeap } = fromTaggedValue(strPtr1);
+      console.log('>>> strAddr1', strAddr1, 'tag', tag, 'isHeap', isHeap);
       printValue(strPtr1, '-------LLLL');
 
       const expected = ['a', 'b', 'c'].map(c => c.charCodeAt(0));
@@ -127,7 +134,7 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 10, 1);
 
       // Create a take processor sequence that takes only the first 3 values
-      const takeSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 3, PROC_TAKE]);
+      const takeSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 3, ProcType.TAKE]);
 
       // Expected results after taking first 3
       const expected = [1, 2, 3];
@@ -149,7 +156,7 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 10, 1);
 
       // Create a drop processor sequence that skips the first 7 values
-      const dropSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 7, PROC_DROP]);
+      const dropSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 7, ProcType.DROP]);
 
       // Expected results after dropping first 7
       const expected = [8, 9, 10];
@@ -172,7 +179,7 @@ describe('Sequence Operations', () => {
       const seq2 = rangeSource(heap, 10, 30, 10);
 
       // Create a multi-source processor sequence
-      const multiSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [seq1, seq2, PROC_MULTI_SOURCE]);
+      const multiSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [seq1, seq2, ProcType.MULTI_SOURCE]);
 
       // Expected outputs: 1,10 followed by 2,20 followed by 3,30
       const expected = [
@@ -199,7 +206,7 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 5, 1);
 
       // Create a processor sequence with an invalid processor type (999)
-      const invalidProcSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 999]);
+      const invalidProcSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 999]);
 
       // Should just return NIL
       seqNext(heap, testVM, invalidProcSeq);
@@ -245,7 +252,7 @@ describe('Enhanced Sequence Operations', () => {
     it('should handle filtering with an invalid mask sequence', () => {
       const rangeSeq = rangeSource(heap, 1, 5, 1);
       const invalidMaskSeq = rangeSource(heap, 1, 0, 1); // Invalid mask
-      const siftedSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, invalidMaskSeq, PROC_SIFT]);
+      const siftedSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, invalidMaskSeq, ProcType.SIFT]);
 
       seqNext(heap, testVM, siftedSeq);
       expect(testVM.pop()).toEqual(NIL); // Invalid mask should terminate sequence
@@ -253,7 +260,7 @@ describe('Enhanced Sequence Operations', () => {
 
     it('should handle taking more elements than available', () => {
       const rangeSeq = rangeSource(heap, 1, 3, 1); // Sequence: [1, 2, 3]
-      const takeSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 5, PROC_TAKE]);
+      const takeSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 5, ProcType.TAKE]);
 
       const expected = [1, 2, 3];
       for (let value of expected) {
@@ -267,7 +274,7 @@ describe('Enhanced Sequence Operations', () => {
 
     it('should handle dropping more elements than available', () => {
       const rangeSeq = rangeSource(heap, 1, 3, 1); // Sequence: [1, 2, 3]
-      const dropSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, 5, PROC_DROP]);
+      const dropSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 5, ProcType.DROP]);
 
       seqNext(heap, testVM, dropSeq);
       expect(testVM.pop()).toEqual(NIL); // All elements dropped
@@ -276,7 +283,7 @@ describe('Enhanced Sequence Operations', () => {
     it('should handle multi-source sequences with different lengths', () => {
       const seq1 = rangeSource(heap, 1, 3, 1); // [1, 2, 3]
       const seq2 = rangeSource(heap, 10, 20, 10); // [10, 20]
-      const multiSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [seq1, seq2, PROC_MULTI_SOURCE]);
+      const multiSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [seq1, seq2, ProcType.MULTI_SOURCE]);
 
       const expected = [
         [1, 10],
@@ -319,7 +326,7 @@ describe('Enhanced Sequence Operations', () => {
   describe('Edge Cases - Additional Tests', () => {
     it('should handle nested sequences', () => {
       const innerSeq = rangeSource(heap, 1, 3, 1); // [1, 2, 3]
-      const outerSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [innerSeq, 2, PROC_TAKE]); // Take first 2
+      const outerSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [innerSeq, 2, ProcType.TAKE]); // Take first 2
 
       const expected = [1, 2];
       for (let value of expected) {
@@ -355,7 +362,7 @@ describe('Enhanced Sequence Operations', () => {
       const func = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, func, PROC_MAP]);
+      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, func, ProcType.MAP]);
 
       // Expected results after mapping
       const expected = [42, 42, 42, 42, 42];
@@ -381,7 +388,7 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, doubleFunc, PROC_MAP]);
+      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, doubleFunc, ProcType.MAP]);
 
       // Expected results after mapping
       const expected = [2, 4, 6, 8, 10];
@@ -407,7 +414,7 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, doubleFunc, PROC_MAP]);
+      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, doubleFunc, ProcType.MAP]);
 
       // Process the sequence and verify it terminates immediately
       seqNext(heap, testVM, mapSeq);
@@ -423,7 +430,7 @@ describe('Enhanced Sequence Operations', () => {
       const squareFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [rangeSeq, squareFunc, PROC_MAP]);
+      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, squareFunc, ProcType.MAP]);
 
       // Expected results after mapping
       const expected = [1, 4, 9, 16, 25];
@@ -450,7 +457,7 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SEQ_SRC_PROCESSOR, [vectorSeq, doubleFunc, PROC_MAP]);
+      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [vectorSeq, doubleFunc, ProcType.MAP]);
 
       // Expected results after mapping
       const expected = [2, 4, 6];
