@@ -6,8 +6,8 @@ import { vm } from './globalState';
 /**
  * Recursively prints any Tacit value with indentation, hex addresses, tags, and contents.
  */
-export function printValue(tval: number, title = ''): void {
-  console.warn(`${title}: ${formatValue(tval, 0)}`);
+export function prn(title: string, tval: number): void {
+  console.warn(`${title ?? ''}: ${formatValue(tval, 0)}`);
 }
 
 function formatValue(tval: number, indent = 0): string {

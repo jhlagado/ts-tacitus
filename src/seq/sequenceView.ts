@@ -24,7 +24,7 @@ export class SequenceView {
   }
 
   public next(vm: VM, childSeq: number): number {
-    return seqNext(this.heap, vm, childSeq);
+    return seqNext(vm, childSeq);
   }
 
   /** read the per‐sequence cursor (after all meta slots) */

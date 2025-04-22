@@ -2,6 +2,8 @@ import { VM } from '../core/vm';
 import { SequenceView } from './sequenceView';
 import { NIL, isNIL, fromTaggedValue } from '../core/tagged';
 import { callTacitFunction } from '../lang/interpreter';
+import { ProcType } from './sequence';
+import { prn } from '../core/printer';
 
 /** PROC_MAP: apply func to each element of the source seq */
 export function handleProcMap(vm: VM, seq: number, seqv: SequenceView): number {
@@ -73,6 +75,8 @@ export function handleProcFilter(vm: VM, seq: number, seqv: SequenceView): numbe
 export function handleProcTake(vm: VM, seq: number, seqv: SequenceView): number {
   const limit = seqv.meta(2);
   const idx = seqv.cursor;
+  prn('limit', limit);
+
   if (idx >= limit) {
     vm.push(NIL);
     return seq;
@@ -136,4 +140,30 @@ export function handleProcMultiSource(vm: VM, seq: number, seqv: SequenceView): 
     vm.push(v);
   }
   return seq;
+}
+
+export function handleProcessorNext(vm: VM, seq: number) {
+  const { value: seqPtr } = fromTaggedValue(seq);
+  const seqv = new SequenceView(vm.heap, seqPtr);
+  const op = seqv.processorType; // meta[0]
+  console.log('handleProcessorNext', op);
+  switch (op) {
+    case ProcType.MAP:
+      return handleProcMap(vm, seq, seqv);
+    case ProcType.FILTER:
+      return handleProcFilter(vm, seq, seqv);
+    case ProcType.SIFT:
+      return handleProcSift(vm, seq, seqv);
+    case ProcType.TAKE:
+      return handleProcTake(vm, seq, seqv);
+    case ProcType.DROP:
+      return handleProcDrop(vm, seq, seqv);
+    case ProcType.MULTI:
+      return handleProcMulti(vm, seq, seqv);
+    case ProcType.MULTI_SOURCE:
+      return handleProcMultiSource(vm, seq, seqv);
+    default:
+      vm.push(NIL);
+      return seq;
+  }
 }

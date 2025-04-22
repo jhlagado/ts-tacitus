@@ -21,16 +21,9 @@ import { isHeapAllocated } from '../core/tagged';
 
 // --- New imports for the refactor ---
 import { SequenceView } from './sequenceView';
-import {
-  handleProcMap,
-  handleProcFilter,
-  handleProcSift,
-  handleProcTake,
-  handleProcDrop,
-  handleProcMulti,
-  handleProcMultiSource,
-} from './processorHandlers';
+import { handleProcessorNext } from './processorHandlers';
 import { VectorView } from '../heap/vectorView';
+// import { prn } from '../core/printer';
 
 export const OFS_TYPE = 0; // headerData[0]
 export const OFS_META_COUNT = 1; // headerData[1]
@@ -94,6 +87,10 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
       : 0
   );
 
+  // for (let i = 0; i < headerData.length; i++) {
+  //   prn(`headerData ${i}`, headerData[i]);
+  // }
+
   const vectorTagged = vectorCreate(heap, headerData);
 
   if (vectorTagged === NIL) return NIL;
@@ -121,34 +118,13 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
  *          for consistency and potential future use.  The function pushes the next element of the sequence onto
  *          the VM's stack, or NIL if the sequence is exhausted.
  */
-export function seqNext(heap: Heap, vm: VM, seq: number): number {
+export function seqNext(vm: VM, seq: number): number {
   const { value: seqPtr } = fromTaggedValue(seq);
-  const seqv = new SequenceView(heap, seqPtr);
-
+  const seqv = new SequenceView(vm.heap, seqPtr);
   switch (seqv.type) {
     case SeqSourceType.PROCESSOR: {
-      const op = seqv.processorType; // meta[0]
-      switch (op) {
-        case ProcType.MAP:
-          return handleProcMap(vm, seq, seqv);
-        case ProcType.FILTER:
-          return handleProcFilter(vm, seq, seqv);
-        case ProcType.SIFT:
-          return handleProcSift(vm, seq, seqv);
-        case ProcType.TAKE:
-          return handleProcTake(vm, seq, seqv);
-        case ProcType.DROP:
-          return handleProcDrop(vm, seq, seqv);
-        case ProcType.MULTI:
-          return handleProcMulti(vm, seq, seqv);
-        case ProcType.MULTI_SOURCE:
-          return handleProcMultiSource(vm, seq, seqv);
-        default:
-          vm.push(NIL);
-          return seq;
-      }
+      return handleProcessorNext(vm, seq);
     }
-
     case SeqSourceType.RANGE: {
       const step = seqv.meta(1);
       const end = seqv.meta(2);
@@ -165,7 +141,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
     case SeqSourceType.VECTOR: {
       const taggedVec = seqv.meta(0);
       const { value: vecPtr } = fromTaggedValue(taggedVec);
-      const vv = new VectorView(heap, vecPtr);
+      const vv = new VectorView(vm.heap, vecPtr);
 
       const idx = seqv.cursor;
       if (idx < vv.length) {
@@ -183,12 +159,12 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const { value: strAddr } = fromTaggedValue(strTV);
       const i = seqv.cursor;
       // first byte at strAddr is the length
-      const len = heap.memory.read8(SEG_STRING, strAddr);
+      const len = vm.heap.memory.read8(SEG_STRING, strAddr);
 
       console.log(`seqNext: string${strAddr} length=${len} cursor=${i} char=`);
       if (i < len) {
         // skip the length byte, then index into the chars
-        const ch = heap.memory.read8(SEG_STRING, strAddr + 1 + i);
+        const ch = vm.heap.memory.read8(SEG_STRING, strAddr + 1 + i);
         vm.push(ch);
         seqv.cursor = i + 1;
       } else {
@@ -208,7 +184,7 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       // meta[0] = dict pointer
       const dictTaggedPtr = seqv.meta(0);
       const { value: vecPtr } = fromTaggedValue(dictTaggedPtr);
-      const vv = new VectorView(heap, vecPtr);
+      const vv = new VectorView(vm.heap, vecPtr);
 
       const pairIdx = seqv.cursor;
       const pairCount = Math.floor(vv.length / 2);

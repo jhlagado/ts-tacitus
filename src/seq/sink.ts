@@ -11,7 +11,7 @@ import { callTacitFunction } from '../lang/interpreter';
 export function toVector(heap: Heap, vm: VM, seq: number): number {
   const values: number[] = [];
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) break;
     values.push(value);
@@ -25,7 +25,7 @@ export function toVector(heap: Heap, vm: VM, seq: number): number {
 export function last(heap: Heap, vm: VM, seq: number): number {
   let lastValue = NIL;
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) break;
     lastValue = value;
@@ -39,7 +39,7 @@ export function last(heap: Heap, vm: VM, seq: number): number {
 export function forEach(heap: Heap, vm: VM, seq: number, func: number): void {
   const { value: funcPtr } = fromTaggedValue(func);
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) return;
     vm.push(value);
@@ -53,7 +53,7 @@ export function forEach(heap: Heap, vm: VM, seq: number, func: number): void {
 export function count(heap: Heap, vm: VM, seq: number): number {
   let n = 0;
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     if (isNIL(vm.pop())) break;
     n++;
   }
@@ -73,7 +73,7 @@ export function reduce(
 ): number {
   let acc = initial;
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) break;
     vm.push(acc);
@@ -90,7 +90,7 @@ export function reduce(
  */
 export function find(heap: Heap, vm: VM, seq: number, pred: number, evalFn: () => void): number {
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) return NIL;
     vm.push(value);
@@ -105,7 +105,7 @@ export function find(heap: Heap, vm: VM, seq: number, pred: number, evalFn: () =
  */
 export function any(heap: Heap, vm: VM, seq: number, pred: number, evalFn: () => void): number {
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) return 0;
     vm.push(value);
@@ -120,7 +120,7 @@ export function any(heap: Heap, vm: VM, seq: number, pred: number, evalFn: () =>
  */
 export function all(heap: Heap, vm: VM, seq: number, pred: number, evalFn: () => void): number {
   while (true) {
-    seqNext(heap, vm, seq);
+    seqNext(vm, seq);
     const value = vm.pop();
     if (isNIL(value)) return 1;
     vm.push(value);

@@ -23,14 +23,14 @@ describe('Sequence Processors', () => {
     ];
 
     for (let row of expected) {
-      seqNext(vm.heap, vm, multiSeqResult);
+      seqNext(vm, multiSeqResult);
       const v1 = vm.pop();
       const v2 = vm.pop();
       expect(v1).toBe(row[1]);
       expect(v2).toBe(row[0]);
     }
 
-    seqNext(vm.heap, vm, multiSeqResult);
+    seqNext(vm, multiSeqResult);
     expect(vm.pop()).toEqual(NIL);
   });
 
@@ -43,12 +43,12 @@ describe('Sequence Processors', () => {
     // We expect to get only the first 3 elements
     const expected = [1, 2, 3];
     for (let i = 0; i < expected.length; i++) {
-      seqNext(vm.heap, vm, takeSequence);
+      seqNext(vm, takeSequence);
       const value = vm.pop();
       expect(value).toEqual(expected[i]);
     }
 
-    seqNext(vm.heap, vm, takeSequence);
+    seqNext(vm, takeSequence);
     expect(vm.pop()).toEqual(NIL);
   });
 
@@ -62,12 +62,12 @@ describe('Sequence Processors', () => {
     const expected = [4, 5, 6, 7, 8, 9, 10];
     for (let i = 0; i < expected.length; i++) {
       console.log('-----------------------------1');
-      seqNext(vm.heap, vm, dropSequence);
+      seqNext(vm, dropSequence);
       const value = vm.pop();
       expect(value).toEqual(expected[i]);
     }
 
-    seqNext(vm.heap, vm, dropSequence);
+    seqNext(vm, dropSequence);
     expect(vm.pop()).toEqual(NIL);
   });
 });

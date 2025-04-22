@@ -1,7 +1,7 @@
 import { NIL, fromTaggedValue, HeapTag, isNIL } from '../core/tagged';
 import { VM } from '../core/vm';
 import { stringCreate } from '../strings/string';
-import { vectorCreate, vectorSimpleGet } from '../heap/vector';
+import { vectorCreate } from '../heap/vector';
 import {
   seqNext,
   seqCreate,
@@ -13,9 +13,7 @@ import { describe, it, expect } from '@jest/globals';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { Heap } from '../heap/heap';
 import { executeProgram } from '../lang/interpreter';
-import { SEG_STRING } from '../core/memory';
-import { printValue } from '../core/printer';
-import { SequenceView } from './sequenceView';
+import { dropSeq, mapSeq, multiSourceSeq, takeSeq } from './processor';
 
 describe('Sequence Operations', () => {
   let testVM: VM;
@@ -34,11 +32,11 @@ describe('Sequence Operations', () => {
       const expected = [1, 2, 3, 4, 5];
 
       for (let value of expected) {
-        seqNext(heap, testVM, seq);
+        seqNext(testVM, seq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -47,11 +45,11 @@ describe('Sequence Operations', () => {
       const expected = [1, 3, 5, 7, 9];
 
       for (let value of expected) {
-        seqNext(heap, testVM, seq);
+        seqNext(testVM, seq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -59,7 +57,7 @@ describe('Sequence Operations', () => {
       // End is less than start with positive step, produces no values
       const seq = rangeSource(heap, 5, 1, 1);
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -69,11 +67,11 @@ describe('Sequence Operations', () => {
       const expected = [10, 20, 30];
 
       for (let value of expected) {
-        seqNext(heap, testVM, seq);
+        seqNext(testVM, seq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -81,41 +79,20 @@ describe('Sequence Operations', () => {
       const vector = vectorCreate(heap, []);
       const seq = vectorSource(heap, vector);
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
     it('should iterate over a string sequence', () => {
       const strPtr = stringCreate(testVM.digest, 'abc');
-      const { value: strAddr } = fromTaggedValue(strPtr);
-      const len = heap.memory.read8(SEG_STRING, strAddr);
-      const ch = heap.memory.read8(SEG_STRING, strAddr + 1);
-      console.log('>>>>>>>>>>>>> String length:', len, 'First char:', ch, 'strAddr', strAddr);
-      printValue(strPtr, '-------STRING');
-
       const seq = stringSource(heap, strPtr);
-      const seqv = new SequenceView(heap, seq);
-      printValue(seq, '-------SEQUENCE');
-      const val0 = vectorSimpleGet(vm.heap, seq, 0);
-      printValue(val0, '-------SEQUENCE 0');
-      const val1 = vectorSimpleGet(vm.heap, seq, 1);
-      printValue(val1, '-------SEQUENCE 1');
-      const val2 = vectorSimpleGet(vm.heap, seq, 2);
-      printValue(val2, '-------SEQUENCE 2');
-
-      const strPtr1 = seqv.meta(0);
-      const { value: strAddr1, tag, isHeap } = fromTaggedValue(strPtr1);
-      console.log('>>> strAddr1', strAddr1, 'tag', tag, 'isHeap', isHeap);
-      printValue(strPtr1, '-------LLLL');
-
       const expected = ['a', 'b', 'c'].map(c => c.charCodeAt(0));
-
       for (let value of expected) {
-        seqNext(heap, testVM, seq);
+        seqNext(testVM, seq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -123,7 +100,7 @@ describe('Sequence Operations', () => {
       const strPtr = stringCreate(testVM.digest, '');
       const seq = stringSource(heap, strPtr);
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL);
     });
   });
@@ -134,20 +111,20 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 10, 1);
 
       // Create a take processor sequence that takes only the first 3 values
-      const takeSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 3, ProcType.TAKE]);
+      const takeSequence = takeSeq(heap, rangeSeq, 3);
 
       // Expected results after taking first 3
       const expected = [1, 2, 3];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, takeSeq);
+        seqNext(testVM, takeSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, takeSeq);
+      seqNext(testVM, takeSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -156,20 +133,20 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 10, 1);
 
       // Create a drop processor sequence that skips the first 7 values
-      const dropSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 7, ProcType.DROP]);
+      const dropSequence = dropSeq(heap, rangeSeq, 7);
 
       // Expected results after dropping first 7
       const expected = [8, 9, 10];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, dropSeq);
+        seqNext(testVM, dropSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, dropSeq);
+      seqNext(testVM, dropSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -179,7 +156,7 @@ describe('Sequence Operations', () => {
       const seq2 = rangeSource(heap, 10, 30, 10);
 
       // Create a multi-source processor sequence
-      const multiSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [seq1, seq2, ProcType.MULTI_SOURCE]);
+      const multiSequence = multiSourceSeq(heap, [seq1, seq2]);
 
       // Expected outputs: 1,10 followed by 2,20 followed by 3,30
       const expected = [
@@ -190,14 +167,14 @@ describe('Sequence Operations', () => {
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, multiSeq);
+        seqNext(testVM, multiSequence);
         const v2 = testVM.pop();
         const v1 = testVM.pop();
         expect([v1, v2]).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, multiSeq);
+      seqNext(testVM, multiSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -209,7 +186,7 @@ describe('Sequence Operations', () => {
       const invalidProcSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 999]);
 
       // Should just return NIL
-      seqNext(heap, testVM, invalidProcSeq);
+      seqNext(testVM, invalidProcSeq);
       expect(testVM.pop()).toEqual(NIL);
     });
   });
@@ -220,7 +197,7 @@ describe('Sequence Operations', () => {
       const unknownSeq = seqCreate(heap, 999, [1, 1, 5]);
 
       // Should return NIL
-      seqNext(heap, testVM, unknownSeq);
+      seqNext(testVM, unknownSeq);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -231,7 +208,7 @@ describe('Sequence Operations', () => {
     });
 
     it('should return NIL for a NULL sequence', () => {
-      seqNext(heap, testVM, NIL);
+      seqNext(testVM, NIL);
       expect(testVM.pop()).toEqual(NIL);
     });
   });
@@ -254,21 +231,21 @@ describe('Enhanced Sequence Operations', () => {
       const invalidMaskSeq = rangeSource(heap, 1, 0, 1); // Invalid mask
       const siftedSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, invalidMaskSeq, ProcType.SIFT]);
 
-      seqNext(heap, testVM, siftedSeq);
+      seqNext(testVM, siftedSeq);
       expect(testVM.pop()).toEqual(NIL); // Invalid mask should terminate sequence
     });
 
     it('should handle taking more elements than available', () => {
       const rangeSeq = rangeSource(heap, 1, 3, 1); // Sequence: [1, 2, 3]
-      const takeSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 5, ProcType.TAKE]);
+      const takeSequence = takeSeq(heap, rangeSeq, 5);
 
       const expected = [1, 2, 3];
       for (let value of expected) {
-        seqNext(heap, testVM, takeSeq);
+        seqNext(testVM, takeSequence);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, takeSeq);
+      seqNext(testVM, takeSequence);
       expect(testVM.pop()).toEqual(NIL); // No more elements to take
     });
 
@@ -276,14 +253,14 @@ describe('Enhanced Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 3, 1); // Sequence: [1, 2, 3]
       const dropSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, 5, ProcType.DROP]);
 
-      seqNext(heap, testVM, dropSeq);
+      seqNext(testVM, dropSeq);
       expect(testVM.pop()).toEqual(NIL); // All elements dropped
     });
 
     it('should handle multi-source sequences with different lengths', () => {
       const seq1 = rangeSource(heap, 1, 3, 1); // [1, 2, 3]
       const seq2 = rangeSource(heap, 10, 20, 10); // [10, 20]
-      const multiSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [seq1, seq2, ProcType.MULTI_SOURCE]);
+      const multiSeq = multiSourceSeq(heap, [seq1, seq2]);
 
       const expected = [
         [1, 10],
@@ -291,13 +268,13 @@ describe('Enhanced Sequence Operations', () => {
       ];
 
       for (let pair of expected) {
-        seqNext(heap, testVM, multiSeq);
+        seqNext(testVM, multiSeq);
         const v2 = testVM.pop();
         const v1 = testVM.pop();
         expect([v1, v2]).toEqual(pair);
       }
 
-      seqNext(heap, testVM, multiSeq);
+      seqNext(testVM, multiSeq);
       expect(testVM.pop()).toEqual(NIL); // Shorter sequence ends first
     });
   });
@@ -305,20 +282,20 @@ describe('Enhanced Sequence Operations', () => {
   describe('Error Handling - Additional Tests', () => {
     it('should handle invalid sequence type gracefully', () => {
       const invalidSeq = seqCreate(heap, 999, [1, 1, 5]); // Invalid type
-      seqNext(heap, testVM, invalidSeq);
+      seqNext(testVM, invalidSeq);
       expect(testVM.pop()).toEqual(NIL); // Invalid type returns NIL
     });
 
     it('should handle corrupted sequence data', () => {
       const corruptedSeq = rangeSource(heap, 1, 'invalid' as unknown as number, 1); // Corrupted data
-      seqNext(heap, testVM, corruptedSeq);
+      seqNext(testVM, corruptedSeq);
       expect(testVM.pop()).toEqual(NIL); // Corrupted data returns NIL
     });
 
     it('should handle corrupted sequence data', () => {
       // Create a corrupted sequence by bypassing type checking
       const corruptedSeq = rangeSource(heap, 1, 'invalid' as unknown as number, 1); // Corrupted data
-      seqNext(heap, testVM, corruptedSeq);
+      seqNext(testVM, corruptedSeq);
       expect(testVM.pop()).toEqual(NIL); // Corrupted data returns NIL
     });
   });
@@ -326,15 +303,15 @@ describe('Enhanced Sequence Operations', () => {
   describe('Edge Cases - Additional Tests', () => {
     it('should handle nested sequences', () => {
       const innerSeq = rangeSource(heap, 1, 3, 1); // [1, 2, 3]
-      const outerSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [innerSeq, 2, ProcType.TAKE]); // Take first 2
+      const outerSeq = takeSeq(heap, innerSeq, 2); // Take first 2
 
       const expected = [1, 2];
       for (let value of expected) {
-        seqNext(heap, testVM, outerSeq);
+        seqNext(testVM, outerSeq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, outerSeq);
+      seqNext(testVM, outerSeq);
       expect(testVM.pop()).toEqual(NIL); // Outer sequence ends
     });
 
@@ -343,11 +320,11 @@ describe('Enhanced Sequence Operations', () => {
       const expected = [1, 3, 5, 7, 9];
 
       for (let value of expected) {
-        seqNext(heap, testVM, seq);
+        seqNext(testVM, seq);
         expect(testVM.pop()).toEqual(value);
       }
 
-      seqNext(heap, testVM, seq);
+      seqNext(testVM, seq);
       expect(testVM.pop()).toEqual(NIL); // Sequence ends
     });
   });
@@ -362,19 +339,19 @@ describe('Enhanced Sequence Operations', () => {
       const func = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, func, ProcType.MAP]);
+      const mapSequence = mapSeq(heap, rangeSeq, func);
 
       // Expected results after mapping
       const expected = [42, 42, 42, 42, 42];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, mapSeq);
+        seqNext(testVM, mapSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
-      seqNext(heap, testVM, mapSeq);
+      seqNext(testVM, mapSequence);
       let value = testVM.pop();
       expect(isNIL(value)).toBe(true);
     });
@@ -388,20 +365,20 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, doubleFunc, ProcType.MAP]);
+      const mapSequence = mapSeq(heap, rangeSeq, doubleFunc);
 
       // Expected results after mapping
       const expected = [2, 4, 6, 8, 10];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, mapSeq);
+        seqNext(testVM, mapSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, mapSeq);
+      seqNext(testVM, mapSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -414,10 +391,10 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, doubleFunc, ProcType.MAP]);
+      const mapSequence = mapSeq(heap, rangeSeq, doubleFunc);
 
       // Process the sequence and verify it terminates immediately
-      seqNext(heap, testVM, mapSeq);
+      seqNext(testVM, mapSequence);
       expect(testVM.pop()).toEqual(NIL); // No values to map
     });
 
@@ -430,20 +407,20 @@ describe('Enhanced Sequence Operations', () => {
       const squareFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [rangeSeq, squareFunc, ProcType.MAP]);
+      const mapSequence = mapSeq(heap, rangeSeq, squareFunc);
 
       // Expected results after mapping
       const expected = [1, 4, 9, 16, 25];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, mapSeq);
+        seqNext(testVM, mapSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, mapSeq);
+      seqNext(testVM, mapSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
 
@@ -457,20 +434,20 @@ describe('Enhanced Sequence Operations', () => {
       const doubleFunc = vm.pop();
 
       // Create a map processor sequence
-      const mapSeq = seqCreate(heap, SeqSourceType.PROCESSOR, [vectorSeq, doubleFunc, ProcType.MAP]);
+      const mapSequence = mapSeq(heap, vectorSeq, doubleFunc);
 
       // Expected results after mapping
       const expected = [2, 4, 6];
 
       // Process the sequence and verify results
       for (let i = 0; i < expected.length; i++) {
-        seqNext(heap, testVM, mapSeq);
+        seqNext(testVM, mapSequence);
         const value = testVM.pop();
         expect(value).toEqual(expected[i]);
       }
 
       // Verify sequence termination
-      seqNext(heap, testVM, mapSeq);
+      seqNext(testVM, mapSequence);
       expect(testVM.pop()).toEqual(NIL);
     });
   });
