@@ -26,8 +26,9 @@ import { VectorView } from '../heap/vectorView';
 // import { prn } from '../core/printer';
 
 export const OFS_TYPE = 0; // headerData[0]
-export const OFS_META_COUNT = 2; // headerData[1]
-export const OFS_META_START = 3; // headerData[2..]
+export const OFS_CURSOR = 1; // headerData[1]
+export const OFS_META_COUNT = 2; // headerData[2]
+export const OFS_META_START = 3; // headerData[3..]
 
 // --- Sequence and Processor constants ---
 
@@ -73,23 +74,19 @@ export enum ProcType {
  */
 export function seqCreate(heap: Heap, sourceType: number, meta: number[]): number {
   // dont use spread
-  const headerData: number[] = [sourceType, 0, meta.length];
+
+  const cursor =
+    sourceType === SeqSourceType.RANGE
+      ? meta[0] // start value for range
+      : 0;
+
+  const headerData: number[] = [sourceType, cursor, meta.length];
 
   // bump every heap-allocated child in `meta`
   for (const m of meta) {
     headerData.push(m);
     if (isHeapAllocated(m)) incRef(heap, m);
   }
-
-  headerData.push(
-    sourceType === SeqSourceType.RANGE
-      ? meta[0] // start value for range
-      : 0
-  );
-
-  // for (let i = 0; i < headerData.length; i++) {
-  //   prn(`headerData ${i}`, headerData[i]);
-  // }
 
   const vectorTagged = vectorCreate(heap, headerData);
 
