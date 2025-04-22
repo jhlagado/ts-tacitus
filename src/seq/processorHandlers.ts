@@ -1,11 +1,10 @@
-import { Heap } from '../heap/heap';
 import { VM } from '../core/vm';
 import { SequenceView } from './sequenceView';
 import { NIL, isNIL, fromTaggedValue } from '../core/tagged';
 import { callTacitFunction } from '../lang/interpreter';
 
 /** PROC_MAP: apply func to each element of the source seq */
-export function handleProcMap(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcMap(vm: VM, seq: number, seqv: SequenceView): number {
   const source = seqv.meta(1);
   const func = seqv.meta(2);
   const { value: fnPtr } = fromTaggedValue(func);
@@ -23,7 +22,7 @@ export function handleProcMap(heap: Heap, vm: VM, seq: number, seqv: SequenceVie
 }
 
 /** PROC_SIFT: keep element if corresponding mask seq yields truthy */
-export function handleProcSift(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcSift(vm: VM, seq: number, seqv: SequenceView): number {
   const source = seqv.meta(1);
   const maskSeq = seqv.meta(2);
 
@@ -46,7 +45,7 @@ export function handleProcSift(heap: Heap, vm: VM, seq: number, seqv: SequenceVi
 }
 
 /** PROC_FILTER: keep element if predicate(seqElem) is truthy */
-export function handleProcFilter(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcFilter(vm: VM, seq: number, seqv: SequenceView): number {
   const source = seqv.meta(1);
   const predicateFunc = seqv.meta(2);
 
@@ -71,7 +70,7 @@ export function handleProcFilter(heap: Heap, vm: VM, seq: number, seqv: Sequence
 }
 
 /** PROC_TAKE: take first N elements, then yield NIL forever */
-export function handleProcTake(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcTake(vm: VM, seq: number, seqv: SequenceView): number {
   const limit = seqv.meta(2);
   const idx = seqv.cursor;
   if (idx >= limit) {
@@ -93,7 +92,7 @@ export function handleProcTake(heap: Heap, vm: VM, seq: number, seqv: SequenceVi
 }
 
 /** PROC_DROP: skip first N elements, then yield rest */
-export function handleProcDrop(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcDrop(vm: VM, seq: number, seqv: SequenceView): number {
   const toDrop = seqv.meta(2);
   let dropped = seqv.cursor;
 
@@ -109,7 +108,7 @@ export function handleProcDrop(heap: Heap, vm: VM, seq: number, seqv: SequenceVi
 }
 
 /** PROC_MULTI: advance N sub‑sequences in lock‑step, return NIL on any end */
-export function handleProcMulti(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcMulti(vm: VM, seq: number, seqv: SequenceView): number {
   const n = seqv.metaCount - 1;
   for (let i = 1; i <= n; i++) {
     const sub = seqv.meta(i);
@@ -124,7 +123,7 @@ export function handleProcMulti(heap: Heap, vm: VM, seq: number, seqv: SequenceV
 }
 
 /** PROC_MULTI_SOURCE: like MULTI but yields all collected values each step */
-export function handleProcMultiSource(heap: Heap, vm: VM, seq: number, seqv: SequenceView): number {
+export function handleProcMultiSource(vm: VM, seq: number, seqv: SequenceView): number {
   const n = seqv.metaCount - 1;
   for (let i = 1; i <= n; i++) {
     const src = seqv.meta(i);

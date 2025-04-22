@@ -109,7 +109,7 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
  * @param value A 16-bit number representing the value to be encoded. For
  *     `CoreTag.INTEGER`, this should be a signed integer (-32768 to 32767); for
  *     other tags, it should be an unsigned integer (0 to 65535).
- * @param heap A boolean flag indicating whether the value is heap-allocated. If
+ * @param isHeap A boolean flag indicating whether the value is heap-allocated. If
  *     `true`, the sign bit will be set, and the tag will be interpreted as a
  *     `HeapTag`. If `false`, the sign bit will be clear, and the tag will be
  *     interpreted as a `CoreTag`.
@@ -120,9 +120,9 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
  *     value.
  * @throws {Error} If the tag or value is invalid for the given `heap` setting.
  */
-export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
+export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number {
   // Validate the tag based on whether the value is heap–allocated.
-  if (heap) {
+  if (isHeap) {
     // Heap tags must be between HeapTag.BLOCK and HeapTag.DICT.
     if (tag < HeapTag.BLOCK || tag > HeapTag.DICT) {
       throw new Error('Invalid heap tag');
@@ -136,7 +136,7 @@ export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
 
   // Validate and encode the value.
   let encodedValue: number;
-  if (!heap && tag === CoreTag.INTEGER) {
+  if (!isHeap && tag === CoreTag.INTEGER) {
     if (value < -32768 || value > 32767) {
       throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for INTEGER tag');
     }
@@ -149,7 +149,7 @@ export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
   }
 
   // Set the sign bit if heap allocated.
-  const signBit = heap ? SIGN_BIT : 0;
+  const signBit = isHeap ? SIGN_BIT : 0;
   // Pack the 6-bit tag into bits 16–21.
   const mantissaTagBits = (tag & 0x3f) << 16;
   // Assemble the final 32-bit pattern.
@@ -191,11 +191,11 @@ export function toTaggedValue(value: number, heap: boolean, tag: Tag): number {
  */
 export function fromTaggedValue(nanValue: number): {
   value: number;
-  heap: boolean;
+  isHeap: boolean;
   tag: Tag;
 } {
   if (!isNaN(nanValue)) {
-    return { value: nanValue, heap: false, tag: CoreTag.NUMBER };
+    return { value: nanValue, isHeap: false, tag: CoreTag.NUMBER };
   }
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
@@ -210,7 +210,7 @@ export function fromTaggedValue(nanValue: number): {
   const valueBits = bits & VALUE_MASK;
   // For INTEGER (NonHeapTag.INTEGER) we must sign–extend.
   const value = !heap && tagBits === CoreTag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
-  return { value, heap, tag: tagBits };
+  return { value, isHeap: heap, tag: tagBits };
 }
 
 /**
@@ -236,8 +236,8 @@ export function getValue(nanValue: number): number {
  */
 function checkTagged(value: number, expectedTag: Tag | null, expectedHeap: boolean): boolean {
   if (isNaN(value)) {
-    const { tag, heap } = fromTaggedValue(value);
-    return heap === expectedHeap && (expectedTag === null || tag === expectedTag);
+    const { tag, isHeap } = fromTaggedValue(value);
+    return isHeap === expectedHeap && (expectedTag === null || tag === expectedTag);
   }
   // Special case for regular JS numbers
   return !expectedHeap && (expectedTag === null || expectedTag === CoreTag.NUMBER) && !isNaN(value);
@@ -316,24 +316,3 @@ export function isVector(value: number): boolean {
 export function isDict(value: number): boolean {
   return checkTagged(value, HeapTag.DICT, true);
 }
-
-// /**
-//  * Prints a formatted representation of a tagged value.
-//  */
-// export function printValues(...args: unknown[]): void {
-//   const format = (num: number): string => {
-//     if (isNaN(num)) {
-//       return num.toString();
-//     } else {
-//       const { heap, tag, value } = fromTaggedValue(num);
-//       let tagName: string;
-//       if (heap) {
-//         tagName = heapTagNames[tag as HeapTag] || `HeapTag(${tag})`;
-//       } else {
-//         tagName = nonHeapTagNames[tag as CoreTag] || `NonHeapTag(${tag})`;
-//       }
-//       return `Heap: ${heap}, Tag: ${tag} (${tagName}), Value: ${value}`;
-//     }
-//   };
-//   console.log(args.map(arg => (typeof arg === 'number' ? format(arg) : String(arg))).join(' '));
-// }

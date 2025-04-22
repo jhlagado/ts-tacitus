@@ -71,7 +71,7 @@ export function registerCleanupHandler(tag: HeapTag, handler: CleanupHandler): v
  * No effect on non-heap values.
  */
 export function incRef(heap: Heap, tvalue: number): void {
-  const { value, heap: isHeap } = fromTaggedValue(tvalue);
+  const { value, isHeap } = fromTaggedValue(tvalue);
   if (isHeap) {
     heap.incrementRef(value);
   }
@@ -87,7 +87,7 @@ export function decRef(heap: Heap, tvalue: number): void {
   if (isNIL(tvalue)) return;
 
   // Decode the value
-  const { value: address, heap: isHeap, tag } = fromTaggedValue(tvalue);
+  const { value: address, isHeap, tag } = fromTaggedValue(tvalue);
 
   // Only process heap objects
   if (!isHeap) return;
@@ -143,7 +143,7 @@ export function decRef(heap: Heap, tvalue: number): void {
  * Returns 0 for non-heap values or freed objects.
  */
 export function getRefCount(heap: Heap, tvalue: number): number {
-  const { value, heap: isHeap } = fromTaggedValue(tvalue);
+  const { value, isHeap } = fromTaggedValue(tvalue);
   if (isHeap) {
     return heap.getRefCount(value);
   }

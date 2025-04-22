@@ -1,6 +1,6 @@
-import { fromTaggedValue, CoreTag, HeapTag } from './tagged';
-import { SequenceView }         from '../seq/sequenceView';
-import { VectorView }           from '../heap/vectorView';
+import { fromTaggedValue, CoreTag, HeapTag, heapTagNames, nonHeapTagNames } from './tagged';
+import { SequenceView } from '../seq/sequenceView';
+import { VectorView } from '../heap/vectorView';
 import { vm } from './globalState';
 
 export function printValues(...tvals: (number | string)[]): void {
@@ -9,7 +9,7 @@ export function printValues(...tvals: (number | string)[]): void {
     if (typeof val === 'number') {
       printValue(tvals[i] as number, 2);
     } else {
-      console.log(tvals[i])
+      console.log(tvals[i]);
     }
   }
 }
@@ -19,12 +19,16 @@ export function printValues(...tvals: (number | string)[]): void {
  * with indentation, hex addresses, tags, and contents.
  */
 export function printValue(tval: number, indent = 0): void {
-  const { value: addr, heap: isHeap, tag } = fromTaggedValue(tval);
-  const prefix = `${indentStr(indent)}${isHeap ? hex(addr) + ' ' : ''}${tagName(tag)}: `;
+  const { value: addr, isHeap, tag } = fromTaggedValue(tval);
+  console.warn(`print: ${tag}:${toHex(addr)} = ${toHex(addr)} (${isHeap ? 'heap' : 'scalar'})`);
+  const prefix = `${indentStr(indent)}${isHeap ? toHex(addr) + ' ' : ''}${toTagName(
+    tag,
+    isHeap
+  )}: `;
 
   if (!isHeap) {
     // Scalar or immediate
-    console.warn(prefix + scalarRepr(tval, tag));
+    console.warn(prefix + scalarRepr(tval));
     return;
   }
 
@@ -42,9 +46,7 @@ export function printValue(tval: number, indent = 0): void {
 
     case HeapTag.SEQUENCE: {
       const seq = new SequenceView(vm.heap, addr);
-      console.warn(
-        `${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {`
-      );
+      console.warn(`${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {`);
       for (let i = 0; i < seq.metaCount; i++) {
         printValue(seq.meta(i), indent + 1);
       }
@@ -59,25 +61,39 @@ export function printValue(tval: number, indent = 0): void {
   }
 }
 
-function indentStr(level: number): string {
+export function indentStr(level: number): string {
   return '  '.repeat(level);
 }
 
-function hex(addr: number): string {
+export function toHex(addr: number): string {
   return '0x' + addr.toString(16);
 }
 
-function tagName(tag: number): string {
-  // Map numeric tags back to friendly names
-  if ((tag as CoreTag) in CoreTag)   return CoreTag[tag as CoreTag];
-  if ((tag as HeapTag) in HeapTag)   return HeapTag[tag as HeapTag];
-  return `#${tag}`;
+export function toTagName(tag: number, heap: boolean): string {
+  if (heap) {
+    return heapTagNames[tag as HeapTag];
+  } else {
+    return nonHeapTagNames[tag as CoreTag];
+  }
 }
 
-function scalarRepr(tval: number, tag: number): string {
-  if (tag === CoreTag.INTEGER)   return '<integer>';
-  if (tag === CoreTag.NUMBER)    return tval.toString();
-  if (tag === CoreTag.CODE)      return `<code ptr>`;
-  // …other CoreTag cases…
-  return tval.toString();
+function scalarRepr(tval: number): string {
+  const { tag, value } = fromTaggedValue(tval);
+  let val: number | string = tval;
+  let name = 'NUMBER';
+  switch (tag) {
+    case CoreTag.INTEGER:
+      name = 'INTEGER';
+      val = value;
+      break;
+    case CoreTag.CODE:
+      name = 'CODE';
+      val = '<code>';
+      break;
+    case CoreTag.STRING:
+      name = 'STRING';
+      val = vm.digest.get(value);
+  }
+  const result = `${name}: ${val}`;
+  return result;
 }

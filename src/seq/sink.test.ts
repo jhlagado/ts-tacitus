@@ -27,7 +27,7 @@ describe('Sequence Operations', () => {
       const rangeSeq = rangeSource(heap, 1, 5, 1);
       const vectorPtr = toVector(heap, testVM, rangeSeq);
 
-      const { tag, heap: isHeap } = fromTaggedValue(vectorPtr);
+      const { tag, isHeap } = fromTaggedValue(vectorPtr);
       expect(tag).toBe(HeapTag.VECTOR);
       expect(isHeap).toBe(true);
 
@@ -41,7 +41,7 @@ describe('Sequence Operations', () => {
       const emptySeq = rangeSource(heap, 10, 5, 1);
       const vectorPtr = toVector(heap, testVM, emptySeq);
 
-      const { tag, heap: isHeap } = fromTaggedValue(vectorPtr);
+      const { tag, isHeap } = fromTaggedValue(vectorPtr);
       expect(tag).toBe(HeapTag.VECTOR);
       expect(isHeap).toBe(true);
 

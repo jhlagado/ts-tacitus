@@ -89,6 +89,23 @@ export function vectorCreate(heap: Heap, data: number[]): number {
   return toTaggedValue(firstBlock, true, HeapTag.VECTOR);
 }
 
+export function vectorSimpleGetAddress(heap: Heap, vectorPtr: number, index: number): number {
+  const { value: block } = fromTaggedValue(vectorPtr);
+  if (index < 0 || index >= 7) return NIL;
+  return heap.blockToByteOffset(block) + VEC_DATA + index * ELEMENT_SIZE;
+}
+
+export function vectorSimpleGet(heap: Heap, vectorPtr: number, index: number): number {
+  const address = vectorSimpleGetAddress(heap, vectorPtr, index);
+  if (address === NIL) return NIL;
+  return heap.memory.readFloat(SEG_HEAP, address);
+}
+
+export function vectorSimpleSet(heap: Heap, vectorPtr: number, index: number, value: number): void {
+  const address = vectorSimpleGetAddress(heap, vectorPtr, index);
+  heap.memory.writeFloat(SEG_HEAP, address, value);
+}
+
 /**
  * Retrieves an element from a vector.
  */

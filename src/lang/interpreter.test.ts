@@ -24,7 +24,7 @@ describe('Interpreter', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
       const taggedPtr = stack[0];
-      const { tag, heap } = fromTaggedValue(taggedPtr);
+      const { tag, isHeap: heap } = fromTaggedValue(taggedPtr);
       expect(heap).toBe(true);
       expect(tag).toBe(HeapTag.DICT);
     });
@@ -34,7 +34,7 @@ describe('Interpreter', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
       const taggedPtr = stack[0];
-      const { tag, heap } = fromTaggedValue(taggedPtr);
+      const { tag, isHeap: heap } = fromTaggedValue(taggedPtr);
       expect(heap).toBe(true);
       expect(tag).toBe(HeapTag.DICT);
     });
@@ -296,27 +296,27 @@ describe('Interpreter', () => {
       expect(stackData.length).toBe(1);
 
       const vectorPtr = stackData[0];
-      const { value: _value, heap, tag } = fromTaggedValue(vectorPtr);
+      const { value: _value, isHeap: heap, tag } = fromTaggedValue(vectorPtr);
 
       expect(heap).toBe(true);
       expect(tag).toBe(HeapTag.VECTOR);
 
       // Check first element (1)
       const elem1 = vectorGet(vm.heap, vectorPtr, 0);
-      const { value: value1, heap: heap1, tag: tag1 } = fromTaggedValue(elem1);
+      const { value: value1, isHeap: heap1, tag: tag1 } = fromTaggedValue(elem1);
       expect(value1).toBeCloseTo(1, 1);
       expect(heap1).toBe(false);
       expect(tag1).toBe(CoreTag.NUMBER);
 
       // Check second element ("2")
       const elem2 = vectorGet(vm.heap, vectorPtr, 1);
-      const { heap: heap2, tag: tag2 } = fromTaggedValue(elem2);
+      const { isHeap: heap2, tag: tag2 } = fromTaggedValue(elem2);
       expect(heap2).toBe(false);
       expect(tag2).toBe(CoreTag.STRING);
 
       // Instead of checking for the third element being a heap object, first log its value to see what it actually is
       const elem3 = vectorGet(vm.heap, vectorPtr, 2);
-      const { value: value3, heap: heap3, tag: tag3 } = fromTaggedValue(elem3);
+      const { value: value3, isHeap: heap3, tag: tag3 } = fromTaggedValue(elem3);
       console.log('Third element:', { value: value3, heap: heap3, tag: tag3 });
 
       // Since we don't know the actual implementation details, let's check the final value

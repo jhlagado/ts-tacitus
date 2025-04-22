@@ -23,7 +23,7 @@ describe('Tagged NaN Encoding', () => {
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, false, tag);
       const decoded = fromTaggedValue(encoded);
-      expect(decoded.heap).toBe(false);
+      expect(decoded.isHeap).toBe(false);
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
     });
@@ -39,7 +39,7 @@ describe('Tagged NaN Encoding', () => {
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, true, tag);
       const decoded = fromTaggedValue(encoded);
-      expect(decoded.heap).toBe(true);
+      expect(decoded.isHeap).toBe(true);
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
     });
@@ -80,7 +80,7 @@ describe('Tagged NaN Encoding', () => {
   it('should correctly extract tag and heap flag', () => {
     const encoded = toTaggedValue(500, true, HeapTag.SEQUENCE);
     const decoded = fromTaggedValue(encoded);
-    expect(decoded.heap).toBe(true);
+    expect(decoded.isHeap).toBe(true);
     expect(decoded.tag).toBe(HeapTag.SEQUENCE);
     expect(decoded.value).toBe(500);
   });

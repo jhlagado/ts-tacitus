@@ -47,7 +47,7 @@ describe('VM', () => {
 
     it('should handle address tagging', () => {
       vm.push(toTaggedValue(0x2345, false, CoreTag.CODE));
-      const { value, heap, tag } = fromTaggedValue(vm.pop());
+      const { value, isHeap: heap, tag } = fromTaggedValue(vm.pop());
       expect(value).toBe(0x2345);
       expect(heap).toBe(false);
       expect(tag).toBe(CoreTag.CODE);

@@ -31,6 +31,7 @@ import {
   handleProcMultiSource,
 } from './processorHandlers';
 import { VectorView } from '../heap/vectorView';
+import { printValues } from '../core/printer';
 
 // --- Sequence and Processor constants ---
 
@@ -100,6 +101,10 @@ export function seqCreate(heap: Heap, sourceType: number, meta: number[]): numbe
   const vectorTagged = vectorCreate(heap, headerData);
   if (vectorTagged === NIL) return NIL;
   const { value: seqPtr } = fromTaggedValue(vectorTagged);
+
+  const seqv = new SequenceView(heap, seqPtr);
+  printValues('=================??', seqv.meta(0));
+
   return toTaggedValue(seqPtr, true, HeapTag.SEQUENCE);
 }
 
@@ -131,19 +136,19 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
       const op = seqv.processorType; // meta[0]
       switch (op) {
         case PROC_MAP:
-          return handleProcMap(heap, vm, seq, seqv);
+          return handleProcMap(vm, seq, seqv);
         case PROC_FILTER:
-          return handleProcFilter(heap, vm, seq, seqv);
+          return handleProcFilter(vm, seq, seqv);
         case PROC_SIFT:
-          return handleProcSift(heap, vm, seq, seqv);
+          return handleProcSift(vm, seq, seqv);
         case PROC_TAKE:
-          return handleProcTake(heap, vm, seq, seqv);
+          return handleProcTake(vm, seq, seqv);
         case PROC_DROP:
-          return handleProcDrop(heap, vm, seq, seqv);
+          return handleProcDrop(vm, seq, seqv);
         case PROC_MULTI:
-          return handleProcMulti(heap, vm, seq, seqv);
+          return handleProcMulti(vm, seq, seqv);
         case PROC_MULTI_SOURCE:
-          return handleProcMultiSource(heap, vm, seq, seqv);
+          return handleProcMultiSource(vm, seq, seqv);
         default:
           vm.push(NIL);
           return seq;
@@ -179,27 +184,20 @@ export function seqNext(heap: Heap, vm: VM, seq: number): number {
     }
 
     case SEQ_SRC_STRING: {
-      // Retrieve the tagged string pointer stored in the sequence metadata.
-      const taggedStrPtr = seqv.meta(0); // meta[0]
-      // Retrieve the tagged string pointer and extract the raw pointer.
-      const { value: strPtr } = fromTaggedValue(taggedStrPtr);
+      // meta[0] is the tagged string pointer (Pascal format: [length][chars…])
+      const strTV = seqv.meta(0);
+      const { value: strAddr } = fromTaggedValue(strTV);
+      const i = seqv.cursor;
+      // first byte at strAddr is the length
+      const len = heap.memory.read8(SEG_STRING, strAddr);
 
-      // Read the current cursor index (stored as a float in the sequence's metadata).
-      const index = seqv.cursor;
-
-      // Read the string's length (1 byte) from its beginning.
-      const length = vm.digest.length(strPtr);
-
-      if (index < length) {
-        // Read the character code at the correct offset (skip the length byte).
-        const charCode = heap.memory.read8(SEG_STRING, strPtr + 1 + index);
-        vm.push(charCode);
-
-        // Increment the cursor index.
-        seqv.cursor = index + 1;
-        // Push the character code onto the stack.
+      console.log(`seqNext: string${strAddr} length=${len} cursor=${i} char=`);
+      if (i < len) {
+        // skip the length byte, then index into the chars
+        const ch = heap.memory.read8(SEG_STRING, strAddr + 1 + i);
+        vm.push(ch);
+        seqv.cursor = i + 1;
       } else {
-        // If the index exceeds the string's length, push NIL.
         vm.push(NIL);
       }
       return seq;

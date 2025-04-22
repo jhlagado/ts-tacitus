@@ -17,6 +17,9 @@ import { describe, it, expect } from '@jest/globals';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { Heap } from '../heap/heap';
 import { executeProgram } from '../lang/interpreter';
+import { SEG_STRING } from '../core/memory';
+import { printValues } from '../core/printer';
+import { SequenceView } from './sequenceView';
 
 describe('Sequence Operations', () => {
   let testVM: VM;
@@ -88,8 +91,17 @@ describe('Sequence Operations', () => {
 
     it('should iterate over a string sequence', () => {
       const strPtr = stringCreate(testVM.digest, 'abc');
+      const { value: strAddr } = fromTaggedValue(strPtr);
+      const len = heap.memory.read8(SEG_STRING, strAddr);
+      const ch = heap.memory.read8(SEG_STRING, strAddr + 1);
+      console.log('>>>>>>>>>>>>> String length:', len, 'First char:', ch, 'strAddr', strAddr);
 
       const seq = stringSource(heap, strPtr);
+      const seqv = new SequenceView(heap, seq);
+      const strPtr1 = seqv.meta(0);
+      printValues('-------LLLL', strPtr1);
+
+
       const expected = ['a', 'b', 'c'].map(c => c.charCodeAt(0));
 
       for (let value of expected) {

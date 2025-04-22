@@ -121,7 +121,7 @@ export const dictRightOp: Verb = (vm: VM) => {
     const taggedValue = taggedArray[i + 1];
 
     // Extract the key as a string
-    const { tag: keyTag, heap: keyHeap, value: keyPtr } = fromTaggedValue(taggedKey);
+    const { tag: keyTag, isHeap: keyHeap, value: keyPtr } = fromTaggedValue(taggedKey);
     if (keyTag !== CoreTag.STRING || keyHeap) {
       // Ensure it's a non-heap string tag
       // Note: dictCreate also performs checks, but checking early is good.

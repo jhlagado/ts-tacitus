@@ -42,7 +42,7 @@ const VEC_SIZE = 4;
  * @returns A formatted string representation of the tagged value.
  */
 export function formatValue(vm: VM, value32: number): string {
-  const { value, heap, tag } = fromTaggedValue(value32);
+  const { value, isHeap: heap, tag } = fromTaggedValue(value32);
   if (!heap) {
     switch (tag) {
       case CoreTag.NUMBER:
