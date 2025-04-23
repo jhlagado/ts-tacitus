@@ -35,35 +35,49 @@ import { ProcType } from './sequence';
 import { prn } from '../core/printer';
 
 /**
+ * Helper function to advance a source sequence and check if the result is NIL.
+ * This is a common pattern used in many processor handlers.
+ * 
+ * @param vm The virtual machine instance
+ * @param seqv The sequence view for the processor
+ * @param sourceIndex The index of the source sequence in the processor's metadata
+ * @returns The value from the source sequence, or NIL if the sequence is exhausted
+ */
+function advanceSource(vm: VM, seqv: SequenceView, sourceIndex: number): number {
+  const source = seqv.meta(sourceIndex);
+  seqv.next(vm, source);
+  return vm.pop();
+}
+
+/**
  * @brief PROC_MAP: Apply a function to each element of the source sequence.
  *
  * @detailed_description
- * This handler implements the map processor behavior. It advances the source sequence,
- * applies the function to the resulting value, and pushes the result onto the stack.
- * If the source sequence is exhausted (returns NIL), the map processor also returns NIL.
+ * This handler processes a MAP processor, which applies a function to each element of the
+ * source sequence. The function is applied to each element in turn, and the result is
+ * pushed onto the stack. The original sequence is returned.
  *
  * @memory_management
- * This function calls callTacitFunction which may allocate heap objects or modify
- * reference counts. The sequence itself is not modified structurally.
+ * This function does not directly allocate heap objects or modify reference counts.
+ * It delegates to callTacitFunction which may do so.
  *
  * @edge_cases
- * - If the source sequence returns NIL, NIL is pushed onto the stack
+ * - If the source sequence is exhausted (returns NIL), the handler pushes NIL onto the stack
  * - If the function evaluation fails, the behavior depends on the VM error handling
  */
 export function handleProcMap(vm: VM, seq: number, seqv: SequenceView): number {
-  const source = seqv.meta(1);
   const func = seqv.meta(2);
   const { value: fnPtr } = fromTaggedValue(func);
 
   // advance child, pop its value
-  seqv.next(vm, source);
-  const v = vm.pop();
+  const v = advanceSource(vm, seqv, 1);
   if (isNIL(v)) {
     vm.push(NIL);
-  } else {
-    vm.push(v);
-    callTacitFunction(fnPtr);
+    return seq;
   }
+
+  vm.push(v);
+  callTacitFunction(fnPtr);
   return seq;
 }
 
@@ -86,19 +100,19 @@ export function handleProcMap(vm: VM, seq: number, seqv: SequenceView): number {
  * - If the mask value is falsy, the handler recursively calls seqNext on the processor
  */
 export function handleProcSift(vm: VM, seq: number, seqv: SequenceView): number {
-  const source = seqv.meta(1);
-  const maskSeq = seqv.meta(2);
-
-  seqv.next(vm, source);
-  let v = vm.pop();
+  const v = advanceSource(vm, seqv, 1);
   if (isNIL(v)) {
     vm.push(NIL);
     return seq;
   }
 
-  seqv.next(vm, maskSeq);
-  const m = vm.pop();
-  if (isNIL(m) || !m) {
+  const m = advanceSource(vm, seqv, 2);
+  if (isNIL(m)) {
+    vm.push(NIL);
+    return seq;
+  }
+
+  if (!m) {
     // skip this element → advance top‑level seq
     return seqv.next(vm, seq);
   }
@@ -126,11 +140,9 @@ export function handleProcSift(vm: VM, seq: number, seqv: SequenceView): number 
  * - If the predicate evaluation fails, the behavior depends on the VM error handling
  */
 export function handleProcFilter(vm: VM, seq: number, seqv: SequenceView): number {
-  const source = seqv.meta(1);
   const predicateFunc = seqv.meta(2);
 
-  seqv.next(vm, source);
-  let v = vm.pop();
+  const v = advanceSource(vm, seqv, 1);
   if (isNIL(v)) {
     vm.push(NIL);
     return seq;
@@ -138,13 +150,16 @@ export function handleProcFilter(vm: VM, seq: number, seqv: SequenceView): numbe
 
   vm.push(v);
   vm.push(predicateFunc);
-  vm.eval();
-  const keep = vm.pop();
-  if (isNIL(keep) || !keep) {
-    // skip → advance top‑level seq
+  vm.push(1);
+  callTacitFunction(fromTaggedValue(predicateFunc).value);
+
+  const result = vm.pop();
+  if (!result) {
+    // Skip this element → advance top‑level seq
     return seqv.next(vm, seq);
   }
 
+  // Pass through this element
   vm.push(v);
   return seq;
 }
@@ -176,9 +191,7 @@ export function handleProcTake(vm: VM, seq: number, seqv: SequenceView): number 
     return seq;
   }
 
-  const source = seqv.meta(1);
-  seqv.next(vm, source);
-  const v = vm.pop();
+  const v = advanceSource(vm, seqv, 1);
   if (isNIL(v)) {
     vm.push(NIL);
     return seq;
@@ -190,34 +203,55 @@ export function handleProcTake(vm: VM, seq: number, seqv: SequenceView): number 
 }
 
 /**
- * @brief PROC_DROP: Skip first N elements, then yield the rest.
+ * @brief PROC_DROP: Skip a specified number of elements from the source sequence.
  *
  * @detailed_description
- * This handler implements the drop processor behavior. It skips the first 'count'
- * values from the source sequence, then yields all remaining values. It uses the
- * sequence's cursor field to track how many elements have been dropped so far.
+ * This handler processes a DROP processor, which skips a specified number of elements
+ * from the source sequence before passing through the remaining elements. It maintains
+ * a cursor to track how many elements have been dropped so far.
  *
  * @memory_management
  * This function does not directly allocate heap objects or modify reference counts.
- * It modifies the sequence's cursor field to track progress.
+ * It delegates to seqNext which may do so.
  *
- * @edge_cases
- * - During the initial dropping phase, values are discarded without being pushed onto the stack
- * - After dropping the required number of elements, the behavior is equivalent to the source sequence
+ * @param vm The virtual machine instance, used for stack manipulation and evaluation.
+ * @param seq A tagged value representing a pointer to the processor sequence.
+ * @returns The (potentially updated) tagged sequence pointer, typically the same as the input.
  */
 export function handleProcDrop(vm: VM, seq: number, seqv: SequenceView): number {
   const toDrop = seqv.meta(2);
+  if (toDrop <= 0) {
+    // No elements to drop, just pass through from source
+    const v = advanceSource(vm, seqv, 1);
+    if (isNIL(v)) {
+      vm.push(NIL);
+      return seq;
+    }
+    vm.push(v);
+    return seq;
+  }
+
   let dropped = seqv.cursor;
 
   while (dropped < toDrop) {
-    seqv.next(vm, seqv.meta(1));
-    vm.pop(); // discard
+    const v = advanceSource(vm, seqv, 1);
+    // If we hit the end of the sequence during dropping, we should return NIL
+    if (isNIL(v)) {
+      vm.push(NIL);
+      return seq;
+    }
     dropped++;
     seqv.cursor = dropped;
   }
 
-  // now yield the next element
-  return seqv.next(vm, seqv.meta(1));
+  // We've dropped enough elements, now get the next value to return
+  const v = advanceSource(vm, seqv, 1);
+  if (isNIL(v)) {
+    vm.push(NIL);
+    return seq;
+  }
+  vm.push(v);
+  return seq;
 }
 
 /**
@@ -241,9 +275,7 @@ export function handleProcDrop(vm: VM, seq: number, seqv: SequenceView): number 
 export function handleProcMulti(vm: VM, seq: number, seqv: SequenceView): number {
   const n = seqv.metaCount - 1;
   for (let i = 1; i <= n; i++) {
-    const sub = seqv.meta(i);
-    seqv.next(vm, sub);
-    const v = vm.pop();
+    const v = advanceSource(vm, seqv, i);
     if (isNIL(v)) {
       vm.push(NIL);
       return seq;
@@ -273,9 +305,7 @@ export function handleProcMulti(vm: VM, seq: number, seqv: SequenceView): number
 export function handleProcMultiSource(vm: VM, seq: number, seqv: SequenceView): number {
   const n = seqv.metaCount - 1;
   for (let i = 1; i <= n; i++) {
-    const src = seqv.meta(i);
-    seqv.next(vm, src);
-    const v = vm.pop();
+    const v = advanceSource(vm, seqv, i);
     if (isNIL(v)) {
       vm.push(NIL);
       return seq;

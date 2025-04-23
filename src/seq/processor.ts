@@ -43,18 +43,29 @@ import { NIL, isNIL } from '../core/tagged';
  * @param heap The heap object for memory management
  * @param procType The type of processor to create
  * @param args Array of arguments to pass to the processor (starting with source)
+ * @param validateArgs Optional function to perform additional validation on arguments
  * @returns Pointer to the newly created processor sequence, or NIL if creation fails
  * 
  * Note: This function maintains the same behavior as direct calls to seqCreate,
  * including reference counting for heap-allocated objects. The seqCreate function
  * will increment reference counts for all heap-allocated values in the args array.
  */
-function createSimpleProcessor(heap: Heap, procType: ProcType, args: number[]): number {
+function createSimpleProcessor(
+  heap: Heap, 
+  procType: ProcType, 
+  args: number[],
+  validateArgs?: (args: number[]) => boolean
+): number {
   // Validate that none of the arguments are NIL
   for (const arg of args) {
     if (isNIL(arg)) {
       return NIL;
     }
+  }
+  
+  // Perform additional validation if provided
+  if (validateArgs && !validateArgs(args)) {
+    return NIL;
   }
   
   return seqCreate(heap, SeqSourceType.PROCESSOR, [procType, ...args]);

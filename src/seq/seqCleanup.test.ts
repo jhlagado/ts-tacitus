@@ -63,7 +63,7 @@ describe('Sequence Cleanup', () => {
     expect(getRefCount(vm.heap, range)).toBe(0);
   });
 
-  xit('should properly cleanup sequence processors', () => {
+  it('should properly cleanup sequence processors', () => {
     executeProgram('( 2 * )');
     const mapFunction = vm.pop();
 

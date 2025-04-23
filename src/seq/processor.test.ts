@@ -11,30 +11,7 @@ describe('Sequence Processors', () => {
     vm.debug = false;
   });
 
-  xit('should process multiple sequences in parallel', () => {
-    const seq1 = rangeSource(vm.heap, 1, 3, 1);
-    const seq2 = vectorSource(vm.heap, vectorCreate(vm.heap, [100, 200, 300]));
-    const multiSeqResult = multiSeq(vm.heap, [seq1, seq2]);
-
-    const expected = [
-      [1, 100],
-      [2, 200],
-      [3, 300],
-    ];
-
-    for (let row of expected) {
-      seqNext(vm, multiSeqResult);
-      const v1 = vm.pop();
-      const v2 = vm.pop();
-      expect(v1).toBe(row[1]);
-      expect(v2).toBe(row[0]);
-    }
-
-    seqNext(vm, multiSeqResult);
-    expect(vm.pop()).toEqual(NIL);
-  });
-
-  xit('should take only the specified number of elements', () => {
+  it('should take only the specified number of elements', () => {
     const source = rangeSource(vm.heap, 1, 10, 1);
     const takeCount = 3;
 
