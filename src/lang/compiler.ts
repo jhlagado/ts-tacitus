@@ -38,8 +38,8 @@ export class Compiler {
   /**
    * Compiles a 32-bit float to the CODE area.
    */
-  compileFloat(value: number): void {
-    this.vm.memory.writeFloat(SEG_CODE, this.CP, value);
+  compileFloat32(value: number): void {
+    this.vm.memory.writeFloat32(SEG_CODE, this.CP, value);
     this.CP += 4; // Move to the next 32-bit aligned address
   }
 
@@ -48,7 +48,7 @@ export class Compiler {
    */
   compileAddress(value: number): void {
     const tagNum = toTaggedValue(value, false, CoreTag.CODE); // PrimitiveTag the address
-    this.compileFloat(tagNum); // Write the tagged pointer as a Float32
+    this.compileFloat32(tagNum); // Write the tagged pointer as a Float32
   }
 
   /**

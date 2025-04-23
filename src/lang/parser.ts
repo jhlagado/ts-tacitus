@@ -93,7 +93,7 @@ function processToken(token: Token, state: ParserState): void {
  */
 function compileNumberLiteral(value: number): void {
   vm.compiler.compile8(Op.LiteralNumber);
-  vm.compiler.compileFloat(value);
+  vm.compiler.compileFloat32(value);
 }
 
 /**

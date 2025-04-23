@@ -63,7 +63,7 @@ class DummyMemory extends Memory {
     }
     return 0;
   }
-  readFloat(_segment: number, offset: number): number {
+  readFloat32(_segment: number, offset: number): number {
     // For a vector starting at base 256 with VEC_DATA offset of 8:
     // first element is at 256 + 8 = 264, second at 256 + 8 + 4 = 268.
     if (offset === 264) {
@@ -238,7 +238,7 @@ describe('Utility Functions', () => {
       faultyMemory.read16 = (_segment: number, _offset: number): number => {
         throw new Error('read16 failed');
       };
-      faultyMemory.readFloat = (_segment: number, _offset: number): number => {
+      faultyMemory.readFloat32 = (_segment: number, _offset: number): number => {
         throw new Error('readFloat failed');
       };
       const faultyVM: Partial<VM> = {

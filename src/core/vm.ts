@@ -52,7 +52,7 @@ export class VM {
         `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
-    this.memory.writeFloat(SEG_STACK, this.SP, value); // Write 32-bit float
+    this.memory.writeFloat32(SEG_STACK, this.SP, value); // Write 32-bit float
     this.SP += 4; // Move stack pointer by 4 bytes
   }
 
@@ -66,7 +66,7 @@ export class VM {
       );
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
-    const tvalue = this.memory.readFloat(SEG_STACK, this.SP); // Read 32-bit float
+    const tvalue = this.memory.readFloat32(SEG_STACK, this.SP); // Read 32-bit float
 
     if (!transfer) {
       decRef(this.heap, tvalue);
@@ -104,7 +104,7 @@ export class VM {
         )})`
       );
     }
-    this.memory.writeFloat(SEG_RSTACK, this.RP, value); // Write 32-bit value
+    this.memory.writeFloat32(SEG_RSTACK, this.RP, value); // Write 32-bit value
     this.RP += 4; // Move return stack pointer by 4 bytes
   }
 
@@ -118,7 +118,7 @@ export class VM {
       );
     }
     this.RP -= 4; // Move return stack pointer back by 4 bytes
-    return this.memory.readFloat(SEG_RSTACK, this.RP); // Read 32-bit value
+    return this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
   }
 
   reset() {
@@ -151,8 +151,8 @@ export class VM {
   /**
    * Reads the next 32-bit float from memory and increments the instruction pointer.
    */
-  nextFloat(): number {
-    const value = this.memory.readFloat(SEG_CODE, this.IP); // Read 32-bit float
+  nextFloat32(): number {
+    const value = this.memory.readFloat32(SEG_CODE, this.IP); // Read 32-bit float
     this.IP += 4; // Move instruction pointer by 4 bytes
     return value;
   }
@@ -161,7 +161,7 @@ export class VM {
    * Reads the next address (tagged as CODE) from memory and increments the instruction pointer.
    */
   nextAddress(): number {
-    const tagNum = this.nextFloat(); // Read the tagged pointer as a float
+    const tagNum = this.nextFloat32(); // Read the tagged pointer as a float
     const { value: pointer } = fromTaggedValue(tagNum);
     return pointer;
   }
@@ -172,7 +172,7 @@ export class VM {
   getStackData(): number[] {
     const stackData: number[] = [];
     for (let i = 0; i < this.SP; i += 4) {
-      stackData.push(this.memory.readFloat(SEG_STACK, i));
+      stackData.push(this.memory.readFloat32(SEG_STACK, i));
     }
     return stackData;
   }

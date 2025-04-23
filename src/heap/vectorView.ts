@@ -40,6 +40,6 @@ export class VectorView {
       }
     }
     const off = VEC_DATA + idxInBlock * CELL_SIZE;
-    return this.heap.memory.readFloat(SEG_HEAP, this.heap.blockToByteOffset(block) + off);
+    return this.heap.memory.readFloat32(SEG_HEAP, this.heap.blockToByteOffset(block) + off);
   }
 }

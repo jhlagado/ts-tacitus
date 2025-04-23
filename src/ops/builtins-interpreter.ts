@@ -6,7 +6,7 @@ import { vectorCreate } from '../heap/vector';
 import { dictCreate } from '../heap/dict';
 
 export const literalNumberOp: Verb = (vm: VM) => {
-  const num = vm.nextFloat();
+  const num = vm.nextFloat32();
   if (vm.debug) console.log('literalNumberOp', num);
   vm.push(num);
 };

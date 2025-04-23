@@ -16,11 +16,11 @@ describe('Parser with Tokenizer', () => {
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(42); // Using toBeCloseTo instead of toBe
+      expect(vm.nextFloat32()).toBeCloseTo(42); // Using toBeCloseTo instead of toBe
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(-3.14); // Using toBeCloseTo
+      expect(vm.nextFloat32()).toBeCloseTo(-3.14); // Using toBeCloseTo
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(5); // Using toBeCloseTo
+      expect(vm.nextFloat32()).toBeCloseTo(5); // Using toBeCloseTo
       expect(vm.next8()).toBe(Op.Abort);
     });
 
@@ -41,11 +41,11 @@ describe('Parser with Tokenizer', () => {
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(10);
+      expect(vm.nextFloat32()).toBeCloseTo(10);
       expect(vm.next8()).toBe(Op.Dup);
       expect(vm.next8()).toBe(Op.Multiply);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(5);
+      expect(vm.nextFloat32()).toBeCloseTo(5);
       expect(vm.next8()).toBe(Op.Plus);
       expect(vm.next8()).toBe(Op.Abort);
     });
@@ -67,9 +67,9 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.BranchCall);
       const offset = vm.next16(); // READ THE OFFSET - this is critical
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(10);
+      expect(vm.nextFloat32()).toBeCloseTo(10);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(20);
+      expect(vm.nextFloat32()).toBeCloseTo(20);
       expect(vm.next8()).toBe(Op.Plus);
       expect(vm.next8()).toBe(Op.Exit);
       expect(vm.next8()).toBe(Op.Abort);
@@ -87,9 +87,9 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.BranchCall);
       const innerOffset1 = vm.next16(); // READ THE OFFSET
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(5);
+      expect(vm.nextFloat32()).toBeCloseTo(5);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(10);
+      expect(vm.nextFloat32()).toBeCloseTo(10);
       expect(vm.next8()).toBe(Op.Plus);
       expect(vm.next8()).toBe(Op.Exit);
 
@@ -97,9 +97,9 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.BranchCall);
       const innerOffset2 = vm.next16(); // READ THE OFFSET
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(15);
+      expect(vm.nextFloat32()).toBeCloseTo(15);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(20);
+      expect(vm.nextFloat32()).toBeCloseTo(20);
       expect(vm.next8()).toBe(Op.Multiply);
       expect(vm.next8()).toBe(Op.Exit);
 
@@ -227,9 +227,9 @@ describe('Parser with Tokenizer', () => {
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(5);
+      expect(vm.nextFloat32()).toBeCloseTo(5);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(10);
+      expect(vm.nextFloat32()).toBeCloseTo(10);
       expect(vm.next8()).toBe(Op.Plus);
       expect(vm.next8()).toBe(Op.Abort);
     });
@@ -239,9 +239,9 @@ describe('Parser with Tokenizer', () => {
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(5);
+      expect(vm.nextFloat32()).toBeCloseTo(5);
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(10);
+      expect(vm.nextFloat32()).toBeCloseTo(10);
       expect(vm.next8()).toBe(Op.Plus);
       expect(vm.next8()).toBe(Op.Abort);
     });
@@ -272,13 +272,13 @@ describe('Parser with Tokenizer', () => {
 
       // Check the three literal numbers
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(1);
+      expect(vm.nextFloat32()).toBeCloseTo(1);
 
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(2);
+      expect(vm.nextFloat32()).toBeCloseTo(2);
 
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat()).toBeCloseTo(3);
+      expect(vm.nextFloat32()).toBeCloseTo(3);
 
       // Expect the GroupRight opcode for ']#'
       expect(vm.next8()).toBe(Op.GroupRight);
@@ -304,7 +304,7 @@ describe('Parser with Tokenizer', () => {
       expect(vm.digest.get(keyAddr)).toBe('a');
 
       expect(vm.next8()).toBe(Op.LiteralNumber); // Value 1
-      expect(vm.nextFloat()).toBeCloseTo(1);
+      expect(vm.nextFloat32()).toBeCloseTo(1);
 
       // Expect the DictRight opcode for '}'
       expect(vm.next8()).toBe(Op.DictRight);

@@ -107,7 +107,7 @@ describe('VM', () => {
 
     it('should handle nextAddress correctly', () => {
       const addr = 0x2345;
-      vm.compiler.compileFloat(toTaggedValue(addr, false, CoreTag.CODE));
+      vm.compiler.compileFloat32(toTaggedValue(addr, false, CoreTag.CODE));
       vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });

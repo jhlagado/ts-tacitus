@@ -82,14 +82,14 @@ describe('Built-in Words', () => {
 
   describe('Literal Operations', () => {
     it('literalNumberOp should push numbers', () => {
-      vm.compiler.compileFloat(42);
+      vm.compiler.compileFloat32(42);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(42);
     });
 
     it('should handle tagged pointers', () => {
       const addr = toTaggedValue(0x2345, false, CoreTag.CODE);
-      vm.compiler.compileFloat(addr);
+      vm.compiler.compileFloat32(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);
     });

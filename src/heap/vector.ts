@@ -74,7 +74,7 @@ export function vectorCreate(heap: Heap, data: number[]): number {
 
   while (dataIndex < length) {
     const valueToWrite = data[dataIndex];
-    heap.memory.writeFloat(SEG_HEAP, heap.blockToByteOffset(currentBlock) + offset, valueToWrite);
+    heap.memory.writeFloat32(SEG_HEAP, heap.blockToByteOffset(currentBlock) + offset, valueToWrite);
     dataIndex++;
     offset += ELEMENT_SIZE;
 
@@ -98,12 +98,12 @@ export function vectorSimpleGetAddress(heap: Heap, vectorPtr: number, index: num
 export function vectorSimpleGet(heap: Heap, vectorPtr: number, index: number): number {
   const address = vectorSimpleGetAddress(heap, vectorPtr, index);
   if (address === NIL) return NIL;
-  return heap.memory.readFloat(SEG_HEAP, address);
+  return heap.memory.readFloat32(SEG_HEAP, address);
 }
 
 export function vectorSimpleSet(heap: Heap, vectorPtr: number, index: number, value: number): void {
   const address = vectorSimpleGetAddress(heap, vectorPtr, index);
-  heap.memory.writeFloat(SEG_HEAP, address, value);
+  heap.memory.writeFloat32(SEG_HEAP, address, value);
 }
 
 /**
@@ -128,7 +128,7 @@ export function vectorGet(heap: Heap, vectorPtr: number, index: number): number 
 
   while (currentBlock !== INVALID) {
     if (remainingIndex < capacityPerBlock) {
-      const retrievedValue = heap.memory.readFloat(
+      const retrievedValue = heap.memory.readFloat32(
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE
       );
@@ -169,7 +169,7 @@ export function vectorUpdate(heap: Heap, vectorPtr: number, index: number, value
     currentBlock = heap.copyOnWrite(currentBlock);
     if (currentBlock === INVALID) return INVALID;
     firstBlock = currentBlock;
-    heap.memory.writeFloat(
+    heap.memory.writeFloat32(
       SEG_HEAP,
       heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE,
       value
@@ -182,7 +182,7 @@ export function vectorUpdate(heap: Heap, vectorPtr: number, index: number, value
     if (remainingIndex < capacityPerBlock) {
       currentBlock = heap.copyOnWrite(currentBlock, prevBlock);
       if (currentBlock === INVALID) return INVALID;
-      heap.memory.writeFloat(
+      heap.memory.writeFloat32(
         SEG_HEAP,
         heap.blockToByteOffset(currentBlock) + VEC_DATA + remainingIndex * ELEMENT_SIZE,
         value

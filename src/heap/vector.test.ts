@@ -215,7 +215,7 @@ describe('Vector', () => {
 
       // Read each element to verify what's stored
       for (let i = 0; i < length; i++) {
-        const elem = vm.heap.memory.readFloat(
+        const elem = vm.heap.memory.readFloat32(
           SEG_HEAP,
           vm.heap.blockToByteOffset(firstBlock) + 8 + i * 4 // Assuming VEC_DATA is 8
         );

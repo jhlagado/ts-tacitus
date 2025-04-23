@@ -207,7 +207,7 @@ Tacit executes programs using a classic stack-based VM.
     4.  Inside the loop:
         *   Fetches the next opcode using `vm.next8()` (which reads from `SEG_CODE` at `vm.IP` and increments `IP`).
         *   Dispatches to the appropriate handler function based on the opcode (`executeOp` in `builtins.ts`).
-        *   The handler function performs the operation, manipulating the stacks (`vm.push`, `vm.pop`, `vm.rpush`, `vm.rpop`) and potentially fetching immediate operands using `vm.next16()`, `vm.nextFloat()`.
+        *   The handler function performs the operation, manipulating the stacks (`vm.push`, `vm.pop`, `vm.rpush`, `vm.rpop`) and potentially fetching immediate operands using `vm.next16()`, `vm.nextFloa32t()`.
         *   Control flow opcodes (`Branch`, `Call`, `Exit`, `Eval`) directly modify `vm.IP` or use the return stack.
         *   `abortOp` sets `vm.running = false`, terminating the loop.
     5.  Includes basic error handling, wrapping the `executeOp` call in a try-catch block.
@@ -288,7 +288,7 @@ Tacit code goes through several stages before execution:
 *   **Methods:**
     *   `compile8(value)`: Writes a single byte.
     *   `compile16(value)`: Writes a 16-bit integer (handling signedness correctly for storage).
-    *   `compileFloat(value)`: Writes a 32-bit float (handles tagged values implicitly).
+    *   `compileFloat32(value)`: Writes a 32-bit float (handles tagged values implicitly).
     *   `compileAddress(value)`: Takes a 16-bit address, tags it as `CoreTag.CODE`, and writes it as a 32-bit float using `compileFloat`.
 
 ### 7.4. Symbol Table (`symbol-table.ts`)

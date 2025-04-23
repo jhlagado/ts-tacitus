@@ -85,13 +85,13 @@ export function dictGet(digest: Digest, heap: Heap, dict: number, key: string): 
     // Each pair occupies 8 bytes (4 bytes for the tagged key, 4 for the value).
     // Data begins at offset VEC_DATA.
     const pairOffset = rawPtr + VEC_DATA + mid * 8;
-    const taggedKey = heap.memory.readFloat(SEG_HEAP, pairOffset);
+    const taggedKey = heap.memory.readFloat32(SEG_HEAP, pairOffset);
     const { value: keyAddr } = fromTaggedValue(taggedKey);
     const storedKey = digest.get(keyAddr);
     const cmp = storedKey.localeCompare(key);
     if (cmp === 0) {
       // Key found; return the associated value (located 4 bytes after the key).
-      return heap.memory.readFloat(SEG_HEAP, pairOffset + 4);
+      return heap.memory.readFloat32(SEG_HEAP, pairOffset + 4);
     } else if (cmp < 0) {
       low = mid + 1;
     } else {
