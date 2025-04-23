@@ -1,8 +1,7 @@
 import { NIL } from '../core/tagged';
-import { vectorCreate } from '../heap/vector';
 import { seqNext } from './sequence';
-import { rangeSource, vectorSource } from './source';
-import { multiSeq, takeSeq, dropSeq } from './processor';
+import { rangeSource } from './source';
+import { takeSeq, dropSeq } from './processor';
 import { initializeInterpreter, vm } from '../core/globalState';
 
 describe('Sequence Processors', () => {

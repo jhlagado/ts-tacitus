@@ -14,7 +14,9 @@ export function vectorSource(heap: Heap, vectorPtr: number): number {
 }
 
 export function multiSequenceSource(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [...sequences, ProcType.MULTI_SOURCE]);
+  // Create a new array with sequences and append ProcType.MULTI_SOURCE at the end
+  const meta = sequences.concat([ProcType.MULTI_SOURCE]);
+  return seqCreate(heap, SeqSourceType.PROCESSOR, meta);
 }
 
 export function stringSource(heap: Heap, strPtr: number): number {

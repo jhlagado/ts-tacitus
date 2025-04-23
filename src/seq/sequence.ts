@@ -215,7 +215,6 @@ export function seqNext(vm: VM, seq: number): number {
       // first byte at strAddr is the length
       const len = vm.heap.memory.read8(SEG_STRING, strAddr);
 
-      console.log(`seqNext: string${strAddr} length=${len} cursor=${i} char=`);
       if (i < len) {
         // skip the length byte, then index into the chars
         const ch = vm.heap.memory.read8(SEG_STRING, strAddr + 1 + i);
