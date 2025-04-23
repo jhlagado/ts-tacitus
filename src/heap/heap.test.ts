@@ -155,12 +155,21 @@ describe('Heap', () => {
     });
 
     it('should manage multi-block allocations', () => {
-      const block1 = heap.malloc(USABLE_BLOCK_SIZE * 2);
-      // In the new system, block2 would be block1 + 1 (next block index)
-      const block2 = block1 + 1;
+      const block1 = heap.malloc(USABLE_BLOCK_SIZE + 1); // Needs 2 blocks
+      expect(block1).not.toBe(INVALID);
+      // Assuming blocks are allocated contiguously for simplicity in test,
+      // though this isn't guaranteed by the allocator design.
+      // A more robust test would follow the BLOCK_NEXT chain.
+      const block2Offset = heap.blockToByteOffset(block1) + BLOCK_NEXT;
+      const block2 = memory.read16(SEG_HEAP, block2Offset);
+      expect(block2).not.toBe(INVALID); // Check that a second block was linked
+
       expect(memory.read16(SEG_HEAP, heap.blockToByteOffset(block1) + BLOCK_REFS)).toBe(1);
-      expect(memory.read16(SEG_HEAP, heap.blockToByteOffset(block2) + BLOCK_REFS)).toBe(1);
+      // Subsequent blocks in the chain should have ref count 0, as per architecture.
+      expect(memory.read16(SEG_HEAP, heap.blockToByteOffset(block2) + BLOCK_REFS)).toBe(0);
       heap.decrementRef(block1);
+      // After freeing, both blocks should be back on free list with ref count 0
+      expect(memory.read16(SEG_HEAP, heap.blockToByteOffset(block1) + BLOCK_REFS)).toBe(0);
       expect(memory.read16(SEG_HEAP, heap.blockToByteOffset(block2) + BLOCK_REFS)).toBe(0);
     });
 
