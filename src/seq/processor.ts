@@ -36,6 +36,7 @@ import {
   SeqSourceType,
   ProcType
 } from './sequence';
+import { NIL, isNIL } from '../core/tagged';
 
 /**
  * Creates a map processor sequence that transforms each value using a function
@@ -62,7 +63,39 @@ import {
  * @param func Pointer to the function to apply to each value (reference count is incremented)
  * @returns Pointer to the newly created map processor sequence, or NIL if allocation fails
  */
+/**
+ * Creates a map processor sequence that transforms each value using a function
+ * 
+ * @detailed_description
+ * The map processor applies a transformation function to each element of the source
+ * sequence, producing a new sequence of the transformed values. This implements the
+ * classic functional 'map' operation, which applies a function to each element of
+ * a collection.
+ *
+ * @memory_management
+ * This function increments the reference count of both the source sequence and the
+ * function pointer when creating the processor. These references are released when
+ * the processor is freed.
+ *
+ * @param heap The heap object for memory management
+ * @param source Pointer to the source sequence (reference count is incremented)
+ * @param func Pointer to the function to apply to each value (reference count is incremented)
+ * @returns Pointer to the newly created map processor sequence, or NIL if allocation fails or inputs are invalid
+ */
 export function mapSeq(heap: Heap, source: number, func: number): number {
+  // Validate inputs
+  if (!heap) {
+    return NIL; // Heap is required
+  }
+  
+  if (isNIL(source)) {
+    return NIL; // Source sequence cannot be NIL
+  }
+  
+  if (isNIL(func)) {
+    return NIL; // Function cannot be NIL
+  }
+  
   return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MAP, source, func]);
 }
 
