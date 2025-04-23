@@ -1,4 +1,3 @@
-Note: Read the [reference counting](./reference-counting.md) document which supercedes this one.
 
 ### **Context**
 We are implementing a memory model without garbage collection, relying instead on **reference counting**. The system operates using **heap-allocated blocks** and a **stack-based execution model**. Sequences (like `range`, `map`, etc.) are chained and must manage their own lifecycles properly.
