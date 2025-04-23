@@ -39,6 +39,28 @@ import {
 import { NIL, isNIL } from '../core/tagged';
 
 /**
+ * Helper function to create processor sequences with minimal boilerplate
+ * @param heap The heap object for memory management
+ * @param procType The type of processor to create
+ * @param args Array of arguments to pass to the processor (starting with source)
+ * @returns Pointer to the newly created processor sequence, or NIL if creation fails
+ * 
+ * Note: This function maintains the same behavior as direct calls to seqCreate,
+ * including reference counting for heap-allocated objects. The seqCreate function
+ * will increment reference counts for all heap-allocated values in the args array.
+ */
+function createSimpleProcessor(heap: Heap, procType: ProcType, args: number[]): number {
+  // Validate that none of the arguments are NIL
+  for (const arg of args) {
+    if (isNIL(arg)) {
+      return NIL;
+    }
+  }
+  
+  return seqCreate(heap, SeqSourceType.PROCESSOR, [procType, ...args]);
+}
+
+/**
  * Creates a map processor sequence that transforms each value using a function
  * 
  * @detailed_description
@@ -61,33 +83,9 @@ import { NIL, isNIL } from '../core/tagged';
  * @param heap The heap object for memory management
  * @param source Pointer to the source sequence (reference count is incremented)
  * @param func Pointer to the function to apply to each value (reference count is incremented)
- * @returns Pointer to the newly created map processor sequence, or NIL if allocation fails
- */
-/**
- * Creates a map processor sequence that transforms each value using a function
- * 
- * @detailed_description
- * The map processor applies a transformation function to each element of the source
- * sequence, producing a new sequence of the transformed values. This implements the
- * classic functional 'map' operation, which applies a function to each element of
- * a collection.
- *
- * @memory_management
- * This function increments the reference count of both the source sequence and the
- * function pointer when creating the processor. These references are released when
- * the processor is freed.
- *
- * @param heap The heap object for memory management
- * @param source Pointer to the source sequence (reference count is incremented)
- * @param func Pointer to the function to apply to each value (reference count is incremented)
  * @returns Pointer to the newly created map processor sequence, or NIL if allocation fails or inputs are invalid
  */
 export function mapSeq(heap: Heap, source: number, func: number): number {
-  // Validate inputs
-  if (!heap) {
-    return NIL; // Heap is required
-  }
-  
   if (isNIL(source)) {
     return NIL; // Source sequence cannot be NIL
   }
@@ -123,7 +121,7 @@ export function mapSeq(heap: Heap, source: number, func: number): number {
  * @returns Pointer to the newly created multi-sequence processor, or NIL if allocation fails
  */
 export function multiSeq(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MULTI, ...sequences]);
+  return createSimpleProcessor(heap, ProcType.MULTI, sequences);
 }
 
 /**
@@ -150,7 +148,7 @@ export function multiSeq(heap: Heap, sequences: number[]): number {
  * @returns Pointer to the newly created multi-source processor, or NIL if allocation fails
  */
 export function multiSourceSeq(heap: Heap, sequences: number[]): number {
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.MULTI_SOURCE, ...sequences]);
+  return createSimpleProcessor(heap, ProcType.MULTI_SOURCE, sequences);
 }
 
 /**
@@ -179,7 +177,7 @@ export function multiSourceSeq(heap: Heap, sequences: number[]): number {
  * @returns Pointer to the newly created sift processor sequence, or NIL if allocation fails
  */
 export function siftSeq(heap: Heap, source: number, mask: number): number {
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.SIFT, source, mask]);
+  return createSimpleProcessor(heap, ProcType.SIFT, [source, mask]);
 }
 
 /**
@@ -232,7 +230,7 @@ export function takeSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created drop processor sequence, or NIL if allocation fails
  */
 export function dropSeq(heap: Heap, source: number, count: number): number {
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.DROP, source, count]);
+  return createSimpleProcessor(heap, ProcType.DROP, [source, count]);
 }
 
 /**
@@ -263,8 +261,7 @@ export function dropSeq(heap: Heap, source: number, count: number): number {
  * @returns Pointer to the newly created scan processor sequence, or NIL if allocation fails
  */
 export function scanSeq(heap: Heap, source: number, func: number, initialValue: number): number {
-  // slot[0]=ProcType.SCAN, slot[1]=source, slot[2]=func, slot[3]=initialValue
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.SCAN, source, func, initialValue]);
+  return createSimpleProcessor(heap, ProcType.SCAN, [source, func, initialValue]);
 }
 
 /**
@@ -297,8 +294,7 @@ export function scanSeq(heap: Heap, source: number, func: number, initialValue: 
  * @returns Pointer to the newly created chain processor sequence, or NIL if allocation fails
  */
 export function chainSeq(heap: Heap, source: number, processors: number[]): number {
-  // slot[0]=ProcType.CHAIN, slot[1]=source, slots[2..]=processors
-  return seqCreate(heap, SeqSourceType.PROCESSOR, [ProcType.CHAIN, source, ...processors]);
+  return createSimpleProcessor(heap, ProcType.CHAIN, [source, ...processors]);
 }
 
 /**
