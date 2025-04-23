@@ -95,12 +95,6 @@ export class Heap {
     return startBlock;
   }
 
-  // Remove the public free method. Cleanup is handled via decrementRef.
-  // free(block: number): void {
-  //   console.log('!!! free', block, this.freeList);
-  //   this.decrementRef(block);
-  // }
-
   decrementRef(block: number): void {
     if (block === INVALID) return;
 

@@ -61,7 +61,6 @@ describe('Sequence Processors', () => {
     // We expect to get elements after dropping the first 3
     const expected = [4, 5, 6, 7, 8, 9, 10];
     for (let i = 0; i < expected.length; i++) {
-      console.log('-----------------------------1');
       seqNext(vm, dropSequence);
       const value = vm.pop();
       expect(value).toEqual(expected[i]);
