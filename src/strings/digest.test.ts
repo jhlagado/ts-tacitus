@@ -12,7 +12,8 @@ describe('Digest', () => {
 
   it('should add a string, retrieve it, and report its length', () => {
     const address = digest.add('hello');
-    expect(address).toBe(0);
+    // Address should now be the index of the length byte suffix
+    expect(address).toBe(5);
     expect(digest.get(address)).toBe('hello');
     expect(digest.length(address)).toBe(5);
   });
@@ -87,8 +88,11 @@ describe('Digest', () => {
   });
 
   it('should throw an error when reading from an invalid address', () => {
-    expect(() => digest.get(-1)).toThrow('Address is outside memory bounds');
-    expect(() => digest.get(STRING_SIZE)).toThrow('Address is outside memory bounds');
+    // Updated error messages to match the modified get() method
+    expect(() => digest.get(-1)).toThrow('Address is outside memory bounds (get length byte)');
+    expect(() => digest.get(STRING_SIZE)).toThrow(
+      'Address is outside memory bounds (get length byte)'
+    );
   });
 
   it('should correctly report remaining space', () => {
