@@ -46,7 +46,7 @@ Here, `sequence` is evaluated first, placed on the stack, and then `map` is appl
 
 - Curly braces `{}` introduce **compile-time code regions**.
 - These blocks are **parsed immediately** during compilation and are **never runtime objects**.
-- They are used by combinators like `?`, `map`, `filter`, `reduce`, and `?switch`.
+- They are used by combinators like `if`, `map`, `filter`, `reduce`, and `switch`.
 
 Blocks **do not** create new stack frames or capture external environments.  
 They are simple structured groupings of code.
@@ -125,12 +125,12 @@ they are not heap objects or closures.
 
 ---
 
-### 3.1 Conditional Execution — `?` Combinator
+### 3.1 Conditional Execution — `if` Combinator
 
 **Syntax:**
 
 ```tacit
-condition ? { then-block } { else-block }
+condition if { then-block } { else-block }
 ```
 
 **Behavior:**
@@ -142,7 +142,7 @@ condition ? { then-block } { else-block }
 **Example:**
 
 ```tacit
-x 0 > ? { "positive" print } { "non-positive" print }
+x 0 > if { "positive" print } { "non-positive" print }
 ```
 
 - If `x` is greater than zero, prints `"positive"`.
@@ -217,12 +217,12 @@ numbers reduce { + }
 
 ---
 
-### 3.5 Multi-Branching — `?switch` Combinator
+### 3.5 Multi-Branching — `switch` Combinator
 
 **Syntax:**
 
 ```tacit
-value ?switch {
+value switch {
   pattern1 { block1 }
   pattern2 { block2 }
   else { default-block }
@@ -238,7 +238,7 @@ value ?switch {
 **Example:**
 
 ```tacit
-x ?switch {
+x switch {
   0 { "zero" print }
   1 { "one" print }
   else { "many" print }
@@ -266,10 +266,10 @@ There are a few simple but powerful rules that define all block and combinator b
 **Example:**
 
 ```tacit
-x 0 > ? { "positive" print } { "negative" print }
+x 0 > if { "positive" print } { "negative" print }
 ```
 
-Two blocks: `{ ... } { ... }`, associated with the `?` combinator.
+Two blocks: `{ ... } { ... }`, associated with the `if` combinator.
 
 ---
 
@@ -294,11 +294,11 @@ Some combinators expect **a fixed number of `{}` blocks**:
 
 | Combinator | Required Blocks |
 |------------|-----------------|
-| `?` | Two blocks (`{ then } { else }`) |
+| `if` | Two blocks (`{ then } { else }`) |
 | `map` | One block (`{ transform }`) |
 | `filter` | One block (`{ predicate }`) |
 | `reduce` | One block (`{ reducer }`) |
-| `?switch` | One block containing multiple `{ case }` branches |
+| `switch` | One block containing multiple `{ case }` branches |
 
 If a combinator does not receive the required number of `{}` blocks immediately after it is parsed,  
 the compiler throws a **missing block error**.
@@ -344,17 +344,17 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 | Combinator | Purpose | Syntax |
 |------------|---------|--------|
-| `?` | Conditional branching | `cond ? { then } { else }` |
+| `if` | Conditional branching | `cond if { then } { else }` |
 | `map` | Apply block to each element | `seq map { block }` |
 | `filter` | Keep elements by condition | `seq filter { block }` |
 | `reduce` | Fold sequence into one value | `seq reduce { block }` |
-| `?switch` | Multi-way branching | `value ?switch { cases }` |
+| `switch` | Multi-way branching | `value switch { cases }` |
 
 ---
 
 ### 5.1 Details per Combinator
 
-**`?` — Conditional**
+**`if` — Conditional**
 
 - Takes two blocks.
 - First block executes if condition is true.
@@ -383,7 +383,7 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 ---
 
-**`?switch` — Multi-Branch Dispatch**
+**`switch` — Multi-Branch Dispatch**
 
 - Takes one structured block containing multiple `{ case }` branches.
 - Matches the value against cases sequentially.
@@ -497,7 +497,7 @@ Each example demonstrates:
 Simple branching based on a number's positivity.
 
 ```tacit
-x 0 > ? 
+x 0 > if 
   { "positive" print } 
   { "non-positive" print }
 ```
@@ -547,7 +547,7 @@ Categorize a list based on the total of squared positives.
   filter { 0 > not }
   map { dup * }
   reduce { + }
-  dup 100 > ?
+  dup 100 > if
     { "large" print }
     { "small" print } ;
 ```
@@ -571,7 +571,7 @@ Categorize a number:
 
 ```tacit
 x
-?switch {
+switch {
   0 { "zero" print }
   1 { "one" print }
   else { "other" print }
@@ -591,7 +591,7 @@ Label numbers as "small" or "large":
 ```tacit
 numbers
 map {
-  dup 10 < ?
+  dup 10 < if
     { "small" }
     { "large" }
 }
@@ -620,7 +620,7 @@ map {
   filter { is-positive }
   map { square }
   reduce { + }
-  dup 200 > ?
+  dup 200 > if
     { "very large" print }
     { "moderate" print } ;
 
@@ -670,7 +670,7 @@ Syntax Error: Unclosed block — expected '}' before end of file.
 **Example:**
 
 ```tacit
-x 0 > ? { "positive" print  { "negative" print }
+x 0 > if { "positive" print  { "negative" print }
 ```
 
 (Missing closing `}` after `"positive" print`.)
@@ -690,7 +690,7 @@ Syntax Error: Unexpected '}' without matching '{'.
 **Example:**
 
 ```tacit
-x 0 > ? "positive" print } { "negative" print }
+x 0 > if "positive" print } { "negative" print }
 ```
 
 (Errant `}` without an opening block.)
@@ -700,11 +700,11 @@ x 0 > ? "positive" print } { "negative" print }
 #### 8.1.3 Missing Required Blocks for Combinators
 
 **Cause:**  
-- A combinator like `?`, `map`, `filter`, `reduce`, or `?switch` expects `{}` blocks and they are missing.
+- A combinator like `if`, `map`, `filter`, `reduce`, or `switch` expects `{}` blocks and they are missing.
 
-**Error Message for `?`:**  
+**Error Message for `if`:**  
 ```
-Syntax Error: '?' requires two blocks: {then} {else}.
+Syntax Error: 'if' requires two blocks: {then} {else}.
 ```
 
 **Error Message for `map`, `filter`, or `reduce`:**  
@@ -760,14 +760,14 @@ Example: Passing a number to `map` instead of a sequence.
 
 ---
 
-#### 8.2.3 Pattern Match Failure in `?switch`
+#### 8.2.3 Pattern Match Failure in `switch`
 
 **Cause:**  
-- No matching pattern found in a `?switch`, and no `else` branch provided.
+- No matching pattern found in a `switch`, and no `else` branch provided.
 
 **Error Message:**  
 ```
-Runtime Error: No match found and no else branch in ?switch.
+Runtime Error: No match found and no else branch in switch.
 ```
 
 It is **recommended** to always include an `else` block.
