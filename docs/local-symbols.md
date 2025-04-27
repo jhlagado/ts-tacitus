@@ -196,13 +196,13 @@ Locals are **created dynamically** the moment they are first assigned.
 
 At compile-time:
 
-- When the parser encounters a `set!` operation on a symbol that has not been seen before in the current frame,
+- When the parser encounters a `->` operation on a symbol that has not been seen before in the current frame,
 - It **allocates a new offset** relative to `BP`.
 - It **updates the symbol table** to associate that symbol name with the slot.
 
 At runtime:
 
-- When `set!` executes, it **writes** the value to `[BP + offset]`.
+- When `->` executes, it **writes** the value to `[BP + offset]`.
 
 ---
 
@@ -211,12 +211,12 @@ At runtime:
 Source code:
 
 ```tacit
-x 10 set!
+10 -> x
 ```
 
 Compiler behavior:
 
-- See `set!` on `x`.
+- See `->` on `x`.
 - Allocate slot at `BP + 1`.
 - Generate runtime code:
   - Write `10` into `[BP + 1]`.
@@ -225,7 +225,7 @@ Compiler behavior:
 
 ### 3.2 Reading Local Variables
 
-When a local variable is read (with `get`),
+When a local variable is referenced,
 the compiler:
 
 - Looks up the symbol in the compile-time symbol table.
@@ -234,7 +234,7 @@ the compiler:
 Example:
 
 ```tacit
-x get
+x
 ```
 
 Runtime:
@@ -246,10 +246,10 @@ Runtime:
 
 ### 3.3 Mutating Locals
 
-You can overwrite a local with a new value by simply using `set!` again:
+You can overwrite a local with a new value by simply using `->` again:
 
 ```tacit
-x 20 set!
+20 -> x
 ```
 
 This overwrites the slot at `[BP + 1]` with `20`.
@@ -383,7 +383,7 @@ but keeps the scoping model very tight and minimal.
 
 When the compiler encounters a variable name:
 
-- It **first searches the current function's local symbols** (those created with `set!`).
+- It **first searches the current function's local symbols** (those created with `->`).
 - If not found, it **looks up globally defined words** (colon functions, constants).
 
 Thus, local variables **always shadow** global names inside a function.
@@ -392,8 +392,8 @@ Example:
 
 ```tacit
 : example ( -- )
-  x 10 set!
-  x get ;
+  10 -> x
+  x ;
 ```
 
 - Here, even if there was a global `x`, the local `x` takes precedence inside the function.
@@ -418,7 +418,7 @@ This keeps symbol lookup **flat** and **unambiguous**:
 
 Locals exist:
 
-- From the moment they are created (first `set!`),
+- From the moment they are created (first `->`),
 - Until the function exits.
 
 They **cannot be exported** outside their defining function.
@@ -433,8 +433,8 @@ Example:
 
 ```tacit
 : categorize ( x -- )
-  x set!
-  x get 0 > ?
+  -> x
+  x 0 > ?
     { "positive" print }
     { "non-positive" print } ;
 ```
@@ -470,7 +470,7 @@ the local still safely owns a reference to the object.
 **Example:**
 
 ```tacit
-data [1,2,3] set!
+[1,2,3] -> data
 ```
 
 - Creates a vector `[1,2,3]`.
@@ -528,11 +528,11 @@ let’s walk through a real example step-by-step.
 
 ```tacit
 : example-fn ( x y -- )
-  a set!        ( assign x to local 'a' )
-  b set!        ( assign y to local 'b' )
-  a get b get + ( add 'a' and 'b' )
-  result set!   ( store the sum in 'result' )
-  result get ;
+  -> a       ( assign x to local 'a' )
+  -> b       ( assign y to local 'b' )
+  a b + ( add 'a' and 'b' )
+  -> result     ( store the sum in 'result' )
+  result ;
 ```
 
 This function:
