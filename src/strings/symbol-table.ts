@@ -14,6 +14,9 @@ const compileCall = (address: number) => (vm: VM) => {
   vm.compiler.compile16(address);
 };
 
+/** Represents a saved state of the symbol table. */
+export type SymbolTableCheckpoint = SymbolTableNode | null;
+
 export class SymbolTable {
   private head: SymbolTableNode | null;
 
@@ -41,5 +44,23 @@ export class SymbolTable {
       current = current.next;
     }
     return undefined;
+  }
+
+  /**
+   * Creates a checkpoint representing the current state of the symbol table.
+   * @returns {SymbolTableCheckpoint} An opaque checkpoint object.
+   */
+  mark(): SymbolTableCheckpoint {
+    return this.head;
+  }
+
+  /**
+   * Reverts the symbol table to a previously created checkpoint.
+   * All definitions made after the checkpoint was created will be forgotten.
+   * Note: This does not affect the underlying string Digest.
+   * @param {SymbolTableCheckpoint} checkpoint The checkpoint to revert to.
+   */
+  revert(checkpoint: SymbolTableCheckpoint): void {
+    this.head = checkpoint;
   }
 }
