@@ -290,12 +290,12 @@ describe('Parser with Tokenizer', () => {
 
   // Dictionaries
   describe('Dictionaries', () => {
-    it('should compile { "a" 1 } with proper dictionary opcodes', () => {
-      // Parse input with curly-brace dictionary
-      parse(new Tokenizer('{ "a" 1 }'));
+    it('should compile :[ "a" 1 ]: with proper dictionary opcodes', () => {
+      // Parse input with colon-bracket dictionary
+      parse(new Tokenizer(':[ "a" 1 ]:'));
 
       vm.reset();
-      // Expect the DictLeft opcode to be emitted for '{'
+      // Expect the DictLeft opcode to be emitted for ':['
       expect(vm.next8()).toBe(Op.DictLeft);
 
       // Check the key-value pair
@@ -306,7 +306,7 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.LiteralNumber); // Value 1
       expect(vm.nextFloat32()).toBeCloseTo(1);
 
-      // Expect the DictRight opcode for '}'
+      // Expect the DictRight opcode for ']:'
       expect(vm.next8()).toBe(Op.DictRight);
 
       // Finally, the Abort opcode terminates the program

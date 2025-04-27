@@ -136,6 +136,18 @@ function processSpecialToken(value: string, state: ParserState): void {
     handleUnexpectedClosingParenthesis();
   } else if (value === '`') {
     parseBacktickSymbol(state);
+  } else if (value === ':[') {
+    // Begin Dictionary (Correct Syntax)
+    vm.compiler.compile8(Op.DictLeft);
+  } else if (value === ']:') {
+    // End Dictionary (Correct Syntax)
+    vm.compiler.compile8(Op.DictRight);
+  } else if (value === ':[:') {
+    // NO LONGER USED - Handled by ': [' 
+    throw new Error(`Unexpected special token '${value}' - Use ': [' to start dictionaries.`);
+  } else if (value === ':]') {
+    // NO LONGER USED - Handled by ']:'
+    throw new Error(`Unexpected special token '${value}' - Use ']:' to end dictionaries.`);
   }
 }
 
