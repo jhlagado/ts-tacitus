@@ -355,7 +355,7 @@ When a `{}` block is written inside a colon function:
 - It **cannot** outlive the function.
 - No extra environment or heap object is created.
 
-This makes `{}` blocks ideal for structured control flow (like `?`, `map`, `reduce`),
+This makes `{}` blocks ideal for structured control flow (like `if`, `map`, `reduce`),
 but they are **not general-purpose deferred functions**.
 
 ---
@@ -434,7 +434,7 @@ Example:
 ```tacit
 : categorize ( x -- )
   -> x
-  x 0 > ?
+  x 0 > if
     { "positive" print }
     { "non-positive" print } ;
 ```
