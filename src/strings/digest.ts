@@ -31,13 +31,6 @@ export class Digest {
     return startAddress;
   }
 
-  reset(address: number = 0): void {
-    if (address < 0 || address > 0 + STRING_SIZE) {
-      throw new Error('Invalid reset address');
-    }
-    this.SBP = address;
-  }
-
   length(address: number): number {
     if (address < 0 || address >= 0 + STRING_SIZE) {
       throw new Error('Address is outside memory bounds');

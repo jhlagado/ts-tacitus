@@ -75,17 +75,6 @@ describe('Digest', () => {
     expect(digest.get(addr3)).toBe('third');
   });
 
-  it('should correctly reset the digest', () => {
-    digest.add('hello');
-    digest.reset(10);
-    expect(digest.SBP).toBe(10);
-  });
-
-  it('should throw an error when resetting to an invalid address', () => {
-    expect(() => digest.reset(-1)).toThrow('Invalid reset address');
-    expect(() => digest.reset(STRING_SIZE + 1)).toThrow('Invalid reset address');
-  });
-
   it('should throw an error when reading from an invalid address', () => {
     expect(() => digest.get(-1)).toThrow('Address is outside memory bounds');
     expect(() => digest.get(STRING_SIZE)).toThrow('Address is outside memory bounds');
