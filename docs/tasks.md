@@ -44,15 +44,15 @@ This spec is organized into seven fully fleshed-out sections, each with multiple
 - Data stack length: 32 entries, 4 bytes each (128 bytes).
 - Managed via `SP` register. Underflow/overflow traps are immediate errors.
 
-#### 1.2.2 Return Stack Semantics
-
-- Return stack (depth 16) holds saved IPs for `CALL` and `RET` instructions.
-- The `CALL` opcode pushes `(IP + instruction_length)`; `RET` pops into `IP`.
+#### 1.2.2 Return Stack Semantics & Stack Frames
+- The return stack holds saved IPs for `CALL`/`RET`, saved Base Pointers (`BP`) for frame management, and local variables.
+- `CALL` pushes the return IP, pushes the caller's `BP`, and sets the new `BP` to the current `RP`, establishing a new stack frame.
+- `RET` unwinds the current frame (restoring `RP` to `BP`), restores the caller's `BP`, and then pops the return IP.
+- Local variables reside on the return stack between `BP` and `RP`.
 
 #### 1.2.3 Parameter Passing and Local Variables
-
-- Tacit uses the data stack for parameter passing. No named locals.
-- Common pattern: `PUSH arg1; PUSH arg2; CALL f; ...` where `f` consumes arguments.
+- Tacit uses the data stack for parameter passing.
+- Local variables provide named temporary storage within a function's stack frame on the return stack, accessed via offsets from `BP`. They reduce the need for excessive data stack manipulation. Locals are managed entirely by the compiler and VM frame mechanics, with no heap allocation or closures.
 
 ### 1.3 Expanded Opcode Reference
 
@@ -71,8 +71,8 @@ This spec is organized into seven fully fleshed-out sections, each with multiple
 | 0x14             | MOD            | a b → a mod b     | Integer modulus; `b == 0` traps.                                                        |                                                         |
 | 0x20 oo oo       | JMP            | — →               | Jumps to relative offset (signed 16-bit). Detailed wrap and alignment rules follow.     |                                                         |
 | 0x21 oo oo       | JZ             | a →               | Pops `a`; if zero/NIL, jumps by offset; else continues.                                 |                                                         |
-| 0x22             | CALL oo oo     | — →               | Save `(IP+3)` to return stack, then `IP += offset`.                                     |                                                         |
-| 0x23             | RET            | — →               | Pop return stack into `IP`.                                                             |                                                         |
+| 0x22 oo oo       | CALL           | — →               | Save `(IP+3)` to return stack, save current `BP` to return stack, set `BP = RP`, then `IP += offset`. |
+| 0x23             | RET            | — →               | Set `RP = BP`, pop return stack into `BP`, pop return stack into `IP`.                          |
 | 0x30 aa aa aa aa | LOAD           | → value           | Load a tagged value from memory address `aa...` (32-bit address).                       |                                                         |
 | 0x31 aa aa aa aa | STORE          | value →           | Store tagged value into memory.                                                         |                                                         |
 | 0x40             | WAIT           | tag →             | Pop tag, set `wait_tag`, yield. The tag may be a symbol or task ID.                     |                                                         |
@@ -87,6 +87,8 @@ This spec is organized into seven fully fleshed-out sections, each with multiple
 | 0x72             | WRITE\_STR     | buf\_id ptr →     | Pop buffer ID and string pointer, push each UTF-8 byte to line buffer; suspend on full. |                                                         |
 | 0x80             | DEBUG\_PRINT   | msg\_id →         | Pop message symbol, write to debug console.                                             |                                                         |
 | 0x81             | TASK\_STATUS   | task\_id → status | Push specified task’s flags/internals as a record.                                      |                                                         |
+| 0xXX             | GET_LOCAL      | → value           | (Proposed) Read local variable at offset `XX` relative to `BP`, push to data stack.             |                                                         |
+| 0xXY             | SET_LOCAL      | value →           | (Proposed) Pop value from data stack, write to local variable at offset `XY` relative to `BP`. |
 
 *(Additional opcodes for sequence processing such as **********`EACH`**********, **********`MAP`**********, **********`FILTER`**********, **********`FOLD`**********, **********`RANGE`********** are documented separately.)*
 
@@ -123,6 +125,19 @@ void execute_one_instruction(Task *t) {
           t->wait_tag = symbol:event_queue_full;
           return;
         }
+      }
+      return;
+    case OPC_CALL:
+      { uint16_t offset = fetch_short(&t->ip);
+        rpush(&t->rp, t->ip); // Push return address
+        rpush(&t->rp, t->bp); // Push old Base Pointer
+        t->bp = t->rp;        // Set new Base Pointer
+        t->ip += offset; }    // Jump to function
+      return;
+    case OPC_RET:
+      { t->rp = t->bp;        // Discard locals & saved BP by resetting RP
+        t->bp = rpop(&t->rp); // Restore caller's Base Pointer
+        t->ip = rpop(&t->rp); // Pop return address
       }
       return;
     /* Full handling for all opcodes per table above */
@@ -167,7 +182,7 @@ void execute_one_instruction(Task *t) {
 
 ## 2. Task Structure (Fully Expanded)
 
-Tasks in Tacit are **self-contained execution contexts**. Each task occupies a fixed-size, aligned memory block of **224 bytes**, laid out for cache-friendly access and minimal indirection. This section details every field, its purpose, alignment considerations, lifetime, and interactions with the scheduler and debugger.
+Tasks in Tacit are **self-contained execution contexts**. Each task occupies a fixed-size, aligned memory block, now expanded to **424 bytes** to accommodate a larger return stack and base pointer, laid out for cache-friendly access and minimal indirection. This section details every field, its purpose, alignment considerations, lifetime, and interactions with the scheduler and debugger.
 
 ### 2.1 High-Level Overview
 
@@ -176,26 +191,26 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 - **Isolation**: Tasks do not share mutable state; communication is via events or buffers.
 - **Cooperative Control**: Suspension, resumption, and termination are explicit operations that update task fields.
 
-### 2.2 Task Memory Layout Diagram
+### 2.2 Task Memory Layout Diagram (Updated)
 
 ```
 0x00 ─── 2 bytes   Instruction Pointer (IP)
 0x02 ─── 1 byte    Stack Pointer (SP)
 0x03 ─── 1 byte    Return Stack Pointer (RP)
-0x04 ─── 2 bytes   Task ID
-0x06 ─── 2 bytes   Reserved (alignment)
+0x04 ─── 1 byte    Base Pointer (BP)
+0x05 ─── 1 byte    Flags
+0x06 ─── 2 bytes   Task ID
 0x08 ─── 4 bytes   Wait Tag
 0x0C ─── 4 bytes   Inbox (last event)
 0x10 ─── 4 bytes   Return Code
-0x14 ─── 1 byte    Flags
-0x15 ─── 3 bytes   Reserved
+0x14 ─── 4 bytes   Reserved (alignment)
 0x18 ─── 128 bytes Data Stack (32 × 4B entries)
-0x98 ─── 64 bytes  Return Stack (16 × 4B entries)
-0xD8 ─── 12 bytes  Reserved / Debug Fields
-0xE4 ───  (&size=224 bytes)
+0x98 ─── 256 bytes Return Stack (64 × 4B entries) - Increased Size
+0x198 ─── 12 bytes  Reserved / Debug Fields
+0x1A4 ─── (&size=424 bytes)
 ```
 
-### 2.3 Field Descriptions
+### 2.3 Field Descriptions (Updated)
 
 #### 2.3.1 Instruction Pointer (IP)
 
@@ -215,49 +230,51 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 #### 2.3.3 Return Stack Pointer (RP)
 
 - **Offset**: 0x03, **Size**: 1 byte
-- **Purpose**: Points to the next free slot in the Return Stack (0..16).
-- **Use Cases**: `CALL` pushes current IP; `RET` pops into IP.
-- **Overflow/Underflow**: Similar traps as Data Stack; return\_code set accordingly.
+- **Purpose**: Points to the next free slot in the Return Stack (0..64). Used for `CALL`/`RET` addresses, saved `BP`, and allocating space for local variables above `BP`.
+- **Use Cases**: `CALL` pushes return IP and old `BP`; `RET` pops them after resetting `RP` to `BP`. Locals are allocated by incrementing `RP`.
+- **Overflow/Underflow**: Traps if `RP` exceeds 64 or goes below 0; `return_code` set accordingly.
 
-#### 2.3.4 Task ID
+#### 2.3.4 Base Pointer (BP) - New Field
 
-- **Offset**: 0x04, **Size**: 2 bytes
-- **Purpose**: Unique identifier for the task, used in events, spawning, and debugging.
-- **Range**: 0…MAX\_TASKS−1.
+- **Offset**: 0x04, **Size**: 1 byte
+- **Purpose**: Points to the base of the current stack frame on the Return Stack (0..64). Marks the location of the saved caller's `BP`. Local variables are accessed via positive offsets from `BP`.
+- **Behavior**: Set by `CALL` to the current `RP` after pushing the old `BP`. Restored by `RET` before popping the return IP. Used by `GET_LOCAL`/`SET_LOCAL` opcodes to calculate addresses.
 
-#### 2.3.5 Wait Tag
+#### 2.3.5 Flags (Moved)
 
-- **Offset**: 0x08, **Size**: 4 bytes
-- **Purpose**: Encodes the reason for suspension (tagged value). `NIL` implies runnable.
-- **Direct Matching**: Compared bit-for-bit with incoming events or buffer IDs.
-- **Example Values**: `symbol:line_ready`, task IDs for `WAIT_TASK`, buffer pointers.
-
-#### 2.3.6 Inbox
-
-- **Offset**: 0x0C, **Size**: 4 bytes
-- **Purpose**: Stores the last event or data that caused a resume, for introspection or immediate use.
-- **Optional Use**: Tasks may `LOAD` this field directly instead of popping from the stack.
-
-#### 2.3.7 Return Code
-
-- **Offset**: 0x10, **Size**: 4 bytes
-- **Purpose**: Holds the exit code after `TERMINATE`. `NIL` if the task is still active or suspended.
-- **Reclamation Signal**: Non-`NIL` indicates slot is free for `SPAWN`.
-
-#### 2.3.8 Flags
-
-- **Offset**: 0x14, **Size**: 1 byte
-- **Bit Layout:**
+- **Offset**: 0x05, **Size**: 1 byte
+- **Bit Layout:** (Same as before)
   - **Bit 0**: Error flag (set on traps).
   - **Bit 1**: Reserved for future use.
   - **Bits 2–7**: Unused.
 
-#### 2.3.9 Reserved / Debug Fields
+#### 2.3.6 Task ID (Moved)
 
-- **Offset**: 0x15–0x17, **Size**: 3 bytes
+- **Offset**: 0x06, **Size**: 2 bytes
+- **Purpose**: Unique identifier for the task.
+- **Range**: 0…MAX\_TASKS−1.
+
+#### 2.3.7 Wait Tag (Moved)
+
+- **Offset**: 0x08, **Size**: 4 bytes
+- **Purpose**: Encodes the reason for suspension. `NIL` implies runnable.
+
+#### 2.3.8 Inbox (Moved)
+
+- **Offset**: 0x0C, **Size**: 4 bytes
+- **Purpose**: Stores the last event or data that caused a resume.
+
+#### 2.3.9 Return Code (Moved)
+
+- **Offset**: 0x10, **Size**: 4 bytes
+- **Purpose**: Holds the exit code after `TERMINATE`. `NIL` if active/suspended.
+
+#### 2.3.10 Reserved / Debug Fields (Moved & Updated Offset)
+
+- **Offset**: 0x198–0x1A3, **Size**: 12 bytes
 - **Purpose**: Placeholder for debug breakpoints, instrumentation counters, or future expansion.
 
-### 2.4 Stack Regions
+### 2.4 Stack Regions (Updated)
 
 #### 2.4.1 Data Stack
 
@@ -266,20 +283,20 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 - **Initial State**: All entries `NIL`.
 - **Growth Strategy**: Inline in task slot for locality; no dynamic extension.
 
-#### 2.4.2 Return Stack
+#### 2.4.2 Return Stack (Updated Size & Usage)
 
-- **Size**: 16 entries × 4 bytes = 64 bytes.
-- **Usage**: Call/return addresses and deferred block continuation pointers.
+- **Size**: 64 entries × 4 bytes = 256 bytes. (Increased from 16 entries / 64 bytes)
+- **Usage**: Holds call/return addresses, saved Base Pointers (`BP`), and function local variables. Managed jointly by `RP` (top of stack) and `BP` (base of current frame).
 - **Initial State**: All entries `NIL`.
-- **RP Management**: `CALL` pushes, `RET` pops. Underflow/overflow trap if exceeded.
+- **RP/BP Management**: `CALL` pushes return IP, pushes old `BP`, sets `BP = RP`. `RET` sets `RP = BP`, pops `BP`, pops return IP. Local variable allocation increments `RP`. Underflow/overflow trap if limits exceeded.
 
-### 2.5 Task Lifecycle and Transitions
+### 2.5 Task Lifecycle and Transitions (Updated)
 
 **Creation (Boot):**
 
 - Zero all bytes.
-- Set `IP` to boot code addresses for Task 0 (input handler) and Task 1 (REPL).
-- `SP=RP=0`, `wait_tag=return_code=NIL`, `flags=0`.
+- Set `IP` to boot code addresses for initial tasks.
+- `SP=RP=BP=0`, `wait_tag=return_code=NIL`, `flags=0`.
 
 **Scheduling:**
 
@@ -297,13 +314,13 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 
 **Termination:**
 
-- `TERMINATE` opcode pops exit code, writes to `return_code`, and reuses `wait_tag` to block forever.
+- `TERMINATE` opcode pops exit code, writes to `return_code`. Before yielding, it should perform the frame unwinding part of `RET` (set `RP=BP`, pop `BP`) to ensure stack consistency if termination happens mid-function. Then sets `wait_tag` to block forever.
 - The task is skipped by scheduler; slot flagged free for `SPAWN`.
 
 **Reclamation (SPAWN):**
 
 - `SPAWN` scans for the first task where `return_code!=NIL`.
-- Calls `reset_task_slot()` to zero all fields, sets new `IP`, `return_code=wait_tag=NIL`, and returns new Task ID.
+- Calls `reset_task_slot()` to zero all fields (including `BP`), sets new `IP`, `return_code=wait_tag=NIL`, `SP=RP=BP=0`, and returns new Task ID.
 
 ### 2.6 Reliability & Debugging Support
 
@@ -335,9 +352,9 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 - Place guard pages around task slots in memory to catch buffer underruns/overruns.
 - Requires OS or MMU support.
 
-### 2.8 Memory Alignment & Cache Considerations
+### 2.8 Memory Alignment & Cache Considerations (Updated Size)
 
-- Task slots aligned to 64 bytes for cache-line efficiency.
+- Task slots aligned to 64 bytes for cache-line efficiency. Total size is now 424 bytes.
 - Field alignment ensures 32-bit word accesses for key fields (e.g., `wait_tag`, `return_code`).
 - Inline stacks improve spatial locality during hot code paths.
 
@@ -622,7 +639,7 @@ int read_line(LineBuf *b, char *out, int maxlen) {
 - **Writer Suspension:** If `write_bytes()` returns 0, the writer task executes:
   ```forth
   PUSH buffer_id
-  WAIT                  ; suspend until space available
+  WAIT                  ; suspend until buffer_space_available event
   ```
 - **Reader Suspension:** If `read_char()` or `read_line()` returns 0, reader suspends similarly.
 
@@ -665,10 +682,6 @@ LOOP:
   YIELD
   JMP LOOP
 ```
-
--
-
----
 
 ---
 
@@ -849,14 +862,14 @@ This canonical example demonstrates blocking on full buffer (producer) and empty
 
 ---
 
-## 6. System Bootstrap & Minimal Configuration (Condensed)
+## 6. System Bootstrap & Minimal Configuration (Condensed) (Updated Size)
 
 The bootstrap process initializes Tacit’s core structures with zero dynamic allocation and deterministic memory layout:
 
-- **Memory Layout:** Task table (32×224 B), line buffers, event queue, and aligned code/data segments at fixed addresses.
+- **Memory Layout:** Task table (32×424 B), line buffers, event queue, and aligned code/data segments at fixed addresses.
 - **Hardware Initialization:** Configure system clock, UART console for diagnostics, and memory controller; disable interrupts until scheduler start.
 - **Component Setup:**
-  - Clear task table; assign Task 0 (input handler) and Task 1 (REPL) initial IPs; mark remaining slots free by setting non‑NIL return codes.
+  - Clear task table; assign initial tasks IPs; set `SP=RP=BP=0`; mark remaining slots free by setting non‑NIL return codes.
   - Initialize two line buffers (head=tail=0, flags=0) and event queue (head=tail=count=0).
   - Verify code segment integrity via CRC or hash; on failure, enter safe-mode diagnostic loop.
 - **Scheduler Entry:**
@@ -884,6 +897,7 @@ Anticipated enhancements include:
 - **Runtime Introspection:** APIs for live task status, event tracing, and performance counters.
 - **Sequence Streams:** Lazy sequences as event sources with backpressure management.
 - **Scheduler Plugins:** Deadline-based, priority-boosting, and mixed scheduling policies.
+- **Local Variable Enhancements:** Support for different local types, initializers, or limited block scoping within functions (though still tied to the single stack frame).
 
 ---
 
