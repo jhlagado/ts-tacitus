@@ -46,7 +46,7 @@ Here, `sequence` is evaluated first, placed on the stack, and then `map` is appl
 
 - Curly braces `{}` introduce **compile-time code regions**.
 - These blocks are **parsed immediately** during compilation and are **never runtime objects**.
-- They are used by combinators like `if`, `map`, `filter`, `reduce`, and `switch`.
+- They are used by combinators like `IF`, `map`, `filter`, `reduce`, and `switch`.
 
 Blocks **do not** create new stack frames or capture external environments.  
 They are simple structured groupings of code.
@@ -125,12 +125,12 @@ they are not heap objects or closures.
 
 ---
 
-### 3.1 Conditional Execution — `if` Combinator
+### 3.1 Conditional Execution — `IF` Combinator
 
 **Syntax:**
 
 ```tacit
-condition if { then-block } { else-block }
+condition IF { then-block } ELSE { else-block }
 ```
 
 **Behavior:**
@@ -142,7 +142,7 @@ condition if { then-block } { else-block }
 **Example:**
 
 ```tacit
-x 0 > if { "positive" print } { "non-positive" print }
+x 0 > IF { "positive" print } ELSE { "non-positive" print }
 ```
 
 - If `x` is greater than zero, prints `"positive"`.
@@ -266,10 +266,10 @@ There are a few simple but powerful rules that define all block and combinator b
 **Example:**
 
 ```tacit
-x 0 > if { "positive" print } { "negative" print }
+x 0 > IF { "positive" print } ELSE { "negative" print }
 ```
 
-Two blocks: `{ ... } { ... }`, associated with the `if` combinator.
+Two blocks: `{ ... } { ... }`, associated with the `IF` and `ELSE` combinators.
 
 ---
 
@@ -294,11 +294,11 @@ Some combinators expect **a fixed number of `{}` blocks**:
 
 | Combinator | Required Blocks |
 |------------|-----------------|
-| `if` | Two blocks (`{ then } { else }`) |
-| `map` | One block (`{ transform }`) |
-| `filter` | One block (`{ predicate }`) |
-| `reduce` | One block (`{ reducer }`) |
-| `switch` | One block containing multiple `{ case }` branches |
+| `IF`       | Two blocks (`{ then } ELSE { else }`) |
+| `map`      | One block (`{ transform }`) |
+| `filter`   | One block (`{ predicate }`) |
+| `reduce`   | One block (`{ reducer }`) |
+| `switch`   | One block containing multiple `{ case }` branches |
 
 If a combinator does not receive the required number of `{}` blocks immediately after it is parsed,  
 the compiler throws a **missing block error**.
@@ -344,19 +344,19 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 | Combinator | Purpose | Syntax |
 |------------|---------|--------|
-| `if` | Conditional branching | `cond if { then } { else }` |
-| `map` | Apply block to each element | `seq map { block }` |
-| `filter` | Keep elements by condition | `seq filter { block }` |
-| `reduce` | Fold sequence into one value | `seq reduce { block }` |
-| `switch` | Multi-way branching | `value switch { cases }` |
+| `IF`       | Conditional branching | `cond IF { then } ELSE { else }` |
+| `map`      | Apply block to each element | `seq map { block }` |
+| `filter`   | Keep elements by condition | `seq filter { block }` |
+| `reduce`   | Fold sequence into one value | `seq reduce { block }` |
+| `switch`   | Multi-way branching | `value switch { cases }` |
 
 ---
 
 ### 5.1 Details per Combinator
 
-**`if` — Conditional**
+**`IF` — Conditional**
 
-- Takes two blocks.
+- Takes two blocks, separated by `ELSE`.
 - First block executes if condition is true.
 - Second block executes otherwise.
 
@@ -492,13 +492,14 @@ Each example demonstrates:
 
 ---
 
-### 7.1 Basic If-Else Example
+### 7.1 Basic IF-ELSE Example
 
 Simple branching based on a number's positivity.
 
 ```tacit
-x 0 > if 
-  { "positive" print } 
+x 0 > IF
+  { "positive" print }
+ELSE
   { "non-positive" print }
 ```
 
@@ -547,8 +548,9 @@ Categorize a list based on the total of squared positives.
   filter { 0 > not }
   map { dup * }
   reduce { + }
-  dup 100 > if
+  dup 100 > IF
     { "large" print }
+  ELSE
     { "small" print } ;
 ```
 
@@ -584,15 +586,16 @@ switch {
 
 ---
 
-### 7.6 Nested If Inside Map
+### 7.6 Nested IF Inside Map
 
 Label numbers as "small" or "large":
 
 ```tacit
 numbers
 map {
-  dup 10 < if
+  dup 10 < IF
     { "small" }
+  ELSE
     { "large" }
 }
 ```
@@ -620,8 +623,9 @@ map {
   filter { is-positive }
   map { square }
   reduce { + }
-  dup 200 > if
+  dup 200 > IF
     { "very large" print }
+  ELSE
     { "moderate" print } ;
 
 ( Main program )
@@ -670,7 +674,7 @@ Syntax Error: Unclosed block — expected '}' before end of file.
 **Example:**
 
 ```tacit
-x 0 > if { "positive" print  { "negative" print }
+x 0 > IF { "positive" print  { "negative" print }
 ```
 
 (Missing closing `}` after `"positive" print`.)
@@ -690,7 +694,7 @@ Syntax Error: Unexpected '}' without matching '{'.
 **Example:**
 
 ```tacit
-x 0 > if "positive" print } { "negative" print }
+x 0 > IF "positive" print } { "negative" print }
 ```
 
 (Errant `}` without an opening block.)
@@ -700,11 +704,11 @@ x 0 > if "positive" print } { "negative" print }
 #### 8.1.3 Missing Required Blocks for Combinators
 
 **Cause:**  
-- A combinator like `if`, `map`, `filter`, `reduce`, or `switch` expects `{}` blocks and they are missing.
+- A combinator like `IF`, `map`, `filter`, `reduce`, or `switch` expects `{}` blocks and they are missing.
 
-**Error Message for `if`:**  
+**Error Message for `IF`:**  
 ```
-Syntax Error: 'if' requires two blocks: {then} {else}.
+Syntax Error: 'IF' requires two blocks: {then} ELSE {else}.
 ```
 
 **Error Message for `map`, `filter`, or `reduce`:**  
@@ -797,3 +801,11 @@ This design strengthens Tacit's identity as:
 > A stack-based language for modern compositional programming,  
 > blending the spirit of FORTH with the functional power of pipelines — but without closures.
 
+NOTES:
+
+#[ .... ]# is for grouping
+:{ ...}: is for dictionaries
+[ ... ] is for vectors
+( ... ) is for deferred blocks
+
+{ ... } is free to use for these new blocks to be compiled , they are not thunks but are compiled inline
