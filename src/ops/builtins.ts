@@ -87,6 +87,7 @@ import {
 } from './builtins-sequence';
 import { Op } from './opcodes';
 
+import { ifCurlyBranchFalseOp } from './builtins-conditional';
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -254,6 +255,9 @@ export function executeOp(vm: VM, opcode: Op) {
     // Conditional Operations
     case Op.If:
       simpleIfOp(vm);
+      break;
+    case Op.IfCurlyBranchFalse:
+      ifCurlyBranchFalseOp(vm);
       break;
 
     // Sequence Operations

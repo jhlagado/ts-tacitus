@@ -75,3 +75,25 @@ describe('Tacit Basic Operations', () => {
     expect(result).toEqual([6]);
   });
 });
+
+describe('New IF syntax', () => {
+  it('should execute IF {} with true condition', () => {
+    let result = runTacitTest('1 IF {10}');
+    expect(result).toEqual([10]);
+  });
+
+  it('should execute IF {} with false condition', () => {
+    let result = runTacitTest('0 IF {10}');
+    expect(result).toEqual([]); // Assuming no else, stack might be empty or handle appropriately
+  });
+
+  it('should execute IF {} ELSE {} with true condition', () => {
+    let result = runTacitTest('1 IF {10} ELSE {20}');
+    expect(result).toEqual([10]);
+  });
+
+  it('should execute IF {} ELSE {} with false condition', () => {
+    let result = runTacitTest('0 IF {10} ELSE {20}');
+    expect(result).toEqual([20]);
+  });
+});

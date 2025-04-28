@@ -26,7 +26,7 @@ export const skipDefOp: Verb = (vm: VM) => {
 };
 
 export const skipBlockOp: Verb = (vm: VM) => {
-  const offset = vm.next16(); // Read the relative offset
+  const offset = vm.next16();
   if (vm.debug) console.log('branchCallOp', offset);
   vm.push(toTaggedValue(vm.IP, false, CoreTag.CODE));
   vm.IP += offset;

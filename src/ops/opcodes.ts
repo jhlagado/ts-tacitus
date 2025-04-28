@@ -176,5 +176,5 @@ export enum Op {
   Last,
   ForEach,
   Reduce,
+  IfCurlyBranchFalse, // New opcode for conditional jump if false in curly-brace IF syntax
 }
-

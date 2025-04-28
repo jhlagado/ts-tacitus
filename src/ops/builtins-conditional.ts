@@ -48,3 +48,16 @@ export const simpleIfOp: Verb = (vm: VM) => {
     vm.push(selectedBranch);
   }
 };
+
+/**
+ * Implements conditional jump for curly-brace IF syntax.
+ * Pops the condition from the stack and jumps if false.
+ */
+export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
+  const offset = vm.next16(); // Read the relative offset
+  const cond = vm.pop(); // Pop the condition from stack
+  console.log(`ifCurlyBranchFalseOp: condition=${cond}, offset=${offset}, jumping=${!isNumber(cond) || cond === 0}`);
+  if (!isNumber(cond) || cond === 0) { // Jump if condition is falsy
+    vm.IP += offset;
+  }
+};

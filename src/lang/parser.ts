@@ -111,9 +111,10 @@ function compileStringLiteral(value: string): void {
 function processWordToken(value: string, state: ParserState): void {
   // Check if it's a special character that should be handled differently
   if (value === 'IF') {
+    console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
     // The condition has already been compiled in RPN order
     const falseJumpAddr = vm.compiler.CP;
-    vm.compiler.compile8(Op.BranchCall); // Conditional jump if false
+    vm.compiler.compile8(Op.IfCurlyBranchFalse); // Use new opcode for conditional jump if false
     const jumpOffsetAddr = vm.compiler.CP; // Address where the 16-bit offset is stored
     vm.compiler.compile16(0); // Placeholder for jump offset
     // Compile then-block with BLOCK_START and BLOCK_END
@@ -123,28 +124,34 @@ function processWordToken(value: string, state: ParserState): void {
     }
     parseCurlyBlock(state); // Compile the then-block
     const endOfThen = vm.compiler.CP;
-    // Calculate and patch the jump offset for BranchCall using compiler.patch16
-    const falseJumpOffset = endOfThen - (falseJumpAddr + 2);
-    vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
     // Check for optional ELSE clause using peekToken
     const next = state.tokenizer.peekToken();
     if (next && next.value === 'ELSE') {
       state.tokenizer.nextToken(); // Consume 'ELSE'
-      const elseJumpAddr = vm.compiler.CP;
+      const elseJumpAddr = vm.compiler.CP; // Address for unconditional jump
       vm.compiler.compile8(Op.Branch); // Unconditional jump to end of else
       const elseJumpOffsetAddr = vm.compiler.CP;
       vm.compiler.compile16(0); // Placeholder for jump offset
+      const elseBlockStart = vm.compiler.CP; // Start of else-block
       const elseBlockToken = state.tokenizer.nextToken();
       if (elseBlockToken.type !== TokenType.BLOCK_START) {
         throw new Error('Expected { for else-block in IF statement');
       }
       parseCurlyBlock(state); // Compile the else-block
       const endOfElse = vm.compiler.CP;
-      // Patch the unconditional jump offset
-      const elseJumpOffset = endOfElse - (elseJumpAddr + 2);
+      // Patch false jump to start of else-block
+      const falseJumpOffset = elseBlockStart - (falseJumpAddr + 3);
+      vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
+      console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset}`);
+      // Patch unconditional jump to end of else-block
+      const elseJumpOffset = endOfElse - (elseJumpAddr + 3);
       vm.compiler.patch16(elseJumpOffsetAddr, elseJumpOffset);
+      console.log(`Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`);
     } else {
-      // No ELSE, the BranchCall jump is already patched
+      // No ELSE, patch false jump to end of then-block
+      const falseJumpOffset = endOfThen - (falseJumpAddr + 3);
+      vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
+      console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`);
     }
   } else if (value === ':' || value === ';' || value === '`' || value === '(' || value === ')') {
     processSpecialToken(value, state);
