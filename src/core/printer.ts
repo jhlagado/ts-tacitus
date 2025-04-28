@@ -24,9 +24,11 @@ function formatValue(tval: number, indent = 0): string {
   switch (tag as HeapTag) {
     case HeapTag.VECTOR: {
       const view = new VectorView(vm.heap, addr);
-      const elems = Array.from({ length: view.length }, (_, i) =>
-        formatValue(view.element(i), indent + 1)
-      ).join('\n');
+      let elems = '';
+      for (let i = 0; i < view.length; i++) {
+        if (i > 0) elems += '\n';
+        elems += formatValue(view.element(i), indent + 1);
+      }
       return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
     }
 

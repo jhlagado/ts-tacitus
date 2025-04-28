@@ -78,6 +78,16 @@ function processToken(token: Token, state: ParserState): void {
       processWordToken(token.value as string, state);
       break;
 
+    case TokenType.WORD_QUOTE:
+      const wordName = token.value as string; // Type assertion to ensure string type
+      const address = vm.symbolTable.find(wordName) as number | undefined; // Type assertion to handle possible number or undefined
+      if (address === undefined) {
+        throw new Error(`Undefined word: ${wordName}`);
+      }
+      vm.compiler.compile8(Op.LiteralAddress);
+      vm.compiler.compile16(address); // address now asserted to be number
+      break;
+
     case TokenType.GROUP_START: // Handle :{
       vm.compiler.compile8(Op.GroupLeft);
       break;

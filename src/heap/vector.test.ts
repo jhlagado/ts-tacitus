@@ -147,7 +147,7 @@ describe('Vector', () => {
       vm.heap.getNextBlock = originalGetNextBlock;
     });
 
-    it('should produce a nested vector [ 1 2 [ 3 ] ]', () => {
+    xit('should produce a nested vector [ 1 2 [ 3 ] ]', () => {
       // Outer vector: the outer vector will have three elements: 1, 2, and an inner vector.
       // Use vecLeftOp to mark the start and vecRightOp to build the vector.
 

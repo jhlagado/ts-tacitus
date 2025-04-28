@@ -27,6 +27,8 @@ export enum Op {
   Print,
   /** Pushes a literal string onto the stack. */
   LiteralString,
+  /** Pushes a literal address onto the stack. */
+  LiteralAddress,
   /** Marks the beginning of a vector (array) literal. */
   VecLeft,
   /** Marks the end of a vector literal. */

@@ -167,6 +167,16 @@ export class VM {
   }
 
   /**
+   * Reads the next 16-bit value from code memory and increments the instruction pointer.
+   */
+  read16(): number {
+    const lowByte = this.memory.read8(SEG_CODE, this.IP);
+    const highByte = this.memory.read8(SEG_CODE, this.IP + 1);
+    this.IP += 2;
+    return (highByte << 8) | lowByte; // Combine bytes, assuming big-endian or adjust as per codebase
+  }
+
+  /**
    * Returns the current stack data as an array of 32-bit values.
    */
   getStackData(): number[] {

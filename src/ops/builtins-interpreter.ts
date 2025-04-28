@@ -93,6 +93,11 @@ export const vecRightOp = (vm: VM) => {
   const marker = vm.rpop(); // what vecLeftOp saved
   const count = (vm.SP - marker) / 4; // Assume each stack item is 4 bytes.
   const array = vm.popArray(count, true);
+  // Added logging for debugging NaN issues in vector construction
+  for (let i = 0; i < array.length; i++) {
+    const { tag, isHeap } = fromTaggedValue(array[i]);
+    console.log(`vecRightOp debug: Element ${i}: tag=${tag}, isHeap=${isHeap}, value=${array[i]}`);
+  }
   const tagVal = vectorCreate(vm.heap, array);
   vm.push(tagVal);
 };

@@ -302,7 +302,17 @@ export function executeOp(vm: VM, opcode: Op) {
       reduceOp(vm);
       break;
 
+    case Op.LiteralAddress:
+      literalAddressOp(vm);
+      break;
+
     default:
       throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
   }
+}
+
+// Add new function for LiteralAddress handling
+export function literalAddressOp(vm: VM): void {
+  const address = vm.read16();
+  vm.push(address);
 }

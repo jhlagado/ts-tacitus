@@ -208,17 +208,14 @@ export function seqNext(vm: VM, seq: number): number {
     }
 
     case SeqSourceType.STRING: {
-      // meta[0] is the tagged string pointer (Pascal format: [length][chars…])
       const strTV = seqv.meta(0);
       const { value: strAddr } = fromTaggedValue(strTV);
-      const i = seqv.cursor;
-      // first byte at strAddr is the length
       const len = vm.heap.memory.read8(SEG_STRING, strAddr);
-
+      const i = seqv.cursor;
+      const byteValue = vm.heap.memory.read8(SEG_STRING, strAddr + 1 + i);
+      console.log(`seqNext debug: STRING sequence at index ${i}, length ${len}, byte value ${byteValue}, string address ${strAddr}, content: ${String.fromCharCode(byteValue)}`);
       if (i < len) {
-        // skip the length byte, then index into the chars
-        const ch = vm.heap.memory.read8(SEG_STRING, strAddr + 1 + i);
-        vm.push(ch);
+        vm.push(byteValue);
         seqv.cursor = i + 1;
       } else {
         vm.push(NIL);

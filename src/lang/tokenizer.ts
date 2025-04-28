@@ -9,6 +9,7 @@ export enum TokenType {
   GROUP_END, // New type for ]#
   BLOCK_START,  // New type for '{' compile-time block start
   BLOCK_END,    // New type for '}' compile-time block end
+  WORD_QUOTE, // Re-added type for back-tick prefixed quoted words
   EOF,
 }
 
@@ -143,6 +144,20 @@ export class Tokenizer {
       this.position++;
       this.column++;
       return { type, value: char, position: startPos };
+    }
+
+    // Handle back-tick prefixed quoted words
+    if (char === '`') {
+      this.position++; // Consume back-tick
+      this.column++;
+      const wordStartPos = this.position;
+      let word = '';
+      while (this.position < this.input.length && !isWhitespace(this.input[this.position]) && !isSpecialChar(this.input[this.position])) {
+        word += this.input[this.position];
+        this.position++;
+        this.column++;
+      }
+      return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 }; // Position includes back-tick for accuracy
     }
 
     // Handle other special characters using isSpecialChar - check if # is special?

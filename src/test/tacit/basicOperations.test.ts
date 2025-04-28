@@ -74,6 +74,12 @@ describe('Tacit Basic Operations', () => {
     result = runTacitTest('2 (3 *) eval');
     expect(result).toEqual([6]);
   });
+
+  test('word quoting with back-tick', () => {
+    let result = runTacitTest(': testWord 42 ; `testWord');
+    expect(result.length).toBe(1); // Expect one item (address on stack)
+    expect(typeof result[0]).toBe('number'); // Address should be a number
+  });
 });
 
 describe('New IF syntax', () => {
