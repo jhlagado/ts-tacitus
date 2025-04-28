@@ -61,4 +61,9 @@ export class Compiler {
       this.CP = this.BP; // Reuse the memory
     }
   }
+
+  // Update patch16 method to directly use memory write methods
+  patch16(address: number, value: number): void {
+    this.vm.memory.write16(SEG_CODE, address, value);
+  }
 }

@@ -7,6 +7,8 @@ export enum TokenType {
   SPECIAL, // For special characters like : and ;, etc.
   GROUP_START, // New type for #[
   GROUP_END, // New type for ]#
+  BLOCK_START,  // New type for '{' compile-time block start
+  BLOCK_END,    // New type for '}' compile-time block end
   EOF,
 }
 
@@ -135,11 +137,12 @@ export class Tokenizer {
       return { type: TokenType.WORD, value: char, position: startPos };
     }
 
-    // Treat '{' and '}' as standard words
-    if ('{}'.includes(char)) {
+    // Handle block start and end characters
+    if (char === '{' || char === '}') {
+      const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
       this.position++;
       this.column++;
-      return { type: TokenType.WORD, value: char, position: startPos };
+      return { type, value: char, position: startPos };
     }
 
     // Handle other special characters using isSpecialChar - check if # is special?
@@ -154,6 +157,19 @@ export class Tokenizer {
     // Otherwise, read a word/identifier.
     // If # is not whitespace or special, readWord will handle single #.
     return this.readWord();
+  }
+
+  // Add peekToken method to look at the next token without advancing the position
+  peekToken(): Token | null {
+    const currentPosition = this.position;
+    const currentLine = this.line;
+    const currentColumn = this.column;
+    const token = this.nextToken();
+    // Reset position, line, and column after peeking
+    this.position = currentPosition;
+    this.line = currentLine;
+    this.column = currentColumn;
+    return token;
   }
 
   private skipWhitespace(): void {

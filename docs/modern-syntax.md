@@ -804,7 +804,7 @@ This design strengthens Tacit's identity as:
 NOTES:
 
 #[ .... ]# is for grouping
-:{ ...}: is for dictionaries
+:[ ...]: is for dictionaries
 [ ... ] is for vectors
 ( ... ) is for deferred blocks
 

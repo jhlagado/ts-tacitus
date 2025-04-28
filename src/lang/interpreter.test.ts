@@ -19,8 +19,8 @@ describe('Interpreter', () => {
   });
 
   describe('Dictionary Literals', () => {
-    it('should compile and execute { "a" 1 "b" 2 }', () => {
-      executeProgram('{ "a" 1 "b" 2 }');
+    it('should compile and execute :[ "a" 1 "b" 2 ]:', () => {
+      executeProgram(':[ "a" 1 "b" 2 ]:');
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
       const taggedPtr = stack[0];
@@ -29,8 +29,8 @@ describe('Interpreter', () => {
       expect(tag).toBe(HeapTag.DICT);
     });
 
-    it('should handle nested structures { "k" [ 1 2 ] }', () => {
-      executeProgram('{ "k" [ 1 2 ] }');
+    it('should handle nested structures :[ "k" [ 1 2 ] ]:', () => {
+      executeProgram(':[ "k" [ 1 2 ] ]:');
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
       const taggedPtr = stack[0];
@@ -41,7 +41,7 @@ describe('Interpreter', () => {
 
     it('should throw an error for odd number of items', () => {
       expect(() => {
-        executeProgram('{ "a" 1 "b" }');
+        executeProgram(':[ "a" 1 "b" ]:');
       }).toThrow('Dictionary literal requires an even number of items');
     });
   });

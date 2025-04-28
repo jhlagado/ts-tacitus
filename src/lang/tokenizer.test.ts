@@ -110,9 +110,9 @@ describe("Tokenizer", () => {
     const tokens = getAllTokens("{ } ( ) + - * /");
 
     expect(tokens.length).toBe(8);
-    expect(tokens[0].type).toBe(TokenType.WORD);
+    expect(tokens[0].type).toBe(TokenType.BLOCK_START);
     expect(tokens[0].value).toBe("{");
-    expect(tokens[1].type).toBe(TokenType.WORD);
+    expect(tokens[1].type).toBe(TokenType.BLOCK_END);
     expect(tokens[1].value).toBe("}");
     expect(tokens[2].type).toBe(TokenType.SPECIAL);
     expect(tokens[2].value).toBe("(");
