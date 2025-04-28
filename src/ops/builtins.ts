@@ -256,7 +256,7 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.If:
       simpleIfOp(vm);
       break;
-    case Op.IfCurlyBranchFalse:
+    case Op.IfFalseBranch: 
       ifCurlyBranchFalseOp(vm);
       break;
 

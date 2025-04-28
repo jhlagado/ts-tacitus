@@ -114,7 +114,7 @@ function processWordToken(value: string, state: ParserState): void {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
     // The condition has already been compiled in RPN order
     const falseJumpAddr = vm.compiler.CP;
-    vm.compiler.compile8(Op.IfCurlyBranchFalse); // Use new opcode for conditional jump if false
+    vm.compiler.compile8(Op.IfFalseBranch); // Use new opcode for conditional jump if false
     const jumpOffsetAddr = vm.compiler.CP; // Address where the 16-bit offset is stored
     vm.compiler.compile16(0); // Placeholder for jump offset
     // Compile then-block with BLOCK_START and BLOCK_END
