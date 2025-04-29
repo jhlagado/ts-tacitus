@@ -1,7 +1,7 @@
 # Implementation Status: Implemented
-- Core memory model: **Implemented** in `src/core/memory.ts`
-- NaN-boxing for type safety: **Implemented** in `src/core/tagged.ts`
-- Block reference counting: **Implemented** §1.1-1.3
+- Core memory model: Implemented in `src/core/memory.ts`
+- NaN-boxing for type safety: Implemented in `src/core/tagged.ts`
+- Block reference counting: Implemented §1.1-1.3
 - Related to [memory-management.md] for allocation strategy
 
 # Tacit Memory Integrity & Stress Testing Plan (Full Detailed Edition)
@@ -18,11 +18,11 @@ The goal of this document is to define a robust set of mechanisms for validating
 
 ### 1.1 Core Heap Model
 
-- **Fixed Block Size**: All heap allocations are in 64-byte chunks. Blocks are aligned, and allocation granularity is not variable. Every object, no matter how large, is composed of one or more of these blocks linked by `BLOCK_NEXT`.
-- **Headers**: Each block begins with 4 bytes of metadata.
+- Fixed Block Size: All heap allocations are in 64-byte chunks. Blocks are aligned, and allocation granularity is not variable. Every object, no matter how large, is composed of one or more of these blocks linked by `BLOCK_NEXT`.
+- Headers: Each block begins with 4 bytes of metadata.
   - `BLOCK_NEXT` (2 bytes): Index of the next block in the chain.
   - `REF_COUNT` (2 bytes): Number of live references to the chain (stored in the head block only).
-- **Payload**: The remaining 60 bytes are usable by the object.
+- Payload: The remaining 60 bytes are usable by the object.
 
 This simple structure eliminates fragmentation, makes memory traversal predictable, and allows reuse of blocks with low bookkeeping cost.
 
@@ -59,22 +59,22 @@ Sequences are typically short-lived and require precise management to avoid leak
 
 To ensure the memory system is functioning correctly, the following aspects must be monitored and tested:
 
-1. **Reference Count Accuracy**  
+1. Reference Count Accuracy  
    Every increment must be matched by a corresponding decrement. Reference counts should never go negative, and double frees must not occur.
 
-2. **Leak Detection**  
+2. Leak Detection  
    After a computation is complete, all temporary objects should be released. Long-lived objects should have a verifiable ownership trail.
 
-3. **Ownership Graph Consistency**  
+3. Ownership Graph Consistency  
    The structure of heap pointers (between blocks and between sequences) must form a directed acyclic graph. Cycles are prohibited by construction.
 
-4. **Heap Snapshot Validation**  
+4. Heap Snapshot Validation  
    Snapshots of the heap’s state should be comparable. Differences should explainable by allocations or frees. Snapshots help detect stale blocks.
 
-5. **Stress Load Resilience**  
+5. Stress Load Resilience  
    Under high allocation pressure, the system should not degrade or leak. Performance and integrity must remain stable with thousands of operations per second.
 
-6. **Copy-On-Write Integrity**  
+6. Copy-On-Write Integrity  
    When a block with `REF_COUNT > 1` is about to be modified (e.g., `vectorSet`), it is cloned.
 
 ---
@@ -104,23 +104,23 @@ Tacit runs on minimal platforms (e.g., embedded or WebAssembly VMs), so the moni
 
 ---
 
-This completes **Section 1**.
+This completes Section 1.
 
-**Line count so far: ~110 lines.**
+Line count so far: ~110 lines.
 
 Let me know when you're ready for Section 2: *Memory Model Implementation*.
 
-### **Section 2: Memory Model Implementation**
+### Section 2: Memory Model Implementation
 
 This section outlines the precise data layout and operational behavior of Tacit's heap memory model, including block structure, allocation strategies, chain manipulation, and deallocation procedures. All details reflect the use of 64-byte aligned memory blocks, fixed headers, and strict structural sharing rules.
 
 ---
 
-#### **2.1 Block Layout**
+#### 2.1 Block Layout
 
 Each memory block is exactly 64 bytes in size. The first 4 bytes are reserved for metadata. The remaining 60 bytes are the usable payload.
 
-**Block Structure:**
+Block Structure:
 ```
 Offset  Size  Field         Description
 ------  ----  ------------  -----------------------------------------------
@@ -129,7 +129,7 @@ Offset  Size  Field         Description
 0x04    60 B  PAYLOAD       Data or child pointers (varies by structure type)
 ```
 
-**Constants:**
+Constants:
 - `BLOCK_SIZE = 64`
 - `HEADER_SIZE = 4`
 - `USABLE_BLOCK_SIZE = 60`
@@ -139,7 +139,7 @@ Blocks are addressed by index, not byte offset. The heap segment is divided even
 
 ---
 
-#### **2.2 Free List Management**
+#### 2.2 Free List Management
 
 The heap maintains a singly linked free list using the `BLOCK_NEXT` field. On initialization, all blocks are free and linked in a chain.
 
@@ -147,18 +147,18 @@ The heap maintains a singly linked free list using the `BLOCK_NEXT` field. On in
 - To allocate, blocks are popped from the free list.
 - To deallocate, blocks are pushed to the front of the free list with `BLOCK_NEXT` set to the previous head.
 
-**Free List Invariants:**
+Free List Invariants:
 - Every block in the free list has `REF_COUNT = 0`.
 - No cycles are permitted in the free list.
 - The list terminates with `BLOCK_NEXT = INVALID`.
 
 ---
 
-#### **2.3 Block Allocation (malloc)**
+#### 2.3 Block Allocation (malloc)
 
 Allocating an object of size `n` bytes requires `ceil(n / 60)` blocks.
 
-**Algorithm:**
+Algorithm:
 1. Check if enough blocks are available.
 2. Pop each required block from the free list.
 3. Link blocks with `BLOCK_NEXT`.
@@ -167,7 +167,7 @@ Allocating an object of size `n` bytes requires `ceil(n / 60)` blocks.
 
 If allocation fails midway, all acquired blocks are returned to the free list (rollback).
 
-**Sample Pseudocode:**
+Sample Pseudocode:
 ```ts
 function malloc(size: number): number {
   const needed = Math.ceil(size / USABLE_BLOCK_SIZE);
@@ -190,7 +190,7 @@ function malloc(size: number): number {
 
 ---
 
-#### **2.4 Deallocation (decrementRef)**
+#### 2.4 Deallocation (decrementRef)
 
 When a structure is no longer referenced, its `REF_COUNT` is decremented. If it reaches 0, the entire chain is returned to the free list.
 
@@ -198,7 +198,7 @@ When a structure is no longer referenced, its `REF_COUNT` is decremented. If it 
 - All blocks are individually freed.
 - Cycles cannot occur due to immutability and one-directional links.
 
-**Pseudocode:**
+Pseudocode:
 ```ts
 function decrementRef(block: number): void {
   if (block === INVALID) return;
@@ -215,22 +215,22 @@ function decrementRef(block: number): void {
 
 ---
 
-#### **2.5 Reference Count Management**
+#### 2.5 Reference Count Management
 
 Only the head block of a chain tracks the reference count. The `incrementRef` and `decrementRef` operations must only be applied to head blocks.
 
-**Constraints:**
+Constraints:
 - `incrementRef` must not overflow (`0xFFFF` is reserved).
 - `decrementRef` must not underflow (`<0`).
 - Any attempt to manipulate non-head blocks is undefined behavior.
 
-**Diagnostics:**
+Diagnostics:
 - In debug mode, validate that `decrementRef` is never called on a block with `REF_COUNT == 0`.
 - Hooks can log all changes to monitor for mismatches.
 
 ---
 
-#### **2.6 Chain Manipulation**
+#### 2.6 Chain Manipulation
 
 Tacit supports pointer chains via the `BLOCK_NEXT` field, which enables larger objects (like long vectors or sequences) to be split across multiple blocks.
 
@@ -240,7 +240,7 @@ Tacit supports pointer chains via the `BLOCK_NEXT` field, which enables larger o
 
 ---
 
-#### **2.7 Copy-On-Write Semantics**
+#### 2.7 Copy-On-Write Semantics
 
 When a block with `REF_COUNT > 1` is about to be modified (e.g., `vectorSet`), it is cloned.
 
@@ -248,7 +248,7 @@ When a block with `REF_COUNT > 1` is about to be modified (e.g., `vectorSet`), i
 2. If the block has a child via `BLOCK_NEXT`, the child’s `REF_COUNT` is incremented.
 3. The reference to the old block is decremented.
 
-**Pseudocode:**
+Pseudocode:
 ```ts
 function copyOnWrite(block: number, prev?: number): number {
   if (getRefCount(block) <= 1) return block;
@@ -261,7 +261,7 @@ function copyOnWrite(block: number, prev?: number): number {
 
 ---
 
-#### **2.8 Garbage Safety Invariants**
+#### 2.8 Garbage Safety Invariants
 
 The memory model guarantees safety by ensuring:
 
@@ -272,7 +272,7 @@ The memory model guarantees safety by ensuring:
 
 ---
 
-#### **2.9 Summary of Heap Functions**
+#### 2.9 Summary of Heap Functions
 
 | Function         | Purpose                               |
 |------------------|----------------------------------------|
@@ -283,26 +283,26 @@ The memory model guarantees safety by ensuring:
 | `setNext(a, b)`  | Sets `BLOCK_NEXT` of block `a` to `b`    |
 | `cloneBlock(b)`  | Returns a fresh copy of block `b`        |
 
-Excellent. Here's the full **Section 3: Monitoring & Validation Infrastructure**, with complete detail and consistent structure. This section lays out the tools, hooks, and data models used to verify the integrity of Tacit’s heap in real time and during tests.
+Excellent. Here's the full Section 3: Monitoring & Validation Infrastructure, with complete detail and consistent structure. This section lays out the tools, hooks, and data models used to verify the integrity of Tacit’s heap in real time and during tests.
 
 ---
 
-### **Section 3: Monitoring & Validation Infrastructure**
+### Section 3: Monitoring & Validation Infrastructure
 
 This section defines the tools and mechanisms that monitor heap behavior, validate reference counts, detect leaks, and enforce safety invariants in Tacit’s memory model. These features can be activated selectively in debug builds or during automated testing and are designed to operate with low overhead and high confidence.
 
 ---
 
-#### **3.1 Snapshot System**
+#### 3.1 Snapshot System
 
 The snapshot system captures a consistent view of the heap state at a specific point in time.
 
-**Purpose:**
+Purpose:
 - Track allocations before and after operations
 - Compare snapshots to detect memory leaks
 - Verify that all expected deallocations occurred
 
-**Structure:**
+Structure:
 ```ts
 interface HeapSnapshot {
   timestamp: number;
@@ -312,24 +312,24 @@ interface HeapSnapshot {
 }
 ```
 
-**Usage:**
+Usage:
 - `captureSnapshot()` stores the current heap state
 - `compareSnapshots(before, after)` returns:
   - Blocks newly allocated
   - Blocks not properly freed
   - Blocks whose `REF_COUNT` changed unexpectedly
 
-**Lineage Tracking (Optional):**
+Lineage Tracking (Optional):
 - Snapshots may include `allocationSite` metadata in debug builds
 - Used to trace the origin of leaked blocks
 
 ---
 
-#### **3.2 Event Logging**
+#### 3.2 Event Logging
 
 To aid in debugging and understanding reference flow, Tacit logs all reference operations when audit mode is enabled.
 
-**Structure:**
+Structure:
 ```ts
 interface LogEntry {
   block: number;
@@ -341,61 +341,61 @@ interface LogEntry {
 }
 ```
 
-**Ring Buffer:**
+Ring Buffer:
 - Fixed-size circular buffer (e.g. 1024 entries)
 - Overwrites oldest entries once full
 - Accessible via `exportLog()` for external review
 
-**Logging Functions:**
+Logging Functions:
 - `logMalloc(block)`
 - `logRefChange(block, from, to, opType)`
 - `logFree(block)`
 
-**Performance Considerations:**
+Performance Considerations:
 - Logging can be sampled (e.g., log every 10th event)
 - In production, logging is disabled entirely
 
 ---
 
-#### **3.3 Shadow Reference Counter**
+#### 3.3 Shadow Reference Counter
 
 The shadow ref counter system maintains a mirror of `REF_COUNT` values and verifies they remain consistent with expected operations.
 
-**Implementation:**
+Implementation:
 ```ts
 shadowCounts: number[]; // index matches heap block index
 ```
 
-**Updates:**
+Updates:
 - Every `incrementRef` and `decrementRef` modifies both the real count and the shadow count
 - At checkpoints, `shadowCounts[i] === getRefCount(i)` must hold
 
-**Debug Mode Enforcement:**
+Debug Mode Enforcement:
 - Assertions trigger fatal errors if mismatches occur
 - Optional: store stack traces or call site IDs in a parallel array for diagnostics
 
 ---
 
-#### **3.4 Ownership Graph Analysis**
+#### 3.4 Ownership Graph Analysis
 
 A complete representation of object relationships can be constructed by analyzing heap contents.
 
-**Graph Nodes:**
+Graph Nodes:
 - Each allocated block with `REF_COUNT > 0`
 
-**Graph Edges:**
+Graph Edges:
 - For each pointer in a block’s payload, add an edge from parent to child
 
-**Analysis Goals:**
-- Validate **acyclicity** (no heap cycles)
-- Compute **in-degree** for every block and compare to `REF_COUNT`
-- Identify **dangling** references (pointers to freed blocks)
+Analysis Goals:
+- Validate acyclicity (no heap cycles)
+- Compute in-degree for every block and compare to `REF_COUNT`
+- Identify dangling references (pointers to freed blocks)
 
-**Cycle Detection:**
+Cycle Detection:
 - Run depth-first traversal from every live root
 - Flag back-edges as violations
 
-**Example Output:**
+Example Output:
 ```json
 {
   "block": 37,
@@ -407,11 +407,11 @@ A complete representation of object relationships can be constructed by analyzin
 
 ---
 
-#### **3.5 Hook System**
+#### 3.5 Hook System
 
 A flexible auditing framework allows observers to subscribe to memory events.
 
-**Usage:**
+Usage:
 ```ts
 registerAuditHook('malloc', fn)
 registerAuditHook('incRef', fn)
@@ -419,35 +419,35 @@ registerAuditHook('decRef', fn)
 registerAuditHook('free', fn)
 ```
 
-**Hook Signature:**
+Hook Signature:
 ```ts
 function onRefChange(block: number, from: number, to: number): void;
 ```
 
-**Use Cases:**
+Use Cases:
 - Logging
 - Snapshot capture
 - Integrity assertions
 - Heap metric tracking
 
-**Performance:**
+Performance:
 - Disabled by default
 - Internally guarded with `if (hooksEnabled) { ... }`
 
 ---
 
-#### **3.6 Heap Metric Collection**
+#### 3.6 Heap Metric Collection
 
 Tacit can maintain global statistics about heap usage for profiling and development insight.
 
-**Collected Stats:**
+Collected Stats:
 - `totalAllocated`: number of allocations since boot
 - `totalFreed`: number of blocks freed
 - `peakUsage`: maximum number of live blocks at any time
 - `currentlyInUse`: current count of allocated blocks
 - `refCountHistogram`: map of ref count → block count
 
-**Export Format:**
+Export Format:
 ```ts
 interface HeapStats {
   totalAllocated: number;
@@ -458,17 +458,17 @@ interface HeapStats {
 }
 ```
 
-**Periodic Dumping:**
+Periodic Dumping:
 - Stats can be logged every N seconds or after M operations
 - Optionally exposed to external systems via `console.log` or Prometheus text format
 
 ---
 
-#### **3.7 Validation APIs**
+#### 3.7 Validation APIs
 
 All validation tools are exposed via clear programmatic interfaces.
 
-**Available Functions:**
+Available Functions:
 - `captureSnapshot(): HeapSnapshot`
 - `compareSnapshots(before, after): HeapDelta`
 - `runOwnershipCheck(): ValidationReport`
@@ -479,11 +479,11 @@ All validation tools are exposed via clear programmatic interfaces.
 
 These can be invoked interactively or embedded into test cases.
 
-Awesome. Here's **Section 4: Stress Testing Scenarios**, fully detailed and consistent with the previous sections. This section outlines how Tacit’s memory system is tested under extreme, varied, and realistic workloads.
+Awesome. Here's Section 4: Stress Testing Scenarios, fully detailed and consistent with the previous sections. This section outlines how Tacit’s memory system is tested under extreme, varied, and realistic workloads.
 
 ---
 
-### **Section 4: Stress Testing Scenarios**
+### Section 4: Stress Testing Scenarios
 
 Tacit's memory system is designed to support immutable structures with reference counting and copy-on-write. To ensure its correctness and resilience under high load, a series of stress testing scenarios have been developed. These scenarios simulate common and edge-case workloads, focusing on allocation pressure, sequence composition, and nested structures.
 
@@ -495,123 +495,123 @@ Stress testing is central to revealing:
 
 ---
 
-#### **4.1 Vector Stress Scenarios**
+#### 4.1 Vector Stress Scenarios
 
 Vectors are frequently used for both internal operations and user data. These tests explore how nested and updated vectors behave under load.
 
 ##### 4.1.1 Deep Nesting
 
-- **Goal**: Create thousands of vectors where each vector contains another.
-- **Test**:
+- Goal: Create thousands of vectors where each vector contains another.
+- Test:
   - Create a vector `V₀` containing a number.
   - Iteratively build `V₁ = [V₀]`, `V₂ = [V₁]`, ..., `Vₙ = [Vₙ₋₁]`.
   - At each step, verify reference count of all layers.
-- **Cleanup**: Free only the top-level vector and ensure cascading deallocation occurs.
-- **Expected**: No leaks, all inner blocks freed once outer is dereferenced.
+- Cleanup: Free only the top-level vector and ensure cascading deallocation occurs.
+- Expected: No leaks, all inner blocks freed once outer is dereferenced.
 
 ##### 4.1.2 Fan-Out Tree
 
-- **Goal**: Verify copy-on-write behaves correctly across multiple shared subtrees.
-- **Test**:
+- Goal: Verify copy-on-write behaves correctly across multiple shared subtrees.
+- Test:
   - Build a base vector and reuse it across multiple parents.
   - Mutate one parent to trigger COW.
   - Confirm only mutated branches are cloned.
-- **Validation**: Use shadow ref counts to verify no blocks are over-retained.
+- Validation: Use shadow ref counts to verify no blocks are over-retained.
 
 ##### 4.1.3 Vector Slicing Loop
 
-- **Goal**: Stress test vector slicing and partial views.
-- **Test**:
+- Goal: Stress test vector slicing and partial views.
+- Test:
   - Generate a long vector.
   - Repeatedly slice it into shorter sub-vectors (e.g., sliding window).
   - Dispose each slice after processing.
-- **Expected**: All slices share the base vector until mutated or freed.
+- Expected: All slices share the base vector until mutated or freed.
 
 ---
 
-#### **4.2 Sequence Chain Tests**
+#### 4.2 Sequence Chain Tests
 
 Lazy sequences create temporary blocks that must be correctly freed. These tests ensure sequence disposal works recursively across chains.
 
 ##### 4.2.1 Chain of Mappings
 
-- **Goal**: Compose a pipeline of `map`, `filter`, `take` over a base `range`.
-- **Test**:
+- Goal: Compose a pipeline of `map`, `filter`, `take` over a base `range`.
+- Test:
   - Construct `S = range → map (×2) → filter (even) → take(100)`.
   - Fully iterate using `next()` until exhausted.
   - Dispose of the final sequence.
-- **Validation**: Confirm that `range`, `map`, and `filter` blocks are released.
+- Validation: Confirm that `range`, `map`, and `filter` blocks are released.
 
 ##### 4.2.2 Sequence Reuse
 
-- **Goal**: Ensure sequences can be used once and then discarded safely.
-- **Test**:
+- Goal: Ensure sequences can be used once and then discarded safely.
+- Test:
   - Create a map sequence `S₁` and consume it.
   - Attempt to consume `S₁` again.
   - Ensure it returns NIL immediately and does not crash.
-- **Validation**: Final ref count of `S₁` and its children must be zero.
+- Validation: Final ref count of `S₁` and its children must be zero.
 
 ##### 4.2.3 Alternating Consumers
 
-- **Goal**: Mix consuming and cloning of sequences.
-- **Test**:
+- Goal: Mix consuming and cloning of sequences.
+- Test:
   - Build a base sequence `S`.
   - Clone `S` multiple times for different branches.
   - Let one consume fully, and the others partially.
-- **Validation**: Ensure ref counts decrement correctly in each path.
+- Validation: Ensure ref counts decrement correctly in each path.
 
 ---
 
-#### **4.3 Dictionary & Structure Composition**
+#### 4.3 Dictionary & Structure Composition
 
 Tacit uses dictionaries as its core key-value representation. These scenarios test memory behavior when constructing and mutating nested dictionaries.
 
 ##### 4.3.1 Shallow Merge Storm
 
-- **Goal**: Repeatedly merge dictionaries, each with small payloads.
-- **Test**:
+- Goal: Repeatedly merge dictionaries, each with small payloads.
+- Test:
   - Create thousands of `{a: x}` dicts.
   - Merge them into a cumulative object.
-- **Validation**:
+- Validation:
   - Verify COW kicks in correctly.
   - Ensure inner dicts are retained only once.
 
 ##### 4.3.2 Structural Sharing Graph
 
-- **Goal**: Build a graph-like structure via nested dicts.
-- **Test**:
+- Goal: Build a graph-like structure via nested dicts.
+- Test:
   - Create `D₁ = {a: 1}`, `D₂ = {b: D₁}`, `D₃ = {c: D₂}`, etc.
   - Alter `D₃`, observe that `D₁` and `D₂` are unaffected.
-- **Expected**: Only directly mutated structures are cloned.
+- Expected: Only directly mutated structures are cloned.
 
 ---
 
-#### **4.4 Mixed Workload Simulation**
+#### 4.4 Mixed Workload Simulation
 
 Combines vectors, sequences, and dictionaries into randomized interactions.
 
 ##### 4.4.1 Allocation Mix Test
 
-- **Goal**: Simulate real-world usage by mixing types.
-- **Test**:
+- Goal: Simulate real-world usage by mixing types.
+- Test:
   - Allocate a mix of random vectors, sequences, and dicts.
   - Perform updates, copies, and disposals in random order.
-- **Validation**:
+- Validation:
   - Snapshots taken periodically.
   - Run heap graph analysis to ensure integrity.
 
 ##### 4.4.2 Sliding Window with History
 
-- **Goal**: Simulate a real-world scenario like a table filter.
-- **Test**:
+- Goal: Simulate a real-world scenario like a table filter.
+- Test:
   - Generate a sequence of rows.
   - Use `filter` and `scan` to compute rolling aggregates.
   - Store intermediate results in vectors.
-- **Validation**: Check that temp results do not leak after window slides forward.
+- Validation: Check that temp results do not leak after window slides forward.
 
 ---
 
-#### **4.5 Duration and Load Parameters**
+#### 4.5 Duration and Load Parameters
 
 All stress tests can be parameterized to run at scale.
 
@@ -625,7 +625,7 @@ All stress tests can be parameterized to run at scale.
 
 ---
 
-#### **4.6 Validation Hooks for Stress Runs**
+#### 4.6 Validation Hooks for Stress Runs
 
 Every test uses validation checkpoints:
 
@@ -637,11 +637,11 @@ Every test uses validation checkpoints:
 
 Errors are immediately reported with block IDs, call site (if available), and expected vs. actual ref count.
 
-Awesome. Here's **Section 5: Integrity Hardening Techniques**, in full detail and style-matched to the rest of the plan. This section introduces additional mechanisms—both runtime and design-time—that reinforce Tacit’s memory correctness guarantees beyond basic ref counting and snapshots.
+Awesome. Here's Section 5: Integrity Hardening Techniques, in full detail and style-matched to the rest of the plan. This section introduces additional mechanisms—both runtime and design-time—that reinforce Tacit’s memory correctness guarantees beyond basic ref counting and snapshots.
 
 ---
 
-### **Section 5: Integrity Hardening Techniques**
+### Section 5: Integrity Hardening Techniques
 
 While reference counting and snapshots provide the foundation for memory validation in Tacit, additional safeguards can reinforce trust in the system—especially during debugging, testing, or mission-critical operation. This section outlines optional mechanisms for ensuring consistency, preventing misuse, and detecting anomalies.
 
@@ -649,15 +649,15 @@ These strategies are defensive in nature: they don't change the core memory mode
 
 ---
 
-#### **5.1 Runtime Integrity Checks**
+#### 5.1 Runtime Integrity Checks
 
 Tacit supports optional runtime assertions that enforce strict correctness across core memory operations.
 
 ##### 5.1.1 Free List Assertions
 
-- **Check**: Every block in the free list must have `REF_COUNT == 0`.
-- **Violation**: Any block with `REF_COUNT > 0` in the free list signals a serious corruption bug.
-- **Implementation**: Validate during every `malloc()` and periodically via background checker.
+- Check: Every block in the free list must have `REF_COUNT == 0`.
+- Violation: Any block with `REF_COUNT > 0` in the free list signals a serious corruption bug.
+- Implementation: Validate during every `malloc()` and periodically via background checker.
 
 ##### 5.1.2 Block Boundary Validation
 
@@ -673,7 +673,7 @@ Tacit supports optional runtime assertions that enforce strict correctness acros
 
 ---
 
-#### **5.2 Shadow Audit Mode**
+#### 5.2 Shadow Audit Mode
 
 Shadow mode enables a parallel tracking system for all heap blocks without altering behavior. It validates that every `incrementRef` and `decrementRef` call is matched and consistent.
 
@@ -696,7 +696,7 @@ Shadow mode enables a parallel tracking system for all heap blocks without alter
 
 ---
 
-#### **5.3 Heap Consistency Validator**
+#### 5.3 Heap Consistency Validator
 
 Runs deep inspection of the heap graph.
 
@@ -720,7 +720,7 @@ Runs deep inspection of the heap graph.
 
 ---
 
-#### **5.4 Allocation Site Tracking (Debug Mode Only)**
+#### 5.4 Allocation Site Tracking (Debug Mode Only)
 
 To assist with leak detection, Tacit can optionally annotate each allocation with a pseudo stack trace or site identifier.
 
@@ -738,7 +738,7 @@ To assist with leak detection, Tacit can optionally annotate each allocation wit
 
 ---
 
-#### **5.5 Audit Hooks and Interceptors**
+#### 5.5 Audit Hooks and Interceptors
 
 Audit hooks allow arbitrary user code or test code to intercept memory operations without patching core logic.
 
@@ -765,7 +765,7 @@ registerAuditHook('free', (block) => {...});
 
 ---
 
-#### **5.6 Leak Guard Timeout and Watchdog**
+#### 5.6 Leak Guard Timeout and Watchdog
 
 In long-running programs, leak guards can periodically verify that memory usage remains bounded.
 
@@ -788,7 +788,7 @@ In long-running programs, leak guards can periodically verify that memory usage 
 
 ---
 
-#### **5.7 Optional Soft Limit and Quotas**
+#### 5.7 Optional Soft Limit and Quotas
 
 Tacit allows programs to set soft memory quotas or thresholds to prevent overuse of heap space.
 
@@ -803,11 +803,11 @@ Tacit allows programs to set soft memory quotas or thresholds to prevent overuse
 - Multi-tenant environments
 - Predictable low-latency systems
 
-Perfect. Here’s **Section 6: Implementation Roadmap**, laying out a phased, concrete path to roll out everything we’ve discussed—from memory instrumentation to full leak protection, validation, and test integration.
+Perfect. Here’s Section 6: Implementation Roadmap, laying out a phased, concrete path to roll out everything we’ve discussed—from memory instrumentation to full leak protection, validation, and test integration.
 
 ---
 
-### **Section 6: Implementation Roadmap**
+### Section 6: Implementation Roadmap
 
 This section outlines the recommended steps to fully implement the Tacit memory integrity strategy. It is structured in progressive stages, beginning with foundational audit tools and ending with fully integrated validation within development pipelines and CI systems.
 
@@ -815,7 +815,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.1 Phase 1: Core Audit Infrastructure (Week 1–2)**
+#### 6.1 Phase 1: Core Audit Infrastructure (Week 1–2)
 
 ##### 6.1.1 Goals
 - Enable capture of heap snapshots
@@ -835,7 +835,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.2 Phase 2: Shadow Reference Counter (Week 3)**
+#### 6.2 Phase 2: Shadow Reference Counter (Week 3)
 
 ##### 6.2.1 Goals
 - Detect over- or under-decrement bugs with precision
@@ -854,7 +854,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.3 Phase 3: Heap Graph & Structural Analysis (Week 4–5)**
+#### 6.3 Phase 3: Heap Graph & Structural Analysis (Week 4–5)
 
 ##### 6.3.1 Goals
 - Build a true ownership graph of the heap
@@ -873,7 +873,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.4 Phase 4: Sequence-Specific Lifecycle Tests (Week 6)**
+#### 6.4 Phase 4: Sequence-Specific Lifecycle Tests (Week 6)
 
 ##### 6.4.1 Goals
 - Confirm that chained sequences clean up fully
@@ -891,7 +891,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.5 Phase 5: CI Integration & Leak Gates (Week 7)**
+#### 6.5 Phase 5: CI Integration & Leak Gates (Week 7)
 
 ##### 6.5.1 Goals
 - Prevent regressions in memory safety
@@ -910,7 +910,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.6 Phase 6: Performance Tuning & OOM Handling (Week 8)**
+#### 6.6 Phase 6: Performance Tuning & OOM Handling (Week 8)
 
 ##### 6.6.1 Goals
 - Ensure audit features remain fast and bounded
@@ -928,7 +928,7 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-#### **6.7 Phase 7: Documentation, Education, & Developer Support (Week 9)**
+#### 6.7 Phase 7: Documentation, Education, & Developer Support (Week 9)
 
 ##### 6.7.1 Goals
 - Make memory model accessible to contributors
@@ -947,56 +947,56 @@ Each phase is designed to build on the last, allowing incremental rollout, real-
 
 ---
 
-### **Long-Term Extensions**
+### Long-Term Extensions
 
 Even after the roadmap is complete, Tacit’s memory system can be expanded with features like:
 
-- **Live Heap Monitor**: CLI tool that tracks and displays heap usage live.
-- **Deferred Collection (Experimental)**: Track unreachable chains and clean them lazily.
-- **Symbolic Site IDs**: Tag allocations with human-readable tags for easier debugging.
-- **Leak Budgeting**: Allow controlled leakage with periodic cleanup.
+- Live Heap Monitor: CLI tool that tracks and displays heap usage live.
+- Deferred Collection (Experimental): Track unreachable chains and clean them lazily.
+- Symbolic Site IDs: Tag allocations with human-readable tags for easier debugging.
+- Leak Budgeting: Allow controlled leakage with periodic cleanup.
 
-Great, here’s the final piece—**Section 7: Summary & Conclusion**. This wraps up everything we’ve laid out and sets the stage for using Tacit’s memory system in real, long-running, and mission-critical deployments.
+Great, here’s the final piece—Section 7: Summary & Conclusion. This wraps up everything we’ve laid out and sets the stage for using Tacit’s memory system in real, long-running, and mission-critical deployments.
 
 ---
 
-### **Section 7: Summary & Conclusion**
+### Section 7: Summary & Conclusion
 
 Tacit’s heap model—centered on 64-byte fixed blocks, reference counting, and immutable data with structural sharing—offers simplicity, determinism, and performance. But correctness doesn’t happen automatically. This plan provides a complete strategy for turning Tacit’s low-level memory model into a robust, production-ready foundation.
 
 ---
 
-#### **7.1 What We’ve Built**
+#### 7.1 What We’ve Built
 
 This document defines a full-spectrum integrity and validation framework:
 
-- **Block-level correctness** via reference counting, COW, and chain allocation
-- **Leak detection** through snapshots, shadow counters, and event logs
-- **Ownership verification** with full heap graph analysis
-- **Stress testing** across nested vectors, sequence chains, and dictionary merges
-- **Hardening techniques** like quota enforcement, hookable memory ops, watchdogs, and audit logs
-- **Implementation roadmap** guiding incremental, validated rollout
-- **Developer support** via documentation, CI enforcement, and tooling
+- Block-level correctness via reference counting, COW, and chain allocation
+- Leak detection through snapshots, shadow counters, and event logs
+- Ownership verification with full heap graph analysis
+- Stress testing across nested vectors, sequence chains, and dictionary merges
+- Hardening techniques like quota enforcement, hookable memory ops, watchdogs, and audit logs
+- Implementation roadmap guiding incremental, validated rollout
+- Developer support via documentation, CI enforcement, and tooling
 
 These tools, once implemented, turn every program written in Tacit into an audit-ready system. Failures become explainable. Bugs become reproducible. Leaks become impossible to ignore.
 
 ---
 
-#### **7.2 Design Strengths of the Memory Model**
+#### 7.2 Design Strengths of the Memory Model
 
 The following principles are what make Tacit’s memory model uniquely suited to verification:
 
-- **Immutable by default**: There are no in-place changes to user data structures unless uniquely owned.
-- **Explicit ownership**: Reference counts are not magical—they are manipulated through clear, consistent mechanisms.
-- **Non-cyclical structure**: Cycles are prohibited by design, removing an entire class of GC complexity.
-- **Fixed-size blocks**: There’s no fragmentation, and every structure is composed from predictable parts.
-- **Linear traversal model**: Chains are acyclic, singly linked, and cleanly terminated.
+- Immutable by default: There are no in-place changes to user data structures unless uniquely owned.
+- Explicit ownership: Reference counts are not magical—they are manipulated through clear, consistent mechanisms.
+- Non-cyclical structure: Cycles are prohibited by design, removing an entire class of GC complexity.
+- Fixed-size blocks: There’s no fragmentation, and every structure is composed from predictable parts.
+- Linear traversal model: Chains are acyclic, singly linked, and cleanly terminated.
 
 These constraints are not limitations—they are what allow the level of verification described in this plan.
 
 ---
 
-#### **7.3 Future-Proofing Considerations**
+#### 7.3 Future-Proofing Considerations
 
 As Tacit evolves, new requirements may emerge:
 
@@ -1008,7 +1008,7 @@ This plan is designed to scale. The validator doesn’t assume a particular obje
 
 ---
 
-#### **7.4 Philosophical Note on Determinism**
+#### 7.4 Philosophical Note on Determinism
 
 Tacit’s refusal to use garbage collection isn’t just about performance—it’s a philosophical commitment. Reference counts and copy-on-write offer a high-integrity memory model that can be validated, explained, and trusted. It may cost more thought during design, but the result is a system that gives up no control and hides no state.
 

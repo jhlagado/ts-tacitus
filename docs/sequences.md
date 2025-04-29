@@ -1,12 +1,12 @@
 # Implementation Status: Implemented
-- Core sequence abstraction: **Implemented** in `src/seq/`
-- Basic iteration methods: **Implemented** §1-3
-- Advanced composition: **Partially Implemented** §4-5
+- Core sequence abstraction: Implemented in `src/seq/`
+- Basic iteration methods: Implemented §1-3
+- Advanced composition: Partially Implemented §4-5
 - Related to [polymphism.md] for polymorphic sequence handling
 
 # Tacit Language: Advanced Sequence Processing – Expanded Version
 
-This expanded document builds on the core ideas of Tacit’s sequence model, providing **detailed explanations and worked examples** for each concept. It serves both as a language guide and as an architectural reference.
+This expanded document builds on the core ideas of Tacit’s sequence model, providing detailed explanations and worked examples for each concept. It serves both as a language guide and as an architectural reference.
 
 ---
 
@@ -14,14 +14,14 @@ This expanded document builds on the core ideas of Tacit’s sequence model, pro
 
 ### Concept
 
-In Tacit, **net arity** describes how a function transforms the stack. It is the difference between the number of values **consumed** from the stack and the number of values **produced**.
+In Tacit, net arity describes how a function transforms the stack. It is the difference between the number of values consumed from the stack and the number of values produced.
 
 For example:
 - A function with arity `(2 → 1)` has net arity -1  
 - A function with arity `(1 → 1)` has net arity 0  
 - A function with arity `(1 → 2)` has net arity +1  
 
-For sequence processing, **net arity zero is preferred** because it guarantees that each step keeps the stack balanced, which is especially important in forward-only, pipeline-style processing.
+For sequence processing, net arity zero is preferred because it guarantees that each step keeps the stack balanced, which is especially important in forward-only, pipeline-style processing.
 
 ### Example
 
@@ -53,9 +53,9 @@ This function has net arity 0 and is safe for use in `each`.
 
 Tacit unifies several common sequence-processing operations using a single abstraction: `each`.
 
-- **Map**: Apply a function to each element, emitting one result per input.  
-- **Scan**: Carry an accumulator on the stack that updates at each step.  
-- **Mask**: Apply a predicate function to produce a sequence of booleans, used later for filtering.
+- Map: Apply a function to each element, emitting one result per input.  
+- Scan: Carry an accumulator on the stack that updates at each step.  
+- Mask: Apply a predicate function to produce a sequence of booleans, used later for filtering.
 
 These variations differ only in how the function behaves—they all operate under the same structural mechanism of `each`.
 
@@ -88,7 +88,7 @@ We can generate a mask by applying a predicate function:
 → [0 1 1]
 ```
 
-This is not a filter—it’s a **mask**, which will be used later by a separate `filter` operation.
+This is not a filter—it’s a mask, which will be used later by a separate `filter` operation.
 
 ---
 
@@ -96,14 +96,14 @@ This is not a filter—it’s a **mask**, which will be used later by a separate
 
 ### Concept
 
-While `each` is length-preserving, **`filter` is not**. It takes two input sequences:
+While `each` is length-preserving, `filter` is not. It takes two input sequences:
 
 - A data sequence  
 - A mask sequence (of booleans)  
 
 And produces a new sequence containing only the elements for which the mask is true.
 
-This is the canonical example of a **shape-reducing sequence** in Tacit.
+This is the canonical example of a shape-reducing sequence in Tacit.
 
 ### Example
 
@@ -120,7 +120,7 @@ This is the canonical example of a **shape-reducing sequence** in Tacit.
 
 ### Concept
 
-In Tacit, arrays can serve as **functions** that map indices to values. This allows them to be passed into `each` in place of deferred code blocks, acting as lookup tables.
+In Tacit, arrays can serve as functions that map indices to values. This allows them to be passed into `each` in place of deferred code blocks, acting as lookup tables.
 
 ### Example: Direct Use
 
@@ -146,7 +146,7 @@ This idiom is extremely useful and expressive: the array is a first-class functi
 
 ### Concept
 
-Tacit treats ranges as native sequence sources. While it's common to apply a function to a range (e.g., to simulate array generation), this is **just a use of `each` over a range**, not a separate abstraction.
+Tacit treats ranges as native sequence sources. While it's common to apply a function to a range (e.g., to simulate array generation), this is just a use of `each` over a range, not a separate abstraction.
 
 ### Example
 
@@ -165,10 +165,10 @@ There is no special “function sequence” type—just sequences and functions.
 
 ### Concept
 
-A **paginated sequence** allows Tacit to process large or remote data sources efficiently by fetching data incrementally. Rather than materializing all data upfront, a sequence is backed by:
+A paginated sequence allows Tacit to process large or remote data sources efficiently by fetching data incrementally. Rather than materializing all data upfront, a sequence is backed by:
 
-- A **fetch function** `(offset size -- status cursor [chunk])`
-- A **buffer size**
+- A fetch function `(offset size -- status cursor [chunk])`
+- A buffer size
 
 Each call to `next` retrieves a page of data using the function and continues until the data source is exhausted.
 
@@ -186,7 +186,7 @@ This creates a paginated sequence using `(fetch-page)` with a buffer size of 100
 
 ### Concept
 
-Sequences in Tacit are implemented as tagged values. Each sequence has a **type tag** that defines how it should behave when passed to `next`.
+Sequences in Tacit are implemented as tagged values. Each sequence has a type tag that defines how it should behave when passed to `next`.
 
 Common sequence tags include:
 
@@ -196,7 +196,7 @@ Common sequence tags include:
 - `SEQ_SRC_STRING` – Sequence of characters
 - `SEQ_SRC_MULTI_SEQUENCE` – Composed or zipped sequence
 
-The `next` operation is **polymorphic**: it checks the tag and calls the corresponding handler.
+The `next` operation is polymorphic: it checks the tag and calls the corresponding handler.
 
 ### Example
 
@@ -212,10 +212,10 @@ The input is a vector sequence. `each` dispatches to the `SEQ_SRC_VECTOR` implem
 
 ### Concept
 
-Tacit distinguishes between **cold** and **hot** sequences:
+Tacit distinguishes between cold and hot sequences:
 
-- **Cold sequences** (e.g. ranges, arrays) restart from the beginning when reused.
-- **Hot sequences** (e.g. real-time streams) cannot be restarted and yield new values on each call.
+- Cold sequences (e.g. ranges, arrays) restart from the beginning when reused.
+- Hot sequences (e.g. real-time streams) cannot be restarted and yield new values on each call.
 
 ### Example
 
@@ -231,7 +231,7 @@ This produces two independent range sequences—each starts from zero. If instea
 
 ### Concept
 
-Some operations consume **multiple input sequences** and combine their values element-wise. These are modeled as processors that accept two or more sequences and apply a combining function.
+Some operations consume multiple input sequences and combine their values element-wise. These are modeled as processors that accept two or more sequences and apply a combining function.
 
 Common combiners include:
 
@@ -253,7 +253,7 @@ This zips together the sequences and applies the `(add)` function to each pair.
 
 ### Concept
 
-Just like arrays map indices to values, **dictionaries map keys to values**. Tacit allows dictionaries to be used **as functions**, performing lookups when passed a key.
+Just like arrays map indices to values, dictionaries map keys to values. Tacit allows dictionaries to be used as functions, performing lookups when passed a key.
 
 This allows dictionary-based mapping in sequences.
 
@@ -273,11 +273,11 @@ This pattern is especially powerful for symbolic lookups or joining label-based 
 
 ## 11. General Design Principles
 
-- **Sequences are forward-only**, atomic, and composable.
-- **each** is the central abstraction for processing any sequence.
+- Sequences are forward-only, atomic, and composable.
+- each is the central abstraction for processing any sequence.
 - Sequences avoid materializing data until needed.
 - All heap values are stored in fixed-size 64-byte blocks, which are reference counted and reused for efficient memory management.
-- Functions, arrays, dictionaries, and even remote data sources can all be treated **uniformly** through sequence abstraction.
+- Functions, arrays, dictionaries, and even remote data sources can all be treated uniformly through sequence abstraction.
 
 ---
 
@@ -300,7 +300,7 @@ This pattern is especially powerful for symbolic lookups or joining label-based 
 
 ### Static Analysis for Net Arity
 
-Tacit may include compile-time analysis of code blocks and function sequences to verify **net arity correctness**. This ensures that each block preserves stack balance and avoids subtle runtime stack errors.
+Tacit may include compile-time analysis of code blocks and function sequences to verify net arity correctness. This ensures that each block preserves stack balance and avoids subtle runtime stack errors.
 
 ### Dynamic Assertions
 

@@ -1,16 +1,16 @@
 # Implementation Status: Implemented
-- Reference counting: **Fully Implemented** in `src/heap/`
-- Block allocation model: **Implemented** §3-4
-- Copy-on-write semantics: **Implemented** §5-6
+- Reference counting: Fully Implemented in `src/heap/`
+- Block allocation model: Implemented §3-4
+- Copy-on-write semantics: Implemented §5-6
 - Core memory model for Tacit VM
 
-### **Context**
-We are implementing a memory model without garbage collection, relying instead on **reference counting**. The system operates using **heap-allocated blocks** and a **stack-based execution model**. Sequences (like `range`, `map`, etc.) are chained and must manage their own lifecycles properly.
+### Context
+We are implementing a memory model without garbage collection, relying instead on reference counting. The system operates using heap-allocated blocks and a stack-based execution model. Sequences (like `range`, `map`, etc.) are chained and must manage their own lifecycles properly.
 
 ---
 
-### **Problem**
-The original assumption was that the **stack owns an object**, and popping it should decrement its reference count. However, this fails in sequence chains where the object is **immediately reused**, like:
+### Problem
+The original assumption was that the stack owns an object, and popping it should decrement its reference count. However, this fails in sequence chains where the object is immediately reused, like:
 
 ```text
 range → map → sink
@@ -20,23 +20,23 @@ Here, `map` pops the `range` sequence, but instead of being discarded, it stores
 
 ---
 
-### **Solution Strategy**
-We propose a **transfer flag** when popping from the stack:
-- **If `transfer = true`**, popping does **not decrement** the reference count, because ownership is being transferred to another container (like `map`).
-- **If `transfer = false`**, popping means the reference is discarded, and the count is decremented.
+### Solution Strategy
+We propose a transfer flag when popping from the stack:
+- If `transfer = true`, popping does not decrement the reference count, because ownership is being transferred to another container (like `map`).
+- If `transfer = false`, popping means the reference is discarded, and the count is decremented.
 
 ---
 
-### **Deallocation Policy**
-Each consumer (e.g., `map`, `sink`) is **responsible for cleaning up** its internal references when it's done:
+### Deallocation Policy
+Each consumer (e.g., `map`, `sink`) is responsible for cleaning up its internal references when it's done:
 - `sink` deallocates `map`
 - `map` deallocates `range`
 
-This creates a **clear ownership chain** and avoids dangling references or early frees.
+This creates a clear ownership chain and avoids dangling references or early frees.
 
 ---
 
-### **Polymorphic Cleanup**
+### Polymorphic Cleanup
 We will implement a `dispose()` function for each sequence type (e.g., `disposeMapSeq`, `disposeRangeSeq`) to:
 - Decrement references of internal objects
 - Free the current object if its count reaches zero
@@ -45,10 +45,10 @@ These functions can be dispatched via tag/type checking.
 
 ---
 
-### **Principles Derived**
-- **Reference count decrements must match the actual loss of ownership**.
-- **Stack pops don’t always mean disposal**; context matters.
-- **Explicit cleanup at the end of a chain (e.g., by `sink`) ensures proper deallocation**.
+### Principles Derived
+- Reference count decrements must match the actual loss of ownership.
+- Stack pops don’t always mean disposal; context matters.
+- Explicit cleanup at the end of a chain (e.g., by `sink`) ensures proper deallocation.
 - This is a simple and deterministic model that works well for Tacit's non-GC environment.
 
 # Copy-On-Write and Structural Sharing in Block-Based Vectors
@@ -114,7 +114,7 @@ Given `V = [1, 2, 3]` shared between `A` and `B`, writing `V[1] = 9` causes:
 
 ## 3. Block-Based Vector Model
 
-Tacit's vectors are implemented as **linked chains of fixed-size blocks**.
+Tacit's vectors are implemented as linked chains of fixed-size blocks.
 
 ```text
 [Block0] → [Block1] → [Block2]
@@ -141,7 +141,7 @@ Modify `vector[22]` in:
   - Update element
   - Link it from `Block0`
 
-Only **one block** is copied.
+Only one block is copied.
 
 ---
 
@@ -150,8 +150,8 @@ Only **one block** is copied.
 When assigning a heap-allocated object (like another vector) into a vector slot:
 
 ### Always:
-- **Increment** the refcount of the new value
-- **Decrement** the refcount of the overwritten value
+- Increment the refcount of the new value
+- Decrement the refcount of the overwritten value
 
 ### Special Cases:
 - If old value is scalar, skip decrement
@@ -163,8 +163,8 @@ When assigning a heap-allocated object (like another vector) into a vector slot:
 ## 5. Nested Vectors and Copy-on-Write
 
 Nested vectors are heap-allocated objects stored as elements within another vector. Mutating the outer vector involves two layers:
-- COW for the **outer vector**
-- Refcount changes for the **inner (nested) vector**
+- COW for the outer vector
+- Refcount changes for the inner (nested) vector
 
 ### Full Workflow
 1. Identify block containing `outer[i]`
@@ -192,8 +192,8 @@ Avoids unnecessary operations on scalars.
 ## 6. Efficiency Gains from Block-Level Sharing
 
 By copying only the block being written, and keeping all others shared:
-- We get **O(1)** mutation cost for large vectors
-- Dramatic **memory savings** when only a few elements change
+- We get O(1) mutation cost for large vectors
+- Dramatic memory savings when only a few elements change
 - Consistent and safe behavior across nested structures
 
 This enables features like undo stacks, transactional views, and efficient branching.
@@ -228,11 +228,11 @@ This document provides a detailed walkthrough of the different scenarios encount
 
 ## 1. Terminology
 
-- **Parent vector**: The outer vector being modified.
-- **Nested vector**: A vector stored as an element within a parent vector.
-- **Block**: A fixed-size memory segment containing part of a vector.
-- **Heap object**: Any reference-counted object (e.g., vector, dictionary).
-- **Scalar**: A non-heap, immutable value (e.g., float, integer).
+- Parent vector: The outer vector being modified.
+- Nested vector: A vector stored as an element within a parent vector.
+- Block: A fixed-size memory segment containing part of a vector.
+- Heap object: Any reference-counted object (e.g., vector, dictionary).
+- Scalar: A non-heap, immutable value (e.g., float, integer).
 
 ---
 
@@ -248,20 +248,20 @@ parent[i] = nested
 - `nested` is a heap-allocated vector.
 
 ### Correct Sequence of Operations:
-1. **Check parent vector’s ownership**:
+1. Check parent vector’s ownership:
    - If `parent.refcount > 1`: clone any blocks to be modified (COW).
    - Otherwise, mutation can be done in-place.
 
-2. **Identify the target block** for index `i`.
+2. Identify the target block for index `i`.
    - If the block is shared, clone that block only.
 
-3. **Update reference counts**:
+3. Update reference counts:
    - Increment `nested.refcount`.
    - If `parent[i]` previously held a heap object:
      - Decrement its refcount.
      - If it reaches zero, trigger disposal.
 
-4. **Write the new reference** to the block.
+4. Write the new reference to the block.
 
 ### Gotchas:
 - Always increment before decrement if overwriting with the same object.
@@ -279,9 +279,9 @@ parent[i] = new_nested
 Where `parent[i]` already holds an old nested vector.
 
 ### Steps:
-1. **Clone the block if necessary** (as above).
-2. **Increment `new_nested`'s refcount.**
-3. **Decrement `old_nested`'s refcount.**
+1. Clone the block if necessary (as above).
+2. Increment `new_nested`'s refcount.
+3. Decrement `old_nested`'s refcount.
    - If it reaches zero, dispose recursively.
 
 ### Notes:
@@ -307,24 +307,24 @@ Steps:
 parent[i][j] = x
 ```
 
-This is a **write-through** operation. We're not replacing the nested vector—we're modifying its contents. This creates a deeper COW scenario.
+This is a write-through operation. We're not replacing the nested vector—we're modifying its contents. This creates a deeper COW scenario.
 
 ### Steps:
-1. **Check if parent is shared**
+1. Check if parent is shared
    - If not, move on
    - If yes, clone the relevant block
 
-2. **Check if `parent[i]` (the nested vector) is shared**
-   - If yes, **clone the nested vector**
+2. Check if `parent[i]` (the nested vector) is shared
+   - If yes, clone the nested vector
    - Replace `parent[i]` with the new clone
    - Increment clone’s refcount
    - Decrement old nested vector’s refcount
 
-3. **Mutate the element inside the clone**
+3. Mutate the element inside the clone
 
 ### Gotchas:
 - Must not mutate a shared nested vector directly!
-- Cloning the nested vector requires **refcount adjustment** in the parent vector too.
+- Cloning the nested vector requires refcount adjustment in the parent vector too.
 - If the nested vector spans blocks, we may need to recursively apply COW at the block level.
 
 ---
@@ -356,9 +356,9 @@ This triggers a block-level growth:
 
 ## 7. Refcount Management Summary
 
-- **Always increment before decrement** when replacing values.
-- **Check tags** to distinguish heap from scalar.
-- **Clone only blocks or nested structures that are shared** (refcount > 1).
+- Always increment before decrement when replacing values.
+- Check tags to distinguish heap from scalar.
+- Clone only blocks or nested structures that are shared (refcount > 1).
 - Mutations to nested structures may require *cascading COW*.
 
 ---

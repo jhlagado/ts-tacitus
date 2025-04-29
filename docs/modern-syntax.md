@@ -1,5 +1,5 @@
 # Status: Current Syntax Reference
-- This document describes the **implemented syntax** of the Tacit language
+- This document describes the implemented syntax of the Tacit language
 - Supersedes [grammar.md] with modern combinator-based design
 - Implementation in `src/lang/parser.ts` and `src/lang/compiler.ts`
 - Primary reference for language syntax and semantics
@@ -11,13 +11,13 @@
 ## 1. Overview (Expanded)
 
 Tacit is a stack-based programming language designed to combine the simplicity of FORTH with the structured power of modern functional programming.  
-It prioritizes **compile-time control structures**, **pure stack flow**, and **minimal runtime overhead**.
+It prioritizes compile-time control structures, pure stack flow, and minimal runtime overhead.
 
-The language introduces **combinators** as the central mechanism for control flow and sequence processing.  
-Unlike conventional function calls, combinators take structured **compile-time blocks** using **curly braces `{}`** instead of runtime first-class functions.
+The language introduces combinators as the central mechanism for control flow and sequence processing.  
+Unlike conventional function calls, combinators take structured compile-time blocks using curly braces `{}` instead of runtime first-class functions.
 
-Tacit **does not use closures** or runtime deferred blocks.  
-All control and mapping are handled through **grammar-based blocks**, and all executable functions are defined using standard colon definitions (`:`...`;`).
+Tacit does not use closures or runtime deferred blocks.  
+All control and mapping are handled through grammar-based blocks, and all executable functions are defined using standard colon definitions (`:`...`;`).
 
 This design achieves:
 
@@ -35,8 +35,8 @@ Tacit's syntax is based on the following key principles:
 
 ### 2.1 Stack-first, Combinator-second
 
-Tacit follows **Reverse Polish Notation (RPN)**:  
-arguments are evaluated and placed onto the stack **before** a combinator or function is invoked.
+Tacit follows Reverse Polish Notation (RPN):  
+arguments are evaluated and placed onto the stack before a combinator or function is invoked.
 
 Example:
 
@@ -50,11 +50,11 @@ Here, `sequence` is evaluated first, placed on the stack, and then `map` is appl
 
 ### 2.2 Curly Braces `{}` Define Compile-Time Blocks
 
-- Curly braces `{}` introduce **compile-time code regions**.
-- These blocks are **parsed immediately** during compilation and are **never runtime objects**.
+- Curly braces `{}` introduce compile-time code regions.
+- These blocks are parsed immediately during compilation and are never runtime objects.
 - They are used by combinators like `IF`, `map`, `filter`, `reduce`, and `switch`.
 
-Blocks **do not** create new stack frames or capture external environments.  
+Blocks do not create new stack frames or capture external environments.  
 They are simple structured groupings of code.
 
 ---
@@ -70,14 +70,14 @@ Functions in Tacit are defined using the traditional FORTH colon syntax:
 ```
 
 Colon functions execute immediately when called.  
-There is **no deferred behavior** unless explicitly deferred using a tick `'`.
+There is no deferred behavior unless explicitly deferred using a tick `'`.
 
 ---
 
 ### 2.4 Tick `'` Defers Function Invocation
 
 Tacit allows you to defer the execution of a colon function  
-using the **tick operator `'`**.
+using the tick operator `'`.
 
 Example:
 
@@ -94,17 +94,17 @@ Tick is necessary when passing functions as arguments to combinators like `map` 
 
 ### 2.5 No Anonymous Runtime Blocks
 
-Tacit does **not** support parentheses `()` for creating anonymous runtime functions.  
+Tacit does not support parentheses `()` for creating anonymous runtime functions.  
 This design avoids closure capture issues and simplifies memory management.
 
-Anonymous inline behavior is handled **only through `{}` blocks** at compile-time,  
+Anonymous inline behavior is handled only through `{}` blocks at compile-time,  
 inside combinators that control when and how the blocks execute.
 
 ---
 
 ### 2.6 No Captured Environments
 
-Blocks and colon functions operate **only** on the stack.  
+Blocks and colon functions operate only on the stack.  
 They cannot reference external variables unless explicitly passed on the stack.
 
 This keeps execution simple, stack-clean, and predictable.
@@ -112,7 +112,7 @@ This keeps execution simple, stack-clean, and predictable.
 ---
 ## 3. Syntax Structures (Expanded)
 
-Tacit's major control structures and sequence processing constructs are built around **combinators** that expect **curly-brace `{}` blocks**.
+Tacit's major control structures and sequence processing constructs are built around combinators that expect curly-brace `{}` blocks.
 
 Each combinator follows a simple, predictable pattern:
 
@@ -122,30 +122,30 @@ Each combinator follows a simple, predictable pattern:
 
 Where:
 
-- **Arguments** are evaluated first and pushed onto the stack.
-- **Combinator** consumes the arguments and one or more `{}` blocks.
-- **Blocks** define the deferred code to be executed under the combinator's control.
+- Arguments are evaluated first and pushed onto the stack.
+- Combinator consumes the arguments and one or more `{}` blocks.
+- Blocks define the deferred code to be executed under the combinator's control.
 
-Blocks are compiled at **compile-time**, not runtime —  
+Blocks are compiled at compile-time, not runtime —  
 they are not heap objects or closures.
 
 ---
 
 ### 3.1 Conditional Execution — `IF` Combinator
 
-**Syntax:**
+Syntax:
 
 ```tacit
 condition IF { then-block } ELSE { else-block }
 ```
 
-**Behavior:**
+Behavior:
 
 - Evaluates `condition`.
 - If true, executes `then-block`.
 - If false, executes `else-block`.
 
-**Example:**
+Example:
 
 ```tacit
 x 0 > IF { "positive" print } ELSE { "non-positive" print }
@@ -158,18 +158,18 @@ x 0 > IF { "positive" print } ELSE { "non-positive" print }
 
 ### 3.2 Mapping — `map` Combinator
 
-**Syntax:**
+Syntax:
 
 ```tacit
 sequence map { block }
 ```
 
-**Behavior:**
+Behavior:
 
 - Applies the `{block}` to each item in the `sequence`.
 - Produces a new sequence of results.
 
-**Example:**
+Example:
 
 ```tacit
 numbers map { dup * }
@@ -181,17 +181,17 @@ numbers map { dup * }
 
 ### 3.3 Filtering — `filter` Combinator
 
-**Syntax:**
+Syntax:
 
 ```tacit
 sequence filter { block }
 ```
 
-**Behavior:**
+Behavior:
 
 - Retains only items for which the `{block}` returns true.
 
-**Example:**
+Example:
 
 ```tacit
 numbers filter { 0 > not }
@@ -203,17 +203,17 @@ numbers filter { 0 > not }
 
 ### 3.4 Reducing — `reduce` Combinator
 
-**Syntax:**
+Syntax:
 
 ```tacit
 sequence reduce { block }
 ```
 
-**Behavior:**
+Behavior:
 
 - Combines all items in the `sequence` into a single value by applying the `{block}`.
 
-**Example:**
+Example:
 
 ```tacit
 numbers reduce { + }
@@ -225,7 +225,7 @@ numbers reduce { + }
 
 ### 3.5 Multi-Branching — `switch` Combinator
 
-**Syntax:**
+Syntax:
 
 ```tacit
 value switch {
@@ -235,13 +235,13 @@ value switch {
 }
 ```
 
-**Behavior:**
+Behavior:
 
 - Compares `value` against each `pattern`.
 - Executes the first matching `{block}`.
 - If no match is found, executes the `else` `{block}`.
 
-**Example:**
+Example:
 
 ```tacit
 x switch {
@@ -264,12 +264,12 @@ There are a few simple but powerful rules that define all block and combinator b
 
 ### 4.1 Block Structure Rules
 
-- A `{}` block **must always** begin with `{` and end with `}`.
-- `{}` blocks can be **nested** inside other `{}` blocks safely.
-- There is **no runtime object** created for a block — blocks are only parsed and compiled at compile-time.
-- **Parentheses `()`** for runtime anonymous functions are abolished under this model — they are no longer part of the language.
+- A `{}` block must always begin with `{` and end with `}`.
+- `{}` blocks can be nested inside other `{}` blocks safely.
+- There is no runtime object created for a block — blocks are only parsed and compiled at compile-time.
+- Parentheses `()` for runtime anonymous functions are abolished under this model — they are no longer part of the language.
 
-**Example:**
+Example:
 
 ```tacit
 x 0 > IF { "positive" print } ELSE { "negative" print }
@@ -281,22 +281,22 @@ Two blocks: `{ ... } { ... }`, associated with the `IF` and `ELSE` combinators.
 
 ### 4.2 Block Parsing and Matching
 
-- When the parser sees `{`, it **pushes** a marker onto an internal parse stack.
+- When the parser sees `{`, it pushes a marker onto an internal parse stack.
 - Tokens inside the block are parsed normally.
-- When `}` is encountered, it **pops** the marker, signaling the end of the block.
+- When `}` is encountered, it pops the marker, signaling the end of the block.
 
 If the parser encounters:
 
-- `}` without a matching `{` — it throws a **mismatched block error**.
-- End of input without closing all `{` — it throws an **unclosed block error**.
+- `}` without a matching `{` — it throws a mismatched block error.
+- End of input without closing all `{` — it throws an unclosed block error.
 
-This ensures that all blocks are **properly delimited** and **cannot accidentally bleed across** program structure.
+This ensures that all blocks are properly delimited and cannot accidentally bleed across program structure.
 
 ---
 
 ### 4.3 Combinator Block Requirements
 
-Some combinators expect **a fixed number of `{}` blocks**:
+Some combinators expect a fixed number of `{}` blocks:
 
 | Combinator | Required Blocks |
 |------------|-----------------|
@@ -307,17 +307,17 @@ Some combinators expect **a fixed number of `{}` blocks**:
 | `switch`   | One block containing multiple `{ case }` branches |
 
 If a combinator does not receive the required number of `{}` blocks immediately after it is parsed,  
-the compiler throws a **missing block error**.
+the compiler throws a missing block error.
 
 ---
 
 ### 4.4 Colon Functions and Tick (`'`) Behavior
 
 - Colon functions (`:`...`;`) define named, reusable words.
-- If you want to **pass** a function to a combinator without executing it,  
-  you must **defer** it using the tick operator `'`.
+- If you want to pass a function to a combinator without executing it,  
+  you must defer it using the tick operator `'`.
 
-**Example:**
+Example:
 
 ```tacit
 numbers map { square }
@@ -336,9 +336,9 @@ No block capture, no environment capture — only pure stack behavior.
 
 ### 4.5 No Capturing, No Lexical Environments
 
-Blocks `{}` and colon functions **operate only on the stack**.  
-They **cannot** capture outer variables.  
-There are **no closures** or implicit references outside the current execution context.
+Blocks `{}` and colon functions operate only on the stack.  
+They cannot capture outer variables.  
+There are no closures or implicit references outside the current execution context.
 
 This makes all flow explicit and robust.
 
@@ -360,7 +360,7 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 ### 5.1 Details per Combinator
 
-**`IF` — Conditional**
+`IF` — Conditional
 
 - Takes two blocks, separated by `ELSE`.
 - First block executes if condition is true.
@@ -368,28 +368,28 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 ---
 
-**`map` — Mapping Over Sequences**
+`map` — Mapping Over Sequences
 
 - Takes one block.
 - Applies block to each item, producing a new sequence.
 
 ---
 
-**`filter` — Filtering Sequences**
+`filter` — Filtering Sequences
 
 - Takes one block.
 - Keeps only items where block returns a truthy value.
 
 ---
 
-**`reduce` — Reducing a Sequence**
+`reduce` — Reducing a Sequence
 
 - Takes one block.
 - Applies block cumulatively across the sequence to collapse it.
 
 ---
 
-**`switch` — Multi-Branch Dispatch**
+`switch` — Multi-Branch Dispatch
 
 - Takes one structured block containing multiple `{ case }` branches.
 - Matches the value against cases sequentially.
@@ -411,15 +411,15 @@ The same rules would apply: stack-first, combinator-next, block-last.
 
 ## 6. Module and File Structure (Expanded)
 
-Tacit encourages organizing programs into **small, modular files** grouped by functionality.
+Tacit encourages organizing programs into small, modular files grouped by functionality.
 
 ### 6.1 File Naming
 
-- Use **lowercase** names for files and folders.
-- Use **hyphens** (`-`) to separate words in names.
+- Use lowercase names for files and folders.
+- Use hyphens (`-`) to separate words in names.
 - File extension: `.tacit`
 
-**Examples:**
+Examples:
 
 - `math.tacit`
 - `sequences/filter.tacit`
@@ -429,10 +429,10 @@ Tacit encourages organizing programs into **small, modular files** grouped by fu
 
 ### 6.2 Word Naming
 
-- Use **clear, functional names** for colon functions.
+- Use clear, functional names for colon functions.
 - Separate multi-word names with hyphens.
 
-**Examples:**
+Examples:
 
 - `square`
 - `is-positive`
@@ -471,7 +471,7 @@ load "sequences/filter.tacit"
 load "analytics/analytics.tacit"
 ```
 
-Modules are loaded **sequentially** — no dependency resolution or import trees beyond simple load order.
+Modules are loaded sequentially — no dependency resolution or import trees beyond simple load order.
 
 ---
 
@@ -483,7 +483,7 @@ Every colon function should obey stack discipline:
 - Outputs are placed back onto the stack.
 - No side-channel communication (no globals, no captured environments).
 
-This ensures that programs remain **composable**, **predictable**, and **safe**.
+This ensures that programs remain composable, predictable, and safe.
 
 ## 7. Example Programs (Expanded)
 
@@ -640,7 +640,7 @@ map {
 [8, 9, 10] analyze-sequence
 ```
 
-**Result:**
+Result:
 
 - `[3, -2, 5, -7, 4]` → `"moderate"`
 - `[8, 9, 10]` → `"very large"`
@@ -649,19 +649,19 @@ map {
 
 # Key Features These Examples Demonstrate
 
-- **Pure stack flow**: no hidden state.
-- **Clean structured control**: `{}` blocks after combinators.
-- **Clear logic decomposition**: colon functions (`:`...`;`).
-- **No anonymous runtime functions**: no parentheses, no closures.
-- **Readable and scalable**: modular structure even as programs grow.
+- Pure stack flow: no hidden state.
+- Clean structured control: `{}` blocks after combinators.
+- Clear logic decomposition: colon functions (`:`...`;`).
+- No anonymous runtime functions: no parentheses, no closures.
+- Readable and scalable: modular structure even as programs grow.
 
 ---
 
 ## 8. Error Handling (Expanded)
 
-Tacit’s simple and strict structure makes most errors **easy to detect early**, either at compile-time or at runtime.
+Tacit’s simple and strict structure makes most errors easy to detect early, either at compile-time or at runtime.
 
-The system defines a **small set of clear error types** to catch problems.
+The system defines a small set of clear error types to catch problems.
 
 ---
 
@@ -669,15 +669,15 @@ The system defines a **small set of clear error types** to catch problems.
 
 #### 8.1.1 Unclosed Block
 
-**Cause:**  
+Cause:  
 - A `{` is opened but the matching `}` is missing before the end of input.
 
-**Error Message:**  
+Error Message:  
 ```
 Syntax Error: Unclosed block — expected '}' before end of file.
 ```
 
-**Example:**
+Example:
 
 ```tacit
 x 0 > IF { "positive" print  { "negative" print }
@@ -689,15 +689,15 @@ x 0 > IF { "positive" print  { "negative" print }
 
 #### 8.1.2 Unexpected Closing Block
 
-**Cause:**  
+Cause:  
 - A `}` is encountered without a matching `{` having been opened.
 
-**Error Message:**  
+Error Message:  
 ```
 Syntax Error: Unexpected '}' without matching '{'.
 ```
 
-**Example:**
+Example:
 
 ```tacit
 x 0 > IF "positive" print } { "negative" print }
@@ -709,15 +709,15 @@ x 0 > IF "positive" print } { "negative" print }
 
 #### 8.1.3 Missing Required Blocks for Combinators
 
-**Cause:**  
+Cause:  
 - A combinator like `IF`, `map`, `filter`, `reduce`, or `switch` expects `{}` blocks and they are missing.
 
-**Error Message for `IF`:**  
+Error Message for `IF`:  
 ```
 Syntax Error: 'IF' requires two blocks: {then} ELSE {else}.
 ```
 
-**Error Message for `map`, `filter`, or `reduce`:**  
+Error Message for `map`, `filter`, or `reduce`:  
 ```
 Syntax Error: 'map' requires one block: {transform}.
 ```
@@ -726,10 +726,10 @@ Syntax Error: 'map' requires one block: {transform}.
 
 #### 8.1.4 Mismatched Block Delimiters
 
-**Cause:**  
+Cause:  
 - Opening a `{` but closing with `)` (which isn't allowed), or vice versa.
 
-**Error Message:**  
+Error Message:  
 ```
 Syntax Error: Mismatched block delimiters — expected matching '}'.
 ```
@@ -742,15 +742,15 @@ Blocks must always match properly.
 
 #### 8.2.1 Stack Underflow
 
-**Cause:**  
+Cause:  
 - A function or combinator expects more items on the stack than are available.
 
-**Error Message:**  
+Error Message:  
 ```
 Runtime Error: Stack underflow — insufficient arguments for operation.
 ```
 
-**Example:**
+Example:
 
 Trying to `+` two numbers when there is only one number on the stack.
 
@@ -758,10 +758,10 @@ Trying to `+` two numbers when there is only one number on the stack.
 
 #### 8.2.2 Invalid Type for Operation
 
-**Cause:**  
+Cause:  
 - A value of the wrong type is used in an operation.
 
-**Error Message:**  
+Error Message:  
 ```
 Runtime Error: Type mismatch — expected sequence, got number.
 ```
@@ -772,21 +772,21 @@ Example: Passing a number to `map` instead of a sequence.
 
 #### 8.2.3 Pattern Match Failure in `switch`
 
-**Cause:**  
+Cause:  
 - No matching pattern found in a `switch`, and no `else` branch provided.
 
-**Error Message:**  
+Error Message:  
 ```
 Runtime Error: No match found and no else branch in switch.
 ```
 
-It is **recommended** to always include an `else` block.
+It is recommended to always include an `else` block.
 
 ---
 
 ## 9. Closing (Expanded)
 
-Tacit’s new syntax and execution model achieves a careful balance between **simplicity**, **expressiveness**, and **performance**.
+Tacit’s new syntax and execution model achieves a careful balance between simplicity, expressiveness, and performance.
 
 By:
 
@@ -796,11 +796,11 @@ By:
 
 Tacit becomes a language that is:
 
-- **Predictable**: every program flows from stack operations and block structure.
-- **Modular**: programs are organized naturally into small, clean modules.
-- **Scalable**: combinators handle sequencing and control structures without needing dynamic evaluation tricks.
-- **Efficient**: no environment capture means no garbage collection pressure, no heap-complexity for control structures.
-- **Readable**: `{}` clearly shows all deferred blocks at compile time, making programs visually structured and easy to follow.
+- Predictable: every program flows from stack operations and block structure.
+- Modular: programs are organized naturally into small, clean modules.
+- Scalable: combinators handle sequencing and control structures without needing dynamic evaluation tricks.
+- Efficient: no environment capture means no garbage collection pressure, no heap-complexity for control structures.
+- Readable: `{}` clearly shows all deferred blocks at compile time, making programs visually structured and easy to follow.
 
 This design strengthens Tacit's identity as:
 
