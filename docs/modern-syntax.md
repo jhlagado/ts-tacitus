@@ -41,10 +41,10 @@ arguments are evaluated and placed onto the stack before a combinator or functio
 Example:
 
 ```tacit
-sequence map { dup * }
+sequence MAP { dup * }
 ```
 
-Here, `sequence` is evaluated first, placed on the stack, and then `map` is applied along with its associated block.
+Here, `sequence` is evaluated first, placed on the stack, and then `MAP` is applied along with its associated block.
 
 ---
 
@@ -52,7 +52,7 @@ Here, `sequence` is evaluated first, placed on the stack, and then `map` is appl
 
 - Curly braces `{}` introduce compile-time code regions.
 - These blocks are parsed immediately during compilation and are never runtime objects.
-- They are used by combinators like `IF`, `map`, `filter`, `reduce`, and `switch`.
+- They are used by combinators like `IF`, `MAP`, `FILTER`, and `SWITCH`.
 
 Blocks do not create new stack frames or capture external environments.  
 They are simple structured groupings of code.
@@ -82,13 +82,13 @@ using the tick operator `'`.
 Example:
 
 ```tacit
-'square map
+'square MAP
 ```
 
 Here, `'square` pushes a pointer to the `square` function onto the stack,  
 instead of executing it immediately.
 
-Tick is necessary when passing functions as arguments to combinators like `map` or `reduce`, if not using inline `{}` blocks.
+Tick is necessary when passing functions as arguments to combinators like `MAP` , if not using inline `{}` blocks.
 
 ---
 
@@ -156,12 +156,12 @@ x 0 > IF { "positive" print } ELSE { "non-positive" print }
 
 ---
 
-### 3.2 Mapping — `map` Combinator
+### 3.2 Mapping — `MAP` Combinator
 
 Syntax:
 
 ```tacit
-sequence map { block }
+sequence MAP { block }
 ```
 
 Behavior:
@@ -172,19 +172,19 @@ Behavior:
 Example:
 
 ```tacit
-numbers map { dup * }
+numbers MAP { dup * }
 ```
 
 - Squares each number in the list `numbers`.
 
 ---
 
-### 3.3 Filtering — `filter` Combinator
+### 3.3 Filtering — `FILTER` Combinator
 
 Syntax:
 
 ```tacit
-sequence filter { block }
+sequence FILTER { block }
 ```
 
 Behavior:
@@ -194,41 +194,20 @@ Behavior:
 Example:
 
 ```tacit
-numbers filter { 0 > not }
+numbers FILTER { 0 > not }
 ```
 
 - Keeps only positive numbers from `numbers`.
 
 ---
 
-### 3.4 Reducing — `reduce` Combinator
+
+### 3.5 Multi-Branching — `SWITCH` Combinator
 
 Syntax:
 
 ```tacit
-sequence reduce { block }
-```
-
-Behavior:
-
-- Combines all items in the `sequence` into a single value by applying the `{block}`.
-
-Example:
-
-```tacit
-numbers reduce { + }
-```
-
-- Adds all the numbers together.
-
----
-
-### 3.5 Multi-Branching — `switch` Combinator
-
-Syntax:
-
-```tacit
-value switch {
+value SWITCH {
   pattern1 { block1 }
   pattern2 { block2 }
   else { default-block }
@@ -244,7 +223,7 @@ Behavior:
 Example:
 
 ```tacit
-x switch {
+x SWITCH {
   0 { "zero" print }
   1 { "one" print }
   else { "many" print }
@@ -301,10 +280,9 @@ Some combinators expect a fixed number of `{}` blocks:
 | Combinator | Required Blocks |
 |------------|-----------------|
 | `IF`       | Two blocks (`{ then } ELSE { else }`) |
-| `map`      | One block (`{ transform }`) |
-| `filter`   | One block (`{ predicate }`) |
-| `reduce`   | One block (`{ reducer }`) |
-| `switch`   | One block containing multiple `{ case }` branches |
+| `MAP`      | One block (`{ transform }`) |
+| `FILTER`   | One block (`{ predicate }`) |
+| `SWITCH`   | One block containing multiple `{ case }` branches |
 
 If a combinator does not receive the required number of `{}` blocks immediately after it is parsed,  
 the compiler throws a missing block error.
@@ -320,7 +298,7 @@ the compiler throws a missing block error.
 Example:
 
 ```tacit
-numbers map { square }
+numbers MAP { square }
 ```
 
 where `square` is a colon function:
@@ -351,10 +329,9 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 | Combinator | Purpose | Syntax |
 |------------|---------|--------|
 | `IF`       | Conditional branching | `cond IF { then } ELSE { else }` |
-| `map`      | Apply block to each element | `seq map { block }` |
-| `filter`   | Keep elements by condition | `seq filter { block }` |
-| `reduce`   | Fold sequence into one value | `seq reduce { block }` |
-| `switch`   | Multi-way branching | `value switch { cases }` |
+| `MAP`      | Apply block to each element | `seq MAP { block }` |
+| `FILTER`   | Keep elements by condition | `seq FILTER { block }` |
+| `SWITCH`   | Multi-way branching | `value SWITCH { cases }` |
 
 ---
 
@@ -368,28 +345,20 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 ---
 
-`map` — Mapping Over Sequences
+`MAP` — Mapping Over Sequences
 
 - Takes one block.
 - Applies block to each item, producing a new sequence.
 
 ---
 
-`filter` — Filtering Sequences
+`FILTER` — Filtering Sequences
 
 - Takes one block.
 - Keeps only items where block returns a truthy value.
 
----
 
-`reduce` — Reducing a Sequence
-
-- Takes one block.
-- Applies block cumulatively across the sequence to collapse it.
-
----
-
-`switch` — Multi-Branch Dispatch
+`SWITCH` — Multi-Branch Dispatch
 
 - Takes one structured block containing multiple `{ case }` branches.
 - Matches the value against cases sequentially.
@@ -401,9 +370,9 @@ Tacit defines a small, powerful set of built-in combinators that use structured 
 
 Other combinators could be added later, using the exact same `{}` grammar structure:
 
-- `scan` — cumulative map (running totals)
+- `scan` — cumulative MAP (running totals)
 - `while` — looping until a condition fails
-- `each` — map-like side-effect operations
+- `each` — MAP-like side-effect operations
 
 The same rules would apply: stack-first, combinator-next, block-last.
 
@@ -422,7 +391,7 @@ Tacit encourages organizing programs into small, modular files grouped by functi
 Examples:
 
 - `math.tacit`
-- `sequences/filter.tacit`
+- `sequences/FILTER.tacit`
 - `analytics/analytics.tacit`
 
 ---
@@ -448,7 +417,7 @@ my-tacit-project/
 ├── math/
 │   └── math.tacit
 ├── sequences/
-│   ├── filter.tacit
+│   ├── FILTER.tacit
 │   └── mapreduce.tacit
 ├── analytics/
 │   └── analytics.tacit
@@ -467,7 +436,7 @@ Use the `load "filename"` instruction at the start of your `main.tacit` file to 
 
 ```tacit
 load "math/math.tacit"
-load "sequences/filter.tacit"
+load "sequences/FILTER.tacit"
 load "analytics/analytics.tacit"
 ```
 
@@ -521,11 +490,11 @@ Squaring every number in a list:
 
 ```tacit
 numbers
-map { dup * }
+MAP { dup * }
 ```
 
 - `numbers` is pushed onto the stack.
-- `map` applies `{ dup * }` to each item.
+- `MAP` applies `{ dup * }` to each item.
 - A new sequence of squares is returned.
 
 ---
@@ -536,8 +505,7 @@ Sum all positive numbers:
 
 ```tacit
 numbers
-filter { 0 > not }
-reduce { + }
+FILTER { 0 > not }
 ```
 
 - Filter keeps only positive numbers.
@@ -551,9 +519,8 @@ Categorize a list based on the total of squared positives.
 
 ```tacit
 : analyze-sum-of-squares ( sequence -- )
-  filter { 0 > not }
-  map { dup * }
-  reduce { + }
+  FILTER { 0 > not }
+  MAP { dup * }
   dup 100 > IF
     { "large" print }
   ELSE
@@ -579,7 +546,7 @@ Categorize a number:
 
 ```tacit
 x
-switch {
+SWITCH {
   0 { "zero" print }
   1 { "one" print }
   else { "other" print }
@@ -598,7 +565,7 @@ Label numbers as "small" or "large":
 
 ```tacit
 numbers
-map {
+MAP {
   dup 10 < IF
     { "small" }
   ELSE
@@ -626,9 +593,8 @@ map {
 ( Define analysis function )
 
 : analyze-sequence ( sequence -- )
-  filter { is-positive }
-  map { square }
-  reduce { + }
+  FILTER { is-positive }
+  MAP { square }
   dup 200 > IF
     { "very large" print }
   ELSE
@@ -710,16 +676,16 @@ x 0 > IF "positive" print } { "negative" print }
 #### 8.1.3 Missing Required Blocks for Combinators
 
 Cause:  
-- A combinator like `IF`, `map`, `filter`, `reduce`, or `switch` expects `{}` blocks and they are missing.
+- A combinator like `IF`, `MAP`, `FILTER`, or `SWITCH` expects `{}` blocks and they are missing.
 
 Error Message for `IF`:  
 ```
 Syntax Error: 'IF' requires two blocks: {then} ELSE {else}.
 ```
 
-Error Message for `map`, `filter`, or `reduce`:  
+Error Message for `MAP`, `FILTER`:  
 ```
-Syntax Error: 'map' requires one block: {transform}.
+Syntax Error: 'MAP' requires one block: {transform}.
 ```
 
 ---
@@ -766,18 +732,18 @@ Error Message:
 Runtime Error: Type mismatch — expected sequence, got number.
 ```
 
-Example: Passing a number to `map` instead of a sequence.
+Example: Passing a number to `MAP` instead of a sequence.
 
 ---
 
-#### 8.2.3 Pattern Match Failure in `switch`
+#### 8.2.3 Pattern Match Failure in `SWITCH`
 
 Cause:  
-- No matching pattern found in a `switch`, and no `else` branch provided.
+- No matching pattern found in a `SWITCH`, and no `else` branch provided.
 
 Error Message:  
 ```
-Runtime Error: No match found and no else branch in switch.
+Runtime Error: No match found and no else branch in SWITCH.
 ```
 
 It is recommended to always include an `else` block.
