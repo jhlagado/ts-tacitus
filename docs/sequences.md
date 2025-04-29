@@ -1,4 +1,9 @@
-````markdown
+# Implementation Status: Implemented
+- Core sequence abstraction: **Implemented** in `src/seq/`
+- Basic iteration methods: **Implemented** §1-3
+- Advanced composition: **Partially Implemented** §4-5
+- Related to [polymphism.md] for polymorphic sequence handling
+
 # Tacit Language: Advanced Sequence Processing – Expanded Version
 
 This expanded document builds on the core ideas of Tacit’s sequence model, providing **detailed explanations and worked examples** for each concept. It serves both as a language guide and as an architectural reference.
@@ -314,4 +319,3 @@ If the predicate fails, an exception is thrown. This mechanism can be used to:
 Together, static and dynamic tools offer robust support for safe, composable sequence programming.
 
 ---
-````

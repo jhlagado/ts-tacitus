@@ -1,3 +1,9 @@
+# Implementation Status: Implemented
+- Core memory model: **Implemented** in `src/core/memory.ts`
+- NaN-boxing for type safety: **Implemented** in `src/core/tagged.ts`
+- Block reference counting: **Implemented** §1.1-1.3
+- Related to [memory-management.md] for allocation strategy
+
 # Tacit Memory Integrity & Stress Testing Plan (Full Detailed Edition)
 
 This document provides a detailed and rigorous approach to validating the integrity of Tacit’s memory model, which is built around reference-counted, fixed-size heap blocks. The aim is to guarantee correctness, performance, and long-term reliability through stress testing, leak detection, and runtime validation.
@@ -69,7 +75,7 @@ To ensure the memory system is functioning correctly, the following aspects must
    Under high allocation pressure, the system should not degrade or leak. Performance and integrity must remain stable with thousands of operations per second.
 
 6. **Copy-On-Write Integrity**  
-   When a block is cloned, its children and metadata must be correctly duplicated, and the original’s ref count adjusted.
+   When a block with `REF_COUNT > 1` is about to be modified (e.g., `vectorSet`), it is cloned.
 
 ---
 
@@ -1023,4 +1029,3 @@ You now have a complete, technically sound, implementation-ready plan for:
 This is not just an optimization plan or a test harness—it is a blueprint for making Tacit’s memory system one of the most rigorously verifiable reference-counted runtimes in existence.
 
 Let this document serve as both foundation and contract: if we build this, we build it right.
-

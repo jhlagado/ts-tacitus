@@ -1,3 +1,8 @@
+# Implementation Status: Future Specification
+- This document outlines the planned cooperative multitasking architecture
+- Currently **Not Implemented** in the codebase
+- Related concepts: See [deferred.md] for current thunk implementation
+
 **Tacit Virtual Machine: Full Runtime Architecture Specification (Fully Expanded, >1000 lines)**
 
 ---
@@ -231,7 +236,7 @@ Tasks in Tacit are **self-contained execution contexts**. Each task occupies a f
 
 - **Offset**: 0x03, **Size**: 1 byte
 - **Purpose**: Points to the next free slot in the Return Stack (0..64). Used for `CALL`/`RET` addresses, saved `BP`, and allocating space for local variables above `BP`.
-- **Use Cases**: `CALL` pushes return IP and old `BP`; `RET` pops them after resetting `RP` to `BP`. Locals are allocated by incrementing `RP`.
+- **Use Cases**: `CALL` pushes return IP and old `BP`; `RET` pops them after resetting `RP` to `BP`. Local variable allocation increments `RP`.
 - **Overflow/Underflow**: Traps if `RP` exceeds 64 or goes below 0; `return_code` set accordingly.
 
 #### 2.3.4 Base Pointer (BP) - New Field
@@ -904,5 +909,3 @@ Anticipated enhancements include:
 # Conclusion
 
 This specification delivers a concise yet comprehensive blueprint for the Tacit VM, balancing essential implementation details with extensibility. All core and planned features are defined to guide a deterministic, low-footprint, cooperative virtual machine.
-
-

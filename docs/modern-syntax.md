@@ -1,3 +1,9 @@
+# Status: Current Syntax Reference
+- This document describes the **implemented syntax** of the Tacit language
+- Supersedes [grammar.md] with modern combinator-based design
+- Implementation in `src/lang/parser.ts` and `src/lang/compiler.ts`
+- Primary reference for language syntax and semantics
+
 # Tacit Syntax and Combinator Design — Expanded Version (Sections 1 to 3)
 
 ---

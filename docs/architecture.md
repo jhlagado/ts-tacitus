@@ -1,3 +1,5 @@
+# Status: Current Architecture Reference
+
 # An In-Depth Exploration of the Tacit Language Architecture
 
 ## 1. Introduction

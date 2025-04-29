@@ -1,3 +1,8 @@
+> # Deprecation Notice  
+> This document has been superseded by [architecture.md].  
+> Retained for historical reference only.  
+> Current system overview: [See architecture.md §1-3]
+
 # Tacit Language Design Overview
 
 Based on the provided information about Tacit, I can outline its key design principles and implementation details:

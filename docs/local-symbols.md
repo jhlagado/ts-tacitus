@@ -1,3 +1,8 @@
+# Implementation Status: Future Feature
+- This document describes the planned local variable system
+- Currently **Not Implemented** in the codebase
+- Related to VM stack frame enhancements in [tasks.md §2.3]
+
 # Tacit Local Variable and Stack Frame Model
 
 ---

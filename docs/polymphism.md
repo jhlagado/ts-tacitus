@@ -1,3 +1,9 @@
+> # Implementation Status: Partially Implemented
+> - Basic polymorphism (treating values as sequences): **Implemented** §2.1-2.3
+> - Interface-based method resolution: **Planned** §3-4 
+> - Currently requires NaN-boxing tag bit allocation for interfaces
+> - Related to [sequences.md] for current sequence abstractions
+
 **Tacit Language: Polymorphism, Robustness, and String Behavior**
 
 This document outlines the rationale and design choices behind Tacit's use of polymorphism, its commitment to producing results rather than crashing, and its handling of strings, arrays, and functions as sequences. The guiding principle is that Tacit should encourage code that **terminates gracefully**, **produces meaningful output**, and **minimizes complexity** without sacrificing expressiveness.
@@ -81,4 +87,3 @@ This design makes Tacit suitable for working with reactive streams, lazy computa
 The overarching theme in Tacit's design is this: **interpret rather than reject**. By defaulting to polymorphism, cyclical behavior, and lazy evaluation, Tacit prefers to produce a valid result—even if approximate—rather than raise an error. This makes it an excellent choice for robust applications where stability and clarity are more important than strict enforcement.
 
 Tacit doesn’t try to force all input into a rigid model. Instead, it provides a flexible system where values can be interpreted in context, and computation flows gracefully from input to output with minimal overhead and maximal clarity.
-

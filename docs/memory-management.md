@@ -1,3 +1,8 @@
+# Implementation Status: Implemented
+- Reference counting: **Fully Implemented** in `src/heap/`
+- Block allocation model: **Implemented** §3-4
+- Copy-on-write semantics: **Implemented** §5-6
+- Core memory model for Tacit VM
 
 ### **Context**
 We are implementing a memory model without garbage collection, relying instead on **reference counting**. The system operates using **heap-allocated blocks** and a **stack-based execution model**. Sequences (like `range`, `map`, etc.) are chained and must manage their own lifecycles properly.
@@ -366,4 +371,3 @@ Copy-on-write updates involving heap-allocated nested vectors demand careful clo
 - Keep reference counts exact
 
 With these rules, we can build an efficient, safe, and composable memory system where even deeply nested structures can be updated predictably and cheaply using structural sharing.
-

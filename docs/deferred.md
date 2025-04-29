@@ -1,3 +1,9 @@
+# Implementation Status: Partially Implemented
+- Basic thunk handling: **Implemented** §1.1-1.3
+- Advanced conditionals: **Partial Implementation** §2
+- Arity tracking: **Planned** §3-4
+- Related future work: See [tasks.md] for cooperative multitasking extensions
+
 # Tacit Language: Deferred Execution, Thunks, and Purity Recap
 
 ## 1. Deferred Execution and Thunks
