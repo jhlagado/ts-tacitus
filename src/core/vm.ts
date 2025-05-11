@@ -2,7 +2,7 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
 import { Heap } from '../heap/heap';
-import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
+import { fromTaggedValue, toTaggedValue, CoreTag, isRefCounted, getValue } from './tagged';
 import { Digest } from '../strings/digest';
 import { defineBuiltins } from '../ops/define-builtins';
 import { decRef, incRef } from '../heap/heapUtils';
@@ -11,6 +11,7 @@ export class VM {
   memory: Memory;
   SP: number; // Stack pointer (points to the next free slot)
   RP: number; // Return stack pointer (points to the next free slot)
+  BP: number; // Base Pointer for local variable frames
   IP: number; // Instruction pointer
   running: boolean;
   compiler: Compiler;
@@ -25,6 +26,7 @@ export class VM {
     this.running = true;
     this.SP = 0; // Stack starts at STACK
     this.RP = 0; // Return stack starts at RSTACK
+    this.BP = 0; // Base Pointer starts at 0
     this.compiler = new Compiler(this);
     this.digest = new Digest(this.memory);
     this.heap = new Heap(this.memory);
@@ -104,6 +106,12 @@ export class VM {
         )})`
       );
     }
+    
+    // Add reference counting support
+    if (isRefCounted(value)) {
+      this.heap.incrementRef(getValue(value));
+    }
+    
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value); // Write 32-bit value
     this.RP += 4; // Move return stack pointer by 4 bytes
   }
@@ -117,8 +125,16 @@ export class VM {
         `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
+    
     this.RP -= 4; // Move return stack pointer back by 4 bytes
-    return this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
+    const value = this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
+    
+    // Add reference counting support
+    if (isRefCounted(value)) {
+      this.heap.decrementRef(getValue(value));
+    }
+    
+    return value;
   }
 
   reset() {
