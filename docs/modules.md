@@ -1,3 +1,7 @@
+# Implementation Status: Future Specification
+- This document outlines the planned module architecture
+- Currently Not Implemented in the codebase
+
 TACIT MODULE SYSTEM SPECIFICATION
 
 ---
