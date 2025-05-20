@@ -33,10 +33,20 @@ export const skipBlockOp: Verb = (vm: VM) => {
 };
 
 export const callOp: Verb = (vm: VM) => {
-  const address = vm.next16();
-  if (vm.debug) console.log('callOp', address);
+  const callAddress = vm.next16(); // Get call address
+  if (vm.debug) console.log('callOp', callAddress);
+
+  // Save return address on return stack as a tagged value
   vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
-  vm.IP = address;
+
+  // Save current BP on return stack (no need to tag BP)
+  vm.rpush(vm.BP);
+
+  // Update BP to point to current frame
+  vm.BP = vm.RP;
+
+  // Jump to function
+  vm.IP = callAddress;
 };
 
 export const abortOp: Verb = (vm: VM) => {
@@ -46,6 +56,16 @@ export const abortOp: Verb = (vm: VM) => {
 
 export const exitOp: Verb = (vm: VM) => {
   if (vm.debug) console.log('exitOp');
+
+  // Pop all locals to properly handle reference counting
+  while (vm.RP > vm.BP) {
+    vm.rpop(); // This will decrement ref counts as needed
+  }
+
+  // Now RP equals BP, pop the saved BP (not tagged)
+  vm.BP = vm.rpop();
+
+  // Return to caller, converting from tagged value
   vm.IP = fromTaggedValue(vm.rpop()).value;
 };
 
@@ -60,7 +80,14 @@ export const evalOp: Verb = (vm: VM) => {
     // If it's code, execute it by:
     // 1. Pushing the current IP onto the return stack
     vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
-    // 2. Setting IP to the code block's address
+
+    // 2. Save current BP on return stack (just like callOp does)
+    vm.rpush(vm.BP);
+
+    // 3. Update BP to point to current frame
+    vm.BP = vm.RP;
+
+    // 4. Setting IP to the code block's address
     const { value: pointer } = fromTaggedValue(value);
     vm.IP = pointer;
   } else {

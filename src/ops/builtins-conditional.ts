@@ -41,6 +41,8 @@ export const simpleIfOp: Verb = (vm: VM) => {
   if (isCode(selectedBranch)) {
     // If it's code, execute it
     vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+    vm.rpush(vm.BP);
+    vm.BP = vm.RP;
     const { value: pointer } = fromTaggedValue(selectedBranch);
     vm.IP = pointer;
   } else {

@@ -29,6 +29,8 @@ describe('Built-in Words', () => {
     it('exitOp should restore IP from return stack', () => {
       const testAddress = 0x2345;
       vm.rpush(toTaggedValue(testAddress, false, CoreTag.CODE));
+      vm.rpush(vm.BP);
+      vm.BP = vm.RP;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
@@ -49,11 +51,12 @@ describe('Built-in Words', () => {
     });
 
     it('callOp should jump to absolute address', () => {
+      const originalIP = vm.IP;
       const testAddress = 0x12345;
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(fromTaggedValue(vm.rpop()).value).toBe(2); // Original IP after call
+      expect(fromTaggedValue(vm.rpop()).value).toBe(originalIP); // Original IP after call
     });
   });
 

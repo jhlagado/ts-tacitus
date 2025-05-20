@@ -53,9 +53,11 @@ export function callTacitFunction(codePtr: number): void {
   // 1. Store the IP where TypeScript execution should resume conceptually.
   const returnIP = vm.IP;
 
-  // 2. Push the returnIP onto the VM's return stack, tagged as code.
+  // 2. Push the IP onto the VM's return stack, tagged as code.
   // This tells the Tacit code's 'exit' operation where to jump back to.
-  vm.rpush(toTaggedValue(returnIP, false, CoreTag.CODE));
+  vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+  vm.rpush(vm.BP);
+  vm.BP = vm.RP;
 
   // 3. Set the Instruction Pointer to the beginning of the Tacit function.
   vm.IP = codePtr;
