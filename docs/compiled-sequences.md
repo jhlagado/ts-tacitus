@@ -1,155 +1,309 @@
+# TACIT Pipeline Code Generation Model – Revised Reference (Restart-Aware)
 
-## 🧭 Goals of the Compiled Sequence System
-
-The core aim is to compile lazy pipelines (like `range → map → filter`) into efficient, low-level code with the following properties:
-
-1. **No closures or runtime allocation for functions**
-2. **Reusability**: compiled code can be shared across instances
-3. **Encapsulation**: each pipeline stage has its own state and behavior
-4. **Full laziness**: data is pulled one item at a time
-5. **Predictable memory layout**: everything has fixed offsets, no hidden fields
-6. **Object-oriented**: execution context is bound to data like a method in a class
-
-This leads naturally to an **object-dispatch model**, where calling an object means "execute this code in the context of this data."
+This document outlines the code generation model used in the _Tacit language_ to compile declarative data pipelines into fully flattened, lazy, and restartable programs. The compiler uses a _single-pass, forward-only_ strategy and requires no labels, no closures, and no global variable declarations. Every sequence stage is self-contained and restart-aware.
 
 ---
 
-## 🧱 Object Layout (Sequence Instance)
+## OVERVIEW
 
-Every sequence stage is represented as a heap-allocated object with a fixed memory layout.
+Tacit pipelines are declarative sequences of data transformations, like:
 
 ```
-+--------------------+ offset 0
-| code_ptr           | → pointer to compiled bytecode block
-+--------------------+ offset 4
-| (optional fields)  | → e.g., type ID, child reference
-+--------------------+
-| stage-local state  | e.g., range index, scan accumulator
-+--------------------+
+range
+map square
+filter isEven
+take 5
+for-each print
 ```
 
-* **Slot 0**: Always the function pointer (`code_ptr`)
-* The rest of the block is **owned by the stage**
-
-  * Variables
-  * Metadata (if needed)
+Each pipeline compiles into a _single flat function_, where execution is lazy and driven by the sink. Compilation occurs in _source-to-sink order_, while runtime pulls data _sink-to-source_.
 
 ---
 
-## 🧠 Execution Context: `self`
+## COMPILATION MODEL
 
-* The VM contains a register: `VM.self`
-* This points to the current object’s memory (the block described above)
-* **All `LOAD_IMM` and `STORE_IMM` access memory relative to `self`**
+Tacit uses a _single-pass code generator_, powered by:
 
-By default, `VM.self = NULL` and the system runs in global context. But:
-
-> When you `DISPATCH` an object, you enter its context. You set `self` to that object.
+* A _stage stack_ – tracks addresses of previous stages
+* A _patch stack_ – for forward jumps (typically one: jump to sink)
+* Direct _address wiring_ using numeric addresses, no labels
+* _Immediate emission_ – no deferred blocks or AST
+* Each stage has _two entry points_: one for `restart`, one for `next`
 
 ---
 
-## 🔧 The `DISPATCH` Instruction
+## STAGE ENTRY POINTS
 
-This is how you **invoke** an object—i.e., run its method (`next` or `restart`) with its own data.
+Each compiled stage has _two known jump targets_:
 
-### Behavior:
+### 1. `init` (restart)
 
-1. Push current `pc` (return address) to return stack
-2. Push current `self` to return stack
-3. Load `code_ptr = *(object + 0)`
-4. Set `VM.self = object`
-5. Jump to `code_ptr + selector` (selector = 0 for `next`, 1 for `restart`)
+* Initializes that stage's state variables
+* Jumps into the next-entry block
 
-You could model it as:
-
-```
-DISPATCH selector, object_ptr
+```pseudo
+addr_restart_stage:
+  counter = 0
+  max = 10
+  jump addr_next_stage
 ```
 
-Or use two separate opcodes for clarity:
+### 2. `next` (pull)
 
-* `DISPATCH_NEXT object_ptr`
-* `DISPATCH_RESTART object_ptr`
+* Returns the next value
+* If exhausted, returns `null`
 
----
-
-## 🔄 Returning from an Object
-
-At the end of a stage, the compiled code issues `RET`. The VM pops:
-
-1. Previous `self`
-2. Previous `pc`
-
-This restores the caller’s context—either a previous object or the global context.
-
----
-
-## 🛠 VM Changes
-
-1. Add a `self` register to the VM (like a `this` pointer)
-2. Modify `RET` to restore `self`
-3. Modify `DISPATCH` to save/restore `self` like a full method call
-4. Ensure all `LOAD_IMM`/`STORE_IMM` read from `[self + offset]`
-
----
-
-## 📦 Pipeline Data Layout (Shared State)
-
-In multi-stage pipelines, all state can be stored in a **single flat block**—you don't need separate objects per stage unless you want polymorphism.
-
-Each stage is assigned a slice:
-
-| Offset | Bytes | Used by          |
-| ------ | ----- | ---------------- |
-| 0      | 4     | range.index      |
-| 4      | 4     | range.limit      |
-| 8      | 4     | scan.accumulator |
-
-The compiled code uses fixed offsets like:
-
-```text
-LOAD_IMM 0    ; range.index
-STORE_IMM 8   ; scan.accumulator
+```pseudo
+addr_next_stage:
+  if counter >= max: return null
+  val = counter
+  counter += 1
+  return val
 ```
 
-So even if multiple objects share the same `code_ptr`, they will still operate independently based on their `self` pointer.
+---
+
+## HOW EXECUTION WORKS
+
+* The _sink_ (`for-each`, etc.) drives execution by calling the `next` entry of its source
+* To _restart_ a pipeline or sub-sequence, just call the `restart` entry of the first stage
+* No additional flags or runtime management is required
 
 ---
 
-## 🔁 Compiling a Multi-Stage Pipeline
+## COMPILER STACKS
 
-Let’s say you compile:
+### Stage Stack
 
-```tacit
-range(5) → scan [+]
+Used to wire each stage to its predecessor:
+
+* At each stage: pop the previous stage address
+* Emit a `call` to that address
+* Push the current stage's own `next` and `restart` addresses
+
+### Patch Stack
+
+Used for forward jump to the sink:
+
+* Emit `jump ???` at the top
+* Push patch address onto stack
+* At the end, patch with `addr_foreach`
+
+---
+
+## LOCAL STATE AND SCOPE
+
+State variables are defined _within the stage that uses them_. No global variable table is maintained.
+
+State is always initialized at the `restart` entry point.
+
+---
+
+## PIPELINE STRUCTURE
+
+Each stage compiles to:
+
+```pseudo
+addr_restart_foo:
+  ... initialize vars ...
+  jump addr_next_foo
+
+addr_next_foo:
+  call addr_next_bar
+  ... transform ...
+  return result
 ```
 
-You allocate:
+---
 
-* One state block with offsets: `index`, `limit`, `accumulator`
-* One object that contains:
+## FULL PIPELINE EXAMPLE
 
-  * Slot 0: pointer to compiled code block
-  * Slots 1+: state variables
-* Compiled code:
+### Pipeline
 
-  * Entry at offset 0: `next`
-  * Entry at offset 1: `restart`
+```
+range
+map square
+take 5
+for-each print
+```
 
-When the pipeline is run:
+### Output
 
-* The sink issues `DISPATCH_NEXT pipeline_object`
-* The code runs with `self` = `pipeline_object`
-* State is accessed using immediate offsets from `self`
-* Calls to earlier stages are just `CALL` into previously emitted code, using `self` to locate the shared state
+```pseudo
+main:
+  jump ???                ; patched later
+
+addr_restart_range:
+  index = 0
+  limit = 20
+  jump addr_next_range
+
+addr_next_range:
+  if index >= limit: return null
+  val = index
+  index += 1
+  return val
+
+addr_restart_map:
+  jump addr_next_map
+
+addr_next_map:
+  val = call addr_next_range
+  if val == null: return null
+  return val * val
+
+addr_restart_take:
+  count = 0
+  maxcount = 5
+  jump addr_next_take
+
+addr_next_take:
+  if count >= maxcount: return null
+  val = call addr_next_map
+  if val == null: return null
+  count += 1
+  return val
+
+addr_foreach:
+  loop:
+    val = call addr_next_take
+    if val == null: return
+    print(val)
+    goto loop
+```
 
 ---
 
-## ✅ Summary
+## RESTARTING A PIPELINE
 
-* Objects = closures without hidden machinery
-* Calling an object = switching context
-* `self` is saved and restored on the return stack
-* Sequences are compiled as reusable code blocks with relative state access
-* All context (code + data) is explicit and low-cost
+To restart the pipeline, simply:
+
+```pseudo
+call addr_restart_range
+call addr_restart_map
+call addr_restart_take
+call addr_foreach
+```
+
+Each stage reinitializes itself and resumes from the top.
+
+---
+
+## FORKED PIPELINES
+
+In a fork, you duplicate a stage’s `next` and/or `restart` addresses:
+
+```pseudo
+stack.push(addr_next_range)
+stack.push(addr_next_range)
+stack.push(addr_restart_range)  ; if both branches must restart
+```
+
+Each consumer then calls independently.
+
+---
+
+## RETRYABLE STAGES
+
+You can define a `retry` stage that calls upstream until it gets a non-null result:
+
+```pseudo
+addr_restart_retry:
+  jump addr_next_retry
+
+addr_next_retry:
+  loop:
+    val = call addr_next_map
+    if val == null: goto loop
+    return val
+```
+
+---
+
+## NESTED + ZIP EXAMPLE
+
+### Pipeline
+
+```
+zip(range1, range2)
+map add
+for-each
+```
+
+### Output
+
+```pseudo
+addr_restart_range1:
+  i1 = 0
+  jump addr_next_range1
+
+addr_next_range1:
+  if i1 >= 10: return null
+  val = i1
+  i1 += 1
+  return val
+
+addr_restart_range2:
+  i2 = 0
+  jump addr_next_range2
+
+addr_next_range2:
+  if i2 >= 10: return null
+  val = i2
+  i2 += 1
+  return val
+
+addr_restart_zip:
+  jump addr_next_zip
+
+addr_next_zip:
+  a = call addr_next_range1
+  b = call addr_next_range2
+  if a == null or b == null: return null
+  return (a, b)
+
+addr_restart_map:
+  jump addr_next_map
+
+addr_next_map:
+  pair = call addr_next_zip
+  if pair == null: return null
+  return pair.a + pair.b
+
+addr_foreach:
+  loop:
+    val = call addr_next_map
+    if val == null: return
+    print(val)
+    goto loop
+```
+
+---
+
+## WHY THIS WORKS
+
+This model is:
+
+* _Fully lazy_
+* _Fully restartable_
+* _Single-pass compilable_
+* _Readable and maintainable_
+* _Zero closures_
+* _Zero heap allocation_
+* _Flat and inlined_
+* _Compatible with cooperative multitasking or `yield` in sinks only_
+
+---
+
+## OPTIONAL EXTENSIONS
+
+* Add support for _persistent state_ using data cells outside the stack
+* Inline simple stages for _performance_
+* Add _stage flags_ (optional) for runtime introspection
+
+---
+
+## CONCLUSION
+
+This model gives Tacit a clean, powerful, and efficient foundation for compiling declarative pipelines. With restartable, localized, flat stages and no global state, it supports everything from streams to structured control without abandoning the minimalism and composability that Tacit is built around.
 
