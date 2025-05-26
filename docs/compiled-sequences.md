@@ -1,3 +1,4 @@
+# Compiled Sequences
 
 1. Design Philosophy
 2. Stages and Structure
@@ -22,31 +23,31 @@ This specification defines the compiled sequence system in the Tacit programming
 
 The core principles of the sequence system are:
 
-* **Structured streaming**: All sequences are composed of clearly defined stages that operate in a streamed manner—one item at a time, with control explicitly advancing between stages.
+* _Structured streaming_: All sequences are composed of clearly defined stages that operate in a streamed manner—one item at a time, with control explicitly advancing between stages.
 
-* **Stage-local clarity**: Each stage operates with clearly scoped local variables. The stack is used only to pass values between stages, not for within-stage control or logic.
+* _Stage-local clarity_: Each stage operates with clearly scoped local variables. The stack is used only to pass values between stages, not for within-stage control or logic.
 
-* **Deterministic flow**: Every transition—between stages or within loops—is implemented through statically compiled forward jumps. The flow of control is explicit and fully linear.
+* _Deterministic flow_: Every transition—between stages or within loops—is implemented through statically compiled forward jumps. The flow of control is explicit and fully linear.
 
-* **Fully interleaved, single-pass codegen**: Code for each stage is emitted inline, in the order it appears in the source pipeline. There are no multiple passes, no buffering, and no scheduler.
+* _Fully interleaved, single-pass codegen_: Code for each stage is emitted inline, in the order it appears in the source pipeline. There are no multiple passes, no buffering, and no scheduler.
 
-* **Restartable by design**: All sequence sources, including higher-order constructs like `restart`, emit code in a way that naturally supports re-entry and retries without any special runtime state.
+* _Restartable by design_: All sequence sources, including higher-order constructs like `restart`, emit code in a way that naturally supports re-entry and retries without any special runtime state.
 
-* **Recursive compilation of blocks**: Structured blocks within stages (such as in `map`, `for-each`, or `restart`) are compiled recursively. Each nested block produces its own `init`, `next`, and loop structure, fully scoped and isolated from its parent.
+* _Recursive compilation of blocks_: Structured blocks within stages (such as in `map`, `for-each`, or `restart`) are compiled recursively. Each nested block produces its own `init`, `next`, and loop structure, fully scoped and isolated from its parent.
 
 This system enables deterministic, minimal, and efficient execution of pipelines with first-class support for transformation, filtering, forking, batching, retrying, and structured block execution. It is designed to be easy to reason about and debug while remaining expressive and restart-safe.
 
 ### 2. Stages and Structure
 
-Tacit sequences are constructed from a series of **stages**, each of which performs a distinct role in the flow of data. Every sequence is built from these stages, chained together to form a linear, streaming pipeline.
+Tacit sequences are constructed from a series of _stages_, each of which performs a distinct role in the flow of data. Every sequence is built from these stages, chained together to form a linear, streaming pipeline.
 
 Stages fall into three primary categories:
 
-* **Source**: A stage that produces values. It may be static (e.g., `range`), procedural (e.g., `restart`), or driven by external input (e.g., `http-get`).
+* _Source_: A stage that produces values. It may be static (e.g., `range`), procedural (e.g., `restart`), or driven by external input (e.g., `http-get`).
 
-* **Processor**: A stage that transforms, filters, combines, or otherwise operates on incoming values. Examples include `map`, `filter`, `zip`, `pack`, and `unpack`.
+* _Processor_: A stage that transforms, filters, combines, or otherwise operates on incoming values. Examples include `map`, `filter`, `zip`, `pack`, and `unpack`.
 
-* **Sink**: A terminal stage that consumes values and does not produce further output. This includes stages like `print` or `for-each`.
+* _Sink_: A terminal stage that consumes values and does not produce further output. This includes stages like `print` or `for-each`.
 
 #### Stage Code Structure
 
@@ -55,12 +56,12 @@ Each stage is compiled into two code blocks:
 * `init_stage`: one-time initialization logic for the stage
 * `next_stage`: logic that executes once per item processed or produced
 
-These two blocks are emitted **back-to-back** during code generation. The `init` block always ends with a forward jump to the next stage’s `init`, and the `next` block ends with a jump to the next stage’s `next`.
+These two blocks are emitted _back-to-back_ during code generation. The `init` block always ends with a forward jump to the next stage’s `init`, and the `next` block ends with a jump to the next stage’s `next`.
 
 This structure guarantees that:
 
-* Code is emitted **in order**, as a single stream.
-* Each stage is **self-contained** in its setup and iteration logic.
+* Code is emitted _in order_, as a single stream.
+* Each stage is _self-contained_ in its setup and iteration logic.
 * No scheduler or runtime staging system is needed.
 
 #### Interleaving and Flow
@@ -90,7 +91,7 @@ This establishes the entry point for the sequence.
 
 Each `init` block ends with a jump to the `init` block of the next stage. Each `next` block ends with a jump to the `next` block of the next stage.
 
-The final stage's `init` block jumps to the **loop start**—which is always the `next` block of the first stage. This ensures entry into the main processing loop after all initializations.
+The final stage's `init` block jumps to the _loop start_—which is always the `next` block of the first stage. This ensures entry into the main processing loop after all initializations.
 
 The final stage’s `next` block also jumps to the loop start, completing the pipeline cycle.
 
@@ -105,7 +106,7 @@ The result is an executable code stream where every part of the sequence is laid
 
 ### 4. Patch System (Minimal Jump Resolution)
 
-To enable forward-only, single-pass code generation, Tacit uses a **minimal patching system** based on three local variables per compilation scope. These track unresolved jump destinations during emission and are resolved once the corresponding target blocks are emitted.
+To enable forward-only, single-pass code generation, Tacit uses a _minimal patching system_ based on three local variables per compilation scope. These track unresolved jump destinations during emission and are resolved once the corresponding target blocks are emitted.
 
 #### Patch Variables
 
@@ -143,7 +144,7 @@ When compiling a structured block:
 
 #### Return Protocol
 
-At the end of the nested block’s compilation, the following **three addresses** are pushed onto the stack (in order):
+At the end of the nested block’s compilation, the following _three addresses_ are pushed onto the stack (in order):
 
 1. `loop_start`: the address of the first `next_*` block inside the nested sequence.
 2. `next_stage`: the main entry point to the nested `next_*` logic.
@@ -177,15 +178,15 @@ Recursive codegen is the mechanism that makes staged blocks composable, restarta
 
 ### 6. Forking and Multi-Fork Behavior
 
-Tacit supports forking via the `fork` stage, which duplicates a value and distributes it to multiple parallel branches. Forks are not control-flow constructs—they operate on **values**, not execution paths.
+Tacit supports forking via the `fork` stage, which duplicates a value and distributes it to multiple parallel branches. Forks are not control-flow constructs—they operate on _values_, not execution paths.
 
 #### Semantics
 
 When a `fork` is encountered:
 
-* The incoming value is **duplicated** and passed independently to each branch.
+* The incoming value is _duplicated_ and passed independently to each branch.
 * Each branch is treated as a complete sub-sequence with its own `init` and `next` blocks.
-* These branches are compiled **inline** and **back-to-back**, preserving the order of the source pipeline.
+* These branches are compiled _inline_ and _back-to-back_, preserving the order of the source pipeline.
 
 For example:
 
@@ -276,11 +277,11 @@ Each `restart` block:
 * Returns `init`, `next`, and loop addresses when compiled recursively
 * Can be safely used inside `map`, `filter`, or other recursive structures
 
-The retry mechanism is entirely static. There is no dynamic state machine, and no runtime handler is required. Restartable blocks are **compiled as loops**, not interpreted as behaviors.
+The retry mechanism is entirely static. There is no dynamic state machine, and no runtime handler is required. Restartable blocks are _compiled as loops_, not interpreted as behaviors.
 
 ### 8. Control and Semantics of Restart
 
-The `restart` block in Tacit is more than a retry mechanism—it is a structured, restartable **source sequence** that integrates cleanly into the rest of the pipeline model.
+The `restart` block in Tacit is more than a retry mechanism—it is a structured, restartable _source sequence_ that integrates cleanly into the rest of the pipeline model.
 
 #### Restart as a Source
 
@@ -331,7 +332,7 @@ This makes `restart` a reliable building block for handling fallible, delayed, o
 
 ### 9. Structured Block Compilation
 
-Tacit stages can include code blocks—such as those passed to `map`, `for-each`, or `restart`—that define structured, embedded sequences. These blocks are compiled as **independent sub-sequences**, using the same `init`/`next`/`loop_start` structure as top-level pipelines.
+Tacit stages can include code blocks—such as those passed to `map`, `for-each`, or `restart`—that define structured, embedded sequences. These blocks are compiled as _independent sub-sequences_, using the same `init`/`next`/`loop_start` structure as top-level pipelines.
 
 #### Compilation Process
 
@@ -354,7 +355,7 @@ Each block:
 * Is fully isolated from its surrounding stage in terms of jump logic.
 * Can freely contain its own source, processors, and even sink logic if needed.
 
-Because blocks are compiled as ordinary sequences, **nested restarts**, **embedded forks**, and even **reentrant mini-pipelines** can be expressed naturally inside block bodies.
+Because blocks are compiled as ordinary sequences, _nested restarts_, _embedded forks_, and even _reentrant mini-pipelines_ can be expressed naturally inside block bodies.
 
 #### Example: Factorial via Reduce in a Map
 
@@ -605,7 +606,7 @@ This approach makes restart logic explicit, reliable, and integrable with the re
 
 ### 13. Patch Model Validation
 
-Tacit’s compiled sequence system relies on a strict, minimal patching model. This section demonstrates that the **three-variable patch system** is fully sufficient for compiling arbitrary pipelines—whether simple, nested, forked, or restartable.
+Tacit’s compiled sequence system relies on a strict, minimal patching model. This section demonstrates that the _three-variable patch system_ is fully sufficient for compiling arbitrary pipelines—whether simple, nested, forked, or restartable.
 
 #### Recap of Patch Variables
 
@@ -900,7 +901,7 @@ take 3
 for-each { print }
 ```
 
-**Generated Code:**
+_Generated Code:_
 
 ```tacit
 main:
@@ -997,11 +998,11 @@ end:
 
 This example exercises all aspects of the sequence model:
 
-* **Nested forking** with interleaved stage emission
-* **Selective filtering and masking** with conditional skipping
-* **Forward-only control flow**
-* **Use of `take` as a stateful limit gate**
-* **Stream re-entry at `next_range` as loop start**
+* _Nested forking_ with interleaved stage emission
+* _Selective filtering and masking_ with conditional skipping
+* _Forward-only control flow_
+* _Use of `take` as a stateful limit gate_
+* _Stream re-entry at `next_range` as loop start_
 
 It confirms the robustness of the patch model, the consistency of structured stage emission, and the clarity of the data and control paths throughout even complex pipelines.
 
@@ -1075,23 +1076,23 @@ The compiled sequence system in Tacit is defined by a set of precise constraints
 
 This system supports:
 
-* **Single-pass, interleaved code generation**: Every stage is emitted inline, in the order it appears, without buffering or multi-phase compilation.
-* **Structured `init`/`next` blocks**: Each stage declares its entry and per-item logic explicitly, forming the backbone of deterministic flow.
-* **Minimal patching model**: Only three local patch variables (`pending_init_patch`, `pending_next_patch`, `loop_start`) are used per compilation scope. These handle all jump resolution.
-* **Recursive code generation**: Blocks within stages (e.g. in `map`, `restart`) are compiled as independent pipelines. They emit their own structured blocks and return their jump addresses via the stack in a fixed order.
-* **Forking, masking, zipping, batching**: Complex patterns like multi-branch forks, zip joins, filtered masks, and item grouping (`pack`) are naturally expressed using structured, non-recursive logic.
-* **Structured restarts**: Retryable computations are encoded as restartable source stages with local logic for loop, reentry, and control.
-* **Data clarity over stack tricks**: The stack is used only to move values between stages. All internal state within a stage is handled using local variables for legibility and robustness.
-* **Composable transformations**: Blocks may contain full pipelines, including nested restarts, and are completely compatible with the surrounding sequence.
-* **Full integrity under complexity**: From simple transforms to double forks with zipping and `take`, the system remains sound and reliable under the same minimal model.
+* _Single-pass, interleaved code generation_: Every stage is emitted inline, in the order it appears, without buffering or multi-phase compilation.
+* _Structured `init`/`next` blocks_: Each stage declares its entry and per-item logic explicitly, forming the backbone of deterministic flow.
+* _Minimal patching model_: Only three local patch variables (`pending_init_patch`, `pending_next_patch`, `loop_start`) are used per compilation scope. These handle all jump resolution.
+* _Recursive code generation_: Blocks within stages (e.g. in `map`, `restart`) are compiled as independent pipelines. They emit their own structured blocks and return their jump addresses via the stack in a fixed order.
+* _Forking, masking, zipping, batching_: Complex patterns like multi-branch forks, zip joins, filtered masks, and item grouping (`pack`) are naturally expressed using structured, non-recursive logic.
+* _Structured restarts_: Retryable computations are encoded as restartable source stages with local logic for loop, reentry, and control.
+* _Data clarity over stack tricks_: The stack is used only to move values between stages. All internal state within a stage is handled using local variables for legibility and robustness.
+* _Composable transformations_: Blocks may contain full pipelines, including nested restarts, and are completely compatible with the surrounding sequence.
+* _Full integrity under complexity_: From simple transforms to double forks with zipping and `take`, the system remains sound and reliable under the same minimal model.
 
 This specification confirms that compiled sequences in Tacit are:
 
-* **Deterministic**
-* **Modular**
-* **Restart-safe**
-* **Recursively composable**
-* **Free of dynamic dispatch or symbolic labels**
+* _Deterministic_
+* _Modular_
+* _Restart-safe_
+* _Recursively composable_
+* _Free of dynamic dispatch or symbolic labels_
 
 The resulting system is expressive, transparent, and formally constrained to produce readable, analyzable code from declarative pipelines.
 
