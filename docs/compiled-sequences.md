@@ -192,8 +192,8 @@ For example:
 
 ```tacit
 fork {
-  [ map { square } ]
-  [ filter { even? } ]
+  { map { square } }
+  { filter { even? } }
 }
 ```
 
