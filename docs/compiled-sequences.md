@@ -15,7 +15,7 @@
 13. Patch Model Validation
 14. Codegen Examples
 15. Codegen Emission Rules and Stage Emission Metadata
-16. Summary Commit
+16. Local Variable Allocation and Stack Offsets
 
 ### 1. Design Philosophy
 
@@ -994,105 +994,168 @@ end:
   halt
 ```
 
----
-
-This example exercises all aspects of the sequence model:
-
-* _Nested forking_ with interleaved stage emission
-* _Selective filtering and masking_ with conditional skipping
-* _Forward-only control flow_
-* _Use of `take` as a stateful limit gate_
-* _Stream re-entry at `next_range` as loop start_
-
-It confirms the robustness of the patch model, the consistency of structured stage emission, and the clarity of the data and control paths throughout even complex pipelines.
-
-Here’s a clean section to insert into the spec—under a heading like _Codegen Emission Rules_—that formalizes this concept.
+Here is the rewritten Section 15, integrating the refined model based on your clarification. This version eliminates unnecessary generality, removes the idea of `next_required`, and uses `null` to represent the absence of `init` logic.
 
 ---
 
-### 15. Codegen Emission Rules and Stage Emission Metadata
+### 15. Codegen Emission Rules and Stage Emission Layout
 
-Each stage in Tacit defines its behavior during code generation in terms of whether it emits an `init_*` block and a `next_*` block. These declarations are used to streamline output and eliminate unnecessary code for stateless stages.
+Each stage in Tacit compiles to exactly two components:
 
-#### _Emitting Stage Definition_
+* A pointer to an `init` block (or `null` if not needed)
+* A pointer to a `next` block (always present)
 
-For every stage type, the compiler attaches a metadata description that includes:
+These pointers are used to wire the control flow during pipeline generation. This structure is minimal, fixed, and directly reflects the layout of the compiled program.
 
-- `_init_required_`: whether the stage emits an `init_*` block
-- `_next_required_`: whether the stage emits a `next_*` block
+#### *Stage Representation*
 
-These properties determine what blocks are emitted and how the patching process links stages together.
+Every stage returns during codegen:
 
-#### _Patch Skipping and Jump Resolution_
-
-When one stage completes its `init` and needs to emit `jump init_next_stage`, the compiler walks forward from the syntactic next stage until it finds one that has `init_required = true`. It emits a jump to that real block. This ensures that stateless stages do not produce empty blocks or redundant jumps.
-
-The same logic applies when resolving `pending_init_patch`: the compiler skips forward past any stage with `init_required = false`.
-
-This does not delay emission—it simply defers the jump target until the appropriate block is emitted, exactly as in normal patching.
-
-#### _Emission Protocol_
-
-For each stage:
-
-- If `init_required` is `true`:
-  - Emit a labeled `init_stage` block
-  - Store `pending_init_patch` at the end of the previous stage
-- If `next_required` is `true`:
-  - Emit a labeled `next_stage` block
-  - Store `pending_next_patch` at the end of the previous `next`
-- If either is `false`, no label or block is emitted
-
-Stages that do not emit a block are completely skipped during patching. Their presence in the source pipeline is preserved by their `next` logic alone.
-
-#### _Examples_
-
-```plaintext
-Stage: map
-  init_required: false
-  next_required: true
-
-Stage: for-each
-  init_required: false
-  next_required: true
-
-Stage: pack
-  init_required: true
-  next_required: true
+```tacit
+(init_ptr, next_ptr)
 ```
 
-#### _Benefits_
+* `init_ptr` is either a label reference or `null`
+* `next_ptr` is always a valid label reference
 
-- Eliminates unnecessary `init_*` blocks for stateless stages
-- Reduces code size and jump overhead
-- Maintains a consistent patching model
-- Requires no changes to recursive codegen or block compilation
+This ensures uniformity and allows each stage’s code to be emitted inline, without runtime indirection.
 
-This metadata-driven model preserves the structure of the sequence while enabling efficient, precise emission tailored to the semantics of each stage.
+#### *Skipping `init` Blocks*
 
-### 16. Summary Commit
+If `init_ptr` is `null`:
 
-The compiled sequence system in Tacit is defined by a set of precise constraints and guarantees. It is a model for building streamed, restartable, and composable pipelines that compile into flat, linear code without control-flow ambiguity or runtime interpretation.
+* The previous stage's `init` block omits the `jump` to this stage
+* Emission continues directly to the next stage that has a non-null `init_ptr`
+* The `init` and `next` blocks of other stages remain unaffected
 
-This system supports:
+This avoids generating redundant labels or jumps and preserves the linear layout of `next` blocks without disruption from empty `init` blocks.
 
-* _Single-pass, interleaved code generation_: Every stage is emitted inline, in the order it appears, without buffering or multi-phase compilation.
-* _Structured `init`/`next` blocks_: Each stage declares its entry and per-item logic explicitly, forming the backbone of deterministic flow.
-* _Minimal patching model_: Only three local patch variables (`pending_init_patch`, `pending_next_patch`, `loop_start`) are used per compilation scope. These handle all jump resolution.
-* _Recursive code generation_: Blocks within stages (e.g. in `map`, `restart`) are compiled as independent pipelines. They emit their own structured blocks and return their jump addresses via the stack in a fixed order.
-* _Forking, masking, zipping, batching_: Complex patterns like multi-branch forks, zip joins, filtered masks, and item grouping (`pack`) are naturally expressed using structured, non-recursive logic.
-* _Structured restarts_: Retryable computations are encoded as restartable source stages with local logic for loop, reentry, and control.
-* _Data clarity over stack tricks_: The stack is used only to move values between stages. All internal state within a stage is handled using local variables for legibility and robustness.
-* _Composable transformations_: Blocks may contain full pipelines, including nested restarts, and are completely compatible with the surrounding sequence.
-* _Full integrity under complexity_: From simple transforms to double forks with zipping and `take`, the system remains sound and reliable under the same minimal model.
+#### *Patch Resolution Behavior*
 
-This specification confirms that compiled sequences in Tacit are:
+* When emitting a `jump` to a stage's `init_ptr`, the compiler walks forward to the next non-null `init_ptr`
+* Patch variables such as `pending_init_patch` point only to non-null destinations
+* The `loop_start` is always recorded as the first emitted `next` block
 
-* _Deterministic_
-* _Modular_
-* _Restart-safe_
-* _Recursively composable_
-* _Free of dynamic dispatch or symbolic labels_
+This means patch resolution remains deterministic and stateless, even with sparse `init` emission.
 
-The resulting system is expressive, transparent, and formally constrained to produce readable, analyzable code from declarative pipelines.
+#### *Advantages*
+
+* Eliminates unused `init_*` blocks for stateless stages
+* Prevents `next` blocks from being separated by empty or unnecessary `init` jumps
+* Removes the need for stage metadata like `init_required`
+* Keeps code compact and clearly structured
+* Makes pipeline layout directly reflect runtime control flow
+
+#### *Examples*
+
+```tacit
+Stage: range
+  init_ptr = init_range
+  next_ptr = next_range
+
+Stage: map { square }
+  init_ptr = null
+  next_ptr = next_map
+
+Stage: take 3
+  init_ptr = init_take
+  next_ptr = next_take
+```
+
+This model produces interleaved code only where needed and enforces strict adjacency for `next` logic, enabling both performance and clarity in the compiled output.
+
+### 16. Local Variable Allocation and Stack Offsets
+
+Tacit compiles sequences as flat, macro-style expansions with fully inlined control flow. To support clear, isolated local storage without symbolic variable naming, Tacit allocates local variables numerically using stack offsets relative to a *base pointer*.
+
+#### *Return Stack as Allocator*
+
+The return stack is used as the allocator for local variables. At the start of sequence codegen:
+
+* The current return stack pointer is saved as `$bp` (base pointer).
+* All variables pushed after that point are assigned sequential offsets relative to `$bp`.
+
+This offset-based model ensures that each variable has a known, fixed position during codegen and runtime. It avoids symbolic resolution entirely.
+
+#### *Patch Variables*
+
+Each sequence begins by allocating three reserved variables:
+
+* Offset 0: `pending_init_patch`
+* Offset 1: `pending_next_patch`
+* Offset 2: `loop_start`
+
+These are required in every compilation scope and are used by the patching system to manage jump resolution. They occupy the first three slots after `$bp`.
+
+#### *Stage Variables*
+
+Each stage (particularly its `init` block) may allocate additional local variables to manage per-stage state such as counters, flags, or parameters. These are assigned offsets starting from slot 3 and increasing as needed.
+
+Example stack frame:
+
+```plaintext
+Slot 0: pending_init_patch
+Slot 1: pending_next_patch
+Slot 2: loop_start
+Slot 3: $index
+Slot 4: $limit
+Slot 5: $x
+```
+
+Each `x ->` or intermediate assignment generates a new offset. There is no reuse or recycling of stack slots within a single sequence.
+
+#### *Lifetime and Cleanup*
+
+All local variables live in the same frame for the lifetime of the sequence. No variable needs to be explicitly cleaned up or popped after a stage. However, proper memory handling is required at the end of the sequence, especially for reference-counted or heap-allocated values.
+
+#### *Final Cleanup and Reference Handling*
+
+At the end of a sequence, the stack must be walked to release any heap-allocated objects that may have been stored in local variables. This ensures proper reference-counting and memory safety.
+
+The cleanup procedure is as follows:
+
+1. Begin at the current return stack pointer (`$rsp`)
+2. Walk backward toward the base pointer (`$bp`)
+3. For each slot:
+
+   * Check whether the value is a heap-allocated object (using a tagged pointer format or metadata bit)
+   * If so, call the appropriate reference decrement (`dec-ref`) or free operation
+   * Otherwise, discard the value (e.g., pop and ignore)
+4. Once all variables have been handled, restore `$rsp := $bp`
+5. Pop `$bp` and the return address as part of the standard function return
+
+This makes cleanup **linear in the number of allocated locals**, ensuring both stack discipline and correct heap resource management. No special tracking or metadata is required beyond the tagging system already used for heap-managed values.
+
+#### *Nested Blocks*
+
+Structured blocks (like `restart`, `map { ... }`, etc.) are compiled recursively. Each recursive codegen scope begins by pushing a new `$bp` and allocating its own patch variables and locals on top of the outer frame.
+
+This ensures complete isolation of nested logic while maintaining stack discipline and allowing deterministic variable access.
+
+#### *Appendix: Symbolic Naming and Scoped Resolution*
+
+While Tacit's compiled sequences use numeric stack offsets for all local variables at runtime, the **source-level authoring** of macros and stages supports symbolic names for clarity and reuse. These symbolic names are resolved at compile time using a FORTH-style dictionary with scoped shadowing.
+
+##### *Scoped Dictionary Behavior*
+
+* Each new stage or macro block (e.g. an `init` block) pushes a new scope onto the dictionary.
+* New symbol definitions (e.g. `$index`, `$limit`) are added to the front of the dictionary.
+* Symbol lookup always returns the most recently defined version of a name.
+* When the scope ends, all symbols defined in that scope are removed.
+
+This model allows the same names to be reused in different parts of a pipeline without collision. For example, two `range` stages may each declare `$index` and `$limit` and be compiled independently, since each use is bound to its own dictionary context at expansion time.
+
+##### *Code Generation and Resolution*
+
+* During code generation, symbolic references are resolved to numeric stack offsets relative to `$bp`.
+* The compiler emits bytecode like `get-local 3` or `set-local 4`, not symbolic names.
+* The dictionary exists only at compile time and has no runtime footprint.
+
+##### *Usage Scope*
+
+* Symbolic names are used **only for internal variables** that do not need to escape the stage or macro in which they are defined.
+* They make macros easier to read, reuse, and debug.
+* Final emitted code remains fully numeric and flat.
+
+This approach combines the readability of symbolic macros with the performance and determinism of low-level numeric compilation. It preserves hygiene across expansions without requiring renaming or gensym strategies.
 
