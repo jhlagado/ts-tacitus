@@ -12,7 +12,7 @@ A `struct-def` expands into a set of constants:
 Example:
 
 ```tacit
-struct-def { name age } person
+struct-def person { name age } 
 ```
 
 Expands to:
@@ -28,23 +28,23 @@ These symbols remain in the global dictionary for the entire program.
 The struct instance itself is declared inside a function scope using the `struct` keyword:
 
 ```tacit
-"John Smith" 23 `person struct bob
+"John Smith" 23 struct person bob
 ```
 
 This compiles as:
 
 * A local variable named `bob` holding the base address of the memory region.
-* A memory region of size `person` (2 slots) allocated on the stack at compile time.
+* A memory region of size `person$length` (2 slots) allocated on the stack at compile time.
 * The values `"John Smith"` and `23` are assigned to `bob + person-name` and `bob + person-age`.
 
 Access to fields happens through a `with` expression:
 
 ```tacit
-bob `person with
+bob with person 
   …
 ```
 
-While inside the `with` scope, any reference to `name` or `age` resolves to offsets from `bob`, using `person-name` and `person-age`. These offsets are emitted directly in code generation, and all access is via `self`, the implicit receiver pointer.
+While inside the `with` scope, any reference to `name` or `age` resolves to offsets from `bob`, using `person-name` and `person-age`. These offsets are emitted directly in code generation, and all access is via the receiver pointer.
 
 This model supports:
 
@@ -62,7 +62,7 @@ The `struct-def` word introduces a symbolic layout into the global dictionary. T
 ### 2.1 Syntax
 
 ```tacit
-struct-def { field1 field2 … fieldN } struct-name
+struct-def struct-name { field1 field2 … fieldN }
 ```
 
 The `struct-name` is any valid global symbol. Each field inside the braces is a plain symbol without prefixes or decorators.
@@ -74,7 +74,7 @@ When the `struct-def` word is compiled, it emits a series of constant definition
 Given:
 
 ```tacit
-struct-def { name age } person
+struct-def person { name age } 
 ```
 
 The compiler expands this into:
@@ -85,13 +85,12 @@ The compiler expands this into:
 1 constant person-age
 ```
 
-Each field is assigned a numeric offset starting from zero. The struct name itself is bound to its size in slots.
+Each field is assigned a numeric offset starting from zero. 
 
 ### 2.3 Dictionary State
 
 After the definition, the symbol table includes:
 
-* `person` → "person"
 * `person$length` → 2
 * `person-name` → 0
 * `person-age` → 1
@@ -112,17 +111,17 @@ Struct instances are allocated on the return stack using the `struct` keyword. T
 <field-values…> struct <struct-name> <var-name>
 ```
 
-This is a compile-time directive. It declares a new local variable named `<var-name>` and reserves a number of stack slots equal to the value of `<struct-name>`. The fields are initialized with the values provided on the data stack in left-to-right order.
+This is a compile-time directive. It reserves a number of stack slots equal to the value of `<struct-name>$length`. The fields are initialized with the values provided on the data stack in left-to-right order.
 
 #### 3.1.1 Example
 
 ```tacit
-"John Smith" 23 `person struct bob
+"John Smith" 23 struct person bob
 ```
 
 This emits the following steps at compile time:
 
-1. Reserves `2` stack slots (based on `person`).
+1. Reserves `2` stack slots (based on `person$length`).
 2. Initializes them with `"John Smith"` and `23`.
 3. Adds a dictionary entry: `bob` → pointer to base of allocated slots.
 4. Sets a flag on `bob` marking it as a struct reference.
@@ -136,12 +135,12 @@ Within a `with` block, field symbols resolve to memory operations relative to th
 ### 4.1 Example Usage
 
 ```tacit
-bob `person with
-  "Johnny" -> person-name
-  24       -> person-age
+bob with person 
+  "Johnny" -> name
+  24       -> age
 ```
 
-This example allocates a `person` struct called `bob` with the initial values "John Smith" and `23`. Inside the `with` block, `bob` is the receiver, and `person-name` and `person-age` are treated as offsets from the receiver pointer.
+This example allocates a `person` struct called `bob` with the initial values "John Smith" and `23`. Inside the `with person` block, `bob` is the receiver, and `name` and `age` are treated as offsets from the receiver pointer.
 
 Assignment syntax is identical to that used for local variables:
 
@@ -166,7 +165,7 @@ This compiles to code that loads a value from the receiver at the offset specifi
 The `struct-def` form introduces a symbolic layout into the global dictionary. The syntax:
 
 ```
-struct-def { name age }
+struct-def person { name age }
 ```
 
 expands at compile-time into a set of global constants:
@@ -177,7 +176,7 @@ expands at compile-time into a set of global constants:
 1 constant person-age
 ```
 
-Here, `person` is the current struct type in scope (usually derived from the source filename or a wrapping construct), and `$length` is a reserved suffix for the total number of fields. The `$` prefix (or whatever convention is chosen) marks metadata not intended as a normal field.
+Here, `person` is the current struct type in scope, and `$length` is a reserved suffix for the total number of fields. The `$` prefix (or whatever convention is chosen) marks metadata not intended as a normal field.
 
 Each field name is translated into a numeric offset constant, relative to the base pointer of a struct instance.
 
@@ -188,20 +187,20 @@ No runtime code is emitted—`struct-def` is purely a compile-time macro.
 The instantiation syntax:
 
 ```
-"John Smith" 23 `person struct bob
+"John Smith" 23 struct person bob
 ```
 
 is compiled into code that performs three things:
 
 1. Reserves `person$length` consecutive local slots in the return stack.
 2. Assigns the base address of these slots to the symbol `bob`.
-3. Consumes the top `n` values from the stack (in reverse order), and stores them into the fields of `bob`, using the previously defined field offsets.
+3. Consumes the top `person$length` values from the stack (in reverse order), and stores them into the fields of `bob`, using the previously defined field offsets.
 
 The compiler rewrites the above into something roughly equivalent to:
 
 ```
 local-alloc person$length -> bob
-bob `person with
+bob with person 
 "John Smith" -> name
 23 -> age
 ```
@@ -210,10 +209,10 @@ but this form is internal—users don’t see or write it.
 
 ### 5.3 Field Access (`with`)
 
-The keyword `with` expects a struct pointer on top of the stack, and a struct type symbol just before it:
+The keyword `with` expects a struct pointer on top of the stack, and a struct type symbol just after it:
 
 ```
-bob `person with
+bob with person 
 ```
 
 This sets a compiler-local “receiver context,” associating the symbol `person` with the pointer `bob`. Within this context, any unqualified field access like `age` will be rewritten as:
@@ -240,7 +239,7 @@ To declare a method for a given struct type (e.g. `person`), you simply write a 
 
 ```
 : increment-age
-  `person with
+  with person 
     age 1 + -> age
 ;
 ```
@@ -263,7 +262,7 @@ The method has no special privileges. It simply expects a pointer and uses `with
 
 ```
 : print-person
-  `person with
+  with person 
     name print
     age print
 ;
@@ -282,8 +281,8 @@ Tacit permits multiple struct instances to coexist in the same function scope. T
 You can declare multiple structs in the same function body:
 
 ```
-"John Smith" 23 `person struct bob
-"Alice Jones" 31 `person struct alice
+"John Smith" 23 struct person bob
+"Alice Jones" 31 struct person alice
 ```
 
 This creates two local variables, `bob` and `alice`, each of which is a pointer to the start of a person-typed memory region on the return stack.
@@ -293,10 +292,10 @@ This creates two local variables, `bob` and `alice`, each of which is a pointer 
 Use `with` to explicitly set which struct instance is the receiver for subsequent field accesses:
 
 ```
-bob `person with
+bob with person 
   name print age print
 
-alice `person with
+alice with person 
   name print age print
 ```
 
@@ -304,17 +303,17 @@ Each `with` applies to the block of code that follows, up to the next `with` or 
 
 ### 7.3 Field Resolution Behavior
 
-When `with` is active, unqualified symbols like `name` or `age` are resolved at compile time using the struct type (e.g. `person`) and looked up as `person_name`, `person_age`, etc. These resolve to numeric offsets. The compiler then emits code to compute `receiver + offset`, replacing symbolic field access with address calculations.
+When `with` is active, unqualified symbols like `name` or `age` are resolved at compile time using the struct type (e.g. `person`) and looked up as `person-name`, `person-age`, etc. These resolve to numeric offsets. The compiler then emits code to compute `receiver + offset`, replacing symbolic field access with address calculations.
 
 ### 7.4 Avoiding Collisions
 
 Because field names are resolved using the struct type name as a prefix, you can safely reuse field names across different structs. For example:
 
 ```
-struct-def { title year } book
+struct-def book { title year }
 ```
 
-Defines `book_title` and `book_year`. These won't conflict with `person_name`, even though both use `name`-like fields.
+Defines `book-title` and `book-year`. These won't conflict with `person-name`, even though both use `name`-like fields.
 
 ## 8. Initialization Patterns and Field Assignment
 
@@ -325,7 +324,7 @@ Tacit supports simple and direct struct initialization using a positional value 
 When a struct is declared using the `struct` keyword, values can be pushed onto the stack in declaration order. These are assigned to fields by position:
 
 ```
-"John Smith" 23 `person struct bob
+"John Smith" 23 struct person bob
 ```
 
 This allocates `person-$length` slots on the return stack and populates the first slot with `"John Smith"` (for `name`) and the second with `23` (for `age`).
@@ -337,7 +336,7 @@ The ordering is fixed and must match the order of field declarations in the `str
 Fields can be manually assigned or updated after initial declaration using the `with` directive and `->` operator (as detailed in Section 4):
 
 ```
-bob `person with
+bob with person 
   "Jane Doe" -> name
   42 -> age
 ```
@@ -349,7 +348,7 @@ Each `->` compiles to an address calculation using the current receiver and the 
 Partial assignment is allowed at any time:
 
 ```
-bob `person with
+bob with person 
   1 + -> age
 ```
 
@@ -360,8 +359,8 @@ Only the specified field is modified. There’s no need to reinitialize the enti
 Both literals and named locals/constants can be used in struct initialization and assignment:
 
 ```
-john `person struct manager
-manager `person with
+john struct person manager
+manager with person 
   some_name -> name
   some_age  -> age
 ```
@@ -378,7 +377,7 @@ A method expecting a struct pointer can access fields relative to the receiver b
 
 ```
 : print-person
-  with
+  with person
     name print
     age print
 ;
@@ -401,7 +400,7 @@ To define a method that mutates a field:
 
 ```
 : birthday
-  with
+  with person
     age 1 + -> age
 ;
 ```
@@ -418,10 +417,6 @@ alice birthday
 ```
 
 As long as the receiver is of type `person`, the same code operates on either instance. This relies on consistent field offset definitions from `struct-def`.
-
-### 9.5 No Hidden Self or Context
-
-Tacit does not introduce implicit `self`. The receiver is passed explicitly using `with`. This ensures code clarity and avoids surprises during method dispatch or field access. Field references always depend on the active receiver context.
 
 ## 10. Constraints and Limitations
 
@@ -456,73 +451,4 @@ Field offsets are tightly packed, one slot per field, with no padding for alignm
 
 ### 10.7 Symbol Lifetime and Cleanup
 
-Field names (like `person-name`) and the struct metadata (`person`) are stored in the global dictionary and persist for the duration of the program. Struct *instances*, on the other hand, are allocated as locals and cleaned up with the function scope. Symbol pollution can be avoided using disciplined naming or future scoping mechanisms.
-
-## 11. Future Extensions and Enhancements
-
-While Tacit’s current struct model is deliberately minimal, several extensions could improve flexibility, safety, and performance in the future.
-
-### 11.1 Optional Field Types and Documentation
-
-Tacit structs are currently untyped at the field level, using positional slot layout only. A possible extension is to allow symbolic type hints during `struct-def`, not for enforcement but for documentation and tool support. For example:
-
-```
-struct-def { name:string age:int }
-```
-
-These would be discarded by the compiler but preserved in the symbol dictionary for tooling, error reporting, and pretty-printing.
-
-### 11.2 Struct Scoping and Cleanup
-
-To prevent symbol leaks from struct definitions, Tacit could support temporary dictionary scopes or namespaces, allowing field offsets to be defined and discarded in a more hygienic way. This could use bracketed scoping or explicit namespaces:
-
-```
-namespace person
-  struct-def { name age }
-end-namespace
-```
-
-This way, `name` and `age` are only visible via `person-name`, preserving clarity in large programs.
-
-### 11.3 Heap-Based Structs
-
-While current struct instances are always stack-allocated via the `struct` keyword, a future `heap-struct` keyword could allow creating long-lived, heap-allocated versions:
-
-```
-"John" 32 person heap-struct p
-```
-
-Heap-allocated structs would require explicit memory management—possibly `free` or region-based deallocation—but would allow more persistent data structures like trees, graphs, and closures.
-
-### 11.4 Field Grouping and Nested Layouts
-
-A more advanced feature would allow nested struct fields:
-
-```
-struct-def { name address:{ street city } }
-```
-
-This would generate flattened field paths like `person-address-street` with compound offsets, and enable structured access through nested `with` scopes. While useful, this increases code complexity and may not align with Tacit’s minimal flat-memory model.
-
-### 11.5 Method Binding and Dispatch Tables
-
-Though Tacit supports methods acting on struct pointers, future enhancements might include method tables associated with struct types. This would allow a pseudo-OOP pattern:
-
-```
-person-methods:
-  print: …
-  increment-age: …
-```
-
-Such tables could be compiled statically and reused across instances, allowing fast dispatch by field index or name.
-
-### 11.6 Struct Composition
-
-Tacit might eventually support field reuse across structs, akin to Golang’s embedding. For instance:
-
-```
-struct-def address { street city }
-struct-def person  { name age address }
-```
-
-This would inline the `address` fields into `person`, allowing shared layouts without manual duplication.
+Field names (like `person-name`) and the struct metadata (`person$length`) are stored in the global dictionary and persist for the duration of the program. Struct *instances*, on the other hand, are allocated as locals and cleaned up with the function scope. Symbol pollution can be avoided using disciplined naming or future scoping mechanisms.
