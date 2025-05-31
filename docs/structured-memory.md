@@ -2,9 +2,9 @@
 
 ## 1. Overview and Purpose
 
-TACIT's `struct-def` system introduces a lightweight, compiler-level abstraction for symbolic memory layout. Its goal is to allow programmers to define reusable record-like structures composed of named fields, where each field corresponds to a numeric offset within a memory region (typically stack-allocated). These structures are used to define compound local variables without requiring heap allocation, garbage collection, or pointer arithmetic.
+Tacit's `struct-def` system introduces a lightweight, compiler-level abstraction for symbolic memory layout. Its goal is to allow programmers to define reusable record-like structures composed of named fields, where each field corresponds to a numeric offset within a memory region (typically stack-allocated). These structures are used to define compound local variables without requiring heap allocation, garbage collection, or pointer arithmetic.
 
-The philosophy follows the FORTH tradition: simple, explicit memory access, no closures, no type inference, no runtime reflection. Structs in TACIT are not runtime types; they are *symbolic layout definitions* used only at compile time to support efficient, pointer-relative field access.
+The philosophy follows the FORTH tradition: simple, explicit memory access, no closures, no type inference, no runtime reflection. Structs in Tacit are not runtime types; they are *symbolic layout definitions* used only at compile time to support efficient, pointer-relative field access.
 
 A `struct-def` expands into a set of constants:
 
@@ -102,7 +102,7 @@ These entries are marked with flags indicating they are part of a struct layout.
 
 ### 2.4 Rationale
 
-This approach avoids the need for runtime type metadata. All field access is resolved through fixed offsets known at compile time. This matches the low-level memory model of TACIT and supports highly efficient code generation.
+This approach avoids the need for runtime type metadata. All field access is resolved through fixed offsets known at compile time. This matches the low-level memory model of Tacit and supports highly efficient code generation.
 
 ## 3. Stack Allocation of Struct Instances
 
