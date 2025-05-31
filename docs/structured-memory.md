@@ -34,7 +34,7 @@ The struct instance itself is declared inside a function scope using the `struct
 This compiles as:
 
 * A local variable named `bob` holding the base address of the memory region.
-* A memory region of size `person$length` (2 slots) allocated on the stack at compile time.
+* A memory region of size `person$length` (2 slots) allocated on the return stack at compile time.
 * The values `"John Smith"` and `23` are assigned to `bob + person-name` and `bob + person-age`.
 
 Access to fields happens through a `with` expression:
@@ -78,8 +78,6 @@ After the definition, the symbol table includes:
 * `person$length` → 2
 * `person-name` → 0
 * `person-age` → 1
-
-These entries are marked with flags indicating they are part of a struct layout. The compiler uses these flags to distinguish struct symbols from ordinary constants or variables.
 
 ### 2.4 Rationale
 
@@ -178,7 +176,7 @@ is compiled into code that performs three things:
 
 1. Reserves `person$length` consecutive local slots in the return stack.
 2. Assigns the base address of these slots to the symbol `bob`.
-3. Consumes the top `person$length` values from the stack (in reverse order), and stores them into the fields of `bob`, using the previously defined field offsets.
+3. Consumes the top `person$length` values from the data stack (in reverse order), and stores them into the fields of `bob`, using the previously defined field offsets.
 
 The compiler rewrites the above into something roughly equivalent to:
 
@@ -193,7 +191,7 @@ but this form is internal—users don’t see or write it.
 
 ### 5.3 Field Access (`with`)
 
-The keyword `with` expects a struct pointer on top of the stack, and a struct type symbol just after it:
+The keyword `with` expects a struct pointer on top of the data stack, and a struct type symbol just after it:
 
 ```
 bob with person 
@@ -219,7 +217,7 @@ Methods in Tacit are ordinary functions that operate on a receiver pointer. A me
 
 ### 6.1 Declaring a Method
 
-To declare a method for a given struct type (e.g. `person`), you simply write a function that expects a pointer to a `person` instance on top of the stack and uses `with` to operate on the fields:
+To declare a method for a given struct type (e.g. `person`), you simply write a function that expects a pointer to a `person` instance on top of the data stack and uses `with` to operate on the fields:
 
 ```
 : increment-age
@@ -228,7 +226,7 @@ To declare a method for a given struct type (e.g. `person`), you simply write a 
 ;
 ```
 
-The `with` is resolved at compile-time; it maps the unqualified field names (`age`) to their proper offsets. The receiver is never stored in a global variable—it is passed explicitly on the stack.
+The `with` is resolved at compile-time; it maps the unqualified field names (`age`) to their proper offsets. The receiver is never stored in a global variable—it is passed explicitly on the data stack.
 
 ### 6.2 Calling a Method
 
@@ -294,10 +292,10 @@ When `with` is active, unqualified symbols like `name` or `age` are resolved at 
 Because field names are resolved using the struct type name as a prefix, you can safely reuse field names across different structs. For example:
 
 ```
-struct-def book { title year }
+struct-def book { name year }
 ```
 
-Defines `book-title` and `book-year`. These won't conflict with `person-name`, even though both use `name`-like fields.
+Defines `book-name` and `book-year`. These won't conflict with `person-name`, even though both use `name`-like fields.
 
 ## 8. Initialization Patterns and Field Assignment
 
@@ -305,13 +303,13 @@ Tacit supports simple and direct struct initialization using a positional value 
 
 ### 8.1 Positional Initialization During Declaration
 
-When a struct is declared using the `struct` keyword, values can be pushed onto the stack in declaration order. These are assigned to fields by position:
+When a struct is declared using the `struct` keyword, values can be pushed onto the data stack in declaration order. These are assigned to fields by position:
 
 ```
 "John Smith" 23 struct person bob
 ```
 
-This allocates `person-$length` slots on the return stack and populates the first slot with `"John Smith"` (for `name`) and the second with `23` (for `age`).
+This allocates `person$length` slots on the return stack and populates the first slot with `"John Smith"` (for `name`) and the second with `23` (for `age`).
 
 The ordering is fixed and must match the order of field declarations in the `struct-def`.
 
@@ -338,9 +336,9 @@ bob with person
 
 Only the specified field is modified. There’s no need to reinitialize the entire struct. Fields can be updated in any order and as many times as needed within the receiver context.
 
-### 8.4 Constants and Locals as Input
+### 8.4 Locals as Input
 
-Both literals and named locals/constants can be used in struct initialization and assignment:
+Both literals and named locals can be used in struct initialization and assignment:
 
 ```
 john struct person manager
@@ -367,7 +365,7 @@ A method expecting a struct pointer can access fields relative to the receiver b
 ;
 ```
 
-Assuming `with` uses the top of stack as the receiver, this method expects a pointer (like `bob`) on the stack, and then prints the `name` and `age` fields using field offsets defined by the struct.
+Assuming `with` uses the top of stack as the receiver, this method expects a pointer (like `bob`) on the data stack, and then prints the `name` and `age` fields using field offsets defined by the struct.
 
 ### 9.2 Field Access Is Relative
 
