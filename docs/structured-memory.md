@@ -4,11 +4,9 @@
 
 Tacit's `struct-def` system introduces a lightweight, compiler-level abstraction for symbolic memory layout. Its goal is to allow programmers to define reusable record-like structures composed of named fields, where each field corresponds to a numeric offset within a memory region (typically stack-allocated). These structures are used to define compound local variables without requiring heap allocation, garbage collection, or pointer arithmetic.
 
-The philosophy follows the FORTH tradition: simple, explicit memory access, no closures, no type inference, no runtime reflection. Structs in Tacit are not runtime types; they are *symbolic layout definitions* used only at compile time to support efficient, pointer-relative field access.
-
 A `struct-def` expands into a set of constants:
 
-* The total size in slots, named `<struct-name>`.
+* The total size in slots, named `<struct-name>$length`.
 * One constant per field, named `<struct-name>-<field-name>`, indicating the field's offset within the struct.
 
 Example:
@@ -42,7 +40,7 @@ This compiles as:
 Access to fields happens through a `with` expression:
 
 ```tacit
-bob \`person with
+bob `person with
   …
 ```
 
@@ -138,7 +136,7 @@ Within a `with` block, field symbols resolve to memory operations relative to th
 ### 4.1 Example Usage
 
 ```tacit
-bob \`person with
+bob `person with
   "Johnny" -> person-name
   24       -> person-age
 ```
@@ -203,7 +201,7 @@ The compiler rewrites the above into something roughly equivalent to:
 
 ```
 local-alloc person$length -> bob
-bob \`person with
+bob `person with
 "John Smith" -> name
 23 -> age
 ```
@@ -215,7 +213,7 @@ but this form is internal—users don’t see or write it.
 The keyword `with` expects a struct pointer on top of the stack, and a struct type symbol just before it:
 
 ```
-bob \`person with
+bob `person with
 ```
 
 This sets a compiler-local “receiver context,” associating the symbol `person` with the pointer `bob`. Within this context, any unqualified field access like `age` will be rewritten as:
@@ -242,7 +240,7 @@ To declare a method for a given struct type (e.g. `person`), you simply write a 
 
 ```
 : increment-age
-  \`person with
+  `person with
     age 1 + -> age
 ;
 ```
@@ -265,7 +263,7 @@ The method has no special privileges. It simply expects a pointer and uses `with
 
 ```
 : print-person
-  \`person with
+  `person with
     name print
     age print
 ;
@@ -295,10 +293,10 @@ This creates two local variables, `bob` and `alice`, each of which is a pointer 
 Use `with` to explicitly set which struct instance is the receiver for subsequent field accesses:
 
 ```
-bob \`person with
+bob `person with
   name print age print
 
-alice \`person with
+alice `person with
   name print age print
 ```
 
@@ -339,7 +337,7 @@ The ordering is fixed and must match the order of field declarations in the `str
 Fields can be manually assigned or updated after initial declaration using the `with` directive and `->` operator (as detailed in Section 4):
 
 ```
-bob \`person with
+bob `person with
   "Jane Doe" -> name
   42 -> age
 ```
@@ -351,7 +349,7 @@ Each `->` compiles to an address calculation using the current receiver and the 
 Partial assignment is allowed at any time:
 
 ```
-bob \`person with
+bob `person with
   1 + -> age
 ```
 
@@ -363,7 +361,7 @@ Both literals and named locals/constants can be used in struct initialization an
 
 ```
 john `person struct manager
-manager \`person with
+manager `person with
   some_name -> name
   some_age  -> age
 ```
