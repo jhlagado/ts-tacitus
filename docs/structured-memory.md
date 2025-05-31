@@ -69,23 +69,7 @@ The `struct-name` is any valid global symbol. Each field inside the braces is a 
 
 ### 2.2 Compilation Behavior
 
-When the `struct-def` word is compiled, it emits a series of constant definitions into the global dictionary. These are not scoped and persist for the lifetime of the program.
-
-Given:
-
-```tacit
-struct-def person { name age } 
-```
-
-The compiler expands this into:
-
-```tacit
-2 constant person$length
-0 constant person-name
-1 constant person-age
-```
-
-Each field is assigned a numeric offset starting from zero. 
+As established in the Overview (Section 1), compiling a `struct-def` generates global constants for the struct's total size (e.g., `person$length`) and for each field's numeric offset (e.g., `person-name`, `person-age`), starting from zero. These constants persist for the program's lifetime.
 
 ### 2.3 Dictionary State
 
@@ -417,38 +401,3 @@ alice birthday
 ```
 
 As long as the receiver is of type `person`, the same code operates on either instance. This relies on consistent field offset definitions from `struct-def`.
-
-## 10. Constraints and Limitations
-
-This section documents the current design boundaries of Tacit’s struct system, with particular attention to what it does **not** support, and why.
-
-### 10.1 No Runtime Type Introspection
-
-Tacit does not carry runtime type tags with struct instances. All knowledge of structure layout is derived from the compile-time `struct-def`. This keeps execution fast and avoids metadata bloat, but also means:
-
-* You cannot inspect a struct’s type or fields at runtime.
-* You must use the correct `struct-def` symbol when working with `with`.
-
-### 10.2 No Inheritance or Field Overriding
-
-Tacit’s structs are flat. There is no concept of subtyping, extension, or method overriding. Each `struct-def` creates a sealed field layout. Code reuse is achieved through shared methods and macros, not via object hierarchy.
-
-### 10.3 Static Layout Required
-
-Because all struct field access is compiled to fixed offsets, the layout must be fully determined at compile time. Tacit does not allow dynamic field insertion or deletion.
-
-### 10.4 Structs Must Be Used as Pointers
-
-Struct local variables store compound memory blocks. Accessing them (e.g., `bob`) yields a pointer, not the value at the first field. This avoids accidental dereferencing and enables field access through offsets. All struct-aware methods assume the receiver is a pointer.
-
-### 10.5 No Automatic Copy or Clone
-
-Copying a struct means copying raw memory. Tacit provides no special logic for field-wise copying or deep cloning. If you want to duplicate a struct, you must do so manually, field by field, using known offsets and values.
-
-### 10.6 No Padding or Alignment
-
-Field offsets are tightly packed, one slot per field, with no padding for alignment. This keeps structs compact but may need adjustment if interop with foreign systems (e.g., C structs) is required.
-
-### 10.7 Symbol Lifetime and Cleanup
-
-Field names (like `person-name`) and the struct metadata (`person$length`) are stored in the global dictionary and persist for the duration of the program. Struct *instances*, on the other hand, are allocated as locals and cleaned up with the function scope. Symbol pollution can be avoided using disciplined naming or future scoping mechanisms.
