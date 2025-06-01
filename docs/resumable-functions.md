@@ -54,7 +54,61 @@ The compiled code for the `main` phase – which is the code written by the user
 **Behavior:**
 Each call to the `main` phase executes its logic, potentially modifying the persistent state. It then returns, and the persistent state remains intact for future `main` phase calls using the same resume token. The `main` phase might also return values or signals to its caller indicating progress, completion, or errors.
 
-# State, Scope, and Lifetime Management
+# Defining Persistent State: The `state {}` Block
+
+The `state {}` block is a key syntactic element in Tacit for defining and initializing the persistent state of a resumable function. It works in direct conjunction with the `init` phase and provides clarity on which variables are intended to maintain their values across multiple calls to the `main` phase.
+
+## 3.1. Purpose and Syntax
+
+The primary purpose of the `state {}` block is to declare variables that will be part of the resumable function's persistent frame. These variables are allocated by the `init` phase and retain their values between subsequent calls to the `main` phase.
+
+The general syntax is:
+`state { var1, var2 := initial_value, var3 ... }`
+
+*   Variables can be simply listed (e.g., `var1`).
+*   They can be assigned an initial value directly within the block (e.g., `var2 := initial_value`).
+
+All variables declared within any `state {}` block in a resumable function become part of its single, unified persistent frame.
+
+## 3.2. Initialization within `state {}`
+
+Variables declared in a `state {}` block can be initialized in two main ways during the `init` phase:
+
+1.  **Default Initialization:** By assigning a value directly in the block, like `count := 0`. This value is set when the `init` phase processes the block.
+2.  **Initialization from `init` Arguments:** The `init` phase can also use arguments passed to the `INITIATE_RESUMABLE` operation to initialize variables declared in `state {}` blocks. The compiler would provide the mechanism to map these incoming arguments to the respective state variables.
+
+This ensures that when the `main` phase is first called, these specific state variables have well-defined starting values.
+
+## 3.3. Relationship to `init` and `main` Phases
+
+The `state {}` block has distinct roles concerning the two phases of a resumable function:
+
+*   **`init` Phase Interaction:**
+    The `init` phase is responsible for processing all `state {}` blocks within the resumable function's definition. During `init`, the Tacit system:
+    1.  Allocates space within the persistent frame for all variables declared in all `state {}` blocks (along with space for any other non-`state {}` persistent locals).
+    2.  Executes the initializations specified within the `state {}` blocks (e.g., `var := value`) and potentially uses arguments from `INITIATE_RESUMABLE` to set initial values.
+    Essentially, the `init` phase brings the declared persistent state to life.
+
+*   **`main` Phase Interaction:**
+    The `main` phase (the code outside `state {}` blocks) operates on the persistent state variables that were allocated and initialized by the `init` phase. It can read from and write to these variables. The `main` phase does **not** re-process the `state {}` blocks for declaration or re-initialize these variables on subsequent calls. It simply accesses the existing persistent state.
+
+## 3.4. Multiple `state {}` Blocks and Code Proximity
+
+Tacit allows a resumable function definition to contain multiple `state {}` blocks. This feature offers a significant advantage for code organization and readability:
+
+*   **Improved Readability:** Developers can place `state {}` blocks physically closer to the sections of the `main` phase code that predominantly use those specific state variables. This co-location can make it easier to understand the relationship between state and logic.
+*   **Conceptual Aggregation:** Regardless of the number or placement of `state {}` blocks, they are all conceptually aggregated by the `init` phase. All variables from all `state {}` blocks contribute to the single, unified persistent frame of the resumable function. The `main` phase has access to all variables declared in any `state {}` block, irrespective of where the blocks are located in the source.
+
+## 3.5. Other Persistent Locals
+
+It's important to remember that the persistent frame allocated by `init` also includes space for any other local variables used within the `main` phase code that are intended to persist but are not explicitly declared in a `state {}` block.
+
+*   **Allocation:** Space for these "implicit" persistent locals is also reserved during the `init` phase.
+*   **Initialization:** Unlike variables in `state {}` blocks (which can be initialized *by* the `init` phase), these other persistent locals typically receive their initial values through assignments within the `main` phase code during its first or subsequent executions.
+
+The `state {}` block provides a clear, explicit way to declare and initialize a subset of the persistent variables, particularly those needing setup before the `main` logic begins or those whose declaration benefits from proximity to their usage.
+
+# 4. State, Scope, and Lifetime Management
 
 A defining characteristic of Tacit resumable functions is how their persistent state is managed. Understanding the interplay between the resumable function, its caller, and the Tacit VM's stack is key to using them effectively.
 
