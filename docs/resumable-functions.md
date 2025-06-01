@@ -840,5 +840,3 @@ END_DEFINE
 ### 9.2. Key Advantages and Use Cases Recap
 
 Resumable functions in Tacit provide a structured way to implement generators and other stateful computations where a function's `main` phase can be re-entered multiple times while maintaining its internal state. Their integration with the return stack for state persistence and clear `init`/`main` interaction model, with state lifetime managed by the parent scope makes them a powerful tool for advanced Tacit programming.
-
-This completes the detailed specification of Resumable Functions in Tacit, covering syntax, code generation, runtime conventions, and examples.
