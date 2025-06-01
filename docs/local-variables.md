@@ -909,8 +909,6 @@ Each function owns the region of the return stack between:
 
 This ownership starts when the function is called and ends when it returns. The base pointer (`BP`) is saved at call entry, and `SP` is adjusted during local declarations (`let`, `struct`, etc.).
 
-No cleanup is performed at yield or suspend points in resumables. Only a final `exit` triggers cleanup.
-
 #### 9.5 Interaction with Struct Locals
 
 Structs are allocated as opaque blocks on the return stack. The fields themselves may contain reference-counted values.

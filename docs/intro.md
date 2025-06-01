@@ -12,9 +12,8 @@ Based on the provided information about Tacit, I can outline its key design prin
 Tacit uses Reverse Polish Notation (RPN) syntax, where code is executed as it's encountered. This stack-based approach means:
 
 - Operations consume values from the stack and push results back
-- Code blocks must be deferred when used as arguments (e.g., `[ 1 2 3 ] (+) reduce`)
+- Code blocks must be deferred when used as arguments (e.g., `[ 1 2 3 ] { + } reduce`)
 - No variadic functions due to absence of stack frames
-- Stack grouping via curly braces (`{ 10 20 30 }`) pushes items and their count (10, 20, 30, 3)
 
 ## Data Types
 

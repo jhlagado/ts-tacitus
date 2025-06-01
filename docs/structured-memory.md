@@ -1,5 +1,17 @@
 # Structured Memory
 
+## Table of Contents
+- [1. Overview and Purpose](#1-overview-and-purpose)
+- [2. Struct Definition and Global Expansion](#2-struct-definition-and-global-expansion)
+- [3. Stack Allocation of Struct Instances](#3-stack-allocation-of-struct-instances)
+- [4. Field Assignment and Access](#4-field-assignment-and-access)
+- [5. Code Generation Semantics](#5-code-generation-semantics)
+- [6. Calling Methods on Structs](#6-calling-methods-on-structs)
+- [7. Nesting and Multiple Structs in Scope](#7-nesting-and-multiple-structs-in-scope)
+- [8. Initialization and Assignment Details](#8-initialization-and-assignment-details)
+- [9. Methods and Field Access](#9-methods-and-field-access)
+- [10. Appendix: Dictionary Entry Prefix Field (for Struct Field Scoping)](#10-appendix-dictionary-entry-prefix-field-for-struct-field-scoping)
+
 ## 1. Overview and Purpose
 
 Tacit's `struct-def` system introduces a lightweight, compiler-level abstraction for symbolic memory layout. Its goal is to allow programmers to define reusable record-like structures composed of named fields, where each field corresponds to a numeric offset within a memory region (typically stack-allocated). These structures are used to define compound local variables without requiring heap allocation, garbage collection, or pointer arithmetic.
@@ -400,7 +412,7 @@ alice birthday
 
 As long as the receiver is of type `person`, the same code operates on either instance. This relies on consistent field offset definitions from `struct-def`.
 
-### Appendix: Dictionary Entry Prefix Field (for Struct Field Scoping)
+## 10. Appendix: Dictionary Entry Prefix Field (for Struct Field Scoping)
 
 To support symbolic field access under `with` scopes, all dictionary entries now include an optional `prefix` field. This is a compile-time aid used to resolve two-part names like `person-name` from simple references like `name` inside a `with person` block.
 
