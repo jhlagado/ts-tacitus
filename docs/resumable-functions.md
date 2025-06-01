@@ -58,9 +58,13 @@ Each call to the `main` phase executes its logic, potentially modifying the pers
 
 A defining characteristic of Tacit resumable functions is how their persistent state is managed. Understanding the interplay between the resumable function, its caller, and the Tacit VM's stack is key to using them effectively.
 
-## 3.1. Persistent State on the Return Stack
+## 3.1. Persistent State Allocation and Initialization
 
-When a `STATE { ... }` block is declared within a resumable function, the variables defined within it constitute the function's persistent state. During the `init` phase, space for these state variables is allocated directly on the **return stack**. This allocation effectively extends the stack frame of the function that *called* `INITIATE_RESUMABLE`. The resume token returned by `init` points to this newly established persistent frame on the return stack.
+During the `init` phase of a resumable function, a **persistent frame** is allocated on the return stack. This frame reserves space for *all* variables that the resumable function will use with persistent lifetime across calls to its `main` phase. This includes variables explicitly declared within a `STATE { ... }` block as well as other local variables defined and used within the `main` body that are intended to persist as part of the function's ongoing context.
+
+The allocation effectively extends the stack frame of the function that called `INITIATE_RESUMABLE`. The resume token returned by `init` points to this newly established persistent frame.
+
+The primary role of the `STATE { ... }` block is to designate variables that can be initialized *during the `init` phase itself*. This initialization can occur using arguments passed to `INITIATE_RESUMABLE` or through default value assignments specified directly within the `STATE { ... }` block. Other persistent local variables (those not listed in `state {}` but still part of the persistent frame's reserved space) receive their initial values through assignments during the first or subsequent executions of the `main` phase.
 
 ## 3.2. Caller-Managed Scope: The Fundamental Principle
 
@@ -83,16 +87,15 @@ Typically, a conventional (non-resumable) Tacit function will be responsible for
 
 The lifetime of the resumable's state cannot exceed the lifetime of the conventional function instance that created it.
 
-## 3.4. Nested Resumable Functions: Chained Scope Dependencies
+## 3.4. Nested Resumable Initiations: Extending the Ancestor Scope
 
-Resumable functions can also initiate other resumable functions from within their `main` phase. This creates a chain of scope dependencies:
+Resumable functions can initiate other resumable functions from within their `main` phase. For instance, `ResumableA` (itself initiated by a non-resumable `ConventionalCaller`) might call `INITIATE_RESUMABLE ResumableB`.
 
-*   Suppose `ResumableA`'s `main` phase calls `INITIATE_RESUMABLE ResumableB`.
-*   `ResumableB`'s persistent state will be allocated on the return stack, conceptually "above" or as a further extension of the stack relative to `ResumableA`'s current operational context (which includes `ResumableA`'s own persistent frame).
-*   The lifetime of `ResumableB`'s state is now tied to the current invocation and persistent frame of `ResumableA`.
-*   If `ResumableA`'s state is eventually reclaimed (because the function that initiated `ResumableA` returns), then `ResumableB`'s state (and any further resumables initiated by `B`) will also be implicitly reclaimed.
+When this occurs, `ResumableB`'s persistent state frame is allocated on the return stack. Crucially, this new frame is **also** an extension of the stack frame of the original `ConventionalCaller`. It does not create a hierarchical dependency where `ResumableB`'s lifetime is solely or primarily tied to `ResumableA`'s.
 
-The ultimate anchor for the lifetime of any chain of resumable functions is the outermost non-resumable function scope that began the sequence. This ensures that all stack-allocated persistent state is properly managed without requiring manual deallocation by the resumable functions themselves.
+Instead, both `ResumableA`'s and `ResumableB`'s persistent states (and indeed, any further resumables they might subsequently initiate) co-exist as distinct extensions of that single, common `ConventionalCaller`'s scope. They are effectively "siblings" in terms of their lifetime dependency.
+
+The lifetime of all such persistent frames is governed by the lifetime of this outermost non-resumable `ConventionalCaller`. When that `ConventionalCaller`'s scope ends (e.g., it returns), all associated resumable state frames that were allocated as extensions of its stack frame are implicitly reclaimed. This ensures that all stack-allocated persistent state is properly managed without requiring manual deallocation by the resumable functions themselves, regardless of how deeply their initiations are nested.
 
 ## Calling Conventions and Stack Behavior
 
