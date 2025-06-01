@@ -31,55 +31,167 @@ Resumable functions provide elegant solutions for several programming challenges
 
 ## 2. Core Concepts and Syntax
 
-### 2.1. Defining a Resumable: `resumable : name ... ;`
+### 2.1. Defining Resumable Functions: Unified Syntax
 
-A resumable function is defined using the `resumable :` keyword, followed by its name, state declarations, and the body of its `main` phase. The compiler automatically splits this definition into two distinct callable words: `name.init` and `name.main`.
+In Tacit, resumability is an emergent property of a standard function. A function becomes resumable if its definition includes a `STATE` block to declare persistent state variables. There is no separate `resumable : ... ;` syntax; instead, the compiler adapts its strategy based on the presence of this block.
 
-```tacit
-resumable : my_generator
-  state { 0 -> counter }  // Persistent state variable
-  state { 10 -> limit }
-  ;
-  // Body of my_generator.main starts here
-  counter limit < IF
-    counter 1 +
-    DUP -> counter      // Update state and provide new counter value
-    BP_child            // Signal: has value, can be called again
-    EXIT
-  THEN
-  0                     // Signal: done
-  EXIT
-;
+**Conceptual Syntax:**
+
+```pseudocode
+DEFINE function-name ( init_arg1, init_arg2, ... // main_arg1, main_arg2, ... )
+  // Standard function signature, potentially indicating how arguments map
+  // to initialization vs. main phase calls. The '//' is a conceptual separator.
+
+  STATE { state_var1, state_var2, ... } // Declares persistent state variables
+                                        // This block triggers resumable compilation.
+
+  // User-provided code block begins here.
+  // This code implicitly becomes the 'main' phase logic.
+
+  // ... logic using arguments and state variables ...
+
+  // Must adhere to main phase signaling conventions on return (see Section 2.3).
+END_DEFINE
 ```
 
-### 2.2. The Two Phases: `name.init` and `name.main`
+*   **`DEFINE function-name ... END_DEFINE`**: Represents the standard way a function is defined in Tacit.
+*   **`STATE { ... }`**: This block is the key. If present, it declares `state_var` names that will constitute the persistent state. The compiler uses this to:
+    1.  Identify the function as resumable.
+    2.  Implicitly generate an `init` phase (see Section 2.2) to allocate and potentially initialize these state variables.
+*   **Function Signature `( init_args // main_args )`**: The function's signature needs a convention to distinguish arguments intended for the one-time initialization (consumed by the implicit `init` phase) from arguments intended for each re-entrant call to the `main` phase.
+    *   One convention could be a special comment or marker within the stack effect documentation (e.g., `( i_arg1 i_arg2 -- // m_arg1 -- m_val )`).
+    *   Alternatively, arguments might be consumed from the data stack by the `init` phase based on their order and types, with remaining arguments available for the `main` phase, or `main` phase arguments always requiring the resume token first.
+*   **User-Provided Code Block**: The code written by the programmer within `DEFINE ... END_DEFINE` (after the `STATE` block if it's at the top) constitutes the logic for the `main` re-entrant phase.
 
-#### 2.2.1. `name.init`: Initialization and State Allocation
+**Example (Conceptual):**
 
-*   **Purpose:** To allocate space on the return stack for the resumable's persistent state variables and initialize them.
-*   **Invocation:** Called once to set up the resumable instance.
-*   **Arguments:** Takes any initial arguments required for setup from the data stack.
-*   **Return Value:** Pushes a single "resume token" (its own `BP_child`) onto the data stack. This token is essential for subsequent calls to `name.main`.
-*   **Stack Effect:** Allocates `N_state` slots on the return stack for persistent locals. The Return Stack Pointer (`RSP`) remains elevated above these locals upon returning to the caller, ensuring they persist.
+```pseudocode
+DEFINE my-generator ( initial_limit // -- )
+  // initial_limit is for 'init', no specific args for 'main' beyond the token.
+  STATE { counter, limit }
 
-#### 2.2.2. `name.main`: Re-entrant Execution and Value Production
+  // Compiler generates 'init' to: allocate 'counter', 'limit'; 
+  // store 'initial_limit' into 'persistent.limit'; set 'persistent.counter' to 0.
 
-*   **Purpose:** To execute one step or iteration of the resumable function's logic.
-*   **Invocation:** Called one or more times using the resume token obtained from `name.init`.
-*   **Arguments:** Expects the resume token (`BP_child`) on the data stack. This token is used to locate its persistent state on the return stack.
-*   **Return Value(s) on Data Stack:**
-    *   If `main` produces a value and can be called again: `value(s)... BP_child`
-    *   **Done:** Pushes `0` to signal completion.
-    *   **Error:** Pushes `-1` (or another distinct sentinel) to signal an error.
-*   **Stack Effect:** Operates on its persistent state variables. Before returning, it ensures `RSP` is reset to its `BP_child`, preserving its locals for the next resumption or cleanup.
+  // This is the 'main' phase logic:
+  IF persistent.counter < persistent.limit THEN
+    value_to_return = persistent.counter
+    persistent.counter = persistent.counter + 1
+    PUSH_TO_DATA_STACK value_to_return
+    // Signal: can be called again (return resume_token, see Section 2.3)
+  ELSE
+    PUSH_TO_DATA_STACK 0 // Signal: done (see Section 2.3)
+  END_IF
+END_DEFINE
+```
 
-### 2.3. State Variables: `state { ... }`
+### 2.2. Implicit `init` and User-Defined `main` Phases
 
-Persistent local variables for a resumable function are declared using the `state { initial_value -> variable_name }` syntax within the `resumable : ... ;` block but before the main body logic. These variables are allocated on the return stack within the resumable's frame and retain their values across calls to `name.main`.
+With the unified syntax, the distinct phases of a resumable function are realized as follows:
 
-### 2.4. The Resume Token (`BP_child`)
+1.  **Implicit Initialization Phase (`init`)**:
+    *   **Origin**: Automatically generated by the compiler when a `STATE` block is present in a function definition.
+    *   **Purpose**: To allocate and initialize the persistent state of a new resumable function instance.
+    *   **Invocation**: Called once per instance using a special protocol (e.g., `INITIATE_RESUMABLE function-name WITH ...`, see Section 2.3).
+    *   **Action**: Sets up the persistent state variables (declared in `STATE`) on the return stack. It may consume initial arguments from the data stack as per the function's defined signature to populate these state variables.
+    *   **Return**: Returns a *resume token* (typically the base pointer `BP` of the allocated persistent state frame) on the data stack. This token is essential for subsequent calls to the `main` phase.
 
-The resume token is the base pointer (`BP`) of the resumable function's own stack frame, established during its `init` phase. It's returned by `name.init` and is required by `name.main` to locate its persistent state variables on the return stack. It also serves as a signal from `name.main` (when positive) that the function has produced a value and can be called again.
+2.  **User-Defined Main Re-entrant Phase (`main`)**:
+    *   **Origin**: This is the actual code block provided by the programmer within the `DEFINE ... END_DEFINE` structure.
+    *   **Purpose**: To perform a step of the resumable computation, potentially producing a value and updating the persistent state.
+    *   **Invocation**: Called potentially multiple times by the user (or a trampoline) using the resume token (e.g., `CALL_RESUMABLE function-name WITH token, ...`, see Section 2.3).
+    *   **Action**: Executes its defined logic, reading from and writing to the persistent state variables associated with the given resume token.
+    *   **Return**: Must push its result(s) (if any) onto the data stack. Crucially, it must also return a signal on the data stack indicating its status (see Section 2.3).
+
+Persistent state cleanup remains the responsibility of the parent scope that initiated the resumable function (see Section 3.5).
+
+### 2.3. Calling Conventions for Resumable Functions
+
+Interacting with a resumable function (one defined with a `STATE` block) requires adhering to specific calling protocols, one for initialization and one for subsequent re-entrant calls.
+
+#### 2.3.1. Initialization: `INITIATE_RESUMABLE`
+
+To create an instance of a resumable function and allocate its persistent state, the implicitly generated `init` phase must be invoked. This is achieved via a conceptual special operation or keyword, let's call it `INITIATE_RESUMABLE`.
+
+*   **Purpose**: To trigger the compiler-generated `init` phase for the specified function.
+*   **Action**:
+    1.  The caller pushes any required initialization arguments (as defined by the function's signature for its `init` aspect) onto the data stack.
+    2.  The caller then executes `INITIATE_RESUMABLE function-name WITH arg1, arg2 ...` (or an equivalent syntax that passes arguments and specifies the target function).
+*   **Under the Hood**: This invokes the implicit `init` logic, which performs the `init` prologue (allocating persistent state, see Section 3.3), initializes state variables using the provided arguments, and executes the `init` epilogue.
+*   **Result**: The `init` phase returns the `resume_token` (the `BP_persistent_frame`) on the data stack. This token is the unique handle to this newly created stateful instance.
+
+**Conceptual Invocation:**
+
+```pseudocode
+// Assuming 'my-generator' is defined as in Section 2.1, taking 'initial_limit'
+PUSH_TO_DATA_STACK 10 // initial_limit = 10
+resume_token = INITIATE_RESUMABLE my-generator // Conceptual syntax
+// 'resume_token' is now on the data stack (or in a variable)
+```
+
+#### 2.3.2. Re-entrant Calls: `CALL_RESUMABLE`
+
+Once the `resume_token` is obtained, the user-defined `main` phase of the resumable function can be called repeatedly. This is achieved via a conceptual operation like `CALL_RESUMABLE`.
+
+*   **Purpose**: To execute the main logic of the resumable function, operating on its persistent state.
+*   **Action**:
+    1.  The caller pushes the `resume_token` (obtained from `INITIATE_RESUMABLE`) onto the data stack.
+    2.  Any other arguments required by the `main` phase for this specific step (as per the function's signature for its `main` aspect) are pushed *after* the token.
+    3.  The caller then executes `CALL_RESUMABLE function-name WITH resume_token, arg1, ...` (or an equivalent syntax).
+*   **Under the Hood**: This invokes the user-defined code block (compiled as the `main` phase). It uses the token to locate its persistent state, executes its logic, and can update the state.
+*   **Result**: The `main` phase must return:
+    1.  Any application-specific result values on the data stack.
+    2.  A **signal value** on top of the data stack to indicate its status:
+        *   The **`resume_token` itself**: If the `main` phase can be called again for further steps.
+        *   **`0`** (or another designated 'done' sentinel): If the `main` phase has completed its work and should not be called again with this token.
+        *   **`-1`** (or another designated 'error' sentinel): If the `main` phase encountered an error during its execution.
+
+**Conceptual Invocation:**
+
+```pseudocode
+// Assuming 'resume_token' holds the token for 'my-generator'
+// 'my-generator's main phase doesn't take additional arguments in our example
+
+PUSH_TO_DATA_STACK resume_token
+CALL_RESUMABLE my-generator // Conceptual syntax
+// Data stack now holds: ... (value_or_signal from my-generator), signal_from_my_generator
+// The topmost is the signal (token, 0, or -1). Below it might be a produced value.
+```
+
+#### 2.3.3. Trampoline: Managing Re-entrant Calls
+
+A common pattern for managing calls to the `main` phase is a loop, often called a "trampoline." This loop repeatedly calls the `main` phase, checks the returned signal, and decides whether to continue, stop, or handle an error.
+
+**Conceptual Trampoline Logic:**
+
+```pseudocode
+// Initialization (as above)
+PUSH_TO_DATA_STACK 10 // initial_limit for my-generator
+current_token = INITIATE_RESUMABLE my-generator
+
+LOOP
+  PUSH_TO_DATA_STACK current_token
+  CALL_RESUMABLE my-generator
+  // Stack: [..., produced_value (if any), signal_value]
+
+  signal = POP_FROM_DATA_STACK()
+  IF signal == 0 THEN // Done
+    // produced_value (if any) might be POPped here or was already processed
+    BREAK_LOOP
+  ELSE IF signal == -1 THEN // Error
+    // Handle error
+    BREAK_LOOP
+  ELSE IF signal == current_token THEN // Can continue
+    // current_token is already correct for the next iteration.
+    // Process produced_value (e.g., POP_FROM_DATA_STACK() and print/use it)
+    CONTINUE_LOOP
+  ELSE // Invalid signal
+    // Handle error: unexpected signal
+    BREAK_LOOP
+  END_IF
+END_LOOP
+```
+This structure allows the resumable function to be driven by the caller, producing a sequence of values or performing steps until it signals completion, all while maintaining its internal state across calls.
 
 ## 3. Calling Conventions and Stack Management
 
