@@ -93,171 +93,211 @@ Understanding how Tacit manages the return stack is fundamental to grasping resu
 
 ### 3.2. Standard Function Call Mechanics
 
-All Tacit functions, including the constituent parts of resumables, adhere to a standard mechanism for establishing and tearing down stack frames.
+Understanding these standard call mechanics is crucial for appreciating the distinct calling conventions and stack management employed by resumable functions. This section details the typical sequence of operations for a conventional function call, which serves as a baseline.
 
-#### 3.2.1. Standard Function Prologue
+#### 3.2.1. Standard Function Prologue: Entering a Function
 
-When a function (`callee`) is called by another (`caller`):
+When a function (the `callee`) is invoked by another (the `caller`), the following steps typically occur to set up the `callee`'s execution environment (its stack frame):
 
-1.  **Caller Pushes Arguments:** The `caller` places any arguments for the `callee` onto the **data stack**.
-2.  **`CALL` Instruction Execution:**
-    a.  **Save Return Address (`RA_caller`):** The address of the instruction in the `caller` to which execution should return is pushed onto the return stack. `RSP` increments.
-    b.  **Save Caller's Base Pointer (`BP_parent`):** The `caller`'s `BP` (now `BP_parent`) is pushed onto the return stack. `RSP` increments.
-3.  **Callee Establishes Its Frame:**
-    a.  **Set New Base Pointer (`BP_child`):** The `callee` sets its own `BP`. A common convention is for `BP_child` to point to the location where `BP_parent` was saved: `BP_child := RSP - wordsize`.
-    b.  **Allocate Space for Callee's Local Variables:** The `callee` increments `RSP` to reserve space for its own local variables (`N_locals`). `RSP := RSP + N_locals * wordsize`.
+1.  **Caller Prepares Arguments (Data Stack):**
+    *   **Action:** The `caller` pushes any arguments intended for the `callee` onto the **data stack**.
+    *   **Rationale:** The data stack is the standard place for passing parameters between functions in Tacit.
 
-**Conceptual Return Stack after Prologue:**
+2.  **`CALL` Instruction Execution (Transfer of Control & Context Saving):**
+    *   **Action (a) - Save Return Address (`RA_caller`):** The `CALL` instruction automatically pushes the address of the next instruction in the `caller` (the `RA_caller`) onto the **return stack**. `RSP` (Return Stack Pointer) is incremented to point to the new top of the stack.
+    *   **Rationale (a):** This saved address is essential so the `callee` knows where to return control once its execution is complete.
+    *   **Action (b) - Save Caller's Base Pointer (`BP_parent`):** The `CALL` instruction (or convention immediately following it) pushes the `caller`'s current `BP` register value (which we'll term `BP_parent`) onto the **return stack**. `RSP` is again incremented.
+    *   **Rationale (b):** The `caller`'s `BP` defines its own stack frame. Saving it allows the `callee` to use the `BP` register for its own frame, and then restore the `caller`'s `BP` upon return, thus restoring the `caller`'s context.
+
+3.  **Callee Establishes Its Stack Frame:**
+    *   **Action (a) - Set New Base Pointer (`BP_child`):** The `callee` now establishes its own `BP` (which we'll term `BP_child`). A common convention is to set `BP_child` to the current `RSP` minus one word (or to the address where `BP_parent` was just stored). For example: `BP_child := RSP - wordsize` (if `RSP` points to the slot *after* `BP_parent`).
+    *   **Rationale (a):** `BP_child` provides a stable reference point for the `callee` to access its arguments (if passed via return stack, though less common in Tacit for primary args), its saved context (`BP_parent`, `RA_caller`), and its own local variables.
+    *   **Action (b) - Allocate Space for Pre-calculated Local Variables:** The `callee` increments `RSP` to reserve space for its local variables (`N_locals`) whose sizes are known at compile time. `RSP := RSP + N_locals * wordsize`.
+    *   **Rationale (b):** This carves out a dedicated memory region on the stack for the `callee`'s private data.
+    *   **Note on Dynamic Stack Growth:** Even in a conventional function, the `RSP` can be further incremented *dynamically* during its execution if more stack space is needed beyond the initially allocated locals. This might occur for complex temporary calculations, or significantly, if this `callee` itself calls another function (including the `init` phase of a resumable function), which would then build its own frame on top of the current `RSP`.
+
+**Conceptual Return Stack after Standard Prologue:**
 
 ```
 Higher Addresses ^
                  |
-RSP ->           +---------------------+
-                 | Next free slot      |
-                 +---------------------+
+RSP ->           +---------------------+  (Points to next free slot)
                  | Local Variable N-1  |
                  | ...                 |
-                 | Local Variable 0    |
-BP_child ->      +---------------------+  <-- BP_child points here (to saved BP_parent)
+                 | Local Variable 0    |  (Accessed via BP_child + offset)
+BP_child ->      +---------------------+  (BP_child points here, typically to saved BP_parent)
                  | Saved BP_parent     |
+                 +---------------------+ 
+                 | Saved RA_caller     |  (RA_caller is at BP_child - wordsize if BP_child points to BP_parent)
                  +---------------------+
-                 | Saved RA_caller     |
-                 +---------------------+
-                 | ... (Caller's Frame)|
+                 | ... (Caller's Frame below) |
 Lower Addresses  v
 ```
-*Callee's local variables are at `[BP_child + wordsize]` upwards. Saved `RA_caller` is at `[BP_child - wordsize]`.*
 
-#### 3.2.2. Standard Function Epilogue
+#### 3.2.2. Standard Function Epilogue: Exiting a Function
 
-When the `callee` is ready to return to the `caller`:
+When the `callee` finishes its work and is ready to return control to the `caller`:
 
-1.  **Deallocate Callee's Local Variables:** `RSP` is reset to point to `BP_child`. This effectively discards the callee's local variables.
-    `RSP := BP_child`
-2.  **Restore Caller's Base Pointer:** The saved `BP_parent` is popped from `[RSP]` into the `BP` register. `RSP` decrements.
-    `BP := [RSP]; RSP := RSP - wordsize`
-3.  **Restore Return Address:** The saved `RA_caller` is popped from `[RSP]`. `RSP` decrements.
-    `RA_to_return_to := [RSP]; RSP := RSP - wordsize`
-4.  **Return:** Execution jumps to `RA_to_return_to`. `RSP` now correctly points to its state before the `CALL` began.
+1.  **Prepare Return Value(s) (Data Stack):**
+    *   **Action:** The `callee` places any return values onto the **data stack**.
+    *   **Rationale:** Consistent with argument passing, the data stack is used for results.
+
+2.  **Deallocate Callee's Local Variables & Restore Caller's Context:**
+    *   **Action (a) - Deallocate Locals:** `RSP` is reset to point to `BP_child`. `RSP := BP_child`.
+    *   **Rationale (a):** This effectively discards the `callee`'s local variables and any temporary space it might have used above them, reclaiming that stack space.
+    *   **Action (b) - Restore Caller's Base Pointer:** The saved `BP_parent` is popped from the location pointed to by the current `RSP` (which is `BP_child`) into the `BP` register. `RSP` is decremented. `BP := [RSP]; RSP := RSP - wordsize` (assuming `BP_child` pointed to `BP_parent`).
+    *   **Rationale (b):** This restores the `caller`'s stack frame context, so it can again access its own locals and context correctly.
+    *   **Action (c) - Restore Return Address:** The saved `RA_caller` is popped from the current `RSP` into a temporary location or directly used by the `RETURN` instruction. `RSP` is decremented. `RA_to_return_to := [RSP]; RSP := RSP - wordsize`.
+    *   **Rationale (c):** This retrieves the address where execution must resume in the `caller`.
+
+3.  **`RETURN` Instruction Execution (Transfer of Control):**
+    *   **Action:** The `RETURN` instruction causes execution to jump to the `RA_to_return_to`.
+    *   **Rationale:** Control is handed back to the `caller`.
+    *   **Outcome:** `RSP` is now restored to its exact position before the `CALL` instruction was executed by the `caller`. The `caller` can now access its return values from the data stack.
 
 ### 3.3. Resumable Function `init` Phase (`name.init`)
 
-The `init` phase allocates and initializes the resumable function's persistent state variables, effectively extending its caller's stack scope.
+The `init` phase is unique: it establishes a *persistent* stack frame for the resumable function's state variables. This frame will outlive the `init` call itself and is effectively an extension of its caller's stack scope.
 
-#### 3.3.1. `name.init` Prologue
+#### 3.3.1. `name.init` Prologue: Setting Up Persistent State
 
-1.  **Caller Pushes Initialization Arguments:** Done on the data stack.
-2.  **`CALL name.init` Execution:** Standard saving of `RA_caller_of_init` and `BP_caller_of_init` onto the return stack. `RSP` increments accordingly.
-3.  **`name.init` Establishes Persistent Frame:**
-    a.  **Set `BP_persistent_frame`:** This `BP` marks the base of the resumable's persistent state.
-        `BP_persistent_frame := RSP - wordsize` (points to the saved `BP_caller_of_init`).
-    b.  **Allocate Space for Persistent State Variables (`N_state`):** `RSP` is incremented to reserve space for all state variables declared in the `resumable : ... ; state { ... }` definition.
-        `RSP := RSP + N_state * wordsize`.
-        The persistent state variables are now located from `[BP_persistent_frame + wordsize]` up to `[BP_persistent_frame + N_state * wordsize]`.
+1.  **Caller Initiates `(resumable_init_call)` Protocol:**
+    *   **Action:** The caller uses a special syntax or mechanism (conceptually `(resumable_init_call)`) to invoke the resumable function's `init` phase. This typically involves pushing any initial arguments for `name.init` onto the **data stack**.
+    *   **Rationale:** This distinct invocation signals the need to create a persistent stateful instance, not just a standard function call.
 
-#### 3.3.2. `name.init` Body
-    *   Initializes the persistent state variables using arguments from the data stack or constants.
+2.  **`name.init` Invocation (Similar to Standard Call Start):**
+    *   **Action (a) - Save Return Address (`RA_caller_of_init`):** As with a standard call, the address to return to in the caller is pushed onto the **return stack**. `RSP` increments.
+    *   **Rationale (a):** `init` needs to return to its caller once setup is complete.
+    *   **Action (b) - Save Caller's Base Pointer (`BP_caller_of_init`):** The caller's `BP` is pushed onto the **return stack**. `RSP` increments.
+    *   **Rationale (b):** Standard procedure to preserve the caller's frame context.
 
-#### 3.3.3. `name.init` Epilogue
+3.  **`name.init` Establishes the Persistent Frame:**
+    *   **Action (a) - Set `BP_persistent_frame`:** `name.init` sets its `BP` register to mark the base of what will become the persistent state frame. This value, `BP_persistent_frame`, *is the resume token*. Conventionally: `BP_persistent_frame := RSP - wordsize` (pointing to where `BP_caller_of_init` was saved).
+    *   **Rationale (a):** This `BP` serves as the anchor for the persistent state and will be used by `name.main` (via the resume token) to locate this state.
+    *   **Action (b) - Allocate Space for All Persistent State Variables (`N_state`):** `RSP` is incremented to reserve space for *all* state variables declared in the `resumable : ... ; state { ... }` definition. `RSP := RSP + N_state * wordsize`.
+    *   **Rationale (b):** This is the core action of `init` – allocating the memory on the stack that will hold the resumable's state across multiple `main` calls.
 
-The `init` phase returns to its caller, providing `BP_persistent_frame` as the resume token. Crucially, it leaves the persistent state variables on the stack, and `RSP` positioned *above* them.
+#### 3.3.2. `name.init` Body: Initializing State
 
-1.  **Push Resume Token:** `BP_persistent_frame` is pushed onto the **data stack**.
-2.  **Restore `BP_caller_of_init`:** The `BP` register is restored from `[BP_persistent_frame]`.
-3.  **Retrieve `RA_caller_of_init`:** The return address is retrieved from `[BP_persistent_frame - wordsize]`.
-4.  **Set `RSP` for Return (Critical Step):** The `RSP` is **not** reset to below the persistent frame. Instead, it remains at its current position:
-    `RSP_final_for_init := BP_persistent_frame + N_state * wordsize`.
-    (This means the `Saved RA_caller_of_init` and `Saved BP_caller_of_init` are now effectively part of the persistent frame's "header" if `BP_persistent_frame` is considered its true base accessible via the token. The actual return mechanism might involve temporarily PUSHing `RA_caller_of_init` onto this `RSP_final_for_init` if the `RETURN` instruction expects to POP it, then `RSP` would revert to `RSP_final_for_init` after the `RETURN`.)
-5.  **Return:** Execution jumps to `RA_caller_of_init`. The `BP` register holds `BP_caller_of_init`. The `RSP` in the caller's context is now effectively `RSP_final_for_init`, meaning the stack has grown by the size of the resumable's persistent state frame. The caller's scope is extended.
+*   **Action:** `name.init` executes its defined logic, which typically involves popping initialization arguments from the data stack and storing them (or derived values) into the allocated persistent state variable slots (e.g., `[BP_persistent_frame + wordsize + offset_var_A] := value_A`).
+*   **Rationale:** To give the persistent state its initial, well-defined values.
+
+#### 3.3.3. `name.init` Epilogue: Returning the Token, Preserving State
+
+The epilogue of `init` is critically different from a standard function because it must leave the newly allocated persistent state on the stack.
+
+1.  **Push Resume Token onto Data Stack:**
+    *   **Action:** The value of `BP_persistent_frame` (the resume token) is pushed onto the **data stack**.
+    *   **Rationale:** This provides the caller with the handle needed to make subsequent calls to `name.main`.
+
+2.  **Restore Caller's Context (Standard Part):**
+    *   **Action (a) - Restore `BP_caller_of_init`:** The `BP` register is restored by popping the saved `BP_caller_of_init` from `[BP_persistent_frame]`.
+    *   **Rationale (a):** Standard step to restore the caller's `BP`.
+    *   **Action (b) - Retrieve `RA_caller_of_init`:** The return address is retrieved from `[BP_persistent_frame - wordsize]` (assuming `BP_persistent_frame` points to `BP_caller_of_init`).
+    *   **Rationale (b):** To know where to return.
+
+3.  **`RSP` Management for Return (Critical Difference):**
+    *   **Action:** The `RSP` is **not** reset to below the persistent frame (i.e., not set to `BP_persistent_frame`). Instead, it remains pointing to the top of the allocated persistent state: `RSP_after_init_return := BP_persistent_frame + N_state * wordsize`.
+    *   **Rationale:** This is the key mechanism that leaves the persistent state variables on the return stack, effectively making them part of an extended stack frame for the original caller of `init`.
+
+4.  **`RETURN` Instruction Execution:**
+    *   **Action:** Execution jumps to `RA_caller_of_init`.
+    *   **Outcome:** The `BP` register holds `BP_caller_of_init`. The `RSP` in the caller's context is now `RSP_after_init_return`. The caller's stack effectively appears to have grown by the size of the resumable's persistent state frame. The caller now has the resume token from the data stack.
 
 ### 3.4. Resumable Function `main` Phase (`name.main`)
 
-The `main` phase executes a step of the resumable function. It operates with its own standard, temporary call frame for its immediate execution needs, while accessing the persistent state via the resume token.
+The `main` phase executes a step of the resumable function. It operates using its own standard, *temporary* call frame for its immediate execution needs, while accessing the *persistent* state (established by `init`) via the resume token.
 
-#### 3.4.1. `name.main` Prologue
+#### 3.4.1. `name.main` Prologue: Setting Up for Re-entrant Execution
 
-1.  **Caller Pushes Resume Token:** The `caller` pushes the `BP_persistent_frame_token` (obtained from `init`) onto the **data stack**.
-2.  **`CALL name.main` Execution:**
-    a.  **Save Return Address (`RA_main_caller`):** The address of the instruction in the `caller` to which execution should return is pushed onto the return stack. `RSP` increments.
-    b.  **Save Caller's Base Pointer (`BP_main_caller`):** The `caller`'s `BP` (now `BP_main_caller`) is pushed onto the return stack. `RSP` increments.
-3.  **`name.main` Establishes Its Own Temporary Execution Frame:**
-    a.  **Set `BP_current_main`:** This `BP` marks the base of the `main` phase's temporary frame.
-        `BP_current_main := RSP - wordsize` (points to the saved `BP_main_caller`).
-    b.  **Allocate Space for `main`'s Temporary Local Variables (if any):** If `name.main` requires its own non-persistent local variables for its current execution step (e.g., loop counters, temporary calculation results not part of the resumable's persistent state), space (`N_main_temp_locals`) is allocated:
-        `RSP := RSP + N_main_temp_locals * wordsize`.
-        The temporary local variables are now located from `[BP_current_main + wordsize]` up to `[BP_current_main + N_main_temp_locals * wordsize]`.
+1.  **Caller Prepares for `main` Call (Data Stack):**
+    *   **Action:** The `caller` pushes the resume token (`BP_persistent_frame_token` obtained from `init`) onto the **data stack**. Any other arguments for this specific `main` invocation are also pushed.
+    *   **Rationale:** The resume token is essential for `main` to locate the correct persistent state. Other arguments are for the current step's logic.
 
-**Conceptual Return Stack during `name.main` Execution:**
+2.  **`CALL name.main` Execution (Standard Call Start):**
+    *   **Action (a) - Save Return Address (`RA_main_caller`):** Standard operation; `RA_main_caller` is pushed onto the **return stack**. `RSP` increments.
+    *   **Rationale (a):** `main` needs to return to its caller (often a trampoline loop).
+    *   **Action (b) - Save Caller's Base Pointer (`BP_main_caller`):** Standard operation; `BP_main_caller` is pushed onto the **return stack**. `RSP` increments.
+    *   **Rationale (b):** To preserve the `main` caller's frame context.
+
+3.  **`name.main` Establishes Its Own *Temporary* Execution Frame:**
+    *   **Action (a) - Retrieve Resume Token:** `name.main` pops the `BP_persistent_frame_token` from the data stack and stores it in a known location for its use (e.g., a dedicated register if available, or a specific slot in its upcoming temporary local variables, let's call this `STATE_POINTER_STORAGE`).
+    *   **Rationale (a):** `main` needs this token to calculate addresses for accessing persistent state variables.
+    *   **Action (b) - Set `BP_current_main`:** `name.main` establishes its own `BP` for its *temporary* frame: `BP_current_main := RSP - wordsize` (pointing to where `BP_main_caller` was saved).
+    *   **Rationale (b):** This `BP` is for `main`'s current execution only, for its temporary locals and saved context. It is distinct from `BP_persistent_frame_token`.
+    *   **Action (c) - Allocate Space for `main`'s Temporary Local Variables:** If `name.main` requires its own non-persistent local variables for its current execution step (`N_main_temp_locals`), space is allocated: `RSP := RSP + N_main_temp_locals * wordsize`.
+    *   **Rationale (c):** These locals are for the current invocation of `main` only and will be discarded when `main` returns.
+    *   **Note on Dynamic Stack Growth within `main`:** Just like any conventional function, if `name.main` itself calls other functions (including initiating another resumable via its `(resumable_init_call)` protocol), `RSP` will be further incremented from its current position to accommodate the stack frames of those callees. These new frames are built on top of `main`'s temporary frame.
+
+**Conceptual Return Stack during `name.main` Execution (Simplified):**
 
 ```
 Higher Addresses ^
                  |
-RSP ->           +---------------------------------+
-                 | Next free slot                  |
-                 +---------------------------------+
+RSP ->           +---------------------------------+ (Points to next free slot for main's execution)
                  | main's Temp Local M-1 (if any)  |
                  | ...                             |
                  | main's Temp Local 0 (if any)    |
-                 | (STATE_POINTER_STORAGE if local)|
-BP_current_main->+---------------------------------+  <-- BP_current_main
+                 | (STATE_POINTER_STORAGE if local)| (Holds BP_persistent_frame_token)
+BP_current_main->+---------------------------------+ (BP for main's temporary frame)
                  | Saved BP_main_caller            |
                  +---------------------------------+
                  | Saved RA_main_caller            |
-RSP before main->+=================================+  <-- RSP was here before CALL name.main
-                 | Persistent State Var N_state-1  | <┐ (This is BP_persistent_frame_token + N_state*wordsize)
-                 | ...                             |  |
-                 | Persistent State Var 0          |  | (Accessed via STATE_POINTER_STORAGE,
-BP_persistent_frame_token + wordsize -> +---------+  |  which holds BP_persistent_frame_token)
-                 | Saved BP_caller (of init)       |  |
-BP_persistent_frame_token -> +--------------------+  |
-                 | Saved RA_caller (of init)       | <┘
+RSP_before_main->+=================================+ (RSP was here before CALL name.main)
+                 | Persistent State Var N_state-1  | <┐ 
+                 | ...                             |  | These are part of the persistent frame,
+                 | Persistent State Var 0          |  | established by init, located via
+BP_pers_frame_tok| Saved BP_caller (of init)       |  | STATE_POINTER_STORAGE which points to
+(points here) -->| Saved RA_caller (of init)       | <┘ BP_persistent_frame_token.
                  +---------------------------------+
                  | ... (Original Caller's Frame)   |
 Lower Addresses  v
 ```
 
-#### 3.4.2. Interaction with Persistent State
+#### 3.4.2. Interaction with Persistent State from `name.main`
 
-*   Persistent state variables are accessed indirectly using the value in `STATE_POINTER_STORAGE` (which is `BP_persistent_frame_token`), e.g., `[ [STATE_POINTER_STORAGE] + wordsize + offset_of_persistent_var ]`.
-*   `main`'s own temporary local variables are accessed directly via `BP_current_main`, e.g., `[ BP_current_main + wordsize + offset_of_main_temp_var ]`.
+*   **Action:** `name.main` accesses/modifies persistent state variables indirectly. It uses the `BP_persistent_frame_token` (stored in its `STATE_POINTER_STORAGE`) as the base address. For example, to access the first persistent variable: `[ [STATE_POINTER_STORAGE] + wordsize ]`.
+*   **Rationale:** This allows `main` to operate on the correct state instance across multiple calls.
+*   **Action:** `main`'s own temporary local variables are accessed directly via `BP_current_main`, e.g., `[ BP_current_main + wordsize + offset_of_main_temp_var ]`.
+*   **Rationale:** Standard access for a function's own locals.
 
 #### 3.4.3. Calling Other Functions from `name.main`
 
-If `name.main` calls another function:
-*   It uses the standard function call mechanism. `BP_current_main` becomes the `BP_parent` for the new callee.
-*   The new callee's frame is allocated on the return stack *above* `name.main`'s current `RSP`.
-*   When that function returns, `name.main`'s context (`BP_current_main`, `RSP`, its temporary locals, and `STATE_POINTER_STORAGE`) is correctly restored.
-*   The persistent state frame (referenced by `STATE_POINTER_STORAGE`) remains untouched further down the stack.
+*   **Action:** If `name.main` calls another standard function or initiates another resumable, it follows the standard call prologue (Section 3.2.1). `BP_current_main` acts as the `BP_parent` for this new callee. The new callee's frame is built on top of `name.main`'s current `RSP`.
+*   **Rationale:** This is normal nested function call behavior. The persistent state frame (referenced by `STATE_POINTER_STORAGE`) remains untouched and safe further down the stack.
+*   **Outcome:** When the called function returns, `name.main`'s context (`BP_current_main`, `RSP`, its temporary locals, and `STATE_POINTER_STORAGE`) is correctly restored, allowing `main` to continue its execution.
 
-#### 3.4.4. `name.main` Epilogue (Crucial Clarification)
+#### 3.4.4. `name.main` Epilogue: Returning from a Step, Preserving Persistent State
 
-When `name.main` completes its current step (produces a value and can be called again, or is done):
+When `name.main` completes its current step, its epilogue is similar to a standard function's epilogue *for its own temporary frame only*.
 
-1.  **Push Produced Value(s) and Signal:** Any results and the appropriate signal (`BP_persistent_frame_token` to indicate it can be called again, `0` for done, `-1` for error) are pushed onto the **data stack**.
-2.  **Perform Standard Epilogue for `main`'s Own Temporary Frame Only:**
-    a.  **Deallocate `main`'s Temporary Local Variables (if any):** `RSP` is reset to `BP_current_main`.
-        `RSP := BP_current_main`.
-    b.  **Restore `main`'s Caller's Base Pointer:** `BP_main_caller` is restored into `BP` from `[RSP]`. `RSP` decrements.
-        `BP := [RSP]; RSP := RSP - wordsize`.
-    c.  **Restore `main`'s Caller's Return Address:** `RA_main_caller` is retrieved from `[RSP]`. `RSP` decrements.
-        `RA_to_return_to := [RSP]; RSP := RSP - wordsize`.
-3.  **Return:** Execution jumps to `RA_to_return_to`.
+1.  **Push Produced Value(s) and Signal onto Data Stack:**
+    *   **Action:** `name.main` pushes any results from the current step onto the **data stack**. It then pushes the appropriate signal: `BP_persistent_frame_token` (its own resume token) to indicate it can be called again, `0` for done, or `-1` for error.
+    *   **Rationale:** To communicate results and status back to the caller (trampoline).
 
-**Outcome of `name.main` Epilogue:**
-*   The `RSP` is now restored to the exact value it held just before `name.main` was called. This value is `BP_persistent_frame_token + N_state * wordsize`.
-*   **The persistent state variables of the resumable function, and the portion of the stack they occupy, remain entirely untouched and are still live.** `name.main` has only cleaned up its own, immediate, temporary call frame.
-*   Control returns to `main`'s caller, with the persistent state preserved for future resumption.
+2.  **Perform Standard Epilogue for `main`'s *Temporary* Frame:**
+    *   **Action (a) - Deallocate `main`'s Temporary Locals:** `RSP` is reset to `BP_current_main`. `RSP := BP_current_main`.
+    *   **Rationale (a):** Discards `main`'s temporary working storage for this invocation.
+    *   **Action (b) - Restore `main`'s Caller's Base Pointer:** `BP_main_caller` is restored into `BP` from `[RSP]` (which is `BP_current_main`). `RSP` decrements. `BP := [RSP]; RSP := RSP - wordsize`.
+    *   **Rationale (b):** Restores the `BP` of the function that called `main`.
+    *   **Action (c) - Restore `main`'s Caller's Return Address:** `RA_main_caller` is retrieved from `[RSP]`. `RSP` decrements. `RA_to_return_to := [RSP]; RSP := RSP - wordsize`.
+    *   **Rationale (c):** Gets the address to return to in `main`'s caller.
 
-### 3.5. Stack Management for `name.cleanup_resumable` (Explicit Cleanup)
+3.  **`RETURN` Instruction Execution:**
+    *   **Action:** Execution jumps to `RA_to_return_to`.
+    *   **Outcome:**
+        *   The `RSP` (in the context of `main`'s caller) is now restored to the exact value it held just before `name.main` was called. This value is `BP_persistent_frame_token + N_state * wordsize` (i.e., the top of the persistent state frame).
+        *   **Crucially, the persistent state variables of the resumable function, and the entire stack segment they occupy, remain entirely untouched and are still live.** `name.main` has only cleaned up its own, immediate, temporary call frame.
+        *   Control returns to `main`'s caller, with the persistent state preserved for potential future re-entry into `name.main`.
 
-If an explicit cleanup function `name.cleanup_resumable` is called:
+### 3.5. Persistent State Cleanup: Parent Scope Responsibility
 
-1.  **Caller Pushes Resume Token:** The `BP_persistent_frame_token` of the instance to be cleaned is pushed onto the data stack.
-2.  **`CALL name.cleanup_resumable`:** Standard call prologue establishes `cleanup`'s own temporary frame.
-3.  **`cleanup` Retrieves Token:** Pops `BP_persistent_frame_token` from data stack.
-4.  **Deallocate Persistent Frame:** The primary action is to reset `RSP` to the base of the persistent frame's "header", effectively deallocating it. This means setting `RSP` to point to where `Saved RA_caller (of init)` was stored.
-    `RSP := BP_persistent_frame_token - wordsize`.
-5.  **`cleanup` Epilogue:** `name.cleanup_resumable` performs its own standard function epilogue to return to its caller. The stack space previously occupied by the resumable instance is now available.
+Resumable functions in Tacit do **not** have an explicit `name.cleanup_resumable` word or a self-initiated cleanup phase for their persistent state.
+
+*   **Mechanism:** The persistent state, allocated by `name.init`, is an extension of the stack frame of the function that originally invoked `name.init` (the "parent scope"). This state remains on the return stack for the entire lifetime of that parent scope.
+*   **Cleanup Trigger:** Cleanup of the resumable's persistent state occurs **automatically and implicitly** only when this parent function itself completes its execution and performs its own standard function epilogue (as described in Section 3.2.2).
+*   **Process:** As the parent function's epilogue deallocates its own local variables and restores its caller's `BP` and `RSP`, the stack space that was occupied by the resumable function's persistent state (which was part of, or an extension of, this parent frame) is naturally reclaimed. The `RSP` of the parent's caller is restored to its value from before the parent was ever called.
+*   **No Caller Action for Resumable Cleanup:** The direct caller of `name.main` (e.g., a trampoline loop) does not, and should not, attempt to perform any cleanup action on the resumable's persistent state. When the trampoline decides to stop calling `name.main`, the persistent state simply remains on the stack until the function containing the trampoline (the parent scope) exits.
 
 ### 3.6. Implicit Cleanup (Parent Scope Exit)
 
