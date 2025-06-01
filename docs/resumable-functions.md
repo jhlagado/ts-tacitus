@@ -1,842 +1,98 @@
-# Resumable Functions in Tacit
-
-## Table of Contents
-- [Resumable Functions in Tacit](#resumable-functions-in-tacit)
-  - [Table of Contents](#table-of-contents)
-  - [1. Introduction](#1-introduction)
-    - [1.1. What are Resumable Functions?](#11-what-are-resumable-functions)
-    - [1.2. Motivation: Why Resumables?](#12-motivation-why-resumables)
-    - [1.3. Key Characteristics](#13-key-characteristics)
-  - [2. Core Concepts and Syntax](#2-core-concepts-and-syntax)
-    - [2.1. Defining Resumable Functions: Unified Syntax](#21-defining-resumable-functions-unified-syntax)
-    - [2.2. Implicit `init` and User-Defined `main` Phases](#22-implicit-init-and-user-defined-main-phases)
-    - [2.3. Calling Conventions for Resumable Functions](#23-calling-conventions-for-resumable-functions)
-      - [2.3.1. Initialization: `INITIATE_RESUMABLE`](#231-initialization-initiate_resumable)
-      - [2.3.2. Re-entrant Calls: `CALL_RESUMABLE`](#232-re-entrant-calls-call_resumable)
-      - [2.3.3. Trampoline: Managing Re-entrant Calls](#233-trampoline-managing-re-entrant-calls)
-  - [3. Calling Conventions and Stack Management](#3-calling-conventions-and-stack-management)
-    - [3.1. The Return Stack: `RSP` and `BP`](#31-the-return-stack-rsp-and-bp)
-    - [3.2. Standard Function Call Mechanics](#32-standard-function-call-mechanics)
-      - [3.2.1. Standard Function Prologue: Entering a Function](#321-standard-function-prologue-entering-a-function)
-      - [3.2.2. Standard Function Epilogue: Exiting a Function](#322-standard-function-epilogue-exiting-a-function)
-    - [3.3. Resumable Function `init` Phase (`name.init`)](#33-resumable-function-init-phase-nameinit)
-      - [3.3.1. `name.init` Prologue: Setting Up Persistent State](#331-nameinit-prologue-setting-up-persistent-state)
-      - [3.3.2. `name.init` Body: Initializing State](#332-nameinit-body-initializing-state)
-      - [3.3.3. `name.init` Epilogue: Returning the Token, Preserving State](#333-nameinit-epilogue-returning-the-token-preserving-state)
-    - [3.4. Resumable Function `main` Phase (`name.main`)](#34-resumable-function-main-phase-namemain)
-      - [3.4.1. `name.main` Prologue: Setting Up for Re-entrant Execution](#341-namemain-prologue-setting-up-for-re-entrant-execution)
-      - [3.4.2. Interaction with Persistent State from `name.main`](#342-interaction-with-persistent-state-from-namemain)
-      - [3.4.3. Calling Other Functions from `name.main`](#343-calling-other-functions-from-namemain)
-      - [3.4.4. `name.main` Epilogue: Returning from a Step, Preserving Persistent State](#344-namemain-epilogue-returning-from-a-step-preserving-persistent-state)
-    - [3.5. Persistent State Cleanup: Parent Scope Responsibility](#35-persistent-state-cleanup-parent-scope-responsibility)
-    - [3.6. Implicit Cleanup (Parent Scope Exit)](#36-implicit-cleanup-parent-scope-exit)
-  - [4. Compilation, Code Layout, and Calling Conventions](#4-compilation-code-layout-and-calling-conventions)
-    - [4.1. Compiler Role, Code Structure, and Phase Implementation](#41-compiler-role-code-structure-and-phase-implementation)
-    - [4.2. Initial Invocation: `INITIATE_RESUMABLE`](#42-initial-invocation-initiate_resumable)
-    - [4.3. Re-entering: `CALL_RESUMABLE`](#43-re-entering-call_resumable)
-    - [4.4. Signaling from `name.main`](#44-signaling-from-namemain)
-      - [4.3.1. Producing a Value and Signaling Continuation (Returning `BP_child`)](#431-producing-a-value-and-signaling-continuation-returning-bp_child)
-      - [4.3.2. Signaling Completion (Returning `0`)](#432-signaling-completion-returning-0)
-      - [4.3.3. Signaling an Error (Returning `-1`)](#433-signaling-an-error-returning--1)
-    - [4.5. Persistent State Lifetime and Cleanup (Parent Scope Responsibility)](#45-persistent-state-lifetime-and-cleanup-parent-scope-responsibility)
-    - [4.6. Caller Responsibilities and Loop Patterns (e.g., Trampoline)](#46-caller-responsibilities-and-loop-patterns-eg-trampoline)
-  - [5. Interaction with Other Functions](#5-interaction-with-other-functions)
-    - [5.1. Calling Normal Functions from a Resumable](#51-calling-normal-functions-from-a-resumable)
-    - [5.2. Calling a Resumable from a Normal Function](#52-calling-a-resumable-from-a-normal-function)
-  - [6. Recursive and Re-entrant Resumable Interactions](#6-recursive-and-re-entrant-resumable-interactions)
-    - [6.1. Direct Recursion: A Resumable Initiating New Instances of Itself](#61-direct-recursion-a-resumable-initiating-new-instances-of-itself)
-    - [6.2. Mutual Initiation (Resumables Initiating Each Other)](#62-mutual-initiation-resumables-initiating-each-other)
-    - [6.3. Stack Layout in Nested Scenarios](#63-stack-layout-in-nested-scenarios)
-    - [6.4. Managing Multiple Resume Tokens](#64-managing-multiple-resume-tokens)
-  - [7. Example: Fibonacci Generator](#7-example-fibonacci-generator)
-    - [7.1. Pseudocode for `fib` Resumable Function](#71-pseudocode-for-fib-resumable-function)
-    - [7.2. Caller Logic for `fib_test` (Conceptual Pseudocode)](#72-caller-logic-for-fib_test-conceptual-pseudocode)
-    - [8.3. Conceptual Compiled Output](#83-conceptual-compiled-output)
-  - [9. Best Practices and Summary](#9-best-practices-and-summary)
-    - [9.1. Checklist for Resumable Function Implementation](#91-checklist-for-resumable-function-implementation)
-    - [9.2. Key Advantages and Use Cases Recap](#92-key-advantages-and-use-cases-recap)
-
-Resumable functions in Tacit enable programming patterns like generators and stateful computations, where logic is executed over multiple distinct calls. A function becomes resumable by including a `state` block, signaling the compiler to generate a special initialization phase (`init`). The user-provided function code then serves as the re-entrant `main` phase. This `main` phase can be invoked multiple times, each time accessing the persistent internal state established by the implicit `init` phase. It can return an intermediate result and signal its readiness for subsequent calls, or indicate completion, all while its state is preserved.
-
-## 1. Introduction
-
-### 1.1. What are Resumable Functions?
-
-A function in Tacit that includes a `state { ... }` block is compiled as a resumable function. Its main body of code (the `main` phase) can be entered multiple times, maintaining state across these entries. Unlike conventional functions that compute their entire result in a single invocation, the `main` phase of a resumable function can be called repeatedly. Each call can perform a part of the computation, return an intermediate result, and be ready for a subsequent call, operating with its persistent local state variables (defined in the `state` block) intact.
-
-This is achieved through a two-phase execution model, orchestrated by the compiler and specific calling conventions:
-1.  **Implicit Initialization (`init` phase):** Automatically generated by the compiler when a `state` block is present. This phase allocates and initializes the function's persistent state variables.
-2.  **Re-entry (`main` phase):** This is the user-defined body of the function. It executes the core logic, accesses persistent state, and can be called multiple times, potentially producing a value and signaling whether it can be re-invoked or has completed.
-
-### 1.2. Motivation: Why Resumables?
-
-Resumable functions provide elegant solutions for several programming challenges:
-
-*   **Generators:** Creating sequences of values on demand, without computing them all at once (e.g., Fibonacci sequence, data stream processing).
-*   **Stateful Iteration:** Structuring operations that produce a sequence of results or manage state over multiple distinct calls. This can be useful in contexts like managing I/O driven interactions or event loops where state needs to be preserved between events or steps.
-*   **Encapsulated State:** Creating components or functions that encapsulate their own persistent state, similar to closures or objects, but with a specific `init` and `main` invocation pattern for managing that state over successive calls.
-*   **State Machines:** Defining complex, stateful logic in a more linear and readable fashion.
-
-### 1.3. Key Characteristics
-
-*   **Two-Phase Execution:** An `init` phase for setup and a `main` phase for iterative execution.
-*   **Persistent State:** Local variables declared as `state` persist across multiple calls to its `main` phase.
-*   **Return Stack Allocation:** The persistent state of a resumable function is stored on the return stack, within its own call frame.
-*   **Explicit Resume Token:** The `init` phase returns a "resume token" (typically the function's base pointer, `BP_child`). This token is required to call the `main` phase.
-*   **Parent-Scope State Lifetime:** The persistent state of a resumable function is an extension of its parent caller's stack frame and is reclaimed automatically when the parent scope exits. Resumable functions do not have an explicit self-cleanup mechanism.
-
-## 2. Core Concepts and Syntax
-
-### 2.1. Defining Resumable Functions: Unified Syntax
-
-In Tacit, resumability is an emergent property of a standard function. A function becomes resumable if its definition includes a `state` block to declare persistent state variables. There is no separate `resumable : ... ;` syntax; instead, the compiler adapts its strategy based on the presence of this block.
-
-**Conceptual Syntax:**
-
-```pseudocode
-def function-name {
-  // Standard function signature, potentially indicating how arguments map
-  // to initialization vs. main phase calls. The '//' is a conceptual separator.
-
-  state { state_var1, state_var2, ... } // Declares persistent state variables
-                                        // This block triggers resumable compilation.
-
-  // User-provided code block begins here.
-  // This code implicitly becomes the 'main' phase logic.
-
-  // ... logic using arguments and state variables ...
-
-  // Must adhere to main phase signaling conventions on return (see Section 2.3).
-}
-```
-
-*   **`def function-name {  ... }`**: Represents the standard way a function is defined in Tacit.
-*   **`state { ... }`**: This block is the key. If present, it declares `state_var` names that will constitute the persistent state. The compiler uses this to:
-    1.  Identify the function as resumable.
-    2.  Implicitly generate an `init` phase (see Section 2.2) to allocate and potentially initialize these state variables.
-*   **Function Signature `( init_args // main_args )`**: The function's signature needs a convention to distinguish arguments intended for the one-time initialization (consumed by the implicit `init` phase) from arguments intended for each re-entrant call to the `main` phase.
-    *   One convention could be a special comment or marker within the stack effect documentation (e.g., `( i_arg1 i_arg2 -- // m_arg1 -- m_val )`).
-    *   Alternatively, arguments might be consumed from the data stack by the `init` phase based on their order and types, with remaining arguments available for the `main` phase, or `main` phase arguments always requiring the resume token first.
-*   **User-Provided Code Block**: The code written by the programmer within `def function-name { ... }` (after the `state` block if it's at the top) constitutes the logic for the `main` re-entrant phase.
-
-**Example (Conceptual):**
-
-```pseudocode
-def my-generator {  
-  // initial_limit is for 'init', no specific args for 'main' beyond the token.
-  state { counter, limit }
-
-  // Compiler generates 'init' to: allocate 'counter', 'limit'; 
-  // store 'initial_limit' into 'persistent.limit'; set 'persistent.counter' to 0.
-
-  // This is the 'main' phase logic:
-  IF persistent.counter < persistent.limit THEN
-    value_to_return = persistent.counter
-    persistent.counter = persistent.counter + 1
-    PUSH_TO_DATA_STACK value_to_return
-    // Signal: can be called again (return resume_token, see Section 2.3)
-  ELSE
-    PUSH_TO_DATA_STACK 0 // Signal: done (see Section 2.3)
-  END_IF
-}
-```
-
-### 2.2. Implicit `init` and User-Defined `main` Phases
-
-With the unified syntax, the distinct phases of a resumable function are realized as follows:
-
-1.  **Implicit Initialization Phase (`init`)**:
-    *   **Origin**: Automatically generated by the compiler when a `state` block is present in a function definition.
-    *   **Purpose**: To allocate and initialize the persistent state of a new resumable function instance.
-    *   **Invocation**: Called once per instance using a special protocol (e.g., `INITIATE_RESUMABLE function-name WITH ...`, see Section 2.3).
-    *   **Action**: Sets up the persistent state variables (declared in `state`) on the return stack. It may consume initial arguments from the data stack as per the function's defined signature to populate these state variables.
-    *   **Return**: Returns a *resume token* (typically the base pointer `BP` of the allocated persistent state frame) on the data stack. This token is essential for subsequent calls to the `main` phase.
-
-2.  **User-Defined Main Re-entrant Phase (`main`)**:
-    *   **Origin**: This is the actual code block provided by the programmer within the `def function-name { ... }` structure.
-    *   **Purpose**: To perform a step of the resumable computation, potentially producing a value and updating the persistent state.
-    *   **Invocation**: Called potentially multiple times by the user (or a trampoline) using the resume token (e.g., `CALL_RESUMABLE function-name WITH token, ...`, see Section 2.3).
-    *   **Action**: Executes its defined logic, reading from and writing to the persistent state variables associated with the given resume token.
-    *   **Return**: Must push its result(s) (if any) onto the data stack. Crucially, it must also return a signal on the data stack indicating its status (see Section 2.3).
-
-Persistent state cleanup remains the responsibility of the parent scope that initiated the resumable function (see Section 3.5).
-
-### 2.3. Calling Conventions for Resumable Functions
-
-Interacting with a resumable function (one defined with a `state` block) requires adhering to specific calling protocols, one for initialization and one for subsequent re-entrant calls.
-
-#### 2.3.1. Initialization: `INITIATE_RESUMABLE`
-
-To create an instance of a resumable function and allocate its persistent state, the implicitly generated `init` phase must be invoked. This is achieved via a conceptual special operation or keyword, let's call it `INITIATE_RESUMABLE`.
-
-*   **Purpose**: To trigger the compiler-generated `init` phase for the specified function.
-*   **Action**:
-    1.  The caller pushes any required initialization arguments (as defined by the function's signature for its `init` aspect) onto the data stack.
-    2.  The caller then executes `INITIATE_RESUMABLE function-name WITH arg1, arg2 ...` (or an equivalent syntax that passes arguments and specifies the target function).
-*   **Under the Hood**: This invokes the implicit `init` logic, which performs the `init` prologue (allocating persistent state, see Section 3.3), initializes state variables using the provided arguments, and executes the `init` epilogue.
-*   **Result**: The `init` phase returns the `resume_token` (the `BP_persistent_frame`) on the data stack. This token is the unique handle to this newly created stateful instance.
-
-**Conceptual Invocation:**
-
-```pseudocode
-// Assuming 'my-generator' is defined as in Section 2.1, taking 'initial_limit'
-PUSH_TO_DATA_STACK 10 // initial_limit = 10
-resume_token = INITIATE_RESUMABLE my-generator // Conceptual syntax
-// 'resume_token' is now on the data stack (or in a variable)
-```
-
-#### 2.3.2. Re-entrant Calls: `CALL_RESUMABLE`
-
-Once the `resume_token` is obtained, the user-defined `main` phase of the resumable function can be called repeatedly. This is achieved via a conceptual operation like `CALL_RESUMABLE`.
-
-*   **Purpose**: To execute the main logic of the resumable function, operating on its persistent state.
-*   **Action**:
-    1.  The caller pushes the `resume_token` (obtained from `INITIATE_RESUMABLE`) onto the data stack.
-    2.  Any other arguments required by the `main` phase for this specific step (as per the function's signature for its `main` aspect) are pushed *after* the token.
-    3.  The caller then executes `CALL_RESUMABLE function-name WITH resume_token, arg1, ...` (or an equivalent syntax).
-*   **Under the Hood**: This invokes the user-defined code block (compiled as the `main` phase). It uses the token to locate its persistent state, executes its logic, and can update the state.
-*   **Result**: The `main` phase must return:
-    1.  Any application-specific result values on the data stack.
-    2.  A **signal value** on top of the data stack to indicate its status:
-        *   The **`resume_token` itself**: If the `main` phase can be called again for further steps.
-        *   **`0`** (or another designated 'done' sentinel): If the `main` phase has completed its work and should not be called again with this token.
-        *   **`-1`** (or another designated 'error' sentinel): If the `main` phase encountered an error during its execution.
-
-**Conceptual Invocation:**
-
-```pseudocode
-// Assuming 'resume_token' holds the token for 'my-generator'
-// 'my-generator's main phase doesn't take additional arguments in our example
-
-PUSH_TO_DATA_STACK resume_token
-CALL_RESUMABLE my-generator // Conceptual syntax
-// Data stack now holds: ... (value_or_signal from my-generator), signal_from_my_generator
-// The topmost is the signal (token, 0, or -1). Below it might be a produced value.
-```
-
-#### 2.3.3. Trampoline: Managing Re-entrant Calls
-
-A common pattern for managing calls to the `main` phase is a loop, often called a "trampoline." This loop repeatedly calls the `main` phase, checks the returned signal, and decides whether to continue, stop, or handle an error.
-
-**Conceptual Trampoline Logic:**
-
-```pseudocode
-// Initialization (as above)
-PUSH_TO_DATA_STACK 10 // initial_limit for my-generator
-current_token = INITIATE_RESUMABLE my-generator
-
-LOOP
-  PUSH_TO_DATA_STACK current_token
-  CALL_RESUMABLE my-generator
-  // Stack: [..., produced_value (if any), signal_value]
-
-  signal = POP_FROM_DATA_STACK()
-  IF signal == 0 THEN // Done
-    // produced_value (if any) might be POPped here or was already processed
-    BREAK_LOOP
-  ELSE IF signal == -1 THEN // Error
-    // Handle error
-    BREAK_LOOP
-  ELSE IF signal == current_token THEN // Can continue
-    // current_token is already correct for the next iteration.
-    // Process produced_value (e.g., POP_FROM_DATA_STACK() and print/use it)
-    CONTINUE_LOOP
-  ELSE // Invalid signal
-    // Handle error: unexpected signal
-    BREAK_LOOP
-  END_IF
-END_LOOP
-```
-This structure allows the resumable function to be driven by the caller, producing a sequence of values or performing steps until it signals completion, all while maintaining its internal state across calls.
-
-## 3. Calling Conventions and Stack Management
-
-Understanding how Tacit manages the return stack is fundamental to grasping resumable functions. This section details the roles of the Return Stack Pointer (`RSP`) and Base Pointer (`BP`), the mechanics of standard function calls, and then delves into the specific stack operations for the `init` and `main` phases of resumable functions, emphasizing how persistent state is managed.
-
-### 3.1. The Return Stack: `RSP` and `BP`
-
-*   **Return Stack Growth:** In this document, we assume the return stack grows towards **higher memory addresses**.
-*   **`RSP` (Return Stack Pointer):** This register always points to the **next available free slot** on the top of the return stack. When data is pushed onto the stack, `RSP` is incremented *after* the write.
-*   **`BP` (Base Pointer):** This register points to a fixed location within the currently active function's stack frame. Saved context (like the caller's `BP` and the Return Address) and the function's local variables are accessed at known, fixed offsets relative to the current `BP`.
-
-### 3.2. Standard Function Call Mechanics
-
-Understanding these standard call mechanics is crucial for appreciating the distinct calling conventions and stack management employed by resumable functions. This section details the typical sequence of operations for a conventional function call, which serves as a baseline.
-
-#### 3.2.1. Standard Function Prologue: Entering a Function
-
-When a function (the `callee`) is invoked by another (the `caller`), the following steps typically occur to set up the `callee`'s execution environment (its stack frame):
-
-1.  **Caller Prepares Arguments (Data Stack):**
-    *   **Action:** The `caller` pushes any arguments intended for the `callee` onto the **data stack**.
-    *   **Rationale:** The data stack is the standard place for passing parameters between functions in Tacit.
-
-2.  **`CALL` Instruction Execution (Transfer of Control & Context Saving):**
-    *   **Action (a) - Save Return Address (`RA_caller`):** The `CALL` instruction automatically pushes the address of the next instruction in the `caller` (the `RA_caller`) onto the **return stack**. `RSP` (Return Stack Pointer) is incremented to point to the new top of the stack.
-    *   **Rationale (a):** This saved address is essential so the `callee` knows where to return control once its execution is complete.
-    *   **Action (b) - Save Caller's Base Pointer (`BP_parent`):** The `CALL` instruction (or convention immediately following it) pushes the `caller`'s current `BP` register value (which we'll term `BP_parent`) onto the **return stack**. `RSP` is again incremented.
-    *   **Rationale (b):** The `caller`'s `BP` defines its own stack frame. Saving it allows the `callee` to use the `BP` register for its own frame, and then restore the `caller`'s `BP` upon return, thus restoring the `caller`'s context.
-
-3.  **Callee Establishes Its Stack Frame:**
-    *   **Action (a) - Set New Base Pointer (`BP_child`):** The `callee` now establishes its own `BP` (which we'll term `BP_child`). A common convention is to set `BP_child` to the current `RSP` minus one word (or to the address where `BP_parent` was just stored). For example: `BP_child := RSP - wordsize` (if `RSP` points to the slot *after* `BP_parent`).
-    *   **Rationale (a):** `BP_child` provides a stable reference point for the `callee` to access its arguments (if passed via return stack, though less common in Tacit for primary args), its saved context (`BP_parent`, `RA_caller`), and its own local variables.
-    *   **Action (b) - Allocate Space for Pre-calculated Local Variables:** The `callee` increments `RSP` to reserve space for its local variables (`N_locals`) whose sizes are known at compile time. `RSP := RSP + N_locals * wordsize`.
-    *   **Rationale (b):** This carves out a dedicated memory region on the stack for the `callee`'s private data.
-    *   **Note on Dynamic Stack Growth:** Even in a conventional function, the `RSP` can be further incremented *dynamically* during its execution if more stack space is needed beyond the initially allocated locals. This might occur for complex temporary calculations, or significantly, if this `callee` itself calls another function (including the `init` phase of a resumable function), which would then build its own frame on top of the current `RSP`.
-
-**Conceptual Return Stack after Standard Prologue:**
-
-```
-Higher Addresses ^
-                 |
-RSP ->           +---------------------+  (Points to next free slot)
-                 | Local Variable N-1  |
-                 | ...                 |
-                 | Local Variable 0    |  (Accessed via BP_child + offset)
-BP_child ->      +---------------------+  (BP_child points here, typically to saved BP_parent)
-                 | Saved BP_parent     |
-                 +---------------------+ 
-                 | Saved RA_caller     |  (RA_caller is at BP_child - wordsize if BP_child points to BP_parent)
-                 +---------------------+
-                 | ... (Caller's Frame below) |
-Lower Addresses  v
-```
-
-#### 3.2.2. Standard Function Epilogue: Exiting a Function
-
-When the `callee` finishes its work and is ready to return control to the `caller`:
-
-1.  **Prepare Return Value(s) (Data Stack):**
-    *   **Action:** The `callee` places any return values onto the **data stack**.
-    *   **Rationale:** Consistent with argument passing, the data stack is used for results.
-
-2.  **Deallocate Callee's Local Variables & Restore Caller's Context:**
-    *   **Action (a) - Deallocate Locals:** `RSP` is reset to point to `BP_child`. `RSP := BP_child`.
-    *   **Rationale (a):** This effectively discards the `callee`'s local variables and any temporary space it might have used above them, reclaiming that stack space.
-    *   **Action (b) - Restore Caller's Base Pointer:** The saved `BP_parent` is popped from the location pointed to by the current `RSP` (which is `BP_child`) into the `BP` register. `RSP` is decremented. `BP := [RSP]; RSP := RSP - wordsize` (assuming `BP_child` pointed to `BP_parent`).
-    *   **Rationale (b):** This restores the `caller`'s stack frame context, so it can again access its own locals and context correctly.
-    *   **Action (c) - Restore Return Address:** The saved `RA_caller` is popped from the current `RSP` into a temporary location or directly used by the `RETURN` instruction. `RSP` is decremented. `RA_to_return_to := [RSP]; RSP := RSP - wordsize`.
-    *   **Rationale (c):** This retrieves the address where execution must resume in the `caller`.
-
-3.  **`RETURN` Instruction Execution (Transfer of Control):**
-    *   **Action:** The `RETURN` instruction causes execution to jump to the `RA_to_return_to`.
-    *   **Rationale:** Control is handed back to the `caller`.
-    *   **Outcome:** `RSP` is now restored to its exact position before the `CALL` instruction was executed by the `caller`. The `caller` can now access its return values from the data stack.
-
-### 3.3. Resumable Function `init` Phase (`name.init`)
-
-The `init` phase is unique: it establishes a *persistent* stack frame for the resumable function's state variables. This frame will outlive the `init` call itself and is effectively an extension of its caller's stack scope.
-
-#### 3.3.1. `name.init` Prologue: Setting Up Persistent State
-
-1.  **Caller Initiates `(resumable_init_call)` Protocol:**
-    *   **Action:** The caller uses a special syntax or mechanism (conceptually `(resumable_init_call)`) to invoke the resumable function's `init` phase. This typically involves pushing any initial arguments for `name.init` onto the **data stack**.
-    *   **Rationale:** This distinct invocation signals the need to create a persistent stateful instance, not just a standard function call.
-
-2.  **`name.init` Invocation (Similar to Standard Call Start):**
-    *   **Action (a) - Save Return Address (`RA_caller_of_init`):** As with a standard call, the address to return to in the caller is pushed onto the **return stack**. `RSP` increments.
-    *   **Rationale (a):** `init` needs to return to its caller once setup is complete.
-    *   **Action (b) - Save Caller's Base Pointer (`BP_caller_of_init`):** The caller's `BP` is pushed onto the **return stack**. `RSP` increments.
-    *   **Rationale (b):** Standard procedure to preserve the caller's frame context.
-
-3.  **`name.init` Establishes the Persistent Frame:**
-    *   **Action (a) - Set `BP_persistent_frame`:** `name.init` sets its `BP` register to mark the base of what will become the persistent state frame. This value, `BP_persistent_frame`, *is the resume token*. Conventionally: `BP_persistent_frame := RSP - wordsize` (pointing to where `BP_caller_of_init` was saved).
-    *   **Rationale (a):** This `BP` serves as the anchor for the persistent state and will be used by `name.main` (via the resume token) to locate this state.
-    *   **Action (b) - Allocate Space for All Persistent State Variables (`N_state`):** `RSP` is incremented to reserve space for *all* state variables declared in the `resumable : ... ; state { ... }` definition. `RSP := RSP + N_state * wordsize`.
-    *   **Rationale (b):** This is the core action of `init` – allocating the memory on the stack that will hold the resumable's state across multiple `main` calls.
-
-#### 3.3.2. `name.init` Body: Initializing State
-
-*   **Action:** `name.init` executes its defined logic, which typically involves popping initialization arguments from the data stack and storing them (or derived values) into the allocated persistent state variable slots (e.g., `[BP_persistent_frame + wordsize + offset_var_A] := value_A`).
-*   **Rationale:** To give the persistent state its initial, well-defined values.
-
-#### 3.3.3. `name.init` Epilogue: Returning the Token, Preserving State
-
-The epilogue of `init` is critically different from a standard function because it must leave the newly allocated persistent state on the stack.
-
-1.  **Push Resume Token onto Data Stack:**
-    *   **Action:** The value of `BP_persistent_frame` (the resume token) is pushed onto the **data stack**.
-    *   **Rationale:** This provides the caller with the handle needed to make subsequent calls to `name.main`.
-
-2.  **Restore Caller's Context (Standard Part):**
-    *   **Action (a) - Restore `BP_caller_of_init`:** The `BP` register is restored by popping the saved `BP_caller_of_init` from `[BP_persistent_frame]`.
-    *   **Rationale (a):** Standard step to restore the caller's `BP`.
-    *   **Action (b) - Retrieve `RA_caller_of_init`:** The return address is retrieved from `[BP_persistent_frame - wordsize]` (assuming `BP_persistent_frame` points to `BP_caller_of_init`).
-    *   **Rationale (b):** To know where to return.
-
-3.  **`RSP` Management for Return (Critical Difference):**
-    *   **Action:** The `RSP` is **not** reset to below the persistent frame (i.e., not set to `BP_persistent_frame`). Instead, it remains pointing to the top of the allocated persistent state: `RSP_after_init_return := BP_persistent_frame + N_state * wordsize`.
-    *   **Rationale:** This is the key mechanism that leaves the persistent state variables on the return stack, effectively making them part of an extended stack frame for the original caller of `init`.
-
-4.  **`RETURN` Instruction Execution:**
-    *   **Action:** Execution jumps to `RA_caller_of_init`.
-    *   **Outcome:** The `BP` register holds `BP_caller_of_init`. The `RSP` in the caller's context is now `RSP_after_init_return`. The caller's stack effectively appears to have grown by the size of the resumable's persistent state frame. The caller now has the resume token from the data stack.
-
-### 3.4. Resumable Function `main` Phase (`name.main`)
-
-The `main` phase executes a step of the resumable function. It operates using its own standard, *temporary* call frame for its immediate execution needs, while accessing the *persistent* state (established by `init`) via the resume token.
-
-#### 3.4.1. `name.main` Prologue: Setting Up for Re-entrant Execution
-
-1.  **Caller Prepares for `main` Call (Data Stack):**
-    *   **Action:** The `caller` pushes the resume token (`BP_persistent_frame_token` obtained from `init`) onto the **data stack**. Any other arguments for this specific `main` invocation are also pushed.
-    *   **Rationale:** The resume token is essential for `main` to locate the correct persistent state. Other arguments are for the current step's logic.
-
-2.  **`CALL name.main` Execution (Standard Call Start):**
-    *   **Action (a) - Save Return Address (`RA_main_caller`):** Standard operation; `RA_main_caller` is pushed onto the **return stack**. `RSP` increments.
-    *   **Rationale (a):** `main` needs to return to its caller (often a trampoline loop).
-    *   **Action (b) - Save Caller's Base Pointer (`BP_main_caller`):** Standard operation; `BP_main_caller` is pushed onto the **return stack**. `RSP` increments.
-    *   **Rationale (b):** To preserve the `main` caller's frame context.
-
-3.  **`name.main` Establishes Its Own *Temporary* Execution Frame:**
-    *   **Action (a) - Retrieve Resume Token:** `name.main` pops the `BP_persistent_frame_token` from the data stack and stores it in a known location for its use (e.g., a dedicated register if available, or a specific slot in its upcoming temporary local variables, let's call this `STATE_POINTER_STORAGE`).
-    *   **Rationale (a):** `main` needs this token to calculate addresses for accessing persistent state variables.
-    *   **Action (b) - Set `BP_current_main`:** `name.main` establishes its own `BP` for its *temporary* frame: `BP_current_main := RSP - wordsize` (pointing to where `BP_main_caller` was saved).
-    *   **Rationale (b):** This `BP` is for `main`'s current execution only, for its temporary locals and saved context. It is distinct from `BP_persistent_frame_token`.
-    *   **Action (c) - Allocate Space for `main`'s Temporary Local Variables:** If `name.main` requires its own non-persistent local variables for its current execution step (`N_main_temp_locals`), space is allocated: `RSP := RSP + N_main_temp_locals * wordsize`.
-    *   **Rationale (c):** These locals are for the current invocation of `main` only and will be discarded when `main` returns.
-    *   **Note on Dynamic Stack Growth within `main`:** Just like any conventional function, if `name.main` itself calls other functions (including initiating another resumable via its `(resumable_init_call)` protocol), `RSP` will be further incremented from its current position to accommodate the stack frames of those callees. These new frames are built on top of `main`'s temporary frame.
-
-**Conceptual Return Stack during `name.main` Execution (Simplified):**
-
-```
-Higher Addresses ^
-                 |
-RSP ->           +---------------------------------+ (Points to next free slot for main's execution)
-                 | main's Temp Local M-1 (if any)  |
-                 | ...                             |
-                 | main's Temp Local 0 (if any)    |
-                 | (STATE_POINTER_STORAGE if local)| (Holds BP_persistent_frame_token)
-BP_current_main->+---------------------------------+ (BP for main's temporary frame)
-                 | Saved BP_main_caller            |
-                 +---------------------------------+
-                 | Saved RA_main_caller            |
-RSP_before_main->+=================================+ (RSP was here before CALL name.main)
-                 | Persistent State Var N_state-1  | <┐ 
-                 | ...                             |  | These are part of the persistent frame,
-                 | Persistent State Var 0          |  | established by init, located via
-BP_pers_frame_tok| Saved BP_caller (of init)       |  | STATE_POINTER_STORAGE which points to
-(points here) -->| Saved RA_caller (of init)       | <┘ BP_persistent_frame_token.
-                 +---------------------------------+
-                 | ... (Original Caller's Frame)   |
-Lower Addresses  v
-```
-
-#### 3.4.2. Interaction with Persistent State from `name.main`
-
-*   **Action:** `name.main` accesses/modifies persistent state variables indirectly. It uses the `BP_persistent_frame_token` (stored in its `STATE_POINTER_STORAGE`) as the base address. For example, to access the first persistent variable: `[ [STATE_POINTER_STORAGE] + wordsize ]`.
-*   **Rationale:** This allows `main` to operate on the correct state instance across multiple calls.
-*   **Action:** `main`'s own temporary local variables are accessed directly via `BP_current_main`, e.g., `[ BP_current_main + wordsize + offset_of_main_temp_var ]`.
-*   **Rationale:** Standard access for a function's own locals.
-
-#### 3.4.3. Calling Other Functions from `name.main`
-
-*   **Action:** If `name.main` calls another standard function or initiates another resumable, it follows the standard call prologue (Section 3.2.1). `BP_current_main` acts as the `BP_parent` for this new callee. The new callee's frame is built on top of `name.main`'s current `RSP`.
-*   **Rationale:** This is normal nested function call behavior. The persistent state frame (referenced by `STATE_POINTER_STORAGE`) remains untouched and safe further down the stack.
-*   **Outcome:** When the called function returns, `name.main`'s context (`BP_current_main`, `RSP`, its temporary locals, and `STATE_POINTER_STORAGE`) is correctly restored, allowing `main` to continue its execution.
-
-#### 3.4.4. `name.main` Epilogue: Returning from a Step, Preserving Persistent State
-
-When `name.main` completes its current step, its epilogue is similar to a standard function's epilogue *for its own temporary frame only*.
-
-1.  **Push Produced Value(s) and Signal onto Data Stack:**
-    *   **Action:** `name.main` pushes any results from the current step onto the **data stack**. It then pushes the appropriate signal: `BP_persistent_frame_token` (its own resume token) to indicate it can be called again, `0` for done, or `-1` for error.
-    *   **Rationale:** To communicate results and status back to the caller (trampoline).
-
-2.  **Perform Standard Epilogue for `main`'s *Temporary* Frame:**
-    *   **Action (a) - Deallocate `main`'s Temporary Locals:** `RSP` is reset to `BP_current_main`. `RSP := BP_current_main`.
-    *   **Rationale (a):** Discards `main`'s temporary working storage for this invocation.
-    *   **Action (b) - Restore `main`'s Caller's Base Pointer:** `BP_main_caller` is restored into `BP` from `[RSP]` (which is `BP_current_main`). `RSP` decrements. `BP := [RSP]; RSP := RSP - wordsize`.
-    *   **Rationale (b):** Restores the `BP` of the function that called `main`.
-    *   **Action (c) - Restore `main`'s Caller's Return Address:** `RA_main_caller` is retrieved from `[RSP]`. `RSP` decrements. `RA_to_return_to := [RSP]; RSP := RSP - wordsize`.
-    *   **Rationale (c):** Gets the address to return to in `main`'s caller.
-
-3.  **`RETURN` Instruction Execution:**
-    *   **Action:** Execution jumps to `RA_to_return_to`.
-    *   **Outcome:**
-        *   The `RSP` (in the context of `main`'s caller) is now restored to the exact value it held just before `name.main` was called. This value is `BP_persistent_frame_token + N_state * wordsize` (i.e., the top of the persistent state frame).
-        *   **Crucially, the persistent state variables of the resumable function, and the entire stack segment they occupy, remain entirely untouched and are still live.** `name.main` has only cleaned up its own, immediate, temporary call frame.
-        *   Control returns to `main`'s caller, with the persistent state preserved for potential future re-entry into `name.main`.
-
-### 3.5. Persistent State Cleanup: Parent Scope Responsibility
-
-Resumable functions in Tacit do **not** have an explicit `name.cleanup_resumable` word or a self-initiated cleanup phase for their persistent state.
-
-*   **Mechanism:** The persistent state, allocated by `name.init`, is an extension of the stack frame of the function that originally invoked `name.init` (the "parent scope"). This state remains on the return stack for the entire lifetime of that parent scope.
-*   **Cleanup Trigger:** Cleanup of the resumable's persistent state occurs **automatically and implicitly** only when this parent function itself completes its execution and performs its own standard function epilogue (as described in Section 3.2.2).
-*   **Process:** As the parent function's epilogue deallocates its own local variables and restores its caller's `BP` and `RSP`, the stack space that was occupied by the resumable function's persistent state (which was part of, or an extension of, this parent frame) is naturally reclaimed. The `RSP` of the parent's caller is restored to its value from before the parent was ever called.
-*   **No Caller Action for Resumable Cleanup:** The direct caller of `name.main` (e.g., a trampoline loop) does not, and should not, attempt to perform any cleanup action on the resumable's persistent state. When the trampoline decides to stop calling `name.main`, the persistent state simply remains on the stack until the function containing the trampoline (the parent scope) exits.
-
-### 3.6. Implicit Cleanup (Parent Scope Exit)
-
-If no explicit cleanup is called, the persistent state remains on the stack. When the original function that called `name.init` (the "parent scope") eventually exits, its own standard epilogue will unwind the stack. Since the resumable's persistent state was allocated as an extension of this parent's stack frame, it will be naturally deallocated as part of the parent's stack unwinding.
-
-## 4. Compilation, Code Layout, and Calling Conventions
-
-### 4.1. Compiler Role, Code Structure, and Phase Implementation
-
-The Tacit compiler implements resumable functions when a `state { ... }` block is detected within a `def function-name {` block. This involves generating distinct code for an `init` phase and compiling the user's code as the `main` phase, along with specific calling conventions to interact with them.
-
-**Code Structure:**
-1.  **`main` Phase (User Code):** The user's function body is compiled as the `main` phase. Its entry point is the function's standard base address (offset 0).
-2.  **`init` Phase (Compiler-Generated):** An `init` phase is automatically generated by the compiler. It is responsible for allocating space for persistent state variables (defined in the `state` block) on the return stack and initializing them using any `init_args` provided during the initial call. Its entry point is typically at a fixed small offset from the function's base address (e.g., `base_address + 3 bytes`, allowing a jump instruction at offset 0 to the `main` phase if needed for other call types, or simply a distinct entry).
-
-**Calling Conventions:**
-*   `INITIATE_RESUMABLE name WITH init_args`: This operation directs execution to the compiler-generated `init` phase (e.g., at `base_address + 3 bytes`). It returns a resume token (the base pointer of the persistent state frame, `BP_persistent_frame`).
-*   `CALL_RESUMABLE name WITH resume_token, main_args`: This operation directs execution to the `main` phase (the user's code, at `base_address + 0 bytes`). The `resume_token` is passed to allow access to the persistent state. Any `main_args` are also passed.
-
-This dual-entry point structure, managed by the compiler, enables resumable behavior while keeping the user's code focused on the `main` logic.
-
-**Conceptual Implementation of Compiler-Generated Phases:**
-
-**`init` Phase (Compiler-Generated):**
-1.  **Prologue:** Performs a standard function prologue: saves the caller's return address (`RA_caller`) and base pointer (`BP_caller`), then sets its own base pointer (`BP_init_frame`) to the current return stack pointer (`RSP`).
-2.  **State Allocation:** Increments `RSP` by the total size required for all persistent state variables defined in the `state` block. This allocated space becomes the persistent state frame.
-3.  **State Initialization:** Generates code to take `init_args` (if any) from the data stack or other agreed-upon sources and store them into the corresponding persistent state variables within the newly allocated frame (e.g., `[BP_init_frame + offset_var1] := init_arg1`). Default values from the `state` block are also applied here if no `init_arg` overrides them.
-4.  **Token Return:** Pushes `BP_init_frame` (which is the resume token) onto the data stack.
-5.  **Epilogue:** Performs a standard function epilogue: restores `BP_caller` and `RA_caller` from `BP_init_frame`'s saved values. Crucially, `RSP` is *not* reset to `BP_init_frame` before this epilogue; it remains pointing to the top of the persistent state frame, ensuring the state persists. Execution returns to `RA_caller`.
-
-**`main` Phase (User's Code, Compiled by Compiler):**
-1.  **Prologue:**
-    *   Performs a standard function prologue: saves `RA_caller` and `BP_caller`, sets its own temporary frame base pointer (`BP_main_temp_frame`) to `RSP`.
-    *   Retrieves the `resume_token` (`BP_persistent_frame`) passed by `CALL_RESUMABLE`. This token is typically passed on the data stack or via a dedicated register/memory location as per the VM's calling convention for resumables. This token is stored where the `main` phase can access it (e.g., in a dedicated slot in its temporary frame or a register).
-    *   Allocates space for any temporary local variables (non-`state` variables) used by the `main` phase by adjusting `RSP`.
-2.  **Body Execution:** The user's compiled code executes. Access to persistent state variables is done via the stored `resume_token` (e.g., `[resume_token + offset_var1]`). Access to temporary locals is via `BP_main_temp_frame`.
-3.  **Signaling:** The `main` phase code concludes by pushing any produced value(s) onto the data stack, followed by the appropriate signal:
-    *   The `resume_token` itself (to indicate it can be called again).
-    *   `0` (or a designated "done" value) if it has completed.
-    *   `-1` (or a designated "error" value) if an error occurred.
-4.  **Epilogue:**
-    *   Deallocates its temporary local variables: `RSP` is reset to `BP_main_temp_frame`.
-    *   Restores `BP_caller` and `RA_caller` from its temporary stack frame's saved values.
-    *   Executes `RETURN`. The persistent state frame (pointed to by the `resume_token`) remains untouched on the stack.
-
-### 4.2. Initial Invocation: `INITIATE_RESUMABLE`
-
-To initialize a resumable function and obtain its resume token, the conceptual operation `INITIATE_RESUMABLE name WITH init_args` is used. This operation directs the Tacit VM to execute the compiler-generated `init` phase of the function `name`. As described in Section 4.1, the `init` phase is typically located at a fixed offset (e.g., `ADDRESS(name) + 3 bytes`) from the function's base address.
-
-The primary purpose of this initial call is to:
-1.  Execute the `name.init` logic, which allocates space for persistent state variables on the return stack and initializes them using any provided arguments.
-2.  Return the "resume token" (the `BP_persistent_frame` established by `init`) on the data stack.
-
-Example:
-```tacit
-// Conceptual syntax for initial invocation:
-10 my_generator (resumable_init_call) -> r_token
-// This call passes '10' as an argument to my_generator.init
-// and stores the returned resume token in r_token.
-```
-(Note: The `(resumable_init_call)` syntax is conceptual. The actual mechanism in Tacit should be detailed here once finalized.)
-
-This `r_token` is then used for all subsequent calls to `name.main`. The original arguments passed via `(resumable_init_call)` are consumed by `name.init` and typically stored in the persistent state.
-
-### 4.3. Re-entering: `CALL_RESUMABLE`
-
-Subsequent calls to execute the main logic of the resumable function are made using the `CALL_RESUMABLE name WITH resume_token, main_args` conceptual operation. This directs the VM to execute the `main` phase (the user's code), which, as per Section 4.1, is located at the function's base address (`ADDRESS(name) + 0 bytes`). The `resume_token` obtained from the `init` phase must be provided to allow access to the persistent state.
-
-```tacit
-r_token my_generator.main
-// ... inspect results ...
-```
-
-### 4.4. Signaling from `name.main`
-
-`name.main` communicates its status and any yielded data back to the caller via the data stack.
-
-#### 4.3.1. Producing a Value and Signaling Continuation (Returning `BP_child`)
-If `main` has produced an intermediate result and signals it can be called again, it pushes the result(s) onto the data stack, followed by its own `BP_child` (the resume token).
-
-```tacit
-// Inside my_generator.main, after updating counter to 1:
-1        // Push yielded value (new counter)
-    BP_child // Push resume token (signal: has value, can be called again)
-EXIT
-```
-Caller sees `1 r_token` on the data stack.
-
-#### 4.3.2. Signaling Completion (Returning `0`)
-When `main` has finished its work, it pushes `0` onto the data stack.
-
-```tacit
-// Inside my_generator.main, when counter reaches limit:
-0        // Push 0 (signal: done)
-EXIT
-```
-Caller sees `0` on the data stack.
-
-#### 4.3.3. Signaling an Error (Returning `-1`)
-If `main` encounters a non-recoverable error, it pushes `-1` (or another designated error code) onto the data stack.
-
-```tacit
-// Inside my_generator.main, if an error occurs:
--1       // Push -1 (signal: error)
-EXIT
-```
-Caller sees `-1` on the data stack.
-
-### 4.5. Persistent State Lifetime and Cleanup (Parent Scope Responsibility)
-
-Resumable functions in Tacit do not have an explicit cleanup phase (e.g., a `name.cleanup_resumable` word). Their persistent state is not self-managed for deallocation.
-
-The persistent state variables allocated by `name.init` are considered an extension of the calling function's (the "parent scope's") stack frame. This state remains on the return stack for the lifetime of the parent scope that initiated the resumable function.
-
-Cleanup occurs automatically and implicitly when the parent function (the one that originally invoked the resumable function's `init` mechanism) finishes its execution and returns. As part of the parent function's standard epilogue, its entire stack frame is unwound. Since the resumable function's persistent state resides within (or as an extension of) this parent frame, it is naturally deallocated at this time.
-
-There is no need for the caller of `name.main` to perform any specific cleanup action on the resumable function's state itself. The state will persist as long as the parent context is active and will be reclaimed when that parent context ends.
-
-### 4.6. Caller Responsibilities and Loop Patterns (e.g., Trampoline)
-
-Once the resume token is obtained from the initial invocation (see Section 4.1), the caller is responsible for repeatedly calling the `name.main` phase. This is often managed by a loop pattern, sometimes referred to as a "trampoline."
-
-The trampoline logic typically involves:
-1.  Calling `name.main` with the current resume token.
-2.  After `name.main` returns, inspecting the signal(s) on the data stack:
-    *   If `name.main` returns `BP_child` (the resume token itself, possibly along with produced values): This signals that `main` has produced a value and can be called again. The caller processes the value(s) and continues the loop with the same token.
-    *   If `name.main` returns `0` (or another designated "done" signal): This signals that the resumable function has completed its work. The caller typically exits the loop. The resumable's state remains on the stack until the parent scope (containing this trampoline) exits.
-    *   If `name.main` returns `-1` (or another "error" signal): This signals an error. The caller usually exits the loop and may handle the error. The state also remains until parent scope exit.
-
-Example of a caller loop (trampoline):
-```tacit
-: use_generator_trampoline
-  // Assume r_token was obtained from an initial call like:
-  // initial_params my_generator (resumable_init_call) -> r_token
-
-  BEGIN
-    r_token my_generator.main // Call the main phase
-    DUP 0 = IF                // Check for 'done' (0)
-      POP                     // Drop the 0 signal
-      ." Generator finished." CR
-      BREAK                   // Exit trampoline loop
-    ELSE DUP -1 = IF          // Check for 'error' (-1)
-      POP                     // Drop the -1 signal
-      ." Generator error." CR
-      BREAK                   // Exit trampoline loop
-    ELSE                      // `main` produced a value and returned its token
-                              // Stack: <value(s)> <r_token_from_main>
-      SWAP                    // -> <r_token_from_main> <value(s)> (assuming one value)
-      .                       // Process the value (e.g., print)
-      SPACE
-                              // The r_token_from_main is ready for the next REPEAT.
-    THEN THEN
-  REPEAT
-  // Loop finished. Resumable state for 'r_token' persists until
-  // 'use_generator_trampoline' (or its own parent scope) exits.
-;
-```
-This pattern ensures that `name.main` is called iteratively, and its state is preserved between calls, with cleanup handled by the eventual exit of the scope that owns `r_token`.
-
-## 5. Interaction with Other Functions
-
-### 5.1. Calling Normal Functions from a Resumable
-When a resumable function's `main` phase calls a normal (non-resumable) Tacit function:
-*   The normal function executes with the standard calling convention (its own prologue/epilogue).
-*   It uses the return stack above the resumable's persistent state.
-*   When the normal function returns, it properly restores `RSP` and `BP` to the resumable's context.
-*   The resumable's persistent state remains untouched and available.
-
-### 5.2. Calling a Resumable from a Normal Function
-A normal Tacit function can initiate and interact with a resumable function. 
-
-1.  It uses the `INITIATE_RESUMABLE name WITH init_args` operation to create an instance of the resumable function. This executes the resumable's implicit `init` phase, which allocates its persistent state on the return stack (conceptually as an extension of the normal function's current stack frame) and returns a resume token.
-2.  The normal function then uses this token with the `CALL_RESUMABLE name WITH resume_token, main_args` operation, typically in a loop, to execute the resumable's `main` phase.
-3.  The resumable's persistent state remains live as long as the normal function (the parent scope) is active. When the normal function exits, its stack frame is unwound, and the resumable's persistent state is implicitly reclaimed as part of this process. No explicit cleanup call is needed for the resumable's state.
-
-## 6. Recursive and Re-entrant Resumable Interactions
-
-Resumable functions, due to their stack-based state allocation and distinct `init`/`main` phases (managed via `INITIATE_RESUMABLE` and `CALL_RESUMABLE`), can interact in recursive or re-entrant ways.
-
-### 6.1. Direct Recursion: A Resumable Initiating New Instances of Itself
-
-The `main` phase of a resumable function can use `INITIATE_RESUMABLE` on itself to create a new, independent, and nested instance. Each such initiation executes the `init` phase for the new instance, allocating a distinct persistent state frame on the return stack.
-
-**Conceptual Example:** A resumable function `recursive_counter` that, when called, initiates a new `recursive_counter` if its current count is above a threshold.
-
-```pseudocode
-def recursive_counter {  
-  state { current_value }
-  // Implicit 'init' phase generated by compiler:
-  //   initial_count -> current_value
-  //   RETURN resume_token_for_this_instance
-
-  // 'main' phase (user code):
-  IF current_value <= 0 THEN
-    PRINT "Counter at or below zero: ", current_value
-    RETURN 0 // Signal: Done
-  ENDIF
-
-  PRINT "Current value: ", current_value
-  current_value := current_value - decrement_step
-
-  IF current_value > 5 THEN // Arbitrary condition for recursion
-    PRINT "Recursively initiating new counter from: ", current_value
-    // Initiate a new, independent instance of recursive_counter
-    // The new instance gets its own 'current_value' from this call.
-    new_token := INITIATE_RESUMABLE recursive_counter WITH current_value
-    
-    // The current instance could then manage 'new_token',
-    // for example, by calling its 'main' phase in a loop:
-    LOOP
-      signal := CALL_RESUMABLE recursive_counter WITH new_token, 1 // decrement by 1 for inner
-      IF signal == 0 THEN BREAK ENDIF
-      // Process value from inner call if needed
-    ENDLOOP
-    PRINT "Inner counter finished."
-  ENDIF
-  
-  // Signal continuation for the current instance
-  RETURN resume_token_for_this_instance 
-}
-
-// Usage:
-outer_token := INITIATE_RESUMABLE recursive_counter WITH 10 // Start outer with 10
-CALL_RESUMABLE recursive_counter WITH outer_token, 2      // Call main of outer, dec by 2
-// ... continue calling outer_token ...
-```
-In this scenario, each `INITIATE_RESUMABLE recursive_counter` creates a new state object. The outer instance's state is distinct from any inner instances it creates.
-
-### 6.2. Mutual Initiation (Resumables Initiating Each Other)
-
-Similarly, different resumable functions can initiate instances of each other. For example, the `main` phase of resumable `foo` might use `INITIATE_RESUMABLE bar WITH ...` to create an instance of `bar`, and `bar`'s `main` phase could, in turn, initiate an instance of `foo` (or another resumable `baz`).
-
-Each `INITIATE_RESUMABLE` call results in a new, independent persistent state frame for the initiated instance.
-
-### 6.3. Stack Layout in Nested Scenarios
-
-When `INITIATE_RESUMABLE` is used, the new persistent state frame is allocated on the return stack. If this occurs within the `main` phase of an existing resumable function, the new frame is typically allocated above the calling `main` phase's temporary frame and, by extension, above the calling resumable's own persistent state frame.
-
-For instance:
-1. `alpha_token := INITIATE_RESUMABLE alpha WITH ...` (Parent scope calls `alpha.init`)
-   - `alpha`'s persistent state frame (`PS_alpha`) is created.
-2. `CALL_RESUMABLE alpha WITH alpha_token ...` (Parent scope calls `alpha.main`)
-   - `alpha.main`'s temporary frame (`TF_alpha_main`) is created above `PS_alpha`.
-3. Inside `alpha.main`: `beta_token := INITIATE_RESUMABLE beta WITH ...` (`alpha.main` calls `beta.init`)
-   - `beta`'s persistent state frame (`PS_beta`) is created above `TF_alpha_main`.
-
-The cleanup remains implicit: `PS_beta` is reclaimed when the scope that initiated `beta` (i.e., the specific invocation of `alpha.main`) completes and its temporary frame `TF_alpha_main` is unwound *if `PS_beta` was an extension of `TF_alpha_main`*. More accurately, `PS_beta` is tied to the lifetime of the parent scope that executed `INITIATE_RESUMABLE beta`. When that parent scope (in this case, `alpha.main`'s execution context) unwinds, `PS_beta` is reclaimed. Subsequently, `PS_alpha` is reclaimed when `alpha`'s original parent scope unwinds.
-
-### 6.4. Managing Multiple Resume Tokens
-
-If a resumable function's `main` phase initiates multiple other resumable instances (or multiple instances of the same resumable), it is responsible for managing their distinct resume tokens. These tokens might be stored in the initiator's own persistent state variables or other data structures. The initiator would then use these tokens to call the respective `main` phases of the child instances as needed.
-
-There is no automatic cascading cleanup; each resumable instance's state is tied to the lifetime of *its* direct parent scope that performed the `INITIATE_RESUMABLE` for it.
-
-## 7. Example: Fibonacci Generator
-
-This example demonstrates a resumable function `fib` that generates Fibonacci numbers up to a given limit, using the unified syntax and conceptual calling conventions.
-
-### 7.1. Pseudocode for `fib` Resumable Function
-
-```pseudocode
-def fib {  // 'initial_limit' is an init_arg for the 'init' phase.
-                               // No main_args are defined for the 'main' phase.
-  state { 
-    a := 0,      // Current Fibonacci number, initialized to 0 by default.
-    b := 1,      // Next Fibonacci number, initialized to 1 by default.
-    limit        // Upper bound (exclusive). To be set by 'initial_limit' init_arg.
-  }
-  // Implicit 'init' phase generated by compiler conceptually does:
-  //   1. Receives 'initial_limit' (e.g., from data stack).
-  //   2. Stores 'initial_limit' into the persistent state variable 'limit'.
-  //   3. 'a' and 'b' are initialized to 0 and 1 respectively as per state block.
-  //   4. Returns 'resume_token_for_this_fib_instance' on the data stack.
-
-  // 'main' phase (user-provided code block):
-  IF a < limit THEN
-    // Produce current 'a' by pushing it onto the data stack.
-    PUSH_DATA_STACK a 
-
-    // Calculate next Fibonacci numbers for internal state update.
-    next_a_value := b
-    next_b_value := a + b
-
-    // Update persistent state variables directly.
-    a := next_a_value
-    b := next_b_value
-    
-    // Signal continuation by pushing the original resume token onto the data stack.
-    PUSH_DATA_STACK resume_token_for_this_fib_instance 
-    RETURN // Exit main phase for this step.
-  ELSE
-    // Signal completion by pushing 0 onto the data stack.
-    PUSH_DATA_STACK 0 
-    RETURN // Exit main phase, indicating completion.
-  ENDIF
-}
-```
-**Note:** `PUSH_DATA_STACK` and `RETURN` are conceptual operations. The actual signal (the resume token for continuation, or 0 for done) would be the last item placed on the data stack by the `main` phase before it executes its epilogue and returns. `resume_token_for_this_fib_instance` refers to the token that was provided to this invocation of the `main` phase, allowing it to access its persistent state.
-
-### 7.2. Caller Logic for `fib_test` (Conceptual Pseudocode)
-
-```pseudocode
-def fib_test { 
-  // Initiate the 'fib' resumable function. '100' is the init_arg for 'initial_limit'.
-  // The INITIATE_RESUMABLE operation executes fib's 'init' phase and returns a resume token.
-  r_fib_token := INITIATE_RESUMABLE fib WITH 100 
-
-  LOOP
-    // Call the 'main' phase of the 'fib' instance using its resume token.
-    // No main_args are passed in this example.
-    // After CALL_RESUMABLE, the data stack will contain: 
-    //   - <fib_value> <r_fib_token> (if fib can continue)
-    //   - <0> (if fib is done)
-    CALL_RESUMABLE fib WITH r_fib_token 
-    
-    signal_or_token := POP_DATA_STACK // Get the top item: continuation token or 0 for done.
-
-    IF signal_or_token == 0 THEN // Check for 'done' signal (0)
-      PRINT "Fibonacci sequence complete."
-      BREAK_LOOP
-    ELSE 
-      // If not 0, then 'signal_or_token' must be the r_fib_token itself,
-      // and the actual Fibonacci number is now below it on the stack.
-      ASSERT signal_or_token == r_fib_token // Verify it's the expected token for continuation.
-      
-      fib_value := POP_DATA_STACK // Get the produced Fibonacci number.
-      PRINT fib_value
-      PRINT " " // Add a space for formatting.
-      
-      // The r_fib_token is ready for the next iteration of the LOOP.
-    ENDIF
-  ENDLOOP
-  PRINT_NEWLINE
-  // Loop finished. The persistent state associated with 'r_fib_token' 
-  // remains on the return stack until 'fib_test' (or its own parent scope) exits,
-  // at which point it's implicitly reclaimed.
-}
-```
-
-### 8.3. Conceptual Compiled Output
-
-*   **`fib.init`:**
-    *   Prologue (save RA, `BP_parent`, set `BP_child`, `RSP += 3` for a, b, limit).
-    *   Pops `limit_val` from data stack, stores into `[BP_child + 2]`.
-    *   Stores `0` into `[BP_child + 0]` (a).
-    *   Stores `1` into `[BP_child + 1]` (b).
-    *   Pushes `BP_child` onto data stack.
-    *   Epilogue (restore `BP_parent`, RA, return; `RSP` remains elevated).
-
-*   **`fib.main`:**
-    *   Prologue (save RA, `BP_parent`, pop resume token from data stack into `BP_child`).
-    *   Body: Implements the IF/THEN logic from the source, loading from/storing to `[BP_child + offset]`.
-        *   If producing a value and can continue: Pushes Fibonacci value, then pushes `BP_child`.
-        *   If done: Pushes `0`.
-    *   Epilogue (`RSP = BP_child`, restore `BP_parent`, RA, return).
-
-
-## 9. Best Practices and Summary
-
-### 9.1. Checklist for Resumable Function Implementation
-
-*   **Two-Label Split:** Compiler correctly generates `name.init` and `name.main`.
-*   **Exact State Count:** `N_state` accurately reflects `state{}` declarations; state is fixed at `init`.
-*   **Uniform Prologue/Epilogue:** `init` and `main` adhere to the defined stack frame setup and teardown, especially `BP_child` handling and `RSP` management.
-*   **Caller Inspection:** Callers must check return codes from `main` (`BP_child`, `0`, `-1`) and act accordingly.
-*   **Parent-Scope State Lifetime:** Understand that persistent state is reclaimed only when the parent scope that initiated the resumable function (via its special `init` call) exits. No explicit cleanup of the resumable instance itself is performed by the caller of `main` or by the resumable function.
-*   **No Hidden Persistent Frame Growth in `main`:** `main` does not further increment `RSP` to allocate more *persistent* locals; it uses the state frame established by `init`. (Temporary locals for `main`'s own execution are managed within its separate, temporary call frame and are deallocated when `main` returns.)
-*   **`init` Invocation Protocol:** Be aware that the initial call to a resumable function (to trigger `name.init` and get the resume token) uses a special protocol/syntax, distinct from standard function calls.
-*   **`main` Loop Management:** Callers (e.g., trampolines) must correctly loop on `name.main`, interpreting signals for continuation, completion, or errors.
-*   **Recursive Depth Management:** When resumables create other resumable instances, their persistent states are reclaimed in LIFO order as their respective parent scopes unwind.
-
-### 9.2. Key Advantages and Use Cases Recap
-
-Resumable functions in Tacit provide a structured way to implement generators and other stateful computations where a function's `main` phase can be re-entered multiple times while maintaining its internal state. Their integration with the return stack for state persistence and clear `init`/`main` interaction model, with state lifetime managed by the parent scope makes them a powerful tool for advanced Tacit programming.
+### Calling Conventions and Stack Behavior
+
+This section defines the stack layout and calling convention for the three entry modes used in Tacit: normal function calls, resumable `init` phase calls, and resumable `main` phase resumes. Each mode handles the return stack, base pointer (`BP`), and data stack differently, based on whether the call is temporary or persistent and whether stack growth is expected.
+
+#### 1. Normal Function Call
+
+**Purpose:**
+Used for one-shot execution with no persistent state. Temporary stack space is allocated and deallocated on entry and exit.
+
+**Preamble (at call site):**
+Caller performs:
+
+* Push return address onto the return stack.
+* Push current `BP` onto the return stack.
+* Set `BP` to current return stack pointer (`RP`) after push.
+
+No manipulation of the data stack unless arguments are being passed.
+
+**Prologue (at callee):**
+
+* Locals are allocated above the new `BP`.
+* Local variable count determines how far `SP` is bumped during compilation.
+
+**Epilogue (on return):**
+
+* Walk backward from `SP` to `BP` to drop or clean up any references.
+* Pop old `BP` and return address from return stack.
+* Restore `BP` and jump to return address.
+
+This ensures full cleanup: both the return stack and data stack are restored to their previous state.
+
+#### 2. Resumable `init` Phase
+
+**Purpose:**
+Initializes persistent state for a resumable function and returns a captured base pointer that can be used to resume.
+
+**Preamble (at call site):**
+Caller performs:
+
+* Push current `BP` onto the return stack.
+* Push return address onto the return stack (or in reversed order depending on convention).
+* Set `BP` to the new position after both pushes.
+
+No need to bump the data stack yet; that is done by the callee.
+
+**Prologue (at callee):**
+
+* Allocate persistent locals by bumping `SP`. These locals will *not* be unwound.
+* Optionally, capture argument values from the data stack into persistent locals for later use.
+
+At this point, a new persistent frame has been established, and the caller's `BP` and return address are stored below it.
+
+**Epilogue (on init return):**
+
+* Push current `BP` (the frame for later resume) onto the **data stack**.
+* Load old `BP` from `BP - 1` and assign it back to `BP`.
+* Load return address from `BP - 2` and jump to it.
+
+**Key Distinction:**
+Unlike a normal function, no attempt is made to clean up the data stack. The `SP` remains in its extended state, and the persistent locals are still live. The only cleanup is restoration of the `BP` and the jump return.
+
+#### 3. Resumable `main` Phase
+
+**Purpose:**
+Reenters the resumable using a saved `BP`. Runs one "step" of behavior.
+
+**Preamble (at call site):**
+Caller:
+
+* Sets `BP` to the saved value passed in via data stack (from the init return).
+* Saves previous `BP` to `BP - 1`.
+* Saves return address to `BP - 2`.
+
+This links the current resume frame into the existing persistent scope.
+
+**Prologue (at callee):**
+
+* No locals are reallocated.
+* `BP` already points to persistent frame. Any variable access uses fixed offsets from here.
+* Execution begins at the function's base address (e.g., `function_address + 0`), as this is where the user-defined `main` phase code resides.
+
+**Epilogue (on yield or exit):**
+
+* Load return address from `BP - 2`.
+* Load previous `BP` from `BP - 1`.
+* Restore `BP` and jump to return address.
+
+The key is **no stack cleanup**: all live data remains intact, and the frame is ready for future resumes. The `SP` is never adjusted unless explicitly done by the main phase logic.
+
+---
+
+### Summary of Differences
+
+| Call Type       | Allocates Locals | Cleans Up Stack | Restores BP | Captures Persistent Frame | Requires Resume Entry |
+| --------------- | ---------------- | --------------- | ----------- | ------------------------- | --------------------- |
+| Normal Function | Yes              | Yes             | Yes         | No                        | No                    |
+| Resumable Init  | Yes (persistent) | No              | Yes         | Yes                       | No                    |
+| Resumable Main  | No               | No              | Yes         | Yes                       | Yes (fixed offset)    |
