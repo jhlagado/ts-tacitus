@@ -1,4 +1,29 @@
-# Understanding Resumable Functions in Tacit
+# Table of Contents
+
+- [1. Understanding Resumable Functions in Tacit](#1-understanding-resumable-functions-in-tacit)
+  - [1.1. Core Idea: Re-entrant Functions with Persistent State](#11-core-idea-re-entrant-functions-with-persistent-state)
+  - [1.2. Purpose: Why Use Resumable Functions?](#12-purpose-why-use-resumable-functions)
+- [2. The Two Phases: init and main](#2-the-two-phases-init-and-main)
+  - [2.1. The init Phase: Establishing Persistence](#21-the-init-phase-establishing-persistence)
+  - [2.2. The main Phase: Executing with Persistent State](#22-the-main-phase-executing-with-persistent-state)
+- [3. Defining Persistent State: The `state {}` Block](#3-defining-persistent-state-the-state--block)
+  - [3.1. Purpose and Syntax](#31-purpose-and-syntax)
+  - [3.2. Initialization within `state {}`](#32-initialization-within-state--block)
+  - [3.3. Relationship to `init` and `main` Phases](#33-relationship-to-init-and-main-phases)
+  - [3.4. Multiple `state {}` Blocks and Code Proximity](#34-multiple-state--blocks-and-code-proximity)
+  - [3.5. Other Persistent Locals](#35-other-persistent-locals)
+- [4. State, Scope, and Lifetime Management](#4-state-scope-and-lifetime-management)
+  - [4.1. Persistent State Allocation and Initialization](#41-persistent-state-allocation-and-initialization)
+  - [4.2. Caller-Managed Scope: The Fundamental Principle](#42-caller-managed-scope-the-fundamental-principle)
+  - [4.3. Interaction with Conventional (Non-Resumable) Functions](#43-interaction-with-conventional-non-resumable-functions)
+  - [4.4. Nested Resumable Initiations: Extending the Ancestor Scope](#44-nested-resumable-initiations-extending-the-ancestor-scope)
+- [5. Calling Conventions and Stack Behavior](#5-calling-conventions-and-stack-behavior)
+  - [5.1. Normal Function Call](#51-normal-function-call)
+  - [5.2. Resumable init Phase](#52-resumable-init-phase)
+  - [5.3. Resumable main Phase](#53-resumable-main-phase)
+  - [5.4. Summary of Differences](#54-summary-of-differences)
+
+# 1. Understanding Resumable Functions in Tacit
 
 Resumable functions are a powerful feature of the Tacit Virtual Machine (VM) designed to support operations that require persistent state across multiple distinct invocations. They allow a function to be entered, perform some work, exit, and then be re-entered later, seamlessly regaining access to its previously established internal state.
 
@@ -22,7 +47,7 @@ Resumable functions are particularly useful for:
 
 These use cases benefit from the clear separation of initialization and repeated execution, coupled with automatic state preservation.
 
-# The Two Phases: `init` and `main`
+# 2. The Two Phases: init and main
 
 Every resumable function in Tacit is conceptually divided by the compiler into two distinct operational phases: an `init` phase and a `main` phase. These phases have different purposes, entry points, and calling conventions.
 
@@ -54,7 +79,7 @@ The compiled code for the `main` phase – which is the code written by the user
 **Behavior:**
 Each call to the `main` phase executes its logic, potentially modifying the persistent state. It then returns, and the persistent state remains intact for future `main` phase calls using the same resume token. The `main` phase might also return values or signals to its caller indicating progress, completion, or errors.
 
-# Defining Persistent State: The `state {}` Block
+# 3. Defining Persistent State: The `state {}` Block
 
 The `state {}` block is a key syntactic element in Tacit for defining and initializing the persistent state of a resumable function. It works in direct conjunction with the `init` phase and provides clarity on which variables are intended to maintain their values across multiple calls to the `main` phase.
 
@@ -112,7 +137,7 @@ The `state {}` block provides a clear, explicit way to declare and initialize a 
 
 A defining characteristic of Tacit resumable functions is how their persistent state is managed. Understanding the interplay between the resumable function, its caller, and the Tacit VM's stack is key to using them effectively.
 
-## 3.1. Persistent State Allocation and Initialization
+## 4.1. Persistent State Allocation and Initialization
 
 During the `init` phase of a resumable function, a **persistent frame** is allocated on the return stack. This frame reserves space for *all* variables that the resumable function will use with persistent lifetime across calls to its `main` phase. This includes variables explicitly declared within a `STATE { ... }` block as well as other local variables defined and used within the `main` body that are intended to persist as part of the function's ongoing context.
 
@@ -120,7 +145,7 @@ The allocation effectively extends the stack frame of the function that called `
 
 The primary role of the `STATE { ... }` block is to designate variables that can be initialized *during the `init` phase itself*. This initialization can occur using arguments passed to `INITIATE_RESUMABLE` or through default value assignments specified directly within the `STATE { ... }` block. Other persistent local variables (those not listed in `state {}` but still part of the persistent frame's reserved space) receive their initial values through assignments during the first or subsequent executions of the `main` phase.
 
-## 3.2. Caller-Managed Scope: The Fundamental Principle
+## 4.2. Caller-Managed Scope: The Fundamental Principle
 
 The most crucial aspect of resumable function state management is that **the resumable function itself does not manage the lifetime of its persistent state.** The lifetime of this state is entirely dictated by the scope of its caller – specifically, the function that executed `INITIATE_RESUMABLE`.
 
@@ -130,7 +155,7 @@ Because the persistent state is an extension of the caller's return stack frame:
 
 This design ties the resumable's state lifecycle directly to standard lexical or dynamic scoping rules of the Tacit VM.
 
-## 3.3. Interaction with Conventional (Non-Resumable) Functions
+## 4.3. Interaction with Conventional (Non-Resumable) Functions
 
 Typically, a conventional (non-resumable) Tacit function will be responsible for initiating and managing a resumable function:
 
@@ -141,7 +166,7 @@ Typically, a conventional (non-resumable) Tacit function will be responsible for
 
 The lifetime of the resumable's state cannot exceed the lifetime of the conventional function instance that created it.
 
-## 3.4. Nested Resumable Initiations: Extending the Ancestor Scope
+## 4.4. Nested Resumable Initiations: Extending the Ancestor Scope
 
 Resumable functions can initiate other resumable functions from within their `main` phase. For instance, `ResumableA` (itself initiated by a non-resumable `ConventionalCaller`) might call `INITIATE_RESUMABLE ResumableB`.
 
@@ -151,11 +176,11 @@ Instead, both `ResumableA`'s and `ResumableB`'s persistent states (and indeed, a
 
 The lifetime of all such persistent frames is governed by the lifetime of this outermost non-resumable `ConventionalCaller`. When that `ConventionalCaller`'s scope ends (e.g., it returns), all associated resumable state frames that were allocated as extensions of its stack frame are implicitly reclaimed. This ensures that all stack-allocated persistent state is properly managed without requiring manual deallocation by the resumable functions themselves, regardless of how deeply their initiations are nested.
 
-## Calling Conventions and Stack Behavior
+# 5. Calling Conventions and Stack Behavior
 
 This section defines the stack layout and calling convention for the three entry modes used in Tacit: normal function calls, resumable `init` phase calls, and resumable `main` phase resumes. Each mode handles the return stack, base pointer (`BP`), and data stack differently, based on whether the call is temporary or persistent and whether stack growth is expected.
 
-### 1. Normal Function Call
+## 5.1. Normal Function Call
 
 **Purpose:**
 Used for one-shot execution with no persistent state. Temporary stack space is allocated and deallocated on entry and exit.
@@ -182,7 +207,7 @@ No manipulation of the data stack unless arguments are being passed.
 
 This ensures full cleanup: both the return stack and data stack are restored to their previous state.
 
-### 2. Resumable `init` Phase
+## 5.2. Resumable init Phase
 
 **Purpose:**
 Initializes persistent state for a resumable function and returns a captured base pointer that can be used to resume.
@@ -212,7 +237,7 @@ At this point, a new persistent frame has been established, and the caller's `BP
 **Key Distinction:**
 Unlike a normal function, no attempt is made to clean up the data stack. The `SP` remains in its extended state, and the persistent locals are still live. The only cleanup is restoration of the `BP` and the jump return.
 
-### 3. Resumable `main` Phase
+## 5.3. Resumable main Phase
 
 **Purpose:**
 Reenters the resumable using a saved `BP`. Runs one "step" of behavior.
@@ -242,7 +267,7 @@ The key is **no stack cleanup**: all live data remains intact, and the frame is 
 
 ---
 
-### Summary of Differences
+## 5.4. Summary of Differences
 
 | Call Type       | Allocates Locals | Cleans Up Stack | Restores BP | Captures Persistent Frame | Requires Resume Entry |
 | --------------- | ---------------- | --------------- | ----------- | ------------------------- | --------------------- |
