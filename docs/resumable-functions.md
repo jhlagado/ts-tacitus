@@ -1,15 +1,71 @@
 # Resumable Functions in Tacit
 
-Resumable functions in Tacit enable programming patterns like generators and stateful computations, where logic is executed over multiple distinct calls. A function becomes resumable by including a `STATE` block, signaling the compiler to generate a special initialization phase (`init`). The user-provided function code then serves as the re-entrant `main` phase. This `main` phase can be invoked multiple times, each time accessing the persistent internal state established by the implicit `init` phase. It can return an intermediate result and signal its readiness for subsequent calls, or indicate completion, all while its state is preserved.
+## Table of Contents
+- [Resumable Functions in Tacit](#resumable-functions-in-tacit)
+  - [Table of Contents](#table-of-contents)
+  - [1. Introduction](#1-introduction)
+    - [1.1. What are Resumable Functions?](#11-what-are-resumable-functions)
+    - [1.2. Motivation: Why Resumables?](#12-motivation-why-resumables)
+    - [1.3. Key Characteristics](#13-key-characteristics)
+  - [2. Core Concepts and Syntax](#2-core-concepts-and-syntax)
+    - [2.1. Defining Resumable Functions: Unified Syntax](#21-defining-resumable-functions-unified-syntax)
+    - [2.2. Implicit `init` and User-Defined `main` Phases](#22-implicit-init-and-user-defined-main-phases)
+    - [2.3. Calling Conventions for Resumable Functions](#23-calling-conventions-for-resumable-functions)
+      - [2.3.1. Initialization: `INITIATE_RESUMABLE`](#231-initialization-initiate_resumable)
+      - [2.3.2. Re-entrant Calls: `CALL_RESUMABLE`](#232-re-entrant-calls-call_resumable)
+      - [2.3.3. Trampoline: Managing Re-entrant Calls](#233-trampoline-managing-re-entrant-calls)
+  - [3. Calling Conventions and Stack Management](#3-calling-conventions-and-stack-management)
+    - [3.1. The Return Stack: `RSP` and `BP`](#31-the-return-stack-rsp-and-bp)
+    - [3.2. Standard Function Call Mechanics](#32-standard-function-call-mechanics)
+      - [3.2.1. Standard Function Prologue: Entering a Function](#321-standard-function-prologue-entering-a-function)
+      - [3.2.2. Standard Function Epilogue: Exiting a Function](#322-standard-function-epilogue-exiting-a-function)
+    - [3.3. Resumable Function `init` Phase (`name.init`)](#33-resumable-function-init-phase-nameinit)
+      - [3.3.1. `name.init` Prologue: Setting Up Persistent State](#331-nameinit-prologue-setting-up-persistent-state)
+      - [3.3.2. `name.init` Body: Initializing State](#332-nameinit-body-initializing-state)
+      - [3.3.3. `name.init` Epilogue: Returning the Token, Preserving State](#333-nameinit-epilogue-returning-the-token-preserving-state)
+    - [3.4. Resumable Function `main` Phase (`name.main`)](#34-resumable-function-main-phase-namemain)
+      - [3.4.1. `name.main` Prologue: Setting Up for Re-entrant Execution](#341-namemain-prologue-setting-up-for-re-entrant-execution)
+      - [3.4.2. Interaction with Persistent State from `name.main`](#342-interaction-with-persistent-state-from-namemain)
+      - [3.4.3. Calling Other Functions from `name.main`](#343-calling-other-functions-from-namemain)
+      - [3.4.4. `name.main` Epilogue: Returning from a Step, Preserving Persistent State](#344-namemain-epilogue-returning-from-a-step-preserving-persistent-state)
+    - [3.5. Persistent State Cleanup: Parent Scope Responsibility](#35-persistent-state-cleanup-parent-scope-responsibility)
+    - [3.6. Implicit Cleanup (Parent Scope Exit)](#36-implicit-cleanup-parent-scope-exit)
+  - [4. Compilation, Code Layout, and Calling Conventions](#4-compilation-code-layout-and-calling-conventions)
+    - [4.1. Compiler Role, Code Structure, and Phase Implementation](#41-compiler-role-code-structure-and-phase-implementation)
+    - [4.2. Initial Invocation: `INITIATE_RESUMABLE`](#42-initial-invocation-initiate_resumable)
+    - [4.3. Re-entering: `CALL_RESUMABLE`](#43-re-entering-call_resumable)
+    - [4.4. Signaling from `name.main`](#44-signaling-from-namemain)
+      - [4.3.1. Producing a Value and Signaling Continuation (Returning `BP_child`)](#431-producing-a-value-and-signaling-continuation-returning-bp_child)
+      - [4.3.2. Signaling Completion (Returning `0`)](#432-signaling-completion-returning-0)
+      - [4.3.3. Signaling an Error (Returning `-1`)](#433-signaling-an-error-returning--1)
+    - [4.5. Persistent State Lifetime and Cleanup (Parent Scope Responsibility)](#45-persistent-state-lifetime-and-cleanup-parent-scope-responsibility)
+    - [4.6. Caller Responsibilities and Loop Patterns (e.g., Trampoline)](#46-caller-responsibilities-and-loop-patterns-eg-trampoline)
+  - [5. Interaction with Other Functions](#5-interaction-with-other-functions)
+    - [5.1. Calling Normal Functions from a Resumable](#51-calling-normal-functions-from-a-resumable)
+    - [5.2. Calling a Resumable from a Normal Function](#52-calling-a-resumable-from-a-normal-function)
+  - [6. Recursive and Re-entrant Resumable Interactions](#6-recursive-and-re-entrant-resumable-interactions)
+    - [6.1. Direct Recursion: A Resumable Initiating New Instances of Itself](#61-direct-recursion-a-resumable-initiating-new-instances-of-itself)
+    - [6.2. Mutual Initiation (Resumables Initiating Each Other)](#62-mutual-initiation-resumables-initiating-each-other)
+    - [6.3. Stack Layout in Nested Scenarios](#63-stack-layout-in-nested-scenarios)
+    - [6.4. Managing Multiple Resume Tokens](#64-managing-multiple-resume-tokens)
+  - [7. Example: Fibonacci Generator](#7-example-fibonacci-generator)
+    - [7.1. Pseudocode for `fib` Resumable Function](#71-pseudocode-for-fib-resumable-function)
+    - [7.2. Caller Logic for `fib_test` (Conceptual Pseudocode)](#72-caller-logic-for-fib_test-conceptual-pseudocode)
+    - [8.3. Conceptual Compiled Output](#83-conceptual-compiled-output)
+  - [9. Best Practices and Summary](#9-best-practices-and-summary)
+    - [9.1. Checklist for Resumable Function Implementation](#91-checklist-for-resumable-function-implementation)
+    - [9.2. Key Advantages and Use Cases Recap](#92-key-advantages-and-use-cases-recap)
+
+Resumable functions in Tacit enable programming patterns like generators and stateful computations, where logic is executed over multiple distinct calls. A function becomes resumable by including a `state` block, signaling the compiler to generate a special initialization phase (`init`). The user-provided function code then serves as the re-entrant `main` phase. This `main` phase can be invoked multiple times, each time accessing the persistent internal state established by the implicit `init` phase. It can return an intermediate result and signal its readiness for subsequent calls, or indicate completion, all while its state is preserved.
 
 ## 1. Introduction
 
 ### 1.1. What are Resumable Functions?
 
-A function in Tacit that includes a `STATE { ... }` block is compiled as a resumable function. Its main body of code (the `main` phase) can be entered multiple times, maintaining state across these entries. Unlike conventional functions that compute their entire result in a single invocation, the `main` phase of a resumable function can be called repeatedly. Each call can perform a part of the computation, return an intermediate result, and be ready for a subsequent call, operating with its persistent local state variables (defined in the `STATE` block) intact.
+A function in Tacit that includes a `state { ... }` block is compiled as a resumable function. Its main body of code (the `main` phase) can be entered multiple times, maintaining state across these entries. Unlike conventional functions that compute their entire result in a single invocation, the `main` phase of a resumable function can be called repeatedly. Each call can perform a part of the computation, return an intermediate result, and be ready for a subsequent call, operating with its persistent local state variables (defined in the `state` block) intact.
 
 This is achieved through a two-phase execution model, orchestrated by the compiler and specific calling conventions:
-1.  **Implicit Initialization (`init` phase):** Automatically generated by the compiler when a `STATE` block is present. This phase allocates and initializes the function's persistent state variables.
+1.  **Implicit Initialization (`init` phase):** Automatically generated by the compiler when a `state` block is present. This phase allocates and initializes the function's persistent state variables.
 2.  **Re-entry (`main` phase):** This is the user-defined body of the function. It executes the core logic, accesses persistent state, and can be called multiple times, potentially producing a value and signaling whether it can be re-invoked or has completed.
 
 ### 1.2. Motivation: Why Resumables?
@@ -33,7 +89,7 @@ Resumable functions provide elegant solutions for several programming challenges
 
 ### 2.1. Defining Resumable Functions: Unified Syntax
 
-In Tacit, resumability is an emergent property of a standard function. A function becomes resumable if its definition includes a `STATE` block to declare persistent state variables. There is no separate `resumable : ... ;` syntax; instead, the compiler adapts its strategy based on the presence of this block.
+In Tacit, resumability is an emergent property of a standard function. A function becomes resumable if its definition includes a `state` block to declare persistent state variables. There is no separate `resumable : ... ;` syntax; instead, the compiler adapts its strategy based on the presence of this block.
 
 **Conceptual Syntax:**
 
@@ -42,7 +98,7 @@ DEFINE function-name ( init_arg1, init_arg2, ... // main_arg1, main_arg2, ... )
   // Standard function signature, potentially indicating how arguments map
   // to initialization vs. main phase calls. The '//' is a conceptual separator.
 
-  STATE { state_var1, state_var2, ... } // Declares persistent state variables
+  state { state_var1, state_var2, ... } // Declares persistent state variables
                                         // This block triggers resumable compilation.
 
   // User-provided code block begins here.
@@ -55,20 +111,20 @@ END_DEFINE
 ```
 
 *   **`DEFINE function-name ... END_DEFINE`**: Represents the standard way a function is defined in Tacit.
-*   **`STATE { ... }`**: This block is the key. If present, it declares `state_var` names that will constitute the persistent state. The compiler uses this to:
+*   **`state { ... }`**: This block is the key. If present, it declares `state_var` names that will constitute the persistent state. The compiler uses this to:
     1.  Identify the function as resumable.
     2.  Implicitly generate an `init` phase (see Section 2.2) to allocate and potentially initialize these state variables.
 *   **Function Signature `( init_args // main_args )`**: The function's signature needs a convention to distinguish arguments intended for the one-time initialization (consumed by the implicit `init` phase) from arguments intended for each re-entrant call to the `main` phase.
     *   One convention could be a special comment or marker within the stack effect documentation (e.g., `( i_arg1 i_arg2 -- // m_arg1 -- m_val )`).
     *   Alternatively, arguments might be consumed from the data stack by the `init` phase based on their order and types, with remaining arguments available for the `main` phase, or `main` phase arguments always requiring the resume token first.
-*   **User-Provided Code Block**: The code written by the programmer within `DEFINE ... END_DEFINE` (after the `STATE` block if it's at the top) constitutes the logic for the `main` re-entrant phase.
+*   **User-Provided Code Block**: The code written by the programmer within `DEFINE ... END_DEFINE` (after the `state` block if it's at the top) constitutes the logic for the `main` re-entrant phase.
 
 **Example (Conceptual):**
 
 ```pseudocode
 DEFINE my-generator ( initial_limit // -- )
   // initial_limit is for 'init', no specific args for 'main' beyond the token.
-  STATE { counter, limit }
+  state { counter, limit }
 
   // Compiler generates 'init' to: allocate 'counter', 'limit'; 
   // store 'initial_limit' into 'persistent.limit'; set 'persistent.counter' to 0.
@@ -90,10 +146,10 @@ END_DEFINE
 With the unified syntax, the distinct phases of a resumable function are realized as follows:
 
 1.  **Implicit Initialization Phase (`init`)**:
-    *   **Origin**: Automatically generated by the compiler when a `STATE` block is present in a function definition.
+    *   **Origin**: Automatically generated by the compiler when a `state` block is present in a function definition.
     *   **Purpose**: To allocate and initialize the persistent state of a new resumable function instance.
     *   **Invocation**: Called once per instance using a special protocol (e.g., `INITIATE_RESUMABLE function-name WITH ...`, see Section 2.3).
-    *   **Action**: Sets up the persistent state variables (declared in `STATE`) on the return stack. It may consume initial arguments from the data stack as per the function's defined signature to populate these state variables.
+    *   **Action**: Sets up the persistent state variables (declared in `state`) on the return stack. It may consume initial arguments from the data stack as per the function's defined signature to populate these state variables.
     *   **Return**: Returns a *resume token* (typically the base pointer `BP` of the allocated persistent state frame) on the data stack. This token is essential for subsequent calls to the `main` phase.
 
 2.  **User-Defined Main Re-entrant Phase (`main`)**:
@@ -107,7 +163,7 @@ Persistent state cleanup remains the responsibility of the parent scope that ini
 
 ### 2.3. Calling Conventions for Resumable Functions
 
-Interacting with a resumable function (one defined with a `STATE` block) requires adhering to specific calling protocols, one for initialization and one for subsequent re-entrant calls.
+Interacting with a resumable function (one defined with a `state` block) requires adhering to specific calling protocols, one for initialization and one for subsequent re-entrant calls.
 
 #### 2.3.1. Initialization: `INITIATE_RESUMABLE`
 
@@ -419,11 +475,11 @@ If no explicit cleanup is called, the persistent state remains on the stack. Whe
 
 ### 4.1. Compiler Role, Code Structure, and Phase Implementation
 
-The Tacit compiler implements resumable functions when a `STATE { ... }` block is detected within a `DEFINE` block. This involves generating distinct code for an `init` phase and compiling the user's code as the `main` phase, along with specific calling conventions to interact with them.
+The Tacit compiler implements resumable functions when a `state { ... }` block is detected within a `DEFINE` block. This involves generating distinct code for an `init` phase and compiling the user's code as the `main` phase, along with specific calling conventions to interact with them.
 
 **Code Structure:**
 1.  **`main` Phase (User Code):** The user's function body is compiled as the `main` phase. Its entry point is the function's standard base address (offset 0).
-2.  **`init` Phase (Compiler-Generated):** An `init` phase is automatically generated by the compiler. It is responsible for allocating space for persistent state variables (defined in the `STATE` block) on the return stack and initializing them using any `init_args` provided during the initial call. Its entry point is typically at a fixed small offset from the function's base address (e.g., `base_address + 3 bytes`, allowing a jump instruction at offset 0 to the `main` phase if needed for other call types, or simply a distinct entry).
+2.  **`init` Phase (Compiler-Generated):** An `init` phase is automatically generated by the compiler. It is responsible for allocating space for persistent state variables (defined in the `state` block) on the return stack and initializing them using any `init_args` provided during the initial call. Its entry point is typically at a fixed small offset from the function's base address (e.g., `base_address + 3 bytes`, allowing a jump instruction at offset 0 to the `main` phase if needed for other call types, or simply a distinct entry).
 
 **Calling Conventions:**
 *   `INITIATE_RESUMABLE name WITH init_args`: This operation directs execution to the compiler-generated `init` phase (e.g., at `base_address + 3 bytes`). It returns a resume token (the base pointer of the persistent state frame, `BP_persistent_frame`).
@@ -435,8 +491,8 @@ This dual-entry point structure, managed by the compiler, enables resumable beha
 
 **`init` Phase (Compiler-Generated):**
 1.  **Prologue:** Performs a standard function prologue: saves the caller's return address (`RA_caller`) and base pointer (`BP_caller`), then sets its own base pointer (`BP_init_frame`) to the current return stack pointer (`RSP`).
-2.  **State Allocation:** Increments `RSP` by the total size required for all persistent state variables defined in the `STATE` block. This allocated space becomes the persistent state frame.
-3.  **State Initialization:** Generates code to take `init_args` (if any) from the data stack or other agreed-upon sources and store them into the corresponding persistent state variables within the newly allocated frame (e.g., `[BP_init_frame + offset_var1] := init_arg1`). Default values from the `STATE` block are also applied here if no `init_arg` overrides them.
+2.  **State Allocation:** Increments `RSP` by the total size required for all persistent state variables defined in the `state` block. This allocated space becomes the persistent state frame.
+3.  **State Initialization:** Generates code to take `init_args` (if any) from the data stack or other agreed-upon sources and store them into the corresponding persistent state variables within the newly allocated frame (e.g., `[BP_init_frame + offset_var1] := init_arg1`). Default values from the `state` block are also applied here if no `init_arg` overrides them.
 4.  **Token Return:** Pushes `BP_init_frame` (which is the resume token) onto the data stack.
 5.  **Epilogue:** Performs a standard function epilogue: restores `BP_caller` and `RA_caller` from `BP_init_frame`'s saved values. Crucially, `RSP` is *not* reset to `BP_init_frame` before this epilogue; it remains pointing to the top of the persistent state frame, ensuring the state persists. Execution returns to `RA_caller`.
 
@@ -444,7 +500,7 @@ This dual-entry point structure, managed by the compiler, enables resumable beha
 1.  **Prologue:**
     *   Performs a standard function prologue: saves `RA_caller` and `BP_caller`, sets its own temporary frame base pointer (`BP_main_temp_frame`) to `RSP`.
     *   Retrieves the `resume_token` (`BP_persistent_frame`) passed by `CALL_RESUMABLE`. This token is typically passed on the data stack or via a dedicated register/memory location as per the VM's calling convention for resumables. This token is stored where the `main` phase can access it (e.g., in a dedicated slot in its temporary frame or a register).
-    *   Allocates space for any temporary local variables (non-`STATE` variables) used by the `main` phase by adjusting `RSP`.
+    *   Allocates space for any temporary local variables (non-`state` variables) used by the `main` phase by adjusting `RSP`.
 2.  **Body Execution:** The user's compiled code executes. Access to persistent state variables is done via the stored `resume_token` (e.g., `[resume_token + offset_var1]`). Access to temporary locals is via `BP_main_temp_frame`.
 3.  **Signaling:** The `main` phase code concludes by pushing any produced value(s) onto the data stack, followed by the appropriate signal:
     *   The `resume_token` itself (to indicate it can be called again).
@@ -597,7 +653,7 @@ The `main` phase of a resumable function can use `INITIATE_RESUMABLE` on itself 
 
 ```pseudocode
 DEFINE recursive_counter (initial_count // decrement_step)
-  STATE { current_value }
+  state { current_value }
   // Implicit 'init' phase generated by compiler:
   //   initial_count -> current_value
   //   RETURN resume_token_for_this_instance
@@ -673,7 +729,7 @@ This example demonstrates a resumable function `fib` that generates Fibonacci nu
 ```pseudocode
 DEFINE fib (initial_limit // ) // 'initial_limit' is an init_arg for the 'init' phase.
                                // No main_args are defined for the 'main' phase.
-  STATE { 
+  state { 
     a := 0,      // Current Fibonacci number, initialized to 0 by default.
     b := 1,      // Next Fibonacci number, initialized to 1 by default.
     limit        // Upper bound (exclusive). To be set by 'initial_limit' init_arg.
@@ -681,7 +737,7 @@ DEFINE fib (initial_limit // ) // 'initial_limit' is an init_arg for the 'init' 
   // Implicit 'init' phase generated by compiler conceptually does:
   //   1. Receives 'initial_limit' (e.g., from data stack).
   //   2. Stores 'initial_limit' into the persistent state variable 'limit'.
-  //   3. 'a' and 'b' are initialized to 0 and 1 respectively as per STATE block.
+  //   3. 'a' and 'b' are initialized to 0 and 1 respectively as per state block.
   //   4. Returns 'resume_token_for_this_fib_instance' on the data stack.
 
   // 'main' phase (user-provided code block):
