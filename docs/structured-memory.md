@@ -399,3 +399,14 @@ alice birthday
 ```
 
 As long as the receiver is of type `person`, the same code operates on either instance. This relies on consistent field offset definitions from `struct-def`.
+
+### Appendix: Dictionary Entry Prefix Field (for Struct Field Scoping)
+
+To support symbolic field access under `with` scopes, all dictionary entries now include an optional `prefix` field. This is a compile-time aid used to resolve two-part names like `person-name` from simple references like `name` inside a `with person` block.
+
+* **Default behavior:** For all symbols, `prefix` is `null` unless explicitly set.
+* **Struct field symbols:** When `struct-def` is processed, each field entry (e.g. `person-name`) is assigned a `prefix` equal to the struct type name (`person`). These entries remain globally visible in the dictionary.
+* **Field lookup strategy:** When an unqualified symbol is encountered inside a `with`, the compiler first attempts to resolve it normally (as a local or global symbol). If that fails, and a receiver context exists, the compiler tries again using the receiver name as a `prefix`.
+
+This avoids concatenation or string mangling during field access, and allows the dictionary to support multiple forms of scoped resolution efficiently. It also leaves the door open for future features like module-level scoping or pseudo-namespaces, all using the same `prefix` mechanism.
+
