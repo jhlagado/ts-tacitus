@@ -40,8 +40,6 @@ This two-phase model, when activated by reaching the `main` keyword, consists of
 
 Conceptually, the `init` phase "closes over" the persistent state, making it available every time the `main` phase is subsequently entered. The term 'resumable' refers to this ability to repeatedly call the `main` phase of an initialized function, with its unique state automatically available. This model is ideal for stateful sequences, generators, or iterative computations where context must be preserved, leveraging stack-based memory for efficiency. The detailed mechanics are discussed in subsequent sections.
 
----
-
 ## 2. The Ordinary Tacit Function
 
 ### 2.1. Frame Layout and Entry Steps
@@ -85,8 +83,6 @@ After these steps, the return stack layout is:
 
 Execution then enters the function’s body. Any assignment to a local simply stores into `(BP + offset(local))`.
 
----
-
 ### 2.3. Body Execution
 
 Inside the function body:
@@ -119,11 +115,7 @@ An ordinary Tacit function is responsible for completely removing its own stack 
 
 At this point, the entire stack frame of the returning ordinary function (locals and metadata) has been removed from the stack, and `RP` is restored to its value prior to this function's call. Control transfers to the caller.
 
----
-
 Here’s a rewritten version of that paragraph with clearer structure and improved readability, while preserving all original information:
-
----
 
 ## 3. The Resumable Tacit Function (Init/Main Phases)
 
@@ -141,12 +133,6 @@ However, if execution reaches the `main` keyword, this marks the end of the init
   2. Load the instruction pointer from `(BP - 2)` and jump to it, returning to the caller.
 
 Importantly, this return does **not** adjust the return stack pointer or clean up any local variables. The region from `(BP + 1)` through `(BP + N_locals)` (along with the stored resume address at `(BP - 1)`) remains untouched. The entire frame is preserved on the return stack in its initialized state, ready for the `main` phase to be resumed at a later time. Cleanup is deferred to an ancestor frame.
-
----
-
-Here is a revised version of **Section 3.2**, rewritten for clarity and precision without omitting any content:
-
----
 
 ### 3.2. Invoking the `main` Phase and Subsequent Exit
 
@@ -176,8 +162,6 @@ To resume the `main` phase of an initialized resumable function, the caller plac
 
 No pushes, pops, or return stack pointer adjustments are performed during `eval`. The resumed frame was already fully constructed during the `init` phase. `eval` simply links the current caller to it and jumps to the correct continuation point.
 
----
-
 #### 3.2.2. Final Return from the `main` Phase (No Self-Cleanup)
 
 When the `main` phase reaches its final `return`, the function must not attempt to clean up its own locals. Resumables preserve their stack frame; cleanup is deferred to an ancestor frame. The return sequence is:
@@ -189,8 +173,6 @@ When the `main` phase reaches its final `return`, the function must not attempt 
    Load the return address from `(BP – 2)` and jump to it. This address was saved by the invoker during `eval`.
 
 At this point, execution resumes in the caller as if `eval` had returned. The resumable frame remains completely intact on the return stack, including all local variables and the stored `main` entry point. It is now ready for another invocation or eventual cleanup by the ancestor that owns the stack.
-
----
 
 ## 4. Encapsulation and Unified Cleanup by Ancestor
 
@@ -211,8 +193,6 @@ When the ancestor ordinary function executes this step:
 Following this unified value cleanup, the ancestor ordinary function then completes its return by executing Steps 2, 3, and 4 from Section 2.4 (restoring its caller's `_BP_`, discarding its own `_main entry address_` slot, and restoring its caller's return address).
 
 This mechanism ensures that no resumable function needs to (or does) clean up its own frame. The ancestor ordinary function's standard return protocol inherently manages the cleanup of all stack frames within its scope of responsibility.
-
----
 
 ## 5. Example Scenarios
 
@@ -335,8 +315,6 @@ _Prevention/Mitigation:_
 *   _Static Analysis/Linting:_ Tooling could potentially detect unconditional self-`eval` patterns within a function's `main` phase.
 
 The critical point is that the `init` phase must complete before `eval` is used on its handle. Uncontrolled recursive `eval` of the same handle from within the `main` phase is a logic error in the resumable function's design, leading to a loop.
-
----
 
 ## 7. Summary of Offsets and Terminology
 
