@@ -1,7 +1,7 @@
 # Table of Contents
 
 - [Table of Contents](#table-of-contents)
-- [Functions and Resumable Functions](#functions-and-resumable-functions)
+- [Resumable Functions](#resumable-functions)
   - [1. Conceptual Overview: Resumable Functions with Init/Main Phases](#1-conceptual-overview-resumable-functions-with-initmain-phases)
     - [1.1 Purpose and Design Goals](#11-purpose-and-design-goals)
     - [1.2 How the Model Works](#12-how-the-model-works)
@@ -23,7 +23,7 @@
   - [7. Summary of Offsets and Terminology](#7-summary-of-offsets-and-terminology)
 
 
-# Functions and Resumable Functions
+# Resumable Functions
 
 ## 1. Conceptual Overview: Resumable Functions with Init/Main Phases
 
