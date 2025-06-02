@@ -8,8 +8,12 @@
   - [2. The Ordinary Tacit Function](#2-the-ordinary-tacit-function)
     - [2.1. Stack Frame Layout at Function Entry](#21-stack-frame-layout-at-function-entry)
     - [2.2. Constructing the Stack Frame](#22-constructing-the-stack-frame)
-    - [2.3. Body Execution](#23-body-execution)
-    - [2.4. Ordinary Function Return and Self-Cleanup](#24-ordinary-function-return-and-self-cleanup)
+    - [2.3. Executing the Function Body](#23-executing-the-function-body)
+    - [2.4. Final Return and Cleanup in Ordinary Functions](#24-final-return-and-cleanup-in-ordinary-functions)
+      - [1. Unified Stack Value Cleanup](#1-unified-stack-value-cleanup)
+      - [2. Restore the Caller’s BP](#2-restore-the-callers-bp)
+      - [3. Discard the Reserved `main` Entry Slot](#3-discard-the-reserved-main-entry-slot)
+      - [4. Restore the Caller’s Return Address and Transfer Control](#4-restore-the-callers-return-address-and-transfer-control)
   - [3. The Resumable Tacit Function (Init/Main Phases)](#3-the-resumable-tacit-function-initmain-phases)
     - [3.1. Initialization Phase and the `main` Keyword Demarcation](#31-initialization-phase-and-the-main-keyword-demarcation)
     - [3.2. Invoking the `main` Phase and Subsequent Exit](#32-invoking-the-main-phase-and-subsequent-exit)
@@ -103,37 +107,61 @@ RP     : points at BP + N
 
 Execution of the function body then begins. Any access to local variables is performed relative to `BP`, using offsets starting from `+1`.
 
-### 2.3. Body Execution
+Here is a clearer, more readable version of **Sections 2.3 and 2.4**, with no information lost. All stack behavior is preserved exactly as in your original, but the flow and structure have been improved for better comprehension.
 
-Inside the function body:
+---
 
-* _Assigning to a local_ stores into `(BP + k)`.
-* _Calling another function_ pushes that callee’s return address, dummy resume slot, and old BP above this frame, then reserves its own locals. On return, that callee’s frame unwinds, restoring BP back to this function’s BP.
-* An ordinary function executes its logic and eventually reaches its final `return`, unwinding as described in Section 2.4.
+### 2.3. Executing the Function Body
 
-### 2.4. Ordinary Function Return and Self-Cleanup
+Once the function has entered and the stack frame is in place, execution proceeds as follows:
 
-An ordinary Tacit function is responsible for completely removing its own stack frame upon its final `return`. This process is as follows:
+* **Accessing locals**: Writing to a local variable stores into the slot at `BP + k`, where `k` is the local’s index.
+* **Calling another function**: When this function invokes another function (ordinary or resumable), the runtime creates a new stack frame on top of the current one. This includes:
 
-1.  _Unified Stack Value Cleanup:_
-    Upon its final `return`, an ordinary function performs a unified cleanup of all values on the stack that are within its scope of responsibility. This scope extends from its current `_RP_` (Return Stack Pointer) down to its `_BP_` (Base Pointer). The process is a single, continuous loop:
+  * The callee’s return address,
+  * A reserved slot for a possible `main` entry (used only by resumables),
+  * The current function’s `BP`, which becomes the callee’s `BP + 0`.
+    The callee then allocates its own locals above that.
+* **Returning from a callee**: When the called function finishes, its stack frame is removed, and control returns to the calling function. The base pointer (`BP`) is restored to this function’s frame, allowing local access to resume correctly.
 
-    The cleanup loop continues as long as `_RP_` is greater than `_BP_`. In each pass of the loop, the function pops one value from the stack. If the value at `_*RP_` is reference-counted, its reference count is decremented. `_RP_` is then decremented.
+If the current function is an ordinary function, it continues executing until it reaches its final `return`, at which point it performs a complete teardown of its own stack frame.
 
-    This iterative cleanup ensures that all values in the region are appropriately handled. This includes local variables of the current ordinary function, as well as any local variables or metadata from descendant resumable function frames that might have been left on the stack above this ordinary function's `_BP_`.
+---
 
-    The loop concludes when `_RP_` becomes equal to `_BP_`. At this stage, `_RP_` is pointing to the slot `_(BP + 0)_`, which holds the `_BP_` of the function that called this ordinary function. All stack slots above `_(BP + 0)_` for which this function was responsible have now been cleaned.
+### 2.4. Final Return and Cleanup in Ordinary Functions
 
-2.  _Restore Caller's BP:_
-    The caller's old BP is popped from `(BP + 0)` (i.e., from where `RP` currently points) into the `BP` register. `RP` is decremented.
+Ordinary (non-resumable) functions in Tacit are responsible for fully cleaning up their own stack frames upon returning. This is done through a systematic process that ensures all values within the function’s dynamic extent—locals and any descendant resumable frames—are removed.
 
-3.  _Discard Reserved `main` entry address Slot:_
-    The dummy value in the reserved “`main` entry address” slot at `(BP – 1)` (relative to the original BP of this frame, now the next item on stack pointed to by `RP`) is popped and discarded. `RP` is decremented.
+The return sequence consists of the following steps:
 
-4.  _Restore Caller's Return Address and Jump:_
-    The caller's return address, stored at `(BP – 2)` (relative to the original BP of this frame, now pointed to by `RP`), is popped into the instruction pointer (`IP`). Execution then jumps to this address. `RP` is decremented.
+#### 1. Unified Stack Value Cleanup
 
-At this point, the entire stack frame of the returning ordinary function (locals and metadata) has been removed from the stack, and `RP` is restored to its value prior to this function's call. Control transfers to the caller.
+Before returning, the function performs a cleanup loop that walks down the return stack from the current return stack pointer (`RP`) to the function’s base pointer (`BP`). This loop is responsible for releasing all values the function is responsible for, including:
+
+* Its own local variables,
+* Any leftover values from resumable functions it created or invoked.
+
+For each slot above `BP`, the function:
+
+* Checks whether the value is reference-counted, and if so, decrements the reference count,
+* Then decrements `RP`, effectively removing the value from the return stack.
+
+This continues until `RP == BP`. At this point, the return stack is cleared of all values associated with this function or any functions it called within its dynamic scope.
+
+#### 2. Restore the Caller’s BP
+
+The slot at `BP + 0` contains the caller’s base pointer. This value is copied into the `BP` register to restore the previous frame. The return stack pointer is then decremented.
+
+#### 3. Discard the Reserved `main` Entry Slot
+
+The value at `BP – 1` is a placeholder used by resumables for their `main` phase entry point. In ordinary functions, this is always a dummy value. It is now discarded, and `RP` is decremented.
+
+#### 4. Restore the Caller’s Return Address and Transfer Control
+
+Finally, the slot at `BP – 2` holds the return address. This address is copied into the instruction pointer (`IP`), and execution resumes at that location. The stack pointer `RP` is decremented one last time.
+
+**Result:**
+After these four steps, the ordinary function has fully removed its stack frame, restored the caller’s context, and transferred control. The return stack is now exactly as it was before the function was called.
 
 ## 3. The Resumable Tacit Function (Init/Main Phases)
 
