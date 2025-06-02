@@ -127,10 +127,6 @@ RP     : points at BP + N
 
 Execution of the function body then begins. Any access to local variables is performed relative to `BP`, using offsets starting from `+1`.
 
-Here is a clearer, more readable version of **Sections 2.3 and 2.4**, with no information lost. All stack behavior is preserved exactly as in your original, but the flow and structure have been improved for better comprehension.
-
----
-
 ### 2.3. Executing the Function Body
 
 Once the function has entered and the stack frame is in place, execution proceeds as follows:
@@ -145,8 +141,6 @@ Once the function has entered and the stack frame is in place, execution proceed
 * **Returning from a callee**: When the called function finishes, its stack frame is removed, and control returns to the calling function. The base pointer (`BP`) is restored to this function’s frame, allowing local access to resume correctly.
 
 If the current function is an ordinary function, it continues executing until it reaches its final `return`, at which point it performs a complete teardown of its own stack frame.
-
----
 
 ### 2.4. Final Return and Cleanup in Ordinary Functions
 
