@@ -135,8 +135,6 @@ An ordinary Tacit function is responsible for completely removing its own stack 
 
 At this point, the entire stack frame of the returning ordinary function (locals and metadata) has been removed from the stack, and `RP` is restored to its value prior to this function's call. Control transfers to the caller.
 
-Here’s a rewritten version of that paragraph with clearer structure and improved readability, while preserving all original information:
-
 ## 3. The Resumable Tacit Function (Init/Main Phases)
 
 ### 3.1. Initialization Phase and the `main` Keyword Demarcation
