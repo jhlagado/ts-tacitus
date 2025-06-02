@@ -21,8 +21,19 @@
       - [3.2.2. Final Return from the `main` Phase (No Self-Cleanup)](#322-final-return-from-the-main-phase-no-self-cleanup)
   - [4. Encapsulation and Unified Cleanup by Ancestor](#4-encapsulation-and-unified-cleanup-by-ancestor)
   - [5. Example Scenarios](#5-example-scenarios)
-    - [5.1 Resumable A (in `init` or `main` phase) Calling Normal Function B](#51-resumable-a-in-init-or-main-phase-calling-normal-function-b)
-    - [5.2 Resumable A Calling Resumable B](#52-resumable-a-calling-resumable-b)
+    - [5.1. Resumable Function A (in `init` or `main` Phase) Calls Normal Function B](#51-resumable-function-a-in-init-or-main-phase-calls-normal-function-b)
+      - [Initial State](#initial-state)
+      - [A Calls B (Ordinary Function)](#a-calls-b-ordinary-function)
+      - [B Executes and Returns](#b-executes-and-returns)
+      - [A Resumes Execution](#a-resumes-execution)
+    - [5.2. Resumable Function A Calls Resumable Function B](#52-resumable-function-a-calls-resumable-function-b)
+      - [Initial State](#initial-state-1)
+      - [A Completes Its Init Phase](#a-completes-its-init-phase)
+      - [A’s Main Phase Is Invoked](#as-main-phase-is-invoked)
+      - [A Calls Resumable Function B](#a-calls-resumable-function-b)
+      - [B Completes Its Init Phase](#b-completes-its-init-phase)
+      - [B’s Main Phase Is Invoked](#bs-main-phase-is-invoked)
+      - [B Eventually Returns](#b-eventually-returns)
   - [6. Error Case: Uncontrolled Re-entry via `eval`](#6-error-case-uncontrolled-re-entry-via-eval)
   - [7. Summary of Stack Offsets and Operational Semantics](#7-summary-of-stack-offsets-and-operational-semantics)
     - [Stack Frame Layout (Relative to `BP`)](#stack-frame-layout-relative-to-bp)
@@ -255,84 +266,168 @@ This protocol guarantees that all local frames—including those of resumables�
 
 ## 5. Example Scenarios
 
-Below are descriptions—without code blocks—of how the stack evolves in three common scenarios, always remembering that cleanup of locals is done by the ancestor, not by any resumable itself.
+The following examples describe how stack frames are constructed, invoked, and cleaned up in common cases. In all cases, remember: **resumable functions never clean up their own stack frames**. Cleanup is deferred to an ancestor ordinary function.
 
-### 5.1 Resumable A (in `init` or `main` phase) Calling Normal Function B
+### 5.1. Resumable Function A (in `init` or `main` Phase) Calls Normal Function B
 
-This scenario describes when resumable function A, while executing either its `init` phase or an invocation of its `main` phase, calls a normal (non-resumable) function B.
+This scenario covers what happens when a resumable function `A`—either during its `init` phase or while executing its `main` phase—calls an ordinary (non-resumable) function `B`.
 
-*   _Start:_ Resumable function A is active. `BP_A` points to its base. Its persistent locals occupy `(BP_A + 1 … BP_A + N_A)`. A's stack frame also contains:
-    *   `(BP_A – 2)`: Return address (points into A's initiator if A is in `init` phase, or into `eval`'s caller if A is in `main` phase).
-    *   `(BP_A – 1)`: Slot for A's `main` entry address (populated when A's `init` phase completes by reaching the `main` keyword).
-    *   `(BP_A + 0)`: Base Pointer of A's initiator/invoker.
+#### Initial State
 
-*   _A calls B (normal function):_
-    1.  A pushes B’s return address (the instruction in A immediately after the call to B) onto the stack. This will become `(BP_B – 2)`.
-    2.  A pushes a dummy value onto the stack. This will become `(BP_B – 1)`, B's (unused) slot for a `main` entry address, as B is a normal function.
-    3.  A pushes its current `BP_A` onto the stack. This will become `(BP_B + 0)`.
-    4.  A sets `BP_B` to the current stack pointer (`RP`), establishing B's frame base.
-    5.  A reserves space for B’s local variables `(BP_B + 1 … BP_B + N_B)`.
-    Now B’s entire frame sits on top of A’s frame. A’s frame remains unchanged underneath.
+* Resumable function `A` is active. Its base pointer is `BP_A`.
+* A’s stack frame contains:
 
-*   _B executes and returns normally:_
-    1.  B performs its operations. Upon its final `return`, B cleans up its own stack frame completely, as per the protocol for ordinary functions (Section 2.4). This involves:
-        a.  Performing the "_Unified Stack Value Cleanup_" for its locals (from its `_RP_` down to `_BP_B_`).
-        b.  Restoring A's `_BP_` (i.e., `_BP_A_`) from `_(BP_B + 0)_`.
-        c.  Discarding its own dummy `_main entry address_` slot `_(BP_B – 1)_`.
-        d.  Restoring A's return address from `_(BP_B – 2)_` into `_IP_` and jumping there.
-    After B returns, its entire frame is removed from the stack.
+  * `BP_A – 2`: return address
 
-*   _A continues execution:_
-    Control returns to A, at the instruction immediately following its call to B. `BP_A` is restored.
-    *   _If A was in its `init` phase when it called B:_ A continues executing its `init` phase logic. If A subsequently reaches its `main` keyword, it completes its `init` phase by:
-        *   Storing the address of its `main` phase entry point (the instruction at or after `main`) into `(BP_A – 1)`.
-        *   Performing a standard return (as described in Section 3.1, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's initiator. The function's handle (`BP_A`) is implicitly made available to the initiator. A's frame remains on the stack (B's frame is already cleaned).
-    *   _If A was in an invocation of its `main` phase when it called B:_ A continues executing its `main` phase logic. If A subsequently reaches its own `return` statement (signaling the end of the current `main` phase invocation), it performs a standard return (as described in Section 3.2.2, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's invoker (the entity that called `eval` on A). A's frame remains on the stack (B's frame is already cleaned), ready for future `main` phase invocations or eventual cleanup.
+    * Points to the initiator if A is in `init`, or to the caller of `eval` if A is in `main`.
+  * `BP_A – 1`: slot reserved for A’s `main` entry address
 
-### 5.2 Resumable A Calling Resumable B
+    * Uninitialized if still in `init`; populated once `main` is reached.
+  * `BP_A + 0`: caller’s (or `eval`'s) BP
+  * `BP_A + 1 … BP_A + N_A`: A’s local variables (persistent state)
 
-* _Start:_ Resumable A has BP_A with locals `(BP_A + 1 … BP_A + N_A)` and metadata `(BP_A – 2, BP_A – 1, BP_A + 0)`.
+#### A Calls B (Ordinary Function)
 
-* _A reaches its `main` keyword (completing `init`):_
+To invoke `B`, A performs the following:
 
-  1. A writes its `main` entry address (address of the instruction at/after `main`) into `(BP_A – 1)`.
-  2. A does a normal `return`, popping `BP` from `(BP_A + 0)` and popping the return address from `(BP_A – 2)`.
+1. **Push return address** — A pushes the address of the instruction immediately after the call to B. This becomes `BP_B – 2`.
+2. **Push dummy resume slot** — A pushes a placeholder value (e.g., 0) into `BP_B – 1`. Since B is not resumable, this slot is unused.
+3. **Push current BP** — A pushes its current `BP_A`. This becomes `BP_B + 0`.
+4. **Set new BP** — The VM sets `BP_B := RP`, making this the base of B’s frame.
+5. **Reserve locals** — The VM advances `RP` to allocate B’s local variables at `BP_B + 1 … BP_B + N_B`.
 
-  A’s entire frame (locals + `main` entry address) remains on the return stack; BP reverts to whoever initiated A or invoked its `main` phase.
+At this point, B’s frame is fully established on top of A’s frame. A’s frame remains untouched below.
 
-* _Caller of A invokes A's `main` phase:_
+#### B Executes and Returns
 
-  1. Caller pushes A’s BP handle on the data stack and calls `eval`.
-  2. `eval` saves the caller’s BP into `(BP_A + 0)`, saves the caller’s return address into `(BP_A – 2)`, sets `BP := BP_A`, and jumps to `(BP_A – 1)`, A’s stored `main` entry address.
-  3. A’s `main` phase (the code at/after the `main` keyword) begins executing with locals still at `(BP_A + 1 … BP_A + N_A)`.
+When B completes execution:
 
-* _A_new calls resumable B:_
+1. **Stack cleanup** — B performs unified cleanup from `RP` down to `BP_B`, decrementing reference counts and popping local variables.
+2. **Restore BP** — B restores `BP_A` from `BP_B + 0`.
+3. **Discard dummy resume slot** — B pops and discards the placeholder value from `BP_B – 1`.
+4. **Return to A** — B pops the return address from `BP_B – 2` into the instruction pointer (`IP`) and jumps there.
 
-  1. A pushes B’s return address, a dummy value for B’s “`main` entry address” slot, and `BP_A` in sequence.
-  2. A sets `BP_B := RP` and reserves `(BP_B + 1 … BP_B + N_B)` for B’s locals.
+B’s frame is now completely removed. Control returns to function A.
 
-  B’s frame now sits above A’s frame. A’s locals remain at `(BP_A + 1 … BP_A + N_A)`.
+#### A Resumes Execution
 
-* _B completes its `init` phase (reaches its `main` keyword and yields):_
+Once B returns, A continues execution:
 
-  1. B writes its `main` entry address into `(BP_B – 1)`.
-  2. B does a normal `return`, popping `BP` from `(BP_B + 0)` and popping the return address from `(BP_B – 2)`.
+* **If A was in its `init` phase**:
 
-  B’s frame remains on the return stack above A’s.
+  * It continues executing initialization code.
+  * If it eventually reaches the `main` keyword:
 
-* _Caller of B resumes B:_
+    1. The address of the instruction following `main` is written to `BP_A – 1`.
+    2. A performs a special return:
 
-  1. That caller pushes B’s BP handle on the data stack, calls `eval`.
-  2. `eval` saves its BP into `(BP_B + 0)`, saves its return address into `(BP_B – 2)`, sets `BP := BP_B`, and jumps to `(BP_B – 1)`.
-  3. B's `main` phase begins execution at its stored `main` entry address with locals intact at `(BP_B + 1 … BP_B + N_B)`.
+       * Restores the caller’s BP from `BP_A + 0`.
+       * Restores the caller’s return address from `BP_A – 2` and jumps there.
+    3. The function’s handle (i.e., `BP_A`) is now available to the initiator.
+    4. A’s frame remains intact on the return stack.
 
-* _Eventually, B returns for good:_
+* **If A was in its `main` phase**:
 
-  1. B’s final return restores BP from `(BP_B + 0)` (back to BP_A) and restores return address from `(BP_B – 2)`, then jumps there.
-  2. B’s frame (locals + `main` entry address) remains on the stack. BP_A points to A’s frame again, and A resumes execution after its call to B.
+  * It resumes execution of the main logic.
+  * Upon reaching `return`, A:
 
-At no point does a resumable function clean up its own locals. All cleanup happens later when an ancestor—ultimately a conventional caller—unwinds those frames.
+    1. Restores the invoker’s BP from `BP_A + 0`.
+    2. Restores the invoker’s return address from `BP_A – 2` and jumps there.
+  * A’s frame is preserved on the stack for future `main` invocations or eventual cleanup by an ancestor.
 
+In either case, B’s stack frame is gone after it returns. A’s frame remains in place, unchanged.
+
+### 5.2. Resumable Function A Calls Resumable Function B
+
+This scenario illustrates what happens when one resumable function (`A`) calls another resumable function (`B`). The stack grows to accommodate both frames, but neither function cleans itself up—cleanup is deferred to their common ancestor.
+
+#### Initial State
+
+* Resumable function `A` is active, with:
+
+  * `BP_A – 2`: return address (set by A’s initiator or `eval` invoker)
+  * `BP_A – 1`: reserved slot for A’s `main` entry address (empty at first)
+  * `BP_A + 0`: caller’s BP (could be a normal function or `eval`)
+  * `BP_A + 1 … BP_A + N_A`: A’s persistent local variables
+
+#### A Completes Its Init Phase
+
+When A reaches its `main` keyword:
+
+1. A writes the address of its `main` phase entry point (the instruction at or just after `main`) into `BP_A – 1`.
+2. A returns:
+
+   * Pops and restores the caller’s BP from `BP_A + 0`.
+   * Pops and jumps to the caller’s return address from `BP_A – 2`.
+
+A’s frame—including locals and `main` entry address—is now fully initialized and remains on the return stack. Control returns to A’s initiator.
+
+#### A’s Main Phase Is Invoked
+
+The caller (often using `eval`) resumes A:
+
+1. Pushes `BP_A` (A’s handle) on the data stack, then calls `eval`.
+2. `eval`:
+
+   * Stores the caller’s BP into `BP_A + 0`
+   * Stores the caller’s return address into `BP_A – 2`
+   * Sets `BP := BP_A`
+   * Fetches the `main` entry address from `BP_A – 1` and jumps there
+
+A’s `main` phase begins, operating on its persistent locals at `BP_A + 1 … BP_A + N_A`.
+
+#### A Calls Resumable Function B
+
+Inside its `main` phase, A now calls B:
+
+1. A pushes:
+
+   * The return address (for after B returns) → becomes `BP_B – 2`
+   * A dummy value for B’s `main` entry address → becomes `BP_B – 1`
+   * Its own `BP_A` → becomes `BP_B + 0`
+2. Sets `BP_B := RP`, establishing B’s frame base
+3. Allocates space for B’s locals at `BP_B + 1 … BP_B + N_B`
+
+Now B’s frame is on top of A’s, which remains unchanged below.
+
+#### B Completes Its Init Phase
+
+When B reaches its `main` keyword:
+
+1. It writes the address of its `main` phase entry point into `BP_B – 1`.
+2. It returns:
+
+   * Restores BP from `BP_B + 0` (returns to A)
+   * Restores the return address from `BP_B – 2` and jumps there
+
+B’s initialized frame is now preserved above A’s on the return stack.
+
+#### B’s Main Phase Is Invoked
+
+When B’s `main` phase is later invoked:
+
+1. The caller pushes `BP_B` on the data stack and calls `eval`.
+2. `eval`:
+
+   * Stores the caller’s BP into `BP_B + 0`
+   * Stores the return address into `BP_B – 2`
+   * Sets `BP := BP_B`
+   * Jumps to the stored address in `BP_B – 1`
+
+B’s `main` logic begins, using its locals at `BP_B + 1 … BP_B + N_B`.
+
+#### B Eventually Returns
+
+When B reaches its final `return` in the `main` phase:
+
+1. It restores BP from `BP_B + 0` (back to A’s frame)
+2. It restores the return address from `BP_B – 2` and jumps there
+
+B’s frame is left intact on the return stack. Execution resumes inside A’s `main` phase.
+
+---
+
+At all times, both resumable functions preserve their frames on the return stack. Neither A nor B performs cleanup on return. That responsibility lies with an ancestor ordinary function, which will clean up all descendant frames in a single pass when it finally returns.
 ## 6. Error Case: Uncontrolled Re-entry via `eval`
 
 A resumable function's handle (its `BP`) is intended to be returned to its initiator after the `init` phase completes, allowing the initiator (or other functions) to subsequently invoke the `main` phase via `eval`. It is generally an error for a resumable function to attempt to `eval` its own handle directly from within itself in a way that bypasses the intended `init`-once, `main`-many-times lifecycle, or leads to uncontrolled recursion.
