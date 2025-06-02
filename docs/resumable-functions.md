@@ -24,7 +24,12 @@
     - [5.1 Resumable A (in `init` or `main` phase) Calling Normal Function B](#51-resumable-a-in-init-or-main-phase-calling-normal-function-b)
     - [5.2 Resumable A Calling Resumable B](#52-resumable-a-calling-resumable-b)
   - [6. Error Case: Uncontrolled Re-entry via `eval`](#6-error-case-uncontrolled-re-entry-via-eval)
-  - [7. Summary of Offsets and Terminology](#7-summary-of-offsets-and-terminology)
+  - [7. Summary of Stack Offsets and Operational Semantics](#7-summary-of-stack-offsets-and-operational-semantics)
+    - [Stack Frame Layout (Relative to `BP`)](#stack-frame-layout-relative-to-bp)
+    - [`main` Keyword: Transition Marker for Resumables](#main-keyword-transition-marker-for-resumables)
+    - [`eval`: Re-entering a Resumable Function](#eval-re-entering-a-resumable-function)
+    - [Cleanup: Resumable Frames Are Cleared by Ancestors](#cleanup-resumable-frames-are-cleared-by-ancestors)
+    - [Key Invariants](#key-invariants)
 
 
 # Resumable Functions
@@ -370,31 +375,77 @@ _Prevention/Mitigation:_
 
 The critical point is that the `init` phase must complete before `eval` is used on its handle. Uncontrolled recursive `eval` of the same handle from within the `main` phase is a logic error in the resumable function's design, leading to a loop.
 
-## 7. Summary of Offsets and Terminology
+## 7. Summary of Stack Offsets and Operational Semantics
 
-* _BP – 2_ = caller’s return address
+### Stack Frame Layout (Relative to `BP`)
 
-* _BP – 1_ = reserved “`main` entry address” slot (for resumable functions; ordinary functions may use this for a dummy value)
+Each function’s stack frame—ordinary or resumable—follows the same base layout:
 
-* _BP + 0_ = caller’s old BP
+* **`BP – 2`** — *Caller’s Return Address*
+  The address to jump to after the current function completes.
 
-* _BP + 1 … BP + N\_locals_ = this function’s local variables
+* **`BP – 1`** — *Reserved “main entry address” slot*
+  Used only by resumable functions. After the `init` phase, this slot is updated to store the address where the `main` phase begins. Ordinary functions leave this as a dummy value.
 
-* _`main` keyword (demarcation in resumable functions):_
-    *   Signifies the end of the one-time `init` phase and the start of the re-entrant `main` phase. It can be considered to compile into a special VM instruction (opcode) that, when executed at runtime, triggers the `init` phase epilogue.
-    *   This `init` phase epilogue involves:
-        1.  Storing the address of the first instruction of the `main` phase (or the instruction immediately following the `main` keyword/opcode) into `_(BP – 1)_`.
-        2.  Executing a specific type of `return` to the initiator (which involves restoring the initiator's `_BP_` from `_(BP + 0)_`, then restoring the initiator's return address from `_(BP – 2)_` and jumping there). The function's handle (its `_BP_`) is implicitly made available to the initiator.
+* **`BP + 0`** — *Caller’s Base Pointer*
+  The previous function’s `BP`, saved here so it can be restored during return.
 
-* _`eval` operation_
+* **`BP + 1 … BP + N`** — *Local Variables*
+  This function’s local variables occupy these slots, with count `N` determined at compile time.
 
-  1. _Extract initialized function's handle (its BP) from the data stack into `saved_BP`._
-  2. _Store invoker's BP into `(saved_BP + 0)`._
-  3. _Store invoker's return address (instruction after `eval`) into `(saved_BP – 2)`._
-  4. _Set `BP := saved_BP`._
-  5. _Fetch `main` entry address from `(BP – 1)` and jump there (starts/resumes the `main` phase)._
+### `main` Keyword: Transition Marker for Resumables
 
-* _Cleanup of initialized/active resumable function frames:_
-    *   Occurs only when an ancestor ordinary function executes its final `return`. Its epilogue walks down every local slot in its own frame and any descendant resumable frames, performs reference-count cleanup, conceptually discards `main` entry address slots, and restores BP and return address for each frame, in descending order, effectively unwinding the stack.
+In resumable functions, the `main` keyword marks the boundary between the `init` and `main` phases. It compiles into a dedicated VM instruction with the following runtime behavior:
 
-By adhering to this specification—return address at `BP – 2`, `main` entry address at `BP – 1` (for resumables), old BP at `BP + 0`, locals above—all functions manage their frames correctly, with resumable functions relying on an ancestor ordinary function for cleanup.
+1. **Store main entry point:**
+   The VM writes the address of the instruction immediately following `main` into `BP – 1`. This becomes the resume address for future `eval` calls.
+
+2. **Yield to caller via return:**
+   The function performs a special return that:
+
+   * Restores the caller’s `BP` from `BP + 0`.
+   * Restores the caller’s return address from `BP – 2` and jumps to it.
+   * Leaves the current function’s frame (including locals and main entry) intact on the return stack.
+
+The returned value is a tagged handle representing the function’s `BP`. This handle can be passed or stored for later use.
+
+### `eval`: Re-entering a Resumable Function
+
+To invoke the `main` phase of an already-initialized resumable function, the caller places the tagged handle (i.e., the function’s `BP`) on the data stack and executes `eval`. Internally, this performs:
+
+1. **Extract the handle:**
+   Move the tagged `BP` from the data stack into a temporary register (`saved_BP`).
+
+2. **Store the caller’s BP:**
+   Write the current `BP` (i.e., the invoker's) into `saved_BP + 0`.
+
+3. **Store the caller’s return address:**
+   Write the address of the instruction following `eval` into `saved_BP – 2`.
+
+4. **Switch base pointer:**
+   Set `BP := saved_BP`, making the resumable’s frame active.
+
+5. **Jump to main:**
+   Fetch the stored resume address from `BP – 1` and begin execution of the `main` phase.
+
+### Cleanup: Resumable Frames Are Cleared by Ancestors
+
+Resumable functions do **not** clean up their own frames when `main` returns. Instead, cleanup is delegated to an enclosing **ordinary function** that initiated them. During that function’s final `return`, the cleanup process:
+
+* Walks from the current return stack pointer (`RP`) down to its own `BP`.
+* Performs reference-count cleanup on all local values in this region—including any live resumable frames.
+* Discards reserved `main` entry slots and locals.
+* Restores BP and return addresses for itself.
+
+This unified cleanup ensures stack hygiene and consistent deallocation, without requiring resumables to manage their own frame teardown.
+
+### Key Invariants
+
+By following these rules:
+
+* `BP – 2` always holds the return address.
+* `BP – 1` is reserved for the `main` entry address (if needed).
+* `BP + 0` stores the caller’s BP.
+* Locals begin at `BP + 1`.
+
+All functions—ordinary or resumable—can be composed and nested safely, with predictable behavior and a consistent frame structure.
