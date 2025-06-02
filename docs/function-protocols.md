@@ -27,7 +27,7 @@
 
 Tacit's resumable functions provide a powerful mechanism for creating functions with persistent, stack-allocated state. They operate based on a two-phase model: an **initialization (`init`) phase** and a **main re-entrant (`main`) phase**.
 
-1.  **Init Phase:** When a resumable function is first invoked (through a special calling convention, see Memory `c996f6de-db7b-49ab-8379-6aaed49224b6`), it executes its `init` phase. This phase is responsible for setting up any persistent state variables the function will need across multiple invocations. This state is allocated within the function's own stack frame.
+1.  **Init Phase:** When a resumable function is first invoked, it executes its `init` phase. This phase is responsible for setting up any persistent state variables the function will need across multiple invocations. This state is allocated within the function's own stack frame.
 2.  **`main` Keyword Demarcation:** The `init` phase code is followed by the `main` keyword. This keyword acts as a crucial demarcation, signaling the end of the one-time initialization and the beginning of the function's re-entrant logic. Upon reaching this point, the `init` phase concludes by storing the entry point of the `main` phase and returning a handle (the function's Base Pointer, BP) to the caller. The function's stack frame, now containing its initialized persistent state, remains on the stack.
 3.  **Main Phase Invocation:** The caller can then use this handle to repeatedly invoke the function's `main` phase (typically via the `eval` primitive). Each invocation of the `main` phase operates on the persistent state established during `init`.
 
