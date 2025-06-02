@@ -25,10 +25,17 @@
 
 ## 1. Conceptual Overview: Resumable Functions with Init/Main Phases
 
-Tacit's resumable functions provide a powerful mechanism for creating functions with persistent, stack-allocated state. They operate based on a two-phase model: an _initialization (`init`) phase_ and a _main re-entrant (`main`) phase_.
+Tacit's resumable functions provide a powerful mechanism for creating functions with persistent, stack-allocated state. A function is *designed* to be resumable by including a `main` keyword within its definition. It is initially invoked using the standard calling protocol for ordinary Tacit functions (see Section 2.1, "Calling an Ordinary Function"). The function's subsequent behavior depends on its execution path:
 
-1.  _Init Phase:_ When a resumable function is first invoked, it executes its `init` phase. This phase is responsible for setting up any persistent state variables the function will need across multiple invocations. This state is allocated within the function's own stack frame.
-2.  _`main` Keyword Demarcation:_ The `init` phase code is followed by the `main` keyword. This keyword acts as a crucial demarcation, signaling the end of the one-time initialization and the beginning of the function's re-entrant logic. Upon reaching this point, the `init` phase concludes by storing the entry point of the `main` phase and returning a handle (the function's Base Pointer, BP) to the caller. The function's stack frame, now containing its initialized persistent state, remains on the stack.
+*   If the function completes its execution and issues a `return` *before* its control flow reaches a `main` keyword, it behaves in all respects like an ordinary function. This includes performing its own stack frame cleanup upon return, as detailed in Section 2.4 ("Final Return from an Ordinary Function").
+*   If the function's control flow *does* reach a `main` keyword, this signals its transition into a resumable state, operating on a two-phase model: an _initialization (`init`) phase_ and a _main re-entrant (`main`) phase_.
+
+This two-phase model, when activated by reaching the `main` keyword, consists of:
+
+1.  _Init Phase:_ The `init` phase comprises all code within the function definition that executes *before* the `main` keyword is encountered. This phase is responsible for setting up any persistent state variables the function will need for its subsequent `main` phase operations. This state is allocated within the function's own stack frame.
+2.  _`main` Keyword Demarcation:_ When execution reaches the `main` keyword, it acts as a crucial demarcation. This keyword can be considered to compile into a special VM instruction (or opcode) that, when executed, signals the end of the one-time initialization (`init` phase) and the beginning of the function's re-entrant logic (`main` phase). At this point, this effective `main` instruction triggers the execution of a special epilogue (detailed in Section 3.1) which involves:
+    *   Storing the entry point of the `main` phase (the address of the instruction at or immediately following the `main` keyword) into the `_(BP – 1)_` slot of its stack frame.
+    *   Performing a specific type of `return` that yields a handle (the function's Base Pointer, `_BP_`) to its initiator, while leaving its own stack frame (now containing initialized persistent state and the `main` entry address) intact on the return stack.
 3.  _Main Phase Invocation:_ The caller can then use this handle to repeatedly invoke the function's `main` phase (typically via the `eval` primitive). Each invocation of the `main` phase operates on the persistent state established during `init`.
 
 Conceptually, the `init` phase "closes over" the persistent state, making it available every time the `main` phase is subsequently entered. The term 'resumable' refers to this ability to repeatedly call the `main` phase of an initialized function, with its unique state automatically available. This model is ideal for stateful sequences, generators, or iterative computations where context must be preserved, leveraging stack-based memory for efficiency. The detailed mechanics are discussed in subsequent sections.
@@ -92,19 +99,22 @@ Inside the function body:
 
 An ordinary Tacit function is responsible for completely removing its own stack frame upon its final `return`. This process is as follows:
 
-1.  _Local Variable Cleanup (Reference Counting):_
-    The function iterates through its local variable slots, from `(BP + N_locals)` down to `(BP + 1)`. For each local variable that holds a reference to a heap-allocated object, the object's reference count is decremented. If a reference count drops to zero, the object is freed.
+1.  _Unified Stack Value Cleanup:_
+    Upon its final `return`, an ordinary function performs a unified cleanup of all values on the stack that are within its scope of responsibility. This scope extends from its current `_RP_` (Return Stack Pointer) down to its `_BP_` (Base Pointer). The process is a single, continuous loop:
 
-2.  _Deallocate Locals:_
-    The stack pointer `RP` is set to `BP`. This effectively deallocates the local variable slots. `RP` now points to the slot `(BP + 0)` which contains the caller's old BP.
+    The cleanup loop continues as long as `_RP_` is greater than `_BP_`. In each pass of the loop, the function pops one value from the stack. If the value at `_*RP_` is reference-counted, its reference count is decremented. `_RP_` is then decremented.
 
-3.  _Restore Caller's BP:_
+    This iterative cleanup ensures that all values in the region are appropriately handled. This includes local variables of the current ordinary function, as well as any local variables or metadata from descendant resumable function frames that might have been left on the stack above this ordinary function's `_BP_`.
+
+    The loop concludes when `_RP_` becomes equal to `_BP_`. At this stage, `_RP_` is pointing to the slot `_(BP + 0)_`, which holds the `_BP_` of the function that called this ordinary function. All stack slots above `_(BP + 0)_` for which this function was responsible have now been cleaned.
+
+2.  _Restore Caller's BP:_
     The caller's old BP is popped from `(BP + 0)` (i.e., from where `RP` currently points) into the `BP` register. `RP` is decremented.
 
-4.  _Discard Reserved `main` entry address Slot:_
+3.  _Discard Reserved `main` entry address Slot:_
     The dummy value in the reserved “`main` entry address” slot at `(BP – 1)` (relative to the original BP of this frame, now the next item on stack pointed to by `RP`) is popped and discarded. `RP` is decremented.
 
-5.  _Restore Caller's Return Address and Jump:_
+4.  _Restore Caller's Return Address and Jump:_
     The caller's return address, stored at `(BP – 2)` (relative to the original BP of this frame, now pointed to by `RP`), is popped into the instruction pointer (`IP`). Execution then jumps to this address. `RP` is decremented.
 
 At this point, the entire stack frame of the returning ordinary function (locals and metadata) has been removed from the stack, and `RP` is restored to its value prior to this function's call. Control transfers to the caller.
@@ -115,7 +125,9 @@ At this point, the entire stack frame of the returning ordinary function (locals
 
 ### 3.1. Initialization Phase and the `main` Keyword Demarcation
 
-When a resumable function completes its initialization phase (i.e., all code before the `main` keyword) and is about to yield control, the following steps occur as part of its `init` phase epilogue:
+A function intended to be resumable (i.e., one that contains a `main` keyword within its definition) is initially invoked using the standard calling protocol for ordinary Tacit functions (see Section 2.1, "Calling an Ordinary Function"). The function's behavior diverges from a strictly ordinary one only if its execution path reaches the `main` keyword. If the function completes and returns *before* encountering a `main` keyword, it behaves in all respects like an ordinary function, including performing its own stack frame cleanup upon return (as per Section 2.4).
+
+If, however, the execution of such a function proceeds to the `main` keyword, this marks the end of its initialization phase. The `main` keyword itself can be considered to compile into a special VM instruction (or opcode) that, when executed at runtime, triggers the following special `init` phase epilogue. This epilogue transitions the function into an initialized resumable state, allowing it to yield control while preserving its frame for subsequent `main` phase invocations:
 
 1. _Store the `main` entry address._
    Write the address of the instruction at (or immediately following) the `main` keyword into `(BP – 1)`. This records where to continue when the `main` phase is later invoked.
@@ -176,25 +188,21 @@ After these two steps, control transfers back to the invoker (or whatever frame 
 
 A key principle in Tacit's function protocol is that ordinary (conventional) functions (as described in Section 2) define a scope that encapsulates any resumable functions (Section 3) they initiate, either directly or indirectly. While resumable functions do not clean up their own stack frames upon the final `return` of their `main` phase (see Section 3.2.2), their lifecycle is ultimately managed by an ancestor ordinary function.
 
-The responsibility for cleaning up all initialized resumable function frames (i.e., those that have completed their `init` phase and are awaiting or executing their `main` phase)—along with the ordinary function's own frame—falls to this ancestor ordinary function when it executes its final `return`. This cleanup is a unified process.
+The responsibility for cleaning up all initialized resumable function frames (i.e., those that have completed their `init` phase and are awaiting or executing their `main` phase)—along with the ordinary function's own frame—falls to this ancestor ordinary function when it executes its final `return`. This cleanup is achieved through the unified return process of the ancestor ordinary function itself, as further detailed below.
 
-The comprehensive cleanup mechanism, triggered during the final return of an ancestor ordinary function, proceeds as follows for each frame it is responsible for (starting with its own frame and then unwinding any descendant resumable frames left on the stack above it):
+The cleanup of these encapsulated resumable function frames is achieved by the ancestor ordinary function's own final `return` sequence, specifically through the "_Unified Stack Value Cleanup_" process described in Section 2.4, Step 1.
 
-1.  _Local Variable Cleanup (Reference Counting) for the Current Frame:_
-    Starting at the top of the current frame's local variables (`BP + N_locals`) and moving down to `(BP + 1)` for ordinary functions, or from the top of active locals for resumable functions, check if each slot holds a heap-allocated object. If it does, decrement its reference count (freeing if zero).
+When the ancestor ordinary function executes this step:
+*   It initiates a single, continuous loop that processes values on the stack from the current `_RP_` down to its own `_BP_`.
+*   Any resumable function frames that were initiated by this ancestor (or its callees) and remain on the stack will reside in the region between the current `_RP_` and the ancestor's `_BP_`.
+*   As the ancestor's cleanup loop iterates (as per Section 2.4, Step 1.a):
+    *   It encounters and processes each value. This includes the local variables of any descendant resumable functions and their stored `_main entry address_` values (at their respective `_(BP-1)_` slots).
+    *   Reference counts are decremented for applicable values, and `_RP_` is decremented for every value, effectively popping it.
+*   This single loop seamlessly cleans all data from descendant resumable frames as well as the local variables of the ancestor ordinary function itself. The loop terminates when `_RP_` equals the ancestor's `_BP_`.
 
-2.  _Discard Locals and `main` entry address for the Current Frame:_
-    The stack pointer `RP` is adjusted to effectively discard the local variables. For resumable frames, the “`main` entry address” slot at `(BP – 1)` (which holds the actual `main` entry address) is also conceptually discarded (it contains no ref-counted data). For an ordinary function's own frame, this step also discards its dummy value from the “`main` entry address” slot. `RP` would now conceptually point to `(BP + 0)` of the current frame being cleaned.
+Following this unified value cleanup, the ancestor ordinary function then completes its return by executing Steps 2, 3, and 4 from Section 2.4 (restoring its caller's `_BP_`, discarding its own `_main entry address_` slot, and restoring its caller's return address).
 
-3.  _Restore Previous Frame's State (Caller of Current Frame):_
-    *   Pop the value from `(BP + 0)` (the old BP of the caller of the current frame) into the `BP` register.
-    *   Pop the value from `(BP – 2)` (the return address for the caller of the current frame) into the instruction pointer (`IP`).
-
-4.  _Loop or Terminate:_
-    *   If the newly restored `BP` points to another frame that needs cleanup as part of this same ancestor's unwinding process (i.e., it's a lower resumable frame in the chain, or the ancestor itself completing its own metadata slots), repeat steps 1-3 for this "new current" frame.
-    *   If the newly restored `BP` and `IP` belong to the caller of the original ancestor ordinary function (i.e., the entire encapsulated scope has been cleaned), the cleanup is complete, and execution jumps to the restored `IP`, returning control to that caller.
-
-This process ensures that no resumable function ever directly deallocates its own frame or cleans its own locals in its final return. All such frames are managed and cleaned by the ancestor ordinary function when its scope ends. The ordinary function's own frame is handled as the first part of this unified unwinding.
+This mechanism ensures that no resumable function needs to (or does) clean up its own frame. The ancestor ordinary function's standard return protocol inherently manages the cleanup of all stack frames within its scope of responsibility.
 
 ---
 
@@ -220,17 +228,19 @@ This scenario describes when resumable function A, while executing either its `i
     Now B’s entire frame sits on top of A’s frame. A’s frame remains unchanged underneath.
 
 *   _B executes and returns normally:_
-    1.  B performs its operations. Upon its final `return`, B itself does not clean up its stack frame (this cleanup is deferred to an ancestor ordinary function, typically A's ancestor, as per Section 4).
-    2.  B pops `BP_A` from `(BP_B + 0)` into `BP`, restoring A's base pointer.
-    3.  B pops B’s return address from `(BP_B – 2)` into `IP` and jumps there.
-    B’s frame technically remains on the return stack (though inactive), to be cleaned up later by A's ancestor.
+    1.  B performs its operations. Upon its final `return`, B cleans up its own stack frame completely, as per the protocol for ordinary functions (Section 2.4). This involves:
+        a.  Performing the "_Unified Stack Value Cleanup_" for its locals (from its `_RP_` down to `_BP_B_`).
+        b.  Restoring A's `_BP_` (i.e., `_BP_A_`) from `_(BP_B + 0)_`.
+        c.  Discarding its own dummy `_main entry address_` slot `_(BP_B – 1)_`.
+        d.  Restoring A's return address from `_(BP_B – 2)_` into `_IP_` and jumping there.
+    After B returns, its entire frame is removed from the stack.
 
 *   _A continues execution:_
     Control returns to A, at the instruction immediately following its call to B. `BP_A` is restored.
     *   _If A was in its `init` phase when it called B:_ A continues executing its `init` phase logic. If A subsequently reaches its `main` keyword, it completes its `init` phase by:
         *   Storing the address of its `main` phase entry point (the instruction at or after `main`) into `(BP_A – 1)`.
-        *   Performing a standard return (as described in Section 3.1, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's initiator. The function's handle (`BP_A`) is implicitly made available to the initiator. A's frame (and B's inactive frame above it) remains on the stack.
-    *   _If A was in an invocation of its `main` phase when it called B:_ A continues executing its `main` phase logic. If A subsequently reaches its own `return` statement (signaling the end of the current `main` phase invocation), it performs a standard return (as described in Section 3.2.2, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's invoker (the entity that called `eval` on A). A's frame (and B's inactive frame above it) remains on the stack, ready for future `main` phase invocations or eventual cleanup.
+        *   Performing a standard return (as described in Section 3.1, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's initiator. The function's handle (`BP_A`) is implicitly made available to the initiator. A's frame remains on the stack (B's frame is already cleaned).
+    *   _If A was in an invocation of its `main` phase when it called B:_ A continues executing its `main` phase logic. If A subsequently reaches its own `return` statement (signaling the end of the current `main` phase invocation), it performs a standard return (as described in Section 3.2.2, popping `BP` from `(BP_A + 0)` and `IP` from `(BP_A – 2)`). This returns control to A's invoker (the entity that called `eval` on A). A's frame remains on the stack (B's frame is already cleaned), ready for future `main` phase invocations or eventual cleanup.
 
 ### 5.2 Resumable A Calling Resumable B
 
@@ -331,10 +341,10 @@ The critical point is that the `init` phase must complete before `eval` is used 
 * _BP + 1 … BP + N\_locals_ = this function’s local variables
 
 * _`main` keyword (demarcation in resumable functions):_
-    *   Signifies the end of the one-time `init` phase and the start of the re-entrant `main` phase.
-    *   When the `init` phase reaches `main` and is about to yield:
-        1.  Store the address of the first instruction of the `main` phase (or instruction immediately following `main`) into `(BP – 1)`.
-        2.  Execute a normal `return` to the initiator (restore initiator's BP from `(BP + 0)`, then restore initiator's return address from `(BP – 2)`). The function's handle (its BP) is made available to the initiator.
+    *   Signifies the end of the one-time `init` phase and the start of the re-entrant `main` phase. It can be considered to compile into a special VM instruction (opcode) that, when executed at runtime, triggers the `init` phase epilogue.
+    *   This `init` phase epilogue involves:
+        1.  Storing the address of the first instruction of the `main` phase (or the instruction immediately following the `main` keyword/opcode) into `_(BP – 1)_`.
+        2.  Executing a specific type of `return` to the initiator (which involves restoring the initiator's `_BP_` from `_(BP + 0)_`, then restoring the initiator's return address from `_(BP – 2)_` and jumping there). The function's handle (its `_BP_`) is implicitly made available to the initiator.
 
 * _`eval` operation_
 
