@@ -35,6 +35,10 @@
       - [B’s Main Phase Is Invoked](#bs-main-phase-is-invoked)
       - [B Eventually Returns](#b-eventually-returns)
   - [6. Error Case: Uncontrolled Re-entry via `eval`](#6-error-case-uncontrolled-re-entry-via-eval)
+    - [Scenario 1: `eval` During the `init` Phase](#scenario-1-eval-during-the-init-phase)
+    - [Scenario 2: Self-`eval` During the `main` Phase](#scenario-2-self-eval-during-the-main-phase)
+    - [How to Prevent This](#how-to-prevent-this)
+    - [Key Takeaway](#key-takeaway)
   - [7. Summary of Stack Offsets and Operational Semantics](#7-summary-of-stack-offsets-and-operational-semantics)
     - [Stack Frame Layout (Relative to `BP`)](#stack-frame-layout-relative-to-bp)
     - [`main` Keyword: Transition Marker for Resumables](#main-keyword-transition-marker-for-resumables)
@@ -425,50 +429,74 @@ When B reaches its final `return` in the `main` phase:
 
 B’s frame is left intact on the return stack. Execution resumes inside A’s `main` phase.
 
----
-
 At all times, both resumable functions preserve their frames on the return stack. Neither A nor B performs cleanup on return. That responsibility lies with an ancestor ordinary function, which will clean up all descendant frames in a single pass when it finally returns.
+
 ## 6. Error Case: Uncontrolled Re-entry via `eval`
 
-A resumable function's handle (its `BP`) is intended to be returned to its initiator after the `init` phase completes, allowing the initiator (or other functions) to subsequently invoke the `main` phase via `eval`. It is generally an error for a resumable function to attempt to `eval` its own handle directly from within itself in a way that bypasses the intended `init`-once, `main`-many-times lifecycle, or leads to uncontrolled recursion.
+A resumable function’s handle—its base pointer (`BP`)—is meant to be returned after the `init` phase completes. This handle enables external callers to invoke the function’s `main` phase via `eval`. Misusing this handle from within the function itself, especially before the `init` phase is complete or without safeguards, leads to undefined behavior or runaway recursion.
 
-Consider a resumable function `RFunc`:
+### Scenario 1: `eval` During the `init` Phase
 
-_Scenario 1: `RFunc` attempts `eval` on itself during its `init` phase._
-If `RFunc`, before completing its `init` phase (i.e., before reaching its `main` keyword and returning its handle), were to somehow obtain its own `BP` and execute `eval` on it:
+Suppose a resumable function `RFunc` tries to `eval` its own handle while still executing its `init` phase—i.e., before reaching the `main` keyword:
+
 ```tacit
-# Inside RFunc's init phase
+# Inside RFunc, still in init phase
 ...
-get_own_bp_somehow  # Hypothetical, RFunc's BP is current BP
-eval                # Attempting to eval its own handle
+get_own_bp  # Suppose this retrieves RFunc’s current BP
+eval        # Premature self-eval
 ...
-main
-...
+main        # Not yet reached
 ```
-This is problematic because:
-1.  The `main` entry address at `(BP - 1)` would not have been set yet (this happens only when the `init` phase concludes by reaching `main`). `eval` would jump to an undefined or incorrect address.
-2.  This violates the protocol where the `init` phase must complete and return a handle before the `main` phase can be invoked.
 
-_Scenario 2: `RFunc` attempts `eval` on itself during its `main` phase._
-If `RFunc`, while its `main` phase is already executing (having been called via `eval` by an external caller), executes `eval` on its own `BP`:
+This is incorrect for two reasons:
+
+1. **`main` entry not yet set**
+   The entry point stored at `(BP – 1)` is still uninitialized. `eval` will jump to an invalid or undefined address.
+
+2. **Lifecycle violation**
+   A resumable must finish its `init` phase and perform a return—yielding its handle—before its `main` phase is ever invoked.
+
+Such use breaks the resumable protocol and will produce invalid control flow or crashes.
+
+### Scenario 2: Self-`eval` During the `main` Phase
+
+Suppose `RFunc`, now in its `main` phase (having been correctly resumed via `eval`), calls `eval` again on its own handle:
+
 ```tacit
 # Inside RFunc's main phase
 ...
-get_own_bp  # RFunc's BP is current BP
-eval        # Attempting to re-invoke its own main phase
+get_own_bp  # Retrieves BP while main is running
+eval        # Re-evaluates own main entry point
 ...
 ```
-This is effectively a direct recursive invocation of `RFunc`'s `main` phase. While recursion can be valid, if this `eval` call is unconditional or not managed by a proper termination condition within `RFunc`'s logic, it will lead to an infinite loop and stack overflow. The `eval` primitive itself, as described in Section 3.2.1, would proceed with the re-entry:
-*   It would save the current `BP` (which is `RFunc`'s `BP`) into `(RFunc.BP + 0)`.
-*   It would save the return address (the instruction in `RFunc` after `eval`) into `(RFunc.BP - 2)`.
-*   It would then jump to `(RFunc.BP - 1)`, which is `RFunc`'s `main` entry address.
 
-_Prevention/Mitigation:_
-*   _Protocol Adherence:_ The primary prevention is strict adherence to the resumable function protocol: `init` phase runs once, returns a handle; `main` phase is invoked via that handle by external callers.
-*   _`eval` Behavior:_ The `eval` primitive itself doesn't inherently prevent self-invocation of the `main` phase. If `eval` were to check if `saved_BP == current_BP` (where `saved_BP` is the handle being `eval`-ed), it could potentially flag or prevent such direct self-re-entry. However, this might also restrict legitimate recursive patterns if not designed carefully.
-*   _Static Analysis/Linting:_ Tooling could potentially detect unconditional self-`eval` patterns within a function's `main` phase.
+Here, the protocol is not violated per se—`main` has already been initialized—but the result is a recursive re-entry into `RFunc`’s own `main` phase. This leads to uncontrolled recursion unless carefully guarded.
 
-The critical point is that the `init` phase must complete before `eval` is used on its handle. Uncontrolled recursive `eval` of the same handle from within the `main` phase is a logic error in the resumable function's design, leading to a loop.
+The internal behavior of `eval` proceeds as usual:
+
+1. Stores the current `BP` (still `RFunc`'s own) into `(BP + 0)`
+2. Stores the return address (next instruction after `eval`) into `(BP – 2)`
+3. Jumps to `(BP – 1)`, re-entering `main`
+
+Since the frame is reused and not duplicated, this recursive jump nests invocations of `main` within the same frame, using the same locals and metadata, and can cause runaway loops or stack overflow if not handled with strict termination checks.
+
+### How to Prevent This
+
+* **Protocol Discipline**
+  Never invoke `eval` from within a resumable’s `init` phase. Only external entities should call `eval`, and only after `init` has returned.
+
+* **Design-Time Caution**
+  In the `main` phase, avoid unconditional self-`eval`. If recursive evaluation is required (e.g. for trampolining), implement it with explicit guards or iteration patterns.
+
+* **Possible Runtime Checks**
+  The `eval` instruction could, in theory, verify that `saved_BP ≠ current_BP`, blocking direct self-invocation. However, this risks interfering with valid recursive techniques, and should be an optional safeguard rather than a hard rule.
+
+* **Static Analysis Tools**
+  Linting or compiler diagnostics could detect suspicious self-`eval` calls lacking exit conditions or control flags.
+
+### Key Takeaway
+
+A resumable function must always complete its `init` phase before `eval` is used. Its `main` phase may be invoked repeatedly, but only through disciplined external calls. Recursive use of `eval` inside the `main` body is not forbidden—but it must be used with caution. Unconditional self-`eval` leads to infinite loops and is almost always a logic error.
 
 ## 7. Summary of Stack Offsets and Operational Semantics
 
