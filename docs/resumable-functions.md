@@ -6,8 +6,8 @@
     - [1.1 Purpose and Design Goals](#11-purpose-and-design-goals)
     - [1.2 How the Model Works](#12-how-the-model-works)
   - [2. The Ordinary Tacit Function](#2-the-ordinary-tacit-function)
-    - [2.1. Frame Layout and Entry Steps](#21-frame-layout-and-entry-steps)
-    - [2.2. How We Get That Layout](#22-how-we-get-that-layout)
+    - [2.1. Stack Frame Layout at Function Entry](#21-stack-frame-layout-at-function-entry)
+    - [2.2. Constructing the Stack Frame](#22-constructing-the-stack-frame)
     - [2.3. Body Execution](#23-body-execution)
     - [2.4. Ordinary Function Return and Self-Cleanup](#24-ordinary-function-return-and-self-cleanup)
   - [3. The Resumable Tacit Function (Init/Main Phases)](#3-the-resumable-tacit-function-initmain-phases)
@@ -59,46 +59,49 @@ Conceptually, the `init` phase "closes over" the persistent state, making it ava
 
 ## 2. The Ordinary Tacit Function
 
-### 2.1. Frame Layout and Entry Steps
+### 2.1. Stack Frame Layout at Function Entry
 
-When the caller invokes a function (whether resumable or not), the VM reserves exactly three metadata slots—caller’s return address, a slot reserved for the “`main` entry address” (for resumables), and caller’s BP—before allocating any locals. The frame layout (from lower to higher addresses) immediately after entry is:
+When a function is entered—whether it is an ordinary function or a resumable one—the VM constructs a new stack frame on the return stack. This frame includes both metadata and space for local variables. The layout of this frame is fixed and consistent, using the base pointer (`BP`) as a stable reference.
 
-* _BP – 2_: caller’s return address
-* _BP – 1_: reserved for the “`main` entry address” (used by resumable functions after their `init` phase to store the `main` entry point; holds a dummy/undefined value for ordinary functions or resumable functions before their `init` phase completes)
-* _BP + 0_: caller’s old BP
-* _BP + 1 … BP + N\_locals_: this function’s local variables (N\_locals slots)
+Immediately after function entry, the layout of the return stack from lower to higher addresses is as follows:
 
-No code that follows may overwrite the slots at `BP – 2`, `BP – 1`, or `BP + 0`. Locals begin at `BP + 1`.
+* `BP – 2`: The caller’s return address — the instruction pointer to return to when this function completes.
+* `BP – 1`: A reserved slot for a possible resumable `main` entry point. For ordinary functions, or for resumables before reaching the `main` keyword, this slot holds an unused placeholder value.
+* `BP + 0`: The caller’s base pointer. This enables the function to restore the caller’s frame upon return.
+* `BP + 1 … BP + N`: The current function’s local variables. These slots are reserved based on the number of locals determined at compile time.
 
-### 2.2. How We Get That Layout
+No function code may overwrite the three metadata slots at `BP – 2`, `BP – 1`, or `BP + 0`. All local variables are stored at positive offsets from `BP`, starting at `BP + 1`.
 
-1. _Push caller’s return address._
-   The caller pushes its return address onto the return stack. Since the return stack grows upward, that value occupies a new top slot.
+### 2.2. Constructing the Stack Frame
 
-2. _Push placeholder for “`main` entry address.”_
-   Immediately after that, the caller pushes a dummy value (for example, zero). This slot at `(BP - 1)` is reserved. For resumable functions, it will store the “`main` entry address” after the `init` phase completes. For ordinary functions, or resumable functions before their `init` phase completes, it holds this dummy value.
+To establish the layout described above, the caller performs the following steps during a function call:
 
-3. _Push caller’s BP._
-   Next, the caller pushes its current BP value. Now the top-of-stack contains the caller’s BP.
+1. **Write the return address.**
+   The instruction pointer for the return address is written to the current top of the return stack. This will become `BP – 2` in the callee’s frame.
 
-4. _Set `BP := RP`._
-   At this moment, BP points at the slot holding the caller’s BP. Consequently:
+2. **Write a placeholder for the main entry.**
+   A second value is written to the next available return stack slot. This is reserved for storing the entry point of a resumable function’s `main` phase. At this point, it contains a placeholder (e.g., zero). This becomes `BP – 1` in the callee’s frame.
 
-   * `BP – 1` holds the dummy placeholder for the “`main` entry address”.
-   * `BP – 2` holds the caller’s return address.
+3. **Write the caller’s base pointer.**
+   The current `BP` is stored into the next slot. This becomes `BP + 0` in the callee’s frame.
 
-5. _Reserve local slots._
-   The compiler already knows exactly how many local variables this function needs—call that number `N_locals`. Advance `RP` upward by `N_locals`, creating slots at `(BP + 1)` through `(BP + N_locals)` for all locals. BP remains unchanged.
+4. **Set the new base pointer.**
+   The base pointer for the new function is now updated to point to the location where the caller’s BP was just stored. In effect, `BP := RP` at this point, where `RP` is the current return stack pointer.
 
-After these steps, the return stack layout is:
+5. **Reserve space for local variables.**
+   The return stack pointer is incremented by the number of local variables required. These new slots begin at `BP + 1` and end at `BP + N`, where `N` is the number of local variables known at compile time.
 
-* BP – 2 = caller’s return address
-* BP – 1 = reserved slot for “`main` entry address” (initially holds a dummy value)
-* BP + 0 = caller’s old BP
-* BP + 1 … BP + N\_locals = locals
-* RP points at BP + N\_locals
+After these steps, the complete frame layout is:
 
-Execution then enters the function’s body. Any assignment to a local simply stores into `(BP + offset(local))`.
+```
+BP – 2 : caller’s return address
+BP – 1 : reserved slot for main entry address
+BP + 0 : caller’s base pointer
+BP + 1 … BP + N : function’s local variables
+RP     : points at BP + N
+```
+
+Execution of the function body then begins. Any access to local variables is performed relative to `BP`, using offsets starting from `+1`.
 
 ### 2.3. Body Execution
 
