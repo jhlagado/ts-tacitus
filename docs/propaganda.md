@@ -792,7 +792,7 @@ Because Tacit’s evaluation model is linear and execution is immediate:
 
 * Tacit programs are inherently **streamable**.
 * They can begin executing before the full source is loaded.
-* This makes them ideal for master-slave communication, over serial links or TCP.
+* This makes them ideal for client-server communication, over serial links or TCP.
 
 Inspired by PostScript and early dataflow languages, this allows Tacit to:
 
@@ -1429,7 +1429,7 @@ Because Tacit execution mirrors the order of source code, it is naturally **stre
 
 * It can start executing code before it finishes receiving it.
 * It can act as both sender and receiver of serialized instruction streams.
-* It supports **master-slave device protocols**, where low-latency execution matters.
+* It supports **client-server device protocols**, where low-latency execution matters.
 
 This makes it ideal for:
 
