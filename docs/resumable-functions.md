@@ -59,7 +59,7 @@ Resumable functions are designed around a _two-phase execution model_: a one-tim
 
 The motivation behind resumables is both philosophical and practical. In systems where predictability, memory locality, and stack discipline matter—such as embedded systems, real-time logic, or compact VM environments—heap-based closures introduce complexity and uncertainty. Traditional closures capture variables via dynamic environments and require runtime memory management. Tacit avoids this entirely by using the return stack (`RP`) as the storage medium for persistent function state.
 
-A resumable function captures its execution environment by simply *not cleaning up* when it returns from the init phase. Its stack frame remains live. A handle—represented by the function's `BP`—is returned to the caller. This handle can be used later to invoke the function’s `main` phase as many times as needed, always resuming with the original state.
+A resumable function captures its execution environment by simply *not cleaning up* when it returns from the init phase. Its stack frame remains live. A resumable handle is returned to the caller. This handle can be used later to invoke the function’s `main` phase as many times as needed, always resuming with the original state.
 
 This gives resumables a unique blend of _stack persistence_, _heap-free memory safety_, and _composable control flow_. They support generator-like patterns, long-lived computations, or even coroutines (if layered appropriately), but all within the same predictable, linear memory model.
 
@@ -74,7 +74,7 @@ Resumables are divided by the `main` keyword into two regions:
    The `main` keyword signals the end of the initialization phase. When encountered, it executes a special instruction that does two things:
 
    * Records the entry point for the main phase by writing the address of the instruction immediately after `main` into the slot at `(BP – 1)`.
-   * Performs a return that *does not clean up* the function’s stack frame. Instead, it returns the base pointer (`BP`) as a resumable handle to the caller. The caller now holds a reference to a suspended computation whose locals remain valid.
+   * Performs a return that *does not clean up* the function’s stack frame. Instead, it returns its base pointer (`BP`). This `BP` value serves as the function's **resumable handle** (often referred to simply as its **handle**), which the caller receives. The caller now holds a reference to a suspended computation whose locals remain valid.
 
 3. _Main Phase_
    Later, the caller can invoke the resumable’s main phase using `eval` and the saved handle. The runtime re-enters the function at the address stored in `(BP – 1)`, restoring the caller’s `BP` and return address as needed. Each invocation of the main phase sees the same preserved locals from the init phase, as if the function had simply paused.
@@ -198,7 +198,7 @@ Importantly, this return does _not_ adjust the return stack pointer or clean up 
 
 #### 3.2.1. Invoking the `main` Phase via `eval`
 
-To resume the `main` phase of an initialized resumable function, the caller places the function’s handle—a tagged `BP` value returned from the `init` phase—on the data stack and invokes `eval`. The `eval` operation performs the following steps:
+To resume the `main` phase of an initialized resumable function, the caller places the function’s resumable handle on the data stack and invokes `eval`. The `eval` operation performs the following steps:
 
 1. _Extract the function handle into a temporary (`saved_BP`)_
    This is the base pointer of the previously initialized resumable frame.
@@ -321,7 +321,7 @@ Once B returns, A continues execution:
 
        * Restores the caller’s BP from `BP_A + 0`.
        * Restores the caller’s return address from `BP_A – 2` and jumps there.
-    3. The function’s handle (i.e., `BP_A`) is now available to the initiator.
+    3. The function’s resumable handle (`BP_A`) is now available to the initiator.
     4. A’s frame remains intact on the return stack.
 
 * **If A was in its `main` phase**:
@@ -364,7 +364,7 @@ A’s frame—including locals and `main` entry address—is now fully initializ
 
 The caller (often using `eval`) resumes A:
 
-1. Pushes `BP_A` (A’s handle) on the data stack, then calls `eval`.
+1. Pushes `BP_A` (A’s resumable handle) on the data stack, then calls `eval`.
 2. `eval`:
 
    * Stores the caller’s BP into `BP_A + 0`
@@ -404,7 +404,7 @@ B’s initialized frame is now preserved above A’s on the return stack.
 
 When B’s `main` phase is later invoked:
 
-1. The caller pushes `BP_B` on the data stack and calls `eval`.
+1. The caller pushes `BP_B` (B’s resumable handle) on the data stack and calls `eval`.
 2. `eval`:
 
    * Stores the caller’s BP into `BP_B + 0`
@@ -427,7 +427,7 @@ At all times, both resumable functions preserve their frames on the return stack
 
 ## 6. Error Case: Uncontrolled Re-entry via `eval`
 
-A resumable function’s handle—its base pointer (`BP`)—is meant to be returned after the `init` phase completes. This handle enables external callers to invoke the function’s `main` phase via `eval`. Misusing this handle from within the function itself, especially before the `init` phase is complete or without safeguards, leads to undefined behavior or runaway recursion.
+A resumable function’s handle is meant to be returned after the `init` phase completes. This handle enables external callers to invoke the function’s `main` phase via `eval`. Misusing this handle from within the function itself, especially before the `init` phase is complete or without safeguards, leads to undefined behavior or runaway recursion.
 
 ### Scenario 1: `eval` During the `init` Phase
 
@@ -524,14 +524,14 @@ In resumable functions, the `main` keyword marks the boundary between the `init`
    * Restores the caller’s return address from `BP – 2` and jumps to it.
    * Leaves the current function’s frame (including locals and main entry) intact on the return stack.
 
-The returned value is a tagged handle representing the function’s `BP`. This handle can be passed or stored for later use.
+The returned value is its resumable handle. This handle can be passed or stored for later use.
 
 ### `eval`: Re-entering a Resumable Function
 
-To invoke the `main` phase of an already-initialized resumable function, the caller places the tagged handle (i.e., the function’s `BP`) on the data stack and executes `eval`. Internally, this performs:
+To invoke the `main` phase of an already-initialized resumable function, the caller places the resumable handle on the data stack and executes `eval`. Internally, this performs:
 
 1. **Extract the handle:**
-   Move the tagged `BP` from the data stack into a temporary register (`saved_BP`).
+   Move the resumable handle from the data stack into a temporary register (`saved_BP`).
 
 2. **Store the caller’s BP:**
    Write the current `BP` (i.e., the invoker's) into `saved_BP + 0`.
