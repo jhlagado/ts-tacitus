@@ -15,10 +15,10 @@ Unlike traditional Forth, Tacit minimizes use of the data stack by introducing *
 
 Resumables are Tacit's core coroutine-like primitive, but they are *not* closures, threads, or OS processes. Instead:
 
-* A **resumable** is a function with two entry points: `init` (first invocation) and `mainline` (for all subsequent resumptions).
+* A **resumable** is a function with two entry points: `init` (first invocation) and `main` (for all subsequent resumptions).
 * The `init` call allocates a frame on the return stack and may yield a **handle**, which is just a pointer to that frame.
 * On yield, the function suspends itself and returns its saved instruction pointer (via code offset) and base pointer (BP) as part of the handle.
-* On resume, the `mainline` entry is invoked using this handle.
+* On resume, the `main` entry is invoked using this handle.
 
 The resumable maintains its state *on the return stack only*, which avoids heap allocation and garbage collection. There is no dynamic closure environment; instead, **stack discipline and promotion** govern visibility and lifetime.
 
@@ -49,7 +49,7 @@ For sequences or pipelines (e.g. source → transform → sink), Tacit uses a **
 The trampoline:
 
 * Manages forward progression in the pipeline.
-* Invokes each stage’s `mainline`, and yields control when needed.
+* Invokes each stage’s `main`, and yields control when needed.
 * Avoids embedding iteration inside each resumable, keeping stage code minimal and restartable.
 
 ### 1.5. **Yield Semantics**
@@ -117,7 +117,7 @@ Resumable frames are identical, except they preserve their base pointer on yield
 
 A **handle** is a tagged pointer to a saved frame on the return stack. It contains:
 
-* A code pointer to the `mainline` resume entry.
+* A code pointer to the `main` resume entry.
 * A reference (or offset) to the saved `bp`.
 
 It does **not** reference the data stack or require heap allocation. Ownership of the handle is defined by scope: if the return stack region is valid, the handle is valid. If the owning ancestor frame is cleaned up, the handle becomes invalid.
@@ -208,7 +208,7 @@ Tacit’s multitasking model is grounded in **cooperative concurrency**. It trea
 
 ### 3.1. **Tasks Are Resumables**
 
-In Tacit, a task is nothing more than a **resumable function with persistent state** and a handle. When a task yields, it saves its execution point (via its `mainline` entry), and another task gets control.
+In Tacit, a task is nothing more than a **resumable function with persistent state** and a handle. When a task yields, it saves its execution point (via its `main` entry), and another task gets control.
 
 Tasks:
 
@@ -223,7 +223,7 @@ Because they’re just resumables, they obey all the same stack and promotion ru
 The scheduler is **just a loop** over a linked list of task handles. Each handle points to a saved frame and a resume entry. The scheduler:
 
 * Loads the frame’s `bp`.
-* Jumps to its `mainline`.
+* Jumps to its `main`.
 * Waits for a `yield`, which returns control and requeues the handle.
 
 There’s no preemption, no thread IDs, and no kernel. All concurrency is **cooperative** — tasks must choose to yield. This keeps scheduling predictable and lightweight.
@@ -419,7 +419,7 @@ This makes metaprogramming natural: the language **extends itself** with almost 
 
 ### 4.6. **Sequences and Pipelines**
 
-Tacit’s signature abstraction is the **compiled sequence** — a chain of stages, each with its own `init` and `mainline`.
+Tacit’s signature abstraction is the **compiled sequence** — a chain of stages, each with its own `init` and `main`.
 
 Pipelines:
 
@@ -526,7 +526,7 @@ This is **an ownership transfer model**:
 When a resumable function is initialized, it returns a **handle** — a tagged pointer representing the location of the saved base pointer. This handle:
 
 * Refers to the frame.
-* Allows the function to be resumed by jumping to its mainline entry.
+* Allows the function to be resumed by jumping to its main entry.
 
 Handles are not “objects” in the OO sense. They are **raw memory pointers** with a well-defined protocol. You don’t introspect them. You just resume them.
 
@@ -604,16 +604,16 @@ This enables truly low-cost computing — the ability to script on a five-cent c
 
 Tacit uses **resumable functions** as its core abstraction for cooperative multitasking, lightweight threads, pipelines, and staged execution. These are not high-level coroutines in the Python or JavaScript sense. They are **low-level, explicitly structured stack frames** with clear calling conventions and well-defined scope behavior.
 
-### 6.1. **Two Entry Points: Init and Mainline**
+### 6.1. **Two Entry Points: Init and main**
 
 Each resumable function has two distinct entry points:
 
 * **Init phase**: runs once to allocate and initialize state.
-* **Mainline phase**: re-enters repeatedly to perform work.
+* **main phase**: re-enters repeatedly to perform work.
 
 The init phase returns a **handle**, which contains a saved base pointer (BP) and a fixed code address. This handle is placed on the data stack and passed around like a capability.
 
-The mainline phase resumes execution at a known offset. It uses the same frame, so the state is preserved across yields.
+The main phase resumes execution at a known offset. It uses the same frame, so the state is preserved across yields.
 
 ### 6.2. **Frame Layout and Stack Protocol**
 
@@ -621,7 +621,7 @@ A resumable frame lives on the return stack:
 
 * `BP` marks the base of the frame.
 * The init phase pushes local variables above `BP`.
-* The mainline reuses those locals directly.
+* The main reuses those locals directly.
 
 There is **no heap**, no closure context, no capture of outer variables. The return stack is the frame. If state must persist, it lives on that frame — possibly as a promoted segment.
 
@@ -663,7 +663,7 @@ This makes it possible to:
 In many cases, resumables are driven by a **trampoline**:
 
 * A top-level loop repeatedly resumes them.
-* Each call to mainline does one unit of work and returns.
+* Each call to main does one unit of work and returns.
 
 This allows resumables to be **pure state machines** — they don’t loop internally. They execute one step per resume, and exit. The trampoline handles iteration.
 
@@ -691,7 +691,7 @@ This makes the system more flexible — but also demands discipline. Tasks must 
 
 A task in Tacit is just a resumable with a handle in the scheduler:
 
-* It runs its mainline phase.
+* It runs its main phase.
 * It yields at appropriate points (e.g. after reading input, or failing to write output).
 * The task manager loops through the task list, jumping to each active handle.
 
@@ -811,7 +811,7 @@ This is useful for constrained environments — printers, plotters, IoT devices 
 Tacit supports **macro expansion of pipelines**:
 
 * A macro like `range map zip take` expands into compiled interleaved blocks.
-* `init` and `mainline` phases of each stage are compiled in sequence.
+* `init` and `main` phases of each stage are compiled in sequence.
 * Patch stacks handle forward references and back-linking between stages.
 
 This gives the feel of a high-level declarative language, but compiles down to **linear, inlined, minimal bytecode**.
@@ -954,7 +954,7 @@ Tacit supports **asynchronous programming** by default, using a **cooperative mu
 
 Every resumable function can act as a task:
 
-* It has two entry points: `init` (first call) and `mainline` (resumed call).
+* It has two entry points: `init` (first call) and `main` (resumed call).
 * A **handle** returned from `init` represents the resumable’s stack frame.
 * That handle can be scheduled and resumed repeatedly.
 
