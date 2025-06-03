@@ -376,8 +376,6 @@ This enables:
 * Avoiding variable juggling and bindings.
 * Clear visual structure where operations are layered top-down.
 
-Instead of writing `map(f, filter(g, xs))`, a Tacit sequence expresses this as `xs g filter f map`, without parentheses or boilerplate.
-
 ### 4.3. **Local Variables and Scope**
 
 Tacit supports **local variables**, addressing a key weakness of classical Forth.
@@ -385,7 +383,7 @@ Tacit supports **local variables**, addressing a key weakness of classical Forth
 Locals:
 
 * Live on the return stack above the base pointer.
-* Are accessed by name with a `$` prefix.
+* shadow global variables with the same name.
 * Are immutable after assignment.
 * Can be promoted to parent scopes if needed.
 
@@ -401,7 +399,7 @@ Tacit supports **structs** and field access via:
 * `struct` for instantiating local field blocks.
 * `with` for scoping field access.
 
-Fields are accessed using `%fieldname` within `with` blocks. There’s no heap allocation — fields are just memory slots with symbolic offsets. Field references are resolved statically during compilation.
+Fields are accessed using field names within `with` blocks. There’s no heap allocation — fields are just memory slots with symbolic offsets. Field references are resolved statically during compilation.
 
 Structs support **record-like behavior** without needing closures or heap-based objects.
 
@@ -439,8 +437,6 @@ Functions in Tacit:
 * Are statically analyzable for stack effect.
 
 This avoids surprises and encourages a **predictable style** of programming. There are no variadic functions. Everything composes clearly in a stack-based algebra.
-
-Compiler checks ensure that sequences are well-formed and that stack effects match expectations. This gives a **type-like safety model** without needing a full type system.
 
 ### 4.8. **Syntax for Async and Yielding**
 
@@ -598,7 +594,7 @@ Tacit aims to be a scripting language with **no toolchain and no garbage collect
 * It compiles on target.
 * There’s no memory overhead for object graphs or lexical environments.
 
-This enables truly low-cost computing — the ability to script on a five-cent chip — which modern scripting languages can’t touch.
+This enables truly low-cost computing — the ability to script on a ten cent chip — which modern scripting languages can’t touch.
 
 ## **6. Resumable Functions and Coroutines**
 
