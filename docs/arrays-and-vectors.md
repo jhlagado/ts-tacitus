@@ -42,7 +42,7 @@ This design provides significant advantages in composability and clarity. It all
 
 Tacit’s array-first principle ensures arrays have minimal overhead: metadata is compact and computation is predictable. This makes arrays especially suited to embedded and low-resource environments, where predictable memory usage and cache locality provide substantial performance benefits.
 
-In summary, Tacit's foundational concept—that arrays are first-class functions—simplifies memory management, supports powerful functional operations, and aligns closely with its stack-based, sequence-driven execution model, creating a highly expressive, efficient, and composable language foundation.
+Tacit's foundational concept—that arrays are first-class functions—simplifies memory management, supports powerful functional operations, and aligns closely with its stack-based, sequence-driven execution model, creating a highly expressive, efficient, and composable language foundation.
 
 ## 2. Vectors: Primitives and Building Blocks
 
@@ -59,7 +59,7 @@ Although vectors are typically immutable and read-oriented, Tacit does support e
 
 Vectors provide the raw storage backing for more structured data. Views overlay vectors with multidimensional shapes, strides, and offsets, enabling advanced indexing and reshaping without memory copying. Thus, while vectors are the fundamental memory blocks in Tacit, they gain their full expressive power through the structured interpretations provided by views.
 
-In summary, vectors in Tacit represent efficient, primitive, fixed-length memory blocks. They form the building blocks for higher-dimensional arrays, maintain excellent cache locality, and uphold Tacit's principle of predictable memory usage and minimal overhead.
+Vectors in Tacit represent efficient, primitive, fixed-length memory blocks. They form the building blocks for higher-dimensional arrays, maintain excellent cache locality, and uphold Tacit's principle of predictable memory usage and minimal overhead.
 
 ## 3. Views: Structured Interpretation of Vectors
 
@@ -76,7 +76,7 @@ Each view functions as a pure mapping from index tuples to memory addresses. Giv
 
 Because views are non-owning references, multiple views may share the same underlying vector memory. The lifetime of a view is therefore limited by the lifetime of its vector, typically managed through Tacit's disciplined stack-based allocation strategy.
 
-In summary, views provide the critical link between linear vectors and structured, multidimensional array semantics. They enable expressive operations such as slicing, reshaping, and broadcasting, all achieved through composable, efficient, and purely functional interpretation of memory.
+Views provide the critical link between linear vectors and structured, multidimensional array semantics. They enable expressive operations such as slicing, reshaping, and broadcasting, all achieved through composable, efficient, and purely functional interpretation of memory.
 
 ## 4. Array Access and Mutation
 
@@ -110,7 +110,7 @@ Both `get` and `put` operations behave like pipeline sinks: they terminate a seq
 
 Tacit's design favors read-heavy, functional programming patterns. Mutation (`put`) is available but secondary, provided explicitly to support scenarios where imperative updates or efficient data reuse are necessary. Read-oriented operations (`get`) dominate common usage patterns, reinforcing composability and predictability.
 
-In summary, Tacit’s array access and mutation model maintains a careful balance between functional purity and imperative efficiency. Operations are explicit, composable, and integrated naturally with the language’s pipeline-oriented semantics, ensuring clarity, efficiency, and disciplined memory handling.
+Tacit’s array access and mutation model maintains a careful balance between functional purity and imperative efficiency. Operations are explicit, composable, and integrated naturally with the language’s pipeline-oriented semantics, ensuring clarity, efficiency, and disciplined memory handling.
 
 ## 5. Sequences and Arrays as Composable Functions
 
