@@ -1,45 +1,68 @@
 - [Buffers and Arrays](#buffers-and-arrays)
-- [Introduction](#introduction)
-- [1. Buffers – Raw Memory as a First-Class Value](#1-buffers--raw-memory-as-a-first-class-value)
-  - [1.1 Element Width and Usage](#11-element-width-and-usage)
-  - [1.2 Buffers as First-Class Values](#12-buffers-as-first-class-values)
-  - [1.3 Buffers and Sequences](#13-buffers-and-sequences)
-  - [1.4 Buffers as Low-Level Infrastructure](#14-buffers-as-low-level-infrastructure)
-  - [1.5 Storage, Aliasing, and Ownership](#15-storage-aliasing-and-ownership)
-  - [1.6 Summary](#16-summary)
-- [2. Do-Pointers – Executable Interpretation for Buffers](#2-do-pointers--executable-interpretation-for-buffers)
-  - [2.1 What is a Do-Pointer?](#21-what-is-a-do-pointer)
-  - [2.2 Buffers with and without Do-Pointers](#22-buffers-with-and-without-do-pointers)
-  - [2.3 Installing a Do-Pointer](#23-installing-a-do-pointer)
-  - [2.4 Executing Do-Pointer Buffers](#24-executing-do-pointer-buffers)
-  - [2.5 Use Cases: Structs, Arrays, Views](#25-use-cases-structs-arrays-views)
-  - [2.6 Reusability and Global Functions](#26-reusability-and-global-functions)
-  - [2.7 Summary](#27-summary)
-- [3. Views – Translating Indices to Offsets](#3-views--translating-indices-to-offsets)
-  - [3.1 The View as Function](#31-the-view-as-function)
-  - [3.2 View + Buffer = Array](#32-view--buffer--array)
-  - [3.3 Shape Vectors as Views](#33-shape-vectors-as-views)
-  - [3.4 Arity and Stack Interaction](#34-arity-and-stack-interaction)
-  - [3.5 Views from Functions or Data](#35-views-from-functions-or-data)
-  - [3.6 Summary](#36-summary)
-  - [3.7 Bounds Checking and Index Policies](#37-bounds-checking-and-index-policies)
-- [4. Arrays: Composed Views Over Buffers](#4-arrays-composed-views-over-buffers)
-  - [4.1 Arrays as First-Class Functions](#41-arrays-as-first-class-functions)
-  - [4.2 Views as Address Generators](#42-views-as-address-generators)
-  - [4.3 Arrays as Smart Data](#43-arrays-as-smart-data)
-  - [4.4 Composability and Stack Discipline](#44-composability-and-stack-discipline)
-  - [4.5 Array Access and Mutation](#45-array-access-and-mutation)
-  - [4.6 Summary](#46-summary)
-- [5. Shape Vectors as Metadata-Enriched Views](#section-5-shape-vectors-as-metadata-enriched-views)
-- [6. Reshaping Arrays](#6-reshaping-arrays)
-  - [6.1 Logical and Physical Invariance](#61-logical-and-physical-invariance)
-  - [6.2 Shape Compatibility and Rank Change](#62-shape-compatibility-and-rank-change)
-  - [6.3 Dynamic and Static Reshape](#63-dynamic-and-static-reshape)
-  - [6.4 Reshape as Function Composition](#64-reshape-as-function-composition)
-- [7. Slicing and Subarrays](#7-slicing-and-subarrays)
-  - [7.1 Slice as View Transformation](#71-slice-as-view-transformation)
-  - [7.2 Stride Modification](#72-stride-modification)
-  - [7.3 Slicing by Index Sets](#73-slicing-by-index-sets)
+  - [Introduction](#introduction)
+  - [**1. Buffers – Raw Memory as a First-Class Value**](#1-buffers--raw-memory-as-a-first-class-value)
+    - [**1.1 Element Width and Usage**](#11-element-width-and-usage)
+    - [**1.2 Buffers as First-Class Values**](#12-buffers-as-first-class-values)
+    - [**1.3 Buffers and Sequences**](#13-buffers-and-sequences)
+    - [**1.4 Buffers as Low-Level Infrastructure**](#14-buffers-as-low-level-infrastructure)
+    - [**1.5 Storage, Aliasing, and Ownership**](#15-storage-aliasing-and-ownership)
+    - [**1.6 Summary**](#16-summary)
+  - [**2. Do-Pointers – Executable Interpretation for Buffers**](#2-do-pointers--executable-interpretation-for-buffers)
+    - [**2.1 What is a Do-Pointer?**](#21-what-is-a-do-pointer)
+    - [**2.2 Buffers with and without Do-Pointers**](#22-buffers-with-and-without-do-pointers)
+    - [**2.3 Installing a Do-Pointer**](#23-installing-a-do-pointer)
+    - [**2.4 Executing Do-Pointer Buffers**](#24-executing-do-pointer-buffers)
+    - [**2.5 Use Cases: Structs, Arrays, Views**](#25-use-cases-structs-arrays-views)
+    - [**2.6 Reusability and Global Functions**](#26-reusability-and-global-functions)
+    - [**2.7 Summary**](#27-summary)
+  - [**3. Views – Translating Indices to Offsets**](#3-views--translating-indices-to-offsets)
+    - [**3.1 The View as Function**](#31-the-view-as-function)
+    - [**3.2 View + Buffer = Array**](#32-view--buffer--array)
+    - [**3.3 Shape Vectors as Views**](#33-shape-vectors-as-views)
+    - [**3.4 Arity and Stack Interaction**](#34-arity-and-stack-interaction)
+    - [**3.5 Views from Functions or Data**](#35-views-from-functions-or-data)
+    - [**3.6 Summary**](#36-summary)
+    - [**3.7 Bounds Checking and Index Policies**](#37-bounds-checking-and-index-policies)
+    - [**4. Arrays: Composed Views Over Buffers**](#4-arrays-composed-views-over-buffers)
+    - [**4.1 Arrays as First-Class Functions**](#41-arrays-as-first-class-functions)
+    - [**4.2 Views as Address Generators**](#42-views-as-address-generators)
+    - [**4.3 Arrays as Smart Data**](#43-arrays-as-smart-data)
+    - [**4.4 Composability and Stack Discipline**](#44-composability-and-stack-discipline)
+    - [**4.5 Array Access and Mutation**](#45-array-access-and-mutation)
+    - [**4.6 Summary**](#46-summary)
+  - [5. Shape Vectors – Metadata-Enriched Views](#5-shape-vectors--metadata-enriched-views)
+    - [5.1 What a Shape Vector Is](#51-what-a-shape-vector-is)
+    - [5.2 Rank, Size, and Total Elements](#52-rank-size-and-total-elements)
+    - [5.3 Stride Derivation and Layout](#53-stride-derivation-and-layout)
+    - [5.4 Degenerate Dimensions and Broadcast Semantics](#54-degenerate-dimensions-and-broadcast-semantics)
+    - [5.5 Empty and Scalar Shapes](#55-empty-and-scalar-shapes)
+    - [5.6 Shape Vector Operations](#56-shape-vector-operations)
+    - [5.7 Performance and Caching](#57-performance-and-caching)
+    - [5.8 Summary](#58-summary)
+  - [6 Reshaping Arrays – Changing Shape Without Moving Data](#6-reshaping-arrays--changing-shape-without-moving-data)
+    - [6.1 Conceptual Model](#61-conceptual-model)
+    - [6.2 Size Compatibility](#62-size-compatibility)
+    - [6.3 Rank Modification](#63-rank-modification)
+    - [6.4 Static vs Dynamic Reshape](#64-static-vs-dynamic-reshape)
+    - [6.5 Partial / Inferred Dimensions](#65-partial--inferred-dimensions)
+    - [6.6 Implementation Mechanics](#66-implementation-mechanics)
+    - [6.7 Compositional Reshaping](#67-compositional-reshaping)
+    - [6.8 Performance Notes](#68-performance-notes)
+    - [6.9 Summary](#69-summary)
+  - [7 Slicing and Subarrays – Extracting Views Without Copies](#7-slicing-and-subarrays--extracting-views-without-copies)
+    - [7.1 Slice Specification](#71-slice-specification)
+    - [7.2 Contiguous vs Strided Slices](#72-contiguous-vs-strided-slices)
+    - [7.3 Degenerate Slices](#73-degenerate-slices)
+    - [7.4 Index-Set and Mask Slicing](#74-index-set-and-mask-slicing)
+    - [7.5 Nested Slicing and View Chaining](#75-nested-slicing-and-view-chaining)
+    - [7.6 Mutation Through Slices](#76-mutation-through-slices)
+    - [7.7 Bounds Policies](#77-bounds-policies)
+    - [7.8 Memory Aliasing and Lifetime](#78-memory-aliasing-and-lifetime)
+    - [7.9 Performance Notes](#79-performance-notes)
+    - [7.10 Summary](#710-summary)
+  - [8 Conclusion](#8-conclusion)
+    - [What’s Next for Buffers and Arrays (Tightly Scoped)](#whats-next-for-buffers-and-arrays-tightly-scoped)
+    - [Closing Thought](#closing-thought)
 
 
 # Buffers and Arrays
@@ -327,154 +350,345 @@ An array is a buffer with a lens. The lens—a view function—defines how to in
 
 This model supports scalar, vector, and multidimensional data equally well. It makes arrays interoperable with sequences, pipelines, and ordinary functions. And it enables structured data interpretation via the same primitive: the `do` pointer.
 
-### Section 5: Shape Vectors as Metadata-Enriched Views
+## 5. Shape Vectors – Metadata-Enriched Views
 
-Shape vectors are the most powerful and flexible form of view in Tacit. While any function from indices to offsets can serve as a view, shape vectors provide not only that mapping but also the ability to carry structural metadata alongside the index transform logic. They enable both efficient access and higher-level manipulations, making them the preferred representation for multi-dimensional arrays in general-purpose code.
+Shape vectors are Tacit’s most versatile form of view.  They not only translate index tuples into linear offsets, but also carry structural information that higher-level code can query and transform.  By combining offset logic with inspectable metadata, they give Tacit arrays the same expressive power found in packages like NumPy—yet remain compatible with the language’s stack-centric, minimal runtime.
 
-A shape vector is a flat, one-dimensional buffer whose elements describe the extent of each axis of a multidimensional array. The length of the shape vector determines the rank (or arity) of the array—how many indices are needed to access a single element. For example, a shape vector containing `[3, 4, 5]` implies a three-dimensional array of size three by four by five.
+### 5.1 What a Shape Vector Is
 
-This shape vector can act directly as a function: when used in an indexing context, it transforms a tuple of indices into a linear offset. Internally, this involves computing the offset using strides, but those strides can be derived on demand. The default behavior is row-major order, though alternative layouts could be supported by changing the transform logic or caching a separate stride vector.
-
-What distinguishes the shape vector from a simple function is its reusability and inspectability. A shape vector can answer questions like:
-— What is the total number of elements?
-— What is the length of axis two?
-— Can this shape be broadcast or reshaped?
-
-This metadata allows higher-level operations like slicing, tiling, reshaping, flattening, and broadcasting to be implemented generically. It also opens the door to policies such as bounds checking, wrapping, or clamping. For instance, accessing out-of-bounds indices might raise an error, return zero, or wrap around modulo the axis length, depending on policy—either dynamic or encoded as flags within the shape vector or array header.
-
-Shape vectors also serve well in intermediate computations. For example, reshaping an array simply involves swapping in a new shape vector, without moving any data. This functional decoupling between data and structure is central to the model: the buffer remains raw and unchanged, but the view reshapes how it's interpreted.
-
-In practice, most arrays will use shape vectors for their do-pointer closures, because they strike a balance between minimalism and expressive power. However, nothing prevents the use of handcrafted functions or even simple constant views for specialized layouts. The shape vector is simply a highly portable, inspectable convention for defining default multi-dimensional behavior.
-
-Next, we’ll build on this with concrete examples of slicing, reshaping, and constructing arrays dynamically from within Tacit functions. These operations leverage shape vectors not just for access, but for structure-driven transformation.
-
-Beyond its role in defining arity and total size, the structure of the shape vector directly determines how a multi-dimensional array behaves in memory and access. In a row-major layout—the default in Tacit—the last axis varies fastest. For instance, a shape of `[2, 3]` means there are two rows, each containing three columns. The linear offset for an index pair `[i, j]` is computed as `i * 3 + j`.
-
-This layout generalizes: a shape `[d₀, d₁, ..., dₙ]` implies a stride vector `[s₀, s₁, ..., sₙ]`, where `sₙ = 1`, and each `sᵢ = dᵢ₊₁ × sᵢ₊₁`. These strides don’t need to be stored; they can be computed on the fly or cached if needed. A view function derived from the shape simply multiplies and sums to convert index tuples into flat offsets.
-
-Different shape configurations yield different array semantics:
-
-— A shape like `[4]` defines a simple one-dimensional vector.
-— A shape like `[1, 5]` is a degenerate 2D array with one row.
-— `[5, 1]` is one column across five rows.
-— `[3, 3]` gives a square 2D matrix.
-— Higher-rank shapes like `[2, 3, 4]` give rise to tensors—three-dimensional structures where each slice can itself be a matrix.
-
-Degenerate dimensions (i.e. size one) are especially useful for broadcasting. They allow an array to conceptually expand in dimensions without increasing its storage size, a trick essential for efficient elementwise operations across arrays of differing shapes.
-
-Finally, shape vectors naturally encode empty arrays too. A shape like `[0, 4]` implies zero rows of four columns—valid but empty. Similarly, a shape of rank zero (`[]`) corresponds to a scalar, aligning with the principle that all values can be seen as arrays.
-
-By formalizing the shape as a functional entity—one that both defines access and carries structural metadata—Tacit arrays become extremely composable. This structure opens a path for optimization, introspection, and dynamic construction without compromising the core language principles of clarity, scope-boundedness, and stack discipline.
-
-## 6. Reshaping Arrays
-
-Reshaping is the process of reinterpreting the contents of a buffer under a new shape, without copying or altering the underlying data. It allows the programmer to impose a new structure—such as rank, dimensionality, or size per axis—onto an existing buffer, effectively treating it as a different array. This is achieved by pairing the buffer with a new view function, typically generated from a new shape vector.
-
-In Tacit, reshaping is a purely logical operation: it changes the way indices are interpreted, not the data itself. Since arrays are modeled as functions from index tuples to values, reshaping simply swaps in a new function that interprets the index tuple differently.
-
-### 6.1 Logical and Physical Invariance
-
-Because reshaping doesn't modify the buffer, multiple views may coexist over the same data. A one-dimensional buffer of twelve elements might be reshaped into a `[3, 4]` matrix, or into a `[2, 2, 3]` tensor. So long as the product of the shape matches the buffer's element count, reshaping is valid.
-
-This principle enables memory-efficient data manipulation. For example, a flat sequence produced by a generator can be reshaped into a matrix view without allocating additional memory. Likewise, reshaping can be used to reinterpret incoming binary data into structured forms suitable for further processing.
-
-### 6.2 Shape Compatibility and Rank Change
-
-The primary requirement for reshaping is size compatibility. A buffer of length `N` can only be reshaped into a shape whose product equals `N`. If the target shape’s product does not match the buffer’s size, reshaping is invalid and should result in a runtime error or be caught at compile time.
-
-Reshaping naturally supports rank changes. A scalar (rank-zero array) can be reshaped into a vector, matrix, or higher-rank tensor, and vice versa. For example:
-
-— A scalar can be reshaped into `[1]` to form a one-element vector.
-— A matrix `[2, 3]` can be reshaped into `[6]` to flatten it.
-— A vector `[9]` can be reshaped into `[3, 3]` to form a square matrix.
-
-These transformations preserve the total number of elements but redefine how they’re addressed and traversed.
-
-### 6.3 Dynamic and Static Reshape
-
-In Tacit, reshape operations may be static (declared explicitly using shape literals) or dynamic (driven by runtime-calculated shape vectors). Dynamic reshape allows reshaping based on input data, configuration, or external parameters, while static reshape enables compile-time validation and optimization.
-
-For example, a sequence might accumulate values and reshape them at the end:
+A shape vector is a one-dimensional buffer whose elements are the extents of each axis of an array.
 
 ```
-{ collect }  → vector
-[3, 4]       → shape
-reshape      → array
+[ d0 d1 … dn ]   ; length = rank (n + 1)
 ```
 
-Here, the vector is interpreted as a flat buffer, and the shape `[3, 4]` defines the new view.
+Installing the standard *shape-view* function as the buffer’s do-pointer turns that list into an executable view.  When invoked with `n + 1` indices, the view:
 
-### 6.4 Reshape as Function Composition
+1. Derives a stride vector on demand (row-major by default).
+2. Computes `offset = Σ indexᵢ × strideᵢ`.
+3. Returns the offset to upstream code (`get`, `put`, etc.).
 
-At a conceptual level, reshaping is function composition: a new view is composed with the existing buffer to produce a new array function. The buffer remains the same; only the mapping from indices to offsets changes. This composition is lightweight and highly expressive, letting reshaping be chained or reversed as needed.
+Because the shape list is data, not code, it can be copied, sliced, stored in locals, or returned from functions exactly like any other buffer.
 
-Future extensions may allow partial reshaping, reshaping with inferred dimensions (e.g., using `-1` as a placeholder), or broadcasting-friendly reshaping for alignment between arrays of different ranks.
+### 5.2 Rank, Size, and Total Elements
 
-## 7. Slicing and Subarrays
+* **Rank** = length of the shape list.
+* **Axis length** = value at a given position.
+* **Total elements** = product of all axis lengths.
 
-Slicing refers to selecting a contiguous or non-contiguous subset of an array’s elements, producing a new view over a region of the original buffer. Like reshaping, slicing is non-destructive—it generates a new view function that adjusts the base offset and shape, without copying data.
+These numbers are available at runtime through tiny helper words such as `rank`, `axis-length`, and `size`.  They enable generic algorithms (e.g. reductions) to adapt to arrays of arbitrary dimensionality without reflection or RTTI.
 
-### 7.1 Slice as View Transformation
+### 5.3 Stride Derivation and Layout
 
-In Tacit, a slice is defined by narrowing the domain of the original view. This is typically done by providing start, stop, and step parameters along one or more dimensions. The new view computes its offset relative to a base index and stride, effectively narrowing the visible region of the buffer.
-
-For example, slicing a matrix `[4, 4]` to select the top-left `2×2` block yields a view that offsets into the original buffer and limits valid indices to `[2, 2]`.
-
-```
-original: shape = [4, 4]
-slice:    base offset = [0, 0], shape = [2, 2]
-```
-
-Internally, the slicing view applies an offset shift and domain constraint to the input indices, computing new strides if needed.
-
-### 7.2 Stride Modification
-
-Slicing can involve changes in stride. For example, a step of `2` selects every second element, which results in a non-unit stride. This allows slicing to implement strided access patterns such as:
-
-— Every second row
-— Diagonal access (with custom view logic)
-— Reversed dimensions (using negative strides)
-
-These transformations alter the view’s internal stride vector while keeping the same buffer.
-
-### 7.3 Slicing by Index Sets
-
-Tacit may support advanced slicing via index arrays: a secondary array or block produces a sequence of index tuples, which the main array is accessed through. This provides support for:
-
-— Boolean masks
-— Arbitrary index lists
-— Indirect access through computed keys
-
-In this case, the slice becomes a higher-order function: a generator of indices is passed to the array as input, and values are fetched accordingly.
-
-### 7.4 Bounds and Region Policies
-
-As with basic views, sliced views can implement different bounds policies. Slicing outside the original array’s bounds may raise an error, wrap modulo, or clamp silently—depending on the view’s configuration. This behavior can be encoded either in the view function or through metadata flags.
-
-Slices may also be configured to inherit the parent array’s bounds or apply stricter constraints. This allows nested slicing and complex composition of views without data duplication or deep copying.
-
-### 7.5 Subarrays and Mutation
-
-A sliced view can be used as a target for mutation. Since it still refers to the original buffer, writing into a subarray affects the underlying data. This allows Tacit to support in-place updates through subviews, enabling idioms like:
+For a shape `[d₀ d₁ … dₙ]`, row-major strides are:
 
 ```
-subarray put { value }
+sₙ = 1
+sᵢ = dᵢ₊₁ × sᵢ₊₁
 ```
 
-This behaves identically to a direct array write, but with coordinate remapping handled by the slice.
+Tacit recomputes strides on the fly the first time a view is used and can cache them in a small side table keyed by the shape pointer.  This keeps the shape vector itself compact—no duplicate stride data—and lets different arrays share the same stride cache entry.
 
-## 8. Outlook and Advanced Topics
+### 5.4 Degenerate Dimensions and Broadcast Semantics
 
-The combination of buffers, views, and the `do` mechanism forms a compact but powerful foundation for array processing in Tacit. By treating views as first-class functions and buffers as versatile memory containers, Tacit enables efficient, stack-centric handling of complex data structures without reliance on garbage collection or heap-heavy abstractions.
+Any axis of length `1` is **degenerate**.  Degeneracy means the same physical element can satisfy many logical positions, enabling implicit expansion during element-wise operations:
 
-While this document focuses on the core principles, several advanced capabilities follow naturally from this model:
+* `[4 1]` + `[1 5]` → broadcast to `[4 5]`.
+* `reshape` preserves degeneracy, so `[4 1]` reshaped to `[4]` is a no-copy view.
 
-— **Composite Indexing**: Using sequences or nested blocks to generate index tuples dynamically.
-— **Masked and Indirect Access**: Selecting elements based on computed patterns or boolean masks.
-— **Broadcasting and Alignment**: Applying functions element-wise across arrays of compatible shape.
-— **View Chaining**: Building complex transformations by composing multiple view functions.
-— **Array Fusion and Optimization**: Eliminating intermediate allocations via pipeline inlining.
+Broadcasting itself is *not* automatic; it is provided by an explicit library word (`broadcast`) so that shape alignment is always intentional.
 
-Each of these can be implemented using existing Tacit primitives: blocks, function composition, and local stack management. The model scales from low-level byte access to high-level numerical computing without changing its structural foundation.
+### 5.5 Empty and Scalar Shapes
 
-This document serves as a conceptual reference for implementing and extending Tacit’s array system. Future work may formalize more precise semantics for reshaping, slicing, memory layout, and metadata propagation—but the central idea remains: arrays are functional, composable, and stack-native.
+* **Empty axis**: shape `[0 d₁]`—valid but contains zero elements.
+* **Rank-zero shape (`[]`)**: represents a scalar; the associated view has arity 0 and always returns offset 0.
+
+These edge cases unify arrays and scalars under one mechanism and simplify generic code.
+
+### 5.6 Shape Vector Operations
+
+Because a shape is ordinary data, Tacit supplies ordinary words to manipulate it:
+
+* `rank`      — push the number of axes
+* `axis-length ( shape i -- dᵢ )`
+* `set-axis    ( new-len shape i -- )`
+* `flatten     ( shape -- [N] )`         — rank → 1
+* `append-axis ( len shape -- shape' )`  — rank + 1
+
+Higher-level combinators (`reshape`, `transpose`, `slice-shape`) build on these primitives.
+
+### 5.7 Performance and Caching
+
+* **Stride cache**: eliminates per-lookup multiplication for common shapes.
+* **Shape hash**: a lightweight fingerprint lets views share cached strides.
+* **Stack locality**: shape vectors stored in locals avoid heap churn; temporary reshapes allocate no new data, only new locals.
+
+These tactics keep multidimensional access nearly as cheap as direct pointer arithmetic.
+
+### 5.8 Summary
+
+Shape vectors fuse two roles:
+
+1. A view that **executes**: converting index tuples to linear offsets.
+2. A compact, inspectable record of an array’s **structure**.
+
+This dual nature lets Tacit support introspection, slicing, reshaping, and broadcasting with no extra runtime machinery.  Most real-world arrays will adopt shape vectors for their do-pointers; specialised functions remain an option for exotic layouts, but the default path is fast, simple, and highly composable—perfectly aligned with Tacit’s minimalist design.
+
+## 6 Reshaping Arrays – Changing Shape Without Moving Data
+
+Reshaping lets a buffer appear under a new dimensionality and rank while leaving its bytes untouched.  Because Tacit arrays are nothing more than *buffer + view*, reshaping is merely the act of pairing the same buffer with a freshly-constructed view (usually a new shape vector).  It is therefore O (1) in time and O (1) in memory.
+
+### 6.1 Conceptual Model
+
+```
+buffer      +  view₀              →  array₀   (original)
+same buffer +  view₁ (reshape)    →  array₁   (new shape)
+```
+
+`array₀` and `array₁` share storage.  Only the mapping from index tuples to offsets differs.
+
+### 6.2 Size Compatibility
+
+The sole invariant is **element conservation**:
+
+```
+product(original-shape)  ==  product(new-shape)
+```
+
+If this equality fails, reshape is illegal. Tacit enforces it at compile-time for static shapes and at run-time (via one multiplication) for dynamic shapes.
+
+### 6.3 Rank Modification
+
+Reshape freely changes rank:
+
+| Original           | New Shape | Result             |
+| ------------------ | --------- | ------------------ |
+| Scalar `[]`        | `[1]`     | One-element vector |
+| Vector `[9]`       | `[3 3]`   | Square matrix      |
+| Matrix `[2 3]`     | `[6]`     | Flattened vector   |
+| 3-tensor `[2 2 3]` | `[4 3]`   | Folded matrix      |
+
+All rely on the same buffer; only the view logic shifts.
+
+### 6.4 Static vs Dynamic Reshape
+
+* **Static reshape** – shape literal known at compile time; size mismatch is a compile error.
+* **Dynamic reshape** – shape vector computed at run-time; size mismatch raises a run-time fault.
+
+Both paths use the same `reshape` word; the checker simply runs earlier or later.
+
+### 6.5 Partial / Inferred Dimensions
+
+Tacit supports an *inferred dimension* marker (`-1`).  Exactly one axis may be `-1`; its length is computed so the total element count matches.
+
+```
+[ -1 3 ] reshape      ; auto-fills first axis
+```
+
+If the computed size is non-integral or negative, reshape fails.
+
+### 6.6 Implementation Mechanics
+
+`reshape` word sequence (dynamic case):
+
+1. **Pop** `shape′` (buffer) and `array` (buffer + view).
+2. **Check** element counts: `size(array) == product(shape′)`.
+3. **Install** the standard shape-view do-pointer into `shape′` (if not already).
+4. **Return** a new array handle:
+
+   * buffer = `array.buffer`
+   * view   = `shape′.do`
+
+No bytes are copied; only a pair of pointers is produced.
+
+### 6.7 Compositional Reshaping
+
+Because reshape is just view replacement, it composes freely:
+
+```
+vector       reshape→ matrix
+matrix slice→ submatrix
+submatrix     reshape→ column-vector
+```
+
+Each operation is O (1) and can be undone or re-ordered; the buffer remains untouched throughout.
+
+### 6.8 Performance Notes
+
+* **Stride cache reuse**: if the new shape has appeared before, strides may already be cached.
+* **Zero cost in streams**: reshaping a sequence output merely creates a new local view before further mapping.
+* **No aliasing surprises**: writes through any reshaped view modify the single underlying buffer.
+
+### 6.9 Summary
+
+Reshaping in Tacit is a lightweight, purely-logical transformation:
+
+* No data movement, no heap work.
+* Works for static or dynamic shapes.
+* Supports rank changes, inferred dimensions, and free composition.
+
+Because it relies only on swapping views, reshape inherits all the safety and performance properties of the core buffer-and-view model while giving high-level code immense structural flexibility.
+
+## 7 Slicing and Subarrays – Extracting Views Without Copies
+
+Slicing produces a new view that exposes only a subset of an existing array.
+Because Tacit arrays are *buffer + view*, a slice is created by **wrapping** the
+original view in an outer transformer that:
+
+1. Shifts the incoming indices by a base offset.
+2. Scales them by a stride or step.
+3. Restricts each axis to a smaller shape.
+
+No bytes move; only the mapping function changes.  Thus slicing is *O (1)* in
+time and memory, yet it can expose contiguous or strided regions, single rows,
+columns, diagonals, or arbitrary index sets.
+
+### 7.1 Slice Specification
+
+A slice is described per axis by a triple **⟨start stop step⟩**.
+
+* **start** – first logical index (default 0)
+* **stop**  – one-past-end (default axis length)
+* **step**  – stride increment (default 1)
+
+For convenience Tacit supplies words that accept:
+
+* Two-part **⟨start length⟩** spec (*common in DSP*)
+* Single-value “take” / “drop” words for head/tail trimming
+* The placeholder `:` meaning “use default”
+
+### 7.2 Contiguous vs Strided Slices
+
+* **Contiguous slice** – `step = 1`; resulting view has unit strides and can
+  reuse cached stride tables.
+* **Strided slice** – `step ≠ 1`; the transformer multiplies incoming indices
+  by *step*, yielding a non-unit stride in the composite view.  This enables:
+
+  * Every-k-th sample: `step = k`
+  * Reversal: `start = len-1`, `stop = -1`, `step = -1`
+  * 2-D down-sampling: strides on multiple axes
+
+### 7.3 Degenerate Slices
+
+Selecting a single coordinate (`length = 1` or explicit axis collapse) produces
+a **degenerate dimension**.  The slice view returns rank-1 (or rank-0) results
+while still aliasing the same buffer cell.  Degenerate axes are vital for:
+
+* Row/column extraction
+* Broadcasting smaller arrays into larger ones
+* Reducing rank after filtering
+
+### 7.4 Index-Set and Mask Slicing
+
+Besides range triples, Tacit supports **index-set slicing**:
+
+* A one-dimensional index array (or sequence) is passed to the slice word.
+* The resulting view’s arity increases by one—they become nested:
+  `index₀  index₁ …  view`
+
+Boolean masks work similarly: the mask array generates an index array of the
+`true` positions, which feeds the slice view.  This generalises NumPy-style
+fancy indexing without changing core semantics.
+
+### 7.5 Nested Slicing and View Chaining
+
+Slicing is *idempotent*:
+
+```
+matrix slice₁ slice₂  ≡  matrix (slice₁∘slice₂)
+```
+
+Tacit builds the composite transformer at slice-time, so the cost remains
+O (1); multiple slices never introduce extra indirection levels.
+This allows pipelines such as:
+
+```
+image  crop  downsample  take-row  reshape
+```
+
+Each stage is a view transformer; only the final stage performs element access.
+
+### 7.6 Mutation Through Slices
+
+`put` accepts slice views exactly like full arrays:
+
+```
+value  indices  slice-view  put
+```
+
+Because the slice aliases the original buffer, all writers see one copy of
+data.  Overlapping writes are allowed but not ordered; deterministic update
+must be handled by the program logic.
+
+### 7.7 Bounds Policies
+
+Slice views honour the same bound-checking policy flags as base views
+(§ 3.7):
+
+* **Error** – raise fault on out-of-range
+* **Clamp** – snap to valid edge
+* **Modulo** – wrap cyclically
+* **Unchecked** – skip tests
+
+The composite view’s policy is the stricter of the parent and slice policy,
+guaranteeing no hidden relaxation when chaining transformers.
+
+### 7.8 Memory Aliasing and Lifetime
+
+Because slices never allocate, their lifetime must not exceed the buffer they
+reference.  When a slice is returned to a caller, Tacit’s promotion rules copy
+the *buffer* downward if necessary, then re-wrap with the same slice view, so
+aliasing remains safe even across resumables.
+
+### 7.9 Performance Notes
+
+* **Stride hoisting** – contiguous slices share stride caches with parents.
+* **Vectorised steppers** – strided views precompute `gcd(step,stride)` to
+  minimise per-element arithmetic.
+* **Zero-copy pipelines** – chaining 32 slices costs the same as one.
+
+In practice, slice overhead is dominated by cache effects when the step is not
+unit; contiguous subarrays run at essentially full memory bandwidth.
+
+### 7.10 Summary
+
+Slicing in Tacit is a first-class, zero-copy view transformation:
+
+* Expressed via range triples or index arrays.
+* Produces aliasing subarrays suitable for reads or writes.
+* Chains freely with reshape, transpose, broadcasting, and further slicing.
+
+This keeps advanced data-window operations orthogonal to the core language—
+no new container type, no hidden allocation—just functional composition of
+views over buffers.
+
+## 8 Conclusion
+
+Tacit’s array story rests on three carefully delimited ideas:
+
+1. **Buffers** are raw, fixed-width memory blocks that can live safely on the stack, move up the call chain by copy-down promotion, or reside on the heap when necessary.
+2. **Views** are plain Tacit words—functions whose only task is to translate an index tuple into a linear offset.  Installing a view as a buffer’s do-pointer lets the buffer interpret itself.
+3. **Arrays** emerge when a buffer and a view are paired.  Everything else—scalars, vectors, tensors, slices, and reshapes—is a lightweight variation on that single pairing.
+
+Because interpretation is functional and storage is raw, arrays gain the flexibility of high-level languages without sacrificing the predictability of a stack-oriented runtime.  Shape vectors enrich this core by adding self-describing metadata, yet remain ordinary buffers and views under the hood.
+
+### What’s Next for Buffers and Arrays (Tightly Scoped)
+
+Tacit’s current design already covers:
+
+* Raw allocation and copy-down promotion
+* Multidimensional access via shape vectors
+* O(1) slicing and reshaping
+
+The immediate buffer-and-array work now centres on:
+
+* **Stride caching and reuse** – avoiding per-lookup multiplication for hot shapes.
+* **Compile-time shape checks** – catching size mismatches in static reshape and slice literals.
+* **Policy flags** – finishing a compact, per-array way to choose between error, clamp, modulo, or unchecked bounds.
+* **Standard slice helpers** – “take,” “drop,” and simple range words that map directly to view transformers.
+
+These are incremental, not architectural, and they keep the model small.
+
+### Closing Thought
+
+The design goal was never maximal cleverness; it was **minimum machinery for maximum leverage**.  By refusing extra layers—no hidden copies, no mandatory heap, no exotic type system—Tacit makes arrays transparent enough to trust and composable enough to build on.  Future refinements will deepen performance and ergonomics, but the core contract stays the same: memory is raw, interpretation is functional, and the two meet only where the programmer decides.
