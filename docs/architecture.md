@@ -14,25 +14,31 @@ Understanding Tacit's architecture requires grasping its foundational principles
 
 *   Memory Efficiency: A paramount goal is to operate effectively and predictably with memory resources. This dictates choices like stack-based memory management, compact data representation, and efficient data structure implementations.
 *   Stack-Based Execution (RPN): Following Forth's tradition, Tacit employs Reverse Polish Notation. Operations consume operands from a data stack and push results back. This simplifies parsing and function composition. Two stacks are used: one for data (`SP`) and one for return addresses, local variables, and buffer storage (`RP`).
-*   Immutability & Data Structures: Data structures in Tacit are designed to be efficient within the stack-based paradigm. Local variables and buffers use a unified variable table structure that enables both scalar and complex data types while maintaining clean memory management.
 *   Stack-Based Memory Management: Memory allocation occurs primarily on the return stack, with a variable table structure for local variables. When a function completes, memory is reclaimed by simply resetting the stack pointer, providing deterministic and efficient cleanup.
 *   Tagged Values (NaN-Boxing): A single 32-bit floating-point number format is used to represent all values. Type information and the actual value are encoded into the bit pattern of NaN (Not-a-Number) values. This allows for efficient storage and type checking without separate type fields.
-*   Functional & Point-Free Style: The language encourages a functional style, operating on data using higher-order functions. The RPN nature facilitates a tacit (point-free) style where function composition happens implicitly through juxtaposition.
+*   Functional & Point-Free Style: The language encourages a functional style. The RPN nature facilitates a tacit (point-free) style where function composition happens implicitly through juxtaposition.
 *   Bytecode Compilation: Tacit code is not interpreted directly from source but compiled into a compact bytecode format for the VM to execute, enhancing performance.
 
 ## 3. Memory Architecture: The Foundation
 
 The most defining characteristic of Tacit is its carefully crafted memory architecture, designed around the 64KB conceptual limit.
 
-### 3.1. Memory Layout and Segmentation
+### 3.1. Segmented Memory Architecture
 
-Tacit uses a segmented memory model that divides the virtual machine's memory space into distinct regions, each with a specific purpose. The key segments include:
+The memory in Tacit is logically divided into segments, each with a distinct purpose:
 
-*   `SEG_VM` (0x0000 - 0x01FF): Reserved for VM state, including stack pointers (`SP`, `RP`), instruction pointer (`IP`), and other VM registers.
-*   `SEG_STRING` (0x0200 - 0x09FF): Storage for interned strings. Strings are stored with a length prefix followed by character codes.
-*   `SEG_CODE` (0x0A00 - 0x29FF): Stores compiled bytecode for Tacit programs. Managed by the `Interpreter` class.
-*   `SEG_STACK`: The data stack where operands are pushed and popped during program execution.
-*   `SEG_RETURN`: The return stack which stores return addresses, local variable tables, and buffer data.
+1.  **SEG_VM**: VM internal data and state:
+    *   Stack pointers (SP, RP)
+    *   Global state variables
+    *   System parameters
+
+2.  **SEG_CODE**: Contains compiled bytecode for execution.
+
+3.  **SEG_STRING**: Stores interned strings, with the `Digest` class managing string storage and deduplication.
+
+4.  **SEG_STACK**: The data stack where operands are pushed and popped during program execution.
+
+5.  **SEG_RETURN**: The return stack which stores return addresses, local variable tables, and buffer data.
 
 ### 3.2. Stack-Based Memory Management: Key Advantages
 
