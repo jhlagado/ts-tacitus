@@ -62,16 +62,17 @@ Following the length, each slot corresponds to one variable’s pointer or offse
 * Easy iteration during cleanup or promotion phases.
 * Uniform access to local variables regardless of their underlying representation.
 
-### 3.3 Flexibility of Table Entries
+### 3.3 Flexibility of Tagged Values
 
-Each entry in the variable table is a **tagged pointer value**, capable of representing:
+Each entry in the variable table is a **tagged value** using IEEE 754 NaN-boxing, capable of representing:
 
-* Offsets into the local stack frame for simple scalar variables.
-* Pointers to buffers, arrays, or composite data stored either locally or externally.
-* References to string constants or other immutable resources.
-* Any other tagged entity recognized by the Tacit runtime.
+* Direct scalar values like integers and floating point numbers
+* NIL values for uninitialized variables
+* Pointers to buffers and arrays stored in the stack region above the table
+* References to string constants or other immutable resources
+* Any other tagged entity recognized by the Tacit runtime
 
-This indirection provides a unified mechanism for accessing various resource types transparently, while abstracting away their actual memory layouts.
+This unified value representation provides a consistent mechanism for accessing and type-checking various data types transparently, while encoding both simple and complex values in the same fixed-size slot.
 
 ### 3.4 Runtime Variable Initialization and Allocation
 
@@ -115,31 +116,68 @@ Upon completion of the function’s compilation, the dictionary is reset to the 
 
 This scoped dictionary management ensures a clean separation between function-local symbols and global or other function symbols. It simplifies incremental compilation and supports modularity by confining local variable symbol lifetimes to their function’s compilation duration.
 
-## 5. The Variable Offset Table and Runtime Binding
+## 5. The Variable Table and Runtime Binding
 
-The variable offset table is the core runtime structure enabling dynamic local variable management within a function’s stack frame. It provides an indirection layer between symbolic variable names and their actual memory locations, supporting flexible and dynamic storage.
+The variable table is the core runtime structure enabling dynamic local variable management within a function's stack frame. It provides direct storage for scalar values and references to buffers, supporting efficient access to both simple and complex data.
 
 ### 5.1 Structure and Purpose
 
-At runtime, the variable offset table contains a sequence of slots, each holding a tagged pointer. These pointers do not just point to fixed offsets on the stack; they can reference any tagged resource within the system — including scalars, buffers, or external resources. The first slot contains the length of the table, indicating how many variables are declared.
+At runtime, the variable table contains a sequence of slots, each holding a tagged value. The first slot contains the length of the table, indicating how many variables are declared. All values in Tacit use a uniform tagged representation based on IEEE 754 floating point with NaN-boxing, allowing each slot to contain:
 
-This table allows variables to be dynamically assigned locations at runtime, decoupling compile-time symbol resolution from concrete memory addressing. This indirection supports dynamic buffer allocations and local variables whose size or location might not be known at compile time.
+* **Scalar values** (integers, floats, etc.) encoded directly within the tagged value
+* **NIL values** for unassigned variables, maintaining type safety
+* **Tagged pointers** to buffers and complex structures allocated in the stack region above the table
+* Other **specialized tags** for specific Tacit types
 
-### 5.2 Binding Symbols to Slots
+This table allows variables to be dynamically assigned locations at runtime, decoupling compile-time symbol resolution from concrete memory addressing while minimizing access overhead.
 
-During compilation, each symbolic variable name is assigned an index into the variable offset table. At runtime, these indices are used to access and update the corresponding slot, ensuring efficient variable access without embedding fixed offsets in the generated code.
+### 5.2 Return Stack Memory Layout
 
-### 5.3 Tagged Pointer Semantics
+The function's local storage on the return stack follows a specific layout:
 
-Every slot contains a tagged pointer, allowing the runtime to differentiate between simple scalar values, complex buffers, and other resource types. This tagging is essential for uniform handling during initialization, access, and cleanup. It also allows for flexible data management strategies, including possible promotion or sharing between scopes.
+```
+Lower addresses
++----------------+ <- Base Pointer (BP)
+| Length         |    
++----------------+
+| Scalar/Pointer |    Variable Table
+| Scalar/Pointer |    (Directly holds scalar values or
+| ...            |     pointers to buffers)
++----------------+
+| Buffer Data    |
+| Buffer Data    |    Buffer Allocation Region
+| ...            |    (Contiguous memory above the table)
++----------------+ <- Return Stack Pointer (RSP)
+Higher addresses
+```
 
-### 5.4 Runtime Initialization and Updates
+This layout ensures that all local storage—both the variable table and any buffers—can be cleaned up atomically when a function exits by simply resetting the return stack pointer to the base pointer.
 
-As the function executes, local variables may be assigned or reassigned, resulting in updates to the variable offset table. For buffers or dynamically sized data, the runtime allocation is reflected immediately by updating the tagged pointer in the slot, enabling dynamic and flexible local memory management.
+### 5.3 Binding Symbols to Slots
 
-### 5.5 Cleanup and Traversal
+During compilation, each symbolic variable name is assigned an index into the variable table. At runtime, these indices are used to access and update the corresponding slot, ensuring efficient variable access without embedding fixed offsets in the generated code.
 
-The length field at the start of the table allows the runtime system to traverse all local variables systematically during cleanup or promotion. Since all variables are referenced through this table, the cleanup logic can be simple, efficient, and type-aware, handling all tagged resources appropriately without the need for complex analysis.
+### 5.4 Assignment and Mutation Rules
+
+Tacit enforces specific rules for variable assignment and mutation to ensure memory integrity:
+
+* **Scalar variables** can be freely reassigned to new values
+* **Buffer variables** can be initialized only once and cannot be reassigned to different buffers
+* The **contents** of buffers can be modified through standard operations
+* Only the **reference** to the buffer is immutable after initialization
+
+These constraints prevent fragmentation in the stack region. If buffer reassignment were allowed, it could create "holes" in the contiguous memory area that would complicate cleanup and potentially waste space.
+
+### 5.5 Cleanup and Benefits
+
+The length field at the start of the table allows the runtime system to traverse all local variables systematically during cleanup or promotion. Since all variables are referenced through this table, the cleanup logic can be simple, efficient, and type-aware.
+
+This approach to local variable management offers significant advantages:
+
+* **Atomic cleanup**: When a function exits, all local variables and buffers are reclaimed in a single operation by resetting RSP to BP
+* **Zero fragmentation**: The one-time buffer allocation policy ensures that memory remains contiguous
+* **Minimal overhead**: Scalar values are accessed with minimal indirection
+* **Predictable performance**: Memory allocation follows simple, deterministic patterns
 
 ## 6. Local Variables — Initialization and Lifetime
 
@@ -147,31 +185,31 @@ Local variables are the fundamental storage units within a function’s executio
 
 ### 6.1 Declaration and Allocation
 
-Local variables are declared at compile time, creating symbolic bindings to slots in a variable offset table. This table itself is allocated dynamically at runtime as part of the function’s stack frame setup. Each slot contains a tagged pointer, which can reference any resource: a scalar value, a buffer, or other tagged objects.
+Local variables are declared at compile time, creating symbolic bindings to slots in the variable table. This table itself is allocated dynamically at runtime as part of the function's stack frame setup. Each slot contains a tagged value using IEEE 754 floating point with NaN-boxing. These tagged values represent scalars directly (integers, floats) or contain pointers to buffers and other complex structures. This uniform representation enables efficient type checking while maintaining a consistent access model for all variable types.
 
-The variable offset table starts with a length field, indicating the number of declared locals. This allows runtime systems to traverse all local variables for tasks such as cleanup or promotion.
+The variable table starts with a length field, indicating the number of declared locals. This allows runtime systems to traverse all local variables for tasks such as cleanup or promotion.
 
 ### 6.2 Initialization
 
-Variables can be initialized either with literal constants or with dynamic data computed at runtime. Initialization involves assigning values or pointers into the slots of the offset table. Buffers are allocated as needed, using runtime knowledge of size and shape. This dynamic initialization enables flexible and powerful local storage patterns.
+Variables can be initialized either with literal constants or with dynamic data computed at runtime. Initialization involves assigning values or pointers into the slots of the variable table. Buffers are allocated as needed, using runtime knowledge of size and shape. This dynamic initialization enables flexible and powerful local storage patterns.
 
 ### 6.3 Lifetime and Cleanup
 
-The lifetime of local variables is tied to the lifespan of the function call stack frame. When the function terminates or yields, the system cleans up local variables by iterating over the variable offset table and handling each resource appropriately. Because locals are represented as tagged pointers, the cleanup logic can be uniform and type-aware.
+The lifetime of local variables is tied to the lifespan of the function call stack frame. When the function terminates or yields, the system cleans up local variables by iterating over the variable table and handling each resource appropriately. Because locals are represented as tagged values, the cleanup logic can be uniform and type-aware, responding differently based on the tag.
 
 Notably, without a traditional heap, cleanup is simplified: resetting the stack pointer to the base pointer effectively frees all locals, avoiding complex reference counting or garbage collection.
 
 ### 6.4 Promotion and Scope Interaction
 
-Local variables can be promoted to parent scopes or shared with child functions, facilitated by the variable offset table and the tagged pointer representation. This allows for dynamic lifetime extension and sharing of data buffers or scalars across function boundaries.
+Local variables can be promoted to parent scopes or shared with child functions, facilitated by the variable table and the uniform tagged value representation. This allows for dynamic lifetime extension and sharing of both scalar values and buffer references across function boundaries.
 
 ## 7. Local Variable Initialization and Lifetime Management
 
-Local variables in Tacit are dynamic entities managed through the variable offset table and the return stack. This section explores how local variables are initialized, managed, and cleaned up during function execution, ensuring correctness and efficiency.
+Local variables in Tacit are dynamic entities managed through the variable table and the return stack. This section explores how local variables are initialized, managed, and cleaned up during function execution, ensuring correctness and efficiency.
 
 ### 7.1 Initialization Strategy
 
-Local variables are not statically allocated at function entry. Instead, initialization occurs dynamically at runtime. When a variable is first assigned, the runtime records its location in the variable offset table. This lazy initialization enables flexible handling of buffers and scalars, whose sizes may vary or be unknown at compile time.
+Local variables are not statically allocated at function entry. Instead, initialization occurs dynamically at runtime. When a variable is first assigned, the runtime records its location in the variable table. This lazy initialization enables flexible handling of buffers and scalars, whose sizes may vary or be unknown at compile time.
 
 ### 7.2 Initialization Ordering and Constraints
 
@@ -179,52 +217,53 @@ To ensure predictable behavior, all local variable initializations must occur be
 
 ### 7.3 Lifetime Boundaries
 
-The lifetime of local variables corresponds to the duration of the function call. However, the function may yield, temporarily suspending execution without cleaning up locals. Cleanup only occurs once the function fully terminates and the runtime resets the stack pointer based on the variable offset table.
+The lifetime of local variables corresponds to the duration of the function call. However, the function may yield, temporarily suspending execution without cleaning up locals. Cleanup only occurs once the function fully terminates and the runtime resets the stack pointer based on the variable table.
 
 ### 7.4 Dynamic Allocation and Buffer Management
 
-Buffers as local variables can grow or shrink during execution, with their updated pointers reflected in the offset table. The runtime supports appending or truncating buffer contents, allowing local variables to behave like bump-allocated arenas or flexible stacks.
+Buffers as local variables can grow or shrink during execution, with their updated pointers reflected in the variable table. The runtime supports appending or truncating buffer contents, allowing local variables to behave like bump-allocated arenas or flexible stacks.
 
 ### 7.5 Cleanup Protocol
 
-When a function terminates, the runtime iterates over the variable offset table using its length to clean up all locals. Tagged pointers guide the cleanup process, distinguishing between scalars requiring no action and buffers or other resources requiring deallocation or release.
+When a function terminates, the runtime iterates over the variable table using its length to clean up all locals. Tagged pointers guide the cleanup process, distinguishing between scalars requiring no action and buffers or other resources requiring deallocation or release.
 
 ## 8. Accessing Local Variables and Buffers
 
-### 8.1 Overview
-Access to local variables and buffers is fundamental to function execution. Local variables are accessed via indices in the variable offset table, providing pointers to their actual storage locations. Buffers, being first-class data structures, follow the same access pattern as scalars, ensuring uniformity in handling.
+### 8.1 Variable Access Protocol
 
-### 8.2 Pointer Indirection
-Each local variable reference yields a pointer from the variable offset table. The pointer may refer to a scalar value or a buffer. When used, this pointer is dereferenced to load or store the value. This indirection enables dynamic sizing and flexible placement of local data within the stack or other memory regions.
+Access to local variables and buffers is fundamental to function execution. Local variables are accessed via indices in the variable table, retrieving tagged values. Each tagged value may directly encode a scalar (integer, float) or contain a pointer to a buffer or complex structure. This unified access protocol ensures consistent handling of all variable types.
+
+### 8.2 Tagged Value Interpretation
+Each local variable reference yields a tagged value from the variable table. The runtime interprets this value based on its tag: direct scalar values are used as-is, while buffer pointers are followed to access the allocated memory. This tagging system enables type safety while maintaining efficient access for all variable types.
 
 ### 8.3 Buffer Access
 Buffers are accessed via their base pointer and shape metadata. The shape guides indexing into the buffer, allowing for multidimensional data retrieval and manipulation. This structured access supports efficient operations on arrays, records, and tables.
 
 ### 8.4 Uniform Access Model
-The uniformity of access for scalars and buffers simplifies the compiler and runtime. By treating all local data as pointers retrieved from a common offset table, the system supports dynamic variable sizes and complex data structures without complicating the referencing mechanism.
+The uniformity of access for all variable types simplifies the compiler and runtime. By using a consistent tagged value representation for all local data, retrieved from a common variable table, the system efficiently handles both direct scalar values and references to complex data structures.
 
 ### 8.5 Summary
-Local variable access relies on a variable offset table that maps names to pointers. This design unifies scalars and buffers under a single access model, enabling flexibility and dynamic memory management within function scopes.
+Local variable access relies on a variable table that maps names to tagged values. This design unifies all data types under a single access model, enabling efficient type checking, direct representation of scalar values, and references to buffer structures all within the same framework.
 
 ## 9: Dynamic Local Variable Management and Lifetime
 
 ### 9.1 Introduction
-Local variables in Tacit are managed dynamically at runtime through a variable offset table, enabling flexible allocation and lifetime control. This approach supports varying sizes and types of locals, including first-class buffers.
+Local variables in Tacit are managed dynamically at runtime through a variable table, enabling flexible allocation and lifetime control. This approach supports varying sizes and types of locals, including first-class buffers.
 
 ### 9.2 Allocation Strategy
-Rather than fixed compile-time allocation, local variables are assigned slots in the offset table during function execution. When a variable is first assigned, it receives a pointer to an allocated space, which can be scalar or buffer. This allows buffers of varying sizes to coexist with scalars seamlessly.
+Rather than fixed compile-time allocation, local variables are assigned slots in the variable table during function execution. When a variable is first assigned, it receives a pointer to an allocated space, which can be scalar or buffer. This allows buffers of varying sizes to coexist with scalars seamlessly.
 
 ### 9.3 Lifetime and Cleanup
-Variable lifetime is tied to the function activation. Cleanup involves resetting the stack pointer to the base pointer and optionally iterating the offset table to release or finalize referenced resources. Without reference counting, cleanup is simplified to stack pointer adjustment.
+Variable lifetime is tied to the function activation. Cleanup involves resetting the stack pointer to the base pointer and optionally iterating the variable table to release or finalize referenced resources. Without reference counting, cleanup is simplified to stack pointer adjustment.
 
 ### 9.4 Interaction with Resumables
-For resumable functions, local variable management must accommodate suspended execution states. The offset table persists across suspensions, maintaining pointers to local storage. Cleanup is deferred until all resumable activations referencing the locals have completed.
+For resumable functions, local variable management must accommodate suspended execution states. The variable table persists across suspensions, maintaining pointers to local storage. Cleanup is deferred until all resumable activations referencing the locals have completed.
 
 ### 9.5 Implications for Compilation
-This dynamic model requires the compiler to emit code that interacts with the variable offset table for all locals, rather than assuming static offsets. This shifts some responsibility to runtime but gains flexibility and simplifies stack frame management.
+This dynamic model requires the compiler to emit code that interacts with the variable table for all locals, rather than assuming static offsets. This shifts some responsibility to runtime but gains flexibility and simplifies stack frame management.
 
 ### 9.6 Summary
-Dynamic local variable management in Tacit leverages a runtime offset table to support flexible, first-class buffers and scalars with simplified lifetime handling, providing a robust foundation for modern function execution.
+Dynamic local variable management in Tacit leverages a runtime variable table to support flexible, first-class buffers and scalars with simplified lifetime handling, providing a robust foundation for modern function execution.
 
 ## 10. **Section: Detailed Buffer Management**
 
