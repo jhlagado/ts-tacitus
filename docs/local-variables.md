@@ -6,7 +6,7 @@ This document describes the design and implementation principles of local variab
 
 ### 1.2 Local Variable Model
 
-Tacit's local variable model uses a buffer-centric paradigm where buffers are essential primitives that support complex data structures, including arrays and records. Buffers can reside both locally and in other storage contexts. This approach uses stack-local, arena-like buffer management rather than heap-based memory management and reference counting.
+Tacit's local variable model uses a buffer-centric paradigm where buffers are essential primitives that support complex data structures, including arrays and records. Buffers can reside both locally and in other storage contexts. This approach uses stack-local, arena-like buffer management rather than heap-based memory management.
 
 ### 1.3 Design Goals
 
@@ -56,10 +56,10 @@ When the compiler encounters a reference to a local variable symbol in the funct
 
 The variable table is the core abstraction for managing local variables in Tacit. It stores all local variables as tagged values in a uniform structure at the beginning of a function's stack frame. Each slot in the table can contain:
 
-* **Scalar values** (integers, floats, etc.) encoded directly within the tagged value
-* **NIL values** for unassigned variables, maintaining type safety
-* **Tagged pointers** to buffers and complex structures allocated in the stack region above the table
-* Other **specialized tags** for specific Tacit types
+* Tagged values encoding **scalar values** (integers, floats, etc.)
+* Tagged values representing **NIL values** for unassigned variables
+* Tagged values referencing **buffers and complex structures** allocated in the stack region above the table
+* Other **specialized tagged values** for specific Tacit types
 
 This table allows variables to be dynamically assigned locations at runtime, decoupling compile-time symbol resolution from concrete memory addressing while minimizing access overhead.
 
@@ -74,7 +74,7 @@ Lower addresses
 +----------------+
 | Tagged Value   |    Variable Table
 | Tagged Value   |    (Each slot contains a NaN-boxed tagged value
-| ...            |     representing scalars or pointers to buffers)
+| ...            |     representing all variable types)
 +----------------+
 | Buffer Data    |
 | Buffer Data    |    Buffer Allocation Region
@@ -111,7 +111,7 @@ When a function is called, a new stack frame is created with space for the varia
 
 Local variables are initialized at runtime when they are first assigned. The variable's slot in the table receives a tagged value appropriate to the data being stored. This dynamic initialization enables flexible handling of buffers and scalars, whose sizes may vary or are not known until execution time.
 
-For buffers, initialization involves allocating memory in the stack region above the variable table, setting up any necessary metadata (like shape information), and storing a tagged pointer to this memory in the variable's slot. Scalar values are encoded directly in the slot using NaN-boxing.
+For buffers, initialization involves allocating memory in the stack region above the variable table, setting up any necessary metadata (like shape information), and creating a tagged value that references this memory. Both buffer references and scalar values are stored using the same tagged value representation in the variable's slot using NaN-boxing.
 
 ### 5.3 Lifetime and Cleanup
 
@@ -125,7 +125,7 @@ Scalar variables are accessed directly through their slot in the variable table.
 
 ### 6.2 Buffer Access and Manipulation
 
-Buffers are accessed via their tagged pointers stored in the variable table. The pointer leads to the buffer's base address on the stack, where data can be read or written. Buffer operations include:
+Buffers are accessed via their tagged values stored in the variable table. The runtime extracts the buffer reference from the tagged value to locate the buffer's base address on the stack, where data can be read or written. Buffer operations include:
 
 * **Indexing** into specific elements
 * **Slicing** to create logical views of buffer regions
@@ -141,7 +141,7 @@ The use of tagged values enables precise type checking and specialized operation
 * Type checking before operations
 * Type-specific arithmetic and comparison
 * Conversion between different representations
-* Specialized handling for non-scalar types and pointers
+* Specialized handling for all variable types based on their tags
 
 ## 7. Buffer Architecture and Management
 
@@ -149,7 +149,7 @@ The use of tagged values enables precise type checking and specialized operation
 
 Buffers are contiguous memory regions allocated on the return stack with:
 
-* Base address (referenced via tagged pointer)
+* Base address (referenced via tagged value)
 * Shape metadata (dimensions, type information)
 * Content area (the actual data storage)
 * Optional capacity management for dynamic operations
