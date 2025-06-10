@@ -6,6 +6,22 @@ Tacit's co-routine system provides lightweight concurrency through cooperative m
 
 ## Core Concepts
 
+### Single-Threaded, Async-First Design
+
+Tacit takes a fundamentally different approach to concurrency compared to most programming environments:
+
+1. **Truly Single-Threaded**: Unlike systems that emulate concurrency with OS threads or worker pools, Tacit is genuinely single-threaded. There is exactly one execution path active at any moment, which eliminates entire categories of concurrency bugs like race conditions and deadlocks.
+
+2. **Explicit Yield Points**: Co-routines yield control only at well-defined points in the code, making program flow predictable and traceable. There's no preemption or time-slicing that could interrupt execution at arbitrary points.
+
+3. **Async by Design**: Rather than adding asynchronous capabilities as an afterthought, Tacit treats asynchronous operation as the fundamental model. This inversion leads to more intuitive handling of I/O, timing, and event-driven programming.
+
+4. **Zero-Cost Abstraction**: The co-routine mechanism adds minimal overhead to Tacit's existing stack-based structure. There's no separate runtime, thread management, or context-switching machinery.
+
+5. **Problem Decomposition**: Co-routines in Tacit are primarily a tool for breaking complex problems into simpler, independent components that communicate through well-defined channels, rather than for exploiting multiple CPU cores.
+
+These design choices lead to a system that is simultaneously simpler, more predictable, and more maintainable than traditional concurrency models, while still providing the benefits of non-blocking, responsive execution.
+
 ### What is a Co-routine?
 
 A co-routine in Tacit is a function that can pause its execution at specific points, allowing other code to run, and then resume later from exactly where it left off. This ability to pause and resume creates an illusion of concurrent execution within a single-threaded environment.
@@ -45,7 +61,7 @@ When a new co-routine is created, Tacit:
 
 3. **Transfers Parameters**: Moves any parameters from the parent's data stack to the co-routine's stack frame.
 
-4. **Initializes Private Data Stack**: Optionally allocates a buffer to serve as a private data stack for the co-routine.
+4. **Initializes Private Data Stack**: Allocates a buffer to serve as a required private data stack for the co-routine.
 
 5. **Sets Entry Point**: Records the instruction address where the co-routine should begin execution.
 
@@ -121,7 +137,7 @@ The variable table and buffer area work exactly as they do in regular functions,
 
 ### Private Data Stacks
 
-While co-routines share the return stack, each can optionally maintain a private data stack:
+While co-routines share the return stack, each must maintain its own private data stack:
 
 1. **Buffer Allocation**: During initialization, a buffer is allocated within the co-routine's stack frame.
 
@@ -147,27 +163,29 @@ Co-routines communicate through message passing rather than shared memory:
 
 ### Channel Implementation
 
-A channel in Tacit is a lightweight structure:
+A channel in Tacit is an extremely lightweight structure:
 
-1. **Waiting Lists**: Tracks co-routines waiting to send or receive.
+1. **Waiting Points**: Simply tracks which co-routine (if any) is waiting at the channel.
 
-2. **Message References**: Manages references to pending messages.
+2. **Message Location**: Defines a known location where a value can be transferred.
 
-3. **Optional Buffering**: Can be configured with buffer capacity for asynchronous operation.
+Buffering is typically unnecessary between co-routines since the lazy, synchronous nature of communication naturally regulates data flow. Buffering may only be needed for interfacing with external systems like user input or network communication.
 
 ### Send/Receive Operations
 
-The basic message operations are:
+The communication model emphasizes simplicity and lazy operation:
 
 1. **Send**: When a co-routine sends a message:
-   - If a receiver is waiting, the message is transferred directly and the receiver is made runnable
-   - If no receiver is waiting, the sender is suspended until a receiver arrives
+   - It writes the value to a known location
+   - It immediately suspends execution (yields)
+   - The scheduler activates the receiver if one is waiting
+   - If no receiver is waiting, the sender remains suspended until a receiver arrives
 
-2. **Receive**: When a co-routine receives a message:
-   - If a sender is waiting, the message is taken directly and the sender is made runnable
-   - If no sender is waiting, the receiver is suspended until a message arrives
+2. **Receive**: When a co-routine wants to receive a message:
+   - If a sender is waiting, it reads the value from the known location and makes the sender runnable
+   - If no sender is waiting, it registers itself as waiting and suspends until a sender arrives
 
-This approach creates clean synchronization points without complex locking mechanisms.
+This lazy approach creates a natural flow control where operations happen exactly when needed. Since sending always yields, and co-routines are explicitly designed to handle this yielding behavior, the system remains simple and predictable without complex buffering or synchronization mechanisms.
 
 ## Scheduling
 
@@ -272,7 +290,44 @@ Avoid unnecessary use of co-routines for simple sequential operations where regu
 1. **Minimize State**: Keep co-routine local variable usage minimal.
 2. **Batch Work**: Do meaningful work between yields to amortize the cost of context switching.
 3. **Consider Lifetimes**: Be mindful of the temporal stack principle when creating nested co-routines.
-4. **Use Private Data Stacks Judiciously**: Only create private data stacks when necessary.
+4. **Optimize Data Stack Size**: Size the private data stack appropriately for the co-routine's needs.
+
+## Comparison with Traditional Concurrency Models
+
+Tacit's co-routine system differs significantly from other concurrency approaches:
+
+### vs. Preemptive Threading (e.g., POSIX threads, Java threads)
+
+| **Tacit Co-routines** | **Preemptive Threading** |
+|------------------------|---------------------------|
+| Cooperative yielding at explicit points | Arbitrary preemption by scheduler |
+| Shared memory with temporal guarantees | Shared memory requiring locks and synchronization |
+| Minimal state (IP, BP, RP) | Complete thread context (all registers, stack, etc.) |
+| No race conditions | Prone to race conditions |
+| No deadlocks from mutual exclusion | Potential deadlocks |
+| Deterministic execution order | Non-deterministic execution |
+| Lightweight (bytes of overhead) | Heavy (kilobytes of overhead) |
+
+### vs. Async/Await (e.g., JavaScript, C#)
+
+| **Tacit Co-routines** | **Async/Await** |
+|------------------------|------------------|
+| First-class primitive in the language | Built on promises/futures |
+| Direct stack-based implementation | Often requires heap allocations for continuations |
+| Explicit channel-based communication | Typically callback or promise-chain based |
+| Works identically for all operations | Often requires special async-aware libraries |
+| No syntax transformation or state machines | Usually compiled to state machines |
+
+### vs. Actor Model (e.g., Erlang, Akka)
+
+| **Tacit Co-routines** | **Actor Model** |
+|------------------------|----------------|
+| Shared memory space | Isolated memory per actor |
+| Direct communication via channels | Message passing via mailboxes |
+| Scheduling within a single VM | Often distributed across nodes |
+| Explicit control over yielding | Implicit yielding between messages |
+
+The key advantage of Tacit's approach is achieving non-blocking concurrency with minimal conceptual overhead. Rather than layering concurrency on top of a sequential execution model, Tacit integrates it directly into the core language design, resulting in a system that is both simpler and more powerful.
 
 ## Conclusion
 
