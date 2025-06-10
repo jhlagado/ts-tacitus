@@ -4,224 +4,129 @@
 
 ## 1. Introduction
 
-Tacit is a stack-based, concatenative programming language virtual machine (VM) implemented in TypeScript. Drawing inspiration from languages like Forth (stack manipulation, RPN, word definitions), APL/J (array/sequence processing emphasis), and functional languages like Clojure (immutability, structural sharing), Tacit aims to provide a powerful yet resource-efficient computing environment. Its architecture is meticulously designed for operation within highly constrained memory spaces, specifically targeting a 64KB memory footprint in its conceptual model, although the heap implementation cleverly extends the *addressable* range significantly.
+Tacit is a stack-based, concatenative programming language virtual machine (VM) implemented in TypeScript. Drawing inspiration from languages like Forth (stack manipulation, RPN, word definitions) and APL/J (array processing emphasis), Tacit aims to provide a powerful yet resource-efficient computing environment. Its architecture is meticulously designed for memory efficiency and deterministic performance.
 
-This document delves into the intricate details of Tacit's architecture, examining its memory model, value representation, core data structures, execution lifecycle, and the underlying philosophies that shape its design. The analysis is based exclusively on the provided source code (`*.ts`, `*.js`, `*.mjs`) and documentation files (`*.md`).
+This document delves into the intricate details of Tacit's architecture, examining its memory model, value representation, core data structures, execution lifecycle, and the underlying philosophies that shape its design.
 
 ## 2. Core Design Philosophy & Principles
 
 Understanding Tacit's architecture requires grasping its foundational principles:
 
-*   Memory Efficiency: The paramount goal is to operate effectively within tight memory limits (conceptually 64KB). This dictates choices like manual memory management, compact data representation, and efficient data structure implementations.
-*   Stack-Based Execution (RPN): Following Forth's tradition, Tacit employs Reverse Polish Notation. Operations consume operands from a data stack and push results back. This simplifies parsing and function composition. Two stacks are used: one for data (`SP`) and one for return addresses/control flow (`RP`).
-*   Immutability & Structural Sharing: Data structures, particularly vectors and potentially dictionaries/sequences derived from them, are immutable. Modifications do not alter the original structure but instead create new versions. To mitigate the cost of copying, Tacit implements Copy-on-Write (CoW) with structural sharing, heavily inspired by Clojure. Only the modified parts (and their ancestors in a linked structure) are cloned; unchanged parts are shared by reference.
-*   Reference Counting (No Garbage Collection): Memory management relies on explicit reference counting for heap-allocated objects. This provides deterministic cleanup (objects are freed immediately when their reference count hits zero) and avoids the unpredictable pauses associated with traditional garbage collectors, which is advantageous in resource-constrained or real-time environments. However, it cannot handle cyclical references automatically.
-*   Block-Based Heap: The heap is managed not as a contiguous free space but as a pool of fixed-size blocks (64 bytes). This eliminates external fragmentation entirely. Larger data structures are built by linking these blocks together.
-*   Tagged Values (NaN-Boxing): A single 32-bit floating-point number format is used to represent all values. Type information and the actual value (or pointer) are encoded into the bit pattern of NaN (Not-a-Number) values. This allows for efficient storage and type checking without separate type fields.
-*   Sequence Abstraction: Tacit features a powerful, unified abstraction for handling collections (ranges, vectors, strings, potentially external sources). Sequences emphasize lazy evaluation, processing elements on demand, which enhances memory efficiency by avoiding intermediate data structure materialization.
-*   Functional & Point-Free Style: The language encourages a functional style, operating on sequences using higher-order functions (like `each`, `filter`, `reduce` - though implementation details vary). The RPN nature facilitates a tacit (point-free) style where function composition happens implicitly through juxtaposition.
+*   Memory Efficiency: A paramount goal is to operate effectively and predictably with memory resources. This dictates choices like stack-based memory management, compact data representation, and efficient data structure implementations.
+*   Stack-Based Execution (RPN): Following Forth's tradition, Tacit employs Reverse Polish Notation. Operations consume operands from a data stack and push results back. This simplifies parsing and function composition. Two stacks are used: one for data (`SP`) and one for return addresses, local variables, and buffer storage (`RP`).
+*   Immutability & Data Structures: Data structures in Tacit are designed to be efficient within the stack-based paradigm. Local variables and buffers use a unified variable table structure that enables both scalar and complex data types while maintaining clean memory management.
+*   Stack-Based Memory Management: Memory allocation occurs primarily on the return stack, with a variable table structure for local variables. When a function completes, memory is reclaimed by simply resetting the stack pointer, providing deterministic and efficient cleanup.
+*   Tagged Values (NaN-Boxing): A single 32-bit floating-point number format is used to represent all values. Type information and the actual value are encoded into the bit pattern of NaN (Not-a-Number) values. This allows for efficient storage and type checking without separate type fields.
+*   Functional & Point-Free Style: The language encourages a functional style, operating on data using higher-order functions. The RPN nature facilitates a tacit (point-free) style where function composition happens implicitly through juxtaposition.
 *   Bytecode Compilation: Tacit code is not interpreted directly from source but compiled into a compact bytecode format for the VM to execute, enhancing performance.
 
 ## 3. Memory Architecture: The Foundation
 
 The most defining characteristic of Tacit is its carefully crafted memory architecture, designed around the 64KB conceptual limit.
 
-### 3.1. The 64KB Segmented Memory Space (`memory.ts`)
+### 3.1. Memory Layout and Segmentation
 
-The VM operates on a flat, 64KB (`MEMORY_SIZE = 65536`) memory space represented by a `Uint8Array` buffer managed by the `Memory` class. This space is logically divided into fixed segments:
+Tacit uses a segmented memory model that divides the virtual machine's memory space into distinct regions, each with a specific purpose. The key segments include:
 
-*   `SEG_STACK` (0x0000 - 0x00FF, 256 bytes): The primary data stack. Grows upwards. Managed by the Stack Pointer (`SP`). Holds `Float32` values (4 bytes each), limiting the practical depth.
-*   `SEG_RSTACK` (0x0100 - 0x01FF, 256 bytes): The return stack. Used for storing return addresses during function calls (`callOp`, `evalOp`) and potentially for temporary storage by control structures or grouping operations (`groupLeftOp`). Managed by the Return Pointer (`RP`). Also holds `Float32` values.
-*   `SEG_STRING` (0x0200 - 0x09FF, 2KB): Storage for interned strings managed by the `Digest` class. Strings are stored with a 1-byte length prefix (max 255 chars) followed by character codes.
-*   `SEG_CODE` (0x0A00 - 0x29FF, 8KB): Stores the compiled bytecode generated by the `Compiler`. Managed by the Instruction Pointer (`IP`) during execution and the Compile Pointer (`CP`) during compilation.
-*   `SEG_HEAP` (0x2A00 - 0xFFFF, ~53.5KB): The largest segment, dedicated to dynamic memory allocation managed by the `Heap` class. This is where complex data structures like vectors and dictionaries reside.
+*   `SEG_VM` (0x0000 - 0x01FF): Reserved for VM state, including stack pointers (`SP`, `RP`), instruction pointer (`IP`), and other VM registers.
+*   `SEG_STRING` (0x0200 - 0x09FF): Storage for interned strings. Strings are stored with a length prefix followed by character codes.
+*   `SEG_CODE` (0x0A00 - 0x29FF): Stores compiled bytecode for Tacit programs. Managed by the `Interpreter` class.
+*   `SEG_STACK`: The data stack where operands are pushed and popped during program execution.
+*   `SEG_RETURN`: The return stack which stores return addresses, local variable tables, and buffer data.
 
-The `Memory` class provides low-level primitives (`read8`, `write8`, `read16`, `write16`, `readFloat`, `writeFloat`) that operate on specific segments and offsets, performing bounds checking against the total `MEMORY_SIZE`. The `resolveAddress` method translates a segment ID and offset into an absolute 16-bit address within the buffer.
+### 3.2. Stack-Based Memory Management: Key Advantages
 
-### 3.2. The Block-Based Heap (`heap.ts`)
+1.  **Deterministic Cleanup**: Stack-based memory management ensures predictable and immediate cleanup when functions complete.
+2.  **Efficiency**: Allocating and freeing memory is extremely fast - simply adjusting a stack pointer.
+3.  **Locality**: Data on the stack has good cache locality, improving performance.
+4.  **No Fragmentation**: Stack allocation inherently avoids memory fragmentation issues.
+5.  **Simplicity**: The memory management model is straightforward and easy to reason about.
+6.  **Multitasking Support**: The stack-based approach enables lightweight multitasking through co-routines. Multiple tasks can share a single large return stack, with each task having its own stack frame. This allows for efficient context switching without the overhead of separate memory spaces.
 
-The `SEG_HEAP` is not managed using traditional `malloc`/`free` on arbitrary byte sizes. Instead, it's divided into fixed-size blocks of `BLOCK_SIZE = 64` bytes.
+### 3.3. Buffer Management: Implementation Considerations
 
-*   Block Structure: Each block reserves the first 4 bytes for metadata:
-    *   `BLOCK_NEXT` (Offset 0, 2 bytes): Stores the *block index* (not byte offset) of the next block in a chain (used for multi-block structures or the free list). `INVALID` (0xFFFF) indicates the end of a chain.
-    *   `BLOCK_REFS` (Offset 2, 2 bytes): The reference count for this block. A count of 0 means the block is free.
-    *   Usable Space: This leaves `USABLE_BLOCK_SIZE = 60` bytes per block for actual data payload.
-
-*   Block-Based Addressing: Instead of passing around 16-bit byte addresses within the heap, Tacit primarily uses 16-bit block indices. A block index `i` corresponds to the byte offset `i * BLOCK_SIZE` within the `SEG_HEAP`. This scheme has a profound implication: it allows the 16-bit value (stored within a tagged float) to address `2^16 = 65536` potential blocks. Since each block is 64 bytes, this effectively expands the *addressable heap space* to 65536 * 64 bytes = 4MB, even though the *physical* heap segment is much smaller (~53.5KB in this configuration). The actual number of usable blocks is limited by `HEAP_SIZE / BLOCK_SIZE`. The `blockToByteOffset` method converts a block index to its physical byte offset within the heap segment.
-
-*   Free List Management: The `Heap` class maintains a singly linked list (`freeList`) of available block indices.
-    *   Initialization: On startup (`initializeFreeList`), all blocks within the heap segment are linked together using their `BLOCK_NEXT` fields, and their `BLOCK_REFS` are set to 0. The `freeList` pointer points to the index of the first free block.
-    *   Allocation (`malloc`):
-        1.  Calculates the number of blocks (`numBlocks`) required based on the requested `size` and `USABLE_BLOCK_SIZE`.
-        2.  Traverses the `freeList` to find a contiguous sequence of `numBlocks`. *(Correction: The current `malloc` implementation seems to allocate potentially non-contiguous blocks individually and links them, rather than searching for a contiguous chunk in the free list. It requests blocks one by one until enough are acquired or the free list runs out).* It requests the *first* available block from the free list.
-        3.  If successful, it removes the block(s) from the `freeList`.
-        4.  Sets `BLOCK_REFS` to 1 for the allocated block(s).
-        5.  If multiple blocks are needed for a single logical allocation (size > `USABLE_BLOCK_SIZE`), they are linked together using `BLOCK_NEXT`. The `malloc` function calculates how many blocks are needed and attempts to allocate them, linking them sequentially.
-        6.  Returns the *block index* of the first allocated block (or `INVALID` if allocation fails).
-    *   Freeing (`decrementRef`, `addToFreeList`):
-        1.  `free` is simply an alias for `decrementRef`.
-        2.  `decrementRef` takes a block index. It decrements the block's `BLOCK_REFS` count.
-        3.  If the count reaches 0:
-            *   It recursively calls `decrementRef` on the block pointed to by `BLOCK_NEXT` (to handle freeing multi-block structures).
-            *   It then adds the now-free block back to the head of the `freeList` using `addToFreeList`.
-
-*   Reference Counting Functions:
-    *   `incrementRef(blockIndex)`: Increases the `BLOCK_REFS` count of the specified block. Used when a reference to a block is duplicated (e.g., pushed onto the stack, stored in another structure).
-    *   `decrementRef(blockIndex)`: Decreases the count, potentially freeing the block (and subsequent blocks in a chain) if the count hits zero. Used when a reference is discarded (e.g., popped from the stack, overwritten).
-    *   `setNextBlock(parent, child)`: Safely updates the `BLOCK_NEXT` pointer of the `parent` block to point to the `child` block, handling the necessary `incrementRef` on the new child and `decrementRef` on the old child.
-
-*   Copy-on-Write Support:
-    *   `cloneBlock(blockIndex)`: Allocates a new block, copies the *entire* 64-byte content (including header) from the original block to the new one, sets the new block's ref count to 1, and importantly, *increments the reference count* of the block originally pointed to by the old block's `BLOCK_NEXT` (as the new block now also shares that subsequent chain). Returns the index of the new block.
-    *   `copyOnWrite(blockIndex, prevBlockIndex?)`: This is the core CoW function. It checks the reference count (`BLOCK_REFS`) of `blockIndex`. If the count is greater than 1 (meaning the block is shared), it calls `cloneBlock` to create a private copy. If a `prevBlockIndex` is provided (for multi-block structures), it updates the `BLOCK_NEXT` pointer of the previous block to point to the newly cloned block. If the ref count was 1, it simply returns the original `blockIndex` as no copy is needed.
-
-This block-based, reference-counted heap with block-index addressing and CoW support is the cornerstone of Tacit's memory efficiency and immutable data structure implementation.
-
-### 3.3. String Management (`digest.ts`)
-
-Strings are stored in the dedicated `SEG_STRING`. The `Digest` class manages this segment.
-
-*   Storage Format: Each string is stored with a 1-byte header indicating its length (maximum 255 characters), followed by the raw character codes.
-*   Allocation (`add`): Appends the length byte and character data to the current end of the string segment, advancing the String Buffer Pointer (`SBP`). Throws errors if the string is too long or if the segment runs out of space. Returns the starting address (offset within `SEG_STRING`) of the newly added string.
-*   Lookup (`get`, `length`): Retrieves the string or its length given its starting address.
-*   Interning (`find`, `intern`): The `find` method searches the digest for an existing identical string. `intern` uses `find`; if the string already exists, it returns the existing address; otherwise, it calls `add` to store the new string and returns its address. This ensures that identical string literals only occupy memory once.
+1.  **Lifetime Management**: Buffers are tied to function stack frames, ensuring proper cleanup.
+2.  **Sizing Flexibility**: While declaration is static, buffers can be dynamically sized at runtime.
+3.  **Efficient Access**: Stack-relative addressing provides fast access to buffer data.
+4.  **Mutation Semantics**: Buffer contents are mutable while references are immutable, providing a balance of flexibility and safety.
+5.  **Optimization Opportunities**: The stack-based approach allows for various future optimizations such as buffer pooling, specialized buffer types, and optimized operations for common use cases.
 
 ## 4. Value Representation: NaN-Boxing (`tagged.ts`)
 
-Instead of using separate memory locations for type tags and values, Tacit employs NaN-boxing. All values manipulated by the VM (on the stack, in data structures) are represented as standard IEEE 754 32-bit floating-point numbers.
+The most critical aspect of Tacit's value representation is NaN-boxing, a technique that allows a 32-bit floating-point value to encode not just numbers but also other primitive types and tags.
 
-*   The NaN Space: IEEE 754 floats have specific bit patterns representing NaN (Not-a-Number). Crucially, there isn't just one NaN pattern; many patterns are valid NaNs. Tacit leverages this by using specific NaN patterns to encode type information and a payload (value or pointer).
+*   Principle: IEEE 754 floating-point numbers have a large range of bit patterns that represent `NaN` (Not-a-Number). These patterns are repurposed to encode non-numeric types while regular numbers are represented directly as IEEE 754 float values.
+
 *   Encoding Scheme:
     *   A value is considered "tagged" if it's a NaN. Normal floating-point numbers are treated directly as `CoreTag.NUMBER`.
-    *   If a value *is* NaN, its 32 bits are interpreted as follows (based on `toTaggedValue` and `fromTaggedValue`):
-        *   Sign Bit (Bit 31): Indicates Heap vs. Non-Heap. `1` = Heap-allocated object pointer, `0` = Core (primitive) value or pointer.
-        *   Exponent Bits (Bits 30-23): Must be all `1`s (part of the NaN representation).
-        *   Quiet NaN Bit (Bit 22): Must be `1` (part of the NaN representation). *(Note: The code uses `NAN_BIT = 1 << 22`, implying this bit is used, consistent with NaN requirements).*
-        *   Tag Bits (Bits 21-16): A 6-bit field (`TAG_MANTISSA_MASK`) used to store the type tag. The specific interpretation depends on the Heap bit:
-            *   If Heap Bit is `0`: Interpreted as `CoreTag` (INTEGER, CODE, STRING). `CoreTag.NUMBER` isn't stored via NaN-boxing.
-            *   If Heap Bit is `1`: Interpreted as `HeapTag` (BLOCK, SEQ, VECTOR, DICT).
-        *   Value/Pointer Bits (Bits 15-0): A 16-bit payload.
-            *   For `CoreTag.INTEGER`: Stores a 16-bit *signed* integer (-32768 to 32767).
-            *   For `CoreTag.CODE`: Stores a 16-bit *unsigned* bytecode address (offset in `SEG_CODE`).
-            *   For `CoreTag.STRING`: Stores a 16-bit *unsigned* string address (offset in `SEG_STRING`).
-            *   For `HeapTag.*`: Stores a 16-bit *unsigned* block index (within `SEG_HEAP`).
+    *   If a value *is* NaN, its 32 bits are interpreted as follows:
+        *   Sign Bit (Bit 31): Used to distinguish between scalar types (0) and non-scalar types (1) such as buffers and other complex data structures.
+        *   Exponent Bits (Bits 30-22): Set to all `1`s to ensure the value is a NaN.
+        *   Tag Bits (Bits 21-16): A field used to store the specific type tag within each main category.
+        *   Value Bits (Bits 15-0): A 16-bit field that stores type-specific payload data:
+            *   For `CoreTag.INTEGER`: Stores a 16-bit *signed* integer value.
+            *   For `CoreTag.CODE`: Stores a 16-bit *unsigned* code address.
+            *   For `CoreTag.STRING`: Stores a 16-bit *unsigned* string address.
+            *   For buffer references: Stores information to locate the buffer on the return stack, such as offset from the base pointer.
 
 *   Tags:
-    *   `CoreTag`: `NUMBER` (0, implicit, not NaN-boxed), `INTEGER` (1), `CODE` (2), `STRING` (3).
-    *   `HeapTag`: `BLOCK` (0), `SEQ` (1), `VECTOR` (2), `DICT` (3).
-    *   *(Note: The comments/docs sometimes mention NIL, NAN, VIEW tags which might be outdated or planned, but the `tagged.ts` code focuses on the tags listed above.)*
-*   `NIL` Value: A specific constant (`NIL`) is defined as `toTaggedValue(0, false, CoreTag.INTEGER)`, representing a null or sentinel value, distinct from the number 0.
-*   Benefits:
-    *   Memory Efficiency: No need for separate type fields; everything fits in 4 bytes.
-    *   Speed: Type checks can potentially be fast bitmask operations (though JS implementation might not fully realize this).
-*   Trade-offs:
-    *   Limits payload size (16 bits here).
-    *   Complexity in encoding/decoding logic.
-    *   JavaScript's number type doesn't map perfectly, potentially hiding some performance benefits.
+    *   `CoreTag`: Various tags for different value types (NUMBER, INTEGER, CODE, STRING, etc.)
+    *   Special tags for buffer references and other complex data types
 
-Helper functions like `getTag`, `getValue`, `isHeapAllocated`, `isRefCounted`, `isNIL`, and `printNum` facilitate working with these tagged values.
+*   Operations:
+    *   `toTaggedValue(tag, value)`: Combines a tag and a 16-bit value into a NaN-boxed 32-bit float.
+    *   `fromTaggedValue(float)`: Decodes a tagged value, returning the tag and value.
+    *   `NIL`: A special tagged value used to represent "nothing" or uninitialized state.
+
+Helper functions facilitate working with these tagged values, including type checking and value extraction.
 
 ## 5. Core Data Structures
 
-Tacit's data structures are built upon the block-based heap and utilize tagged values and reference counting.
+Tacit's data structures are built upon the stack-based memory model and utilize tagged values for type safety and memory efficiency.
 
-### 5.1. Vectors (`vector.ts`)
+### 5.1. Buffers
 
-Vectors are the primary ordered collection type, designed for immutability via CoW.
+Buffers are contiguous memory regions allocated on the return stack, providing efficient storage for arrays and other data structures:
 
-*   Representation: A vector is represented by a tagged value (`HeapTag.VECTOR`) whose payload is the block index of the *first* block in a potentially linked chain.
-*   Block Layout: Vector blocks reuse the standard 4-byte heap header (`BLOCK_NEXT`, `BLOCK_REFS`). The first block's payload contains additional vector-specific metadata *before* the element data:
-    *   `VEC_SIZE` (Offset 4, 2 bytes): Stores the logical length (number of elements) of the vector.
-    *   `VEC_RESERVED` (Offset 6, 2 bytes): Currently unused.
-    *   `VEC_DATA` (Offset 8): The start of the element data within the block. Elements are stored as 32-bit tagged values (floats).
-*   Capacity: Each block can store `capacityPerBlock = floor((60 - 4) / 4) = 14` elements after the vector metadata in the first block, and `floor(60 / 4) = 15` elements in subsequent blocks.
-*   Multi-Block Vectors: For vectors exceeding the capacity of a single block, `vectorCreate` allocates additional blocks and links them using the `BLOCK_NEXT` pointers.
-*   Creation (`vectorCreate`):
-    1.  Calculates the number of blocks needed.
-    2.  Allocates the required blocks using `heap.malloc`.
-    3.  Writes the vector length (`VEC_SIZE`) into the first block.
-    4.  Iterates through the input data, writing each element (as a 32-bit float/tagged value) sequentially into the allocated blocks, following the `BLOCK_NEXT` chain as needed.
-    5.  Returns a tagged value (`HeapTag.VECTOR`) pointing to the first block index.
-*   Access (`vectorGet`):
-    1.  Reads the vector length from the first block's metadata. Checks for out-of-bounds index.
-    2.  Calculates which block and which offset within that block the desired `index` corresponds to, considering `capacityPerBlock`.
-    3.  Traverses the linked list of blocks using `heap.getNextBlock` until the correct block is reached.
-    4.  Reads and returns the 32-bit float/tagged value from the calculated offset within that block.
-*   Update (`vectorUpdate`):
-    1.  Performs bounds checking.
-    2.  Traverses the block chain to locate the target block containing the `index`. Keeps track of the `prevBlock`.
-    3.  Crucially, calls `heap.copyOnWrite(currentBlock, prevBlock)` for the target block *before* writing. This ensures that if the block is shared (ref count > 1), a private copy is made, and the `prevBlock`'s `BLOCK_NEXT` is updated to point to the new copy. If the vector spans multiple blocks, CoW might only clone the single block being modified and potentially the path leading to it if structural sharing is fully implemented (though the current `vectorUpdate` seems to apply CoW only to the target block itself, relying on `copyOnWrite`'s `prevBlock` parameter to relink).
-    4.  Writes the new `value` into the (potentially newly cloned) block at the correct offset.
-    5.  Returns a tagged value pointing to the potentially new first block of the vector (if the first block itself was cloned).
-
-### 5.2. Sequences (`sequence.ts`, `processor.ts`, `source.ts`, `sink.ts` - Conceptual)
-
-Sequences are a more abstract concept, primarily described in documentation (`notes.md`, `sequences.md`). The provided code doesn't contain the full implementation (`sequence.ts`, etc. are missing), but the architecture suggests:
-
-*   Purpose: Provide a unified, lazy interface for iterating over various data sources (ranges, vectors, strings) and applying transformations (map, filter, scan) without necessarily creating intermediate collections.
-*   Representation: Likely represented by a tagged value (`HeapTag.SEQ`) pointing to a heap block containing sequence state.
-*   Sequence Block Layout (Conceptual, based on `notes.md`):
-    *   Standard Heap Header (`BLOCK_NEXT`, `BLOCK_REFS`).
-    *   Parent Pointer: Tagged value pointing to the underlying data source (e.g., a vector, another sequence).
-    *   Position/State: Current index or state information (e.g., `major position`, `total`, processor state).
-    *   Slice View Pointer: Possibly for efficient sub-sequence access.
-    *   Rank: For multi-dimensional concepts.
-    *   Processor Fields: Flags and parameters (`PROC_FLAG`, `PROC_TYPE`, `PROC_PARAM`, `PROC_STATE`) to indicate if it's a transforming sequence (processor) and what kind.
-*   Lazy Evaluation: The core idea is that elements are generated or transformed only when requested by a "sink" operation (like `reduce`, `toVector`, `forEach`).
-*   Iteration (`seqNext` - Conceptual): A polymorphic function that, based on the sequence block's type (source or processor) and state, generates the *next* element or sub-sequence.
-    *   For sources (e.g., `seqFromVector`), it reads the next element from the underlying vector.
-    *   For ranges (`seqFromRange`), it calculates the next number.
-    *   For processors (`map`, `filter`, `scan`), it calls `seqNext` on its *own* source sequence, applies the transformation logic (using `PROC_TYPE`, `PROC_PARAM`, `PROC_STATE`), and returns the result. `filter` might skip elements internally.
-*   Chaining: Processors take a sequence as input and produce a new sequence, allowing pipelines like `source -> map -> filter -> sink`.
-
-### 5.3. Dictionaries (`dict.ts`)
-
-Dictionaries provide key-value mapping.
-
-*   Representation: Implemented as a specialized vector (`HeapTag.DICT`), where the vector stores alternating key-value pairs. Keys are stored as tagged string pointers (`CoreTag.STRING`), and values are stored as tagged numbers. The vector is kept sorted lexicographically by key.
-*   Creation (`dictCreate`):
-    1.  Takes a flat array `[key1, value1, key2, value2, ...]`.
-    2.  Validates input (even length, keys are strings, values are numbers).
-    3.  Creates `[key, value]` pairs.
-    4.  Sorts the pairs based on the string keys (`localeCompare`).
-    5.  Flattens the sorted pairs back into an array, converting keys to tagged string pointers using `stringCreate` (which interns them via the `Digest`).
-    6.  Creates a standard vector using `vectorCreate` with the flattened, sorted data.
-    7.  Re-tags the resulting vector pointer from `HeapTag.VECTOR` to `HeapTag.DICT`.
-*   Access (`dictGet`):
-    1.  Takes the tagged dictionary pointer and the key string to find.
-    2.  Leverages the sorted nature of the underlying vector to perform an efficient binary search.
-    3.  In each step of the search, it reads a tagged key from the vector, gets the actual string from the `Digest`, and compares it (`localeCompare`) to the search key to narrow down the range.
-    4.  If the key is found, it reads the corresponding value (stored immediately after the key in the vector) and returns it.
-    5.  If the key is not found after the binary search, it returns `NIL`.
+*   Representation: A buffer is represented by a tagged value that references memory allocated above the variable table in the function's stack frame.
+*   Buffer Structure:
+    *   Base address: The starting location of the buffer on the stack
+    *   Metadata: Information about the buffer's size, shape, and other properties
+    *   Data region: The contiguous memory containing the actual buffer data
+*   Buffer Types:
+    *   Fixed-size buffers: Simple, statically sized blocks
+    *   Appendable buffers: Dynamic buffers with separate size and capacity tracking
+    *   Shaped buffers: Buffers with associated shape descriptors for multi-dimensional data
+    *   Record buffers: Structured data with named fields and type information
+*   Access Methods:
+    *   Indexing into specific elements
+    *   Slicing to create logical views of buffer regions
+    *   Mutation of buffer contents within the allocated capacity
+    *   Metadata access for shape, type, and capacity information
 
 ## 6. Execution Model & Virtual Machine (`vm.ts`, `interpreter.ts`)
 
 Tacit executes programs using a classic stack-based VM.
 
 *   Dual Stacks:
+    *   Return Stack: (`RP`, `SEG_RETURN`) Used for control flow, local variables, and buffer storage. Stores return addresses, variable tables, and buffer data in function stack frames.
     *   Data Stack: (`SP`, `SEG_STACK`) Used for passing arguments to operations (words) and receiving results. Manipulated by most operations (`+`, `dup`, `swap`, etc.).
-    *   Return Stack: (`RP`, `SEG_RSTACK`) Used primarily for control flow. Stores return addresses when `callOp` or `evalOp` is executed. `exitOp` pops an address from here to resume execution. Also used temporarily by `groupLeftOp`/`groupRightOp` and potentially other constructs.
-*   Instruction Pointer (`IP`): A register (simple variable in `VM` class) holding the 16-bit address (offset within `SEG_CODE`) of the *next* bytecode instruction to be fetched and executed.
-*   Bytecode: A sequence of single-byte opcodes (defined in `Op` enum) potentially followed by immediate operands (e.g., 16-bit offsets for branches, 32-bit floats for literals).
-*   Interpreter Loop (`execute` in `interpreter.ts`):
-    1.  The main execution entry point, given a starting bytecode address (`start`).
-    2.  Sets `vm.IP = start` and `vm.running = true`.
-    3.  Enters a `while (vm.running)` loop.
-    4.  Inside the loop:
-        *   Fetches the next opcode using `vm.next8()` (which reads from `SEG_CODE` at `vm.IP` and increments `IP`).
-        *   Dispatches to the appropriate handler function based on the opcode (`executeOp` in `builtins.ts`).
-        *   The handler function performs the operation, manipulating the stacks (`vm.push`, `vm.pop`, `vm.rpush`, `vm.rpop`) and potentially fetching immediate operands using `vm.next16()`, `vm.nextFloa32t()`.
-        *   Control flow opcodes (`Branch`, `Call`, `Exit`, `Eval`) directly modify `vm.IP` or use the return stack.
-        *   `abortOp` sets `vm.running = false`, terminating the loop.
-    5.  Includes basic error handling, wrapping the `executeOp` call in a try-catch block.
-    6.  Resets compiler state (`vm.compiler.reset()`) after execution finishes or errors out.
 
-*   Key Control Flow Opcodes:
-    *   `Op.Branch`: (`skipDefOp`) Reads a 16-bit relative offset and adds it to `IP`. Used to skip over the compiled code of colon definitions during normal execution flow.
-    *   `Op.BranchCall`: (`skipBlockOp`) Reads a 16-bit relative offset. Pushes the *current* `IP` (address *after* the offset) onto the data stack as a tagged `CODE` pointer. Then adds the offset to `IP`. Used to compile code blocks `(...)` - pushes the block's code pointer onto the stack without executing it immediately.
-    *   `Op.Call`: (`callOp`) Reads a 16-bit *absolute* address. Pushes the *current* `IP` (address *after* the address operand) onto the *return* stack (`rpush`). Sets `IP` to the read absolute address. Used to execute compiled colon definitions.
-    *   `Op.Exit`: (`exitOp`) Pops a tagged `CODE` pointer from the *return* stack (`rpop`) and sets `IP` to its value. Used to return from a `Call`.
-    *   `Op.Eval`: (`evalOp`) Pops a tagged `CODE` pointer from the *data* stack (`pop`). Pushes the *current* `IP` onto the *return* stack (`rpush`). Sets `IP` to the popped pointer's value. Used to execute a code block whose pointer is on the data stack.
-    *   `Op.Abort`: (`abortOp`) Sets `vm.running = false`, stopping the interpreter loop.
+*   Instruction Pointer (`IP`): A register holding the address of the next bytecode instruction to be executed.
+*   Bytecode: A sequence of single-byte opcodes potentially followed by immediate operands.
+*   Execution Cycle:
+    1.  The VM fetches the next opcode from the code segment at the address pointed to by the IP.
+    2.  It dispatches to the appropriate handler function for that opcode.
+    3.  The handler manipulates the stacks and local variables as required.
+    4.  Control flow operations modify the IP directly or work with the return stack.
+    5.  The cycle continues until execution completes or is explicitly halted.
+
+*   Key Control Flow Operations:
+    *   `Branch`: Modifies the IP to implement conditional and unconditional jumps.
+    *   `Call`: Creates a new stack frame and transfers control to the called function.
+    *   `Return`: Restores the previous stack frame and returns control to the caller.
+    *   `Eval`: Executes code blocks passed as first-class values.
+    *   `Abort`: Halts execution of the current program.
 
 ## 7. Language Processing Pipeline
 
@@ -315,23 +220,34 @@ Tacit code goes through several stages before execution:
     *   Enters a loop: prompts the user (`> `), reads a line, executes it using `executeLine`.
     *   Handles special commands: `exit` (closes REPL) and `load <filepath>` (calls `processFile` on the specified file).
     *   Catches errors from `executeLine` and prints them without exiting the REPL.
-*   Testing (`*.test.ts`, `jest.config.js`): Uses Jest and `ts-jest` for unit and integration testing of core components (VM, parser, tokenizer, heap, operations, etc.). Aims for reasonable code coverage.
+*   Testing (`*.test.ts`, `jest.config.js`): Uses Jest and `ts-jest` for unit and integration testing of core components (VM, parser, tokenizer, operations, etc.). Aims for reasonable code coverage.
 *   Linting (`eslint.config.mjs`): Uses ESLint with TypeScript support for code style and quality checks.
 
 ## 9. Conclusion
 
 The Tacit architecture represents a thoughtful and intricate design aimed squarely at achieving functional programming capabilities within a highly memory-constrained, stack-based environment. Its core strengths lie in:
 
-*   Memory Efficiency: The segmented memory, block-based heap, reference counting, NaN-boxing, and lazy sequences all contribute to minimizing memory usage.
-*   Deterministic Performance: The absence of a traditional GC avoids unpredictable pauses.
-*   Immutability: CoW with structural sharing provides the benefits of immutability without excessive copying overhead.
-*   Novel Addressing: The block-index addressing scheme cleverly expands the *logical* heap address space far beyond the physical 16-bit limit.
+*   Memory Efficiency: The segmented memory, stack-based memory management, and NaN-boxing all contribute to minimizing memory usage.
+*   Deterministic Performance: Stack-based memory management provides predictable cleanup without unpredictable pauses.
+*   Immutability with Practicality: The buffer system provides immutable references with mutable contents, balancing functional programming principles with practical efficiency.
+*   Efficient Addressing: The variable table system provides an efficient addressing scheme for accessing local variables and buffer data.
 *   Unified Value System: NaN-boxing allows diverse types (numbers, pointers, integers) to be handled uniformly on the stack and in data structures.
 
 However, the design also implies certain trade-offs:
 
-*   Complexity: The custom memory management, NaN-boxing, and CoW logic add significant implementation complexity compared to relying on a host language's runtime.
-*   Reference Counting Limitations: Cannot automatically handle cyclic data structures, potentially leading to memory leaks if not managed carefully by the programmer or higher-level abstractions.
-*   Performance Overhead: While avoiding GC pauses, reference counting itself incurs overhead on assignments and scope exits. NaN-boxing/unboxing also adds overhead. The performance in the target C/assembly environment would differ significantly from the TypeScript prototype.
+*   Limited Maximum Sizes: The 16-bit fields in tagged values cap variable and buffer sizes.
+*   Function Lifetimes: Stack-based allocation means variables and buffers cannot outlive their declaring function scope.
+*   Stack Space: Each function call consumes stack space that must be managed carefully in a resource-constrained environment.
+*   Implementation Complexity: The tagging system and stack-based buffer management require careful implementation to ensure correctness.
 
-Overall, Tacit, as presented in the provided files, is a sophisticated VM prototype showcasing how principles from stack languages, array languages, and functional programming can be synthesized into a unique architecture optimized for resource-limited systems. Its detailed memory management and value representation schemes are particularly noteworthy design elements.
+Overall, Tacit is a sophisticated VM prototype showcasing how principles from stack languages, array languages, and functional programming can be synthesized into a unique architecture optimized for efficiency and deterministic performance. Its detailed memory management and value representation schemes are particularly noteworthy design elements.
+
+## 10. Related Documentation
+
+For a deeper understanding of specific aspects of the Tacit architecture, refer to the following documentation:
+
+* **[local-variables.md](./local-variables.md)**: Detailed explanation of the variable table system, buffer allocation, and stack frame structure
+* **[stack-data-structures.md](./stack-data-structures.md)**: How complex data structures are represented on the stack
+* **[compiled-sequences.md](./compiled-sequences.md)**: Compilation and optimization strategies
+
+Additional documentation on multitasking, co-routines, and other advanced features will be added as these features are implemented.
