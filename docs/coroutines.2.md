@@ -60,12 +60,34 @@
   - [B.2 Coroutine A2: Filter Odd](#b2-coroutine-a2-filter-odd)
   - [B.3 Coroutine B: Join → Print](#b3-coroutine-b-join--print)
   - [B.4 Wiring](#b4-wiring)
+- [Appendix C: Performance Considerations](#appendix-c-performance-considerations)
+  - [C.1 When to Use Coroutines](#c1-when-to-use-coroutines)
+  - [C.2 Optimizing Coroutine Performance](#c2-optimizing-coroutine-performance)
+  - [C.3 Comparison with Traditional Concurrency Models](#c3-comparison-with-traditional-concurrency-models)
 
 ## 1. Introduction
 
 Tacit coroutines provide a foundation for cooperative multitasking in environments with strict memory and execution constraints. Unlike traditional resumable functions or heap-managed async models, Tacit coroutines are lightweight, stack-based tasks that share a single global return stack. They are designed to interleave execution in a lock-step, deterministic fashion with minimal runtime overhead.
 
 This document defines the canonical coroutine model in Tacit, including lifecycle, memory structure, scheduling behavior, and integration with local variable management. It formalizes the stack discipline and atomic yield model introduced during the deprecation of resumable functions.
+
+### Single-Threaded, Async-First Design
+
+Tacit takes a fundamentally different approach to concurrency compared to most programming environments:
+
+1. **Truly Single-Threaded**: Unlike systems that emulate concurrency with OS threads or worker pools, Tacit is genuinely single-threaded. There is exactly one execution path active at any moment, which eliminates entire categories of concurrency bugs like race conditions and deadlocks.
+
+2. **Explicit Yield Points**: Coroutines yield control only at well-defined points in the code, making program flow predictable and traceable. There's no preemption or time-slicing that could interrupt execution at arbitrary points.
+
+3. **Zero-Cost Abstraction**: The coroutine mechanism adds minimal overhead to Tacit's existing stack-based structure. There's no separate runtime, thread management, or context-switching machinery.
+
+Coroutines provide a powerful tool for:
+
+- Breaking complex operations into manageable steps
+- Handling asynchronous operations without callback nesting
+- Creating producer/consumer relationships
+- Building event-driven systems
+- Managing I/O without blocking the entire system
 
 ## 2. Motivation and Philosophy
 
@@ -130,12 +152,35 @@ All coroutines share the same global return stack. Each coroutine is given a **b
 
 ### 4.2 Variable Table and Local Storage
 
-Each coroutine allocates a **variable table** near its `bp`. This table holds all declared local variables:
+Each coroutine uses a variable table to store and access local variables. This table is allocated on the return stack when a coroutine is instantiated—the variables required are calculated statically at compile time. This table, along with a stack region for internal operations, forms the coroutine's private stack frame.
 
-* **Scalar values** are stored directly in the table.
-* **Buffers and reference types** are stored elsewhere on the stack, with pointers to them placed in the table.
+The variable table contains:
 
-All stack allocation—especially for buffers—must occur **just above the variable table**, early in the coroutine’s lifecycle. This allocation must be completed **before the first yield**.
+* Scalars (numbers, booleans)
+* References to buffers (strings, arrays)
+* Any explicit access to parent scopes
+
+All stack allocation (for the local variable table and any buffers) happens during initialization, before the coroutine yields for the first time. No additional stack allocation is permitted after the first yield to preserve memory integrity and prevent fragmentation.
+
+A simplified visualization of the coroutine's stack frame structure:
+
+```
+[Higher memory addresses]
++------------------+
+| Buffer Area      | <- Space for buffers and private data stack
++------------------+
+| Local Variables  | <- Variable table for named values
++------------------+
+| Control Data     | <- IP, BP, status flags
++------------------+
+[Lower memory addresses]
+```
+
+This layout ensures that each coroutine has its own isolated workspace while still sharing the global return stack infrastructure.
+
+When a coroutine terminates, it does not immediately clean up its frame. Instead, it waits in a suspended state until **all coroutines above it on the stack have terminated**. Only then can it safely reset the stack pointer to its base pointer and deallocate its memory.
+
+This **LIFO deallocation** prevents fragmentation and keeps stack memory compact and predictable.
 
 ### 4.3 Stack Cleanup and Deallocation
 
@@ -657,3 +702,57 @@ word print-pair
 * `filter-odd` emits to `out-join-left`
 * `join-print` consumes `in-join-left` and `in-join-right`
 
+## Appendix C: Performance Considerations
+
+### C.1 When to Use Coroutines
+
+Coroutines in Tacit are designed to be lightweight, but they're not free. Consider using coroutines when:
+
+1. **Breaking up complex operations** that would otherwise block for too long
+2. **Handling asynchronous operations** like I/O
+3. **Modeling independent processes** that need to communicate
+4. **Implementing state machines** with complex transitions
+
+Avoid unnecessary use of coroutines for simple sequential operations where regular functions would suffice.
+
+### C.2 Optimizing Coroutine Performance
+
+1. **Minimize State**: Keep coroutine local variable usage minimal.
+2. **Batch Work**: Do meaningful work between yields to amortize the cost of context switching.
+3. **Consider Lifetimes**: Be mindful of the temporal stack principle when creating nested coroutines.
+4. **Optimize Data Stack Size**: Size the private data stack appropriately for the coroutine's needs.
+
+### C.3 Comparison with Traditional Concurrency Models
+
+Tacit's coroutine system differs significantly from other concurrency approaches:
+
+#### vs. Preemptive Threading (e.g., POSIX threads, Java threads)
+
+| **Tacit Coroutines** | **Preemptive Threading** |
+|------------------------|---------------------------|
+| Cooperative yielding at explicit points | Arbitrary preemption by scheduler |
+| Shared memory with temporal guarantees | Shared memory requiring locks and synchronization |
+| Minimal state (IP, BP, RP) | Complete thread context (all registers, stack, etc.) |
+| No race conditions | Prone to race conditions |
+| No deadlocks from mutual exclusion | Potential deadlocks |
+| Deterministic execution order | Non-deterministic execution |
+| Lightweight (bytes of overhead) | Heavy (kilobytes of overhead) |
+
+#### vs. Async/Await (e.g., JavaScript, C#)
+
+| **Tacit Coroutines** | **Async/Await** |
+|------------------------|------------------|
+| First-class primitive in the language | Built on promises/futures |
+| Direct stack-based implementation | Often requires heap allocations for continuations |
+| Explicit channel-based communication | Typically callback or promise-chain based |
+| Works identically for all operations | Often requires special async-aware libraries |
+| No syntax transformation or state machines | Usually compiled to state machines |
+
+#### vs. Actor Model (e.g., Erlang, Akka)
+
+| **Tacit Coroutines** | **Actor Model** |
+|------------------------|----------------|
+| Shared memory space | Isolated memory per actor |
+| Direct communication via channels | Message passing via mailboxes |
+| Scheduling within a single VM | Often distributed across nodes |
+| Explicit control over yielding | Implicit yielding between messages |
