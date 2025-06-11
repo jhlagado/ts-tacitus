@@ -1,5 +1,40 @@
 # Local Variables
 
+## Table of Contents
+
+- [1. Introduction](#1-introduction)
+  - [1.1 Purpose and Scope](#11-purpose-and-scope)
+  - [1.2 Local Variable Model](#12-local-variable-model)
+  - [1.3 Design Goals](#13-design-goals)
+- [2. The Role and Nature of Local Variables in Tacit](#2-the-role-and-nature-of-local-variables-in-tacit)
+  - [2.1 Overview](#21-overview)
+  - [2.2 Declaration and Layout](#22-declaration-and-layout)
+  - [2.3 Buffers as Local Variables](#23-buffers-as-local-variables)
+  - [2.4 Compiler Responsibilities](#24-compiler-responsibilities)
+- [3. Symbol Handling and Dictionary Management](#3-symbol-handling-and-dictionary-management)
+  - [3.1 Role of the Dictionary in Compilation](#31-role-of-the-dictionary-in-compilation)
+  - [3.2 Dictionary Marking and Scope Boundaries](#32-dictionary-marking-and-scope-boundaries)
+  - [3.3 Symbol Resolution During Code Generation](#33-symbol-resolution-during-code-generation)
+- [4. The Variable Table and Memory Layout](#4-the-variable-table-and-memory-layout)
+  - [4.1 Overview of the Variable Table](#41-overview-of-the-variable-table)
+  - [4.2 Return Stack Memory Layout](#42-return-stack-memory-layout)
+  - [4.3 Binding Symbols to Slots](#43-binding-symbols-to-slots)
+  - [4.4 Assignment and Mutation Rules](#44-assignment-and-mutation-rules)
+- [5. Variable Initialization and Lifetime](#5-variable-initialization-and-lifetime)
+  - [5.1 Variable Table Structure and Access](#51-variable-table-structure-and-access)
+  - [5.2 Initialization Strategy](#52-initialization-strategy)
+  - [5.3 Lifetime and Cleanup](#53-lifetime-and-cleanup)
+- [6. Variable Access and Operations](#6-variable-access-and-operations)
+  - [6.1 Scalar Variable Access](#61-scalar-variable-access)
+  - [6.2 Buffer Access and Manipulation](#62-buffer-access-and-manipulation)
+  - [6.3 Tagged Value Operations](#63-tagged-value-operations)
+- [7. Buffer Architecture and Management](#7-buffer-architecture-and-management)
+  - [7.1 Buffer Structure and Organization](#71-buffer-structure-and-organization)
+  - [7.2 Buffer Variants](#72-buffer-variants)
+  - [7.3 Buffer Views and Shapes](#73-buffer-views-and-shapes)
+- [8. Multitasking Integration](#8-multitasking-integration)
+- [9. Conclusion](#9-conclusion)
+
 ## 1. Introduction
 
 ### 1.1 Purpose and Scope
