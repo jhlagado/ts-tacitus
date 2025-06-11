@@ -520,27 +520,4 @@ The key insight of Tacit's approach is that composition of simple, regular mecha
 - Code size grows logarithmically with feature set
 - Performance optimizations benefit all compositions
 
-This composition-first approach embodies Tacit's design philosophy: memory is raw, interpretation is functional, and power comes from combining simple pieces in regular ways. The result is a data model that handles everything from simple arrays to sophisticated analytical tables with the same minimal machinery, achieving both clarity and performance through compositional design. records, composing both gives tables. Because views
-are ordinary words and buffers live naturally on the stack, complex data
-structures cost nothing more than the code you already write—no hidden
-allocations, no special containers, no new lifetime rules.
-
-Future refinements—stride fusion, static shape checks, schema reflection—will
-extend performance and ergonomics, but they will do so inside this single,
-predictable framework: **memory is raw, interpretation is functional, and the
-programmer is in charge of when the two meet.**
-
-## 9 Conclusion
-
-From raw buffers to multidimensional tensors, from symbol-indexed records to
-mixed-axis tables, Tacit relies on _one_ runtime primitive: **attach a view to
-a buffer and let that view decide how to map keys to bytes**. Numeric keys give
-arrays, symbolic keys give records, composing both gives tables. Because views
-are ordinary words and buffers live naturally on the stack, complex data
-structures cost nothing more than the code you already write—no hidden
-allocations, no special containers, no new lifetime rules.
-
-Future refinements—stride fusion, static shape checks, schema reflection—will
-extend performance and ergonomics, but they will do so inside this single,
-predictable framework: **memory is raw, interpretation is functional, and the
-programmer is in charge of when the two meet.**
+This composition-first approach embodies Tacit's design philosophy: memory is raw, interpretation is functional, and power comes from combining simple pieces in regular ways. The result is a data model that handles everything from simple arrays to sophisticated analytical tables with the same minimal machinery, achieving both clarity and performance through compositional design.
