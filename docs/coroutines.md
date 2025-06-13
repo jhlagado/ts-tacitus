@@ -2,68 +2,86 @@
 
 ## Table of Contents
 
-- [1. Introduction](#1-introduction)
-- [2. Motivation and Philosophy](#2-motivation-and-philosophy)
-- [3. Coroutine Lifecycle](#3-coroutine-lifecycle)
-  - [3.1 Creation](#31-creation)
-  - [3.2 Execution](#32-execution)
-  - [3.3 Yielding and Atomicity](#33-yielding-and-atomicity)
-  - [3.4 Termination and Deferred Cleanup](#34-termination-and-deferred-cleanup)
-- [4. Stack Discipline and Memory Model](#4-stack-discipline-and-memory-model)
-  - [4.1 Shared Return Stack](#41-shared-return-stack)
-  - [4.2 Variable Table and Local Storage](#42-variable-table-and-local-storage)
-  - [4.3 Stack Cleanup and Deallocation](#43-stack-cleanup-and-deallocation)
-  - [4.4 Allocation Discipline](#44-allocation-discipline)
-- [5. Emit and Yield Semantics](#5-emit-and-yield-semantics)
-  - [5.1 Emit as a Blocking Operation](#51-emit-as-a-blocking-operation)
-  - [5.2 Atomic Output Groups](#52-atomic-output-groups)
-  - [5.3 Joins and Composite Inputs](#53-joins-and-composite-inputs)
-- [6. Task Scheduler](#6-task-scheduler)
-- [7. Communication Primitives](#7-communication-primitives)
-- [8. Integration with Local Variables](#8-integration-with-local-variables)
-- [9. Termination and Cleanup](#9-termination-and-cleanup)
-- [10. Coroutine Status and Scheduler Coordination](#10-coroutine-status-and-scheduler-coordination)
-  - [10.1 Usage by the Scheduler](#101-usage-by-the-scheduler)
-  - [10.2 Transition Rules](#102-transition-rules)
-  - [10.3 Integration with Sentinel Signaling](#103-integration-with-sentinel-signaling)
-  - [10.4 Status Extension](#104-status-extension)
-- [11. Spawning, Wiring, and Coordination](#11-spawning-wiring-and-coordination)
-  - [11.1 Allocation and Lifetime](#111-allocation-and-lifetime)
-  - [11.2 Stack Order and Nesting](#112-stack-order-and-nesting)
-  - [11.3 Wiring and Communication Memory](#113-wiring-and-communication-memory)
-  - [11.4 Two-Way Signaling](#114-two-way-signaling)
-  - [11.5 Summary](#115-summary)
-- [12. Task Scheduler Model](#12-task-scheduler-model)
-  - [12.1 Tick Cycle and Resume Logic](#121-tick-cycle-and-resume-logic)
-  - [12.2 Stack Discipline and Termination](#122-stack-discipline-and-termination)
-  - [12.3 Blocking and Backpressure](#123-blocking-and-backpressure)
-  - [12.4 Task List and Round-Robin Order](#124-task-list-and-round-robin-order)
-  - [12.5 External Events and Interruptions](#125-external-events-and-interruptions)
-  - [12.6 Scheduling Invariants](#126-scheduling-invariants)
-- [13. Sentinel Propagation and Termination Signaling](#13-sentinel-propagation-and-termination-signaling)
-  - [13.1 Definition and Semantics](#131-definition-and-semantics)
-  - [13.2 Downstream Propagation](#132-downstream-propagation)
-  - [13.3 Upstream Propagation](#133-upstream-propagation)
-  - [13.4 Fork and Join Semantics](#134-fork-and-join-semantics)
-  - [13.5 Cleanup and Termination](#135-cleanup-and-termination)
-  - [13.6 Sentinel Safety](#136-sentinel-safety)
-- [14. Coroutine Status and Lifecycle Management](#14-coroutine-status-and-lifecycle-management)
-  - [14.1 Status Values](#141-status-values)
-  - [14.2 Status-Driven Cleanup](#142-status-driven-cleanup)
-- [Appendix A: Coroutine Pipeline Case Study](#appendix-a-coroutine-pipeline-case-study)
-  - [A.1 Pipeline Description](#a1-pipeline-description)
-  - [A.2 Naive Decomposition](#a2-naive-decomposition)
-  - [A.3 Optimized Decomposition](#a3-optimized-decomposition)
-  - [A.4 Observations](#a4-observations)
-- [Appendix B: Coroutine Pipeline in Tacit Notation](#appendix-b-coroutine-pipeline-in-tacit-notation)
-  - [B.1 Coroutine A1: Range → Fork → Square](#b1-coroutine-a1-range--fork--square)
-  - [B.2 Coroutine A2: Filter Odd](#b2-coroutine-a2-filter-odd)
-  - [B.3 Coroutine B: Join → Print](#b3-coroutine-b-join--print)
-  - [B.4 Wiring](#b4-wiring)
-- [Appendix C: Performance Considerations](#appendix-c-performance-considerations)
-  - [C.1 When to Use Coroutines](#c1-when-to-use-coroutines)
-  - [C.2 Optimizing Coroutine Performance](#c2-optimizing-coroutine-performance)
-  - [C.3 Comparison with Traditional Concurrency Models](#c3-comparison-with-traditional-concurrency-models)
+- [Tacit Coroutines](#tacit-coroutines)
+  - [Table of Contents](#table-of-contents)
+  - [1. Introduction](#1-introduction)
+    - [Single-Threaded, Async-First Design](#single-threaded-async-first-design)
+  - [2. Motivation and Philosophy](#2-motivation-and-philosophy)
+  - [3. Coroutine Lifecycle](#3-coroutine-lifecycle)
+    - [3.1 Creation](#31-creation)
+    - [3.2 Execution](#32-execution)
+    - [3.3 Yielding and Atomicity](#33-yielding-and-atomicity)
+    - [3.4 Termination and Deferred Cleanup](#34-termination-and-deferred-cleanup)
+  - [4. Stack Discipline and Memory Model](#4-stack-discipline-and-memory-model)
+    - [4.1 Shared Return Stack](#41-shared-return-stack)
+    - [4.2 Variable Table and Local Storage](#42-variable-table-and-local-storage)
+    - [4.3 Stack Cleanup and Deallocation](#43-stack-cleanup-and-deallocation)
+    - [4.4 Allocation Discipline](#44-allocation-discipline)
+  - [5. Emit and Yield Semantics](#5-emit-and-yield-semantics)
+    - [5.1 Emit as a Blocking Operation](#51-emit-as-a-blocking-operation)
+    - [5.2 Atomic Output Groups](#52-atomic-output-groups)
+    - [5.3 Joins and Composite Inputs](#53-joins-and-composite-inputs)
+  - [6. Task Scheduler](#6-task-scheduler)
+  - [7. Coroutine Spawning and Wiring](#7-coroutine-spawning-and-wiring)
+    - [7.1 Coroutine as Task](#71-coroutine-as-task)
+    - [7.2 Stack Frame and Metadata Layout](#72-stack-frame-and-metadata-layout)
+    - [7.3 Data Stack Allocation](#73-data-stack-allocation)
+    - [7.4 Communication Buffers (Inbox/Outbox)](#74-communication-buffers-inboxoutbox)
+    - [7.5 Spawn-Time Setup](#75-spawn-time-setup)
+    - [7.6 Termination Process](#76-termination-process)
+    - [7.7 Notes on Spanners and Extended Buffers](#77-notes-on-spanners-and-extended-buffers)
+  - [8. Integration with Local Variables](#8-integration-with-local-variables)
+    - [8.1 Variable Table Structure](#81-variable-table-structure)
+  - [9. Termination and Cleanup](#9-termination-and-cleanup)
+  - [10. Coroutine Status and Scheduler Coordination](#10-coroutine-status-and-scheduler-coordination)
+    - [10.1 Usage by the Scheduler](#101-usage-by-the-scheduler)
+    - [10.2 Transition Rules](#102-transition-rules)
+    - [10.3 Integration with Sentinel Signaling](#103-integration-with-sentinel-signaling)
+    - [10.4 Status Extension](#104-status-extension)
+  - [11. Advanced Coordination and Scheduling](#11-advanced-coordination-and-scheduling)
+    - [11.1 Pipeline Design and Topology](#111-pipeline-design-and-topology)
+    - [11.2 Stack Order and Resource Management](#112-stack-order-and-resource-management)
+    - [11.3 Pipeline Optimization Patterns](#113-pipeline-optimization-patterns)
+    - [11.4 Flow Control and Backpressure](#114-flow-control-and-backpressure)
+    - [11.5 Two-Way Signaling](#115-two-way-signaling)
+    - [11.6 Summary](#116-summary)
+  - [12. Task Scheduler Model](#12-task-scheduler-model)
+    - [12.1 Tick Cycle and Resume Logic](#121-tick-cycle-and-resume-logic)
+    - [12.2 Stack Discipline and Termination](#122-stack-discipline-and-termination)
+    - [12.3 Blocking and Backpressure](#123-blocking-and-backpressure)
+    - [12.4 Task List and Round-Robin Order](#124-task-list-and-round-robin-order)
+    - [12.5 External Events and Interruptions](#125-external-events-and-interruptions)
+    - [12.6 Scheduling Invariants](#126-scheduling-invariants)
+  - [13. Sentinel Propagation and Termination Signaling](#13-sentinel-propagation-and-termination-signaling)
+    - [13.1 Definition and Semantics](#131-definition-and-semantics)
+    - [13.2 Downstream Propagation](#132-downstream-propagation)
+    - [13.3 Upstream Propagation](#133-upstream-propagation)
+    - [13.4 Fork and Join Semantics](#134-fork-and-join-semantics)
+    - [13.5 Cleanup and Termination](#135-cleanup-and-termination)
+    - [13.6 Sentinel Safety](#136-sentinel-safety)
+  - [14. Coroutine Status and Lifecycle Management](#14-coroutine-status-and-lifecycle-management)
+    - [14.1 Status Values](#141-status-values)
+    - [14.2 Status-Driven Cleanup](#142-status-driven-cleanup)
+    - [14.3 Role in Communication](#143-role-in-communication)
+    - [14.4 Optional Extension: Return Codes](#144-optional-extension-return-codes)
+    - [14.5 Scheduler Responsibilities](#145-scheduler-responsibilities)
+  - [Appendix A: Coroutine Pipeline Case Study](#appendix-a-coroutine-pipeline-case-study)
+    - [A.1 Pipeline Description](#a1-pipeline-description)
+    - [A.2 Naive Decomposition](#a2-naive-decomposition)
+    - [A.3 Optimized Decomposition](#a3-optimized-decomposition)
+    - [A.4 Observations](#a4-observations)
+  - [Appendix B: Coroutine Pipeline in Tacit Notation](#appendix-b-coroutine-pipeline-in-tacit-notation)
+    - [B.1 Coroutine A1: Range → Fork → Square](#b1-coroutine-a1-range--fork--square)
+    - [B.2 Coroutine A2: Filter Odd](#b2-coroutine-a2-filter-odd)
+    - [B.3 Coroutine B: Join → Print](#b3-coroutine-b-join--print)
+    - [B.4 Wiring](#b4-wiring)
+  - [Appendix C: Performance Considerations](#appendix-c-performance-considerations)
+    - [C.1 When to Use Coroutines](#c1-when-to-use-coroutines)
+    - [C.2 Optimizing Coroutine Performance](#c2-optimizing-coroutine-performance)
+    - [C.3 Comparison with Traditional Concurrency Models](#c3-comparison-with-traditional-concurrency-models)
+      - [vs. Preemptive Threading (e.g., POSIX threads, Java threads)](#vs-preemptive-threading-eg-posix-threads-java-threads)
+      - [vs. Async/Await (e.g., JavaScript, C#)](#vs-asyncawait-eg-javascript-c)
+      - [vs. Actor Model (e.g., Erlang, Akka)](#vs-actor-model-eg-erlang-akka)
 
 ## 1. Introduction
 
@@ -267,11 +285,107 @@ Forks must not yield between output branches, and joins must not proceed with pa
 
 Tacit discourages buffering between coroutine stages. Pipelines are constructed with the assumption of synchronized data flow. Buffering is introduced only at system boundaries—such as for device input or asynchronous APIs—where alignment with the coroutine schedule is not possible. Within the pipeline, however, communication is immediate, aligned, and non-redundant.
 
+## 7. Coroutine Spawning and Wiring
+
+When a coroutine is spawned, it becomes an autonomous task with its own local execution state, memory region, and communication wiring. This section defines the memory layout and setup process used during coroutine initialization, and establishes conventions for how coroutines send and receive data.
+
+### 7.1 Coroutine as Task
+
+A coroutine is activated not by a conventional function call but by a task spawn instruction. Spawning prepares the coroutine’s execution frame, allocates metadata and working memory, assigns communication buffers, and queues it for scheduling. The spawned coroutine does not begin execution until resumed by the scheduler.
+
+The function used as a coroutine must contain at least one `yield`, and `yield` must be inlined within the coroutine’s own frame to ensure it retains access to its base pointer (`BP`). Helper functions must not issue yield calls directly.
+
+### 7.2 Stack Frame and Metadata Layout
+
+Each coroutine maintains a conventional stack frame, anchored at a base pointer (`BP`). Below `BP` is a fixed-size metadata region used by both the coroutine and the scheduler. Above `BP` are the coroutine’s locals and temporaries.
+
+The layout of memory below `BP` is fixed at spawn time. All slots are known by relative index and must be cleaned up when the coroutine exits. This region includes:
+
+* Coroutine status (running, yielded, complete, error)
+* Resume instruction pointer (`IP`)
+* Coroutine-local data stack pointer (`DP`)
+* Input buffer handle (inbox)
+* Output buffer (outbox, owned by coroutine)
+* Yield flag (set once the first yield occurs)
+* Any scheduler-visible state
+* Optional buffer pointers (e.g., extended outbox, spanner workspace)
+
+This structure is fully known to the compiler and is reserved on the return stack during coroutine spawn.
+
+### 7.3 Data Stack Allocation
+
+Each coroutine maintains its own private data stack. This is allocated at spawn time and is referenced via the `DP` field in the metadata. The stack is used for short-lived computation and should be small, typically eight to sixteen words. It is not shared across coroutines and must be treated as isolated scratch space.
+
+The data stack is stored within the metadata region—typically below the fixed fields but above any extended buffers. Since the stack size is known at allocation time, it can be cleaned up along with the coroutine’s return stack frame. This ensures no coroutine leaves dangling stack data on exit.
+
+### 7.4 Communication Buffers (Inbox/Outbox)
+
+Tacit coroutines communicate via explicit, synchronous message passing. Each coroutine has:
+
+* An **outbox**, which it owns and writes into
+* An **inbox**, which is a reference to the upstream coroutine’s outbox
+
+This wiring model supports rendezvous-style communication: a coroutine emits values into its outbox and suspends until the downstream coroutine consumes them. The inbox handle is supplied during spawn by the caller, and the outbox buffer is allocated at spawn time.
+
+The outbox is typically a small buffer (e.g., eight slots), sufficient to emit simple values or shallow spanners. Larger emissions (like deeply nested spanners) may require dynamic expansion. In such cases, a reference to an auxiliary heap buffer may be stored in the metadata, allowing the outbox to grow as needed.
+
+This design ensures the coroutine owns its output, and upstream callers are responsible for wiring inputs to downstream consumers. Forks and joins operate on the same principle: each forked task gets its own outbox and shares an inbox reference with the joiner.
+
+### 7.5 Spawn-Time Setup
+
+The act of spawning a coroutine consists of:
+
+1. Allocating a return stack frame with room for:
+
+   * Saved return address
+   * Saved caller `BP`
+   * Fixed metadata region
+   * Local data stack
+   * Coroutine local variables
+2. Initializing metadata:
+
+   * Zeroing status and yield flag
+   * Setting `IP = 0` (or function entry)
+   * Assigning allocated buffer for data stack
+   * Allocating outbox and storing pointer
+   * Receiving inbox handle from caller
+3. Returning `BP` to the spawner, so the coroutine’s task slot can be tracked
+
+The `BP` serves as the handle to the coroutine’s task state. The spawner retains this pointer in its task table or round-robin queue, and uses it for later resumption or cleanup.
+
+### 7.6 Termination Process
+
+When a coroutine completes or encounters a sentinel value, it enters the termination phase. During this phase:
+
+1. The coroutine marks its status as `terminated` in its metadata region
+2. It may perform final cleanup operations on its owned resources
+3. It signals to the scheduler that it is ready for deallocation
+
+However, the actual memory deallocation is handled by the scheduler according to the LIFO discipline of the shared return stack, as detailed in Section 9 ("Termination and Cleanup"). This ensures that no coroutine is freed while younger coroutines might still be using parts of its memory.
+
+### 7.7 Notes on Spanners and Extended Buffers
+
+Spanners complicate the assumption of fixed-size communication slots. To mitigate this, the outbox may include:
+
+* A small inline buffer (for common cases)
+* A pointer to an extended buffer (optional, for large payloads)
+
+This allows simple pipelines to stay fast and memory-efficient, while still enabling complex data to be passed without redesigning the communication model. The scheduler may check metadata flags to determine whether extended cleanup is needed.
+
 ## 8. Integration with Local Variables
 
-Each coroutine in Tacit maintains a local variable table, allocated on the return stack upon coroutine spawn. This table is indexed by slot IDs assigned at compile time. It maps to scalars, buffers, and references, and is shared with the code executed within that coroutine as its local scope.
+In addition to the private data stack described in section 7.3 (used for temporary calculations), each coroutine maintains a local variable table for persistent state. This table is distinct from the data stack and is used for named variables that persist across yield points.
 
-Scalar values (e.g. numbers or tagged small objects) are stored directly in the table. Buffers and reference types are allocated just above the variable table on the stack and stored in the table as pointers. These references remain valid as long as the coroutine is alive and are automatically discarded during cleanup.
+### 8.1 Variable Table Structure
+
+The local variable table is allocated in the coroutine's stack frame during spawn and has these characteristics:
+
+* Indexed by slot IDs assigned at compile time
+* Contains both direct values and references
+* Persists across yield points throughout the coroutine's lifetime
+* Is part of the coroutine's identity and encapsulation
+
+Scalar values (e.g., numbers or tagged small objects) are stored directly in the table slots. Buffers and reference types are allocated in the memory region above the variable table and referenced by pointers stored in the table.
 
 Variable initialization is lazy: each variable is only instantiated when the coroutine first reaches the code that requires it. This allows for conditional setup and avoids allocating unused resources. The layout of the table is static, but the actual memory backing complex objects is dynamic and stack-based.
 
@@ -348,48 +462,61 @@ A coroutine that has emitted a sentinel may still run additional cleanup code be
 
 This model can be extended to include result codes, success/failure flags, or shutdown causes. These extensions would be used by the scheduler or outer control logic to coordinate logging, error handling, or recovery behaviors. However, these are implementation details and not exposed at the coroutine interface level.
 
-## 11. Spawning, Wiring, and Coordination
+## 11. Advanced Coordination and Scheduling
 
-Coroutine creation in Tacit is explicit and stack-bound. Coroutines are not called like normal functions; they are *spawned*, meaning they are allocated on the shared return stack and persist until termination. Spawning is performed in stack order: newer coroutines are placed above older ones, ensuring that cleanup and deallocation proceed in a linear, LIFO fashion.
+Building on the spawning and wiring foundations described in Section 7, this section explores higher-level coordination patterns and scheduling considerations for coroutine pipelines.
 
-### 11.1 Allocation and Lifetime
+### 11.1 Pipeline Design and Topology
 
-When a coroutine is spawned, it is assigned:
+Coroutine pipelines can take many forms beyond simple linear chains:
 
-* A local variable table, preallocated with slot entries.
-* A region of stack memory above the variable table for any buffers or state.
-* Input/output pointers or references used for communication.
+* **Linear pipelines**: A → B → C (classic producer/transformer/consumer)
+* **Forked pipelines**: A → B, A → C (one source, multiple destinations)
+* **Join pipelines**: A → C, B → C (multiple sources, one destination)
+* **Diamond patterns**: A → B → D, A → C → D (branching and reconvergence)
+* **Feedback loops**: A → B → C → A (cyclical flows with conditional breaks)
 
-The lifetime of the coroutine extends until it terminates with a sentinel and is the topmost active task on the return stack. Deallocation occurs only when no younger coroutines remain.
+The design of efficient pipelines requires careful consideration of data flow, granularity of tasks, and potential bottlenecks.
 
-### 11.2 Stack Order and Nesting
+### 11.2 Stack Order and Resource Management
 
-All coroutines share the return stack. This means:
+As described in Section 7, coroutines follow strict LIFO ordering on the shared return stack. This has important implications for resource management:
 
-* Spawning is always nested: child routines are placed above parents.
-* Cleanup is ordered: a coroutine cannot be reclaimed until all coroutines above it have terminated.
-* Fragmentation is avoided by enforcing this LIFO order.
+* Long-lived source coroutines should be spawned first (at the bottom of the stack)
+* Short-lived transformation stages should be spawned later (higher in the stack)
+* Sink coroutines that persist for the full computation are typically spawned last
 
-This model favors longevity for base routines and rapid disposal of short-lived child tasks. It exploits the common structural pattern in pipelines, where long-lived sources and sinks enclose transient transformations.
+This strategy minimizes stack fragmentation and ensures resources are reclaimed promptly when no longer needed.
 
-### 11.3 Wiring and Communication Memory
+### 11.3 Pipeline Optimization Patterns
 
-Each coroutine must be connected to others via shared communication memory. This memory consists of:
+Common patterns for optimizing coroutine pipelines include:
 
-* Input slots: typically a single location for receiving values.
-* Output slots: pointers to downstream coroutine input slots.
+* **Balancing work**: Ensure similar computation loads across stages
+* **Right-sizing communication**: Match buffer sizes to expected throughput
+* **Strategic yielding**: Place yields at natural data boundaries rather than fixed intervals
+* **Batching**: Process multiple items before yielding where appropriate
+* **Specialization**: Optimize common paths with dedicated coroutines
 
-Allocation of this memory is the responsibility of the *spawning system*. When a coroutine is created, it is wired to its downstream receiver (or receivers, in the case of a fork). This wiring includes both data linkage (e.g. where to write values) and status signaling (e.g. where to inject a sentinel if needed).
+These patterns can dramatically improve throughput while maintaining the cooperative scheduling model.
 
-These input/output connections are not queues by default. Most pipelines operate in a lock-step, tick-synchronized fashion. Each coroutine emits to its connected receivers and yields immediately. Backpressure is implicit: a coroutine cannot emit again until it has been resumed by the scheduler, and receivers must be ready.
+### 11.4 Flow Control and Backpressure
 
-### 11.4 Two-Way Signaling
+Coroutine communication is bidirectional. Each link between coroutines carries:
+
+* Forward data flow from producer to consumer
+* Implicit backpressure when consumers yield before consuming
+* Sentinel signals for coordinated termination
+
+This bidirectional communication enables end-to-end flow control without requiring separate control channels. When a downstream stage is unable to process data quickly enough, the backpressure naturally propagates upstream, causing producers to pause production until capacity becomes available.
+
+### 11.5 Two-Way Signaling
 
 Though most communication is downstream (data values), upstream signaling can occur via sentinel propagation. This is enabled by the shared communication memory: downstream coroutines may inject sentinels into upstream input slots to trigger shutdown cascades. Thus, wiring is inherently bidirectional in control terms, even if dataflow is unidirectional.
 
-No coroutine needs knowledge of its peer’s internal state. Coordination occurs strictly via shared communication memory and status flags. This enforces decoupling and makes wiring mechanical and safe to generate during coroutine spawning.
+No coroutine needs knowledge of its peer's internal state. Coordination occurs strictly via shared communication memory and status flags. This enforces decoupling and makes wiring mechanical and safe to generate during coroutine spawning.
 
-### 11.5 Summary
+### 11.6 Summary
 
 Coroutine spawning establishes a physical and logical structure: stack-based lifetime, variable-local memory, and direct wiring to peers. The allocation, connection, and cleanup rules are tightly disciplined to avoid heap usage, dynamic dispatch, or runtime lookup of control relationships.
 
