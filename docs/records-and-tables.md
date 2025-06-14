@@ -1,16 +1,27 @@
 # Records and Tables
 
+## Table of Contents
+
+- [1. Introduction](#1-introduction)
+- [2. Record Structure and Semantics](#2-record-structure-and-semantics)
+- [3. Record Views and Field Lookup](#3-record-views-and-field-lookup)
+- [4. Record Construction and Shape](#4-record-construction-and-shape)
+- [5. Tables as Indexed Record Collections](#5-tables-as-indexed-record-collections)
+- [6. Querying Tables](#6-querying-tables)
+- [7. Tables as Mutable Structures](#7-tables-as-mutable-structures)
+- [8. Conclusion](#8-conclusion)
+
 ## 1. Introduction
 
-Records in Tacit are symbolic index functions that map a fixed set of keys—usually interned strings—to slot positions in a parallel value vector. Each record is a view, not a structure: it behaves like a function that translates a field name into an integer index, allowing indexed access to the associated data in a compact, stack-local or buffer-backed array. This makes records highly composable and efficient, without requiring heap allocation or runtime field introspection.
+Records in Tacit are symbolic index functions that map a fixed set of keys—usually interned strings—to slot positions in a parallel value vector. Each record is a view that translates a field name into an integer index, allowing indexed access to the associated data in a compact array stored in any contiguous memory. This makes records highly composable and efficient.
 
-Unlike structs in C or objects in JavaScript, Tacit records are not byte layouts but symbolic maps over uniform-width, slot-based storage. The values themselves—typically tagged values—are stored in a vector-like buffer. Records describe the interpretation of that vector: how each index maps to a named field.
+Tacit records are symbolic maps over uniform-width, slot-based storage. The values themselves—typically tagged values—are stored in a vector-like buffer. Records describe the interpretation of that vector: how each index maps to a named field.
 
 Records can be used on their own or as row schemas for tables. When applied to tables, a single record view is shared across all rows, allowing constant-time field lookup and composable filtering, projection, or joins. A record plus a data vector is effectively a prototype or instance; records without data are just index maps.
 
-Records are first-class views, meaning they can be passed around, applied, and composed. They share the same foundation as array views and shapes, forming part of the same functional hierarchy. This allows Tacit programs to treat data as code: the record is not just metadata—it is an executable index function.
+Records are first-class views that can be passed around, applied, and composed. They share the same foundation as array views and shapes. The record functions as an executable index function.
 
-In this model, records support fast access, symbolic clarity, and schema-level reuse. Optional fields default to null (or a sentinel), but validation, typing, and mutation control are left to the host language or pipeline logic. Tacit avoids runtime overhead by assuming well-formed input and favoring simplicity over complex enforcement.
+Records support fast access, symbolic clarity, and schema-level reuse. Optional fields default to null, while validation and typing are handled separately when needed.
 
 This document outlines how records are defined, how they are applied to value vectors, how they integrate with tables, and how they participate in Tacit's broader view system.
 
@@ -18,25 +29,13 @@ This document outlines how records are defined, how they are applied to value ve
 
 A record in Tacit is a view that maps named fields to specific offsets in a backing value vector. These field names are interned symbols—single-token identifiers—that resolve to fixed integer indices, allowing field lookup to be efficient and index-driven. The values themselves are typically tagged, permitting dynamic typing and structural inspection. Conceptually, a record behaves as a function: it accepts a symbol as input and produces the corresponding value from its slot.
 
-This functional interpretation means a record is not a container in the traditional object-oriented sense, but a keyed projection over a flat vector. The projection is immutable by default and does not carry dynamic dictionaries or shape-shifting metadata. Records must be declared in advance, with all field names and slot positions fixed. This promotes predictable memory layout and compatibility with table representations.
+A record is a keyed projection over a flat vector. The projection is immutable by default and does not carry dynamic dictionaries or shape-shifting metadata. Records must be declared in advance, with all field names and slot positions fixed. This promotes predictable memory layout and compatibility with table representations.
 
-The backing vector for a record may reside in a stack-local buffer, on the heap, or within another structure. Regardless of location, the interpretation of that vector as a record depends entirely on the associated field-to-index mapping. These mappings are provided by the record view—either as a literal or via a symbolic binding—which acts as the schema. The view holds no values itself; it is pure metadata.
-
-Records may share the same view but point to different backing vectors. This allows for reuse of schema definitions and avoids unnecessary duplication. Views are first-class values and can be passed around, applied, and queried. This enables higher-level operations like table joins or schema transforms to be expressed cleanly and without mutation.
-
-Tacit’s records are not hierarchical: they do not nest recursively, and fields must always resolve to direct slots. Nested structures must be represented explicitly using separate buffers and views, not by embedding records within records. This flatness ensures that field access remains a matter of simple index arithmetic and symbol resolution.
-
-**2. Record Structure and Semantics**
-
-A record in Tacit is a view that maps named fields to specific offsets in a backing value vector. These field names are interned symbols—single-token identifiers—that resolve to fixed integer indices, allowing field lookup to be efficient and index-driven. The values themselves are typically tagged, permitting dynamic typing and structural inspection. Conceptually, a record behaves as a function: it accepts a symbol as input and produces the corresponding value from its slot.
-
-This functional interpretation means a record is not a container in the traditional object-oriented sense, but a keyed projection over a flat vector. The projection is immutable by default and does not carry dynamic dictionaries or shape-shifting metadata. Records must be declared in advance, with all field names and slot positions fixed. This promotes predictable memory layout and compatibility with table representations.
-
-The backing vector for a record may reside in a stack-local buffer, on the heap, or within another structure. Regardless of location, the interpretation of that vector as a record depends entirely on the associated field-to-index mapping. These mappings are provided by the record view—either as a literal or via a symbolic binding—which acts as the schema. The view holds no values itself; it is pure metadata.
+The backing vector for a record can reside in any contiguous memory region. Regardless of location, the interpretation of that vector as a record depends entirely on the associated field-to-index mapping. These mappings are provided by the record view—either as a literal or via a symbolic binding—which acts as the schema. The view holds no values itself; it is pure metadata.
 
 Records may share the same view but point to different backing vectors. This allows for reuse of schema definitions and avoids unnecessary duplication. Views are first-class values and can be passed around, applied, and queried. This enables higher-level operations like table joins or schema transforms to be expressed cleanly and without mutation.
 
-Tacit’s records are not hierarchical: they do not nest recursively, and fields must always resolve to direct slots. Nested structures must be represented explicitly using separate buffers and views, not by embedding records within records. This flatness ensures that field access remains a matter of simple index arithmetic and symbol resolution.
+Tacit's records are not hierarchical: they do not nest recursively, and fields must always resolve to direct slots. Nested structures must be represented explicitly using separate buffers and views, not by embedding records within records. This flatness ensures that field access remains a matter of simple index arithmetic and symbol resolution.
 
 ## 3. Record Views and Field Lookup
 
@@ -44,19 +43,19 @@ The view associated with a record defines the mapping from field names to their 
 
 Field lookup is performed by invoking the view with a symbol, which returns the corresponding numeric index. This index is then used to extract the value from the backing vector. Because the mapping is fixed, the view supports constant-time access and does not require a hash table or dynamic search.
 
-Views are themselves a form of function: given a symbol, they return an index. This allows views to be composed or used to generate projection functions. They can also be introspected, allowing one to enumerate field names, indices, or derive derived views over subsets of fields.
+Views are themselves a form of function: given a symbol, they return an index. This allows views to be composed or used to generate projection functions. They can also be introspected, allowing one to enumerate field names, indices, or derive views over subsets of fields.
 
-Internally, views may be implemented with simple linear searches, compact binary tries, or static lookup tables, depending on how they are constructed. However, the interface remains consistent: symbols map to indices, and the view encapsulates this mapping entirely.
+Internally, views may be implemented with simple linear searches, compact binary tries, or static lookup tables. However, the interface remains consistent: symbols map to indices, and the view encapsulates this mapping entirely.
 
-Multiple records may share the same view, enabling polymorphic access across different value vectors with the same field layout. This is foundational to Tacit’s table model, where each row is treated as a record with a shared view. Field access becomes uniform and stateless, and functions operating on records do not need to inspect or modify the view.
+Multiple records may share the same view, enabling polymorphic access across different value vectors with the same field layout. This is foundational to Tacit's table model, where each row is treated as a record with a shared view. Field access becomes uniform and stateless, and functions operating on records do not need to inspect or modify the view.
 
-This design promotes separation between schema (view) and data (vector), allowing views to be cached, re-used, or even computed procedurally. Since views are pure and immutable, they are ideal for indexing and symbolic manipulation in pipelines.
+This design promotes separation between schema (view) and data (vector), allowing views to be cached, re-used, or generated procedurally. Since views are pure and immutable, they are ideal for indexing and symbolic manipulation in pipelines.
 
 ## 4. Record Construction and Shape
 
 Records are constructed by pairing a key-to-index view with a backing vector of values. This view acts as a shape descriptor—it defines both the set of allowed fields and their layout in memory. The backing vector holds the actual data in a fixed sequence of slots, and all access occurs through the view’s mapping function.
 
-A view used as a record shape is not a structure or tag dictionary in the conventional sense. It is a function that accepts a symbol and returns an index, or fails if the field does not exist. Since the view is a first-class function, it can be generated, composed, and embedded into larger constructions. Shape views can be constant, computed, or layered to support features like field remapping or aliasing.
+A view used as a record shape is a function that accepts a symbol and returns an index, or fails if the field does not exist. Since the view is a first-class function, it can be generated, composed, and embedded into larger constructions. Shape views can be constant, computed, or layered to support features like field remapping or aliasing.
 
 Each record value is defined by this shape. The vector may be stack-local or buffer-based, but its slot layout is fixed at construction time. There is no concept of adding fields to an existing record after construction—record shapes are immutable, and modification means constructing a new record with a new shape. This aligns with Tacit’s overall commitment to predictability, functional access, and data locality.
 
@@ -66,7 +65,7 @@ Internally, record values are treated as spans—fixed-size aggregates of tagged
 
 Records may be validated, but only externally. The view does not encode constraints—only layout. Optional fields are supported by allowing null or undefined tags in any slot, and by interpreting absence via the view function's return behavior. Enforcement of constraints or schema invariants is not the role of records themselves, but of any external systems that construct or consume them.
 
-This approach makes records lightweight, composable, and suitable for constrained environments. Like arrays, they are not objects in the object-oriented sense. They are functional descriptors paired with data, and they can be projected, grouped, or accessed symbolically without runtime interpretation or polymorphism.
+This approach makes records lightweight and composable. Records can be projected, grouped, or accessed symbolically.
 
 ## 5. Tables as Indexed Record Collections
 
@@ -84,11 +83,11 @@ Tables are designed to be queryable. Filters and maps can be applied over rows, 
 
 Schema metadata for the table—such as field names, types, or annotations—can be stored in the table’s view or in auxiliary metadata regions of the buffer. This keeps data representation clean and direct, while still enabling symbolic access and validation where needed.
 
-In summary, Tacit tables are flat, indexable sequences of records, designed for symbolic access, structural regularity, and efficient memory use. Their behavior is defined by the shared record shape and the layout of the backing data, without dependence on external runtimes or dynamic features.
+In summary, Tacit tables are flat, indexable sequences of records, designed for symbolic access, structural regularity, and efficient memory use. Their behavior is defined by the shared record shape and the layout of the backing data.
 
 ## 6. Querying Tables
 
-Tables in Tacit are structured collections of rows, each of which may be either a record (symbol-indexed view) or an array (positionally-indexed vector). Querying tables means extracting relevant rows, projecting specific fields, and optionally transforming results. These operations are performed through explicitly composed pipelines that act on the underlying buffer, rather than through implicit language constructs or deferred evaluation mechanisms.
+Tables in Tacit are structured collections of rows, each of which may be either a record (symbol-indexed view) or an array (positionally-indexed vector). Querying tables means extracting relevant rows, projecting specific fields, and optionally transforming results. These operations are performed through explicitly composed pipelines that act on the underlying buffer.
 
 Table queries are expressed as dataflow chains, where each stage operates on one row at a time. The core operations are:
 
@@ -106,7 +105,7 @@ More complex queries may include joins, groupings, or computed aggregates, but t
 
 All queries are eager and sequential by default. There is no lazy evaluation or query planner. However, intermediate steps can be composed into reusable macros or dictionary-defined words. Table traversal follows the same semantics as any sequence pipeline: pull-based, statically compiled, and streamable.
 
-Because views are functions, query stages can be compiled as inlined code that directly references the underlying buffer. There is no need for wrapper objects or reflection. This gives Tacit tables performance characteristics similar to flat arrays, while maintaining the expressiveness of symbolic access.
+Because views are functions, query stages can be compiled as inlined code that directly references the underlying buffer. This provides both performance and the expressiveness of symbolic access.
 
 Query results are not tied to the source table. A projected or filtered output can be emitted into a new buffer, pushed onto the stack, or further processed inline. This decoupling allows queries to act as standalone data transformations.
 
@@ -128,10 +127,10 @@ Tables use metadata headers to track mutable cursors. These include the write po
 
 Tacit records and tables offer a principled, low-overhead way to represent structured data using the same foundations as arrays and buffers. A record is a functional view over a vector, translating symbolic field names into slot indices. A table is a collection of such records, backed by a buffer and shaped by a view that defines row structure.
 
-Unlike traditional object systems, Tacit makes no assumptions about field types, mutability, or dynamic dispatch. Records are just views—functions that map names to indices—and tables are just buffers with row views and optional metadata to support traversal, indexing, or appending.
+Tacit records are simply views—functions that map names to indices—and tables are buffers with row views and optional metadata to support traversal, indexing, or appending.
 
-This design allows Tacit to treat data layout as a matter of view semantics rather than structural inheritance. Tables can hold rows as vectors or as record instances. Records can be queried, composed, and projected like functions. All views, including array views, row views, and record mappings, obey the same rules of offset calculation and shape enforcement.
+This design treats data layout as a matter of view semantics. Tables can hold rows as vectors or as record instances. Records can be queried, composed, and projected like functions. All views, including array views, row views, and record mappings, obey the same rules of offset calculation and shape enforcement.
 
-By keeping records and tables grounded in buffers and views, Tacit enables compact, efficient, and statically analyzable data structures. The language avoids heap allocation, avoids closures, and minimizes runtime dispatch. Instead, data access is defined by view semantics, and composition happens by layering and reuse of these view definitions.
+By grounding records and tables in buffers and views, Tacit enables compact, efficient, and statically analyzable data structures. Data access is defined by view semantics, and composition happens by layering and reuse of these view definitions.
 
-Validation, mutation, and optionality are left as higher-level concerns. If needed, they can be layered on via schema views, tagged values, or externally defined validation functions. But at the core, Tacit’s record and table model is declarative, deterministic, and shape-driven—ideal for systems where performance, predictability, and clarity matter more than dynamic flexibility.
+Validation, mutation, and optionality are left as higher-level concerns. If needed, they can be layered on via schema views, tagged values, or externally defined validation functions. At the core, Tacit's record and table model is declarative, deterministic, and shape-driven.
