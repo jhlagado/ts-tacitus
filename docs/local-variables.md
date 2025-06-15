@@ -39,13 +39,13 @@
 
 ### 1.1 Purpose and Scope
 
-This document outlines the design of local variables in Tacit, emphasizing their stack-based nature, dynamic allocation model, and integration with function execution. Local variables are used to hold transient data such as scalars, references, and buffers—where buffers represent structured, indexable data like arrays or records. The design avoids heap-based storage in favor of structured stack allocation and disciplined lifetimes.
+This document outlines the design of local variables in Tacit, emphasizing their stack-based nature, dynamic allocation model, and integration with function execution. Local variables are used to hold transient data such as scalars, references, and buffers—where buffers represent structured, indexable data like arrays or records. While buffers themselves can exist in any contiguous memory region, this document focuses on how local variables use stack allocation with disciplined lifetimes.
 
 ### 1.2 Local Variable Model
 
-Local variables in Tacit include both scalars and buffers. Buffers are treated as first-class entities and form the foundation for complex data structures. Unlike heap-oriented models, Tacit uses stack-local buffer allocation with arena-style discipline: buffers are initialized into a contiguous region above the function’s variable table, avoiding fragmentation and simplifying cleanup.
+Local variables in Tacit include both scalars and buffers. While buffers in general can exist in any contiguous memory region, when used as local variables, they are allocated on the return stack. Each function allocates a local variable table on the return stack. This table holds tagged values corresponding to variables, including references to any buffers allocated in the region immediately above the table.
 
-Each function allocates a local variable table on the return stack. This table holds tagged values corresponding to variables, including references to any buffers allocated in the region immediately above the table. Scalars are stored directly in the table using tagged values; buffers are represented by pointers with associated shape metadata.
+For local variables, Tacit uses stack-local buffer allocation with arena-style discipline: buffers are initialized into a contiguous region above the function's variable table, avoiding fragmentation and simplifying cleanup. Scalars are stored directly in the table using tagged values; buffers are represented by pointers with associated metadata.
 
 ### 1.3 Design Goals
 
@@ -77,9 +77,9 @@ The variable table is a flat region at the base of the function’s return stack
 
 ### 2.3 Buffers as Local Variables
 
-A buffer is an unboxed memory region coupled with shape metadata, representing an array, record, or structured sequence. When a buffer is declared as a local, it is allocated into the stack above the variable table and its tagged pointer is stored in the assigned slot.
+While buffers in general can exist in any contiguous memory region in Tacit, when declared as local variables, they are specifically allocated on the return stack. When a buffer is declared as a local, it is allocated into the stack above the function's variable table and its tagged pointer is stored in the assigned slot.
 
-Buffers are initialized once per frame and persist until the function exits. They may be indexed, sliced, or mutated in place. The buffer’s shape remains constant across its lifetime, simplifying access patterns and ensuring alignment with the surrounding multitasking environment.
+As local variables, buffers are initialized once per stack frame and persist until the function exits. They may be indexed, sliced, or mutated in place. The buffer's shape remains constant across its lifetime, simplifying access patterns and ensuring alignment with the surrounding multitasking environment.
 
 ### 2.4 Compiler Responsibilities
 
@@ -224,32 +224,30 @@ Tagged values form the core runtime representation for all local data in Tacit. 
 
 ### 7.1 Buffer Structure and Organization
 
-Buffers in Tacit are linear memory regions allocated on the return stack above the variable table. Each buffer is represented by a tagged value in the table that holds a reference to its base address. The buffer structure includes:
+When used as local variables, buffers are linear memory regions allocated on the return stack above the variable table. Each local buffer is represented by a tagged value in the variable table that holds a reference to its base address. The buffer structure includes:
 
-* A header containing shape or capacity metadata
+* A header containing metadata about size or capacity
 * A contiguous memory region for element storage
 * Optional control flags for dynamic behavior (e.g., appendable)
 
-This structure supports efficient allocation, access, and cleanup using stack-local memory. Since buffers are allocated above the variable table, they are automatically reclaimed when the function stack frame is exited.
+This structure supports efficient allocation, access, and cleanup using stack-local memory. Since local variable buffers are allocated above the variable table, they are automatically reclaimed when the function stack frame is exited.
 
 ### 7.2 Buffer Variants
 
-Tacit supports several buffer types to accommodate a range of usage patterns:
+Local variables in Tacit can reference several buffer types to accommodate a range of usage patterns:
 
 * **Fixed-size buffers** are pre-allocated with a known length and cannot grow.
 * **Appendable buffers** track both current size and maximum capacity, supporting efficient incremental writes.
 * **Shaped buffers** store multi-dimensional metadata for array-style access.
 * **Record buffers** maintain structured fields with type and name metadata, suitable for tabular or schema-driven data.
 
-Each buffer variant shares a common memory layout and header format, allowing generic access patterns while enabling specialized behavior when required.
+Each buffer variant shares a common memory layout and header format. When used as local variables, they are allocated on the return stack and follow the same lifetime rules as other local variables.
 
-### 7.3 Buffer Views and Shapes
+### 7.3 Buffer Structure and Access
 
-Tacit separates physical buffer storage from logical structure. Views interpret raw buffer contents as structured data—such as arrays, records, or tables—based on associated shape metadata. This shape data includes dimensions, strides, and field descriptors.
+When used as local variables, buffers provide structured data storage on the stack. A buffer's metadata defines how its contents are organized and accessed. For local variables, this metadata is kept alongside the buffer on the stack.
 
-Views can be composed, sliced, or transformed without modifying the underlying buffer. This enables powerful abstractions such as lenses, array slices, and field projections, all implemented through metadata and index calculation rather than copying.
-
-The combination of flat storage and structured views supports high-performance, low-overhead operations on complex data, and enables functional composition over local structures.
+Local buffer variables support operations like indexing, slicing, or in-place mutation while maintaining their position on the stack. Their memory layout supports high-performance, low-overhead operations on complex data without requiring heap allocation.
 
 ## 8. Multitasking Integration
 

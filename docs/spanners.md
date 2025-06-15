@@ -2,44 +2,52 @@
 
 ## Table of Contents
 
-- [1. Introduction](#1-introduction)
-- [2. Representing Groups on the Stack with Parentheses](#2-representing-groups-on-the-stack-with-parentheses)
-  - [2.1 The Open Parenthesis `(` — Marking the Group Start](#21-the-open-parenthesis---marking-the-group-start)
-  - [2.2 Pushing Values Inside the Group](#22-pushing-values-inside-the-group)
-  - [2.3 The Close Parenthesis `)` — Computing and Pushing the Span Pointer](#23-the-close-parenthesis---computing-and-pushing-the-span-pointer)
-  - [2.4 Example Walkthrough](#24-example-walkthrough)
-  - [2.5 Using Spanners in Functions](#25-using-spanners-in-functions)
-  - [2.6 Code Snippet (Pseudo Tacit VM Steps)](#26-code-snippet-pseudo-tacit-vm-steps)
-  - [2.7 Summary](#27-summary)
-- [3. Working with Spanners: One-Dimensional Vectors on the Stack](#3-working-with-spanners-one-dimensional-vectors-on-the-stack)
-  - [3.1 Representing Spanners on the Stack](#31-representing-spanners-on-the-stack)
-  - [3.2 Basic Spanner Operations](#32-basic-spanner-operations)
-  - [3.3 Broadcasting Arithmetic with Spanners](#33-broadcasting-arithmetic-with-spanners)
-  - [3.4 Scalar Broadcasting](#34-scalar-broadcasting)
-  - [3.5 Generalized Broadcasting](#35-generalized-broadcasting)
-  - [3.6 Combining Spanners: The Zip Operation](#36-combining-spanners-the-zip-operation)
-- [4. Nested Spanners and Multidimensional Arrays](#4-nested-spanners-and-multidimensional-arrays)
-  - [4.1 Defining Nested Spanners](#41-defining-nested-spanners)
-  - [4.2 Multidimensional Array Representation](#42-multidimensional-array-representation)
-  - [4.3 Recursive Descent Traversal](#43-recursive-descent-traversal)
-  - [4.4 Traversal Use Cases](#44-traversal-use-cases)
-  - [4.5 Efficient Traversal and Stack Management](#45-efficient-traversal-and-stack-management)
-- [5. Efficient Representation and Conversion of Spanner Buffers in Tacit](#5-efficient-representation-and-conversion-of-spanner-buffers-in-tacit)
-  - [5.1 Recursive Traversal of Spanner Buffers](#51-recursive-traversal-of-spanner-buffers)
-  - [5.2 Flattening Nested Spanners](#52-flattening-nested-spanners)
-  - [5.3 Building Shape and Stride Metadata](#53-building-shape-and-stride-metadata)
-  - [5.4 Conversion Algorithm Overview](#54-conversion-algorithm-overview)
-  - [5.5 Trade-offs Between Nested and Flat Representations](#55-trade-offs-between-nested-and-flat-representations)
-- [6. Polymorphism of Spanner Buffers and Scalars in Tacit](#6-polymorphism-of-spanner-buffers-and-scalars-in-tacit)
-  - [6.1 Uniform Value Representation](#61-uniform-value-representation)
-  - [6.2 Broadcast Semantics in Operations](#62-broadcast-semantics-in-operations)
-  - [6.3 Storage and Variable Interactions](#63-storage-and-variable-interactions)
-  - [6.4 Runtime Type Identification and Tagging](#64-runtime-type-identification-and-tagging)
-  - [6.5 Advantages of Tacit's Polymorphism Model](#65-advantages-of-tacits-polymorphism-model)
-- [7. Conclusion: The Significance of Spanners in Tacit](#7-conclusion-the-significance-of-spanners-in-tacit)
+- [Spanners](#spanners)
+  - [Table of Contents](#table-of-contents)
+- [Spanners](#spanners-1)
+  - [1. Introduction](#1-introduction)
+    - [1.1 Overview](#11-overview)
+    - [1.2 Spanners as TLV-like Structures](#12-spanners-as-tlv-like-structures)
+  - [2. Representing Groups on the Stack with Parentheses](#2-representing-groups-on-the-stack-with-parentheses)
+    - [2.1 The Open Parenthesis `(` — Marking the Group Start](#21-the-open-parenthesis---marking-the-group-start)
+    - [2.2 Pushing Values Inside the Group](#22-pushing-values-inside-the-group)
+    - [2.3 The Close Parenthesis `)` — Computing and Pushing the Span Pointer](#23-the-close-parenthesis---computing-and-pushing-the-span-pointer)
+    - [2.4 Example Walkthrough](#24-example-walkthrough)
+    - [2.5 Using Spanners in Functions](#25-using-spanners-in-functions)
+    - [2.6 Code Snippet (Pseudo Tacit VM Steps)](#26-code-snippet-pseudo-tacit-vm-steps)
+    - [2.7 Summary](#27-summary)
+  - [3. Working with Spanners: One-Dimensional Vectors in Contiguous Memory](#3-working-with-spanners-one-dimensional-vectors-in-contiguous-memory)
+    - [3.1 Representing Spanners in Memory](#31-representing-spanners-in-memory)
+    - [3.2 Basic Spanner Operations](#32-basic-spanner-operations)
+    - [3.3 Broadcasting Arithmetic with Spanners](#33-broadcasting-arithmetic-with-spanners)
+    - [3.4 Scalar Broadcasting](#34-scalar-broadcasting)
+    - [3.5 Generalized Broadcasting](#35-generalized-broadcasting)
+    - [3.6 Combining Spanners: The Zip Operation](#36-combining-spanners-the-zip-operation)
+  - [4. Nested Spanners and Multidimensional Arrays](#4-nested-spanners-and-multidimensional-arrays)
+    - [4.1 Defining Nested Spanners](#41-defining-nested-spanners)
+    - [4.2 Multidimensional Array Representation](#42-multidimensional-array-representation)
+    - [4.3 Recursive Descent Traversal](#43-recursive-descent-traversal)
+    - [4.4 Traversal Use Cases](#44-traversal-use-cases)
+    - [4.5 Efficient Traversal and Stack Management](#45-efficient-traversal-and-stack-management)
+  - [5. Efficient Representation and Conversion of Spanner Buffers in Tacit](#5-efficient-representation-and-conversion-of-spanner-buffers-in-tacit)
+    - [5.1 Recursive Traversal of Spanner Buffers](#51-recursive-traversal-of-spanner-buffers)
+    - [5.2 Flattening Nested Spanners](#52-flattening-nested-spanners)
+    - [5.3 Building Shape and Stride Metadata](#53-building-shape-and-stride-metadata)
+    - [5.4 Conversion Algorithm Overview](#54-conversion-algorithm-overview)
+    - [5.5 Trade-offs Between Nested and Flat Representations](#55-trade-offs-between-nested-and-flat-representations)
+  - [6. Polymorphism of Spanner Buffers and Scalars in Tacit](#6-polymorphism-of-spanner-buffers-and-scalars-in-tacit)
+    - [6.1 Uniform Value Representation](#61-uniform-value-representation)
+    - [6.2 Broadcast Semantics in Operations](#62-broadcast-semantics-in-operations)
+    - [6.3 Storage and Variable Interactions](#63-storage-and-variable-interactions)
+    - [6.4 Runtime Type Identification and Tagging](#64-runtime-type-identification-and-tagging)
+    - [6.5 Advantages of Tacit's Polymorphism Model](#65-advantages-of-tacits-polymorphism-model)
+  - [7. Conclusion: The Significance of Spanners in Tacit](#7-conclusion-the-significance-of-spanners-in-tacit)
 
 # Spanners
+
 ## 1. Introduction
+
+### 1.1 Overview
 
 Spanners are a core abstraction in Tacit, providing a lightweight mechanism for representing composite data such as arrays, lists, and tables. A Spanner consists of one or more contiguous values marked by a special footer called a *span pointer*.
 
@@ -53,6 +61,11 @@ Tacit treats the stack not as a transient space but as a composable data model. 
 
 The following sections define how Spanners are constructed with grouping operators, how they are traversed and transformed, and how they serve as the basis for polymorphic operations and multidimensional arrays.
 
+### 1.2 Spanners as TLV-like Structures
+
+Though Tacit was not designed with TLV formats in mind, Spanners share a similar compositional strategy. In traditional Type–Length–Value systems (used in binary protocols like BER, DER, and TLV-based messages), a value is framed by a type identifier and a length, usually prepended. This allows parsers to identify what kind of data follows and how far to read.
+
+Spanners invert this model. Instead of a header, Tacit uses a footer—a tagged word at the end of a sequence that encodes its length and type. This allows forward-construction (push values first, then tag them), efficient stack unwinding, and minimal overhead. Unlike typical TLV encodings, Spanners operate at the word level, not byte level, and serve both execution and representation purposes. The model aligns more closely with runtime stack processing than static serialization but benefits from similar framing semantics.
 
 ## 2. Representing Groups on the Stack with Parentheses
 
@@ -184,7 +197,9 @@ The key mechanisms of the grouping system are:
 4. The span pointer serves as a footer marking the extent of the span.
 5. Functions can identify Spanners by recognizing span pointer tags and tracing backward.
 
-This design avoids any special header marking the start of a span. The only addition to the stack is a single span pointer tag at the end, representing the structure. The structure is compact and contiguous in memory, making Spanners highly efficient for both representation and traversal.
+This design avoids any special header marking the start of a span. The only structural marker is a span pointer tag at the end—compact, local, and easily traced. The result is a backward-delimited, stack-native structure that enables efficient traversal and value recovery without external metadata.
+
+Conceptually, this mirrors a type–length–value (TLV) pattern, commonly found in serialization formats like ASN.1 or CBOR. In TLV, a type byte and a length field precede the value. In Tacit, the "type" is embedded in the span tag, the "length" is its payload, and the "value" is the preceding sequence. The crucial difference: Tacit places this tag after the data, supporting dynamic, forward construction and backward introspection without needing a precomputed length or reserved prefix space. It is TLV reinterpreted through a stack lens.
 
 ## 3. Working with Spanners: One-Dimensional Vectors in Contiguous Memory
 
@@ -207,9 +222,11 @@ This expands to:
 SPAN:3
 ```
 
-The `SPAN` tag at the end of the structure denotes a span of three values directly preceding it. The Spanner itself consists of those values and the span pointer. Functions that operate on Spanners treat the span pointer as a reference to the group, without requiring additional metadata or descriptors.
+The SPAN tag at the end denotes that three values immediately precede it, forming a logical group. This tag is not a pointer in the C sense—it is a footer token encoding span length and structure type. Functions use this tag to identify and process the grouped values, without relying on external headers, descriptors, or memory indirection. This enables Spanners to behave as stack-local TLVs: self-describing segments that are positionally located and structurally delimited.
 
 The representation is position-based and entirely local to the contiguous memory region. No pointer dereferencing, allocation, or header/footer scanning is needed. Spanner boundaries are determined through tagged offsets only.
+
+Unlike traditional arrays, which typically enforce homogeneous element types, Spanners can contain heterogeneous data—including numbers, symbols, strings, and even nested Spanners. Their primary role is to group values structurally rather than impose uniform type constraints. This flexibility makes Spanners ideal for representing diverse data structures while maintaining a consistent memory layout.
 
 ### 3.2 Basic Spanner Operations
 
@@ -409,6 +426,8 @@ Both nested Spanners and flat buffers have distinct advantages:
 * Align with C-compatible data interface requirements
 
 Tacit provides both models and allows seamless transition between them. Flattening is explicit but lightweight. Structure can be discarded and later reconstructed from shape/stride vectors if needed. The programmer can choose based on use case—favoring nested Spanners for compositional logic, or flattening when speed and hardware compatibility are paramount.
+
+While Spanners resemble TLV formats in structure, they extend beyond simple framing. Spanners are active computation units—suitable not only for serialization but also for vectorized evaluation, polymorphic traversal, and compositional recombination. Unlike traditional TLV-encoded messages, which are meant for passive decoding, Spanners are designed for live use: passed between functions, restructured, and manipulated directly in-place.
 
 ## 6. Polymorphism of Spanner Buffers and Scalars in Tacit
 
