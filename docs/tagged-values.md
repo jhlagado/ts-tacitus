@@ -1,0 +1,212 @@
+# Tagged Values in Tacit
+
+## Table of Contents
+
+- [1. Introduction](#1-introduction)
+- [2. NaN Boxing Approach](#2-nan-boxing-approach)
+  - [2.1 IEEE 754 Float32 Structure](#21-ieee-754-float32-structure)
+  - [2.2 Tacit's NaN Boxing Implementation](#22-tacits-nan-boxing-implementation)
+  - [2.3 Bit Layout](#23-bit-layout)
+- [3. Core Tag Types](#3-core-tag-types)
+  - [3.1 Number Tag](#31-number-tag)
+  - [3.2 Integer Tag](#32-integer-tag)
+  - [3.3 Code Tag](#33-code-tag)
+  - [3.4 String Tag](#34-string-tag)
+  - [3.5 Special Values](#35-special-values)
+- [4. Buffer and View Tags](#4-buffer-and-view-tags)
+  - [4.1 Buffer Tags](#41-buffer-tags)
+  - [4.2 View Tags](#42-view-tags)
+  - [4.3 Span Pointer Tags](#43-span-pointer-tags)
+- [5. Implementation Details](#5-implementation-details)
+  - [5.1 Encoding Tagged Values](#51-encoding-tagged-values)
+  - [5.2 Decoding Tagged Values](#52-decoding-tagged-values)
+  - [5.3 Tag Checking](#53-tag-checking)
+- [6. Future Extensions](#6-future-extensions)
+
+## 1. Introduction
+
+Tacit uses a uniform value representation based on 32-bit floating-point numbers (Float32) to represent all data types in the language. Rather than using different storage formats for different types, Tacit employs a technique called "NaN boxing" to embed type information directly into the floating-point representation.
+
+NaN boxing leverages the fact that IEEE 754 floating-point format has many bit patterns that represent NaN (Not-a-Number). Since these patterns are not used for normal numerical operations, they can be repurposed to encode other data types, including integers, references, and tagged control values.
+
+This document describes how Tacit implements tagged values through NaN boxing, the layout of the bits, and how different types are represented. It also covers special cases like NIL, span pointers, and the relationship between tagged values and Tacit's buffer system.
+
+## 2. NaN Boxing Approach
+
+### 2.1 IEEE 754 Float32 Structure
+
+The IEEE 754 standard for 32-bit floating-point numbers defines the following bit structure:
+
+```
+ 31 30      23 22                    0
++--+----------+----------------------+
+|S | Exponent |       Mantissa       |
++--+----------+----------------------+
+```
+
+Where:
+- Bit 31: Sign bit (S)
+- Bits 30-23: 8-bit exponent
+- Bits 22-0: 23-bit mantissa (fraction)
+
+A value is considered NaN when:
+1. All exponent bits are set to 1 (0xFF)
+2. At least one mantissa bit is non-zero
+
+IEEE 754 further distinguishes between "quiet NaNs" (which propagate through calculations without raising exceptions) and "signaling NaNs" (which trigger exceptions). The highest bit of the mantissa (bit 22) typically distinguishes these: 1 for quiet NaN, 0 for signaling NaN.
+
+### 2.2 Tacit's NaN Boxing Implementation
+
+Tacit's NaN boxing scheme uses the following structure:
+
+1. **Sign Bit (Bit 31)**: Not used for traditional signed/unsigned distinction but reserved for future use. Currently cleared to 0 for core values.
+2. **Exponent (Bits 30-23)**: Set to all 1s (0xFF) to ensure the number is a NaN.
+3. **NaN Bit (Bit 22)**: Set to 1 to indicate a quiet NaN.
+4. **Tag Bits (Bits 21-16)**: 6 bits represent the type tag, allowing for up to 64 distinct types.
+5. **Value Bits (Bits 15-0)**: 16 bits representing the actual value or payload.
+
+This scheme allows Tacit to:
+- Use standard floating-point numbers when needed
+- Encode small integers directly (-32,768 to 32,767)
+- Reference string constants, code blocks, and other structures
+- Support span pointers, views, and buffer references through the tag system
+
+### 2.3 Bit Layout
+
+The complete bit layout for a NaN-boxed value in Tacit:
+
+```
+ 31 30      23 22 21    16 15        0
++--+----------+--+--------+-----------+
+|S | 11111111 |1 |  Tag   |   Value   |
++--+----------+--+--------+-----------+
+```
+
+Every valid tagged value is a quiet NaN when interpreted as an IEEE 754 float. When Tacit encounters a normal floating-point number (not a NaN), it treats it as a native NUMBER value with no tag.
+
+## 3. Core Tag Types
+
+Tacit defines several core tag types that don't require heap allocation:
+
+### 3.1 Number Tag
+
+- **Tag Value**: 0
+- **Description**: Represents standard floating-point numbers.
+- **Value Interpretation**: For tagged numbers with this type, the value field may contain an index or reference to the actual number stored elsewhere, as the 16-bit value field is too small to hold a full floating-point number.
+- **Special Case**: When a Float32 value is not a NaN, it's automatically interpreted as a NUMBER type without requiring tagging.
+
+### 3.2 Integer Tag
+
+- **Tag Value**: 1
+- **Description**: Represents small integers that fit within 16 bits.
+- **Value Interpretation**: The value field is treated as a signed 16-bit integer, allowing values from -32,768 to 32,767.
+- **Special Case**: The NIL value is defined as an INTEGER tag with a value of 0.
+
+### 3.3 Code Tag
+
+- **Tag Value**: 2
+- **Description**: Represents executable code stored in the code segment.
+- **Value Interpretation**: The value field contains an index or offset into the code segment where the executable code is stored.
+
+### 3.4 String Tag
+
+- **Tag Value**: 3
+- **Description**: Represents string literals stored in the string digest/table.
+- **Value Interpretation**: The value field contains an index or identifier for looking up the string in the string table.
+
+### 3.5 Special Values
+
+Tacit defines special values using the tagging system:
+
+- **NIL**: Represented as an INTEGER tag (1) with value 0, indicating the absence of a value.
+- **Boolean Values**: Can be represented as INTEGER tag with values 0 (false) and 1 (true).
+- **Sentinel Values**: Special markers used for control flow or to indicate boundaries can be encoded using specific tag and value combinations.
+
+## 4. Buffer, View and Spanner Tags
+
+With the transition away from heap tags to a buffer-centric model, Tacit introduces a streamlined set of tags for working with its memory structures:
+
+### 4.1 Buffer Tag
+
+- **BUFFER** (Tag Value: 4): References a buffer - a contiguous memory region with associated metadata.
+
+A buffer is a fundamental memory structure in Tacit that can exist anywhere in memory, not just on the stack. All buffers share the same tag, with their specific behavior determined by metadata stored within the buffer itself rather than through different tag types.
+
+The buffer metadata includes:
+- Size information
+- View reference (defining how to interpret the buffer)
+- Shape information (for dimensionality and access patterns)
+- Additional control metadata for specialized behaviors (stacks, queues, etc.)
+
+This unified approach allows a single buffer type to represent many different structures (arrays, records, tables, stacks, queues) without tag proliferation.
+
+### 4.2 View Tag
+
+- **VIEW** (Tag Value: 5): Represents a function that interprets buffer contents.
+
+Views are composable functions that translate indices or keys to memory offsets, enabling different interpretations of the same underlying buffer data. A view might interpret a buffer as:
+
+- A multi-dimensional array (using shape information)
+- A record (mapping field names to offsets)
+- A table (combining records with array capabilities)
+- A slice (providing a window into a larger buffer)
+- A stack or queue (using control pointers in the metadata)
+
+Views enable zero-copy transformations and compositional data structures, making them a core part of Tacit's memory model.
+
+### 4.3 Spanner Tags
+
+- **SPAN** (Tag Value: 6): General relative offset pointer within contiguous memory.
+- **SPANNER** (Tag Value: 7): Pointer to the root of a spanner structure.
+
+The SPAN tag represents a relative offset that can link elements within a contiguous memory region, while the SPANNER tag identifies the entry point to a spanner structure - a composable sequence of values with a span pointer footer.
+
+These tags enable efficient traversal and manipulation of structured sequences without requiring separate heap allocations or pointer dereferencing.
+
+## 5. Implementation Details
+
+### 5.1 Encoding Tagged Values
+
+Tagged values are encoded using bit manipulation operations:
+
+1. Validate the tag is within the appropriate range
+2. Validate the value fits within the 16-bit range
+3. Combine the sign bit, exponent mask, NaN bit, tag bits, and value bits
+4. Interpret the resulting bit pattern as a Float32
+
+This conversion ensures that all tagged values appear as NaNs when used in floating-point contexts, allowing them to flow through arithmetic operations safely.
+
+### 5.2 Decoding Tagged Values
+
+Tagged values are decoded by:
+
+1. Checking if the value is a regular number (not NaN)
+2. If it's a NaN, extracting the individual components:
+   - Tag bits from positions 16-21
+   - Value bits from positions 0-15
+   - Sign bit from position 31
+3. Interpreting the value based on its tag
+
+### 5.3 Tag Checking
+
+Tacit provides efficient functions for checking the tag of a value:
+
+- Testing if a value has a specific tag
+- Extracting just the tag portion
+- Extracting just the value portion
+- Testing for special values like NIL
+
+These operations are designed to be fast and inlinable, minimizing the overhead of the tagging system during execution.
+
+## 6. Future Extensions
+
+The Tacit tagging system has room for expansion:
+
+1. **Additional Tag Bits**: Only 6 of the 23 mantissa bits are currently used for tags, allowing for future extension of the tag space.
+2. **Sign Bit Usage**: The sign bit could be repurposed for additional type information or to distinguish different categories of tags.
+3. **Extended Value Range**: For specific tag types, the value field could be extended beyond 16 bits by using some of the unused mantissa bits.
+4. **Direct Encoding**: Some small floating-point values could be encoded directly in the mantissa rather than by reference.
+
+These extensions would maintain compatibility with the IEEE 754 NaN boxing approach while providing more flexibility for representing different data types.
+
+The tagging system is a core part of Tacit's design, enabling a unified value representation that supports both primitive types and complex data structures while maintaining efficiency and minimizing memory overhead.
