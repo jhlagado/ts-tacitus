@@ -9,8 +9,8 @@
   - [2. Motivation and Philosophy](#2-motivation-and-philosophy)
   - [3. Coroutine Lifecycle](#3-coroutine-lifecycle)
     - [3.1 Creation](#31-creation)
-    - [3.2 Execution](#32-execution)
-    - [3.3 Yielding and Atomicity](#33-yielding-and-atomicity)
+    - [**3.2 Execution**](#32-execution)
+    - [**3.3 Yielding and Atomicity**](#33-yielding-and-atomicity)
     - [3.4 Termination and Deferred Cleanup](#34-termination-and-deferred-cleanup)
   - [4. Stack Discipline and Memory Model](#4-stack-discipline-and-memory-model)
     - [4.1 Shared Return Stack](#41-shared-return-stack)
@@ -22,6 +22,7 @@
     - [5.2 Atomic Output Groups](#52-atomic-output-groups)
     - [5.3 Joins and Composite Inputs](#53-joins-and-composite-inputs)
   - [6. Task Scheduler](#6-task-scheduler)
+  - [7. Communication Primitives (Restored and Clarified)](#7-communication-primitives-restored-and-clarified)
   - [7. Coroutine Spawning and Wiring](#7-coroutine-spawning-and-wiring)
     - [7.1 Coroutine as Task](#71-coroutine-as-task)
     - [7.2 Stack Frame and Metadata Layout](#72-stack-frame-and-metadata-layout)
@@ -29,7 +30,7 @@
     - [7.4 Communication Buffers (Inbox/Outbox)](#74-communication-buffers-inboxoutbox)
     - [7.5 Spawn-Time Setup](#75-spawn-time-setup)
     - [7.6 Termination Process](#76-termination-process)
-    - [7.7 Notes on Spanners and Extended Buffers](#77-notes-on-spanners-and-extended-buffers)
+    - [7.7 Notes on Tuples and Extended Buffers](#77-notes-on-tuples-and-extended-buffers)
   - [8. Integration with Local Variables](#8-integration-with-local-variables)
     - [8.1 Variable Table Structure](#81-variable-table-structure)
   - [9. Termination and Cleanup](#9-termination-and-cleanup)
@@ -308,7 +309,7 @@ The layout of memory below `BP` is fixed at spawn time. All slots are known by r
 * Output buffer (outbox, owned by coroutine)
 * Yield flag (set once the first yield occurs)
 * Any scheduler-visible state
-* Optional buffer pointers (e.g., extended outbox, spanner workspace)
+* Optional buffer pointers (e.g., extended outbox, tuple workspace)
 
 This structure is fully known to the compiler and is reserved on the return stack during coroutine spawn.
 
@@ -327,7 +328,7 @@ Tacit coroutines communicate via explicit, synchronous message passing. Each cor
 
 This wiring model supports rendezvous-style communication: a coroutine emits values into its outbox and suspends until the downstream coroutine consumes them. The inbox handle is supplied during spawn by the caller, and the outbox buffer is allocated at spawn time.
 
-The outbox is typically a small buffer (e.g., eight slots), sufficient to emit simple values or shallow spanners. Larger emissions (like deeply nested spanners) may require dynamic expansion. In such cases, a reference to an auxiliary heap buffer may be stored in the metadata, allowing the outbox to grow as needed.
+The outbox is typically a small buffer (e.g., eight slots), sufficient to emit simple values or shallow tuples. Larger emissions (like deeply nested tuples) may require dynamic expansion. In such cases, a reference to an auxiliary heap buffer may be stored in the metadata, allowing the outbox to grow as needed.
 
 This design ensures the coroutine owns its output, and upstream callers are responsible for wiring inputs to downstream consumers. Forks and joins operate on the same principle: each forked task gets its own outbox and shares an inbox reference with the joiner.
 
@@ -363,9 +364,9 @@ When a coroutine completes or encounters a sentinel value, it enters the termina
 
 However, the actual memory deallocation is handled by the scheduler according to the LIFO discipline of the shared return stack, as detailed in Section 9 ("Termination and Cleanup"). This ensures that no coroutine is freed while younger coroutines might still be using parts of its memory.
 
-### 7.7 Notes on Spanners and Extended Buffers
+### 7.7 Notes on Tuples and Extended Buffers
 
-Spanners complicate the assumption of fixed-size communication slots. To mitigate this, the outbox may include:
+Tuples complicate the assumption of fixed-size communication slots. To mitigate this, the outbox may include:
 
 * A small inline buffer (for common cases)
 * A pointer to an extended buffer (optional, for large payloads)

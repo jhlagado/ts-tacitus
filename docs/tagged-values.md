@@ -122,7 +122,7 @@ Tacit defines special values using the tagging system:
 - **Boolean Values**: Can be represented as INTEGER tag with values 0 (false) and 1 (true).
 - **Sentinel Values**: Special markers used for control flow or to indicate boundaries can be encoded using specific tag and value combinations.
 
-## 4. Buffer, View and Spanner Tags
+## 4. Buffer, View and Tuple Tags
 
 With the transition away from heap tags to a buffer-centric model, Tacit introduces a streamlined set of tags for working with its memory structures:
 
@@ -154,12 +154,12 @@ Views are composable functions that translate indices or keys to memory offsets,
 
 Views enable zero-copy transformations and compositional data structures, making them a core part of Tacit's memory model.
 
-### 4.3 Spanner Tags
+### 4.3 Tuple Tags
 
 - **SPAN** (Tag Value: 6): General relative offset pointer within contiguous memory.
-- **SPANNER** (Tag Value: 7): Pointer to the root of a spanner structure.
+- **TUPLE** (Tag Value: 7): Pointer to the root of a tuple structure.
 
-The SPAN tag represents a relative offset that can link elements within a contiguous memory region, while the SPANNER tag identifies the entry point to a spanner structure - a composable sequence of values with a span pointer footer.
+The SPAN tag represents a relative offset that can link elements within a contiguous memory region, while the TUPLE tag identifies the entry point to a tuple structure - a composable sequence of values with a span pointer footer.
 
 These tags enable efficient traversal and manipulation of structured sequences without requiring separate heap allocations or pointer dereferencing.
 
