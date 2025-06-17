@@ -770,12 +770,9 @@ coroutine range-fork-square
 Helper procedures:
 
 ```tacit
-word emit-square
-  dup dup * → $sq
-  $sq out-square !
+word emit-square  dup dup * → $sq  $sq out-square !
 
-word emit-filter
-  out-filter !
+word emit-filter  out-filter !
 ```
 
 * `out-square` and `out-filter` are output slots wired to downstream coroutines.
@@ -817,8 +814,7 @@ coroutine join-print
 Helper:
 
 ```tacit
-word print-pair
-  "[" . $a . ", " . $b . "]" .
+word print-pair  "[" . $a . ", " . $b . "]" .
 ```
 
 * `in-join-left` and `in-join-right` are the two inputs to the join.
