@@ -55,15 +55,15 @@ Tacit encourages a style where short, readable transformations are chained in a 
 Here’s a basic example using inline blocks:
 
 ```
-: process  1 10 range filter { 2 mod 0 = } map { dup * } collect ;
+: process  1 10 range filter { 2 mod 0 = } map { dup * } to-tuple ;
 ```
 
-This line builds a pipeline: generate numbers from 1 to 9, keep the even ones, square them, and collect the result. There's no nesting or branching—each transformation appears on a single line and follows the previous one cleanly.
+This line builds a pipeline: generate numbers from 1 to 9, keep the even ones, square them, and to-tuple the result. There's no nesting or branching—each transformation appears on a single line and follows the previous one cleanly.
 
 If you need to refer to locals inside a block, they’re available without extra syntax:
 
 ```
-: process  5 -> base  1 5 range map { base + dup * } collect ;
+: process  5 -> base  1 5 range map { base + dup * } to-tuple ;
 ```
 
 Each step reads left-to-right. The logic stays shallow, code blocks are short, and every line can be scanned at a glance. This is essential in Tacit: without named parameters or nesting, short linear forms are not just preferred—they're necessary for clarity. Longer logic should be factored into separate words.
@@ -83,7 +83,7 @@ This defines `pi` as a local constant. Locals are always single-assignment and s
 Used with inline blocks, this lets you build up logic gradually:
 
 ```
-: adjust  100 -> scale  1 5 range map { dup scale * } collect ;
+: adjust  100 -> scale  1 5 range map { dup scale * } to-tuple ;
 ```
 
 There’s no global state, no stack juggling, and no need for comments. The data flows clearly: left to right, word by word, with just enough local structure to keep it maintainable.
@@ -97,7 +97,7 @@ Tacit code grows best when small parts are given names. Instead of nesting block
 Suppose you had a sequence like this:
 
 ```
-: transform  1 10 range filter { even? } map { dup * } collect ;
+: transform  1 10 range filter { even? } map { dup * } to-tuple ;
 ```
 
 You can break this into named steps:
@@ -107,7 +107,7 @@ You can break this into named steps:
 : evens    filter { even? } ;
 : squares  map { square } ;
 
-: transform  1 10 range evens squares collect ;
+: transform  1 10 range evens squares to-tuple ;
 ```
 
 Each word does one thing. They're short, meaningful, and stack neatly. This is what point-free, bottom-up programming looks like in Tacit: small tools composed into larger ones.
@@ -118,7 +118,7 @@ Next, we'll show how to combine pipelines with higher-order control and branchin
 
 ## 7. Pipelines and Higher-Order Control
 
-Tacit code often involves chaining steps together, especially when working with sequences or processing pipelines. These are built by composing words like `filter`, `map`, `group`, `join`, and `collect`. Each of these expects a block of code to the right—this block runs for each item and typically uses local variables.
+Tacit code often involves chaining steps together, especially when working with sequences or processing pipelines. These are built by composing words like `filter`, `map`, `group`, `join`, and `to-tuple`. Each of these expects a block of code to the right—this block runs for each item and typically uses local variables.
 
 Here's a simple example:
 
@@ -126,17 +126,17 @@ Here's a simple example:
 : is-odd      2 mod 0 != ;
 : double      2 * ;
 
-: process     1 20 range filter { is-odd } map { double } collect ;
+: process     1 20 range filter { is-odd } map { double } to-tuple ;
 ```
 
-The pipeline reads left to right. The data—here, numbers one to twenty—flows through filtering, mapping, and then into `collect`, which gathers the result into a vector.
+The pipeline reads left to right. The data—here, numbers one to twenty—flows through filtering, mapping, and then into `to-tuple`, which gathers the result into a tuple.
 
 Each stage is tightly scoped. Code blocks are *not* closures—they're just inline code run in the current scope. This makes everything easier to analyze, test, and reason about. There's no capture of environment, no heap allocation, and no new scope—just ordinary code with locals.
 
 You can also write inline blocks directly:
 
 ```
-: process     1 20 range filter { 2 mod 0 != } map { 2 * } collect ;
+: process     1 20 range filter { 2 mod 0 != } map { 2 * } to-tuple ;
 ```
 
 This reads clearly and compactly. Tacit encourages this style when the code inside the block is short and self-contained. For anything longer or reused, name it.
