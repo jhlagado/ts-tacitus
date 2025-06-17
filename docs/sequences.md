@@ -538,7 +538,7 @@ All sinks terminate the sequence pipeline. After a sink, no further Tacit stages
 The choice of sink clearly communicates the intended use of the data produced by the pipeline:
 
 * For-each side effects (`for-each`): print, log, or draw each element
-* Array realizers (`to-array`): collect as an array/vector/list
+* Array realizers (`to-array`): store as an array/vector/list
 * Tuple realizers (`to-tuple`): realize as a fixed-size tuple
 * String realizers (`to-string`): convert char sequences into a string
 * Terminal sinks (`last`, `fold`): extract the single most important value

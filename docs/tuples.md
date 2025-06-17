@@ -158,23 +158,11 @@ Functions treat Tuples as variadic argument bundles. No array or pointer represe
 
 ```
 // For the expression (1 2 3)
-
-onOpenParen():
-  pushMarker(GROUPSTART)  // Internal marker, not visible on data stack
-  
-onValue(1):
-  push(1)
-  
-onValue(2):
-  push(2)
-  
-onValue(3):
-  push(3)
-  
-onCloseParen():
-  itemCount = countSinceMarker(GROUPSTART)
-  popMarker(GROUPSTART)
-  push(makeSpanPointer(itemCount))  // Span pointer tag with count=3
+onOpenParen():  pushMarker(GROUPSTART)  // Internal marker, not visible on data stack
+onValue(1):  push(1)
+onValue(2):  push(2)
+onValue(3):  push(3)
+onCloseParen():  itemCount = countSinceMarker(GROUPSTART)  popMarker(GROUPSTART)  push(makeSpanPointer(itemCount))
 ```
 
 This style of group parsing is deterministic, with all boundaries derived from span pointer tags. No heap or object structure is introduced; everything resides on the native data stack.
