@@ -31,6 +31,8 @@ A sequence in Tacit consists of three main components:
   - [1. Introduction](#1-introduction)
     - [1.1 Why Sequences?](#11-why-sequences)
     - [1.2 Core Sequence Concepts](#12-core-sequence-concepts)
+  - [Table of Contents](#table-of-contents)
+  - [1. Introduction](#1-introduction-1)
   - [2. Sources](#2-sources)
     - [2.1 Basic Sources](#21-basic-sources)
       - [2.1.1 `range`](#211-range)
@@ -42,6 +44,7 @@ A sequence in Tacit consists of three main components:
       - [2.3.1 Implicit Source Inference](#231-implicit-source-inference)
     - [2.4 Fallback Sources (Providing Alternatives on Failure)](#24-fallback-sources-providing-alternatives-on-failure)
     - [2.5 Paginated Sources (Buffered Blockwise Input)](#25-paginated-sources-buffered-blockwise-input)
+      - [2.4.2 Block Behavior](#242-block-behavior)
       - [2.5.1 Pagination Patterns](#251-pagination-patterns)
   - [3. Sentinels and Control Flow](#3-sentinels-and-control-flow)
     - [3.1 Sentinel Representation](#31-sentinel-representation)
@@ -78,13 +81,6 @@ A sequence in Tacit consists of three main components:
     - [5.3 Terminal-Value Sinks](#53-terminal-value-sinks)
       - [5.3.1 `last`](#531-last)
     - [5.4 Summary of Sink Behavior](#54-summary-of-sink-behavior)
-  - [6. Advanced Techniques](#6-advanced-techniques)
-    - [6.1 Stateful Mapping and Scanning](#61-stateful-mapping-and-scanning)
-    - [6.2 Sequences as Functions (Nested Sequences)](#62-sequences-as-functions-nested-sequences)
-      - [6.2.1 Example: Factorial Sequence](#621-example-factorial-sequence)
-      - [6.2.2 Fallback to Default Value](#622-fallback-to-default-value)
-      - [6.2.3 Retry and Fallback Idioms](#623-retry-and-fallback-idioms)
-    - [6.3 Polymorphism and Implicit Sources](#63-polymorphism-and-implicit-sources)
   - [7. Lifecycle and Resource Management](#7-lifecycle-and-resource-management)
     - [7.0 Integrating Sequences with Other Tacit Features](#70-integrating-sequences-with-other-tacit-features)
       - [7.0.1 Sequences and Memory Management](#701-sequences-and-memory-management)
@@ -93,6 +89,32 @@ A sequence in Tacit consists of three main components:
     - [7.2 Restartable vs. Non-Restartable Sources](#72-restartable-vs-non-restartable-sources)
     - [7.3 Resource Ownership](#73-resource-ownership)
     - [7.4 Best Practices](#74-best-practices)
+  - [6. Advanced Techniques](#6-advanced-techniques)
+    - [6.1 Error Handling and Recovery Patterns](#61-error-handling-and-recovery-patterns)
+      - [6.1.1 Retry Loops](#611-retry-loops)
+      - [6.1.2 Fallback Sequences](#612-fallback-sequences)
+    - [6.3 Polymorphism and Implicit Source Inference](#63-polymorphism-and-implicit-source-inference)
+    - [6.2 Sequences as Functions (Nested Sequences)](#62-sequences-as-functions-nested-sequences)
+      - [6.2.1 Example: Factorial Sequence](#621-example-factorial-sequence)
+    - [5.2 Realization Sinks](#52-realization-sinks-1)
+      - [5.2.1 `to-array`](#521-to-array-1)
+      - [5.2.2 `to-tuple`](#522-to-tuple-1)
+      - [5.2.3 `to-string`](#523-to-string-1)
+    - [5.3 Terminal-Value Sinks](#53-terminal-value-sinks-1)
+      - [5.3.1 `last`](#531-last-1)
+  - [6. Advanced Techniques](#6-advanced-techniques-1)
+    - [6.1 Stateful Mapping and Scanning](#61-stateful-mapping-and-scanning)
+      - [6.1.1 Simple Accumulation](#611-simple-accumulation)
+      - [6.1.2 Sliding Window](#612-sliding-window)
+    - [6.2 Error Handling and Recovery Patterns](#62-error-handling-and-recovery-patterns)
+      - [6.2.1 Retry with Exponential Backoff](#621-retry-with-exponential-backoff)
+      - [6.2.2 Fallback to Default Value](#622-fallback-to-default-value)
+      - [6.2.3 Retry and Fallback Idioms](#623-retry-and-fallback-idioms)
+    - [6.3 Polymorphism and Implicit Sources](#63-polymorphism-and-implicit-sources)
+  - [7. Lifecycle and Resource Management](#7-lifecycle-and-resource-management-1)
+    - [7.2 Restartable vs. Non-Restartable Sources](#72-restartable-vs-non-restartable-sources-1)
+    - [7.3 Resource Ownership](#73-resource-ownership-1)
+    - [7.4 Best Practices](#74-best-practices-1)
     - [7.5 Summary](#75-summary)
   - [8. Thinking in Sequences: A Translation Guide](#8-thinking-in-sequences-a-translation-guide)
     - [8.1 Loop to Sequence Translation](#81-loop-to-sequence-translation)
@@ -360,9 +382,7 @@ Scan-like behavior is implemented by keeping an accumulator on the stack. The ma
 ##### Example: Cumulative Sum
 
 ```
-0             \ initial accumulator
-(1 2 3 4) from-tuple
-map { -> acc x acc x + dup -> acc }
+0 (1 2 3 4) from-tuple map { -> x x + x }
 ```
 
 This sequence emits: `1 3 6 10`.
@@ -380,7 +400,7 @@ filter { ...predicate-block... }
 Example:
 
 ```
-1 10 range filter { -> x x 2 mod 0 = }
+(1 10) range filter { -> x x 2 mod 0 = }
 ```
 
 This sequence emits: `2 4 6 8`.
@@ -462,7 +482,7 @@ This applies the same function to each element in the sequence independently.
 Arrays can be used as lookup tables within mapping functions:
 
 ```
-[10 20 30 40 50] -> values values 0 5 range map { -> i get }
+[10 20 30 40 50] -> values values (0 5) range map { -> i get }
 ```
 
 This emits `10 20 30 40 50`.
@@ -472,7 +492,7 @@ This emits `10 20 30 40 50`.
 Mapping can also maintain state between iterations using techniques like scan:
 
 ```
-1 5 range 0 map { -> acc x acc x + dup -> acc }
+0 (1 5) range map { -> x x + x }
 ```
 
 This sequence yields `1 3 6 10`, representing the running sum at each point.
@@ -483,13 +503,19 @@ Sequences shine when building complex logic through simple composition. Tacit en
 
 1. **Start with a data source**:
    ```
-   1 100 range
+   (1 100) range
    ```
 
 2. **Add filters and transformations**:
-   ```
-   1 100 range filter { divisible-by-3-or-5? } map { square } fold { sum }
-   ```
+```
+: divisible-by-3? { 3 mod 0 = }
+: divisible-by-5? { 5 mod 0 = }
+: divisible-by-3-or-5? { -> n n divisible-by-3? n divisible-by-5? or }
+: square { -> n n n * }
+: sum { + }
+
+(1 100) range filter { divisible-by-3-or-5? } map { square } fold { sum }
+```
 
 This incremental composition approach replaces nested control structures with flat, linear data flow - each operation building on the previous one in a clean pipeline.
 
@@ -510,7 +536,7 @@ sequence for-each { -> x ... }
 Example:
 
 ```
-5 range for-each { -> x print }
+5 range for-each { print }
 ```
 
 This prints each number from `1` to `4`.
@@ -530,7 +556,7 @@ sequence to-array
 Example:
 
 ```
-1 4 range to-array
+(1 4) range to-array
 ```
 
 This produces: `[1 2 3]`.
@@ -546,7 +572,7 @@ sequence to-tuple
 Example:
 
 ```
-1 4 range to-tuple
+(1 4) range to-tuple
 ```
 
 This produces: `(1 2 3)`.
@@ -580,7 +606,7 @@ sequence last
 Example:
 
 ```
-1 5 range map { -> x x x * } last
+(1 5) range map { -> x x x * } last
 ```
 
 This produces: `16`.
@@ -713,7 +739,7 @@ Nested sequences can appear within a map block as a function. Such nested sequen
 #### 6.2.1 Example: Factorial Sequence
 
 ```
-: fact { -> n 1 n range 1 swap map { -> acc x acc x * } last }
+: fact { -> n (1 n) range 1 swap map { -> acc x acc x * } last }
 
 5 range map { fact }
 ```
@@ -769,9 +795,7 @@ One of the most powerful features of Tacit sequences is the ability to perform s
 #### 6.1.1 Simple Accumulation
 
 ```
-0                     \ Initial accumulator
-(1 2 3 4) from-tuple
-map { -> acc x acc x + dup -> acc }
+0 (1 2 3 4) from-tuple map { -> x x + x }
 ```
 
 This produces a running sum: `1 3 6 10`
@@ -781,11 +805,9 @@ This produces a running sum: `1 3 6 10`
 ```
 nil nil              \ Initial window (previous, current)
 (1 2 3 4 5) from-tuple
-map { -> prev curr x  \ Stack has: prev curr x
-       curr x         \ Shift window: prev=curr, curr=x
-       prev curr +    \ Compute sum of window
-       curr x         \ Leave new window on stack
-    }
+map { -> p c x       \ Window state (p=prev, c=curr) and new value
+     c p + x c      \ Compute sum and update window (new prev=c, new curr=x)
+   }
 ```
 
 This produces sums of adjacent pairs: `3 5 7 9`
@@ -899,8 +921,8 @@ Moving from imperative programming to Tacit's sequence-based approach requires s
 
 | Imperative Loop Pattern | Tacit Sequence Pattern |
 |-----------------|----------------|
-| Simple iteration with side effects | `1 10 range map { dup * } for-each { print }` |
-| Filtered accumulation | `1 100 range filter { 2 mod 0 = } fold { -> acc x acc x + }` |
+| Simple iteration with side effects | `(1 10) range map { dup * } for-each { print }` |
+| Filtered accumulation | `0 (1 100) range filter { 2 mod 0 = } map { -> x x + x }` |
 
 ### 8.2 Conditional Branching to Sequence Operations
 
