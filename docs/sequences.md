@@ -1,11 +1,36 @@
 # Sequences in Tacit
 
-Tacit uses sequences as the primary model of iteration. Instead of traditional for or do loops, programs compose sequences from source, transformer, and sink stages. These stages form declarative pipelines which are later compiled into efficient imperative code. This document defines the canonical forms of simple sequences, excluding branching, joining, or coroutine mechanisms.
+Tacit uses sequences as the primary model of iteration and control flow. Instead of traditional for/while loops, if/else branches, or try/catch blocks, programs compose sequences from source, transformer, and sink stages. These stages form declarative pipelines which are later compiled into efficient imperative code. This document defines the canonical forms of sequences and how they replace traditional control constructs.
+
+## 1. Introduction
+
+### 1.1 Why Sequences?
+
+In traditional programming languages, control flow is managed through imperative constructs like loops (`for`, `while`), conditionals (`if-else`, `switch`), and exception handling (`try-catch`). Tacit takes a different approach by elevating sequences to the primary abstraction for control flow.
+
+Instead of telling the computer *how* to iterate through data step-by-step, sequences express *what* transformations should occur. This declarative model eliminates the need for explicit looping constructs and state management:
+
+| Traditional Construct | Tacit Sequence Equivalent |
+|---------------------|-------------------------|
+| Loops | `range`, `from-tuple`, etc. with transformers |
+| Conditionals | `filter`, `split`, `if-else` |
+| Exception handling | `retry`, `fallback` |
+
+This paradigm shift offers several benefits:
+- **Composability**: Sequence operations connect naturally in pipelines
+- **Cleaner data flow**: Data moves predictably without shared mutable state
+- **Pattern consistency**: Common operations follow the same shape across the language
+- **Resource safety**: Sequence lifecycle ensures proper resource management
+
+### 1.2 Core Sequence Concepts
+
+A sequence in Tacit consists of three main components:
 
 ## Table of Contents
 - [Sequences in Tacit](#sequences-in-tacit)
-  - [Table of Contents](#table-of-contents)
   - [1. Introduction](#1-introduction)
+    - [1.1 Why Sequences?](#11-why-sequences)
+    - [1.2 Core Sequence Concepts](#12-core-sequence-concepts)
   - [2. Sources](#2-sources)
     - [2.1 Basic Sources](#21-basic-sources)
       - [2.1.1 `range`](#211-range)
@@ -17,7 +42,7 @@ Tacit uses sequences as the primary model of iteration. Instead of traditional f
       - [2.3.1 Implicit Source Inference](#231-implicit-source-inference)
     - [2.4 Fallback Sources (Providing Alternatives on Failure)](#24-fallback-sources-providing-alternatives-on-failure)
     - [2.5 Paginated Sources (Buffered Blockwise Input)](#25-paginated-sources-buffered-blockwise-input)
-      - [2.4.2 Block Behavior](#242-block-behavior)
+      - [2.5.1 Pagination Patterns](#251-pagination-patterns)
   - [3. Sentinels and Control Flow](#3-sentinels-and-control-flow)
     - [3.1 Sentinel Representation](#31-sentinel-representation)
       - [3.1.1 Literal Syntax for Sentinels](#311-literal-syntax-for-sentinels)
@@ -25,7 +50,7 @@ Tacit uses sequences as the primary model of iteration. Instead of traditional f
       - [3.2.1 Retry Strategies](#321-retry-strategies)
     - [3.3 Fallback Sources](#33-fallback-sources)
     - [3.4 Sentinel Handling and Pattern Matching](#34-sentinel-handling-and-pattern-matching)
-    - [3.2 Nil as Degenerate Tuple](#32-nil-as-degenerate-tuple)
+    - [3.5 Nil as Degenerate Tuple](#35-nil-as-degenerate-tuple)
   - [4. Transformers](#4-transformers)
     - [4.1 Linear Transformers (Map)](#41-linear-transformers-map)
       - [4.1.1 Basic Example: Squaring Numbers](#411-basic-example-squaring-numbers)
@@ -42,6 +67,7 @@ Tacit uses sequences as the primary model of iteration. Instead of traditional f
       - [4.4.1 Scalar Transformations](#441-scalar-transformations)
       - [4.4.2 Using Arrays as Functions](#442-using-arrays-as-functions)
       - [4.4.3 Stateful Mapping (Scan)](#443-stateful-mapping-scan)
+    - [4.5 Building Complex Behaviors Step-by-Step](#45-building-complex-behaviors-step-by-step)
   - [5. Sinks](#5-sinks)
     - [5.1 Side-Effect Sinks](#51-side-effect-sinks)
       - [5.1.1 `for-each`](#511-for-each)
@@ -52,36 +78,27 @@ Tacit uses sequences as the primary model of iteration. Instead of traditional f
     - [5.3 Terminal-Value Sinks](#53-terminal-value-sinks)
       - [5.3.1 `last`](#531-last)
     - [5.4 Summary of Sink Behavior](#54-summary-of-sink-behavior)
+  - [6. Advanced Techniques](#6-advanced-techniques)
+    - [6.1 Stateful Mapping and Scanning](#61-stateful-mapping-and-scanning)
+    - [6.2 Sequences as Functions (Nested Sequences)](#62-sequences-as-functions-nested-sequences)
+      - [6.2.1 Example: Factorial Sequence](#621-example-factorial-sequence)
+      - [6.2.2 Fallback to Default Value](#622-fallback-to-default-value)
+      - [6.2.3 Retry and Fallback Idioms](#623-retry-and-fallback-idioms)
+    - [6.3 Polymorphism and Implicit Sources](#63-polymorphism-and-implicit-sources)
   - [7. Lifecycle and Resource Management](#7-lifecycle-and-resource-management)
+    - [7.0 Integrating Sequences with Other Tacit Features](#70-integrating-sequences-with-other-tacit-features)
+      - [7.0.1 Sequences and Memory Management](#701-sequences-and-memory-management)
+      - [7.0.2 Sequences and Coroutines](#702-sequences-and-coroutines)
     - [7.1 Source Lifecycle](#71-source-lifecycle)
     - [7.2 Restartable vs. Non-Restartable Sources](#72-restartable-vs-non-restartable-sources)
     - [7.3 Resource Ownership](#73-resource-ownership)
     - [7.4 Best Practices](#74-best-practices)
-  - [6. Advanced Techniques](#6-advanced-techniques)
-    - [6.1 Error Handling and Recovery Patterns](#61-error-handling-and-recovery-patterns)
-      - [6.1.1 Retry Loops](#611-retry-loops)
-      - [6.1.2 Fallback Sequences](#612-fallback-sequences)
-    - [6.3 Polymorphism and Implicit Source Inference](#63-polymorphism-and-implicit-source-inference)
-    - [6.2 Sequences as Functions (Nested Sequences)](#62-sequences-as-functions-nested-sequences)
-      - [6.2.1 Example: Factorial Sequence](#621-example-factorial-sequence)
-    - [5.2 Realization Sinks](#52-realization-sinks-1)
-      - [5.2.1 `to-array`](#521-to-array-1)
-      - [5.2.2 `to-tuple`](#522-to-tuple-1)
-      - [5.2.3 `to-string`](#523-to-string-1)
-    - [5.3 Terminal-Value Sinks](#53-terminal-value-sinks-1)
-      - [5.3.1 `last`](#531-last-1)
-  - [6. Advanced Techniques](#6-advanced-techniques-1)
-    - [6.1 Stateful Mapping and Scanning](#61-stateful-mapping-and-scanning)
-      - [6.1.1 Simple Accumulation](#611-simple-accumulation)
-      - [6.1.2 Sliding Window](#612-sliding-window)
-    - [6.2 Error Handling and Recovery Patterns](#62-error-handling-and-recovery-patterns)
-      - [6.2.1 Retry with Exponential Backoff](#621-retry-with-exponential-backoff)
-      - [6.2.2 Fallback to Default Value](#622-fallback-to-default-value)
-    - [6.3 Polymorphism and Implicit Sources](#63-polymorphism-and-implicit-sources)
-  - [7. Lifecycle and Resource Management](#7-lifecycle-and-resource-management-1)
-    - [7.2 Restartable vs. Non-Restartable Sources](#72-restartable-vs-non-restartable-sources-1)
-    - [7.3 Resource Ownership](#73-resource-ownership-1)
-    - [7.4 Best Practices](#74-best-practices-1)
+    - [7.5 Summary](#75-summary)
+  - [8. Thinking in Sequences: A Translation Guide](#8-thinking-in-sequences-a-translation-guide)
+    - [8.1 Loop to Sequence Translation](#81-loop-to-sequence-translation)
+    - [8.2 Conditional Branching to Sequence Operations](#82-conditional-branching-to-sequence-operations)
+    - [8.3 Exception Handling to Fallback Patterns](#83-exception-handling-to-fallback-patterns)
+    - [8.4 Common Sequence Patterns](#84-common-sequence-patterns)
 
 ## 1. Introduction
 
@@ -164,7 +181,7 @@ Dynamic sources are used for potentially infinite sequences or sequences that re
 If a memory value is passed directly to a transformer, Tacit may implicitly lift it into a sequence using the appropriate `from-` stage. This behavior is optional and may be suppressed or customized. It improves ergonomics in common idioms like:
 
 ```
-[1 2 3 4] map { ... }        ; equivalent to [1 2 3 4] from-tuple map { ... }
+[1 2 3 4] map { ... }
 ```
 
 This concise polymorphism is designed to be transparent, predictable, and unobtrusive, enhancing ease of use without compromising the explicitness central to Tacit's philosophy.
@@ -208,6 +225,27 @@ On each tick, the code block is invoked with the buffer. It writes into the buff
 If the count returned is zero, the sequence emits a sentinel such as `$done`, indicating termination.
 
 Typical implementations may use system calls, file reads, or in-memory paging to fill the buffer. The reuse of a single buffer across ticks avoids allocation overhead and supports zero-copy semantics when appropriate.
+
+#### 2.5.1 Pagination Patterns
+
+Pagination is essential when working with large datasets from APIs or databases. Tacit provides clean abstractions for different pagination approaches:
+
+1. **Offset-based pagination**: Uses page numbers or skip/limit
+   ```
+   buffer api-endpoint paginate-by-offset fetch-items
+   ```
+
+2. **Cursor-based pagination**: Uses a next-page token
+   ```
+   buffer api-endpoint paginate-by-cursor fetch-with-token
+   ```
+
+3. **Timestamp-based pagination**: Uses time boundaries
+   ```
+   buffer start-time paginate-by-time fetch-events
+   ```
+
+Each pattern follows Tacit's idiomatic one-line style while handling the complexity of chunked data retrieval.
 
 ## 3. Sentinels and Control Flow
 
@@ -284,7 +322,7 @@ Sequences such as `retry` and `fallback` explicitly match against sentinel value
 
 Here, `retry` triggers only if the source emits `$error` or `$wait`. If other sentinel values (such as `$done`) appear, they're passed downstream untouched.
 
-### 3.2 Nil as Degenerate Tuple
+### 3.5 Nil as Degenerate Tuple
 
 Tacit treats `nil` as a degenerate tuple, allowing it to be used in contexts expecting tuples. The degenerate tuple `()` (empty parentheses) represents `nil`. This convention is used when a placeholder or default argument is required.
 
@@ -414,7 +452,7 @@ Mapping operations in Tacit represent pure functional transformations from input
 The simplest map operations transform a scalar input into a scalar output:
 
 ```
-map { -> x x x * }  ; square each number
+map { -> x x x * }
 ```
 
 This applies the same function to each element in the sequence independently.
@@ -424,7 +462,7 @@ This applies the same function to each element in the sequence independently.
 Arrays can be used as lookup tables within mapping functions:
 
 ```
-[10 20 30 40 50] -> values values 0 5 range map { -> i get }  ; uses index to lookup value
+[10 20 30 40 50] -> values values 0 5 range map { -> i get }
 ```
 
 This emits `10 20 30 40 50`.
@@ -434,10 +472,26 @@ This emits `10 20 30 40 50`.
 Mapping can also maintain state between iterations using techniques like scan:
 
 ```
-1 5 range 0 map { -> acc x acc x + dup -> acc } ; values 1-4, initial accumulator 0, running sum
+1 5 range 0 map { -> acc x acc x + dup -> acc }
 ```
 
 This sequence yields `1 3 6 10`, representing the running sum at each point.
+
+### 4.5 Building Complex Behaviors Step-by-Step
+
+Sequences shine when building complex logic through simple composition. Tacit enables building solutions incrementally:
+
+1. **Start with a data source**:
+   ```
+   1 100 range
+   ```
+
+2. **Add filters and transformations**:
+   ```
+   1 100 range filter { divisible-by-3-or-5? } map { square } fold { sum }
+   ```
+
+This incremental composition approach replaces nested control structures with flat, linear data flow - each operation building on the previous one in a clean pipeline.
 
 ## 5. Sinks
 
@@ -546,6 +600,34 @@ The choice of sink clearly communicates the intended use of the data produced by
 ## 7. Lifecycle and Resource Management
 
 Sequence stages follow a well-defined lifecycle with clear ownership semantics for resources.
+
+### 7.0 Integrating Sequences with Other Tacit Features
+
+#### 7.0.1 Sequences and Memory Management
+
+Sequences interact cleanly with Tacit's arena-based memory model:
+
+```
+buffer -> results source-data filter { valid? } map { transform } for-each { -> item results item append } results
+```
+
+Unlike systems with manual memory management or garbage collection:
+
+1. The buffer is allocated in the current arena
+2. Sequence operations produce transient data consumed by stages
+3. The final buffer survives to be returned
+4. No explicit cleanup/free is needed
+5. No GC pressure accumulates during processing
+
+#### 7.0.2 Sequences and Coroutines
+
+Sequences work hand-in-hand with coroutines to handle asynchronous data:
+
+```
+event-source -> events events filter { -> e e "priority" get-field 3 >= } map { process-event } event-sink
+```
+
+The sequence acts as a declarative pipeline connecting producer and consumer coroutines, replacing traditional callbacks and promises.
 
 ### 7.1 Source Lifecycle
 
@@ -728,6 +810,32 @@ This retries a failing source with exponential backoff starting at 100ms and cap
 
 If the primary source fails, this fallback structure will emit a default value instead.
 
+#### 6.2.3 Retry and Fallback Idioms
+
+Tacit provides concise idioms for robust error handling and resilience patterns:
+
+1. **Simple retry for network operations**:
+   ```
+   ($network-error) (3) retry { api-endpoint fetch-data }
+   ```
+
+2. **Retry with exponential backoff**:
+   ```
+   ($network-error) (%backoff 100 3000) retry { api-endpoint fetch-data }
+   ```
+
+3. **Fallback to cached data**:
+   ```
+   ($error) () fallback { api-fetch } { cache-fetch }
+   ```
+
+4. **Progressive fallback chain**:
+   ```
+   ($api-error) () fallback { primary-api } { ($api-error) () fallback { backup-api } { default-data } }
+   ```
+
+These patterns isolate error handling from business logic while maintaining Tacit's single-line style.
+
 ### 6.3 Polymorphism and Implicit Sources
 
 Many Tacit transformers and sinks will automatically lift container values into sequences when needed. This polymorphism enables concise code where the container-to-sequence conversion is implicit.
@@ -779,3 +887,44 @@ Understanding the lifecycle of a source is crucial for proper resource managemen
 * For complex streaming operations, consider implementing a cleanup handler that runs regardless of how the sequence terminates.
 * Document the restart behavior of custom sources to ensure correct usage in larger pipelines.
 
+### 7.5 Summary
+
+Sequences provide a complete iteration model that goes beyond traditional looping constructs. By defining iteration in terms of sources and transformers, Tacit enables higher-level reasoning about data flow and composition while still compiling to efficient low-level code.
+
+## 8. Thinking in Sequences: A Translation Guide
+
+Moving from imperative programming to Tacit's sequence-based approach requires shifting your mental model. This section provides translations for common programming patterns.
+
+### 8.1 Loop to Sequence Translation
+
+| Imperative Loop Pattern | Tacit Sequence Pattern |
+|-----------------|----------------|
+| Simple iteration with side effects | `1 10 range map { dup * } for-each { print }` |
+| Filtered accumulation | `1 100 range filter { 2 mod 0 = } fold { -> acc x acc x + }` |
+
+### 8.2 Conditional Branching to Sequence Operations
+
+| Imperative Conditionals Pattern | Tacit Sequence Pattern |
+|-------------------------|----------------|
+| Filter then transform | `items filter { valid? } map { process } to-tuple` |
+| Split into multiple streams | `numbers split { 0 >= } -> positives negatives` |
+
+### 8.3 Exception Handling to Fallback Patterns
+
+| Try-Catch Pattern | Tacit Sequence Pattern |
+|-------------------|----------------|
+| Simple try/catch | `($error) () fallback { primary-operation } { fallback-operation }` |
+| Retry with fallback | `($error) (%backoff 3 0) retry { attempt-operation } ($error) () fallback { $value } { default-value }` |
+
+### 8.4 Common Sequence Patterns
+
+As you work with sequences, you'll recognize these idiomatic patterns:
+
+| Pattern | Tacit Sequence Idiom |
+|---------|----------------------|
+| Transform-Filter-Aggregate | `source map { transform } filter { select? } fold { accumulate }` |
+| Branch-Process-Merge | `source tee { process-a } { process-b } zip { combine }` |
+| Try-Fallback-Chain | `($err) () fallback { primary } { fallback }` |
+| Paginate-Filter-Limit | `buffer paginate { fetch-page } filter { relevant? } take 10 to-tuple` |
+
+These patterns become the building blocks for expressing complex logic through clean sequence composition.
