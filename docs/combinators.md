@@ -1,5 +1,53 @@
 # Tacit Combinators
 
+## Table of Contents
+- [Tacit Combinators](#tacit-combinators)
+  - [Table of Contents](#table-of-contents)
+  - [1. Motivation and Model](#1-motivation-and-model)
+    - [1.1 – Core Elements of Tacit Programs](#11--core-elements-of-tacit-programs)
+  - [1.2 Implicit Composition in RPN](#12-implicit-composition-in-rpn)
+  - [2. Tuples as Function Collections — Fan-out](#2-tuples-as-function-collections--fan-out)
+    - [Why use fan-out?](#why-use-fan-out)
+      - [Example 1 – Colour channels from brightness](#example-1--colour-channels-from-brightness)
+      - [Example 2 – Quick numeric profile](#example-2--quick-numeric-profile)
+      - [Example 3 – Boolean flags with conversion](#example-3--boolean-flags-with-conversion)
+    - [Working with the result](#working-with-the-result)
+  - [3. Fan-in: Tuple of Functions to Tuple of Results](#3-fan-in-tuple-of-functions-to-tuple-of-results)
+      - [Example 1 – Field-wise record transformation](#example-1--field-wise-record-transformation)
+      - [Example 2 – Preparing formatted output](#example-2--preparing-formatted-output)
+      - [Example 3 – Summing multiple projections](#example-3--summing-multiple-projections)
+  - [4. Tuple Creation and Manipulation](#4-tuple-creation-and-manipulation)
+      - [Example 1 – Temporary grouping for function application](#example-1--temporary-grouping-for-function-application)
+      - [Example 2 – Grouping for transport or storage](#example-2--grouping-for-transport-or-storage)
+  - [5. Tuple Operations: Expand and Append](#5-tuple-operations-expand-and-append)
+  - [6. Tuple Map: Apply Function to Each Element](#6-tuple-map-apply-function-to-each-element)
+    - [Why use tuple-map?](#why-use-tuple-map)
+    - [Example 1 – Celsius to Fahrenheit list](#example-1--celsius-to-fahrenheit-list)
+    - [Example 2 – Title-casing names](#example-2--title-casing-names)
+    - [Example 3 – Map then Fold](#example-3--map-then-fold)
+    - [Composition tips](#composition-tips)
+  - [7. Tuple Fold: Aggregating Tuple Values](#7-tuple-fold-aggregating-tuple-values)
+    - [Example 1 – Sum](#example-1--sum)
+    - [Example 2 – Maximum](#example-2--maximum)
+    - [Example 3 – Product with a Custom Combiner](#example-3--product-with-a-custom-combiner)
+    - [Why tuple-fold?](#why-tuple-fold)
+  - [8. Tuple Reordering — tuple-permute](#8-tuple-reordering--tuple-permute)
+    - [Example 1 – Swapping positions](#example-1--swapping-positions)
+    - [Example 2 – Reversing a four-element tuple](#example-2--reversing-a-four-element-tuple)
+    - [Example 3 – Moving a flag to the front](#example-3--moving-a-flag-to-the-front)
+    - [Rules](#rules)
+  - [9. Binary Variants (Advanced)](#9-binary-variants-advanced)
+    - [Example 1 – Calculating slope with `2fanin`](#example-1--calculating-slope-with-2fanin)
+    - [Example 2 – Comparing two readings with `2fanout`](#example-2--comparing-two-readings-with-2fanout)
+    - [Example 3 – Pair-wise product inside one tuple](#example-3--pair-wise-product-inside-one-tuple)
+  - [10. Captures — Partially-Applied, Stateful Functions](#10-captures--partially-applied-stateful-functions)
+    - [10.1 Creating a Capture](#101-creating-a-capture)
+    - [10.2 Storing and Auto-Invoking](#102-storing-and-auto-invoking)
+    - [10.3 Mutable-State Capture (Counter)](#103-mutable-state-capture-counter)
+    - [10.4 Range Generator as Capture](#104-range-generator-as-capture)
+    - [10.5 Using Captures in Pipelines](#105-using-captures-in-pipelines)
+  - [11. Conclusion](#11-conclusion)
+
 ## 1. Motivation and Model
 
 This document introduces a style of programming called **tacit programming**, also known as **point-free programming**. In this approach, functions are composed without explicitly naming or passing their arguments. Instead, data flow is implied by the structure of the composition itself.
@@ -54,8 +102,9 @@ Because composition is built into the evaluation order, Tacit encourages chainin
 
 ## 2. Tuples as Function Collections — Fan-out
 
-When you need several independent views of the **same** value, fan-out is the easiest way to say so.
-Give it one value and a tuple of monadic functions; it returns a new tuple whose elements are those functions’ results.
+When you need several independent views of the **same** value, fan-out provides an elegant solution. This core combinator enables parallel transformations without variable assignments or duplicate computations.
+
+The fan-out operation takes a single value and a tuple containing multiple unary functions (functions that accept one argument). It returns a new tuple containing the result of applying each function to the original value, preserving the same order.
 
 ```
 5   (@square @negate @inc)   fanout
@@ -124,11 +173,13 @@ value funcs fanout   tuple-expand   …continue…
 
 Together with `fanin`, `tuple`, and `fold`, fan-out gives Tacit its branch-and-merge power while keeping programs readable and point-free.
 
-## 3. Tuples as Function Collections (Fanin)
+## 3. Fan-in: Tuple of Functions to Tuple of Results
 
-Where `fanout` sends one value through many functions, **fanin** applies a tuple of functions to a sequence of values—each function to its corresponding input. It enables parallel, positionally aligned transformations without naming or sequencing.
+While `fanout` sends one value through many functions, **fanin** performs the complementary operation: it applies a tuple of functions to multiple values, with each function processing its corresponding positional input. This powerful combinator enables parallel, positionally aligned transformations without intermediate variables or explicit sequencing.
 
-The `fanin` word takes `n` values followed by a tuple of `n` **monadic** function references. It applies each function to the value in the same stack position and returns a tuple of the results.
+Fan-in is particularly valuable when you need to process multiple inputs through different pathways but want to maintain their structural relationship in the output.
+
+The `fanin` word takes `n` values followed by a tuple of `n` **unary** function references. It applies each function to the value in the same stack position and returns a tuple of the results.
 
 Example:
 
@@ -136,7 +187,7 @@ Example:
 1 2 3 (@inc @dec @negate) fanin   → (2 1 -3)
 ```
 
-Here, `@inc` is applied to `1`, `@dec` to `2`, and `@negate` to `3`. Each transformation is monadic: it operates on exactly one value.
+Here, `@inc` is applied to `1`, `@dec` to `2`, and `@negate` to `3`. Each transformation is unary: it operates on exactly one value.
 
 This model is useful for transforming structured data, records, or aligned inputs, especially when each field or position requires a distinct operation.
 
@@ -162,11 +213,11 @@ name age balance
 
 This can then be joined or displayed, passed to a UI renderer, or included in a report.
 
-Fanin works well in pipelines where each item must be handled differently, and it ensures consistent structure and evaluation without needing temporary variable names or stack rearrangement. It is purely monadic and expects its function tuple to match the arity of the incoming values.
+Fanin works well in pipelines where each item must be handled differently, and it ensures consistent structure and evaluation without needing temporary variable names or stack rearrangement. It is purely unary and expects its function tuple to match the arity of the incoming values.
 
 #### Example 3 – Summing multiple projections
 
-Let's say we want to take a value, apply a few transformations, and then sum the results. We start with the number five and pass it through a tuple of monadic functions like `square`, `negate`, and `inc`. Then we sum the results.
+Let's say we want to take a value, apply a few transformations, and then sum the results. We start with the number five and pass it through a tuple of unary functions like `square`, `negate`, and `inc`. Then we sum the results.
 
 ```
 5 (@square @negate @inc) fan-in sum
@@ -190,11 +241,11 @@ Then `sum` returns
 26
 ```
 
-## 4. Tuples as Value Bundles
+## 4. Tuple Creation and Manipulation
 
-Tacit treats tuples as structured containers for values. This lets you group multiple stack values into a single object that can be passed, stored, or transformed as a unit.
+Tuples provide a fundamental structuring mechanism in Tacit, allowing you to group related values into a single cohesive unit. These immutable collections can be passed between functions, stored in variables, or transformed as atomic entities, simplifying data management in point-free programming.
 
-Two core operations support this style:
+Two essential operations form the foundation of tuple handling:
 
 **`make-tuple`** takes a number `n` and bundles the top `n` values from the stack into a tuple.
 
@@ -238,9 +289,11 @@ sensor1 sensor2 sensor3 3 make-tuple -> reading
 
 This forms a consistent pattern: when you want to operate structurally, **use a tuple**. When you need to work positionally, **expand it**. This principle is key to using Tacit’s combinators effectively.
 
-## 5. Tuple Operations for Composition
+## 5. Tuple Operations: Expand and Append
 
-Tacit uses tuples not only to group values but also to support compositional programming. In combinatorial logic, we often need to manipulate tuples dynamically—constructing them from stack values, extending them with new elements, or converting them back into stack form. This section defines the minimal set of tuple operations needed to support the examples and techniques in this document.
+Beyond basic creation and expansion, Tacit provides additional operations that enhance tuple flexibility and utility. These operations enable dynamic tuple manipulation - a crucial capability for compositional programming where data structures evolve throughout computation.
+
+The following operations form a minimal but complete set of tools for working with tuples in complex point-free patterns:
 
 **tuple ( n → tuple )**
 Creates a tuple by consuming `n` values from the stack (with the topmost value becoming the last element). This is the primary way to form a tuple from existing stack values.
@@ -256,10 +309,11 @@ Removes the last value from a tuple, returning a new shorter tuple. This is usef
 
 These operations are enough to support `fanout`, `fanin`, and other combinatorial techniques that involve bundling and unbundling values. More advanced tuple operations may be introduced in later sections or other documents as needed.
 
-## 6. Tuple-wide Transformation — tuple-map
+## 6. Tuple Map: Apply Function to Each Element
 
-Sometimes a whole tuple needs the **same** operation applied to each element.
-`tuple-map` takes a tuple and a single **monadic** function reference, returning a new tuple whose elements are the transformed results.
+A common pattern in functional programming is applying the same transformation to every element in a collection. In Tacit, `tuple-map` provides this capability for tuples, enabling concise, uniform processing of tuple elements.
+
+`tuple-map` accepts a tuple and a single **unary** function reference (a function that takes one argument), then applies that function to each element in the tuple. The operation preserves tuple structure and ordering while transforming the values, returning a new tuple of equal length containing the transformed elements.
 
 ```
 (1 2 3 4)  @inc  tuple-map   → (2 3 4 5)
@@ -307,16 +361,17 @@ values  tuple-map …              \ keep grouped
 values  tuple-map  tuple-expand  \ unpack only when necessary
 ```
 
-## 7. Tuple-wide Reduction — tuple-fold
+## 7. Tuple Fold: Aggregating Tuple Values
 
-`tuple-fold` collapses a tuple into a single value using a **dyadic** combiner function.
+`tuple-fold` represents a fundamental operation in functional programming: reducing a collection to a single value through repeated application of a binary operation. This powerful combinator transforms multi-element tuples into individual values by systematically combining elements.
+
 Syntax (RPN):
 
 ```
 (tuple) combiner  tuple-fold   → result
 ```
 
-The combiner must take two arguments and return one; `tuple-fold` applies it left-to-right across the tuple’s elements.
+The operation requires a **binary** combiner function (one that takes exactly two arguments) and applies it progressively from left to right across the tuple's elements. Each intermediate result becomes the first argument to the next application of the combiner.
 
 ### Example 1 – Sum
 
@@ -348,8 +403,9 @@ With `tuple-map`, `tuple-fold`, `fanout`, and `fanin`, we now have a coherent to
 
 ## 8. Tuple Reordering — tuple-permute
 
-`tuple-permute` rearranges the elements of a tuple according to an index tuple of the same length.
-Indexes are **zero-based**.
+`tuple-permute` provides a powerful operation for reorganizing tuple elements without extracting and reassembling them. This combinator allows arbitrary reordering of tuple contents based on positional indices, enabling complex data restructuring operations while maintaining the point-free programming paradigm.
+
+The operation requires two tuples of the same length: a source tuple containing values, and an index tuple specifying the desired reordering. Indices in the second tuple are **zero-based**, with each position indicating which element from the original tuple should appear at that position in the result.
 
 ```
 (values) (idx) tuple-permute   → (reordered-values)
@@ -383,18 +439,17 @@ The index tuple says “take element 1 first, then 0, then 2”.
 
 `tuple-permute` provides precise, declarative control over tuple ordering without unpacking the data onto the stack.
 
-## 9. Dyadic Variants (Advanced)
+## 9. Binary Variants (Advanced)
 
-Tacit’s core combinators assume **monadic** functions. When you need to work with **pairs**—deltas, ratios, comparisons—use the dyadic forms below. Each function in the tuple must consume exactly two values.
+While Tacit's core combinators are designed to work with **unary** functions (functions taking one argument), many real-world operations require processing pairs of values together. For these scenarios, Tacit provides specialized binary variants of its core combinators.
+
+These binary operation forms enable calculations like differences between pairs, computing ratios, making comparisons, or any other transformation requiring two inputs. When using these variants, each function in the tuple must be **binary** - capable of consuming exactly two values and producing a result.
 
 | Word          | Stack pattern (RPN)                    | Result tuple                                 |
 | ------------- | -------------------------------------- | -------------------------------------------- |
 | `2fanout`     | `x y   (f₁ f₂ … fₙ)   2fanout`         | `(f₁ x y  f₂ x y … fₙ x y)`                  |
 | `2fanin`      | `y₂ y₁  x₂ x₁   (f₁ f₂ … fₙ)   2fanin` | `(f₁ y₂ y₁  f₂ x₂ x₁ … )`                    |
-| `tuple-map-2` | `(a₁ b₁ … aₙ bₙ)   f   tuple-map-2`    | `(f a₁ b₁ … f aₙ bₙ)`                        |
-| `tuple-fold`  | `(vals)   combiner   tuple-fold`       | single value (unchanged; combiner is dyadic) |
-
----
+| `2tuple-map` | `(a₁ b₁ … aₙ bₙ)   f   2tuple-map`    | `(f a₁ b₁ … f aₙ bₙ)`                        |
 
 ### Example 1 – Calculating slope with `2fanin`
 
@@ -414,10 +469,10 @@ old new   (@sub @ratio @percent-change) 2fanout
 ### Example 3 – Pair-wise product inside one tuple
 
 ```
-(2 3  4 5)   mul   tuple-map-2   → (6 20)
+(2 3  4 5)   mul   2tuple-map   → (6 20)
 ```
 
-Use dyadic variants only when the problem is naturally pair-centric. Monadic forms remain the default; dyadic combinators belong in advanced pipelines where they keep pair-wise logic point-free and explicit-name-free.
+Use binary variants only when the problem is naturally pair-centric. Unary forms remain the default; binary combinators belong in advanced pipelines where they keep pair-wise logic point-free and explicit-name-free.
 
 ## 10. Captures — Partially-Applied, Stateful Functions
 
@@ -511,6 +566,6 @@ Captures give Tacit its stateful building blocks—compact, explicit, and fully 
 ## 11. Conclusion
 
 Tacit’s combinator set turns point-free ideas into concrete practice.
-Monadic `fanout` and `fanin` branch and align computations without naming; tuple operations—make, expand, append, drop, map, fold, permute—let data stay grouped or flatten out only when needed.
-Dyadic variants extend the same patterns to pairwise work, and captures give functions portable state.
+Unary `fanout` and `fanin` branch and align computations without naming; tuple operations—make, expand, append, drop, map, fold, permute—let data stay grouped or flatten out only when needed.
+Binary variants extend the same patterns to pairwise work, and captures give functions portable state.
 Together these parts enable clear, implicit data flow while keeping code concise, composable, and free of object overhead.
