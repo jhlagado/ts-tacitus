@@ -40,13 +40,25 @@
     - [Example 1 – Calculating slope with `2fanin`](#example-1--calculating-slope-with-2fanin)
     - [Example 2 – Comparing two readings with `2fanout`](#example-2--comparing-two-readings-with-2fanout)
     - [Example 3 – Pair-wise product inside one tuple](#example-3--pair-wise-product-inside-one-tuple)
-  - [10. Captures — Partially-Applied, Stateful Functions](#10-captures--partially-applied-stateful-functions)
-    - [10.1 Creating a Capture](#101-creating-a-capture)
-    - [10.2 Storing and Auto-Invoking](#102-storing-and-auto-invoking)
-    - [10.3 Mutable-State Capture (Counter)](#103-mutable-state-capture-counter)
-    - [10.4 Range Generator as Capture](#104-range-generator-as-capture)
-    - [10.5 Using Captures in Pipelines](#105-using-captures-in-pipelines)
-  - [11. Conclusion](#11-conclusion)
+  - [10. Capsules – Partially Applied Tuples](#10-capsules--partially-applied-tuples)
+    - [10.1 What Is a Partially Applied Function?](#101-what-is-a-partially-applied-function)
+    - [10.2 Capsule Mechanics](#102-capsule-mechanics)
+    - [10.3 Assigning Capsules to Names](#103-assigning-capsules-to-names)
+    - [10.4 Building Capsules Dynamically](#104-building-capsules-dynamically)
+    - [10.5 Capsules as Function Values](#105-capsules-as-function-values)
+    - [10.6 Building Capsules from Tuples](#106-building-capsules-from-tuples)
+      - [Example](#example)
+      - [Assigning and Invoking](#assigning-and-invoking)
+    - [10.7 Summary](#107-summary)
+  - [11. Conditional Tuples and Control Combinators](#11-conditional-tuples-and-control-combinators)
+    - [11.1 What Is a Conditional Tuple?](#111-what-is-a-conditional-tuple)
+    - [11.2 The `if` Combinator](#112-the-if-combinator)
+    - [11.3 The `then` Combinator](#113-the-then-combinator)
+    - [11.4 The `else` Combinator](#114-the-else-combinator)
+    - [11.5 The `end` Terminator](#115-the-end-terminator)
+    - [11.6 One-Line If–Then–Else](#116-one-line-ifthenelse)
+  - [12. Mutable Capsules](#12-mutable-capsules)
+  - [13. Conclusion](#13-conclusion)
 
 ## 1. Motivation and Model
 
@@ -474,98 +486,264 @@ old new   (@sub @ratio @percent-change) 2fanout
 
 Use binary variants only when the problem is naturally pair-centric. Unary forms remain the default; binary combinators belong in advanced pipelines where they keep pair-wise logic point-free and explicit-name-free.
 
-## 10. Captures — Partially-Applied, Stateful Functions
+## 10. Capsules – Partially Applied Tuples
 
-A **capture** is a tuple whose final element is a **function reference**; the earlier elements are bound arguments or internal state.
-Whenever the capture value is evaluated—either by `call-tuple` or simply by naming a variable that holds it—the stored arguments are pushed first, then the function runs.
+A **capsule** in Tacit is a tuple whose final element is a **function reference**. When evaluated, the capsule pushes all preceding elements onto the stack, then calls the final function as if it were passed those elements as arguments. The capsule acts as a **partially applied function**—it stores some arguments in advance and waits to be completed later.
 
-### 10.1 Creating a Capture
+### 10.1 What Is a Partially Applied Function?
 
-**make-capture**
+A partially applied function is a function that has been “preloaded” with some of its arguments. For instance, consider the function `add`, which takes two numbers and returns their sum. If we know we always want to add `1`, we can pre-bind that first argument and create a new function that adds one to whatever argument comes next.
 
-```
-(1 2)  @add  make-capture        →  (1 2 @add)
-```
-
-**tuple-append** shorthand
+In Tacit, this can be done by creating a tuple with `1` and a function reference to `add`:
 
 ```
-1 2           2 make-tuple          @add  tuple-append
-→ (1 2 @add)
+( 1 @add )
 ```
 
-### 10.2 Storing and Auto-Invoking
+This is a capsule. When evaluated (using `eval`), it will:
 
-Assign the capture (or any function reference) to a local; naming that local later executes it.
+1. Push `1` onto the stack,
+2. Then call `add`, which consumes another argument from the stack and adds it to `1`.
 
-```
-(2 3 @add)  -> sum23
-sum23                      → 5
-```
-
-A plain reference behaves the same way:
+Example:
 
 ```
-@inc  -> inc-fn
-5  inc-fn                  → 6
+4 ( 1 @add ) eval  →  5
 ```
 
-### 10.3 Mutable-State Capture (Counter)
+The capsule `( 1 @add )` behaves like a reusable function: “add one to the input.”
 
-Capture holds a mutable counter value plus a step function.
+### 10.2 Capsule Mechanics
 
-```
-(0 @next-index)  -> idx        \ initial counter = 0
-```
+A capsule is not a new type—it is just a tuple. But Tacit treats any tuple whose final slot is a function reference as **callable**. When `eval` is used on such a tuple:
 
-`@next-index` might be:
+1. The function reference in the last position is isolated.
+2. All earlier elements in the tuple are pushed to the stack in order.
+3. The function is called, consuming the arguments just pushed.
 
-```
-:next-index {
-  -> i                 \ current index
-  1 add                \ i+1
-  dup  swap            \ new new(old) -> overwrite stored slot
-}
-```
-
-Each `idx` call pushes the current index and updates it in the capture.
-
-### 10.4 Range Generator as Capture
-
-A range source bundles `index  limit  step` with `@range-next`.
+This mechanism supports arbitrary arity. For example:
 
 ```
-(0  10  1  @range-next)  -> rng
+( 2 3 @mul ) eval  → 6
+( 2 3 4 @add3 ) eval  → 9
 ```
 
-`@range-next` (sketch):
+Capsules can return:
+
+* A simple value (like a number),
+* A tuple,
+* Or even another capsule or monad, depending on the function logic.
+
+### 10.3 Assigning Capsules to Names
+
+Capsules can be assigned to local variables using standard `->` notation:
 
 ```
-:range-next {
-  -> step -> limit -> i
-  i  limit  ge?     { nil exit } if
-  i  step  add
-}
+( 1 @add ) -> inc
 ```
 
-The tuple `rng` now behaves as a lightweight generator without classes or heap objects.
-
-### 10.5 Using Captures in Pipelines
-
-Captures slide into pipelines exactly like ordinary words:
+Now `inc` is callable as a function:
 
 ```
-rng  map                    \ feed range elements
-idx  map                    \ feed successive indices
+4 inc  → 5
 ```
 
-Because invocation is implicit, chains stay point-free and uncluttered.
+This is equivalent to `4 ( 1 @add ) eval`, but simpler and idiomatic.
 
-Captures give Tacit its stateful building blocks—compact, explicit, and fully compatible with the combinators introduced earlier.
+Every time the name `inc` is used, it evaluates the capsule—pushing its captured arguments and calling the embedded function. This makes capsules effectively named partial functions.
 
-## 11. Conclusion
+### 10.4 Building Capsules Dynamically
 
-Tacit’s combinator set turns point-free ideas into concrete practice.
-Unary `fanout` and `fanin` branch and align computations without naming; tuple operations—make, expand, append, drop, map, fold, permute—let data stay grouped or flatten out only when needed.
-Binary variants extend the same patterns to pairwise work, and captures give functions portable state.
-Together these parts enable clear, implicit data flow while keeping code concise, composable, and free of object overhead.
+Capsules can be constructed dynamically using `tuple-append`, which adds a new element to the end of a tuple:
+
+```
+( 1 ) @add tuple-append  →  ( 1 @add )
+```
+
+This is useful when creating capsules programmatically, or composing higher-order functions.
+
+Capsules can also be composed:
+
+```
+( 2 @mul ) -> double
+( 1 @add ) -> inc
+( double inc ) @compose tuple-append  →  ( double inc @compose )
+```
+
+Here, `@compose` is a higher-order function that runs its arguments left-to-right: `x -> inc -> double`.
+
+### 10.5 Capsules as Function Values
+
+Capsules can be stored, passed, and reused like any value:
+
+* Assigned to locals or buffer fields.
+* Pushed onto stacks.
+* Returned from functions.
+* Used in pipelines (e.g., `map`, `then`).
+
+They are stateless by default, unless explicitly made stateful (which is discussed elsewhere).
+
+Tacit does **not** support implicit closure capture. All values inside a capsule must be explicitly present as tuple elements. This avoids hidden scope or runtime surprises.
+
+### 10.6 Building Capsules from Tuples
+
+Any ordinary tuple can be turned into a callable capsule simply by appending a function reference to its end. Tacit provides the word **tuple-append** for exactly this purpose.
+
+#### Example
+
+```
+(1 2) @add tuple-append   →   (1 2 @add)
+```
+
+Here’s what happens step by step:
+
+1. `(1 2)` is a simple tuple containing the numbers 1 and 2.
+2. `@add` is a reference to the built-in addition function.
+3. `tuple-append` takes the tuple and the function reference and produces a new tuple with `@add` as its last element.
+4. The result, `(1 2 @add)`, is now a capsule: when you `eval` it, Tacit will push 1 and 2 onto the stack and then call `add`.
+
+#### Assigning and Invoking
+
+You can assign this capsule to a local name and call it just like any other word:
+
+```
+(1 2 @add) -> sum12
+3  sum12  eval   →   6
+```
+
+No new syntax is required—by convention, any tuple ending in a function reference is treated as a capsule.
+
+### 10.7 Summary
+
+* A **capsule** is a tuple with a function reference in its final position.
+* It is evaluated using `eval`, which pushes all prior elements onto the stack and calls the function.
+* Capsules act like partially applied functions and can be assigned to names for reuse.
+* `tuple-append` allows construction of capsules from simpler tuples.
+* Capsules are first-class values and form the basis for higher-order and monadic behavior in Tacit.
+
+## 11. Conditional Tuples and Control Combinators
+
+Building on capsules (Chapter 10), Tacit provides a way to drive control flow purely through tuples and combinators—no special syntax, just pipeline words and code blocks. We call these **conditional tuples** and the three core combinators `if`, `then`, and `else`, plus an explicit terminator `end`.
+
+### 11.1 What Is a Conditional Tuple?
+
+A **conditional tuple** is a two-element tuple:
+
+```
+( value flag )
+```
+
+* **value** – any Tacit datum (number, string, tuple, capsule…)
+* **flag** – a Boolean indicator (`0` for false, nonzero for true)
+
+It carries its own test result alongside the data, and flows through the pipeline like any other tuple.
+
+### 11.2 The `if` Combinator
+
+**Usage:**
+
+```
+value if { predicate-block }
+```
+
+* **value** is pushed.
+* `if` takes that value and the block on its right.
+* It runs the block against the value (via `eval`), producing a flag.
+* It yields the tuple `(value flag)`.
+
+**Example:**
+
+```
+42 if { 10GT }  
+→  (42 1)    \ because 42 ≥ 10
+```
+
+### 11.3 The `then` Combinator
+
+**Usage:**
+
+```
+( value flag ) then { then-block }
+```
+
+* If **flag ≠ 0** runs `then-block` on **value**,
+  replacing `(value flag)` with `( result-of-block flag )`.
+* If **flag = 0** leaves `(value flag)` untouched.
+
+**Example:**
+
+```
+(42 1) then { add1 }  
+→  (43 1)
+```
+
+### 11.4 The `else` Combinator
+
+**Usage:**
+
+```
+( value flag ) else { else-block }
+```
+
+* If **flag = 0** runs `else-block`,
+  yielding `( result-of-block flag )`.
+* If **flag ≠ 0** leaves `(value flag)` as is.
+
+**Example:**
+
+```
+(42 0) else { mul2 }  
+→  (84 0)
+```
+
+### 11.5 The `end` Terminator
+
+Tacit pipelines don’t auto-drop their final value. Use `end` to **discard** the top of stack and signal completion:
+
+```
+… then {…} else {…} end
+```
+
+Internally, `end` is an alias for `drop`, but its name makes clear you’re finishing a control flow.
+
+### 11.6 One-Line If–Then–Else
+
+All together in true Tacit style:
+
+```
+42 if { 10 gt } then { add1 } else { mul2 } end
+```
+
+* Tests 42 ≥ 10 → flag = 1
+* Runs `add1` → 43
+* Skips the `else` block
+* Drops the final tuple, leaving **43** on the stack
+
+If you need two lines for readability, you can break after `then {…}`:
+
+```
+42 if { 10 gt } then { add1 } else { mul2 } end
+```
+
+This model lets you express branching, conditional updates, and even `case`-style dispatch purely through tuples and words—no parser extensions, no labels, just pipeline logic.
+
+## 12. Mutable Capsules
+
+So far, every capsule we’ve seen is pure and stateless: it holds arguments and an `apply` function, and evaluating it never changes its contents. Tacit also supports **mutable capsules**, whose final slot (commonly named `next`) **updates the tuple in place**. These are the bridge into the sequences world:
+
+* A mutable capsule lives in a buffer or local variable, so it has a fixed memory address.
+* When you invoke it (`eval` or by name), Tacit pushes its fields onto the stack, runs `next`, and then **rewrites** its own tuple slots from the updated stack values.
+* Typical use case: an iterator that carries internal state (cursor, limit, step) and advances on each call.
+* Because mutation is confined to the capsule’s own storage, you still get value-style copying via `dup`—forks of a mutable capsule evolve independently.
+
+Mutable capsules let you build state machines (ranges, counters, filters) without heap objects or closures. They belong in the Sequences document for full examples, but this combinator doc now rounds out the model of capsules both pure and stateful.
+
+## 13. Conclusion
+
+In this chapter we’ve explored Tacit’s core combinators and the foundational **capsule** construct:
+
+* **Capsules**—tuples ending in a function reference—serve as partially applied functions.
+* **Conditional tuples** and the infix combinators `if`, `then`, `else` (plus `end`) enable pipeline-friendly branching without special syntax.
+* **Mutable capsules** extend the model to in-place state, powering iterator and sequence semantics.
+
+Together, these building blocks give Tacit a uniform, stack-based approach to composition, control flow, and stateful iteration. For detailed sequence definitions (range, map, filter, take, discard, joins), see the Sequences document next.
