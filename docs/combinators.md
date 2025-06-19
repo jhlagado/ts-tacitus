@@ -57,8 +57,14 @@
     - [11.4 The `else` Combinator](#114-the-else-combinator)
     - [11.5 The `end` Terminator](#115-the-end-terminator)
     - [11.6 One-Line If–Then–Else](#116-one-line-ifthenelse)
-  - [12. Mutable Capsules](#12-mutable-capsules)
-  - [13. Conclusion](#13-conclusion)
+  - [12  Multi-Way Selection — `select / case / default / end`](#12--multi-way-selection--select--case--default--end)
+    - [12.1  `select` — building the dispatch tuple](#121--select--building-the-dispatch-tuple)
+    - [12.2  `case` — matching on a literal code](#122--case--matching-on-a-literal-code)
+    - [12.3  `default` — the fall-through arm](#123--default--the-fall-through-arm)
+    - [12.4  `end` — unwrapping the value](#124--end--unwrapping-the-value)
+    - [12.5  Example](#125--example)
+  - [13. Mutable Capsules](#13-mutable-capsules)
+    - [14  Conclusion](#14--conclusion)
 
 ## 1. Motivation and Model
 
@@ -727,7 +733,72 @@ If you need two lines for readability, you can break after `then {…}`:
 
 This model lets you express branching, conditional updates, and even `case`-style dispatch purely through tuples and words—no parser extensions, no labels, just pipeline logic.
 
-## 12. Mutable Capsules
+## 12  Multi-Way Selection — `select / case / default / end`
+
+The two-way combinator `if … then … else … end` is often enough for Boolean branching, but many pipelines must choose among several alternatives.
+Tacit adds a symmetrical, N-way construct that keeps the same point-free, infix style while re-using the status-tuple convention.
+
+### 12.1  `select` — building the dispatch tuple
+
+`select` converts an ordinary value into the status tuple that drives the rest of the chain.
+
+```
+value  select { block }           →  ( value  code )
+```
+
+The block receives the value and must return an integer `code`.
+That integer becomes the second slot of the tuple, the first slot remains the original value.
+If the block is empty (`{ }`) the value is simply duplicated, producing `(value value)`.
+Nothing else happens at this stage; execution continues to the next word.
+
+### 12.2  `case` — matching on a literal code
+
+A `case` arm runs only when the tuple’s current code equals the literal that precedes the word.
+
+```
+k  case { block }
+```
+
+* The arm consumes the value, executes the block (net-arity 0),
+  and re-emits `( result  -1 )`.
+* The status code `-1` marks the tuple as **handled**; subsequent `case` or `default` arms see `-1` and automatically skip.
+
+Multiple `case` arms may be chained left-to-right in a single expression.
+
+### 12.3  `default` — the fall-through arm
+
+```
+default { block }
+```
+
+`default` is optional.
+It fires only if no preceding `case` arm handled the tuple (the code is still non-negative).
+Its block receives the value, produces a result, and returns `( result  -1 )`.
+
+### 12.4  `end` — unwrapping the value
+
+```
+…  end   →   result
+```
+
+`end` removes the wrapper and pushes the contained value.
+The status code, handled or not, is discarded.
+If no arm fired and no `default` was present, the original value is returned unchanged.
+
+### 12.5  Example
+
+```
+n  select { abs }  0 case { "zero" }  1 case { "one" }  default { "other" }  end
+```
+
+* `abs` derives a non-negative code from `n`.
+* Exactly one arm supplies a string and marks the tuple handled.
+* `end` unwraps, leaving `"zero"`, `"one"`, or `"other"` on the stack.
+
+`select / case / default / end` completes Tacit’s conditional toolkit.
+It offers concise, multi-branch dispatch without abandoning point-free style or introducing new data structures: the ordinary status-tuple drives every branch, and the pipeline continues with an ordinary value once `end` has done its work.
+
+## 13. Mutable Capsules
 
 So far, every capsule we’ve seen is pure and stateless: it holds arguments and an `apply` function, and evaluating it never changes its contents. Tacit also supports **mutable capsules**, whose final slot (commonly named `next`) **updates the tuple in place**. These are the bridge into the sequences world:
 
@@ -738,12 +809,14 @@ So far, every capsule we’ve seen is pure and stateless: it holds arguments and
 
 Mutable capsules let you build state machines (ranges, counters, filters) without heap objects or closures. They belong in the Sequences document for full examples, but this combinator doc now rounds out the model of capsules both pure and stateful.
 
-## 13. Conclusion
+### 14  Conclusion
 
-In this chapter we’ve explored Tacit’s core combinators and the foundational **capsule** construct:
+Tacit’s combinator palette distills higher-order programming to a small set of orthogonal parts.
 
-* **Capsules**—tuples ending in a function reference—serve as partially applied functions.
-* **Conditional tuples** and the infix combinators `if`, `then`, `else` (plus `end`) enable pipeline-friendly branching without special syntax.
-* **Mutable capsules** extend the model to in-place state, powering iterator and sequence semantics.
+* **Tuples** give concrete shape to data and can be reordered, folded, or split with fan-in / fan-out combinators.
+* **Capsules** turn any tuple into an executable value; a mutable capsule adds in-place state without leaving the value model.
+* **Status tuples** unify flow control: the last cell is a code, the first cells are payload.
+* Infix binders—`if / then / else / end` for two-way choice and `select / case / default / end` for N-way dispatch—route those tuples point-free, with no extra syntax.
+* Every combinator is stack-neutral and can be chained in one-line pipelines or nested freely.
 
-Together, these building blocks give Tacit a uniform, stack-based approach to composition, control flow, and stateful iteration. For detailed sequence definitions (range, map, filter, take, discard, joins), see the Sequences document next.
+With these elements Tacit offers a uniform, stack-based calculus for composition, branching, and controlled mutation.  Larger constructs—iterators, retries, fallbacks, paginated sources, and sinks—are built entirely from this foundation; their full definitions live in the Sequences document, but they require no new semantics beyond what is presented here.
