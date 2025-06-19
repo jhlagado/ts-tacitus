@@ -27,13 +27,14 @@
     - [4.1 Defining Nested Tuples](#41-defining-nested-tuples)
     - [4.2 Multidimensional Array Representation](#42-multidimensional-array-representation)
     - [4.3 Recursive Descent Traversal](#43-recursive-descent-traversal)
-  - [6. Polymorphism of Tuple Buffers and Scalars in Tacit](#6-polymorphism-of-tuple-buffers-and-scalars-in-tacit)
-    - [6.1 Uniform Value Representation](#61-uniform-value-representation)
-    - [6.2 Broadcast Semantics in Operations](#62-broadcast-semantics-in-operations)
-    - [6.3 Storage and Variable Interactions](#63-storage-and-variable-interactions)
-    - [6.4 Runtime Type Identification and Tagging](#64-runtime-type-identification-and-tagging)
-    - [6.5 Advantages of Tacit's Polymorphism Model](#65-advantages-of-tacits-polymorphism-model)
-  - [7. Conclusion: The Significance of Tuples in Tacit](#7-conclusion-the-significance-of-tuples-in-tacit)
+    - [5. Polymorphism of Tuple Buffers and Scalars in Tacit](#5-polymorphism-of-tuple-buffers-and-scalars-in-tacit)
+      - [5.1 Uniform Value Representation](#51-uniform-value-representation)
+    - [5.2 Broadcast Semantics in Operations](#52-broadcast-semantics-in-operations)
+    - [5.3 Storage and Variable Interactions](#53-storage-and-variable-interactions)
+    - [5.4 Runtime Type Identification and Tagging](#54-runtime-type-identification-and-tagging)
+    - [5.5 Advantages of Tacit's Polymorphism Model](#55-advantages-of-tacits-polymorphism-model)
+    - [5.6 Callable Tuples (Capsules)](#56-callable-tuples-capsules)
+  - [6. Conclusion: The Significance of Tuples in Tacit](#6-conclusion-the-significance-of-tuples-in-tacit)
 
 # Tuples
 
@@ -328,11 +329,11 @@ The traversal algorithm works as follows:
 
 While Tuples resemble TLV formats in structure, they extend beyond simple framing. Tuples are active computation units—suitable not only for serialization but also for vectorized evaluation, polymorphic traversal, and compositional recombination. Unlike traditional TLV-encoded messages, which are meant for passive decoding, Tuples are designed for live use: passed between functions, restructured, and manipulated directly in-place.
 
-## 6. Polymorphism of Tuple Buffers and Scalars in Tacit
+## 5. Polymorphism of Tuple Buffers and Scalars in Tacit
 
 Tacit supports uniform treatment of scalars, Tuples, and nested Tuples through a polymorphic data model. All values on the stack are interpreted based on tags and structure rather than static types. This model allows scalar values and structured sequences to participate in the same operations, enabling concise and generalized behavior across diverse inputs.
 
-### 6.1 Uniform Value Representation
+#### 5.1 Uniform Value Representation
 
 Scalars and Tuples share a unified representation. A scalar is a single tagged value. A Tuple is a group of values terminated by a span pointer. A Tuple buffer may include multiple dimensions; its shape must be regular to allow for stride-based addressing. The following metadata is preserved when flattening:
 
@@ -342,7 +343,7 @@ Scalars and Tuples share a unified representation. A scalar is a single tagged v
 
 The flattening process combines iterations over all dimensions into a single buffer, computing a linear offset for each element based on the stride. This allows arbitrary nested Tuples to be represented using a compact, linear buffer.
 
-### 6.2 Broadcast Semantics in Operations
+### 5.2 Broadcast Semantics in Operations
 
 Arithmetic and logical operations in Tacit follow broadcast rules. If two operands are scalars, the operation applies directly. If one operand is a Tuple, the operation applies to each element of the Tuple, with the scalar operand broadcast across all positions. If both operands are Tuples, the operation is applied pairwise. If either operand is a nested Tuple, the same rules apply recursively.
 
@@ -350,7 +351,7 @@ Broadcasting is structural, not symbolic. It respects span boundaries and procee
 
 Broadcasting is symmetric: the scalar may appear in any operand position, and the broadcast occurs toward the structured argument. This ensures that all operations maintain their natural ordering and arity, while allowing structure to emerge flexibly.
 
-### 6.3 Storage and Variable Interactions
+### 5.3 Storage and Variable Interactions
 
 Variables in Tacit can store scalars or Tuples without distinction. When a value is stored, its entire structure—including any nested Tuples and span pointers—is copied to the destination. When loaded, the entire structure is pushed back onto the stack. This allows Tuples to be passed, reused, and duplicated just like scalar values.
 
@@ -358,7 +359,7 @@ No boxing or wrapping is required. A variable slot can hold any tagged value, an
 
 This uniform storage model makes it possible to build pipelines and combinators that operate generically on structured data, without encoding specific assumptions about the shape or type of the input.
 
-### 6.4 Runtime Type Identification and Tagging
+### 5.4 Runtime Type Identification and Tagging
 
 Tacit uses a runtime tagging system to distinguish value kinds. Tags identify whether a value is a scalar, a span pointer, a pointer to a vector buffer, or another structure. These tags are compact, typically encoded in the low bits of the value or in adjacent metadata.
 
@@ -366,7 +367,7 @@ Operations check tags at runtime to determine how to proceed. For example, an ar
 
 This tag-based dispatch is fast and minimal. It avoids the need for virtual tables or dynamic dispatch mechanisms common in object-oriented systems. The control logic is simple and uniform: read the tag, interpret structure, recurse if necessary.
 
-### 6.5 Advantages of Tacit's Polymorphism Model
+### 5.5 Advantages of Tacit's Polymorphism Model
 
 Polymorphism in Tacit reduces code duplication and enhances composability. A single function can handle a scalar input, a flat vector, or a multidimensional nested Tuple, with no change in logic. The same mapping or reduction routine applies across structures, guided solely by the shape and span layout of the data.
 
@@ -374,7 +375,25 @@ The stack discipline ensures memory safety and locality. Structured data is allo
 
 This model allows high-level abstractions to be built from low-level primitives. The same arithmetic word used for scalar addition is also the engine for array broadcasting. The same logic for storing a single value also handles vectors or matrices. By collapsing the distinction between scalars and aggregates, Tacit provides a compact, expressive foundation for structured programming.
 
-## 7. Conclusion: The Significance of Tuples in Tacit
+### 5.6 Callable Tuples (Capsules)
+
+A capsule is a tuple whose final slot is a function reference. This structure is treated as callable: applying `eval` to the capsule invokes the function, passing the tuple itself as input. The function may treat earlier values as arguments, bindings, or state, depending on context.
+
+Capsules behave like value-based closures. They follow tuple semantics—copy by value, store in locals, pass on stack—but gain the ability to act as partially applied functions or dynamic objects. The function is not quoted when stored; it must be a proper function reference (e.g., `@add`, not `add`).
+
+The most common capsule form uses the final slot as `apply`, a function expecting the capsule as input:
+
+```
+(2 3 @add) eval    → 5
+```
+
+Here `@add` consumes `2 3` and produces `5`. The capsule is interpreted as a self-contained thunk.
+
+Capsules also support mutable state: if the function in the final slot mutates earlier fields, the capsule can act like a stateful iterator or cursor. These are covered in the sequence and coroutine models.
+
+Capsules are ordinary tuples with functional intent. They require no new representation or type, only a convention: final slot is a function, and `eval` invokes it.
+
+## 6. Conclusion: The Significance of Tuples in Tacit
 
 Tacit reconceives contiguous memory regions—whether on the stack, in buffers, or in arrays—as coherent substrates for expressing structured, hierarchical data. Through Tuples and span pointers, these memory regions become persistent, inspectable, and traversable layouts for sequences, arrays, and trees—without recourse to heap allocation, external data structures, or runtime indirection.
 
