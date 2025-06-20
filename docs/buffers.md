@@ -6,10 +6,10 @@
   - [Table of Contents](#table-of-contents)
   - [1. Introduction](#1-introduction)
   - [2. Buffers – Raw Memory as a First-Class Value](#2-buffers--raw-memory-as-a-first-class-value)
-  - [3. Buffer Headers and Metadata Layout](#3-buffer-headers-and-metadata-layout)
-    - [3.1 Metadata Length Encoding](#31-metadata-length-encoding)
-    - [3.2 Optional Metadata Fields](#32-optional-metadata-fields)
-    - [3.3 Header Variability and Optimization](#33-header-variability-and-optimization)
+  - [3. Buffer Tags and Metadata Layout](#3-buffer-tags-and-metadata-layout)
+    - [3.1 Buffer Tag Structure](#31-buffer-tag-structure)
+    - [3.2 Metadata Entries](#32-metadata-entries)
+    - [3.3 Buffer Layout and Organization](#33-buffer-layout-and-organization)
     - [3.4 Summary](#34-summary)
   - [4. Views – Interpreting Buffer Contents](#4-views--interpreting-buffer-contents)
   - [5. Views – Translating Indices to Offsets](#5-views--translating-indices-to-offsets)
@@ -87,38 +87,54 @@ This mechanism makes buffers ideal for dynamic tabular processing. Combined with
 
 In summary, buffers are the lowest common denominator of data in Tacit. They are byte-addressable, layout-transparent, view-driven, and safe for concurrent or pipeline use. Their simplicity enables flexibility. Their determinism enables performance. And their functional reinterpretation model allows them to underpin all other data structures in the system, from arrays to records to dynamic tables.
 
-## 3. Buffer Headers and Metadata Layout
+## 3. Buffer Tags and Metadata Layout
 
-Every buffer in Tacit begins with an optional metadata region, called the *header*. This header precedes the main content area and provides structured, self-describing information about how the buffer should be interpreted or manipulated. The metadata is composed of a sequence of 32-bit values, whose meaning and presence are determined by a compact, standardized layout.
+Every buffer in Tacit begins with a tagged value called a *buffer tag*, followed by optional metadata entries, and then the content values. The buffer tag identifies the structure as a buffer and encodes key properties including its size and metadata count, making buffers self-describing entities within Tacit's tagged value system.
 
-### 3.1 Metadata Length Encoding
+### 3.1 Buffer Tag Structure
 
-At minimum, the header contains a single 32-bit word: the *header length*. This value encodes the number of metadata words present, including itself. The value is expressed in 32-bit units, not bytes. If the value is one, the buffer has no metadata beyond the header length. If it is zero, the buffer is malformed. A buffer with no view and no auxiliary pointers will typically have a header length of one and behave as a raw byte array.
+The buffer tag is a 32-bit word that follows Tacit's tagged value format:
 
-The length field uses a nibble (four bits) within the high byte of the first 32-bit word to record the number of metadata slots. The remaining bits in that word may be reserved for future use (e.g., buffer flags, permissions, or ownership tags), but by default only the lower nibble is significant. A maximum value of fifteen gives up to fifteen 32-bit metadata entries, occupying sixty bytes total. This is generous and well beyond typical needs.
+- 4 bits: Tag type identifier (marking this as a BUFFER tag)
+- 16 bits: Buffer size in values (up to 64K values)
+- 3 bits: Metadata count (0-7 entries)
+- 9 bits: NaN boxing bits (required for the tagged value system)
 
-The metadata region is always followed immediately by the buffer's content area. Consumers that do not need metadata can ignore the region by skipping the number of words specified in the length field.
+This tag serves as the primary identifier for a buffer. The size field indicates the number of values (not bytes) in the buffer's content area, with each value typically being 32 bits. A buffer can therefore contain up to 64K values, which at 4 bytes per value represents 256KB of data—sufficient for most practical applications.
 
-### 3.2 Optional Metadata Fields
+The metadata count indicates how many 32-bit words follow the tag before the content area begins. These entries provide additional information about the buffer's structure, interpretation, or runtime state.
 
-The following fields may appear in the metadata region, in any order, subject to convention. Their presence and meaning are determined by context or by the view assigned to the buffer.
+### 3.2 Metadata Entries
 
-* **View Pointer**: A tagged reference to a view, typically used to interpret the layout of elements in the buffer (e.g., vector, record, array, or tuple). If present, this is usually in the second metadata slot (index one).
-* **Stack Pointer**: An integer indicating the current logical size of the buffer when used as a stack. Enables push and pop operations without external tracking.
-* **Read/Write Cursors**: Two optional indices indicating read and write positions, useful when the buffer is used as a streaming I/O channel, ring buffer, or text input queue.
-* **Custom Pointers**: Any application-specific slots that provide fast access to cached state, ownership chains, or synchronized resources.
+The buffer tag is followed by 0-7 metadata entries as specified in the tag's metadata count field. These 32-bit words provide additional information about the buffer's structure and state. Common metadata entries include:
 
-There is no fixed meaning assigned to each slot beyond the length header. The view, if present, may dictate a particular layout. Consumers should use conventions or introspection to determine slot semantics.
+* **View Pointer**: A tagged reference to a view that interprets the buffer's content layout (e.g., vector, record, array, or tuple).
+* **Stack Pointer**: An integer indicating the current logical size when the buffer is used as a stack, enabling push and pop operations.
+* **Read/Write Cursors**: Indices indicating positions for streaming operations, useful for I/O channels or ring buffers.
+* **Custom Pointers**: Application-specific values providing access to cached state, ownership information, or synchronized resources.
 
-### 3.3 Header Variability and Optimization
+There is no fixed meaning assigned to specific metadata slots. Conventions or the attached view determine the interpretation of these entries. This flexibility allows buffers to adapt to various usage patterns while maintaining a consistent overall structure.
 
-Because many buffers do not require metadata beyond the header length, most buffers will incur no more than four bytes of overhead. More complex structures, such as self-describing tables, shared stacks, or coroutine mailboxes, may benefit from embedding stack pointers, views, or control cursors directly in the metadata.
+### 3.3 Buffer Layout and Organization
 
-This model encourages compactness while allowing flexible augmentation. It avoids heap allocation for auxiliary structures by reserving minimal header space for control metadata. In stack-local scenarios, this allows fully encapsulated, in-place mutation and introspection without pointer chasing.
+The complete buffer structure follows this organization:
+
+```
+[BUFFER tag, metadata entries (0-7), content values...]
+```
+
+This layout provides several advantages:
+
+1. **Immediate access**: The buffer tag immediately identifies the structure and provides its critical properties.
+2. **Compact representation**: Minimal overhead for simple buffers (just one tag word).
+3. **Self-describing**: Contains all necessary information to interpret its contents.
+4. **Tagged type system integration**: Consistent with Tacit's other tagged values.
+
+For many simple buffers, no metadata entries are needed, resulting in just a 4-byte overhead. More complex structures like self-describing tables or streaming buffers benefit from the metadata entries for storing views, pointers, or cursors without requiring external control structures.
 
 ### 3.4 Summary
 
-The buffer header model is compact, flexible, and self-describing. It accommodates both raw byte arrays and structured, polymorphic data containers. Metadata is optional but standard; layout is fixed but extensible; and all semantics are discoverable through the header length and optional view.
+The buffer tag system provides a compact, flexible, and self-describing model for representing memory blocks in Tacit. The tag-based approach aligns buffers with Tacit's tagged value system while providing efficient access to buffer properties. Each buffer encodes its size and metadata count directly in its tag, followed by optional metadata entries that define its interpretation and runtime behavior. This design accommodates both simple byte arrays and complex structured data containers while maintaining a consistent memory layout and minimal overhead.
 
 ## 4. Views – Interpreting Buffer Contents
 
@@ -245,7 +261,7 @@ Where `@name` and `(2 3)` are field or index lookups through the view layer, but
 
 ### 7.3 As View, As Shape
 
-Every prototype is also a view. You can call it with index arguments, and it will translate those into data accesses. Because it also includes the metadata required to do this (either in the buffer header or embedded), it serves as a fully standalone value.
+Every prototype is also a view. You can call it with index arguments, and it will translate those into data accesses. Because it also includes the metadata required to do this (either in the buffer tag or embedded), it serves as a fully standalone value.
 
 In this way, a prototype *is* its own shape. It satisfies the same calling conventions, participates in array-style access, and can even be queried for its structure. This allows functions that expect views or shapes to work transparently with prototypes.
 
@@ -444,7 +460,7 @@ Tacit buffers are not limited to serving as static memory blocks or array backin
 
 ### 10.1 Header-Based Control Structures
 
-The buffer header always begins with a single 32-bit word describing the number of metadata entries. This word, stored at offset zero, dictates how many subsequent 32-bit fields follow before the actual buffer data begins. If this count is greater than one, it opens the door for stack or queue behavior via well-defined field positions.
+The buffer always begins with a buffer tag (a 32-bit word) that encodes the buffer size and the number of metadata entries. This tag, stored at offset zero, dictates how many subsequent 32-bit metadata fields follow before the actual buffer data begins. If the metadata count is greater than zero, it enables specialized behaviors such as stack or queue operations via well-defined field positions.
 
 ### 10.2 Stack Implementation
 

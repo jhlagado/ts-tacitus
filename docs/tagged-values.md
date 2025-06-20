@@ -7,20 +7,22 @@
   - [2.1 IEEE 754 Float32 Structure](#21-ieee-754-float32-structure)
   - [2.2 Tacit's NaN Boxing Implementation](#22-tacits-nan-boxing-implementation)
   - [2.3 Bit Layout](#23-bit-layout)
+  - [2.4 Segment Encoding](#24-segment-encoding)
 - [3. Core Tag Types](#3-core-tag-types)
   - [3.1 Number Tag](#31-number-tag)
   - [3.2 Integer Tag](#32-integer-tag)
   - [3.3 Code Tag](#33-code-tag)
   - [3.4 String Tag](#34-string-tag)
   - [3.5 Special Values](#35-special-values)
-- [4. Buffer and View Tags](#4-buffer-and-view-tags)
+- [4. Buffer and Tuple Tags](#4-buffer-and-tuple-tags)
   - [4.1 Buffer Tags](#41-buffer-tags)
   - [4.2 View Tags](#42-view-tags)
-  - [4.3 Span Pointer Tags](#43-span-pointer-tags)
+  - [4.3 Tuple Tags](#43-tuple-tags)
 - [5. Implementation Details](#5-implementation-details)
   - [5.1 Encoding Tagged Values](#51-encoding-tagged-values)
   - [5.2 Decoding Tagged Values](#52-decoding-tagged-values)
   - [5.3 Tag Checking](#53-tag-checking)
+  - [5.4 Segment Validation](#54-segment-validation)
 - [6. Future Extensions](#6-future-extensions)
 
 ## 1. Introduction
@@ -29,7 +31,7 @@ Tacit uses a uniform value representation based on 32-bit floating-point numbers
 
 NaN boxing leverages the fact that IEEE 754 floating-point format has many bit patterns that represent NaN (Not-a-Number). Since these patterns are not used for normal numerical operations, they can be repurposed to encode other data types, including integers, references, and tagged control values.
 
-This document describes how Tacit implements tagged values through NaN boxing, the layout of the bits, and how different types are represented. It also covers special cases like NIL, span pointers, and the relationship between tagged values and Tacit's buffer system.
+This document describes how Tacit implements tagged values through NaN boxing, the layout of the bits, and how different types are represented. It also covers special cases like NIL, tuple tags, and the relationship between tagged values and Tacit's buffer system.
 
 ## 2. NaN Boxing Approach
 
@@ -69,7 +71,7 @@ This scheme allows Tacit to:
 - Use standard floating-point numbers when needed
 - Encode small integers directly (-32,768 to 32,767)
 - Reference string constants, code blocks, and other structures
-- Support span pointers, views, and buffer references through the tag system
+- Support tuple tags, views, and buffer references through the tag system
 
 ### 2.3 Bit Layout
 
@@ -83,6 +85,28 @@ The complete bit layout for a NaN-boxed value in Tacit:
 ```
 
 Every valid tagged value is a quiet NaN when interpreted as an IEEE 754 float. When Tacit encounters a normal floating-point number (not a NaN), it treats it as a native NUMBER value with no tag.
+
+### 2.4 Segment Encoding
+
+For reference-type values that point to memory locations, Tacit encodes segment information within the tag to enable memory safety and lifetime enforcement. The segment encoding uses a subset of the tag bits to identify which memory segment contains the referenced value:
+
+```
+ 21    19 18    16
++--------+--------+
+|Segment |Base Tag|
++--------+--------+
+```
+
+The canonical segment types in Tacit are:
+
+- **STACK** (000) - Local frame-based storage with ephemeral lifetime
+- **DATA** (001) - Optional second stack for specialized data management
+- **GLOBAL** (010) - Program-wide persistent storage 
+- **STRING** (011) - Immutable interned string storage
+- **CODE** (100) - Static program code and constants
+- **HEAP** (101) - Dynamically allocated memory with explicit lifetime
+
+Segment encoding is a critical part of Tacit's memory safety mechanism. It ensures that references cannot outlive their intended scope (e.g., stack values cannot be stored in global variables) and enables immutability enforcement (e.g., code segment values cannot be modified).
 
 ## 3. Core Tag Types
 
@@ -122,23 +146,31 @@ Tacit defines special values using the tagging system:
 - **Boolean Values**: Can be represented as INTEGER tag with values 0 (false) and 1 (true).
 - **Sentinel Values**: Special markers used for control flow or to indicate boundaries can be encoded using specific tag and value combinations.
 
-## 4. Buffer, View and Tuple Tags
+## 4. Buffer and Tuple Tags
 
-With the transition away from heap tags to a buffer-centric model, Tacit introduces a streamlined set of tags for working with its memory structures:
+### 4.1 Buffer Tags
 
-### 4.1 Buffer Tag
+- **BUFFER** (Tag Value: 4): A reference to a multivalued object with header information.
 
-- **BUFFER** (Tag Value: 4): References a buffer - a contiguous memory region with associated metadata.
+Buffers are contiguous collections of values with a header tag that describes the buffer's properties. The buffer tag is a 32-bit tagged value at the beginning of the buffer that encodes:
 
-A buffer is a fundamental memory structure in Tacit that can exist anywhere in memory, not just on the stack. All buffers share the same tag, with their specific behavior determined by metadata stored within the buffer itself rather than through different tag types.
+- 4 bits: Tag type (BUFFER)
+- 16 bits: Buffer size in values (up to 64K values)
+- 3 bits: Metadata count (0-7 entries)
+- 9 bits: NaN boxing bits (required for tagged value encoding)
 
-The buffer metadata includes:
-- Size information
-- View reference (defining how to interpret the buffer)
-- Shape information (for dimensionality and access patterns)
-- Additional control metadata for specialized behaviors (stacks, queues, etc.)
+Buffer memory layout follows this pattern:
+```
+[BUFFER tag, metadata entries (0-7), content values...]
+```
 
-This unified approach allows a single buffer type to represent many different structures (arrays, records, tables, stacks, queues) without tag proliferation.
+The buffer metadata entries can include:
+- View references (defining how to interpret the buffer)
+- Stack pointers (for stack-like buffer behavior)
+- Cursors (tracking position in stream-like structures)
+- Custom pointers (for application-specific purposes)
+
+Each buffer reference also encodes segment information, indicating which memory segment (STACK, HEAP, CODE, etc.) contains the buffer. This enables memory safety enforcement at runtime while maintaining a unified approach to different buffer structures (arrays, records, tables, stacks, queues).
 
 ### 4.2 View Tag
 
@@ -156,12 +188,26 @@ Views enable zero-copy transformations and compositional data structures, making
 
 ### 4.3 Tuple Tags
 
-- **SPAN** (Tag Value: 6): General relative offset pointer within contiguous memory.
-- **TUPLE** (Tag Value: 7): Pointer to the root of a tuple structure.
+- **TUPLE** (Tag Value: 7): A footer tag that indicates the length of a tuple (previously called "span pointer").
 
-The SPAN tag represents a relative offset that can link elements within a contiguous memory region, while the TUPLE tag identifies the entry point to a tuple structure - a composable sequence of values with a span pointer footer.
+In Tacit, a tuple tag is placed at the end of a group of values to mark them as a tuple. It encodes:
 
-These tags enable efficient traversal and manipulation of structured sequences without requiring separate heap allocations or pointer dereferencing.
+- The TUPLE tag type (7)
+- The segment where the tuple resides (STACK, HEAP, etc.)
+- The count of values in the tuple
+
+A 3-element tuple would have this structure:
+
+```
+[value1, value2, value3, TUPLE:3]
+```
+
+Where TUPLE:3 is the tuple tag that indicates the preceding 3 values form a tuple. This tag enables:
+- Efficient backward traversal (by knowing how many values to skip)
+- Memory safety through segment identification
+- Tuple manipulation and polymorphism
+
+Tuple tags (like buffer tags) are tagged values themselves. While buffer tags appear at the beginning of buffers as headers, tuple tags appear at the end of tuples as footers. References to either buffers or tuples encode segment information, allowing the system to enforce memory safety without needing to know the internal structure of what's being referenced.
 
 ## 5. Implementation Details
 
@@ -197,6 +243,22 @@ Tacit provides efficient functions for checking the tag of a value:
 - Testing for special values like NIL
 
 These operations are designed to be fast and inlinable, minimizing the overhead of the tagging system during execution.
+
+### 5.4 Segment Validation
+
+When performing operations that manipulate references, Tacit validates segment compatibility to ensure memory safety:
+
+1. **Assignment Validation**: When assigning a reference to a variable, the system checks if the referenced segment is compatible with the variable's scope
+2. **Access Validation**: Before accessing data through a reference, the system confirms the segment is valid and accessible
+3. **Mutation Validation**: Before modifying data, the system verifies the segment permits mutation (e.g., CODE segment data cannot be modified)
+
+These validation checks occur at runtime and generate appropriate errors when violations are detected:
+
+- Storing a STACK reference in a GLOBAL variable (lifetime violation)
+- Attempting to modify CODE segment data (immutability violation)
+- Using a reference after its segment has been deallocated (dangling reference)
+
+Segment validation is a key part of Tacit's memory safety guarantees and operates alongside the tagging system to prevent common memory errors.
 
 ## 6. Future Extensions
 
