@@ -9,9 +9,16 @@
 - [6. Tuple Value Semantics in Detail](#6-tuple-value-semantics-in-detail)
 - [7. Reference Semantics and Buffer Assignment](#7-reference-semantics-and-buffer-assignment)
 - [8. Scalars and Tagged Simple Values](#8-scalars-and-tagged-simple-values)
+  - [Tagged Reference Format](#tagged-reference-format)
 - [9. Copying, Reassignment, and Reuse](#9-copying-reassignment-and-reuse)
+  - [Segment-Based Assignment Rules](#segment-based-assignment-rules)
 - [10. Compaction and Fragmentation Strategies](#10-compaction-and-fragmentation-strategies)
 - [11. Closing Principles and Design Guidelines](#11-closing-principles-and-design-guidelines)
+- [12. Segment-Based References](#12-segment-based-references)
+  - [12.1 Segment Tagging Scheme](#121-segment-tagging-scheme)
+  - [12.2 Core Segment Types](#122-core-segment-types)
+  - [12.3 Runtime Enforcement](#123-runtime-enforcement)
+  - [12.4 Benefits of Segment-Based References](#124-benefits-of-segment-based-references)
 
 ## 1. Arena-Based Memory Model
 
@@ -23,9 +30,31 @@ The arena model is foundational to Tacit’s philosophy of ownership, locality, 
 
 ## 2. Segments and Arena Identity
 
-Tacit divides memory into four canonical segments: stack, string, code, and heap. Each segment is itself an arena, governed by the same bump allocation rules but serving distinct semantic roles. Tagged values that represent references—such as buffers or tuples—encode segment identity directly in their type tag, allowing runtime systems to interpret their origin, manage their lifetime, and apply appropriate constraints.
+Tacit divides memory into distinct segments, each serving as an arena governed by the same bump allocation rules but with unique semantic roles. Tagged values that represent references—such as buffers or tuples—encode segment identity directly in their type tag, allowing runtime systems to interpret their origin, manage their lifetime, and apply appropriate constraints.
 
-Stack-segmented arenas host local variables and transient tuples. These allocations are frame-local and cannot safely escape their context. Heap arenas hold globally allocated or long-lived values, often shared between tasks or passed across coroutine boundaries. Code segments contain immutable program data, including constants and precompiled tuples. String segments store unique, immutable digests that represent string values by reference.
+The canonical segment reference types in Tacit are:
+
+* **STACK** – Local frame-based storage containing transient values that cannot safely escape their context
+* **DATA** – Optional second stack that may be used for separate data storage when needed
+* **GLOBAL** – Long-lived values, often shared between tasks or persisted across execution boundaries
+* **STRING** – Immutable interned strings and text data with global lifetime
+* **CODE** – Embedded static code blocks and immutable constants
+* **HEAP** – Dynamically allocated data with explicit lifetime management
+
+Each segment has specific properties and constraints that affect how references to values within them can be used:
+
+* Stack-segmented arenas host local variables and transient tuples. These allocations are frame-local and cannot safely escape their context.
+* Heap arenas hold dynamically allocated or long-lived values, often shared between tasks or passed across coroutine boundaries.
+* Code segments contain immutable program data, including constants and precompiled tuples. These values cannot be modified at runtime.
+* String segments store unique, immutable digests that represent string values by reference, supporting efficient text handling.
+* Global segments hold persistent values accessible throughout program execution.
+* When present, the Data segment provides an alternative stack for specialized data handling separate from the control stack.
+
+Importantly, tagged reference values encode segment identity using a few high bits (typically within the tag field of a tagged value). This segment encoding is critical for memory safety enforcement at runtime. For example:
+
+* A `STACK` segment pointer cannot be assigned to a `GLOBAL` variable, preventing dangling references
+* The `CODE` segment is immutable and read-only, enforced by runtime checks
+* `HEAP` references must be properly tracked to avoid memory leaks
 
 Segment tagging allows Tacit to enforce memory safety and lifetime discipline without runtime garbage collection. For instance, a tuple allocated on the stack may not be reassigned to a global variable, and buffers allocated in heap arenas may be freely shared across scopes. Segment-aware tagging ensures that all memory operations are interpreted correctly, regardless of where the value originated.
 
@@ -51,7 +80,14 @@ The consistency of value semantics across tuples improves predictability in func
 
 ## 5. Reference Semantics and Buffer Behavior
 
-Buffers in Tacit are explicitly reference types. When assigned to a variable or passed between functions, only the reference is transferred, not the buffer’s contents. This distinction is central to how buffers are used for mutable or shared data structures like tables, queues, or large vectors.
+Buffers in Tacit are explicitly reference types. When assigned to a variable or passed between functions, only the reference is transferred, not the buffer's contents. This distinction is central to how buffers are used for mutable or shared data structures like tables, queues, or large vectors.
+
+Importantly, buffer references include segment tags that identify which memory segment contains the buffer. These segment tags are encoded directly in the reference and determine both the lifetime and usage constraints of the buffer:
+
+* **STACK** buffers are ephemeral and valid only within their local frame. They cannot escape their defining scope and are automatically invalidated when the stack frame is popped.
+* **HEAP** buffers are dynamically allocated, reusable, and long-lived. They persist until explicitly freed and can be shared across multiple scopes.
+* **GLOBAL** buffers have program-wide visibility and lifetime, suitable for shared resources.
+* **CODE** segment buffers (such as precompiled tables or embedded arrays) are immutable and globally shared, preventing any runtime modification.
 
 Because buffers can grow, mutate, or be appended to, their lifetime and mutability must be managed carefully. Assigning a buffer to a local or global variable preserves its identity and structure. Any mutation via that reference is visible across all holders of the reference. Thus, buffers act as shared mutable arenas, contrasting with the isolated, copy-on-write behavior of tuples.
 
@@ -91,7 +127,18 @@ This dual model—value for tuples, reference for buffers—provides Tacit with 
 
 Scalars are the simplest category of values in Tacit. These include integers, floats, Booleans, and internal system constants. They are always passed and assigned by value, occupy a single slot, and do not reference memory outside the value itself. Their representation is typically a tagged 32-bit or 64-bit word, with the tag identifying the type and the remainder holding the payload directly.
 
-These values are immutable, atomic, and require no memory management. They are copied freely between stack, locals, and buffers without reference semantics or allocation overhead. Scalars form the core of most control logic, arithmetic, and indexing expressions in Tacit programs.
+### Tagged Reference Format
+
+While most scalar values contain their data directly, reference-type values use a specialized tagged pointer format that incorporates segment information:
+
+* **Type Tag**: The base type (e.g., buffer, tuple reference, function)
+* **Segment Encoding**: Several high bits dedicated to identifying the memory segment (STACK, HEAP, CODE, etc.)
+* **Address Value**: The actual memory address within the identified segment
+* **Optional Flags**: May include mutability, ownership, or other runtime constraints
+
+This segment-encoded reference format is fundamental to Tacit's memory safety. For example, when a function receives a reference-type parameter, it can immediately determine if it's pointing to stack memory (and thus ephemeral), code memory (and thus immutable), or heap memory (requiring careful lifetime management). The segment metadata travels with every reference, making cross-segment violations detectable at runtime.
+
+Non-reference scalars are immutable, atomic, and require no memory management. They are copied freely between stack, locals, and buffers without reference semantics or allocation overhead. Scalars form the core of most control logic, arithmetic, and indexing expressions in Tacit programs.
 
 From a memory management perspective, scalars do not participate in bump allocation, reclamation, or compaction. Their storage footprint is constant, their lifetime is tied to the container that holds them, and their presence poses no fragmentation risk. When stored in a buffer or tuple, they simply occupy fixed-size slots, making them ideal for arrays of primitives or compact tables.
 
@@ -102,6 +149,17 @@ Together, scalars, tuples, and buffers represent the three principal classes of 
 ## 9. Copying, Reassignment, and Reuse
 
 Tacit distinguishes clearly between value copying and reference passing. Scalars are always copied. Tuples are typically copied when assigned to variables, preserving value semantics. Buffers, on the other hand, are assigned and passed by reference.
+
+### Segment-Based Assignment Rules
+
+When reassigning values between variables or memory locations, Tacit enforces strict segment-compatibility rules based on the segment tags encoded in references:
+
+* **Reassigning a `STACK`-segmented value to a `GLOBAL` variable raises an error**, as stack values cannot outlive their frame.
+* **`CODE` segment values can be assigned to any location but are immutable**, preventing modification attempts.
+* **`HEAP` segment values can be assigned to both stack and global variables**, supporting flexible lifetime management.
+* **Cross-segment tuple copies preserve structure but allocate in the target segment**, ensuring memory safety.
+
+These segment-based constraints are enforced at runtime through the segment tag within each reference. This enables Tacit to catch potential memory safety issues like escaping stack references while still allowing efficient reference-based operations when appropriate.
 
 Reassigning a tuple to a variable allocates a new memory region and updates the variable to point to the new value. The old allocation becomes unreachable unless tracked for reuse or compaction. Because tuples are tagged with their size, compaction is theoretically possible—moving later allocations downward to fill any gaps—but it introduces runtime cost. Tacit assumes the simplest model first: bump allocation with no implicit deallocation or reuse.
 
@@ -132,3 +190,53 @@ Assignment is not mutation. Reassignment is allocation. And copying is always sa
 Tacit places power in the hands of the programmer. Simplicity is enforced, and discipline is expected. In return, you gain predictable performance, precise memory behavior, and a model that scales from embedded devices to structured tabular computation without runtime indirection or GC overhead.
 
 The system rewards careful layout, deliberate ownership, and structural clarity—whether you’re working with a scalar, a tuple, or a whole arena.
+
+## 12. Segment-Based References
+
+Segment-based references are a cornerstone of Tacit's memory safety model. This approach ensures that memory references don't outlive their intended scope while supporting flexible data sharing when appropriate. This section consolidates the segment reference concept that appears throughout Tacit's memory model.
+
+### 12.1 Segment Tagging Scheme
+
+In Tacit, every reference carries segment identity encoded within its tag bits:
+
+```
+[Type Tag | Segment Tag | Address | Optional Flags]
+```
+
+The segment tag typically occupies 3-4 bits of the reference, identifying the memory segment (STACK, HEAP, CODE, etc.) in which the referenced value resides. This small addition to references provides powerful safety guarantees without significant overhead.
+
+### 12.2 Core Segment Types
+
+Tacit supports these canonical segment types, each with distinct properties:
+
+* **STACK** - Frame-local, automatically reclaimed values
+* **DATA** - Optional second stack for specialized data management
+* **GLOBAL** - Long-lived values with program-wide scope
+* **STRING** - Immutable text and interned string data
+* **CODE** - Static program code and immutable constants
+* **HEAP** - Dynamically allocated data with explicit lifetime control
+
+Implementations may define additional segments for specialized purposes, but all must adhere to the core segment safety rules.
+
+### 12.3 Runtime Enforcement
+
+Segment-based references enable runtime enforcement of key memory safety properties:
+
+1. **Stack Escape Prevention**: Stack references cannot be stored in longer-lived locations
+2. **Immutability Enforcement**: CODE segment values cannot be modified
+3. **Cross-Context Safety**: References maintain their segment identity when passed between contexts
+4. **Debugging Support**: Segment information aids in diagnosing memory errors
+
+These runtime checks occur during assignment, parameter passing, and buffer operations, catching errors that would be difficult to detect statically.
+
+### 12.4 Benefits of Segment-Based References
+
+This approach offers several advantages:
+
+* **No GC Required**: Safety without garbage collection overhead
+* **Explicit Lifetimes**: Clear ownership and lifetime semantics
+* **Runtime Safety**: Catches errors at the point they occur
+* **Performance**: Minimal overhead compared to full memory management
+* **Simplicity**: Reference safety without complex pointer analysis
+
+By encoding segment metadata directly into references, Tacit gains many of the safety benefits of more complex memory management systems without sacrificing simplicity or performance.

@@ -81,7 +81,7 @@ Tacit uses a uniform 32-bit value representation with NaN-boxing:
 - **Tagged Values**: All values carry type information through NaN-boxing in Float32
 - **Core Types**: Numbers, integers, strings, code references
 - **Buffer Types**: References to buffers with associated views and shapes
-- **Span Types**: References to span pointers and tuples
+- **Span Types**: References to tuple tags and tuples
 - **Composition**: Types compose through views and interpretations
 
 For more information, see the [tagged-values](./tagged-values.md) documentation.
@@ -90,7 +90,7 @@ For more information, see the [tagged-values](./tagged-values.md) documentation.
 
 Tacit provides several core data structure abstractions:
 
-- **Tuples**: Composable sequences in contiguous memory with span pointer footers
+- **Tuples**: Composable sequences in contiguous memory with tuple tag footers
 - **Records**: Views that map symbolic field names to memory offsets
 - **Tables**: Collections of records with shared structure
 - **Arrays**: Multi-dimensional sequences with shape information
@@ -145,7 +145,7 @@ All values in Tacit use a 32-bit tagged format. These include:
 * **Small scalars** (integers, floats, booleans)
 * **Pointers** to buffers, spans, or other composite data
 * **Tags** (6-bit fields) encode type and behavior
-* **Special tags** represent buffer handles, span pointers, or symbolic constants
+* **Special tags** represent buffer handles, tuple tags, or symbolic constants
 
 This representation ensures uniform stack operations, type safety, and efficient dispatch.
 
