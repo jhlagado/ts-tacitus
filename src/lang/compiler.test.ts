@@ -1,5 +1,5 @@
 // src/core/compiler.test.ts
-import { Op } from '../ops/opcodes';
+import { addOp } from '../ops/basic/builtins';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { fromTaggedValue } from '../core/tagged';
 
@@ -29,17 +29,20 @@ describe('Compiler', () => {
   });
 
   it('should compile a literal number', () => {
-    vm.compiler.compile8(Op.LiteralNumber); // Use Op enum
+    vm.compiler.compile8(255); // 255 is the marker for operations in the compiler
     vm.compiler.compileFloat32(42);
     vm.reset();
-    expect(vm.next8()).toBe(Op.LiteralNumber);
+    expect(vm.next8()).toBe(255);
     expect(vm.nextFloat32()).toBeCloseTo(42);
   });
 
   it('should compile a built-in word', () => {
-    vm.compiler.compile8(Op.Plus); // Use Op enum
+    // Store operation in compiler's operations array
+    vm.compiler.compileOp(addOp); 
     vm.reset();
-    expect(vm.next8()).toBe(Op.Plus); // Use next8 for opcodes
+    // Should have compiled a marker (255) followed by the operation index (0)
+    expect(vm.next8()).toBe(255); 
+    expect(vm.next16()).toBe(0); // First operation has index 0
   });
 
   it('should preserve compiled code when preserve is true', () => {

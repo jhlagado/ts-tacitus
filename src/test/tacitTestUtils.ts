@@ -1,6 +1,4 @@
-import { Tokenizer } from '../lang/tokenizer';
-import { parse } from '../lang/parser';
-import { execute } from '../lang/interpreter';
+import { Interpreter } from '../lang/interpreter';
 import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
@@ -12,9 +10,9 @@ export function executeTacitCode(code: string): number[] {
   // Initialize interpreter state
   initializeInterpreter();
 
-  // Parse and execute the code
-  parse(new Tokenizer(code));
-  execute(vm.compiler.BP);
+  // Create interpreter and evaluate the code
+  const interpreter = new Interpreter(vm);
+  interpreter.eval(code);
 
   // Return the stack for assertions
   return vm.getStackData();
@@ -93,8 +91,8 @@ export function captureTacitOutput(code: string): string[] {
 
   try {
     // Execute the code
-    parse(new Tokenizer(code));
-    execute(vm.compiler.BP);
+    const interpreter = new Interpreter(vm);
+    interpreter.eval(code);
 
     return output;
   } finally {
@@ -113,8 +111,8 @@ export function runTacitTest(testCode: string): number[] {
   initializeInterpreter();
 
   // Parse and execute the code
-  parse(new Tokenizer(testCode));
-  execute(vm.compiler.BP);
+  const interpreter = new Interpreter(vm);
+  interpreter.eval(testCode);
 
   // Return the stack state after execution
   return vm.getStackData();

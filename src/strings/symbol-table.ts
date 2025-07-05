@@ -1,4 +1,3 @@
-import { Op } from '../ops/opcodes';
 import { Digest } from './digest';
 import { Verb } from '../core/types';
 import { VM } from '../core/vm';
@@ -10,8 +9,11 @@ interface SymbolTableNode {
 }
 
 const compileCall = (address: number) => (vm: VM) => {
-  vm.compiler.compile8(Op.Call);
-  vm.compiler.compile16(address);
+  // In our simplified approach, we compile a direct operation function
+  // that jumps to the specified address
+  vm.compiler.compileOp((vm: VM) => {
+    vm.IP = address;
+  });
 };
 
 /** Represents a saved state of the symbol table. */

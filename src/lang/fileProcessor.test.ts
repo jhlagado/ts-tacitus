@@ -86,7 +86,7 @@ describe("processFile", () => {
   });
 
   it("should process file content line by line", () => {
-    const fileContent = "line1\n   \n// comment\nline2";
+    const fileContent = "line1\n   \n\\ comment\nline2";
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
     processFile("file.tacit");
@@ -99,6 +99,7 @@ describe("processFile", () => {
     const fileContent = "line1\nline2\nline3";
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
+    // First line succeeds, second line throws error
     (executeLine as jest.Mock)
       .mockImplementationOnce(() => {})
       .mockImplementationOnce(() => {
@@ -109,6 +110,7 @@ describe("processFile", () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining("Error in file")
     );
+    // Second line (index 1) in the array, so it's line 2 in the file
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining("at line 2:")
     );

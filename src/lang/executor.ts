@@ -1,7 +1,9 @@
-// core/executor.ts
-import { Tokenizer } from './tokenizer';
-import { parse } from './parser';
-import { execute } from './interpreter';
+/**
+ * @file src/lang/executor.ts
+ * Simple executor for Tacit language lines
+ */
+
+import { Interpreter } from './interpreter';
 import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
@@ -10,9 +12,17 @@ import { initializeInterpreter, vm } from '../core/globalState';
  * @throws Error if execution fails
  */
 export function executeLine(input: string): void {
-  const tokenizer = new Tokenizer(input);
-  parse(tokenizer);
-  execute(vm.compiler.BP);
+  if (!input || input.trim() === '') {
+    return; // Early return for empty input
+  }
+  
+  try {
+    const interpreter = new Interpreter(vm);
+    interpreter.eval(input);
+  } catch (error) {
+    // Re-throw any errors from tokenizer, parser, or interpreter
+    throw error;
+  }
 }
 
 /**

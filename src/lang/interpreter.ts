@@ -1,74 +1,82 @@
-import { executeOp } from '../ops/builtins';
-import { vm } from '../core/globalState';
-import { parse } from './parser';
+/**
+ * @file src/lang/interpreter.ts
+ * A minimal interpreter for the Forth-like Tacit language
+ */
+
+import { VM } from '../core/vm';
+import { SymbolTable } from '../strings/symbol-table';
 import { toTaggedValue, CoreTag } from '../core/tagged';
-import { Tokenizer } from './tokenizer';
-
-export function execute(start: number, breakAtIP?: number): void {
-  vm.IP = start;
-  vm.running = true;
-  while (vm.running) {
-    // Check if we need to break before executing the next instruction
-    if (breakAtIP !== undefined && vm.IP === breakAtIP) {
-      vm.running = false; // Stop execution
-      break; // Exit the loop
-    }
-
-    const opcode = vm.next8(); // Read the 8-bit opcode
-    if (vm.debug) console.log({ opcode }, vm.IP - 1);
-    try {
-      executeOp(vm, opcode);
-    } catch (error) {
-      const stackState = JSON.stringify(vm.getStackData());
-      const errorMessage =
-        `Error executing word (stack: ${stackState})` +
-        (error instanceof Error ? `: ${error.message}` : '');
-      if (vm.debug) console.log((error as Error).stack);
-
-      // Reset compiler state when an error occurs
-      vm.compiler.reset();
-      vm.compiler.preserve = false;
-      console.log((error as Error).stack);
-      throw new Error(errorMessage);
-    }
-  }
-  vm.compiler.reset();
-  vm.compiler.preserve = false; // Reset preserve flag
-}
-
-export function executeProgram(code: string): void {
-  parse(new Tokenizer(code));
-  execute(vm.compiler.BP);
-}
 
 /**
- * Executes a specific block of Tacit code using the current global VM state
- * without resetting the interpreter. Control returns to the caller
- * after the Tacit code executes its 'exit' operation.
- * Assumes the global vm state is already set up as needed (e.g., stack prepared).
- *
- * @param codePtr The starting address (instruction pointer) of the Tacit code to execute.
+ * A simplified interpreter for the Forth-like Tacit language
  */
-export function callTacitFunction(codePtr: number): void {
-  // 1. Store the IP where TypeScript execution should resume conceptually.
-  const returnIP = vm.IP;
+export class Interpreter {
+  vm: VM;
+  symbolTable: SymbolTable;
 
-  // 2. Push the IP onto the VM's return stack, tagged as code.
-  // This tells the Tacit code's 'exit' operation where to jump back to.
-  vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
-  vm.rpush(vm.BP);
-  vm.BP = vm.RP;
+  constructor(vm: VM) {
+    this.vm = vm;
+    this.symbolTable = vm.symbolTable;
+  }
 
-  // 3. Set the Instruction Pointer to the beginning of the Tacit function.
-  vm.IP = codePtr;
+  /**
+   * Parse and evaluate a Tacit expression
+   */
+  eval(expression: string): number | undefined {
+    // Tokenize the input
+    const tokens = this.tokenize(expression);
 
-  // 4. Ensure the VM is marked as running.
-  vm.running = true;
+    // Process each token
+    for (const token of tokens) {
+      // Try to find the token in the symbol table
+      const entry = this.symbolTable.find(token);
 
-  // 5. Call the main execution loop, providing the start IP and the IP to break at.
-  execute(vm.IP, returnIP);
+      if (entry !== null && entry !== undefined) {
+        // Execute the symbol's operation
+        entry(this.vm);
+      } else if (this.isInteger(token)) {
+        // If it's an integer, push it as an INTEGER
+        const value = parseInt(token, 10);
+        this.vm.push(toTaggedValue(value, false, CoreTag.INTEGER));
+      } else if (this.isFloat(token)) {
+        // If it's a floating point number, push it as a raw number
+        const value = parseFloat(token);
+        this.vm.push(value);
+      } else if (token === '.s') {
+        // Special command to print the stack (for debugging)
+        console.log('Stack:', this.vm.getStackData());
+      } else {
+        throw new Error(`Unknown token: ${token}`);
+      }
+    }
 
-  // 6. Execution returns here once the loop breaks (because vm.IP became returnIP).
-  // The results of the Tacit function are now on the vm's data stack.
-  // vm.IP should be equal to the original returnIP.
+    // Return the top value of the stack if available
+    if (this.vm.SP > 0) {
+      return this.vm.peek();
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Tokenize a string into an array of tokens
+   */
+  private tokenize(input: string): string[] {
+    // Split by whitespace, filtering out empty strings
+    return input.trim().split(/\s+/).filter(token => token.length > 0);
+  }
+
+  /**
+   * Check if a string represents an integer
+   */
+  private isInteger(str: string): boolean {
+    return /^-?\d+$/.test(str);
+  }
+
+  /**
+   * Check if a string represents a floating-point number
+   */
+  private isFloat(str: string): boolean {
+    return /^-?\d*\.\d+$/.test(str);
+  }
 }

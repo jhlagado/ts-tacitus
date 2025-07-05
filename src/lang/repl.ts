@@ -1,123 +1,186 @@
-import { createInterface } from "readline";
-import { executeLine, setupInterpreter } from "./executor";
-import { processFile } from "./fileProcessor";
+/**
+ * @file src/lang/repl.ts
+ * A simple REPL (Read-Eval-Print-Loop) for the minimal Forth-like Tacit language
+ */
+
+import * as readline from 'readline';
+import { executeLine, setupInterpreter } from './executor';
+import { vm } from '../core/globalState';
+import { formatValue } from '../core/utils';
+import { processFile } from './fileProcessor';
 
 /**
- * Starts an interactive REPL session
+ * A simple REPL for interacting with the Tacit language
  */
-export function startREPL(
-  files: string[] = [],
-  interactiveAfterFiles: boolean = true
-): void {
-  setupInterpreter();
+export class REPL {
+  rl: readline.Interface;
 
-  // Process any files provided
-  let allFilesProcessed = true;
-  if (files.length > 0) {
-    console.log(`Loading ${files.length} file(s)...`);
+  constructor() {
+    // Initialize a fresh interpreter
+    setupInterpreter();
+    
+    // Create readline interface
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: 'tacit> '
+    });
+  }
 
-    for (const file of files) {
-      const success = processFile(file);
-      if (!success) {
-        console.error(`Error processing file: ${file}`);
-        allFilesProcessed = false;
+  /**
+   * Start the REPL
+   */
+  start(): void {
+    console.log('Minimal Tacit Language REPL');
+    console.log('Type ".help" for available commands');
+    this.rl.prompt();
+
+    this.rl.on('line', (line) => {
+      const input = line.trim();
+      
+      if (input === '') {
+        // Empty input, just show prompt again
+        this.rl.prompt();
+        return;
       }
-    }
-
-    if (allFilesProcessed) {
-      console.log("All files loaded successfully.");
-    } else {
-      console.log("Some files had errors but REPL will continue.");
-    }
-  }
-
-  // Exit if not interactive mode after files
-  if (!interactiveAfterFiles) {
-    return;
-  }
-
-  console.log(
-    "Interactive mode (type 'exit' to quit, 'load <filepath>' to load a file):"
-  );
-
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: "> ",
-  });
-
-  rl.prompt();
-
-  rl.on("line", (line) => {
-    const command = line.trim();
-
-    if (command === "exit") {
-      console.log("Goodbye!");
-      rl.close();
-      return;
-    }
-
-    // Add support for loading files during interactive mode
-    if (command.startsWith("load ")) {
-      const filePath = command.substring(5).trim();
+      
+      if (input === '.exit' || input === '.quit') {
+        // Exit command
+        this.rl.close();
+        return;
+      }
+      
+      if (input === '.reset') {
+        // Reset the interpreter
+        setupInterpreter();
+        console.log('Interpreter reset');
+        this.rl.prompt();
+        return;
+      }
+      
+      // Load a Tacit file
+      if (input.startsWith('.load ')) {
+        const filename = input.substring(6).trim();
+        try {
+          const success = processFile(filename);
+          if (success) {
+            console.log(`File ${filename} loaded successfully.`);
+          } else {
+            console.log(`File ${filename} had errors but REPL will continue.`);
+          }
+        } catch (error) {
+          console.error('Error loading file:');
+          if (error instanceof Error) {
+            console.error(`  ${error.message}`);
+          } else {
+            console.error(`  ${String(error)}`);
+          }
+        }
+        this.rl.prompt();
+        return;
+      }
+      
+      if (input === '.help') {
+        // Show help text
+        console.log('Available commands:');
+        console.log('  .help     - Show this help message');
+        console.log('  .exit     - Exit the REPL');
+        console.log('  .quit     - Exit the REPL');
+        console.log('  .reset    - Reset the interpreter state');
+        console.log('  .load     - Load and execute a Tacit file');
+        console.log('  .s        - Print the current stack contents');
+        console.log('\nBasic Forth-like operations:');
+        console.log('  dup, drop, swap, over, rot');
+        console.log('  +, -, *, /, mod');
+        console.log('  =, <, >');
+        console.log('  if');
+        console.log('\nComments:');
+        console.log('  \\ This is a comment (everything after \\ on a line is ignored)')
+        this.rl.prompt();
+        return;
+      }
+      
+      if (input === '.s') {
+        // Print the stack
+        const stack = vm.getStackData();
+        console.log('Stack:', stack.map(val => formatValue(vm, val)));
+        this.rl.prompt();
+        return;
+      }
+      
       try {
-        const success = processFile(filePath);
+        // Evaluate the input using the executor
+        executeLine(input);
+        // We don't show a result here as executeLine handles output
+      } catch (error) {
+        // Print any errors
+        if (error instanceof Error) {
+          console.error('Error:', error.message);
+        } else {
+          console.error('Unknown error occurred');
+        }
+      }
+      
+      this.rl.prompt();
+    });
+
+    this.rl.on('close', () => {
+      console.log('Goodbye!');
+      process.exit(0);
+    });
+  }
+}
+
+// If this module is run directly, start the REPL
+if (require.main === module) {
+  const repl = new REPL();
+  repl.start();
+}
+
+/**
+ * Start a REPL session
+ * @param files Optional files to process before starting the REPL
+ * @param interactiveAfterFiles Whether to enter interactive mode after processing files
+ */
+export function startREPL(files?: string[], interactiveAfterFiles: boolean = true): void {
+  // Initialize interpreter
+  setupInterpreter();
+  
+  // Process files if provided
+  let allFilesSucceeded = true;
+  
+  if (files && files.length > 0) {
+    console.log(`Loading ${files.length} file(s)...`);
+    
+    for (const file of files) {
+      try {
+        const success = processFile(file);
         if (!success) {
-          console.log(
-            "File processing encountered errors but REPL will continue."
-          );
+          console.error(`Error processing file: ${file}`);
+          allFilesSucceeded = false;
         }
       } catch (error) {
-        console.error("Error loading file:");
+        console.error(`Error processing file: ${file}`);
         if (error instanceof Error) {
           console.error(`  ${error.message}`);
+        } else {
+          console.error('  Unknown error');
         }
-      }
-      rl.prompt();
-      return;
-    }
-
-    try {
-      executeLine(command);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(`Error: ${error.message}`);
-      } else {
-        console.error("Unknown error occurred");
+        allFilesSucceeded = false;
       }
     }
-
-    rl.prompt();
-  });
-
-  rl.on("close", () => {
-    console.log("REPL exited.");
-  });
-}
-
-/**
- * Main entry point for the interpreter
- */
-export function main(): void {
-  const args = process.argv.slice(2);
-
-  // Check for a --no-interactive flag
-  const noInteractiveIndex = args.indexOf("--no-interactive");
-  const interactiveAfterFiles = noInteractiveIndex === -1;
-
-  // Remove flags from the args list
-  const files = args.filter((arg) => !arg.startsWith("--"));
-
-  if (files.length === 0) {
-    // No files specified, start in interactive mode only
-    startREPL();
-  } else {
-    // Process files and conditionally go to interactive mode
-    startREPL(files, interactiveAfterFiles);
+    
+    if (allFilesSucceeded) {
+      console.log('All files loaded successfully.');
+    } else {
+      console.log('Some files had errors.');
+    }
   }
-}
-
-// Allow direct execution from command line
-if (require.main === module) {
-  main();
+  
+  // Enter interactive mode if requested
+  if (!files || files.length === 0 || interactiveAfterFiles) {
+    console.log('Entering Interactive mode...');
+    const repl = new REPL();
+    repl.start();
+  }
 }

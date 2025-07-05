@@ -1,16 +1,12 @@
-import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
-
+/**
+ * Simplified tokenizer for the minimal Forth-like language implementation
+ * Following basic Forth principles with backslash comments
+ */
 export enum TokenType {
-  NUMBER,
-  WORD,
-  STRING,
-  SPECIAL, // For special characters like : and ;, etc.
-  GROUP_START, // New type for #[
-  GROUP_END, // New type for ]#
-  BLOCK_START,  // New type for '{' compile-time block start
-  BLOCK_END,    // New type for '}' compile-time block end
-  WORD_QUOTE, // Re-added type for back-tick prefixed quoted words
-  EOF,
+  NUMBER,  // For numeric literals
+  WORD,    // For identifiers and words
+  SPECIAL, // For special characters like : and ;
+  EOF      // End of file/input
 }
 
 export type TokenValue = number | string | null;
@@ -24,284 +20,115 @@ export interface Token {
 export class Tokenizer {
   public input: string;
   public position: number;
-  public line: number;
-  public column: number;
-  private pushedBack: Token | null;
+  private tokens: Token[];
+  private currentTokenIndex: number;
 
   constructor(input: string) {
     this.input = input;
     this.position = 0;
-    this.pushedBack = null;
-    this.line = 1;
-    this.column = 1;
+    this.tokens = [];
+    this.currentTokenIndex = 0;
+    
+    // Pre-tokenize the input on construction
+    this.tokenizeInput();
   }
 
-  pushBack(token: Token): void {
-    if (this.pushedBack !== null) {
-      throw new Error('Cannot push back more than one token');
-    }
-    this.pushedBack = token;
-  }
-
-  nextToken(): Token {
-    if (this.pushedBack !== null) {
-      const token = this.pushedBack;
-      this.pushedBack = null;
-      return token;
-    }
-
-    this.skipWhitespace();
-
-    if (this.position >= this.input.length) {
-      return {
-        type: TokenType.EOF,
-        value: null,
-        position: this.position,
-      };
-    }
-
-    const char = this.input[this.position];
-    const startPos = this.position;
-
-    // Check for #[
-    if (
-      char === '#' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '['
-    ) {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.GROUP_START, value: '#[', position: startPos };
-    }
-
-    // Check for ]#
-    if (
-      char === ']' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '#'
-    ) {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.GROUP_END, value: ']#', position: startPos };
-    }
-
-    // Handle comments starting with "//"
-    if (
-      char === '/' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '/'
-    ) {
-      this.skipComment();
-      return this.nextToken();
-    }
-
-    // Handle string literals (starting with a double quote)
-    if (char === '"') {
-      return this.readString();
-    }
-
-    // Handle numbers (including those with a sign or decimal point)
-    if (
-      isDigit(char) ||
-      ((char === '+' || char === '-' || char === '.') &&
-        this.position + 1 < this.input.length &&
-        isDigit(this.input[this.position + 1]))
-    ) {
-      return this.readNumber();
-    }
-
-    // Check for dictionary start sequence ': ['
-    if (char === ':' && this.position + 1 < this.input.length && this.input[this.position + 1] === '[') {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.SPECIAL, value: ':[' , position: startPos };
-    }
-
-    // Check for dictionary end sequence ']:'
-    if (char === ']' && this.position + 1 < this.input.length && this.input[this.position + 1] === ':') {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.SPECIAL, value: ']:', position: startPos };
-    }
-
-    // Handle special instruction characters (like ":" and ";")
-    if (char === ':' || char === ';') {
-      this.position++;
-      this.column++;
-      return { type: TokenType.SPECIAL, value: char, position: startPos };
-    }
-
-    // If the character is one of "[]", return it as a WORD token. - MUST BE AFTER ]# check
-    if ('[]'.includes(char)) {
-      this.position++;
-      this.column++;
-      return { type: TokenType.WORD, value: char, position: startPos };
-    }
-
-    // Handle block start and end characters
-    if (char === '{' || char === '}') {
-      const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
-      this.position++;
-      this.column++;
-      return { type, value: char, position: startPos };
-    }
-
-    // Handle back-tick prefixed quoted words
-    if (char === '`') {
-      this.position++; // Consume back-tick
-      this.column++;
-      const wordStartPos = this.position;
-      let word = '';
-      while (this.position < this.input.length && !isWhitespace(this.input[this.position]) && !isSpecialChar(this.input[this.position])) {
-        word += this.input[this.position];
-        this.position++;
-        this.column++;
-      }
-      return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 }; // Position includes back-tick for accuracy
-    }
-
-    // Handle other special characters using isSpecialChar - check if # is special?
-    if (isSpecialChar(char)) {
-      // If # is considered special, this check needs to happen AFTER #[ check.
-      // Assuming # is not special for now or handled by readWord.
-      this.position++;
-      this.column++;
-      return { type: TokenType.SPECIAL, value: char, position: startPos };
-    }
-
-    // Otherwise, read a word/identifier.
-    // If # is not whitespace or special, readWord will handle single #.
-    return this.readWord();
-  }
-
-  // Add peekToken method to look at the next token without advancing the position
-  peekToken(): Token | null {
-    const currentPosition = this.position;
-    const currentLine = this.line;
-    const currentColumn = this.column;
-    const token = this.nextToken();
-    // Reset position, line, and column after peeking
-    this.position = currentPosition;
-    this.line = currentLine;
-    this.column = currentColumn;
-    return token;
-  }
-
-  private skipWhitespace(): void {
-    while (this.position < this.input.length && isWhitespace(this.input[this.position])) {
-      if (this.input[this.position] === '\n') {
-        this.line++;
-        this.column = 1;
-      } else {
-        this.column++;
-      }
-      this.position++;
-    }
-  }
-
-  private skipComment(): void {
-    while (this.position < this.input.length && this.input[this.position] !== '\n') {
-      this.position++;
-    }
-  }
-
-  private readString(): Token {
-    const startPos = this.position;
-    let value = '';
-    // Skip opening quote
-    this.position++;
-    this.column++;
-    while (this.position < this.input.length && this.input[this.position] !== '"') {
-      if (this.input[this.position] === '\\' && this.position + 1 < this.input.length) {
-        this.position++;
-        this.column++;
-        const escapeChar = this.input[this.position];
-        switch (escapeChar) {
-          case 'n':
-            value += '\n';
-            break;
-          case 't':
-            value += '\t';
-            break;
-          case 'r':
-            value += '\r';
-            break;
-          case '"':
-            value += '"';
-            break;
-          case '\\':
-            value += '\\';
-            break;
-          default:
-            value += escapeChar;
+  /**
+   * Tokenize the entire input string, handling Forth-style \ comments
+   */
+  private tokenizeInput(): void {
+    // Process the input line by line to handle comments
+    const lines = this.input.split('\n');
+    let position = 0;
+    
+    for (const line of lines) {
+      // Check if the line contains a comment
+      const commentIndex = line.indexOf('\\');
+      
+      // Get the part of the line before any comment
+      const activeLine = commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+      
+      // Split the active part by whitespace
+      const words = activeLine.trim().split(/\s+/).filter(word => word.length > 0);
+      
+      for (const word of words) {
+        // Handle numbers
+        if (/^[+-]?\d+(\.\d+)?$/.test(word)) {
+          this.tokens.push({
+            type: TokenType.NUMBER,
+            value: parseFloat(word),
+            position: position
+          });
         }
-      } else {
-        value += this.input[this.position];
+        // Handle special characters
+        else if ([":", ";", "."].includes(word)) {
+          this.tokens.push({
+            type: TokenType.SPECIAL,
+            value: word,
+            position: position
+          });
+        }
+        // Everything else is a word
+        else {
+          this.tokens.push({
+            type: TokenType.WORD,
+            value: word,
+            position: position
+          });
+        }
+        
+        position += word.length + 1; // +1 for the space
       }
-      if (this.input[this.position] === '\n') {
-        this.line++;
-        this.column = 1;
-      } else {
-        this.column++;
-      }
-      this.position++;
+      
+      position += 1; // +1 for the newline
     }
-    if (this.position < this.input.length) {
-      // Skip closing quote
-      this.position++;
-      this.column++;
-    } else {
-      throw new Error(`Unterminated string literal at line ${this.line}, column ${this.column}`);
-    }
-    return { type: TokenType.STRING, value, position: startPos };
+    
+    // Add EOF token
+    this.tokens.push({
+      type: TokenType.EOF,
+      value: null,
+      position: this.input.length
+    });
   }
 
-  private readNumber(): Token {
-    const startPos = this.position;
-    let tokenStr = '';
-    if (this.input[this.position] === '+' || this.input[this.position] === '-') {
-      tokenStr += this.input[this.position];
-      this.position++;
-      this.column++;
+  /**
+   * Get the next token
+   */
+  nextToken(): Token {
+    if (this.currentTokenIndex >= this.tokens.length) {
+      return this.tokens[this.tokens.length - 1]; // Return EOF token
     }
-    while (this.position < this.input.length && isDigit(this.input[this.position])) {
-      tokenStr += this.input[this.position];
-      this.position++;
-      this.column++;
-    }
-    if (this.position < this.input.length && this.input[this.position] === '.') {
-      tokenStr += this.input[this.position];
-      this.position++;
-      this.column++;
-      while (this.position < this.input.length && isDigit(this.input[this.position])) {
-        tokenStr += this.input[this.position];
-        this.position++;
-        this.column++;
-      }
-    }
-    const value = Number(tokenStr);
-    if (isNaN(value)) {
-      return { type: TokenType.WORD, value: tokenStr, position: startPos };
-    }
-    return { type: TokenType.NUMBER, value, position: startPos };
+    
+    return this.tokens[this.currentTokenIndex++];
   }
 
-  private readWord(): Token {
-    const startPos = this.position;
-    let word = '';
-    while (
-      this.position < this.input.length &&
-      !isWhitespace(this.input[this.position]) &&
-      !isSpecialChar(this.input[this.position])
-    ) {
-      word += this.input[this.position];
-      this.position++;
-      this.column++;
+  /**
+   * Peek at the next token without advancing
+   */
+  peekToken(): Token | null {
+    if (this.currentTokenIndex >= this.tokens.length) {
+      return this.tokens[this.tokens.length - 1]; // Return EOF token
     }
-    return { type: TokenType.WORD, value: word, position: startPos };
+    
+    return this.tokens[this.currentTokenIndex];
   }
 
+  /**
+   * Push a token back (to be returned on next call)
+   * Note: In this simplified implementation, we just decrement the index
+   */
+  pushBack(_token: Token): void {
+    if (this.currentTokenIndex > 0) {
+      this.currentTokenIndex--;
+    }
+  }
+
+  /**
+   * Get the current position
+   */
   getPosition(): { line: number; column: number } {
-    return { line: this.line, column: this.column };
+    // In our simplified tokenizer, we don't track lines and columns
+    // but we maintain the interface for compatibility
+    return { line: 1, column: this.position };
   }
 }

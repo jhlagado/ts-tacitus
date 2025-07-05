@@ -30,11 +30,36 @@ function initializeSegments() {
 export class Memory {
   buffer: Uint8Array;
   dataView: DataView;
+  
+  // Add index signature to allow array-like access
+  [index: number]: number;
 
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
     this.dataView = new DataView(this.buffer.buffer);
     initializeSegments();
+    
+    // Define getter and setter for array-like indexing
+    return new Proxy(this, {
+      get: (target, prop) => {
+        // Handle numeric indices for array-like access
+        if (typeof prop === 'string' && !isNaN(Number(prop))) {
+          const index = Number(prop);
+          return target.buffer[index];
+        }
+        return target[prop as keyof Memory];
+      },
+      set: (target, prop, value) => {
+        // Handle numeric indices for array-like access
+        if (typeof prop === 'string' && !isNaN(Number(prop))) {
+          const index = Number(prop);
+          target.buffer[index] = value & 0xff;
+          return true;
+        }
+        target[prop as keyof Memory] = value;
+        return true;
+      }
+    });
   }
 
   resolveAddress(segment: number, offset: number): number {

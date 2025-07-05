@@ -1,74 +1,45 @@
-import { fromTaggedValue, CoreTag, HeapTag, heapTagNames, nonHeapTagNames } from './tagged';
-import { SequenceView } from '../seq/sequenceView';
-import { VectorView } from '../heap/vectorView';
+/**
+ * @file src/core/printer.ts
+ * Minimal printing utilities for Tacit values
+ */
+
+import { fromTaggedValue, CoreTag } from './tagged';
+import { VM } from './vm';
 import { vm } from './globalState';
 
 /**
- * Recursively prints any Tacit value with indentation, hex addresses, tags, and contents.
+ * Prints any Tacit value with its tag and contents.
  */
 export function prn(title: string, tval: number): void {
-  console.warn(`${title ?? ''}: ${formatValue(tval, 0)}`);
+  console.warn(`${title ?? ''}: ${formatValue(vm, tval)}`);
 }
 
-function formatValue(tval: number, indent = 0): string {
-  const { value: addr, isHeap, tag } = fromTaggedValue(tval);
-  const name = toTagName(tag, isHeap);
-  const prefix = `${'  '.repeat(indent)}${isHeap ? `${toHex(addr)} ` : ''}${name}: `;
-
-  if (!isHeap) {
-    // Scalar or immediate
-    return `${prefix}${scalarRepr(tval)}`;
-  }
-
-  // Heap‐allocated object
-  switch (tag as HeapTag) {
-    case HeapTag.VECTOR: {
-      const view = new VectorView(vm.heap, addr);
-      let elems = '';
-      for (let i = 0; i < view.length; i++) {
-        if (i > 0) elems += '\n';
-        elems += formatValue(view.element(i), indent + 1);
+/**
+ * Format a Tacit value for display
+ */
+export function formatValue(vm: VM, tval: number): string {
+  if (isNaN(tval)) {
+    const { value, tag } = fromTaggedValue(tval);
+    
+    switch (tag) {
+      case CoreTag.INTEGER:
+        return `${value}`;
+      case CoreTag.NUMBER:
+        return `${value.toFixed(6).replace(/\.?0+$/, '')}`;
+      case CoreTag.CODE:
+        return `<code:${value}>`;
+      case CoreTag.STRING: {
+        const str = vm.digest.get(value);
+        if (str !== null) {
+          return `"${str}"`;
+        }
+        return `"<unknown string at ${value}>"`;
       }
-      return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
+      default:
+        return `<unknown:${tag}:${value}>`;
     }
-
-    case HeapTag.SEQUENCE: {
-      const seq = new SequenceView(vm.heap, addr);
-      const metas = Array.from({ length: seq.metaCount }, (_, i) =>
-        formatValue(seq.meta(i), indent + 1)
-      ).join('\n');
-      return (
-        `${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {\n` +
-        `${metas}\n` +
-        `${'  '.repeat(indent)}}`
-      );
-    }
-
-    // TODO: other heap types
-
-    default:
-      return `${prefix}<unrecognized heap tag>`;
-  }
-}
-
-function toHex(addr: number): string {
-  return `0x${addr.toString(16)}`;
-}
-
-function toTagName(tag: number, heap: boolean): string {
-  return heap ? heapTagNames[tag as HeapTag] : nonHeapTagNames[tag as CoreTag];
-}
-
-function scalarRepr(tval: number): string {
-  const { tag, value } = fromTaggedValue(tval);
-  switch (tag) {
-    case CoreTag.INTEGER:
-      return `${value}`;
-    case CoreTag.CODE:
-      return `<code>`;
-    case CoreTag.STRING:
-      return `"${vm.digest.get(value)}"`;
-    default:
-      return `${tval}`;
+  } else {
+    // Regular number
+    return `${tval.toFixed(6).replace(/\.?0+$/, '')}`;
   }
 }

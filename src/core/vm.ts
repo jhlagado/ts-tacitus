@@ -1,12 +1,18 @@
+/**
+ * @file src/core/vm.ts
+ * A minimal Forth-like virtual machine implementation for Tacit
+ * without heap allocation or complex data structures.
+ */
+
+import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
-import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
-import { Heap } from '../heap/heap';
-import { fromTaggedValue, toTaggedValue, CoreTag, isRefCounted, getValue } from './tagged';
 import { Digest } from '../strings/digest';
-import { defineBuiltins } from '../ops/define-builtins';
-import { decRef, incRef } from '../heap/heapUtils';
+import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
 
+/**
+ * A simplified Forth-like virtual machine for Tacit
+ */
 export class VM {
   memory: Memory;
   SP: number; // Stack pointer (points to the next free slot)
@@ -16,7 +22,6 @@ export class VM {
   running: boolean;
   compiler: Compiler;
   digest: Digest;
-  heap: Heap;
   debug: boolean;
   symbolTable: SymbolTable;
 
@@ -29,11 +34,10 @@ export class VM {
     this.BP = 0; // Base Pointer starts at 0
     this.compiler = new Compiler(this);
     this.digest = new Digest(this.memory);
-    this.heap = new Heap(this.memory);
     this.debug = false;
 
-    this.symbolTable = new SymbolTable(this.digest); // Creates a new SymbolTable
-    defineBuiltins(this.symbolTable); // Populates the new table with built-ins
+    this.symbolTable = new SymbolTable(this.digest); 
+    // We'll need to update defineBuiltins to use simplified operations
   }
 
   eval() {
@@ -45,10 +49,7 @@ export class VM {
   /**
    * Pushes a 32-bit float onto the stack.
    */
-  push(value: number, transfer: boolean = false): void {
-    if (transfer) {
-      incRef(this.heap, value);
-    }
+  push(value: number): void {
     if (this.SP + 4 > STACK_SIZE) {
       throw new Error(
         `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
@@ -61,24 +62,19 @@ export class VM {
   /**
    * Pops a 32-bit float from the stack.
    */
-  pop(transfer = false): number {
+  pop(): number {
     if (this.SP <= 0) {
       throw new Error(
         `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
     this.SP -= 4; // Move stack pointer back by 4 bytes
-    const tvalue = this.memory.readFloat32(SEG_STACK, this.SP); // Read 32-bit float
-
-    if (!transfer) {
-      decRef(this.heap, tvalue);
-    }
-    return tvalue;
+    return this.memory.readFloat32(SEG_STACK, this.SP); // Read 32-bit float
   }
 
   peek(): number {
     const value = this.pop();
-    this.push(value, true); // Push back the value
+    this.push(value); // Push back the value
     return value;
   }
 
@@ -86,11 +82,10 @@ export class VM {
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
    */
-  popArray(size: number, transfer = false): number[] {
-    // unshift corrupts NaN boxing so be careful working with tagged values
+  popArray(size: number): number[] {
     const result: number[] = Array(size);
     for (let i = size - 1; i >= 0; i--) {
-      result[i] = this.pop(transfer);
+      result[i] = this.pop();
     }
     return result;
   }
@@ -105,11 +100,6 @@ export class VM {
           this.getStackData()
         )})`
       );
-    }
-    
-    // Add reference counting support
-    if (isRefCounted(value)) {
-      this.heap.incrementRef(getValue(value));
     }
     
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value); // Write 32-bit value
@@ -127,14 +117,7 @@ export class VM {
     }
     
     this.RP -= 4; // Move return stack pointer back by 4 bytes
-    const value = this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
-    
-    // Add reference counting support
-    if (isRefCounted(value)) {
-      this.heap.decrementRef(getValue(value));
-    }
-    
-    return value;
+    return this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
   }
 
   reset() {

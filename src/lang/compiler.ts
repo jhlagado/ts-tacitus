@@ -1,8 +1,11 @@
 import { VM } from '../core/vm';
 import { CoreTag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE } from '../core/memory';
+import { Operation } from '../ops/basic/builtins';
 
 export class Compiler {
+  // Array to store operation functions
+  operations: Operation[] = [];
   nestingScore: number;
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
   BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
@@ -65,5 +68,23 @@ export class Compiler {
   // Update patch16 method to directly use memory write methods
   patch16(address: number, value: number): void {
     this.vm.memory.write16(SEG_CODE, address, value);
+  }
+
+  /**
+   * Compiles an operation function to be executed by the VM.
+   * For the simplified Forth-like implementation, we'll store the operation
+   * function in an array and compile an index reference to it.
+   * 
+   * @param operation The operation function to compile
+   */
+  compileOp(operation: Operation): void {
+    // Store the operation in our operations array
+    const opIndex = this.operations.length;
+    this.operations.push(operation);
+    
+    // Compile a special marker byte (255) to indicate an operation reference
+    this.compile8(255);
+    // Compile the index of the operation in our array
+    this.compile16(opIndex);
   }
 }

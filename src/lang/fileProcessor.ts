@@ -1,4 +1,8 @@
-// core/fileProcessor.ts
+/**
+ * @file src/lang/fileProcessor.ts
+ * Simple file processor for the minimal Forth-like Tacit language
+ */
+
 import * as fs from "fs";
 import * as path from "path";
 import { executeLine, setupInterpreter } from "./executor";
@@ -33,10 +37,15 @@ export function processFile(filePath: string): boolean {
 
     const content = fs.readFileSync(absolutePath, "utf8");
     const lines = content.split("\n");
+    
+    // Create a fresh interpreter for this file
+    setupInterpreter();
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (line === "" || line.startsWith("//")) continue;
+      // Skip empty lines or lines that are only comments
+      // Note: Full comment processing is done by the tokenizer
+      if (line === "" || line.startsWith("\\")) continue;
 
       try {
         executeLine(line);
@@ -68,6 +77,7 @@ export function processFiles(
   exitOnError = true,
   processFileFn: (filePath: string) => boolean = processFile
 ): boolean {
+  // Initialize global state
   setupInterpreter();
 
   console.log("Tacit file processing mode:");
