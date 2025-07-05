@@ -1,83 +1,56 @@
 # Sequences in Tacit
 
 ## Table of Contents
-- [1. Introduction to Sequences](#1-introduction-to-sequences)
-- [2. Capsules and Sequence Sources](#2-capsules-and-sequence-sources)
-  - [2.1 Partially Applied Functions](#21-partially-applied-functions)
-  - [2.2 Capsules as Stateful Functions](#22-capsules-as-stateful-functions)
-  - [2.3 Calling Capsules](#23-calling-capsules)
-  - [2.4 Sources as Capsules](#24-sources-as-capsules)
-  - [2.5 Source Constructors](#25-source-constructors)
-  - [2.6 Capsules Are Functions](#26-capsules-are-functions)
-  - [2.7 Other Sources](#27-other-sources)
-- [3. Transformers and Flow Control](#3-transformers-and-flow-control)
-  - [3.1 Value Transformers](#31-value-transformers)
-  - [3.2 Flow-Altering Transformers](#32-flow-altering-transformers)
-  - [3.3 Flow-Combining Transformers](#33-flow-combining-transformers)
-  - [3.4 Summary](#34-summary)
-- [4. Control Stages: Status Tuples, Retry, and Fallback](#4-control-stages-status-tuples-retry-and-fallback)
-  - [4.1 Status Tuples](#41-status-tuples)
-  - [4.2 Retry Stage](#42-retry-stage)
-  - [4.3 Fallback Stage](#43-fallback-stage)
-  - [4.4 Summary](#44-summary)
-- [5. Paginated Sources](#5-paginated-sources)
-  - [5.1 Overview](#51-overview)
-  - [5.2 Cursor Semantics](#52-cursor-semantics)
-  - [5.3 Status Tuple Return](#53-status-tuple-return)
-  - [5.4 Buffer Reuse and Emission](#54-buffer-reuse-and-emission)
-  - [5.5 Integration with Retry and Fallback](#55-integration-with-retry-and-fallback)
-  - [5.6 Use Cases](#56-use-cases)
-- [6. Sink Stages — Consuming Sequences](#6--sink-stages--consuming-sequences)
-  - [6.1 Side-Effect Sinks](#61-side-effect-sinks)
-    - [6.1.1 `for-each`](#611-for-each)
-    - [6.1.2 `print`](#612-print)
-    - [6.1.3 `log`](#613-log)
-    - [6.1.4 `emit`](#614-emit)
-  - [6.2 Realization Sinks](#62-realization-sinks)
-    - [6.2.1 `to-array`](#621-to-array)
-    - [6.2.2 `to-tuple`](#622-to-tuple)
-    - [6.2.3 `to-string`](#623-to-string)
-  - [6.3 Terminal-Value Sinks](#63-terminal-value-sinks)
-    - [6.3.1 `last`](#631-last)
-    - [6.3.2 `fold`](#632-fold)
-  - [6.4 Behavioural Notes](#64-behavioural-notes)
-- [Conclusion](#conclusion)
+- [Sequences in Tacit](#sequences-in-tacit)
+  - [Table of Contents](#table-of-contents)
+  - [1. The Sequence Model](#1-the-sequence-model)
+  - [2. Capsules and Sequence Sources](#2-capsules-and-sequence-sources)
+    - [2.1 Partially Applied Functions](#21-partially-applied-functions)
+    - [2.2 Capsules as Stateful Functions](#22-capsules-as-stateful-functions)
+    - [2.3 Calling Capsules](#23-calling-capsules)
+    - [2.4 Sequence Sources Begin with `sequence`](#24-sequence-sources-begin-with-sequence)
+    - [2.5 Range as a Stateful Source](#25-range-as-a-stateful-source)
+    - [2.6 Tuple-Driven Flow Control](#26-tuple-driven-flow-control)
+    - [2.7 Other Sources](#27-other-sources)
+    - [2.8 Extended Status Codes](#28-extended-status-codes)
+  - [3. Transformers and Flow Control](#3-transformers-and-flow-control)
+    - [3.1 Value Transformers](#31-value-transformers)
+    - [3.2 Flow-Altering Transformers](#32-flow-altering-transformers)
+    - [3.3 Flow-Combining Transformers](#33-flow-combining-transformers)
+    - [3.4 Summary](#34-summary)
+  - [4. Control Stages: Status Tuples, Retry, and Fallback](#4-control-stages-status-tuples-retry-and-fallback)
+    - [4.1 Status Tuples](#41-status-tuples)
+    - [4.2 Retry Stage](#42-retry-stage)
+    - [4.3 Fallback Stage](#43-fallback-stage)
+    - [4.4 Summary](#44-summary)
+  - [5. Paginated Sources](#5-paginated-sources)
+    - [5.1 Overview](#51-overview)
+    - [5.2 Cursor Semantics](#52-cursor-semantics)
+    - [5.3 Status Tuple Return](#53-status-tuple-return)
+    - [5.4 Buffer Reuse and Emission](#54-buffer-reuse-and-emission)
+    - [5.5 Integration with Retry and Fallback](#55-integration-with-retry-and-fallback)
+    - [5.6 Use Cases](#56-use-cases)
+  - [6.  Sink Stages — Consuming Sequences](#6--sink-stages--consuming-sequences)
+    - [6.1 Side-Effect Sinks](#61-side-effect-sinks)
+      - [6.1.1 `for-each`](#611-for-each)
+      - [6.1.2 `print`](#612-print)
+      - [6.1.3 `log`](#613-log)
+      - [6.1.4 `emit`](#614-emit)
+    - [6.2 Realization Sinks](#62-realization-sinks)
+      - [6.2.1 `to-array`](#621-to-array)
+      - [6.2.2 `to-tuple`](#622-to-tuple)
+      - [6.2.3 `to-string`](#623-to-string)
+    - [6.3 Terminal-Value Sinks](#63-terminal-value-sinks)
+      - [6.3.1 `last`](#631-last)
+      - [6.3.2 `fold`](#632-fold)
+    - [6.4 Behavioural Notes](#64-behavioural-notes)
+    - [Conclusion](#conclusion)
 
-## 1. Introduction to Sequences
+## 1. The Sequence Model
 
-Sequences in Tacit are composable programs that produce a series of values. You can think of them as functions that emit one item at a time. But unlike traditional iterators or generators, sequences in Tacit are built from values, not control flow. They’re designed to be used declaratively and to compose cleanly.
+Tacit is a stack-based programming language built around values, not variables. Its control flow, data structures, and functions all converge on a single idea: **composable tuples with embedded logic**.
 
-Tacit encourages a **point-free**, **stack-based** style. That means most of the time, you won’t name your data—you’ll build small programs that transform it step by step.
-
-Instead of writing:
-
-```
-let result = []
-for (let i = 0; i < 10; i++) {
-  if (i % 2 === 0) result.push(i * 2)
-}
-```
-
-You might write:
-
-```
-0 10 range
-filter { 2 mod 0 eq }
-map { 2 mul }
-to-array
-```
-
-This is more than just syntax. Each line is a composable step. Each transformation has no memory of what came before. Every stage reads from upstream and emits to downstream.
-
-Tacit doesn’t have a `for` loop. It doesn’t need one. The idea of a loop is replaced by a pull-based flow—each stage is responsible for asking for the next value when it needs it.
-
-This pull model has a few important consequences:
-
-* **Backpressure is natural**: if a downstream stage stops asking for values, upstream stages stop producing them.
-* **Short-circuiting is easy**: if you want the first five items, you just `take 5` and stop.
-* **Memory is minimal**: each stage processes one item at a time unless otherwise specified.
-
-Underneath, all of this is built from capsules—small, stateful structures that behave like functions. But you don’t need to know how capsules work yet. What matters is that sequences can be constructed, composed, and run—all from ordinary stack code.
+Nowhere is this clearer than in its treatment of sequences. A Tacit sequence is not an object, not a class, and not a closure. It is a **tuple**, with a **function reference** at the end, and it behaves like a function every time it is evaluated.
 
 This chapter introduces the basic idea. The next chapters will build up each kind of sequence element—sources, transformers, and sinks—and show how they work together.
 
@@ -91,139 +64,294 @@ At its core, a capsule behaves like a **partially applied function**. If you’r
 
 ### 2.1 Partially Applied Functions
 
-Consider a simple function like `add`, which takes two numbers. In Tacit, a capsule can be used to "pre-fill" one of those numbers:
+In Tacit, the primary abstraction for composition is the capsule. A capsule is a tuple whose final item is a function reference. The preceding items are arguments—either static inputs or mutable state fields. When the capsule is evaluated, the arguments are unpacked onto the stack, and the function is invoked in that context.
+
+This model naturally supports partially applied functions. For instance, consider a binary function like `add`, which expects two numbers. By creating a capsule that stores one of those numbers, we effectively bind the first argument:
 
 ```
-(1 @add) → a capsule called add1
+(3 @add)
 ```
 
-Calling `add1` with another number completes the operation:
-
-```
-4  add1 eval → 5
-```
-
-This is function application by stacking: `4` goes on the stack, then the capsule unpacks `1` and calls `add`.
-
-This idea—tuples holding data and a function—is the basis for all sequence operations.
-
-### 2.2 Capsules as Stateful Functions
-
-Capsules can do more than apply static arguments. They can hold state, and update it. This lets us model generators, counters, cursors—any value that evolves over time.
-
-Tacit sequences use a special kind of capsule: a **self-modifying capsule**. These contain internal state (like a counter) and a function that both returns output and updates the state.
-
-To be self-modifying, a capsule typically ends with a function like `@next`, which uses `->` to fetch and update fields inside the capsule. For example, a simple index capsule:
-
-```
-(0 @next-index)  → idx
-```
-
-Calling `idx` repeatedly yields `0`, `1`, `2`, and so on—each time returning the current value and bumping the counter.
-
-The mutation is done in place. The function updates the field directly inside the capsule.
-
-### 2.3 Calling Capsules
-
-All capsules use a standard calling protocol. When you call a capsule, you push a **mode flag** before evaluation:
-
-* `0` → initialize or reset
-* `1` → step forward (get next value)
+This tuple represents a capsule that adds three to whatever value is passed to it. When evaluated, the capsule pushes `3` onto the stack, then executes the `@add` function, which expects one more argument from the stack.
 
 For example:
 
 ```
-1  rng eval
+4  (3 @add) eval
 ```
 
-The call `rng eval` pushes the mode and evaluates the capsule. The result is always a **conditional tuple**—a pair containing the output and a status code indicating whether the sequence is finished.
+This yields `7`. The number `4` is pushed first, followed by the capsule. The capsule unpacks `3`, leaving `4 3` on the stack, and then `@add` consumes both to produce the result.
 
-The actual format is:
+Capsules in Tacit are not closures. They do not capture lexical scope or retain access to external variables. Instead, all their behavior is derived from the tuple structure itself. The function at the end of the capsule operates strictly on the contents of the tuple and the current stack.
+
+This makes capsules highly predictable: their inputs and effects are explicit and confined to their tuple. They can be created, passed around, evaluated multiple times, or embedded in other structures without side effects or hidden bindings.
+
+In summary: a partially applied function in Tacit is just a capsule. Tuples encode the data. The function reference encodes the behavior. This pattern is the foundation for sequences, transformers, and all higher-level flow control.
+
+### 2.2 Capsules as Stateful Functions
+
+Capsules are not limited to fixed arguments. They can also maintain and update internal state. This makes them suitable for modeling evolving values—like counters, cursors, accumulators, or iterators—entirely within the tuple itself.
+
+To create a stateful capsule, the tuple includes state fields before the final function reference. That function is responsible for reading, modifying, and returning those fields. Importantly, the capsule is **self-modifying**: the function operates on the tuple that contains it.
+
+For example, a simple counter capsule might look like:
+
+```
+(0 @next-index)
+```
+
+Here, `0` is the initial counter value. The function `@next-index` is designed to read the current value, emit it, and increment it. When the capsule is evaluated, it mutates the `0` to `1`, then `2`, and so on, each time producing the previous value.
+
+Evaluating it repeatedly:
+
+```
+1  (0 @next-index) eval    → (0 0)
+1  eval                    → (1 0)
+1  eval                    → (2 0)
+```
+
+Each result is a conditional tuple: the value and a done flag. In this case, the flag remains `0` because the sequence continues indefinitely. The counter increments in place.
+
+This is possible because the function has access to its own tuple through the calling convention. Instead of relying on closures to hold the internal variable, the tuple serves as the container for state. The function uses primitives like `->` (to read and write fields) to access its own structure.
+
+There are no hidden environments. There is no captured scope. All state is held transparently inside the tuple and modified through explicit operations. This makes reasoning about behavior simple and debugging straightforward.
+
+Every time a self-modifying capsule is evaluated, it updates itself. This forms the backbone of Tacit’s approach to defining sources, streams, and dynamic behaviors—entirely without object-oriented classes or lexical closures.
+
+### 2.3 Calling Capsules
+
+Capsules are evaluated by placing a mode flag on the stack and invoking the capsule. The mode determines what the capsule should do—typically, whether it should reset itself or yield the next value.
+
+Tacit uses two standard mode flags:
+
+* `0` — reset: reinitializes the capsule's internal state.
+* `1` — step: advances the capsule and produces the next output.
+
+This calling protocol allows capsules to behave predictably in any context. The pattern is simple:
+
+```
+1  capsule eval
+```
+
+That call sends the `1` mode flag and causes the capsule’s function to execute using the values stored inside it. The result is a **conditional tuple**:
 
 ```
 (value done?)
 ```
 
-Where `done?` is a Boolean. If `1`, the sequence is complete and no further values will be produced.
+The first element is the current output. The second is a Boolean flag—`1` means the sequence is finished, `0` means more values are available.
 
-This pattern allows composable, pull-based iteration.
+This form of conditional tuple is the universal contract between stages. Any function or transformer that consumes a sequence reads one of these status pairs at a time. The structure also supports short-circuiting, because a stage can stop requesting values once it sees `done? = 1`.
 
-### 2.4 Sources as Capsules
-
-Now that we have a model for stateful, callable tuples, we can define sources.
-
-A **source** is just a capsule that produces values over time. It contains:
-
-* internal state (like an index or limit)
-* a `next` function that controls how values are generated
-
-For example, `range` is a source:
+For example, using a simple counter capsule:
 
 ```
-(0 10 1 @range-next) → rng
+(0 5 1 @range-next) → counter
 ```
 
-This capsule starts at `0`, ends at `10`, steps by `1`. The `@range-next` function implements the logic.
-
-Each call to `rng eval` with `1` yields the next number and a done flag:
+Calling `counter` repeatedly with `1` would yield:
 
 ```
-1 rng eval → (0 0)
-1 rng eval → (1 0)
-...
-1 rng eval → (9 0)
-1 rng eval → (nil 1)
+1 counter eval  → (0 0)
+1 counter eval  → (1 0)
+1 counter eval  → (2 0)
+1 counter eval  → (3 0)
+1 counter eval  → (4 0)
+1 counter eval  → (nil 1)
 ```
 
-The final call returns `nil` with `1` to indicate the sequence is finished.
+Each call advances the internal index and produces a new value, until the end is reached.
 
-### 2.5 Source Constructors
+This protocol is what allows sequences to be composed modularly. Each stage has no idea what produced its input or where its output will go. It simply consumes a conditional tuple and emits another—or passes it along.
 
-You don’t need to build these capsules by hand. Tacit provides constructors like `range`, `from-tuple`, and `from-array`. Each returns a fully initialized capsule:
+This keeps the model lazy, restartable, and uniform across all kinds of sources and transformers.
 
-```
-0 10 1  range     → capsule
-(1 2 3) from-tuple  → capsule
-```
+### 2.4 Sequence Sources Begin with `sequence`
 
-These sources are independent, stateless outside themselves, and composable. Each one encapsulates its own state.
+All sequence pipelines in Tacit must begin with the `sequence` keyword. This is not just a formality—it creates the execution context that ensures each pipeline runs within its defining function and cannot escape into an outer scope.
 
-### 2.6 Capsules Are Functions
+When you invoke `sequence`, it produces a new **sequence handle**, a capsule that serves as the root of the pipeline. Every stage that follows—such as `range`, `from-tuple`, `map`, or `filter`—must consume and extend this handle. This ensures all state and local variables remain confined to the function in which the sequence was built.
 
-All sequences in Tacit are functions in capsule form. They are not objects, classes, or closures. They don’t require a heap or a runtime.
-
-They are self-contained tuples with a final word that says "what to do" with the data inside.
-
-This model scales: a source yields values. A transformer accepts a capsule and returns a new capsule. A sink consumes a capsule until it’s done.
-
-Everything flows from this basic pattern.
-
-Got it—I'll write section 2.7: Other Sources, as the final section of Chapter 2. One moment.
-
-
-**2.7 Other Sources**
-
-While `range` is the most illustrative example of a stateful source, Tacit provides several built-in ways to lift data structures into sequences. These are simpler than `range` in that they don’t require internal state mutation; instead, they yield each item in turn from a known memory structure. Each of these sources is constructed as a capsule and returns a status tuple on each invocation.
-
-The most common are:
-
-`from-tuple` – Converts a tuple into a sequence. Each call yields the next element until all are exhausted.
-
-`from-array` – Works like `from-tuple`, but reads from a linear buffer using a view to determine bounds.
-
-`from-string` – Treats a string as a character sequence. Each result is a tagged character value.
-
-Each of these can be used directly:
+For example:
 
 ```
-(1 2 3)  from-tuple       → capsule
-array    from-array       → capsule
-"abc"    from-string      → capsule
+sequence
+  0 10 1 range
+  ...
 ```
 
-When called with `0`, they reset. When called with `1`, they yield the next element and a flag.
+Here, `sequence` creates the pipeline context. The `range` stage takes that handle and attaches a source capsule to it. This capsule includes internal state (like the current index and end limit), and a reference to the `@range-next` function that drives it.
 
-This pattern allows them to be used interchangeably with `range`, forming the starting point for any sequence pipeline. Their construction is typically implicit—used just-in-time by transformer stages like `map`, but explicit invocation is always possible when more control is needed.
+What makes this powerful is that **each stage returns a new handle**, updated with its stage capsule and bound to the same original context. This lets us construct pipelines incrementally while maintaining functional boundaries.
+
+If the resulting pipeline is ever passed to a different function, its `bp` (base pointer) check will fail, and it won’t run. This ensures correctness without needing closures or captured environments.
+
+**Key point**: Every pipeline is a capsule chain rooted in a sequence handle. This makes it lazy, self-contained, and function-context-aware from the start.
+
+### 2.5 Range as a Stateful Source
+
+The most fundamental source in Tacit is `range`. It creates a capsule that yields numbers from a starting point to an endpoint, incrementing by a given step. Unlike an eager list or array, `range` is a pull-based source: it only produces a value when asked.
+
+Let’s walk through a minimal example:
+
+```
+sequence
+  0 10 1 range
+```
+
+The `range` combinator consumes the current sequence handle, appends a new capsule to it, and returns an updated handle. That capsule contains the start, end, step, and current index, along with a pointer to the `@range-next` function.
+
+When executed by a sink (like `foreach`), the `@range-next` function is called repeatedly with mode `1` to fetch the next item. Each time, it checks whether the current index is within bounds. If so, it returns a **conditional tuple**:
+
+```
+(value done?)
+```
+
+Where `done?` is `0` while values remain, and `1` when the sequence is finished.
+
+For example, the output from this pipeline:
+
+```
+sequence
+  0 3 1 range
+  foreach { . }
+```
+
+Would print:
+
+```
+0
+1
+2
+```
+
+The `range` capsule mutates its index in place each time it runs. This is safe because the whole pipeline is local to the function and governed by the original `sequence` handle. No copying, no closures—just a compact self-contained state machine.
+
+Perfect. Here’s **Section 2.6**.
+
+---
+
+### 2.6 Tuple-Driven Flow Control
+
+Every sequence capsule in Tacit returns a **conditional tuple** on each step: a pair of values indicating the result and whether the sequence has finished. This is fundamental to how transformers and sinks operate—they don’t receive special signals or callbacks. They just evaluate the upstream capsule and look at the tuple.
+
+The standard format is:
+
+```
+(value done?)
+```
+
+Where `done?` is either `0` (more values to come) or `1` (no more values).
+
+Transformers use this structure to decide what to do next. For example, a mapping stage might look like this:
+
+```
+sequence
+  0 10 1 range
+  map { 2 mul }
+  foreach { . }
+```
+
+The `map` combinator wraps a new capsule around the previous one. When its `@map-next` function is invoked, it calls its upstream with mode `1`, receives a conditional tuple, and—if not done—applies the mapping block to the value. The result is returned as a new conditional tuple. If the upstream is done, `map` passes that `done` signal straight through.
+
+This makes each stage completely responsible for its own state and evaluation. There’s no scheduler, no coroutine, no external control flow—just tuples being passed and updated in-place.
+
+Because the done flag is explicit, short-circuiting becomes simple. A stage like `take` just counts how many values it has seen and flips the done flag early. A stage like `filter` skips values until one matches, then returns normally.
+
+This tuple pattern gives Tacit its **lazy** but **imperative** style: each call to a sequence capsule is a single step, and control flow is handled with simple values.
+
+Great—here’s **Section 2.7: Other Sources**, now fully aligned with the updated tuple-based, closure-free model.
+
+---
+
+### 2.7 Other Sources
+
+While `range` illustrates how sequences can maintain internal state, Tacit also provides sources that operate over fixed memory—tuples, arrays, and strings—without modifying any external context. These sources are constructed through the same capsule mechanism and emit conditional tuples on each step.
+
+Each of these sources must still be part of a valid sequence context, beginning with the `sequence` combinator. That context ensures any upstream pointer relationships and execution boundaries are respected. No source can operate outside a sequence; doing so will fail the boundary check.
+
+**Tuple source**:
+
+```
+sequence
+  (1 2 3 4) from-tuple
+  foreach { . }
+```
+
+This iterates over a static tuple. Each call to its `@next-tuple` function returns the next element and a flag indicating completion. The tuple itself is not modified.
+
+**Array source**:
+
+```
+sequence
+  buffer-view from-array
+  foreach { . }
+```
+
+Here, a view over a linear memory buffer—created separately—is passed to `from-array`, producing a capsule that reads from that memory region one element at a time.
+
+**String source**:
+
+```
+sequence
+  "hello" from-string
+  foreach { . }
+```
+
+Each step yields a character tagged with the `char` tag. The string is treated as immutable; the capsule simply walks its byte positions until the end.
+
+All these sources implement the same interface: they return `(value done?)` tuples, they maintain no external context, and they cannot outlive their sequence environment. Because of this, they can be composed with transformers and sinks just like `range`.
+
+### 2.8 Extended Status Codes
+
+In standard usage, a source returns a tuple of the form:
+
+```
+(value status)
+```
+
+where `status` is typically either `0` (continue) or `1` (done). But this status value is not limited to a Boolean signal. Tacit permits richer status codes to be emitted from sources, enabling more expressive control over downstream behavior.
+
+This model treats the second element not merely as a termination flag, but as a general-purpose status indicator. In the simplest case, `0` means “keep going” and `1` means “stop.” But other values can encode conditions such as:
+
+* a soft error
+* a skipped value
+* a retry recommendation
+* a diagnostic signal
+* a custom early-exit request
+
+For example, a source may return:
+
+```
+(nil 2)   — indicating a transient failure
+(nil -1)  — signaling to retry without advancing state
+(value 42) — a domain-specific marker the pipeline can interpret
+```
+
+Downstream combinators—like `map`, `filter`, or even `foreach`—can check the status and decide whether to propagate, suppress, handle, or react to it. The exact handling logic is context-dependent but consistent with the principle of local responsibility: each stage interprets status codes from its upstream source.
+
+This extension does not change the structure of sequence capsules. It simply expands the contract between stages. The `value` remains a tagged data item; the `status` remains a numeric flag, but one whose meaning can be extended as needed.
+
+By allowing general status codes, Tacit supports more nuanced pipelines without abandoning the composability and pull semantics of the sequence model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 3. Transformers and Flow Control
 
