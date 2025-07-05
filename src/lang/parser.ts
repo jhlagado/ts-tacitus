@@ -14,5 +14,5 @@ export function parse(tokenizer: Tokenizer): void {
   // Create an interpreter and evaluate the input
   // The tokenizer already handles comments correctly
   const interpreter = new Interpreter(vm);
-  interpreter.eval(tokenizer.input);
+  interpreter.eval(tokenizer.getInput());
 }

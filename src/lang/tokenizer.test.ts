@@ -41,7 +41,7 @@ describe("Tokenizer", () => {
       expect.objectContaining({ type: TokenType.NUMBER, value: 3 })
     );
     expect(tokens[2]).toEqual(
-      expect.objectContaining({ type: TokenType.WORD, value: "+" })
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" })
     );
   });
 
@@ -72,14 +72,44 @@ describe("Tokenizer", () => {
   });
 
   it("should tokenize explicit positive numbers", () => {
-    const values = getTokenValues("+123 +0.5");
-    expect(values).toEqual([123, 0.5]);
+    const tokens = getAllTokens("+123 +0.5");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 123 }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 0.5 })
+    ]);
   });
 
-  // In our simplified tokenizer, special characters are not split from adjacent numbers
+  // Numbers adjacent to special characters should be tokenized separately
   it("should handle numbers adjacent to special characters", () => {
-    const values = getTokenValues("{-345}");
-    expect(values).toEqual(["{-345}"]);
+    const tokens = getAllTokens("{-345}");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "-" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 345 }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" })
+    ]);
+  });
+  
+  it("should handle numbers followed by letters in the same token", () => {
+    const tokens = getAllTokens("123abc 45def");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.NUMBER, value: 123 }),
+      expect.objectContaining({ type: TokenType.WORD, value: "abc" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 45 }),
+      expect.objectContaining({ type: TokenType.WORD, value: "def" })
+    ]);
+  });
+  
+  it("should handle special characters followed by letters in the same token", () => {
+    const tokens = getAllTokens("*ptr +offset");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "*" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "ptr" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "offset" })
+    ]);
   });
 
   // Test 3: Words
@@ -106,13 +136,22 @@ describe("Tokenizer", () => {
     expect(values).toEqual([5, "dup", 3.14, "swap"]);
   });
 
-  // Test 4: Special characters
-  // In our simplified tokenizer, special chars are handled differently
-  it("should tokenize special characters", () => {
-    const values = getTokenValues("{ } ( ) + - * /");
+  // Test 4: Special characters and new token types
+  it("should tokenize special characters and new token types", () => {
+    const tokens = getAllTokens("{ } : ; ( ) + - * /");
     
-    // Just check the values since our simplified tokenizer might classify them differently
-    expect(values).toEqual(["{" , "}", "(", ")", "+", "-", "*", "/"]);
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" }),
+      expect.objectContaining({ type: TokenType.COLON, value: ":" }),
+      expect.objectContaining({ type: TokenType.SEMICOLON, value: ";" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "(" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: ")" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "-" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "*" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "/" })
+    ]);
   });
 
   it("should handle standalone operators", () => {
@@ -144,13 +183,38 @@ describe("Tokenizer", () => {
   });
 
   it("should handle mixed input with numbers, words, and special characters", () => {
-    const values = getTokenValues("{-345} swap drop 42.5 +");
-    expect(values).toEqual(["{-345}", "swap", "drop", 42.5, "+"]);
+    const tokens = getAllTokens("{-345} swap drop 42.5 +");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "-" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 345 }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "swap" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "drop" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 42.5 }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" })
+    ]);
+  });
+  
+  it("should handle complex mixed tokens", () => {
+    const tokens = getAllTokens("123abc:def*456+789");
+    // Special characters should split the word
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.NUMBER, value: 123 }),
+      expect.objectContaining({ type: TokenType.WORD, value: "abc" }),
+      expect.objectContaining({ type: TokenType.COLON, value: ":" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "def" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "*" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 456 }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 789 })
+    ]);
   });
 
   it("should handle multiple lines with mixed content", () => {
     const values = getTokenValues("5 3 +\n// Comment\n10 20 -\nswap");
-    expect(values).toEqual([5, 3, "+", "//", "Comment", 10, 20, "-", "swap"]);
+    // Comments should be completely skipped, including the // marker
+    expect(values).toEqual([5, 3, "+", 10, 20, "-", "swap"]);
   });
 
   it("should handle empty input", () => {
@@ -164,19 +228,44 @@ describe("Tokenizer", () => {
     expect(values).toEqual([5, "dup", 3, "+", "drop"]);
   });
 
-  // Special characters are treated as word tokens in our simplified implementation
   it("should handle special characters in expressions", () => {
-    const values = getTokenValues("{ 5 } { 3 } +");
-    expect(values).toEqual(["{" , 5, "}", "{", 3, "}", "+"]);
+    const tokens = getAllTokens("{ 5 } { 3 } +");
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 5 }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" }),
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 3 }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "+" })
+    ]);
   });
 
-  // Test 8: Edge cases for numbers
+  // Test 8: Colon definitions and code blocks
+  it("should handle colon definitions and code blocks", () => {
+    const tokens = getAllTokens(": square dup * ; { 1 2 3 }");
+    
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.COLON, value: ":" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "square" }),
+      expect.objectContaining({ type: TokenType.WORD, value: "dup" }),
+      expect.objectContaining({ type: TokenType.SPECIAL, value: "*" }),
+      expect.objectContaining({ type: TokenType.SEMICOLON, value: ";" }),
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 1 }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 2 }),
+      expect.objectContaining({ type: TokenType.NUMBER, value: 3 }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" })
+    ]);
+  });
+
+  // Test 9: Edge cases for numbers
   it("should handle numbers with leading zeros", () => {
     const values = getTokenValues("007 00.5");
     expect(values).toEqual([7, 0.5]);
   });
 
-  // Test 9: Edge cases for words
+  // Test 10: Edge cases for words
   it("should handle words with mixed case", () => {
     const values = getTokenValues("Swap DROP");
     expect(values).toEqual(["Swap", "DROP"]);
@@ -188,20 +277,104 @@ describe("Tokenizer", () => {
   });
 
   // Test 10: Edge cases for special characters
-  // Special characters without whitespace are treated as a single token
+  // Special characters without whitespace should be tokenized separately
   it("should handle multiple special characters in a row", () => {
-    const values = getTokenValues("{{}}");
-    expect(values).toEqual(["{{}}"]);
+    const tokens = getAllTokens("{{}}");
+    // The tokenizer processes each special character separately
+    expect(tokens).toEqual([
+      expect.objectContaining({ type: TokenType.LBRACE, value: "{" }),
+      expect.objectContaining({ type: TokenType.RBRACE, value: "}" })
+    ]);
   });
 
   // New tests specific to Tokenizer
 
   // Test 11: Token position tracking
   it("should track token positions correctly", () => {
-    const tokens = getAllTokens("5 hello");
+    const tokens = getAllTokens("5 3 +");
+    expect(tokens[0].position).toBe(0);
+    expect(tokens[1].position).toBe(2);
+    expect(tokens[2].position).toBe(4);
+  });
 
-    expect(tokens[0].position).toBe(0); // "5" starts at position 0
-    expect(tokens[1].position).toBe(2); // "hello" starts at position 2
+  it("should handle negative numbers correctly", () => {
+    const tokens = getAllTokens("-5 -3.14 +");
+    expect(tokens[0]).toEqual(
+      expect.objectContaining({ type: TokenType.NUMBER, value: -5 })
+    );
+    expect(tokens[1]).toEqual(
+      expect.objectContaining({ type: TokenType.NUMBER, value: -3.14 })
+    );
+  });
+
+  it("should handle decimal numbers correctly", () => {
+    const tokens = getAllTokens("3.14 2.718");
+    expect(tokens[0]).toEqual(
+      expect.objectContaining({ type: TokenType.NUMBER, value: 3.14 })
+    );
+    expect(tokens[1]).toEqual(
+      expect.objectContaining({ type: TokenType.NUMBER, value: 2.718 })
+    );
+  });
+
+  it("should handle special characters as separate tokens", () => {
+    const tokens = getAllTokens("()[]{}:;.,");
+    expect(tokens.map(t => t.value)).toEqual(["(", ")", "[", "]", "{", "}", ":", ";", ".", ","]);
+  });
+
+  it("should handle words with underscores and numbers", () => {
+    const tokens = getAllTokens("var_1 var_2");
+    expect(tokens[0]).toEqual(
+      expect.objectContaining({ type: TokenType.WORD, value: "var_1" })
+    );
+    expect(tokens[1]).toEqual(
+      expect.objectContaining({ type: TokenType.WORD, value: "var_2" })
+    );
+  });
+
+  it("should handle pushBack functionality", () => {
+    const tokenizer = new Tokenizer("1 2 3");
+    const token1 = tokenizer.nextToken();
+    const token2 = tokenizer.nextToken();
+    tokenizer.pushBack(token2);
+    tokenizer.pushBack(token1);
+    
+    expect(tokenizer.nextToken()).toEqual(token1);
+    expect(tokenizer.nextToken()).toEqual(token2);
+    expect(tokenizer.nextToken().type).toBe(TokenType.NUMBER);
+    expect(tokenizer.nextToken().type).toBe(TokenType.EOF);
+  });
+
+  it("should handle empty input", () => {
+    const tokens = getAllTokens("");
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("should handle whitespace only input", () => {
+    const tokens = getAllTokens("  \n  \t  ");
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("should handle comments correctly", () => {
+    const tokens = getAllTokens(`1 2 \\ This is a comment\n3 4 // Another comment\n5`);
+    expect(tokens.map(t => t.value)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("should track line and column numbers correctly", () => {
+    const input = `1 2\n3 4`;
+    const tokenizer = new Tokenizer(input);
+    const tokens = [];
+    let token;
+    
+    do {
+      token = tokenizer.nextToken();
+      tokens.push(token);
+    } while (token.type !== TokenType.EOF);
+
+    expect(tokens[0]).toMatchObject({ line: 1, column: 1 }); // 1
+    expect(tokens[1]).toMatchObject({ line: 1, column: 3 }); // 2
+    expect(tokens[2]).toMatchObject({ line: 2, column: 1 }); // 3
+    expect(tokens[3]).toMatchObject({ line: 2, column: 3 }); // 4
   });
 
   // Test 12: Line and column tracking
