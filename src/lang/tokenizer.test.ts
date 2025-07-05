@@ -276,6 +276,56 @@ describe("Tokenizer", () => {
     expect(values).toEqual(["my_word", "another_word"]);
   });
 
+  it("should tokenize IF {} construct", () => {
+    const tokens = getTokenValues("IF { 1 }");
+    expect(tokens).toEqual(["IF", "{", 1, "}"]);
+  });
+
+  it("should tokenize IF {} ELSE {} construct", () => {
+    const tokens = getTokenValues("IF { 1 } ELSE { 2 }");
+    expect(tokens).toEqual(["IF", "{", 1, "}", "ELSE", "{", 2, "}"]);
+  });
+
+  it("should handle nested IF constructs", () => {
+    const tokens = getTokenValues("IF { IF { 1 } ELSE { 2 } } ELSE { 3 }");
+    expect(tokens).toEqual(["IF", "{", "IF", "{", 1, "}", "ELSE", "{", 2, "}", "}", "ELSE", "{", 3, "}"]);
+  });
+
+  it("should handle empty blocks", () => {
+    const tokens = getTokenValues("IF { } ELSE { }");
+    expect(tokens).toEqual(["IF", "{", "}", "ELSE", "{", "}"]);
+  });
+
+  it("should handle special characters in strings", () => {
+    // The tokenizer splits on whitespace and special characters
+    const tokens = getTokenValues('"hello { } world"');
+    expect(tokens).toEqual(['"hello', '{', '}', 'world"']);
+  });
+  
+  it("should handle unquoted special characters", () => {
+    // Unquoted special characters are split into separate tokens
+    const tokens = getTokenValues('hello { } world');
+    expect(tokens).toEqual(['hello', '{', '}', 'world']);
+  });
+
+  it("should handle line numbers correctly with empty lines", () => {
+    const tokenizer = new Tokenizer("1\n\n2\n3");
+    const tokens = [];
+    let token;
+    
+    do {
+      token = tokenizer.nextToken();
+      tokens.push({ value: token.value, line: token.line });
+    } while (token.type !== TokenType.EOF);
+
+    expect(tokens).toEqual([
+      { value: 1, line: 1 },
+      { value: 2, line: 3 },
+      { value: 3, line: 4 },
+      { value: null, line: 4 }
+    ]);
+  });
+
   // Test 10: Edge cases for special characters
   // Special characters without whitespace should be tokenized separately
   it("should handle multiple special characters in a row", () => {

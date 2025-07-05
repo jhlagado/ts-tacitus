@@ -65,7 +65,7 @@ export const addOp: Operation = (vm: VM) => {
     throw new Error('Arithmetic operations only work with float values');
   }
 
-  // Simple float addition
+  // Simple float addition (a + b)
   vm.push(a + b);
 };
 
@@ -78,7 +78,7 @@ export const subOp: Operation = (vm: VM) => {
     throw new Error('Arithmetic operations only work with float values');
   }
 
-  // Simple float subtraction
+  // Simple float subtraction (a - b)
   vm.push(a - b);
 };
 
@@ -91,7 +91,7 @@ export const mulOp: Operation = (vm: VM) => {
     throw new Error('Arithmetic operations only work with float values');
   }
 
-  // Simple float multiplication
+  // Simple float multiplication (a * b)
   vm.push(a * b);
 };
 
@@ -109,7 +109,7 @@ export const divOp: Operation = (vm: VM) => {
     throw new Error('Division by zero');
   }
 
-  // Simple float division
+  // Simple float division (a / b)
   vm.push(a / b);
 };
 
@@ -127,7 +127,7 @@ export const modOp: Operation = (vm: VM) => {
     throw new Error('Modulo by zero');
   }
 
-  // Simple float modulo - no unwrapping tags
+  // Simple float modulo (a % b)
   vm.push(a % b);
 };
 
@@ -141,7 +141,7 @@ export const eqOp: Operation = (vm: VM) => {
   // For equality we don't reject NaN values, as comparing two identical NaN-tagged values is valid
   // But we do direct bit comparison, not semantic comparison
 
-  // Simple direct equality check
+  // Simple direct equality check (a == b)
   const result = a === b;
   vm.push(result ? 1 : 0);
 };
@@ -155,7 +155,7 @@ export const ltOp: Operation = (vm: VM) => {
     throw new Error('Comparison operations only work with float values');
   }
 
-  // Simple float comparison
+  // Simple float comparison (a < b)
   const result = a < b;
   vm.push(result ? 1 : 0);
 };
@@ -169,7 +169,7 @@ export const gtOp: Operation = (vm: VM) => {
     throw new Error('Comparison operations only work with float values');
   }
 
-  // Simple float comparison
+  // Simple float comparison (a > b)
   const result = a > b;
   vm.push(result ? 1 : 0);
 };
@@ -178,16 +178,17 @@ export const gtOp: Operation = (vm: VM) => {
  * Control Flow Operations
  */
 export const ifOp: Operation = (vm: VM) => {
+  // Pop values in reverse order (LIFO): else-address, then-address, condition
   const falseAddr = vm.pop();
   const trueAddr = vm.pop();
   const condition = vm.pop();
 
-  if (isNIL(condition)) {
-    // Condition is false (0 or NIL)
+  if (isNIL(condition) || condition === 0) {
+    // Condition is false (0, NIL, or undefined) - jump to else-branch
     const { value: addr } = fromTaggedValue(falseAddr);
     vm.IP = addr;
   } else {
-    // Condition is true (non-zero)
+    // Condition is true (non-zero) - jump to then-branch
     const { value: addr } = fromTaggedValue(trueAddr);
     vm.IP = addr;
   }
