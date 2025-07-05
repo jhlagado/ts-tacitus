@@ -12,6 +12,11 @@ import { SymbolTable } from '../strings/symbol-table';
 export class Interpreter {
   vm: VM;
   symbolTable: SymbolTable;
+  
+  // Colon definition state
+  private isCompiling: boolean = false;
+  private currentDefinition: string | null = null;
+  private definitionTokens: string[] = [];
 
   constructor(vm: VM) {
     this.vm = vm;
@@ -24,10 +29,58 @@ export class Interpreter {
   eval(expression: string): number | undefined {
     // Tokenize the input
     const tokens = this.tokenize(expression);
+    let i = 0;
 
-    // Process each token
-    for (const token of tokens) {
-      // Try to find the token in the symbol table
+    while (i < tokens.length) {
+      const token = tokens[i];
+      
+      // Handle colon definition start
+      if (token === ':' && !this.isCompiling) {
+        // Next token should be the word name
+        i++;
+        if (i >= tokens.length) {
+          throw new Error('Expected word name after colon');
+        }
+        
+        const wordName = tokens[i];
+        
+        // Validate word name (can't be a number)
+        if (this.isFloat(wordName)) {
+          throw new Error(`Invalid word name: ${wordName}. Word names cannot be numbers.`);
+        }
+        
+        // Start new definition
+        this.isCompiling = true;
+        this.currentDefinition = wordName;
+        this.definitionTokens = [];
+        i++;
+        continue;
+      }
+      
+      // Handle semicolon (end of definition)
+      if (token === ';' && this.isCompiling) {
+        if (!this.currentDefinition) {
+          throw new Error('Unexpected semicolon outside of definition');
+        }
+        
+        // Define the new word
+        this.defineNewWord();
+        
+        // Reset compilation state
+        this.isCompiling = false;
+        this.currentDefinition = null;
+        i++;
+        continue;
+      }
+      
+      // If we're in a definition, collect tokens
+      if (this.isCompiling) {
+        this.definitionTokens.push(token);
+        i++;
+        continue;
+      }
+      
+      // Regular execution
       const entry = this.symbolTable.find(token);
 
       if (entry !== null && entry !== undefined) {
@@ -43,6 +96,8 @@ export class Interpreter {
       } else {
         throw new Error(`Unknown token: ${token}`);
       }
+      
+      i++;
     }
 
     // Return the top value of the stack if available
@@ -77,5 +132,35 @@ export class Interpreter {
   private isFloat(str: string): boolean {
     // Match integers or floating-point numbers (including negative numbers)
     return /^-?\d+(\.\d+)?$/.test(str);
+  }
+  
+  /**
+   * Defines a new word from the collected tokens
+   */
+  private defineNewWord(): void {
+    if (!this.currentDefinition || this.definitionTokens.length === 0) {
+      throw new Error('Invalid word definition');
+    }
+    
+    // Create a copy of the tokens to avoid reference issues
+    const tokens = [...this.definitionTokens];
+    
+    // Define the new word in the symbol table
+    this.symbolTable.define(this.currentDefinition, (vm: VM) => {
+      // Create a new interpreter instance for this execution
+      const interpreter = new Interpreter(vm);
+      
+      try {
+        // Execute each token in the definition
+        interpreter.eval(tokens.join(' '));
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Error in word '${this.currentDefinition}': ${errorMessage}`);
+      }
+    });
+    
+    if (this.vm.debug) {
+      console.log(`Defined new word: ${this.currentDefinition} = ${tokens.join(' ')}`);
+    }
   }
 }
