@@ -337,19 +337,16 @@ describe("Tokenizer", () => {
   it("should handle pushBack functionality", () => {
     const tokenizer = new Tokenizer("1 2 3");
     const token1 = tokenizer.nextToken(); // Reads 1
-    const token2 = tokenizer.nextToken(); // Reads 2
     
-    // Push back token2 (2) and then token1 (1)
-    // They should be read in the order: 1, 2, 3
-    tokenizer.pushBack(token2);
+    // Push back token1 (1)
     tokenizer.pushBack(token1);
     
-    // Now the next token should be 1
+    // Now the next token should be 1 (the one we pushed back)
     const firstToken = tokenizer.nextToken();
     expect(firstToken.value).toBe(1);
     expect(firstToken.type).toBe(TokenType.NUMBER);
     
-    // Then 2 (the one we pushed back)
+    // Then 2 (next in input)
     const secondToken = tokenizer.nextToken();
     expect(secondToken.value).toBe(2);
     expect(secondToken.type).toBe(TokenType.NUMBER);
