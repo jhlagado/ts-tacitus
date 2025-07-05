@@ -297,9 +297,9 @@ describe("Tokenizer", () => {
   });
 
   it("should handle special characters in strings", () => {
-    // The tokenizer splits on whitespace and special characters, including quotes
+    // The tokenizer should treat everything between quotes as a single token
     const tokens = getTokenValues('"hello { } world"');
-    expect(tokens).toEqual(['"', 'hello', '{', '}', 'world', '"']);
+    expect(tokens).toEqual(['"hello { } world"']);
   });
   
   it("should handle unquoted special characters", () => {
@@ -485,21 +485,33 @@ describe("Tokenizer", () => {
 
   // Test 14: String handling in our simplified Forth implementation
   // Our tokenizer splits quoted text by whitespace and preserves the quotes
-  it("should split quoted text by whitespace and separate quotes", () => {
+  it("should keep quoted text as a single token", () => {
     const values = getTokenValues('"Hello world"');
-    // Tokenizer separates quotes from content and splits by whitespace
-    expect(values).toEqual(['"', 'Hello', 'world', '"']);
+    // Tokenizer should keep the entire quoted string as one token
+    expect(values).toEqual(['"Hello world"']);
   });
 
   it("should handle single quoted word", () => {
     const values = getTokenValues('"Hello"');
-    // Quotes are separate tokens from the content
-    expect(values).toEqual(['"', 'Hello', '"']);
+    // The entire quoted string should be one token
+    expect(values).toEqual(['"Hello"']);
   });
 
   it("should handle mixed quoted text and other tokens", () => {
     const values = getTokenValues('5 "hello" +');
-    // The tokenizer separates quotes and content
-    expect(values).toEqual([5, '"', 'hello', '"', '+']);
+    // The quoted string should be a single token
+    expect(values).toEqual([5, '"hello"', '+']);
+  });
+  
+  it("should handle escape sequences in strings", () => {
+    const values = getTokenValues('"line1\\nline2"');
+    // The entire string with escape sequence should be one token
+    expect(values).toEqual(['"line1\\nline2"']);
+  });
+  
+  it("should handle multiple lines in strings", () => {
+    const values = getTokenValues('"line1\nline2"');
+    // Multi-line string should be one token
+    expect(values).toEqual(['"line1\nline2"']);
   });
 });

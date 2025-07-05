@@ -55,14 +55,59 @@ export class Tokenizer {
     const startCol = this.column;
     
     // Read the opening quote
-    const char = this.input[this.position];
+    const quote = this.input[this.position];
     this.position++;
     this.column++;
     
-    // Return just the quote as a token
+    let value = quote; // Start with the opening quote
+    let escaped = false;
+    
+    while (this.position < this.input.length) {
+      const char = this.input[this.position];
+      
+      if (escaped) {
+        // Add the backslash and the escaped character as-is
+        value += '\\' + char;
+        escaped = false;
+        this.position++;
+        this.column++;
+        continue;
+      }
+      
+      if (char === '\\') {
+        // Start of an escape sequence
+        escaped = true;
+        this.position++;
+        this.column++;
+        continue;
+      }
+      
+      // Add the character to our string
+      value += char;
+      this.position++;
+      
+      // Check for closing quote
+      if (char === quote) {
+        break;
+      }
+      
+      // Update position tracking
+      if (char === '\n') {
+        this.line++;
+        this.column = 1;
+      } else {
+        this.column++;
+      }
+    }
+    
+    // If we reached the end without a closing quote, that's an error
+    if (this.position >= this.input.length && !value.endsWith(quote)) {
+      throw new Error(`Unterminated string literal at line ${startLine}, column ${startCol}`);
+    }
+    
     return {
       type: TokenType.WORD,
-      value: char,
+      value,
       position: startPos,
       line: startLine,
       column: startCol
