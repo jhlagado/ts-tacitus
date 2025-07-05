@@ -297,9 +297,9 @@ describe("Tokenizer", () => {
   });
 
   it("should handle special characters in strings", () => {
-    // The tokenizer splits on whitespace and special characters
+    // The tokenizer splits on whitespace and special characters, including quotes
     const tokens = getTokenValues('"hello { } world"');
-    expect(tokens).toEqual(['"hello', '{', '}', 'world"']);
+    expect(tokens).toEqual(['"', 'hello', '{', '}', 'world', '"']);
   });
   
   it("should handle unquoted special characters", () => {
@@ -485,21 +485,21 @@ describe("Tokenizer", () => {
 
   // Test 14: String handling in our simplified Forth implementation
   // Our tokenizer splits quoted text by whitespace and preserves the quotes
-  it("should split quoted text by whitespace and preserve quotes", () => {
+  it("should split quoted text by whitespace and separate quotes", () => {
     const values = getTokenValues('"Hello world"');
-    // Tokenizer splits by whitespace, keeping quotes with the words
-    expect(values).toEqual(['Hello', 'world"']);
+    // Tokenizer separates quotes from content and splits by whitespace
+    expect(values).toEqual(['"', 'Hello', 'world', '"']);
   });
 
   it("should handle single quoted word", () => {
     const values = getTokenValues('"Hello"');
-    // Quotes are preserved in the token
-    expect(values).toEqual(['Hello"']);
+    // Quotes are separate tokens from the content
+    expect(values).toEqual(['"', 'Hello', '"']);
   });
 
   it("should handle mixed quoted text and other tokens", () => {
     const values = getTokenValues('5 "hello" +');
-    // The tokenizer splits the quoted string and includes the quote in the second part
-    expect(values).toEqual([5, 'hello"', '+']);
+    // The tokenizer separates quotes and content
+    expect(values).toEqual([5, '"', 'hello', '"', '+']);
   });
 });

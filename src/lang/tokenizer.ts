@@ -49,8 +49,28 @@ export class Tokenizer {
     return /[a-zA-Z0-9_]/.test(char);
   }
 
+  private readString(): Token {
+    const startPos = this.position;
+    const startLine = this.line;
+    const startCol = this.column;
+    
+    // Read the opening quote
+    const char = this.input[this.position];
+    this.position++;
+    this.column++;
+    
+    // Return just the quote as a token
+    return {
+      type: TokenType.WORD,
+      value: char,
+      position: startPos,
+      line: startLine,
+      column: startCol
+    };
+  }
+
   private isSpecialChar(char: string): boolean {
-    return /[{}:;.,+\-*/=<>!?@#$%^&|~`'\[\]()]/.test(char);
+    return /[{}:;.,+\-*/=<>!?@#$%^&|~`'\[\]()"]/.test(char);
   }
 
   private isLetter(char: string): boolean {
@@ -112,7 +132,12 @@ export class Tokenizer {
       return this.readWord();
     }
 
-    // Handle special characters
+    // Handle strings (enclosed in double quotes)
+    if (char === '"') {
+      return this.readString();
+    }
+    
+    // Handle special characters (but not if we're in a string)
     if (this.isSpecialChar(char)) {
       return this.readSpecial();
     }
