@@ -14,29 +14,19 @@ export const defineBuiltins = (dict: SymbolTable) => {
   
   // Define each operation in the symbol table
   for (const [name, operation] of Object.entries(ops)) {
-    // Create a wrapper function that compiles the operation
-    const wrapper = (vm: VM) => {
-      // For now, we'll just pass the operation through
-      // Later, we might need to compile this into bytecode
-      vm.compiler.compileOp(operation);
-    };
-    
-    dict.define(name, wrapper);
+    // Execute the operation directly
+    dict.define(name, operation);
   }
   
   // Add print operation
   dict.define('.', (vm: VM) => {
-    // Add a simple print operation that pops and displays a value
-    vm.compiler.compileOp((vm: VM) => {
-      const value = vm.pop();
-      console.log(value);
-    });
+    // Pop and display a value
+    const value = vm.pop();
+    console.log(value);
   });
   
   // Add eval operation
   dict.define('eval', (vm: VM) => {
-    vm.compiler.compileOp((vm: VM) => {
-      vm.eval();
-    });
+    vm.eval();
   });
 };

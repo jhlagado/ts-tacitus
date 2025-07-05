@@ -5,7 +5,6 @@
 
 import { VM } from '../core/vm';
 import { SymbolTable } from '../strings/symbol-table';
-import { toTaggedValue, CoreTag } from '../core/tagged';
 
 /**
  * A simplified interpreter for the Forth-like Tacit language
@@ -34,12 +33,8 @@ export class Interpreter {
       if (entry !== null && entry !== undefined) {
         // Execute the symbol's operation
         entry(this.vm);
-      } else if (this.isInteger(token)) {
-        // If it's an integer, push it as an INTEGER
-        const value = parseInt(token, 10);
-        this.vm.push(toTaggedValue(value, false, CoreTag.INTEGER));
       } else if (this.isFloat(token)) {
-        // If it's a floating point number, push it as a raw number
+        // Push all numbers as raw float32 values (not NaN-boxed)
         const value = parseFloat(token);
         this.vm.push(value);
       } else if (token === '.s') {
@@ -63,7 +58,10 @@ export class Interpreter {
    */
   private tokenize(input: string): string[] {
     // Split by whitespace, filtering out empty strings
-    return input.trim().split(/\s+/).filter(token => token.length > 0);
+    return input
+      .trim()
+      .split(/\s+/)
+      .filter(token => token.length > 0);
   }
 
   /**
@@ -77,6 +75,7 @@ export class Interpreter {
    * Check if a string represents a floating-point number
    */
   private isFloat(str: string): boolean {
-    return /^-?\d*\.\d+$/.test(str);
+    // Match integers or floating-point numbers (including negative numbers)
+    return /^-?\d+(\.\d+)?$/.test(str);
   }
 }

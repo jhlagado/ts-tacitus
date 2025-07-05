@@ -1,6 +1,5 @@
 import { Interpreter } from './interpreter';
 import { vm, initializeInterpreter } from '../core/globalState';
-import { fromTaggedValue, CoreTag } from '../core/tagged';
 
 describe('Interpreter', () => {
   let interpreter: Interpreter;
@@ -48,49 +47,41 @@ describe('Interpreter', () => {
 
     it('should handle dup', () => {
       interpreter.eval('5 dup');
-      
+
       // Check stack values in reverse order (top to bottom)
       let value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).tag).toBe(CoreTag.INTEGER);
-      expect(fromTaggedValue(value).value).toBe(5);
-      
+      expect(value).toBe(5);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).tag).toBe(CoreTag.INTEGER);
-      expect(fromTaggedValue(value).value).toBe(5);
+      expect(value).toBe(5);
     });
 
     it('should handle drop', () => {
       // Test individually
       interpreter.eval('5');
       let value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(5);
-      
+      expect(value).toBe(5);
+
       // Now test drop
       interpreter.eval('5');
       interpreter.eval('3');
       interpreter.eval('drop');
-      
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(5);
+      expect(value).toBe(5);
     });
 
     it('should handle swap', () => {
       interpreter.eval('5');
       interpreter.eval('3');
       interpreter.eval('swap');
-      
+
       // Pop values in reverse order to verify the stack order
       let value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(5);
-      
+      expect(value).toBe(5);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(3);
+      expect(value).toBe(3);
     });
   });
 
@@ -99,19 +90,16 @@ describe('Interpreter', () => {
       interpreter.eval('5');
       interpreter.eval('3');
       interpreter.eval('over');
-      
+
       // Check stack values in reverse order (top to bottom)
       let value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(5);
-      
+      expect(value).toBe(5);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(3);
-      
+      expect(value).toBe(3);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(5);
+      expect(value).toBe(5);
     });
 
     it('should handle rot', () => {
@@ -119,28 +107,25 @@ describe('Interpreter', () => {
       interpreter.eval('2');
       interpreter.eval('3');
       interpreter.eval('rot');
-      
+
       // Check stack values in reverse order (top to bottom)
       let value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(1);
-      
+      expect(value).toBe(1);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(3);
-      
+      expect(value).toBe(3);
+
       value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).value).toBe(2);
+      expect(value).toBe(2);
     });
 
     it('should handle multiple operations in sequence', () => {
       interpreter.eval('5 dup 3 + swap 2 *');
-      
+
       // Check stack values in reverse order (top to bottom)
       let value = vm.pop();
       expect(value).toBe(10);
-      
+
       value = vm.pop();
       expect(value).toBe(8);
     });
@@ -150,9 +135,8 @@ describe('Interpreter', () => {
     it('should handle integers', () => {
       interpreter.eval('42');
       const value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).tag).toBe(CoreTag.INTEGER);
-      expect(fromTaggedValue(value).value).toBe(42);
+      expect(value).toBeCloseTo(42); // Raw float32 value
+      expect(typeof value).toBe('number');
     });
 
     it('should handle floating point numbers', () => {
@@ -164,9 +148,7 @@ describe('Interpreter', () => {
     it('should handle negative numbers', () => {
       interpreter.eval('-42');
       const value = vm.pop();
-      expect(isNaN(value)).toBe(true); // NaN-boxed integer
-      expect(fromTaggedValue(value).tag).toBe(CoreTag.INTEGER);
-      expect(fromTaggedValue(value).value).toBe(-42);
+      expect(value).toBeCloseTo(-42);
     });
   });
 
@@ -187,26 +169,17 @@ describe('Interpreter', () => {
   describe('Symbol definition', () => {
     it('should allow defining and using custom symbols', () => {
       // Define a custom symbol that doubles a number
-      interpreter.symbolTable.define('double', (vm) => {
+      interpreter.symbolTable.define('double', vm => {
         const value = vm.pop();
-        // Handle both NaN-boxed integers and regular floats
-        if (isNaN(value)) {
-          // For NaN-boxed integers, preserve the tag
-          const decoded = fromTaggedValue(value);
-          vm.push(decoded.value * 2);
-        } else {
-          // For regular floats
-          vm.push(value * 2);
-        }
+        // All numbers are raw float32 values now
+        vm.push(value * 2);
       });
 
       // Use the custom symbol
       interpreter.eval('5 double');
-      
+
       // Check the result
       const value = vm.pop();
-      // Should produce a plain float result, not a NaN-boxed value
-      expect(isNaN(value)).toBe(false);
       expect(value).toBe(10);
     });
   });

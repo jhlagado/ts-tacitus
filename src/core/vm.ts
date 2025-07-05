@@ -177,11 +177,21 @@ export class VM {
 
   /**
    * Returns the current stack data as an array of 32-bit values.
+   * For testing purposes, this converts NaN-boxed values to their raw forms.
    */
   getStackData(): number[] {
     const stackData: number[] = [];
     for (let i = 0; i < this.SP; i += 4) {
-      stackData.push(this.memory.readFloat32(SEG_STACK, i));
+      const value = this.memory.readFloat32(SEG_STACK, i);
+      
+      // If the value is NaN-boxed, extract the raw value
+      if (isNaN(value)) {
+        const { value: rawValue } = fromTaggedValue(value);
+        stackData.push(rawValue);
+      } else {
+        // It's a regular float, push as is
+        stackData.push(value);
+      }
     }
     return stackData;
   }

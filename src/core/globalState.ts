@@ -4,7 +4,7 @@
  */
 
 import { VM } from './vm';
-import { initializePrimitives } from '../lang/primitives';
+import { defineBuiltins } from '../ops/define-builtins';
 
 // Global VM instance
 export let vm = new VM();
@@ -12,9 +12,9 @@ export let vm = new VM();
 // Function to reset the interpreter state
 export function initializeInterpreter() {
   vm = new VM();
-  // Initialize primitive operations in the symbol table
-  initializePrimitives(vm.symbolTable);
+  // Initialize operations in the symbol table
+  defineBuiltins(vm.symbolTable);
 }
 
-// Initialize primitives on first load
-initializePrimitives(vm.symbolTable);
+// Initialize operations on first load
+defineBuiltins(vm.symbolTable);
