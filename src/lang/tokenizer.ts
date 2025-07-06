@@ -93,8 +93,8 @@ export class Tokenizer {
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // If the character is one of "[]", return it as a WORD token. - MUST BE AFTER ]# check
-    if ('[]'.includes(char)) {
+    // If the character is one of "[]()", return it as a WORD token. - MUST BE AFTER ]# check
+    if ('[]()'.includes(char)) {
       this.position++;
       this.column++;
       return { type: TokenType.WORD, value: char, position: startPos };

@@ -114,9 +114,9 @@ describe("Tokenizer", () => {
     expect(tokens[0].value).toBe("{");
     expect(tokens[1].type).toBe(TokenType.BLOCK_END);
     expect(tokens[1].value).toBe("}");
-    expect(tokens[2].type).toBe(TokenType.SPECIAL);
+    expect(tokens[2].type).toBe(TokenType.WORD);
     expect(tokens[2].value).toBe("(");
-    expect(tokens[3].type).toBe(TokenType.SPECIAL);
+    expect(tokens[3].type).toBe(TokenType.WORD);
     expect(tokens[3].value).toBe(")");
     // The rest are words since they're not grouping chars
     expect(tokens[4].type).toBe(TokenType.WORD);

@@ -155,7 +155,7 @@ function processWordToken(value: string, state: ParserState): void {
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
       console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`);
     }
-  } else if (value === ':' || value === ';' || value === '`' || value === '(' || value === ')') {
+  } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
     // Handle normal words
