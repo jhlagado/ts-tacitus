@@ -3,6 +3,8 @@ import { Verb } from '../core/types';
 import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../core/tagged';
 
 /**
+ * @deprecated Use the new IF { ... } ELSE { ... } syntax instead
+ * 
  * Implements a ternary if operator
  * Takes three values from the stack:
  * - else-clause (top) - can be code block or a regular value
@@ -15,6 +17,14 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../co
  * If condition is falsy:
  *   - If else-clause is code, it is executed
  *   - If else-clause is a regular value, it is pushed onto the stack
+ *
+ * Example (old syntax - deprecated):
+ *   1 (10) (20) if  // Pushes 10
+ *   0 (10) (20) if  // Pushes 20
+ *
+ * Example (new syntax):
+ *   1 IF { 10 } ELSE { 20 }  // Pushes 10
+ *   0 IF { 10 } ELSE { 20 }  // Pushes 20
  */
 export const simpleIfOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
@@ -52,8 +62,42 @@ export const simpleIfOp: Verb = (vm: VM) => {
 };
 
 /**
- * Implements conditional jump for curly-brace IF syntax.
- * Pops the condition from the stack and jumps if false.
+ * Implements the IF { ... } ELSE { ... } control structure using conditional jumps.
+ * 
+ * This is the preferred way to write conditionals in Tacit. The syntax is:
+ * 
+ *   condition IF { then-branch } [ELSE { else-branch }]
+ * 
+ * Where:
+ * - `condition` is any expression that leaves a boolean value on the stack
+ * - `then-branch` is executed if condition is true (non-zero)
+ * - `else-branch` (optional) is executed if condition is false (zero)
+ * 
+ * Both branches are code blocks delimited by curly braces { ... } and can contain
+ * any number of expressions.
+ * 
+ * Examples:
+ *   // Simple if
+ *   1 IF { 10 }  // Pushes 10
+ *   0 IF { 10 }  // Does nothing
+ *   
+ *   // If-else
+ *   1 IF { 10 } ELSE { 20 }  // Pushes 10
+ *   0 IF { 10 } ELSE { 20 }  // Pushes 20
+ *   
+ *   // With expressions
+ *   5 3 > IF { "greater" } ELSE { "not greater" }  // Pushes "greater"
+ *   
+ *   // With code blocks
+ *   1 IF { 5 2 + } ELSE { 8 3 - }  // Pushes 7
+ *   0 IF { 5 2 + } ELSE { 8 3 - }  // Pushes 5
+ * 
+ * Note: The ELSE block is optional. If omitted and the condition is false,
+ *       execution continues with the next instruction.
+ * 
+ * Stack effect: ( cond -- )
+ * 
+ * @see simpleIfOp The deprecated version of if-then-else
  */
 export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
   const offset = vm.next16(); // Read the relative offset

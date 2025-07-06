@@ -35,9 +35,9 @@ describe('Tacit Advanced Operations', () => {
     expect(result).toEqual([2]);
   });
 
-  test('nested if with code blocks', () => {
+  test('nested if with code blocks (using new IF syntax)', () => {
     // Advanced if: if clauses with expressions
-    let result = runTacitTest('1 ( 5 2 + ) ( 8 3 - ) if');
+    let result = runTacitTest('1 IF { 5 2 + } ELSE { 8 3 - }');
     expect(result).toEqual([7]);
   });
 

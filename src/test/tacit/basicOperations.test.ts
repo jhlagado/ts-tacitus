@@ -51,13 +51,13 @@ describe('Tacit Basic Operations', () => {
     expect(result).toEqual([0]);
   });
 
-  test('if operator', () => {
+  test('if operator (using new IF syntax)', () => {
     // Basic if - true branch
-    let result = runTacitTest('1 (10) (20) if');
+    let result = runTacitTest('1 IF {10} ELSE {20}');
     expect(result).toEqual([10]);
-
+    
     // Basic if - false branch
-    result = runTacitTest('0 (10) (20) if');
+    result = runTacitTest('0 IF {10} ELSE {20}');
     expect(result).toEqual([20]);
   });
 
