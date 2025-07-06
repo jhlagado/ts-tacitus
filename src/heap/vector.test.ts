@@ -2,7 +2,6 @@ import { initializeInterpreter, vm } from '../core/globalState';
 import { vectorCreate, vectorGet, vectorToArray, vectorUpdate } from './vector';
 import { fromTaggedValue, isNIL } from '../core/tagged';
 import { formatValue } from '../core/utils';
-import { vecLeftOp, vecRightOp } from '../ops/builtins-interpreter';
 import { SEG_HEAP } from '../core/memory';
 import { INVALID } from '../core/constants';
 
@@ -147,34 +146,6 @@ describe('Vector', () => {
       vm.heap.getNextBlock = originalGetNextBlock;
     });
 
-    xit('should produce a nested vector [ 1 2 [ 3 ] ]', () => {
-      // Outer vector: the outer vector will have three elements: 1, 2, and an inner vector.
-      // Use vecLeftOp to mark the start and vecRightOp to build the vector.
-
-      // --- Outer vector start ---
-      vecLeftOp(vm);
-      // Push outer vector element 1.
-      vm.push(1);
-      // Push outer vector element 2.
-      vm.push(2);
-
-      // --- Inner vector start ---
-      vecLeftOp(vm);
-      // Push inner vector element 3.
-      vm.push(3);
-      // End inner vector.
-      vecRightOp(vm); // This pops the inner vector elements and pushes a tagged inner vector.
-
-      // --- End outer vector ---
-      vecRightOp(vm); // This constructs the outer vector from elements: 1, 2, and the inner vector.
-
-      // The outer vector should now be on the top of the stack.
-      const outerVector = vm.pop();
-
-      // Use formatValue to convert the nested vector to a string.
-      const printed = formatValue(vm, outerVector);
-      expect(printed).toBe('[ 1 2 [ 3 ] ]');
-    });
 
     it('should format a vector with elements [ 1 2 3 ]', () => {
       const data = [1, 2, 3];
