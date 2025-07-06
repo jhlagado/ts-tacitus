@@ -73,7 +73,6 @@ export function formatValue(vm: VM, value32: number): string {
       case HeapTag.SEQUENCE:
         return `SEQ(${value})`;
       case HeapTag.VECTOR:
-      case HeapTag.DICT:
         try {
           // Use vectorGet for accessing elements - this is better for handling nested structures
           const byteOffset = value * 64; // Convert block index to byte offset
@@ -88,7 +87,7 @@ export function formatValue(vm: VM, value32: number): string {
           return `[ ${elems.join(' ')} ]`;
         } catch (error) {
           console.error((error as Error).message);
-          return tag === HeapTag.VECTOR ? `VECTOR(${value})` : `DICT(${value})`;
+          return `VECTOR(${value})`;
         }
       default:
         return `Unknown heap tag (${tag}, ${value})`;

@@ -29,10 +29,6 @@ export enum Op {
   VecLeft,
   /** Marks the end of a vector literal. */
   VecRight,
-  /** Marks the beginning of a dictionary literal. */
-  DictLeft,
-  /** Marks the end of a dictionary literal. */
-  DictRight,
 
   /** Performs addition of the top two values on the stack. */
   Plus,

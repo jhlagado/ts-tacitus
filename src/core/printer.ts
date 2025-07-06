@@ -19,24 +19,17 @@ function formatValue(tval: number, indent = 0): string {
     return `${prefix}${scalarRepr(tval)}`;
   }
 
-  // Heap‐allocated object (only VECTOR and DICT are supported now that sequences are removed)
-  switch (tag as HeapTag) {
-    case HeapTag.VECTOR: {
-      const view = new VectorView(vm.heap, addr);
-      let elems = '';
-      for (let i = 0; i < view.length; i++) {
-        if (i > 0) elems += '\n';
-        elems += formatValue(view.element(i), indent + 1);
-      }
-      return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
+  // Only VECTOR is supported now that sequences and dicts are removed
+  if (tag === HeapTag.VECTOR) {
+    const view = new VectorView(vm.heap, addr);
+    let elems = '';
+    for (let i = 0; i < view.length; i++) {
+      if (i > 0) elems += '\n';
+      elems += formatValue(view.element(i), indent + 1);
     }
-
-    case HeapTag.DICT:
-      return `${prefix}Dict`;
-
-    default:
-      return `${prefix}Unknown(${name})`;
+    return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
   }
+  return `${prefix}Unknown(${name})`;
 }
 
 function toHex(addr: number): string {

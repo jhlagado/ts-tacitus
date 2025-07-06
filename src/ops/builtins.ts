@@ -19,8 +19,6 @@ import {
   literalStringOp,
   vecLeftOp,
   vecRightOp,
-  dictLeftOp,
-  dictRightOp,
 } from './builtins-interpreter';
 
 import {
@@ -115,12 +113,7 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.VecRight:
       vecRightOp(vm);
       break;
-    case Op.DictLeft:
-      dictLeftOp(vm);
-      break;
-    case Op.DictRight:
-      dictRightOp(vm);
-      break;
+
 
     // Dyadic Arithmetic
     case Op.Plus:
