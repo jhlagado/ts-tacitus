@@ -4,7 +4,16 @@
  * without heap allocation or complex data structures.
  */
 
-import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
+import { 
+  Memory, 
+  STACK_SIZE, 
+  RSTACK_SIZE, 
+  SEG_STACK, 
+  SEG_RSTACK, 
+  SEG_CODE, 
+  CODE_SIZE,
+  SEGMENT_TABLE 
+} from './memory';
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Digest } from '../strings/digest';
@@ -202,5 +211,80 @@ export class VM {
       compileData.push(this.memory.read8(SEG_CODE, i));
     }
     return compileData;
+  }
+
+  /**
+   * Executes compiled code starting at the current IP
+   * Implements a direct threaded code interpreter
+   */
+  run(): void {
+    this.running = true;
+    const maxIterations = 1000; // Prevent infinite loops
+    let iterations = 0;
+    
+    // Calculate code segment bounds
+    const codeStart = SEGMENT_TABLE[SEG_CODE];
+    const codeEnd = codeStart + CODE_SIZE;
+    
+    while (this.running && iterations++ < maxIterations) {
+      // Check if we've reached the end of code memory
+      const currentAddress = codeStart + this.IP;
+      if (currentAddress >= codeEnd) {
+        this.running = false;
+        break;
+      }
+      
+      const opcode = this.next8();
+      
+      if ((opcode & 0x80) === 0) {
+        // Built-in opcode (0-127)
+        const operation = this.symbolTable.getBuiltin(opcode);
+        if (!operation) {
+          throw new Error(`Undefined opcode: ${opcode}`);
+        }
+        
+        try {
+          operation(this);
+        } catch (error) {
+          this.running = false;
+          throw error;
+        }
+      } else {
+        // Function call (high bit set)
+        const byte2 = this.next8();
+        const index = ((byte2 & 0x7F) << 7) | (opcode & 0x7F);
+        const targetAddress = this.symbolTable.getUserDefined(index);
+        
+        if (targetAddress === undefined) {
+          throw new Error(`Undefined function index: ${index}`);
+        }
+        
+        // Check for stack overflow before pushing return address
+        if (this.RP + 4 > RSTACK_SIZE) {
+          this.running = false;
+          throw new Error('Return stack overflow');
+        }
+        
+        // Save return address (current IP, which is after the 2-byte call)
+        this.rpush(this.IP);
+        // Set IP to the function's address
+        this.IP = targetAddress;
+      }
+    }
+    
+    if (iterations >= maxIterations && this.running) {
+      throw new Error('Maximum iterations exceeded');
+    }
+  }
+
+  /**
+   * Returns from a function call
+   */
+  ret(): void {
+    if (this.RP < 4) {
+      this.running = false; // Return from top-level
+      return;
+    }
+    this.IP = this.rpop();
   }
 }

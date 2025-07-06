@@ -6,6 +6,8 @@ interface SymbolTableNode {
   key: number;
   value: Verb;
   next: SymbolTableNode | null;
+  opcode?: number;
+  address?: number;
 }
 
 const compileCall = (address: number) => (vm: VM) => {
@@ -21,19 +23,48 @@ export type SymbolTableCheckpoint = SymbolTableNode | null;
 
 export class SymbolTable {
   private head: SymbolTableNode | null;
+  private builtins: (Verb | undefined)[];
+  private userDefined: (number | undefined)[];
+  private nextOpcode: number;
+  private nextFunctionIndex: number;
 
   constructor(private digest: Digest) {
     this.head = null;
+    this.builtins = new Array(128).fill(undefined);
+    this.userDefined = [];
+    this.nextOpcode = 0;
+    this.nextFunctionIndex = 0;
   }
   // Define a new word in the symbolTable
-  define(name: string, verb: Verb): void {
+  define(name: string, verb: Verb, options: { isBuiltin?: boolean } = {}): number | undefined {
     const key = this.digest.add(name);
     const newNode: SymbolTableNode = { key, value: verb, next: this.head };
+    
+    if (options.isBuiltin && this.nextOpcode < 128) {
+      newNode.opcode = this.nextOpcode;
+      this.builtins[this.nextOpcode] = verb;
+      this.nextOpcode++;
+      return newNode.opcode;
+    }
+    
     this.head = newNode;
+    return undefined;
   }
 
-  defineCall(name: string, address: number): void {
-    this.define(name, compileCall(address));
+  defineCall(name: string, address: number): number {
+    const key = this.digest.add(name);
+    const newNode: SymbolTableNode = { 
+      key, 
+      value: compileCall(address), 
+      next: this.head,
+      address
+    };
+    
+    const index = this.nextFunctionIndex++;
+    this.userDefined[index] = address;
+    this.head = newNode;
+    
+    return index;
   }
 
   // Find a word in the symbolTable
@@ -46,6 +77,26 @@ export class SymbolTable {
       current = current.next;
     }
     return undefined;
+  }
+  
+  /**
+   * Gets a built-in operation by its opcode
+   */
+  getBuiltin(opcode: number): Verb | undefined {
+    if (opcode < 0 || opcode >= this.builtins.length) {
+      return undefined;
+    }
+    return this.builtins[opcode];
+  }
+  
+  /**
+   * Gets the address of a user-defined function by its index
+   */
+  getUserDefined(index: number): number | undefined {
+    if (index < 0 || index >= this.userDefined.length) {
+      return undefined;
+    }
+    return this.userDefined[index];
   }
 
   /**

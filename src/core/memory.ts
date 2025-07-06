@@ -3,7 +3,7 @@
 export const MEMORY_SIZE = 65536; // Total memory size (16-bit address space)
 
 // Segment Table
-const SEGMENT_TABLE: number[] = new Array(8).fill(0);
+export const SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
 // Segment ID mappings (aligning with PrimitiveTag where possible)
 export const SEG_STACK = 0; // Data Stack

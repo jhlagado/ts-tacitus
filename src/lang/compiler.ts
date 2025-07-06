@@ -2,15 +2,13 @@ import { VM } from '../core/vm';
 import { CoreTag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE } from '../core/memory';
 import { Operation } from '../ops/basic/builtins';
-import { encodeBuiltin, encodeFunctionIndex, MAX_BUILTINS } from './opcode';
+import { encodeFunctionIndex } from './opcode';
 
 export class Compiler {
-  // Array to store operation functions
-  operations: Operation[] = [];
-  // Counter for built-in operations (0-127)
-  private builtinCount = 0;
-  // Counter for user-defined operations (0-16383)
-  private userOpCount = 0;
+  // Operation lookup table for built-ins and user-defined functions
+  private operations: Map<number, Operation> = new Map();
+  // Next available function index for user-defined operations
+  private nextFunctionIndex = 0;
   nestingScore: number;
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
   BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
@@ -67,9 +65,8 @@ export class Compiler {
       this.BP = this.CP; // Preserve the compiled code
     } else {
       this.CP = this.BP; // Reuse the memory
-      this.operations = []; // Clear operations when resetting
-      this.builtinCount = 0;
-      this.userOpCount = 0;
+      this.operations.clear(); // Clear operations when resetting
+      this.nextFunctionIndex = 0; // Reset function index counter
     }
   }
 
@@ -87,41 +84,54 @@ export class Compiler {
    * @param operation The operation function to compile
    * @param isBuiltin Whether this is a built-in operation
    */
-  compileOp(operation: Operation, isBuiltin: boolean = false): void {
-    // Store the operation in our operations array
-    const opIndex = this.operations.length;
-    this.operations.push(operation);
-    
-    // For built-ins, we just need to store the opcode (which is the index)
-    // For user functions, we need to store the function table index
-    if (isBuiltin) {
-      this.compileBuiltin(opIndex);
+  /**
+   * Compiles an operation function to be executed by the VM.
+   * For built-ins, registers them in the symbol table and compiles their opcode.
+   * For user-defined functions, compiles a function call with the appropriate index.
+   * 
+   * @param operation The operation function to compile
+   * @param name Optional name for built-in operations
+   * @returns The opcode for built-ins or function index for user-defined functions
+   */
+  compileOp(operation: Operation, name?: string): number | undefined {
+    if (name) {
+      // This is a built-in operation
+      const opcode = this.vm.symbolTable.define(name, operation, { isBuiltin: true });
+      if (opcode !== undefined) {
+        this.compile8(opcode);
+        return opcode;
+      }
+      return undefined;
     } else {
-      this.compileCall(opIndex);
+      // This is a user-defined function call
+      const funcIndex = this.nextFunctionIndex++;
+      this.operations.set(funcIndex, operation);
+      
+      // Encode the function index as two bytes
+      const [low, high] = encodeFunctionIndex(funcIndex);
+      this.compile8(low);
+      this.compile8(high);
+      
+      return funcIndex;
     }
   }
   
   /**
-   * Compiles a call to a built-in operation
-   * @param opcode The built-in opcode (0-127)
+   * Compiles a built-in operation (0-127)
    */
   private compileBuiltin(opcode: number): void {
-    if (opcode < 0 || opcode >= MAX_BUILTINS) {
-      throw new Error(`Built-in opcode ${opcode} out of range (0-${MAX_BUILTINS-1})`);
+    if (opcode >= 128) { // 7-bit opcode range
+      throw new Error(`Opcode ${opcode} exceeds maximum value (127) for built-ins`);
     }
-    // For built-ins, we just write the 7-bit opcode directly
     this.compile8(opcode);
   }
   
   /**
-   * Compiles a call to a user-defined function
-   * @param index The function table index (0-16383)
+   * Compiles a call to a user-defined function by its index
    */
-  private compileCall(index: number): void {
-    // Encode the index as a 15-bit value with the high bit set on the first byte
-    const bytes = encodeFunctionIndex(index);
-    for (const byte of bytes) {
-      this.compile8(byte);
-    }
+  compileCallByIndex(index: number): void {
+    const [low, high] = encodeFunctionIndex(index);
+    this.compile8(low);
+    this.compile8(high);
   }
 }
