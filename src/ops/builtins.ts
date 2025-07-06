@@ -69,22 +69,7 @@ import { formatValue } from '../core/utils';
 import { rotOp, negRotOp } from './builtins-stack';
 
 // Import sequence operations
-import {
-  rangeOp,
-  seqOp,
-  mapOp,
-  siftOp,
-  filterOp,
-  seqTakeOp,
-  seqDropOp,
-  toVectorOp,
-  countOp,
-  lastOp,
-  forEachOp,
-  reduceOp,
-} from './builtins-sequence';
 import { Op } from './opcodes';
-
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
 
 /**
@@ -252,47 +237,7 @@ export function executeOp(vm: VM, opcode: Op) {
       ifCurlyBranchFalseOp(vm);
       break;
 
-    // Sequence Operations
-    case Op.Range:
-      rangeOp(vm);
-      break;
-    case Op.Seq:
-      seqOp(vm);
-      break;
-
-    // Sequence Processors
-    case Op.Map:
-      mapOp(vm);
-      break;
-    case Op.Sift:
-      siftOp(vm);
-      break;
-    case Op.Filter:
-      filterOp(vm);
-      break;
-    case Op.SeqTake:
-      seqTakeOp(vm);
-      break;
-    case Op.SeqDrop:
-      seqDropOp(vm);
-      break;
-
-    // Sequence Sinks
-    case Op.ToVector:
-      toVectorOp(vm);
-      break;
-    case Op.Count:
-      countOp(vm);
-      break;
-    case Op.Last:
-      lastOp(vm);
-      break;
-    case Op.ForEach:
-      forEachOp(vm);
-      break;
-    case Op.Reduce:
-      reduceOp(vm);
-      break;
+    // Sequence operations have been removed
 
     case Op.LiteralAddress:
       literalAddressOp(vm);

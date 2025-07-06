@@ -1,5 +1,4 @@
 import { fromTaggedValue, CoreTag, HeapTag, heapTagNames, nonHeapTagNames } from './tagged';
-import { SequenceView } from '../seq/sequenceView';
 import { VectorView } from '../heap/vectorView';
 import { vm } from './globalState';
 
@@ -20,7 +19,7 @@ function formatValue(tval: number, indent = 0): string {
     return `${prefix}${scalarRepr(tval)}`;
   }
 
-  // Heap‐allocated object
+  // Heap‐allocated object (only VECTOR and DICT are supported now that sequences are removed)
   switch (tag as HeapTag) {
     case HeapTag.VECTOR: {
       const view = new VectorView(vm.heap, addr);
@@ -32,22 +31,11 @@ function formatValue(tval: number, indent = 0): string {
       return `${prefix}Vector(len=${view.length}) [\n` + `${elems}\n` + `${'  '.repeat(indent)}]`;
     }
 
-    case HeapTag.SEQUENCE: {
-      const seq = new SequenceView(vm.heap, addr);
-      const metas = Array.from({ length: seq.metaCount }, (_, i) =>
-        formatValue(seq.meta(i), indent + 1)
-      ).join('\n');
-      return (
-        `${prefix}Sequence(type=${seq.type}, metaCount=${seq.metaCount}) {\n` +
-        `${metas}\n` +
-        `${'  '.repeat(indent)}}`
-      );
-    }
-
-    // TODO: other heap types
+    case HeapTag.DICT:
+      return `${prefix}Dict`;
 
     default:
-      return `${prefix}<unrecognized heap tag>`;
+      return `${prefix}Unknown(${name})`;
   }
 }
 
