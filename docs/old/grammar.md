@@ -38,8 +38,6 @@ vector_literal ::= '[' expression* ']'
 
 curly_block ::= '{' expression* '}'
 
-group_notation ::= '#[' expression* ']#'
-
 dictionary_literal ::= ':[' (key value)* ']:'
 ```
 
@@ -94,7 +92,6 @@ comment ::= '//' any_character* newline
 - Vector literals `[ ... ]` create heap-allocated vector data structures 
 - Curly braces `{ ... }` define compile-time blocks used with modern control structures
 - Parentheses `( ... )` define code blocks that can be manipulated as values and executed with `eval`
-- Group notation `#[ ... ]#` is used for grouping values on the stack
 - Dictionary literals `:[ ... ]:` create key-value mappings
 - `:` and `;` are used for word definitions similar to Forth
 - Comments use C++ style with double-slash (`//`)

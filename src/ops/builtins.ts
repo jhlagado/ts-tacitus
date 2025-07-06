@@ -16,8 +16,6 @@ import {
   abortOp,
   exitOp,
   evalOp,
-  groupLeftOp,
-  groupRightOp,
   literalStringOp,
   vecLeftOp,
   vecRightOp,
@@ -118,12 +116,6 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Eval:
       evalOp(vm);
-      break;
-    case Op.GroupLeft:
-      groupLeftOp(vm);
-      break;
-    case Op.GroupRight:
-      groupRightOp(vm);
       break;
     case Op.Print:
       const value = vm.pop();

@@ -32,9 +32,12 @@ describe('Interpreter', () => {
     it('should handle nested structures :[ "k" [ 1 2 ] ]:', () => {
       executeProgram(':[ "k" [ 1 2 ] ]:');
       const stack = vm.getStackData();
+      console.log('Stack after executeProgram:', stack);
       expect(stack.length).toBe(1);
       const taggedPtr = stack[0];
-      const { tag, isHeap: heap } = fromTaggedValue(taggedPtr);
+      console.log('taggedPtr:', taggedPtr.toString(16));
+      const { tag, isHeap: heap, value } = fromTaggedValue(taggedPtr);
+      console.log('tag:', tag, 'heap:', heap, 'value:', value.toString(16));
       expect(heap).toBe(true);
       expect(tag).toBe(HeapTag.DICT);
     });

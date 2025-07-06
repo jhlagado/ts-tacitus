@@ -5,8 +5,6 @@ export enum TokenType {
   WORD,
   STRING,
   SPECIAL, // For special characters like : and ;, etc.
-  GROUP_START, // New type for #[
-  GROUP_END, // New type for ]#
   BLOCK_START,  // New type for '{' compile-time block start
   BLOCK_END,    // New type for '}' compile-time block end
   WORD_QUOTE, // Re-added type for back-tick prefixed quoted words
@@ -62,28 +60,6 @@ export class Tokenizer {
 
     const char = this.input[this.position];
     const startPos = this.position;
-
-    // Check for #[
-    if (
-      char === '#' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '['
-    ) {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.GROUP_START, value: '#[', position: startPos };
-    }
-
-    // Check for ]#
-    if (
-      char === ']' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '#'
-    ) {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.GROUP_END, value: ']#', position: startPos };
-    }
 
     // Handle comments starting with "//"
     if (

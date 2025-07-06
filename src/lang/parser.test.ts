@@ -260,33 +260,6 @@ describe('Parser with Tokenizer', () => {
     });
   });
 
-  // Groupings
-  describe('Groupings', () => {
-    it('should compile #[ 1 2 3 ]# with proper grouping opcodes', () => {
-      // Parse input with hash-bracket grouping
-      parse(new Tokenizer('#[ 1 2 3 ]#'));
-
-      vm.reset();
-      // Expect the GroupLeft opcode to be emitted for '#['
-      expect(vm.next8()).toBe(Op.GroupLeft);
-
-      // Check the three literal numbers
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(1);
-
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(2);
-
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(3);
-
-      // Expect the GroupRight opcode for ']#'
-      expect(vm.next8()).toBe(Op.GroupRight);
-
-      // Finally, the Abort opcode terminates the program
-      expect(vm.next8()).toBe(Op.Abort);
-    });
-  });
 
   // Dictionaries
   describe('Dictionaries', () => {
