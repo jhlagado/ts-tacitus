@@ -2,10 +2,15 @@ import { VM } from '../core/vm';
 import { CoreTag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE } from '../core/memory';
 import { Operation } from '../ops/basic/builtins';
+import { encodeBuiltin, encodeFunctionIndex, MAX_BUILTINS } from './opcode';
 
 export class Compiler {
   // Array to store operation functions
   operations: Operation[] = [];
+  // Counter for built-in operations (0-127)
+  private builtinCount = 0;
+  // Counter for user-defined operations (0-16383)
+  private userOpCount = 0;
   nestingScore: number;
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
   BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
@@ -62,6 +67,9 @@ export class Compiler {
       this.BP = this.CP; // Preserve the compiled code
     } else {
       this.CP = this.BP; // Reuse the memory
+      this.operations = []; // Clear operations when resetting
+      this.builtinCount = 0;
+      this.userOpCount = 0;
     }
   }
 
@@ -72,19 +80,48 @@ export class Compiler {
 
   /**
    * Compiles an operation function to be executed by the VM.
-   * For the simplified Forth-like implementation, we'll store the operation
-   * function in an array and compile an index reference to it.
+   * Uses the new opcode encoding scheme:
+   * - Built-ins: 0xxxxxxx (7-bit opcode)
+   * - User functions: 1xxxxxxx yyyyyyyy (15-bit index)
    * 
    * @param operation The operation function to compile
+   * @param isBuiltin Whether this is a built-in operation
    */
-  compileOp(operation: Operation): void {
+  compileOp(operation: Operation, isBuiltin: boolean = false): void {
     // Store the operation in our operations array
     const opIndex = this.operations.length;
     this.operations.push(operation);
     
-    // Compile a special marker byte (255) to indicate an operation reference
-    this.compile8(255);
-    // Compile the index of the operation in our array
-    this.compile16(opIndex);
+    // For built-ins, we just need to store the opcode (which is the index)
+    // For user functions, we need to store the function table index
+    if (isBuiltin) {
+      this.compileBuiltin(opIndex);
+    } else {
+      this.compileCall(opIndex);
+    }
+  }
+  
+  /**
+   * Compiles a call to a built-in operation
+   * @param opcode The built-in opcode (0-127)
+   */
+  private compileBuiltin(opcode: number): void {
+    if (opcode < 0 || opcode >= MAX_BUILTINS) {
+      throw new Error(`Built-in opcode ${opcode} out of range (0-${MAX_BUILTINS-1})`);
+    }
+    // For built-ins, we just write the 7-bit opcode directly
+    this.compile8(opcode);
+  }
+  
+  /**
+   * Compiles a call to a user-defined function
+   * @param index The function table index (0-16383)
+   */
+  private compileCall(index: number): void {
+    // Encode the index as a 15-bit value with the high bit set on the first byte
+    const bytes = encodeFunctionIndex(index);
+    for (const byte of bytes) {
+      this.compile8(byte);
+    }
   }
 }

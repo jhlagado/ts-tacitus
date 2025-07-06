@@ -29,7 +29,8 @@ describe('Compiler', () => {
   });
 
   it('should compile a literal number', () => {
-    vm.compiler.compile8(255); // 255 is the marker for operations in the compiler
+    // Compile a literal number (using 255 as a test value)
+    vm.compiler.compile8(255);
     vm.compiler.compileFloat32(42);
     vm.reset();
     expect(vm.next8()).toBe(255);
@@ -37,12 +38,22 @@ describe('Compiler', () => {
   });
 
   it('should compile a built-in word', () => {
-    // Store operation in compiler's operations array
-    vm.compiler.compileOp(addOp); 
+    // Compile a built-in operation
+    vm.compiler.compileOp(addOp, true); // true indicates it's a built-in
     vm.reset();
-    // Should have compiled a marker (255) followed by the operation index (0)
-    expect(vm.next8()).toBe(255); 
-    expect(vm.next16()).toBe(0); // First operation has index 0
+    // Built-ins are encoded as a single byte (0-127)
+    // addOp is the first built-in, so it should be 0
+    expect(vm.next8()).toBe(0);
+  });
+
+  it('should compile a user-defined function call', () => {
+    // Compile a user-defined operation
+    vm.compiler.compileOp(addOp); // No second argument means it's user-defined
+    vm.reset();
+    // User calls are encoded as two bytes with high bit set on first byte
+    // First operation has index 0, encoded as [0x80, 0x00]
+    expect(vm.next8()).toBe(0x80); // 10000000
+    expect(vm.next8()).toBe(0x00); // 00000000
   });
 
   it('should preserve compiled code when preserve is true', () => {
