@@ -19,10 +19,6 @@ export enum Op {
   Exit,
   /** Evaluates the expression on the top of the stack. */
   Eval,
-  /** Marks the beginning of a group (used for parsing). */
-  GroupLeft,
-  /** Marks the end of a group (used for parsing). */
-  GroupRight,
   /** Prints the value on the top of the stack to the console. */
   Print,
   /** Pushes a literal string onto the stack. */
