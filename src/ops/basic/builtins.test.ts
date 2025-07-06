@@ -1,6 +1,5 @@
 import { VM } from '../../core/vm';
 import { registerBasicOps } from './builtins';
-import { toTaggedValue, CoreTag } from '../../core/tagged';
 
 describe('Basic Operations', () => {
   let vm: VM;
@@ -34,21 +33,21 @@ describe('Basic Operations', () => {
   };
 
   describe('Stack Operations', () => {
-    test('DUP duplicates the top stack item', () => {
+    test('dup duplicates the top stack item', () => {
       vm.push(42);
       ops.dup(vm);
       expect(vm.pop()).toBe(42);
       expect(vm.pop()).toBe(42);
     });
 
-    test('DROP removes the top stack item', () => {
+    test('drop removes the top stack item', () => {
       vm.push(1);
       vm.push(2);
       ops.drop(vm);
       expect(vm.pop()).toBe(1);
     });
 
-    test('SWAP swaps the top two stack items', () => {
+    test('swap swaps the top two stack items', () => {
       vm.push(1);
       vm.push(2);
       ops.swap(vm);
@@ -56,7 +55,7 @@ describe('Basic Operations', () => {
       expect(vm.pop()).toBe(2);
     });
 
-    test('OVER duplicates the second stack item to the top', () => {
+    test('over duplicates the second stack item to the top', () => {
       vm.push(1);
       vm.push(2);
       ops.over(vm);
@@ -65,7 +64,7 @@ describe('Basic Operations', () => {
       expect(vm.pop()).toBe(1);
     });
 
-    test('ROT rotates the top three stack items', () => {
+    test('rot rotates the top three stack items', () => {
       vm.push(1);
       vm.push(2);
       vm.push(3);
@@ -97,7 +96,7 @@ describe('Basic Operations', () => {
       expect(vm.pop()).toBe(5);
     });
 
-    test('MOD calculates the remainder of division', () => {
+    test('mod calculates the remainder of division', () => {
       executeOp(10, 3, 'mod'); // 10 3 mod -> 1
       expect(vm.pop()).toBe(1);
     });
@@ -181,46 +180,41 @@ describe('Basic Operations', () => {
   });
 
   describe('Control Flow', () => {
-    test('IF executes the then-branch when condition is true', () => {
+    test('if executes the then-branch when condition is true', () => {
       // Push condition (true) and addresses using RPN-style
       vm.push(1); // Dummy return address
       vm.push(-1); // true condition
       vm.push(10); // then-branch address
       vm.push(20); // else-branch address
       
-      // Save current IP
       const savedIp = vm.IP;
       
-      // Execute IF (takes condition, then-addr, else-addr from stack)
+      // Execute if (takes condition, then-addr, else-addr from stack)
       ops.if(vm);
       
       // Should jump to then-branch (10)
       expect(vm.IP).toBe(10);
       
-      // Clean up
+      // Restore VM state
       vm.IP = savedIp;
     });
 
-    test('IF executes the else-branch when condition is false', () => {
-      // Create tagged values for the addresses
-      const thenAddr = toTaggedValue(10, false, CoreTag.CODE);
-      const elseAddr = toTaggedValue(20, false, CoreTag.CODE);
-      
-      // Push values in RPN order: condition, then-address, else-address
+    test('if executes the else-branch when condition is false', () => {
+      // Push condition (false) and addresses using RPN-style
+      vm.push(1); // Dummy return address
       vm.push(0); // false condition
-      vm.push(thenAddr); // then-branch address
-      vm.push(elseAddr); // else-branch address
+      vm.push(10); // then-branch address
+      vm.push(20); // else-branch address
       
-      // Save current IP
       const savedIp = vm.IP;
       
-      // Execute IF (pops else-addr, then-addr, condition from stack)
+      // Execute if (pops else-addr, then-addr, condition from stack)
       ops.if(vm);
       
       // Should jump to else-branch (20)
       expect(vm.IP).toBe(20);
       
-      // Clean up
+      // Restore VM state
       vm.IP = savedIp;
     });
   });

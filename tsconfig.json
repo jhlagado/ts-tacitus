@@ -5,8 +5,9 @@
     "strict": true,
     "outDir": "./dist",
     "esModuleInterop": true,
-    "sourceMap": true // Ensure this is set to true
+    "sourceMap": true,
+    "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules"]
 }

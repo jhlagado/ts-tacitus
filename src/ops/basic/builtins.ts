@@ -195,31 +195,72 @@ export const ifOp: Operation = (vm: VM) => {
 };
 
 /**
+ * Loop Operations
+ */
+export const doOp: Operation = (vm: VM) => {
+    // Stack: counter block-addr
+    const blockAddr = vm.pop();
+    const counter = vm.pop();
+    
+    if (counter <= 0) {
+        return; // Don't execute if counter is 0 or negative
+    }
+    
+    // Save current IP and counter on return stack
+    vm.rpush(vm.IP);     // Return address
+    vm.rpush(counter-1); // Remaining iterations (n-1)
+    vm.rpush(blockAddr); // Block address to execute
+    
+    // Jump to block
+    vm.IP = blockAddr;
+};
+
+export const loopOp: Operation = (vm: VM) => {
+    // Get loop state from return stack
+    const blockAddr = vm.rpop();      // Block address
+    const remaining = vm.rpop();      // Remaining iterations
+    const returnAddr = vm.rpop();     // Where to return after loop
+    
+    if (remaining > 0) {
+        // More iterations to go
+        vm.rpush(returnAddr);         // Push return address back
+        vm.rpush(remaining - 1);      // Decrement counter
+        vm.rpush(blockAddr);          // Push block address back
+        vm.IP = blockAddr;            // Jump to block start
+    } else {
+        // Loop done
+        vm.IP = returnAddr;           // Continue after loop
+    }
+};
+
+/**
  * Register all basic operations
  */
 export function registerBasicOps(): OperationMap {
   const ops: OperationMap = {
     // Stack operations
-    dup: dupOp,
-    drop: dropOp,
-    swap: swapOp,
-    over: overOp,
-    rot: rotOp,
-
-    // Arithmetic operations
+    'dup': dupOp,
+    'drop': dropOp,
+    'swap': swapOp,
+    'over': overOp,
+    'rot': rotOp,
+    
+    // Arithmetic
     '+': addOp,
     '-': subOp,
     '*': mulOp,
     '/': divOp,
-    mod: modOp,
-
-    // Comparison operations
+    'mod': modOp,
+    
+    // Comparison
     '=': eqOp,
     '<': ltOp,
     '>': gtOp,
-
+    
     // Control flow
-    if: ifOp,
+    'if': ifOp,
+    'do': doOp,
+    'loop': loopOp,
   };
 
   return ops;

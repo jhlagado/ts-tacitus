@@ -90,6 +90,13 @@ export class VM {
   }
 
   /**
+   * Clears the data stack
+   */
+  clearStack(): void {
+    this.SP = 0;
+  }
+
+  /**
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
    */

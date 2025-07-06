@@ -21,6 +21,75 @@ export class Interpreter {
   constructor(vm: VM) {
     this.vm = vm;
     this.symbolTable = vm.symbolTable;
+    
+    // Add built-in operations
+    this.initializeBuiltins();
+  }
+  
+  /**
+   * Initialize built-in operations
+   */
+  private initializeBuiltins(): void {
+    // Add the 'do' operation
+    // The actual implementation is handled in the eval method, but we need to define it
+    // to prevent 'unknown token' errors
+    this.symbolTable.define('do', (_vm: VM) => {
+      // Implementation is in the eval method
+    });
+    
+    // Add basic arithmetic operations
+    this.symbolTable.define('+', (vm: VM) => {
+      const b = vm.pop();
+      const a = vm.pop();
+      vm.push(a + b);
+    });
+
+    this.symbolTable.define('*', (vm: VM) => {
+      const b = vm.pop();
+      const a = vm.pop();
+      vm.push(a * b);
+    });
+
+    // Stack manipulation operations
+    this.symbolTable.define('dup', (vm: VM) => {
+      const a = vm.pop();
+      vm.push(a);
+      vm.push(a);
+    });
+
+    this.symbolTable.define('swap', (vm: VM) => {
+      const b = vm.pop();
+      const a = vm.pop();
+      vm.push(b);
+      vm.push(a);
+    });
+
+    this.symbolTable.define('drop', (vm: VM) => {
+      vm.pop();
+    });
+    
+    // Add the '}' operation (needed to properly handle block end)
+    this.symbolTable.define('}', (_vm: VM) => {
+      // This is a no-op, just needed to prevent 'unknown token' errors
+    });
+    
+    // Add 'over' operation (duplicates the second item to the top)
+    this.symbolTable.define('over', (vm: VM) => {
+      const a = vm.pop();
+      const b = vm.peek();
+      vm.push(a);
+      vm.push(b);
+    });
+    
+    // Add 'rot' operation (rotates the top three items)
+    this.symbolTable.define('rot', (vm: VM) => {
+      const c = vm.pop();
+      const b = vm.pop();
+      const a = vm.pop();
+      vm.push(b);
+      vm.push(c);
+      vm.push(a);
+    });
   }
 
   /**
@@ -80,6 +149,69 @@ export class Interpreter {
         continue;
       }
       
+          // Handle do loops
+      if (token.toLowerCase() === 'do') {
+        // Get the loop count from the stack
+        const count = this.vm.pop();
+        
+        // Skip the 'do' token
+        i++;
+        
+        // The next token should be a block
+        if (i >= tokens.length || tokens[i] !== '{') {
+          throw new Error('Expected block after "do"');
+        }
+        
+        // Skip the '{' token
+        i++;
+        
+        // Collect all tokens until matching '}'
+        let blockTokens: string[] = [];
+        let blockLevel = 1;
+        
+        while (i < tokens.length && blockLevel > 0) {
+          if (tokens[i] === '{') blockLevel++;
+          if (tokens[i] === '}') blockLevel--;
+          
+          if (blockLevel > 0) {
+            blockTokens.push(tokens[i]);
+          }
+          i++;
+        }
+        
+        // Decrement i since we'll increment it at the end of the loop
+        i--;
+        
+        // Execute the block 'count' times
+        if (count > 0) {
+          const blockCode = blockTokens.join(' ');
+          
+          for (let j = 0; j < count; j++) {
+            // Save the current stack state
+            const savedStack = [...this.vm.getStackData()];
+            
+            try {
+              // Execute the block
+              this.eval(blockCode);
+            } finally {
+              // Only keep the top of the stack (the result of the block)
+              const result = this.vm.getStackData().pop();
+              
+              // Restore the stack to its original state
+              this.vm.clearStack();
+              savedStack.forEach(val => this.vm.push(val));
+              
+              // Push the result back onto the stack
+              if (result !== undefined) {
+                this.vm.push(result);
+              }
+            }
+          }
+        }
+        
+        continue;
+      }
+      
       // Regular execution
       const entry = this.symbolTable.find(token);
 
@@ -109,29 +241,94 @@ export class Interpreter {
   }
 
   /**
-   * Tokenize a string into an array of tokens
+   * Tokenize a string into an array of tokens, handling blocks
    */
   private tokenize(input: string): string[] {
-    // Split by whitespace, filtering out empty strings
-    return input
-      .trim()
-      .split(/\s+/)
-      .filter(token => token.length > 0);
+    const tokens: string[] = [];
+    let currentToken = '';
+    let inString = false;
+    let inBlock = 0;
+    let inComment = false;
+    
+    for (let i = 0; i < input.length; i++) {
+      const char = input[i];
+      
+      // Handle comments
+      if (char === '\\' && !inString && !inBlock) {
+        inComment = true;
+        continue;
+      }
+      
+      if (inComment) {
+        if (char === '\n') {
+          inComment = false;
+        }
+        continue;
+      }
+      
+      // Handle string literals
+      if (char === '"' && !inBlock) {
+        inString = !inString;
+        currentToken += char;
+        continue;
+      }
+      
+      // If we're in a string, just add the character
+      if (inString) {
+        currentToken += char;
+        continue;
+      }
+      
+      // Handle blocks
+      if (char === '{') {
+        if (inBlock === 0) {
+          // Save current token if any
+          if (currentToken.trim()) {
+            tokens.push(currentToken.trim());
+            currentToken = '';
+          }
+          tokens.push('{');
+        } else {
+          currentToken += char;
+        }
+        inBlock++;
+      } else if (char === '}') {
+        inBlock--;
+        if (inBlock === 0) {
+          // Save block content
+          if (currentToken.trim()) {
+            tokens.push(currentToken.trim());
+            currentToken = '';
+          }
+          tokens.push('}');
+        } else {
+          currentToken += char;
+        }
+      } else if (/\s/.test(char) && inBlock === 0) {
+        // Handle whitespace outside of blocks
+        if (currentToken) {
+          tokens.push(currentToken);
+          currentToken = '';
+        }
+      } else {
+        currentToken += char;
+      }
+    }
+    
+    // Add the last token if there is one
+    if (currentToken) {
+      tokens.push(currentToken);
+    }
+    
+    return tokens.filter(token => token.trim().length > 0);
   }
 
   /**
    * Check if a string represents an integer
    */
-  private isInteger(str: string): boolean {
-    return /^-?\d+$/.test(str);
-  }
-
-  /**
-   * Check if a string represents a floating-point number
-   */
   private isFloat(str: string): boolean {
     // Match integers or floating-point numbers (including negative numbers)
-    return /^-?\d+(\.\d+)?$/.test(str);
+    return /^[-+]?\d*(\.\d+)?$/.test(str);
   }
   
   /**
