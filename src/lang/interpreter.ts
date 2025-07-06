@@ -151,9 +151,6 @@ export class Interpreter {
       
           // Handle do loops
       if (token.toLowerCase() === 'do') {
-        // Get the loop count from the stack
-        const count = this.vm.pop();
-        
         // Skip the 'do' token
         i++;
         
@@ -165,49 +162,84 @@ export class Interpreter {
         // Skip the '{' token
         i++;
         
-        // Collect all tokens until matching '}'
-        let blockTokens: string[] = [];
+        // Find the end of the block
+        let blockStart = i;
         let blockLevel = 1;
         
         while (i < tokens.length && blockLevel > 0) {
           if (tokens[i] === '{') blockLevel++;
           if (tokens[i] === '}') blockLevel--;
-          
-          if (blockLevel > 0) {
-            blockTokens.push(tokens[i]);
-          }
-          i++;
+          if (blockLevel > 0) i++;
         }
         
-        // Decrement i since we'll increment it at the end of the loop
-        i--;
+        // If we didn't find a matching '}', throw an error
+        if (blockLevel > 0) {
+          throw new Error('Unterminated block starting at token ' + blockStart);
+        }
+        
+        // Save the current token position
+        const savedI = i;
+        
+        // Extract the block content (excluding the closing '}')
+        const blockTokens = tokens.slice(blockStart, i - 1);
+        
+        // The top of the stack is the loop count, below it is the initial value
+        const count = Math.floor(this.vm.pop());
+        let currentValue = this.vm.pop();
+        
+        console.log('Do loop: count =', count, 'initial value =', currentValue, 'block tokens =', blockTokens);
+        
+        // For zero iterations, just leave the initial value on the stack
+        if (count <= 0) {
+          this.vm.push(currentValue);
+          i = savedI;
+          continue;
+        }
         
         // Execute the block 'count' times
-        if (count > 0) {
-          const blockCode = blockTokens.join(' ');
+        for (let j = 0; j < count; j++) {
+          console.log('Iteration', j + 1, 'of', count, 'current value =', currentValue);
           
-          for (let j = 0; j < count; j++) {
-            // Save the current stack state
-            const savedStack = [...this.vm.getStackData()];
+          // Push the current value for the block to use
+          this.vm.push(currentValue);
+          console.log('Pushed current value to stack. Stack size =', this.vm.getStackSize());
+          
+          // Execute each token in the block
+          for (let k = 0; k < blockTokens.length; k++) {
+            const currentToken = blockTokens[k];
+            console.log('  Executing token:', currentToken);
             
-            try {
-              // Execute the block
-              this.eval(blockCode);
-            } finally {
-              // Only keep the top of the stack (the result of the block)
-              const result = this.vm.getStackData().pop();
-              
-              // Restore the stack to its original state
-              this.vm.clearStack();
-              savedStack.forEach(val => this.vm.push(val));
-              
-              // Push the result back onto the stack
-              if (result !== undefined) {
-                this.vm.push(result);
-              }
+            const entry = this.symbolTable.find(currentToken);
+            
+            if (entry !== null && entry !== undefined) {
+              console.log('    Found symbol table entry:', entry);
+              entry(this.vm);
+              console.log('    After execution, stack size =', this.vm.getStackSize());
+            } else if (this.isFloat(currentToken)) {
+              console.log('    Pushing float value:', parseFloat(currentToken));
+              this.vm.push(parseFloat(currentToken));
+              console.log('    After push, stack size =', this.vm.getStackSize());
+            } else {
+              throw new Error(`Unknown word: ${currentToken}`);
             }
           }
+          
+          // The block should leave exactly one value on the stack
+          if (this.vm.getStackSize() === 0) {
+            throw new Error('Block must leave a value on the stack');
+          }
+          
+          // Get the new value for the next iteration
+          currentValue = this.vm.pop();
+          console.log('  Popped new value:', currentValue, 'Stack size =', this.vm.getStackSize());
         }
+        
+        // Push the final result
+        console.log('Final value:', currentValue);
+        this.vm.push(currentValue);
+        
+        // Restore the token position
+        i = savedI;
         
         continue;
       }

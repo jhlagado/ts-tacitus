@@ -83,10 +83,15 @@ export class VM {
     return this.memory.readFloat32(SEG_STACK, this.SP); // Read 32-bit float
   }
 
-  peek(): number {
-    const value = this.pop();
-    this.push(value); // Push back the value
-    return value;
+  /**
+   * Peeks at the top value on the stack without removing it
+   * @param offset Optional offset from the top (0 = top, 1 = next, etc.)
+   */
+  peek(offset: number = 0): number {
+    if (this.SP === 0 || offset >= this.SP) {
+      throw new Error(`Stack underflow: trying to peek at offset ${offset} with stack size ${this.SP}`);
+    }
+    return this.memory.readFloat32(SEG_STACK, this.SP - 4 - (offset * 4));
   }
 
   /**
@@ -94,6 +99,25 @@ export class VM {
    */
   clearStack(): void {
     this.SP = 0;
+  }
+
+  /**
+   * Get the current stack size in number of elements (each element is 4 bytes)
+   */
+  getStackSize(): number {
+    return this.SP / 4;
+  }
+
+  /**
+   * Set the stack size (effectively truncating the stack)
+   * @param size The new stack size in number of elements
+   */
+  setStackSize(size: number): void {
+    const newSp = size * 4;
+    if (newSp < 0 || newSp > STACK_SIZE) {
+      throw new Error(`Stack size ${size} (${newSp} bytes) out of bounds`);
+    }
+    this.SP = newSp;
   }
 
   /**
