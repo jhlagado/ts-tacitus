@@ -86,20 +86,6 @@ export class Tokenizer {
       return this.readNumber();
     }
 
-    // Check for dictionary start sequence ': ['
-    if (char === ':' && this.position + 1 < this.input.length && this.input[this.position + 1] === '[') {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.SPECIAL, value: ':[' , position: startPos };
-    }
-
-    // Check for dictionary end sequence ']:'
-    if (char === ']' && this.position + 1 < this.input.length && this.input[this.position + 1] === ':') {
-      this.position += 2;
-      this.column += 2;
-      return { type: TokenType.SPECIAL, value: ']:', position: startPos };
-    }
-
     // Handle special instruction characters (like ":" and ";")
     if (char === ':' || char === ';') {
       this.position++;
