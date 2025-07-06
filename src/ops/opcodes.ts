@@ -157,22 +157,6 @@ export enum Op {
   /** New composite if operation that can defer condition evaluation using a code block. */
   If,
 
-  // Sequence Operations
-  Range, // Create a range sequence
-  Seq, // Create a sequence from vector/string
-
-  // Sequence Processors
-  Map, // Apply function to sequence elements
-  Sift, // Filter sequence based on mask sequence
-  Filter, // Filter sequence based on predicate function
-  SeqTake, // Take first N elements from sequence
-  SeqDrop, // Drop first N elements from sequence
-
-  // Sequence Sinks
-  ToVector,
-  Count,
-  Last,
-  ForEach,
-  Reduce,
+  // Sequence operations have been removed
   IfFalseBranch, 
 }

@@ -76,23 +76,7 @@ export const defineBuiltins = (dict: SymbolTable) => {
     vm.compiler.compile8(Op.If);
   });
 
-  // Sequence Operations
-  dict.define('range', compileOpcode(Op.Range));
-  dict.define('seq', compileOpcode(Op.Seq));
-
-  // Sequence Processors
-  dict.define('map', compileOpcode(Op.Map));
-  dict.define('sift', compileOpcode(Op.Sift));
-  dict.define('filter', compileOpcode(Op.Filter));
-  dict.define('seq-take', compileOpcode(Op.SeqTake));
-  dict.define('seq-drop', compileOpcode(Op.SeqDrop));
-
-  // Sequence Sinks
-  dict.define('to-vector', compileOpcode(Op.ToVector));
-  dict.define('count', compileOpcode(Op.Count));
-  dict.define('last', compileOpcode(Op.Last));
-  dict.define('for-each', compileOpcode(Op.ForEach));
-  dict.define('reduce', compileOpcode(Op.Reduce));
+  // Sequence operations have been removed
 
   // Add other built-ins here
 };
