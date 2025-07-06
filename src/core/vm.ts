@@ -18,6 +18,7 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Digest } from '../strings/digest';
 import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
+import { defineBuiltins } from '../ops/define-builtins';
 
 /**
  * A simplified Forth-like virtual machine for Tacit
@@ -45,8 +46,9 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
 
-    this.symbolTable = new SymbolTable(this.digest); 
-    // We'll need to update defineBuiltins to use simplified operations
+    this.symbolTable = new SymbolTable(this.digest);
+    // Register all built-in operations
+    defineBuiltins(this.symbolTable);
   }
 
   eval() {

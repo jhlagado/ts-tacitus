@@ -1,6 +1,6 @@
-import { VM } from '../../../core/vm';
-import { registerBasicOps } from '../builtins';
-import { toTaggedValue, CoreTag } from '../../../core/tagged';
+import { VM } from '../../core/vm';
+import { registerBasicOps } from './builtins';
+import { toTaggedValue, CoreTag } from '../../core/tagged';
 
 describe('Basic Operations', () => {
   let vm: VM;

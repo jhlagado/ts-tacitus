@@ -1,5 +1,5 @@
-import { vm as globalVM, initializeInterpreter } from '../global-state';
-import { VM } from '../vm';
+import { vm as globalVM, initializeInterpreter } from './global-state';
+import { VM } from './vm';
 
 describe('Global State', () => {
   test('should export a VM instance', () => {

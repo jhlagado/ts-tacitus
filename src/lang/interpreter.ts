@@ -138,8 +138,8 @@ export class Interpreter {
    * Defines a new word from the collected tokens
    */
   private defineNewWord(): void {
-    if (!this.currentDefinition || this.definitionTokens.length === 0) {
-      throw new Error('Invalid word definition');
+    if (!this.currentDefinition) {
+      throw new Error('Invalid word definition: missing name');
     }
     
     // Create a copy of the tokens to avoid reference issues
@@ -147,6 +147,11 @@ export class Interpreter {
     
     // Define the new word in the symbol table
     this.symbolTable.define(this.currentDefinition, (vm: VM) => {
+      // If there are no tokens, it's a no-op word
+      if (tokens.length === 0) {
+        return;
+      }
+      
       // Create a new interpreter instance for this execution
       const interpreter = new Interpreter(vm);
       

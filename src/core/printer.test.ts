@@ -1,6 +1,6 @@
-import { VM } from '../vm';
-import { prn, formatValue } from '../printer';
-import { CoreTag, toTaggedValue } from '../tagged';
+import { VM } from './vm';
+import { prn, formatValue } from './printer';
+import { CoreTag, toTaggedValue } from './tagged';
 
 describe('Printer', () => {
   let vm: VM;

@@ -1,6 +1,6 @@
-import { VM } from '../vm';
-import { SEG_CODE, RSTACK_SIZE } from '../memory';
-import { toTaggedValue, fromTaggedValue, CoreTag } from '../tagged';
+import { VM } from './vm';
+import { SEG_CODE, RSTACK_SIZE } from './memory';
+import { toTaggedValue, fromTaggedValue, CoreTag } from './tagged';
 
 describe('VM Execution Model', () => {
   let vm: VM;
