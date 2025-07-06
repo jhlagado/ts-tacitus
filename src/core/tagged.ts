@@ -16,6 +16,10 @@ export enum CoreTag {
   CODE = 2,
   /** Represents a string literal. */
   STRING = 3,
+  /** Reference to a code block { ... } */
+  CODE_REF = 4,
+  /** Reference to a function definition */
+  FUNC_REF = 5,
 }
 
 /**
@@ -31,6 +35,8 @@ export const tagNames: { [key in CoreTag]: string } = {
   [CoreTag.INTEGER]: 'INTEGER',
   [CoreTag.CODE]: 'CODE',
   [CoreTag.STRING]: 'STRING',
+  [CoreTag.CODE_REF]: 'CODE_REF',
+  [CoreTag.FUNC_REF]: 'FUNC_REF',
 };
 
 /**
@@ -189,4 +195,32 @@ export function isCode(value: number): boolean {
  */
 export function isString(value: number): boolean {
   return checkTagged(value, CoreTag.STRING);
+}
+
+/**
+ * Checks if the given value is a code block reference.
+ */
+export function isCodeRef(value: number): boolean {
+  return checkTagged(value, CoreTag.CODE_REF);
+}
+
+/**
+ * Checks if the given value is a function reference.
+ */
+export function isFuncRef(value: number): boolean {
+  return checkTagged(value, CoreTag.FUNC_REF);
+}
+
+/**
+ * Creates a new code block reference.
+ */
+export function createCodeRef(address: number): number {
+  return toTaggedValue(address, false, CoreTag.CODE_REF);
+}
+
+/**
+ * Creates a new function reference.
+ */
+export function createFuncRef(address: number): number {
+  return toTaggedValue(address, false, CoreTag.FUNC_REF);
 }
