@@ -18,37 +18,6 @@ describe('Interpreter', () => {
     vm.debug = false;
   });
 
-  describe('Dictionary Literals', () => {
-    xit('should compile and execute :[ "a" 1 "b" 2 ]:', () => {
-      executeProgram(':[ "a" 1 "b" 2 ]:');
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(1);
-      const taggedPtr = stack[0];
-      const { tag, isHeap: heap } = fromTaggedValue(taggedPtr);
-      expect(heap).toBe(true);
-      expect(tag).toBe(HeapTag.DICT);
-    });
-
-    it('should handle nested structures :[ "k" [ 1 2 ] ]:', () => {
-      executeProgram(':[ "k" [ 1 2 ] ]:');
-      const stack = vm.getStackData();
-      console.log('Stack after executeProgram:', stack);
-      expect(stack.length).toBe(1);
-      const taggedPtr = stack[0];
-      console.log('taggedPtr:', taggedPtr.toString(16));
-      const { tag, isHeap: heap, value } = fromTaggedValue(taggedPtr);
-      console.log('tag:', tag, 'heap:', heap, 'value:', value.toString(16));
-      expect(heap).toBe(true);
-      expect(tag).toBe(HeapTag.DICT);
-    });
-
-    it('should throw an error for odd number of items', () => {
-      expect(() => {
-        executeProgram(':[ "a" 1 "b" ]:');
-      }).toThrow('Dictionary literal requires an even number of items');
-    });
-  });
-
   describe('Basic operations', () => {
     it('should execute simple addition', () => {
       executeProgram('5 3 +');

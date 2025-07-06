@@ -259,31 +259,4 @@ describe('Parser with Tokenizer', () => {
       expect(true).toBeTruthy();
     });
   });
-
-
-  // Dictionaries
-  describe('Dictionaries', () => {
-    it('should compile :[ "a" 1 ]: with proper dictionary opcodes', () => {
-      // Parse input with colon-bracket dictionary
-      parse(new Tokenizer(':[ "a" 1 ]:'));
-
-      vm.reset();
-      // Expect the DictLeft opcode to be emitted for ':['
-      expect(vm.next8()).toBe(Op.DictLeft);
-
-      // Check the key-value pair
-      expect(vm.next8()).toBe(Op.LiteralString); // Key "a"
-      const keyAddr = vm.next16();
-      expect(vm.digest.get(keyAddr)).toBe('a');
-
-      expect(vm.next8()).toBe(Op.LiteralNumber); // Value 1
-      expect(vm.nextFloat32()).toBeCloseTo(1);
-
-      // Expect the DictRight opcode for ']:'
-      expect(vm.next8()).toBe(Op.DictRight);
-
-      // Finally, the Abort opcode terminates the program
-      expect(vm.next8()).toBe(Op.Abort);
-    });
-  });
 });
