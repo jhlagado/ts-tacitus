@@ -11,8 +11,6 @@ console.log('Registering heap cleanup handlers...'); // Add log for confirmation
 // Register the handler for VECTOR types
 registerCleanupHandler(HeapTag.VECTOR, performVectorCleanup);
 
-// Register the handler for DICT types
-registerCleanupHandler(HeapTag.DICT, performVectorCleanup);
 
 console.log('Heap cleanup handlers registered.'); // Add log for confirmation
 

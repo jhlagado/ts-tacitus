@@ -20,8 +20,6 @@ export const defineBuiltins = (dict: SymbolTable) => {
     vm.compiler.compile8(opcode);
   };
 
-  dict.define('{', compileOpcode(Op.DictLeft));
-  dict.define('}', compileOpcode(Op.DictRight));
   dict.define('[', (vm: VM) => vm.compiler.compile8(Op.VecLeft));
   dict.define(']', (vm: VM) => vm.compiler.compile8(Op.VecRight));
 

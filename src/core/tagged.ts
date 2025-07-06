@@ -45,8 +45,6 @@ export enum HeapTag {
   SEQUENCE = 1,
   /** Represents a vector (an array-like structure). */
   VECTOR = 2,
-  /** Represents a dictionary (a key-value store). */
-  DICT = 3,
 }
 
 /**
@@ -69,9 +67,8 @@ export const nonHeapTagNames: { [key in CoreTag]: string } = {
  */
 export const heapTagNames: { [key in HeapTag]: string } = {
   [HeapTag.BLOCK]: 'BLOCK',
-  [HeapTag.SEQUENCE]: 'SEQ',
+  [HeapTag.SEQUENCE]: 'SEQUENCE',
   [HeapTag.VECTOR]: 'VECTOR',
-  [HeapTag.DICT]: 'DICT',
 };
 
 /**
@@ -123,8 +120,8 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
 export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number {
   // Validate the tag based on whether the value is heap–allocated.
   if (isHeap) {
-    // Heap tags must be between HeapTag.BLOCK and HeapTag.DICT.
-    if (tag < HeapTag.BLOCK || tag > HeapTag.DICT) {
+    // Heap tags must be between HeapTag.BLOCK and HeapTag.VECTOR
+    if (tag < HeapTag.BLOCK || tag > HeapTag.VECTOR) {
       throw new Error('Invalid heap tag');
     }
   } else {
@@ -308,11 +305,4 @@ export function isSeq(value: number): boolean {
  */
 export function isVector(value: number): boolean {
   return checkTagged(value, HeapTag.VECTOR, true);
-}
-
-/**
- * Checks if the given value is a dictionary.
- */
-export function isDict(value: number): boolean {
-  return checkTagged(value, HeapTag.DICT, true);
 }

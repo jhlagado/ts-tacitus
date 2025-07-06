@@ -34,7 +34,6 @@ describe('Tagged NaN Encoding', () => {
       { tag: HeapTag.BLOCK, value: 0 },
       { tag: HeapTag.SEQUENCE, value: 1 },
       { tag: HeapTag.VECTOR, value: 32767 },
-      { tag: HeapTag.DICT, value: 65535 },
     ];
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, true, tag);
@@ -69,11 +68,9 @@ describe('Tagged NaN Encoding', () => {
 
   it('should correctly identify reference-counted heap objects', () => {
     const blockEncoded = toTaggedValue(200, true, HeapTag.BLOCK);
-    const dictEncoded = toTaggedValue(123, true, HeapTag.DICT);
     const nonHeapEncoded = toTaggedValue(50, false, CoreTag.STRING);
 
     expect(isRefCounted(blockEncoded)).toBe(true);
-    expect(isRefCounted(dictEncoded)).toBe(true);
     expect(isRefCounted(nonHeapEncoded)).toBe(false);
   });
 
