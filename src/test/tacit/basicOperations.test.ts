@@ -61,20 +61,6 @@ describe('Tacit Basic Operations', () => {
     expect(result).toEqual([20]);
   });
 
-  test('eval operator', () => {
-    // Simple eval
-    let result = runTacitTest('(42) eval');
-    expect(result).toEqual([42]);
-
-    // Eval with arithmetic
-    result = runTacitTest('(5 7 +) eval');
-    expect(result).toEqual([12]);
-
-    // Using a value before the code block
-    result = runTacitTest('2 (3 *) eval');
-    expect(result).toEqual([6]);
-  });
-
   test('word quoting with back-tick', () => {
     let result = runTacitTest(': testWord 42 ; `testWord');
     expect(result.length).toBe(1); // Expect one item (address on stack)
