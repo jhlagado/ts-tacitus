@@ -1,8 +1,9 @@
 import { VM } from './vm';
-import { STACK_SIZE, RSTACK_SIZE } from './memory';
+import { STACK_SIZE, RSTACK_SIZE, SEG_CODE, SEG_RSTACK } from './memory';
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
+import { Digest } from '../strings/digest';
 
 describe('VM', () => {
   let vm: VM;
@@ -130,6 +131,142 @@ describe('VM', () => {
       vm.compiler.compile8(0x34);
       vm.compiler.compile8(0x56);
       expect(vm.getCompileData()).toEqual([0x12, 0x34, 0x56]);
+    });
+  });
+
+  // Test 4: eval() method
+  describe('eval()', () => {
+    it('should push current IP to return stack and set IP to popped value', () => {
+      const startIP = 0x1000;
+      const targetIP = 0x2000;
+      
+      // Set up test
+      vm.IP = startIP;
+      vm.push(targetIP);
+      
+      // Execute
+      vm.eval();
+      
+      // Verify IP was updated to the value from the stack
+      expect(vm.IP).toBe(targetIP);
+      
+      // Verify return stack was updated
+      expect(vm.RP).toBe(4); // 4 bytes for one return address
+      
+      // Verify the correct return address was pushed to the return stack
+      const returnAddress = vm.memory.readFloat32(SEG_RSTACK, 0);
+      const { value: returnIP, tag } = fromTaggedValue(returnAddress);
+      expect(returnIP).toBe(startIP);
+      expect(tag).toBe(CoreTag.CODE);
+    });
+
+    it('should handle tagged CODE values when setting IP', () => {
+      const startIP = 0x1000;
+      const targetIP = 0x2000;
+      
+      // Set up test with a tagged CODE value
+      vm.IP = startIP;
+      const taggedValue = toTaggedValue(targetIP, false, CoreTag.CODE);
+      vm.push(taggedValue);
+      
+      // Execute
+      vm.eval();
+      
+      // Verify IP was updated to the value from the stack
+      expect(vm.IP).toBe(targetIP);
+      
+      // Verify return stack was updated
+      expect(vm.RP).toBe(4);
+    });
+  });
+
+  // Test 5: next8(), next16(), nextFloat32()
+  describe('Memory reading operations', () => {
+    beforeEach(() => {
+      // Reset IP before each test
+      vm.IP = 0;
+    });
+
+    it('should read 8-bit values with next8()', () => {
+      // Write test bytes
+      vm.memory.write8(SEG_CODE, 0, 0x12);
+      vm.memory.write8(SEG_CODE, 1, 0x34);
+      
+      expect(vm.next8()).toBe(0x12);
+      expect(vm.IP).toBe(1);
+      expect(vm.next8()).toBe(0x34);
+      expect(vm.IP).toBe(2);
+    });
+
+    it('should read 16-bit values with next16()', () => {
+      // Write test bytes in little-endian order
+      vm.memory.write8(SEG_CODE, 0, 0x34);
+      vm.memory.write8(SEG_CODE, 1, 0x12); // 0x1234 in big-endian
+      
+      expect(vm.next16()).toBe(0x1234);
+      expect(vm.IP).toBe(2);
+    });
+
+    it('should read 32-bit floats with nextFloat32()', () => {
+      const testValue = 3.14159;
+      const buffer = new ArrayBuffer(4);
+      new DataView(buffer).setFloat32(0, testValue, true);
+      const bytes = new Uint8Array(buffer);
+      
+      // Write the float bytes
+      for (let i = 0; i < 4; i++) {
+        vm.memory.write8(SEG_CODE, i, bytes[i]);
+      }
+      
+      expect(vm.nextFloat32()).toBeCloseTo(testValue);
+      expect(vm.IP).toBe(4);
+    });
+  });
+
+  // Test 6: Error conditions and edge cases
+  describe('Error conditions', () => {
+    it('should handle stack underflow in pop() with detailed message', () => {
+      try {
+        vm.pop();
+        fail('Expected an error');
+      } catch (e: unknown) {
+        const error = e as Error;
+        expect(error.message).toContain('Stack underflow');
+        expect(error.message).toContain('stack: []');
+      }
+    });
+
+    it('should handle stack overflow in push() with detailed message', () => {
+      // Fill up the stack
+      const maxItems = STACK_SIZE / 4;
+      for (let i = 0; i < maxItems; i++) {
+        vm.push(i);
+      }
+      
+      try {
+        vm.push(42);
+        fail('Expected an error');
+      } catch (e: unknown) {
+        const error = e as Error;
+        expect(error.message).toContain('Stack overflow');
+        expect(error.message).toContain('stack: [');
+      }
+    });
+  });
+
+  // Test 7: Compiler and symbol table initialization
+  describe('Initialization', () => {
+    it('should initialize with default values', () => {
+      expect(vm.IP).toBe(0);
+      expect(vm.SP).toBe(0);
+      expect(vm.RP).toBe(0);
+      expect(vm.BP).toBe(0);
+      expect(vm.running).toBe(true);
+      expect(vm.debug).toBe(false);
+      expect(vm.memory).toBeDefined();
+      expect(vm.compiler).toBeInstanceOf(Compiler);
+      expect(vm.digest).toBeInstanceOf(Digest);
+      expect(vm.symbolTable).toBeInstanceOf(SymbolTable);
     });
   });
 });
