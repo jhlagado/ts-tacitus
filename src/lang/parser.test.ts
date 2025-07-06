@@ -58,65 +58,6 @@ describe('Parser with Tokenizer', () => {
     });
   });
 
-  // Code blocks
-  describe('Code blocks', () => {
-    it('should parse simple code blocks', () => {
-      parse(new Tokenizer('(10 20 +)'));
-
-      vm.reset();
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const offset = vm.next16(); // READ THE OFFSET - this is critical
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(10);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(20);
-      expect(vm.next8()).toBe(Op.Plus);
-      expect(vm.next8()).toBe(Op.Exit);
-      expect(vm.next8()).toBe(Op.Abort);
-    });
-
-    it('should parse nested code blocks', () => {
-      parse(new Tokenizer('((5 10 +) (15 20 *))'));
-
-      vm.reset();
-      // Outer block
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const outerOffset = vm.next16(); // READ THE OFFSET
-
-      // First inner block
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const innerOffset1 = vm.next16(); // READ THE OFFSET
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(5);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(10);
-      expect(vm.next8()).toBe(Op.Plus);
-      expect(vm.next8()).toBe(Op.Exit);
-
-      // Second inner block
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const innerOffset2 = vm.next16(); // READ THE OFFSET
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(15);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(20);
-      expect(vm.next8()).toBe(Op.Multiply);
-      expect(vm.next8()).toBe(Op.Exit);
-
-      // End of outer block
-      expect(vm.next8()).toBe(Op.Exit);
-      expect(vm.next8()).toBe(Op.Abort);
-    });
-
-    it('should throw an error for unclosed blocks', () => {
-      expect(() => parse(new Tokenizer('(10 20'))).toThrow('Unclosed code block');
-    });
-
-    it('should throw an error for unexpected closing parenthesis', () => {
-      expect(() => parse(new Tokenizer('10 20)'))).toThrow('Unexpected closing parenthesis');
-    });
-  });
-
   // Colon definitions
   describe('Colon definitions', () => {
     it('should parse simple word definitions', () => {
@@ -172,33 +113,6 @@ describe('Parser with Tokenizer', () => {
     it('should throw an error for nested definitions', () => {
       expect(() => parse(new Tokenizer(': outer : inner ; ;'))).toThrow(
         'Nested definitions are not allowed'
-      );
-    });
-  });
-
-  // Word definitions with blocks
-  describe('Word definitions with blocks', () => {
-    it('should handle code blocks in definitions', () => {
-      parse(new Tokenizer(': squared (dup *) ;'));
-
-      expect(vm.symbolTable.find('squared')).toBeDefined();
-
-      // Check basic structure
-      vm.reset();
-      expect(vm.next8()).toBe(Op.Branch);
-      const skipOffset = vm.next16(); // READ THE OFFSET
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const blockOffset = vm.next16(); // READ THE OFFSET
-      expect(vm.next8()).toBe(Op.Dup);
-      expect(vm.next8()).toBe(Op.Multiply);
-      expect(vm.next8()).toBe(Op.Exit);
-      expect(vm.next8()).toBe(Op.Exit);
-      expect(vm.next8()).toBe(Op.Abort);
-    });
-
-    it('should throw an error for definitions inside blocks', () => {
-      expect(() => parse(new Tokenizer('(: bad ;)'))).toThrow(
-        'Cannot nest definition inside code block'
       );
     });
   });

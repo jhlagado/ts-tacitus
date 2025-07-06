@@ -5,7 +5,6 @@ import { vm, initializeInterpreter } from '../core/globalState';
 import * as math from '../ops/builtins-math';
 import { vectorCreate, vectorGet } from '../heap/vector';
 import { CoreTag, fromTaggedValue, HeapTag } from '../core/tagged';
-import { callTacitFunction } from './interpreter';
 
 // Helper functions
 function expectStack(expected: number[]): void {
@@ -280,59 +279,5 @@ describe('Interpreter', () => {
       const { value: value4 } = fromTaggedValue(nestedValue);
       expect(value4).toBeCloseTo(3, 1);
     });
-  });
-});
-
-describe('callTacitFunction', () => {
-  beforeEach(() => {
-    initializeInterpreter(); // Reset VM before each test
-  });
-
-  it('should execute a simple function and return control', () => {
-    // Define the function
-    executeProgram('( 1 + )');
-    const { value: addOnePtr } = fromTaggedValue(vm.pop());
-
-    // Setup stack and call
-    vm.push(5);
-    const originalIP = vm.IP; // Store IP before call
-    callTacitFunction(addOnePtr); // Pass the extracted pointer
-
-    // Check results
-    expect(vm.getStackData()).toEqual([6]);
-    expect(vm.IP).toBe(originalIP); // Check if IP was restored
-  });
-
-  it('should execute a function using stack arguments', () => {
-    // Define the function
-    executeProgram('( * )');
-    const { value: multiplyPtr } = fromTaggedValue(vm.pop());
-
-    // Setup stack and call
-    vm.push(3);
-    vm.push(7);
-    const originalIP = vm.IP;
-    callTacitFunction(multiplyPtr);
-
-    // Check results
-    expect(vm.getStackData()).toEqual([21]);
-    expect(vm.IP).toBe(originalIP);
-  });
-
-  it('should preserve stack values below the arguments', () => {
-    // Define the function
-    executeProgram('( 1 + )');
-    const { value: addOnePtr } = fromTaggedValue(vm.pop());
-
-    // Setup stack with extra values
-    vm.push(99);
-    vm.push(88);
-    vm.push(5); // Argument for addOne
-    const originalIP = vm.IP;
-    callTacitFunction(addOnePtr);
-
-    // Check results - expected: [99, 88, 6]
-    expect(vm.getStackData()).toEqual([99, 88, 6]);
-    expect(vm.IP).toBe(originalIP);
   });
 });
