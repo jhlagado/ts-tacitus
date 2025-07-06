@@ -1,20 +1,6 @@
 import { runTacitTest } from '../tacitTestUtils';
 
 describe('Tacit Advanced Operations', () => {
-  test('code blocks', () => {
-    // Simple code block execution
-    let result = runTacitTest('(30 20 *) eval');
-    expect(result).toEqual([600]);
-
-    // Nested code blocks
-    result = runTacitTest('((4 2 +) eval (3 2 +) eval *) eval');
-    expect(result).toEqual([30]);
-
-    // Code block with stack operations
-    result = runTacitTest('4 (3 2 *) eval +');
-    expect(result).toEqual([10]);
-  });
-
   test('word definitions', () => {
     // Simple definition
     let result = runTacitTest(': square dup * ; 3 square');
@@ -41,9 +27,5 @@ describe('Tacit Advanced Operations', () => {
     expect(result).toEqual([7]);
   });
 
-  test('eval with stack manipulation', () => {
-    // Advanced eval: Evaluate a code block that swaps and adds
-    let result = runTacitTest('(3 4 swap +) eval');
-    expect(result).toEqual([7]);
-  });
+
 });

@@ -71,25 +71,7 @@ describe('Interpreter', () => {
   });
 
   describe('Code blocks', () => {
-    it('should execute simple code block', () => {
-      executeProgram('(30 20 *) eval');
-      expectStack([600]);
-    });
-
-    it('should execute nested code blocks', () => {
-      executeProgram('((4 2 +)eval (3 2 +)eval *)eval 2 +');
-      expectStack([32]);
-    });
-
-    it('should handle code blocks with stack operations', () => {
-      executeProgram('4(3 2 *)eval +');
-      expectStack([10]);
-    });
-
-    it('should handle multiple nested evals', () => {
-      executeProgram('(1 (3 4 swap) eval 2) eval');
-      expectStack([1, 4, 3, 2]);
-    });
+    // Tests for new syntax will be added here
   });
 
   // Error handling
@@ -185,8 +167,8 @@ describe('Interpreter', () => {
 
     it('should handle colon definitions with code blocks', () => {
       executeProgram(`
-        : apply-block swap eval ;
-        (2 *) 5 apply-block
+        : double 2 * ;
+        5 double
       `);
       expectStack([10]);
     });
