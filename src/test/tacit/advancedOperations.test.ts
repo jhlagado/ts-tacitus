@@ -16,8 +16,8 @@ describe('Tacit Advanced Operations', () => {
   });
 
   test('complex conditions', () => {
-    // Simple if
-    let result = runTacitTest('1 (2) (3) if');
+    // Simple if using new syntax
+    let result = runTacitTest('1 IF { 2 } ELSE { 3 }');
     expect(result).toEqual([2]);
   });
 
