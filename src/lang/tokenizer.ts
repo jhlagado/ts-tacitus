@@ -1,4 +1,4 @@
-import { isDigit, isWhitespace, isSpecialChar, isSymbolTerminator } from '../core/utils';
+import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
 
 export enum TokenType {
   NUMBER,
@@ -254,8 +254,7 @@ export class Tokenizer {
     while (
       this.position < this.input.length &&
       !isWhitespace(this.input[this.position]) &&
-      !isSpecialChar(this.input[this.position]) &&
-      !isSymbolTerminator(this.input[this.position])
+      !isSpecialChar(this.input[this.position])
     ) {
       word += this.input[this.position];
       this.position++;
