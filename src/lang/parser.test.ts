@@ -103,9 +103,15 @@ describe('Parser with Tokenizer', () => {
       expect(vm.symbolTable.find('empty')).toBeDefined();
 
       // Don't test implementation details of IP here, just verify the word exists
-      // and doesn't crash when executed
-      const emptyWord = vm.symbolTable.find('empty');
-      expect(() => emptyWord!(vm)).not.toThrow();
+      // and can be executed via the function table
+      const emptyFunctionIndex = vm.symbolTable.find('empty');
+      expect(() => {
+        // Execute the word via the function table
+        if (emptyFunctionIndex !== undefined) {
+          // Function table execute takes VM first, then the function index
+          vm.functionTable.execute(vm, emptyFunctionIndex);
+        }
+      }).not.toThrow();
     });
 
     it('should throw an error for unclosed definitions', () => {

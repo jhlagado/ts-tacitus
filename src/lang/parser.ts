@@ -30,7 +30,7 @@ export function parse(tokenizer: Tokenizer): void {
   validateFinalState(state);
 
   // Add Abort opcode at the end
-  vm.compiler.compile8(Op.Abort);
+  vm.compiler.compileOpcode(Op.Abort);
 }
 
 /**
@@ -84,7 +84,7 @@ function processToken(token: Token, state: ParserState): void {
       if (address === undefined) {
         throw new Error(`Undefined word: ${wordName}`);
       }
-      vm.compiler.compile8(Op.LiteralAddress);
+      vm.compiler.compileOpcode(Op.LiteralAddress);
       vm.compiler.compile16(address); // address now asserted to be number
       break;
   }
@@ -94,7 +94,7 @@ function processToken(token: Token, state: ParserState): void {
  * Compile a number literal
  */
 function compileNumberLiteral(value: number): void {
-  vm.compiler.compile8(Op.LiteralNumber);
+  vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(value);
 }
 
@@ -102,7 +102,7 @@ function compileNumberLiteral(value: number): void {
  * Compile a string literal
  */
 function compileStringLiteral(value: string): void {
-  vm.compiler.compile8(Op.LiteralString);
+  vm.compiler.compileOpcode(Op.LiteralString);
   const address = vm.digest.add(value);
   vm.compiler.compile16(address);
 }
@@ -116,7 +116,7 @@ function processWordToken(value: string, state: ParserState): void {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
     // The condition has already been compiled in RPN order
     const falseJumpAddr = vm.compiler.CP;
-    vm.compiler.compile8(Op.IfFalseBranch); // Use new opcode for conditional jump if false
+    vm.compiler.compileOpcode(Op.IfFalseBranch); // Use new opcode for conditional jump if false
     const jumpOffsetAddr = vm.compiler.CP; // Address where the 16-bit offset is stored
     vm.compiler.compile16(0); // Placeholder for jump offset
     // Compile then-block with BLOCK_START and BLOCK_END
@@ -131,7 +131,7 @@ function processWordToken(value: string, state: ParserState): void {
     if (next && next.value === 'ELSE') {
       state.tokenizer.nextToken(); // Consume 'ELSE'
       const elseJumpAddr = vm.compiler.CP; // Address for unconditional jump
-      vm.compiler.compile8(Op.Branch); // Unconditional jump to end of else
+      vm.compiler.compileOpcode(Op.Branch); // Unconditional jump to end of else
       const elseJumpOffsetAddr = vm.compiler.CP;
       vm.compiler.compile16(0); // Placeholder for jump offset
       const elseBlockStart = vm.compiler.CP; // Start of else-block
@@ -158,12 +158,16 @@ function processWordToken(value: string, state: ParserState): void {
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
-    // Handle normal words
-    const compile = vm.symbolTable.find(value);
-    if (compile === undefined) {
+    // Address where we'll compile the call instruction
+    const functionIndex = vm.symbolTable.find(value);
+    if (functionIndex === undefined) {
       throw new Error(`Unknown word: ${value}`);
     }
-    compile(vm);
+
+    // Call the word using the function index
+    // Use the new opcode encoding for function reference
+    vm.compiler.compileOpcode(functionIndex);
+    
   }
 }
 
@@ -199,7 +203,7 @@ function parseBacktickSymbol(state: ParserState): void {
 
   // Compile as a literal string
   const addr = vm.digest.add(sym);
-  vm.compiler.compile8(Op.LiteralString);
+  vm.compiler.compileOpcode(Op.LiteralString);
   vm.compiler.compile16(addr);
 }
 
@@ -232,13 +236,24 @@ function beginDefinition(state: ParserState): void {
   }
 
   // Compile branch instruction to skip definition
-  vm.compiler.compile8(Op.Branch);
+  vm.compiler.compileOpcode(Op.Branch);
   const branchPos = vm.compiler.CP;
   vm.compiler.compile16(0); // Will be patched later
 
-  // Register word in symbol table
+  // Register word in function table
   const startAddress = vm.compiler.CP;
-  vm.symbolTable.defineCall(wordName, startAddress);
+  
+  // Create a function that will call the Tacit code at this address
+  const wordFunction = (vm: typeof import('../core/globalState').vm) => {
+    vm.rpush(vm.IP); // Push return address
+    vm.IP = startAddress; // Jump to function body
+  };
+  
+  // Register in function table and get the function index
+  const functionIndex = vm.functionTable.registerWord(wordFunction);
+  
+  // Register word in symbol table with the function index
+  vm.symbolTable.defineCall(wordName, functionIndex);
 
   // Store current definition
   state.currentDefinition = {
@@ -260,7 +275,7 @@ function endDefinition(state: ParserState): void {
   }
 
   // Compile exit instruction
-  vm.compiler.compile8(Op.Exit);
+  vm.compiler.compileOpcode(Op.Exit);
 
   // Patch branch offset
   patchBranchOffset(state.currentDefinition.branchPos);
@@ -286,7 +301,7 @@ function beginCodeBlock(state: ParserState): void {
   parseCodeBlock(state);
 
   // Compile exit instruction
-  vm.compiler.compile8(Op.Exit);
+  vm.compiler.compileOpcode(Op.Exit);
 
   // Patch branch offset
   patchBranchOffset(branchPos);
