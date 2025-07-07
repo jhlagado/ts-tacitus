@@ -30,7 +30,8 @@ describe('Tagged NaN Encoding', () => {
 
 
   it('should throw on invalid tag ranges', () => {
-    expect(() => toTaggedValue(0, 5 as any)).toThrow('Invalid tag: 5');
+    const invalidTag = Tag.STACK_REF + 1; // Use a value beyond our highest defined tag
+    expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
 
   it('should validate value ranges for INTEGER', () => {

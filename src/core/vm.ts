@@ -19,6 +19,7 @@ export class VM {
   debug: boolean;
   symbolTable: SymbolTable;
   functionTable: FunctionTable; // Function table for unified opcode addressing
+  tupleDepth: number; // Tracks nesting level of tuples
 
   constructor() {
     this.memory = new Memory();
@@ -30,6 +31,7 @@ export class VM {
     this.compiler = new Compiler(this);
     this.digest = new Digest(this.memory);
     this.debug = false;
+    this.tupleDepth = 0; // Initialize tuple depth to 0
     
     // Initialize function table and register built-in functions
     this.functionTable = new FunctionTable();

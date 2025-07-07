@@ -61,36 +61,27 @@ describe('Comprehensive Parser Tests', () => {
     });
   });
 
-  describe('Code Blocks', () => {
-    it('should parse empty code blocks', () => {
+  describe('Tuples', () => {
+    it('should parse empty tuples', () => {
       parse(new Tokenizer('( )'));
-      // Should compile to BRANCH_CALL <offset> EXIT
+      // Should compile to OpenTuple CloseTuple
       vm.reset();
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const offset = vm.next16();
-      expect(offset).toBe(1); // Just the EXIT opcode
-      expect(vm.next8()).toBe(Op.Exit);
+      expect(vm.next8()).toBe(Op.OpenTuple);
+      expect(vm.next8()).toBe(Op.CloseTuple);
     });
 
-    it('should parse nested code blocks', () => {
-      parse(new Tokenizer('( ( 1 2 + ) )'));
-      // Outer block
+    it('should parse tuples with elements', () => {
+      parse(new Tokenizer('( 1 2 )'));
       vm.reset();
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const _outerOffset = vm.next16();
-      
-      // Inner block
-      expect(vm.next8()).toBe(Op.BranchCall);
-      const _innerOffset = vm.next16();
+      // First the tuple open op
+      expect(vm.next8()).toBe(Op.OpenTuple);
+      // Then the literals
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(1);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(2);
-      expect(vm.next8()).toBe(Op.Plus);
-      expect(vm.next8()).toBe(Op.Exit);
-      
-      // Outer block continues
-      expect(vm.next8()).toBe(Op.Exit);
+      // Then the tuple close op
+      expect(vm.next8()).toBe(Op.CloseTuple);
     });
   });
 
