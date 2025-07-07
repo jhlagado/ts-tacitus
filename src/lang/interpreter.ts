@@ -55,7 +55,7 @@ export function callTacitFunction(codePtr: number): void {
 
   // 2. Push the IP onto the VM's return stack, tagged as code.
   // This tells the Tacit code's 'exit' operation where to jump back to.
-  vm.rpush(toTaggedValue(vm.IP, false, Tag.CODE));
+  vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
   vm.rpush(vm.BP);
   vm.BP = vm.RP;
 

@@ -6,7 +6,6 @@ import {
   getTag,
   getValue,
   isNIL,
-  NIL,
 } from './tagged';
 
 describe('Tagged NaN Encoding', () => {
@@ -18,7 +17,7 @@ describe('Tagged NaN Encoding', () => {
       { tag: Tag.STRING, value: 42 },
     ];
     tests.forEach(({ tag, value }) => {
-      const encoded = toTaggedValue(value, false, tag);
+      const encoded = toTaggedValue(value, tag);
       const decoded = fromTaggedValue(encoded);
       expect(decoded.isHeap).toBe(false);
       expect(decoded.tag).toBe(tag);
@@ -28,22 +27,21 @@ describe('Tagged NaN Encoding', () => {
 
 
   it('should throw on invalid tag ranges', () => {
-    expect(() => toTaggedValue(0, false, 5 as any)).toThrow('Invalid tag: 5');
-    expect(() => toTaggedValue(0, true, 4 as any)).toThrow('Heap-allocated values are not supported');
+    expect(() => toTaggedValue(0, 5 as any)).toThrow('Invalid tag: 5');
   });
 
   it('should validate value ranges for INTEGER', () => {
-    expect(() => toTaggedValue(32768, false, Tag.INTEGER)).toThrow();
-    expect(() => toTaggedValue(-32769, false, Tag.INTEGER)).toThrow();
+    expect(() => toTaggedValue(32768, Tag.INTEGER)).toThrow();
+    expect(() => toTaggedValue(-32769, Tag.INTEGER)).toThrow();
   });
 
   it('should validate unsigned value ranges for non-INTEGER types', () => {
-    expect(() => toTaggedValue(65536, false, Tag.STRING)).toThrow();
+    expect(() => toTaggedValue(65536, Tag.STRING)).toThrow();
   });
 
   it('should correctly extract value for integer types', () => {
-    const encodedNeg = toTaggedValue(-32768, false, Tag.INTEGER);
-    const encodedPos = toTaggedValue(32767, false, Tag.INTEGER);
+    const encodedNeg = toTaggedValue(-32768, Tag.INTEGER);
+    const encodedPos = toTaggedValue(32767, Tag.INTEGER);
     const decodedNeg = fromTaggedValue(encodedNeg);
     const decodedPos = fromTaggedValue(encodedPos);
 
@@ -54,20 +52,20 @@ describe('Tagged NaN Encoding', () => {
   // Additional tests for the remaining exported functions:
 
   it('should return the correct tag using getTag', () => {
-    const encoded = toTaggedValue(123, false, Tag.CODE);
+    const encoded = toTaggedValue(123, Tag.CODE);
     expect(getTag(encoded)).toBe(Tag.CODE);
   });
 
   it('should return the correct value using getValue', () => {
-    const encoded = toTaggedValue(456, false, Tag.CODE);
+    const encoded = toTaggedValue(456, Tag.CODE);
     expect(getValue(encoded)).toBe(456);
   });
 
   it('should correctly identify NIL using isNIL', () => {
-    // Create a NIL value using the NIL constant
-    expect(isNIL(NIL)).toBe(true);
-    // A non-NIL tagged value should return false.
-    const nonNil = toTaggedValue(1, false, Tag.INTEGER);
+    // A NIL value is a tagged integer with value 0
+    expect(isNIL(toTaggedValue(0, Tag.INTEGER))).toBe(true);
+    // A non-NIL tagged value should return false
+    const nonNil = toTaggedValue(1, Tag.INTEGER);
     expect(isNIL(nonNil)).toBe(false);
   });
 });
