@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   CoreTag,
-  HeapTag,
   toTaggedValue,
   fromTaggedValue,
   getTag,
   getValue,
-  isHeapAllocated,
-  isRefCounted,
   isNIL,
   NIL,
 } from './tagged';
@@ -29,22 +26,10 @@ describe('Tagged NaN Encoding', () => {
     });
   });
 
-  it('should encode/decode heap values', () => {
-    const tests = [
-      { tag: HeapTag.BLOCK, value: 0 },
-    ];
-    tests.forEach(({ tag, value }) => {
-      const encoded = toTaggedValue(value, true, tag);
-      const decoded = fromTaggedValue(encoded);
-      expect(decoded.isHeap).toBe(true);
-      expect(decoded.tag).toBe(tag);
-      expect(decoded.value).toBe(value);
-    });
-  });
 
   it('should throw on invalid tag ranges', () => {
     expect(() => toTaggedValue(0, false, 5 as any)).toThrow('Invalid non-heap tag');
-    expect(() => toTaggedValue(0, true, 4 as any)).toThrow('Invalid heap tag');
+    expect(() => toTaggedValue(0, true, 4 as any)).toThrow('Heap-allocated values are not supported');
   });
 
   it('should validate value ranges for INTEGER', () => {
@@ -53,31 +38,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   it('should validate unsigned value ranges for non-INTEGER types', () => {
-    expect(() => toTaggedValue(-1, true, HeapTag.BLOCK)).toThrow();
     expect(() => toTaggedValue(65536, false, CoreTag.STRING)).toThrow();
-  });
-
-  it('should correctly identify heap-allocated values', () => {
-    const encodedHeap = toTaggedValue(100, true, HeapTag.BLOCK);
-    const encodedNonHeap = toTaggedValue(100, false, CoreTag.STRING);
-    expect(isHeapAllocated(encodedHeap)).toBe(true);
-    expect(isHeapAllocated(encodedNonHeap)).toBe(false);
-  });
-
-  it('should correctly identify reference-counted heap objects', () => {
-    const blockEncoded = toTaggedValue(200, true, HeapTag.BLOCK);
-    const nonHeapEncoded = toTaggedValue(50, false, CoreTag.STRING);
-
-    expect(isRefCounted(blockEncoded)).toBe(true);
-    expect(isRefCounted(nonHeapEncoded)).toBe(false);
-  });
-
-  it('should correctly extract tag and heap flag', () => {
-    const encoded = toTaggedValue(500, true, HeapTag.BLOCK);
-    const decoded = fromTaggedValue(encoded);
-    expect(decoded.isHeap).toBe(true);
-    expect(decoded.tag).toBe(HeapTag.BLOCK);
-    expect(decoded.value).toBe(500);
   });
 
   it('should correctly extract value for integer types', () => {
@@ -98,7 +59,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   it('should return the correct value using getValue', () => {
-    const encoded = toTaggedValue(456, true, HeapTag.BLOCK);
+    const encoded = toTaggedValue(456, false, CoreTag.CODE);
     expect(getValue(encoded)).toBe(456);
   });
 

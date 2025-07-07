@@ -11,7 +11,7 @@ import {
   xor,
   formatValue
 } from './utils';
-import { toTaggedValue, CoreTag, HeapTag } from './tagged';
+import { toTaggedValue, CoreTag } from './tagged';
 import { VM } from './vm';
 
 // Simple test VM setup
@@ -151,12 +151,6 @@ describe('Utility Functions', () => {
     it('formats STRING tagged value when digest.get throws', () => {
       const taggedString = toTaggedValue(999, false, CoreTag.STRING);
       expect(formatValue(testVM as VM, taggedString)).toBe('""');
-    });
-
-    it('formats HEAP tagged value for BLOCK subtype', () => {
-      // Use an aligned address (e.g., 320, which is 5 * 64).
-      const taggedHeapBlock = toTaggedValue(320, true, HeapTag.BLOCK);
-      expect(formatValue(testVM as VM, taggedHeapBlock)).toBe('BLOCK(320)');
     });
 
 
