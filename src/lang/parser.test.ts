@@ -137,7 +137,7 @@ describe('Parser with Tokenizer', () => {
   // Comments and whitespace
   describe('Comments and whitespace', () => {
     it('should ignore comments', () => {
-      parse(new Tokenizer('5 // This is a comment\n10 +'));
+      parse(new Tokenizer('5 \\ This is a comment\n10 +'));
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);

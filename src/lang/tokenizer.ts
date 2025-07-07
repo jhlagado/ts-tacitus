@@ -61,12 +61,8 @@ export class Tokenizer {
     const char = this.input[this.position];
     const startPos = this.position;
 
-    // Handle comments starting with "//"
-    if (
-      char === '/' &&
-      this.position + 1 < this.input.length &&
-      this.input[this.position + 1] === '/'
-    ) {
+    // Handle comments starting with "\"
+    if (char === '\\') {
       this.skipComment();
       return this.nextToken();
     }
