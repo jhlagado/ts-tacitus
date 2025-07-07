@@ -45,6 +45,8 @@ export function closeTupleOp(vm: VM): void {
   vm.memory.writeFloat32(SEG_STACK, tupleTagPos, toTaggedValue(tupleSize, Tag.TUPLE));
   
   // For outermost tuples, also push a reference to the tuple tag
+  // When vm.tupleDepth === 1, this is definitely the outermost tuple being closed
+  // Note: tupleDepth will be decremented by the parser after this op is executed
   if (vm.tupleDepth === 1) {
     vm.push(toTaggedValue(tupleTagPos, Tag.STACK_REF));
   }
