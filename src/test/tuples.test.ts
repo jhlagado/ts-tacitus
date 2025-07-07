@@ -100,18 +100,7 @@ describe('Tuple operations', () => {
     // Create two tuples at same nesting level: ( ( 1 2 ) ( 3 4 ) )
     const stack = executeCode('( ( 1 2 ) ( 3 4 ) )');
 
-    // Debug detailed stack contents
-    console.log('Multiple nested tuples stack:');
-    console.log('Stack length:', stack.length);
-    for (let i = 0; i < stack.length; i++) {
-      const val = stack[i];
-      if (isNaN(val)) {
-        const decoded = fromTaggedValue(val);
-        console.log(`[${i}]: ${val} (NaN) -> tag=${decoded.tag} (${Tag[decoded.tag] || 'unknown'}), value=${decoded.value}`);
-      } else {
-        console.log(`[${i}]: ${val} (Number)`);
-      }
-    }
+    // Stack layout verified using numeric values only
 
     /*
      * Expected stack layout with focus on reliable numeric values:
