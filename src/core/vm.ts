@@ -33,7 +33,7 @@ export class VM {
   }
 
   eval() {
-    this.rpush(toTaggedValue(this.IP, false, Tag.CODE));
+    this.rpush(toTaggedValue(this.IP, Tag.CODE));
     const { value: pointer } = fromTaggedValue(this.pop());
     this.IP = pointer;
   }

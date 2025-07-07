@@ -13,7 +13,7 @@ export const literalStringOp: Verb = (vm: VM) => {
   const address = vm.next16();
   if (vm.debug) console.log('literalStringOp', address);
   // Create tagged value for string address
-  const taggedString = toTaggedValue(address, false, Tag.STRING);
+  const taggedString = toTaggedValue(address, Tag.STRING);
   vm.push(taggedString);
 };
 
@@ -26,7 +26,7 @@ export const skipDefOp: Verb = (vm: VM) => {
 export const skipBlockOp: Verb = (vm: VM) => {
   const offset = vm.next16();
   if (vm.debug) console.log('branchCallOp', offset);
-  vm.push(toTaggedValue(vm.IP, false, Tag.CODE));
+  vm.push(toTaggedValue(vm.IP, Tag.CODE));
   vm.IP += offset;
 };
 
@@ -35,7 +35,7 @@ export const callOp: Verb = (vm: VM) => {
   if (vm.debug) console.log('callOp', callAddress);
 
   // Save return address on return stack as a tagged value
-  vm.rpush(toTaggedValue(vm.IP, false, Tag.CODE));
+  vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
 
   // Save current BP on return stack (no need to tag BP)
   vm.rpush(vm.BP);
@@ -77,7 +77,7 @@ export const evalOp: Verb = (vm: VM) => {
   if (isCode(value)) {
     // If it's code, execute it by:
     // 1. Pushing the current IP onto the return stack
-    vm.rpush(toTaggedValue(vm.IP, false, Tag.CODE));
+    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
 
     // 2. Save current BP on return stack (just like callOp does)
     vm.rpush(vm.BP);

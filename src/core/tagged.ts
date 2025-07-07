@@ -59,7 +59,6 @@ const EXPONENT_MASK = 0xff << 23;
  * NIL constant: a non-heap tagged value representing the absence of a value.
  * It has a Tag.INTEGER tag and a value of 0.
  */
-export const NIL = toTaggedValue(0, false, Tag.INTEGER);
 
 /**
  * Encodes a value and its type tag into a single 32-bit floating-point number
@@ -77,33 +76,21 @@ export const NIL = toTaggedValue(0, false, Tag.INTEGER);
  *         unsigned integer.
  * -   **NaN Bit (Bit 22):** Set to 1 to indicate a quiet NaN.
  *
- * @param value A 16-bit number representing the value to be encoded. For
- *     Tag.INTEGER, this should be a signed integer (-32768 to 32767); for
+ * @param value The value to encode. For Tag.INTEGER, this should be a signed integer (-32768 to 32767); for
  *     other tags, it should be an unsigned integer (0 to 65535).
- * @param isHeap A boolean flag indicating whether the value is heap-allocated. If
- *     `true`, the sign bit will be set, and the tag will be interpreted as a
- *     HeapTag. If `false`, the sign bit will be clear, and the tag will be
- *     interpreted as a Tag.
- * @param tag The tag representing the data type.  If `heap` is `false`, this
- *     should be a value from Tag.
- * @returns A 32-bit floating-point number representing the NaN-boxed tagged
- *     value.
- * @throws {Error} If the tag or value is invalid for the given `heap` setting.
+ * @param tag The tag representing the data type. This should be a value from Tag.
+ * @returns A 32-bit floating-point number representing the NaN-boxed tagged value.
+ * @throws {Error} If the tag or value is invalid.
  */
-export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number {
-  // Validate the tag for non-heap values
-  if (isHeap) {
-    throw new Error('Heap-allocated values are not supported');
-  }
-  
-  // For non-heap values, validate the tag is a valid Tag
+export function toTaggedValue(value: number, tag: Tag): number {
+  // Validate the tag is a valid Tag
   if (tag < Tag.NUMBER || tag > Tag.STRING) {
     throw new Error(`Invalid tag: ${tag}`);
   }
 
   // Validate and encode the value.
   let encodedValue: number;
-  if (!isHeap && tag === Tag.INTEGER) {
+  if (tag === Tag.INTEGER) {
     if (value < -32768 || value > 32767) {
       throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for INTEGER tag');
     }
