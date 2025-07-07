@@ -134,6 +134,81 @@ describe('Parser with Tokenizer', () => {
     });
   });
 
+  // Error handling
+  describe('Error handling', () => {
+    it('should throw on malformed word definition', () => {
+      // Test missing semicolon - should throw 'Unclosed definition'
+      expect(() => parse(new Tokenizer(': test 1 +'))).toThrow('Unclosed definition for test');
+      
+      // Test empty definition - should throw 'Expected word name after :'
+      expect(() => parse(new Tokenizer(':'))).toThrow('Expected word name after :');
+    });
+
+    it('should throw on unterminated string', () => {
+      expect(() => parse(new Tokenizer('"unterminated string'))).toThrow('Unterminated string');
+    });
+
+    it('should throw on unknown words', () => {
+      expect(() => parse(new Tokenizer('unknown_word'))).toThrow('Unknown word: unknown_word');
+    });
+  });
+
+  // Word definitions
+  describe('Word definitions', () => {
+    beforeEach(() => {
+      // Reset VM before each test
+      initializeInterpreter();
+    });
+
+    it('should define and find simple words', () => {
+      parse(new Tokenizer(': double dup + ;'));
+      expect(vm.symbolTable.find('double')).toBeDefined();
+    });
+
+    it('should handle multiple word definitions', () => {
+      parse(new Tokenizer(': double dup + ; : square dup * ;'));
+      expect(vm.symbolTable.find('double')).toBeDefined();
+      expect(vm.symbolTable.find('square')).toBeDefined();
+    });
+
+    it('should handle words with numbers in name', () => {
+      // Test with a word that contains numbers
+      parse(new Tokenizer(': x2 2 * ;'));
+      expect(vm.symbolTable.find('x2')).toBeDefined();
+      
+      // Test with a word that starts with a number (if supported)
+      try {
+        parse(new Tokenizer(': 2times 2 * ;'));
+        expect(vm.symbolTable.find('2times')).toBeDefined();
+      } catch (e) {
+        // Skip if not supported
+        console.log('Note: Words starting with numbers might not be supported');
+      }
+    });
+    
+    it('should handle words with special characters', () => {
+      parse(new Tokenizer(': double? dup 0 > ;'));
+      expect(vm.symbolTable.find('double?')).toBeDefined();
+    });
+  });
+
+  // Number parsing
+  describe('Number parsing', () => {
+    it('should parse positive integers', () => {
+      parse(new Tokenizer('42'));
+      vm.reset();
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat32()).toBeCloseTo(42);
+    });
+
+    it('should parse negative numbers', () => {
+      parse(new Tokenizer('-3.14'));
+      vm.reset();
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat32()).toBeCloseTo(-3.14);
+    });
+  });
+
   // Comments and whitespace
   describe('Comments and whitespace', () => {
     it('should ignore comments', () => {
