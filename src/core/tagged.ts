@@ -22,34 +22,28 @@
  */
 
 /**
- * Enum representing core (non-heap) data types in Tacit.
+ * Tag types for values stored in the NaN-boxed value.
  */
-export enum CoreTag {
+export enum Tag {
   /** Represents a standard floating-point number. */
   NUMBER = 0,
   /** Represents a 16-bit integer. */
   INTEGER = 1,
-  /** Represents executable code (likely a function pointer or similar). */
+  /** Represents executable code (function pointer). */
   CODE = 2,
   /** Represents a string literal. */
   STRING = 3,
 }
 
 /**
- * Type alias for a Tag, which is just CoreTag since we've removed HeapTag.
+ * Human-readable names for Tag values (for debugging).
  */
-export type Tag = CoreTag;
-
-/**
- * Human-readable names for CoreTag values (for debugging).
- */
-export const nonHeapTagNames: { [key in CoreTag]: string } = {
-  [CoreTag.NUMBER]: 'NUMBER',
-  [CoreTag.INTEGER]: 'INTEGER',
-  [CoreTag.CODE]: 'CODE',
-  [CoreTag.STRING]: 'STRING',
+export const tagNames: { [key in Tag]: string } = {
+  [Tag.NUMBER]: 'NUMBER',
+  [Tag.INTEGER]: 'INTEGER',
+  [Tag.CODE]: 'CODE',
+  [Tag.STRING]: 'STRING',
 };
-
 
 /**
  * Constants used in the NaN-boxing scheme.
@@ -63,9 +57,9 @@ const EXPONENT_MASK = 0xff << 23;
 
 /**
  * NIL constant: a non-heap tagged value representing the absence of a value.
- * It has a CoreTag.INTEGER tag and a value of 0.
+ * It has a Tag.INTEGER tag and a value of 0.
  */
-export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
+export const NIL = toTaggedValue(0, false, Tag.INTEGER);
 
 /**
  * Encodes a value and its type tag into a single 32-bit floating-point number
@@ -77,22 +71,21 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
  *     non-heap (0).
  * -   **Exponent (Bits 23-30):** Set to all 1s (0xff) to ensure the number is a NaN.
  * -   **Mantissa (Bits 0-22):**
- *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from CoreTag or HeapTag).
+ *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from Tag).
  *     -   **Value (Bits 0-15):** 16 bits representing the actual value.  For
- *         `CoreTag.INTEGER`, this is a signed integer; otherwise, it's an
+ *         Tag.INTEGER, this is a signed integer; otherwise, it's an
  *         unsigned integer.
  * -   **NaN Bit (Bit 22):** Set to 1 to indicate a quiet NaN.
  *
  * @param value A 16-bit number representing the value to be encoded. For
- *     `CoreTag.INTEGER`, this should be a signed integer (-32768 to 32767); for
+ *     Tag.INTEGER, this should be a signed integer (-32768 to 32767); for
  *     other tags, it should be an unsigned integer (0 to 65535).
  * @param isHeap A boolean flag indicating whether the value is heap-allocated. If
  *     `true`, the sign bit will be set, and the tag will be interpreted as a
- *     `HeapTag`. If `false`, the sign bit will be clear, and the tag will be
- *     interpreted as a `CoreTag`.
+ *     HeapTag. If `false`, the sign bit will be clear, and the tag will be
+ *     interpreted as a Tag.
  * @param tag The tag representing the data type.  If `heap` is `false`, this
- *     should be a value from `CoreTag`; if `heap` is `true`, it should be a value
- *     from `HeapTag`.
+ *     should be a value from Tag.
  * @returns A 32-bit floating-point number representing the NaN-boxed tagged
  *     value.
  * @throws {Error} If the tag or value is invalid for the given `heap` setting.
@@ -103,14 +96,14 @@ export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number 
     throw new Error('Heap-allocated values are not supported');
   }
   
-  // Non–heap tags must be between CoreTag.INTEGER and CoreTag.STRING
-  if (tag < CoreTag.INTEGER || tag > CoreTag.STRING) {
-    throw new Error('Invalid non-heap tag');
+  // For non-heap values, validate the tag is a valid Tag
+  if (tag < Tag.NUMBER || tag > Tag.STRING) {
+    throw new Error(`Invalid tag: ${tag}`);
   }
 
   // Validate and encode the value.
   let encodedValue: number;
-  if (!isHeap && tag === CoreTag.INTEGER) {
+  if (!isHeap && tag === Tag.INTEGER) {
     if (value < -32768 || value > 32767) {
       throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for INTEGER tag');
     }
@@ -142,16 +135,16 @@ export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number 
  * the original value and its type information from the NaN-boxed representation.
  *
  * It handles standard floating-point numbers (which are not NaNs) as a special
- * case, returning them with a `CoreTag.NUMBER` tag and `heap` set to `false`.
+ * case, returning them with a Tag.NUMBER tag and `heap` set to `false`.
  *
  * For NaN-boxed values, it extracts the components as follows:
  *
  * -   **Heap Flag:** Determined by checking the sign bit (bit 31). If the sign
  *     bit is set, `heap` is `true`; otherwise, it's `false`.
  * -   **Tag:** Extracted from bits 16-21 of the mantissa using
- *     `TAG_MANTISSA_MASK`.
+ *     TAG_MANTISSA_MASK.
  * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
- *     the tag is `CoreTag.INTEGER` and the value is not heap-allocated (`heap`
+ *     the tag is Tag.INTEGER and the value is not heap-allocated (`heap`
  *     is `false`), the value is sign-extended to ensure correct interpretation
  *     as a 16-bit signed integer.
  *
@@ -159,7 +152,7 @@ export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number 
  *     NaN-boxed value.
  * @returns An object containing the decoded components:
  *     -   `value`: The 16-bit value (sign-extended if it was a
- *         `CoreTag.INTEGER` and not heap-allocated).
+ *         Tag.INTEGER and not heap-allocated).
  *     -   `heap`: A boolean indicating if the value was heap-allocated.
  *     -   `tag`: The tag indicating the data type.
  */
@@ -169,7 +162,7 @@ export function fromTaggedValue(nanValue: number): {
   tag: Tag;
 } {
   if (!isNaN(nanValue)) {
-    return { value: nanValue, isHeap: false, tag: CoreTag.NUMBER };
+    return { value: nanValue, isHeap: false, tag: Tag.NUMBER };
   }
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
@@ -182,8 +175,8 @@ export function fromTaggedValue(nanValue: number): {
   const tagBits = (bits & TAG_MANTISSA_MASK) >>> 16;
   // Extract the lower 16 bits as the value.
   const valueBits = bits & VALUE_MASK;
-  // For INTEGER (NonHeapTag.INTEGER) we must sign–extend.
-  const value = !heap && tagBits === CoreTag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
+  // For INTEGER (Tag.INTEGER) we must sign–extend.
+  const value = !heap && tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
   return { value, isHeap: heap, tag: tagBits };
 }
 
@@ -214,7 +207,7 @@ function checkTagged(value: number, expectedTag: Tag | null, expectedHeap: boole
     return isHeap === expectedHeap && (expectedTag === null || tag === expectedTag);
   }
   // Special case for regular JS numbers
-  return !expectedHeap && (expectedTag === null || expectedTag === CoreTag.NUMBER) && !isNaN(value);
+  return !expectedHeap && (expectedTag === null || expectedTag === Tag.NUMBER) && !isNaN(value);
 }
 
 /**
@@ -227,11 +220,9 @@ export function isHeapAllocated(value: number): boolean {
 /**
  * Checks if the given value is NIL.
  */
-export function isNIL(tagVal: number): boolean {
-  if (checkTagged(tagVal, CoreTag.INTEGER, false)) {
-    return getValue(tagVal) === 0;
-  }
-  return false;
+export function isNIL(tval: number): boolean {
+  const { tag, value } = fromTaggedValue(tval);
+  return tag === Tag.INTEGER && value === 0;
 }
 
 /**
@@ -245,27 +236,31 @@ export function isRefCounted(value: number): boolean {
  * Checks if the given value is a number.
  * Returns true for both tagged numbers and native JavaScript numbers.
  */
-export function isNumber(value: number): boolean {
-  return !isNaN(value) || checkTagged(value, CoreTag.NUMBER, false);
+export function isNumber(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.NUMBER;
 }
 
 /**
  * Checks if the given value is an integer.
  */
-export function isInteger(value: number): boolean {
-  return checkTagged(value, CoreTag.INTEGER, false);
+export function isInteger(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.INTEGER;
 }
 
 /**
  * Checks if the given value is a code value.
  */
-export function isCode(value: number): boolean {
-  return checkTagged(value, CoreTag.CODE, false);
+export function isCode(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.CODE;
 }
 
 /**
  * Checks if the given value is a string.
  */
-export function isString(value: number): boolean {
-  return checkTagged(value, CoreTag.STRING, false);
+export function isString(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.STRING;
 }

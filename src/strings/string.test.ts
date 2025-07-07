@@ -1,7 +1,7 @@
 import { Memory } from '../core/memory';
 import { Digest } from './digest';
 import { stringCreate } from './string';
-import { CoreTag, fromTaggedValue } from '../core/tagged';
+import { Tag, fromTaggedValue } from '../core/tagged';
 
 describe('stringCreate', () => {
   let memory: Memory;
@@ -12,11 +12,11 @@ describe('stringCreate', () => {
     digest = new Digest(memory);
   });
 
-  it('should create a tagged string with CoreTag.STRING', () => {
+  it('should create a tagged string with Tag.STRING', () => {
     const value = 'hello';
     const taggedValue = stringCreate(digest, value);
     const { tag, value: address } = fromTaggedValue(taggedValue);
-    expect(tag).toBe(CoreTag.STRING);
+    expect(tag).toBe(Tag.STRING);
     expect(digest.get(address)).toBe(value);
   });
 

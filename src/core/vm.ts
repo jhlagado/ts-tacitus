@@ -1,7 +1,7 @@
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
-import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
+import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { defineBuiltins } from '../ops/define-builtins';
 
@@ -33,7 +33,7 @@ export class VM {
   }
 
   eval() {
-    this.rpush(toTaggedValue(this.IP, false, CoreTag.CODE));
+    this.rpush(toTaggedValue(this.IP, false, Tag.CODE));
     const { value: pointer } = fromTaggedValue(this.pop());
     this.IP = pointer;
   }

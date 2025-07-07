@@ -2,7 +2,7 @@ import { VM } from './vm';
 import { STACK_SIZE, RSTACK_SIZE } from './memory';
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
-import { fromTaggedValue, toTaggedValue, CoreTag } from './tagged';
+import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 
 describe('VM', () => {
   let vm: VM;
@@ -46,11 +46,11 @@ describe('VM', () => {
     });
 
     it('should handle address tagging', () => {
-      vm.push(toTaggedValue(0x2345, false, CoreTag.CODE));
+      vm.push(toTaggedValue(0x2345, false, Tag.CODE));
       const { value, isHeap: heap, tag } = fromTaggedValue(vm.pop());
       expect(value).toBe(0x2345);
       expect(heap).toBe(false);
-      expect(tag).toBe(CoreTag.CODE);
+      expect(tag).toBe(Tag.CODE);
     });
   });
 
@@ -75,9 +75,9 @@ describe('VM', () => {
     });
 
     it('should handle address tagging on return stack', () => {
-      vm.rpush(toTaggedValue(0x4321, false, CoreTag.CODE));
+      vm.rpush(toTaggedValue(0x4321, false, Tag.CODE));
       const { value, tag } = fromTaggedValue(vm.rpop());
-      expect(tag).toBe(CoreTag.CODE);
+      expect(tag).toBe(Tag.CODE);
       expect(value).toBe(0x4321);
     });
 
@@ -107,7 +107,7 @@ describe('VM', () => {
 
     it('should handle nextAddress correctly', () => {
       const addr = 0x2345;
-      vm.compiler.compileFloat32(toTaggedValue(addr, false, CoreTag.CODE));
+      vm.compiler.compileFloat32(toTaggedValue(addr, false, Tag.CODE));
       vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });

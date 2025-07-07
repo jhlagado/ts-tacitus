@@ -11,7 +11,7 @@ import {
   xor,
   formatValue
 } from './utils';
-import { toTaggedValue, CoreTag } from './tagged';
+import { toTaggedValue, Tag } from './tagged';
 import { VM } from './vm';
 
 // Simple test VM setup
@@ -127,29 +127,29 @@ describe('Utility Functions', () => {
     });
 
     it('formats INTEGER tagged value (non-zero)', () => {
-      const taggedInt = toTaggedValue(42, false, CoreTag.INTEGER);
+      const taggedInt = toTaggedValue(42, false, Tag.INTEGER);
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
 
     it('formats INTEGER tagged value representing NIL', () => {
-      const taggedNil = toTaggedValue(0, false, CoreTag.INTEGER);
+      const taggedNil = toTaggedValue(0, false, Tag.INTEGER);
       expect(formatValue(testVM, taggedNil)).toBe('NIL');
     });
 
     it('formats CODE tagged value', () => {
-      const taggedCode = toTaggedValue(1234, false, CoreTag.CODE);
+      const taggedCode = toTaggedValue(1234, false, Tag.CODE);
       expect(formatValue(testVM, taggedCode)).toBe('CODE(1234)');
     });
 
     it('formats STRING tagged value successfully', () => {
       // Add the string to the VM's digest
       const strAddr = testVM.digest.add('TestString');
-      const taggedString = toTaggedValue(strAddr, false, CoreTag.STRING);
+      const taggedString = toTaggedValue(strAddr, false, Tag.STRING);
       expect(formatValue(testVM, taggedString)).toBe(`"TestString"`);
     });
 
     it('formats STRING tagged value when digest.get throws', () => {
-      const taggedString = toTaggedValue(999, false, CoreTag.STRING);
+      const taggedString = toTaggedValue(999, false, Tag.STRING);
       expect(formatValue(testVM as VM, taggedString)).toBe('""');
     });
 

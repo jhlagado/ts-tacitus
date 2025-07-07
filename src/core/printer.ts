@@ -1,4 +1,4 @@
-import { fromTaggedValue, CoreTag, HeapTag, heapTagNames, nonHeapTagNames } from './tagged';
+import { fromTaggedValue, Tag, tagNames } from './tagged';
 
 /**
  * Recursively prints any Tacit value with indentation, hex addresses, tags, and contents.
@@ -25,18 +25,18 @@ function toHex(addr: number): string {
   return `0x${addr.toString(16)}`;
 }
 
-function toTagName(tag: number, heap: boolean): string {
-  return heap ? heapTagNames[tag as HeapTag] : nonHeapTagNames[tag as CoreTag];
+function toTagName(tag: number, _isHeap: boolean): string {
+  return tagNames[tag as Tag] || `UnknownTag(${tag})`;
 }
 
 function scalarRepr(tval: number): string {
   const { tag, value } = fromTaggedValue(tval);
   switch (tag) {
-    case CoreTag.INTEGER:
+    case Tag.INTEGER:
       return `${value}`;
-    case CoreTag.CODE:
+    case Tag.CODE:
       return `<code>`;
-    case CoreTag.STRING:
+    case Tag.STRING:
       return `"[string:${value}]"`; // Simplified string representation
     default:
       return `${tval}`;
