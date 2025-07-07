@@ -47,7 +47,7 @@
 
 ### 1.1 Overview
 
-Tuples are a core abstraction in Tacit, providing a lightweight mechanism for representing composite data such as arrays, lists, and tables. A Tuple consists of one or more contiguous values marked by a special footer called a *tuple tag*.
+Tuples are a core abstraction in Tacit, providing a lightweight mechanism for representing composite data such as arrays, lists, and tables. A Tuple consists of a special *tuple tag* that indicates the tuple's size, followed by the tuple elements.
 
 While Tuples are commonly used on Tacit's data stack, they can reside in any contiguous storage medium—including buffers, arrays, or memory regions. This document describes how Tuples are constructed, manipulated, and used within Tacit. It explains the mechanisms by which tuples are created and managed, how they are recognized and processed by functions, and how they enable a range of higher-level data abstractions.
 
@@ -69,11 +69,16 @@ Tuples invert this model. Instead of a header, Tacit uses a footer—a tagged wo
 
 Tacit introduces grouping constructs using a pair of delimiters: the open parenthesis `(` and the close parenthesis `)`. These create spans—contiguous groups of values on the data stack that act as composite structures. The resulting Tuples are treated as first-class data and may represent vectors, records, or elements of higher-dimensional arrays. The grouping mechanism is stack-native, efficient, and designed to preserve lexical structure through tuple tags rather than heap references.
 
-### 2.1 The Open Parenthesis `(` — Marking the Group Start
+### 2.1 The Open Parenthesis `(` — Starting the Tuple
 
-When the open parenthesis `(` is executed, Tacit saves the current data stack pointer (DSP) by pushing it onto the return stack. This saved pointer acts as a marker: it denotes the position of the stack before any group elements were added. The system does not perform any additional allocation or tagging at this point—only the start address is recorded.
+When the opening parenthesis `(` is encountered, the runtime:
 
-This operation is cheap, requiring only a return stack push, and does not modify the data stack or inject any metadata into the sequence. It simply bookmarks the start of a pending group.
+1. Increments the tuple depth counter to track nesting level
+2. Pushes a placeholder tuple tag with size 0 onto the data stack
+3. Pushes the position of this tuple tag onto the return stack as a bookmark
+4. Continues evaluating the input stream, pushing values to the data stack
+
+This placeholder tuple tag will later be updated with the correct size when the matching closing parenthesis is encountered.
 
 ### 2.2 Pushing Values Inside the Group
 
@@ -96,15 +101,16 @@ At this point, the state of the stack resembles:
 
 The grouping is not yet complete. The return stack holds the bookmark, and the data stack simply accumulates values.
 
-### 2.3 The Close Parenthesis `)` — Computing and Pushing the Tuple Tag
+### 2.3 The Close Parenthesis `)` — Computing and Updating the Tuple Tag
 
 When the closing parenthesis `)` is encountered, the runtime:
 
-1. Counts the number of values pushed since the matching opening parenthesis.
-2. Creates a tag containing this count—known as a *tuple tag*—that indicates how many items to skip backward to find the start of the group.
-3. Pushes this tuple tag tag onto the stack, marking the end of the grouped values.
+1. Pops the saved tuple tag position from the return stack
+2. Calculates the number of elements pushed since the opening parenthesis (tuple size)
+3. Updates the placeholder tuple tag with the correct size
+4. For the outermost tuple (tuple depth = 1), pushes a stack reference pointing to the tuple tag position
 
-This tuple tag does not contain an absolute memory address. Instead, it encodes how many items to move backward on the stack to recover the entire span. It functions as a compact footer that delimits the Tuple from the top and enables efficient traversal of the structure.
+The tuple tag contains the size of the tuple and is located at the beginning of the tuple elements. This prefix design allows for efficient traversal and manipulation of the tuple structure from the start. For outermost tuples, an additional stack reference is pushed that points to the tuple tag position, making it easy to locate the beginning of the tuple.
 
 For example:
 
