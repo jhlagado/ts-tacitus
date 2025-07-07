@@ -79,6 +79,36 @@ export class Tokenizer {
         this.position + 1 < this.input.length &&
         isDigit(this.input[this.position + 1]))
     ) {
+      // Check if this is a word starting with a number (e.g., "2x")
+      // Look ahead for non-digit characters that would make this a word
+      let pos = this.position;
+      
+      // Skip the sign if present
+      if (this.input[pos] === '+' || this.input[pos] === '-') {
+        pos++;
+      }
+      
+      // Skip all digits
+      while (pos < this.input.length && isDigit(this.input[pos])) {
+        pos++;
+      }
+      
+      // Skip decimal point and following digits if present
+      if (pos < this.input.length && this.input[pos] === '.') {
+        pos++;
+        while (pos < this.input.length && isDigit(this.input[pos])) {
+          pos++;
+        }
+      }
+      
+      // If we're not at the end of a token (whitespace or special char),
+      // this must be a word starting with a number
+      if (pos < this.input.length && 
+          !isWhitespace(this.input[pos]) && 
+          !isSpecialChar(this.input[pos])) {
+        return this.readWord();
+      }
+      
       return this.readNumber();
     }
 
