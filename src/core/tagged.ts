@@ -56,11 +56,6 @@ const VALUE_MASK = (1 << VALUE_BITS) - 1;
 const EXPONENT_MASK = 0xff << 23;
 
 /**
- * NIL constant: a non-heap tagged value representing the absence of a value.
- * It has a Tag.INTEGER tag and a value of 0.
- */
-
-/**
  * Encodes a value and its type tag into a single 32-bit floating-point number
  * using NaN-boxing.
  *
@@ -102,12 +97,10 @@ export function toTaggedValue(value: number, tag: Tag): number {
     encodedValue = value;
   }
 
-  // Heap allocation is not supported, so sign bit is always 0
-  const signBit = 0;
   // Pack the 6-bit tag into bits 16–21.
   const mantissaTagBits = (tag & 0x3f) << 16;
   // Assemble the final 32-bit pattern.
-  const bits = signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
+  const bits = EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setUint32(0, bits, true);
