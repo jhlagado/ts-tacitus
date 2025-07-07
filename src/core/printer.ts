@@ -8,24 +8,13 @@ export function prn(title: string, tval: number): void {
 }
 
 function formatValue(tval: number, indent = 0): string {
-  const { value: addr, isHeap, tag } = fromTaggedValue(tval);
-  const name = toTagName(tag, isHeap);
-  const prefix = `${'  '.repeat(indent)}${isHeap ? `${toHex(addr)} ` : ''}${name}: `;
-
-  if (!isHeap) {
-    // Scalar or immediate
-    return `${prefix}${scalarRepr(tval)}`;
-  }
-
-  // No heap types are currently supported
-  return `${prefix}Unknown(${name})`;
+  const { value: _value, tag } = fromTaggedValue(tval);
+  const name = toTagName(tag);
+  const prefix = `${'  '.repeat(indent)}${name}: `;
+  return `${prefix}${scalarRepr(tval)}`;
 }
 
-function toHex(addr: number): string {
-  return `0x${addr.toString(16)}`;
-}
-
-function toTagName(tag: number, _isHeap: boolean): string {
+function toTagName(tag: number): string {
   return tagNames[tag as Tag] || `UnknownTag(${tag})`;
 }
 
