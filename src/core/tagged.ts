@@ -30,8 +30,10 @@ export enum Tag {
   INTEGER = 1,
   /** Represents executable code (function pointer). */
   CODE = 2,
+  /** Represents an inline code block with its own scope. */
+  CODE_BLOCK = 3,
   /** Represents a string literal. */
-  STRING = 3,
+  STRING = 4,
 }
 
 /**
@@ -41,6 +43,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.INTEGER]: 'INTEGER',
   [Tag.CODE]: 'CODE',
+  [Tag.CODE_BLOCK]: 'CODE_BLOCK',
   [Tag.STRING]: 'STRING',
 };
 
@@ -193,11 +196,27 @@ export function isInteger(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is a code value.
+ * Checks if the given value is a function code value.
  */
 export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.CODE;
+}
+
+/**
+ * Checks if the given value is a code block value.
+ */
+export function isCodeBlock(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.CODE_BLOCK;
+}
+
+/**
+ * Checks if the given value is either a function or code block.
+ */
+export function isAnyCode(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.CODE || tag === Tag.CODE_BLOCK;
 }
 
 /**
