@@ -1,7 +1,5 @@
-import { SEG_HEAP } from './memory';
 import { CoreTag, fromTaggedValue, HeapTag } from './tagged';
 import { VM } from './vm';
-import { vectorGet } from '../heap/vector'; // Add this import
 
 // Character check functions
 export const isDigit = (char: string): boolean => char >= '0' && char <= '9';
@@ -11,6 +9,8 @@ export const isWhitespace = (char: string): boolean => char.trim() === '';
 export const isGroupingChar = (char: string): boolean => '{}[]()"\'`'.includes(char);
 
 export const isSpecialChar = (char: string): boolean => ':"\'`'.includes(char);
+
+export const isSymbolTerminator = (char: string): boolean => ')]}'.includes(char);
 
 // Number conversion and logical operations
 export const toUnsigned16 = (num: number): number => num & 0xffff;
@@ -30,8 +30,6 @@ export const and = (a: number, b: number): number => toNumber(toBoolean(a) && to
 export const or = (a: number, b: number): number => toNumber(toBoolean(a) || toBoolean(b));
 export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== toBoolean(b));
 
-// Constants for vector/dict formatting
-const VEC_SIZE = 4;
 
 /**
  * Formats a tagged value for display.
@@ -72,23 +70,6 @@ export function formatValue(vm: VM, value32: number): string {
         return `BLOCK(${value})`;
       case HeapTag.SEQUENCE:
         return `SEQ(${value})`;
-      case HeapTag.VECTOR:
-        try {
-          // Use vectorGet for accessing elements - this is better for handling nested structures
-          const byteOffset = value * 64; // Convert block index to byte offset
-          const len = vm.memory.read16(SEG_HEAP, byteOffset + VEC_SIZE);
-          const elems: string[] = [];
-
-          for (let i = 0; i < len; i++) {
-            const elem = vectorGet(vm.heap, value32, i);
-            elems.push(formatValue(vm, elem));
-          }
-
-          return `[ ${elems.join(' ')} ]`;
-        } catch (error) {
-          console.error((error as Error).message);
-          return `VECTOR(${value})`;
-        }
       default:
         return `Unknown heap tag (${tag}, ${value})`;
     }
