@@ -8,7 +8,14 @@ describe('VM', () => {
   let vm: VM;
 
   beforeEach(() => {
+    // Create VM instance
     vm = new VM();
+    
+    // Create Compiler instance with reference to VM
+    const compiler = new Compiler(vm);
+    
+    // Complete VM initialization with Compiler
+    vm.initializeCompilerAndFunctionTable(compiler);
   });
 
   // Test 1: Stack operations

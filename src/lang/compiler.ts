@@ -7,12 +7,18 @@ export class Compiler {
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
   BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
   preserve: boolean;
+  private vm: VM;
 
-  constructor(private vm: VM) {
+  /**
+   * Creates a new Compiler instance.
+   * @param vm The VM instance to use for memory access and other operations.
+   */
+  constructor(vm: VM) {
     this.nestingScore = 0;
     this.CP = 0; // Start compiling at CODE
     this.BP = 0; // Buffer starts at CODE
     this.preserve = false;
+    this.vm = vm;
   }
 
   /**

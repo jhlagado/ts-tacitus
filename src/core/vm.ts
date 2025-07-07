@@ -14,7 +14,7 @@ export class VM {
   BP: number; // Base Pointer for local variable frames
   IP: number; // Instruction pointer
   running: boolean;
-  compiler: Compiler;
+  compiler!: Compiler; // Will be set in initializeCompilerAndFunctionTable
   digest: Digest;
   debug: boolean;
   symbolTable: SymbolTable;
@@ -28,18 +28,29 @@ export class VM {
     this.SP = 0; // Stack starts at STACK
     this.RP = 0; // Return stack starts at RSTACK
     this.BP = 0; // Base Pointer starts at 0
-    this.compiler = new Compiler(this);
+    
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.tupleDepth = 0; // Initialize tuple depth to 0
     
     // Initialize function table and register built-in functions
     this.functionTable = new FunctionTable();
-    initFunctionTable(this);
     
     // Set up symbol table
     this.symbolTable = new SymbolTable(this.digest); // Creates a new SymbolTable
     defineBuiltins(this.symbolTable); // Populates the new table with built-ins
+    
+    // Defer function table initialization and compiler assignment to avoid circular dependencies
+    // These will be set after construction in the initialization function
+  }
+  
+  /**
+   * Sets the compiler instance and initializes the function table.
+   * This method must be called after VM construction to complete initialization.
+   */
+  initializeCompilerAndFunctionTable(compiler: Compiler): void {
+    this.compiler = compiler;
+    initFunctionTable(this);
   }
 
   eval() {
