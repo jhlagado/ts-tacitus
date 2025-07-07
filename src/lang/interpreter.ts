@@ -84,18 +84,29 @@ export function callTacitFunction(codePtr: number): void {
   // This tells the Tacit code's 'exit' operation where to jump back to.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
   
-  // 3. Set the Instruction Pointer to the beginning of the Tacit function.
+  // 3. Push current BP to create a stack frame for local variables
+  vm.rpush(vm.BP);
+  
+  // 4. Set BP to current RP value, establishing the new stack frame
+  vm.BP = vm.RP;
+  
+  // 5. Set the Instruction Pointer to the beginning of the Tacit function.
   vm.IP = codePtr;
 
-  // 4. Ensure the VM is marked as running.
+  // 6. Ensure the VM is marked as running.
   vm.running = true;
 
-  // 5. Call the main execution loop, providing the start IP and the IP to break at.
+  // 7. Call the main execution loop, providing the start IP and the IP to break at.
   // We explicitly don't provide a breakAtIP here, as we want to rely on Exit opcode
   execute(vm.IP);
   
-  // 6. The Exit operation in the called function should have updated IP and popped the return stack
-  // If we get here, the function has completed normally
+  // 8. The Exit operation in the called function should have updated IP and popped the return stack
+  // and properly restored BP. If we get here, the function has completed normally.
+  // The exitOp should have:
+  //   - Restored RP from BP (removing local variables)
+  //   - Popped and restored the previous BP
+  //   - Popped and restored the return IP
+  
   if (vm.IP !== returnIP) {
     console.warn(`Warning: IP mismatch after function call. Expected ${returnIP}, got ${vm.IP}`);
     vm.IP = returnIP; // Force IP back to expected return address
