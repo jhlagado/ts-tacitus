@@ -93,11 +93,11 @@ export class Tokenizer {
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Handle parentheses as WORD tokens
-    if ('()'.includes(char)) {
+    // Handle parentheses as SPECIAL tokens
+    if (char === '(' || char === ')') {
       this.position++;
       this.column++;
-      return { type: TokenType.WORD, value: char, position: startPos };
+      return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
     // Handle block start and end characters

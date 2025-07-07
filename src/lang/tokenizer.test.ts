@@ -114,9 +114,9 @@ describe("Tokenizer", () => {
     expect(tokens[0].value).toBe("{");
     expect(tokens[1].type).toBe(TokenType.BLOCK_END);
     expect(tokens[1].value).toBe("}");
-    expect(tokens[2].type).toBe(TokenType.WORD);
+    expect(tokens[2].type).toBe(TokenType.SPECIAL);
     expect(tokens[2].value).toBe("(");
-    expect(tokens[3].type).toBe(TokenType.WORD);
+    expect(tokens[3].type).toBe(TokenType.SPECIAL);
     expect(tokens[3].value).toBe(")");
     // The rest are words since they're not grouping chars
     expect(tokens[4].type).toBe(TokenType.WORD);
@@ -210,6 +210,31 @@ describe("Tokenizer", () => {
     // Verify the structure
     expect(values).toEqual([
       "if", "{", "x", 1, "+", "}", "{", "y", 2, "*", "}", "then"
+    ]);
+  });
+
+  it("should handle ( and ) as symbol terminators", () => {
+    const tokens = getAllTokens("xy( 123 )z");
+    expect(tokens).toHaveLength(5);
+    expect(tokens[0]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: "xy" }));
+    expect(tokens[1]).toEqual(expect.objectContaining({ type: TokenType.SPECIAL, value: "(" }));
+    expect(tokens[2]).toEqual(expect.objectContaining({ type: TokenType.NUMBER, value: 123 }));
+    expect(tokens[3]).toEqual(expect.objectContaining({ type: TokenType.SPECIAL, value: ")" }));
+    expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: "z" }));
+  });
+
+  it("should handle ( and ) in complex expressions", () => {
+    const tokens = getAllTokens("if (x 1 +) (y 2 *) then");
+    const types = tokens.map(t => t.type);
+    const values = tokens.map(t => t.value);
+    
+    expect(types).toContain(TokenType.SPECIAL);
+    expect(types).toContain(TokenType.WORD);
+    expect(types).toContain(TokenType.NUMBER);
+    
+    // Verify the structure
+    expect(values).toEqual([
+      "if", "(", "x", 1, "+", ")", "(", "y", 2, "*", ")", "then"
     ]);
   });
 
