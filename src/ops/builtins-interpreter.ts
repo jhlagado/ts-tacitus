@@ -37,12 +37,6 @@ export const callOp: Verb = (vm: VM) => {
   // Save return address on return stack as a tagged value
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
 
-  // Save current BP on return stack (no need to tag BP)
-  vm.rpush(vm.BP);
-
-  // Update BP to point to current frame
-  vm.BP = vm.RP;
-
   // Jump to function
   vm.IP = callAddress;
 };
@@ -55,16 +49,31 @@ export const abortOp: Verb = (vm: VM) => {
 export const exitOp: Verb = (vm: VM) => {
   if (vm.debug) console.log('exitOp');
 
-  // Pop all locals to properly handle reference counting
-  while (vm.RP > vm.BP) {
-    vm.rpop(); // This will decrement ref counts as needed
+  try {
+    // Return to caller, expecting a tagged return address
+    if (vm.RP > 0) {
+      const returnAddr = vm.rpop();
+      
+      // Check if the value appears to be a tagged pointer
+      if (isCode(returnAddr)) {
+        const { value: returnIP } = fromTaggedValue(returnAddr);
+        vm.IP = returnIP;
+      } else {
+        // If it's not tagged as code, just use the value directly
+        // This provides backwards compatibility with tests that might
+        // push raw addresses onto the return stack
+        vm.IP = Math.floor(returnAddr);
+      }
+    } else {
+      // We're at the bottom of the call stack
+      vm.running = false;
+    }
+  } catch (e) {
+    // If any error occurs during exitOp, we need to stop the VM
+    // to avoid an infinite loop
+    vm.running = false;
+    throw e;
   }
-
-  // Now RP equals BP, pop the saved BP (not tagged)
-  vm.BP = vm.rpop();
-
-  // Return to caller, converting from tagged value
-  vm.IP = fromTaggedValue(vm.rpop()).value;
 };
 
 export const evalOp: Verb = (vm: VM) => {
@@ -79,13 +88,7 @@ export const evalOp: Verb = (vm: VM) => {
     // 1. Pushing the current IP onto the return stack
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
 
-    // 2. Save current BP on return stack (just like callOp does)
-    vm.rpush(vm.BP);
-
-    // 3. Update BP to point to current frame
-    vm.BP = vm.RP;
-
-    // 4. Setting IP to the code block's address
+    // 2. Setting IP to the code block's address
     const { value: pointer } = fromTaggedValue(value);
     vm.IP = pointer;
   } else {

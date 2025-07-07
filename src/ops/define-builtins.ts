@@ -1,75 +1,66 @@
 import { SymbolTable } from '../strings/symbol-table';
-import { VM } from '../core/vm';
 import { Op } from './opcodes';
 
 /**
  * Defines the built-in functions in the given symbol table.
  * This function maps symbolic names (strings) to their corresponding opcodes,
  * allowing the Tacit interpreter to recognize and execute these functions.
+ * 
+ * This function also populates the VM's function table with built-in operations.
+ * 
  * @param {SymbolTable} dict The symbol table to populate with built-in functions.
  */
 export const defineBuiltins = (dict: SymbolTable) => {
-  /**
-   * Creates a compiler function for a given opcode.
-   * This function, when called by the interpreter, will emit the specified opcode
-   * into the program's bytecode.
-   * @param {number} opcode The opcode to compile.
-   * @returns {(vm: VM) => void} A function that, when executed, compiles the opcode.
-   */
-  const compileOpcode = (opcode: number) => (vm: VM) => {
-    vm.compiler.compile8(opcode);
-  };
+  // With the unified addressing scheme, we now directly use opcode numbers
+  // instead of functions in the symbol table
 
   // Control Flow
-  dict.define('eval', compileOpcode(Op.Eval));
-  dict.define('.', compileOpcode(Op.Print));
+  dict.define('eval', Op.Eval);
+  dict.define('.', Op.Print);
 
   // Dyadic Arithmetic
-  dict.define('+', compileOpcode(Op.Plus));
-  dict.define('-', compileOpcode(Op.Minus));
-  dict.define('*', compileOpcode(Op.Multiply));
-  dict.define('/', compileOpcode(Op.Divide));
-  dict.define('&', compileOpcode(Op.Min));
-  dict.define('|', compileOpcode(Op.Max));
-  dict.define('^', compileOpcode(Op.Power));
-  dict.define('=', compileOpcode(Op.Equal));
-  dict.define('<', compileOpcode(Op.LessThan));
-  dict.define('>', compileOpcode(Op.GreaterThan));
-  dict.define('~', compileOpcode(Op.Match));
-  dict.define('!', compileOpcode(Op.Mod));
+  dict.define('+', Op.Plus);
+  dict.define('-', Op.Minus);
+  dict.define('*', Op.Multiply);
+  dict.define('/', Op.Divide);
+  dict.define('&', Op.Min);
+  dict.define('|', Op.Max);
+  dict.define('^', Op.Power);
+  dict.define('=', Op.Equal);
+  dict.define('<', Op.LessThan);
+  dict.define('>', Op.GreaterThan);
+  dict.define('~', Op.Match);
+  dict.define('!', Op.Mod);
 
   // Monadic Arithmetic
-  dict.define('m-', compileOpcode(Op.mNegate));
-  dict.define('m%', compileOpcode(Op.mReciprocal));
-  dict.define('m_', compileOpcode(Op.mFloor));
-  dict.define('m~', compileOpcode(Op.mNot));
-  dict.define('m*', compileOpcode(Op.mSignum));
-  dict.define('m,', compileOpcode(Op.mEnlist));
+  dict.define('m-', Op.mNegate);
+  dict.define('m%', Op.mReciprocal);
+  dict.define('m_', Op.mFloor);
+  dict.define('m~', Op.mNot);
+  dict.define('m*', Op.mSignum);
+  dict.define('m,', Op.mEnlist);
 
   // Stack Operations
-  dict.define('dup', compileOpcode(Op.Dup));
-  dict.define('drop', compileOpcode(Op.Drop));
-  dict.define('swap', compileOpcode(Op.Swap));
+  dict.define('dup', Op.Dup);
+  dict.define('drop', Op.Drop);
+  dict.define('swap', Op.Swap);
 
   // Arithmetic Operators
-  dict.define('abs', compileOpcode(Op.Abs));
-  dict.define('neg', compileOpcode(Op.Neg));
-  dict.define('sign', compileOpcode(Op.Sign));
-  dict.define('exp', compileOpcode(Op.Exp));
-  dict.define('ln', compileOpcode(Op.Ln));
-  dict.define('log', compileOpcode(Op.Log));
-  dict.define('sqrt', compileOpcode(Op.Sqrt));
-  dict.define('pow', compileOpcode(Op.Pow));
-  dict.define('avg', compileOpcode(Op.Avg));
-  dict.define('prod', compileOpcode(Op.Prod));
+  dict.define('abs', Op.Abs);
+  dict.define('neg', Op.Neg);
+  dict.define('sign', Op.Sign);
+  dict.define('exp', Op.Exp);
+  dict.define('ln', Op.Ln);
+  dict.define('log', Op.Log);
+  dict.define('sqrt', Op.Sqrt);
+  dict.define('pow', Op.Pow);
+  dict.define('avg', Op.Avg);
+  dict.define('prod', Op.Prod);
 
   // Conditional Operations
-  dict.define('if', (vm: VM) => {
-    vm.compiler.compile8(Op.Rot);
-    vm.compiler.compile8(Op.Eval);
-    vm.compiler.compile8(Op.NegRot);
-    vm.compiler.compile8(Op.If);
-  });
+  // For 'if' operation, we'll define a special internal opcode
+  // Using a standard opcode value directly to avoid circular dependencies
+  dict.define('if', Op.If); // We'll handle the special logic in the interpreter
 
   // Sequence operations have been removed
 

@@ -1,10 +1,14 @@
 import { startREPL } from './lang/repl';
 import { processFiles } from './lang/fileProcessor';
+import { initializeInterpreter } from './core/globalState';
 
 /**
  * Main entry point for the CLI
  */
 export function main(): void {
+  // Initialize the interpreter before processing any code
+  initializeInterpreter();
+  
   const args = process.argv.slice(2);
 
   // Check for a --no-interactive flag

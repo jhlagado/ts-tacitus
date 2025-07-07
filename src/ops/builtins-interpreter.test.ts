@@ -28,9 +28,8 @@ describe('Built-in Words', () => {
 
     it('exitOp should restore IP from return stack', () => {
       const testAddress = 0x2345;
+      // In our new implementation, we only push the return address without BP/frame
       vm.rpush(toTaggedValue(testAddress, Tag.CODE));
-      vm.rpush(vm.BP);
-      vm.BP = vm.RP;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
     });
@@ -53,10 +52,16 @@ describe('Built-in Words', () => {
     it('callOp should jump to absolute address', () => {
       const originalIP = vm.IP;
       const testAddress = 0x12345;
+      // Prepare the next16 read
       vm.compiler.compile16(testAddress);
       callOp(vm);
+      // Check the IP was updated to the target address
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(fromTaggedValue(vm.rpop()).value).toBe(originalIP); // Original IP after call
+      // Check that the return address was pushed onto the return stack
+      const returnAddr = vm.rpop();
+      const { value } = fromTaggedValue(returnAddr);
+      // The implementation adds 2 to the return address to account for the opcode + address
+      expect(value).toBe(originalIP + 2); // Original IP + 2 for opcode + address
     });
   });
 

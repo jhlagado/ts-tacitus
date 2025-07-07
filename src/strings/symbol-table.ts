@@ -1,18 +1,12 @@
-import { Op } from '../ops/opcodes';
 import { Digest } from './digest';
-import { Verb } from '../core/types';
-import { VM } from '../core/vm';
 
 interface SymbolTableNode {
   key: number;
-  value: Verb;
+  value: number; // Store function table index instead of Verb
   next: SymbolTableNode | null;
 }
 
-const compileCall = (address: number) => (vm: VM) => {
-  vm.compiler.compile8(Op.Call);
-  vm.compiler.compile16(address);
-};
+
 
 /** Represents a saved state of the symbol table. */
 export type SymbolTableCheckpoint = SymbolTableNode | null;
@@ -23,19 +17,20 @@ export class SymbolTable {
   constructor(private digest: Digest) {
     this.head = null;
   }
-  // Define a new word in the symbolTable
-  define(name: string, verb: Verb): void {
+  // Define a new word in the symbolTable with a function index
+  define(name: string, functionIndex: number): void {
     const key = this.digest.add(name);
-    const newNode: SymbolTableNode = { key, value: verb, next: this.head };
+    const newNode: SymbolTableNode = { key, value: functionIndex, next: this.head };
     this.head = newNode;
   }
 
-  defineCall(name: string, address: number): void {
-    this.define(name, compileCall(address));
+  // Define a word directly with its function table index
+  defineCall(name: string, functionIndex: number): void {
+    this.define(name, functionIndex);
   }
 
-  // Find a word in the symbolTable
-  find(name: string): Verb | undefined {
+  // Find a word in the symbolTable and return its function index
+  find(name: string): number | undefined {
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
