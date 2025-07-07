@@ -351,4 +351,39 @@ describe("Tokenizer", () => {
     const values = getTokenValues('5 "hello" +');
     expect(values).toEqual([5, "hello", "+"]);
   });
+
+  it("should handle special characters inside strings", () => {
+    // Using double backslashes to escape the backslash in the test string
+    const tokens = getAllTokens('"hello { } [ ] ( ) : ; \\" \\\\ there"');
+    
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].type).toBe(TokenType.STRING);
+    expect(tokens[0].value).toBe('hello { } [ ] ( ) : ; " \\ there');
+  });
+
+  it("should handle empty strings", () => {
+    const tokens = getAllTokens('""');
+    
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].type).toBe(TokenType.STRING);
+    expect(tokens[0].value).toBe('');
+  });
+
+  it("should handle strings with escaped characters", () => {
+    const tokens = getAllTokens('"line1\\nline2\\ttab\\"quote\\\\backslash"');
+    
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].type).toBe(TokenType.STRING);
+    expect(tokens[0].value).toBe('line1\nline2\ttab\"quote\\backslash');
+  });
+
+  it("should handle strings at the end of input", () => {
+    const tokens = getAllTokens('42 "the end"');
+    
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0].type).toBe(TokenType.NUMBER);
+    expect(tokens[0].value).toBe(42);
+    expect(tokens[1].type).toBe(TokenType.STRING);
+    expect(tokens[1].value).toBe('the end');
+  });
 });
