@@ -36,17 +36,9 @@ export enum CoreTag {
 }
 
 /**
- * Enum representing heap-allocated data types in Tacit.
+ * Type alias for a Tag, which is just CoreTag since we've removed HeapTag.
  */
-export enum HeapTag {
-  /** Represents a generic heap block. */
-  BLOCK = 0,
-}
-
-/**
- * Type alias for a Tag, which can be either a CoreTag or a HeapTag.
- */
-export type Tag = CoreTag | HeapTag;
+export type Tag = CoreTag;
 
 /**
  * Human-readable names for CoreTag values (for debugging).
@@ -58,12 +50,6 @@ export const nonHeapTagNames: { [key in CoreTag]: string } = {
   [CoreTag.STRING]: 'STRING',
 };
 
-/**
- * Human-readable names for HeapTag values (for debugging).
- */
-export const heapTagNames: { [key in HeapTag]: string } = {
-  [HeapTag.BLOCK]: 'BLOCK',
-};
 
 /**
  * Constants used in the NaN-boxing scheme.
@@ -112,17 +98,14 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
  * @throws {Error} If the tag or value is invalid for the given `heap` setting.
  */
 export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number {
-  // Validate the tag based on whether the value is heap–allocated.
+  // Validate the tag for non-heap values
   if (isHeap) {
-    // Only BLOCK is a valid heap tag
-    if (tag !== HeapTag.BLOCK) {
-      throw new Error('Invalid heap tag');
-    }
-  } else {
-    // Non–heap tags must be between NonHeapTag.NIL and NonHeapTag.STRING.
-    if (tag < CoreTag.INTEGER || tag > CoreTag.STRING) {
-      throw new Error('Invalid non-heap tag');
-    }
+    throw new Error('Heap-allocated values are not supported');
+  }
+  
+  // Non–heap tags must be between CoreTag.INTEGER and CoreTag.STRING
+  if (tag < CoreTag.INTEGER || tag > CoreTag.STRING) {
+    throw new Error('Invalid non-heap tag');
   }
 
   // Validate and encode the value.
@@ -139,8 +122,8 @@ export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number 
     encodedValue = value;
   }
 
-  // Set the sign bit if heap allocated.
-  const signBit = isHeap ? SIGN_BIT : 0;
+  // Heap allocation is not supported, so sign bit is always 0
+  const signBit = 0;
   // Pack the 6-bit tag into bits 16–21.
   const mantissaTagBits = (tag & 0x3f) << 16;
   // Assemble the final 32-bit pattern.
