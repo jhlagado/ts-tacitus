@@ -187,6 +187,32 @@ describe("Tokenizer", () => {
     expect(values).toEqual(["Swap", "DROP"]);
   });
 
+  it("should handle { and } as symbol terminators", () => {
+    const tokens = getAllTokens("xy{ 123 }z");
+    expect(tokens).toHaveLength(5);
+    expect(tokens[0]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: "xy" }));
+    expect(tokens[1]).toEqual(expect.objectContaining({ type: TokenType.BLOCK_START, value: "{" }));
+    expect(tokens[2]).toEqual(expect.objectContaining({ type: TokenType.NUMBER, value: 123 }));
+    expect(tokens[3]).toEqual(expect.objectContaining({ type: TokenType.BLOCK_END, value: "}" }));
+    expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: "z" }));
+  });
+
+  it("should handle { and } in complex expressions", () => {
+    const tokens = getAllTokens("if { x 1 + } { y 2 * } then");
+    const types = tokens.map(t => t.type);
+    const values = tokens.map(t => t.value);
+    
+    expect(types).toContain(TokenType.BLOCK_START);
+    expect(types).toContain(TokenType.BLOCK_END);
+    expect(types).toContain(TokenType.WORD);
+    expect(types).toContain(TokenType.NUMBER);
+    
+    // Verify the structure
+    expect(values).toEqual([
+      "if", "{", "x", 1, "+", "}", "{", "y", 2, "*", "}", "then"
+    ]);
+  });
+
   it("should handle words with underscores", () => {
     const values = getTokenValues("my_word another_word");
     expect(values).toEqual(["my_word", "another_word"]);

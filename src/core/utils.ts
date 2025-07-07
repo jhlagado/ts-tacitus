@@ -8,7 +8,7 @@ export const isWhitespace = (char: string): boolean => char.trim() === '';
 
 export const isGroupingChar = (char: string): boolean => '{}[]()"\'`'.includes(char);
 
-export const isSpecialChar = (char: string): boolean => ':"\'`'.includes(char);
+export const isSpecialChar = (char: string): boolean => ':"\'`{}'.includes(char);
 
 export const isSymbolTerminator = (char: string): boolean => ')]}'.includes(char);
 
