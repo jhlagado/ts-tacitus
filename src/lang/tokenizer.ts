@@ -1,4 +1,4 @@
-import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
+import { isDigit, isWhitespace, isSpecialChar, isSymbolTerminator } from '../core/utils';
 
 export enum TokenType {
   NUMBER,
@@ -93,8 +93,8 @@ export class Tokenizer {
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // If the character is one of "[]()", return it as a WORD token. - MUST BE AFTER ]# check
-    if ('[]()'.includes(char)) {
+    // Handle parentheses as WORD tokens
+    if ('()'.includes(char)) {
       this.position++;
       this.column++;
       return { type: TokenType.WORD, value: char, position: startPos };
@@ -254,7 +254,8 @@ export class Tokenizer {
     while (
       this.position < this.input.length &&
       !isWhitespace(this.input[this.position]) &&
-      !isSpecialChar(this.input[this.position])
+      !isSpecialChar(this.input[this.position]) &&
+      !isSymbolTerminator(this.input[this.position])
     ) {
       word += this.input[this.position];
       this.position++;

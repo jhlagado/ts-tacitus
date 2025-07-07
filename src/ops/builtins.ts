@@ -17,8 +17,6 @@ import {
   exitOp,
   evalOp,
   literalStringOp,
-  vecLeftOp,
-  vecRightOp,
 } from './builtins-interpreter';
 
 import {
@@ -107,13 +105,6 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.LiteralString:
       literalStringOp(vm);
       break;
-    case Op.VecLeft:
-      vecLeftOp(vm);
-      break;
-    case Op.VecRight:
-      vecRightOp(vm);
-      break;
-
 
     // Dyadic Arithmetic
     case Op.Plus:

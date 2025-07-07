@@ -20,9 +20,6 @@ export const defineBuiltins = (dict: SymbolTable) => {
     vm.compiler.compile8(opcode);
   };
 
-  dict.define('[', (vm: VM) => vm.compiler.compile8(Op.VecLeft));
-  dict.define(']', (vm: VM) => vm.compiler.compile8(Op.VecRight));
-
   // Control Flow
   dict.define('eval', compileOpcode(Op.Eval));
   dict.define('.', compileOpcode(Op.Print));

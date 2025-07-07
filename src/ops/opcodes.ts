@@ -25,10 +25,6 @@ export enum Op {
   LiteralString,
   /** Pushes a literal address onto the stack. */
   LiteralAddress,
-  /** Marks the beginning of a vector (array) literal. */
-  VecLeft,
-  /** Marks the end of a vector literal. */
-  VecRight,
 
   /** Performs addition of the top two values on the stack. */
   Plus,
