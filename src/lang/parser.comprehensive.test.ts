@@ -2,6 +2,7 @@ import { Op } from '../ops/opcodes';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { parse } from './parser';
 import { Tokenizer } from './tokenizer';
+import { executeProgram } from './interpreter';
 
 describe('Comprehensive Parser Tests', () => {
   beforeEach(() => {
@@ -42,6 +43,16 @@ describe('Comprehensive Parser Tests', () => {
     it('should handle words with special characters in name', () => {
       parse(new Tokenizer(': test-word! + - ;'));
       expect(vm.symbolTable.find('test-word!')).toBeDefined();
+    });
+    
+    it('should handle word names that start with numbers', () => {
+      vm.reset();
+      
+      // Execute a program that defines and uses a word starting with a number
+      executeProgram(': 2x 2 * ; 5 2x');
+      
+      // Check that 5 was doubled to 10
+      expect(vm.pop()).toBe(10);
     });
 
     it('should not allow redefining words', () => {
