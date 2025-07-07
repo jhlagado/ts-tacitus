@@ -159,12 +159,6 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM as VM, taggedHeapBlock)).toBe('BLOCK(320)');
     });
 
-    it('formats HEAP tagged value for SEQ subtype', () => {
-      // Use an aligned address (e.g., 384, which is 6 * 64).
-      const taggedHeapSeq = toTaggedValue(384, true, HeapTag.SEQUENCE);
-      expect(formatValue(testVM as VM, taggedHeapSeq)).toBe('SEQ(384)');
-    });
-
 
   });
 });

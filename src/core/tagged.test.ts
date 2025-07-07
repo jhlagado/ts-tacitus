@@ -32,8 +32,6 @@ describe('Tagged NaN Encoding', () => {
   it('should encode/decode heap values', () => {
     const tests = [
       { tag: HeapTag.BLOCK, value: 0 },
-      { tag: HeapTag.SEQUENCE, value: 1 },
-      { tag: HeapTag.VECTOR, value: 32767 },
     ];
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, true, tag);
@@ -60,7 +58,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   it('should correctly identify heap-allocated values', () => {
-    const encodedHeap = toTaggedValue(100, true, HeapTag.VECTOR);
+    const encodedHeap = toTaggedValue(100, true, HeapTag.BLOCK);
     const encodedNonHeap = toTaggedValue(100, false, CoreTag.STRING);
     expect(isHeapAllocated(encodedHeap)).toBe(true);
     expect(isHeapAllocated(encodedNonHeap)).toBe(false);
@@ -75,10 +73,10 @@ describe('Tagged NaN Encoding', () => {
   });
 
   it('should correctly extract tag and heap flag', () => {
-    const encoded = toTaggedValue(500, true, HeapTag.SEQUENCE);
+    const encoded = toTaggedValue(500, true, HeapTag.BLOCK);
     const decoded = fromTaggedValue(encoded);
     expect(decoded.isHeap).toBe(true);
-    expect(decoded.tag).toBe(HeapTag.SEQUENCE);
+    expect(decoded.tag).toBe(HeapTag.BLOCK);
     expect(decoded.value).toBe(500);
   });
 
@@ -100,7 +98,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   it('should return the correct value using getValue', () => {
-    const encoded = toTaggedValue(456, true, HeapTag.SEQUENCE);
+    const encoded = toTaggedValue(456, true, HeapTag.BLOCK);
     expect(getValue(encoded)).toBe(456);
   });
 
