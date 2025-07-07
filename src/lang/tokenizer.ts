@@ -93,8 +93,8 @@ export class Tokenizer {
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Handle parentheses as SPECIAL tokens
-    if (char === '(' || char === ')') {
+    // Handle parentheses and brackets as SPECIAL tokens
+    if ('()[]'.includes(char)) {
       this.position++;
       this.column++;
       return { type: TokenType.SPECIAL, value: char, position: startPos };
