@@ -41,5 +41,5 @@ export function closeTupleOp(vm: VM): void {
     vm.push(toTaggedValue(startPos, Tag.STACK_REF));
   }
   
-  vm.tupleDepth--;
+  // Note: We don't decrement tupleDepth here because that's handled by the parser in endTuple()
 }
