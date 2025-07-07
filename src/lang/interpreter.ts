@@ -1,7 +1,7 @@
 import { executeOp } from '../ops/builtins';
 import { vm } from '../core/globalState';
 import { parse } from './parser';
-import { toTaggedValue, CoreTag } from '../core/tagged';
+import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 
 export function execute(start: number, breakAtIP?: number): void {
@@ -55,7 +55,7 @@ export function callTacitFunction(codePtr: number): void {
 
   // 2. Push the IP onto the VM's return stack, tagged as code.
   // This tells the Tacit code's 'exit' operation where to jump back to.
-  vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+  vm.rpush(toTaggedValue(vm.IP, false, Tag.CODE));
   vm.rpush(vm.BP);
   vm.BP = vm.RP;
 

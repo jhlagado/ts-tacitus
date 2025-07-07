@@ -1,4 +1,4 @@
-import { CoreTag, fromTaggedValue } from './tagged';
+import { Tag, fromTaggedValue } from './tagged';
 import { VM } from './vm';
 
 // Character check functions
@@ -43,18 +43,18 @@ export function formatValue(vm: VM, value32: number): string {
   const { value, tag } = fromTaggedValue(value32);
   // All values should be non-heap since heap allocation is not supported
   switch (tag) {
-    case CoreTag.NUMBER:
+    case Tag.NUMBER:
       // Format numbers that are very close to integers as integers
       const roundedValue = Math.round(value32);
       if (Math.abs(value32 - roundedValue) < 0.01) {
         return roundedValue.toString();
       }
       return value32.toString();
-    case CoreTag.INTEGER:
+    case Tag.INTEGER:
       return value === 0 ? 'NIL' : String(value);
-    case CoreTag.CODE:
+    case Tag.CODE:
       return `CODE(${value})`;
-    case CoreTag.STRING:
+    case Tag.STRING:
       try {
         const str = vm.digest.get(value);
         return `"${str}"`;

@@ -1,6 +1,6 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import { isCode, isNumber, fromTaggedValue, toTaggedValue, CoreTag } from '../core/tagged';
+import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 /**
  * @deprecated Use the new IF { ... } ELSE { ... } syntax instead
@@ -50,7 +50,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
   // Handle the selected branch based on its type
   if (isCode(selectedBranch)) {
     // If it's code, execute it
-    vm.rpush(toTaggedValue(vm.IP, false, CoreTag.CODE));
+    vm.rpush(toTaggedValue(vm.IP, false, Tag.CODE));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
     const { value: pointer } = fromTaggedValue(selectedBranch);

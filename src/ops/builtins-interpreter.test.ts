@@ -1,7 +1,7 @@
 import { plusOp } from './builtins-math';
 import { dupOp, swapOp } from './builtins-stack';
 import { initializeInterpreter, vm } from '../core/globalState';
-import { fromTaggedValue, CoreTag, toTaggedValue } from '../core/tagged';
+import { fromTaggedValue, Tag, toTaggedValue } from '../core/tagged';
 import { toUnsigned16 } from '../core/utils';
 import {
   abortOp,
@@ -28,7 +28,7 @@ describe('Built-in Words', () => {
 
     it('exitOp should restore IP from return stack', () => {
       const testAddress = 0x2345;
-      vm.rpush(toTaggedValue(testAddress, false, CoreTag.CODE));
+      vm.rpush(toTaggedValue(testAddress, false, Tag.CODE));
       vm.rpush(vm.BP);
       vm.BP = vm.RP;
       exitOp(vm);
@@ -37,7 +37,7 @@ describe('Built-in Words', () => {
 
     it('evalOp should push IP to return stack and jump', () => {
       const testAddress = 0x2345;
-      vm.push(toTaggedValue(testAddress, false, CoreTag.CODE));
+      vm.push(toTaggedValue(testAddress, false, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
       expect(fromTaggedValue(vm.rpop()).value).toBe(0); // Original IP before eval
@@ -91,7 +91,7 @@ describe('Built-in Words', () => {
     });
 
     it('should handle tagged pointers', () => {
-      const addr = toTaggedValue(0x2345, false, CoreTag.CODE);
+      const addr = toTaggedValue(0x2345, false, Tag.CODE);
       vm.compiler.compileFloat32(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);

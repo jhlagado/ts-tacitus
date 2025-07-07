@@ -1,5 +1,5 @@
 import { VM } from '../core/vm';
-import { CoreTag, toTaggedValue } from '../core/tagged';
+import { Tag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE } from '../core/memory';
 
 export class Compiler {
@@ -47,7 +47,7 @@ export class Compiler {
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
   compileAddress(value: number): void {
-    const tagNum = toTaggedValue(value, false, CoreTag.CODE); // PrimitiveTag the address
+    const tagNum = toTaggedValue(value, false, Tag.CODE); // Tag the address
     this.compileFloat32(tagNum); // Write the tagged pointer as a Float32
   }
 
