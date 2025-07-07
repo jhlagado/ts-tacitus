@@ -151,4 +151,9 @@ export enum Op {
 
   // Sequence operations have been removed
   IfFalseBranch, 
+  
+  /** Opens a tuple with '(' - pushes stack position onto return stack */
+  OpenTuple,
+  /** Closes a tuple with ')' - creates tuple tag with size information */
+  CloseTuple,
 }

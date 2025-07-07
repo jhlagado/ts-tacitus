@@ -15,6 +15,7 @@ import {
   evalOp, 
   literalStringOp 
 } from './builtins-interpreter';
+import { openTupleOp, closeTupleOp } from './builtins-tuple';
 import {
   plusOp,
   minusOp,
@@ -130,4 +131,8 @@ export function initFunctionTable(vm: VM): void {
   // Conditional Operations
   ft.registerBuiltin(Op.If, simpleIfOp);
   ft.registerBuiltin(Op.IfFalseBranch, ifCurlyBranchFalseOp);
+  
+  // Tuple Operations
+  ft.registerBuiltin(Op.OpenTuple, openTupleOp);
+  ft.registerBuiltin(Op.CloseTuple, closeTupleOp);
 }

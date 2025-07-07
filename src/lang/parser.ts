@@ -181,9 +181,10 @@ function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    beginCodeBlock(state);
+    // Parentheses are used for tuples
+    beginTuple(state);
   } else if (value === ')') {
-    handleUnexpectedClosingParenthesis();
+    endTuple(state);
   } else if (value === '`') {
     parseBacktickSymbol(state);
   }
@@ -292,59 +293,32 @@ function endDefinition(state: ParserState): void {
 }
 
 /**
- * Begin a code block with (
+ * Begin a tuple with (
  */
-function beginCodeBlock(state: ParserState): void {
-  vm.compiler.preserve = true;
-  vm.compiler.nestingScore++;
-
-  const wasInsideCodeBlock = state.insideCodeBlock;
-  state.insideCodeBlock = true;
-
-  // Compile branch instruction to call block
-  vm.compiler.compile8(Op.BranchCall);
-  const branchPos = vm.compiler.CP;
-  vm.compiler.compile16(0); // Will be patched later
-
-  parseCodeBlock(state);
-
-  // Compile exit instruction
-  vm.compiler.compileOpcode(Op.Exit);
-
-  // Patch branch offset
-  patchBranchOffset(branchPos);
-
-  state.insideCodeBlock = wasInsideCodeBlock;
-  vm.compiler.nestingScore--;
+function beginTuple(_state: ParserState): void {
+  // Increment tuple depth to track nesting level
+  vm.tupleDepth++;
+  
+  // Compile OpenTuple opcode
+  vm.compiler.compileOpcode(Op.OpenTuple);
 }
 
 /**
- * Parse the contents of a code block
+ * End a tuple with )
  */
-function parseCodeBlock(state: ParserState): void {
-  while (true) {
-    const blockToken = state.tokenizer.nextToken();
-
-    if (blockToken.type === TokenType.EOF) {
-      throw new Error('Unclosed code block');
-    }
-
-    if (blockToken.type === TokenType.SPECIAL && blockToken.value === ')') {
-      // End of block
-      break;
-    }
-
-    // Process token
-    processToken(blockToken, state);
+function endTuple(_state: ParserState): void {
+  // Check if there was a matching opening parenthesis
+  if (vm.tupleDepth <= 0) {
+    throw new Error('Unexpected closing parenthesis');
   }
+  // Compile CloseTuple opcode
+  vm.compiler.compileOpcode(Op.CloseTuple);
+  
+  // Decrement tuple depth after successful compilation
+  vm.tupleDepth--;
 }
 
-/**
- * Handle an unexpected closing parenthesis
- */
-function handleUnexpectedClosingParenthesis(): void {
-  throw new Error('Unexpected closing parenthesis');
-}
+
 
 /**
  * Patch a branch offset at the given position
