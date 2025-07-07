@@ -135,12 +135,12 @@ describe("Tokenizer", () => {
   });
 
   it("should skip lines with only comments", () => {
-    const values = getTokenValues("// Comment 1\n// Comment 2\n5 3 +");
+    const values = getTokenValues("\\ Comment 1\n\\ Comment 2\n5 3 +");
     expect(values).toEqual([5, 3, "+"]);
   });
 
   it("should skip inline comments", () => {
-    const values = getTokenValues("5 3 + // This is a comment");
+    const values = getTokenValues("5 3 + \\ This is a comment");
     expect(values).toEqual([5, 3, "+"]);
   });
 
@@ -155,7 +155,7 @@ describe("Tokenizer", () => {
   });
 
   it("should handle multiple lines with mixed content", () => {
-    const values = getTokenValues("5 3 +\n// Comment\n10 20 -\nswap");
+    const values = getTokenValues("5 3 +\n\\ Comment\n10 20 -\nswap");
     expect(values).toEqual([5, 3, "+", 10, 20, "-", "swap"]);
   });
 
