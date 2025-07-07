@@ -41,10 +41,6 @@ export enum CoreTag {
 export enum HeapTag {
   /** Represents a generic heap block. */
   BLOCK = 0,
-  /** Represents a sequence (an iterable collection). */
-  SEQUENCE = 1,
-  /** Represents a vector (an array-like structure). */
-  VECTOR = 2,
 }
 
 /**
@@ -67,8 +63,6 @@ export const nonHeapTagNames: { [key in CoreTag]: string } = {
  */
 export const heapTagNames: { [key in HeapTag]: string } = {
   [HeapTag.BLOCK]: 'BLOCK',
-  [HeapTag.SEQUENCE]: 'SEQUENCE',
-  [HeapTag.VECTOR]: 'VECTOR',
 };
 
 /**
@@ -120,8 +114,8 @@ export const NIL = toTaggedValue(0, false, CoreTag.INTEGER);
 export function toTaggedValue(value: number, isHeap: boolean, tag: Tag): number {
   // Validate the tag based on whether the value is heap–allocated.
   if (isHeap) {
-    // Heap tags must be between HeapTag.BLOCK and HeapTag.VECTOR
-    if (tag < HeapTag.BLOCK || tag > HeapTag.VECTOR) {
+    // Only BLOCK is a valid heap tag
+    if (tag !== HeapTag.BLOCK) {
       throw new Error('Invalid heap tag');
     }
   } else {
@@ -291,18 +285,4 @@ export function isCode(value: number): boolean {
  */
 export function isString(value: number): boolean {
   return checkTagged(value, CoreTag.STRING, false);
-}
-
-/**
- * Checks if the given value is a sequence.
- */
-export function isSeq(value: number): boolean {
-  return checkTagged(value, HeapTag.SEQUENCE, true);
-}
-
-/**
- * Checks if the given value is a vector.
- */
-export function isVector(value: number): boolean {
-  return checkTagged(value, HeapTag.VECTOR, true);
 }

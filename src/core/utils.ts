@@ -68,8 +68,6 @@ export function formatValue(vm: VM, value32: number): string {
     switch (tag) {
       case HeapTag.BLOCK:
         return `BLOCK(${value})`;
-      case HeapTag.SEQUENCE:
-        return `SEQ(${value})`;
       default:
         return `Unknown heap tag (${tag}, ${value})`;
     }
