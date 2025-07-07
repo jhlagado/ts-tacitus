@@ -9,7 +9,7 @@ import {
 } from './tagged';
 
 describe('Tagged NaN Encoding', () => {
-  it('should encode/decode non-heap values', () => {
+  it('should correctly decode encoded values', () => {
     const tests = [
       { tag: Tag.INTEGER, value: -32768 },
       { tag: Tag.INTEGER, value: 32767 },
@@ -19,7 +19,6 @@ describe('Tagged NaN Encoding', () => {
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, tag);
       const decoded = fromTaggedValue(encoded);
-      expect(decoded.isHeap).toBe(false);
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
     });

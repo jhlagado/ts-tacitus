@@ -41,7 +41,6 @@ export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== t
  */
 export function formatValue(vm: VM, value32: number): string {
   const { value, tag } = fromTaggedValue(value32);
-  // All values should be non-heap since heap allocation is not supported
   switch (tag) {
     case Tag.NUMBER:
       // Format numbers that are very close to integers as integers

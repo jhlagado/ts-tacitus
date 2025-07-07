@@ -8,12 +8,11 @@
  * **Architectural Observations:**
  *
  * -   Tacit uses a 32-bit float to represent all values, including integers,
- *     heap pointers, and other types.
+ *     and other types.
  * -   NaN-boxing is employed to embed type information (tags) within the float's
  *     mantissa, leveraging the fact that NaNs have unused bits in their
  *     representation.
- * -   The sign bit of the float is used to distinguish between heap-allocated
- *     values (sign bit set) and non-heap values (sign bit clear).
+ * -   The sign bit of the float is available for future use.
  * -   This approach provides a compact and efficient way to represent various
  *     data types, but it also has limitations:
  *     -   The value portion is limited to 16 bits.
@@ -50,7 +49,6 @@ export const tagNames: { [key in Tag]: string } = {
  */
 const VALUE_BITS = 16;
 const NAN_BIT = 1 << 22;
-const SIGN_BIT = 1 << 31;
 const TAG_MANTISSA_MASK = 0x3f << 16; // 6 bits available for the tag (bits 16-21)
 const VALUE_MASK = (1 << VALUE_BITS) - 1;
 const EXPONENT_MASK = 0xff << 23;
@@ -61,12 +59,10 @@ const EXPONENT_MASK = 0xff << 23;
  *
  * The NaN-boxing scheme uses the following structure:
  *
- * -   **Sign Bit (Bit 31):** Indicates whether the value is heap-allocated (1) or
- *     non-heap (0).
  * -   **Exponent (Bits 23-30):** Set to all 1s (0xff) to ensure the number is a NaN.
  * -   **Mantissa (Bits 0-22):**
  *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from Tag).
- *     -   **Value (Bits 0-15):** 16 bits representing the actual value.  For
+ *     -   **Value (Bits 0-15):** 16 bits representing the actual value. For
  *         Tag.INTEGER, this is a signed integer; otherwise, it's an
  *         unsigned integer.
  * -   **NaN Bit (Bit 22):** Set to 1 to indicate a quiet NaN.
@@ -109,55 +105,44 @@ export function toTaggedValue(value: number, tag: Tag): number {
 
 /**
  * Decodes a NaN-boxed 32-bit floating-point number into its constituent
- * components: value, heap flag, and tag.
+ * components: value and tag.
  *
  * This function reverses the process performed by `toTaggedValue`, extracting
  * the original value and its type information from the NaN-boxed representation.
  *
  * It handles standard floating-point numbers (which are not NaNs) as a special
- * case, returning them with a Tag.NUMBER tag and `heap` set to `false`.
+ * case, returning them with a Tag.NUMBER tag.
  *
  * For NaN-boxed values, it extracts the components as follows:
  *
- * -   **Heap Flag:** Determined by checking the sign bit (bit 31). If the sign
- *     bit is set, `heap` is `true`; otherwise, it's `false`.
- * -   **Tag:** Extracted from bits 16-21 of the mantissa using
- *     TAG_MANTISSA_MASK.
+ * -   **Tag:** Extracted from bits 16-21 of the mantissa using TAG_MANTISSA_MASK.
  * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
- *     the tag is Tag.INTEGER and the value is not heap-allocated (`heap`
- *     is `false`), the value is sign-extended to ensure correct interpretation
- *     as a 16-bit signed integer.
+ *     the tag is Tag.INTEGER, the value is sign-extended to ensure correct
+ *     interpretation as a 16-bit signed integer.
  *
  * @param nanValue The 32-bit floating-point number representing the potentially
  *     NaN-boxed value.
  * @returns An object containing the decoded components:
  *     -   `value`: The 16-bit value (sign-extended if it was a
- *         Tag.INTEGER and not heap-allocated).
- *     -   `heap`: A boolean indicating if the value was heap-allocated.
+ *         Tag.INTEGER.
  *     -   `tag`: The tag indicating the data type.
  */
-export function fromTaggedValue(nanValue: number): {
-  value: number;
-  isHeap: boolean;
-  tag: Tag;
-} {
+export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
   if (!isNaN(nanValue)) {
-    return { value: nanValue, isHeap: false, tag: Tag.NUMBER };
+    return { value: nanValue, tag: Tag.NUMBER };
   }
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setFloat32(0, nanValue, true);
   const bits = view.getUint32(0, true);
 
-  // Determine if the value is heap allocated by checking the sign bit.
-  const heap = (bits & SIGN_BIT) !== 0;
   // The tag is stored in bits 16–21.
   const tagBits = (bits & TAG_MANTISSA_MASK) >>> 16;
   // Extract the lower 16 bits as the value.
   const valueBits = bits & VALUE_MASK;
   // For INTEGER (Tag.INTEGER) we must sign–extend.
-  const value = !heap && tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
-  return { value, isHeap: heap, tag: tagBits };
+  const value = tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
+  return { value, tag: tagBits };
 }
 
 /**
@@ -175,29 +160,6 @@ export function getValue(nanValue: number): number {
 }
 
 /**
- * Helper function for type checking. Checks if a value matches the specified tag and heap status.
- * @param value The value to check
- * @param expectedTag The expected tag value, or null to check only heap status
- * @param expectedHeap The expected heap status (true for heap-allocated, false for non-heap)
- * @returns True if the value matches the expected tag and heap status
- */
-function checkTagged(value: number, expectedTag: Tag | null, expectedHeap: boolean): boolean {
-  if (isNaN(value)) {
-    const { tag, isHeap } = fromTaggedValue(value);
-    return isHeap === expectedHeap && (expectedTag === null || tag === expectedTag);
-  }
-  // Special case for regular JS numbers
-  return !expectedHeap && (expectedTag === null || expectedTag === Tag.NUMBER) && !isNaN(value);
-}
-
-/**
- * Checks if the given value is heap-allocated.
- */
-export function isHeapAllocated(value: number): boolean {
-  return checkTagged(value, null, true);
-}
-
-/**
  * Checks if the given value is NIL.
  */
 export function isNIL(tval: number): boolean {
@@ -207,9 +169,10 @@ export function isNIL(tval: number): boolean {
 
 /**
  * Checks if the given value is reference-counted.
+ * @deprecated This function is kept for backward compatibility but always returns false.
  */
-export function isRefCounted(value: number): boolean {
-  return isHeapAllocated(value);
+export function isRefCounted(_value: number): boolean {
+  return false;
 }
 
 /**

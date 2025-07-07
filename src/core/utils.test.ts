@@ -28,8 +28,7 @@ const testVM = {
   memory: {
     read16: (_segment: number, offset: number) => offset,
     readFloat32: (_segment: number, offset: number) => offset * 1.0
-  },
-  heap: {}
+  }
 } as unknown as VM;
 
 describe('Utility Functions', () => {
