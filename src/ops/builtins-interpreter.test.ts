@@ -26,20 +26,55 @@ describe('Built-in Words', () => {
       expect(vm.running).toBe(false);
     });
 
-    it('exitOp should restore IP from return stack', () => {
+    it('exitOp should restore IP from return stack and BP frame', () => {
       const testAddress = 0x2345;
-      // In our new implementation, we only push the return address without BP/frame
+      const originalBP = 0x9029;
+      
+      // Setup return stack with correct frame structure: [returnAddr, oldBP]
       vm.rpush(toTaggedValue(testAddress, Tag.CODE));
+      vm.rpush(originalBP);
+      
+      // Set current BP to point to the top of the frame
+      const currentBP = vm.RP;
+      vm.BP = currentBP;
+      
+      // Execute exitOp which should:
+      // 1. Restore RP from BP
+      // 2. Pop and restore BP
+      // 3. Pop and restore IP
       exitOp(vm);
-      expect(vm.IP).toBe(testAddress);
+      
+      expect(vm.IP).toBe(testAddress); // IP should be restored
+      expect(vm.BP).toBe(originalBP); // BP should be restored
     });
 
-    it('evalOp should push IP to return stack and jump', () => {
+    it('evalOp should push IP to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
+      const originalIP = vm.IP;
+      const originalBP = vm.BP;
+      
+      // Push code address to evaluate
       vm.push(toTaggedValue(testAddress, Tag.CODE));
+      
+      // Call evalOp
       evalOp(vm);
+      
+      // Check IP was updated
       expect(vm.IP).toBe(testAddress);
-      expect(fromTaggedValue(vm.rpop()).value).toBe(0); // Original IP before eval
+      
+      // The return stack should have: [return address, old BP]
+      // And BP should point to the new frame
+      
+      // BP should point to the top of the stack frame
+      expect(vm.BP).toBe(vm.RP);
+      
+      // Pop the saved BP
+      const savedBP = vm.rpop();
+      expect(savedBP).toBe(originalBP);
+      
+      // Pop the return address
+      const returnAddr = vm.rpop();
+      expect(fromTaggedValue(returnAddr).value).toBe(originalIP); // Original IP before eval
     });
 
     it('branchOp should jump relative', () => {
@@ -49,15 +84,29 @@ describe('Built-in Words', () => {
       expect(vm.IP).toBe(initialIP + 12); // +2 for opcode + 2 for offset
     });
 
-    it('callOp should jump to absolute address', () => {
+    it('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.IP;
+      const originalBP = vm.BP;
       const testAddress = 0x12345;
+      
       // Prepare the next16 read
       vm.compiler.compile16(testAddress);
+      
+      // Call the function
       callOp(vm);
+      
       // Check the IP was updated to the target address
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      // Check that the return address was pushed onto the return stack
+      
+      // BP should point to the top of the return stack after pushing frame
+      expect(vm.BP).toBe(vm.RP);
+      
+      // The return stack should have: [return address, old BP]
+      // Pop and check the old BP
+      const savedBP = vm.rpop();
+      expect(savedBP).toBe(originalBP);
+      
+      // Pop and check the return address
       const returnAddr = vm.rpop();
       const { value } = fromTaggedValue(returnAddr);
       // The implementation adds 2 to the return address to account for the opcode + address

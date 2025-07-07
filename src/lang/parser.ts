@@ -2,6 +2,7 @@ import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
+import { toTaggedValue, Tag } from '../core/tagged';
 
 export interface Definition {
   name: string;
@@ -243,10 +244,17 @@ function beginDefinition(state: ParserState): void {
   // Register word in function table
   const startAddress = vm.compiler.CP;
   
-  // Create a function that will call the Tacit code at this address
+  // Create a function that will call the Tacit code at this address with proper BP frame
   const wordFunction = (vm: typeof import('../core/globalState').vm) => {
-    vm.rpush(vm.IP); // Push return address
-    vm.IP = startAddress; // Jump to function body
+    // Push tagged return address
+    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+    
+    // Push current BP and set BP to current RP for local variables frame
+    vm.rpush(vm.BP);
+    vm.BP = vm.RP;
+    
+    // Jump to function body
+    vm.IP = startAddress;
   };
   
   // Register in function table and get the function index

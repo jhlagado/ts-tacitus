@@ -36,6 +36,10 @@ export const callOp: Verb = (vm: VM) => {
 
   // Save return address on return stack as a tagged value
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+  
+  // Push current BP and set BP to current RP for local variables frame
+  vm.rpush(vm.BP);
+  vm.BP = vm.RP;
 
   // Jump to function
   vm.IP = callAddress;
@@ -50,7 +54,15 @@ export const exitOp: Verb = (vm: VM) => {
   if (vm.debug) console.log('exitOp');
 
   try {
-    // Return to caller, expecting a tagged return address
+    // Step 1: Restore RP from BP to remove local variables
+    vm.RP = vm.BP;
+    
+    // Step 2: Restore previous BP
+    if (vm.RP > 0) {
+      vm.BP = vm.rpop();
+    }
+    
+    // Step 3: Restore return address
     if (vm.RP > 0) {
       const returnAddr = vm.rpop();
       
@@ -87,8 +99,12 @@ export const evalOp: Verb = (vm: VM) => {
     // If it's code, execute it by:
     // 1. Pushing the current IP onto the return stack
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+    
+    // 2. Push BP and create stack frame for local variables
+    vm.rpush(vm.BP);
+    vm.BP = vm.RP;
 
-    // 2. Setting IP to the code block's address
+    // 3. Setting IP to the code block's address
     const { value: pointer } = fromTaggedValue(value);
     vm.IP = pointer;
   } else {
