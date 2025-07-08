@@ -1,9 +1,11 @@
 import { createInterface } from 'readline';
 import { executeLine, setupInterpreter } from './executor';
 import { processFile } from './fileProcessor';
+
 /**
  * Starts an interactive REPL session
  */
+
 export function startREPL(files: string[] = [], interactiveAfterFiles: boolean = true): void {
   setupInterpreter();
 
@@ -17,6 +19,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
         allFilesProcessed = false;
       }
     }
+
     if (allFilesProcessed) {
       console.log('All files loaded successfully.');
     } else {
@@ -58,6 +61,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
       rl.prompt();
       return;
     }
+
     try {
       executeLine(command);
     } catch (error) {
@@ -73,9 +77,11 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
     console.log('REPL exited.');
   });
 }
+
 /**
  * Main entry point for the interpreter
  */
+
 export function main(): void {
   const args = process.argv.slice(2);
 

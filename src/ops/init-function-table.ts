@@ -54,9 +54,11 @@ import {
 import { simpleIfOp } from './builtins-conditional';
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
 import { literalAddressOp } from './builtins';
+
 /**
  * Initializes the function table with all built-in operations
  */
+
 export function initFunctionTable(vm: VM): void {
   const ft = vm.functionTable;
 

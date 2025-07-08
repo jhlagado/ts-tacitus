@@ -5,6 +5,7 @@ import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import { SEG_CODE } from '../core/memory';
+
 export function execute(start: number, breakAtIP?: number): void {
   vm.IP = start;
   vm.running = true;
@@ -52,10 +53,12 @@ export function execute(start: number, breakAtIP?: number): void {
   vm.compiler.reset();
   vm.compiler.preserve = false;
 }
+
 export function executeProgram(code: string): void {
   parse(new Tokenizer(code));
   execute(vm.compiler.BCP);
 }
+
 /**
  * Executes a specific block of Tacit code using the current global VM state
  * without resetting the interpreter. Control returns to the caller
@@ -64,6 +67,7 @@ export function executeProgram(code: string): void {
  *
  * @param codePtr The starting address (instruction pointer) of the Tacit code to execute.
  */
+
 export function callTacitFunction(codePtr: number): void {
   const returnIP = vm.IP;
 

@@ -1,4 +1,5 @@
 import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
+
 export enum TokenType {
   NUMBER,
   WORD,
@@ -9,12 +10,15 @@ export enum TokenType {
   WORD_QUOTE,
   EOF,
 }
+
 export type TokenValue = number | string | null;
+
 export interface Token {
   type: TokenType;
   value: TokenValue;
   position: number;
 }
+
 export class Tokenizer {
   public input: string;
   public position: number;
@@ -197,6 +201,7 @@ export class Tokenizer {
       } else {
         value += this.input[this.position];
       }
+
       if (this.input[this.position] === '\n') {
         this.line++;
         this.column = 1;
@@ -205,6 +210,7 @@ export class Tokenizer {
       }
       this.position++;
     }
+
     if (this.position < this.input.length) {
       this.position++;
       this.column++;
@@ -221,11 +227,13 @@ export class Tokenizer {
       this.position++;
       this.column++;
     }
+
     while (this.position < this.input.length && isDigit(this.input[this.position])) {
       tokenStr += this.input[this.position];
       this.position++;
       this.column++;
     }
+
     if (this.position < this.input.length && this.input[this.position] === '.') {
       tokenStr += this.input[this.position];
       this.position++;

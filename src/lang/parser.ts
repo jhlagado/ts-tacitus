@@ -3,18 +3,22 @@ import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
 import { toTaggedValue, Tag } from '../core/tagged';
+
 export interface Definition {
   name: string;
   branchPos: number;
 }
+
 interface ParserState {
   tokenizer: Tokenizer;
   currentDefinition: Definition | null;
   insideCodeBlock: boolean;
 }
+
 /**
  * Main parse function - entry point for parsing Tacit code
  */
+
 export function parse(tokenizer: Tokenizer): void {
   vm.compiler.reset();
   const state: ParserState = {
@@ -27,6 +31,7 @@ export function parse(tokenizer: Tokenizer): void {
 
   vm.compiler.compileOpcode(Op.Abort);
 }
+
 /**
  * Parse the entire program
  */
@@ -39,6 +44,7 @@ function parseProgram(state: ParserState): void {
     processToken(token, state);
   }
 }
+
 /**
  * Validate the final state after parsing
  */
@@ -47,6 +53,7 @@ function validateFinalState(state: ParserState): void {
     throw new Error(`Unclosed definition for ${state.currentDefinition.name}`);
   }
 }
+
 /**
  * Process a token based on its type
  */
@@ -75,6 +82,7 @@ function processToken(token: Token, state: ParserState): void {
       break;
   }
 }
+
 /**
  * Compile a number literal
  */
@@ -82,6 +90,7 @@ function compileNumberLiteral(value: number): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(value);
 }
+
 /**
  * Compile a string literal
  */
@@ -90,6 +99,7 @@ function compileStringLiteral(value: string): void {
   const address = vm.digest.add(value);
   vm.compiler.compile16(address);
 }
+
 /**
  * Process a word token
  */
@@ -146,6 +156,7 @@ function processWordToken(value: string, state: ParserState): void {
     vm.compiler.compileOpcode(functionIndex);
   }
 }
+
 /**
  * Process special tokens like :, ;, (, )
  */
@@ -162,6 +173,7 @@ function processSpecialToken(value: string, state: ParserState): void {
     parseBacktickSymbol(state);
   }
 }
+
 /**
  * Handle the backtick symbol for symbol literals
  */
@@ -179,6 +191,7 @@ function parseBacktickSymbol(state: ParserState): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   vm.compiler.compile16(addr);
 }
+
 /**
  * Begin a word definition with :
  */
@@ -228,6 +241,7 @@ function beginDefinition(state: ParserState): void {
 
   vm.compiler.preserve = true;
 }
+
 /**
  * End a word definition with ;
  */
@@ -241,6 +255,7 @@ function endDefinition(state: ParserState): void {
   patchBranchOffset(state.currentDefinition.branchPos);
   state.currentDefinition = null;
 }
+
 /**
  * Begin a tuple with (
  */
@@ -249,6 +264,7 @@ function beginTuple(_state: ParserState): void {
 
   vm.compiler.compileOpcode(Op.OpenTuple);
 }
+
 /**
  * End a tuple with )
  */
@@ -272,6 +288,7 @@ function patchBranchOffset(branchPos: number): void {
   vm.compiler.compile16(branchOffset);
   vm.compiler.CP = prevCP;
 }
+
 /**
  * Parse a curly brace block
  */

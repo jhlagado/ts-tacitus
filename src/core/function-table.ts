@@ -13,7 +13,9 @@
  *   Second byte: (address >> 7) & 0xFF
  */
 import { VM } from './vm';
+
 export type OpcodeFunction = (vm: VM) => void;
+
 export class FunctionTable {
   private table: OpcodeFunction[] = [];
 

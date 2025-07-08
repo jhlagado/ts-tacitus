@@ -1,6 +1,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+
 /**
  * @deprecated Use the new IF { ... } ELSE { ... } syntax instead
  *
@@ -25,6 +26,7 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/t
  *   1 IF { 10 } ELSE { 20 }
  *   0 IF { 10 } ELSE { 20 }
  */
+
 export const simpleIfOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
     throw new Error(
@@ -48,6 +50,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
     vm.push(selectedBranch);
   }
 };
+
 /**
  * Implements the IF { ... } ELSE { ... } control structure using conditional jumps.
  *
@@ -86,6 +89,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
  *
  * @see simpleIfOp The deprecated version of if-then-else
  */
+
 export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
   const offset = vm.next16();
   const cond = vm.pop();

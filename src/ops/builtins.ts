@@ -59,12 +59,14 @@ import { rotOp, negRotOp } from './builtins-stack';
 
 import { Op } from './opcodes';
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
+
 /**
  * Executes a specific operation based on the given opcode.
  * @param {VM} vm The virtual machine instance.
  * @param {Op} opcode The opcode representing the operation to execute.
  * @throws {Error} If the opcode is invalid.
  */
+
 export function executeOp(vm: VM, opcode: Op) {
   switch (opcode) {
     case Op.LiteralNumber:

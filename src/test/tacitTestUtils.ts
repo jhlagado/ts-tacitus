@@ -2,11 +2,13 @@ import { Tokenizer } from '../lang/tokenizer';
 import { parse } from '../lang/parser';
 import { execute } from '../lang/interpreter';
 import { initializeInterpreter, vm } from '../core/globalState';
+
 /**
  * Execute a Tacit code string and return the stack result
  * @param code The Tacit code to execute
  * @returns Array containing the final stack values
  */
+
 export function executeTacitCode(code: string): number[] {
   initializeInterpreter();
 
@@ -15,9 +17,11 @@ export function executeTacitCode(code: string): number[] {
 
   return vm.getStackData();
 }
+
 /**
  * Run a tacit code snippet and check that the stack matches expected values
  */
+
 export function testTacitCode(code: string, expectedStack: number[]): void {
   const actualStack = executeTacitCode(code);
   console.log('testTacitCode - Expected Stack:', JSON.stringify(expectedStack));
@@ -61,10 +65,12 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
     }
   }
 }
+
 /**
  * Execute Tacit code and return output that was printed to console
  * Useful for testing code that uses the '.' operator
  */
+
 export function captureTacitOutput(code: string): string[] {
   initializeInterpreter();
 
@@ -74,6 +80,7 @@ export function captureTacitOutput(code: string): string[] {
     output.push(args.join(' '));
     originalConsoleLog(...args);
   };
+
   try {
     parse(new Tokenizer(code));
     execute(vm.compiler.BCP);
@@ -82,11 +89,13 @@ export function captureTacitOutput(code: string): string[] {
     console.log = originalConsoleLog;
   }
 }
+
 /**
  * Execute a single Tacit test string and return the resulting stack state
  * @param testCode The Tacit code to execute
  * @returns Array containing the final stack values
  */
+
 export function runTacitTest(testCode: string): number[] {
   initializeInterpreter();
 
