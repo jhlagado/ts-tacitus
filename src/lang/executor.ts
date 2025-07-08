@@ -12,7 +12,7 @@ import { initializeInterpreter, vm } from '../core/globalState';
 export function executeLine(input: string): void {
   const tokenizer = new Tokenizer(input);
   parse(tokenizer);
-  execute(vm.compiler.BP);
+  execute(vm.compiler.BCP);
 }
 
 /**

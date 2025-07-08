@@ -74,10 +74,10 @@ describe('Interpreter', () => {
   describe('Error handling', () => {
     it('should handle invalid opcodes', () => {
       // Directly write invalid opcode to memory at the current code position
-      vm.memory.write8(SEG_CODE, vm.compiler.BP, 255);
+      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 255);
       // The interpreter reports the actual opcode value it sees, which may be 127 due to
       // how the opcode is processed (high bit might be stripped)
-      expect(() => execute(vm.compiler.BP)).toThrow('Invalid opcode');
+      expect(() => execute(vm.compiler.BCP)).toThrow('Invalid opcode');
     });
     it('should handle non-Error exceptions', () => {
       jest.spyOn(math, 'plusOp').mockImplementation(() => {
@@ -108,25 +108,25 @@ describe('Interpreter', () => {
     it('should preserve memory when flag is set', () => {
       vm.compiler.preserve = true;
       executeProgram('5 3 +');
-      expect(vm.compiler.BP).toBe(vm.compiler.CP);
+      expect(vm.compiler.BCP).toBe(vm.compiler.CP);
       expect(vm.compiler.preserve).toBe(false);
     });
 
     it('should reset memory when preserve is false', () => {
-      const initialBP = vm.compiler.BP;
+      const initialBCP = vm.compiler.BCP;
       executeProgram('5 3 +');
-      expect(vm.compiler.CP).toBe(initialBP);
+      expect(vm.compiler.CP).toBe(initialBCP);
     });
 
     it('should handle multiple preserve states', () => {
       // First execution with preserve=false
       executeProgram('5 3 +');
-      const initialBP = vm.compiler.BP;
+      const initialBCP = vm.compiler.BCP;
 
       // Second execution with preserve=true
       vm.compiler.preserve = true;
       executeProgram('2 2 +');
-      expect(vm.compiler.BP).toBe(initialBP + 12);
+      expect(vm.compiler.BCP).toBe(initialBCP + 12);
     });
   });
 

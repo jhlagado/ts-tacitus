@@ -12,7 +12,7 @@ jest.mock('../core/globalState', () => ({
   initializeInterpreter: jest.fn(),
   vm: {
     compiler: {
-      BP: 123, // Mock value for testing
+      BCP: 123, // Mock value for testing
     },
   },
 }));
@@ -38,7 +38,7 @@ describe('Executor', () => {
       // Assert
       expect(Tokenizer).toHaveBeenCalledWith(input);
       expect(parse).toHaveBeenCalledWith(expect.objectContaining({ input }));
-      expect(execute).toHaveBeenCalledWith(123); // The mock BP value
+      expect(execute).toHaveBeenCalledWith(123); // The mock BCP value
     });
 
     it('should propagate errors from tokenizer', () => {
