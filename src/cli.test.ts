@@ -14,7 +14,7 @@ describe('CLI', () => {
   afterEach(() => {
     process.argv = originalArgv;
   });
-  it('should start REPL with no files when none are provided', () => {
+  test('should start REPL with no files when none are provided', () => {
     process.argv = ['node', 'cli.js'];
 
     main();
@@ -22,7 +22,7 @@ describe('CLI', () => {
     expect(startREPL).toHaveBeenCalledWith();
     expect(processFiles).not.toHaveBeenCalled();
   });
-  it('should start REPL with files in interactive mode by default', () => {
+  test('should start REPL with files in interactive mode by default', () => {
     process.argv = ['node', 'cli.js', 'file1.tacit', 'file2.tacit'];
 
     main();
@@ -30,7 +30,7 @@ describe('CLI', () => {
     expect(startREPL).toHaveBeenCalledWith(['file1.tacit', 'file2.tacit'], true);
     expect(processFiles).not.toHaveBeenCalled();
   });
-  it('should process files without REPL when --no-interactive flag is used', () => {
+  test('should process files without REPL when --no-interactive flag is used', () => {
     process.argv = ['node', 'cli.js', 'file1.tacit', '--no-interactive', 'file2.tacit'];
 
     main();

@@ -6,7 +6,7 @@ const BYTES_PER_ELEMENT = 4;
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT) {
     throw new Error(
-      `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
 
@@ -29,7 +29,7 @@ export const dupOp: Verb = (vm: VM) => {
 export const dropOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT) {
     throw new Error(
-      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
 
@@ -51,7 +51,7 @@ export const swapOp: Verb = (vm: VM) => {
 export const rotOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT * 3) {
     throw new Error(
-      `Stack underflow: 'rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const c = vm.pop();
@@ -64,7 +64,7 @@ export const rotOp: Verb = (vm: VM) => {
 export const negRotOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT * 3) {
     throw new Error(
-      `Stack underflow: '-rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: '-rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const c = vm.pop();

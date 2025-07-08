@@ -2,6 +2,7 @@ import globals from "globals";
 import js from "@eslint/js";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+// Add jest rules for test files
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [

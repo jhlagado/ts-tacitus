@@ -4,7 +4,7 @@ import {} from '../core/memory';
 export const addOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
-      `Stack underflow: 'add' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'add' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const b = vm.pop();
@@ -14,7 +14,7 @@ export const addOp: Verb = (vm: VM) => {
 export const subtractOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
-      `Stack underflow: '-' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: '-' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const b = vm.pop();
@@ -24,7 +24,7 @@ export const subtractOp: Verb = (vm: VM) => {
 export const multiplyOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
-      `Stack underflow: '*' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: '*' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const b = vm.pop();
@@ -34,7 +34,7 @@ export const multiplyOp: Verb = (vm: VM) => {
 export const divideOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
-      `Stack underflow: '/' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: '/' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const b = vm.pop();

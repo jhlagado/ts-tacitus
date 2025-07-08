@@ -9,7 +9,7 @@ describe('Built-in Binary Op Operations', () => {
     testVM.debug = false;
   });
 
-  it('should have at least one test', () => {
+  test('should have at least one test', () => {
     expect(true).toBe(true);
   });
 });

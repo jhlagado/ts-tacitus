@@ -34,12 +34,12 @@ describe('REPL', () => {
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
   });
-  it('should initialize the interpreter on startup', () => {
+  test('should initialize the interpreter on startup', () => {
     startREPL();
 
     expect(setupInterpreter).toHaveBeenCalledTimes(1);
   });
-  it('should handle no files case', () => {
+  test('should handle no files case', () => {
     startREPL();
 
     expect(processFile).not.toHaveBeenCalled();
@@ -47,7 +47,7 @@ describe('REPL', () => {
     expect(mockPrompt).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Interactive mode'));
   });
-  it('should process files when provided', () => {
+  test('should process files when provided', () => {
     (processFile as jest.Mock).mockReturnValue(true);
 
     startREPL(['file1.tacit', 'file2.tacit']);
@@ -58,7 +58,7 @@ describe('REPL', () => {
     expect(console.log).toHaveBeenCalledWith('Loading 2 file(s)...');
     expect(console.log).toHaveBeenCalledWith('All files loaded successfully.');
   });
-  it('should handle file processing errors', () => {
+  test('should handle file processing errors', () => {
     (processFile as jest.Mock).mockReturnValue(false);
 
     startREPL(['file1.tacit']);
@@ -67,7 +67,7 @@ describe('REPL', () => {
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error processing file'));
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Some files had errors'));
   });
-  it('should not enter interactive mode when interactiveAfterFiles is false', () => {
+  test('should not enter interactive mode when interactiveAfterFiles is false', () => {
     (processFile as jest.Mock).mockReturnValue(true);
 
     startREPL(['file1.tacit'], false);
@@ -75,7 +75,7 @@ describe('REPL', () => {
     expect(processFile).toHaveBeenCalledTimes(1);
     expect(mockCreateInterface).not.toHaveBeenCalled();
   });
-  it('should handle the "exit" command', () => {
+  test('should handle the "exit" command', () => {
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
         callback('exit');
@@ -87,7 +87,7 @@ describe('REPL', () => {
     expect(console.log).toHaveBeenCalledWith('Goodbye!');
     expect(mockClose).toHaveBeenCalled();
   });
-  it('should handle the "load" command', () => {
+  test('should handle the "load" command', () => {
     (processFile as jest.Mock).mockReturnValue(true);
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
@@ -100,7 +100,7 @@ describe('REPL', () => {
     expect(processFile).toHaveBeenCalledWith('test.tacit');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should handle errors during "load" command', () => {
+  test('should handle errors during "load" command', () => {
     (processFile as jest.Mock).mockReturnValue(false);
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
@@ -112,11 +112,11 @@ describe('REPL', () => {
 
     expect(processFile).toHaveBeenCalledWith('test.tacit');
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('errors but REPL will continue')
+      expect.stringContaining('errors but REPL will continue'),
     );
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should handle exceptions during "load" command', () => {
+  test('should handle exceptions during "load" command', () => {
     const testError = new Error('Test error');
     (processFile as jest.Mock).mockImplementation(() => {
       throw testError;
@@ -134,7 +134,7 @@ describe('REPL', () => {
     expect(console.error).toHaveBeenCalledWith('  Test error');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should execute standard commands', () => {
+  test('should execute standard commands', () => {
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
         callback('2 3 +');
@@ -146,7 +146,7 @@ describe('REPL', () => {
     expect(executeLine).toHaveBeenCalledWith('2 3 +');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should handle execution errors', () => {
+  test('should handle execution errors', () => {
     const testError = new Error('Execution error');
     (executeLine as jest.Mock).mockImplementation(() => {
       throw testError;
@@ -163,7 +163,7 @@ describe('REPL', () => {
     expect(console.error).toHaveBeenCalledWith('Error: Execution error');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should handle non-Error execution errors', () => {
+  test('should handle non-Error execution errors', () => {
     (executeLine as jest.Mock).mockImplementation(() => {
       throw 'String error';
     });
@@ -179,7 +179,7 @@ describe('REPL', () => {
     expect(console.error).toHaveBeenCalledWith('Unknown error occurred');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
-  it('should handle the "close" event', () => {
+  test('should handle the "close" event', () => {
     mockOn.mockImplementation((event, callback) => {
       if (event === 'close') {
         callback();
@@ -190,7 +190,7 @@ describe('REPL', () => {
 
     expect(console.log).toHaveBeenCalledWith('REPL exited.');
   });
-  it('should handle invalid commands in REPL', () => {
+  test('should handle invalid commands in REPL', () => {
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
         callback('invalidCommand');
@@ -199,7 +199,7 @@ describe('REPL', () => {
     startREPL();
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Unknown error occurred'));
   });
-  it('should handle empty input in REPL', () => {
+  test('should handle empty input in REPL', () => {
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
         callback('');

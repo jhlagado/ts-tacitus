@@ -26,7 +26,7 @@ describe('Tuple operations', () => {
   });
 
   describe('creation', () => {
-    it('should create a simple tuple with 2 elements', () => {
+    test('should create a simple tuple with 2 elements', () => {
       const stack = executeCode('( 1 2 )');
 
       expect(stack.length).toBe(4);
@@ -41,7 +41,7 @@ describe('Tuple operations', () => {
       const { tag: linkTag } = fromTaggedValue(stack[3]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    it('should handle empty tuples', () => {
+    test('should handle empty tuples', () => {
       const stack = executeCode('( )');
       expect(stack.length).toBe(2);
 
@@ -52,7 +52,7 @@ describe('Tuple operations', () => {
       const { tag: linkTag } = fromTaggedValue(stack[1]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    it('should handle a nested tuple with 1 level of nesting', () => {
+    test('should handle a nested tuple with 1 level of nesting', () => {
       const stack = executeCode('( 1 ( 2 3 ) 4 )');
       /*
        * Expected stack with tag-first approach (from bottom to top):
@@ -76,7 +76,7 @@ describe('Tuple operations', () => {
       expect(stack[4]).toBe(3);
       expect(stack[5]).toBe(4);
     });
-    it('should handle multiple nested tuples at the same level', () => {
+    test('should handle multiple nested tuples at the same level', () => {
       const stack = executeCode('( ( 1 2 ) ( 3 4 ) )');
 
       /*
@@ -96,7 +96,7 @@ describe('Tuple operations', () => {
       expect(stack[5]).toBe(3);
       expect(stack[6]).toBe(4);
     });
-    it('should handle complex mixed nested structures', () => {
+    test('should handle complex mixed nested structures', () => {
       const stack = executeCode('( 1 ( ) ( 2 ( 3 4 ) ) 5 )');
 
       expect(stack.length).toBe(9);
@@ -109,7 +109,7 @@ describe('Tuple operations', () => {
 
       expect(stack[8]).toBe(5);
     });
-    it('should handle deeply nested tuples (3+ levels)', () => {
+    test('should handle deeply nested tuples (3+ levels)', () => {
       const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
       /*
        * Expected stack (from bottom to top) with tag-first approach:
@@ -141,7 +141,7 @@ describe('Tuple operations', () => {
   });
 
   describe('dup', () => {
-    it('should duplicate a simple tuple', () => {
+    test('should duplicate a simple tuple', () => {
       executeCode('( 1 2 ) dup');
 
       const stack = vm.getStackData();
@@ -165,7 +165,7 @@ describe('Tuple operations', () => {
       expect(secondLinkTag).toBe(Tag.LINK);
     });
 
-    it('should duplicate a nested tuple', () => {
+    test('should duplicate a nested tuple', () => {
       executeCode('( 5 6 ) dup');
 
       const stack = vm.getStackData();
@@ -200,7 +200,7 @@ describe('Tuple operations', () => {
       expect(dupStack.length).toBeGreaterThan(stackBeforeDup.length);
     });
 
-    it('should duplicate a regular value', () => {
+    test('should duplicate a regular value', () => {
       executeCode('42 dup');
 
       const stack = vm.getStackData();
@@ -209,7 +209,7 @@ describe('Tuple operations', () => {
       expect(stack[1]).toBe(42);
     });
 
-    it('should be able to operate on duplicated tuples individually', () => {
+    test('should be able to operate on duplicated tuples individually', () => {
       executeCode('( 10 20 ) dup');
 
       executeCode('30 40');
@@ -229,26 +229,26 @@ describe('Tuple operations', () => {
   });
 
   describe('drop', () => {
-    it('should drop a regular value from the stack', () => {
+    test('should drop a regular value from the stack', () => {
       const stack = executeCode('1 2 drop');
 
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(1);
     });
-    it('should drop an entire simple tuple', () => {
+    test('should drop an entire simple tuple', () => {
       const stack = executeCode('( 1 2 ) drop');
 
       expect(stack.length).toBe(0);
     });
 
-    it('should drop a tuple while leaving other values on stack', () => {
+    test('should drop a tuple while leaving other values on stack', () => {
       const stack = executeCode('5 ( 1 2 ) drop 10');
 
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(5);
       expect(stack[1]).toBe(10);
     });
-    it('should drop a nested tuple completely', () => {
+    test('should drop a nested tuple completely', () => {
       initializeInterpreter();
 
       executeCode('( 1 ( 2 3 ) 4 )');
@@ -264,7 +264,7 @@ describe('Tuple operations', () => {
       expect(vm.peek()).toBe(42);
     });
 
-    it('should drop only the top tuple when multiple tuples are present', () => {
+    test('should drop only the top tuple when multiple tuples are present', () => {
       initializeInterpreter();
 
       executeCode('( 1 2 )');
@@ -286,7 +286,7 @@ describe('Tuple operations', () => {
       expect(vm.peek()).toBe(200);
     });
 
-    it('should handle complex scenarios with multiple tuple operations', () => {
+    test('should handle complex scenarios with multiple tuple operations', () => {
       initializeInterpreter();
 
       executeCode('( 1 ( 2 3 ) )');
@@ -305,7 +305,7 @@ describe('Tuple operations', () => {
       expect(vm.peek()).toBe(100);
     });
 
-    it('should drop a deeply nested tuple in a single operation', () => {
+    test('should drop a deeply nested tuple in a single operation', () => {
       initializeInterpreter();
 
       executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
@@ -323,7 +323,7 @@ describe('Tuple operations', () => {
       expect(vm.peek()).toBe(456);
     });
 
-    it('should drop multiple tuples consecutively', () => {
+    test('should drop multiple tuples consecutively', () => {
       initializeInterpreter();
 
       executeCode('( 10 20 )');
@@ -349,7 +349,7 @@ describe('Tuple operations', () => {
       expect(vm.peek()).toBe(50);
     });
 
-    it('should drop a tuple when directly referenced', () => {
+    test('should drop a tuple when directly referenced', () => {
       const stack = executeCode('( 10 20 ) 30 drop drop');
 
       expect(stack.length).toBe(0);

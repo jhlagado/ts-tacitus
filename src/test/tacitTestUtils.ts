@@ -27,7 +27,7 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
     throw new Error(
       `Stack length mismatch: expected ${expectedStack.length}, got ${actualStack.length}\n` +
         `Expected: ${JSON.stringify(expectedStack)}\n` +
-        `Actual: ${JSON.stringify(actualStack)}`
+        `Actual: ${JSON.stringify(actualStack)}`,
     );
   }
 
@@ -40,7 +40,7 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
       throw new Error(
         `Stack value type mismatch at position ${i}: expected number ${expected}, got ${typeof actual} ${actual}\n` +
           `Expected: ${JSON.stringify(expectedStack)}\n` +
-          `Actual: ${JSON.stringify(actualStack)}`
+          `Actual: ${JSON.stringify(actualStack)}`,
       );
     }
 
@@ -48,7 +48,7 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
       throw new Error(
         `Stack value is NaN at position ${i}: expected ${expected}, got ${actual}\n` +
           `Expected: ${JSON.stringify(expectedStack)}\n` +
-          `Actual: ${JSON.stringify(actualStack)}`
+          `Actual: ${JSON.stringify(actualStack)}`,
       );
     }
 
@@ -56,7 +56,7 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
       throw new Error(
         `Stack value mismatch at position ${i}: expected ${expected}, got ${actual}\n` +
           `Expected: ${JSON.stringify(expectedStack)}\n` +
-          `Actual: ${JSON.stringify(actualStack)}`
+          `Actual: ${JSON.stringify(actualStack)}`,
       );
     }
   }

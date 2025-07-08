@@ -28,7 +28,7 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/t
 export const simpleIfOp: Verb = (vm: VM) => {
   if (vm.SP < 3) {
     throw new Error(
-      `Stack underflow: 'if' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'if' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
   const elseBranch = vm.pop();

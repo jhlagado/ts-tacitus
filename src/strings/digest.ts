@@ -56,7 +56,7 @@ export class Digest {
       let existingStr = '';
       for (let i = 0; i < length; i++) {
         existingStr += String.fromCharCode(
-          this.memory.read8(SEG_STRING, pointer + STRING_HEADER_SIZE + i)
+          this.memory.read8(SEG_STRING, pointer + STRING_HEADER_SIZE + i),
         );
       }
       if (existingStr === str) {
