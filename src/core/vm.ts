@@ -6,15 +6,13 @@ import { Digest } from '../strings/digest';
 import { defineBuiltins } from '../ops/define-builtins';
 import { FunctionTable } from './function-table';
 import { initFunctionTable } from '../ops/init-function-table';
-
 const BYTES_PER_ELEMENT = 4;
-
 export class VM {
   memory: Memory;
-  SP: number; 
-  RP: number; 
-  BP: number; 
-  IP: number; 
+  SP: number;
+  RP: number;
+  BP: number;
+  IP: number;
   running: boolean;
   compiler!: Compiler;
   digest: Digest;
@@ -22,7 +20,6 @@ export class VM {
   symbolTable: SymbolTable;
   functionTable: FunctionTable;
   tupleDepth: number;
-
   constructor() {
     this.memory = new Memory();
     this.IP = 0;
@@ -30,16 +27,16 @@ export class VM {
     this.SP = 0;
     this.RP = 0;
     this.BP = 0;
-    
+
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.tupleDepth = 0;
-    
+
     this.functionTable = new FunctionTable();
     this.symbolTable = new SymbolTable(this.digest);
     defineBuiltins(this.symbolTable);
   }
-  
+
   /**
    * Sets the compiler instance and initializes the function table.
    * This method must be called after VM construction to complete initialization.
@@ -48,13 +45,11 @@ export class VM {
     this.compiler = compiler;
     initFunctionTable(this);
   }
-
   eval() {
     this.rpush(toTaggedValue(this.IP, Tag.CODE));
     const { value: pointer } = fromTaggedValue(this.pop());
     this.IP = pointer;
   }
-
   /**
    * Pushes a 32-bit float onto the stack.
    */
@@ -67,7 +62,6 @@ export class VM {
     this.memory.writeFloat32(SEG_STACK, this.SP, value);
     this.SP += BYTES_PER_ELEMENT;
   }
-
   /**
    * Pops a 32-bit float from the stack.
    */
@@ -80,13 +74,11 @@ export class VM {
     this.SP -= BYTES_PER_ELEMENT;
     return this.memory.readFloat32(SEG_STACK, this.SP);
   }
-
   peek(): number {
     const value = this.pop();
-    this.push(value); // Push back the value
+    this.push(value);
     return value;
   }
-
   /**
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
@@ -98,7 +90,6 @@ export class VM {
     }
     return result;
   }
-
   /**
    * Pushes a 32-bit value onto the return stack.
    */
@@ -113,7 +104,6 @@ export class VM {
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
     this.RP += BYTES_PER_ELEMENT;
   }
-
   /**
    * Pops a 32-bit value from the return stack.
    */
@@ -126,11 +116,9 @@ export class VM {
     this.RP -= BYTES_PER_ELEMENT;
     return this.memory.readFloat32(SEG_RSTACK, this.RP);
   }
-
   reset() {
     this.IP = 0;
   }
-
   /**
    * Read the next byte from memory and advance the instruction pointer
    */
@@ -139,7 +127,6 @@ export class VM {
     this.IP += 1;
     return value;
   }
-
   /**
    * Read the next opcode from memory (either 1-byte or 2-byte) and advance the instruction pointer
    * Decodes opcodes according to the unified addressing scheme:
@@ -150,19 +137,18 @@ export class VM {
   nextOpcode(): number {
     const firstByte = this.memory.read8(SEG_CODE, this.IP);
     this.IP += 1;
-    
+
     if ((firstByte & 0x80) !== 0) {
       const secondByte = this.memory.read8(SEG_CODE, this.IP);
       this.IP += 1;
-      
-      const lowBits = firstByte & 0x7F;
+
+      const lowBits = firstByte & 0x7f;
       const highBits = secondByte << 7;
       return highBits | lowBits;
     }
-    
+
     return firstByte;
   }
-
   /**
    * Reads the next 16-bit value from memory and increments the instruction pointer.
    */
@@ -172,7 +158,6 @@ export class VM {
     this.IP += 2;
     return signedValue;
   }
-
   /**
    * Reads the next 32-bit float from memory and increments the instruction pointer.
    */
@@ -181,16 +166,14 @@ export class VM {
     this.IP += BYTES_PER_ELEMENT;
     return value;
   }
-
   /**
    * Reads the next address (tagged as CODE) from memory and increments the instruction pointer.
    */
   nextAddress(): number {
-    const tagNum = this.nextFloat32(); // Read the tagged pointer as a float
+    const tagNum = this.nextFloat32();
     const { value: pointer } = fromTaggedValue(tagNum);
     return pointer;
   }
-
   /**
    * Reads the next 16-bit value from code memory and increments the instruction pointer.
    */
@@ -200,7 +183,6 @@ export class VM {
     this.IP += 2;
     return (highByte << 8) | lowByte;
   }
-
   /**
    * Returns the current stack data as an array of 32-bit values.
    */
@@ -211,7 +193,6 @@ export class VM {
     }
     return stackData;
   }
-
   getCompileData(): number[] {
     const compileData: number[] = [];
     for (let i = 0; i < this.compiler.CP; i++) {

@@ -1,9 +1,7 @@
-// core/executor.ts
 import { Tokenizer } from './tokenizer';
 import { parse } from './parser';
 import { execute } from './interpreter';
 import { initializeInterpreter, vm } from '../core/globalState';
-
 /**
  * Executes a single line of Tacit code
  * @param input The code to execute
@@ -14,7 +12,6 @@ export function executeLine(input: string): void {
   parse(tokenizer);
   execute(vm.compiler.BCP);
 }
-
 /**
  * Initialize the interpreter environment
  */

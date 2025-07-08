@@ -1,5 +1,4 @@
 import 'jest';
-
 expect.extend({
   toBeCloseToArray(received: number[], expected: number[], precision = 2) {
     if (!Array.isArray(received) || !Array.isArray(expected)) {
@@ -8,7 +7,6 @@ expect.extend({
         message: () => `Expected both received and expected to be arrays.`,
       };
     }
-
     if (received.length !== expected.length) {
       return {
         pass: false,
@@ -16,11 +14,9 @@ expect.extend({
           `Expected arrays to have the same length. Received: ${received.length}, Expected: ${expected.length}`,
       };
     }
-
     const pass = received.every(
       (value, index) => Math.abs(value - expected[index]) < Math.pow(10, -precision)
     );
-
     return {
       pass,
       message: () =>

@@ -1,4 +1,3 @@
-
 /**
  * @enum {number} Op
  * This enum defines the opcodes for all built-in operations in Tacit.
@@ -25,7 +24,6 @@ export enum Op {
   LiteralString,
   /** Pushes a literal address onto the stack. */
   LiteralAddress,
-
   /** Performs addition of the top two values on the stack. */
   Add,
   /** Performs subtraction of the top two values on the stack. */
@@ -54,7 +52,6 @@ export enum Op {
   Equal,
   /** Checks if the top two values on the stack match (have the same structure). */
   Match,
-
   /** Unary Op negation (negates the value on the top of the stack). */
   mNegate,
   /** Unary Op reciprocal (calculates the reciprocal of the value on the top of the stack). */
@@ -75,7 +72,6 @@ export enum Op {
   mSqrt,
   /** Unary Op base-10 logarithm (calculates the base-10 logarithm of the value on the top of the stack). */
   mLog,
-
   /** Duplicates the value on the top of the stack. */
   Dup,
   /** Removes the value on the top of the stack. */
@@ -88,7 +84,6 @@ export enum Op {
   NegRot,
   /** Duplicates the second value from the top of the stack and pushes it onto the top. */
   Over,
-
   /** Performs a bitwise AND operation on the top two values of the stack */
   And,
   /** Performs a bitwise OR operation on the top two values of the stack */
@@ -97,14 +92,12 @@ export enum Op {
   Xor,
   /** Performs a bitwise NAND operation on the top two values of the stack */
   Nand,
-
   /** Unary Op NOT (performs a logical NOT on the value on the top of the stack). */
   mNot,
   /** Unary Op where (returns the indices where the value on the top of the stack is non-zero). */
   mWhere,
   /** Unary Op reverse (reverses the elements of a vector on the top of the stack). */
   mReverse,
-
   /** Unary Op type (returns the type of the value on the top of the stack). */
   mType,
   /** Unary Op string (converts the value on the top of the stack to a string). */
@@ -113,19 +106,16 @@ export enum Op {
   mGroup,
   /** Unary Op distinct (returns the unique elements of a vector). */
   mDistinct,
-
   /** Joins two vectors into a single vector. */
   Join,
   /** Enlists a value as a single-element vector. */
   mEnlist,
   /** Counts the elements in a vector. */
   mCount,
-
   /** Checks if a value is present in a vector. */
   mIn,
   /** Returns the keys of a dictionary. */
   mKey,
-
   /** Calculates the absolute value. */
   Abs,
   /** Negates a numeric value. */
@@ -146,16 +136,13 @@ export enum Op {
   Avg,
   /** Calculates the product of elements in a vector. */
   Prod,
-
   /** Conditional if operation (ternary operator: condition ? then : else) based on immediate numeric condition. */
   SimpleIf,
-
   /** New composite if operation that can defer condition evaluation using a code block. */
   If,
 
-  // Sequence operations have been removed
-  IfFalseBranch, 
-  
+  IfFalseBranch,
+
   /** Opens a tuple with '(' - pushes stack position onto return stack */
   OpenTuple,
   /** Closes a tuple with ')' - creates tuple tag with size information */

@@ -1,31 +1,26 @@
 import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
-
 export enum TokenType {
   NUMBER,
   WORD,
   STRING,
-  SPECIAL, // For special characters like : and ;, etc.
-  BLOCK_START,  // New type for '{' compile-time block start
-  BLOCK_END,    // New type for '}' compile-time block end
-  WORD_QUOTE, // Re-added type for back-tick prefixed quoted words
+  SPECIAL,
+  BLOCK_START,
+  BLOCK_END,
+  WORD_QUOTE,
   EOF,
 }
-
 export type TokenValue = number | string | null;
-
 export interface Token {
   type: TokenType;
   value: TokenValue;
   position: number;
 }
-
 export class Tokenizer {
   public input: string;
   public position: number;
   public line: number;
   public column: number;
   private pushedBack: Token | null;
-
   constructor(input: string) {
     this.input = input;
     this.position = 0;
@@ -33,23 +28,19 @@ export class Tokenizer {
     this.line = 1;
     this.column = 1;
   }
-
   pushBack(token: Token): void {
     if (this.pushedBack !== null) {
       throw new Error('Cannot push back more than one token');
     }
     this.pushedBack = token;
   }
-
   nextToken(): Token {
     if (this.pushedBack !== null) {
       const token = this.pushedBack;
       this.pushedBack = null;
       return token;
     }
-
     this.skipWhitespace();
-
     if (this.position >= this.input.length) {
       return {
         type: TokenType.EOF,
@@ -57,76 +48,64 @@ export class Tokenizer {
         position: this.position,
       };
     }
-
     const char = this.input[this.position];
     const startPos = this.position;
 
-    // Handle comments starting with "\"
     if (char === '\\') {
       this.skipComment();
       return this.nextToken();
     }
 
-    // Handle string literals (starting with a double quote)
     if (char === '"') {
       return this.readString();
     }
 
-    // Handle numbers (including those with a sign or decimal point)
     if (
       isDigit(char) ||
       ((char === '+' || char === '-' || char === '.') &&
         this.position + 1 < this.input.length &&
         isDigit(this.input[this.position + 1]))
     ) {
-      // Check if this is a word starting with a number (e.g., "2x")
-      // Look ahead for non-digit characters that would make this a word
       let pos = this.position;
-      
-      // Skip the sign if present
+
       if (this.input[pos] === '+' || this.input[pos] === '-') {
         pos++;
       }
-      
-      // Skip all digits
+
       while (pos < this.input.length && isDigit(this.input[pos])) {
         pos++;
       }
-      
-      // Skip decimal point and following digits if present
+
       if (pos < this.input.length && this.input[pos] === '.') {
         pos++;
         while (pos < this.input.length && isDigit(this.input[pos])) {
           pos++;
         }
       }
-      
-      // If we're not at the end of a token (whitespace or special char),
-      // this must be a word starting with a number
-      if (pos < this.input.length && 
-          !isWhitespace(this.input[pos]) && 
-          !isSpecialChar(this.input[pos])) {
+
+      if (
+        pos < this.input.length &&
+        !isWhitespace(this.input[pos]) &&
+        !isSpecialChar(this.input[pos])
+      ) {
         return this.readWord();
       }
-      
+
       return this.readNumber();
     }
 
-    // Handle special instruction characters (like ":" and ";")
     if (char === ':' || char === ';') {
       this.position++;
       this.column++;
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Handle parentheses and brackets as SPECIAL tokens
     if ('()[]'.includes(char)) {
       this.position++;
       this.column++;
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Handle block start and end characters
     if (char === '{' || char === '}') {
       const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
       this.position++;
@@ -134,47 +113,42 @@ export class Tokenizer {
       return { type, value: char, position: startPos };
     }
 
-    // Handle back-tick prefixed quoted words
     if (char === '`') {
-      this.position++; // Consume back-tick
+      this.position++;
       this.column++;
       const wordStartPos = this.position;
       let word = '';
-      while (this.position < this.input.length && !isWhitespace(this.input[this.position]) && !isSpecialChar(this.input[this.position])) {
+      while (
+        this.position < this.input.length &&
+        !isWhitespace(this.input[this.position]) &&
+        !isSpecialChar(this.input[this.position])
+      ) {
         word += this.input[this.position];
         this.position++;
         this.column++;
       }
-      return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 }; // Position includes back-tick for accuracy
+      return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 };
     }
 
-    // Handle other special characters using isSpecialChar - check if # is special?
     if (isSpecialChar(char)) {
-      // If # is considered special, this check needs to happen AFTER #[ check.
-      // Assuming # is not special for now or handled by readWord.
       this.position++;
       this.column++;
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    // Otherwise, read a word/identifier.
-    // If # is not whitespace or special, readWord will handle single #.
     return this.readWord();
   }
 
-  // Add peekToken method to look at the next token without advancing the position
   peekToken(): Token | null {
     const currentPosition = this.position;
     const currentLine = this.line;
     const currentColumn = this.column;
     const token = this.nextToken();
-    // Reset position, line, and column after peeking
     this.position = currentPosition;
     this.line = currentLine;
     this.column = currentColumn;
     return token;
   }
-
   private skipWhitespace(): void {
     while (this.position < this.input.length && isWhitespace(this.input[this.position])) {
       if (this.input[this.position] === '\n') {
@@ -186,17 +160,14 @@ export class Tokenizer {
       this.position++;
     }
   }
-
   private skipComment(): void {
     while (this.position < this.input.length && this.input[this.position] !== '\n') {
       this.position++;
     }
   }
-
   private readString(): Token {
     const startPos = this.position;
     let value = '';
-    // Skip opening quote
     this.position++;
     this.column++;
     while (this.position < this.input.length && this.input[this.position] !== '"') {
@@ -235,7 +206,6 @@ export class Tokenizer {
       this.position++;
     }
     if (this.position < this.input.length) {
-      // Skip closing quote
       this.position++;
       this.column++;
     } else {
@@ -243,7 +213,6 @@ export class Tokenizer {
     }
     return { type: TokenType.STRING, value, position: startPos };
   }
-
   private readNumber(): Token {
     const startPos = this.position;
     let tokenStr = '';
@@ -273,7 +242,6 @@ export class Tokenizer {
     }
     return { type: TokenType.NUMBER, value, position: startPos };
   }
-
   private readWord(): Token {
     const startPos = this.position;
     let word = '';
@@ -288,7 +256,6 @@ export class Tokenizer {
     }
     return { type: TokenType.WORD, value: word, position: startPos };
   }
-
   getPosition(): { line: number; column: number } {
     return { line: this.line, column: this.column };
   }

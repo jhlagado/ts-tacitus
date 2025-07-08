@@ -7,7 +7,6 @@
  * linking the symbolic representation used in Tacit code with the underlying execution logic.
  */
 import { VM } from '../core/vm';
-
 import {
   literalNumberOp,
   skipDefOp,
@@ -18,7 +17,6 @@ import {
   evalOp,
   literalStringOp,
 } from './builtins-interpreter';
-
 import {
   addOp,
   subtractOp,
@@ -34,7 +32,6 @@ import {
   greaterThanOp,
   greaterOrEqualOp,
 } from './builtins-math';
-
 import {
   mNegateOp,
   mReciprocalOp,
@@ -42,10 +39,8 @@ import {
   mNotOp,
   mSignumOp,
   mEnlistOp,
-} from './builtins-monadic';
-
+} from './builtins-unary-op';
 import { dupOp, dropOp, swapOp } from './builtins-stack';
-
 import {
   absOp,
   negOp,
@@ -58,17 +53,12 @@ import {
   avgOp,
   prodOp,
 } from './arithmetic-ops';
-
 import { simpleIfOp } from './builtins-conditional';
-
 import { formatValue } from '../core/utils';
-
 import { rotOp, negRotOp } from './builtins-stack';
 
-// Import sequence operations
 import { Op } from './opcodes';
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
-
 /**
  * Executes a specific operation based on the given opcode.
  * @param {VM} vm The virtual machine instance.
@@ -77,7 +67,6 @@ import { ifCurlyBranchFalseOp } from './builtins-conditional';
  */
 export function executeOp(vm: VM, opcode: Op) {
   switch (opcode) {
-    // Control Flow
     case Op.LiteralNumber:
       literalNumberOp(vm);
       break;
@@ -107,7 +96,6 @@ export function executeOp(vm: VM, opcode: Op) {
       literalStringOp(vm);
       break;
 
-    // Binary Op Arithmetic
     case Op.Add:
       addOp(vm);
       break;
@@ -145,13 +133,12 @@ export function executeOp(vm: VM, opcode: Op) {
       greaterOrEqualOp(vm);
       break;
     case Op.Match:
-      equalOp(vm); // Using equalOp instead of removed matchOp
+      equalOp(vm);
       break;
     case Op.Mod:
       modOp(vm);
       break;
 
-    // Unary Op Arithmetic
     case Op.mNegate:
       mNegateOp(vm);
       break;
@@ -171,7 +158,6 @@ export function executeOp(vm: VM, opcode: Op) {
       mEnlistOp(vm);
       break;
 
-    // Stack Operations
     case Op.Dup:
       dupOp(vm);
       break;
@@ -188,7 +174,6 @@ export function executeOp(vm: VM, opcode: Op) {
       negRotOp(vm);
       break;
 
-    // Arithmetic Operators
     case Op.Abs:
       absOp(vm);
       break;
@@ -220,26 +205,21 @@ export function executeOp(vm: VM, opcode: Op) {
       prodOp(vm);
       break;
 
-    // Conditional Operations
     case Op.If:
       simpleIfOp(vm);
       break;
-    case Op.IfFalseBranch: 
+    case Op.IfFalseBranch:
       ifCurlyBranchFalseOp(vm);
       break;
-
-    // Sequence operations have been removed
 
     case Op.LiteralAddress:
       literalAddressOp(vm);
       break;
-
     default:
       throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
   }
 }
 
-// Add new function for LiteralAddress handling
 export function literalAddressOp(vm: VM): void {
   const address = vm.read16();
   vm.push(address);
