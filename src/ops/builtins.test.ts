@@ -1,4 +1,4 @@
-import { addOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
+import { addOp, subtractOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../core/globalState";
 
@@ -22,35 +22,35 @@ describe("Built-in Words", () => {
       );
     });
 
-    it("- should subtract numbers", () => {
+    it("sub should subtract numbers", () => {
       vm.push(5);
       vm.push(3);
-      minusOp(vm);
+      subtractOp(vm);
       expect(vm.getStackData()).toEqual([2]);
     });
 
-    it("- should throw on insufficient stack items", () => {
+    it("sub should throw on insufficient stack items", () => {
       vm.push(5); // Only one item on the stack
-      expect(() => minusOp(vm)).toThrow(
+      expect(() => subtractOp(vm)).toThrow(
         `Stack underflow: Cannot pop value (stack: [])`
       );
     });
 
-    it("* should multiply numbers", () => {
+    it("mul should multiply numbers", () => {
       vm.push(5);
       vm.push(3);
       multiplyOp(vm);
       expect(vm.getStackData()).toEqual([15]);
     });
 
-    it("* should throw on insufficient stack items", () => {
+    it("mul should throw on insufficient stack items", () => {
       vm.push(5); // Only one item on the stack
       expect(() => multiplyOp(vm)).toThrow(
         `Stack underflow: Cannot pop value (stack: [])`
       );
     });
 
-    it("/ should divide numbers", () => {
+    it("div should divide numbers", () => {
       vm.push(6);
       vm.push(3);
       divideOp(vm);
@@ -102,21 +102,21 @@ describe("Built-in Words", () => {
       expect(vm.getStackData()).toEqual([8]);
     });
 
-    it("- should subtract numbers", () => {
+    it("sub should subtract numbers", () => {
       vm.push(5);
       vm.push(3);
-      minusOp(vm);
+      subtractOp(vm);
       expect(vm.getStackData()).toEqual([2]);
     });
 
-    it("* should multiply numbers", () => {
+    it("mul should multiply numbers", () => {
       vm.push(5);
       vm.push(3);
       multiplyOp(vm);
       expect(vm.getStackData()).toEqual([15]);
     });
 
-    it("/ should divide numbers", () => {
+    it("div should divide numbers", () => {
       vm.push(6);
       vm.push(3);
       divideOp(vm);

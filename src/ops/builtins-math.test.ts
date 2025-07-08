@@ -2,7 +2,7 @@ import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
 import {
   addOp,
-  minusOp,
+  subtractOp,
   multiplyOp,
   divideOp,
   powerOp,
@@ -12,10 +12,9 @@ import {
   equalOp,
   lessThanOp,
   greaterThanOp,
-  matchOp,
 } from './builtins-math';
 
-describe('Built-in Math Operations', () => {
+describe('Built-in Binary Math Operations', () => {
   let testVM: VM;
 
   beforeEach(() => {
@@ -47,30 +46,30 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('minusOp (-)', () => {
+  describe('subtractOp (sub)', () => {
     it('should subtract two numbers correctly', () => {
       testVM.push(10);
       testVM.push(4);
-      minusOp(testVM);
+      subtractOp(testVM);
       expect(testVM.pop()).toBe(6);
     });
 
     it('should handle negative results', () => {
       testVM.push(5);
       testVM.push(10);
-      minusOp(testVM);
+      subtractOp(testVM);
       expect(testVM.pop()).toBe(-5);
     });
 
     it('should throw on stack underflow', () => {
       testVM.push(5);
-      expect(() => minusOp(testVM)).toThrow('Stack underflow');
+      expect(() => subtractOp(testVM)).toThrow('Stack underflow');
     });
 
 
   });
 
-  describe('multiplyOp (*)', () => {
+  describe('multiplyOp (multiply)', () => {
     it('should multiply two numbers correctly', () => {
       testVM.push(5);
       testVM.push(3);
@@ -100,7 +99,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('divideOp (/)', () => {
+  describe('divideOp (divide)', () => {
     it('should divide two numbers correctly', () => {
       testVM.push(10);
       testVM.push(2);
@@ -137,7 +136,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('powerOp (^)', () => {
+  describe('powerOp (power)', () => {
     it('should calculate power correctly', () => {
       testVM.push(2);
       testVM.push(3);
@@ -174,7 +173,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('modOp (%)', () => {
+  describe('modOp (mod)', () => {
     it('should calculate modulo correctly', () => {
       testVM.push(10);
       testVM.push(3);
@@ -250,7 +249,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('equalOp (=)', () => {
+  describe('equalOp (equal)', () => {
     it('should return 1 for equal values', () => {
       testVM.push(5);
       testVM.push(5);
@@ -273,7 +272,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('lessThanOp (<)', () => {
+  describe('lessThanOp (lessThan)', () => {
     it('should return 1 when a < b', () => {
       testVM.push(5);
       testVM.push(10);
@@ -303,7 +302,7 @@ describe('Built-in Math Operations', () => {
 
   });
 
-  describe('greaterThanOp (>)', () => {
+  describe('greaterThanOp (greaterThan)', () => {
     it('should return 1 when a > b', () => {
       testVM.push(10);
       testVM.push(5);
@@ -328,29 +327,6 @@ describe('Built-in Math Operations', () => {
     it('should throw on stack underflow', () => {
       testVM.push(5);
       expect(() => greaterThanOp(testVM)).toThrow('Stack underflow');
-    });
-
-
-  });
-
-  describe('matchOp (~)', () => {
-    it('should return 1 for matching values', () => {
-      testVM.push(5);
-      testVM.push(5);
-      matchOp(testVM);
-      expect(testVM.pop()).toBe(1);
-    });
-
-    it('should return 0 for non-matching values', () => {
-      testVM.push(5);
-      testVM.push(10);
-      matchOp(testVM);
-      expect(testVM.pop()).toBe(0);
-    });
-
-    it('should throw on stack underflow', () => {
-      testVM.push(5);
-      expect(() => matchOp(testVM)).toThrow('Stack underflow');
     });
 
 

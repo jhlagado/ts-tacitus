@@ -15,7 +15,7 @@ export const addOp: Verb = (vm: VM) => {
   vm.push(a + b);
 };
 
-export const minusOp: Verb = (vm: VM) => {
+export const subtractOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
       `Stack underflow: '-' requires 2 operands (stack: ${JSON.stringify(
@@ -117,10 +117,4 @@ export const greaterOrEqualOp: Verb = (vm: VM) => {
   vm.push(a >= b ? 1 : 0);
 };
 
-// We're keeping the matchOp implementation for now, but it's not exposed to users
-export const matchOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: match operation requires 2 operands`);
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a === b ? 1 : 0);
-};
+

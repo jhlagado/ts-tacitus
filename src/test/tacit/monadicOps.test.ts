@@ -1,7 +1,7 @@
 import { runTacitTest } from '../tacitTestUtils';
 
-describe('Tacit Monadic Operations', () => {
-  // Tests for monadic operations with English word names
+describe('Tacit Unary Op Operations', () => {
+  // Tests for unary op operations with English word names
   
   test('negate operation', () => {
     const result = runTacitTest('5 neg');
