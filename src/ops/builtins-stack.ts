@@ -1,7 +1,6 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import {} from '../core/memory';
-import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { Tag, fromTaggedValue, toTaggedValue } from '../core/tagged';
 
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < 1) {
@@ -10,41 +9,50 @@ export const dupOp: Verb = (vm: VM) => {
     );
   }
   
-  // Peek at the top value without removing it yet
+  // Get the top value without popping it
   const topValue = vm.peek();
   const { tag, value } = fromTaggedValue(topValue);
   
   if (tag === Tag.LINK) {
-    // This is a tuple link
-    vm.pop(); // Pop the link
+    // This is a tuple reference
+    if (vm.debug) console.log('dupOp tuple link with value:', value);
     
-    if (vm.debug) console.log('dupOp tuple link with relative count:', value);
+    // Get the current stack state
+    const stack = vm.getStackData();
+    const stackLen = stack.length;
     
-    // Calculate how many elements to copy (including the tuple tag)
-    const elementsToCopy = value;
-    const startSP = vm.SP - (elementsToCopy * 4);
-    
-    // Copy each element from the tuple (from start to current SP)
-    const tupleCopy = [];
-    for (let pos = startSP; pos < vm.SP; pos += 4) {
-      const element = vm.memory.readFloat32(0, pos);
-      tupleCopy.push(element);
+    if (value <= 0 || value >= stackLen) {
+      throw new Error(`Invalid LINK value: ${value} (stack length: ${stackLen})`);
     }
     
-    // Push all copied elements onto the stack
-    for (const element of tupleCopy) {
-      vm.push(element);
+    // Calculate the tuple start index in the stack array
+    // Stack array is 0-indexed, and we need to go back 'value' elements from the end
+    const tupleStartIndex = stackLen - 1 - value;
+    
+    // Read the tuple tag from stack array to get the tuple size
+    const tupleTagValue = stack[tupleStartIndex];
+    const { tag: tupleTag, value: tupleSize } = fromTaggedValue(tupleTagValue);
+    
+    // Verify we found a valid tuple tag
+    if (tupleTag !== Tag.TUPLE) {
+      throw new Error(`Expected TUPLE tag at stack index ${tupleStartIndex}, found tag ${tupleTag}`);
     }
     
-    // Push the link to the duplicated tuple
-    // The value remains the same as the original link (same element count)
-    vm.push(toTaggedValue(value, Tag.LINK));
+    // Step 1: Push a new copy of the tuple tag
+    vm.push(tupleTagValue);
+    
+    // Step 2: Push copies of all the tuple elements (from tuple values array)
+    for (let i = 0; i < tupleSize; i++) {
+      const elemIndex = tupleStartIndex + i + 1; // +1 to skip the TUPLE tag
+      vm.push(stack[elemIndex]);
+    }
+    
+    // Step 3: Push a new LINK tag with the correct value
+    // The LINK value should be tupleSize + 1 (count of elements back to the tuple tag)
+    vm.push(toTaggedValue(tupleSize + 1, Tag.LINK));
   } else {
     // Regular value, just duplicate it
-    const a = vm.pop();
-    if (vm.debug) console.log('dupOp simple value', a);
-    vm.push(a);
-    vm.push(a);
+    vm.push(topValue);
   }
 };
 
