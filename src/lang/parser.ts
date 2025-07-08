@@ -2,6 +2,7 @@ import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
+
 import { toTaggedValue, Tag } from '../core/tagged';
 
 export interface Definition {
@@ -26,6 +27,7 @@ export function parse(tokenizer: Tokenizer): void {
     currentDefinition: null,
     insideCodeBlock: false,
   };
+
   parseProgram(state);
   validateFinalState(state);
 
@@ -38,9 +40,11 @@ export function parse(tokenizer: Tokenizer): void {
 function parseProgram(state: ParserState): void {
   while (true) {
     const token = state.tokenizer.nextToken();
+
     if (token.type === TokenType.EOF) {
       break;
     }
+
     processToken(token, state);
   }
 }
@@ -73,10 +77,13 @@ function processToken(token: Token, state: ParserState): void {
       break;
     case TokenType.WORD_QUOTE:
       const wordName = token.value as string;
+
       const address = vm.symbolTable.find(wordName) as number | undefined;
+
       if (address === undefined) {
         throw new Error(`Undefined word: ${wordName}`);
       }
+
       vm.compiler.compileOpcode(Op.LiteralAddress);
       vm.compiler.compile16(address);
       break;
@@ -97,6 +104,7 @@ function compileNumberLiteral(value: number): void {
 function compileStringLiteral(value: string): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const address = vm.digest.add(value);
+
   vm.compiler.compile16(address);
 }
 
@@ -107,39 +115,54 @@ function processWordToken(value: string, state: ParserState): void {
   if (value === 'IF') {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
     const falseJumpAddr = vm.compiler.CP;
+
     vm.compiler.compileOpcode(Op.IfFalseBranch);
     const jumpOffsetAddr = vm.compiler.CP;
+
     vm.compiler.compile16(0);
     const thenToken = state.tokenizer.nextToken();
+
     if (thenToken.type !== TokenType.BLOCK_START) {
       throw new Error('Expected { for then-block in IF statement');
     }
+
     parseCurlyBlock(state);
     const endOfThen = vm.compiler.CP;
+
     const next = state.tokenizer.peekToken();
+
     if (next && next.value === 'ELSE') {
       state.tokenizer.nextToken();
       const elseJumpAddr = vm.compiler.CP;
+
       vm.compiler.compileOpcode(Op.Branch);
       const elseJumpOffsetAddr = vm.compiler.CP;
+
       vm.compiler.compile16(0);
       const elseBlockStart = vm.compiler.CP;
+
       const elseBlockToken = state.tokenizer.nextToken();
+
       if (elseBlockToken.type !== TokenType.BLOCK_START) {
         throw new Error('Expected { for else-block in IF statement');
       }
+
       parseCurlyBlock(state);
       const endOfElse = vm.compiler.CP;
+
       const falseJumpOffset = elseBlockStart - (falseJumpAddr + 3);
+
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
       console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset}`);
       const elseJumpOffset = endOfElse - (elseJumpAddr + 3);
+
       vm.compiler.patch16(elseJumpOffsetAddr, elseJumpOffset);
       console.log(
         `Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`,
       );
     } else {
       const falseJumpOffset = endOfThen - (falseJumpAddr + 3);
+
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
       console.log(
         `Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`,
@@ -149,6 +172,7 @@ function processWordToken(value: string, state: ParserState): void {
     processSpecialToken(value, state);
   } else {
     const functionIndex = vm.symbolTable.find(value);
+
     if (functionIndex === undefined) {
       throw new Error(`Unknown word: ${value}`);
     }
@@ -181,6 +205,7 @@ function parseBacktickSymbol(state: ParserState): void {
   let sym = '';
   while (state.tokenizer.position < state.tokenizer.input.length) {
     const ch = state.tokenizer.input[state.tokenizer.position];
+
     if (isWhitespace(ch) || isGroupingChar(ch)) break;
     sym += ch;
     state.tokenizer.position++;
@@ -188,6 +213,7 @@ function parseBacktickSymbol(state: ParserState): void {
   }
 
   const addr = vm.digest.add(sym);
+
   vm.compiler.compileOpcode(Op.LiteralString);
   vm.compiler.compile16(addr);
 }
@@ -205,6 +231,7 @@ function beginDefinition(state: ParserState): void {
   }
 
   const nameToken = state.tokenizer.nextToken();
+
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
     throw new Error(`Expected word name after :`);
   }
@@ -217,6 +244,7 @@ function beginDefinition(state: ParserState): void {
 
   vm.compiler.compileOpcode(Op.Branch);
   const branchPos = vm.compiler.CP;
+
   vm.compiler.compile16(0);
 
   const startAddress = vm.compiler.CP;
@@ -272,6 +300,7 @@ function endTuple(_state: ParserState): void {
   if (vm.tupleDepth <= 0) {
     throw new Error('Unexpected closing parenthesis');
   }
+
   vm.compiler.compileOpcode(Op.CloseTuple);
 
   vm.tupleDepth--;
@@ -282,8 +311,11 @@ function endTuple(_state: ParserState): void {
  */
 function patchBranchOffset(branchPos: number): void {
   const endAddress = vm.compiler.CP;
+
   const branchOffset = endAddress - (branchPos + 2);
+
   const prevCP = vm.compiler.CP;
+
   vm.compiler.CP = branchPos;
   vm.compiler.compile16(branchOffset);
   vm.compiler.CP = prevCP;
@@ -294,12 +326,16 @@ function patchBranchOffset(branchPos: number): void {
  */
 function parseCurlyBlock(state: ParserState): number {
   const startAddress = vm.compiler.CP;
+
   while (true) {
     const token = state.tokenizer.nextToken();
+
     if (token.type === TokenType.BLOCK_END) {
       break;
     }
+
     processToken(token, state);
   }
+
   return startAddress;
 }

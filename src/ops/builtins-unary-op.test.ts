@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
+
 import {
   mNegateOp,
   mReciprocalOp,
@@ -10,6 +11,7 @@ import {
 } from './builtins-unary-op';
 describe('Built-in Unary Op Operations', () => {
   let testVM: VM;
+
   beforeEach(() => {
     initializeInterpreter();
     testVM = vm;

@@ -1,6 +1,7 @@
 import { Tokenizer } from '../lang/tokenizer';
 import { parse } from '../lang/parser';
 import { execute } from '../lang/interpreter';
+
 import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
@@ -24,6 +25,7 @@ export function executeTacitCode(code: string): number[] {
 
 export function testTacitCode(code: string, expectedStack: number[]): void {
   const actualStack = executeTacitCode(code);
+
   console.log('testTacitCode - Expected Stack:', JSON.stringify(expectedStack));
   console.log('testTacitCode - Actual Stack:', JSON.stringify(actualStack));
 
@@ -37,7 +39,9 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
 
   for (let i = 0; i < actualStack.length; i++) {
     const expected = expectedStack[i];
+
     const actual = actualStack[i];
+
     console.log(`testTacitCode - Comparing position ${i}: expected=${expected}, actual=${actual}`);
 
     if (actual === null || actual === undefined || typeof actual !== 'number') {
@@ -75,7 +79,9 @@ export function captureTacitOutput(code: string): string[] {
   initializeInterpreter();
 
   const output: string[] = [];
+
   const originalConsoleLog = console.log;
+
   console.log = (...args) => {
     output.push(args.join(' '));
     originalConsoleLog(...args);

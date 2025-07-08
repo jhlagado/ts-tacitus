@@ -101,18 +101,24 @@ export function toTaggedValue(value: number, tag: Tag): number {
     if (value < -32768 || value > 32767) {
       throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for INTEGER tag');
     }
+
     encodedValue = value & 0xffff;
   } else {
     if (value < 0 || value > 65535) {
       throw new Error('Value must be 16-bit unsigned integer (0 to 65535)');
     }
+
     encodedValue = value;
   }
 
   const mantissaTagBits = (tag & 0x3f) << 16;
+
   const bits = EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
+
   const buffer = new ArrayBuffer(4);
+
   const view = new DataView(buffer);
+
   view.setUint32(0, bits, true);
   return view.getFloat32(0, true);
 }
@@ -146,14 +152,20 @@ export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
   if (!isNaN(nanValue)) {
     return { value: nanValue, tag: Tag.NUMBER };
   }
+
   const buffer = new ArrayBuffer(4);
+
   const view = new DataView(buffer);
+
   view.setFloat32(0, nanValue, true);
   const bits = view.getUint32(0, true);
 
   const tagBits = (bits & TAG_MANTISSA_MASK) >>> 16;
+
   const valueBits = bits & VALUE_MASK;
+
   const value = tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
+
   return { value, tag: tagBits };
 }
 
@@ -179,6 +191,7 @@ export function getValue(nanValue: number): number {
 
 export function isNIL(tval: number): boolean {
   const { tag, value } = fromTaggedValue(tval);
+
   return tag === Tag.INTEGER && value === 0;
 }
 
@@ -198,6 +211,7 @@ export function isRefCounted(_value: number): boolean {
 
 export function isNumber(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.NUMBER;
 }
 
@@ -207,6 +221,7 @@ export function isNumber(tval: number): boolean {
 
 export function isInteger(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.INTEGER;
 }
 
@@ -216,6 +231,7 @@ export function isInteger(tval: number): boolean {
 
 export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.CODE;
 }
 
@@ -225,6 +241,7 @@ export function isCode(tval: number): boolean {
 
 export function isCodeBlock(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.CODE_BLOCK;
 }
 
@@ -234,6 +251,7 @@ export function isCodeBlock(tval: number): boolean {
 
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.CODE || tag === Tag.CODE_BLOCK;
 }
 
@@ -243,5 +261,6 @@ export function isAnyCode(tval: number): boolean {
 
 export function isString(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
+
   return tag === Tag.STRING;
 }

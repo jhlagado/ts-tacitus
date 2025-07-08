@@ -1,5 +1,6 @@
 import { createInterface } from 'readline';
 import { executeLine, setupInterpreter } from './executor';
+
 import { processFile } from './fileProcessor';
 
 /**
@@ -14,6 +15,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
     console.log(`Loading ${files.length} file(s)...`);
     for (const file of files) {
       const success = processFile(file);
+
       if (!success) {
         console.error(`Error processing file: ${file}`);
         allFilesProcessed = false;
@@ -30,15 +32,18 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
   if (!interactiveAfterFiles) {
     return;
   }
+
   console.log("Interactive mode (type 'exit' to quit, 'load <filepath>' to load a file):");
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: '> ',
   });
+
   rl.prompt();
   rl.on('line', line => {
     const command = line.trim();
+
     if (command === 'exit') {
       console.log('Goodbye!');
       rl.close();
@@ -47,8 +52,10 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
 
     if (command.startsWith('load ')) {
       const filePath = command.substring(5).trim();
+
       try {
         const success = processFile(filePath);
+
         if (!success) {
           console.log('File processing encountered errors but REPL will continue.');
         }
@@ -86,9 +93,11 @@ export function main(): void {
   const args = process.argv.slice(2);
 
   const noInteractiveIndex = args.indexOf('--no-interactive');
+
   const interactiveAfterFiles = noInteractiveIndex === -1;
 
   const files = args.filter(arg => !arg.startsWith('--'));
+
   if (files.length === 0) {
     startREPL();
   } else {

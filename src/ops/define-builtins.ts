@@ -1,4 +1,5 @@
 import { SymbolTable } from '../strings/symbol-table';
+
 import { Op } from './opcodes';
 
 /**
@@ -13,6 +14,7 @@ import { Op } from './opcodes';
 
 export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);
+
   dict.define('.', Op.Print);
 
   dict.define('add', Op.Add);

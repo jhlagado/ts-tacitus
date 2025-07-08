@@ -2,10 +2,12 @@
 import { Op } from '../ops/opcodes';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { parse } from './parser';
+
 import { Tokenizer } from './tokenizer';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;
+
   return new Uint8Array(vm.memory.buffer, 0, cp);
 };
 describe('Parser with Tokenizer', () => {
@@ -59,11 +61,13 @@ describe('Parser with Tokenizer', () => {
       parse(new Tokenizer(': double dup add ;'));
 
       const doubleWord = vm.symbolTable.find('double');
+
       expect(doubleWord).toBeDefined();
 
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
       const skipOffset = vm.next16();
+
       expect(vm.next8()).toBe(Op.Dup);
       expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Exit);
@@ -82,6 +86,7 @@ describe('Parser with Tokenizer', () => {
       expect(vm.symbolTable.find('empty')).toBeDefined();
 
       const emptyFunctionIndex = vm.symbolTable.find('empty');
+
       expect(() => {
         if (emptyFunctionIndex !== undefined) {
           vm.functionTable.execute(vm, emptyFunctionIndex);
@@ -167,21 +172,25 @@ describe('Parser with Tokenizer', () => {
     test('should parse positive integers', () => {
       parse(new Tokenizer('123'));
       const code = getCompiledCode();
+
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse negative numbers', () => {
       parse(new Tokenizer('-42'));
       const code = getCompiledCode();
+
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse floating point numbers', () => {
       parse(new Tokenizer('3.14159'));
       const code = getCompiledCode();
+
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse multiple numbers', () => {
       parse(new Tokenizer('1 2 3'));
       const code = getCompiledCode();
+
       expect(code.length).toBeGreaterThan(0);
     });
   });

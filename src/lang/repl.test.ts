@@ -1,6 +1,7 @@
 import { createInterface } from 'readline';
 import { startREPL } from './repl';
 import { executeLine, setupInterpreter } from './executor';
+
 import { processFile } from './fileProcessor';
 
 jest.mock('readline');
@@ -13,7 +14,9 @@ describe('REPL', () => {
   let mockClose: jest.Mock;
 
   const originalConsoleLog = console.log;
+
   const originalConsoleError = console.error;
+
   beforeEach(() => {
     console.log = jest.fn();
     console.error = jest.fn();
@@ -118,6 +121,7 @@ describe('REPL', () => {
   });
   test('should handle exceptions during "load" command', () => {
     const testError = new Error('Test error');
+
     (processFile as jest.Mock).mockImplementation(() => {
       throw testError;
     });
@@ -148,6 +152,7 @@ describe('REPL', () => {
   });
   test('should handle execution errors', () => {
     const testError = new Error('Execution error');
+
     (executeLine as jest.Mock).mockImplementation(() => {
       throw testError;
     });

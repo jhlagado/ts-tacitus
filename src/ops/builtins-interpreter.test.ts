@@ -3,6 +3,7 @@ import { dupOp, swapOp } from './builtins-stack';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { fromTaggedValue, Tag, toTaggedValue } from '../core/tagged';
 import { toUnsigned16 } from '../core/utils';
+
 import {
   abortOp,
   exitOp,
@@ -25,12 +26,14 @@ describe('Built-in Words', () => {
     });
     test('exitOp should restore IP from return stack and BP frame', () => {
       const testAddress = 0x2345;
+
       const originalBP = 0x9029;
 
       vm.rpush(toTaggedValue(testAddress, Tag.CODE));
       vm.rpush(originalBP);
 
       const currentBP = vm.RP;
+
       vm.BP = currentBP;
 
       exitOp(vm);
@@ -40,7 +43,9 @@ describe('Built-in Words', () => {
     });
     test('evalOp should push IP to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
+
       const originalIP = vm.IP;
+
       const originalBP = vm.BP;
 
       vm.push(toTaggedValue(testAddress, Tag.CODE));
@@ -52,20 +57,25 @@ describe('Built-in Words', () => {
       expect(vm.BP).toBe(vm.RP);
 
       const savedBP = vm.rpop();
+
       expect(savedBP).toBe(originalBP);
 
       const returnAddr = vm.rpop();
+
       expect(fromTaggedValue(returnAddr).value).toBe(originalIP);
     });
     test('branchOp should jump relative', () => {
       const initialIP = vm.IP;
+
       vm.compiler.compile16(10);
       skipDefOp(vm);
       expect(vm.IP).toBe(initialIP + 12);
     });
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.IP;
+
       const originalBP = vm.BP;
+
       const testAddress = 0x12345;
 
       vm.compiler.compile16(testAddress);
@@ -77,16 +87,20 @@ describe('Built-in Words', () => {
       expect(vm.BP).toBe(vm.RP);
 
       const savedBP = vm.rpop();
+
       expect(savedBP).toBe(originalBP);
 
       const returnAddr = vm.rpop();
+
       const { value } = fromTaggedValue(returnAddr);
+
       expect(value).toBe(originalIP + 2);
     });
   });
   describe('Branch Operations', () => {
     test('branchCallOp should jump relative', () => {
       const initialIP = vm.IP;
+
       vm.compiler.compile16(10);
       skipBlockOp(vm);
       expect(vm.IP).toBe(initialIP + 12);
@@ -99,8 +113,10 @@ describe('Built-in Words', () => {
     });
     test('should push return address', () => {
       const initialIP = vm.IP;
+
       skipBlockOp(vm);
       const { value: pointer } = fromTaggedValue(vm.pop());
+
       expect(pointer).toBe(initialIP + 2);
     });
   });
@@ -112,6 +128,7 @@ describe('Built-in Words', () => {
     });
     test('should handle tagged pointers', () => {
       const addr = toTaggedValue(0x2345, Tag.CODE);
+
       vm.compiler.compileFloat32(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);
@@ -120,8 +137,10 @@ describe('Built-in Words', () => {
   describe('Grouping Operations', () => {
     test('groupLeftOp should push the current SP onto the return stack', () => {
       const initialSP = vm.SP;
+
       groupLeftOp(vm);
       const savedSP = vm.rpop();
+
       expect(savedSP).toBe(initialSP);
     });
     test('groupRightOp should compute the number of 4-byte items pushed since group left', () => {
@@ -130,6 +149,7 @@ describe('Built-in Words', () => {
       vm.push(20);
       groupRightOp(vm);
       const count = vm.pop();
+
       expect(count).toBe(2);
     });
   });
@@ -154,9 +174,11 @@ describe('Built-in Words', () => {
     });
     test('should handle return stack overflow', () => {
       const maxDepth = vm.RP / 4;
+
       for (let i = 0; i < maxDepth; i++) {
         vm.rpush(0);
       }
+
       expect(() => evalOp(vm)).toThrow('Stack underflow');
     });
   });

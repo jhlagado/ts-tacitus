@@ -1,6 +1,8 @@
 import { addOp, subtractOp, multiplyOp, divideOp } from './builtins-math';
 import { dupOp, dropOp, swapOp } from './builtins-stack';
+
 import { initializeInterpreter, vm } from '../core/globalState';
+
 describe('Built-in Words', () => {
   beforeEach(() => {
     initializeInterpreter();

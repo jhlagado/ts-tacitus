@@ -7,6 +7,7 @@
  * linking the symbolic representation used in Tacit code with the underlying execution logic.
  */
 import { VM } from '../core/vm';
+
 import {
   literalNumberOp,
   skipDefOp,
@@ -41,6 +42,7 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 import { dupOp, dropOp, swapOp } from './builtins-stack';
+
 import {
   absOp,
   negOp,
@@ -55,9 +57,11 @@ import {
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
 import { formatValue } from '../core/utils';
+
 import { rotOp, negRotOp } from './builtins-stack';
 
 import { Op } from './opcodes';
+
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
 
 /**
@@ -92,6 +96,7 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Print:
       const value = vm.pop();
+
       console.log(formatValue(vm, value));
       break;
     case Op.LiteralString:
@@ -224,5 +229,6 @@ export function executeOp(vm: VM, opcode: Op) {
 
 export function literalAddressOp(vm: VM): void {
   const address = vm.read16();
+
   vm.push(address);
 }

@@ -1,4 +1,5 @@
 import { Digest } from './digest';
+
 interface SymbolTableNode {
   key: number;
   value: number;
@@ -11,12 +12,16 @@ export type SymbolTableCheckpoint = SymbolTableNode | null;
 
 export class SymbolTable {
   private head: SymbolTableNode | null;
+
   constructor(private digest: Digest) {
     this.head = null;
   }
+
   define(name: string, functionIndex: number): void {
     const key = this.digest.add(name);
+
     const newNode: SymbolTableNode = { key, value: functionIndex, next: this.head };
+
     this.head = newNode;
   }
 
@@ -30,8 +35,10 @@ export class SymbolTable {
       if (this.digest.get(current.key) === name) {
         return current.value;
       }
+
       current = current.next;
     }
+
     return undefined;
   }
 

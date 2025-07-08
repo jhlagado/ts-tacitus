@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
+
 import { SEG_CODE } from '../core/memory';
 
 export class Compiler {
@@ -54,6 +55,7 @@ export class Compiler {
    */
   compileAddress(value: number): void {
     const tagNum = toTaggedValue(value, Tag.CODE);
+
     this.compileFloat32(tagNum);
   }
 

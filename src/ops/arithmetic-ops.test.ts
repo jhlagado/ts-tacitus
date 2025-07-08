@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
+
 import {
   absOp,
   negOp,
@@ -16,6 +17,7 @@ import {
 } from './arithmetic-ops';
 describe('Arithmetic Operations', () => {
   let testVM: VM;
+
   beforeEach(() => {
     initializeInterpreter();
     testVM = vm;
@@ -39,6 +41,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(-7);
       absOp(testVM);
@@ -64,6 +67,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(7);
       negOp(testVM);
@@ -89,6 +93,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(-3);
       signOp(testVM);
@@ -114,6 +119,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(2);
       expOp(testVM);
@@ -134,6 +140,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(10);
       lnOp(testVM);
@@ -154,6 +161,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(1000);
       logOp(testVM);
@@ -179,6 +187,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(16);
       sqrtOp(testVM);
@@ -213,6 +222,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(4);
       testVM.push(0.5);
@@ -242,6 +252,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(3);
       testVM.push(8);
@@ -271,6 +282,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(3);
       testVM.push(8);
@@ -300,6 +312,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(3);
       testVM.push(7);
@@ -329,6 +342,7 @@ describe('Arithmetic Operations', () => {
     });
     test('should log when debug is enabled', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
       testVM.debug = true;
       testVM.push(3);
       testVM.push(7);

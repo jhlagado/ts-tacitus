@@ -4,6 +4,7 @@
  */
 import { VM } from '../core/vm';
 import { Op } from './opcodes';
+
 import {
   literalNumberOp,
   skipDefOp,
@@ -15,6 +16,7 @@ import {
   literalStringOp,
 } from './builtins-interpreter';
 import { openTupleOp, closeTupleOp } from './builtins-tuple';
+
 import {
   addOp,
   subtractOp,
@@ -39,6 +41,7 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 import { dupOp, dropOp, swapOp, rotOp, negRotOp } from './builtins-stack';
+
 import {
   absOp,
   negOp,
@@ -53,6 +56,7 @@ import {
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
+
 import { literalAddressOp } from './builtins';
 
 /**
@@ -71,6 +75,7 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Eval, evalOp);
   ft.registerBuiltin(Op.Print, (vm: VM) => {
     const value = vm.pop();
+
     console.log(value);
   });
   ft.registerBuiltin(Op.LiteralString, literalStringOp);

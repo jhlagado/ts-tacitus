@@ -1,6 +1,8 @@
 import { Op } from '../ops/opcodes';
 import { initializeInterpreter, vm } from '../core/globalState';
+
 import { fromTaggedValue } from '../core/tagged';
+
 describe('Compiler', () => {
   beforeEach(() => {
     initializeInterpreter();
@@ -19,7 +21,9 @@ describe('Compiler', () => {
     vm.compiler.compileAddress(0x2345);
     vm.reset();
     const tagNum = vm.nextFloat32();
+
     const { value: pointer } = fromTaggedValue(tagNum);
+
     expect(pointer).toBe(0x2345);
   });
   test('should compile a literal number', () => {

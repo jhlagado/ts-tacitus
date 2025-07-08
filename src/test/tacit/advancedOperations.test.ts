@@ -1,4 +1,5 @@
 import { runTacitTest } from '../tacitTestUtils';
+
 describe('Tacit Advanced Operations', () => {
   test('word definitions', () => {
     let result = runTacitTest(': square dup mul ; 3 square');

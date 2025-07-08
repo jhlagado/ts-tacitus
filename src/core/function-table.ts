@@ -30,6 +30,7 @@ export class FunctionTable {
     if (index < 0 || index > 127) {
       throw new Error(`Built-in operations must have indices between 0-127, got ${index}`);
     }
+
     this.table[index] = fn;
   }
 
@@ -42,6 +43,7 @@ export class FunctionTable {
     if (opcode < 0 || opcode >= 128) {
       throw new Error(`Opcode ${opcode} is outside the valid built-in range (0-127)`);
     }
+
     this.table[opcode] = func;
   }
 
@@ -69,6 +71,7 @@ export class FunctionTable {
    */
   execute(vm: VM, index: number): void {
     const fn = this.table[index];
+
     if (!fn) {
       throw new Error(`No function registered at index ${index}`);
     }
@@ -102,7 +105,9 @@ export class FunctionTable {
       return [firstByte, 1];
     } else {
       const lowBits = firstByte & 0x7f;
+
       const highBits = bytes[offset + 1] << 7;
+
       return [highBits | lowBits, 2];
     }
   }

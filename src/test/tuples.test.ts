@@ -3,6 +3,7 @@ import { parse } from '../lang/parser';
 import { Tokenizer } from '../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../core/tagged';
 import { execute } from '../lang/interpreter';
+
 import { vm, initializeInterpreter } from '../core/globalState';
 
 /**
@@ -10,6 +11,7 @@ import { vm, initializeInterpreter } from '../core/globalState';
  */
 function executeCode(code: string): number[] {
   const tokenizer = new Tokenizer(code);
+
   parse(tokenizer);
   execute(0);
   return vm.getStackData();
@@ -34,6 +36,7 @@ describe('Tuple operations', () => {
       expect(stack.length).toBe(4);
 
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
+
       expect(tupleTag).toBe(Tag.TUPLE);
       expect(tupleSize).toBe(2);
 
@@ -41,21 +44,26 @@ describe('Tuple operations', () => {
       expect(stack[2]).toBe(2);
 
       const { tag: linkTag } = fromTaggedValue(stack[3]);
+
       expect(linkTag).toBe(Tag.LINK);
     });
     test('should handle empty tuples', () => {
       const stack = executeCode('( )');
+
       expect(stack.length).toBe(2);
 
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
+
       expect(tupleTag).toBe(Tag.TUPLE);
       expect(tupleSize).toBe(0);
 
       const { tag: linkTag } = fromTaggedValue(stack[1]);
+
       expect(linkTag).toBe(Tag.LINK);
     });
     test('should handle a nested tuple with 1 level of nesting', () => {
       const stack = executeCode('( 1 ( 2 3 ) 4 )');
+
       /*
        * Expected stack with tag-first approach (from bottom to top):
        * [0]: TUPLE         - Outer tuple tag
@@ -68,10 +76,12 @@ describe('Tuple operations', () => {
       expect(stack.length).toBe(6);
 
       const { tag: outerTag, value: outerSize } = fromTaggedValue(stack[0]);
+
       expect(outerTag).toBe(Tag.TUPLE);
       expect(outerSize).toBe(5);
       expect(stack[1]).toBe(1);
       const { tag: innerTag, value: innerSize } = fromTaggedValue(stack[2]);
+
       expect(innerTag).toBe(Tag.TUPLE);
       expect(innerSize).toBe(2);
       expect(stack[3]).toBe(2);
@@ -113,6 +123,7 @@ describe('Tuple operations', () => {
     });
     test('should handle deeply nested tuples (3+ levels)', () => {
       const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
+
       /*
        * Expected stack (from bottom to top) with tag-first approach:
        * [0]: TUPLE         - Outermost tuple tag
@@ -128,12 +139,15 @@ describe('Tuple operations', () => {
       expect(stack.length).toBe(9);
 
       const { tag: outerTag } = fromTaggedValue(stack[0]);
+
       expect(outerTag).toBe(Tag.TUPLE);
       expect(stack[1]).toBe(1);
       const { tag: middleTag } = fromTaggedValue(stack[2]);
+
       expect(middleTag).toBe(Tag.TUPLE);
       expect(stack[3]).toBe(2);
       const { tag: innerTag } = fromTaggedValue(stack[4]);
+
       expect(innerTag).toBe(Tag.TUPLE);
       expect(stack[5]).toBe(3);
       expect(stack[6]).toBe(4);
@@ -147,11 +161,15 @@ describe('Tuple operations', () => {
       executeCode('( 1 2 ) dup');
 
       const stack = vm.getStackData();
+
       expect(stack.length).toBe(8);
 
       const { tag: firstTupleTag, value: firstTupleSize } = fromTaggedValue(stack[0]);
+
       const { tag: firstLinkTag } = fromTaggedValue(stack[3]);
+
       const { tag: secondTupleTag, value: secondTupleSize } = fromTaggedValue(stack[4]);
+
       const { tag: secondLinkTag } = fromTaggedValue(stack[7]);
 
       expect(firstTupleTag).toBe(Tag.TUPLE);
@@ -171,6 +189,7 @@ describe('Tuple operations', () => {
       executeCode('( 5 6 ) dup');
 
       const stack = vm.getStackData();
+
       expect(stack.length).toBe(8);
 
       expect(stack[1]).toBe(5);
@@ -188,9 +207,11 @@ describe('Tuple operations', () => {
 
       const countValue = (val: number): number => {
         let count = 0;
+
         for (let i = 0; i < dupStack.length; i++) {
           if (dupStack[i] === val) count++;
         }
+
         return count;
       };
 
@@ -206,6 +227,7 @@ describe('Tuple operations', () => {
       executeCode('42 dup');
 
       const stack = vm.getStackData();
+
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(42);
       expect(stack[1]).toBe(42);
@@ -217,9 +239,11 @@ describe('Tuple operations', () => {
       executeCode('30 40');
 
       const stack = vm.getStackData();
+
       expect(stack.length).toBe(10);
 
       const { tag: origTupleTag, value: origTupleSize } = fromTaggedValue(stack[0]);
+
       expect(origTupleTag).toBe(Tag.TUPLE);
       expect(origTupleSize).toBe(2);
       expect(stack[1]).toBe(10);
@@ -260,6 +284,7 @@ describe('Tuple operations', () => {
       executeCode('drop');
 
       const stackAfter = vm.getStackData().length;
+
       expect(stackAfter).toBeLessThan(stackBefore);
 
       executeCode('42');
@@ -277,6 +302,7 @@ describe('Tuple operations', () => {
       executeCode('drop');
 
       const afterDrop = vm.peek();
+
       expect(afterDrop).not.toBe(beforeDrop);
 
       executeCode('100');
@@ -295,6 +321,7 @@ describe('Tuple operations', () => {
       executeCode('42');
 
       const topBeforeOps = vm.peek();
+
       expect(topBeforeOps).toBe(42);
 
       executeCode('swap drop');

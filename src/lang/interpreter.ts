@@ -4,6 +4,7 @@ import { parse } from './parser';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
+
 import { SEG_CODE } from '../core/memory';
 
 export function execute(start: number, breakAtIP?: number): void {
@@ -16,12 +17,15 @@ export function execute(start: number, breakAtIP?: number): void {
     }
 
     const functionIndex = vm.nextOpcode();
+
     if (vm.debug) console.log({ functionIndex }, vm.IP - (functionIndex >= 128 ? 2 : 1));
 
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
         const originalIP = vm.IP - (functionIndex >= 128 ? 2 : 1);
+
         const rawValue = vm.memory.read8(SEG_CODE, originalIP);
+
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
 
@@ -34,14 +38,17 @@ export function execute(start: number, breakAtIP?: number): void {
           if (funcError instanceof Error && funcError.message.includes('No function registered')) {
             throw new Error(`Invalid opcode: ${functionIndex}`);
           }
+
           throw funcError;
         }
       }
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
+
       const errorMessage =
         `Error executing word (stack: ${stackState})` +
         (error instanceof Error ? `: ${error.message}` : '');
+
       if (vm.debug) console.log((error as Error).stack);
 
       vm.compiler.reset();
