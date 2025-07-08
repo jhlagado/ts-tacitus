@@ -20,7 +20,7 @@ import {
 } from './builtins-interpreter';
 
 import {
-  plusOp,
+  addOp,
   minusOp,
   multiplyOp,
   divideOp,
@@ -30,7 +30,9 @@ import {
   maxOp,
   equalOp,
   lessThanOp,
+  lessOrEqualOp,
   greaterThanOp,
+  greaterOrEqualOp,
   matchOp,
 } from './builtins-math';
 
@@ -107,8 +109,8 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
 
     // Dyadic Arithmetic
-    case Op.Plus:
-      plusOp(vm);
+    case Op.Add:
+      addOp(vm);
       break;
     case Op.Minus:
       minusOp(vm);
@@ -134,8 +136,14 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.LessThan:
       lessThanOp(vm);
       break;
+    case Op.LessOrEqual:
+      lessOrEqualOp(vm);
+      break;
     case Op.GreaterThan:
       greaterThanOp(vm);
+      break;
+    case Op.GreaterOrEqual:
+      greaterOrEqualOp(vm);
       break;
     case Op.Match:
       matchOp(vm);

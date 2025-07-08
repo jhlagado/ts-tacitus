@@ -3,19 +3,19 @@ import { runTacitTest } from '../tacitTestUtils';
 describe('Tacit Basic Operations', () => {
   test('arithmetic operations', () => {
     // Addition
-    let result = runTacitTest('5 3 +');
+    let result = runTacitTest('5 3 add');
     expect(result).toEqual([8]);
 
     // Subtraction
-    result = runTacitTest('10 3 -');
+    result = runTacitTest('10 3 sub');
     expect(result).toEqual([7]);
 
     // Multiplication
-    result = runTacitTest('5 3 *');
+    result = runTacitTest('5 3 mult');
     expect(result).toEqual([15]);
 
     // Division
-    result = runTacitTest('15 3 /');
+    result = runTacitTest('15 3 div');
     expect(result).toEqual([5]);
   });
 
@@ -35,19 +35,19 @@ describe('Tacit Basic Operations', () => {
 
   test('comparison operations', () => {
     // Greater than (true)
-    let result = runTacitTest('10 5 >');
+    let result = runTacitTest('10 5 gt');
     expect(result).toEqual([1]);
 
     // Greater than (false)
-    result = runTacitTest('5 10 >');
+    result = runTacitTest('5 10 gt');
     expect(result).toEqual([0]);
 
     // Equal (true)
-    result = runTacitTest('5 5 =');
+    result = runTacitTest('5 5 eq');
     expect(result).toEqual([1]);
 
     // Equal (false)
-    result = runTacitTest('5 6 =');
+    result = runTacitTest('5 6 eq');
     expect(result).toEqual([0]);
   });
 

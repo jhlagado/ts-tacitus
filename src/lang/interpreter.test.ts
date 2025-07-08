@@ -16,22 +16,22 @@ describe('Interpreter', () => {
 
   describe('Basic operations', () => {
     it('should execute simple addition', () => {
-      executeProgram('5 3 +');
+      executeProgram('5 3 add');
       expectStack([8]);
     });
 
     it('should handle subtraction', () => {
-      executeProgram('10 3 -');
+      executeProgram('10 3 sub');
       expectStack([7]);
     });
 
     it('should handle multiplication', () => {
-      executeProgram('5 3 *');
+      executeProgram('5 3 mult');
       expectStack([15]);
     });
 
     it('should handle division', () => {
-      executeProgram('15 3 /');
+      executeProgram('15 3 div');
       expectStack([5]);
     });
   });
@@ -80,15 +80,15 @@ describe('Interpreter', () => {
       expect(() => execute(vm.compiler.BCP)).toThrow('Invalid opcode');
     });
     it('should handle non-Error exceptions', () => {
-      jest.spyOn(math, 'plusOp').mockImplementation(() => {
+      jest.spyOn(math, 'addOp').mockImplementation(() => {
         throw 'Raw string error';
       });
-      expect(() => executeProgram('5 3 +')).toThrow('Error executing word (stack: [5,3])');
+      expect(() => executeProgram('5 3 add')).toThrow('Error executing word (stack: [5,3])');
       jest.restoreAllMocks();
     });
     it('should preserve stack state on error', () => {
       try {
-        executeProgram('5 3 0 / +');
+        executeProgram('5 3 0 div add');
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         expect(vm.getStackData()).toEqual([5, 3, 0]);
@@ -96,7 +96,7 @@ describe('Interpreter', () => {
     });
     it('should skip definition body during normal execution', () => {
       executeProgram(`
-        : double 2 * ;
+        : double 2 mult ;
         5 double
       `);
       expectStack([10]);
@@ -107,40 +107,40 @@ describe('Interpreter', () => {
   describe('Memory management', () => {
     it('should preserve memory when flag is set', () => {
       vm.compiler.preserve = true;
-      executeProgram('5 3 +');
+      executeProgram('5 3 add');
       expect(vm.compiler.BCP).toBe(vm.compiler.CP);
       expect(vm.compiler.preserve).toBe(false);
     });
 
     it('should reset memory when preserve is false', () => {
       const initialBCP = vm.compiler.BCP;
-      executeProgram('5 3 +');
+      executeProgram('5 3 add');
       expect(vm.compiler.CP).toBe(initialBCP);
     });
 
     it('should handle multiple preserve states', () => {
       // First execution with preserve=false
-      executeProgram('5 3 +');
+      executeProgram('5 3 add');
       const initialBCP = vm.compiler.BCP;
 
       // Second execution with preserve=true
       vm.compiler.preserve = true;
-      executeProgram('2 2 +');
+      executeProgram('2 2 add');
       expect(vm.compiler.BCP).toBe(initialBCP + 12);
     });
   });
 
   describe('Colon definitions', () => {
     it('should execute simple colon definition', () => {
-      executeProgram(`: square dup * ;
+      executeProgram(`: square dup mult ;
       3 square`);
       expectStack([9]);
     });
 
     it('should handle multiple colon definitions', () => {
       executeProgram(`
-        : square dup * ;
-        : cube dup square * ;
+        : square dup mult ;
+        : cube dup square mult ;
         4 square
         3 cube
       `);
@@ -149,7 +149,7 @@ describe('Interpreter', () => {
 
     it('should allow colon definitions to use other definitions', () => {
       executeProgram(`
-        : double 2 * ;
+        : double 2 mult ;
         : quadruple double double ;
         5 quadruple
       `);
@@ -158,7 +158,7 @@ describe('Interpreter', () => {
 
     it('should handle colon definitions with stack manipulation', () => {
       executeProgram(`
-        : swap-and-add swap + ;
+        : swap-and-add swap add ;
         3 7 swap-and-add
       `);
       expectStack([10]);
@@ -166,7 +166,7 @@ describe('Interpreter', () => {
 
     it('should handle colon definitions with code blocks', () => {
       executeProgram(`
-        : double 2 * ;
+        : double 2 mult ;
         5 double
       `);
       expectStack([10]);

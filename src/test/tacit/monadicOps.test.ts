@@ -1,6 +1,6 @@
 import { runTacitTest } from '../tacitTestUtils';
 
-describe('Tacit English Word Operations', () => {
+describe('Tacit Monadic Operations', () => {
   // Tests for monadic operations with English word names
   
   test('negate operation', () => {

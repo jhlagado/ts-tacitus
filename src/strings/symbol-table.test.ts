@@ -61,7 +61,7 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('word1')).toBeUndefined();
 
       // Built-in words should still exist
-      expect(symbolTable.find('+')).toBeDefined();
+      expect(symbolTable.find('add')).toBeDefined();
     });
 
     it('should handle multiple checkpoints and reverts', () => {
@@ -96,7 +96,7 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('wordC')).toBeUndefined();
       expect(symbolTable.find('wordB')).toBeUndefined();
       expect(symbolTable.find('wordA')).toBeUndefined();
-      expect(symbolTable.find('+')).toBeDefined(); // Builtins still exist
+      expect(symbolTable.find('add')).toBeDefined(); // Builtins still exist
     });
 
     it('should allow defining words after reverting', () => {

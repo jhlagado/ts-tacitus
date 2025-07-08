@@ -17,7 +17,7 @@ import {
 } from './builtins-interpreter';
 import { openTupleOp, closeTupleOp } from './builtins-tuple';
 import {
-  plusOp,
+  addOp,
   minusOp,
   multiplyOp,
   divideOp,
@@ -27,7 +27,9 @@ import {
   maxOp,
   equalOp,
   lessThanOp,
+  lessOrEqualOp,
   greaterThanOp,
+  greaterOrEqualOp,
   matchOp,
 } from './builtins-math';
 import {
@@ -88,7 +90,7 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.LiteralAddress, literalAddressOp);
   
   // Dyadic Arithmetic
-  ft.registerBuiltin(Op.Plus, plusOp);
+  ft.registerBuiltin(Op.Add, addOp);
   ft.registerBuiltin(Op.Minus, minusOp);
   ft.registerBuiltin(Op.Multiply, multiplyOp);
   ft.registerBuiltin(Op.Divide, divideOp);
@@ -97,7 +99,9 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Min, minOp);
   ft.registerBuiltin(Op.Max, maxOp);
   ft.registerBuiltin(Op.LessThan, lessThanOp);
+  ft.registerBuiltin(Op.LessOrEqual, lessOrEqualOp);
   ft.registerBuiltin(Op.GreaterThan, greaterThanOp);
+  ft.registerBuiltin(Op.GreaterOrEqual, greaterOrEqualOp);
   ft.registerBuiltin(Op.Equal, equalOp);
   ft.registerBuiltin(Op.Match, matchOp);
   

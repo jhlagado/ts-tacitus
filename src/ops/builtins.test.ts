@@ -1,4 +1,4 @@
-import { plusOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
+import { addOp, minusOp, multiplyOp, divideOp } from "./builtins-math";
 import { dupOp, dropOp, swapOp } from "./builtins-stack";
 import { initializeInterpreter, vm } from "../core/globalState";
 
@@ -8,16 +8,16 @@ describe("Built-in Words", () => {
   });
 
   describe("Arithmetic Operations", () => {
-    it("+ should add two numbers", () => {
+    it("add should add two numbers", () => {
       vm.push(5);
       vm.push(3);
-      plusOp(vm);
+      addOp(vm);
       expect(vm.getStackData()).toEqual([8]);
     });
 
-    it("+ should throw on insufficient stack items", () => {
+    it("add should throw on insufficient stack items", () => {
       vm.push(5); // Only one item on the stack
-      expect(() => plusOp(vm)).toThrow(
+      expect(() => addOp(vm)).toThrow(
         `Stack underflow: Cannot pop value (stack: [])`
       );
     });
@@ -95,10 +95,10 @@ describe("Built-in Words", () => {
   });
 
   describe("Arithmetic Operations", () => {
-    it("+ should add two numbers", () => {
+    it("add should add two numbers", () => {
       vm.push(5);
       vm.push(3);
-      plusOp(vm);
+      addOp(vm);
       expect(vm.getStackData()).toEqual([8]);
     });
 

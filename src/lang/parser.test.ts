@@ -33,19 +33,19 @@ describe('Parser with Tokenizer', () => {
     });
 
     it('should parse built-in words correctly', () => {
-      parse(new Tokenizer('dup drop swap + -'));
+      parse(new Tokenizer('dup drop swap add sub'));
 
       vm.reset();
       expect(vm.next8()).toBe(Op.Dup);
       expect(vm.next8()).toBe(Op.Drop);
       expect(vm.next8()).toBe(Op.Swap);
-      expect(vm.next8()).toBe(Op.Plus);
+      expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Minus);
       expect(vm.next8()).toBe(Op.Abort);
     });
 
     it('should parse mixed content correctly', () => {
-      parse(new Tokenizer('10 dup * 5 +'));
+      parse(new Tokenizer('10 dup mult 5 add'));
 
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralNumber);
@@ -54,7 +54,7 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.Multiply);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBeCloseTo(5);
-      expect(vm.next8()).toBe(Op.Plus);
+      expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Abort);
     });
 
@@ -69,7 +69,7 @@ describe('Parser with Tokenizer', () => {
   // Colon definitions
   describe('Colon definitions', () => {
     it('should parse simple word definitions', () => {
-      parse(new Tokenizer(': double dup + ;'));
+      parse(new Tokenizer(': double dup add ;'));
 
       // Check that word was defined
       const doubleWord = vm.symbolTable.find('double');
@@ -80,19 +80,19 @@ describe('Parser with Tokenizer', () => {
       expect(vm.next8()).toBe(Op.Branch);
       const skipOffset = vm.next16(); // READ THE OFFSET
       expect(vm.next8()).toBe(Op.Dup);
-      expect(vm.next8()).toBe(Op.Plus);
+      expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Exit);
       expect(vm.next8()).toBe(Op.Abort);
     });
 
     it('should parse word definitions with numbers in name', () => {
-      parse(new Tokenizer(': plus2 2 + ;'));
+      parse(new Tokenizer(': plus2 2 add ;'));
 
       expect(vm.symbolTable.find('plus2')).toBeDefined();
     });
 
     it('should parse word definitions with numbers as name', () => {
-      parse(new Tokenizer(': 123 dup * ;'));
+      parse(new Tokenizer(': 123 dup mult ;'));
 
       expect(vm.symbolTable.find('123')).toBeDefined();
     });
@@ -115,7 +115,7 @@ describe('Parser with Tokenizer', () => {
     });
 
     it('should throw an error for unclosed definitions', () => {
-      expect(() => parse(new Tokenizer(': square dup *'))).toThrow(
+      expect(() => parse(new Tokenizer(': square dup mult'))).toThrow(
         'Unclosed definition for square'
       );
     });
@@ -134,14 +134,14 @@ describe('Parser with Tokenizer', () => {
   // Multiple definitions
   describe('Multiple definitions', () => {
     it('should handle multiple word definitions', () => {
-      parse(new Tokenizer(': double dup + ; : triple dup dup + + ;'));
+      parse(new Tokenizer(': double dup add ; : triple dup dup add add ;'));
 
       expect(vm.symbolTable.find('double')).toBeDefined();
       expect(vm.symbolTable.find('triple')).toBeDefined();
     });
 
     it('should allow words to use previously defined words', () => {
-      parse(new Tokenizer(': double dup + ; : quadruple double double ;'));
+      parse(new Tokenizer(': double dup add ; : quadruple double double ;'));
 
       expect(vm.symbolTable.find('double')).toBeDefined();
       expect(vm.symbolTable.find('quadruple')).toBeDefined();
@@ -152,7 +152,7 @@ describe('Parser with Tokenizer', () => {
   describe('Error handling', () => {
     it('should throw on malformed word definition', () => {
       // Test missing semicolon - should throw 'Unclosed definition'
-      expect(() => parse(new Tokenizer(': test 1 +'))).toThrow('Unclosed definition for test');
+      expect(() => parse(new Tokenizer(': test 1 add'))).toThrow('Unclosed definition for test');
       
       // Test empty definition - should throw 'Expected word name after :'
       expect(() => parse(new Tokenizer(':'))).toThrow('Expected word name after :');
@@ -175,24 +175,24 @@ describe('Parser with Tokenizer', () => {
     });
 
     it('should define and find simple words', () => {
-      parse(new Tokenizer(': double dup + ;'));
+      parse(new Tokenizer(': double dup add ;'));
       expect(vm.symbolTable.find('double')).toBeDefined();
     });
 
     it('should handle multiple word definitions', () => {
-      parse(new Tokenizer(': double dup + ; : square dup * ;'));
+      parse(new Tokenizer(': double dup add ; : square dup mult ;'));
       expect(vm.symbolTable.find('double')).toBeDefined();
       expect(vm.symbolTable.find('square')).toBeDefined();
     });
 
     it('should handle words with numbers in name', () => {
       // Test with a word that contains numbers
-      parse(new Tokenizer(': x2 2 * ;'));
+      parse(new Tokenizer(': x2 2 mult ;'));
       expect(vm.symbolTable.find('x2')).toBeDefined();
       
       // Test with a word that starts with a number (if supported)
       try {
-        parse(new Tokenizer(': 2times 2 * ;'));
+        parse(new Tokenizer(': 2times 2 mult ;'));
         expect(vm.symbolTable.find('2times')).toBeDefined();
       } catch (e) {
         // Skip if not supported
@@ -201,7 +201,7 @@ describe('Parser with Tokenizer', () => {
     });
     
     it('should handle words with special characters', () => {
-      parse(new Tokenizer(': double? dup 0 > ;'));
+      parse(new Tokenizer(': double? dup 0 gt ;'));
       expect(vm.symbolTable.find('double?')).toBeDefined();
     });
   });

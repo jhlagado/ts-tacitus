@@ -1,7 +1,7 @@
 import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
 import {
-  plusOp,
+  addOp,
   minusOp,
   multiplyOp,
   divideOp,
@@ -24,24 +24,24 @@ describe('Built-in Math Operations', () => {
     testVM.debug = false;
   });
 
-  describe('plusOp (+)', () => {
+  describe('addOp (add)', () => {
     it('should add two numbers correctly', () => {
       testVM.push(5);
       testVM.push(3);
-      plusOp(testVM);
+      addOp(testVM);
       expect(testVM.pop()).toBe(8);
     });
 
     it('should handle negative numbers', () => {
       testVM.push(-5);
       testVM.push(10);
-      plusOp(testVM);
+      addOp(testVM);
       expect(testVM.pop()).toBe(5);
     });
 
     it('should throw on stack underflow', () => {
       testVM.push(5);
-      expect(() => plusOp(testVM)).toThrow('Stack underflow');
+      expect(() => addOp(testVM)).toThrow('Stack underflow');
     });
 
     it('should log when debug is enabled', () => {
@@ -49,8 +49,8 @@ describe('Built-in Math Operations', () => {
       testVM.debug = true;
       testVM.push(5);
       testVM.push(7);
-      plusOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('plusOp', 5, 7);
+      addOp(testVM);
+      expect(consoleSpy).toHaveBeenCalledWith('addOp', 5, 7);
       consoleSpy.mockRestore();
     });
   });

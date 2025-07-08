@@ -1,4 +1,4 @@
-import { plusOp } from './builtins-math';
+import { addOp } from './builtins-math';
 import { dupOp, swapOp } from './builtins-stack';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { fromTaggedValue, Tag, toTaggedValue } from '../core/tagged';
@@ -176,7 +176,7 @@ describe('Built-in Words', () => {
   describe('Error Handling', () => {
     it('should show stack state in errors', () => {
       try {
-        plusOp(vm);
+        addOp(vm);
       } catch (e) {
         if (e instanceof Error) {
           expect(e.message).toMatch(/stack: \[\]/);

@@ -9,12 +9,12 @@ describe('Conditional Operations', () => {
 
   describe('IF { ... }', () => {
     it('should execute then-branch when condition is true', () => {
-      executeProgram('1 IF { 2 3 + }');
+      executeProgram('1 IF { 2 3 add }');
       expect(vm.getStackData()).toEqual([5]);
     });
 
     it('should not execute then-branch when condition is false', () => {
-      executeProgram('0 IF { 2 3 + }');
+      executeProgram('0 IF { 2 3 add }');
       expect(vm.getStackData()).toEqual([]);
     });
 
@@ -37,7 +37,7 @@ describe('Conditional Operations', () => {
     });
 
     it('should handle complex expressions in branches', () => {
-      executeProgram('5 3 > IF { 2 3 * } ELSE { 2 3 + }');
+      executeProgram('5 3 gt IF { 2 3 mult } ELSE { 2 3 add }');
       expect(vm.getStackData()).toEqual([6]);
     });
   });
@@ -56,11 +56,11 @@ describe('Conditional Operations', () => {
     it('should handle multiple statements in branches', () => {
       executeProgram(`
         1 IF { 
-          2 3 * 
-          4 5 * 
-          + 
+          2 3 mult 
+          4 5 mult 
+          add 
         } ELSE { 
-          6 7 * 
+          6 7 mult 
         }
       `);
       expect(vm.getStackData()).toEqual([26]);

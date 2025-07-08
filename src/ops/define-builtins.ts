@@ -18,19 +18,36 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);
   dict.define('.', Op.Print);
 
-  // Dyadic Arithmetic
-  dict.define('+', Op.Plus);
-  dict.define('-', Op.Minus);
-  dict.define('*', Op.Multiply);
-  dict.define('/', Op.Divide);
-  dict.define('&', Op.Min);
-  dict.define('|', Op.Max);
-  dict.define('^', Op.Power);
-  dict.define('=', Op.Equal);
-  dict.define('<', Op.LessThan);
-  dict.define('>', Op.GreaterThan);
-  dict.define('~', Op.Match);
-  dict.define('!', Op.Mod);
+  // Dyadic operations
+  // Using English word names only
+  dict.define('add', Op.Add);
+  
+  dict.define('sub', Op.Minus);
+  
+  dict.define('mult', Op.Multiply);
+  
+  dict.define('div', Op.Divide);
+  
+  dict.define('min', Op.Min);
+  
+  dict.define('max', Op.Max);
+  
+  dict.define('pow', Op.Power);
+  
+  dict.define('eq', Op.Equal);
+  
+  dict.define('lt', Op.LessThan);
+  
+  dict.define('le', Op.LessOrEqual);
+  
+  dict.define('gt', Op.GreaterThan);
+  
+  dict.define('ge', Op.GreaterOrEqual);
+  
+  // We're removing the match operation as requested
+  // dict.define('~', Op.Match);
+  
+  dict.define('mod', Op.Mod);
 
   // Monadic Arithmetic with English word names
   // Note: Removed old symbolic versions (m-, m%, m_, m~, m*, m,)
