@@ -15,10 +15,8 @@
 import { VM } from './vm';
 
 export type OpcodeFunction = (vm: VM) => void;
-
 export class FunctionTable {
   private table: OpcodeFunction[] = [];
-
   constructor() {
     this.table = new Array(128).fill(null);
   }
@@ -71,7 +69,6 @@ export class FunctionTable {
    */
   execute(vm: VM, index: number): void {
     const fn = this.table[index];
-
     if (!fn) {
       throw new Error(`No function registered at index ${index}`);
     }
@@ -100,14 +97,11 @@ export class FunctionTable {
    */
   decodeAddress(bytes: Uint8Array, offset: number = 0): [number, number] {
     const firstByte = bytes[offset];
-
     if ((firstByte & 0x80) === 0) {
       return [firstByte, 1];
     } else {
       const lowBits = firstByte & 0x7f;
-
       const highBits = bytes[offset + 1] << 7;
-
       return [highBits | lowBits, 2];
     }
   }

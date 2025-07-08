@@ -7,7 +7,6 @@ import { Tokenizer } from './tokenizer';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;
-
   return new Uint8Array(vm.memory.buffer, 0, cp);
 };
 describe('Parser with Tokenizer', () => {
@@ -59,15 +58,11 @@ describe('Parser with Tokenizer', () => {
   describe('Colon definitions', () => {
     test('should parse simple word definitions', () => {
       parse(new Tokenizer(': double dup add ;'));
-
       const doubleWord = vm.symbolTable.find('double');
-
       expect(doubleWord).toBeDefined();
-
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
       const skipOffset = vm.next16();
-
       expect(vm.next8()).toBe(Op.Dup);
       expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Exit);
@@ -84,9 +79,7 @@ describe('Parser with Tokenizer', () => {
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
       expect(vm.symbolTable.find('empty')).toBeDefined();
-
       const emptyFunctionIndex = vm.symbolTable.find('empty');
-
       expect(() => {
         if (emptyFunctionIndex !== undefined) {
           vm.functionTable.execute(vm, emptyFunctionIndex);
@@ -124,7 +117,6 @@ describe('Parser with Tokenizer', () => {
   describe('Error handling', () => {
     test('should throw on malformed word definition', () => {
       expect(() => parse(new Tokenizer(': test 1 add'))).toThrow('Unclosed definition for test');
-
       expect(() => parse(new Tokenizer(':'))).toThrow('Expected word name after :');
     });
     test('should throw on unterminated string', () => {
@@ -151,7 +143,6 @@ describe('Parser with Tokenizer', () => {
     test('should handle words with numbers in name', () => {
       parse(new Tokenizer(': x2 2 mul ;'));
       expect(vm.symbolTable.find('x2')).toBeDefined();
-
       try {
         parse(new Tokenizer(': 2times 2 mul ;'));
         expect(vm.symbolTable.find('2times')).toBeDefined();
@@ -172,25 +163,21 @@ describe('Parser with Tokenizer', () => {
     test('should parse positive integers', () => {
       parse(new Tokenizer('123'));
       const code = getCompiledCode();
-
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse negative numbers', () => {
       parse(new Tokenizer('-42'));
       const code = getCompiledCode();
-
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse floating point numbers', () => {
       parse(new Tokenizer('3.14159'));
       const code = getCompiledCode();
-
       expect(code.length).toBeGreaterThan(0);
     });
     test('should parse multiple numbers', () => {
       parse(new Tokenizer('1 2 3'));
       const code = getCompiledCode();
-
       expect(code.length).toBeGreaterThan(0);
     });
   });
@@ -201,7 +188,6 @@ describe('Parser with Tokenizer', () => {
     });
     test('should ignore comments', () => {
       parse(new Tokenizer('1 2 \\ This is a comment\n3'));
-
       expect(true).toBeTruthy();
     });
     test('should handle inline comments', () => {

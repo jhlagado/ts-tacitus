@@ -15,7 +15,6 @@ const BYTES_PER_ELEMENT = 4;
  * - Pushes a placeholder tuple tag with size 0
  * - Pushes the tuple tag's position onto the return stack
  */
-
 export function openTupleOp(vm: VM): void {
   vm.tupleDepth++;
   vm.push(toTaggedValue(0, Tag.TUPLE));
@@ -28,19 +27,13 @@ export function openTupleOp(vm: VM): void {
  * - Updates the placeholder tuple tag with the correct size
  * - For outermost tuples, also pushes a reference to the tuple tag
  */
-
 export function closeTupleOp(vm: VM): void {
   const taggedTupleTagPos = vm.rpop();
-
   const { value: tupleTagPos } = fromTaggedValue(taggedTupleTagPos);
-
   const tupleSize = (vm.SP - tupleTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
-
   vm.memory.writeFloat32(SEG_STACK, tupleTagPos, toTaggedValue(tupleSize, Tag.TUPLE));
-
   if (vm.tupleDepth === 1) {
     const relativeElements = (vm.SP - tupleTagPos) / BYTES_PER_ELEMENT;
-
     vm.push(toTaggedValue(relativeElements, Tag.LINK));
   }
 }

@@ -3,22 +3,18 @@ import { runTacitTest } from '../tacitTestUtils';
 describe('Tacit Binary Op Operations', () => {
   test('add operation', () => {
     const result = runTacitTest('5 3 add');
-
     expect(result).toEqual([8]);
   });
   test('sub operation', () => {
     const result = runTacitTest('10 4 sub');
-
     expect(result).toEqual([6]);
   });
   test('mul operation', () => {
     const result = runTacitTest('5 4 mul');
-
     expect(result).toEqual([20]);
   });
   test('div operation', () => {
     const result = runTacitTest('10 2 div');
-
     expect(result).toEqual([5]);
   });
   test('min operation', () => {
@@ -35,7 +31,6 @@ describe('Tacit Binary Op Operations', () => {
   });
   test('pow operation', () => {
     const result = runTacitTest('2 3 pow');
-
     expect(result).toEqual([8]);
   });
   test('eq operation', () => {

@@ -3,7 +3,6 @@
  * This enum defines the opcodes for all built-in operations in Tacit.
  * Each member represents a specific operation that can be executed by the VM.
  */
-
 export enum Op {
   /**  Pushes a literal number onto the stack. */
   LiteralNumber,

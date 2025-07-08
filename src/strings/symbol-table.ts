@@ -7,21 +7,16 @@ interface SymbolTableNode {
 }
 
 /**  Represents a saved state of the symbol table. */
-
 export type SymbolTableCheckpoint = SymbolTableNode | null;
-
 export class SymbolTable {
   private head: SymbolTableNode | null;
-
   constructor(private digest: Digest) {
     this.head = null;
   }
 
   define(name: string, functionIndex: number): void {
     const key = this.digest.add(name);
-
     const newNode: SymbolTableNode = { key, value: functionIndex, next: this.head };
-
     this.head = newNode;
   }
 

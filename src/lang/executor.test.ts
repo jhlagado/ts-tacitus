@@ -26,20 +26,15 @@ describe('Executor', () => {
   describe('executeLine', () => {
     test('should tokenize, parse, and execute the input', () => {
       const input = '2 3 +';
-
       (Tokenizer as jest.Mock).mockImplementation(() => ({ input }));
-
       executeLine(input);
-
       expect(Tokenizer).toHaveBeenCalledWith(input);
       expect(parse).toHaveBeenCalledWith(expect.objectContaining({ input }));
       expect(execute).toHaveBeenCalledWith(123);
     });
     test('should propagate errors from tokenizer', () => {
       const input = 'invalid';
-
       const error = new Error('Tokenizer error');
-
       (Tokenizer as jest.Mock).mockImplementation(() => {
         throw error;
       });
@@ -50,7 +45,6 @@ describe('Executor', () => {
     });
     test('should propagate errors from parser', () => {
       const input = 'unknown word';
-
       (parse as jest.Mock).mockImplementation(() => {
         throw new Error('Parser error');
       });
@@ -60,7 +54,6 @@ describe('Executor', () => {
     });
     test('should propagate errors from execute', () => {
       const input = '+ +';
-
       (execute as jest.Mock).mockImplementation(() => {
         throw new Error('Execute error');
       });
@@ -74,7 +67,6 @@ describe('Executor', () => {
   describe('setupInterpreter', () => {
     test('should call initializeInterpreter', () => {
       setupInterpreter();
-
       expect(initializeInterpreter).toHaveBeenCalledTimes(1);
     });
   });

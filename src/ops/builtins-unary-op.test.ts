@@ -11,7 +11,6 @@ import {
 } from './builtins-unary-op';
 describe('Built-in Unary Op Operations', () => {
   let testVM: VM;
-
   beforeEach(() => {
     initializeInterpreter();
     testVM = vm;

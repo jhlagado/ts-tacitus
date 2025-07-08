@@ -9,10 +9,8 @@ import { initializeInterpreter, vm } from '../core/globalState';
  * @param input The code to execute
  * @throws Error if execution fails
  */
-
 export function executeLine(input: string): void {
   const tokenizer = new Tokenizer(input);
-
   parse(tokenizer);
   execute(vm.compiler.BCP);
 }
@@ -20,7 +18,6 @@ export function executeLine(input: string): void {
 /**
  * Initialize the interpreter environment
  */
-
 export function setupInterpreter(): void {
   initializeInterpreter();
 }

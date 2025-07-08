@@ -2,11 +2,11 @@ import { Memory, SEG_STRING, STRING_SIZE } from '../core/memory';
 
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
+
 const NOT_FOUND = -1;
 
 export class Digest {
   SBP: number;
-
   constructor(private memory: Memory) {
     this.SBP = 0;
   }
@@ -17,13 +17,11 @@ export class Digest {
     }
 
     const requiredSpace = STRING_HEADER_SIZE + str.length;
-
     if (this.SBP + requiredSpace > STRING_SIZE) {
       throw new Error('String digest overflow');
     }
 
     const startAddress = this.SBP;
-
     this.memory.write8(SEG_STRING, this.SBP++, str.length);
     for (let i = 0; i < str.length; i++) {
       this.memory.write8(SEG_STRING, this.SBP++, str.charCodeAt(i));
@@ -47,7 +45,6 @@ export class Digest {
 
     let pointer = address;
     const length = this.memory.read8(SEG_STRING, pointer++);
-
     if (pointer + length > 0 + STRING_SIZE) {
       throw new Error('Address is outside memory bounds');
     }
@@ -68,7 +65,6 @@ export class Digest {
     let pointer = 0;
     while (pointer < this.SBP) {
       const length = this.memory.read8(SEG_STRING, pointer);
-
       if (pointer + STRING_HEADER_SIZE + length > 0 + STRING_SIZE) {
         throw new Error('Address is outside memory bounds');
       }
@@ -92,7 +88,6 @@ export class Digest {
 
   intern(str: string): number {
     const address = this.find(str);
-
     if (address !== NOT_FOUND) {
       return address;
     }

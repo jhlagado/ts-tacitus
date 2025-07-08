@@ -62,10 +62,8 @@ import { literalAddressOp } from './builtins';
 /**
  * Initializes the function table with all built-in operations
  */
-
 export function initFunctionTable(vm: VM): void {
   const ft = vm.functionTable;
-
   ft.registerBuiltin(Op.LiteralNumber, literalNumberOp);
   ft.registerBuiltin(Op.Branch, skipDefOp);
   ft.registerBuiltin(Op.BranchCall, skipBlockOp);
@@ -75,12 +73,10 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Eval, evalOp);
   ft.registerBuiltin(Op.Print, (vm: VM) => {
     const value = vm.pop();
-
     console.log(value);
   });
   ft.registerBuiltin(Op.LiteralString, literalStringOp);
   ft.registerBuiltin(Op.LiteralAddress, literalAddressOp);
-
   ft.registerBuiltin(Op.Add, addOp);
   ft.registerBuiltin(Op.Minus, subtractOp);
   ft.registerBuiltin(Op.Multiply, multiplyOp);
@@ -94,20 +90,17 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.GreaterThan, greaterThanOp);
   ft.registerBuiltin(Op.GreaterOrEqual, greaterOrEqualOp);
   ft.registerBuiltin(Op.Equal, equalOp);
-
   ft.registerBuiltin(Op.mNegate, mNegateOp);
   ft.registerBuiltin(Op.mReciprocal, mReciprocalOp);
   ft.registerBuiltin(Op.mFloor, mFloorOp);
   ft.registerBuiltin(Op.mNot, mNotOp);
   ft.registerBuiltin(Op.mSignum, mSignumOp);
   ft.registerBuiltin(Op.mEnlist, mEnlistOp);
-
   ft.registerBuiltin(Op.Dup, dupOp);
   ft.registerBuiltin(Op.Drop, dropOp);
   ft.registerBuiltin(Op.Swap, swapOp);
   ft.registerBuiltin(Op.Rot, rotOp);
   ft.registerBuiltin(Op.NegRot, negRotOp);
-
   ft.registerBuiltin(Op.Abs, absOp);
   ft.registerBuiltin(Op.Neg, negOp);
   ft.registerBuiltin(Op.Sign, signOp);
@@ -118,10 +111,8 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Pow, powOp);
   ft.registerBuiltin(Op.Avg, avgOp);
   ft.registerBuiltin(Op.Prod, prodOp);
-
   ft.registerBuiltin(Op.If, simpleIfOp);
   ft.registerBuiltin(Op.IfFalseBranch, ifCurlyBranchFalseOp);
-
   ft.registerBuiltin(Op.OpenTuple, openTupleOp);
   ft.registerBuiltin(Op.CloseTuple, closeTupleOp);
 }

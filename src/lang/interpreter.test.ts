@@ -60,11 +60,9 @@ describe('Interpreter', () => {
   });
 
   describe('Code blocks', () => {});
-
   describe('Error handling', () => {
     test('should handle invalid opcodes', () => {
       vm.memory.write8(SEG_CODE, vm.compiler.BCP, 255);
-
       expect(() => execute(vm.compiler.BCP)).toThrow('Invalid opcode');
     });
     test('should handle non-Error exceptions', () => {
@@ -99,14 +97,12 @@ describe('Interpreter', () => {
     });
     test('should reset memory when preserve is false', () => {
       const initialBCP = vm.compiler.BCP;
-
       executeProgram('5 3 add');
       expect(vm.compiler.CP).toBe(initialBCP);
     });
     test('should handle multiple preserve states', () => {
       executeProgram('5 3 add');
       const initialBCP = vm.compiler.BCP;
-
       vm.compiler.preserve = true;
       executeProgram('2 2 add');
       expect(vm.compiler.BCP).toBe(initialBCP + 12);

@@ -4,7 +4,6 @@ import { initializeInterpreter, vm } from '../core/globalState';
 
 describe('Built-in Binary Op Operations', () => {
   let testVM: VM;
-
   beforeEach(() => {
     initializeInterpreter();
     testVM = vm;

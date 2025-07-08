@@ -5,7 +5,6 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 // Add jest rules for test files
 
 /**  @type {import('eslint').Linter.FlatConfig[]} */
-
 export default [
   {
     files: ['**/*.{ts,tsx}'], // Apply to TypeScript files
