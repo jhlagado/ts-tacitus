@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { executeLine, setupInterpreter } from './executor';
+
 export const TACIT_FILE_EXTENSION = '.tacit';
+
 /**
  * Ensures a file path has the correct extension
  */
@@ -11,10 +13,12 @@ function ensureFileExtension(filePath: string): string {
   }
   return filePath;
 }
+
 /**
  * Processes a single Tacit file
  * @returns True if successful, false if errors occurred
  */
+
 export function processFile(filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
   try {
@@ -31,6 +35,7 @@ export function processFile(filePath: string): boolean {
       if (line === '' || line.startsWith('\\')) {
         continue;
       }
+
       try {
         executeLine(line);
       } catch (error) {
@@ -52,9 +57,11 @@ export function processFile(filePath: string): boolean {
     return false;
   }
 }
+
 /**
  * Processes multiple Tacit files
  */
+
 export function processFiles(
   files: string[],
   exitOnError = true,
@@ -74,6 +81,7 @@ export function processFiles(
       break;
     }
   }
+
   if (allSucceeded) {
     console.log('All Tacit files processed successfully.');
   }

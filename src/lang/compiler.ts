@@ -1,12 +1,14 @@
 import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE } from '../core/memory';
+
 export class Compiler {
   nestingScore: number;
   CP: number;
   BCP: number;
   preserve: boolean;
   private vm: VM;
+
   /**
    * Creates a new Compiler instance.
    * @param vm The VM instance to use for memory access and other operations.
@@ -18,6 +20,7 @@ export class Compiler {
     this.preserve = false;
     this.vm = vm;
   }
+
   /**
    * Compiles an 8-bit value to the CODE area.
    * Note: Use this only for raw byte values, not for opcodes.
@@ -26,6 +29,7 @@ export class Compiler {
     this.vm.memory.write8(SEG_CODE, this.CP, value);
     this.CP += 1;
   }
+
   /**
    * Compiles a 16-bit value to the CODE area.
    * Note: Use this only for raw values, not for opcodes.
@@ -36,6 +40,7 @@ export class Compiler {
     this.vm.memory.write16(SEG_CODE, this.CP, unsignedValue);
     this.CP += 2;
   }
+
   /**
    * Compiles a 32-bit float to the CODE area.
    */
@@ -43,6 +48,7 @@ export class Compiler {
     this.vm.memory.writeFloat32(SEG_CODE, this.CP, value);
     this.CP += 4;
   }
+
   /**
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    */
@@ -70,6 +76,7 @@ export class Compiler {
 
     this.compile8((opcodeAddress >> 7) & 0xff);
   }
+
   /**
    * Resets the compile pointer to the buffer pointer.
    */
@@ -80,6 +87,7 @@ export class Compiler {
       this.CP = this.BCP;
     }
   }
+
   /**
    * Patches a 16-bit value at the specified memory address
    */

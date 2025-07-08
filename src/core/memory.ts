@@ -3,20 +3,28 @@ export const MEMORY_SIZE = 65536;
 const SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
 export const SEG_STACK = 0;
+
 export const SEG_RSTACK = 1;
+
 export const SEG_CODE = 4;
+
 export const SEG_STRING = 5;
 
 export const STACK_SIZE = 0x0100;
+
 export const RSTACK_SIZE = 0x0100;
+
 export const STRING_SIZE = 0x0800;
+
 export const CODE_SIZE = 0x2000;
+
 function initializeSegments() {
   SEGMENT_TABLE[SEG_STACK] = 0x0000;
   SEGMENT_TABLE[SEG_RSTACK] = SEGMENT_TABLE[SEG_STACK] + STACK_SIZE;
   SEGMENT_TABLE[SEG_STRING] = SEGMENT_TABLE[SEG_RSTACK] + RSTACK_SIZE;
   SEGMENT_TABLE[SEG_CODE] = SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
 }
+
 export class Memory {
   buffer: Uint8Array;
   dataView: DataView;

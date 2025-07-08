@@ -1,5 +1,6 @@
 import { SymbolTable } from '../strings/symbol-table';
 import { Op } from './opcodes';
+
 /**
  * Defines the built-in functions in the given symbol table.
  * This function maps symbolic names (strings) to their corresponding opcodes,
@@ -9,6 +10,7 @@ import { Op } from './opcodes';
  *
  * @param {SymbolTable} dict The symbol table to populate with built-in functions.
  */
+
 export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);
   dict.define('.', Op.Print);

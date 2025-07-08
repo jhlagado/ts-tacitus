@@ -2,22 +2,32 @@ import { Tag, fromTaggedValue } from './tagged';
 import { VM } from './vm';
 
 export const isDigit = (char: string): boolean => char >= '0' && char <= '9';
+
 export const isWhitespace = (char: string): boolean => char.trim() === '';
+
 export const isGroupingChar = (char: string): boolean => '{}[]()"\'`'.includes(char);
+
 export const isSpecialChar = (char: string): boolean => ':"\'`{}()[]'.includes(char);
 
 export const toUnsigned16 = (num: number): number => num & 0xffff;
+
 export const toBoolean = (value: number): boolean => value !== 0;
+
 export const toNumber = (value: boolean): number => (value ? 1 : 0);
+
 export function toFloat32(value: number): number {
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setFloat32(0, value, true);
   return view.getFloat32(0, true);
 }
+
 export const not = (value: number): number => toNumber(!toBoolean(value));
+
 export const and = (a: number, b: number): number => toNumber(toBoolean(a) && toBoolean(b));
+
 export const or = (a: number, b: number): number => toNumber(toBoolean(a) || toBoolean(b));
+
 export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== toBoolean(b));
 
 /**
@@ -28,6 +38,7 @@ export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== t
  * @param value32 - The tagged value to format.
  * @returns A formatted string representation of the tagged value.
  */
+
 export function formatValue(vm: VM, value32: number): string {
   const { value, tag } = fromTaggedValue(value32);
   switch (tag) {

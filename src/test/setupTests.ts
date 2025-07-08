@@ -7,6 +7,7 @@ expect.extend({
         message: () => `Expected both received and expected to be arrays.`,
       };
     }
+
     if (received.length !== expected.length) {
       return {
         pass: false,

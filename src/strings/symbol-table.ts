@@ -5,8 +5,10 @@ interface SymbolTableNode {
   next: SymbolTableNode | null;
 }
 
-/** Represents a saved state of the symbol table. */
+/**  Represents a saved state of the symbol table. */
+
 export type SymbolTableCheckpoint = SymbolTableNode | null;
+
 export class SymbolTable {
   private head: SymbolTableNode | null;
   constructor(private digest: Digest) {
@@ -32,6 +34,7 @@ export class SymbolTable {
     }
     return undefined;
   }
+
   /**
    * Creates a checkpoint representing the current state of the symbol table.
    * @returns {SymbolTableCheckpoint} An opaque checkpoint object.
@@ -39,6 +42,7 @@ export class SymbolTable {
   mark(): SymbolTableCheckpoint {
     return this.head;
   }
+
   /**
    * Reverts the symbol table to a previously created checkpoint.
    * All definitions made after the checkpoint was created will be forgotten.

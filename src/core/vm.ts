@@ -7,6 +7,7 @@ import { defineBuiltins } from '../ops/define-builtins';
 import { FunctionTable } from './function-table';
 import { initFunctionTable } from '../ops/init-function-table';
 const BYTES_PER_ELEMENT = 4;
+
 export class VM {
   memory: Memory;
   SP: number;
@@ -50,6 +51,7 @@ export class VM {
     const { value: pointer } = fromTaggedValue(this.pop());
     this.IP = pointer;
   }
+
   /**
    * Pushes a 32-bit float onto the stack.
    */
@@ -62,6 +64,7 @@ export class VM {
     this.memory.writeFloat32(SEG_STACK, this.SP, value);
     this.SP += BYTES_PER_ELEMENT;
   }
+
   /**
    * Pops a 32-bit float from the stack.
    */
@@ -79,6 +82,7 @@ export class VM {
     this.push(value);
     return value;
   }
+
   /**
    * Pops 'size' 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
@@ -90,6 +94,7 @@ export class VM {
     }
     return result;
   }
+
   /**
    * Pushes a 32-bit value onto the return stack.
    */
@@ -104,6 +109,7 @@ export class VM {
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
     this.RP += BYTES_PER_ELEMENT;
   }
+
   /**
    * Pops a 32-bit value from the return stack.
    */
@@ -119,6 +125,7 @@ export class VM {
   reset() {
     this.IP = 0;
   }
+
   /**
    * Read the next byte from memory and advance the instruction pointer
    */
@@ -127,6 +134,7 @@ export class VM {
     this.IP += 1;
     return value;
   }
+
   /**
    * Read the next opcode from memory (either 1-byte or 2-byte) and advance the instruction pointer
    * Decodes opcodes according to the unified addressing scheme:
@@ -149,6 +157,7 @@ export class VM {
 
     return firstByte;
   }
+
   /**
    * Reads the next 16-bit value from memory and increments the instruction pointer.
    */
@@ -158,6 +167,7 @@ export class VM {
     this.IP += 2;
     return signedValue;
   }
+
   /**
    * Reads the next 32-bit float from memory and increments the instruction pointer.
    */
@@ -166,6 +176,7 @@ export class VM {
     this.IP += BYTES_PER_ELEMENT;
     return value;
   }
+
   /**
    * Reads the next address (tagged as CODE) from memory and increments the instruction pointer.
    */
@@ -174,6 +185,7 @@ export class VM {
     const { value: pointer } = fromTaggedValue(tagNum);
     return pointer;
   }
+
   /**
    * Reads the next 16-bit value from code memory and increments the instruction pointer.
    */
@@ -183,6 +195,7 @@ export class VM {
     this.IP += 2;
     return (highByte << 8) | lowByte;
   }
+
   /**
    * Returns the current stack data as an array of 32-bit values.
    */

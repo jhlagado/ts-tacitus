@@ -1,9 +1,11 @@
 import { startREPL } from './lang/repl';
 import { processFiles } from './lang/fileProcessor';
 import { initializeInterpreter } from './core/globalState';
+
 /**
  * Main entry point for the CLI
  */
+
 export function main(): void {
   initializeInterpreter();
 

@@ -3,6 +3,7 @@ import { Verb } from '../core/types';
 import { Tag, fromTaggedValue } from '../core/tagged';
 import { SEG_STACK } from '../core/memory';
 const BYTES_PER_ELEMENT = 4;
+
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT) {
     throw new Error(
@@ -26,6 +27,7 @@ export const dupOp: Verb = (vm: VM) => {
     vm.push(topValue);
   }
 };
+
 export const dropOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT) {
     throw new Error(
@@ -41,6 +43,7 @@ export const dropOp: Verb = (vm: VM) => {
     vm.SP = targetSP;
   }
 };
+
 export const swapOp: Verb = (vm: VM) => {
   const top = vm.pop();
   const second = vm.pop();
@@ -48,6 +51,7 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(top);
   vm.push(second);
 };
+
 export const rotOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT * 3) {
     throw new Error(
@@ -61,6 +65,7 @@ export const rotOp: Verb = (vm: VM) => {
   vm.push(c);
   vm.push(a);
 };
+
 export const negRotOp: Verb = (vm: VM) => {
   if (vm.SP < BYTES_PER_ELEMENT * 3) {
     throw new Error(

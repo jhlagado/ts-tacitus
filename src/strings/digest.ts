@@ -2,6 +2,7 @@ import { Memory, SEG_STRING, STRING_SIZE } from '../core/memory';
 const MAX_STRING_LENGTH = 255;
 const STRING_HEADER_SIZE = 1;
 const NOT_FOUND = -1;
+
 export class Digest {
   SBP: number;
   constructor(private memory: Memory) {
@@ -59,6 +60,7 @@ export class Digest {
           this.memory.read8(SEG_STRING, pointer + STRING_HEADER_SIZE + i),
         );
       }
+
       if (existingStr === str) {
         return pointer;
       }
