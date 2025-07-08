@@ -3,52 +3,42 @@ import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
 import { toTaggedValue, Tag } from '../core/tagged';
-
 export interface Definition {
   name: string;
   branchPos: number;
 }
-
 interface ParserState {
   tokenizer: Tokenizer;
   currentDefinition: Definition | null;
   insideCodeBlock: boolean;
 }
-
 /**
  * Main parse function - entry point for parsing Tacit code
  */
 export function parse(tokenizer: Tokenizer): void {
   vm.compiler.reset();
-
   const state: ParserState = {
     tokenizer,
     currentDefinition: null,
     insideCodeBlock: false,
   };
-
   parseProgram(state);
   validateFinalState(state);
 
-  // Add Abort opcode at the end
   vm.compiler.compileOpcode(Op.Abort);
 }
-
 /**
  * Parse the entire program
  */
 function parseProgram(state: ParserState): void {
   while (true) {
     const token = state.tokenizer.nextToken();
-
     if (token.type === TokenType.EOF) {
       break;
     }
-
     processToken(token, state);
   }
 }
-
 /**
  * Validate the final state after parsing
  */
@@ -57,7 +47,6 @@ function validateFinalState(state: ParserState): void {
     throw new Error(`Unclosed definition for ${state.currentDefinition.name}`);
   }
 }
-
 /**
  * Process a token based on its type
  */
@@ -66,31 +55,26 @@ function processToken(token: Token, state: ParserState): void {
     case TokenType.NUMBER:
       compileNumberLiteral(token.value as number);
       break;
-
     case TokenType.STRING:
       compileStringLiteral(token.value as string);
       break;
-
     case TokenType.SPECIAL:
       processSpecialToken(token.value as string, state);
       break;
-
     case TokenType.WORD:
       processWordToken(token.value as string, state);
       break;
-
     case TokenType.WORD_QUOTE:
-      const wordName = token.value as string; // Type assertion to ensure string type
-      const address = vm.symbolTable.find(wordName) as number | undefined; // Type assertion to handle possible number or undefined
+      const wordName = token.value as string;
+      const address = vm.symbolTable.find(wordName) as number | undefined;
       if (address === undefined) {
         throw new Error(`Undefined word: ${wordName}`);
       }
       vm.compiler.compileOpcode(Op.LiteralAddress);
-      vm.compiler.compile16(address); // address now asserted to be number
+      vm.compiler.compile16(address);
       break;
   }
 }
-
 /**
  * Compile a number literal
  */
@@ -98,7 +82,6 @@ function compileNumberLiteral(value: number): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(value);
 }
-
 /**
  * Compile a string literal
  */
@@ -107,71 +90,62 @@ function compileStringLiteral(value: string): void {
   const address = vm.digest.add(value);
   vm.compiler.compile16(address);
 }
-
 /**
  * Process a word token
  */
 function processWordToken(value: string, state: ParserState): void {
-  // Check if it's a special character that should be handled differently
   if (value === 'IF') {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
-    // The condition has already been compiled in RPN order
     const falseJumpAddr = vm.compiler.CP;
-    vm.compiler.compileOpcode(Op.IfFalseBranch); // Use new opcode for conditional jump if false
-    const jumpOffsetAddr = vm.compiler.CP; // Address where the 16-bit offset is stored
-    vm.compiler.compile16(0); // Placeholder for jump offset
-    // Compile then-block with BLOCK_START and BLOCK_END
+    vm.compiler.compileOpcode(Op.IfFalseBranch);
+    const jumpOffsetAddr = vm.compiler.CP;
+    vm.compiler.compile16(0);
     const thenToken = state.tokenizer.nextToken();
     if (thenToken.type !== TokenType.BLOCK_START) {
       throw new Error('Expected { for then-block in IF statement');
     }
-    parseCurlyBlock(state); // Compile the then-block
+    parseCurlyBlock(state);
     const endOfThen = vm.compiler.CP;
-    // Check for optional ELSE clause using peekToken
     const next = state.tokenizer.peekToken();
     if (next && next.value === 'ELSE') {
-      state.tokenizer.nextToken(); // Consume 'ELSE'
-      const elseJumpAddr = vm.compiler.CP; // Address for unconditional jump
-      vm.compiler.compileOpcode(Op.Branch); // Unconditional jump to end of else
+      state.tokenizer.nextToken();
+      const elseJumpAddr = vm.compiler.CP;
+      vm.compiler.compileOpcode(Op.Branch);
       const elseJumpOffsetAddr = vm.compiler.CP;
-      vm.compiler.compile16(0); // Placeholder for jump offset
-      const elseBlockStart = vm.compiler.CP; // Start of else-block
+      vm.compiler.compile16(0);
+      const elseBlockStart = vm.compiler.CP;
       const elseBlockToken = state.tokenizer.nextToken();
       if (elseBlockToken.type !== TokenType.BLOCK_START) {
         throw new Error('Expected { for else-block in IF statement');
       }
-      parseCurlyBlock(state); // Compile the else-block
+      parseCurlyBlock(state);
       const endOfElse = vm.compiler.CP;
-      // Patch false jump to start of else-block
       const falseJumpOffset = elseBlockStart - (falseJumpAddr + 3);
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
       console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset}`);
-      // Patch unconditional jump to end of else-block
       const elseJumpOffset = endOfElse - (elseJumpAddr + 3);
       vm.compiler.patch16(elseJumpOffsetAddr, elseJumpOffset);
-      console.log(`Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`);
+      console.log(
+        `Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`
+      );
     } else {
-      // No ELSE, patch false jump to end of then-block
       const falseJumpOffset = endOfThen - (falseJumpAddr + 3);
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
-      console.log(`Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`);
+      console.log(
+        `Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`
+      );
     }
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
-    // Address where we'll compile the call instruction
     const functionIndex = vm.symbolTable.find(value);
     if (functionIndex === undefined) {
       throw new Error(`Unknown word: ${value}`);
     }
 
-    // Call the word using the function index
-    // Use the new opcode encoding for function reference
     vm.compiler.compileOpcode(functionIndex);
-    
   }
 }
-
 /**
  * Process special tokens like :, ;, (, )
  */
@@ -181,7 +155,6 @@ function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    // Parentheses are used for tuples
     beginTuple(state);
   } else if (value === ')') {
     endTuple(state);
@@ -189,7 +162,6 @@ function processSpecialToken(value: string, state: ParserState): void {
     parseBacktickSymbol(state);
   }
 }
-
 /**
  * Handle the backtick symbol for symbol literals
  */
@@ -203,122 +175,91 @@ function parseBacktickSymbol(state: ParserState): void {
     state.tokenizer.column++;
   }
 
-  // Compile as a literal string
   const addr = vm.digest.add(sym);
   vm.compiler.compileOpcode(Op.LiteralString);
   vm.compiler.compile16(addr);
 }
-
 /**
  * Begin a word definition with :
  */
 function beginDefinition(state: ParserState): void {
-  // Check if we're inside a code block
   if (state.insideCodeBlock) {
     throw new Error('Cannot nest definition inside code block');
   }
 
-  // Colon definition
   if (state.currentDefinition) {
     throw new Error('Nested definitions are not allowed');
   }
 
-  // Get the name token
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
     throw new Error(`Expected word name after :`);
   }
 
-  // Convert nameToken.value to string if it's a number
   const wordName = String(nameToken.value);
 
-  // Check if word already exists
   if (vm.symbolTable.find(wordName) !== undefined) {
     throw new Error(`Word already defined: ${wordName}`);
   }
 
-  // Compile branch instruction to skip definition
   vm.compiler.compileOpcode(Op.Branch);
   const branchPos = vm.compiler.CP;
-  vm.compiler.compile16(0); // Will be patched later
+  vm.compiler.compile16(0);
 
-  // Register word in function table
   const startAddress = vm.compiler.CP;
-  
-  // Create a function that will call the Tacit code at this address with proper BP frame
+
   const wordFunction = (vm: typeof import('../core/globalState').vm) => {
-    // Push tagged return address
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    
-    // Push current BP and set BP to current RP for local variables frame
+
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
-    
-    // Jump to function body
+
     vm.IP = startAddress;
   };
-  
-  // Register in function table and get the function index
+
   const functionIndex = vm.functionTable.registerWord(wordFunction);
-  
-  // Register word in symbol table with the function index
+
   vm.symbolTable.defineCall(wordName, functionIndex);
 
-  // Store current definition
   state.currentDefinition = {
     name: wordName,
     branchPos,
   };
 
-  // Mark for preservation
   vm.compiler.preserve = true;
 }
-
 /**
  * End a word definition with ;
  */
 function endDefinition(state: ParserState): void {
-  // End definition
   if (!state.currentDefinition) {
     throw new Error('Unexpected semicolon');
   }
 
-  // Compile exit instruction
   vm.compiler.compileOpcode(Op.Exit);
 
-  // Patch branch offset
   patchBranchOffset(state.currentDefinition.branchPos);
-
   state.currentDefinition = null;
 }
-
 /**
  * Begin a tuple with (
  */
 function beginTuple(_state: ParserState): void {
-  // Increment tuple depth to track nesting level
   vm.tupleDepth++;
-  
-  // Compile OpenTuple opcode
+
   vm.compiler.compileOpcode(Op.OpenTuple);
 }
-
 /**
  * End a tuple with )
  */
 function endTuple(_state: ParserState): void {
-  // Check if there was a matching opening parenthesis
   if (vm.tupleDepth <= 0) {
     throw new Error('Unexpected closing parenthesis');
   }
-  // Compile CloseTuple opcode
   vm.compiler.compileOpcode(Op.CloseTuple);
-  
-  // Decrement tuple depth after successful compilation
+
   vm.tupleDepth--;
 }
-
-
 
 /**
  * Patch a branch offset at the given position
@@ -326,13 +267,11 @@ function endTuple(_state: ParserState): void {
 function patchBranchOffset(branchPos: number): void {
   const endAddress = vm.compiler.CP;
   const branchOffset = endAddress - (branchPos + 2);
-
   const prevCP = vm.compiler.CP;
   vm.compiler.CP = branchPos;
   vm.compiler.compile16(branchOffset);
   vm.compiler.CP = prevCP;
 }
-
 /**
  * Parse a curly brace block
  */
@@ -341,9 +280,9 @@ function parseCurlyBlock(state: ParserState): number {
   while (true) {
     const token = state.tokenizer.nextToken();
     if (token.type === TokenType.BLOCK_END) {
-      break; // End of block
+      break;
     }
-    processToken(token, state); // Process tokens inside the block
+    processToken(token, state);
   }
   return startAddress;
 }

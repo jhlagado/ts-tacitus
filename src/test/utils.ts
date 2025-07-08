@@ -11,7 +11,6 @@ export function toBeCloseToArray(received: number[], expected: number[], precisi
       `Arrays have different lengths: received ${received.length}, expected ${expected.length}`
     );
   }
-
   for (let i = 0; i < received.length; i++) {
     if (Math.abs(received[i] - expected[i]) > Math.pow(10, -precision)) {
       throw new Error(
