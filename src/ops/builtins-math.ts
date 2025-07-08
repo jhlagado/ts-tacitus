@@ -2,17 +2,17 @@ import { VM } from "../core/vm";
 import { Verb } from "../core/types";
 import {} from "../core/memory";
 
-export const plusOp: Verb = (vm: VM) => {
+export const addOp: Verb = (vm: VM) => {
   if (vm.SP < 2) {
     throw new Error(
-      `Stack underflow: '+' requires 2 operands (stack: ${JSON.stringify(
+      `Stack underflow: 'add' requires 2 operands (stack: ${JSON.stringify(
         vm.getStackData()
       )})`
     );
   }
   const b = vm.pop();
   const a = vm.pop();
-  if (vm.debug) console.log("plusOp", a, b);
+  if (vm.debug) console.log("addOp", a, b);
   vm.push(a + b);
 };
 
@@ -91,7 +91,7 @@ export const maxOp: Verb = (vm: VM) => {
 };
 
 export const equalOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '=' requires 2 operands`);
+  if (vm.SP < 2) throw new Error(`Stack underflow: 'eq' requires 2 operands`);
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log("equalOp", a, b);
@@ -99,23 +99,40 @@ export const equalOp: Verb = (vm: VM) => {
 };
 
 export const lessThanOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '<' requires 2 operands`);
+  if (vm.SP < 2) throw new Error(`Stack underflow: 'lt' requires 2 operands`);
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log("lessThanOp", a, b);
   vm.push(a < b ? 1 : 0);
 };
 
+export const lessOrEqualOp: Verb = (vm: VM) => {
+  if (vm.SP < 2) throw new Error(`Stack underflow: 'le' requires 2 operands`);
+  const b = vm.pop();
+  const a = vm.pop();
+  if (vm.debug) console.log("lessOrEqualOp", a, b);
+  vm.push(a <= b ? 1 : 0);
+};
+
 export const greaterThanOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '>' requires 2 operands`);
+  if (vm.SP < 2) throw new Error(`Stack underflow: 'gt' requires 2 operands`);
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log("greaterThanOp", a, b);
   vm.push(a > b ? 1 : 0);
 };
 
+export const greaterOrEqualOp: Verb = (vm: VM) => {
+  if (vm.SP < 2) throw new Error(`Stack underflow: 'ge' requires 2 operands`);
+  const b = vm.pop();
+  const a = vm.pop();
+  if (vm.debug) console.log("greaterOrEqualOp", a, b);
+  vm.push(a >= b ? 1 : 0);
+};
+
+// We're keeping the matchOp implementation for now, but it's not exposed to users
 export const matchOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '~' requires 2 operands`);
+  if (vm.SP < 2) throw new Error(`Stack underflow: match operation requires 2 operands`);
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log("matchOp", a, b);

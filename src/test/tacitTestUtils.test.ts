@@ -8,19 +8,19 @@ import {
 describe('tacitTestUtils', () => {
   describe('testTacitCode', () => {
     it('should validate stack output correctly', () => {
-      expect(() => testTacitCode('5 3 +', [8])).not.toThrow();
+      expect(() => testTacitCode('5 3 add', [8])).not.toThrow();
     });
 
     it('should throw error for stack length mismatch', () => {
-      expect(() => testTacitCode('5 3 +', [8, 1])).toThrow(/Stack length mismatch/);
+      expect(() => testTacitCode('5 3 add', [8, 1])).toThrow(/Stack length mismatch/);
     });
 
     it('should throw error for value mismatch', () => {
-      expect(() => testTacitCode('5 3 +', [7])).toThrow(/Stack value mismatch/);
+      expect(() => testTacitCode('5 3 add', [7])).toThrow(/Stack value mismatch/);
     });
 
     it('should handle floating-point precision', () => {
-      expect(() => testTacitCode('0.1 0.2 +', [0.3])).not.toThrow();
+      expect(() => testTacitCode('0.1 0.2 add', [0.3])).not.toThrow();
     });
 
     it('should throw error for NaN values', () => {
@@ -36,7 +36,7 @@ describe('tacitTestUtils', () => {
 
   describe('executeTacitCode', () => {
     it('should execute Tacit code and return stack', () => {
-      const result = executeTacitCode('5 3 +');
+      const result = executeTacitCode('5 3 add');
       expect(result).toEqual([8]);
     });
 
@@ -58,7 +58,7 @@ describe('tacitTestUtils', () => {
     });
 
     it('should handle multiple outputs', () => {
-      const output = captureTacitOutput('5 3 + .');
+      const output = captureTacitOutput('5 3 add .');
       expect(output).toEqual(['8']);
     });
 
@@ -70,7 +70,7 @@ describe('tacitTestUtils', () => {
 
   describe('runTacitTest', () => {
     it('should execute Tacit code and return stack state', () => {
-      const result = runTacitTest('5 3 +');
+      const result = runTacitTest('5 3 add');
       expect(result).toEqual([8]);
     });
 

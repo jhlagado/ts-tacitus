@@ -37,9 +37,9 @@ describe('Compiler', () => {
   });
 
   it('should compile a built-in word', () => {
-    vm.compiler.compile8(Op.Plus); // Use Op enum
+    vm.compiler.compile8(Op.Add); // Use Op enum
     vm.reset();
-    expect(vm.next8()).toBe(Op.Plus); // Use next8 for opcodes
+    expect(vm.next8()).toBe(Op.Add); // Use next8 for opcodes
   });
 
   it('should preserve compiled code when preserve is true', () => {

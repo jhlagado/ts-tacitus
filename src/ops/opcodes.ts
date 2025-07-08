@@ -27,7 +27,7 @@ export enum Op {
   LiteralAddress,
 
   /** Performs addition of the top two values on the stack. */
-  Plus,
+  Add,
   /** Performs subtraction of the top two values on the stack. */
   Minus,
   /** Performs multiplication of the top two values on the stack. */
@@ -44,8 +44,12 @@ export enum Op {
   Max,
   /** Checks if the second value from the top of the stack is less than the top value. */
   LessThan,
+  /** Checks if the second value from the top of the stack is less than or equal to the top value. */
+  LessOrEqual,
   /** Checks if the second value from the top of the stack is greater than the top value. */
   GreaterThan,
+  /** Checks if the second value from the top of the stack is greater than or equal to the top value. */
+  GreaterOrEqual,
   /** Checks if the top two values on the stack are equal. */
   Equal,
   /** Checks if the top two values on the stack match (have the same structure). */
