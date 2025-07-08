@@ -33,12 +33,20 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('!', Op.Mod);
 
   // Monadic Arithmetic
+  // Keep symbolic versions for backward compatibility
   dict.define('m-', Op.mNegate);
   dict.define('m%', Op.mReciprocal);
   dict.define('m_', Op.mFloor);
   dict.define('m~', Op.mNot);
   dict.define('m*', Op.mSignum);
   dict.define('m,', Op.mEnlist);
+  
+  // Add more intuitive English word versions
+  // Note: neg, sign already exist below for their non-monadic counterparts
+  dict.define('recip', Op.mReciprocal);
+  dict.define('floor', Op.mFloor);
+  dict.define('not', Op.mNot);
+  dict.define('enlist', Op.mEnlist);
 
   // Stack Operations
   dict.define('dup', Op.Dup);
