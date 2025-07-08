@@ -1,6 +1,7 @@
 import { execute, executeProgram } from './interpreter';
 import { vm, initializeInterpreter } from '../core/globalState';
 import * as math from '../ops/builtins-math';
+
 import { SEG_CODE } from '../core/memory';
 
 function expectStack(expected: number[]): void {
@@ -98,6 +99,7 @@ describe('Interpreter', () => {
     });
     test('should reset memory when preserve is false', () => {
       const initialBCP = vm.compiler.BCP;
+
       executeProgram('5 3 add');
       expect(vm.compiler.CP).toBe(initialBCP);
     });

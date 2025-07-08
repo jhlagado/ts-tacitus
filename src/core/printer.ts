@@ -10,8 +10,11 @@ export function prn(title: string, tval: number): void {
 
 function formatValue(tval: number, indent = 0): string {
   const { value: _value, tag } = fromTaggedValue(tval);
+
   const name = toTagName(tag);
+
   const prefix = `${'  '.repeat(indent)}${name}: `;
+
   return `${prefix}${scalarRepr(tval)}`;
 }
 
@@ -21,6 +24,7 @@ function toTagName(tag: number): string {
 
 function scalarRepr(tval: number): string {
   const { tag, value } = fromTaggedValue(tval);
+
   switch (tag) {
     case Tag.INTEGER:
       return `${value}`;

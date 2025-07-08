@@ -1,5 +1,6 @@
 import { startREPL } from './lang/repl';
 import { processFiles } from './lang/fileProcessor';
+
 import { initializeInterpreter } from './core/globalState';
 
 /**
@@ -12,9 +13,11 @@ export function main(): void {
   const args = process.argv.slice(2);
 
   const noInteractiveIndex = args.indexOf('--no-interactive');
+
   const interactiveAfterFiles = noInteractiveIndex === -1;
 
   const files = args.filter(arg => !arg.startsWith('--'));
+
   if (files.length === 0) {
     startREPL();
   } else {

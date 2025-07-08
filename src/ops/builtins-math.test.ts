@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { initializeInterpreter, vm } from '../core/globalState';
+
 import {
   addOp,
   subtractOp,
@@ -15,6 +16,7 @@ import {
 } from './builtins-math';
 describe('Built-in Binary Math Operations', () => {
   let testVM: VM;
+
   beforeEach(() => {
     initializeInterpreter();
     testVM = vm;

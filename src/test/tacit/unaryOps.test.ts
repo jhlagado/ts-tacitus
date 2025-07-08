@@ -1,11 +1,14 @@
 import { runTacitTest } from '../tacitTestUtils';
+
 describe('Tacit Unary Op Operations', () => {
   test('negate operation', () => {
     const result = runTacitTest('5 neg');
+
     expect(result).toEqual([-5]);
   });
   test('reciprocal operation', () => {
     const result = runTacitTest('4 recip');
+
     expect(result).toEqual([0.25]);
   });
   test('floor operation', () => {
@@ -37,6 +40,7 @@ describe('Tacit Unary Op Operations', () => {
   });
   test('enlist operation', () => {
     const result = runTacitTest('5 enlist');
+
     expect(result.length).toBe(2);
   });
 });

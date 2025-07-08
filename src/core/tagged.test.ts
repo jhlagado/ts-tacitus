@@ -19,9 +19,12 @@ describe('Tagged NaN Encoding', () => {
       { tag: Tag.CODE_BLOCK, value: 54321 },
       { tag: Tag.STRING, value: 42 },
     ];
+
     tests.forEach(({ tag, value }) => {
       const encoded = toTaggedValue(value, tag);
+
       const decoded = fromTaggedValue(encoded);
+
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
     });
@@ -29,6 +32,7 @@ describe('Tagged NaN Encoding', () => {
 
   test('should throw on invalid tag ranges', () => {
     const invalidTag = Tag.LINK + 1;
+
     expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
   test('should validate value ranges for INTEGER', () => {
@@ -45,19 +49,25 @@ describe('Tagged NaN Encoding', () => {
   });
   test('should correctly extract value for integer types', () => {
     const encodedNeg = toTaggedValue(-32768, Tag.INTEGER);
+
     const encodedPos = toTaggedValue(32767, Tag.INTEGER);
+
     const decodedNeg = fromTaggedValue(encodedNeg);
+
     const decodedPos = fromTaggedValue(encodedPos);
+
     expect(decodedNeg.value).toBe(-32768);
     expect(decodedPos.value).toBe(32767);
   });
 
   test('should return the correct tag using getTag', () => {
     const encoded = toTaggedValue(123, Tag.CODE);
+
     expect(getTag(encoded)).toBe(Tag.CODE);
   });
   test('should return the correct value using getValue', () => {
     const encoded = toTaggedValue(456, Tag.CODE);
+
     expect(getValue(encoded)).toBe(456);
   });
   test('should correctly identify NIL using isNIL', () => {
@@ -66,7 +76,9 @@ describe('Tagged NaN Encoding', () => {
   });
   test('should correctly identify code types', () => {
     const func = toTaggedValue(123, Tag.CODE);
+
     const block = toTaggedValue(456, Tag.CODE_BLOCK);
+
     const str = toTaggedValue(789, Tag.STRING);
 
     expect(isCode(func)).toBe(true);

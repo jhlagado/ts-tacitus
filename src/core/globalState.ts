@@ -1,4 +1,5 @@
 import { VM } from './vm';
+
 import { Compiler } from '../lang/compiler';
 
 /**

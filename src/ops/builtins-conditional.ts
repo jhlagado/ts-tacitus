@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
+
 import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 /**
@@ -24,7 +25,13 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/t
  *
  * Example (new syntax):
  *   1 IF { 10 } ELSE { 20 }
+
+
+
  *   0 IF { 10 } ELSE { 20 }
+
+
+
  */
 
 export const simpleIfOp: Verb = (vm: VM) => {
@@ -33,18 +40,25 @@ export const simpleIfOp: Verb = (vm: VM) => {
       `Stack underflow: 'if' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
+
   const elseBranch = vm.pop();
+
   const thenBranch = vm.pop();
+
   const condition = vm.pop();
+
   if (!isNumber(condition)) {
     throw new Error(`Type error: 'if' condition must be a number, got: ${condition}`);
   }
+
   const selectedBranch = condition ? thenBranch : elseBranch;
+
   if (isCode(selectedBranch)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
     const { value: pointer } = fromTaggedValue(selectedBranch);
+
     vm.IP = pointer;
   } else {
     vm.push(selectedBranch);
@@ -69,18 +83,39 @@ export const simpleIfOp: Verb = (vm: VM) => {
  * Examples:
  *
  *   1 IF { 10 }
+
+
+
  *   0 IF { 10 }
+
+
+
  *
  *
  *   1 IF { 10 } ELSE { 20 }
+
+
+
  *   0 IF { 10 } ELSE { 20 }
+
+
+
  *
  *
  *   5 3 > IF { "greater" } ELSE { "not greater" }
+
+
+
  *
  *
  *   1 IF { 5 2 + } ELSE { 8 3 - }
+
+
+
  *   0 IF { 5 2 + } ELSE { 8 3 - }
+
+
+
  *
  * Note: The ELSE block is optional. If omitted and the condition is false,
  *       execution continues with the next instruction.
@@ -92,7 +127,9 @@ export const simpleIfOp: Verb = (vm: VM) => {
 
 export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
   const offset = vm.next16();
+
   const cond = vm.pop();
+
   if (!isNumber(cond) || cond === 0) {
     vm.IP += offset;
   }

@@ -2,7 +2,9 @@ import { Op } from '../ops/opcodes';
 import { initializeInterpreter, vm } from '../core/globalState';
 import { parse } from './parser';
 import { Tokenizer } from './tokenizer';
+
 import { executeProgram } from './interpreter';
+
 describe('Comprehensive Parser Tests', () => {
   beforeEach(() => {
     initializeInterpreter();
@@ -27,11 +29,13 @@ describe('Comprehensive Parser Tests', () => {
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
       const emptyWord = vm.symbolTable.find('empty');
+
       expect(emptyWord).toBeDefined();
 
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
       const _skipOffset = vm.next16();
+
       expect(vm.next8()).toBe(Op.Exit);
     });
     test('should handle words with special characters in name', () => {
@@ -95,9 +99,11 @@ describe('Comprehensive Parser Tests', () => {
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
       const addr = vm.next16();
+
       expect(addr).toBeGreaterThan(0);
 
       const str = vm.digest.get(addr);
+
       expect(str).toBe('');
     });
     test('should parse string literals with spaces', () => {
@@ -105,7 +111,9 @@ describe('Comprehensive Parser Tests', () => {
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
       const addr = vm.next16();
+
       const str = vm.digest.get(addr);
+
       expect(str).toBe('hello world');
     });
   });

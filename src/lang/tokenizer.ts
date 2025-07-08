@@ -25,6 +25,7 @@ export class Tokenizer {
   public line: number;
   public column: number;
   private pushedBack: Token | null;
+
   constructor(input: string) {
     this.input = input;
     this.position = 0;
@@ -32,18 +33,23 @@ export class Tokenizer {
     this.line = 1;
     this.column = 1;
   }
+
   pushBack(token: Token): void {
     if (this.pushedBack !== null) {
       throw new Error('Cannot push back more than one token');
     }
+
     this.pushedBack = token;
   }
+
   nextToken(): Token {
     if (this.pushedBack !== null) {
       const token = this.pushedBack;
+
       this.pushedBack = null;
       return token;
     }
+
     this.skipWhitespace();
     if (this.position >= this.input.length) {
       return {
@@ -52,7 +58,9 @@ export class Tokenizer {
         position: this.position,
       };
     }
+
     const char = this.input[this.position];
+
     const startPos = this.position;
 
     if (char === '\\') {
@@ -112,6 +120,7 @@ export class Tokenizer {
 
     if (char === '{' || char === '}') {
       const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
+
       this.position++;
       this.column++;
       return { type, value: char, position: startPos };
@@ -121,6 +130,7 @@ export class Tokenizer {
       this.position++;
       this.column++;
       const wordStartPos = this.position;
+
       let word = '';
       while (
         this.position < this.input.length &&
@@ -131,6 +141,7 @@ export class Tokenizer {
         this.position++;
         this.column++;
       }
+
       return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 };
     }
 
@@ -145,14 +156,19 @@ export class Tokenizer {
 
   peekToken(): Token | null {
     const currentPosition = this.position;
+
     const currentLine = this.line;
+
     const currentColumn = this.column;
+
     const token = this.nextToken();
+
     this.position = currentPosition;
     this.line = currentLine;
     this.column = currentColumn;
     return token;
   }
+
   private skipWhitespace(): void {
     while (this.position < this.input.length && isWhitespace(this.input[this.position])) {
       if (this.input[this.position] === '\n') {
@@ -161,6 +177,7 @@ export class Tokenizer {
       } else {
         this.column++;
       }
+
       this.position++;
     }
   }
@@ -171,6 +188,7 @@ export class Tokenizer {
   }
   private readString(): Token {
     const startPos = this.position;
+
     let value = '';
     this.position++;
     this.column++;
@@ -179,6 +197,7 @@ export class Tokenizer {
         this.position++;
         this.column++;
         const escapeChar = this.input[this.position];
+
         switch (escapeChar) {
           case 'n':
             value += '\n';
@@ -208,6 +227,7 @@ export class Tokenizer {
       } else {
         this.column++;
       }
+
       this.position++;
     }
 
@@ -217,10 +237,13 @@ export class Tokenizer {
     } else {
       throw new Error(`Unterminated string literal at line ${this.line}, column ${this.column}`);
     }
+
     return { type: TokenType.STRING, value, position: startPos };
   }
+
   private readNumber(): Token {
     const startPos = this.position;
+
     let tokenStr = '';
     if (this.input[this.position] === '+' || this.input[this.position] === '-') {
       tokenStr += this.input[this.position];
@@ -245,13 +268,17 @@ export class Tokenizer {
       }
     }
     const value = Number(tokenStr);
+
     if (isNaN(value)) {
       return { type: TokenType.WORD, value: tokenStr, position: startPos };
     }
+
     return { type: TokenType.NUMBER, value, position: startPos };
   }
+
   private readWord(): Token {
     const startPos = this.position;
+
     let word = '';
     while (
       this.position < this.input.length &&
@@ -262,8 +289,10 @@ export class Tokenizer {
       this.position++;
       this.column++;
     }
+
     return { type: TokenType.WORD, value: word, position: startPos };
   }
+
   getPosition(): { line: number; column: number } {
     return { line: this.line, column: this.column };
   }

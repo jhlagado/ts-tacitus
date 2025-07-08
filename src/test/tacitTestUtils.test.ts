@@ -30,42 +30,51 @@ describe('tacitTestUtils', () => {
   describe('executeTacitCode', () => {
     test('should execute Tacit code and return stack', () => {
       const result = executeTacitCode('5 3 add');
+
       expect(result).toEqual([8]);
     });
     test('should handle empty code', () => {
       const result = executeTacitCode('');
+
       expect(result).toEqual([]);
     });
     test('should handle complex stack operations', () => {
       const result = executeTacitCode('1 2 3 drop swap dup');
+
       expect(result).toEqual([2, 1, 1]);
     });
   });
   describe('captureTacitOutput', () => {
     test('should capture console output', () => {
       const output = captureTacitOutput('5 .');
+
       expect(output).toEqual(['5']);
     });
     test('should handle multiple outputs', () => {
       const output = captureTacitOutput('5 3 add .');
+
       expect(output).toEqual(['8']);
     });
     test('should handle empty output', () => {
       const output = captureTacitOutput('');
+
       expect(output).toEqual([]);
     });
   });
   describe('runTacitTest', () => {
     test('should execute Tacit code and return stack state', () => {
       const result = runTacitTest('5 3 add');
+
       expect(result).toEqual([8]);
     });
     test('should handle complex stack operations', () => {
       const result = runTacitTest('1 2 3 drop swap dup');
+
       expect(result).toEqual([2, 1, 1]);
     });
     test('should handle empty input', () => {
       const result = runTacitTest('');
+
       expect(result).toEqual([]);
     });
   });

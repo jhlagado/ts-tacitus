@@ -1,5 +1,7 @@
 import { vm, initializeInterpreter } from '../core/globalState';
+
 import { executeProgram } from '../lang/interpreter';
+
 describe('Conditional Operations', () => {
   beforeEach(() => {
     initializeInterpreter();
@@ -51,6 +53,9 @@ describe('Conditional Operations', () => {
         } ELSE {
           6 7 mul
         }
+
+
+
       `);
       expect(vm.getStackData()).toEqual([26]);
     });

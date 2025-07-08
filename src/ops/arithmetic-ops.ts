@@ -1,4 +1,5 @@
 import { VM } from '../core/vm';
+
 import { Verb } from '../core/types';
 
 /**
@@ -10,6 +11,7 @@ import { Verb } from '../core/types';
 
 export const absOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('absOp', a);
   vm.push(Math.abs(a));
 };
@@ -23,6 +25,7 @@ export const absOp: Verb = (vm: VM) => {
 
 export const negOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('negOp', a);
   vm.push(-a);
 };
@@ -36,6 +39,7 @@ export const negOp: Verb = (vm: VM) => {
 
 export const signOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('signOp', a);
   vm.push(Math.sign(a));
 };
@@ -49,6 +53,7 @@ export const signOp: Verb = (vm: VM) => {
 
 export const expOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('expOp', a);
   vm.push(Math.exp(a));
 };
@@ -62,6 +67,7 @@ export const expOp: Verb = (vm: VM) => {
 
 export const lnOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('lnOp', a);
   vm.push(Math.log(a));
 };
@@ -75,6 +81,7 @@ export const lnOp: Verb = (vm: VM) => {
 
 export const logOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('logOp', a);
   vm.push(Math.log10(a));
 };
@@ -88,6 +95,7 @@ export const logOp: Verb = (vm: VM) => {
 
 export const sqrtOp: Verb = (vm: VM) => {
   const a = vm.pop();
+
   if (vm.debug) console.log('sqrtOp', a);
   vm.push(Math.sqrt(a));
 };
@@ -102,7 +110,9 @@ export const sqrtOp: Verb = (vm: VM) => {
 
 export const powOp: Verb = (vm: VM) => {
   const b = vm.pop();
+
   const a = vm.pop();
+
   if (vm.debug) console.log('powOp', a, b);
   vm.push(Math.pow(a, b));
 };
@@ -117,7 +127,9 @@ export const powOp: Verb = (vm: VM) => {
 
 export const minOp: Verb = (vm: VM) => {
   const b = vm.pop();
+
   const a = vm.pop();
+
   if (vm.debug) console.log('minOp', a, b);
   vm.push(Math.min(a, b));
 };
@@ -132,7 +144,9 @@ export const minOp: Verb = (vm: VM) => {
 
 export const maxOp: Verb = (vm: VM) => {
   const b = vm.pop();
+
   const a = vm.pop();
+
   if (vm.debug) console.log('maxOp', a, b);
   vm.push(Math.max(a, b));
 };
@@ -146,7 +160,9 @@ export const maxOp: Verb = (vm: VM) => {
 
 export const avgOp: Verb = (vm: VM) => {
   const b = vm.pop();
+
   const a = vm.pop();
+
   if (vm.debug) console.log('avgOp', a, b);
   vm.push((a + b) / 2);
 };
@@ -160,7 +176,9 @@ export const avgOp: Verb = (vm: VM) => {
 
 export const prodOp: Verb = (vm: VM) => {
   const b = vm.pop();
+
   const a = vm.pop();
+
   if (vm.debug) console.log('prodOp', a, b);
   vm.push(a * b);
 };

@@ -1,6 +1,7 @@
 import { Tokenizer } from './tokenizer';
 import { parse } from './parser';
 import { execute } from './interpreter';
+
 import { initializeInterpreter, vm } from '../core/globalState';
 
 /**
@@ -11,6 +12,7 @@ import { initializeInterpreter, vm } from '../core/globalState';
 
 export function executeLine(input: string): void {
   const tokenizer = new Tokenizer(input);
+
   parse(tokenizer);
   execute(vm.compiler.BCP);
 }

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+
 import { executeLine, setupInterpreter } from './executor';
 
 export const TACIT_FILE_EXTENSION = '.tacit';
@@ -11,6 +12,7 @@ function ensureFileExtension(filePath: string): string {
   if (path.extname(filePath) === '') {
     return filePath + TACIT_FILE_EXTENSION;
   }
+
   return filePath;
 }
 
@@ -21,17 +23,23 @@ function ensureFileExtension(filePath: string): string {
 
 export function processFile(filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
+
   try {
     const absolutePath = path.resolve(filePathWithExt);
+
     console.log(`Processing Tacit file: ${absolutePath}`);
     if (!fs.existsSync(absolutePath)) {
       console.error(`File not found: ${absolutePath}`);
       return false;
     }
+
     const content = fs.readFileSync(absolutePath, 'utf8');
+
     const lines = content.split('\n');
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
+
       if (line === '' || line.startsWith('\\')) {
         continue;
       }
@@ -45,6 +53,7 @@ export function processFile(filePath: string): boolean {
         } else {
           console.error('  Unknown error occurred');
         }
+
         return false;
       }
     }
@@ -54,6 +63,7 @@ export function processFile(filePath: string): boolean {
     if (error instanceof Error) {
       console.error(`  ${error.message}`);
     }
+
     return false;
   }
 }
@@ -72,12 +82,14 @@ export function processFiles(
   let allSucceeded = true;
   for (const file of files) {
     const success = processFileFn(file);
+
     if (!success) {
       allSucceeded = false;
       console.log('Processing stopped due to error.');
       if (exitOnError) {
         process.exit(1);
       }
+
       break;
     }
   }
@@ -85,5 +97,6 @@ export function processFiles(
   if (allSucceeded) {
     console.log('All Tacit files processed successfully.');
   }
+
   return allSucceeded;
 }

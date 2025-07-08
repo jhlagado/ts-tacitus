@@ -1,6 +1,8 @@
 import { Memory, MEMORY_SIZE, SEG_STACK } from './memory';
+
 describe('Memory', () => {
   let memory: Memory;
+
   beforeEach(() => {
     memory = new Memory();
   });
@@ -12,6 +14,7 @@ describe('Memory', () => {
   });
   test('should write and read Float32 values correctly', () => {
     const value = 3.14159;
+
     memory.writeFloat32(SEG_STACK, 30, value);
     expect(memory.readFloat32(SEG_STACK, 30)).toBeCloseTo(value, 5);
   });
@@ -26,6 +29,7 @@ describe('Memory', () => {
     memory.write8(SEG_STACK, 1, 0xbb);
     memory.write8(SEG_STACK, 2, 0xcc);
     const dump = memory.dump(0, 2);
+
     expect(dump).toBe('aa bb cc');
   });
   test('should write and read 16-bit values correctly', () => {
@@ -36,6 +40,7 @@ describe('Memory', () => {
     expect(memory.read16(SEG_STACK, 10)).toBe(0xffff);
 
     const lastValidAddress = MEMORY_SIZE - 2;
+
     memory.write16(SEG_STACK, lastValidAddress, 0xabcd);
     expect(memory.read16(SEG_STACK, lastValidAddress)).toBe(0xabcd);
   });
@@ -53,6 +58,7 @@ describe('Memory', () => {
   });
   test('should handle full float boundary conditions', () => {
     const lastFloatAddress = MEMORY_SIZE - 4;
+
     memory.writeFloat32(SEG_STACK, lastFloatAddress, 1.234);
     expect(memory.readFloat32(SEG_STACK, lastFloatAddress)).toBeCloseTo(1.234);
 
@@ -64,6 +70,7 @@ describe('Memory', () => {
     memory.write8(SEG_STACK, 1, 0x42);
     memory.write8(SEG_STACK, 2, 0x43);
     const dumpChars = memory.dumpChars(0, 2);
+
     expect(dumpChars).toBe('A B C');
   });
   test('should handle invalid dumpChars ranges', () => {
