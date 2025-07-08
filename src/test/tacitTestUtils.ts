@@ -14,7 +14,7 @@ export function executeTacitCode(code: string): number[] {
 
   // Parse and execute the code
   parse(new Tokenizer(code));
-  execute(vm.compiler.BP);
+  execute(vm.compiler.BCP);
 
   // Return the stack for assertions
   return vm.getStackData();
@@ -94,7 +94,7 @@ export function captureTacitOutput(code: string): string[] {
   try {
     // Execute the code
     parse(new Tokenizer(code));
-    execute(vm.compiler.BP);
+    execute(vm.compiler.BCP);
 
     return output;
   } finally {
@@ -114,7 +114,7 @@ export function runTacitTest(testCode: string): number[] {
 
   // Parse and execute the code
   parse(new Tokenizer(testCode));
-  execute(vm.compiler.BP);
+  execute(vm.compiler.BCP);
 
   // Return the stack state after execution
   return vm.getStackData();

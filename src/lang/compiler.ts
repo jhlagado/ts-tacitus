@@ -5,7 +5,7 @@ import { SEG_CODE } from '../core/memory';
 export class Compiler {
   nestingScore: number;
   CP: number; // Compile pointer (points to CODE area, 16-bit address)
-  BP: number; // Buffer pointer (points to start of CODE area, 16-bit address)
+  BCP: number; // Buffer Compile Pointer (points to start of CODE area, 16-bit address)
   preserve: boolean;
   private vm: VM;
 
@@ -16,7 +16,7 @@ export class Compiler {
   constructor(vm: VM) {
     this.nestingScore = 0;
     this.CP = 0; // Start compiling at CODE
-    this.BP = 0; // Buffer starts at CODE
+    this.BCP = 0; // Buffer Compile Pointer starts at CODE
     this.preserve = false;
     this.vm = vm;
   }
@@ -88,9 +88,9 @@ export class Compiler {
    */
   reset(): void {
     if (this.preserve) {
-      this.BP = this.CP; // Preserve the compiled code
+      this.BCP = this.CP; // Preserve the compiled code
     } else {
-      this.CP = this.BP; // Reuse the memory
+      this.CP = this.BCP; // Reuse the memory
     }
   }
 

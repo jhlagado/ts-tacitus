@@ -46,6 +46,6 @@ describe('Compiler', () => {
     vm.compiler.preserve = true;
     vm.compiler.compileFloat32(42); // Compile a value
     vm.compiler.reset(); // Reset with preserve flag
-    expect(vm.compiler.BP).toBe(vm.compiler.CP); // BP should move to CP
+    expect(vm.compiler.BCP).toBe(vm.compiler.CP); // BCP should move to CP
   });
 });

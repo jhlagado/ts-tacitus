@@ -65,7 +65,7 @@ export function execute(start: number, breakAtIP?: number): void {
 
 export function executeProgram(code: string): void {
   parse(new Tokenizer(code));
-  execute(vm.compiler.BP);
+  execute(vm.compiler.BCP);
 }
 
 /**
