@@ -126,13 +126,13 @@ function processWordToken(value: string, state: ParserState): void {
       const elseJumpOffset = endOfElse - (elseJumpAddr + 3);
       vm.compiler.patch16(elseJumpOffsetAddr, elseJumpOffset);
       console.log(
-        `Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`
+        `Patched ELSE jump at offsetAddr=${elseJumpOffsetAddr}, offset=${elseJumpOffset}`,
       );
     } else {
       const falseJumpOffset = endOfThen - (falseJumpAddr + 3);
       vm.compiler.patch16(jumpOffsetAddr, falseJumpOffset);
       console.log(
-        `Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`
+        `Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`,
       );
     }
   } else if (value === ':' || value === ';' || value === '`') {

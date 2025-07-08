@@ -23,7 +23,7 @@ describe('Executor', () => {
     (execute as jest.Mock).mockImplementation(() => {});
   });
   describe('executeLine', () => {
-    it('should tokenize, parse, and execute the input', () => {
+    test('should tokenize, parse, and execute the input', () => {
       const input = '2 3 +';
       (Tokenizer as jest.Mock).mockImplementation(() => ({ input }));
 
@@ -33,7 +33,7 @@ describe('Executor', () => {
       expect(parse).toHaveBeenCalledWith(expect.objectContaining({ input }));
       expect(execute).toHaveBeenCalledWith(123);
     });
-    it('should propagate errors from tokenizer', () => {
+    test('should propagate errors from tokenizer', () => {
       const input = 'invalid';
       const error = new Error('Tokenizer error');
       (Tokenizer as jest.Mock).mockImplementation(() => {
@@ -44,7 +44,7 @@ describe('Executor', () => {
       expect(parse).not.toHaveBeenCalled();
       expect(execute).not.toHaveBeenCalled();
     });
-    it('should propagate errors from parser', () => {
+    test('should propagate errors from parser', () => {
       const input = 'unknown word';
       (parse as jest.Mock).mockImplementation(() => {
         throw new Error('Parser error');
@@ -53,7 +53,7 @@ describe('Executor', () => {
       expect(() => executeLine(input)).toThrow('Parser error');
       expect(execute).not.toHaveBeenCalled();
     });
-    it('should propagate errors from execute', () => {
+    test('should propagate errors from execute', () => {
       const input = '+ +';
       (execute as jest.Mock).mockImplementation(() => {
         throw new Error('Execute error');
@@ -61,12 +61,12 @@ describe('Executor', () => {
 
       expect(() => executeLine(input)).toThrow('Execute error');
     });
-    it('should handle empty input gracefully', () => {
+    test('should handle empty input gracefully', () => {
       expect(() => executeLine('')).not.toThrow();
     });
   });
   describe('setupInterpreter', () => {
-    it('should call initializeInterpreter', () => {
+    test('should call initializeInterpreter', () => {
       setupInterpreter();
 
       expect(initializeInterpreter).toHaveBeenCalledTimes(1);

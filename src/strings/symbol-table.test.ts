@@ -2,6 +2,7 @@ import { Memory } from '../core/memory';
 import { SymbolTable, SymbolTableCheckpoint } from './symbol-table';
 import { Digest } from './digest';
 import { defineBuiltins } from '../ops/define-builtins';
+
 describe('SymbolTable', () => {
   let symbolTable: SymbolTable;
   let initialCheckpoint: SymbolTableCheckpoint;
@@ -11,13 +12,15 @@ describe('SymbolTable', () => {
     defineBuiltins(symbolTable);
     initialCheckpoint = symbolTable.mark();
   });
+
   describe('Define new words', () => {
-    it('should define a new word and find it', () => {
+    test('should define a new word and find it', () => {
       const newFunctionIndex = 201;
       symbolTable.define('newWord', newFunctionIndex);
       expect(symbolTable.find('newWord')).toBe(newFunctionIndex);
     });
-    it('should override an existing word', () => {
+
+    test('should override an existing word', () => {
       const originalIndex = 202;
       const newIndex = 203;
       symbolTable.define('overrideWord', originalIndex);
@@ -26,11 +29,13 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('overrideWord')).toBe(newIndex);
     });
   });
+
   describe('Find words', () => {
-    it('should return undefined for a non-existent word', () => {
+    test('should return undefined for a non-existent word', () => {
       expect(symbolTable.find('nonExistentWord')).toBeUndefined();
     });
-    it('should find the most recently defined word', () => {
+
+    test('should find the most recently defined word', () => {
       const firstIndex = 204;
       const secondIndex = 205;
       symbolTable.define('duplicateWord', firstIndex);
@@ -38,8 +43,9 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('duplicateWord')).toBe(secondIndex);
     });
   });
+
   describe('Mark and Revert', () => {
-    it('should revert to a previous state', () => {
+    test('should revert to a previous state', () => {
       const checkpoint1 = symbolTable.mark();
 
       symbolTable.define('word1', dummyFunctionIndex);
@@ -51,7 +57,8 @@ describe('SymbolTable', () => {
 
       expect(symbolTable.find('add')).toBeDefined();
     });
-    it('should handle multiple checkpoints and reverts', () => {
+
+    test('should handle multiple checkpoints and reverts', () => {
       symbolTable.define('wordA', dummyFunctionIndex);
       const checkpointA = symbolTable.mark();
       expect(symbolTable.find('wordA')).toBe(dummyFunctionIndex);
@@ -79,7 +86,8 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('wordA')).toBeUndefined();
       expect(symbolTable.find('add')).toBeDefined();
     });
-    it('should allow defining words after reverting', () => {
+
+    test('should allow defining words after reverting', () => {
       const checkpoint = symbolTable.mark();
       symbolTable.define('tempWord', dummyFunctionIndex);
       expect(symbolTable.find('tempWord')).toBe(dummyFunctionIndex);

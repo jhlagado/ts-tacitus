@@ -1,13 +1,12 @@
-
-import * as fs from "fs";
-import * as path from "path";
-import { executeLine, setupInterpreter } from "./executor";
-export const TACIT_FILE_EXTENSION = ".tacit";
+import * as fs from 'fs';
+import * as path from 'path';
+import { executeLine, setupInterpreter } from './executor';
+export const TACIT_FILE_EXTENSION = '.tacit';
 /**
  * Ensures a file path has the correct extension
  */
 function ensureFileExtension(filePath: string): string {
-  if (path.extname(filePath) === "") {
+  if (path.extname(filePath) === '') {
     return filePath + TACIT_FILE_EXTENSION;
   }
   return filePath;
@@ -25,11 +24,11 @@ export function processFile(filePath: string): boolean {
       console.error(`File not found: ${absolutePath}`);
       return false;
     }
-    const content = fs.readFileSync(absolutePath, "utf8");
-    const lines = content.split("\n");
+    const content = fs.readFileSync(absolutePath, 'utf8');
+    const lines = content.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (line === "" || line.startsWith("\\")) {
+      if (line === '' || line.startsWith('\\')) {
         continue;
       }
       try {
@@ -39,7 +38,7 @@ export function processFile(filePath: string): boolean {
         if (error instanceof Error) {
           console.error(`  ${error.message}`);
         } else {
-          console.error("  Unknown error occurred");
+          console.error('  Unknown error occurred');
         }
         return false;
       }
@@ -59,16 +58,16 @@ export function processFile(filePath: string): boolean {
 export function processFiles(
   files: string[],
   exitOnError = true,
-  processFileFn: (filePath: string) => boolean = processFile
+  processFileFn: (filePath: string) => boolean = processFile,
 ): boolean {
   setupInterpreter();
-  console.log("Tacit file processing mode:");
+  console.log('Tacit file processing mode:');
   let allSucceeded = true;
   for (const file of files) {
     const success = processFileFn(file);
     if (!success) {
       allSucceeded = false;
-      console.log("Processing stopped due to error.");
+      console.log('Processing stopped due to error.');
       if (exitOnError) {
         process.exit(1);
       }
@@ -76,7 +75,7 @@ export function processFiles(
     }
   }
   if (allSucceeded) {
-    console.log("All Tacit files processed successfully.");
+    console.log('All Tacit files processed successfully.');
   }
   return allSucceeded;
 }

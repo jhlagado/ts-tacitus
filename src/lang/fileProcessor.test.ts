@@ -35,30 +35,35 @@ describe('processFile', () => {
     (path.resolve as jest.Mock).mockImplementation((p: string) => `/resolved/${p}`);
     (fs.existsSync as jest.Mock).mockReturnValue(true);
   });
+
   afterEach(() => {
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
   });
-  it('should add .tacit extension when missing', () => {
+
+  test('should add .tacit extension when missing', () => {
     (fs.readFileSync as jest.Mock).mockReturnValue('test content');
     (path.extname as jest.Mock).mockReturnValue('');
     processFile('testfile');
     expect(fs.existsSync).toHaveBeenCalledWith(`/resolved/testfile${TACIT_FILE_EXTENSION}`);
   });
-  it('should not add .tacit extension when already present', () => {
+
+  test('should not add .tacit extension when already present', () => {
     (fs.readFileSync as jest.Mock).mockReturnValue('test content');
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
     processFile('testfile' + TACIT_FILE_EXTENSION);
     expect(fs.existsSync).toHaveBeenCalledWith(`/resolved/testfile${TACIT_FILE_EXTENSION}`);
   });
-  it('should return false when file does not exist', () => {
+
+  test('should return false when file does not exist', () => {
     (fs.existsSync as jest.Mock).mockReturnValue(false);
     (path.extname as jest.Mock).mockReturnValue('');
     const result = processFile('nonexistent');
     expect(result).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('File not found'));
   });
-  it('should process file content line by line', () => {
+
+  test('should process file content line by line', () => {
     const fileContent = 'line1\n   \nline2';
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
@@ -67,12 +72,13 @@ describe('processFile', () => {
     expect(executeLine).toHaveBeenNthCalledWith(1, 'line1');
     expect(executeLine).toHaveBeenNthCalledWith(2, 'line2');
   });
-  it('should return false on execution error', () => {
+
+  test('should return false on execution error', () => {
     const fileContent = 'line1\nline2\nline3';
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
     (executeLine as jest.Mock)
-      .mockImplementationOnce(() => { })
+      .mockImplementationOnce(() => {})
       .mockImplementationOnce(() => {
         throw new Error('Execution error');
       });
@@ -81,7 +87,8 @@ describe('processFile', () => {
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error in file'));
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('at line 2:'));
   });
-  it('should return false on file read error', () => {
+
+  test('should return false on file read error', () => {
     (fs.readFileSync as jest.Mock).mockImplementation(() => {
       throw new Error('Read error');
     });
@@ -92,6 +99,7 @@ describe('processFile', () => {
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Read error'));
   });
 });
+
 describe('processFiles', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,22 +107,25 @@ describe('processFiles', () => {
     console.error = jest.fn();
     (setupInterpreter as jest.Mock).mockClear();
   });
+
   afterEach(() => {
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
   });
-  it('should initialize interpreter once and process all files successfully', () => {
+
+  test('should initialize interpreter once and process all files successfully', () => {
     const mockProcessFile = jest.fn().mockReturnValue(true);
     const files = ['file1.tacit', 'file2.tacit'];
     const result = processFiles(files, true, mockProcessFile);
     expect(setupInterpreter).toHaveBeenCalledTimes(1);
     expect(mockProcessFile).toHaveBeenCalledTimes(files.length);
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('All Tacit files processed successfully')
+      expect.stringContaining('All Tacit files processed successfully'),
     );
     expect(result).toBe(true);
   });
-  it('should exit on first file error when exitOnError is true', () => {
+
+  test('should exit on first file error when exitOnError is true', () => {
     const mockProcessFile = jest
       .fn()
       .mockImplementationOnce(() => true)
@@ -123,12 +134,13 @@ describe('processFiles', () => {
     const result = processFiles(files, true, mockProcessFile);
     expect(mockProcessFile).toHaveBeenCalledTimes(2);
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('Processing stopped due to error')
+      expect.stringContaining('Processing stopped due to error'),
     );
     expect(mockExit).toHaveBeenCalledWith(1);
     expect(result).toBe(false);
   });
-  it('should not exit on file error when exitOnError is false', () => {
+
+  test('should not exit on file error when exitOnError is false', () => {
     const mockProcessFile = jest
       .fn()
       .mockImplementationOnce(() => true)
@@ -138,7 +150,7 @@ describe('processFiles', () => {
     const result = processFiles(files, false, mockProcessFile);
     expect(mockProcessFile).toHaveBeenCalledTimes(2);
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('Processing stopped due to error')
+      expect.stringContaining('Processing stopped due to error'),
     );
     expect(mockExit).not.toHaveBeenCalled();
     expect(result).toBe(false);

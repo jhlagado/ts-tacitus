@@ -6,37 +6,37 @@ describe('Built-in Words', () => {
     initializeInterpreter();
   });
   describe('Arithmetic Operations', () => {
-    it('add should add two numbers', () => {
+    test('add should add two numbers', () => {
       vm.push(5);
       vm.push(3);
       addOp(vm);
       expect(vm.getStackData()).toEqual([8]);
     });
-    it('add should throw on insufficient stack items', () => {
+    test('add should throw on insufficient stack items', () => {
       vm.push(5);
       expect(() => addOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
     });
-    it('sub should subtract numbers', () => {
+    test('sub should subtract numbers', () => {
       vm.push(5);
       vm.push(3);
       subtractOp(vm);
       expect(vm.getStackData()).toEqual([2]);
     });
-    it('sub should throw on insufficient stack items', () => {
+    test('sub should throw on insufficient stack items', () => {
       vm.push(5);
       expect(() => subtractOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
     });
-    it('mul should multiply numbers', () => {
+    test('mul should multiply numbers', () => {
       vm.push(5);
       vm.push(3);
       multiplyOp(vm);
       expect(vm.getStackData()).toEqual([15]);
     });
-    it('mul should throw on insufficient stack items', () => {
+    test('mul should throw on insufficient stack items', () => {
       vm.push(5);
       expect(() => multiplyOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
     });
-    it('div should divide numbers', () => {
+    test('div should divide numbers', () => {
       vm.push(6);
       vm.push(3);
       divideOp(vm);
@@ -44,52 +44,52 @@ describe('Built-in Words', () => {
     });
   });
   describe('Stack Operations', () => {
-    it('dup should duplicate top item', () => {
+    test('dup should duplicate top item', () => {
       vm.push(5);
       dupOp(vm);
       expect(vm.getStackData()).toEqual([5, 5]);
     });
-    it('drop should remove top item', () => {
+    test('drop should remove top item', () => {
       vm.push(5);
       dropOp(vm);
       expect(vm.getStackData()).toEqual([]);
     });
-    it('swap should swap top two items', () => {
+    test('swap should swap top two items', () => {
       vm.push(5);
       vm.push(3);
       swapOp(vm);
       expect(vm.getStackData()).toEqual([3, 5]);
     });
-    it('drop should throw on empty stack', () => {
+    test('drop should throw on empty stack', () => {
       expect(() => dropOp(vm)).toThrow(
-        `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
+        `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`,
       );
     });
-    it('swap should throw on insufficient stack items', () => {
+    test('swap should throw on insufficient stack items', () => {
       vm.push(5);
       expect(() => swapOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
     });
   });
   describe('Arithmetic Operations', () => {
-    it('add should add two numbers', () => {
+    test('add should add two numbers', () => {
       vm.push(5);
       vm.push(3);
       addOp(vm);
       expect(vm.getStackData()).toEqual([8]);
     });
-    it('sub should subtract numbers', () => {
+    test('sub should subtract numbers', () => {
       vm.push(5);
       vm.push(3);
       subtractOp(vm);
       expect(vm.getStackData()).toEqual([2]);
     });
-    it('mul should multiply numbers', () => {
+    test('mul should multiply numbers', () => {
       vm.push(5);
       vm.push(3);
       multiplyOp(vm);
       expect(vm.getStackData()).toEqual([15]);
     });
-    it('div should divide numbers', () => {
+    test('div should divide numbers', () => {
       vm.push(6);
       vm.push(3);
       divideOp(vm);
@@ -97,28 +97,28 @@ describe('Built-in Words', () => {
     });
   });
   describe('Stack Operations', () => {
-    it('dup should duplicate top item', () => {
+    test('dup should duplicate top item', () => {
       vm.push(5);
       dupOp(vm);
       expect(vm.getStackData()).toEqual([5, 5]);
     });
-    it('drop should remove top item', () => {
+    test('drop should remove top item', () => {
       vm.push(5);
       dropOp(vm);
       expect(vm.getStackData()).toEqual([]);
     });
-    it('swap should swap top two items', () => {
+    test('swap should swap top two items', () => {
       vm.push(5);
       vm.push(3);
       swapOp(vm);
       expect(vm.getStackData()).toEqual([3, 5]);
     });
-    it('drop should throw on empty stack', () => {
+    test('drop should throw on empty stack', () => {
       expect(() => dropOp(vm)).toThrow(
-        `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
+        `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`,
       );
     });
-    it('swap should throw on insufficient stack items', () => {
+    test('swap should throw on insufficient stack items', () => {
       vm.push(5);
       expect(() => swapOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
     });
