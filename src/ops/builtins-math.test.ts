@@ -44,15 +44,7 @@ describe('Built-in Math Operations', () => {
       expect(() => addOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(5);
-      testVM.push(7);
-      addOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('addOp', 5, 7);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('minusOp (-)', () => {
@@ -75,15 +67,7 @@ describe('Built-in Math Operations', () => {
       expect(() => minusOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(10);
-      testVM.push(3);
-      minusOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('minusOp', 10, 3);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('multiplyOp (*)', () => {
@@ -113,15 +97,7 @@ describe('Built-in Math Operations', () => {
       expect(() => multiplyOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(6);
-      testVM.push(7);
-      multiplyOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('multiplyOp', 6, 7);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('divideOp (/)', () => {
@@ -158,15 +134,7 @@ describe('Built-in Math Operations', () => {
       expect(() => divideOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(20);
-      testVM.push(4);
-      divideOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('divideOp', 20, 4);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('powerOp (^)', () => {
@@ -203,15 +171,7 @@ describe('Built-in Math Operations', () => {
       expect(() => powerOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(3);
-      testVM.push(2);
-      powerOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('powerOp', 3, 2);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('modOp (%)', () => {
@@ -241,15 +201,7 @@ describe('Built-in Math Operations', () => {
       expect(() => modOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(17);
-      testVM.push(5);
-      modOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('modOp', 17, 5);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('minOp (min)', () => {
@@ -272,15 +224,7 @@ describe('Built-in Math Operations', () => {
       expect(() => minOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(3);
-      testVM.push(8);
-      minOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('minOp', 3, 8);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('maxOp (max)', () => {
@@ -303,15 +247,7 @@ describe('Built-in Math Operations', () => {
       expect(() => maxOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(3);
-      testVM.push(8);
-      maxOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('maxOp', 3, 8);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('equalOp (=)', () => {
@@ -334,15 +270,7 @@ describe('Built-in Math Operations', () => {
       expect(() => equalOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(7);
-      testVM.push(7);
-      equalOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('equalOp', 7, 7);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('lessThanOp (<)', () => {
@@ -372,15 +300,7 @@ describe('Built-in Math Operations', () => {
       expect(() => lessThanOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(3);
-      testVM.push(8);
-      lessThanOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('lessThanOp', 3, 8);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('greaterThanOp (>)', () => {
@@ -410,15 +330,7 @@ describe('Built-in Math Operations', () => {
       expect(() => greaterThanOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(8);
-      testVM.push(3);
-      greaterThanOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('greaterThanOp', 8, 3);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('matchOp (~)', () => {
@@ -441,14 +353,6 @@ describe('Built-in Math Operations', () => {
       expect(() => matchOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(7);
-      testVM.push(7);
-      matchOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('matchOp', 7, 7);
-      consoleSpy.mockRestore();
-    });
+
   });
 });

@@ -7,41 +7,37 @@ import { defineBuiltins } from '../ops/define-builtins';
 import { FunctionTable } from './function-table';
 import { initFunctionTable } from '../ops/init-function-table';
 
+const BYTES_PER_ELEMENT = 4;
+
 export class VM {
   memory: Memory;
-  SP: number; // Stack pointer (points to the next free slot)
-  RP: number; // Return stack pointer (points to the next free slot)
-  BP: number; // Base Pointer for local variable frames
-  IP: number; // Instruction pointer
+  SP: number; 
+  RP: number; 
+  BP: number; 
+  IP: number; 
   running: boolean;
-  compiler!: Compiler; // Will be set in initializeCompilerAndFunctionTable
+  compiler!: Compiler;
   digest: Digest;
   debug: boolean;
   symbolTable: SymbolTable;
-  functionTable: FunctionTable; // Function table for unified opcode addressing
-  tupleDepth: number; // Tracks nesting level of tuples
+  functionTable: FunctionTable;
+  tupleDepth: number;
 
   constructor() {
     this.memory = new Memory();
-    this.IP = 0; // Start execution at CODE
+    this.IP = 0;
     this.running = true;
-    this.SP = 0; // Stack starts at STACK
-    this.RP = 0; // Return stack starts at RSTACK
-    this.BP = 0; // Base Pointer starts at 0
+    this.SP = 0;
+    this.RP = 0;
+    this.BP = 0;
     
     this.digest = new Digest(this.memory);
     this.debug = false;
-    this.tupleDepth = 0; // Initialize tuple depth to 0
+    this.tupleDepth = 0;
     
-    // Initialize function table and register built-in functions
     this.functionTable = new FunctionTable();
-    
-    // Set up symbol table
-    this.symbolTable = new SymbolTable(this.digest); // Creates a new SymbolTable
-    defineBuiltins(this.symbolTable); // Populates the new table with built-ins
-    
-    // Defer function table initialization and compiler assignment to avoid circular dependencies
-    // These will be set after construction in the initialization function
+    this.symbolTable = new SymbolTable(this.digest);
+    defineBuiltins(this.symbolTable);
   }
   
   /**
@@ -63,13 +59,13 @@ export class VM {
    * Pushes a 32-bit float onto the stack.
    */
   push(value: number): void {
-    if (this.SP + 4 > STACK_SIZE) {
+    if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
       throw new Error(
         `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
-    this.memory.writeFloat32(SEG_STACK, this.SP, value); // Write 32-bit float
-    this.SP += 4; // Move stack pointer by 4 bytes
+    this.memory.writeFloat32(SEG_STACK, this.SP, value);
+    this.SP += BYTES_PER_ELEMENT;
   }
 
   /**
@@ -81,8 +77,8 @@ export class VM {
         `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
-    this.SP -= 4; // Move stack pointer back by 4 bytes
-    return this.memory.readFloat32(SEG_STACK, this.SP); // Read 32-bit float
+    this.SP -= BYTES_PER_ELEMENT;
+    return this.memory.readFloat32(SEG_STACK, this.SP);
   }
 
   peek(): number {
@@ -107,15 +103,15 @@ export class VM {
    * Pushes a 32-bit value onto the return stack.
    */
   rpush(value: number): void {
-    if (this.RP + 4 > RSTACK_SIZE) {
+    if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
       throw new Error(
         `Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
           this.getStackData()
         )})`
       );
     }
-    this.memory.writeFloat32(SEG_RSTACK, this.RP, value); // Write 32-bit value
-    this.RP += 4; // Move return stack pointer by 4 bytes
+    this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
+    this.RP += BYTES_PER_ELEMENT;
   }
 
   /**
@@ -127,8 +123,8 @@ export class VM {
         `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
-    this.RP -= 4; // Move return stack pointer back by 4 bytes
-    return this.memory.readFloat32(SEG_RSTACK, this.RP); // Read 32-bit value
+    this.RP -= BYTES_PER_ELEMENT;
+    return this.memory.readFloat32(SEG_RSTACK, this.RP);
   }
 
   reset() {
@@ -153,20 +149,17 @@ export class VM {
    */
   nextOpcode(): number {
     const firstByte = this.memory.read8(SEG_CODE, this.IP);
-    this.IP += 1; // Move instruction pointer by 1 byte
+    this.IP += 1;
     
-    // If high bit is set, this is a 2-byte opcode
     if ((firstByte & 0x80) !== 0) {
       const secondByte = this.memory.read8(SEG_CODE, this.IP);
-      this.IP += 1; // Move instruction pointer by 1 more byte
+      this.IP += 1;
       
-      // Decode the address (little-endian)
       const lowBits = firstByte & 0x7F;
       const highBits = secondByte << 7;
       return highBits | lowBits;
     }
     
-    // Otherwise, it's a 1-byte opcode
     return firstByte;
   }
 
@@ -174,13 +167,9 @@ export class VM {
    * Reads the next 16-bit value from memory and increments the instruction pointer.
    */
   next16(): number {
-    // Read the 16-bit value from memory
     const unsignedValue = this.memory.read16(SEG_CODE, this.IP);
-
-    // Interpret the 16-bit value as a signed integer
-    const signedValue = (unsignedValue << 16) >> 16; // Sign-extend to 32 bits
-
-    this.IP += 2; // Move instruction pointer by 2 bytes
+    const signedValue = (unsignedValue << 16) >> 16;
+    this.IP += 2;
     return signedValue;
   }
 
@@ -188,8 +177,8 @@ export class VM {
    * Reads the next 32-bit float from memory and increments the instruction pointer.
    */
   nextFloat32(): number {
-    const value = this.memory.readFloat32(SEG_CODE, this.IP); // Read 32-bit float
-    this.IP += 4; // Move instruction pointer by 4 bytes
+    const value = this.memory.readFloat32(SEG_CODE, this.IP);
+    this.IP += BYTES_PER_ELEMENT;
     return value;
   }
 
@@ -209,7 +198,7 @@ export class VM {
     const lowByte = this.memory.read8(SEG_CODE, this.IP);
     const highByte = this.memory.read8(SEG_CODE, this.IP + 1);
     this.IP += 2;
-    return (highByte << 8) | lowByte; // Combine bytes, assuming big-endian or adjust as per codebase
+    return (highByte << 8) | lowByte;
   }
 
   /**
@@ -217,7 +206,7 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    for (let i = 0; i < this.SP; i += 4) {
+    for (let i = 0; i < this.SP; i += BYTES_PER_ELEMENT) {
       stackData.push(this.memory.readFloat32(SEG_STACK, i));
     }
     return stackData;

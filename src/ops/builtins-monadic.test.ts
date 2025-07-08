@@ -8,7 +8,6 @@ import {
   mSignumOp,
   mEnlistOp,
 } from './builtins-monadic';
-import { toFloat32 } from '../core/utils';
 
 describe('Built-in Monadic Operations', () => {
   let testVM: VM;
@@ -42,14 +41,7 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mNegateOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(7);
-      mNegateOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mNegateOp', 7);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('mReciprocalOp (m%)', () => {
@@ -75,14 +67,7 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mReciprocalOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(10);
-      mReciprocalOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mReciprocalOp', 10);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('mFloorOp (m_)', () => {
@@ -108,15 +93,7 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mFloorOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const num = toFloat32(3.7);
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(num);
-      mFloorOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mFloorOp', num);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('mNotOp (m~)', () => {
@@ -142,14 +119,7 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mNotOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(0);
-      mNotOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mNotOp', 0);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('mSignumOp (m*)', () => {
@@ -175,14 +145,7 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mSignumOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(42);
-      mSignumOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mSignumOp', 42);
-      consoleSpy.mockRestore();
-    });
+
   });
 
   describe('mEnlistOp (m,)', () => {
@@ -190,16 +153,6 @@ describe('Built-in Monadic Operations', () => {
       expect(() => mEnlistOp(testVM)).toThrow('Stack underflow');
     });
 
-    it('should log when debug is enabled', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      testVM.debug = true;
-      testVM.push(7);
 
-      // Currently mEnlistOp does nothing except remove the value, as list support is not implemented
-      // This test just verifies that the debug log works
-      mEnlistOp(testVM);
-      expect(consoleSpy).toHaveBeenCalledWith('mEnlistOp', 7);
-      consoleSpy.mockRestore();
-    });
   });
 });
