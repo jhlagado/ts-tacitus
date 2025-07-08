@@ -1,9 +1,10 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import { Tag, fromTaggedValue, toTaggedValue } from '../core/tagged';
+import { Tag, fromTaggedValue } from '../core/tagged';
+import { SEG_STACK } from '../core/memory';
 
 export const dupOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) {
+  if (vm.SP < 4) { // Need at least 4 bytes (one float)
     throw new Error(
       `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
     );
@@ -15,41 +16,21 @@ export const dupOp: Verb = (vm: VM) => {
   
   if (tag === Tag.LINK) {
     // This is a tuple reference
-    if (vm.debug) console.log('dupOp tuple link with value:', value);
+    // Value is how many stack slots to go back to find the TUPLE tag
+    const elemCount = value + 1; // +1 to include the LINK tag itself
     
-    // Get the current stack state
-    const stack = vm.getStackData();
-    const stackLen = stack.length;
+    // Each element is 4 bytes (float32)
+    const byteOffset = elemCount * 4;
     
-    if (value <= 0 || value >= stackLen) {
-      throw new Error(`Invalid LINK value: ${value} (stack length: ${stackLen})`);
+    // Starting position in the stack (measured in bytes)
+    const startByte = vm.SP - byteOffset;
+    
+    // Copy each element from the tuple and push it to the stack
+    for (let i = 0; i < elemCount; i++) {
+      // Read a float32 value from stack memory
+      const val = vm.memory.readFloat32(SEG_STACK, startByte + (i * 4));
+      vm.push(val);
     }
-    
-    // Calculate the tuple start index in the stack array
-    // Stack array is 0-indexed, and we need to go back 'value' elements from the end
-    const tupleStartIndex = stackLen - 1 - value;
-    
-    // Read the tuple tag from stack array to get the tuple size
-    const tupleTagValue = stack[tupleStartIndex];
-    const { tag: tupleTag, value: tupleSize } = fromTaggedValue(tupleTagValue);
-    
-    // Verify we found a valid tuple tag
-    if (tupleTag !== Tag.TUPLE) {
-      throw new Error(`Expected TUPLE tag at stack index ${tupleStartIndex}, found tag ${tupleTag}`);
-    }
-    
-    // Step 1: Push a new copy of the tuple tag
-    vm.push(tupleTagValue);
-    
-    // Step 2: Push copies of all the tuple elements (from tuple values array)
-    for (let i = 0; i < tupleSize; i++) {
-      const elemIndex = tupleStartIndex + i + 1; // +1 to skip the TUPLE tag
-      vm.push(stack[elemIndex]);
-    }
-    
-    // Step 3: Push a new LINK tag with the correct value
-    // The LINK value should be tupleSize + 1 (count of elements back to the tuple tag)
-    vm.push(toTaggedValue(tupleSize + 1, Tag.LINK));
   } else {
     // Regular value, just duplicate it
     vm.push(topValue);
