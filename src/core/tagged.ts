@@ -36,8 +36,8 @@ export enum Tag {
   STRING = 4,
   /** Represents a tuple tag with size information. */
   TUPLE = 5,
-  /** Represents a reference to the stack segment. */
-  STACK_REF = 6,
+  /** Represents a link (relative offset) on the stack. */
+  LINK = 6,
 }
 
 /**
@@ -50,7 +50,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.CODE_BLOCK]: 'CODE_BLOCK',
   [Tag.STRING]: 'STRING',
   [Tag.TUPLE]: 'TUPLE',
-  [Tag.STACK_REF]: 'STACK_REF',
+  [Tag.LINK]: 'LINK',
 };
 
 /**
@@ -84,7 +84,7 @@ const EXPONENT_MASK = 0xff << 23;
  */
 export function toTaggedValue(value: number, tag: Tag): number {
   // Validate the tag is a valid Tag
-  if (tag < Tag.NUMBER || tag > Tag.STACK_REF) {
+  if (tag < Tag.NUMBER || tag > Tag.LINK) {
     throw new Error(`Invalid tag: ${tag}`);
   }
 

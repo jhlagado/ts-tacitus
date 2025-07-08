@@ -1,7 +1,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import {} from '../core/memory';
-import { fromTaggedValue, Tag } from '../core/tagged';
+import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < 1) {
@@ -9,10 +9,43 @@ export const dupOp: Verb = (vm: VM) => {
       `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
     );
   }
-  const a = vm.pop();
-  if (vm.debug) console.log('dupOp', a);
-  vm.push(a);
-  vm.push(a);
+  
+  // Peek at the top value without removing it yet
+  const topValue = vm.peek();
+  const { tag, value } = fromTaggedValue(topValue);
+  
+  if (tag === Tag.LINK) {
+    // This is a tuple link
+    vm.pop(); // Pop the link
+    
+    if (vm.debug) console.log('dupOp tuple link with relative count:', value);
+    
+    // Calculate how many elements to copy (including the tuple tag)
+    const elementsToCopy = value;
+    const startSP = vm.SP - (elementsToCopy * 4);
+    
+    // Copy each element from the tuple (from start to current SP)
+    const tupleCopy = [];
+    for (let pos = startSP; pos < vm.SP; pos += 4) {
+      const element = vm.memory.readFloat32(0, pos);
+      tupleCopy.push(element);
+    }
+    
+    // Push all copied elements onto the stack
+    for (const element of tupleCopy) {
+      vm.push(element);
+    }
+    
+    // Push the link to the duplicated tuple
+    // The value remains the same as the original link (same element count)
+    vm.push(toTaggedValue(value, Tag.LINK));
+  } else {
+    // Regular value, just duplicate it
+    const a = vm.pop();
+    if (vm.debug) console.log('dupOp simple value', a);
+    vm.push(a);
+    vm.push(a);
+  }
 };
 
 export const dropOp: Verb = (vm: VM) => {
@@ -26,15 +59,19 @@ export const dropOp: Verb = (vm: VM) => {
   const topValue = vm.peek();
   const { tag, value } = fromTaggedValue(topValue);
   
-  if (tag === Tag.STACK_REF) {
-    // This is a tuple reference
-    vm.pop(); // Pop the stack reference
+  if (tag === Tag.LINK) {
+    // This is a tuple link with relative element count
+    vm.pop(); // Pop the link
+    
+    // Calculate the absolute stack position by going backwards from current SP
+    // Each element is 4 bytes, so multiply by 4 to get byte offset
+    const targetSP = vm.SP - (value * 4);
     
     // Set the stack pointer to the tuple start position
-    if (vm.debug) console.log('dropOp tuple reference, resetting SP to', value);
-    vm.SP = value;
+    if (vm.debug) console.log('dropOp tuple link, resetting SP to', targetSP, 'from relative elements:', value);
+    vm.SP = targetSP;
   } else {
-    // Not a tuple reference, just drop the single value
+    // Not a tuple link, just drop the single value
     vm.pop();
     if (vm.debug) console.log('dropOp single value');
   }
