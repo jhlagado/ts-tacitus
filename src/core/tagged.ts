@@ -19,11 +19,9 @@
  *     -   The number of distinct tags is limited by the available bits in the
  *         mantissa.
  */
-
 /**
  * Tag types for values stored in the NaN-boxed value.
  */
-
 export enum Tag {
   /**  Represents a standard floating-point number. */
   NUMBER = 0,
@@ -50,7 +48,6 @@ export enum Tag {
 /**
  * Human-readable names for Tag values (for debugging).
  */
-
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.INTEGER]: 'INTEGER',
@@ -68,6 +65,7 @@ const VALUE_BITS = 16;
 const NAN_BIT = 1 << 22;
 const TAG_MANTISSA_MASK = 0x3f << 16;
 const VALUE_MASK = (1 << VALUE_BITS) - 1;
+
 const EXPONENT_MASK = 0xff << 23;
 
 /**
@@ -90,7 +88,6 @@ const EXPONENT_MASK = 0xff << 23;
  * @returns A 32-bit floating-point number representing the NaN-boxed tagged value.
  * @throws {Error} If the tag or value is invalid.
  */
-
 export function toTaggedValue(value: number, tag: Tag): number {
   if (tag < Tag.NUMBER || tag > Tag.LINK) {
     throw new Error(`Invalid tag: ${tag}`);
@@ -112,13 +109,9 @@ export function toTaggedValue(value: number, tag: Tag): number {
   }
 
   const mantissaTagBits = (tag & 0x3f) << 16;
-
   const bits = EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
-
   const buffer = new ArrayBuffer(4);
-
   const view = new DataView(buffer);
-
   view.setUint32(0, bits, true);
   return view.getFloat32(0, true);
 }
@@ -147,32 +140,24 @@ export function toTaggedValue(value: number, tag: Tag): number {
  *         Tag.INTEGER.
  *     -   `tag`: The tag indicating the data type.
  */
-
 export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
   if (!isNaN(nanValue)) {
     return { value: nanValue, tag: Tag.NUMBER };
   }
 
   const buffer = new ArrayBuffer(4);
-
   const view = new DataView(buffer);
-
   view.setFloat32(0, nanValue, true);
   const bits = view.getUint32(0, true);
-
   const tagBits = (bits & TAG_MANTISSA_MASK) >>> 16;
-
   const valueBits = bits & VALUE_MASK;
-
   const value = tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
-
   return { value, tag: tagBits };
 }
 
 /**
  * Returns the tag component from a tagged value.
  */
-
 export function getTag(nanValue: number): number {
   return fromTaggedValue(nanValue).tag;
 }
@@ -180,7 +165,6 @@ export function getTag(nanValue: number): number {
 /**
  * Returns the value component from a tagged value.
  */
-
 export function getValue(nanValue: number): number {
   return fromTaggedValue(nanValue).value;
 }
@@ -188,10 +172,8 @@ export function getValue(nanValue: number): number {
 /**
  * Checks if the given value is NIL.
  */
-
 export function isNIL(tval: number): boolean {
   const { tag, value } = fromTaggedValue(tval);
-
   return tag === Tag.INTEGER && value === 0;
 }
 
@@ -199,7 +181,6 @@ export function isNIL(tval: number): boolean {
  * Checks if the given value is reference-counted.
  * @deprecated This function is kept for backward compatibility but always returns false.
  */
-
 export function isRefCounted(_value: number): boolean {
   return false;
 }
@@ -208,59 +189,47 @@ export function isRefCounted(_value: number): boolean {
  * Checks if the given value is a number.
  * Returns true for both tagged numbers and native JavaScript numbers.
  */
-
 export function isNumber(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.NUMBER;
 }
 
 /**
  * Checks if the given value is an integer.
  */
-
 export function isInteger(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.INTEGER;
 }
 
 /**
  * Checks if the given value is a function code value.
  */
-
 export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.CODE;
 }
 
 /**
  * Checks if the given value is a code block value.
  */
-
 export function isCodeBlock(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.CODE_BLOCK;
 }
 
 /**
  * Checks if the given value is either a function or code block.
  */
-
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.CODE || tag === Tag.CODE_BLOCK;
 }
 
 /**
  * Checks if the given value is a string.
  */
-
 export function isString(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-
   return tag === Tag.STRING;
 }

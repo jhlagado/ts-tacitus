@@ -23,7 +23,6 @@ export class VM {
   symbolTable: SymbolTable;
   functionTable: FunctionTable;
   tupleDepth: number;
-
   constructor() {
     this.memory = new Memory();
     this.IP = 0;
@@ -31,11 +30,9 @@ export class VM {
     this.SP = 0;
     this.RP = 0;
     this.BP = 0;
-
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.tupleDepth = 0;
-
     this.functionTable = new FunctionTable();
     this.symbolTable = new SymbolTable(this.digest);
     defineBuiltins(this.symbolTable);
@@ -53,7 +50,6 @@ export class VM {
   eval() {
     this.rpush(toTaggedValue(this.IP, Tag.CODE));
     const { value: pointer } = fromTaggedValue(this.pop());
-
     this.IP = pointer;
   }
 
@@ -87,7 +83,6 @@ export class VM {
 
   peek(): number {
     const value = this.pop();
-
     this.push(value);
     return value;
   }
@@ -98,7 +93,6 @@ export class VM {
    */
   popArray(size: number): number[] {
     const result: number[] = [];
-
     for (let i = 0; i < size; i++) {
       result.unshift(this.pop());
     }
@@ -145,7 +139,6 @@ export class VM {
    */
   next8(): number {
     const value = this.memory.read8(SEG_CODE, this.IP);
-
     this.IP += 1;
     return value;
   }
@@ -159,18 +152,12 @@ export class VM {
    */
   nextOpcode(): number {
     const firstByte = this.memory.read8(SEG_CODE, this.IP);
-
     this.IP += 1;
-
     if ((firstByte & 0x80) !== 0) {
       const secondByte = this.memory.read8(SEG_CODE, this.IP);
-
       this.IP += 1;
-
       const lowBits = firstByte & 0x7f;
-
       const highBits = secondByte << 7;
-
       return highBits | lowBits;
     }
 
@@ -182,9 +169,7 @@ export class VM {
    */
   next16(): number {
     const unsignedValue = this.memory.read16(SEG_CODE, this.IP);
-
     const signedValue = (unsignedValue << 16) >> 16;
-
     this.IP += 2;
     return signedValue;
   }
@@ -194,7 +179,6 @@ export class VM {
    */
   nextFloat32(): number {
     const value = this.memory.readFloat32(SEG_CODE, this.IP);
-
     this.IP += BYTES_PER_ELEMENT;
     return value;
   }
@@ -204,9 +188,7 @@ export class VM {
    */
   nextAddress(): number {
     const tagNum = this.nextFloat32();
-
     const { value: pointer } = fromTaggedValue(tagNum);
-
     return pointer;
   }
 
@@ -215,9 +197,7 @@ export class VM {
    */
   read16(): number {
     const lowByte = this.memory.read8(SEG_CODE, this.IP);
-
     const highByte = this.memory.read8(SEG_CODE, this.IP + 1);
-
     this.IP += 2;
     return (highByte << 8) | lowByte;
   }
@@ -227,7 +207,6 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-
     for (let i = 0; i < this.SP; i += BYTES_PER_ELEMENT) {
       stackData.push(this.memory.readFloat32(SEG_STACK, i));
     }
@@ -237,7 +216,6 @@ export class VM {
 
   getCompileData(): number[] {
     const compileData: number[] = [];
-
     for (let i = 0; i < this.compiler.CP; i++) {
       compileData.push(this.memory.read8(SEG_CODE, i));
     }

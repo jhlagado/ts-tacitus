@@ -9,7 +9,6 @@ export class Compiler {
   BCP: number;
   preserve: boolean;
   private vm: VM;
-
   /**
    * Creates a new Compiler instance.
    * @param vm The VM instance to use for memory access and other operations.
@@ -37,7 +36,6 @@ export class Compiler {
    */
   compile16(value: number): void {
     const unsignedValue = value & 0xffff;
-
     this.vm.memory.write16(SEG_CODE, this.CP, unsignedValue);
     this.CP += 2;
   }
@@ -55,7 +53,6 @@ export class Compiler {
    */
   compileAddress(value: number): void {
     const tagNum = toTaggedValue(value, Tag.CODE);
-
     this.compileFloat32(tagNum);
   }
 
@@ -75,7 +72,6 @@ export class Compiler {
     }
 
     this.compile8(0x80 | (opcodeAddress & 0x7f));
-
     this.compile8((opcodeAddress >> 7) & 0xff);
   }
 

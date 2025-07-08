@@ -111,29 +111,23 @@ describe('Utility Functions', () => {
     });
     test('formats INTEGER tagged value (non-zero)', () => {
       const taggedInt = toTaggedValue(42, Tag.INTEGER);
-
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
     test('formats INTEGER tagged value representing NIL', () => {
       const taggedNil = toTaggedValue(0, Tag.INTEGER);
-
       expect(formatValue(testVM, taggedNil)).toBe('NIL');
     });
     test('formats CODE tagged value', () => {
       const taggedCode = toTaggedValue(1234, Tag.CODE);
-
       expect(formatValue(testVM, taggedCode)).toBe('CODE(1234)');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = testVM.digest.add('TestString');
-
       const taggedString = toTaggedValue(strAddr, Tag.STRING);
-
       expect(formatValue(testVM, taggedString)).toBe(`"TestString"`);
     });
     test('formats STRING tagged value when digest.get throws', () => {
       const taggedString = toTaggedValue(999, Tag.STRING);
-
       expect(formatValue(testVM as VM, taggedString)).toBe('""');
     });
   });

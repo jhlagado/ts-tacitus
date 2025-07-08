@@ -12,7 +12,6 @@ export enum TokenType {
 }
 
 export type TokenValue = number | string | null;
-
 export interface Token {
   type: TokenType;
   value: TokenValue;
@@ -25,7 +24,6 @@ export class Tokenizer {
   public line: number;
   public column: number;
   private pushedBack: Token | null;
-
   constructor(input: string) {
     this.input = input;
     this.position = 0;
@@ -45,7 +43,6 @@ export class Tokenizer {
   nextToken(): Token {
     if (this.pushedBack !== null) {
       const token = this.pushedBack;
-
       this.pushedBack = null;
       return token;
     }
@@ -60,9 +57,7 @@ export class Tokenizer {
     }
 
     const char = this.input[this.position];
-
     const startPos = this.position;
-
     if (char === '\\') {
       this.skipComment();
       return this.nextToken();
@@ -79,7 +74,6 @@ export class Tokenizer {
         isDigit(this.input[this.position + 1]))
     ) {
       let pos = this.position;
-
       if (this.input[pos] === '+' || this.input[pos] === '-') {
         pos++;
       }
@@ -120,7 +114,6 @@ export class Tokenizer {
 
     if (char === '{' || char === '}') {
       const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
-
       this.position++;
       this.column++;
       return { type, value: char, position: startPos };
@@ -130,7 +123,6 @@ export class Tokenizer {
       this.position++;
       this.column++;
       const wordStartPos = this.position;
-
       let word = '';
       while (
         this.position < this.input.length &&
@@ -156,13 +148,9 @@ export class Tokenizer {
 
   peekToken(): Token | null {
     const currentPosition = this.position;
-
     const currentLine = this.line;
-
     const currentColumn = this.column;
-
     const token = this.nextToken();
-
     this.position = currentPosition;
     this.line = currentLine;
     this.column = currentColumn;
@@ -188,7 +176,6 @@ export class Tokenizer {
   }
   private readString(): Token {
     const startPos = this.position;
-
     let value = '';
     this.position++;
     this.column++;
@@ -197,7 +184,6 @@ export class Tokenizer {
         this.position++;
         this.column++;
         const escapeChar = this.input[this.position];
-
         switch (escapeChar) {
           case 'n':
             value += '\n';
@@ -243,7 +229,6 @@ export class Tokenizer {
 
   private readNumber(): Token {
     const startPos = this.position;
-
     let tokenStr = '';
     if (this.input[this.position] === '+' || this.input[this.position] === '-') {
       tokenStr += this.input[this.position];
@@ -268,7 +253,6 @@ export class Tokenizer {
       }
     }
     const value = Number(tokenStr);
-
     if (isNaN(value)) {
       return { type: TokenType.WORD, value: tokenStr, position: startPos };
     }
@@ -278,7 +262,6 @@ export class Tokenizer {
 
   private readWord(): Token {
     const startPos = this.position;
-
     let word = '';
     while (
       this.position < this.input.length &&

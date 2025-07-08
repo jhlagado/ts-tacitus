@@ -6,16 +6,13 @@ import { processFile } from './fileProcessor';
 /**
  * Starts an interactive REPL session
  */
-
 export function startREPL(files: string[] = [], interactiveAfterFiles: boolean = true): void {
   setupInterpreter();
-
   let allFilesProcessed = true;
   if (files.length > 0) {
     console.log(`Loading ${files.length} file(s)...`);
     for (const file of files) {
       const success = processFile(file);
-
       if (!success) {
         console.error(`Error processing file: ${file}`);
         allFilesProcessed = false;
@@ -43,7 +40,6 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
   rl.prompt();
   rl.on('line', line => {
     const command = line.trim();
-
     if (command === 'exit') {
       console.log('Goodbye!');
       rl.close();
@@ -52,10 +48,8 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
 
     if (command.startsWith('load ')) {
       const filePath = command.substring(5).trim();
-
       try {
         const success = processFile(filePath);
-
         if (!success) {
           console.log('File processing encountered errors but REPL will continue.');
         }
@@ -88,16 +82,11 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
 /**
  * Main entry point for the interpreter
  */
-
 export function main(): void {
   const args = process.argv.slice(2);
-
   const noInteractiveIndex = args.indexOf('--no-interactive');
-
   const interactiveAfterFiles = noInteractiveIndex === -1;
-
   const files = args.filter(arg => !arg.startsWith('--'));
-
   if (files.length === 0) {
     startREPL();
   } else {

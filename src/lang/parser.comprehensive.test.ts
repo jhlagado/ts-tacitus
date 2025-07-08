@@ -29,13 +29,10 @@ describe('Comprehensive Parser Tests', () => {
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
       const emptyWord = vm.symbolTable.find('empty');
-
       expect(emptyWord).toBeDefined();
-
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
       const _skipOffset = vm.next16();
-
       expect(vm.next8()).toBe(Op.Exit);
     });
     test('should handle words with special characters in name', () => {
@@ -44,9 +41,7 @@ describe('Comprehensive Parser Tests', () => {
     });
     test('should handle word names that start with numbers', () => {
       vm.reset();
-
       executeProgram(': 2x 2 mul ; 5 2x');
-
       expect(vm.pop()).toBe(10);
     });
     test('should not allow redefining words', () => {
@@ -75,21 +70,15 @@ describe('Comprehensive Parser Tests', () => {
   describe('Control Structures', () => {
     test('should parse IF-ELSE-THEN', () => {
       parse(new Tokenizer('IF { 1 } ELSE { 2 }'));
-
       vm.reset();
-
       expect(vm.next8()).toBe(Op.IfFalseBranch);
       const _falseJumpAddr = vm.next16();
-
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(1);
-
       expect(vm.next8()).toBe(Op.Branch);
       const _endIfAddr = vm.next16();
-
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(2);
-
       expect(vm.next8()).toBe(Op.Abort);
     });
   });
@@ -99,11 +88,8 @@ describe('Comprehensive Parser Tests', () => {
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
       const addr = vm.next16();
-
       expect(addr).toBeGreaterThan(0);
-
       const str = vm.digest.get(addr);
-
       expect(str).toBe('');
     });
     test('should parse string literals with spaces', () => {
@@ -111,18 +97,14 @@ describe('Comprehensive Parser Tests', () => {
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
       const addr = vm.next16();
-
       const str = vm.digest.get(addr);
-
       expect(str).toBe('hello world');
     });
   });
   describe('Symbol Literals', () => {
     test('should parse symbol literals', () => {
       parse(new Tokenizer(': test-symbol 42 ;'));
-
       parse(new Tokenizer('`test-symbol'));
-
       vm.reset();
       expect(vm.next8()).toBe(1);
       const _addr = vm.next16();

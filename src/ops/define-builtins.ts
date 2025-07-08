@@ -11,12 +11,9 @@ import { Op } from './opcodes';
  *
  * @param {SymbolTable} dict The symbol table to populate with built-in functions.
  */
-
 export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);
-
   dict.define('.', Op.Print);
-
   dict.define('add', Op.Add);
   dict.define('sub', Op.Minus);
   dict.define('mul', Op.Multiply);
@@ -29,20 +26,16 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('le', Op.LessOrEqual);
   dict.define('gt', Op.GreaterThan);
   dict.define('ge', Op.GreaterOrEqual);
-
   dict.define('mod', Op.Mod);
-
   dict.define('neg', Op.mNegate);
   dict.define('recip', Op.mReciprocal);
   dict.define('floor', Op.mFloor);
   dict.define('not', Op.mNot);
   dict.define('sign', Op.mSignum);
   dict.define('enlist', Op.mEnlist);
-
   dict.define('dup', Op.Dup);
   dict.define('drop', Op.Drop);
   dict.define('swap', Op.Swap);
-
   dict.define('abs', Op.Abs);
   dict.define('neg', Op.Neg);
   dict.define('sign', Op.Sign);
@@ -53,6 +46,5 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('pow', Op.Pow);
   dict.define('avg', Op.Avg);
   dict.define('prod', Op.Prod);
-
   dict.define('if', Op.If);
 };

@@ -5,7 +5,6 @@
  * @param expected The expected array.
  * @param precision The number of decimal places to check for closeness.
  */
-
 export function toBeCloseToArray(received: number[], expected: number[], precision = 2): void {
   if (received.length !== expected.length) {
     throw new Error(

@@ -70,7 +70,6 @@ import { ifCurlyBranchFalseOp } from './builtins-conditional';
  * @param {Op} opcode The opcode representing the operation to execute.
  * @throws {Error} If the opcode is invalid.
  */
-
 export function executeOp(vm: VM, opcode: Op) {
   switch (opcode) {
     case Op.LiteralNumber:
@@ -96,13 +95,11 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Print:
       const value = vm.pop();
-
       console.log(formatValue(vm, value));
       break;
     case Op.LiteralString:
       literalStringOp(vm);
       break;
-
     case Op.Add:
       addOp(vm);
       break;
@@ -145,7 +142,6 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.Mod:
       modOp(vm);
       break;
-
     case Op.mNegate:
       mNegateOp(vm);
       break;
@@ -164,7 +160,6 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.mEnlist:
       mEnlistOp(vm);
       break;
-
     case Op.Dup:
       dupOp(vm);
       break;
@@ -180,7 +175,6 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.NegRot:
       negRotOp(vm);
       break;
-
     case Op.Abs:
       absOp(vm);
       break;
@@ -211,14 +205,12 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.Prod:
       prodOp(vm);
       break;
-
     case Op.If:
       simpleIfOp(vm);
       break;
     case Op.IfFalseBranch:
       ifCurlyBranchFalseOp(vm);
       break;
-
     case Op.LiteralAddress:
       literalAddressOp(vm);
       break;
@@ -229,6 +221,5 @@ export function executeOp(vm: VM, opcode: Op) {
 
 export function literalAddressOp(vm: VM): void {
   const address = vm.read16();
-
   vm.push(address);
 }

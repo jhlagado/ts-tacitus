@@ -17,15 +17,11 @@ export function execute(start: number, breakAtIP?: number): void {
     }
 
     const functionIndex = vm.nextOpcode();
-
     if (vm.debug) console.log({ functionIndex }, vm.IP - (functionIndex >= 128 ? 2 : 1));
-
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
         const originalIP = vm.IP - (functionIndex >= 128 ? 2 : 1);
-
         const rawValue = vm.memory.read8(SEG_CODE, originalIP);
-
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
 
@@ -44,13 +40,10 @@ export function execute(start: number, breakAtIP?: number): void {
       }
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
-
       const errorMessage =
         `Error executing word (stack: ${stackState})` +
         (error instanceof Error ? `: ${error.message}` : '');
-
       if (vm.debug) console.log((error as Error).stack);
-
       vm.compiler.reset();
       vm.compiler.preserve = false;
       console.log((error as Error).stack);
@@ -74,22 +67,14 @@ export function executeProgram(code: string): void {
  *
  * @param codePtr The starting address (instruction pointer) of the Tacit code to execute.
  */
-
 export function callTacitFunction(codePtr: number): void {
   const returnIP = vm.IP;
-
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
-
   vm.rpush(vm.BP);
-
   vm.BP = vm.RP;
-
   vm.IP = codePtr;
-
   vm.running = true;
-
   execute(vm.IP);
-
   if (vm.IP !== returnIP) {
     console.warn(`Warning: IP mismatch after function call. Expected ${returnIP}, got ${vm.IP}`);
     vm.IP = returnIP;

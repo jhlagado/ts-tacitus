@@ -8,10 +8,8 @@ import { Verb } from '../core/types';
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const absOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('absOp', a);
   vm.push(Math.abs(a));
 };
@@ -22,10 +20,8 @@ export const absOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const negOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('negOp', a);
   vm.push(-a);
 };
@@ -36,10 +32,8 @@ export const negOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const signOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('signOp', a);
   vm.push(Math.sign(a));
 };
@@ -50,10 +44,8 @@ export const signOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const expOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('expOp', a);
   vm.push(Math.exp(a));
 };
@@ -64,10 +56,8 @@ export const expOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const lnOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('lnOp', a);
   vm.push(Math.log(a));
 };
@@ -78,10 +68,8 @@ export const lnOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const logOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('logOp', a);
   vm.push(Math.log10(a));
 };
@@ -92,10 +80,8 @@ export const logOp: Verb = (vm: VM) => {
  * Array: Applies element-wise.
  * String: Not applicable.
  */
-
 export const sqrtOp: Verb = (vm: VM) => {
   const a = vm.pop();
-
   if (vm.debug) console.log('sqrtOp', a);
   vm.push(Math.sqrt(a));
 };
@@ -107,12 +93,9 @@ export const sqrtOp: Verb = (vm: VM) => {
  * Array-Array: Element-wise power.
  * String: Not applicable.
  */
-
 export const powOp: Verb = (vm: VM) => {
   const b = vm.pop();
-
   const a = vm.pop();
-
   if (vm.debug) console.log('powOp', a, b);
   vm.push(Math.pow(a, b));
 };
@@ -124,12 +107,9 @@ export const powOp: Verb = (vm: VM) => {
  * Array-Array: Element-wise min.
  * String: Not applicable.
  */
-
 export const minOp: Verb = (vm: VM) => {
   const b = vm.pop();
-
   const a = vm.pop();
-
   if (vm.debug) console.log('minOp', a, b);
   vm.push(Math.min(a, b));
 };
@@ -141,12 +121,9 @@ export const minOp: Verb = (vm: VM) => {
  * Array-Array: Element-wise max.
  * String: Not applicable.
  */
-
 export const maxOp: Verb = (vm: VM) => {
   const b = vm.pop();
-
   const a = vm.pop();
-
   if (vm.debug) console.log('maxOp', a, b);
   vm.push(Math.max(a, b));
 };
@@ -157,12 +134,9 @@ export const maxOp: Verb = (vm: VM) => {
  * Array: Computes average of all elements.
  * String: Not applicable.
  */
-
 export const avgOp: Verb = (vm: VM) => {
   const b = vm.pop();
-
   const a = vm.pop();
-
   if (vm.debug) console.log('avgOp', a, b);
   vm.push((a + b) / 2);
 };
@@ -173,12 +147,9 @@ export const avgOp: Verb = (vm: VM) => {
  * Array: Computes product of all elements.
  * String: Not applicable.
  */
-
 export const prodOp: Verb = (vm: VM) => {
   const b = vm.pop();
-
   const a = vm.pop();
-
   if (vm.debug) console.log('prodOp', a, b);
   vm.push(a * b);
 };

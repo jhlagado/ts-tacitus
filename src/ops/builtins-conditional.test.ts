@@ -56,6 +56,8 @@ describe('Conditional Operations', () => {
 
 
 
+
+
       `);
       expect(vm.getStackData()).toEqual([26]);
     });

@@ -20,13 +20,10 @@ function ensureFileExtension(filePath: string): string {
  * Processes a single Tacit file
  * @returns True if successful, false if errors occurred
  */
-
 export function processFile(filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
-
   try {
     const absolutePath = path.resolve(filePathWithExt);
-
     console.log(`Processing Tacit file: ${absolutePath}`);
     if (!fs.existsSync(absolutePath)) {
       console.error(`File not found: ${absolutePath}`);
@@ -34,12 +31,9 @@ export function processFile(filePath: string): boolean {
     }
 
     const content = fs.readFileSync(absolutePath, 'utf8');
-
     const lines = content.split('\n');
-
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-
       if (line === '' || line.startsWith('\\')) {
         continue;
       }
@@ -71,7 +65,6 @@ export function processFile(filePath: string): boolean {
 /**
  * Processes multiple Tacit files
  */
-
 export function processFiles(
   files: string[],
   exitOnError = true,
@@ -82,7 +75,6 @@ export function processFiles(
   let allSucceeded = true;
   for (const file of files) {
     const success = processFileFn(file);
-
     if (!success) {
       allSucceeded = false;
       console.log('Processing stopped due to error.');

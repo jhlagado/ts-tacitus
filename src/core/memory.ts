@@ -1,22 +1,14 @@
 export const MEMORY_SIZE = 65536;
+export const SEG_STACK = 0;
+export const SEG_RSTACK = 1;
+export const SEG_CODE = 4;
+export const SEG_STRING = 5;
+export const STACK_SIZE = 0x0100;
+export const RSTACK_SIZE = 0x0100;
+export const STRING_SIZE = 0x0800;
+export const CODE_SIZE = 0x2000;
 
 const SEGMENT_TABLE: number[] = new Array(8).fill(0);
-
-export const SEG_STACK = 0;
-
-export const SEG_RSTACK = 1;
-
-export const SEG_CODE = 4;
-
-export const SEG_STRING = 5;
-
-export const STACK_SIZE = 0x0100;
-
-export const RSTACK_SIZE = 0x0100;
-
-export const STRING_SIZE = 0x0800;
-
-export const CODE_SIZE = 0x2000;
 
 function initializeSegments() {
   SEGMENT_TABLE[SEG_STACK] = 0x0000;
@@ -28,7 +20,6 @@ function initializeSegments() {
 export class Memory {
   buffer: Uint8Array;
   dataView: DataView;
-
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
     this.dataView = new DataView(this.buffer.buffer);
@@ -41,13 +32,11 @@ export class Memory {
     }
 
     const baseAddress = SEGMENT_TABLE[segment];
-
     return baseAddress + offset;
   }
 
   write8(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
@@ -57,7 +46,6 @@ export class Memory {
 
   read8(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
@@ -67,7 +55,6 @@ export class Memory {
 
   write16(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
@@ -77,7 +64,6 @@ export class Memory {
 
   read16(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address + 1 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
@@ -87,15 +73,12 @@ export class Memory {
 
   writeFloat32(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
 
     const buffer = new ArrayBuffer(4);
-
     const view = new DataView(buffer);
-
     view.setFloat32(0, value, true);
     for (let i = 0; i < 4; i++) {
       this.write8(segment, offset + i, view.getUint8(i));
@@ -103,15 +86,12 @@ export class Memory {
   }
   readFloat32(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
-
     if (address < 0 || address + 3 >= MEMORY_SIZE) {
       throw new RangeError(`Address ${address} is outside memory bounds`);
     }
 
     const buffer = new ArrayBuffer(4);
-
     const view = new DataView(buffer);
-
     for (let i = 0; i < 4; i++) {
       view.setUint8(i, this.read8(segment, offset + i));
     }
