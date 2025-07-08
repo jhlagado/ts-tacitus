@@ -1,6 +1,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import {} from '../core/memory';
+import { fromTaggedValue, Tag } from '../core/tagged';
 
 export const dupOp: Verb = (vm: VM) => {
   if (vm.SP < 1) {
@@ -17,11 +18,26 @@ export const dupOp: Verb = (vm: VM) => {
 export const dropOp: Verb = (vm: VM) => {
   if (vm.SP < 1) {
     throw new Error(
-      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
+      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`,
     );
   }
-  const a = vm.pop();
-  if (vm.debug) console.log('dropOp', a);
+  
+  // Get the top value without popping it yet
+  const topValue = vm.peek();
+  const { tag, value } = fromTaggedValue(topValue);
+  
+  if (tag === Tag.STACK_REF) {
+    // This is a tuple reference
+    vm.pop(); // Pop the stack reference
+    
+    // Set the stack pointer to the tuple start position
+    if (vm.debug) console.log('dropOp tuple reference, resetting SP to', value);
+    vm.SP = value;
+  } else {
+    // Not a tuple reference, just drop the single value
+    vm.pop();
+    if (vm.debug) console.log('dropOp single value');
+  }
 };
 
 export const swapOp: Verb = (vm: VM) => {
