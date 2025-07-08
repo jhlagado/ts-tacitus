@@ -21,7 +21,7 @@ import {
 
 import {
   addOp,
-  minusOp,
+  subtractOp,
   multiplyOp,
   divideOp,
   powerOp,
@@ -33,7 +33,6 @@ import {
   lessOrEqualOp,
   greaterThanOp,
   greaterOrEqualOp,
-  matchOp,
 } from './builtins-math';
 
 import {
@@ -108,12 +107,12 @@ export function executeOp(vm: VM, opcode: Op) {
       literalStringOp(vm);
       break;
 
-    // Dyadic Arithmetic
+    // Binary Op Arithmetic
     case Op.Add:
       addOp(vm);
       break;
     case Op.Minus:
-      minusOp(vm);
+      subtractOp(vm);
       break;
     case Op.Multiply:
       multiplyOp(vm);
@@ -146,13 +145,13 @@ export function executeOp(vm: VM, opcode: Op) {
       greaterOrEqualOp(vm);
       break;
     case Op.Match:
-      matchOp(vm);
+      equalOp(vm); // Using equalOp instead of removed matchOp
       break;
     case Op.Mod:
       modOp(vm);
       break;
 
-    // Monadic Arithmetic
+    // Unary Op Arithmetic
     case Op.mNegate:
       mNegateOp(vm);
       break;

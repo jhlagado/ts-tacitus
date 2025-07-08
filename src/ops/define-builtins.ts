@@ -18,7 +18,7 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);
   dict.define('.', Op.Print);
 
-  // Dyadic operations
+  // Binary op operations
   // Using English word names only
   dict.define('add', Op.Add);
   
@@ -49,7 +49,7 @@ export const defineBuiltins = (dict: SymbolTable) => {
   
   dict.define('mod', Op.Mod);
 
-  // Monadic Arithmetic with English word names
+  // Unary Op Arithmetic with English word names
   // Note: Removed old symbolic versions (m-, m%, m_, m~, m*, m,)
   dict.define('neg', Op.mNegate);      // Formerly m-
   dict.define('recip', Op.mReciprocal); // Formerly m%

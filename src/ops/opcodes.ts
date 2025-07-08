@@ -55,25 +55,25 @@ export enum Op {
   /** Checks if the top two values on the stack match (have the same structure). */
   Match,
 
-  /** Monadic negation (negates the value on the top of the stack). */
+  /** Unary Op negation (negates the value on the top of the stack). */
   mNegate,
-  /** Monadic reciprocal (calculates the reciprocal of the value on the top of the stack). */
+  /** Unary Op reciprocal (calculates the reciprocal of the value on the top of the stack). */
   mReciprocal,
-  /** Monadic floor (rounds the value on the top of the stack down to the nearest integer). */
+  /** Unary Op floor (rounds the value on the top of the stack down to the nearest integer). */
   mFloor,
-  /** Monadic ceiling (rounds the value on the top of the stack up to the nearest integer). */
+  /** Unary Op ceiling (rounds the value on the top of the stack up to the nearest integer). */
   mCeiling,
-  /** Monadic signum (returns the sign of the value on the top of the stack: -1, 0, or 1). */
+  /** Unary Op signum (returns the sign of the value on the top of the stack: -1, 0, or 1). */
   mSignum,
-  /** Monadic absolute value (returns the absolute value of the value on the top of the stack). */
+  /** Unary Op absolute value (returns the absolute value of the value on the top of the stack). */
   mAbsolute,
-  /** Monadic exponential (calculates e raised to the power of the value on the top of the stack). */
+  /** Unary Op exponential (calculates e raised to the power of the value on the top of the stack). */
   mExp,
-  /** Monadic natural logarithm (calculates the natural logarithm of the value on the top of the stack). */
+  /** Unary Op natural logarithm (calculates the natural logarithm of the value on the top of the stack). */
   mLn,
-  /** Monadic square root (calculates the square root of the value on the top of the stack). */
+  /** Unary Op square root (calculates the square root of the value on the top of the stack). */
   mSqrt,
-  /** Monadic base-10 logarithm (calculates the base-10 logarithm of the value on the top of the stack). */
+  /** Unary Op base-10 logarithm (calculates the base-10 logarithm of the value on the top of the stack). */
   mLog,
 
   /** Duplicates the value on the top of the stack. */
@@ -98,20 +98,20 @@ export enum Op {
   /** Performs a bitwise NAND operation on the top two values of the stack */
   Nand,
 
-  /** Monadic NOT (performs a logical NOT on the value on the top of the stack). */
+  /** Unary Op NOT (performs a logical NOT on the value on the top of the stack). */
   mNot,
-  /** Monadic where (returns the indices where the value on the top of the stack is non-zero). */
+  /** Unary Op where (returns the indices where the value on the top of the stack is non-zero). */
   mWhere,
-  /** Monadic reverse (reverses the elements of a vector on the top of the stack). */
+  /** Unary Op reverse (reverses the elements of a vector on the top of the stack). */
   mReverse,
 
-  /** Monadic type (returns the type of the value on the top of the stack). */
+  /** Unary Op type (returns the type of the value on the top of the stack). */
   mType,
-  /** Monadic string (converts the value on the top of the stack to a string). */
+  /** Unary Op string (converts the value on the top of the stack to a string). */
   mString,
-  /** Monadic group (groups elements of a vector based on unique values). */
+  /** Unary Op group (groups elements of a vector based on unique values). */
   mGroup,
-  /** Monadic distinct (returns the unique elements of a vector). */
+  /** Unary Op distinct (returns the unique elements of a vector). */
   mDistinct,
 
   /** Joins two vectors into a single vector. */

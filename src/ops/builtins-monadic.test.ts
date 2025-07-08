@@ -9,7 +9,7 @@ import {
   mEnlistOp,
 } from './builtins-monadic';
 
-describe('Built-in Monadic Operations', () => {
+describe('Built-in Unary Op Operations', () => {
   let testVM: VM;
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('Built-in Monadic Operations', () => {
     testVM.debug = false;
   });
 
-  describe('mNegateOp (m-)', () => {
+  describe('mNegateOp (negate)', () => {
     it('should negate a positive number', () => {
       testVM.push(5);
       mNegateOp(testVM);
@@ -44,7 +44,7 @@ describe('Built-in Monadic Operations', () => {
 
   });
 
-  describe('mReciprocalOp (m%)', () => {
+  describe('mReciprocalOp (reciprocal)', () => {
     it('should calculate reciprocal of a positive number', () => {
       testVM.push(5);
       mReciprocalOp(testVM);
@@ -70,7 +70,7 @@ describe('Built-in Monadic Operations', () => {
 
   });
 
-  describe('mFloorOp (m_)', () => {
+  describe('mFloorOp (floor)', () => {
     it('should floor a positive number', () => {
       testVM.push(5.7);
       mFloorOp(testVM);
@@ -96,7 +96,7 @@ describe('Built-in Monadic Operations', () => {
 
   });
 
-  describe('mNotOp (m~)', () => {
+  describe('mNotOp (not)', () => {
     it('should return 1 for zero', () => {
       testVM.push(0);
       mNotOp(testVM);
@@ -122,7 +122,7 @@ describe('Built-in Monadic Operations', () => {
 
   });
 
-  describe('mSignumOp (m*)', () => {
+  describe('mSignumOp (signum)', () => {
     it('should return 1 for positive numbers', () => {
       testVM.push(5);
       mSignumOp(testVM);
@@ -148,7 +148,7 @@ describe('Built-in Monadic Operations', () => {
 
   });
 
-  describe('mEnlistOp (m,)', () => {
+  describe('mEnlistOp (enlist)', () => {
     it('should throw on stack underflow', () => {
       expect(() => mEnlistOp(testVM)).toThrow('Stack underflow');
     });

@@ -1,7 +1,7 @@
 import { runTacitTest } from '../tacitTestUtils';
 
-describe('Tacit Dyadic Operations', () => {
-  // Tests for dyadic operations with English word names
+describe('Tacit Binary Op Operations', () => {
+  // Tests for binary op operations with English word names
   
   test('add operation', () => {
     const result = runTacitTest('5 3 add');
