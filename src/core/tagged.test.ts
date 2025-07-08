@@ -30,7 +30,7 @@ describe('Tagged NaN Encoding', () => {
 
 
   it('should throw on invalid tag ranges', () => {
-    const invalidTag = Tag.STACK_REF + 1; // Use a value beyond our highest defined tag
+    const invalidTag = Tag.LINK + 1; // Use a value beyond our highest defined tag
     expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
 

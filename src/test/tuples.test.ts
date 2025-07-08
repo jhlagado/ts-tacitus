@@ -35,7 +35,7 @@ describe('Tuple operations', () => {
     it('should create a simple tuple with 2 elements', () => {
       const stack = executeCode('( 1 2 )');
 
-      // Check stack: should have [TUPLE, 1, 2, STACK_REF]
+      // Check stack: should have [TUPLE, 1, 2, LINK]
       expect(stack.length).toBe(4);
 
       // The first item should be a tuple tag with length 2
@@ -47,9 +47,9 @@ describe('Tuple operations', () => {
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
 
-      // The last item should be a stack reference (tuple tag position)
-      const { tag: stackRefTag } = fromTaggedValue(stack[3]);
-      expect(stackRefTag).toBe(Tag.STACK_REF);
+      // The last item should be a link to the tuple
+      const { tag: linkTag } = fromTaggedValue(stack[3]);
+      expect(linkTag).toBe(Tag.LINK);
     });
 
     it('should handle empty tuples', () => {
@@ -62,9 +62,9 @@ describe('Tuple operations', () => {
       expect(tupleTag).toBe(Tag.TUPLE);
       expect(tupleSize).toBe(0); // Empty tuple should have size 0
 
-      // Second item should be a reference to the tuple tag
-      const { tag: stackRefTag } = fromTaggedValue(stack[1]);
-      expect(stackRefTag).toBe(Tag.STACK_REF);
+      // Second item should be a link to the tuple
+      const { tag: linkTag } = fromTaggedValue(stack[1]);
+      expect(linkTag).toBe(Tag.LINK);
     });
 
     it('should handle a nested tuple with 1 level of nesting', () => {

@@ -18,8 +18,9 @@ export function openTupleOp(vm: VM): void {
   // Push placeholder tuple tag - will be updated when the tuple is closed
   vm.push(toTaggedValue(0, Tag.TUPLE));
   
-  // Push tagged stack position reference to return stack (position of the tuple tag)
-  vm.rpush(toTaggedValue(vm.SP - 4, Tag.STACK_REF));
+  // Push current stack position onto return stack (we'll use this to calculate element count)
+  // We're storing the current SP value for later comparison, not as a reference
+  vm.rpush(toTaggedValue(vm.SP - 4, Tag.INTEGER));
 }
 
 /**
@@ -44,11 +45,14 @@ export function closeTupleOp(vm: VM): void {
   // This directly modifies the memory at the tuple tag position
   vm.memory.writeFloat32(SEG_STACK, tupleTagPos, toTaggedValue(tupleSize, Tag.TUPLE));
   
-  // For outermost tuples, also push a reference to the tuple tag
+  // For outermost tuples, also push a link to the tuple tag
   // When vm.tupleDepth === 1, this is definitely the outermost tuple being closed
   // Note: tupleDepth will be decremented by the parser after this op is executed
   if (vm.tupleDepth === 1) {
-    vm.push(toTaggedValue(tupleTagPos, Tag.STACK_REF));
+    // Calculate relative element count from current SP to the tuple start position
+    // This is the number of elements to go backward to reach the tuple tag
+    const relativeElements = (vm.SP - tupleTagPos) / 4;
+    vm.push(toTaggedValue(relativeElements, Tag.LINK));
   }
   
   // Note: We don't decrement tupleDepth here because that's handled by the parser in endTuple()
