@@ -204,3 +204,66 @@ When asserting tuple structure:
 4. Ensure built-in words like `dup` and `drop` are properly registered before testing tuple operations
 
 5. Be aware of the global VM state and reset it completely between tests
+
+## 6. Implementation Philosophy and Constraints
+
+The Tacit VM is designed with a philosophy of being low-level and efficient, which imposes important constraints on implementation:
+
+1. **ABSOLUTELY NO HEAP ALLOCATION**: Operations MUST NOT rely on heap-allocated structures (e.g., temporary arrays, JavaScript arrays) to manipulate tuples. This is a strict requirement, not a guideline.
+
+2. **NO TEMPORARY ARRAYS**: Never create JavaScript arrays to temporarily store tuple elements during operations. This violates the fundamental design philosophy of the VM.
+
+3. **NO GARBAGE COLLECTION**: The VM must not depend on garbage collection for memory management. All memory operations must be explicit.
+
+4. **STACK-ONLY DATA MANIPULATION**: Tuples must remain on the stack during operations; only primitive scalar values should be stored in variables. The stack is the only valid storage for complex data structures.
+
+5. **IN-PLACE OPERATIONS ONLY**: Operations like `swap` must be performed in-place using techniques such as element reversal or direct memory manipulation, never by copying to temporary buffers or arrays.
+
+6. **DIRECT MEMORY ACCESS**: Use `vm.memory.readFloat32()` and `vm.memory.writeFloat32()` to manipulate the stack directly instead of high-level operations that might create hidden allocations.
+
+7. **LINK TAG HANDLING**: When implementing operations like `swap`, careful traversal of LINK tags is required, with awareness that after reversing a range of elements, the LINK tag may not be easily accessible.
+
+8. **OPAQUE TUPLE ELEMENTS**: The elements between a TUPLE tag and its LINK tag should be treated as opaque data - nested structure doesn't need special handling for operations like `swap` and `drop`.
+
+9. **MINIMAL CONTEXT**: Implementation should rely only on the file being modified, not changing other components of the VM.
+
+10. **NO POP/PUSH FOR TUPLE MANIPULATION**: Never use sequences of `vm.pop()` and `vm.push()` to manipulate tuples, as this implicitly creates heap allocations in JavaScript.
+
+### Swap Implementation Requirements
+
+For the `swapOp` operation that exchanges tuple positions on the stack, these requirements must be followed:
+
+1. **Direct Memory Manipulation Only**: Use only direct memory access via `vm.memory.readFloat32()` and `vm.memory.writeFloat32()` to manipulate stack elements.
+
+2. **In-place Reversal Algorithm**: Use an in-place reversal algorithm to swap element ranges without temporary storage.
+
+3. **Zero Temporary Arrays**: Never store tuple elements in JavaScript arrays, even temporarily.
+
+4. **Handle All Cases**: Correctly handle all cases: tuple-to-tuple, tuple-to-value, and value-to-value swaps.
+
+5. **Memory Efficiency**: The implementation should maintain O(1) space complexity regardless of tuple size.
+
+### Implementation Pattern Example
+
+Correct approach for in-place manipulation:
+
+```typescript
+// Example of properly swapping two memory regions without temporary arrays
+function reverseStackRange(vm: VM, start: number, end: number): void {
+  let left = start;
+  let right = end - BYTES_PER_ELEMENT;
+  
+  while (left < right) {
+    // Swap values at left and right positions
+    const leftVal = vm.memory.readFloat32(SEG_STACK, left);
+    const rightVal = vm.memory.readFloat32(SEG_STACK, right);
+    
+    vm.memory.writeFloat32(SEG_STACK, left, rightVal);
+    vm.memory.writeFloat32(SEG_STACK, right, leftVal);
+    
+    // Move inward
+    left += BYTES_PER_ELEMENT;
+    right -= BYTES_PER_ELEMENT;
+  }
+}
+```
