@@ -69,7 +69,7 @@ describe('Built-in Words', () => {
     });
     test('swap should throw on insufficient stack items', () => {
       vm.push(5);
-      expect(() => swapOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => swapOp(vm)).toThrow(`Stack underflow: 'swap' requires 2 operands (stack: [5])`);
     });
   });
   describe('Arithmetic Operations', () => {
@@ -122,7 +122,7 @@ describe('Built-in Words', () => {
     });
     test('swap should throw on insufficient stack items', () => {
       vm.push(5);
-      expect(() => swapOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => swapOp(vm)).toThrow(`Stack underflow: 'swap' requires 2 operands (stack: [5])`);
     });
   });
 });

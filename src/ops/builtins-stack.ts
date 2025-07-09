@@ -3,6 +3,7 @@ import { Verb } from '../core/types';
 import { Tag, fromTaggedValue } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
+import { findTuple, rangeRoll } from './stack-utils';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -44,10 +45,33 @@ export const dropOp: Verb = (vm: VM) => {
 };
 
 export const swapOp: Verb = (vm: VM) => {
-  const top = vm.pop();
-  const second = vm.pop();
-  vm.push(top);
-  vm.push(second);
+  if (vm.SP < BYTES_PER_ELEMENT * 2) {
+    throw new Error(`Stack underflow: 'swap' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`);
+  }
+
+  // Check if the top item is a tuple
+  const topTuple = findTuple(vm, 0);
+  const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
+  
+  // Check if the second item is a tuple (accounting for the size of the top item)
+  const secondTuple = findTuple(vm, topSize);
+  const secondSize = secondTuple ? secondTuple.totalSize : BYTES_PER_ELEMENT;
+  
+  // If either item is a tuple, use rangeRoll to swap them while preserving their structure
+  if (topTuple || secondTuple) {
+    // Calculate the total size of both items
+    const totalSize = topSize + secondSize;
+    
+    // Use rangeRoll to rotate the top two items (including their LINK tags if they're tuples)
+    // We rotate by topSize bytes to move the first item past the second item
+    rangeRoll(vm, 0, totalSize, topSize);
+  } else {
+    // For simple values, just swap them directly
+    const top = vm.pop();
+    const second = vm.pop();
+    vm.push(top);
+    vm.push(second);
+  }
 };
 
 export const rotOp: Verb = (vm: VM) => {

@@ -130,7 +130,7 @@ describe('Built-in Words', () => {
     });
     test('should handle underflow for swap', () => {
       vm.push(5);
-      expect(() => swapOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => swapOp(vm)).toThrow(`Stack underflow: 'swap' requires 2 operands (stack: [5])`);
     });
     test('should handle underflow for dup', () => {
       expect(() => dupOp(vm)).toThrow(
