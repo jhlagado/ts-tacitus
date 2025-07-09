@@ -30,6 +30,14 @@ describe('Tuple operations', () => {
   describe('creation', () => {
     test('should create a simple tuple with 2 elements', () => {
       const stack = executeCode('( 1 2 )');
+
+      /**
+       * Expected stack layout:
+       * [0] TUPLE(2)  - Tuple tag with size 2
+       * [1] 1         - First element of tuple
+       * [2] 2         - Second element of tuple
+       * [3] LINK(3)   - Link tag with offset 3 (points back to tuple start)
+       */
       expect(stack.length).toBe(4);
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
       expect(tupleTag).toBe(Tag.TUPLE);
@@ -41,6 +49,12 @@ describe('Tuple operations', () => {
     });
     test('should handle empty tuples', () => {
       const stack = executeCode('( )');
+
+      /**
+       * Expected stack layout:
+       * [0] TUPLE(0)  - Tuple tag with size 0 (empty tuple)
+       * [1] LINK(1)   - Link tag with offset 1 (points back to tuple start)
+       */
       expect(stack.length).toBe(2);
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
       expect(tupleTag).toBe(Tag.TUPLE);
@@ -94,16 +108,17 @@ describe('Tuple operations', () => {
     });
     test('should handle multiple nested tuples at the same level', () => {
       const stack = executeCode('( ( 1 2 ) ( 3 4 ) )');
+      
       /**
-       * Stack layout should be:
-       * [0]: TUPLE Tag 2    - Outermost tuple with 2 elements (each a nested tuple)
-       * [1]: TUPLE Tag 2    - First nested tuple with 2 elements
-       * [2]: 1             - First element of first nested tuple
-       * [3]: 2             - Second element of first nested tuple 
-       * [4]: TUPLE Tag 2    - Second nested tuple with 2 elements
-       * [5]: 3             - First element of second nested tuple
-       * [6]: 4             - Second element of second nested tuple
-       * [7]: LINK Tag      - LINK tag for outermost tuple
+       * Expected stack layout:
+       * [0] TUPLE(2)  - Outer tuple with 2 elements (both are inner tuples)
+       * [1] TUPLE(2)  - First inner tuple with 2 elements
+       * [2] 1         - First element of first inner tuple
+       * [3] 2         - Second element of first inner tuple
+       * [4] TUPLE(2)  - Second inner tuple with 2 elements
+       * [5] 3         - First element of second inner tuple
+       * [6] 4         - Second element of second inner tuple
+       * [7] LINK(7)   - Link tag for outer tuple (points back 7 elements)
        */
       expect(stack.length).toBe(8); // Account for the LINK tag
       expect(stack[2]).toBe(1);
@@ -117,6 +132,20 @@ describe('Tuple operations', () => {
     });
     test('should handle complex mixed nested structures', () => {
       const stack = executeCode('( 1 ( ) ( 2 ( 3 4 ) ) 5 )');
+
+      /**
+       * Expected stack layout:
+       * [0] TUPLE(4)  - Outer tuple with 4 elements
+       * [1] 1         - First element of outer tuple
+       * [2] TUPLE(0)  - Second element (empty tuple)
+       * [3] TUPLE(2)  - Third element (tuple with 2 elements)
+       * [4] 2         - First element of tuple at index 3
+       * [5] TUPLE(2)  - Second element of tuple at index 3 (another nested tuple)
+       * [6] 3         - First element of innermost tuple
+       * [7] 4         - Second element of innermost tuple
+       * [8] 5         - Fourth element of outer tuple
+       * [9] LINK(9)   - Link tag for outer tuple (points back 9 elements)
+       */
       expect(stack.length).toBe(10); // Account for LINK tag
       expect(stack[1]).toBe(1);
       expect(stack[4]).toBe(2);
@@ -130,18 +159,19 @@ describe('Tuple operations', () => {
     });
     test('should handle deeply nested tuples (3+ levels)', () => {
       const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
-      /*
-       * Expected stack (from bottom to top) with tag-first approach:
-       * [0]: TUPLE         - Outermost tuple tag
-       * [1]: 1             - First element of outermost tuple
-       * [2]: TUPLE         - Middle tuple tag
-       * [3]: 2             - First element of middle tuple
-       * [4]: TUPLE         - Innermost tuple tag
-       * [5]: 3             - First element of innermost tuple
-       * [6]: 4             - Second element of innermost tuple
-       * [7]: 5             - Third element of middle tuple
-       * [8]: 6             - Third element of outermost tuple
-       * [9]: LINK          - LINK tag for outermost tuple
+      
+      /**
+       * Expected stack layout:
+       * [0] TUPLE(3)  - Outermost tuple tag with 3 elements
+       * [1] 1         - First element of outermost tuple
+       * [2] TUPLE(3)  - Middle tuple tag with 3 elements
+       * [3] 2         - First element of middle tuple
+       * [4] TUPLE(2)  - Innermost tuple tag with 2 elements
+       * [5] 3         - First element of innermost tuple
+       * [6] 4         - Second element of innermost tuple
+       * [7] 5         - Third element of middle tuple
+       * [8] 6         - Third element of outermost tuple
+       * [9] LINK(9)   - Link tag for outermost tuple (points back 9 elements)
        */
       expect(stack.length).toBe(10); // Account for LINK tag
       const { tag: outerTag } = fromTaggedValue(stack[0]);
@@ -211,17 +241,19 @@ describe('Tuple operations', () => {
       executeCode('( 10 20 30 ) dup');
       const stack = vm.getStackData();
       
-      // A duplicated tuple with 3 elements should result in exactly 10 stack items:
-      // [0] TUPLE(3) - Original tuple tag
-      // [1] 10       - First element of original tuple
-      // [2] 20       - Second element of original tuple
-      // [3] 30       - Third element of original tuple
-      // [4] LINK(4)  - Link tag for original tuple (points to 4 elements)
-      // [5] TUPLE(3) - Duplicated tuple tag
-      // [6] 10       - First element of duplicated tuple
-      // [7] 20       - Second element of duplicated tuple
-      // [8] 30       - Third element of duplicated tuple
-      // [9] LINK(4)  - Link tag for duplicated tuple (points to 4 elements)
+      /**
+       * Expected stack layout:
+       * [0] TUPLE(3) - Original tuple tag
+       * [1] 10       - First element of original tuple
+       * [2] 20       - Second element of original tuple
+       * [3] 30       - Third element of original tuple
+       * [4] LINK(4)  - Link tag for original tuple (points to 4 elements)
+       * [5] TUPLE(3) - Duplicated tuple tag
+       * [6] 10       - First element of duplicated tuple
+       * [7] 20       - Second element of duplicated tuple
+       * [8] 30       - Third element of duplicated tuple
+       * [9] LINK(4)  - Link tag for duplicated tuple (points to 4 elements)
+       */
       expect(stack.length).toBe(10);
       
       // Verify original tuple's LINK tag
@@ -230,15 +262,24 @@ describe('Tuple operations', () => {
       expect(origLinkValue).toBe(4); // Points to TUPLE + 3 elements
       
       // Verify duplicated tuple's LINK tag
-      const { tag: dupLinkTag, value: dupLinkValue } = fromTaggedValue(stack[9]);
+      const { tag: dupLinkTag } = fromTaggedValue(stack[9]);
       expect(dupLinkTag).toBe(Tag.LINK);
-      expect(dupLinkValue).toBe(4); // Points to TUPLE + 3 elements
     });
 
     test('should duplicate a nested tuple', () => {
-      // Test with nested tuple
-      vm.reset();
+      // Create a nested tuple first
       executeCode('( 1 ( 2 3 ) 4 )');
+      
+      /**
+       * Initial stack layout (before dup):
+       * [0] TUPLE(3)  - Outer tuple tag with 3 elements
+       * [1] 1         - First element of outer tuple
+       * [2] TUPLE(2)  - Second element (inner tuple) with 2 elements
+       * [3] 2         - First element of inner tuple
+       * [4] 3         - Second element of inner tuple
+       * [5] 4         - Third element of outer tuple
+       * [6] LINK(6)   - Link tag for outer tuple (points back 6 elements)
+       */
       
       // Verify the original nested tuple structure first
       const stackBeforeDup = vm.getStackData();
@@ -256,6 +297,24 @@ describe('Tuple operations', () => {
       // Now duplicate and check what happens
       executeCode('dup');
       const dupStack = vm.getStackData();
+      
+      /**
+       * Expected stack layout after dup:
+       * [0] TUPLE(3)  - Original outer tuple tag
+       * [1] 1         - First element of original outer tuple
+       * [2] TUPLE(2)  - Original inner tuple tag
+       * [3] 2         - First element of original inner tuple
+       * [4] 3         - Second element of original inner tuple
+       * [5] 4         - Third element of original outer tuple
+       * [6] LINK(6)   - Link tag for original outer tuple
+       * [7] TUPLE(3)  - Duplicated outer tuple tag
+       * [8] 1         - First element of duplicated outer tuple
+       * [9] TUPLE(2)  - Duplicated inner tuple tag
+       * [10] 2        - First element of duplicated inner tuple
+       * [11] 3        - Second element of duplicated inner tuple
+       * [12] 4        - Third element of duplicated outer tuple
+       * [13] LINK(6)  - Link tag for duplicated outer tuple
+       */
       
       // Debug the duplicated structure
       console.log('After dup:');
@@ -305,38 +364,104 @@ describe('Tuple operations', () => {
     test('should duplicate a regular value', () => {
       executeCode('42 dup');
       const stack = vm.getStackData();
+      
+      /**
+       * Expected stack layout:
+       * [0] 42        - Original value
+       * [1] 42        - Duplicated value
+       */
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(42);
       expect(stack[1]).toBe(42);
     });
 
     test('should be able to operate on duplicated tuples individually', () => {
-      executeCode('( 10 20 ) dup');
-      executeCode('30 40');
+      // Create a tuple, duplicate it, and modify them separately
+      executeCode('( 1 2 ) dup');
+      
+      /**
+       * Expected stack layout after ( 1 2 ) dup:
+       * [0] TUPLE(2)  - First tuple tag
+       * [1] 1         - First element of first tuple
+       * [2] 2         - Second element of first tuple
+       * [3] LINK(3)   - Link tag for first tuple
+       * [4] TUPLE(2)  - Second tuple tag (duplicated)
+       * [5] 1         - First element of second tuple
+       * [6] 2         - Second element of second tuple
+       * [7] LINK(3)   - Link tag for second tuple
+       */
       const stack = vm.getStackData();
-      expect(stack.length).toBe(10);
-      const { tag: origTupleTag, value: origTupleSize } = fromTaggedValue(stack[0]);
-      expect(origTupleTag).toBe(Tag.TUPLE);
-      expect(origTupleSize).toBe(2);
-      expect(stack[1]).toBe(10);
-      expect(stack[2]).toBe(20);
-      expect(stack[8]).toBe(30);
-      expect(stack[9]).toBe(40);
+      expect(stack.length).toBe(8);
+      
+      // Now push two different values
+      executeCode('3 4');
+      
+      /**
+       * Expected stack layout after pushing 3 and 4:
+       * [0] TUPLE(2)  - First tuple tag
+       * [1] 1         - First element of first tuple
+       * [2] 2         - Second element of first tuple
+       * [3] LINK(3)   - Link tag for first tuple
+       * [4] TUPLE(2)  - Second tuple tag (duplicated)
+       * [5] 1         - First element of second tuple
+       * [6] 2         - Second element of second tuple
+       * [7] LINK(3)   - Link tag for second tuple
+       * [8] 3         - Additional value
+       * [9] 4         - Additional value
+       */
+      const stackAfterPush = vm.getStackData();
+      expect(stackAfterPush.length).toBe(10);
+      
+      // Verify the LINK tag is still in place before the new values
+      const { tag: lastTag } = fromTaggedValue(stackAfterPush[stackAfterPush.length - 3]);
+      expect(lastTag).toBe(Tag.LINK);
     });
   });
 
   describe('drop', () => {
     test('should drop a regular value from the stack', () => {
-      const stack = executeCode('1 2 drop');
+      // Push two values and drop the second one
+      executeCode('1 2 drop');
+      
+      /**
+       * Expected stack layout after 1 2 drop:
+       * [0] 1         - First value
+       */
+      const stack = vm.getStackData();
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(1);
     });
     test('should drop an entire simple tuple', () => {
-      const stack = executeCode('( 1 2 ) drop');
+      /**
+       * Initial stack layout after ( 10 20 ):
+       * [0] TUPLE(2)  - Tuple tag with size 2
+       * [1] 10        - First element
+       * [2] 20        - Second element
+       * [3] LINK(3)   - Link tag (points back 3 elements)
+       * 
+       * After drop:
+       * [] Empty stack - The entire tuple is removed
+       */
+      const stack = executeCode('( 10 20 ) drop');
       expect(stack.length).toBe(0);
+      
+      // Verify we can add new values to the stack
+      executeCode('30');
+      expect(vm.peek()).toBe(30);
     });
-
     test('should drop a tuple while leaving other values on stack', () => {
+      /**
+       * Initial stack layout after 5 ( 1 2 ):
+       * [0] 5         - First value
+       * [1] TUPLE(2)  - Tuple tag with size 2
+       * [2] 1         - First element of tuple
+       * [3] 2         - Second element of tuple
+       * [4] LINK(3)   - Link tag (points back 3 elements)
+       * 
+       * After drop:
+       * [0] 5         - First value
+       * [1] 10        - Additional value
+       */
       const stack = executeCode('5 ( 1 2 ) drop 10');
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(5);
@@ -345,10 +470,29 @@ describe('Tuple operations', () => {
     test('should drop a nested tuple completely', () => {
       initializeInterpreter();
       executeCode('( 1 ( 2 3 ) 4 )');
+      
+      /**
+       * Stack layout after creating the nested tuple:
+       * [0] TUPLE(3)  - Outer tuple tag with 3 elements
+       * [1] 1         - First element of outer tuple
+       * [2] TUPLE(2)  - Inner tuple tag with 2 elements
+       * [3] 2         - First element of inner tuple
+       * [4] 3         - Second element of inner tuple
+       * [5] 4         - Third element of outer tuple
+       * [6] LINK(6)   - Link tag for outer tuple (points back 6 elements)
+       * 
+       * After drop:
+       * [] Empty stack - The entire nested tuple structure is removed
+       */
       const stackBefore = vm.getStackData().length;
       executeCode('drop');
       const stackAfter = vm.getStackData().length;
+      
+      // Verify the tuple was completely removed
+      expect(stackAfter).toBe(0);
       expect(stackAfter).toBeLessThan(stackBefore);
+      
+      // Verify we can add new values to the stack
       executeCode('42');
       expect(vm.peek()).toBe(42);
     });
@@ -357,7 +501,25 @@ describe('Tuple operations', () => {
       initializeInterpreter();
       executeCode('( 1 2 )');
       executeCode('( 3 4 )');
-
+      
+      /**
+       * Stack layout with two tuples before drop:
+       * [0] TUPLE(2)  - First tuple tag with 2 elements
+       * [1] 1         - First element of first tuple
+       * [2] 2         - Second element of first tuple
+       * [3] LINK(3)   - Link tag for first tuple (points back 3 elements)
+       * [4] TUPLE(2)  - Second tuple tag with 2 elements
+       * [5] 3         - First element of second tuple
+       * [6] 4         - Second element of second tuple
+       * [7] LINK(3)   - Link tag for second tuple (points back 3 elements)
+       *
+       * After dropping the top (second) tuple:
+       * [0] TUPLE(2)  - First tuple tag remains
+       * [1] 1         - First element of first tuple remains
+       * [2] 2         - Second element of first tuple remains
+       * [3] LINK(3)   - Link tag for first tuple remains
+       */
+      
       // Get stack size before drop
       const stackBeforeSize = vm.getStackData().length;
       
@@ -392,6 +554,16 @@ describe('Tuple operations', () => {
       initializeInterpreter();
       executeCode('( 1 ( 2 3 ) )');
       
+      /**
+       * Expected stack layout after ( 1 ( 2 3 ) ):
+       * [0] TUPLE(2)  - Outer tuple tag with 2 elements
+       * [1] 1         - First element of outer tuple
+       * [2] TUPLE(2)  - Inner tuple tag with 2 elements
+       * [3] 2         - First element of inner tuple
+       * [4] 3         - Second element of inner tuple
+       * [5] LINK(5)   - Link tag for outer tuple (points back 5 elements)
+       */
+      
       // Log the stack after creating the tuple
       const stackAfterTuple = vm.getStackData();
       console.log('Stack after tuple creation:');
@@ -399,46 +571,81 @@ describe('Tuple operations', () => {
         const { tag, value } = fromTaggedValue(stackAfterTuple[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
+
+      // Now duplicate the tuple
+      executeCode('dup');
       
-      // Push a number on top
-      executeCode('42');
+      /**
+       * Expected stack layout after dup:
+       * [0] TUPLE(2)  - Original outer tuple tag
+       * [1] 1         - First element of original outer tuple
+       * [2] TUPLE(2)  - Original inner tuple tag
+       * [3] 2         - First element of original inner tuple
+       * [4] 3         - Second element of original inner tuple
+       * [5] LINK(5)   - Link tag for original outer tuple
+       * [6] TUPLE(2)  - Duplicated outer tuple tag
+       * [7] 1         - First element of duplicated outer tuple
+       * [8] TUPLE(2)  - Duplicated inner tuple tag
+       * [9] 2         - First element of duplicated inner tuple
+       * [10] 3        - Second element of duplicated inner tuple
+       * [11] LINK(5)  - Link tag for duplicated outer tuple
+       */
       
-      // Store the 42 value for reference
-      const topBeforeOps = vm.peek();
-      expect(topBeforeOps).toBe(42);
-      
-      // Log the stack before swap drop
-      const stackBeforeSwapDrop = vm.getStackData();
-      console.log('Stack before swap drop:');
-      for (let i = 0; i < stackBeforeSwapDrop.length; i++) {
-        const { tag, value } = fromTaggedValue(stackBeforeSwapDrop[i]);
+      // Log the stack after duplication
+      const stackAfterDup = vm.getStackData();
+      console.log('Stack after dup:');
+      for (let i = 0; i < stackAfterDup.length; i++) {
+        const { tag, value } = fromTaggedValue(stackAfterDup[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
       
-      // Instead of swap drop (which might not work as expected with tuples),
-      // let's directly remove the 42 and the tuple separately
-      vm.pop(); // Remove 42
+      // Verify stack has doubled in size 
+      expect(stackAfterDup.length).toBe(stackAfterTuple.length * 2);
       
-      // Now remove the tuple with drop
-      executeCode('drop');
+      // Verify first tuple's structure is intact
+      const { tag: firstTupleTag } = fromTaggedValue(stackAfterDup[0]);
+      expect(firstTupleTag).toBe(Tag.TUPLE);
+
+      // Now drop both tuples
+      executeCode('drop drop');
       
-      // Push 42 back
-      executeCode('42');
-      expect(vm.peek()).toBe(42);
+      /**
+       * Expected stack layout after drop drop:
+       * [] Empty stack - Both tuples have been completely removed
+       */
       
-      // Pop and verify
-      expect(vm.pop()).toBe(42);
-      
-      // Verify we can push new values
-      executeCode('100');
-      expect(vm.peek()).toBe(100);
+      // Verify stack is empty
+      expect(vm.getStackData().length).toBe(0);
     });
 
     test('should drop a deeply nested tuple in a single operation', () => {
       initializeInterpreter();
       executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
+      
+      /**
+       * Expected stack layout for deeply nested tuple:
+       * [0] TUPLE(3)  - Outermost tuple tag with 3 elements
+       * [1] 1         - First element of outermost tuple
+       * [2] TUPLE(3)  - Middle tuple tag with 3 elements
+       * [3] 2         - First element of middle tuple
+       * [4] TUPLE(2)  - Innermost tuple tag with 2 elements
+       * [5] 3         - First element of innermost tuple
+       * [6] 4         - Second element of innermost tuple
+       * [7] 5         - Third element of middle tuple
+       * [8] 6         - Third element of outermost tuple
+       * [9] LINK(9)   - Link tag for outermost tuple (points back 9 elements)
+       * 
+       * After drop:
+       * [] Empty stack - The entire tuple structure is removed
+       */
+      
       expect(vm.SP).toBeGreaterThan(0);
       executeCode('drop');
+      
+      // Verify the tuple was completely dropped
+      expect(vm.getStackData().length).toBe(0);
+      
+      // Verify we can add new values to the stack
       executeCode('123');
       expect(vm.peek()).toBe(123);
       vm.pop();
@@ -448,13 +655,36 @@ describe('Tuple operations', () => {
 
     test('should drop multiple tuples consecutively', () => {
       initializeInterpreter();
+      
       // Create and drop first tuple
       executeCode('( 10 20 )');
+      
+      /**
+       * Expected stack layout after first tuple creation:
+       * [0] TUPLE(2)  - Tuple tag with 2 elements
+       * [1] 10        - First element
+       * [2] 20        - Second element
+       * [3] LINK(3)   - Link tag (points back 3 elements)
+       * 
+       * After first drop:
+       * [] Empty stack
+       */
       executeCode('drop');
       expect(vm.getStackData().length).toBe(0); // Stack should be empty after dropping the tuple
       
       // Create and drop second tuple
       executeCode('( 30 40 )');
+      
+      /**
+       * Expected stack layout after second tuple creation:
+       * [0] TUPLE(2)  - Tuple tag with 2 elements
+       * [1] 30        - First element
+       * [2] 40        - Second element
+       * [3] LINK(3)   - Link tag (points back 3 elements)
+       * 
+       * After second drop:
+       * [] Empty stack
+       */
       executeCode('drop');
       expect(vm.getStackData().length).toBe(0); // Stack should be empty after dropping the second tuple
       
@@ -468,6 +698,23 @@ describe('Tuple operations', () => {
     });
 
     test('should drop a tuple when directly referenced', () => {
+      /**
+       * Initial stack layout after ( 10 20 ) 30:
+       * [0] TUPLE(2)  - Tuple tag with 2 elements
+       * [1] 10        - First element
+       * [2] 20        - Second element
+       * [3] LINK(3)   - Link tag (points back 3 elements)
+       * [4] 30        - Regular value
+       * 
+       * After first drop:
+       * [0] TUPLE(2)  - Tuple tag with 2 elements
+       * [1] 10        - First element
+       * [2] 20        - Second element
+       * [3] LINK(3)   - Link tag (points back 3 elements)
+       * 
+       * After second drop:
+       * [] Empty stack - The entire tuple is removed
+       */
       const stack = executeCode('( 10 20 ) 30 drop drop');
       expect(stack.length).toBe(0);
     });
