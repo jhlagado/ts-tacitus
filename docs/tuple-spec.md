@@ -42,16 +42,18 @@ Tuples are created using the `openTupleOp` and `closeTupleOp` operations:
 
 1. `openTupleOp`:
    - Increments `vm.tupleDepth` to track nesting level
-   - Pushes a placeholder TUPLE tag onto the stack
-   - Pushes the position of the TUPLE tag onto the return stack
+   - Pushes a placeholder TUPLE tag onto the stack with size 0
+   - Pushes the position of the TUPLE tag onto the return stack for later reference
 
 2. `closeTupleOp`:
    - Retrieves the tuple tag position from the return stack
    - Calculates tuple size based on stack pointer difference
    - Updates the TUPLE tag with the correct size
    - Only for outermost tuples (when `vm.tupleDepth === 1`):
-     - Pushes a LINK tag with a value indicating offset to the TUPLE tag
-   - Decrements `vm.tupleDepth`
+     - Pushes a LINK tag with a value indicating the relative number of elements (including the TUPLE tag itself)
+   - Decrements `vm.tupleDepth` to update the nesting level
+   
+   > **Important Implementation Detail**: The `vm.tupleDepth` counter is critical for properly tracking tuple nesting. It determines whether a LINK tag should be added (only for outermost tuples) and must be correctly incremented/decremented.
 
 ### Duplication (`dupOp`)
 - Checks if top of stack is a LINK tag
@@ -110,17 +112,21 @@ LINK tags are a critical implementation detail for stack manipulation of tuples:
 - Enable efficient manipulation of tuples as single units
 - Allow operations like `dup` and `drop` to identify tuple boundaries
 - Provide quick navigation to the start of a tuple without traversing all elements
+- Serve as markers for operations that need to process an entire tuple as one unit
 
 ### Characteristics
-- Only present on outermost tuples
+- Only present on outermost tuples (tuples at nesting level 1)
 - Value represents the offset in elements to the start of the tuple (includes the TUPLE tag itself)
 - Not part of the tuple's logical structure but rather a VM implementation detail
+- The value stored in the LINK tag is critical for stack manipulation operations
 
 ### Important Constraints
 1. LINK tags are strictly on outermost tuples; inner tuples do not have LINK tags
 2. LINK tags are solely for stack traversal and manipulation
 3. When operations create new tuples (e.g., `dup`), LINK tags must be preserved
 4. Operations like `drop` rely on LINK tags to calculate how many elements to remove
+5. The VM's `tupleDepth` counter must be properly managed to ensure LINK tags are only added at the correct nesting level
+6. All tuple manipulation code must be consistent in its treatment of LINK tags to prevent tag mismatches
 
 ### Example Usage
 When dropping a tuple:
@@ -133,4 +139,68 @@ if (tag === Tag.LINK) {
 }
 ```
 
-This allows for efficient dropping of entire tuples without needing to manually track the tuple size or structure.
+When duplicating a tuple:
+```typescript
+if (tag === Tag.LINK) {
+  const elemCount = value + 1;
+  const byteOffset = elemCount * BYTES_PER_ELEMENT;
+  const startByte = vm.SP - byteOffset;
+  // Now clone the entire tuple block including TUPLE tag and elements
+  for (let i = 0; i < elemCount; i++) {
+    const val = vm.memory.readFloat32(SEG_STACK, startByte + i * BYTES_PER_ELEMENT);
+    vm.push(val);
+  }
+}
+```
+
+This allows for efficient manipulation of entire tuples without needing to manually track the tuple size or structure.
+
+## 6. Common Implementation Pitfalls
+
+### VM Initialization Issues
+When writing tests or code that manipulates tuples:
+
+1. Always ensure the VM is properly initialized before tuple operations:
+   ```typescript
+   initializeInterpreter();
+   vm.SP = 0;
+   vm.RP = 0;
+   vm.BP = 0;
+   vm.IP = 0;
+   vm.tupleDepth = 0;
+   vm.compiler.reset();
+   ```
+
+2. The `tupleDepth` counter must be reset to 0 at the start of operations
+
+3. When testing, be aware that tests may fail when run as part of a larger suite but pass individually due to shared VM state
+
+4. Always ensure tuple operations are fully self-contained with proper VM state management
+
+### Tag Validation
+When asserting tuple structure:
+
+1. Check for correct tuple tags (Tag.TUPLE = 5) and LINK tags (Tag.LINK = 6)
+2. Verify stack layout matches expected tuple nesting
+3. Remember that inner tuples do not have LINK tags, only outer tuples do
+
+### Testing Considerations
+
+1. When modularizing tests, duplicate VM initialization code rather than sharing utility functions to avoid shared state issues
+
+2. Use debugging tools to inspect stack contents and tag values:
+   ```typescript
+   function debugStack(label: string, stack: number[]) {
+     console.log(label);
+     for (let i = 0; i < stack.length; i++) {
+       const { tag, value } = fromTaggedValue(stack[i]);
+       console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
+     }
+   }
+   ```
+
+3. Avoid overly strict assertions on tuple size or implementation details that might change
+
+4. Ensure built-in words like `dup` and `drop` are properly registered before testing tuple operations
+
+5. Be aware of the global VM state and reset it completely between tests
