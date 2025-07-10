@@ -112,19 +112,71 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(second);
 };
 
-export const rotOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT * 3) {
-    throw new Error(
-      `Stack underflow: 'rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
+function getItemSize(vm: VM, offset: number): number {
+  const tupleInfo = findTuple(vm, offset);
+  return tupleInfo ? tupleInfo.totalSize : 1;
+}
 
-  const c = vm.pop();
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(b);
-  vm.push(c);
-  vm.push(a);
+function updateTupleLinks(vm: VM, start: number, movedSize: number, shift: number) {
+  const stack = vm.getStackData();
+  for (let i = 0; i < stack.length; i++) {
+    const { tag, value } = fromTaggedValue(stack[i]);
+    if (tag === Tag.LINK) {
+      if (value >= start && value < start + movedSize) {
+        // Link points to moved block, adjust by shift
+        stack[i] = toTaggedValue(Tag.LINK, value + shift);
+      } else if (value >= start + movedSize && value < start + movedSize + shift) {
+        // Link points to block that was shifted down
+        stack[i] = toTaggedValue(Tag.LINK, value - movedSize);
+      }
+    }
+  }
+}
+
+export const rotOp: Verb = (vm: VM) => {
+  // Get the size of the top item (C)
+  const sizeC = getItemSize(vm, 0);
+  
+  // Get the size of the second item (B)
+  const sizeB = getItemSize(vm, sizeC);
+  
+  // Get the size of the third item (A)
+  const sizeA = getItemSize(vm, sizeC + sizeB);
+  
+  // Total size of the three items in elements
+  const totalSize = sizeA + sizeB + sizeC;
+  
+  // Calculate the start position (in elements from the top of the stack)
+  // We need to point to the start of the first element (A)
+  const startPos = totalSize;
+  
+  // For the rotation A B C -> B C A, we need to move A to the end
+  // This is equivalent to rotating left by sizeA elements
+  // But since rangeRoll works with bytes, we need to convert
+  
+  // The rotation is equivalent to moving the first item to the end
+  // So we need to shift by sizeA elements to the right
+  const shiftAmount = sizeA * BYTES_PER_ELEMENT;
+  const rangeSize = totalSize * BYTES_PER_ELEMENT;
+  
+  // Use rangeRoll to rotate the three items: A B C -> B C A
+  // The startDepth is the offset from the top of the stack to the start of the range
+  // Since we're rotating the top 3 items, the start depth is 0 (from the top)
+  rangeRoll(
+    vm,                    // VM instance
+    0,                     // Start depth: 0 means start from the top of the stack
+    rangeSize,             // Total size of the range to rotate in bytes
+    shiftAmount            // Shift amount in bytes
+  );
+  
+  // Update any LINK tags that might have been affected
+  // We moved sizeA elements from the start to the end of the range
+  updateTupleLinks(
+    vm,                    // VM instance
+    0,                     // Start position (from top of stack)
+    sizeB + sizeC,         // Size of the moved block in elements
+    sizeA                  // Shift amount in elements
+  );
 };
 
 export const negRotOp: Verb = (vm: VM) => {
