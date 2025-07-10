@@ -120,73 +120,26 @@ export const rotOp: Verb = (vm: VM) => {
     );
   }
 
-  // Check if any of the top 3 items is a tuple
-  const topTuple = findTuple(vm, 0);
-  const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
-  
-  const midTuple = findTuple(vm, topSize);
-  const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
-  
-  const bottomTuple = findTuple(vm, topSize + midSize);
-  const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
-  
-  // If we're not in a tuple context or if all items are simple values
-  if (vm.tupleDepth === 0 || (!topTuple && !midTuple && !bottomTuple)) {
-    // Simple case: just rotate three values
-    const c = vm.pop();
-    const b = vm.pop();
-    const a = vm.pop();
-    vm.push(b);
-    vm.push(c);
-    vm.push(a);
-    return;
-  }
-  
-  // For tuple rotations, we need to handle the memory layout carefully
+  // Always use rangeRoll to rotate the top three items
   const originalSP = vm.SP;
   
   try {
-    // Calculate the start of each item
-    const topStart = vm.SP - topSize;
-    const midStart = topStart - midSize;
-    const bottomStart = midStart - bottomSize;
+    // Calculate the total size of the top 3 items
+    const topTuple = findTuple(vm, 0);
+    const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
     
-    // Create a temporary buffer to hold the rotated items
-    const rotated = new ArrayBuffer(topSize + midSize + bottomSize);
-    const rotatedView = new DataView(rotated);
+    const midTuple = findTuple(vm, topSize);
+    const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
     
-    // Read the three items into the buffer in the new order: b, c, a
-    let offset = 0;
+    const bottomTuple = findTuple(vm, topSize + midSize);
+    const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
     
-    // 1. Copy middle item (b)
-    for (let i = 0; i < midSize; i += 4) {
-      const value = vm.memory.readFloat32(SEG_STACK, midStart + i);
-      rotatedView.setFloat32(offset, value, true);
-      offset += 4;
-    }
+    const totalSize = topSize + midSize + bottomSize;
     
-    // 2. Copy top item (c)
-    for (let i = 0; i < topSize; i += 4) {
-      const value = vm.memory.readFloat32(SEG_STACK, topStart + i);
-      rotatedView.setFloat32(offset, value, true);
-      offset += 4;
-    }
+    // Rotate the three items: [a, b, c] -> [b, c, a]
+    // We need to rotate by midSize + bottomSize to move a to the end
+    rangeRoll(vm, 0, totalSize, midSize + bottomSize);
     
-    // 3. Copy bottom item (a)
-    for (let i = 0; i < bottomSize; i += 4) {
-      const value = vm.memory.readFloat32(SEG_STACK, bottomStart + i);
-      rotatedView.setFloat32(offset, value, true);
-      offset += 4;
-    }
-    
-    // Write the rotated items back to memory
-    const rotatedFloats = new Float32Array(rotated);
-    for (let i = 0; i < rotatedFloats.length; i++) {
-      vm.memory.writeFloat32(SEG_STACK, bottomStart + (i * 4), rotatedFloats[i]);
-    }
-    
-    // Update the stack pointer to account for the rotated items
-    vm.SP = originalSP;
   } catch (error) {
     // If anything goes wrong, restore the stack pointer and rethrow the error
     vm.SP = originalSP;

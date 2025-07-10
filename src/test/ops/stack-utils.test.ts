@@ -400,6 +400,81 @@ describe('Stack Utilities', () => {
     expect(stack[8]).toBe(toTaggedValue(3, Tag.LINK));   // LINK for [1,2]
   });
 
+  test('should handle rotating a tuple with two simple values', () => {
+    // Clear any existing stack
+    vm.SP = 0;
+    
+    // Create a tuple (1 2)
+    createTupleOnStack(vm, [1, 2]);
+    
+    // Push simple values 3 and 4
+    vm.push(3);
+    vm.push(4);
+    
+    // Log initial stack
+    console.log('\n=== BEFORE ROTATION ===');
+    for (let i = 0; i < vm.SP; i += BYTES_PER_ELEMENT) {
+      const raw = vm.memory.readFloat32(SEG_STACK, i);
+      const { tag, value } = fromTaggedValue(raw);
+      console.log(`[${i}]: ${raw} (${Tag[tag]}: ${value})`);
+    }
+    
+    // We want to rotate the top 3 items: [TUPLE(2), 1, 2, LINK(3), 3, 4] -> [3, 4, TUPLE(2), 1, 2, LINK(3)]
+    // The range to rotate is from the start of the tuple to the top of the stack
+    const rangeSize = vm.SP; // Rotate the entire stack
+    const rotateAmount = 2 * BYTES_PER_ELEMENT; // Rotate by 2 elements (3 and 4)
+    
+    // Perform the rotation
+    rangeRoll(vm, 0, rangeSize, rotateAmount);
+    
+    // Log the stack after rotation
+    console.log('\n=== AFTER ROTATION ===');
+    for (let i = 0; i < vm.SP; i += BYTES_PER_ELEMENT) {
+      const raw = vm.memory.readFloat32(SEG_STACK, i);
+      const { tag, value } = fromTaggedValue(raw);
+      console.log(`[${i}]: ${raw} (${Tag[tag]}: ${value})`);
+    }
+    
+    // Verify the stack layout
+    // Expected: [3, 4, TUPLE(2), 1, 2, LINK(3)]
+    let offset = 0;
+    
+    // First value should be 3
+    const val1 = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(val1.tag).toBe(Tag.NUMBER);
+    expect(val1.value).toBe(3);
+    offset += BYTES_PER_ELEMENT;
+    
+    // Second value should be 4
+    const val2 = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(val2.tag).toBe(Tag.NUMBER);
+    expect(val2.value).toBe(4);
+    offset += BYTES_PER_ELEMENT;
+    
+    // Third value should be TUPLE(2)
+    const tupleTag = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(tupleTag.tag).toBe(Tag.TUPLE);
+    expect(tupleTag.value).toBe(2);
+    offset += BYTES_PER_ELEMENT;
+    
+    // Fourth value should be 1
+    const val3 = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(val3.tag).toBe(Tag.NUMBER);
+    expect(val3.value).toBe(1);
+    offset += BYTES_PER_ELEMENT;
+    
+    // Fifth value should be 2
+    const val4 = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(val4.tag).toBe(Tag.NUMBER);
+    expect(val4.value).toBe(2);
+    offset += BYTES_PER_ELEMENT;
+    
+    // Sixth value should be LINK(3)
+    const linkTag = fromTaggedValue(vm.memory.readFloat32(SEG_STACK, offset));
+    expect(linkTag.tag).toBe(Tag.LINK);
+    expect(linkTag.value).toBe(3);
+  });
+
   test('should handle large tuples correctly', () => {
     // Create a large tuple with 20 elements (reduced from 100 to prevent stack overflow)
     const largeTuple = Array.from({length: 20}, (_, i) => i);
