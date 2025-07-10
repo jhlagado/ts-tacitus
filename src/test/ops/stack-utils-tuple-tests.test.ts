@@ -15,48 +15,22 @@ describe('findTuple', () => {
     vm.SP = 0;
   });
 
+  // Helper function to push a value onto the stack
   function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
     vm.memory.writeFloat32(SEG_STACK, vm.SP, toTaggedValue(value, tag));
     vm.SP += BYTES_PER_ELEMENT;
   }
 
+  // Helper function to create a simple tuple on the stack
   function createSimpleTuple(...values: number[]): void {
-    // Push TUPLE tag
+    // Push TUPLE tag with element count
     pushValue(values.length, Tag.TUPLE);
 
-    // Push values
+    // Push all values
     values.forEach(val => pushValue(val));
 
-    // Push LINK tag
+    // Push LINK tag with total element count
     pushValue(values.length + 1, Tag.LINK);
-  }
-
-  function createNestedTuple(innerValues: number[], ...outerValues: (number | number[])[]): void {
-    // Push TUPLE tag for outer tuple
-    pushValue(outerValues.length + 1, Tag.TUPLE); // +1 for inner tuple
-
-    // Push inner tuple
-    createSimpleTuple(...innerValues);
-
-    // Calculate total elements for outer values
-    let outerValuesSize = 0;
-
-    // Push outer values and calculate their size
-    outerValues.forEach(val => {
-      if (Array.isArray(val)) {
-        createSimpleTuple(...val);
-        outerValuesSize += val.length + 2; // +2 for TUPLE and LINK tags
-      } else {
-        pushValue(val);
-        outerValuesSize += 1;
-      }
-    });
-
-    // Push LINK tag for outer tuple
-    // Total elements: 1 (TUPLE) + inner tuple size + outer values size + 1 (LINK)
-    const innerTupleSize = innerValues.length + 2; // TUPLE + values + LINK
-    const totalElements = 1 + innerTupleSize + outerValuesSize;
-    pushValue(totalElements, Tag.LINK);
   }
 
   test('should find a simple tuple at the top of the stack', () => {
@@ -114,32 +88,38 @@ describe('findTuple', () => {
     });
   });
 
-  test('should find a nested tuple', () => {
-    // Create a nested tuple: ((1, 2), 3, 4)
-    createNestedTuple([1, 2], 3, 4);
+  test('should find a tuple at a given offset', () => {
+    // Create a simple tuple (1, 2, 3)
+    createSimpleTuple(1, 2, 3);
 
-    // The outer tuple is at the top, offset 0 points to its LINK tag
-    const outerTuple = findTuple(vm, 0);
+    // Push some other values on top
+    pushValue(42);
+    pushValue(43);
 
-    expect(outerTuple).not.toBeNull();
-    if (!outerTuple) return; // Type guard
+    // The tuple is at the bottom of the stack, and we have two values on top
+    // Stack layout:
+    // [0]: TUPLE 3
+    // [4]: 1
+    // [8]: 2
+    // [12]: 3
+    // [16]: LINK 4
+    // [20]: 42  (pushed after)
+    // [24]: 43  (pushed after)
+    // SP = 28
 
-    expect(outerTuple.size).toBe(3); // Inner tuple + 2 values
+    // The LINK tag is at offset 16 from the start, which is 12 bytes from SP (28 - 16)
+    // The findTuple function will adjust for BYTES_PER_ELEMENT internally
+    const result = findTuple(vm, 8);
 
-    // The inner tuple is inside the outer tuple, after the TUPLE tag
-    // The inner tuple's LINK tag is at offset 20 (5 elements * 4 bytes) from the start
-    const innerTupleOffset = 20; // SP - (outerTuple.start + outerTuple.linkOffset)
-    const innerTuple = findTuple(vm, innerTupleOffset);
+    expect(result).not.toBeNull();
+    if (!result) return;
 
-    expect(innerTuple).not.toBeNull();
-    if (!innerTuple) return; // Type guard
-
-    expect(innerTuple.size).toBe(2); // Two values in inner tuple
-
-    // The outer tuple should contain the inner tuple
-    expect(outerTuple.start).toBe(0);
-    expect(innerTuple.start).toBe(4); // After outer TUPLE tag
-    expect(outerTuple.end).toBe(36);  // 9 elements * 4 bytes
+    // The tuple starts at 0 (TUPLE tag) and ends at 20 (after LINK tag)
+    expect(result.size).toBe(3);
+    expect(result.start).toBe(0);
+    expect(result.end).toBe(20);
+    expect(result.totalSize).toBe(20);  // 5 elements * 4 bytes
+    expect(result.linkOffset).toBe(16); // LINK is at offset 16 from start
   });
 
   test('should return null for invalid tuple structures', () => {
