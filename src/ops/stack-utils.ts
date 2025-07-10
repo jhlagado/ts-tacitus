@@ -95,20 +95,22 @@ function reverseRange(vm: VM, startAddr: number, elementCount: number): void {
 }
 
 /**
- * Finds a tuple on the stack.
+ * Finds a tuple on the stack by looking for a LINK tag and then finding the matching TUPLE tag.
  * 
  * @param vm The virtual machine instance
- * @param offset Stack offset in bytes from the top of the stack
- * @returns Object containing tuple information or null if not a tuple
+ * @param offset Stack offset in bytes from the top of the stack to the LINK tag
+ * @returns Object containing tuple information or null if not a valid tuple
  */
 export function findTuple(vm: VM, offset: number = 0): { 
   start: number;       // Start address of the tuple (TUPLE tag) in bytes
   end: number;         // End address of the tuple (after LINK tag) in bytes
   size: number;        // Number of elements in the tuple (excluding TUPLE and LINK tags)
   totalSize: number;   // Total size in bytes including TUPLE tag and LINK tag
+  linkOffset: number;  // Offset of the LINK tag from the start of the tuple
 } | null {
   try {
     // Calculate the absolute position of the potential LINK tag
+    // The offset is from the top of the stack to the LINK tag
     const linkAddr = vm.SP - offset - BYTES_PER_ELEMENT;
     
     // Check if we're within stack bounds
@@ -125,11 +127,11 @@ export function findTuple(vm: VM, offset: number = 0): {
       return null;
     }
     
-    // The LINK value points to the TUPLE tag
-    // linkDecoded.value is the number of elements from TUPLE to just before LINK
+    // The LINK value is the total number of elements from TUPLE to just before LINK
     const totalElements = linkDecoded.value;
     
     // Calculate the start of the tuple (TUPLE tag)
+    // We need to go back (totalElements * BYTES_PER_ELEMENT) bytes from the LINK tag
     const tupleStart = linkAddr - (totalElements * BYTES_PER_ELEMENT);
     
     // Verify we have enough stack space for this tuple
@@ -148,7 +150,7 @@ export function findTuple(vm: VM, offset: number = 0): {
     // The TUPLE value should be the number of data elements (excluding TUPLE and LINK tags)
     const dataElements = tupleDecoded.value;
     
-    // Verify the total elements match (should be dataElements + 1 for the TUPLE tag)
+    // Verify the total elements match (should be dataElements + 1 for the TUPLE tag + data elements)
     if (totalElements !== dataElements + 1) {
       return null; // Size mismatch between TUPLE and LINK tags
     }
@@ -161,7 +163,8 @@ export function findTuple(vm: VM, offset: number = 0): {
       start: tupleStart,
       end: tupleEnd,
       size: dataElements,
-      totalSize: totalSize
+      totalSize: totalSize,
+      linkOffset: linkAddr - tupleStart  // Offset of LINK tag from tuple start
     };
   } catch (_error) {
     // If anything goes wrong during decoding, it's not a valid tuple
