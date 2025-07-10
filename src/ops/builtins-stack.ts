@@ -57,8 +57,10 @@ export const swapOp: Verb = (vm: VM) => {
   const secondTuple = findTuple(vm, topSize);
   const secondSize = secondTuple ? secondTuple.totalSize : BYTES_PER_ELEMENT;
   
-  // Calculate the total size of both items
-  const totalSize = topSize + secondSize;
+  // Calculate the total size of both items in slots
+  const topSlots = topSize / BYTES_PER_ELEMENT;
+  const secondSlots = secondSize / BYTES_PER_ELEMENT;
+  const totalSlots = topSlots + secondSlots;
   
   // For top-level swaps, we need to handle LINK tags specially
   if (vm.tupleDepth === 0) {
@@ -69,13 +71,13 @@ export const swapOp: Verb = (vm: VM) => {
       
       try {
         // Use rangeRoll to rotate the top two items (including their LINK tags if they're tuples)
-        // We rotate by topSize bytes to move the first item past the second item
-        rangeRoll(vm, 0, totalSize, topSize);
+        // We rotate by topSlots to move the first item past the second item
+        rangeRoll(vm, 0, totalSlots, topSlots);
         
         // If we're swapping two tuples, we need to update their LINK tags
         if (topTuple && secondTuple) {
           // The tuples have been swapped, so their positions are now reversed
-          const firstTuplePos = secondSize;
+          const firstTuplePos = secondSlots * BYTES_PER_ELEMENT;
           const secondTuplePos = 0;
           
           // Update the first tuple's LINK tag (if it has one)
@@ -84,7 +86,7 @@ export const swapOp: Verb = (vm: VM) => {
           const { tag: firstLinkTag } = fromTaggedValue(firstTupleLink);
           if (firstLinkTag === Tag.LINK) {
             // The LINK tag should point to the start of the first tuple
-            vm.memory.writeFloat32(SEG_STACK, firstTupleEnd, toTaggedValue(secondSize / BYTES_PER_ELEMENT, Tag.LINK));
+            vm.memory.writeFloat32(SEG_STACK, firstTupleEnd, toTaggedValue(secondSlots, Tag.LINK));
           }
           
           // Update the second tuple's LINK tag (if it has one)
@@ -93,7 +95,7 @@ export const swapOp: Verb = (vm: VM) => {
           const { tag: secondLinkTag } = fromTaggedValue(secondTupleLink);
           if (secondLinkTag === Tag.LINK) {
             // The LINK tag should point to the start of the second tuple
-            vm.memory.writeFloat32(SEG_STACK, secondTupleEnd, toTaggedValue(topSize / BYTES_PER_ELEMENT, Tag.LINK));
+            vm.memory.writeFloat32(SEG_STACK, secondTupleEnd, toTaggedValue(topSlots, Tag.LINK));
           }
         }
         return;
@@ -126,24 +128,27 @@ export const rotOp: Verb = (vm: VM) => {
     // Calculate the size of the top item (c)
     const topTuple = findTuple(vm, 0);
     const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
+    const topSlots = topSize / BYTES_PER_ELEMENT;
     
     // Calculate the size of the second item (b)
     const midTuple = findTuple(vm, topSize);
     const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
+    const midSlots = midSize / BYTES_PER_ELEMENT;
     
     // Calculate the size of the third item (a)
     const bottomTuple = findTuple(vm, topSize + midSize);
     const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
+    const bottomSlots = bottomSize / BYTES_PER_ELEMENT;
     
-    // Total size of the three items
-    const totalSize = topSize + midSize + bottomSize;
+    // Total size of the three items in slots
+    const totalSlots = topSlots + midSlots + bottomSlots;
     
     // For nested tuples, we need to adjust the rotation amount
     // to ensure we're rotating the correct number of elements
-    const rotationAmount = midSize + topSize;
+    const rotationSlots = midSlots + topSlots;
     
     // Rotate the three items: [a, b, c] -> [b, c, a]
-    rangeRoll(vm, 0, totalSize, rotationAmount);
+    rangeRoll(vm, 0, totalSlots, rotationSlots);
     
   } catch (error) {
     // If anything goes wrong, restore the stack pointer and rethrow the error
