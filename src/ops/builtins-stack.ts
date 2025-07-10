@@ -120,25 +120,27 @@ export const rotOp: Verb = (vm: VM) => {
     );
   }
 
-  // Always use rangeRoll to rotate the top three items
   const originalSP = vm.SP;
   
   try {
-    // Calculate the total size of the top 3 items
+    // Calculate the size of the top item (c)
     const topTuple = findTuple(vm, 0);
     const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
     
+    // Calculate the size of the second item (b)
     const midTuple = findTuple(vm, topSize);
     const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
     
+    // Calculate the size of the third item (a)
     const bottomTuple = findTuple(vm, topSize + midSize);
     const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
     
+    // Total size of the three items
     const totalSize = topSize + midSize + bottomSize;
     
     // Rotate the three items: [a, b, c] -> [b, c, a]
-    // We need to rotate by midSize + bottomSize to move a to the end
-    rangeRoll(vm, 0, totalSize, midSize + bottomSize);
+    // Move 'a' to the top by rotating right by (midSize + topSize)
+    rangeRoll(vm, 0, totalSize, midSize + topSize);
     
   } catch (error) {
     // If anything goes wrong, restore the stack pointer and rethrow the error
