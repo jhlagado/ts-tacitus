@@ -7,6 +7,14 @@ import { rangeRoll, findTuple } from '../../ops/stack-utils';
 // Define BYTES_PER_ELEMENT for use in our tests
 const BYTES_PER_ELEMENT = 4; // Each element on the stack is 4 bytes (32-bit float)
 
+// Helper function to create a NaN with specific payload
+function createNaN(payload: number): number {
+  const view = new DataView(new ArrayBuffer(4));
+  // Set sign=0, exponent=all 1s (NaN), mantissa=payload
+  view.setUint32(0, 0x7FC00000 | (payload & 0x003FFFFF));
+  return view.getFloat32(0, true);
+}
+
 // Utility function for creating test tuples on the stack
 function createTupleOnStack(vm: VM, elements: number[]): void {
   // Push the tuple tag (with size = number of elements)
@@ -260,7 +268,8 @@ describe('Stack Utilities', () => {
       const result = findTuple(vm);
       expect(result).not.toBeNull();
       expect(result?.size).toBe(2);
-      expect(result?.totalSize).toBe(20); // 4 bytes * (2 elements + TUPLE tag + LINK tag + extra TUPLE accounting)
+      // 4 bytes * (TUPLE tag + 2 elements + LINK tag) = 16 bytes
+      expect(result?.totalSize).toBe(16);
     });
     
     test('should find a tuple with offset from the top', () => {
@@ -278,7 +287,8 @@ describe('Stack Utilities', () => {
       const result = findTuple(vm);
       expect(result).not.toBeNull();
       expect(result?.size).toBe(0);
-      expect(result?.totalSize).toBe(12); // 4 bytes * (0 elements + TUPLE tag + LINK tag + extra TUPLE accounting)
+      // 4 bytes * (TUPLE tag + 0 elements + LINK tag) = 8 bytes
+      expect(result?.totalSize).toBe(8);
     });
     
     test('should find a nested tuple', () => {
@@ -298,5 +308,167 @@ describe('Stack Utilities', () => {
       expect(outerTuple).not.toBeNull();
       expect(outerTuple?.size).toBe(3);
     });
+  });
+
+  test('should handle NaN values correctly', () => {
+    // Create NaN values with different payloads
+    const nan1 = createNaN(0x123456);
+    const nan2 = createNaN(0x789ABC);
+    
+    // Push NaN values
+    vm.push(nan1);
+    vm.push(nan2);
+    
+    // Rotate the two NaN values
+    rangeRoll(vm, 0, 2 * BYTES_PER_ELEMENT, BYTES_PER_ELEMENT);
+    
+    // Read back values as Uint32 to verify exact bit patterns
+    const view = new DataView(new ArrayBuffer(4));
+    view.setFloat32(0, vm.memory.readFloat32(SEG_STACK, 0), true);
+    const val1 = view.getUint32(0, true);
+    
+    view.setFloat32(0, vm.memory.readFloat32(SEG_STACK, BYTES_PER_ELEMENT), true);
+    const val2 = view.getUint32(0, true);
+    
+    // Check that the NaN values were swapped exactly
+    view.setFloat32(0, nan1, true);
+    const expectedNan1 = view.getUint32(0, true);
+    
+    view.setFloat32(0, nan2, true);
+    const expectedNan2 = view.getUint32(0, true);
+    
+    expect(val1).toBe(expectedNan2);
+    expect(val2).toBe(expectedNan1);
+  });
+
+  test('should handle mixed tuples and simple values', () => {
+    // Clear any existing stack
+    vm.SP = 0;
+    
+    // Create a simple stack: [TUPLE, 1, 2, LINK, TUPLE, 3, 4, 5, LINK]
+    createTupleOnStack(vm, [1, 2]);  // Creates [TUPLE, 1, 2, LINK]
+    
+    createTupleOnStack(vm, [3, 4, 5]); // Creates another tuple at the top
+    
+    // Get the stack size before rotation
+    const stackSize = vm.SP;
+    
+    // Find both tuples using their known positions
+    const secondTuple = findTuple(vm, 0);  // The second tuple is at the top
+    expect(secondTuple).not.toBeNull();
+    expect(secondTuple?.size).toBe(3);  // Should have 3 elements
+    
+    // The first tuple is at the bottom (offset by the size of the second tuple)
+    const firstTuple = findTuple(vm, secondTuple!.totalSize);
+    expect(firstTuple).not.toBeNull();
+    expect(firstTuple?.size).toBe(2);  // Should have 2 elements
+    
+    // Rotate the entire stack by the size of the second tuple
+    // This will move the second tuple to the bottom
+    rangeRoll(vm, 0, stackSize, secondTuple!.totalSize);
+    
+    // Verify the stack size hasn't changed
+    expect(vm.SP).toBe(stackSize);
+    
+    // After rotation, the first tuple (originally at the bottom) should now be at the top
+    const rotatedFirstTuple = findTuple(vm, 0);
+    expect(rotatedFirstTuple).not.toBeNull();
+    expect(rotatedFirstTuple?.size).toBe(2);
+    
+    // The second tuple should now be at the bottom
+    const rotatedSecondTuple = findTuple(vm, rotatedFirstTuple!.totalSize);
+    expect(rotatedSecondTuple).not.toBeNull();
+    expect(rotatedSecondTuple?.size).toBe(3);
+    
+    // Verify the stack contents after rotation
+    const stack = [];
+    for (let i = 0; i < vm.SP; i += BYTES_PER_ELEMENT) {
+      stack.push(vm.memory.readFloat32(SEG_STACK, i));
+    }
+    
+    // First tuple (originally second) should now be at the bottom
+    expect(stack[0]).toBe(toTaggedValue(3, Tag.TUPLE));  // TUPLE tag for [3,4,5]
+    expect(stack[1]).toBe(3);
+    expect(stack[2]).toBe(4);
+    expect(stack[3]).toBe(5);
+    expect(stack[4]).toBe(toTaggedValue(4, Tag.LINK));  // LINK for [3,4,5]
+    
+    // Second tuple (originally first) should be at the top
+    expect(stack[5]).toBe(toTaggedValue(2, Tag.TUPLE));  // TUPLE tag for [1,2]
+    expect(stack[6]).toBe(1);
+    expect(stack[7]).toBe(2);
+    expect(stack[8]).toBe(toTaggedValue(3, Tag.LINK));   // LINK for [1,2]
+  });
+
+  test('should handle large tuples correctly', () => {
+    // Create a large tuple with 20 elements (reduced from 100 to prevent stack overflow)
+    const largeTuple = Array.from({length: 20}, (_, i) => i);
+    createTupleOnStack(vm, largeTuple);
+    
+    // Capture initial state
+    const initialStack = new Float32Array(vm.SP / BYTES_PER_ELEMENT);
+    for (let i = 0; i < initialStack.length; i++) {
+      initialStack[i] = vm.memory.readFloat32(SEG_STACK, i * BYTES_PER_ELEMENT);
+    }
+    
+    // Rotate the entire tuple by 10 elements
+    rangeRoll(vm, 0, vm.SP, 10 * BYTES_PER_ELEMENT);
+    
+    // Rotate back
+    rangeRoll(vm, 0, vm.SP, -10 * BYTES_PER_ELEMENT);
+    
+    // Verify the stack is exactly as it was
+    for (let i = 0; i < initialStack.length; i++) {
+      const val = vm.memory.readFloat32(SEG_STACK, i * BYTES_PER_ELEMENT);
+      expect(val).toBe(initialStack[i]);
+    }
+  });
+
+  test('should handle nested tuples correctly', () => {
+    // Create a nested tuple structure: (1, (2, 3), 4)
+    
+    // First, create the inner tuple (2, 3)
+    createTupleOnStack(vm, [2, 3]);
+    const innerTupleStart = vm.SP - 4 * BYTES_PER_ELEMENT; // Position of inner TUPLE tag
+    
+    // Now create the outer tuple (1, <inner-tuple>, 4)
+    const outerElements = [1];
+    // Push the inner tuple's TUPLE tag
+    outerElements.push(vm.memory.readFloat32(SEG_STACK, innerTupleStart));
+    // Push the inner tuple elements (2, 3, LINK)
+    for (let i = 1; i <= 3; i++) {
+      outerElements.push(vm.memory.readFloat32(SEG_STACK, innerTupleStart + i * BYTES_PER_ELEMENT));
+    }
+    // Add the final element
+    outerElements.push(4);
+    
+    // Clear the stack and create the outer tuple
+    vm.SP = 0;
+    createTupleOnStack(vm, outerElements);
+    
+    // Get the positions of both tuples
+    const outerTupleStart = 0;
+    const currentInnerTupleStart = 2 * BYTES_PER_ELEMENT; // After TUPLE tag and 1
+    
+    // Verify initial structure
+    const outerTuple = findTuple(vm, outerTupleStart);
+    expect(outerTuple).not.toBeNull();
+    expect(outerTuple?.size).toBe(outerElements.length);
+    
+    // Rotate the entire structure by 1 element
+    rangeRoll(vm, 0, vm.SP, BYTES_PER_ELEMENT);
+    
+    // Rotate back
+    rangeRoll(vm, 0, vm.SP, -BYTES_PER_ELEMENT);
+    
+    // Verify the tuple structure is still valid
+    const outerTupleAfter = findTuple(vm, outerTupleStart);
+    expect(outerTupleAfter).not.toBeNull();
+    expect(outerTupleAfter?.size).toBe(outerElements.length);
+    
+    // Verify inner tuple is still valid
+    const innerTuple = findTuple(vm, currentInnerTupleStart);
+    expect(innerTuple).not.toBeNull();
+    expect(innerTuple?.size).toBe(2); // Inner tuple has 2 elements
   });
 });

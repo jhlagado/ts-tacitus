@@ -104,61 +104,67 @@ function reverseRange(vm: VM, startAddr: number, elementCount: number): void {
 export function findTuple(vm: VM, offset: number = 0): { 
   start: number;       // Start address of the tuple (TUPLE tag) in bytes
   end: number;         // End address of the tuple (after LINK tag) in bytes
-  size: number;        // Number of elements in the tuple
+  size: number;        // Number of elements in the tuple (excluding TUPLE and LINK tags)
   totalSize: number;   // Total size in bytes including TUPLE tag and LINK tag
 } | null {
-  // Check if we have enough elements on the stack
-  if (vm.SP <= offset) {
-    return null;
-  }
-
-  // Check if the element at offset is a LINK tag
-  const linkAddr = vm.SP - offset - BYTES_PER_ELEMENT;
-  const linkValue = vm.memory.readFloat32(SEG_STACK, linkAddr);
-  
   try {
+    // Calculate the absolute position of the potential LINK tag
+    const linkAddr = vm.SP - offset - BYTES_PER_ELEMENT;
+    
+    // Check if we're within stack bounds
+    if (linkAddr < 0 || linkAddr >= vm.SP) {
+      return null;
+    }
+    
+    // Read and decode the potential LINK tag
+    const linkValue = vm.memory.readFloat32(SEG_STACK, linkAddr);
     const linkDecoded = fromTaggedValue(linkValue);
+    
+    // Must be a LINK tag
     if (linkDecoded.tag !== Tag.LINK) {
       return null;
     }
     
-    // The LINK tag value includes the TUPLE tag, so we need to adjust
-    // linkDecoded.value is the total number of elements from TUPLE to just before LINK
+    // The LINK value points to the TUPLE tag
+    // linkDecoded.value is the number of elements from TUPLE to just before LINK
     const totalElements = linkDecoded.value;
     
-    // Calculate the number of data elements (excluding the TUPLE tag)
-    const dataElements = totalElements - 1;
+    // Calculate the start of the tuple (TUPLE tag)
+    const tupleStart = linkAddr - (totalElements * BYTES_PER_ELEMENT);
     
-    // Calculate total size and position
-    const tupleBodySize = totalElements * BYTES_PER_ELEMENT; // Elements + TUPLE tag
-    const tupleEnd = linkAddr + BYTES_PER_ELEMENT; // End address (after LINK tag)
-    const tupleStart = tupleEnd - tupleBodySize - BYTES_PER_ELEMENT; // -BYTES_PER_ELEMENT for TUPLE tag
-    
-    // Verify the TUPLE tag
+    // Verify we have enough stack space for this tuple
     if (tupleStart < 0) {
-      return null; // Invalid tuple structure
+      return null; // Not enough space for the claimed tuple
     }
     
+    // Read and verify the TUPLE tag
     const tupleTagValue = vm.memory.readFloat32(SEG_STACK, tupleStart);
     const tupleDecoded = fromTaggedValue(tupleTagValue);
     
     if (tupleDecoded.tag !== Tag.TUPLE) {
-      return null;
+      return null; // No TUPLE tag where expected
     }
     
-    // Verify the size in TUPLE tag matches our calculation
-    if (tupleDecoded.value !== dataElements) {
-      return null; // Tuple tag size doesn't match link offset
+    // The TUPLE value should be the number of data elements (excluding TUPLE and LINK tags)
+    const dataElements = tupleDecoded.value;
+    
+    // Verify the total elements match (should be dataElements + 1 for the TUPLE tag)
+    if (totalElements !== dataElements + 1) {
+      return null; // Size mismatch between TUPLE and LINK tags
     }
-
+    
+    // Calculate total size in bytes (TUPLE + data elements + LINK)
+    const totalSize = (dataElements + 2) * BYTES_PER_ELEMENT;
+    const tupleEnd = tupleStart + totalSize;
+    
     return {
       start: tupleStart,
       end: tupleEnd,
       size: dataElements,
-      totalSize: tupleBodySize + (2 * BYTES_PER_ELEMENT) // Data elements + TUPLE tag + LINK tag
+      totalSize: totalSize
     };
   } catch (_error) {
-    // Invalid tagged value
+    // If anything goes wrong during decoding, it's not a valid tuple
     return null;
   }
 }
