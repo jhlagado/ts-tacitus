@@ -1,6 +1,6 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import { Tag, fromTaggedValue } from '../core/tagged';
+import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
 import { findTuple, rangeRoll } from './stack-utils';
@@ -57,21 +57,59 @@ export const swapOp: Verb = (vm: VM) => {
   const secondTuple = findTuple(vm, topSize);
   const secondSize = secondTuple ? secondTuple.totalSize : BYTES_PER_ELEMENT;
   
-  // If either item is a tuple, use rangeRoll to swap them while preserving their structure
-  if (topTuple || secondTuple) {
-    // Calculate the total size of both items
-    const totalSize = topSize + secondSize;
-    
-    // Use rangeRoll to rotate the top two items (including their LINK tags if they're tuples)
-    // We rotate by topSize bytes to move the first item past the second item
-    rangeRoll(vm, 0, totalSize, topSize);
-  } else {
-    // For simple values, just swap them directly
-    const top = vm.pop();
-    const second = vm.pop();
-    vm.push(top);
-    vm.push(second);
+  // Calculate the total size of both items
+  const totalSize = topSize + secondSize;
+  
+  // For top-level swaps, we need to handle LINK tags specially
+  if (vm.tupleDepth === 0) {
+    // If either item is a tuple, use rangeRoll to swap them while preserving their structure
+    if (topTuple || secondTuple) {
+      // Save the current stack position
+      const originalSP = vm.SP;
+      
+      try {
+        // Use rangeRoll to rotate the top two items (including their LINK tags if they're tuples)
+        // We rotate by topSize bytes to move the first item past the second item
+        rangeRoll(vm, 0, totalSize, topSize);
+        
+        // If we're swapping two tuples, we need to update their LINK tags
+        if (topTuple && secondTuple) {
+          // The tuples have been swapped, so their positions are now reversed
+          const firstTuplePos = secondSize;
+          const secondTuplePos = 0;
+          
+          // Update the first tuple's LINK tag (if it has one)
+          const firstTupleEnd = firstTuplePos + topSize - BYTES_PER_ELEMENT;
+          const firstTupleLink = vm.memory.readFloat32(SEG_STACK, firstTupleEnd);
+          const { tag: firstLinkTag } = fromTaggedValue(firstTupleLink);
+          if (firstLinkTag === Tag.LINK) {
+            // The LINK tag should point to the start of the first tuple
+            vm.memory.writeFloat32(SEG_STACK, firstTupleEnd, toTaggedValue(secondSize / BYTES_PER_ELEMENT, Tag.LINK));
+          }
+          
+          // Update the second tuple's LINK tag (if it has one)
+          const secondTupleEnd = secondTuplePos + secondSize - BYTES_PER_ELEMENT;
+          const secondTupleLink = vm.memory.readFloat32(SEG_STACK, secondTupleEnd);
+          const { tag: secondLinkTag } = fromTaggedValue(secondTupleLink);
+          if (secondLinkTag === Tag.LINK) {
+            // The LINK tag should point to the start of the second tuple
+            vm.memory.writeFloat32(SEG_STACK, secondTupleEnd, toTaggedValue(topSize / BYTES_PER_ELEMENT, Tag.LINK));
+          }
+        }
+        return;
+      } catch (error) {
+        // If anything goes wrong, restore the stack pointer and rethrow the error
+        vm.SP = originalSP;
+        throw error;
+      }
+    }
   }
+  
+  // For simple values or when inside a tuple, just swap the top two elements
+  const top = vm.pop();
+  const second = vm.pop();
+  vm.push(top);
+  vm.push(second);
 };
 
 export const rotOp: Verb = (vm: VM) => {
