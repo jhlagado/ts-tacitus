@@ -16,7 +16,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-xdescribe('Tuple swap operations', () => {
+describe('Tuple swap operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -261,9 +261,9 @@ xdescribe('Tuple swap operations', () => {
       // Index 5: Value 8 (third element of second tuple)
       expect(stack[5]).toBe(8);
 
-      // Index 6: Link tag (points 6 elements back)
+      // Index 6: Link tag (points 7 elements back to the TUPLE tag at index 0)
       expect(fromTaggedValue(stack[6]).tag).toBe(Tag.LINK);
-      expect(fromTaggedValue(stack[6]).value).toBe(6);
+      expect(fromTaggedValue(stack[6]).value).toBe(7);
 
       // FIRST TUPLE (NOW SECOND ON STACK)
       // Index 7: First tuple tag (TUPLE with size 5)
@@ -286,9 +286,9 @@ xdescribe('Tuple swap operations', () => {
       // Index 12: Value 4 (third element of first tuple)
       expect(stack[12]).toBe(4);
 
-      // Index 13: Link tag (points 6 elements back)
+      // Index 13: Link tag (points 7 elements back to the TUPLE tag at index 7)
       expect(fromTaggedValue(stack[13]).tag).toBe(Tag.LINK);
-      expect(fromTaggedValue(stack[13]).value).toBe(6);
+      expect(fromTaggedValue(stack[13]).value).toBe(7);
 
       // KEY VALIDATION: Verify the tuples are actually swapped (5 comes before 1)
       expect(stack.indexOf(5)).toBeLessThan(stack.indexOf(1));
