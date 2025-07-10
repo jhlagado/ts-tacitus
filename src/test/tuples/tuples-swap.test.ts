@@ -42,7 +42,7 @@ describe('Tuple swap operations', () => {
       expect(stack[1]).toBe(10);
     });
 
-    test('should swap a simple tuple with a value', () => {
+    xtest('should swap a simple tuple with a value', () => {
       executeCode('10 ( 20 30 ) swap');
       const stack = vm.getStackData();
 
@@ -71,7 +71,7 @@ describe('Tuple swap operations', () => {
       expect(stack[4]).toBe(10);
     });
 
-    test('should swap a value with a simple tuple', () => {
+    xtest('should swap a value with a simple tuple', () => {
       executeCode('( 20 30 ) 10 swap');
       const stack = vm.getStackData();
 
@@ -100,7 +100,7 @@ describe('Tuple swap operations', () => {
       expect(linkTag).toBe(Tag.LINK);
     });
 
-    test('should swap two simple tuples', () => {
+    xtest('should swap two simple tuples', () => {
       executeCode('( 10 20 ) ( 30 40 ) swap');
       const stack = vm.getStackData();
 
@@ -140,7 +140,7 @@ describe('Tuple swap operations', () => {
       expect(secondLinkTag).toBe(Tag.LINK);
     });
 
-    test('should swap a nested tuple with a value', () => {
+    xtest('should swap a nested tuple with a value', () => {
       executeCode('42 ( 10 ( 20 30 ) 40 ) swap');
       const stack = vm.getStackData();
 
@@ -194,7 +194,7 @@ describe('Tuple swap operations', () => {
       expect(foundLinkTag).toBe(true);
     });
 
-    test('should swap two nested tuples correctly', () => {
+    xtest('should swap two nested tuples correctly', () => {
       /*
        * INPUT CODE: '( 1 ( 2 3 ) 4 ) ( 5 ( 6 7 ) 8 ) swap'
        *

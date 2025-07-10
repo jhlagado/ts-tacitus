@@ -17,13 +17,16 @@ export function reverseRange(vm: VM, start: number, end: number): void {
   let right = end - BYTES_PER_ELEMENT;
   
   // Use a temp variable to swap bytes
-  let temp: number;
+  let leftValue: number, rightValue: number;
   
   while (left < right) {
-    // Swap the elements at left and right
-    temp = vm.memory.readFloat32(SEG_STACK, left);
-    vm.memory.writeFloat32(SEG_STACK, left, vm.memory.readFloat32(SEG_STACK, right));
-    vm.memory.writeFloat32(SEG_STACK, right, temp);
+    // Read both values first
+    leftValue = vm.memory.readFloat32(SEG_STACK, left);
+    rightValue = vm.memory.readFloat32(SEG_STACK, right);
+    
+    // Write them in swapped positions
+    vm.memory.writeFloat32(SEG_STACK, left, rightValue);
+    vm.memory.writeFloat32(SEG_STACK, right, leftValue);
     
     // Move inward
     left += BYTES_PER_ELEMENT;
@@ -45,6 +48,11 @@ export function rangeRoll(vm: VM, start: number, end: number, shiftBytes: number
     return;
   }
   
+  // Ensure shiftBytes is a valid number
+  if (isNaN(shiftBytes)) {
+    throw new Error('Invalid shift amount: NaN');
+  }
+  
   // Normalize shift amount to be within range size
   const rangeSize = end - start;
   shiftBytes = ((shiftBytes % rangeSize) + rangeSize) % rangeSize;
@@ -54,7 +62,26 @@ export function rangeRoll(vm: VM, start: number, end: number, shiftBytes: number
     return;
   }
   
-  // Use the three-reversal algorithm:
+  // For small ranges, use a direct copy approach to avoid NaN issues
+  if (rangeSize <= 3 * BYTES_PER_ELEMENT) {
+    // Read all values first
+    const values: number[] = [];
+    for (let i = start; i < end; i += BYTES_PER_ELEMENT) {
+      values.push(vm.memory.readFloat32(SEG_STACK, i));
+    }
+    
+    // Rotate the array
+    const shift = shiftBytes / BYTES_PER_ELEMENT;
+    const rotated = [...values.slice(-shift), ...values.slice(0, -shift)];
+    
+    // Write them back
+    for (let i = 0; i < rotated.length; i++) {
+      vm.memory.writeFloat32(SEG_STACK, start + i * BYTES_PER_ELEMENT, rotated[i]);
+    }
+    return;
+  }
+  
+  // For larger ranges, use the three-reversal algorithm
   // 1. Reverse the first part (0 to shiftBytes)
   reverseRange(vm, start, start + shiftBytes);
   
