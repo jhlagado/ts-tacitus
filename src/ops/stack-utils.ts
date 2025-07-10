@@ -5,6 +5,77 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 const BYTES_PER_ELEMENT = 4;
 
 /**
+ * Finds the next element's offset and size starting from the given offset.
+ * @param vm The virtual machine instance
+ * @param startSlot Offset in slots from the stack pointer to start searching
+ * @returns [nextSlot, elementSize] where:
+ *   - nextSlot: slot offset to the next element (startSlot + elementSize)
+ *   - elementSize: size of the element in stack slots (1 for simple values, >1 for tuples)
+ */
+export function findElement(vm: VM, startSlot: number = 0): [number, number] {
+  // Calculate the address of the potential element
+  const slotAddr = vm.SP / BYTES_PER_ELEMENT - startSlot - 1;
+  
+  // Check if we're within bounds
+  if (slotAddr < 0 || slotAddr * BYTES_PER_ELEMENT >= vm.SP) {
+    return [startSlot + 1, 1]; // Move to next slot
+  }
+  
+  // Read the value at the calculated address
+  const addr = slotAddr * BYTES_PER_ELEMENT;
+  const value = vm.memory.readFloat32(SEG_STACK, addr);
+  const { tag, value: tagValue } = fromTaggedValue(value);
+  
+  // If we find a LINK tag, we need to look back to find the TUPLE tag
+  if (tag === Tag.LINK) {
+    // The TUPLE tag is at slotAddr - tagValue slots back
+    const tupleSlot = slotAddr - tagValue;
+    if (tupleSlot >= 0) {
+      const tupleAddr = tupleSlot * BYTES_PER_ELEMENT;
+      const tupleValue = vm.memory.readFloat32(SEG_STACK, tupleAddr);
+      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(tupleValue);
+      
+      if (tupleTag === Tag.TUPLE) {
+        // Total size is tuple elements + TUPLE tag + LINK tag
+        const elementSize = tupleSize + 2;
+        return [startSlot + elementSize, elementSize];
+      }
+    }
+  }
+  
+  // For non-tuple values, the size is always 1 slot
+  return [startSlot + 1, 1];
+}
+
+type StackArgInfo = [number, number]; // [offset, size]
+
+/**
+ * Gets information about the stack argument at the given offset from the stack pointer.
+ * @param vm The virtual machine instance
+ * @param offsetFromSp Offset in bytes from the current stack pointer
+ * @returns [nextOffset, size] where:
+ *   - nextOffset: offset to the next argument (can be used for subsequent calls)
+ *   - size: size of the current argument in bytes
+ */
+export function getStackArgInfo(vm: VM, offsetFromSp: number): StackArgInfo {
+  const addr = vm.SP - offsetFromSp - BYTES_PER_ELEMENT;
+  
+  // Check if we're looking at a TUPLE tag
+  const value = vm.memory.readFloat32(SEG_STACK, addr);
+  const { tag, value: tagValue } = fromTaggedValue(value);
+  
+  if (tag === Tag.TUPLE) {
+    // For tuples, the size is (n + 2) * BYTES_PER_ELEMENT
+    // where n is the number of elements in the tuple
+    const tupleSize = (tagValue + 2) * BYTES_PER_ELEMENT;
+    return [offsetFromSp + tupleSize, tupleSize];
+  }
+  
+  // For non-tuple values, the size is always BYTES_PER_ELEMENT
+  return [offsetFromSp + BYTES_PER_ELEMENT, BYTES_PER_ELEMENT];
+}
+
+/**
  * Rotates a range of stack elements in-place.
  * 
  * This utility shifts elements within a specified range by a given amount,
