@@ -138,9 +138,12 @@ export const rotOp: Verb = (vm: VM) => {
     // Total size of the three items
     const totalSize = topSize + midSize + bottomSize;
     
+    // For nested tuples, we need to adjust the rotation amount
+    // to ensure we're rotating the correct number of elements
+    const rotationAmount = midSize + topSize;
+    
     // Rotate the three items: [a, b, c] -> [b, c, a]
-    // Move 'a' to the top by rotating right by (midSize + topSize)
-    rangeRoll(vm, 0, totalSize, midSize + topSize);
+    rangeRoll(vm, 0, totalSize, rotationAmount);
     
   } catch (error) {
     // If anything goes wrong, restore the stack pointer and rethrow the error
