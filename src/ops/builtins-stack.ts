@@ -112,71 +112,86 @@ export const swapOp: Verb = (vm: VM) => {
   vm.push(second);
 };
 
-function getItemSize(vm: VM, offset: number): number {
-  const tupleInfo = findTuple(vm, offset);
-  return tupleInfo ? tupleInfo.totalSize : 1;
-}
-
-function updateTupleLinks(vm: VM, start: number, movedSize: number, shift: number) {
-  const stack = vm.getStackData();
-  for (let i = 0; i < stack.length; i++) {
-    const { tag, value } = fromTaggedValue(stack[i]);
-    if (tag === Tag.LINK) {
-      if (value >= start && value < start + movedSize) {
-        // Link points to moved block, adjust by shift
-        stack[i] = toTaggedValue(Tag.LINK, value + shift);
-      } else if (value >= start + movedSize && value < start + movedSize + shift) {
-        // Link points to block that was shifted down
-        stack[i] = toTaggedValue(Tag.LINK, value - movedSize);
-      }
-    }
-  }
-}
-
 export const rotOp: Verb = (vm: VM) => {
-  // Get the size of the top item (C)
-  const sizeC = getItemSize(vm, 0);
+  // Check for stack underflow
+  if (vm.SP < BYTES_PER_ELEMENT * 3) {
+    throw new Error(
+      `Stack underflow: 'rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
+    );
+  }
+
+  // Check if any of the top 3 items is a tuple
+  const topTuple = findTuple(vm, 0);
+  const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
   
-  // Get the size of the second item (B)
-  const sizeB = getItemSize(vm, sizeC);
+  const midTuple = findTuple(vm, topSize);
+  const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
   
-  // Get the size of the third item (A)
-  const sizeA = getItemSize(vm, sizeC + sizeB);
+  const bottomTuple = findTuple(vm, topSize + midSize);
+  const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
   
-  // Total size of the three items in elements
-  const totalSize = sizeA + sizeB + sizeC;
+  // If we're not in a tuple context or if all items are simple values
+  if (vm.tupleDepth === 0 || (!topTuple && !midTuple && !bottomTuple)) {
+    // Simple case: just rotate three values
+    const c = vm.pop();
+    const b = vm.pop();
+    const a = vm.pop();
+    vm.push(b);
+    vm.push(c);
+    vm.push(a);
+    return;
+  }
   
-  // Calculate the start position (in elements from the top of the stack)
-  // We need to point to the start of the first element (A)
-  const startPos = totalSize;
+  // For tuple rotations, we need to handle the memory layout carefully
+  const originalSP = vm.SP;
   
-  // For the rotation A B C -> B C A, we need to move A to the end
-  // This is equivalent to rotating left by sizeA elements
-  // But since rangeRoll works with bytes, we need to convert
-  
-  // The rotation is equivalent to moving the first item to the end
-  // So we need to shift by sizeA elements to the right
-  const shiftAmount = sizeA * BYTES_PER_ELEMENT;
-  const rangeSize = totalSize * BYTES_PER_ELEMENT;
-  
-  // Use rangeRoll to rotate the three items: A B C -> B C A
-  // The startDepth is the offset from the top of the stack to the start of the range
-  // Since we're rotating the top 3 items, the start depth is 0 (from the top)
-  rangeRoll(
-    vm,                    // VM instance
-    0,                     // Start depth: 0 means start from the top of the stack
-    rangeSize,             // Total size of the range to rotate in bytes
-    shiftAmount            // Shift amount in bytes
-  );
-  
-  // Update any LINK tags that might have been affected
-  // We moved sizeA elements from the start to the end of the range
-  updateTupleLinks(
-    vm,                    // VM instance
-    0,                     // Start position (from top of stack)
-    sizeB + sizeC,         // Size of the moved block in elements
-    sizeA                  // Shift amount in elements
-  );
+  try {
+    // Calculate the start of each item
+    const topStart = vm.SP - topSize;
+    const midStart = topStart - midSize;
+    const bottomStart = midStart - bottomSize;
+    
+    // Create a temporary buffer to hold the rotated items
+    const rotated = new ArrayBuffer(topSize + midSize + bottomSize);
+    const rotatedView = new DataView(rotated);
+    
+    // Read the three items into the buffer in the new order: b, c, a
+    let offset = 0;
+    
+    // 1. Copy middle item (b)
+    for (let i = 0; i < midSize; i += 4) {
+      const value = vm.memory.readFloat32(SEG_STACK, midStart + i);
+      rotatedView.setFloat32(offset, value, true);
+      offset += 4;
+    }
+    
+    // 2. Copy top item (c)
+    for (let i = 0; i < topSize; i += 4) {
+      const value = vm.memory.readFloat32(SEG_STACK, topStart + i);
+      rotatedView.setFloat32(offset, value, true);
+      offset += 4;
+    }
+    
+    // 3. Copy bottom item (a)
+    for (let i = 0; i < bottomSize; i += 4) {
+      const value = vm.memory.readFloat32(SEG_STACK, bottomStart + i);
+      rotatedView.setFloat32(offset, value, true);
+      offset += 4;
+    }
+    
+    // Write the rotated items back to memory
+    const rotatedFloats = new Float32Array(rotated);
+    for (let i = 0; i < rotatedFloats.length; i++) {
+      vm.memory.writeFloat32(SEG_STACK, bottomStart + (i * 4), rotatedFloats[i]);
+    }
+    
+    // Update the stack pointer to account for the rotated items
+    vm.SP = originalSP;
+  } catch (error) {
+    // If anything goes wrong, restore the stack pointer and rethrow the error
+    vm.SP = originalSP;
+    throw error;
+  }
 };
 
 export const negRotOp: Verb = (vm: VM) => {
