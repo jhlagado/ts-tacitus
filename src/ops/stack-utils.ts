@@ -84,61 +84,53 @@ export function getStackArgInfo(vm: VM, offsetFromSp: number): StackArgInfo {
  * to perform rotation with minimal temporary storage (just one element).
  * 
  * @param vm The virtual machine instance
- * @param startDepth Starting position from the stack top in bytes (not elements)
- * @param rangeSize Total size of the range to rotate in bytes (not elements)
- * @param shiftAmount Number of bytes to shift items (positive = right/down, negative = left/up)
+ * @param startSlot Starting position from the stack top in slots (not bytes)
+ * @param rangeSize Total size of the range to rotate in slots (not bytes)
+ * @param shiftSlots Number of slots to shift items (positive = right/down, negative = left/up)
  */
-export function rangeRoll(vm: VM, startDepth: number, rangeSize: number, shiftAmount: number): void {
-  if (rangeSize <= 0 || shiftAmount === 0) {
-    return; // Nothing to rotate
-  }
-  
-  // Ensure rangeSize is a multiple of BYTES_PER_ELEMENT
-  if (rangeSize % BYTES_PER_ELEMENT !== 0) {
-    throw new Error(`Range size (${rangeSize}) must be a multiple of BYTES_PER_ELEMENT (${BYTES_PER_ELEMENT})`);
-  }
-  
-  // Ensure shiftAmount is a multiple of BYTES_PER_ELEMENT
-  if (shiftAmount % BYTES_PER_ELEMENT !== 0) {
-    throw new Error(`Shift amount (${shiftAmount}) must be a multiple of BYTES_PER_ELEMENT (${BYTES_PER_ELEMENT})`);
-  }
-  
-  // Convert to element-based sizes for easier computation
-  const elementCount = rangeSize / BYTES_PER_ELEMENT;
-  let elemShift = shiftAmount / BYTES_PER_ELEMENT;
-  
-  // Normalize shift amount to be within range and handle negative shifts
-  // For negative shifts (leftward/upward rotation), convert to equivalent rightward rotation
-  elemShift = ((elemShift % elementCount) + elementCount) % elementCount;
-  if (elemShift === 0) {
-    return; // No shift needed
+export function rangeRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
+  // If range size is 0 or shift is 0, do nothing
+  if (rangeSize <= 0 || shiftSlots === 0) {
+    return;
   }
 
-  // Calculate start address in the stack (in bytes)
-  const baseAddr = vm.SP - startDepth - rangeSize;
+  // Normalize the shift amount to be within the range size
+  const elemShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
+  if (elemShift === 0) {
+    return;
+  }
+
+  // The stack grows upward, and SP points to the next free byte
+  // startSlot is the number of slots from the top of the stack to the start of the range
+  // rangeSize is the number of slots in the range to rotate
+  
+  // Calculate the base address in bytes from the stack bottom (0)
+  // The range we want to rotate is [SP - (startSlot + rangeSize) * BYTES_PER_ELEMENT, SP - startSlot * BYTES_PER_ELEMENT)
+  const stackTop = vm.SP;
+  const baseAddr = stackTop - ((startSlot + rangeSize) * BYTES_PER_ELEMENT);
+  const rangeEnd = stackTop - (startSlot * BYTES_PER_ELEMENT);
+  
+  // The range should be within the allocated stack space
+  if (baseAddr < 0 || baseAddr >= stackTop || rangeEnd > stackTop) {
+    throw new Error(`Range [${baseAddr}, ${rangeEnd}) is outside stack bounds [0, ${stackTop}]`);
+  }
   
   // Use three reverse algorithm for rotation:
-  // To rotate [A][B] -> [B][A]: reverse A, reverse B, then reverse the whole thing
-  // For example, with [1,2,3,4] and shift=1:
-  // 1. Reverse [1]: [1]
-  // 2. Reverse [2,3,4]: [4,3,2]
-  // 3. Reverse [1,4,3,2]: [2,3,4,1]
-  
-  // Important: For right rotation by k, we reverse [0...(n-k-1)] and [(n-k)...n]
-  // We're reversing from the right end of the stack, which is the opposite of array rotation
-  
-  // Calculate rotational boundaries based on direction
-  const leftSize = elementCount - elemShift;
+  // rotate(arr, n) = reverse(reverse(arr[0..n-1]) + reverse(arr[n..m-1]))
+  const leftSize = rangeSize - elemShift;
   const rightSize = elemShift;
   
-  // First, reverse the left part
-  reverseRange(vm, baseAddr, leftSize);
+  if (leftSize > 0) {
+    reverseRange(vm, baseAddr, leftSize);
+  }
   
   // Second, reverse the right part
-  reverseRange(vm, baseAddr + (leftSize * BYTES_PER_ELEMENT), rightSize);
+  if (rightSize > 0) {
+    reverseRange(vm, baseAddr + (leftSize * BYTES_PER_ELEMENT), rightSize);
+  }
   
   // Finally, reverse the entire range
-  reverseRange(vm, baseAddr, elementCount);
+  reverseRange(vm, baseAddr, rangeSize);
 }
 
 /**
@@ -146,22 +138,38 @@ export function rangeRoll(vm: VM, startDepth: number, rangeSize: number, shiftAm
  * 
  * @param vm The virtual machine instance
  * @param startAddr Starting address in bytes
- * @param elementCount Number of elements to reverse
+ * @param slotCount Number of slots to reverse (not bytes)
  */
-function reverseRange(vm: VM, startAddr: number, elementCount: number): void {
-  if (elementCount <= 1) return;
+function reverseRange(vm: VM, startAddr: number, slotCount: number): void {
+  if (slotCount <= 1) return;
   
-  const lastIndex = elementCount - 1;
-  for (let i = 0; i < elementCount / 2; i++) {
+  const lastIndex = slotCount - 1;
+  const endAddr = startAddr + (slotCount * BYTES_PER_ELEMENT);
+  
+  // Verify the range is within stack bounds
+  if (startAddr < 0 || endAddr > vm.SP) {
+    throw new Error(`Range [${startAddr}, ${endAddr}) is outside stack bounds [0, ${vm.SP})`);
+  }
+  
+  for (let i = 0; i < slotCount / 2; i++) {
     const leftAddr = startAddr + (i * BYTES_PER_ELEMENT);
     const rightAddr = startAddr + ((lastIndex - i) * BYTES_PER_ELEMENT);
     
-    // Swap elements at leftAddr and rightAddr
-    const leftValue = vm.memory.readFloat32(SEG_STACK, leftAddr);
-    const rightValue = vm.memory.readFloat32(SEG_STACK, rightAddr);
+    // Skip if we're at the middle element (odd length)
+    if (leftAddr >= rightAddr) break;
     
-    vm.memory.writeFloat32(SEG_STACK, leftAddr, rightValue);
-    vm.memory.writeFloat32(SEG_STACK, rightAddr, leftValue);
+    try {
+      // Read values
+      const leftValue = vm.memory.readFloat32(SEG_STACK, leftAddr);
+      const rightValue = vm.memory.readFloat32(SEG_STACK, rightAddr);
+      
+      // Swap values
+      vm.memory.writeFloat32(SEG_STACK, leftAddr, rightValue);
+      vm.memory.writeFloat32(SEG_STACK, rightAddr, leftValue);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to swap elements at addresses ${leftAddr} and ${rightAddr}: ${errorMessage}`);
+    }
   }
 }
 
