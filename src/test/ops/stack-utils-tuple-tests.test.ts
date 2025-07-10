@@ -117,25 +117,25 @@ describe('findTuple', () => {
   test('should find a nested tuple', () => {
     // Create a nested tuple: ((1, 2), 3, 4)
     createNestedTuple([1, 2], 3, 4);
-    
+
     // The outer tuple is at the top, offset 0 points to its LINK tag
     const outerTuple = findTuple(vm, 0);
-    
+
     expect(outerTuple).not.toBeNull();
     if (!outerTuple) return; // Type guard
-    
+
     expect(outerTuple.size).toBe(3); // Inner tuple + 2 values
-    
+
     // The inner tuple is inside the outer tuple, after the TUPLE tag
     // The inner tuple's LINK tag is at offset 20 (5 elements * 4 bytes) from the start
     const innerTupleOffset = 20; // SP - (outerTuple.start + outerTuple.linkOffset)
     const innerTuple = findTuple(vm, innerTupleOffset);
-    
+
     expect(innerTuple).not.toBeNull();
     if (!innerTuple) return; // Type guard
-    
+
     expect(innerTuple.size).toBe(2); // Two values in inner tuple
-    
+
     // The outer tuple should contain the inner tuple
     expect(outerTuple.start).toBe(0);
     expect(innerTuple.start).toBe(4); // After outer TUPLE tag
