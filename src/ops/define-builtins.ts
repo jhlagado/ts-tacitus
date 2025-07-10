@@ -47,4 +47,6 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('avg', Op.Avg);
   dict.define('prod', Op.Prod);
   dict.define('if', Op.If);
+  dict.define('rot', Op.Rot);
+  dict.define('-rot', Op.NegRot);
 };
