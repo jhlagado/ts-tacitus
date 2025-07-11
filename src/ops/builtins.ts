@@ -58,7 +58,7 @@ import {
 import { simpleIfOp } from './builtins-conditional';
 import { formatValue } from '../core/utils';
 
-import { rotOp, negRotOp } from './builtins-stack';
+import { rotOp, revrotOp } from './builtins-stack';
 
 import { Op } from './opcodes';
 
@@ -173,7 +173,7 @@ export function executeOp(vm: VM, opcode: Op) {
       rotOp(vm);
       break;
     case Op.NegRot:
-      negRotOp(vm);
+      revrotOp(vm);
       break;
     case Op.Abs:
       absOp(vm);
