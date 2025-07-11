@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, Tag } from '../core/tagged';
-import { findTuple, findElement } from './find';
+import { findTuple, findElement, findTupleSlots } from './find';
 import { BYTES_PER_ELEMENT } from '../core/constants';
 
 // Helper function to push a value onto the stack
@@ -130,6 +130,7 @@ describe('findTuple', () => {
     expect(result?.end).toBe(end);
     expect(result?.size).toBe(0);
     expect(result?.totalSize).toBe(2 * 4); // TUPLE + LINK = 2 elements * 4 bytes
+    expect(result?.linkOffset).toBe(1 * 4); // 1 element * 4 bytes
   });
 
   test('should return null for invalid tuple structure (missing TUPLE tag)', () => {
