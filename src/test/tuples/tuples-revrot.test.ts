@@ -91,33 +91,44 @@ describe('Tuple revrot operations', () => {
    test('should handle nested tuples', () => {
       executeCode('((1 2) 3) 4 5 revrot');
       const stack = vm.getStackData();
-
-      // After revrot: 5 4 NaN TUPLE(2) 1 2 3 LINK(5)
-      // The first two elements are the numbers we expect
-      expect(stack[0]).toBe(5);
-
-      // The third element is a marker (NaN in this case)
-      expect(Number.isNaN(stack[1])).toBe(true);
-
-      // The fourth element is the TUPLE header
-      const tupleTag = fromTaggedValue(stack[1]);
-      expect(tupleTag).toEqual({ tag: Tag.TUPLE, value: 2 });
-
-      // The tuple's first element is 1
-      expect(stack[4]).toBe(1);
-
-      // The tuple's second element is 2
-      expect(stack[5]).toBe(2);
-
-      // The third element in the tuple is 3
-      expect(stack[6]).toBe(3);
-
-      // The LINK points back to the start of the tuple (5 slots back from the end)
-      const link = fromTaggedValue(stack[7]);
-      expect(link).toEqual({ tag: Tag.LINK, value: 5 });
-
-      // Verify the stack size is as expected
+      
+      // After revrot: 5 [TUPLE(2) TUPLE(2) 1 2 3 LINK(5)] 4
       expect(stack.length).toBe(8);
+
+      // First element is 5
+      const val1 = fromTaggedValue(stack[0]);
+      expect(val1.value).toBe(5);
+      expect(val1.tag).toBe(0);  // 0 is Tag.NUMBER
+
+      // Second element is the TUPLE header for outer tuple
+      const outerTupleTag = fromTaggedValue(stack[1]);
+      expect(outerTupleTag.tag).toBe(Tag.TUPLE);
+      expect(outerTupleTag.value).toBe(2);  // Outer tuple has 2 elements
+
+      // Third element is the TUPLE header for inner tuple
+      const innerTupleTag = fromTaggedValue(stack[2]);
+      expect(innerTupleTag.tag).toBe(Tag.TUPLE);
+      expect(innerTupleTag.value).toBe(2);  // Inner tuple has 2 elements
+
+      // Inner tuple elements (1 and 2)
+      const elem1 = fromTaggedValue(stack[3]);
+      const elem2 = fromTaggedValue(stack[4]);
+      expect(elem1.value).toBe(1);
+      expect(elem2.value).toBe(2);
+
+      // The second element of outer tuple is 3
+      const elem3 = fromTaggedValue(stack[5]);
+      expect(elem3.value).toBe(3);
+
+      // The LINK points back to the start of the outer tuple (5 slots back from the end)
+      const link = fromTaggedValue(stack[6]);
+      expect(link.tag).toBe(Tag.LINK);
+      expect(link.value).toBe(5);
+
+      // The last element is 4
+      const val2 = fromTaggedValue(stack[7]);
+      expect(val2.value).toBe(4);
+      expect(val2.tag).toBe(0);  // 0 is Tag.NUMBER
     });
    });
 });
