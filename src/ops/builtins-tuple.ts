@@ -36,5 +36,5 @@ export function closeTupleOp(vm: VM): void {
     const relativeElements = (vm.SP - tupleTagPos) / BYTES_PER_ELEMENT;
     vm.push(toTaggedValue(relativeElements, Tag.LINK));
   }
-  vm.tupleDepth--; // Decrement tuple depth after closing a tuple
+  vm.tupleDepth--;
 }

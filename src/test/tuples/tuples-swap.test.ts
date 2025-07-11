@@ -19,7 +19,6 @@ function executeCode(code: string): number[] {
 
 describe('Tuple swap operations', () => {
   beforeEach(() => {
-    // Reset the interpreter and VM state
     initializeInterpreter();
     vm.SP = 0;
     vm.RP = 0;
@@ -46,18 +45,18 @@ describe('Tuple swap operations', () => {
     });
 
     test('should swap a simple tuple with a value', () => {
-      // Push the values first
       executeCode('( 20 30 ) 10');
 
-      // Log the initial stack state
       const initialStack = vm.getStackData();
       console.log('\n=== BEFORE SWAP ===');
-      console.log('Stack (formatted):', initialStack.map(x => {
-        const { tag, value } = fromTaggedValue(x);
-        return { tag: Tag[tag], value };
-      }));
+      console.log(
+        'Stack (formatted):',
+        initialStack.map(x => {
+          const { tag, value } = fromTaggedValue(x);
+          return { tag: Tag[tag], value };
+        }),
+      );
 
-      // Log raw memory layout
       console.log('\nRaw memory layout (SP =', vm.SP, '):');
       for (let i = 0; i < vm.SP; i += 4) {
         const raw = vm.memory.readFloat32(0, i);
@@ -65,29 +64,28 @@ describe('Tuple swap operations', () => {
         console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
-      // Log the tuple structure
       const [nextSlot, tupleSize] = findElement(vm, 0);
       console.log('\nTuple info:', { nextSlot, tupleSize });
       console.log('Tuple data:');
       for (let i = 0; i < tupleSize; i++) {
-        const addr = i * 4; // Convert slot to byte offset
+        const addr = i * 4;
         const raw = vm.memory.readFloat32(0, addr);
         const { tag, value } = fromTaggedValue(raw);
         console.log(`  [${addr}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
-      // Execute the swap operation
       executeCode('swap');
 
-      // Log the stack state after swap
       const stack = vm.getStackData();
       console.log('\n=== AFTER SWAP ===');
-      console.log('Stack (formatted):', stack.map(x => {
-        const { tag, value } = fromTaggedValue(x);
-        return { tag: Tag[tag], value };
-      }));
+      console.log(
+        'Stack (formatted):',
+        stack.map(x => {
+          const { tag, value } = fromTaggedValue(x);
+          return { tag: Tag[tag], value };
+        }),
+      );
 
-      // Log raw memory layout after swap
       console.log('\nRaw memory layout after swap (SP =', vm.SP, '):');
       for (let i = 0; i < vm.SP; i += 4) {
         const raw = vm.memory.readFloat32(0, i);
@@ -95,61 +93,55 @@ describe('Tuple swap operations', () => {
         console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
-      // First check the stack length
       expect(stack.length).toBe(5);
 
-      // Check the swapped value (should be on top)
       const swappedValue = fromTaggedValue(stack[0]);
       console.log('Swapped value:', swappedValue);
       expect(swappedValue.value).toBe(10);
 
-      // Check the tuple header (should be second from top)
       const tupleHeader = fromTaggedValue(stack[1]);
       console.log('\nTuple header:', tupleHeader);
       expect(tupleHeader.tag).toBe(Tag.TUPLE);
       expect(tupleHeader.value).toBe(2);
 
-      // Check tuple elements
       const elem1 = fromTaggedValue(stack[2]);
       const elem2 = fromTaggedValue(stack[3]);
       console.log('Tuple elements:', elem1, elem2);
       expect(elem1.value).toBe(20);
       expect(elem2.value).toBe(30);
 
-      // Check the LINK tag (should be at the bottom)
       const linkTag = fromTaggedValue(stack[4]);
       console.log('Link tag:', linkTag);
       expect(linkTag.tag).toBe(Tag.LINK);
-      expect(linkTag.value).toBe(3); // Should point to the TUPLE header
+      expect(linkTag.value).toBe(3);
     });
 
     test('should swap a value with a simple tuple', () => {
-      // First create the tuple and value on the stack
       executeCode('( 20 30 ) 10');
-      
-      // Log the initial stack state
+
       const initialStack = vm.getStackData();
       console.log('\n=== BEFORE SWAP ===\n');
-      console.log('Stack (formatted):', initialStack.map(v => fromTaggedValue(v)));
-      
-      // Execute the swap operation
+      console.log(
+        'Stack (formatted):',
+        initialStack.map(v => fromTaggedValue(v)),
+      );
+
       executeCode('swap');
-      
-      // Get and log the stack after swap
+
       const stack = vm.getStackData();
       console.log('\n=== AFTER SWAP ===\n');
-      console.log('Stack (formatted):', stack.map(v => fromTaggedValue(v)));
-      
-      // Verify stack layout
+      console.log(
+        'Stack (formatted):',
+        stack.map(v => fromTaggedValue(v)),
+      );
+
       expect(stack.length).toBe(5);
-      
-      // Check the swapped value (should now be at the bottom)
+
       const swappedValue = fromTaggedValue(stack[0]);
       console.log('Swapped value:', swappedValue);
       expect(swappedValue.tag).toBe(Tag.NUMBER);
       expect(swappedValue.value).toBe(10);
-      
-      // Verify tuple structure
+
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[1]);
       console.log('\nTuple header:', { value: tupleSize, tag: tupleTag });
       expect(tupleTag).toBe(Tag.TUPLE);
@@ -157,103 +149,89 @@ describe('Tuple swap operations', () => {
       expect(stack[2]).toBe(20);
       expect(stack[3]).toBe(30);
 
-      // Verify LINK tag
       const { tag: linkTag } = fromTaggedValue(stack[4]);
       expect(linkTag).toBe(Tag.LINK);
     });
 
     test('should swap two simple tuples', () => {
-      // First create both tuples on the stack
       executeCode('( 10 20 ) ( 30 40 )');
-      
-      // Log the initial stack state
+
       const initialStack = vm.getStackData();
       console.log('\n=== BEFORE SWAP ===\n');
-      console.log('Stack (formatted):', initialStack.map(v => fromTaggedValue(v)));
-      
-      // Execute the swap operation
+      console.log(
+        'Stack (formatted):',
+        initialStack.map(v => fromTaggedValue(v)),
+      );
+
       executeCode('swap');
-      
-      // Get and log the stack after swap
+
       const stack = vm.getStackData();
       console.log('\n=== AFTER SWAP ===\n');
-      console.log('Stack (formatted):', stack.map(v => fromTaggedValue(v)));
-      
-      // Verify stack layout
+      console.log(
+        'Stack (formatted):',
+        stack.map(v => fromTaggedValue(v)),
+      );
+
       expect(stack.length).toBe(8);
-      
-      // First tuple (originally the second one)
+
       const firstTuple = fromTaggedValue(stack[0]);
       console.log('\nFirst tuple header:', firstTuple);
       expect(firstTuple.tag).toBe(Tag.TUPLE);
       expect(firstTuple.value).toBe(2);
-      
-      // First tuple elements
-      console.log('First tuple elements:', 
-        fromTaggedValue(stack[1]), 
-        fromTaggedValue(stack[2])
-      );
+
+      console.log('First tuple elements:', fromTaggedValue(stack[1]), fromTaggedValue(stack[2]));
       expect(stack[1]).toBe(30);
       expect(stack[2]).toBe(40);
-      
-      // First LINK tag
+
       const firstLink = fromTaggedValue(stack[3]);
       console.log('First link tag:', firstLink);
       expect(firstLink.tag).toBe(Tag.LINK);
-      
-      // Second tuple (originally the first one)
+
       const secondTuple = fromTaggedValue(stack[4]);
       console.log('\nSecond tuple header:', secondTuple);
       expect(secondTuple.tag).toBe(Tag.TUPLE);
       expect(secondTuple.value).toBe(2);
-      
-      // Second tuple elements
-      console.log('Second tuple elements:', 
-        fromTaggedValue(stack[5]), 
-        fromTaggedValue(stack[6])
-      );
+
+      console.log('Second tuple elements:', fromTaggedValue(stack[5]), fromTaggedValue(stack[6]));
       expect(stack[5]).toBe(10);
       expect(stack[6]).toBe(20);
-      
-      // Second LINK tag
+
       const secondLink = fromTaggedValue(stack[7]);
       console.log('Second link tag:', secondLink);
       expect(secondLink.tag).toBe(Tag.LINK);
     });
 
     test('should swap a nested tuple with a value', () => {
-      // First create the value and nested tuple on the stack
       executeCode('42 ( 10 ( 20 30 ) 40 )');
-      
-      // Log the initial stack state
+
       const initialStack = vm.getStackData();
       console.log('\n=== BEFORE SWAP ===\n');
-      console.log('Stack (formatted):', initialStack.map(v => fromTaggedValue(v)));
-      
-      // Execute the swap operation
+      console.log(
+        'Stack (formatted):',
+        initialStack.map(v => fromTaggedValue(v)),
+      );
+
       executeCode('swap');
-      
-      // Get and log the stack after swap
+
       const stack = vm.getStackData();
       console.log('\n=== AFTER SWAP ===\n');
-      console.log('Stack (formatted):', stack.map(v => fromTaggedValue(v)));
-      
-      // Verify stack layout
+      console.log(
+        'Stack (formatted):',
+        stack.map(v => fromTaggedValue(v)),
+      );
+
       expect(stack.length).toBe(8);
-      
-      // Verify the outer tuple is now on top
+
       const outerTuple = fromTaggedValue(stack[0]);
       console.log('\nOuter tuple header:', outerTuple);
       expect(outerTuple.tag).toBe(Tag.TUPLE);
-      expect(outerTuple.value).toBe(5);  // 10, (20 30), 40 = 5 elements
-      
-      // Verify the value is at the bottom
+      expect(outerTuple.value).toBe(5);
+
       const swappedValue = fromTaggedValue(stack[7]);
       console.log('Swapped value:', swappedValue);
       expect(swappedValue.tag).toBe(Tag.NUMBER);
       expect(swappedValue.value).toBe(42);
-      
-      // Find and verify the inner tuple
+
       let innerTupleIndex = -1;
       for (let i = 0; i < stack.length; i++) {
         const { tag, value } = fromTaggedValue(stack[i]);
@@ -262,100 +240,92 @@ describe('Tuple swap operations', () => {
           break;
         }
       }
-      
-      expect(innerTupleIndex).toBe(2);  // Inner tuple should be at index 2
+
+      expect(innerTupleIndex).toBe(2);
       const innerTuple = fromTaggedValue(stack[innerTupleIndex]);
       console.log('Inner tuple at index', innerTupleIndex, ':', innerTuple);
       expect(innerTuple.tag).toBe(Tag.TUPLE);
-      expect(innerTuple.value).toBe(2);  // (20 30) has 2 elements
-      
-      // Verify the elements around the inner tuple
-      expect(stack[1]).toBe(10);  // Before inner tuple
-      expect(stack[5]).toBe(40);  // After inner tuple (index 5 because inner tuple takes 3 slots: header + 2 elements)
-      
-      // Verify the LINK tag
+      expect(innerTuple.value).toBe(2);
+
+      expect(stack[1]).toBe(10);
+      expect(stack[5]).toBe(40);
+
       const linkTag = fromTaggedValue(stack[6]);
       console.log('Link tag:', linkTag);
       expect(linkTag.tag).toBe(Tag.LINK);
     });
 
     test('should swap two nested tuples correctly', () => {
-      // First create both tuples on the stack
       executeCode('( 1 ( 2 3 ) 4 ) ( 5 ( 6 7 ) 8 )');
-      
-      // Log the initial stack state
+
       const initialStack = vm.getStackData();
       console.log('\n=== BEFORE SWAP ===\n');
-      console.log('Stack (formatted):', initialStack.map(v => fromTaggedValue(v)));
-      
-      // Execute the swap operation
+      console.log(
+        'Stack (formatted):',
+        initialStack.map(v => fromTaggedValue(v)),
+      );
+
       executeCode('swap');
-      
-      // Get and log the stack after swap
+
       const stack = vm.getStackData();
       console.log('\n=== AFTER SWAP ===\n');
-      console.log('Stack (formatted):', stack.map(v => fromTaggedValue(v)));
-      
-      // Verify stack layout
+      console.log(
+        'Stack (formatted):',
+        stack.map(v => fromTaggedValue(v)),
+      );
+
       expect(stack.length).toBe(14);
-      
-      // First tuple (originally the second one)
+
       const firstTuple = fromTaggedValue(stack[0]);
       console.log('\nFirst tuple header:', firstTuple);
       expect(firstTuple.tag).toBe(Tag.TUPLE);
-      expect(firstTuple.value).toBe(5);  // 5, (6 7), 8 = 5 elements
-      
-      // First tuple elements
-      console.log('First tuple elements:', 
-        fromTaggedValue(stack[1]), // 5
-        fromTaggedValue(stack[2]), // TUPLE(2)
-        fromTaggedValue(stack[3]), // 6
-        fromTaggedValue(stack[4]), // 7
-        fromTaggedValue(stack[5])  // 8
+      expect(firstTuple.value).toBe(5);
+
+      console.log(
+        'First tuple elements:',
+        fromTaggedValue(stack[1]),
+        fromTaggedValue(stack[2]),
+        fromTaggedValue(stack[3]),
+        fromTaggedValue(stack[4]),
+        fromTaggedValue(stack[5]),
       );
       expect(stack[1]).toBe(5);
-      
-      // First inner tuple
+
       const firstInnerTuple = fromTaggedValue(stack[2]);
       expect(firstInnerTuple.tag).toBe(Tag.TUPLE);
       expect(firstInnerTuple.value).toBe(2);
       expect(stack[3]).toBe(6);
       expect(stack[4]).toBe(7);
-      
-      // First tuple link
+
       const firstLink = fromTaggedValue(stack[6]);
       console.log('First link tag:', firstLink);
       expect(firstLink.tag).toBe(Tag.LINK);
-      
-      // Second tuple (originally the first one)
+
       const secondTuple = fromTaggedValue(stack[7]);
       console.log('\nSecond tuple header:', secondTuple);
       expect(secondTuple.tag).toBe(Tag.TUPLE);
-      expect(secondTuple.value).toBe(5);  // 1, (2 3), 4 = 5 elements
-      
-      // Second tuple elements
-      console.log('Second tuple elements:', 
-        fromTaggedValue(stack[8]),  // 1
-        fromTaggedValue(stack[9]),  // TUPLE(2)
-        fromTaggedValue(stack[10]), // 2
-        fromTaggedValue(stack[11]), // 3
-        fromTaggedValue(stack[12])  // 4
+      expect(secondTuple.value).toBe(5);
+
+      console.log(
+        'Second tuple elements:',
+        fromTaggedValue(stack[8]),
+        fromTaggedValue(stack[9]),
+        fromTaggedValue(stack[10]),
+        fromTaggedValue(stack[11]),
+        fromTaggedValue(stack[12]),
       );
       expect(stack[8]).toBe(1);
-      
-      // Second inner tuple
+
       const secondInnerTuple = fromTaggedValue(stack[9]);
       expect(secondInnerTuple.tag).toBe(Tag.TUPLE);
       expect(secondInnerTuple.value).toBe(2);
       expect(stack[10]).toBe(2);
       expect(stack[11]).toBe(3);
-      
-      // Second tuple link
+
       const secondLink = fromTaggedValue(stack[13]);
       console.log('Second link tag:', secondLink);
       expect(secondLink.tag).toBe(Tag.LINK);
-      
-      // Verify the tuples were actually swapped (5 comes before 1 in the stack)
+
       expect(stack.indexOf(5)).toBeLessThan(stack.indexOf(1));
     });
 
@@ -383,7 +353,6 @@ describe('Tuple swap operations', () => {
     test('should throw error when trying to swap with insufficient items', () => {
       executeCode('42');
 
-      // Should throw an error when there are not enough items to swap
       expect(() => {
         executeCode('swap');
       }).toThrow(/Stack underflow/);

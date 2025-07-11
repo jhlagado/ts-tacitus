@@ -15,16 +15,10 @@ export function reverseRange(vm: VM, startAddr: number, slotCount: number): void
   let right = endAddr;
 
   while (left < right) {
-    // Swap values at left and right pointers
     const temp = vm.memory.readFloat32(SEG_STACK, left);
-    vm.memory.writeFloat32(
-      SEG_STACK,
-      left,
-      vm.memory.readFloat32(SEG_STACK, right)
-    );
+    vm.memory.writeFloat32(SEG_STACK, left, vm.memory.readFloat32(SEG_STACK, right));
     vm.memory.writeFloat32(SEG_STACK, right, temp);
 
-    // Move pointers toward center
     left += 4;
     right -= 4;
   }
@@ -44,30 +38,19 @@ export function reverseRange(vm: VM, startAddr: number, slotCount: number): void
  * @param rangeSize - The number of slots in the range
  * @param shiftSlots - The number of positions to rotate (positive for right, negative for left)
  */
-export function rangeRoll(
-  vm: VM,
-  startSlot: number,
-  rangeSize: number,
-  shiftSlots: number
-): void {
+export function rangeRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
 
-  // Convert slots to bytes (4 bytes per slot)
   const startAddr = startSlot * 4;
-  
-  // Normalize shift amount to be within range
+
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
   if (normalizedShift === 0) return;
 
-  // Calculate the split point
   const splitPoint = rangeSize - normalizedShift;
-  
-  // Reverse the first part (from start to split point)
+
   reverseRange(vm, startAddr, splitPoint);
-  
-  // Reverse the second part (from split point to end)
+
   reverseRange(vm, startAddr + splitPoint * 4, normalizedShift);
-  
-  // Reverse the whole range to complete the rotation
+
   reverseRange(vm, startAddr, rangeSize);
 }

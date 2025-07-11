@@ -3,24 +3,24 @@ import { SEG_STACK } from '../core/memory';
 import { fromTaggedValue, Tag } from '../core/tagged';
 import { BYTES_PER_ELEMENT } from '../core/constants';
 
-export type StackArgInfo = [number, number]; // [offset, size]
+export type StackArgInfo = [number, number];
 
 /**
  * Finds an element in the stack starting from a given slot.
- * 
+ *
  * This function can identify both simple values and tuples. For tuples, it will
  * return the total size including the TUPLE tag, elements, and LINK tag.
- * 
+ *
  * @param vm - The VM instance containing the stack to search
  * @param startSlot - The slot offset from the current stack pointer (0 = top of stack)
  * @returns A tuple of [nextSlot, size] where:
  *   - nextSlot: The offset to the next element after the current one
  *   - size: The size of the current element in slots (1 for simple values, n+2 for tuples)
- * 
+ *
  * @example
- * // For a stack with: [TUPLE, 1, 2, LINK, 42]
- * const [next, size] = findElement(vm, 0); // next=5, size=4 (the tuple)
- * const [next2, size2] = findElement(vm, next); // next2=6, size2=1 (the number 42)
+ *
+ * const [next, size] = findElement(vm, 0);
+ * const [next2, size2] = findElement(vm, next);
  */
 export function findElement(vm: VM, startSlot: number = 0): [number, number] {
   const slotAddr = vm.SP / BYTES_PER_ELEMENT - startSlot - 1;
@@ -41,7 +41,7 @@ export function findElement(vm: VM, startSlot: number = 0): [number, number] {
       const { tag: tupleTag, value: tupleSize } = fromTaggedValue(tupleValue);
 
       if (tupleTag === Tag.TUPLE) {
-        const elementSize = tupleSize + 2; // TUPLE tag + elements + LINK
+        const elementSize = tupleSize + 2;
         return [startSlot + elementSize, elementSize];
       }
     }

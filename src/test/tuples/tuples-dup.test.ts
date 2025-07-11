@@ -32,40 +32,27 @@ describe('Tuple duplication operations', () => {
       executeCode('( 1 2 ) dup');
       const stack = vm.getStackData();
 
-      // A duplicated tuple should result in exactly 8 stack items:
-      // [0] TUPLE(2) - Original tuple tag
-      // [1] 1        - First element of original tuple
-      // [2] 2        - Second element of original tuple
-      // [3] LINK(3)  - Link tag for original tuple (points to 3 elements)
-      // [4] TUPLE(2) - Duplicated tuple tag
-      // [5] 1        - First element of duplicated tuple
-      // [6] 2        - Second element of duplicated tuple
-      // [7] LINK(3)  - Link tag for duplicated tuple (points to 3 elements)
       expect(stack.length).toBe(8);
 
-      // Verify original tuple structure
       const { tag: firstTupleTag, value: firstTupleSize } = fromTaggedValue(stack[0]);
       expect(firstTupleTag).toBe(Tag.TUPLE);
       expect(firstTupleSize).toBe(2);
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
 
-      // Verify original tuple's LINK tag
       const { tag: firstLinkTag, value: firstLinkValue } = fromTaggedValue(stack[3]);
       expect(firstLinkTag).toBe(Tag.LINK);
-      expect(firstLinkValue).toBe(3); // Points to TUPLE + 2 elements
+      expect(firstLinkValue).toBe(3);
 
-      // Verify duplicated tuple structure
       const { tag: secondTupleTag, value: secondTupleSize } = fromTaggedValue(stack[4]);
       expect(secondTupleTag).toBe(Tag.TUPLE);
       expect(secondTupleSize).toBe(2);
       expect(stack[5]).toBe(1);
       expect(stack[6]).toBe(2);
 
-      // Verify duplicated tuple's LINK tag
       const { tag: secondLinkTag, value: secondLinkValue } = fromTaggedValue(stack[7]);
       expect(secondLinkTag).toBe(Tag.LINK);
-      expect(secondLinkValue).toBe(3); // Points to TUPLE + 2 elements
+      expect(secondLinkValue).toBe(3);
     });
 
     test('should duplicate a larger tuple and preserve LINK tags', () => {
@@ -87,18 +74,15 @@ describe('Tuple duplication operations', () => {
        */
       expect(stack.length).toBe(10);
 
-      // Verify original tuple's LINK tag
       const { tag: origLinkTag, value: origLinkValue } = fromTaggedValue(stack[4]);
       expect(origLinkTag).toBe(Tag.LINK);
-      expect(origLinkValue).toBe(4); // Points to TUPLE + 3 elements
+      expect(origLinkValue).toBe(4);
 
-      // Verify duplicated tuple's LINK tag
       const { tag: dupLinkTag } = fromTaggedValue(stack[9]);
       expect(dupLinkTag).toBe(Tag.LINK);
     });
 
     test('should duplicate a nested tuple', () => {
-      // Create a nested tuple first
       executeCode('( 1 ( 2 3 ) 4 )');
 
       /**
@@ -112,20 +96,16 @@ describe('Tuple duplication operations', () => {
        * [6] LINK(6)   - Link tag for outer tuple (points back 6 elements)
        */
 
-      // Verify the original nested tuple structure first
       const stackBeforeDup = vm.getStackData();
 
-      // Debug the stack to understand the structure with nested tuples
       console.log('Original nested tuple structure:');
       for (let i = 0; i < stackBeforeDup.length; i++) {
         const { tag, value } = fromTaggedValue(stackBeforeDup[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      // Store original length for comparison
       const originalLength = stackBeforeDup.length;
 
-      // Now duplicate and check what happens
       executeCode('dup');
       const dupStack = vm.getStackData();
 
@@ -147,22 +127,14 @@ describe('Tuple duplication operations', () => {
        * [13] LINK(6)  - Link tag for duplicated outer tuple
        */
 
-      // Debug the duplicated structure
       console.log('After dup:');
       for (let i = 0; i < dupStack.length; i++) {
         const { tag, value } = fromTaggedValue(dupStack[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      // Verify the stack has grown after duplication
       expect(dupStack.length).toBeGreaterThan(originalLength);
 
-      // Based on observed behavior, when duplicating a nested tuple:
-      // 1. The stack grows
-      // 2. At least one value is duplicated
-      // 3. All original values (1, 2, 3, 4) are still present
-
-      // Verify the values are present
       let foundCount1 = 0;
       let foundCount2 = 0;
       let foundCount3 = 0;
@@ -175,15 +147,12 @@ describe('Tuple duplication operations', () => {
         if (dupStack[i] === 4) foundCount4++;
       }
 
-      // All original values should be present
       expect(foundCount1).toBeGreaterThanOrEqual(1);
       expect(foundCount2).toBeGreaterThanOrEqual(1);
       expect(foundCount3).toBeGreaterThanOrEqual(1);
 
-      // The last element (4) should be duplicated based on observed behavior
       expect(foundCount4).toBeGreaterThanOrEqual(2);
 
-      // Ensure at least one TUPLE tag is still present
       let tupleCount = 0;
       for (let i = 0; i < dupStack.length; i++) {
         const { tag } = fromTaggedValue(dupStack[i]);
@@ -207,7 +176,6 @@ describe('Tuple duplication operations', () => {
     });
 
     test('should be able to operate on duplicated tuples individually', () => {
-      // Create a tuple, duplicate it, and modify them separately
       executeCode('( 1 2 ) dup');
 
       /**
@@ -224,7 +192,6 @@ describe('Tuple duplication operations', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(8);
 
-      // Now push two different values
       executeCode('3 4');
 
       /**
@@ -243,10 +210,8 @@ describe('Tuple duplication operations', () => {
       const stackAfterPush = vm.getStackData();
       expect(stackAfterPush.length).toBe(10);
 
-      // Verify the LINK tag is still in place before the new values
       const { tag: lastTag } = fromTaggedValue(stackAfterPush[stackAfterPush.length - 3]);
       expect(lastTag).toBe(Tag.LINK);
     });
   });
-
 });
