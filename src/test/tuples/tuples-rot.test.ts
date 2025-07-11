@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../../core/tagged';
-import { findTuple } from '../../stack/find';
+import { findTupleSlots } from '../../stack/find';
 import { execute } from '../../lang/interpreter';
 
 import { vm, initializeInterpreter } from '../../core/globalState';
@@ -69,15 +69,14 @@ describe('Tuple rot operations', () => {
       }
 
       // Log the tuple structure
-      const tupleInfo = findTuple(vm, 0);
-      console.log('\nTuple info:', tupleInfo);
-      if (tupleInfo) {
-        console.log('Tuple data:');
-        for (let i = 0; i < tupleInfo.totalSize; i += 4) {
-          const raw = vm.memory.readFloat32(0, tupleInfo.start + i);
-          const { tag, value } = fromTaggedValue(raw);
-          console.log(`  [${tupleInfo.start + i}]: ${raw} (${Tag[tag]}: ${value})`);
-        }
+      const [nextSlot, tupleSize] = findTupleSlots(vm, 0);
+      console.log('\nTuple info:', { nextSlot, tupleSize });
+      console.log('Tuple data:');
+      for (let i = 0; i < tupleSize; i++) {
+        const addr = i * 4; // Convert slot to byte offset
+        const raw = vm.memory.readFloat32(0, addr);
+        const { tag, value } = fromTaggedValue(raw);
+        console.log(`  [${addr}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
       // Execute the rot operation
