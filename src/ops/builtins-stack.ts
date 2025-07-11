@@ -3,7 +3,7 @@ import { Verb } from '../core/types';
 import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
-import { findTuple } from '../stack/find';
+import { findTuple, findTupleSlots } from '../stack/find';
 import { rangeRoll } from '../stack/rotate';
 
 const BYTES_PER_ELEMENT = 4;
@@ -51,22 +51,22 @@ export const swapOp: Verb = (vm: VM) => {
   }
 
   // Check if the top item is a tuple
-  const topTuple = findTuple(vm, 0);
-  const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
+  const [_topNextSlot, topSizeInSlots] = findTupleSlots(vm, 0);
+  const topSlots = topSizeInSlots;
+  const topSize = topSlots * BYTES_PER_ELEMENT;
   
   // Check if the second item is a tuple (accounting for the size of the top item)
-  const secondTuple = findTuple(vm, topSize);
-  const secondSize = secondTuple ? secondTuple.totalSize : BYTES_PER_ELEMENT;
+  const [_secondNextSlot, secondSizeInSlots] = findTupleSlots(vm, topSlots);
+  const secondSlots = secondSizeInSlots;
+  const secondSize = secondSlots * BYTES_PER_ELEMENT;
   
   // Calculate the total size of both items in slots
-  const topSlots = topSize / BYTES_PER_ELEMENT;
-  const secondSlots = secondSize / BYTES_PER_ELEMENT;
   const totalSlots = topSlots + secondSlots;
   
   // For top-level swaps, we need to handle LINK tags specially
   if (vm.tupleDepth === 0) {
     // If either item is a tuple, use rangeRoll to swap them while preserving their structure
-    if (topTuple || secondTuple) {
+    if (topSlots > 1 || secondSlots > 1) {
       // Save the current stack position
       const originalSP = vm.SP;
       
@@ -76,7 +76,7 @@ export const swapOp: Verb = (vm: VM) => {
         rangeRoll(vm, 0, totalSlots, topSlots);
         
         // If we're swapping two tuples, we need to update their LINK tags
-        if (topTuple && secondTuple) {
+        if (topSlots > 1 && secondSlots > 1) {
           // The tuples have been swapped, so their positions are now reversed
           const firstTuplePos = secondSlots * BYTES_PER_ELEMENT;
           const secondTuplePos = 0;

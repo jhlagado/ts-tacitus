@@ -1,6 +1,7 @@
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
-import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { fromTaggedValue, Tag } from '../core/tagged';
+import { findTupleSlots } from '../stack/find';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -41,8 +42,26 @@ export function analyzeStackValues(vm: VM, offsets: number[]): (StackValue | Tup
     
     // If it's a TUPLE tag, try to get the full tuple info
     if (tag === Tag.TUPLE) {
-      return findTuple(vm, offset) || 
-        { type: 'unknown', address, size: BYTES_PER_ELEMENT, tag, value };
+      // Convert byte offset to slot offset
+      const slotOffset = offset / BYTES_PER_ELEMENT;
+      const [_nextSlot, sizeInSlots] = findTupleSlots(vm, slotOffset);
+      const sizeInBytes = sizeInSlots * BYTES_PER_ELEMENT;
+      
+      // For now, return a basic tuple info without elements
+      // We can enhance this later if needed
+      return {
+        type: 'tuple',
+        address,
+        size: sizeInBytes,
+        elementCount: value,
+        totalElements: sizeInSlots,
+        linkOffset: (value + 1) * BYTES_PER_ELEMENT, // TUPLE + elements
+        elements: Array(value).fill(0).map((_, i) => ({
+          type: 'unknown',
+          address: address + (i + 1) * BYTES_PER_ELEMENT,
+          size: BYTES_PER_ELEMENT
+        }))
+      };
     }
     
     // For other types, return basic info
@@ -62,7 +81,8 @@ export function analyzeStackValues(vm: VM, offsets: number[]): (StackValue | Tup
  * @param offset Offset in bytes from the stack pointer to the potential TUPLE tag
  * @returns TupleInfo if a valid tuple is found, null otherwise
  */
-function findTuple(vm: VM, offset: number): TupleInfo | null {
+// TODO: Remove this function once all callers are updated to use findTupleSlots
+function _findTuple(vm: VM, offset: number): TupleInfo | null {
   const tupleStart = vm.SP - offset - BYTES_PER_ELEMENT;
   
   // Check bounds
@@ -99,14 +119,14 @@ function findTuple(vm: VM, offset: number): TupleInfo | null {
   for (let i = 0; i < elementCount; i++) {
     const elemAddr = tupleStart + (i + 1) * BYTES_PER_ELEMENT;
     const elemValue = vm.memory.readFloat32(SEG_STACK, elemAddr);
-    const { tag, value } = fromTaggedValue(elemValue);
+    const { tag, value: elemValueData } = fromTaggedValue(elemValue);
     
     elements.push({
       type: tag === Tag.NUMBER ? 'number' : 'unknown',
       address: elemAddr,
       size: BYTES_PER_ELEMENT,
       tag,
-      value
+      value: elemValueData
     });
   }
   
