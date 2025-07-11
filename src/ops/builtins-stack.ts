@@ -3,7 +3,7 @@ import { Verb } from '../core/types';
 import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
-import { findTuple, findTupleSlots } from '../stack/find';
+import { findTupleSlots } from '../stack/find';
 import { rangeRoll } from '../stack/rotate';
 
 const BYTES_PER_ELEMENT = 4;
@@ -127,19 +127,16 @@ export const rotOp: Verb = (vm: VM) => {
   
   try {
     // Calculate the size of the top item (c)
-    const topTuple = findTuple(vm, 0);
-    const topSize = topTuple ? topTuple.totalSize : BYTES_PER_ELEMENT;
-    const topSlots = topSize / BYTES_PER_ELEMENT;
+    const [_topNextSlot, topSlots] = findTupleSlots(vm, 0);
+    const _topSize = topSlots * BYTES_PER_ELEMENT;
     
     // Calculate the size of the second item (b)
-    const midTuple = findTuple(vm, topSize);
-    const midSize = midTuple ? midTuple.totalSize : BYTES_PER_ELEMENT;
-    const midSlots = midSize / BYTES_PER_ELEMENT;
+    const [_midNextSlot, midSlots] = findTupleSlots(vm, topSlots);
+    const _midSize = midSlots * BYTES_PER_ELEMENT;
     
     // Calculate the size of the third item (a)
-    const bottomTuple = findTuple(vm, topSize + midSize);
-    const bottomSize = bottomTuple ? bottomTuple.totalSize : BYTES_PER_ELEMENT;
-    const bottomSlots = bottomSize / BYTES_PER_ELEMENT;
+    const [_bottomNextSlot, bottomSlots] = findTupleSlots(vm, topSlots + midSlots);
+    const _bottomSize = bottomSlots * BYTES_PER_ELEMENT;
     
     // Total size of the three items in slots
     const totalSlots = topSlots + midSlots + bottomSlots;
