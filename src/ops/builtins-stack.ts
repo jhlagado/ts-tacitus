@@ -3,7 +3,7 @@ import { Verb } from '../core/types';
 import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
-import { findTuple, rangeRoll } from './stack-utils';
+import { findTuple, rangeRoll } from '../stack';
 
 const BYTES_PER_ELEMENT = 4;
 
