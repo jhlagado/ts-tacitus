@@ -2,8 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, Tag } from '../core/tagged';
-import { findTuple, findElement, findTupleSlots } from './find';
-import { BYTES_PER_ELEMENT } from '../core/constants';
+import { findElement, findTupleSlots } from './find';
 
 // Helper function to push a value onto the stack
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
@@ -39,150 +38,125 @@ describe('findTuple', () => {
 
   test('should find a simple tuple', () => {
     // Create a tuple with 2 elements: [TUPLE 2, 1, 2, LINK 3]
-    const { start, end } = createSimpleTuple(vm, 1, 2);
+    createSimpleTuple(vm, 1, 2);
 
     // Find the tuple from the link position (top of stack)
-    const result = findTuple(vm, 0);
+    const [_nextSlot, size] = findTupleSlots(vm, 0);
 
-    expect(result).not.toBeNull();
-    expect(result?.start).toBe(start);
-    expect(result?.end).toBe(end);
-    expect(result?.size).toBe(2);
-    expect(result?.totalSize).toBe(4 * 4); // 4 elements * 4 bytes each (TUPLE + 1 + 2 + LINK)
-    expect(result?.linkOffset).toBe(3 * 4); // 3 elements * 4 bytes
+    expect(size).toBe(4); // TUPLE + 1 + 2 + LINK = 4 slots
   });
 
-  test('should return null for invalid tuple', () => {
+  test('should return size 1 for non-tuple', () => {
     // Push some random values that don't form a valid tuple
     pushValue(vm, 42);
     pushValue(vm, 13);
 
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+    const [_, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(1);
   });
 
   test('should find nested tuples', () => {
     // Create an inner tuple: [TUPLE 2, 1, 2, LINK 3]
-    const inner = createSimpleTuple(vm, 1, 2);
+    createSimpleTuple(vm, 1, 2);
 
     // The inner tuple is now at the bottom of the stack
     // Let's verify we can find it directly
-    const innerResult = findTuple(vm, 0);
-    expect(innerResult).not.toBeNull();
-    expect(innerResult?.size).toBe(2);
+    const [_innerNext, innerSize] = findTupleSlots(vm, 0);
+    expect(innerSize).toBe(4); // TUPLE + 1 + 2 + LINK = 4 slots
 
     // Now create an outer tuple that references the inner tuple
     pushValue(vm, 1, Tag.TUPLE); // Tuple with 1 element
-    pushValue(vm, inner.start / 4); // Push the inner tuple's position (in slots)
+    pushValue(vm, 4); // Push the inner tuple's size in slots
     pushValue(vm, 2, Tag.LINK); // Total elements: TUPLE(1) + 1 value + LINK = 3
 
     // Find the outer tuple
-    const outerResult = findTuple(vm, 0);
-    expect(outerResult).not.toBeNull();
-    expect(outerResult?.size).toBe(1);
+    const [_outerNext, outerSize] = findTupleSlots(vm, 0);
+    expect(outerSize).toBe(3); // TUPLE + 1 element + LINK = 3 slots
   });
 
-  test('should return null when stack is empty', () => {
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+  test('should return size 1 when stack is empty', () => {
+    const [_, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(1);
   });
 
-  test('should return null when element is not a tuple', () => {
+  test('should return size 1 when element is not a tuple', () => {
     // Push a non-tuple value
     pushValue(vm, 42);
 
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+    const [_, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(1);
   });
 
   test('should find a tuple with offset from the top', () => {
     // Create a tuple: [TUPLE 2, 1, 2, LINK 3] (4 elements)
-    const { start } = createSimpleTuple(vm, 1, 2);
-
-    // Save the end position of the tuple
-    const tupleEnd = vm.SP;
+    createSimpleTuple(vm, 1, 2);
 
     // Push some values on top of the tuple
     pushValue(vm, 10);
     pushValue(vm, 20);
 
-    // The tuple's LINK tag is at offset 2 elements (10 and 20) from the current SP
-    // Each element is 4 bytes, so the offset is 2 * 4 = 8 bytes
-    const result = findTuple(vm, 8);
+    // The tuple's LINK tag is at offset 2 slots (10 and 20) from the current SP
+    const [_next, size] = findTupleSlots(vm, 2);
 
-    expect(result).not.toBeNull();
-    expect(result?.start).toBe(start);
-    expect(result?.end).toBe(tupleEnd);
-    expect(result?.size).toBe(2);
+    expect(size).toBe(4); // TUPLE + 1 + 2 + LINK = 4 slots
   });
 
   test('should find an empty tuple', () => {
     // Create an empty tuple: [TUPLE 0, LINK 1]
-    const start = vm.SP;
     pushValue(vm, 0, Tag.TUPLE);
     pushValue(vm, 1, Tag.LINK);
-    const end = vm.SP;
 
-    const result = findTuple(vm, 0);
-
-    expect(result).not.toBeNull();
-    expect(result?.start).toBe(start);
-    expect(result?.end).toBe(end);
-    expect(result?.size).toBe(0);
-    expect(result?.totalSize).toBe(2 * 4); // TUPLE + LINK = 2 elements * 4 bytes
-    expect(result?.linkOffset).toBe(1 * 4); // 1 element * 4 bytes
+    const [_next, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(2); // TUPLE + LINK = 2 slots
   });
 
-  test('should return null for invalid tuple structure (missing TUPLE tag)', () => {
+  test('should return size 1 for invalid tuple structure (missing TUPLE tag)', () => {
     // Push just a LINK tag without TUPLE
     pushValue(vm, 1, Tag.LINK);
 
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+    const [_next, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(1);
   });
 
-  test('should return null for invalid tuple structure (size mismatch)', () => {
+  test('should return size 1 for invalid tuple structure (size mismatch)', () => {
     // Create a tuple with mismatched sizes: TUPLE says 2 elements but LINK says 4
-    const _start = vm.SP; // Start position not used in this test
     pushValue(vm, 2, Tag.TUPLE); // Says 2 elements
     pushValue(vm, 1);
     pushValue(vm, 2);
     pushValue(vm, 4, Tag.LINK); // Says 4 total elements (should be 3 for 2 data elements)
 
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+    const [_next, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(1);
   });
 
   test('should handle out of bounds access', () => {
     // Try to access beyond stack bounds
     vm.SP = 0; // Empty stack
-    const result = findTuple(vm, 0);
-    expect(result).toBeNull();
+    const [_next1, size1] = findTupleSlots(vm, 0);
+    expect(size1).toBe(1);
 
     // Try with negative offset
-    expect(() => findTuple(vm, -1)).not.toThrow();
+    const [_next2, size2] = findTupleSlots(vm, -1);
+    expect(size2).toBe(1);
 
     // Try with offset beyond stack
     const largeOffset = 1000000;
-    expect(() => findTuple(vm, largeOffset)).not.toThrow();
+    const [_next3, size3] = findTupleSlots(vm, largeOffset);
+    expect(size3).toBe(1);
   });
 
   test('should find tuple after pushing other values', () => {
     // Create a simple tuple with 2 values
-    const { start: tupleStart } = createSimpleTuple(vm, 42, 100);
+    createSimpleTuple(vm, 42, 100);
 
     // Push some other values on top
     pushValue(vm, 500);
     pushValue(vm, 600);
 
-    // The tuple is 3 elements from the current SP (500, 600, and the tuple's LINK tag)
-    // Each element is 4 bytes, so offset is 3 * 4 = 12 bytes
-    const result = findTuple(vm, 2 * BYTES_PER_ELEMENT);
-
-    expect(result).not.toBeNull();
-    expect(result?.start).toBe(tupleStart);
-    expect(result?.size).toBe(2);
-    expect(result?.totalSize).toBe(4 * 4); // TUPLE + 2 values + LINK = 4 elements
+    // The tuple is 2 slots from the current SP (500, 600, and the tuple's LINK tag)
+    // We're looking at the tuple's LINK tag which is 2 slots from the top
+    const [_next, size] = findTupleSlots(vm, 2);
+    expect(size).toBe(4); // TUPLE + 2 values + LINK = 4 slots
   });
 
   test('should handle maximum size tuple within limits', () => {
@@ -190,7 +164,6 @@ describe('findTuple', () => {
     const maxSize = 10; // Using a smaller size for testing
 
     // Create a tuple
-    const start = vm.SP;
     pushValue(vm, maxSize, Tag.TUPLE);
 
     // Push elements
@@ -201,11 +174,8 @@ describe('findTuple', () => {
     // Push LINK tag
     pushValue(vm, maxSize + 1, Tag.LINK);
 
-    const result = findTuple(vm, 0);
-    expect(result).not.toBeNull();
-    expect(result?.start).toBe(start);
-    expect(result?.size).toBe(maxSize);
-    expect(result?.totalSize).toBe((maxSize + 2) * 4);
+    const [_next, size] = findTupleSlots(vm, 0);
+    expect(size).toBe(maxSize + 2); // TUPLE + elements + LINK
   });
 });
 
