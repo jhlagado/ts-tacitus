@@ -29,7 +29,7 @@ function createSimpleTuple(vm: VM, ...values: number[]): { start: number; end: n
   };
 }
 
-describe('findElement (legacy findTuple tests)', () => {
+describe('findElement', () => {
   let vm: VM;
 
   beforeEach(() => {
@@ -98,11 +98,11 @@ describe('findElement (legacy findTuple tests)', () => {
     // Find the first element (20)
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
-    
+
     // Find the second element (10)
     const [offset2, size2] = findElement(vm, offset1);
     expect(size2).toBe(1);
-    
+
     // Now find the tuple
     const [_next, size] = findElement(vm, offset2);
 
@@ -164,14 +164,14 @@ describe('findElement (legacy findTuple tests)', () => {
     // Find the first value (600)
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
-    
+
     // Find the second value (500)
     const [offset2, size2] = findElement(vm, offset1);
     expect(size2).toBe(1);
-    
+
     // Now find the tuple
     const [_next, size] = findElement(vm, offset2);
-    
+
     expect(size).toBe(4); // TUPLE + 2 values + LINK = 4 slots
   });
 
