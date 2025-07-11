@@ -37,6 +37,13 @@ export function reverseRange(vm: VM, startAddr: number, slotCount: number): void
  * @param rangeSize - The number of slots in the range
  * @param shiftSlots - The number of positions to rotate (positive for right, negative for left)
  */
+/**
+ * Rotates a range of elements in the stack by a specified number of positions.
+ * @param vm - The VM instance
+ * @param startSlot - The starting slot index (0-based) of the range to rotate
+ * @param rangeSize - The number of slots in the range
+ * @param shiftSlots - The number of positions to rotate (positive for right, negative for left)
+ */
 export function rangeRoll(
   vm: VM,
   startSlot: number,
@@ -55,12 +62,12 @@ export function rangeRoll(
   // Calculate the split point
   const splitPoint = rangeSize - normalizedShift;
   
-  // Reverse the first part
+  // Reverse the first part (from start to split point)
   reverseRange(vm, startAddr, splitPoint);
   
-  // Reverse the second part
+  // Reverse the second part (from split point to end)
   reverseRange(vm, startAddr + splitPoint * 4, normalizedShift);
   
-  // Reverse the whole range
+  // Reverse the whole range to complete the rotation
   reverseRange(vm, startAddr, rangeSize);
 }

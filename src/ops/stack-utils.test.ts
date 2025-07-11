@@ -2,7 +2,8 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, fromTaggedValue, Tag } from '../core/tagged';
-import { rangeRoll, findTuple, findElement } from '../stack';
+import { rangeRoll } from '../stack/rotate';
+import { findTuple, findElement } from '../stack/find';
 
 // Define BYTES_PER_ELEMENT for use in our tests
 const BYTES_PER_ELEMENT = 4; // Each element on the stack is 4 bytes (32-bit float)
