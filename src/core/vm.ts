@@ -5,9 +5,9 @@ import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { defineBuiltins } from '../ops/define-builtins';
 import { FunctionTable } from './function-table';
-
 import { initFunctionTable } from '../ops/init-function-table';
 
+/** Number of bytes per memory element */
 const BYTES_PER_ELEMENT = 4;
 
 export class VM {
@@ -39,8 +39,9 @@ export class VM {
   }
 
   /**
-   * Sets the compiler instance and initializes the function table.
+   * Initializes the compiler and function table.
    * This method must be called after VM construction to complete initialization.
+   * @param compiler - The compiler instance to use
    */
   initializeCompilerAndFunctionTable(compiler: Compiler): void {
     this.compiler = compiler;
