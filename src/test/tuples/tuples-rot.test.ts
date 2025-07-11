@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../../core/tagged';
-import { findTuple } from '../../ops/stack-utils';
+import { findTuple } from '../../stack';
 import { execute } from '../../lang/interpreter';
 
 import { vm, initializeInterpreter } from '../../core/globalState';
