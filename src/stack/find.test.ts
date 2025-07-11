@@ -95,8 +95,16 @@ describe('findElement (legacy findTuple tests)', () => {
     pushValue(vm, 10);
     pushValue(vm, 20);
 
-    // The tuple's LINK tag is at offset 2 slots (10 and 20) from the current SP
-    const [_next, size] = findElement(vm, 2);
+    // Find the first element (20)
+    const [offset1, size1] = findElement(vm, 0);
+    expect(size1).toBe(1);
+    
+    // Find the second element (10)
+    const [offset2, size2] = findElement(vm, offset1);
+    expect(size2).toBe(1);
+    
+    // Now find the tuple
+    const [_next, size] = findElement(vm, offset2);
 
     expect(size).toBe(4); // TUPLE + 1 + 2 + LINK = 4 slots
   });
@@ -153,9 +161,17 @@ describe('findElement (legacy findTuple tests)', () => {
     pushValue(vm, 500);
     pushValue(vm, 600);
 
-    // The tuple is 2 slots from the current SP (500, 600, and the tuple's LINK tag)
-    // We're looking at the tuple's LINK tag which is 2 slots from the top
-    const [_next, size] = findElement(vm, 2);
+    // Find the first value (600)
+    const [offset1, size1] = findElement(vm, 0);
+    expect(size1).toBe(1);
+    
+    // Find the second value (500)
+    const [offset2, size2] = findElement(vm, offset1);
+    expect(size2).toBe(1);
+    
+    // Now find the tuple
+    const [_next, size] = findElement(vm, offset2);
+    
     expect(size).toBe(4); // TUPLE + 2 values + LINK = 4 slots
   });
 
