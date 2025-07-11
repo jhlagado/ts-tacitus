@@ -46,73 +46,36 @@ export const dropOp: Verb = (vm: VM) => {
 };
 
 export const swapOp: Verb = (vm: VM) => {
+  // Check for stack underflow
   if (vm.SP < BYTES_PER_ELEMENT * 2) {
-    throw new Error(`Stack underflow: 'swap' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`);
+    throw new Error(
+      `Stack underflow: 'swap' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
+    );
   }
 
-  // Check if the top item is a tuple
-  const [_topNextSlot, topSizeInSlots] = findElement(vm, 0);
-  const topSlots = topSizeInSlots;
-  const topSize = topSlots * BYTES_PER_ELEMENT;
+  const originalSP = vm.SP;
   
-  // Check if the second item is a tuple (accounting for the size of the top item)
-  const [_secondNextSlot, secondSizeInSlots] = findElement(vm, topSlots);
-  const secondSlots = secondSizeInSlots;
-  const secondSize = secondSlots * BYTES_PER_ELEMENT;
-  
-  // Calculate the total size of both items in slots
-  const totalSlots = topSlots + secondSlots;
-  
-  // For top-level swaps, we need to handle LINK tags specially
-  if (vm.tupleDepth === 0) {
-    // If either item is a tuple, use rangeRoll to swap them while preserving their structure
-    if (topSlots > 1 || secondSlots > 1) {
-      // Save the current stack position
-      const originalSP = vm.SP;
-      
-      try {
-        // Use rangeRoll to rotate the top two items (including their LINK tags if they're tuples)
-        // We rotate by topSlots to move the first item past the second item
-        rangeRoll(vm, 0, totalSlots, topSlots);
-        
-        // If we're swapping two tuples, we need to update their LINK tags
-        if (topSlots > 1 && secondSlots > 1) {
-          // The tuples have been swapped, so their positions are now reversed
-          const firstTuplePos = secondSlots * BYTES_PER_ELEMENT;
-          const secondTuplePos = 0;
-          
-          // Update the first tuple's LINK tag (if it has one)
-          const firstTupleEnd = firstTuplePos + topSize - BYTES_PER_ELEMENT;
-          const firstTupleLink = vm.memory.readFloat32(SEG_STACK, firstTupleEnd);
-          const { tag: firstLinkTag } = fromTaggedValue(firstTupleLink);
-          if (firstLinkTag === Tag.LINK) {
-            // The LINK tag should point to the start of the first tuple
-            vm.memory.writeFloat32(SEG_STACK, firstTupleEnd, toTaggedValue(secondSlots, Tag.LINK));
-          }
-          
-          // Update the second tuple's LINK tag (if it has one)
-          const secondTupleEnd = secondTuplePos + secondSize - BYTES_PER_ELEMENT;
-          const secondTupleLink = vm.memory.readFloat32(SEG_STACK, secondTupleEnd);
-          const { tag: secondLinkTag } = fromTaggedValue(secondTupleLink);
-          if (secondLinkTag === Tag.LINK) {
-            // The LINK tag should point to the start of the second tuple
-            vm.memory.writeFloat32(SEG_STACK, secondTupleEnd, toTaggedValue(topSlots, Tag.LINK));
-          }
-        }
-        return;
-      } catch (error) {
-        // If anything goes wrong, restore the stack pointer and rethrow the error
-        vm.SP = originalSP;
-        throw error;
-      }
-    }
+  try {
+    // Calculate the size of the top item (b)
+    const [_topNextSlot, topSlots] = findElement(vm, 0);
+    const _topSize = topSlots * BYTES_PER_ELEMENT;
+    
+    // Calculate the size of the second item (a)
+    const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
+    const _secondSize = secondSlots * BYTES_PER_ELEMENT;
+    
+    // Total size of both items in slots
+    const totalSlots = topSlots + secondSlots;
+    
+    // Rotate the two items: [a, b] -> [b, a]
+    // The rotation amount is the size of the top item (b)
+    rangeRoll(vm, 0, totalSlots, topSlots);
+    
+  } catch (error) {
+    // If anything goes wrong, restore the stack pointer and rethrow the error
+    vm.SP = originalSP;
+    throw error;
   }
-  
-  // For simple values or when inside a tuple, just swap the top two elements
-  const top = vm.pop();
-  const second = vm.pop();
-  vm.push(top);
-  vm.push(second);
 };
 
 export const rotOp: Verb = (vm: VM) => {

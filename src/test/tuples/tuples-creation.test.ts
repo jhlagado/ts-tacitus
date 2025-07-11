@@ -3,7 +3,6 @@ import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../../core/tagged';
 import { execute } from '../../lang/interpreter';
-
 import { vm, initializeInterpreter } from '../../core/globalState';
 
 /**
@@ -18,12 +17,14 @@ function executeCode(code: string): number[] {
 
 describe('Tuple creation operations', () => {
   beforeEach(() => {
+    // Reset VM state before each test
     initializeInterpreter();
     vm.SP = 0;
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
     vm.tupleDepth = 0;
+    vm.running = true;
     vm.compiler.reset();
   });
 
