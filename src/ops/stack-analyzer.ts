@@ -1,7 +1,7 @@
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { findTupleSlots } from '../stack/find';
+import { findElement } from '../stack/find';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -44,7 +44,7 @@ export function analyzeStackValues(vm: VM, offsets: number[]): (StackValue | Tup
     if (tag === Tag.TUPLE) {
       // Convert byte offset to slot offset
       const slotOffset = offset / BYTES_PER_ELEMENT;
-      const [_nextSlot, sizeInSlots] = findTupleSlots(vm, slotOffset);
+      const [_nextSlot, sizeInSlots] = findElement(vm, slotOffset);
       const sizeInBytes = sizeInSlots * BYTES_PER_ELEMENT;
       
       // For now, return a basic tuple info without elements
@@ -81,7 +81,7 @@ export function analyzeStackValues(vm: VM, offsets: number[]): (StackValue | Tup
  * @param offset Offset in bytes from the stack pointer to the potential TUPLE tag
  * @returns TupleInfo if a valid tuple is found, null otherwise
  */
-// TODO: Remove this function once all callers are updated to use findTupleSlots
+// TODO: This function is kept for backward compatibility and can be removed after ensuring all callers are updated
 function _findTuple(vm: VM, offset: number): TupleInfo | null {
   const tupleStart = vm.SP - offset - BYTES_PER_ELEMENT;
   

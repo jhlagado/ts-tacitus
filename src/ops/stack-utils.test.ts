@@ -3,7 +3,7 @@ import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { rangeRoll } from '../stack/rotate';
-import { findTupleSlots, findElement } from '../stack/find';
+import { findElement } from '../stack/find';
 
 // Define BYTES_PER_ELEMENT for use in our tests
 const BYTES_PER_ELEMENT = 4; // Each element on the stack is 4 bytes (32-bit float)
@@ -28,14 +28,14 @@ describe('Stack Utils', () => {
     });
   });
 
-  describe('findTupleSlots', () => {
+  describe('findElement', () => {
     test('should return size 1 when stack is empty', () => {
-      const [nextSlot, size] = findTupleSlots(vm, 0);
+      const [nextSlot, size] = findElement(vm, 0);
       expect(size).toBe(1);
       expect(nextSlot).toBe(1);
     });
 
-    // Add more findTupleSlots tests here...
+    // Add more findElement tests here...
   });
 
   describe('findElement', () => {

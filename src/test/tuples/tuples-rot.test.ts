@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../../core/tagged';
-import { findTupleSlots } from '../../stack/find';
+import { findElement } from '../../stack/find';
 import { execute } from '../../lang/interpreter';
 
 import { vm, initializeInterpreter } from '../../core/globalState';
@@ -69,7 +69,7 @@ describe('Tuple rot operations', () => {
       }
 
       // Log the tuple structure
-      const [nextSlot, tupleSize] = findTupleSlots(vm, 0);
+      const [nextSlot, tupleSize] = findElement(vm, 0);
       console.log('\nTuple info:', { nextSlot, tupleSize });
       console.log('Tuple data:');
       for (let i = 0; i < tupleSize; i++) {
