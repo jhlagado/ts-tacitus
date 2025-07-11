@@ -3,7 +3,7 @@ import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { findTupleSlots } from './find';
-import { BYTES_PER_ELEMENT } from '../core/constants';
+import { BYTES_PER_ELEMENT as _BYTES_PER_ELEMENT } from '../core/constants';
 
 // Helper function to push a value onto the stack
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
