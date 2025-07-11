@@ -59,33 +59,35 @@ describe('Tuple revrot operations', () => {
       const stack = vm.getStackData();
 
       // After revrot: 4 (1 2) 3
-      // Stack should have: [4, TUPLE_HEADER, 1, 2, LINK, 3]
       expect(stack.length).toBe(6);
 
-      // The first element after rotation should be 4
+      // First element is 4
       const val1 = fromTaggedValue(stack[0]);
       expect(val1.value).toBe(4);
+      expect(val1.tag).toBe(0);  // 0 is Tag.NUMBER
 
-      // The second element should be the tuple header
+      // Second element is the TUPLE header
       const tupleTag = fromTaggedValue(stack[1]);
       expect(tupleTag.tag).toBe(Tag.TUPLE);
-      expect(tupleTag.value).toBe(2);  // Tuple size should be 2
+      expect(tupleTag.value).toBe(2);  // Tuple has 2 elements
 
-      // Check the tuple elements (1 and 2)
+      // Tuple elements (1 and 2)
       const elem1 = fromTaggedValue(stack[2]);
       const elem2 = fromTaggedValue(stack[3]);
       expect(elem1.value).toBe(1);
+      expect(elem1.tag).toBe(0);  // 0 is Tag.NUMBER
       expect(elem2.value).toBe(2);
+      expect(elem2.tag).toBe(0);  // 0 is Tag.NUMBER
 
-      // Check the LINK tag
+      // The LINK points to the start of the tuple (index 1)
       const linkTag = fromTaggedValue(stack[4]);
       expect(linkTag.tag).toBe(Tag.LINK);
-      // The LINK value should point to the start of the tuple (index 1)
       expect(linkTag.value).toBe(3);
 
-      // Check the last value (3)
+      // Last element is 3
       const val3 = fromTaggedValue(stack[5]);
       expect(val3.value).toBe(3);
+      expect(val3.tag).toBe(0);  // 0 is Tag.NUMBER
     });
 
    test('should handle nested tuples', () => {
