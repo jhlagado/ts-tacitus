@@ -118,17 +118,35 @@ export const rotOp: Verb = (vm: VM) => {
   }
 };
 
-export const negRotOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT * 3) {
-    throw new Error(
-      `Stack underflow: '-rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
+/**
+ * Performs a reverse rotation of the top three elements on the stack.
+ * Converts [a, b, c] to [c, a, b]
+ * @param vm - The VM instance
+ */
+export const revrotOp: Verb = (vm: VM) => {
+  const originalSP = vm.SP;
+  
+  try {
+    // Find the size of the top element (c)
+    const [nextSlot1, topSlots] = findElement(vm, 0);
+    
+    // Find the size of the second element (b)
+    const [nextSlot2, midSlots] = findElement(vm, nextSlot1);
+    
+    // Calculate the size of the third item (a)
+    const [_nextSlot3, bottomSlots] = findElement(vm, nextSlot2);
+    
+    // Total size of the three items in slots
+    const totalSlots = topSlots + midSlots + bottomSlots;
+    
+    // For reverse rotation: [a, b, c] -> [c, a, b]
+    // We can achieve this by rotating right by (topSlots + midSlots) positions
+    // which is equivalent to rotating left by bottomSlots positions
+    rangeRoll(vm, 0, totalSlots, -bottomSlots);
+    
+  } catch (error) {
+    // If anything goes wrong, restore the stack pointer and rethrow the error
+    vm.SP = originalSP;
+    throw new Error(`revrot failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const c = vm.pop();
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(c);
-  vm.push(a);
-  vm.push(b);
 };

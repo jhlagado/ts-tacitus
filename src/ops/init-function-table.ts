@@ -40,7 +40,7 @@ import {
   mSignumOp,
   mEnlistOp,
 } from './builtins-unary-op';
-import { dupOp, dropOp, swapOp, rotOp, negRotOp } from './builtins-stack';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp } from './builtins-stack';
 
 import {
   absOp,
@@ -100,7 +100,7 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Drop, dropOp);
   ft.registerBuiltin(Op.Swap, swapOp);
   ft.registerBuiltin(Op.Rot, rotOp);
-  ft.registerBuiltin(Op.NegRot, negRotOp);
+  ft.registerBuiltin(Op.NegRot, revrotOp);
   ft.registerBuiltin(Op.Abs, absOp);
   ft.registerBuiltin(Op.Neg, negOp);
   ft.registerBuiltin(Op.Sign, signOp);
