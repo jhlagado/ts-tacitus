@@ -1,5 +1,3 @@
-// Operations-specific stack utilities for opcode implementations
-export { findTuple, findElement, rangeRoll } from './ops-utils';
-
-// Shared types
-export * from './types';
+// Export all stack utility functions
+export * from './find';
+export * from './rotate';
