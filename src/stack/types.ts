@@ -1,1 +1,1 @@
-export type StackArgInfo = [number, number]; // [offset, size]
+export type StackArgInfo = [number, number];

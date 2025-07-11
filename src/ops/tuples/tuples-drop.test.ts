@@ -29,7 +29,6 @@ describe('Tuple operations', () => {
 
   describe('drop', () => {
     test('should drop a regular value from the stack', () => {
-      // Push two values and drop the second one
       executeCode('1 2 drop');
 
       /**
@@ -54,7 +53,6 @@ describe('Tuple operations', () => {
       const stack = executeCode('( 10 20 ) drop');
       expect(stack.length).toBe(0);
 
-      // Verify we can add new values to the stack
       executeCode('30');
       expect(vm.peek()).toBe(30);
     });
@@ -97,11 +95,9 @@ describe('Tuple operations', () => {
       executeCode('drop');
       const stackAfter = vm.getStackData().length;
 
-      // Verify the tuple was completely removed
       expect(stackAfter).toBe(0);
       expect(stackAfter).toBeLessThan(stackBefore);
 
-      // Verify we can add new values to the stack
       executeCode('42');
       expect(vm.peek()).toBe(42);
     });
@@ -129,29 +125,23 @@ describe('Tuple operations', () => {
        * [3] LINK(3)   - Link tag for first tuple remains
        */
 
-      // Get stack size before drop
       const stackBeforeSize = vm.getStackData().length;
 
-      // Store the top tuple's values to verify they're gone after dropping
       const topTupleValues = [];
       const stack = vm.getStackData();
       for (let i = stackBeforeSize - 4; i < stackBeforeSize; i++) {
         topTupleValues.push(stack[i]);
       }
 
-      // Drop the top tuple
       executeCode('drop');
 
-      // Verify stack size is reduced by 4 (TUPLE + 2 elements + LINK)
       const stackAfterSize = vm.getStackData().length;
       expect(stackAfterSize).toBe(stackBeforeSize - 4);
 
-      // Verify the first tuple is still intact
       const stackAfter = vm.getStackData();
       const { tag: topTag } = fromTaggedValue(stackAfter[stackAfterSize - 1]);
       expect(topTag).toBe(Tag.LINK);
 
-      // Verify we can add new values to the stack
       executeCode('100');
       expect(vm.peek()).toBe(100);
       vm.pop();
@@ -173,7 +163,6 @@ describe('Tuple operations', () => {
        * [5] LINK(5)   - Link tag for outer tuple (points back 5 elements)
        */
 
-      // Log the stack after creating the tuple
       const stackAfterTuple = vm.getStackData();
       console.log('Stack after tuple creation:');
       for (let i = 0; i < stackAfterTuple.length; i++) {
@@ -181,7 +170,6 @@ describe('Tuple operations', () => {
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      // Now duplicate the tuple
       executeCode('dup');
 
       /**
@@ -200,7 +188,6 @@ describe('Tuple operations', () => {
        * [11] LINK(5)  - Link tag for duplicated outer tuple
        */
 
-      // Log the stack after duplication
       const stackAfterDup = vm.getStackData();
       console.log('Stack after dup:');
       for (let i = 0; i < stackAfterDup.length; i++) {
@@ -208,14 +195,11 @@ describe('Tuple operations', () => {
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      // Verify stack has doubled in size
       expect(stackAfterDup.length).toBe(stackAfterTuple.length * 2);
 
-      // Verify first tuple's structure is intact
       const { tag: firstTupleTag } = fromTaggedValue(stackAfterDup[0]);
       expect(firstTupleTag).toBe(Tag.TUPLE);
 
-      // Now drop both tuples
       executeCode('drop drop');
 
       /**
@@ -223,7 +207,6 @@ describe('Tuple operations', () => {
        * [] Empty stack - Both tuples have been completely removed
        */
 
-      // Verify stack is empty
       expect(vm.getStackData().length).toBe(0);
     });
 
@@ -251,10 +234,8 @@ describe('Tuple operations', () => {
       expect(vm.SP).toBeGreaterThan(0);
       executeCode('drop');
 
-      // Verify the tuple was completely dropped
       expect(vm.getStackData().length).toBe(0);
 
-      // Verify we can add new values to the stack
       executeCode('123');
       expect(vm.peek()).toBe(123);
       vm.pop();
@@ -265,7 +246,6 @@ describe('Tuple operations', () => {
     test('should drop multiple tuples consecutively', () => {
       initializeInterpreter();
 
-      // Create and drop first tuple
       executeCode('( 10 20 )');
 
       /**
@@ -279,9 +259,8 @@ describe('Tuple operations', () => {
        * [] Empty stack
        */
       executeCode('drop');
-      expect(vm.getStackData().length).toBe(0); // Stack should be empty after dropping the tuple
+      expect(vm.getStackData().length).toBe(0);
 
-      // Create and drop second tuple
       executeCode('( 30 40 )');
 
       /**
@@ -295,9 +274,8 @@ describe('Tuple operations', () => {
        * [] Empty stack
        */
       executeCode('drop');
-      expect(vm.getStackData().length).toBe(0); // Stack should be empty after dropping the second tuple
+      expect(vm.getStackData().length).toBe(0);
 
-      // Verify we can push new values to the stack
       executeCode('50');
       expect(vm.peek()).toBe(50);
       executeCode('60');
