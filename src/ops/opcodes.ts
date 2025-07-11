@@ -118,8 +118,8 @@ export enum Op {
   /**  Rotates the top three values on the stack (the third value moves to the top). */
   Rot,
 
-  /**  Reverse rotates the top three values on the stack (i.e., -rot, transforming [a, b, c] into [c, a, b]). */
-  NegRot,
+  /**  Reverse rotates the top three values on the stack (transforming [a, b, c] into [c, a, b]). */
+  RevRot,
 
   /**  Duplicates the second value from the top of the stack and pushes it onto the top. */
   Over,

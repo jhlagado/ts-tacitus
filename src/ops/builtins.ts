@@ -172,7 +172,7 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.Rot:
       rotOp(vm);
       break;
-    case Op.NegRot:
+    case Op.RevRot:
       revrotOp(vm);
       break;
     case Op.Abs:

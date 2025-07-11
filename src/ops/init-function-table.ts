@@ -100,7 +100,7 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Drop, dropOp);
   ft.registerBuiltin(Op.Swap, swapOp);
   ft.registerBuiltin(Op.Rot, rotOp);
-  ft.registerBuiltin(Op.NegRot, revrotOp);
+  ft.registerBuiltin(Op.RevRot, revrotOp);
   ft.registerBuiltin(Op.Abs, absOp);
   ft.registerBuiltin(Op.Neg, negOp);
   ft.registerBuiltin(Op.Sign, signOp);
