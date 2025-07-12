@@ -4,7 +4,7 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
 import { findElement } from '../stack/find';
-import { rangeRoll } from '../stack/rotate';
+import { slotsRoll } from '../stack/slots';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -63,7 +63,7 @@ export const swapOp: Verb = (vm: VM) => {
 
     const totalSlots = topSlots + secondSlots;
 
-    rangeRoll(vm, 0, totalSlots, topSlots);
+    slotsRoll(vm, 0, totalSlots, topSlots);
   } catch (error) {
     vm.SP = originalSP;
     throw error;
@@ -93,7 +93,7 @@ export const rotOp: Verb = (vm: VM) => {
 
     const rotationSlots = midSlots + topSlots;
 
-    rangeRoll(vm, 0, totalSlots, rotationSlots);
+    slotsRoll(vm, 0, totalSlots, rotationSlots);
   } catch (error) {
     vm.SP = originalSP;
     throw error;
@@ -135,7 +135,7 @@ export const revrotOp: Verb = (vm: VM) => {
     const originalHeader = vm.memory.readFloat32(SEG_STACK, topSlots * BYTES_PER_ELEMENT);
     const { tag: originalTag } = fromTaggedValue(originalHeader);
 
-    rangeRoll(vm, 0, totalSlots, topSlots);
+    slotsRoll(vm, 0, totalSlots, topSlots);
 
     if (originalTag === Tag.LIST) {
       const newHeader = originalHeader;
