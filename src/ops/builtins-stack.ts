@@ -4,7 +4,7 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 
 import { SEG_STACK } from '../core/memory';
 import { findElement } from '../stack/find';
-import { slotsRoll } from '../stack/slots';
+import { slotsRoll, slotsCopy } from '../stack/slots';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -18,19 +18,11 @@ export const dupOp: Verb = (vm: VM) => {
   // Find the top element and its size
   const [_, size] = findElement(vm, 0);
   
-  if (size === 1) {
-    // Simple value case
-    const value = vm.peek();
-    vm.push(value);
-  } else {
-    // List case - copy all elements
-    const startAddr = vm.SP - size * BYTES_PER_ELEMENT;
-    for (let i = 0; i < size; i++) {
-      const addr = startAddr + i * BYTES_PER_ELEMENT;
-      const value = vm.memory.readFloat32(SEG_STACK, addr);
-      vm.push(value);
-    }
-  }
+  // Calculate the starting slot (0-based index from the top of the stack)
+  const startSlot = (vm.SP / BYTES_PER_ELEMENT) - size;
+  
+  // Use slotsCopy to duplicate the element(s)
+  slotsCopy(vm, startSlot, size);
 };
 
 export const dropOp: Verb = (vm: VM) => {
