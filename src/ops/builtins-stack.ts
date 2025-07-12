@@ -15,18 +15,21 @@ export const dupOp: Verb = (vm: VM) => {
     );
   }
 
-  const topValue = vm.peek();
-  const { tag, value } = fromTaggedValue(topValue);
-  if (tag === Tag.LINK) {
-    const elemCount = value + 1;
-    const byteOffset = elemCount * BYTES_PER_ELEMENT;
-    const startByte = vm.SP - byteOffset;
-    for (let i = 0; i < elemCount; i++) {
-      const val = vm.memory.readFloat32(SEG_STACK, startByte + i * BYTES_PER_ELEMENT);
-      vm.push(val);
-    }
+  // Find the top element and its size
+  const [_, size] = findElement(vm, 0);
+  
+  if (size === 1) {
+    // Simple value case
+    const value = vm.peek();
+    vm.push(value);
   } else {
-    vm.push(topValue);
+    // List case - copy all elements
+    const startAddr = vm.SP - size * BYTES_PER_ELEMENT;
+    for (let i = 0; i < size; i++) {
+      const addr = startAddr + i * BYTES_PER_ELEMENT;
+      const value = vm.memory.readFloat32(SEG_STACK, addr);
+      vm.push(value);
+    }
   }
 };
 
