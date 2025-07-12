@@ -1,7 +1,6 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { fromTaggedValue, Tag } from '../core/tagged';
-
 import { SEG_STACK } from '../core/memory';
 import { findElement } from '../stack/find';
 import { slotsRoll, slotsCopy } from '../stack/slots';
@@ -15,14 +14,83 @@ export const dupOp: Verb = (vm: VM) => {
     );
   }
 
-  // Find the top element and its size
-  const [_, size] = findElement(vm, 0);
-  
-  // Calculate the starting slot (0-based index from the top of the stack)
-  const startSlot = (vm.SP / BYTES_PER_ELEMENT) - size;
-  
-  // Use slotsCopy to duplicate the element(s)
-  slotsCopy(vm, startSlot, size);
+  // Get the top element's next slot and size
+  const [tosNext, tosSize] = findElement(vm, 0);
+
+  // Calculate the start slot of the top element
+  const tosStartSlot = (vm.SP / BYTES_PER_ELEMENT) - tosNext;
+
+  // Copy the top element to the top of the stack
+  slotsCopy(vm, tosStartSlot, tosSize);
+};
+
+export const overOp: Verb = (vm: VM) => {
+  // Need at least 2 elements on the stack
+  if (vm.SP < 2 * BYTES_PER_ELEMENT) {
+    throw new Error(
+      `Stack underflow: 'over' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
+    );
+  }
+
+  // Get the top element's next slot and size
+  const [tosNext, _tosSize] = findElement(vm, 0);
+
+  // Get the NOS element's next slot and size
+  const [nosNext, nosSize] = findElement(vm, tosNext);
+
+  // Calculate the start slot of NOS element
+  const nosStartSlot = (vm.SP / BYTES_PER_ELEMENT) - nosNext;
+
+  // Copy the NOS element to the top of the stack
+  slotsCopy(vm, nosStartSlot, nosSize);
+};
+
+export const pickOp: Verb = (vm: VM) => {
+  // Need at least the index on the stack
+  if (vm.SP < BYTES_PER_ELEMENT) {
+    throw new Error(
+      `Stack underflow: 'pick' requires an index (stack: ${JSON.stringify(vm.getStackData())})`,
+    );
+  }
+
+  // Get the index from TOS
+  const index = vm.pop();
+
+  // Validate the index
+  if (index < 0) {
+    throw new Error(`Invalid index for pick: ${index}`);
+  }
+
+  // Start from the top of the stack (after popping the index)
+  let currentSlot = 0;
+  let targetSlot = -1;
+  let targetSize = 0;
+
+  // Traverse the stack to find the element at the specified index
+  for (let i = 0; i <= index; i++) {
+    if (currentSlot * BYTES_PER_ELEMENT >= vm.SP) {
+      throw new Error(`Stack underflow in pick operation`);
+    }
+
+    const [nextSlot, size] = findElement(vm, currentSlot);
+
+    if (i === index) {
+      // Found the target element
+      targetSlot = (vm.SP / BYTES_PER_ELEMENT) - nextSlot;
+      targetSize = size;
+      break;
+    }
+
+    // Move to the next element
+    currentSlot = nextSlot;
+  }
+
+  if (targetSlot === -1) {
+    throw new Error(`Invalid index for pick: ${index}`);
+  }
+
+  // Copy the target element to the top of the stack
+  slotsCopy(vm, targetSlot, targetSize);
 };
 
 export const dropOp: Verb = (vm: VM) => {
