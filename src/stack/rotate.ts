@@ -1,5 +1,6 @@
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
+import { BYTES_PER_ELEMENT } from '../core/constants';
 
 /**
  * Reverses a range of elements in the stack.
@@ -41,16 +42,15 @@ export function reverseRange(vm: VM, startAddr: number, slotCount: number): void
 export function rangeRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
 
-  const startAddr = startSlot * 4;
 
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
   if (normalizedShift === 0) return;
 
   const splitPoint = rangeSize - normalizedShift;
 
-  reverseRange(vm, startAddr, splitPoint);
+  reverseRange(vm, startSlot * BYTES_PER_ELEMENT, splitPoint);
 
-  reverseRange(vm, startAddr + splitPoint * 4, normalizedShift);
+  reverseRange(vm, startSlot * BYTES_PER_ELEMENT + splitPoint * 4, normalizedShift);
 
-  reverseRange(vm, startAddr, rangeSize);
+  reverseRange(vm, startSlot * BYTES_PER_ELEMENT, rangeSize);
 }
