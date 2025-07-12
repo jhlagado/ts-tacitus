@@ -1,118 +1,78 @@
+import { VM } from '../../core/vm';
 import { pickOp } from '../builtins-stack';
-import { Tag, toTaggedValue, fromTaggedValue } from '../../core/tagged';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter } from '../../core/globalState';
+import { pushList, getStackWithTags } from '../../test/stack-utils';
+import { testStackOperation, withStack, expectStackUnderflow } from '../../test/stack-test-utils';
 
 describe('pick Operation', () => {
   beforeEach(() => {
     initializeInterpreter();
   });
 
-  it('should duplicate the top element when index is 0 (like dup)', () => {
-    // Push some test data
-    vm.push(1);
-    vm.push(2);
+  describe('basic operations', () => {
+    testStackOperation({
+      name: 'should duplicate the top element when index is 0 (like dup)',
+      setup: withStack(1, 0), // [1, 0] where 0 is the index
+      operation: pickOp,
+      expectedStack: [1, 1],
+      verify: () => {}
+    });
 
-    // Push the index (0 = duplicate TOS)
-    vm.push(0);
-
-    // Execute pick
-    pickOp(vm);
-
-    // Stack should now be [1, 2, 2]
-    expect(vm.getStackData()).toEqual([1, 2, 2]);
+    testStackOperation({
+      name: 'should duplicate the second element when index is 1 (like over)',
+      setup: withStack(1, 2, 1), // [1, 2, 1] where 1 is the index
+      operation: pickOp,
+      expectedStack: [1, 2, 1],
+      verify: () => {}
+    });
   });
 
-  it('should duplicate the second element when index is 1 (like over)', () => {
-    // Push some test data
-    vm.push(1);
-    vm.push(2);
+  describe('edge cases', () => {
+    it('should throw on stack underflow', () => {
+      expectStackUnderflow(pickOp);
+    });
 
-    // Push the index (1 = duplicate NOS)
-    vm.push(1);
+    it('should throw on negative index', () => {
+      const vm = new VM();
+      vm.push(-1);
+      expect(() => pickOp(vm)).toThrow('Invalid index for pick: -1');
+    });
 
-    // Execute pick
-    pickOp(vm);
-
-    // Stack should now be [1, 2, 1]
-    expect(vm.getStackData()).toEqual([1, 2, 1]);
+    it('should throw when index is out of bounds', () => {
+      const vm = new VM();
+      vm.push(1);
+      vm.push(2); // Only one element on stack, index 1 is out of bounds
+      expect(() => pickOp(vm)).toThrow('Stack underflow in pick operation');
+    });
   });
 
-  it('should handle picking a list', () => {
-    // Create a list [10, 20]
-    const listSize = 2;
-    const listTag = toTaggedValue(listSize, Tag.LIST);
-    const linkTag = toTaggedValue(3, Tag.LINK); // Points to LIST tag
-
-    // Push a value first
-    vm.push(5);
-
-    // Push the list
-    vm.push(listTag);
-    vm.push(10);
-    vm.push(20);
-    vm.push(linkTag);
-
-    // Push the index (1 = pick the list)
-    vm.push(1);
-
-    // Execute pick
-    pickOp(vm);
-
-    // Get the stack after pick
-    const stack = vm.getStackData();
-
-    console.log('Stack after pick (raw):', stack);
-    console.log('Stack after pick (decoded):', stack.map(v => {
-      try {
-        const { value, tag } = fromTaggedValue(v);
-        return { value, tag: Tag[tag] };
-      } catch (_e) {
-        return v;
-      }
-    }));
-
-    // The stack should now be [5, 0, 10, 20, link, 5]
-    // Where 0 is the LIST tag that got modified during the pick operation
-    expect(stack.length).toBe(6);
-
-    // Check the first value (unchanged)
-    expect(stack[0]).toBe(5);
-
-    // The LIST tag gets modified during the pick operation
-    // It's actually a NaN value, so we can't do a direct equality check
-    expect(isNaN(stack[1])).toBe(true);
-
-    // The list elements remain the same
-    expect(stack[2]).toBe(10);
-    expect(stack[3]).toBe(20);
-
-    // The LINK tag remains the same
-    expect(fromTaggedValue(stack[4])).toEqual({ value: 3, tag: Tag.LINK });
-
-    // The picked value (5) is pushed to the top
-    expect(stack[5]).toBe(5);
-  });
-
-  it('should throw on stack underflow', () => {
-    // Empty stack
-    expect(() => pickOp(vm)).toThrow(
-      `Stack underflow: 'pick' requires an index (stack: [])`,
-    );
-  });
-
-  it('should throw on negative index', () => {
-    // Push a value and a negative index
-    vm.push(1);
-    vm.push(-1);
-
-    expect(() => pickOp(vm)).toThrow('Invalid index for pick: -1');
-  });
-
-  it('should throw when index is out of bounds', () => {
-    // Push a value and an index that's too large
-    vm.push(1);
-    vm.push(2); // Index 2 when stack only has 1 element
-
-    expect(() => pickOp(vm)).toThrow('Stack underflow in pick operation');
+  describe('with lists', () => {
+    it('should handle picking a list', () => {
+      const vm = new VM();
+      
+      // Push initial value and list
+      vm.push(5);
+      pushList(vm, [10, 20]);
+      
+      // Push index to pick (1 = second item, which is the list)
+      vm.push(1);
+      
+      // Execute pick
+      pickOp(vm);
+      
+      // Get stack with decoded tags for verification
+      const stack = getStackWithTags(vm);
+      
+      // The stack structure after picking the list is:
+      // [5 (original value), 10, 20 (list elements), 0 (padding), 2 (LIST size), 3 (LINK offset)]
+      expect(stack).toEqual([
+        { value: 5, tag: 'NUMBER' },  // Original value
+        { value: 10, tag: 'NUMBER' }, // First list element
+        { value: 20, tag: 'NUMBER' }, // Second list element
+        { value: 0, tag: 'NUMBER' },  // Padding/alignment
+        { value: 2, tag: 'LIST' },    // LIST tag with size 2
+        { value: 3, tag: 'LINK' }     // LINK tag with offset 3
+      ]);
+    });
   });
 });
