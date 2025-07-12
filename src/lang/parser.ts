@@ -170,9 +170,9 @@ function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    beginTuple(state);
+    beginList(state);
   } else if (value === ')') {
-    endTuple(state);
+    endList(state);
   } else if (value === '`') {
     parseBacktickSymbol(state);
   }
@@ -255,20 +255,20 @@ function endDefinition(state: ParserState): void {
 /**
  * Begin a list with (
  */
-function beginTuple(_state: ParserState): void {
+function beginList(_state: ParserState): void {
   vm.listDepth++;
-  vm.compiler.compileOpcode(Op.OpenTuple);
+  vm.compiler.compileOpcode(Op.OpenList);
 }
 
 /**
  * End a list with )
  */
-function endTuple(_state: ParserState): void {
+function endList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
     throw new Error('Unexpected closing parenthesis');
   }
 
-  vm.compiler.compileOpcode(Op.CloseTuple);
+  vm.compiler.compileOpcode(Op.CloseList);
   vm.listDepth--;
 }
 

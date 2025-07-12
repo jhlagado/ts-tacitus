@@ -15,7 +15,7 @@ const BYTES_PER_ELEMENT = 4;
  * - Pushes a placeholder list tag with size 0
  * - Pushes the list tag's position onto the return stack
  */
-export function openTupleOp(vm: VM): void {
+export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
   vm.rpush(toTaggedValue(vm.SP - BYTES_PER_ELEMENT, Tag.INTEGER));
@@ -27,9 +27,9 @@ export function openTupleOp(vm: VM): void {
  * - Updates the placeholder list tag with the correct size
  * - For outermost lists, also pushes a reference to the list tag
  */
-export function closeTupleOp(vm: VM): void {
-  const taggedTupleTagPos = vm.rpop();
-  const { value: listTagPos } = fromTaggedValue(taggedTupleTagPos);
+export function closeListOp(vm: VM): void {
+  const taggedListTagPos = vm.rpop();
+  const { value: listTagPos } = fromTaggedValue(taggedListTagPos);
   const listSize = (vm.SP - listTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
   vm.memory.writeFloat32(SEG_STACK, listTagPos, toTaggedValue(listSize, Tag.LIST));
   if (vm.listDepth === 1) {

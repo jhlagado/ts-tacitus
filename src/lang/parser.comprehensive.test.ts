@@ -49,22 +49,22 @@ describe('Comprehensive Parser Tests', () => {
       expect(() => parse(new Tokenizer(': test 2 ;'))).toThrow('Word already defined: test');
     });
   });
-  describe('Tuples', () => {
+  describe('Lists', () => {
     test('should parse empty lists', () => {
       parse(new Tokenizer('( )'));
       vm.reset();
-      expect(vm.next8()).toBe(Op.OpenTuple);
-      expect(vm.next8()).toBe(Op.CloseTuple);
+      expect(vm.next8()).toBe(Op.OpenList);
+      expect(vm.next8()).toBe(Op.CloseList);
     });
     test('should parse lists with elements', () => {
       parse(new Tokenizer('( 1 2 )'));
       vm.reset();
-      expect(vm.next8()).toBe(Op.OpenTuple);
+      expect(vm.next8()).toBe(Op.OpenList);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(1);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(2);
-      expect(vm.next8()).toBe(Op.CloseTuple);
+      expect(vm.next8()).toBe(Op.CloseList);
     });
   });
   describe('Control Structures', () => {

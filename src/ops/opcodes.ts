@@ -211,8 +211,8 @@ export enum Op {
   IfFalseBranch,
 
   /**  Opens a list with '(' - pushes stack position onto return stack */
-  OpenTuple,
+  OpenList,
 
   /**  Closes a list with ')' - creates list tag with size information */
-  CloseTuple,
+  CloseList,
 }

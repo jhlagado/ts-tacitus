@@ -15,7 +15,7 @@ import {
   evalOp,
   literalStringOp,
 } from './builtins-interpreter';
-import { openTupleOp, closeTupleOp } from './builtins-list';
+import { openListOp, closeListOp } from './builtins-list';
 
 import {
   addOp,
@@ -113,6 +113,6 @@ export function initFunctionTable(vm: VM): void {
   ft.registerBuiltin(Op.Prod, prodOp);
   ft.registerBuiltin(Op.If, simpleIfOp);
   ft.registerBuiltin(Op.IfFalseBranch, ifCurlyBranchFalseOp);
-  ft.registerBuiltin(Op.OpenTuple, openTupleOp);
-  ft.registerBuiltin(Op.CloseTuple, closeTupleOp);
+  ft.registerBuiltin(Op.OpenList, openListOp);
+  ft.registerBuiltin(Op.CloseList, closeListOp);
 }

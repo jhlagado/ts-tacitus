@@ -14,10 +14,10 @@
   - [3.3 Code Tag](#33-code-tag)
   - [3.4 String Tag](#34-string-tag)
   - [3.5 Special Values](#35-special-values)
-- [4. Buffer and Tuple Tags](#4-buffer-and-tuple-tags)
+- [4. Buffer and List Tags](#4-buffer-and-list-tags)
   - [4.1 Buffer Tags](#41-buffer-tags)
   - [4.2 View Tags](#42-view-tags)
-  - [4.3 Tuple Tags](#43-tuple-tags)
+  - [4.3 List Tags](#43-list-tags)
 - [5. Implementation Details](#5-implementation-details)
   - [5.1 Encoding Tagged Values](#51-encoding-tagged-values)
   - [5.2 Decoding Tagged Values](#52-decoding-tagged-values)
@@ -31,7 +31,7 @@ Tacit uses a uniform value representation based on 32-bit floating-point numbers
 
 NaN boxing leverages the fact that IEEE 754 floating-point format has many bit patterns that represent NaN (Not-a-Number). Since these patterns are not used for normal numerical operations, they can be repurposed to encode other data types, including integers, references, and tagged control values.
 
-This document describes how Tacit implements tagged values through NaN boxing, the layout of the bits, and how different types are represented. It also covers special cases like NIL, tuple tags, and the relationship between tagged values and Tacit's buffer system.
+This document describes how Tacit implements tagged values through NaN boxing, the layout of the bits, and how different types are represented. It also covers special cases like NIL, list tags, and the relationship between tagged values and Tacit's buffer system.
 
 ## 2. NaN Boxing Approach
 
@@ -47,11 +47,13 @@ The IEEE 754 standard for 32-bit floating-point numbers defines the following bi
 ```
 
 Where:
+
 - Bit 31: Sign bit (S)
 - Bits 30-23: 8-bit exponent
 - Bits 22-0: 23-bit mantissa (fraction)
 
 A value is considered NaN when:
+
 1. All exponent bits are set to 1 (0xFF)
 2. At least one mantissa bit is non-zero
 
@@ -68,10 +70,11 @@ Tacit's NaN boxing scheme uses the following structure:
 5. **Value Bits (Bits 15-0)**: 16 bits representing the actual value or payload.
 
 This scheme allows Tacit to:
+
 - Use standard floating-point numbers when needed
 - Encode small integers directly (-32,768 to 32,767)
 - Reference string constants, code blocks, and other structures
-- Support tuple tags, views, and buffer references through the tag system
+- Support list tags, views, and buffer references through the tag system
 
 ### 2.3 Bit Layout
 
@@ -101,7 +104,7 @@ The canonical segment types in Tacit are:
 
 - **STACK** (000) - Local frame-based storage with ephemeral lifetime
 - **DATA** (001) - Optional second stack for specialized data management
-- **GLOBAL** (010) - Program-wide persistent storage 
+- **GLOBAL** (010) - Program-wide persistent storage
 - **STRING** (011) - Immutable interned string storage
 - **CODE** (100) - Static program code and constants
 - **HEAP** (101) - Dynamically allocated memory with explicit lifetime
@@ -146,7 +149,7 @@ Tacit defines special values using the tagging system:
 - **Boolean Values**: Can be represented as INTEGER tag with values 0 (false) and 1 (true).
 - **Sentinel Values**: Special markers used for control flow or to indicate boundaries can be encoded using specific tag and value combinations.
 
-## 4. Buffer and Tuple Tags
+## 4. Buffer and List Tags
 
 ### 4.1 Buffer Tags
 
@@ -160,11 +163,13 @@ Buffers are contiguous collections of values with a header tag that describes th
 - 9 bits: NaN boxing bits (required for tagged value encoding)
 
 Buffer memory layout follows this pattern:
+
 ```
 [BUFFER tag, metadata entries (0-7), content values...]
 ```
 
 The buffer metadata entries can include:
+
 - View references (defining how to interpret the buffer)
 - Stack pointers (for stack-like buffer behavior)
 - Cursors (tracking position in stream-like structures)
@@ -186,28 +191,29 @@ Views are composable functions that translate indices or keys to memory offsets,
 
 Views enable zero-copy transformations and compositional data structures, making them a core part of Tacit's memory model.
 
-### 4.3 Tuple Tags
+### 4.3 List Tags
 
-- **TUPLE** (Tag Value: 7): A footer tag that indicates the length of a tuple (previously called "span pointer").
+- **LIST** (Tag Value: 7): A footer tag that indicates the length of a list (previously called "span pointer").
 
-In Tacit, a tuple tag is placed at the end of a group of values to mark them as a tuple. It encodes:
+In Tacit, a list tag is placed at the end of a group of values to mark them as a list. It encodes:
 
-- The TUPLE tag type (7)
-- The segment where the tuple resides (STACK, HEAP, etc.)
-- The count of values in the tuple
+- The LIST tag type (7)
+- The segment where the list resides (STACK, HEAP, etc.)
+- The count of values in the list
 
-A 3-element tuple would have this structure:
+A 3-element list would have this structure:
 
 ```
-[value1, value2, value3, TUPLE:3]
+[value1, value2, value3, LIST:3]
 ```
 
-Where TUPLE:3 is the tuple tag that indicates the preceding 3 values form a tuple. This tag enables:
+Where LIST:3 is the list tag that indicates the preceding 3 values form a list. This tag enables:
+
 - Efficient backward traversal (by knowing how many values to skip)
 - Memory safety through segment identification
-- Tuple manipulation and polymorphism
+- List manipulation and polymorphism
 
-Tuple tags (like buffer tags) are tagged values themselves. While buffer tags appear at the beginning of buffers as headers, tuple tags appear at the end of tuples as footers. References to either buffers or tuples encode segment information, allowing the system to enforce memory safety without needing to know the internal structure of what's being referenced.
+List tags (like buffer tags) are tagged values themselves. While buffer tags appear at the beginning of buffers as headers, list tags appear at the end of lists as footers. References to either buffers or lists encode segment information, allowing the system to enforce memory safety without needing to know the internal structure of what's being referenced.
 
 ## 5. Implementation Details
 

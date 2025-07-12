@@ -30,7 +30,7 @@
     - [7.4 Communication Buffers (Inbox/Outbox)](#74-communication-buffers-inboxoutbox)
     - [7.5 Spawn-Time Setup](#75-spawn-time-setup)
     - [7.6 Termination Process](#76-termination-process)
-    - [7.7 Notes on Tuples and Extended Buffers](#77-notes-on-tuples-and-extended-buffers)
+    - [7.7 Notes on Lists and Extended Buffers](#77-notes-on-lists-and-extended-buffers)
   - [8. Integration with Local Variables](#8-integration-with-local-variables)
     - [8.1 Variable Table Structure](#81-variable-table-structure)
   - [9. Termination and Cleanup](#9-termination-and-cleanup)
@@ -112,11 +112,11 @@ Coroutines provide a powerful tool for:
 
 Tacit’s coroutine system exists to solve the problem of structured concurrency in a memory-safe, allocation-constrained environment. Rather than introducing a complex scheduler, independent stacks, or asynchronous continuations, Tacit coroutines adopt a Forth-like discipline:
 
-* **All coroutines share the same return stack.**
-* **Tasks are created in stack order and terminated in reverse order (LIFO).**
-* **A coroutine cannot clean up until all tasks above it have been terminated.**
-* **Emit operations are atomic and yield the coroutine.**
-* **Post-yield stack allocation is forbidden to avoid fragmentation.**
+- **All coroutines share the same return stack.**
+- **Tasks are created in stack order and terminated in reverse order (LIFO).**
+- **A coroutine cannot clean up until all tasks above it have been terminated.**
+- **Emit operations are atomic and yield the coroutine.**
+- **Post-yield stack allocation is forbidden to avoid fragmentation.**
 
 This yields a concurrency model that is both **predictable and tightly bounded**, with low memory churn and no garbage collection.
 
@@ -128,15 +128,15 @@ Coroutines in Tacit are defined as **independent tasks that cooperate by yieldin
 
 ### 3.1 Creation
 
-Coroutines are spawned using a `spawn` operation. This allocates a new frame on the shared return stack, initializes the coroutine’s local variable table, and sets its base pointer (`bp`). The coroutine is added to the scheduler's list of active tasks, ordered by stack position. New coroutines are always spawned *above* the current one.
+Coroutines are spawned using a `spawn` operation. This allocates a new frame on the shared return stack, initializes the coroutine’s local variable table, and sets its base pointer (`bp`). The coroutine is added to the scheduler's list of active tasks, ordered by stack position. New coroutines are always spawned _above_ the current one.
 
 ### **3.2 Execution**
 
 Once spawned, a coroutine runs until it:
 
-* Emits output via an `emit` operation, after which it **yields**.
-* Reaches an internal `yield` point (manually defined).
-* Terminates naturally by reaching the end of its body or an explicit termination instruction.
+- Emits output via an `emit` operation, after which it **yields**.
+- Reaches an internal `yield` point (manually defined).
+- Terminates naturally by reaching the end of its body or an explicit termination instruction.
 
 At any yield point, execution is suspended, but the coroutine's state—stack frame, locals, and instruction pointer—remains intact.
 
@@ -144,8 +144,8 @@ At any yield point, execution is suspended, but the coroutine's state—stack fr
 
 Coroutines **must yield only after completing an atomic emit operation**. That is, all output for a single logical step must be performed before yielding. This includes:
 
-* Emitting values to multiple consumers in a fork.
-* Receiving values and combining them in a join before emitting the result.
+- Emitting values to multiple consumers in a fork.
+- Receiving values and combining them in a join before emitting the result.
 
 No coroutine is permitted to yield mid-emission. This ensures that every coroutine performs one atomic unit of work per scheduler tick.
 
@@ -155,9 +155,9 @@ When a coroutine finishes execution, it enters a **terminated state** but is not
 
 At that point:
 
-* The coroutine’s stack frame is deallocated by restoring the stack pointer to its base pointer.
-* The scheduler removes it from the task list.
-* If any terminated coroutines lie immediately beneath, they are cleaned up recursively in LIFO order.
+- The coroutine’s stack frame is deallocated by restoring the stack pointer to its base pointer.
+- The scheduler removes it from the task list.
+- If any terminated coroutines lie immediately beneath, they are cleaned up recursively in LIFO order.
 
 This rule ensures stack compactness and prevents memory fragmentation. No coroutine may be cleaned up while others remain active above it.
 
@@ -175,9 +175,9 @@ Each coroutine uses a variable table to store and access local variables. This t
 
 The variable table contains:
 
-* Scalars (numbers, booleans)
-* References to buffers (strings, arrays)
-* Any explicit access to parent scopes
+- Scalars (numbers, booleans)
+- References to buffers (strings, arrays)
+- Any explicit access to parent scopes
 
 All stack allocation (for the local variable table and any buffers) happens during initialization, before the coroutine yields for the first time. No additional stack allocation is permitted after the first yield to preserve memory integrity and prevent fragmentation.
 
@@ -211,15 +211,15 @@ This **LIFO deallocation** prevents fragmentation and keeps stack memory compact
 
 Coroutines must complete **all memory allocation before their first yield**. This rule guarantees that:
 
-* Coroutine stack frames are compact and fixed in size once interleaved.
-* No overlapping allocations occur between parent and child tasks.
-* Memory safety is preserved without dynamic tracking.
+- Coroutine stack frames are compact and fixed in size once interleaved.
+- No overlapping allocations occur between parent and child tasks.
+- Memory safety is preserved without dynamic tracking.
 
 After yielding:
 
-* Coroutines may read or update existing locals.
-* No new buffers or reference allocations are allowed.
-* Control flow (e.g. loops, branches) may continue, but must not increase the stack footprint.
+- Coroutines may read or update existing locals.
+- No new buffers or reference allocations are allowed.
+- Control flow (e.g. loops, branches) may continue, but must not increase the stack footprint.
 
 This discipline enables fast, deterministic cleanup and ensures that all memory used by a coroutine lies within its original frame.
 
@@ -231,9 +231,9 @@ Yielding in Tacit is tightly coupled with **emit** operations. Each coroutine pr
 
 `emit` is a **blocking** instruction that:
 
-* Transfers a value to a connected receiver.
-* Immediately suspends coroutine execution.
-* Guarantees that no further work is performed until the coroutine resumes on the next tick.
+- Transfers a value to a connected receiver.
+- Immediately suspends coroutine execution.
+- Guarantees that no further work is performed until the coroutine resumes on the next tick.
 
 Emit always yields after completing, even in simple pipelines. This allows precise backpressure control and lock-step execution.
 
@@ -241,8 +241,8 @@ Emit always yields after completing, even in simple pipelines. This allows preci
 
 When emitting to multiple consumers (e.g., in a fork), all emissions form a single **atomic group**. The coroutine:
 
-* Emits all outputs.
-* Yields only after the full group is emitted.
+- Emits all outputs.
+- Yields only after the full group is emitted.
 
 Partial emission or interleaved output is forbidden. This ensures that forks remain synchronized and downstream consumers receive matching values per tick.
 
@@ -250,9 +250,9 @@ Partial emission or interleaved output is forbidden. This ensures that forks rem
 
 Join operations must wait for **all required inputs** before proceeding. When ready:
 
-* The join processes its inputs.
-* Emits its result downstream.
-* Yields in a single atomic step.
+- The join processes its inputs.
+- Emits its result downstream.
+- Yields in a single atomic step.
 
 No join may emit without receiving a complete input set. This preserves tick-level synchronization and consistent flow control.
 
@@ -302,14 +302,14 @@ Each coroutine maintains a conventional stack frame, anchored at a base pointer 
 
 The layout of memory below `BP` is fixed at spawn time. All slots are known by relative index and must be cleaned up when the coroutine exits. This region includes:
 
-* Coroutine status (running, yielded, complete, error)
-* Resume instruction pointer (`IP`)
-* Coroutine-local data stack pointer (`DP`)
-* Input buffer handle (inbox)
-* Output buffer (outbox, owned by coroutine)
-* Yield flag (set once the first yield occurs)
-* Any scheduler-visible state
-* Optional buffer pointers (e.g., extended outbox, tuple workspace)
+- Coroutine status (running, yielded, complete, error)
+- Resume instruction pointer (`IP`)
+- Coroutine-local data stack pointer (`DP`)
+- Input buffer handle (inbox)
+- Output buffer (outbox, owned by coroutine)
+- Yield flag (set once the first yield occurs)
+- Any scheduler-visible state
+- Optional buffer pointers (e.g., extended outbox, list workspace)
 
 This structure is fully known to the compiler and is reserved on the return stack during coroutine spawn.
 
@@ -323,12 +323,12 @@ The data stack is stored within the metadata region—typically below the fixed 
 
 Tacit coroutines communicate via explicit, synchronous message passing. Each coroutine has:
 
-* An **outbox**, which it owns and writes into
-* An **inbox**, which is a reference to the upstream coroutine’s outbox
+- An **outbox**, which it owns and writes into
+- An **inbox**, which is a reference to the upstream coroutine’s outbox
 
 This wiring model supports rendezvous-style communication: a coroutine emits values into its outbox and suspends until the downstream coroutine consumes them. The inbox handle is supplied during spawn by the caller, and the outbox buffer is allocated at spawn time.
 
-The outbox is typically a small buffer (e.g., eight slots), sufficient to emit simple values or shallow tuples. Larger emissions (like deeply nested tuples) may require dynamic expansion. In such cases, a reference to an auxiliary heap buffer may be stored in the metadata, allowing the outbox to grow as needed.
+The outbox is typically a small buffer (e.g., eight slots), sufficient to emit simple values or shallow lists. Larger emissions (like deeply nested lists) may require dynamic expansion. In such cases, a reference to an auxiliary heap buffer may be stored in the metadata, allowing the outbox to grow as needed.
 
 This design ensures the coroutine owns its output, and upstream callers are responsible for wiring inputs to downstream consumers. Forks and joins operate on the same principle: each forked task gets its own outbox and shares an inbox reference with the joiner.
 
@@ -337,19 +337,19 @@ This design ensures the coroutine owns its output, and upstream callers are resp
 The act of spawning a coroutine consists of:
 
 1. Allocating a return stack frame with room for:
+   - Saved return address
+   - Saved caller `BP`
+   - Fixed metadata region
+   - Local data stack
+   - Coroutine local variables
 
-   * Saved return address
-   * Saved caller `BP`
-   * Fixed metadata region
-   * Local data stack
-   * Coroutine local variables
 2. Initializing metadata:
+   - Zeroing status and yield flag
+   - Setting `IP = 0` (or function entry)
+   - Assigning allocated buffer for data stack
+   - Allocating outbox and storing pointer
+   - Receiving inbox handle from caller
 
-   * Zeroing status and yield flag
-   * Setting `IP = 0` (or function entry)
-   * Assigning allocated buffer for data stack
-   * Allocating outbox and storing pointer
-   * Receiving inbox handle from caller
 3. Returning `BP` to the spawner, so the coroutine’s task slot can be tracked
 
 The `BP` serves as the handle to the coroutine’s task state. The spawner retains this pointer in its task table or round-robin queue, and uses it for later resumption or cleanup.
@@ -364,12 +364,12 @@ When a coroutine completes or encounters a sentinel value, it enters the termina
 
 However, the actual memory deallocation is handled by the scheduler according to the LIFO discipline of the shared return stack, as detailed in Section 9 ("Termination and Cleanup"). This ensures that no coroutine is freed while younger coroutines might still be using parts of its memory.
 
-### 7.7 Notes on Tuples and Extended Buffers
+### 7.7 Notes on Lists and Extended Buffers
 
-Tuples complicate the assumption of fixed-size communication slots. To mitigate this, the outbox may include:
+Lists complicate the assumption of fixed-size communication slots. To mitigate this, the outbox may include:
 
-* A small inline buffer (for common cases)
-* A pointer to an extended buffer (optional, for large payloads)
+- A small inline buffer (for common cases)
+- A pointer to an extended buffer (optional, for large payloads)
 
 This allows simple pipelines to stay fast and memory-efficient, while still enabling complex data to be passed without redesigning the communication model. The scheduler may check metadata flags to determine whether extended cleanup is needed.
 
@@ -381,10 +381,10 @@ In addition to the private data stack described in section 7.3 (used for tempora
 
 The local variable table is allocated in the coroutine's stack frame during spawn and has these characteristics:
 
-* Indexed by slot IDs assigned at compile time
-* Contains both direct values and references
-* Persists across yield points throughout the coroutine's lifetime
-* Is part of the coroutine's identity and encapsulation
+- Indexed by slot IDs assigned at compile time
+- Contains both direct values and references
+- Persists across yield points throughout the coroutine's lifetime
+- Is part of the coroutine's identity and encapsulation
 
 Scalar values (e.g., numbers or tagged small objects) are stored directly in the table slots. Buffers and reference types are allocated in the memory region above the variable table and referenced by pointers stored in the table.
 
@@ -424,10 +424,10 @@ Each coroutine maintains a minimal status indicator that reflects its execution 
 
 A coroutine’s status is one of the following:
 
-* **Active**: the coroutine is scheduled and may yield or emit.
-* **Yielded**: it has suspended and awaits resumption.
-* **Shutting down**: it has emitted a terminal sentinel and is in a cleanup phase.
-* **Terminated**: it has completed execution and is ready for deallocation.
+- **Active**: the coroutine is scheduled and may yield or emit.
+- **Yielded**: it has suspended and awaits resumption.
+- **Shutting down**: it has emitted a terminal sentinel and is in a cleanup phase.
+- **Terminated**: it has completed execution and is ready for deallocation.
 
 These states are tracked explicitly by the scheduler, not inferred from data values.
 
@@ -435,10 +435,10 @@ These states are tracked explicitly by the scheduler, not inferred from data val
 
 The scheduler consults coroutine status to decide whether:
 
-* The coroutine is eligible for resumption.
-* Its memory frame may be deallocated.
-* Its downstream receivers should be notified.
-* It has exited cleanly or in an error state.
+- The coroutine is eligible for resumption.
+- Its memory frame may be deallocated.
+- Its downstream receivers should be notified.
+- It has exited cleanly or in an error state.
 
 This status is not visible to other coroutines directly. Sentinels remain the only inter-coroutine signaling mechanism.
 
@@ -455,7 +455,7 @@ All transitions occur at well-defined points in the coroutine’s logic. This pe
 
 ### 10.3 Integration with Sentinel Signaling
 
-While coroutines use sentinels to communicate with each other, status values are used to manage their presence on the shared return stack. Sentinels initiate shutdown behavior, but status determines *when* a coroutine is allowed to release its memory.
+While coroutines use sentinels to communicate with each other, status values are used to manage their presence on the shared return stack. Sentinels initiate shutdown behavior, but status determines _when_ a coroutine is allowed to release its memory.
 
 A coroutine that has emitted a sentinel may still run additional cleanup code before being marked terminated. During this time, the scheduler considers it shutting down, and will not deallocate it until all younger coroutines have terminated.
 
@@ -471,11 +471,11 @@ Building on the spawning and wiring foundations described in Section 7, this sec
 
 Coroutine pipelines can take many forms beyond simple linear chains:
 
-* **Linear pipelines**: A → B → C (classic producer/transformer/consumer)
-* **Forked pipelines**: A → B, A → C (one source, multiple destinations)
-* **Join pipelines**: A → C, B → C (multiple sources, one destination)
-* **Diamond patterns**: A → B → D, A → C → D (branching and reconvergence)
-* **Feedback loops**: A → B → C → A (cyclical flows with conditional breaks)
+- **Linear pipelines**: A → B → C (classic producer/transformer/consumer)
+- **Forked pipelines**: A → B, A → C (one source, multiple destinations)
+- **Join pipelines**: A → C, B → C (multiple sources, one destination)
+- **Diamond patterns**: A → B → D, A → C → D (branching and reconvergence)
+- **Feedback loops**: A → B → C → A (cyclical flows with conditional breaks)
 
 The design of efficient pipelines requires careful consideration of data flow, granularity of tasks, and potential bottlenecks.
 
@@ -483,9 +483,9 @@ The design of efficient pipelines requires careful consideration of data flow, g
 
 As described in Section 7, coroutines follow strict LIFO ordering on the shared return stack. This has important implications for resource management:
 
-* Long-lived source coroutines should be spawned first (at the bottom of the stack)
-* Short-lived transformation stages should be spawned later (higher in the stack)
-* Sink coroutines that persist for the full computation are typically spawned last
+- Long-lived source coroutines should be spawned first (at the bottom of the stack)
+- Short-lived transformation stages should be spawned later (higher in the stack)
+- Sink coroutines that persist for the full computation are typically spawned last
 
 This strategy minimizes stack fragmentation and ensures resources are reclaimed promptly when no longer needed.
 
@@ -493,11 +493,11 @@ This strategy minimizes stack fragmentation and ensures resources are reclaimed 
 
 Common patterns for optimizing coroutine pipelines include:
 
-* **Balancing work**: Ensure similar computation loads across stages
-* **Right-sizing communication**: Match buffer sizes to expected throughput
-* **Strategic yielding**: Place yields at natural data boundaries rather than fixed intervals
-* **Batching**: Process multiple items before yielding where appropriate
-* **Specialization**: Optimize common paths with dedicated coroutines
+- **Balancing work**: Ensure similar computation loads across stages
+- **Right-sizing communication**: Match buffer sizes to expected throughput
+- **Strategic yielding**: Place yields at natural data boundaries rather than fixed intervals
+- **Batching**: Process multiple items before yielding where appropriate
+- **Specialization**: Optimize common paths with dedicated coroutines
 
 These patterns can dramatically improve throughput while maintaining the cooperative scheduling model.
 
@@ -505,9 +505,9 @@ These patterns can dramatically improve throughput while maintaining the coopera
 
 Coroutine communication is bidirectional. Each link between coroutines carries:
 
-* Forward data flow from producer to consumer
-* Implicit backpressure when consumers yield before consuming
-* Sentinel signals for coordinated termination
+- Forward data flow from producer to consumer
+- Implicit backpressure when consumers yield before consuming
+- Sentinel signals for coordinated termination
 
 This bidirectional communication enables end-to-end flow control without requiring separate control channels. When a downstream stage is unable to process data quickly enough, the backpressure naturally propagates upstream, causing producers to pause production until capacity becomes available.
 
@@ -541,8 +541,8 @@ This simple tick model ensures that all active coroutines make progress in a pre
 
 Because coroutines share the return stack, they are terminated in stack order. A coroutine may not be deallocated until:
 
-* It has emitted a sentinel value indicating termination.
-* All coroutines above it on the stack have also terminated.
+- It has emitted a sentinel value indicating termination.
+- All coroutines above it on the stack have also terminated.
 
 This linear deallocation policy avoids fragmentation and simplifies memory cleanup. The scheduler tracks coroutine status (see Section 10) to determine whether a coroutine can be removed.
 
@@ -550,7 +550,7 @@ This linear deallocation policy avoids fragmentation and simplifies memory clean
 
 All output is considered blocking. Emission is followed by an immediate yield. This enforces backpressure: a coroutine cannot emit again until the consumer has resumed and accepted the value. As a result, pipelines remain synchronized without explicit queues.
 
-Input is *not* blocking. A coroutine may read from its input slot without yielding. If no input is present, it may choose to yield or perform a different action. This distinction simplifies coordination and avoids deadlocks in tick-synchronous pipelines.
+Input is _not_ blocking. A coroutine may read from its input slot without yielding. If no input is present, it may choose to yield or perform a different action. This distinction simplifies coordination and avoids deadlocks in tick-synchronous pipelines.
 
 ### 12.4 Task List and Round-Robin Order
 
@@ -566,10 +566,10 @@ Device I/O, user interaction, or clock-based events may be handled by a special 
 
 To maintain consistency and avoid corruption:
 
-* Only one coroutine is resumed per tick.
-* Yield points are mandatory after every emit.
-* Coroutine creation and termination must preserve stack order.
-* Cleanup occurs strictly from top to bottom of the return stack.
+- Only one coroutine is resumed per tick.
+- Yield points are mandatory after every emit.
+- Coroutine creation and termination must preserve stack order.
+- Cleanup occurs strictly from top to bottom of the return stack.
 
 These rules enforce a clean, bounded, and linear coroutine model, with minimal runtime complexity.
 
@@ -581,9 +581,9 @@ Sentinel values are used to indicate control signals such as termination, errors
 
 A sentinel is a special, recognizable value injected into a coroutine’s communication channel. It signals:
 
-* **End of stream**: no more data will be emitted.
-* **Error or early exit**: an exceptional condition has occurred.
-* **Shutdown**: downstream is no longer accepting input.
+- **End of stream**: no more data will be emitted.
+- **Error or early exit**: an exceptional condition has occurred.
+- **Shutdown**: downstream is no longer accepting input.
 
 Sentinels are treated as first-class values with reserved meaning. Their arrival halts normal data processing and initiates coordinated shutdown across the pipeline.
 
@@ -591,25 +591,25 @@ Sentinels are treated as first-class values with reserved meaning. Their arrival
 
 When a coroutine receives a sentinel from upstream, it interprets it as an end-of-input signal. It may:
 
-* Propagate the sentinel to its own output.
-* Perform cleanup.
-* Yield and mark itself as terminated.
+- Propagate the sentinel to its own output.
+- Perform cleanup.
+- Yield and mark itself as terminated.
 
-This ensures that termination flows *forward* through the pipeline, mirroring normal dataflow.
+This ensures that termination flows _forward_ through the pipeline, mirroring normal dataflow.
 
 ### 13.3 Upstream Propagation
 
-In some scenarios, a coroutine may wish to signal *upstream* that it is no longer accepting input (e.g., due to early exit or a join condition). This is accomplished by injecting a sentinel into the upstream coroutine’s input slot.
+In some scenarios, a coroutine may wish to signal _upstream_ that it is no longer accepting input (e.g., due to early exit or a join condition). This is accomplished by injecting a sentinel into the upstream coroutine’s input slot.
 
 Because all coroutines share communication memory (usually a single input value slot), a downstream coroutine may overwrite this slot with a sentinel, signaling that further emissions are unnecessary. The upstream coroutine, upon reading the sentinel, enters shutdown.
 
-Upstream propagation thus flows *backward* through the pipeline, enabling early cleanup and release of resources.
+Upstream propagation thus flows _backward_ through the pipeline, enabling early cleanup and release of resources.
 
 ### 13.4 Fork and Join Semantics
 
-* **Fork**: When a fork emits to multiple downstreams, a sentinel sent to either output branch propagates independently. Each downstream handles shutdown on its own. Fork logic does not merge sentinel behavior—it simply dispatches.
+- **Fork**: When a fork emits to multiple downstreams, a sentinel sent to either output branch propagates independently. Each downstream handles shutdown on its own. Fork logic does not merge sentinel behavior—it simply dispatches.
 
-* **Join**: When a join receives a sentinel on *any* input branch, it treats the entire input set as terminated. The join coroutine immediately propagates a sentinel downstream and halts further reads from all branches.
+- **Join**: When a join receives a sentinel on _any_ input branch, it treats the entire input set as terminated. The join coroutine immediately propagates a sentinel downstream and halts further reads from all branches.
 
 This rule ensures deterministic shutdown in parallel pipelines, even when only one branch detects the end condition.
 
@@ -617,19 +617,19 @@ This rule ensures deterministic shutdown in parallel pipelines, even when only o
 
 Once a sentinel is received or emitted, the coroutine must:
 
-* Mark its status as “shutting down” or “terminated.”
-* Stop emitting values.
-* Yield to allow the scheduler to proceed with cleanup.
+- Mark its status as “shutting down” or “terminated.”
+- Stop emitting values.
+- Yield to allow the scheduler to proceed with cleanup.
 
-Termination is considered *complete* only when all coroutines above a given coroutine on the stack have also shut down. Until then, the coroutine remains in memory, although it may be inactive.
+Termination is considered _complete_ only when all coroutines above a given coroutine on the stack have also shut down. Until then, the coroutine remains in memory, although it may be inactive.
 
 ### 13.6 Sentinel Safety
 
 To avoid confusion:
 
-* Coroutines must not emit further values after emitting or receiving a sentinel.
-* Input slots must be cleared before each tick to avoid misreading stale sentinel values.
-* Special care must be taken to distinguish self-written sentinels (for signaling upstream) from incoming ones.
+- Coroutines must not emit further values after emitting or receiving a sentinel.
+- Input slots must be cleared before each tick to avoid misreading stale sentinel values.
+- Special care must be taken to distinguish self-written sentinels (for signaling upstream) from incoming ones.
 
 A unique sentinel constant is typically used, but multiple sentinel types (e.g., `EOF`, `ERROR`) may be supported to indicate different shutdown reasons.
 
@@ -643,10 +643,10 @@ Coroutine status reflects its current state in the execution lifecycle and is cr
 
 Each coroutine maintains one of the following status values:
 
-* **Active** – Running and able to emit data.
-* **Yielded** – Suspended after emitting or yielding voluntarily.
-* **Shutting Down** – Received or emitted a sentinel; in the process of cleanup.
-* **Terminated** – Fully complete and eligible for deallocation.
+- **Active** – Running and able to emit data.
+- **Yielded** – Suspended after emitting or yielding voluntarily.
+- **Shutting Down** – Received or emitted a sentinel; in the process of cleanup.
+- **Terminated** – Fully complete and eligible for deallocation.
 
 Status changes are explicit and correspond to coroutine logic and sentinel propagation.
 
@@ -654,8 +654,8 @@ Status changes are explicit and correspond to coroutine logic and sentinel propa
 
 Because coroutines are stacked, a coroutine cannot be cleaned up unless:
 
-* Its status is **Terminated**.
-* All coroutines above it in the stack are also **Terminated**.
+- Its status is **Terminated**.
+- All coroutines above it in the stack are also **Terminated**.
 
 This constraint ensures memory is reclaimed in stack order, avoiding fragmentation or use-after-free errors. Status values provide the scheduler with visibility into this readiness.
 
@@ -663,17 +663,17 @@ This constraint ensures memory is reclaimed in stack order, avoiding fragmentati
 
 Although status is not exposed between coroutines (which communicate only via sentinels), it plays a critical role in:
 
-* Scheduler tick logic: determines which coroutines are resumed or skipped.
-* Coroutine spawning: disallows spawning from already-terminated contexts.
-* Shutdown coordination: coroutines marked “Shutting Down” still yield to allow downstream cleanup.
+- Scheduler tick logic: determines which coroutines are resumed or skipped.
+- Coroutine spawning: disallows spawning from already-terminated contexts.
+- Shutdown coordination: coroutines marked “Shutting Down” still yield to allow downstream cleanup.
 
 ### 14.4 Optional Extension: Return Codes
 
 Coroutines may optionally attach a result or exit code to their termination state. This code is not passed through the data stream but is visible to the parent or task supervisor. It allows:
 
-* Error propagation in structured pipelines.
-* Differentiation between normal and abnormal exits.
-* Logging or user feedback.
+- Error propagation in structured pipelines.
+- Differentiation between normal and abnormal exits.
+- Logging or user feedback.
 
 Return codes are advisory and do not affect pipeline logic unless interpreted by the parent.
 
@@ -681,10 +681,10 @@ Return codes are advisory and do not affect pipeline logic unless interpreted by
 
 The task scheduler must:
 
-* Track the status of every coroutine.
-* Ensure stack-aligned deallocation.
-* Prioritize newly spawned coroutines at the top of the stack.
-* Skip or ignore coroutines in `Shutting Down` or `Terminated` state.
+- Track the status of every coroutine.
+- Ensure stack-aligned deallocation.
+- Prioritize newly spawned coroutines at the top of the stack.
+- Skip or ignore coroutines in `Shutting Down` or `Terminated` state.
 
 All status changes occur at yield points or upon sentinel handling. Status is never inferred from memory state—only explicitly updated.
 
@@ -729,9 +729,9 @@ Only the **filter** branch requires an independent coroutine (**Coroutine A2**) 
 
 This yields the minimal structure:
 
-* **Coroutine A1**: Range → Fork → Square → emit
-* **Coroutine A2**: Filter (odd) → emit
-* **Coroutine B**: Join → Print
+- **Coroutine A1**: Range → Fork → Square → emit
+- **Coroutine A2**: Filter (odd) → emit
+- **Coroutine B**: Join → Print
 
 These are wired as:
 
@@ -745,11 +745,10 @@ Each `emit` results in a `yield`, preserving tight backpressure. The join corout
 
 ### A.4 Observations
 
-* The fork stage does not need to yield independently; it just calls emit on each branch.
-* The join performs an atomic yield after consuming both inputs.
-* The filter stage requires a separate coroutine only because it may skip yields.
-* Cleanup is linear and well-defined: the print coroutine terminates last.
-
+- The fork stage does not need to yield independently; it just calls emit on each branch.
+- The join performs an atomic yield after consuming both inputs.
+- The filter stage requires a separate coroutine only because it may skip yields.
+- Cleanup is linear and well-defined: the print coroutine terminates last.
 
 ## Appendix B: Coroutine Pipeline in Tacit Notation
 
@@ -775,9 +774,9 @@ word emit-square  dup dup * → $sq  $sq out-square !
 word emit-filter  out-filter !
 ```
 
-* `out-square` and `out-filter` are output slots wired to downstream coroutines.
-* `emit` means assignment to an output slot and causes a `yield`.
-* In this coroutine, `emit-filter` is just a store; it doesn’t yield here.
+- `out-square` and `out-filter` are output slots wired to downstream coroutines.
+- `emit` means assignment to an output slot and causes a `yield`.
+- In this coroutine, `emit-filter` is just a store; it doesn’t yield here.
 
 ### B.2 Coroutine A2: Filter Odd
 
@@ -794,8 +793,8 @@ coroutine filter-odd
   end
 ```
 
-* `in-filter` is wired to the output of `range-fork-square`.
-* `out-join-left` feeds the left input of the join.
+- `in-filter` is wired to the output of `range-fork-square`.
+- `out-join-left` feeds the left input of the join.
 
 ### B.3 Coroutine B: Join → Print
 
@@ -817,14 +816,14 @@ Helper:
 word print-pair  "[" . $a . ", " . $b . "]" .
 ```
 
-* `in-join-left` and `in-join-right` are the two inputs to the join.
-* This coroutine yields once per joined pair.
+- `in-join-left` and `in-join-right` are the two inputs to the join.
+- This coroutine yields once per joined pair.
 
 ### B.4 Wiring
 
-* `range-fork-square` emits to `out-square` → `in-join-right`, and `out-filter` → `in-filter`
-* `filter-odd` emits to `out-join-left`
-* `join-print` consumes `in-join-left` and `in-join-right`
+- `range-fork-square` emits to `out-square` → `in-join-right`, and `out-filter` → `in-filter`
+- `filter-odd` emits to `out-join-left`
+- `join-print` consumes `in-join-left` and `in-join-right`
 
 ## Appendix C: Performance Considerations
 
@@ -852,31 +851,31 @@ Tacit's coroutine system differs significantly from other concurrency approaches
 
 #### vs. Preemptive Threading (e.g., POSIX threads, Java threads)
 
-| **Tacit Coroutines** | **Preemptive Threading** |
-|------------------------|---------------------------|
-| Cooperative yielding at explicit points | Arbitrary preemption by scheduler |
-| Shared memory with temporal guarantees | Shared memory requiring locks and synchronization |
-| Minimal state (IP, BP, RP) | Complete thread context (all registers, stack, etc.) |
-| No race conditions | Prone to race conditions |
-| No deadlocks from mutual exclusion | Potential deadlocks |
-| Deterministic execution order | Non-deterministic execution |
-| Lightweight (bytes of overhead) | Heavy (kilobytes of overhead) |
+| **Tacit Coroutines**                    | **Preemptive Threading**                             |
+| --------------------------------------- | ---------------------------------------------------- |
+| Cooperative yielding at explicit points | Arbitrary preemption by scheduler                    |
+| Shared memory with temporal guarantees  | Shared memory requiring locks and synchronization    |
+| Minimal state (IP, BP, RP)              | Complete thread context (all registers, stack, etc.) |
+| No race conditions                      | Prone to race conditions                             |
+| No deadlocks from mutual exclusion      | Potential deadlocks                                  |
+| Deterministic execution order           | Non-deterministic execution                          |
+| Lightweight (bytes of overhead)         | Heavy (kilobytes of overhead)                        |
 
 #### vs. Async/Await (e.g., JavaScript, C#)
 
-| **Tacit Coroutines** | **Async/Await** |
-|------------------------|------------------|
-| First-class primitive in the language | Built on promises/futures |
-| Direct stack-based implementation | Often requires heap allocations for continuations |
-| Explicit channel-based communication | Typically callback or promise-chain based |
-| Works identically for all operations | Often requires special async-aware libraries |
-| No syntax transformation or state machines | Usually compiled to state machines |
+| **Tacit Coroutines**                       | **Async/Await**                                   |
+| ------------------------------------------ | ------------------------------------------------- |
+| First-class primitive in the language      | Built on promises/futures                         |
+| Direct stack-based implementation          | Often requires heap allocations for continuations |
+| Explicit channel-based communication       | Typically callback or promise-chain based         |
+| Works identically for all operations       | Often requires special async-aware libraries      |
+| No syntax transformation or state machines | Usually compiled to state machines                |
 
 #### vs. Actor Model (e.g., Erlang, Akka)
 
-| **Tacit Coroutines** | **Actor Model** |
-|------------------------|----------------|
-| Shared memory space | Isolated memory per actor |
-| Direct communication via channels | Message passing via mailboxes |
-| Scheduling within a single VM | Often distributed across nodes |
-| Explicit control over yielding | Implicit yielding between messages |
+| **Tacit Coroutines**              | **Actor Model**                    |
+| --------------------------------- | ---------------------------------- |
+| Shared memory space               | Isolated memory per actor          |
+| Direct communication via channels | Message passing via mailboxes      |
+| Scheduling within a single VM     | Often distributed across nodes     |
+| Explicit control over yielding    | Implicit yielding between messages |
