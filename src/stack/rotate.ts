@@ -5,12 +5,13 @@ import { BYTES_PER_ELEMENT } from '../core/constants';
 /**
  * Reverses a range of elements in the stack.
  * @param vm - The VM instance
- * @param startAddr - The starting address of the range to reverse (in bytes)
+ * @param startSlot - The starting slot index (0-based) of the range to rotate
  * @param slotCount - The number of slots to reverse
  */
-export function reverseRange(vm: VM, startAddr: number, slotCount: number): void {
+export function reverseRange(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) return;
 
+  const startAddr = startSlot * BYTES_PER_ELEMENT;
   const endAddr = startAddr + (slotCount - 1) * 4;
   let left = startAddr;
   let right = endAddr;
@@ -48,9 +49,9 @@ export function rangeRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlo
 
   const splitPoint = rangeSize - normalizedShift;
 
-  reverseRange(vm, startSlot * BYTES_PER_ELEMENT, splitPoint);
+  reverseRange(vm, startSlot, splitPoint);
 
-  reverseRange(vm, startSlot * BYTES_PER_ELEMENT + splitPoint * 4, normalizedShift);
+  reverseRange(vm, startSlot + splitPoint, normalizedShift);
 
-  reverseRange(vm, startSlot * BYTES_PER_ELEMENT, rangeSize);
+  reverseRange(vm, startSlot, rangeSize);
 }

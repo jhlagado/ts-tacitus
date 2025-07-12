@@ -81,7 +81,7 @@ describe('reverseRange', () => {
     vm.push(4);
 
     const start = 1;
-    reverseRange(vm, start * 4, 2);
+    reverseRange(vm, start, 2);
 
     expect(vm.pop()).toBe(4);
     expect(vm.pop()).toBe(2);
@@ -93,7 +93,7 @@ describe('reverseRange', () => {
     vm.push(42);
     const start = 0;
 
-    reverseRange(vm, start * 4, 0);
+    reverseRange(vm, start, 0);
 
     expect(vm.pop()).toBe(42);
   });
@@ -104,7 +104,7 @@ describe('reverseRange', () => {
     vm.push(3);
 
     const start = 1;
-    reverseRange(vm, start * 4, 1);
+    reverseRange(vm, start, 1);
 
     expect(vm.pop()).toBe(3);
     expect(vm.pop()).toBe(2);
