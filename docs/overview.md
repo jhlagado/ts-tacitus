@@ -1,6 +1,7 @@
 # **Tacit: Language Overview**
 
 ## Table of Contents
+
 - [**Tacit: Language Overview**](#tacit-language-overview)
   - [Table of Contents](#table-of-contents)
   - [1. Introduction](#1-introduction)
@@ -14,9 +15,9 @@
   - [4. Documentation Structure](#4-documentation-structure)
   - [5. Getting Started](#5-getting-started)
   - [2. Tagged Values and NaN-Boxing](#2-tagged-values-and-nan-boxing)
-  - [3. Buffers and Tuples](#3-buffers-and-tuples)
+  - [3. Buffers and Lists](#3-buffers-and-lists)
     - [Buffers](#buffers)
-    - [Tuples](#tuples)
+    - [Lists](#lists)
   - [4. Views, Shapes, and Arrays](#4-views-shapes-and-arrays)
     - [Views](#views)
     - [Shapes](#shapes)
@@ -40,14 +41,14 @@ Tacit combines functional programming ideals with stack machine pragmatics, usin
 
 Tacit minimizes runtime complexity through static layout, inlined execution, and first-class memory representations. Its key principles include:
 
-* **Stack locality**: Function calls, variables, and structures are stack-managed, not heap-allocated
-* **Explicit memory**: Buffers are owned, shaped, and interpreted explicitly
-* **Composability**: Arrays, views, spans, and pipelines compose via simple rules
-* **Determinism**: Execution proceeds via statically compiled control flow without dynamic dispatch
-* **Minimalism**: No closures, no classes, no mutation of locals; programs are pipelines over values
-* **Zero-copy**: Data transformations create new views rather than copying data
-* **Contiguous memory**: All data structures operate on contiguous memory regions
-* **Explicit control flow**: Coroutines and sequences with deterministic behavior
+- **Stack locality**: Function calls, variables, and structures are stack-managed, not heap-allocated
+- **Explicit memory**: Buffers are owned, shaped, and interpreted explicitly
+- **Composability**: Arrays, views, spans, and pipelines compose via simple rules
+- **Determinism**: Execution proceeds via statically compiled control flow without dynamic dispatch
+- **Minimalism**: No closures, no classes, no mutation of locals; programs are pipelines over values
+- **Zero-copy**: Data transformations create new views rather than copying data
+- **Contiguous memory**: All data structures operate on contiguous memory regions
+- **Explicit control flow**: Coroutines and sequences with deterministic behavior
 
 ## 3. Key Language Concepts
 
@@ -81,7 +82,7 @@ Tacit uses a uniform 32-bit value representation with NaN-boxing:
 - **Tagged Values**: All values carry type information through NaN-boxing in Float32
 - **Core Types**: Numbers, integers, strings, code references
 - **Buffer Types**: References to buffers with associated views and shapes
-- **Span Types**: References to tuple tags and tuples
+- **Span Types**: References to list tags and lists
 - **Composition**: Types compose through views and interpretations
 
 For more information, see the [tagged-values](./tagged-values.md) documentation.
@@ -90,15 +91,15 @@ For more information, see the [tagged-values](./tagged-values.md) documentation.
 
 Tacit provides several core data structure abstractions:
 
-- **Tuples**: Composable sequences in contiguous memory with tuple tag footers
+- **Lists**: Composable sequences in contiguous memory with list tag footers
 - **Records**: Views that map symbolic field names to memory offsets
 - **Tables**: Collections of records with shared structure
 - **Arrays**: Multi-dimensional sequences with shape information
 - **Views**: Functions that interpret buffer contents in specific ways
 
-These structures compose to create complex data representations without sacrificing performance or locality.  
+These structures compose to create complex data representations without sacrificing performance or locality.
 
-See the documentation for [tuples](./tuples.md), [records-and-tables](./records-and-tables.md), and [arrays](./arrays.md).
+See the documentation for [lists](./lists.md), [records-and-tables](./records-and-tables.md), and [arrays](./arrays.md).
 
 ### 3.5 Control Flow
 
@@ -111,7 +112,6 @@ Tacit provides structured control flow without dynamic dispatch:
 
 For details on concurrency and control flow, see the [coroutines](./coroutines.md) documentation.
 
-
 ## 4. Documentation Structure
 
 The Tacit documentation is organized by concept, with each file focusing on a specific aspect of the language:
@@ -119,7 +119,7 @@ The Tacit documentation is organized by concept, with each file focusing on a sp
 - **[overview.md](./overview.md)**: This introduction and orientation (you are here)
 - **[tagged-values.md](./tagged-values.md)**: The type system and value representation
 - **[buffers.md](./buffers.md)**: The buffer system for contiguous memory management
-- **[tuples.md](./tuples.md)**: Span-based data structures and operations
+- **[lists.md](./lists.md)**: Span-based data structures and operations
 - **[records-and-tables.md](./records-and-tables.md)**: Record and table abstractions
 - **[arrays.md](./arrays.md)**: Multi-dimensional array concepts
 - **[local-variables.md](./local-variables.md)**: Stack-local variable management
@@ -133,7 +133,7 @@ To begin using Tacit:
 1. **Understand the basics**: Read through this overview to grasp the core concepts
 2. **Explore the stack model**: Familiarize yourself with stack-oriented programming
 3. **Learn about buffers**: Buffers are fundamental to Tacit's memory model
-4. **Study data structures**: Understand tuples, records, and tables
+4. **Study data structures**: Understand lists, records, and tables
 5. **Practice with examples**: Experiment with the provided code examples
 
 Tacit's design emphasizes simplicity through composition. Once you grasp the fundamental elements, you'll find they combine in predictable ways to build powerful programs without the complexity of traditional programming models.
@@ -142,39 +142,39 @@ Tacit's design emphasizes simplicity through composition. Once you grasp the fun
 
 All values in Tacit use a 32-bit tagged format. These include:
 
-* **Small scalars** (integers, floats, booleans)
-* **Pointers** to buffers, spans, or other composite data
-* **Tags** (6-bit fields) encode type and behavior
-* **Special tags** represent buffer handles, tuple tags, or symbolic constants
+- **Small scalars** (integers, floats, booleans)
+- **Pointers** to buffers, spans, or other composite data
+- **Tags** (6-bit fields) encode type and behavior
+- **Special tags** represent buffer handles, list tags, or symbolic constants
 
 This representation ensures uniform stack operations, type safety, and efficient dispatch.
 
-> See: *Tagged Values document*
+> See: _Tagged Values document_
 
 ---
 
-## 3. Buffers and Tuples
+## 3. Buffers and Lists
 
 ### Buffers
 
 Buffers are raw memory regions with structured headers. They are used for:
 
-* Raw byte storage
-* Vectors (typed, uniform arrays)
-* Stacks, queues, or structured regions (via metadata)
-* Self-describing payloads (when paired with a view)
+- Raw byte storage
+- Vectors (typed, uniform arrays)
+- Stacks, queues, or structured regions (via metadata)
+- Self-describing payloads (when paired with a view)
 
 Each buffer starts with a compact header encoding metadata slots. The buffer is responsible for ownership, reference counts (if applicable), and memory interpretation.
 
-### Tuples
+### Lists
 
-Tuples are grouped values on the stack, enclosed in parentheses and terminated with a footer tag that records their length. They resemble TLV structures with trailing metadata and support:
+Lists are grouped values on the stack, enclosed in parentheses and terminated with a footer tag that records their length. They resemble TLV structures with trailing metadata and support:
 
-* Composite value passing
-* Broadcasting/group operations
-* Span-pointer computation for nested stack data
+- Composite value passing
+- Broadcasting/group operations
+- Span-pointer computation for nested stack data
 
-> See: *Buffers document*, *Tuples document*
+> See: _Buffers document_, _Lists document_
 
 ---
 
@@ -188,21 +188,21 @@ A view is a function from indices to offsets. It defines how to interpret a buff
 
 A shape is a special kind of view enriched with metadata (like rank and dimensions). It supports:
 
-* Rank-driven indexing
-* Derived stride calculation
-* Composable reshaping and slicing
+- Rank-driven indexing
+- Derived stride calculation
+- Composable reshaping and slicing
 
 ### Arrays
 
 An array is a combination of a buffer and a view (often a shape). This pairing allows for:
 
-* Multidimensional access over flat memory
-* Functional indexing
-* Composition via view transformation
+- Multidimensional access over flat memory
+- Functional indexing
+- Composition via view transformation
 
 Arrays are immutable in layout but can be updated via new views or new buffers.
 
-> See: *Arrays document*
+> See: _Arrays document_
 
 ---
 
@@ -212,21 +212,21 @@ Arrays are immutable in layout but can be updated via new views or new buffers.
 
 Records are symbolic views over vectors. A record defines a mapping from field names (symbols) to slot indices and applies this view to a value vector. Records support:
 
-* Schema-based access (`name → index`)
-* Functional interpretation (record as a lookup function)
-* Static layouts with symbolic fields
+- Schema-based access (`name → index`)
+- Functional interpretation (record as a lookup function)
+- Static layouts with symbolic fields
 
 ### Tables
 
 Tables are collections of homogeneous records. A table includes:
 
-* A shared schema (the record view)
-* A buffer or array of rows (typically as vectors)
-* Support for row-oriented operations (insert, query, etc.)
+- A shared schema (the record view)
+- A buffer or array of rows (typically as vectors)
+- Support for row-oriented operations (insert, query, etc.)
 
 Tables are mutable in content but immutable in structure—new rows can be added, but the schema is fixed.
 
-> See: *Records and Tables document*
+> See: _Records and Tables document_
 
 ---
 
@@ -234,14 +234,14 @@ Tables are mutable in content but immutable in structure—new rows can be added
 
 Tacit uses a disciplined, slot-based local variable model:
 
-* **Locals are stored** in a fixed table on the return stack
-* **Access is by index**, determined statically at compile time
-* **Values are single-assignment**, with no mutation
-* **Post-yield allocation is disallowed**, preserving call integrity
+- **Locals are stored** in a fixed table on the return stack
+- **Access is by index**, determined statically at compile time
+- **Values are single-assignment**, with no mutation
+- **Post-yield allocation is disallowed**, preserving call integrity
 
 Buffers, spans, and other structures can be allocated above the variable table before a coroutine yield. Cleanup proceeds by walking down from stack top to the base pointer, deallocating or dereferencing as needed.
 
-> See: *Local Variables document*
+> See: _Local Variables document_
 
 ---
 
@@ -249,16 +249,16 @@ Buffers, spans, and other structures can be allocated above the variable table b
 
 Tacit supports cooperative multitasking through coroutines:
 
-* **Each coroutine owns its local frame** and uses the shared return stack
-* **Execution is round-robin**, one step per coroutine per tick
-* **Yielding occurs after an `emit`**, which pushes a value downstream
-* **No allocation is allowed post-yield**, to preserve frame consistency
-* **Status flags** track whether a coroutine is active, yielded, or shutting down
-* **Forks and joins** enforce atomic communication; all outputs/inputs are handled in one step
+- **Each coroutine owns its local frame** and uses the shared return stack
+- **Execution is round-robin**, one step per coroutine per tick
+- **Yielding occurs after an `emit`**, which pushes a value downstream
+- **No allocation is allowed post-yield**, to preserve frame consistency
+- **Status flags** track whether a coroutine is active, yielded, or shutting down
+- **Forks and joins** enforce atomic communication; all outputs/inputs are handled in one step
 
 This model enables highly predictable task switching and supports stream-oriented pipelines.
 
-> See: *Coroutines document*
+> See: _Coroutines document_
 
 ---
 
@@ -266,15 +266,15 @@ This model enables highly predictable task switching and supports stream-oriente
 
 Sequences in Tacit are compiled to inline control structures. They consist of:
 
-* **Source stages**: Producers (e.g., ranges, vectors)
-* **Processor stages**: Mappers, filters, etc.
-* **Sink stages**: Consumers (e.g., `for-each`, side effects)
+- **Source stages**: Producers (e.g., ranges, vectors)
+- **Processor stages**: Mappers, filters, etc.
+- **Sink stages**: Consumers (e.g., `for-each`, side effects)
 
 Each stage is compiled as a small state machine, using `init`, `restart`, and `next` entry points. Execution is **pull-based** and **synchronous**—each call to `next` either returns a value or signals termination.
 
 Forks duplicate values for multiple branches. Joins coordinate multiple upstreams atomically.
 
-> See: *Compiled Sequences document*
+> See: _Compiled Sequences document_
 
 ---
 
@@ -282,12 +282,12 @@ Forks duplicate values for multiple branches. Joins coordinate multiple upstream
 
 Tacit favors a sparse, expressive style using:
 
-* **Parenthesis-based grouping** for spans
-* **Stack-based function application**, with postfix notation
-* **Fixed arity** and explicit local variables
-* **Views as first-class values**, assignable and composable
-* **Slot-based field access** via symbolic names or indices
-* **No closures, no mutation**, and minimal hidden state
+- **Parenthesis-based grouping** for spans
+- **Stack-based function application**, with postfix notation
+- **Fixed arity** and explicit local variables
+- **Views as first-class values**, assignable and composable
+- **Slot-based field access** via symbolic names or indices
+- **No closures, no mutation**, and minimal hidden state
 
 This enables a declarative, stream-based programming model, especially suited to low-resource or predictable systems.
 
@@ -301,7 +301,7 @@ For most readers, the following order builds the best intuition:
 2. **Buffers**
 3. **Views and Arrays**
 4. **Records and Tables**
-5. **Tuples**
+5. **Lists**
 6. **Local Variables**
 7. **Coroutines**
 8. **Compiled Sequences**

@@ -14,7 +14,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('Tuple revrot operations', () => {
+describe('List revrot operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -81,13 +81,13 @@ describe('Tuple revrot operations', () => {
       expect(val1.value).toBe(5);
       expect(val1.tag).toBe(0);
 
-      const outerTupleTag = fromTaggedValue(stack[1]);
-      expect(outerTupleTag.tag).toBe(Tag.LIST);
-      expect(outerTupleTag.value).toBe(2);
+      const outerListTag = fromTaggedValue(stack[1]);
+      expect(outerListTag.tag).toBe(Tag.LIST);
+      expect(outerListTag.value).toBe(2);
 
-      const innerTupleTag = fromTaggedValue(stack[2]);
-      expect(innerTupleTag.tag).toBe(Tag.LIST);
-      expect(innerTupleTag.value).toBe(2);
+      const innerListTag = fromTaggedValue(stack[2]);
+      expect(innerListTag.tag).toBe(Tag.LIST);
+      expect(innerListTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[3]);
       const elem2 = fromTaggedValue(stack[4]);

@@ -15,7 +15,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('Tuple creation operations', () => {
+describe('List creation operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -32,7 +32,7 @@ describe('Tuple creation operations', () => {
 
       /**
        * Expected stack layout:
-       * [0] LIST(2)  - Tuple tag with size 2
+       * [0] LIST(2)  - List tag with size 2
        * [1] 1         - First element of list
        * [2] 2         - Second element of list
        * [3] LINK(3)   - Link tag with offset 3 (points back to list start)
@@ -51,7 +51,7 @@ describe('Tuple creation operations', () => {
 
       /**
        * Expected stack layout:
-       * [0] LIST(0)  - Tuple tag with size 0 (empty list)
+       * [0] LIST(0)  - List tag with size 0 (empty list)
        * [1] LINK(1)   - Link tag with offset 1 (points back to list start)
        */
       expect(stack.length).toBe(2);

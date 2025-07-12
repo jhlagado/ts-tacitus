@@ -17,7 +17,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('Tuple rot operations', () => {
+describe('List rot operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -66,8 +66,8 @@ describe('Tuple rot operations', () => {
       }
 
       const [nextSlot, listSize] = findElement(vm, 0);
-      console.log('\nTuple info:', { nextSlot, listSize });
-      console.log('Tuple data:');
+      console.log('\nList info:', { nextSlot, listSize });
+      console.log('List data:');
       for (let i = 0; i < listSize; i++) {
         const addr = i * 4;
         const raw = vm.memory.readFloat32(0, addr);
@@ -105,14 +105,14 @@ describe('Tuple rot operations', () => {
       expect(val2.value).toBe(4);
 
       const listTag = fromTaggedValue(stack[2]);
-      console.log('\nTuple header:', listTag);
+      console.log('\nList header:', listTag);
 
       expect(listTag.tag).toBe(Tag.LIST);
       expect(listTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[3]);
       const elem2 = fromTaggedValue(stack[4]);
-      console.log('Tuple elements:', elem1, elem2);
+      console.log('List elements:', elem1, elem2);
 
       expect(elem1.value).toBe(1);
       expect(elem2.value).toBe(2);

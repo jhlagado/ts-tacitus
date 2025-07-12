@@ -16,7 +16,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('Tuple operations', () => {
+describe('List operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -42,7 +42,7 @@ describe('Tuple operations', () => {
     test('should drop an entire simple list', () => {
       /**
        * Initial stack layout after ( 10 20 ):
-       * [0] LIST(2)  - Tuple tag with size 2
+       * [0] LIST(2)  - List tag with size 2
        * [1] 10        - First element
        * [2] 20        - Second element
        * [3] LINK(3)   - Link tag (points back 3 elements)
@@ -60,7 +60,7 @@ describe('Tuple operations', () => {
       /**
        * Initial stack layout after 5 ( 1 2 ):
        * [0] 5         - First value
-       * [1] LIST(2)  - Tuple tag with size 2
+       * [1] LIST(2)  - List tag with size 2
        * [2] 1         - First element of list
        * [3] 2         - Second element of list
        * [4] LINK(3)   - Link tag (points back 3 elements)
@@ -127,10 +127,10 @@ describe('Tuple operations', () => {
 
       const stackBeforeSize = vm.getStackData().length;
 
-      const topTupleValues = [];
+      const topListValues = [];
       const stack = vm.getStackData();
       for (let i = stackBeforeSize - 4; i < stackBeforeSize; i++) {
-        topTupleValues.push(stack[i]);
+        topListValues.push(stack[i]);
       }
 
       executeCode('drop');
@@ -163,10 +163,10 @@ describe('Tuple operations', () => {
        * [5] LINK(5)   - Link tag for outer list (points back 5 elements)
        */
 
-      const stackAfterTuple = vm.getStackData();
+      const stackAfterList = vm.getStackData();
       console.log('Stack after list creation:');
-      for (let i = 0; i < stackAfterTuple.length; i++) {
-        const { tag, value } = fromTaggedValue(stackAfterTuple[i]);
+      for (let i = 0; i < stackAfterList.length; i++) {
+        const { tag, value } = fromTaggedValue(stackAfterList[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
@@ -195,10 +195,10 @@ describe('Tuple operations', () => {
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      expect(stackAfterDup.length).toBe(stackAfterTuple.length * 2);
+      expect(stackAfterDup.length).toBe(stackAfterList.length * 2);
 
-      const { tag: firstTupleTag } = fromTaggedValue(stackAfterDup[0]);
-      expect(firstTupleTag).toBe(Tag.LIST);
+      const { tag: firstListTag } = fromTaggedValue(stackAfterDup[0]);
+      expect(firstListTag).toBe(Tag.LIST);
 
       executeCode('drop drop');
 
@@ -250,7 +250,7 @@ describe('Tuple operations', () => {
 
       /**
        * Expected stack layout after first list creation:
-       * [0] LIST(2)  - Tuple tag with 2 elements
+       * [0] LIST(2)  - List tag with 2 elements
        * [1] 10        - First element
        * [2] 20        - Second element
        * [3] LINK(3)   - Link tag (points back 3 elements)
@@ -265,7 +265,7 @@ describe('Tuple operations', () => {
 
       /**
        * Expected stack layout after second list creation:
-       * [0] LIST(2)  - Tuple tag with 2 elements
+       * [0] LIST(2)  - List tag with 2 elements
        * [1] 30        - First element
        * [2] 40        - Second element
        * [3] LINK(3)   - Link tag (points back 3 elements)
@@ -287,14 +287,14 @@ describe('Tuple operations', () => {
     test('should drop a list when directly referenced', () => {
       /**
        * Initial stack layout after ( 10 20 ) 30:
-       * [0] LIST(2)  - Tuple tag with 2 elements
+       * [0] LIST(2)  - List tag with 2 elements
        * [1] 10        - First element
        * [2] 20        - Second element
        * [3] LINK(3)   - Link tag (points back 3 elements)
        * [4] 30        - Regular value
        *
        * After first drop:
-       * [0] LIST(2)  - Tuple tag with 2 elements
+       * [0] LIST(2)  - List tag with 2 elements
        * [1] 10        - First element
        * [2] 20        - Second element
        * [3] LINK(3)   - Link tag (points back 3 elements)

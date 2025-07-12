@@ -1,16 +1,16 @@
 # Scalar values
 
-Tacit’s source code has a small set of literal forms that correspond to the core kinds of data you work with in pipelines.  They are introduced here purely as **surface-syntax**—implementation details (tags, arenas, NaN-boxing, etc.) are covered in the separate *Tagged Values* document.
+Tacit’s source code has a small set of literal forms that correspond to the core kinds of data you work with in pipelines. They are introduced here purely as **surface-syntax**—implementation details (tags, arenas, NaN-boxing, etc.) are covered in the separate _Tagged Values_ document.
 
 ## 1. Numbers
 
-* **Decimal integer / float** `123` `-7` `3.14`
-* **Hex** `0xFF`
+- **Decimal integer / float** `123` `-7` `3.14`
+- **Hex** `0xFF`
   Tacit does not distinguish “integer” vs “float” syntax; the reader selects the most compact internal representation automatically.
 
 ## 2. Booleans
 
-Tacit treats `0` as *false* and `1` as *true*.  There are no separate keywords.
+Tacit treats `0` as _false_ and `1` as _true_. There are no separate keywords.
 
 ## 3. Strings
 
@@ -48,9 +48,9 @@ $nil
 
 Sentinels are non-data control markers used by `retry`, `fallback`, etc.
 
-## 6. Tuples
+## 6. Lists
 
-Parentheses group one or more literals into a contiguous tuple:
+Parentheses group one or more literals into a contiguous list:
 
 ```
 (1 2 3)
@@ -58,13 +58,13 @@ Parentheses group one or more literals into a contiguous tuple:
 ( %id 42 "Bob" )
 ```
 
-*An empty tuple `()` is the canonical **nil** value* and is often used as a placeholder for “no arguments”:
+_An empty list `()` is the canonical **nil** value_ and is often used as a placeholder for “no arguments”:
 
 ```
-()            \ degenerate tuple = nil
+()            \ degenerate list = nil
 ```
 
-Tuples nest arbitrarily:
+Lists nest arbitrarily:
 
 ```
 (1 (2 3) (4 (5 6)))
@@ -72,15 +72,14 @@ Tuples nest arbitrarily:
 
 ## 7. Summary
 
-Tacit’s *scalar values* are those that occupy a single slot and can be written directly in source code without auxiliary keywords or blocks.
+Tacit’s _scalar values_ are those that occupy a single slot and can be written directly in source code without auxiliary keywords or blocks.
 
-| Kind         | Syntax examples            | Notes                                                                                                     |
-| ------------ | -------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Number**   | `42`  `-7`  `3.14`  `0xFF` | Reader chooses the most compact internal representation (integer or float).                               |
-| **String**   | `"hello"`  `"Line\nBreak"` | Double-quoted UTF-8; supports standard back-slash escapes.                                                |
-| **Symbol**   | `%name`  `%price`          | Interned identifiers used for record fields, dictionary keys, etc.                                        |
-| **Sentinel** | `$done`  `$error`  `$nil`  | Control-flow markers consumed by stages such as `retry` and `fallback`.                                   |
-| **Nil**      | `()`                       | The empty tuple is the canonical *nil* placeholder when an argument is required but no value is supplied. |
+| Kind         | Syntax examples            | Notes                                                                                                    |
+| ------------ | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Number**   | `42`  `-7`  `3.14`  `0xFF` | Reader chooses the most compact internal representation (integer or float).                              |
+| **String**   | `"hello"`  `"Line\nBreak"` | Double-quoted UTF-8; supports standard back-slash escapes.                                               |
+| **Symbol**   | `%name`  `%price`          | Interned identifiers used for record fields, dictionary keys, etc.                                       |
+| **Sentinel** | `$done`  `$error`  `$nil`  | Control-flow markers consumed by stages such as `retry` and `fallback`.                                  |
+| **Nil**      | `()`                       | The empty list is the canonical _nil_ placeholder when an argument is required but no value is supplied. |
 
-Strings, symbols, and sentinels are immutable. Numbers are value types; `0` and `1` serve as `false` and `true`. The degenerate tuple `()` is used throughout Tacit for default or “missing” arguments.
-
+Strings, symbols, and sentinels are immutable. Numbers are value types; `0` and `1` serve as `false` and `true`. The degenerate list `()` is used throughout Tacit for default or “missing” arguments.

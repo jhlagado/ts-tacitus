@@ -16,7 +16,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('Tuple duplication operations', () => {
+describe('List duplication operations', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -34,9 +34,9 @@ describe('Tuple duplication operations', () => {
 
       expect(stack.length).toBe(8);
 
-      const { tag: firstTupleTag, value: firstTupleSize } = fromTaggedValue(stack[0]);
-      expect(firstTupleTag).toBe(Tag.LIST);
-      expect(firstTupleSize).toBe(2);
+      const { tag: firstListTag, value: firstListSize } = fromTaggedValue(stack[0]);
+      expect(firstListTag).toBe(Tag.LIST);
+      expect(firstListSize).toBe(2);
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
 
@@ -44,9 +44,9 @@ describe('Tuple duplication operations', () => {
       expect(firstLinkTag).toBe(Tag.LINK);
       expect(firstLinkValue).toBe(3);
 
-      const { tag: secondTupleTag, value: secondTupleSize } = fromTaggedValue(stack[4]);
-      expect(secondTupleTag).toBe(Tag.LIST);
-      expect(secondTupleSize).toBe(2);
+      const { tag: secondListTag, value: secondListSize } = fromTaggedValue(stack[4]);
+      expect(secondListTag).toBe(Tag.LIST);
+      expect(secondListSize).toBe(2);
       expect(stack[5]).toBe(1);
       expect(stack[6]).toBe(2);
 

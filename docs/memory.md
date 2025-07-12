@@ -1,12 +1,13 @@
 # Memory
 
 ## Table of Contents
+
 - [1. Arena-Based Memory Model](#1-arena-based-memory-model)
 - [2. Segments and Arena Identity](#2-segments-and-arena-identity)
 - [3. Allocation and Lifetime Semantics](#3-allocation-and-lifetime-semantics)
-- [4. Value Semantics and Tuple Assignment](#4-value-semantics-and-tuple-assignment)
+- [4. Value Semantics and List Assignment](#4-value-semantics-and-list-assignment)
 - [5. Reference Semantics and Buffer Behavior](#5-reference-semantics-and-buffer-behavior)
-- [6. Tuple Value Semantics in Detail](#6-tuple-value-semantics-in-detail)
+- [6. List Value Semantics in Detail](#6-list-value-semantics-in-detail)
 - [7. Reference Semantics and Buffer Assignment](#7-reference-semantics-and-buffer-assignment)
 - [8. Scalars and Tagged Simple Values](#8-scalars-and-tagged-simple-values)
   - [Tagged Reference Format](#tagged-reference-format)
@@ -26,57 +27,57 @@ Tacit's memory management is grounded in the concept of arenas—contiguous, gro
 
 Arenas provide linear allocation with no internal deallocation until the entire region is reset or compacted. This strategy favors allocation speed and predictable performance, especially on constrained or embedded systems. Arenas also support metadata for managing internal layout, such as stack pointers or bump offsets, enabling stack-like behavior or segmented views within each region.
 
-The arena model is foundational to Tacit’s philosophy of ownership, locality, and predictable resource use. It enables the language to treat buffers, tuples, and even entire stacks as consistent allocation domains, each following the same memory principles while allowing for contextual specialization.
+The arena model is foundational to Tacit’s philosophy of ownership, locality, and predictable resource use. It enables the language to treat buffers, lists, and even entire stacks as consistent allocation domains, each following the same memory principles while allowing for contextual specialization.
 
 ## 2. Segments and Arena Identity
 
-Tacit divides memory into distinct segments, each serving as an arena governed by the same bump allocation rules but with unique semantic roles. Tagged values that represent references—such as buffers or tuples—encode segment identity directly in their type tag, allowing runtime systems to interpret their origin, manage their lifetime, and apply appropriate constraints.
+Tacit divides memory into distinct segments, each serving as an arena governed by the same bump allocation rules but with unique semantic roles. Tagged values that represent references—such as buffers or lists—encode segment identity directly in their type tag, allowing runtime systems to interpret their origin, manage their lifetime, and apply appropriate constraints.
 
 The canonical segment reference types in Tacit are:
 
-* **STACK** – Local frame-based storage containing transient values that cannot safely escape their context
-* **DATA** – Optional second stack that may be used for separate data storage when needed
-* **GLOBAL** – Long-lived values, often shared between tasks or persisted across execution boundaries
-* **STRING** – Immutable interned strings and text data with global lifetime
-* **CODE** – Embedded static code blocks and immutable constants
-* **HEAP** – Dynamically allocated data with explicit lifetime management
+- **STACK** – Local frame-based storage containing transient values that cannot safely escape their context
+- **DATA** – Optional second stack that may be used for separate data storage when needed
+- **GLOBAL** – Long-lived values, often shared between tasks or persisted across execution boundaries
+- **STRING** – Immutable interned strings and text data with global lifetime
+- **CODE** – Embedded static code blocks and immutable constants
+- **HEAP** – Dynamically allocated data with explicit lifetime management
 
 Each segment has specific properties and constraints that affect how references to values within them can be used:
 
-* Stack-segmented arenas host local variables and transient tuples. These allocations are frame-local and cannot safely escape their context.
-* Heap arenas hold dynamically allocated or long-lived values, often shared between tasks or passed across coroutine boundaries.
-* Code segments contain immutable program data, including constants and precompiled tuples. These values cannot be modified at runtime.
-* String segments store unique, immutable digests that represent string values by reference, supporting efficient text handling.
-* Global segments hold persistent values accessible throughout program execution.
-* When present, the Data segment provides an alternative stack for specialized data handling separate from the control stack.
+- Stack-segmented arenas host local variables and transient lists. These allocations are frame-local and cannot safely escape their context.
+- Heap arenas hold dynamically allocated or long-lived values, often shared between tasks or passed across coroutine boundaries.
+- Code segments contain immutable program data, including constants and precompiled lists. These values cannot be modified at runtime.
+- String segments store unique, immutable digests that represent string values by reference, supporting efficient text handling.
+- Global segments hold persistent values accessible throughout program execution.
+- When present, the Data segment provides an alternative stack for specialized data handling separate from the control stack.
 
 Importantly, tagged reference values encode segment identity using a few high bits (typically within the tag field of a tagged value). This segment encoding is critical for memory safety enforcement at runtime. For example:
 
-* A `STACK` segment pointer cannot be assigned to a `GLOBAL` variable, preventing dangling references
-* The `CODE` segment is immutable and read-only, enforced by runtime checks
-* `HEAP` references must be properly tracked to avoid memory leaks
+- A `STACK` segment pointer cannot be assigned to a `GLOBAL` variable, preventing dangling references
+- The `CODE` segment is immutable and read-only, enforced by runtime checks
+- `HEAP` references must be properly tracked to avoid memory leaks
 
-Segment tagging allows Tacit to enforce memory safety and lifetime discipline without runtime garbage collection. For instance, a tuple allocated on the stack may not be reassigned to a global variable, and buffers allocated in heap arenas may be freely shared across scopes. Segment-aware tagging ensures that all memory operations are interpreted correctly, regardless of where the value originated.
+Segment tagging allows Tacit to enforce memory safety and lifetime discipline without runtime garbage collection. For instance, a list allocated on the stack may not be reassigned to a global variable, and buffers allocated in heap arenas may be freely shared across scopes. Segment-aware tagging ensures that all memory operations are interpreted correctly, regardless of where the value originated.
 
 ## 3. Allocation and Lifetime Semantics
 
-All memory in Tacit is allocated through bump allocation within arenas. Each arena maintains a cursor (or bump pointer) indicating the next free slot. When a value—such as a buffer or tuple—is created, space is carved out at the bump pointer and the pointer is incremented by the size of the allocation. This process is constant-time and requires no metadata traversal or pointer arithmetic beyond the arena's current position.
+All memory in Tacit is allocated through bump allocation within arenas. Each arena maintains a cursor (or bump pointer) indicating the next free slot. When a value—such as a buffer or list—is created, space is carved out at the bump pointer and the pointer is incremented by the size of the allocation. This process is constant-time and requires no metadata traversal or pointer arithmetic beyond the arena's current position.
 
 The lifetime of an allocation is determined by the arena in which it resides. Stack arena values exist only for the duration of the current frame. Once the frame ends, all its allocations are considered invalid, and no cleanup is needed beyond pointer reset. Heap allocations persist until explicitly released or the program ends. Code and string segment allocations are immutable and globally accessible for the duration of the program.
 
-Tuple values are copied into the arena at the time of assignment. If reassigned later, the new value is written to a fresh allocation, leaving the old one unreferenced. This can lead to fragmentation in the arena. Because Tacit does not use garbage collection, any reuse of space must be handled manually through compaction or explicitly managed free lists. In the simplest case, reassignment always appends and never overwrites, ensuring safety at the cost of space.
+List values are copied into the arena at the time of assignment. If reassigned later, the new value is written to a fresh allocation, leaving the old one unreferenced. This can lead to fragmentation in the arena. Because Tacit does not use garbage collection, any reuse of space must be handled manually through compaction or explicitly managed free lists. In the simplest case, reassignment always appends and never overwrites, ensuring safety at the cost of space.
 
-Buffers follow the same allocation model but are typically designed to allow internal reuse: they often include their own bump pointer to enable append operations. This makes them ideal for building mutable, extensible data structures while preserving the immutability of tuples and values elsewhere in the language.
+Buffers follow the same allocation model but are typically designed to allow internal reuse: they often include their own bump pointer to enable append operations. This makes them ideal for building mutable, extensible data structures while preserving the immutability of lists and values elsewhere in the language.
 
-## 4. Value Semantics and Tuple Assignment
+## 4. Value Semantics and List Assignment
 
-Tacit enforces value semantics for tuples by default. When a tuple is assigned to a variable, the entire structure—including its span and all contained values—is copied into the arena associated with that variable. This ensures that the assignment is isolated and does not create unintended references to mutable or shared memory.
+Tacit enforces value semantics for lists by default. When a list is assigned to a variable, the entire structure—including its span and all contained values—is copied into the arena associated with that variable. This ensures that the assignment is isolated and does not create unintended references to mutable or shared memory.
 
-A tuple assigned from the data stack to a local variable is treated as a fixed-size object. Although its contents may include reference types (e.g., buffers), the tuple itself is treated as a value. This means that reassignment does not mutate the existing memory but allocates a new region for the new tuple and updates the variable’s reference. Overwriting a tuple in-place is only permissible if the new value is the same size as the original. Otherwise, fragmentation or reallocation must be handled.
+A list assigned from the data stack to a local variable is treated as a fixed-size object. Although its contents may include reference types (e.g., buffers), the list itself is treated as a value. This means that reassignment does not mutate the existing memory but allocates a new region for the new list and updates the variable’s reference. Overwriting a list in-place is only permissible if the new value is the same size as the original. Otherwise, fragmentation or reallocation must be handled.
 
-This model simplifies reasoning about ownership: the writer owns the new allocation; the old one becomes unreachable unless stored elsewhere. Mutating a tuple’s internal references (e.g., buffer fields) does not alter the tuple’s span or structure. However, if a tuple contains only value types, it can be treated as a self-contained, constant-sized unit and reused or optimized in the arena without additional reference tracking.
+This model simplifies reasoning about ownership: the writer owns the new allocation; the old one becomes unreachable unless stored elsewhere. Mutating a list’s internal references (e.g., buffer fields) does not alter the list’s span or structure. However, if a list contains only value types, it can be treated as a self-contained, constant-sized unit and reused or optimized in the arena without additional reference tracking.
 
-The consistency of value semantics across tuples improves predictability in function boundaries. Passing a tuple to a function from the stack copies the tuple’s content into the child function’s frame. Once consumed, the original reference is no longer valid in the parent scope. This avoids aliasing and ensures that tuples behave as pure data objects unless explicitly wrapped in a buffer or another reference-bearing construct.
+The consistency of value semantics across lists improves predictability in function boundaries. Passing a list to a function from the stack copies the list’s content into the child function’s frame. Once consumed, the original reference is no longer valid in the parent scope. This avoids aliasing and ensures that lists behave as pure data objects unless explicitly wrapped in a buffer or another reference-bearing construct.
 
 ## 5. Reference Semantics and Buffer Behavior
 
@@ -84,30 +85,30 @@ Buffers in Tacit are explicitly reference types. When assigned to a variable or 
 
 Importantly, buffer references include segment tags that identify which memory segment contains the buffer. These segment tags are encoded directly in the reference and determine both the lifetime and usage constraints of the buffer:
 
-* **STACK** buffers are ephemeral and valid only within their local frame. They cannot escape their defining scope and are automatically invalidated when the stack frame is popped.
-* **HEAP** buffers are dynamically allocated, reusable, and long-lived. They persist until explicitly freed and can be shared across multiple scopes.
-* **GLOBAL** buffers have program-wide visibility and lifetime, suitable for shared resources.
-* **CODE** segment buffers (such as precompiled tables or embedded arrays) are immutable and globally shared, preventing any runtime modification.
+- **STACK** buffers are ephemeral and valid only within their local frame. They cannot escape their defining scope and are automatically invalidated when the stack frame is popped.
+- **HEAP** buffers are dynamically allocated, reusable, and long-lived. They persist until explicitly freed and can be shared across multiple scopes.
+- **GLOBAL** buffers have program-wide visibility and lifetime, suitable for shared resources.
+- **CODE** segment buffers (such as precompiled tables or embedded arrays) are immutable and globally shared, preventing any runtime modification.
 
-Because buffers can grow, mutate, or be appended to, their lifetime and mutability must be managed carefully. Assigning a buffer to a local or global variable preserves its identity and structure. Any mutation via that reference is visible across all holders of the reference. Thus, buffers act as shared mutable arenas, contrasting with the isolated, copy-on-write behavior of tuples.
+Because buffers can grow, mutate, or be appended to, their lifetime and mutability must be managed carefully. Assigning a buffer to a local or global variable preserves its identity and structure. Any mutation via that reference is visible across all holders of the reference. Thus, buffers act as shared mutable arenas, contrasting with the isolated, copy-on-write behavior of lists.
 
-Unlike tuples, buffers are not automatically copied when reassigned. Instead, reassigning a buffer reference simply updates the variable to point to a different buffer. This means previous buffer instances remain alive until explicitly freed or fall out of scope. The system must therefore track buffer lifetimes either via ownership rules, scope-bound cleanup, or manual reclamation strategies.
+Unlike lists, buffers are not automatically copied when reassigned. Instead, reassigning a buffer reference simply updates the variable to point to a different buffer. This means previous buffer instances remain alive until explicitly freed or fall out of scope. The system must therefore track buffer lifetimes either via ownership rules, scope-bound cleanup, or manual reclamation strategies.
 
 When used as function parameters, buffers are always passed by reference. The callee receives a live pointer to the buffer and can read or mutate it directly. If isolation or immutability is required, the caller must create a copy beforehand. This pattern encourages explicit ownership management: if you intend to mutate, own or borrow the buffer intentionally.
 
-Buffers can also contain other reference types, including tuples and nested buffers. However, the semantics of the outer buffer are always governed by reference rules. Mutation of the buffer does not clone or isolate its contents unless the program does so explicitly.
+Buffers can also contain other reference types, including lists and nested buffers. However, the semantics of the outer buffer are always governed by reference rules. Mutation of the buffer does not clone or isolate its contents unless the program does so explicitly.
 
-## 6. Tuple Value Semantics in Detail
+## 6. List Value Semantics in Detail
 
-Tuples in Tacit are treated as value types. They consist of a tagged `span` containing a length and a fixed sequence of values. When assigned to a variable, a tuple is copied by value. This applies whether the tuple originated on the stack, from a literal, or from the result of another operation. The destination variable receives a fresh allocation containing the tuple's content.
+Lists in Tacit are treated as value types. They consist of a tagged `span` containing a length and a fixed sequence of values. When assigned to a variable, a list is copied by value. This applies whether the list originated on the stack, from a literal, or from the result of another operation. The destination variable receives a fresh allocation containing the list's content.
 
-This value-copy model makes tuple reassignment semantically clean. Each assignment creates a new copy of the structure. The original instance remains unaffected unless manually deallocated or replaced. Tuple variables are therefore immutable in structure, though their elements may be mutated in place if needed.
+This value-copy model makes list reassignment semantically clean. Each assignment creates a new copy of the structure. The original instance remains unaffected unless manually deallocated or replaced. List variables are therefore immutable in structure, though their elements may be mutated in place if needed.
 
-Importantly, reading a tuple from a variable always pushes a copy onto the stack. No implicit reference is passed. This guarantees isolation between caller and callee when tuples are passed to functions. A callee consuming a tuple from the stack owns its copy outright, and any mutation does not affect the original binding.
+Importantly, reading a list from a variable always pushes a copy onto the stack. No implicit reference is passed. This guarantees isolation between caller and callee when lists are passed to functions. A callee consuming a list from the stack owns its copy outright, and any mutation does not affect the original binding.
 
-When a tuple is reassigned to a variable, the old value is not overwritten in place. Instead, a new copy is allocated—typically via bump allocation—and the old memory is left behind. While simple, this approach introduces the potential for fragmentation. However, due to the short-lived nature of many tuples and the stack-oriented design, most old allocations become unreachable quickly, and memory reuse strategies can be applied.
+When a list is reassigned to a variable, the old value is not overwritten in place. Instead, a new copy is allocated—typically via bump allocation—and the old memory is left behind. While simple, this approach introduces the potential for fragmentation. However, due to the short-lived nature of many lists and the stack-oriented design, most old allocations become unreachable quickly, and memory reuse strategies can be applied.
 
-If precise memory management is needed, the programmer may use buffers instead, which provide explicit reference semantics. But for most transient or intermediate structures, tuple value semantics are preferred. They avoid aliasing, reduce complexity, and enable efficient reuse when paired with copy-on-write strategies.
+If precise memory management is needed, the programmer may use buffers instead, which provide explicit reference semantics. But for most transient or intermediate structures, list value semantics are preferred. They avoid aliasing, reduce complexity, and enable efficient reuse when paired with copy-on-write strategies.
 
 ## 7. Reference Semantics and Buffer Assignment
 
@@ -115,13 +116,13 @@ Buffers in Tacit are reference types. When assigned to a variable or passed betw
 
 Assigning a buffer to a variable does not trigger a copy of its memory. The variable simply points to the same buffer, which may reside in a global arena, a local stack segment, or another buffer. If a buffer is read from a variable, the reference is pushed onto the stack—again, not its content—allowing the receiver to mutate or inspect it in place.
 
-When modifying a buffer, additional context is usually required, such as an index or offset. Unlike tuples, which are copied whole, buffer assignments are not semantic replacements of content but references to a location. A function writing to a buffer may append, overwrite, or restructure depending on the buffer’s mode—most often controlled by a bump pointer in the buffer’s header.
+When modifying a buffer, additional context is usually required, such as an index or offset. Unlike lists, which are copied whole, buffer assignments are not semantic replacements of content but references to a location. A function writing to a buffer may append, overwrite, or restructure depending on the buffer’s mode—most often controlled by a bump pointer in the buffer’s header.
 
 Reassigning a buffer variable simply replaces the pointer. The buffer itself is not affected unless explicitly deallocated or cleared. However, appending or resizing often requires careful memory planning, especially when buffers are nested or shared. To avoid fragmentation or lifetime issues, buffers intended for persistent or shared use should be allocated early and reused rather than repeatedly reassigned.
 
-The reference nature of buffers also enables more complex behaviors, such as indirect assignment, zero-copy transfer, and mutation across coroutine or module boundaries. In contrast to the tuple model, buffer use generally reflects longer-lived or dynamically sized data, often backing arrays, tables, and external I/O regions.
+The reference nature of buffers also enables more complex behaviors, such as indirect assignment, zero-copy transfer, and mutation across coroutine or module boundaries. In contrast to the list model, buffer use generally reflects longer-lived or dynamically sized data, often backing arrays, tables, and external I/O regions.
 
-This dual model—value for tuples, reference for buffers—provides Tacit with a flexible and performant memory system. It allows the programmer to select the most appropriate semantics for the task, balancing safety, efficiency, and control.
+This dual model—value for lists, reference for buffers—provides Tacit with a flexible and performant memory system. It allows the programmer to select the most appropriate semantics for the task, balancing safety, efficiency, and control.
 
 ## 8. Scalars and Tagged Simple Values
 
@@ -131,65 +132,65 @@ Scalars are the simplest category of values in Tacit. These include integers, fl
 
 While most scalar values contain their data directly, reference-type values use a specialized tagged pointer format that incorporates segment information:
 
-* **Type Tag**: The base type (e.g., buffer, tuple reference, function)
-* **Segment Encoding**: Several high bits dedicated to identifying the memory segment (STACK, HEAP, CODE, etc.)
-* **Address Value**: The actual memory address within the identified segment
-* **Optional Flags**: May include mutability, ownership, or other runtime constraints
+- **Type Tag**: The base type (e.g., buffer, list reference, function)
+- **Segment Encoding**: Several high bits dedicated to identifying the memory segment (STACK, HEAP, CODE, etc.)
+- **Address Value**: The actual memory address within the identified segment
+- **Optional Flags**: May include mutability, ownership, or other runtime constraints
 
 This segment-encoded reference format is fundamental to Tacit's memory safety. For example, when a function receives a reference-type parameter, it can immediately determine if it's pointing to stack memory (and thus ephemeral), code memory (and thus immutable), or heap memory (requiring careful lifetime management). The segment metadata travels with every reference, making cross-segment violations detectable at runtime.
 
 Non-reference scalars are immutable, atomic, and require no memory management. They are copied freely between stack, locals, and buffers without reference semantics or allocation overhead. Scalars form the core of most control logic, arithmetic, and indexing expressions in Tacit programs.
 
-From a memory management perspective, scalars do not participate in bump allocation, reclamation, or compaction. Their storage footprint is constant, their lifetime is tied to the container that holds them, and their presence poses no fragmentation risk. When stored in a buffer or tuple, they simply occupy fixed-size slots, making them ideal for arrays of primitives or compact tables.
+From a memory management perspective, scalars do not participate in bump allocation, reclamation, or compaction. Their storage footprint is constant, their lifetime is tied to the container that holds them, and their presence poses no fragmentation risk. When stored in a buffer or list, they simply occupy fixed-size slots, making them ideal for arrays of primitives or compact tables.
 
-Scalars are also the default type produced by many stack operations and system functions. For example, a comparison yields a Boolean, arithmetic yields an integer or float, and function arity checks yield integers. Because of their simplicity, they require no special treatment in this memory model, and form the foundation from which more complex value types—like tuples and buffers—are constructed.
+Scalars are also the default type produced by many stack operations and system functions. For example, a comparison yields a Boolean, arithmetic yields an integer or float, and function arity checks yield integers. Because of their simplicity, they require no special treatment in this memory model, and form the foundation from which more complex value types—like lists and buffers—are constructed.
 
-Together, scalars, tuples, and buffers represent the three principal classes of Tacit data values, each with distinct semantics and memory behavior: scalars as atomic and immutable, tuples as grouped and copyable, and buffers as mutable and reference-bound.
+Together, scalars, lists, and buffers represent the three principal classes of Tacit data values, each with distinct semantics and memory behavior: scalars as atomic and immutable, lists as grouped and copyable, and buffers as mutable and reference-bound.
 
 ## 9. Copying, Reassignment, and Reuse
 
-Tacit distinguishes clearly between value copying and reference passing. Scalars are always copied. Tuples are typically copied when assigned to variables, preserving value semantics. Buffers, on the other hand, are assigned and passed by reference.
+Tacit distinguishes clearly between value copying and reference passing. Scalars are always copied. Lists are typically copied when assigned to variables, preserving value semantics. Buffers, on the other hand, are assigned and passed by reference.
 
 ### Segment-Based Assignment Rules
 
 When reassigning values between variables or memory locations, Tacit enforces strict segment-compatibility rules based on the segment tags encoded in references:
 
-* **Reassigning a `STACK`-segmented value to a `GLOBAL` variable raises an error**, as stack values cannot outlive their frame.
-* **`CODE` segment values can be assigned to any location but are immutable**, preventing modification attempts.
-* **`HEAP` segment values can be assigned to both stack and global variables**, supporting flexible lifetime management.
-* **Cross-segment tuple copies preserve structure but allocate in the target segment**, ensuring memory safety.
+- **Reassigning a `STACK`-segmented value to a `GLOBAL` variable raises an error**, as stack values cannot outlive their frame.
+- **`CODE` segment values can be assigned to any location but are immutable**, preventing modification attempts.
+- **`HEAP` segment values can be assigned to both stack and global variables**, supporting flexible lifetime management.
+- **Cross-segment list copies preserve structure but allocate in the target segment**, ensuring memory safety.
 
 These segment-based constraints are enforced at runtime through the segment tag within each reference. This enables Tacit to catch potential memory safety issues like escaping stack references while still allowing efficient reference-based operations when appropriate.
 
-Reassigning a tuple to a variable allocates a new memory region and updates the variable to point to the new value. The old allocation becomes unreachable unless tracked for reuse or compaction. Because tuples are tagged with their size, compaction is theoretically possible—moving later allocations downward to fill any gaps—but it introduces runtime cost. Tacit assumes the simplest model first: bump allocation with no implicit deallocation or reuse.
+Reassigning a list to a variable allocates a new memory region and updates the variable to point to the new value. The old allocation becomes unreachable unless tracked for reuse or compaction. Because lists are tagged with their size, compaction is theoretically possible—moving later allocations downward to fill any gaps—but it introduces runtime cost. Tacit assumes the simplest model first: bump allocation with no implicit deallocation or reuse.
 
-This model leads to natural reuse patterns. Frequently reassigned or short-lived tuples tend to rise to the top of the allocation arena and become cheaper to overwrite, while long-lived tuples settle lower and remain stable. Programmers can optimize for this behavior by reassigning short tuples later in a function or allocating larger, more stable buffers early.
+This model leads to natural reuse patterns. Frequently reassigned or short-lived lists tend to rise to the top of the allocation arena and become cheaper to overwrite, while long-lived lists settle lower and remain stable. Programmers can optimize for this behavior by reassigning short lists later in a function or allocating larger, more stable buffers early.
 
-Variable reassignment is allowed, but treated cautiously. If reassignments cause excessive fragmentation or stack growth, the programmer may need to adopt a more deliberate memory strategy. Tacit favors brute simplicity over implicit magic. Tuples can be reassigned, but doing so allocates fresh memory. No garbage collection or implicit reuse is performed unless explicitly configured.
+Variable reassignment is allowed, but treated cautiously. If reassignments cause excessive fragmentation or stack growth, the programmer may need to adopt a more deliberate memory strategy. Tacit favors brute simplicity over implicit magic. Lists can be reassigned, but doing so allocates fresh memory. No garbage collection or implicit reuse is performed unless explicitly configured.
 
 Thus, reassignment acts as a contract: you take on the cost of fresh memory each time, and if you wish to avoid it, you must manage that yourself, by using buffers or restructuring your code.
 
 ## 10. Compaction and Fragmentation Strategies
 
-Tacit’s bump allocator does not track freed regions, but compaction is permitted. If a tuple or buffer is overwritten or discarded, the region it occupied can be marked for reclamation. A compaction pass can slide higher allocations down to close the gap. This is expensive in general but cheap if only a few values must move.
+Tacit’s bump allocator does not track freed regions, but compaction is permitted. If a list or buffer is overwritten or discarded, the region it occupied can be marked for reclamation. A compaction pass can slide higher allocations down to close the gap. This is expensive in general but cheap if only a few values must move.
 
-Tacit’s bias is: never compact implicitly. Instead, provide the user tools to invoke compaction explicitly. Compaction may be desirable after a phase of allocation and deletion, or before reusing a large tuple slot. Tacit may implement simple mark-and-copy passes to preserve stack shape while reclaiming space, but these are always programmer-directed.
+Tacit’s bias is: never compact implicitly. Instead, provide the user tools to invoke compaction explicitly. Compaction may be desirable after a phase of allocation and deletion, or before reusing a large list slot. Tacit may implement simple mark-and-copy passes to preserve stack shape while reclaiming space, but these are always programmer-directed.
 
-This strategy assumes the “last-in, first-out” lifetime heuristic: newer allocations tend to die sooner. This makes localized compaction very effective. If a single reassigned tuple causes fragmentation, it is often at the top of the arena and easily cleared. Lower allocations are typically stable.
+This strategy assumes the “last-in, first-out” lifetime heuristic: newer allocations tend to die sooner. This makes localized compaction very effective. If a single reassigned list causes fragmentation, it is often at the top of the arena and easily cleared. Lower allocations are typically stable.
 
-Tacit also encourages data partitioning. If long-lived buffers and short-lived tuples are placed in separate arenas, compaction or reuse becomes easier without coordination. Buffers meant for reuse can be reset or zeroed without fragmentation issues. Tuples, being immutable and compact, are better simply copied.
+Tacit also encourages data partitioning. If long-lived buffers and short-lived lists are placed in separate arenas, compaction or reuse becomes easier without coordination. Buffers meant for reuse can be reset or zeroed without fragmentation issues. Lists, being immutable and compact, are better simply copied.
 
 ## 11. Closing Principles and Design Guidelines
 
 Tacit’s memory model is designed to be consistent, simple, and explicit. Memory is divided into arenas. Each arena (local stack, global buffer, embedded structure) uses the same principles: linear bump allocation, optional compaction, and tag-based metadata to guide reuse.
 
-There is no garbage collection, but there is structure. Scalars are immutable and copied. Tuples are values with span and content, passed by value but allowed to live in reference structures. Buffers are mutable and passed by reference, and are the only truly heap-like object.
+There is no garbage collection, but there is structure. Scalars are immutable and copied. Lists are values with span and content, passed by value but allowed to live in reference structures. Buffers are mutable and passed by reference, and are the only truly heap-like object.
 
 Assignment is not mutation. Reassignment is allocation. And copying is always safe—but never free.
 
 Tacit places power in the hands of the programmer. Simplicity is enforced, and discipline is expected. In return, you gain predictable performance, precise memory behavior, and a model that scales from embedded devices to structured tabular computation without runtime indirection or GC overhead.
 
-The system rewards careful layout, deliberate ownership, and structural clarity—whether you’re working with a scalar, a tuple, or a whole arena.
+The system rewards careful layout, deliberate ownership, and structural clarity—whether you’re working with a scalar, a list, or a whole arena.
 
 ## 12. Segment-Based References
 
@@ -209,12 +210,12 @@ The segment tag typically occupies 3-4 bits of the reference, identifying the me
 
 Tacit supports these canonical segment types, each with distinct properties:
 
-* **STACK** - Frame-local, automatically reclaimed values
-* **DATA** - Optional second stack for specialized data management
-* **GLOBAL** - Long-lived values with program-wide scope
-* **STRING** - Immutable text and interned string data
-* **CODE** - Static program code and immutable constants
-* **HEAP** - Dynamically allocated data with explicit lifetime control
+- **STACK** - Frame-local, automatically reclaimed values
+- **DATA** - Optional second stack for specialized data management
+- **GLOBAL** - Long-lived values with program-wide scope
+- **STRING** - Immutable text and interned string data
+- **CODE** - Static program code and immutable constants
+- **HEAP** - Dynamically allocated data with explicit lifetime control
 
 Implementations may define additional segments for specialized purposes, but all must adhere to the core segment safety rules.
 
@@ -233,10 +234,10 @@ These runtime checks occur during assignment, parameter passing, and buffer oper
 
 This approach offers several advantages:
 
-* **No GC Required**: Safety without garbage collection overhead
-* **Explicit Lifetimes**: Clear ownership and lifetime semantics
-* **Runtime Safety**: Catches errors at the point they occur
-* **Performance**: Minimal overhead compared to full memory management
-* **Simplicity**: Reference safety without complex pointer analysis
+- **No GC Required**: Safety without garbage collection overhead
+- **Explicit Lifetimes**: Clear ownership and lifetime semantics
+- **Runtime Safety**: Catches errors at the point they occur
+- **Performance**: Minimal overhead compared to full memory management
+- **Simplicity**: Reference safety without complex pointer analysis
 
 By encoding segment metadata directly into references, Tacit gains many of the safety benefits of more complex memory management systems without sacrificing simplicity or performance.

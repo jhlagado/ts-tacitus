@@ -39,7 +39,7 @@ describe('Stack Utils', () => {
       vm.SP += BYTES_PER_ELEMENT;
     }
 
-    function createSimpleTuple(...values: number[]): void {
+    function createSimpleList(...values: number[]): void {
       pushValue(values.length, Tag.LIST);
 
       values.forEach(val => pushValue(val));
@@ -52,7 +52,7 @@ describe('Stack Utils', () => {
     });
 
     test('should find elements in sequence', () => {
-      createSimpleTuple(1, 2);
+      createSimpleList(1, 2);
       pushValue(42);
       pushValue(43);
 
@@ -70,7 +70,7 @@ describe('Stack Utils', () => {
     });
 
     test('should handle list at TOS', () => {
-      createSimpleTuple(1, 2);
+      createSimpleList(1, 2);
 
       const [nextSlot, size] = findElement(vm, 0);
       expect(size).toBe(4);
@@ -78,8 +78,8 @@ describe('Stack Utils', () => {
     });
 
     test('should handle multiple lists', () => {
-      createSimpleTuple(3, 4);
-      createSimpleTuple(1);
+      createSimpleList(3, 4);
+      createSimpleList(1);
 
       const [offset1, size1] = findElement(vm, 0);
       expect(size1).toBe(3);

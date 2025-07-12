@@ -57,9 +57,9 @@
 
 ## 1. Introduction
 
-Tacit is structured around a simple and explicit memory model in which *buffers* play a central role. A buffer in Tacit is a raw, linear memory region measured in bytes. It is the most fundamental data container in the language—every higher structure, including arrays, records, tables, and streams, builds upon it. Buffers expose no intrinsic type or structure beyond their byte count and an associated *view* that defines how to interpret their contents. This strict separation between memory and interpretation is foundational: it enables precise control over memory layout, supports composable access models, and allows for high-performance, low-overhead computation across both structured and unstructured data.
+Tacit is structured around a simple and explicit memory model in which _buffers_ play a central role. A buffer in Tacit is a raw, linear memory region measured in bytes. It is the most fundamental data container in the language—every higher structure, including arrays, records, tables, and streams, builds upon it. Buffers expose no intrinsic type or structure beyond their byte count and an associated _view_ that defines how to interpret their contents. This strict separation between memory and interpretation is foundational: it enables precise control over memory layout, supports composable access models, and allows for high-performance, low-overhead computation across both structured and unstructured data.
 
-Each buffer consists of two primary components: its byte size and its view pointer. The size is always in bytes and reflects the full allocated extent of the memory region. The view pointer, by contrast, defines how the buffer is *interpreted*—what kind of elements it contains, how to access them, and how iteration or indexing proceeds. A buffer with no explicit view is treated as a byte vector by default, which makes it usable for simple data movement and unstructured byte-wise operations. Once a view is assigned, the buffer is effectively lifted into a higher semantic space: it becomes a vector of floats, a list of records, a multidimensional array, or even a table of tuples, depending on how the view resolves.
+Each buffer consists of two primary components: its byte size and its view pointer. The size is always in bytes and reflects the full allocated extent of the memory region. The view pointer, by contrast, defines how the buffer is _interpreted_—what kind of elements it contains, how to access them, and how iteration or indexing proceeds. A buffer with no explicit view is treated as a byte vector by default, which makes it usable for simple data movement and unstructured byte-wise operations. Once a view is assigned, the buffer is effectively lifted into a higher semantic space: it becomes a vector of floats, a list of records, a multidimensional array, or even a table of lists, depending on how the view resolves.
 
 This model deliberately avoids implicit typing. Buffers do not remember their interpretation; it is always provided or inferred from context. This keeps memory usage predictable and allows functions to operate generically over any buffer so long as a compatible view is supplied. In particular, it enables operations like casting, reinterpreting, or reshaping buffers without copying the underlying data. This kind of composability is key to Tacit’s design philosophy: values remain simple, and higher-level behavior emerges from how they are interpreted.
 
@@ -71,7 +71,7 @@ In short, buffers are not containers in the traditional object-oriented sense. T
 
 ## 2. Buffers – Raw Memory as a First-Class Value
 
-A buffer in Tacit is a flat, untyped region of memory, always measured in bytes, and always accompanied by a view that governs how its contents are interpreted. This section defines what a buffer *is*, what it *contains*, and how it interacts with the rest of the system.
+A buffer in Tacit is a flat, untyped region of memory, always measured in bytes, and always accompanied by a view that governs how its contents are interpreted. This section defines what a buffer _is_, what it _contains_, and how it interacts with the rest of the system.
 
 A buffer begins its life as a block of raw bytes. It has no intrinsic structure, no internal pointers, no metadata beyond its size and its view reference. This makes buffers lightweight and deterministic. They can be stack-local, heap-allocated, or statically embedded, depending on the context in which they’re created. All operations on a buffer assume that the view is what defines the buffer’s shape—there is no type tag baked into the memory itself. This eliminates the need for type introspection at runtime and avoids the complexity of heap-allocated object graphs.
 
@@ -81,7 +81,7 @@ Internally, a buffer’s structure is extremely compact. It may consist of as li
 
 This minimalism enables powerful behavior. The same physical buffer can be sliced into multiple logical vectors, reshaped into multidimensional arrays, or reinterpreted as typed records—all without changing its contents. A new view can be assigned at any time, effectively re-casting the buffer. This dynamic reinterpretation enables techniques like zero-copy deserialization, lens-based projection, tabular reshaping, and metadata-driven record parsing.
 
-Crucially, buffers can also participate in dynamic schema systems. In Tacit, some buffers are self-describing: they store a tuple, prototype, or record in their first entry, which then defines the interpretation for all subsequent entries. These *schema-bearing* buffers use the first value as both data and descriptor. This allows tables to carry their own row layout implicitly, without requiring hardcoded views. A flag in the buffer’s header may indicate whether this first entry is live data or acts only as metadata (a tombstone), allowing deletion without schema loss.
+Crucially, buffers can also participate in dynamic schema systems. In Tacit, some buffers are self-describing: they store a list, prototype, or record in their first entry, which then defines the interpretation for all subsequent entries. These _schema-bearing_ buffers use the first value as both data and descriptor. This allows tables to carry their own row layout implicitly, without requiring hardcoded views. A flag in the buffer’s header may indicate whether this first entry is live data or acts only as metadata (a tombstone), allowing deletion without schema loss.
 
 This mechanism makes buffers ideal for dynamic tabular processing. Combined with coroutine pipelines and declarative access functions, a buffer can serve as the backend for a full table: indexed, sliced, filtered, mutated, projected, and emitted row-by-row with deterministic memory and type behavior. Buffers are also the unit of exchange between pipeline stages, making them central to Tacit’s dataflow semantics.
 
@@ -89,7 +89,7 @@ In summary, buffers are the lowest common denominator of data in Tacit. They are
 
 ## 3. Buffer Tags and Metadata Layout
 
-Every buffer in Tacit begins with a tagged value called a *buffer tag*, followed by optional metadata entries, and then the content values. The buffer tag identifies the structure as a buffer and encodes key properties including its size and metadata count, making buffers self-describing entities within Tacit's tagged value system.
+Every buffer in Tacit begins with a tagged value called a _buffer tag_, followed by optional metadata entries, and then the content values. The buffer tag identifies the structure as a buffer and encodes key properties including its size and metadata count, making buffers self-describing entities within Tacit's tagged value system.
 
 ### 3.1 Buffer Tag Structure
 
@@ -108,10 +108,10 @@ The metadata count indicates how many 32-bit words follow the tag before the con
 
 The buffer tag is followed by 0-7 metadata entries as specified in the tag's metadata count field. These 32-bit words provide additional information about the buffer's structure and state. Common metadata entries include:
 
-* **View Pointer**: A tagged reference to a view that interprets the buffer's content layout (e.g., vector, record, array, or tuple).
-* **Stack Pointer**: An integer indicating the current logical size when the buffer is used as a stack, enabling push and pop operations.
-* **Read/Write Cursors**: Indices indicating positions for streaming operations, useful for I/O channels or ring buffers.
-* **Custom Pointers**: Application-specific values providing access to cached state, ownership information, or synchronized resources.
+- **View Pointer**: A tagged reference to a view that interprets the buffer's content layout (e.g., vector, record, array, or list).
+- **Stack Pointer**: An integer indicating the current logical size when the buffer is used as a stack, enabling push and pop operations.
+- **Read/Write Cursors**: Indices indicating positions for streaming operations, useful for I/O channels or ring buffers.
+- **Custom Pointers**: Application-specific values providing access to cached state, ownership information, or synchronized resources.
 
 There is no fixed meaning assigned to specific metadata slots. Conventions or the attached view determine the interpretation of these entries. This flexibility allows buffers to adapt to various usage patterns while maintaining a consistent overall structure.
 
@@ -138,9 +138,9 @@ The buffer tag system provides a compact, flexible, and self-describing model fo
 
 ## 4. Views – Interpreting Buffer Contents
 
-In Tacit, a buffer on its own is just a raw sequence of bytes—useful for storage, but semantically meaningless without further context. A *view* provides that context. It acts as a functional interpreter over the buffer, allowing structured access through index-based or key-based lookups. Conceptually, a view is a function: it maps one or more inputs (indices, axes, or symbolic keys) to an offset in memory and a data width. By applying a view to a buffer, the system reinterprets the buffer’s contents without changing the data itself.
+In Tacit, a buffer on its own is just a raw sequence of bytes—useful for storage, but semantically meaningless without further context. A _view_ provides that context. It acts as a functional interpreter over the buffer, allowing structured access through index-based or key-based lookups. Conceptually, a view is a function: it maps one or more inputs (indices, axes, or symbolic keys) to an offset in memory and a data width. By applying a view to a buffer, the system reinterprets the buffer’s contents without changing the data itself.
 
-At minimum, a view defines how to locate elements. For example, a one-dimensional array view maps a single integer index to an offset. A two-dimensional array view maps a pair of indices to a linearized offset using the shape vector. A record view maps field names (symbols) to fixed offsets within a unit of data. More complex views, such as those used in tuples or nested tables, may combine both behaviors or derive their structure dynamically.
+At minimum, a view defines how to locate elements. For example, a one-dimensional array view maps a single integer index to an offset. A two-dimensional array view maps a pair of indices to a linearized offset using the shape vector. A record view maps field names (symbols) to fixed offsets within a unit of data. More complex views, such as those used in lists or nested tables, may combine both behaviors or derive their structure dynamically.
 
 Each buffer may carry a view reference in its metadata header, enabling the system to treat that buffer as a structured object. This reference can be nil, in which case the buffer defaults to a flat byte vector. But once a view is attached—whether array, record, span, or otherwise—the buffer becomes structurally meaningful. It now supports read and write operations interpreted through the lens of its view.
 
@@ -148,7 +148,7 @@ This mechanism supports composability. Since a view is a function, it can be rep
 
 A key property of views is that they are pure. They do not themselves store state beyond their shape metadata or transformation logic. This keeps them compact, shareable, and suitable for embedding directly into code or headers. They may also serve as canonical schemas—detached from data—especially in cases where many buffers share the same structure. For example, all rows in a table might share a single row view used repeatedly to interpret each record.
 
-When working with self-describing buffers like tuples, the view reference may point to an instance of a prototype—an initialized record that functions as both schema and example. This blurs the line between data and metadata and allows for flexible and decentralized schema definitions. Tuples are therefore a higher-level case where a single record acts as a dynamic view for others.
+When working with self-describing buffers like lists, the view reference may point to an instance of a prototype—an initialized record that functions as both schema and example. This blurs the line between data and metadata and allows for flexible and decentralized schema definitions. Lists are therefore a higher-level case where a single record acts as a dynamic view for others.
 
 In summary, views are the primary means by which raw memory is structured and accessed in Tacit. They allow buffers to act like arrays, records, or other abstractions without altering the underlying data layout. This model supports lazy reinterpretation, structural polymorphism, and zero-copy projection of data—all within a compact and efficient system.
 
@@ -164,10 +164,10 @@ In Tacit, a view is not merely metadata—it is an executable function. Views ar
 
 Typical view payloads include:
 
-* Base offset (default zero, often omitted)
-* Element width (in bytes)
-* Shape vector (for multidimensional structures)
-* Stride vector (optional, derived from shape if absent)
+- Base offset (default zero, often omitted)
+- Element width (in bytes)
+- Shape vector (for multidimensional structures)
+- Stride vector (optional, derived from shape if absent)
 
 These payloads live in dedicated memory or may be embedded in code, depending on how the view was constructed.
 
@@ -175,11 +175,11 @@ These payloads live in dedicated memory or may be embedded in code, depending on
 
 Several standard views are expected:
 
-* **Byte View**: Default view; treats the buffer as a flat byte array.
-* **Shape View**: Interprets the buffer as a multidimensional array using a shape vector.
-* **Record View**: Treats the buffer as a sequence of fixed-size structs.
-* **Span View**: Views the buffer as a table of dynamically-typed or variable-length entries.
-* **Self-Describing View**: Reads its layout from the first element of the buffer (used in tuples or prototypes).
+- **Byte View**: Default view; treats the buffer as a flat byte array.
+- **Shape View**: Interprets the buffer as a multidimensional array using a shape vector.
+- **Record View**: Treats the buffer as a sequence of fixed-size structs.
+- **Span View**: Views the buffer as a table of dynamically-typed or variable-length entries.
+- **Self-Describing View**: Reads its layout from the first element of the buffer (used in lists or prototypes).
 
 Custom views may also be created dynamically or derived from existing metadata.
 
@@ -207,7 +207,7 @@ At its core, a shape is represented as a vector of integers, each describing the
 
 Shapes are stored in ordinary Tacit buffers, typically with a known format: the first word is the rank, followed by the extent of each dimension. Optionally, additional values may define strides.
 
-These shapes are typically embedded into view metadata. They inform the view how to compute the offset for a given tuple of indices using standard row-major or column-major logic.
+These shapes are typically embedded into view metadata. They inform the view how to compute the offset for a given list of indices using standard row-major or column-major logic.
 
 ### 6.2 Derived Strides
 
@@ -247,7 +247,7 @@ This makes prototypes dual-purpose: they can be executed like functions (to proj
 
 ### 7.2 Creation and Use
 
-A prototype is often created by filling a buffer according to a known shape or schema. For instance, a structured record might be initialized with default field values, and its layout defined by a shape vector or tuple. That combination becomes a prototype.
+A prototype is often created by filling a buffer according to a known shape or schema. For instance, a structured record might be initialized with default field values, and its layout defined by a shape vector or list. That combination becomes a prototype.
 
 Later code can reference this prototype to create new records, validate conformance, or treat the prototype itself as an object. In practice, this might look like:
 
@@ -263,7 +263,7 @@ Where `@name` and `(2 3)` are field or index lookups through the view layer, but
 
 Every prototype is also a view. You can call it with index arguments, and it will translate those into data accesses. Because it also includes the metadata required to do this (either in the buffer tag or embedded), it serves as a fully standalone value.
 
-In this way, a prototype *is* its own shape. It satisfies the same calling conventions, participates in array-style access, and can even be queried for its structure. This allows functions that expect views or shapes to work transparently with prototypes.
+In this way, a prototype _is_ its own shape. It satisfies the same calling conventions, participates in array-style access, and can even be queried for its structure. This allows functions that expect views or shapes to work transparently with prototypes.
 
 ### 7.4 Usage Patterns
 
@@ -294,9 +294,9 @@ A table in Tacit is a buffer that holds a series of structurally identical recor
 
 At the core, a table is composed of three elements:
 
-* A backing buffer that contains serialized records in row-major order.
-* A row view (schema or prototype) that describes how to interpret each record.
-* A rank-one or rank-two shape vector defining how many records there are and how large each is.
+- A backing buffer that contains serialized records in row-major order.
+- A row view (schema or prototype) that describes how to interpret each record.
+- A rank-one or rank-two shape vector defining how many records there are and how large each is.
 
 This makes tables a natural extension of arrays and records. You can treat them as sequences of structured values, or you can treat the entire buffer as a raw region and access it with a lens or slicing function.
 
@@ -338,7 +338,7 @@ This is especially useful in update pipelines, where rows are read, updated, and
 
 ### 8.6 Symbolic Columns and Field Labels
 
-To support symbolic access, tables often carry a tuple or record schema in their view metadata. This enables field names to be resolved to column indices, and operations like:
+To support symbolic access, tables often carry a list or record schema in their view metadata. This enables field names to be resolved to column indices, and operations like:
 
 ```
 table (3 %name) → "Alice"
@@ -363,13 +363,13 @@ Once a table row has been identified—typically via ordinal index—Tacit provi
 
 The ability to modify rows depends on two key factors:
 
-* The buffer must be explicitly marked as mutable
-* The associated view must support bidirectional access (read and write operations)
+- The buffer must be explicitly marked as mutable
+- The associated view must support bidirectional access (read and write operations)
 
 When these conditions are met, row access operations can return a specialized reference—effectively a combination of base pointer and field offset mapping—that enables direct updates to individual fields within the row. This reference mechanism enables clean syntax for field updates in Tacit's stack-oriented notation:
 
 ```
-row-reference 42 'age set-field  
+row-reference 42 'age set-field
 ```
 
 Without this explicit mutability, all row projections remain read-only, preserving data integrity in functional transformation chains.
@@ -428,9 +428,9 @@ Sentinels are not special values, but tagged indicators defined in the same name
 
 This allows advanced control like:
 
-* Skipping remaining records.
-* Terminating a search early.
-* Signaling that a mutation completed.
+- Skipping remaining records.
+- Terminating a search early.
+- Signaling that a mutation completed.
 
 ### 9.5 Coroutine Constraints and Side Effects
 
@@ -438,9 +438,9 @@ After a coroutine yields, Tacit disallows further local buffer allocation. This 
 
 For safe mutation:
 
-* Allocate working buffers before entering the loop.
-* Use stable views that refer to the same record layout throughout.
-* Ensure all updates are committed before yielding.
+- Allocate working buffers before entering the loop.
+- Use stable views that refer to the same record layout throughout.
+- Ensure all updates are committed before yielding.
 
 Violation of these rules may result in undefined behavior or allocation errors.
 
@@ -452,7 +452,7 @@ In some cases, a full row must be replaced, not just patched. This is typically 
 2. Copying it over the old record at the correct offset.
 3. Updating any relevant pointers or indices.
 
-This model aligns with how Tuples behave as prototypes: they provide not just field structure, but also initialization values. A prototype may be copied into the table with selected fields modified before insertion.
+This model aligns with how Lists behave as prototypes: they provide not just field structure, but also initialization values. A prototype may be copied into the table with selected fields modified before insertion.
 
 ## 10. Stack and Queue Semantics in Buffers
 
@@ -476,9 +476,9 @@ Buffers intended for queue use should allocate three or more metadata fields: on
 
 To ensure compatibility and clarity, Tacit establishes symbolic offsets for standard metadata roles. These are typically defined in the standard library as constants:
 
-* `META_SP = 1` for stack pointer
-* `META_RP = 1`, `META_WP = 2` for queues
-* `META_VIEW = 1` for standard view metadata (if no pointer-based semantics are used)
+- `META_SP = 1` for stack pointer
+- `META_RP = 1`, `META_WP = 2` for queues
+- `META_VIEW = 1` for standard view metadata (if no pointer-based semantics are used)
 
 Only one set of these fields should be active for a given buffer role. That is, a buffer acting as a stack should not simultaneously store read/write pointers unless specifically required by a hybrid algorithm. This avoids wasted header space and improves interpretation predictability.
 
@@ -500,7 +500,7 @@ Hybrid structures also emerge by layering metadata roles. A buffer may include a
 
 ### 11.2 Prototypes as Complete Templates
 
-Prototypes serve a special role in these hybrid systems. A prototype is an instance that carries its own view and initialized values, and can be cloned to produce similar objects. When a prototype is treated as a view, it informs not just the shape but also the semantics and behavior of new structures created from it. 
+Prototypes serve a special role in these hybrid systems. A prototype is an instance that carries its own view and initialized values, and can be cloned to produce similar objects. When a prototype is treated as a view, it informs not just the shape but also the semantics and behavior of new structures created from it.
 
 A record prototype, for example, may define field names, types, default values, and validation logic—all encapsulated in the view. When such a prototype is assigned as the view of a buffer, the buffer adopts its structure and behavior wholesale.
 
@@ -511,4 +511,3 @@ To make hybrid structures work in practice, Tacit standardizes the view interfac
 Importantly, hybrid structures are optional. Simple uses—like a raw byte buffer or a flat numeric array—do not require views at all. Only when behavior or structured layout is desired does a view need to be introduced. This ensures Tacit buffers remain lightweight by default, and that structure is always opt-in and explicit.
 
 In summary, Section 11 highlights how Tacit buffers gain expressive power when views are used to define hybrid semantics. The separation of storage (buffers) from interpretation (views) allows composable, minimal, and functional design—extending from basic arrays to self-structured tables, queues, and beyond.
-
