@@ -37,7 +37,6 @@ export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void
     const temp = vm.memory.readFloat32(SEG_STACK, left);
     vm.memory.writeFloat32(SEG_STACK, left, vm.memory.readFloat32(SEG_STACK, right));
     vm.memory.writeFloat32(SEG_STACK, right, temp);
-
     left += 4;
     right -= 4;
   }
@@ -59,15 +58,10 @@ export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void
  */
 export function slotsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
-
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
   if (normalizedShift === 0) return;
-
   const splitPoint = rangeSize - normalizedShift;
-
   slotsReverse(vm, startSlot, splitPoint);
-
   slotsReverse(vm, startSlot + splitPoint, normalizedShift);
-
   slotsReverse(vm, startSlot, rangeSize);
 }
