@@ -8,14 +8,14 @@ export type StackArgInfo = [number, number];
 /**
  * Finds an element in the stack starting from a given slot.
  *
- * This function can identify both simple values and tuples. For tuples, it will
- * return the total size including the TUPLE tag, elements, and LINK tag.
+ * This function can identify both simple values and lists. For lists, it will
+ * return the total size including the LIST tag, elements, and LINK tag.
  *
  * @param vm - The VM instance containing the stack to search
  * @param startSlot - The slot offset from the current stack pointer (0 = top of stack)
- * @returns A tuple of [nextSlot, size] where:
+ * @returns A list of [nextSlot, size] where:
  *   - nextSlot: The offset to the next element after the current one
- *   - size: The size of the current element in slots (1 for simple values, n+2 for tuples)
+ *   - size: The size of the current element in slots (1 for simple values, n+2 for lists)
  *
  * @example
  *
@@ -34,14 +34,14 @@ export function findElement(vm: VM, startSlot: number = 0): [number, number] {
   const { tag, value: tagValue } = fromTaggedValue(value);
 
   if (tag === Tag.LINK) {
-    const tupleSlot = slotAddr - tagValue;
-    if (tupleSlot >= 0) {
-      const tupleAddr = tupleSlot * BYTES_PER_ELEMENT;
-      const tupleValue = vm.memory.readFloat32(SEG_STACK, tupleAddr);
-      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(tupleValue);
+    const listSlot = slotAddr - tagValue;
+    if (listSlot >= 0) {
+      const listAddr = listSlot * BYTES_PER_ELEMENT;
+      const listValue = vm.memory.readFloat32(SEG_STACK, listAddr);
+      const { tag: listTag, value: listSize } = fromTaggedValue(listValue);
 
-      if (tupleTag === Tag.TUPLE) {
-        const elementSize = tupleSize + 2;
+      if (listTag === Tag.LIST) {
+        const elementSize = listSize + 2;
         return [startSlot + elementSize, elementSize];
       }
     }

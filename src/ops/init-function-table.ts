@@ -15,7 +15,7 @@ import {
   evalOp,
   literalStringOp,
 } from './builtins-interpreter';
-import { openTupleOp, closeTupleOp } from './builtins-tuple';
+import { openTupleOp, closeTupleOp } from './builtins-list';
 
 import {
   addOp,

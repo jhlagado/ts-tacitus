@@ -38,8 +38,8 @@ export enum Tag {
   /**  Represents a string literal. */
   STRING = 4,
 
-  /**  Represents a tuple tag with size information. */
-  TUPLE = 5,
+  /**  Represents a list tag with size information. */
+  LIST = 5,
 
   /**  Represents a link (relative offset) on the stack. */
   LINK = 6,
@@ -54,7 +54,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.CODE]: 'CODE',
   [Tag.CODE_BLOCK]: 'CODE_BLOCK',
   [Tag.STRING]: 'STRING',
-  [Tag.TUPLE]: 'TUPLE',
+  [Tag.LIST]: 'LIST',
   [Tag.LINK]: 'LINK',
 };
 

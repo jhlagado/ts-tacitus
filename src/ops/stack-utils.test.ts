@@ -40,7 +40,7 @@ describe('Stack Utils', () => {
     }
 
     function createSimpleTuple(...values: number[]): void {
-      pushValue(values.length, Tag.TUPLE);
+      pushValue(values.length, Tag.LIST);
 
       values.forEach(val => pushValue(val));
 
@@ -69,7 +69,7 @@ describe('Stack Utils', () => {
       expect(size3).toBe(4);
     });
 
-    test('should handle tuple at TOS', () => {
+    test('should handle list at TOS', () => {
       createSimpleTuple(1, 2);
 
       const [nextSlot, size] = findElement(vm, 0);
@@ -77,7 +77,7 @@ describe('Stack Utils', () => {
       expect(nextSlot).toBe(4);
     });
 
-    test('should handle multiple tuples', () => {
+    test('should handle multiple lists', () => {
       createSimpleTuple(3, 4);
       createSimpleTuple(1);
 

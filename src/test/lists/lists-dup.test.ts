@@ -23,19 +23,19 @@ describe('Tuple duplication operations', () => {
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
-    vm.tupleDepth = 0;
+    vm.listDepth = 0;
     vm.compiler.reset();
   });
 
   describe('dup', () => {
-    test('should duplicate a simple tuple', () => {
+    test('should duplicate a simple list', () => {
       executeCode('( 1 2 ) dup');
       const stack = vm.getStackData();
 
       expect(stack.length).toBe(8);
 
       const { tag: firstTupleTag, value: firstTupleSize } = fromTaggedValue(stack[0]);
-      expect(firstTupleTag).toBe(Tag.TUPLE);
+      expect(firstTupleTag).toBe(Tag.LIST);
       expect(firstTupleSize).toBe(2);
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
@@ -45,7 +45,7 @@ describe('Tuple duplication operations', () => {
       expect(firstLinkValue).toBe(3);
 
       const { tag: secondTupleTag, value: secondTupleSize } = fromTaggedValue(stack[4]);
-      expect(secondTupleTag).toBe(Tag.TUPLE);
+      expect(secondTupleTag).toBe(Tag.LIST);
       expect(secondTupleSize).toBe(2);
       expect(stack[5]).toBe(1);
       expect(stack[6]).toBe(2);
@@ -55,22 +55,22 @@ describe('Tuple duplication operations', () => {
       expect(secondLinkValue).toBe(3);
     });
 
-    test('should duplicate a larger tuple and preserve LINK tags', () => {
+    test('should duplicate a larger list and preserve LINK tags', () => {
       executeCode('( 10 20 30 ) dup');
       const stack = vm.getStackData();
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(3) - Original tuple tag
-       * [1] 10       - First element of original tuple
-       * [2] 20       - Second element of original tuple
-       * [3] 30       - Third element of original tuple
-       * [4] LINK(4)  - Link tag for original tuple (points to 4 elements)
-       * [5] TUPLE(3) - Duplicated tuple tag
-       * [6] 10       - First element of duplicated tuple
-       * [7] 20       - Second element of duplicated tuple
-       * [8] 30       - Third element of duplicated tuple
-       * [9] LINK(4)  - Link tag for duplicated tuple (points to 4 elements)
+       * [0] LIST(3) - Original list tag
+       * [1] 10       - First element of original list
+       * [2] 20       - Second element of original list
+       * [3] 30       - Third element of original list
+       * [4] LINK(4)  - Link tag for original list (points to 4 elements)
+       * [5] LIST(3) - Duplicated list tag
+       * [6] 10       - First element of duplicated list
+       * [7] 20       - Second element of duplicated list
+       * [8] 30       - Third element of duplicated list
+       * [9] LINK(4)  - Link tag for duplicated list (points to 4 elements)
        */
       expect(stack.length).toBe(10);
 
@@ -82,23 +82,23 @@ describe('Tuple duplication operations', () => {
       expect(dupLinkTag).toBe(Tag.LINK);
     });
 
-    test('should duplicate a nested tuple', () => {
+    test('should duplicate a nested list', () => {
       executeCode('( 1 ( 2 3 ) 4 )');
 
       /**
        * Initial stack layout (before dup):
-       * [0] TUPLE(3)  - Outer tuple tag with 3 elements
-       * [1] 1         - First element of outer tuple
-       * [2] TUPLE(2)  - Second element (inner tuple) with 2 elements
-       * [3] 2         - First element of inner tuple
-       * [4] 3         - Second element of inner tuple
-       * [5] 4         - Third element of outer tuple
-       * [6] LINK(6)   - Link tag for outer tuple (points back 6 elements)
+       * [0] LIST(3)  - Outer list tag with 3 elements
+       * [1] 1         - First element of outer list
+       * [2] LIST(2)  - Second element (inner list) with 2 elements
+       * [3] 2         - First element of inner list
+       * [4] 3         - Second element of inner list
+       * [5] 4         - Third element of outer list
+       * [6] LINK(6)   - Link tag for outer list (points back 6 elements)
        */
 
       const stackBeforeDup = vm.getStackData();
 
-      console.log('Original nested tuple structure:');
+      console.log('Original nested list structure:');
       for (let i = 0; i < stackBeforeDup.length; i++) {
         const { tag, value } = fromTaggedValue(stackBeforeDup[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
@@ -111,20 +111,20 @@ describe('Tuple duplication operations', () => {
 
       /**
        * Expected stack layout after dup:
-       * [0] TUPLE(3)  - Original outer tuple tag
-       * [1] 1         - First element of original outer tuple
-       * [2] TUPLE(2)  - Original inner tuple tag
-       * [3] 2         - First element of original inner tuple
-       * [4] 3         - Second element of original inner tuple
-       * [5] 4         - Third element of original outer tuple
-       * [6] LINK(6)   - Link tag for original outer tuple
-       * [7] TUPLE(3)  - Duplicated outer tuple tag
-       * [8] 1         - First element of duplicated outer tuple
-       * [9] TUPLE(2)  - Duplicated inner tuple tag
-       * [10] 2        - First element of duplicated inner tuple
-       * [11] 3        - Second element of duplicated inner tuple
-       * [12] 4        - Third element of duplicated outer tuple
-       * [13] LINK(6)  - Link tag for duplicated outer tuple
+       * [0] LIST(3)  - Original outer list tag
+       * [1] 1         - First element of original outer list
+       * [2] LIST(2)  - Original inner list tag
+       * [3] 2         - First element of original inner list
+       * [4] 3         - Second element of original inner list
+       * [5] 4         - Third element of original outer list
+       * [6] LINK(6)   - Link tag for original outer list
+       * [7] LIST(3)  - Duplicated outer list tag
+       * [8] 1         - First element of duplicated outer list
+       * [9] LIST(2)  - Duplicated inner list tag
+       * [10] 2        - First element of duplicated inner list
+       * [11] 3        - Second element of duplicated inner list
+       * [12] 4        - Third element of duplicated outer list
+       * [13] LINK(6)  - Link tag for duplicated outer list
        */
 
       console.log('After dup:');
@@ -153,12 +153,12 @@ describe('Tuple duplication operations', () => {
 
       expect(foundCount4).toBeGreaterThanOrEqual(2);
 
-      let tupleCount = 0;
+      let listCount = 0;
       for (let i = 0; i < dupStack.length; i++) {
         const { tag } = fromTaggedValue(dupStack[i]);
-        if (tag === Tag.TUPLE) tupleCount++;
+        if (tag === Tag.LIST) listCount++;
       }
-      expect(tupleCount).toBeGreaterThanOrEqual(1);
+      expect(listCount).toBeGreaterThanOrEqual(1);
     });
 
     test('should duplicate a regular value', () => {
@@ -175,19 +175,19 @@ describe('Tuple duplication operations', () => {
       expect(stack[1]).toBe(42);
     });
 
-    test('should be able to operate on duplicated tuples individually', () => {
+    test('should be able to operate on duplicated lists individually', () => {
       executeCode('( 1 2 ) dup');
 
       /**
        * Expected stack layout after ( 1 2 ) dup:
-       * [0] TUPLE(2)  - First tuple tag
-       * [1] 1         - First element of first tuple
-       * [2] 2         - Second element of first tuple
-       * [3] LINK(3)   - Link tag for first tuple
-       * [4] TUPLE(2)  - Second tuple tag (duplicated)
-       * [5] 1         - First element of second tuple
-       * [6] 2         - Second element of second tuple
-       * [7] LINK(3)   - Link tag for second tuple
+       * [0] LIST(2)  - First list tag
+       * [1] 1         - First element of first list
+       * [2] 2         - Second element of first list
+       * [3] LINK(3)   - Link tag for first list
+       * [4] LIST(2)  - Second list tag (duplicated)
+       * [5] 1         - First element of second list
+       * [6] 2         - Second element of second list
+       * [7] LINK(3)   - Link tag for second list
        */
       const stack = vm.getStackData();
       expect(stack.length).toBe(8);
@@ -196,14 +196,14 @@ describe('Tuple duplication operations', () => {
 
       /**
        * Expected stack layout after pushing 3 and 4:
-       * [0] TUPLE(2)  - First tuple tag
-       * [1] 1         - First element of first tuple
-       * [2] 2         - Second element of first tuple
-       * [3] LINK(3)   - Link tag for first tuple
-       * [4] TUPLE(2)  - Second tuple tag (duplicated)
-       * [5] 1         - First element of second tuple
-       * [6] 2         - Second element of second tuple
-       * [7] LINK(3)   - Link tag for second tuple
+       * [0] LIST(2)  - First list tag
+       * [1] 1         - First element of first list
+       * [2] 2         - Second element of first list
+       * [3] LINK(3)   - Link tag for first list
+       * [4] LIST(2)  - Second list tag (duplicated)
+       * [5] 1         - First element of second list
+       * [6] 2         - Second element of second list
+       * [7] LINK(3)   - Link tag for second list
        * [8] 3         - Additional value
        * [9] 4         - Additional value
        */

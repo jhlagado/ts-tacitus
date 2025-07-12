@@ -253,23 +253,23 @@ function endDefinition(state: ParserState): void {
 }
 
 /**
- * Begin a tuple with (
+ * Begin a list with (
  */
 function beginTuple(_state: ParserState): void {
-  vm.tupleDepth++;
+  vm.listDepth++;
   vm.compiler.compileOpcode(Op.OpenTuple);
 }
 
 /**
- * End a tuple with )
+ * End a list with )
  */
 function endTuple(_state: ParserState): void {
-  if (vm.tupleDepth <= 0) {
+  if (vm.listDepth <= 0) {
     throw new Error('Unexpected closing parenthesis');
   }
 
   vm.compiler.compileOpcode(Op.CloseTuple);
-  vm.tupleDepth--;
+  vm.listDepth--;
 }
 
 /**

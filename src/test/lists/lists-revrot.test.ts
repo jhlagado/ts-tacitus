@@ -21,7 +21,7 @@ describe('Tuple revrot operations', () => {
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
-    vm.tupleDepth = 0;
+    vm.listDepth = 0;
     vm.compiler.reset();
   });
 
@@ -40,7 +40,7 @@ describe('Tuple revrot operations', () => {
       expect(val3.value).toBe(2);
     });
 
-    test('should reverse rotate a tuple with two simple values', () => {
+    test('should reverse rotate a list with two simple values', () => {
       executeCode('(1 2) 3 4');
       executeCode('revrot');
       const stack = vm.getStackData();
@@ -51,9 +51,9 @@ describe('Tuple revrot operations', () => {
       expect(val1.value).toBe(4);
       expect(val1.tag).toBe(0);
 
-      const tupleTag = fromTaggedValue(stack[1]);
-      expect(tupleTag.tag).toBe(Tag.TUPLE);
-      expect(tupleTag.value).toBe(2);
+      const listTag = fromTaggedValue(stack[1]);
+      expect(listTag.tag).toBe(Tag.LIST);
+      expect(listTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[2]);
       const elem2 = fromTaggedValue(stack[3]);
@@ -71,10 +71,10 @@ describe('Tuple revrot operations', () => {
       expect(val3.tag).toBe(0);
     });
 
-    test('should handle nested tuples', () => {
+    test('should handle nested lists', () => {
       executeCode('((1 2) 3) 4 5 revrot');
       const stack = vm.getStackData();
-      
+
       expect(stack.length).toBe(8);
 
       const val1 = fromTaggedValue(stack[0]);
@@ -82,11 +82,11 @@ describe('Tuple revrot operations', () => {
       expect(val1.tag).toBe(0);
 
       const outerTupleTag = fromTaggedValue(stack[1]);
-      expect(outerTupleTag.tag).toBe(Tag.TUPLE);
+      expect(outerTupleTag.tag).toBe(Tag.LIST);
       expect(outerTupleTag.value).toBe(2);
 
       const innerTupleTag = fromTaggedValue(stack[2]);
-      expect(innerTupleTag.tag).toBe(Tag.TUPLE);
+      expect(innerTupleTag.tag).toBe(Tag.LIST);
       expect(innerTupleTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[3]);

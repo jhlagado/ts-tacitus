@@ -137,7 +137,7 @@ export const revrotOp: Verb = (vm: VM) => {
 
     rangeRoll(vm, 0, totalSlots, topSlots);
 
-    if (originalTag === Tag.TUPLE) {
+    if (originalTag === Tag.LIST) {
       const newHeader = originalHeader;
       vm.memory.writeFloat32(SEG_STACK, 1 * BYTES_PER_ELEMENT, newHeader);
     }

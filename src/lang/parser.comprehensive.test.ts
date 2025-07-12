@@ -50,13 +50,13 @@ describe('Comprehensive Parser Tests', () => {
     });
   });
   describe('Tuples', () => {
-    test('should parse empty tuples', () => {
+    test('should parse empty lists', () => {
       parse(new Tokenizer('( )'));
       vm.reset();
       expect(vm.next8()).toBe(Op.OpenTuple);
       expect(vm.next8()).toBe(Op.CloseTuple);
     });
-    test('should parse tuples with elements', () => {
+    test('should parse lists with elements', () => {
       parse(new Tokenizer('( 1 2 )'));
       vm.reset();
       expect(vm.next8()).toBe(Op.OpenTuple);

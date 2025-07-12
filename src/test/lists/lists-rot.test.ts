@@ -24,7 +24,7 @@ describe('Tuple rot operations', () => {
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
-    vm.tupleDepth = 0;
+    vm.listDepth = 0;
     vm.compiler.reset();
   });
 
@@ -45,7 +45,7 @@ describe('Tuple rot operations', () => {
       expect(val3.value).toBe(1);
     });
 
-    test('should rotate a tuple with two simple values', () => {
+    test('should rotate a list with two simple values', () => {
       executeCode('(1 2) 3 4');
 
       const initialStack = vm.getStackData();
@@ -65,10 +65,10 @@ describe('Tuple rot operations', () => {
         console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
-      const [nextSlot, tupleSize] = findElement(vm, 0);
-      console.log('\nTuple info:', { nextSlot, tupleSize });
+      const [nextSlot, listSize] = findElement(vm, 0);
+      console.log('\nTuple info:', { nextSlot, listSize });
       console.log('Tuple data:');
-      for (let i = 0; i < tupleSize; i++) {
+      for (let i = 0; i < listSize; i++) {
         const addr = i * 4;
         const raw = vm.memory.readFloat32(0, addr);
         const { tag, value } = fromTaggedValue(raw);
@@ -104,11 +104,11 @@ describe('Tuple rot operations', () => {
       expect(val1.value).toBe(3);
       expect(val2.value).toBe(4);
 
-      const tupleTag = fromTaggedValue(stack[2]);
-      console.log('\nTuple header:', tupleTag);
+      const listTag = fromTaggedValue(stack[2]);
+      console.log('\nTuple header:', listTag);
 
-      expect(tupleTag.tag).toBe(Tag.TUPLE);
-      expect(tupleTag.value).toBe(2);
+      expect(listTag.tag).toBe(Tag.LIST);
+      expect(listTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[3]);
       const elem2 = fromTaggedValue(stack[4]);
@@ -124,27 +124,27 @@ describe('Tuple rot operations', () => {
       expect(linkTag.value).toBe(3);
     });
 
-    test('should rotate three tuples', () => {
+    test('should rotate three lists', () => {
       executeCode('(1 2) (3 4) (5 6) rot');
       const stack = vm.getStackData();
 
-      expect(fromTaggedValue(stack[0])).toEqual({ tag: Tag.TUPLE, value: 2 });
+      expect(fromTaggedValue(stack[0])).toEqual({ tag: Tag.LIST, value: 2 });
       expect(stack[1]).toBe(3);
       expect(stack[2]).toBe(4);
       expect(fromTaggedValue(stack[3])).toEqual({ tag: Tag.LINK, value: 3 });
 
-      expect(fromTaggedValue(stack[4])).toEqual({ tag: Tag.TUPLE, value: 2 });
+      expect(fromTaggedValue(stack[4])).toEqual({ tag: Tag.LIST, value: 2 });
       expect(stack[5]).toBe(5);
       expect(stack[6]).toBe(6);
       expect(fromTaggedValue(stack[7])).toEqual({ tag: Tag.LINK, value: 3 });
 
-      expect(fromTaggedValue(stack[8])).toEqual({ tag: Tag.TUPLE, value: 2 });
+      expect(fromTaggedValue(stack[8])).toEqual({ tag: Tag.LIST, value: 2 });
       expect(stack[9]).toBe(1);
       expect(stack[10]).toBe(2);
       expect(fromTaggedValue(stack[11])).toEqual({ tag: Tag.LINK, value: 3 });
     });
 
-    test('should handle nested tuples', () => {
+    test('should handle nested lists', () => {
       executeCode('((1 2) 3) 4 5 rot');
       const stack = vm.getStackData();
 
@@ -153,8 +153,8 @@ describe('Tuple rot operations', () => {
 
       expect(Number.isNaN(stack[2])).toBe(true);
 
-      const tupleTag = fromTaggedValue(stack[3]);
-      expect(tupleTag).toEqual({ tag: Tag.TUPLE, value: 2 });
+      const listTag = fromTaggedValue(stack[3]);
+      expect(listTag).toEqual({ tag: Tag.LIST, value: 2 });
 
       expect(stack[4]).toBe(1);
 
