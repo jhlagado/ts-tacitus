@@ -12,7 +12,7 @@ function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
 function createSimpleTuple(vm: VM, ...values: number[]): { start: number; end: number } {
   const start = vm.SP;
 
-  pushValue(vm, values.length, Tag.TUPLE);
+  pushValue(vm, values.length, Tag.LIST);
 
   values.forEach(val => pushValue(vm, val));
 
@@ -31,7 +31,7 @@ describe('findElement', () => {
     vm = new VM();
   });
 
-  test('should find a simple tuple', () => {
+  test('should find a simple list', () => {
     createSimpleTuple(vm, 1, 2);
 
     const [_nextSlot, size] = findElement(vm, 0);
@@ -39,7 +39,7 @@ describe('findElement', () => {
     expect(size).toBe(4);
   });
 
-  test('should return size 1 for non-tuple', () => {
+  test('should return size 1 for non-list', () => {
     pushValue(vm, 42);
     pushValue(vm, 13);
 
@@ -47,13 +47,13 @@ describe('findElement', () => {
     expect(size).toBe(1);
   });
 
-  test('should find nested tuples', () => {
+  test('should find nested lists', () => {
     createSimpleTuple(vm, 1, 2);
 
     const [_innerNext, innerSize] = findElement(vm, 0);
     expect(innerSize).toBe(4);
 
-    pushValue(vm, 1, Tag.TUPLE);
+    pushValue(vm, 1, Tag.LIST);
     pushValue(vm, 4);
     pushValue(vm, 2, Tag.LINK);
 
@@ -66,14 +66,14 @@ describe('findElement', () => {
     expect(size).toBe(1);
   });
 
-  test('should return size 1 when element is not a tuple', () => {
+  test('should return size 1 when element is not a list', () => {
     pushValue(vm, 42);
 
     const [_, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
-  test('should find a tuple with offset from the top', () => {
+  test('should find a list with offset from the top', () => {
     createSimpleTuple(vm, 1, 2);
 
     pushValue(vm, 10);
@@ -90,23 +90,23 @@ describe('findElement', () => {
     expect(size).toBe(4);
   });
 
-  test('should find an empty tuple', () => {
-    pushValue(vm, 0, Tag.TUPLE);
+  test('should find an empty list', () => {
+    pushValue(vm, 0, Tag.LIST);
     pushValue(vm, 1, Tag.LINK);
 
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(2);
   });
 
-  test('should return size 1 for invalid tuple structure (missing TUPLE tag)', () => {
+  test('should return size 1 for invalid list structure (missing LIST tag)', () => {
     pushValue(vm, 1, Tag.LINK);
 
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
-  test('should return size 1 for invalid tuple structure (size mismatch)', () => {
-    pushValue(vm, 2, Tag.TUPLE);
+  test('should return size 1 for invalid list structure (size mismatch)', () => {
+    pushValue(vm, 2, Tag.LIST);
     pushValue(vm, 1);
     pushValue(vm, 2);
     pushValue(vm, 4, Tag.LINK);
@@ -128,7 +128,7 @@ describe('findElement', () => {
     expect(size3).toBe(1);
   });
 
-  test('should find tuple after pushing other values', () => {
+  test('should find list after pushing other values', () => {
     createSimpleTuple(vm, 42, 100);
 
     pushValue(vm, 500);
@@ -145,10 +145,10 @@ describe('findElement', () => {
     expect(size).toBe(4);
   });
 
-  test('should handle maximum size tuple within limits', () => {
+  test('should handle maximum size list within limits', () => {
     const maxSize = 10;
 
-    pushValue(vm, maxSize, Tag.TUPLE);
+    pushValue(vm, maxSize, Tag.LIST);
 
     for (let i = 0; i < maxSize; i++) {
       pushValue(vm, i % 1000);
@@ -186,7 +186,7 @@ describe('findElement', () => {
     expect(size3).toBe(4);
   });
 
-  test('should handle tuple at TOS', () => {
+  test('should handle list at TOS', () => {
     createSimpleTuple(vm, 1, 2);
 
     const [nextSlot, size] = findElement(vm, 0);
@@ -194,7 +194,7 @@ describe('findElement', () => {
     expect(nextSlot).toBe(4);
   });
 
-  test('should handle multiple tuples', () => {
+  test('should handle multiple lists', () => {
     createSimpleTuple(vm, 3, 4);
     createSimpleTuple(vm, 1);
 

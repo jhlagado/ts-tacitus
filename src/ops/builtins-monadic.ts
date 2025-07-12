@@ -38,6 +38,6 @@ export const mSignumOp: Verb = (vm: VM) => {
 export const mEnlistOp: Verb = (vm: VM) => {
   if (vm.SP < 1) throw new Error(`Stack underflow: 'enlist' requires 1 operand`);
   const a = vm.pop();
-  vm.push(toTaggedValue(1, Tag.TUPLE));
+  vm.push(toTaggedValue(1, Tag.LIST));
   vm.push(a);
 };

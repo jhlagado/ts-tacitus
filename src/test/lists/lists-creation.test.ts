@@ -22,71 +22,71 @@ describe('Tuple creation operations', () => {
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
-    vm.tupleDepth = 0;
+    vm.listDepth = 0;
     vm.running = true;
     vm.compiler.reset();
   });
 
   describe('creation', () => {
-    test('should create a simple tuple with 2 elements', () => {
+    test('should create a simple list with 2 elements', () => {
       const stack = executeCode('( 1 2 )');
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(2)  - Tuple tag with size 2
-       * [1] 1         - First element of tuple
-       * [2] 2         - Second element of tuple
-       * [3] LINK(3)   - Link tag with offset 3 (points back to tuple start)
+       * [0] LIST(2)  - Tuple tag with size 2
+       * [1] 1         - First element of list
+       * [2] 2         - Second element of list
+       * [3] LINK(3)   - Link tag with offset 3 (points back to list start)
        */
       expect(stack.length).toBe(4);
-      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
-      expect(tupleTag).toBe(Tag.TUPLE);
-      expect(tupleSize).toBe(2);
+      const { tag: listTag, value: listSize } = fromTaggedValue(stack[0]);
+      expect(listTag).toBe(Tag.LIST);
+      expect(listSize).toBe(2);
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
       const { tag: linkTag } = fromTaggedValue(stack[3]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    test('should handle empty tuples', () => {
+    test('should handle empty lists', () => {
       const stack = executeCode('( )');
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(0)  - Tuple tag with size 0 (empty tuple)
-       * [1] LINK(1)   - Link tag with offset 1 (points back to tuple start)
+       * [0] LIST(0)  - Tuple tag with size 0 (empty list)
+       * [1] LINK(1)   - Link tag with offset 1 (points back to list start)
        */
       expect(stack.length).toBe(2);
-      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[0]);
-      expect(tupleTag).toBe(Tag.TUPLE);
-      expect(tupleSize).toBe(0);
+      const { tag: listTag, value: listSize } = fromTaggedValue(stack[0]);
+      expect(listTag).toBe(Tag.LIST);
+      expect(listSize).toBe(0);
       const { tag: linkTag } = fromTaggedValue(stack[1]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    test('should handle a nested tuple with 1 level of nesting', () => {
+    test('should handle a nested list with 1 level of nesting', () => {
       const stack = executeCode('( 1 ( 2 3 ) 4 )');
 
       /**
        * Expected stack layout:
-       * [0]: TUPLE         - Outer tuple tag
-       * [1]: 1             - First element of outer tuple
-       * [2]: TUPLE         - Inner tuple tag
-       * [3]: 2             - First element of inner tuple
-       * [4]: 3             - Second element of inner tuple
-       * [5]: 4             - Last element of outer tuple
-       * [6]: LINK          - Link to the outer tuple tag
+       * [0]: LIST         - Outer list tag
+       * [1]: 1             - First element of outer list
+       * [2]: LIST         - Inner list tag
+       * [3]: 2             - First element of inner list
+       * [4]: 3             - Second element of inner list
+       * [5]: 4             - Last element of outer list
+       * [6]: LINK          - Link to the outer list tag
        */
 
-      console.log('Nested tuple with LINK verification:');
+      console.log('Nested list with LINK verification:');
       for (let i = 0; i < stack.length; i++) {
         const { tag, value } = fromTaggedValue(stack[i]);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
       const { tag: outerTag } = fromTaggedValue(stack[0]);
-      expect(outerTag).toBe(Tag.TUPLE);
+      expect(outerTag).toBe(Tag.LIST);
 
       const { tag: innerTag } = fromTaggedValue(stack[2]);
-      expect(innerTag).toBe(Tag.TUPLE);
+      expect(innerTag).toBe(Tag.LIST);
 
       expect(stack[1]).toBe(1);
       expect(stack[3]).toBe(2);
@@ -99,19 +99,19 @@ describe('Tuple creation operations', () => {
 
       expect(stack.length).toBe(7);
     });
-    test('should handle multiple nested tuples at the same level', () => {
+    test('should handle multiple nested lists at the same level', () => {
       const stack = executeCode('( ( 1 2 ) ( 3 4 ) )');
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(2)  - Outer tuple with 2 elements (both are inner tuples)
-       * [1] TUPLE(2)  - First inner tuple with 2 elements
-       * [2] 1         - First element of first inner tuple
-       * [3] 2         - Second element of first inner tuple
-       * [4] TUPLE(2)  - Second inner tuple with 2 elements
-       * [5] 3         - First element of second inner tuple
-       * [6] 4         - Second element of second inner tuple
-       * [7] LINK(7)   - Link tag for outer tuple (points back 7 elements)
+       * [0] LIST(2)  - Outer list with 2 elements (both are inner lists)
+       * [1] LIST(2)  - First inner list with 2 elements
+       * [2] 1         - First element of first inner list
+       * [3] 2         - Second element of first inner list
+       * [4] LIST(2)  - Second inner list with 2 elements
+       * [5] 3         - First element of second inner list
+       * [6] 4         - Second element of second inner list
+       * [7] LINK(7)   - Link tag for outer list (points back 7 elements)
        */
       expect(stack.length).toBe(8);
       expect(stack[2]).toBe(1);
@@ -127,16 +127,16 @@ describe('Tuple creation operations', () => {
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(4)  - Outer tuple with 4 elements
-       * [1] 1         - First element of outer tuple
-       * [2] TUPLE(0)  - Second element (empty tuple)
-       * [3] TUPLE(2)  - Third element (tuple with 2 elements)
-       * [4] 2         - First element of tuple at index 3
-       * [5] TUPLE(2)  - Second element of tuple at index 3 (another nested tuple)
-       * [6] 3         - First element of innermost tuple
-       * [7] 4         - Second element of innermost tuple
-       * [8] 5         - Fourth element of outer tuple
-       * [9] LINK(9)   - Link tag for outer tuple (points back 9 elements)
+       * [0] LIST(4)  - Outer list with 4 elements
+       * [1] 1         - First element of outer list
+       * [2] LIST(0)  - Second element (empty list)
+       * [3] LIST(2)  - Third element (list with 2 elements)
+       * [4] 2         - First element of list at index 3
+       * [5] LIST(2)  - Second element of list at index 3 (another nested list)
+       * [6] 3         - First element of innermost list
+       * [7] 4         - Second element of innermost list
+       * [8] 5         - Fourth element of outer list
+       * [9] LINK(9)   - Link tag for outer list (points back 9 elements)
        */
       expect(stack.length).toBe(10);
       expect(stack[1]).toBe(1);
@@ -148,33 +148,33 @@ describe('Tuple creation operations', () => {
       const { tag: linkTag } = fromTaggedValue(stack[stack.length - 1]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    test('should handle deeply nested tuples (3+ levels)', () => {
+    test('should handle deeply nested lists (3+ levels)', () => {
       const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
 
       /**
        * Expected stack layout:
-       * [0] TUPLE(3)  - Outermost tuple tag with 3 elements
-       * [1] 1         - First element of outermost tuple
-       * [2] TUPLE(3)  - Middle tuple tag with 3 elements
-       * [3] 2         - First element of middle tuple
-       * [4] TUPLE(2)  - Innermost tuple tag with 2 elements
-       * [5] 3         - First element of innermost tuple
-       * [6] 4         - Second element of innermost tuple
-       * [7] 5         - Third element of middle tuple
-       * [8] 6         - Third element of outermost tuple
-       * [9] LINK(9)   - Link tag for outermost tuple (points back 9 elements)
+       * [0] LIST(3)  - Outermost list tag with 3 elements
+       * [1] 1         - First element of outermost list
+       * [2] LIST(3)  - Middle list tag with 3 elements
+       * [3] 2         - First element of middle list
+       * [4] LIST(2)  - Innermost list tag with 2 elements
+       * [5] 3         - First element of innermost list
+       * [6] 4         - Second element of innermost list
+       * [7] 5         - Third element of middle list
+       * [8] 6         - Third element of outermost list
+       * [9] LINK(9)   - Link tag for outermost list (points back 9 elements)
        */
       expect(stack.length).toBe(10);
       const { tag: outerTag } = fromTaggedValue(stack[0]);
-      expect(outerTag).toBe(Tag.TUPLE);
+      expect(outerTag).toBe(Tag.LIST);
       expect(stack[1]).toBe(1);
 
       const { tag: middleTag } = fromTaggedValue(stack[2]);
-      expect(middleTag).toBe(Tag.TUPLE);
+      expect(middleTag).toBe(Tag.LIST);
       expect(stack[3]).toBe(2);
 
       const { tag: innerTag } = fromTaggedValue(stack[4]);
-      expect(innerTag).toBe(Tag.TUPLE);
+      expect(innerTag).toBe(Tag.LIST);
       expect(stack[5]).toBe(3);
       expect(stack[6]).toBe(4);
 

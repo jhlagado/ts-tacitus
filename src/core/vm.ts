@@ -22,7 +22,7 @@ export class VM {
   debug: boolean;
   symbolTable: SymbolTable;
   functionTable: FunctionTable;
-  tupleDepth: number;
+  listDepth: number;
   constructor() {
     this.memory = new Memory();
     this.IP = 0;
@@ -32,7 +32,7 @@ export class VM {
     this.BP = 0;
     this.digest = new Digest(this.memory);
     this.debug = false;
-    this.tupleDepth = 0;
+    this.listDepth = 0;
     this.functionTable = new FunctionTable();
     this.symbolTable = new SymbolTable(this.digest);
     defineBuiltins(this.symbolTable);

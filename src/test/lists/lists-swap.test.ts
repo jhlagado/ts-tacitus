@@ -24,7 +24,7 @@ describe('Tuple swap operations', () => {
     vm.RP = 0;
     vm.BP = 0;
     vm.IP = 0;
-    vm.tupleDepth = 0;
+    vm.listDepth = 0;
     vm.running = true;
     vm.compiler.reset();
   });
@@ -44,7 +44,7 @@ describe('Tuple swap operations', () => {
       expect(stack[1]).toBe(10);
     });
 
-    test('should swap a simple tuple with a value', () => {
+    test('should swap a simple list with a value', () => {
       executeCode('( 20 30 ) 10');
 
       const initialStack = vm.getStackData();
@@ -64,10 +64,10 @@ describe('Tuple swap operations', () => {
         console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
-      const [nextSlot, tupleSize] = findElement(vm, 0);
-      console.log('\nTuple info:', { nextSlot, tupleSize });
+      const [nextSlot, listSize] = findElement(vm, 0);
+      console.log('\nTuple info:', { nextSlot, listSize });
       console.log('Tuple data:');
-      for (let i = 0; i < tupleSize; i++) {
+      for (let i = 0; i < listSize; i++) {
         const addr = i * 4;
         const raw = vm.memory.readFloat32(0, addr);
         const { tag, value } = fromTaggedValue(raw);
@@ -99,10 +99,10 @@ describe('Tuple swap operations', () => {
       console.log('Swapped value:', swappedValue);
       expect(swappedValue.value).toBe(10);
 
-      const tupleHeader = fromTaggedValue(stack[1]);
-      console.log('\nTuple header:', tupleHeader);
-      expect(tupleHeader.tag).toBe(Tag.TUPLE);
-      expect(tupleHeader.value).toBe(2);
+      const listHeader = fromTaggedValue(stack[1]);
+      console.log('\nTuple header:', listHeader);
+      expect(listHeader.tag).toBe(Tag.LIST);
+      expect(listHeader.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[2]);
       const elem2 = fromTaggedValue(stack[3]);
@@ -116,7 +116,7 @@ describe('Tuple swap operations', () => {
       expect(linkTag.value).toBe(3);
     });
 
-    test('should swap a value with a simple tuple', () => {
+    test('should swap a value with a simple list', () => {
       executeCode('( 20 30 ) 10');
 
       const initialStack = vm.getStackData();
@@ -142,10 +142,10 @@ describe('Tuple swap operations', () => {
       expect(swappedValue.tag).toBe(Tag.NUMBER);
       expect(swappedValue.value).toBe(10);
 
-      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[1]);
-      console.log('\nTuple header:', { value: tupleSize, tag: tupleTag });
-      expect(tupleTag).toBe(Tag.TUPLE);
-      expect(tupleSize).toBe(2);
+      const { tag: listTag, value: listSize } = fromTaggedValue(stack[1]);
+      console.log('\nTuple header:', { value: listSize, tag: listTag });
+      expect(listTag).toBe(Tag.LIST);
+      expect(listSize).toBe(2);
       expect(stack[2]).toBe(20);
       expect(stack[3]).toBe(30);
 
@@ -153,7 +153,7 @@ describe('Tuple swap operations', () => {
       expect(linkTag).toBe(Tag.LINK);
     });
 
-    test('should swap two simple tuples', () => {
+    test('should swap two simple lists', () => {
       executeCode('( 10 20 ) ( 30 40 )');
 
       const initialStack = vm.getStackData();
@@ -175,11 +175,11 @@ describe('Tuple swap operations', () => {
       expect(stack.length).toBe(8);
 
       const firstTuple = fromTaggedValue(stack[0]);
-      console.log('\nFirst tuple header:', firstTuple);
-      expect(firstTuple.tag).toBe(Tag.TUPLE);
+      console.log('\nFirst list header:', firstTuple);
+      expect(firstTuple.tag).toBe(Tag.LIST);
       expect(firstTuple.value).toBe(2);
 
-      console.log('First tuple elements:', fromTaggedValue(stack[1]), fromTaggedValue(stack[2]));
+      console.log('First list elements:', fromTaggedValue(stack[1]), fromTaggedValue(stack[2]));
       expect(stack[1]).toBe(30);
       expect(stack[2]).toBe(40);
 
@@ -188,11 +188,11 @@ describe('Tuple swap operations', () => {
       expect(firstLink.tag).toBe(Tag.LINK);
 
       const secondTuple = fromTaggedValue(stack[4]);
-      console.log('\nSecond tuple header:', secondTuple);
-      expect(secondTuple.tag).toBe(Tag.TUPLE);
+      console.log('\nSecond list header:', secondTuple);
+      expect(secondTuple.tag).toBe(Tag.LIST);
       expect(secondTuple.value).toBe(2);
 
-      console.log('Second tuple elements:', fromTaggedValue(stack[5]), fromTaggedValue(stack[6]));
+      console.log('Second list elements:', fromTaggedValue(stack[5]), fromTaggedValue(stack[6]));
       expect(stack[5]).toBe(10);
       expect(stack[6]).toBe(20);
 
@@ -201,7 +201,7 @@ describe('Tuple swap operations', () => {
       expect(secondLink.tag).toBe(Tag.LINK);
     });
 
-    test('should swap a nested tuple with a value', () => {
+    test('should swap a nested list with a value', () => {
       executeCode('42 ( 10 ( 20 30 ) 40 )');
 
       const initialStack = vm.getStackData();
@@ -223,8 +223,8 @@ describe('Tuple swap operations', () => {
       expect(stack.length).toBe(8);
 
       const outerTuple = fromTaggedValue(stack[0]);
-      console.log('\nOuter tuple header:', outerTuple);
-      expect(outerTuple.tag).toBe(Tag.TUPLE);
+      console.log('\nOuter list header:', outerTuple);
+      expect(outerTuple.tag).toBe(Tag.LIST);
       expect(outerTuple.value).toBe(5);
 
       const swappedValue = fromTaggedValue(stack[7]);
@@ -235,7 +235,7 @@ describe('Tuple swap operations', () => {
       let innerTupleIndex = -1;
       for (let i = 0; i < stack.length; i++) {
         const { tag, value } = fromTaggedValue(stack[i]);
-        if (tag === Tag.TUPLE && i > 0) {
+        if (tag === Tag.LIST && i > 0) {
           innerTupleIndex = i;
           break;
         }
@@ -243,8 +243,8 @@ describe('Tuple swap operations', () => {
 
       expect(innerTupleIndex).toBe(2);
       const innerTuple = fromTaggedValue(stack[innerTupleIndex]);
-      console.log('Inner tuple at index', innerTupleIndex, ':', innerTuple);
-      expect(innerTuple.tag).toBe(Tag.TUPLE);
+      console.log('Inner list at index', innerTupleIndex, ':', innerTuple);
+      expect(innerTuple.tag).toBe(Tag.LIST);
       expect(innerTuple.value).toBe(2);
 
       expect(stack[1]).toBe(10);
@@ -255,7 +255,7 @@ describe('Tuple swap operations', () => {
       expect(linkTag.tag).toBe(Tag.LINK);
     });
 
-    test('should swap two nested tuples correctly', () => {
+    test('should swap two nested lists correctly', () => {
       executeCode('( 1 ( 2 3 ) 4 ) ( 5 ( 6 7 ) 8 )');
 
       const initialStack = vm.getStackData();
@@ -277,12 +277,12 @@ describe('Tuple swap operations', () => {
       expect(stack.length).toBe(14);
 
       const firstTuple = fromTaggedValue(stack[0]);
-      console.log('\nFirst tuple header:', firstTuple);
-      expect(firstTuple.tag).toBe(Tag.TUPLE);
+      console.log('\nFirst list header:', firstTuple);
+      expect(firstTuple.tag).toBe(Tag.LIST);
       expect(firstTuple.value).toBe(5);
 
       console.log(
-        'First tuple elements:',
+        'First list elements:',
         fromTaggedValue(stack[1]),
         fromTaggedValue(stack[2]),
         fromTaggedValue(stack[3]),
@@ -292,7 +292,7 @@ describe('Tuple swap operations', () => {
       expect(stack[1]).toBe(5);
 
       const firstInnerTuple = fromTaggedValue(stack[2]);
-      expect(firstInnerTuple.tag).toBe(Tag.TUPLE);
+      expect(firstInnerTuple.tag).toBe(Tag.LIST);
       expect(firstInnerTuple.value).toBe(2);
       expect(stack[3]).toBe(6);
       expect(stack[4]).toBe(7);
@@ -302,12 +302,12 @@ describe('Tuple swap operations', () => {
       expect(firstLink.tag).toBe(Tag.LINK);
 
       const secondTuple = fromTaggedValue(stack[7]);
-      console.log('\nSecond tuple header:', secondTuple);
-      expect(secondTuple.tag).toBe(Tag.TUPLE);
+      console.log('\nSecond list header:', secondTuple);
+      expect(secondTuple.tag).toBe(Tag.LIST);
       expect(secondTuple.value).toBe(5);
 
       console.log(
-        'Second tuple elements:',
+        'Second list elements:',
         fromTaggedValue(stack[8]),
         fromTaggedValue(stack[9]),
         fromTaggedValue(stack[10]),
@@ -317,7 +317,7 @@ describe('Tuple swap operations', () => {
       expect(stack[8]).toBe(1);
 
       const secondInnerTuple = fromTaggedValue(stack[9]);
-      expect(secondInnerTuple.tag).toBe(Tag.TUPLE);
+      expect(secondInnerTuple.tag).toBe(Tag.LIST);
       expect(secondInnerTuple.value).toBe(2);
       expect(stack[10]).toBe(2);
       expect(stack[11]).toBe(3);
@@ -329,22 +329,22 @@ describe('Tuple swap operations', () => {
       expect(stack.indexOf(5)).toBeLessThan(stack.indexOf(1));
     });
 
-    test('should handle empty tuples during swap', () => {
+    test('should handle empty lists during swap', () => {
       executeCode('( ) 42 swap');
       const stack = vm.getStackData();
 
       /**
        * Expected stack layout after ( ) 42 swap:
        * [0] 42        - Regular value
-       * [1] TUPLE(0)  - Empty tuple tag
+       * [1] LIST(0)  - Empty list tag
        * [2] LINK(1)   - Link tag (points back 1 element)
        */
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(42);
 
-      const { tag: tupleTag, value: tupleSize } = fromTaggedValue(stack[1]);
-      expect(tupleTag).toBe(Tag.TUPLE);
-      expect(tupleSize).toBe(0);
+      const { tag: listTag, value: listSize } = fromTaggedValue(stack[1]);
+      expect(listTag).toBe(Tag.LIST);
+      expect(listSize).toBe(0);
 
       const { tag: linkTag } = fromTaggedValue(stack[2]);
       expect(linkTag).toBe(Tag.LINK);
