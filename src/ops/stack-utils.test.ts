@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { toTaggedValue, Tag } from '../core/tagged';
-import { rangeRoll } from '../stack/rotate';
+import { slotsRoll } from '../stack/slots';
 import { findElement } from '../stack/find';
 
 const BYTES_PER_ELEMENT = 4;
@@ -18,7 +18,7 @@ describe('Stack Utils', () => {
     test('should handle empty ranges', () => {
       vm.push(1);
       vm.push(2);
-      rangeRoll(vm, 0, 0, 1);
+      slotsRoll(vm, 0, 0, 1);
       expect(vm.getStackData()).toEqual([1, 2]);
     });
 
