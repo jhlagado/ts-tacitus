@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
+    "moduleResolution": "node",
     "strict": true,
     "outDir": "./dist",
     "esModuleInterop": true,
@@ -12,7 +13,8 @@
       "@core/*": ["src/core/*"],
       "@lang/*": ["src/lang/*"],
       "@ops/*": ["src/ops/*"],
-      "@test/*": ["src/test/*"]
+      "@test/*": ["src/test/*"],
+      "@stack/*": ["src/stack/*"]
     },
     "typeRoots": [
       "./node_modules/@types",
@@ -20,11 +22,11 @@
     ]
   },
   "include": [
-    "src/**/*",
-    "test/**/*.test.ts",
-    "test/**/*.spec.ts"
+    "src/**/*"
   ],
   "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
     "node_modules",
     "dist"
   ]

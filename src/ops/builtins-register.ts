@@ -75,7 +75,7 @@ import {
   ifCurlyBranchFalseOp 
 } from './builtins-conditional';
 
-import { printOp } from './builtins-print';
+import { printOp, dotOp } from './builtins-print';
 
 /**
  * Registers all built-in operations in the symbol table
@@ -94,7 +94,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('exit', Op.Exit, exitOp);
   symbolTable.define('eval', Op.Eval, evalOp);
   symbolTable.define('print', Op.Print, printOp);
-  symbolTable.define('.', Op.Print, printOp); // Alias for test compatibility
+  symbolTable.define('.', Op.Print, dotOp); // Simple value print
   symbolTable.define('str', Op.LiteralString, literalStringOp);
   symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
   

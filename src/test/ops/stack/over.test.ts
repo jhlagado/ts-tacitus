@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
-import { overOp } from '../builtins-stack';
+import { overOp } from '../../../ops/builtins-stack';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from '../../../test/testUtils';
 

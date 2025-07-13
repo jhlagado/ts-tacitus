@@ -1,5 +1,5 @@
 import { VM } from '../../../core/vm';
-import { pickOp } from '../builtins-stack';
+import { pickOp } from '../../../ops/builtins-stack';
 import { initializeInterpreter } from '../../../core/globalState';
 import { pushList, getStackWithTags } from '../../../test/stack-utils';
 import { testStackOperation, withStack, expectStackUnderflow } from '../../../test/stack-test-utils';
