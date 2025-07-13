@@ -1,79 +1,88 @@
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../core/vm';
 import { overOp } from '../builtins-stack';
-import { Tag, toTaggedValue } from '../../core/tagged';
+import { fromTaggedValue, Tag } from '../../core/tagged';
+import { executeTacitCode, resetVM } from '../../test/testUtils';
 
 describe('over Operation', () => {
   let vm: VM;
 
   beforeEach(() => {
     vm = new VM();
+    resetVM();
   });
 
   it('should duplicate the second item (simple values)', () => {
-    // Push two simple values
     vm.push(1);
     vm.push(2);
 
-    // Execute over
     overOp(vm);
 
-    // Stack should now be [1, 2, 1]
     expect(vm.getStackData()).toEqual([1, 2, 1]);
   });
 
-  xit('should duplicate the second item (list)', () => {
-    // Clear the stack
-    vm.SP = 0;
-
-    // Push a simple value first
-    vm.push(3);
-
-    // Push a list [1, 2]
-    // Stack after pushing list: [LIST, 1, 2, LINK, 3]
-    const listSize = 2;  // Two elements in the list
-    const listTag = toTaggedValue(Tag.LIST, listSize);
-    const linkOffset = 3; // Points to the LIST tag (LIST + 2 elements + 1 for LINK itself)
-    const linkTag = toTaggedValue(Tag.LINK, linkOffset);
-
-    // Push the list structure
-    vm.push(listTag);  // LIST tag with size 2
-    vm.push(1);        // First element
-    vm.push(2);        // Second element
-    vm.push(linkTag);  // LINK tag pointing to LIST
-
-    // Now the stack is: [LIST, 1, 2, LINK, 3]
-    // We want to duplicate the list [1, 2] (which is the second item from the top)
-
-    // Execute over - should duplicate the list [1, 2]
-    overOp(vm);
-
-    // Stack should now be: [LIST, 1, 2, LINK, 3, LIST, 1, 2, LINK]
-    // expect(vm.SP).toBe(9 * BYTES_PER_ELEMENT);
-
-    // Check the stack contents
-    const stack = vm.getStackData();
-
-    // Original list
-    expect(stack[0]).toBe(listTag);  // LIST tag
-    expect(stack[1]).toBe(1);        // First element
-    expect(stack[2]).toBe(2);        // Second element
-    expect(stack[3]).toBe(linkTag);  // LINK tag
-
-    // Simple value on top
-    expect(stack[4]).toBe(3);
-
-    // Duplicated list (should be identical to the original list structure)
-    expect(stack[5]).toBe(listTag);  // LIST tag (same value as original)
-    expect(stack[6]).toBe(1);        // First element
-    expect(stack[7]).toBe(2);        // Second element
-    expect(stack[8]).toBe(linkTag);  // LINK tag (same value as original)
+  it('should duplicate the second item (list)', () => {
+    // Create a stack with a value and a list, then apply 'over'
+    // This executes: 100 ( 10 20 ) over
+    // Which should put a copy of 100 on top of the stack
+    const stack = executeTacitCode('100 ( 10 20 ) over');
+    
+    // We expect: [100, LIST(2), 10, 20, LINK, 100]
+    expect(stack.length).toBe(6);
+    
+    // First element should be 100
+    expect(stack[0]).toBe(100);
+    
+    // Then we expect a list [10, 20]
+    const { tag: listTag, value: listSize } = fromTaggedValue(stack[1]);
+    expect(listTag).toBe(Tag.LIST);
+    expect(listSize).toBe(2);
+    expect(stack[2]).toBe(10);
+    expect(stack[3]).toBe(20);
+    
+    const { tag: linkTag } = fromTaggedValue(stack[4]);
+    expect(linkTag).toBe(Tag.LINK);
+    
+    // Then we expect the duplicated 100
+    expect(stack[5]).toBe(100);
+  });
+  
+  it('should duplicate a list when it is the second item', () => {
+    // Create a stack with a list and a value, then apply 'over'
+    // This executes: ( 1 2 ) 100 over
+    // Which should put a copy of the list on top
+    const stack = executeTacitCode('( 1 2 ) 100 over');
+    
+    // Expected stack: [LIST(2), 1, 2, LINK, 100, LIST(2), 1, 2, LINK]
+    expect(stack.length).toBe(9);
+    
+    // Verify first list
+    const { tag: list1Tag, value: list1Size } = fromTaggedValue(stack[0]);
+    expect(list1Tag).toBe(Tag.LIST);
+    expect(list1Size).toBe(2);
+    expect(stack[1]).toBe(1);
+    expect(stack[2]).toBe(2);
+    
+    const { tag: link1Tag } = fromTaggedValue(stack[3]);
+    expect(link1Tag).toBe(Tag.LINK);
+    
+    // Verify value
+    expect(stack[4]).toBe(100);
+    
+    // Verify duplicated list
+    const { tag: list2Tag, value: list2Size } = fromTaggedValue(stack[5]);
+    expect(list2Tag).toBe(Tag.LIST);
+    expect(list2Size).toBe(2);
+    expect(stack[6]).toBe(1);
+    expect(stack[7]).toBe(2);
+    
+    const { tag: link2Tag } = fromTaggedValue(stack[8]);
+    expect(link2Tag).toBe(Tag.LINK);
   });
 
   it('should throw on insufficient stack', () => {
-    // Empty stack
     expect(() => overOp(vm)).toThrow('requires 2 operands');
 
-    // Only one element
     vm.push(1);
     expect(() => overOp(vm)).toThrow('requires 2 operands');
   });

@@ -7,12 +7,7 @@ module.exports = {
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
   verbose: true,
   collectCoverage: true,
-  collectCoverageFrom: [
-    '**/*.ts',
-    '!**/*.test.ts',
-    '!**/node_modules/**',
-    '!src/index.ts', // Exclude index.ts from coverage
-  ],
+  collectCoverageFrom: ['**/*.ts', '!**/*.test.ts', '!**/node_modules/**', '!src/index.ts'],
   coverageDirectory: 'coverage',
   coverageThreshold: {
     global: {

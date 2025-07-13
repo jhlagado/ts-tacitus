@@ -28,7 +28,7 @@
     - [4.2 Multidimensional Array Representation](#42-multidimensional-array-representation)
     - [4.3 Recursive Descent Traversal](#43-recursive-descent-traversal)
   - [5. Polymorphism of List Buffers and Scalars in Tacit](#5-polymorphism-of-list-buffers-and-scalars-in-tacit)
-      - [5.1 Uniform Value Representation](#51-uniform-value-representation)
+    - [5.1 Uniform Value Representation](#51-uniform-value-representation)
     - [5.2 Broadcast Semantics in Operations](#52-broadcast-semantics-in-operations)
     - [5.3 Storage and Variable Interactions](#53-storage-and-variable-interactions)
     - [5.4 Runtime Type Identification and Tagging](#54-runtime-type-identification-and-tagging)
@@ -169,8 +169,8 @@ Functions treat Lists as variadic argument bundles. No array or pointer represen
 ### 2.6 Code Snippet (Pseudo Tacit VM Steps)
 
 ```
-// For the expression (1 2 3)
-onOpenParen():  pushMarker(GROUPSTART)  // Internal marker, not visible on data stack
+
+onOpenParen():  pushMarker(GROUPSTART)
 onValue(1):  push(1)
 onValue(2):  push(2)
 onValue(3):  push(3)

@@ -14,29 +14,23 @@ describe('dup Operation', () => {
   });
 
   test('should duplicate a list', () => {
-    // Create a list [10, 20, 30]
     const listTag = toTaggedValue(3, Tag.LIST);
     const linkTag = toTaggedValue(4, Tag.LINK);
 
-    // Push the list: [10, 20, 30] using tagged values
     vm.push(listTag);
     vm.push(10);
     vm.push(20);
     vm.push(30);
     vm.push(linkTag);
 
-    // Duplicate the list
     dupOp(vm);
 
-    // The stack should now have two copies of the list
-    // First, pop the duplicated list
     expect(vm.pop()).toBe(linkTag);
     expect(vm.pop()).toBe(30);
     expect(vm.pop()).toBe(20);
     expect(vm.pop()).toBe(10);
     expect(vm.pop()).toBe(listTag);
 
-    // Check the original list
     expect(vm.pop()).toBe(linkTag);
     expect(vm.pop()).toBe(30);
     expect(vm.pop()).toBe(20);
