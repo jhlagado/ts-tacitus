@@ -10,10 +10,9 @@ import {
   or,
   xor,
   formatValue,
-} from './utils';
-import { toTaggedValue, Tag } from './tagged';
-
-import { VM } from './vm';
+} from '../../core/utils';
+import { toTaggedValue, Tag } from '../../core/tagged';
+import { VM } from '../../core/vm';
 
 const testVM = {
   digest: {

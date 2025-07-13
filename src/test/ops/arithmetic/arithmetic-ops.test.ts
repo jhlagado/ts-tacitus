@@ -1,6 +1,5 @@
-import { VM } from '../core/vm';
-import { initializeInterpreter, vm } from '../core/globalState';
-
+import { VM } from '../../../core/vm';
+import { initializeInterpreter, vm } from '../../../core/globalState';
 import {
   absOp,
   negOp,
@@ -14,7 +13,7 @@ import {
   maxOp,
   avgOp,
   prodOp,
-} from './arithmetic-ops';
+} from '../../../ops/arithmetic-ops';
 describe('Arithmetic Operations', () => {
   let testVM: VM;
   beforeEach(() => {

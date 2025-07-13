@@ -1,4 +1,4 @@
-import { Token, Tokenizer, TokenType, TokenValue } from './tokenizer';
+import { Token, Tokenizer, TokenType, TokenValue } from '../../lang/tokenizer';
 
 describe('Tokenizer', () => {
   function getTokenValues(input: string): TokenValue[] {

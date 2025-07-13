@@ -1,6 +1,6 @@
 import { dupOp } from '../builtins-stack';
-import { Tag, toTaggedValue } from '../../core/tagged';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { Tag, toTaggedValue } from '../../../core/tagged';
+import { initializeInterpreter, vm } from '../../../core/globalState';
 
 describe('dup Operation', () => {
   beforeEach(() => {

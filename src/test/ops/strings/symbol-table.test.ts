@@ -1,8 +1,7 @@
-import { Memory } from '../core/memory';
-import { SymbolTable, SymbolTableCheckpoint } from './symbol-table';
-import { Digest } from './digest';
-
-import { defineBuiltins } from '../ops/define-builtins';
+import { Memory } from '../../../core/memory';
+import { SymbolTable, SymbolTableCheckpoint } from '../../../../src/strings/symbol-table';
+import { Digest } from '../../../../src/strings/digest';
+import { defineBuiltins } from '../../../ops/define-builtins';
 
 describe('SymbolTable', () => {
   let symbolTable: SymbolTable;

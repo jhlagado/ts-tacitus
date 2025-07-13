@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../core/vm';
+import { VM } from '../../../core/vm';
 import { overOp } from '../builtins-stack';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { executeTacitCode, resetVM } from '../../test/testUtils';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { executeTacitCode, resetVM } from '../../../test/testUtils';
 
 describe('over Operation', () => {
   let vm: VM;

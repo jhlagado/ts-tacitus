@@ -1,9 +1,8 @@
-import { Op } from '../ops/opcodes';
-import { initializeInterpreter, vm } from '../core/globalState';
-import { parse } from './parser';
-import { Tokenizer } from './tokenizer';
-
-import { executeProgram } from './interpreter';
+import { Op } from '../../ops/opcodes';
+import { initializeInterpreter, vm } from '../../core/globalState';
+import { parse } from '../../lang/parser';
+import { Tokenizer } from '../../lang/tokenizer';
+import { executeProgram } from '../../lang/interpreter';
 
 describe('Comprehensive Parser Tests', () => {
   beforeEach(() => {

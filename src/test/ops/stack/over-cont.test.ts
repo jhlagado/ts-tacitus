@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { executeTacitCode } from '../../test/testUtils';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { executeTacitCode } from '../../../test/testUtils';
 
 describe('over Operatio cont', () => {
 

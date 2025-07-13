@@ -16,9 +16,13 @@ const BYTES_PER_ELEMENT = 4;
  * - Pushes the list tag's position onto the return stack
  */
 export function openListOp(vm: VM): void {
+  if (vm.debug) console.log('openListOp: listDepth before', vm.listDepth);
   vm.listDepth++;
-  vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(toTaggedValue(vm.SP - BYTES_PER_ELEMENT, Tag.INTEGER));
+  const listTag = toTaggedValue(0, Tag.LIST);
+  vm.push(listTag);
+  const listPos = vm.SP - BYTES_PER_ELEMENT;
+  vm.rpush(toTaggedValue(listPos, Tag.INTEGER));
+  if (vm.debug) console.log('openListOp: pushed LIST tag at position', listPos, 'listDepth after', vm.listDepth);
 }
 
 /**
@@ -28,13 +32,21 @@ export function openListOp(vm: VM): void {
  * - For outermost lists, also pushes a reference to the list tag
  */
 export function closeListOp(vm: VM): void {
+  if (vm.debug) console.log('closeListOp: listDepth before', vm.listDepth);
   const taggedListTagPos = vm.rpop();
   const { value: listTagPos } = fromTaggedValue(taggedListTagPos);
   const listSize = (vm.SP - listTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
-  vm.memory.writeFloat32(SEG_STACK, listTagPos, toTaggedValue(listSize, Tag.LIST));
+  const newListTag = toTaggedValue(listSize, Tag.LIST);
+  vm.memory.writeFloat32(SEG_STACK, listTagPos, newListTag);
+  if (vm.debug) console.log('closeListOp: updated LIST tag at position', listTagPos, 'with size', listSize);
+  
   if (vm.listDepth === 1) {
     const relativeElements = (vm.SP - listTagPos) / BYTES_PER_ELEMENT;
-    vm.push(toTaggedValue(relativeElements, Tag.LINK));
+    const linkTag = toTaggedValue(relativeElements, Tag.LINK);
+    vm.push(linkTag);
+    if (vm.debug) console.log('closeListOp: pushed LINK tag with offset', relativeElements);
   }
+  
   vm.listDepth--;
+  if (vm.debug) console.log('closeListOp: listDepth after', vm.listDepth);
 }

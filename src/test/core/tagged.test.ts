@@ -9,7 +9,7 @@ import {
   isCode,
   isCodeBlock,
   isAnyCode,
-} from './tagged';
+} from '../../core/tagged';
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
     const tests = [
