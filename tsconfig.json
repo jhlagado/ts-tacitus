@@ -5,12 +5,27 @@
     "strict": true,
     "outDir": "./dist",
     "esModuleInterop": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@core/*": ["src/core/*"],
+      "@lang/*": ["src/lang/*"],
+      "@ops/*": ["src/ops/*"],
+      "@test/*": ["src/test/*"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/**/*.test.ts",
+    "test/**/*.spec.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }

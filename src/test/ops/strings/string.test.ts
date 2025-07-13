@@ -1,8 +1,7 @@
-import { Memory } from '../core/memory';
-import { Digest } from './digest';
-import { stringCreate } from './string';
-
-import { Tag, fromTaggedValue } from '../core/tagged';
+import { Memory } from '../../../core/memory';
+import { Digest } from '../../../../src/strings/digest';
+import { stringCreate } from '../../../../src/strings/string';
+import { Tag, fromTaggedValue } from '../../../core/tagged';
 
 describe('stringCreate', () => {
   let memory: Memory;

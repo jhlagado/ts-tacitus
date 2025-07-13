@@ -1,18 +1,42 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { parse } from '../../lang/parser';
-import { Tokenizer } from '../../lang/tokenizer';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { execute } from '../../lang/interpreter';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { parse } from '@lang/parser';
+import { Tokenizer } from '@lang/tokenizer';
+import { fromTaggedValue, Tag } from '@core/tagged';
+import { execute } from '@lang/interpreter';
+import { vm, initializeInterpreter } from '@core/globalState';
 
 /**
  * Helper function to execute Tacit code and return the stack
  */
 function executeCode(code: string): number[] {
+  console.log('Executing code:', code);
   const tokenizer = new Tokenizer(code);
   parse(tokenizer);
-  execute(0);
-  return vm.getStackData();
+  
+  // Enable debug mode for more detailed logging
+  const originalDebug = vm.debug;
+  vm.debug = true;
+  
+  try {
+    execute(0);
+    const stackData = vm.getStackData();
+    
+    // Log the stack contents for debugging
+    console.log('Stack after execution:');
+    stackData.forEach((value, index) => {
+      try {
+        const { tag, value: tagValue } = fromTaggedValue(value);
+        console.log(`  [${index}]: value=${value}, tag=${Tag[tag]} (${tag}), tagValue=${tagValue}`);
+      } catch (_) {
+        console.log(`  [${index}]: value=${value} (failed to decode)`);
+      }
+    });
+    
+    return stackData;
+  } finally {
+    // Restore original debug setting
+    vm.debug = originalDebug;
+  }
 }
 
 describe('List creation operations', () => {

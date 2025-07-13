@@ -1,7 +1,6 @@
-import { Op } from '../ops/opcodes';
-import { initializeInterpreter, vm } from '../core/globalState';
-
-import { fromTaggedValue } from '../core/tagged';
+import { Op } from '../../ops/opcodes';
+import { initializeInterpreter, vm } from '../../core/globalState';
+import { fromTaggedValue } from '../../core/tagged';
 
 describe('Compiler', () => {
   beforeEach(() => {

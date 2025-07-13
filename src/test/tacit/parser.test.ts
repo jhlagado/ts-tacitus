@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Op } from '../ops/opcodes';
-import { initializeInterpreter, vm } from '../core/globalState';
-import { parse } from './parser';
-
-import { Tokenizer } from './tokenizer';
+import { Op } from '../../ops/opcodes';
+import { initializeInterpreter, vm } from '../../core/globalState';
+import { parse } from '../../lang/parser';
+import { Tokenizer } from '../../lang/tokenizer';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;

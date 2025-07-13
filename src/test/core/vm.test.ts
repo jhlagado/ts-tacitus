@@ -1,9 +1,8 @@
-import { VM } from './vm';
-import { STACK_SIZE, RSTACK_SIZE } from './memory';
-import { Compiler } from '../lang/compiler';
-import { SymbolTable } from '../strings/symbol-table';
-
-import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
+import { VM } from '../../core/vm';
+import { STACK_SIZE, RSTACK_SIZE } from '../../core/memory';
+import { Compiler } from '../../lang/compiler';
+import { SymbolTable } from '../../strings/symbol-table';
+import { fromTaggedValue, toTaggedValue, Tag } from '../../core/tagged';
 
 describe('VM', () => {
   let vm: VM;

@@ -2,14 +2,14 @@ const originalExit = process.exit;
 
 jest.mock('fs');
 jest.mock('path');
-jest.mock('./executor');
+jest.mock('../../lang/executor');
 
 const mockExit = jest.fn();
 
 process.exit = mockExit as unknown as typeof process.exit;
 
-jest.mock('./fileProcessor', () => {
-  const actual = jest.requireActual('./fileProcessor');
+jest.mock('../../lang/fileProcessor', () => {
+  const actual = jest.requireActual('../../lang/fileProcessor');
   return {
     ...actual,
     processFile: jest.fn((filePath: string) => actual.processFile(filePath)),
@@ -18,9 +18,8 @@ jest.mock('./fileProcessor', () => {
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { processFile, processFiles, TACIT_FILE_EXTENSION } from './fileProcessor';
-
-import { executeLine, setupInterpreter } from './executor';
+import { processFile, processFiles, TACIT_FILE_EXTENSION } from '../../lang/fileProcessor';
+import { executeLine, setupInterpreter } from '../../lang/executor';
 
 const originalConsoleLog = console.log;
 
