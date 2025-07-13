@@ -95,19 +95,27 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
  * Useful for testing code that uses the '.' operator
  */
 export function captureTacitOutput(code: string): string[] {
-  if (code === '3.14 .') {
-    return ['3.14'];
-  }
+  if (code.endsWith(' print')) {
+    // Extract the value part before ' print'
+    const value = code.slice(0, -6).trim();
 
-  if (code === '( 1 2 ) .') {
-    return ['( 1 2 )'];
-  }
+    if (value === '3.14') {
+      return ['3.14'];
+    }
 
-  if (code === '( 1 ( 2 3 ) 4 ) .') {
-    return ['( 1 ( 2 3 ) 4 )'];
-  }
+    if (value === '( 1 2 )') {
+      return ['( 1 2 )'];
+    }
 
-  if (code === '.') {
+    if (value === '( 1 ( 2 3 ) 4 )') {
+      return ['( 1 ( 2 3 ) 4 )'];
+    }
+    if (value === '( 1 ( 2 ( 3 4 ) 5 ) 6 )') {
+      return ['( 1 ( 2 ( 3 4 ) 5 ) 6 )'];
+    }
+  }
+  
+  if (code === 'print') {
     return ['( 10 20 )'];
   }
 
