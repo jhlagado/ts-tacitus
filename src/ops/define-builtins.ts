@@ -49,4 +49,5 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('if', Op.If);
   dict.define('rot', Op.Rot);
   dict.define('revrot', Op.RevRot);
+  dict.define('over', Op.Over);
 };

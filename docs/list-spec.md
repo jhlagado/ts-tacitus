@@ -69,9 +69,7 @@ Lists are created using the `openListOp` and `closeListOp` operations:
 ```typescript
 if (tag === Tag.LINK) {
   const elemCount = value + 1;
-  // Clone entire list block
 } else {
-  // Clone single value
 }
 ```
 
@@ -146,9 +144,7 @@ LINK tags are a critical implementation detail for stack manipulation of lists:
 When dropping a list:
 
 ```typescript
-// If top of stack is a LINK tag
 if (tag === Tag.LINK) {
-  // Use the value to calculate where to move the stack pointer
   const targetSP = vm.SP - value * BYTES_PER_ELEMENT;
   vm.SP = targetSP;
 }
@@ -161,7 +157,7 @@ if (tag === Tag.LINK) {
   const elemCount = value + 1;
   const byteOffset = elemCount * BYTES_PER_ELEMENT;
   const startByte = vm.SP - byteOffset;
-  // Now clone the entire list block including LIST tag and elements
+
   for (let i = 0; i < elemCount; i++) {
     const val = vm.memory.readFloat32(SEG_STACK, startByte + i * BYTES_PER_ELEMENT);
     vm.push(val);
@@ -268,20 +264,17 @@ For the `swapOp` operation that exchanges list positions on the stack, these req
 Correct approach for in-place manipulation:
 
 ```typescript
-// Example of properly swapping two memory regions without temporary arrays
 function reverseStackRange(vm: VM, start: number, end: number): void {
   let left = start;
   let right = end - BYTES_PER_ELEMENT;
 
   while (left < right) {
-    // Swap values at left and right positions
     const leftVal = vm.memory.readFloat32(SEG_STACK, left);
     const rightVal = vm.memory.readFloat32(SEG_STACK, right);
 
     vm.memory.writeFloat32(SEG_STACK, left, rightVal);
     vm.memory.writeFloat32(SEG_STACK, right, leftVal);
 
-    // Move inward
     left += BYTES_PER_ELEMENT;
     right -= BYTES_PER_ELEMENT;
   }
@@ -444,14 +437,12 @@ shift_amount: How many positions to rotate by (typically the size of the deeper 
 Algorithm:
 
 function range_roll(vm, start_depth, range_size, shift_amount):
-// Normalize shift amount to be within range
+
 shift_amount = shift_amount % range_size
 if shift_amount == 0: return
 
-// Critical part: copy direction matters!
-// To avoid overwriting, we need to copy in the right direction
 if shift_amount > 0:
-// Moving items down: start from the bottom
+
 for i from start_depth to (start_depth + range_size - 1):
 temp = stack[i]
 j = i
@@ -463,8 +454,6 @@ stack[j] = stack[k]
 j = k
 stack[j] = temp
 else:
-// Moving items up: start from the top
-// Similar logic but reversed
 
 This is an adaptation of the "cycle leader" algorithm for in-place array rotation. It ensures that nothing gets overwritten by carefully tracking the movement of each element through its cycle.
 

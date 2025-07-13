@@ -1,4 +1,5 @@
 # Implementation Status: Future Specification
+
 - This document outlines the planned cooperative multitasking architecture
 - Currently Not Implemented in the codebase
 - Related concepts: See [deferred.md] for current thunk implementation
@@ -50,52 +51,54 @@ This spec is organized into seven fully fleshed-out sections, each with multiple
 - Managed via `SP` register. Underflow/overflow traps are immediate errors.
 
 #### 1.2.2 Return Stack Semantics & Stack Frames
+
 - The return stack holds saved IPs for `CALL`/`RET`, saved Base Pointers (`BP`) for frame management, and local variables.
 - `CALL` pushes the return IP, pushes the caller's `BP`, and sets the new `BP` to the current `RP`, establishing a new stack frame.
 - `RET` unwinds the current frame (restoring `RP` to `BP`), restores the caller's `BP`, and then pops the return IP.
 - Local variables reside on the return stack between `BP` and `RP`.
 
 #### 1.2.3 Parameter Passing and Local Variables
+
 - Tacit uses the data stack for parameter passing.
 - Local variables provide named temporary storage within a function's stack frame on the return stack, accessed via offsets from `BP`. They reduce the need for excessive data stack manipulation. Locals are managed entirely by the compiler and VM frame mechanics, with no heap allocation or closures.
 
 ### 1.3 Expanded Opcode Reference
 
-| Opcode           | Byte           | Name              | Stack Effect                                                                            | Detailed Description                                    |
-| ---------------- | -------------- | ----------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 0x00             | NOP            | NOP               | —                                                                                       | Does nothing; often used for alignment or patch points. |
-| 0x01 ii          | PUSH\_CONST    | → const[ii]       | Pushes constant pool entry at index ii (16-bit index).                                  |                                                         |
-| 0x02 vv          | PUSH\_INT      | → int(vv)         | Pushes an 8-bit signed integer vv, sign-extended to 32-bit tagged integer.              |                                                         |
-| 0x03             | DUP            | a → a a           | Duplicates the top-of-stack value.                                                      |                                                         |
-| 0x04             | SWAP           | a b → b a         | Swaps the top two values.                                                               |                                                         |
-| 0x05             | DROP           | a →               | Pops and discards the top value.                                                        |                                                         |
-| 0x10             | ADD            | a b → a+b         | Adds two numeric values, pushes result. Overflows wrap on integer; floats use IEEE-754. |                                                         |
-| 0x11             | SUB            | a b → a−b         | Subtracts second from first.                                                            |                                                         |
-| 0x12             | MUL            | a b → a×b         | Multiplies.                                                                             |                                                         |
-| 0x13             | DIV            | a b → a÷b         | Divides; trap on integer divide by zero.                                                |                                                         |
-| 0x14             | MOD            | a b → a mod b     | Integer modulus; `b == 0` traps.                                                        |                                                         |
-| 0x20 oo oo       | JMP            | — →               | Jumps to relative offset (signed 16-bit). Detailed wrap and alignment rules follow.     |                                                         |
-| 0x21 oo oo       | JZ             | a →               | Pops `a`; if zero/NIL, jumps by offset; else continues.                                 |                                                         |
-| 0x22 oo oo       | CALL           | — →               | Save `(IP+3)` to return stack, save current `BP` to return stack, set `BP = RP`, then `IP += offset`. |
-| 0x23             | RET            | — →               | Set `RP = BP`, pop return stack into `BP`, pop return stack into `IP`.                          |
-| 0x30 aa aa aa aa | LOAD           | → value           | Load a tagged value from memory address `aa...` (32-bit address).                       |                                                         |
-| 0x31 aa aa aa aa | STORE          | value →           | Store tagged value into memory.                                                         |                                                         |
-| 0x40             | WAIT           | tag →             | Pop tag, set `wait_tag`, yield. The tag may be a symbol or task ID.                     |                                                         |
-| 0x41             | YIELD          | — →               | Yield control cooperatively; `wait_tag` remains NIL.                                    |                                                         |
-| 0x42             | SEND           | event →           | Pop event, append to event queue. If full, task must suspend and retry.                 |                                                         |
-| 0x50             | SPAWN          | addr → task\_id   | Pop code address, find free task, initialize, return Task ID.                           |                                                         |
-| 0x51             | WAIT\_TASK     | task\_id →        | Pop Task ID, set `wait_tag=task_id`, yield.                                             |                                                         |
-| 0x52             | GET\_RET\_CODE | task\_id → code   | Pop Task ID, push its `return_code`.                                                    |                                                         |
-| 0x60             | TERMINATE      | code →            | Pop exit code, set `return_code`, set `wait_tag=code`, yield.                           |                                                         |
-| 0x70             | READ\_CHAR     | buf\_id → char    | Pop buffer ID, read next UTF-8 character, push as tagged integer or symbol.             |                                                         |
-| 0x71             | READ\_LINE     | buf\_id → ptr     | Pop buffer ID, read full line into heap, return pointer to line object.                 |                                                         |
-| 0x72             | WRITE\_STR     | buf\_id ptr →     | Pop buffer ID and string pointer, push each UTF-8 byte to line buffer; suspend on full. |                                                         |
-| 0x80             | DEBUG\_PRINT   | msg\_id →         | Pop message symbol, write to debug console.                                             |                                                         |
-| 0x81             | TASK\_STATUS   | task\_id → status | Push specified task’s flags/internals as a record.                                      |                                                         |
-| 0xXX             | GET_LOCAL      | → value           | (Proposed) Read local variable at offset `XX` relative to `BP`, push to data stack.             |                                                         |
-| 0xXY             | SET_LOCAL      | value →           | (Proposed) Pop value from data stack, write to local variable at offset `XY` relative to `BP`. |
+| Opcode           | Byte         | Name             | Stack Effect                                                                                          | Detailed Description                                    |
+| ---------------- | ------------ | ---------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 0x00             | NOP          | NOP              | —                                                                                                     | Does nothing; often used for alignment or patch points. |
+| 0x01 ii          | PUSH_CONST   | → const[ii]      | Pushes constant pool entry at index ii (16-bit index).                                                |                                                         |
+| 0x02 vv          | PUSH_INT     | → int(vv)        | Pushes an 8-bit signed integer vv, sign-extended to 32-bit tagged integer.                            |                                                         |
+| 0x03             | DUP          | a → a a          | Duplicates the top-of-stack value.                                                                    |                                                         |
+| 0x04             | SWAP         | a b → b a        | Swaps the top two values.                                                                             |                                                         |
+| 0x05             | DROP         | a →              | Pops and discards the top value.                                                                      |                                                         |
+| 0x10             | ADD          | a b → a+b        | Adds two numeric values, pushes result. Overflows wrap on integer; floats use IEEE-754.               |                                                         |
+| 0x11             | SUB          | a b → a−b        | Subtracts second from first.                                                                          |                                                         |
+| 0x12             | MUL          | a b → a×b        | Multiplies.                                                                                           |                                                         |
+| 0x13             | DIV          | a b → a÷b        | Divides; trap on integer divide by zero.                                                              |                                                         |
+| 0x14             | MOD          | a b → a mod b    | Integer modulus; `b == 0` traps.                                                                      |                                                         |
+| 0x20 oo oo       | JMP          | — →              | Jumps to relative offset (signed 16-bit). Detailed wrap and alignment rules follow.                   |                                                         |
+| 0x21 oo oo       | JZ           | a →              | Pops `a`; if zero/NIL, jumps by offset; else continues.                                               |                                                         |
+| 0x22 oo oo       | CALL         | — →              | Save `(IP+3)` to return stack, save current `BP` to return stack, set `BP = RP`, then `IP += offset`. |
+| 0x23             | RET          | — →              | Set `RP = BP`, pop return stack into `BP`, pop return stack into `IP`.                                |
+| 0x30 aa aa aa aa | LOAD         | → value          | Load a tagged value from memory address `aa...` (32-bit address).                                     |                                                         |
+| 0x31 aa aa aa aa | STORE        | value →          | Store tagged value into memory.                                                                       |                                                         |
+| 0x40             | WAIT         | tag →            | Pop tag, set `wait_tag`, yield. The tag may be a symbol or task ID.                                   |                                                         |
+| 0x41             | YIELD        | — →              | Yield control cooperatively; `wait_tag` remains NIL.                                                  |                                                         |
+| 0x42             | SEND         | event →          | Pop event, append to event queue. If full, task must suspend and retry.                               |                                                         |
+| 0x50             | SPAWN        | addr → task_id   | Pop code address, find free task, initialize, return Task ID.                                         |                                                         |
+| 0x51             | WAIT_TASK    | task_id →        | Pop Task ID, set `wait_tag=task_id`, yield.                                                           |                                                         |
+| 0x52             | GET_RET_CODE | task_id → code   | Pop Task ID, push its `return_code`.                                                                  |                                                         |
+| 0x60             | TERMINATE    | code →           | Pop exit code, set `return_code`, set `wait_tag=code`, yield.                                         |                                                         |
+| 0x70             | READ_CHAR    | buf_id → char    | Pop buffer ID, read next UTF-8 character, push as tagged integer or symbol.                           |                                                         |
+| 0x71             | READ_LINE    | buf_id → ptr     | Pop buffer ID, read full line into heap, return pointer to line object.                               |                                                         |
+| 0x72             | WRITE_STR    | buf_id ptr →     | Pop buffer ID and string pointer, push each UTF-8 byte to line buffer; suspend on full.               |                                                         |
+| 0x80             | DEBUG_PRINT  | msg_id →         | Pop message symbol, write to debug console.                                                           |                                                         |
+| 0x81             | TASK_STATUS  | task_id → status | Push specified task’s flags/internals as a record.                                                    |                                                         |
+| 0xXX             | GET_LOCAL    | → value          | (Proposed) Read local variable at offset `XX` relative to `BP`, push to data stack.                   |                                                         |
+| 0xXY             | SET_LOCAL    | value →          | (Proposed) Pop value from data stack, write to local variable at offset `XY` relative to `BP`.        |
 
-*(Additional opcodes for sequence processing such as `EACH`, `MAP`, `FILTER`, `FOLD`, `RANGE` are documented separately.)*
+_(Additional opcodes for sequence processing such as `EACH`, `MAP`, `FILTER`, `FOLD`, `RANGE` are documented separately.)_
 
 ### 1.5 Pseudocode: Full Dispatch Loop
 
@@ -134,15 +137,15 @@ void execute_one_instruction(Task *t) {
       return;
     case OPC_CALL:
       { uint16_t offset = fetch_short(&t->ip);
-        rpush(&t->rp, t->ip); // Push return address
-        rpush(&t->rp, t->bp); // Push old Base Pointer
-        t->bp = t->rp;        // Set new Base Pointer
-        t->ip += offset; }    // Jump to function
+        rpush(&t->rp, t->ip);
+        rpush(&t->rp, t->bp);
+        t->bp = t->rp;
+        t->ip += offset; }
       return;
     case OPC_RET:
-      { t->rp = t->bp;        // Discard locals & saved BP by resetting RP
-        t->bp = rpop(&t->rp); // Restore caller's Base Pointer
-        t->ip = rpop(&t->rp); // Pop return address
+      { t->rp = t->bp;
+        t->bp = rpop(&t->rp);
+        t->ip = rpop(&t->rp);
       }
       return;
     /* Full handling for all opcodes per table above */
@@ -257,7 +260,7 @@ Tasks in Tacit are self-contained execution contexts. Each task occupies a fixed
 
 - Offset: 0x06, Size: 2 bytes
 - Purpose: Unique identifier for the task.
-- Range: 0…MAX\_TASKS−1.
+- Range: 0…MAX_TASKS−1.
 
 #### 2.3.7 Wait Tag (Moved)
 
@@ -379,8 +382,6 @@ Reclamation (SPAWN):
 - Per-task counters: instructions executed, cycles spent, events waited.
 - Stored in reserved debug fields for profiling.
 
-
-
 ---
 
 ## 3. Event Model (Fully Expanded)
@@ -407,11 +408,11 @@ The Event Model in Tacit serves as the sole mechanism for inter-task communicati
 
 ```
 struct EventQueue {
-  uint8_t head;        // Next write index (0..63)
-  uint8_t tail;        // Next read index
-  uint8_t count;       // Number of events present
-  uint8_t flags;       // Bit0: overflow, Bit1: priority mode
-  TValue entries[64];  // Circular buffer of tagged values
+  uint8_t head;
+  uint8_t tail;
+  uint8_t count;
+  uint8_t flags;
+  TValue entries[64];
 };
 ```
 
@@ -425,7 +426,7 @@ struct EventQueue {
 ```c
 bool enqueue_event(EventQueue *q, TValue ev) {
   if (q->count == 64) {
-    q->flags |= 0x1; // overflow indicator
+    q->flags |= 0x1;
     return false;
   }
   q->entries[q->head] = ev;
@@ -477,7 +478,7 @@ void dispatch_events() {
       if (t->wait_tag == ev) {
         t->wait_tag = NIL;
         t->inbox = ev;
-        break; // single receiver
+        break;
       }
     }
   }
@@ -543,8 +544,8 @@ Offset | Size | Field
 
 ### 4.3 Flags Field
 
-- Bit 0 (0x01) has\_newline: Set when a `'
-  '` (0x0A) byte is written.
+- Bit 0 (0x01) has_newline: Set when a `'
+'` (0x0A) byte is written.
 - Bit 1 (0x02) overflow: Set when writer attempts to write into a full buffer.
 - Bits 2–7: Reserved for future semantics (e.g., binary mode, low-water notifications).
 
@@ -566,8 +567,8 @@ bool can_write_sequence(LineBuf *b, int seq_len) {
 ```c
 int write_bytes(LineBuf *b, const uint8_t *bytes, int len) {
   if (!can_write_sequence(b, len)) {
-    b->flags |= 0x02; // overflow
-    return 0; // suspend writer
+    b->flags |= 0x02;
+    return 0;
   }
   for (int i = 0; i < len; ++i) {
     b->data[b->head] = bytes[i];
@@ -598,14 +599,14 @@ bool has_data(LineBuf *b) {
 
 ```c
 int read_char(LineBuf *b, TValue *out) {
-  if (!has_data(b)) return 0; // suspend reader
+  if (!has_data(b)) return 0;
 
   uint8_t first = b->data[b->tail];
   int seq_len = utf8_sequence_length(first);
   int available = (b->head + 256 - b->tail) % 256;
-  if (available < seq_len) return 0; // incomplete sequence
+  if (available < seq_len) return 0;
 
-  // Decode codepoint
+
   uint32_t codepoint;
   decode_utf8(&b->data[b->tail], seq_len, &codepoint);
 
@@ -625,7 +626,7 @@ int read_char(LineBuf *b, TValue *out) {
 
 ```c
 int read_line(LineBuf *b, char *out, int maxlen) {
-  if (!(b->flags & 0x01)) return 0; // no newline → suspend
+  if (!(b->flags & 0x01)) return 0;
   int count = 0;
   uint8_t c;
   while (read_char(b, &c) == 1 && count < maxlen) {
@@ -756,7 +757,7 @@ Illustration:
 case OPC_WAIT: {
   TValue tag = pop(&t->sp);
   t->wait_tag = tag;
-  return; // control returns to scheduler
+  return;
 }
 ```
 
@@ -779,7 +780,7 @@ for each ev in global_queue {
     if (t->wait_tag == ev) {
       t->wait_tag = NIL;
       t->inbox = ev;
-      // note: do not break if broadcast mode enabled
+
     }
   }
 }
@@ -884,7 +885,7 @@ The bootstrap process initializes Tacit’s core structures with zero dynamic al
     clear_memory();
     init_buffers();
     init_tasks();
-    start_scheduler(); // does not return
+    start_scheduler();
   }
   ```
 - Diagnostics & Updates: Dual-bank flash for atomic firmware swaps; optional secure boot and compression overlays.

@@ -7,21 +7,18 @@ export class TestList {
 
   constructor(values: number[]) {
     this.values = values;
-    this.size = values.length + 2; // LIST tag + elements + LINK tag
+    this.size = values.length + 2;
   }
 
   copyToStack(vm: VM): void {
-    // Push the list elements
     for (const value of this.values) {
       vm.push(value);
     }
-    
-    // Push the LINK tag (points to the LIST tag)
+
     const linkValue = (this.values.length + 1) * 4;
     const linkTagged = (Tag.LINK << 24) | (linkValue & 0xffffff);
     vm.push(linkTagged);
-    
-    // Push the LIST tag with size
+
     const listTagged = (Tag.LIST << 24) | (this.values.length & 0xffffff);
     vm.push(listTagged);
   }

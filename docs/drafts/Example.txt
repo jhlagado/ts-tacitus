@@ -1,5 +1,5 @@
-stack = []                     // global data stack
-null  = -99999                 // sentinel (any unmistakable value)
+stack = []
+null  = -99999
 
 ────────────────────────────────────────────────────────
 -- Branch 1  :  mapA → filterA  (reject multiples of 3)
@@ -9,22 +9,22 @@ let limit  = 10
 
 function next1() {
   if cursor >= limit {
-    push(null)                 // signal end-of-stream
+    push(null)
     return
   }
   push(cursor)
   cursor = cursor + 1
 }
 
-function mapA() {              // identity (can customise)
+function mapA() {
   val = pop()
   push(val)
 }
 
-function filterA() {           // keep only  x % 3 ≠ 0
+function filterA() {
   val = pop()
   if val == null { push(null); break }
-  if val % 3 == 0 { continue } // retry
+  if val % 3 == 0 { continue }
   push(val)
 }
 
@@ -33,14 +33,14 @@ function branch1() {
     next1()
     mapA()
     filterA()
-    break                      // one value now on stack
+    break
   }
 }
 
 ────────────────────────────────────────────────────────
 -- Branch 2  :  filterB → mapB  (keep even, then identity)
 ────────────────────────────────────────────────────────
-let cursor = 0                 // re-defines cursor/limit
+let cursor = 0
 let limit  = 10
 
 function next2() {
@@ -52,14 +52,14 @@ function next2() {
   cursor = cursor + 1
 }
 
-function filterB() {           // keep only  x % 2 == 0
+function filterB() {
   val = pop()
   if val == null { push(null); break }
   if val % 2 != 0 { continue }
   push(val)
 }
 
-function mapB() {              // identity for demo
+function mapB() {
   val = pop()
   push(val)
 }
@@ -88,7 +88,7 @@ function next3() {
   cursor = cursor + 1
 }
 
-function mapC() {              // identity
+function mapC() {
   val = pop()
   push(val)
 }

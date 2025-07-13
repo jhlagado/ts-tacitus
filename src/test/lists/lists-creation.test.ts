@@ -1,6 +1,12 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../core/tagged';
-import { executeTacitCode, resetVM, logStack, verifyListStructure, ListElement } from '../testUtils';
+import {
+  executeTacitCode,
+  resetVM,
+  logStack,
+  verifyListStructure,
+  ListElement,
+} from '../testUtils';
 
 describe('List creation operations', () => {
   beforeEach(() => {
@@ -19,8 +25,7 @@ describe('List creation operations', () => {
        * [3] LINK(3)   - Link tag with offset 3 (points back to list start)
        */
       expect(stack.length).toBe(4);
-      
-      // Verify using traditional method
+
       const { tag: listTag, value: listSize } = fromTaggedValue(stack[0]);
       expect(listTag).toBe(Tag.LIST);
       expect(listSize).toBe(2);
@@ -28,14 +33,13 @@ describe('List creation operations', () => {
       expect(stack[2]).toBe(2);
       const { tag: linkTag } = fromTaggedValue(stack[3]);
       expect(linkTag).toBe(Tag.LINK);
-      
-      // Alternatively, use the new structure verification helper
+
       const expectedStructure: ListElement = {
         type: 'list',
         children: [
           { type: 'number', value: 1 },
-          { type: 'number', value: 2 }
-        ]
+          { type: 'number', value: 2 },
+        ],
       };
       verifyListStructure(stack, expectedStructure);
     });

@@ -2,30 +2,29 @@ import globals from 'globals';
 import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
-// Add jest rules for test files
 
 /**  @type {import('eslint').Linter.FlatConfig[]} */
 export default [
   {
-    files: ['**/*.{ts,tsx}'], // Apply to TypeScript files
-    ignores: ['node_modules/', 'dist/', 'coverage/'], // Ignore common directories
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['node_modules/', 'dist/', 'coverage/'],
     languageOptions: {
-      parser: tsParser, // TypeScript parser
+      parser: tsParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json', // Ensure the TypeScript project is referenced
+        project: './tsconfig.json',
       },
       globals: {
-        ...globals.node, // Node.js globals
+        ...globals.node,
       },
     },
     plugins: {
-      '@typescript-eslint': tsPlugin, // Ensure the TypeScript plugin is included
+      '@typescript-eslint': tsPlugin,
     },
     rules: {
-      ...tsPlugin.configs.recommended.rules, // TypeScript recommended rules
-      // Configure exactly like the JavaScript rule
+      ...tsPlugin.configs.recommended.rules,
+
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -35,7 +34,7 @@ export default [
           destructuredArrayIgnorePattern: '^_',
         },
       ],
-      // Enforce blank lines between functions
+
       'padding-line-between-statements': [
         'error',
         { blankLine: 'always', prev: 'function', next: 'function' },
@@ -46,14 +45,14 @@ export default [
     },
   },
   {
-    files: ['**/*.js'], // Apply to JavaScript files
+    files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'commonjs',
     },
     rules: {
-      ...js.configs.recommended.rules, // JavaScript recommended rules
-      // Ignore unused function parameters that start with _
+      ...js.configs.recommended.rules,
+
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
