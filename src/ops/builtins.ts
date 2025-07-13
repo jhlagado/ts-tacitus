@@ -43,6 +43,7 @@ import {
 } from './builtins-unary-op';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp } from './builtins-stack';
 import { printOp } from './builtins-print';
+import { rawPrintOp } from './builtins-raw-print';
 
 import {
   absOp,
@@ -95,6 +96,9 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Eval:
       evalOp(vm);
+      break;
+    case Op.RawPrint:
+      rawPrintOp(vm);
       break;
     case Op.Print:
       try {

@@ -28,6 +28,9 @@ export enum Op {
   /**  Prints the value on the top of the stack to the console. */
   Print,
 
+  /**  Prints the raw tagged value on top of the stack (TAG:VALUE) */
+  RawPrint,
+
   /**  Pushes a literal string onto the stack. */
   LiteralString,
 
