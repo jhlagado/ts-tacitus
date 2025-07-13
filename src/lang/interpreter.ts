@@ -3,7 +3,7 @@ import { vm } from '../core/globalState';
 import { parse } from './parser';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
-import { Op } from '../ops/opcodes';
+// All opcodes now handled by executeOp in builtins.ts
 
 import { SEG_CODE } from '../core/memory';
 
@@ -25,19 +25,8 @@ export function execute(start: number, breakAtIP?: number): void {
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
 
-      if (functionIndex < Op.IfFalseBranch) {
-        executeOp(vm, functionIndex);
-      } else {
-        try {
-          vm.functionTable.execute(vm, functionIndex);
-        } catch (funcError) {
-          if (funcError instanceof Error && funcError.message.includes('No function registered')) {
-            throw new Error(`Invalid opcode: ${functionIndex}`);
-          }
-
-          throw funcError;
-        }
-      }
+      // Execute all operations through executeOp in builtins.ts
+      executeOp(vm, functionIndex);
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
       const errorMessage =
