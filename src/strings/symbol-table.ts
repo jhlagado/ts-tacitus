@@ -1,5 +1,5 @@
-import { Digest } from './digest';
-import { VM } from '../core/vm';
+import { Digest } from '@src/strings/digest';
+import { VM } from '@core/vm';
 
 type WordFunction = (vm: VM) => void;
 

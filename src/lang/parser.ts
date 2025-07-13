@@ -1,8 +1,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
-import { Token, Tokenizer, TokenType } from '../lang/tokenizer';
+import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
-
 import { toTaggedValue, Tag } from '../core/tagged';
 
 export interface Definition {
