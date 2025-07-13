@@ -15,7 +15,7 @@ export let vm: VM;
 export function initializeInterpreter(): void {
   vm = new VM();
   const compiler = new Compiler(vm);
-  vm.initializeCompilerAndFunctionTable(compiler);
+  vm.initializeCompiler(compiler);
 }
 
 initializeInterpreter();

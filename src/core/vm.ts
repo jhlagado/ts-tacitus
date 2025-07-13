@@ -3,9 +3,8 @@ import { SymbolTable } from '../strings/symbol-table';
 import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './memory';
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
-import { defineBuiltins } from '../ops/define-builtins';
-import { FunctionTable } from './function-table';
-import { initFunctionTable } from '../ops/init-function-table';
+import { registerBuiltins } from '../ops/builtins-register';
+// Imports removed as we no longer use function table
 
 /** Number of bytes per memory element */
 const BYTES_PER_ELEMENT = 4;
@@ -21,7 +20,7 @@ export class VM {
   digest: Digest;
   debug: boolean;
   symbolTable: SymbolTable;
-  functionTable: FunctionTable;
+  // functionTable property removed - now using symbolTable directly
   listDepth: number;
   constructor() {
     this.memory = new Memory();
@@ -33,19 +32,19 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.functionTable = new FunctionTable();
+    // functionTable initialization removed - using symbolTable directly
     this.symbolTable = new SymbolTable(this.digest);
-    defineBuiltins(this.symbolTable);
+    registerBuiltins(this, this.symbolTable);
   }
 
   /**
-   * Initializes the compiler and function table.
+   * Initializes the compiler.
    * This method must be called after VM construction to complete initialization.
    * @param compiler - The compiler instance to use
    */
-  initializeCompilerAndFunctionTable(compiler: Compiler): void {
+  initializeCompiler(compiler: Compiler): void {
     this.compiler = compiler;
-    initFunctionTable(this);
+    // initFunctionTable call removed as we're using the symbol table directly
   }
 
   eval() {
