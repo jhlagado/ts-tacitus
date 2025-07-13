@@ -1,8 +1,12 @@
 import { Digest } from './digest';
+import { VM } from '../core/vm';
+
+type WordFunction = (vm: VM) => void;
 
 interface SymbolTableNode {
   key: number;
   value: number;
+  implementation?: WordFunction;
   next: SymbolTableNode | null;
 }
 
@@ -14,14 +18,14 @@ export class SymbolTable {
     this.head = null;
   }
 
-  define(name: string, functionIndex: number): void {
+  define(name: string, functionIndex: number, implementation?: WordFunction): void {
     const key = this.digest.add(name);
-    const newNode: SymbolTableNode = { key, value: functionIndex, next: this.head };
+    const newNode: SymbolTableNode = { key, value: functionIndex, implementation, next: this.head };
     this.head = newNode;
   }
 
-  defineCall(name: string, functionIndex: number): void {
-    this.define(name, functionIndex);
+  defineCall(name: string, functionIndex: number, implementation?: WordFunction): void {
+    this.define(name, functionIndex, implementation);
   }
 
   find(name: string): number | undefined {
@@ -34,6 +38,43 @@ export class SymbolTable {
       current = current.next;
     }
 
+    return undefined;
+  }
+  
+  /**
+   * Finds both the value and implementation for a word
+   * @param name The word to lookup
+   * @returns An object with the index and implementation if found, or undefined
+   */
+  findWithImplementation(name: string): { index: number; implementation?: WordFunction } | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (this.digest.get(current.key) === name) {
+        return { 
+          index: current.value, 
+          implementation: current.implementation 
+        };
+      }
+
+      current = current.next;
+    }
+
+    return undefined;
+  }
+  
+  /**
+   * Finds a function implementation by its opcode/index value
+   * @param opcode The opcode to find an implementation for
+   * @returns The implementation function if found, otherwise undefined
+   */
+  findImplementationByOpcode(opcode: number): WordFunction | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (current.value === opcode && current.implementation) {
+        return current.implementation;
+      }
+      current = current.next;
+    }
     return undefined;
   }
 

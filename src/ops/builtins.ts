@@ -42,6 +42,7 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp } from './builtins-stack';
+import { printOp } from './builtins-print';
 
 import {
   absOp,
@@ -315,17 +316,15 @@ export function executeOp(vm: VM, opcode: Op) {
       closeListOp(vm);
       break;
     default:
+      // If opcode is in the user-defined range, we need to find the implementation in the symbol table
       if (opcode >= 128 && opcode < 32768) {
-        try {
-          vm.functionTable.execute(vm, opcode);
+        const implementation = vm.symbolTable.findImplementationByOpcode(opcode);
+        if (implementation) {
+          implementation(vm);
           return;
-        } catch (funcError) {
-          if (funcError instanceof Error && funcError.message.includes('No function registered')) {
-          } else {
-            throw funcError;
-          }
         }
       }
+      
       throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
   }
 }

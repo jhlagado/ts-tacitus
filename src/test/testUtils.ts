@@ -6,16 +6,32 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 
 /**
  * Reset the VM state to prepare for a test
+ * Ensures complete reset of all state including the list operations
  */
 export function resetVM(): void {
+  // First reinitialize the VM completely
   initializeInterpreter();
+  
+  // Reset all VM state variables
   vm.SP = 0;
   vm.RP = 0;
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
   vm.running = true;
+  
+  // Reset compiler state
   vm.compiler.reset();
+  vm.compiler.BCP = 0;
+  vm.compiler.CP = 0;
+  
+  // Clear the stacks completely
+  const emptyStackData = vm.getStackData();
+  if (emptyStackData.length > 0) {
+    for (let i = 0; i < emptyStackData.length; i++) {
+      vm.pop();
+    }
+  }
 }
 
 /**

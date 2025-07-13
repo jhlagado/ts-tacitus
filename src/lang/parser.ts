@@ -14,6 +14,7 @@ interface ParserState {
   tokenizer: Tokenizer;
   currentDefinition: Definition | null;
   insideCodeBlock: boolean;
+  nextFunctionIndex: number;
 }
 
 /**
@@ -25,6 +26,7 @@ export function parse(tokenizer: Tokenizer): void {
     tokenizer,
     currentDefinition: null,
     insideCodeBlock: false,
+    nextFunctionIndex: 128, // Start user-defined words at index 128
   };
 
   parseProgram(state);
@@ -229,8 +231,10 @@ function beginDefinition(state: ParserState): void {
     vm.IP = startAddress;
   };
 
-  const functionIndex = vm.functionTable.registerWord(wordFunction);
-  vm.symbolTable.defineCall(wordName, functionIndex);
+  // Use a reserved opcode range starting from 128 for user-defined words
+  // The actual value doesn't matter as we'll look up by name in executeOp
+  const functionIndex = state.nextFunctionIndex++;
+  vm.symbolTable.defineCall(wordName, functionIndex, wordFunction);
   state.currentDefinition = {
     name: wordName,
     branchPos,
