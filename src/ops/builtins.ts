@@ -56,7 +56,7 @@ import {
   prodOp,
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
-import { formatValue } from '../core/utils';
+// Print operation now uses function table implementation
 
 import { rotOp, revrotOp } from './builtins-stack';
 
@@ -94,8 +94,8 @@ export function executeOp(vm: VM, opcode: Op) {
       evalOp(vm);
       break;
     case Op.Print:
-      const value = vm.pop();
-      console.log(formatValue(vm, value));
+      // Delegate to function table implementation
+      vm.functionTable.execute(vm, Op.Print);
       break;
     case Op.LiteralString:
       literalStringOp(vm);
