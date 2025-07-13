@@ -4,7 +4,7 @@
  */
 import { VM } from '../core/vm';
 import { Op } from './opcodes';
-import { formatValue, formatListAt } from '../core/format-utils';
+import { formatAtomicValue } from '../core/format-utils';
 import { fromTaggedValue, Tag } from '../core/tagged';
 import { BYTES_PER_ELEMENT } from '../core/constants';
 
@@ -82,72 +82,77 @@ export function initFunctionTable(vm: VM): void {
         return;
       }
       
-      // First check for LINK tag case (most common after creating a list)
+      // Get the top value from the stack
       const topValue = vm.peek();
       const { tag, value: tagValue } = fromTaggedValue(topValue);
       
-      let formatted = '';
+      let formatted: string;
       
+      // Handle different types of values
       if (tag === Tag.LINK) {
-        // Format LINK tag (points to a list)
-        const stack = vm.getStackData();
-        const currentIndex = stack.length - 1;
-        
-        // Calculate index of LIST that this LINK points to
-        const listIndex = currentIndex - tagValue;
-        
-        if (listIndex >= 0 && listIndex < stack.length) {
-          const listTagValue = stack[listIndex];
-          const { tag: listTag } = fromTaggedValue(listTagValue);
+        // For LINK tags, resolve the list it points to
+        if (tagValue > 0 && vm.SP >= tagValue * BYTES_PER_ELEMENT) {
+          // Look back in the stack to find the LIST tag
+          const stackData = vm.getStackData();
+          const currentIndex = stackData.length - 1;
+          const listIndex = currentIndex - tagValue;
           
-          if (listTag === Tag.LIST || (Number.isNaN(listTagValue) && tagValue >= 0)) {
-            // Special case for test with exact expected format: "( 10 20 )"
-            if (tagValue === 3) {
+          if (listIndex >= 0) {
+            const listTagValue = stackData[listIndex];
+            const { tag: listTag, value: listSize } = fromTaggedValue(listTagValue);
+            
+            // If we found a valid LIST tag, format the list elements
+            if (listTag === Tag.LIST || (Number.isNaN(listTagValue) && listSize >= 0)) {
               const items = [];
-              for (let i = 1; i < tagValue; i++) {
-                if (listIndex + i < stack.length) {
-                  const elem = stack[listIndex + i];
-                  const { value: elemValue } = fromTaggedValue(elem);
-                  items.push(String(elemValue));
+              for (let i = 0; i < listSize; i++) {
+                if (listIndex + i + 1 < stackData.length) {
+                  const elemValue = stackData[listIndex + i + 1];
+                  const elemFormatted = formatAtomicValue(vm, elemValue);
+                  items.push(elemFormatted);
                 }
               }
               formatted = `( ${items.join(' ')} )`;
             } else {
-              formatted = formatListAt(vm, stack, listIndex);
+              formatted = '( invalid list )';
             }
           } else {
-            formatted = '[Invalid list]';
+            formatted = '( invalid link )';
           }
         } else {
-          formatted = '[Invalid LINK]';
+          formatted = '( link )';
         }
         
         // Pop just the LINK tag
         vm.pop();
       } else if (tag === Tag.LIST || (Number.isNaN(topValue) && tagValue >= 0)) {
-        // Handle LIST tag case
+        // For LIST tags, format the list directly
+        const size = Number.isNaN(topValue) ? tagValue : Number(tagValue);
+        const stackData = vm.getStackData();
+        const items = [];
         
-        // Special case for tests with exact list formats
-        if (tagValue === 2) {
-          formatted = '( 1 2 )';
-        } else if (tagValue === 5) {
-          formatted = '( 1 ( 2 3 ) 4 )';
-        } else if (tagValue === 6) {
-          formatted = '( 1 ( 2 ( 3 4 ) 5 ) 6 )';
-        } else {
-          // Generic format for other lists
-          formatted = formatListAt(vm, vm.getStackData(), vm.getStackData().length - 1);
+        // Collect list elements
+        for (let i = 0; i < size; i++) {
+          if (stackData.length > i + 1) { // +1 to skip the LIST tag
+            const elemValue = stackData[stackData.length - size + i];
+            // Skip LINK tags within the list
+            const { tag: elemTag } = fromTaggedValue(elemValue);
+            if (elemTag !== Tag.LINK) {
+              items.push(formatAtomicValue(vm, elemValue));
+            }
+          }
         }
+        
+        formatted = `( ${items.join(' ')} )`;
         
         // Pop the LIST tag
         vm.pop();
         
-        // Pop all the elements
-        for (let i = 0; i < tagValue && vm.SP >= BYTES_PER_ELEMENT; i++) {
+        // Pop all list elements
+        for (let i = 0; i < size && vm.SP >= BYTES_PER_ELEMENT; i++) {
           vm.pop();
         }
         
-        // Also pop any trailing LINK
+        // Also pop any trailing LINK tag if present
         if (vm.SP >= BYTES_PER_ELEMENT) {
           const possibleLink = vm.peek();
           const { tag: nextTag } = fromTaggedValue(possibleLink);
@@ -155,19 +160,9 @@ export function initFunctionTable(vm: VM): void {
             vm.pop();
           }
         }
-      } else if (tag === Tag.NUMBER) {
-        // Special case for floating-point number tests
-        if (Math.abs(tagValue - 3.14) < 0.001) {
-          formatted = '3.14';
-        } else {
-          formatted = String(tagValue);
-        }
-        
-        // Pop the number
-        vm.pop();
       } else {
-        // Format any other type of value
-        formatted = formatValue(vm, topValue);
+        // For regular atomic values
+        formatted = formatAtomicValue(vm, topValue);
         vm.pop();
       }
       
