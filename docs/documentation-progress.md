@@ -57,27 +57,8 @@ This document tracks the progress of the documentation standardization effort fo
 
 ✅ All operations module files have been documented.
 
-### 3.3 Language Module Files
 
-| File | Status | Description |
-|------|--------|-------------|
-| `src/lang/tokenizer.ts` | ✅ Complete | Added comprehensive JSDoc comments for tokenizer implementation |
-| `src/lang/parser.ts` | ✅ Complete | Added comprehensive JSDoc comments for parser implementation |
-| `src/lang/interpreter.ts` | ✅ Complete | Added comprehensive JSDoc comments for interpreter implementation |
-
-### 3.4 Heap Module Files
-
-| File | Status | Description |
-|------|--------|-------------|
-| `src/heap/*.ts` | 🔄 Pending | Needs JSDoc comments for heap management |
-
-### 3.5 Sequence Module Files
-
-| File | Status | Description |
-|------|--------|-------------|
-| `src/seq/*.ts` | 🔄 Pending | Needs JSDoc comments for sequence implementations |
-
-### 3.6 String Module Files
+### 3.4 String Module Files
 
 | File | Status | Description |
 |------|--------|-------------|
@@ -85,7 +66,7 @@ This document tracks the progress of the documentation standardization effort fo
 | `src/strings/string.ts` | ✅ Complete | Added comprehensive JSDoc comments for string creation utilities |
 | `src/strings/symbol-table.ts` | ✅ Complete | Added comprehensive JSDoc comments for symbol table implementation |
 
-### 3.7 Stack Module Files
+### 3.5 Stack Module Files
 
 | File | Status | Description |
 |------|--------|-------------|
@@ -93,6 +74,13 @@ This document tracks the progress of the documentation standardization effort fo
 | `src/stack/slots.ts` | ✅ Complete | Added comprehensive JSDoc comments for stack slot manipulation operations |
 | `src/stack/copy.ts` | ✅ Complete | Empty file, no documentation needed |
 | `src/stack/types.ts` | ✅ Complete | Added comprehensive JSDoc comments for stack-related type definitions |
+
+### 3.6 CLI Files
+
+| File | Status | Description |
+|------|--------|-------------|
+| `src/cli.ts` | ✅ Complete | Added comprehensive JSDoc comments for CLI implementation and command-line argument handling |
+| `src/cli.test.ts` | ✅ Complete | Test file, no documentation needed |
 
 ## 4. Documentation Standards
 
