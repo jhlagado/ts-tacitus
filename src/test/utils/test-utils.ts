@@ -11,7 +11,7 @@ import { fromTaggedValue, Tag } from '../../core/tagged';
 export function resetVM(): void {
   // First reinitialize the VM completely
   initializeInterpreter();
-  
+
   // Reset all VM state variables
   vm.SP = 0;
   vm.RP = 0;
@@ -19,12 +19,12 @@ export function resetVM(): void {
   vm.IP = 0;
   vm.listDepth = 0;
   vm.running = true;
-  
+
   // Reset compiler state
   vm.compiler.reset();
   vm.compiler.BCP = 0;
   vm.compiler.CP = 0;
-  
+
   // Clear the stacks completely
   const emptyStackData = vm.getStackData();
   if (emptyStackData.length > 0) {
@@ -95,35 +95,6 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
  * Useful for testing code that uses the '.' operator
  */
 export function captureTacitOutput(code: string): string[] {
-  if (code.endsWith(' print')) {
-    // Extract the value part before ' print'
-    const value = code.slice(0, -6).trim();
-
-    if (value === '3.14') {
-      return ['3.14'];
-    }
-
-    if (value === '( 1 2 )') {
-      return ['( 1 2 )'];
-    }
-
-    if (value === '( 1 ( 2 3 ) 4 )') {
-      return ['( 1 ( 2 3 ) 4 )'];
-    }
-
-    if (value === '( 1 ( 2 ( 3 4 ) 5 ) 6 )') {
-      return ['( 1 ( 2 ( 3 4 ) 5 ) 6 )'];
-    }
-  }
-  
-  if (code === 'print') {
-    return ['( 10 20 )'];
-  }
-
-  if (code === '( 1 ( 2 ( 3 4 ) 5 ) 6 ) .') {
-    return ['( 1 ( 2 ( 3 4 ) 5 ) 6 )'];
-  }
-
   resetVM();
   const output: string[] = [];
   const originalConsoleLog = console.log;

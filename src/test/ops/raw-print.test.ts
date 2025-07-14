@@ -7,20 +7,20 @@ describe('Raw print operation (xxx)', () => {
   });
 
   test('should print a simple number', () => {
-    const output = captureTacitOutput('42 xxx');
+    const output = captureTacitOutput('42 .');
     expect(output[0]).toBe('42');
   });
 
   test('should print a tagged value', () => {
     // This test will fail until we implement proper list creation in the VM
     // For now, we're just testing that the operation exists and runs
-    const output = captureTacitOutput('(1 2) xxx');
+    const output = captureTacitOutput('(1 2) .');
     expect(output[0]).toMatch(/^LINK:\d+/);
   });
 
   test('should handle empty stack', () => {
     // This test will check error handling for empty stack
-    const output = captureTacitOutput('xxx');
+    const output = captureTacitOutput('.');
     expect(output[0]).toContain('Stack empty');
   });
 });

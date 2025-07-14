@@ -48,13 +48,13 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 
-import { 
-  dupOp, 
-  dropOp, 
-  swapOp, 
-  rotOp, 
-  revrotOp, 
-  overOp 
+import {
+  dupOp,
+  dropOp,
+  swapOp,
+  rotOp,
+  revrotOp,
+  overOp
 } from './builtins-stack';
 
 import {
@@ -70,12 +70,12 @@ import {
   prodOp,
 } from './arithmetic-ops';
 
-import { 
+import {
   simpleIfOp,
-  ifCurlyBranchFalseOp 
+  ifCurlyBranchFalseOp
 } from './builtins-conditional';
 
-import { printOp, dotOp } from './builtins-print';
+import { printOp } from './builtins-print';
 import { rawPrintOp } from './builtins-raw-print';
 
 /**
@@ -85,7 +85,7 @@ import { rawPrintOp } from './builtins-raw-print';
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   // Register all built-in operations in the symbol table
   // These operations have pre-assigned opcode values from the Op enum
-  
+
   // Control flow operations
   symbolTable.define('lit', Op.LiteralNumber, literalNumberOp);
   symbolTable.define('branch', Op.Branch, skipDefOp);
@@ -95,15 +95,14 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('exit', Op.Exit, exitOp);
   symbolTable.define('eval', Op.Eval, evalOp);
   symbolTable.define('print', Op.Print, printOp);
-  symbolTable.define('xxx', Op.RawPrint, rawPrintOp);
-  symbolTable.define('.', Op.Print, dotOp); // Simple value print
+  symbolTable.define('.', Op.RawPrint, rawPrintOp);
   symbolTable.define('str', Op.LiteralString, literalStringOp);
   symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
-  
+
   // List operations
   symbolTable.define('(', Op.OpenList, openListOp);
   symbolTable.define(')', Op.CloseList, closeListOp);
-  
+
   // Math operations
   symbolTable.define('+', Op.Add, addOp);
   symbolTable.define('add', Op.Add, addOp); // Alias for test compatibility
@@ -127,7 +126,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('ge', Op.GreaterOrEqual, greaterOrEqualOp); // Alias for test compatibility
   symbolTable.define('=', Op.Equal, equalOp);
   symbolTable.define('eq', Op.Equal, equalOp); // Alias for test compatibility
-  
+
   // Unary operations
   symbolTable.define('negate', Op.mNegate, mNegateOp);
   symbolTable.define('reciprocal', Op.mReciprocal, mReciprocalOp);
@@ -136,7 +135,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('not', Op.mNot, mNotOp);
   symbolTable.define('signum', Op.mSignum, mSignumOp);
   symbolTable.define('enlist', Op.mEnlist, mEnlistOp);
-  
+
   // Stack operations
   symbolTable.define('dup', Op.Dup, dupOp);
   symbolTable.define('drop', Op.Drop, dropOp);
@@ -144,7 +143,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('rot', Op.Rot, rotOp);
   symbolTable.define('revrot', Op.RevRot, revrotOp);
   symbolTable.define('over', Op.Over, overOp);
-  
+
   // Arithmetic operations
   symbolTable.define('abs', Op.Abs, absOp);
   symbolTable.define('neg', Op.Neg, negOp);
@@ -156,7 +155,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('pow', Op.Pow, powOp);
   symbolTable.define('avg', Op.Avg, avgOp);
   symbolTable.define('prod', Op.Prod, prodOp);
-  
+
   // Conditional operations
   symbolTable.define('if', Op.SimpleIf, simpleIfOp);
   symbolTable.define('ifcurlybf', Op.IfFalseBranch, ifCurlyBranchFalseOp);
