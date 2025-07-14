@@ -178,6 +178,7 @@ function formatListElements(vm: VM, listIndex: number, listSize: number, depth: 
 export function printOp(vm: VM): void {
   try {
     if (vm.SP < BYTES_PER_ELEMENT) {
+      // Special case for empty stack to maintain compatibility with tests
       console.log('[Error: Stack empty]');
       return;
     }

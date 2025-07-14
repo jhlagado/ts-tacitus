@@ -54,11 +54,7 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/t
  * IF { ... } ELSE { ... } syntax implemented by ifCurlyBranchFalseOp.
  */
 export const simpleIfOp: Verb = (vm: VM) => {
-  if (vm.SP < 3) {
-    throw new Error(
-      `Stack underflow: 'if' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
+  vm.ensureStackSize(3, 'if');
 
   const elseBranch = vm.pop();
   const thenBranch = vm.pop();
@@ -153,6 +149,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
  */
 export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
   const offset = vm.next16();
+  vm.ensureStackSize(1, 'IF');
   const cond = vm.pop();
   if (!isNumber(cond) || cond === 0) {
     vm.IP += offset;
