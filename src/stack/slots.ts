@@ -1,13 +1,44 @@
+/**
+ * @file src/stack/slots.ts
+ * 
+ * This file implements low-level stack slot manipulation operations for the Tacit VM.
+ * 
+ * The stack in Tacit is organized into slots, each containing a tagged value.
+ * This module provides utilities for manipulating ranges of slots, including:
+ * - Copying slots from one location to another
+ * - Reversing the order of slots in a range
+ * - Rotating slots within a range
+ * 
+ * These operations are fundamental building blocks for higher-level stack
+ * manipulation operations like dup, swap, rot, etc.
+ */
+
 import { VM } from '../core/vm';
 import { SEG_STACK } from '../core/memory';
 import { BYTES_PER_ELEMENT } from '../core/constants';
 
 /**
- * Copies a range of elements in the stack.
- * @param vm - The VM instance
- * @param startSlot - The starting slot index (0-based) of the range to rotate
- * @param slotCount - The number of slots to reverse
+ * Copies a range of elements in the stack to the top of the stack.
+ * 
+ * This function reads a specified number of slots starting from a given position
+ * and pushes copies of those values onto the top of the stack. The original
+ * values remain unchanged.
+ * 
+ * @param vm - The VM instance containing the stack
+ * @param startSlot - The starting slot index (0-based, relative to the stack top)
+ * @param slotCount - The number of slots to copy
+ * 
+ * @example
+ * // Stack before: [... 10 20 30]
+ * slotsCopy(vm, 0, 2);
+ * // Stack after: [... 10 20 30 30 20]
+ * 
+ * @example
+ * // Stack before: [... 5 10 15]
+ * slotsCopy(vm, 1, 1);
+ * // Stack after: [... 5 10 15 10]
  */
+
 export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) return;
   const startAddr = startSlot * BYTES_PER_ELEMENT;
@@ -20,11 +51,27 @@ export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
 }
 
 /**
- * Reverses a range of elements in the stack.
- * @param vm - The VM instance
- * @param startSlot - The starting slot index (0-based) of the range to rotate
+ * Reverses a range of elements in the stack in-place.
+ * 
+ * This function reverses the order of a specified number of slots starting
+ * from a given position. The operation is performed in-place, modifying
+ * the original stack contents.
+ * 
+ * @param vm - The VM instance containing the stack
+ * @param startSlot - The starting slot index (0-based, relative to the stack top)
  * @param slotCount - The number of slots to reverse
+ * 
+ * @example
+ * // Stack before: [... 10 20 30 40]
+ * slotsReverse(vm, 0, 4);
+ * // Stack after: [... 40 30 20 10]
+ * 
+ * @example
+ * // Stack before: [... 5 10 15 20 25]
+ * slotsReverse(vm, 1, 3);
+ * // Stack after: [... 5 20 15 10 25]
  */
+
 export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) return;
 
@@ -44,18 +91,32 @@ export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void
 
 /**
  * Rotates a range of elements in the stack by a specified number of positions.
- * @param vm - The VM instance
- * @param startSlot - The starting slot index (0-based) of the range to rotate
- * @param rangeSize - The number of slots in the range
- * @param shiftSlots - The number of positions to rotate (positive for right, negative for left)
+ * 
+ * This function rotates a specified range of slots by shifting them a given
+ * number of positions. The rotation is performed in-place using a three-step
+ * reversal algorithm:
+ * 1. Reverse the first part of the range
+ * 2. Reverse the second part of the range
+ * 3. Reverse the entire range
+ * 
+ * @param vm - The VM instance containing the stack
+ * @param startSlot - The starting slot index (0-based, relative to the stack top)
+ * @param rangeSize - The number of slots in the range to rotate
+ * @param shiftSlots - The number of positions to rotate (positive for right rotation)
+ * 
+ * @example
+ * // Stack before: [... 10 20 30 40 50]
+ * // Rotate the entire stack right by 2 positions
+ * slotsRoll(vm, 0, 5, 2);
+ * // Stack after: [... 40 50 10 20 30]
+ * 
+ * @example
+ * // Stack before: [... 10 20 30 40 50]
+ * // Rotate the middle 3 elements right by 1 position
+ * slotsRoll(vm, 1, 3, 1);
+ * // Stack after: [... 10 40 20 30 50]
  */
-/**
- * Rotates a range of elements in the stack by a specified number of positions.
- * @param vm - The VM instance
- * @param startSlot - The starting slot index (0-based) of the range to rotate
- * @param rangeSize - The number of slots in the range
- * @param shiftSlots - The number of positions to rotate (positive for right, negative for left)
- */
+
 export function slotsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;

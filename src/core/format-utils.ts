@@ -1,14 +1,30 @@
 /**
- * @file format-utils.ts
- * Utility functions for formatting Tacit VM values for display
+ * @file src/core/format-utils.ts
+ * 
+ * This file provides utility functions for formatting Tacit VM values for display
+ * and debugging purposes. It handles the conversion of internal tagged values to
+ * human-readable string representations, with special handling for different data
+ * types including numbers, strings, and nested lists.
+ * 
+ * The formatting functions are essential for debugging, REPL output, and any
+ * user-facing display of Tacit VM values. They understand the internal representation
+ * of values and can traverse complex data structures like nested lists.
  */
 import { VM } from './vm';
 import { fromTaggedValue, Tag } from './tagged';
 
 /**
  * Format a float with reasonable precision
- * @param value Number to format
- * @returns Formatted string representation
+ * 
+ * This function formats floating point numbers for display with appropriate
+ * precision based on the value. It handles special cases like:
+ * - NaN and Infinity values
+ * - Common constants like PI
+ * - Integers (shown without decimal points)
+ * - Small floating point values (shown with appropriate precision)
+ * 
+ * @param value - Number to format
+ * @returns Formatted string representation with appropriate precision
  */
 export function formatFloat(value: number): string {
   if (isNaN(value)) return 'NaN';
@@ -31,9 +47,16 @@ export function formatFloat(value: number): string {
 
 /**
  * Format an atomic (non-list) value
- * @param vm The VM instance to access string table
- * @param value The tagged value to format
- * @returns Formatted string representation
+ * 
+ * This function formats a single atomic (non-list) tagged value based on its tag type.
+ * It handles different tag types with specialized formatting:
+ * - Numbers: Formatted with appropriate precision
+ * - Strings: Retrieved from the VM's string digest
+ * - Other tags: Displayed with their tag name and value
+ * 
+ * @param vm - The VM instance to access string table and other resources
+ * @param value - The tagged value to format
+ * @returns Formatted string representation appropriate for the value's tag type
  */
 export function formatAtomicValue(vm: VM, value: number): string {
   const { tag, value: tagValue } = fromTaggedValue(value);
@@ -61,6 +84,21 @@ export function formatAtomicValue(vm: VM, value: number): string {
 
 /**
  * Format a list starting at a specific index in the stack
+ * 
+ * This function formats a list value stored on the VM stack, handling nested lists
+ * and linked list structures. It recursively processes list elements, formatting each
+ * according to its type, and builds a properly parenthesized string representation.
+ * 
+ * The function handles:
+ * - Simple lists of atomic values
+ * - Nested lists (recursively formatted)
+ * - Linked list structures with LINK tags
+ * - NaN-boxed list representations
+ * 
+ * @param vm - The VM instance to access string table and other resources
+ * @param stack - The stack array containing the list elements
+ * @param index - The index in the stack where the list starts
+ * @returns Formatted string representation of the list with proper parentheses
  */
 export function formatListAt(vm: VM, stack: number[], index: number): string {
   if (index < 0 || index >= stack.length) {
@@ -113,6 +151,21 @@ export function formatListAt(vm: VM, stack: number[], index: number): string {
 
 /**
  * Format a single value from the stack
+ * 
+ * This is the main entry point for formatting any Tacit VM value. It determines
+ * the appropriate formatting strategy based on the value's tag type and structure,
+ * delegating to specialized formatting functions as needed.
+ * 
+ * The function handles all value types including:
+ * - Lists (both regular and NaN-boxed)
+ * - Linked list references
+ * - Strings (looking them up in the string digest)
+ * - Numbers (with appropriate precision)
+ * - Other tagged values
+ * 
+ * @param vm - The VM instance to access stack data, string digest, and other resources
+ * @param value - The tagged value to format
+ * @returns Human-readable string representation of the value
  */
 export function formatValue(vm: VM, value: number): string {
   const stack = vm.getStackData();

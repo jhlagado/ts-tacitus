@@ -1,10 +1,33 @@
+/**
+ * @file src/lang/repl.ts
+ * 
+ * This file implements the Read-Eval-Print Loop (REPL) for the Tacit language.
+ * 
+ * The REPL provides an interactive command-line interface for executing Tacit code.
+ * It supports loading files, executing individual commands, and maintaining an
+ * interactive session. This is the primary interface for interactive development
+ * and experimentation with the Tacit language.
+ */
+
 import { createInterface } from 'readline';
 import { executeLine, setupInterpreter } from './executor';
 
 import { processFile } from './fileProcessor';
 
 /**
- * Starts an interactive REPL session
+ * Starts an interactive REPL (Read-Eval-Print Loop) session.
+ * 
+ * This function initializes the interpreter environment and starts an interactive
+ * command-line interface for executing Tacit code. It can optionally load files
+ * before starting the interactive session.
+ * 
+ * The REPL supports the following commands:
+ * - 'exit': Exits the REPL
+ * - 'load <filepath>': Loads and executes a Tacit file
+ * - Any other input is interpreted as Tacit code and executed
+ * 
+ * @param {string[]} [files=[]] - Array of file paths to load before starting the interactive session
+ * @param {boolean} [interactiveAfterFiles=true] - Whether to start an interactive session after loading files
  */
 export function startREPL(files: string[] = [], interactiveAfterFiles: boolean = true): void {
   setupInterpreter();
@@ -80,7 +103,14 @@ export function startREPL(files: string[] = [], interactiveAfterFiles: boolean =
 }
 
 /**
- * Main entry point for the interpreter
+ * Main entry point for the Tacit interpreter.
+ * 
+ * This function processes command-line arguments and starts the REPL accordingly.
+ * It supports the following command-line options:
+ * - '--no-interactive': Loads files without starting an interactive session
+ * - Any other arguments are treated as file paths to load
+ * 
+ * If no files are specified, it starts an interactive REPL session.
  */
 export function main(): void {
   const args = process.argv.slice(2);
