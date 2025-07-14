@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-/* global console, process */
 /**
  * This script ensures proper spacing in TypeScript files:
  * - No blank lines between imports, one blank line after import block
@@ -8,9 +7,9 @@
  * - Blank lines between functions and methods
  * - Blank lines after variable declarations in classes
  */
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 const PROJECT_ROOT = '/Users/johnhardy/Documents/projects/ts-tacitus';
 

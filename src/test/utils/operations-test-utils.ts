@@ -1,7 +1,7 @@
 /**
  * Utilities for testing Tacit operations in a standardized way
  */
-import { executeTacitCode, resetVM } from '../utils/test-utils';
+import { executeTacitCode, resetVM } from './test-utils';
 
 /**
  * Interface for a simple test case

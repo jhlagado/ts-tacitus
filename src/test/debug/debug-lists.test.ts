@@ -1,7 +1,7 @@
 /**
  * Debug file to understand list structure on the stack
  */
-import { executeTacitCode, resetVM } from '../testUtils';
+import { executeTacitCode, resetVM } from '../utils/test-utils';
 import { fromTaggedValue, Tag } from '../../core/tagged';
 import { vm } from '../../core/globalState';
 

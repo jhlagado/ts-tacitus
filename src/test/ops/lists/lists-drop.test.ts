@@ -3,6 +3,7 @@ import { parse } from '../../../lang/parser';
 import { Tokenizer } from '../../../lang/tokenizer';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
 import { execute } from '../../../lang/interpreter';
+
 import { vm, initializeInterpreter } from '../../../core/globalState';
 
 /**
@@ -126,7 +127,7 @@ describe('List operations', () => {
 
       const stackBeforeSize = vm.getStackData().length;
 
-      const topListValues = [];
+      const topListValues: number[] = [];
       const stack = vm.getStackData();
       for (let i = stackBeforeSize - 4; i < stackBeforeSize; i++) {
         topListValues.push(stack[i]);

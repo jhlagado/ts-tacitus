@@ -1,9 +1,9 @@
 import { describe, test, expect } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { parse } from '../../lang/parser';
-import { Tokenizer } from '../../lang/tokenizer';
-import { execute } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { parse } from '../../../lang/parser';
+import { Tokenizer } from '../../../lang/tokenizer';
+import { execute } from '../../../lang/interpreter';
+import { initializeInterpreter, vm } from '../../../core/globalState';
 
 /**
  * Helper function to execute Tacit code and return the stack

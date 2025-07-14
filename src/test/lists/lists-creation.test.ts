@@ -6,7 +6,7 @@ import {
   logStack,
   verifyListStructure,
   ListElement,
-} from '../testUtils';
+} from '../utils/test-utils';
 
 describe('List creation operations', () => {
   beforeEach(() => {

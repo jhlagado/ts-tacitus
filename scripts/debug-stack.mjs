@@ -1,5 +1,5 @@
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
 
 const cliPath = path.join('dist', 'cli.js');
 
@@ -17,26 +17,18 @@ cli.stderr.on('data', data => {
 });
 
 setTimeout(() => {
-  cli.stdin.write('123 .\n');
+  cli.stdin.write('( 1 2 ) \n');
 
   setTimeout(() => {
-    cli.stdin.write('3.14 .\n');
+    cli.stdin.write('show-stack \n');
 
     setTimeout(() => {
-      cli.stdin.write('( 1 2 ) .\n');
+      cli.stdin.write('exit\n');
 
       setTimeout(() => {
-        cli.stdin.write('( 1 ( 2 3 ) 4 ) .\n');
-
-        setTimeout(() => {
-          cli.stdin.write('exit\n');
-
-          setTimeout(() => {
-            console.log('Test complete');
-            process.exit(0);
-          }, 500);
-        }, 500);
+        console.log('Test complete');
+        process.exit(0);
       }, 500);
-    }, 500);
-  }, 500);
-}, 500);
+    }, 1000);
+  }, 1000);
+}, 1000);

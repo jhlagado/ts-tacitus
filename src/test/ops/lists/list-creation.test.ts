@@ -2,11 +2,11 @@
  * Tests for list creation operations
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { parse } from '../../lang/parser';
-import { Tokenizer } from '../../lang/tokenizer';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { execute } from '../../lang/interpreter';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { parse } from '../../../lang/parser';
+import { Tokenizer } from '../../../lang/tokenizer';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { execute } from '../../../lang/interpreter';
+import { vm, initializeInterpreter } from '../../../core/globalState';
 
 /**
  * Helper function to execute Tacit code and return the stack

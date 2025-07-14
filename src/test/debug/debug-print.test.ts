@@ -1,7 +1,7 @@
 /**
  * Debug file to understand print operation's interactions with lists
  */
-import { executeTacitCode, resetVM, captureTacitOutput } from '../testUtils';
+import { executeTacitCode, resetVM, captureTacitOutput } from '../utils/test-utils';
 import { fromTaggedValue, Tag } from '../../core/tagged';
 import { vm } from '../../core/globalState';
 import { formatValue, formatFloat, formatListAt } from '../../core/format-utils';

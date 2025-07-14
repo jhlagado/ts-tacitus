@@ -1,10 +1,10 @@
 /**
- * Additional tests for the 'over' stack operation 
+ * Additional tests for the 'over' stack operation
  * Focused on the behavior with lists
  */
 import { describe, it, expect } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { executeTacitCode } from '../utils/test-utils';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { executeTacitCode } from '../../testUtils';
 
 describe('over Operation (continued)', () => {
   // Known bug - skipped while reorganizing

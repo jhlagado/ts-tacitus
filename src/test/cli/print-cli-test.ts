@@ -1,4 +1,4 @@
-import { executeTacitCode, resetVM } from '../testUtils';
+import { executeTacitCode, resetVM } from '../utils/test-utils';
 import { vm } from '../../core/globalState';
 
 /**
