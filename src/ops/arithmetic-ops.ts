@@ -1,12 +1,39 @@
-import { VM } from '../core/vm';
+/**
+ * @file src/ops/arithmetic-ops.ts
+ * 
+ * This file implements arithmetic operations for the Tacit VM.
+ * 
+ * These operations perform mathematical calculations on values from the stack,
+ * including basic arithmetic, trigonometric functions, and statistical operations.
+ * 
+ * Most operations follow a consistent pattern:
+ * 1. Pop one or more values from the stack
+ * 2. Perform the mathematical operation
+ * 3. Push the result back onto the stack
+ * 
+ * Note: While the comments mention array operations, the current implementations
+ * only handle scalar (number) values directly. Array operations would require
+ * additional logic to handle tagged values and lists.
+ */
 
+import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 
 /**
- * Absolute value
- * Number: Returns absolute value.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the absolute value operation.
+ * 
+ * Pops a value from the stack, computes its absolute value, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... -5]
+ * absOp(vm)
+ * // Stack after: [... 5]
+ * 
+ * @remarks
+ * - For numbers: Returns the absolute value.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const absOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -15,10 +42,20 @@ export const absOp: Verb = (vm: VM) => {
 };
 
 /**
- * Negation (flip sign)
- * Number: Returns negative.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the negation operation (flips the sign).
+ * 
+ * Pops a value from the stack, negates it, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 5]
+ * negOp(vm)
+ * // Stack after: [... -5]
+ * 
+ * @remarks
+ * - For numbers: Returns the negated value.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const negOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -27,10 +64,21 @@ export const negOp: Verb = (vm: VM) => {
 };
 
 /**
- * Sign function (-1 for negative, 0 for zero, 1 for positive)
- * Number: Returns -1, 0, or 1.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the sign function.
+ * 
+ * Pops a value from the stack, determines its sign, and pushes the result back.
+ * Returns -1 for negative values, 0 for zero, and 1 for positive values.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... -5]
+ * signOp(vm)
+ * // Stack after: [... -1]
+ * 
+ * @remarks
+ * - For numbers: Returns -1, 0, or 1.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const signOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -39,10 +87,20 @@ export const signOp: Verb = (vm: VM) => {
 };
 
 /**
- * Exponential function (e^x)
- * Number: Returns e^x.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the exponential function (e^x).
+ * 
+ * Pops a value from the stack, computes e raised to that power, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 1]
+ * expOp(vm)
+ * // Stack after: [... 2.718...] (e^1)
+ * 
+ * @remarks
+ * - For numbers: Returns e^x.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const expOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -51,10 +109,20 @@ export const expOp: Verb = (vm: VM) => {
 };
 
 /**
- * Natural logarithm
- * Number: Returns log base e.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the natural logarithm function (ln).
+ * 
+ * Pops a value from the stack, computes its natural logarithm, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 2.718...] (e)
+ * lnOp(vm)
+ * // Stack after: [... 1]
+ * 
+ * @remarks
+ * - For numbers: Returns the natural logarithm (base e).
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const lnOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -63,10 +131,20 @@ export const lnOp: Verb = (vm: VM) => {
 };
 
 /**
- * Logarithm base 10
- * Number: Returns log base 10.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the base-10 logarithm function.
+ * 
+ * Pops a value from the stack, computes its base-10 logarithm, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 100]
+ * logOp(vm)
+ * // Stack after: [... 2]
+ * 
+ * @remarks
+ * - For numbers: Returns the base-10 logarithm.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const logOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -75,10 +153,20 @@ export const logOp: Verb = (vm: VM) => {
 };
 
 /**
- * Square root
- * Number: Returns sqrt.
- * Array: Applies element-wise.
- * String: Not applicable.
+ * Implements the square root function.
+ * 
+ * Pops a value from the stack, computes its square root, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 9]
+ * sqrtOp(vm)
+ * // Stack after: [... 3]
+ * 
+ * @remarks
+ * - For numbers: Returns the square root.
+ * - For arrays: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const sqrtOp: Verb = (vm: VM) => {
   const a = vm.pop();
@@ -87,11 +175,22 @@ export const sqrtOp: Verb = (vm: VM) => {
 };
 
 /**
- * Exponentiation (x^y)
- * Numbers: Computes x^y.
- * Array-Scalar: Applies scalar to each element.
- * Array-Array: Element-wise power.
- * String: Not applicable.
+ * Implements the power operation (x^y).
+ * 
+ * Pops two values from the stack (y then x), computes x raised to the power of y,
+ * and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 2 3]
+ * powOp(vm)
+ * // Stack after: [... 8] (2^3)
+ * 
+ * @remarks
+ * - For numbers: Computes x^y.
+ * - For array-scalar: Would apply scalar to each element (not implemented).
+ * - For array-array: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const powOp: Verb = (vm: VM) => {
   const b = vm.pop();
@@ -101,11 +200,21 @@ export const powOp: Verb = (vm: VM) => {
 };
 
 /**
- * Minimum of two values
- * Numbers: Returns smaller number.
- * Array-Scalar: Compares each element to scalar.
- * Array-Array: Element-wise min.
- * String: Not applicable.
+ * Implements the minimum operation.
+ * 
+ * Pops two values from the stack, finds the smaller one, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 5 3]
+ * minOp(vm)
+ * // Stack after: [... 3]
+ * 
+ * @remarks
+ * - For numbers: Returns the smaller number.
+ * - For array-scalar: Would compare each element to scalar (not implemented).
+ * - For array-array: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const minOp: Verb = (vm: VM) => {
   const b = vm.pop();
@@ -115,11 +224,21 @@ export const minOp: Verb = (vm: VM) => {
 };
 
 /**
- * Maximum of two values
- * Numbers: Returns larger number.
- * Array-Scalar: Compares each element to scalar.
- * Array-Array: Element-wise max.
- * String: Not applicable.
+ * Implements the maximum operation.
+ * 
+ * Pops two values from the stack, finds the larger one, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 5 3]
+ * maxOp(vm)
+ * // Stack after: [... 5]
+ * 
+ * @remarks
+ * - For numbers: Returns the larger number.
+ * - For array-scalar: Would compare each element to scalar (not implemented).
+ * - For array-array: Would apply element-wise (not implemented).
+ * - For strings: Not applicable.
  */
 export const maxOp: Verb = (vm: VM) => {
   const b = vm.pop();
@@ -129,10 +248,20 @@ export const maxOp: Verb = (vm: VM) => {
 };
 
 /**
- * Mean (average) of two values
- * Numbers: Computes (x + y)/2.
- * Array: Computes average of all elements.
- * String: Not applicable.
+ * Implements the average (mean) operation.
+ * 
+ * Pops two values from the stack, computes their average, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 4 6]
+ * avgOp(vm)
+ * // Stack after: [... 5] ((4+6)/2)
+ * 
+ * @remarks
+ * - For numbers: Computes (x + y)/2.
+ * - For arrays: Would compute average of all elements (not implemented).
+ * - For strings: Not applicable.
  */
 export const avgOp: Verb = (vm: VM) => {
   const b = vm.pop();
@@ -142,10 +271,20 @@ export const avgOp: Verb = (vm: VM) => {
 };
 
 /**
- * Product of elements
- * Numbers: Computes x*y.
- * Array: Computes product of all elements.
- * String: Not applicable.
+ * Implements the product operation.
+ * 
+ * Pops two values from the stack, computes their product, and pushes the result back.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @example
+ * // Stack before: [... 4 5]
+ * prodOp(vm)
+ * // Stack after: [... 20] (4*5)
+ * 
+ * @remarks
+ * - For numbers: Computes x*y.
+ * - For arrays: Would compute product of all elements (not implemented).
+ * - For strings: Not applicable.
  */
 export const prodOp: Verb = (vm: VM) => {
   const b = vm.pop();
