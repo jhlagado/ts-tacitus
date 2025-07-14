@@ -1,4 +1,3 @@
-import { VM } from '../../core/vm';
 import { captureTacitOutput, executeTacitCode } from '../testUtils';
 
 describe('Raw print operation (xxx)', () => {
