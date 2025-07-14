@@ -2,7 +2,11 @@ import { VM } from '../../../core/vm';
 import { pickOp } from '../../../ops/builtins-stack';
 import { initializeInterpreter } from '../../../core/globalState';
 import { pushList, getStackWithTags } from '../../../test/stack-utils';
-import { testStackOperation, withStack, expectStackUnderflow } from '../../../test/stack-test-utils';
+import {
+  testStackOperation,
+  withStack,
+  expectStackUnderflow,
+} from '../../../test/stack-test-utils';
 
 describe('pick Operation', () => {
   beforeEach(() => {
@@ -28,17 +32,17 @@ describe('pick Operation', () => {
   });
 
   describe('edge cases', () => {
-    it('should throw on stack underflow', () => {
+    test('should throw on stack underflow', () => {
       expectStackUnderflow(pickOp);
     });
 
-    it('should throw on negative index', () => {
+    test('should throw on negative index', () => {
       const vm = new VM();
       vm.push(-1);
       expect(() => pickOp(vm)).toThrow('Invalid index for pick: -1');
     });
 
-    it('should throw when index is out of bounds', () => {
+    test('should throw when index is out of bounds', () => {
       const vm = new VM();
       vm.push(1);
       vm.push(2);
@@ -47,7 +51,7 @@ describe('pick Operation', () => {
   });
 
   describe('with lists', () => {
-    it('should handle picking a list', () => {
+    test('should handle picking a list', () => {
       const vm = new VM();
 
       vm.push(5);

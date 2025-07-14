@@ -1,4 +1,4 @@
-// Convert test files from it() to test()
+// Convert test files from test() to test()
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
