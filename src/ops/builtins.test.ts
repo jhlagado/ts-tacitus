@@ -15,7 +15,7 @@ describe('Built-in Words', () => {
     });
     test('add should throw on insufficient stack items', () => {
       vm.push(5);
-      expect(() => addOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => addOp(vm)).toThrow(`Stack underflow: 'add' requires 2 operands (stack: [5])`);
     });
     test('sub should subtract numbers', () => {
       vm.push(5);
@@ -25,7 +25,7 @@ describe('Built-in Words', () => {
     });
     test('sub should throw on insufficient stack items', () => {
       vm.push(5);
-      expect(() => subtractOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => subtractOp(vm)).toThrow(`Stack underflow: '-' requires 2 operands (stack: [5])`);
     });
     test('mul should multiply numbers', () => {
       vm.push(5);
@@ -35,7 +35,7 @@ describe('Built-in Words', () => {
     });
     test('mul should throw on insufficient stack items', () => {
       vm.push(5);
-      expect(() => multiplyOp(vm)).toThrow(`Stack underflow: Cannot pop value (stack: [])`);
+      expect(() => multiplyOp(vm)).toThrow(`Stack underflow: '*' requires 2 operands (stack: [5])`);
     });
     test('div should divide numbers', () => {
       vm.push(6);

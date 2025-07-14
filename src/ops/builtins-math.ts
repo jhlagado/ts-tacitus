@@ -34,12 +34,7 @@ import { Verb } from '../core/types';
  * // Stack after: [... 8]
  */
 export const addOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) {
-    throw new Error(
-      `Stack underflow: 'add' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
-
+  vm.ensureStackSize(2, 'add');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a + b);
@@ -60,12 +55,7 @@ export const addOp: Verb = (vm: VM) => {
  * // Stack after: [... 7] (10-3)
  */
 export const subtractOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) {
-    throw new Error(
-      `Stack underflow: '-' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
-
+  vm.ensureStackSize(2, '-');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a - b);
@@ -85,12 +75,7 @@ export const subtractOp: Verb = (vm: VM) => {
  * // Stack after: [... 20] (4*5)
  */
 export const multiplyOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) {
-    throw new Error(
-      `Stack underflow: '*' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
-
+  vm.ensureStackSize(2, '*');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a * b);
@@ -115,12 +100,7 @@ export const multiplyOp: Verb = (vm: VM) => {
  * Infinity or NaN in such cases, which are valid floating-point values.
  */
 export const divideOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) {
-    throw new Error(
-      `Stack underflow: '/' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
-
+  vm.ensureStackSize(2, '/');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a / b);
@@ -141,7 +121,7 @@ export const divideOp: Verb = (vm: VM) => {
  * // Stack after: [... 8] (2^3)
  */
 export const powerOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '^' requires 2 operands`);
+  vm.ensureStackSize(2, '^');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a ** b);
@@ -162,7 +142,7 @@ export const powerOp: Verb = (vm: VM) => {
  * // Stack after: [... 1] (10%3)
  */
 export const modOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '!' requires 2 operands`);
+  vm.ensureStackSize(2, 'mod');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a % b);
@@ -182,7 +162,7 @@ export const modOp: Verb = (vm: VM) => {
  * // Stack after: [... 3]
  */
 export const minOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '&' requires 2 operands`);
+  vm.ensureStackSize(2, '&');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(Math.min(a, b));
@@ -202,7 +182,7 @@ export const minOp: Verb = (vm: VM) => {
  * // Stack after: [... 5]
  */
 export const maxOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: '|' requires 2 operands`);
+  vm.ensureStackSize(2, '|');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(Math.max(a, b));
@@ -228,7 +208,7 @@ export const maxOp: Verb = (vm: VM) => {
  * // Stack after: [... 0] (false)
  */
 export const equalOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: 'eq' requires 2 operands`);
+  vm.ensureStackSize(2, 'eq');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a === b ? 1 : 0);
@@ -254,7 +234,7 @@ export const equalOp: Verb = (vm: VM) => {
  * // Stack after: [... 0] (false, 5 < 3)
  */
 export const lessThanOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: 'lt' requires 2 operands`);
+  vm.ensureStackSize(2, 'lt');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a < b ? 1 : 0);
@@ -280,7 +260,7 @@ export const lessThanOp: Verb = (vm: VM) => {
  * // Stack after: [... 1] (true, 5 <= 5)
  */
 export const lessOrEqualOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: 'le' requires 2 operands`);
+  vm.ensureStackSize(2, 'le');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a <= b ? 1 : 0);
@@ -306,7 +286,7 @@ export const lessOrEqualOp: Verb = (vm: VM) => {
  * // Stack after: [... 0] (false, 3 > 5)
  */
 export const greaterThanOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: 'gt' requires 2 operands`);
+  vm.ensureStackSize(2, 'gt');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a > b ? 1 : 0);
@@ -332,7 +312,7 @@ export const greaterThanOp: Verb = (vm: VM) => {
  * // Stack after: [... 1] (true, 5 >= 5)
  */
 export const greaterOrEqualOp: Verb = (vm: VM) => {
-  if (vm.SP < 2) throw new Error(`Stack underflow: 'ge' requires 2 operands`);
+  vm.ensureStackSize(2, 'ge');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(a >= b ? 1 : 0);
