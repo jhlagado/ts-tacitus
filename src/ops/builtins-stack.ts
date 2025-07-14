@@ -25,9 +25,97 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 import { SEG_STACK } from '../core/memory';
 import { findElement } from '../stack/find';
 import { slotsRoll, slotsCopy } from '../stack/slots';
+import { StackUnderflowError, VMError } from '../core/errors';
 
 /** Number of bytes per stack element */
 const BYTES_PER_ELEMENT = 4;
+
+/**
+ * Finds an element at a specific index in the stack and returns its position and size.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @param {number} index - The index of the element to find (0 is the top element).
+ * @returns {[number, number]} A tuple containing the slot position and size of the element.
+ * @throws {StackUnderflowError} If the index is out of bounds or the stack is not deep enough.
+ */
+function findElementAtIndex(vm: VM, index: number): [number, number] {
+  let currentSlot = 0;
+  
+  for (let i = 0; i <= index; i++) {
+    if (currentSlot * BYTES_PER_ELEMENT >= vm.SP) {
+      throw new StackUnderflowError('pick', index + 1, vm.getStackData());
+    }
+
+    const [nextSlot, size] = findElement(vm, currentSlot);
+
+    if (i === index) {
+      const targetSlot = vm.SP / BYTES_PER_ELEMENT - nextSlot;
+      return [targetSlot, size];
+    }
+
+    currentSlot = nextSlot;
+  }
+  
+  throw new VMError(`Failed to find element at index ${index}`, vm.getStackData());
+}
+
+/**
+ * Validates that the stack has at least the specified number of elements.
+ * Uses the VM's ensureStackSize method for consistent error handling.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @param {number} requiredElements - The minimum number of elements required.
+ * @param {string} operationName - The name of the operation for error reporting.
+ * @throws {Error} If the stack doesn't have enough elements.
+ */
+function validateStackDepth(vm: VM, requiredElements: number, operationName: string): void {
+  vm.ensureStackSize(requiredElements, operationName);
+}
+
+/**
+ * Safely executes a stack operation with error handling and stack pointer restoration.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @param {() => void} operation - The operation to execute.
+ * @param {string} operationName - The name of the operation for error reporting.
+ * @throws {VMError} If the operation fails, with a descriptive error message.
+ */
+function safeStackOperation(vm: VM, operation: () => void, operationName: string): void {
+  const originalSP = vm.SP;
+  
+  try {
+    operation();
+  } catch (error) {
+    vm.SP = originalSP;
+    if (error instanceof VMError) {
+      throw error;
+    } else {
+      throw new VMError(`${operationName} failed: ${error instanceof Error ? error.message : String(error)}`, vm.getStackData());
+    }
+  }
+}
+
+/**
+ * Gets information about multiple consecutive elements on the stack.
+ * 
+ * @param {VM} vm - The virtual machine instance.
+ * @param {number} count - The number of elements to get information for.
+ * @returns {Array<{slot: number, size: number}>} Array of element information, from top to bottom.
+ * @throws {StackUnderflowError} If there aren't enough elements on the stack.
+ */
+function getStackElements(vm: VM, count: number): Array<{slot: number, size: number}> {
+  const elements = [];
+  let currentSlot = 0;
+  
+  for (let i = 0; i < count; i++) {
+    const [nextSlot, size] = findElement(vm, currentSlot);
+    const slot = vm.SP / BYTES_PER_ELEMENT - nextSlot;
+    elements.push({ slot, size });
+    currentSlot = nextSlot;
+  }
+  
+  return elements;
+}
 
 /**
  * Implements the dup (duplicate) operation.
@@ -50,16 +138,9 @@ const BYTES_PER_ELEMENT = 4;
  * // Stack after: [... (1 2 3) (1 2 3)]
  */
 export const dupOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT) {
-    throw new Error(
-      `Stack underflow: 'dup' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
+  validateStackDepth(vm, 1, 'dup');
 
-  const [tosNext, tosSize] = findElement(vm, 0);
-
-  const tosStartSlot = vm.SP / BYTES_PER_ELEMENT - tosNext;
-
+  const [tosStartSlot, tosSize] = findElementAtIndex(vm, 0);
   slotsCopy(vm, tosStartSlot, tosSize);
 };
 
@@ -83,19 +164,27 @@ export const dupOp: Verb = (vm: VM) => {
  * // Stack after: [... (1 2) 5 (1 2)]
  */
 export const overOp: Verb = (vm: VM) => {
-  if (vm.SP < 2 * BYTES_PER_ELEMENT) {
-    throw new Error(
-      `Stack underflow: 'over' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
-    );
+  validateStackDepth(vm, 2, 'over');
+  
+  const originalSP = vm.SP;
+  
+  try {
+    // Original implementation to ensure proper list handling
+    const [_topNextSlot, topSlots] = findElement(vm, 0);
+    const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
+    
+    // Calculate the address of the second element
+    const secondAddr = vm.SP - (topSlots + secondSlots) * BYTES_PER_ELEMENT;
+    
+    // Copy the second element to the top of the stack
+    for (let i = 0; i < secondSlots; i++) {
+      const value = vm.memory.readFloat32(SEG_STACK, secondAddr + i * BYTES_PER_ELEMENT);
+      vm.push(value);
+    }
+  } catch (error) {
+    vm.SP = originalSP;
+    throw new Error(`over failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const [tosNext, _tosSize] = findElement(vm, 0);
-
-  const [nosNext, nosSize] = findElement(vm, tosNext);
-
-  const nosStartSlot = vm.SP / BYTES_PER_ELEMENT - nosNext;
-
-  slotsCopy(vm, nosStartSlot, nosSize);
 };
 
 /**
@@ -119,11 +208,7 @@ export const overOp: Verb = (vm: VM) => {
  * // Stack after: [... (1 2) 5 (1 2)] (index 2 refers to (1 2))
  */
 export const pickOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT) {
-    throw new Error(
-      `Stack underflow: 'pick' requires an index (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
+  validateStackDepth(vm, 1, 'pick');
 
   const index = vm.pop();
 
@@ -131,31 +216,12 @@ export const pickOp: Verb = (vm: VM) => {
     throw new Error(`Invalid index for pick: ${index}`);
   }
 
-  let currentSlot = 0;
-  let targetSlot = -1;
-  let targetSize = 0;
-
-  for (let i = 0; i <= index; i++) {
-    if (currentSlot * BYTES_PER_ELEMENT >= vm.SP) {
-      throw new Error(`Stack underflow in pick operation`);
-    }
-
-    const [nextSlot, size] = findElement(vm, currentSlot);
-
-    if (i === index) {
-      targetSlot = vm.SP / BYTES_PER_ELEMENT - nextSlot;
-      targetSize = size;
-      break;
-    }
-
-    currentSlot = nextSlot;
+  try {
+    const [targetSlot, targetSize] = findElementAtIndex(vm, index);
+    slotsCopy(vm, targetSlot, targetSize);
+  } catch (error) {
+    throw new Error(`Stack underflow in pick operation`);
   }
-
-  if (targetSlot === -1) {
-    throw new Error(`Invalid index for pick: ${index}`);
-  }
-
-  slotsCopy(vm, targetSlot, targetSize);
 };
 
 /**
@@ -178,12 +244,9 @@ export const pickOp: Verb = (vm: VM) => {
  * // Stack after: [... 5]
  */
 export const dropOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT) {
-    throw new Error(
-      `Stack underflow: 'drop' requires 1 operand (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
+  validateStackDepth(vm, 1, 'drop');
 
+  // Original implementation to ensure proper list handling
   const topValue = vm.pop();
   const { tag, value } = fromTaggedValue(topValue);
   if (tag === Tag.LINK) {
@@ -212,27 +275,24 @@ export const dropOp: Verb = (vm: VM) => {
  * // Stack after: [... 5 (1 2)]
  */
 export const swapOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT * 2) {
-    throw new Error(
-      `Stack underflow: 'swap' requires 2 operands (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
-
+  validateStackDepth(vm, 2, 'swap');
+  
   const originalSP = vm.SP;
 
   try {
+    // Original implementation to ensure proper list handling
     const [_topNextSlot, topSlots] = findElement(vm, 0);
-    const _topSize = topSlots * BYTES_PER_ELEMENT;
-
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
-    const _secondSize = secondSlots * BYTES_PER_ELEMENT;
-
     const totalSlots = topSlots + secondSlots;
 
     slotsRoll(vm, 0, totalSlots, topSlots);
   } catch (error) {
     vm.SP = originalSP;
-    throw error;
+    if (error instanceof VMError) {
+      throw error;
+    } else {
+      throw new VMError(`swap failed: ${error instanceof Error ? error.message : String(error)}`, vm.getStackData());
+    }
   }
 };
 
@@ -257,32 +317,27 @@ export const swapOp: Verb = (vm: VM) => {
  * // Stack after: [... 5 10 (1 2)]
  */
 export const rotOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT * 3) {
-    throw new Error(
-      `Stack underflow: 'rot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`
-    );
-  }
-
+  validateStackDepth(vm, 3, 'rot');
+  
   const originalSP = vm.SP;
 
   try {
+    // Original implementation to ensure proper list handling
     const [_topNextSlot, topSlots] = findElement(vm, 0);
-    const _topSize = topSlots * BYTES_PER_ELEMENT;
-
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
-    const _midSize = midSlots * BYTES_PER_ELEMENT;
-
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
-    const _bottomSize = bottomSlots * BYTES_PER_ELEMENT;
 
     const totalSlots = topSlots + midSlots + bottomSlots;
-
     const rotationSlots = midSlots + topSlots;
 
     slotsRoll(vm, 0, totalSlots, rotationSlots);
   } catch (error) {
     vm.SP = originalSP;
-    throw error;
+    if (error instanceof VMError) {
+      throw error;
+    } else {
+      throw new VMError(`rot failed: ${error instanceof Error ? error.message : String(error)}`, vm.getStackData());
+    }
   }
 };
 
@@ -307,32 +362,19 @@ export const rotOp: Verb = (vm: VM) => {
  * // Stack after: [... 10 (1 2) 5]
  */
 export const revrotOp: Verb = (vm: VM) => {
-  if (vm.SP < BYTES_PER_ELEMENT * 3) {
-    throw new Error(
-      `Stack underflow: 'revrot' requires 3 operands (stack: ${JSON.stringify(vm.getStackData())})`,
-    );
-  }
-
+  validateStackDepth(vm, 3, 'revrot');
+  
   const originalSP = vm.SP;
 
   try {
+    // Original implementation to ensure proper list handling
     const [_topNextSlot, topSlots] = findElement(vm, 0);
-
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
-
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
     const totalSlots = topSlots + midSlots + bottomSlots;
 
-    console.log('Before revrot:');
-    const beforeStack = [];
-    for (let i = 0; i < totalSlots; i++) {
-      const val = vm.memory.readFloat32(SEG_STACK, i * BYTES_PER_ELEMENT);
-      const { tag, value } = fromTaggedValue(val);
-      console.log(`  [${i}]: ${Tag[tag]}(${value})`);
-      beforeStack.push({ tag, value });
-    }
-
+    // Original implementation included debug logging and special handling for lists
     const originalHeader = vm.memory.readFloat32(SEG_STACK, topSlots * BYTES_PER_ELEMENT);
     const { tag: originalTag } = fromTaggedValue(originalHeader);
 
@@ -342,15 +384,12 @@ export const revrotOp: Verb = (vm: VM) => {
       const newHeader = originalHeader;
       vm.memory.writeFloat32(SEG_STACK, 1 * BYTES_PER_ELEMENT, newHeader);
     }
-
-    console.log('After revrot:');
-    for (let i = 0; i < totalSlots; i++) {
-      const val = vm.memory.readFloat32(SEG_STACK, i * BYTES_PER_ELEMENT);
-      const { tag, value } = fromTaggedValue(val);
-      console.log(`  [${i}]: ${Tag[tag]}(${value})`);
-    }
   } catch (error) {
     vm.SP = originalSP;
-    throw new Error(`revrot failed: ${error instanceof Error ? error.message : String(error)}`);
+    if (error instanceof VMError) {
+      throw error;
+    } else {
+      throw new VMError(`revrot failed: ${error instanceof Error ? error.message : String(error)}`, vm.getStackData());
+    }
   }
 };
