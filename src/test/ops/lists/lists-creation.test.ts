@@ -1,58 +1,21 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { parse } from '@lang/parser';
-import { Tokenizer } from '@lang/tokenizer';
-import { fromTaggedValue, Tag } from '@core/tagged';
-import { execute } from '@lang/interpreter';
-import { vm, initializeInterpreter } from '@core/globalState';
-
-/**
- * Helper function to execute Tacit code and return the stack
- */
-function executeCode(code: string): number[] {
-  console.log('Executing code:', code);
-  const tokenizer = new Tokenizer(code);
-  parse(tokenizer);
-  
-  // Enable debug mode for more detailed logging
-  const originalDebug = vm.debug;
-  vm.debug = true;
-  
-  try {
-    execute(0);
-    const stackData = vm.getStackData();
-    
-    // Log the stack contents for debugging
-    console.log('Stack after execution:');
-    stackData.forEach((value, index) => {
-      try {
-        const { tag, value: tagValue } = fromTaggedValue(value);
-        console.log(`  [${index}]: value=${value}, tag=${Tag[tag]} (${tag}), tagValue=${tagValue}`);
-      } catch (_) {
-        console.log(`  [${index}]: value=${value} (failed to decode)`);
-      }
-    });
-    
-    return stackData;
-  } finally {
-    // Restore original debug setting
-    vm.debug = originalDebug;
-  }
-}
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import {
+  executeTacitCode,
+  resetVM,
+  logStack,
+  verifyListStructure,
+  ListElement,
+} from '../../utils/test-utils';
 
 describe('List creation operations', () => {
   beforeEach(() => {
-    initializeInterpreter();
-    vm.SP = 0;
-    vm.RP = 0;
-    vm.BP = 0;
-    vm.IP = 0;
-    vm.listDepth = 0;
-    vm.compiler.reset();
+    resetVM();
   });
 
   describe('creation', () => {
     test('should create a simple list with 2 elements', () => {
-      const stack = executeCode('( 1 2 )');
+      const stack = executeTacitCode('( 1 2 )');
 
       /**
        * Expected stack layout:
@@ -62,6 +25,7 @@ describe('List creation operations', () => {
        * [3] LINK(3)   - Link tag with offset 3 (points back to list start)
        */
       expect(stack.length).toBe(4);
+
       const { tag: listTag, value: listSize } = fromTaggedValue(stack[0]);
       expect(listTag).toBe(Tag.LIST);
       expect(listSize).toBe(2);
@@ -69,9 +33,18 @@ describe('List creation operations', () => {
       expect(stack[2]).toBe(2);
       const { tag: linkTag } = fromTaggedValue(stack[3]);
       expect(linkTag).toBe(Tag.LINK);
+
+      const expectedStructure: ListElement = {
+        type: 'list',
+        children: [
+          { type: 'number', value: 1 },
+          { type: 'number', value: 2 },
+        ],
+      };
+      verifyListStructure(stack, expectedStructure);
     });
     test('should handle empty lists', () => {
-      const stack = executeCode('( )');
+      const stack = executeTacitCode('( )');
 
       /**
        * Expected stack layout:
@@ -86,7 +59,7 @@ describe('List creation operations', () => {
       expect(linkTag).toBe(Tag.LINK);
     });
     test('should handle a nested list with 1 level of nesting', () => {
-      const stack = executeCode('( 1 ( 2 3 ) 4 )');
+      const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
 
       /**
        * Expected stack layout:
@@ -99,11 +72,7 @@ describe('List creation operations', () => {
        * [6]: LINK          - Link to the outer list tag
        */
 
-      console.log('Nested list with LINK verification:');
-      for (let i = 0; i < stack.length; i++) {
-        const { tag, value } = fromTaggedValue(stack[i]);
-        console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
-      }
+      logStack(stack);
 
       const { tag: outerTag } = fromTaggedValue(stack[0]);
       expect(outerTag).toBe(Tag.LIST);
@@ -123,7 +92,7 @@ describe('List creation operations', () => {
       expect(stack.length).toBe(7);
     });
     test('should handle multiple nested lists at the same level', () => {
-      const stack = executeCode('( ( 1 2 ) ( 3 4 ) )');
+      const stack = executeTacitCode('( ( 1 2 ) ( 3 4 ) )');
 
       /**
        * Expected stack layout:
@@ -146,7 +115,7 @@ describe('List creation operations', () => {
       expect(linkTag).toBe(Tag.LINK);
     });
     test('should handle complex mixed nested structures', () => {
-      const stack = executeCode('( 1 ( ) ( 2 ( 3 4 ) ) 5 )');
+      const stack = executeTacitCode('( 1 ( ) ( 2 ( 3 4 ) ) 5 )');
 
       /**
        * Expected stack layout:
@@ -172,7 +141,7 @@ describe('List creation operations', () => {
       expect(linkTag).toBe(Tag.LINK);
     });
     test('should handle deeply nested lists (3+ levels)', () => {
-      const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
+      const stack = executeTacitCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
 
       /**
        * Expected stack layout:

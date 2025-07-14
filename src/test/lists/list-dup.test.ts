@@ -30,7 +30,7 @@ describe('List duplication operations', () => {
   });
 
   // Known issue: List tag not being set correctly
-  test.skip('should duplicate a simple list', () => {
+  test('should duplicate a simple list', () => {
     executeCode('( 1 2 ) dup');
     const stack = vm.getStackData();
 

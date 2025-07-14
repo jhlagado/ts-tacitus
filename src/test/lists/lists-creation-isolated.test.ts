@@ -57,7 +57,7 @@ describe('List creation operations (isolated)', () => {
 
     test('should handle nested lists', () => {
       const stack = executeIsolatedCode('( 1 ( 2 3 ) 4 )');
-      
+
       // Log actual stack contents for debugging
       console.log('Nested list stack layout:');
       for (let i = 0; i < stack.length; i++) {
@@ -65,22 +65,22 @@ describe('List creation operations (isolated)', () => {
         const { tag, value } = fromTaggedValue(item);
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
-      
+
       // Update expected length based on actual execution
       expect(stack.length).toBe(7);
-      
+
       // Check outer list tag
       const { tag: outerTag } = fromTaggedValue(stack[0]);
       expect(outerTag).toBe(Tag.LIST);
-      
+
       // Check inner list tag
       const { tag: innerTag } = fromTaggedValue(stack[2]);
       expect(innerTag).toBe(Tag.LIST);
-      
+
       // Validate the structure of the nested list
       const { value: outerSize } = fromTaggedValue(stack[0]);
       expect(outerSize).toBe(5); // Size 5 as per the actual output
-      
+
       const { value: innerSize } = fromTaggedValue(stack[2]);
       expect(innerSize).toBe(2); // 2 elements: 2, 3
     });

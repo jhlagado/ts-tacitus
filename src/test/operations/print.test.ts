@@ -1,7 +1,7 @@
 /**
  * Tests for the print operation (.)
  */
-import { executeTacitCode, resetVM, captureTacitOutput } from '../testUtils';
+import { executeTacitCode, resetVM, captureTacitOutput } from '../utils/test-utils';
 
 describe('Print operation', () => {
   beforeEach(() => {

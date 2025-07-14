@@ -1,4 +1,4 @@
-import { captureTacitOutput, executeTacitCode } from '../testUtils';
+import { captureTacitOutput, executeTacitCode } from '../utils/test-utils';
 
 describe('Raw print operation (xxx)', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { describe, beforeEach } from '@jest/globals';
-import { resetVM } from '../testUtils';
-import { OperationType, testOperationGroup } from './operationsTestUtils';
+import { resetVM } from '../utils/test-utils';
+import { OperationType, testOperationGroup } from '../utils/operations-test-utils';
 
 describe('Basic Arithmetic Operations', () => {
   beforeEach(() => {

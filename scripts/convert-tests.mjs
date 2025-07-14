@@ -1,7 +1,7 @@
-/* eslint-disable no-undef */
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+// Convert test files from it() to test()
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 const testFiles = findTestFiles('/Users/johnhardy/Documents/projects/ts-tacitus/src');
 

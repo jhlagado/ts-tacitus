@@ -49,7 +49,7 @@ describe('List creation operations', () => {
       const { tag: linkTag } = fromTaggedValue(stack[3]);
       expect(linkTag).toBe(Tag.LINK);
     });
-    
+
     test('should handle empty lists', () => {
       const stack = executeCode('( )');
 

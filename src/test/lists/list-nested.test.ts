@@ -30,7 +30,7 @@ describe('Nested list operations', () => {
   });
 
   // Known issue: List tags not being set correctly
-  test.skip('should handle a nested list with 1 level of nesting', () => {
+  test('should handle a nested list with 1 level of nesting', () => {
     const stack = executeCode('( 1 ( 2 3 ) 4 )');
 
     /**
@@ -113,7 +113,7 @@ describe('Nested list operations', () => {
   });
 
   // Known issue: List tags not being set correctly
-  test.skip('should handle deeply nested lists (3+ levels)', () => {
+  test('should handle deeply nested lists (3+ levels)', () => {
     const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
 
     /**
