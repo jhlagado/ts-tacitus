@@ -1,9 +1,9 @@
 // Script to debug list operations in isolated environment
-const { vm, initializeInterpreter } = require('./dist/core/globalState');
-const { fromTaggedValue, Tag, toTaggedValue } = require('./dist/core/tagged');
-const { parse } = require('./dist/lang/parser');
-const { Tokenizer } = require('./dist/lang/tokenizer');
-const { execute } = require('./dist/lang/interpreter');
+import { vm, initializeInterpreter } from './dist/core/globalState';
+import { fromTaggedValue, Tag, toTaggedValue } from './dist/core/tagged';
+import { parse } from './dist/lang/parser';
+import { Tokenizer } from './dist/lang/tokenizer';
+import { execute } from './dist/lang/interpreter';
 
 // Reset and initialize VM
 initializeInterpreter();
