@@ -1,6 +1,6 @@
 import { captureTacitOutput, executeTacitCode } from '../utils/test-utils';
 
-describe('Raw print operation (xxx)', () => {
+describe('Raw print operation', () => {
   beforeEach(() => {
     // Reset VM state before each test
     executeTacitCode('');

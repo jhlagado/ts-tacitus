@@ -8,7 +8,7 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 
 /**
  * Raw print operation - prints the raw tagged value on top of the stack
- * Format: "TAG:VALUE" (e.g., "LINK:3" or "NUMBER:42")
+ * This is a raw operation that shows the NaN-boxed value without list interpretation
  */
 export function rawPrintOp(vm: VM): void {
   if (vm.SP < 1) {
@@ -16,11 +16,14 @@ export function rawPrintOp(vm: VM): void {
     return;
   }
 
+  // Get the top value and pop it
   const value = vm.pop();
+  
+  // Decode the NaN-boxed value but don't interpret list structures
   const { tag, value: tagValue } = fromTaggedValue(value);
   
-  // Format as plain number for numbers, "TAG:VALUE" for other types
-  if (tag === Tag.NUMBER) {
+  // Print numbers directly, and use TAG:VALUE format for other types
+  if (tag === Tag.NUMBER || tag === Tag.INTEGER) {
     console.log(String(tagValue));
   } else {
     const tagName = Tag[tag] || `UNKNOWN(${tag})`;
