@@ -16,6 +16,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
+import { RSTACK_SIZE } from '../core/memory';
 
 import { formatValue } from '../core/utils';
 
@@ -195,23 +196,26 @@ export const abortOp: Verb = (vm: VM) => {
  */
 export const exitOp: Verb = (vm: VM) => {
   try {
-    vm.RP = vm.BP;
-    if (vm.RP > 0) {
-      vm.BP = vm.rpop();
-    }
-
-    if (vm.RP > 0) {
-      const returnAddr = vm.rpop();
-      if (isCode(returnAddr)) {
-        const { value: returnIP } = fromTaggedValue(returnAddr);
-        vm.IP = returnIP;
-      } else {
-        vm.IP = Math.floor(returnAddr);
-      }
-    } else {
+    // Check if we have at least two items on the return stack (BP and return address)
+    if (vm.RP < 2 * BYTES_PER_ELEMENT) {
+      // No caller to return to, stop VM execution
       vm.running = false;
+      return;
+    }
+    
+    // Pop base pointer and return address from return stack
+    vm.BP = vm.rpop();
+    const returnAddr = vm.rpop();
+    
+    // Set instruction pointer to return address
+    if (isCode(returnAddr)) {
+      const { value: returnIP } = fromTaggedValue(returnAddr);
+      vm.IP = returnIP;
+    } else {
+      vm.IP = Math.floor(returnAddr);
     }
   } catch (e) {
+    // Stop VM execution on error
     vm.running = false;
     throw e;
   }
@@ -275,6 +279,10 @@ export const evalOp: Verb = (vm: VM) => {
  * the number of items pushed onto the stack between the two operations.
  */
 export const groupLeftOp: Verb = (vm: VM) => {
+  // Check for return stack overflow before pushing
+  if (vm.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
+    throw new Error(`Return stack overflow: 'group-left' operation would exceed return stack capacity`);
+  }
   vm.rpush(vm.SP);
 };
 
@@ -302,13 +310,18 @@ export const groupLeftOp: Verb = (vm: VM) => {
  * by a preceding computation.
  */
 export const groupRightOp: Verb = (vm: VM) => {
-  if (vm.RP < BYTES_PER_ELEMENT) {
-    throw new Error(`Return stack underflow: 'group-right' requires at least one item on the return stack`);
+  try {
+    if (vm.RP < BYTES_PER_ELEMENT) {
+      throw new Error(`Return stack underflow: 'group-right' requires at least one item on the return stack`);
+    }
+    const sp0 = vm.rpop();
+    const sp1 = vm.SP;
+    const d = (sp1 - sp0) / BYTES_PER_ELEMENT;
+    vm.push(d);
+  } catch (e) {
+    vm.running = false;
+    throw e;
   }
-  const sp0 = vm.rpop();
-  const sp1 = vm.SP;
-  const d = (sp1 - sp0) / BYTES_PER_ELEMENT;
-  vm.push(d);
 };
 
 /**
