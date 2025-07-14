@@ -13,7 +13,13 @@ This document tracks the progress of the documentation standardization effort fo
 | `src/core/memory.ts` | ✅ Complete | Added comprehensive JSDoc comments for the segmented memory model, constants, and Memory class methods |
 | `src/core/vm.ts` | ✅ Complete | Added detailed JSDoc comments for the VM class, stack operations, and instruction pointer management |
 | `src/core/constants.ts` | ✅ Complete | Added JSDoc comments for core constants used throughout the VM |
-| `src/core/tagged.ts` | ✅ Complete | Already had comprehensive JSDoc comments for NaN-boxing implementation |
+| `src/core/tagged.ts` | ✅ Complete | Already has comprehensive JSDoc comments for NaN-boxing implementation |
+| `src/core/function-table.ts` | ✅ Complete | Added comprehensive JSDoc comments for function table implementation |
+| `src/core/format-utils.ts` | ✅ Complete | Added comprehensive JSDoc comments for formatting utility functions |
+| `src/core/utils.ts` | ✅ Complete | Added comprehensive JSDoc comments for utility functions |
+| `src/core/types.ts` | ✅ Complete | Added comprehensive JSDoc comments for core type definitions |
+| `src/core/printer.ts` | ✅ Complete | Added comprehensive JSDoc comments for debugging printer utilities |
+| `src/core/globalState.ts` | ✅ Complete | Added comprehensive JSDoc comments for global VM state management |
 
 ### 2.2 Operations Module Files
 
@@ -35,11 +41,17 @@ This document tracks the progress of the documentation standardization effort fo
 
 ## 3. Pending Files
 
-### 3.1 Core Module Files
+### 3.1 Language Module Files
 
 | File | Status | Description |
 |------|--------|-------------|
-| `src/core/compiler.ts` | 🔄 Pending | Needs JSDoc comments for compiler implementation |
+| `src/lang/compiler.ts` | ✅ Complete | Added comprehensive JSDoc comments for compiler implementation |
+| `src/lang/parser.ts` | ✅ Complete | Already has comprehensive JSDoc comments for parser implementation |
+| `src/lang/tokenizer.ts` | ✅ Complete | Already has comprehensive JSDoc comments for tokenizer implementation |
+| `src/lang/interpreter.ts` | ✅ Complete | Already has comprehensive JSDoc comments for interpreter implementation |
+| `src/lang/executor.ts` | ✅ Complete | Added comprehensive JSDoc comments for executor utilities |
+| `src/lang/fileProcessor.ts` | ✅ Complete | Added comprehensive JSDoc comments for file processing utilities |
+| `src/lang/repl.ts` | ✅ Complete | Added comprehensive JSDoc comments for REPL implementation |
 
 ### 3.2 Operations Module Files
 
@@ -50,8 +62,8 @@ This document tracks the progress of the documentation standardization effort fo
 | File | Status | Description |
 |------|--------|-------------|
 | `src/lang/tokenizer.ts` | ✅ Complete | Added comprehensive JSDoc comments for tokenizer implementation |
-| `src/lang/parser.ts` | 🔄 Pending | Needs JSDoc comments for parser implementation |
-| `src/lang/interpreter.ts` | 🔄 Pending | Needs JSDoc comments for interpreter implementation |
+| `src/lang/parser.ts` | ✅ Complete | Added comprehensive JSDoc comments for parser implementation |
+| `src/lang/interpreter.ts` | ✅ Complete | Added comprehensive JSDoc comments for interpreter implementation |
 
 ### 3.4 Heap Module Files
 
@@ -69,8 +81,18 @@ This document tracks the progress of the documentation standardization effort fo
 
 | File | Status | Description |
 |------|--------|-------------|
-| `src/strings/digest.ts` | 🔄 Pending | Needs JSDoc comments for string interning |
-| `src/strings/symbol-table.ts` | 🔄 Pending | Needs JSDoc comments for symbol table |
+| `src/strings/digest.ts` | ✅ Complete | Added comprehensive JSDoc comments for string digest implementation |
+| `src/strings/string.ts` | ✅ Complete | Added comprehensive JSDoc comments for string creation utilities |
+| `src/strings/symbol-table.ts` | ✅ Complete | Added comprehensive JSDoc comments for symbol table implementation |
+
+### 3.7 Stack Module Files
+
+| File | Status | Description |
+|------|--------|-------------|
+| `src/stack/find.ts` | ✅ Complete | Added comprehensive JSDoc comments for stack element finding utilities |
+| `src/stack/slots.ts` | ✅ Complete | Added comprehensive JSDoc comments for stack slot manipulation operations |
+| `src/stack/copy.ts` | ✅ Complete | Empty file, no documentation needed |
+| `src/stack/types.ts` | ✅ Complete | Added comprehensive JSDoc comments for stack-related type definitions |
 
 ## 4. Documentation Standards
 
