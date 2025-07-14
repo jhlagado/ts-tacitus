@@ -1,15 +1,43 @@
+/**
+ * @file src/ops/define-builtins.ts
+ * 
+ * This file defines the mapping between symbolic function names and their corresponding
+ * opcodes in the Tacit VM. It serves as the central registry for all built-in operations
+ * that are available to Tacit programs.
+ * 
+ * The defineBuiltins function populates the VM's symbol table with these mappings,
+ * enabling the compiler to translate function names in source code to the appropriate
+ * opcodes in bytecode.
+ */
+
 import { SymbolTable } from '../strings/symbol-table';
 
 import { Op } from './opcodes';
 
 /**
  * Defines the built-in functions in the given symbol table.
+ * 
  * This function maps symbolic names (strings) to their corresponding opcodes,
  * allowing the Tacit interpreter to recognize and execute these functions.
+ * It is called during VM initialization to establish the core vocabulary
+ * available to all Tacit programs.
  *
- * This function also populates the VM's function table with built-in operations.
+ * The built-in functions include:
+ * - Stack manipulation operations (dup, drop, swap, rot, etc.)
+ * - Arithmetic operations (add, sub, mul, div, etc.)
+ * - Comparison operations (eq, lt, gt, etc.)
+ * - Mathematical functions (abs, sqrt, exp, etc.)
+ * - Monadic operations (neg, recip, floor, etc.)
+ * - Control flow operations (if, eval)
+ * - Output operations (print)
  *
- * @param {SymbolTable} dict The symbol table to populate with built-in functions.
+ * @param {SymbolTable} dict - The symbol table to populate with built-in functions.
+ * 
+ * @example
+ * // During VM initialization:
+ * const symbolTable = new SymbolTable();
+ * defineBuiltins(symbolTable);
+ * // Now symbolTable contains mappings like 'add' -> Op.Add
  */
 export const defineBuiltins = (dict: SymbolTable) => {
   dict.define('eval', Op.Eval);

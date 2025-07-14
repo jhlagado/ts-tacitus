@@ -1,7 +1,27 @@
 /**
- * @enum {number} Op
- * This enum defines the opcodes for all built-in operations in Tacit.
- * Each member represents a specific operation that can be executed by the VM.
+ * @file src/ops/opcodes.ts
+ * 
+ * This file defines the operation codes (opcodes) for all built-in operations in the Tacit VM.
+ * Each opcode represents a specific operation that can be executed by the VM's interpreter.
+ * 
+ * Opcodes are organized into several functional categories:
+ * - Control flow operations (LiteralNumber, Branch, Call, etc.)
+ * - Stack manipulation operations (Dup, Drop, Swap, etc.)
+ * - Arithmetic operations (Add, Subtract, Multiply, etc.)
+ * - Comparison operations (Equal, LessThan, etc.)
+ * - List operations (OpenList, CloseList)
+ * - Unary operations (prefixed with 'm', e.g., mNegate, mFloor)
+ * 
+ * The VM uses these opcodes to dispatch to the appropriate implementation functions
+ * during bytecode execution.
+ */
+
+/**
+ * Operation codes for all built-in operations in the Tacit VM.
+ * 
+ * Each opcode corresponds to a specific operation that can be executed by the VM.
+ * The numeric values are assigned sequentially starting from 0, and these values
+ * are used in the compiled bytecode to identify operations.
  */
 export enum Op {
   /**  Pushes a literal number onto the stack. */
