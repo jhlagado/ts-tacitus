@@ -17,6 +17,7 @@ import { Memory, STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
+import { StackUnderflowError, StackOverflowError, ReturnStackUnderflowError, ReturnStackOverflowError } from './errors';
 // Imports removed as we no longer use function table
 
 /** Number of bytes per memory element (32-bit float) */
@@ -114,7 +115,7 @@ export class VM {
   push(value: number): void {
     if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
       throw new Error(
-        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`,
+        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
 
@@ -131,7 +132,7 @@ export class VM {
   pop(): number {
     if (this.SP <= 0) {
       throw new Error(
-        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`,
+        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
 
@@ -146,9 +147,11 @@ export class VM {
    * @throws {Error} If the stack is empty
    */
   peek(): number {
-    const value = this.pop();
-    this.push(value);
-    return value;
+    if (this.SP <= 0) {
+      throw new Error(`Stack underflow: Cannot peek value (stack: ${JSON.stringify(this.getStackData())})`);
+    }
+
+    return this.memory.readFloat32(SEG_STACK, this.SP - BYTES_PER_ELEMENT);
   }
 
   /**
@@ -160,6 +163,12 @@ export class VM {
    * @throws {Error} If popping would cause a stack underflow
    */
   popArray(size: number): number[] {
+    if (this.SP < size * BYTES_PER_ELEMENT) {
+      throw new Error(
+        `Stack underflow: Cannot pop ${size} values (stack: ${JSON.stringify(this.getStackData())})`
+      );
+    }
+
     const result: number[] = [];
     for (let i = 0; i < size; i++) {
       result.unshift(this.pop());
@@ -178,9 +187,7 @@ export class VM {
   rpush(value: number): void {
     if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
       throw new Error(
-        `Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(
-          this.getStackData(),
-        )})`,
+        `Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
 
@@ -197,7 +204,7 @@ export class VM {
   rpop(): number {
     if (this.RP <= 0) {
       throw new Error(
-        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`,
+        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
       );
     }
 
@@ -308,6 +315,22 @@ export class VM {
     }
 
     return stackData;
+  }
+  
+  /**
+   * Ensures that the stack has at least the specified number of elements.
+   * This is a helper method used by operations that require a minimum stack depth.
+   * 
+   * @param {number} size - The minimum number of elements required
+   * @param {string} operation - The name of the operation for error reporting
+   * @throws {Error} If the stack doesn't have enough elements
+   */
+  ensureStackSize(size: number, operation: string): void {
+    if (this.SP < size * BYTES_PER_ELEMENT) {
+      throw new Error(
+        `Stack underflow: '${operation}' requires ${size} operand${size !== 1 ? 's' : ''} (stack: ${JSON.stringify(this.getStackData())})`
+      );
+    }
   }
 
   /**
