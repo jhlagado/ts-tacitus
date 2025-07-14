@@ -12,7 +12,7 @@ describe('over Operation', () => {
     resetVM();
   });
 
-  it('should duplicate the second item (simple values)', () => {
+  test('should duplicate the second item (simple values)', () => {
     vm.push(1);
     vm.push(2);
 
@@ -21,7 +21,7 @@ describe('over Operation', () => {
     expect(vm.getStackData()).toEqual([1, 2, 1]);
   });
 
-  it.skip('should duplicate a list when it is the second item', () => {
+  test('should duplicate a list when it is the second item', () => {
     // Create a stack with a list and a value, then apply 'over'
     // This executes: ( 1 2 ) 100 over
     // Which should put a copy of the list on top
@@ -54,7 +54,7 @@ describe('over Operation', () => {
     expect(link2Tag).toBe(Tag.LINK);
   });
 
-  it('should throw on insufficient stack', () => {
+  test('should throw on insufficient stack', () => {
     expect(() => overOp(vm)).toThrow('requires 2 operands');
 
     vm.push(1);
