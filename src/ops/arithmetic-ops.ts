@@ -36,6 +36,7 @@ import { Verb } from '../core/types';
  * - For strings: Not applicable.
  */
 export const absOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'abs');
   const a = vm.pop();
   if (vm.debug) console.log('absOp', a);
   vm.push(Math.abs(a));
@@ -58,6 +59,7 @@ export const absOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const negOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'neg');
   const a = vm.pop();
   if (vm.debug) console.log('negOp', a);
   vm.push(-a);
@@ -81,6 +83,7 @@ export const negOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const signOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'sign');
   const a = vm.pop();
   if (vm.debug) console.log('signOp', a);
   vm.push(Math.sign(a));
@@ -103,6 +106,7 @@ export const signOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const expOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'exp');
   const a = vm.pop();
   if (vm.debug) console.log('expOp', a);
   vm.push(Math.exp(a));
@@ -125,6 +129,7 @@ export const expOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const lnOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'ln');
   const a = vm.pop();
   if (vm.debug) console.log('lnOp', a);
   vm.push(Math.log(a));
@@ -147,6 +152,7 @@ export const lnOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const logOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'log');
   const a = vm.pop();
   if (vm.debug) console.log('logOp', a);
   vm.push(Math.log10(a));
@@ -169,6 +175,7 @@ export const logOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const sqrtOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'sqrt');
   const a = vm.pop();
   if (vm.debug) console.log('sqrtOp', a);
   vm.push(Math.sqrt(a));
@@ -193,6 +200,7 @@ export const sqrtOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const powOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'pow');
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log('powOp', a, b);
@@ -217,6 +225,7 @@ export const powOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const minOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'min');
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log('minOp', a, b);
@@ -241,6 +250,7 @@ export const minOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const maxOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'max');
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log('maxOp', a, b);
@@ -264,6 +274,7 @@ export const maxOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const avgOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'avg');
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log('avgOp', a, b);
@@ -287,6 +298,7 @@ export const avgOp: Verb = (vm: VM) => {
  * - For strings: Not applicable.
  */
 export const prodOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'prod');
   const b = vm.pop();
   const a = vm.pop();
   if (vm.debug) console.log('prodOp', a, b);
