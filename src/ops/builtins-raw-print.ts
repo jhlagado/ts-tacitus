@@ -18,12 +18,12 @@ export function rawPrintOp(vm: VM): void {
 
   // Get the top value and pop it
   const value = vm.pop();
-  
+
   // Decode the NaN-boxed value but don't interpret list structures
   const { tag, value: tagValue } = fromTaggedValue(value);
-  
+
   // Print numbers directly, and use TAG:VALUE format for other types
-  if (tag === Tag.NUMBER || tag === Tag.INTEGER) {
+  if (tag === Tag.NUMBER) {
     console.log(String(tagValue));
   } else {
     const tagName = Tag[tag] || `UNKNOWN(${tag})`;
