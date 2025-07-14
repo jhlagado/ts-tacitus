@@ -242,6 +242,7 @@ export const exitOp: Verb = (vm: VM) => {
  * It allows code blocks to be passed around as values and executed on demand.
  */
 export const evalOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
   if (isCode(value)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
@@ -301,6 +302,9 @@ export const groupLeftOp: Verb = (vm: VM) => {
  * by a preceding computation.
  */
 export const groupRightOp: Verb = (vm: VM) => {
+  if (vm.RP < BYTES_PER_ELEMENT) {
+    throw new Error(`Return stack underflow: 'group-right' requires at least one item on the return stack`);
+  }
   const sp0 = vm.rpop();
   const sp1 = vm.SP;
   const d = (sp1 - sp0) / BYTES_PER_ELEMENT;
@@ -331,6 +335,7 @@ export const groupRightOp: Verb = (vm: VM) => {
  * of values, including lists and other complex data structures.
  */
 export const printOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'print');
   const d = vm.pop();
   console.log(formatValue(vm, d));
 };

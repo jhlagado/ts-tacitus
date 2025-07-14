@@ -41,7 +41,7 @@ import { toTaggedValue, Tag } from '../core/tagged';
  * // Stack after: [... 3]
  */
 export const mNegateOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'neg' requires 1 operand`);
+  vm.ensureStackSize(1, 'neg');
   const a = vm.pop();
   vm.push(-a);
 };
@@ -64,7 +64,7 @@ export const mNegateOp: Verb = (vm: VM) => {
  * Infinity when dividing by zero, which is a valid floating-point value.
  */
 export const mReciprocalOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'recip' requires 1 operand`);
+  vm.ensureStackSize(1, 'recip');
   const a = vm.pop();
   vm.push(1 / a);
 };
@@ -89,7 +89,7 @@ export const mReciprocalOp: Verb = (vm: VM) => {
  * // Stack after: [... -3] (rounds toward negative infinity)
  */
 export const mFloorOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'floor' requires 1 operand`);
+  vm.ensureStackSize(1, 'floor');
   const a = vm.pop();
   vm.push(Math.floor(a));
 };
@@ -114,7 +114,7 @@ export const mFloorOp: Verb = (vm: VM) => {
  * // Stack after: [... 0] (NOT true = false)
  */
 export const mNotOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'not' requires 1 operand`);
+  vm.ensureStackSize(1, 'not');
   const a = vm.pop();
   vm.push(a === 0 ? 1 : 0);
 };
@@ -146,7 +146,7 @@ export const mNotOp: Verb = (vm: VM) => {
  * // Stack after: [... 0] (zero)
  */
 export const mSignumOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'sign' requires 1 operand`);
+  vm.ensureStackSize(1, 'sign');
   const a = vm.pop();
   if (a > 0) vm.push(1);
   else if (a < 0) vm.push(-1);
@@ -173,7 +173,7 @@ export const mSignumOp: Verb = (vm: VM) => {
  * as it's meant to be used as part of other operations that expect a list structure.
  */
 export const mEnlistOp: Verb = (vm: VM) => {
-  if (vm.SP < 1) throw new Error(`Stack underflow: 'enlist' requires 1 operand`);
+  vm.ensureStackSize(1, 'enlist');
   const a = vm.pop();
   vm.push(toTaggedValue(1, Tag.LIST));
   vm.push(a);
