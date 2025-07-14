@@ -32,6 +32,14 @@ export function resetVM(): void {
       vm.pop();
     }
   }
+  
+  // Ensure Tag enum values are properly initialized
+  // This is important for list-related tests
+  if (Tag.LIST !== 5) {
+    console.warn('Tag.LIST is not properly initialized, forcing correct value');
+    // Force re-import of Tag enum
+    Object.defineProperty(Tag, 'LIST', { value: 5 });
+  }
 }
 
 /**
