@@ -22,6 +22,14 @@ import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
 import { toTaggedValue, Tag } from '../core/tagged';
+import {
+  UnclosedDefinitionError,
+  UndefinedWordError,
+  SyntaxError,
+  NestedDefinitionError,
+  WordAlreadyDefinedError,
+  UnexpectedTokenError,
+} from '../core/errors';
 
 /**
  * Represents a word definition in the Tacit language.
@@ -116,7 +124,7 @@ function parseProgram(state: ParserState): void {
  */
 function validateFinalState(state: ParserState): void {
   if (state.currentDefinition) {
-    throw new Error(`Unclosed definition for ${state.currentDefinition.name}`);
+    throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
   }
 }
 
@@ -153,7 +161,7 @@ function processToken(token: Token, state: ParserState): void {
       const wordName = token.value as string;
       const address = vm.symbolTable.find(wordName) as number | undefined;
       if (address === undefined) {
-        throw new Error(`Undefined word: ${wordName}`);
+        throw new UndefinedWordError(wordName, vm.getStackData());
       }
 
       // Compile as a literal address
@@ -216,7 +224,7 @@ function processWordToken(value: string, state: ParserState): void {
     // Expect and parse the THEN block
     const thenToken = state.tokenizer.nextToken();
     if (thenToken.type !== TokenType.BLOCK_START) {
-      throw new Error('Expected { for then-block in IF statement');
+      throw new SyntaxError('Expected { for then-block in IF statement', vm.getStackData());
     }
 
     parseCurlyBlock(state);
@@ -237,7 +245,7 @@ function processWordToken(value: string, state: ParserState): void {
       const elseBlockStart = vm.compiler.CP;
       const elseBlockToken = state.tokenizer.nextToken();
       if (elseBlockToken.type !== TokenType.BLOCK_START) {
-        throw new Error('Expected { for else-block in IF statement');
+        throw new SyntaxError('Expected { for else-block in IF statement', vm.getStackData());
       }
 
       parseCurlyBlock(state);
@@ -270,7 +278,7 @@ function processWordToken(value: string, state: ParserState): void {
   else {
     const functionIndex = vm.symbolTable.find(value);
     if (functionIndex === undefined) {
-      throw new Error(`Unknown word: ${value}`);
+      throw new UndefinedWordError(value, vm.getStackData());
     }
 
     vm.compiler.compileOpcode(functionIndex);
@@ -347,22 +355,22 @@ function parseBacktickSymbol(state: ParserState): void {
 function beginDefinition(state: ParserState): void {
   // Validate definition context
   if (state.insideCodeBlock) {
-    throw new Error('Cannot nest definition inside code block');
+    throw new NestedDefinitionError(vm.getStackData());
   }
 
   if (state.currentDefinition) {
-    throw new Error('Nested definitions are not allowed');
+    throw new NestedDefinitionError(vm.getStackData());
   }
 
   // Get the word name
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
-    throw new Error(`Expected word name after :`);
+    throw new SyntaxError(`Expected word name after :`, vm.getStackData());
   }
 
   const wordName = String(nameToken.value);
   if (vm.symbolTable.find(wordName) !== undefined) {
-    throw new Error(`Word already defined: ${wordName}`);
+    throw new WordAlreadyDefinedError(wordName, vm.getStackData());
   }
 
   // Compile a branch instruction to skip over the definition
@@ -410,7 +418,7 @@ function beginDefinition(state: ParserState): void {
  */
 function endDefinition(state: ParserState): void {
   if (!state.currentDefinition) {
-    throw new Error('Unexpected semicolon');
+    throw new SyntaxError('Unexpected semicolon', vm.getStackData());
   }
 
   // Compile an exit instruction to return from the word
@@ -451,7 +459,7 @@ function beginList(_state: ParserState): void {
  */
 function endList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
-    throw new Error('Unexpected closing parenthesis');
+    throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
   }
 
   vm.compiler.compileOpcode(Op.CloseList);

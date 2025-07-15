@@ -99,7 +99,7 @@ describe('Parser with Tokenizer', () => {
     });
     test('should throw an error for nested definitions', () => {
       expect(() => parse(new Tokenizer(': outer : inner ; ;'))).toThrow(
-        'Nested definitions are not allowed',
+        'Cannot nest definition inside code block',
       );
     });
   });
@@ -126,7 +126,7 @@ describe('Parser with Tokenizer', () => {
       expect(() => parse(new Tokenizer('"unterminated string'))).toThrow('Unterminated string');
     });
     test('should throw on unknown words', () => {
-      expect(() => parse(new Tokenizer('unknown_word'))).toThrow('Unknown word: unknown_word');
+      expect(() => parse(new Tokenizer('unknown_word'))).toThrow('Undefined word: unknown_word');
     });
   });
 

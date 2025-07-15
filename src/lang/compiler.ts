@@ -148,7 +148,7 @@ export class Compiler {
    */
   compileOpcode(opcodeAddress: number): void {
     if (opcodeAddress < 0 || opcodeAddress >= 32768) {
-      throw new Error(`Invalid opcode address: ${opcodeAddress}`);
+      throw new InvalidOpcodeAddressError(opcodeAddress);
     }
 
     if (opcodeAddress < 128) {
@@ -204,7 +204,7 @@ export class Compiler {
    */
   patchOpcode(address: number, opcodeAddress: number): void {
     if (opcodeAddress < 0 || opcodeAddress >= 32768) {
-      throw new Error(`Invalid opcode address: ${opcodeAddress}`);
+      throw new InvalidOpcodeAddressError(opcodeAddress);
     }
 
     if (opcodeAddress < 128) {
