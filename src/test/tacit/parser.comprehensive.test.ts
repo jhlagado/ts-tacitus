@@ -14,7 +14,7 @@ describe('Comprehensive Parser Tests', () => {
     });
     test('should throw on nested definitions', () => {
       expect(() => parse(new Tokenizer(': test : nested ;'))).toThrow(
-        'Nested definitions are not allowed',
+        'Cannot nest definition inside code block',
       );
     });
     test('should throw on definition without name', () => {

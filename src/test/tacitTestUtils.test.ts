@@ -19,7 +19,7 @@ describe('tacitTestUtils', () => {
       expect(() => testTacitCode('0.1 0.2 add', [0.3])).not.toThrow();
     });
     test('should throw error for NaN values', () => {
-      expect(() => testTacitCode('NaN', [NaN])).toThrow(/Unknown word: NaN/);
+      expect(() => testTacitCode('NaN', [NaN])).toThrow('Undefined word: NaN');
     });
     test('should throw error for non-numeric stack values', () => {
       expect(() => testTacitCode('5', ['string'] as unknown as number[])).toThrow(

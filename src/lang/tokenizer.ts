@@ -11,6 +11,7 @@
  * features like token pushback for lookahead parsing.
  */
 
+import { TokenError, UnterminatedStringError } from '../core/errors';
 import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
 
 /**
@@ -91,11 +92,11 @@ export class Tokenizer {
    * and then put back for later processing.
    * 
    * @param {Token} token - The token to push back
-   * @throws {Error} If there is already a pushed back token
+   * @throws {TokenError} If there is already a pushed back token
    */
   pushBack(token: Token): void {
     if (this.pushedBack !== null) {
-      throw new Error('Cannot push back more than one token');
+      throw new TokenError('Cannot push back more than one token', this.line, this.column);
     }
 
     this.pushedBack = token;
@@ -342,7 +343,7 @@ export class Tokenizer {
       this.position++;
       this.column++;
     } else {
-      throw new Error(`Unterminated string literal at line ${this.line}, column ${this.column}`);
+      throw new UnterminatedStringError(this.line, this.column);
     }
 
     return { type: TokenType.STRING, value, position: startPos };
