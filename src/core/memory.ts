@@ -39,17 +39,31 @@ export const CODE_SIZE = 0x2000;
  * Provides methods for reading and writing different data types to memory segments.
  */
 export class Memory {
-  /** The raw memory buffer as a Uint8Array */
+  /**
+   * The underlying raw memory buffer, represented as a `Uint8Array`.
+   * All memory operations ultimately interact with this buffer.
+   */
   buffer: Uint8Array;
   
-  /** DataView for structured access to the memory buffer */
+  /**
+   * A `DataView` instance providing methods to read and write multiple number types
+   * (like `Float32Array`, `Uint16Array`) to the `buffer` at any byte offset.
+   * This allows for structured access to the raw memory.
+   */
   dataView: DataView;
   
-  /** @internal */
+  /**
+   * An internal table mapping segment IDs (e.g., `SEG_STACK`, `SEG_CODE`) to their
+   * respective base addresses within the linear memory `buffer`.
+   * @internal
+   */
   private SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
   /**
-   * Creates a new Memory instance and initializes the segment table.
+   * Creates a new `Memory` instance.
+   * Initializes a 64KB `Uint8Array` buffer and a `DataView` for structured access.
+   * It then calls `initializeSegments()` to set up the base addresses for all
+   * defined memory segments.
    */
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
@@ -75,10 +89,10 @@ export class Memory {
   /**
    * Resolves a segmented address (segment:offset) to a linear address in the memory buffer.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @returns The resolved linear address in the memory buffer
-   * @throws {RangeError} If the segment ID is invalid
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @returns The resolved linear address within the `Memory` buffer.
+   * @throws {RangeError} If the provided `segment` ID is invalid.
    */
   resolveAddress(segment: number, offset: number): number {
     if (segment < 0 || segment >= this.SEGMENT_TABLE.length) {
@@ -92,10 +106,10 @@ export class Memory {
   /**
    * Writes an 8-bit value to memory at the specified segment and offset.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @param value - The 8-bit value to write (will be masked to 0xFF)
-   * @throws {RangeError} If the resulting address is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @param value The 8-bit value to write (will be masked to `0xFF`).
+   * @throws {RangeError} If the resulting linear address is outside the memory bounds.
    */
   write8(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
@@ -109,10 +123,10 @@ export class Memory {
   /**
    * Reads an 8-bit value from memory at the specified segment and offset.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @returns The 8-bit value at the specified address
-   * @throws {RangeError} If the resulting address is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @returns The 8-bit value at the specified address.
+   * @throws {RangeError} If the resulting linear address is outside the memory bounds.
    */
   read8(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
@@ -127,10 +141,10 @@ export class Memory {
    * Writes a 16-bit value to memory at the specified segment and offset.
    * Uses little-endian byte order.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @param value - The 16-bit value to write (will be masked to 0xFFFF)
-   * @throws {RangeError} If the resulting address range is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @param value The 16-bit value to write (will be masked to `0xFFFF`).
+   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
    */
   write16(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
@@ -145,10 +159,10 @@ export class Memory {
    * Reads a 16-bit value from memory at the specified segment and offset.
    * Uses little-endian byte order.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @returns The 16-bit value at the specified address
-   * @throws {RangeError} If the resulting address range is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @returns The 16-bit value at the specified address.
+   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
    */
   read16(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
@@ -163,10 +177,10 @@ export class Memory {
    * Writes a 32-bit floating-point value to memory at the specified segment and offset.
    * Uses little-endian byte order.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @param value - The 32-bit floating-point value to write
-   * @throws {RangeError} If the resulting address range is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @param value The 32-bit floating-point value to write.
+   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
    */
   writeFloat32(segment: number, offset: number, value: number): void {
     const address = this.resolveAddress(segment, offset);
@@ -185,10 +199,10 @@ export class Memory {
    * Reads a 32-bit floating-point value from memory at the specified segment and offset.
    * Uses little-endian byte order.
    * 
-   * @param segment - The segment ID (e.g., SEG_STACK, SEG_CODE)
-   * @param offset - The offset within the segment
-   * @returns The 32-bit floating-point value at the specified address
-   * @throws {RangeError} If the resulting address range is outside memory bounds
+   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
+   * @param offset The offset within the specified segment.
+   * @returns The 32-bit floating-point value at the specified address.
+   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
    */
   readFloat32(segment: number, offset: number): number {
     const address = this.resolveAddress(segment, offset);
@@ -208,10 +222,10 @@ export class Memory {
   /**
    * Dumps a range of memory as hexadecimal values for debugging.
    * 
-   * @param start - The starting address in the memory buffer
-   * @param end - The ending address in the memory buffer (inclusive, defaults to 32)
-   * @returns A string representation of the memory contents as hex values
-   * @throws {RangeError} If the address range is invalid
+   * @param start The starting linear address in the memory buffer.
+   * @param end The ending linear address in the memory buffer (inclusive, defaults to 32 bytes from `start`).
+   * @returns A string representation of the memory contents as hexadecimal values.
+   * @throws {RangeError} If the specified address range is invalid or out of bounds.
    */
   dump(start: number, end: number = 32): string {
     if (start < 0 || end >= MEMORY_SIZE || start > end) {
@@ -226,10 +240,10 @@ export class Memory {
   /**
    * Dumps a range of memory as ASCII characters for debugging.
    * 
-   * @param start - The starting address in the memory buffer
-   * @param end - The ending address in the memory buffer (inclusive, defaults to 32)
-   * @returns A string representation of the memory contents as ASCII characters
-   * @throws {RangeError} If the address range is invalid
+   * @param start The starting linear address in the memory buffer.
+   * @param end The ending linear address in the memory buffer (inclusive, defaults to 32 bytes from `start`).
+   * @returns A string representation of the memory contents as ASCII characters.
+   * @throws {RangeError} If the specified address range is invalid or out of bounds.
    */
   dumpChars(start: number, end: number = 32): string {
     if (start < 0 || end >= MEMORY_SIZE || start > end) {

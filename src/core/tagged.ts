@@ -161,21 +161,33 @@ export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
 }
 
 /**
- * Returns the tag component from a tagged value.
+ * Extracts the `Tag` component from a NaN-boxed 32-bit floating-point number.
+ * This function uses `fromTaggedValue` internally to decode the value.
+ *
+ * @param nanValue The NaN-boxed 32-bit floating-point number.
+ * @returns The `Tag` enum value representing the type of the `nanValue`.
  */
 export function getTag(nanValue: number): number {
   return fromTaggedValue(nanValue).tag;
 }
 
 /**
- * Returns the value component from a tagged value.
+ * Extracts the raw value component from a NaN-boxed 32-bit floating-point number.
+ * This function uses `fromTaggedValue` internally to decode the value.
+ *
+ * @param nanValue The NaN-boxed 32-bit floating-point number.
+ * @returns The decoded numerical value contained within the `nanValue`.
  */
 export function getValue(nanValue: number): number {
   return fromTaggedValue(nanValue).value;
 }
 
 /**
- * Checks if the given value is NIL.
+ * Checks if a given NaN-boxed value represents `NIL`.
+ * `NIL` is defined as an `INTEGER` tag with a value of `0`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is `NIL`, `false` otherwise.
  */
 export function isNIL(tval: number): boolean {
   const { tag, value } = fromTaggedValue(tval);
@@ -191,8 +203,11 @@ export function isRefCounted(_value: number): boolean {
 }
 
 /**
- * Checks if the given value is a number.
- * Returns true for both tagged numbers and native JavaScript numbers.
+ * Checks if a given NaN-boxed value represents a standard floating-point `NUMBER`.
+ * This returns `true` if the value's tag is `Tag.NUMBER`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is a `NUMBER`, `false` otherwise.
  */
 export function isNumber(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -200,7 +215,11 @@ export function isNumber(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is an integer.
+ * Checks if a given NaN-boxed value represents an `INTEGER`.
+ * This returns `true` if the value's tag is `Tag.INTEGER`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is an `INTEGER`, `false` otherwise.
  */
 export function isInteger(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -208,7 +227,11 @@ export function isInteger(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is a function code value.
+ * Checks if a given NaN-boxed value represents executable `CODE` (a function pointer).
+ * This returns `true` if the value's tag is `Tag.CODE`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is `CODE`, `false` otherwise.
  */
 export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -216,7 +239,11 @@ export function isCode(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is a code block value.
+ * Checks if a given NaN-boxed value represents a `CODE_BLOCK`.
+ * This returns `true` if the value's tag is `Tag.CODE_BLOCK`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is a `CODE_BLOCK`, `false` otherwise.
  */
 export function isCodeBlock(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -224,7 +251,10 @@ export function isCodeBlock(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is either a function or code block.
+ * Checks if a given NaN-boxed value represents either executable `CODE` or a `CODE_BLOCK`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is `CODE` or `CODE_BLOCK`, `false` otherwise.
  */
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -232,7 +262,11 @@ export function isAnyCode(tval: number): boolean {
 }
 
 /**
- * Checks if the given value is a string.
+ * Checks if a given NaN-boxed value represents a `STRING` literal.
+ * This returns `true` if the value's tag is `Tag.STRING`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is a `STRING`, `false` otherwise.
  */
 export function isString(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
