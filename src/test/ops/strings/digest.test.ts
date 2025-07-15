@@ -1,5 +1,6 @@
 import { Digest } from '../../../../src/strings/digest';
-import { Memory, STRING_SIZE } from '../../../core/memory';
+import { Memory } from '../../../core/memory';
+import { STRING_SIZE } from '../../../core/constants';
 
 describe('Digest', () => {
   let memory: Memory;

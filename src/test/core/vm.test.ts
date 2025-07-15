@@ -1,5 +1,5 @@
 import { VM } from '../../core/vm';
-import { STACK_SIZE, RSTACK_SIZE } from '../../core/memory';
+import { STACK_SIZE, RSTACK_SIZE } from '../../core/constants';
 import { Compiler } from '../../lang/compiler';
 import { SymbolTable } from '../../strings/symbol-table';
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core/tagged';

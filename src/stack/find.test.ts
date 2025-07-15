@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../core/vm';
-import { SEG_STACK } from '../core/memory';
+import { SEG_STACK } from '../core/constants';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { findElement } from './find';
 

@@ -13,7 +13,8 @@
  * - N bytes: Character data (each character is 1 byte)
  */
 
-import { Memory, SEG_STRING, STRING_SIZE } from '../core/memory';
+import { Memory } from '../core/memory';
+import { SEG_STRING, STRING_SIZE } from '../core/constants';
 
 /**
  * Maximum length of a string that can be stored in the digest (255 characters)

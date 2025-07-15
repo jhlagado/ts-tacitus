@@ -22,7 +22,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { SEG_STACK } from '../core/memory';
+import { SEG_STACK } from '../core/constants';
 import { findElement } from '../stack/find';
 import { slotsRoll, slotsCopy } from '../stack/slots';
 import { StackUnderflowError, VMError } from '../core/errors';

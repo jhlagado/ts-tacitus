@@ -18,7 +18,7 @@
  */
 import { VM } from '../../src/core/vm';
 import { fromTaggedValue, toTaggedValue, Tag } from '../../src/core/tagged';
-import { SEG_STACK } from '../../src/core/memory';
+import { SEG_STACK } from '../../src/core/constants';
 import { ReturnStackUnderflowError } from '../../src/core/errors';
 
 /** Number of bytes per stack element */

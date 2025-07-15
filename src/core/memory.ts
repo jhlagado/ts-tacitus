@@ -5,34 +5,7 @@
  * Each segment has a fixed size and base address within the 64KB memory space.
  */
 
-/** Total memory size in bytes (64KB) */
-export const MEMORY_SIZE = 65536;
-
-/** Segment ID for the data stack */
-export const SEG_STACK = 0;
-
-/** Segment ID for the return stack */
-export const SEG_RSTACK = 1;
-
-/** Segment ID for the code segment */
-export const SEG_CODE = 4;
-
-/** Segment ID for the string segment */
-export const SEG_STRING = 5;
-
-/** Size of the data stack in bytes (256 bytes) */
-export const STACK_SIZE = 0x0100;
-
-/** Size of the return stack in bytes (256 bytes) */
-export const RSTACK_SIZE = 0x0100;
-
-/** Size of the string segment in bytes (2KB) */
-export const STRING_SIZE = 0x0800;
-
-/** Size of the code segment in bytes (8KB) */
-export const CODE_SIZE = 0x2000;
-
-
+import { MEMORY_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE, SEG_STRING, STACK_SIZE, RSTACK_SIZE, STRING_SIZE, CODE_SIZE } from './constants';
 
 /**
  * Memory class that implements the segmented memory model for the Tacit VM.

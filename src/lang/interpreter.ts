@@ -20,7 +20,7 @@ import { parse } from './parser';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 
-import { SEG_CODE } from '../core/memory';
+import { SEG_CODE } from '../core/constants';
 
 /**
  * Executes Tacit bytecode starting from a specific address.
