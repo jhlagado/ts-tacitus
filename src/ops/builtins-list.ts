@@ -16,10 +16,10 @@
  * Lists support nesting, and the VM maintains a listDepth counter to track nesting levels.
  * When a list is closed, a LINK tag is created that points to the list's contents on the stack.
  */
-import { VM } from '../core/vm';
-import { toTaggedValue, fromTaggedValue, Tag } from '../core/tagged';
-
-import { SEG_STACK } from '../core/memory';
+import { VM } from '../../src/core/vm';
+import { fromTaggedValue, toTaggedValue, Tag } from '../../src/core/tagged';
+import { SEG_STACK } from '../../src/core/memory';
+import { ReturnStackUnderflowError } from '../../src/core/errors';
 
 /** Number of bytes per stack element */
 const BYTES_PER_ELEMENT = 4;
@@ -76,32 +76,22 @@ export function openListOp(vm: VM): void {
  * // listDepth: decreased by 1
  */
 export function closeListOp(vm: VM): void {
-  try {
-    if (vm.debug) console.log('closeListOp: listDepth before', vm.listDepth);
-    
-    // Check for return stack underflow
-    if (vm.RP < BYTES_PER_ELEMENT) {
-      throw new Error(`Return stack underflow: 'closeListOp' requires at least one element on the return stack (return stack: [])`);
-    }
-    
-    const taggedListTagPos = vm.rpop();
-    const { value: listTagPos } = fromTaggedValue(taggedListTagPos);
-    const listSize = (vm.SP - listTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
-    const newListTag = toTaggedValue(listSize, Tag.LIST);
-    vm.memory.writeFloat32(SEG_STACK, listTagPos, newListTag);
-    if (vm.debug) console.log('closeListOp: updated LIST tag at position', listTagPos, 'with size', listSize);
-    
-    if (vm.listDepth === 1) {
-      const relativeElements = (vm.SP - listTagPos) / BYTES_PER_ELEMENT;
-      const linkTag = toTaggedValue(relativeElements, Tag.LINK);
-      vm.push(linkTag);
-      if (vm.debug) console.log('closeListOp: pushed LINK tag with offset', relativeElements);
-    }
-    
-    vm.listDepth--;
-    if (vm.debug) console.log('closeListOp: listDepth after', vm.listDepth);
-  } catch (error) {
-    console.error(`List closing error: ${error instanceof Error ? error.message : String(error)}`);
-    throw error; // Re-throw to maintain error propagation
+  // Check for return stack underflow
+  if (vm.RP < BYTES_PER_ELEMENT) {
+    throw new ReturnStackUnderflowError("closeListOp", vm.getStackData());
   }
+  
+  const taggedListTagPos = vm.rpop();
+  const { value: listTagPos } = fromTaggedValue(taggedListTagPos);
+  const listSize = (vm.SP - listTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
+  const newListTag = toTaggedValue(listSize, Tag.LIST);
+  vm.memory.writeFloat32(SEG_STACK, listTagPos, newListTag);
+  
+  if (vm.listDepth === 1) {
+    const relativeElements = (vm.SP - listTagPos) / BYTES_PER_ELEMENT;
+    const linkTag = toTaggedValue(relativeElements, Tag.LINK);
+    vm.push(linkTag);
+  }
+  
+  vm.listDepth--;
 }

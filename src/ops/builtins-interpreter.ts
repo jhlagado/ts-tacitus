@@ -14,6 +14,7 @@
  */
 
 import { VM } from '../core/vm';
+import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/errors';
 import { Verb } from '../core/types';
 import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
 import { RSTACK_SIZE } from '../core/memory';
@@ -281,7 +282,7 @@ export const evalOp: Verb = (vm: VM) => {
 export const groupLeftOp: Verb = (vm: VM) => {
   // Check for return stack overflow before pushing
   if (vm.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
-    throw new Error(`Return stack overflow: 'group-left' operation would exceed return stack capacity`);
+    throw new ReturnStackOverflowError("group-left", vm.getStackData());
   }
   vm.rpush(vm.SP);
 };
@@ -312,7 +313,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
 export const groupRightOp: Verb = (vm: VM) => {
   try {
     if (vm.RP < BYTES_PER_ELEMENT) {
-      throw new Error(`Return stack underflow: 'group-right' requires at least one item on the return stack`);
+      throw new ReturnStackUnderflowError("group-right", vm.getStackData());
     }
     const sp0 = vm.rpop();
     const sp1 = vm.SP;

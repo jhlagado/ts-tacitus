@@ -13,8 +13,8 @@
 
 import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
-
 import { SEG_CODE } from '../core/memory';
+import { InvalidOpcodeAddressError } from '../core/errors';
 
 /**
  * Compiler for the Tacit virtual machine
