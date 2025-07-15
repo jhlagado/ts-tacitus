@@ -32,23 +32,7 @@ export const STRING_SIZE = 0x0800;
 /** Size of the code segment in bytes (8KB) */
 export const CODE_SIZE = 0x2000;
 
-/** Table of segment base addresses */
-const SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
-/**
- * Initializes the segment table with base addresses for each segment.
- * Segments are laid out sequentially in memory:
- * 1. Stack segment (SEG_STACK)
- * 2. Return stack segment (SEG_RSTACK)
- * 3. String segment (SEG_STRING)
- * 4. Code segment (SEG_CODE)
- */
-function initializeSegments() {
-  SEGMENT_TABLE[SEG_STACK] = 0x0000;
-  SEGMENT_TABLE[SEG_RSTACK] = SEGMENT_TABLE[SEG_STACK] + STACK_SIZE;
-  SEGMENT_TABLE[SEG_STRING] = SEGMENT_TABLE[SEG_RSTACK] + RSTACK_SIZE;
-  SEGMENT_TABLE[SEG_CODE] = SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
-}
 
 /**
  * Memory class that implements the segmented memory model for the Tacit VM.
@@ -61,13 +45,31 @@ export class Memory {
   /** DataView for structured access to the memory buffer */
   dataView: DataView;
   
+  /** @internal */
+  private SEGMENT_TABLE: number[] = new Array(8).fill(0);
+
   /**
    * Creates a new Memory instance and initializes the segment table.
    */
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
     this.dataView = new DataView(this.buffer.buffer);
-    initializeSegments();
+    this.initializeSegments();
+  }
+
+  /**
+   * Initializes the segment table with base addresses for each segment.
+   * Segments are laid out sequentially in memory:
+   * 1. Stack segment (SEG_STACK)
+   * 2. Return stack segment (SEG_RSTACK)
+   * 3. String segment (SEG_STRING)
+   * 4. Code segment (SEG_CODE)
+   */
+  private initializeSegments() {
+    this.SEGMENT_TABLE[SEG_STACK] = 0x0000;
+    this.SEGMENT_TABLE[SEG_RSTACK] = this.SEGMENT_TABLE[SEG_STACK] + STACK_SIZE;
+    this.SEGMENT_TABLE[SEG_STRING] = this.SEGMENT_TABLE[SEG_RSTACK] + RSTACK_SIZE;
+    this.SEGMENT_TABLE[SEG_CODE] = this.SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
   }
 
   /**
@@ -79,11 +81,11 @@ export class Memory {
    * @throws {RangeError} If the segment ID is invalid
    */
   resolveAddress(segment: number, offset: number): number {
-    if (segment < 0 || segment >= SEGMENT_TABLE.length) {
+    if (segment < 0 || segment >= this.SEGMENT_TABLE.length) {
       throw new RangeError(`Invalid segment ID: ${segment}`);
     }
 
-    const baseAddress = SEGMENT_TABLE[segment];
+    const baseAddress = this.SEGMENT_TABLE[segment];
     return baseAddress + offset;
   }
 
