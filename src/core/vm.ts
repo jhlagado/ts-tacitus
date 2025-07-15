@@ -66,8 +66,12 @@ export class VM {
   /** Current nesting depth when processing lists */
   listDepth: number;
   /**
-   * Creates a new VM instance and initializes all pointers and state variables.
-   * Also creates a new symbol table and registers all built-in operations.
+   * Creates a new `VM` (Virtual Machine) instance.
+   * Initializes the VM's memory, instruction pointer (IP), stack pointer (SP),
+   * return stack pointer (RP), and base pointer (BP). It also sets up the
+   * string digest for interning, and the symbol table for managing built-in
+   * operations and user-defined symbols. All built-in operations are registered
+   * upon instantiation.
    */
   constructor() {
     this.memory = new Memory();
@@ -85,10 +89,10 @@ export class VM {
   }
 
   /**
-   * Initializes the compiler.
-   * This method must be called after VM construction to complete initialization.
+   * Initializes the compiler for the VM.
+   * This method must be called after the VM has been constructed to complete its initialization.
    * 
-   * @param compiler - The compiler instance to use for compiling Tacit code
+   * @param compiler The compiler instance to be used by this VM for compiling Tacit code.
    */
   initializeCompiler(compiler: Compiler): void {
     this.compiler = compiler;
@@ -96,9 +100,12 @@ export class VM {
   }
 
   /**
-   * Evaluates a code pointer from the stack.
-   * Saves the current IP on the return stack and jumps to the address popped from the stack.
-   * This is used for function calls and code block execution.
+   * Evaluates a code pointer (address) popped from the data stack.
+   * The current instruction pointer (`IP`) is pushed onto the return stack
+   * to allow for return to the calling context. The `IP` is then updated
+   * to the address popped from the data stack, effectively transferring
+   * control to the new code location.
+   * This mechanism is used for function calls and executing code blocks.
    */
   eval() {
     this.rpush(toTaggedValue(this.IP, Tag.CODE));
@@ -110,7 +117,7 @@ export class VM {
    * Pushes a 32-bit float onto the data stack.
    * 
    * @param value - The 32-bit float value to push onto the stack
-   * @throws {StackOverflowError} If pushing would cause a stack overflow
+   * @throws {StackOverflowError} If pushing would cause a stack overflow.
    */
   push(value: number): void {
     if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
@@ -124,8 +131,8 @@ export class VM {
   /**
    * Pops a 32-bit float from the data stack.
    * 
-   * @returns The 32-bit float value popped from the stack
-   * @throws {StackUnderflowError} If popping would cause a stack underflow
+   * @returns The 32-bit float value popped from the stack.
+   * @throws {StackUnderflowError} If popping would cause a stack underflow.
    */
   pop(): number {
     if (this.SP <= 0) {
@@ -139,8 +146,8 @@ export class VM {
   /**
    * Peeks at the top value on the data stack without removing it.
    * 
-   * @returns The 32-bit float value at the top of the stack
-   * @throws {Error} If the stack is empty
+   * @returns The 32-bit float value at the top of the stack.
+   * @throws {StackUnderflowError} If the stack is empty.
    */
   peek(): number {
     if (this.SP <= 0) {
@@ -154,9 +161,9 @@ export class VM {
    * Pops multiple 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
    * 
-   * @param size - The number of values to pop from the stack
-   * @returns An array of 32-bit float values popped from the stack
-   * @throws {StackUnderflowError} If popping would cause a stack underflow
+   * @param size - The number of values to pop from the stack.
+   * @returns An array of 32-bit float values popped from the stack.
+   * @throws {StackUnderflowError} If popping would cause a stack underflow.
    */
   popArray(size: number): number[] {
     if (this.SP < size * BYTES_PER_ELEMENT) {
@@ -175,8 +182,8 @@ export class VM {
    * Pushes a 32-bit float onto the return stack.
    * The return stack is used for function call return addresses and local variables.
    * 
-   * @param value - The 32-bit float value to push onto the return stack
-   * @throws {ReturnStackOverflowError} If pushing would cause a return stack overflow
+   * @param value - The 32-bit float value to push onto the return stack.
+   * @throws {ReturnStackOverflowError} If pushing would cause a return stack overflow.
    */
   rpush(value: number): void {
     if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
@@ -190,8 +197,8 @@ export class VM {
   /**
    * Pops a 32-bit float from the return stack.
    * 
-   * @returns The 32-bit float value popped from the return stack
-   * @throws {ReturnStackUnderflowError} If popping would cause a return stack underflow
+   * @returns The 32-bit float value popped from the return stack.
+   * @throws {ReturnStackUnderflowError} If popping would cause a return stack underflow.
    */
   rpop(): number {
     if (this.RP <= 0) {
@@ -203,17 +210,18 @@ export class VM {
   }
 
   /**
-   * Resets the instruction pointer to the beginning of the code segment.
-   * This is typically used to restart execution from the beginning.
+   * Resets the instruction pointer (`IP`) to the beginning of the code segment (address 0).
+   * This is typically used to restart execution from the beginning of a compiled program.
    */
   reset() {
     this.IP = 0;
   }
 
   /**
-   * Reads the next byte from the code segment and advances the instruction pointer.
+   * Reads the next 8-bit value (byte) from the code segment at the current
+   * instruction pointer (`IP`) and advances the `IP` by 1 byte.
    * 
-   * @returns The 8-bit value at the current instruction pointer
+   * @returns The 8-bit value read from the code segment.
    */
   next8(): number {
     const value = this.memory.read8(SEG_CODE, this.IP);
@@ -222,12 +230,14 @@ export class VM {
   }
 
   /**
-   * Reads the next opcode from the code segment and advances the instruction pointer.
+   * Reads the next opcode from the code segment at the current instruction pointer (`IP`)
+   * and advances the `IP`.
    * Decodes opcodes according to the unified addressing scheme:
-   * - Built-in opcodes (0-127): Single byte with high bit clear
-   * - User-defined words (128-32767): Two bytes with high bit set on first byte
+   * - Built-in opcodes (0-127): Represented by a single byte with the most significant bit (MSB) clear.
+   * - User-defined words (128-32767): Represented by two bytes. The first byte has its MSB set,
+   *   and the remaining 7 bits combine with the second byte to form the 15-bit address.
    * 
-   * @returns The decoded opcode/function index
+   * @returns The decoded opcode or the address of a user-defined word.
    */
   nextOpcode(): number {
     const firstByte = this.memory.read8(SEG_CODE, this.IP);
@@ -244,10 +254,11 @@ export class VM {
   }
 
   /**
-   * Reads the next 16-bit value from the code segment and advances the instruction pointer.
-   * The value is sign-extended to handle negative numbers correctly.
+   * Reads the next 16-bit signed integer from the code segment at the current
+   * instruction pointer (`IP`) and advances the `IP` by 2 bytes.
+   * The value is sign-extended to correctly represent negative numbers.
    * 
-   * @returns The 16-bit signed value at the current instruction pointer
+   * @returns The 16-bit signed integer read from the code segment.
    */
   next16(): number {
     const unsignedValue = this.memory.read16(SEG_CODE, this.IP);
@@ -257,9 +268,10 @@ export class VM {
   }
 
   /**
-   * Reads the next 32-bit float from the code segment and advances the instruction pointer.
+   * Reads the next 32-bit floating-point value from the code segment at the current
+   * instruction pointer (`IP`) and advances the `IP` by 4 bytes.
    * 
-   * @returns The 32-bit float value at the current instruction pointer
+   * @returns The 32-bit floating-point value read from the code segment.
    */
   nextFloat32(): number {
     const value = this.memory.readFloat32(SEG_CODE, this.IP);
@@ -268,10 +280,11 @@ export class VM {
   }
 
   /**
-   * Reads the next address (tagged as CODE) from the code segment and advances the instruction pointer.
-   * Decodes the tagged value to extract the code pointer.
+   * Reads the next address (which is a tagged `CODE` value) from the code segment
+   * at the current instruction pointer (`IP`) and advances the `IP` by 4 bytes.
+   * The tagged value is decoded to extract the raw code pointer.
    * 
-   * @returns The decoded code pointer value
+   * @returns The decoded code pointer value.
    */
   nextAddress(): number {
     const tagNum = this.nextFloat32();
@@ -280,10 +293,12 @@ export class VM {
   }
 
   /**
-   * Reads the next 16-bit value from the code segment and advances the instruction pointer.
-   * Unlike next16(), this method reads the bytes directly and assembles them into a 16-bit value.
+   * Reads a 16-bit unsigned integer from the code segment at the current
+   * instruction pointer (`IP`) and advances the `IP` by 2 bytes.
+   * This method reads the bytes directly and assembles them into a 16-bit value,
+   * primarily used for internal bytecode interpretation.
    * 
-   * @returns The 16-bit value at the current instruction pointer
+   * @returns The 16-bit unsigned integer read from the code segment.
    */
   read16(): number {
     const lowByte = this.memory.read8(SEG_CODE, this.IP);
@@ -293,10 +308,11 @@ export class VM {
   }
 
   /**
-   * Returns the current data stack contents as an array of 32-bit values.
-   * This is primarily used for debugging and error reporting.
+   * Retrieves the current contents of the data stack as an array of numbers.
+   * This method is primarily used for debugging and error reporting to capture the
+   * state of the data stack.
    * 
-   * @returns An array containing all values currently on the data stack
+   * @returns An array of numbers representing the current data stack contents.
    */
   getStackData(): number[] {
     const stackData: number[] = [];
@@ -308,12 +324,12 @@ export class VM {
   }
   
   /**
-   * Ensures that the stack has at least the specified number of elements.
+   * Ensures that the data stack has at least the specified number of elements (32-bit values).
    * This is a helper method used by operations that require a minimum stack depth.
    * 
-   * @param {number} size - The minimum number of elements required
-   * @param {string} operation - The name of the operation for error reporting
-   * @throws {Error} If the stack doesn't have enough elements
+   * @param size The minimum number of 32-bit elements required on the data stack.
+   * @param operation The name of the operation requesting the stack size check, for error reporting.
+   * @throws {Error} If the data stack does not have enough elements to satisfy the request.
    */
   ensureStackSize(size: number, operation: string): void {
     if (this.SP < size * BYTES_PER_ELEMENT) {
@@ -324,10 +340,10 @@ export class VM {
   }
 
   /**
-   * Returns the current compiled bytecode as an array of 8-bit values.
-   * This is primarily used for debugging and testing the compiler.
+   * Retrieves the current compiled bytecode from the code segment as an array of 8-bit values.
+   * This method is primarily used for debugging and testing the compiler's output.
    * 
-   * @returns An array containing all bytes in the compiled code segment
+   * @returns An array containing all bytes currently in the compiled code segment.
    */
   getCompileData(): number[] {
     const compileData: number[] = [];
