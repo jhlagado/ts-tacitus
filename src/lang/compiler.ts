@@ -13,7 +13,7 @@
 
 import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
-import { SEG_CODE } from '../core/memory';
+import { SEG_CODE } from "../core/constants";
 import { InvalidOpcodeAddressError } from '../core/errors';
 
 /**
