@@ -63,7 +63,7 @@ export const tagNames: { [key in Tag]: string } = {
  */
 const VALUE_BITS = 16;
 const NAN_BIT = 1 << 22;
-const TAG_MANTISSA_MASK = 0x3f << 16;
+const TAG_MANTISSA_MASK = 0x7f << 16;
 const VALUE_MASK = (1 << VALUE_BITS) - 1;
 
 const EXPONENT_MASK = 0xff << 23;
@@ -133,7 +133,7 @@ export function toTaggedValue(value: number, tag: Tag): number {
  *
  * For NaN-boxed values, it extracts the components as follows:
  *
- * -   **Tag:** Extracted from bits 16-21 of the mantissa using TAG_MANTISSA_MASK.
+ * -   **Tag:** Extracted from bits 16-22 of the mantissa using TAG_MANTISSA_MASK.
  * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
  *     the tag is Tag.INTEGER, the value is sign-extended to ensure correct
  *     interpretation as a 16-bit signed integer.
@@ -154,7 +154,7 @@ export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
   const view = new DataView(buffer);
   view.setFloat32(0, nanValue, true);
   const bits = view.getUint32(0, true);
-  const tagBits = (bits & TAG_MANTISSA_MASK) >>> 16;
+  const tagBits = ((bits & TAG_MANTISSA_MASK) >>> 16) & 0x3f;
   const valueBits = bits & VALUE_MASK;
   const value = tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
   return { value, tag: tagBits };
