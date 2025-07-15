@@ -110,13 +110,11 @@ export class VM {
    * Pushes a 32-bit float onto the data stack.
    * 
    * @param value - The 32-bit float value to push onto the stack
-   * @throws {Error} If pushing would cause a stack overflow
+   * @throws {StackOverflowError} If pushing would cause a stack overflow
    */
   push(value: number): void {
     if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
-      throw new Error(
-        `Stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
-      );
+      throw new StackOverflowError("push", this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_STACK, this.SP, value);
@@ -127,13 +125,11 @@ export class VM {
    * Pops a 32-bit float from the data stack.
    * 
    * @returns The 32-bit float value popped from the stack
-   * @throws {Error} If popping would cause a stack underflow
+   * @throws {StackUnderflowError} If popping would cause a stack underflow
    */
   pop(): number {
     if (this.SP <= 0) {
-      throw new Error(
-        `Stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
-      );
+      throw new StackUnderflowError("pop", 1, this.getStackData());
     }
 
     this.SP -= BYTES_PER_ELEMENT;
@@ -148,7 +144,7 @@ export class VM {
    */
   peek(): number {
     if (this.SP <= 0) {
-      throw new Error(`Stack underflow: Cannot peek value (stack: ${JSON.stringify(this.getStackData())})`);
+      throw new StackUnderflowError("peek", 1, this.getStackData());
     }
 
     return this.memory.readFloat32(SEG_STACK, this.SP - BYTES_PER_ELEMENT);
@@ -160,13 +156,11 @@ export class VM {
    * 
    * @param size - The number of values to pop from the stack
    * @returns An array of 32-bit float values popped from the stack
-   * @throws {Error} If popping would cause a stack underflow
+   * @throws {StackUnderflowError} If popping would cause a stack underflow
    */
   popArray(size: number): number[] {
     if (this.SP < size * BYTES_PER_ELEMENT) {
-      throw new Error(
-        `Stack underflow: Cannot pop ${size} values (stack: ${JSON.stringify(this.getStackData())})`
-      );
+      throw new StackUnderflowError("popArray", size, this.getStackData());
     }
 
     const result: number[] = [];
@@ -182,13 +176,11 @@ export class VM {
    * The return stack is used for function call return addresses and local variables.
    * 
    * @param value - The 32-bit float value to push onto the return stack
-   * @throws {Error} If pushing would cause a return stack overflow
+   * @throws {ReturnStackOverflowError} If pushing would cause a return stack overflow
    */
   rpush(value: number): void {
     if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
-      throw new Error(
-        `Return stack overflow: Cannot push value ${value} (stack: ${JSON.stringify(this.getStackData())})`
-      );
+      throw new ReturnStackOverflowError("rpush", this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
@@ -199,13 +191,11 @@ export class VM {
    * Pops a 32-bit float from the return stack.
    * 
    * @returns The 32-bit float value popped from the return stack
-   * @throws {Error} If popping would cause a return stack underflow
+   * @throws {ReturnStackUnderflowError} If popping would cause a return stack underflow
    */
   rpop(): number {
     if (this.RP <= 0) {
-      throw new Error(
-        `Return stack underflow: Cannot pop value (stack: ${JSON.stringify(this.getStackData())})`
-      );
+      throw new ReturnStackUnderflowError("rpop", this.getStackData());
     }
 
     this.RP -= BYTES_PER_ELEMENT;

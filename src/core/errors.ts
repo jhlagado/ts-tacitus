@@ -123,3 +123,163 @@ export class InvalidTagError extends VMError {
     this.name = 'InvalidTagError';
   }
 }
+
+/**
+ * Error thrown when an invalid opcode address is encountered during compilation or patching.
+ */
+export class InvalidOpcodeAddressError extends VMError {
+  /**
+   * Creates a new InvalidOpcodeAddressError instance.
+   * 
+   * @param {number} address - The invalid opcode address
+   */
+  constructor(public readonly address: number) {
+    super(`Invalid opcode address: ${address}`, []);
+    this.name = 'InvalidOpcodeAddressError';
+  }
+}
+
+/**
+ * Base error class for all tokenizer-related errors.
+ */
+export class TokenError extends VMError {
+  /**
+   * Creates a new TokenError instance.
+   * 
+   * @param {string} message - The error message
+   * @param {number} line - The line number where the error occurred
+   * @param {number} column - The column number where the error occurred
+   */
+  constructor(message: string, public readonly line: number, public readonly column: number) {
+    super(`${message} at line ${line}, column ${column}`, []); // Tokenizer errors don't have a stack state
+    this.name = 'TokenError';
+  }
+}
+
+/**
+ * Error thrown when a string literal is not properly terminated.
+ */
+export class UnterminatedStringError extends TokenError {
+  /**
+   * Creates a new UnterminatedStringError instance.
+   * 
+   * @param {number} line - The line number where the error occurred
+   * @param {number} column - The column number where the error occurred
+   */
+  constructor(line: number, column: number) {
+    super(`Unterminated string literal`, line, column);
+    this.name = 'UnterminatedStringError';
+  }
+}
+
+/**
+ * Base error class for all parser-related errors.
+ */
+export class ParserError extends VMError {
+  /**
+   * Creates a new ParserError instance.
+   * 
+   * @param {string} message - The error message
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(message: string, stackState: number[]) {
+    super(message, stackState);
+    this.name = 'ParserError';
+  }
+}
+
+/**
+ * Error thrown when a definition is not properly closed.
+ */
+export class UnclosedDefinitionError extends ParserError {
+  /**
+   * Creates a new UnclosedDefinitionError instance.
+   * 
+   * @param {string} definitionName - The name of the unclosed definition
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(public readonly definitionName: string, stackState: number[]) {
+    super(`Unclosed definition for ${definitionName}`, stackState);
+    this.name = 'UnclosedDefinitionError';
+  }
+}
+
+/**
+ * Error thrown when an undefined word is encountered during parsing.
+ */
+export class UndefinedWordError extends ParserError {
+  /**
+   * Creates a new UndefinedWordError instance.
+   * 
+   * @param {string} wordName - The name of the undefined word
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(public readonly wordName: string, stackState: number[]) {
+    super(`Undefined word: ${wordName}`, stackState);
+    this.name = 'UndefinedWordError';
+  }
+}
+
+/**
+ * Error thrown when a syntax error is encountered during parsing.
+ */
+export class SyntaxError extends ParserError {
+  /**
+   * Creates a new SyntaxError instance.
+   * 
+   * @param {string} expected - The expected token or structure
+   * @param {string} found - The token or structure that was found
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(message: string, stackState: number[]) {
+    super(message, stackState);
+    this.name = 'SyntaxError';
+  }
+}
+
+/**
+ * Error thrown when nesting definitions inside code blocks, which is not allowed.
+ */
+export class NestedDefinitionError extends ParserError {
+  /**
+   * Creates a new NestedDefinitionError instance.
+   * 
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(stackState: number[]) {
+    super('Cannot nest definition inside code block', stackState);
+    this.name = 'NestedDefinitionError';
+  }
+}
+
+/**
+ * Error thrown when a word is redefined.
+ */
+export class WordAlreadyDefinedError extends ParserError {
+  /**
+   * Creates a new WordAlreadyDefinedError instance.
+   * 
+   * @param {string} wordName - The name of the word that was redefined
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(public readonly wordName: string, stackState: number[]) {
+    super(`Word already defined: ${wordName}`, stackState);
+    this.name = 'WordAlreadyDefinedError';
+  }
+}
+
+/**
+ * Error thrown when an unexpected token is encountered during parsing.
+ */
+export class UnexpectedTokenError extends ParserError {
+  /**
+   * Creates a new UnexpectedTokenError instance.
+   * 
+   * @param {string} token - The unexpected token
+   * @param {number[]} stackState - The state of the data stack at the time of the error
+   */
+  constructor(public readonly token: string, stackState: number[]) {
+    super(`Unexpected token: ${token}`, stackState);
+    this.name = 'UnexpectedTokenError';
+  }
+}

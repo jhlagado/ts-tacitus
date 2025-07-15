@@ -81,6 +81,7 @@ import { openListOp, closeListOp } from './builtins-list';
 
 
 import { Op } from './opcodes';
+import { InvalidOpcodeError } from '../core/errors';
 
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
 
@@ -261,7 +262,7 @@ export function executeOp(vm: VM, opcode: Op) {
         }
       }
 
-      throw new Error(`Invalid opcode: ${opcode} (stack: ${JSON.stringify(vm.getStackData())})`);
+      throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
 }
 
