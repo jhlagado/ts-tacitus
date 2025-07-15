@@ -14,11 +14,9 @@ describe('Debug list structure', () => {
     executeTacitCode('( 1 2 )');
     const stackData = vm.getStackData();
 
-    console.log('STACK AFTER ( 1 2 )');
     for (let i = 0; i < stackData.length; i++) {
       const item = stackData[i];
       const { tag, value } = fromTaggedValue(item);
-      console.log(`[${i}]: ${item} (Tag: ${Tag[tag]}, Value: ${value})`);
     }
   });
 
@@ -26,11 +24,9 @@ describe('Debug list structure', () => {
     executeTacitCode('( 1 ( 2 3 ) 4 )');
     const stackData = vm.getStackData();
 
-    console.log('STACK AFTER ( 1 ( 2 3 ) 4 )');
     for (let i = 0; i < stackData.length; i++) {
       const item = stackData[i];
       const { tag, value } = fromTaggedValue(item);
-      console.log(`[${i}]: ${item} (Tag: ${Tag[tag]}, Value: ${value})`);
     }
   });
 
@@ -38,11 +34,9 @@ describe('Debug list structure', () => {
     executeTacitCode('3.14');
     const stackData = vm.getStackData();
 
-    console.log('STACK AFTER 3.14');
     for (let i = 0; i < stackData.length; i++) {
       const item = stackData[i];
       const { tag, value } = fromTaggedValue(item);
-      console.log(`[${i}]: ${item} (Tag: ${Tag[tag]}, Value: ${value})`);
     }
   });
 });

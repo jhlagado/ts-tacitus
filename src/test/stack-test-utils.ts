@@ -37,8 +37,6 @@ export function testStackOperation(config: StackTestConfig) {
         config.verify(afterStack);
       }
     } catch (error) {
-      console.error('Stack before operation:', beforeStack);
-      console.error('Stack after operation:', afterStack);
       throw error;
     }
   });

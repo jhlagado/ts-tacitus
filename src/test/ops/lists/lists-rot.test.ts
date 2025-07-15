@@ -49,25 +49,13 @@ describe('List rot operations', () => {
       executeCode('(1 2) 3 4');
 
       const initialStack = vm.getStackData();
-      console.log('\n=== BEFORE ROTATION ===');
-      console.log(
-        'Stack (formatted):',
-        initialStack.map(x => {
-          const { tag, value } = fromTaggedValue(x);
-          return { tag: Tag[tag], value };
-        }),
-      );
 
-      console.log('\nRaw memory layout (SP =', vm.SP, '):');
       for (let i = 0; i < vm.SP; i += 4) {
         const raw = vm.memory.readFloat32(0, i);
         const { tag, value } = fromTaggedValue(raw);
-        console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
       const [nextSlot, listSize] = findElement(vm, 0);
-      console.log('\nList info:', { nextSlot, listSize });
-      console.log('List data:');
       for (let i = 0; i < listSize; i++) {
         const addr = i * 4;
         const raw = vm.memory.readFloat32(0, addr);
@@ -78,47 +66,32 @@ describe('List rot operations', () => {
       executeCode('rot');
 
       const stack = vm.getStackData();
-      console.log('\n=== AFTER ROTATION ===');
-      console.log(
-        'Stack (formatted):',
-        stack.map(x => {
-          const { tag, value } = fromTaggedValue(x);
-          return { tag: Tag[tag], value };
-        }),
-      );
 
-      console.log('\nRaw memory layout after rotation (SP =', vm.SP, '):');
       for (let i = 0; i < vm.SP; i += 4) {
         const raw = vm.memory.readFloat32(0, i);
         const { tag, value } = fromTaggedValue(raw);
-        console.log(`  [${i}]: ${raw} (${Tag[tag]}: ${value})`);
       }
 
       expect(stack.length).toBe(6);
 
       const val1 = fromTaggedValue(stack[0]);
       const val2 = fromTaggedValue(stack[1]);
-      console.log('\nFirst value:', val1);
-      console.log('Second value:', val2);
 
       expect(val1.value).toBe(3);
       expect(val2.value).toBe(4);
 
       const listTag = fromTaggedValue(stack[2]);
-      console.log('\nList header:', listTag);
 
       expect(listTag.tag).toBe(Tag.LIST);
       expect(listTag.value).toBe(2);
 
       const elem1 = fromTaggedValue(stack[3]);
       const elem2 = fromTaggedValue(stack[4]);
-      console.log('List elements:', elem1, elem2);
 
       expect(elem1.value).toBe(1);
       expect(elem2.value).toBe(2);
 
       const linkTag = fromTaggedValue(stack[5]);
-      console.log('Link tag:', linkTag);
 
       expect(linkTag.tag).toBe(Tag.LINK);
       expect(linkTag.value).toBe(3);
