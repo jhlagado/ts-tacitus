@@ -36,7 +36,6 @@ export function resetVM(): void {
   // Ensure Tag enum values are properly initialized
   // This is important for list-related tests
   if (Tag.LIST !== 5) {
-    console.warn('Tag.LIST is not properly initialized, forcing correct value');
     // Force re-import of Tag enum
     Object.defineProperty(Tag, 'LIST', { value: 5 });
   }
@@ -182,13 +181,10 @@ export function verifyTaggedValue(
  * @param withTags If true, will decode tagged values
  */
 export function logStack(stack: number[], withTags = true): void {
-  console.log('Stack contents:');
   for (let i = 0; i < stack.length; i++) {
     if (withTags) {
       const { tag, value } = fromTaggedValue(stack[i]);
-      console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
     } else {
-      console.log(`[${i}] ${stack[i]}`);
     }
   }
 }
