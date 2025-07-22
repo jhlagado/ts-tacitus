@@ -276,11 +276,23 @@ function processWordToken(value: string, state: ParserState): void {
     if (blockToken.type !== TokenType.BLOCK_START) {
       throw new SyntaxError('Expected { after do combinator', vm.getStackData());
     }
-    const blockAddr = parseCurlyBlock(state);
-    // Push the block as a quotation (literal address)
-    vm.compiler.compileOpcode(Op.LiteralCode);
-    vm.compiler.compile16(blockAddr);
-    // Compile a call to the 'do' combinator (using the symbol table)
+    
+    // Compile SkipBlock with placeholder offset
+    const skipAddr = vm.compiler.CP;
+    vm.compiler.compileOpcode(Op.BranchCall); // SkipBlock
+    const offsetAddr = vm.compiler.CP;
+    vm.compiler.compile16(0); // Placeholder
+    
+    // Compile block in-place
+    parseCurlyBlock(state);
+    vm.compiler.compileOpcode(Op.Exit); // Block must end with exit
+    const blockEnd = vm.compiler.CP;
+    
+    // Back-patch the skip offset
+    const skipOffset = blockEnd - (skipAddr + 3); // +3 for opcode + 16-bit offset
+    vm.compiler.patch16(offsetAddr, skipOffset);
+    
+    // Compile call to doOp
     const doIndex = vm.symbolTable.find('do');
     if (doIndex === undefined) {
       throw new UndefinedWordError('do', vm.getStackData());
