@@ -57,6 +57,9 @@ export enum Op {
   /**  Pushes a literal address onto the stack. */
   LiteralAddress,
 
+  /**  Pushes a tagged code pointer (quotation) onto the stack. */
+  LiteralCode,
+
   /**  Performs addition of the top two values on the stack. */
   Add,
 
@@ -238,4 +241,7 @@ export enum Op {
 
   /**  Closes a list with ')' - creates list tag with size information */
   CloseList,
+
+  /** Do combinator: applies a quotation to a value */
+  Do,
 }
