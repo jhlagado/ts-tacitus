@@ -84,6 +84,7 @@ import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
 
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
+import { doOp } from './combinators/do';
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -96,6 +97,21 @@ import { ifCurlyBranchFalseOp } from './builtins-conditional';
  * @param {Op} opcode - The opcode representing the operation to execute.
  * @throws {Error} If the opcode is invalid or no implementation is found for a user-defined opcode.
  */
+
+/**
+ * Implements the LiteralCode operation.
+ *
+ * Reads a 16-bit address from the instruction stream, tags it as Tag.CODE, and pushes it onto the stack.
+ * This is used for pushing quotations (code pointers) onto the stack.
+ *
+ * @param {VM} vm - The virtual machine instance.
+ */
+import { toTaggedValue, Tag } from '../core/tagged';
+export function literalCodeOp(vm: VM): void {
+  const address = vm.read16();
+  const tagged = toTaggedValue(address, Tag.CODE);
+  vm.push(tagged);
+}
 
 export function executeOp(vm: VM, opcode: Op) {
   switch (opcode) {
@@ -243,8 +259,14 @@ export function executeOp(vm: VM, opcode: Op) {
     case Op.IfFalseBranch:
       ifCurlyBranchFalseOp(vm);
       break;
+    case Op.Do:
+      doOp(vm);
+      break;
     case Op.LiteralAddress:
       literalAddressOp(vm);
+      break;
+    case Op.LiteralCode:
+      literalCodeOp(vm);
       break;
     case Op.OpenList:
       openListOp(vm);

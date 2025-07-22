@@ -89,6 +89,7 @@ import {
 } from './builtins-conditional';
 
 import { printOp } from './builtins-print';
+import { doOp } from './combinators/do';
 import { rawPrintOp } from './builtins-raw-print';
 
 /**
@@ -184,4 +185,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   // Conditional operations - control flow based on conditions
   symbolTable.define('if', Op.SimpleIf, simpleIfOp);                // Simple if-then-else
   symbolTable.define('ifcurlybf', Op.IfFalseBranch, ifCurlyBranchFalseOp); // Branch if false
+
+  // Combinators
+  symbolTable.define('do', Op.Do, doOp);                            // Do combinator: applies a block to a value
 }

@@ -270,6 +270,24 @@ function processWordToken(value: string, state: ParserState): void {
       );
     }
   } 
+  // Handle block combinators like 'do'
+  else if (value === 'do') {
+    const blockToken = state.tokenizer.nextToken();
+    if (blockToken.type !== TokenType.BLOCK_START) {
+      throw new SyntaxError('Expected { after do combinator', vm.getStackData());
+    }
+    const blockAddr = parseCurlyBlock(state);
+    // Push the block as a quotation (literal address)
+    vm.compiler.compileOpcode(Op.LiteralCode);
+    vm.compiler.compile16(blockAddr);
+    // Compile a call to the 'do' combinator (using the symbol table)
+    const doIndex = vm.symbolTable.find('do');
+    if (doIndex === undefined) {
+      throw new UndefinedWordError('do', vm.getStackData());
+    }
+    vm.compiler.compileOpcode(doIndex);
+    return;
+  }
   // Handle special tokens that might appear as words
   else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
