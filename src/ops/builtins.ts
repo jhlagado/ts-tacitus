@@ -85,6 +85,7 @@ import { InvalidOpcodeError } from '../core/errors';
 
 import { ifCurlyBranchFalseOp } from './builtins-conditional';
 import { doOp } from './combinators/do';
+import { repeatOp } from './combinators/repeat';
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -261,6 +262,9 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Do:
       doOp(vm);
+      break;
+    case Op.Repeat:
+      repeatOp(vm);
       break;
     case Op.LiteralAddress:
       literalAddressOp(vm);

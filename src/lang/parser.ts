@@ -300,6 +300,36 @@ function processWordToken(value: string, state: ParserState): void {
     vm.compiler.compileOpcode(doIndex);
     return;
   }
+  // Handle repeat combinator
+  else if (value === 'repeat') {
+    const blockToken = state.tokenizer.nextToken();
+    if (blockToken.type !== TokenType.BLOCK_START) {
+      throw new SyntaxError('Expected { after repeat combinator', vm.getStackData());
+    }
+    
+    // Compile SkipBlock with placeholder offset
+    const skipAddr = vm.compiler.CP;
+    vm.compiler.compileOpcode(Op.BranchCall); // SkipBlock
+    const offsetAddr = vm.compiler.CP;
+    vm.compiler.compile16(0); // Placeholder
+    
+    // Compile block in-place
+    parseCurlyBlock(state);
+    vm.compiler.compileOpcode(Op.Exit); // Block must end with exit
+    const blockEnd = vm.compiler.CP;
+    
+    // Back-patch the skip offset
+    const skipOffset = blockEnd - (skipAddr + 3); // +3 for opcode + 16-bit offset
+    vm.compiler.patch16(offsetAddr, skipOffset);
+    
+    // Compile call to repeatOp
+    const repeatIndex = vm.symbolTable.find('repeat');
+    if (repeatIndex === undefined) {
+      throw new UndefinedWordError('repeat', vm.getStackData());
+    }
+    vm.compiler.compileOpcode(repeatIndex);
+    return;
+  }
   // Handle special tokens that might appear as words
   else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
