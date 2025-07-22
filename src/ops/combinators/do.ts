@@ -16,17 +16,10 @@ export const doOp: Verb = (vm: VM) => {
   const block = vm.pop();
   const value = vm.pop();
   vm.push(value);
-  // Execute the block as a quotation
-  if (isCode(block)) {
-    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    vm.rpush(vm.BP);
-    vm.BP = vm.RP;
-    const { value: pointer } = fromTaggedValue(block);
-    vm.IP = pointer;
-    // Immediately exit the block after execution to clean up the return stack
-    // This matches the block return model of evalOp and function calls
-    exitOp(vm);
-  } else {
-    throw new Error('do combinator expects a code block');
+  // Execute the block using evalOp
+  vm.push(block);
+  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
+  if (evalImpl) {
+    evalImpl(vm);
   }
 };
