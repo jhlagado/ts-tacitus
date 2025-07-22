@@ -90,6 +90,7 @@ import {
 
 import { printOp } from './builtins-print';
 import { doOp } from './combinators/do';
+import { repeatOp } from './combinators/repeat';
 import { rawPrintOp } from './builtins-raw-print';
 
 /**
@@ -188,4 +189,5 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   // Combinators
   symbolTable.define('do', Op.Do, doOp);                            // Do combinator: applies a block to a value
+  symbolTable.define('repeat', Op.Repeat, repeatOp);                    // Repeat combinator: executes a block n times
 }

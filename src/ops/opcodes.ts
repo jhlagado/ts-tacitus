@@ -244,4 +244,7 @@ export enum Op {
 
   /** Do combinator: applies a quotation to a value */
   Do,
+
+  /** Repeat combinator: executes a quotation a specified number of times */
+  Repeat,
 }
