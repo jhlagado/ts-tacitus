@@ -16,14 +16,14 @@ describe('Standalone Code Blocks', () => {
 
   it('should execute a standalone block and leave code reference on stack', () => {
     const code = '{ 1 2 + }';
-    
+
     // Execute the code
     executeProgram(code);
-    
+
     // Should have one item on stack - the code reference
     const stack = vm.getStackData();
     expect(stack.length).toBe(1);
-    
+
     // Should be tagged as CODE
     const { tag, value } = fromTaggedValue(stack[0]);
     expect(tag).toBe(Tag.CODE);
@@ -71,7 +71,7 @@ describe('Standalone Code Blocks', () => {
   });
 
   it('should actually execute code when called with eval', () => {
-    const code = '{ 1 2 + } eval';
+    const code = '{ 1 2 add } eval';
     executeProgram(code);
 
     const stack = vm.getStackData();
@@ -80,13 +80,41 @@ describe('Standalone Code Blocks', () => {
   });
 
   it('should execute code blocks multiple times', () => {
-    const code = '{ 5 6 * } dup eval eval';
+    const code = '{ 5 6 mul } dup eval swap eval swap';
     executeProgram(code);
 
     const stack = vm.getStackData();
     expect(stack.length).toBe(2);
     expect(stack[0]).toBe(30); // 5 * 6 = 30
     expect(stack[1]).toBe(30); // Same block executed twice
+  });
+
+  // CAREFUL ANALYSIS TESTS FOR NaN ISSUE
+  it('should handle simple block execution twice - separate blocks', () => {
+    const code = '{ 3 } eval { 2 } eval add';
+    executeProgram(code);
+
+    const stack = vm.getStackData();
+    expect(stack.length).toBe(1);
+    expect(stack[0]).toBe(5); // 3 + 2 = 5
+  });
+
+  it('should handle simple block execution twice - correct stack order', () => {
+    const code = '{ 3 } { 2 } eval swap eval swap add';
+    executeProgram(code);
+
+    const stack = vm.getStackData();
+    expect(stack.length).toBe(1);
+    expect(stack[0]).toBe(5); // 3 + 2 = 5
+  });
+
+  it('should handle simple block execution twice - dup eval eval', () => {
+    const code = '{ 3 } dup eval swap eval add';
+    executeProgram(code);
+
+    const stack = vm.getStackData();
+    expect(stack.length).toBe(1);
+    expect(stack[0]).toBe(6); // 3 + 3 = 6
   });
 
   it('should handle empty blocks when executed', () => {
@@ -99,7 +127,7 @@ describe('Standalone Code Blocks', () => {
   });
 
   it('should handle complex nested execution', () => {
-    const code = '{ 10 { 3 4 + } eval * } eval';
+    const code = '{ 10 { 3 4 add } eval mul } eval';
     executeProgram(code);
 
     const stack = vm.getStackData();
