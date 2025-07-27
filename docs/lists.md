@@ -1,281 +1,244 @@
 # TACIT Data Type Specification: LISTS
 
-TACIT is a stack-based, RPN language that supports structured, introspectable values directly on the stack. Unlike FORTH, TACIT treats lists and higher-order structures as first-class values. These values are flat, typed, and stored in contiguous blocks of stack memory. The most fundamental compound type in TACIT is the `LIST`.
-
-This document serves as a precise reference for how lists are represented, interpreted, and manipulated in TACIT, especially with respect to stack semantics and runtime behavior.
+TACIT is a stack-based, RPN programming language that supports structured data directly on the stack. The primary compound data structure in TACIT is the `LIST`, a flat, length-prefixed, word-aligned sequence of values. Lists in TACIT are stack- and memory-compatible, introspectable, and support compositional programming without relying on heap-based structures.
 
 ---
 
 ## 1. Simple Values
 
-Before introducing compound structures, TACIT defines several simple (scalar) value types. These occupy a single word in stack memory:
+TACIT operates on uniform stack cells, each storing a **simple value**. These are NaN-boxed 32-bit values tagged with type metadata.
 
-* **Numbers**: integer and floating-point, encoded as tagged NaN-boxed `float32`.
-* **Symbols**: interned identifiers, used in program logic and dispatch.
-* **Booleans**: `true`, `false`, encoded as tagged constants.
-* **Null / Unit Values**: `nil`, for missing or end-of-sequence indicators.
-* **Code / Block Pointers**: references to executable code segments.
-* **List Pointers**: tagged values pointing to list headers in memory.
+Supported simple values include:
 
-All simple values occupy exactly one cell on the stack or in memory. TACIT’s word size is fixed (typically 32 bits), and all values conform to this layout. Although actual alignment may vary by platform, the implementation is designed to assume word-aligned slots.
+* **Numbers**: Represented as `float32` (NaN-boxed for tagging).
+* **Booleans**: Encoded as 0 and 1 (no special type).
+* **Symbols**: Interned strings used in logic, dispatch, and naming.
+* **`nil`**: A special constant for null, end-of-sequence, or sentinel cases.
+* **Pointers**: References to code blocks, static lists, or buffers.
+* **Tagged constants**: Including `CODE`, `LIST`, `LINK`, and `STRING`.
+
+Simple values are opaque, fixed-size, and form the building blocks of all compound types like lists and capsules.
 
 ---
 
-## 2. Lists as Flat, Structured Values
+## 2. List Construction and Semantics
 
-A `LIST` is a length-prefixed sequence of values. It can hold any combination of simple or compound values (including other lists). The serialized layout of a list is always flat and left-to-right:
+A **list** in TACIT is a serialized structure beginning with a length-prefixed `LIST` header and followed by `N` simple values.
+
+Constructed left-to-right:
 
 ```
-LIST: N        ; Tag + element count
-v₁             ; Element 1
-v₂             ; Element 2
+LIST: N      ; Header, encodes length and tag
+v₁           ; First value
+v₂           ; Second value
 ...
-vₙ             ; Element N
+vₙ           ; N-th value
 ```
 
-* The **`LIST` tag** acts as a header, storing both the type and the element count.
-* Elements are laid out in declaration order: left to right.
-* No nesting or pointer chasing is required to traverse a list.
+This layout:
 
-This structure enables introspection, iteration, and random access based on offsets from the header.
+* Guarantees that list length is known without traversal.
+* Supports contiguous, compact serialization.
+* Enables random access and bounded traversal.
+* Allows introspection and reuse across memory and stack.
+
+Lists may contain scalars, symbols, code references, or other nested lists.
 
 ---
 
-## 3. Lists in Memory vs Lists on Stack
+## 3. Stack Representation and the Need for LINK
 
-Lists may appear in:
-
-* **Static memory** (e.g., constants, embedded data).
-* **Heap / code space** (e.g., compiled literals).
-* **The data stack** (runtime evaluation and composition).
-
-In memory, lists are stored in contiguous low-to-high address order:
+In memory, lists are stored in forward order:
 
 ```
-[ LIST: 3 ][ v₁ ][ v₂ ][ v₃ ]
+[ LIST ][ v₁ ][ v₂ ]...[ vₙ ]
 ```
 
-However, **on the stack**, values grow from deep to shallow. This results in the list header (`LIST`) being buried under its elements:
+But on a stack that grows **toward higher addresses**, the layout appears in reverse:
 
 ```
-... deeper stack ...
-LIST: 3
+...             ← deeper in stack
+LIST: N         ← list header
 v₁
-v₂
-v₃
-TOS
-```
-
-Because the top of stack now points to `v₃`, **we lose direct access to the list header**. This presents challenges when we want to interpret or manipulate the list as a structured value.
-
----
-
-## 4. The LINK Tag: Stack-Aware Back-Pointer
-
-To solve the visibility problem of list headers on the stack, TACIT introduces the `LINK` tag:
-
-```
-LIST: N
-v₁
-v₂
 ...
 vₙ
-LINK: N+1      ; Offset from LINK back to LIST
+LINK: N+1       ← TOS (top of stack)
 ```
 
-This `LINK` tag is not part of the list itself. It is **stack metadata** used by the interpreter to locate the beginning of the list structure starting from the top of the stack (TOS).
+Because the list header is now **buried**, the TOS alone doesn’t identify the list bounds. To solve this, TACIT introduces a **`LINK` tag** — a relative back-pointer used **only in stack representations** of variable-length data.
 
-### Key Characteristics:
+---
 
-* **LINK is a runtime-only construct.** It is appended when the list is pushed to the stack.
-* **LINK is not stored inside the list.** Nested or static lists omit it.
-* **The value of LINK is relative to its own position.** It tells how far back to jump to reach the corresponding `LIST` header.
+## 4. The Role and Semantics of LINK
 
-### Example
-
-A list literal `( 10 20 30 )` produces:
+The `LINK` tag is **not part of the list** — it is **stack metadata** required to recover the list's header from TOS.
 
 ```
-LIST: 3        ; buried header
+... (stack grows up)
+LIST: 3
 10
 20
 30
-LINK: 4        ; TOS, points 4 cells back to LIST
+LINK: 4       ; Back-pointer from TOS to LIST
 ```
 
-From the TOS, the VM reads `LINK: 4`, subtracts 4, and lands on the `LIST` header to recover structure.
+* `LINK: 4` means "go 4 cells back from here to find the list header."
+* The value `4` corresponds to `3` values plus the `LIST` header.
+* The LINK allows VM operations to locate the list start and interpret the list from TOS.
 
-This enables generic traversal and access for any list, regardless of its length.
+**Key Rules:**
+
+* LINK is only emitted when a list is pushed to the stack.
+* It is **not required** in memory representations.
+* It is valid to use LINK with any variable-length object on the stack (e.g., capsules, buffers).
 
 ---
 
 ## 5. Nested Lists
 
-Lists may contain other lists as values. These **nested lists** are stored inline, using the same serialization format as any other list. However:
+Lists can contain other lists. These **nested lists** follow the same `LIST` format but **do not include LINKs** because they are not placed on the stack directly — they are embedded inline as values.
 
-> **Nested lists never include a LINK tag.**
+### Example: `( 1 ( 2 3 ) 4 )`
 
-### Rationale:
-
-* LINK is required only when lists are pushed onto the **stack**, not when they’re embedded inside other structures.
-* Nested lists are values **inside** another list and are not visible at TOS.
-* Their size and location are already known via the enclosing list’s layout.
-
-### Example: Nested List `( 1 ( 2 3 ) 4 )`
-
-The serialized structure:
+This produces:
 
 ```
-LIST: 2        ; inner list
+LIST: 2
+2
+3           ; inner list
+
+LIST: 5
+1
+LIST: 2     ; inline nested list
 2
 3
-
-LIST: 3        ; outer list
-1
-(inner list)
 4
-LINK: 4
+LINK: 6
 ```
 
-* The inner list has no LINK tag.
-* The outer list has a LINK on top because it was pushed onto the stack.
+* The inner list has no LINK — it's embedded as a value.
+* The outer list has 5 elements: 1, (2 3), 4 — including the header of the nested list.
 
-This ensures compact representation and stack-friendly traversal without redundancy.
+### Summary:
+
+* Nested lists are inline values, not stack-pushed items.
+* LINK applies **only to top-level stack objects**.
+* Parent list length must account for the full length of the nested list.
 
 ---
 
-## 6. LINK Tag as General-Purpose Stack Aid
+## 6. Zero-Length Lists
 
-Although most commonly used for lists, the `LINK` tag can be applied to **any variable-length structure** that needs to be stored on the stack and recovered from TOS.
+TACIT fully supports empty lists:
 
-Examples:
+```
+LIST: 0        ; zero-length header
+LINK: 1        ; back pointer (to LIST)
+```
 
-* Lists
-* Capsules (object-like structures)
-* Byte buffers (with size headers)
-* Shaped arrays
+* `LIST: 0` is a valid constant.
+* `LINK: 1` correctly indicates 1 cell back to the header.
+* Used to represent empty sequences, default arguments, etc.
 
-The design generalizes to any structure where a **header precedes variable-length data** and the entire structure is pushed to the stack.
-
-LINK enables bottom-up discovery of top-level structured values, facilitating uniform introspection and stack manipulation.
+`LINK: 0` is technically valid but rarely used (e.g., LINK on `LIST: 0` followed by no values).
 
 ---
 
-## 7. Zero-Length Lists
+## 7. Mutability Semantics
 
-TACIT supports valid lists of zero elements:
+TACIT treats lists as:
 
-```
-LIST: 0
-LINK: 1
-```
+* **Structurally immutable** — their length and layout do not change.
+* **Value-mutable** — individual simple values within the list may be updated in place.
 
-These are frequently useful in higher-order constructs such as reductions, conditionals, or lazy sequences.
+This model supports:
 
-The LINK offset of 1 ensures that traversal still works, even when no values are present.
+* Efficient caching and reuse.
+* In-place mutation for counters, cursors, etc.
+* Simple runtime guarantees: no memory reallocation required for modification.
+
+**Mutating structure requires reallocation** — typically done by copying to a new list and appending.
 
 ---
 
 ## 8. Summary Rules and Properties
 
-| Rule                                | Explanation                                                  |
-| ----------------------------------- | ------------------------------------------------------------ |
-| Lists are constructed left to right | Source order matches memory layout                           |
-| LIST is a header                    | Length prefix; identifies structure start                    |
-| LINK is a trailer                   | Back-pointer to header when list is on the stack             |
-| LINK is not stored in nested lists  | Nested structures are opaque and embedded                    |
-| LINK is relative to its position    | Offset from TOS to LIST                                      |
-| Lists are flat by default           | No implicit shape or dimensions                              |
-| Nesting is allowed                  | Lists may contain other lists, capsules, or values           |
-| Structure is immutable by default   | Lists are copied to modify layout, but values may be mutated |
+| Property                 | Description                                               |
+| ------------------------ | --------------------------------------------------------- |
+| Read direction           | Left to right                                             |
+| Header                   | `LIST: N` tag with element count                          |
+| TOS recovery             | `LINK: N+1` allows backtracking from TOS                  |
+| LINK relevance           | Stack metadata only; not stored in nested lists or memory |
+| Nesting                  | Allowed; nested lists are inline values                   |
+| Rank                     | Flat by default; nesting does not imply dimensionality    |
+| Evaluation               | Lists are inert unless explicitly interpreted             |
+| Copy-on-structure-change | Required for appends or length-altering transforms        |
 
 ---
 
-## 9. Mutability and Structural Semantics
+## 9. Formal Grammar
 
-TACIT lists are **structurally immutable** by convention:
-
-* Once constructed, the layout of a list is fixed.
-* To change structure (e.g. append, remove elements), a new list must be constructed.
-
-However, **in-place mutation of values within the list is allowed and idiomatic**:
-
-* Lists are often used to carry counters, flags, or temporary state.
-* Simple values inside a list may be updated directly via field access or mutation instructions.
-* This allows efficient state management without structural copying.
-
-Advanced routines may manipulate list layout in place, but these are considered low-level and require understanding of the list format.
-
----
-
-## 10. Grammar for List Literals
-
-TACIT parsers interpret list literals using a recursive, parenthesis-based syntax:
+The list literal syntax is:
 
 ```
 list-literal ::= '(' value* ')'
-value        ::= scalar | symbol | list-literal
+value        ::= simple-value | list-literal
 ```
 
-* Lists can contain other lists or scalars.
-* LINK tags are not written in source and are inserted by the compiler at runtime.
+Where:
 
-Example:
-
-```
-( 1 ( 2 3 ) 4 )
-```
-
-Compiles into two serialized list blocks, one nested inside the other.
+* `simple-value` includes numbers, symbols, `nil`, code pointers, etc.
+* Nested lists are parsed recursively and emitted as embedded values.
+* LINK tags are **not part of literal syntax** — they are emitted by the compiler during stack construction.
 
 ---
 
-## 11. Additional Considerations
+## 10. Additional Considerations
 
-* **Lists are first-class**: They can be passed, returned, duplicated, and composed.
-* **Symbolic access**: Lists may be interpreted as capsules or structures via conventions.
-* **Byte-packed structures**: Strings and buffers may reuse the list format (separate spec).
-* **Flat vs shaped**: Lists are flat; interpretation as arrays is opt-in via shape capsules.
-* **No implicit evaluation**: Lists are inert unless explicitly executed or traversed.
-
----
-
-## 12. Tag Reference Table
-
-| Tag        | Description                                |
-| ---------- | ------------------------------------------ |
-| LIST       | Marks the start of a list; includes length |
-| LINK       | Stack-level pointer back to LIST tag       |
-| SYMBOL     | Tagged symbol value (used in lists, maps)  |
-| NIL        | Special constant value                     |
-| TRUE/FALSE | Boolean tagged constants                   |
-| REF        | Code block or pointer                      |
+* **First-Class Objects**: Lists can be stored, passed, returned, and nested.
+* **Opaque by Default**: Lists are values; they require explicit traversal.
+* **Used by Capsules**: Capsules are special lists with dispatch in slot 0.
+* **Used by Arrays**: Arrays reuse the list format, but shaped via external capsules.
+* **Used by Buffers**: Byte-packed formats can be built from list serialization (see separate buffer spec).
 
 ---
 
-## 13. Visual Recap: Stack View
+## 11. Tag Reference Table
+
+| Tag      | Description                            |
+| -------- | -------------------------------------- |
+| `LIST`   | Header marking a list, includes length |
+| `LINK`   | Stack metadata pointing back to header |
+| `CODE`   | Reference to a code block              |
+| `STRING` | Interned symbol or identifier          |
+| `NIL`    | Null or unit constant                  |
+
+---
+
+## 12. Visual Recap: Stack Layout
+
+For `( 10 20 30 )`, the stack looks like:
 
 ```
 TOS →
-LINK: 4        ; back pointer
+LINK: 4
 30
 20
 10
-LIST: 3        ; header
-... deeper
+LIST: 3
+... (deeper)
 ```
 
-From TOS, subtract LINK to reach `LIST`. Now the interpreter can process the list.
+From TOS, `LINK` allows us to recover the list’s head at depth `4`.
 
 ---
 
-## 14. Concluding Notes
+## 13. Closing Notes
 
-The `LIST` format underpins nearly all structured data in TACIT, including user-defined objects, buffers, arrays, and closures. Its design is deliberately minimal:
+* **LINK is essential for traversing variable-length objects on the stack.**
+* **It is not part of the list** — it is **a convention for stack layout**.
+* **In memory**, lists require no LINK; they begin at `LIST`.
+* **Capsules, sequences, buffers** — all follow or extend this model.
+* **Parsing, copying, and dispatch** rely on the uniformity and simplicity of this layout.
 
-* Linear layout
-* Explicit header
-* Optional LINK
-* Stack compatibility
-
-This makes it easy to construct, inspect, copy, and dispatch structured data — even in minimal implementations or direct machine code.
+TACIT’s list format enables efficient structured programming, introspection, and composability on a pure stack-based machine without reliance on dynamic memory.
