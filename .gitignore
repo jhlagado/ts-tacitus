@@ -25,6 +25,7 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+.github
 
 # OS-specific
 Thumbs.db
