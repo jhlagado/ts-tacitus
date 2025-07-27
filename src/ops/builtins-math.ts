@@ -1,19 +1,19 @@
 /**
  * @file src/ops/builtins-math.ts
- * 
+ *
  * This file implements mathematical operations for the Tacit VM.
- * 
+ *
  * These operations perform arithmetic calculations and comparisons on values from the stack.
  * The operations include:
  * - Basic arithmetic: addition, subtraction, multiplication, division
  * - Advanced arithmetic: power, modulo, min, max
  * - Comparison operations: equal, less than, greater than, etc.
- * 
+ *
  * All operations follow a consistent pattern:
  * 1. Pop two values from the stack (b then a)
  * 2. Perform the mathematical operation (a op b)
  * 3. Push the result back onto the stack
- * 
+ *
  * Comparison operations push 1 for true and 0 for false.
  */
 
@@ -22,16 +22,16 @@ import { Verb } from '../core/types';
 
 /**
  * Implements the addition operation.
- * 
+ *
  * Pops two values from the stack, adds them together, and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 3 5]
+ *
  * addOp(vm)
- * // Stack after: [... 8]
+ *
  */
 export const addOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'add');
@@ -42,17 +42,17 @@ export const addOp: Verb = (vm: VM) => {
 
 /**
  * Implements the subtraction operation.
- * 
+ *
  * Pops two values from the stack, subtracts the top value from the second value,
  * and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 10 3]
+ *
  * subtractOp(vm)
- * // Stack after: [... 7] (10-3)
+ *
  */
 export const subtractOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '-');
@@ -63,16 +63,16 @@ export const subtractOp: Verb = (vm: VM) => {
 
 /**
  * Implements the multiplication operation.
- * 
+ *
  * Pops two values from the stack, multiplies them together, and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 4 5]
+ *
  * multiplyOp(vm)
- * // Stack after: [... 20] (4*5)
+ *
  */
 export const multiplyOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '*');
@@ -83,18 +83,18 @@ export const multiplyOp: Verb = (vm: VM) => {
 
 /**
  * Implements the division operation.
- * 
+ *
  * Pops two values from the stack, divides the second value by the top value,
  * and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 20 5]
+ *
  * divideOp(vm)
- * // Stack after: [... 4] (20/5)
- * 
+ *
+ *
  * @remarks
  * No explicit check for division by zero is performed. JavaScript will return
  * Infinity or NaN in such cases, which are valid floating-point values.
@@ -108,17 +108,17 @@ export const divideOp: Verb = (vm: VM) => {
 
 /**
  * Implements the power (exponentiation) operation.
- * 
+ *
  * Pops two values from the stack, raises the second value to the power of the top value,
  * and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 2 3]
+ *
  * powerOp(vm)
- * // Stack after: [... 8] (2^3)
+ *
  */
 export const powerOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '^');
@@ -129,17 +129,17 @@ export const powerOp: Verb = (vm: VM) => {
 
 /**
  * Implements the modulo operation.
- * 
+ *
  * Pops two values from the stack, computes the remainder of dividing the second value
  * by the top value, and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 10 3]
+ *
  * modOp(vm)
- * // Stack after: [... 1] (10%3)
+ *
  */
 export const modOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'mod');
@@ -150,16 +150,16 @@ export const modOp: Verb = (vm: VM) => {
 
 /**
  * Implements the minimum operation.
- * 
+ *
  * Pops two values from the stack, finds the smaller one, and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * minOp(vm)
- * // Stack after: [... 3]
+ *
  */
 export const minOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '&');
@@ -170,16 +170,16 @@ export const minOp: Verb = (vm: VM) => {
 
 /**
  * Implements the maximum operation.
- * 
+ *
  * Pops two values from the stack, finds the larger one, and pushes the result back.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * maxOp(vm)
- * // Stack after: [... 5]
+ *
  */
 export const maxOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '|');
@@ -190,22 +190,22 @@ export const maxOp: Verb = (vm: VM) => {
 
 /**
  * Implements the equality comparison operation.
- * 
+ *
  * Pops two values from the stack, checks if they are equal, and pushes 1 (true)
  * or 0 (false) back onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 5 5]
+ *
  * equalOp(vm)
- * // Stack after: [... 1] (true)
- * 
+ *
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * equalOp(vm)
- * // Stack after: [... 0] (false)
+ *
  */
 export const equalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'eq');
@@ -216,22 +216,22 @@ export const equalOp: Verb = (vm: VM) => {
 
 /**
  * Implements the less-than comparison operation.
- * 
+ *
  * Pops two values from the stack, checks if the second value is less than the top value,
  * and pushes 1 (true) or 0 (false) back onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 3 5]
+ *
  * lessThanOp(vm)
- * // Stack after: [... 1] (true, 3 < 5)
- * 
+ *
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * lessThanOp(vm)
- * // Stack after: [... 0] (false, 5 < 3)
+ *
  */
 export const lessThanOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'lt');
@@ -242,22 +242,22 @@ export const lessThanOp: Verb = (vm: VM) => {
 
 /**
  * Implements the less-than-or-equal comparison operation.
- * 
+ *
  * Pops two values from the stack, checks if the second value is less than or equal to the top value,
  * and pushes 1 (true) or 0 (false) back onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 3 5]
+ *
  * lessOrEqualOp(vm)
- * // Stack after: [... 1] (true, 3 <= 5)
- * 
+ *
+ *
  * @example
- * // Stack before: [... 5 5]
+ *
  * lessOrEqualOp(vm)
- * // Stack after: [... 1] (true, 5 <= 5)
+ *
  */
 export const lessOrEqualOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'le');
@@ -268,22 +268,22 @@ export const lessOrEqualOp: Verb = (vm: VM) => {
 
 /**
  * Implements the greater-than comparison operation.
- * 
+ *
  * Pops two values from the stack, checks if the second value is greater than the top value,
  * and pushes 1 (true) or 0 (false) back onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * greaterThanOp(vm)
- * // Stack after: [... 1] (true, 5 > 3)
- * 
+ *
+ *
  * @example
- * // Stack before: [... 3 5]
+ *
  * greaterThanOp(vm)
- * // Stack after: [... 0] (false, 3 > 5)
+ *
  */
 export const greaterThanOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'gt');
@@ -294,22 +294,22 @@ export const greaterThanOp: Verb = (vm: VM) => {
 
 /**
  * Implements the greater-than-or-equal comparison operation.
- * 
+ *
  * Pops two values from the stack, checks if the second value is greater than or equal to the top value,
  * and pushes 1 (true) or 0 (false) back onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  * @throws {Error} If the stack has fewer than 2 elements.
- * 
+ *
  * @example
- * // Stack before: [... 5 3]
+ *
  * greaterOrEqualOp(vm)
- * // Stack after: [... 1] (true, 5 >= 3)
- * 
+ *
+ *
  * @example
- * // Stack before: [... 5 5]
+ *
  * greaterOrEqualOp(vm)
- * // Stack after: [... 1] (true, 5 >= 5)
+ *
  */
 export const greaterOrEqualOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'ge');

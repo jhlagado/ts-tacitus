@@ -3,7 +3,7 @@
  * This file implements the core Virtual Machine (VM) for the Tacit language.
  * The VM is responsible for executing bytecode instructions, managing the stacks,
  * and handling the instruction pointer and base pointer for function calls.
- * 
+ *
  * The VM uses a segmented memory model with separate segments for:
  * - Data stack: Used for operands and results of operations
  * - Return stack: Used for function call return addresses and local variables
@@ -18,7 +18,12 @@ import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './cons
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
-import { StackUnderflowError, StackOverflowError, ReturnStackUnderflowError, ReturnStackOverflowError } from './errors';
+import {
+  StackUnderflowError,
+  StackOverflowError,
+  ReturnStackUnderflowError,
+  ReturnStackOverflowError,
+} from './errors';
 // Imports removed as we no longer use function table
 
 /** Number of bytes per memory element (32-bit float) */
@@ -26,7 +31,7 @@ const BYTES_PER_ELEMENT = 4;
 
 /**
  * The Virtual Machine (VM) class that executes Tacit bytecode.
- * 
+ *
  * The VM maintains several pointers and state variables:
  * - IP (Instruction Pointer): Points to the current instruction in the code segment
  * - SP (Stack Pointer): Points to the top of the data stack
@@ -36,34 +41,34 @@ const BYTES_PER_ELEMENT = 4;
 export class VM {
   /** The memory instance used by this VM */
   memory: Memory;
-  
+
   /** Stack Pointer - points to the next free position on the data stack */
   SP: number;
-  
+
   /** Return Stack Pointer - points to the next free position on the return stack */
   RP: number;
-  
+
   /** Base Pointer - points to the base of the current function's stack frame */
   BP: number;
-  
+
   /** Instruction Pointer - points to the current instruction in the code segment */
   IP: number;
-  
+
   /** Flag indicating whether the VM is currently running */
   running: boolean;
-  
+
   /** The compiler instance used by this VM */
   compiler!: Compiler;
-  
+
   /** The string digest used for string interning */
   digest: Digest;
-  
+
   /** Flag indicating whether debug mode is enabled */
   debug: boolean;
-  
+
   /** The symbol table mapping names to opcodes and implementations */
   symbolTable: SymbolTable;
-  
+
   /** Current nesting depth when processing lists */
   listDepth: number;
   /**
@@ -84,7 +89,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    // functionTable initialization removed - using symbolTable directly
+
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);
   }
@@ -92,12 +97,11 @@ export class VM {
   /**
    * Initializes the compiler for the VM.
    * This method must be called after the VM has been constructed to complete its initialization.
-   * 
+   *
    * @param compiler The compiler instance to be used by this VM for compiling Tacit code.
    */
   initializeCompiler(compiler: Compiler): void {
     this.compiler = compiler;
-    // initFunctionTable call removed as we're using the symbol table directly
   }
 
   /**
@@ -116,13 +120,13 @@ export class VM {
 
   /**
    * Pushes a 32-bit float onto the data stack.
-   * 
+   *
    * @param value - The 32-bit float value to push onto the stack
    * @throws {StackOverflowError} If pushing would cause a stack overflow.
    */
   push(value: number): void {
     if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
-      throw new StackOverflowError("push", this.getStackData());
+      throw new StackOverflowError('push', this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_STACK, this.SP, value);
@@ -131,13 +135,13 @@ export class VM {
 
   /**
    * Pops a 32-bit float from the data stack.
-   * 
+   *
    * @returns The 32-bit float value popped from the stack.
    * @throws {StackUnderflowError} If popping would cause a stack underflow.
    */
   pop(): number {
     if (this.SP <= 0) {
-      throw new StackUnderflowError("pop", 1, this.getStackData());
+      throw new StackUnderflowError('pop', 1, this.getStackData());
     }
 
     this.SP -= BYTES_PER_ELEMENT;
@@ -146,13 +150,13 @@ export class VM {
 
   /**
    * Peeks at the top value on the data stack without removing it.
-   * 
+   *
    * @returns The 32-bit float value at the top of the stack.
    * @throws {StackUnderflowError} If the stack is empty.
    */
   peek(): number {
     if (this.SP <= 0) {
-      throw new StackUnderflowError("peek", 1, this.getStackData());
+      throw new StackUnderflowError('peek', 1, this.getStackData());
     }
 
     return this.memory.readFloat32(SEG_STACK, this.SP - BYTES_PER_ELEMENT);
@@ -161,14 +165,14 @@ export class VM {
   /**
    * Pops multiple 32-bit values from the stack and returns them in an array.
    * The values are returned in the order they were on the stack (bottom first).
-   * 
+   *
    * @param size - The number of values to pop from the stack.
    * @returns An array of 32-bit float values popped from the stack.
    * @throws {StackUnderflowError} If popping would cause a stack underflow.
    */
   popArray(size: number): number[] {
     if (this.SP < size * BYTES_PER_ELEMENT) {
-      throw new StackUnderflowError("popArray", size, this.getStackData());
+      throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
     const result: number[] = [];
@@ -182,13 +186,13 @@ export class VM {
   /**
    * Pushes a 32-bit float onto the return stack.
    * The return stack is used for function call return addresses and local variables.
-   * 
+   *
    * @param value - The 32-bit float value to push onto the return stack.
    * @throws {ReturnStackOverflowError} If pushing would cause a return stack overflow.
    */
   rpush(value: number): void {
     if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
-      throw new ReturnStackOverflowError("rpush", this.getStackData());
+      throw new ReturnStackOverflowError('rpush', this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
@@ -197,13 +201,13 @@ export class VM {
 
   /**
    * Pops a 32-bit float from the return stack.
-   * 
+   *
    * @returns The 32-bit float value popped from the return stack.
    * @throws {ReturnStackUnderflowError} If popping would cause a return stack underflow.
    */
   rpop(): number {
     if (this.RP <= 0) {
-      throw new ReturnStackUnderflowError("rpop", this.getStackData());
+      throw new ReturnStackUnderflowError('rpop', this.getStackData());
     }
 
     this.RP -= BYTES_PER_ELEMENT;
@@ -221,7 +225,7 @@ export class VM {
   /**
    * Reads the next 8-bit value (byte) from the code segment at the current
    * instruction pointer (`IP`) and advances the `IP` by 1 byte.
-   * 
+   *
    * @returns The 8-bit value read from the code segment.
    */
   next8(): number {
@@ -237,7 +241,7 @@ export class VM {
    * - Built-in opcodes (0-127): Represented by a single byte with the most significant bit (MSB) clear.
    * - User-defined words (128-32767): Represented by two bytes. The first byte has its MSB set,
    *   and the remaining 7 bits combine with the second byte to form the 15-bit address.
-   * 
+   *
    * @returns The decoded opcode or the address of a user-defined word.
    */
   nextOpcode(): number {
@@ -258,7 +262,7 @@ export class VM {
    * Reads the next 16-bit signed integer from the code segment at the current
    * instruction pointer (`IP`) and advances the `IP` by 2 bytes.
    * The value is sign-extended to correctly represent negative numbers.
-   * 
+   *
    * @returns The 16-bit signed integer read from the code segment.
    */
   next16(): number {
@@ -271,7 +275,7 @@ export class VM {
   /**
    * Reads the next 32-bit floating-point value from the code segment at the current
    * instruction pointer (`IP`) and advances the `IP` by 4 bytes.
-   * 
+   *
    * @returns The 32-bit floating-point value read from the code segment.
    */
   nextFloat32(): number {
@@ -284,7 +288,7 @@ export class VM {
    * Reads the next address (which is a tagged `CODE` value) from the code segment
    * at the current instruction pointer (`IP`) and advances the `IP` by 4 bytes.
    * The tagged value is decoded to extract the raw code pointer.
-   * 
+   *
    * @returns The decoded code pointer value.
    */
   nextAddress(): number {
@@ -298,7 +302,7 @@ export class VM {
    * instruction pointer (`IP`) and advances the `IP` by 2 bytes.
    * This method reads the bytes directly and assembles them into a 16-bit value,
    * primarily used for internal bytecode interpretation.
-   * 
+   *
    * @returns The 16-bit unsigned integer read from the code segment.
    */
   read16(): number {
@@ -312,7 +316,7 @@ export class VM {
    * Retrieves the current contents of the data stack as an array of numbers.
    * This method is primarily used for debugging and error reporting to capture the
    * state of the data stack.
-   * 
+   *
    * @returns An array of numbers representing the current data stack contents.
    */
   getStackData(): number[] {
@@ -323,11 +327,11 @@ export class VM {
 
     return stackData;
   }
-  
+
   /**
    * Ensures that the data stack has at least the specified number of elements (32-bit values).
    * This is a helper method used by operations that require a minimum stack depth.
-   * 
+   *
    * @param size The minimum number of 32-bit elements required on the data stack.
    * @param operation The name of the operation requesting the stack size check, for error reporting.
    * @throws {Error} If the data stack does not have enough elements to satisfy the request.
@@ -335,7 +339,7 @@ export class VM {
   ensureStackSize(size: number, operation: string): void {
     if (this.SP < size * BYTES_PER_ELEMENT) {
       throw new Error(
-        `Stack underflow: '${operation}' requires ${size} operand${size !== 1 ? 's' : ''} (stack: ${JSON.stringify(this.getStackData())})`
+        `Stack underflow: '${operation}' requires ${size} operand${size !== 1 ? 's' : ''} (stack: ${JSON.stringify(this.getStackData())})`,
       );
     }
   }
@@ -343,7 +347,7 @@ export class VM {
   /**
    * Retrieves the current compiled bytecode from the code segment as an array of 8-bit values.
    * This method is primarily used for debugging and testing the compiler's output.
-   * 
+   *
    * @returns An array containing all bytes currently in the compiled code segment.
    */
   getCompileData(): number[] {

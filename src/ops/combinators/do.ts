@@ -16,7 +16,7 @@ export const doOp: Verb = (vm: VM) => {
   const block = vm.pop();
   const value = vm.pop();
   vm.push(value);
-  // Execute the block using evalOp
+
   vm.push(block);
   const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
   if (evalImpl) {
