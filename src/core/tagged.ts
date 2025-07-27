@@ -93,9 +93,8 @@ export function toTaggedValue(value: number, tag: Tag): number {
     throw new Error(`Invalid tag: ${tag}`);
   }
 
-  // Special case for Tag.NUMBER - store as regular float without NaN-boxing
   if (tag === Tag.NUMBER) {
-    return value; // Return the value directly as a float
+    return value;
   }
 
   let encodedValue: number;

@@ -16,17 +16,15 @@ export const repeatOp: Verb = (vm: VM) => {
   const block = vm.pop();
   const countValue = vm.pop();
   const value = vm.pop();
-  
+
   const { value: count } = fromTaggedValue(countValue);
-  
+
   if (typeof count !== 'number' || count < 0 || !Number.isInteger(count)) {
     throw new Error('repeat combinator expects a non-negative integer count');
   }
-  
-  // Push value back for the block to operate on
+
   vm.push(value);
-  
-  // Execute the block count times
+
   const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
   for (let i = 0; i < count; i++) {
     vm.push(block);

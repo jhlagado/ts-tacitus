@@ -9,10 +9,8 @@ import { fromTaggedValue, Tag } from '../../core/tagged';
  * Ensures complete reset of all state including the list operations
  */
 export function resetVM(): void {
-  // First reinitialize the VM completely
   initializeInterpreter();
 
-  // Reset all VM state variables
   vm.SP = 0;
   vm.RP = 0;
   vm.BP = 0;
@@ -20,12 +18,10 @@ export function resetVM(): void {
   vm.listDepth = 0;
   vm.running = true;
 
-  // Reset compiler state
   vm.compiler.reset();
   vm.compiler.BCP = 0;
   vm.compiler.CP = 0;
 
-  // Clear the stacks completely
   const emptyStackData = vm.getStackData();
   if (emptyStackData.length > 0) {
     for (let i = 0; i < emptyStackData.length; i++) {
@@ -98,15 +94,13 @@ export function captureTacitOutput(code: string): string[] {
   resetVM();
   const output: string[] = [];
   const originalConsoleLog = console.log;
-  
+
   try {
     console.log = (message: string) => {
       output.push(message);
     };
-    
-    // Special cases for tests
+
     if (code === 'print') {
-      // Create a list on the stack first
       executeTacitCode('( 10 20 )');
     } else if (code === '( 1 2 ) print') {
       return ['( 1 2 )'];
@@ -115,14 +109,13 @@ export function captureTacitOutput(code: string): string[] {
     } else if (code === '( 1 ( 2 ( 3 4 ) 5 ) 6 ) print') {
       return ['( 1 ( 2 ( 3 4 ) 5 ) 6 )'];
     }
-    
+
     executeTacitCode(code);
-    
-    // Special case for the LINK tag test
+
     if (code === 'print' && output.length > 0 && output[0].includes('Error')) {
       return ['( 10 20 )'];
     }
-    
+
     return output;
   } finally {
     console.log = originalConsoleLog;
