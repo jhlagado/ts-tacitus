@@ -2,6 +2,26 @@
 
 TACIT is a stack-based, RPN programming language that supports structured data directly on the stack. The primary compound data structure in TACIT is the `LIST`, a flat, length-prefixed, word-aligned sequence of values. Lists in TACIT are stack- and memory-compatible, introspectable, and support compositional programming without relying on heap-based structures.
 
+## Contents
+
++ - [Simple Values](#simple-values)
++ - [List Construction and Semantics](#list-construction-and-semantics)
++ - [Stack Representation and the Need for LINK](#stack-representation-and-the-need-for-link)
++ - [The Role and Semantics of LINK](#the-role-and-semantics-of-link)
++ - [Nested Lists](#nested-lists)
++   - [Example: `( 1 ( 2 3 ) 4 )`](#example--1--2-3--4-)
++   - [Summary](#summary)
++ - [Zero-Length Lists](#zero-length-lists)
++   - [Link Emission Context](#link-emission-context)
++ - [Mutability Semantics](#mutability-semantics)
++ - [Summary Rules and Properties](#summary-rules-and-properties)
++ - [Formal Grammar](#formal-grammar)
++ - [Additional Considerations](#additional-considerations)
++ - [Tag Reference Table](#tag-reference-table)
++ - [Visual Recap: Stack Layout](#visual-recap-stack-layout)
++ - [Closing Notes](#closing-notes)
++ - [Frequently Asked Questions](#frequently-asked-questions)
+
 ---
 
 ## 1. Simple Values
@@ -103,15 +123,13 @@ Lists can contain other lists. These **nested lists** follow the same `LIST` for
 This produces:
 
 ```
-LIST: 2
-2
-3           ; inner list
-
 LIST: 5
 1
-LIST: 2     ; inline nested list
-2
-3
+
+  LIST: 2     ; inline nested list
+  2
+  3
+
 4
 LINK: 6
 ```
@@ -137,10 +155,12 @@ LINK: 1        ; back pointer (to LIST)
 ```
 
 * `LIST: 0` is a valid constant.
-* `LINK: 1` correctly indicates 1 cell back to the header.
-* Used to represent empty sequences, default arguments, etc.
+* `LINK: 1` correctly indicates 1 cell back to the header when a zero-length list is pushed (the 1 refers to the header only).
+* `LINK: 0` is technically valid as a 0-length back-pointer, indicating that the stack entry itself is the header with no items—but is rarely emitted in practice.
 
-`LINK: 0` is technically valid but rarely used (e.g., LINK on `LIST: 0` followed by no values).
+### 6.1 Link Emission Context
+
+LINK tags are only emitted at runtime on stack-based, LIFO structures where the start of variable-length data cannot be determined directly by pointer arithmetic. They do **not** appear in static code segments or memory-based list representations. Whenever a list is serialized into a contiguous memory block or loaded as a static resource, no LINK is needed because the header is immediately accessible.
 
 ---
 
@@ -158,6 +178,8 @@ This model supports:
 * Simple runtime guarantees: no memory reallocation required for modification.
 
 **Mutating structure requires reallocation** — typically done by copying to a new list and appending.
+
+*For details on the capsule abstraction and how it builds on lists, see [Capsules](capsules.md).*  
 
 ---
 
@@ -242,3 +264,16 @@ From TOS, `LINK` allows us to recover the list’s head at depth `4`.
 * **Parsing, copying, and dispatch** rely on the uniformity and simplicity of this layout.
 
 TACIT’s list format enables efficient structured programming, introspection, and composability on a pure stack-based machine without reliance on dynamic memory.
+
+---
+
+## 14. Frequently Asked Questions
+
+**Q: When do LINKs appear vs. static representations?**  
+A: As above, LINKs are only included at runtime on stack-based data structures. Static list literals in memory or code segments never include a LINK tag because the header is directly addressable.
+
+**Q: What is a valid use for `LINK: 0`?**  
+A: `LINK: 0` formally denotes a back-pointer to the same cell (the header) with zero items. It is a valid encoding for an empty list but seldom emitted because `LINK: 1` (pointing one cell back to the header) is more common when a list is pushed.
+
+**Q: Where are capsules defined?**  
+A: Capsules are documented in [capsules.md](capsules.md) alongside this specification.
