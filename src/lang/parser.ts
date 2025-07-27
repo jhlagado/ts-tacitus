@@ -346,13 +346,14 @@ function processWordToken(value: string, state: ParserState): void {
 }
 
 /**
- * Process special tokens like :, ;, (, ), and `.
+ * Process special tokens like :, ;, (, ), {, and `.
  * 
  * This function dispatches to the appropriate handler based on the special token:
  * - ':' begins a word definition
  * - ';' ends a word definition
  * - '(' begins a list
  * - ')' ends a list
+ * - '{' begins a standalone code block
  * - '`' begins a symbol literal
  * 
  * @param {string} value - The special token value
@@ -367,6 +368,8 @@ function processSpecialToken(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
+  } else if (value === '{') {
+    beginStandaloneBlock(state);
   } else if (value === '`') {
     parseBacktickSymbol(state);
   }
@@ -524,6 +527,42 @@ function endList(_state: ParserState): void {
 
   vm.compiler.compileOpcode(Op.CloseList);
   vm.listDepth--;
+}
+
+/**
+ * Begin a standalone code block with opening brace ({).
+ * 
+ * This function handles standalone code blocks that produce a code reference
+ * on the stack. Unlike combinator blocks, these are not executed immediately
+ * but leave a reference to the compiled code that can be executed later.
+ * 
+ * The pattern is:
+ * 1. Compile a Branch to skip over the block code
+ * 2. Compile the block contents ending with Exit
+ * 3. Patch the Branch offset
+ * 4. Compile LiteralCode with the block's start address
+ * 
+ * @param {ParserState} state - The current parser state
+ */
+function beginStandaloneBlock(state: ParserState): void {
+  // Compile Branch with placeholder offset to skip over the block
+  const branchAddr = vm.compiler.CP;
+  vm.compiler.compileOpcode(Op.Branch);
+  const offsetAddr = vm.compiler.CP;
+  vm.compiler.compile16(0); // Placeholder offset
+  
+  // Parse block contents and get the start address
+  const blockStartAddr = parseCurlyBlock(state);
+  vm.compiler.compileOpcode(Op.Exit); // Block must end with exit
+  const blockEndAddr = vm.compiler.CP;
+  
+  // Patch the branch offset to skip over the entire block
+  const skipOffset = blockEndAddr - (branchAddr + 3); // +3 for opcode + 16-bit offset
+  vm.compiler.patch16(offsetAddr, skipOffset);
+  
+  // Compile LiteralCode to push the block's address as a code reference
+  vm.compiler.compileOpcode(Op.LiteralCode);
+  vm.compiler.compile16(blockStartAddr);
 }
 
 /**
