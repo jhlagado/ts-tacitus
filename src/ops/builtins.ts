@@ -1,16 +1,16 @@
 /**
  * @file src/ops/builtins.ts
- * 
+ *
  * This file defines the built-in operations (functions) available in the Tacit language.
  * It serves as the central dispatcher for all VM operations, mapping opcodes to their
  * implementation functions.
- * 
+ *
  * ## Architecture
- * 
+ *
  * The executeOp function is the core dispatch mechanism of the VM's execution engine.
  * When the interpreter encounters an opcode during bytecode execution, it calls
  * executeOp with the current VM state and the opcode to execute.
- * 
+ *
  * Operations are organized into several categories, each implemented in separate files:
  * - Interpreter operations (control flow, literals)
  * - Math operations (arithmetic, comparisons)
@@ -18,9 +18,9 @@
  * - List operations (list creation and manipulation)
  * - Unary operations (operations that work on a single value)
  * - Conditional operations (if/else logic)
- * 
+ *
  * ## Extension Mechanism
- * 
+ *
  * The system supports user-defined operations through the symbol table. Opcodes in the
  * range 128-32767 are reserved for user-defined operations, which are looked up in the
  * VM's symbol table during execution.
@@ -79,7 +79,6 @@ import {
 import { simpleIfOp } from './builtins-conditional';
 import { openListOp, closeListOp } from './builtins-list';
 
-
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
 
@@ -89,11 +88,11 @@ import { repeatOp } from './combinators/repeat';
 
 /**
  * Executes a specific operation based on the given opcode.
- * 
+ *
  * This is the central dispatch function of the VM's execution engine. It takes an opcode
  * and routes execution to the appropriate implementation function. The function handles
  * both built-in operations (opcodes < 128) and user-defined operations (opcodes >= 128).
- * 
+ *
  * @param {VM} vm - The virtual machine instance containing the current execution state.
  * @param {Op} opcode - The opcode representing the operation to execute.
  * @throws {Error} If the opcode is invalid or no implementation is found for a user-defined opcode.
@@ -279,7 +278,6 @@ export function executeOp(vm: VM, opcode: Op) {
       closeListOp(vm);
       break;
     default:
-      // If opcode is in the user-defined range, we need to find the implementation in the symbol table
       if (opcode >= 128 && opcode < 32768) {
         const implementation = vm.symbolTable.findImplementationByOpcode(opcode);
         if (implementation) {
@@ -294,10 +292,10 @@ export function executeOp(vm: VM, opcode: Op) {
 
 /**
  * Implements the LiteralAddress operation.
- * 
+ *
  * Reads a 16-bit address from the instruction stream and pushes it onto the stack.
  * This operation is used for pushing memory addresses or function pointers onto the stack.
- * 
+ *
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalAddressOp(vm: VM): void {

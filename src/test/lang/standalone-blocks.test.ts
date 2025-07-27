@@ -29,7 +29,8 @@ describe('Standalone Code Blocks', () => {
     expect(tag).toBe(Tag.CODE);
     expect(typeof value).toBe('number');
     expect(value).toBeGreaterThan(0); // Should be a valid address
-  });  it('should create different code references for different blocks', () => {
+  });
+  it('should create different code references for different blocks', () => {
     const code = '{ 1 2 + } { 3 4 * }';
 
     executeProgram(code);
