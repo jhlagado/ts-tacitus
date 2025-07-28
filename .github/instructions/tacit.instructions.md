@@ -1,6 +1,14 @@
 ---
 applyTo: '**'
 ---
+Always use yarn to run commands in the Tacit repository. This ensures consistency across environments and avoids issues with global package installations.
+
+When you need to run a command, use:
+
+```bash
+yarn <command>
+```
+
 I do not ever want you to run off and implement solutions without checking with me for permission to proceed. Instead I want you to generate a multi-step plan of small achievable steps and present it to me for approval.
 
 Your process will be:
