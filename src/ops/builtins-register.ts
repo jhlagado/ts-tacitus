@@ -76,7 +76,7 @@ import {
   prodOp,
 } from './arithmetic-ops';
 
-import { simpleIfOp, ifCurlyBranchFalseOp } from './builtins-conditional';
+import { simpleIfOp, ifFalseBranchOp } from './builtins-conditional';
 
 import { printOp } from './builtins-print';
 import { doOp } from './combinators/do';
@@ -164,7 +164,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('prod', Op.Prod, prodOp);
 
   symbolTable.define('if', Op.SimpleIf, simpleIfOp);
-  symbolTable.define('ifcurlybf', Op.IfFalseBranch, ifCurlyBranchFalseOp);
+  symbolTable.define('ifcurlybf', Op.IfFalseBranch, ifFalseBranchOp);
 
   symbolTable.define('do', Op.Do, doOp);
   symbolTable.define('repeat', Op.Repeat, repeatOp);
