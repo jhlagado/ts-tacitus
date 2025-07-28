@@ -37,8 +37,15 @@ yarn lint                # ESLint with --max-warnings=100
 
 - **Test isolation**: Use `--runInBand` to prevent contamination
 - **Tagged value corruption**: JavaScript normalizes custom NaN values (0x7fc20003 → 0x7fc00000)
-- **Test utilities**: `pushValue(vm, value, tag)` in test files for stack manipulation
+- **Test utilities**: 
+  - `pushValue(vm, value, tag)` - Push tagged values onto stack
+  - `pushList(vm, values)` - Create proper LIST + LINK structures
+  - `getStackWithTags(vm)` - Decode stack with tag information
+  - `resetVM()` - Complete VM state reset for test isolation
+  - `executeTacitCode(code)` - Execute code and return stack results
+  - `captureTacitOutput(code)` - Capture printed output from code execution
 - **Memory debugging**: Use `vm.getStackData()` and memory dump methods
+- **Stack debugging**: `formatStack(vm)` for readable stack traces with tags
 
 ## Code Conventions
 
@@ -139,6 +146,7 @@ Used by: standalone blocks `{}`, `do` combinator, `repeat` combinator
 - Builtins registered in `builtins-register.ts` during VM construction
 - Operations implement `Verb` interface: `(vm: VM) => void`
 - Opcodes enumerated in `opcodes.ts` with sequential numbering
+- Error handling: Use descriptive messages with stack state for debugging
 
 ## Debugging
 
@@ -147,12 +155,33 @@ Used by: standalone blocks `{}`, `do` combinator, `repeat` combinator
 - `vm.getStackData()`: Array of current stack contents
 - `memory.dump(start, end)`: Hex dump of memory ranges
 - `dumpTaggedValue()`: Enhanced debugging for tagged values
+- `getStackWithTags(vm)`: Stack contents with decoded tag information
+- `formatStack(vm)`: Human-readable stack trace with value and tag pairs
 
 ### Common Issues
 
 - **NaN corruption**: Use raw bit operations for tagged values
 - **Stack underflow**: Check `ensureStackSize()` before operations
 - **List traversal**: Follow LINK pointers correctly for variable-length data
+- **Test isolation**: Reset VM state completely between tests using `resetVM()`
+- **Memory alignment**: All stack operations work on 4-byte boundaries
+
+### Stack Operation Patterns
+
+All stack operations must follow these patterns:
+
+- **Validation first**: Use `validateStackDepth(vm, requiredElements, operationName)` before operation
+- **Error handling**: Use `safeStackOperation()` wrapper for complex operations
+- **List awareness**: Operations like `dup`, `swap`, `over` handle entire list structures using `findElement()`
+- **Stack effects**: Document and verify stack transformations in tests
+- **Memory safety**: Preserve original stack state on errors using stack pointer restoration
+
+### Error Patterns
+
+- **Stack underflow**: `Stack underflow: 'operation' requires N operands (stack: [...])`
+- **Invalid operations**: Include current stack state in error messages for debugging
+- **VM state errors**: Use specific error types (`ReturnStackUnderflowError`, `StackUnderflowError`)
+- **Tagged value errors**: Distinguish between raw floats and tagged value corruption
 
 ## Critical Knowledge for AI Agents
 
