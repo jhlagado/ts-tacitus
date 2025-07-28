@@ -3,8 +3,6 @@ import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { fromTaggedValue, Tag } from '../../core/tagged';
-import { fromTaggedValueRaw } from '../../core/tagged-raw';
-import type { VM } from '../../core/vm';
 
 /**
  * Reset the VM state to prepare for a test
@@ -164,25 +162,6 @@ export function logStack(stack: number[], withTags = true): void {
       console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
     } else {
       console.log(`[${i}] ${stack[i]}`);
-    }
-  }
-}
-
-/**
- * Log the contents of the stack using raw bits to avoid corruption.
- * This should be used when debugging tagged values to ensure integrity.
- * @param vm The VM instance to read raw stack data from
- * @param withTags If true, will decode tagged values using raw bit operations
- */
-export function logStackRaw(vm: VM, withTags = true): void {
-  const rawStack = vm.getStackDataRaw();
-  console.log('Stack contents (raw):');
-  for (let i = 0; i < rawStack.length; i++) {
-    if (withTags) {
-      const { tag, value } = fromTaggedValueRaw(rawStack[i]);
-      console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
-    } else {
-      console.log(`[${i}] 0x${rawStack[i].toString(16).padStart(8, '0')}`);
     }
   }
 }

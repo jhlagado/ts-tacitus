@@ -51,7 +51,7 @@ import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/t
  *
  * @remarks
  * This operation is deprecated in favor of the more readable and efficient
- * IF { ... } ELSE { ... } syntax implemented by ifFalseBranchFalseOp.
+ * IF { ... } ELSE { ... } syntax implemented by ifCurlyBranchFalseOp.
  */
 export const simpleIfOp: Verb = (vm: VM) => {
   vm.ensureStackSize(3, 'if');
@@ -147,7 +147,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
  *
  * @see simpleIfOp The deprecated version of if-then-else
  */
-export const ifFalseBranchOp: Verb = (vm: VM) => {
+export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
   const offset = vm.next16();
   vm.ensureStackSize(1, 'IF');
   const cond = vm.pop();

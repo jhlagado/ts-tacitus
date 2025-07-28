@@ -223,7 +223,7 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { for then-block in IF statement', vm.getStackData());
     }
 
-    parseCodeBlock(state);
+    parseCurlyBlock(state);
     const endOfThen = vm.compiler.CP;
 
     const next = state.tokenizer.peekToken();
@@ -241,7 +241,7 @@ function processWordToken(value: string, state: ParserState): void {
         throw new SyntaxError('Expected { for else-block in IF statement', vm.getStackData());
       }
 
-      parseCodeBlock(state);
+      parseCurlyBlock(state);
       const endOfElse = vm.compiler.CP;
 
       const falseJumpOffset = elseBlockStart - (falseJumpAddr + 3);
@@ -514,7 +514,7 @@ function patchBranchOffset(branchPos: number): void {
  * @param {ParserState} state - The current parser state
  * @returns {number} The starting address of the block in the bytecode
  */
-function parseCodeBlock(state: ParserState): number {
+function parseCurlyBlock(state: ParserState): number {
   const startAddress = vm.compiler.CP;
 
   while (true) {
@@ -546,7 +546,7 @@ function compileCodeBlock(state: ParserState): { startAddress: number; offsetAdd
   const offsetAddr = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  const startAddress = parseCodeBlock(state);
+  const startAddress = parseCurlyBlock(state);
   vm.compiler.compileOpcode(Op.Exit);
   const blockEnd = vm.compiler.CP;
 
