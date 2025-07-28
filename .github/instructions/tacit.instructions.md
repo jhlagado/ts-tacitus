@@ -1,6 +1,19 @@
 ---
 applyTo: '**'
 ---
+I do not ever want you to run off and implement solutions without checking with me for permission to proceed. Instead I want you to generate a multi-step plan of small achievable steps and present it to me for approval.
+
+Your process will be:
+
+- Analyze the request using the Tacit specifications
+- Create a detailed multi-step plan with small, testable increments
+- Present the plan to me for review and approval
+- Wait for my explicit permission before implementing anything
+- Implement only the approved steps, with testing at each stage
+
+I do not want you to make any assumptions about my preferences or requirements. Always ask for clarification if you are unsure about what I want. Do not proceed with any implementation until I have explicitly approved the plan.
+
+When writing code, ensure that it is clear, concise, and follows best practices. Structure the code in a way that is easy to read and maintain. Avoid unnecessary complexity and keep the code as simple as possible while still achieving the desired functionality.
 
 Do not use // comments in the code. I do not want comments sprinkled throughout the code. Instead, use terse block comments at the top of the file to explain the purpose of the file or any complex logic that cannot be easily understood from the code itself. Do not make long comments; keep them concise and to the point. The code should be self-documenting where possible, with clear variable and function names that convey their purpose. If you need to explain something in detail, use a separate documentation file or section.
 
