@@ -31,10 +31,6 @@ function formatValue(vm: VM, value: number): string {
   if (Number.isInteger(tagValue)) {
     return String(tagValue);
   } else {
-    if (Math.abs(tagValue - 3.14) < 0.0001) {
-      return '3.14';
-    }
-
     return tagValue.toFixed(2).replace(/\.?0+$/, '');
   }
 }

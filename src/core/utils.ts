@@ -135,11 +135,6 @@ export function formatValue(vm: VM, value32: number): string {
   const { value, tag } = fromTaggedValue(value32);
   switch (tag) {
     case Tag.NUMBER:
-      const roundedValue = Math.round(value32);
-      if (Math.abs(value32 - roundedValue) < 0.01) {
-        return roundedValue.toString();
-      }
-
       return value32.toString();
     case Tag.INTEGER:
       return value === 0 ? 'NIL' : String(value);
