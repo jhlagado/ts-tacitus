@@ -266,17 +266,7 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after do combinator', vm.getStackData());
     }
 
-    const skipAddr = vm.compiler.CP;
-    vm.compiler.compileOpcode(Op.BranchCall);
-    const offsetAddr = vm.compiler.CP;
-    vm.compiler.compile16(0);
-
-    parseCurlyBlock(state);
-    vm.compiler.compileOpcode(Op.Exit);
-    const blockEnd = vm.compiler.CP;
-
-    const skipOffset = blockEnd - (skipAddr + 3);
-    vm.compiler.patch16(offsetAddr, skipOffset);
+    compileCodeBlock(state);
 
     const doIndex = vm.symbolTable.find('do');
     if (doIndex === undefined) {
@@ -290,17 +280,7 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after repeat combinator', vm.getStackData());
     }
 
-    const skipAddr = vm.compiler.CP;
-    vm.compiler.compileOpcode(Op.BranchCall);
-    const offsetAddr = vm.compiler.CP;
-    vm.compiler.compile16(0);
-
-    parseCurlyBlock(state);
-    vm.compiler.compileOpcode(Op.Exit);
-    const blockEnd = vm.compiler.CP;
-
-    const skipOffset = blockEnd - (skipAddr + 3);
-    vm.compiler.patch16(offsetAddr, skipOffset);
+    compileCodeBlock(state);
 
     const repeatIndex = vm.symbolTable.find('repeat');
     if (repeatIndex === undefined) {
@@ -500,17 +480,7 @@ function endList(_state: ParserState): void {
  * @param {ParserState} state - The current parser state
  */
 function beginStandaloneBlock(state: ParserState): void {
-  const skipAddr = vm.compiler.CP;
-  vm.compiler.compileOpcode(Op.BranchCall);
-  const offsetAddr = vm.compiler.CP;
-  vm.compiler.compile16(0);
-
-  parseCurlyBlock(state);
-  vm.compiler.compileOpcode(Op.Exit);
-  const blockEnd = vm.compiler.CP;
-
-  const skipOffset = blockEnd - (skipAddr + 3);
-  vm.compiler.patch16(offsetAddr, skipOffset);
+  compileCodeBlock(state);
 }
 
 /**
@@ -557,4 +527,31 @@ function parseCurlyBlock(state: ParserState): number {
   }
 
   return startAddress;
+}
+
+/**
+ * Compile a code block using the standard BranchCall pattern.
+ *
+ * This function implements the shared compilation pattern used by standalone
+ * blocks and combinators. It compiles a BranchCall instruction with a placeholder
+ * offset, parses the block content, adds an Exit instruction, and patches the
+ * offset to skip over the block when not executing.
+ *
+ * @param {ParserState} state - The current parser state
+ * @returns {object} Object containing startAddress and offsetAddr for further processing
+ */
+function compileCodeBlock(state: ParserState): { startAddress: number; offsetAddr: number } {
+  const skipAddr = vm.compiler.CP;
+  vm.compiler.compileOpcode(Op.BranchCall);
+  const offsetAddr = vm.compiler.CP;
+  vm.compiler.compile16(0);
+
+  const startAddress = parseCurlyBlock(state);
+  vm.compiler.compileOpcode(Op.Exit);
+  const blockEnd = vm.compiler.CP;
+
+  const skipOffset = blockEnd - (skipAddr + 3);
+  vm.compiler.patch16(offsetAddr, skipOffset);
+
+  return { startAddress, offsetAddr };
 }
