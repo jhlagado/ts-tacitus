@@ -18,7 +18,6 @@
  */
 import { VM } from '../../src/core/vm';
 import { fromTaggedValue, toTaggedValue, Tag } from '../../src/core/tagged';
-import { toTaggedValueRaw } from '../../src/core/tagged-raw';
 import { SEG_STACK } from '../../src/core/constants';
 import { ReturnStackUnderflowError } from '../../src/core/errors';
 
@@ -47,8 +46,8 @@ const BYTES_PER_ELEMENT = 4;
 export function openListOp(vm: VM): void {
   if (vm.debug) console.log('openListOp: listDepth before', vm.listDepth);
   vm.listDepth++;
-  const listTagRaw = toTaggedValueRaw(0, Tag.LIST);
-  vm.pushRawBits(listTagRaw);
+  const listTag = toTaggedValue(0, Tag.LIST);
+  vm.push(listTag);
   const listPos = vm.SP - BYTES_PER_ELEMENT;
   vm.rpush(toTaggedValue(listPos, Tag.INTEGER));
   if (vm.debug)
@@ -90,13 +89,13 @@ export function closeListOp(vm: VM): void {
   const taggedListTagPos = vm.rpop();
   const { value: listTagPos } = fromTaggedValue(taggedListTagPos);
   const listSize = (vm.SP - listTagPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
-  const newListTagRaw = toTaggedValueRaw(listSize, Tag.LIST);
-  vm.memory.writeRawBits32(SEG_STACK, listTagPos, newListTagRaw);
+  const newListTag = toTaggedValue(listSize, Tag.LIST);
+  vm.memory.writeFloat32(SEG_STACK, listTagPos, newListTag);
 
   if (vm.listDepth === 1) {
     const relativeElements = (vm.SP - listTagPos) / BYTES_PER_ELEMENT;
-    const linkTagRaw = toTaggedValueRaw(relativeElements, Tag.LINK);
-    vm.pushRawBits(linkTagRaw);
+    const linkTag = toTaggedValue(relativeElements, Tag.LINK);
+    vm.push(linkTag);
   }
 
   vm.listDepth--;

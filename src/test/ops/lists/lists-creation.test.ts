@@ -1,7 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { fromTaggedValueRaw } from '../../../core/tagged-raw';
-import { vm } from '../../../core/globalState';
 import {
   executeTacitCode,
   resetVM,

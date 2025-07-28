@@ -193,55 +193,6 @@ export class Memory {
   }
 
   /**
-   * Writes raw 32-bit unsigned integer bits to memory at the specified segment and offset.
-   * Uses little-endian byte order. This bypasses JavaScript's IEEE 754 float normalization
-   * and is essential for preserving NaN-boxed tagged value integrity.
-   * 
-   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
-   * @param offset The offset within the specified segment.
-   * @param bits The 32-bit unsigned integer bits to write.
-   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
-   */
-  writeRawBits32(segment: number, offset: number, bits: number): void {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 3 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
-    const buffer = new ArrayBuffer(4);
-    const view = new DataView(buffer);
-    view.setUint32(0, bits >>> 0, true); // >>> 0 ensures unsigned 32-bit
-    for (let i = 0; i < 4; i++) {
-      this.write8(segment, offset + i, view.getUint8(i));
-    }
-  }
-
-  /**
-   * Reads raw 32-bit unsigned integer bits from memory at the specified segment and offset.
-   * Uses little-endian byte order. This bypasses JavaScript's IEEE 754 float normalization
-   * and is essential for preserving NaN-boxed tagged value integrity.
-   * 
-   * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
-   * @param offset The offset within the specified segment.
-   * @returns The 32-bit unsigned integer bits at the specified address.
-   * @throws {RangeError} If the resulting linear address range is outside the memory bounds.
-   */
-  readRawBits32(segment: number, offset: number): number {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 3 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
-    const buffer = new ArrayBuffer(4);
-    const view = new DataView(buffer);
-    for (let i = 0; i < 4; i++) {
-      view.setUint8(i, this.read8(segment, offset + i));
-    }
-
-    return view.getUint32(0, true);
-  }
-
-  /**
    * Dumps a range of memory as hexadecimal values for debugging.
    * 
    * @param start The starting linear address in the memory buffer.
