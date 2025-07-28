@@ -7,7 +7,7 @@ describe('Conditional Operations', () => {
     initializeInterpreter();
     vm.debug = false;
   });
-  describe('IF { ... }', () => {
+  describe('IF block', () => {
     test('should execute then-branch when condition is true', () => {
       executeProgram('1 IF { 2 3 add }');
       expect(vm.getStackData()).toEqual([5]);
@@ -21,7 +21,7 @@ describe('Conditional Operations', () => {
       expect(vm.getStackData()).toEqual([2]);
     });
   });
-  describe('IF { ... } ELSE { ... }', () => {
+  describe('IF-ELSE block', () => {
     test('should execute then-branch when condition is true', () => {
       executeProgram('1 IF { 10 } ELSE { 20 }');
       expect(vm.getStackData()).toEqual([10]);

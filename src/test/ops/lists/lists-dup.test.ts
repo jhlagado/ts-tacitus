@@ -16,7 +16,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('List duplication operations', () => {
+describe('Dup Operation', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -27,8 +27,7 @@ describe('List duplication operations', () => {
     vm.compiler.reset();
   });
 
-  describe('dup', () => {
-    test('should duplicate a simple list', () => {
+  test('should duplicate a simple list', () => {
       executeCode('( 1 2 ) dup');
       const stack = vm.getStackData();
 
@@ -213,5 +212,4 @@ describe('List duplication operations', () => {
       const { tag: lastTag } = fromTaggedValue(stackAfterPush[stackAfterPush.length - 3]);
       expect(lastTag).toBe(Tag.LINK);
     });
-  });
 });

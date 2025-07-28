@@ -16,7 +16,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('List operations', () => {
+describe('Drop Operation', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -27,8 +27,7 @@ describe('List operations', () => {
     vm.compiler.reset();
   });
 
-  describe('drop', () => {
-    test('should drop a regular value from the stack', () => {
+  test('should drop a regular value from the stack', () => {
       executeCode('1 2 drop');
 
       /**
@@ -305,5 +304,4 @@ describe('List operations', () => {
       const stack = executeCode('( 10 20 ) 30 drop drop');
       expect(stack.length).toBe(0);
     });
-  });
 });
