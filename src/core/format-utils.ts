@@ -30,14 +30,6 @@ export function formatFloat(value: number): string {
   if (isNaN(value)) return 'NaN';
   if (!isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity';
 
-  if (Math.abs(value - 3.14) < 0.0001) {
-    return '3.14';
-  }
-
-  if (Math.abs(value - Math.PI) < 0.0000001) {
-    return '3.14159265359';
-  }
-
   if (Math.abs(value) > 0.0001 && Math.abs(Math.round(value) - value) < 0.0001) {
     return Math.round(value).toString();
   }
