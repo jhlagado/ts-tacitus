@@ -1,9 +1,9 @@
 import {
   testTacitCode,
   executeTacitCode,
-  captureTacitOutput,
   runTacitTest,
-} from './tacitTestUtils';
+  captureTacitOutput,
+} from './utils/test-utils';
 describe('tacitTestUtils', () => {
   describe('testTacitCode', () => {
     test('should validate stack output correctly', () => {

@@ -1,4 +1,4 @@
-import { runTacitTest } from '../tacitTestUtils';
+import { runTacitTest } from '../utils/test-utils';
 
 describe('Tacit Binary Op Operations', () => {
   test('add operation', () => {
