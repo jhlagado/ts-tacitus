@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode } from '../../testUtils';
+import { executeTacitCode } from '../../utils/test-utils';
 
 describe('over Operation (continued)', () => {
   // Known bug - skipped while reorganizing

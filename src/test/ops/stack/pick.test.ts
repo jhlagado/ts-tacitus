@@ -1,12 +1,12 @@
 import { VM } from '../../../core/vm';
 import { pickOp } from '../../../ops/builtins-stack';
 import { initializeInterpreter } from '../../../core/globalState';
-import { pushList, getStackWithTags } from '../../../test/stack-utils';
+import { pushList, getStackWithTags } from '../../utils/stack-utils';
 import {
   testStackOperation,
   withStack,
   expectStackUnderflow,
-} from '../../../test/stack-test-utils';
+} from '../../utils/stack-test-utils';
 
 describe('pick Operation', () => {
   beforeEach(() => {
