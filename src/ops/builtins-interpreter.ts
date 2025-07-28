@@ -17,6 +17,7 @@ import { VM } from '../core/vm';
 import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/errors';
 import { Verb } from '../core/types';
 import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
+import { toTaggedValueRaw } from '../core/tagged-raw';
 import { RSTACK_SIZE } from '../core/constants';
 
 import { formatValue } from '../core/utils';
@@ -64,8 +65,8 @@ export const literalNumberOp: Verb = (vm: VM) => {
  */
 export const literalStringOp: Verb = (vm: VM) => {
   const address = vm.next16();
-  const taggedString = toTaggedValue(address, Tag.STRING);
-  vm.push(taggedString);
+  const taggedStringRaw = toTaggedValueRaw(address, Tag.STRING);
+  vm.pushRawBits(taggedStringRaw);
 };
 
 /**

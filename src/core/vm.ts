@@ -149,6 +149,40 @@ export class VM {
   }
 
   /**
+   * Pushes raw 32-bit unsigned integer bits onto the data stack.
+   * This bypasses JavaScript's IEEE 754 float normalization and is essential
+   * for preserving NaN-boxed tagged value integrity.
+   *
+   * @param bits The 32-bit unsigned integer bits to push.
+   * @throws {StackOverflowError} If pushing would cause a stack overflow.
+   */
+  pushRawBits(bits: number): void {
+    if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
+      throw new StackOverflowError('pushRawBits', this.getStackData());
+    }
+
+    this.memory.writeRawBits32(SEG_STACK, this.SP, bits);
+    this.SP += BYTES_PER_ELEMENT;
+  }
+
+  /**
+   * Pops raw 32-bit unsigned integer bits from the data stack.
+   * This bypasses JavaScript's IEEE 754 float normalization and is essential
+   * for preserving NaN-boxed tagged value integrity.
+   *
+   * @returns The 32-bit unsigned integer bits popped from the stack.
+   * @throws {StackUnderflowError} If popping would cause a stack underflow.
+   */
+  popRawBits(): number {
+    if (this.SP <= 0) {
+      throw new StackUnderflowError('popRawBits', 1, this.getStackData());
+    }
+
+    this.SP -= BYTES_PER_ELEMENT;
+    return this.memory.readRawBits32(SEG_STACK, this.SP);
+  }
+
+  /**
    * Peeks at the top value on the data stack without removing it.
    *
    * @returns The 32-bit float value at the top of the stack.
@@ -323,6 +357,22 @@ export class VM {
     const stackData: number[] = [];
     for (let i = 0; i < this.SP; i += BYTES_PER_ELEMENT) {
       stackData.push(this.memory.readFloat32(SEG_STACK, i));
+    }
+
+    return stackData;
+  }
+
+  /**
+   * Retrieves the current contents of the data stack as raw 32-bit unsigned integer bits.
+   * This bypasses JavaScript's IEEE 754 float normalization to preserve NaN-boxed
+   * tagged value integrity. Use this for debugging tagged values without corruption.
+   *
+   * @returns An array of 32-bit unsigned integers representing the raw stack bits.
+   */
+  getStackDataRaw(): number[] {
+    const stackData: number[] = [];
+    for (let i = 0; i < this.SP; i += BYTES_PER_ELEMENT) {
+      stackData.push(this.memory.readRawBits32(SEG_STACK, i));
     }
 
     return stackData;

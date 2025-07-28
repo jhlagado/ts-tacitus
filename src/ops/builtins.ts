@@ -82,7 +82,7 @@ import { openListOp, closeListOp } from './builtins-list';
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
 
-import { ifCurlyBranchFalseOp } from './builtins-conditional';
+import { ifFalseBranchOp } from './builtins-conditional';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 
@@ -107,10 +107,11 @@ import { repeatOp } from './combinators/repeat';
  * @param {VM} vm - The virtual machine instance.
  */
 import { toTaggedValue, Tag } from '../core/tagged';
+import { toTaggedValueRaw } from '../core/tagged-raw';
 export function literalCodeOp(vm: VM): void {
   const address = vm.read16();
-  const tagged = toTaggedValue(address, Tag.CODE);
-  vm.push(tagged);
+  const taggedRaw = toTaggedValueRaw(address, Tag.CODE);
+  vm.pushRawBits(taggedRaw);
 }
 
 export function executeOp(vm: VM, opcode: Op) {
@@ -257,7 +258,7 @@ export function executeOp(vm: VM, opcode: Op) {
       simpleIfOp(vm);
       break;
     case Op.IfFalseBranch:
-      ifCurlyBranchFalseOp(vm);
+      ifFalseBranchOp(vm);
       break;
     case Op.Do:
       doOp(vm);
