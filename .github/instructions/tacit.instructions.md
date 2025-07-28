@@ -23,6 +23,47 @@ I do not want you to make any assumptions about my preferences or requirements. 
 
 When writing code, ensure that it is clear, concise, and follows best practices. Structure the code in a way that is easy to read and maintain. Avoid unnecessary complexity and keep the code as simple as possible while still achieving the desired functionality.
 
+## CODING STYLE AND PORTABILITY REQUIREMENTS
+
+**TACIT is a prototype intended for eventual porting to lower-level languages (C or assembly).** Therefore, coding style must prioritize simplicity and portability:
+
+### Preferred Patterns:
+- **Functions over objects** - Use simple functions rather than complex object-oriented patterns
+- **Explicit loops** - Use traditional `for` and `while` loops instead of modern iterator methods
+- **Direct array access** - Use bracket notation `array[i]` rather than `.forEach()`, `.map()`, etc.
+- **Simple control flow** - Avoid complex ECMAScript features that don't translate to C
+
+### Avoid These ECMAScript Features:
+- **Spread operator** (`...array`) - Use explicit loops or `Array.concat()`
+- **Destructuring** - Use explicit property access instead
+- **for...of loops** - Use traditional indexed `for` loops
+- **Iterator methods** (`.map()`, `.filter()`, `.reduce()`) - Use explicit loops
+- **Arrow functions in complex contexts** - Prefer named functions for clarity
+
+### Critical NaN-Boxing Considerations:
+- **Float32 values are extremely sensitive to JavaScript normalization**
+- **Avoid operations that might trigger NaN normalization** (certain math operations, JSON serialization)
+- **Use explicit bit manipulation** rather than relying on JavaScript's automatic type conversions
+- **Test NaN-boxed values carefully** - JavaScript can silently corrupt tagged NaN payloads
+
+### Example of Preferred Style:
+```typescript
+// GOOD - Simple, portable, safe for NaN-boxing
+function processStack(stack: number[]): number[] {
+  const result: number[] = [];
+  for (let i = 0; i < stack.length; i++) {
+    const value = stack[i];
+    result[i] = processValue(value);
+  }
+  return result;
+}
+
+// AVOID - Uses features that don't port well and risk NaN corruption
+const processStack = (stack: number[]) => stack.map(value => processValue(value));
+```
+
+This style ensures the codebase remains portable and maintains the integrity of TACIT's NaN-boxed tagged values.
+
 Do not use // comments in the code. I do not want comments sprinkled throughout the code. Instead, use terse block comments at the top of the file to explain the purpose of the file or any complex logic that cannot be easily understood from the code itself. Do not make long comments; keep them concise and to the point. The code should be self-documenting where possible, with clear variable and function names that convey their purpose. If you need to explain something in detail, use a separate documentation file or section.
 
 When writing tests, ensure that they are clear and concise. Use descriptive names for test cases and avoid unnecessary complexity. Each test should focus on a single aspect of functionality to make it easier to identify failures.
@@ -156,3 +197,54 @@ Has decided to retain the backlink mechanism in TACIT for stack-based composite 
 Plans to support byte-level data in TACIT by packing 8-bit values into standard 32-bit words. This ensures stack alignment, simplifies VM operations, and avoids special handling for byte-sized elements, even on machines with limited alignment (e.g., Z80). Byte arrays, UTF-8 strings, and record-style data can be represented as packed 32-bit lists, allowing existing stack operations (push, pop, dup) to work without modification. The goal is to treat byte data as first-class citizens in TACIT while maintaining uniform cell size and stack behavior.
 
 Prefers information-rich, continuous, and logically progressive documentation. They are fine with content changes but do not want shortening or information loss. They do not require conventional programming examples and prioritize preservation of detail and conceptual clarity.
+
+## CRITICAL LESSONS FOR COMPLEX CODEBASE MODIFICATIONS
+
+**The following are critical learnings from failed LLM sessions that must be avoided:**
+
+### 1. PLAN EXECUTION DISCIPLINE
+- **NEVER** start implementing without a complete, approved plan
+- **ALWAYS** identify the core issue first and separate it from secondary effects
+- **ALWAYS** understand the change's impact radius before starting
+- When a plan is provided, **EXECUTE IT STEP BY STEP** without deviation
+- If you discover new issues during execution, **STOP** and revise the plan rather than fixing on-the-fly
+
+### 2. ARCHITECTURAL AWARENESS - CODE HIERARCHY MATTERS
+- **Core files are NOT equal to test files** - treat core VM, memory, and tagged value systems as mission-critical
+- **Identify the architectural center** of any change - in TACIT this is usually tagged values, VM operations, or memory management
+- **Test utilities and individual tests are peripheral** - fix core issues first, then cascade fixes outward
+- **Never treat all code as equal importance** - this leads to inefficient scatter-shot fixing
+
+### 3. SESSION MEMORY AND FOCUS MANAGEMENT
+- **Track your changes systematically** - maintain awareness of what you've modified and why
+- **Resist scope creep** - fixing one thing does not mean fixing everything you encounter
+- **Remember the original goal** throughout the session - don't get lost in secondary failures
+- **When overwhelmed, STOP and reassess** rather than continuing in an endless fix loop
+
+### 4. COMPILATION AND DEPENDENCY UNDERSTANDING
+- **Understand import dependencies** before making changes - know what exports what
+- **Fix imports systematically** - don't scatter import fixes across multiple files simultaneously
+- **Test compilation frequently** during changes rather than at the end
+- **Critical system files** (like tagged.ts) are architectural keystones - understand their role completely
+
+### 5. TEST FAILURE PATTERN RECOGNITION
+- **248 failing tests means systemic issue** - not 248 individual problems to fix
+- **Tagged value corruption** is a specific pattern with specific fixes - don't treat as generic bugs
+- **Type mismatches** between test expectations and VM output indicate fundamental misunderstanding
+- **Massive test failures require systematic fixes** - not file-by-file debugging
+
+### 6. IMPACT ASSESSMENT BEFORE ACTION
+- **Always identify what breaks when you change core systems** - anticipate cascade effects
+- **Understand the difference between fixing corruption vs. fixing tests** - these are different problem classes
+- **Map dependencies** before making changes to shared utilities or core data structures
+- **Measure your changes** - know if you're making progress or creating more problems
+
+### EXECUTION MANDATE:
+When working on complex changes, LLMs must:
+1. Identify the core architectural issue
+2. Create a prioritized plan focusing on core files first
+3. Execute systematically without deviation  
+4. Maintain awareness of the overall goal
+5. Stop and replan if overwhelmed rather than thrashing
+
+**Failure to follow these principles results in session failure and wasted development time.**
