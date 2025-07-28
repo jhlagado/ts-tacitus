@@ -17,7 +17,7 @@ function executeCode(code: string): number[] {
   return vm.getStackData();
 }
 
-describe('List rot operations', () => {
+describe('Rot Operation', () => {
   beforeEach(() => {
     initializeInterpreter();
     vm.SP = 0;
@@ -28,8 +28,7 @@ describe('List rot operations', () => {
     vm.compiler.reset();
   });
 
-  describe('rot', () => {
-    test('should rotate three simple values', () => {
+  test('should rotate three simple values', () => {
       executeCode('1 2 3 rot');
 
       const stack = vm.getStackData();
@@ -140,5 +139,4 @@ describe('List rot operations', () => {
 
       expect(stack.length).toBe(8);
     });
-  });
 });

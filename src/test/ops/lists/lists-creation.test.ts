@@ -8,13 +8,12 @@ import {
   ListElement,
 } from '../../utils/test-utils';
 
-describe('List creation operations', () => {
+describe('List Creation', () => {
   beforeEach(() => {
     resetVM();
   });
 
-  describe('creation', () => {
-    test('should create a simple list with 2 elements', () => {
+  test('should create a simple list with 2 elements', () => {
       const stack = executeTacitCode('( 1 2 )');
 
       /**
@@ -176,5 +175,4 @@ describe('List creation operations', () => {
       const { tag: linkTag } = fromTaggedValue(stack[stack.length - 1]);
       expect(linkTag).toBe(Tag.LINK);
     });
-  });
 });

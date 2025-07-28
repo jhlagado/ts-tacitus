@@ -40,8 +40,7 @@ describe('Tacit Basic Operations', () => {
     expect(result.length).toBe(1);
     expect(typeof result[0]).toBe('number');
   });
-});
-describe('New IF syntax', () => {
+
   test('should execute IF {} with true condition', () => {
     let result = runTacitTest('1 IF {10}');
     expect(result).toEqual([10]);
