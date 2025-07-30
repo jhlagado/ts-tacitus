@@ -14,7 +14,7 @@ TypeScript implementation of TACIT - stack-based language (Forth + APL + Joy). P
 
 - Ask clarifying questions
 - Draft and confirm approach for complex work
-- If ≥2 approaches exist, list pros/cons
+- If more than two approaches exist, list pros/cons
 - Generate multi-step plan → approval → execute step-by-step
 - **NEVER**: Start without approved plan or deviate during execution
 
