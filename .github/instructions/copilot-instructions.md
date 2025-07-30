@@ -1,89 +1,158 @@
 # TACIT AI Agent Instructions
 
 ## Project: ts-tacitus
+
 TypeScript implementation of TACIT - stack-based language (Forth + APL + Joy). Point-free composition, NaN-boxed tagged values, polymorphic lists.
 
-## Workflow Requirements
-- **MUST**: Ask questions → plan → approval → execute step-by-step
-- **MUST**: Use `yarn` exclusively (test, build, dev, lint)
-- **MUST**: TDD: stub → failing test → implement
+## Development Workflow
+
+### Before Coding (MUST)
+
+- **BP-1**: Ask clarifying questions
+- **BP-2**: Draft and confirm approach for complex work
+- **BP-3**: If ≥2 approaches exist, list pros/cons
+- **BP-4**: Generate multi-step plan → approval → execute step-by-step
 - **NEVER**: Start without approved plan or deviate during execution
 
+### Commands (Always `yarn`)
+
+```bash
+yarn test           # Jest --runInBand (required for test isolation)
+yarn test:watch     # Watch mode
+yarn build          # TypeScript compilation
+yarn dev            # Run with ts-node
+yarn lint           # ESLint --max-warnings=100
+```
+
 ## Architecture Core
+
 ```
 VM (vm.ts)           → Stack machine, segmented memory
-Memory (memory.ts)   → 64KB segments: STACK, RSTACK, CODE, STRING  
+Memory (memory.ts)   → 64KB segments: STACK, RSTACK, CODE, STRING
 Tagged (tagged.ts)   → NaN-boxing in Float32 (corruption-sensitive)
 Parser/Compiler      → Single-pass bytecode, shared compileCodeBlock()
 Operations (ops/)    → Builtin verbs by category
 ```
 
-## Critical Data Paths
+### Critical Data Paths
+
 1. **Raw floats**: `literal → vm.push(rawFloat) → writeFloat32` (safe)
 2. **Tagged values**: `toTaggedValue() → NaN-boxed → writeFloat32` (corruption risk)
 3. **Lists**: `LIST + elements + LINK` (stack metadata)
 
-## TACIT Fundamentals
+## Code Standards
 
-### Stack Semantics (RPN/LIFO)
-- **All operations are list-aware** - act on entire list structures
+### While Coding (MUST/SHOULD)
+
+- **C-1**: Follow TDD: scaffold stub → failing test → implement
+- **C-2**: Use existing TACIT domain vocabulary for consistency
+- **C-3**: Functions over classes when testable functions suffice
+- **C-4**: Prefer simple, composable, testable functions
+- **C-5**: Use `import type { ... }` for type-only imports
+- **C-6**: No inline comments except critical caveats; self-documenting code
+- **C-7**: Default to `type`; use `interface` only when necessary
+- **C-8**: Don't extract functions unless: reused elsewhere, only way to unit-test, or drastically improves readability
+
+### TypeScript Specifics
+
+- Branded types for IDs: `type UserId = Brand<string, 'UserId'>`
+- **Portability** (TACIT → C/Assembly): Functions over objects, explicit loops over iterators, avoid spread/destructuring/for...of
+
+### TACIT-Specific Constraints
+
+- **Two data paths**: Raw floats (safe) vs tagged values (corruption-prone)
+- **All operations list-aware**: Act on entire list structures
 - **Broadcasting**: Modulo-based for mismatched lengths (default)
-- **List format**: `LIST(length) + elements + LINK(backptr)` 
-- **LINK**: Stack metadata only, not part of list structure
+- **Stack semantics**: RPN/LIFO, top = last pushed
 
-### Memory Model
+## Testing Standards
+
+### Test Organization (MUST)
+
+- **T-1**: Colocate unit tests (`*.test.ts`) with source
+- **T-2**: Separate pure-logic unit tests from VM integration tests
+- **T-3**: Use `--runInBand` to prevent test contamination
+- **T-4**: Prefer integration tests over heavy mocking
+
+### Test Quality (MUST/SHOULD)
+
+- **T-5**: Parameterize inputs; no unexplained literals (`42`, `"foo"`)
+- **T-6**: Tests must be able to fail for real defects
+- **T-7**: Test description matches final assertion
+- **T-8**: Compare to independent expectations, not function output
+- **T-9**: Test entire structure in one assertion:
+  ```typescript
+  expect(vm.getStackData()).toEqual([1, 2, 3]); // ✅ Good
+  expect(vm.getStackData()).toHaveLength(3); // ❌ Bad
+  ```
+- **T-10**: Strong assertions: `toEqual(1)` vs `toBeGreaterThanOrEqual(1)`
+- **T-11**: Test edge cases, boundaries, realistic + unexpected input
+- **T-12**: Don't test conditions caught by TypeScript
+
+### TACIT Test Utilities
+
+- `pushValue(vm, value, tag)`, `pushList(vm, values)`
+- `getStackWithTags(vm)`, `resetVM()`, `formatStack(vm)`
+- `executeTacitCode(code)`, `captureTacitOutput(code)`
+- Remember: All stack operations are list-aware
+
+## TACIT Domain Knowledge
+
+### Stack & Memory Model
+
+- **RPN/LIFO**: Top of stack = last pushed item
 - **Fixed 32-bit cells**: NaN-boxed Float32 with tags
 - **NaN corruption**: JS normalizes custom NaN payloads unpredictably
-- **Two paths**: Raw floats (safe) vs tagged values (fragile)
+- **List format**: `LIST(length) + elements + LINK(backptr)`
+- **LINK**: Stack metadata only, not part of list structure
 
 ### List Examples
+
 ```
 ( 1 2 3 )      → LIST:3, 1, 2, 3, LINK:4
-( 1 ( 2 3 ) 4) → LIST:5, 1, LIST:2, 2, 3, 4, LINK:6  
+( 1 ( 2 3 ) 4) → LIST:5, 1, LIST:2, 2, 3, 4, LINK:6
 ( )            → LIST:0, LINK:1
 ```
 
 ### Capsule Model
+
 - **Structure**: `[function, ...state_values]`
 - **Invocation**: Sets `self` register, saves context on return stack
 - **Non-reentrant**: Unless immutable
 - **Dispatch**: Symbolic (`next`, `reset`) for sequences
 
-## Code Standards
+## Quality Assessment
 
-### TypeScript
-- `import type { ... }` for type-only imports
-- `type` over `interface` 
-- Functions over classes, explicit loops over iterators
-- **Portability**: Avoid spread, destructuring, for...of, arrow functions
+### Function Evaluation Checklist
 
-### Testing
-- Colocate tests (`*.test.ts`), use `--runInBand`
-- Test utilities: `pushValue()`, `getStackWithTags()`, `resetVM()`
-- Focus on stack effects and list-aware operations
-- Strong assertions: `toEqual()` over `toHaveLength()`
+1. **Readable**: Can you honestly follow what it does?
+2. **Complexity**: High cyclomatic complexity (nested if-else)?
+3. **Algorithms**: Better data structures (parsers, trees, stacks)?
+4. **Parameters**: Unused params or unnecessary type casts?
+5. **Testability**: Easily testable without mocking core features?
+6. **Dependencies**: Hidden dependencies that should be parameters?
+7. **Naming**: Consistent with TACIT domain vocabulary?
 
-## Quality Checklists
+### Test Evaluation Checklist
 
-### Function Assessment
-1. Readable? 2. Low complexity? 3. Good algorithm? 4. Testable? 5. TACIT vocabulary?
+1. **Parameterized**: No magic numbers/strings
+2. **Failure potential**: Can fail for real defects
+3. **Description alignment**: Matches final assertion
+4. **Independent expectations**: Pre-computed, not function output
+5. **Strong assertions**: Specific over general
+6. **Edge cases**: Boundaries, realistic, unexpected input
+7. **Type safety**: Don't test TypeScript-caught conditions
 
-### Test Assessment  
-1. No magic numbers 2. Can fail 3. Description matches assertion 4. Independent expectations
-
-### Architecture Priorities
-1. **Core ≠ test files** - VM/memory/tagged are mission-critical
-2. **Fix core first** - cascade outward to utilities/tests
-3. **Impact radius** - understand what breaks when core changes
-
-## Debugging
+## Critical Debugging
 
 ### Tools
+
 - `vm.getStackData()`, `formatStack(vm)`, `getStackWithTags(vm)`
 - `memory.dump()`, `dumpTaggedValue()`
 - `validateStackDepth()`, `safeStackOperation()`
 
 ### Common Issues
+
 - **NaN corruption**: Use raw bit ops, avoid math/JSON on tagged values
 - **Stack underflow**: Validate before operations
 - **List traversal**: Follow LINK pointers correctly
@@ -92,112 +161,31 @@ Operations (ops/)    → Builtin verbs by category
 ## Critical Failure Patterns (AVOID)
 
 ### 1. Planning Discipline
+
 - Never start without complete approved plan
 - Execute step-by-step, stop and replan if issues arise
 - Identify core issue first, separate from secondary effects
 
-### 2. Code Hierarchy Awareness  
-- Core files (VM/memory/tagged) ≠ test utilities
-- Fix architectural center first (usually tagged values/VM)
-- Don't scatter-shot fix peripheral code
+### 2. Code Hierarchy Awareness
+
+- **Core files ≠ test files**: VM/memory/tagged are mission-critical
+- **Fix architectural center first**: Usually tagged values/VM operations
+- **248 failing tests = systemic issue**: Not 248 individual problems
 
 ### 3. Session Management
-- Track changes systematically
-- Resist scope creep
-- 248 failing tests = systemic issue, not 248 problems
 
-### 4. Impact Assessment
-- Understand dependencies before changes
-- Test compilation frequently
-- Map cascade effects of core system changes
+- Track changes systematically, resist scope creep
+- Test compilation frequently, understand cascade effects
+- When overwhelmed: STOP and reassess vs endless fix loops
 
 ## Key Principles
+
 1. **List-aware operations** - all stack ops handle full structures
 2. **NaN-boxing fragility** - tagged values corrupt easily in JS
 3. **LINK is metadata** - not part of list, only for stack traversal
 4. **Plan before action** - always get approval first
-5. **Core before periphery** - fix architecture center first"foo"`
-- **SHOULD NOT** Add tests that cannot fail for real defects
-- **SHOULD** Ensure test description matches final assertion
-- **SHOULD** Compare to independent expectations, not function output
-- **SHOULD** Test entire structure in one assertion when possible:
-  ```typescript
-  expect(vm.getStackData()).toEqual([1, 2, 3]); // Good
-  expect(vm.getStackData()).toHaveLength(3); // Bad
-  ```
-- **SHOULD** Test edge cases and value boundaries
-- **SHOULD NOT** Test conditions caught by TypeScript
+5. **Core before periphery** - fix architecture center first
 
-### Testing Patterns
-
-- **Test isolation**: Use `--runInBand` to prevent contamination
-- **Tagged value corruption**: JavaScript normalizes custom NaN values (0x7fc20003 → 0x7fc00000)
-- **Test utilities**:
-  - `pushValue(vm, value, tag)` - Push tagged values onto stack
-  - `pushList(vm, values)` - Create proper LIST + LINK structures
-  - `getStackWithTags(vm)` - Decode stack with tag information
-  - `resetVM()` - Complete VM state reset for test isolation
-  - `executeTacitCode(code)` - Execute code and return stack results
-  - `captureTacitOutput(code)` - Capture printed output from code execution
-- **Memory debugging**: Use `vm.getStackData()` and memory dump methods
-- **Stack debugging**: `formatStack(vm)` for readable stack traces with tags
-
-### TACIT-Specific Test Considerations
-
-- **MUST** Remember all stack operations are list-aware
-- **SHOULD** Test both simple values and list structures
-- **SHOULD** Use consistent VM setup/teardown patterns
-- **SHOULD** Test stack effects and memory safety
-- **SHOULD** Focus on single aspect of functionality per test
-
-## Code Conventions
-
-### Style Rules
-
-- **No inline comments**: Use terse block comments at file top only
-- **Self-documenting code**: Clear variable/function names over explanatory comments
-- **Multi-step planning**: Always propose detailed plans before implementation
-- **Yarn only**: Never use npm, always use yarn for consistency
-
-### NaN-Boxing Critical Knowledge
-
-- **Two data paths**: Raw IEEE 754 floats (Tag.NUMBER) vs NaN-boxed tagged values
-- **Corruption source**: JavaScript operations normalize NaN payloads unpredictably
-- **Detection**: Use `!isNaN(value)` to distinguish raw floats from tagged values
-- **Safe path**: Raw floats bypass NaN-boxing entirely, immune to normalization
-
-### Stack Semantics
-
-- **LIFO order**: Top of stack is last pushed item
-- **List-aware operations**: `swap`, `dup`, `nip` operate on entire list structures
-- **Broadcasting**: Modulo-based repetition for mismatched lengths (not strict mode)
-- **Stack manipulation**: Always consider stack effects in RPN notation
-
-### Portability Requirements
-
-**TACIT is a prototype for eventual porting to C/assembly**, so code must be simple and portable:
-
-- **Functions over objects** - Avoid complex OOP patterns
-- **Explicit loops** - Use `for`/`while` instead of `.map()`, `.forEach()`, etc.
-- **No modern ECMAScript** - Avoid spread, destructuring, for...of loops
-- **Direct array access** - Use `array[i]` instead of iterators
-- **NaN-boxing sensitivity** - Float32 values extremely sensitive to JS normalization
-
-## List Architecture
-
-### Structure
-
-```
-LIST: <length>     # Header with element count
-<element1>         # Data elements
-<element2>
-...
-LINK: <offset>     # Backpointer for stack traversal
-```
-
-### Key Concepts
-
-- **LINK is stack metadata**, not part of list structure
 - **Structurally immutable**: Copy for length/shape changes
 - **In-place mutation allowed**: For simple value updates (counters, etc.)
 - **Nested lists**: Stored inline without their own LINK tags
