@@ -140,7 +140,7 @@ const processStack = (stack: number[]) => stack.map(value => processValue(value)
 
 - **Test isolation**: Use `--runInBand` to prevent contamination
 - **Tagged value corruption**: JavaScript normalizes custom NaN values (0x7fc20003 → 0x7fc00000)
-- **Test utilities**: 
+- **Test utilities**:
   - `pushValue(vm, value, tag)` - Push tagged values onto stack
   - `pushList(vm, values)` - Create proper LIST + LINK structures
   - `getStackWithTags(vm)` - Decode stack with tag information
@@ -238,12 +238,14 @@ LINK: <offset>     # Backpointer for stack traversal
 #### Critical List Specification Details
 
 **LINK is stack metadata, not part of list structure:**
+
 - LINK points backward to list header (LIST) from top of stack
 - Required only for stack representation of variable-length objects
 - Not stored in memory representation
 - External to the list, used only to locate list header from TOS
 
 **List Construction Examples:**
+
 - Simple: `( 1 2 3 )` becomes: `LIST: 3, 1, 2, 3, LINK: 4`
 - Nested: `( 1 ( 2 3 ) 4 )` becomes: `LIST: 5, 1, LIST: 2, 2, 3, 4, LINK: 6`
 - Zero-length: `( )` becomes: `LIST: 0, LINK: 1`
@@ -258,6 +260,7 @@ LINK: <offset>     # Backpointer for stack traversal
 #### Capsule Invocation Protocol
 
 On capsule call:
+
 - `self` is set to the capsule list
 - Return stack stores: instruction pointer (ip), previous self, and optionally base pointer (bp)
 - On entry: ip is set to capsule function; self is updated; bp is optionally updated
@@ -277,6 +280,7 @@ On capsule call:
 ### Sequence Protocol
 
 Capsules support symbolic dispatch:
+
 - `next`: Returns next value, `nil` when exhausted
 - `reset`: Rewinds internal cursor to beginning
 - Enables stateful traversal with internal logic
