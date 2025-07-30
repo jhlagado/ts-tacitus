@@ -12,10 +12,10 @@ TypeScript implementation of TACIT - stack-based language (Forth + APL + Joy). P
 
 ### Before Coding (MUST)
 
-- **BP-1**: Ask clarifying questions
-- **BP-2**: Draft and confirm approach for complex work
-- **BP-3**: If ≥2 approaches exist, list pros/cons
-- **BP-4**: Generate multi-step plan → approval → execute step-by-step
+- Ask clarifying questions
+- Draft and confirm approach for complex work
+- If ≥2 approaches exist, list pros/cons
+- Generate multi-step plan → approval → execute step-by-step
 - **NEVER**: Start without approved plan or deviate during execution
 
 ### Commands (Always `yarn`)
@@ -48,14 +48,14 @@ Operations (ops/)    → Builtin verbs by category
 
 ### While Coding (MUST/SHOULD)
 
-- **C-1**: Follow TDD: scaffold stub → failing test → implement
-- **C-2**: Use existing TACIT domain vocabulary for consistency
-- **C-3**: Functions over classes when testable functions suffice
-- **C-4**: Prefer simple, composable, testable functions
-- **C-5**: Use `import type { ... }` for type-only imports
-- **C-6**: No inline comments except critical caveats; self-documenting code
-- **C-7**: Default to `type`; use `interface` only when necessary
-- **C-8**: Don't extract functions unless: reused elsewhere, only way to unit-test, or drastically improves readability
+- Follow TDD: scaffold stub → failing test → implement
+- Use existing TACIT domain vocabulary for consistency
+- Functions over classes when testable functions suffice
+- Prefer simple, composable, testable functions
+- Use `import type { ... }` for type-only imports
+- No inline comments except critical caveats; self-documenting code
+- Default to `type`; use `interface` only when necessary
+- Don't extract functions unless: reused elsewhere, only way to unit-test, or drastically improves readability
 
 ### TypeScript Specifics
 
@@ -73,25 +73,25 @@ Operations (ops/)    → Builtin verbs by category
 
 ### Test Organization (MUST)
 
-- **T-1**: Colocate unit tests (`*.test.ts`) with source
-- **T-2**: Separate pure-logic unit tests from VM integration tests
-- **T-3**: Use `--runInBand` to prevent test contamination
-- **T-4**: Prefer integration tests over heavy mocking
+- Colocate unit tests (`*.test.ts`) with source
+- Separate pure-logic unit tests from VM integration tests
+- Use `--runInBand` to prevent test contamination
+- Prefer integration tests over heavy mocking
 
 ### Test Quality (MUST/SHOULD)
 
-- **T-5**: Parameterize inputs; no unexplained literals (`42`, `"foo"`)
-- **T-6**: Tests must be able to fail for real defects
-- **T-7**: Test description matches final assertion
-- **T-8**: Compare to independent expectations, not function output
-- **T-9**: Test entire structure in one assertion:
+- Parameterize inputs; no unexplained literals (`42`, `"foo"`)
+- Tests must be able to fail for real defects
+- Test description matches final assertion
+- Compare to independent expectations, not function output
+- Test entire structure in one assertion:
   ```typescript
   expect(vm.getStackData()).toEqual([1, 2, 3]); // ✅ Good
   expect(vm.getStackData()).toHaveLength(3); // ❌ Bad
   ```
-- **T-10**: Strong assertions: `toEqual(1)` vs `toBeGreaterThanOrEqual(1)`
-- **T-11**: Test edge cases, boundaries, realistic + unexpected input
-- **T-12**: Don't test conditions caught by TypeScript
+- Strong assertions: `toEqual(1)` vs `toBeGreaterThanOrEqual(1)`
+- Test edge cases, boundaries, realistic + unexpected input
+- Don't test conditions caught by TypeScript
 
 ### TACIT Test Utilities
 
