@@ -1,11 +1,13 @@
 # TACIT AI Agent Instructions
 
 ## Project: ts-tacitus
+
 TypeScript implementation of TACIT - stack-based language (Forth + APL + Joy). Point-free composition, NaN-boxed tagged values, polymorphic lists.
 
 ### Key Documentation
+
 - **Lists**: See `.github/instructions/lists.md` for complete list specification
-- **Tagged Values**: See `.github/instructions/tagged.md` for NaN-boxing details  
+- **Tagged Values**: See `.github/instructions/tagged.md` for NaN-boxing details
 - **Capsules**: See `.github/instructions/capsules.md` for object model specification
 
 ## Development Workflow
