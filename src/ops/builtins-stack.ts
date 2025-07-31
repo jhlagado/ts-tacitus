@@ -279,15 +279,11 @@ export const swapOp: Verb = (vm: VM) => {
   const originalSP = vm.SP;
 
   try {
-    // Find top two elements using logical slot offsets
     const [topNextSlot, topSlots] = findElement(vm, 0);
     const [secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
     const totalSlots = topSlots + secondSlots;
 
-    // Convert to physical slot indices for slotsRoll
-    // The top element starts at physical index (stackLength - topSlots)
-    // The range includes both top and second elements
     const stackLength = vm.SP / BYTES_PER_ELEMENT;
     const startSlot = stackLength - totalSlots;
 
@@ -421,13 +417,13 @@ export const revrotOp: Verb = (vm: VM) => {
  * @throws {VMError} If an error occurs during the operation.
  *
  * @example
- * // Stack before: [1, 2] (2 on top)
- * // Stack after:  [2]
+ *
+ *
  * nipOp(vm)
  *
  * @example
- * // Stack before: [list1, list2] (list2 on top)
- * // Stack after:  [list2]
+ *
+ *
  * nipOp(vm)
  */
 export const nipOp: Verb = (vm: VM) => {
@@ -436,19 +432,13 @@ export const nipOp: Verb = (vm: VM) => {
   safeStackOperation(
     vm,
     () => {
-      // Find the size of TOS (top element)
       const [_tosNextSlot, tosSize] = findElement(vm, 0);
 
-      // Find the size of NOS (second element)
       const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
 
-      // Calculate addresses in stack memory
-      // TOS starts at SP - tosSize * BYTES_PER_ELEMENT
-      // NOS starts at SP - (tosSize + nosSize) * BYTES_PER_ELEMENT
       const tosStartAddr = vm.SP - tosSize * BYTES_PER_ELEMENT;
       const nosStartAddr = vm.SP - (tosSize + nosSize) * BYTES_PER_ELEMENT;
 
-      // Copy TOS data down to overwrite NOS position
       for (let i = 0; i < tosSize; i++) {
         const sourceAddr = tosStartAddr + i * BYTES_PER_ELEMENT;
         const destAddr = nosStartAddr + i * BYTES_PER_ELEMENT;
@@ -457,7 +447,6 @@ export const nipOp: Verb = (vm: VM) => {
         vm.memory.writeFloat32(SEG_STACK, destAddr, value);
       }
 
-      // Adjust stack pointer - we removed nosSize slots (stack grows upwards)
       vm.SP -= nosSize * BYTES_PER_ELEMENT;
     },
     'nip',
@@ -478,13 +467,13 @@ export const nipOp: Verb = (vm: VM) => {
  * @throws {VMError} If an error occurs during the operation.
  *
  * @example
- * // Stack before: [1, 2] (2 on top)
- * // Stack after:  [2, 1, 2]
+ *
+ *
  * tuckOp(vm)
  *
  * @example
- * // Stack before: [list1, value] (value on top)
- * // Stack after:  [value, list1, value]
+ *
+ *
  * tuckOp(vm)
  */
 export const tuckOp: Verb = (vm: VM) => {
@@ -493,11 +482,8 @@ export const tuckOp: Verb = (vm: VM) => {
   safeStackOperation(
     vm,
     () => {
-      // Tuck is equivalent to swap followed by over
-      // First, swap the top two elements
       swapOp(vm);
 
-      // Then, duplicate the second element (which is now the original top) to the top
       overOp(vm);
     },
     'tuck',

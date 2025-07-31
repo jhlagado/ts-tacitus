@@ -42,7 +42,6 @@ describe('Arithmetic Operations', () => {
     testVM.debug = false;
   });
 
-  // Basic Binary Operations
   test('add - should add two numbers correctly', () => {
     testVM.push(5);
     testVM.push(3);
@@ -251,7 +250,6 @@ describe('Arithmetic Operations', () => {
     expect(() => maxOp(testVM)).toThrow('Stack underflow');
   });
 
-  // Unary Operations
   test('absolute - should return absolute value of negative number', () => {
     testVM.push(-5);
     absOp(testVM);

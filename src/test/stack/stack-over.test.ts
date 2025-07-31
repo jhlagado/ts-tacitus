@@ -25,15 +25,10 @@ describe('over Operation', () => {
   });
 
   test('should duplicate a list when it is the second item', () => {
-    // Create a stack with a list and a value, then apply 'over'
-    // This executes: ( 1 2 ) 100 over
-    // Which should put a copy of the list on top
     const stack = executeTacitCode('( 1 2 ) 100 over');
 
-    // Expected stack: [LIST(2), 1, 2, LINK, 100, LIST(2), 1, 2, LINK]
     expect(stack.length).toBe(9);
 
-    // Verify first list
     const { tag: list1Tag, value: list1Size } = fromTaggedValue(stack[0]);
     expect(list1Tag).toBe(Tag.LIST);
     expect(list1Size).toBe(2);
@@ -43,10 +38,8 @@ describe('over Operation', () => {
     const { tag: link1Tag } = fromTaggedValue(stack[3]);
     expect(link1Tag).toBe(Tag.LINK);
 
-    // Verify value
     expect(stack[4]).toBe(100);
 
-    // Verify duplicated list
     const { tag: list2Tag, value: list2Size } = fromTaggedValue(stack[5]);
     expect(list2Tag).toBe(Tag.LIST);
     expect(list2Size).toBe(2);

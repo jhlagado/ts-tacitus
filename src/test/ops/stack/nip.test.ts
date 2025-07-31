@@ -18,8 +18,8 @@ describe('nip Operation', () => {
 
   describe('simple values', () => {
     test('should remove second element with simple values', () => {
-      vm.push(1); // Second element (will be removed)
-      vm.push(2); // Top element (will remain)
+      vm.push(1);
+      vm.push(2);
 
       nipOp(vm);
 
@@ -27,9 +27,9 @@ describe('nip Operation', () => {
     });
 
     test('should work with multiple simple values on stack', () => {
-      vm.push(10); // Bottom element (will remain)
-      vm.push(20); // Second element (will be removed)
-      vm.push(30); // Top element (will remain)
+      vm.push(10);
+      vm.push(20);
+      vm.push(30);
 
       nipOp(vm);
 
@@ -37,8 +37,8 @@ describe('nip Operation', () => {
     });
 
     test('should work with negative numbers', () => {
-      vm.push(-5.5); // Second element (will be removed)
-      vm.push(3.14); // Top element (will remain)
+      vm.push(-5.5);
+      vm.push(3.14);
 
       nipOp(vm);
 
@@ -48,8 +48,8 @@ describe('nip Operation', () => {
     });
 
     test('should work with exactly two elements', () => {
-      vm.push(100); // Second element (will be removed)
-      vm.push(200); // Top element (will remain)
+      vm.push(100);
+      vm.push(200);
 
       nipOp(vm);
 
@@ -59,31 +59,22 @@ describe('nip Operation', () => {
 
   describe('list operations', () => {
     test('should remove simple value under a list (keeping list)', () => {
-      // Execute: 42 ( 10 20 ) nip
-      // This should remove 42 and leave the list
       const stack = executeTacitCode('42 ( 10 20 ) nip');
 
-      // Should only have the list remaining
       expect(stack).not.toContain(42);
       expect(stack).toContain(10);
       expect(stack).toContain(20);
     });
 
     test('should remove list under simple value (keeping simple value)', () => {
-      // Execute: ( 99 88 ) 42 nip
-      // This should remove the list and leave 42
       const stack = executeTacitCode('( 99 88 ) 42 nip');
 
-      // Should only have the simple value remaining
       expect(stack).toEqual([42]);
     });
 
     test('should remove list under another list', () => {
-      // Execute: ( 100 200 ) ( 300 400 ) nip
-      // This should remove first list and leave second list
       const stack = executeTacitCode('( 100 200 ) ( 300 400 ) nip');
 
-      // Should only have the second list remaining
       expect(stack).not.toContain(100);
       expect(stack).not.toContain(200);
       expect(stack).toContain(300);
@@ -91,22 +82,16 @@ describe('nip Operation', () => {
     });
 
     test('should handle multi-element lists', () => {
-      // Execute: ( 10 20 30 40 ) 999 nip
-      // This should remove the large list and leave 999
       const stack = executeTacitCode('( 10 20 30 40 ) 999 nip');
 
-      // Should only have the simple value remaining
       expect(stack).toEqual([999]);
     });
 
     test('should handle nested lists correctly', () => {
-      // Execute: 123 ( 1 ( 2 3 ) 4 ) nip
-      // This should remove 123 and leave the nested list
       const stack = executeTacitCode('123 ( 1 ( 2 3 ) 4 ) nip');
 
-      // The result should be just the nested list structure
       expect(stack.length).toBeGreaterThan(0);
-      expect(stack).not.toContain(123); // 123 should be removed
+      expect(stack).not.toContain(123);
     });
   });
 

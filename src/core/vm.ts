@@ -24,7 +24,6 @@ import {
   ReturnStackUnderflowError,
   ReturnStackOverflowError,
 } from './errors';
-// Imports removed as we no longer use function table
 
 /** Number of bytes per memory element (32-bit float) */
 const BYTES_PER_ELEMENT = 4;

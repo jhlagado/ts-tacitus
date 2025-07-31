@@ -29,7 +29,6 @@ describe('Nested list operations', () => {
     vm.compiler.reset();
   });
 
-  // Known issue: List tags not being set correctly
   test('should handle a nested list with 1 level of nesting', () => {
     const stack = executeCode('( 1 ( 2 3 ) 4 )');
 
@@ -112,7 +111,6 @@ describe('Nested list operations', () => {
     expect(linkTag).toBe(Tag.LINK);
   });
 
-  // Known issue: List tags not being set correctly
   test('should handle deeply nested lists (3+ levels)', () => {
     const stack = executeCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
 

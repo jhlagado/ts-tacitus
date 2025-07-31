@@ -81,7 +81,6 @@ describe('Parser with Tokenizer', () => {
       const emptyFunctionIndex = vm.symbolTable.find('empty');
       expect(() => {
         if (emptyFunctionIndex !== undefined) {
-          // Get the implementation using our enhanced symbol table
           const result = vm.symbolTable.findWithImplementation('empty');
           if (result && result.implementation) {
             result.implementation(vm);

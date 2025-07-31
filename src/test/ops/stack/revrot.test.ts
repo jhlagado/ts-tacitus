@@ -24,19 +24,18 @@ describe('revrot Operation', () => {
     });
 
     it('should reverse rotate with more values on stack', () => {
-      // Setup: 10 20 3 1 2 (top)
       resetVM();
       vm.push(10);
       vm.push(20);
       vm.push(3);
       vm.push(1);
       vm.push(2);
-      
+
       revrotOp(vm);
-      
+
       const stack = vm.getStackData();
       expect(stack.length).toBe(5);
-      // Just check that we have 5 values after revrot
+
       expect(typeof stack[0]).toBe('number');
       expect(typeof stack[1]).toBe('number');
       expect(typeof stack[2]).toBe('number');
@@ -48,22 +47,20 @@ describe('revrot Operation', () => {
   describe('list operations', () => {
     it('should reverse rotate a list with two simple values', () => {
       resetVM();
-      
+
       const list = toTaggedValue(2, Tag.LIST);
       vm.push(1);
       vm.push(2);
       vm.push(list);
       vm.push(5);
-      
+
       revrotOp(vm);
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(4);
-      // Just verify basic functionality - stack has values
     });
 
     test('should handle nested lists', () => {
-      // Create nested list: ((1 2) 3)
       const innerListTag = toTaggedValue(2, Tag.LIST);
       const outerListTag = toTaggedValue(2, Tag.LIST);
       const outerLinkTag = toTaggedValue(5, Tag.LINK);
@@ -75,7 +72,6 @@ describe('revrot Operation', () => {
       vm.push(3);
       vm.push(outerLinkTag);
 
-      // Add two more values
       vm.push(4);
       vm.push(5);
 
@@ -83,11 +79,9 @@ describe('revrot Operation', () => {
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(8);
-      // Just verify basic functionality - stack has values
     });
 
     test('should reverse rotate three lists', () => {
-      // List 1: (1 2)
       const listTag1 = toTaggedValue(2, Tag.LIST);
       const linkTag1 = toTaggedValue(3, Tag.LINK);
       vm.push(listTag1);
@@ -95,7 +89,6 @@ describe('revrot Operation', () => {
       vm.push(2);
       vm.push(linkTag1);
 
-      // List 2: (3 4)
       const listTag2 = toTaggedValue(2, Tag.LIST);
       const linkTag2 = toTaggedValue(3, Tag.LINK);
       vm.push(listTag2);
@@ -103,7 +96,6 @@ describe('revrot Operation', () => {
       vm.push(4);
       vm.push(linkTag2);
 
-      // List 3: (5 6)
       const listTag3 = toTaggedValue(2, Tag.LIST);
       const linkTag3 = toTaggedValue(3, Tag.LINK);
       vm.push(listTag3);
@@ -115,7 +107,6 @@ describe('revrot Operation', () => {
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(12);
-      // Just verify basic functionality - stack has values
     });
   });
 
@@ -123,7 +114,7 @@ describe('revrot Operation', () => {
     test('should throw on insufficient stack depth', () => {
       vm.push(1);
       vm.push(2);
-      // Only 2 elements, needs 3
+
       expect(() => revrotOp(vm)).toThrow('Stack underflow');
     });
 
