@@ -282,12 +282,12 @@ export const swapOp: Verb = (vm: VM) => {
     // Find top two elements using logical slot offsets
     const [topNextSlot, topSlots] = findElement(vm, 0);
     const [secondNextSlot, secondSlots] = findElement(vm, topSlots);
-    
+
     const totalSlots = topSlots + secondSlots;
-    
+
     // Convert to physical slot indices for slotsRoll
     // The top element starts at physical index (stackLength - topSlots)
-    // The range includes both top and second elements 
+    // The range includes both top and second elements
     const stackLength = vm.SP / BYTES_PER_ELEMENT;
     const startSlot = stackLength - totalSlots;
 

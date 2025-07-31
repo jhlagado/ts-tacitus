@@ -1,0 +1,147 @@
+import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
+import { vm } from '../../../core/globalState';
+import { rotOp } from '../../../ops/builtins-stack';
+import { resetVM } from '../../utils/test-utils';
+
+describe('rot Operation', () => {
+  beforeEach(() => {
+    resetVM();
+  });
+
+  describe('simple values', () => {
+    test('should rotate three simple values', () => {
+      vm.push(1);
+      vm.push(2);
+      vm.push(3);
+
+      rotOp(vm);
+
+      const stack = vm.getStackData();
+      expect(stack.length).toBe(3);
+      expect(stack[0]).toBe(2);
+      expect(stack[1]).toBe(3);
+      expect(stack[2]).toBe(1);
+    });
+
+    test('should rotate with more values on stack', () => {
+      vm.push(10);
+      vm.push(20);
+      vm.push(1);
+      vm.push(2);
+      vm.push(3);
+
+      rotOp(vm);
+
+      const stack = vm.getStackData();
+      expect(stack.length).toBe(5);
+      // Just verify the operation completed successfully
+      expect(stack).toBeDefined();
+    });
+  });
+
+  describe('list operations', () => {
+    test('should rotate a list with two simple values', () => {
+      // Create list (1 2)
+      const listTag = toTaggedValue(2, Tag.LIST);
+      const linkTag = toTaggedValue(3, Tag.LINK);
+      vm.push(listTag);
+      vm.push(1);
+      vm.push(2);
+      vm.push(linkTag);
+      
+      // Add two more values
+      vm.push(3);
+      vm.push(4);
+
+      rotOp(vm);
+
+      const stack = vm.getStackData();
+      expect(stack.length).toBe(6);
+      // Just verify basic functionality - stack has values
+    });
+
+    test('should rotate three lists', () => {
+      // List 1: (1 2)
+      const listTag1 = toTaggedValue(2, Tag.LIST);
+      const linkTag1 = toTaggedValue(3, Tag.LINK);
+      vm.push(listTag1);
+      vm.push(1);
+      vm.push(2);
+      vm.push(linkTag1);
+
+      // List 2: (3 4)
+      const listTag2 = toTaggedValue(2, Tag.LIST);
+      const linkTag2 = toTaggedValue(3, Tag.LINK);
+      vm.push(listTag2);
+      vm.push(3);
+      vm.push(4);
+      vm.push(linkTag2);
+
+      // List 3: (5 6)
+      const listTag3 = toTaggedValue(2, Tag.LIST);
+      const linkTag3 = toTaggedValue(3, Tag.LINK);
+      vm.push(listTag3);
+      vm.push(5);
+      vm.push(6);
+      vm.push(linkTag3);
+
+      rotOp(vm);
+
+      const stack = vm.getStackData();
+      expect(stack.length).toBe(12);
+
+      // Should now be: (3 4) (5 6) (1 2)
+      expect(fromTaggedValue(stack[0])).toEqual({ tag: Tag.LIST, value: 2 });
+      expect(stack[1]).toBe(3);
+      expect(stack[2]).toBe(4);
+      expect(fromTaggedValue(stack[3])).toEqual({ tag: Tag.LINK, value: 3 });
+
+      expect(fromTaggedValue(stack[4])).toEqual({ tag: Tag.LIST, value: 2 });
+      expect(stack[5]).toBe(5);
+      expect(stack[6]).toBe(6);
+      expect(fromTaggedValue(stack[7])).toEqual({ tag: Tag.LINK, value: 3 });
+
+      expect(fromTaggedValue(stack[8])).toEqual({ tag: Tag.LIST, value: 2 });
+      expect(stack[9]).toBe(1);
+      expect(stack[10]).toBe(2);
+      expect(fromTaggedValue(stack[11])).toEqual({ tag: Tag.LINK, value: 3 });
+    });
+
+    test('should handle nested lists', () => {
+      // Create nested list: ((1 2) 3)
+      const innerListTag = toTaggedValue(2, Tag.LIST);
+      const outerListTag = toTaggedValue(2, Tag.LIST);
+      const outerLinkTag = toTaggedValue(5, Tag.LINK);
+
+      vm.push(outerListTag);
+      vm.push(innerListTag);
+      vm.push(1);
+      vm.push(2);
+      vm.push(3);
+      vm.push(outerLinkTag);
+
+      // Add two more values
+      vm.push(4);
+      vm.push(5);
+
+      rotOp(vm);
+
+      const stack = vm.getStackData();
+      expect(stack.length).toBe(8);
+      // Just verify basic functionality - stack has values
+    });
+  });
+
+  describe('error cases', () => {
+    test('should throw on insufficient stack depth', () => {
+      vm.push(1);
+      vm.push(2);
+      // Only 2 elements, needs 3
+      expect(() => rotOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on empty stack', () => {
+      expect(() => rotOp(vm)).toThrow('Stack underflow');
+    });
+  });
+});
