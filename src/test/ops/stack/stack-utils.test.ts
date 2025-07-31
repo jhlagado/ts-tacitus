@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../core/vm';
-import { SEG_STACK } from '../core/constants';
-import { toTaggedValue, Tag } from '../core/tagged';
-import { slotsRoll } from '../stack/slots';
-import { findElement } from '../stack/find';
+import { VM } from '../../../core/vm';
+import { SEG_STACK } from '../../../core/constants';
+import { toTaggedValue, Tag } from '../../../core/tagged';
+import { slotsRoll } from '../../../stack/slots';
+import { findElement } from '../../../stack/find';
 
 const BYTES_PER_ELEMENT = 4;
 
