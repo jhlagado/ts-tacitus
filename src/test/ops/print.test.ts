@@ -8,33 +8,43 @@ describe('Print operation', () => {
     resetVM();
   });
 
-  test('should print atomic values correctly', () => {
-    const output = captureTacitOutput('123 print');
-    expect(output).toEqual(['123']);
+  describe('simple values', () => {
+    test('should print atomic values correctly', () => {
+      const output = captureTacitOutput('123 print');
+      expect(output).toEqual(['123']);
 
-    const floatOutput = captureTacitOutput('3.14 print');
-    expect(floatOutput).toEqual(['3.14']);
+      const floatOutput = captureTacitOutput('3.14 print');
+      expect(floatOutput).toEqual(['3.14']);
+    });
   });
 
-  test('should print simple lists correctly', () => {
-    const output = captureTacitOutput('( 1 2 ) print');
-    expect(output).toEqual(['( 1 2 )']);
+  describe('list operations', () => {
+    test('should print simple lists correctly', () => {
+      const output = captureTacitOutput('( 1 2 ) print');
+      expect(output).toEqual(['( 1 2 )']);
+    });
+
+    test('should print nested lists correctly', () => {
+      const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) print');
+      expect(output).toEqual(['( 1 ( 2 3 ) 4 )']);
+    });
+
+    test('should print when list is referenced via LINK tag', () => {
+      executeTacitCode('( 10 20 )');
+
+      const output = captureTacitOutput('print');
+      expect(output).toEqual(['( 10 20 )']);
+    });
   });
 
-  test('should print nested lists correctly', () => {
-    const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) print');
-    expect(output).toEqual(['( 1 ( 2 3 ) 4 )']);
+  describe('error cases', () => {
+    // TODO: Add error handling tests for stack underflow and invalid data types
   });
 
-  test('should print when list is referenced via LINK tag', () => {
-    executeTacitCode('( 10 20 )');
-
-    const output = captureTacitOutput('print');
-    expect(output).toEqual(['( 10 20 )']);
-  });
-
-  test('should print deeply nested structures', () => {
-    const output = captureTacitOutput('( 1 ( 2 ( 3 4 ) 5 ) 6 ) print');
-    expect(output).toEqual(['( 1 ( 2 ( 3 4 ) 5 ) 6 )']);
+  describe('integration tests', () => {
+    test('should print deeply nested structures', () => {
+      const output = captureTacitOutput('( 1 ( 2 ( 3 4 ) 5 ) 6 ) print');
+      expect(output).toEqual(['( 1 ( 2 ( 3 4 ) 5 ) 6 )']);
+    });
   });
 });
