@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../core/vm';
-import { SEG_STACK } from '../core/constants';
-import { toTaggedValue, Tag } from '../core/tagged';
-import { findElement } from './find';
+import { VM } from '../../core/vm';
+import { SEG_STACK } from '../../core/constants';
+import { toTaggedValue, Tag } from '../../core/tagged';
+import { findElement } from '../../stack/find';
 
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
   vm.memory.writeFloat32(SEG_STACK, vm.SP, toTaggedValue(value, tag));

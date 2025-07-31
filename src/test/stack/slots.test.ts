@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../core/vm';
-import { slotsRoll, slotsReverse } from './slots';
+import { VM } from '../../core/vm';
+import { slotsRoll, slotsReverse } from '../../stack/slots';
 
 describe('rangeRoll', () => {
   let vm: VM;
