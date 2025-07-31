@@ -9,10 +9,8 @@ import { initializeInterpreter, vm } from '../../../core/globalState';
  * Helper function to execute Tacit code and return the stack
  */
 function executeIsolatedCode(code: string): number[] {
-  // Reset the global VM for isolation
   initializeInterpreter();
 
-  // Set up VM state
   vm.SP = 0;
   vm.RP = 0;
   vm.BP = 0;
@@ -23,12 +21,10 @@ function executeIsolatedCode(code: string): number[] {
   vm.compiler.CP = 0;
   vm.running = true;
 
-  // Execute the code
   const tokenizer = new Tokenizer(code);
   parse(tokenizer);
   execute(0);
 
-  // Return the stack
   return vm.getStackData();
 }
 
@@ -58,7 +54,6 @@ describe('List creation operations (isolated)', () => {
     test('should handle nested lists', () => {
       const stack = executeIsolatedCode('( 1 ( 2 3 ) 4 )');
 
-      // Log actual stack contents for debugging
       console.log('Nested list stack layout:');
       for (let i = 0; i < stack.length; i++) {
         const item = stack[i];
@@ -66,23 +61,19 @@ describe('List creation operations (isolated)', () => {
         console.log(`[${i}] Value: ${value}, Tag: ${Tag[tag]} (${tag})`);
       }
 
-      // Update expected length based on actual execution
       expect(stack.length).toBe(7);
 
-      // Check outer list tag
       const { tag: outerTag } = fromTaggedValue(stack[0]);
       expect(outerTag).toBe(Tag.LIST);
 
-      // Check inner list tag
       const { tag: innerTag } = fromTaggedValue(stack[2]);
       expect(innerTag).toBe(Tag.LIST);
 
-      // Validate the structure of the nested list
       const { value: outerSize } = fromTaggedValue(stack[0]);
-      expect(outerSize).toBe(5); // Size 5 as per the actual output
+      expect(outerSize).toBe(5);
 
       const { value: innerSize } = fromTaggedValue(stack[2]);
-      expect(innerSize).toBe(2); // 2 elements: 2, 3
+      expect(innerSize).toBe(2);
     });
   });
 });

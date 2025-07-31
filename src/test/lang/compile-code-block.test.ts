@@ -34,7 +34,6 @@ describe('compileCodeBlock function', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(3);
 
-      // All should be code references
       for (let i = 0; i < 3; i++) {
         const { tag } = fromTaggedValue(stack[i]);
         expect(tag).toBe(Tag.CODE);
@@ -93,7 +92,7 @@ describe('compileCodeBlock function', () => {
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
-      expect(stack[0]).toBe(6); // 0 + 2 + 2 + 2
+      expect(stack[0]).toBe(6);
     });
   });
 });

@@ -62,13 +62,11 @@ describe('dup Operation', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(8);
 
-      // First copy of the list
       expect(stack[0]).toEqual(listTag);
       expect(stack[1]).toBe(1);
       expect(stack[2]).toBe(2);
       expect(stack[3]).toEqual(linkTag);
 
-      // Second copy of the list
       expect(stack[4]).toEqual(listTag);
       expect(stack[5]).toBe(1);
       expect(stack[6]).toBe(2);
@@ -90,14 +88,12 @@ describe('dup Operation', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(10);
 
-      // Verify original list
       expect(stack[0]).toEqual(listTag);
       expect(stack[1]).toBe(10);
       expect(stack[2]).toBe(20);
       expect(stack[3]).toBe(30);
       expect(stack[4]).toEqual(linkTag);
 
-      // Verify duplicated list
       expect(stack[5]).toEqual(listTag);
       expect(stack[6]).toBe(10);
       expect(stack[7]).toBe(20);
@@ -106,7 +102,6 @@ describe('dup Operation', () => {
     });
 
     test('should duplicate a nested list', () => {
-      // Create a simpler nested structure: (1 (2 3) 4)
       const innerListTag = toTaggedValue(2, Tag.LIST);
       const innerLinkTag = toTaggedValue(3, Tag.LINK);
       const outerListTag = toTaggedValue(3, Tag.LIST);
@@ -126,12 +121,9 @@ describe('dup Operation', () => {
       dupOp(vm);
 
       const dupStack = vm.getStackData();
-      
-      // After duplication, we should have the original structure plus a copy
+
       expect(dupStack.length).toBeGreaterThan(stackBeforeDup.length);
-      
-      // The duplicated structure should be a complete copy of the original
-      // Since this is a complex nested structure, just verify we have reasonable duplication
+
       expect(dupStack.length).toBeGreaterThanOrEqual(stackBeforeDup.length + 1);
     });
   });

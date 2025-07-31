@@ -20,7 +20,6 @@ import { VM } from '../core/vm';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 
-// Import all the operation implementations
 import {
   literalNumberOp,
   skipDefOp,
