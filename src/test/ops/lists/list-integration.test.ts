@@ -165,11 +165,11 @@ describe('List Integration Tests', () => {
       // This would test list operations within IF/ELSE blocks
       // For now, just verify basic list creation works in preparation for conditionals
       const stack = executeTacitCode('( 1 2 3 )');
-      
+
       expect(stack).toContain(1);
       expect(stack).toContain(2);
       expect(stack).toContain(3);
-      
+
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;

@@ -1,8 +1,8 @@
-import { addOp } from '../../ops/builtins-math';
-import { dupOp, swapOp } from '../../ops/builtins-stack';
-import { initializeInterpreter, vm } from '../../core/globalState';
-import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
-import { toUnsigned16 } from '../../core/utils';
+import { addOp } from '../../../ops/builtins-math';
+import { dupOp, swapOp } from '../../../ops/builtins-stack';
+import { initializeInterpreter, vm } from '../../../core/globalState';
+import { fromTaggedValue, Tag, toTaggedValue } from '../../../core/tagged';
+import { toUnsigned16 } from '../../../core/utils';
 
 import {
   abortOp,
@@ -14,7 +14,7 @@ import {
   literalNumberOp,
   groupLeftOp,
   groupRightOp,
-} from '../../ops/builtins-interpreter';
+} from '../../../ops/builtins-interpreter';
 describe('Built-in Words', () => {
   beforeEach(() => {
     initializeInterpreter();

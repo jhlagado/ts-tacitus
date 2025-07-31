@@ -3,7 +3,7 @@ Tests for unary operations - TACIT's single-operand mathematical operations
 Includes negate, reciprocal, floor, not, signum, and enlist operations
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/globalState';
 import {
   mNegateOp,
   mReciprocalOp,
@@ -11,7 +11,7 @@ import {
   mNotOp,
   mSignumOp,
   mEnlistOp,
-} from '../../ops/builtins-unary-op';
+} from '../../../ops/builtins-unary-op';
 
 function resetVM(): void {
   initializeInterpreter();

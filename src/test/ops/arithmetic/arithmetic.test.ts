@@ -1,5 +1,5 @@
-import { vm } from '../../core/globalState';
-import { executeProgram } from '../../lang/interpreter';
+import { vm } from '../../../core/globalState';
+import { executeProgram } from '../../../lang/interpreter';
 import {
   addOp,
   subtractOp,
@@ -9,9 +9,9 @@ import {
   modOp,
   minOp,
   maxOp,
-} from '../../ops/builtins-math';
-import { absOp, negOp, signOp, expOp, lnOp, logOp, sqrtOp } from '../../ops/arithmetic-ops';
-import { resetVM } from '../utils/test-utils';
+} from '../../../ops/builtins-math';
+import { absOp, negOp, signOp, expOp, lnOp, logOp, sqrtOp } from '../../../ops/arithmetic-ops';
+import { resetVM } from '../../utils/test-utils';
 
 describe('Arithmetic Operations', () => {
   beforeEach(() => {

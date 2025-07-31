@@ -114,7 +114,7 @@ export function verifyNestedStructure(stack: number[], maxDepth: number): void {
 
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
-    
+
     if (tag === Tag.LIST) {
       if (inList) {
         currentDepth++;
@@ -150,30 +150,32 @@ export function measureTacitExecution(code: string): {
   const startTime = performance.now();
   const result = executeTacitCode(code);
   const endTime = performance.now();
-  
+
   return {
     result,
-    executionTimeMs: endTime - startTime
+    executionTimeMs: endTime - startTime,
   };
 }
 
 /**
  * Run performance benchmarks for TACIT operations
  */
-export function benchmarkTacitOperations(operations: Array<{
-  name: string;
-  code: string;
-  maxExecutionTimeMs?: number;
-}>): void {
+export function benchmarkTacitOperations(
+  operations: Array<{
+    name: string;
+    code: string;
+    maxExecutionTimeMs?: number;
+  }>,
+): void {
   describe('TACIT Performance Benchmarks', () => {
     operations.forEach(({ name, code, maxExecutionTimeMs }) => {
       test(`${name} performance`, () => {
         const { executionTimeMs } = measureTacitExecution(code);
-        
+
         if (maxExecutionTimeMs) {
           expect(executionTimeMs).toBeLessThan(maxExecutionTimeMs);
         }
-        
+
         // Log performance for reference
         console.log(`${name}: ${executionTimeMs.toFixed(2)}ms`);
       });
@@ -188,11 +190,13 @@ export function benchmarkTacitOperations(operations: Array<{
 /**
  * Test various TACIT syntax patterns for correctness
  */
-export function validateTacitSyntax(syntaxTests: Array<{
-  description: string;
-  validSyntax: string[];
-  invalidSyntax?: string[];
-}>): void {
+export function validateTacitSyntax(
+  syntaxTests: Array<{
+    description: string;
+    validSyntax: string[];
+    invalidSyntax?: string[];
+  }>,
+): void {
   syntaxTests.forEach(({ description, validSyntax, invalidSyntax }) => {
     describe(`TACIT Syntax: ${description}`, () => {
       validSyntax.forEach(syntax => {
@@ -227,7 +231,7 @@ export function validateStackState(
     noNullValues?: boolean;
     noNaNValues?: boolean;
     validTags?: boolean;
-  }
+  },
 ): void {
   if (expectations.minimumLength !== undefined) {
     expect(stack.length).toBeGreaterThanOrEqual(expectations.minimumLength);

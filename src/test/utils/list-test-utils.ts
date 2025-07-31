@@ -113,7 +113,7 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
  */
 export function createNestedList(structure: any[]): TestList {
   const flatValues: number[] = [];
-  
+
   function flatten(item: any): void {
     if (Array.isArray(item)) {
       // This is a nested list - handle recursively
@@ -125,32 +125,35 @@ export function createNestedList(structure: any[]): TestList {
       flatValues.push(item);
     }
   }
-  
+
   for (const item of structure) {
     flatten(item);
   }
-  
+
   return new TestList(flatValues);
 }
 
 /**
  * Extract list values from stack, following TACIT list structure
  */
-export function extractListFromStack(stack: number[], startIndex = 0): {
+export function extractListFromStack(
+  stack: number[],
+  startIndex = 0,
+): {
   values: number[];
   nextIndex: number;
 } {
   const values: number[] = [];
   let index = startIndex;
-  
+
   // Expect LIST tag first
   const { tag: listTag, value: listLength } = fromTaggedValue(stack[index]);
   if (listTag !== Tag.LIST) {
     throw new Error(`Expected LIST tag at index ${index}, got ${Tag[listTag]}`);
   }
-  
+
   index++;
-  
+
   // Extract the values
   for (let i = 0; i < listLength; i++) {
     if (index >= stack.length) {
@@ -159,7 +162,7 @@ export function extractListFromStack(stack: number[], startIndex = 0): {
     values.push(stack[index]);
     index++;
   }
-  
+
   // Expect LINK tag at the end
   if (index < stack.length) {
     const { tag: linkTag } = fromTaggedValue(stack[index]);
@@ -167,7 +170,7 @@ export function extractListFromStack(stack: number[], startIndex = 0): {
       index++;
     }
   }
-  
+
   return { values, nextIndex: index };
 }
 
