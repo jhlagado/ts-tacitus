@@ -23,7 +23,12 @@
   - [5.2 Decoding Tagged Values](#52-decoding-tagged-values)
   - [5.3 Tag Checking](#53-tag-checking)
   - [5.4 Segment Validation](#54-segment-validation)
-- [6. Future Extensions](#6-future-extensions)
+- [6. Formatting and Display Behavior](#6-formatting-and-display-behavior)
+  - [6.1 NaN-Boxed List Interpretation](#61-nan-boxed-list-interpretation)
+  - [6.2 Formatting Precedence Examples](#62-formatting-precedence-examples)
+  - [6.3 Atomic vs. Contextual Formatting](#63-atomic-vs-contextual-formatting)
+  - [6.4 Implementation Rationale](#64-implementation-rationale)
+- [7. Future Extensions](#7-future-extensions)
 
 ## 1. Introduction
 
@@ -121,6 +126,7 @@ Tacit defines several core tag types that don't require heap allocation:
 - **Description**: Represents standard floating-point numbers.
 - **Value Interpretation**: For tagged numbers with this type, the value field may contain an index or reference to the actual number stored elsewhere, as the 16-bit value field is too small to hold a full floating-point number.
 - **Special Case**: When a Float32 value is not a NaN, it's automatically interpreted as a NUMBER type without requiring tagging.
+- **Important Note**: NUMBER tagged values that contain actual numeric data (not references) are handled specially by the formatter - they bypass the NaN-boxed list interpretation and are formatted directly as numbers.
 
 ### 3.2 Integer Tag
 
@@ -137,9 +143,12 @@ Tacit defines several core tag types that don't require heap allocation:
 
 ### 3.4 String Tag
 
-- **Tag Value**: 3
+- **Tag Value**: 3 (based on current implementation, may differ from documentation)
 - **Description**: Represents string literals stored in the string digest/table.
 - **Value Interpretation**: The value field contains an index or identifier for looking up the string in the string table.
+- **Formatting Behavior**: 
+  - `formatAtomicValue` correctly retrieves strings from the digest when valid, falls back to `[String:address]` format for invalid addresses or empty strings
+  - `formatValue` treats string tags as potential NaN-boxed lists, formatting them as `"( {address} elements )"` unless found in a proper list context on the stack
 
 ### 3.5 Special Values
 
@@ -266,7 +275,48 @@ These validation checks occur at runtime and generate appropriate errors when vi
 
 Segment validation is a key part of Tacit's memory safety guarantees and operates alongside the tagging system to prevent common memory errors.
 
-## 6. Future Extensions
+## 6. Formatting and Display Behavior
+
+### 6.1 NaN-Boxed List Interpretation
+
+One critical aspect of Tacit's tagged value system is how the formatting utilities interpret tagged values. The `formatValue` function implements a specific precedence order that affects how values are displayed:
+
+1. **NaN-Boxed List Check First**: The formatter first checks if a value is a NaN with a non-negative tag value (`Number.isNaN(value) && tagValue >= 0`). Since ALL tagged values (except untagged numbers) are NaN values by design, this check matches most tagged values.
+
+2. **Stack Position Lookup**: For values that pass the NaN-boxed list check, the formatter searches for the value on the current stack to determine if it represents a list structure.
+
+3. **Fallback to Element Count**: If the tagged value is not found on the stack in a list context, it's formatted as `"( {tagValue} elements )"`, where `tagValue` is the 16-bit value portion of the tagged value.
+
+4. **Tag-Specific Formatting**: Only after the NaN-boxed list checks fail does the formatter fall back to tag-specific formatting using `formatAtomicValue`.
+
+### 6.2 Formatting Precedence Examples
+
+This precedence order explains several observed behaviors:
+
+- **STRING tags**: A string with address 287 formats as `"( 287 elements )"` in `formatValue` because 287 is interpreted as a list size, not a string address.
+- **CODE tags**: A code reference with value 100 formats as `"( 100 elements )"` rather than `"[CODE:100]"`.
+- **INTEGER tags**: An integer with value 42 formats as `"( 42 elements )"` rather than showing the integer value.
+- **NUMBER tags**: These are handled specially and bypass the NaN-boxed list interpretation, formatting correctly as numbers.
+
+### 6.3 Atomic vs. Contextual Formatting
+
+Tacit provides two main formatting approaches:
+
+- **`formatAtomicValue`**: Always formats based on the tag type, producing `"[TAG:value]"` format for non-NUMBER tags and proper values for NUMBERs and valid STRINGs.
+- **`formatValue`**: The main entry point that considers stack context and list structures before falling back to atomic formatting. This is designed for interactive use where values might represent complex stack-based data structures.
+
+### 6.4 Implementation Rationale
+
+This formatting behavior reflects Tacit's stack-based nature where:
+
+1. Values on the stack often represent list structures or references to complex data
+2. The same numeric value might represent different things depending on context (list size, string address, code offset)
+3. Interactive formatting should prioritize showing structural information over raw tag details
+4. The formatter must handle cases where tagged values represent "elements count" in dynamically constructed lists
+
+This design choice means that tagged values often display their "potential as list sizes" rather than their tag-specific meaning, which is appropriate for a stack-based language where values frequently represent collection metadata.
+
+## 7. Future Extensions
 
 The Tacit tagging system has room for expansion:
 
