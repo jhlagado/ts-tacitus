@@ -166,7 +166,7 @@ export function runOperationTests(testCases: OperationTestCase[], setup?: () => 
     test(testCase.description || `should execute: ${testCase.code}`, () => {
       resetVM();
       if (setup) setup();
-      
+
       const result = executeTacitCode(testCase.code);
       expect(result).toEqual(testCase.expected);
     });
@@ -197,7 +197,7 @@ export enum OperationType {
 export function testOperationGroup(
   operationType: OperationType | string,
   tests: OperationTestCase[],
-  setup?: () => void
+  setup?: () => void,
 ): void {
   describe(`${operationType} operations`, () => {
     runOperationTests(tests, setup);

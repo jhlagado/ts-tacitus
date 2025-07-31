@@ -3,15 +3,15 @@ Tests for comparison operations - TACIT's relational operators
 All operations work on stack values and return 1 (true) or 0 (false)
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../core/vm';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { VM } from '../../../core/vm';
+import { initializeInterpreter, vm } from '../../../core/globalState';
 import {
   equalOp,
   lessThanOp,
   greaterThanOp,
   lessOrEqualOp,
   greaterOrEqualOp,
-} from '../../ops/builtins-math';
+} from '../../../ops/builtins-math';
 
 describe('Comparison Operations', () => {
   let testVM: VM;

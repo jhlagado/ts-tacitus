@@ -3,8 +3,8 @@ Tests for conditional operations - TACIT's control flow operations
 IF/ELSE statements that execute code blocks based on stack conditions
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
-import { executeProgram } from '../../lang/interpreter';
+import { vm, initializeInterpreter } from '../../../core/globalState';
+import { executeProgram } from '../../../lang/interpreter';
 
 describe('Conditional Operations', () => {
   beforeEach(() => {
