@@ -1,6 +1,9 @@
-import { VM } from '../../core/vm';
-import { initializeInterpreter, vm } from '../../core/globalState';
-
+/*
+Tests for unary operations - TACIT's single-operand mathematical operations
+Includes negate, reciprocal, floor, not, signum, and enlist operations
+*/
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { vm, initializeInterpreter } from '../../core/globalState';
 import {
   mNegateOp,
   mReciprocalOp,
@@ -9,116 +12,136 @@ import {
   mSignumOp,
   mEnlistOp,
 } from '../../ops/builtins-unary-op';
-describe('Built-in Unary Op Operations', () => {
-  let testVM: VM;
+
+function resetVM(): void {
+  initializeInterpreter();
+  vm.debug = false;
+}
+
+describe('Unary Operations', () => {
   beforeEach(() => {
-    initializeInterpreter();
-    testVM = vm;
-    testVM.debug = false;
+    resetVM();
   });
-  describe('mNegateOp (negate)', () => {
+
+  describe('simple values', () => {
     test('should negate a positive number', () => {
-      testVM.push(5);
-      mNegateOp(testVM);
-      expect(testVM.pop()).toBe(-5);
+      vm.push(5);
+      mNegateOp(vm);
+      expect(vm.pop()).toBe(-5);
     });
+
     test('should negate a negative number', () => {
-      testVM.push(-10);
-      mNegateOp(testVM);
-      expect(testVM.pop()).toBe(10);
+      vm.push(-10);
+      mNegateOp(vm);
+      expect(vm.pop()).toBe(10);
     });
-    test('should handle zero', () => {
-      testVM.push(0);
-      mNegateOp(testVM);
-      expect(testVM.pop()).toBe(-0);
+
+    test('should negate zero', () => {
+      vm.push(0);
+      mNegateOp(vm);
+      expect(vm.pop()).toBe(-0);
     });
-    test('should throw on stack underflow', () => {
-      expect(() => mNegateOp(testVM)).toThrow('Stack underflow');
+
+    test('should calculate reciprocal of positive number', () => {
+      vm.push(5);
+      mReciprocalOp(vm);
+      expect(vm.pop()).toBeCloseTo(0.2);
     });
-  });
-  describe('mReciprocalOp (reciprocal)', () => {
-    test('should calculate reciprocal of a positive number', () => {
-      testVM.push(5);
-      mReciprocalOp(testVM);
-      expect(testVM.pop()).toBeCloseTo(0.2);
+
+    test('should calculate reciprocal of negative number', () => {
+      vm.push(-2);
+      mReciprocalOp(vm);
+      expect(vm.pop()).toBe(-0.5);
     });
-    test('should calculate reciprocal of a negative number', () => {
-      testVM.push(-2);
-      mReciprocalOp(testVM);
-      expect(testVM.pop()).toBe(-0.5);
+
+    test('should handle reciprocal division by zero', () => {
+      vm.push(0);
+      mReciprocalOp(vm);
+      expect(vm.pop()).toBe(Infinity);
     });
-    test('should handle division by zero', () => {
-      testVM.push(0);
-      mReciprocalOp(testVM);
-      expect(testVM.pop()).toBe(Infinity);
+
+    test('should floor positive numbers', () => {
+      vm.push(5.7);
+      mFloorOp(vm);
+      expect(vm.pop()).toBe(5);
     });
-    test('should throw on stack underflow', () => {
-      expect(() => mReciprocalOp(testVM)).toThrow('Stack underflow');
+
+    test('should floor negative numbers', () => {
+      vm.push(-2.3);
+      mFloorOp(vm);
+      expect(vm.pop()).toBe(-3);
     });
-  });
-  describe('mFloorOp (floor)', () => {
-    test('should floor a positive number', () => {
-      testVM.push(5.7);
-      mFloorOp(testVM);
-      expect(testVM.pop()).toBe(5);
+
+    test('should floor whole numbers unchanged', () => {
+      vm.push(5);
+      mFloorOp(vm);
+      expect(vm.pop()).toBe(5);
     });
-    test('should floor a negative number', () => {
-      testVM.push(-2.3);
-      mFloorOp(testVM);
-      expect(testVM.pop()).toBe(-3);
+
+    test('should return 1 for logical not of zero', () => {
+      vm.push(0);
+      mNotOp(vm);
+      expect(vm.pop()).toBe(1);
     });
-    test('should handle whole numbers', () => {
-      testVM.push(5);
-      mFloorOp(testVM);
-      expect(testVM.pop()).toBe(5);
+
+    test('should return 0 for logical not of non-zero values', () => {
+      vm.push(5);
+      mNotOp(vm);
+      expect(vm.pop()).toBe(0);
     });
-    test('should throw on stack underflow', () => {
-      expect(() => mFloorOp(testVM)).toThrow('Stack underflow');
+
+    test('should return 0 for logical not of negative numbers', () => {
+      vm.push(-3);
+      mNotOp(vm);
+      expect(vm.pop()).toBe(0);
     });
-  });
-  describe('mNotOp (not)', () => {
-    test('should return 1 for zero', () => {
-      testVM.push(0);
-      mNotOp(testVM);
-      expect(testVM.pop()).toBe(1);
+
+    test('should return 1 for signum of positive numbers', () => {
+      vm.push(5);
+      mSignumOp(vm);
+      expect(vm.pop()).toBe(1);
     });
-    test('should return 0 for non-zero values', () => {
-      testVM.push(5);
-      mNotOp(testVM);
-      expect(testVM.pop()).toBe(0);
+
+    test('should return -1 for signum of negative numbers', () => {
+      vm.push(-3);
+      mSignumOp(vm);
+      expect(vm.pop()).toBe(-1);
     });
-    test('should handle negative numbers', () => {
-      testVM.push(-3);
-      mNotOp(testVM);
-      expect(testVM.pop()).toBe(0);
-    });
-    test('should throw on stack underflow', () => {
-      expect(() => mNotOp(testVM)).toThrow('Stack underflow');
-    });
-  });
-  describe('mSignumOp (signum)', () => {
-    test('should return 1 for positive numbers', () => {
-      testVM.push(5);
-      mSignumOp(testVM);
-      expect(testVM.pop()).toBe(1);
-    });
-    test('should return -1 for negative numbers', () => {
-      testVM.push(-3);
-      mSignumOp(testVM);
-      expect(testVM.pop()).toBe(-1);
-    });
-    test('should return 0 for zero', () => {
-      testVM.push(0);
-      mSignumOp(testVM);
-      expect(testVM.pop()).toBe(0);
-    });
-    test('should throw on stack underflow', () => {
-      expect(() => mSignumOp(testVM)).toThrow('Stack underflow');
+
+    test('should return 0 for signum of zero', () => {
+      vm.push(0);
+      mSignumOp(vm);
+      expect(vm.pop()).toBe(0);
     });
   });
-  describe('mEnlistOp (enlist)', () => {
-    test('should throw on stack underflow', () => {
-      expect(() => mEnlistOp(testVM)).toThrow('Stack underflow');
+
+  describe('list operations', () => {
+    // TODO: Add list-specific unary operation tests when list operations are implemented
+  });
+
+  describe('error cases', () => {
+    test('should throw on negate stack underflow', () => {
+      expect(() => mNegateOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on reciprocal stack underflow', () => {
+      expect(() => mReciprocalOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on floor stack underflow', () => {
+      expect(() => mFloorOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on not stack underflow', () => {
+      expect(() => mNotOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on signum stack underflow', () => {
+      expect(() => mSignumOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('should throw on enlist stack underflow', () => {
+      expect(() => mEnlistOp(vm)).toThrow('Stack underflow');
     });
   });
 });
