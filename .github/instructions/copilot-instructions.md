@@ -43,6 +43,7 @@ Operations (ops/)    → Builtin verbs by category
 ## ⚠️ CRITICAL: TACIT MEMORY MODEL & STACK SEMANTICS ⚠️
 
 ### 🚨 STACK GROWTH DIRECTION (NEVER GET THIS WRONG!)
+
 ```
 STACKS GROW UPWARD IN MEMORY:
 ┌─────────────────────────────────────────┐
@@ -50,7 +51,7 @@ STACKS GROW UPWARD IN MEMORY:
 ├─────────────────┼─────────────────────────┤
 │ 0               │ First pushed value    │  ← Bottom
 │ 4               │ Second pushed value   │
-│ 8               │ Third pushed value    │  
+│ 8               │ Third pushed value    │
 │ 12              │ ...                   │
 │ SP-4            │ Top Of Stack (TOS)    │  ← Last pushed
 │ SP              │ [Next available slot] │  ← Stack Pointer
@@ -61,23 +62,28 @@ POP:  SP -= 4, then reads from SP
 ```
 
 ### 🚨 STACK POINTER ARITHMETIC (MEMORIZE THIS!)
+
 - **Adding elements**: `vm.SP += N * BYTES_PER_ELEMENT` (grows up)
 - **Removing elements**: `vm.SP -= N * BYTES_PER_ELEMENT` (shrinks down)
 - **TOS address**: `vm.SP - BYTES_PER_ELEMENT` (one slot before SP)
 - **NOS address**: `vm.SP - 2 * BYTES_PER_ELEMENT` (two slots before SP)
 
 ### 🚨 getStackData() ARRAY MAPPING
+
 ```typescript
 // vm.getStackData() returns [bottom, ..., top]
 // Index 0 = memory address 0 (oldest/bottom)
 // Index N = memory address N*4 (newest/top)
-vm.push(1); vm.push(2); vm.push(3);
+vm.push(1);
+vm.push(2);
+vm.push(3);
 // Memory: [1@addr0, 2@addr4, 3@addr8]
 // Array:  [1,       2,       3     ]  ← getStackData()
 //         bottom              top
 ```
 
 ### 🚨 findElement() SLOT INDEXING
+
 ```typescript
 // findElement(vm, startSlot) uses LOGICAL slots, not memory addresses
 // Slot 0 = TOS, Slot 1 = NOS, etc. (relative to stack top)
@@ -90,11 +96,12 @@ vm.push(1); vm.push(2); vm.push(3);
 //  slot2 slot1 slot0  ←─── slots are RELATIVE to TOS
 //
 // findElement(vm, 0) → TOS (value 3) at address 8
-// findElement(vm, 1) → NOS (value 2) at address 4  
+// findElement(vm, 1) → NOS (value 2) at address 4
 // findElement(vm, 2) → 3rd (value 1) at address 0
 ```
 
 ### 🚨 STACK OPERATION ADDRESS PATTERNS
+
 ```typescript
 // For operations like nip, swap, etc:
 const [_tosNextSlot, tosSize] = findElement(vm, 0);
@@ -110,6 +117,7 @@ vm.memory.writeFloat32(SEG_STACK, destAddr, value);
 ```
 
 ### 🚨 COMMON MISTAKES TO AVOID
+
 1. **Wrong SP direction**: `vm.SP += size` when removing (should be `-=`)
 2. **Slot vs Address confusion**: Using slot numbers as memory addresses
 3. **TOS/NOS mixup**: slot 0 = TOS (newest), not bottom of stack
@@ -117,6 +125,7 @@ vm.memory.writeFloat32(SEG_STACK, destAddr, value);
 5. **Test pattern errors**: Use global `vm` + `initializeInterpreter()`, not custom VM instances
 
 ### 🚨 DEBUGGING STACK OPERATIONS
+
 ```typescript
 // Always log stack state when debugging:
 console.log('Before:', vm.getStackData(), 'SP:', vm.SP);
@@ -149,7 +158,9 @@ Operations (ops/)    → Builtin verbs by category
 ```
 
 ### Test Patterns (Jest + Global VM)
+
 **ALWAYS use Jest with global vm**:
+
 ```typescript
 import { initializeInterpreter, vm } from '../../../core/globalState';
 import { someOp } from '../../../ops/builtins-stack';

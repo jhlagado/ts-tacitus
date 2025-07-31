@@ -60,7 +60,7 @@ import {
   mSignumOp,
   mEnlistOp,
 } from './builtins-unary-op';
-import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp } from './builtins-stack';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './builtins-stack';
 import { printOp } from './builtins-print';
 import { rawPrintOp } from './builtins-raw-print';
 
@@ -225,6 +225,9 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     case Op.Nip:
       nipOp(vm);
+      break;
+    case Op.Tuck:
+      tuckOp(vm);
       break;
     case Op.Abs:
       absOp(vm);

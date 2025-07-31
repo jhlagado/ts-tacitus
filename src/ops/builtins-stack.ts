@@ -279,11 +279,19 @@ export const swapOp: Verb = (vm: VM) => {
   const originalSP = vm.SP;
 
   try {
-    const [_topNextSlot, topSlots] = findElement(vm, 0);
-    const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
+    // Find top two elements using logical slot offsets
+    const [topNextSlot, topSlots] = findElement(vm, 0);
+    const [secondNextSlot, secondSlots] = findElement(vm, topSlots);
+    
     const totalSlots = topSlots + secondSlots;
+    
+    // Convert to physical slot indices for slotsRoll
+    // The top element starts at physical index (stackLength - topSlots)
+    // The range includes both top and second elements 
+    const stackLength = vm.SP / BYTES_PER_ELEMENT;
+    const startSlot = stackLength - totalSlots;
 
-    slotsRoll(vm, 0, totalSlots, topSlots);
+    slotsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
     vm.SP = originalSP;
     if (error instanceof VMError) {
@@ -403,7 +411,7 @@ export const revrotOp: Verb = (vm: VM) => {
  *
  * Removes the second element from the top of the stack (NOS - Next On Stack).
  * This operation transforms [a, b] into [b], where b is the top of the stack.
- * 
+ *
  * The operation is list-aware and efficiently calculates the size of both the TOS
  * and NOS elements, then shifts the TOS down to overwrite the NOS. This is more
  * efficient than the naive swap+drop implementation.
@@ -418,36 +426,80 @@ export const revrotOp: Verb = (vm: VM) => {
  * nipOp(vm)
  *
  * @example
- * // Stack before: [list1, list2] (list2 on top)  
+ * // Stack before: [list1, list2] (list2 on top)
  * // Stack after:  [list2]
  * nipOp(vm)
  */
 export const nipOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 2, 'nip');
 
-  safeStackOperation(vm, () => {
-    // Find the size of TOS (top element)
-    const [_tosNextSlot, tosSize] = findElement(vm, 0);
-    
-    // Find the size of NOS (second element) 
-    const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
+  safeStackOperation(
+    vm,
+    () => {
+      // Find the size of TOS (top element)
+      const [_tosNextSlot, tosSize] = findElement(vm, 0);
 
-    // Calculate addresses in stack memory
-    // TOS starts at SP - tosSize * BYTES_PER_ELEMENT
-    // NOS starts at SP - (tosSize + nosSize) * BYTES_PER_ELEMENT
-    const tosStartAddr = vm.SP - tosSize * BYTES_PER_ELEMENT;
-    const nosStartAddr = vm.SP - (tosSize + nosSize) * BYTES_PER_ELEMENT;
-    
-    // Copy TOS data down to overwrite NOS position
-    for (let i = 0; i < tosSize; i++) {
-      const sourceAddr = tosStartAddr + (i * BYTES_PER_ELEMENT);
-      const destAddr = nosStartAddr + (i * BYTES_PER_ELEMENT);
-      
-      const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
-      vm.memory.writeFloat32(SEG_STACK, destAddr, value);
-    }
-    
-    // Adjust stack pointer - we removed nosSize slots (stack grows upwards)
-    vm.SP -= nosSize * BYTES_PER_ELEMENT;
-  }, 'nip');
+      // Find the size of NOS (second element)
+      const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
+
+      // Calculate addresses in stack memory
+      // TOS starts at SP - tosSize * BYTES_PER_ELEMENT
+      // NOS starts at SP - (tosSize + nosSize) * BYTES_PER_ELEMENT
+      const tosStartAddr = vm.SP - tosSize * BYTES_PER_ELEMENT;
+      const nosStartAddr = vm.SP - (tosSize + nosSize) * BYTES_PER_ELEMENT;
+
+      // Copy TOS data down to overwrite NOS position
+      for (let i = 0; i < tosSize; i++) {
+        const sourceAddr = tosStartAddr + i * BYTES_PER_ELEMENT;
+        const destAddr = nosStartAddr + i * BYTES_PER_ELEMENT;
+
+        const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
+        vm.memory.writeFloat32(SEG_STACK, destAddr, value);
+      }
+
+      // Adjust stack pointer - we removed nosSize slots (stack grows upwards)
+      vm.SP -= nosSize * BYTES_PER_ELEMENT;
+    },
+    'nip',
+  );
+};
+
+/**
+ * Implements the tuck operation.
+ *
+ * Duplicates the top element and inserts the copy under the second element.
+ * The tuck operation is equivalent to swap followed by over.
+ *
+ * Transforms [a, b] into [b, a, b], where b is the top of the stack.
+ * Handles both simple values and complex data structures like lists.
+ *
+ * @param {VM} vm - The virtual machine instance.
+ * @throws {StackUnderflowError} If the stack has fewer than 2 elements.
+ * @throws {VMError} If an error occurs during the operation.
+ *
+ * @example
+ * // Stack before: [1, 2] (2 on top)
+ * // Stack after:  [2, 1, 2]
+ * tuckOp(vm)
+ *
+ * @example
+ * // Stack before: [list1, value] (value on top)
+ * // Stack after:  [value, list1, value]
+ * tuckOp(vm)
+ */
+export const tuckOp: Verb = (vm: VM) => {
+  validateStackDepth(vm, 2, 'tuck');
+
+  safeStackOperation(
+    vm,
+    () => {
+      // Tuck is equivalent to swap followed by over
+      // First, swap the top two elements
+      swapOp(vm);
+
+      // Then, duplicate the second element (which is now the original top) to the top
+      overOp(vm);
+    },
+    'tuck',
+  );
 };
