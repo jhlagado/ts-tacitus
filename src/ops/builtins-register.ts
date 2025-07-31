@@ -61,7 +61,7 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 
-import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp } from './builtins-stack';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, pickOp, nipOp } from './builtins-stack';
 
 import {
   absOp,
@@ -151,6 +151,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('rot', Op.Rot, rotOp);
   symbolTable.define('revrot', Op.RevRot, revrotOp);
   symbolTable.define('over', Op.Over, overOp);
+  symbolTable.define('pick', Op.Pick, pickOp);
+  symbolTable.define('nip', Op.Nip, nipOp);
 
   symbolTable.define('abs', Op.Abs, absOp);
   symbolTable.define('neg', Op.Neg, negOp);
