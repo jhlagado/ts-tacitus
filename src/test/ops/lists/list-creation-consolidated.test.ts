@@ -1,3 +1,7 @@
+/**
+ * Tests for list creation operations - Consolidated from multiple duplicate files
+ * Previous files: list-creation.test.ts, lists-creation.test.ts, lists-creation-isolated.test.ts, list-nested.test.ts
+ */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
 import {
@@ -8,12 +12,13 @@ import {
   ListElement,
 } from '../../utils/test-utils';
 
-describe('List Creation', () => {
+describe('List Creation Operations', () => {
   beforeEach(() => {
     resetVM();
   });
 
-  test('should create a simple list with 2 elements', () => {
+  describe('simple values', () => {
+    test('should create a simple list with 2 elements', () => {
       const stack = executeTacitCode('( 1 2 )');
 
       /**
@@ -42,6 +47,7 @@ describe('List Creation', () => {
       };
       verifyListStructure(stack, expectedStructure);
     });
+
     test('should handle empty lists', () => {
       const stack = executeTacitCode('( )');
 
@@ -57,6 +63,9 @@ describe('List Creation', () => {
       const { tag: linkTag } = fromTaggedValue(stack[1]);
       expect(linkTag).toBe(Tag.LINK);
     });
+  });
+
+  describe('list operations', () => {
     test('should handle a nested list with 1 level of nesting', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
 
@@ -90,6 +99,7 @@ describe('List Creation', () => {
 
       expect(stack.length).toBe(7);
     });
+
     test('should handle multiple nested lists at the same level', () => {
       const stack = executeTacitCode('( ( 1 2 ) ( 3 4 ) )');
 
@@ -113,6 +123,13 @@ describe('List Creation', () => {
       const { tag: linkTag } = fromTaggedValue(stack[stack.length - 1]);
       expect(linkTag).toBe(Tag.LINK);
     });
+  });
+
+  describe('error cases', () => {
+    // TODO: Add error handling tests for malformed lists, stack overflow, etc.
+  });
+
+  describe('integration tests', () => {
     test('should handle complex mixed nested structures', () => {
       const stack = executeTacitCode('( 1 ( ) ( 2 ( 3 4 ) ) 5 )');
 
@@ -139,6 +156,7 @@ describe('List Creation', () => {
       const { tag: linkTag } = fromTaggedValue(stack[stack.length - 1]);
       expect(linkTag).toBe(Tag.LINK);
     });
+
     test('should handle deeply nested lists (3+ levels)', () => {
       const stack = executeTacitCode('( 1 ( 2 ( 3 4 ) 5 ) 6 )');
 
@@ -175,4 +193,5 @@ describe('List Creation', () => {
       const { tag: linkTag } = fromTaggedValue(stack[stack.length - 1]);
       expect(linkTag).toBe(Tag.LINK);
     });
+  });
 });
