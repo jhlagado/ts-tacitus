@@ -1,8 +1,16 @@
+/**
+ * Core testing utilities for TACIT VM - Enhanced with operation testing and array comparison utilities
+ * Consolidation of test-utils.ts, operations-test-utils.ts, and utils.ts
+ */
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { fromTaggedValue, Tag } from '../../core/tagged';
+
+// ================================
+// CORE VM TESTING UTILITIES
+// ================================
 
 /**
  * Reset the VM state to prepare for a test
@@ -87,6 +95,19 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
 }
 
 /**
+ * Execute a single Tacit test string and return the resulting stack state
+ * @param testCode The Tacit code to execute
+ * @returns Array containing the final stack values
+ */
+export function runTacitTest(testCode: string): number[] {
+  return executeTacitCode(testCode);
+}
+
+// ================================
+// OUTPUT CAPTURE UTILITIES
+// ================================
+
+/**
  * Execute Tacit code and return output that was printed to console
  * Useful for testing code that uses the '.' operator
  */
@@ -122,14 +143,70 @@ export function captureTacitOutput(code: string): string[] {
   }
 }
 
+// ================================
+// OPERATION TESTING FRAMEWORK
+// ================================
+
 /**
- * Execute a single Tacit test string and return the resulting stack state
- * @param testCode The Tacit code to execute
- * @returns Array containing the final stack values
+ * Interface for a simple test case
  */
-export function runTacitTest(testCode: string): number[] {
-  return executeTacitCode(testCode);
+export interface OperationTestCase {
+  code: string;
+  expected: number[];
+  description?: string;
 }
+
+/**
+ * Run a batch of operation tests
+ * @param testCases Array of test cases to run
+ * @param setup Optional setup function to run before each test
+ */
+export function runOperationTests(testCases: OperationTestCase[], setup?: () => void): void {
+  for (const testCase of testCases) {
+    test(testCase.description || `should execute: ${testCase.code}`, () => {
+      resetVM();
+      if (setup) setup();
+      
+      const result = executeTacitCode(testCase.code);
+      expect(result).toEqual(testCase.expected);
+    });
+  }
+}
+
+/**
+ * Types of Tacit operations for organizing tests
+ */
+export enum OperationType {
+  Arithmetic = 'arithmetic',
+  Stack = 'stack',
+  Comparison = 'comparison',
+  Conditional = 'conditional',
+  List = 'list',
+  String = 'string',
+  Memory = 'memory',
+  Dictionary = 'dictionary',
+  IO = 'io',
+}
+
+/**
+ * Group tests by operation type
+ * @param operationType The type of operation being tested
+ * @param tests Array of test cases
+ * @param setup Optional setup function
+ */
+export function testOperationGroup(
+  operationType: OperationType | string,
+  tests: OperationTestCase[],
+  setup?: () => void
+): void {
+  describe(`${operationType} operations`, () => {
+    runOperationTests(tests, setup);
+  });
+}
+
+// ================================
+// VALUE VERIFICATION UTILITIES
+// ================================
 
 /**
  * Utility to check and verify properties of a stack value
@@ -165,6 +242,38 @@ export function logStack(stack: number[], withTags = true): void {
     }
   }
 }
+
+// ================================
+// ARRAY COMPARISON UTILITIES
+// ================================
+
+/**
+ * Compares two arrays element-wise using toBeCloseTo for floating-point precision.
+ * Consolidated from utils.ts
+ *
+ * @param received The received array.
+ * @param expected The expected array.
+ * @param precision The number of decimal places to check for closeness.
+ */
+export function toBeCloseToArray(received: number[], expected: number[], precision = 2): void {
+  if (received.length !== expected.length) {
+    throw new Error(
+      `Arrays have different lengths: received ${received.length}, expected ${expected.length}`,
+    );
+  }
+
+  for (let i = 0; i < received.length; i++) {
+    if (Math.abs(received[i] - expected[i]) > Math.pow(10, -precision)) {
+      throw new Error(
+        `Array elements at index ${i} differ: received ${received[i]}, expected ${expected[i]}`,
+      );
+    }
+  }
+}
+
+// ================================
+// LIST STRUCTURE VERIFICATION
+// ================================
 
 /**
  * Verify the structure of a list on the stack
