@@ -150,6 +150,12 @@ export enum Op {
   /**  Duplicates the second value from the top of the stack and pushes it onto the top. */
   Over,
 
+  /**  Picks the nth element from the stack (n on TOS) and pushes it onto the top. */
+  Pick,
+
+  /**  Removes the second element from the stack (NOS), leaving only the top element. */
+  Nip,
+
   /**  Performs a bitwise AND operation on the top two values of the stack */
   And,
 

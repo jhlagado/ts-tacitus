@@ -40,6 +40,140 @@ Parser/Compiler      → Single-pass bytecode, shared compileCodeBlock()
 Operations (ops/)    → Builtin verbs by category
 ```
 
+## ⚠️ CRITICAL: TACIT MEMORY MODEL & STACK SEMANTICS ⚠️
+
+### 🚨 STACK GROWTH DIRECTION (NEVER GET THIS WRONG!)
+```
+STACKS GROW UPWARD IN MEMORY:
+┌─────────────────────────────────────────┐
+│ Memory Address  │ Stack Contents        │
+├─────────────────┼─────────────────────────┤
+│ 0               │ First pushed value    │  ← Bottom
+│ 4               │ Second pushed value   │
+│ 8               │ Third pushed value    │  
+│ 12              │ ...                   │
+│ SP-4            │ Top Of Stack (TOS)    │  ← Last pushed
+│ SP              │ [Next available slot] │  ← Stack Pointer
+└─────────────────────────────────────────┘
+
+PUSH: writes at SP, then SP += 4
+POP:  SP -= 4, then reads from SP
+```
+
+### 🚨 STACK POINTER ARITHMETIC (MEMORIZE THIS!)
+- **Adding elements**: `vm.SP += N * BYTES_PER_ELEMENT` (grows up)
+- **Removing elements**: `vm.SP -= N * BYTES_PER_ELEMENT` (shrinks down)
+- **TOS address**: `vm.SP - BYTES_PER_ELEMENT` (one slot before SP)
+- **NOS address**: `vm.SP - 2 * BYTES_PER_ELEMENT` (two slots before SP)
+
+### 🚨 getStackData() ARRAY MAPPING
+```typescript
+// vm.getStackData() returns [bottom, ..., top]
+// Index 0 = memory address 0 (oldest/bottom)
+// Index N = memory address N*4 (newest/top)
+vm.push(1); vm.push(2); vm.push(3);
+// Memory: [1@addr0, 2@addr4, 3@addr8]
+// Array:  [1,       2,       3     ]  ← getStackData()
+//         bottom              top
+```
+
+### 🚨 findElement() SLOT INDEXING
+```typescript
+// findElement(vm, startSlot) uses LOGICAL slots, not memory addresses
+// Slot 0 = TOS, Slot 1 = NOS, etc. (relative to stack top)
+//
+// Stack: [1, 2, 3] with SP=12
+// ┌─────┬─────┬─────┬─────┐
+// │  1  │  2  │  3  │ SP  │
+// └─────┴─────┴─────┴─────┘
+//  addr0 addr4 addr8 addr12
+//  slot2 slot1 slot0  ←─── slots are RELATIVE to TOS
+//
+// findElement(vm, 0) → TOS (value 3) at address 8
+// findElement(vm, 1) → NOS (value 2) at address 4  
+// findElement(vm, 2) → 3rd (value 1) at address 0
+```
+
+### 🚨 STACK OPERATION ADDRESS PATTERNS
+```typescript
+// For operations like nip, swap, etc:
+const [_tosNextSlot, tosSize] = findElement(vm, 0);
+const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
+
+// Convert to actual memory addresses:
+const tosStartAddr = vm.SP - tosSize * BYTES_PER_ELEMENT;
+const nosStartAddr = vm.SP - (tosSize + nosSize) * BYTES_PER_ELEMENT;
+
+// Copy data: source → destination
+vm.memory.readFloat32(SEG_STACK, sourceAddr);
+vm.memory.writeFloat32(SEG_STACK, destAddr, value);
+```
+
+### 🚨 COMMON MISTAKES TO AVOID
+1. **Wrong SP direction**: `vm.SP += size` when removing (should be `-=`)
+2. **Slot vs Address confusion**: Using slot numbers as memory addresses
+3. **TOS/NOS mixup**: slot 0 = TOS (newest), not bottom of stack
+4. **findElement offset errors**: Remember slots are relative to current SP
+5. **Test pattern errors**: Use global `vm` + `initializeInterpreter()`, not custom VM instances
+
+### 🚨 DEBUGGING STACK OPERATIONS
+```typescript
+// Always log stack state when debugging:
+console.log('Before:', vm.getStackData(), 'SP:', vm.SP);
+yourOperation(vm);
+console.log('After:', vm.getStackData(), 'SP:', vm.SP);
+
+// Check element sizes:
+const [nextSlot, size] = findElement(vm, 0);
+console.log('TOS size:', size, 'Next slot:', nextSlot);
+```
+
+### Commands (Always `yarn`)
+
+```bash
+yarn test           # Jest --runInBand (required for test isolation)
+yarn test:watch     # Watch mode
+yarn build          # TypeScript compilation
+yarn dev            # Run with ts-node
+yarn lint           # ESLint --max-warnings=100
+```
+
+## Architecture Core
+
+```
+VM (vm.ts)           → Stack machine, segmented memory
+Memory (memory.ts)   → 64KB segments: STACK, RSTACK, CODE, STRING
+Tagged (tagged.ts)   → NaN-boxing in Float32 (corruption-sensitive)
+Parser/Compiler      → Single-pass bytecode, shared compileCodeBlock()
+Operations (ops/)    → Builtin verbs by category
+```
+
+### Test Patterns (Jest + Global VM)
+**ALWAYS use Jest with global vm**:
+```typescript
+import { initializeInterpreter, vm } from '../../../core/globalState';
+import { someOp } from '../../../ops/builtins-stack';
+
+describe('Operation Name', () => {
+  beforeEach(() => {
+    initializeInterpreter();
+  });
+
+  test('should do something', () => {
+    vm.push(1);
+    vm.push(2);
+    someOp(vm);
+    expect(vm.getStackData()).toEqual([expected]);
+  });
+});
+```
+
+### Critical Data Paths
+
+1. **Raw floats**: `literal → vm.push(rawFloat) → writeFloat32` (safe)
+2. **Tagged values**: `toTaggedValue() → NaN-boxed → writeFloat32` (corruption risk)
+3. **Lists**: `LIST + elements + LINK` (stack metadata)
+
 ### Critical Data Paths
 
 1. **Raw floats**: `literal → vm.push(rawFloat) → writeFloat32` (safe)
@@ -112,6 +246,17 @@ Operations (ops/)    → Builtin verbs by category
 - **List format**: `LIST(length) + elements + LINK(backptr)`
 - **LINK**: Stack metadata only, not part of list structure
 - **Details**: See `lists.md` for complete list specification, `tagged.md` for NaN-boxing details
+
+### CRITICAL: LINK is Stack Metadata (DO NOT FORGET)
+
+**LINK appears ONLY on TOS when a list is pushed to stack. It is NOT part of nested lists.**
+
+- **Correct**: `drop` checks TOS for LINK tag to remove entire list structure
+- **Nested lists**: Do NOT have LINK tags - they are inline values
+- **Stack operations**: Handle lists by detecting LINK on TOS, not scanning for nested lists
+- **NEVER**: Assume nested lists need special LINK handling - they don't
+
+**Example**: `( 1 ( 2 3 ) 4)` has ONE LINK tag on TOS, not multiple LINKs for nested structure.
 
 ### List Examples
 
