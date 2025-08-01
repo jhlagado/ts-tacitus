@@ -79,7 +79,7 @@ export function createCodeRef(bytecodeAddr: number): number {
  * ```typescript
  * const addRef = createBuiltinRef(Op.Add);
  * const codeRef = createCodeRef(1000);
- * 
+ *
  * console.log(isBuiltinRef(addRef));  // true
  * console.log(isBuiltinRef(codeRef)); // false
  * console.log(isBuiltinRef(42));      // false
@@ -107,7 +107,7 @@ export function isBuiltinRef(value: number): boolean {
  * ```typescript
  * const addRef = createBuiltinRef(Op.Add);
  * const codeRef = createCodeRef(1000);
- * 
+ *
  * console.log(isCodeRef(addRef));  // false
  * console.log(isCodeRef(codeRef)); // true
  * console.log(isCodeRef(42));      // false
@@ -135,7 +135,7 @@ export function isCodeRef(value: number): boolean {
  * ```typescript
  * const addRef = createBuiltinRef(Op.Add);
  * const codeRef = createCodeRef(1000);
- * 
+ *
  * console.log(isExecutableRef(addRef));  // true
  * console.log(isExecutableRef(codeRef)); // true
  * console.log(isExecutableRef(42));      // false

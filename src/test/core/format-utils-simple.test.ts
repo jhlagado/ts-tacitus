@@ -44,13 +44,13 @@ describe('Format Utils - Simple Tests', () => {
       const numValue = toTaggedValue(42, Tag.NUMBER);
       const result = formatValue(vm, numValue);
       console.log('formatValue(42, NUMBER):', result);
-      
+
       const str = 'test';
       const strAddr = vm.digest.intern(str);
       const stringValue = toTaggedValue(strAddr, Tag.STRING);
       const strResult = formatValue(vm, stringValue);
       console.log('formatValue(string):', strResult);
-      
+
       // Just assert something non-failing for now
       expect(typeof result).toBe('string');
       expect(typeof strResult).toBe('string');

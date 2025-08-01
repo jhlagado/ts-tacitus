@@ -38,8 +38,8 @@ describe('Format Utils', () => {
       });
 
       test('should remove trailing zeros', () => {
-        expect(formatFloat(3.10)).toBe('3.1');
-        expect(formatFloat(5.00)).toBe('5');
+        expect(formatFloat(3.1)).toBe('3.1');
+        expect(formatFloat(5.0)).toBe('5');
       });
     });
 
@@ -151,7 +151,7 @@ describe('Format Utils', () => {
         vm.push(1);
         vm.push(2);
         const stack = vm.getStackData();
-        
+
         const result = formatListAt(vm, stack, stack.length - 3);
         expect(result).toBe('( 1 2 )');
       });
@@ -159,7 +159,7 @@ describe('Format Utils', () => {
       test('should format an empty list', () => {
         vm.push(toTaggedValue(0, Tag.LIST));
         const stack = vm.getStackData();
-        
+
         const result = formatListAt(vm, stack, stack.length - 1);
         expect(result).toBe('(  )'); // Empty list has two spaces
       });
@@ -168,7 +168,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(1, Tag.LIST));
         vm.push(42);
         const stack = vm.getStackData();
-        
+
         const result = formatListAt(vm, stack, stack.length - 2);
         expect(result).toBe('( 42 )');
       });
@@ -180,7 +180,7 @@ describe('Format Utils', () => {
         vm.push(1);
         vm.push(2);
         const stack = vm.getStackData();
-        
+
         const result = formatListAt(vm, stack, stack.length - 3);
         expect(result).toBe('( 1 2 )');
       });
@@ -200,7 +200,7 @@ describe('Format Utils', () => {
       test('should handle non-list values', () => {
         vm.push(42); // Not a list
         const stack = vm.getStackData();
-        
+
         const result = formatListAt(vm, stack, stack.length - 1);
         expect(result).toBe('[Not a list]');
       });
@@ -209,7 +209,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(5, Tag.LIST)); // Claims 5 elements but stack is shorter
         vm.push(1);
         const stack = vm.getStackData();
-        
+
         // Should handle gracefully when list claims more elements than available
         const result = formatListAt(vm, stack, stack.length - 2);
         expect(result).toBe('(  )'); // No elements are successfully formatted due to corruption
@@ -241,7 +241,7 @@ describe('Format Utils', () => {
       });
 
       test('should format invalid string values', () => {
-        // Use a smaller invalid address 
+        // Use a smaller invalid address
         const invalidStringValue = toTaggedValue(1000, Tag.STRING);
         expect(formatValue(vm, invalidStringValue)).toBe('( 1000 elements )');
       });
@@ -254,7 +254,7 @@ describe('Format Utils', () => {
         vm.push(2);
         const stack = vm.getStackData();
         const listValue = stack[stack.length - 3];
-        
+
         const result = formatValue(vm, listValue);
         expect(result).toBe('( 2 elements )'); // formatValue behavior for lists not found correctly on stack
       });
@@ -270,7 +270,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(1, Tag.LIST));
         vm.push(42);
         const stack = vm.getStackData();
-        
+
         // Create a NaN value that would represent a NaN-boxed list
         const nanBoxed = parseFloat('NaN');
         if (Number.isNaN(nanBoxed)) {
@@ -286,7 +286,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(3, Tag.LINK)); // LINK pointing back 3 positions
         const stack = vm.getStackData();
         const linkValue = stack[stack.length - 1];
-        
+
         const result = formatValue(vm, linkValue);
         expect(result).toBe('( 3 elements )'); // LINK treated as NaN-boxed list
       });
@@ -319,7 +319,7 @@ describe('Format Utils', () => {
       test('should handle infinity values', () => {
         const infValue = toTaggedValue(Infinity, Tag.NUMBER);
         expect(formatValue(vm, infValue)).toBe('Infinity');
-        
+
         const negInfValue = toTaggedValue(-Infinity, Tag.NUMBER);
         expect(formatValue(vm, negInfValue)).toBe('-Infinity');
       });
@@ -329,7 +329,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(1, Tag.LINK)); // LINK pointing to non-list
         const stack = vm.getStackData();
         const linkValue = stack[stack.length - 1];
-        
+
         const result = formatValue(vm, linkValue);
         expect(result).toBe('( 1 elements )'); // LINK treated as NaN-boxed list
       });
@@ -344,7 +344,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(3.14, Tag.NUMBER));
         const stack = vm.getStackData();
         const listValue = stack[stack.length - 4];
-        
+
         const result = formatValue(vm, listValue);
         expect(result).toBe('( 3 elements )'); // List shows element count rather than contents
       });

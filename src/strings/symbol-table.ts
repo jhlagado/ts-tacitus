@@ -46,7 +46,7 @@ interface SymbolTableNode {
   key: number;
   value: number;
   implementation?: WordFunction;
-  codeRef?: CodeReference;  // NEW: Direct code reference
+  codeRef?: CodeReference; // NEW: Direct code reference
   next: SymbolTableNode | null;
 }
 
@@ -233,12 +233,12 @@ export class SymbolTable {
   defineBuiltin(name: string, opcode: number): void {
     const key = this.digest.add(name);
     const codeRef: CodeReference = { tag: Tag.BUILTIN, addr: opcode };
-    
-    const newNode: SymbolTableNode = { 
-      key, 
-      value: opcode,  // Keep existing function index system
-      codeRef,        // NEW: Direct code reference  
-      next: this.head 
+
+    const newNode: SymbolTableNode = {
+      key,
+      value: opcode, // Keep existing function index system
+      codeRef, // NEW: Direct code reference
+      next: this.head,
     };
     this.head = newNode;
   }
@@ -255,12 +255,12 @@ export class SymbolTable {
   defineCode(name: string, bytecodeAddr: number): void {
     const key = this.digest.add(name);
     const codeRef: CodeReference = { tag: Tag.CODE, addr: bytecodeAddr };
-    
-    const newNode: SymbolTableNode = { 
-      key, 
-      value: bytecodeAddr,  // Store bytecode address as value
-      codeRef,              // NEW: Direct code reference
-      next: this.head 
+
+    const newNode: SymbolTableNode = {
+      key,
+      value: bytecodeAddr, // Store bytecode address as value
+      codeRef, // NEW: Direct code reference
+      next: this.head,
     };
     this.head = newNode;
   }

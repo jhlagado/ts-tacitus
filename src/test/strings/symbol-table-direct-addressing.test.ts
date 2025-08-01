@@ -1,6 +1,6 @@
 /**
  * @file src/test/strings/symbol-table-direct-addressing.test.ts
- * 
+ *
  * Tests for SymbolTable direct addressing extensions.
  * Verifies the new unified @symbol system methods work correctly
  * without breaking existing functionality.
@@ -26,9 +26,9 @@ describe('SymbolTable Direct Addressing', () => {
   describe('defineBuiltin method', () => {
     test('should define built-in operations with direct code references', () => {
       symbolTable.defineBuiltin('add', Op.Add);
-      
+
       const codeRef = symbolTable.findCodeRef('add');
-      
+
       expect(codeRef).toBeDefined();
       expect(codeRef!.tag).toBe(Tag.BUILTIN);
       expect(codeRef!.addr).toBe(Op.Add);
@@ -36,9 +36,9 @@ describe('SymbolTable Direct Addressing', () => {
 
     test('should maintain backward compatibility with existing find method', () => {
       symbolTable.defineBuiltin('dup', Op.Dup);
-      
+
       const functionIndex = symbolTable.find('dup');
-      
+
       expect(functionIndex).toBe(Op.Dup);
     });
 
@@ -67,9 +67,9 @@ describe('SymbolTable Direct Addressing', () => {
     test('should define colon definitions with direct code references', () => {
       const squareAddr = 1000;
       symbolTable.defineCode('square', squareAddr);
-      
+
       const codeRef = symbolTable.findCodeRef('square');
-      
+
       expect(codeRef).toBeDefined();
       expect(codeRef!.tag).toBe(Tag.CODE);
       expect(codeRef!.addr).toBe(squareAddr);
@@ -78,9 +78,9 @@ describe('SymbolTable Direct Addressing', () => {
     test('should maintain backward compatibility with existing find method', () => {
       const testAddr = 2000;
       symbolTable.defineCode('test', testAddr);
-      
+
       const functionIndex = symbolTable.find('test');
-      
+
       expect(functionIndex).toBe(testAddr);
     });
 
@@ -107,20 +107,20 @@ describe('SymbolTable Direct Addressing', () => {
   describe('findCodeRef method', () => {
     test('should return undefined for non-existent symbols', () => {
       const codeRef = symbolTable.findCodeRef('nonexistent');
-      
+
       expect(codeRef).toBeUndefined();
     });
 
     test('should distinguish between built-ins and code definitions', () => {
       symbolTable.defineBuiltin('add', Op.Add);
       symbolTable.defineCode('square', 1000);
-      
+
       const addRef = symbolTable.findCodeRef('add');
       const squareRef = symbolTable.findCodeRef('square');
-      
+
       expect(addRef!.tag).toBe(Tag.BUILTIN);
       expect(addRef!.addr).toBe(Op.Add);
-      
+
       expect(squareRef!.tag).toBe(Tag.CODE);
       expect(squareRef!.addr).toBe(1000);
     });
@@ -128,10 +128,10 @@ describe('SymbolTable Direct Addressing', () => {
     test('should handle symbol shadowing correctly', () => {
       // Define a symbol, then redefine it
       symbolTable.defineBuiltin('test', Op.Add);
-      symbolTable.defineCode('test', 5000);  // Shadow with code definition
-      
+      symbolTable.defineCode('test', 5000); // Shadow with code definition
+
       const codeRef = symbolTable.findCodeRef('test');
-      
+
       // Should find the most recent definition (code definition)
       expect(codeRef!.tag).toBe(Tag.CODE);
       expect(codeRef!.addr).toBe(5000);
@@ -145,13 +145,13 @@ describe('SymbolTable Direct Addressing', () => {
       symbolTable.defineCode('square', 1000);
       symbolTable.defineBuiltin('dup', Op.Dup);
       symbolTable.defineCode('cube', 2000);
-      
+
       // Verify all definitions are findable
       expect(symbolTable.findCodeRef('add')!.tag).toBe(Tag.BUILTIN);
       expect(symbolTable.findCodeRef('square')!.tag).toBe(Tag.CODE);
       expect(symbolTable.findCodeRef('dup')!.tag).toBe(Tag.BUILTIN);
       expect(symbolTable.findCodeRef('cube')!.tag).toBe(Tag.CODE);
-      
+
       // Verify backward compatibility
       expect(symbolTable.find('add')).toBe(Op.Add);
       expect(symbolTable.find('square')).toBe(1000);
@@ -164,10 +164,10 @@ describe('SymbolTable Direct Addressing', () => {
     test('should not break existing define method', () => {
       // Use existing define method
       symbolTable.define('oldStyle', 42);
-      
+
       // Should be findable with existing methods
       expect(symbolTable.find('oldStyle')).toBe(42);
-      
+
       // Should not have code reference since it wasn't defined with new methods
       expect(symbolTable.findCodeRef('oldStyle')).toBeUndefined();
     });
@@ -175,10 +175,10 @@ describe('SymbolTable Direct Addressing', () => {
     test('should not break existing defineCall method', () => {
       // Use existing defineCall method
       symbolTable.defineCall('oldCall', 99);
-      
+
       // Should be findable with existing methods
       expect(symbolTable.find('oldCall')).toBe(99);
-      
+
       // Should not have code reference since it wasn't defined with new methods
       expect(symbolTable.findCodeRef('oldCall')).toBeUndefined();
     });
@@ -186,16 +186,16 @@ describe('SymbolTable Direct Addressing', () => {
     test('should work with checkpoint and revert', () => {
       symbolTable.defineBuiltin('add', Op.Add);
       const checkpoint = symbolTable.mark();
-      
+
       symbolTable.defineCode('square', 1000);
-      
+
       // Both should be findable
       expect(symbolTable.findCodeRef('add')).toBeDefined();
       expect(symbolTable.findCodeRef('square')).toBeDefined();
-      
+
       // Revert to checkpoint
       symbolTable.revert(checkpoint);
-      
+
       // Only 'add' should be findable now
       expect(symbolTable.findCodeRef('add')).toBeDefined();
       expect(symbolTable.findCodeRef('square')).toBeUndefined();

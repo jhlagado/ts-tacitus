@@ -75,18 +75,18 @@ describe('Built-in Words', () => {
       vm.push(2);
       vm.push(3);
       vm.push(toTaggedValue(Op.Add, Tag.BUILTIN));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([5]);
     });
 
     test('should execute built-in dup operation via Tag.BUILTIN', () => {
       vm.push(42);
       vm.push(toTaggedValue(Op.Dup, Tag.BUILTIN));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([42, 42]);
     });
 
@@ -94,17 +94,17 @@ describe('Built-in Words', () => {
       vm.push(7);
       vm.push(8);
       vm.push(toTaggedValue(Op.Multiply, Tag.BUILTIN));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([56]);
     });
 
     test('should handle non-executable values by pushing back on stack', () => {
       vm.push(123);
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([123]);
     });
   });
