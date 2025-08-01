@@ -9,6 +9,7 @@ import {
   isCode,
   isCodeBlock,
   isAnyCode,
+  MAX_TAG,
 } from '../../core/tagged';
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
@@ -29,7 +30,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should throw on invalid tag ranges', () => {
-    const invalidTag = Tag.BUILTIN + 1;
+    const invalidTag = MAX_TAG + 1;
     expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
   test('should validate value ranges for INTEGER', () => {

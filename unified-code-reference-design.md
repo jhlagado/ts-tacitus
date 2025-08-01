@@ -416,6 +416,7 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Add validation in `toTaggedValue()` for new tag
    - ✅ Update affected tests (tagged.test.ts, printer.test.ts)
    - ✅ Create comprehensive test suite for Tag.BUILTIN functionality
+   - ✅ **IMPROVEMENT**: Add `MAX_TAG` constant to avoid hardcoded enum values in tests
 
 2. **NEXT: Enhance evalOp to handle Tag.BUILTIN dispatch**
    - Modify `evalOp` in `builtins-interpreter.ts` 

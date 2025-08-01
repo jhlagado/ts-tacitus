@@ -3,6 +3,7 @@ import { dupOp, swapOp } from '../../../ops/builtins-stack';
 import { initializeInterpreter, vm } from '../../../core/globalState';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
+import { Op } from '../../../ops/opcodes';
 
 import {
   abortOp,
@@ -67,6 +68,44 @@ describe('Built-in Words', () => {
       const returnAddr = vm.rpop();
       const { value } = fromTaggedValue(returnAddr);
       expect(value).toBe(originalIP + 2);
+    });
+  });
+  describe('evalOp with Tag.BUILTIN', () => {
+    test('should execute built-in add operation via Tag.BUILTIN', () => {
+      vm.push(2);
+      vm.push(3);
+      vm.push(toTaggedValue(Op.Add, Tag.BUILTIN));
+      
+      evalOp(vm);
+      
+      expect(vm.getStackData()).toEqual([5]);
+    });
+
+    test('should execute built-in dup operation via Tag.BUILTIN', () => {
+      vm.push(42);
+      vm.push(toTaggedValue(Op.Dup, Tag.BUILTIN));
+      
+      evalOp(vm);
+      
+      expect(vm.getStackData()).toEqual([42, 42]);
+    });
+
+    test('should execute built-in multiply operation via Tag.BUILTIN', () => {
+      vm.push(7);
+      vm.push(8);
+      vm.push(toTaggedValue(Op.Multiply, Tag.BUILTIN));
+      
+      evalOp(vm);
+      
+      expect(vm.getStackData()).toEqual([56]);
+    });
+
+    test('should handle non-executable values by pushing back on stack', () => {
+      vm.push(123);
+      
+      evalOp(vm);
+      
+      expect(vm.getStackData()).toEqual([123]);
     });
   });
   describe('Branch Operations', () => {
