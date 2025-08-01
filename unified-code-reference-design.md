@@ -418,11 +418,12 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Create comprehensive test suite for Tag.BUILTIN functionality
    - ✅ **IMPROVEMENT**: Add `MAX_TAG` constant to avoid hardcoded enum values in tests
 
-2. **NEXT: Enhance evalOp to handle Tag.BUILTIN dispatch**
-   - Modify `evalOp` in `builtins-interpreter.ts` 
-   - Add `case Tag.BUILTIN:` branch that calls `executeOp(vm, addr)`
-   - Keep existing `Tag.CODE` behavior unchanged
-   - Test with manually created `Tag.BUILTIN` values
+2. **✅ COMPLETE: Enhance evalOp to handle Tag.BUILTIN dispatch**
+   - ✅ Modify `evalOp` in `builtins-interpreter.ts` 
+   - ✅ Add `case Tag.BUILTIN:` branch that calls `executeOp(vm, addr)`
+   - ✅ Keep existing `Tag.CODE` behavior unchanged
+   - ✅ Test with manually created `Tag.BUILTIN` values
+   - ✅ Consolidated tests into proper location (`interpreter-operations.test.ts`)
 
 3. **Create VM-level code reference utilities**
    - Add `createBuiltinRef(opcode: number)` helper function
