@@ -49,6 +49,12 @@ export enum Tag {
 }
 
 /**
+ * The highest valid tag value. Update this when adding new tags.
+ * Used for validation and testing to avoid hardcoded enum values.
+ */
+export const MAX_TAG = Tag.BUILTIN;
+
+/**
  * Human-readable names for Tag values (for debugging).
  */
 export const tagNames: { [key in Tag]: string } = {
@@ -93,7 +99,7 @@ const EXPONENT_MASK = 0xff << 23;
  * @throws {Error} If the tag or value is invalid.
  */
 export function toTaggedValue(value: number, tag: Tag): number {
-  if (tag < Tag.NUMBER || tag > Tag.BUILTIN) {
+  if (tag < Tag.NUMBER || tag > MAX_TAG) {
     throw new Error(`Invalid tag: ${tag}`);
   }
 

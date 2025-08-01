@@ -18,6 +18,7 @@ import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/err
 import { Verb } from '../core/types';
 import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
 import { RSTACK_SIZE } from '../core/constants';
+import { executeOp } from './builtins';
 
 import { formatValue } from '../core/utils';
 
@@ -244,14 +245,27 @@ export const exitOp: Verb = (vm: VM) => {
 export const evalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
-  if (isCode(value)) {
-    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    vm.rpush(vm.BP);
-    vm.BP = vm.RP;
-    const { value: pointer } = fromTaggedValue(value);
-    vm.IP = pointer;
-  } else {
-    vm.push(value);
+  const { tag, value: addr } = fromTaggedValue(value);
+  
+  switch (tag) {
+    case Tag.CODE:
+    case Tag.CODE_BLOCK:
+      // Bytecode execution: set up call frame and jump to address
+      vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+      vm.rpush(vm.BP);
+      vm.BP = vm.RP;
+      vm.IP = addr;
+      break;
+      
+    case Tag.BUILTIN:
+      // Built-in execution: direct JS function dispatch
+      executeOp(vm, addr);
+      break;
+      
+    default:
+      // Not executable - push back onto stack
+      vm.push(value);
+      break;
   }
 };
 

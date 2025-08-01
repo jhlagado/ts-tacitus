@@ -1,5 +1,5 @@
 import { prn } from '../../core/printer';
-import { toTaggedValue, Tag } from '../../core/tagged';
+import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core/tagged';
 
 // Mock console.warn to capture output
 let consoleOutput: string[] = [];
@@ -143,13 +143,18 @@ describe('Printer', () => {
       const validTags = Object.values(Tag).filter(t => typeof t === 'number') as number[];
       const maxValidTag = Math.max(...validTags);
       
-      // Test with the highest valid tag (BUILTIN) to ensure it works
+      // Verify we're using the correct max tag
+      expect(maxValidTag).toBe(MAX_TAG);
+      
+      // Test with the highest valid tag to ensure it works
       const highTagValue = toTaggedValue(42, maxValidTag);
       prn('High Tag', highTagValue);
       
       expect(consoleOutput).toHaveLength(1);
       expect(consoleOutput[0]).toContain(': ');
-      expect(consoleOutput[0]).toContain('BUILTIN:'); // BUILTIN tag uses default case which shows raw tval
+      // Use the tag name dynamically instead of hardcoding
+      const expectedTagName = tagNames[maxValidTag as Tag];
+      expect(consoleOutput[0]).toContain(`${expectedTagName}:`);
     });
 
     test('should format output correctly with indentation', () => {
