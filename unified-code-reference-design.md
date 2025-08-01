@@ -1,5 +1,19 @@
 # TACIT Unified Code Reference System Design
 
+## 📚 Key Documentation References
+
+This implementation follows established patterns and standards documented in the project's instruction files:
+
+- **[Copilot Instructions](.github/instructions/copilot-instructions.md)** - Main AI agent guidelines, development workflow, architecture fundamentals, stack semantics, memory model, debugging patterns
+- **[Multi-Step Protocol](.github/instructions/copilot-development-protocol.md)** - Mandatory stop-after-every-step protocol for complex implementations
+- **[Testing Patterns](.github/instructions/testing-patterns.md)** - Comprehensive testing standards, VM testing utilities, established patterns, anti-patterns to avoid
+- **[Bytecode System](.github/instructions/bytecode.md)** - VM bytecode architecture, unified addressing, opcode encoding, colon definitions, execution flow
+- **[Tagged Values](.github/instructions/tagged.md)** - NaN-boxing implementation, tag types, segment encoding, formatting behavior, memory safety
+- **[Lists Specification](.github/instructions/lists.md)** - TACIT list format, LINK metadata, stack representation, nesting rules, mutability semantics
+- **[Capsules Model](.github/instructions/capsules.md)** - Object model specification, prototype-based instantiation, field definitions, method dispatch
+
+**⚠️ CRITICAL**: All implementation work MUST follow the multi-step protocol - **STOP AFTER EVERY STEP** and get user approval before proceeding.
+
 ## Technical Analysis: Built-ins vs Colon Definitions
 
 ### Current Memory Layout
