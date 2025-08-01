@@ -18,6 +18,7 @@ import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './cons
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
+import { createBuiltinRef, createCodeRef } from './code-ref';
 import {
   StackUnderflowError,
   StackOverflowError,
@@ -356,5 +357,39 @@ export class VM {
     }
 
     return compileData;
+  }
+
+  /**
+   * Resolves a symbol name to a tagged value that can be executed by the VM.
+   * 
+   * This method enables the unified @symbol system by looking up symbols in the
+   * symbol table and returning the appropriate tagged value for either built-in
+   * operations (Tag.BUILTIN) or colon definitions (Tag.CODE).
+   * 
+   * @param name The symbol name to resolve (without @ prefix)
+   * @returns Tagged value for the symbol, or undefined if not found
+   * 
+   * @example
+   * // After defineBuiltin('add', Op.Add):
+   * const addRef = vm.resolveSymbol('add'); // Returns Tag.BUILTIN tagged value
+   * 
+   * // After defineCode('square', 1000):
+   * const squareRef = vm.resolveSymbol('square'); // Returns Tag.CODE tagged value
+   */
+  resolveSymbol(name: string): number | undefined {
+    const codeRef = this.symbolTable.findCodeRef(name);
+    if (!codeRef) {
+      return undefined;
+    }
+
+    // Create appropriate tagged value based on the code reference type
+    if (codeRef.tag === Tag.BUILTIN) {
+      return createBuiltinRef(codeRef.addr);
+    } else if (codeRef.tag === Tag.CODE) {
+      return createCodeRef(codeRef.addr);
+    }
+
+    // Should not reach here with proper CodeReference data
+    return undefined;
   }
 }
