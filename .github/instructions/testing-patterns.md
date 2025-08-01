@@ -115,7 +115,11 @@ test('word quoting with back-tick', () => {
 ### Essential Functions from test-utils.ts
 ```typescript
 // VM State Management
-resetVM()                                    // Complete VM reset for isolated tests
+resetVM()                                    // Complete VM reset for isolated tests - ALWAYS use this
+
+// Stack State Inspection
+vm.getStackData()                            // Returns number[] of current stack contents
+vm.getStackData().length                     // Get current stack depth/size
 
 // Code Execution
 executeTacitCode(code: string): number[]     // Execute Tacit code, return stack
@@ -137,12 +141,37 @@ verifyListStructure(stack, expectList)       // Complex list structure verificat
 
 ### Stack State Verification
 ```typescript
-// PREFERRED: Full stack comparison
+// PREFERRED: Full stack comparison using vm.getStackData()
 expect(vm.getStackData()).toEqual([1, 2, 3]);
 
-// AVOID: Manual pop operations (harder to debug)
+// Stack depth checking: vm.getStackData().length
+expect(vm.getStackData().length).toBe(3);
+
+// Empty stack verification
+expect(vm.getStackData()).toEqual([]);
+expect(vm.getStackData().length).toBe(0);
+
+// AVOID: Manual pop operations (harder to debug, destructive)
 expect(vm.pop()).toBe(3);
 expect(vm.pop()).toBe(2);
+```
+
+### VM State Verification
+```typescript
+// Return stack preservation (for built-in operations)
+const originalRP = vm.RP;
+// ... execute operation
+expect(vm.RP).toBe(originalRP);  // Return stack unchanged
+
+// IP preservation checks
+const originalIP = vm.IP;
+// ... execute operation  
+expect(vm.IP).toBe(originalIP);  // IP should be restored
+
+// Call frame verification
+const originalBP = vm.BP;
+// ... execute code block
+expect(vm.BP).toBe(originalBP);  // BP should be restored
 ```
 
 ### Error Testing
@@ -158,17 +187,110 @@ expect(() => dupOp(vm)).toThrow(
 
 ### Tagged Value Testing
 ```typescript
-// Create tagged values consistently
-const builtinRef = toTaggedValue(Op.Add, Tag.BUILTIN);
+// Create tagged values consistently using utility functions
+const builtinRef = createBuiltinRef(Op.Add);      // Use utilities when available
+const codeRef = createCodeRef(1000);              // Use utilities when available
+const manualRef = toTaggedValue(Op.Add, Tag.BUILTIN); // Manual creation when needed
+
 vm.push(builtinRef);
 
 // Test tag extraction
 const { tag, value } = fromTaggedValue(stackValue);
 expect(tag).toBe(Tag.BUILTIN);
 expect(value).toBe(Op.Add);
+
+// Test utility functions
+expect(isBuiltinRef(builtinRef)).toBe(true);
+expect(isCodeRef(codeRef)).toBe(true);
+expect(getBuiltinOpcode(builtinRef)).toBe(Op.Add);
 ```
 
-## Complex Data Structure Testing
+## VM-Level Testing Patterns
+
+### Manual Operation Testing (No Language Required)
+```typescript
+// Direct VM operation testing - bypasses parser/compiler
+test('should execute manual Tag.BUILTIN operations', () => {
+  vm.push(2);
+  vm.push(3);
+  vm.push(createBuiltinRef(Op.Add));
+  
+  evalOp(vm);  // Direct VM dispatch
+  
+  expect(vm.getStackData()).toEqual([5]);
+});
+
+// Test sequences of operations
+test('should handle operation sequences', () => {
+  vm.push(2);
+  vm.push(3);
+  vm.push(createBuiltinRef(Op.Add));
+  evalOp(vm);
+  
+  vm.push(createBuiltinRef(Op.Dup));
+  evalOp(vm);
+  
+  expect(vm.getStackData()).toEqual([5, 5]);
+});
+```
+
+### Batch Testing with forEach
+```typescript
+test('should handle multiple operations', () => {
+  const testCases = [
+    { opcode: Op.Add, inputs: [2, 3], expected: [5] },
+    { opcode: Op.Dup, inputs: [42], expected: [42, 42] },
+    { opcode: Op.Swap, inputs: [1, 2], expected: [2, 1] },
+  ];
+
+  testCases.forEach(({ opcode, inputs, expected }) => {
+    resetVM();  // Fresh state for each test
+    
+    inputs.forEach(input => vm.push(input));
+    vm.push(createBuiltinRef(opcode));
+    evalOp(vm);
+    
+    expect(vm.getStackData()).toEqual(expected);
+  });
+});
+```
+
+### Non-Executable Value Testing
+```typescript
+test('should handle non-executable values correctly', () => {
+  const nonExecutableValues = [
+    42,                                    // Plain number
+    toTaggedValue(100, Tag.STRING),       // String reference
+    toTaggedValue(5, Tag.LIST),           // List reference
+  ];
+
+  nonExecutableValues.forEach(value => {
+    resetVM();
+    vm.push(value);
+    
+    evalOp(vm);  // Should push back non-executable values
+    
+    expect(vm.getStackData()).toEqual([value]);
+  });
+});
+```
+
+### Performance and State Verification
+```typescript
+test('should execute without side effects', () => {
+  const originalRP = vm.RP;
+  const originalIP = vm.IP;
+  
+  vm.push(2);
+  vm.push(3);
+  vm.push(createBuiltinRef(Op.Add));
+  evalOp(vm);
+  
+  expect(vm.RP).toBe(originalRP);  // Return stack unchanged
+  expect(vm.IP).toBe(originalIP);  // IP unchanged for built-ins
+  expect(vm.getStackData()).toEqual([5]);
+});
+```
 
 ### List Testing Patterns
 ```typescript
@@ -271,20 +393,29 @@ describe('Feature Integration', () => {
 // DON'T: Create new VM instances
 const vm = new VM();
 
-// DON'T: Use stackSize() (doesn't exist)
-expect(vm.stackSize()).toBe(1);
+// DON'T: Use non-existent methods
+expect(vm.stackSize()).toBe(1);       // stackSize() doesn't exist
+expect(vm.clearStack()).toBeUndefined(); // clearStack() doesn't exist
+vm.compile8(Op.Add);                  // compile8() doesn't exist on vm
 
-// DON'T: Manual pop chains for verification
+// DON'T: Manual pop chains for verification (destructive)
 expect(vm.pop()).toBe(3);
 expect(vm.pop()).toBe(2);
 
 // DON'T: Inconsistent test naming
 it('should work with stuff', () => { ... });
 
-// DON'T: Skip resetVM()
-beforeEach(() => {
-  // Missing resetVM() call
+// DON'T: Skip resetVM() in forEach loops
+testCases.forEach(() => {
+  // Missing resetVM() call - tests will interfere
 });
+
+// DON'T: Assume opcodes without checking
+expect(createBuiltinRef(Op.Subtract)).toBeDefined(); // Op.Subtract doesn't exist
+
+// DON'T: Forget to import utilities
+import { toTaggedValue } from '../../core/tagged';
+// Missing: import { createBuiltinRef } from '../../core/code-ref';
 ```
 
 ### ✅ Correct Patterns
@@ -295,13 +426,35 @@ import { vm } from '../../core/globalState';
 // DO: Use getStackData() for verification
 expect(vm.getStackData()).toEqual([2, 3]);
 
+// DO: Use getStackData().length for stack depth
+expect(vm.getStackData().length).toBe(2);
+
 // DO: Always reset VM state
 beforeEach(() => {
   resetVM();
 });
 
+// DO: Reset VM in forEach when testing multiple cases
+testCases.forEach(({ opcode, inputs, expected }) => {
+  resetVM();  // Fresh state for each test case
+  // ... test logic
+});
+
+// DO: Use utility functions for tagged values
+const builtinRef = createBuiltinRef(Op.Add);  // Use utilities
+const codeRef = createCodeRef(1000);          // Use utilities
+
+// DO: Verify actual opcode names
+expect(createBuiltinRef(Op.Minus)).toBeDefined(); // Op.Minus exists (not Op.Subtract)
+
+// DO: Import all needed utilities
+import { vm } from '../../core/globalState';
+import { resetVM } from '../utils/test-utils';
+import { createBuiltinRef } from '../../core/code-ref';
+import { evalOp } from '../../ops/builtins-interpreter';
+
 // DO: Use consistent test naming
-test('should execute built-in add operation via Tag.BUILTIN', () => {
+test('should execute built-in Add operation directly', () => {
 ```
 
 ## File Location Guidelines
@@ -347,8 +500,38 @@ Before writing any test:
 - [ ] Following established directory organization
 - [ ] Using consistent describe/test structure
 - [ ] Including resetVM() in beforeEach
-- [ ] Using vm.getStackData() for assertions
+- [ ] Using vm.getStackData() for assertions, not vm.pop() chains
 - [ ] Testing error cases appropriately
 - [ ] Consolidating with existing tests when appropriate
+- [ ] Using utility functions (createBuiltinRef, createCodeRef) when available
+- [ ] Verifying actual opcode names (Op.Minus not Op.Subtract)
+- [ ] Resetting VM state in forEach loops for independent test cases
+
+## Key Lessons Learned
+
+### Critical Anti-Patterns to NEVER Repeat
+1. **NEVER assume method names exist** - always check VM API first
+2. **NEVER use new VM()** - always use global vm from globalState  
+3. **NEVER chain vm.pop() calls** - use vm.getStackData() for verification
+4. **NEVER skip resetVM()** - especially in forEach loops
+5. **NEVER assume opcode names** - check Op enum (Op.Minus not Op.Subtract)
+
+### Essential VM Testing Knowledge
+```typescript
+// Stack inspection (READ-ONLY)
+vm.getStackData()           // Returns number[] - current stack contents
+vm.getStackData().length    // Stack depth/size
+vm.getStackData().toEqual([]) // Empty stack check
+
+// VM state inspection
+vm.RP, vm.IP, vm.BP         // Return stack, instruction, base pointers
+vm.SP                       // Stack pointer
+
+// Essential utilities
+resetVM()                   // Complete state reset
+createBuiltinRef(Op.Add)    // Create Tag.BUILTIN references
+createCodeRef(1000)         // Create Tag.CODE references
+evalOp(vm)                  // Direct VM dispatch testing
+```
 
 This document serves as the definitive guide for maintaining consistency and quality in the ts-tacitus test suite.

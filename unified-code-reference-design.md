@@ -433,11 +433,12 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Test these utilities work with enhanced `evalOp`
    - ✅ Added comprehensive test coverage in `src/test/core/code-ref.test.ts`
 
-4. **Test VM-level unified dispatch**
-   - Write unit tests that manually push `Tag.BUILTIN` values and call `evalOp`
-   - Write unit tests that manually push `Tag.CODE` values and call `evalOp`
-   - Verify both dispatch correctly without any language changes
-   - Test edge cases (invalid opcodes, invalid addresses)
+4. **✅ COMPLETE: Test VM-level unified dispatch**
+   - ✅ Write unit tests that manually push `Tag.BUILTIN` values and call `evalOp`
+   - ✅ Write unit tests that manually push `Tag.CODE` values and call `evalOp`
+   - ✅ Verify both dispatch correctly without any language changes
+   - ✅ Test edge cases (invalid opcodes, invalid addresses)
+   - ✅ Added comprehensive test coverage in `src/test/core/vm-unified-dispatch.test.ts`
 
 **Phase 2: Symbol Table Enhancement (Still No Language Changes)**
 
