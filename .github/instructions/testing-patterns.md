@@ -1,5 +1,31 @@
 # Testing Patterns and Standards for ts-tacitus
 
+## 🚨 CRITICAL DEVELOPMENT PROTOCOL 🚨
+
+### **MANDATORY: Multi-Step Implementation Protocol**
+When executing any multi-step plan or implementation:
+
+1. **STOP AFTER EVERY STEP** - Never continue to the next step automatically
+2. **GET USER APPROVAL** - Explicitly request permission before proceeding
+3. **DOCUMENT PROGRESS** - Update implementation plan with completion status
+4. **VALIDATE EACH STEP** - Run tests and verify functionality before requesting approval
+5. **NO ASSUMPTIONS** - Never assume the user wants to continue to the next step
+
+**Example Protocol:**
+```
+✅ COMPLETED: Step N - [Description]
+⏸️ STOPPING HERE - Awaiting user approval to proceed to Step N+1
+NEXT STEP: Step N+1 - [Description]
+```
+
+**This protocol MUST be followed for:**
+- Implementation plans with multiple phases
+- Feature development with sequential steps  
+- Refactoring that touches multiple files
+- Any work spanning more than one logical unit
+
+**Violation of this protocol is unacceptable and breaks user workflow.**
+
 ## Core Testing Principles
 
 ### 1. **ALWAYS Research Existing Patterns First**

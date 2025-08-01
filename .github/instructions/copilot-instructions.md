@@ -1,14 +1,44 @@
 # TACIT AI Agent Instructions
 
+## 🚨 CRITICAL MULTI-STEP IMPLEMENTATION PROTOCOL 🚨
+
+### **MANDATORY: Stop After Every Step**
+
+When executing any multi-step plan or implementation, GitHub Copilot MUST:
+
+1. **STOP AFTER EVERY STEP** - Never continue to the next step automatically
+2. **GET USER APPROVAL** - Explicitly request permission before proceeding  
+3. **DOCUMENT PROGRESS** - Update implementation plan with completion status
+4. **VALIDATE EACH STEP** - Run tests and verify functionality before requesting approval
+5. **NO ASSUMPTIONS** - Never assume the user wants to continue to the next step
+
+**Required Protocol Format:**
+```
+✅ COMPLETED: Step N - [Description]
+⏸️ STOPPING HERE - Awaiting user approval to proceed to Step N+1
+NEXT STEP: Step N+1 - [Description]
+```
+
+**This Protocol Applies To:**
+- Implementation plans with multiple phases
+- Feature development with sequential steps  
+- Refactoring that touches multiple files
+- Any work spanning more than one logical unit
+
+**Violation of this protocol is unacceptable and breaks user workflow.**
+
 ## Project: ts-tacitus
 
 TypeScript implementation of TACIT - stack-based language (Forth + APL + Joy). Point-free composition, NaN-boxed tagged values, polymorphic lists.
 
 ### Key Documentation
 
-- **Lists**: See `.github/instructions/lists.md` for complete list specification
-- **Tagged Values**: See `.github/instructions/tagged.md` for NaN-boxing details
-- **Capsules**: See `.github/instructions/capsules.md` for object model specification
+- **[Multi-Step Protocol](copilot-development-protocol.md)** - Mandatory stop-after-every-step protocol for complex implementations
+- **[Testing Patterns](testing-patterns.md)** - Comprehensive testing standards, VM testing utilities, established patterns, anti-patterns to avoid
+- **[Bytecode System](bytecode.md)** - VM bytecode architecture, unified addressing, opcode encoding, colon definitions, execution flow
+- **[Tagged Values](tagged.md)** - NaN-boxing implementation, tag types, segment encoding, formatting behavior, memory safety
+- **[Lists Specification](lists.md)** - TACIT list format, LINK metadata, stack representation, nesting rules, mutability semantics
+- **[Capsules Model](capsules.md)** - Object model specification, prototype-based instantiation, field definitions, method dispatch
 
 ## Development Workflow
 
