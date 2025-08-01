@@ -126,6 +126,4 @@ This repository contains the TACIT runtime, standard combinators, and documentat
 To explore:
 
 * `src/` — VM implementation and combinators
-* `docs/` — Language reference and design rationale
-* `examples/` — Sample programs and sequences
 

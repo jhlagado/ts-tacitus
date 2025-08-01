@@ -29,7 +29,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should throw on invalid tag ranges', () => {
-    const invalidTag = Tag.LINK + 1;
+    const invalidTag = Tag.BUILTIN + 1;
     expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
   test('should validate value ranges for INTEGER', () => {
