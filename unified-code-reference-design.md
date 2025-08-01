@@ -472,16 +472,17 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Added comprehensive test coverage in `src/test/core/vm-symbol-resolution.test.ts`
    - ✅ Test with manually registered symbols (no parsing yet)
 
-7. **⏸️ NEXT: Test symbol table integration**
-   - Manually register built-in symbols: `symbolTable.defineBuiltin("add", Op.Add)`
-   - Manually register code symbols: `symbolTable.defineCode("test", 1000)`
-   - Test `vm.resolveSymbol()` returns correct tagged values
-   - Test resolved values work with `evalOp`
-   - **⚠️ STOP HERE - CHECK WITH USER BEFORE PROCEEDING**
+7. **✅ COMPLETE: Test symbol table integration**
+   - ✅ Manually register built-in symbols: `symbolTable.defineBuiltin("add", Op.Add)`
+   - ✅ Manually register code symbols: `symbolTable.defineCode("test", 1000)`
+   - ✅ Test `vm.resolveSymbol()` returns correct tagged values
+   - ✅ Test resolved values work with `evalOp`
+   - ✅ Added comprehensive integration test coverage in `src/test/integration/symbol-table-integration.test.ts`
+   - ✅ **VERIFIED**: Complete workflow simulation proves @symbol eval will work correctly
 
 **Phase 3: Function Table Elimination Preparation**
 
-8. **Create function table bypass mechanism**
+8. **⏸️ NEXT: Create function table bypass mechanism**
    - Add `getFunctionTableBypass(functionIndex: number): number | undefined`
    - Maps function indices directly to bytecode addresses
    - Use existing function table as source of truth initially
