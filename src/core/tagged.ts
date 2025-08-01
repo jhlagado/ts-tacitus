@@ -43,6 +43,9 @@ export enum Tag {
 
   /**  Represents a link (relative offset) on the stack. */
   LINK = 6,
+
+  /**  Represents a built-in operation opcode. */
+  BUILTIN = 7,
 }
 
 /**
@@ -56,6 +59,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.STRING]: 'STRING',
   [Tag.LIST]: 'LIST',
   [Tag.LINK]: 'LINK',
+  [Tag.BUILTIN]: 'BUILTIN',
 };
 
 /**
@@ -89,7 +93,7 @@ const EXPONENT_MASK = 0xff << 23;
  * @throws {Error} If the tag or value is invalid.
  */
 export function toTaggedValue(value: number, tag: Tag): number {
-  if (tag < Tag.NUMBER || tag > Tag.LINK) {
+  if (tag < Tag.NUMBER || tag > Tag.BUILTIN) {
     throw new Error(`Invalid tag: ${tag}`);
   }
 

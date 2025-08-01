@@ -143,13 +143,13 @@ describe('Printer', () => {
       const validTags = Object.values(Tag).filter(t => typeof t === 'number') as number[];
       const maxValidTag = Math.max(...validTags);
       
-      // Test with the highest valid tag (LINK) to ensure it works
+      // Test with the highest valid tag (BUILTIN) to ensure it works
       const highTagValue = toTaggedValue(42, maxValidTag);
       prn('High Tag', highTagValue);
       
       expect(consoleOutput).toHaveLength(1);
       expect(consoleOutput[0]).toContain(': ');
-      expect(consoleOutput[0]).toContain('LINK:'); // LINK tag uses default case which shows raw tval
+      expect(consoleOutput[0]).toContain('BUILTIN:'); // BUILTIN tag uses default case which shows raw tval
     });
 
     test('should format output correctly with indentation', () => {
