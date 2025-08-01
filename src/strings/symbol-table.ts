@@ -14,6 +14,7 @@
 
 import { Digest } from '@src/strings/digest';
 import { VM } from '@core/vm';
+import { Tag } from '@core/tagged';
 
 /**
  * Type definition for a word implementation function
@@ -24,18 +25,28 @@ import { VM } from '@core/vm';
 type WordFunction = (vm: VM) => void;
 
 /**
+ * Represents a code reference in the unified @symbol system
+ */
+export interface CodeReference {
+  tag: Tag;
+  addr: number;
+}
+
+/**
  * Represents a node in the symbol table linked list
  *
  * Each node contains:
  * - key: The address of the word name in the string digest
  * - value: The function index/opcode for the word
  * - implementation: Optional JavaScript function implementing the word
+ * - codeRef: Optional direct code reference for unified @symbol system
  * - next: Reference to the next node in the linked list
  */
 interface SymbolTableNode {
   key: number;
   value: number;
   implementation?: WordFunction;
+  codeRef?: CodeReference;  // NEW: Direct code reference
   next: SymbolTableNode | null;
 }
 
@@ -204,5 +215,76 @@ export class SymbolTable {
    */
   revert(checkpoint: SymbolTableCheckpoint): void {
     this.head = checkpoint;
+  }
+
+  // =================================================================================
+  // UNIFIED @SYMBOL SYSTEM METHODS (NEW)
+  // =================================================================================
+
+  /**
+   * Defines a built-in operation in the symbol table with direct addressing
+   *
+   * This method adds a built-in operation (like add, dup, swap) to the symbol table
+   * with a direct code reference that can be used by the unified @symbol system.
+   *
+   * @param {string} name - The name of the built-in operation (e.g., "add")
+   * @param {number} opcode - The opcode for the built-in operation
+   */
+  defineBuiltin(name: string, opcode: number): void {
+    const key = this.digest.add(name);
+    const codeRef: CodeReference = { tag: Tag.BUILTIN, addr: opcode };
+    
+    const newNode: SymbolTableNode = { 
+      key, 
+      value: opcode,  // Keep existing function index system
+      codeRef,        // NEW: Direct code reference  
+      next: this.head 
+    };
+    this.head = newNode;
+  }
+
+  /**
+   * Defines a colon definition in the symbol table with direct addressing
+   *
+   * This method adds a colon definition (user-defined word) to the symbol table
+   * with a direct bytecode address that can be used by the unified @symbol system.
+   *
+   * @param {string} name - The name of the colon definition (e.g., "square")
+   * @param {number} bytecodeAddr - The bytecode address where the definition starts
+   */
+  defineCode(name: string, bytecodeAddr: number): void {
+    const key = this.digest.add(name);
+    const codeRef: CodeReference = { tag: Tag.CODE, addr: bytecodeAddr };
+    
+    const newNode: SymbolTableNode = { 
+      key, 
+      value: bytecodeAddr,  // Store bytecode address as value
+      codeRef,              // NEW: Direct code reference
+      next: this.head 
+    };
+    this.head = newNode;
+  }
+
+  /**
+   * Finds a code reference for a symbol name
+   *
+   * This method searches the symbol table for a symbol with the given name
+   * and returns its direct code reference if found. This enables the unified
+   * @symbol system to get the appropriate Tag and address for both built-ins
+   * and colon definitions.
+   *
+   * @param {string} name - The name of the symbol to find
+   * @returns {CodeReference | undefined} The code reference if found, undefined otherwise
+   */
+  findCodeRef(name: string): CodeReference | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (this.digest.get(current.key) === name && current.codeRef) {
+        return current.codeRef;
+      }
+      current = current.next;
+    }
+
+    return undefined;
   }
 }
