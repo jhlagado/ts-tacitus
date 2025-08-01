@@ -246,7 +246,7 @@ export const evalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
   const { tag, value: addr } = fromTaggedValue(value);
-  
+
   switch (tag) {
     case Tag.CODE:
     case Tag.CODE_BLOCK:
@@ -256,12 +256,12 @@ export const evalOp: Verb = (vm: VM) => {
       vm.BP = vm.RP;
       vm.IP = addr;
       break;
-      
+
     case Tag.BUILTIN:
       // Built-in execution: direct JS function dispatch
       executeOp(vm, addr);
       break;
-      
+
     default:
       // Not executable - push back onto stack
       vm.push(value);

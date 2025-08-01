@@ -1,6 +1,6 @@
 /**
  * @file src/test/core/vm-unified-dispatch.test.ts
- * 
+ *
  * Tests for VM-level unified dispatch system.
  * Verifies that both Tag.BUILTIN and Tag.CODE values work correctly with evalOp
  * without any language changes - pure VM-level testing.
@@ -23,18 +23,18 @@ describe('VM Unified Dispatch', () => {
       vm.push(2);
       vm.push(3);
       vm.push(createBuiltinRef(Op.Add));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([5]);
     });
 
     test('should execute built-in Dup operation directly', () => {
       vm.push(42);
       vm.push(createBuiltinRef(Op.Dup));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([42, 42]);
     });
 
@@ -42,9 +42,9 @@ describe('VM Unified Dispatch', () => {
       vm.push(1);
       vm.push(2);
       vm.push(createBuiltinRef(Op.Swap));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([2, 1]);
     });
 
@@ -53,9 +53,9 @@ describe('VM Unified Dispatch', () => {
       vm.push(2);
       vm.push(3);
       vm.push(createBuiltinRef(Op.Drop));
-      
+
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([1, 2]);
     });
   });
@@ -63,17 +63,17 @@ describe('VM Unified Dispatch', () => {
   describe('non-executable values', () => {
     test('should push back non-executable values unchanged', () => {
       const nonExecutableValues = [
-        42,                                    // Plain number
-        toTaggedValue(100, Tag.STRING),       // String reference
-        toTaggedValue(5, Tag.LIST),           // List reference
+        42, // Plain number
+        toTaggedValue(100, Tag.STRING), // String reference
+        toTaggedValue(5, Tag.LIST), // List reference
       ];
 
       nonExecutableValues.forEach(value => {
         resetVM();
         vm.push(value);
-        
+
         evalOp(vm);
-        
+
         expect(vm.getStackData()).toEqual([value]);
       });
     });
@@ -83,14 +83,14 @@ describe('VM Unified Dispatch', () => {
     test('should handle invalid built-in opcodes gracefully', () => {
       const invalidBuiltinRef = toTaggedValue(200, Tag.BUILTIN);
       vm.push(invalidBuiltinRef);
-      
+
       expect(() => evalOp(vm)).toThrow();
     });
 
     test('should handle stack underflow in built-ins', () => {
-      vm.push(5);  // Only one item, but Add needs two
+      vm.push(5); // Only one item, but Add needs two
       vm.push(createBuiltinRef(Op.Add));
-      
+
       expect(() => evalOp(vm)).toThrow();
     });
 
@@ -102,13 +102,13 @@ describe('VM Unified Dispatch', () => {
   describe('performance verification', () => {
     test('should execute built-ins without call frame overhead', () => {
       const originalRP = vm.RP;
-      
+
       vm.push(2);
       vm.push(3);
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
-      
-      expect(vm.RP).toBe(originalRP);  // Return stack unchanged
+
+      expect(vm.RP).toBe(originalRP); // Return stack unchanged
       expect(vm.getStackData()).toEqual([5]);
     });
 
@@ -118,15 +118,15 @@ describe('VM Unified Dispatch', () => {
       vm.push(3);
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
-      
+
       vm.push(4);
       vm.push(5);
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
-      
+
       vm.push(createBuiltinRef(Op.Multiply));
       evalOp(vm);
-      
+
       expect(vm.getStackData()).toEqual([45]);
     });
   });
