@@ -425,11 +425,13 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Test with manually created `Tag.BUILTIN` values
    - ✅ Consolidated tests into proper location (`interpreter-operations.test.ts`)
 
-3. **Create VM-level code reference utilities**
-   - Add `createBuiltinRef(opcode: number)` helper function
-   - Add `createCodeRef(bytecodeAddr: number)` helper function  
-   - Add `isBuiltinRef(value: number)` and `isCodeRef(value: number)` utilities
-   - Test these utilities work with enhanced `evalOp`
+3. **✅ COMPLETE: Create VM-level code reference utilities**
+   - ✅ Add `createBuiltinRef(opcode: number)` helper function
+   - ✅ Add `createCodeRef(bytecodeAddr: number)` helper function  
+   - ✅ Add `isBuiltinRef(value: number)` and `isCodeRef(value: number)` utilities
+   - ✅ Add `isExecutableRef()`, `getBuiltinOpcode()`, `getCodeAddress()` utilities
+   - ✅ Test these utilities work with enhanced `evalOp`
+   - ✅ Added comprehensive test coverage in `src/test/core/code-ref.test.ts`
 
 4. **Test VM-level unified dispatch**
    - Write unit tests that manually push `Tag.BUILTIN` values and call `evalOp`

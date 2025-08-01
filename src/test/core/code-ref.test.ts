@@ -1,0 +1,231 @@
+/**
+ * @file src/test/core/code-ref.test.ts
+ * 
+ * Tests for code reference utility functions.
+ * Verifies creation, validation, and extraction of code references for the unified @symbol system.
+ */
+
+import {
+  createBuiltinRef,
+  createCodeRef,
+  isBuiltinRef,
+  isCodeRef,
+  isExecutableRef,
+  getBuiltinOpcode,
+  getCodeAddress,
+} from '../../core/code-ref';
+import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
+import { Op } from '../../ops/opcodes';
+
+describe('Code Reference Utilities', () => {
+  describe('createBuiltinRef', () => {
+    test('should create valid builtin references', () => {
+      const addRef = createBuiltinRef(Op.Add);
+      const { tag, value } = fromTaggedValue(addRef);
+      
+      expect(tag).toBe(Tag.BUILTIN);
+      expect(value).toBe(Op.Add);
+    });
+
+    test('should handle various valid opcodes', () => {
+      const testOpcodes = [0, 1, 50, 100, 127];
+      
+      testOpcodes.forEach(opcode => {
+        const ref = createBuiltinRef(opcode);
+        const { tag, value } = fromTaggedValue(ref);
+        
+        expect(tag).toBe(Tag.BUILTIN);
+        expect(value).toBe(opcode);
+      });
+    });
+
+    test('should reject invalid opcodes', () => {
+      expect(() => createBuiltinRef(-1)).toThrow('Invalid builtin opcode: -1');
+      expect(() => createBuiltinRef(128)).toThrow('Invalid builtin opcode: 128');
+      expect(() => createBuiltinRef(1000)).toThrow('Invalid builtin opcode: 1000');
+    });
+  });
+
+  describe('createCodeRef', () => {
+    test('should create valid code references', () => {
+      const codeRef = createCodeRef(1000);
+      const { tag, value } = fromTaggedValue(codeRef);
+      
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBe(1000);
+    });
+
+    test('should handle various valid addresses', () => {
+      const testAddresses = [0, 1, 8192, 32767, 65535];
+      
+      testAddresses.forEach(addr => {
+        const ref = createCodeRef(addr);
+        const { tag, value } = fromTaggedValue(ref);
+        
+        expect(tag).toBe(Tag.CODE);
+        expect(value).toBe(addr);
+      });
+    });
+
+    test('should reject invalid addresses', () => {
+      expect(() => createCodeRef(-1)).toThrow('Invalid bytecode address: -1');
+      expect(() => createCodeRef(65536)).toThrow('Invalid bytecode address: 65536');
+      expect(() => createCodeRef(100000)).toThrow('Invalid bytecode address: 100000');
+    });
+  });
+
+  describe('isBuiltinRef', () => {
+    test('should identify builtin references correctly', () => {
+      const builtinRef = createBuiltinRef(Op.Add);
+      
+      expect(isBuiltinRef(builtinRef)).toBe(true);
+    });
+
+    test('should reject non-builtin references', () => {
+      const codeRef = createCodeRef(1000);
+      const numberValue = 42;
+      const stringRef = toTaggedValue(100, Tag.STRING);
+      
+      expect(isBuiltinRef(codeRef)).toBe(false);
+      expect(isBuiltinRef(numberValue)).toBe(false);
+      expect(isBuiltinRef(stringRef)).toBe(false);
+    });
+
+    test('should handle malformed values gracefully', () => {
+      expect(isBuiltinRef(NaN)).toBe(false);
+      expect(isBuiltinRef(Infinity)).toBe(false);
+      expect(isBuiltinRef(-Infinity)).toBe(false);
+    });
+  });
+
+  describe('isCodeRef', () => {
+    test('should identify code references correctly', () => {
+      const codeRef = createCodeRef(1000);
+      const codeBlockRef = toTaggedValue(2000, Tag.CODE_BLOCK);
+      
+      expect(isCodeRef(codeRef)).toBe(true);
+      expect(isCodeRef(codeBlockRef)).toBe(true);
+    });
+
+    test('should reject non-code references', () => {
+      const builtinRef = createBuiltinRef(Op.Add);
+      const numberValue = 42;
+      const stringRef = toTaggedValue(100, Tag.STRING);
+      
+      expect(isCodeRef(builtinRef)).toBe(false);
+      expect(isCodeRef(numberValue)).toBe(false);
+      expect(isCodeRef(stringRef)).toBe(false);
+    });
+
+    test('should handle malformed values gracefully', () => {
+      expect(isCodeRef(NaN)).toBe(false);
+      expect(isCodeRef(Infinity)).toBe(false);
+      expect(isCodeRef(-Infinity)).toBe(false);
+    });
+  });
+
+  describe('isExecutableRef', () => {
+    test('should identify all executable references', () => {
+      const builtinRef = createBuiltinRef(Op.Add);
+      const codeRef = createCodeRef(1000);
+      const codeBlockRef = toTaggedValue(2000, Tag.CODE_BLOCK);
+      
+      expect(isExecutableRef(builtinRef)).toBe(true);
+      expect(isExecutableRef(codeRef)).toBe(true);
+      expect(isExecutableRef(codeBlockRef)).toBe(true);
+    });
+
+    test('should reject non-executable values', () => {
+      const numberValue = 42;
+      const stringRef = toTaggedValue(100, Tag.STRING);
+      const listRef = toTaggedValue(3, Tag.LIST);
+      
+      expect(isExecutableRef(numberValue)).toBe(false);
+      expect(isExecutableRef(stringRef)).toBe(false);
+      expect(isExecutableRef(listRef)).toBe(false);
+    });
+  });
+
+  describe('getBuiltinOpcode', () => {
+    test('should extract opcode from valid builtin references', () => {
+      const testOpcodes = [Op.Add, Op.Dup, Op.Multiply, Op.Drop];
+      
+      testOpcodes.forEach(opcode => {
+        const ref = createBuiltinRef(opcode);
+        const extractedOpcode = getBuiltinOpcode(ref);
+        
+        expect(extractedOpcode).toBe(opcode);
+      });
+    });
+
+    test('should reject non-builtin references', () => {
+      const codeRef = createCodeRef(1000);
+      const numberValue = 42;
+      
+      expect(() => getBuiltinOpcode(codeRef)).toThrow('Value is not a built-in reference');
+      expect(() => getBuiltinOpcode(numberValue)).toThrow('Value is not a built-in reference');
+    });
+  });
+
+  describe('getCodeAddress', () => {
+    test('should extract address from valid code references', () => {
+      const testAddresses = [0, 1000, 8192, 32767];
+      
+      testAddresses.forEach(addr => {
+        const ref = createCodeRef(addr);
+        const extractedAddr = getCodeAddress(ref);
+        
+        expect(extractedAddr).toBe(addr);
+      });
+    });
+
+    test('should handle CODE_BLOCK references', () => {
+      const addr = 5000;
+      const codeBlockRef = toTaggedValue(addr, Tag.CODE_BLOCK);
+      const extractedAddr = getCodeAddress(codeBlockRef);
+      
+      expect(extractedAddr).toBe(addr);
+    });
+
+    test('should reject non-code references', () => {
+      const builtinRef = createBuiltinRef(Op.Add);
+      const numberValue = 42;
+      
+      expect(() => getCodeAddress(builtinRef)).toThrow('Value is not a code reference');
+      expect(() => getCodeAddress(numberValue)).toThrow('Value is not a code reference');
+    });
+  });
+
+  describe('integration with evalOp', () => {
+    test('should create references compatible with enhanced evalOp', () => {
+      // Test that our utilities create the same tagged values that evalOp expects
+      const builtinRef = createBuiltinRef(Op.Add);
+      const codeRef = createCodeRef(1000);
+      
+      // Verify these have the expected structure for evalOp
+      const { tag: builtinTag, value: builtinValue } = fromTaggedValue(builtinRef);
+      const { tag: codeTag, value: codeValue } = fromTaggedValue(codeRef);
+      
+      expect(builtinTag).toBe(Tag.BUILTIN);
+      expect(builtinValue).toBe(Op.Add);
+      expect(codeTag).toBe(Tag.CODE);
+      expect(codeValue).toBe(1000);
+    });
+
+    test('should roundtrip through creation and extraction', () => {
+      const originalOpcode = Op.Multiply;
+      const originalAddr = 12345;
+      
+      // Create references
+      const builtinRef = createBuiltinRef(originalOpcode);
+      const codeRef = createCodeRef(originalAddr);
+      
+      // Extract values
+      const extractedOpcode = getBuiltinOpcode(builtinRef);
+      const extractedAddr = getCodeAddress(codeRef);
+      
+      expect(extractedOpcode).toBe(originalOpcode);
+      expect(extractedAddr).toBe(originalAddr);
+    });
+  });
+});
