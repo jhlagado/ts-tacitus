@@ -1,53 +1,148 @@
-# TACIT Programming Language
+# TACIT: Specification-Driven Development Structure
 
-**TACIT** is a stack-based, function-context-aware programming language inspired by Forth, APL, Lisp, and Joy. It is named for its core design philosophy: *tacit* (point-free) composition, where programs are constructed without naming arguments explicitly.
+This project demonstrates **spec-driven development** where documentation is as important as source code. The codebase is organized around clear specifications, discrete tasks, and AI-assisted development workflows.
 
-TACIT offers a uniform, introspectable model for data and behavior built on simple, composable parts: tagged values, lists, capsules, and shaped arrays.
+## 🗂 Project Structure
 
----
+```
+ts-tacitus/
+├── src/             # Source code implementation
+├── specs/           # Canonical specifications (one per feature/module)
+├── tasks/           # Discrete work units for development
+│   ├── todo/        # Tasks ready for implementation
+│   └── done/        # Completed tasks (for reference)
+├── reference/       # Shared knowledge and examples
+├── rules/           # AI development guidelines and constraints
+└── .github/         # Legacy instruction files (being migrated)
+```
 
-## Core Concepts
+## 📋 Development Workflow
 
-### Stack-Based Execution
+### 1. Specification-First
+All features begin with clear specifications in `specs/`. These documents define:
+- **What** the feature does (overview and purpose)
+- **How** it works (structure and constraints) 
+- **Why** design decisions were made (rationale)
 
-TACIT is built around a pair of stacks: the **data stack** and the **return stack**. All execution proceeds by manipulating these stacks using postfix (RPN) notation. The language avoids control flow primitives in favor of composable, point-free abstractions.
+### 2. Task-Driven Implementation  
+Each work unit is captured in `tasks/todo/` as a self-contained task:
+- **Goal**: Clear objective and success criteria
+- **Dependencies**: Required specs and prior work
+- **Constraints**: Technical and design limitations
+- **Tests**: Expected behaviors and edge cases
 
-### Tagged Values
+### 3. AI-Assisted Development
+Guidelines in `rules/` ensure consistent:
+- **Code quality**: Style, testing, documentation standards
+- **Architectural alignment**: Following VM design principles
+- **Specification compliance**: Implementation matches specs
 
-Every value in TACIT carries a tag identifying its type—such as scalar number, list, function, or capsule. This allows dynamic typing, polymorphic behavior, and a unified treatment of data and functions.
+## 🎯 Current Implementation: TACIT VM
 
----
+TACIT is a stack-based programming language with:
+- **64KB segmented memory** (STACK, RSTACK, CODE, STRING)
+- **NaN-boxed tagged values** for type safety
+- **Unified code references** for metaprogramming
+- **Immutable list structures** with LINK metadata
 
-## Lists and Capsules
+### Key Specifications
+- [`specs/vm-architecture.md`](specs/vm-architecture.md) - Memory layout and execution model
+- [`specs/tagged-values.md`](specs/tagged-values.md) - Type system and encoding
+- [`specs/lists.md`](specs/lists.md) - Compound data structures
 
-### Lists
+### Active Development
+Current plan: [`tasks/todo/plan-01-unified-code-reference-system.md`](tasks/todo/plan-01-unified-code-reference-system.md)
+- **Step 8/17**: Implementing function table bypass mechanism
+- Part of unified @symbol reference system
+- 7 steps complete, 10 steps remaining
 
-A **list** is a flat stack-allocated sequence of tagged values. Lists are mostly immutable, though in-place mutation of fixed-width values (e.g. updating numeric elements) is permitted. Structural changes (like appending) require rewriting backlinks and length metadata.
+## 🔧 Developer Guide
 
-* Lists may contain nested structures (e.g., other lists), but such nesting does not imply dimensionality.
-* A list that does **not** end in a function is treated as **inert data**.
+### For AI Assistants
+1. **Read relevant specs** before starting any task
+2. **Follow rules in `rules/ai-guidelines.md`**  
+3. **Consult `reference/` for examples and context**
+4. **Update task status** when complete
 
-### Capsules
+### For Human Developers
+1. **Understand the specs** before coding
+2. **Create tasks** for discrete work units  
+3. **Test comprehensively** including edge cases
+4. **Document decisions** and constraints
 
-A **capsule** is a list whose final element is a function or another capsule. It represents an executable or interpretable structure. The final position is called the **capsule function**.
+### Starting a New Plan
+```bash
+# Read the plan definition
+cat tasks/todo/plan-01-unified-code-reference-system.md
 
-Capsules are first-class, composable, and introspectable. They can include:
+# Review current step (Step 8)
+# Find step details in the plan file
 
-* Parameters
-* Metadata
-* Internal state (e.g. a pointer for stack or queue structures)
-* Shape descriptors (for arrays)
+# Review dependencies  
+cat specs/vm-architecture.md
+cat specs/tagged-values.md
 
-Functions and capsules are interchangeable in TACIT—they are both callable.
+# Apply development rules
+cat rules/ai-guidelines.md
 
----
+# Implement current step with testing
+npm test
+```
 
-## Arrays and Shapes
+## 📚 Knowledge Base
 
-Arrays in TACIT are modeled as **lists with shape capsules**. The shape capsule lives in the function position (final element) of the list. It defines how to map multi-dimensional indices into flat linear offsets.
+### Reference Materials
+- [`reference/glossary.md`](reference/glossary.md) - TACIT terminology and concepts
+- [`reference/test-cases.md`](reference/test-cases.md) - Examples and expected behaviors
+- [`.github/instructions/`](.github/instructions/) - Legacy detailed documentation
 
-* A scalar is treated as a rank-zero array.
-* A list is treated as a rank-one array.
+### Related Projects
+This structure can be applied to any software project where:
+- **Documentation drives development**
+- **Specifications are authoritative** 
+- **AI assists human developers**
+- **Quality and consistency matter**
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# View current plan and active step
+cat tasks/todo/plan-01-unified-code-reference-system.md
+
+# Start development session with AI
+# 1. Read plan file and locate active step
+# 2. Review dependency specs  
+# 3. Apply AI guidelines
+# 4. Implement current step with testing
+```
+
+## 🎯 Benefits of This Approach
+
+### For Development
+- **Clear requirements** from specifications
+- **Discrete work units** that can be tackled independently
+- **Consistent quality** through guidelines and constraints
+- **AI-friendly structure** for assisted development
+
+### For Maintenance  
+- **Authoritative documentation** that stays current
+- **Complete context** for understanding decisions
+- **Testable specifications** with concrete examples
+- **Architectural coherence** across all changes
+
+### For Collaboration
+- **Shared vocabulary** through glossary and specs
+- **Transparent process** with visible tasks and rules
+- **Quality gates** through testing and validation
+- **Knowledge preservation** in structured documentation
+
+This structure demonstrates how documentation-driven development can create more maintainable, understandable, and AI-friendly codebases.
 * A shaped array must be flat and must not contain nested structures.
 
 Shapes may be functions or structured descriptors. Shape capsules provide richer metadata (e.g., dimensions, strides) and can be inspected programmatically.
