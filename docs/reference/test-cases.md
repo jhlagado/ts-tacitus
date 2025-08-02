@@ -4,11 +4,11 @@
 
 ### Basic Arithmetic
 ```tacit
-# Input: 2 3 +
+# Input: 2 3 add
 # Stack: [] → [2] → [2,3] → [5]
 # Effect: ( a b — sum )
 
-# Input: 5 dup *  
+# Input: 5 dup mul  
 # Stack: [] → [5] → [5,5] → [25]
 # Effect: ( n — n² )
 ```
@@ -39,11 +39,11 @@
 ### Quotations
 ```tacit
 # Creating executable reference
-{ 1 2 + }           # → Tag.CODE(bytecode_addr)
-{ dup * }           # → Tag.CODE(bytecode_addr)
+{ 1 2 add }           # → Tag.CODE(bytecode_addr)
+{ dup mul }           # → Tag.CODE(bytecode_addr)
 
 # Executing references  
-3 { dup * } eval    # → 9
+3 { dup mul } eval    # → 9
 ```
 
 ### Symbol References (Planned)
@@ -89,16 +89,16 @@ BP: 8  // Points to current frame
 ### Stack Underflow
 ```tacit
 # Empty stack, attempt pop
-+                   # Error: Stack underflow
+add                   # Error: Stack underflow
 
 # Insufficient operands
-5 +                 # Error: Need 2 operands, have 1
+5 add                 # Error: Need 2 operands, have 1
 ```
 
 ### Type Mismatches
 ```tacit
 # Attempting arithmetic on non-numbers
-"hello" 5 +         # Error: Type mismatch
+"hello" 5 add         # Error: Type mismatch
 
 # Invalid list operations
 5 car               # Error: Not a list
@@ -135,10 +135,10 @@ for (let i = 0; i < 100; i++) {
 ### Complete Workflows
 ```tacit
 # Mathematical expression: (3+4) * (5+6)
-3 4 + 5 6 + *       # → 77
+3 4 add 5 6 add mul       # → 77
 
 # List processing
-( 1 2 3 ) { dup * } map  # → ( 1 4 9 )
+( 1 2 3 ) { dup mul } map  # → ( 1 4 9 )
 
 # Control flow
 5 { 10 > } { "big" } { "small" } if

@@ -7,7 +7,6 @@ import {
   getValue,
   isNIL,
   isCode,
-  isCodeBlock,
   isAnyCode,
   MAX_TAG,
 } from '../../core/tagged';
@@ -17,7 +16,6 @@ describe('Tagged NaN Encoding', () => {
       { tag: Tag.INTEGER, value: -32768 },
       { tag: Tag.INTEGER, value: 32767 },
       { tag: Tag.CODE, value: 12345 },
-      { tag: Tag.CODE_BLOCK, value: 54321 },
       { tag: Tag.STRING, value: 42 },
     ];
 
@@ -40,8 +38,6 @@ describe('Tagged NaN Encoding', () => {
   test('should validate unsigned value ranges for non-INTEGER types', () => {
     expect(() => toTaggedValue(-1, Tag.CODE)).toThrow();
     expect(() => toTaggedValue(65536, Tag.CODE)).toThrow();
-    expect(() => toTaggedValue(-1, Tag.CODE_BLOCK)).toThrow();
-    expect(() => toTaggedValue(65536, Tag.CODE_BLOCK)).toThrow();
     expect(() => toTaggedValue(-1, Tag.STRING)).toThrow();
     expect(() => toTaggedValue(65536, Tag.STRING)).toThrow();
   });
@@ -68,16 +64,10 @@ describe('Tagged NaN Encoding', () => {
   });
   test('should correctly identify code types', () => {
     const func = toTaggedValue(123, Tag.CODE);
-    const block = toTaggedValue(456, Tag.CODE_BLOCK);
     const str = toTaggedValue(789, Tag.STRING);
     expect(isCode(func)).toBe(true);
-    expect(isCode(block)).toBe(false);
     expect(isCode(str)).toBe(false);
-    expect(isCodeBlock(func)).toBe(false);
-    expect(isCodeBlock(block)).toBe(true);
-    expect(isCodeBlock(str)).toBe(false);
     expect(isAnyCode(func)).toBe(true);
-    expect(isAnyCode(block)).toBe(true);
     expect(isAnyCode(str)).toBe(false);
   });
 });

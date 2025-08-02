@@ -102,10 +102,8 @@ describe('Code Reference Utilities', () => {
   describe('isCodeRef', () => {
     test('should identify code references correctly', () => {
       const codeRef = createCodeRef(1000);
-      const codeBlockRef = toTaggedValue(2000, Tag.CODE_BLOCK);
 
       expect(isCodeRef(codeRef)).toBe(true);
-      expect(isCodeRef(codeBlockRef)).toBe(true);
     });
 
     test('should reject non-code references', () => {
@@ -129,11 +127,9 @@ describe('Code Reference Utilities', () => {
     test('should identify all executable references', () => {
       const builtinRef = createBuiltinRef(Op.Add);
       const codeRef = createCodeRef(1000);
-      const codeBlockRef = toTaggedValue(2000, Tag.CODE_BLOCK);
 
       expect(isExecutableRef(builtinRef)).toBe(true);
       expect(isExecutableRef(codeRef)).toBe(true);
-      expect(isExecutableRef(codeBlockRef)).toBe(true);
     });
 
     test('should reject non-executable values', () => {
@@ -178,14 +174,6 @@ describe('Code Reference Utilities', () => {
 
         expect(extractedAddr).toBe(addr);
       });
-    });
-
-    test('should handle CODE_BLOCK references', () => {
-      const addr = 5000;
-      const codeBlockRef = toTaggedValue(addr, Tag.CODE_BLOCK);
-      const extractedAddr = getCodeAddress(codeBlockRef);
-
-      expect(extractedAddr).toBe(addr);
     });
 
     test('should reject non-code references', () => {

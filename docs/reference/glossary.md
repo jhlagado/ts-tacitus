@@ -48,8 +48,7 @@
 - **Quotation**: `{ code }` - anonymous code block, creates executable reference.
 - **Symbol Reference**: `@symbol` - creates reference to named word without executing.
 - **Tag.BUILTIN**: Tagged value type (7) for references to built-in operations.
-- **Tag.CODE**: Tagged value type (3) for references to bytecode addresses.
-- **Tag.CODE_BLOCK**: Tagged value type for standalone code blocks (being phased out).
+- **Tag.CODE**: Tagged value type (2) for references to bytecode addresses.
 - **Unified Dispatch**: Single execution mechanism handling both built-ins and colon definitions via eval.
 - **Word**: Named operation or value (function, variable, constant).
 

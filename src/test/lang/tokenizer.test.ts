@@ -26,15 +26,15 @@ describe('Tokenizer', () => {
   }
 
   test('should tokenize a simple command', () => {
-    const tokens = getAllTokens('5 3 +');
+    const tokens = getAllTokens('5 3 add');
     expect(tokens.length).toBe(3);
     expect(tokens[0]).toEqual(expect.objectContaining({ type: TokenType.NUMBER, value: 5 }));
     expect(tokens[1]).toEqual(expect.objectContaining({ type: TokenType.NUMBER, value: 3 }));
-    expect(tokens[2]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: '+' }));
+    expect(tokens[2]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'add' }));
   });
   test('should tokenize a command with multiple operations', () => {
-    const values = getTokenValues('5 3 + 2 *');
-    expect(values).toEqual([5, 3, '+', 2, '*']);
+    const values = getTokenValues('5 3 add 2 mul');
+    expect(values).toEqual([5, 3, 'add', 2, 'mul']);
   });
 
   test('should tokenize positive integers', () => {
@@ -99,33 +99,33 @@ describe('Tokenizer', () => {
     expect(tokens[4].value).toBe('+');
   });
   test('should handle standalone operators', () => {
-    const values = getTokenValues('5 + 3 - 2');
-    expect(values).toEqual([5, '+', 3, '-', 2]);
+    const values = getTokenValues('5 add 3 sub 2');
+    expect(values).toEqual([5, 'add', 3, 'sub', 2]);
   });
 
   test('should skip empty lines', () => {
-    const values = getTokenValues('\n\n5 3 +\n\n');
-    expect(values).toEqual([5, 3, '+']);
+    const values = getTokenValues('\n\n5 3 add\n\n');
+    expect(values).toEqual([5, 3, 'add']);
   });
   test('should skip lines with only comments', () => {
-    const values = getTokenValues('\\ Comment 1\n\\ Comment 2\n5 3 +');
-    expect(values).toEqual([5, 3, '+']);
+    const values = getTokenValues('\\ Comment 1\n\\ Comment 2\n5 3 add');
+    expect(values).toEqual([5, 3, 'add']);
   });
   test('should skip inline comments', () => {
-    const values = getTokenValues('5 3 + \\ This is a comment');
-    expect(values).toEqual([5, 3, '+']);
+    const values = getTokenValues('5 3 add \\ This is a comment');
+    expect(values).toEqual([5, 3, 'add']);
   });
   test('should handle multiple spaces and empty words', () => {
-    const values = getTokenValues('5   3   +');
-    expect(values).toEqual([5, 3, '+']);
+    const values = getTokenValues('5   3   add');
+    expect(values).toEqual([5, 3, 'add']);
   });
   test('should handle mixed input with numbers, words, and special characters', () => {
-    const values = getTokenValues('{-345} swap drop 42.5 +');
-    expect(values).toEqual(['{', -345, '}', 'swap', 'drop', 42.5, '+']);
+    const values = getTokenValues('{-345} swap drop 42.5 add');
+    expect(values).toEqual(['{', -345, '}', 'swap', 'drop', 42.5, 'add']);
   });
   test('should handle multiple lines with mixed content', () => {
-    const values = getTokenValues('5 3 +\n\\ Comment\n10 20 -\nswap');
-    expect(values).toEqual([5, 3, '+', 10, 20, '-', 'swap']);
+    const values = getTokenValues('5 3 add\n\\ Comment\n10 20 sub\nswap');
+    expect(values).toEqual([5, 3, 'add', 10, 20, 'sub', 'swap']);
   });
   test('should handle empty input', () => {
     const tokenizer = new Tokenizer('');
@@ -133,12 +133,12 @@ describe('Tokenizer', () => {
   });
 
   test('should tokenize complex expressions', () => {
-    const values = getTokenValues('5 dup { 3 + } drop');
-    expect(values).toEqual([5, 'dup', '{', 3, '+', '}', 'drop']);
+    const values = getTokenValues('5 dup { 3 add } drop');
+    expect(values).toEqual([5, 'dup', '{', 3, 'add', '}', 'drop']);
   });
   test('should handle nested expressions', () => {
-    const values = getTokenValues('{ { 5 } { 3 } + }');
-    expect(values).toEqual(['{', '{', 5, '}', '{', 3, '}', '+', '}']);
+    const values = getTokenValues('{ { 5 } { 3 } add }');
+    expect(values).toEqual(['{', '{', 5, '}', '{', 3, '}', 'add', '}']);
   });
 
   test('should handle numbers with leading zeros', () => {
@@ -160,14 +160,14 @@ describe('Tokenizer', () => {
     expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'z' }));
   });
   test('should handle { and } in complex expressions', () => {
-    const tokens = getAllTokens('if { x 1 + } { y 2 * } then');
+    const tokens = getAllTokens('if { x 1 add } { y 2 mul } then');
     const types = tokens.map(t => t.type);
     const values = tokens.map(t => t.value);
     expect(types).toContain(TokenType.BLOCK_START);
     expect(types).toContain(TokenType.BLOCK_END);
     expect(types).toContain(TokenType.WORD);
     expect(types).toContain(TokenType.NUMBER);
-    expect(values).toEqual(['if', '{', 'x', 1, '+', '}', '{', 'y', 2, '*', '}', 'then']);
+    expect(values).toEqual(['if', '{', 'x', 1, 'add', '}', '{', 'y', 2, 'mul', '}', 'then']);
   });
   test('should handle ( and ) as symbol terminators', () => {
     const tokens = getAllTokens('xy( 123 )z');
@@ -179,13 +179,13 @@ describe('Tokenizer', () => {
     expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'z' }));
   });
   test('should handle ( and ) in complex expressions', () => {
-    const tokens = getAllTokens('if (x 1 +) (y 2 *) then');
+    const tokens = getAllTokens('if (x 1 add) (y 2 mul) then');
     const types = tokens.map(t => t.type);
     const values = tokens.map(t => t.value);
     expect(types).toContain(TokenType.SPECIAL);
     expect(types).toContain(TokenType.WORD);
     expect(types).toContain(TokenType.NUMBER);
-    expect(values).toEqual(['if', '(', 'x', 1, '+', ')', '(', 'y', 2, '*', ')', 'then']);
+    expect(values).toEqual(['if', '(', 'x', 1, 'add', ')', '(', 'y', 2, 'mul', ')', 'then']);
   });
   test('should handle [ and ] as symbol terminators', () => {
     const tokens = getAllTokens('xy[ 123 ]z');
@@ -197,13 +197,13 @@ describe('Tokenizer', () => {
     expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'z' }));
   });
   test('should handle [ and ] in complex expressions', () => {
-    const tokens = getAllTokens('array [1 2 +] [3 4 *] then');
+    const tokens = getAllTokens('array [1 2 add] [3 4 mul] then');
     const types = tokens.map(t => t.type);
     const values = tokens.map(t => t.value);
     expect(types).toContain(TokenType.SPECIAL);
     expect(types).toContain(TokenType.WORD);
     expect(types).toContain(TokenType.NUMBER);
-    expect(values).toEqual(['array', '[', 1, 2, '+', ']', '[', 3, 4, '*', ']', 'then']);
+    expect(values).toEqual(['array', '[', 1, 2, 'add', ']', '[', 3, 4, 'mul', ']', 'then']);
   });
   test('should handle words with underscores', () => {
     const values = getTokenValues('my_word another_word');
@@ -267,8 +267,8 @@ describe('Tokenizer', () => {
     }).toThrow('Unterminated string literal');
   });
   test('should handle mixed strings and other tokens', () => {
-    const values = getTokenValues('5 "hello" +');
-    expect(values).toEqual([5, 'hello', '+']);
+    const values = getTokenValues('5 "hello" add');
+    expect(values).toEqual([5, 'hello', 'add']);
   });
   test('should handle special characters inside strings', () => {
     const tokens = getAllTokens('"hello { } [ ] ( ) : ; \\" \\\\ there"');

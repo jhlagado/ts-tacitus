@@ -250,7 +250,6 @@ export const evalOp: Verb = (vm: VM) => {
 
   switch (tag) {
     case Tag.CODE:
-    case Tag.CODE_BLOCK:
       // Bytecode execution: set up call frame and jump to address
       vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
       vm.rpush(vm.BP);
