@@ -154,6 +154,9 @@ function processToken(token: Token, state: ParserState): void {
     case TokenType.WORD:
       processWordToken(token.value as string, state);
       break;
+    case TokenType.SYMBOL:
+      processAtSymbol(token.value as string, state);
+      break;
     case TokenType.WORD_QUOTE:
       const wordName = token.value as string;
       const address = vm.symbolTable.find(wordName) as number | undefined;
@@ -304,6 +307,39 @@ function processWordToken(value: string, state: ParserState): void {
 
     vm.compiler.compileOpcode(functionIndex);
   }
+}
+
+/**
+ * Process @symbol tokens for unified code references.
+ * 
+ * This function handles @symbol syntax by calling vm.pushSymbolRef() to resolve
+ * the symbol to either a Tag.BUILTIN or Tag.CODE tagged value and push it to the stack.
+ * The resulting tagged value can be used with 'eval' for metaprogramming.
+ * 
+ * Examples:
+ * - @add → Tag.BUILTIN(Op.Add) 
+ * - @square → Tag.CODE(bytecode_addr)
+ * 
+ * @param {string} symbolName - The symbol name after @ (without the @ prefix)
+ * @param {ParserState} state - Current parser state (unused but maintains consistency)
+ */
+function processAtSymbol(symbolName: string, state: ParserState): void {
+  // Generate bytecode to call vm.pushSymbolRef() at runtime
+  // This pushes the resolved tagged value directly onto the stack
+  
+  // Compile a call to the pushSymbolRef built-in with the symbol name
+  const pushSymbolRefIndex = vm.symbolTable.find('pushSymbolRef');
+  if (pushSymbolRefIndex === undefined) {
+    throw new UndefinedWordError('pushSymbolRef', vm.getStackData());
+  }
+  
+  // First push the symbol name as a string literal
+  vm.compiler.compileOpcode(Op.LiteralString);
+  const stringAddress = vm.digest.add(symbolName);
+  vm.compiler.compile16(stringAddress);
+  
+  // Then call pushSymbolRef
+  vm.compiler.compileOpcode(pushSymbolRefIndex);
 }
 
 /**

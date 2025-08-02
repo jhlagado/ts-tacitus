@@ -362,3 +362,39 @@ export const printOp: Verb = (vm: VM) => {
   const d = vm.pop();
   console.log(formatValue(vm, d));
 };
+
+/**
+ * Implements the pushSymbolRef operation for @symbol syntax support.
+ * 
+ * Expects a string on the stack containing the symbol name.
+ * Resolves the symbol to a tagged value (Tag.BUILTIN or Tag.CODE) and pushes it.
+ * This enables metaprogramming by creating references to operations and colon definitions.
+ * 
+ * Stack effect: ( string -- tagged_value )
+ * 
+ * Examples:
+ * - "add" pushSymbolRef → Tag.BUILTIN(Op.Add)
+ * - "square" pushSymbolRef → Tag.CODE(bytecode_addr)
+ * 
+ * @param {VM} vm - The virtual machine instance
+ */
+export const pushSymbolRefOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'pushSymbolRef');
+  
+  // Pop the string containing the symbol name
+  const stringTaggedValue = vm.pop();
+  const { tag, value } = fromTaggedValue(stringTaggedValue);
+  
+  if (tag !== Tag.STRING) {
+    throw new Error('pushSymbolRef expects a string on the stack');
+  }
+  
+  // Get the string from the digest
+  const symbolName = vm.digest.get(value);
+  if (symbolName === undefined) {
+    throw new Error(`String not found in digest: ${value}`);
+  }
+  
+  // Call the VM's pushSymbolRef method (implemented in Step 11)
+  vm.pushSymbolRef(symbolName);
+};

@@ -8,13 +8,13 @@ describe('Standalone Code Blocks', () => {
   });
 
   it('should parse and compile a standalone block', () => {
-    const code = '{ 1 2 + }';
+    const code = '{ 1 2 add }';
 
     expect(() => executeProgram(code)).not.toThrow();
   });
 
   it('should execute a standalone block and leave code reference on stack', () => {
-    const code = '{ 1 2 + }';
+    const code = '{ 1 2 add }';
 
     executeProgram(code);
 
@@ -27,7 +27,7 @@ describe('Standalone Code Blocks', () => {
     expect(value).toBeGreaterThan(0);
   });
   it('should create different code references for different blocks', () => {
-    const code = '{ 1 2 + } { 3 4 * }';
+    const code = '{ 1 2 add } { 3 4 mul }';
 
     executeProgram(code);
 

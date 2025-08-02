@@ -29,6 +29,7 @@ import {
   exitOp,
   evalOp,
   literalStringOp,
+  pushSymbolRefOp,
 } from './builtins-interpreter';
 
 import { literalAddressOp } from './builtins';
@@ -115,6 +116,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('abort', Op.Abort, abortOp);
   symbolTable.define('exit', Op.Exit, exitOp);
   symbolTable.define('eval', Op.Eval, evalOp);
+  symbolTable.define('pushSymbolRef', Op.PushSymbolRef, pushSymbolRefOp);
   symbolTable.define('print', Op.Print, printOp);
   symbolTable.define('.', Op.RawPrint, rawPrintOp);
   symbolTable.define('str', Op.LiteralString, literalStringOp);
