@@ -7,13 +7,16 @@ This project demonstrates **spec-driven development** where documentation is as 
 ```
 ts-tacitus/
 ├── src/             # Source code implementation
-├── specs/           # Canonical specifications (one per feature/module)
-├── tasks/           # Discrete work units for development
-│   ├── todo/        # Tasks ready for implementation
-│   └── done/        # Completed tasks (for reference)
-├── reference/       # Shared knowledge and examples
-├── rules/           # AI development guidelines and constraints
-└── .github/         # Legacy instruction files (being migrated)
+├── docs/            # All documentation and specifications
+│   ├── specs/       # Canonical specifications (VM architecture, features)
+│   │   └── drafts/  # Work-in-progress specifications
+│   ├── tasks/       # Discrete work units for development
+│   │   ├── plan-03-unified-code-reference-system.md  # Current active plan
+│   │   └── done/    # Completed plans and tasks
+│   ├── reference/   # Shared knowledge, glossary, and examples
+│   └── rules/       # AI development guidelines and constraints
+├── scripts/         # Development utilities and tools
+└── coverage/        # Test coverage reports
 ```
 
 ## 📋 Development Workflow
@@ -25,14 +28,16 @@ All features begin with clear specifications in `specs/`. These documents define
 - **Why** design decisions were made (rationale)
 
 ### 2. Task-Driven Implementation  
-Each work unit is captured in `tasks/todo/` as a self-contained task:
+Each work unit is captured in `docs/tasks/` as a self-contained plan:
+- **Active Plan**: `docs/tasks/plan-03-unified-code-reference-system.md` (current work)
+- **Completed Plans**: Archived in `docs/tasks/done/` for reference
 - **Goal**: Clear objective and success criteria
 - **Dependencies**: Required specs and prior work
 - **Constraints**: Technical and design limitations
 - **Tests**: Expected behaviors and edge cases
 
 ### 3. AI-Assisted Development
-Guidelines in `rules/` ensure consistent:
+Guidelines in `docs/rules/` ensure consistent:
 - **Code quality**: Style, testing, documentation standards
 - **Architectural alignment**: Following VM design principles
 - **Specification compliance**: Implementation matches specs
@@ -46,55 +51,68 @@ TACIT is a stack-based programming language with:
 - **Immutable list structures** with LINK metadata
 
 ### Key Specifications
-- [`specs/vm-architecture.md`](specs/vm-architecture.md) - Memory layout and execution model
-- [`specs/tagged-values.md`](specs/tagged-values.md) - Type system and encoding
-- [`specs/lists.md`](specs/lists.md) - Compound data structures
+- [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
+- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system and encoding
+- [`docs/specs/lists.md`](docs/specs/lists.md) - Compound data structures
 
 ### Active Development
-Current plan: [`tasks/todo/plan-01-unified-code-reference-system.md`](tasks/todo/plan-01-unified-code-reference-system.md)
-- **Step 8/17**: Implementing function table bypass mechanism
+Current plan: [`docs/tasks/plan-03-unified-code-reference-system.md`](docs/tasks/plan-03-unified-code-reference-system.md)
+- **Step 10/17**: Ready to implement unified dispatch mechanism
 - Part of unified @symbol reference system
-- 7 steps complete, 10 steps remaining
+- 9 steps complete, 8 steps remaining
+
+### Completed Work
+Previous plans archived in [`docs/tasks/done/`](docs/tasks/done/):
+- **Plan 00**: Project structure setup
+- **Plan 01**: Test coverage improvement (74% coverage achieved)
+- **Plan 02**: Test rationalization and cleanup
 
 ## 🔧 Developer Guide
 
 ### For AI Assistants
 1. **Read relevant specs** before starting any task
-2. **Follow rules in `rules/ai-guidelines.md`**  
-3. **Consult `reference/` for examples and context**
+2. **Follow rules in `docs/rules/ai-guidelines.md`**  
+3. **Consult `docs/reference/` for examples and context**
 4. **Update task status** when complete
 
 ### For Human Developers
 1. **Understand the specs** before coding
-2. **Create tasks** for discrete work units  
+2. **Create plans** for discrete work units  
 3. **Test comprehensively** including edge cases
 4. **Document decisions** and constraints
 
 ### Starting a New Plan
 ```bash
-# Read the plan definition
-cat tasks/todo/plan-01-unified-code-reference-system.md
+# Read the current active plan
+cat docs/tasks/plan-03-unified-code-reference-system.md
 
-# Review current step (Step 8)
+# Review current step (Step 10)
 # Find step details in the plan file
 
 # Review dependencies  
-cat specs/vm-architecture.md
-cat specs/tagged-values.md
+cat docs/specs/vm-architecture.md
+cat docs/specs/tagged-values.md
 
 # Apply development rules
-cat rules/ai-guidelines.md
+cat docs/rules/ai-guidelines.md
 
 # Implement current step with testing
-npm test
+yarn test
 ```
 
 ## 📚 Knowledge Base
 
 ### Reference Materials
-- [`reference/glossary.md`](reference/glossary.md) - TACIT terminology and concepts
-- [`reference/test-cases.md`](reference/test-cases.md) - Examples and expected behaviors
-- [`.github/instructions/`](.github/instructions/) - Legacy detailed documentation
+- [`docs/reference/glossary.md`](docs/reference/glossary.md) - TACIT terminology and concepts
+- [`docs/reference/test-cases.md`](docs/reference/test-cases.md) - Examples and expected behaviors
+- [`docs/reference/known-issues.md`](docs/reference/known-issues.md) - Documented test isolation and other issues
+- [`docs/reference/spec-driven-demo.md`](docs/reference/spec-driven-demo.md) - Development methodology examples
+
+### Specifications
+- [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Core VM design and memory layout
+- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system implementation
+- [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
+- [`docs/specs/drafts/`](docs/specs/drafts/) - Work-in-progress specifications
 
 ### Related Projects
 This structure can be applied to any software project where:
@@ -107,16 +125,19 @@ This structure can be applied to any software project where:
 
 ```bash
 # Install dependencies
-npm install
+yarn install
 
 # Run tests
-npm test
+yarn test
 
 # View current plan and active step
-cat tasks/todo/plan-01-unified-code-reference-system.md
+cat docs/tasks/plan-03-unified-code-reference-system.md
+
+# Check completed work
+ls docs/tasks/done/
 
 # Start development session with AI
-# 1. Read plan file and locate active step
+# 1. Read plan file and locate active step (Step 10)
 # 2. Review dependency specs  
 # 3. Apply AI guidelines
 # 4. Implement current step with testing
@@ -143,82 +164,23 @@ cat tasks/todo/plan-01-unified-code-reference-system.md
 - **Knowledge preservation** in structured documentation
 
 This structure demonstrates how documentation-driven development can create more maintainable, understandable, and AI-friendly codebases.
-* A shaped array must be flat and must not contain nested structures.
 
-Shapes may be functions or structured descriptors. Shape capsules provide richer metadata (e.g., dimensions, strides) and can be inspected programmatically.
+## 📈 Current Project Status
 
-Arrays can be reinterpreted as unshaped lists by removing the shape capsule. This enables transformation back to Lisp-style or per-value manipulation.
+### Test Coverage
+- **54/59 test suites passing** (91.5% suite success rate)
+- **762 individual tests passing** with comprehensive coverage
+- **Known Issues**: 5 test suites with isolation issues documented in `docs/reference/known-issues.md`
 
----
+### Active Development
+- **Current Plan**: Unified @symbol reference system (Step 10/17)
+- **Recent Completion**: Step 9 - Unified colon definition storage
+- **Next Milestone**: Function table elimination and direct bytecode addressing
 
-## Smart Capsules
+### Architecture Highlights
+- **64KB segmented memory** with STACK, RSTACK, CODE, and STRING segments
+- **NaN-boxed tagged values** for efficient type representation
+- **Unified code references** enabling metaprogramming with @symbol syntax
+- **Immutable list structures** with LINK metadata for efficient operations
 
-TACIT supports **stateful capsules**—capsules that embed internal state such as stack pointers, counters, or buffer offsets.
-
-This allows implementation of:
-
-* Stacks
-* Queues
-* Iterators
-* Lazy sequences
-
-State is stored inside the capsule itself, enabling smart behaviors through encapsulated logic and introspectable structure.
-
----
-
-## Broadcasting and Rank Semantics
-
-Broadcasting in TACIT supports flexible polymorphism:
-
-* Broadcasting between mismatched lengths uses **modulo-based repetition** of the shorter input.
-* Scalars automatically broadcast as rank-zero arrays.
-* Nested elements do **not** affect array rank—they are treated opaquely.
-* Shaped arrays **must** be flat; nested items violate layout assumptions and yield undefined but non-fatal results.
-
-A strict mode may be introduced for validation and debugging, but modulo broadcasting is the default.
-
----
-
-## Data Representation
-
-All values are stored as **32-bit tagged cells**, allowing:
-
-* Packed byte arrays (e.g. UTF-8 strings, binary records)
-* `float32` values (IEEE-754)
-* Uniform stack operations across all data types
-
-Capsules may include a **data width descriptor**, such as `uint8`, `float32`, or SIMD specifiers. This allows consistent interpretation of opaque lists as typed structures.
-
----
-
-## Implementation Philosophy
-
-TACIT aims to minimize the number of primitive concepts while maximizing compositional power. It avoids:
-
-* Heap allocation and reference counting (deprecated)
-* Special-case control flow
-* Fixed arity function signatures
-
-Instead, it builds everything from small, reusable pieces—capsules, sequences, lists, and polymorphic operators.
-
-The language is designed to be small, introspectable, and expressive enough to host itself.
-
----
-
-## Future Directions
-
-* Full unification of sequences with capsules (e.g. iterator-like stateful capsules)
-* Expansion of polymorphic operators over structured data
-* Support for symbolic manipulation and program verification
-* Self-hosted compiler and introspective runtime
-
----
-
-## Getting Started
-
-This repository contains the TACIT runtime, standard combinators, and documentation for the core language.
-
-To explore:
-
-* `src/` — VM implementation and combinators
-
+This implementation demonstrates a complete stack-based virtual machine with a specification-driven development approach, suitable for both educational purposes and practical language implementation.

@@ -1,0 +1,23 @@
+# Copilot should ignore these directories/files
+node_modules/
+coverage/
+dist/
+*.log
+.DS_Store
+yarn.lock
+package-lock.json
+
+# But include all documentation
+!docs/
+!docs/**/*.md
+
+# And all source code
+!src/
+!src/**/*.ts
+!src/**/*.js
+
+# Include key configuration files
+!*.json
+!*.md
+!*.yml
+!*.yaml

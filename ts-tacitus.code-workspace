@@ -1,0 +1,66 @@
+{
+  "folders": [
+    {
+      "name": "TACIT VM Root",
+      "path": "."
+    },
+    {
+      "name": "📚 Documentation",
+      "path": "./docs"
+    },
+    {
+      "name": "📋 Specifications", 
+      "path": "./docs/specs"
+    },
+    {
+      "name": "🎯 Active Plan",
+      "path": "./docs/tasks"
+    },
+    {
+      "name": "✅ Completed Work",
+      "path": "./docs/tasks/done"
+    },
+    {
+      "name": "📖 Reference",
+      "path": "./docs/reference"
+    },
+    {
+      "name": "🔧 AI Guidelines",
+      "path": "./docs/rules"
+    },
+    {
+      "name": "💻 Source Code",
+      "path": "./src"
+    }
+  ],
+  "settings": {
+    "github.copilot.enable": {
+      "*": true,
+      "plaintext": true,
+      "markdown": true
+    },
+    "files.associations": {
+      "docs/**/*.md": "markdown"
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/coverage": true,
+      "**/dist": true
+    },
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat"
+    ],
+    "github.copilot.advanced": {
+      "inlineSuggestCount": 3,
+      "listCount": 10
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "ms-vscode.vscode-typescript-next"
+    ]
+  }
+}

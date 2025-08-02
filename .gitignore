@@ -29,4 +29,7 @@ dist/
 # OS-specific
 Thumbs.db
 tacit.txt
-.claude
+.claude*
+
+# Keep workspace file in repo for team consistency
+# *.code-workspace
