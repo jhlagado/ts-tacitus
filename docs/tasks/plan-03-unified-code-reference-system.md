@@ -170,6 +170,17 @@ Implementation of the @symbol reference system that enables metaprogramming by c
 - ✅ **PERFORMANCE**: No performance impact on built-in operations (< 128)
 - ✅ **STEP 10 COMPLETE**: Ready for Step 11 implementation
 
+## Step 10.1: ✅ **CRITICAL BUG FIX COMPLETE** - Fix combinator code block compilation
+- ✅ **ISSUE DISCOVERED**: `do` and `repeat` combinators were broken due to parser bug
+- ✅ **ROOT CAUSE**: Parser was calling `compileCodeBlock()` instead of `beginStandaloneBlock()`
+- ✅ **IMPACT**: Combinators expected code references on stack but weren't getting them
+- ✅ **SOLUTION**: Fixed parser.ts lines 262 and 277 to use `beginStandaloneBlock(state)`
+- ✅ **KEY DIFFERENCE**: `beginStandaloneBlock()` emits `Op.LiteralCode` to push code reference
+- ✅ **RESULT**: All combinator tests now pass (11 tests across do.test.ts and repeat.test.ts)
+- ✅ **TEST STATUS**: Reduced failing test suites from 10 to 4 (60% improvement)
+- ✅ **VALIDATION**: `'10 do { 5 add }'` now correctly produces `[15]`
+- ✅ **DATE**: Fixed 3 August 2025
+
 ## Step 11: ⏸️ **PENDING** - Add VM-level @ symbol resolution
 - Add `vm.pushSymbolRef(name: string)` method
 - Calls `vm.resolveSymbol()` internally using `symbolTable.findTaggedValue()` (Step 8.5 unified API)

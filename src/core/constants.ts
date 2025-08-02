@@ -48,3 +48,9 @@ export const STRING_SIZE = 0x0800;
 
 /** Size of the code segment in bytes (8KB) */
 export const CODE_SIZE = 0x2000;
+
+/** Maximum opcode value for built-in operations (0-127) */
+export const MAX_BUILTIN_OPCODE = 127;
+
+/** Minimum opcode value for user-defined words (128+) */
+export const MIN_USER_OPCODE = 128;

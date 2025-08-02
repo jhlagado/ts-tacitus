@@ -7,7 +7,15 @@
  *
  * ## Architecture
  *
- * The executeOp function is the core dispatch mechanism of the VM's execution engine.
+ * The executeOp fu      if (opcode >= 128) {
+        // Direct addressing for user-defined words (colon definitions)
+        // The opcode IS the bytecode address - set up call frame and jump there
+        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+        vm.rpush(vm.BP);
+        vm.BP = vm.RP;
+        vm.IP = opcode; // Direct jump to bytecode address
+        return;
+      } the core dispatch mechanism of the VM's execution engine.
  * When the interpreter encounters an opcode during bytecode execution, it calls
  * executeOp with the current VM state and the opcode to execute.
  *
@@ -21,9 +29,8 @@
  *
  * ## Extension Mechanism
  *
- * The system supports user-defined operations through the symbol table. Opcodes in the
- * range 128-32767 are reserved for user-defined operations, which are looked up in the
- * VM's symbol table during execution.
+ * The system supports user-defined operations through the direct addressing system.
+ * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
@@ -113,7 +120,19 @@ export function literalCodeOp(vm: VM): void {
   vm.push(tagged);
 }
 
-export function executeOp(vm: VM, opcode: Op) {
+export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
+  // Check for user-defined words FIRST before the switch statement
+  if (isUserDefined) {
+    // Direct addressing: opcode IS the bytecode address for user-defined words
+    // The 15-bit address was already decoded by nextOpcode(), just jump to it
+    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+    vm.rpush(vm.BP);
+    vm.BP = vm.RP;
+    vm.IP = opcode; // Direct jump to bytecode address
+    return;
+  }
+
+  // Handle built-in operations
   switch (opcode) {
     case Op.LiteralNumber:
       literalNumberOp(vm);
@@ -284,27 +303,6 @@ export function executeOp(vm: VM, opcode: Op) {
       closeListOp(vm);
       break;
     default:
-      if (opcode >= 128 && opcode < 32768) {
-        // Step 10: Try symbol table direct addressing first
-        // Look for a colon definition that was registered with this function index
-        const bypassAddress = vm.getFunctionTableBypass(opcode);
-        if (bypassAddress !== undefined) {
-          // Found a colon definition - execute it by setting up call frame and jumping
-          vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-          vm.rpush(vm.BP);
-          vm.BP = vm.RP;
-          vm.IP = bypassAddress;
-          return;
-        }
-
-        // Fallback to existing implementation lookup
-        const implementation = vm.symbolTable.findImplementationByOpcode(opcode);
-        if (implementation) {
-          implementation(vm);
-          return;
-        }
-      }
-
       throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
 }

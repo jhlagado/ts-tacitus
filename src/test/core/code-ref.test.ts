@@ -16,6 +16,7 @@ import {
 } from '../../core/code-ref';
 import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
+import { MIN_USER_OPCODE } from '../../core/constants';
 
 describe('Code Reference Utilities', () => {
   describe('createBuiltinRef', () => {
@@ -41,7 +42,7 @@ describe('Code Reference Utilities', () => {
 
     test('should reject invalid opcodes', () => {
       expect(() => createBuiltinRef(-1)).toThrow('Invalid builtin opcode: -1');
-      expect(() => createBuiltinRef(128)).toThrow('Invalid builtin opcode: 128');
+      expect(() => createBuiltinRef(MIN_USER_OPCODE)).toThrow(`Invalid builtin opcode: ${MIN_USER_OPCODE}`);
       expect(() => createBuiltinRef(1000)).toThrow('Invalid builtin opcode: 1000');
     });
   });

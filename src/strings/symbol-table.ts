@@ -16,6 +16,7 @@ import { Digest } from '@src/strings/digest';
 import { VM } from '@core/vm';
 import { Tag, fromTaggedValue } from '@core/tagged';
 import { createBuiltinRef, createCodeRef } from '@core/code-ref';
+import { MIN_USER_OPCODE } from '@core/constants';
 
 /**
  * Type definition for a word implementation function
@@ -110,7 +111,7 @@ export class SymbolTable {
 
     // Create appropriate tagged value based on function index
     let taggedValue: number;
-    if (functionIndex < 128) {
+    if (functionIndex < MIN_USER_OPCODE) {
       // Built-in opcode
       taggedValue = createBuiltinRef(functionIndex);
     } else {
@@ -143,24 +144,19 @@ export class SymbolTable {
   }
 
   /**
-   * Defines a colon definition with unified storage for both function index and bytecode address
+   * Defines a colon definition with direct addressing
    *
-   * This method stores both the function index (for current function table compatibility)
-   * and the bytecode address (for future direct addressing in Step 10). It maintains
-   * compatibility with the existing system while enabling the unified @symbol approach.
+   * This method stores the bytecode address directly in the symbol table,
+   * enabling direct jumps to user-defined words without any intermediate lookups.
    *
    * @param {string} name - The name of the colon definition
-   * @param {number} functionIndex - The function index for function table compatibility
    * @param {number} bytecodeAddr - The bytecode address for direct addressing
    * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
    */
-  defineColonDefinition(name: string, functionIndex: number, bytecodeAddr: number, implementation?: WordFunction): void {
-    // For now, store the function index for compatibility with existing system
-    // In Step 10, this will be updated to store the bytecode address instead
-    this.define(name, functionIndex, implementation);
-    
-    // TODO Step 10: Store bytecode address and switch lookup mechanism
-    // this.defineSymbol(name, createCodeRef(bytecodeAddr), implementation);
+  defineColonDefinition(name: string, bytecodeAddr: number, implementation?: WordFunction): void {
+    // Store the bytecode address directly using defineCode
+    // This enables direct addressing without any intermediate lookups
+    this.defineCode(name, bytecodeAddr);
   }
 
   /**
@@ -210,6 +206,28 @@ export class SymbolTable {
    */
   findCodeRef(name: string): number | undefined {
     return this.findTaggedValue(name);
+  }
+
+  /**
+   * Finds the bytecode address for a colon definition
+   *
+   * This method searches for colon definitions (Tag.CODE) and returns
+   * their bytecode address. Built-ins (Tag.BUILTIN) return undefined
+   * since they don't have bytecode addresses in the CODE segment.
+   *
+   * @param {string} name - The name of the word to find
+   * @returns {number | undefined} The bytecode address if it's a colon definition, undefined otherwise
+   */
+  findBytecodeAddress(name: string): number | undefined {
+    const taggedValue = this.findTaggedValue(name);
+    if (taggedValue !== undefined) {
+      const { tag, value } = fromTaggedValue(taggedValue);
+      // Only return bytecode addresses for colon definitions (Tag.CODE)
+      if (tag === Tag.CODE) {
+        return value;
+      }
+    }
+    return undefined;
   }
 
   /**

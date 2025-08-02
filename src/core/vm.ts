@@ -14,7 +14,7 @@
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
-import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './constants';
+import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE, MIN_USER_OPCODE, MAX_BUILTIN_OPCODE } from './constants';
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
@@ -238,8 +238,8 @@ export class VM {
    * Reads the next opcode from the code segment at the current instruction pointer (`IP`)
    * and advances the `IP`.
    * Decodes opcodes according to the unified addressing scheme:
-   * - Built-in opcodes (0-127): Represented by a single byte with the most significant bit (MSB) clear.
-   * - User-defined words (128-32767): Represented by two bytes. The first byte has its MSB set,
+   * - Built-in opcodes (0-MAX_BUILTIN_OPCODE): Represented by a single byte with the most significant bit (MSB) clear.
+   * - User-defined words (MIN_USER_OPCODE+): Represented by two bytes. The first byte has its MSB set,
    *   and the remaining 7 bits combine with the second byte to form the 15-bit address.
    *
    * @returns The decoded opcode or the address of a user-defined word.
@@ -378,56 +378,5 @@ export class VM {
    */
   resolveSymbol(name: string): number | undefined {
     return this.symbolTable.findTaggedValue(name);
-  }
-
-  /**
-   * Gets a direct bytecode address for a function index, bypassing the function table.
-   *
-   * This method provides a mechanism to extract bytecode addresses directly from
-   * function table entries, enabling migration to the direct addressing system.
-   * It only handles user-defined words (function indices >= 128) and uses the
-   * existing function table as the source of truth.
-   *
-   * @param functionIndex - The function index to look up (must be >= 128)
-   * @returns The bytecode address if found, undefined otherwise
-   *
-   * @example
-   * // For a colon definition at bytecode address 1000:
-   * const addr = vm.getFunctionTableBypass(128); // Returns 1000
-   *
-   * // For built-ins, returns undefined:
-   * const addr = vm.getFunctionTableBypass(5); // Returns undefined
-   */
-  getFunctionTableBypass(functionIndex: number): number | undefined {
-    // Only handle user-defined words (function indices >= 128)
-    if (functionIndex < 128) {
-      return undefined;
-    }
-
-    // Look up the function implementation in the symbol table
-    const implementation = this.symbolTable.findImplementationByOpcode(functionIndex);
-    if (!implementation) {
-      return undefined;
-    }
-
-    // For now, since the function captures startAddress in closure scope,
-    // we'll use a different approach: create a mock VM to capture the address
-    try {
-      const mockVm = {
-        rpush: () => {},
-        IP: 0,
-        BP: 0,
-        RP: 0,
-      };
-
-      // Call the function and capture what it sets IP to
-      implementation(mockVm as any);
-
-      // The function should have set mockVm.IP to the bytecode address
-      return mockVm.IP;
-    } catch (error) {
-      // If execution fails, return undefined
-      return undefined;
-    }
   }
 }

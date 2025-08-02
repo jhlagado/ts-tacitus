@@ -20,7 +20,7 @@ import { parse } from './parser';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 
-import { SEG_CODE } from '../core/constants';
+import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
 
 /**
  * Executes Tacit bytecode starting from a specific address.
@@ -42,23 +42,23 @@ export function execute(start: number, breakAtIP?: number): void {
   vm.IP = start;
   vm.running = true;
 
-  while (vm.running) {
-    if (breakAtIP !== undefined && vm.IP === breakAtIP) {
-      vm.running = false;
-      break;
-    }
-
+  while (vm.running && vm.IP < vm.compiler.CP) {
+    const beforeIP = vm.IP;
+    const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+    const isUserDefined = (firstByte & 0x80) !== 0;
+    
     const functionIndex = vm.nextOpcode();
-    if (vm.debug) console.log({ functionIndex }, vm.IP - (functionIndex >= 128 ? 2 : 1));
+    
+    if (vm.debug) console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
 
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
-        const originalIP = vm.IP - (functionIndex >= 128 ? 2 : 1);
+        const originalIP = vm.IP - (isUserDefined ? 2 : 1);
         const rawValue = vm.memory.read8(SEG_CODE, originalIP);
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
 
-      executeOp(vm, functionIndex);
+      executeOp(vm, functionIndex, isUserDefined);
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
       const errorMessage =
@@ -67,7 +67,6 @@ export function execute(start: number, breakAtIP?: number): void {
       if (vm.debug) console.log((error as Error).stack);
       vm.compiler.reset();
       vm.compiler.preserve = false;
-      console.log((error as Error).stack);
       throw new Error(errorMessage);
     }
   }
@@ -87,7 +86,7 @@ export function execute(start: number, breakAtIP?: number): void {
 export function executeProgram(code: string): void {
   parse(new Tokenizer(code));
 
-  execute(vm.compiler.BCP);
+  execute(0); // Start execution from the beginning of compiled code
 }
 
 /**
