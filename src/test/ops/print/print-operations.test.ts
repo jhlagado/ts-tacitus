@@ -91,7 +91,7 @@ describe('Print Operations', () => {
 
     describe('integration tests', () => {
       test('should work with arithmetic operations', () => {
-        const output = captureTacitOutput('5 3 + .');
+        const output = captureTacitOutput('5 3 add .');
         expect(output[0]).toBe('8');
       });
 
