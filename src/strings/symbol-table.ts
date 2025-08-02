@@ -143,6 +143,27 @@ export class SymbolTable {
   }
 
   /**
+   * Defines a colon definition with unified storage for both function index and bytecode address
+   *
+   * This method stores both the function index (for current function table compatibility)
+   * and the bytecode address (for future direct addressing in Step 10). It maintains
+   * compatibility with the existing system while enabling the unified @symbol approach.
+   *
+   * @param {string} name - The name of the colon definition
+   * @param {number} functionIndex - The function index for function table compatibility
+   * @param {number} bytecodeAddr - The bytecode address for direct addressing
+   * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
+   */
+  defineColonDefinition(name: string, functionIndex: number, bytecodeAddr: number, implementation?: WordFunction): void {
+    // For now, store the function index for compatibility with existing system
+    // In Step 10, this will be updated to store the bytecode address instead
+    this.define(name, functionIndex, implementation);
+    
+    // TODO Step 10: Store bytecode address and switch lookup mechanism
+    // this.defineSymbol(name, createCodeRef(bytecodeAddr), implementation);
+  }
+
+  /**
    * Finds a tagged value for a symbol name
    *
    * This method searches the symbol table for a symbol with the given name

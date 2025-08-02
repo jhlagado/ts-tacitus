@@ -81,12 +81,20 @@ Implementation of the @symbol reference system that enables metaprogramming by c
 - ✅ **AI GUIDELINES**: Updated with mandatory "run tests after every step" requirement
 - ✅ **FINAL STATUS**: 54 passed test suites, 5 failed (test isolation issues only)
 
-## Step 09: 🚀 **READY** - Update colon definition storage
-- When defining colon definitions, also store in symbol table with `defineCode()`
-- Store actual bytecode address, not function index
-- Keep function table working in parallel for now
-- Test both paths return same results
-- **⚠️ STOP HERE - CHECK WITH USER BEFORE PROCEEDING**
+## Step 09: � **BLOCKED - CRITICAL DESIGN ISSUE** - Update colon definition storage
+- **PROBLEM IDENTIFIED**: `defineCall()` and `defineCode()` both write to same symbol table entry
+- **ROOT CAUSE**: Both methods use the same symbol name, causing one to overwrite the other
+- **IMPACT**: Adding `defineCode()` breaks existing function table mechanism completely
+- **EVIDENCE**: All colon definition tests fail when `defineCode()` is called alongside `defineCall()`
+- **ANALYSIS**: Cannot maintain "parallel systems" with same symbol names
+- **SOLUTION NEEDED**: Design decision required - how to store both function index AND bytecode address
+- **OPTIONS**: 
+  1. Different naming schemes (e.g., `symbolName` vs `@symbolName`)
+  2. Unified storage that includes both pieces of information  
+  3. Separate lookup methods that don't conflict
+  4. Symbol table redesign to support multiple values per name
+- **STATUS**: Implementation HALTED pending design clarification
+- **⚠️ STOP HERE - CRITICAL DESIGN ISSUE REQUIRES USER INPUT**
 
 ## Step 10: ⏸️ **PENDING** - Modify executeOp for unified dispatch
 - Update `executeOp` to handle opcodes >= 128 via symbol table lookup
