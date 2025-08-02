@@ -377,19 +377,57 @@ export class VM {
    * const squareRef = vm.resolveSymbol('square'); // Returns Tag.CODE tagged value
    */
   resolveSymbol(name: string): number | undefined {
-    const codeRef = this.symbolTable.findCodeRef(name);
-    if (!codeRef) {
+    return this.symbolTable.findTaggedValue(name);
+  }
+
+  /**
+   * Gets a direct bytecode address for a function index, bypassing the function table.
+   *
+   * This method provides a mechanism to extract bytecode addresses directly from
+   * function table entries, enabling migration to the direct addressing system.
+   * It only handles user-defined words (function indices >= 128) and uses the
+   * existing function table as the source of truth.
+   *
+   * @param functionIndex - The function index to look up (must be >= 128)
+   * @returns The bytecode address if found, undefined otherwise
+   *
+   * @example
+   * // For a colon definition at bytecode address 1000:
+   * const addr = vm.getFunctionTableBypass(128); // Returns 1000
+   *
+   * // For built-ins, returns undefined:
+   * const addr = vm.getFunctionTableBypass(5); // Returns undefined
+   */
+  getFunctionTableBypass(functionIndex: number): number | undefined {
+    // Only handle user-defined words (function indices >= 128)
+    if (functionIndex < 128) {
       return undefined;
     }
 
-    // Create appropriate tagged value based on the code reference type
-    if (codeRef.tag === Tag.BUILTIN) {
-      return createBuiltinRef(codeRef.addr);
-    } else if (codeRef.tag === Tag.CODE) {
-      return createCodeRef(codeRef.addr);
+    // Look up the function implementation in the symbol table
+    const implementation = this.symbolTable.findImplementationByOpcode(functionIndex);
+    if (!implementation) {
+      return undefined;
     }
 
-    // Should not reach here with proper CodeReference data
-    return undefined;
+    // For now, since the function captures startAddress in closure scope,
+    // we'll use a different approach: create a mock VM to capture the address
+    try {
+      const mockVm = {
+        rpush: () => {},
+        IP: 0,
+        BP: 0,
+        RP: 0,
+      };
+
+      // Call the function and capture what it sets IP to
+      implementation(mockVm as any);
+
+      // The function should have set mockVm.IP to the bytecode address
+      return mockVm.IP;
+    } catch (error) {
+      // If execution fails, return undefined
+      return undefined;
+    }
   }
 }

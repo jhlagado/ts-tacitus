@@ -159,11 +159,12 @@ describe('Symbol Table Integration Tests', () => {
       const functionIndex = vm.symbolTable.find('test');
       expect(functionIndex).toBe(1500); // New code symbols store bytecode address as value
 
-      // Should also work with new findCodeRef() method
-      const codeRef = vm.symbolTable.findCodeRef('test');
+      // Should also work with new findTaggedValue() method
+      const codeRef = vm.symbolTable.findTaggedValue('test');
       expect(codeRef).toBeDefined();
-      expect(codeRef!.tag).toBe(Tag.CODE);
-      expect(codeRef!.addr).toBe(1500);
+      const { tag, value: addr } = fromTaggedValue(codeRef!);
+      expect(tag).toBe(Tag.CODE);
+      expect(addr).toBe(1500);
     });
   });
 

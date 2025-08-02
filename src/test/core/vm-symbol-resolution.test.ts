@@ -161,15 +161,20 @@ describe('VM Symbol Resolution', () => {
       expect(vm.resolveSymbol('square')).toBeUndefined();
     });
 
-    test('should not resolve symbols defined with old methods', () => {
-      // Use existing define method (without code reference)
-      vm.symbolTable.define('oldStyle', 42);
+    test('should resolve symbols defined with unified define method', () => {
+      // Use existing define method (now unified with tagged values)
+      // Use value >= 128 to get a code reference, not builtin reference
+      vm.symbolTable.define('oldStyle', 200);
 
-      // Should not be resolvable since it wasn't defined with new methods
-      expect(vm.resolveSymbol('oldStyle')).toBeUndefined();
+      // Should be resolvable since all definitions now create tagged values
+      const resolved = vm.resolveSymbol('oldStyle');
+      expect(resolved).toBeDefined();
+      
+      expect(isCodeRef(resolved!)).toBe(true);
+      expect(getCodeAddress(resolved!)).toBe(200);
 
-      // But should still be findable with old method
-      expect(vm.symbolTable.find('oldStyle')).toBe(42);
+      // And should still be findable with old method for backward compatibility
+      expect(vm.symbolTable.find('oldStyle')).toBe(200);
     });
   });
 
