@@ -32,6 +32,8 @@ export enum TokenType {
   BLOCK_END,
   /** Word quote marker (`) for symbol literals */
   WORD_QUOTE,
+  /** Symbol reference starting with @ */
+  SYMBOL,
   /** End of file marker */
   EOF,
 }
@@ -206,6 +208,30 @@ export class Tokenizer {
       }
 
       return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 };
+    }
+
+    if (char === '@') {
+      this.position++;
+      this.column++;
+      let symbolName = '';
+      
+      // Read the symbol name after @
+      while (
+        this.position < this.input.length &&
+        !isWhitespace(this.input[this.position]) &&
+        !isSpecialChar(this.input[this.position])
+      ) {
+        symbolName += this.input[this.position];
+        this.position++;
+        this.column++;
+      }
+
+      // Handle edge case: @ without a symbol name
+      if (symbolName === '') {
+        throw new TokenError('Invalid symbol: @ must be followed by a symbol name', this.line, this.column);
+      }
+
+      return { type: TokenType.SYMBOL, value: symbolName, position: startPos };
     }
 
     if (isSpecialChar(char)) {
