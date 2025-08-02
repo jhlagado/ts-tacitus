@@ -12,11 +12,15 @@ Implementation- ✅ **DOCUMENTATION**: Known test isolation issues documented in
 - ✅ **FUTURE READY**: Bytecode address captured for Step 10 direct addressing
 - ✅ **NO CONFLICTS**: Single method handles both pieces of information cleanly
 - ✅ **PARSER UPDATED**: `beginDefinition()` now uses unified storage method
-- ✅ **ALL TESTS PASSING**: Colon definitions work correctly, no regressions
-- ✅ **TEST STATUS**: 54/59 test suites passing (same 5 known isolation issues from before)
-- ✅ **STEP 9 COMPLETE**: Ready for Step 10 implementationhe @symbol reference system that enables metaprogramming by creating references to both built-in operations and colon definitions, unified under a single `eval` mechanism.
+Implementation of the @symbol reference system that enables metaprogramming by creating references to both built-in operations and colon definitions, unified under a single `eval` mechanism.
 
-## Status: 🟡 **IN PROGRESS** (Steps 1-10 Complete, Step 11 Ready)
+## Status: � **CRITICAL ISSUES FOUND** (Steps 8-10 Need Rework, Major Plan Revision Required)
+
+**DISCOVERED FLAWS**: Current implementation is fundamentally broken
+- Steps 8-10 use wrong approach (function table bypass instead of true direct addressing)
+- Parser still compiles function indices instead of bytecode addresses  
+- Missing integration between unified addressing scheme and compilation pipeline
+- 6 new steps (10.5-10.9) needed to fix the architecture
 
 ---
 
@@ -77,11 +81,11 @@ Implementation- ✅ **DOCUMENTATION**: Known test isolation issues documented in
 
 ---
 
-## Step 08: ✅ **COMPLETE** - Create function table bypass mechanism  
-- ✅ Add `getFunctionTableBypass(functionIndex: number): number | undefined`
-- ✅ Maps function indices directly to bytecode addresses
-- ✅ Use existing function table as source of truth initially
-- ✅ Test that bypass returns correct addresses
+## Step 08: ❌ **BROKEN - NEEDS REWORK** - Create function table bypass mechanism  
+- ❌ **CRITICAL FLAW**: Current `getFunctionTableBypass` tries to extract addresses from function implementations using mock VM
+- ❌ **WRONG APPROACH**: Bypass should store/return direct bytecode addresses, not extract from function closures
+- ❌ **ARCHITECTURAL ERROR**: Still depends on function table instead of true bypass
+- **REWORK NEEDED**: Eliminate `getFunctionTableBypass` entirely - opcodes ≥ 128 should decode directly to addresses
 
 ## Step 8.5: ✅ **COMPLETE** - Symbol table unified storage refactoring
 - ✅ **MAJOR REFACTORING**: Eliminated redundant `CodeReference` interface
@@ -93,6 +97,52 @@ Implementation- ✅ **DOCUMENTATION**: Known test isolation issues documented in
 - ✅ **DOCUMENTATION**: Known test isolation issues documented in `reference/known-issues.md`
 - ✅ **AI GUIDELINES**: Updated with mandatory "run tests after every step" requirement
 - ✅ **FINAL STATUS**: 54 passed test suites, 5 failed (test isolation issues only)
+
+## Step 09: ❌ **BROKEN - FUNDAMENTAL FLAW** - Update colon definition storage
+- ❌ **WRONG APPROACH**: `defineColonDefinition` still stores function indices instead of bytecode addresses
+- ❌ **MISSING LINKAGE**: No mechanism to map symbol names to bytecode addresses for compilation
+- ❌ **ARCHITECTURAL FLAW**: Parser still looks up function indices, not bytecode addresses
+- **REWORK NEEDED**: Symbol table needs method to return bytecode addresses for compilation
+
+## Step 10: ❌ **BROKEN - WRONG FOUNDATION** - Modify executeOp for unified dispatch
+- ❌ **BUILT ON BROKEN STEP 8**: Uses broken `getFunctionTableBypass` that doesn't work
+- ❌ **STILL USES FUNCTION TABLE**: Not actually bypassing anything
+- ❌ **WRONG DECODING**: Should decode opcode directly to address, not look up in table
+- **REWORK NEEDED**: Opcodes ≥ 128 should decode 15-bit address directly from bytecode
+
+## Step 10.5: ⏸️ **NEW STEP NEEDED** - Fix executeOp for true direct addressing
+- Remove `getFunctionTableBypass` calls entirely  
+- For opcodes ≥ 128: decode 15-bit address directly using existing `nextOpcode()` logic
+- The address is already decoded by `nextOpcode()` - just jump to it directly
+- No table lookups - true unified addressing
+- **CRITICAL FIX**: `vm.IP = opcode;` where opcode is the decoded 15-bit address
+
+## Step 10.6: ⏸️ **NEW STEP NEEDED** - Add symbol table bytecode address lookup
+- Add `findBytecodeAddress(name: string): number | undefined` to symbol table
+- This returns the actual CODE segment address where the word's bytecode starts
+- For colon definitions: return the `startAddress` captured during compilation
+- For built-ins: return undefined (they don't have bytecode addresses)
+- **PURPOSE**: Enable parser to compile direct addresses instead of function indices
+
+## Step 10.7: ⏸️ **NEW STEP NEEDED** - Fix parser to use direct bytecode addresses
+- Modify parser word lookup in `processWord()` function
+- Replace: `const functionIndex = vm.symbolTable.find(value);`
+- With: `const bytecodeAddr = vm.symbolTable.findBytecodeAddress(value);`
+- If bytecode address found: `vm.compiler.compileOpcode(bytecodeAddr);` (uses 15-bit encoding)
+- If not found, fall back to built-in lookup and use single-byte encoding
+- **THIS IS THE CRITICAL MISSING PIECE**
+
+## Step 10.8: ⏸️ **NEW STEP NEEDED** - Update colon definition storage to capture addresses  
+- Modify `defineColonDefinition()` to store bytecode address for later lookup
+- Store mapping: word name → bytecode start address
+- Remove function index storage (will be eliminated in Step 15)
+- Test that `findBytecodeAddress()` returns correct addresses for colon definitions
+
+## Step 10.9: ⏸️ **NEW STEP NEEDED** - Test complete direct addressing workflow
+- Test: Define colon word → Parser compiles to direct address → VM executes directly
+- Verify no function table involvement for user-defined words
+- Confirm built-ins still work with single-byte opcodes
+- **INTEGRATION TEST**: Complete bypass of function table for user words
 
 ## Step 09: � **BLOCKED - CRITICAL DESIGN ISSUE** - Update colon definition storage
 - **PROBLEM IDENTIFIED**: `defineCall()` and `defineCode()` both write to same symbol table entry

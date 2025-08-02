@@ -55,11 +55,17 @@ TACIT is a stack-based programming language with:
 - [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system and encoding
 - [`docs/specs/lists.md`](docs/specs/lists.md) - Compound data structures
 
+### Test Coverage
+- **54/59 test suites passing** (91.5% suite success rate)
+- **762 individual tests passing** with comprehensive coverage
+- **Known Issues**: 5 test suites failing (4 known isolation issues + 1 new issue from Step 10)
+
 ### Active Development
 Current plan: [`docs/tasks/plan-03-unified-code-reference-system.md`](docs/tasks/plan-03-unified-code-reference-system.md)
-- **Step 11/17**: Ready to implement VM-level @ symbol resolution
-- Part of unified @symbol reference system
-- 10 steps complete, 7 steps remaining
+- **CRITICAL ISSUES DISCOVERED**: Steps 8-10 need complete rework
+- **Status**: Plan revision required - fundamental architectural flaws found
+- **Problem**: Current implementation uses wrong approach (function table bypass vs. true direct addressing)
+- **Solution**: 6 new steps (10.5-10.9) added to implement proper direct bytecode addressing
 
 ### Completed Work
 Previous plans archived in [`docs/tasks/done/`](docs/tasks/done/):
