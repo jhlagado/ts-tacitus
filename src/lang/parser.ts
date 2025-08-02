@@ -402,7 +402,10 @@ function beginDefinition(state: ParserState): void {
   };
 
   const functionIndex = state.nextFunctionIndex++;
-  vm.symbolTable.defineCall(wordName, functionIndex, wordFunction);
+  
+  // Step 9: Use unified storage for colon definitions
+  // Stores both function index (current compatibility) and bytecode address (future Step 10)
+  vm.symbolTable.defineColonDefinition(wordName, functionIndex, startAddress, wordFunction);
 
   state.currentDefinition = {
     name: wordName,
