@@ -379,4 +379,29 @@ export class VM {
   resolveSymbol(name: string): number | undefined {
     return this.symbolTable.findTaggedValue(name);
   }
+
+  /**
+   * Pushes a symbol reference onto the stack for @ symbol resolution.
+   * This method enables the @symbol syntax by resolving symbol names to their
+   * tagged value representations and pushing them onto the data stack.
+   *
+   * @param name The symbol name to resolve and push
+   * @throws Error if the symbol is not found
+   *
+   * @example
+   * // Push built-in reference:
+   * vm.pushSymbolRef("add"); // Pushes Tag.BUILTIN(Op.Add) to stack
+   * evalOp(vm); // Executes the add operation
+   *
+   * // Push colon definition reference:
+   * vm.pushSymbolRef("square"); // Pushes Tag.CODE(bytecode_addr) to stack  
+   * evalOp(vm); // Executes the square definition
+   */
+  pushSymbolRef(name: string): void {
+    const taggedValue = this.resolveSymbol(name);
+    if (taggedValue === undefined) {
+      throw new Error(`Symbol not found: ${name}`);
+    }
+    this.push(taggedValue);
+  }
 }
