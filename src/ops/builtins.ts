@@ -26,6 +26,7 @@
  * VM's symbol table during execution.
  */
 import { VM } from '../core/vm';
+import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 import {
   literalNumberOp,
@@ -106,7 +107,6 @@ import { repeatOp } from './combinators/repeat';
  *
  * @param {VM} vm - The virtual machine instance.
  */
-import { toTaggedValue, Tag } from '../core/tagged';
 export function literalCodeOp(vm: VM): void {
   const address = vm.read16();
   const tagged = toTaggedValue(address, Tag.CODE);
@@ -285,6 +285,19 @@ export function executeOp(vm: VM, opcode: Op) {
       break;
     default:
       if (opcode >= 128 && opcode < 32768) {
+        // Step 10: Try symbol table direct addressing first
+        // Look for a colon definition that was registered with this function index
+        const bypassAddress = vm.getFunctionTableBypass(opcode);
+        if (bypassAddress !== undefined) {
+          // Found a colon definition - execute it by setting up call frame and jumping
+          vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+          vm.rpush(vm.BP);
+          vm.BP = vm.RP;
+          vm.IP = bypassAddress;
+          return;
+        }
+
+        // Fallback to existing implementation lookup
         const implementation = vm.symbolTable.findImplementationByOpcode(opcode);
         if (implementation) {
           implementation(vm);

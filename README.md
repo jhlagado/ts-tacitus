@@ -57,9 +57,9 @@ TACIT is a stack-based programming language with:
 
 ### Active Development
 Current plan: [`docs/tasks/plan-03-unified-code-reference-system.md`](docs/tasks/plan-03-unified-code-reference-system.md)
-- **Step 10/17**: Ready to implement unified dispatch mechanism
+- **Step 11/17**: Ready to implement VM-level @ symbol resolution
 - Part of unified @symbol reference system
-- 9 steps complete, 8 steps remaining
+- 10 steps complete, 7 steps remaining
 
 ### Completed Work
 Previous plans archived in [`docs/tasks/done/`](docs/tasks/done/):
@@ -168,14 +168,14 @@ This structure demonstrates how documentation-driven development can create more
 ## 📈 Current Project Status
 
 ### Test Coverage
-- **54/59 test suites passing** (91.5% suite success rate)
-- **762 individual tests passing** with comprehensive coverage
-- **Known Issues**: 5 test suites with isolation issues documented in `docs/reference/known-issues.md`
+- **55/59 test suites passing** (93.2% suite success rate)
+- **763 individual tests passing** with comprehensive coverage
+- **Known Issues**: 4 test suites with isolation issues documented in `docs/reference/known-issues.md`
 
 ### Active Development
-- **Current Plan**: Unified @symbol reference system (Step 10/17)
-- **Recent Completion**: Step 9 - Unified colon definition storage
-- **Next Milestone**: Function table elimination and direct bytecode addressing
+- **Current Plan**: Unified @symbol reference system (Step 11/17)
+- **Recent Completion**: Step 10 - Unified dispatch mechanism for executeOp
+- **Next Milestone**: VM-level @ symbol resolution and tokenizer integration
 
 ### Architecture Highlights
 - **64KB segmented memory** with STACK, RSTACK, CODE, and STRING segments
