@@ -44,6 +44,7 @@ import {
   exitOp,
   evalOp,
   literalStringOp,
+  pushSymbolRefOp,
 } from './builtins-interpreter';
 import {
   addOp,
@@ -301,6 +302,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.CloseList:
       closeListOp(vm);
+      break;
+    case Op.PushSymbolRef:
+      pushSymbolRefOp(vm);
       break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());

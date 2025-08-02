@@ -256,4 +256,7 @@ export enum Op {
 
   /** Repeat combinator: executes a quotation a specified number of times */
   Repeat,
+
+  /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
+  PushSymbolRef,
 }
