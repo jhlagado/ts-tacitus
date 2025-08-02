@@ -32,9 +32,6 @@ export enum Tag {
   /**  Represents executable code (function pointer). */
   CODE = 2,
 
-  /**  Represents an inline code block with its own scope. */
-  CODE_BLOCK = 3,
-
   /**  Represents a string literal. */
   STRING = 4,
 
@@ -61,7 +58,6 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.INTEGER]: 'INTEGER',
   [Tag.CODE]: 'CODE',
-  [Tag.CODE_BLOCK]: 'CODE_BLOCK',
   [Tag.STRING]: 'STRING',
   [Tag.LIST]: 'LIST',
   [Tag.LINK]: 'LINK',
@@ -248,26 +244,14 @@ export function isCode(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents a `CODE_BLOCK`.
- * This returns `true` if the value's tag is `Tag.CODE_BLOCK`.
+ * Checks if a given NaN-boxed value represents executable `CODE`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is a `CODE_BLOCK`, `false` otherwise.
- */
-export function isCodeBlock(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.CODE_BLOCK;
-}
-
-/**
- * Checks if a given NaN-boxed value represents either executable `CODE` or a `CODE_BLOCK`.
- *
- * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `CODE` or `CODE_BLOCK`, `false` otherwise.
+ * @returns `true` if the value is `CODE`, `false` otherwise.
  */
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.CODE || tag === Tag.CODE_BLOCK;
+  return tag === Tag.CODE;
 }
 
 /**

@@ -117,7 +117,7 @@ export function isBuiltinRef(value: number): boolean {
 export function isCodeRef(value: number): boolean {
   try {
     const { tag } = fromTaggedValue(value);
-    return tag === Tag.CODE || tag === Tag.CODE_BLOCK;
+    return tag === Tag.CODE;
   } catch {
     return false;
   }
@@ -130,7 +130,7 @@ export function isCodeRef(value: number): boolean {
  * regardless of whether it's a built-in operation or bytecode.
  *
  * @param value - The tagged value to check
- * @returns True if the value is executable (Tag.BUILTIN, Tag.CODE, or Tag.CODE_BLOCK)
+ * @returns True if the value is executable (Tag.BUILTIN or Tag.CODE)
  *
  * @example
  * ```typescript
@@ -174,10 +174,10 @@ export function getBuiltinOpcode(builtinRef: number): number {
 /**
  * Extracts the bytecode address from a code reference.
  *
- * This function safely extracts the address from a Tag.CODE or Tag.CODE_BLOCK
+ * This function safely extracts the address from a Tag.CODE
  * tagged value. It should only be called on values that have been verified as code references.
  *
- * @param codeRef - A Tag.CODE or Tag.CODE_BLOCK tagged value
+ * @param codeRef - A Tag.CODE tagged value
  * @returns The bytecode address
  * @throws {Error} If the value is not a valid code reference
  *
