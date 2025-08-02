@@ -14,7 +14,8 @@
 
 import { Digest } from '@src/strings/digest';
 import { VM } from '@core/vm';
-import { Tag } from '@core/tagged';
+import { Tag, fromTaggedValue } from '@core/tagged';
+import { createBuiltinRef, createCodeRef } from '@core/code-ref';
 
 /**
  * Type definition for a word implementation function
@@ -25,28 +26,18 @@ import { Tag } from '@core/tagged';
 type WordFunction = (vm: VM) => void;
 
 /**
- * Represents a code reference in the unified @symbol system
- */
-export interface CodeReference {
-  tag: Tag;
-  addr: number;
-}
-
-/**
  * Represents a node in the symbol table linked list
  *
  * Each node contains:
  * - key: The address of the word name in the string digest
- * - value: The function index/opcode for the word
- * - implementation: Optional JavaScript function implementing the word
- * - codeRef: Optional direct code reference for unified @symbol system
+ * - taggedValue: The tagged value for unified @symbol system (Tag.BUILTIN or Tag.CODE)
+ * - implementation: Optional JavaScript function implementing the word (for legacy compatibility)
  * - next: Reference to the next node in the linked list
  */
 interface SymbolTableNode {
   key: number;
-  value: number;
-  implementation?: WordFunction;
-  codeRef?: CodeReference; // NEW: Direct code reference
+  taggedValue: number;     // Unified storage for tagged values
+  implementation?: WordFunction; // Keep for transition compatibility
   next: SymbolTableNode | null;
 }
 
@@ -82,10 +73,33 @@ export class SymbolTable {
   }
 
   /**
+   * Defines a symbol in the symbol table with a tagged value
+   * 
+   * This is the unified method for storing symbols with their tagged values.
+   * Both built-ins and colon definitions use this method.
+   *
+   * @param name The symbol name
+   * @param taggedValue The tagged value (Tag.BUILTIN or Tag.CODE with address)
+   * @param implementation Optional implementation function for legacy compatibility
+   */
+  defineSymbol(name: string, taggedValue: number, implementation?: WordFunction): void {
+    const key = this.digest.add(name);
+    
+    const newNode: SymbolTableNode = {
+      key,
+      taggedValue,
+      implementation,
+      next: this.head,
+    };
+    this.head = newNode;
+  }
+
+  /**
    * Defines a new word in the symbol table
    *
    * This method adds a new word definition to the symbol table. The word name
    * is added to the digest, and a new node is created at the head of the linked list.
+   * Maintains backward compatibility while transitioning to tagged values.
    *
    * @param {string} name - The name of the word to define
    * @param {number} functionIndex - The function index/opcode for the word
@@ -94,7 +108,23 @@ export class SymbolTable {
   define(name: string, functionIndex: number, implementation?: WordFunction): void {
     const key = this.digest.add(name);
 
-    const newNode: SymbolTableNode = { key, value: functionIndex, implementation, next: this.head };
+    // Create appropriate tagged value based on function index
+    let taggedValue: number;
+    if (functionIndex < 128) {
+      // Built-in opcode
+      taggedValue = createBuiltinRef(functionIndex);
+    } else {
+      // For now, user-defined words still use function indices
+      // This will be updated in later steps when we have direct bytecode addresses
+      taggedValue = createCodeRef(functionIndex);
+    }
+
+    const newNode: SymbolTableNode = { 
+      key, 
+      taggedValue,
+      implementation, 
+      next: this.head 
+    };
     this.head = newNode;
   }
 
@@ -113,25 +143,52 @@ export class SymbolTable {
   }
 
   /**
+   * Finds a tagged value for a symbol name
+   *
+   * This method searches the symbol table for a symbol with the given name
+   * and returns its tagged value if found. This is the primary method for
+   * the unified @symbol system.
+   *
+   * @param {string} name - The name of the symbol to find
+   * @returns {number | undefined} The tagged value if found, undefined otherwise
+   */
+  findTaggedValue(name: string): number | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (this.digest.get(current.key) === name) {
+        return current.taggedValue;
+      }
+      current = current.next;
+    }
+    return undefined;
+  }
+
+  /**
    * Finds a word in the symbol table by name
    *
    * This method searches the symbol table for a word with the given name.
    * If found, it returns the function index/opcode for the word.
+   * Maintains backward compatibility by extracting address from tagged value.
    *
    * @param {string} name - The name of the word to find
    * @returns {number | undefined} The function index/opcode if found, undefined otherwise
    */
   find(name: string): number | undefined {
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name) {
-        return current.value;
-      }
-
-      current = current.next;
+    const taggedValue = this.findTaggedValue(name);
+    if (taggedValue !== undefined) {
+      // Extract the address from the tagged value for backward compatibility
+      const { value: address } = fromTaggedValue(taggedValue);
+      return address;
     }
-
     return undefined;
+  }
+
+  /**
+   * @deprecated Use findTaggedValue instead
+   * Legacy compatibility method - findCodeRef now maps to findTaggedValue
+   */
+  findCodeRef(name: string): number | undefined {
+    return this.findTaggedValue(name);
   }
 
   /**
@@ -139,6 +196,7 @@ export class SymbolTable {
    *
    * This method searches the symbol table for a word with the given name.
    * If found, it returns both the function index/opcode and the implementation function.
+   * Maintains backward compatibility by extracting address from tagged value.
    *
    * @param {string} name - The name of the word to lookup
    * @returns {Object | undefined} An object with the index and implementation if found, or undefined
@@ -149,8 +207,10 @@ export class SymbolTable {
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
+        // Extract address from tagged value for backward compatibility
+        const { value: address } = fromTaggedValue(current.taggedValue);
         return {
-          index: current.value,
+          index: address,
           implementation: current.implementation,
         };
       }
@@ -166,6 +226,7 @@ export class SymbolTable {
    *
    * This method searches the symbol table for a word with the given opcode/index.
    * If found and it has an implementation, it returns the implementation function.
+   * Uses tagged value comparison for consistency.
    *
    * This is useful for the VM's opcode dispatch mechanism, which needs to find
    * the implementation for a given opcode during execution.
@@ -176,7 +237,9 @@ export class SymbolTable {
   findImplementationByOpcode(opcode: number): WordFunction | undefined {
     let current = this.head;
     while (current !== null) {
-      if (current.value === opcode && current.implementation) {
+      // Extract address from tagged value for comparison
+      const { value: address } = fromTaggedValue(current.taggedValue);
+      if (address === opcode && current.implementation) {
         return current.implementation;
       }
       current = current.next;
@@ -225,66 +288,27 @@ export class SymbolTable {
    * Defines a built-in operation in the symbol table with direct addressing
    *
    * This method adds a built-in operation (like add, dup, swap) to the symbol table
-   * with a direct code reference that can be used by the unified @symbol system.
+   * with a direct tagged value that can be used by the unified @symbol system.
+   * Convenience method that calls defineSymbol with a BUILTIN tagged value.
    *
    * @param {string} name - The name of the built-in operation (e.g., "add")
    * @param {number} opcode - The opcode for the built-in operation
    */
   defineBuiltin(name: string, opcode: number): void {
-    const key = this.digest.add(name);
-    const codeRef: CodeReference = { tag: Tag.BUILTIN, addr: opcode };
-
-    const newNode: SymbolTableNode = {
-      key,
-      value: opcode, // Keep existing function index system
-      codeRef, // NEW: Direct code reference
-      next: this.head,
-    };
-    this.head = newNode;
+    this.defineSymbol(name, createBuiltinRef(opcode));
   }
 
   /**
    * Defines a colon definition in the symbol table with direct addressing
    *
    * This method adds a colon definition (user-defined word) to the symbol table
-   * with a direct bytecode address that can be used by the unified @symbol system.
+   * with a direct tagged value that can be used by the unified @symbol system.
+   * Convenience method that calls defineSymbol with a CODE tagged value.
    *
    * @param {string} name - The name of the colon definition (e.g., "square")
    * @param {number} bytecodeAddr - The bytecode address where the definition starts
    */
   defineCode(name: string, bytecodeAddr: number): void {
-    const key = this.digest.add(name);
-    const codeRef: CodeReference = { tag: Tag.CODE, addr: bytecodeAddr };
-
-    const newNode: SymbolTableNode = {
-      key,
-      value: bytecodeAddr, // Store bytecode address as value
-      codeRef, // NEW: Direct code reference
-      next: this.head,
-    };
-    this.head = newNode;
-  }
-
-  /**
-   * Finds a code reference for a symbol name
-   *
-   * This method searches the symbol table for a symbol with the given name
-   * and returns its direct code reference if found. This enables the unified
-   * @symbol system to get the appropriate Tag and address for both built-ins
-   * and colon definitions.
-   *
-   * @param {string} name - The name of the symbol to find
-   * @returns {CodeReference | undefined} The code reference if found, undefined otherwise
-   */
-  findCodeRef(name: string): CodeReference | undefined {
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name && current.codeRef) {
-        return current.codeRef;
-      }
-      current = current.next;
-    }
-
-    return undefined;
+    this.defineSymbol(name, createCodeRef(bytecodeAddr));
   }
 }

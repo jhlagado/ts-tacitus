@@ -39,6 +39,9 @@
 - **Test error conditions** with invalid inputs and edge cases  
 - **Test integration** between different VM components
 - **Use `resetVM()` consistently** in test setup to ensure clean state
+- **Always run full test suite** after completing each implementation step
+- **MANDATORY: Run tests at the end of every step** to catch regressions early
+- **Use yarn for all package management** and test execution commands
 
 ## Architectural Constraints
 

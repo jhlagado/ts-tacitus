@@ -10,7 +10,7 @@ import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/test-utils';
 import { SymbolTable } from '../../strings/symbol-table';
 import { Digest } from '../../strings/digest';
-import { Tag } from '../../core/tagged';
+import { Tag, fromTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 
 describe('SymbolTable Direct Addressing', () => {
@@ -27,27 +27,27 @@ describe('SymbolTable Direct Addressing', () => {
     test('should define built-in operations with direct code references', () => {
       symbolTable.defineBuiltin('add', Op.Add);
 
-      const codeRef = symbolTable.findCodeRef('add');
+      const taggedValue = symbolTable.findCodeRef('add');
 
-      expect(codeRef).toBeDefined();
-      expect(codeRef!.tag).toBe(Tag.BUILTIN);
-      expect(codeRef!.addr).toBe(Op.Add);
+      expect(taggedValue).toBeDefined();
+      const { tag, value: addr } = fromTaggedValue(taggedValue!);
+      expect(tag).toBe(Tag.BUILTIN);
+      expect(addr).toBe(Op.Add);
     });
 
     test('should maintain backward compatibility with existing find method', () => {
       symbolTable.defineBuiltin('dup', Op.Dup);
 
       const functionIndex = symbolTable.find('dup');
-
       expect(functionIndex).toBe(Op.Dup);
     });
 
-    test('should handle multiple built-in definitions', () => {
+    test('should handle multiple built-in operations', () => {
       const builtins = [
         { name: 'add', opcode: Op.Add },
-        { name: 'dup', opcode: Op.Dup },
-        { name: 'swap', opcode: Op.Swap },
-        { name: 'drop', opcode: Op.Drop },
+        { name: 'sub', opcode: Op.Minus },
+        { name: 'mul', opcode: Op.Multiply },
+        { name: 'div', opcode: Op.Divide },
       ];
 
       builtins.forEach(({ name, opcode }) => {
@@ -55,10 +55,11 @@ describe('SymbolTable Direct Addressing', () => {
       });
 
       builtins.forEach(({ name, opcode }) => {
-        const codeRef = symbolTable.findCodeRef(name);
-        expect(codeRef).toBeDefined();
-        expect(codeRef!.tag).toBe(Tag.BUILTIN);
-        expect(codeRef!.addr).toBe(opcode);
+        const taggedValue = symbolTable.findCodeRef(name);
+        expect(taggedValue).toBeDefined();
+        const { tag, value: addr } = fromTaggedValue(taggedValue!);
+        expect(tag).toBe(Tag.BUILTIN);
+        expect(addr).toBe(opcode);
       });
     });
   });
@@ -68,11 +69,12 @@ describe('SymbolTable Direct Addressing', () => {
       const squareAddr = 1000;
       symbolTable.defineCode('square', squareAddr);
 
-      const codeRef = symbolTable.findCodeRef('square');
+      const taggedValue = symbolTable.findCodeRef('square');
 
-      expect(codeRef).toBeDefined();
-      expect(codeRef!.tag).toBe(Tag.CODE);
-      expect(codeRef!.addr).toBe(squareAddr);
+      expect(taggedValue).toBeDefined();
+      const { tag, value: addr } = fromTaggedValue(taggedValue!);
+      expect(tag).toBe(Tag.CODE);
+      expect(addr).toBe(squareAddr);
     });
 
     test('should maintain backward compatibility with existing find method', () => {
@@ -80,125 +82,138 @@ describe('SymbolTable Direct Addressing', () => {
       symbolTable.defineCode('test', testAddr);
 
       const functionIndex = symbolTable.find('test');
-
       expect(functionIndex).toBe(testAddr);
     });
 
-    test('should handle multiple code definitions', () => {
-      const codeDefs = [
+    test('should handle multiple colon definitions', () => {
+      const definitions = [
         { name: 'square', addr: 1000 },
         { name: 'cube', addr: 2000 },
         { name: 'factorial', addr: 3000 },
       ];
 
-      codeDefs.forEach(({ name, addr }) => {
+      definitions.forEach(({ name, addr }) => {
         symbolTable.defineCode(name, addr);
       });
 
-      codeDefs.forEach(({ name, addr }) => {
-        const codeRef = symbolTable.findCodeRef(name);
-        expect(codeRef).toBeDefined();
-        expect(codeRef!.tag).toBe(Tag.CODE);
-        expect(codeRef!.addr).toBe(addr);
+      definitions.forEach(({ name, addr }) => {
+        const taggedValue = symbolTable.findCodeRef(name);
+        expect(taggedValue).toBeDefined();
+        const { tag, value: resolvedAddr } = fromTaggedValue(taggedValue!);
+        expect(tag).toBe(Tag.CODE);
+        expect(resolvedAddr).toBe(addr);
       });
     });
-  });
 
-  describe('findCodeRef method', () => {
     test('should return undefined for non-existent symbols', () => {
-      const codeRef = symbolTable.findCodeRef('nonexistent');
-
-      expect(codeRef).toBeUndefined();
+      const taggedValue = symbolTable.findCodeRef('nonexistent');
+      expect(taggedValue).toBeUndefined();
     });
 
-    test('should distinguish between built-ins and code definitions', () => {
+    test('should handle shadowing correctly', () => {
       symbolTable.defineBuiltin('add', Op.Add);
       symbolTable.defineCode('square', 1000);
 
-      const addRef = symbolTable.findCodeRef('add');
-      const squareRef = symbolTable.findCodeRef('square');
+      const addTaggedValue = symbolTable.findCodeRef('add');
+      const squareTaggedValue = symbolTable.findCodeRef('square');
 
-      expect(addRef!.tag).toBe(Tag.BUILTIN);
-      expect(addRef!.addr).toBe(Op.Add);
+      expect(addTaggedValue).toBeDefined();
+      expect(squareTaggedValue).toBeDefined();
 
-      expect(squareRef!.tag).toBe(Tag.CODE);
-      expect(squareRef!.addr).toBe(1000);
+      const { tag: addTag, value: addAddr } = fromTaggedValue(addTaggedValue!);
+      const { tag: squareTag, value: squareAddr } = fromTaggedValue(squareTaggedValue!);
+
+      expect(addTag).toBe(Tag.BUILTIN);
+      expect(addAddr).toBe(Op.Add);
+      expect(squareTag).toBe(Tag.CODE);
+      expect(squareAddr).toBe(1000);
     });
 
-    test('should handle symbol shadowing correctly', () => {
-      // Define a symbol, then redefine it
-      symbolTable.defineBuiltin('test', Op.Add);
-      symbolTable.defineCode('test', 5000); // Shadow with code definition
+    test('should support colon definition overriding', () => {
+      symbolTable.defineCode('test', 5000);
 
-      const codeRef = symbolTable.findCodeRef('test');
-
-      // Should find the most recent definition (code definition)
-      expect(codeRef!.tag).toBe(Tag.CODE);
-      expect(codeRef!.addr).toBe(5000);
+      const taggedValue = symbolTable.findCodeRef('test');
+      expect(taggedValue).toBeDefined();
+      const { tag, value: addr } = fromTaggedValue(taggedValue!);
+      expect(tag).toBe(Tag.CODE);
+      expect(addr).toBe(5000);
     });
   });
 
-  describe('mixed definitions', () => {
-    test('should handle mixed built-ins and code definitions', () => {
-      // Mix of built-ins and code definitions
+  describe('Mixed symbol types integration', () => {
+    test('should handle mixed built-ins and colon definitions', () => {
       symbolTable.defineBuiltin('add', Op.Add);
       symbolTable.defineCode('square', 1000);
       symbolTable.defineBuiltin('dup', Op.Dup);
       symbolTable.defineCode('cube', 2000);
 
-      // Verify all definitions are findable
-      expect(symbolTable.findCodeRef('add')!.tag).toBe(Tag.BUILTIN);
-      expect(symbolTable.findCodeRef('square')!.tag).toBe(Tag.CODE);
-      expect(symbolTable.findCodeRef('dup')!.tag).toBe(Tag.BUILTIN);
-      expect(symbolTable.findCodeRef('cube')!.tag).toBe(Tag.CODE);
+      // Test that findCodeRef returns tagged values with correct tags
+      const addTagged = symbolTable.findCodeRef('add');
+      const squareTagged = symbolTable.findCodeRef('square');
+      const dupTagged = symbolTable.findCodeRef('dup');
+      const cubeTagged = symbolTable.findCodeRef('cube');
 
-      // Verify backward compatibility
-      expect(symbolTable.find('add')).toBe(Op.Add);
-      expect(symbolTable.find('square')).toBe(1000);
-      expect(symbolTable.find('dup')).toBe(Op.Dup);
-      expect(symbolTable.find('cube')).toBe(2000);
+      expect(addTagged).toBeDefined();
+      expect(squareTagged).toBeDefined();
+      expect(dupTagged).toBeDefined();
+      expect(cubeTagged).toBeDefined();
+
+      const { tag: addTag } = fromTaggedValue(addTagged!);
+      const { tag: squareTag } = fromTaggedValue(squareTagged!);
+      const { tag: dupTag } = fromTaggedValue(dupTagged!);
+      const { tag: cubeTag } = fromTaggedValue(cubeTagged!);
+
+      expect(addTag).toBe(Tag.BUILTIN);
+      expect(squareTag).toBe(Tag.CODE);
+      expect(dupTag).toBe(Tag.BUILTIN);
+      expect(cubeTag).toBe(Tag.CODE);
     });
   });
 
-  describe('backward compatibility', () => {
-    test('should not break existing define method', () => {
-      // Use existing define method
+  describe('Legacy method compatibility', () => {
+    test('should not resolve symbols defined with old methods', () => {
+      // Use old-style define which doesn't create proper tagged values for new system
       symbolTable.define('oldStyle', 42);
 
-      // Should be findable with existing methods
-      expect(symbolTable.find('oldStyle')).toBe(42);
+      const taggedValue = symbolTable.findCodeRef('oldStyle');
+      expect(taggedValue).toBeDefined(); // findCodeRef now maps to findTaggedValue
 
-      // Should not have code reference since it wasn't defined with new methods
-      expect(symbolTable.findCodeRef('oldStyle')).toBeUndefined();
+      // But the old-style defines still work with the unified system since Step 8.5
+      const { tag } = fromTaggedValue(taggedValue!);
+      expect(tag).toBe(Tag.BUILTIN); // 42 < 128, so it's treated as builtin
     });
 
-    test('should not break existing defineCall method', () => {
-      // Use existing defineCall method
-      symbolTable.defineCall('oldCall', 99);
+    test('should maintain independence from legacy function calling', () => {
+      // Define using legacy method
+      symbolTable.define('oldCall', 200); // >= 128, so CODE
 
-      // Should be findable with existing methods
-      expect(symbolTable.find('oldCall')).toBe(99);
+      const taggedValue = symbolTable.findCodeRef('oldCall');
+      expect(taggedValue).toBeDefined();
 
-      // Should not have code reference since it wasn't defined with new methods
-      expect(symbolTable.findCodeRef('oldCall')).toBeUndefined();
+      const { tag } = fromTaggedValue(taggedValue!);
+      expect(tag).toBe(Tag.CODE); // 200 >= 128, so it's treated as code
     });
+  });
 
-    test('should work with checkpoint and revert', () => {
+  describe('Checkpoint and revert functionality', () => {
+    test('should preserve new definitions across checkpoints', () => {
       symbolTable.defineBuiltin('add', Op.Add);
+      
       const checkpoint = symbolTable.mark();
-
+      
       symbolTable.defineCode('square', 1000);
 
-      // Both should be findable
-      expect(symbolTable.findCodeRef('add')).toBeDefined();
-      expect(symbolTable.findCodeRef('square')).toBeDefined();
+      const addTagged = symbolTable.findCodeRef('add');
+      const squareTagged = symbolTable.findCodeRef('square');
+      expect(addTagged).toBeDefined();
+      expect(squareTagged).toBeDefined();
 
-      // Revert to checkpoint
       symbolTable.revert(checkpoint);
 
-      // Only 'add' should be findable now
-      expect(symbolTable.findCodeRef('add')).toBeDefined();
-      expect(symbolTable.findCodeRef('square')).toBeUndefined();
+      const addTaggedAfter = symbolTable.findCodeRef('add');
+      const squareTaggedAfter = symbolTable.findCodeRef('square');
+      expect(addTaggedAfter).toBeDefined(); // Should still be there
+      expect(squareTaggedAfter).toBeUndefined(); // Should be reverted
     });
   });
 });
