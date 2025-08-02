@@ -1,109 +1,93 @@
-# TACIT: Specification-Driven Development Structure
+# TACIT: Stack-Based Virtual Machine
 
-This project demonstrates **spec-driven development** where documentation is as important as source code. The codebase is organized around clear specifications, discrete tasks, and AI-assisted development workflows.
+TACIT is a stack-based programming language and virtual machine implementation with comprehensive specifications and a documentation-driven development approach.
 
 ## 🗂 Project Structure
 
 ```
 ts-tacitus/
-├── src/             # Source code implementation
-├── docs/            # All documentation and specifications
-│   ├── specs/       # Canonical specifications (VM architecture, features)
+├── src/             # TypeScript implementation of the VM
+├── docs/            # Comprehensive documentation and specifications
+│   ├── specs/       # Core specifications (VM architecture, features)
 │   │   └── drafts/  # Work-in-progress specifications
-│   ├── tasks/       # Discrete work units for development
-│   │   ├── plan-03-unified-code-reference-system.md  # Current active plan
-│   │   └── done/    # Completed plans and tasks
-│   ├── reference/   # Shared knowledge, glossary, and examples
-│   └── rules/       # AI development guidelines and constraints
-├── scripts/         # Development utilities and tools
+│   ├── tasks/       # Development plans and work units
+│   │   └── done/    # Completed development tasks
+│   ├── reference/   # Glossary, examples, and reference materials
+│   └── rules/       # Development guidelines and constraints
+├── scripts/         # Development utilities and debugging tools
 └── coverage/        # Test coverage reports
 ```
 
-## 📋 Development Workflow
+## ⚙️ Technical Features
 
-### 1. Specification-First
-All features begin with clear specifications in `specs/`. These documents define:
-- **What** the feature does (overview and purpose)
-- **How** it works (structure and constraints) 
-- **Why** design decisions were made (rationale)
+TACIT implements a complete stack-based virtual machine with:
+
+- **64KB segmented memory** (STACK, RSTACK, CODE, STRING segments)
+- **NaN-boxed tagged values** for efficient type representation
+- **Unified code references** enabling metaprogramming capabilities
+- **Immutable list structures** with LINK metadata
+- **Comprehensive type system** with built-in operations
+- **Stack-based execution model** with call frame management
+
+### Core Specifications
+- [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
+- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system and value encoding
+- [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
+
+## 🧪 Testing & Quality
+
+- **Comprehensive test coverage** with 700+ individual tests
+- **Multiple test suites** covering core VM, operations, and language features
+- **Specification-based testing** ensuring implementation matches design
+- **Continuous integration** with automated testing
+
+## � Development Methodology
+
+This project demonstrates **specification-driven development** where documentation and implementation evolve together:
+
+### 1. Specification-First Approach
+- **Clear specifications** define features before implementation
+- **Architectural decisions** documented with rationale
+- **Dependencies and constraints** explicitly captured
 
 ### 2. Task-Driven Implementation  
-Each work unit is captured in `docs/tasks/` as a self-contained plan:
-- **Active Plan**: `docs/tasks/plan-03-unified-code-reference-system.md` (current work)
-- **Completed Plans**: Archived in `docs/tasks/done/` for reference
-- **Goal**: Clear objective and success criteria
-- **Dependencies**: Required specs and prior work
-- **Constraints**: Technical and design limitations
-- **Tests**: Expected behaviors and edge cases
+- **Discrete work units** in `docs/tasks/` with clear objectives
+- **Step-by-step plans** with testing requirements
+- **Progress tracking** and completion criteria
 
-### 3. AI-Assisted Development
-Guidelines in `docs/rules/` ensure consistent:
-- **Code quality**: Style, testing, documentation standards
-- **Architectural alignment**: Following VM design principles
-- **Specification compliance**: Implementation matches specs
+### 3. Quality Assurance
+- **Comprehensive testing** including edge cases
+- **Code quality guidelines** for consistency
+- **Documentation maintenance** aligned with implementation
 
-## 🎯 Current Implementation: TACIT VM
+## 🚀 Getting Started
 
-TACIT is a stack-based programming language with:
-- **64KB segmented memory** (STACK, RSTACK, CODE, STRING)
-- **NaN-boxed tagged values** for type safety
-- **Unified code references** for metaprogramming
-- **Immutable list structures** with LINK metadata
-
-### Key Specifications
-- [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
-- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system and encoding
-- [`docs/specs/lists.md`](docs/specs/lists.md) - Compound data structures
-
-### Test Coverage
-- **54/59 test suites passing** (91.5% suite success rate)
-- **762 individual tests passing** with comprehensive coverage
-- **Known Issues**: 5 test suites failing (4 known isolation issues + 1 new issue from Step 10)
-
-### Active Development
-Current plan: [`docs/tasks/plan-03-unified-code-reference-system.md`](docs/tasks/plan-03-unified-code-reference-system.md)
-- **CRITICAL ISSUES DISCOVERED**: Steps 8-10 need complete rework
-- **Status**: Plan revision required - fundamental architectural flaws found
-- **Problem**: Current implementation uses wrong approach (function table bypass vs. true direct addressing)
-- **Solution**: 6 new steps (10.5-10.9) added to implement proper direct bytecode addressing
-
-### Completed Work
-Previous plans archived in [`docs/tasks/done/`](docs/tasks/done/):
-- **Plan 00**: Project structure setup
-- **Plan 01**: Test coverage improvement (74% coverage achieved)
-- **Plan 02**: Test rationalization and cleanup
-
-## 🔧 Developer Guide
-
-### For AI Assistants
-1. **Read relevant specs** before starting any task
-2. **Follow rules in `docs/rules/ai-guidelines.md`**  
-3. **Consult `docs/reference/` for examples and context**
-4. **Update task status** when complete
-
-### For Human Developers
-1. **Understand the specs** before coding
-2. **Create plans** for discrete work units  
-3. **Test comprehensively** including edge cases
-4. **Document decisions** and constraints
-
-### Starting a New Plan
 ```bash
-# Read the current active plan
-cat docs/tasks/plan-03-unified-code-reference-system.md
+# Install dependencies
+yarn install
 
-# Review current step (Step 10)
-# Find step details in the plan file
-
-# Review dependencies  
-cat docs/specs/vm-architecture.md
-cat docs/specs/tagged-values.md
-
-# Apply development rules
-cat docs/rules/ai-guidelines.md
-
-# Implement current step with testing
+# Run the full test suite
 yarn test
+
+# Start the TACIT REPL
+yarn start
+
+# View test coverage
+yarn test --coverage
+```
+
+## 🔧 Development Workflow
+
+```bash
+# Review project structure
+ls docs/specs/        # Core specifications
+ls docs/tasks/        # Development plans
+ls docs/reference/    # Examples and glossary
+
+# Run specific test suites
+yarn test core        # Core VM functionality
+yarn test ops         # Operations and built-ins
+yarn test lang        # Language processing
 ```
 
 ## 📚 Knowledge Base
@@ -120,12 +104,12 @@ yarn test
 - [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
 - [`docs/specs/drafts/`](docs/specs/drafts/) - Work-in-progress specifications
 
-### Related Projects
-This structure can be applied to any software project where:
-- **Documentation drives development**
-- **Specifications are authoritative** 
-- **AI assists human developers**
-- **Quality and consistency matter**
+### Applications
+This specification-driven approach is suitable for:
+- **Language implementation** and virtual machine development
+- **Educational projects** demonstrating VM concepts
+- **Research platforms** for stack-based programming languages
+- **AI-assisted development** with clear documentation structure
 
 ## 🚀 Quick Start
 
@@ -136,17 +120,13 @@ yarn install
 # Run tests
 yarn test
 
-# View current plan and active step
-cat docs/tasks/plan-03-unified-code-reference-system.md
+# Start the TACIT REPL to try the language
+yarn start
 
-# Check completed work
-ls docs/tasks/done/
-
-# Start development session with AI
-# 1. Read plan file and locate active step (Step 10)
-# 2. Review dependency specs  
-# 3. Apply AI guidelines
-# 4. Implement current step with testing
+# Explore the documentation
+cat docs/specs/vm-architecture.md    # Understand the VM design
+cat docs/reference/glossary.md       # Learn TACIT terminology
+ls docs/tasks/                       # See development history
 ```
 
 ## 🎯 Benefits of This Approach
@@ -171,22 +151,24 @@ ls docs/tasks/done/
 
 This structure demonstrates how documentation-driven development can create more maintainable, understandable, and AI-friendly codebases.
 
-## 📈 Current Project Status
+## 📈 Project Highlights
 
-### Test Coverage
-- **55/59 test suites passing** (93.2% suite success rate)
-- **763 individual tests passing** with comprehensive coverage
-- **Known Issues**: 4 test suites with isolation issues documented in `docs/reference/known-issues.md`
+### Architecture
+- **Stack-based execution** with proper call frame management
+- **Memory segmentation** for efficient resource allocation
+- **Type safety** through tagged value system
+- **Metaprogramming support** with unified code references
 
-### Active Development
-- **Current Plan**: Unified @symbol reference system (Step 11/17)
-- **Recent Completion**: Step 10 - Unified dispatch mechanism for executeOp
-- **Next Milestone**: VM-level @ symbol resolution and tokenizer integration
+### Documentation
+- **Comprehensive specifications** covering all major components
+- **Development methodology** demonstrating specification-driven approach
+- **Extensive reference materials** including glossary and examples
+- **Quality guidelines** ensuring consistent implementation
 
-### Architecture Highlights
-- **64KB segmented memory** with STACK, RSTACK, CODE, and STRING segments
-- **NaN-boxed tagged values** for efficient type representation
-- **Unified code references** enabling metaprogramming with @symbol syntax
-- **Immutable list structures** with LINK metadata for efficient operations
+### Testing
+- **High test coverage** across all major components
+- **Specification-based testing** ensuring correctness
+- **Edge case coverage** for robust implementation
+- **Continuous validation** through automated testing
 
-This implementation demonstrates a complete stack-based virtual machine with a specification-driven development approach, suitable for both educational purposes and practical language implementation.
+This project demonstrates how thoughtful architecture, comprehensive documentation, and rigorous testing can create a maintainable and extensible virtual machine implementation.

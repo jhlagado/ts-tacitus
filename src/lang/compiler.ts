@@ -13,7 +13,7 @@
 
 import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
-import { SEG_CODE } from '../core/constants';
+import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
 import { InvalidOpcodeAddressError } from '../core/errors';
 
 /**
@@ -132,7 +132,7 @@ export class Compiler {
    *
    * The Tacit VM uses a unified addressing scheme for opcodes:
    * - Built-in ops (0-127): Single byte encoding
-   * - User-defined words (128-32767): Two-byte little-endian encoding with high bit set
+   * - User-defined words (128+): Two-byte little-endian encoding with high bit set
    *
    * This method handles the encoding logic and writes the appropriate bytes to the code segment.
    *
@@ -151,13 +151,29 @@ export class Compiler {
       throw new InvalidOpcodeAddressError(opcodeAddress);
     }
 
-    if (opcodeAddress < 128) {
+    if (opcodeAddress < MIN_USER_OPCODE) {
       this.compile8(opcodeAddress);
       return;
     }
 
     this.compile8(0x80 | (opcodeAddress & 0x7f));
     this.compile8((opcodeAddress >> 7) & 0xff);
+  }
+
+  /**
+   * Compiles a user-defined word call using 15-bit addressing.
+   * Forces the MSB encoding regardless of the address value.
+   * 
+   * @param address The bytecode address of the user-defined word
+   */
+  compileUserWordCall(address: number): void {
+    if (address < 0 || address >= 32768) {
+      throw new InvalidOpcodeAddressError(address);
+    }
+
+    // Always use 15-bit encoding for user-defined words
+    this.compile8(0x80 | (address & 0x7f));
+    this.compile8((address >> 7) & 0xff);
   }
 
   /**
@@ -207,7 +223,7 @@ export class Compiler {
       throw new InvalidOpcodeAddressError(opcodeAddress);
     }
 
-    if (opcodeAddress < 128) {
+    if (opcodeAddress < MIN_USER_OPCODE) {
       this.vm.memory.write8(SEG_CODE, address, opcodeAddress);
       return;
     }

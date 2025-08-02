@@ -10,7 +10,8 @@
  * making it easier to work with code references throughout the VM system.
  */
 
-import { toTaggedValue, fromTaggedValue, Tag } from './tagged';
+import { Tag, toTaggedValue, fromTaggedValue } from './tagged';
+import { MAX_BUILTIN_OPCODE } from './constants';
 
 /**
  * Creates a tagged reference to a built-in operation.
@@ -34,8 +35,8 @@ import { toTaggedValue, fromTaggedValue, Tag } from './tagged';
  * ```
  */
 export function createBuiltinRef(opcode: number): number {
-  if (opcode < 0 || opcode > 127) {
-    throw new Error(`Invalid builtin opcode: ${opcode}. Must be in range 0-127.`);
+  if (opcode < 0 || opcode > MAX_BUILTIN_OPCODE) {
+    throw new Error(`Invalid builtin opcode: ${opcode}. Must be in range 0-${MAX_BUILTIN_OPCODE}.`);
   }
   return toTaggedValue(opcode, Tag.BUILTIN);
 }

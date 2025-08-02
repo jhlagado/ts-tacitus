@@ -46,7 +46,7 @@ export function resetVM(): void {
 export function executeTacitCode(code: string): number[] {
   resetVM();
   parse(new Tokenizer(code));
-  execute(vm.compiler.BCP);
+  execute(vm.compiler.BCP); // Start execution from the base compile pointer
   return vm.getStackData();
 }
 

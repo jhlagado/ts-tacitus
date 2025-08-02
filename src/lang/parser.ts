@@ -55,13 +55,11 @@ export interface Definition {
  * @property {Tokenizer} tokenizer - The tokenizer providing input tokens
  * @property {Definition | null} currentDefinition - The currently active word definition, if any
  * @property {boolean} insideCodeBlock - Whether parsing is currently inside a code block
- * @property {number} nextFunctionIndex - The next available index for user-defined functions
  */
 interface ParserState {
   tokenizer: Tokenizer;
   currentDefinition: Definition | null;
   insideCodeBlock: boolean;
-  nextFunctionIndex: number;
 }
 
 /**
@@ -79,7 +77,6 @@ export function parse(tokenizer: Tokenizer): void {
     tokenizer,
     currentDefinition: null,
     insideCodeBlock: false,
-    nextFunctionIndex: 128,
   };
 
   parseProgram(state);
@@ -266,7 +263,7 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after do combinator', vm.getStackData());
     }
 
-    compileCodeBlock(state);
+    beginStandaloneBlock(state);
 
     const doIndex = vm.symbolTable.find('do');
     if (doIndex === undefined) {
@@ -280,7 +277,7 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after repeat combinator', vm.getStackData());
     }
 
-    compileCodeBlock(state);
+    beginStandaloneBlock(state);
 
     const repeatIndex = vm.symbolTable.find('repeat');
     if (repeatIndex === undefined) {
@@ -291,6 +288,15 @@ function processWordToken(value: string, state: ParserState): void {
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
+    // First check for bytecode address (colon definitions)
+    const bytecodeAddr = vm.symbolTable.findBytecodeAddress(value);
+    if (bytecodeAddr !== undefined) {
+      // Found a colon definition - compile direct bytecode address
+      vm.compiler.compileUserWordCall(bytecodeAddr);
+      return;
+    }
+
+    // Fall back to built-in lookup (function index)
     const functionIndex = vm.symbolTable.find(value);
     if (functionIndex === undefined) {
       throw new UndefinedWordError(value, vm.getStackData());
@@ -401,11 +407,8 @@ function beginDefinition(state: ParserState): void {
     vm.IP = startAddress;
   };
 
-  const functionIndex = state.nextFunctionIndex++;
-  
-  // Step 9: Use unified storage for colon definitions
-  // Stores both function index (current compatibility) and bytecode address (future Step 10)
-  vm.symbolTable.defineColonDefinition(wordName, functionIndex, startAddress, wordFunction);
+  // Direct addressing: store the bytecode address
+  vm.symbolTable.defineColonDefinition(wordName, startAddress, wordFunction);
 
   state.currentDefinition = {
     name: wordName,
@@ -483,7 +486,11 @@ function endList(_state: ParserState): void {
  * @param {ParserState} state - The current parser state
  */
 function beginStandaloneBlock(state: ParserState): void {
-  compileCodeBlock(state);
+  const { startAddress } = compileCodeBlock(state);
+  
+  // Emit LiteralCode operation to push the code reference onto the stack
+  vm.compiler.compileOpcode(Op.LiteralCode);
+  vm.compiler.compile16(startAddress);
 }
 
 /**
@@ -545,7 +552,7 @@ function parseCurlyBlock(state: ParserState): number {
  */
 function compileCodeBlock(state: ParserState): { startAddress: number; offsetAddr: number } {
   const skipAddr = vm.compiler.CP;
-  vm.compiler.compileOpcode(Op.BranchCall);
+  vm.compiler.compileOpcode(Op.Branch);
   const offsetAddr = vm.compiler.CP;
   vm.compiler.compile16(0);
 
