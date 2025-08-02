@@ -123,31 +123,21 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('(', Op.OpenList, openListOp);
   symbolTable.define(')', Op.CloseList, closeListOp);
 
-  symbolTable.define('+', Op.Add, addOp);
   symbolTable.define('add', Op.Add, addOp);
-  symbolTable.define('-', Op.Minus, subtractOp);
   symbolTable.define('sub', Op.Minus, subtractOp);
-  symbolTable.define('*', Op.Multiply, multiplyOp);
   symbolTable.define('mul', Op.Multiply, multiplyOp);
-  symbolTable.define('/', Op.Divide, divideOp);
   symbolTable.define('div', Op.Divide, divideOp);
-  symbolTable.define('^', Op.Power, powerOp);
+  symbolTable.define('pow', Op.Power, powerOp);
   symbolTable.define('mod', Op.Mod, modOp);
   symbolTable.define('min', Op.Min, minOp);
   symbolTable.define('max', Op.Max, maxOp);
-  symbolTable.define('<', Op.LessThan, lessThanOp);
   symbolTable.define('lt', Op.LessThan, lessThanOp);
-  symbolTable.define('<=', Op.LessOrEqual, lessOrEqualOp);
   symbolTable.define('le', Op.LessOrEqual, lessOrEqualOp);
-  symbolTable.define('>', Op.GreaterThan, greaterThanOp);
   symbolTable.define('gt', Op.GreaterThan, greaterThanOp);
-  symbolTable.define('>=', Op.GreaterOrEqual, greaterOrEqualOp);
   symbolTable.define('ge', Op.GreaterOrEqual, greaterOrEqualOp);
-  symbolTable.define('=', Op.Equal, equalOp);
   symbolTable.define('eq', Op.Equal, equalOp);
 
-  symbolTable.define('negate', Op.mNegate, mNegateOp);
-  symbolTable.define('reciprocal', Op.mReciprocal, mReciprocalOp);
+  symbolTable.define('neg', Op.mNegate, mNegateOp);
   symbolTable.define('recip', Op.mReciprocal, mReciprocalOp);
   symbolTable.define('floor', Op.mFloor, mFloorOp);
   symbolTable.define('not', Op.mNot, mNotOp);
