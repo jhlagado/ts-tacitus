@@ -12,11 +12,11 @@
  * for implementing scoping and temporary definitions.
  */
 
-import { Digest } from '@src/strings/digest';
-import { VM } from '@core/vm';
-import { Tag, fromTaggedValue } from '@core/tagged';
-import { createBuiltinRef, createCodeRef } from '@core/code-ref';
-import { MIN_USER_OPCODE } from '@core/constants';
+import { Digest } from './digest';
+import { VM } from '../core/vm';
+import { Tag, fromTaggedValue } from '../core/tagged';
+import { createBuiltinRef, createCodeRef } from '../core/code-ref';
+import { MIN_USER_OPCODE } from '../core/constants';
 
 /**
  * Type definition for a word implementation function
