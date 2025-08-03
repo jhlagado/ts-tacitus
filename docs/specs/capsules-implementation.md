@@ -39,6 +39,22 @@ The `field` keyword does not allocate a global variable. Instead, it:
 
 Each field becomes an **element** in the prototype list, with offset starting at 1 (element 0 reserved for dispatch maplist).
 
+### Field Value Storage
+- Field values stored during `end` processing by reading dictionary
+- Compiler walks dictionary to collect all `field` entries  
+- Emits stored values to data stack in offset order
+- Only simple values and tagged LIST objects allowed as field values
+- Each list must be properly tagged with inline length and backlink
+
+## Declaration Rules and Ordering
+
+- **Field declarations must precede method declarations** if methods reference those fields
+- Field names are **relative to `self`** and valid only within capsule scope  
+- Field declarations shadow global names using standard Forth dictionary behavior
+- Methods may access fields directly (symbolic name)
+- All methods compiled with visibility into current capsule's fields at compilation time
+- Forward references to fields not yet declared will cause compilation errors
+
 ## Method Dispatch Implementation
 
 ### Dispatch Mechanism

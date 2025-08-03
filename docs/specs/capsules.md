@@ -1,6 +1,6 @@
-# TACIT Capsules Specification
+# TACIT Capsules Overview
 
-## 1. Introduction
+## Introduction
 
 TACIT capsules provide object-like encapsulation for structured data and behavior while remaining fully compatible with TACIT's stack-based architecture. They are built on the list infrastructure and use maplist-based method dispatch.
 
@@ -10,7 +10,7 @@ TACIT capsules provide object-like encapsulation for structured data and behavio
 - **Closure-free**: All state explicitly stored, no lexical environments
 - **Stack-compatible**: Work with standard TACIT stack operations
 
-## 2. Basic Structure
+## Basic Structure
 
 ### Capsule Layout
 A capsule is a list with this exact structure:
@@ -18,10 +18,10 @@ A capsule is a list with this exact structure:
 ( ( `name1 @method1 `name2 @method2 ... `nameN @methodN ) field1-value field2-value ... fieldN-value )
 ```
 
-- **Slot 0**: Maplist containing alternating method names and code references
-- **Slots 1..N**: Field values (scalars or compound values)
+- **Element 0**: Maplist containing alternating method names and code references
+- **Elements 1..N**: Field values (simple or compound values)
 
-The dispatch maplist in slot 0 follows standard maplist format:
+The dispatch maplist in element 0 follows standard maplist format:
 - Even positions (0, 2, 4...): Method name symbols (e.g., `greet`, `reset`)  
 - Odd positions (1, 3, 5...): Code references to method implementations (e.g., @greet-code)
 
@@ -30,7 +30,7 @@ Example in memory:
 ( ( `greet @greet-code `reset @reset-code `incrementViews @increment-code ) "John" "Doe" 0 )
 ```
 
-## 3. Definition Syntax
+## Definition Syntax
 
 ### Basic Capsule Definition
 ```tacit
@@ -60,25 +60,7 @@ end
 | `: name ... ;`           | Define method as conventional TACIT function with field access.               |
 | `end`                    | Terminates capsule. Triggers collection, prototype assembly, and installation. |
 
-### Declaration Rules and Ordering
-
-- **Field declarations must precede method declarations** if methods reference those fields
-- Field names are **relative to `self`** and valid only within capsule scope  
-- Field declarations shadow global names using standard Forth dictionary behavior
-- Methods may access fields directly (symbolic name) or indirectly (via dispatch)
-- All methods compiled with visibility into current capsule's fields at compilation time
-- Forward references to fields not yet declared will cause compilation errors
-
-## 4. Field Access
-
-### Field Declaration Semantics
-The `field` keyword does not allocate a global variable. Instead, it:
-- Pops a value (scalar or list) from the stack
-- Writes it temporarily into the dictionary entry (not the capsule yet)
-- Associates the name with an **offset** stored in compiler environment
-- Allows symbolic references to be resolved during method compilation
-
-Each field becomes a **slot** in the prototype list, with offset starting at 1 (slot 0 reserved for dispatch maplist).
+## Field Access
 
 ### Reading Fields
 Within methods, field names directly return values:
@@ -92,40 +74,9 @@ Use the `->` operator for assignment:
 "Jane" -> firstName    \ Updates field value
 ```
 
-### Compilation Details
-Field access compiles to fixed offsets:
-```tacit
-firstName           \ Compiles to: self 1 get
-lastName            \ Compiles to: self 2 get
-100 -> viewCount    \ Compiles to: 100 self 3 set
-```
+## Method Dispatch with `with` Combinator
 
-### Field Value Storage
-- Field values stored during `end` processing by reading dictionary
-- Compiler walks dictionary to collect all `field` entries  
-- Emits stored values to data stack in offset order
-- Only scalars and tagged LIST objects allowed as field values
-- Each list must be properly tagged with inline length and backlink
-
-## 5. Method Dispatch - The Problem
-
-### Traditional Stack-Based Approach (Problematic)
-```tacit
-person new
-dup `greet dispatch      \ Returns "Hello, John Doe"  
-dup `incrementViews dispatch
-dup `viewCount dispatch  \ Returns 1
-```
-
-**Problems:**
-- Stack pollution with `dup` calls
-- Method arguments interfere with receiver object
-- Verbose and error-prone for multiple calls
-- Poor ergonomics for method chaining
-
-## 6. Method Dispatch - The Solution
-
-### `with` Combinator Context
+### Basic Usage
 ```tacit
 person with {
     .getName "hello, " swap concat    \ Returns "hello, John Doe"
@@ -138,102 +89,20 @@ person with {
 - **`with` is a combinator** - takes receiver and block, manages `self` context
 - **No copying** - receiver remains on stack, accessed via `self` register
 - **`.method` is a prefix sigil** - reads method name, dispatches via `self`
-- **Nested contexts** - `self` saved/restored on return stack for nesting
+- **Nested contexts** - `self` saved/restored for nesting
 - **Block scoping** - explicit `{` `}` boundaries
 
 ### Implementation Mechanics
 
-1. **`with` setup**: 
-   - Save current `self` value to return stack
-   - Set `self` register to point to receiver (follow LINK)
-   - Execute block with new `self` context
-   
-2. **`.method` dispatch**:
-   - Prefix sigil reads next token as method name
-   - Look up method symbol in `self`'s maplist (slot 0)
-   - If found, call code reference with `self` bound
-   - If not found, try `default` method or error
-   - **Receiver stays on stack** - not consumed
-
-3. **`with` cleanup**:
-   - Restore previous `self` value from return stack
-   - Consume receiver from stack (end of `with` block)
+1. **`with` setup**: Set `self` register to point to receiver
+2. **`.method` dispatch**: Look up method symbol in `self`'s maplist (element 0) and execute
+3. **`with` cleanup**: Restore previous `self` value and consume receiver
 
 ### With Arguments
 ```tacit
 person with {
     "Dr." .setTitle               \ Pass argument to method
     .getName "Hello, " swap concat \ Use updated title
-}
-```
-
-**Stack behavior**: Arguments are consumed normally, receiver preserved via `self`.
-
-## 7. Implementation Details
-
-### `with` Combinator Behavior
-1. **Context Setup**: Save current `self` to return stack, set `self` to receiver
-2. **Block Execution**: Execute `{...}` block with new `self` context
-3. **Method Dispatch**: `.method` uses `self` register, doesn't consume receiver
-4. **Context Cleanup**: Restore `self` from return stack, consume receiver
-5. **Return Stack**: Enables nested `with` blocks by preserving context chain
-
-### Dispatch Mechanism
-```tacit
-.methodName    \ Expands to: self 0 get `methodName maplist-find eval
-```
-
-**Process**:
-1. Prefix sigil `.` reads next token as method name
-2. Access maplist from `self` slot 0
-3. Search for method symbol in maplist
-4. If found, execute corresponding code reference
-5. If not found, try `default` method or signal error
-6. **Receiver unchanged** - stays accessible via `self`
-
-### TACIT Sigil Family
-```tacit
-@coderef     \ Code reference sigil
-`symbol      \ Symbol literal sigil  
-.method      \ Method dispatch sigil (within 'with' context)
-```
-
-### Alternative Syntax Options
-```tacit
-person with { .getName "hello, " swap concat }     \ Dot sigil (recommended)
-person with { ::getName "hello, " swap concat }    \ Scope operator
-person with { <-getName "hello, " swap concat }    \ Left arrow
-```
-
-### Memory Management Benefits
-- **Zero copying** - receiver never duplicated
-- **Stack efficiency** - no `dup` operations required
-- **Return stack usage** - minimal overhead for context saving
-- **Forth-compatible** - aligns with traditional Forth memory patterns
-
-### Field Visibility Rules
-- Fields must be declared before methods that reference them
-- Methods can only access fields declared earlier in the definition  
-- Methods compiled before a field is declared will not have access to it
-- This enforces one-pass, forward-declaration rule consistent with Forth tradition
-- Forward references require symbolic dispatch
-
-### Structural vs Element Mutability
-Following list mutability semantics:
-- **Fields can be mutated** using `->` operator (efficient, O(1))
-- **Structure is immutable** - adding/removing fields requires new capsule
-- **Compound field values** follow their own mutability rules  
-- **No in-place modification** of capsule structure itself
-
-## 8. Advanced Features
-
-### Method Chaining with Arguments
-```tacit
-person with {
-    "Dr." .setTitle
-    "Smith" .setLastName
-    .incrementViews  
-    .greet                 \ Returns "Hello, Dr. Smith"
 }
 ```
 
@@ -248,8 +117,6 @@ person1 with {
 }
 ```
 
-**Context Management**: Each `with` saves/restores `self` on return stack, enabling safe nesting.
-
 ### Inter-Method Calls
 Methods can call other methods on the same receiver:
 ```tacit
@@ -261,8 +128,6 @@ capsule calculator
   : addDouble 2 * .add ;           \ Double then add
 end
 ```
-
-**Note**: Within methods, `.methodName` uses the current `self` context.
 
 ### Default Method Support
 Following maplist conventions:
@@ -281,86 +146,13 @@ instance with {
 }
 ```
 
-## 9. Compilation Process
-
-The compiler processes capsule definitions in phases:
-
-### Phase 1: Declaration Collection
-When `capsule <name>` is encountered:
-1. Mark current dictionary position as marker
-2. Enter capsule compilation mode  
-3. Record capsule name in compilation context
-4. Collect field and method definitions in forward order
-
-### Phase 2: Field Processing  
-Each `field` declaration:
-1. Assigns sequential slot offset (starting at 1)
-2. Records field name and offset in compilation context
-3. Stores initial value temporarily in dictionary entry
-4. Field names shadow global names using standard Forth rules
-
-### Phase 3: Method Compilation
-Each method definition:
-1. Compiles as standard TACIT function with capsule context
-2. Resolves field references to fixed offsets using stored mappings
-3. Field symbols marked with flag for relative addressing  
-4. Creates code reference for dispatch table entry
-
-### Phase 4: Prototype Assembly
-At `end`:
-1. Walk dictionary backward from current head to marker
-2. Collect methods into maplist: `( `name1 @method1 `name2 @method2 ... )`
-3. Collect field values in declaration order (slots 1..N)
-4. Build prototype list on data stack: `( ( `name1 @method1 `name2 @method2 ... ) field1 field2 ... )`
-5. Replace dictionary entries with single capsule definition
-6. Clean up intermediate field/method definitions (optional)
-
-### Detailed Implementation Rules
-
-#### Dictionary Walking Algorithm
-- Store dictionary head pointer at `capsule <name>`
-- All subsequent entries tagged as part of this capsule
-- At `end`, walk backward identifying field vs method entries
-- Differentiate via flags/metadata in dictionary entries
-
-#### Field Offset Resolution  
-- Offsets start at 1 (slot 0 reserved for dispatch maplist)
-- Each `field` increments internal counter
-- Offset stored in dictionary entry under field name
-- Used during method compilation for symbol resolution
-
-#### Stack Semantics for Fields
-- `field` pops value from stack, stores in dictionary temporarily
-- Field values emitted to data stack in offset order during `end`
-- Only scalars and tagged LIST objects allowed as field values
-
-#### Symbol Resolution in Methods
-- During method compilation, determine if symbol is field (relative) or global (absolute)
-- Field references compile to: `self <offset> get` 
-- Field assignments compile to: `<value> self <offset> set`
-- Forward references to fields not yet declared cause compilation error
-
-## 10. Performance Characteristics
-
-### Field Access
-- **Read**: O(1) with compile-time offset resolution
-- **Write**: O(1) direct slot assignment
-
-### Method Dispatch
-- **Search**: O(n/2) linear search through maplist
-- **Optimization**: Can use sorted maplists or hash-based dispatch
-
-### Instantiation
-- **Copy**: O(n) where n is number of fields
-- **Allocation**: Direct stack copying, no heap overhead
-
-## 11. Integration with TACIT
+## Integration with TACIT
 
 ### List Compatibility
 Capsules support all list operations:
 ```tacit
 capsule 2 get        \ Access field by index
-capsule length       \ Get total slots
+capsule length       \ Get total elements
 ```
 
 ### Stack Operations  
@@ -375,31 +167,7 @@ capsule swap         \ Standard stack ops
 - Compatible with maplist search algorithms
 - Can use maplist introspection tools
 
-## 12. Implementation Strategy
-
-### Phase 1: Basic Dispatch
-Implement traditional dispatch:
-```tacit
-instance `method dispatch
-```
-
-### Phase 2: `with` Blocks
-Add context-based dispatch:
-```tacit
-instance with
-  `method dispatch
-end
-```
-
-### Phase 3: `.` Sigil Syntax
-Add prefix sigil for method calls:
-```tacit
-instance with {
-    .method
-}
-```
-
-## 13. Design Rationale
+## Design Rationale
 
 The `with` mechanism solves fundamental stack-based OOP problems:
 
@@ -414,4 +182,4 @@ This maintains TACIT's stack-based nature while providing object-oriented conven
 
 - `docs/specs/lists.md` - Foundational list mechanics
 - `docs/specs/maplists.md` - Key-value dispatch tables  
-- `docs/specs/stack-operations.md` - Stack manipulation rules
+- `docs/specs/capsules-implementation.md` - Detailed implementation guide
