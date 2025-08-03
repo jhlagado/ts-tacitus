@@ -6,12 +6,6 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
 
 ## Terminology Decision
 
-**Key Change**: Use "receiver" instead of "self" throughout:
-- More familiar to developers (Go, Objective-C)
-- Clearer semantic meaning (object receiving the method call)
-- Avoids confusion with philosophical "self" concepts
-- Aligns with established OOP terminology
-
 ## Prerequisites Assessment
 
 ### Already Implemented ✅

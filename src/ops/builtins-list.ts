@@ -16,10 +16,10 @@
  * Lists support nesting, and the VM maintains a listDepth counter to track nesting levels.
  * When a list is closed, a LINK tag is created that points to the list's contents on the stack.
  */
-import { VM } from '../../src/core/vm';
-import { fromTaggedValue, toTaggedValue, Tag } from '../../src/core/tagged';
-import { SEG_STACK } from '../../src/core/constants';
-import { ReturnStackUnderflowError } from '../../src/core/errors';
+import { VM } from '../core/vm';
+import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { SEG_STACK } from '../core/constants';
+import { ReturnStackUnderflowError } from '../core/errors';
 
 /** Number of bytes per stack element */
 const BYTES_PER_ELEMENT = 4;
