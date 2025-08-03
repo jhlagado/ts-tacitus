@@ -11,11 +11,14 @@
 
 - **Capsule**: Object-like structure where element 0 is a dispatch maplist containing method names and code references.
 - **Default Key Convention**: Special `default` key in maplists providing fallback values for failed lookups.
+- **Field Offset**: Numeric position of field data within capsule (starting at 1).
 - **LINK**: Stack-only metadata providing backward pointer to locate variable-length structures.
 - **LIST**: Length-prefixed compound structure containing sequence of simple values.
+- **List Element**: Variable-length data item within a list structure.
 - **Maplist**: List following key-value alternating pattern for associative data structures.
 - **NIL**: INTEGER tagged value with value 0, representing "not found" or "absent" data for graceful error handling.
 - **Simple Values**: Atomic values that fit in one 32-bit stack cell with type tag.
+- **Stack Cell**: Single 32-bit tagged value position on the VM stack.
 - **Tagged Values**: NaN-boxed values combining 6-bit type tag with 16-bit payload.
 
 ## VM Components
