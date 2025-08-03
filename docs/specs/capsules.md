@@ -95,10 +95,10 @@ person with {
 ```
 
 **Key Design Principles:**
-- **`with` is a combinator** - takes receiver and block, manages `self` context
-- **No copying** - receiver remains on stack, accessed via `self` register
-- **`.method` is a prefix sigil** - reads method name, dispatches via `self`
-- **Nested contexts** - `self` saved/restored for nesting
+- **`with` is a combinator** - takes receiver and block, manages receiver context
+- **No copying** - receiver remains on stack, accessed via receiver register
+- **`.method` is a prefix sigil** - reads method name, dispatches via receiver
+- **Nested contexts** - receiver saved/restored for nesting
 - **Block scoping** - explicit `{` `}` boundaries
 
 ### Implementation Mechanics

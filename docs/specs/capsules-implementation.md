@@ -4,7 +4,11 @@
 
 ### Stack vs List Structure
 - **Stack Cell**: Single 32-bit tagged value position on the VM stack
-- **List Element**: Variable-length data item within a list structure  
+#### Symbol Resolution in Methods
+- During method compilation, determine if symbol is field (relative) or global (absolute)
+- Field references compile to: `receiver <offset> get` 
+- Field assignments compile to: `<value> receiver <offset> set`
+- Forward references to fields not yet declared cause compilation errorist Element**: Variable-length data item within a list structure  
 - **Field Offset**: Numeric position of field data within capsule (starting at 1)
 
 A single list element may occupy multiple stack cells if it contains compound data (nested lists).
@@ -13,9 +17,9 @@ A single list element may occupy multiple stack cells if it contains compound da
 
 Field access compiles to fixed offsets:
 ```tacit
-firstName           \ Compiles to: self 1 get
-lastName            \ Compiles to: self 2 get
-100 -> viewCount    \ Compiles to: 100 self 3 set
+firstName           \ Compiles to: receiver 1 get
+lastName            \ Compiles to: receiver 2 get
+100 -> viewCount    \ Compiles to: 100 receiver 3 set
 ```
 
 The field offset is determined at compile time and stored in the compilation context.
@@ -23,7 +27,7 @@ The field offset is determined at compile time and stored in the compilation con
 ## Declaration Rules and Ordering
 
 - **Field declarations must precede method declarations** if methods reference those fields
-- Field names are **relative to `self`** and valid only within capsule scope  
+- Field names are **relative to receiver** and valid only within capsule scope  
 - Field declarations shadow global names using standard Forth dictionary behavior
 - Methods may access fields directly (symbolic name)
 - All methods compiled with visibility into current capsule's fields at compilation time
@@ -46,29 +50,20 @@ Each field becomes an **element** in the prototype list, with offset starting at
 - Only simple values and tagged LIST objects allowed as field values
 - Each list must be properly tagged with inline length and backlink
 
-## Declaration Rules and Ordering
-
-- **Field declarations must precede method declarations** if methods reference those fields
-- Field names are **relative to `self`** and valid only within capsule scope  
-- Field declarations shadow global names using standard Forth dictionary behavior
-- Methods may access fields directly (symbolic name)
-- All methods compiled with visibility into current capsule's fields at compilation time
-- Forward references to fields not yet declared will cause compilation errors
-
 ## Method Dispatch Implementation
 
 ### Dispatch Mechanism
 ```tacit
-.methodName    \ Expands to: self 0 get `methodName maplist-find eval
+.methodName    \ Expands to: receiver 0 get `methodName maplist-find eval
 ```
 
 **Process**:
 1. Prefix sigil `.` reads next token as method name
-2. Access maplist from `self` element 0
+2. Access maplist from current receiver element 0
 3. Search for method symbol in maplist
 4. If found, execute corresponding code reference
 5. If not found, try `default` method or signal error
-6. **Receiver unchanged** - stays accessible via `self`
+6. **Receiver unchanged** - stays accessible via receiver register
 
 ### TACIT Sigil Family
 ```tacit
@@ -147,8 +142,8 @@ At `end`:
 
 #### Symbol Resolution in Methods
 - During method compilation, determine if symbol is field (relative) or global (absolute)
-- Field references compile to: `self <offset> get` 
-- Field assignments compile to: `<value> self <offset> set`
+- Field references compile to: `receiver <offset> get` 
+- Field assignments compile to: `<value> receiver <offset> set`
 - Forward references to fields not yet declared cause compilation error
 
 ## Performance Characteristics

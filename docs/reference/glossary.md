@@ -59,7 +59,7 @@
 - **Prefix Sigil**: Special character that modifies how the following token is interpreted (e.g., `@`, `` ` ``, `.`).
 - **Quotation**: `{ code }` - anonymous code block, creates executable reference.
 - **Receiver**: Object that receives method calls in object-oriented contexts.
-- **Self Register**: VM register pointing to current object context within `with` blocks.
+- **Receiver Register**: VM register pointing to current object context within `with` blocks.
 - **Symbol Reference**: `@symbol` - creates reference to named word without executing.
 - **Tag.BUILTIN**: Tagged value type (7) for references to built-in operations.
 - **Tag.CODE**: Tagged value type (2) for references to bytecode addresses.
