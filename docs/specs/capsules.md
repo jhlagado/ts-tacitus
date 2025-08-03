@@ -74,6 +74,15 @@ Use the `->` operator for assignment:
 "Jane" -> firstName    \ Updates field value
 ```
 
+### Future Variable Integration
+The current field access mechanism is a temporary solution. TACIT will likely develop a more comprehensive variable system:
+
+- **Global variables**: Following Forth VALUE style, stored on global heap
+- **Local variables**: Function-scoped, stored on return stack
+- **Field variables**: May integrate with the broader variable system for consistency
+
+This evolution would provide more natural variable semantics while maintaining stack-based performance characteristics.
+
 ## Method Dispatch with `with` Combinator
 
 ### Basic Usage
