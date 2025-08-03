@@ -35,10 +35,11 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
 
 #### Phase 2: Field System
 4. **Field Access Primitives**
-   - `getFieldOp <offset>` builtin: `( — value )` reads from receiver register
-   - `setFieldOp <offset>` builtin: `( new-value — )` writes to receiver register
+   - `getFieldOp <field-index>` builtin: `( — value )` reads from receiver register
+   - `setFieldOp <field-index>` builtin: `( new-value — )` writes to receiver register
+   - **Field addressing**: `slot = receiver_address + dispatch_maplist_length + field_index`
+   - **Performance**: O(1) direct slot access using calculated field positions
    - Bounds checking and error handling
-   - **To be resolved**: Is offset an element index or slot index?
 
 5. **Receiver Context Operations**
    - `set-receiver` builtin: `( receiver — )` sets current receiver
@@ -121,17 +122,31 @@ interface VMState {
 
 #### Step 2.1: Field Access Primitives
 ```tacit
-getFieldOp <offset>     # ( — value ) Get field from receiver register
-setFieldOp <offset>     # ( new-value — ) Set field in receiver register
+getFieldOp <field-index>     # ( — value ) Get field from receiver register
+setFieldOp <field-index>     # ( new-value — ) Set field in receiver register
 ```
 
 **Implementation details**:
-- `<offset>` is an immediate operand following the opcode
+- `<field-index>` is an immediate operand following the opcode (0-based field index)
 - Receiver comes from VM register, not stack
+- **Slot calculation**: `slot = receiver_address + dispatch_maplist_length + field_index`
+- **Dispatch maplist length**: Available from maplist header in receiver element 0
+- **Field addressing**: Direct O(1) slot access without traversal
 - Validate receiver is capsule before field access
-- Check offset bounds (must be >= 1, element 0 is dispatch maplist)
+- Check field index bounds against known field count
 - Handle out-of-bounds with NIL for gets
 - Preserve list structure for sets
+
+**Performance advantages**:
+- O(1) field access using calculated slot positions
+- No list traversal required after initial setup
+- Efficient for frequent field operations
+- Compatible with single-pass compilation (field indices assigned during declaration)
+
+**Compiler strategy**:
+- Fields get indices 0, 1, 2... during declaration
+- No forward reference problem (indices independent of dispatch maplist size)
+- Runtime calculates actual slot positions using receiver and maplist info
 ```
 
 #### Step 2.2: Receiver Context Operations
@@ -173,7 +188,7 @@ setFieldOp <offset>     # ( new-value — ) Set field in receiver register
 : field ( value name — )
   # In compilation mode only
   # Store value temporarily in compilation context
-  # Record field name with next available offset
+  # Record field name with next available field index (0, 1, 2...)
   # Increment field counter
 ;
 ```
@@ -183,19 +198,26 @@ setFieldOp <offset>     # ( new-value — ) Set field in receiver register
 : capsule ( name — )
   # Mark dictionary position
   # Enter capsule compilation mode
-  # Initialize field counter at 1 (skip element 0)
+  # Initialize field counter at 0 (first field gets index 0)
   # Set compilation context
 ;
 
 : end ( — capsule )
   # Walk dictionary from marker
-  # Collect field declarations → values list
-  # Collect method definitions → maplist
-  # Assemble capsule: ( maplist ...fields )
+  # Collect field declarations → values list (elements 1..N)
+  # Collect method definitions → maplist (element 0)
+  # Assemble capsule: ( maplist field1 field2 ... fieldN )
   # Install in dictionary as single definition
   # Exit compilation mode
 ;
 ```
+
+**Single-pass compilation strategy**:
+1. **Field phase**: Assign field indices 0, 1, 2... as fields are declared
+2. **Method phase**: Compile methods using field indices for field access opcodes
+3. **Assembly phase**: Build dispatch maplist from collected methods, place at element 0
+4. **Runtime**: Calculate actual slot positions using `receiver_address + maplist_length + field_index`
+5. **Result**: O(1) field access with no forward reference compilation issues
 
 ## Testing Strategy
 
@@ -227,7 +249,7 @@ setFieldOp <offset>     # ( new-value — ) Set field in receiver register
 
 ### Performance Targets
 - Method dispatch: O(n/2) where n is number of methods
-- Field access: O(1) with compile-time offsets
+- Field access: O(1) with runtime slot calculation (`receiver + maplist_length + field_index`)
 - Context switching: Minimal overhead (register operations)
 
 ## Dependencies and Risks
