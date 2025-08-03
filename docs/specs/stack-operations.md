@@ -117,19 +117,27 @@ rot    ( a b c — b c a )     # Rotate top three
 
 ## Critical Mental Model Rules
 
-### 1. TOS is Always Rightmost
+### 1. Immediate Execution vs Collection
+❌ **Wrong**: Thinking RPN collects arguments like `(+ 1 2 3)`
+✅ **Correct**: RPN executes immediately: `1 2 + 3 +`
+
+### 2. LIFO Output is Normal
+❌ **Wrong**: Expecting `1 2 3` to print as `1 2 3`
+✅ **Correct**: Stack order means `1 2 3` prints as `3 2 1`
+
+### 3. TOS is Always Rightmost
 ❌ **Wrong**: Thinking TOS is leftmost or index 0
 ✅ **Correct**: TOS is rightmost in all representations
 
-### 2. Operations Consume from TOS
+### 4. Operations Consume from TOS
 ❌ **Wrong**: `( a b — a+b )` where a is TOS  
 ✅ **Correct**: `( a b — a+b )` where b is TOS
 
-### 3. Stack is Not an Array
+### 5. Stack is Not an Array
 ❌ **Wrong**: Accessing elements by index
 ✅ **Correct**: Only TOS elements are directly accessible
 
-### 4. Data Flow Direction
+### 6. Data Flow Direction
 ❌ **Wrong**: Thinking operations flow left-to-right
 ✅ **Correct**: Operations consume from right, produce to right
 
@@ -216,6 +224,45 @@ sub:        [ 0 ]         # 10-10=0
 - **Stack underflow**: Attempting to pop from empty stack
 - **Type checking**: Ensuring stack has enough items
 
+### Fixed Arity Requirement
+
+**Critical RPN Constraint**: All operations must have **fixed, known arity** defined internally.
+
+**Why fixed arity is required**:
+- RPN executes immediately upon encountering an operation
+- The operation must know exactly how many items to consume
+- No lookahead or argument collection phase exists
+- Stack manipulation requires precise consumption counts
+
+**Variadic operations are problematic**:
+```tacit
+# This is impossible in pure RPN:
+variadic-add    # How many items should it consume?
+```
+
+**The operation cannot determine**:
+- How many arguments are available
+- Where the argument list begins
+- When to stop consuming items
+
+**Workarounds for variable arity**:
+1. **Length prefix**: Pass count as explicit argument
+   ```tacit
+   1 2 3 4  4 sum-n    # 4 tells sum-n to consume 4 items
+   ```
+
+2. **Sentinel values**: Use special markers
+   ```tacit
+   1 2 3 4 nil sum-until-nil    # nil marks end of arguments
+   ```
+
+3. **Collection operations**: Build lists first
+   ```tacit
+   1 2 3 4 →list sum-list    # Convert to list, then sum
+   ```
+
+**TACIT follows this rule**: All built-in operations have fixed arity, enabling immediate execution and stack safety.
+
 ### Stack Effect Composition
 Operations compose by matching output of one to input of next:
 ```tacit
@@ -250,10 +297,17 @@ Blocks are pushed as executable references, not executed immediately.
 ## Common Pitfalls for AI Systems
 
 1. **Index Confusion**: Treating stack like array[0] = TOS
-2. **Direction Errors**: Reading stack effects backwards
-3. **Arity Mistakes**: Not counting consumed arguments correctly
-4. **Composition Errors**: Misunderstanding how operations chain
-5. **Side Effect Confusion**: Not tracking what remains on stack
+2. **Direction Errors**: Reading stack effects backwards  
+3. **Execution Model**: Expecting argument collection vs immediate execution
+4. **Output Confusion**: Expecting input order to match output order
+5. **Variadic Assumptions**: Expecting variable arity operations without explicit counts
+6. **Arity Mistakes**: Not counting consumed arguments correctly
+7. **Composition Errors**: Misunderstanding how operations chain
+8. **Side Effect Confusion**: Not tracking what remains on stack
+
+**Remember**: 
+- The "backwards" printing is **correct** - it reflects true stack (LIFO) behavior
+- **Fixed arity is mandatory** - operations must know exactly how many items to consume
 
 ## Verification Strategies
 
