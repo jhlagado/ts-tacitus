@@ -94,9 +94,19 @@ person with {
 
 ### Implementation Mechanics
 
-1. **`with` setup**: Set `self` register to point to receiver
-2. **`.method` dispatch**: Look up method symbol in `self`'s maplist (element 0) and execute
-3. **`with` cleanup**: Restore previous `self` value and consume receiver
+1. **`with` starts**: Takes the receiver object and makes it available for method calls
+2. **`.method` calls**: Find the method in the receiver's method table and run it
+3. **`with` ends**: Remove the receiver object from the stack
+
+**Important**: The `with` block consumes the receiver object from the stack when it completes. This means the receiver is no longer available after the `with` block ends.
+
+```tacit
+person                    \ Receiver on stack
+person with {             \ Receiver still available inside block
+    .greet                \ Can call methods
+}                         \ Receiver consumed here - no longer on stack
+\ receiver is gone from stack at this point
+```
 
 ### With Arguments
 ```tacit
