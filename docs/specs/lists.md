@@ -170,17 +170,37 @@ Empty lists are valid and represented as:
 ( 1 2 3 ) 1 get    → 2        # Get element at index 1
 ( 1 2 3 ) 0 get    → 1        # Get first element  
 ( 1 2 3 ) 2 get    → 3        # Get last element
+( 1 2 3 ) 5 get    → NIL      # Out of bounds: return NIL
 ```
 
-**Stack effect**: `( list index — element )`
+**Stack effect**: `( list index — element | NIL )`
 
 **Implementation strategy**:
 1. Follow LINK to locate LIST:n header
-2. Verify index < n (bounds checking)
-3. Navigate forward `index` positions from header
-4. Extract element value
+2. Check if index >= n (bounds checking)
+3. If out of bounds, return NIL (INTEGER tagged value with value 0)
+4. Otherwise, navigate forward `index` positions from header
+5. Extract element value
 
-**Performance**: O(i) where i is the target index
+**Error Handling**: Out-of-bounds access returns NIL rather than throwing exceptions
+
+**Performance**: O(i) where i is the target index, O(1) for out-of-bounds
+
+## NIL Value Semantics
+
+When list operations encounter error conditions (like out-of-bounds access), they return **NIL** rather than throwing exceptions:
+
+- **NIL definition**: INTEGER tagged value with value 0
+- **Purpose**: Graceful degradation for stack-based programming
+- **Usage**: Check if result is NIL before using value
+- **Benefit**: Eliminates exception handling complexity in stack environment
+
+Example NIL handling:
+```tacit
+( 1 2 3 ) 5 get dup 0 = if drop "Not found" else "Found: " swap concat then
+```
+
+This pattern allows programs to continue executing and handle missing data gracefully.
 
 ### Forward Iteration Pattern
 

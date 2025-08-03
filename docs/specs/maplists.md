@@ -38,9 +38,10 @@ Maplists inherit all properties from TACIT lists:
 ( `key1 100 `key2 200 `key3 300 ) `key2 find    → 200
 ( 1 "one" 2 "two" 3 "three" ) 2 find           → "two"
 ( `timeout 5000 `default "unknown" ) `missing find → "unknown"
+( `key1 100 `key2 200 ) `missing find          → NIL
 ```
 
-**Stack effect**: `( maplist key — value )`
+**Stack effect**: `( maplist key — value | default-value | NIL )`
 
 **Algorithm**: Linear search through alternating pairs
 1. Follow LINK to locate maplist start
@@ -48,9 +49,11 @@ Maplists inherit all properties from TACIT lists:
 3. Traverse pairs: compare key at position 0, 2, 4, ...
 4. If key matches, return value at position 1, 3, 5, ...
 5. If not found, check for `default` key and return its value if present
-6. If no match and no `default`, return null or signal error
+6. If no match and no `default`, return NIL (INTEGER tagged value with value 0)
 
 **Performance**: O(n/2) where n is maplist length
+
+**Error Handling**: No exceptions thrown - NIL or default value always returned
 
 ## Key Constraints and Recommendations
 
@@ -89,6 +92,27 @@ hash-maplist key hfind   → O(1) average
 
 **Design principle**: Same interface, different algorithms based on data characteristics.
 
+## NIL Value Semantics
+
+**NIL Definition**: INTEGER tagged value with value 0, used to represent "not found" or "absent"
+
+**Key Properties**:
+- **Type**: INTEGER tagged value (not FLOAT)
+- **Value**: Exactly 0
+- **Usage**: Internal to TACIT operations, not typically user-visible
+- **Purpose**: Graceful handling of missing data without exceptions
+
+**Comparison with Other Languages**:
+- Similar to `null` in JavaScript, `None` in Python, `nil` in Ruby
+- But encoded as INTEGER:0 in TACIT's tagged value system
+- Distinguishable from user INTEGER:0 by context (lookup failure)
+
+**Testing for NIL**: 
+```tacit
+result NIL?     # Test if result is NIL
+result 0 =      # Alternative: test if INTEGER:0 (covers NIL case)
+```
+
 ## Default Key Convention
 
 **Purpose**: Provide fallback values for failed lookups using a special `default` key.
@@ -120,16 +144,25 @@ hash-maplist key hfind   → O(1) average
 config `port find     → 8080           # Found: return value
 config `missing find  → "unset"        # Not found: return default
 config `default find  → "unset"        # Explicit default lookup
+( `key1 100 ) `missing find → NIL      # No default: return NIL
 ```
 
 **Implementation note**: The `default` key can be accessed explicitly like any other key, but serves a special role in failed lookups.
 
+### NIL vs Default Behavior
+
+- **Key found**: Return associated value
+- **Key not found + `default` present**: Return `default` key's value  
+- **Key not found + no `default`**: Return NIL (INTEGER tagged value, value 0)
+- **Never throws exceptions**: Always returns a value (graceful degradation)
+
 ### Benefits
 
-- **Graceful degradation**: Missing keys don't cause errors
-- **Consistent API**: Same `find` operation handles both cases  
+- **Graceful degradation**: Missing keys return NIL or default value, never errors
+- **Consistent API**: Same `find` operation handles all cases (found/default/NIL)
 - **Flexible fallbacks**: Default can be any appropriate value type
 - **Optional behavior**: Only applies when `default` key is present
+- **Stack safety**: No exceptions - always returns exactly one value
 
 ### Design Considerations
 
@@ -198,7 +231,7 @@ maplist key increment-value           # Increment numeric value in-place
 ### Stack Effects
 
 **Retrieval**:
-- `( maplist key — value | null )`
+- `( maplist key — value | default-value | NIL )`
 - `( maplist — keys )`
 - `( maplist — values )`
 
@@ -267,14 +300,14 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 ### Basic Key Search
 
 ```tacit
-: find-key ( maplist key — value | default-value | null )
+: find-key ( maplist key — value | default-value | NIL )
   # Use LINK to locate LIST:n header
   # Read count n  
   # Loop through pairs (0,1), (2,3), (4,5)...
   # Compare key at even positions
   # If match found, return value at odd position
   # If no match, search for `default` key
-  # Return default value if found, null otherwise
+  # Return default value if found, NIL (INTEGER:0) otherwise
 ;
 ```
 
