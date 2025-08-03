@@ -35,9 +35,10 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
 
 #### Phase 2: Field System
 4. **Field Access Primitives**
-   - `get-field` builtin: `( receiver field-offset — value )`
-   - `set-field` builtin: `( receiver field-offset new-value — )`
+   - `getFieldOp <offset>` builtin: `( — value )` reads from receiver register
+   - `setFieldOp <offset>` builtin: `( new-value — )` writes to receiver register
    - Bounds checking and error handling
+   - **To be resolved**: Is offset an element index or slot index?
 
 5. **Receiver Context Operations**
    - `set-receiver` builtin: `( receiver — )` sets current receiver
@@ -120,19 +121,17 @@ interface VMState {
 
 #### Step 2.1: Field Access Primitives
 ```tacit
-: get-field ( receiver field-offset — value )
-  # Validate receiver is capsule
-  # Check field-offset bounds (must be >= 1)
-  # Return element at field-offset
-  # Handle out-of-bounds with NIL
-;
+getFieldOp <offset>     # ( — value ) Get field from receiver register
+setFieldOp <offset>     # ( new-value — ) Set field in receiver register
+```
 
-: set-field ( receiver field-offset new-value — )
-  # Validate receiver is capsule  
-  # Check field-offset bounds
-  # Update element at field-offset in-place
-  # Preserve list structure
-;
+**Implementation details**:
+- `<offset>` is an immediate operand following the opcode
+- Receiver comes from VM register, not stack
+- Validate receiver is capsule before field access
+- Check offset bounds (must be >= 1, element 0 is dispatch maplist)
+- Handle out-of-bounds with NIL for gets
+- Preserve list structure for sets
 ```
 
 #### Step 2.2: Receiver Context Operations
