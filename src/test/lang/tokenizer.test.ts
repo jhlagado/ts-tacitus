@@ -15,7 +15,7 @@ describe('Tokenizer', () => {
 
   function getAllTokens(input: string): Token[] {
     const tokenizer = new Tokenizer(input);
-    const tokens = [];
+    const tokens: Token[] = [];
     let token = tokenizer.nextToken();
     while (token.type !== TokenType.EOF) {
       tokens.push(token);
