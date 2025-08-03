@@ -125,46 +125,91 @@ dup `viewCount dispatch  \ Returns 1
 
 ## 6. Method Dispatch - The Solution
 
-### `with` Block Context
+### `with` Combinator Context
 ```tacit
-person new with
-  $greet                 \ Returns "Hello, John Doe"
-  $incrementViews
-  $viewCount             \ Returns 1
-end
+person with {
+    .getName "hello, " swap concat    \ Returns "hello, John Doe"
+    .setGreeting                      \ Set internal greeting state
+    .greet                           \ Print greeting
+}
 ```
 
-**Benefits:**
-- Clean method chaining without `dup`
-- Arguments separated from receiver object  
-- Concise `$` prefix syntax
-- Explicit scope boundaries
+**Key Design Principles:**
+- **`with` is a combinator** - takes receiver and block, manages `self` context
+- **No copying** - receiver remains on stack, accessed via `self` register
+- **`.method` is a prefix sigil** - reads method name, dispatches via `self`
+- **Nested contexts** - `self` saved/restored on return stack for nesting
+- **Block scoping** - explicit `{` `}` boundaries
+
+### Implementation Mechanics
+
+1. **`with` setup**: 
+   - Save current `self` value to return stack
+   - Set `self` register to point to receiver (follow LINK)
+   - Execute block with new `self` context
+   
+2. **`.method` dispatch**:
+   - Prefix sigil reads next token as method name
+   - Look up method symbol in `self`'s maplist (slot 0)
+   - If found, call code reference with `self` bound
+   - If not found, try `default` method or error
+   - **Receiver stays on stack** - not consumed
+
+3. **`with` cleanup**:
+   - Restore previous `self` value from return stack
+   - Consume receiver from stack (end of `with` block)
 
 ### With Arguments
 ```tacit
-person new with
-  "Dr." $setTitle        \ Pass argument to method
-  $greet                 \ Returns "Hello, Dr. John Doe"
-end
+person with {
+    "Dr." .setTitle               \ Pass argument to method
+    .getName "Hello, " swap concat \ Use updated title
+}
 ```
+
+**Stack behavior**: Arguments are consumed normally, receiver preserved via `self`.
 
 ## 7. Implementation Details
 
-### `with` Block Behavior
-1. `with` saves receiver object in context register
-2. `$method` expands to `context `method dispatch`
-3. Method arguments consumed normally from stack
-4. `end` clears context register
-5. Receiver remains on stack after block
+### `with` Combinator Behavior
+1. **Context Setup**: Save current `self` to return stack, set `self` to receiver
+2. **Block Execution**: Execute `{...}` block with new `self` context
+3. **Method Dispatch**: `.method` uses `self` register, doesn't consume receiver
+4. **Context Cleanup**: Restore `self` from return stack, consume receiver
+5. **Return Stack**: Enables nested `with` blocks by preserving context chain
 
-### Alternative Syntax
-Both forms work within `with` blocks:
+### Dispatch Mechanism
 ```tacit
-person new with
-  $greet                 \ Shorthand
-  `incrementViews dispatch   \ Explicit
-end
+.methodName    \ Expands to: self 0 get `methodName maplist-find eval
 ```
+
+**Process**:
+1. Prefix sigil `.` reads next token as method name
+2. Access maplist from `self` slot 0
+3. Search for method symbol in maplist
+4. If found, execute corresponding code reference
+5. If not found, try `default` method or signal error
+6. **Receiver unchanged** - stays accessible via `self`
+
+### TACIT Sigil Family
+```tacit
+@coderef     \ Code reference sigil
+`symbol      \ Symbol literal sigil  
+.method      \ Method dispatch sigil (within 'with' context)
+```
+
+### Alternative Syntax Options
+```tacit
+person with { .getName "hello, " swap concat }     \ Dot sigil (recommended)
+person with { ::getName "hello, " swap concat }    \ Scope operator
+person with { <-getName "hello, " swap concat }    \ Left arrow
+```
+
+### Memory Management Benefits
+- **Zero copying** - receiver never duplicated
+- **Stack efficiency** - no `dup` operations required
+- **Return stack usage** - minimal overhead for context saving
+- **Forth-compatible** - aligns with traditional Forth memory patterns
 
 ### Field Visibility Rules
 - Fields must be declared before methods that reference them
@@ -184,36 +229,40 @@ Following list mutability semantics:
 
 ### Method Chaining with Arguments
 ```tacit
-person with
-  "Dr." $setTitle
-  "Smith" $setLastName
-  $incrementViews  
-  $greet                 \ Returns "Hello, Dr. Smith"
-end
+person with {
+    "Dr." .setTitle
+    "Smith" .setLastName
+    .incrementViews  
+    .greet                 \ Returns "Hello, Dr. Smith"
+}
 ```
 
+### Nested `with` Blocks
+```tacit
+person1 with {
+    .greet
+    person2 with {
+        .greet
+    }
+    .incrementViews
+}
+```
+
+**Context Management**: Each `with` saves/restores `self` on return stack, enabling safe nesting.
+
 ### Inter-Method Calls
-Methods can call other methods:
+Methods can call other methods on the same receiver:
 ```tacit
 capsule calculator
   0 field total
   
   : add total + -> total ;
-  : addTwice dup self swap $add self swap $add ;
-  : addDouble 2 * self swap $add ;
+  : addTwice .add .add ;           \ Calls add twice on same receiver  
+  : addDouble 2 * .add ;           \ Double then add
 end
 ```
 
-### Nested `with` Blocks
-```tacit
-person1 with
-  $greet
-  person2 with
-    $greet
-  end
-  $incrementViews
-end
-```
+**Note**: Within methods, `.methodName` uses the current `self` context.
 
 ### Default Method Support
 Following maplist conventions:
@@ -226,10 +275,10 @@ capsule example
 end
 
 \ Usage
-instance with
-  $getValue     \ Returns 42
-  $unknown      \ Returns "Unknown method" (fallback)
-end
+instance with {
+    .getValue     \ Returns 42
+    .unknown      \ Returns "Unknown method" (fallback)
+}
 ```
 
 ## 9. Compilation Process
@@ -342,12 +391,12 @@ instance with
 end
 ```
 
-### Phase 3: `$` Syntax Sugar
-Add shorthand method calls:
+### Phase 3: `.` Sigil Syntax
+Add prefix sigil for method calls:
 ```tacit
-instance with
-  $method
-end
+instance with {
+    .method
+}
 ```
 
 ## 13. Design Rationale
