@@ -17,21 +17,29 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
 
 ### Needs Implementation 🔧
 
-#### Phase 1: Core Infrastructure
-1. **Receiver Register/Context**
-   - VM register to hold current receiver object
-   - Context saving/restoration for nested calls
-   - Integration with existing VM state
+#### Phase 1: Core Infrastructure (Decomposed)
+1. **Step 1.1: Add Receiver Register to VM**
+   - Add `receiver: number` field to VM state (slot index, defaults to 0)
+   - Add getter/setter methods for receiver access
+   - Ensure receiver is included in VM reset operations
 
-2. **Manual Capsule Construction**
+2. **Step 1.2: Basic List Access Opcodes**
+   - `element` opcode: `( index — slot )` traverses list to find element slot
+   - `get` opcode: `( slot — value )` reads value from memory slot
+   - `set` opcode: `( value slot — )` writes value to memory slot
+   - `find` opcode: `( symbol — slot )` searches maplist for key, returns value slot
+
+3. **Step 1.3: Basic Method Dispatch**
+   - `dispatch` builtin: `( method-symbol — ... )` uses receiver register
+   - Uses `find` to lookup method in receiver element 0
+   - Uses `get` to get method code reference
+   - Error handling for missing methods
+   - No context stacking yet - keep it simple
+
+4. **Step 1.4: Manual Capsule Construction (Later)**
    - Functions to build capsule lists manually
    - Validation of capsule structure
    - Basic field access by index
-
-3. **Basic Method Dispatch**
-   - `dispatch` builtin: `( receiver method-symbol — ... )`
-   - Maplist lookup in element 0
-   - Error handling for missing methods
 
 #### Phase 2: Field System
 4. **Field Access Primitives**
@@ -42,9 +50,9 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
    - Bounds checking and error handling
 
 5. **Receiver Context Operations**
-   - `set-receiver` builtin: `( receiver — )` sets current receiver
-   - `get-receiver` builtin: `( — receiver )` gets current receiver
-   - `with-receiver` builtin: `( receiver quotation — )` scoped execution
+   - Receiver context automatically managed during method dispatch
+   - Nested call support through receiver stack in VM
+   - Context restoration on method return
 
 #### Phase 3: Syntax Support  
 6. **`.method` Sigil Implementation**
@@ -109,12 +117,13 @@ interface VMState {
 
 #### Step 1.3: Basic Method Dispatch
 ```tacit
-: dispatch ( receiver method-symbol — ... )
+: dispatch ( method-symbol — ... )
+  # Get receiver from VM receiver register
   # Extract maplist from receiver element 0
   # Look up method-symbol in maplist
-  # If found: set receiver context and eval code reference
+  # If found: eval code reference (receiver context already set)
   # If not found: check for 'default method or error
-  # Restore previous receiver context
+  # Receiver context maintained throughout call
 ;
 ```
 
@@ -151,22 +160,11 @@ setFieldOp <field-index>     # ( new-value — ) Set field in receiver register
 
 #### Step 2.2: Receiver Context Operations
 ```tacit
-: set-receiver ( receiver — )
-  # Save current receiver to receiver stack
-  # Set new receiver as active
-;
-
-: get-receiver ( — receiver )
-  # Return current active receiver
-  # Error if no receiver set
-;
-
-: with-receiver ( receiver quotation — )
-  # Save current receiver
-  # Set new receiver
-  # Execute quotation
-  # Restore previous receiver
-;
+# Receiver context is managed automatically by the VM:
+# - Method dispatch saves current receiver to receiver stack
+# - Sets new receiver during method execution  
+# - Restores previous receiver on method return
+# - Nested calls work through the receiver stack
 ```
 
 ### Phase 3: Syntax Support
@@ -174,12 +172,12 @@ setFieldOp <field-index>     # ( new-value — ) Set field in receiver register
 #### Step 3.1: `.method` Sigil
 - Modify tokenizer to recognize `.method` patterns
 - Create `DOT_METHOD` token type
-- Compile to: `get-receiver swap 'method dispatch`
+- Compile to: `'method dispatch` (receiver already in register)
 
 #### Step 3.2: `with` Combinator
 - Parse `with { ... }` syntax
-- Compile to: `set-receiver [quotation] with-receiver`
-- Handle nested blocks correctly
+- Compile to receiver context management within the `with` operation
+- Handle nested blocks correctly through receiver stack
 
 ### Phase 4: Definition Syntax
 
