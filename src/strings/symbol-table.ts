@@ -37,7 +37,7 @@ type WordFunction = (vm: VM) => void;
  */
 interface SymbolTableNode {
   key: number;
-  taggedValue: number;     // Unified storage for tagged values
+  taggedValue: number; // Unified storage for tagged values
   implementation?: WordFunction; // Keep for transition compatibility
   next: SymbolTableNode | null;
 }
@@ -75,7 +75,7 @@ export class SymbolTable {
 
   /**
    * Defines a symbol in the symbol table with a tagged value
-   * 
+   *
    * This is the unified method for storing symbols with their tagged values.
    * Both built-ins and colon definitions use this method.
    *
@@ -85,7 +85,7 @@ export class SymbolTable {
    */
   defineSymbol(name: string, taggedValue: number, implementation?: WordFunction): void {
     const key = this.digest.add(name);
-    
+
     const newNode: SymbolTableNode = {
       key,
       taggedValue,
@@ -120,11 +120,11 @@ export class SymbolTable {
       taggedValue = createCodeRef(functionIndex);
     }
 
-    const newNode: SymbolTableNode = { 
-      key, 
+    const newNode: SymbolTableNode = {
+      key,
       taggedValue,
-      implementation, 
-      next: this.head 
+      implementation,
+      next: this.head,
     };
     this.head = newNode;
   }
