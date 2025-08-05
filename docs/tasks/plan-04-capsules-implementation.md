@@ -18,10 +18,10 @@ This plan outlines the step-by-step implementation of TACIT capsules, breaking d
 ### Needs Implementation 🔧
 
 #### Phase 1: Core Infrastructure (Decomposed)
-1. **Step 1.1: Add Receiver Register to VM**
-   - Add `receiver: number` field to VM state (slot index, defaults to 0)
-   - Add getter/setter methods for receiver access
-   - Ensure receiver is included in VM reset operations
+✅ **COMPLETED: Step 1.1: Add Receiver Register to VM**
+   - ✅ Add `receiver: number` field to VM state (slot index, defaults to 0)
+   - ✅ Add getter/setter methods for receiver access
+   - ✅ Ensure receiver is included in VM reset operations
 
 2. **Step 1.2: Basic List Access Opcodes**
    - `element` opcode: `( index — slot )` traverses list to find element slot

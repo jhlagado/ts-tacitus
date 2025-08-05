@@ -71,6 +71,9 @@ export class VM {
 
   /** Current nesting depth when processing lists */
   listDepth: number;
+
+  /** Receiver register - stack slot index for current receiver object (defaults to 0) */
+  receiver: number;
   /**
    * Creates a new `VM` (Virtual Machine) instance.
    * Initializes the VM's memory, instruction pointer (IP), stack pointer (SP),
@@ -89,6 +92,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
+    this.receiver = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);
@@ -403,5 +407,29 @@ export class VM {
       throw new Error(`Symbol not found: ${name}`);
     }
     this.push(taggedValue);
+  }
+
+  /**
+   * Gets the current receiver register value.
+   * 
+   * The receiver register contains a stack slot index pointing to the current
+   * receiver object for method dispatch operations.
+   * 
+   * @returns The current receiver stack slot index
+   */
+  getReceiver(): number {
+    return this.receiver;
+  }
+
+  /**
+   * Sets the receiver register to a new stack slot index.
+   * 
+   * This method is used to set the current receiver object for method dispatch.
+   * The slot index should point to a valid stack position containing a capsule.
+   * 
+   * @param slotIndex The stack slot index of the new receiver object
+   */
+  setReceiver(slotIndex: number): void {
+    this.receiver = slotIndex;
   }
 }
