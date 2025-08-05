@@ -24,6 +24,7 @@ export function resetVM(): void {
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
+  vm.receiver = 0;
   vm.running = true;
 
   vm.compiler.reset();
