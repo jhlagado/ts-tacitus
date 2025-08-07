@@ -41,8 +41,9 @@
 
 - Stack-based execution, 64KB memory, NaN-boxing
 - Memory: STACK 16KB, RSTACK 4KB, STRING 36KB, CODE 8KB
-- Tags: NUMBER(0), INTEGER(1), CODE(2), STRING(4), LIST(5), LINK(6), BUILTIN(7)
+- Tags: NUMBER(0), INTEGER(1), CODE(2), STRING(4), LIST(5), LINK(6), BUILTIN(7), RLIST(8)
 - Lists: length-prefixed, forward-only, use LINK for navigation
+- RLists: header-at-TOS, reverse payload, slot-counted
 - Symbols: Built-ins 0-127, colon definitions use bytecode addresses
 
 ## ❌ Anti-Patterns
@@ -61,7 +62,7 @@ yarn dev     # REPL
 - `src/core/vm.ts` - VM implementation
 - `src/core/tagged.ts` - Type system
 - `docs/specs/*` - Specifications
-- `docs/tasks/plan-04-capsules-implementation.md` - Current work
+- `docs/plans/plan-04-rlist-implementation.md` - Current work
 
 ## 🧪 Testing
 - Use `resetVM()` in setup

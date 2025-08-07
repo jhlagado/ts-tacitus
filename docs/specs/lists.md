@@ -1,414 +1,324 @@
-# TACIT Lists Specification
+# TACIT Forward Lists (LIST) Specification – **Slot‑Count Edition**
 
 ## Overview
 
-TACIT lists are length-prefixed, stack-allocated flat structures that serve as the primary compound data type. Lists are constructed left-to-right, stored contiguously, and use LINK metadata for stack navigation.
+TACIT **LIST** is a length‑prefixed, stack‑allocated flat structure that serves as the primary compound data type.  Lists are constructed left‑to‑right, stored contiguously, and rely on a trailing **LINK** cell for navigation when resident on the data stack.
+
+> **Slot terminology** – Throughout this document **n** denotes the number of *stack cells (slots)* occupied by the payload, **not** the logical element count.  A nested list consumes `payload.slot + 1` cells (its header plus payload).  Using slot counts lets the VM skip entire blocks in O(1).
+
+---
 
 ## Basic Structure
 
-A list in memory would look like:
-```
-[LIST:n] [element1] [element2] ... [elementN]
+Serialized in memory a list appears as:
+
+```text
+[LIST:n] [payload‑cell 0] … [payload‑cell n‑1]
 ```
 
-However, TACIT operates on a stack, which creates navigation challenges that require special metadata.
+On the stack, however, the payload is pushed first, then the **LINK** cell, leaving the header buried:
+
+```text
+[LIST:n] payload₀ … payloadₙ₋₁ [LINK] ← TOS
+   ↑                              ↑
+ start of list            back‑pointer to header
+```
+
+The header encodes **n**, the total number of cells in the payload.  A consumer that knows the header address can therefore skip the entire list with one add.
+
+---
 
 ## Stack Representation Challenge
 
-On a stack, the **Top of Stack (TOS)** is the most accessible position, but it corresponds to the **end** of the list:
+Because the header is deep and the payload precedes it, a naïve backward walk from TOS encounters interleaved data from nested lists and multiple LINKs.  Without LINK you cannot reliably locate the correct header.
 
-```
-[LIST:n] [element1] [element2] ... [elementN] [LINK] ← TOS
-   ↑                                           ↑
-start of list                          stack metadata
-(hard to reach)                       (navigation anchor)
-```
+**Example**
 
-**Critical Problem**: In nested lists, backward traversal becomes impossible because you cannot distinguish between:
-- Elements belonging to the current list
-- Elements belonging to inner lists  
-- Multiple LINK markers from different nesting levels
-
-**Example of the navigation problem**:
 ```tacit
-( 1 ( 2 3 ) 4 )  →  [LIST:3] [1] [LIST:2] [2] [3] [LINK] [4] [LINK]
+( 1 ( 2 3 ) 4 )
+→ [LIST:5] 1 [LIST:3] 2 3 [LINK] 4 [LINK]
 ```
-Walking backward from TOS, you encounter `[4]`, `[LINK]`, `[3]`, `[2]`, `[LIST:2]` - but you've lost track of which list owns which elements!
 
-## LINK: The Navigation Solution
+Walking upward meets `4`, `LINK`, `3`, `2`, `LIST:3` – context is lost.
 
-**LINK is essential stack infrastructure** - not part of the list data itself:
+---
 
-- **Purpose**: Provides reliable backward pointer to list start
-- **Scope**: Stack-only metadata, never serialized
-- **Function**: Enables forward-only traversal from a known starting point
-- **Analogy**: Like Pascal strings - you must traverse forward from the length header
+## LINK – Stack Navigation Anchor
 
-**Stack representation with LINK**:
+* **Purpose**  Back‑pointer from TOS to the matching `LIST:n` header.
+* **Scope**    Stack‑only metadata – never serialized.
+* **Operation** VM reads `LINK.offset`, adds it to `SP`, lands on the header.
+* **Analogy**  Pascal strings (length then bytes) – traversal must start at header.
+
+Stack layout with LINK:
+
+```text
+[LIST:n] payload₀ … payloadₙ₋₁ [LINK:‑(n+1)] ← TOS
 ```
-[LIST:n] [element1] [element2] ... [elementN] [LINK] ← TOS
-                                               ↑
-                                        points backward to LIST:n
-```
+
+The LINK cell stores a negative offset `(‑n ‑ 1)` measured in slots.
+
+---
 
 ## Key Properties
 
-- **Length-prefixed**: `LIST:n` header contains element count
-- **Sequential storage**: Values follow header in order (element1, element2, ...)
-- **Forward-only traversal**: Like Pascal strings, must start from header and count forward
-- **LINK anchoring**: Stack-only backward pointer enables finding the list start
-- **Flat serialization**: No nested pointers - all elements are simple tagged values
-- **Word-aligned**: Each element occupies exactly one 32-bit stack cell
+| Property               | LIST                                              |
+| ---------------------- | ------------------------------------------------- |
+| **Slot‑prefixed**      | Header stores payload *slot* count `n`.           |
+| **Contiguous**         | Payload cells follow header sequentially.         |
+| **LINK‑anchored**      | Backward pointer allows header discovery in O(1). |
+| **Flat serialization** | No internal pointers; portable image.             |
+| **Word‑aligned**       | Each cell is 32 bits.                             |
 
-## Safe List Access Pattern
+---
 
-**Always follow this pattern** for list operations:
+## Safe Access Pattern
 
-1. **Start with LINK**: Use TOS LINK to locate the LIST:n header
-2. **Read count**: Extract n from the LIST:n header  
-3. **Forward traverse**: Process exactly n elements sequentially
-4. **Respect boundaries**: Never assume stack positions belong to your list
+```ts
+function withList(tosLink: CellPtr, fn: (header: CellPtr)=>void): void {
+  const header = tosLink + tosLink.read().offset; // follow LINK
+  fn(header);
+}
+```
 
-**Never attempt**:
-- Backward traversal from arbitrary stack positions
-- Guessing list boundaries from element values
-- Assuming TOS-1 belongs to the current list (it may be part of a nested structure)
+Always:
+
+1. Follow LINK to header.
+2. Read `slotCount = header.slot`.
+3. Traverse forward exactly `slotCount` cells.
+4. Never assume `TOS‑1` belongs to your list.
+
+---
 
 ## Constraints
 
-- Lists are **structurally immutable** - modifying list structure (length, element positions) is discouraged but not impossible
-- **Element mutability**: Simple value elements within lists can be mutated and updated in-place
-- LINK tags are **stack-only** - not serialized to memory
-- Maximum list length: 65535 elements (16-bit count)
-- All elements must be simple values (tagged 32-bit cells)
+* **Max slot count** 65 535 (fits 16‑bit field).
+* **Structural immutability** changing payload size in place is discouraged.
+* **Element mutation** single‑cell simple values may be updated in situ.
+* **LINK only on stack** never serialized or stored in buffers.
 
-## Stack Effects and Examples
+---
 
-**Simple lists**:
+## Stack Effects & Examples
+
 ```tacit
-( )            → LIST:0 LINK           # empty list
-( 1 2 3 )      → LIST:3 1 2 3 LINK     # three elements
+( )          → LIST:0 LINK                # empty list (0 slots)
+( 10 20 )    → LIST:2 10 20 LINK          # two‑slot payload
+( 1 ( 2 ) )  → LIST:3 1 LIST:1 2 LINK LINK
 ```
 
-**Nested lists** (showing why LINK is essential):
-```tacit
-( 1 ( 2 ) 3 )  → LIST:3 1 LIST:1 2 LINK 3 LINK
-                           ↑       ↑     ↑
-                    inner list  inner  outer
-                     header     LINK   LINK
+Nested example breakdown:
+
+* Inner list consumes 2 slots payload + 1 header = 3 cells; outer header’s `n` therefore counts 3 cells for the inner block plus 1 for the leading value.
+
+---
+
+## Operations Strategy
+
+### Slot‑Based Forward Scan
+
+```ts
+function scan(header: CellPtr, visit: (v: Value)=>void): void {
+  const n = header.slot;
+  let ptr = header + 1;   // first payload cell
+  let remaining = n;
+  while (remaining > 0) {
+    const v = ptr.read();
+    visit(v);
+    const step = v.isCompound() ? v.slot + 1 : 1;
+    ptr       += step;
+    remaining -= step;
+  }
+}
 ```
 
-In the nested example:
-- The inner `( 2 )` creates: `LIST:1 2 LINK`
-- The outer list sees three elements: `1`, `LIST:1 2 LINK` (as one unit), `3`
-- Each list level maintains its own LINK for navigation
-- Backward traversal would encounter multiple LINKs and lose track of nesting levels
+### Random Access (index)
 
-## List Operations Strategy
+Traverse, counting only **logical elements**; costs O(totalSlots).
 
-**Reading elements** (e.g., getting element at index i):
-1. Follow LINK to find LIST:n header
-2. Verify i < n (bounds checking)
-3. Navigate forward i positions from header
-4. Extract element value
+### Element Mutation (simple value)
 
-**Transforming lists** (discouraged but possible):
-1. Use LINK to locate source list boundaries
-2. Traverse forward through source elements
-3. Apply transformation logic
-4. Construct new list with its own LINK
-5. Original list structure remains unchanged (structural immutability)
+1. Locate cell via traversal.
+2. Overwrite tagged value.
 
-**Mutating elements** (efficient for simple values):
-1. Use LINK to locate target element position
-2. Verify element is a simple value (not compound)
-3. Update element value in-place
-4. List structure and other elements remain unchanged
+### Structural Operations (insert, remove)
+
+Rebuild a fresh list; update header, recalc new LINK.
+
+---
 
 ## Mutability Semantics
 
-- **Read**: Extract elements without modifying structure
-- **Transform**: Create new lists from existing ones (discouraged but possible)
-- **Composition**: Combine lists into larger structures
-- **Element mutation**: Update simple values in-place (efficient)
-- **Structural immutability**: Avoid changing list structure (length, positions)
+| Capability                | Allowed? | Note                                         |
+| ------------------------- | -------- | -------------------------------------------- |
+| Overwrite simple value    | ✓        | one cell write                               |
+| Append / Prepend in place | ×        | must rebuild (would invalidate LINK offsets) |
+| Resize list               | ×        | structural immutability                      |
 
-## Zero-Length Lists
+---
 
-Empty lists are valid and represented as:
-- Structure: `LIST:0`
-- Stack: `LIST:0 LINK`
-- Use cases: Initialization, containers, sentinels
+## Zero‑Length Lists
+
+`LIST:0 LINK` – header followed immediately by its LINK (`offset = ‑1`).  Acts as sentinel or empty container.
+
+---
 
 ## Implementation Notes
 
-**LINK management**:
-- LINK emission occurs only during list-construction contexts
-- Each list level requires its own LINK marker
-- LINK preservation is critical during stack operations
-- LINK removal happens only when list is consumed/destructured
+* **LINK generation** emitted by the list‑literal closing token after payload push.
+* **LINK preservation** stack words (`swap`, `over`, etc.) must treat LINK as part of the data block they move.
+* **Destruction** popping the list naturally removes LINK; nothing else required.
+* **`.skip` helper** – given a LINK cell at TOS, set `SP += (‑LINK.offset)` to drop header + payload + LINK in one instruction.  Mirrors the constant‑time `.skip` used by RLIST.
 
-**Memory vs Stack distinction**:
-- LIST headers store count in tagged value format
-- Nested lists flatten into the containing stack structure
-- LINK tags exist only on stack, never in serialized form
-- Forward traversal pattern matches memory-based list processing
+---
 
-**Performance considerations**:
-- Element access requires LINK traversal (O(1) to find start, O(i) to reach element i)
-- List operations that need random access are inherently expensive
-- Prefer head/tail operations when possible
-- Construction is naturally efficient (left-to-right, single pass)
+## Performance Considerations
 
-## List Traversal Patterns
+| Access Pattern   | Cost               |
+| ---------------- | ------------------ |
+| Header lookup    | O(1) (follow LINK) |
+| Head element     | O(1)               |
+| Tail element     | O(n)               |
+| Random by index  | O(n) worst         |
+| Skip entire list | O(1)               |
 
-### Index-Based Access
+Because `n` is slots, homogeneous numeric lists have `n == logicalLength`; mixed or nested lists inflate `n` but preserve linear traversal.
 
-**Pattern**: Access elements by numeric position (0-indexed)
+---
 
-```tacit
-( 1 2 3 ) 1 get    → 2        # Get element at index 1
-( 1 2 3 ) 0 get    → 1        # Get first element  
-( 1 2 3 ) 2 get    → 3        # Get last element
-( 1 2 3 ) 5 get    → NIL      # Out of bounds: return NIL
+## Traversal Patterns
+
+### Index‑Based Access
+
+```ts
+function getAt(link: CellPtr, idx: number): Value | nil {
+  let found: Value | nil = NIL;
+  withList(link, (hd) => {
+    let ptr = hd + 1;
+    let remaining = hd.slot;
+    let logical   = 0;
+    while (remaining > 0) {
+      const v = ptr.read();
+      if (logical === idx) { found = v; break; }
+      const step = v.isCompound() ? v.slot + 1 : 1;
+      ptr       += step;
+      remaining -= step;
+      logical   += 1;
+    }
+  });
+  return found;
+}
 ```
 
-**Stack effect**: `( list index — element | NIL )`
+Out‑of‑bounds returns `NIL`.
 
-**Implementation strategy**:
-1. Follow LINK to locate LIST:n header
-2. Check if index >= n (bounds checking)
-3. If out of bounds, return NIL (INTEGER tagged value with value 0)
-4. Otherwise, navigate forward `index` positions from header
-5. Extract element value
+### Forward Iteration
 
-**Error Handling**: Out-of-bounds access returns NIL rather than throwing exceptions
+Reuse `scan` function above; critical rule: always start from header, never walk backward from TOS.
 
-**Performance**: O(i) where i is the target index, O(1) for out-of-bounds
-
-## NIL Value Semantics
-
-When list operations encounter error conditions (like out-of-bounds access), they return **NIL** rather than throwing exceptions:
-
-- **NIL definition**: INTEGER tagged value with value 0
-- **Purpose**: Graceful degradation for stack-based programming
-- **Usage**: Check if result is NIL before using value
-- **Benefit**: Eliminates exception handling complexity in stack environment
-
-Example NIL handling:
-```tacit
-( 1 2 3 ) 5 get dup 0 = if drop "Not found" else "Found: " swap concat then
-```
-
-This pattern allows programs to continue executing and handle missing data gracefully.
-
-### Forward Iteration Pattern
-
-**Safe traversal** for processing all elements:
-
-```tacit
-: process-list ( list — )
-  # Follow LINK to header
-  # Read count n
-  # Process elements 0 through n-1 sequentially
-;
-```
-
-**Critical constraint**: Must traverse forward from header, never backward from TOS.
-
-### Element Modification Patterns
-
-**Structural modifications** (discouraged but possible - create new lists):
-
-```tacit
-: update-at ( list index new-value — new-list )
-  # Traverse to target index
-  # Create new list with modified element
-  # Copy all other elements unchanged
-;
-
-: insert-at ( list index value — new-list )
-  # Create new list with element inserted
-  # Shift subsequent elements right
-  # Increment list count
-;
-
-: remove-at ( list index — new-list )
-  # Create new list without target element
-  # Shift subsequent elements left  
-  # Decrement list count
-;
-```
-
-**Element mutations** (efficient for simple values):
-
-```tacit
-: set-at ( list index new-value — )
-  # Follow LINK to locate LIST:n header
-  # Navigate to target index
-  # Verify element is simple value
-  # Update element in-place
-  # List structure remains unchanged
-;
-
-: increment-at ( list index — )
-  # Locate element at index
-  # Verify element is numeric
-  # Increment value in-place
-;
-```
+---
 
 ## Simple vs Compound Values
 
-For efficient operations and clear mental models, TACIT distinguishes between:
+* **Simple** – one cell; numbers, symbols, booleans.
+* **Compound** – multi‑cell blocks (e.g., another LIST); first cell encodes `slot` for fast skip.
 
-### Simple Values
-**Definition**: Single-slot tagged values that fit in exactly one stack cell
+Operations must branch on `isCompound()` to calculate advance step.
 
-**Types**:
-- Numbers (integers, floats)
-- Strings (symbol table references)
-- Symbols (digested strings with ` prefix)
-- Built-in operations
-- Code references (@symbol)
-- Null/boolean values
+---
 
-**Characteristics**:
-- Efficient comparison operations
-- Predictable memory usage (exactly one stack cell)
-- Can be copied/moved atomically
-- Suitable as hash keys or search targets
+## Composition Examples
 
-### Compound Values
-**Definition**: Multi-slot structures requiring traversal to process
+* **Homogeneous simple list** `( 1 2 3 4 )` → linear numeric array (`n == 4`).
+* **Heterogeneous** `( 1 "text" `"sym`" )` – scan must tag‑check each cell.
+* **Nested** lists encode trees; each subtree is contiguous `[LIST:n] … LINK` block.
 
-**Types**:
-- Lists (with LINK metadata)
-- Future capsules/objects
-- Complex nested structures
+---
 
-**Characteristics**:
-- Require LINK-based navigation for safe access
-- Forward traversal from known boundaries
-- Structural awareness during operations
-- Variable memory footprint
+## Construction Strategies
 
-### Design Implications
+### Literal Build (parser)
 
-**For list elements**:
-- Simple values: Direct comparison, efficient searching
-- Compound values: Structural comparison, recursive traversal required
+* Push placeholder LINK.
+* Push elements as encountered.
+* Compute slot count `n` (cells pushed).
+* Write header at beginning of block.
+* Overwrite placeholder with proper negative offset.
 
-**For performance**:
-- Lists of simple values: Predictable access patterns
-- Lists of compound values: Variable traversal costs
+### Programmatic Build
 
-**For algorithms**:
-- Simple values enable efficient sorting, searching, indexing
-- Compound values require specialized handling
+Accumulate elements in temp buffer; emit final list header + payload + LINK in one pass.
 
-## List Composition Patterns
+### Concatenation
 
-### Homogeneous Lists
-**Pattern**: All elements are the same type
+1. Allocate new buffer sized `n₁ + n₂` slots.
+2. Copy payload of first list (forward).
+3. Copy payload of second list.
+4. Emit header (`n₁+n₂`) and LINK.
 
-```tacit
-( 1 2 3 4 5 )           # Numbers only
-( "a" "b" "c" )         # Strings only  
-( `red `green `blue )   # Symbols only
-```
+---
 
-**Advantages**:
-- Predictable processing
-- Efficient batch operations
-- Simple iteration patterns
+## Performance Summary
 
-### Heterogeneous Lists
-**Pattern**: Mixed element types
+| Operation      | LIST (slot‑count) |
+| -------------- | ----------------- |
+| Header lookup  | 1 load            |
+| Prepend        | O(n) (rebuild)    |
+| Append         | O(n)              |
+| Skip           | O(1)              |
+| Extra metadata | +1 LINK           |
 
-```tacit
-( 1 "hello" `symbol 3.14 )     # Mixed simple values
-( 1 ( 2 3 ) "text" )           # Mixed simple and compound
-```
+Forward LIST favours tail operations if you rebuild; RLIST favours head operations.  Choice depends on workload.
 
-**Considerations**:
-- Require type checking during processing
-- More complex iteration logic
-- Flexible but potentially slower
+---
 
-### Nested Lists
-**Pattern**: Lists containing other lists
+## Buffer Serialization
 
-```tacit
-( 1 ( 2 3 ) ( 4 ( 5 6 ) 7 ) )  # Arbitrary nesting depth
-```
+A LIST stored in memory is already `[header payload]` without LINK.  Copying stack block to buffer therefore **omits LINK** and preserves forward order.
 
-**Navigation rules**:
-- Each nested list has its own LINK
-- Forward traversal required at each level
-- Cannot traverse backward through nesting boundaries
+*From stack → buffer*
 
-## List Construction Strategies
+1. Follow LINK to header.
+2. Copy `header` + `payload` (`n+1` cells) as raw block.
 
-### Left-to-Right Building
-**Natural pattern**: Elements added in sequence
+*From buffer → stack*
 
-```tacit
-# During parsing: ( 1 2 3 )
-# Stack evolution:
-# [] → [LIST:3] → [LIST:3, 1] → [LIST:3, 1, 2] → [LIST:3, 1, 2, 3] → [LIST:3, 1, 2, 3, LINK]
-```
+1. Copy block onto stack.
+2. Append new LINK cell (`offset = ‑(n+1)`).
 
-**Efficiency**: O(n) single pass construction
+Cost O(n) in both directions.
 
-### Programmatic Building
-**Pattern**: Building lists from other operations
+---
 
-```tacit
-: build-range ( start end — list )
-  # Create empty list
-  # Loop from start to end
-  # Append each number
-  # Return completed list
-;
-```
+## Error Handling
 
-### List Combination
-**Pattern**: Joining existing lists
+| Condition                 | Result           |
+| ------------------------- | ---------------- |
+| Out‑of‑bounds index       | `NIL`            |
+| Mutation of compound cell | `NIL` or ignored |
 
-```tacit
-: concat ( list1 list2 — combined-list )
-  # Extract all elements from list1
-  # Extract all elements from list2  
-  # Create new list containing all elements
-;
-```
+No exceptions; NIL propagates like `0`.
 
-## Performance Characteristics
+---
 
-### Access Patterns
-- **Head access**: O(1) with LINK navigation to header
-- **Random access**: O(i) where i is index
-- **Tail access**: O(n) requires full traversal
-- **Sequential scan**: O(n) but cache-friendly
+## Implementation Checklist
 
-### Modification Patterns
-- **Element mutation**: O(1) for simple values at known positions
-- **Structural changes**: O(n) - must rebuild list structure
-- **Prepend**: O(n) - must rebuild entire list
-- **Append**: O(n) - must rebuild entire list  
-- **Insert/Delete**: O(n) - must rebuild with shift
-- **Update structure**: O(n) - must rebuild with substitution
+1. **Confirm tag field interpretation** – `n` = slot count.
+2. **Parser update** – ensure LINK offset uses `n+1`.
+3. **Library helpers** – `.slot`, `.followLink`.
+4. **Docs** – sync capsule & maplist specs.
+5. **Tests** – nested structure skip, buffer round‑trip, mutation rules.
 
-### Memory Patterns
-- **Allocation**: Contiguous stack allocation
-- **Sharing**: No sharing - each list is independent
-- **Fragmentation**: Minimal - lists are compact
-- **Cache**: Sequential access is cache-friendly
+---
 
-## Related Specifications
+## Related Specs
 
-- `docs/specs/tagged-values.md` - NaN-boxing and tag system
-- `docs/specs/stack-operations.md` - Stack manipulation rules
-- `docs/specs/maplists.md` - Key-value associative structures built on lists
-- `docs/specs/capsules.md` - Object model using lists
+* `docs/specs/rlists.md` – reverse list alternative
+* `docs/specs/tagged-values.md` – NaN‑boxing tag system
+* `docs/specs/maplists.md` – associative structures
+* `docs/specs/capsules.md` – object model on lists
+* `docs/specs/stack-operations.md` – stack manipulation primitives
+
+---
+
+*End of TACIT Forward Lists (slot‑count) Specification*
