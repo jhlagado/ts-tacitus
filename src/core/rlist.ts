@@ -1,0 +1,217 @@
+/**
+ * @file src/core/rlist.ts
+ * 
+ * Core utilities for TACIT Reverse Lists (RLIST).
+ * 
+ * RLISTs are stack-native compound data structures that store elements in
+ * reverse order with the header at top-of-stack. This enables O(1) prepend
+ * operations and O(1) skip/drop of entire structures while maintaining
+ * contiguous memory layout for cache efficiency.
+ * 
+ * Memory layout: [payload-s-1] ... [payload-1] [payload-0] [RLIST:s] ← TOS
+ */
+
+import { VM } from './vm';
+import { toTaggedValue, fromTaggedValue, Tag, isRList } from './tagged';
+import { SEG_STACK } from './constants';
+
+/**
+ * Creates an RLIST on the VM stack from an array of tagged values.
+ * Values are pushed in forward order then reversed to achieve proper RLIST layout.
+ * 
+ * @param vm - The virtual machine instance
+ * @param values - Array of tagged values to include in the RLIST
+ */
+export function createRList(vm: VM, values: number[]): void {
+  const slotCount = values.length;
+  
+  // Push values in forward order
+  for (const value of values) {
+    vm.push(value);
+  }
+  
+  // Reverse the span to achieve RLIST layout
+  if (slotCount > 1) {
+    reverseSpan(vm, slotCount);
+  }
+  
+  // Push RLIST header with slot count
+  const header = toTaggedValue(slotCount, Tag.RLIST);
+  vm.push(header);
+}
+
+/**
+ * Extracts the slot count from an RLIST header.
+ * 
+ * @param header - Tagged RLIST header value
+ * @returns The number of slots in the RLIST payload
+ * @throws Error if the header is not a valid RLIST tag
+ */
+export function getRListSlotCount(header: number): number {
+  if (!isRList(header)) {
+    throw new Error('Value is not an RLIST header');
+  }
+  return fromTaggedValue(header).value;
+}
+
+/**
+ * Skips (pops) an entire RLIST from the stack in O(1) time.
+ * Assumes the RLIST header is at TOS.
+ * 
+ * @param vm - The virtual machine instance
+ */
+export function skipRList(vm: VM): void {
+  validateRListHeader(vm);
+  
+  const header = vm.peek();
+  const slotCount = getRListSlotCount(header);
+  
+  // Skip header + payload by popping all values
+  for (let i = 0; i < slotCount + 1; i++) {
+    vm.pop();
+  }
+}
+
+/**
+ * Returns the memory address of the first payload slot.
+ * Assumes RLIST header is at TOS.
+ * 
+ * @param vm - The virtual machine instance
+ * @returns Memory address of payload[0] (logical first element)
+ */
+export function getRListPayloadStart(vm: VM): number {
+  validateRListHeader(vm);
+  // Payload starts immediately below header at TOS
+  // RLIST layout: [payload...] [RLIST:n] ← TOS (SP points after header)
+  const header = vm.peek();
+  const slotCount = getRListSlotCount(header);
+  if (slotCount === 0) {
+    return vm.SP; // No payload for empty RLIST
+  }
+  return vm.SP - 4; // First payload slot is one slot below header
+}
+
+/**
+ * Validates that TOS contains a valid RLIST header and stack has sufficient space.
+ * 
+ * @param vm - The virtual machine instance
+ * @throws Error if TOS is not valid RLIST or stack constraints violated
+ */
+export function validateRListHeader(vm: VM): void {
+  vm.ensureStackSize(1, 'RLIST header validation');
+  
+  const header = vm.peek();
+  if (!isRList(header)) {
+    throw new Error('Expected RLIST header at TOS');
+  }
+  
+  const slotCount = getRListSlotCount(header);
+  vm.ensureStackSize(slotCount + 1, 'RLIST payload validation');
+  
+  // Ensure slot count doesn't exceed 16-bit limit (65535)
+  if (slotCount > 65535) {
+    throw new Error(`RLIST slot count ${slotCount} exceeds maximum of 65535`);
+  }
+}
+
+/**
+ * Traverses RLIST to find the memory address of a logical element.
+ * Accounts for compound values that span multiple slots.
+ * 
+ * @param vm - The virtual machine instance
+ * @param header - The RLIST header value
+ * @param headerAddr - Memory address where the RLIST header is stored
+ * @param logicalIndex - The logical index to find (0-based)
+ * @returns Memory address of the element, or -1 if index out of bounds
+ */
+export function getRListElementAddress(vm: VM, header: number, headerAddr: number, logicalIndex: number): number {
+  if (!isRList(header)) {
+    throw new Error('Invalid RLIST header provided to getRListElementAddress');
+  }
+  
+  const totalSlots = getRListSlotCount(header);
+  
+  if (logicalIndex < 0) return -1;
+  
+  let currentAddr = headerAddr - 4; // Start at first payload slot (below header)
+  let currentLogicalIndex = 0;
+  let remainingSlots = totalSlots;
+  
+  while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
+    // Read current value to determine if it's compound
+    const currentValue = vm.memory.readFloat32(SEG_STACK, currentAddr);
+    let stepSize = 1; // Default for atomic values
+    let elementStartAddr = currentAddr; // Default for atomic values
+    
+    if (isRList(currentValue)) {
+      // This is an RLIST header - element starts here
+      elementStartAddr = currentAddr;
+      stepSize = getRListSlotCount(currentValue) + 1;
+    } else {
+      const decoded = fromTaggedValue(currentValue);
+      if (decoded.tag === Tag.LIST) {
+        // This is a LIST header - element starts here  
+        elementStartAddr = currentAddr;
+        stepSize = decoded.value + 2;
+      } else {
+        // Check if this might be payload of a compound value below us
+        // Look ahead to see if there's a compound header below
+        const nextAddr = currentAddr - 4;
+        if (remainingSlots > 1) {
+          const nextValue = vm.memory.readFloat32(SEG_STACK, nextAddr);
+          if (isRList(nextValue)) {
+            // This is payload, next is RLIST header - element starts at header
+            elementStartAddr = nextAddr;
+            stepSize = getRListSlotCount(nextValue) + 1;
+          } else {
+            const nextDecoded = fromTaggedValue(nextValue);
+            if (nextDecoded.tag === Tag.LIST) {
+              // This is payload, next is LIST header - element starts at header
+              elementStartAddr = nextAddr;
+              stepSize = nextDecoded.value + 2;
+            }
+          }
+        }
+      }
+    }
+    
+    if (currentLogicalIndex === logicalIndex) {
+      return elementStartAddr; // Found the target element
+    }
+    
+    // Move to next element
+    currentAddr -= stepSize * 4;
+    remainingSlots -= stepSize;
+    currentLogicalIndex++;
+  }
+  
+  return -1; // Index out of bounds
+}
+
+/**
+ * Reverses a span of values on the stack in-place.
+ * Used during RLIST construction to achieve reverse payload order.
+ * 
+ * @param vm - The virtual machine instance  
+ * @param spanSize - Number of stack slots to reverse
+ */
+export function reverseSpan(vm: VM, spanSize: number): void {
+  if (spanSize <= 1) return; // Nothing to reverse
+  
+  vm.ensureStackSize(spanSize, 'reverse span operation');
+  
+  const startAddr = vm.SP - (spanSize * 4);
+  const endAddr = vm.SP - 4;
+  
+  // In-place reversal using temporary storage
+  for (let i = 0; i < Math.floor(spanSize / 2); i++) {
+    const leftAddr = startAddr + (i * 4);
+    const rightAddr = endAddr - (i * 4);
+    
+    const leftValue = vm.memory.readFloat32(SEG_STACK, leftAddr);
+    const rightValue = vm.memory.readFloat32(SEG_STACK, rightAddr);
+    
+    vm.memory.writeFloat32(SEG_STACK, leftAddr, rightValue);
+    vm.memory.writeFloat32(SEG_STACK, rightAddr, leftValue);
+  }
+}

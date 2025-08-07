@@ -8,6 +8,7 @@ import {
   isNIL,
   isCode,
   isAnyCode,
+  isRList,
   MAX_TAG,
 } from '../../core/tagged';
 describe('Tagged NaN Encoding', () => {
@@ -69,5 +70,54 @@ describe('Tagged NaN Encoding', () => {
     expect(isCode(str)).toBe(false);
     expect(isAnyCode(func)).toBe(true);
     expect(isAnyCode(str)).toBe(false);
+  });
+
+  test('should correctly identify RLIST types', () => {
+    const rlist = toTaggedValue(5, Tag.RLIST);
+    const list = toTaggedValue(5, Tag.LIST);
+    const integer = toTaggedValue(5, Tag.INTEGER);
+    
+    expect(isRList(rlist)).toBe(true);
+    expect(isRList(list)).toBe(false);
+    expect(isRList(integer)).toBe(false);
+  });
+
+  test('should handle RLIST with zero slot count', () => {
+    const emptyRList = toTaggedValue(0, Tag.RLIST);
+    expect(isRList(emptyRList)).toBe(true);
+    
+    const decoded = fromTaggedValue(emptyRList);
+    expect(decoded.tag).toBe(Tag.RLIST);
+    expect(decoded.value).toBe(0);
+  });
+
+  test('should handle RLIST with maximum slot count', () => {
+    const maxRList = toTaggedValue(65535, Tag.RLIST);
+    expect(isRList(maxRList)).toBe(true);
+    
+    const decoded = fromTaggedValue(maxRList);
+    expect(decoded.tag).toBe(Tag.RLIST);
+    expect(decoded.value).toBe(65535);
+  });
+
+  test('should validate RLIST value ranges', () => {
+    expect(() => toTaggedValue(-1, Tag.RLIST)).toThrow();
+    expect(() => toTaggedValue(65536, Tag.RLIST)).toThrow();
+  });
+
+  test('should include RLIST in encoded/decoded round-trip tests', () => {
+    const tests = [
+      { tag: Tag.RLIST, value: 0 },
+      { tag: Tag.RLIST, value: 1 },
+      { tag: Tag.RLIST, value: 65535 },
+    ];
+
+    tests.forEach(({ tag, value }) => {
+      const encoded = toTaggedValue(value, tag);
+      const decoded = fromTaggedValue(encoded);
+      expect(decoded.tag).toBe(tag);
+      expect(decoded.value).toBe(value);
+      expect(isRList(encoded)).toBe(true);
+    });
   });
 });

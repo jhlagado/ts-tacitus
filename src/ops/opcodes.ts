@@ -9,7 +9,7 @@
  * - Stack manipulation operations (Dup, Drop, Swap, etc.)
  * - Arithmetic operations (Add, Subtract, Multiply, etc.)
  * - Comparison operations (Equal, LessThan, etc.)
- * - List operations (OpenList, CloseList)
+ * - List operations (OpenList, CloseList, OpenRList, CloseRList, etc.)
  * - Unary operations (prefixed with 'm', e.g., mNegate, mFloor)
  *
  * The VM uses these opcodes to dispatch to the appropriate implementation functions
@@ -259,4 +259,28 @@ export enum Op {
 
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
+
+  /**  Opens an RLIST with '[' - pushes stack position onto return stack */
+  OpenRList,
+
+  /**  Closes an RLIST with ']' - creates RLIST tag with reverse payload */
+  CloseRList,
+
+  /**  Gets slot count from RLIST header - ( rlist — rlist n ) */
+  RListSlot,
+
+  /**  Skips entire RLIST from stack - ( rlist — ) */
+  RListSkip,
+
+  /**  Prepends value to RLIST - ( val rlist — rlist' ) */
+  RListPrepend,
+
+  /**  Appends value to RLIST - ( rlist val — rlist' ) */
+  RListAppend,
+
+  /**  Gets value at index from RLIST - ( rlist i — val ) */
+  RListGetAt,
+
+  /**  Sets value at index in RLIST - ( rlist i val — rlist ) */
+  RListSetAt,
 }
