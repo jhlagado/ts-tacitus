@@ -267,4 +267,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 
 ---
 
-**Next Action**: Implement Step 4.4 - Performance Benchmarking
+**Construction Algorithm Notes**
+- Outermost-only reversal: a placeholder header is pushed on `[`; only when closing the outermost `]` do we reverse the contiguous block (header + payload) once. Inner RLISTs are not individually reversed; they are treated as single units during the outer reversal. This guarantees a single global reversal per nested structure.
+
+**Next Action**: Step 4.7 - Final Validation & Rollback Procedures
