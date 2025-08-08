@@ -8,7 +8,8 @@
  */
 import { VM } from '../core/vm';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { BYTES_PER_ELEMENT } from '../core/constants';
+import { BYTES_PER_ELEMENT, SEG_STACK } from '../core/constants';
+import { formatValue as coreFormatValue, formatListAt as coreFormatListAt } from '../core/format-utils';
 
 /**
  * Formats a single tagged value for human-readable output.
@@ -21,7 +22,7 @@ import { BYTES_PER_ELEMENT } from '../core/constants';
  * @param value - The NaN-boxed tagged value to format
  * @returns A string representation of the value
  */
-function formatValue(vm: VM, value: number): string {
+function formatScalarValue(vm: VM, value: number): string {
   const { tag, value: tagValue } = fromTaggedValue(value);
 
   if (tag !== Tag.NUMBER && tag !== Tag.INTEGER) {
@@ -51,6 +52,13 @@ function formatList(vm: VM, value: number, depth = 0): { formatted: string; size
   const { tag, value: tagValue } = fromTaggedValue(value);
   const stackData = vm.getStackData();
 
+  // Handle RLIST first to avoid misclassifying as NaN-boxed LIST
+  if (tag === Tag.RLIST) {
+    const slots = tagValue;
+    const formatted = coreFormatValue(vm, value);
+    return { formatted, size: slots };
+  }
+
   if (tag === Tag.LINK) {
     if (tagValue > 0 && vm.SP >= tagValue * BYTES_PER_ELEMENT) {
       const currentIndex = stackData.length - 1;
@@ -76,7 +84,7 @@ function formatList(vm: VM, value: number, depth = 0): { formatted: string; size
     return formatListElements(vm, currentIndex, size, depth);
   }
 
-  return { formatted: formatValue(vm, value), size: 0 };
+  return { formatted: formatScalarValue(vm, value), size: 0 };
 }
 
 /**
@@ -126,7 +134,7 @@ function formatListElements(
             const doubleNestedResult = formatList(vm, nestedElemValue, depth + 2);
             nestedItems.push(doubleNestedResult.formatted);
           } else if (nestedElemTag !== Tag.LINK) {
-            nestedItems.push(formatValue(vm, nestedElemValue));
+            nestedItems.push(formatScalarValue(vm, nestedElemValue));
           }
         }
       }
@@ -135,7 +143,7 @@ function formatListElements(
 
       i += nestedSize + 1;
     } else if (elemTag !== Tag.LINK) {
-      items.push(formatValue(vm, elemValue));
+      items.push(formatScalarValue(vm, elemValue));
       i++;
     } else {
       i++;
@@ -143,6 +151,29 @@ function formatListElements(
   }
 
   return { formatted: `( ${items.join(' ')} )`, size: listSize };
+}
+
+function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): string {
+  const decoded = fromTaggedValue(headerValue);
+  const totalSlots = decoded.value;
+  const parts: string[] = [];
+  let consumed = 0;
+
+  while (consumed < totalSlots && vm.SP >= BYTES_PER_ELEMENT) {
+    const cell = vm.pop();
+    const cellDecoded = fromTaggedValue(cell);
+    if (cellDecoded.tag === Tag.RLIST) {
+      const nestedSlots = cellDecoded.value;
+      const nested = formatAndConsumeRListFromHeaderValue(vm, cell);
+      parts.push(nested);
+      consumed += 1 + nestedSlots;
+    } else {
+      parts.push(coreFormatValue(vm, cell));
+      consumed += 1;
+    }
+  }
+
+  return `[ ${parts.join(' ')} ]`;
 }
 
 /**
@@ -168,6 +199,18 @@ export function printOp(vm: VM): void {
     }
 
     const topValue = vm.peek();
+    const decoded = fromTaggedValue(topValue);
+
+    // Direct RLIST handling: use core formatter and pop header+payload
+    if (decoded.tag === Tag.RLIST) {
+      // Pop header and then format by consuming payload
+      const headerVal = vm.pop();
+      const formatted = formatAndConsumeRListFromHeaderValue(vm, headerVal);
+      console.log(formatted);
+      return;
+    }
+
+    // Fallback: legacy LIST/LINK formatting and cleanup
     const { formatted, size } = formatList(vm, topValue);
 
     if (size > 0) {

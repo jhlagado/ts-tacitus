@@ -37,13 +37,22 @@ const NIL = toTaggedValue(0, Tag.INTEGER);
  * Return stack: Pushes current SP position for later span calculation.
  */
 export function openRListOp(vm: VM): void {
-  if (vm.debug) console.log('openRListOp: listDepth before', vm.listDepth);
-  vm.listDepth++;
-  
-  // Push current SP position to return stack to track RLIST boundary
-  vm.rpush(toTaggedValue(vm.SP, Tag.INTEGER));
-  
-  if (vm.debug) console.log('openRListOp: pushed SP', vm.SP, 'listDepth after', vm.listDepth);
+  if (vm.debug) console.log('openRListOp: rlistDepth before', vm.rlistDepth);
+  vm.rlistDepth++;
+
+  // Push placeholder RLIST header at current top and remember its address
+  const placeholderHeader = toTaggedValue(0, Tag.RLIST);
+  vm.push(placeholderHeader);
+  const headerPos = vm.SP - BYTES_PER_ELEMENT;
+  vm.rpush(toTaggedValue(headerPos, Tag.INTEGER));
+
+  if (vm.debug)
+    console.log(
+      'openRListOp: pushed placeholder header at',
+      headerPos,
+      'rlistDepth after',
+      vm.rlistDepth,
+    );
 }
 
 /**
@@ -56,24 +65,44 @@ export function closeRListOp(vm: VM): void {
     throw new ReturnStackUnderflowError('closeRListOp', vm.getStackData());
   }
 
-  const taggedStartSP = vm.rpop();
-  const { value: startSP } = fromTaggedValue(taggedStartSP);
-  const spanSize = (vm.SP - startSP) / BYTES_PER_ELEMENT;
-  
-  if (vm.debug) console.log('closeRListOp: span size', spanSize);
-  
-  // Reverse the span to achieve RLIST layout
-  if (spanSize > 1) {
-    reverseSpan(vm, spanSize);
+  // Retrieve header position from return stack
+  const taggedHeaderPos = vm.rpop();
+  const { value: headerPos } = fromTaggedValue(taggedHeaderPos);
+
+  // Compute payload size (number of elements after header)
+  const payloadSlots = (vm.SP - headerPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
+
+  if (vm.debug)
+    console.log(
+      'closeRListOp: headerPos',
+      headerPos,
+      'payloadSlots',
+      payloadSlots,
+      'rlistDepth',
+      vm.rlistDepth,
+    );
+
+  // Update placeholder header in place with correct slot count
+  const finalizedHeader = toTaggedValue(payloadSlots, Tag.RLIST);
+  vm.memory.writeFloat32(SEG_STACK, headerPos, finalizedHeader);
+
+  // Only reverse once at the outermost RLIST close: reverse header + payload as a single block
+  if (vm.rlistDepth === 1) {
+    const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT; // header + payload
+    if (totalSpan > 1) {
+      reverseSpan(vm, totalSpan);
+    }
   }
-  
-  // Push RLIST header with slot count
-  const rlistHeader = toTaggedValue(spanSize, Tag.RLIST);
-  vm.push(rlistHeader);
-  
-  vm.listDepth--;
-  
-  if (vm.debug) console.log('closeRListOp: created RLIST with', spanSize, 'slots');
+
+  vm.rlistDepth--;
+
+  if (vm.debug)
+    console.log(
+      'closeRListOp: finalized RLIST with',
+      payloadSlots,
+      'slots, rlistDepth now',
+      vm.rlistDepth,
+    );
 }
 
 /**

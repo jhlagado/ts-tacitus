@@ -24,6 +24,12 @@ export function resetVM(): void {
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
+  // Reset rlist depth as well if present
+  // @ts-ignore
+  if (typeof (vm as any).rlistDepth === 'number') {
+    // @ts-ignore
+    (vm as any).rlistDepth = 0;
+  }
   vm.receiver = 0;
   vm.running = true;
 
