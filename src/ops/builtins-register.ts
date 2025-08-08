@@ -92,6 +92,16 @@ import { printOp } from './builtins-print';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { rawPrintOp } from './builtins-raw-print';
+import {
+  openRListOp,
+  closeRListOp,
+  rlistSlotOp,
+  rlistSkipOp,
+  rlistPrependOp,
+  rlistAppendOp,
+  rlistGetAtOp,
+  rlistSetAtOp,
+} from './builtins-rlist';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -124,6 +134,16 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   symbolTable.define('(', Op.OpenList, openListOp);
   symbolTable.define(')', Op.CloseList, closeListOp);
+
+  // RLIST operations and syntax
+  symbolTable.define('[', Op.OpenRList, openRListOp);
+  symbolTable.define(']', Op.CloseRList, closeRListOp);
+  symbolTable.define('.slot', Op.RListSlot, rlistSlotOp);
+  symbolTable.define('.skip', Op.RListSkip, rlistSkipOp);
+  symbolTable.define('prepend', Op.RListPrepend, rlistPrependOp);
+  symbolTable.define('append', Op.RListAppend, rlistAppendOp);
+  symbolTable.define('get-at', Op.RListGetAt, rlistGetAtOp);
+  symbolTable.define('set-at', Op.RListSetAt, rlistSetAtOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);

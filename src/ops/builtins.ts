@@ -87,6 +87,16 @@ import {
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
 import { openListOp, closeListOp } from './builtins-list';
+import {
+  openRListOp,
+  closeRListOp,
+  rlistSlotOp,
+  rlistSkipOp,
+  rlistPrependOp,
+  rlistAppendOp,
+  rlistGetAtOp,
+  rlistSetAtOp,
+} from './builtins-rlist';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -302,6 +312,30 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.CloseList:
       closeListOp(vm);
+      break;
+    case Op.OpenRList:
+      openRListOp(vm);
+      break;
+    case Op.CloseRList:
+      closeRListOp(vm);
+      break;
+    case Op.RListSlot:
+      rlistSlotOp(vm);
+      break;
+    case Op.RListSkip:
+      rlistSkipOp(vm);
+      break;
+    case Op.RListPrepend:
+      rlistPrependOp(vm);
+      break;
+    case Op.RListAppend:
+      rlistAppendOp(vm);
+      break;
+    case Op.RListGetAt:
+      rlistGetAtOp(vm);
+      break;
+    case Op.RListSetAt:
+      rlistSetAtOp(vm);
       break;
     case Op.PushSymbolRef:
       pushSymbolRefOp(vm);
