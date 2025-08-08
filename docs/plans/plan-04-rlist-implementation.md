@@ -70,7 +70,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Names**: `.slot`, `.skip`, `prepend`, `append`, `get-at`, `set-at`
 
 ### Step 1.6: Add RLIST to Format/Display System
-- Status: ACTIVE
+- Status: Completed
 - **File**: `src/core/format-utils.ts`
 - **Display Tasks**:
   - Add RLIST case to value formatting
@@ -82,6 +82,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 ## Phase 2: Testing Infrastructure
 
 ### Step 2.1: Core RLIST Tests
+- Status: Completed
 - **File**: `src/test/ops/lists/rlist.test.ts` (new)
 - **Test Cases**:
   - Empty RLIST: `[ ] → RLIST:0`
@@ -93,6 +94,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Performance**: Validate O(1) prepend, O(s) append characteristics
 
 ### Step 2.2: RLIST Operations Tests
+- Status: Completed
 - **File**: `src/test/ops/lists/rlist-operations.test.ts` (new)
 - **Operations Testing**:
   - `.slot` - slot count extraction
@@ -104,6 +106,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Edge Cases**: Zero-length RLISTs, maximum slot counts
 
 ### Step 2.3: RLIST Integration Tests
+- Status: ACTIVE
 - **File**: `src/test/ops/lists/rlist-integration.test.ts` (new)
 - **Integration Testing**:
   - Buffer interoperability (export/import)
@@ -113,6 +116,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Stress Testing**: Large RLISTs, deep nesting, memory pressure
 
 ### Step 2.4: Parser Tokenizer Updates
+- Status: Completed
 - **File**: `src/lang/tokenizer.ts`
 - **Tokenization Tasks**:
   - Ensure `[` and `]` are recognized as distinct tokens
@@ -122,6 +126,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Testing**: Comprehensive tokenizer tests for bracket combinations
 
 ### Step 2.5: RLIST Literal Compilation Tests
+- Status: Pending
 - **File**: `src/test/lang/rlist-compilation.test.ts` (new)
 - **Compilation Testing**:
   - Test bytecode generation for `[ 1 2 3 ]`
@@ -145,6 +150,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Nesting**: Support arbitrary nesting depth with boundary tracking
 
 ### Step 3.2: Add RLIST Opcodes to VM Dispatch
+- Status: Completed
 - **File**: `src/ops/builtins.ts`
 - **Registration**:
   - Register RLIST operations in symbol table
@@ -153,6 +159,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Testing**: Validate all RLIST operations accessible from parser
 
 ### Step 3.3: Parser Integration Tests  
+- Status: Pending
 - **File**: `src/test/lang/parser-rlist.test.ts` (new)
 - **Test Cases**:
   - Simple RLIST literals: `[ 1 2 3 ]`
@@ -257,4 +264,4 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 
 ---
 
-**Next Action**: Implement Step 1.6 - Add RLIST to Format/Display System
+**Next Action**: Implement Step 2.3 - RLIST Integration Tests

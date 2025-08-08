@@ -132,6 +132,10 @@ export function formatListAt(vm: VM, stack: number[], index: number): string {
           i++;
         }
       }
+    } else if (elemTag === Tag.RLIST) {
+      elements.push(formatRListAt(vm, stack, elemIndex));
+      const rlistSlots = fromTaggedValue(elem).value;
+      i += 1 + rlistSlots;
     } else {
       elements.push(formatAtomicValue(vm, elem));
       i++;
@@ -139,6 +143,62 @@ export function formatListAt(vm: VM, stack: number[], index: number): string {
   }
 
   return `( ${elements.join(' ')} )`;
+}
+
+function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
+  if (headerIndex <= 0 || headerIndex >= stack.length) {
+    return '[ Invalid RLIST index ]';
+  }
+
+  const header = stack[headerIndex];
+  const { tag, value: slotCount } = fromTaggedValue(header);
+  if (tag !== Tag.RLIST || slotCount < 0) {
+    return '[ Not an RLIST ]';
+  }
+
+  const elements: string[] = [];
+  let remainingSlots = slotCount;
+  let currentIndex = headerIndex - 1;
+
+  while (remainingSlots > 0 && currentIndex >= 0) {
+    const currentValue = stack[currentIndex];
+    let stepSize = 1;
+    let elementStartIndex = currentIndex;
+
+    const decoded = fromTaggedValue(currentValue);
+    if (decoded.tag === Tag.RLIST) {
+      stepSize = decoded.value + 1;
+    } else if (decoded.tag === Tag.LIST) {
+      stepSize = Number(decoded.value) + 2;
+    } else {
+      const nextIndex = currentIndex - 1;
+      if (remainingSlots > 1 && nextIndex >= 0) {
+        const nextDecoded = fromTaggedValue(stack[nextIndex]);
+        if (nextDecoded.tag === Tag.RLIST) {
+          elementStartIndex = nextIndex;
+          stepSize = nextDecoded.value + 1;
+        } else if (nextDecoded.tag === Tag.LIST) {
+          elementStartIndex = nextIndex;
+          stepSize = Number(nextDecoded.value) + 2;
+        }
+      }
+    }
+
+    const startVal = stack[elementStartIndex];
+    const startDecoded = fromTaggedValue(startVal);
+    if (startDecoded.tag === Tag.RLIST) {
+      elements.push(formatRListAt(vm, stack, elementStartIndex));
+    } else if (startDecoded.tag === Tag.LIST || (Number.isNaN(startVal) && startDecoded.value >= 0)) {
+      elements.push(formatListAt(vm, stack, elementStartIndex));
+    } else {
+      elements.push(formatAtomicValue(vm, startVal));
+    }
+
+    currentIndex -= stepSize;
+    remainingSlots -= stepSize;
+  }
+
+  return `[ ${elements.join(' ')} ]`;
 }
 
 /**
@@ -178,6 +238,12 @@ export function formatValue(vm: VM, value: number): string {
         return formatListAt(vm, stack, index);
       }
       return `( ${tagValue} elements )`;
+    case Tag.RLIST:
+      const rIndex = stack.indexOf(value);
+      if (rIndex >= 0) {
+        return formatRListAt(vm, stack, rIndex);
+      }
+      return `[ ${tagValue} elements ]`;
 
     case Tag.LINK:
       const currentIndex = stack.indexOf(value);
@@ -188,6 +254,8 @@ export function formatValue(vm: VM, value: number): string {
           const { tag: listTag, value: listSize } = fromTaggedValue(listValue);
           if (listTag === Tag.LIST || (Number.isNaN(listValue) && listSize >= 0)) {
             return formatListAt(vm, stack, listIndex);
+          } else if (listTag === Tag.RLIST) {
+            return formatRListAt(vm, stack, listIndex);
           }
         }
       }
