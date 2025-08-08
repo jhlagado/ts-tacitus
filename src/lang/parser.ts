@@ -365,6 +365,10 @@ function processSpecialToken(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
+  } else if (value === '[') {
+    beginRList(state);
+  } else if (value === ']') {
+    endRList(state);
   } else if (value === '{') {
     beginStandaloneBlock(state);
   } else if (value === '`') {
@@ -509,6 +513,28 @@ function endList(_state: ParserState): void {
   }
 
   vm.compiler.compileOpcode(Op.CloseList);
+  vm.listDepth--;
+}
+
+/**
+ * Begin an RLIST with opening bracket ([).
+ * Mirrors beginList but targets RLIST ops.
+ */
+function beginRList(_state: ParserState): void {
+  vm.listDepth++;
+  vm.compiler.compileOpcode(Op.OpenRList);
+}
+
+/**
+ * End an RLIST with closing bracket (]).
+ * Mirrors endList but targets RLIST ops.
+ */
+function endRList(_state: ParserState): void {
+  if (vm.listDepth <= 0) {
+    throw new SyntaxError('Unexpected closing bracket', vm.getStackData());
+  }
+
+  vm.compiler.compileOpcode(Op.CloseRList);
   vm.listDepth--;
 }
 

@@ -7,6 +7,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 ## 🎯 **ACTIVE** - Phase 1: Core Infrastructure
 
 ### Step 1.1: Add RLIST Tag to Tagged Value System
+- Status: Completed
 - **File**: `src/core/tagged.ts`
 - **Tasks**:
   - Add `RLIST = 8` to Tag enum
@@ -17,6 +18,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Validation**: All existing tagged value tests pass
 
 ### Step 1.2: Implement RLIST Core Utilities
+- Status: Completed
 - **File**: `src/core/rlist.ts` (new)
 - **Functions**:
   - `createRList(vm: VM, values: number[]): void` - builds RLIST on stack with reversal
@@ -29,6 +31,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Performance**: O(1) prepend, O(s) append operations
 
 ### Step 1.3: Add RLIST Opcodes
+- Status: Completed
 - **File**: `src/ops/opcodes.ts`
 - **New Opcodes**:
   - `OpenRList` - begin RLIST construction
@@ -42,6 +45,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Integration**: Update opcode enumeration and dispatch tables
 
 ### Step 1.4: Implement RLIST Primitive Operations
+- Status: Completed
 - **File**: `src/ops/builtins-rlist.ts` (new)
 - **Operations**:
   - `openRListOp(vm: VM): void` - push SP marker on return stack
@@ -56,6 +60,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Stack Effects**: All operations documented with proper notation
 
 ### Step 1.5: Register RLIST Builtins in Symbol Table
+- Status: Completed
 - **File**: `src/ops/builtins.ts`
 - **Registration Tasks**:
   - Add RLIST operations to builtin symbol table
@@ -65,6 +70,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Names**: `.slot`, `.skip`, `prepend`, `append`, `get-at`, `set-at`
 
 ### Step 1.6: Add RLIST to Format/Display System
+- Status: ACTIVE
 - **File**: `src/core/format-utils.ts`
 - **Display Tasks**:
   - Add RLIST case to value formatting
@@ -127,6 +133,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 ## Phase 3: Parser Integration
 
 ### Step 3.1: Extend Parser for `[ ]` Syntax
+- Status: Completed
 - **File**: `src/lang/parser.ts`
 - **Parser Changes**:
   - Add `[` and `]` token handling in `processSpecialToken()`
@@ -250,4 +257,4 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 
 ---
 
-**Next Action**: Implement Step 1.1 - Add RLIST tag to tagged value system
+**Next Action**: Implement Step 1.6 - Add RLIST to Format/Display System
