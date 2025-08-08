@@ -118,6 +118,11 @@ function validateFinalState(state: ParserState): void {
   if (state.currentDefinition) {
     throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
   }
+
+  // Ensure all list/rlists were properly closed
+  if (vm.listDepth !== 0) {
+    throw new SyntaxError('Unclosed list or RLIST', vm.getStackData());
+  }
 }
 
 /**

@@ -150,28 +150,8 @@ export function getRListElementAddress(vm: VM, header: number, headerAddr: numbe
     } else {
       const decoded = fromTaggedValue(currentValue);
       if (decoded.tag === Tag.LIST) {
-        // This is a LIST header - element starts here  
         elementStartAddr = currentAddr;
         stepSize = decoded.value + 2;
-      } else {
-        // Check if this might be payload of a compound value below us
-        // Look ahead to see if there's a compound header below
-        const nextAddr = currentAddr - 4;
-        if (remainingSlots > 1) {
-          const nextValue = vm.memory.readFloat32(SEG_STACK, nextAddr);
-          if (isRList(nextValue)) {
-            // This is payload, next is RLIST header - element starts at header
-            elementStartAddr = nextAddr;
-            stepSize = getRListSlotCount(nextValue) + 1;
-          } else {
-            const nextDecoded = fromTaggedValue(nextValue);
-            if (nextDecoded.tag === Tag.LIST) {
-              // This is payload, next is LIST header - element starts at header
-              elementStartAddr = nextAddr;
-              stepSize = nextDecoded.value + 2;
-            }
-          }
-        }
       }
     }
     

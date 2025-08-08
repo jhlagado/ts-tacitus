@@ -55,6 +55,34 @@ describe('RLIST Integration Tests', () => {
       expect(innerTag).toBe(Tag.RLIST);
       expect(innerSlots).toBe(2);
     });
+
+    it('should lay out nested RLIST stack as: 4 3 2 RLIST:2 1 RLIST:5 ← TOS', () => {
+      executeProgram('[ 1 [ 2 3 ] 4 ]');
+      const stack = vm.getStackData();
+      const len = stack.length;
+
+      // Expect total of 6 cells: 5 payload slots + 1 outer header
+      expect(len).toBe(6);
+
+      const decode = fromTaggedValue;
+
+      // TOS: outer RLIST header with 5 slots
+      const outerHeader = stack[len - 1];
+      expect(decode(outerHeader)).toEqual({ tag: Tag.RLIST, value: 5 });
+
+      // Just below TOS: logical first element '1'
+      expect(decode(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
+
+      // Next: inner RLIST header with 2 slots
+      expect(decode(stack[len - 3])).toEqual({ tag: Tag.RLIST, value: 2 });
+
+      // Then inner payload in logical order: 2 then 3
+      expect(decode(stack[len - 4])).toEqual({ tag: Tag.NUMBER, value: 2 });
+      expect(decode(stack[len - 5])).toEqual({ tag: Tag.NUMBER, value: 3 });
+
+      // Deepest of the segment: '4'
+      expect(decode(stack[len - 6])).toEqual({ tag: Tag.NUMBER, value: 4 });
+    });
   });
 
   describe('memory layout validation', () => {

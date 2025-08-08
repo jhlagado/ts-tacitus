@@ -106,7 +106,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Edge Cases**: Zero-length RLISTs, maximum slot counts
 
 ### Step 2.3: RLIST Integration Tests
-- Status: ACTIVE
+- Status: Completed
 - **File**: `src/test/ops/lists/rlist-integration.test.ts` (new)
 - **Integration Testing**:
   - Buffer interoperability (export/import)
@@ -126,7 +126,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Testing**: Comprehensive tokenizer tests for bracket combinations
 
 ### Step 2.5: RLIST Literal Compilation Tests
-- Status: Pending
+- Status: Completed
 - **File**: `src/test/lang/rlist-compilation.test.ts` (new)
 - **Compilation Testing**:
   - Test bytecode generation for `[ 1 2 3 ]`
@@ -159,7 +159,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Testing**: Validate all RLIST operations accessible from parser
 
 ### Step 3.3: Parser Integration Tests  
-- Status: Pending
+- Status: Completed
 - **File**: `src/test/lang/parser-rlist.test.ts` (new)
 - **Test Cases**:
   - Simple RLIST literals: `[ 1 2 3 ]`
@@ -171,6 +171,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 ## Phase 4: Interoperability & Validation
 
 ### Step 4.1: LIST/RLIST Interoperability
+- Status: Skipped (deferred)
 - **File**: `src/core/list-interop.ts` (new)
 - **Conversion Functions**:
   - `listToRList(vm: VM): void` - convert LIST to RLIST structure
@@ -181,6 +182,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Performance**: O(n) conversion cost, minimize allocations
 
 ### Step 4.2: Documentation Updates
+- Status: Skipped (deferred; will change post-plan)
 - **Files**: Update relevant documentation
 - **Updates**:
   - Add RLIST examples to language documentation
@@ -189,6 +191,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **Validation**: Ensure documentation matches implementation
 
 ### Step 4.3: Memory Management Validation
+- Status: Completed
 - **File**: `src/test/core/rlist-memory.test.ts` (new)
 - **Memory Testing**:
   - Validate no memory leaks with nested RLISTs
@@ -264,4 +267,4 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 
 ---
 
-**Next Action**: Implement Step 2.3 - RLIST Integration Tests
+**Next Action**: Implement Step 4.4 - Performance Benchmarking
