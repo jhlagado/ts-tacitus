@@ -17,17 +17,17 @@
 7. Parser semantics (finalization on `)`; examples)
 8. Printing / pretty representation
 9. Length and counting
-   9.1 `slots ( list -- n )` — O(1)
-   9.2 `elements ( list -- n )` — O(s) traversal
+   - `slots ( list -- n )` — O(1)
+   - `elements ( list -- n )` — O(s) traversal
 10. Address queries
-    10.1 `slot ( idx -- addr )` — O(1)
-    10.2 `element ( idx -- addr )` — O(s)
+    - `slot ( idx -- addr )` — O(1)
+    - `element ( idx -- addr )` — O(s)
 11. Traversal rule (type-agnostic span)
 12. Structural operations (overview)
-    12.1 `cons` (prepend) — O(1)
-    12.2 `drop-head` — O(1)
-    12.3 `concat` — O(n), flattening merge
-    12.4 Append (discouraged; not a primitive)
+    - `cons` (prepend) — O(1)
+    - `drop-head` — O(1)
+    - `concat` — O(n), flattening merge
+    - Append (discouraged; not a primitive)
 13. Mutation (high-level)
 14. Safety and validation
 15. Constraints and implementation-defined limits
