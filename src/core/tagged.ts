@@ -269,7 +269,7 @@ export function isString(tval: number): boolean {
  * @param tval The NaN-boxed 32-bit floating-point number to check.
  * @returns `true` if the value is an `LIST`, `false` otherwise.
  */
-export function isRList(tval: number): boolean {
+export function isList(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.LIST;
 }

@@ -23,9 +23,9 @@ describe('LIST Literal Compilation', () => {
     parse(new Tokenizer('( 1 2 3 )'));
     const code = vm.getCompileData();
 
-    // Expected opcode sequence: OpenRList, (LitNum, f32)*3, CloseRList, Abort
+    // Expected opcode sequence: OpenList, (LitNum, f32)*3, CloseList, Abort
     let i = 0;
-    expect(code[i++]).toBe(Op.OpenRList);
+    expect(code[i++]).toBe(Op.OpenList);
 
     for (const expected of [1, 2, 3]) {
       expect(code[i++]).toBe(Op.LiteralNumber);
@@ -34,7 +34,7 @@ describe('LIST Literal Compilation', () => {
       i += 4;
     }
 
-    expect(code[i++]).toBe(Op.CloseRList);
+    expect(code[i++]).toBe(Op.CloseList);
     expect(code[i]).toBe(Op.Abort);
   });
 
@@ -42,15 +42,15 @@ describe('LIST Literal Compilation', () => {
     parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
     const code = vm.getCompileData();
 
-    // Expected: OpenRList, Lit 1, OpenRList, Lit 2, Lit 3, CloseRList, Lit 4, CloseRList, Abort
+    // Expected: OpenList, Lit 1, OpenList, Lit 2, Lit 3, CloseList, Lit 4, CloseList, Abort
     let i = 0;
-    expect(code[i++]).toBe(Op.OpenRList);
+    expect(code[i++]).toBe(Op.OpenList);
 
     expect(code[i++]).toBe(Op.LiteralNumber);
     expect(Math.round(decodeFloatLE(code, i))).toBe(1);
     i += 4;
 
-    expect(code[i++]).toBe(Op.OpenRList);
+    expect(code[i++]).toBe(Op.OpenList);
 
     expect(code[i++]).toBe(Op.LiteralNumber);
     expect(Math.round(decodeFloatLE(code, i))).toBe(2);
@@ -60,13 +60,13 @@ describe('LIST Literal Compilation', () => {
     expect(Math.round(decodeFloatLE(code, i))).toBe(3);
     i += 4;
 
-    expect(code[i++]).toBe(Op.CloseRList);
+    expect(code[i++]).toBe(Op.CloseList);
 
     expect(code[i++]).toBe(Op.LiteralNumber);
     expect(Math.round(decodeFloatLE(code, i))).toBe(4);
     i += 4;
 
-    expect(code[i++]).toBe(Op.CloseRList);
+    expect(code[i++]).toBe(Op.CloseList);
     expect(code[i]).toBe(Op.Abort);
   });
 });

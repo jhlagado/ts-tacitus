@@ -313,12 +313,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.CloseList:
       closeRListOp(vm);
       break;
-    case Op.OpenRList:
-      openRListOp(vm);
-      break;
-    case Op.CloseRList:
-      closeRListOp(vm);
-      break;
     case Op.RListSlot:
       rlistSlotOp(vm);
       break;

@@ -103,53 +103,6 @@ describe('VM pushSymbolRef method', () => {
     });
   });
 
-  xdescribe('colon definitions', () => {
-    test('should push colon definition reference and execute correctly', () => {
-      // Manually register code reference for testing
-      const testAddr = 1000;
-      vm.symbolTable.defineCode('test', testAddr);
-
-      // Push symbol reference
-      vm.pushSymbolRef('test');
-
-      // Check that correct tagged value is on stack
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(1);
-
-      const { tag, value } = fromTaggedValue(stack[0]);
-      expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(testAddr);
-    });
-
-    test('should work with multiple colon definitions', () => {
-      // Register multiple code references
-      vm.symbolTable.defineCode('square', 1024);
-      vm.symbolTable.defineCode('cube', 2048);
-      vm.symbolTable.defineCode('factorial', 4096);
-
-      // Push references in sequence
-      vm.pushSymbolRef('square');
-      vm.pushSymbolRef('cube');
-      vm.pushSymbolRef('factorial');
-
-      // Check all references are on stack
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(3);
-
-      const { tag: tag1, value: addr1 } = fromTaggedValue(stack[0]);
-      expect(tag1).toBe(Tag.CODE);
-      expect(addr1).toBe(1024);
-
-      const { tag: tag2, value: addr2 } = fromTaggedValue(stack[1]);
-      expect(tag2).toBe(Tag.CODE);
-      expect(addr2).toBe(2048);
-
-      const { tag: tag3, value: addr3 } = fromTaggedValue(stack[2]);
-      expect(tag3).toBe(Tag.CODE);
-      expect(addr3).toBe(4096);
-    });
-  });
-
   describe('mixed scenarios', () => {
     test('should handle both built-ins and colon definitions together', () => {
       // Register mixed symbols

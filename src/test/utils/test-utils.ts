@@ -116,7 +116,7 @@ export function runTacitTest(testCode: string): number[] {
 
 /**
  * Execute Tacit code and return output that was printed to console
- * Useful for testing code that uses the '.' operator
+ * Useful for testing code that uses the 'printx' operator
  */
 export function captureTacitOutput(code: string): string[] {
   resetVM();

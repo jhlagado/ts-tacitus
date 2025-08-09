@@ -8,7 +8,7 @@ import {
   isNIL,
   isCode,
   isAnyCode,
-  isRList,
+  isList,
   MAX_TAG,
 } from '../../core/tagged';
 describe('Tagged NaN Encoding', () => {
@@ -76,13 +76,13 @@ describe('Tagged NaN Encoding', () => {
     const rlist = toTaggedValue(5, Tag.LIST);
     const integer = toTaggedValue(5, Tag.INTEGER);
 
-    expect(isRList(rlist)).toBe(true);
-    expect(isRList(integer)).toBe(false);
+    expect(isList(rlist)).toBe(true);
+    expect(isList(integer)).toBe(false);
   });
 
   test('should handle LIST with zero slot count', () => {
     const emptyRList = toTaggedValue(0, Tag.LIST);
-    expect(isRList(emptyRList)).toBe(true);
+    expect(isList(emptyRList)).toBe(true);
 
     const decoded = fromTaggedValue(emptyRList);
     expect(decoded.tag).toBe(Tag.LIST);
@@ -91,7 +91,7 @@ describe('Tagged NaN Encoding', () => {
 
   test('should handle LIST with maximum slot count', () => {
     const maxRList = toTaggedValue(65535, Tag.LIST);
-    expect(isRList(maxRList)).toBe(true);
+    expect(isList(maxRList)).toBe(true);
 
     const decoded = fromTaggedValue(maxRList);
     expect(decoded.tag).toBe(Tag.LIST);
@@ -115,7 +115,7 @@ describe('Tagged NaN Encoding', () => {
       const decoded = fromTaggedValue(encoded);
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
-      expect(isRList(encoded)).toBe(true);
+      expect(isList(encoded)).toBe(true);
     });
   });
 });

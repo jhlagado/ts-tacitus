@@ -524,7 +524,7 @@ function endList(_state: ParserState): void {
  */
 function beginRList(_state: ParserState): void {
   vm.listDepth++;
-  vm.compiler.compileOpcode(Op.OpenRList);
+  vm.compiler.compileOpcode(Op.OpenList);
 }
 
 /**
@@ -536,7 +536,7 @@ function endRList(_state: ParserState): void {
     throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
   }
 
-  vm.compiler.compileOpcode(Op.CloseRList);
+  vm.compiler.compileOpcode(Op.CloseList);
   vm.listDepth--;
 }
 
@@ -550,9 +550,10 @@ function endRList(_state: ParserState): void {
  * @param {ParserState} state - The current parser state
  */
 function beginStandaloneBlock(state: ParserState): void {
+  const prevInside = state.insideCodeBlock;
+  state.insideCodeBlock = true;
   const { startAddress } = compileCodeBlock(state);
-
-  // Emit LiteralCode operation to push the code reference onto the stack
+  state.insideCodeBlock = prevInside;
   vm.compiler.compileOpcode(Op.LiteralCode);
   vm.compiler.compile16(startAddress);
 }
