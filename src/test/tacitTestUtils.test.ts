@@ -43,11 +43,11 @@ describe('tacitTestUtils', () => {
   });
   describe('captureTacitOutput', () => {
     test('should capture console output', () => {
-      const output = captureTacitOutput('5 .');
+      const output = captureTacitOutput('5 printx');
       expect(output).toEqual(['5']);
     });
     test('should handle multiple outputs', () => {
-      const output = captureTacitOutput('5 3 add .');
+      const output = captureTacitOutput('5 3 add printx');
       expect(output).toEqual(['8']);
     });
     test('should handle empty output', () => {

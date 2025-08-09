@@ -16,7 +16,7 @@
  */
 
 import { VM } from '../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, isInteger, isRList } from '../core/tagged';
+import { fromTaggedValue, toTaggedValue, Tag, isInteger, isList } from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
@@ -143,7 +143,7 @@ export function rlistPrependOp(vm: VM): void {
   const header = vm.pop(); // LIST header at TOS
   const value = vm.pop(); // Value to prepend
 
-  if (!isRList(header)) {
+  if (!isList(header)) {
     vm.push(value); // Restore stack
     vm.push(header);
     vm.push(NIL);
@@ -169,7 +169,7 @@ export function rlistAppendOp(vm: VM): void {
   const header = vm.pop(); // LIST header at TOS
   const value = vm.pop(); // Value to append
 
-  if (!isRList(header)) {
+  if (!isList(header)) {
     vm.push(value); // Restore stack
     vm.push(header);
     vm.push(NIL);
@@ -216,7 +216,7 @@ export function rlistGetAtOp(vm: VM): void {
   const indexValue = vm.pop();
   const header = vm.peek(); // Keep LIST on stack
 
-  if (!isRList(header) || !isInteger(indexValue)) {
+  if (!isList(header) || !isInteger(indexValue)) {
     vm.push(NIL);
     return;
   }
@@ -256,7 +256,7 @@ export function rlistSetAtOp(vm: VM): void {
   const indexValue = vm.pop();
   const header = vm.peek(); // Keep LIST on stack
 
-  if (!isRList(header) || !isInteger(indexValue)) {
+  if (!isList(header) || !isInteger(indexValue)) {
     vm.pop(); // Remove invalid header
     vm.push(NIL);
     return;
@@ -284,7 +284,7 @@ export function rlistSetAtOp(vm: VM): void {
   // Check if target location contains a compound value
   const oldValue = vm.memory.readFloat32(SEG_STACK, targetAddr);
 
-  if (isRList(oldValue)) {
+  if (isList(oldValue)) {
     vm.pop(); // Remove LIST header from stack
     vm.push(NIL); // Refuse to overwrite compound values
     return;

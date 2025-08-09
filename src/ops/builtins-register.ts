@@ -126,13 +126,13 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('eval', Op.Eval, evalOp);
   symbolTable.define('pushSymbolRef', Op.PushSymbolRef, pushSymbolRefOp);
   symbolTable.define('print', Op.Print, printOp);
-  symbolTable.define('.', Op.RawPrint, rawPrintOp);
+  symbolTable.define('printx', Op.RawPrint, rawPrintOp);
   symbolTable.define('str', Op.LiteralString, literalStringOp);
   symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
 
-  // Migration: make parentheses build reverse lists; keep [ ] as alias during transition
-  symbolTable.define('(', Op.OpenRList, openRListOp);
-  symbolTable.define(')', Op.CloseRList, closeRListOp);
+  // Parentheses build unified LIST
+  symbolTable.define('(', Op.OpenList, openRListOp);
+  symbolTable.define(')', Op.CloseList, closeRListOp);
 
   // LIST operations (parentheses only)
   symbolTable.define('.slot', Op.RListSlot, rlistSlotOp);

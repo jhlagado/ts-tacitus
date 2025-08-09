@@ -12,7 +12,7 @@
  */
 
 import { VM } from './vm';
-import { toTaggedValue, fromTaggedValue, Tag, isRList } from './tagged';
+import { toTaggedValue, fromTaggedValue, Tag, isList } from './tagged';
 import { SEG_STACK } from './constants';
 
 /**
@@ -48,7 +48,7 @@ export function createRList(vm: VM, values: number[]): void {
  * @throws Error if the header is not a valid LIST tag
  */
 export function getRListSlotCount(header: number): number {
-  if (!isRList(header)) {
+  if (!isList(header)) {
     throw new Error('Value is not an LIST header');
   }
   return fromTaggedValue(header).value;
@@ -101,7 +101,7 @@ export function validateRListHeader(vm: VM): void {
   vm.ensureStackSize(1, 'LIST header validation');
 
   const header = vm.peek();
-  if (!isRList(header)) {
+  if (!isList(header)) {
     throw new Error('Expected LIST header at TOS');
   }
 
@@ -130,7 +130,7 @@ export function getRListElementAddress(
   headerAddr: number,
   logicalIndex: number,
 ): number {
-  if (!isRList(header)) {
+  if (!isList(header)) {
     throw new Error('Invalid LIST header provided to getRListElementAddress');
   }
 
@@ -148,7 +148,7 @@ export function getRListElementAddress(
     let stepSize = 1; // Default for atomic values
     let elementStartAddr = currentAddr; // Default for atomic values
 
-    if (isRList(currentValue)) {
+    if (isList(currentValue)) {
       // This is an LIST header - element starts here
       elementStartAddr = currentAddr;
       stepSize = getRListSlotCount(currentValue) + 1;
