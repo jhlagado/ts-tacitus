@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../core/vm';
 import { toTaggedValue, Tag, fromTaggedValue } from '../../core/tagged';
-import { openRListOp, closeRListOp, rlistPrependOp, rlistAppendOp, rlistSlotOp } from '../../ops/builtins-rlist';
+import { openRListOp, closeRListOp, rlistPrependOp, rlistAppendOp, rlistSlotOp } from '../../ops/builtins-list';
 
 function newVM(): VM { const vm = new VM(); vm.reset(); return vm; }
 

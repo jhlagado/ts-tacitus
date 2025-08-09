@@ -14,7 +14,7 @@ import {
   rlistAppendOp,
   rlistGetAtOp,
   rlistSetAtOp,
-} from '../../../ops/builtins-rlist';
+} from '../../../ops/builtins-list';
 
 function resetVM(): VM {
   const vm = new VM();

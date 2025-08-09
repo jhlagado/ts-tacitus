@@ -175,4 +175,78 @@ describe('List Integration Tests', () => {
       expect(listTags.length).toBe(1);
     });
   });
+
+  // Consolidated from former rlist-integration tests
+  describe('parser + VM integration (RLIST semantics)', () => {
+    test('should build a simple list using ( ) syntax', () => {
+      const stack = executeTacitCode('( 1 2 3 )');
+      expect(stack.length).toBe(4);
+
+      const header = stack[stack.length - 1];
+      const { tag: headerTag, value: slots } = fromTaggedValue(header);
+      expect(headerTag).toBe(Tag.RLIST);
+      expect(slots).toBe(3);
+
+      const payload0 = stack[stack.length - 2];
+      const payload1 = stack[stack.length - 3];
+      const payload2 = stack[stack.length - 4];
+
+      expect(fromTaggedValue(payload0)).toEqual({ tag: Tag.NUMBER, value: 1 });
+      expect(fromTaggedValue(payload1)).toEqual({ tag: Tag.NUMBER, value: 2 });
+      expect(fromTaggedValue(payload2)).toEqual({ tag: Tag.NUMBER, value: 3 });
+    });
+
+    test('should build nested lists correctly', () => {
+      const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
+
+      const outerHeader = stack[stack.length - 1];
+      const { tag: outerTag, value: outerSlots } = fromTaggedValue(outerHeader);
+      expect(outerTag).toBe(Tag.RLIST);
+      expect(outerSlots).toBeGreaterThan(0);
+
+      const firstLogical = stack[stack.length - 2];
+      expect(fromTaggedValue(firstLogical)).toEqual({ tag: Tag.NUMBER, value: 1 });
+
+      const innerHeaderIndex = stack.findIndex((v, i) => {
+        if (i >= stack.length - 1) return false;
+        const d = fromTaggedValue(v);
+        return d.tag === Tag.RLIST && i !== stack.length - 1;
+      });
+      expect(innerHeaderIndex).toBeGreaterThanOrEqual(0);
+      const { tag: innerTag, value: innerSlots } = fromTaggedValue(stack[innerHeaderIndex]);
+      expect(innerTag).toBe(Tag.RLIST);
+      expect(innerSlots).toBe(2);
+    });
+
+    test('should lay out nested list stack as: 4 3 2 RLIST:2 1 RLIST:5 ← TOS', () => {
+      const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
+      const len = stack.length;
+
+      expect(len).toBe(6);
+
+      const decode = fromTaggedValue;
+
+      const outerHeader = stack[len - 1];
+      expect(decode(outerHeader)).toEqual({ tag: Tag.RLIST, value: 5 });
+
+      expect(decode(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
+      expect(decode(stack[len - 3])).toEqual({ tag: Tag.RLIST, value: 2 });
+      expect(decode(stack[len - 4])).toEqual({ tag: Tag.NUMBER, value: 2 });
+      expect(decode(stack[len - 5])).toEqual({ tag: Tag.NUMBER, value: 3 });
+      expect(decode(stack[len - 6])).toEqual({ tag: Tag.NUMBER, value: 4 });
+    });
+  });
+
+  describe('memory layout validation', () => {
+    test('should keep list payload contiguous in memory', () => {
+      const stack = executeTacitCode('( 10 20 30 40 )');
+      const values = [
+        stack[stack.length - 2],
+        stack[stack.length - 3],
+        stack[stack.length - 4],
+        stack[stack.length - 5],
+      ].map((v) => fromTaggedValue(v).value);
+      expect(values).toEqual([10, 20, 30, 40]);
+    });
+  });
 });

@@ -26,7 +26,7 @@ import {
   validateRListHeader,
   reverseSpan,
   getRListElementAddress,
-} from '../core/rlist';
+} from '../core/list';
 
 const BYTES_PER_ELEMENT = 4;
 const NIL = toTaggedValue(0, Tag.INTEGER);
