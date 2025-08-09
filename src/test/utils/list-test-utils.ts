@@ -22,7 +22,7 @@ export class TestList {
     for (const value of this.values) {
       vm.push(value);
     }
-    vm.push((Tag.RLIST << 24) | (this.values.length & 0xffffff));
+    vm.push((Tag.LIST << 24) | (this.values.length & 0xffffff));
   }
 
   getSize(): number {
@@ -76,7 +76,7 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
       }
       index++;
     } else if (element.type === 'list') {
-      expect(tag).toBe(Tag.RLIST);
+      expect(tag).toBe(Tag.LIST);
       index++;
 
       if (element.children) {
@@ -133,15 +133,15 @@ export function extractListFromStack(
   let index = startIndex;
 
   const { tag: listTag, value: slots } = fromTaggedValue(stack[index]);
-  if (listTag !== Tag.RLIST) {
-    throw new Error(`Expected RLIST tag at index ${index}, got ${Tag[listTag]}`);
+  if (listTag !== Tag.LIST) {
+    throw new Error(`Expected LIST tag at index ${index}, got ${Tag[listTag]}`);
   }
   for (let i = 0; i < slots; i++) {
     const elemIndex = index - 1 - i;
     if (elemIndex < 0) throw new Error('Stack underflow while extracting list values');
     values.unshift(stack[elemIndex]);
   }
-  index -= (slots + 1);
+  index -= slots + 1;
 
   return { values, nextIndex: index };
 }
@@ -153,7 +153,7 @@ export function countListsOnStack(stack: number[]): number {
   let count = 0;
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
-    if (tag === Tag.RLIST) {
+    if (tag === Tag.LIST) {
       count++;
     }
   }

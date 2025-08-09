@@ -39,11 +39,11 @@ describe('rot Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should rotate a list with two simple values', () => {
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(3);
       vm.push(4);
 
@@ -57,13 +57,13 @@ describe('rot Operation', () => {
       // Build three lists: (1 2), (3 4), (5 6)
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(3);
       vm.push(4);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(5);
       vm.push(6);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       rotOp(vm);
 
@@ -77,10 +77,10 @@ describe('rot Operation', () => {
       vm.push(1);
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(3, Tag.RLIST)); // inner
+      vm.push(toTaggedValue(3, Tag.LIST)); // inner
       vm.push(4);
       vm.push(5);
-      vm.push(toTaggedValue(3, Tag.RLIST)); // outer
+      vm.push(toTaggedValue(3, Tag.LIST)); // outer
 
       rotOp(vm);
 

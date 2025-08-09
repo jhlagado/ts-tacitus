@@ -39,14 +39,14 @@ export enum Tag {
   BUILTIN = 7,
 
   /**  Represents a reverse list with header at TOS and reverse payload. */
-  RLIST = 8,
+  LIST = 8,
 }
 
 /**
  * The highest valid tag value. Update this when adding new tags.
  * Used for validation and testing to avoid hardcoded enum values.
  */
-export const MAX_TAG = Tag.RLIST;
+export const MAX_TAG = Tag.LIST;
 
 /**
  * Human-readable names for Tag values (for debugging).
@@ -57,7 +57,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.CODE]: 'CODE',
   [Tag.STRING]: 'STRING',
   [Tag.BUILTIN]: 'BUILTIN',
-  [Tag.RLIST]: 'RLIST',
+  [Tag.LIST]: 'LIST',
 };
 
 /**
@@ -263,13 +263,13 @@ export function isString(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents an `RLIST`.
- * This returns `true` if the value's tag is `Tag.RLIST`.
+ * Checks if a given NaN-boxed value represents an `LIST`.
+ * This returns `true` if the value's tag is `Tag.LIST`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is an `RLIST`, `false` otherwise.
+ * @returns `true` if the value is an `LIST`, `false` otherwise.
  */
 export function isRList(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.RLIST;
+  return tag === Tag.LIST;
 }

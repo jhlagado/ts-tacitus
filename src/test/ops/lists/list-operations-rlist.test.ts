@@ -1,6 +1,6 @@
 /**
  * @file src/test/ops/lists/rlist-operations.test.ts
- * Tests for RLIST operations
+ * Tests for LIST operations
  */
 
 import { VM } from '../../../core/vm';
@@ -26,9 +26,9 @@ function getStackDepth(vm: VM): number {
   return vm.getStackData().length;
 }
 
-describe('RLIST Operations', () => {
+describe('LIST Operations', () => {
   describe('openRListOp and closeRListOp', () => {
-    it('should create empty RLIST', () => {
+    it('should create empty LIST', () => {
       const vm = resetVM();
 
       openRListOp(vm);
@@ -37,11 +37,11 @@ describe('RLIST Operations', () => {
       expect(getStackDepth(vm)).toBe(1);
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(0);
     });
 
-    it('should create RLIST with single value', () => {
+    it('should create LIST with single value', () => {
       const vm = resetVM();
 
       openRListOp(vm);
@@ -51,11 +51,11 @@ describe('RLIST Operations', () => {
       expect(getStackDepth(vm)).toBe(2); // header + 1 payload
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(1);
     });
 
-    it('should create RLIST with multiple values in reverse order', () => {
+    it('should create LIST with multiple values in reverse order', () => {
       const vm = resetVM();
 
       openRListOp(vm);
@@ -67,12 +67,12 @@ describe('RLIST Operations', () => {
       expect(getStackDepth(vm)).toBe(4); // header + 3 payload
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(3);
 
-      // Check RLIST layout: [payload-2] [payload-1] [payload-0] [RLIST:3]
+      // Check LIST layout: [payload-2] [payload-1] [payload-0] [LIST:3]
       // payload-0 = 1 (first logical), payload-1 = 2, payload-2 = 3 (last logical)
-      const payload0 = vm.memory.readFloat32(0, vm.SP - 8);  // Should be 1 (payload-cell 0)
+      const payload0 = vm.memory.readFloat32(0, vm.SP - 8); // Should be 1 (payload-cell 0)
       const payload1 = vm.memory.readFloat32(0, vm.SP - 12); // Should be 2 (payload-cell 1)
       const payload2 = vm.memory.readFloat32(0, vm.SP - 16); // Should be 3 (payload-cell 2)
 
@@ -83,10 +83,10 @@ describe('RLIST Operations', () => {
   });
 
   describe('rlistSlotOp', () => {
-    it('should return slot count and keep RLIST on stack', () => {
+    it('should return slot count and keep LIST on stack', () => {
       const vm = resetVM();
 
-      // Create RLIST with 2 values
+      // Create LIST with 2 values
       openRListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
@@ -94,16 +94,16 @@ describe('RLIST Operations', () => {
 
       rlistSlotOp(vm);
 
-      expect(getStackDepth(vm)).toBe(4); // original RLIST + slot count
+      expect(getStackDepth(vm)).toBe(4); // original LIST + slot count
       const slotCount = vm.pop();
       expect(fromTaggedValue(slotCount).value).toBe(2);
 
-      // RLIST should still be there
+      // LIST should still be there
       const header = vm.peek();
-      expect(fromTaggedValue(header).tag).toBe(Tag.RLIST);
+      expect(fromTaggedValue(header).tag).toBe(Tag.LIST);
     });
 
-    it('should handle empty RLIST', () => {
+    it('should handle empty LIST', () => {
       const vm = resetVM();
 
       openRListOp(vm);
@@ -117,7 +117,7 @@ describe('RLIST Operations', () => {
   });
 
   describe('rlistSkipOp', () => {
-    it('should skip entire RLIST', () => {
+    it('should skip entire LIST', () => {
       const vm = resetVM();
 
       openRListOp(vm);
@@ -134,25 +134,25 @@ describe('RLIST Operations', () => {
   });
 
   describe('rlistPrependOp', () => {
-    it('should prepend value to RLIST', () => {
+    it('should prepend value to LIST', () => {
       const vm = resetVM();
 
-      // Create initial RLIST [1, 2]
+      // Create initial LIST [1, 2]
       openRListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
       closeRListOp(vm);
 
       // Stack effect: ( val rlist — rlist' )
-      // So we need: value first, then RLIST
-      const rlistHeader = vm.pop(); // Get RLIST off stack
+      // So we need: value first, then LIST
+      const rlistHeader = vm.pop(); // Get LIST off stack
       vm.push(toTaggedValue(0, Tag.INTEGER)); // Push value
-      vm.push(rlistHeader); // Push RLIST back on top
+      vm.push(rlistHeader); // Push LIST back on top
       rlistPrependOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(3); // Now 3 slots
 
       // Check that 0 is at the logical first position (payload-cell 0)
@@ -160,11 +160,11 @@ describe('RLIST Operations', () => {
       expect(fromTaggedValue(firstValue).value).toBe(0);
     });
 
-    it('should return NIL for non-RLIST', () => {
+    it('should return NIL for non-LIST', () => {
       const vm = resetVM();
 
       vm.push(toTaggedValue(10, Tag.INTEGER)); // Value to prepend
-      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an RLIST (at TOS)
+      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST (at TOS)
 
       rlistPrependOp(vm);
 
@@ -174,25 +174,25 @@ describe('RLIST Operations', () => {
   });
 
   describe('rlistAppendOp', () => {
-    it('should append value to RLIST', () => {
+    it('should append value to LIST', () => {
       const vm = resetVM();
 
-      // Create initial RLIST [1, 2]
+      // Create initial LIST [1, 2]
       openRListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
       closeRListOp(vm);
 
       // Stack effect: ( val rlist — rlist' )
-      // So we need: value first, then RLIST
-      const rlistHeader = vm.pop(); // Get RLIST off stack
+      // So we need: value first, then LIST
+      const rlistHeader = vm.pop(); // Get LIST off stack
       vm.push(toTaggedValue(3, Tag.INTEGER)); // Push value to append
-      vm.push(rlistHeader); // Push RLIST back on top
+      vm.push(rlistHeader); // Push LIST back on top
       rlistAppendOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(3); // Now 3 slots
 
       // Check that 3 is at the logical last position (deepest in stack, payload-2)
@@ -200,32 +200,32 @@ describe('RLIST Operations', () => {
       expect(fromTaggedValue(lastValue).value).toBe(3);
     });
 
-    it('should handle empty RLIST', () => {
+    it('should handle empty LIST', () => {
       const vm = resetVM();
 
       openRListOp(vm);
       closeRListOp(vm);
 
       // Stack effect: ( val rlist — rlist' )
-      const rlistHeader = vm.pop(); // Get empty RLIST off stack
+      const rlistHeader = vm.pop(); // Get empty LIST off stack
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Push value to append
-      vm.push(rlistHeader); // Push RLIST back on top
+      vm.push(rlistHeader); // Push LIST back on top
       rlistAppendOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
-      expect(decoded.tag).toBe(Tag.RLIST);
+      expect(decoded.tag).toBe(Tag.LIST);
       expect(decoded.value).toBe(1);
 
       const value = vm.memory.readFloat32(0, vm.SP - 8);
       expect(fromTaggedValue(value).value).toBe(42);
     });
 
-    it('should return NIL for non-RLIST', () => {
+    it('should return NIL for non-LIST', () => {
       const vm = resetVM();
 
       vm.push(toTaggedValue(10, Tag.INTEGER)); // Value to append
-      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an RLIST (at TOS)
+      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST (at TOS)
 
       rlistAppendOp(vm);
 
@@ -238,7 +238,7 @@ describe('RLIST Operations', () => {
     it('should get value at valid index', () => {
       const vm = resetVM();
 
-      // Create RLIST [10, 20, 30]
+      // Create LIST [10, 20, 30]
       openRListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
@@ -281,10 +281,10 @@ describe('RLIST Operations', () => {
       expect(fromTaggedValue(result).value).toBe(0); // NIL
     });
 
-    it('should return NIL for non-RLIST', () => {
+    it('should return NIL for non-LIST', () => {
       const vm = resetVM();
 
-      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an RLIST
+      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST
       vm.push(toTaggedValue(0, Tag.INTEGER));
       rlistGetAtOp(vm);
 
@@ -297,7 +297,7 @@ describe('RLIST Operations', () => {
     it('should set value at valid index', () => {
       const vm = resetVM();
 
-      // Create RLIST [10, 20, 30]
+      // Create LIST [10, 20, 30]
       openRListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
@@ -309,9 +309,9 @@ describe('RLIST Operations', () => {
       vm.push(toTaggedValue(99, Tag.INTEGER));
       rlistSetAtOp(vm);
 
-      // RLIST should still be on stack
+      // LIST should still be on stack
       const header = vm.peek();
-      expect(fromTaggedValue(header).tag).toBe(Tag.RLIST);
+      expect(fromTaggedValue(header).tag).toBe(Tag.LIST);
 
       // Check that the value was updated (index 1 is at SP-12)
       const updatedValue = vm.memory.readFloat32(0, vm.SP - 12);
@@ -336,18 +336,18 @@ describe('RLIST Operations', () => {
     it('should return NIL when trying to overwrite compound value', () => {
       const vm = resetVM();
 
-      // Create outer RLIST containing an inner RLIST
+      // Create outer LIST containing an inner LIST
       openRListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
 
-      // Add inner RLIST
+      // Add inner LIST
       openRListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       closeRListOp(vm);
 
       closeRListOp(vm);
 
-      // Try to overwrite the inner RLIST (index 1)
+      // Try to overwrite the inner LIST (index 1)
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(99, Tag.INTEGER));
       rlistSetAtOp(vm);
@@ -356,12 +356,12 @@ describe('RLIST Operations', () => {
       expect(fromTaggedValue(result).value).toBe(0); // NIL - refused to overwrite
     });
 
-    it('should return NIL for non-RLIST', () => {
+    it('should return NIL for non-LIST', () => {
       const vm = resetVM();
 
-      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an RLIST
-      vm.push(toTaggedValue(0, Tag.INTEGER));   // Index
-      vm.push(toTaggedValue(99, Tag.INTEGER));  // New value
+      vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST
+      vm.push(toTaggedValue(0, Tag.INTEGER)); // Index
+      vm.push(toTaggedValue(99, Tag.INTEGER)); // New value
       rlistSetAtOp(vm);
 
       const result = vm.peek();

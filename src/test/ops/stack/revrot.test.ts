@@ -49,7 +49,7 @@ describe('revrot Operation', () => {
       resetVM();
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(5);
 
       revrotOp(vm);
@@ -63,8 +63,8 @@ describe('revrot Operation', () => {
       vm.push(1);
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(3, Tag.RLIST));
-      vm.push(toTaggedValue(1, Tag.RLIST));
+      vm.push(toTaggedValue(3, Tag.LIST));
+      vm.push(toTaggedValue(1, Tag.LIST));
 
       vm.push(4);
       vm.push(5);
@@ -78,13 +78,13 @@ describe('revrot Operation', () => {
     test('should reverse rotate three lists', () => {
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(3);
       vm.push(4);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(5);
       vm.push(6);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       revrotOp(vm);
 

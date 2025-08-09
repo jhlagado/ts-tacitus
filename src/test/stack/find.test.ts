@@ -12,7 +12,7 @@ function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
 function createRList(vm: VM, ...values: number[]): { start: number; end: number } {
   const start = vm.SP;
   values.forEach(val => pushValue(vm, val));
-  pushValue(vm, values.length, Tag.RLIST);
+  pushValue(vm, values.length, Tag.LIST);
   return { start, end: vm.SP };
 }
 
@@ -45,7 +45,7 @@ describe('findElement', () => {
 
     // Wrap inner within outer: push inner payload+header remains contiguous; then add outer header
     pushValue(vm, 4); // another payload under inner header
-    pushValue(vm, 3, Tag.RLIST); // outer header with 3 slots total for payload (inner header counts as one slot)
+    pushValue(vm, 3, Tag.LIST); // outer header with 3 slots total for payload (inner header counts as one slot)
 
     const [_outerNext, outerSize] = findElement(vm, 0);
     expect(outerSize).toBe(4);
@@ -79,20 +79,20 @@ describe('findElement', () => {
   });
 
   test('should find an empty list', () => {
-    pushValue(vm, 0, Tag.RLIST);
+    pushValue(vm, 0, Tag.LIST);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should return size 1 for invalid list structure (missing LIST tag)', () => {
-    // Legacy scenario removed; RLIST must have header tag
+    // Legacy scenario removed; LIST must have header tag
     pushValue(vm, 1, Tag.NUMBER);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should return size 1 for invalid list structure (size mismatch)', () => {
-    // Invalid RLIST-like sequence (no header or wrong tag): treated as atomic
+    // Invalid LIST-like sequence (no header or wrong tag): treated as atomic
     pushValue(vm, 2);
     pushValue(vm, 1);
     const [_next, size] = findElement(vm, 0);
@@ -132,7 +132,7 @@ describe('findElement', () => {
     for (let i = 0; i < maxSize; i++) {
       pushValue(vm, i % 1000);
     }
-    pushValue(vm, maxSize, Tag.RLIST);
+    pushValue(vm, maxSize, Tag.LIST);
 
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(maxSize + 1);

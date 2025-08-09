@@ -313,7 +313,7 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
       }
       index++;
     } else if (element.type === 'list') {
-      expect(tag).toBe(Tag.RLIST);
+      expect(tag).toBe(Tag.LIST);
       index++;
 
       if (element.children) {

@@ -247,7 +247,7 @@ export const dropOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'drop');
   const topValue = vm.peek();
   const { tag, value } = fromTaggedValue(topValue);
-  if (tag === Tag.RLIST) {
+  if (tag === Tag.LIST) {
     const totalSlots = value + 1;
     vm.SP -= totalSlots * BYTES_PER_ELEMENT;
     return;

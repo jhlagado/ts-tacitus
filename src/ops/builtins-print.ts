@@ -40,7 +40,7 @@ function formatScalarValue(vm: VM, value: number): string {
  * Formats a list value for human-readable output.
  *
  * This function handles two types of list representations:
- * Legacy LIST/LINK support has been removed. Only RLIST is supported.
+ * Legacy LIST/LINK support has been removed. Only LIST is supported.
  *
  * @param vm - The virtual machine instance
  * @param value - The NaN-boxed tagged value to format
@@ -51,8 +51,8 @@ function formatList(vm: VM, value: number, _depth = 0): { formatted: string; siz
   const { tag, value: tagValue } = fromTaggedValue(value);
   const stackData = vm.getStackData();
 
-  // Handle RLIST first to avoid misclassifying as NaN-boxed LIST
-  if (tag === Tag.RLIST) {
+  // Handle LIST first to avoid misclassifying as NaN-boxed LIST
+  if (tag === Tag.LIST) {
     const slots = tagValue;
     const formatted = coreFormatValue(vm, value);
     return { formatted, size: slots };
@@ -90,7 +90,7 @@ function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): stri
   while (consumed < totalSlots && vm.SP >= BYTES_PER_ELEMENT) {
     const cell = vm.pop();
     const cellDecoded = fromTaggedValue(cell);
-    if (cellDecoded.tag === Tag.RLIST) {
+    if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
       const nested = formatAndConsumeRListFromHeaderValue(vm, cell);
       parts.push(nested);
@@ -129,8 +129,8 @@ export function printOp(vm: VM): void {
     const topValue = vm.peek();
     const decoded = fromTaggedValue(topValue);
 
-    // Direct RLIST handling: use core formatter and pop header+payload
-    if (decoded.tag === Tag.RLIST) {
+    // Direct LIST handling: use core formatter and pop header+payload
+    if (decoded.tag === Tag.LIST) {
       // Pop header and then format by consuming payload
       const headerVal = vm.pop();
       const formatted = formatAndConsumeRListFromHeaderValue(vm, headerVal);
@@ -138,9 +138,9 @@ export function printOp(vm: VM): void {
       return;
     }
 
-  // Fallback scalar print only (legacy LIST/LINK removed)
-  vm.pop();
-  console.log(coreFormatValue(vm, topValue));
+    // Fallback scalar print only (legacy LIST/LINK removed)
+    vm.pop();
+    console.log(coreFormatValue(vm, topValue));
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`[Print error: ${errorMessage}]`);

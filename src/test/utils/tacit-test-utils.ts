@@ -48,7 +48,7 @@ export function runTacitIntegrationTest(test: TacitIntegrationTest): void {
       if (containsLists !== undefined) {
         const listCount = stack.filter(item => {
           const { tag } = fromTaggedValue(item);
-          return tag === Tag.RLIST;
+          return tag === Tag.LIST;
         }).length;
         expect(listCount).toBe(containsLists);
       }
@@ -115,7 +115,7 @@ export function verifyNestedStructure(stack: number[], maxDepth: number): void {
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
 
-    if (tag === Tag.RLIST) {
+    if (tag === Tag.LIST) {
       if (inList) {
         currentDepth++;
       } else {

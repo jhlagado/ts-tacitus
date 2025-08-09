@@ -260,27 +260,27 @@ export enum Op {
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 
-  /**  Opens an RLIST with '[' - pushes stack position onto return stack */
+  /**  Opens an LIST with '[' - pushes stack position onto return stack */
   OpenRList,
 
-  /**  Closes an RLIST with ']' - creates RLIST tag with reverse payload */
+  /**  Closes an LIST with ']' - creates LIST tag with reverse payload */
   CloseRList,
 
-  /**  Gets slot count from RLIST header - ( rlist — rlist n ) */
+  /**  Gets slot count from LIST header - ( rlist — rlist n ) */
   RListSlot,
 
-  /**  Skips entire RLIST from stack - ( rlist — ) */
+  /**  Skips entire LIST from stack - ( rlist — ) */
   RListSkip,
 
-  /**  Prepends value to RLIST - ( val rlist — rlist' ) */
+  /**  Prepends value to LIST - ( val rlist — rlist' ) */
   RListPrepend,
 
-  /**  Appends value to RLIST - ( rlist val — rlist' ) */
+  /**  Appends value to LIST - ( rlist val — rlist' ) */
   RListAppend,
 
-  /**  Gets value at index from RLIST - ( rlist i — val ) */
+  /**  Gets value at index from LIST - ( rlist i — val ) */
   RListGetAt,
 
-  /**  Sets value at index in RLIST - ( rlist i val — rlist ) */
+  /**  Sets value at index in LIST - ( rlist i val — rlist ) */
   RListSetAt,
 }

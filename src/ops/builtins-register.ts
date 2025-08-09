@@ -34,7 +34,6 @@ import {
 
 import { literalAddressOp } from './builtins';
 
-
 import {
   addOp,
   subtractOp,
@@ -135,7 +134,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('(', Op.OpenRList, openRListOp);
   symbolTable.define(')', Op.CloseRList, closeRListOp);
 
-  // RLIST operations (parentheses only)
+  // LIST operations (parentheses only)
   symbolTable.define('.slot', Op.RListSlot, rlistSlotOp);
   symbolTable.define('.skip', Op.RListSkip, rlistSkipOp);
   symbolTable.define('prepend', Op.RListPrepend, rlistPrependOp);

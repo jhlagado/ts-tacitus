@@ -21,21 +21,21 @@ describe('List Creation Operations', () => {
     test('should create a simple list with 2 elements', () => {
       const stack = executeTacitCode('( 1 2 ) .slot');
 
-      // After .slot, TOS should be an INTEGER 2 and RLIST header remains below
+      // After .slot, TOS should be an INTEGER 2 and LIST header remains below
       logStack(stack);
       const top = fromTaggedValue(stack[stack.length - 1]);
       expect(top).toEqual({ tag: Tag.INTEGER, value: 2 });
-      // RLIST header presence is validated by .slot; confirm stack length grows by 1
+      // LIST header presence is validated by .slot; confirm stack length grows by 1
       expect(stack.length).toBe(4);
     });
 
     test('should handle empty lists', () => {
       const stack = executeTacitCode('( )');
 
-      // RLIST empty: only header with 0 slots
+      // LIST empty: only header with 0 slots
       expect(stack.length).toBe(1);
       const { tag, value } = fromTaggedValue(stack[0]);
-      expect(tag).toBe(Tag.RLIST);
+      expect(tag).toBe(Tag.LIST);
       expect(value).toBe(0);
     });
   });
@@ -44,12 +44,12 @@ describe('List Creation Operations', () => {
     test('should handle a nested list with 1 level of nesting', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
 
-      // RLIST layout total cells: inner (3) + payload(1+1) + outer header(1) = 6
+      // LIST layout total cells: inner (3) + payload(1+1) + outer header(1) = 6
       expect(stack.length).toBe(6);
       const len = stack.length;
 
       // Outer header
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.RLIST, value: 5 });
+      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 5 });
       // First logical element just below outer header
       expect(fromTaggedValue(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
       // Verify bottom-most element is 4 to ensure payload ordering
@@ -62,7 +62,7 @@ describe('List Creation Operations', () => {
       // Outer payload includes two inner RLISTs (3 cells each) = 6, plus outer header = 7
       expect(stack.length).toBe(7);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.RLIST, value: 6 });
+      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 6 });
     });
   });
 
@@ -77,7 +77,7 @@ describe('List Creation Operations', () => {
       // Computed total: 9 cells
       expect(stack.length).toBe(9);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1]).tag).toBe(Tag.RLIST);
+      expect(fromTaggedValue(stack[len - 1]).tag).toBe(Tag.LIST);
     });
 
     test('should handle deeply nested lists (3+ levels)', () => {
@@ -86,7 +86,7 @@ describe('List Creation Operations', () => {
       // Computed total: 9 cells
       expect(stack.length).toBe(9);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.RLIST, value: 8 });
+      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 8 });
     });
   });
 });

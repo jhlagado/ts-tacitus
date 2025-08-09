@@ -42,7 +42,9 @@ describe('Code Reference Utilities', () => {
 
     test('should reject invalid opcodes', () => {
       expect(() => createBuiltinRef(-1)).toThrow('Invalid builtin opcode: -1');
-      expect(() => createBuiltinRef(MIN_USER_OPCODE)).toThrow(`Invalid builtin opcode: ${MIN_USER_OPCODE}`);
+      expect(() => createBuiltinRef(MIN_USER_OPCODE)).toThrow(
+        `Invalid builtin opcode: ${MIN_USER_OPCODE}`,
+      );
       expect(() => createBuiltinRef(1000)).toThrow('Invalid builtin opcode: 1000');
     });
   });
@@ -135,7 +137,7 @@ describe('Code Reference Utilities', () => {
     test('should reject non-executable values', () => {
       const numberValue = 42;
       const stringRef = toTaggedValue(100, Tag.STRING);
-      const listRef = toTaggedValue(3, Tag.RLIST);
+      const listRef = toTaggedValue(3, Tag.LIST);
 
       expect(isExecutableRef(numberValue)).toBe(false);
       expect(isExecutableRef(stringRef)).toBe(false);

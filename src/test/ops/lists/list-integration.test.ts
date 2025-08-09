@@ -12,7 +12,7 @@ describe('List Integration Tests', () => {
   });
 
   describe('simple values', () => {
-    test('should create and manipulate simple lists with TACIT syntax (RLIST)', () => {
+    test('should create and manipulate simple lists with TACIT syntax (LIST)', () => {
       const stack = executeTacitCode('( 1 2 3 ) dup');
 
       expect(stack.length).toBeGreaterThan(4);
@@ -21,8 +21,8 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(3);
 
       // Should have duplicated content overall (header duplication is not guaranteed at the end due to stack policy)
-      // Assert that at least one RLIST header exists
-      const headers = stack.map(fromTaggedValue).filter(d => d.tag === Tag.RLIST);
+      // Assert that at least one LIST header exists
+      const headers = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
       expect(headers.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -51,7 +51,7 @@ describe('List Integration Tests', () => {
       // Verify list structure tags are present
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
-        return tag === Tag.RLIST;
+        return tag === Tag.LIST;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple nested RLISTs
     });
@@ -59,7 +59,7 @@ describe('List Integration Tests', () => {
     test('should manipulate mixed data types in lists', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) drop');
 
-      // drop removes the top element (which is the RLIST header only), leaving payload on stack
+      // drop removes the top element (which is the LIST header only), leaving payload on stack
       expect(stack.length).toBe(0);
     });
 
@@ -87,7 +87,7 @@ describe('List Integration Tests', () => {
       // Should have empty list somewhere in the result
       const listTags = stack.filter(item => {
         const { tag, value } = fromTaggedValue(item);
-        return tag === Tag.RLIST && value === 0;
+        return tag === Tag.LIST && value === 0;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(1);
     });
@@ -135,7 +135,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(168);
 
       // Verify list structure is maintained
-      const headersAfter = stack.map(fromTaggedValue).filter(d => d.tag === Tag.RLIST);
+      const headersAfter = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
       expect(headersAfter.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -154,7 +154,7 @@ describe('List Integration Tests', () => {
       // Verify deeply nested structure
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
-        return tag === Tag.RLIST;
+        return tag === Tag.LIST;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple levels of nesting
     });
@@ -170,21 +170,21 @@ describe('List Integration Tests', () => {
 
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
-        return tag === Tag.RLIST;
+        return tag === Tag.LIST;
       });
       expect(listTags.length).toBe(1);
     });
   });
 
   // Consolidated from former rlist-integration tests
-  describe('parser + VM integration (RLIST semantics)', () => {
+  describe('parser + VM integration (LIST semantics)', () => {
     test('should build a simple list using ( ) syntax', () => {
       const stack = executeTacitCode('( 1 2 3 )');
       expect(stack.length).toBe(4);
 
       const header = stack[stack.length - 1];
       const { tag: headerTag, value: slots } = fromTaggedValue(header);
-      expect(headerTag).toBe(Tag.RLIST);
+      expect(headerTag).toBe(Tag.LIST);
       expect(slots).toBe(3);
 
       const payload0 = stack[stack.length - 2];
@@ -201,7 +201,7 @@ describe('List Integration Tests', () => {
 
       const outerHeader = stack[stack.length - 1];
       const { tag: outerTag, value: outerSlots } = fromTaggedValue(outerHeader);
-      expect(outerTag).toBe(Tag.RLIST);
+      expect(outerTag).toBe(Tag.LIST);
       expect(outerSlots).toBeGreaterThan(0);
 
       const firstLogical = stack[stack.length - 2];
@@ -210,15 +210,15 @@ describe('List Integration Tests', () => {
       const innerHeaderIndex = stack.findIndex((v, i) => {
         if (i >= stack.length - 1) return false;
         const d = fromTaggedValue(v);
-        return d.tag === Tag.RLIST && i !== stack.length - 1;
+        return d.tag === Tag.LIST && i !== stack.length - 1;
       });
       expect(innerHeaderIndex).toBeGreaterThanOrEqual(0);
       const { tag: innerTag, value: innerSlots } = fromTaggedValue(stack[innerHeaderIndex]);
-      expect(innerTag).toBe(Tag.RLIST);
+      expect(innerTag).toBe(Tag.LIST);
       expect(innerSlots).toBe(2);
     });
 
-    test('should lay out nested list stack as: 4 3 2 RLIST:2 1 RLIST:5 ← TOS', () => {
+    test('should lay out nested list stack as: 4 3 2 LIST:2 1 LIST:5 ← TOS', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
       const len = stack.length;
 
@@ -227,10 +227,10 @@ describe('List Integration Tests', () => {
       const decode = fromTaggedValue;
 
       const outerHeader = stack[len - 1];
-      expect(decode(outerHeader)).toEqual({ tag: Tag.RLIST, value: 5 });
+      expect(decode(outerHeader)).toEqual({ tag: Tag.LIST, value: 5 });
 
       expect(decode(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
-      expect(decode(stack[len - 3])).toEqual({ tag: Tag.RLIST, value: 2 });
+      expect(decode(stack[len - 3])).toEqual({ tag: Tag.LIST, value: 2 });
       expect(decode(stack[len - 4])).toEqual({ tag: Tag.NUMBER, value: 2 });
       expect(decode(stack[len - 5])).toEqual({ tag: Tag.NUMBER, value: 3 });
       expect(decode(stack[len - 6])).toEqual({ tag: Tag.NUMBER, value: 4 });
@@ -245,7 +245,7 @@ describe('List Integration Tests', () => {
         stack[stack.length - 3],
         stack[stack.length - 4],
         stack[stack.length - 5],
-      ].map((v) => fromTaggedValue(v).value);
+      ].map(v => fromTaggedValue(v).value);
       expect(values).toEqual([10, 20, 30, 40]);
     });
   });

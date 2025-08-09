@@ -5,38 +5,40 @@ import { fromTaggedValue, Tag } from '../../core/tagged';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 
-function top(): number { return vm.getStackData()[vm.getStackData().length - 1]; }
+function top(): number {
+  return vm.getStackData()[vm.getStackData().length - 1];
+}
 
-describe('Parser RLIST Integration (() )', () => {
+describe('Parser LIST Integration (() )', () => {
   beforeEach(() => {
     initializeInterpreter();
   });
 
-  it('parses simple RLIST literal: ( 1 2 3 ) and builds RLIST on stack', () => {
+  it('parses simple LIST literal: ( 1 2 3 ) and builds LIST on stack', () => {
     executeProgram('( 1 2 3 )');
     const stack = vm.getStackData();
     expect(stack.length).toBe(4);
     const { tag, value } = fromTaggedValue(top());
-    expect(tag).toBe(Tag.RLIST);
+    expect(tag).toBe(Tag.LIST);
     expect(value).toBe(3);
   });
 
-  it('parses nested RLIST: ( 1 ( 2 3 ) 4 )', () => {
+  it('parses nested LIST: ( 1 ( 2 3 ) 4 )', () => {
     executeProgram('( 1 ( 2 3 ) 4 )');
     const stack = vm.getStackData();
     const header = top();
     const { tag, value } = fromTaggedValue(header);
-    expect(tag).toBe(Tag.RLIST);
+    expect(tag).toBe(Tag.LIST);
     expect(value).toBeGreaterThan(0);
   });
 
   // Legacy LIST/LINK mixed structures have been removed
 
-  it('throws on unmatched RLIST closing bracket', () => {
+  it('throws on unmatched LIST closing bracket', () => {
     expect(() => parse(new Tokenizer(')'))).toThrow();
   });
 
-  it('throws on unmatched RLIST opening bracket', () => {
+  it('throws on unmatched LIST opening bracket', () => {
     expect(() => parse(new Tokenizer('( 1 2 3'))).toThrow();
   });
 });
