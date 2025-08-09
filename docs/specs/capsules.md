@@ -1,7 +1,5 @@
 editing plan
 
-Here’s a detailed edit plan for modernising capsules.md so it matches your current list model and retains all original detail while expanding coverage.
-This is structured as section-by-section changes, with exact content additions and rationale.
 
 
 ---
@@ -233,8 +231,6 @@ Table summarising legal vs illegal mutations in capsule fields.
 
 ---
 
-If you want, I can now apply this plan to the current capsules.md in a new canvas, keeping everything but adding the expanded content without shortening.
-Do you want me to move straight to that?
 
 
 
