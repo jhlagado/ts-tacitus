@@ -279,4 +279,12 @@ export enum Op {
 
   /**  Sets value at index in LIST - ( list i val — list ) */
   ListSetAt,
+
+  // New list primitives aligned with lists.md
+  /** Prepend (list-first): cons - ( list value — list' ) */
+  Cons,
+  /** Concat two lists (flatten): ( listA listB — listC ) */
+  Concat,
+  /** Drop logical head element: ( list — list' ) */
+  DropHead,
 }

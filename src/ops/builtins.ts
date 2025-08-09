@@ -97,6 +97,7 @@ import {
   listGetAtOp,
   listSetAtOp,
 } from './builtins-list';
+import { consOp, concatOp, dropHeadOp } from './builtins-list';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -330,6 +331,15 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.ListSetAt:
       listSetAtOp(vm);
+      break;
+    case Op.Cons:
+      consOp(vm);
+      break;
+    case Op.Concat:
+      concatOp(vm);
+      break;
+    case Op.DropHead:
+      dropHeadOp(vm);
       break;
     case Op.PushSymbolRef:
       pushSymbolRefOp(vm);

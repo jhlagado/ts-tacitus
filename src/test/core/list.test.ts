@@ -76,7 +76,7 @@ describe('LIST Core Utilities', () => {
 
     it('should handle mixed tag types', () => {
       const vm = resetVM();
-      const intVal = toTaggedValue(42, Tag.INTEGER);
+      const intVal = 42;
       const numVal = 3.14; // NUMBER tag
       const strVal = toTaggedValue(100, Tag.STRING);
 
@@ -125,7 +125,7 @@ describe('LIST Core Utilities', () => {
 
     it('should skip LIST with single value', () => {
       const vm = resetVM();
-      const value = toTaggedValue(42, Tag.INTEGER);
+      const value = 42;
       createList(vm, [value]);
 
       const initialSP = vm.SP;
@@ -138,11 +138,7 @@ describe('LIST Core Utilities', () => {
 
     it('should skip LIST with multiple values', () => {
       const vm = resetVM();
-      const values = [
-        toTaggedValue(1, Tag.INTEGER),
-        toTaggedValue(2, Tag.INTEGER),
-        toTaggedValue(3, Tag.INTEGER),
-      ];
+      const values = [1, 2, 3];
       createList(vm, values);
 
       const initialSP = vm.SP;
@@ -155,7 +151,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on non-LIST at TOS', () => {
       const vm = resetVM();
-      vm.push(toTaggedValue(5, Tag.INTEGER));
+      vm.push(5);
 
       expect(() => skipList(vm)).toThrow('Expected LIST header at TOS');
     });
@@ -192,7 +188,7 @@ describe('LIST Core Utilities', () => {
   describe('validateListHeader', () => {
     it('should validate correct LIST header', () => {
       const vm = resetVM();
-      createList(vm, [toTaggedValue(42, Tag.INTEGER)]);
+      createList(vm, [42]);
 
       expect(() => validateListHeader(vm)).not.toThrow();
     });
@@ -205,7 +201,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on non-LIST at TOS', () => {
       const vm = resetVM();
-      vm.push(toTaggedValue(5, Tag.INTEGER));
+      vm.push(5);
 
       expect(() => validateListHeader(vm)).toThrow('Expected LIST header at TOS');
     });
@@ -237,7 +233,7 @@ describe('LIST Core Utilities', () => {
   describe('reverseSpan', () => {
     it('should handle single element (no change)', () => {
       const vm = resetVM();
-      const value = toTaggedValue(42, Tag.INTEGER);
+      const value = 42;
       vm.push(value);
 
       reverseSpan(vm, 1);
@@ -253,8 +249,8 @@ describe('LIST Core Utilities', () => {
 
     it('should reverse two elements', () => {
       const vm = resetVM();
-      const val1 = toTaggedValue(1, Tag.INTEGER);
-      const val2 = toTaggedValue(2, Tag.INTEGER);
+      const val1 = 1;
+      const val2 = 2;
 
       vm.push(val1);
       vm.push(val2);
@@ -269,10 +265,10 @@ describe('LIST Core Utilities', () => {
 
     it('should reverse multiple elements', () => {
       const vm = resetVM();
-      const val1 = toTaggedValue(1, Tag.INTEGER);
-      const val2 = toTaggedValue(2, Tag.INTEGER);
-      const val3 = toTaggedValue(3, Tag.INTEGER);
-      const val4 = toTaggedValue(4, Tag.INTEGER);
+      const val1 = 1;
+      const val2 = 2;
+      const val3 = 3;
+      const val4 = 4;
 
       vm.push(val1); // Bottom
       vm.push(val2);
@@ -290,9 +286,9 @@ describe('LIST Core Utilities', () => {
 
     it('should reverse odd number of elements', () => {
       const vm = resetVM();
-      const val1 = toTaggedValue(1, Tag.INTEGER);
-      const val2 = toTaggedValue(2, Tag.INTEGER);
-      const val3 = toTaggedValue(3, Tag.INTEGER);
+      const val1 = 1;
+      const val2 = 2;
+      const val3 = 3;
 
       vm.push(val1);
       vm.push(val2);
@@ -308,7 +304,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on insufficient stack', () => {
       const vm = resetVM();
-      vm.push(toTaggedValue(1, Tag.INTEGER));
+      vm.push(1);
 
       expect(() => reverseSpan(vm, 5)).toThrow('reverse span operation');
     });
@@ -317,7 +313,7 @@ describe('LIST Core Utilities', () => {
   describe('Integration Tests', () => {
     it('should create, validate, and skip LIST in sequence', () => {
       const vm = resetVM();
-      const values = [toTaggedValue(10, Tag.INTEGER), toTaggedValue(20, Tag.INTEGER)];
+      const values = [10, 20];
 
       createList(vm, values);
       expect(getStackDepth(vm)).toBe(3);
@@ -332,7 +328,7 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
 
       // First create and validate an inner LIST
-      const innerValues = [toTaggedValue(1, Tag.INTEGER), toTaggedValue(2, Tag.INTEGER)];
+      const innerValues = [1, 2];
       createList(vm, innerValues);
       validateListHeader(vm);
 
@@ -344,11 +340,7 @@ describe('LIST Core Utilities', () => {
       }
 
       // Create outer LIST with the inner LIST as a value
-      const outerValues = [
-        toTaggedValue(0, Tag.INTEGER),
-        innerListValue,
-        toTaggedValue(3, Tag.INTEGER),
-      ];
+      const outerValues = [0, innerListValue, 3];
       createList(vm, outerValues);
 
       const outerHeader = vm.peek();

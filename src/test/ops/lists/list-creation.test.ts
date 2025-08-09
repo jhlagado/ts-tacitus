@@ -13,13 +13,13 @@ describe('List Creation Operations', () => {
 
   describe('simple values', () => {
     test('should create a simple list with 2 elements', () => {
-      const stack = executeTacitCode('( 1 2 ) .slot');
+      const stack = executeTacitCode('( 1 2 ) slots');
 
       // After .slot, TOS should be an INTEGER 2 and LIST header remains below
       logStack(stack);
       const top = fromTaggedValue(stack[stack.length - 1]);
       expect(top).toEqual({ tag: Tag.INTEGER, value: 2 });
-      // LIST header presence is validated by .slot; confirm stack length grows by 1
+      // LIST header presence is validated by slots; confirm stack length grows by 1
       expect(stack.length).toBe(4);
     });
 
