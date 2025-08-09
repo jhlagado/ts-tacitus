@@ -14,7 +14,7 @@ export class TestList {
     for (const value of this.values) {
       vm.push(value);
     }
-    const listTagged = (Tag.RLIST << 24) | (this.values.length & 0xffffff);
+    const listTagged = (Tag.LIST << 24) | (this.values.length & 0xffffff);
     vm.push(listTagged);
   }
 

@@ -65,10 +65,10 @@ describe('Print Operations', () => {
     });
 
     describe('list operations', () => {
-              test('should print a tagged value', () => {
-          const output = captureTacitOutput('(1 2) .');
-          expect(output[0]).toMatch(/^RLIST:\d+/);
-        });
+      test('should print a tagged value', () => {
+        const output = captureTacitOutput('(1 2) .');
+        expect(output[0]).toMatch(/^LIST:\d+/);
+      });
 
       test('should handle complex list structures', () => {
         const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) .');

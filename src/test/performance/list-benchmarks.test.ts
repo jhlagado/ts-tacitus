@@ -1,16 +1,28 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../core/vm';
 import { toTaggedValue, Tag, fromTaggedValue } from '../../core/tagged';
-import { openRListOp, closeRListOp, rlistPrependOp, rlistAppendOp, rlistSlotOp } from '../../ops/builtins-list';
+import {
+  openRListOp,
+  closeRListOp,
+  rlistPrependOp,
+  rlistAppendOp,
+  rlistSlotOp,
+} from '../../ops/builtins-list';
 
-function newVM(): VM { const vm = new VM(); vm.reset(); return vm; }
+function newVM(): VM {
+  const vm = new VM();
+  vm.reset();
+  return vm;
+}
 
-describe.skip('RLIST Performance Benchmarks (non-failing)', () => {
+describe.skip('LIST Performance Benchmarks (non-failing)', () => {
   let vm: VM;
-  beforeEach(() => { vm = newVM(); });
+  beforeEach(() => {
+    vm = newVM();
+  });
 
   it('O(1) prepend scales to 3k without error', () => {
-    // Start with empty RLIST
+    // Start with empty LIST
     openRListOp(vm);
     closeRListOp(vm);
 

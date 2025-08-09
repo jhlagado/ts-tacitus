@@ -35,12 +35,12 @@ describe('swap Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should swap a simple list with a value', () => {
       vm.push(5);
       vm.push(20);
       vm.push(30);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(10);
 
       swapOp(vm);
@@ -54,7 +54,7 @@ describe('swap Operation', () => {
       vm.push(10);
       vm.push(20);
       vm.push(30);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       swapOp(vm);
 
@@ -68,10 +68,10 @@ describe('swap Operation', () => {
       vm.push(5);
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(30);
       vm.push(40);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       swapOp(vm);
 
@@ -83,14 +83,14 @@ describe('swap Operation', () => {
     test('should handle empty lists during swap', () => {
       vm.push(5);
       vm.push(42);
-      vm.push(toTaggedValue(0, Tag.RLIST));
+      vm.push(toTaggedValue(0, Tag.LIST));
 
       swapOp(vm);
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(5);
-      expect(fromTaggedValue(stack[1])).toEqual({ tag: Tag.RLIST, value: 0 });
+      expect(fromTaggedValue(stack[1])).toEqual({ tag: Tag.LIST, value: 0 });
       expect(stack[2]).toBe(42);
     });
   });

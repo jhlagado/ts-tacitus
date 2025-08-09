@@ -73,8 +73,8 @@ export function withList(values: number[]): StackSetup {
     for (const v of values) {
       vm.push(v);
     }
-    // RLIST header with slot count
-    vm.push(toTaggedValue(values.length, Tag.RLIST));
+    // LIST header with slot count
+    vm.push(toTaggedValue(values.length, Tag.LIST));
   };
 }
 
@@ -97,7 +97,7 @@ export function pushList(vm: VM, values: number[]): void {
   for (const val of values) {
     vm.push(val);
   }
-  pushValue(vm, values.length, Tag.RLIST);
+  pushValue(vm, values.length, Tag.LIST);
 }
 
 /**

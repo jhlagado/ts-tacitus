@@ -121,7 +121,7 @@ function validateFinalState(state: ParserState): void {
 
   // Ensure all list/rlists were properly closed
   if (vm.listDepth !== 0) {
-    throw new SyntaxError('Unclosed list or RLIST', vm.getStackData());
+    throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
   }
 }
 
@@ -316,33 +316,33 @@ function processWordToken(value: string, state: ParserState): void {
 
 /**
  * Process @symbol tokens for unified code references.
- * 
+ *
  * This function handles @symbol syntax by calling vm.pushSymbolRef() to resolve
  * the symbol to either a Tag.BUILTIN or Tag.CODE tagged value and push it to the stack.
  * The resulting tagged value can be used with 'eval' for metaprogramming.
- * 
+ *
  * Examples:
- * - @add → Tag.BUILTIN(Op.Add) 
+ * - @add → Tag.BUILTIN(Op.Add)
  * - @square → Tag.CODE(bytecode_addr)
- * 
+ *
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
 function processAtSymbol(symbolName: string, state: ParserState): void {
   // Generate bytecode to call vm.pushSymbolRef() at runtime
   // This pushes the resolved tagged value directly onto the stack
-  
+
   // Compile a call to the pushSymbolRef built-in with the symbol name
   const pushSymbolRefIndex = vm.symbolTable.find('pushSymbolRef');
   if (pushSymbolRefIndex === undefined) {
     throw new UndefinedWordError('pushSymbolRef', vm.getStackData());
   }
-  
+
   // First push the symbol name as a string literal
   vm.compiler.compileOpcode(Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
   vm.compiler.compile16(stringAddress);
-  
+
   // Then call pushSymbolRef
   vm.compiler.compileOpcode(pushSymbolRefIndex);
 }
@@ -367,7 +367,7 @@ function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    // Retarget parentheses to RLIST construction (keep [ ] as alias during migration)
+    // Retarget parentheses to LIST construction (keep [ ] as alias during migration)
     beginRList(state);
   } else if (value === ')') {
     endRList(state);
@@ -519,8 +519,8 @@ function endList(_state: ParserState): void {
 }
 
 /**
- * Begin an RLIST with opening bracket ([).
- * Mirrors beginList but targets RLIST ops.
+ * Begin an LIST with opening bracket ([).
+ * Mirrors beginList but targets LIST ops.
  */
 function beginRList(_state: ParserState): void {
   vm.listDepth++;
@@ -528,8 +528,8 @@ function beginRList(_state: ParserState): void {
 }
 
 /**
- * End an RLIST with closing bracket (]).
- * Mirrors endList but targets RLIST ops.
+ * End an LIST with closing bracket (]).
+ * Mirrors endList but targets LIST ops.
  */
 function endRList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
@@ -551,7 +551,7 @@ function endRList(_state: ParserState): void {
  */
 function beginStandaloneBlock(state: ParserState): void {
   const { startAddress } = compileCodeBlock(state);
-  
+
   // Emit LiteralCode operation to push the code reference onto the stack
   vm.compiler.compileOpcode(Op.LiteralCode);
   vm.compiler.compile16(startAddress);

@@ -86,7 +86,7 @@ import {
   prodOp,
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
-// Legacy forward list ops removed during unification; parentheses map to RLIST impl
+// Legacy forward list ops removed during unification; parentheses map to LIST impl
 import {
   openRListOp,
   closeRListOp,

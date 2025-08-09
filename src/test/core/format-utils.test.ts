@@ -128,9 +128,9 @@ describe('Format Utils', () => {
         expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
-      test('should format RLIST tags with tag name and value', () => {
-        const listValue = toTaggedValue(2, Tag.RLIST);
-        expect(formatAtomicValue(vm, listValue)).toBe('[RLIST:2]');
+      test('should format LIST tags with tag name and value', () => {
+        const listValue = toTaggedValue(2, Tag.LIST);
+        expect(formatAtomicValue(vm, listValue)).toBe('[LIST:2]');
       });
 
       test('should format INTEGER tags with tag name and value', () => {
@@ -189,9 +189,9 @@ describe('Format Utils', () => {
       });
 
       test('should handle corrupted list structure', () => {
-        // Create an RLIST header that over-claims elements (manually corrupted)
+        // Create an LIST header that over-claims elements (manually corrupted)
         // Push payload smaller than header claims
-        const corruptedHeader = toTaggedValue(2, Tag.RLIST);
+        const corruptedHeader = toTaggedValue(2, Tag.LIST);
         vm.push(1);
         vm.push(corruptedHeader);
         const stack = vm.getStackData();
@@ -234,7 +234,7 @@ describe('Format Utils', () => {
     });
 
     describe('list operations', () => {
-      test('should format RLIST values', () => {
+      test('should format LIST values', () => {
         const stack = executeTacitCode('( 1 2 3 )');
         const header = stack[stack.length - 1];
         const result = formatValue(vm, header);
@@ -280,13 +280,13 @@ describe('Format Utils', () => {
     describe('integration tests', () => {
       test('should handle mixed data types in complex structures', () => {
         const strAddr = vm.digest.intern('hello');
-        // Build RLIST manually: push STRING, NUMBER, NUMBER then RLIST header (3)
-        // RLIST layout expects payload reversed under header: payload-0 at SP-4
+        // Build LIST manually: push STRING, NUMBER, NUMBER then LIST header (3)
+        // LIST layout expects payload reversed under header: payload-0 at SP-4
         // Push values in reverse order so printing is ( hello 42 3.14 )
         vm.push(3.14);
         vm.push(42);
         vm.push(toTaggedValue(strAddr, Tag.STRING));
-        vm.push(toTaggedValue(3, Tag.RLIST));
+        vm.push(toTaggedValue(3, Tag.LIST));
         const header = vm.getStackData()[vm.getStackData().length - 1];
         const result = formatValue(vm, header);
         expect(result).toBe('( hello 42 3.14 )');

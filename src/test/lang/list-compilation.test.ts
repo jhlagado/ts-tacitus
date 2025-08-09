@@ -14,12 +14,12 @@ function decodeFloatLE(bytes: number[], offset: number): number {
   return view.getFloat32(0, true);
 }
 
-describe('RLIST Literal Compilation', () => {
+describe('LIST Literal Compilation', () => {
   beforeEach(() => {
     initializeInterpreter();
   });
 
-  it('compiles a simple RLIST literal: ( 1 2 3 )', () => {
+  it('compiles a simple LIST literal: ( 1 2 3 )', () => {
     parse(new Tokenizer('( 1 2 3 )'));
     const code = vm.getCompileData();
 
@@ -38,7 +38,7 @@ describe('RLIST Literal Compilation', () => {
     expect(code[i]).toBe(Op.Abort);
   });
 
-  it('compiles nested RLIST literal: ( 1 ( 2 3 ) 4 )', () => {
+  it('compiles nested LIST literal: ( 1 ( 2 3 ) 4 )', () => {
     parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
     const code = vm.getCompileData();
 

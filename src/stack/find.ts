@@ -69,8 +69,8 @@ export function findElement(vm: VM, startSlot: number = 0): [number, number] {
 
   const { tag, value: tagValue } = fromTaggedValue(value);
 
-  // RLIST header at TOS: element spans header + payload slots
-  if (tag === Tag.RLIST) {
+  // LIST header at TOS: element spans header + payload slots
+  if (tag === Tag.LIST) {
     const elementSize = tagValue + 1;
     return [startSlot + elementSize, elementSize];
   }

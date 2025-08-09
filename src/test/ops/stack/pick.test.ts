@@ -47,11 +47,11 @@ describe('pick Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should pick a list from the stack', () => {
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(5);
       vm.push(1);
 
@@ -66,7 +66,7 @@ describe('pick Operation', () => {
       vm.push(42);
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(1);
 
       pickOp(vm);

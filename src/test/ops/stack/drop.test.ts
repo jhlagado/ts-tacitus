@@ -34,11 +34,11 @@ describe('drop Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should drop an entire simple list', () => {
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       dropOp(vm);
       expect(vm.getStackData()).toEqual([]);
     });
@@ -47,38 +47,38 @@ describe('drop Operation', () => {
       vm.push(5);
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       dropOp(vm);
       const stack = vm.getStackData();
       expect(stack).toEqual([5]);
     });
 
-    // Removed ambiguous nested drop; drop removes only TOS RLIST per operation
+    // Removed ambiguous nested drop; drop removes only TOS LIST per operation
 
     test('should drop only the top list when multiple lists are present', () => {
       // First list (1 2)
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       // Second list (3 4)
       vm.push(3);
       vm.push(4);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       dropOp(vm);
       const stackAfter = vm.getStackData();
       expect(stackAfter.length).toBe(3); // remaining first list
       const header = stackAfter[2];
-      expect(fromTaggedValue(header)).toEqual({ tag: Tag.RLIST, value: 2 });
+      expect(fromTaggedValue(header)).toEqual({ tag: Tag.LIST, value: 2 });
     });
 
     test('should drop multiple lists consecutively', () => {
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(30);
       vm.push(40);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       dropOp(vm);
       let stack = vm.getStackData();

@@ -36,12 +36,12 @@ describe('over Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should duplicate a value over a list', () => {
       vm.push(42);
       vm.push(10);
       vm.push(20);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       overOp(vm);
 
@@ -52,12 +52,12 @@ describe('over Operation', () => {
     });
 
     test('should handle nested lists correctly', () => {
-      // Build outer ( 1 ( 2 3 ) ) as RLIST
+      // Build outer ( 1 ( 2 3 ) ) as LIST
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(2, Tag.RLIST)); // inner
+      vm.push(toTaggedValue(2, Tag.LIST)); // inner
       vm.push(1);
-      vm.push(toTaggedValue(2, Tag.RLIST)); // outer
+      vm.push(toTaggedValue(2, Tag.LIST)); // outer
 
       vm.push(99);
 

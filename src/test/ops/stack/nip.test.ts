@@ -57,7 +57,7 @@ describe('nip Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should remove simple value under a list (keeping list)', () => {
       const stack = executeTacitCode('42 ( 10 20 ) nip');
 
@@ -68,13 +68,13 @@ describe('nip Operation', () => {
 
     test('should remove list under simple value (keeping simple value)', () => {
       const stack = executeTacitCode('( 99 88 ) 42 nip');
-      // After removing the RLIST (NOS), only 42 should remain
+      // After removing the LIST (NOS), only 42 should remain
       expect(stack).toEqual([42]);
     });
 
     test('should remove list under another list', () => {
       const stack = executeTacitCode('( 100 200 ) ( 300 400 ) nip');
-      // Remove NOS (the first list), leaving the top RLIST only
+      // Remove NOS (the first list), leaving the top LIST only
       expect(stack).not.toContain(100);
       expect(stack).not.toContain(200);
       expect(stack).toContain(300);

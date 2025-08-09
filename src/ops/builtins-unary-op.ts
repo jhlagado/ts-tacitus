@@ -175,7 +175,7 @@ export const mSignumOp: Verb = (vm: VM) => {
 export const mEnlistOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'enlist');
   const a = vm.pop();
-  // RLIST semantics: push value, then RLIST header with slot count 1
+  // LIST semantics: push value, then LIST header with slot count 1
   vm.push(a);
-  vm.push(toTaggedValue(1, Tag.RLIST));
+  vm.push(toTaggedValue(1, Tag.LIST));
 };

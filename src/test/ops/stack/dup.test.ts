@@ -22,34 +22,44 @@ describe('dup Operation', () => {
     });
   });
 
-  describe('list operations (RLIST semantics)', () => {
+  describe('list operations (LIST semantics)', () => {
     test('should duplicate a list', () => {
       vm.push(10);
       vm.push(20);
       vm.push(30);
-      vm.push(toTaggedValue(3, Tag.RLIST));
+      vm.push(toTaggedValue(3, Tag.LIST));
 
       dupOp(vm);
 
       const stack = vm.getStackData();
       // Expect two copies of payload and two headers
       expect(stack.slice(-8)).toEqual([
-        10, 20, 30, toTaggedValue(3, Tag.RLIST),
-        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+        10,
+        20,
+        30,
+        toTaggedValue(3, Tag.LIST),
+        10,
+        20,
+        30,
+        toTaggedValue(3, Tag.LIST),
       ]);
     });
 
     test('should duplicate a simple list', () => {
       vm.push(1);
       vm.push(2);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
 
       dupOp(vm);
 
       const stack = vm.getStackData();
       expect(stack.slice(-6)).toEqual([
-        1, 2, toTaggedValue(2, Tag.RLIST),
-        1, 2, toTaggedValue(2, Tag.RLIST),
+        1,
+        2,
+        toTaggedValue(2, Tag.LIST),
+        1,
+        2,
+        toTaggedValue(2, Tag.LIST),
       ]);
     });
 
@@ -57,14 +67,20 @@ describe('dup Operation', () => {
       vm.push(10);
       vm.push(20);
       vm.push(30);
-      vm.push(toTaggedValue(3, Tag.RLIST));
+      vm.push(toTaggedValue(3, Tag.LIST));
 
       dupOp(vm);
 
       const stack = vm.getStackData();
       expect(stack.slice(-8)).toEqual([
-        10, 20, 30, toTaggedValue(3, Tag.RLIST),
-        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+        10,
+        20,
+        30,
+        toTaggedValue(3, Tag.LIST),
+        10,
+        20,
+        30,
+        toTaggedValue(3, Tag.LIST),
       ]);
     });
 
@@ -72,10 +88,10 @@ describe('dup Operation', () => {
       // Build ( 1 ( 2 3 ) 4 )
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(toTaggedValue(2, Tag.LIST));
       vm.push(1);
       vm.push(4);
-      vm.push(toTaggedValue(3, Tag.RLIST));
+      vm.push(toTaggedValue(3, Tag.LIST));
 
       const before = vm.getStackData().length;
       dupOp(vm);

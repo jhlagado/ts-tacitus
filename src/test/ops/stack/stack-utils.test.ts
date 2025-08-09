@@ -40,9 +40,9 @@ describe('Stack Utils', () => {
     }
 
     function createRList(...values: number[]): void {
-      // RLIST layout: [payload...] [RLIST:slotCount] with header at TOS
+      // LIST layout: [payload...] [LIST:slotCount] with header at TOS
       values.forEach(val => pushValue(val));
-      pushValue(values.length, Tag.RLIST);
+      pushValue(values.length, Tag.LIST);
     }
 
     beforeEach(() => {
@@ -63,7 +63,7 @@ describe('Stack Utils', () => {
       expect(size2).toBe(1);
 
       const [offset3, size3] = findElement(vm, offset2);
-      expect(offset3).toBe(5); // RLIST size is header+payload = 3
+      expect(offset3).toBe(5); // LIST size is header+payload = 3
       expect(size3).toBe(3);
     });
 
