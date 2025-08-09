@@ -8,8 +8,8 @@
  */
 import { VM } from '../core/vm';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { BYTES_PER_ELEMENT, SEG_STACK } from '../core/constants';
-import { formatValue as coreFormatValue, formatListAt as coreFormatListAt } from '../core/format-utils';
+import { BYTES_PER_ELEMENT } from '../core/constants';
+import { formatValue as coreFormatValue } from '../core/format-utils';
 
 /**
  * Formats a single tagged value for human-readable output.
@@ -47,7 +47,7 @@ function formatScalarValue(vm: VM, value: number): string {
  * @param depth - The current nesting depth for recursive list formatting
  * @returns An object containing the formatted string and the size of the list
  */
-function formatList(vm: VM, value: number, depth = 0): { formatted: string; size: number } {
+function formatList(vm: VM, value: number, _depth = 0): { formatted: string; size: number } {
   const { tag, value: tagValue } = fromTaggedValue(value);
   const stackData = vm.getStackData();
 
@@ -79,29 +79,7 @@ function formatList(vm: VM, value: number, depth = 0): { formatted: string; size
  * @param depth - The current nesting depth for recursive formatting
  * @returns An object containing the formatted string and the size of the list
  */
-function formatListElements(
-  vm: VM,
-  listIndex: number,
-  listSize: number,
-  depth: number,
-): { formatted: string; size: number } {
-  const stackData = vm.getStackData();
-  const items = [];
-
-  let i = 0;
-  while (i < listSize) {
-    const elemIndex = listIndex + i + 1;
-    if (elemIndex >= stackData.length) break;
-
-    const elemValue = stackData[elemIndex];
-    const { tag: elemTag, value: elemTagValue } = fromTaggedValue(elemValue);
-
-    items.push(formatScalarValue(vm, elemValue));
-    i++;
-  }
-
-  return { formatted: `( ${items.join(' ')} )`, size: listSize };
-}
+// Removed legacy list element formatter (LIST/LINK no longer supported)
 
 function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): string {
   const decoded = fromTaggedValue(headerValue);
