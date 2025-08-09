@@ -100,7 +100,7 @@ import {
   rlistAppendOp,
   rlistGetAtOp,
   rlistSetAtOp,
-} from './builtins-rlist';
+} from './builtins-list';
 
 /**
  * Registers all built-in operations in the VM's symbol table.

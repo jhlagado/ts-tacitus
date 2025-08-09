@@ -96,7 +96,7 @@ import {
   rlistAppendOp,
   rlistGetAtOp,
   rlistSetAtOp,
-} from './builtins-rlist';
+} from './builtins-list';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';

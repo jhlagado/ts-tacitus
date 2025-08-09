@@ -12,7 +12,7 @@ import {
   getRListPayloadStart,
   validateRListHeader,
   reverseSpan,
-} from '../../core/rlist';
+} from '../../core/list';
 
 function resetVM(): VM {
   const vm = new VM();
