@@ -1,8 +1,8 @@
-# TACIT Reverse Lists (RLIST) Implementation Plan
+# TACIT Reverse Lists (RLIST) Implementation Plan (Unified)
 
 ## Overview
 
-This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stack-native compound data structure that stores elements in reverse order with the header at top-of-stack. This implementation will preserve existing LIST functionality while adding new `[ ]` syntax for RLIST construction.
+This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-native compound data structure that stores elements in reverse order with the header at top-of-stack. The runtime has been unified on RLIST-only semantics; legacy LIST/LINK functionality and types have been removed.
 
 ## Phase 1: Core Infrastructure
 
@@ -73,8 +73,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - Status: Completed
 - **File**: `src/core/format-utils.ts`
 - **Display Tasks**:
-  - Add RLIST case to value formatting
-  - Implement proper RLIST display: `[ 1 2 3 ]` format
+  - RLIST-only display using parenthesis syntax: `( 1 2 3 )`
   - Handle nested RLIST display correctly
   - Ensure REPL shows RLISTs in logical order
 - **Testing**: Validate display matches expected format
@@ -118,18 +117,14 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 ### Step 2.4: Parser Tokenizer Updates
 - Status: Completed
 - **File**: `src/lang/tokenizer.ts`
-- **Tokenization Tasks**:
-  - Ensure `[` and `]` are recognized as distinct tokens
-  - Add proper token types for RLIST brackets
-  - Test tokenizer with mixed `( )` and `[ ]` syntax
-  - Validate token stream correctness
+- Unified syntax uses `( )` for RLIST literals. No additional tokens required.
 - **Testing**: Comprehensive tokenizer tests for bracket combinations
 
 ### Step 2.5: RLIST Literal Compilation Tests
 - Status: Completed
 - **File**: `src/test/lang/rlist-compilation.test.ts` (new)
 - **Compilation Testing**:
-  - Test bytecode generation for `[ 1 2 3 ]`
+  - Test bytecode generation for `( 1 2 3 )`
   - Validate opcode sequences match expected patterns
   - Test nested RLIST compilation
   - Verify proper reversal during compilation
@@ -137,16 +132,16 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 
 ## Phase 3: Parser Integration
 
-### Step 3.1: Extend Parser for `[ ]` Syntax
+### Step 3.1: Parser Integration for `( )` Syntax
 - Status: Completed
 - **File**: `src/lang/parser.ts`
 - **Parser Changes**:
-  - Add `[` and `]` token handling in `processSpecialToken()`
+  - Map `(` and `)` tokens to RLIST open/close semantics
   - Implement `beginRList(state: ParserState): void`
   - Implement `endRList(state: ParserState): void`
   - Add compile-time stack for tracking RLIST boundaries
-  - Integrate reversal algorithm during `]` processing
-- **Syntax**: `[ ]` for RLIST, preserve `( )` for LIST
+  - Integrate single-pass reversal algorithm at the outermost close
+- **Syntax**: `( )` constructs RLIST
 - **Nesting**: Support arbitrary nesting depth with boundary tracking
 
 ### Step 3.2: Add RLIST Opcodes to VM Dispatch
@@ -162,24 +157,16 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - Status: Completed
 - **File**: `src/test/lang/parser-rlist.test.ts` (new)
 - **Test Cases**:
-  - Simple RLIST literals: `[ 1 2 3 ]`
-  - Nested combinations: `[ 1 ( 2 3 ) [ 4 5 ] ]`
-  - Mixed LIST/RLIST expressions
-  - Error conditions: unmatched brackets, malformed syntax
+  - Simple RLIST literals: `( 1 2 3 )`
+  - Nested combinations: `( 1 ( 2 3 ) ( 4 5 ) )`
+  - Error conditions: unmatched parentheses, malformed syntax
 - **Validation**: Ensure correct bytecode generation
 
 ## Phase 4: Interoperability & Validation
 
-### Step 4.1: LIST/RLIST Interoperability
-- Status: Skipped (deferred)
-- **File**: `src/core/list-interop.ts` (new)
-- **Conversion Functions**:
-  - `listToRList(vm: VM): void` - convert LIST to RLIST structure
-  - `rlistToList(vm: VM): void` - convert RLIST to LIST structure  
-  - `rlistToBuffer(vm: VM): void` - export with reverse copy
-  - `bufferToRList(vm: VM): void` - import with forward copy then reverse
-- **Preservation**: Maintain logical element order during all conversions
-- **Performance**: O(n) conversion cost, minimize allocations
+### Step 4.1: Legacy Removal and Consolidation
+- Status: Completed
+- Removed legacy LIST/LINK tags, code paths, and tests. Unified on `Tag.RLIST`.
 
 ### Step 4.2: Documentation Updates
 - Status: Skipped (deferred; will change post-plan)
@@ -214,9 +201,8 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
 - **REPL Testing**:
   - Test RLIST display in interactive mode
   - Validate error messages in REPL context
-  - Test mixed LIST/RLIST expressions interactively
-  - Ensure proper formatting and output
-- **User Experience**: REPL behaves consistently with LIST
+  - Ensure proper formatting and output using `( … )`
+  
 
 ### Step 4.6: Error Message Consistency
 - **Files**: All RLIST operation files
@@ -227,19 +213,17 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stac
   - Test error recovery scenarios
 - **Documentation**: Error conditions clearly documented
 
-### Step 4.7: Final Validation & Rollback Procedures
+### Step 4.7: Final Validation
 - **Testing**: Run complete test suite with `yarn test`
 - **Validation Checklist**:
-  - [ ] All existing LIST functionality preserved
   - [ ] All RLIST operations match specification
-  - [ ] Parser correctly handles both `( )` and `[ ]` syntax
+  - [ ] Parser correctly handles `( )` syntax for RLIST
   - [ ] No performance regressions in existing code
   - [ ] Memory layout follows specification exactly
   - [ ] Error handling robust and consistent
   - [ ] REPL integration seamless
-  - [ ] All tests pass without modification
-- **Rollback Plan**: Procedures for reverting changes if critical issues found
-- **Migration Testing**: Extensive regression testing on existing codebase
+  - [ ] All tests pass (coverage threshold separate)
+
 
 ## Implementation Notes
 
