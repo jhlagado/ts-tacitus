@@ -160,12 +160,12 @@ Final stack (deep → TOS):
 
 ## 9. Length and counting
 
-### 9.1 `slots ( list -- n )`
+### slots ( list -- n )
 
 * Returns the **payload slot count** `s` directly from the header.
 * **Cost:** O(1).
 
-### 9.2 `elements ( list -- n )`
+### elements ( list -- n )
 
 * Returns the **element count** by traversing the payload from `SP-1` downward.
 * **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
@@ -176,14 +176,14 @@ Final stack (deep → TOS):
 
 ## 10. Address queries
 
-### 10.1 `slot ( idx -- addr )`
+### slot ( idx -- addr )
 
 * Returns the **address** (stack index) of a payload slot at **slot index `idx`**.
 * **Preconditions:** `0 ≤ idx < s`.
 * **Result:** `addr = SP - 1 - idx`.
 * **Cost:** O(1).
 
-### 10.2 `element ( idx -- addr )`
+### element ( idx -- addr )
 
 * Returns the **address** of the **start slot** for **element index `idx`**.
 * **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped.
@@ -209,7 +209,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 
 ## 12. Structural operations
 
-### 12.1 `cons`
+### cons
 
 **Stack effect:** `( list value -- list' )`
 **Semantics:** prepend `value` (simple or compound) as a **single element**. If `value` is a list, it becomes a **nested** list element.
@@ -217,14 +217,14 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Cost:** O(1).
 **Ordering:** list-first is the natural ordering; the list precedes the value being added at the head.
 
-### 12.2 `drop-head`
+### drop-head
 
 **Stack effect:** `( list -- list' )`
 **Semantics:** remove the first element.
 **Mechanics:** pop `LIST:s`, pop element 0 span (1 if simple, else `span(header)`), push `LIST:s'` where `s' = s - span(element0)`.
 **Cost:** O(1) to locate/remove the head (span is at `SP-1`).
 
-### 12.3 `concat`
+### concat
 
 **Stack effect:** `( listA listB -- listC )`
 **Semantics:** merge the **elements of `listB`** into `listA` to form a **flat** list.
@@ -233,7 +233,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Cost:** O(n) due to shifting; discouraged on hot paths.
 **Ordering:** list-first ordering `( listA listB -- listC )`.
 
-### 12.4 Append (discouraged; not a primitive)
+### Append (discouraged; not a primitive)
 
 Appending at the tail is **not provided as a primitive**. It can be achieved via head-based building (e.g., swap followed by `concat`, or enlist + `concat`). This pattern is O(n) and should be avoided on hot paths. Prefer `cons` and `concat`.
 
@@ -302,7 +302,7 @@ Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys` be 
 
 ## 19. Worked examples (diagrams)
 
-### 19.1 Building `( 1 2 3 )`
+### Building `( 1 2 3 )`
 
 Tokens: `1 2 3 )`
 
@@ -316,7 +316,7 @@ Tokens: `1 2 3 )`
 
 Element order: `1, 2, 3` (logical). Element 0 at `SP-1` is `1`.
 
-### 19.2 Nested `( 1 ( 2 3 ) 4 )`
+### Nested `( 1 ( 2 3 ) 4 )`
 
 ```
 … 1                     
@@ -330,17 +330,17 @@ Element order: `1, 2, 3` (logical). Element 0 at `SP-1` is `1`.
 
 Traversal sees the nested list as a **single element** with span 3.
 
-### 19.3 `cons`
+### cons
 
 Stack before: `… 3 2 1 LIST:3   x`
 After `cons`: `… x 3 2 1 LIST:4` (logical head is `x`).
 
-### 19.4 `drop-head`
+### drop-head
 
 Before: `… x 3 2 1 LIST:4`
 After:  `… 3 2 1 LIST:3`.
 
-### 19.5 `concat`
+### concat
 
 ```
 xs = ( 1 2 )  → stack: … 2 1 LIST:2
@@ -351,14 +351,14 @@ concat xs ys  → … 4 3 2 1 LIST:4  (flattened)
 
 If `ys` is **not** a list, treat as `cons xs ys`.
 
-### 19.6 `append`
+### append
 
 ```
 xs = ( 1 2 )
 append xs 3 → shift payload [2 1] deeper, write 3 at tail, set LIST:3
 ```
 
-### 19.7 Slot vs element queries
+### Slot vs element queries
 
 ```
 ( 1 ( 2 3 ) 4 )
