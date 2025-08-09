@@ -119,7 +119,7 @@ export function runTacitTest(testCode: string): number[] {
 
 /**
  * Execute Tacit code and return output that was printed to console
- * Useful for testing code that uses the 'printx' operator
+ * Useful for testing code that uses the 'print' operator
  */
 export function captureTacitOutput(code: string): string[] {
   resetVM();

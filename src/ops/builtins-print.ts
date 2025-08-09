@@ -9,7 +9,7 @@
 import { VM } from '../core/vm';
 import { fromTaggedValue, Tag } from '../core/tagged';
 import { BYTES_PER_ELEMENT } from '../core/constants';
-import { formatValue as coreFormatValue } from '../core/format-utils';
+import { formatValue as coreFormatValue, formatAtomicValue } from '../core/format-utils';
 
 /**
  * Formats a single tagged value for human-readable output.
@@ -96,7 +96,7 @@ function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): stri
       parts.push(nested);
       consumed += 1 + nestedSlots;
     } else {
-      parts.push(coreFormatValue(vm, cell));
+      parts.push(formatAtomicValue(vm, cell));
       consumed += 1;
     }
   }
