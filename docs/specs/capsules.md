@@ -1,177 +1,152 @@
-Here’s the updated capsules.md applying the detailed edit plan from earlier, preserving all original information while expanding with additional details, context, and terminology consistency.
+# TACIT Capsules Specification
 
+## Introduction
+TACIT capsules provide **object-like encapsulation** for structured data and behavior while remaining fully compatible with TACITâ€™s **stack-based architecture**.  
+They are built on the **list** infrastructure, using **maplist-based method dispatch**, and are designed to avoid traditional object-oriented complexities such as inheritance chains, heap allocation, or hidden closures.
 
----
+Capsules unify **data (fields)** and **behavior (methods)** into a single, self-contained value that behaves like any other list on the stack. This means:
+- They can be duplicated, swapped, concatenated, and inspected with list operations.
+- They remain **stack-resident** â€” no garbage collection or heap management is required.
+- They are **structurally immutable** â€” while field values may be mutated in place if simple, the listâ€™s shape does not change after creation.
 
-TACIT Capsules Specification
-
-Introduction
-
-TACIT capsules provide object-like encapsulation for structured data and behavior, while remaining fully compatible with TACIT’s stack-based execution model. Capsules are built directly on TACIT’s list infrastructure and leverage maplist-based method dispatch for efficiency. They combine a predictable, slot-indexed layout with stack-resident execution semantics, enabling compositional and efficient manipulation of structured state.
-
-Key Principles
-
-List-based foundation – Capsules are lists with a fixed and introspectable structure.
-
-Copy-based instantiation – No inheritance chains, dynamic allocation, or garbage collection required.
-
-No hidden closures – All state is stored explicitly as list slots; no lexical environment capture.
-
-Stack-compatible – Capsules can be manipulated with standard TACIT list and stack operators without special handling.
-
-Slot-addressable fields – Field offsets are computed at compile time for O(1) access.
-
-Immutable structure, mutable fields – List length and layout are fixed post-construction; simple field values may be updated in place.
-
-
+### Key Principles
+- **List-based**: Capsules are specialized lists with a fixed structure.
+- **Copy-based instantiation**: No inheritance, no pointer chasing â€” capsule instances are built by copying a prototype.
+- **Closure-free**: All state is explicitly stored; no lexical environments.
+- **Stack-compatible**: Standard TACIT stack operations work on capsules.
 
 ---
 
-Basic Structure
+## Basic Structure
 
-Capsule Layout
+### Capsule Layout
+A capsule is a list with this exact structure:
 
-A capsule is a list with the following structure:
-
+```
 ( ( `name1 @method1 `name2 @method2 ... `nameN @methodN ) field1-value field2-value ... fieldN-value )
+```
 
-Element 0 (Slot 0) – Dispatch MapList: alternating method name symbols and code references.
+**Slot overview:**
+- **Slot 0**: The **dispatch maplist**, containing alternating method name symbols and code references.
+- **Slots 1..M**: Field values â€” may be simple (1 slot) or compound (multi-slot) values.
 
-Elements 1..N (Slots 1..) – Field values, which may be simple values (1 slot) or compound values (multi-slot).
-
-
-Dispatch MapList format:
-
-Even positions (0, 2, 4…): Method name symbols.
-
-Odd positions (1, 3, 5…): Code references to methods.
-
+### Maplist Format
+The dispatch maplist (slot 0) follows the standard **maplist** format:
+- Even positions (0, 2, 4, â€¦): **Method name symbols** (e.g., `greet`, `reset`)
+- Odd positions (1, 3, 5, â€¦): **Code references** (e.g., `@greet-code`)
 
 Example in memory:
-
-( ( `greet @greet-code `reset @reset-code `incrementViews @increment-code ) "John" "Doe" 0 )
-
+```
+( ( `greet @greet-code `reset @reset-code `incrementViews @increment-code )
+  "John" "Doe" 0 )
+```
 
 ---
 
-Capsule Definition Syntax
+## Definition Syntax
 
-Basic Example
-
+### Basic Capsule Definition
+```tac
 capsule person
   "John" field firstName
-  "Doe"  field lastName  
+  "Doe"  field lastName
   0      field viewCount
 
   : greet firstName " " lastName concat concat "Hello, " swap concat ;
   : incrementViews viewCount 1 + -> viewCount ;
   : reset 0 -> viewCount ;
 end
-
-Syntax Elements
-
-capsule <name> – Begin capsule definition.
-
-<value> field <name> – Declare a field and initialize with value from the stack.
-
-: <name> ... ; – Define a method body.
-
-end – Finalize capsule, assemble prototype, install into dictionary.
-
-
-Syntax Primitives Table
-
-Syntax	Meaning
-
-capsule <name>	Marks capsule start and stores name in dictionary.
-<value> field <symbol>	Declares and initializes a field. Stored by slot offset.
-: name ... ;	Defines method as standard TACIT word with field access.
-end	Terminates capsule definition and assembles prototype.
-
-
+```
 
 ---
 
-Field Access
+### Syntax Elements
+| Syntax | Meaning |
+|--------|---------|
+| `capsule <name>` | Begin capsule definition scope; marks dictionary position and stores name. |
+| `<value> field <symbol>` | Declare field with initial value from stack. Stored by **slot offset** in capsule. |
+| `: name ... ;` | Define method as a standard TACIT function with field access. |
+| `end` | Terminates capsule, triggers prototype assembly, installs final structure in the dictionary. |
 
-Reading Fields
+---
 
-Within methods, field names are compiled into direct slot fetches:
+### Slot vs. Element Access
+Capsules (like lists) distinguish between **slots** and **elements**:
+- **Slot count** (`slots` command) â€” O(1) retrieval from the list header.
+- **Element count** (`elements` command) â€” O(s) traversal, as elements may occupy multiple slots.
 
-firstName    \ Returns field value
+#### New Commands
+```tac
+slot ( num -- addr )
+```
+Returns the **memory cell address** of a slot by index. O(1) operation.
 
-Writing Fields
+```tac
+element ( num -- addr )
+```
+Returns the **memory cell address** of an element by index. O(s) operation.
 
-Use the -> operator to store values into fields:
+---
 
+## Field Access
+
+### Reading Fields
+Inside a method, field names push their value onto the stack:
+```tac
+firstName    \ â†’ "John"
+```
+
+### Writing Fields
+Use the `->` operator for assignment:
+```tac
 "Jane" -> firstName
+```
 
-Slot and Element Operations
-
-Capsules also support explicit slot- and element-based addressing:
-
-slots – Returns total number of slots in the capsule list.
-
-elements – Returns logical element count.
-
-slot ( num -- addr ) – Returns address of slot.
-
-element ( num -- addr ) – Returns address of element.
-
-
-These enable low-level access for tooling or meta-programming.
-
-Variable System Integration
-
-Future TACIT versions may integrate:
-
-Global variables – Stored in global heap.
-
-Local variables – Stored in return stack.
-
-Field variables – Integrated into unified variable access model.
-
-
+### Mutability Rules
+- Allowed: In-place mutation of simple fixed-size slot values (e.g., numbers, booleans, interned symbols).
+- Not allowed: Structural mutation (changing length or overwriting with a compound value).
 
 ---
 
-Method Dispatch via with
+## Method Dispatch with `with` Combinator
 
-Basic Usage
-
+### Basic Usage
+```tac
 person with {
     .getName "hello, " swap concat
     .setGreeting
     .greet
 }
+```
 
-Principles:
+**Design Principles:**
+- **`with` is a combinator** â€” takes a receiver and a block, sets `receiver` context for method calls.
+- **No copying** â€” receiver remains in place, accessed via `receiver` register.
+- **`.method` sigil** â€” dispatches method from receiverâ€™s maplist.
+- **Nested contexts** â€” `receiver` is saved/restored automatically.
+- **Block scoping** â€” `{` and `}` delimit the method call scope.
 
-with – Infix combinator taking a receiver and a block.
+---
 
-.method – Sigil for receiver-based method dispatch.
+### Implementation Mechanics
+1. **`with` starts** â€” Takes the receiver object from the stack and stores it as the current `receiver`.
+2. **`.method` calls** â€” Look up the method name in the maplist (slot 0) and execute it.
+3. **`with` ends** â€” Cleans up all values pushed after the receiver and restores the previous receiver.
 
-No copying – Receiver remains on stack.
+âš  **Important:** The `with` block **consumes** the receiver when it completes.
 
-Nested safe – Receiver is saved/restored for nested blocks.
+---
 
-Scope bounded – Block boundaries define lifetime.
+### With Arguments
+```tac
+person with {
+    "Dr." .setTitle
+    .getName "Hello, " swap concat
+}
+```
 
-
-Execution Steps
-
-1. with sets receiver register from stack.
-
-
-2. .method looks up in receiver’s MapList.
-
-
-3. Upon block end, receiver is removed from stack.
-
-
-
-Nested Example
-
+### Nested `with` Blocks
+```tac
 person1 with {
     .greet
     person2 with {
@@ -179,76 +154,73 @@ person1 with {
     }
     .incrementViews
 }
+```
 
-Inter-Method Calls
-
+### Inter-Method Calls
+```tac
 capsule calculator
   0 field total
+
   : add total + -> total ;
   : addTwice .add .add ;
   : addDouble 2 * .add ;
 end
+```
 
-Default Methods
+### Default Method Support
+Following maplist conventions:
+```tac
+capsule example
+  42 field value
 
-MapList supports a default key for fallback dispatch.
+  : getValue value ;
+  : default "Unknown method" ;
+end
 
+instance with {
+    .getValue
+    .unknown  \ Falls back to default
+}
+```
 
 ---
 
-Integration with TACIT Core
+## Integration with TACIT
 
-List Compatibility
+### List Compatibility
+Capsules are still lists:
+```tac
+capsule 2 get    \ Access a field by index
+capsule slots    \ Get slot count
+capsule elements \ Get element count
+```
 
-Capsules are lists and work with all list operators:
-
-capsule 2 get     \ Access field by slot index
-capsule length    \ Total elements
-
-Stack Operations
-
+### Stack Operations
+Capsules work with normal stack operators:
+```tac
 capsule dup
 capsule swap
+```
 
-MapList Tools
-
-Fully compatible with standard MapList search.
-
-Supports introspection and default fallback.
-
-
+### Maplist Integration
+- `default` key for fallback methods is supported.
+- Works with standard maplist search algorithms.
+- Compatible with maplist introspection.
 
 ---
 
-Design Rationale
-
-The with combinator solves:
-
-1. Argument/receiver separation.
-
-
-2. Explicit context clarity.
-
-
-3. Multiple calls without dup proliferation.
-
-
-4. Preserves TACIT’s compositional stack style.
-
-
-
+## Design Rationale
+The `with` combinator solves key problems in stack-based OOP:
+1. **Argument separation** â€” method arguments donâ€™t interfere with the receiver.
+2. **Context clarity** â€” explicit scope for method dispatch.
+3. **Ergonomics** â€” natural syntax for multiple method calls without excessive `dup`.
+4. **Stack hygiene** â€” avoids littering the stack with unused receiver copies.
 
 ---
 
-Related Specs
-
-lists.md
-
-maplists.md
-
-capsules-implementation.md
-
-
+## Related Specifications
+- [`lists.md`](lists.md) â€” foundational list mechanics.
+- [`maplists.md`](maplists.md) â€” key-value dispatch tables.
+- [`capsules-implementation.md`](capsules-implementation.md) â€” implementation details.
 
 ---
-
