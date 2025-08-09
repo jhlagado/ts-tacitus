@@ -250,7 +250,7 @@ export function validateStackState(
   }
 
   if (expectations.validTags) {
-    stack.forEach((item, index) => {
+    stack.forEach(item => {
       expect(() => fromTaggedValue(item)).not.toThrow();
     });
   }

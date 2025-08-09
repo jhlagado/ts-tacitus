@@ -14,8 +14,7 @@
  */
 
 import { VM } from '../core/vm';
-import { Memory } from '../core/memory';
-import { SEG_STACK, STACK_SIZE } from '../core/constants';
+import { SEG_STACK } from '../core/constants';
 import { BYTES_PER_ELEMENT } from '../core/constants';
 
 /**

@@ -1,4 +1,4 @@
-import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
+import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
 import { pickOp } from '../../../ops/builtins-stack';
 import { resetVM } from '../../utils/test-utils';

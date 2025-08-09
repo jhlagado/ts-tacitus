@@ -20,7 +20,7 @@ import { parse } from './parser';
 import { toTaggedValue, Tag } from '../core/tagged';
 import { Tokenizer } from './tokenizer';
 
-import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
+import { SEG_CODE } from '../core/constants';
 
 /**
  * Executes Tacit bytecode starting from a specific address.
@@ -38,17 +38,17 @@ import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
  * @param {number} [breakAtIP] - Optional address at which to halt execution
  * @throws {Error} If an invalid opcode is encountered or execution fails
  */
-export function execute(start: number, breakAtIP?: number): void {
+export function execute(start: number): void {
   vm.IP = start;
   vm.running = true;
 
   while (vm.running && vm.IP < vm.compiler.CP) {
-    const beforeIP = vm.IP;
+    const _beforeIP = vm.IP;
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
-    
+
     const functionIndex = vm.nextOpcode();
-    
+
     if (vm.debug) console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
 
     try {

@@ -56,7 +56,7 @@ export type StackArgInfo = [number, number];
  *
  */
 
-export function findElement(vm: VM, startSlot: number = 0): [number, number] {
+export function findElement(vm: VM, startSlot = 0): [number, number] {
   const slotAddr = vm.SP / BYTES_PER_ELEMENT - startSlot - 1;
 
   if (slotAddr < 0 || slotAddr * BYTES_PER_ELEMENT >= vm.SP) {

@@ -5,7 +5,16 @@
  * Each segment has a fixed size and base address within the 64KB memory space.
  */
 
-import { MEMORY_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE, SEG_STRING, STACK_SIZE, RSTACK_SIZE, STRING_SIZE, CODE_SIZE } from './constants';
+import {
+  MEMORY_SIZE,
+  SEG_STACK,
+  SEG_RSTACK,
+  SEG_CODE,
+  SEG_STRING,
+  STACK_SIZE,
+  RSTACK_SIZE,
+  STRING_SIZE,
+} from './constants';
 
 /**
  * Memory class that implements the segmented memory model for the Tacit VM.
@@ -17,14 +26,14 @@ export class Memory {
    * All memory operations ultimately interact with this buffer.
    */
   buffer: Uint8Array;
-  
+
   /**
    * A `DataView` instance providing methods to read and write multiple number types
    * (like `Float32Array`, `Uint16Array`) to the `buffer` at any byte offset.
    * This allows for structured access to the raw memory.
    */
   dataView: DataView;
-  
+
   /**
    * An internal table mapping segment IDs (e.g., `SEG_STACK`, `SEG_CODE`) to their
    * respective base addresses within the linear memory `buffer`.
@@ -61,7 +70,7 @@ export class Memory {
 
   /**
    * Resolves a segmented address (segment:offset) to a linear address in the memory buffer.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @returns The resolved linear address within the `Memory` buffer.
@@ -78,7 +87,7 @@ export class Memory {
 
   /**
    * Writes an 8-bit value to memory at the specified segment and offset.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @param value The 8-bit value to write (will be masked to `0xFF`).
@@ -95,7 +104,7 @@ export class Memory {
 
   /**
    * Reads an 8-bit value from memory at the specified segment and offset.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @returns The 8-bit value at the specified address.
@@ -113,7 +122,7 @@ export class Memory {
   /**
    * Writes a 16-bit value to memory at the specified segment and offset.
    * Uses little-endian byte order.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @param value The 16-bit value to write (will be masked to `0xFFFF`).
@@ -131,7 +140,7 @@ export class Memory {
   /**
    * Reads a 16-bit value from memory at the specified segment and offset.
    * Uses little-endian byte order.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @returns The 16-bit value at the specified address.
@@ -149,7 +158,7 @@ export class Memory {
   /**
    * Writes a 32-bit floating-point value to memory at the specified segment and offset.
    * Uses little-endian byte order.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @param value The 32-bit floating-point value to write.
@@ -171,7 +180,7 @@ export class Memory {
   /**
    * Reads a 32-bit floating-point value from memory at the specified segment and offset.
    * Uses little-endian byte order.
-   * 
+   *
    * @param segment The segment ID (e.g., `SEG_STACK`, `SEG_CODE`).
    * @param offset The offset within the specified segment.
    * @returns The 32-bit floating-point value at the specified address.
@@ -194,13 +203,13 @@ export class Memory {
 
   /**
    * Dumps a range of memory as hexadecimal values for debugging.
-   * 
+   *
    * @param start The starting linear address in the memory buffer.
    * @param end The ending linear address in the memory buffer (inclusive, defaults to 32 bytes from `start`).
    * @returns A string representation of the memory contents as hexadecimal values.
    * @throws {RangeError} If the specified address range is invalid or out of bounds.
    */
-  dump(start: number, end: number = 32): string {
+  dump(start: number, end = 32): string {
     if (start < 0 || end >= MEMORY_SIZE || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
@@ -212,13 +221,13 @@ export class Memory {
 
   /**
    * Dumps a range of memory as ASCII characters for debugging.
-   * 
+   *
    * @param start The starting linear address in the memory buffer.
    * @param end The ending linear address in the memory buffer (inclusive, defaults to 32 bytes from `start`).
    * @returns A string representation of the memory contents as ASCII characters.
    * @throws {RangeError} If the specified address range is invalid or out of bounds.
    */
-  dumpChars(start: number, end: number = 32): string {
+  dumpChars(start: number, end = 32): string {
     if (start < 0 || end >= MEMORY_SIZE || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }

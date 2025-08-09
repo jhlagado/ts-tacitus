@@ -8,7 +8,6 @@
 
 import { vm } from '../../../core/globalState';
 import { nipOp } from '../../../ops/builtins-stack';
-import { Tag, toTaggedValue } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from '../../utils/test-utils';
 
 describe('nip Operation', () => {

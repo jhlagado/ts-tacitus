@@ -47,9 +47,9 @@ function formatScalarValue(vm: VM, value: number): string {
  * @param depth - The current nesting depth for recursive list formatting
  * @returns An object containing the formatted string and the size of the list
  */
-function formatList(vm: VM, value: number, _depth = 0): { formatted: string; size: number } {
+function _formatList(vm: VM, value: number): { formatted: string; size: number } {
   const { tag, value: tagValue } = fromTaggedValue(value);
-  const stackData = vm.getStackData();
+  const _stackData = vm.getStackData();
 
   // Handle LIST first to avoid misclassifying as NaN-boxed LIST
   if (tag === Tag.LIST) {
@@ -148,7 +148,9 @@ export function printOp(vm: VM): void {
     if (vm.SP >= BYTES_PER_ELEMENT) {
       try {
         vm.pop();
-      } catch (_) {}
+      } catch {
+        /* empty */
+      }
     }
   }
 }

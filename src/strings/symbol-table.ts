@@ -139,8 +139,8 @@ export class SymbolTable {
    * @param {number} functionIndex - The function index/opcode for the word
    * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
    */
-  defineCall(name: string, functionIndex: number, implementation?: WordFunction): void {
-    this.define(name, functionIndex, implementation);
+  defineCall(name: string, functionIndex: number): void {
+    this.define(name, functionIndex);
   }
 
   /**
@@ -153,7 +153,7 @@ export class SymbolTable {
    * @param {number} bytecodeAddr - The bytecode address for direct addressing
    * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
    */
-  defineColonDefinition(name: string, bytecodeAddr: number, implementation?: WordFunction): void {
+  defineColonDefinition(name: string, bytecodeAddr: number, _implementation?: WordFunction): void {
     // Store the bytecode address directly using defineCode
     // This enables direct addressing without any intermediate lookups
     this.defineCode(name, bytecodeAddr);

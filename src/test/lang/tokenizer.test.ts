@@ -263,7 +263,9 @@ describe('Tokenizer', () => {
   test('should throw error for unterminated string', () => {
     expect(() => {
       const tokenizer = new Tokenizer('"Unterminated string');
-      while (tokenizer.nextToken().type !== TokenType.EOF) {}
+      while ((tokenizer.nextToken()).type !== TokenType.EOF) {
+        // Keep consuming tokens until EOF or error
+      }
     }).toThrow('Unterminated string literal');
   });
   test('should handle mixed strings and other tokens', () => {

@@ -1,19 +1,19 @@
 /**
  * @fileoverview Tests for Step 14: @symbol parser/compiler integration.
- * 
+ *
  * This test suite validates that @symbol syntax works end-to-end in TACIT code:
  * 1. Tokenizer recognizes @symbol (Step 13)
  * 2. Parser compiles @symbol to pushSymbolRef call (Step 14)
  * 3. VM resolves symbol and pushes tagged value (Step 11)
  * 4. eval can execute the resulting tagged value
- * 
+ *
  * Coverage:
  * - Basic @symbol parsing and execution
  * - Built-in operations (@add, @dup, @swap)
  * - Colon definitions (@square, @double)
  * - Integration with eval for metaprogramming
  * - Error cases and edge conditions
- * 
+ *
  * @author TACIT VM
  * @version 1.0.0
  */
@@ -61,7 +61,9 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
     });
 
     it('should work with multiple colon definitions', () => {
-      const result = executeTacitCode(': double dup add ; : quadruple @double eval @double eval ; 3 @quadruple eval');
+      const result = executeTacitCode(
+        ': double dup add ; : quadruple @double eval @double eval ; 3 @quadruple eval',
+      );
       expect(result).toEqual([12]);
     });
   });
@@ -71,8 +73,8 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
       executeTacitCode('@add');
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
-      
-      const { tag, value } = fromTaggedValue(stack[0]);
+
+      const { tag, value: _value } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.BUILTIN);
       // The value should be the opcode for add
     });
@@ -81,8 +83,8 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
       executeTacitCode(': test 42 ; @test');
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
-      
-      const { tag, value } = fromTaggedValue(stack[0]);
+
+      const { tag, value: _value2 } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.CODE);
       // The value should be a bytecode address
     });
@@ -108,7 +110,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
     it('should work with list of operations', () => {
       // Simplified test - use @symbols in sequence rather than lists for now
       const result = executeTacitCode(`
-        2 3 @add eval 
+        2 3 @add eval
         4 @mul eval
       `);
       expect(result).toEqual([20]); // (2 + 3) * 4 = 20
@@ -160,7 +162,9 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
   describe('@symbol edge cases', () => {
     it('should handle @symbols with underscores and hyphens', () => {
-      const result = executeTacitCode(': my_word 42 ; : my-word 24 ; @my_word eval @my-word eval add');
+      const result = executeTacitCode(
+        ': my_word 42 ; : my-word 24 ; @my_word eval @my-word eval add',
+      );
       expect(result).toEqual([66]); // 42 + 24 = 66
     });
 
