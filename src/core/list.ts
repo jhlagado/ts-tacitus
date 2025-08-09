@@ -1,9 +1,9 @@
 /**
- * @file src/core/rlist.ts
+ * @file src/core/list.ts
  *
  * Core utilities for TACIT Reverse Lists (LIST).
  *
- * RLISTs are stack-native compound data structures that store elements in
+ * LISTs are stack-native compound data structures that store elements in
  * reverse order with the header at top-of-stack. This enables O(1) prepend
  * operations and O(1) skip/drop of entire structures while maintaining
  * contiguous memory layout for cache efficiency.
@@ -22,7 +22,7 @@ import { SEG_STACK } from './constants';
  * @param vm - The virtual machine instance
  * @param values - Array of tagged values to include in the LIST
  */
-export function createRList(vm: VM, values: number[]): void {
+export function createList(vm: VM, values: number[]): void {
   const slotCount = values.length;
 
   // Push values in forward order
@@ -47,7 +47,7 @@ export function createRList(vm: VM, values: number[]): void {
  * @returns The number of slots in the LIST payload
  * @throws Error if the header is not a valid LIST tag
  */
-export function getRListSlotCount(header: number): number {
+export function getListSlotCount(header: number): number {
   if (!isList(header)) {
     throw new Error('Value is not an LIST header');
   }
@@ -60,11 +60,11 @@ export function getRListSlotCount(header: number): number {
  *
  * @param vm - The virtual machine instance
  */
-export function skipRList(vm: VM): void {
-  validateRListHeader(vm);
+export function skipList(vm: VM): void {
+  validateListHeader(vm);
 
   const header = vm.peek();
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   // Skip header + payload by popping all values
   for (let i = 0; i < slotCount + 1; i++) {
@@ -79,12 +79,12 @@ export function skipRList(vm: VM): void {
  * @param vm - The virtual machine instance
  * @returns Memory address of payload[0] (logical first element)
  */
-export function getRListPayloadStart(vm: VM): number {
-  validateRListHeader(vm);
+export function getListPayloadStart(vm: VM): number {
+  validateListHeader(vm);
   // Payload starts immediately below header at TOS
   // LIST layout: [payload...] [LIST:n] ← TOS (SP points after header)
   const header = vm.peek();
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
   if (slotCount === 0) {
     return vm.SP; // No payload for empty LIST
   }
@@ -97,7 +97,7 @@ export function getRListPayloadStart(vm: VM): number {
  * @param vm - The virtual machine instance
  * @throws Error if TOS is not valid LIST or stack constraints violated
  */
-export function validateRListHeader(vm: VM): void {
+export function validateListHeader(vm: VM): void {
   vm.ensureStackSize(1, 'LIST header validation');
 
   const header = vm.peek();
@@ -105,7 +105,7 @@ export function validateRListHeader(vm: VM): void {
     throw new Error('Expected LIST header at TOS');
   }
 
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
   vm.ensureStackSize(slotCount + 1, 'LIST payload validation');
 
   // Ensure slot count doesn't exceed 16-bit limit (65535)
@@ -124,17 +124,17 @@ export function validateRListHeader(vm: VM): void {
  * @param logicalIndex - The logical index to find (0-based)
  * @returns Memory address of the element, or -1 if index out of bounds
  */
-export function getRListElementAddress(
+export function getListElementAddress(
   vm: VM,
   header: number,
   headerAddr: number,
   logicalIndex: number,
 ): number {
   if (!isList(header)) {
-    throw new Error('Invalid LIST header provided to getRListElementAddress');
+    throw new Error('Invalid LIST header provided to getListElementAddress');
   }
 
-  const totalSlots = getRListSlotCount(header);
+  const totalSlots = getListSlotCount(header);
 
   if (logicalIndex < 0) return -1;
 
@@ -151,7 +151,7 @@ export function getRListElementAddress(
     if (isList(currentValue)) {
       // This is an LIST header - element starts here
       elementStartAddr = currentAddr;
-      stepSize = getRListSlotCount(currentValue) + 1;
+      stepSize = getListSlotCount(currentValue) + 1;
     }
 
     if (currentLogicalIndex === logicalIndex) {

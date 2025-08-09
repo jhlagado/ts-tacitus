@@ -260,23 +260,23 @@ export enum Op {
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 
-  // Deprecated RLIST opcodes removed after unification
+  // Deprecated LIST opcodes removed after unification
 
-  /**  Gets slot count from LIST header - ( rlist — rlist n ) */
-  RListSlot,
+  /**  Gets slot count from LIST header - ( list — list n ) */
+  ListSlot,
 
-  /**  Skips entire LIST from stack - ( rlist — ) */
-  RListSkip,
+  /**  Skips entire LIST from stack - ( list — ) */
+  ListSkip,
 
-  /**  Prepends value to LIST - ( val rlist — rlist' ) */
-  RListPrepend,
+  /**  Prepends value to LIST - ( val list — list' ) */
+  ListPrepend,
 
-  /**  Appends value to LIST - ( rlist val — rlist' ) */
-  RListAppend,
+  /**  Appends value to LIST - ( list val — list' ) */
+  ListAppend,
 
-  /**  Gets value at index from LIST - ( rlist i — val ) */
-  RListGetAt,
+  /**  Gets value at index from LIST - ( list i — val ) */
+  ListGetAt,
 
-  /**  Sets value at index in LIST - ( rlist i val — rlist ) */
-  RListSetAt,
+  /**  Sets value at index in LIST - ( list i val — list ) */
+  ListSetAt,
 }

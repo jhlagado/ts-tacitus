@@ -201,7 +201,7 @@ describe('Printer', () => {
         { tag: Tag.INTEGER, value: 42, title: 'Integer' },
         { tag: Tag.CODE, value: 100, title: 'Code' },
         { tag: Tag.STRING, value: 200, title: 'String' },
-        { tag: Tag.LIST, value: 5, title: 'RList' },
+        { tag: Tag.LIST, value: 5, title: 'List' },
       ];
 
       testCases.forEach(({ tag, value, title }) => {

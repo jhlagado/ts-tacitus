@@ -91,14 +91,14 @@ import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { rawPrintOp } from './builtins-raw-print';
 import {
-  openRListOp,
-  closeRListOp,
-  rlistSlotOp,
-  rlistSkipOp,
-  rlistPrependOp,
-  rlistAppendOp,
-  rlistGetAtOp,
-  rlistSetAtOp,
+  openListOp,
+  closeListOp,
+  listSlotOp,
+  listSkipOp,
+  listPrependOp,
+  listAppendOp,
+  listGetAtOp,
+  listSetAtOp,
 } from './builtins-list';
 
 /**
@@ -131,16 +131,16 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
 
   // Parentheses build unified LIST
-  symbolTable.define('(', Op.OpenList, openRListOp);
-  symbolTable.define(')', Op.CloseList, closeRListOp);
+  symbolTable.define('(', Op.OpenList, openListOp);
+  symbolTable.define(')', Op.CloseList, closeListOp);
 
   // LIST operations (parentheses only)
-  symbolTable.define('.slot', Op.RListSlot, rlistSlotOp);
-  symbolTable.define('.skip', Op.RListSkip, rlistSkipOp);
-  symbolTable.define('prepend', Op.RListPrepend, rlistPrependOp);
-  symbolTable.define('append', Op.RListAppend, rlistAppendOp);
-  symbolTable.define('get-at', Op.RListGetAt, rlistGetAtOp);
-  symbolTable.define('set-at', Op.RListSetAt, rlistSetAtOp);
+  symbolTable.define('.slot', Op.ListSlot, listSlotOp);
+  symbolTable.define('.skip', Op.ListSkip, listSkipOp);
+  symbolTable.define('prepend', Op.ListPrepend, listPrependOp);
+  symbolTable.define('append', Op.ListAppend, listAppendOp);
+  symbolTable.define('get-at', Op.ListGetAt, listGetAtOp);
+  symbolTable.define('set-at', Op.ListSetAt, listSetAtOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);

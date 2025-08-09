@@ -58,7 +58,9 @@ export interface Definition {
  */
 interface ParserState {
   tokenizer: Tokenizer;
-  currentDefinition: (Definition & { checkpoint: import('../strings/symbol-table').SymbolTableCheckpoint }) | null;
+  currentDefinition:
+    | (Definition & { checkpoint: import('../strings/symbol-table').SymbolTableCheckpoint })
+    | null;
   insideCodeBlock: boolean;
 }
 
@@ -119,7 +121,7 @@ function validateFinalState(state: ParserState): void {
     throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
   }
 
-  // Ensure all list/rlists were properly closed
+  // Ensure all list/lists were properly closed
   if (vm.listDepth !== 0) {
     throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
   }
@@ -368,9 +370,9 @@ function processSpecialToken(value: string, state: ParserState): void {
     endDefinition(state);
   } else if (value === '(') {
     // Retarget parentheses to LIST construction (keep [ ] as alias during migration)
-    beginRList(state);
+    beginList(state);
   } else if (value === ')') {
-    endRList(state);
+    endList(state);
   } else if (value === '{') {
     beginStandaloneBlock(state);
   } else if (value === '`') {
@@ -487,7 +489,7 @@ function endDefinition(state: ParserState): void {
  * Begin an LIST with opening bracket ([).
  * Mirrors beginList but targets LIST ops.
  */
-function beginRList(_state: ParserState): void {
+function beginList(_state: ParserState): void {
   vm.listDepth++;
   vm.compiler.compileOpcode(Op.OpenList);
 }
@@ -496,7 +498,7 @@ function beginRList(_state: ParserState): void {
  * End an LIST with closing bracket (]).
  * Mirrors endList but targets LIST ops.
  */
-function endRList(_state: ParserState): void {
+function endList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
     throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
   }

@@ -53,7 +53,7 @@ describe('List Creation Operations', () => {
     test('should handle multiple nested lists at the same level', () => {
       const stack = executeTacitCode('( ( 1 2 ) ( 3 4 ) )');
 
-      // Outer payload includes two inner RLISTs (3 cells each) = 6, plus outer header = 7
+      // Outer payload includes two inner LISTs (3 cells each) = 6, plus outer header = 7
       expect(stack.length).toBe(7);
       const len = stack.length;
       expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 6 });

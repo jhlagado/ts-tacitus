@@ -53,7 +53,7 @@ describe('List Integration Tests', () => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;
       });
-      expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple nested RLISTs
+      expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple nested LISTs
     });
 
     test('should manipulate mixed data types in lists', () => {
@@ -176,7 +176,7 @@ describe('List Integration Tests', () => {
     });
   });
 
-  // Consolidated from former rlist-integration tests
+  // Consolidated from former list-integration tests
   describe('parser + VM integration (LIST semantics)', () => {
     test('should build a simple list using ( ) syntax', () => {
       const stack = executeTacitCode('( 1 2 3 )');

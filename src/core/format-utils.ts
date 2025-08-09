@@ -97,10 +97,10 @@ export function formatListAt(vm: VM, stack: number[], index: number): string {
   const value = stack[index];
   const { tag } = fromTaggedValue(value);
   if (tag !== Tag.LIST) return '[Not a list]';
-  return formatRListAt(vm, stack, index);
+  return formatListAtImpl(vm, stack, index);
 }
 
-function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
+function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string {
   if (headerIndex < 0 || headerIndex >= stack.length) {
     return '[ Invalid LIST index ]';
   }
@@ -137,7 +137,7 @@ function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
     const startVal = stack[elementStartIndex];
     const startDecoded = fromTaggedValue(startVal);
     if (startDecoded.tag === Tag.LIST) {
-      elements.push(formatRListAt(vm, stack, elementStartIndex));
+      elements.push(formatListAtImpl(vm, stack, elementStartIndex));
     } else {
       elements.push(formatAtomicValue(vm, startVal));
     }
@@ -182,7 +182,7 @@ export function formatValue(vm: VM, value: number): string {
       }
     }
     if (rIndex >= 0) {
-      return formatRListAt(vm, stack, rIndex);
+      return formatListAtImpl(vm, stack, rIndex);
     }
   }
 
