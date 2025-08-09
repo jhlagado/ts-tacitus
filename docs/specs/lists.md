@@ -27,10 +27,8 @@
     12.1 `cons` (prepend) — O(1)
     12.2 `drop-head` — O(1)
     12.3 `concat` — O(n), flattening merge
-    12.4 `append` — O(n), discouraged
-13. Mutation operations (simple-only)
-    13.1 `set-slot` (semantics)
-    13.2 `set-element` (requires traversal)
+    12.4 Append (discouraged; not a primitive)
+13. Mutation (high-level)
 14. Safety and validation
 15. Constraints and implementation-defined limits
 16. Zero-length lists
@@ -217,6 +215,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Semantics:** prepend `value` (simple or compound) as a **single element**. If `value` is a list, it becomes a **nested** list element.
 **Mechanics:** pop `LIST:s`, push `value` (already complete if compound), push `LIST:s+1`.
 **Cost:** O(1).
+**Ordering:** list-first is the natural ordering; the list precedes the value being added at the head.
 
 ### 12.2 `drop-head`
 
@@ -232,29 +231,17 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Fallback:** if the second arg is **not** a list, **behave as `cons`**.
 **Mechanics:** increase `sA` by `sB`; shift `listA`’s payload deeper or splice `listB`’s payload as needed; push new header.
 **Cost:** O(n) due to shifting; discouraged on hot paths.
+**Ordering:** list-first ordering `( listA listB -- listC )`.
 
-### 12.4 `append`
+### 12.4 Append (discouraged; not a primitive)
 
-**Stack effect:** `( list value -- list' )`
-**Semantics:** add `value` at the **tail**.
-**Mechanics:** create space beneath the payload (shift), write `value` at the deepest slot of the payload, update header to `s+span(value)`.
-**Cost:** O(n); **discouraged** in favor of `cons`.
+Appending at the tail is **not provided as a primitive**. It can be achieved via head-based building (e.g., swap followed by `concat`, or enlist + `concat`). This pattern is O(n) and should be avoided on hot paths. Prefer `cons` and `concat`.
 
 ---
 
-## 13. Mutation operations (simple-only)
+## 13. Mutation (high-level)
 
-### 13.1 `set-slot`
-
-**Stack effect (conceptual):** `( list idx simpleValue -- ok|sentinel )`
-**Rule:** may overwrite a **simple** slot only. If the targeted slot is the start or interior of a compound, the operation **must not** modify the list and **may** return a sentinel (`nil`) or fail silently; implementation-defined.
-
-### 13.2 `set-element`
-
-**Stack effect (conceptual):** `( list i simpleValue -- ok|sentinel )`
-**Rule:** traverse to element start slot (O(s)), then apply `set-slot` rule. If the element is compound, the operation **must not** modify the list and **may** return a sentinel or fail silently.
-
-**Note:** Mutation APIs are **low priority**; structural operations (`cons`, `drop-head`) are canonical for shape changes.
+Only **simple** (single-slot) payload cells may be overwritten in place. Attempts to overwrite a **compound** element must leave the list unchanged and may signal failure via an implementation-defined sentinel (e.g., `nil`) or no-op. This specification does not prescribe concrete mutation commands; structural operations like `cons` and `drop-head` are the canonical way to change list shape.
 
 ---
 
@@ -280,7 +267,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 
 * `LIST:0` prints as `( )`.
 * `slots(( )) = 0`, `elements(( )) = 0`.
-* `drop` removes **one** slot (the header).
+* `drop` on a list removes the **entire list** (header plus payload) from the stack.
 * `cons` on `LIST:0` yields a one-element list via the normal header rewrite.
 
 ---
@@ -294,9 +281,8 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 * `cons` → O(1)
 * `drop-head` → O(1)
 * `concat` → O(n)
-* `append` → O(n)
-* `set-slot` (simple) → O(1)
-* `set-element` (simple) → O(s)
+* Append (if emulated via `swap`+`concat`) → O(n)
+* In-place overwrite of a simple slot (if supported) → O(1)
 
 ---
 
@@ -391,7 +377,7 @@ element 2 → address after skipping span 3 → SP-5 (4)
 
 * **Empty:** `( )` behaves as described in §16.
 * **Out-of-bounds `slot`/`element`:** must not read beyond the payload; implementation may signal error or return `nil`.
-* **Illegal `set-slot` on compound:** list remains unchanged; return `nil` or no-op.
+* **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
 * **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
 
 ---
@@ -419,10 +405,9 @@ element 2 → address after skipping span 3 → SP-5 (4)
 
   * `cons` then `drop-head` restores original
   * `concat xs () == xs` and associativity
-  * `append` increases `s` appropriately (but O(n))
 * **Mutation**
 
-  * `set-slot` on simple succeeds; on compound fails without altering list
+  * Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list
 
 ---
 
