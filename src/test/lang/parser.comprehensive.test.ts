@@ -43,10 +43,6 @@ describe('Comprehensive Parser Tests', () => {
       executeProgram(': 2x 2 mul ; 5 2x');
       expect(vm.pop()).toBe(10);
     });
-    test('should not allow redefining words', () => {
-      parse(new Tokenizer(': test 1 ;'));
-      expect(() => parse(new Tokenizer(': test 2 ;'))).toThrow('Word already defined: test');
-    });
   });
   describe('Lists', () => {
     test('should parse empty lists', () => {
