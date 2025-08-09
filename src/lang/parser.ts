@@ -58,7 +58,7 @@ export interface Definition {
  */
 interface ParserState {
   tokenizer: Tokenizer;
-  currentDefinition: Definition | null;
+  currentDefinition: (Definition & { checkpoint: import('../strings/symbol-table').SymbolTableCheckpoint }) | null;
   insideCodeBlock: boolean;
 }
 
@@ -409,10 +409,9 @@ function parseBacktickSymbol(state: ParserState): void {
  * This function handles the start of a word definition in Tacit. It:
  * 1. Validates that definitions are not nested or inside code blocks
  * 2. Reads the word name from the next token
- * 3. Ensures the word is not already defined
- * 4. Compiles a branch instruction to skip over the definition
- * 5. Registers the word in the symbol table
- * 6. Updates the parser state to track the current definition
+ * 3. Compiles a branch instruction to skip over the definition
+ * 4. Defers symbol registration until ';' to allow body to see previous definition
+ * 5. Updates the parser state to track the current definition
  *
  * @param {ParserState} state - The current parser state
  * @throws {Error} If definitions are nested, inside code blocks, or the word is already defined
@@ -432,9 +431,6 @@ function beginDefinition(state: ParserState): void {
   }
 
   const wordName = String(nameToken.value);
-  if (vm.symbolTable.find(wordName) !== undefined) {
-    throw new WordAlreadyDefinedError(wordName, vm.getStackData());
-  }
 
   vm.compiler.compileOpcode(Op.Branch);
   const branchPos = vm.compiler.CP;
@@ -442,19 +438,12 @@ function beginDefinition(state: ParserState): void {
 
   const startAddress = vm.compiler.CP;
 
-  const wordFunction = (vm: typeof import('../core/globalState').vm) => {
-    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    vm.rpush(vm.BP);
-    vm.BP = vm.RP;
-    vm.IP = startAddress;
-  };
-
-  // Direct addressing: store the bytecode address
-  vm.symbolTable.defineColonDefinition(wordName, startAddress, wordFunction);
-
+  // Save checkpoint so body sees previous definition; defer new define until ';'
+  const checkpoint = vm.symbolTable.mark();
   state.currentDefinition = {
     name: wordName,
     branchPos,
+    checkpoint,
   };
 
   vm.compiler.preserve = true;
@@ -480,6 +469,16 @@ function endDefinition(state: ParserState): void {
   vm.compiler.compileOpcode(Op.Exit);
 
   patchBranchOffset(state.currentDefinition.branchPos);
+
+  // Now that body compiled against prior dictionary, register new definition at head
+  const { name } = state.currentDefinition;
+  const startAddress = vm.compiler.CP; // Exit was just compiled at end; definition starts at earlier address
+  // The actual start address is where we began compiling after branch; reconstruct from branch position
+  // branchPos is after Op.Branch (1 byte) at the 16-bit offset; the target start was saved earlier as startAddress in beginDefinition.
+  // We did not store it; recompute: start address = (branchPos + 2)
+  const defStart = state.currentDefinition.branchPos + 2; // start of body immediately after 16-bit placeholder
+
+  vm.symbolTable.defineColonDefinition(name, defStart);
 
   state.currentDefinition = null;
 }
