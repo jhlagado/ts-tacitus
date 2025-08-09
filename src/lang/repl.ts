@@ -29,7 +29,7 @@ import { processFile } from './fileProcessor';
  * @param {string[]} [files=[]] - Array of file paths to load before starting the interactive session
  * @param {boolean} [interactiveAfterFiles=true] - Whether to start an interactive session after loading files
  */
-export function startREPL(files: string[] = [], interactiveAfterFiles: boolean = true): void {
+export function startREPL(files: string[] = [], interactiveAfterFiles = true): void {
   setupInterpreter();
   let allFilesProcessed = true;
   if (files.length > 0) {

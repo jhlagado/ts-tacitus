@@ -155,14 +155,13 @@ function processToken(token: Token, state: ParserState): void {
       break;
     case TokenType.BLOCK_END:
       throw new UnexpectedTokenError('}', vm.getStackData());
-      break;
     case TokenType.WORD:
       processWordToken(token.value as string, state);
       break;
     case TokenType.SYMBOL:
-      processAtSymbol(token.value as string, state);
+      processAtSymbol(token.value as string);
       break;
-    case TokenType.WORD_QUOTE:
+    case TokenType.WORD_QUOTE: {
       const wordName = token.value as string;
       const address = vm.symbolTable.find(wordName) as number | undefined;
       if (address === undefined) {
@@ -172,6 +171,7 @@ function processToken(token: Token, state: ParserState): void {
       vm.compiler.compileOpcode(Op.LiteralAddress);
       vm.compiler.compile16(address);
       break;
+    }
   }
 }
 
@@ -328,7 +328,7 @@ function processWordToken(value: string, state: ParserState): void {
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-function processAtSymbol(symbolName: string, state: ParserState): void {
+function processAtSymbol(symbolName: string): void {
   // Generate bytecode to call vm.pushSymbolRef() at runtime
   // This pushes the resolved tagged value directly onto the stack
 
@@ -482,40 +482,6 @@ function endDefinition(state: ParserState): void {
   patchBranchOffset(state.currentDefinition.branchPos);
 
   state.currentDefinition = null;
-}
-
-/**
- * Begin a list with opening parenthesis (().
- *
- * This function handles the start of a list in Tacit. It:
- * 1. Increments the list depth counter in the VM
- * 2. Compiles an OpenList opcode to start list construction
- *
- * @param {ParserState} _state - The current parser state (unused)
- */
-function beginList(_state: ParserState): void {
-  vm.listDepth++;
-  vm.compiler.compileOpcode(Op.OpenList);
-}
-
-/**
- * End a list with closing parenthesis ()).
- *
- * This function handles the end of a list in Tacit. It:
- * 1. Validates that there is an open list to close
- * 2. Compiles a CloseList opcode to finalize list construction
- * 3. Decrements the list depth counter in the VM
- *
- * @param {ParserState} _state - The current parser state (unused)
- * @throws {Error} If there is no open list to close
- */
-function endList(_state: ParserState): void {
-  if (vm.listDepth <= 0) {
-    throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
-  }
-
-  vm.compiler.compileOpcode(Op.CloseList);
-  vm.listDepth--;
 }
 
 /**

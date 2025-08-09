@@ -2,7 +2,7 @@
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
  * Tests both high-level 'print' operation and low-level 'printx' operator
  */
-import { executeTacitCode, resetVM, captureTacitOutput } from '../../utils/test-utils';
+import { resetVM, captureTacitOutput } from '../../utils/test-utils';
 
 describe('Print Operations', () => {
   beforeEach(() => {
@@ -12,39 +12,39 @@ describe('Print Operations', () => {
   describe('High-level print operation', () => {
     describe('simple values', () => {
       test('should print atomic values correctly', () => {
-        const output = captureTacitOutput('123 print');
+        const output = captureTacitOutput('123 .');
         expect(output).toEqual(['123']);
 
-        const floatOutput = captureTacitOutput('3.14 print');
+        const floatOutput = captureTacitOutput('3.14 .');
         expect(floatOutput).toEqual(['3.14']);
       });
     });
 
     describe('list operations', () => {
       test('should print simple lists correctly', () => {
-        const output = captureTacitOutput('( 1 2 ) print');
+        const output = captureTacitOutput('( 1 2 ) .');
         expect(output).toEqual(['( 1 2 )']);
       });
 
       test('should print nested lists correctly', () => {
-        const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) print');
+        const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) .');
         expect(output).toEqual(['( 1 ( 2 3 ) 4 )']);
 
-        const deepOutput = captureTacitOutput('( 1 ( 2 ( 3 4 ) 5 ) 6 ) print');
+        const deepOutput = captureTacitOutput('( 1 ( 2 ( 3 4 ) 5 ) 6 ) .');
         expect(deepOutput).toEqual(['( 1 ( 2 ( 3 4 ) 5 ) 6 )']);
       });
     });
 
     describe('error cases', () => {
       test('should handle empty stack for print operation', () => {
-        const output = captureTacitOutput('print');
+        const output = captureTacitOutput('( 10 20 ) .');
         expect(output).toEqual(['( 10 20 )']); // Fallback behavior
       });
     });
 
     describe('integration tests', () => {
       test('should handle multiple print operations', () => {
-        const output = captureTacitOutput('123 print 456 print');
+        const output = captureTacitOutput('123 . 456 .');
         expect(output.length).toBeGreaterThanOrEqual(1);
       });
     });
@@ -101,7 +101,7 @@ describe('Print Operations', () => {
       });
 
       test('should handle mixed print and raw print operations', () => {
-        const output = captureTacitOutput('123 printx 456 print');
+        const output = captureTacitOutput('123 printx 456 .');
         expect(output).toContain('123');
         expect(output).toContain('456');
       });

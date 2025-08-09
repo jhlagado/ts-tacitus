@@ -97,18 +97,18 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
 /**
  * Create a nested list structure for testing
  */
-export function createNestedList(structure: any[]): TestList {
+export function createNestedList(structure: (number | unknown[])[]): TestList {
   const flatValues: number[] = [];
 
-  function flatten(item: any): void {
+  function flatten(item: number | unknown[]): void {
     if (Array.isArray(item)) {
       // This is a nested list - handle recursively
       for (const subItem of item) {
-        flatten(subItem);
+        flatten(subItem as number | unknown[]);
       }
     } else {
       // This is a number value
-      flatValues.push(item);
+      flatValues.push(item as number);
     }
   }
 

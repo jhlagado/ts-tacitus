@@ -25,7 +25,7 @@ describe('Parser LIST Integration (() )', () => {
 
   it('parses nested LIST: ( 1 ( 2 3 ) 4 )', () => {
     executeProgram('( 1 ( 2 3 ) 4 )');
-    const stack = vm.getStackData();
+    const _stack = vm.getStackData();
     const header = top();
     const { tag, value } = fromTaggedValue(header);
     expect(tag).toBe(Tag.LIST);

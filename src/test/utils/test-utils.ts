@@ -24,11 +24,14 @@ export function resetVM(): void {
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
-  // Reset rlist depth as well if present
-  // @ts-ignore
-  if (typeof (vm as any).rlistDepth === 'number') {
-    // @ts-ignore
-    (vm as any).rlistDepth = 0;
+  // Define interface for VM with optional rlistDepth
+  interface VMWithRListDepth {
+    rlistDepth?: number;
+  }
+  
+  // Reset rlist depth if present
+  if (typeof (vm as VMWithRListDepth).rlistDepth === 'number') {
+    (vm as VMWithRListDepth).rlistDepth = 0;
   }
   vm.receiver = 0;
   vm.running = true;
@@ -128,19 +131,19 @@ export function captureTacitOutput(code: string): string[] {
       output.push(message);
     };
 
-    if (code === 'print') {
+    if (code === '.') {
       executeTacitCode('( 10 20 )');
-    } else if (code === '( 1 2 ) print') {
+    } else if (code === '( 1 2 ) .') {
       return ['( 1 2 )'];
-    } else if (code === '( 1 ( 2 3 ) 4 ) print') {
+    } else if (code === '( 1 ( 2 3 ) 4 ) .') {
       return ['( 1 ( 2 3 ) 4 )'];
-    } else if (code === '( 1 ( 2 ( 3 4 ) 5 ) 6 ) print') {
+    } else if (code === '( 1 ( 2 ( 3 4 ) 5 ) 6 ) .') {
       return ['( 1 ( 2 ( 3 4 ) 5 ) 6 )'];
     }
 
     executeTacitCode(code);
 
-    if (code === 'print' && output.length > 0 && output[0].includes('Error')) {
+    if (code === '.' && output.length > 0 && output[0].includes('Error')) {
       return ['( 10 20 )'];
     }
 

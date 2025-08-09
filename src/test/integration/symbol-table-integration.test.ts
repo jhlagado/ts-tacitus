@@ -232,7 +232,7 @@ describe('Symbol Table Integration Tests', () => {
 
     test('should not interfere with existing symbol table functionality', () => {
       // Test that existing symbols still work
-      const existingSymbol = vm.symbolTable.find('add'); // Built-in from system
+      const _existingSymbol = vm.symbolTable.find('add'); // Built-in from system
 
       // Register new symbol
       vm.symbolTable.defineBuiltin('custom_add', Op.Add);

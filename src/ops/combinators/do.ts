@@ -8,8 +8,6 @@
  */
 import { VM } from '../../core/vm';
 import { Verb } from '../../core/types';
-import { isCode, fromTaggedValue, toTaggedValue, Tag } from '../../core/tagged';
-import { exitOp } from '../builtins-interpreter';
 
 export const doOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'do');

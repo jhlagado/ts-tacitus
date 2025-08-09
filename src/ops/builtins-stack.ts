@@ -99,28 +99,6 @@ function safeStackOperation(vm: VM, operation: () => void, operationName: string
 }
 
 /**
- * Gets information about multiple consecutive elements on the stack.
- *
- * @param {VM} vm - The virtual machine instance.
- * @param {number} count - The number of elements to get information for.
- * @returns {Array<{slot: number, size: number}>} Array of element information, from top to bottom.
- * @throws {StackUnderflowError} If there aren't enough elements on the stack.
- */
-function getStackElements(vm: VM, count: number): Array<{ slot: number; size: number }> {
-  const elements = [];
-  let currentSlot = 0;
-
-  for (let i = 0; i < count; i++) {
-    const [nextSlot, size] = findElement(vm, currentSlot);
-    const slot = vm.SP / BYTES_PER_ELEMENT - nextSlot;
-    elements.push({ slot, size });
-    currentSlot = nextSlot;
-  }
-
-  return elements;
-}
-
-/**
  * Implements the dup (duplicate) operation.
  *
  * Duplicates the top element of the stack, handling both simple values and
@@ -219,7 +197,7 @@ export const pickOp: Verb = (vm: VM) => {
   try {
     const [targetSlot, targetSize] = findElementAtIndex(vm, index);
     slotsCopy(vm, targetSlot, targetSize);
-  } catch (error) {
+  } catch {
     throw new Error(`Stack underflow in pick operation`);
   }
 };
@@ -281,8 +259,8 @@ export const swapOp: Verb = (vm: VM) => {
   const originalSP = vm.SP;
 
   try {
-    const [topNextSlot, topSlots] = findElement(vm, 0);
-    const [secondNextSlot, secondSlots] = findElement(vm, topSlots);
+    const [_topNextSlot, topSlots] = findElement(vm, 0);
+    const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
     const totalSlots = topSlots + secondSlots;
 

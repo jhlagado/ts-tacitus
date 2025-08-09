@@ -71,7 +71,7 @@ describe('Printer', () => {
 
     test('should handle null title', () => {
       const intValue = toTaggedValue(42, Tag.INTEGER);
-      prn(null as any, intValue);
+      prn(null as unknown as string, intValue);
 
       expect(consoleOutput).toHaveLength(1);
       // Should handle null title gracefully
@@ -204,7 +204,7 @@ describe('Printer', () => {
         { tag: Tag.LIST, value: 5, title: 'RList' },
       ];
 
-      testCases.forEach(({ tag, value, title }, index) => {
+      testCases.forEach(({ tag, value, title }) => {
         consoleOutput = [];
         const taggedValue = toTaggedValue(value, tag);
         prn(title, taggedValue);

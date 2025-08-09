@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../../core/globalState';
-import { tuckOp, swapOp, overOp } from '../../../ops/builtins-stack';
+import { tuckOp } from '../../../ops/builtins-stack';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from '../../utils/test-utils';
 
@@ -76,11 +76,6 @@ describe('tuck Operation', () => {
       const stack = executeTacitCode('42 ( 99 88 ) tuck');
 
       // Two LIST headers present
-      const headers = stack.map(v => ({ ...vm, v }));
-      const rlistHeaders = stack
-        .map(x => x)
-        .map(v => v)
-        .filter(() => true); // no-op, assertion below uses tagged decoding indirectly via helper suites
       expect(stack).toContain(42);
       expect(stack).toContain(99);
       expect(stack).toContain(88);

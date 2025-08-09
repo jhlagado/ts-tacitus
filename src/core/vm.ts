@@ -14,11 +14,10 @@
 import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
-import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE, MIN_USER_OPCODE, MAX_BUILTIN_OPCODE } from './constants';
+import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './constants';
 import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
-import { createBuiltinRef, createCodeRef } from './code-ref';
 import {
   StackUnderflowError,
   StackOverflowError,
@@ -69,12 +68,12 @@ export class VM {
   /** The symbol table mapping names to opcodes and implementations */
   symbolTable: SymbolTable;
 
-    /** Current nesting depth when processing lists */
+  /** Current nesting depth when processing lists */
   listDepth: number;
 
   /** Current nesting depth when processing RLISTs */
   rlistDepth: number;
-  
+
   /** Receiver register - stack slot index for current receiver object (defaults to 0) */
   receiver: number;
   /**
@@ -402,7 +401,7 @@ export class VM {
    * evalOp(vm); // Executes the add operation
    *
    * // Push colon definition reference:
-   * vm.pushSymbolRef("square"); // Pushes Tag.CODE(bytecode_addr) to stack  
+   * vm.pushSymbolRef("square"); // Pushes Tag.CODE(bytecode_addr) to stack
    * evalOp(vm); // Executes the square definition
    */
   pushSymbolRef(name: string): void {
@@ -415,10 +414,10 @@ export class VM {
 
   /**
    * Gets the current receiver register value.
-   * 
+   *
    * The receiver register contains a stack slot index pointing to the current
    * receiver object for method dispatch operations.
-   * 
+   *
    * @returns The current receiver stack slot index
    */
   getReceiver(): number {
@@ -427,10 +426,10 @@ export class VM {
 
   /**
    * Sets the receiver register to a new stack slot index.
-   * 
+   *
    * This method is used to set the current receiver object for method dispatch.
    * The slot index should point to a valid stack position containing a capsule.
-   * 
+   *
    * @param slotIndex The stack slot index of the new receiver object
    */
   setReceiver(slotIndex: number): void {

@@ -1,5 +1,4 @@
 import { executeTacitCode, resetVM } from '../utils/test-utils';
-import { vm } from '../../core/globalState';
 
 /**
  * Simple CLI test for print operations to verify that our fix works in the actual CLI

@@ -4,7 +4,7 @@
  */
 
 import { VM } from '../../core/vm';
-import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
+import { toTaggedValue, Tag } from '../../core/tagged';
 import {
   createRList,
   getRListSlotCount,

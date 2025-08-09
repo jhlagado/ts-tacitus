@@ -18,8 +18,8 @@
     "dev": "ts-node src/cli.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "lint": "eslint . --max-warnings=100",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint src --max-warnings=10",
+    "lint:fix": "eslint src --fix",
     "lint:js": "eslint . --ext .js,.mjs",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx}'",
     "format:fix": "node fix-spacing.js && prettier --write 'src/**/*.{ts,tsx,js,jsx}'"

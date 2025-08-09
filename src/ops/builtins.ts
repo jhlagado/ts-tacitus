@@ -33,7 +33,7 @@
  * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { toTaggedValue, Tag } from '../core/tagged';
 
 import {
   literalNumberOp,

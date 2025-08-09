@@ -20,7 +20,6 @@ import { fromTaggedValue, toTaggedValue, Tag, isInteger, isList } from '../core/
 import { SEG_STACK } from '../core/constants';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
-  createRList,
   getRListSlotCount,
   skipRList,
   validateRListHeader,
