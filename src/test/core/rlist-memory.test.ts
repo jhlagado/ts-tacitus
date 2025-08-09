@@ -11,7 +11,7 @@ describe('RLIST Memory Management Validation', () => {
   });
 
   it('creates and skips a large RLIST without leaving residual stack data', () => {
-    executeProgram('[ 1 2 3 4 5 6 7 8 9 10 ]');
+    executeProgram('( 1 2 3 4 5 6 7 8 9 10 )');
     const before = stackDepth();
     expect(before).toBe(11);
 
@@ -27,7 +27,7 @@ describe('RLIST Memory Management Validation', () => {
   });
 
   it('handles nested RLIST creation and skip in sequence', () => {
-    executeProgram('[ 1 [ 2 3 ] 4 ]');
+    executeProgram('( 1 ( 2 3 ) 4 )');
     expect(stackDepth()).toBeGreaterThan(0);
     executeProgram('.skip');
     expect(stackDepth()).toBe(0);

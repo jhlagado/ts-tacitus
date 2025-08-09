@@ -4,7 +4,7 @@
 
 This plan outlines the implementation of TACIT Reverse Lists (RLIST), a new stack-native compound data structure that stores elements in reverse order with the header at top-of-stack. This implementation will preserve existing LIST functionality while adding new `[ ]` syntax for RLIST construction.
 
-## 🎯 **ACTIVE** - Phase 1: Core Infrastructure
+## Phase 1: Core Infrastructure
 
 ### Step 1.1: Add RLIST Tag to Tagged Value System
 - Status: Completed

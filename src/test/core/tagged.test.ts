@@ -74,11 +74,9 @@ describe('Tagged NaN Encoding', () => {
 
   test('should correctly identify RLIST types', () => {
     const rlist = toTaggedValue(5, Tag.RLIST);
-    const list = toTaggedValue(5, Tag.LIST);
     const integer = toTaggedValue(5, Tag.INTEGER);
     
     expect(isRList(rlist)).toBe(true);
-    expect(isRList(list)).toBe(false);
     expect(isRList(integer)).toBe(false);
   });
 

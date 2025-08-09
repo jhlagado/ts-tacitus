@@ -19,8 +19,8 @@ describe('RLIST Literal Compilation', () => {
     initializeInterpreter();
   });
 
-  it('compiles a simple RLIST literal: [ 1 2 3 ]', () => {
-    parse(new Tokenizer('[ 1 2 3 ]'));
+  it('compiles a simple RLIST literal: ( 1 2 3 )', () => {
+    parse(new Tokenizer('( 1 2 3 )'));
     const code = vm.getCompileData();
 
     // Expected opcode sequence: OpenRList, (LitNum, f32)*3, CloseRList, Abort
@@ -38,8 +38,8 @@ describe('RLIST Literal Compilation', () => {
     expect(code[i]).toBe(Op.Abort);
   });
 
-  it('compiles nested RLIST literal: [ 1 [ 2 3 ] 4 ]', () => {
-    parse(new Tokenizer('[ 1 [ 2 3 ] 4 ]'));
+  it('compiles nested RLIST literal: ( 1 ( 2 3 ) 4 )', () => {
+    parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
     const code = vm.getCompileData();
 
     // Expected: OpenRList, Lit 1, OpenRList, Lit 2, Lit 3, CloseRList, Lit 4, CloseRList, Abort

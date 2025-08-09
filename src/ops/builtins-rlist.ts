@@ -86,8 +86,14 @@ export function closeRListOp(vm: VM): void {
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.RLIST);
   vm.memory.writeFloat32(SEG_STACK, headerPos, finalizedHeader);
 
-  // Only reverse once at the outermost RLIST close: reverse header + payload as a single block
-  if (vm.rlistDepth === 1) {
+  // Reverse header + payload to bring header to TOS.
+  // Preferred behavior: reverse only at outermost depth.
+  // Backward-compatibility fallback: if rlistDepth is not present, reverse unconditionally.
+  const anyVm = vm as unknown as { rlistDepth?: number };
+  const hasRDepth = typeof anyVm.rlistDepth === 'number';
+  const isOutermost = hasRDepth ? anyVm.rlistDepth === 1 : true;
+
+  if (isOutermost) {
     const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT; // header + payload
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
@@ -278,7 +284,7 @@ export function rlistSetAtOp(vm: VM): void {
   // Check if target location contains a compound value
   const oldValue = vm.memory.readFloat32(SEG_STACK, targetAddr);
   
-  if (isRList(oldValue) || fromTaggedValue(oldValue).tag === Tag.LIST) {
+  if (isRList(oldValue)) {
     vm.pop(); // Remove RLIST header from stack
     vm.push(NIL); // Refuse to overwrite compound values
     return;

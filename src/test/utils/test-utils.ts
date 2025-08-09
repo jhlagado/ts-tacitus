@@ -313,21 +313,13 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
       }
       index++;
     } else if (element.type === 'list') {
-      expect(tag).toBe(Tag.LIST);
+      expect(tag).toBe(Tag.RLIST);
       index++;
 
       if (element.children) {
         for (const child of element.children) {
           verifyElement(child);
         }
-      }
-
-      if (index < stack.length) {
-        const { tag: linkTag } = fromTaggedValue(stack[index]);
-        expect(linkTag).toBe(Tag.LINK);
-        index++;
-      } else {
-        throw new Error(`Expected LINK tag at index ${index} but stack ended`);
       }
     }
   }

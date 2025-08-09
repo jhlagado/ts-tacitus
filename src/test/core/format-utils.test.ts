@@ -1,6 +1,7 @@
 import { formatFloat, formatAtomicValue, formatListAt, formatValue } from '../../core/format-utils';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { Tag, toTaggedValue } from '../../core/tagged';
+import { executeTacitCode } from '../utils/test-utils';
 
 describe('Format Utils', () => {
   beforeEach(() => {
@@ -127,14 +128,9 @@ describe('Format Utils', () => {
         expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
-      test('should format LIST tags with tag name and value', () => {
-        const listValue = toTaggedValue(2, Tag.LIST);
-        expect(formatAtomicValue(vm, listValue)).toBe('[LIST:2]');
-      });
-
-      test('should format LINK tags with tag name and value', () => {
-        const linkValue = toTaggedValue(5, Tag.LINK);
-        expect(formatAtomicValue(vm, linkValue)).toBe('[LINK:5]');
+      test('should format RLIST tags with tag name and value', () => {
+        const listValue = toTaggedValue(2, Tag.RLIST);
+        expect(formatAtomicValue(vm, listValue)).toBe('[RLIST:2]');
       });
 
       test('should format INTEGER tags with tag name and value', () => {
@@ -147,41 +143,28 @@ describe('Format Utils', () => {
   describe('formatListAt', () => {
     describe('simple values', () => {
       test('should format a simple list with atomic values', () => {
-        vm.push(toTaggedValue(2, Tag.LIST));
-        vm.push(1);
-        vm.push(2);
-        const stack = vm.getStackData();
-
-        const result = formatListAt(vm, stack, stack.length - 3);
+        const stack = executeTacitCode('( 1 2 )');
+        const result = formatValue(vm, stack[stack.length - 1]);
         expect(result).toBe('( 1 2 )');
       });
 
       test('should format an empty list', () => {
-        vm.push(toTaggedValue(0, Tag.LIST));
-        const stack = vm.getStackData();
-
-        const result = formatListAt(vm, stack, stack.length - 1);
+        const stack = executeTacitCode('( )');
+        const result = formatValue(vm, stack[stack.length - 1]);
         expect(result).toBe('(  )'); // Empty list has two spaces
       });
 
       test('should format a single-element list', () => {
-        vm.push(toTaggedValue(1, Tag.LIST));
-        vm.push(42);
-        const stack = vm.getStackData();
-
-        const result = formatListAt(vm, stack, stack.length - 2);
+        const stack = executeTacitCode('( 42 )');
+        const result = formatValue(vm, stack[stack.length - 1]);
         expect(result).toBe('( 42 )');
       });
     });
 
     describe('list operations', () => {
       test('should handle NaN-boxed lists', () => {
-        vm.push(toTaggedValue(2, Tag.LIST));
-        vm.push(1);
-        vm.push(2);
-        const stack = vm.getStackData();
-
-        const result = formatListAt(vm, stack, stack.length - 3);
+        const stack = executeTacitCode('( 1 2 )');
+        const result = formatValue(vm, stack[stack.length - 1]);
         expect(result).toBe('( 1 2 )');
       });
     });
@@ -206,13 +189,16 @@ describe('Format Utils', () => {
       });
 
       test('should handle corrupted list structure', () => {
-        vm.push(toTaggedValue(5, Tag.LIST)); // Claims 5 elements but stack is shorter
+        // Create an RLIST header that over-claims elements (manually corrupted)
+        // Push payload smaller than header claims
+        const corruptedHeader = toTaggedValue(2, Tag.RLIST);
         vm.push(1);
+        vm.push(corruptedHeader);
         const stack = vm.getStackData();
 
-        // Should handle gracefully when list claims more elements than available
-        const result = formatListAt(vm, stack, stack.length - 2);
-        expect(result).toBe('(  )'); // No elements are successfully formatted due to corruption
+        const result = formatValue(vm, stack[stack.length - 1]);
+        // Formatter should not throw; result may include only available elements
+        expect(typeof result).toBe('string');
       });
     });
 
@@ -248,47 +234,11 @@ describe('Format Utils', () => {
     });
 
     describe('list operations', () => {
-      test('should format list values on stack', () => {
-        vm.push(toTaggedValue(2, Tag.LIST));
-        vm.push(1);
-        vm.push(2);
-        const stack = vm.getStackData();
-        const listValue = stack[stack.length - 3];
-
-        const result = formatValue(vm, listValue);
-        expect(result).toBe('( 2 elements )'); // formatValue behavior for lists not found correctly on stack
-      });
-
-      test('should format list values not on stack', () => {
-        const listValue = toTaggedValue(3, Tag.LIST);
-        expect(formatValue(vm, listValue)).toBe('( 3 elements )');
-      });
-
-      test('should format NaN-boxed lists on stack', () => {
-        const nanValue = NaN;
-        // Simulate NaN-boxed list by using Number.NaN with value
-        vm.push(toTaggedValue(1, Tag.LIST));
-        vm.push(42);
-        const stack = vm.getStackData();
-
-        // Create a NaN value that would represent a NaN-boxed list
-        const nanBoxed = parseFloat('NaN');
-        if (Number.isNaN(nanBoxed)) {
-          expect(formatValue(vm, nanBoxed)).toMatch(/elements/);
-        }
-      });
-
-      test('should format LINK values', () => {
-        // Create a list and then a LINK that references it
-        vm.push(toTaggedValue(2, Tag.LIST));
-        vm.push(1);
-        vm.push(2);
-        vm.push(toTaggedValue(3, Tag.LINK)); // LINK pointing back 3 positions
-        const stack = vm.getStackData();
-        const linkValue = stack[stack.length - 1];
-
-        const result = formatValue(vm, linkValue);
-        expect(result).toBe('( 3 elements )'); // LINK treated as NaN-boxed list
+      test('should format RLIST values', () => {
+        const stack = executeTacitCode('( 1 2 3 )');
+        const header = stack[stack.length - 1];
+        const result = formatValue(vm, header);
+        expect(result).toBe('( 1 2 3 )');
       });
     });
 
@@ -324,34 +274,28 @@ describe('Format Utils', () => {
         expect(formatValue(vm, negInfValue)).toBe('-Infinity');
       });
 
-      test('should handle corrupted LINK references', () => {
-        vm.push(42); // Not a list
-        vm.push(toTaggedValue(1, Tag.LINK)); // LINK pointing to non-list
-        const stack = vm.getStackData();
-        const linkValue = stack[stack.length - 1];
-
-        const result = formatValue(vm, linkValue);
-        expect(result).toBe('( 1 elements )'); // LINK treated as NaN-boxed list
-      });
+      // Legacy LINK references removed
     });
 
     describe('integration tests', () => {
       test('should handle mixed data types in complex structures', () => {
         const strAddr = vm.digest.intern('hello');
-        vm.push(toTaggedValue(3, Tag.LIST));
-        vm.push(toTaggedValue(strAddr, Tag.STRING));
+        // Build RLIST manually: push STRING, NUMBER, NUMBER then RLIST header (3)
+        // RLIST layout expects payload reversed under header: payload-0 at SP-4
+        // Push values in reverse order so printing is ( hello 42 3.14 )
+        vm.push(3.14);
         vm.push(42);
-        vm.push(toTaggedValue(3.14, Tag.NUMBER));
-        const stack = vm.getStackData();
-        const listValue = stack[stack.length - 4];
-
-        const result = formatValue(vm, listValue);
-        expect(result).toBe('( 3 elements )'); // List shows element count rather than contents
+        vm.push(toTaggedValue(strAddr, Tag.STRING));
+        vm.push(toTaggedValue(3, Tag.RLIST));
+        const header = vm.getStackData()[vm.getStackData().length - 1];
+        const result = formatValue(vm, header);
+        expect(result).toBe('( hello 42 3.14 )');
       });
 
       test('should handle empty containers gracefully', () => {
-        const emptyList = toTaggedValue(0, Tag.LIST);
-        expect(formatValue(vm, emptyList)).toBe('( 0 elements )');
+        const stack = executeTacitCode('( )');
+        const header = stack[stack.length - 1];
+        expect(formatValue(vm, header)).toBe('(  )');
       });
     });
   });

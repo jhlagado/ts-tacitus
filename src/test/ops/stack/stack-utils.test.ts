@@ -39,12 +39,10 @@ describe('Stack Utils', () => {
       vm.SP += BYTES_PER_ELEMENT;
     }
 
-    function createSimpleList(...values: number[]): void {
-      pushValue(values.length, Tag.LIST);
-
+    function createRList(...values: number[]): void {
+      // RLIST layout: [payload...] [RLIST:slotCount] with header at TOS
       values.forEach(val => pushValue(val));
-
-      pushValue(values.length + 1, Tag.LINK);
+      pushValue(values.length, Tag.RLIST);
     }
 
     beforeEach(() => {
@@ -52,7 +50,7 @@ describe('Stack Utils', () => {
     });
 
     test('should find elements in sequence', () => {
-      createSimpleList(1, 2);
+      createRList(1, 2);
       pushValue(42);
       pushValue(43);
 
@@ -65,27 +63,27 @@ describe('Stack Utils', () => {
       expect(size2).toBe(1);
 
       const [offset3, size3] = findElement(vm, offset2);
-      expect(offset3).toBe(6);
-      expect(size3).toBe(4);
+      expect(offset3).toBe(5); // RLIST size is header+payload = 3
+      expect(size3).toBe(3);
     });
 
     test('should handle list at TOS', () => {
-      createSimpleList(1, 2);
+      createRList(1, 2);
 
       const [nextSlot, size] = findElement(vm, 0);
-      expect(size).toBe(4);
-      expect(nextSlot).toBe(4);
+      expect(size).toBe(3);
+      expect(nextSlot).toBe(3);
     });
 
     test('should handle multiple lists', () => {
-      createSimpleList(3, 4);
-      createSimpleList(1);
+      createRList(3, 4);
+      createRList(1);
 
       const [offset1, size1] = findElement(vm, 0);
-      expect(size1).toBe(3);
+      expect(size1).toBe(2); // (1) -> payload(1)+header(1)
 
       const [_offset2, size2] = findElement(vm, offset1);
-      expect(size2).toBe(4);
+      expect(size2).toBe(3); // (3,4) -> payload(2)+header(1)
     });
   });
 });

@@ -245,13 +245,15 @@ export const pickOp: Verb = (vm: VM) => {
  */
 export const dropOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'drop');
-
-  const topValue = vm.pop();
+  const topValue = vm.peek();
   const { tag, value } = fromTaggedValue(topValue);
-  if (tag === Tag.LINK) {
-    const targetSP = vm.SP - value * BYTES_PER_ELEMENT;
-    vm.SP = targetSP;
+  if (tag === Tag.RLIST) {
+    const totalSlots = value + 1;
+    vm.SP -= totalSlots * BYTES_PER_ELEMENT;
+    return;
   }
+  // Default: drop single atomic value
+  vm.pop();
 };
 
 /**
@@ -380,15 +382,8 @@ export const revrotOp: Verb = (vm: VM) => {
 
     const totalSlots = topSlots + midSlots + bottomSlots;
 
-    const originalHeader = vm.memory.readFloat32(SEG_STACK, topSlots * BYTES_PER_ELEMENT);
-    const { tag: originalTag } = fromTaggedValue(originalHeader);
-
     slotsRoll(vm, 0, totalSlots, topSlots);
-
-    if (originalTag === Tag.LIST) {
-      const newHeader = originalHeader;
-      vm.memory.writeFloat32(SEG_STACK, 1 * BYTES_PER_ELEMENT, newHeader);
-    }
+    // Legacy LIST header adjustment removed
   } catch (error) {
     vm.SP = originalSP;
     if (error instanceof VMError) {

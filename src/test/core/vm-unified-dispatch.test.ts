@@ -65,7 +65,7 @@ describe('VM Unified Dispatch', () => {
       const nonExecutableValues = [
         42, // Plain number
         toTaggedValue(100, Tag.STRING), // String reference
-        toTaggedValue(5, Tag.LIST), // List reference
+        toTaggedValue(5, Tag.RLIST), // List reference
       ];
 
       nonExecutableValues.forEach(value => {

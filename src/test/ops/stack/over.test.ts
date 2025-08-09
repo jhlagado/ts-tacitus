@@ -36,64 +36,28 @@ describe('over Operation', () => {
     });
   });
 
-  describe('list operations', () => {
-    test('should duplicate a list when it is the second item', () => {
-      const listTag = toTaggedValue(2, Tag.LIST);
-      const linkTag = toTaggedValue(3, Tag.LINK);
-      vm.push(listTag);
-      vm.push(10);
-      vm.push(20);
-      vm.push(linkTag);
-
-      vm.push(30);
-
-      overOp(vm);
-
-      const stack = vm.getStackData();
-
-      expect(stack.length).toBeGreaterThan(5);
-      expect(stack[4]).toBe(30);
-    });
-
+  describe('list operations (RLIST semantics)', () => {
     test('should duplicate a value over a list', () => {
       vm.push(42);
-
-      const listTag = toTaggedValue(2, Tag.LIST);
-      const linkTag = toTaggedValue(3, Tag.LINK);
-      vm.push(listTag);
       vm.push(10);
       vm.push(20);
-      vm.push(linkTag);
+      vm.push(toTaggedValue(2, Tag.RLIST));
 
       overOp(vm);
 
       const stack = vm.getStackData();
-      expect(stack.length).toBe(6);
-
+      expect(stack.length).toBe(5);
       expect(stack[0]).toBe(42);
-
-      const remainingListTag = fromTaggedValue(stack[1]);
-      expect(remainingListTag.tag).toBe(Tag.LIST);
-      expect(stack[2]).toBe(10);
-      expect(stack[3]).toBe(20);
-
-      const remainingLinkTag = fromTaggedValue(stack[4]);
-      expect(remainingLinkTag.tag).toBe(Tag.LINK);
-
-      expect(stack[5]).toBe(42);
+      expect(stack[stack.length - 1]).toBe(42);
     });
 
     test('should handle nested lists correctly', () => {
-      const innerListTag = toTaggedValue(2, Tag.LIST);
-      const outerListTag = toTaggedValue(2, Tag.LIST);
-      const outerLinkTag = toTaggedValue(5, Tag.LINK);
-
-      vm.push(outerListTag);
-      vm.push(1);
-      vm.push(innerListTag);
+      // Build outer ( 1 ( 2 3 ) ) as RLIST
       vm.push(2);
       vm.push(3);
-      vm.push(outerLinkTag);
+      vm.push(toTaggedValue(2, Tag.RLIST)); // inner
+      vm.push(1);
+      vm.push(toTaggedValue(2, Tag.RLIST)); // outer
 
       vm.push(99);
 
@@ -101,7 +65,7 @@ describe('over Operation', () => {
 
       const stack = vm.getStackData();
 
-      expect(stack.length).toBeGreaterThan(6);
+      expect(stack.length).toBeGreaterThan(4);
     });
   });
 

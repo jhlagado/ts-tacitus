@@ -86,7 +86,7 @@ import {
   prodOp,
 } from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
-import { openListOp, closeListOp } from './builtins-list';
+// Legacy forward list ops removed during unification; parentheses map to RLIST impl
 import {
   openRListOp,
   closeRListOp,
@@ -308,10 +308,10 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       literalCodeOp(vm);
       break;
     case Op.OpenList:
-      openListOp(vm);
+      openRListOp(vm);
       break;
     case Op.CloseList:
-      closeListOp(vm);
+      closeRListOp(vm);
       break;
     case Op.OpenRList:
       openRListOp(vm);

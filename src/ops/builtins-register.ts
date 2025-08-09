@@ -34,7 +34,6 @@ import {
 
 import { literalAddressOp } from './builtins';
 
-import { openListOp, closeListOp } from './builtins-list';
 
 import {
   addOp,
@@ -132,12 +131,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('str', Op.LiteralString, literalStringOp);
   symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
 
-  symbolTable.define('(', Op.OpenList, openListOp);
-  symbolTable.define(')', Op.CloseList, closeListOp);
+  // Migration: make parentheses build reverse lists; keep [ ] as alias during transition
+  symbolTable.define('(', Op.OpenRList, openRListOp);
+  symbolTable.define(')', Op.CloseRList, closeRListOp);
 
-  // RLIST operations and syntax
-  symbolTable.define('[', Op.OpenRList, openRListOp);
-  symbolTable.define(']', Op.CloseRList, closeRListOp);
+  // RLIST operations (parentheses only)
   symbolTable.define('.slot', Op.RListSlot, rlistSlotOp);
   symbolTable.define('.skip', Op.RListSkip, rlistSkipOp);
   symbolTable.define('prepend', Op.RListPrepend, rlistPrependOp);
