@@ -1,3 +1,109 @@
+# edit plan 
+the following points are to be integrated into the # TACIT Lists document below
+
+---
+
+Proposed Edit Plan — lists.md
+
+1. Terminology cleanup
+
+Replace “All values (scalars and compound values) occupy one 32-bit cell” with:
+
+> All stack slots are 32-bit cells. Simple values occupy one slot. Compound values occupy multiple slots (their header plus payload slots).
+
+
+
+Add definitions:
+
+Cell: 32-bit memory unit (anywhere).
+
+Slot: cell addressed relative to a list’s payload.
+
+Element: logical member of a list (simple = 1 slot; compound = header + payload).
+
+Simple / Compound: as above; a list is one compound type.
+
+
+
+2. Two lengths
+
+Explicitly distinguish:
+
+slots(list) — O(1) from header (s).
+
+elements(list) — O(s) traversal.
+
+
+Note: elements can’t be randomly accessed without traversal.
+
+
+3. Prepend / append semantics
+
+Clarify: prepend is in-place O(1) and encouraged; append is O(n) and discouraged.
+
+Add front-drop as symmetric to prepend.
+
+Remove/replace any outdated append description that implies it writes at SP-1 but calls itself “append.”
+
+
+4. Mutation rules
+
+State: only simple slots can be overwritten in place.
+
+Overwriting compounds is disallowed; may return sentinel (implementation-defined) but not required to specify here.
+
+
+5. CONS vs CONCAT
+
+Add small note to distinguish:
+
+CONS: prepend value (simple or compound) as single element.
+
+CONCAT: merge elements of second list into first.
+
+Fallback: if second arg to CONCAT is not a list, behave as CONS.
+
+
+
+6. Length field width
+
+Change “max slot count 65,535” to:
+
+> Max slot count is implementation-defined; current implementation uses 16 bits in the header (max 65,535 slots) for 256 KiB payloads on 32-bit words.
+
+
+
+
+7. Empty lists
+
+Explicitly state:
+
+LIST:0 prints as ( ).
+
+slots() = 0, elements() = 0.
+
+drop(LIST:0) removes 1 cell.
+
+Prepending to empty list yields one-element list.
+
+
+
+8. Traversal rule
+
+State: compounds must store their total slot span in their header; traversal always advances by that span.
+
+For lists, span = s + 1.
+
+
+9. Stack pointer direction fix
+
+Correct all instances of SP+1 for first element to SP-1 to match upward-growing stack.
+
+
+
+---
+
+
 # TACIT Lists
 
 This document specifies the current, unified list structure in TACIT. It describes the in-memory/stack representation, literal syntax, core operations, and constraints. It does not reference deprecated formats.
