@@ -51,21 +51,15 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Test String: STRING: "\[string:287\]"/);
     });
 
-    test('should print LIST tagged values', () => {
-      const listValue = toTaggedValue(3, Tag.LIST);
+    test('should print RLIST tagged values', () => {
+      const listValue = toTaggedValue(3, Tag.RLIST);
       prn('Test List', listValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Test List: LIST:/);
+      expect(consoleOutput[0]).toMatch(/Test List: RLIST:/);
     });
 
-    test('should print LINK tagged values', () => {
-      const linkValue = toTaggedValue(5, Tag.LINK);
-      prn('Test Link', linkValue);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Test Link: LINK:/);
-    });
+    // Legacy LINK removed from tests
 
     test('should handle empty title', () => {
       const intValue = toTaggedValue(42, Tag.INTEGER);
@@ -186,27 +180,18 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Large Code: CODE: <code>/);
     });
 
-    test('should work with LIST tag values of different sizes', () => {
-      const smallList = toTaggedValue(0, Tag.LIST);
+    test('should work with RLIST tag values of different sizes', () => {
+      const smallList = toTaggedValue(0, Tag.RLIST);
       prn('Empty List', smallList);
-      expect(consoleOutput[0]).toMatch(/Empty List: LIST:/);
+      expect(consoleOutput[0]).toMatch(/Empty List: RLIST:/);
 
       consoleOutput = [];
-      const largeList = toTaggedValue(1000, Tag.LIST);
+      const largeList = toTaggedValue(1000, Tag.RLIST);
       prn('Large List', largeList);
-      expect(consoleOutput[0]).toMatch(/Large List: LIST:/);
+      expect(consoleOutput[0]).toMatch(/Large List: RLIST:/);
     });
 
-    test('should work with LINK tag values', () => {
-      const shortLink = toTaggedValue(1, Tag.LINK);
-      prn('Short Link', shortLink);
-      expect(consoleOutput[0]).toMatch(/Short Link: LINK:/);
-
-      consoleOutput = [];
-      const longLink = toTaggedValue(500, Tag.LINK);
-      prn('Long Link', longLink);
-      expect(consoleOutput[0]).toMatch(/Long Link: LINK:/);
-    });
+    // Legacy LINK removed from tests
   });
 
   describe('integration with tagged values', () => {
@@ -216,8 +201,7 @@ describe('Printer', () => {
         { tag: Tag.INTEGER, value: 42, title: 'Integer' },
         { tag: Tag.CODE, value: 100, title: 'Code' },
         { tag: Tag.STRING, value: 200, title: 'String' },
-        { tag: Tag.LIST, value: 5, title: 'List' },
-        { tag: Tag.LINK, value: 10, title: 'Link' },
+        { tag: Tag.RLIST, value: 5, title: 'RList' },
       ];
 
       testCases.forEach(({ tag, value, title }, index) => {
@@ -237,10 +221,8 @@ describe('Printer', () => {
           expect(consoleOutput[0]).toMatch(/CODE:/);
         } else if (tag === Tag.STRING) {
           expect(consoleOutput[0]).toMatch(/STRING:/);
-        } else if (tag === Tag.LIST) {
-          expect(consoleOutput[0]).toMatch(/LIST:/);
-        } else if (tag === Tag.LINK) {
-          expect(consoleOutput[0]).toMatch(/LINK:/);
+        } else if (tag === Tag.RLIST) {
+          expect(consoleOutput[0]).toMatch(/RLIST:/);
         }
       });
     });

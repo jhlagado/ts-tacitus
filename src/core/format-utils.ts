@@ -93,60 +93,15 @@ export function formatAtomicValue(vm: VM, value: number): string {
  * @returns Formatted string representation of the list with proper parentheses
  */
 export function formatListAt(vm: VM, stack: number[], index: number): string {
-  if (index < 0 || index >= stack.length) {
-    return '[Invalid list index]';
-  }
-
+  if (index < 0 || index >= stack.length) return '[Invalid list index]';
   const value = stack[index];
-  let { tag, value: listSize } = fromTaggedValue(value);
-
-  const isNaNBoxedList = Number.isNaN(value) && listSize >= 0;
-  if (tag !== Tag.LIST && !isNaNBoxedList) {
-    return '[Not a list]';
-  }
-
-  const elements: string[] = [];
-  const size = isNaNBoxedList ? listSize : Number(listSize);
-
-  let i = 0;
-  while (i < size && index + 1 + i < stack.length) {
-    const elemIndex = index + 1 + i;
-    const elem = stack[elemIndex];
-    const { tag: elemTag, value: elemValue } = fromTaggedValue(elem);
-
-    if (elemTag === Tag.LINK) {
-      i++;
-      continue;
-    }
-
-    if (elemTag === Tag.LIST || (Number.isNaN(elem) && elemValue >= 0)) {
-      elements.push(formatListAt(vm, stack, elemIndex));
-
-      const nestedSize = Number.isNaN(elem) ? elemValue : Number(elemValue);
-      i += 1 + nestedSize;
-
-      if (elemIndex + nestedSize + 1 < stack.length) {
-        const possibleLink = stack[elemIndex + nestedSize + 1];
-        const { tag: possibleLinkTag } = fromTaggedValue(possibleLink);
-        if (possibleLinkTag === Tag.LINK) {
-          i++;
-        }
-      }
-    } else if (elemTag === Tag.RLIST) {
-      elements.push(formatRListAt(vm, stack, elemIndex));
-      const rlistSlots = fromTaggedValue(elem).value;
-      i += 1 + rlistSlots;
-    } else {
-      elements.push(formatAtomicValue(vm, elem));
-      i++;
-    }
-  }
-
-  return `( ${elements.join(' ')} )`;
+  const { tag } = fromTaggedValue(value);
+  if (tag !== Tag.RLIST) return '[Not a list]';
+  return formatRListAt(vm, stack, index);
 }
 
 function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
-  if (headerIndex <= 0 || headerIndex >= stack.length) {
+  if (headerIndex < 0 || headerIndex >= stack.length) {
     return '[ Invalid RLIST index ]';
   }
 
@@ -168,8 +123,6 @@ function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
     const decoded = fromTaggedValue(currentValue);
     if (decoded.tag === Tag.RLIST) {
       stepSize = decoded.value + 1;
-    } else if (decoded.tag === Tag.LIST) {
-      stepSize = Number(decoded.value) + 2;
     } else {
       const nextIndex = currentIndex - 1;
       if (remainingSlots > 1 && nextIndex >= 0) {
@@ -177,9 +130,6 @@ function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
         if (nextDecoded.tag === Tag.RLIST) {
           elementStartIndex = nextIndex;
           stepSize = nextDecoded.value + 1;
-        } else if (nextDecoded.tag === Tag.LIST) {
-          elementStartIndex = nextIndex;
-          stepSize = Number(nextDecoded.value) + 2;
         }
       }
     }
@@ -188,8 +138,6 @@ function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
     const startDecoded = fromTaggedValue(startVal);
     if (startDecoded.tag === Tag.RLIST) {
       elements.push(formatRListAt(vm, stack, elementStartIndex));
-    } else if (startDecoded.tag === Tag.LIST || (Number.isNaN(startVal) && startDecoded.value >= 0)) {
-      elements.push(formatListAt(vm, stack, elementStartIndex));
     } else {
       elements.push(formatAtomicValue(vm, startVal));
     }
@@ -198,7 +146,7 @@ function formatRListAt(vm: VM, stack: number[], headerIndex: number): string {
     remainingSlots -= stepSize;
   }
 
-  return `[ ${elements.join(' ')} ]`;
+  return `( ${elements.join(' ')} )`;
 }
 
 /**
@@ -223,6 +171,24 @@ export function formatValue(vm: VM, value: number): string {
   const stack = vm.getStackData();
   const { tag, value: tagValue } = fromTaggedValue(value);
 
+  // Prefer inline RLIST formatting if a header is present on stack
+  {
+    let rIndex = -1;
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const d = fromTaggedValue(stack[i]);
+      if (d.tag === Tag.RLIST) {
+        rIndex = i;
+        break;
+      }
+    }
+    if (rIndex >= 0) {
+      return formatRListAt(vm, stack, rIndex);
+    }
+  }
+
+  // Handle RLIST first to avoid NaN-boxed early return
+  // (Removed explicit case from switch; handled above without touching the type union.)
+
   if (Number.isNaN(value) && tagValue >= 0) {
     const index = stack.indexOf(value);
     if (index >= 0) {
@@ -232,36 +198,6 @@ export function formatValue(vm: VM, value: number): string {
   }
 
   switch (tag) {
-    case Tag.LIST:
-      const index = stack.indexOf(value);
-      if (index >= 0) {
-        return formatListAt(vm, stack, index);
-      }
-      return `( ${tagValue} elements )`;
-    case Tag.RLIST:
-      const rIndex = stack.indexOf(value);
-      if (rIndex >= 0) {
-        return formatRListAt(vm, stack, rIndex);
-      }
-      return `[ ${tagValue} elements ]`;
-
-    case Tag.LINK:
-      const currentIndex = stack.indexOf(value);
-      if (currentIndex >= 0 && tagValue <= currentIndex) {
-        const listIndex = currentIndex - tagValue;
-        if (listIndex >= 0 && listIndex < stack.length) {
-          const listValue = stack[listIndex];
-          const { tag: listTag, value: listSize } = fromTaggedValue(listValue);
-          if (listTag === Tag.LIST || (Number.isNaN(listValue) && listSize >= 0)) {
-            return formatListAt(vm, stack, listIndex);
-          } else if (listTag === Tag.RLIST) {
-            return formatRListAt(vm, stack, listIndex);
-          }
-        }
-      }
-
-      return `( linked list )`;
-
     case Tag.STRING:
       return vm.digest.get(tagValue) || `[String:${tagValue}]`;
 

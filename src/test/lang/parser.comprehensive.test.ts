@@ -52,18 +52,18 @@ describe('Comprehensive Parser Tests', () => {
     test('should parse empty lists', () => {
       parse(new Tokenizer('( )'));
       vm.reset();
-      expect(vm.next8()).toBe(Op.OpenList);
-      expect(vm.next8()).toBe(Op.CloseList);
+      expect(vm.next8()).toBe(Op.OpenRList);
+      expect(vm.next8()).toBe(Op.CloseRList);
     });
     test('should parse lists with elements', () => {
       parse(new Tokenizer('( 1 2 )'));
       vm.reset();
-      expect(vm.next8()).toBe(Op.OpenList);
+      expect(vm.next8()).toBe(Op.OpenRList);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(1);
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(2);
-      expect(vm.next8()).toBe(Op.CloseList);
+      expect(vm.next8()).toBe(Op.CloseRList);
     });
   });
   describe('Control Structures', () => {

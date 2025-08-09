@@ -7,19 +7,14 @@ export class TestList {
 
   constructor(values: number[]) {
     this.values = values;
-    this.size = values.length + 2;
+    this.size = values.length + 1;
   }
 
   copyToStack(vm: VM): void {
     for (const value of this.values) {
       vm.push(value);
     }
-
-    const linkValue = (this.values.length + 1) * 4;
-    const linkTagged = (Tag.LINK << 24) | (linkValue & 0xffffff);
-    vm.push(linkTagged);
-
-    const listTagged = (Tag.LIST << 24) | (this.values.length & 0xffffff);
+    const listTagged = (Tag.RLIST << 24) | (this.values.length & 0xffffff);
     vm.push(listTagged);
   }
 

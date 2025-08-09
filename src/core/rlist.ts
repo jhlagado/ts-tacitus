@@ -147,12 +147,6 @@ export function getRListElementAddress(vm: VM, header: number, headerAddr: numbe
       // This is an RLIST header - element starts here
       elementStartAddr = currentAddr;
       stepSize = getRListSlotCount(currentValue) + 1;
-    } else {
-      const decoded = fromTaggedValue(currentValue);
-      if (decoded.tag === Tag.LIST) {
-        elementStartAddr = currentAddr;
-        stepSize = decoded.value + 2;
-      }
     }
     
     if (currentLogicalIndex === logicalIndex) {

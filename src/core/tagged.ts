@@ -35,12 +35,6 @@ export enum Tag {
   /**  Represents a string literal. */
   STRING = 4,
 
-  /**  Represents a list tag with size information. */
-  LIST = 5,
-
-  /**  Represents a link (relative offset) on the stack. */
-  LINK = 6,
-
   /**  Represents a built-in operation opcode. */
   BUILTIN = 7,
 
@@ -62,8 +56,6 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.INTEGER]: 'INTEGER',
   [Tag.CODE]: 'CODE',
   [Tag.STRING]: 'STRING',
-  [Tag.LIST]: 'LIST',
-  [Tag.LINK]: 'LINK',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.RLIST]: 'RLIST',
 };

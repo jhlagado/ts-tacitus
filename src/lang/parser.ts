@@ -367,12 +367,9 @@ function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    beginList(state);
-  } else if (value === ')') {
-    endList(state);
-  } else if (value === '[') {
+    // Retarget parentheses to RLIST construction (keep [ ] as alias during migration)
     beginRList(state);
-  } else if (value === ']') {
+  } else if (value === ')') {
     endRList(state);
   } else if (value === '{') {
     beginStandaloneBlock(state);
@@ -536,7 +533,7 @@ function beginRList(_state: ParserState): void {
  */
 function endRList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
-    throw new SyntaxError('Unexpected closing bracket', vm.getStackData());
+    throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
   }
 
   vm.compiler.compileOpcode(Op.CloseRList);

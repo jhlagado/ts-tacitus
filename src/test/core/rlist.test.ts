@@ -105,7 +105,7 @@ describe('RLIST Core Utilities', () => {
     });
 
     it('should throw on non-RLIST header', () => {
-      const nonRList = toTaggedValue(5, Tag.LIST);
+      const nonRList = toTaggedValue(5, Tag.STRING);
       expect(() => getRListSlotCount(nonRList)).toThrow('Value is not an RLIST header');
     });
   });

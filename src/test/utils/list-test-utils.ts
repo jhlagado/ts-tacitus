@@ -15,20 +15,14 @@ export class TestList {
 
   constructor(values: number[]) {
     this.values = values;
-    this.size = values.length + 2;
+    this.size = values.length + 1;
   }
 
   copyToStack(vm: VM): void {
     for (const value of this.values) {
       vm.push(value);
     }
-
-    const linkValue = (this.values.length + 1) * 4;
-    const linkTagged = (Tag.LINK << 24) | (linkValue & 0xffffff);
-    vm.push(linkTagged);
-
-    const listTagged = (Tag.LIST << 24) | (this.values.length & 0xffffff);
-    vm.push(listTagged);
+    vm.push((Tag.RLIST << 24) | (this.values.length & 0xffffff));
   }
 
   getSize(): number {
@@ -82,21 +76,13 @@ export function verifyListStructure(stack: number[], expectList: ListElement): v
       }
       index++;
     } else if (element.type === 'list') {
-      expect(tag).toBe(Tag.LIST);
+      expect(tag).toBe(Tag.RLIST);
       index++;
 
       if (element.children) {
         for (const child of element.children) {
           verifyElement(child);
         }
-      }
-
-      if (index < stack.length) {
-        const { tag: linkTag } = fromTaggedValue(stack[index]);
-        expect(linkTag).toBe(Tag.LINK);
-        index++;
-      } else {
-        throw new Error(`Expected LINK tag at index ${index} but stack ended`);
       }
     }
   }
@@ -146,30 +132,16 @@ export function extractListFromStack(
   const values: number[] = [];
   let index = startIndex;
 
-  // Expect LIST tag first
-  const { tag: listTag, value: listLength } = fromTaggedValue(stack[index]);
-  if (listTag !== Tag.LIST) {
-    throw new Error(`Expected LIST tag at index ${index}, got ${Tag[listTag]}`);
+  const { tag: listTag, value: slots } = fromTaggedValue(stack[index]);
+  if (listTag !== Tag.RLIST) {
+    throw new Error(`Expected RLIST tag at index ${index}, got ${Tag[listTag]}`);
   }
-
-  index++;
-
-  // Extract the values
-  for (let i = 0; i < listLength; i++) {
-    if (index >= stack.length) {
-      throw new Error(`Stack underflow while extracting list values`);
-    }
-    values.push(stack[index]);
-    index++;
+  for (let i = 0; i < slots; i++) {
+    const elemIndex = index - 1 - i;
+    if (elemIndex < 0) throw new Error('Stack underflow while extracting list values');
+    values.unshift(stack[elemIndex]);
   }
-
-  // Expect LINK tag at the end
-  if (index < stack.length) {
-    const { tag: linkTag } = fromTaggedValue(stack[index]);
-    if (linkTag === Tag.LINK) {
-      index++;
-    }
-  }
+  index -= (slots + 1);
 
   return { values, nextIndex: index };
 }
@@ -181,7 +153,7 @@ export function countListsOnStack(stack: number[]): number {
   let count = 0;
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
-    if (tag === Tag.LIST) {
+    if (tag === Tag.RLIST) {
       count++;
     }
   }

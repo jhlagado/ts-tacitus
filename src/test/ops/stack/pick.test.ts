@@ -47,45 +47,34 @@ describe('pick Operation', () => {
     });
   });
 
-  describe('list operations', () => {
+  describe('list operations (RLIST semantics)', () => {
     test('should pick a list from the stack', () => {
-      const listTag = toTaggedValue(2, Tag.LIST);
-      const linkTag = toTaggedValue(3, Tag.LINK);
-      vm.push(listTag);
       vm.push(10);
       vm.push(20);
-      vm.push(linkTag);
-
+      vm.push(toTaggedValue(2, Tag.RLIST));
       vm.push(5);
-
       vm.push(1);
 
       pickOp(vm);
 
       const stack = vm.getStackData();
 
-      expect(stack.length).toBeGreaterThanOrEqual(6);
+      expect(stack.length).toBeGreaterThanOrEqual(5);
     });
 
     test('should pick a value over a list', () => {
       vm.push(42);
-
-      const listTag = toTaggedValue(2, Tag.LIST);
-      const linkTag = toTaggedValue(3, Tag.LINK);
-      vm.push(listTag);
       vm.push(10);
       vm.push(20);
-      vm.push(linkTag);
-
+      vm.push(toTaggedValue(2, Tag.RLIST));
       vm.push(1);
 
       pickOp(vm);
 
       const stack = vm.getStackData();
-      expect(stack.length).toBe(6);
-
+      expect(stack.length).toBe(5);
       expect(stack[0]).toBe(42);
-      expect(stack[5]).toBe(42);
+      expect(stack[stack.length - 1]).toBe(42);
     });
   });
 

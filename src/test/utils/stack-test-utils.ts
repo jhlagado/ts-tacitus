@@ -69,14 +69,12 @@ export function withStack(...values: number[]): StackSetup {
 
 export function withList(values: number[]): StackSetup {
   return (vm: VM) => {
-    values.forEach(v => vm.push(v));
-
-    const linkValue = values.length + 1;
-    vm.memory.writeFloat32(0, vm.SP, (Tag.LINK << 24) | (linkValue & 0xffffff));
-    vm.SP += 4;
-
-    vm.memory.writeFloat32(0, vm.SP, (Tag.LIST << 24) | (values.length & 0xffffff));
-    vm.SP += 4;
+    // Push payload in forward order, then header
+    for (const v of values) {
+      vm.push(v);
+    }
+    // RLIST header with slot count
+    vm.push(toTaggedValue(values.length, Tag.RLIST));
   };
 }
 
@@ -99,11 +97,7 @@ export function pushList(vm: VM, values: number[]): void {
   for (const val of values) {
     vm.push(val);
   }
-
-  const linkValue = values.length + 1;
-  pushValue(vm, linkValue, Tag.LINK);
-
-  pushValue(vm, values.length, Tag.LIST);
+  pushValue(vm, values.length, Tag.RLIST);
 }
 
 /**

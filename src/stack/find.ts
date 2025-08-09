@@ -69,23 +69,13 @@ export function findElement(vm: VM, startSlot: number = 0): [number, number] {
 
   const { tag, value: tagValue } = fromTaggedValue(value);
 
-  if (tag === Tag.LINK) {
-    const listSlot = slotAddr - tagValue;
-
-    if (listSlot >= 0) {
-      const listAddr = listSlot * BYTES_PER_ELEMENT;
-
-      const listValue = vm.memory.readFloat32(SEG_STACK, listAddr);
-
-      const { tag: listTag, value: listSize } = fromTaggedValue(listValue);
-
-      if (listTag === Tag.LIST) {
-        const elementSize = listSize + 2;
-
-        return [startSlot + elementSize, elementSize];
-      }
-    }
+  // RLIST header at TOS: element spans header + payload slots
+  if (tag === Tag.RLIST) {
+    const elementSize = tagValue + 1;
+    return [startSlot + elementSize, elementSize];
   }
+
+  // Legacy LIST/LINK support removed during unification
 
   return [startSlot + 1, 1];
 }

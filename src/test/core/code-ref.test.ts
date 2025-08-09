@@ -135,7 +135,7 @@ describe('Code Reference Utilities', () => {
     test('should reject non-executable values', () => {
       const numberValue = 42;
       const stringRef = toTaggedValue(100, Tag.STRING);
-      const listRef = toTaggedValue(3, Tag.LIST);
+      const listRef = toTaggedValue(3, Tag.RLIST);
 
       expect(isExecutableRef(numberValue)).toBe(false);
       expect(isExecutableRef(stringRef)).toBe(false);

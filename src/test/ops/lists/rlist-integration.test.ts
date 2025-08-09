@@ -9,9 +9,12 @@ describe('RLIST Integration Tests', () => {
   });
 
   describe('parser + VM integration', () => {
-    it('should build a simple RLIST using [ ] syntax', () => {
-      executeProgram('[ 1 2 3 ]');
+    it('should build a simple RLIST using ( ) syntax', () => {
+      executeProgram('( 1 2 3 )');
       const stack = vm.getStackData();
+      // Debug
+      // eslint-disable-next-line no-console
+      console.log('STACK simple ( 1 2 3 ):', stack.map(v => ({...fromTaggedValue(v)})));
       expect(stack.length).toBe(4);
 
       const header = stack[stack.length - 1];
@@ -29,8 +32,10 @@ describe('RLIST Integration Tests', () => {
     });
 
     it('should build nested RLISTs correctly', () => {
-      executeProgram('[ 1 [ 2 3 ] 4 ]');
+      executeProgram('( 1 ( 2 3 ) 4 )');
       const stack = vm.getStackData();
+      // eslint-disable-next-line no-console
+      console.log('STACK nested:', stack.map(v => ({...fromTaggedValue(v)})));
 
       // Expect: payload plus two RLIST headers (inner and outer)
       // Layout from bottom to top: [4 payload elements including inner rlist payload/header] [outer header]
@@ -57,7 +62,7 @@ describe('RLIST Integration Tests', () => {
     });
 
     it('should lay out nested RLIST stack as: 4 3 2 RLIST:2 1 RLIST:5 ← TOS', () => {
-      executeProgram('[ 1 [ 2 3 ] 4 ]');
+      executeProgram('( 1 ( 2 3 ) 4 )');
       const stack = vm.getStackData();
       const len = stack.length;
 
@@ -87,7 +92,7 @@ describe('RLIST Integration Tests', () => {
 
   describe('memory layout validation', () => {
     it('should keep RLIST payload contiguous in memory', () => {
-      executeProgram('[ 10 20 30 40 ]');
+      executeProgram('( 10 20 30 40 )');
       const stack = vm.getStackData();
       // Verify contiguous payload cells immediately under header
       const values = [

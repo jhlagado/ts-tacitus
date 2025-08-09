@@ -57,7 +57,7 @@ describe('nip Operation', () => {
     });
   });
 
-  describe('list operations', () => {
+  describe('list operations (RLIST semantics)', () => {
     test('should remove simple value under a list (keeping list)', () => {
       const stack = executeTacitCode('42 ( 10 20 ) nip');
 
@@ -68,13 +68,13 @@ describe('nip Operation', () => {
 
     test('should remove list under simple value (keeping simple value)', () => {
       const stack = executeTacitCode('( 99 88 ) 42 nip');
-
+      // After removing the RLIST (NOS), only 42 should remain
       expect(stack).toEqual([42]);
     });
 
     test('should remove list under another list', () => {
       const stack = executeTacitCode('( 100 200 ) ( 300 400 ) nip');
-
+      // Remove NOS (the first list), leaving the top RLIST only
       expect(stack).not.toContain(100);
       expect(stack).not.toContain(200);
       expect(stack).toContain(300);
@@ -83,13 +83,13 @@ describe('nip Operation', () => {
 
     test('should handle multi-element lists', () => {
       const stack = executeTacitCode('( 10 20 30 40 ) 999 nip');
-
+      // Removing NOS (the list) should keep 999 only
       expect(stack).toEqual([999]);
     });
 
     test('should handle nested lists correctly', () => {
       const stack = executeTacitCode('123 ( 1 ( 2 3 ) 4 ) nip');
-
+      // NOS is 123 here, so result should not contain 123
       expect(stack.length).toBeGreaterThan(0);
       expect(stack).not.toContain(123);
     });
@@ -106,13 +106,8 @@ describe('nip Operation', () => {
     });
 
     test('should throw on stack underflow with only one list', () => {
-      const listTag = toTaggedValue(1, Tag.LIST);
-      const linkTag = toTaggedValue(2, Tag.LINK);
-
-      vm.push(listTag);
-      vm.push(42);
-      vm.push(linkTag);
-
+      const stack = executeTacitCode('( 42 )');
+      expect(stack.length).toBe(2);
       expect(() => nipOp(vm)).toThrow();
     });
   });

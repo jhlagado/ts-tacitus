@@ -22,109 +22,65 @@ describe('dup Operation', () => {
     });
   });
 
-  describe('list operations', () => {
+  describe('list operations (RLIST semantics)', () => {
     test('should duplicate a list', () => {
-      const listTag = toTaggedValue(3, Tag.LIST);
-      const linkTag = toTaggedValue(4, Tag.LINK);
-
-      vm.push(listTag);
       vm.push(10);
       vm.push(20);
       vm.push(30);
-      vm.push(linkTag);
+      vm.push(toTaggedValue(3, Tag.RLIST));
 
       dupOp(vm);
 
-      expect(vm.pop()).toBe(linkTag);
-      expect(vm.pop()).toBe(30);
-      expect(vm.pop()).toBe(20);
-      expect(vm.pop()).toBe(10);
-      expect(vm.pop()).toBe(listTag);
-
-      expect(vm.pop()).toBe(linkTag);
-      expect(vm.pop()).toBe(30);
-      expect(vm.pop()).toBe(20);
-      expect(vm.pop()).toBe(10);
-      expect(vm.pop()).toBe(listTag);
+      const stack = vm.getStackData();
+      // Expect two copies of payload and two headers
+      expect(stack.slice(-8)).toEqual([
+        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+      ]);
     });
 
     test('should duplicate a simple list', () => {
-      const listTag = toTaggedValue(2, Tag.LIST);
-      const linkTag = toTaggedValue(3, Tag.LINK);
-
-      vm.push(listTag);
       vm.push(1);
       vm.push(2);
-      vm.push(linkTag);
+      vm.push(toTaggedValue(2, Tag.RLIST));
 
       dupOp(vm);
 
       const stack = vm.getStackData();
-      expect(stack.length).toBe(8);
-
-      expect(stack[0]).toEqual(listTag);
-      expect(stack[1]).toBe(1);
-      expect(stack[2]).toBe(2);
-      expect(stack[3]).toEqual(linkTag);
-
-      expect(stack[4]).toEqual(listTag);
-      expect(stack[5]).toBe(1);
-      expect(stack[6]).toBe(2);
-      expect(stack[7]).toEqual(linkTag);
+      expect(stack.slice(-6)).toEqual([
+        1, 2, toTaggedValue(2, Tag.RLIST),
+        1, 2, toTaggedValue(2, Tag.RLIST),
+      ]);
     });
 
-    test('should duplicate a larger list and preserve LINK tags', () => {
-      const listTag = toTaggedValue(3, Tag.LIST);
-      const linkTag = toTaggedValue(4, Tag.LINK);
-
-      vm.push(listTag);
+    test('should duplicate a larger list', () => {
       vm.push(10);
       vm.push(20);
       vm.push(30);
-      vm.push(linkTag);
+      vm.push(toTaggedValue(3, Tag.RLIST));
 
       dupOp(vm);
 
       const stack = vm.getStackData();
-      expect(stack.length).toBe(10);
-
-      expect(stack[0]).toEqual(listTag);
-      expect(stack[1]).toBe(10);
-      expect(stack[2]).toBe(20);
-      expect(stack[3]).toBe(30);
-      expect(stack[4]).toEqual(linkTag);
-
-      expect(stack[5]).toEqual(listTag);
-      expect(stack[6]).toBe(10);
-      expect(stack[7]).toBe(20);
-      expect(stack[8]).toBe(30);
-      expect(stack[9]).toEqual(linkTag);
+      expect(stack.slice(-8)).toEqual([
+        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+        10, 20, 30, toTaggedValue(3, Tag.RLIST),
+      ]);
     });
 
     test('should duplicate a nested list', () => {
-      const innerListTag = toTaggedValue(2, Tag.LIST);
-      const innerLinkTag = toTaggedValue(3, Tag.LINK);
-      const outerListTag = toTaggedValue(3, Tag.LIST);
-      const outerLinkTag = toTaggedValue(6, Tag.LINK);
-
-      vm.push(outerListTag);
-      vm.push(1);
-      vm.push(innerListTag);
+      // Build ( 1 ( 2 3 ) 4 )
       vm.push(2);
       vm.push(3);
-      vm.push(innerLinkTag);
+      vm.push(toTaggedValue(2, Tag.RLIST));
+      vm.push(1);
       vm.push(4);
-      vm.push(outerLinkTag);
+      vm.push(toTaggedValue(3, Tag.RLIST));
 
-      const stackBeforeDup = vm.getStackData();
-
+      const before = vm.getStackData().length;
       dupOp(vm);
-
-      const dupStack = vm.getStackData();
-
-      expect(dupStack.length).toBeGreaterThan(stackBeforeDup.length);
-
-      expect(dupStack.length).toBeGreaterThanOrEqual(stackBeforeDup.length + 1);
+      const after = vm.getStackData().length;
+      expect(after).toBeGreaterThan(before);
     });
   });
 
