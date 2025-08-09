@@ -71,9 +71,6 @@ export class VM {
   /** Current nesting depth when processing lists */
   listDepth: number;
 
-  /** Current nesting depth when processing RLISTs */
-  rlistDepth: number;
-
   /** Receiver register - stack slot index for current receiver object (defaults to 0) */
   receiver: number;
   /**
@@ -94,7 +91,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.rlistDepth = 0;
+    this.listDepth = 0;
     this.receiver = 0;
 
     this.symbolTable = new SymbolTable(this.digest);

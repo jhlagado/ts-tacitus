@@ -73,27 +73,27 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should correctly identify LIST types', () => {
-    const rlist = toTaggedValue(5, Tag.LIST);
+    const list = toTaggedValue(5, Tag.LIST);
     const integer = toTaggedValue(5, Tag.INTEGER);
 
-    expect(isList(rlist)).toBe(true);
+    expect(isList(list)).toBe(true);
     expect(isList(integer)).toBe(false);
   });
 
   test('should handle LIST with zero slot count', () => {
-    const emptyRList = toTaggedValue(0, Tag.LIST);
-    expect(isList(emptyRList)).toBe(true);
+    const emptyList = toTaggedValue(0, Tag.LIST);
+    expect(isList(emptyList)).toBe(true);
 
-    const decoded = fromTaggedValue(emptyRList);
+    const decoded = fromTaggedValue(emptyList);
     expect(decoded.tag).toBe(Tag.LIST);
     expect(decoded.value).toBe(0);
   });
 
   test('should handle LIST with maximum slot count', () => {
-    const maxRList = toTaggedValue(65535, Tag.LIST);
-    expect(isList(maxRList)).toBe(true);
+    const maxList = toTaggedValue(65535, Tag.LIST);
+    expect(isList(maxList)).toBe(true);
 
-    const decoded = fromTaggedValue(maxRList);
+    const decoded = fromTaggedValue(maxList);
     expect(decoded.tag).toBe(Tag.LIST);
     expect(decoded.value).toBe(65535);
   });

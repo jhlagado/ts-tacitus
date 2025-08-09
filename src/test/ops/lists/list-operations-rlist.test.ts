@@ -1,19 +1,19 @@
 /**
- * @file src/test/ops/lists/rlist-operations.test.ts
+ * @file src/test/ops/lists/list-operations.test.ts
  * Tests for LIST operations
  */
 
 import { VM } from '../../../core/vm';
 import { toTaggedValue, fromTaggedValue, Tag } from '../../../core/tagged';
 import {
-  openRListOp,
-  closeRListOp,
-  rlistSlotOp,
-  rlistSkipOp,
-  rlistPrependOp,
-  rlistAppendOp,
-  rlistGetAtOp,
-  rlistSetAtOp,
+  openListOp,
+  closeListOp,
+  listSlotOp,
+  listSkipOp,
+  listPrependOp,
+  listAppendOp,
+  listGetAtOp,
+  listSetAtOp,
 } from '../../../ops/builtins-list';
 
 function resetVM(): VM {
@@ -27,12 +27,12 @@ function getStackDepth(vm: VM): number {
 }
 
 describe('LIST Operations', () => {
-  describe('openRListOp and closeRListOp', () => {
+  describe('openListOp and closeListOp', () => {
     it('should create empty LIST', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
-      closeRListOp(vm);
+      openListOp(vm);
+      closeListOp(vm);
 
       expect(getStackDepth(vm)).toBe(1);
       const header = vm.peek();
@@ -44,9 +44,9 @@ describe('LIST Operations', () => {
     it('should create LIST with single value', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(42, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       expect(getStackDepth(vm)).toBe(2); // header + 1 payload
       const header = vm.peek();
@@ -58,11 +58,11 @@ describe('LIST Operations', () => {
     it('should create LIST with multiple values in reverse order', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
       vm.push(toTaggedValue(3, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       expect(getStackDepth(vm)).toBe(4); // header + 3 payload
       const header = vm.peek();
@@ -82,17 +82,17 @@ describe('LIST Operations', () => {
     });
   });
 
-  describe('rlistSlotOp', () => {
+  describe('listSlotOp', () => {
     it('should return slot count and keep LIST on stack', () => {
       const vm = resetVM();
 
       // Create LIST with 2 values
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
-      rlistSlotOp(vm);
+      listSlotOp(vm);
 
       expect(getStackDepth(vm)).toBe(4); // original LIST + slot count
       const slotCount = vm.pop();
@@ -106,49 +106,49 @@ describe('LIST Operations', () => {
     it('should handle empty LIST', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
-      closeRListOp(vm);
+      openListOp(vm);
+      closeListOp(vm);
 
-      rlistSlotOp(vm);
+      listSlotOp(vm);
 
       const slotCount = vm.pop();
       expect(fromTaggedValue(slotCount).value).toBe(0);
     });
   });
 
-  describe('rlistSkipOp', () => {
+  describe('listSkipOp', () => {
     it('should skip entire LIST', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       expect(getStackDepth(vm)).toBe(3); // header + 2 payload
 
-      rlistSkipOp(vm);
+      listSkipOp(vm);
 
       expect(getStackDepth(vm)).toBe(0); // All should be gone
     });
   });
 
-  describe('rlistPrependOp', () => {
+  describe('listPrependOp', () => {
     it('should prepend value to LIST', () => {
       const vm = resetVM();
 
       // Create initial LIST [1, 2]
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
-      // Stack effect: ( val rlist — rlist' )
+      // Stack effect: ( val list — list' )
       // So we need: value first, then LIST
-      const rlistHeader = vm.pop(); // Get LIST off stack
+      const listHeader = vm.pop(); // Get LIST off stack
       vm.push(toTaggedValue(0, Tag.INTEGER)); // Push value
-      vm.push(rlistHeader); // Push LIST back on top
-      rlistPrependOp(vm);
+      vm.push(listHeader); // Push LIST back on top
+      listPrependOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
@@ -166,29 +166,29 @@ describe('LIST Operations', () => {
       vm.push(toTaggedValue(10, Tag.INTEGER)); // Value to prepend
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST (at TOS)
 
-      rlistPrependOp(vm);
+      listPrependOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
     });
   });
 
-  describe('rlistAppendOp', () => {
+  describe('listAppendOp', () => {
     it('should append value to LIST', () => {
       const vm = resetVM();
 
       // Create initial LIST [1, 2]
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(2, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
-      // Stack effect: ( val rlist — rlist' )
+      // Stack effect: ( val list — list' )
       // So we need: value first, then LIST
-      const rlistHeader = vm.pop(); // Get LIST off stack
+      const listHeader = vm.pop(); // Get LIST off stack
       vm.push(toTaggedValue(3, Tag.INTEGER)); // Push value to append
-      vm.push(rlistHeader); // Push LIST back on top
-      rlistAppendOp(vm);
+      vm.push(listHeader); // Push LIST back on top
+      listAppendOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
@@ -203,14 +203,14 @@ describe('LIST Operations', () => {
     it('should handle empty LIST', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
-      closeRListOp(vm);
+      openListOp(vm);
+      closeListOp(vm);
 
-      // Stack effect: ( val rlist — rlist' )
-      const rlistHeader = vm.pop(); // Get empty LIST off stack
+      // Stack effect: ( val list — list' )
+      const listHeader = vm.pop(); // Get empty LIST off stack
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Push value to append
-      vm.push(rlistHeader); // Push LIST back on top
-      rlistAppendOp(vm);
+      vm.push(listHeader); // Push LIST back on top
+      listAppendOp(vm);
 
       const header = vm.peek();
       const decoded = fromTaggedValue(header);
@@ -227,27 +227,27 @@ describe('LIST Operations', () => {
       vm.push(toTaggedValue(10, Tag.INTEGER)); // Value to append
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST (at TOS)
 
-      rlistAppendOp(vm);
+      listAppendOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
     });
   });
 
-  describe('rlistGetAtOp', () => {
+  describe('listGetAtOp', () => {
     it('should get value at valid index', () => {
       const vm = resetVM();
 
       // Create LIST [10, 20, 30]
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
       vm.push(toTaggedValue(30, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       // Get index 1 (should be 20)
       vm.push(toTaggedValue(1, Tag.INTEGER));
-      rlistGetAtOp(vm);
+      listGetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(20);
@@ -256,12 +256,12 @@ describe('LIST Operations', () => {
     it('should return NIL for out of bounds index', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       vm.push(toTaggedValue(5, Tag.INTEGER)); // Index 5, but only 1 element
-      rlistGetAtOp(vm);
+      listGetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
@@ -270,12 +270,12 @@ describe('LIST Operations', () => {
     it('should return NIL for negative index', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       vm.push(toTaggedValue(-1, Tag.INTEGER));
-      rlistGetAtOp(vm);
+      listGetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
@@ -286,28 +286,28 @@ describe('LIST Operations', () => {
 
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST
       vm.push(toTaggedValue(0, Tag.INTEGER));
-      rlistGetAtOp(vm);
+      listGetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
     });
   });
 
-  describe('rlistSetAtOp', () => {
+  describe('listSetAtOp', () => {
     it('should set value at valid index', () => {
       const vm = resetVM();
 
       // Create LIST [10, 20, 30]
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
       vm.push(toTaggedValue(20, Tag.INTEGER));
       vm.push(toTaggedValue(30, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       // Set index 1 to 99
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(99, Tag.INTEGER));
-      rlistSetAtOp(vm);
+      listSetAtOp(vm);
 
       // LIST should still be on stack
       const header = vm.peek();
@@ -321,13 +321,13 @@ describe('LIST Operations', () => {
     it('should return NIL for out of bounds index', () => {
       const vm = resetVM();
 
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
       vm.push(toTaggedValue(5, Tag.INTEGER)); // Index 5
       vm.push(toTaggedValue(99, Tag.INTEGER)); // New value
-      rlistSetAtOp(vm);
+      listSetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
@@ -337,20 +337,20 @@ describe('LIST Operations', () => {
       const vm = resetVM();
 
       // Create outer LIST containing an inner LIST
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(10, Tag.INTEGER));
 
       // Add inner LIST
-      openRListOp(vm);
+      openListOp(vm);
       vm.push(toTaggedValue(1, Tag.INTEGER));
-      closeRListOp(vm);
+      closeListOp(vm);
 
-      closeRListOp(vm);
+      closeListOp(vm);
 
       // Try to overwrite the inner LIST (index 1)
       vm.push(toTaggedValue(1, Tag.INTEGER));
       vm.push(toTaggedValue(99, Tag.INTEGER));
-      rlistSetAtOp(vm);
+      listSetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL - refused to overwrite
@@ -362,7 +362,7 @@ describe('LIST Operations', () => {
       vm.push(toTaggedValue(42, Tag.INTEGER)); // Not an LIST
       vm.push(toTaggedValue(0, Tag.INTEGER)); // Index
       vm.push(toTaggedValue(99, Tag.INTEGER)); // New value
-      rlistSetAtOp(vm);
+      listSetAtOp(vm);
 
       const result = vm.peek();
       expect(fromTaggedValue(result).value).toBe(0); // NIL
@@ -373,18 +373,18 @@ describe('LIST Operations', () => {
     it('should handle stack underflow gracefully', () => {
       const vm = resetVM();
 
-      expect(() => rlistSlotOp(vm)).toThrow();
-      expect(() => rlistSkipOp(vm)).toThrow();
-      expect(() => rlistPrependOp(vm)).toThrow();
-      expect(() => rlistAppendOp(vm)).toThrow();
-      expect(() => rlistGetAtOp(vm)).toThrow();
-      expect(() => rlistSetAtOp(vm)).toThrow();
+      expect(() => listSlotOp(vm)).toThrow();
+      expect(() => listSkipOp(vm)).toThrow();
+      expect(() => listPrependOp(vm)).toThrow();
+      expect(() => listAppendOp(vm)).toThrow();
+      expect(() => listGetAtOp(vm)).toThrow();
+      expect(() => listSetAtOp(vm)).toThrow();
     });
 
-    it('should handle return stack underflow in closeRListOp', () => {
+    it('should handle return stack underflow in closeListOp', () => {
       const vm = resetVM();
 
-      expect(() => closeRListOp(vm)).toThrow('Return stack underflow');
+      expect(() => closeListOp(vm)).toThrow('Return stack underflow');
     });
   });
 });

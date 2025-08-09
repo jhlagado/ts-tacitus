@@ -81,7 +81,7 @@ function _formatList(vm: VM, value: number): { formatted: string; size: number }
  */
 // Removed legacy list element formatter (LIST/LINK no longer supported)
 
-function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): string {
+function formatAndConsumeListFromHeaderValue(vm: VM, headerValue: number): string {
   const decoded = fromTaggedValue(headerValue);
   const totalSlots = decoded.value;
   const parts: string[] = [];
@@ -92,7 +92,7 @@ function formatAndConsumeRListFromHeaderValue(vm: VM, headerValue: number): stri
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
-      const nested = formatAndConsumeRListFromHeaderValue(vm, cell);
+      const nested = formatAndConsumeListFromHeaderValue(vm, cell);
       parts.push(nested);
       consumed += 1 + nestedSlots;
     } else {
@@ -133,7 +133,7 @@ export function printOp(vm: VM): void {
     if (decoded.tag === Tag.LIST) {
       // Pop header and then format by consuming payload
       const headerVal = vm.pop();
-      const formatted = formatAndConsumeRListFromHeaderValue(vm, headerVal);
+      const formatted = formatAndConsumeListFromHeaderValue(vm, headerVal);
       console.log(formatted);
       return;
     }

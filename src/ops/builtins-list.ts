@@ -1,18 +1,18 @@
 /**
- * @file src/ops/builtins-rlist.ts
+ * @file src/ops/builtins-list.ts
  *
  * This file implements the LIST operations for the Tacit VM.
  *
- * RLISTs (Reverse Lists) are stack-native compound data structures that store
+ * LISTs (Reverse Lists) are stack-native compound data structures that store
  * elements in reverse order with the header at top-of-stack. This enables
  * O(1) prepend operations and O(1) skip/drop of entire structures while
  * maintaining contiguous memory layout for cache efficiency.
  *
  * The LIST operations include:
- * - Construction: openRListOp, closeRListOp
- * - Inspection: rlistSlotOp
- * - Manipulation: rlistSkipOp, rlistPrependOp, rlistAppendOp
- * - Access: rlistGetAtOp, rlistSetAtOp
+ * - Construction: openListOp, closeListOp
+ * - Inspection: listSlotOp
+ * - Manipulation: listSkipOp, listPrependOp, listAppendOp
+ * - Access: listGetAtOp, listSetAtOp
  */
 
 import { VM } from '../core/vm';
@@ -20,11 +20,11 @@ import { fromTaggedValue, toTaggedValue, Tag, isInteger, isList } from '../core/
 import { SEG_STACK } from '../core/constants';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
-  getRListSlotCount,
-  skipRList,
-  validateRListHeader,
+  getListSlotCount,
+  skipList,
+  validateListHeader,
   reverseSpan,
-  getRListElementAddress,
+  getListElementAddress,
 } from '../core/list';
 
 const BYTES_PER_ELEMENT = 4;
@@ -35,9 +35,9 @@ const NIL = toTaggedValue(0, Tag.INTEGER);
  * Stack effect: ( — )
  * Return stack: Pushes current SP position for later span calculation.
  */
-export function openRListOp(vm: VM): void {
-  if (vm.debug) console.log('openRListOp: rlistDepth before', vm.rlistDepth);
-  vm.rlistDepth++;
+export function openListOp(vm: VM): void {
+  if (vm.debug) console.log('openListOp: listDepth before', vm.listDepth);
+  vm.listDepth++;
 
   // Push placeholder LIST header at current top and remember its address
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
@@ -47,21 +47,21 @@ export function openRListOp(vm: VM): void {
 
   if (vm.debug)
     console.log(
-      'openRListOp: pushed placeholder header at',
+      'openListOp: pushed placeholder header at',
       headerPos,
-      'rlistDepth after',
-      vm.rlistDepth,
+      'listDepth after',
+      vm.listDepth,
     );
 }
 
 /**
  * Closes an LIST construction with ']' token.
- * Stack effect: ( values... — rlist )
+ * Stack effect: ( values... — list )
  * Reverses the accumulated values and pushes LIST header.
  */
-export function closeRListOp(vm: VM): void {
+export function closeListOp(vm: VM): void {
   if (vm.RP < BYTES_PER_ELEMENT) {
-    throw new ReturnStackUnderflowError('closeRListOp', vm.getStackData());
+    throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
   // Retrieve header position from return stack
@@ -73,12 +73,12 @@ export function closeRListOp(vm: VM): void {
 
   if (vm.debug)
     console.log(
-      'closeRListOp: headerPos',
+      'closeListOp: headerPos',
       headerPos,
       'payloadSlots',
       payloadSlots,
-      'rlistDepth',
-      vm.rlistDepth,
+      'listDepth',
+      vm.listDepth,
     );
 
   // Update placeholder header in place with correct slot count
@@ -87,10 +87,10 @@ export function closeRListOp(vm: VM): void {
 
   // Reverse header + payload to bring header to TOS.
   // Preferred behavior: reverse only at outermost depth.
-  // Backward-compatibility fallback: if rlistDepth is not present, reverse unconditionally.
-  const anyVm = vm as unknown as { rlistDepth?: number };
-  const hasRDepth = typeof anyVm.rlistDepth === 'number';
-  const isOutermost = hasRDepth ? anyVm.rlistDepth === 1 : true;
+  // Backward-compatibility fallback: if listDepth is not present, reverse unconditionally.
+  const anyVm = vm as unknown as { listDepth?: number };
+  const hasRDepth = typeof anyVm.listDepth === 'number';
+  const isOutermost = hasRDepth ? anyVm.listDepth === 1 : true;
 
   if (isOutermost) {
     const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT; // header + payload
@@ -99,45 +99,45 @@ export function closeRListOp(vm: VM): void {
     }
   }
 
-  vm.rlistDepth--;
+  vm.listDepth--;
 
   if (vm.debug)
     console.log(
-      'closeRListOp: finalized LIST with',
+      'closeListOp: finalized LIST with',
       payloadSlots,
-      'slots, rlistDepth now',
-      vm.rlistDepth,
+      'slots, listDepth now',
+      vm.listDepth,
     );
 }
 
 /**
  * Gets the slot count from an LIST header.
- * Stack effect: ( rlist — rlist n )
+ * Stack effect: ( list — list n )
  */
-export function rlistSlotOp(vm: VM): void {
-  validateRListHeader(vm);
+export function listSlotOp(vm: VM): void {
+  validateListHeader(vm);
 
   const header = vm.peek();
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   vm.push(toTaggedValue(slotCount, Tag.INTEGER));
 }
 
 /**
  * Skips (drops) an entire LIST from the stack.
- * Stack effect: ( rlist — )
+ * Stack effect: ( list — )
  */
-export function rlistSkipOp(vm: VM): void {
-  skipRList(vm);
+export function listSkipOp(vm: VM): void {
+  skipList(vm);
 }
 
 /**
  * Prepends a value to an LIST.
- * Stack effect: ( val rlist — rlist' )
+ * Stack effect: ( val list — list' )
  * This is an O(1) operation - just push value and increment header.
  */
-export function rlistPrependOp(vm: VM): void {
-  vm.ensureStackSize(2, 'rlist prepend');
+export function listPrependOp(vm: VM): void {
+  vm.ensureStackSize(2, 'list prepend');
 
   const header = vm.pop(); // LIST header at TOS
   const value = vm.pop(); // Value to prepend
@@ -149,7 +149,7 @@ export function rlistPrependOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   // Push value (becomes new payload-0), then updated header
   vm.push(value);
@@ -159,11 +159,11 @@ export function rlistPrependOp(vm: VM): void {
 
 /**
  * Appends a value to an LIST.
- * Stack effect: ( val rlist — rlist' )
+ * Stack effect: ( val list — list' )
  * This is an O(s) operation requiring payload shift to insert at bottom.
  */
-export function rlistAppendOp(vm: VM): void {
-  vm.ensureStackSize(2, 'rlist append');
+export function listAppendOp(vm: VM): void {
+  vm.ensureStackSize(2, 'list append');
 
   const header = vm.pop(); // LIST header at TOS
   const value = vm.pop(); // Value to append
@@ -175,7 +175,7 @@ export function rlistAppendOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   if (slotCount === 0) {
     // Empty LIST - just push value and header
@@ -206,11 +206,11 @@ export function rlistAppendOp(vm: VM): void {
 
 /**
  * Gets a value at a specific index from an LIST.
- * Stack effect: ( rlist i — val )
+ * Stack effect: ( list i — val )
  * Returns NIL if index is out of bounds.
  */
-export function rlistGetAtOp(vm: VM): void {
-  vm.ensureStackSize(2, 'rlist get-at');
+export function listGetAtOp(vm: VM): void {
+  vm.ensureStackSize(2, 'list get-at');
 
   const indexValue = vm.pop();
   const header = vm.peek(); // Keep LIST on stack
@@ -221,7 +221,7 @@ export function rlistGetAtOp(vm: VM): void {
   }
 
   const index = fromTaggedValue(indexValue).value;
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   if (index < 0 || index >= slotCount) {
     vm.push(NIL);
@@ -229,7 +229,7 @@ export function rlistGetAtOp(vm: VM): void {
   }
 
   // Use traversal to find element address (handles compound values)
-  const targetAddr = getRListElementAddress(vm, header, vm.SP - 4, index);
+  const targetAddr = getListElementAddress(vm, header, vm.SP - 4, index);
 
   if (targetAddr === -1) {
     vm.pop(); // Remove LIST header
@@ -245,11 +245,11 @@ export function rlistGetAtOp(vm: VM): void {
 
 /**
  * Sets a value at a specific index in an LIST.
- * Stack effect: ( rlist i val — rlist )
+ * Stack effect: ( list i val — list )
  * Returns original LIST if index out of bounds or trying to overwrite compound.
  */
-export function rlistSetAtOp(vm: VM): void {
-  vm.ensureStackSize(3, 'rlist set-at');
+export function listSetAtOp(vm: VM): void {
+  vm.ensureStackSize(3, 'list set-at');
 
   const newValue = vm.pop();
   const indexValue = vm.pop();
@@ -262,7 +262,7 @@ export function rlistSetAtOp(vm: VM): void {
   }
 
   const index = fromTaggedValue(indexValue).value;
-  const slotCount = getRListSlotCount(header);
+  const slotCount = getListSlotCount(header);
 
   if (index < 0 || index >= slotCount) {
     vm.pop(); // Remove LIST header
@@ -272,7 +272,7 @@ export function rlistSetAtOp(vm: VM): void {
 
   // Use traversal to find element address (handles compound values)
   const headerAddr = vm.SP - 4; // Header is at TOS
-  const targetAddr = getRListElementAddress(vm, header, headerAddr, index);
+  const targetAddr = getListElementAddress(vm, header, headerAddr, index);
 
   if (targetAddr === -1) {
     vm.pop(); // Remove LIST header

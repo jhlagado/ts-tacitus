@@ -39,7 +39,7 @@ describe('Stack Utils', () => {
       vm.SP += BYTES_PER_ELEMENT;
     }
 
-    function createRList(...values: number[]): void {
+    function createList(...values: number[]): void {
       // LIST layout: [payload...] [LIST:slotCount] with header at TOS
       values.forEach(val => pushValue(val));
       pushValue(values.length, Tag.LIST);
@@ -50,7 +50,7 @@ describe('Stack Utils', () => {
     });
 
     test('should find elements in sequence', () => {
-      createRList(1, 2);
+      createList(1, 2);
       pushValue(42);
       pushValue(43);
 
@@ -68,7 +68,7 @@ describe('Stack Utils', () => {
     });
 
     test('should handle list at TOS', () => {
-      createRList(1, 2);
+      createList(1, 2);
 
       const [nextSlot, size] = findElement(vm, 0);
       expect(size).toBe(3);
@@ -76,8 +76,8 @@ describe('Stack Utils', () => {
     });
 
     test('should handle multiple lists', () => {
-      createRList(3, 4);
-      createRList(1);
+      createList(3, 4);
+      createList(1);
 
       const [offset1, size1] = findElement(vm, 0);
       expect(size1).toBe(2); // (1) -> payload(1)+header(1)

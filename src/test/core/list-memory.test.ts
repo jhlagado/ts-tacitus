@@ -19,7 +19,7 @@ describe('LIST Memory Management Validation', () => {
 
     // .skip equivalent via builtin op sequence: push header remains after execution
     // We can simulate skip by calling `.skip` if registered
-    // Build bytecode to execute rlistSkipOp: header already at TOS
+    // Build bytecode to execute listSkipOp: header already at TOS
     const { tag } = fromTaggedValue(vm.peek());
     expect(tag).toBe(Tag.LIST);
 

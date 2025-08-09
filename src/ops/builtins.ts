@@ -88,14 +88,14 @@ import {
 import { simpleIfOp } from './builtins-conditional';
 // Legacy forward list ops removed during unification; parentheses map to LIST impl
 import {
-  openRListOp,
-  closeRListOp,
-  rlistSlotOp,
-  rlistSkipOp,
-  rlistPrependOp,
-  rlistAppendOp,
-  rlistGetAtOp,
-  rlistSetAtOp,
+  openListOp,
+  closeListOp,
+  listSlotOp,
+  listSkipOp,
+  listPrependOp,
+  listAppendOp,
+  listGetAtOp,
+  listSetAtOp,
 } from './builtins-list';
 
 import { Op } from './opcodes';
@@ -308,28 +308,28 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       literalCodeOp(vm);
       break;
     case Op.OpenList:
-      openRListOp(vm);
+      openListOp(vm);
       break;
     case Op.CloseList:
-      closeRListOp(vm);
+      closeListOp(vm);
       break;
-    case Op.RListSlot:
-      rlistSlotOp(vm);
+    case Op.ListSlot:
+      listSlotOp(vm);
       break;
-    case Op.RListSkip:
-      rlistSkipOp(vm);
+    case Op.ListSkip:
+      listSkipOp(vm);
       break;
-    case Op.RListPrepend:
-      rlistPrependOp(vm);
+    case Op.ListPrepend:
+      listPrependOp(vm);
       break;
-    case Op.RListAppend:
-      rlistAppendOp(vm);
+    case Op.ListAppend:
+      listAppendOp(vm);
       break;
-    case Op.RListGetAt:
-      rlistGetAtOp(vm);
+    case Op.ListGetAt:
+      listGetAtOp(vm);
       break;
-    case Op.RListSetAt:
-      rlistSetAtOp(vm);
+    case Op.ListSetAt:
+      listSetAtOp(vm);
       break;
     case Op.PushSymbolRef:
       pushSymbolRefOp(vm);

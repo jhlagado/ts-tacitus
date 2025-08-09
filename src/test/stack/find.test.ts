@@ -9,7 +9,7 @@ function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
   vm.SP += 4;
 }
 
-function createRList(vm: VM, ...values: number[]): { start: number; end: number } {
+function createList(vm: VM, ...values: number[]): { start: number; end: number } {
   const start = vm.SP;
   values.forEach(val => pushValue(vm, val));
   pushValue(vm, values.length, Tag.LIST);
@@ -24,7 +24,7 @@ describe('findElement', () => {
   });
 
   test('should find a simple list', () => {
-    createRList(vm, 1, 2);
+    createList(vm, 1, 2);
     const [_nextSlot, size] = findElement(vm, 0);
     expect(size).toBe(3);
   });
@@ -39,7 +39,7 @@ describe('findElement', () => {
 
   test('should find nested lists', () => {
     // Inner (2): 2 payload + header
-    createRList(vm, 1, 2);
+    createList(vm, 1, 2);
     const [_innerNext, innerSize] = findElement(vm, 0);
     expect(innerSize).toBe(3);
 
@@ -64,7 +64,7 @@ describe('findElement', () => {
   });
 
   test('should find a list with offset from the top', () => {
-    createRList(vm, 1, 2);
+    createList(vm, 1, 2);
     pushValue(vm, 10);
     pushValue(vm, 20);
 
@@ -113,7 +113,7 @@ describe('findElement', () => {
   });
 
   test('should find list after pushing other values', () => {
-    createRList(vm, 42, 100);
+    createList(vm, 42, 100);
     pushValue(vm, 500);
     pushValue(vm, 600);
 
@@ -147,7 +147,7 @@ describe('findElement', () => {
   });
 
   test('should find elements in sequence', () => {
-    createRList(vm, 1, 2);
+    createList(vm, 1, 2);
     pushValue(vm, 42);
     pushValue(vm, 43);
 
@@ -165,7 +165,7 @@ describe('findElement', () => {
   });
 
   test('should handle list at TOS', () => {
-    createRList(vm, 1, 2);
+    createList(vm, 1, 2);
 
     const [nextSlot, size] = findElement(vm, 0);
     expect(size).toBe(3);
@@ -173,8 +173,8 @@ describe('findElement', () => {
   });
 
   test('should handle multiple lists', () => {
-    createRList(vm, 3, 4);
-    createRList(vm, 1);
+    createList(vm, 3, 4);
+    createList(vm, 1);
 
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(2);

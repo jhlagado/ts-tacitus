@@ -24,14 +24,14 @@ export function resetVM(): void {
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
-  // Define interface for VM with optional rlistDepth
-  interface VMWithRListDepth {
-    rlistDepth?: number;
+  // Define interface for VM with optional listDepth
+  interface VMWithListDepth {
+    listDepth?: number;
   }
-  
-  // Reset rlist depth if present
-  if (typeof (vm as VMWithRListDepth).rlistDepth === 'number') {
-    (vm as VMWithRListDepth).rlistDepth = 0;
+
+  // Reset list depth if present
+  if (typeof (vm as VMWithListDepth).listDepth === 'number') {
+    (vm as VMWithListDepth).listDepth = 0;
   }
   vm.receiver = 0;
   vm.running = true;

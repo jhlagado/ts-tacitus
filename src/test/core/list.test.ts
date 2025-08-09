@@ -1,16 +1,16 @@
 /**
- * @file src/test/core/rlist.test.ts
+ * @file src/test/core/list.test.ts
  * Tests for LIST core utilities
  */
 
 import { VM } from '../../core/vm';
 import { toTaggedValue, Tag } from '../../core/tagged';
 import {
-  createRList,
-  getRListSlotCount,
-  skipRList,
-  getRListPayloadStart,
-  validateRListHeader,
+  createList,
+  getListSlotCount,
+  skipList,
+  getListPayloadStart,
+  validateListHeader,
   reverseSpan,
 } from '../../core/list';
 
@@ -25,24 +25,24 @@ function getStackDepth(vm: VM): number {
 }
 
 describe('LIST Core Utilities', () => {
-  describe('createRList', () => {
+  describe('createList', () => {
     it('should create empty LIST', () => {
       const vm = resetVM();
-      createRList(vm, []);
+      createList(vm, []);
 
       expect(getStackDepth(vm)).toBe(1);
       const header = vm.peek();
-      expect(getRListSlotCount(header)).toBe(0);
+      expect(getListSlotCount(header)).toBe(0);
     });
 
     it('should create LIST with single value', () => {
       const vm = resetVM();
       const value = toTaggedValue(42, Tag.INTEGER);
-      createRList(vm, [value]);
+      createList(vm, [value]);
 
       expect(getStackDepth(vm)).toBe(2); // header + 1 payload
       const header = vm.peek();
-      expect(getRListSlotCount(header)).toBe(1);
+      expect(getListSlotCount(header)).toBe(1);
 
       // Check payload is at correct position
       // LIST layout: [payload0] [LIST:1] ← TOS
@@ -57,11 +57,11 @@ describe('LIST Core Utilities', () => {
       const val2 = toTaggedValue(2, Tag.INTEGER);
       const val3 = toTaggedValue(3, Tag.INTEGER);
 
-      createRList(vm, [val1, val2, val3]);
+      createList(vm, [val1, val2, val3]);
 
       expect(getStackDepth(vm)).toBe(4); // header + 3 payload
       const header = vm.peek();
-      expect(getRListSlotCount(header)).toBe(3);
+      expect(getListSlotCount(header)).toBe(3);
 
       // Values should be in reverse order: val3, val2, val1, header
       // LIST layout: [val3] [val2] [val1] [LIST:3] ← TOS
@@ -80,43 +80,43 @@ describe('LIST Core Utilities', () => {
       const numVal = 3.14; // NUMBER tag
       const strVal = toTaggedValue(100, Tag.STRING);
 
-      createRList(vm, [intVal, numVal, strVal]);
+      createList(vm, [intVal, numVal, strVal]);
 
       expect(getStackDepth(vm)).toBe(4);
       const header = vm.peek();
-      expect(getRListSlotCount(header)).toBe(3);
+      expect(getListSlotCount(header)).toBe(3);
     });
   });
 
-  describe('getRListSlotCount', () => {
+  describe('getListSlotCount', () => {
     it('should extract slot count from LIST header', () => {
       const header = toTaggedValue(5, Tag.LIST);
-      expect(getRListSlotCount(header)).toBe(5);
+      expect(getListSlotCount(header)).toBe(5);
     });
 
     it('should handle zero slot count', () => {
       const header = toTaggedValue(0, Tag.LIST);
-      expect(getRListSlotCount(header)).toBe(0);
+      expect(getListSlotCount(header)).toBe(0);
     });
 
     it('should handle maximum slot count', () => {
       const header = toTaggedValue(65535, Tag.LIST);
-      expect(getRListSlotCount(header)).toBe(65535);
+      expect(getListSlotCount(header)).toBe(65535);
     });
 
     it('should throw on non-LIST header', () => {
-      const nonRList = toTaggedValue(5, Tag.STRING);
-      expect(() => getRListSlotCount(nonRList)).toThrow('Value is not an LIST header');
+      const nonList = toTaggedValue(5, Tag.STRING);
+      expect(() => getListSlotCount(nonList)).toThrow('Value is not an LIST header');
     });
   });
 
-  describe('skipRList', () => {
+  describe('skipList', () => {
     it('should skip empty LIST', () => {
       const vm = resetVM();
-      createRList(vm, []);
+      createList(vm, []);
 
       const initialSP = vm.SP;
-      skipRList(vm);
+      skipList(vm);
       const finalSP = vm.SP;
 
       expect(initialSP - finalSP).toBe(4); // 1 slot * 4 bytes removed
@@ -126,10 +126,10 @@ describe('LIST Core Utilities', () => {
     it('should skip LIST with single value', () => {
       const vm = resetVM();
       const value = toTaggedValue(42, Tag.INTEGER);
-      createRList(vm, [value]);
+      createList(vm, [value]);
 
       const initialSP = vm.SP;
-      skipRList(vm);
+      skipList(vm);
       const finalSP = vm.SP;
 
       expect(initialSP - finalSP).toBe(8); // 2 slots * 4 bytes removed
@@ -143,10 +143,10 @@ describe('LIST Core Utilities', () => {
         toTaggedValue(2, Tag.INTEGER),
         toTaggedValue(3, Tag.INTEGER),
       ];
-      createRList(vm, values);
+      createList(vm, values);
 
       const initialSP = vm.SP;
-      skipRList(vm);
+      skipList(vm);
       const finalSP = vm.SP;
 
       expect(initialSP - finalSP).toBe(16); // 4 slots * 4 bytes removed
@@ -157,17 +157,17 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       vm.push(toTaggedValue(5, Tag.INTEGER));
 
-      expect(() => skipRList(vm)).toThrow('Expected LIST header at TOS');
+      expect(() => skipList(vm)).toThrow('Expected LIST header at TOS');
     });
   });
 
-  describe('getRListPayloadStart', () => {
+  describe('getListPayloadStart', () => {
     it('should return correct payload start address', () => {
       const vm = resetVM();
       const value = toTaggedValue(42, Tag.INTEGER);
-      createRList(vm, [value]);
+      createList(vm, [value]);
 
-      const payloadStart = getRListPayloadStart(vm);
+      const payloadStart = getListPayloadStart(vm);
       const expectedStart = vm.SP - 4; // First payload slot below header
 
       expect(payloadStart).toBe(expectedStart);
@@ -180,34 +180,34 @@ describe('LIST Core Utilities', () => {
 
     it('should work with empty LIST', () => {
       const vm = resetVM();
-      createRList(vm, []);
+      createList(vm, []);
 
-      const payloadStart = getRListPayloadStart(vm);
+      const payloadStart = getListPayloadStart(vm);
       const expectedStart = vm.SP; // No payload for empty LIST
 
       expect(payloadStart).toBe(expectedStart);
     });
   });
 
-  describe('validateRListHeader', () => {
+  describe('validateListHeader', () => {
     it('should validate correct LIST header', () => {
       const vm = resetVM();
-      createRList(vm, [toTaggedValue(42, Tag.INTEGER)]);
+      createList(vm, [toTaggedValue(42, Tag.INTEGER)]);
 
-      expect(() => validateRListHeader(vm)).not.toThrow();
+      expect(() => validateListHeader(vm)).not.toThrow();
     });
 
     it('should throw on empty stack', () => {
       const vm = resetVM();
 
-      expect(() => validateRListHeader(vm)).toThrow('LIST header validation');
+      expect(() => validateListHeader(vm)).toThrow('LIST header validation');
     });
 
     it('should throw on non-LIST at TOS', () => {
       const vm = resetVM();
       vm.push(toTaggedValue(5, Tag.INTEGER));
 
-      expect(() => validateRListHeader(vm)).toThrow('Expected LIST header at TOS');
+      expect(() => validateListHeader(vm)).toThrow('Expected LIST header at TOS');
     });
 
     it('should throw on insufficient payload space', () => {
@@ -216,7 +216,7 @@ describe('LIST Core Utilities', () => {
       const invalidHeader = toTaggedValue(10, Tag.LIST);
       vm.push(invalidHeader);
 
-      expect(() => validateRListHeader(vm)).toThrow('LIST payload validation');
+      expect(() => validateListHeader(vm)).toThrow('LIST payload validation');
     });
 
     it('should throw on slot count exceeding maximum', () => {
@@ -226,7 +226,7 @@ describe('LIST Core Utilities', () => {
       try {
         const invalidHeader = toTaggedValue(65536, Tag.LIST);
         vm.push(invalidHeader);
-        expect(() => validateRListHeader(vm)).toThrow('exceeds maximum of 65535');
+        expect(() => validateListHeader(vm)).toThrow('exceeds maximum of 65535');
       } catch (e) {
         // If toTaggedValue doesn't allow 65536, that's also correct behavior
         expect((e as Error).message).toContain('16-bit');
@@ -319,12 +319,12 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       const values = [toTaggedValue(10, Tag.INTEGER), toTaggedValue(20, Tag.INTEGER)];
 
-      createRList(vm, values);
+      createList(vm, values);
       expect(getStackDepth(vm)).toBe(3);
 
-      validateRListHeader(vm);
+      validateListHeader(vm);
 
-      skipRList(vm);
+      skipList(vm);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -333,11 +333,11 @@ describe('LIST Core Utilities', () => {
 
       // First create and validate an inner LIST
       const innerValues = [toTaggedValue(1, Tag.INTEGER), toTaggedValue(2, Tag.INTEGER)];
-      createRList(vm, innerValues);
-      validateRListHeader(vm);
+      createList(vm, innerValues);
+      validateListHeader(vm);
 
       // Extract just the header for use as a value (this pops the entire LIST)
-      const innerRListValue = vm.pop();
+      const innerListValue = vm.pop();
       // Clear any remaining payload
       while (vm.getStackData().length > 0) {
         vm.pop();
@@ -346,18 +346,18 @@ describe('LIST Core Utilities', () => {
       // Create outer LIST with the inner LIST as a value
       const outerValues = [
         toTaggedValue(0, Tag.INTEGER),
-        innerRListValue,
+        innerListValue,
         toTaggedValue(3, Tag.INTEGER),
       ];
-      createRList(vm, outerValues);
+      createList(vm, outerValues);
 
       const outerHeader = vm.peek();
-      expect(getRListSlotCount(outerHeader)).toBe(3);
+      expect(getListSlotCount(outerHeader)).toBe(3);
 
-      validateRListHeader(vm);
+      validateListHeader(vm);
 
       // Skip the entire outer structure
-      skipRList(vm);
+      skipList(vm);
       expect(getStackDepth(vm)).toBe(0);
     });
   });
