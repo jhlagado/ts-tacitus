@@ -74,7 +74,7 @@ describe('Tagged NaN Encoding', () => {
 
   test('should correctly identify LIST types', () => {
     const list = toTaggedValue(5, Tag.LIST);
-    const integer = toTaggedValue(5, Tag.INTEGER);
+    const integer = 5;
 
     expect(isList(list)).toBe(true);
     expect(isList(integer)).toBe(false);

@@ -139,8 +139,8 @@ export function listSkipOp(vm: VM): void {
 export function listPrependOp(vm: VM): void {
   vm.ensureStackSize(2, 'list prepend');
 
-  const header = vm.pop(); // LIST header at TOS
-  const value = vm.pop(); // Value to prepend
+  const value = vm.pop(); // list-first ordering requires value be second
+  const header = vm.pop(); // LIST header at TOS (list-first: list is atop value)
 
   if (!isList(header)) {
     vm.push(value); // Restore stack
@@ -155,6 +155,92 @@ export function listPrependOp(vm: VM): void {
   vm.push(value);
   const newHeader = toTaggedValue(slotCount + 1, Tag.LIST);
   vm.push(newHeader);
+}
+
+/**
+ * cons (list-first): ( list value — list' )
+ * Thin wrapper to enforce list-first ordering using listPrependOp semantics.
+ */
+export function consOp(vm: VM): void {
+  vm.ensureStackSize(2, 'cons');
+  const value = vm.pop();
+  const header = vm.pop();
+  if (!isList(header)) {
+    vm.push(header);
+    vm.push(value);
+    vm.push(NIL);
+    return;
+  }
+  const slotCount = getListSlotCount(header);
+  vm.push(value);
+  vm.push(toTaggedValue(slotCount + 1, Tag.LIST));
+}
+
+/**
+ * drop-head: ( list — list' )
+ * Removes the logical head element in O(1) by using span at SP-1.
+ */
+export function dropHeadOp(vm: VM): void {
+  vm.ensureStackSize(1, 'drop-head');
+  const header = vm.pop();
+  if (!isList(header)) {
+    // Not a list: restore and push NIL
+    vm.push(header);
+    vm.push(NIL);
+    return;
+  }
+  const s = getListSlotCount(header);
+  if (s === 0) {
+    // Already empty: remains empty
+    vm.push(header); // LIST:0
+    return;
+  }
+  // Element 0 starts at SP-1; read its header/span
+  const topAddr = vm.SP - BYTES_PER_ELEMENT; // SP after popping header
+  const topVal = vm.memory.readFloat32(SEG_STACK, topAddr);
+  const isCompound = isList(topVal);
+  const span = isCompound ? getListSlotCount(topVal) + 1 : 1;
+  // Remove head payload by moving SP
+  vm.SP -= span * BYTES_PER_ELEMENT;
+  // Push updated header with reduced payload slots
+  vm.push(toTaggedValue(s - span, Tag.LIST));
+}
+
+/**
+ * concat: ( listA listB — listC )
+ * Flattens: merges elements of listB after listA.
+ * If listB is not a list, behaves as cons (listA value).
+ */
+export function concatOp(vm: VM): void {
+  vm.ensureStackSize(2, 'concat');
+  const rhs = vm.pop(); // listB or value
+  const lhs = vm.pop(); // listA
+  if (!isList(lhs)) {
+    // invalid lhs: restore and NIL
+    vm.push(lhs);
+    vm.push(rhs);
+    vm.push(NIL);
+    return;
+  }
+  if (!isList(rhs)) {
+    // Fallback to cons(list, value)
+    vm.push(lhs);
+    vm.push(rhs);
+    consOp(vm);
+    return;
+  }
+  const sA = getListSlotCount(lhs);
+  const sB = getListSlotCount(rhs);
+  // Read rhs logical payload (payload0 at top)
+  const rhsLogical: number[] = [];
+  for (let i = 0; i < sB; i++) rhsLogical.push(vm.pop());
+  // Read lhs logical payload
+  const lhsLogical: number[] = [];
+  for (let i = 0; i < sA; i++) lhsLogical.push(vm.pop());
+  const mergedLogical = lhsLogical.concat(rhsLogical);
+  // Push deep-to-shallow: tail to head
+  for (let i = mergedLogical.length - 1; i >= 0; i--) vm.push(mergedLogical[i]);
+  vm.push(toTaggedValue(mergedLogical.length, Tag.LIST));
 }
 
 /**
@@ -215,12 +301,19 @@ export function listGetAtOp(vm: VM): void {
   const indexValue = vm.pop();
   const header = vm.peek(); // Keep LIST on stack
 
-  if (!isList(header) || !isInteger(indexValue)) {
+  if (!isList(header)) {
     vm.push(NIL);
     return;
   }
 
-  const index = fromTaggedValue(indexValue).value;
+  const decodedIdx = fromTaggedValue(indexValue);
+  let index = decodedIdx.value;
+  // Accept NUMBER or INTEGER; coerce to integer
+  if (decodedIdx.tag !== Tag.INTEGER && decodedIdx.tag !== Tag.NUMBER) {
+    vm.push(NIL);
+    return;
+  }
+  index = Math.trunc(index);
   const slotCount = getListSlotCount(header);
 
   if (index < 0 || index >= slotCount) {
@@ -255,13 +348,19 @@ export function listSetAtOp(vm: VM): void {
   const indexValue = vm.pop();
   const header = vm.peek(); // Keep LIST on stack
 
-  if (!isList(header) || !isInteger(indexValue)) {
+  if (!isList(header)) {
     vm.pop(); // Remove invalid header
     vm.push(NIL);
     return;
   }
 
-  const index = fromTaggedValue(indexValue).value;
+  const decodedIdx = fromTaggedValue(indexValue);
+  if (decodedIdx.tag !== Tag.INTEGER && decodedIdx.tag !== Tag.NUMBER) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+  const index = Math.trunc(decodedIdx.value);
   const slotCount = getListSlotCount(header);
 
   if (index < 0 || index >= slotCount) {
