@@ -180,6 +180,59 @@ maplist keys               # Extract all keys → ( key1 key2 key3 )
 maplist values             # Extract all values → ( val1 val2 val3 )
 ```
 
+### Sorting (`mapsort`)
+
+#### Overview
+
+`mapsort` returns a new maplist sorted by keys, while keeping each `(key value)` pair intact. Pairs are the atomic unit; the original maplist is unchanged.
+
+#### Stack effect
+
+```
+maplist  mapsort { kcmp }   ->  maplist'
+maplist  mapsort            ->  maplist'   \ default key comparator (symbol lexicographic)
+```
+
+#### Key comparator contract
+
+- The block is called with `k1 k2`: `( k1 k2 -- r )`, same sign rules as `sort`.
+- Defaults:
+  - symbols: lexicographic ascending
+  - numbers: ascending (if numeric keys)
+- If keys are mixed/other types, supply a comparator.
+
+#### Semantics
+
+- Stable: pairs with equal keys keep original order.
+- Pair-atomic: swaps move `(key value)` together; values may be compound.
+- Sorted maps enable `bfind`: once sorted by the chosen key order, `bfind` can do binary search.
+
+#### Complexity (informative)
+
+- Time: O(n log n) comparisons.
+- Space: O(n) (pair-wise builder with `cons` + `reverse`).
+
+#### Examples
+
+```tac
+( `c @C  `a @A  `b @B )         mapsort
+  \ -> ( `a @A  `b @B  `c @C )
+
+( `f 2  `g 0  `h 1 )            mapsort {  \ numeric keys example
+  - }                           \ -> ( `g 0  `h 1  `f 2 )
+
+( `get @G  `default @D  `set @S )
+  mapsort                       \ default is lexicographic on symbols
+  \ -> ( `default @D  `get @G  `set @S )
+```
+
+> To “pin `default` to end,” define a comparator that returns positive when `k1` is ``default and `k2` is not.
+
+#### Validation / errors
+
+- Payload with odd slot count (not a proper pair sequence) → error/sentinel.
+- Comparator not returning a number → error/sentinel.
+
 <!-- Removed: Construction operations (assoc/dissoc/merge) to keep maplists focused on address-based access; build-new-structure APIs can live elsewhere. -->
 
 ### Stack Effects

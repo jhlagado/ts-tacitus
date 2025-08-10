@@ -1,4 +1,4 @@
-# TACIT Lists — Definitive Specification (Expanded)
+# TACIT Lists Specification
 
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
@@ -259,6 +259,55 @@ Appending at the tail is **not provided as a primitive**. It can be achieved via
 ## 13. Mutation (high-level)
 
 Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`element` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `drop-head` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
+
+---
+
+## 14. Sorting
+
+### Overview
+
+`sort` returns a new list whose elements are stably reordered according to a comparator. Elements (including compounds) move as whole units; the original list is unchanged.
+
+### Stack effect
+
+```
+list  sort { cmp }   ->  list'
+list  sort           ->  list'    \ default comparator (ascending)
+```
+
+### Comparator contract
+
+- The block is called with A B on the stack (A = earlier, B = later):
+  `( A B -- r )` where `r < 0` ⇒ A before B; `r > 0` ⇒ B before A; `r = 0` ⇒ keep order (stable).
+- Short forms:
+  - numeric ascending: `{ - }`
+  - numeric descending: `{ swap - }`
+- Mixed types require a comparator that can compare them.
+
+### Semantics
+
+- Stable: equal elements keep original order.
+- Unit = element: compounds are not split; traversal uses element spans.
+- Pure: returns a new list (no in-place structural edits).
+
+### Complexity (informative)
+
+- Time: O(n log n) comparisons.
+- Space: O(n) (built via `cons` + final `reverse`).
+
+### Examples
+
+```tac
+( 3 1 2 )                 sort { - }        \ -> ( 1 2 3 )
+( 3 1 2 )                 sort { swap - }   \ -> ( 3 2 1 )
+( (2 9) 1 (0 0 0) )       sort { elements swap elements - }
+                                           \ by element count: -> ( 1 (2 9) (0 0 0) )
+```
+
+### Errors / sentinels
+
+- Non-list input → error/sentinel.
+- Comparator not returning a number → error/sentinel.
 
 ---
 
