@@ -314,9 +314,8 @@ list  sort { cmp }   ->  list'
 
 ## 15. Binary search (bfind)
 
-This is the list case of the unified `bfind` defined in Access. See Access §3 for full semantics and contracts.
+This is the list case of the unified `bfind` defined in Access §3.
 
-Summary (list-specific):
 - Precondition: list sorted by the same comparator used for `bfind`.
 - Stack: `list key bfind { cmp } -> addr | nil` (address of matching element start)
 - Comparator: `cmp ( key elem -- r )`; r<0 search upper, r>0 lower, r=0 match.
