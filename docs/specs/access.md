@@ -36,7 +36,58 @@ The block’s result is always taken as a list representing the path.
 - Path items must be either numbers (element indices, 0-based) or symbols (map keys).
 - Mixed paths are allowed; traversal semantics switch based on item type at each step.
 
-### 3. `get` — conceptual behavior
+### 3. Addressing and search (find family)
+
+This section defines unified, address-returning search operations that `get`/`set` build upon. These words do not mutate; they compute addresses which you can pair with `fetch`/`store`.
+
+#### find
+
+Stack effect:
+
+```
+target  key  find   ⇒   addr | default-addr | nil
+```
+
+Semantics:
+- If `key` is a number and `target` is a list: return the address of element `key` (0-based) using element traversal. O(s) worst-case.
+- If `key` is a symbol and `target` is a maplist: return the address of the associated value via linear search; if absent and `default` is present, return its value address; else `nil`. O(n).
+- Otherwise: `nil`.
+
+Notes: Always returns an address or `nil`; combine with `fetch`/`store`.
+
+#### bfind (binary search)
+
+Stack effect:
+
+```
+target  key  bfind { cmp }   ⇒   addr | nil
+```
+
+Semantics by target:
+- List: classic binary search over elements using comparator `cmp ( key elem — r )`. Precondition: list sorted by the same comparator. Returns address of matching element start, or `nil`.
+- Maplist: binary search over keys using key comparator consistent with `mapsort`. Precondition: maplist sorted by that key comparator. Returns address of matching value element, or `nil`.
+
+Policy and constraints:
+- Comparator block is required; it must return a number (float).
+- With duplicates, return the first equal (lower_bound) for determinism.
+- Mismatched comparator vs sort order yields undefined results.
+
+#### hfind (hashed lookup)
+
+Stack effect:
+
+```
+target  key  hfind   ⇒   addr | default-addr | nil
+```
+
+Semantics:
+- Maplist only: if a valid hash index is available for the maplist, do O(1) average lookup by interned key identity and return the value address; on miss, return `default`’s value address if present, else `nil`.
+- If no index is available (or invalid), fall back to `find` semantics.
+- Lists: not applicable → `nil`.
+
+Implementation notes: Hash indices store key identities and value slot offsets (relative to the header) so results remain valid regardless of stack address. Hinting/indexing details are described in the maplists appendix.
+
+### 4. `get` — conceptual behavior
 
 **Stack effect:**
 
@@ -73,7 +124,7 @@ Computed path example:
 root  get { swap }                     \ use the fetched index as the path
 ```
 
-### 4. `set` — conceptual behavior
+### 5. `set` — conceptual behavior
 
 **Stack effect:**
 
@@ -104,7 +155,7 @@ Traversal mirrors `get`, but the final step obtains the element address and appl
 * Only **simple values** may be written (`number`, `boolean`, `string`, `symbol`, `nil`).
 * No structural edits: `set` does not insert keys or extend lists.
 
-### 5. Edge cases and failure modes
+### 6. Edge cases and failure modes
 
 - Non-list target when number index encountered → `nil`.
 - Non-maplist target when symbol key encountered → `nil`.
@@ -112,18 +163,18 @@ Traversal mirrors `get`, but the final step obtains the element address and appl
 - Missing key with no `default` in maplist → `nil`.
 - Attempting to overwrite a compound element → `nil` (no change).
 
-### 6. Performance characteristics
+### 7. Performance characteristics
 
 - Path evaluation cost is proportional to the number of steps and underlying access costs:
   - List element step: address O(s) in worst case for deep traversal to compute `element i`; `fetch` is O(1) simple or O(span) for compound.
   - Maplist key step: address via `find` is O(n) linear, or O(log n) with `bfind` on sorted keys, or average O(1) with a prebuilt hash index as described in maplists Appendix A.
 - `set` adds an O(1) `store` when the target is simple; otherwise returns `nil`.
 
-### 7. Relation to capsules
+### 8. Relation to capsules
 
 Capsules are lists with conventions. Paths that index into capsule elements (numbers) behave like list access. Method dispatch and named field access inside capsule methods remain separate concerns; use capsule field names or `with` blocks for behavior. For low-level element updates on capsule data fields, these combinators still apply (subject to simple-only write rules).
 
-### 8. Example structure
+### 9. Example structure
 
 ```
 \ Root object
@@ -154,7 +205,7 @@ root  get { `users 2 `name }    \ → nil (out of bounds)
 root get { `users 0 `name }            \ → "Charlie"
 ```
 
-### 9. Summary
+### 10. Summary
 
 * **Uniform path traversal** across lists and map lists.
 * **Numbers** = element index; **symbols** = map key.

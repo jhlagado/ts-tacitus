@@ -30,19 +30,20 @@
     - Append (discouraged; not a primitive)
 13. Mutation (high-level)
 14. Sorting
-15. Safety and validation
-16. Constraints and implementation-defined limits
-17. Zero-length lists
-18. Complexity summary
-19. Algebraic laws and identities
-20. Worked examples (step-by-step stack diagrams)
-21. Edge cases and failure modes
-22. Testing checklist (conformance)
-23. Interactions with capsules, receiver, and control flow
-24. Performance notes and implementation guidance
-25. FAQ / common pitfalls
-26. Change log (rationale for decisions)
-27. Glossary
+15. Binary search (bfind)
+16. Safety and validation
+17. Constraints and implementation-defined limits
+18. Zero-length lists
+19. Complexity summary
+20. Algebraic laws and identities
+21. Worked examples (step-by-step stack diagrams)
+22. Edge cases and failure modes
+23. Testing checklist (conformance)
+24. Interactions with capsules, receiver, and control flow
+25. Performance notes and implementation guidance
+26. FAQ / common pitfalls
+27. Change log (rationale for decisions)
+28. Glossary
 
 ---
 
@@ -273,7 +274,6 @@ Only **simple** (single-slot) payload cells may be overwritten in place. Use `st
 
 ```
 list  sort { cmp }   ->  list'
-list  sort           ->  list'    \ default comparator (ascending)
 ```
 
 ### Comparator contract
@@ -309,6 +309,19 @@ list  sort           ->  list'    \ default comparator (ascending)
 
 - Non-list input → error/sentinel.
 - Comparator not returning a number → error/sentinel.
+
+---
+
+## 15. Binary search (bfind)
+
+This is the list case of the unified `bfind` defined in Access. See Access §3 for full semantics and contracts.
+
+Summary (list-specific):
+- Precondition: list sorted by the same comparator used for `bfind`.
+- Stack: `list key bfind { cmp } -> addr | nil` (address of matching element start)
+- Comparator: `cmp ( key elem -- r )`; r<0 search upper, r>0 lower, r=0 match.
+- Semantics: binary search over elements (compounds move as units).
+- Complexity: O(log n) comparisons; O(1) space.
 
 ---
 
