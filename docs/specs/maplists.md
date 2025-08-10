@@ -20,11 +20,11 @@
 16. Binary search (bfind)
 17. Appendix A: Advanced find
 
-## Overview
+## 1. Overview
 
 **Maplists** are ordinary lists following a key-value alternating pattern, providing TACIT's primary associative data structure. They build on the foundational list infrastructure documented in `docs/specs/lists.md`.
 
-## Foundational Dependencies
+## 2. Foundational Dependencies
 
 Maplists inherit all properties from TACIT lists:
 - Header-at-TOS `LIST:s` representation (payload slot count `s`)
@@ -36,7 +36,7 @@ Maplists inherit all properties from TACIT lists:
 
 **Required reading**: `docs/specs/lists.md` for core list mechanics.
 
-## Structure Convention
+## 3. Structure Convention
 
 ```tacit
 ( key1 value1 key2 value2 key3 value3 )
@@ -50,7 +50,7 @@ Maplists inherit all properties from TACIT lists:
 ( `timeout 5000 `retries 3 `default "N/A" )          # With default fallback
 ```
 
-## Key-Based Access
+## 4. Key-Based Access
 
 **Pattern**: Find the address of a value by key comparison (address-returning search)
 
@@ -94,15 +94,15 @@ Maplists inherit all properties from TACIT lists:
 ( `error-404 "Not Found" `error-500 "Server Error" `default "Unknown Error" )
 ```
 
-## Advanced Search Strategies
+## 5. Advanced Search Strategies
 
 For larger datasets, see Appendix A: Advanced find for optimized address-returning search variants (`bfind`, `hfind`). The primary interface remains `find`.
 
-## NIL Value Semantics
+## 6. NIL Value Semantics
 
 See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups return NIL when no key is found and no `default` is present.
 
-## Default Key Convention
+## 7. Default Key Convention
 
 **Purpose**: Provide fallback values for failed lookups using a special `default` key.
 
@@ -159,7 +159,7 @@ config `default find fetch → "unset"       # Explicit default lookup
 **Search efficiency**: Implementation may optimize by checking `default` first or last
 **Type consistency**: `default` value should be compatible with expected result types
 
-## Use Case Guidelines
+## 8. Use Case Guidelines
 
 ### When to Use Maplists
 
@@ -190,7 +190,7 @@ config `default find fetch → "unset"       # Explicit default lookup
 - Performance-critical iteration
 - Large datasets requiring specialized indexing
 
-## Common Operations
+## 9. Common Operations
 
 ### Retrieval Operations
 
@@ -263,7 +263,7 @@ maplist  mapsort { kcmp }   ->  maplist'
 **Element mutations**:
 - Prefer address-based updates via `find` + `store` from `lists.md`.
 
-## Integration with List Operations
+## 10. Integration with List Operations
 
 Maplists are lists with conventions, so all list operations work:
 
@@ -278,7 +278,7 @@ Maplists are lists with conventions, so all list operations work:
 
 **Mutation efficiency**: Simple values can be updated in-place via `store` without structural changes; compounds are no-op targets.
 
-## Performance Characteristics
+## 11. Performance Characteristics
 
 ### Access Patterns  
 - **Key lookup**: O(n/2) average for linear search
@@ -300,7 +300,7 @@ Maplists are lists with conventions, so all list operations work:
 - **Flat structure**: No additional pointer indirection
 - **Cache friendly**: Sequential memory access during traversal
 
-## Design Philosophy
+## 13. Design Philosophy
 
 **Simplicity**: Maplists require no new infrastructure - they're lists with search conventions.
 
@@ -314,7 +314,7 @@ Maplists are lists with conventions, so all list operations work:
 
 This approach aligns with TACIT's philosophy of building complex functionality from simple, composable primitives.
 
-## Implementation Examples
+## 14. Implementation Examples
 
 ### Basic Key Search
 
@@ -347,7 +347,7 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 ;
 ```
 
-## Related Specifications
+## 15. Related Specifications
 
 - `docs/specs/lists.md` - Foundational list mechanics (required reading)
 - `docs/specs/stack-operations.md` - Stack manipulation rules
@@ -393,7 +393,7 @@ maplist  key  bfind { kcmp }   ->  addr | nil
 
 ---
 
-## Appendix A: Advanced find
+## 17. Appendix A: Advanced find
 
 This appendix outlines optimized, address-returning search variants for maplists. All variants preserve the same interface shape and results as `find` but differ in preconditions and complexity. These are optional enhancements for larger datasets.
 
