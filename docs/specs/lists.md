@@ -18,10 +18,10 @@
 8. Printing / pretty representation
 9. Length and counting
    - `slots ( list -- n )` — O(1)
-   - `elements ( list -- n )` — O(s) traversal
+   - `length ( list -- n )` — O(s) traversal
 10. Address queries
     - `slot ( idx -- addr )` — O(1)
-    - `element ( idx -- addr )` — O(s)
+    - `elem ( idx -- addr )` — O(s)
 11. Traversal rule (type-agnostic span)
 12. Structural operations (overview)
     - `cons` (prepend) — O(1)
@@ -167,7 +167,7 @@ Final stack (deep → TOS):
 * Returns the **payload slot count** `s` directly from the header.
 * **Cost:** O(1).
 
-### elements ( list -- n )
+### length ( list -- n )
 
 * Returns the **element count** by traversing the payload from `SP-1` downward.
 * **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
@@ -185,7 +185,7 @@ Final stack (deep → TOS):
 * **Result:** `addr = SP - 1 - idx`.
 * **Cost:** O(1).
 
-### element ( idx -- addr )
+### elem ( idx -- addr )
 
 * Returns the **address** of the **start slot** for **element index `idx`**.
 * **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped.
@@ -197,7 +197,7 @@ Final stack (deep → TOS):
 * If the value at `addr` is **simple** (single-slot), returns that slot's value.
 * If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
 * **Cost:** O(1) for simple; O(span) to materialize a compound.
-* **Example:** `list 3 element fetch` yields the element at index 3, whether simple or compound.
+* **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
 
 ### store ( value addr -- )
 
@@ -206,7 +206,7 @@ Final stack (deep → TOS):
 * If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
 * Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
 * **Cost:** O(1).
-* **Example:** `100 list 2 element store` overwrites element 2 if and only if that element is simple.
+* **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
 
 ---
 
@@ -268,7 +268,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 
 ## 13. Mutation (high-level)
 
-Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`element` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
+Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`elem` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
 
 ---
 
@@ -353,7 +353,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 ## 16. Zero-length lists
 
 * `LIST:0` prints as `( )`.
-* `slots(( )) = 0`, `elements(( )) = 0`.
+* `slots(( )) = 0`, `length(( )) = 0`.
 * `drop` on a list removes the **entire list** (header plus payload) from the stack.
 * `cons` on `LIST:0` yields a one-element list via the normal header rewrite.
 
@@ -362,9 +362,9 @@ This is the list case of the unified `bfind` defined in Access §3.
 ## 17. Complexity summary
 
 * `slots` → O(1)
-* `elements` → O(s)
+* `length` → O(s)
 * `slot` → O(1)
-* `element` → O(s)
+* `elem` → O(s)
 * `cons` → O(1)
 * `tail` → O(1)
 * `concat` → O(n)
@@ -455,7 +455,7 @@ element 2 → address after skipping span 3 → SP-5 (4)
 ## 20. Edge cases and failure modes
 
 * **Empty:** `( )` behaves as described in §16.
-* **Out-of-bounds `slot`/`element`:** must not read beyond the payload; implementation may signal error or return `nil`.
+* **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; implementation may signal error or return `nil`.
 * **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
 * **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
 
@@ -475,11 +475,11 @@ element 2 → address after skipping span 3 → SP-5 (4)
 * **Lengths**
 
   * `slots` matches header
-  * `elements` matches traversal count
+  * `length` matches traversal count
 * **Address queries**
 
   * `slot 0` = `SP-1`
-  * `element i` returns the start slot per traversal
+  * `elem i` returns the start slot per traversal
 * **Ops**
 
   * `cons` then `tail` restores original
@@ -504,7 +504,7 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
 
 * Prefer **cons** and **tail** for growth/shrink; avoid **append** in hot loops.
 * Keep **mutation** confined to simple slots; treat compounds as immutable units.
-* Use `slot`/`slots` when you need physical indexing; use `element`/`elements` for logical views.
+* Use `slot`/`slots` when you need physical indexing; use `elem`/`length` for logical views.
 * When merging, consider building lists **front-first** and reverse-printing if necessary; this keeps operations O(1) and cache-friendly.
 
 ---
@@ -517,7 +517,7 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
   **A:** No. Only slots are O(1). Elements require traversal.
 * **Q:** Can I overwrite a list element with another list in place?
   **A:** Not if the target is compound; perform a structural operation instead.
-* **Q:** Why does `(1 (2 3) 4)` have 5 **slots** but 3 **elements**?
+* **Q:** Why does `(1 ( 2 3 ) 4 )` have 5 slots but 3 elements?
   **A:** Because the nested list’s span is 3 slots (header + 2 payload).
 * **Q:** Do I ever need a LINK/footer?
   **A:** No; LINK-era formats are gone. Lists are header-first, run-length encoded.
