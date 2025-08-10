@@ -35,9 +35,9 @@ Maplists inherit all properties from TACIT lists:
 **Pattern**: Find the address of a value by key comparison (address-returning search)
 
 ```tacit
-( `key1 100 `key2 200 `key3 300 ) `key2 find get      → 200
-( 1 "one" 2 "two" 3 "three" ) 2 find get             → "two"
-( `timeout 5000 `default "unknown" ) `missing find get → "unknown"
+( `key1 100 `key2 200 `key3 300 ) `key2 find fetch    → 200
+( 1 "one" 2 "two" 3 "three" ) 2 find fetch           → "two"
+( `timeout 5000 `default "unknown" ) `missing find fetch → "unknown"
 ( `key1 100 `key2 200 ) `missing find                 → NIL
 ```
 
@@ -52,7 +52,7 @@ Maplists inherit all properties from TACIT lists:
 
 **Performance**: O(n/2) where n is the element count
 
-**Error Handling**: No exceptions thrown — returns an address or NIL; pair with `get`/`set` from `lists.md`
+**Error Handling**: No exceptions thrown — returns an address or NIL; pair with `fetch`/`store` from `lists.md`
 
 ## Key Constraints and Recommendations
 
@@ -110,9 +110,9 @@ See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups retu
 ### Lookup Behavior
 
 ```tacit
-config `port find get     → 8080           # Found: address then get value
-config `missing find get  → "unset"        # Not found: use default value
-config `default find get  → "unset"        # Explicit default lookup
+config `port find fetch   → 8080           # Found: address then fetch value
+config `missing find fetch → "unset"       # Not found: use default value
+config `default find fetch → "unset"       # Explicit default lookup
 ( `key1 100 ) `missing find → NIL           # No default: return NIL
 ```
 
@@ -192,22 +192,22 @@ maplist values             # Extract all values → ( val1 val2 val3 )
 <!-- Removed structural modifications stack effects -->
 
 **Element mutations**:
-- Prefer address-based updates via `find` + `set` from `lists.md`.
+- Prefer address-based updates via `find` + `store` from `lists.md`.
 
 ## Integration with List Operations
 
 Maplists are lists with conventions, so all list operations work:
 
 ```tacit
-( `a 1 `b 2 `c 3 ) 1 element get   → 1        # Access value element at index 1
+( `a 1 `b 2 `c 3 ) 1 element fetch → 1        # Access value element at index 1
 ( `a 1 `b 2 `c 3 ) elements        → 6        # Total elements (3 pairs × 2)
-( `a 1 `b 2 `c 3 ) `b find get     → 2        # Access by key via address + get
-10 ( `a 1 `b 2 `c 3 ) `b find set  # In-place update if simple; else no-op
+( `a 1 `b 2 `c 3 ) `b find fetch   → 2        # Access by key via address + fetch
+10 ( `a 1 `b 2 `c 3 ) `b find store # In-place update if simple; else no-op
 ```
 
-**Dual access patterns**: Address-based element access pairs with `get`/`set`; key-based access uses `find` to obtain an address.
+**Dual access patterns**: Address-based element access pairs with `fetch`/`store`; key-based access uses `find` to obtain an address.
 
-**Mutation efficiency**: Simple values can be updated in-place via `set` without structural changes; compounds are no-op targets.
+**Mutation efficiency**: Simple values can be updated in-place via `store` without structural changes; compounds are no-op targets.
 
 ## Performance Characteristics
 
@@ -317,4 +317,4 @@ This appendix outlines optimized, address-returning search variants for maplists
   - The maplist remains immutable; the index must be rebuilt if a new maplist is created
   - Hashing leverages interned symbol indices to avoid runtime string hashing
 
-These variants maintain the address-returning contract so they compose with `get`/`set` unchanged.
+These variants maintain the address-returning contract so they compose with `fetch`/`store` unchanged.
