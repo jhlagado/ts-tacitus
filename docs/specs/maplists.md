@@ -76,21 +76,7 @@ Maplists inherit all properties from TACIT lists:
 
 ## Advanced Search Strategies
 
-For larger datasets, different search words can implement optimized algorithms:
-
-```tacit
-# Linear search (default)
-maplist key find         → O(n)
-
-# Binary search (requires sorted keys)  
-sorted-maplist key bfind → O(log n)
-
-# (Hash-based variants intentionally omitted; keys are numeric/interned — no additional benefit.)
-```
-
-**Design principle**: Same interface, different algorithms based on data characteristics.
-
-Note: `bfind` requires sorted keys; we should add a sorting section to `lists.md` to define stable ordering and comparison rules.
+For larger datasets, see Appendix A: Advanced find for optimized address-returning search variants (`bfind`, `hfind`). The primary interface remains `find`.
 
 ## NIL Value Semantics
 
@@ -297,3 +283,38 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 - `docs/specs/lists.md` - Foundational list mechanics (required reading)
 - `docs/specs/stack-operations.md` - Stack manipulation rules
 - `docs/specs/tagged.md` - Type system and sentinel values (NIL)
+
+---
+
+## Appendix A: Advanced find
+
+This appendix outlines optimized, address-returning search variants for maplists. All variants preserve the same interface shape and results as `find` but differ in preconditions and complexity. These are optional enhancements for larger datasets.
+
+### bfind (binary search on sorted keys)
+
+- Interface: `( sorted-maplist key — addr | default-addr | NIL )`
+- Preconditions:
+  - Keys are sorted by their numeric identity (for symbols, the interned digest index; for numeric keys, the integer value)
+  - Even positions are keys (0,2,4,...) and odd positions are values (1,3,5,...)
+- Behavior:
+  - Performs binary search over key elements, comparing numeric identities without decoding strings
+  - On match, returns the address of the corresponding value element
+  - On miss, returns the `default` value address if present, otherwise NIL
+- Complexity: O(log n)
+
+### hfind (open-addressing hash index)
+
+- Interface: `( maplist key — addr | default-addr | NIL )`, with an associated prebuilt hash index
+- Preconditions:
+  - A separate, contiguous hash index exists for the maplist, constructed from key/value pairs
+  - Keys use their numeric identity (interned symbol index or integer) for hashing
+- Behavior:
+  - Computes a hash over the numeric identity, probes the index with open addressing (e.g., linear probing)
+  - On hit, computes the value element address directly from a stored offset
+  - On miss, falls back to `default` value address if present, else NIL
+- Complexity: Average O(1) with appropriate load factor; O(k) with short probe sequences
+- Notes:
+  - The maplist remains immutable; the index must be rebuilt if a new maplist is created
+  - Hashing leverages interned symbol indices to avoid runtime string hashing
+
+These variants maintain the address-returning contract so they compose with `get`/`set` unchanged.
