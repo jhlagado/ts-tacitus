@@ -7,8 +7,8 @@
 ## Foundational Dependencies
 
 Maplists inherit all properties from TACIT lists:
-- Length-prefixed structure with LIST:n headers
-- LINK navigation for stack safety
+- Header-at-TOS `LIST:s` representation (payload slot count `s`)
+- Type-agnostic traversal by span encoded in compound headers
 - Forward-only traversal from header
 - Structural immutability (discouraged to modify structure)
 - Element mutability (simple values can be updated in-place)
@@ -32,28 +32,27 @@ Maplists inherit all properties from TACIT lists:
 
 ## Key-Based Access
 
-**Pattern**: Search for values by key comparison
+**Pattern**: Find the address of a value by key comparison (address-returning search)
 
 ```tacit
-( `key1 100 `key2 200 `key3 300 ) `key2 find    → 200
-( 1 "one" 2 "two" 3 "three" ) 2 find           → "two"
-( `timeout 5000 `default "unknown" ) `missing find → "unknown"
-( `key1 100 `key2 200 ) `missing find          → NIL
+( `key1 100 `key2 200 `key3 300 ) `key2 find get      → 200
+( 1 "one" 2 "two" 3 "three" ) 2 find get             → "two"
+( `timeout 5000 `default "unknown" ) `missing find get → "unknown"
+( `key1 100 `key2 200 ) `missing find                 → NIL
 ```
 
-**Stack effect**: `( maplist key — value | default-value | NIL )`
+**Stack effect**: `( maplist key — addr | default-addr | NIL )`
 
-**Algorithm**: Linear search through alternating pairs
-1. Follow LINK to locate maplist start
-2. Read LIST:n header to get total length
-3. Traverse pairs: compare key at position 0, 2, 4, ...
-4. If key matches, return value at position 1, 3, 5, ...
-5. If not found, check for `default` key and return its value if present
-6. If no match and no `default`, return NIL (INTEGER tagged value with value 0)
+**Algorithm**: Linear element-wise search through alternating pairs
+1. Validate list header `LIST:s` at TOS
+2. Traverse elements: compare keys at element positions 0, 2, 4, ...
+3. On match, return the address of the corresponding value element (positions 1, 3, 5, ...)
+4. If not found, search for `default` and return its value address if present
+5. If no match and no `default`, return NIL (see `tagged.md`)
 
-**Performance**: O(n/2) where n is maplist length
+**Performance**: O(n/2) where n is the element count
 
-**Error Handling**: No exceptions thrown - NIL or default value always returned
+**Error Handling**: No exceptions thrown — returns an address or NIL; pair with `get`/`set` from `lists.md`
 
 ## Key Constraints and Recommendations
 
@@ -94,24 +93,7 @@ hash-maplist key hfind   → O(1) average
 
 ## NIL Value Semantics
 
-**NIL Definition**: INTEGER tagged value with value 0, used to represent "not found" or "absent"
-
-**Key Properties**:
-- **Type**: INTEGER tagged value (not FLOAT)
-- **Value**: Exactly 0
-- **Usage**: Internal to TACIT operations, not typically user-visible
-- **Purpose**: Graceful handling of missing data without exceptions
-
-**Comparison with Other Languages**:
-- Similar to `null` in JavaScript, `None` in Python, `nil` in Ruby
-- But encoded as INTEGER:0 in TACIT's tagged value system
-- Distinguishable from user INTEGER:0 by context (lookup failure)
-
-**Testing for NIL**: 
-```tacit
-result NIL?     # Test if result is NIL
-result 0 =      # Alternative: test if INTEGER:0 (covers NIL case)
-```
+See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups return NIL when no key is found and no `default` is present.
 
 ## Default Key Convention
 
@@ -141,10 +123,10 @@ result 0 =      # Alternative: test if INTEGER:0 (covers NIL case)
 ### Lookup Behavior
 
 ```tacit
-config `port find     → 8080           # Found: return value
-config `missing find  → "unset"        # Not found: return default
-config `default find  → "unset"        # Explicit default lookup
-( `key1 100 ) `missing find → NIL      # No default: return NIL
+config `port find get     → 8080           # Found: address then get value
+config `missing find get  → "unset"        # Not found: use default value
+config `default find get  → "unset"        # Explicit default lookup
+( `key1 100 ) `missing find → NIL           # No default: return NIL
 ```
 
 **Implementation note**: The `default` key can be accessed explicitly like any other key, but serves a special role in failed lookups.
@@ -206,32 +188,25 @@ config `default find  → "unset"        # Explicit default lookup
 ### Retrieval Operations
 
 ```tacit
-maplist key find           # Get value by key
+maplist key find           # Address by key (or NIL)
 maplist keys               # Extract all keys → ( key1 key2 key3 )
 maplist values             # Extract all values → ( val1 val2 val3 )
 ```
 
-### Construction Operations
+### Construction Operations (optional)
 
-**Structural modifications** (discouraged but possible - create new maplists):
-
-```tacit
-maplist key value assoc    # Add/update entry
-maplist key dissoc        # Remove entry  
-maplist1 maplist2 merge   # Combine maplists
-```
-
-**Element mutations** (efficient for simple values):
+These create new maplists and are not core primitives. Prefer address-based updates where possible.
 
 ```tacit
-maplist key new-value update-value    # Update existing value in-place
-maplist key increment-value           # Increment numeric value in-place
+maplist key value assoc    # Add or update entry by creating a new maplist
+maplist key dissoc         # Remove entry by creating a new maplist
+maplist1 maplist2 merge    # Combine maplists into a new maplist
 ```
 
 ### Stack Effects
 
 **Retrieval**:
-- `( maplist key — value | default-value | NIL )`
+- `( maplist key — addr | default-addr | NIL )`
 - `( maplist — keys )`
 - `( maplist — values )`
 
@@ -241,23 +216,22 @@ maplist key increment-value           # Increment numeric value in-place
 - `( maplist1 maplist2 — merged-maplist )`
 
 **Element mutations**:
-- `( maplist key new-value — )`
-- `( maplist key — )`
+- Prefer address-based updates via `find` + `set` from `lists.md`.
 
 ## Integration with List Operations
 
 Maplists are lists with conventions, so all list operations work:
 
 ```tacit
-( `a 1 `b 2 `c 3 ) 1 get      → 1        # Access by index (gets value of first pair)
-( `a 1 `b 2 `c 3 ) length     → 6        # Total elements (3 pairs × 2)
-( `a 1 `b 2 `c 3 ) `b find    → 2        # Access by key
-( `a 1 `b 2 `c 3 ) 1 10 set-at           # Mutate value in-place (first pair's value)
+( `a 1 `b 2 `c 3 ) 1 element get   → 1        # Access value element at index 1
+( `a 1 `b 2 `c 3 ) elements        → 6        # Total elements (3 pairs × 2)
+( `a 1 `b 2 `c 3 ) `b find get     → 2        # Access by key via address + get
+10 ( `a 1 `b 2 `c 3 ) `b find set  # In-place update if simple; else no-op
 ```
 
-**Dual access patterns**: Same data structure supports both index-based and key-based access.
+**Dual access patterns**: Address-based element access pairs with `get`/`set`; key-based access uses `find` to obtain an address.
 
-**Mutation efficiency**: Simple values can be updated in-place without structural changes.
+**Mutation efficiency**: Simple values can be updated in-place via `set` without structural changes; compounds are no-op targets.
 
 ## Performance Characteristics
 
@@ -277,7 +251,7 @@ Maplists are lists with conventions, so all list operations work:
 
 ### Memory Efficiency
 - **Zero overhead**: Maplists are just lists with conventions
-- **LINK sharing**: Same stack metadata as regular lists
+- **Header-at-TOS**: Standard list header with contiguous payload
 - **Flat structure**: No additional pointer indirection
 - **Cache friendly**: Sequential memory access during traversal
 
@@ -300,25 +274,20 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 ### Basic Key Search
 
 ```tacit
-: find-key ( maplist key — value | default-value | NIL )
-  # Use LINK to locate LIST:n header
-  # Read count n  
-  # Loop through pairs (0,1), (2,3), (4,5)...
-  # Compare key at even positions
-  # If match found, return value at odd position
-  # If no match, search for `default` key
-  # Return default value if found, NIL (INTEGER:0) otherwise
+: find ( maplist key — addr | default-addr | NIL )
+  # Validate LIST:s header at TOS
+  # Traverse elements: check keys at positions 0,2,4,...
+  # On match, return address of value element (1,3,5,...)
+  # If not found, try `default` and return its value address
+  # If still not found, return NIL
 ;
 ```
 
 ### Key Extraction
 
 ```tacit
-: extract-keys ( maplist — keys )
-  # Use LINK to locate LIST:n header
-  # Create new list with n/2 elements
-  # Copy elements at positions 0, 2, 4, ...
-  # Return new list of keys
+: keys ( maplist — keys )
+  # Iterate even positions (0,2,4,...) and copy keys to a new list
 ;
 ```
 
@@ -337,4 +306,4 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 
 - `docs/specs/lists.md` - Foundational list mechanics (required reading)
 - `docs/specs/stack-operations.md` - Stack manipulation rules
-- `docs/specs/tagged-values.md` - Type system for keys and values
+- `docs/specs/tagged.md` - Type system and sentinel values (NIL)
