@@ -52,7 +52,9 @@ Maplists inherit all properties from TACIT lists:
 
 ## 4. Key-Based Access
 
-**Pattern**: Find the address of a value by key comparison (address-returning search)
+This is the maplist case of the unified `find` defined in Access §3. It returns the address of a value by key comparison (address‑returning), to be paired with `fetch`/`store`.
+
+Examples:
 
 ```tacit
 ( `key1 100 `key2 200 `key3 300 ) `key2 find fetch    → 200
@@ -61,18 +63,7 @@ Maplists inherit all properties from TACIT lists:
 ( `key1 100 `key2 200 ) `missing find                 → NIL
 ```
 
-**Stack effect**: `( maplist key — addr | default-addr | NIL )`
-
-**Algorithm**: Linear element-wise search through alternating pairs
-1. Validate list header `LIST:s` at TOS
-2. Traverse elements: compare keys at element positions 0, 2, 4, ...
-3. On match, return the address of the corresponding value element (positions 1, 3, 5, ...)
-4. If not found, search for `default` and return its value address if present
-5. If no match and no `default`, return NIL (see `tagged.md`)
-
-**Performance**: O(n/2) where n is the element count
-
-**Error Handling**: No exceptions thrown — returns an address or NIL; pair with `fetch`/`store` from `lists.md`
+See Access §3 for stack effects, semantics (defaults via `default`), and complexity.
 
 ## Key Constraints and Recommendations
 
@@ -297,16 +288,12 @@ maplist  mapsort { kcmp }   ->  maplist'
 
 ## 10. Integration with List Operations
 
-Maplists are lists with conventions, so all list operations work:
+Maplists are lists with conventions, so all list operations work. Use `find` (Access §3) to obtain addresses and pair with `fetch`/`store` (Lists §10):
 
 ```tacit
-( `a 1 `b 2 `c 3 ) 1 element fetch → 1        # Access value element at index 1
-( `a 1 `b 2 `c 3 ) elements        → 6        # Total elements (3 pairs × 2)
-( `a 1 `b 2 `c 3 ) `b find fetch   → 2        # Access by key via address + fetch
-10 ( `a 1 `b 2 `c 3 ) `b find store # In-place update if simple; else no-op
+( `a 1 `b 2 `c 3 ) `b find fetch   → 2
+10 ( `a 1 `b 2 `c 3 ) `b find store
 ```
-
-**Dual access patterns**: Address-based element access pairs with `fetch`/`store`; key-based access uses `find` to obtain an address.
 
 **Mutation efficiency**: Simple values can be updated in-place via `store` without structural changes; compounds are no-op targets.
 
