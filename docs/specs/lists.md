@@ -9,27 +9,29 @@
 ## Table of contents
 
 1. Introduction and design goals
-2. Terminology (cell, slot, element, simple, compound)
-3. Stack model and registers (SP, growth direction, TOS)
+2. Terminology
+3. Stack model and registers
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
 6. Literal syntax and grammar (BNF)
-7. Parser semantics (finalization on `)`; examples)
+7. Parser semantics
 8. Printing / pretty representation
 9. Length and counting
-   - `slots ( list -- n )` — O(1)
-   - `length ( list -- n )` — O(s) traversal
+   - `slots ( list -- n )`
+   - `length ( list -- n )`
 10. Address queries
-    - `slot ( idx -- addr )` — O(1)
-    - `elem ( idx -- addr )` — O(s)
+    - `slot ( idx -- addr )`
+    - `elem ( idx -- addr )`
+    - `fetch ( addr -- value )`
+    - `store ( value addr -- )`
 11. Traversal rule (type-agnostic span)
-12. Structural operations (overview)
-    - `cons` (prepend) — O(1)
-    - `enlist` — O(1)
-    - `tail` — O(1)
-    - `head` — O(1)
-    - `uncons` — O(1)
-    - `concat` — O(n), flattening merge
+12. Structural operations
+    - `enlist`
+    - `cons`
+    - `tail`
+    - `concat`
+    - `head`
+    - `uncons`
 13. Mutation (high-level)
 14. Sorting
 15. Binary search (bfind)
@@ -38,12 +40,11 @@
 18. Zero-length lists
 19. Complexity summary
 20. Algebraic laws and identities
-21. Worked examples (step-by-step stack diagrams)
+21. Worked examples (diagrams)
 22. Edge cases and failure modes
-23. Testing checklist (conformance)
+23. Testing checklist
 24. Interactions with capsules, receiver, and control flow
 25. Performance notes and implementation guidance
-26. Glossary
 
 ---
 
@@ -346,7 +347,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ---
 
-## 14. Safety and validation
+## 16. Safety and validation
 
 * **Header validity:** tag = `LIST`; `0 ≤ s ≤ maxSlots` (see §15).
 * **Depth checks:** ensure `s+1` slots are available on the stack before operating.
@@ -355,7 +356,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ---
 
-## 15. Constraints and implementation-defined limits
+## 17. Constraints and implementation-defined limits
 
 * **Word size:** 32‑bit cells.
 * **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **16 bits**, giving `s ≤ 65,535` (≈256 KiB payload at 4 bytes/slot).
@@ -364,7 +365,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ---
 
-## 16. Zero-length lists
+## 18. Zero-length lists
 
 * `LIST:0` prints as `( )`.
 * `slots(( )) = 0`, `length(( )) = 0`.
@@ -373,7 +374,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ---
 
-## 17. Complexity summary
+## 19. Complexity summary
 
 * `slots` → O(1)
 * `length` → O(s)
@@ -386,7 +387,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ---
 
-## 18. Algebraic laws and identities
+## 20. Algebraic laws and identities
 
 Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys` be lists.
 
@@ -400,7 +401,7 @@ Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys` be 
 
 ---
 
-## 19. Worked examples (diagrams)
+## 21. Worked examples (diagrams)
 
 ### Building `( 1 2 3 )`
 
@@ -466,7 +467,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## 20. Edge cases and failure modes
+## 22. Edge cases and failure modes
 
 * **Empty:** `( )` behaves as described in §16.
 * **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; implementation may signal error or return `nil`.
@@ -475,7 +476,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## 21. Testing checklist
+## 23. Testing checklist
 
 * **Parsing**
 
@@ -504,7 +505,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## 22. Interactions with capsules, receiver, and control flow
+## 24. Interactions with capsules, receiver, and control flow
 
 While lists are pure data, they often back **capsules** and **sequence** abstractions. Common patterns:
 
@@ -514,32 +515,10 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
 
 ---
 
-## 23. Performance notes and implementation guidance
+## 25. Performance notes and implementation guidance
 
 * Prefer **cons** and **tail** for growth/shrink; avoid **append** in hot loops.
 * Keep **mutation** confined to simple slots; treat compounds as immutable units.
 * Use `slot`/`slots` when you need physical indexing; use `elem`/`length` for logical views.
 * When merging, consider building lists **front-first** and reverse-printing if necessary; this keeps operations O(1) and cache-friendly.
 
----
-
-## 26. Glossary
-
-- addr: stack address/index
-- compound: multi-slot value starting with a header encoding its span
-- cons: O(1) prepend of a value as a single element
-- concat: O(n) merge of two lists’ elements; flat result; falls back to cons if second arg isn’t a list
-- elem: address-of-element query (logical index)
-- length: logical element count (O(s) traversal)
-- header: first slot of a compound; for lists, `LIST:s`
-- LIST:s: list header storing payload slot count s
-- nil: sentinel simple value used optionally on failure
-- slot: cell addressed relative to a list’s payload
-- slots: payload slot count (from header)
-- span: total slot count of a compound (header + payload)
-- SP: stack pointer (top-of-stack index)
-- TOS: top-of-stack (SP)
-
----
-
-*End of specification.*
