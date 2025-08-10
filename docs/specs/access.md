@@ -91,7 +91,7 @@ Policy and constraints:
 Stack effect:
 
 ```
-target  key  index  hfind   ⇒   addr | default-addr | nil
+target  index  key  hfind   ⇒   addr | default-addr | nil
 ```
 
 Semantics:

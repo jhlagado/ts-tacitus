@@ -111,7 +111,7 @@ maplist  capacity  hindex       ->  index    \ capacity is power-of-two (optiona
 #### Usage with `hfind`
 
 ```
-maplist  key  index  hfind   ->  addr | default-addr | nil
+maplist  index  key  hfind   ->  addr | default-addr | nil
 ```
 
 #### Validation and errors
@@ -429,7 +429,7 @@ This appendix outlines optimized, address-returning search variants for maplists
 
 ### hfind (open-addressing hash index)
 
-- Interface: `( maplist key — addr | default-addr | NIL )`, with an associated prebuilt hash index
+- Interface: `( maplist index key — addr | default-addr | NIL )`
 - Preconditions:
   - A separate, contiguous hash index exists for the maplist, constructed from key/value pairs
   - Keys use their numeric identity (interned symbol index or integer) for hashing
