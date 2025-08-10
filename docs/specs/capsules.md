@@ -1,5 +1,17 @@
 # TACIT Capsules Specification
 
+## Table of contents
+
+1. Introduction
+2. Basic Structure
+3. Definition Syntax
+4. Access Semantics
+5. Field Access
+6. Method Dispatch with `with` Combinator
+7. Integration with TACIT
+8. Design Rationale
+9. Related Specifications
+
 ## Introduction
 TACIT capsules provide **object-like encapsulation** for structured data and behavior while remaining fully compatible with TACIT's **stack-based architecture**.  
 They are built on the **list** infrastructure, using **maplist-based method dispatch**, and are designed to avoid traditional object-oriented complexities such as inheritance chains, heap allocation, or hidden closures.

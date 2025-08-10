@@ -213,3 +213,22 @@ root get { `users 0 `name }            \ → "Charlie"
 * `set` modifies simple values in-place, returns `ok` or `nil`.
 * Always uses the combinator form: target, operator, path block.
 * Designed to replace low-level `element` and `slot` access for most use cases, internally leveraging `element`/`find` with `fetch`/`store`.
+
+### 11. Test checklist (conformance)
+
+- Path evaluation
+  - Empty path returns target unchanged (read), and is a no-op for `set`.
+  - Mixed list/maplist paths traverse correctly and short-circuit to `nil` on mismatch.
+- `get`
+  - In-bounds indices and present keys return correct values.
+  - OOB index, missing key with/without `default` → `nil` / default value respectively.
+- `set`
+  - Simple targets update in place; compounds remain unchanged and yield `nil`.
+  - No structural edits occur; list/maplist shapes are preserved.
+- find family (addressing)
+  - `find` returns correct addresses for list indices and maplist keys; matches `fetch` results.
+  - `bfind` with correct pre-sorted inputs returns address of the first equal (lower_bound) or `nil`.
+  - `hfind` with a valid `hindex` returns matching addresses; invalid index → `nil`.
+- Error handling
+  - Non-number comparator result in `bfind` is rejected.
+  - Non-maplist input to `hindex` rejected; non-pair payload rejected.

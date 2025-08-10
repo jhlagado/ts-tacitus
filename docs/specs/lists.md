@@ -25,7 +25,7 @@
 11. Traversal rule (type-agnostic span)
 12. Structural operations (overview)
     - `cons` (prepend) — O(1)
-    - `drop-head` — O(1)
+    - `tail` — O(1)
     - `concat` — O(n), flattening merge
     - Append (discouraged; not a primitive)
 13. Mutation (high-level)
@@ -42,8 +42,7 @@
 24. Interactions with capsules, receiver, and control flow
 25. Performance notes and implementation guidance
 26. FAQ / common pitfalls
-27. Change log (rationale for decisions)
-28. Glossary
+27. Glossary
 
 ---
 
@@ -236,7 +235,7 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Cost:** O(1).
 **Ordering:** list-first is the natural ordering; the list precedes the value being added at the head.
 
-### drop-head
+### tail
 
 **Stack effect:** `( list -- list' )`
 **Semantics:** remove the first element.
@@ -244,6 +243,18 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Cost:** O(1) to locate/remove the head (span is at `SP-1`).
 
 ### concat
+
+### head
+
+**Stack effect:** `( list -- head | nil )`
+**Semantics:** returns the first element as a single value; `nil` if the list is empty.
+**Cost:** O(1) to read element 0.
+
+### uncons
+
+**Stack effect:** `( list -- tail head )`
+**Semantics:** splits the list into its tail and head. On empty, returns `( ) nil`.
+**Cost:** O(1): head is read from `SP-1`, tail is built by reducing the header length by the head span.
 
 **Stack effect:** `( listA listB -- listC )`
 **Semantics:** merge the **elements of `listB`** into `listA` to form a **flat** list.
@@ -260,7 +271,7 @@ Appending at the tail is **not provided as a primitive**. It can be achieved via
 
 ## 13. Mutation (high-level)
 
-Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`element` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `drop-head` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
+Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`element` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
 
 ---
 
@@ -358,7 +369,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 * `slot` → O(1)
 * `element` → O(s)
 * `cons` → O(1)
-* `drop-head` → O(1)
+* `tail` → O(1)
 * `concat` → O(n)
 * Append (if emulated via `swap`+`concat`) → O(n)
 * In-place overwrite of a simple slot (if supported) → O(1)
@@ -369,7 +380,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys` be lists.
 
-* **Head law:** `drop-head ( cons xs x )  == xs`
+* **Head law:** `tail ( cons xs x )  == xs`
 * **Cons-assoc (nesting-preserving):** `cons (cons xs x) y  == cons xs y'` where `y'` is `y` placed before `x` (note: not commutative).
 * **Concat identity:** `concat xs ( ) == xs` and `concat ( ) xs == xs`.
 * **Concat associativity (flat):** `concat (concat xs ys) zs == concat xs (concat ys zs)`.
@@ -414,7 +425,7 @@ Traversal sees the nested list as a **single element** with span 3.
 Stack before: `… 3 2 1 LIST:3   x`
 After `cons`: `… x 3 2 1 LIST:4` (logical head is `x`).
 
-### drop-head
+### tail
 
 Before: `… x 3 2 1 LIST:4`
 After:  `… 3 2 1 LIST:3`.
@@ -482,7 +493,7 @@ element 2 → address after skipping span 3 → SP-5 (4)
   * `element i` returns the start slot per traversal
 * **Ops**
 
-  * `cons` then `drop-head` restores original
+  * `cons` then `tail` restores original
   * `concat xs () == xs` and associativity
 * **Mutation**
 
@@ -495,14 +506,14 @@ element 2 → address after skipping span 3 → SP-5 (4)
 While lists are pure data, they often back **capsules** and **sequence** abstractions. Common patterns:
 
 * Use lists as **records** (compound) where slot-addressed fields are accessed in O(1).
-* Use **drop-head** and **cons** to maintain rolling windows or queues entirely on the stack.
+* Use **tail** and **cons** to maintain rolling windows or queues entirely on the stack.
 * Leverage the VM’s **receiver** or local frame to keep references to list addresses when iterating, but prefer traversal utilities to avoid O(n²) element access.
 
 ---
 
 ## 23. Performance notes and implementation guidance
 
-* Prefer **cons** and **drop-head** for growth/shrink; avoid **append** in hot loops.
+* Prefer **cons** and **tail** for growth/shrink; avoid **append** in hot loops.
 * Keep **mutation** confined to simple slots; treat compounds as immutable units.
 * Use `slot`/`slots` when you need physical indexing; use `element`/`elements` for logical views.
 * When merging, consider building lists **front-first** and reverse-printing if necessary; this keeps operations O(1) and cache-friendly.
@@ -524,16 +535,6 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
 
 ---
 
-## 25. Change log (rationale)
-
-* Unified on **RList-like** header-at-TOS representation and removed all LINK formats.
-* Clarified **upward-growing** stack and `SP-1` indexing for element 0.
-* Introduced explicit distinction between **slots** and **elements**, with commands `slots`, `elements`, `slot`, `element`.
-* Canonicalized **cons/drop-head** as O(1) primitives; classified **append** as discouraged O(n).
-* Codified type-agnostic **span** rule for all compounds.
-
----
-
 ## 26. Glossary
 
 **addr** — a stack address/index.
@@ -541,7 +542,7 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
 **compound** — multi-slot value starting with a header that encodes its span.
 **cons** — O(1) prepend of a value as a single element.
 **concat** — O(n) merge of two lists’ elements; flat result; falls back to `cons` if second arg isn’t a list.
-**drop-head** — O(1) removal of element 0.
+**tail** — O(1) removal of element 0.
 **element** — logical list member (simple or compound).
 **elements** — command returning element count (O(s)).
 **header** — first slot of a compound; for lists, `LIST:s`.
