@@ -1,5 +1,24 @@
 # TACIT Maplists Specification
 
+## Table of contents
+
+1. Overview
+2. Foundational Dependencies
+3. Structure Convention
+4. Key-Based Access
+5. Advanced Search Strategies
+6. NIL Value Semantics
+7. Default Key Convention
+8. Use Case Guidelines
+9. Common Operations
+10. Integration with List Operations
+11. Performance Characteristics
+12. Memory Efficiency
+13. Design Philosophy
+14. Implementation Examples
+15. Related Specifications
+16. Appendix A: Advanced find
+
 ## Overview
 
 **Maplists** are ordinary lists following a key-value alternating pattern, providing TACIT's primary associative data structure. They build on the foundational list infrastructure documented in `docs/specs/lists.md`.

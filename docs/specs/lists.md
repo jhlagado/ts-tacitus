@@ -29,19 +29,20 @@
     - `concat` — O(n), flattening merge
     - Append (discouraged; not a primitive)
 13. Mutation (high-level)
-14. Safety and validation
-15. Constraints and implementation-defined limits
-16. Zero-length lists
-17. Complexity summary
-18. Algebraic laws and identities
-19. Worked examples (step-by-step stack diagrams)
-20. Edge cases and failure modes
-21. Testing checklist (conformance)
-22. Interactions with capsules, receiver, and control flow
-23. Performance notes and implementation guidance
-24. FAQ / common pitfalls
-25. Change log (rationale for decisions)
-26. Glossary
+14. Sorting
+15. Safety and validation
+16. Constraints and implementation-defined limits
+17. Zero-length lists
+18. Complexity summary
+19. Algebraic laws and identities
+20. Worked examples (step-by-step stack diagrams)
+21. Edge cases and failure modes
+22. Testing checklist (conformance)
+23. Interactions with capsules, receiver, and control flow
+24. Performance notes and implementation guidance
+25. FAQ / common pitfalls
+26. Change log (rationale for decisions)
+27. Glossary
 
 ---
 
