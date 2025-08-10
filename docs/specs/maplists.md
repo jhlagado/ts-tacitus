@@ -98,6 +98,38 @@ Maplists inherit all properties from TACIT lists:
 
 For larger datasets, see Appendix A: Advanced find for optimized address-returning search variants (`bfind`, `hfind`). The primary interface remains `find`.
 
+### Building hash indices (`hindex`)
+
+#### Overview
+
+`hindex` constructs an open-addressed hash index for a maplist to accelerate `hfind` lookups.
+
+#### Stack effect
+
+```
+maplist  hindex                 ->  index
+maplist  capacity  hindex       ->  index    \ capacity is power-of-two (optional)
+```
+
+#### Semantics
+
+- Scans key/value pairs, computing an interned key identity (symbols) and a relative payload offset to each value element.
+- Inserts `( keyId valueOffset )` into a power-of-two open-addressed table using linear probing; empty slots are `nil`.
+- Records the `default` key's value offset if present.
+- Produces an index object (a plain list) that can be passed to `hfind`.
+
+#### Usage with `hfind`
+
+```
+maplist  key  index  hfind   ->  addr | default-addr | nil
+```
+
+#### Validation and errors
+
+- Non-maplist input or odd payload (not pairs) → error/sentinel.
+- Capacity must be a power of two if provided.
+- `hfind` must receive a valid index built for the specific maplist; otherwise it returns `nil`.
+
 ## 6. NIL Value Semantics
 
 See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups return NIL when no key is found and no `default` is present.

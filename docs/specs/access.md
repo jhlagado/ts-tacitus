@@ -77,15 +77,15 @@ Policy and constraints:
 Stack effect:
 
 ```
-target  key  hfind   ⇒   addr | default-addr | nil
+target  key  index  hfind   ⇒   addr | default-addr | nil
 ```
 
 Semantics:
-- Maplist only: if a valid hash index is available for the maplist, do O(1) average lookup by interned key identity and return the value address; on miss, return `default`’s value address if present, else `nil`.
-- If no index is available (or invalid), fall back to `find` semantics.
+- Maplist only: with an explicit hash index `index` (built via `hindex`), perform O(1) average lookup by interned key identity and return the value address; on miss, return `default`’s value address if present, else `nil`.
+- Invalid or mismatched index → `nil`.
 - Lists: not applicable → `nil`.
 
-Implementation notes: Hash indices store key identities and value slot offsets (relative to the header) so results remain valid regardless of stack address. Hinting/indexing details are described in the maplists appendix.
+Implementation notes: Hash indices store key identities and value slot offsets (relative to the header) so results remain valid regardless of stack address. Build them with `hindex` (see maplists), and pass the index explicitly to `hfind`.
 
 ### 4. `get` — conceptual behavior
 
