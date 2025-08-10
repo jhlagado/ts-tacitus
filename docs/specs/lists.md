@@ -27,7 +27,6 @@
     - `cons` (prepend) — O(1)
     - `tail` — O(1)
     - `concat` — O(n), flattening merge
-    - Append (discouraged; not a primitive)
 13. Mutation (high-level)
 14. Sorting
 15. Binary search (bfind)
@@ -263,10 +262,6 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Cost:** O(n) due to shifting; discouraged on hot paths.
 **Ordering:** list-first ordering `( listA listB -- listC )`.
 
-### Append (discouraged; not a primitive)
-
-Appending at the tail is **not provided as a primitive**. It can be achieved via head-based building (e.g., swap followed by `concat`, or enlist + `concat`). This pattern is O(n) and should be avoided on hot paths. Prefer `cons` and `concat`.
-
 ---
 
 ## 13. Mutation (high-level)
@@ -371,7 +366,6 @@ This is the list case of the unified `bfind` defined in Access §3.
 * `cons` → O(1)
 * `tail` → O(1)
 * `concat` → O(n)
-* Append (if emulated via `swap`+`concat`) → O(n)
 * In-place overwrite of a simple slot (if supported) → O(1)
 
 ---
@@ -440,13 +434,6 @@ concat xs ys  → … 4 3 2 1 LIST:4  (flattened)
 ```
 
 If `ys` is **not** a list, treat as `cons xs ys`.
-
-### append
-
-```
-xs = ( 1 2 )
-append xs 3 → shift payload [2 1] deeper, write 3 at tail, set LIST:3
-```
 
 ### Slot vs element queries
 
