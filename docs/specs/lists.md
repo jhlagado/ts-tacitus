@@ -43,8 +43,7 @@
 23. Testing checklist (conformance)
 24. Interactions with capsules, receiver, and control flow
 25. Performance notes and implementation guidance
-26. FAQ / common pitfalls
-27. Glossary
+26. Glossary
 
 ---
 
@@ -524,39 +523,22 @@ While lists are pure data, they often back **capsules** and **sequence** abstrac
 
 ---
 
-## 24. FAQ / common pitfalls
-
-* **Q:** Is element 0 at `SP+1`?
-  **A:** No. The stack grows **upwards**; element 0 is at **`SP-1`**.
-* **Q:** Are elements random-access?
-  **A:** No. Only slots are O(1). Elements require traversal.
-* **Q:** Can I overwrite a list element with another list in place?
-  **A:** Not if the target is compound; perform a structural operation instead.
-* **Q:** Why does `(1 ( 2 3 ) 4 )` have 5 slots but 3 elements?
-  **A:** Because the nested list’s span is 3 slots (header + 2 payload).
-* **Q:** Do I ever need a LINK/footer?
-  **A:** No; LINK-era formats are gone. Lists are header-first, run-length encoded.
-
----
-
 ## 26. Glossary
 
-**addr** — a stack address/index.
-**append** — O(n) tail add; discouraged.
-**compound** — multi-slot value starting with a header that encodes its span.
-**cons** — O(1) prepend of a value as a single element.
-**concat** — O(n) merge of two lists’ elements; flat result; falls back to `cons` if second arg isn’t a list.
-**tail** — O(1) removal of element 0.
-**element** — logical list member (simple or compound).
-**elements** — command returning element count (O(s)).
-**header** — first slot of a compound; for lists, `LIST:s`.
-**LIST\:s** — list header storing payload slot count `s`.
-**nil** — sentinel simple value used optionally on failure.
-**slot** — cell addressed relative to a list’s payload.
-**slot / slots** — address/length queries for slots.
-**span** — total slot count of a compound (header + payload).
-**SP** — stack pointer (top-of-stack index).
-**TOS** — top-of-stack (`SP`).
+- addr: stack address/index
+- compound: multi-slot value starting with a header encoding its span
+- cons: O(1) prepend of a value as a single element
+- concat: O(n) merge of two lists’ elements; flat result; falls back to cons if second arg isn’t a list
+- elem: address-of-element query (logical index)
+- length: logical element count (O(s) traversal)
+- header: first slot of a compound; for lists, `LIST:s`
+- LIST:s: list header storing payload slot count s
+- nil: sentinel simple value used optionally on failure
+- slot: cell addressed relative to a list’s payload
+- slots: payload slot count (from header)
+- span: total slot count of a compound (header + payload)
+- SP: stack pointer (top-of-stack index)
+- TOS: top-of-stack (SP)
 
 ---
 
