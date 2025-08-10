@@ -387,15 +387,24 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ## 20. Algebraic laws and identities
 
-Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys` be lists.
+Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys`, `zs` be lists.
 
-* **Head law:** `tail ( cons xs x )  == xs`
-* **Cons-assoc (nesting-preserving):** `cons (cons xs x) y  == cons xs y'` where `y'` is `y` placed before `x` (note: not commutative).
-* **Concat identity:** `concat xs ( ) == xs` and `concat ( ) xs == xs`.
-* **Concat associativity (flat):** `concat (concat xs ys) zs == concat xs (concat ys zs)`.
-* **Cons vs concat:** `concat xs (cons ( ) x) == cons xs x`.
+- Head/tail with cons
+  - `xs x cons tail == xs`
+  - `xs x cons head == x`
+  - `xs x cons uncons == xs x`  (order: tail head)
 
-**Note:** Laws assume `concat` flattens and `cons` nests a compound as a single element.
+- Concat identity
+  - `xs ( ) concat == xs`
+  - `( ) xs concat == xs`
+
+- Concat associativity (flat)
+  - `xs ys concat zs concat == xs ys zs concat concat`
+
+- Cons vs concat (singleton)
+  - `xs ( ) x cons concat == xs x cons`
+
+Note: `concat` flattens and `cons` nests a compound as a single element.
 
 ---
 
