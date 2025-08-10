@@ -91,6 +91,16 @@ hash-maplist key hfind   → O(1) average
 
 **Design principle**: Same interface, different algorithms based on data characteristics.
 
+#### `hfind` overview
+
+- Purpose: Address-returning lookup using a precomputed hash index for the maplist.
+- Stack effect: `( hash-maplist key — addr | default-addr | NIL )`.
+- Precondition: The maplist has been prepared with an auxiliary hash index structure (implementation-defined); without this, use `find`.
+- Behavior: Computes the key’s hash, probes the index to locate the candidate value element address in O(1) average time; falls back to `default` address or NIL per standard rules.
+- Mutability: Returned addresses are compatible with `get`/`set`. Writes remain simple-only; compound targets are no-op.
+
+Note: `bfind` requires sorted keys; we should add a sorting section to `lists.md` to define stable ordering and comparison rules.
+
 ## NIL Value Semantics
 
 See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups return NIL when no key is found and no `default` is present.
@@ -193,15 +203,7 @@ maplist keys               # Extract all keys → ( key1 key2 key3 )
 maplist values             # Extract all values → ( val1 val2 val3 )
 ```
 
-### Construction Operations (optional)
-
-These create new maplists and are not core primitives. Prefer address-based updates where possible.
-
-```tacit
-maplist key value assoc    # Add or update entry by creating a new maplist
-maplist key dissoc         # Remove entry by creating a new maplist
-maplist1 maplist2 merge    # Combine maplists into a new maplist
-```
+<!-- Removed: Construction operations (assoc/dissoc/merge) to keep maplists focused on address-based access; build-new-structure APIs can live elsewhere. -->
 
 ### Stack Effects
 
@@ -210,10 +212,7 @@ maplist1 maplist2 merge    # Combine maplists into a new maplist
 - `( maplist — keys )`
 - `( maplist — values )`
 
-**Structural modifications**:
-- `( maplist key value — new-maplist )`
-- `( maplist key — new-maplist )`
-- `( maplist1 maplist2 — merged-maplist )`
+<!-- Removed structural modifications stack effects -->
 
 **Element mutations**:
 - Prefer address-based updates via `find` + `set` from `lists.md`.
