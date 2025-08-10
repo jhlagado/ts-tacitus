@@ -20,6 +20,12 @@
 - **Clear documentation**: Explain stack effects, constraints, and edge cases
 - **Performance awareness**: Consider memory usage and execution efficiency
 
+### Pseudocode Style Rule
+- Use only C-style, structured pseudocode (loops, conditionals; no functional style)
+- Do not use associative arrays/maps or assume a heap; model arrays as contiguous indexed buffers
+- Avoid recursion where iterative forms suffice
+- Write pseudocode that can be implemented directly in low-level languages (C/assembly)
+
 ## Implementation Rules
 
 ### Stack Operations
