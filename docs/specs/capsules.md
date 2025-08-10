@@ -66,7 +66,7 @@ end
 
 
 ### Access Semantics
-Capsules reuse list addressing semantics (slots vs elements) from the list specification. Refer to `lists.md` for address-based operations and traversal rules. Access examples that rely on numeric indices are intentionally omitted here; prefer named field access and `->` assignment.
+Capsules reuse list addressing semantics (slots vs elements) from the list specification. Refer to `lists.md` for address-based operations and traversal rules, including low-level `get` and `set` definitions. Access examples that rely on numeric indices are intentionally omitted here; prefer named field access and `->` assignment.
 
 ## Field Access
 
@@ -85,6 +85,7 @@ Use the `->` operator for assignment:
 ### Mutability Rules
 - Allowed: In-place mutation of simple fixed-size slot values (e.g., numbers, booleans, interned symbols).
 - Not allowed: Structural mutation (changing length or overwriting with a compound value).
+- Assignments follow list `set` semantics: simple-only in-place; compound targets are a silent no-op.
 
 ## Method Dispatch with `with` Combinator
 
