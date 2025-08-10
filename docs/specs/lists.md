@@ -43,8 +43,6 @@
 21. Worked examples (diagrams)
 22. Edge cases and failure modes
 23. Testing checklist
-24. Interactions with capsules, receiver, and control flow
-25. Performance notes and implementation guidance
 
 ---
 
@@ -502,23 +500,4 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 * **Mutation**
 
   * Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list
-
----
-
-## 24. Interactions with capsules, receiver, and control flow
-
-While lists are pure data, they often back **capsules** and **sequence** abstractions. Common patterns:
-
-* Use lists as **records** (compound) where slot-addressed fields are accessed in O(1).
-* Use **tail** and **cons** to maintain rolling windows or queues entirely on the stack.
-* Leverage the VM’s **receiver** or local frame to keep references to list addresses when iterating, but prefer traversal utilities to avoid O(n²) element access.
-
----
-
-## 25. Performance notes and implementation guidance
-
-* Prefer **cons** and **tail** for growth/shrink; avoid **append** in hot loops.
-* Keep **mutation** confined to simple slots; treat compounds as immutable units.
-* Use `slot`/`slots` when you need physical indexing; use `elem`/`length` for logical views.
-* When merging, consider building lists **front-first** and reverse-printing if necessary; this keeps operations O(1) and cache-friendly.
 
