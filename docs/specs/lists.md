@@ -189,6 +189,23 @@ Final stack (deep → TOS):
 * **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped.
 * **Cost:** O(s) worst-case.
 
+### get ( addr -- value )
+
+* Returns the value located at stack address `addr`.
+* If the value at `addr` is **simple** (single-slot), returns that slot's value.
+* If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
+* **Cost:** O(1) for simple; O(span) to materialize a compound.
+* **Example:** `list 3 element get` yields the element at index 3, whether simple or compound.
+
+### set ( value addr -- )
+
+* Writes `value` into the slot at stack address `addr` in place.
+* Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
+* If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
+* Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
+* **Cost:** O(1).
+* **Example:** `100 list 2 element set` overwrites element 2 if and only if that element is simple.
+
 ---
 
 ## 11. Traversal rule (type-agnostic span)
@@ -241,7 +258,7 @@ Appending at the tail is **not provided as a primitive**. It can be achieved via
 
 ## 13. Mutation (high-level)
 
-Only **simple** (single-slot) payload cells may be overwritten in place. Attempts to overwrite a **compound** element must leave the list unchanged and may signal failure via an implementation-defined sentinel (e.g., `nil`) or no-op. This specification does not prescribe concrete mutation commands; structural operations like `cons` and `drop-head` are the canonical way to change list shape.
+Only **simple** (single-slot) payload cells may be overwritten in place. Use `set ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`element` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `drop-head` are the canonical way to change list shape. `get ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
 
 ---
 
