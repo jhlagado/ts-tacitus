@@ -1,6 +1,6 @@
 ## **Access**
 
-### Overview
+### 1. Overview
 
 `get` and `set` are high-level, polymorphic access operators for TACIT data structures.
 They provide a uniform way to traverse and optionally modify nested lists, map lists, or mixed structures using a **path**.
@@ -13,7 +13,14 @@ Paths are expressed as lists of **indices** (numbers) and/or **keys** (symbols).
 
 A failed lookup at any step produces `nil` and terminates the operation.
 
-### Combinator Form
+These combinators are layered on the foundational list/maplist primitives:
+- Addressing via `element` for lists and `find` for maplists
+- Value access via `fetch ( addr -- value )`
+- In-place simple updates via `store ( value addr -- )`
+
+They hide address arithmetic and traversal details while preserving stack discipline.
+
+### 2. Combinator form and path construction
 
 Both operators are combinators. They consume the value(s) on the left, then execute a **standalone code block** on the right to produce the path.
 
@@ -24,7 +31,12 @@ value list  set { path-items… }
 
 The block’s result is always taken as a list representing the path.
 
-### `get`
+#### Path construction
+- The block can compute paths dynamically; its result must be a list of tokens to apply.
+- Path items must be either numbers (element indices, 0-based) or symbols (map keys).
+- Mixed paths are allowed; traversal semantics switch based on item type at each step.
+
+### 3. `get` — conceptual behavior
 
 **Stack effect:**
 
@@ -39,7 +51,12 @@ target  get { … }   ⇒   value | nil
    * Symbols → map key lookup.
 3. Returns the final value, or `nil` if any step fails.
 
-**Examples**
+Traversal details per path item:
+- Number `i`: target must be a list; compute address with `element i`, then `fetch` the element.
+- Symbol `k`: target must be a maplist; compute address with `find k`, then `fetch` the value (or `nil` if not found and no default).
+- If the current target is not of the expected shape for the item type, return `nil`.
+
+#### Examples
 
 ```
 root  get { 2 }                      \ get root[2]
@@ -50,7 +67,13 @@ root  get { `users 0 `email }        \ mixed types in path
 
 If any index is out-of-bounds, or a key is absent with no default, `nil` is returned immediately.
 
-### `set`
+Computed path example:
+```
+( 0 1 2 ) dup 1 element fetch          \ pick a dynamic index
+root  get { swap }                     \ use the fetched index as the path
+```
+
+### 4. `set` — conceptual behavior
 
 **Stack effect:**
 
@@ -64,7 +87,11 @@ value  target  set { … }   ⇒   ok | nil
 4. If it lands on a **simple element** → overwrites it with `value`, returns `ok`.
 5. If the target is **compound** (list, capsule, etc.) → no change, returns `nil`.
 
-**Examples**
+Traversal mirrors `get`, but the final step obtains the element address and applies `store`:
+- For number `i`: address = `element i`; apply `store` if the element is simple; else return `nil`.
+- For symbol `k`: address = `find k`; apply `store` if the value element is simple; else return `nil`.
+
+#### Examples
 
 ```
 3  list  set { 7 }                      \ list[7] = 3
@@ -72,12 +99,31 @@ value  target  set { … }   ⇒   ok | nil
 0  root  set { `stats `count }          \ set stats.count
 ```
 
-**Notes**
+#### Notes
 
 * Only **simple values** may be written (`number`, `boolean`, `string`, `symbol`, `nil`).
 * No structural edits: `set` does not insert keys or extend lists.
 
-### Example Structure
+### 5. Edge cases and failure modes
+
+- Non-list target when number index encountered → `nil`.
+- Non-maplist target when symbol key encountered → `nil`.
+- Out-of-bounds index → `nil`.
+- Missing key with no `default` in maplist → `nil`.
+- Attempting to overwrite a compound element → `nil` (no change).
+
+### 6. Performance characteristics
+
+- Path evaluation cost is proportional to the number of steps and underlying access costs:
+  - List element step: address O(s) in worst case for deep traversal to compute `element i`; `fetch` is O(1) simple or O(span) for compound.
+  - Maplist key step: address via `find` is O(n) linear, or O(log n) with `bfind` on sorted keys, or average O(1) with a prebuilt hash index as described in maplists Appendix A.
+- `set` adds an O(1) `store` when the target is simple; otherwise returns `nil`.
+
+### 7. Relation to capsules
+
+Capsules are lists with conventions. Paths that index into capsule elements (numbers) behave like list access. Method dispatch and named field access inside capsule methods remain separate concerns; use capsule field names or `with` blocks for behavior. For low-level element updates on capsule data fields, these combinators still apply (subject to simple-only write rules).
+
+### 8. Example structure
 
 ```
 \ Root object
@@ -91,7 +137,7 @@ value  target  set { … }   ⇒   ok | nil
 )
 ```
 
-**Access with `get`**
+#### Access with `get`
 
 ```
 root  get { `users 1 `name }    \ → "Bob"
@@ -100,7 +146,7 @@ root  get { `items 0 }          \ → 10
 root  get { `users 2 `name }    \ → nil (out of bounds)
 ```
 
-**Modify with `set`**
+#### Modify with `set`
 
 ```
 "Charlie" root set { `users 0 `name }  \ users[0].name = "Charlie"
@@ -108,11 +154,11 @@ root  get { `users 2 `name }    \ → nil (out of bounds)
 root get { `users 0 `name }            \ → "Charlie"
 ```
 
-### Summary
+### 9. Summary
 
 * **Uniform path traversal** across lists and map lists.
 * **Numbers** = element index; **symbols** = map key.
 * `get` returns a value or `nil`.
 * `set` modifies simple values in-place, returns `ok` or `nil`.
 * Always uses the combinator form: target, operator, path block.
-* Designed to replace low-level `element` and `slot` access for most use cases.
+* Designed to replace low-level `element` and `slot` access for most use cases, internally leveraging `element`/`find` with `fetch`/`store`.
