@@ -26,6 +26,8 @@
 12. Structural operations (overview)
     - `cons` (prepend) — O(1)
     - `tail` — O(1)
+    - `head` — O(1)
+    - `uncons` — O(1)
     - `concat` — O(n), flattening merge
 13. Mutation (high-level)
 14. Sorting

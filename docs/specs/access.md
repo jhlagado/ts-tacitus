@@ -1,5 +1,19 @@
 # TACIT Access Specification
 
+## Table of contents
+
+1. Overview
+2. Combinator form and path construction
+3. Addressing and search (find family)
+4. `get` — conceptual behavior
+5. `set` — conceptual behavior
+6. Edge cases and failure modes
+7. Performance characteristics
+8. Relation to capsules
+9. Example structure
+10. Summary
+11. Test checklist (conformance)
+
 ### 1. Overview
 
 `get` and `set` are high-level, polymorphic access operators for TACIT data structures.
