@@ -25,6 +25,7 @@
 11. Traversal rule (type-agnostic span)
 12. Structural operations (overview)
     - `cons` (prepend) — O(1)
+    - `enlist` — O(1)
     - `tail` — O(1)
     - `head` — O(1)
     - `uncons` — O(1)
@@ -227,6 +228,20 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 ---
 
 ## 12. Structural operations
+
+### enlist
+
+**Stack effect:** `( value -- list )`
+**Semantics:** wraps a single value (simple or compound) into a one-element list. If `value` is already a list, the result is a nested list where that list is the sole element.
+**Mechanics:** push `LIST:s` above the value, where `s = 1` for a simple value, or `s = span(value)` if the value is a compound (its header encodes the span). The element becomes the payload immediately beneath the new header.
+**Cost:** O(1).
+
+**Examples**
+
+```tac
+42 enlist          \ -> ( 42 )
+( 1 2 ) enlist     \ -> ( ( 1 2 ) )
+```
 
 ### cons
 
