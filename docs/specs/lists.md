@@ -309,7 +309,7 @@ list  sort { cmp }   ->  list'
 ```tac
 ( 3 1 2 )                 sort { - }        \ -> ( 1 2 3 )
 ( 3 1 2 )                 sort { swap - }   \ -> ( 3 2 1 )
-( (2 9) 1 (0 0 0) )       sort { elements swap elements - }
+( (2 9) 1 (0 0 0) )       sort { length swap length - }
                                            \ by element count: -> ( 1 (2 9) (0 0 0) )
 ```
 
@@ -442,12 +442,12 @@ If `ys` is **not** a list, treat as `cons xs ys`.
 ```
 ( 1 ( 2 3 ) 4 )
 slots   → 5
-elements→ 3
+length  → 3
 slot 0  → addr (SP-1) → 1
 slot 1  → addr (SP-2) → (list header of nested)
-element 0 → SP-1 (1)
-element 1 → SP-2 (start of nested, span 3)
-element 2 → address after skipping span 3 → SP-5 (4)
+elem 0 → SP-1 (1)
+elem 1 → SP-2 (start of nested, span 3)
+elem 2 → address after skipping span 3 → SP-5 (4)
 ```
 
 ---
