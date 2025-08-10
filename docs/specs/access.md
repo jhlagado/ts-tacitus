@@ -28,7 +28,7 @@ Paths are expressed as lists of **indices** (numbers) and/or **keys** (symbols).
 A failed lookup at any step produces `nil` and terminates the operation.
 
 These combinators are layered on the foundational list/maplist primitives:
-- Addressing via `element` for lists and `find` for maplists
+- Addressing via `elem` for lists and `find` for maplists
 - Value access via `fetch ( addr -- value )`
 - In-place simple updates via `store ( value addr -- )`
 
@@ -117,7 +117,7 @@ target  get { … }   ⇒   value | nil
 3. Returns the final value, or `nil` if any step fails.
 
 Traversal details per path item:
-- Number `i`: target must be a list; compute address with `element i`, then `fetch` the element.
+- Number `i`: target must be a list; compute address with `elem i`, then `fetch` the element.
 - Symbol `k`: target must be a maplist; compute address with `find k`, then `fetch` the value (or `nil` if not found and no default).
 - If the current target is not of the expected shape for the item type, return `nil`.
 
@@ -131,12 +131,6 @@ root  get { `users 0 `email }        \ mixed types in path
 ```
 
 If any index is out-of-bounds, or a key is absent with no default, `nil` is returned immediately.
-
-Computed path example:
-```
-( 0 1 2 ) dup 1 element fetch          \ pick a dynamic index
-root  get { swap }                     \ use the fetched index as the path
-```
 
 ### 5. `set` — conceptual behavior
 
@@ -153,7 +147,7 @@ value  target  set { … }   ⇒   ok | nil
 5. If the target is **compound** (list, capsule, etc.) → no change, returns `nil`.
 
 Traversal mirrors `get`, but the final step obtains the element address and applies `store`:
-- For number `i`: address = `element i`; apply `store` if the element is simple; else return `nil`.
+- For number `i`: address = `elem i`; apply `store` if the element is simple; else return `nil`.
 - For symbol `k`: address = `find k`; apply `store` if the value element is simple; else return `nil`.
 
 #### Examples
@@ -180,7 +174,7 @@ Traversal mirrors `get`, but the final step obtains the element address and appl
 ### 7. Performance characteristics
 
 - Path evaluation cost is proportional to the number of steps and underlying access costs:
-  - List element step: address O(s) in worst case for deep traversal to compute `element i`; `fetch` is O(1) simple or O(span) for compound.
+  - List element step: address O(s) in worst case for deep traversal to compute `elem i`; `fetch` is O(1) simple or O(span) for compound.
   - Maplist key step: address via `find` is O(n) linear, or O(log n) with `bfind` on sorted keys, or average O(1) with a prebuilt hash index as described in maplists Appendix A.
 - `set` adds an O(1) `store` when the target is simple; otherwise returns `nil`.
 
@@ -226,7 +220,7 @@ root get { `users 0 `name }            \ → "Charlie"
 * `get` returns a value or `nil`.
 * `set` modifies simple values in-place, returns `ok` or `nil`.
 * Always uses the combinator form: target, operator, path block.
-* Designed to replace low-level `element` and `slot` access for most use cases, internally leveraging `element`/`find` with `fetch`/`store`.
+* Designed to replace low-level `elem` and `slot` access for most use cases, internally leveraging `elem`/`find` with `fetch`/`store`.
 
 ### 11. Test checklist (conformance)
 
