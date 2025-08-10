@@ -26,6 +26,11 @@
 - Avoid recursion where iterative forms suffice
 - Write pseudocode that can be implemented directly in low-level languages (C/assembly)
 
+### Numeric Convention Rule
+- Default to IEEE-754 float32 for all numeric values in examples and pseudocode
+- Do not use integers unless explicitly instructed to do so
+- When literals are shown, treat them as float32; only use integer tagging/fields when referring to existing VM tags/specs
+
 ## Implementation Rules
 
 ### Stack Operations
