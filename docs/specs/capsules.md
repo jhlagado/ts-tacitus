@@ -5,12 +5,11 @@
 1. Introduction
 2. Basic Structure
 3. Definition Syntax
-4. Access Semantics
-5. Field Access
-6. Method Dispatch with `with` Combinator
-7. Integration with TACIT
-8. Design Rationale
-9. Related Specifications
+4. Field Access
+5. Method Dispatch with `with` Combinator
+6. Integration with TACIT
+7. Design Rationale
+8. Related Specifications
 
 ## Introduction
 TACIT capsules provide **object-like encapsulation** for structured data and behavior while remaining fully compatible with TACIT's **stack-based architecture**.  

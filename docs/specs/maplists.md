@@ -13,12 +13,11 @@
 9. Common Operations
 10. Integration with List Operations
 11. Performance Characteristics
-12. Memory Efficiency
-13. Design Philosophy
-14. Implementation Examples
-15. Related Specifications
-16. Binary search (bfind)
-17. Appendix A: Advanced find
+12. Design Philosophy
+13. Implementation Examples
+14. Related Specifications
+15. Binary search (bfind)
+16. Appendix A: Advanced find
 
 ## 1. Overview
 
@@ -319,7 +318,7 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 - **Flat structure**: No additional pointer indirection
 - **Cache friendly**: Sequential memory access during traversal
 
-## 13. Design Philosophy
+## 12. Design Philosophy
 
 **Simplicity**: Maplists require no new infrastructure - they're lists with search conventions.
 
@@ -333,7 +332,7 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 
 This approach aligns with TACIT's philosophy of building complex functionality from simple, composable primitives.
 
-## 14. Implementation Examples
+## 13. Implementation Examples
 
 ### Basic Key Search
 
@@ -366,7 +365,7 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 ;
 ```
 
-## 15. Related Specifications
+## 14. Related Specifications
 
 - `docs/specs/lists.md` - Foundational list mechanics (required reading)
 - `docs/specs/stack-operations.md` - Stack manipulation rules
@@ -374,7 +373,7 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 
 ---
 
-## 16. Binary search (bfind)
+## 15. Binary search (bfind)
 
 ### Overview
 
@@ -412,7 +411,7 @@ maplist  key  bfind { kcmp }   ->  addr | nil
 
 ---
 
-## 17. Appendix A: Advanced find
+## 16. Appendix A: Advanced find
 
 This appendix outlines optimized, address-returning search variants for maplists. All variants preserve the same interface shape and results as `find` but differ in preconditions and complexity. These are optional enhancements for larger datasets.
 
