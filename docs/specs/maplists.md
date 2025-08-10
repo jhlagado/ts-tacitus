@@ -85,19 +85,10 @@ maplist key find         → O(n)
 # Binary search (requires sorted keys)  
 sorted-maplist key bfind → O(log n)
 
-# Hash-based (requires preprocessing)
-hash-maplist key hfind   → O(1) average
+# (Hash-based variants intentionally omitted; keys are numeric/interned — no additional benefit.)
 ```
 
 **Design principle**: Same interface, different algorithms based on data characteristics.
-
-#### `hfind` overview
-
-- Purpose: Address-returning lookup using a precomputed hash index for the maplist.
-- Stack effect: `( hash-maplist key — addr | default-addr | NIL )`.
-- Precondition: The maplist has been prepared with an auxiliary hash index structure (implementation-defined); without this, use `find`.
-- Behavior: Computes the key’s hash, probes the index to locate the candidate value element address in O(1) average time; falls back to `default` address or NIL per standard rules.
-- Mutability: Returned addresses are compatible with `get`/`set`. Writes remain simple-only; compound targets are no-op.
 
 Note: `bfind` requires sorted keys; we should add a sorting section to `lists.md` to define stable ordering and comparison rules.
 
