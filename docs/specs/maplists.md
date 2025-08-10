@@ -17,7 +17,8 @@
 13. Design Philosophy
 14. Implementation Examples
 15. Related Specifications
-16. Appendix A: Advanced find
+16. Binary search (bfind)
+17. Appendix A: Advanced find
 
 ## Overview
 
@@ -209,15 +210,11 @@ maplist values             # Extract all values → ( val1 val2 val3 )
 
 ```
 maplist  mapsort { kcmp }   ->  maplist'
-maplist  mapsort            ->  maplist'   \ default key comparator (symbol lexicographic)
 ```
 
 #### Key comparator contract
 
 - The block is called with `k1 k2`: `( k1 k2 -- r )`, same sign rules as `sort`.
-- Defaults:
-  - symbols: lexicographic ascending
-  - numbers: ascending (if numeric keys)
 - If keys are mixed/other types, supply a comparator.
 
 #### Semantics
@@ -355,6 +352,44 @@ This approach aligns with TACIT's philosophy of building complex functionality f
 - `docs/specs/lists.md` - Foundational list mechanics (required reading)
 - `docs/specs/stack-operations.md` - Stack manipulation rules
 - `docs/specs/tagged.md` - Type system and sentinel values (NIL)
+
+---
+
+## 16. Binary search (bfind)
+
+### Overview
+
+This is the maplist case of the unified `bfind` defined in Access. It locates a value in a sorted maplist by binary searching its keys. Pairs move as atomic units; only keys are inspected for order and equality.
+
+### Preconditions
+
+- The maplist is sorted by key with the same key comparator used by `mapsort`.
+
+### Stack effect
+
+```
+maplist  key  bfind { kcmp }   ->  addr | nil
+```
+
+### Key comparator
+
+- `kcmp ( key query -- r )` (or equivalently `( query key -- r )`) — must be consistent with `mapsort`.
+
+### Semantics
+
+- Binary search over key elements; moves `(key value)` pairs together.
+- Returns the address of the matching value element, or `nil` if not found.
+
+### Complexity (informative)
+
+- Time: O(log n) comparisons
+- Space: O(1)
+
+### Notes
+
+- Must use the same comparator as the sort; results undefined otherwise.
+- With duplicate keys, return the first equal (lower_bound) for determinism.
+- Errors: non-list or pair-misaligned payload → sentinel/error; comparator must return a number.
 
 ---
 
