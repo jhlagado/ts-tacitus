@@ -1,111 +1,64 @@
 # TACIT Reference Glossary
 
-## Core Concepts
+This glossary reflects the current, canonical TACIT specs. Legacy terms (e.g., LINK, function table) are intentionally omitted.
 
-- **NaN-boxing**: Technique for storing type tags in IEEE 754 NaN bit patterns.
-- **Point-free**: Functions are composed without explicitly naming parameters.
-- **Stack-based**: All operations work on a shared data stack using postfix notation (RPN).
-- **TACIT**: Stack-based, point-free programming language inspired by Forth, APL, and Joy.
+## Lists (data structure)
 
-## Data Types
+- LIST: Reverse list with header at TOS storing payload slot count `s`; payload (elements) beneath. Traversal uses span headers only.
+- element: Logical member (simple or compound) of a list.
+- slots ( list — n ): O(1) payload slot count (from header).
+- length ( list — n ): O(s) element count via traversal.
+- slot ( idx — addr ): O(1) payload slot address.
+- elem ( idx — addr ): O(s) start address of element by logical index.
+- fetch ( addr — value ): Read simple or compound value at address.
+- store ( value addr — ): In-place write to simple cell; compounds are no-op.
 
-- **Capsule**: Object-like structure; element 0 is a dispatch maplist of method name symbols and code references, followed by field values.
-- **Default Key Convention**: Special `default` key in maplists providing fallback value when a lookup fails.
-- **Field Offset**: Numeric position of a capsule field value (capsule element index ≥1). Element 0 is always the dispatch maplist.
-- **LIST**: Reverse list compound: header at TOS with payload slot count; elements stored beneath header; traversal uses span rule (see `lists.md`). Legacy forward list + `LINK` pointer model removed.
-- **List Element**: Logical member of a list: either a simple (1 slot) or compound (span >1) value occupying contiguous payload slots.
-- **Maplist**: A list whose payload alternates keys and values `( k1 v1 k2 v2 ... )`; keys typically simple (symbols, numbers). Provides associative lookups via `find`/`bfind`/`hfind`.
-- **NIL**: Sentinel representing “absent” produced as `INTEGER 0` (Tag.INTEGER payload 0). Returned by failed lookups lacking `default`.
-- **Simple Value**: Single-slot value (number, integer, builtin, code ref, string ref, interned symbol, NIL). Allowed as mutation targets for `store`.
-- **Stack Cell**: Single 32-bit slot on the data stack containing one tagged value (simple) or part of a compound.
-- **Tagged Value**: NaN-boxed value combining a 6-bit tag and 16-bit payload (except raw non-NaN numbers which carry no explicit tag bits).
+Structural ops
+- enlist ( value — list ): Wrap value as one-element list.
+- cons ( list value — list' ): Prepend value as single element. O(1).
+- tail ( list — list' ): Remove head element. O(1).
+- head ( list — head | nil ): Return head element, or nil for empty.
+- uncons ( list — tail head ): Split into tail and head. O(1).
+- append ( list value — list' ): Append value as last element. O(n).
+- concat ( listA listB — listC ): Flat merge; O(n).
+- pack ( item-n … item0 n — list ): Build list from n stack items.
+- unpack ( list — item-n … item0 ): Push elements; inverse of pack (without count).
 
-## VM Components
+Sorting and search
+- sort ( list { cmp } — list' ): Stable element reorder; comparator `( A B — r )`.
+- bfind ( target key { cmp } — addr | nil ):
+  - List: binary search over elements (pre-sorted by same cmp).
+  - Maplist: binary search over keys (pre-sorted by mapsort comparator).
+- hindex ( maplist [capacity] — index ): Build hash index for maplist keys.
+- hfind ( target index key — addr | default-addr | nil ): Hashed lookup (maplist only).
+- find ( target key — addr | default-addr | nil ): Linear; list index or maplist key.
 
-**Stack Segments**:
-- **STACK**: Main data stack for computations
-- **RSTACK**: Return stack for call frames and locals
-- **CODE**: Bytecode storage segment  
-- **STRING**: String literal storage
+## Maplists
 
-**Registers**:
-- **SP**: Stack pointer (main stack)
-- **RP**: Return stack pointer  
-- **IP**: Instruction pointer (bytecode address)
-- **BP**: Base pointer (call frame)
+- Maplist: List of alternating key/value pairs `( k1 v1 k2 v2 … )`.
+- default key: Fallback value when lookup fails.
+- mapsort ( maplist { kcmp } — maplist' ): Stable reorder by key comparator.
+- keys / values: Extract keys-only or values-only lists.
 
-## Operations
+## Access (polymorphic)
 
-- **Built-ins**: Native operations with opcodes 0-127, executed directly.
-- **Bytecode Address**: Direct memory address in CODE segment where compiled colon definition begins.
-- **Code References**: Tagged values pointing to executable code (built-ins or bytecode).
-- **Colon Definitions**: User-defined words created with `: name ... ;` syntax, compiled to bytecode, assigned function indices ≥128.
-- **Function Index**: Numeric identifier for operations: 0-127 for built-ins, 128-32767 for colon definitions.
-- **Function Table**: Legacy lookup table mapping function indices to executable implementations.
-- **Opcode**: Single-byte instruction code for built-in operations (0-127).
-- **Stack Effects**: Notation `( before — after )` showing stack transformations.
-- **Symbol Table**: Primary namespace mapping word names to function indices or direct bytecode addresses.
+- get ( target { path } — value | nil ): Path of numbers (indices) and symbols (keys).
+- set ( value target { path } — ok | nil ): Simple-only writes; no structural edits.
 
-## Language Constructs
+## Capsules
 
-- **@symbol syntax**: Prefix notation for creating references to named words without immediate execution.
-- **`.method syntax`**: Prefix sigil for method dispatch within `with` combinator context.
-- **Combinator**: Higher-order operation that manages control flow and context (e.g., `with` combinator).
-- **Dispatch Maplist**: Maplist in slot 0 of capsules containing alternating method names and code references.
-- **Eval**: Operation that executes code references created by quotations or symbols.
-- **Field**: Named data slot in a capsule, accessed by offset within methods.
-- **Method Dispatch**: Process of looking up and executing methods via maplist search in capsules.
-- **Prefix Sigil**: Special character that modifies how the following token is interpreted (e.g., `@`, `` ` ``, `.`).
-- **Quotation**: `{ code }` - anonymous code block, creates executable reference.
-- **Receiver**: Object that receives method calls in object-oriented contexts.
-- **Receiver Register**: VM register pointing to current object context within `with` blocks.
-- **Symbol Reference**: `@symbol` - creates reference to named word without executing.
-- **Tag.BUILTIN**: Tagged value type (7) for references to built-in operations.
-- **Tag.CODE**: Tagged value type (2) for references to bytecode addresses.
-- **Unified Dispatch**: Single execution mechanism handling both built-ins and colon definitions via eval.
-- **With Block**: Code block executed within object context using `with` combinator syntax: `object with { ... }`.
-- **Word**: Named operation or value (function, variable, constant).
+- Capsule: List-based object; element 0 is dispatch maplist; subsequent elements are fields.
+- with { … }, .method: Receiver-scoped method dispatch.
 
-## Memory Model
+## Tagged values and numbers
 
-- **Direct Addressing**: Bytecode addresses point directly to code, no indirection.
-- **Element Mutation**: Updating simple values in-place within lists without structural changes.
-- **Graceful Degradation**: Error handling strategy using NIL values instead of exceptions.
-- **(Structural) Immutability**: List/capsule shape (slot count, element boundaries) is fixed post-construction; simple element contents may be overwritten in place.
-- **Structural Immutability**: List structure (length, positions) should not be modified.
-- **Unified Addressing**: Single 64KB address space with segment boundaries.
-- **Word-aligned**: Stack elements stored at 4-byte boundaries.
+- Numbers: IEEE‑754 float32 (default numeric type).
+- Tagged value: NaN-boxed with 6-bit tag + 16-bit payload for non-number types.
+- NIL: Sentinel (Tag.INTEGER payload 0) for “absent”.
 
-## Testing & Development
+## VM
 
-- **Comprehensive Test Coverage**: Full testing including edge cases, error conditions, and integration scenarios.
-- **Integration Testing**: Testing that verifies multiple components work together correctly.
-- **Manual Registration**: Testing technique using direct API calls instead of parsing language syntax.
-- **Step-wise Implementation**: Development approach where complex features are built incrementally with validation at each step.
-- **Test Coverage**: Measurement of code execution by test suite, tracked for statements, branches, functions, and lines.
-- **VM Testing**: Testing virtual machine behavior without language-level changes.
-
-## Advanced Concepts
-
-- **Bounds Checking**: Verification that array/list access is within valid index range.
-- **Code as Data**: Treating executable code as manipulable values on the stack.
-- **Closure-free**: Programming model where all state is explicitly stored, no lexical environments.
-- **Copy-based Instantiation**: Object creation through copying rather than inheritance chains.
-- **Forward-only Traversal**: Navigation pattern required for lists, moving from header toward end.
-- **Incremental Migration**: Development strategy for replacing systems gradually without breaking existing functionality.
-- **Memory Efficiency**: Optimizations to reduce memory usage, such as eliminating the 256KB function table.
-- **Metaprogramming**: Programming technique where programs manipulate other programs as data.
-- **Stack Pollution**: Problem where excessive `dup` calls clutter the stack during method dispatch.
-- **Uniform Representation**: Single mechanism handling different types of executable references.
-
-## Compilation Model
-
-- **Bytecode**: Compact instruction encoding for efficient execution.
-- **Code Reference Utilities**: Helper functions for creating, validating, and extracting information from tagged code references.
-- **Direct Addressing**: New system where symbol table stores bytecode addresses directly, eliminating function table indirection.
-- **Function Table**: Legacy indirection mechanism being eliminated in favor of direct addressing.
-- **Function Table Bypass**: Mechanism to extract bytecode addresses from function table entries for migration to direct addressing.
-- **Single-pass**: Compiler processes source left-to-right without backtracking.
-- **Symbol Table**: Maps names to opcodes (built-ins) or bytecode addresses (colon definitions).
-- **Unified Code Reference System**: Architecture allowing `@symbol eval` to work identically for built-ins and colon definitions.
-- **VM Dispatch**: Core execution mechanism that routes function indices to appropriate handlers (built-ins vs bytecode).
+- Segments: STACK (data), RSTACK (return), CODE (bytecode), STRING (digest).
+- Registers: SP (stack), RP (return), IP (instruction), BP (base).
+- Symbol table: Maps names to built-ins and code addresses.
+- Stack effect notation: `( before — after )`.
