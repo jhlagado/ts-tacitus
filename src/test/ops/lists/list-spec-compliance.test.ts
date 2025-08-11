@@ -158,5 +158,38 @@ describe('Lists.md Specification Compliance', () => {
       expect(fromTaggedValue(headResult[headResult.length - 1]).value).toBe(1);
       expect(fromTaggedValue(unconsResult[unconsResult.length - 1]).value).toBe(1);
     });
+
+    test('pack creates list from stack items', () => {
+      const stack = executeTacitCode('1 2 3 3 pack');
+      const header = stack[stack.length - 1];
+      console.log('Pack result stack:', stack);
+      console.log('Header:', header, 'decoded:', fromTaggedValue(header), 'isList:', isList(header));
+      expect(isList(header)).toBe(true);
+      expect(fromTaggedValue(header).value).toBe(3); // 3 slots
+    });
+
+    test('pack with 0 count creates empty list', () => {
+      const stack = executeTacitCode('0 pack');
+      const header = stack[stack.length - 1];
+      expect(isList(header)).toBe(true);
+      expect(fromTaggedValue(header).value).toBe(0); // 0 slots
+    });
+
+    test('unpack pushes list elements to stack', () => {
+      const stack = executeTacitCode('( 1 2 3 ) unpack');
+      // Should have: 1 2 3 on stack (in that order)
+      expect(stack.length).toBe(3);
+      expect(fromTaggedValue(stack[0]).value).toBe(3); // First element
+      expect(fromTaggedValue(stack[1]).value).toBe(2); // Second element  
+      expect(fromTaggedValue(stack[2]).value).toBe(1); // Third element
+    });
+
+    test('pack and unpack are inverses', () => {
+      // Test: 1 2 3 3 pack unpack should restore 1 2 3
+      const original = executeTacitCode('1 2 3');
+      resetVM();
+      const restored = executeTacitCode('1 2 3 3 pack unpack');
+      expect(restored).toEqual(original);
+    });
   });
 });

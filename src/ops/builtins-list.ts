@@ -508,3 +508,80 @@ export function storeOp(vm: VM): void {
   // Store simple value
   vm.memory.writeFloat32(SEG_STACK, addr, value);
 }
+
+/**
+ * Creates list from n stack items.
+ * Stack effect: ( item-n ... item-0 n -- list )
+ * Spec: glossary.md - Build list from n stack items
+ */
+export function packOp(vm: VM): void {
+  console.log('packOp: called');
+  vm.ensureStackSize(1, 'pack');
+  const countTagged = vm.pop();
+  const {value: count} = fromTaggedValue(countTagged);
+  console.log('packOp: count =', count, 'from tagged', countTagged);
+
+  if (count < 0 || count > vm.getStackData().length) {
+    console.log('packOp: invalid count, returning NIL');
+    vm.push(NIL);
+    return;
+  }
+
+  if (count === 0) {
+    console.log('packOp: count is 0, creating empty list');
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+
+  const values: number[] = [];
+  for (let i = 0; i < count; i++) {
+    if (vm.getStackData().length === 0) {
+      // Not enough items on stack
+      console.log('packOp: not enough items, returning NIL');
+      vm.push(NIL);
+      return;
+    }
+    const val = vm.pop();
+    console.log(`packOp: popped value ${i}:`, val);
+    values.push(val);
+  }
+
+  console.log('packOp: collected values:', values);
+
+  // Push values back in reverse order (they were popped in reverse)
+  for (let i = values.length - 1; i >= 0; i--) {
+    console.log(`packOp: pushing back value ${i}:`, values[i]);
+    vm.push(values[i]);
+  }
+
+  const header = toTaggedValue(count, Tag.LIST);
+  console.log('packOp: creating header:', header, 'decoded:', {value: count, tag: 'LIST'});
+  vm.push(header);
+  console.log('packOp: final stack:', vm.getStackData());
+}
+
+/**
+ * Pushes list elements onto stack individually.
+ * Stack effect: ( list -- item-n ... item-0 )
+ * Spec: glossary.md - Push elements; inverse of pack (without count)
+ */
+export function unpackOp(vm: VM): void {
+  vm.ensureStackSize(1, 'unpack');
+  const header = vm.pop();
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  
+  if (slotCount === 0) {
+    // Empty list - nothing to unpack
+    return;
+  }
+
+  // The payload elements are already on the stack in the correct order
+  // for LIST semantics (reversed), so we don't need to do anything else.
+  // The elements are now available on the stack as individual items.
+}
