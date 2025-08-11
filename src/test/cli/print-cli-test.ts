@@ -1,4 +1,4 @@
-import { executeTacitCode, resetVM } from '../utils/test-utils';
+import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
 
 /**
  * Simple CLI test for print operations to verify that our fix works in the actual CLI

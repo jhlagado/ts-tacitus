@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 
 function captureOutput(run: () => void): string[] {
   const logs: string[] = [];

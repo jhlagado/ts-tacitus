@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../core/globalState';
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 import { Op } from '../../ops/opcodes';
 import { Tag } from '../../core/tagged';
 import { fromTaggedValue } from '../../core/tagged';

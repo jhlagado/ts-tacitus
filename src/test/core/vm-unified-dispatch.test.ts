@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../core/globalState';
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 import { createBuiltinRef } from '../../core/code-ref';
 import { toTaggedValue, Tag } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';

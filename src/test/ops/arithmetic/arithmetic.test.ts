@@ -11,7 +11,7 @@ import {
   maxOp,
 } from '../../../ops/builtins-math';
 import { absOp, negOp, signOp, expOp, lnOp, logOp, sqrtOp } from '../../../ops/arithmetic-ops';
-import { resetVM } from '../../utils/test-utils';
+import { resetVM } from "../../utils/vm-test-utils";
 
 describe('Arithmetic Operations', () => {
   beforeEach(() => {

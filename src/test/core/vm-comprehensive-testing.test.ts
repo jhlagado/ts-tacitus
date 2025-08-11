@@ -15,7 +15,7 @@
  * - Mixed scenarios with built-ins, colon definitions, and standalone blocks
  */
 
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 import { vm } from '../../core/globalState';
 import { evalOp } from '../../ops/builtins-interpreter';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';

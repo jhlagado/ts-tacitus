@@ -1,7 +1,7 @@
 import { formatFloat, formatAtomicValue, formatListAt, formatValue } from '../../core/format-utils';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { Tag, toTaggedValue } from '../../core/tagged';
-import { executeTacitCode } from '../utils/test-utils';
+import { executeTacitCode } from "../utils/vm-test-utils";
 
 describe('Format Utils', () => {
   beforeEach(() => {

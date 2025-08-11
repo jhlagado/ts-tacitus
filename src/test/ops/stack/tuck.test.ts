@@ -9,7 +9,7 @@
 import { vm } from '../../../core/globalState';
 import { tuckOp } from '../../../ops/builtins-stack';
 import { Tag, toTaggedValue } from '../../../core/tagged';
-import { executeTacitCode, resetVM } from '../../utils/test-utils';
+import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 
 describe('tuck Operation', () => {
   beforeEach(() => {

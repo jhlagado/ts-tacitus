@@ -2,7 +2,7 @@
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
  * Tests both high-level 'print' operation and low-level 'print' operator
  */
-import { resetVM, captureTacitOutput } from '../../utils/test-utils';
+import { resetVM, captureTacitOutput } from "../../utils/vm-test-utils";
 
 describe('Print Operations', () => {
   beforeEach(() => {

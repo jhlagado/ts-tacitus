@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../core/globalState';
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 import { SymbolTable } from '../../strings/symbol-table';
 import { Digest } from '../../strings/digest';
 import { Tag, fromTaggedValue } from '../../core/tagged';

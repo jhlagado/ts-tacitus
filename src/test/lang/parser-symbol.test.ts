@@ -18,7 +18,7 @@
  * @version 1.0.0
  */
 
-import { executeTacitCode, resetVM } from '../../test/utils/test-utils';
+import { executeTacitCode, resetVM } from "../utils/vm-test-utils";
 import { vm } from '../../core/globalState';
 import { Tag, fromTaggedValue } from '../../core/tagged';
 
