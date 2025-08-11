@@ -69,10 +69,10 @@
 - **@ prefix creates code references** without execution
 
 ### List Format
-- **Length-prefixed structures** starting with `LIST:n` header
-- **Elements follow in order** after header
-- **LINK tags are stack-only** and not serialized
-- **Flat serialization** without nested pointers
+- **Reverse layout**: header `LIST:n` at TOS with `n` payload slots beneath
+- **Traversal by span**: element boundaries discovered via simple-or-header span rule
+- **No LINK tag**: legacy backlink mechanism removed; any docs referencing it are historical
+- **Flat serialization**: contiguous slots, no heap pointers
 
 ## Development Workflow
 

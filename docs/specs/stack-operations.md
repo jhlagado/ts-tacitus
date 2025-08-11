@@ -321,5 +321,5 @@ When implementing stack operations:
 ## Related Specifications
 
 - `docs/specs/tagged.md` - Type system for stack items
-- `docs/specs/lists.md` - List structures and LINK metadata
+- `docs/specs/lists.md` - Reverse list structure & traversal (legacy LINK removed)
 - `docs/specs/vm-architecture.md` - Memory layout and execution model

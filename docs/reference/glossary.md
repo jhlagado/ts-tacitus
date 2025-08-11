@@ -9,17 +9,16 @@
 
 ## Data Types
 
-- **Capsule**: Object-like structure where element 0 is a dispatch maplist containing method names and code references.
-- **Default Key Convention**: Special `default` key in maplists providing fallback values for failed lookups.
-- **Field Offset**: Numeric position of field data within capsule (starting at 1).
-- **LINK**: Stack-only metadata providing backward pointer to locate variable-length structures.
-- **LIST**: Length-prefixed compound structure containing sequence of simple values.
-- **List Element**: Variable-length data item within a list structure.
-- **Maplist**: List following key-value alternating pattern for associative data structures.
-- **NIL**: INTEGER tagged value with value 0, representing "not found" or "absent" data for graceful error handling.
-- **Simple Values**: Atomic values that fit in one 32-bit stack cell with type tag.
-- **Stack Cell**: Single 32-bit tagged value position on the VM stack.
-- **Tagged Values**: NaN-boxed values combining 6-bit type tag with 16-bit payload.
+- **Capsule**: Object-like structure; element 0 is a dispatch maplist of method name symbols and code references, followed by field values.
+- **Default Key Convention**: Special `default` key in maplists providing fallback value when a lookup fails.
+- **Field Offset**: Numeric position of a capsule field value (capsule element index ≥1). Element 0 is always the dispatch maplist.
+- **LIST**: Reverse list compound: header at TOS with payload slot count; elements stored beneath header; traversal uses span rule (see `lists.md`). Legacy forward list + `LINK` pointer model removed.
+- **List Element**: Logical member of a list: either a simple (1 slot) or compound (span >1) value occupying contiguous payload slots.
+- **Maplist**: A list whose payload alternates keys and values `( k1 v1 k2 v2 ... )`; keys typically simple (symbols, numbers). Provides associative lookups via `find`/`bfind`/`hfind`.
+- **NIL**: Sentinel representing “absent” produced as `INTEGER 0` (Tag.INTEGER payload 0). Returned by failed lookups lacking `default`.
+- **Simple Value**: Single-slot value (number, integer, builtin, code ref, string ref, interned symbol, NIL). Allowed as mutation targets for `store`.
+- **Stack Cell**: Single 32-bit slot on the data stack containing one tagged value (simple) or part of a compound.
+- **Tagged Value**: NaN-boxed value combining a 6-bit tag and 16-bit payload (except raw non-NaN numbers which carry no explicit tag bits).
 
 ## VM Components
 
@@ -72,7 +71,7 @@
 - **Direct Addressing**: Bytecode addresses point directly to code, no indirection.
 - **Element Mutation**: Updating simple values in-place within lists without structural changes.
 - **Graceful Degradation**: Error handling strategy using NIL values instead of exceptions.
-- **Immutable Lists**: No in-place modification, transformations create new structures.
+- **(Structural) Immutability**: List/capsule shape (slot count, element boundaries) is fixed post-construction; simple element contents may be overwritten in place.
 - **Structural Immutability**: List structure (length, positions) should not be modified.
 - **Unified Addressing**: Single 64KB address space with segment boundaries.
 - **Word-aligned**: Stack elements stored at 4-byte boundaries.

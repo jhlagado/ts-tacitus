@@ -16,22 +16,21 @@
 ### List Construction
 ```tacit
 # Input: ( 1 2 3 )
-# Stack: [] → [LIST:3, 1, 2, 3, LINK]
-# Effect: ( — list )
+# Conceptual stack (top on right): [... 3 2 1 LIST:3]
+# Effect: ( — list )  ; header at TOS, payload slots beneath
 
 # Empty list
 # Input: ( )  
-# Stack: [] → [LIST:0, LINK]
+# Stack: [... LIST:0]
 # Effect: ( — empty-list )
 ```
 
 ### Nested Lists
 ```tacit
 # Input: ( 1 ( 2 3 ) 4 )
-# Stack representation:
-# [LIST:3, 1, LIST:2, 2, 3, LINK, 4, LINK]
-#                      ↑__________|
-#                     inner list
+# Stack representation (top on right):
+# ... 4 LIST:2 3 2 1 LIST:5
+#              ^^^^^ inner list (payload 2 + header)
 ```
 
 ## Code Reference Examples
