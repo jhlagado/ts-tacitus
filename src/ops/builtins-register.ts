@@ -94,11 +94,16 @@ import {
   openListOp,
   closeListOp,
   listSlotOp,
-  listGetAtOp,
-  listSetAtOp,
+  lengthOp,
+  slotOp,
+  elemOp,
+  fetchOp,
+  storeOp,
   consOp,
   concatOp,
   dropHeadOp,
+  headOp,
+  unconsOp,
 } from './builtins-list';
 
 /**
@@ -134,14 +139,20 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('(', Op.OpenList, openListOp);
   symbolTable.define(')', Op.CloseList, closeListOp);
 
-  // LIST operations (aligned with spec)
-  symbolTable.define('slots', Op.ListSlot, listSlotOp);
+  // Lists.md spec operations - Section 9 & 10
+  symbolTable.define('slots', Op.Slots, listSlotOp);
+  symbolTable.define('length', Op.Length, lengthOp);
+  symbolTable.define('slot', Op.Slot, slotOp);
+  symbolTable.define('elem', Op.Elem, elemOp);
+  symbolTable.define('fetch', Op.Fetch, fetchOp);
+  symbolTable.define('store', Op.Store, storeOp);
+  
+  // Lists.md spec operations - Section 12
   symbolTable.define('cons', Op.Cons, consOp);
   symbolTable.define('concat', Op.Concat, concatOp);
-  symbolTable.define('drop-head', Op.DropHead, dropHeadOp);
-  // Optional/internal accessors (not public in spec)
-  symbolTable.define('get-at', Op.ListGetAt, listGetAtOp);
-  symbolTable.define('set-at', Op.ListSetAt, listSetAtOp);
+  symbolTable.define('tail', Op.Tail, dropHeadOp);
+  symbolTable.define('head', Op.Head, headOp);
+  symbolTable.define('uncons', Op.Uncons, unconsOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);
