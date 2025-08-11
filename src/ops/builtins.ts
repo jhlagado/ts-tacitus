@@ -362,6 +362,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Concat:
       concatOp(vm);
       break;
+    case Op.Tail:
+      dropHeadOp(vm);
+      break;
     case Op.DropHead:
       dropHeadOp(vm);
       break;
