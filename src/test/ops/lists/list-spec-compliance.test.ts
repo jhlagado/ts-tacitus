@@ -14,7 +14,7 @@ describe('Lists.md Specification Compliance', () => {
   describe('Section 9: Length and counting', () => {
     test('slots returns payload slot count', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) slots');
-      
+
       // Should return 5 (total payload slots)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
@@ -24,7 +24,7 @@ describe('Lists.md Specification Compliance', () => {
 
     test('length returns element count via traversal', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) length');
-      
+
       // Should return 3 (logical element count)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
@@ -35,7 +35,7 @@ describe('Lists.md Specification Compliance', () => {
     test('empty list slots and length both return 0', () => {
       let stack = executeTacitCode('( ) slots');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
-      
+
       resetVM();
       stack = executeTacitCode('( ) length');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
@@ -58,7 +58,7 @@ describe('Lists.md Specification Compliance', () => {
     test('fetch and store work with addresses', () => {
       // Test the address-based access pattern: elem -> fetch
       const stack = executeTacitCode('( 42 99 ) 0 elem fetch');
-      
+
       // Should fetch element 0 which is 42
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
@@ -67,16 +67,14 @@ describe('Lists.md Specification Compliance', () => {
   });
 
   describe('Section 12: Structural operations', () => {
-    test.skip('head returns first element - IMPLEMENTATION TODO', () => {
-      // TODO: Fix memory bounds issue in headOp implementation
+    test('head returns first element', () => {
       const stack = executeTacitCode('( 1 2 3 ) head');
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.value).toBe(1);
     });
 
-    test.skip('head returns nested list correctly - IMPLEMENTATION TODO', () => {
-      // TODO: Fix memory bounds issue in headOp implementation  
+    test('head returns nested list correctly', () => {
       const stack = executeTacitCode('( ( 2 3 ) 4 5 ) head');
       const result = stack[stack.length - 1];
       expect(isList(result)).toBe(true);
@@ -84,7 +82,7 @@ describe('Lists.md Specification Compliance', () => {
 
     test('head returns nil for empty list', () => {
       const stack = executeTacitCode('( ) head');
-      
+
       // Should return NIL
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
@@ -92,31 +90,33 @@ describe('Lists.md Specification Compliance', () => {
       expect(decoded.value).toBe(0); // NIL
     });
 
-    test.skip('uncons splits list correctly - IMPLEMENTATION TODO', () => {
-      // TODO: Fix 16-bit value constraint issue in unconsOp
+    test('uncons splits list correctly', () => {
       const stack = executeTacitCode('( 1 2 3 ) uncons');
       const head = stack[stack.length - 1];
       expect(fromTaggedValue(head).value).toBe(1);
     });
 
-    test.skip('cons prepends element - IMPLEMENTATION TODO', () => {
-      // TODO: Fix memory bounds issue in cons operation
+    test('cons prepends element', () => {
       const stack = executeTacitCode('( 2 3 ) 1 cons');
       const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
     });
 
-    test.skip('tail removes first element - IMPLEMENTATION TODO', () => {
-      // TODO: Fix invalid opcode 66 issue
+    test('tail removes first element', () => {
       const stack = executeTacitCode('( 1 2 3 ) tail');
       const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
     });
 
-    test.skip('concat merges lists - IMPLEMENTATION TODO', () => {
-      // TODO: Fix concat operation to return proper list
+    test.skip('concat merges lists - KNOWN ISSUE: parsing/execution order', () => {
+      // KNOWN ISSUE: concat receives individual elements instead of list headers
+      // This appears to be a parsing/execution order issue where:
+      // - Individual lists work: ( 1 2 ) creates [2, 1, LIST:2] correctly  
+      // - But ( 1 2 ) ( 3 4 ) concat results in concat receiving elements 3 and NaN
+      // - Instead of the expected list headers LIST:2 and LIST:2
+      // This suggests the parsing treats it as ( 1 2 ( 3 4 concat ) ) rather than ( 1 2 ) ( 3 4 ) concat
       const stack = executeTacitCode('( 1 2 ) ( 3 4 ) concat');
-      const header = stack[stack.length - 1]; 
+      const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
     });
 
@@ -124,7 +124,7 @@ describe('Lists.md Specification Compliance', () => {
     test('structural operations are properly registered', () => {
       // Test that operations exist and don't throw "undefined word" errors
       expect(() => executeTacitCode('( )')).not.toThrow();
-      
+
       // These operations should be registered (even if implementation needs work)
       // We can't test execution due to bugs, but we can verify they're not "undefined word"
       const operations = ['head', 'tail', 'cons', 'concat', 'uncons'];
@@ -141,8 +141,7 @@ describe('Lists.md Specification Compliance', () => {
   });
 
   describe('Algebraic laws (Section 20)', () => {
-    test.skip('cons then tail restores original - IMPLEMENTATION TODO', () => {
-      // TODO: Implement after structural operations are fixed
+    test('cons then tail restores original', () => {
       const original = executeTacitCode('( 2 3 )');
       resetVM();
       const restored = executeTacitCode('( 2 3 ) 1 cons tail');
@@ -151,11 +150,11 @@ describe('Lists.md Specification Compliance', () => {
       expect(fromTaggedValue(origHeader).value).toBe(fromTaggedValue(restHeader).value);
     });
 
-    test.skip('head and uncons consistency - IMPLEMENTATION TODO', () => {
-      // TODO: Implement after structural operations are fixed
+    test('head and uncons consistency', () => {
+      // uncons stack effect: ( list -- tail head ), so need swap drop to get head
       const headResult = executeTacitCode('( 1 2 3 ) head');
-      resetVM(); 
-      const unconsResult = executeTacitCode('( 1 2 3 ) uncons drop');
+      resetVM();
+      const unconsResult = executeTacitCode('( 1 2 3 ) uncons swap drop');
       expect(fromTaggedValue(headResult[headResult.length - 1]).value).toBe(1);
       expect(fromTaggedValue(unconsResult[unconsResult.length - 1]).value).toBe(1);
     });

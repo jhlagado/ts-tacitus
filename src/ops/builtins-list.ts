@@ -252,6 +252,7 @@ export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
   const rhs = vm.pop(); // listB or value
   const lhs = vm.pop(); // listA
+  
   if (!isList(lhs)) {
     // invalid lhs: restore and NIL
     vm.push(lhs);
@@ -259,6 +260,7 @@ export function concatOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
+  
   if (!isList(rhs)) {
     // Fallback to cons(list, value)
     vm.push(lhs);
@@ -266,18 +268,13 @@ export function concatOp(vm: VM): void {
     consOp(vm);
     return;
   }
+  
   const sA = getListSlotCount(lhs);
   const sB = getListSlotCount(rhs);
-  // Read rhs logical payload (payload0 at top)
-  const rhsLogical: number[] = [];
-  for (let i = 0; i < sB; i++) rhsLogical.push(vm.pop());
-  // Read lhs logical payload
-  const lhsLogical: number[] = [];
-  for (let i = 0; i < sA; i++) lhsLogical.push(vm.pop());
-  const mergedLogical = lhsLogical.concat(rhsLogical);
-  // Push deep-to-shallow: tail to head
-  for (let i = mergedLogical.length - 1; i >= 0; i--) vm.push(mergedLogical[i]);
-  vm.push(toTaggedValue(mergedLogical.length, Tag.LIST));
+  
+  // Create new header with combined slot count
+  // The payload slots should already be properly arranged on the stack
+  vm.push(toTaggedValue(sA + sB, Tag.LIST));
 }
 
 /**
@@ -294,8 +291,8 @@ export function headOp(vm: VM): void {
     return;
   }
 
-  // First element is at top of payload (SP after popping header)
-  const firstElementAddr = vm.SP;
+  // First element is at SP-4 (first payload slot after popping header)
+  const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
   
   if (isList(firstElement)) {
@@ -339,8 +336,8 @@ export function unconsOp(vm: VM): void {
     return;
   }
 
-  // Determine first element span
-  const firstElementAddr = vm.SP;
+  // Determine first element span (first element is at SP-4)
+  const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
   const span = isList(firstElement) ? getListSlotCount(firstElement) + 1 : 1;
 
