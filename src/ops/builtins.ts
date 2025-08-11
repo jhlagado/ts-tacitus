@@ -102,7 +102,7 @@ import {
   headOp,
   unconsOp,
 } from './builtins-list';
-import { consOp, concatOp, dropHeadOp } from './builtins-list';
+import { consOp, concatOp, dropHeadOp, packOp, unpackOp } from './builtins-list';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -355,6 +355,12 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Uncons:
       unconsOp(vm);
+      break;
+    case Op.Pack:
+      packOp(vm);
+      break;
+    case Op.Unpack:
+      unpackOp(vm);
       break;
     case Op.Cons:
       consOp(vm);

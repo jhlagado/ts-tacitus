@@ -232,6 +232,12 @@ export enum Op {
   /**  Splits list into tail and head. */
   Uncons,
 
+  /**  Creates list from n stack items. */
+  Pack,
+
+  /**  Pushes list elements onto stack individually. */
+  Unpack,
+
   /**  Checks if a value is present in a vector. */
   mIn,
 

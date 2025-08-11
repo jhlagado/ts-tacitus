@@ -104,6 +104,8 @@ import {
   dropHeadOp,
   headOp,
   unconsOp,
+  packOp,
+  unpackOp,
 } from './builtins-list';
 
 /**
@@ -153,6 +155,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('tail', Op.Tail, dropHeadOp);
   symbolTable.define('head', Op.Head, headOp);
   symbolTable.define('uncons', Op.Uncons, unconsOp);
+  symbolTable.define('pack', Op.Pack, packOp);
+  symbolTable.define('unpack', Op.Unpack, unpackOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);
