@@ -91,11 +91,16 @@ import {
   openListOp,
   closeListOp,
   listSlotOp,
+  lengthOp,
+  slotOp,
+  elemOp,
+  fetchOp,
+  storeOp,
   listSkipOp,
   listPrependOp,
   listAppendOp,
-  listGetAtOp,
-  listSetAtOp,
+  headOp,
+  unconsOp,
 } from './builtins-list';
 import { consOp, concatOp, dropHeadOp } from './builtins-list';
 
@@ -326,11 +331,30 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.ListAppend:
       listAppendOp(vm);
       break;
-    case Op.ListGetAt:
-      listGetAtOp(vm);
+    // Lists.md spec operations
+    case Op.Slots:
+      listSlotOp(vm);
       break;
-    case Op.ListSetAt:
-      listSetAtOp(vm);
+    case Op.Length:
+      lengthOp(vm);
+      break;
+    case Op.Slot:
+      slotOp(vm);
+      break;
+    case Op.Elem:
+      elemOp(vm);
+      break;
+    case Op.Fetch:
+      fetchOp(vm);
+      break;
+    case Op.Store:
+      storeOp(vm);
+      break;
+    case Op.Head:
+      headOp(vm);
+      break;
+    case Op.Uncons:
+      unconsOp(vm);
       break;
     case Op.Cons:
       consOp(vm);

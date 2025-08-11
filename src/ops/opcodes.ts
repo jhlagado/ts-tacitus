@@ -201,6 +201,37 @@ export enum Op {
   /**  Counts the elements in a vector. */
   mCount,
 
+  // List operations per lists.md spec
+  /**  Returns payload slot count from LIST header. */
+  Slots,
+
+  /**  Returns element count by traversal. */
+  Length,
+
+  /**  Returns address of payload slot at slot index. */
+  Slot,
+
+  /**  Returns address of element start at logical index. */
+  Elem,
+
+  /**  Fetches value at memory address. */
+  Fetch,
+
+  /**  Stores value at memory address (simple values only). */
+  Store,
+
+  /**  Concatenates two lists. */
+  Concat,
+
+  /**  Removes first element from list (O(1)). */
+  Tail,
+
+  /**  Returns first element or nil. */
+  Head,
+
+  /**  Splits list into tail and head. */
+  Uncons,
+
   /**  Checks if a value is present in a vector. */
   mIn,
 
@@ -283,8 +314,6 @@ export enum Op {
   // New list primitives aligned with lists.md
   /** Prepend (list-first): cons - ( list value — list' ) */
   Cons,
-  /** Concat two lists (flatten): ( listA listB — listC ) */
-  Concat,
   /** Drop logical head element: ( list — list' ) */
   DropHead,
 }

@@ -12,7 +12,7 @@
  * - Construction: openListOp, closeListOp
  * - Inspection: listSlotOp
  * - Manipulation: listSkipOp, listPrependOp, listAppendOp
- * - Access: listGetAtOp, listSetAtOp
+ * - Access: slotOp, elemOp, fetchOp, storeOp (spec-compliant)
  */
 
 import { VM } from '../core/vm';
@@ -121,6 +121,43 @@ export function listSlotOp(vm: VM): void {
   const slotCount = getListSlotCount(header);
 
   vm.push(toTaggedValue(slotCount, Tag.INTEGER));
+}
+
+/**
+ * Returns logical element count by traversal.
+ * Stack effect: ( list -- list n )
+ * Spec: lists.md §9.2
+ */
+export function lengthOp(vm: VM): void {
+  vm.ensureStackSize(1, 'length');
+  const header = vm.peek(); // Keep list on stack
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  if (slotCount === 0) {
+    vm.push(toTaggedValue(0, Tag.INTEGER));
+    return;
+  }
+
+  // Traverse payload and count elements
+  let elementCount = 0;
+  let currentAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
+  let remainingSlots = slotCount;
+
+  while (remainingSlots > 0) {
+    const value = vm.memory.readFloat32(SEG_STACK, currentAddr);
+    const span = isList(value) ? getListSlotCount(value) + 1 : 1;
+    
+    elementCount++;
+    remainingSlots -= span;
+    currentAddr -= span * BYTES_PER_ELEMENT;
+  }
+
+  vm.push(toTaggedValue(elementCount, Tag.INTEGER));
 }
 
 /**
@@ -244,6 +281,91 @@ export function concatOp(vm: VM): void {
 }
 
 /**
+ * Returns first element or nil.
+ * Stack effect: ( list -- head | nil )
+ * Spec: lists.md §12
+ */
+export function headOp(vm: VM): void {
+  vm.ensureStackSize(1, 'head');
+  const header = vm.pop();
+
+  if (!isList(header) || getListSlotCount(header) === 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  // First element is at top of payload (SP after popping header)
+  const firstElementAddr = vm.SP;
+  const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
+  
+  if (isList(firstElement)) {
+    // Compound element: materialize full structure
+    const slotCount = getListSlotCount(firstElement);
+    
+    // Skip past the compound element in original list
+    vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
+    
+    // Push compound element to new position
+    for (let i = slotCount; i >= 0; i--) {
+      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - (i * BYTES_PER_ELEMENT));
+      vm.push(slotValue);
+    }
+  } else {
+    // Simple element: direct access
+    vm.SP -= BYTES_PER_ELEMENT; // Skip past first element
+    vm.push(firstElement);
+  }
+}
+
+/**
+ * Splits list into tail and head.
+ * Stack effect: ( list -- tail head )
+ * Spec: lists.md §12
+ */
+export function unconsOp(vm: VM): void {
+  vm.ensureStackSize(1, 'uncons');
+  const header = vm.pop();
+
+  if (!isList(header)) {
+    vm.push(toTaggedValue(0, Tag.LIST)); // empty list
+    vm.push(NIL); // nil head
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  if (slotCount === 0) {
+    vm.push(header); // empty list
+    vm.push(NIL);    // nil head
+    return;
+  }
+
+  // Determine first element span
+  const firstElementAddr = vm.SP;
+  const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
+  const span = isList(firstElement) ? getListSlotCount(firstElement) + 1 : 1;
+
+  // Create tail list (remaining payload)
+  const tailSlotCount = slotCount - span;
+  const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
+  
+  // Move SP past first element to position tail
+  vm.SP -= span * BYTES_PER_ELEMENT;
+  vm.push(tailHeader);
+  
+  // Materialize head element
+  if (isList(firstElement)) {
+    // Compound head: push full structure
+    for (let i = span - 1; i >= 0; i--) {
+      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - (i * BYTES_PER_ELEMENT));
+      vm.push(slotValue);
+    }
+  } else {
+    // Simple head
+    vm.push(firstElement);
+  }
+}
+
+/**
  * Appends a value to an LIST.
  * Stack effect: ( val list — list' )
  * This is an O(s) operation requiring payload shift to insert at bottom.
@@ -291,105 +413,101 @@ export function listAppendOp(vm: VM): void {
 }
 
 /**
- * Gets a value at a specific index from an LIST.
- * Stack effect: ( list i — val )
- * Returns NIL if index is out of bounds.
+ * Returns address of payload slot at slot index.
+ * Stack effect: ( list idx -- list addr )
+ * Spec: lists.md §10 - addr = SP - 1 - idx
  */
-export function listGetAtOp(vm: VM): void {
-  vm.ensureStackSize(2, 'list get-at');
-
-  const indexValue = vm.pop();
-  const header = vm.peek(); // Keep LIST on stack
+export function slotOp(vm: VM): void {
+  vm.ensureStackSize(2, 'slot');
+  const {value: idx} = fromTaggedValue(vm.pop());
+  const header = vm.peek(); // Keep list on stack
 
   if (!isList(header)) {
     vm.push(NIL);
     return;
   }
 
-  const decodedIdx = fromTaggedValue(indexValue);
-  let index = decodedIdx.value;
-  // Accept NUMBER or INTEGER; coerce to integer
-  if (decodedIdx.tag !== Tag.INTEGER && decodedIdx.tag !== Tag.NUMBER) {
-    vm.push(NIL);
-    return;
-  }
-  index = Math.trunc(index);
   const slotCount = getListSlotCount(header);
-
-  if (index < 0 || index >= slotCount) {
+  if (idx < 0 || idx >= slotCount) {
     vm.push(NIL);
     return;
   }
 
-  // Use traversal to find element address (handles compound values)
-  const targetAddr = getListElementAddress(vm, header, vm.SP - 4, index);
-
-  if (targetAddr === -1) {
-    vm.pop(); // Remove LIST header
-    vm.push(NIL);
-    return;
-  }
-
-  const value = vm.memory.readFloat32(SEG_STACK, targetAddr);
-
-  vm.pop(); // Remove LIST header
-  vm.push(value);
+  // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)  
+  const addr = vm.SP - 4 - (idx * BYTES_PER_ELEMENT);
+  vm.push(toTaggedValue(addr, Tag.INTEGER));
 }
 
 /**
- * Sets a value at a specific index in an LIST.
- * Stack effect: ( list i val — list )
- * Returns original LIST if index out of bounds or trying to overwrite compound.
+ * Returns address of element start at logical index.
+ * Stack effect: ( list idx -- list addr )
+ * Spec: lists.md §10 - uses traversal to find element start
  */
-export function listSetAtOp(vm: VM): void {
-  vm.ensureStackSize(3, 'list set-at');
-
-  const newValue = vm.pop();
-  const indexValue = vm.pop();
-  const header = vm.peek(); // Keep LIST on stack
+export function elemOp(vm: VM): void {
+  vm.ensureStackSize(2, 'elem');
+  const {value: idx} = fromTaggedValue(vm.pop());
+  const header = vm.peek(); // Keep list on stack
 
   if (!isList(header)) {
-    vm.pop(); // Remove invalid header
     vm.push(NIL);
     return;
   }
 
-  const decodedIdx = fromTaggedValue(indexValue);
-  if (decodedIdx.tag !== Tag.INTEGER && decodedIdx.tag !== Tag.NUMBER) {
-    vm.pop();
-    vm.push(NIL);
-    return;
-  }
-  const index = Math.trunc(decodedIdx.value);
-  const slotCount = getListSlotCount(header);
-
-  if (index < 0 || index >= slotCount) {
-    vm.pop(); // Remove LIST header
+  const addr = getListElementAddress(vm, header, vm.SP - 4, idx);
+  if (addr === -1) {
     vm.push(NIL);
     return;
   }
 
-  // Use traversal to find element address (handles compound values)
-  const headerAddr = vm.SP - 4; // Header is at TOS
-  const targetAddr = getListElementAddress(vm, header, headerAddr, index);
+  vm.push(toTaggedValue(addr, Tag.INTEGER));
+}
 
-  if (targetAddr === -1) {
-    vm.pop(); // Remove LIST header
-    vm.push(NIL);
+/**
+ * Fetches value at memory address.
+ * Stack effect: ( addr -- value )
+ * Spec: lists.md §10 - Simple values direct, compound values materialized
+ */
+export function fetchOp(vm: VM): void {
+  vm.ensureStackSize(1, 'fetch');
+  const {value: addr} = fromTaggedValue(vm.pop());
+
+  const value = vm.memory.readFloat32(SEG_STACK, addr);
+  
+  if (isList(value)) {
+    // Compound value: need to materialize entire structure
+    const slotCount = getListSlotCount(value);
+    
+    // Copy compound structure: payload slots first, then header
+    for (let i = slotCount - 1; i >= 0; i--) {
+      const slotValue = vm.memory.readFloat32(SEG_STACK, addr - ((i + 1) * BYTES_PER_ELEMENT));
+      vm.push(slotValue);
+    }
+    // Push header last (becomes TOS)
+    vm.push(value);
+  } else {
+    // Simple value: direct copy
+    vm.push(value);
+  }
+}
+
+/**
+ * Stores value at memory address (simple values only).
+ * Stack effect: ( value addr -- )
+ * Spec: lists.md §10 - Only simple values, compounds are no-op
+ */
+export function storeOp(vm: VM): void {
+  vm.ensureStackSize(2, 'store');
+  const {value: addr} = fromTaggedValue(vm.pop());
+  const value = vm.pop();
+
+  const existing = vm.memory.readFloat32(SEG_STACK, addr);
+  
+  // Only allow simple value storage per spec
+  if (isList(existing)) {
+    // Silent no-op for compound targets (spec requirement)
     return;
   }
 
-  // Check if target location contains a compound value
-  const oldValue = vm.memory.readFloat32(SEG_STACK, targetAddr);
-
-  if (isList(oldValue)) {
-    vm.pop(); // Remove LIST header from stack
-    vm.push(NIL); // Refuse to overwrite compound values
-    return;
-  }
-
-  // Perform in-place update
-  vm.memory.writeFloat32(SEG_STACK, targetAddr, newValue);
-
-  // Return the modified LIST (header already on stack)
+  // Store simple value
+  vm.memory.writeFloat32(SEG_STACK, addr, value);
 }
