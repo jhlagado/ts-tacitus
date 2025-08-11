@@ -4,7 +4,7 @@
  */
 
 import { VM } from '../../../core/vm';
-import { toTaggedValue, fromTaggedValue, Tag } from '../../../core/tagged';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
 import {
   openListOp,
   closeListOp,

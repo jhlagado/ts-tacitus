@@ -21,13 +21,11 @@ import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
-import { toTaggedValue, Tag } from '../core/tagged';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
   SyntaxError,
   NestedDefinitionError,
-  WordAlreadyDefinedError,
   UnexpectedTokenError,
 } from '../core/errors';
 
@@ -438,8 +436,6 @@ function beginDefinition(state: ParserState): void {
   const branchPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  const startAddress = vm.compiler.CP;
-
   // Save checkpoint so body sees previous definition; defer new define until ';'
   const checkpoint = vm.symbolTable.mark();
   state.currentDefinition = {
@@ -474,7 +470,6 @@ function endDefinition(state: ParserState): void {
 
   // Now that body compiled against prior dictionary, register new definition at head
   const { name } = state.currentDefinition;
-  const startAddress = vm.compiler.CP; // Exit was just compiled at end; definition starts at earlier address
   // The actual start address is where we began compiling after branch; reconstruct from branch position
   // branchPos is after Op.Branch (1 byte) at the 16-bit offset; the target start was saved earlier as startAddress in beginDefinition.
   // We did not store it; recompute: start address = (branchPos + 2)

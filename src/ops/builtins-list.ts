@@ -16,7 +16,7 @@
  */
 
 import { VM } from '../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, isInteger, isList } from '../core/tagged';
+import { fromTaggedValue, toTaggedValue, Tag, isList } from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
