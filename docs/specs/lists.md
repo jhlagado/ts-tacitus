@@ -494,7 +494,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 ## 22. Edge cases and failure modes
 
 * **Empty:** `( )` behaves as described in §16.
-* **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; implementation may signal error or return `nil`.
+* **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; return `nil`.
 * **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
 * **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
 

@@ -1,6 +1,6 @@
 # Plan 07 — Data Access, Maplists, Capsules & List Completion
 
-Status: 🎯 **ACTIVE** (Step 1)
+Status: 🎯 **ACTIVE** (Step 2)
 Owner: core
 Scope: Close all currently identified spec–implementation gaps for lists, maplists, access combinators, and capsules; unify error & NIL semantics; remove dead code; prepare ground for future compound types.
 Timebox: Iterative (each step individually reviewable). Tests MUST pass after every step.
@@ -335,7 +335,7 @@ Tasks:
 
 ## 4. Tracking Table (Tick as Completed)
 
-- [ ] 1 Cleanup & Inventory
+- [x] 1 Cleanup & Inventory
 - [ ] 2 List Core Completion
 - [ ] 3 List Sorting
 - [ ] 4 List Binary Search
@@ -348,7 +348,7 @@ Tasks:
 - [ ] 11 Capsules Definitions
 - [ ] 12 Capsules Dispatch
 - [ ] 13 Capsule Field Mutation
-- [ ] 14 Docs Sync
+- [x] 14 Docs Sync
 - [ ] 15 Error Semantics
 - [ ] 16 Performance Benchmarks
 - [ ] 17 Final Cleanup
