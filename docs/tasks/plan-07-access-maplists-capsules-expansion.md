@@ -1,6 +1,6 @@
 # Plan 07 — Data Access, Maplists, Capsules & List Completion
 
-Status: 🎯 **ACTIVE** (Step 2)
+Status: 🎯 **ACTIVE** (Step 5)
 Owner: core
 Scope: Close all currently identified spec–implementation gaps for lists, maplists, access combinators, and capsules; unify error & NIL semantics; remove dead code; prepare ground for future compound types.
 Timebox: Iterative (each step individually reviewable). Tests MUST pass after every step.
@@ -336,9 +336,9 @@ Tasks:
 ## 4. Tracking Table (Tick as Completed)
 
 - [x] 1 Cleanup & Inventory
-- [ ] 2 List Core Completion
-- [ ] 3 List Sorting
-- [ ] 4 List Binary Search
+- [x] 2 List Core Completion
+- [x] 3 List Sorting
+- [x] 4 List Binary Search
 - [ ] 5 Maplist Core
 - [ ] 6 Maplist Sorting & bfind
 - [ ] 7 Hash Index
@@ -352,6 +352,18 @@ Tasks:
 - [ ] 15 Error Semantics
 - [ ] 16 Performance Benchmarks
 - [ ] 17 Final Cleanup
+
+### 4.1 Docs Readiness (Pre-implementation)
+
+- [x] Step 2 Docs ready (length, elem, head, tail, uncons)
+- [x] Step 3 Docs ready (sort comparator contract, stability, examples)
+- [x] Step 4 Docs ready (bfind address-returning, comparator rules)
+- [x] Step 5 Docs ready (maplist find, keys, values)
+- [x] Step 6 Docs ready (mapsort, maplist bfind)
+- [x] Step 7 Docs ready (hindex, hfind signature order)
+- [x] Step 8 Docs ready (unified find in access)
+- [x] Step 9 Docs ready (address model, fetch/store, elem/slot)
+- [x] Step 10 Docs ready (get/set path rules)
 
 ---
 
