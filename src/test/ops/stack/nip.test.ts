@@ -8,7 +8,7 @@
 
 import { vm } from '../../../core/globalState';
 import { nipOp } from '../../../ops/builtins-stack';
-import { executeTacitCode, resetVM } from '../../utils/test-utils';
+import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 
 describe('nip Operation', () => {
   beforeEach(() => {

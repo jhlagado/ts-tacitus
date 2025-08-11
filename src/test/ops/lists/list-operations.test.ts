@@ -3,7 +3,7 @@
  * Focuses on how list-aware stack operations handle lists differently from simple values
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from '../../utils/test-utils';
+import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 import { vm } from '../../../core/globalState';
 import { pickOp } from '../../../ops/builtins-stack';
 

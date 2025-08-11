@@ -3,7 +3,7 @@
  * Tests the address-based operations and spec-required functionality
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from '../../utils/test-utils';
+import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 import { fromTaggedValue, Tag, isList } from '../../../core/tagged';
 
 describe('Lists.md Specification Compliance', () => {

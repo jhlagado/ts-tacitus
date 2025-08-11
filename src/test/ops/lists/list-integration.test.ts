@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode, resetVM } from '../../utils/test-utils';
+import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 
 describe('List Integration Tests', () => {
   beforeEach(() => {

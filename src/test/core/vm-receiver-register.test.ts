@@ -1,6 +1,6 @@
 import { VM } from '../../core/vm';
 import { Compiler } from '../../lang/compiler';
-import { resetVM } from '../utils/test-utils';
+import { resetVM } from "../utils/vm-test-utils";
 
 describe('VM Receiver Register', () => {
   let vm: VM;

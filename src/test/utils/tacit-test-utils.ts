@@ -2,7 +2,7 @@
  * TACIT syntax integration testing utilities
  * Specialized utilities for testing complex TACIT language features and syntax integration
  */
-import { executeTacitCode, resetVM } from './test-utils';
+import { executeTacitCode, resetVM } from './vm-test-utils';
 import { fromTaggedValue, Tag } from '../../core/tagged';
 
 // ================================
