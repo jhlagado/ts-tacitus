@@ -11,8 +11,8 @@ Timebox: Iterative (each step individually reviewable). Tests MUST pass after ev
 
 - Specs: `docs/specs/{lists.md,maplists.md,access.md,capsules.md,capsules-implementation.md,stack-operations.md,tagged.md,vm-architecture.md}`
 - Current code focal dirs: `src/core`, `src/ops`, `src/lang`, `src/stack`, `src/strings`, `src/test`
-- Existing list ops implemented: `slots`, `cons`, `concat`, `tail`, `get-at`, `set-at`, `enlist` (mEnlist)
-- Missing (per analysis): `length`, `head`, `tail`, `uncons`, `pack`, `unpack`, `append`, `sort`, `bfind` (list + maplist variants), `find` (polymorphic), `get`, `set`, `mapsort`, `keys`, `values`, `hindex`, `hfind`, capsule system (parser, field offsets, method maplist, with combinator, .method sigil), address-level primitives if desired.
+- Existing list ops implemented: `slots`, `cons`, `concat`, `tail`, `enlist` (mEnlist)
+- Missing (per analysis): `length`, `elem`, `head`, `tail`, `uncons`, `pack`, `unpack`, `append`, `sort`, `bfind` (list + maplist variants), `find` (polymorphic), `get`, `set`, `mapsort`, `keys`, `values`, `hindex`, `hfind`, capsule system (parser, field offsets, method maplist, with combinator, .method sigil).
 - Dead / unregistered legacy ops in code: `listPrependOp`, `listAppendOp`, `listSkipOp` (verify & remove/rename).
 - Unification: Legacy LINK & CODE_BLOCK fully removed across codebase and specs (harmonized). No further action required.
 - Sentinel: NIL = `Tag.INTEGER(0)`; design choice: prefer returning NIL (or default value) over throwing for data lookups; keep structural errors (e.g. stack underflow) as exceptions.
@@ -70,17 +70,18 @@ Tasks:
   Tests:
 - New test file `src/test/ops/lists/list-registry-clean.test.ts`.
 
-### Step 2 — List Core Completion (length, head, tail, uncons)
+### Step 2 — List Core Completion (length, elem, head, tail, uncons)
 
 Rationale: Complete basic list algebra before advanced algorithms.
 Tasks:
 
 1. Implement ops:
    - `length ( list — n )` traversal element count.
+   - `elem ( idx — addr )` address of element start (logical index).
    - `head ( list — value | nil )` returns element 0 or NIL if empty.
-   - `tail ( list — list' )` similar to current `drop-head` but keep both (or alias drop-head → tail) — choose canonical name per spec; deprecate `drop-head`.
-   - `uncons ( list — tail head )` — NIL head for empty yields `( ) NIL` (ensure empty list creation constant path).
-2. Decide naming: Replace `drop-head` with `tail` (keep temporary alias until Step 4 cleanup).
+   - `tail ( list — list' )` remove logical head in O(1).
+   - `uncons ( list — tail head )` — empty yields `( ) NIL`.
+2. Naming: Use `tail` only (do not expose `drop-head`).
 3. Update registry & opcodes if needed (add new enum values OR reuse existing `DropHead` while aliasing name).
 4. Tests for all new ops including nested compound first element span.
    Acceptance Criteria:
@@ -116,7 +117,7 @@ Tasks:
 
 1. Implement `bfind ( list key bfind { cmp } — addr | nil )` respecting comparator `( key elem — r )`.
 2. Key: Use element traversal building an index of element start addresses or performing on-the-fly mid selection (need element count = length; compute once).
-3. Return element start address (list-relative stack address? or copy element?). Spec: returns address; since current address model not public, choose to return element value directly for now OR introduce address tagging. Prefer returning the element value (consistent with existing get-at). Document deviation until address primitives implemented (will adjust in Step 9).
+3. Return element start address (address-returning per spec); use `length`/`elem` internally.
 4. NIL if not found.
 5. Tests with sorted list; verify first-equal (lower_bound) behavior with duplicates.
    Acceptance Criteria:
@@ -197,9 +198,9 @@ Tasks:
 Rationale: Prepare for fetch/store & future advanced path operations consistent with specs.
 Tasks:
 
-1. Introduce lightweight "address" tagged abstraction? (Option A) Add new Tag e.g. ADDRESS (requires tagged spec update). (Option B) Reuse INTEGER raw stack slot address (simpler). Choose Option B for minimal change.
-2. Implement internal ops: `elem ( list idx — addr | nil )`, `slot ( list idx — addr | nil )` returning stack byte address (SP-relative) encoded as INTEGER; validate bounds.
-3. Implement `fetch ( list addr — value | nil )` & `store ( list value addr — ok | nil )` with simple-only safety.
+1. Use INTEGER raw stack address (SP-relative) to represent addresses (no new tag).
+2. Implement ops: `elem ( idx — addr | nil )`, `slot ( idx — addr | nil )` returning stack address; validate bounds.
+3. Implement `fetch ( addr — value )` & `store ( value addr — )` with simple-only safety.
 4. Adjust relevant higher-level ops (optional) to use them; keep existing direct forms for compatibility.
 5. Tests verifying addresses stable while list structure unchanged.
    Acceptance Criteria:
