@@ -29,6 +29,9 @@
     - `enlist`
     - `cons`
     - `tail`
+    - `pack`
+    - `unpack`
+    - `append`
     - `concat`
     - `head`
     - `uncons`
@@ -258,6 +261,18 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 
 ### concat
 
+### append
+
+**Stack effect:** `( list value -- list' )`
+**Semantics:** appends `value` (simple or compound) as the last element. Compounds remain intact; the list stays flat.
+**Cost:** O(n). Requires shifting payload to make room at the tail and updating the header. Prefer `cons`/`tail` in hot paths.
+**Examples**
+
+```tac
+( 1 2 ) 3 append         \ -> ( 1 2 3 )
+( 1 ) ( 2 3 ) append     \ -> ( 1 ( 2 3 ) )
+```
+
 ### head
 
 **Stack effect:** `( list -- head | nil )`
@@ -269,6 +284,8 @@ This rule is **type-agnostic** and remains valid as new compound types are intro
 **Stack effect:** `( list -- tail head )`
 **Semantics:** splits the list into its tail and head. On empty, returns `( ) nil`.
 **Cost:** O(1): head is read from `SP-1`, tail is built by reducing the header length by the head span.
+
+### concat
 
 **Stack effect:** `( listA listB -- listC )`
 **Semantics:** merge the **elements of `listB`** into `listA` to form a **flat** list.
