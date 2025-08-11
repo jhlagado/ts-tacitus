@@ -515,20 +515,15 @@ export function storeOp(vm: VM): void {
  * Spec: glossary.md - Build list from n stack items
  */
 export function packOp(vm: VM): void {
-  console.log('packOp: called');
   vm.ensureStackSize(1, 'pack');
-  const countTagged = vm.pop();
-  const {value: count} = fromTaggedValue(countTagged);
-  console.log('packOp: count =', count, 'from tagged', countTagged);
+  const {value: count} = fromTaggedValue(vm.pop());
 
   if (count < 0 || count > vm.getStackData().length) {
-    console.log('packOp: invalid count, returning NIL');
     vm.push(NIL);
     return;
   }
 
   if (count === 0) {
-    console.log('packOp: count is 0, creating empty list');
     vm.push(toTaggedValue(0, Tag.LIST));
     return;
   }
@@ -537,27 +532,18 @@ export function packOp(vm: VM): void {
   for (let i = 0; i < count; i++) {
     if (vm.getStackData().length === 0) {
       // Not enough items on stack
-      console.log('packOp: not enough items, returning NIL');
       vm.push(NIL);
       return;
     }
-    const val = vm.pop();
-    console.log(`packOp: popped value ${i}:`, val);
-    values.push(val);
+    values.push(vm.pop());
   }
-
-  console.log('packOp: collected values:', values);
 
   // Push values back in reverse order (they were popped in reverse)
   for (let i = values.length - 1; i >= 0; i--) {
-    console.log(`packOp: pushing back value ${i}:`, values[i]);
     vm.push(values[i]);
   }
 
-  const header = toTaggedValue(count, Tag.LIST);
-  console.log('packOp: creating header:', header, 'decoded:', {value: count, tag: 'LIST'});
-  vm.push(header);
-  console.log('packOp: final stack:', vm.getStackData());
+  vm.push(toTaggedValue(count, Tag.LIST));
 }
 
 /**
