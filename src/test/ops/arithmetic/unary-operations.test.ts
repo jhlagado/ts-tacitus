@@ -10,8 +10,8 @@ import {
   mFloorOp,
   mNotOp,
   mSignumOp,
-  mEnlistOp,
-} from '../../../ops/builtins-unary-op';
+} from '../../../ops/math-ops';
+import { mEnlistOp } from '../../../ops/list-ops';
 
 function resetVM(): void {
   initializeInterpreter();

@@ -77,8 +77,8 @@ import {
   mFloorOp,
   mNotOp,
   mSignumOp,
-  mEnlistOp,
-} from './builtins-unary-op';
+} from './math-ops';
+import { mEnlistOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '../core/stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';

@@ -18,6 +18,7 @@
 import { VM } from '../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, isList } from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
+import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
   getListSlotCount,
@@ -571,3 +572,17 @@ export function unpackOp(vm: VM): void {
   // for LIST semantics (reversed), so we don't need to do anything else.
   // The elements are now available on the stack as individual items.
 }
+
+/**
+ * Implements the enlist operation.
+ * Converts a single value into a single-element list.
+ * 
+ * Stack effect: ( value — LIST:1 )
+ */
+export const mEnlistOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'enlist');
+  const a = vm.pop();
+  // LIST semantics: push value, then LIST header with slot count 1
+  vm.push(a);
+  vm.push(toTaggedValue(1, Tag.LIST));
+};
