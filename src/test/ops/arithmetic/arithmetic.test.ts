@@ -9,8 +9,14 @@ import {
   modOp,
   minOp,
   maxOp,
-} from '../../../ops/builtins-math';
-import { absOp, negOp, signOp, expOp, lnOp, logOp, sqrtOp } from '../../../ops/arithmetic-ops';
+  absOp,
+  negOp,
+  signOp,
+  expOp,
+  lnOp,
+  logOp,
+  sqrtOp,
+} from '../../../ops/math-ops';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('Arithmetic Operations', () => {

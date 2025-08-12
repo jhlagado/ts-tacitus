@@ -11,7 +11,7 @@ import {
   greaterThanOp,
   lessOrEqualOp,
   greaterOrEqualOp,
-} from '../../../ops/builtins-math';
+} from '../../../ops/math-ops';
 
 describe('Comparison Operations', () => {
   let testVM: VM;

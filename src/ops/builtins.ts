@@ -60,7 +60,17 @@ import {
   lessOrEqualOp,
   greaterThanOp,
   greaterOrEqualOp,
-} from './builtins-math';
+  absOp,
+  negOp,
+  signOp,
+  expOp,
+  lnOp,
+  logOp,
+  sqrtOp,
+  powOp,
+  avgOp,
+  prodOp,
+} from './math-ops';
 import {
   mNegateOp,
   mReciprocalOp,
@@ -72,19 +82,6 @@ import {
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '../core/stack-ops';
 import { printOp } from './builtins-print';
 import { rawPrintOp } from './builtins-raw-print';
-
-import {
-  absOp,
-  negOp,
-  signOp,
-  expOp,
-  lnOp,
-  logOp,
-  sqrtOp,
-  powOp,
-  avgOp,
-  prodOp,
-} from './arithmetic-ops';
 import { simpleIfOp } from './builtins-conditional';
 // Legacy forward list ops removed during unification; parentheses map to LIST impl
 import {

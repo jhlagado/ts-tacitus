@@ -48,7 +48,17 @@ import {
   lessOrEqualOp,
   greaterThanOp,
   greaterOrEqualOp,
-} from './builtins-math';
+  absOp,
+  negOp,
+  signOp,
+  expOp,
+  lnOp,
+  logOp,
+  sqrtOp,
+  powOp,
+  avgOp,
+  prodOp,
+} from './math-ops';
 
 import {
   mNegateOp,
@@ -70,19 +80,6 @@ import {
   nipOp,
   tuckOp,
 } from '../core/stack-ops';
-
-import {
-  absOp,
-  negOp,
-  signOp,
-  expOp,
-  lnOp,
-  logOp,
-  sqrtOp,
-  powOp,
-  avgOp,
-  prodOp,
-} from './arithmetic-ops';
 
 import { simpleIfOp, ifCurlyBranchFalseOp } from './builtins-conditional';
 
