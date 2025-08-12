@@ -66,8 +66,9 @@ import {
   mFloorOp,
   mNotOp,
   mSignumOp,
-  mEnlistOp,
-} from './builtins-unary-op';
+} from './math-ops';
+
+import { mEnlistOp } from './list-ops';
 
 import {
   dupOp,
