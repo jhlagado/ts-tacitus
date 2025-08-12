@@ -325,4 +325,12 @@ export enum Op {
   Cons,
   /** Drop logical head element: ( list — list' ) */
   DropHead,
+
+  // Maplist operations per maplists.md spec
+  /** Address-returning key lookup in maplist with default fallback - ( maplist key — maplist addr | default-addr | NIL ) */
+  Find,
+  /** Extract all keys from maplist - ( maplist — maplist keys ) */
+  Keys,
+  /** Extract all values from maplist - ( maplist — maplist values ) */
+  Values,
 }

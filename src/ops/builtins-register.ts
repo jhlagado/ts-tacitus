@@ -101,6 +101,9 @@ import {
   packOp,
   unpackOp,
   reverseOp,
+  findOp,
+  keysOp,
+  valuesOp,
 } from './list-ops';
 
 /**
@@ -153,6 +156,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('pack', Op.Pack, packOp);
   symbolTable.define('unpack', Op.Unpack, unpackOp);
   symbolTable.define('reverse', Op.Reverse, reverseOp);
+
+  // Maplist operations per maplists.md spec
+  symbolTable.define('find', Op.Find, findOp);
+  symbolTable.define('keys', Op.Keys, keysOp);
+  symbolTable.define('values', Op.Values, valuesOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);

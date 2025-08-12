@@ -633,3 +633,167 @@ export function reverseOp(vm: VM): void {
   // Push the header back
   vm.push(header);
 }
+
+// ============================================================================
+// MAPLIST OPERATIONS (maplists.md specification)
+// ============================================================================
+
+/**
+ * Implements maplist key lookup with address-returning semantics.
+ * Stack effect: ( maplist key -- maplist addr | default-addr | NIL )
+ * Spec: maplists.md §4 - Returns address of value by key comparison
+ * 
+ * Maplist convention: ( key1 value1 key2 value2 ... )
+ * Keys at even positions (0,2,4), values at odd positions (1,3,5)
+ * On key match: returns address of corresponding value
+ * On miss with 'default' key present: returns default value address
+ * On miss without default: returns NIL
+ */
+export function findOp(vm: VM): void {
+  vm.ensureStackSize(2, 'find');
+  const key = vm.pop();
+  const header = vm.peek(); // Keep maplist on stack
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  
+  // Maplist must have even number of slots (key-value pairs)
+  if (slotCount % 2 !== 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  if (slotCount === 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  let defaultValueAddr = -1;
+  
+  // Search through key-value pairs
+  // Keys at positions 0,2,4... Values at positions 1,3,5...
+  for (let i = 0; i < slotCount; i += 2) {
+    const keyAddr = vm.SP - 4 - (i * BYTES_PER_ELEMENT);
+    const valueAddr = vm.SP - 4 - ((i + 1) * BYTES_PER_ELEMENT);
+    const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
+    
+    // Check for exact key match
+    if (currentKey === key) {
+      vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+      return;
+    }
+    
+    // Check for 'default' key (special fallback semantics)
+    // Keys that are STRING tagged values point to digest addresses
+    const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
+    if (keyTag === Tag.STRING) {
+      const keyStr = vm.digest.get(keyValue);
+      if (keyStr === 'default') {
+        defaultValueAddr = valueAddr;
+      }
+    }
+  }
+  
+  // Key not found - check for default fallback
+  if (defaultValueAddr !== -1) {
+    vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
+    return;
+  }
+  
+  // No key match and no default - return NIL
+  vm.push(NIL);
+}
+
+/**
+ * Extracts all keys from a maplist.
+ * Stack effect: ( maplist -- maplist keys )
+ * Spec: maplists.md §9 - Extract keys at positions 0,2,4...
+ * 
+ * Returns a new list containing only the keys from even positions.
+ * Invalid maplist (odd slot count) returns NIL.
+ */
+export function keysOp(vm: VM): void {
+  vm.ensureStackSize(1, 'keys');
+  const header = vm.peek(); // Keep maplist on stack
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  
+  // Maplist must have even number of slots
+  if (slotCount % 2 !== 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  if (slotCount === 0) {
+    // Empty maplist - return empty list
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+
+  const keyCount = slotCount / 2;
+  
+  // Extract keys from even positions (0, 2, 4, ...)
+  // Push keys in correct LIST order (reverse of memory layout)
+  for (let i = keyCount - 1; i >= 0; i--) {
+    const keyAddr = vm.SP - 4 - (i * 2 * BYTES_PER_ELEMENT);
+    const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
+    vm.push(keyValue);
+  }
+  
+  // Push LIST header for keys
+  vm.push(toTaggedValue(keyCount, Tag.LIST));
+}
+
+/**
+ * Extracts all values from a maplist.
+ * Stack effect: ( maplist -- maplist values )
+ * Spec: maplists.md §9 - Extract values at positions 1,3,5...
+ * 
+ * Returns a new list containing only the values from odd positions.
+ * Invalid maplist (odd slot count) returns NIL.
+ */
+export function valuesOp(vm: VM): void {
+  vm.ensureStackSize(1, 'values');
+  const header = vm.peek(); // Keep maplist on stack
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  
+  // Maplist must have even number of slots
+  if (slotCount % 2 !== 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  if (slotCount === 0) {
+    // Empty maplist - return empty list
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+
+  const valueCount = slotCount / 2;
+  
+  // Extract values from odd positions (1, 3, 5, ...)
+  // Push values in correct LIST order (reverse of memory layout)
+  for (let i = valueCount - 1; i >= 0; i--) {
+    const valueAddr = vm.SP - 4 - ((i * 2 + 1) * BYTES_PER_ELEMENT);
+    const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
+    vm.push(valueValue);
+  }
+  
+  // Push LIST header for values
+  vm.push(toTaggedValue(valueCount, Tag.LIST));
+}
