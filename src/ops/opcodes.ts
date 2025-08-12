@@ -238,6 +238,9 @@ export enum Op {
   /**  Pushes list elements onto stack individually. */
   Unpack,
 
+  /**  Reverses the elements of a list. */
+  Reverse,
+
   /**  Checks if a value is present in a vector. */
   mIn,
 

@@ -100,6 +100,7 @@ import {
   unconsOp,
   packOp,
   unpackOp,
+  reverseOp,
 } from './list-ops';
 
 /**
@@ -151,6 +152,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('uncons', Op.Uncons, unconsOp);
   symbolTable.define('pack', Op.Pack, packOp);
   symbolTable.define('unpack', Op.Unpack, unpackOp);
+  symbolTable.define('reverse', Op.Reverse, reverseOp);
 
   symbolTable.define('add', Op.Add, addOp);
   symbolTable.define('sub', Op.Minus, subtractOp);
