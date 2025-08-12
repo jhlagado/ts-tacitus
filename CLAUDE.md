@@ -11,6 +11,7 @@
 
 ### 2. Testing Protocol (MANDATORY)
 - **Run `yarn test` after every step** - catch regressions early
+- **MUST run full test suite** - no step is complete without full test verification
 - **Use `resetVM()` in test setup** - ensures clean state
 - **Test error conditions** - invalid inputs, edge cases, empty stacks
 - **Run `yarn lint`** before completion

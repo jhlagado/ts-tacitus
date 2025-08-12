@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 import { vm } from '../../../core/globalState';
-import { pickOp } from '../../../ops/builtins-stack';
+import { pickOp } from '../../../core/stack-ops';
 
 describe('List Operations', () => {
   beforeEach(() => {
