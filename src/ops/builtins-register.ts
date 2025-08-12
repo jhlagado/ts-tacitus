@@ -69,7 +69,7 @@ import {
   pickOp,
   nipOp,
   tuckOp,
-} from './builtins-stack';
+} from '../core/stack-ops';
 
 import {
   absOp,

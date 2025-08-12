@@ -1,6 +1,6 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
-import { rotOp } from '../../../ops/builtins-stack';
+import { rotOp } from '../../../core/stack-ops';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('rot Operation', () => {

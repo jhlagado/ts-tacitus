@@ -69,7 +69,7 @@ import {
   mSignumOp,
   mEnlistOp,
 } from './builtins-unary-op';
-import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './builtins-stack';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '../core/stack-ops';
 import { printOp } from './builtins-print';
 import { rawPrintOp } from './builtins-raw-print';
 
