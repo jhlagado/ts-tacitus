@@ -214,9 +214,14 @@ export class Memory {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
 
-    return Array.from(this.buffer.slice(start, end + 1))
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join(' ');
+    // C-ready: Replace functional chain with explicit loop
+    const length = end - start + 1;
+    const result = new Array(length);
+    for (let i = 0; i < length; i++) {
+      const byte = this.buffer[start + i];
+      result[i] = byte.toString(16).padStart(2, '0');
+    }
+    return result.join(' ');
   }
 
   /**
@@ -232,8 +237,13 @@ export class Memory {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
 
-    return Array.from(this.buffer.slice(start, end + 1))
-      .map(byte => String.fromCharCode(byte))
-      .join(' ');
+    // C-ready: Replace functional chain with explicit loop
+    const length = end - start + 1;
+    const result = new Array(length);
+    for (let i = 0; i < length; i++) {
+      const byte = this.buffer[start + i];
+      result[i] = String.fromCharCode(byte);
+    }
+    return result.join(' ');
   }
 }
