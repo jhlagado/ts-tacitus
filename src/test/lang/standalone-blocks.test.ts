@@ -13,57 +13,7 @@ describe('Standalone Code Blocks', () => {
     expect(() => executeProgram(code)).not.toThrow();
   });
 
-  it.skip('should execute a standalone block and leave code reference on stack - KNOWN ISSUE: test isolation', () => {
-    const code = '{ 1 2 add }';
 
-    executeProgram(code);
-
-    const stack = vm.getStackData();
-    expect(stack.length).toBe(1);
-
-    const { tag, value } = fromTaggedValue(stack[0]);
-    expect(tag).toBe(Tag.CODE);
-    expect(typeof value).toBe('number');
-    expect(value).toBeGreaterThan(0);
-  });
-  it.skip('should create different code references for different blocks - KNOWN ISSUE: test isolation', () => {
-    const code = '{ 1 2 add } { 3 4 mul }';
-
-    executeProgram(code);
-
-    const stack = vm.getStackData();
-    expect(stack.length).toBe(2);
-
-    const { tag: tag1, value: addr1 } = fromTaggedValue(stack[0]);
-    const { tag: tag2, value: addr2 } = fromTaggedValue(stack[1]);
-
-    expect(tag1).toBe(Tag.CODE);
-    expect(tag2).toBe(Tag.CODE);
-
-    expect(addr1).not.toBe(addr2);
-  });
-
-  it.skip('should handle empty blocks - KNOWN ISSUE: test isolation', () => {
-    const code = '{ }';
-    executeProgram(code);
-
-    const stack = vm.getStackData();
-    expect(stack.length).toBe(1);
-
-    const { tag } = fromTaggedValue(stack[0]);
-    expect(tag).toBe(Tag.CODE);
-  });
-
-  it.skip('should handle nested blocks - KNOWN ISSUE: test isolation', () => {
-    const code = '{ { 1 } { 2 } }';
-    executeProgram(code);
-
-    const stack = vm.getStackData();
-    expect(stack.length).toBe(1);
-
-    const { tag } = fromTaggedValue(stack[0]);
-    expect(tag).toBe(Tag.CODE);
-  });
 
   it('should actually execute code when called with eval', () => {
     const code = '{ 1 2 add } eval';
