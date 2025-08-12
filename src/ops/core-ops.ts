@@ -1,5 +1,5 @@
 /**
- * @file src/ops/builtins-interpreter.ts
+ * @file src/ops/core-ops.ts
  *
  * This file implements core interpreter control operations for the Tacit VM.
  *

@@ -11,7 +11,7 @@ import { resetVM } from "../utils/vm-test-utils";
 import { createBuiltinRef } from '../../core/code-ref';
 import { toTaggedValue, Tag } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
-import { evalOp } from '../../ops/builtins-interpreter';
+import { evalOp } from '../../ops/core-ops';
 
 describe('VM Unified Dispatch', () => {
   beforeEach(() => {

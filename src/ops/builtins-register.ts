@@ -30,7 +30,7 @@ import {
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
-} from './builtins-interpreter';
+} from './core-ops';
 
 import { literalAddressOp } from './builtins';
 
@@ -81,12 +81,11 @@ import {
   tuckOp,
 } from '../core/stack-ops';
 
-import { simpleIfOp, ifCurlyBranchFalseOp } from './builtins-conditional';
+import { simpleIfOp, ifCurlyBranchFalseOp } from './control-ops';
 
-import { printOp } from './builtins-print';
+import { printOp, rawPrintOp } from './print-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { rawPrintOp } from './builtins-raw-print';
 import {
   openListOp,
   closeListOp,
@@ -103,7 +102,7 @@ import {
   unconsOp,
   packOp,
   unpackOp,
-} from './builtins-list';
+} from './list-ops';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
