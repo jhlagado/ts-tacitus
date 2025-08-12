@@ -58,9 +58,6 @@ import {
   powOp,
   avgOp,
   prodOp,
-} from './math-ops';
-
-import {
   mNegateOp,
   mReciprocalOp,
   mFloorOp,
@@ -80,7 +77,7 @@ import {
   pickOp,
   nipOp,
   tuckOp,
-} from '../core/stack-ops';
+} from './stack-ops';
 
 import { simpleIfOp, ifCurlyBranchFalseOp } from './control-ops';
 

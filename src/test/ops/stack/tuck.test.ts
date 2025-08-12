@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../../core/globalState';
-import { tuckOp } from '../../../core/stack-ops';
+import { tuckOp } from '../../../ops/stack-ops';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 
