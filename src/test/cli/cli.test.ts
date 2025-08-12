@@ -1,10 +1,10 @@
-import { main } from './cli';
-import { startREPL } from './lang/repl';
+import { main } from '../../cli';
+import { startREPL } from '../../lang/repl';
 
-import { processFiles } from './lang/fileProcessor';
+import { processFiles } from '../../lang/fileProcessor';
 
-jest.mock('./lang/repl');
-jest.mock('./lang/fileProcessor');
+jest.mock('../../lang/repl');
+jest.mock('../../lang/fileProcessor');
 describe('CLI', () => {
   let originalArgv: string[];
   beforeEach(() => {
