@@ -1,5 +1,5 @@
-import { vm, initializeInterpreter } from '../../core/globalState';
-import { executeProgram } from '../../lang/interpreter';
+import { vm, initializeInterpreter } from '../../../core/globalState';
+import { executeProgram } from '../../../lang/interpreter';
 
 describe('Repeat Combinator', () => {
   beforeEach(() => {
