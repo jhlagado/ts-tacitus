@@ -1,5 +1,5 @@
 /**
- * @file src/ops/builtins-list.ts
+ * @file src/ops/list-ops.ts
  *
  * This file implements the LIST operations for the Tacit VM.
  *

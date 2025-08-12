@@ -1,5 +1,5 @@
 /**
- * @file src/ops/builtins-conditional.ts
+ * @file src/ops/control-ops.ts
  *
  * This file implements conditional branching operations for the Tacit VM.
  *

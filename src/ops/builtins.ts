@@ -45,7 +45,7 @@ import {
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
-} from './builtins-interpreter';
+} from './core-ops';
 import {
   addOp,
   subtractOp,
@@ -80,9 +80,8 @@ import {
   mEnlistOp,
 } from './builtins-unary-op';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '../core/stack-ops';
-import { printOp } from './builtins-print';
-import { rawPrintOp } from './builtins-raw-print';
-import { simpleIfOp } from './builtins-conditional';
+import { printOp, rawPrintOp } from './print-ops';
+import { simpleIfOp } from './control-ops';
 // Legacy forward list ops removed during unification; parentheses map to LIST impl
 import {
   openListOp,
@@ -98,13 +97,13 @@ import {
   listAppendOp,
   headOp,
   unconsOp,
-} from './builtins-list';
-import { consOp, concatOp, dropHeadOp, packOp, unpackOp } from './builtins-list';
+} from './list-ops';
+import { consOp, concatOp, dropHeadOp, packOp, unpackOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
 
-import { ifCurlyBranchFalseOp } from './builtins-conditional';
+import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 

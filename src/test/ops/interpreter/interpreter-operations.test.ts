@@ -15,7 +15,7 @@ import {
   literalNumberOp,
   groupLeftOp,
   groupRightOp,
-} from '../../../ops/builtins-interpreter';
+} from '../../../ops/core-ops';
 describe('Built-in Words', () => {
   beforeEach(() => {
     initializeInterpreter();
