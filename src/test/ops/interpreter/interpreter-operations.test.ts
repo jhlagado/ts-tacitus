@@ -1,4 +1,4 @@
-import { addOp } from '../../../ops/builtins-math';
+import { addOp } from '../../../ops/math-ops';
 import { dupOp, swapOp } from '../../../core/stack-ops';
 import { initializeInterpreter, vm } from '../../../core/globalState';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../../core/tagged';

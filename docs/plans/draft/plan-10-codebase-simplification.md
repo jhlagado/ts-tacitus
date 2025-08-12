@@ -92,31 +92,41 @@ Timebox: 3-4 days (aggressive cleanup)
 
 ### **Phase 2: Fix Duplicates** (Day 2)
 
-#### Step 2.1: Resolve Math Operation Duplicates
-**Current**: Math ops in BOTH `builtins-math.ts` AND `arithmetic-ops.ts`
-**Action**: 
-1. Compare both files - choose the better implementation
-2. Update all imports to use chosen file
-3. Delete the other file
-4. Test after each change
+#### ✅ Step 2.1: Resolve Math Operation Duplicates **COMPLETE**
+**Result**: **SUCCESS** - Resolved overlap without losing functionality
 
-**Test**: `yarn test` after each import update
+**Discovery**: Files were complementary, not complete duplicates:
+- `builtins-math.ts`: Core arithmetic (add, sub, mul, div) + comparisons ✅  
+- `arithmetic-ops.ts`: Advanced math (abs, neg, exp, ln, sqrt, etc.) ✅
+- **Only overlap**: `minOp`/`maxOp` duplicated in both files
 
-#### Step 2.2: Clean Up Test Utilities  
-**Current**: Test utils in BOTH `tacit-test-utils.ts` AND `vm-test-utils.ts`
-**Action**:
-1. Audit which is actually used
-2. Merge useful functions if needed
-3. Delete redundant file
-4. Update imports
+**Actions Completed**:
+- ✅ Analyzed both files - found they serve different math domains
+- ✅ Removed duplicate `minOp`/`maxOp` from `arithmetic-ops.ts` (unused copies)
+- ✅ Kept `builtins-math.ts` versions (actively registered and used)
+- ✅ All tests pass - no functional regressions
 
-**Test**: `yarn test` after each change
+**Files Reduced**: ~49 lines of duplicate code eliminated
 
-**Success Criteria**:
-- [ ] Only ONE math operations file
-- [ ] Only ONE test utilities file
-- [ ] All tests pass
-- [ ] No duplicate implementations
+#### ✅ Step 2.2: Clean Up Test Utilities **ALREADY COMPLETE**
+**Result**: **COMPLETED IN PHASE 1** - Test utility duplicates already resolved
+
+**Actions Already Completed**:
+- ✅ **Phase 1.3**: Deleted `src/test/utils/tacit-test-utils.ts` (~250 lines) - 0% coverage, unused
+- ✅ **Phase 1.3**: Deleted `src/test/utils.ts` (~20 lines) - duplicate of setupTests.ts functionality  
+- ✅ Only `vm-test-utils.ts` remains - single source of truth for test utilities
+- ✅ All tests pass - no test utility duplicates remain
+
+**Already Eliminated**: ~270 lines of duplicate test utility code
+
+**Success Criteria - Phase 2**:
+- [x] **Math operations cleaned up**: Removed duplicate `minOp`/`maxOp`, kept complementary files  
+- [x] **Only ONE test utilities file**: `vm-test-utils.ts` (others deleted in Phase 1)
+- [x] **All tests pass**: Zero regressions
+- [x] **No duplicate implementations**: All overlaps eliminated
+
+**Phase 2 Results**: ~319 lines of duplicate code eliminated  
+**(49 lines math duplicates + 270 lines test utilities already removed in Phase 1)**
 
 ---
 
