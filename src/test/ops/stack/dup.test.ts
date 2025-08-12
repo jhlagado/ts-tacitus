@@ -1,6 +1,6 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
-import { dupOp } from '../../../core/stack-ops';
+import { dupOp } from '../../../ops/stack-ops';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('dup Operation', () => {

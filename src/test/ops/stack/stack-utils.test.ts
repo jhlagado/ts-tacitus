@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
 import { SEG_STACK } from '../../../core/constants';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { slotsRoll, findElement } from '../../../core/stack-ops';
+import { slotsRoll, findElement } from '../../../ops/stack-ops';
 
 const BYTES_PER_ELEMENT = 4;
 

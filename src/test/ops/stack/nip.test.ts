@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../../core/globalState';
-import { nipOp } from '../../../core/stack-ops';
+import { nipOp } from '../../../ops/stack-ops';
 import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
 
 describe('nip Operation', () => {

@@ -11,11 +11,11 @@
  * for efficient stack manipulation in the C-port ready architecture.
  */
 
-import { VM } from './vm';
-import { Verb } from './types';
-import { fromTaggedValue, Tag } from './tagged';
-import { SEG_STACK, BYTES_PER_ELEMENT } from './constants';
-import { StackUnderflowError, VMError } from './errors';
+import { VM } from '../core/vm';
+import { Verb } from '../core/types';
+import { fromTaggedValue, Tag } from '../core/tagged';
+import { SEG_STACK, BYTES_PER_ELEMENT } from '../core/constants';
+import { StackUnderflowError, VMError } from '../core/errors';
 
 // ============================================================================
 // STACK ELEMENT FINDING UTILITIES (from src/stack/find.ts)

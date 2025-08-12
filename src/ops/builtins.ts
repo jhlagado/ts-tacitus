@@ -79,7 +79,7 @@ import {
   mSignumOp,
 } from './math-ops';
 import { mEnlistOp } from './list-ops';
-import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '../core/stack-ops';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
 // Legacy forward list ops removed during unification; parentheses map to LIST impl

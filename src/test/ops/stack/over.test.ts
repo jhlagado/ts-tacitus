@@ -1,6 +1,6 @@
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
-import { overOp } from '../../../core/stack-ops';
+import { overOp } from '../../../ops/stack-ops';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('over Operation', () => {
