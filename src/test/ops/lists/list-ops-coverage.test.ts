@@ -1,0 +1,310 @@
+/**
+ * Tests for list-ops.ts - targeting uncovered branches
+ * This focuses on error conditions, edge cases, and debug output not covered in main list tests
+ */
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { vm, initializeInterpreter } from '../../../core/globalState';
+import { 
+  openListOp, 
+  closeListOp, 
+  listSlotOp, 
+  lengthOp, 
+  listSkipOp, 
+  listPrependOp 
+} from '../../../ops/list-ops';
+import { toTaggedValue, Tag } from '../../../core/tagged';
+
+describe('List Operations - Branch Coverage', () => {
+  beforeEach(() => {
+    initializeInterpreter();
+    vm.debug = false;
+  });
+
+  describe('openListOp debug output', () => {
+    test('should log debug information when debug mode is enabled', () => {
+      vm.debug = true;
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      
+      openListOp(vm);
+      
+      // Should have logged debug information
+      expect(consoleSpy).toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
+      vm.debug = false;
+    });
+  });
+
+  describe('closeListOp debug output and edge cases', () => {
+    test('should log debug information when debug mode is enabled', () => {
+      vm.debug = true;
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Set up for list creation
+      openListOp(vm);
+      vm.push(42); // Add an element
+      closeListOp(vm);
+      
+      // Should have logged debug information
+      expect(consoleSpy).toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
+      vm.debug = false;
+    });
+
+    test('should handle empty lists (no reversal needed)', () => {
+      openListOp(vm);
+      // Don't add any elements
+      closeListOp(vm);
+      
+      // Should have created an empty list
+      const header = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(header);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(0); // Empty list
+    });
+
+    test('should handle lists with listDepth undefined (backward compatibility)', () => {
+      // Temporarily remove listDepth to test backward compatibility
+      const originalListDepth = vm.listDepth;
+      delete (vm as any).listDepth;
+      
+      openListOp(vm);
+      vm.push(42);
+      vm.push(24);
+      closeListOp(vm);
+      
+      // Should still work
+      expect(vm.getStackData().length).toBeGreaterThan(0);
+      
+      // Restore listDepth
+      (vm as any).listDepth = originalListDepth;
+    });
+  });
+
+  describe('lengthOp edge cases', () => {
+    test('should return NIL for non-list values', () => {
+      vm.push(42); // Not a list
+      
+      lengthOp(vm);
+      
+      const result = vm.pop();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
+      expect(tag).toBe(Tag.INTEGER);
+      expect(value).toBe(0); // NIL is INTEGER 0
+    });
+
+    test('should return 0 for empty lists', () => {
+      // Create an empty list
+      const emptyList = toTaggedValue(0, Tag.LIST);
+      vm.push(emptyList);
+      
+      lengthOp(vm);
+      
+      const result = vm.pop();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
+      expect(tag).toBe(Tag.INTEGER);
+      expect(value).toBe(0); // Length is 0
+    });
+
+    test('should count nested lists correctly', () => {
+      // Create a list with nested structure: ( 1 ( 2 3 ) 4 )
+      // This is complex to set up manually, so we'll use a simpler approach
+      openListOp(vm);
+      vm.push(1);
+      openListOp(vm);
+      vm.push(2);
+      vm.push(3);
+      closeListOp(vm); // Creates inner list
+      vm.push(4);
+      closeListOp(vm); // Creates outer list
+      
+      lengthOp(vm);
+      
+      const lengthTagged = vm.pop();
+      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
+      expect(length).toBe(3); // Three elements: 1, nested-list, 4
+    });
+  });
+
+  describe('listPrependOp edge cases', () => {
+    test('should handle prepending to non-list values', () => {
+      vm.push(42); // Not a list
+      vm.push(99); // Value to prepend
+      
+      listPrependOp(vm);
+      
+      const stack = vm.getStackData();
+      expect(stack).toHaveLength(3); // Original value, prepend value, NIL
+      // Check that NIL was pushed as last element
+      const nilValue = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(nilValue);
+      expect(tag).toBe(Tag.INTEGER);
+      expect(value).toBe(0);
+    });
+
+    test('should prepend to empty list', () => {
+      const emptyList = toTaggedValue(0, Tag.LIST);
+      vm.push(emptyList);
+      vm.push(123); // Value to prepend
+      
+      listPrependOp(vm);
+      
+      const stack = vm.getStackData();
+      expect(stack).toHaveLength(2); // Value + new list header
+      
+      // Check that new list has 1 element
+      const newHeader = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(newHeader);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(1); // One element now
+    });
+
+    test('should prepend to existing list', () => {
+      // Create a list with one element
+      openListOp(vm);
+      vm.push(42);
+      closeListOp(vm);
+      
+      vm.push(99); // Value to prepend
+      
+      listPrependOp(vm);
+      
+      // Check that new list has correct structure
+      const newHeader = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(newHeader);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(2); // Two elements now
+    });
+  });
+
+  describe('Stack underflow protection', () => {
+    test('lengthOp should handle empty stack', () => {
+      expect(() => lengthOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('listPrependOp should handle insufficient stack', () => {
+      vm.push(42); // Only one item
+      expect(() => listPrependOp(vm)).toThrow('Stack underflow');
+    });
+
+    test('listSlotOp should handle non-list at TOS', () => {
+      vm.push(42); // Not a list
+      expect(() => listSlotOp(vm)).toThrow(); // Should throw validation error
+    });
+
+    test('closeListOp should handle return stack underflow', () => {
+      // Don't call openListOp first, so return stack is empty
+      expect(() => closeListOp(vm)).toThrow('Return stack underflow');
+    });
+  });
+
+  describe('List validation and type checking', () => {
+    test('should handle large list headers', () => {
+      // Create a list tag with large (but reasonable) slot count
+      const largeList = toTaggedValue(100, Tag.LIST); // Large but safe slot count
+      vm.push(largeList);
+      
+      // Some operations should handle this gracefully (though may fail due to memory)
+      expect(() => lengthOp(vm)).toThrow(); // Will likely throw due to memory access
+    });
+
+    test('should handle mixed data types in operations', () => {
+      vm.push(toTaggedValue(100, Tag.CODE)); // CODE value
+      
+      lengthOp(vm);
+      
+      // Should return NIL for non-list
+      const result = vm.pop();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
+      expect(tag).toBe(Tag.INTEGER);
+      expect(value).toBe(0); // NIL
+    });
+
+    test('should handle STRING values in list operations', () => {
+      vm.push(toTaggedValue(50, Tag.STRING)); // STRING value
+      vm.push(42); // Value to prepend
+      
+      listPrependOp(vm);
+      
+      // Should handle non-list gracefully
+      const nilValue = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(nilValue);
+      expect(tag).toBe(Tag.INTEGER);
+      expect(value).toBe(0); // Should have pushed NIL
+    });
+  });
+
+  describe('Complex list structures', () => {
+    test('should handle deeply nested list operations', () => {
+      // Create: ( ( ( 1 ) ) )
+      openListOp(vm);
+      openListOp(vm);
+      openListOp(vm);
+      vm.push(1);
+      closeListOp(vm);
+      closeListOp(vm);
+      closeListOp(vm);
+      
+      lengthOp(vm);
+      
+      const lengthTagged = vm.pop();
+      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
+      expect(length).toBe(1); // One element (the nested structure)
+    });
+
+    test('should handle large lists efficiently', () => {
+      openListOp(vm);
+      
+      // Add many elements
+      for (let i = 0; i < 50; i++) {
+        vm.push(i);
+      }
+      
+      closeListOp(vm);
+      
+      lengthOp(vm);
+      
+      const lengthTagged = vm.pop();
+      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
+      expect(length).toBe(50);
+    });
+  });
+
+  describe('Memory and stack management', () => {
+    test('should maintain stack integrity during complex operations', () => {
+      const initialSP = vm.SP;
+      
+      // Perform several list operations
+      openListOp(vm);
+      vm.push(1);
+      vm.push(2);
+      closeListOp(vm);
+      
+      vm.push(3);
+      listPrependOp(vm);
+      
+      lengthOp(vm);
+      
+      // Stack should be in valid state
+      expect(vm.SP).toBeGreaterThan(initialSP);
+      expect(vm.getStackData()).toBeDefined();
+    });
+
+    test('listSkipOp should properly clean up stack', () => {
+      // Create a list
+      openListOp(vm);
+      vm.push(1);
+      vm.push(2);
+      vm.push(3);
+      closeListOp(vm);
+      
+      const stackBefore = vm.getStackData().length;
+      
+      listSkipOp(vm);
+      
+      const stackAfter = vm.getStackData().length;
+      expect(stackAfter).toBeLessThan(stackBefore);
+    });
+  });
+});
