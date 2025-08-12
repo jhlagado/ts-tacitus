@@ -98,7 +98,7 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { consOp, concatOp, dropHeadOp, packOp, unpackOp } from './list-ops';
+import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -357,6 +357,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Unpack:
       unpackOp(vm);
+      break;
+    case Op.Reverse:
+      reverseOp(vm);
       break;
     case Op.Cons:
       consOp(vm);

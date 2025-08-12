@@ -586,3 +586,50 @@ export const mEnlistOp: Verb = (vm: VM) => {
   vm.push(a);
   vm.push(toTaggedValue(1, Tag.LIST));
 };
+
+/**
+ * Reverses the elements of a list.
+ * Stack effect: ( list -- list' )
+ * Spec: Returns a new list with elements in reverse order
+ */
+export function reverseOp(vm: VM): void {
+  vm.ensureStackSize(1, 'reverse');
+  const header = vm.pop();
+
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+
+  const slotCount = getListSlotCount(header);
+  
+  if (slotCount === 0) {
+    // Empty list - return empty list
+    vm.push(header);
+    return;
+  }
+
+  if (slotCount === 1) {
+    // Single element list - return as-is
+    const element = vm.pop();
+    vm.push(element);
+    vm.push(header);
+    return;
+  }
+
+  // Pop all elements from the list payload
+  const elements: number[] = [];
+  for (let i = 0; i < slotCount; i++) {
+    elements.push(vm.pop());
+  }
+
+  // In LIST format, elements are already stored in reverse order
+  // To reverse the list logically, we need to reverse the order again
+  // This requires pushing elements in reverse order from our array
+  for (let i = elements.length - 1; i >= 0; i--) {
+    vm.push(elements[i]);
+  }
+
+  // Push the header back
+  vm.push(header);
+}
