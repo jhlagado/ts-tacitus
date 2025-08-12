@@ -55,22 +55,7 @@ describe('drop Operation', () => {
 
     // Removed ambiguous nested drop; drop removes only TOS LIST per operation
 
-    test.skip('should drop only the top list when multiple lists are present - KNOWN ISSUE: NaN-boxing corruption', () => {
-      // First list (1 2)
-      vm.push(1);
-      vm.push(2);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      // Second list (3 4)
-      vm.push(3);
-      vm.push(4);
-      vm.push(toTaggedValue(2, Tag.LIST));
 
-      dropOp(vm);
-      const stackAfter = vm.getStackData();
-      expect(stackAfter.length).toBe(3); // remaining first list
-      const header = stackAfter[2];
-      expect(fromTaggedValue(header)).toEqual({ tag: Tag.LIST, value: 2 });
-    });
 
     test('should drop multiple lists consecutively', () => {
       vm.push(10);

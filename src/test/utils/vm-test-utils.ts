@@ -252,7 +252,6 @@ export interface OperationTestCase {
   operation: string | ((vm: VM) => void);
   expectedStack?: number[];
   verify?: (stack: number[]) => void;
-  skip?: boolean;
 }
 
 /**
@@ -260,9 +259,8 @@ export interface OperationTestCase {
  */
 export function runOperationTests(testCases: OperationTestCase[], setup?: () => void): void {
   testCases.forEach(testCase => {
-    const testFn = testCase.skip ? it.skip : it;
     
-    testFn(testCase.name, () => {
+    it(testCase.name, () => {
       if (setup) setup();
       resetVM();
       
