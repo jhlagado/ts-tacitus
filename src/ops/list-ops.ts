@@ -383,26 +383,47 @@ export function slotOp(vm: VM): void {
 
 /**
  * Returns address of element start at logical index.
- * Stack effect: ( list idx -- list addr )
+ * Stack effect: ( list_or_ref idx -- list_or_ref addr )
  * Spec: lists.md §10 - uses traversal to find element start
+ * 
+ * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
 export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
   const {value: idx} = fromTaggedValue(vm.pop());
-  const header = vm.peek(); // Keep list on stack
+  const target = vm.peek(); // Keep target on stack
+  const tag = getTag(target);
 
-  if (!isList(header)) {
+  if (tag === Tag.LIST) {
+    // Current behavior: stack-relative addressing
+    const addr = getListElementAddress(vm, target, vm.SP - 4, idx);
+    if (addr === -1) {
+      vm.push(NIL);
+      return;
+    }
+    vm.push(toTaggedValue(addr, Tag.INTEGER));
+    
+  } else if (tag === Tag.STACK_REF) {
+    // New behavior: memory-based addressing
+    const baseAddr = getStackRefAddress(target);
+    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+    
+    if (!isList(header)) {
+      vm.push(NIL);
+      return;
+    }
+    
+    // Use traversal with memory base address instead of stack position
+    const addr = getListElementAddress(vm, header, baseAddr - 4, idx);
+    if (addr === -1) {
+      vm.push(NIL);
+      return;
+    }
+    vm.push(toTaggedValue(addr, Tag.INTEGER));
+    
+  } else {
     vm.push(NIL);
-    return;
   }
-
-  const addr = getListElementAddress(vm, header, vm.SP - 4, idx);
-  if (addr === -1) {
-    vm.push(NIL);
-    return;
-  }
-
-  vm.push(toTaggedValue(addr, Tag.INTEGER));
 }
 
 /**
@@ -600,7 +621,7 @@ export function reverseOp(vm: VM): void {
 
 /**
  * Implements maplist key lookup with address-returning semantics.
- * Stack effect: ( maplist key -- maplist addr | default-addr | NIL )
+ * Stack effect: ( maplist_or_ref key -- maplist_or_ref addr | default-addr | NIL )
  * Spec: maplists.md §4 - Returns address of value by key comparison
  *
  * Maplist convention: ( key1 value1 key2 value2 ... )
@@ -608,71 +629,137 @@ export function reverseOp(vm: VM): void {
  * On key match: returns address of corresponding value
  * On miss with 'default' key present: returns default value address
  * On miss without default: returns NIL
+ * 
+ * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
 export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
-  const header = vm.pop(); // Pop header like headOp does
+  const target = vm.pop(); // Pop target (LIST or STACK_REF)
+  const tag = getTag(target);
 
-  if (!isList(header)) {
-    vm.push(header); // Restore header
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListSlotCount(header);
-
-  // Maplist must have even number of slots (key-value pairs)
-  if (slotCount % 2 !== 0) {
-    vm.push(header); // Restore header
-    vm.push(NIL);
-    return;
-  }
-
-  if (slotCount === 0) {
-    vm.push(header); // Restore header
-    vm.push(NIL);
-    return;
-  }
-
-  let defaultValueAddr = -1;
-
-  // Search through key-value pairs
-  // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
-  // Keys at slot positions 0,2,4... Values at slot positions 1,3,5...
-  for (let i = 0; i < slotCount; i += 2) {
-    const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
-    const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
-    const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
-
-    // Check for exact key match
-    if (currentKey === key) {
-      vm.push(header); // Restore header
-      vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+  if (tag === Tag.LIST) {
+    // Current behavior: stack-relative addressing
+    const slotCount = getListSlotCount(target);
+    
+    // Maplist must have even number of slots (key-value pairs)
+    if (slotCount % 2 !== 0) {
+      vm.push(target); // Restore target
+      vm.push(NIL);
       return;
     }
 
-    // Check for 'default' key (special fallback semantics)
-    // Keys that are STRING tagged values point to digest addresses
-    const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
-    if (keyTag === Tag.STRING) {
-      const keyStr = vm.digest.get(keyValue);
-      if (keyStr === 'default') {
-        defaultValueAddr = valueAddr;
+    if (slotCount === 0) {
+      vm.push(target); // Restore target
+      vm.push(NIL);
+      return;
+    }
+
+    let defaultValueAddr = -1;
+    
+    // Search through key-value pairs (stack-relative)
+    // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
+    for (let i = 0; i < slotCount; i += 2) {
+      const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
+      const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
+      const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
+      
+      // Check for exact key match
+      if (currentKey === key) {
+        vm.push(target); // Restore target
+        vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+        return;
+      }
+      
+      // Check for 'default' key (special fallback semantics)
+      const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
+      if (keyTag === Tag.STRING) {
+        const keyStr = vm.digest.get(keyValue);
+        if (keyStr === 'default') {
+          defaultValueAddr = valueAddr;
+        }
       }
     }
-  }
 
-  // Key not found - check for default fallback
-  if (defaultValueAddr !== -1) {
-    vm.push(header); // Restore header
-    vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
-    return;
-  }
+    // Key not found - check for default fallback
+    if (defaultValueAddr !== -1) {
+      vm.push(target); // Restore target
+      vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
+      return;
+    }
 
-  // No key match and no default - return NIL
-  vm.push(header); // Restore header
-  vm.push(NIL);
+    // No key match and no default - return NIL
+    vm.push(target); // Restore target
+    vm.push(NIL);
+    
+  } else if (tag === Tag.STACK_REF) {
+    // New behavior: memory-based addressing
+    const baseAddr = getStackRefAddress(target);
+    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+    
+    if (!isList(header)) {
+      vm.push(target); // Restore target
+      vm.push(NIL);
+      return;
+    }
+    
+    const slotCount = getListSlotCount(header);
+    
+    // Maplist must have even number of slots (key-value pairs)
+    if (slotCount % 2 !== 0) {
+      vm.push(target); // Restore target
+      vm.push(NIL);
+      return;
+    }
+
+    if (slotCount === 0) {
+      vm.push(target); // Restore target
+      vm.push(NIL);
+      return;
+    }
+
+    let defaultValueAddr = -1;
+    
+    // Search through key-value pairs (memory-relative)
+    // Slots are at: baseAddr-4, baseAddr-8, baseAddr-12, etc.
+    for (let i = 0; i < slotCount; i += 2) {
+      const keyAddr = baseAddr - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
+      const valueAddr = baseAddr - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
+      const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
+      
+      // Check for exact key match
+      if (currentKey === key) {
+        vm.push(target); // Restore target
+        vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+        return;
+      }
+      
+      // Check for 'default' key (special fallback semantics)
+      const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
+      if (keyTag === Tag.STRING) {
+        const keyStr = vm.digest.get(keyValue);
+        if (keyStr === 'default') {
+          defaultValueAddr = valueAddr;
+        }
+      }
+    }
+
+    // Key not found - check for default fallback
+    if (defaultValueAddr !== -1) {
+      vm.push(target); // Restore target
+      vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
+      return;
+    }
+
+    // No key match and no default - return NIL
+    vm.push(target); // Restore target
+    vm.push(NIL);
+    
+  } else {
+    // Invalid target type
+    vm.push(target); // Restore target
+    vm.push(NIL);
+  }
 }
 
 /**
