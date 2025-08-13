@@ -3,6 +3,7 @@
 ## Terminology
 
 ### Stack vs List Structure
+
 - **Stack Cell**: Single 32-bit tagged value position on the VM stack
 - **List Element**: Variable-length data item within a list structure
 - **Field Offset**: Numeric position of field data within capsule (starting at 1)
@@ -12,6 +13,7 @@ A single list element may occupy multiple stack cells if it contains compound da
 ### Field Access Compilation
 
 Field access compiles to fixed receiver-relative slot indices (no traversal):
+
 ```tacit
 firstName           \ expands to: R O[firstName] slot-at fetch
 lastName            \ expands to: R O[lastName]  slot-at fetch
@@ -23,7 +25,7 @@ The field offset is determined at compile time and stored in the compilation con
 ## Declaration Rules and Ordering
 
 - **Field declarations must precede method declarations** if methods reference those fields
-- Field names are **relative to receiver** and valid only within capsule scope  
+- Field names are **relative to receiver** and valid only within capsule scope
 - Field declarations shadow global names using standard Forth dictionary behavior
 - Methods may access fields directly (symbolic name)
 - All methods compiled with visibility into current capsule's fields at compilation time
@@ -32,6 +34,7 @@ The field offset is determined at compile time and stored in the compilation con
 ## Field Declaration Semantics
 
 The `field` keyword does not allocate a global variable. Instead, it:
+
 - Pops a value (simple or compound) from the stack
 - Writes it temporarily into the dictionary entry (not the capsule yet)
 - Associates the name with an **offset** stored in compiler environment
@@ -40,8 +43,9 @@ The `field` keyword does not allocate a global variable. Instead, it:
 Each field becomes an **element** in the prototype list, with offset starting at 1 (element 0 reserved for dispatch maplist).
 
 ### Field Value Storage
+
 - Field values stored during `end` processing by reading dictionary
-- Compiler walks dictionary to collect all `field` entries  
+- Compiler walks dictionary to collect all `field` entries
 - Emits stored values to data stack in offset order
 - Field values may be any supported type: simple (numbers, booleans, strings, symbols, code refs, nil) or compound (lists, capsules, etc.).
 - Compound values must be well-formed per their own headers (e.g., `LIST:s` with valid spans).
@@ -49,11 +53,13 @@ Each field becomes an **element** in the prototype list, with offset starting at
 ## Method Dispatch Implementation
 
 ### Dispatch Mechanism
+
 ```tac
 .methodName    \ expands to:  R 0 slot-at  `methodName find-at  fetch  eval
 ```
 
 **Process**:
+
 1. Prefix sigil `.` reads next token as method name.
 2. Compute the dispatch maplist header address anchored at the receiver: `R 0 slot-at` (no copying).
 3. Locate the method via `find-at`; this returns the value address for the code reference (or `default`'s value address if present).
@@ -62,25 +68,27 @@ Each field becomes an **element** in the prototype list, with offset starting at
 6. **Receiver unchanged** — remains accessible via the receiver register.
 
 ### TACIT Sigil Family
+
 ```tacit
 @coderef     \ Code reference sigil
-`symbol      \ Symbol literal sigil  
+`symbol      \ Symbol literal sigil
 .method      \ Method dispatch sigil (within 'with' context)
 ```
 
 ## Field Visibility Rules
 
 - Fields must be declared before methods that reference them
-- Methods can only access fields declared earlier in the definition  
+- Methods can only access fields declared earlier in the definition
 - Methods compiled before a field is declared will not have access to it
 - This enforces one-pass, forward-declaration rule consistent with Forth tradition
 
 ## Structural vs Element Mutability
 
 Following list mutability semantics:
+
 - **Fields can be mutated** using `->` operator (efficient, O(1))
 - **Structure is immutable** - adding/removing fields requires new capsule
-- **Compound field values** follow their own mutability rules  
+- **Compound field values** follow their own mutability rules
 - **No in-place modification** of capsule structure itself
 
 ## Compilation Process
@@ -88,28 +96,36 @@ Following list mutability semantics:
 The compiler processes capsule definitions in phases:
 
 ### Phase 1: Declaration Collection
+
 When `capsule <name>` is encountered:
+
 1. Mark current dictionary position as marker
-2. Enter capsule compilation mode  
+2. Enter capsule compilation mode
 3. Record capsule name in compilation context
 4. Collect field and method definitions in forward order
 
-### Phase 2: Field Processing  
+### Phase 2: Field Processing
+
 Each `field` declaration:
+
 1. Assigns sequential element offset (starting at 1)
 2. Records field name and offset in compilation context
 3. Stores initial value temporarily in dictionary entry
 4. Field names shadow global names using standard Forth rules
 
 ### Phase 3: Method Compilation
+
 Each method definition:
+
 1. Compiles as standard TACIT function with capsule context
 2. Resolves field references to fixed offsets using stored mappings
-3. Field symbols marked with flag for relative addressing  
+3. Field symbols marked with flag for relative addressing
 4. Creates code reference for dispatch table entry
 
 ### Phase 4: Prototype Assembly
+
 At `end`:
+
 1. Walk dictionary backward from current head to marker
 2. Collect methods into maplist: `( `name1 @method1 `name2 @method2 ... )`
 3. Collect field values in declaration order (elements 1..N)
@@ -120,23 +136,27 @@ At `end`:
 ### Detailed Implementation Rules
 
 #### Dictionary Walking Algorithm
+
 - Store dictionary head pointer at `capsule <name>`
 - All subsequent entries tagged as part of this capsule
 - At `end`, walk backward identifying field vs method entries
 - Differentiate via flags/metadata in dictionary entries
 
-#### Field Offset Resolution  
+#### Field Offset Resolution
+
 - Offsets start at 1 (element 0 reserved for dispatch maplist)
 - Each `field` increments internal counter
 - Offset stored in dictionary entry under field name
 - Used during method compilation for symbol resolution
 
 #### Stack Semantics for Fields
+
 - `field` consumes the value on the stack and records it for the capsule being built
 - At `end`, recorded field values are emitted in declaration order to assemble the prototype
 - Field values may be any supported type: simple or compound.
 
 #### Symbol Resolution in Methods
+
 - During method compilation, determine if a symbol is a field (receiver-relative) or a global (absolute).
 - Field references compile to: `R O[field] slot-at fetch`.
 - Field assignments compile to: `value R O[field] slot-at store`.
@@ -145,13 +165,16 @@ At `end`:
 ## Performance Characteristics
 
 ### Field Access
+
 - **Read**: O(1) with compile-time offset resolution
 - **Write**: O(1) direct element assignment
 
 ### Method Dispatch
+
 - **Search**: Linear search through the dispatch maplist via `find-at`
 
 ### Instantiation
+
 - **Copy**: O(n) where n is number of fields
 - **Allocation**: Direct stack copying, no heap overhead
 
@@ -165,13 +188,17 @@ At `end`:
 ## Implementation Strategy
 
 ### Phase 1: Basic Dispatch
+
 Implement traditional dispatch:
+
 ```tacit
 instance `method dispatch
 ```
 
 ### Phase 2: `with` Blocks
+
 Add context-based dispatch:
+
 ```tacit
 instance with
   `method dispatch
@@ -179,7 +206,9 @@ end
 ```
 
 ### Phase 3: `.` Sigil Syntax
+
 Add prefix sigil for method calls:
+
 ```tacit
 instance with {
     .method
@@ -190,3 +219,4 @@ instance with {
 
 - `docs/specs/lists.md` - Foundational list mechanics
 - `docs/specs/maplists.md` - Key-value dispatch tables
+- `docs/capsules.md` - Capsules overview
