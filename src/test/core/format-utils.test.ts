@@ -1,7 +1,7 @@
 import { formatFloat, formatAtomicValue, formatListAt, formatValue } from '../../core/format-utils';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { Tag, toTaggedValue } from '../../core/tagged';
-import { executeTacitCode } from "../utils/vm-test-utils";
+import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Format Utils', () => {
   beforeEach(() => {
@@ -133,9 +133,9 @@ describe('Format Utils', () => {
         expect(formatAtomicValue(vm, listValue)).toBe('[LIST:2]');
       });
 
-      test('should format INTEGER tags with tag name and value', () => {
-        const intValue = toTaggedValue(42, Tag.INTEGER);
-        expect(formatAtomicValue(vm, intValue)).toBe('[INTEGER:42]');
+      test('should format SENTINEL tags with tag name and value', () => {
+        const intValue = toTaggedValue(42, Tag.SENTINEL);
+        expect(formatAtomicValue(vm, intValue)).toBe('[SENTINEL:42]');
       });
     });
   });
@@ -248,9 +248,9 @@ describe('Format Utils', () => {
         expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); // CODE treated as NaN-boxed list
       });
 
-      test('should format INTEGER values', () => {
-        const intValue = toTaggedValue(42, Tag.INTEGER);
-        expect(formatValue(vm, intValue)).toBe('( 42 elements )'); // INTEGER treated as NaN-boxed list
+      test('should format SENTINEL values', () => {
+        const intValue = toTaggedValue(42, Tag.SENTINEL);
+        expect(formatValue(vm, intValue)).toBe('( 42 elements )'); // SENTINEL treated as NaN-boxed list
       });
 
       test('should format unknown tag types', () => {

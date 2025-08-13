@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode, resetVM, logStack } from "../../utils/vm-test-utils";
+import { executeTacitCode, resetVM, logStack } from '../../utils/vm-test-utils';
 
 describe('List Creation Operations', () => {
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('List Creation Operations', () => {
       // After .slot, TOS should be an INTEGER 2 and LIST header remains below
       logStack(stack);
       const top = fromTaggedValue(stack[stack.length - 1]);
-      expect(top).toEqual({ tag: Tag.INTEGER, value: 2 });
+      expect(top).toEqual({ tag: Tag.SENTINEL, value: 2 });
       // LIST header presence is validated by slots; confirm stack length grows by 1
       expect(stack.length).toBe(4);
     });

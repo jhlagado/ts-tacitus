@@ -3,7 +3,7 @@
  * Tests the address-based operations and spec-required functionality
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
+import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 import { fromTaggedValue, Tag, isList } from '../../../core/tagged';
 
 describe('Lists.md Specification Compliance', () => {
@@ -18,7 +18,7 @@ describe('Lists.md Specification Compliance', () => {
       // Should return 5 (total payload slots)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.INTEGER);
+      expect(decoded.tag).toBe(Tag.SENTINEL);
       expect(decoded.value).toBe(5);
     });
 
@@ -28,7 +28,7 @@ describe('Lists.md Specification Compliance', () => {
       // Should return 3 (logical element count)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.INTEGER);
+      expect(decoded.tag).toBe(Tag.SENTINEL);
       expect(decoded.value).toBe(3);
     });
 
@@ -86,7 +86,7 @@ describe('Lists.md Specification Compliance', () => {
       // Should return NIL
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.INTEGER);
+      expect(decoded.tag).toBe(Tag.SENTINEL);
       expect(decoded.value).toBe(0); // NIL
     });
 
@@ -108,8 +108,6 @@ describe('Lists.md Specification Compliance', () => {
       expect(isList(header)).toBe(true);
     });
 
-
-
     // Basic structural operation registration test
     test('structural operations are properly registered', () => {
       // Test that operations exist and don't throw "undefined word" errors
@@ -123,7 +121,9 @@ describe('Lists.md Specification Compliance', () => {
           executeTacitCode(`( ) ${op}`);
         } catch (error) {
           // Should not be "undefined word" error
-          expect(error instanceof Error ? error.message : String(error)).not.toContain('Undefined word');
+          expect(error instanceof Error ? error.message : String(error)).not.toContain(
+            'Undefined word',
+          );
         }
         resetVM();
       });
@@ -149,8 +149,6 @@ describe('Lists.md Specification Compliance', () => {
       expect(fromTaggedValue(unconsResult[unconsResult.length - 1]).value).toBe(1);
     });
 
-
-
     test('pack with 0 count creates empty list', () => {
       const stack = executeTacitCode('0 pack');
       const header = stack[stack.length - 1];
@@ -163,7 +161,7 @@ describe('Lists.md Specification Compliance', () => {
       // Should have: 1 2 3 on stack (in that order)
       expect(stack.length).toBe(3);
       expect(fromTaggedValue(stack[0]).value).toBe(3); // First element
-      expect(fromTaggedValue(stack[1]).value).toBe(2); // Second element  
+      expect(fromTaggedValue(stack[1]).value).toBe(2); // Second element
       expect(fromTaggedValue(stack[2]).value).toBe(1); // Third element
     });
 

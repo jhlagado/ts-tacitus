@@ -113,7 +113,7 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
     test('formats INTEGER tagged value representing NIL', () => {
-      const taggedNil = toTaggedValue(0, Tag.INTEGER);
+      const taggedNil = toTaggedValue(0, Tag.SENTINEL);
       expect(formatValue(testVM, taggedNil)).toBe('NIL');
     });
     test('formats CODE tagged value', () => {

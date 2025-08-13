@@ -27,7 +27,7 @@ export enum Tag {
   NUMBER = 0,
 
   /**  Represents a 16-bit integer. */
-  INTEGER = 1,
+  SENTINEL = 1,
 
   /**  Represents executable code (function pointer). */
   CODE = 2,
@@ -56,7 +56,7 @@ export const MAX_TAG = Tag.LIST;
  */
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
-  [Tag.INTEGER]: 'INTEGER',
+  [Tag.SENTINEL]: 'SENTINEL',
   [Tag.CODE]: 'CODE',
   [Tag.STACK_REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
@@ -84,11 +84,11 @@ const EXPONENT_MASK = 0xff << 23;
  * -   **Mantissa (Bits 0-22):**
  *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from Tag).
  *     -   **Value (Bits 0-15):** 16 bits representing the actual value. For
- *         Tag.INTEGER, this is a signed integer; otherwise, it's an
+ *         Tag.SENTINEL, this is a signed integer; otherwise, it's an
  *         unsigned integer.
  * -   **NaN Bit (Bit 22):** Set to 1 to indicate a quiet NaN.
  *
- * @param value The value to encode. For Tag.INTEGER, this should be a signed integer (-32768 to 32767); for
+ * @param value The value to encode. For Tag.SENTINEL, this should be a signed integer (-32768 to 32767); for
  *     other tags, it should be an unsigned integer (0 to 65535).
  * @param tag The tag representing the data type. This should be a value from Tag.
  * @returns A 32-bit floating-point number representing the NaN-boxed tagged value.
@@ -104,9 +104,9 @@ export function toTaggedValue(value: number, tag: Tag): number {
   }
 
   let encodedValue: number;
-  if (tag === Tag.INTEGER) {
+  if (tag === Tag.SENTINEL) {
     if (value < -32768 || value > 32767) {
-      throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for INTEGER tag');
+      throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for SENTINEL tag');
     }
 
     encodedValue = value & 0xffff;
@@ -126,6 +126,8 @@ export function toTaggedValue(value: number, tag: Tag): number {
   return view.getFloat32(0, true);
 }
 
+export const NIL = toTaggedValue(0, Tag.SENTINEL);
+
 /**
  * Decodes a NaN-boxed 32-bit floating-point number into its constituent
  * components: value and tag.
@@ -140,14 +142,14 @@ export function toTaggedValue(value: number, tag: Tag): number {
  *
  * -   **Tag:** Extracted from bits 16-22 of the mantissa using TAG_MANTISSA_MASK.
  * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
- *     the tag is Tag.INTEGER, the value is sign-extended to ensure correct
+ *     the tag is Tag.SENTINEL, the value is sign-extended to ensure correct
  *     interpretation as a 16-bit signed integer.
  *
  * @param nanValue The 32-bit floating-point number representing the potentially
  *     NaN-boxed value.
  * @returns An object containing the decoded components:
  *     -   `value`: The 16-bit value (sign-extended if it was a
- *         Tag.INTEGER.
+ *         Tag.SENTINEL.
  *     -   `tag`: The tag indicating the data type.
  */
 export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
@@ -161,7 +163,7 @@ export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
   const bits = view.getUint32(0, true);
   const tagBits = ((bits & TAG_MANTISSA_MASK) >>> 16) & 0x3f;
   const valueBits = bits & VALUE_MASK;
-  const value = tagBits === Tag.INTEGER ? (valueBits << 16) >> 16 : valueBits;
+  const value = tagBits === Tag.SENTINEL ? (valueBits << 16) >> 16 : valueBits;
   return { value, tag: tagBits };
 }
 
@@ -189,14 +191,14 @@ export function getValue(nanValue: number): number {
 
 /**
  * Checks if a given NaN-boxed value represents `NIL`.
- * `NIL` is defined as an `INTEGER` tag with a value of `0`.
+ * `NIL` is defined as an `SENTINEL` tag with a value of `0`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
  * @returns `true` if the value is `NIL`, `false` otherwise.
  */
 export function isNIL(tval: number): boolean {
   const { tag, value } = fromTaggedValue(tval);
-  return tag === Tag.INTEGER && value === 0;
+  return tag === Tag.SENTINEL && value === 0;
 }
 
 /**
@@ -220,15 +222,15 @@ export function isNumber(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents an `INTEGER`.
- * This returns `true` if the value's tag is `Tag.INTEGER`.
+ * Checks if a given NaN-boxed value represents an `SENTINEL`.
+ * This returns `true` if the value's tag is `Tag.SENTINEL`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is an `INTEGER`, `false` otherwise.
+ * @returns `true` if the value is an `SENTINEL`, `false` otherwise.
  */
-export function isInteger(tval: number): boolean {
+export function isSentinel(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.INTEGER;
+  return tag === Tag.SENTINEL;
 }
 
 /**
