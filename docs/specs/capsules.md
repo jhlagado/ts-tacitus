@@ -83,7 +83,7 @@ Capsules use receiver-relative addressing with explicit addresses; the receiver 
 - Anchored primitives:
   - `slot-at   ( addr idx -- addr )` — address of payload slot `idx` for the list whose header is at `addr` (no traversal)
   - `find-at   ( addr key -- value-addr | default-addr | nil )` — maplist lookup anchored at `addr` (late binding; same rules as `find`)
-- The receiver’s capsule header address is maintained internally during `with`/method execution.
+- The receiver remains in a dedicated register during `with`/method execution; its capsule header address is available for anchored operations.
 - Per-field payload slot indices are computed at capsule assembly time; runtime field access is O(1).
 
 ## Field Access
@@ -130,18 +130,19 @@ person with {
 
 **Design Principles:**
 - **`with` is a combinator** -- takes a receiver and a block, sets `receiver` context for method calls.
-- **No copying** -- receiver remains in place, accessed via `receiver` register.
+- **No copying** -- receiver remains in place, accessed via a dedicated receiver register.
+- **Does not consume receiver** -- after the block, the receiver is still on the stack; block results are left intact.
 - **`.method` sigil** -- dispatches method from receiver's maplist.
 - **Nested contexts** -- `receiver` is saved/restored automatically.
 - **Block scoping** -- `{` and `}` delimit the method call scope.
 
 ### Implementation Mechanics
-1. **`with` starts** -- Captures the receiver’s capsule header address as `R` for the scope.
+1. **`with` starts** -- Saves the current receiver and sets the dedicated receiver register to this capsule’s header address for the scope (receiver is not popped).
 2. **`.method` calls** -- Do not copy the dispatch maplist. Use element 0 anchored at `R`:
    - `R 0 slot-at`                      \ address of dispatch maplist header
    - `` `method find-at``               \ address of code-ref cell (or default’s value on miss)
-   - `fetch eval`
-3. **`with` ends** -- Restores the previous receiver context.
+   - If an address is returned: `fetch eval`; if `nil` is returned: leave `nil` and do not execute anything
+3. **`with` ends** -- Restores the previous receiver context; no additional stack cleanup is performed.
 
 ### Dispatch Mechanism
 ```tac
@@ -194,6 +195,8 @@ instance with {
 }
 ```
 
+If a method name is not found and there is no `default` entry in the dispatch maplist, the method call yields `nil` and nothing is executed.
+
 ## Integration with TACIT
 
 ### List Compatibility
@@ -208,6 +211,8 @@ Capsules behave like numbers with respect to stack manipulation:
 - `default` key for fallback methods is supported.
 - Works with standard maplist search algorithms.
 - Compatible with maplist introspection.
+
+ 
 
 ## Design Rationale
 The `with` combinator solves key problems in stack-based OOP:

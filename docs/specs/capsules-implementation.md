@@ -4,22 +4,18 @@
 
 ### Stack vs List Structure
 - **Stack Cell**: Single 32-bit tagged value position on the VM stack
-#### Symbol Resolution in Methods
-- During method compilation, determine if symbol is field (relative) or global (absolute)
-- Field references compile to: `receiver <offset> get` 
-- Field assignments compile to: `<value> receiver <offset> set`
-- Forward references to fields not yet declared cause compilation errorist Element**: Variable-length data item within a list structure  
+- **List Element**: Variable-length data item within a list structure
 - **Field Offset**: Numeric position of field data within capsule (starting at 1)
 
 A single list element may occupy multiple stack cells if it contains compound data (nested lists).
 
 ### Field Access Compilation
 
-Field access compiles to fixed offsets:
+Field access compiles to fixed receiver-relative slot indices (no traversal):
 ```tacit
-firstName           \ Compiles to: receiver 1 get
-lastName            \ Compiles to: receiver 2 get
-100 -> viewCount    \ Compiles to: 100 receiver 3 set
+firstName           \ expands to: R O[firstName] slot-at fetch
+lastName            \ expands to: R O[lastName]  slot-at fetch
+100 -> viewCount    \ expands to: 100 R O[viewCount] slot-at store
 ```
 
 The field offset is determined at compile time and stored in the compilation context.
@@ -47,8 +43,8 @@ Each field becomes an **element** in the prototype list, with offset starting at
 - Field values stored during `end` processing by reading dictionary
 - Compiler walks dictionary to collect all `field` entries  
 - Emits stored values to data stack in offset order
-- Only simple values and tagged LIST objects allowed as field values
-- Each list must be properly tagged with inline length and backlink
+- Field values may be any supported type: simple (numbers, booleans, strings, symbols, code refs, nil) or compound (lists, capsules, etc.).
+- Compound values must be well-formed per their own headers (e.g., `LIST:s` with valid spans).
 
 ## Method Dispatch Implementation
 
@@ -136,15 +132,15 @@ At `end`:
 - Used during method compilation for symbol resolution
 
 #### Stack Semantics for Fields
-- `field` pops value from stack, stores in dictionary temporarily
-- Field values emitted to data stack in offset order during `end`
-- Only simple values and tagged LIST objects allowed as field values
+- `field` consumes the value on the stack and records it for the capsule being built
+- At `end`, recorded field values are emitted in declaration order to assemble the prototype
+- Field values may be any supported type: simple or compound.
 
 #### Symbol Resolution in Methods
-- During method compilation, determine if symbol is field (relative) or global (absolute)
-- Field references compile to: `receiver <offset> get` 
-- Field assignments compile to: `<value> receiver <offset> set`
-- Forward references to fields not yet declared cause compilation error
+- During method compilation, determine if a symbol is a field (receiver-relative) or a global (absolute).
+- Field references compile to: `R O[field] slot-at fetch`.
+- Field assignments compile to: `value R O[field] slot-at store`.
+- Forward references to fields not yet declared cause a compilation error.
 
 ## Performance Characteristics
 
@@ -153,8 +149,7 @@ At `end`:
 - **Write**: O(1) direct element assignment
 
 ### Method Dispatch
-- **Search**: O(n/2) linear search through maplist
-- **Optimization**: Can use sorted maplists or hash-based dispatch
+- **Search**: Linear search through the dispatch maplist via `find-at`
 
 ### Instantiation
 - **Copy**: O(n) where n is number of fields
@@ -193,6 +188,5 @@ instance with {
 
 ## Related Specifications
 
-- `docs/specs/capsules-overview.md` - High-level capsule concepts
 - `docs/specs/lists.md` - Foundational list mechanics
 - `docs/specs/maplists.md` - Key-value dispatch tables

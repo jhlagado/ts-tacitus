@@ -1,6 +1,6 @@
 # TACIT Tagged Values Specification
 
-> Status: Harmonised with current implementation (reverse list only; LINK & CODE_BLOCK removed).
+> Status: Harmonised with current implementation.
 
 ## Normative Scope
 
@@ -11,7 +11,7 @@ This document is the canonical source of truth for:
 - Validity / invariants each tag MUST satisfy at runtime.
 - Dispatch semantics for `@symbol` + `eval`.
 
-Implementations (VM, parser, symbol table, printers) MUST conform. Legacy tags listed as removed MUST NOT appear in new bytecode, tests, or runtime values (a runtime sighting is a defect).
+Implementations (VM, parser, symbol table, printers) MUST conform.
 
 ## Overview
 
@@ -32,12 +32,7 @@ export enum Tag {
 }
 ```
 
-Removed legacy / historical tags (no longer produced by the system):
-
-- `CODE_BLOCK` (inline block quotations now compile to `CODE` references directly)
-- `LINK` (legacy forward list backlink; traversal now uses header span only)
-
-When older documents conflict, this definition takes precedence.
+Active tags are listed below; this definition takes precedence.
 
 ### Tag Table
 
@@ -50,7 +45,7 @@ When older documents conflict, this definition takes precedence.
 | BUILTIN | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
 | LIST    | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
 
-Removed (MUST NOT appear): `CODE_BLOCK`, `LINK`.
+ 
 
 ## Memory Layout
 
@@ -68,7 +63,7 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 - **Addresses**: Tag.CODE + 16-bit bytecode address
 - **Built-ins**: Tag.BUILTIN + opcode (0-127)
 - **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
-- (Removed) **Links**: superseded by span-based traversal; any residual docs mentioning them are historical.
+ 
 
 ### Dispatch Semantics
 
@@ -121,7 +116,7 @@ All tagged values must:
 - `specs/access.md` – Address-returning find family & high-level get/set
 - `specs/capsules.md` – Capsule structure built on lists
 
-Historical references mentioning `LINK` or `CODE_BLOCK` are intentionally unresolved; they should be treated as archival context only.
+ 
 
 ## Runtime Invariants (Normative)
 
@@ -130,7 +125,7 @@ Historical references mentioning `LINK` or `CODE_BLOCK` are intentionally unreso
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
 5. NIL is defined exactly as `(tag=INTEGER, value=0)` and MUST be used for soft absence/failure (no alternate sentinel).
-6. Removed tags (`CODE_BLOCK`, `LINK`) MUST NOT appear in newly constructed values; detection constitutes a validation error.
+6. Tags MUST be valid for all newly constructed values; detection of unsupported tags constitutes a validation error.
 7. Simple in-place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, INTEGER, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
 
 ## Worked Examples
