@@ -1,6 +1,36 @@
+Status: draft
+
 # Plan 14 — Implement `get` and `set` combinators (Access)
 
-Status: draft
+## Combinators introduction
+
+  • How blocks compile
+    • Parser requires a block after a combinator word. For “do”/“repeat” it peeks the next token and errors if not “{”.
+    • The block is compiled first with a Branch-skip pattern, then Exit, then the parser emits a LiteralCode with the block’s start address. Blocks don’t run until
+      evaluated.
+    • Immediately after emitting the block literal, the parser emits the combinator opcode. At runtime the stack holds operands, then the block literal, then the combinator
+       executes.
+  • Runtime semantics
+    • do: pops block and value, re-pushes value, then pushes the block and evals it once. Stack effect: apply the block to the value at TOS without duplicating or consuming
+       extra values.
+    • repeat: pops block, count, value; re-pushes value, then loops pushing/evaluating the same block count times. Count is validated as a non-negative integer.
+    • Both dispatch eval via the symbol table, so the block can be a CODE or BUILTIN reference and is executed uniformly.
+  • Why this fits RPN
+    • Visually “x do { … }” looks infix, but it’s still postfix: operands are on stack, the block literal is compiled and pushed, then a fixed-arity opcode runs.
+    • No variadic behavior or hidden context; the block produces whatever it wants, and the combinator orchestrates when/how it’s run.
+  • Tests cover
+    • Blocks compile and eval correctly (standalone, nested, multiple eval calls).
+    • do and repeat handle empty blocks, nested combinators, and stack manipulation inside blocks.
+    • Parser enforces syntax: combinators must be followed by “{ … }”.
+  • Implication for get/set
+    • They should follow exactly the same pattern: parser compiles the path block to a LiteralCode, then emits the get/set opcode.
+    • At runtime, get/set pop target (+ value for set) and the block, eval the block to produce a path list, then perform address-returning traversal and fetch/store.
+    • This keeps get/set purely combinator-based, RPN-safe, and consistent with do/repeat.
+
+  Summary:
+  • Combinators are “enhanced infix” only in appearance; the parser compiles block-then-opcode so runtime stays pure RPN.
+  • do/repeat implement the model: block literal + eval under the hood.
+  • get/set should mirror this exact compilation/execution flow.
 
 ## Goals
 - Implement high-level `get` and `set` combinators per `docs/specs/access.md`
