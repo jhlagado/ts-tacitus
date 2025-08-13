@@ -100,11 +100,7 @@ end
 
 Capsules use **receiver-relative addressing** with explicit addresses. The receiver is not moved to TOS during execution.
 
-- **Anchored primitives** (operate from a known capsule address):
-  - `slot-at   ( addr idx -- addr )` — Returns the address of payload slot `idx` for the list whose header is at `addr` (no element traversal).
-  - `find-at   ( addr key -- value-addr | default-addr | nil )` — Looks up `key` in the maplist at `addr` (late binding; same rules as `find`).
-
-- The receiver is stored in a dedicated register during `with` and method execution. The capsule header’s address remains available for anchored operations.
+- The receiver is stored in a dedicated register during `with` and method execution as a STACK_REF to the capsule header. The address remains available for list operations.
 - Field slot indices are precomputed at **capsule assembly time**, so all field access is **O(1)** at runtime.
 
 ## Field Access
@@ -135,15 +131,15 @@ Use the `->` operator to assign a new value:
 
 ### Compilation Forms (receiver-relative)
 
-Let `R` = receiver’s capsule header address
+Let `R` = receiver’s capsule header address (STACK_REF)
 Let `O[field]` = precomputed payload slot index for that field.
 
 ```tac
 \ Read field
-firstName               \ expands to:  R  O[firstName]  slot-at  fetch
+firstName               \ expands to:  R  O[firstName]  slot  fetch
 
 \ Write field (simple-only via store)
-"Jane" -> firstName     \ expands to:  "Jane"  R  O[firstName]  slot-at  store
+"Jane" -> firstName     \ expands to:  "Jane"  R  O[firstName]  slot  store
 ```
 
 ---
@@ -181,8 +177,8 @@ person with {
 2. **`.method` calls** — Do not copy the dispatch maplist. Use element 0 anchored at `R`:
 
    ```tac
-   R 0 slot-at                \ address of dispatch maplist header
-   `methodName find-at        \ lookup code-ref cell
+   R 0 slot                   \ STACK_REF address of dispatch maplist header
+   `methodName find           \ lookup code-ref cell
    ```
 
    - If address returned: `fetch eval`
@@ -195,7 +191,7 @@ person with {
 ### Dispatch Mechanism
 
 ```tac
-.methodName    \ expands to:  R 0 slot-at  `methodName find-at  fetch  eval
+.methodName    \ expands to:  R 0 slot  `methodName find  fetch  eval
 ```
 
 ### With Arguments
@@ -308,7 +304,7 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 When editing:
 
-- Check all code expands to valid TACIT bytecode patterns (verify slot-at/store/find-at usage).
+- Check all code expands to valid TACIT bytecode patterns (verify slot/store/find usage with STACK_REF addresses).
 - Ensure mutability restrictions match the list spec exactly.
 - Confirm `.method` expansion matches the actual maplist search algorithm.
 

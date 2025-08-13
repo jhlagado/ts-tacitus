@@ -184,13 +184,13 @@ Final stack (deep → TOS):
 
 * Returns the **address** (stack index) of a payload slot at **slot index `idx`**.
 * **Preconditions:** `0 ≤ idx < s`.
-* **Result:** `addr = SP - 1 - idx`.
+* **Result:** returns a STACK_REF to the payload slot at index `idx`.
 * **Cost:** O(1).
 
 ### elem ( idx -- addr )
 
 * Returns the **address** of the **start slot** for **element index `idx`**.
-* **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped.
+* **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
 * **Cost:** O(s) worst-case.
 
 ### fetch ( addr -- value )
@@ -198,12 +198,13 @@ Final stack (deep → TOS):
 * Returns the value located at stack address `addr`.
 * If the value at `addr` is **simple** (single-slot), returns that slot's value.
 * If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
+* `addr` is a STACK_REF address.
 * **Cost:** O(1) for simple; O(span) to materialize a compound.
 * **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
 
 ### store ( value addr -- )
 
-* Writes `value` into the slot at stack address `addr` in place.
+* Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF.
 * Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
 * If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
 * Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
