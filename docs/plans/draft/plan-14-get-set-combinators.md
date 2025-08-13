@@ -289,7 +289,7 @@ export const setOp: Verb = (vm: VM) => {
 
 ---
 
-### Step 2.5: STACK_REF Implementation 🏗️
+### Step 2.5: STACK_REF Implementation 🏗️ (Completed)
 
 **Goal:** Add STACK_REF tagged value type to enable polymorphic access operations
 
@@ -415,7 +415,20 @@ export const tagNames: { [key in Tag]: string } = {
 - 4-byte alignment ensures compatibility with stack slot operations
 - Clean separation from existing tagged value types
 
-**Next Step:** Once STACK_REF is implemented, access operations can be made polymorphic to dispatch based on TOS type (LIST vs STACK_REF), enabling memory-based traversal for get/set combinators.
+Next: Migrate address-returning ops to return STACK_REF only, and update fetch/store to accept STACK_REF (Integer addresses deprecated).
+
+### Step 2.6: Address ops return STACK_REF only
+
+Goal: Unify on STACK_REF for all address-returning operations.
+
+Scope:
+- Change `slot`, `elem`, and `find` to return STACK_REF
+- Update `fetch`/`store` to consume STACK_REF (keep INTEGER temporarily for backward compatibility if needed)
+- Update docs: `lists.md` §10, `capsules.md` Access Semantics
+
+Tests:
+- Adjust any tests assuming INTEGER addresses
+- Ensure behavior unchanged for value results and side effects
 
 ---
 

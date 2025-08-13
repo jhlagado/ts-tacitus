@@ -26,6 +26,7 @@ export enum Tag {
   NUMBER = 0, // IEEE 754 float (non-NaN) – raw value, no embedded tag bits
   INTEGER = 1, // 16-bit signed integer payload
   CODE = 2, // Bytecode address (direct dispatch)
+  STACK_REF = 3, // Stack cell reference (address as cell index)
   STRING = 4, // String segment reference
   BUILTIN = 7, // Built-in opcode (0–127)
   LIST = 8, // Reverse list header (payload length in slots)
