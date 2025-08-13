@@ -23,6 +23,7 @@ import {
   isList,
   getStackRefAddress,
   getTag,
+  createStackRef,
   NIL,
 } from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
@@ -358,7 +359,8 @@ export function slotOp(vm: VM): void {
 
     // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
     const addr = vm.SP - 4 - idx * BYTES_PER_ELEMENT;
-    vm.push(toTaggedValue(addr, Tag.SENTINEL));
+    const cellIndex = addr / 4;
+    vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
@@ -377,7 +379,8 @@ export function slotOp(vm: VM): void {
 
     // Memory slot addressing: base - (1 + idx) * 4
     const addr = baseAddr - (idx + 1) * BYTES_PER_ELEMENT;
-    vm.push(toTaggedValue(addr, Tag.SENTINEL));
+    const cellIndex = addr / 4;
+    vm.push(createStackRef(cellIndex));
   } else {
     vm.push(NIL);
   }
@@ -403,7 +406,8 @@ export function elemOp(vm: VM): void {
       vm.push(NIL);
       return;
     }
-    vm.push(toTaggedValue(addr, Tag.SENTINEL));
+    const cellIndex = addr / 4;
+    vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
@@ -420,7 +424,8 @@ export function elemOp(vm: VM): void {
       vm.push(NIL);
       return;
     }
-    vm.push(toTaggedValue(addr, Tag.SENTINEL));
+    const cellIndex = addr / 4;
+    vm.push(createStackRef(cellIndex));
   } else {
     vm.push(NIL);
   }
@@ -489,6 +494,68 @@ export function storeOp(vm: VM): void {
 
   // Store simple value
   vm.memory.writeFloat32(SEG_STACK, addr, value);
+}
+
+/**
+ * Generic block-to-list converter.
+ * Stack effect: ( {block} -- list )
+ * 
+ * Executes the block and converts all pushed elements into a list.
+ * Uses the same SP marking and list construction patterns as openListOp/closeListOp.
+ */
+export function makeListOp(vm: VM): void {
+  vm.ensureStackSize(1, 'makeList');
+  
+  // 1. Pop block address from stack
+  const blockAddr = vm.pop();
+  
+  if (vm.debug) console.log('makeList: got blockAddr', blockAddr, 'hex:', blockAddr.toString(16));
+  
+  // 2. Create placeholder header (like openListOp)
+  const placeholderHeader = toTaggedValue(0, Tag.LIST);
+  vm.push(placeholderHeader);
+  const headerPos = vm.SP - BYTES_PER_ELEMENT;
+  vm.rpush(toTaggedValue(headerPos, Tag.SENTINEL));
+  
+  if (vm.debug) console.log('makeList: placeholder header at', headerPos, 'SP now', vm.SP);
+  
+  // 3. Execute block (like do combinator)  
+  vm.push(blockAddr);
+  if (vm.debug) console.log('makeList: pushing blockAddr back onto stack for eval, SP now', vm.SP);
+  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
+  if (!evalImpl) {
+    throw new Error('eval operation not found');
+  }
+  if (vm.debug) console.log('makeList: calling eval...');
+  evalImpl(vm);
+  if (vm.debug) console.log('makeList: eval completed');
+  
+  if (vm.debug) console.log('makeList: after block exec, SP now', vm.SP, 'stack:', vm.getStackData());
+  
+  // 4. Calculate payload slots (like closeListOp)
+  const taggedHeaderPos = vm.rpop();
+  const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
+  const payloadSlots = (vm.SP - retrievedHeaderPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
+  
+  if (vm.debug) console.log('makeList: headerPos', retrievedHeaderPos, 'payloadSlots', payloadSlots);
+  
+  if (payloadSlots < 0) {
+    throw new Error('makeList: negative payload slot count detected');
+  }
+  
+  // 5. Update placeholder header in place with correct slot count (like closeListOp)
+  const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
+  vm.memory.writeFloat32(SEG_STACK, retrievedHeaderPos, finalizedHeader);
+  
+  if (vm.debug) console.log('makeList: updated header, stack before reverse:', vm.getStackData());
+  
+  // 6. Reverse span to get proper LIST format (like closeListOp)
+  const totalSpan = (vm.SP - retrievedHeaderPos) / BYTES_PER_ELEMENT; // header + payload
+  if (vm.debug) console.log('makeList: totalSpan to reverse:', totalSpan);
+  if (totalSpan > 1) {
+    reverseSpan(vm, totalSpan);
+    if (vm.debug) console.log('makeList: after reverse, stack:', vm.getStackData());
+  }
 }
 
 /**
@@ -667,7 +734,8 @@ export function findOp(vm: VM): void {
       // Check for exact key match
       if (currentKey === key) {
         vm.push(target); // Restore target
-        vm.push(toTaggedValue(valueAddr, Tag.SENTINEL));
+        const cellIndex = valueAddr / 4;
+        vm.push(createStackRef(cellIndex));
         return;
       }
 
@@ -729,7 +797,8 @@ export function findOp(vm: VM): void {
       // Check for exact key match
       if (currentKey === key) {
         vm.push(target); // Restore target
-        vm.push(toTaggedValue(valueAddr, Tag.SENTINEL));
+        const cellIndex = valueAddr / 4;
+        vm.push(createStackRef(cellIndex));
         return;
       }
 

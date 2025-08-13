@@ -303,6 +303,9 @@ export enum Op {
   /** Set combinator: path-based value update */
   Set,
 
+  /** Generic block-to-list converter: executes block and converts results to list */
+  MakeList,
+
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 
