@@ -16,7 +16,7 @@
  */
 
 import { VM } from '../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, isList } from '../core/tagged';
+import { fromTaggedValue, toTaggedValue, Tag, isList, getStackRefAddress, getTag } from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
@@ -151,7 +151,7 @@ export function lengthOp(vm: VM): void {
   while (remainingSlots > 0) {
     const value = vm.memory.readFloat32(SEG_STACK, currentAddr);
     const span = isList(value) ? getListSlotCount(value) + 1 : 1;
-    
+
     elementCount++;
     remainingSlots -= span;
     currentAddr -= span * BYTES_PER_ELEMENT;
@@ -220,7 +220,7 @@ export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
   const rhs = vm.pop(); // listB or value
   const lhs = vm.pop(); // listA
-  
+
   if (!isList(lhs)) {
     // invalid lhs: restore and NIL
     vm.push(lhs);
@@ -228,7 +228,7 @@ export function concatOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  
+
   if (!isList(rhs)) {
     // Fallback to cons(list, value)
     vm.push(lhs);
@@ -236,10 +236,10 @@ export function concatOp(vm: VM): void {
     consOp(vm);
     return;
   }
-  
+
   const sA = getListSlotCount(lhs);
   const sB = getListSlotCount(rhs);
-  
+
   // Create new header with combined slot count
   // The payload slots should already be properly arranged on the stack
   vm.push(toTaggedValue(sA + sB, Tag.LIST));
@@ -262,14 +262,14 @@ export function headOp(vm: VM): void {
   // First element is at SP-4 (first payload slot after popping header)
   const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
-  
+
   if (isList(firstElement)) {
     // Compound element: materialize full structure
     const slotCount = getListSlotCount(firstElement);
-    
+
     // Skip past the compound element in original list
     vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
-    
+
     // Push compound element to new position
     for (let i = slotCount; i >= 0; i--) {
       const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - (i * BYTES_PER_ELEMENT));
@@ -312,11 +312,11 @@ export function unconsOp(vm: VM): void {
   // Create tail list (remaining payload)
   const tailSlotCount = slotCount - span;
   const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
-  
+
   // Move SP past first element to position tail
   vm.SP -= span * BYTES_PER_ELEMENT;
   vm.push(tailHeader);
-  
+
   // Materialize head element
   if (isList(firstElement)) {
     // Compound head: push full structure
@@ -333,28 +333,52 @@ export function unconsOp(vm: VM): void {
 
 /**
  * Returns address of payload slot at slot index.
- * Stack effect: ( list idx -- list addr )
+ * Stack effect: ( list_or_ref idx -- list_or_ref addr )
  * Spec: lists.md §10 - addr = SP - 1 - idx
+ *
+ * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
 export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const {value: idx} = fromTaggedValue(vm.pop());
-  const header = vm.peek(); // Keep list on stack
+  const target = vm.peek(); // Keep target on stack
+  const tag = getTag(target);
 
-  if (!isList(header)) {
+  if (tag === Tag.LIST) {
+    // Current behavior: stack-relative addressing
+    const slotCount = getListSlotCount(target);
+    if (idx < 0 || idx >= slotCount) {
+      vm.push(NIL);
+      return;
+    }
+
+    // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
+    const addr = vm.SP - 4 - (idx * BYTES_PER_ELEMENT);
+    vm.push(toTaggedValue(addr, Tag.INTEGER));
+
+  } else if (tag === Tag.STACK_REF) {
+    // New behavior: memory-based addressing
+    const baseAddr = getStackRefAddress(target);
+    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+
+    if (!isList(header)) {
+      vm.push(NIL);
+      return;
+    }
+
+    const slotCount = getListSlotCount(header);
+    if (idx < 0 || idx >= slotCount) {
+      vm.push(NIL);
+      return;
+    }
+
+    // Memory slot addressing: base - (1 + idx) * 4
+    const addr = baseAddr - ((idx + 1) * BYTES_PER_ELEMENT);
+    vm.push(toTaggedValue(addr, Tag.INTEGER));
+
+  } else {
     vm.push(NIL);
-    return;
   }
-
-  const slotCount = getListSlotCount(header);
-  if (idx < 0 || idx >= slotCount) {
-    vm.push(NIL);
-    return;
-  }
-
-  // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)  
-  const addr = vm.SP - 4 - (idx * BYTES_PER_ELEMENT);
-  vm.push(toTaggedValue(addr, Tag.INTEGER));
 }
 
 /**
@@ -385,20 +409,35 @@ export function elemOp(vm: VM): void {
  * Fetches value at memory address.
  * Stack effect: ( addr -- value )
  * Spec: lists.md §10 - Simple values direct, compound values materialized
+ *
+ * Polymorphic: accepts both INTEGER (legacy byte addresses) and STACK_REF (cell addresses)
  */
 export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
-  const {value: addr} = fromTaggedValue(vm.pop());
+  const addressValue = vm.pop();
 
-  const value = vm.memory.readFloat32(SEG_STACK, addr);
-  
+  let byteAddr: number;
+  const tag = getTag(addressValue);
+
+  if (tag === Tag.INTEGER) {
+    // Legacy: direct byte address
+    byteAddr = fromTaggedValue(addressValue).value;
+  } else if (tag === Tag.STACK_REF) {
+    // New: cell-based addressing
+    byteAddr = getStackRefAddress(addressValue);
+  } else {
+    throw new Error('fetch expects address (INTEGER or STACK_REF)');
+  }
+
+  const value = vm.memory.readFloat32(SEG_STACK, byteAddr);
+
   if (isList(value)) {
     // Compound value: need to materialize entire structure
     const slotCount = getListSlotCount(value);
-    
+
     // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, addr - ((i + 1) * BYTES_PER_ELEMENT));
+      const slotValue = vm.memory.readFloat32(SEG_STACK, byteAddr - ((i + 1) * BYTES_PER_ELEMENT));
       vm.push(slotValue);
     }
     // Push header last (becomes TOS)
@@ -420,7 +459,7 @@ export function storeOp(vm: VM): void {
   const value = vm.pop();
 
   const existing = vm.memory.readFloat32(SEG_STACK, addr);
-  
+
   // Only allow simple value storage per spec
   if (isList(existing)) {
     // Silent no-op for compound targets (spec requirement)
@@ -483,7 +522,7 @@ export function unpackOp(vm: VM): void {
   }
 
   const slotCount = getListSlotCount(header);
-  
+
   if (slotCount === 0) {
     // Empty list - nothing to unpack
     return;
@@ -497,7 +536,7 @@ export function unpackOp(vm: VM): void {
 /**
  * Implements the enlist operation.
  * Converts a single value into a single-element list.
- * 
+ *
  * Stack effect: ( value — LIST:1 )
  */
 export const mEnlistOp: Verb = (vm: VM) => {
@@ -523,7 +562,7 @@ export function reverseOp(vm: VM): void {
   }
 
   const slotCount = getListSlotCount(header);
-  
+
   if (slotCount === 0) {
     // Empty list - return empty list
     vm.push(header);
@@ -563,7 +602,7 @@ export function reverseOp(vm: VM): void {
  * Implements maplist key lookup with address-returning semantics.
  * Stack effect: ( maplist key -- maplist addr | default-addr | NIL )
  * Spec: maplists.md §4 - Returns address of value by key comparison
- * 
+ *
  * Maplist convention: ( key1 value1 key2 value2 ... )
  * Keys at even positions (0,2,4), values at odd positions (1,3,5)
  * On key match: returns address of corresponding value
@@ -582,7 +621,7 @@ export function findOp(vm: VM): void {
   }
 
   const slotCount = getListSlotCount(header);
-  
+
   // Maplist must have even number of slots (key-value pairs)
   if (slotCount % 2 !== 0) {
     vm.push(header); // Restore header
@@ -597,7 +636,7 @@ export function findOp(vm: VM): void {
   }
 
   let defaultValueAddr = -1;
-  
+
   // Search through key-value pairs
   // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
   // Keys at slot positions 0,2,4... Values at slot positions 1,3,5...
@@ -605,14 +644,14 @@ export function findOp(vm: VM): void {
     const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
     const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
     const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
-    
+
     // Check for exact key match
     if (currentKey === key) {
       vm.push(header); // Restore header
       vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
       return;
     }
-    
+
     // Check for 'default' key (special fallback semantics)
     // Keys that are STRING tagged values point to digest addresses
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
@@ -623,14 +662,14 @@ export function findOp(vm: VM): void {
       }
     }
   }
-  
+
   // Key not found - check for default fallback
   if (defaultValueAddr !== -1) {
     vm.push(header); // Restore header
     vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
     return;
   }
-  
+
   // No key match and no default - return NIL
   vm.push(header); // Restore header
   vm.push(NIL);
@@ -640,7 +679,7 @@ export function findOp(vm: VM): void {
  * Extracts all keys from a maplist.
  * Stack effect: ( maplist -- maplist keys )
  * Spec: maplists.md §9 - Extract keys at positions 0,2,4...
- * 
+ *
  * Returns a new list containing only the keys from even positions.
  * Invalid maplist (odd slot count) returns NIL.
  */
@@ -655,7 +694,7 @@ export function keysOp(vm: VM): void {
   }
 
   const slotCount = getListSlotCount(header);
-  
+
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
     vm.push(header); // Restore header
@@ -673,7 +712,7 @@ export function keysOp(vm: VM): void {
   }
 
   const keyCount = slotCount / 2;
-  
+
   // Extract keys from even positions (0, 2, 4, ...)
   // After restoring header: slot 0 at SP-8, slot 2 at SP-16, etc.
   for (let i = keyCount - 1; i >= 0; i--) {
@@ -681,7 +720,7 @@ export function keysOp(vm: VM): void {
     const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
     vm.push(keyValue);
   }
-  
+
   // Push LIST header for keys
   vm.push(toTaggedValue(keyCount, Tag.LIST));
 }
@@ -690,7 +729,7 @@ export function keysOp(vm: VM): void {
  * Extracts all values from a maplist.
  * Stack effect: ( maplist -- maplist values )
  * Spec: maplists.md §9 - Extract values at positions 1,3,5...
- * 
+ *
  * Returns a new list containing only the values from odd positions.
  * Invalid maplist (odd slot count) returns NIL.
  */
@@ -705,7 +744,7 @@ export function valuesOp(vm: VM): void {
   }
 
   const slotCount = getListSlotCount(header);
-  
+
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
     vm.push(header); // Restore header
@@ -723,7 +762,7 @@ export function valuesOp(vm: VM): void {
   }
 
   const valueCount = slotCount / 2;
-  
+
   // Extract values from odd positions (1, 3, 5, ...)
   // After restoring header: slot 1 at SP-12, slot 3 at SP-20, etc.
   for (let i = valueCount - 1; i >= 0; i--) {
@@ -731,7 +770,7 @@ export function valuesOp(vm: VM): void {
     const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
     vm.push(valueValue);
   }
-  
+
   // Push LIST header for values
   vm.push(toTaggedValue(valueCount, Tag.LIST));
 }
