@@ -50,8 +50,20 @@ Active tags are listed below; this definition takes precedence.
 ## Memory Layout
 
 ```
-NaN-boxed 32-bit value (quiet NaN pattern used for tagged non-number values):
-[31-26: tag] [25-16: reserved/impl] [15-0: payload]
+IEEE 754 Float32 NaN-Boxing Layout:
+┌─┬───────────┬─┬──────┬────────────────┐
+│S│EXP (all 1)│Q│ TAG  │     VALUE      │
+├─┼───────────┼─┼──────┼────────────────┤
+│31│  30..23   │22│21..16│     15..0      │
+├─┼───────────┼─┼──────┼────────────────┤
+│ │    8      │1│  6   │       16       │
+└─┴───────────┴─┴──────┴────────────────┘
+
+S = Sign bit (available for extended tagging)
+EXP = Exponent (0xFF for NaN)  
+Q = Quiet NaN bit (always 1)
+TAG = 6-bit type tag (0-63 possible values)
+VALUE = 16-bit payload (signed for INTEGER, unsigned otherwise)
 
 Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation directly.
 ```
