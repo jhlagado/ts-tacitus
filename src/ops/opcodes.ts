@@ -300,25 +300,7 @@ export enum Op {
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 
-  // Deprecated LIST opcodes removed after unification
-
-  /**  Gets slot count from LIST header - ( list — list n ) */
-  ListSlot,
-
-  /**  Skips entire LIST from stack - ( list — ) */
-  ListSkip,
-
-  /**  Prepends value to LIST - ( val list — list' ) */
-  ListPrepend,
-
-  /**  Appends value to LIST - ( list val — list' ) */
-  ListAppend,
-
-  /**  Gets value at index from LIST - ( list i — val ) */
-  ListGetAt,
-
-  /**  Sets value at index in LIST - ( list i val — list ) */
-  ListSetAt,
+  // Legacy LIST opcodes removed - functionality available via standard operations
 
   // New list primitives aligned with lists.md
   /** Prepend (list-first): cons - ( list value — list' ) */

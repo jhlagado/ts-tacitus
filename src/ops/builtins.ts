@@ -78,11 +78,11 @@ import {
   mNotOp,
   mSignumOp,
 } from './math-ops';
-import { mEnlistOp } from './list-ops';
+import { mEnlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
-// Legacy forward list ops removed during unification; parentheses map to LIST impl
+// LIST operations following lists.md specification
 import {
   openListOp,
   closeListOp,
@@ -92,9 +92,6 @@ import {
   elemOp,
   fetchOp,
   storeOp,
-  listSkipOp,
-  listPrependOp,
-  listAppendOp,
   headOp,
   unconsOp,
 } from './list-ops';
@@ -315,18 +312,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.CloseList:
       closeListOp(vm);
       break;
-    case Op.ListSlot:
-      listSlotOp(vm);
-      break;
-    case Op.ListSkip:
-      listSkipOp(vm);
-      break;
-    case Op.ListPrepend:
-      listPrependOp(vm);
-      break;
-    case Op.ListAppend:
-      listAppendOp(vm);
-      break;
     // Lists.md spec operations
     case Op.Slots:
       listSlotOp(vm);
@@ -375,6 +360,15 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.PushSymbolRef:
       pushSymbolRefOp(vm);
+      break;
+    case Op.Find:
+      findOp(vm);
+      break;
+    case Op.Keys:
+      keysOp(vm);
+      break;
+    case Op.Values:
+      valuesOp(vm);
       break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());

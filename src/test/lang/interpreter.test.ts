@@ -63,7 +63,7 @@ describe('Interpreter', () => {
     test('should handle invalid opcodes', () => {
       // First, let's set up proper execution conditions
       vm.compiler.CP = vm.compiler.BCP + 1; // Make sure there's something to execute
-      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 100); // Use opcode 100 which should be invalid
+      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110); // Use opcode 110 which should be invalid
       
       let errorThrown = false;
       let errorMessage = '';
@@ -76,7 +76,7 @@ describe('Interpreter', () => {
       }
       
       expect(errorThrown).toBe(true);
-      expect(errorMessage).toContain('Invalid opcode: 100');
+      expect(errorMessage).toContain('Invalid opcode: 110');
     });
     test('should handle non-Error exceptions', () => {
       jest.spyOn(math, 'addOp').mockImplementation(() => {

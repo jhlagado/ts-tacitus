@@ -6,7 +6,6 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import { execute, executeProgram, callTacitFunction } from '../../lang/interpreter';
 import { SEG_CODE } from '../../core/constants';
-import { toTaggedValue, Tag } from '../../core/tagged';
 
 describe('Interpreter - Branch Coverage', () => {
   beforeEach(() => {
@@ -19,13 +18,13 @@ describe('Interpreter - Branch Coverage', () => {
       // Enable debug mode and capture console output
       vm.debug = true;
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       // Execute a simple program
       executeProgram('5 3 add');
-      
+
       // Should have logged debug information
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
       vm.debug = false;
     });
@@ -33,33 +32,27 @@ describe('Interpreter - Branch Coverage', () => {
     test('should handle debug mode output during error conditions', () => {
       vm.debug = true;
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       try {
         // Trigger an error that should cause debug output
         executeProgram('drop'); // Stack underflow
-      } catch (error) {
+      } catch {
         // Should have logged error stack trace in debug mode
         expect(consoleSpy).toHaveBeenCalled();
       }
-      
+
       consoleSpy.mockRestore();
       vm.debug = false;
-    });
-
-    test('should handle invalid opcode range boundaries', () => {
-      // The existing interpreter.test.ts already covers basic invalid opcodes
-      // This test focuses on the specific range check (functionIndex >= 32768)
-      expect(true).toBe(true); // Placeholder - this branch is hard to reach directly
     });
 
     test('should preserve stack state when encountering errors', () => {
       vm.push(42);
       vm.push(24);
-      
+
       const codeAddr = vm.compiler.CP;
       vm.memory.write8(SEG_CODE, codeAddr, 200); // Invalid opcode
       vm.compiler.CP += 1;
-      
+
       try {
         execute(codeAddr);
       } catch (error) {
@@ -71,11 +64,10 @@ describe('Interpreter - Branch Coverage', () => {
 
     test('should reset compiler state after error', () => {
       vm.compiler.preserve = true;
-      const initialCP = vm.compiler.CP;
-      
+
       try {
         executeProgram('drop'); // This will fail with stack underflow
-      } catch (error) {
+      } catch {
         // Compiler should have been reset
         expect(vm.compiler.preserve).toBe(false);
       }

@@ -18,9 +18,53 @@
 - **Run `yarn lint` before completion** - maintain code quality
 - **Use `resetVM()` in test setup** - ensures clean state
 - **Test error conditions** - invalid inputs, edge cases, empty stacks
-- **Known Jest issues**: NaN-boxing corruption, test isolation problems - mark as `.skip()` with "KNOWN ISSUE"
+- **CRITICAL: Never use `fromTaggedValue` in tests** - causes NaN-boxing corruption in Jest environment
+- **Use behavioral testing only** - test operation results, not internal tagged structure
 
-### 3. Specification-First Development
+### 3. Testing Best Practices (NaN-Boxing Safe)
+
+**🚨 CRITICAL: JavaScript test environments cause NaN-boxed values to snap to classic NaNs, corrupting tag information. Always use behavioral testing.**
+
+#### ✅ **SAFE Testing Patterns**
+```typescript
+// ✅ Behavioral comparison - test operation results
+const result = executeTacitCode('( 1 2 ) reverse');
+const expected = executeTacitCode('( 2 1 )');
+expect(result).toEqual(expected);
+
+// ✅ Direct value inspection (works for numeric content)
+expect(result[0]).toBe(2);
+expect(result.length).toBe(3);
+
+// ✅ Idempotency testing
+const original = executeTacitCode('( 1 2 3 )');
+const doubleOp = executeTacitCode('( 1 2 3 ) reverse reverse');
+expect(doubleOp).toEqual(original);
+
+// ✅ Roundtrip testing 
+const packed = executeTacitCode('1 2 3 3 pack');
+const unpacked = executeTacitCode('1 2 3 3 pack unpack');
+// Test that unpack produces expected stack behavior
+```
+
+#### ❌ **AVOID - Tagged Value Inspection**
+```typescript
+// ❌ NEVER - causes NaN-boxing corruption in Jest
+const { tag, value } = fromTaggedValue(stack[0]);
+expect(tag).toBe(Tag.LIST);
+
+// ❌ NEVER - any direct tag checking
+expect(getTag(value)).toBe(Tag.INTEGER);
+```
+
+#### 🔧 **Alternative Verification Methods**
+- **Functional testing**: Does the operation produce correct computational results?
+- **Stack structure**: Verify lengths, organization, element ordering
+- **Error handling**: Test with invalid inputs (should not crash)
+- **Integration testing**: Chain operations and verify end-to-end behavior
+- **Regression testing**: Compare against known good output patterns
+
+### 4. Specification-First Development
 - **NEVER modify `docs/specs/`** unless explicitly instructed
 - **ALWAYS consult specs** before implementing - validate completion against spec
 - **Reference specs** in commits/code - all changes must align with existing specs
