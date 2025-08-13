@@ -22,7 +22,6 @@ import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
   getListSlotCount,
-  skipList,
   validateListHeader,
   reverseSpan,
   getListElementAddress,
@@ -161,39 +160,7 @@ export function lengthOp(vm: VM): void {
   vm.push(toTaggedValue(elementCount, Tag.INTEGER));
 }
 
-/**
- * Skips (drops) an entire LIST from the stack.
- * Stack effect: ( list — )
- */
-export function listSkipOp(vm: VM): void {
-  skipList(vm);
-}
 
-/**
- * Prepends a value to an LIST.
- * Stack effect: ( val list — list' )
- * This is an O(1) operation - just push value and increment header.
- */
-export function listPrependOp(vm: VM): void {
-  vm.ensureStackSize(2, 'list prepend');
-
-  const value = vm.pop(); // list-first ordering requires value be second
-  const header = vm.pop(); // LIST header at TOS (list-first: list is atop value)
-
-  if (!isList(header)) {
-    vm.push(value); // Restore stack
-    vm.push(header);
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListSlotCount(header);
-
-  // Push value (becomes new payload-0), then updated header
-  vm.push(value);
-  const newHeader = toTaggedValue(slotCount + 1, Tag.LIST);
-  vm.push(newHeader);
-}
 
 /**
  * cons (list-first): ( list value — list' )
@@ -363,52 +330,6 @@ export function unconsOp(vm: VM): void {
   }
 }
 
-/**
- * Appends a value to an LIST.
- * Stack effect: ( val list — list' )
- * This is an O(s) operation requiring payload shift to insert at bottom.
- */
-export function listAppendOp(vm: VM): void {
-  vm.ensureStackSize(2, 'list append');
-
-  const header = vm.pop(); // LIST header at TOS
-  const value = vm.pop(); // Value to append
-
-  if (!isList(header)) {
-    vm.push(value); // Restore stack
-    vm.push(header);
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListSlotCount(header);
-
-  if (slotCount === 0) {
-    // Empty LIST - just push value and header
-    vm.push(value);
-    vm.push(toTaggedValue(1, Tag.LIST));
-    return;
-  }
-
-  // Shift all payload down by one slot to make room at bottom
-  // Copy existing payload
-  const payload: number[] = [];
-  for (let i = 0; i < slotCount; i++) {
-    payload.push(vm.pop());
-  }
-
-  // Push appended value first (goes to bottom of payload)
-  vm.push(value);
-
-  // Push existing payload back (in reverse order to maintain LIST layout)
-  for (let i = payload.length - 1; i >= 0; i--) {
-    vm.push(payload[i]);
-  }
-
-  // Push updated header
-  const newHeader = toTaggedValue(slotCount + 1, Tag.LIST);
-  vm.push(newHeader);
-}
 
 /**
  * Returns address of payload slot at slot index.
@@ -652,9 +573,10 @@ export function reverseOp(vm: VM): void {
 export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
-  const header = vm.peek(); // Keep maplist on stack
+  const header = vm.pop(); // Pop header like headOp does
 
   if (!isList(header)) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
@@ -663,11 +585,13 @@ export function findOp(vm: VM): void {
   
   // Maplist must have even number of slots (key-value pairs)
   if (slotCount % 2 !== 0) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
 
   if (slotCount === 0) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
@@ -675,14 +599,16 @@ export function findOp(vm: VM): void {
   let defaultValueAddr = -1;
   
   // Search through key-value pairs
-  // Keys at positions 0,2,4... Values at positions 1,3,5...
+  // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
+  // Keys at slot positions 0,2,4... Values at slot positions 1,3,5...
   for (let i = 0; i < slotCount; i += 2) {
-    const keyAddr = vm.SP - 4 - (i * BYTES_PER_ELEMENT);
-    const valueAddr = vm.SP - 4 - ((i + 1) * BYTES_PER_ELEMENT);
+    const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
+    const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
     const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
     
     // Check for exact key match
     if (currentKey === key) {
+      vm.push(header); // Restore header
       vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
       return;
     }
@@ -700,11 +626,13 @@ export function findOp(vm: VM): void {
   
   // Key not found - check for default fallback
   if (defaultValueAddr !== -1) {
+    vm.push(header); // Restore header
     vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
     return;
   }
   
   // No key match and no default - return NIL
+  vm.push(header); // Restore header
   vm.push(NIL);
 }
 
@@ -718,9 +646,10 @@ export function findOp(vm: VM): void {
  */
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
-  const header = vm.peek(); // Keep maplist on stack
+  const header = vm.pop(); // Pop header like other operations
 
   if (!isList(header)) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
@@ -729,9 +658,13 @@ export function keysOp(vm: VM): void {
   
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
+
+  // Restore the header first
+  vm.push(header);
 
   if (slotCount === 0) {
     // Empty maplist - return empty list
@@ -742,9 +675,9 @@ export function keysOp(vm: VM): void {
   const keyCount = slotCount / 2;
   
   // Extract keys from even positions (0, 2, 4, ...)
-  // Push keys in correct LIST order (reverse of memory layout)
+  // After restoring header: slot 0 at SP-8, slot 2 at SP-16, etc.
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAddr = vm.SP - 4 - (i * 2 * BYTES_PER_ELEMENT);
+    const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * 2 * BYTES_PER_ELEMENT);
     const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
     vm.push(keyValue);
   }
@@ -763,9 +696,10 @@ export function keysOp(vm: VM): void {
  */
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
-  const header = vm.peek(); // Keep maplist on stack
+  const header = vm.pop(); // Pop header like other operations
 
   if (!isList(header)) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
@@ -774,9 +708,13 @@ export function valuesOp(vm: VM): void {
   
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
+    vm.push(header); // Restore header
     vm.push(NIL);
     return;
   }
+
+  // Restore the header first
+  vm.push(header);
 
   if (slotCount === 0) {
     // Empty maplist - return empty list
@@ -787,9 +725,9 @@ export function valuesOp(vm: VM): void {
   const valueCount = slotCount / 2;
   
   // Extract values from odd positions (1, 3, 5, ...)
-  // Push values in correct LIST order (reverse of memory layout)
+  // After restoring header: slot 1 at SP-12, slot 3 at SP-20, etc.
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAddr = vm.SP - 4 - ((i * 2 + 1) * BYTES_PER_ELEMENT);
+    const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i * 2 + 1) * BYTES_PER_ELEMENT);
     const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
     vm.push(valueValue);
   }

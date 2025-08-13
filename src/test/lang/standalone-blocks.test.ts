@@ -1,6 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { fromTaggedValue, Tag } from '../../core/tagged';
 
 describe('Standalone Code Blocks', () => {
   beforeEach(() => {

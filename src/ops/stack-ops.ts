@@ -30,10 +30,13 @@ import { StackUnderflowError, VMError } from '../core/errors';
 export type StackArgInfo = [number, number];
 
 /**
- * Finds an element in the stack starting from a given slot.
+ * Internal utility: Finds an element in the stack starting from a given slot.
  *
- * This function can identify both simple values and lists. For lists, it will
- * return the total size including the LIST tag and elements.
+ * This function is essential for LIST-aware stack operations. It correctly identifies 
+ * both simple values and compound LISTs, returning the total size including headers.
+ * 
+ * Used internally by stack operations (dup, swap, pick, etc.) to maintain proper
+ * LIST semantics. Not intended as a user-facing operation.
  *
  * @param vm - The `VM` instance containing the stack to search.
  * @param startSlot - The slot offset from the current stack pointer (0 = top of stack).
@@ -137,7 +140,15 @@ export function slotsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlo
 // ============================================================================
 
 /**
- * Finds an element at a specific index in the stack and returns its position and size.
+ * Internal utility: Finds an element at a specific logical index in the stack.
+ *
+ * This function traverses the stack element-by-element (respecting LIST boundaries)
+ * to find the element at the given logical index. Used internally by operations
+ * like `pick` that need to access elements by their logical position.
+ *
+ * @param vm - The VM instance
+ * @param index - The logical element index (0 = TOS)  
+ * @returns A tuple `[targetSlot, size]` for the element at the given index
  */
 function findElementAtIndex(vm: VM, index: number): [number, number] {
   let currentSlot = 0;
