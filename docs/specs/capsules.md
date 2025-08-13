@@ -39,8 +39,16 @@ Under the hood, a capsule is a specialized **list** that follows a fixed shape. 
 Every capsule is a list whose first element is a method table, and the rest are the capsule’s fields. In abstract form:
 
 ```
-( ( `name1 @method1 `name2 @method2 ... `nameN @methodN )
-  field1-value field2-value ... fieldN-value )
+( 
+  ( `name1 @method1 
+    `name2 @method2 
+    ... 
+    `nameN @methodN )
+  field1-value 
+  field2-value 
+  ... 
+  fieldN-value 
+)
 ```
 
 Where:
@@ -58,12 +66,14 @@ The dispatch maplist in element 0 follows TACIT’s standard **maplist** convent
 An example capsule in memory might look like this:
 
 ```
-( ( `greet @greet-code
+( 
+  ( `greet @greet-code
     `reset @reset-code
     `incrementViews @increment-code )
   "John"
   "Doe"
-  0 )
+  0 
+)
 ```
 
 Here:
