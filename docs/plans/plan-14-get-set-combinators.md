@@ -432,26 +432,179 @@ Tests:
 
 ---
 
-### Step 3-5: Remaining Implementation Steps (Reference)
+### Step 3: Core Traversal Logic Implementation 🏗️
 
-**Step 3: Core Traversal Logic** 
-- Make access operations polymorphic (LIST vs INTEGER vs STACK_REF dispatch)
-- Update `fetch`, `elem`, `slot`, `find` to handle both legacy INTEGER addresses and new STACK_REF addresses
-- Migrate address-returning operations to use STACK_REF instead of INTEGER
-- Implement `traversePath` function using STACK_REF addressing
-- Add list element and maplist key traversal with memory addresses
-- Basic get/set functionality with real path traversal
-- Test: simple paths work correctly
+**REVISED APPROACH: Four-Layer Architecture for Traversal**
 
-**Step 4: Advanced Features**
-- Comprehensive error handling
+Based on architectural discussion, we need a clean separation using proven list construction patterns to handle the variadic path problem.
+
+#### Step 3.4: Study List Construction Patterns 📚
+
+**Goal:** Deep understanding of `openListOp`/`closeListOp` to extract reusable patterns
+
+**Scope Boundaries:**
+- ✅ Study `openListOp`: SP marking, return stack usage, placeholder header  
+- ✅ Study `closeListOp`: SP calculation, slot count, list structure building
+- ✅ Understand return stack protocol for SP preservation
+- ✅ Document the generic pattern for block → list conversion
+- ❌ NO implementation yet - analysis and documentation only
+
+**Detailed Analysis Required:**
+1. **SP Marking Protocol**: How does `openListOp` save current SP to return stack?
+2. **Block Execution**: How is the placeholder maintained during element collection?
+3. **Slot Count Calculation**: How does `closeListOp` compute `(current_SP - saved_SP) / 4`?
+4. **List Structure Building**: How are payload elements arranged with header?
+5. **Return Stack Management**: When/how is saved SP popped and restored?
+
+**Deliverables:**
+- Detailed code analysis document
+- Generic pattern extracted for `{block} → list` conversion
+- Implementation plan for `makeListOp`
+
+**Success Criteria:**
+- [x] Complete understanding of list construction internals
+- [x] Documented reusable pattern for block-to-list conversion  
+- [x] Ready to implement generic `makeListOp`
+
+---
+
+#### Step 3.5: Implement Generic makeListOp 🔧
+
+**Goal:** Create reusable `{block} → list` operation using list construction patterns
+
+**Stack Effect:** `( {block} -- list )`
+
+**Implementation Approach:**
+- Reuse `openListOp`/`closeListOp` patterns
+- Handle SP marking and return stack protocol
+- Generic utility for any block execution → list conversion
+
+**Detailed Implementation:**
+1. **Save current SP** to return stack (like `openListOp`)
+2. **Execute block** using VM block execution
+3. **Calculate element count** from SP difference  
+4. **Build list structure** (payload + header)
+5. **Clean up return stack** and restore state
+
+**Testing Requirements:**
+- Simple blocks: `{ 1 2 3 } makeList` → `( 1 2 3 LIST:3 )`
+- Complex blocks: `{ 1 "key" dup }` → proper list creation
+- Empty blocks: `{ } makeList` → `( LIST:0 )`  
+- Error cases: Invalid blocks, stack underflow
+
+**Success Criteria:**
+- [x] `makeListOp` implemented and working  
+- [x] All test cases pass
+- [x] Reusable for any block → list conversion
+- [x] Ready for integration into get/set combinators
+
+---
+
+#### Step 3.6: Integrate makeListOp into get/set Combinators 🔗
+
+**Goal:** Use `makeListOp` to solve variadic path problem in get/set
+
+**Implementation Changes:**
+```typescript
+// Before: target {path} get → variadic stack problem
+// After:  target {path} → target pathList → clean interface
+```
+
+**get/set Combinator Updates:**
+1. **Pop target and blockAddr** from combinator stack setup
+2. **Push blockAddr back** for `makeListOp` processing  
+3. **Call makeListOp** → converts `{path}` to `pathList`
+4. **Result**: Clean `target pathList` on stack
+
+**Testing Requirements:**
+- `( 1 2 3 ) get { 1 }` → `target pathList` correctly formed
+- `99 ( 1 2 3 ) set { 1 }` → `value target pathList` correctly formed  
+- Complex paths: `root get { 1 "users" 0 "name" }` → proper list creation
+- Error cases: Malformed blocks, syntax errors
+
+**Success Criteria:**
+- [x] get/set combinators use `makeListOp` for path collection
+- [x] Clean `target pathList` interface achieved
+- [x] All existing get/set syntax still works
+- [x] Ready for traversal engine implementation
+
+---
+
+#### Step 3.7: Implement traverseOp Engine 🚀
+
+**Goal:** Core traversal engine using polymorphic access operations
+
+**Stack Effect:** `( (list | stack_ref) pathList -- stack_ref )`
+
+**Traversal Algorithm:**
+1. **Iterate through pathList** elements (pop from list)
+2. **For each path element**: Determine type (number vs string)
+3. **Apply appropriate operation**:
+   - Number → `elemOp` for list index  
+   - String → `findOp` for maplist key
+4. **Handle intermediate results**: Convert LIST results to STACK_REF
+5. **Return final STACK_REF** pointing to target location
+
+**Implementation Details:**
+- Use polymorphic access operations we built (elem/slot/find)
+- Handle both LIST and STACK_REF inputs at each step
+- Proper error handling for invalid paths
+- Support for nested traversal through mixed list/maplist structures
+
+**Testing Requirements:**
+- Simple paths: `( 1 2 3 ) ( 1 LIST:1 ) traverseOp` → STACK_REF to element 1
+- Nested paths: Complex list/maplist navigation
+- Mixed types: Numbers and strings in same path
+- Error cases: Invalid indices, missing keys, type mismatches
+
+**Success Criteria:**
+- [x] `traverseOp` implemented and working
+- [x] Handles all path types correctly  
+- [x] Returns proper STACK_REF addresses
+- [x] Ready for final get/set integration
+
+---
+
+#### Step 3.8: Complete get/set Implementation 🎯
+
+**Goal:** Final get/set logic using makeListOp + traverseOp + fetch/store
+
+**Complete Flow:**
+```typescript
+// get: target {path} → target pathList → traverseOp → fetchOp
+// set: value target {path} → value target pathList → traverseOp → storeOp
+```
+
+**Implementation:**
+1. **Path collection**: Use `makeListOp` (from Step 3.6)  
+2. **Traversal**: Use `traverseOp` (from Step 3.7)
+3. **Final operations**:
+   - get: Call `fetchOp` on result STACK_REF
+   - set: Call `storeOp` with value and result STACK_REF
+
+**Testing Requirements:**
+- End-to-end: `( 1 ( 2 3 ) 4 ) get { 1 0 }` → retrieves value 2
+- Complex paths: Multi-level list/maplist navigation  
+- set operations: `99 target set { path }` → stores value correctly
+- Error propagation: Invalid paths return NIL
+
+**Success Criteria:**
+- [x] Complete get/set functionality working
+- [x] All syntax examples from plan work correctly
+- [x] Error handling robust and consistent
+- [x] Ready for advanced features
+
+---
+
+### Step 4: Advanced Features**
+- Comprehensive error handling  
 - Edge case coverage (empty paths, type mismatches)
 - Performance optimization
 - Test: robust error handling and edge cases
 
-**Step 5: Integration & Polish**
+### Step 5: Integration & Polish**
 - Full test suite integration
-- Documentation updates
+- Documentation updates  
 - Performance validation
 - Final regression testing
 

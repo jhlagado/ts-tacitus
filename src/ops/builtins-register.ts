@@ -105,6 +105,7 @@ import {
   findOp,
   keysOp,
   valuesOp,
+  makeListOp,
 } from './list-ops';
 
 /**
@@ -212,4 +213,5 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.define('repeat', Op.Repeat, repeatOp);
   symbolTable.define('get', Op.Get, getOp);
   symbolTable.define('set', Op.Set, setOp);
+  symbolTable.define('makeList', Op.MakeList, makeListOp);
 }

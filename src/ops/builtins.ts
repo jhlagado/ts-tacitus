@@ -95,7 +95,7 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp } from './list-ops';
+import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -306,6 +306,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Set:
       setOp(vm);
+      break;
+    case Op.MakeList:
+      makeListOp(vm);
       break;
     case Op.LiteralAddress:
       literalAddressOp(vm);
