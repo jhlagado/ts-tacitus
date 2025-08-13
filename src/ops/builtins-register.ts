@@ -84,6 +84,7 @@ import { simpleIfOp, ifCurlyBranchFalseOp } from './control-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
+import { getOp, setOp } from './access-ops';
 import {
   openListOp,
   closeListOp,
@@ -209,4 +210,6 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   symbolTable.define('do', Op.Do, doOp);
   symbolTable.define('repeat', Op.Repeat, repeatOp);
+  symbolTable.define('get', Op.Get, getOp);
+  symbolTable.define('set', Op.Set, setOp);
 }

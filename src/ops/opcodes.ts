@@ -297,6 +297,12 @@ export enum Op {
   /** Repeat combinator: executes a quotation a specified number of times */
   Repeat,
 
+  /** Get combinator: path-based value access */
+  Get,
+
+  /** Set combinator: path-based value update */
+  Set,
+
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 

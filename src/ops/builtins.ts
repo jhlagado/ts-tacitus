@@ -103,6 +103,7 @@ import { InvalidOpcodeError } from '../core/errors';
 import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
+import { getOp, setOp } from './access-ops';
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -299,6 +300,12 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Repeat:
       repeatOp(vm);
+      break;
+    case Op.Get:
+      getOp(vm);
+      break;
+    case Op.Set:
+      setOp(vm);
       break;
     case Op.LiteralAddress:
       literalAddressOp(vm);
