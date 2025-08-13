@@ -82,7 +82,7 @@
 
 - **Reverse layout**: header `LIST:n` at TOS with `n` payload slots beneath
 - **Traversal by span**: element boundaries discovered via simple-or-header span rule
-- **No LINK tag**: legacy backlink mechanism removed; any docs referencing it are historical
+- **No LINK tag**: backlink mechanism removed
 - **Flat serialization**: contiguous slots, no heap pointers
 
 ## Development Workflow

@@ -386,7 +386,7 @@ When implementing stack operations:
 ## 13. Related Specifications
 
 - `docs/specs/tagged.md` - Type system for stack items
-- `docs/specs/lists.md` - Reverse list structure & traversal (legacy LINK removed)
+- `docs/specs/lists.md` - Reverse list structure & traversal
 - `docs/specs/vm-architecture.md` - Memory layout and execution model
 
 ## 14. See also
