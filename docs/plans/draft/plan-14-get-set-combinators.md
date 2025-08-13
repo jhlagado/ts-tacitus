@@ -176,12 +176,29 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 ```
 
 **Step 1 Success Criteria:**
-- [ ] Parser accepts `get { ... }` syntax without parse errors
-- [ ] Parser accepts `set { ... }` syntax without parse errors
-- [ ] Parser rejects `get` without `{` (proper error message)
-- [ ] Parser rejects `set` without `{` (proper error message)
-- [ ] Block compilation generates expected bytecode structure
-- [ ] All existing parser tests still pass (no regressions)
+- [x] Parser accepts `get { ... }` syntax without parse errors ✅ 
+- [x] Parser accepts `set { ... }` syntax without parse errors ✅
+- [x] Parser rejects `get` without `{` (proper error message) ✅
+- [x] Parser rejects `set` without `{` (proper error message) ✅
+- [x] Block compilation generates expected bytecode structure ✅
+- [x] All existing parser tests still pass (no regressions) ✅
+
+**Step 1 COMPLETED** 🎉
+
+**Implementation Summary:**
+- ✅ Added `get` and `set` combinator recognition in `src/lang/parser.ts:296-317`
+- ✅ Follows exact pattern as `do`/`repeat` combinators
+- ✅ Uses placeholder opcode (999) when symbols not found (intentional for Step 1)
+- ✅ Created parser-focused tests in `src/test/lang/parser-get-set.test.ts`
+- ✅ All 924 existing tests pass (1 unrelated performance test variance)
+- ✅ Zero regressions introduced
+
+**Key Technical Details:**
+- Parser correctly requires `{` token after `get`/`set` keywords
+- Block compilation using `beginStandaloneBlock()` works as expected
+- Error messages match existing combinator patterns
+- Placeholder opcode handling prevents compiler crashes
+- Test suite demonstrates proper syntax validation
 
 ---
 

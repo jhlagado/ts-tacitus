@@ -293,6 +293,28 @@ function processWordToken(value: string, state: ParserState): void {
     }
     vm.compiler.compileOpcode(repeatIndex);
     return;
+  } else if (value === 'get') {
+    const blockToken = state.tokenizer.nextToken();
+    if (blockToken.type !== TokenType.BLOCK_START) {
+      throw new SyntaxError('Expected { after get combinator', vm.getStackData());
+    }
+
+    beginStandaloneBlock(state);
+
+    const getIndex = vm.symbolTable.find('get');
+    vm.compiler.compileOpcode(getIndex ?? 999); // Use invalid placeholder if undefined
+    return;
+  } else if (value === 'set') {
+    const blockToken = state.tokenizer.nextToken();
+    if (blockToken.type !== TokenType.BLOCK_START) {
+      throw new SyntaxError('Expected { after set combinator', vm.getStackData());
+    }
+
+    beginStandaloneBlock(state);
+
+    const setIndex = vm.symbolTable.find('set');
+    vm.compiler.compileOpcode(setIndex ?? 999); // Use invalid placeholder if undefined
+    return;
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
