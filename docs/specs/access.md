@@ -137,18 +137,18 @@ If any index is out-of-bounds, or a key is absent with no default, `nil` is retu
 **Stack effect:**
 
 ```
-value  target  set { … }   ⇒   ok | nil
+value  target  set { … }   ⇒   ( no result )
 ```
 
 1. Executes the block, producing a path list.
 2. Traverses the target just like `get`.
-3. If traversal fails → returns `nil`.
-4. If it lands on a **simple element** → overwrites it with `value`, returns `ok`.
-5. If the target is **compound** (list, capsule, etc.) → no change, returns `nil`.
+3. If traversal fails → no change (silent).
+4. If it lands on a **simple element** → overwrites it with `value`.
+5. If the target is **compound** (list, capsule, etc.) → no change (silent).
 
 Traversal mirrors `get`, but the final step obtains the element address and applies `store`:
-- For number `i`: address = `elem i`; apply `store` if the element is simple; else return `nil`.
-- For symbol `k`: address = `find k`; apply `store` if the value element is simple; else return `nil`.
+- For number `i`: address = `elem i`; apply `store` if the element is simple; otherwise no change.
+- For symbol `k`: address = `find k`; apply `store` if the value element is simple; otherwise no change.
 
 #### Examples
 
@@ -162,6 +162,7 @@ Traversal mirrors `get`, but the final step obtains the element address and appl
 
 * Only **simple values** may be written (`number`, `boolean`, `string`, `symbol`, `nil`).
 * No structural edits: `set` does not insert keys or extend lists.
+* `set` produces no result; failures are silent.
 
 ### 6. Edge cases and failure modes
 
@@ -218,7 +219,7 @@ root get { `users 0 `name }            \ → "Charlie"
 * **Uniform path traversal** across lists and map lists.
 * **Numbers** = element index; **symbols** = map key.
 * `get` returns a value or `nil`.
-* `set` modifies simple values in-place, returns `ok` or `nil`.
+* `set` modifies simple values in-place; it produces no result (silent on failure).
 * Always uses the combinator form: target, operator, path block.
 * Designed to replace low-level `elem` and `slot` access for most use cases, internally leveraging `elem`/`find` with `fetch`/`store`.
 
@@ -231,8 +232,9 @@ root get { `users 0 `name }            \ → "Charlie"
   - In-bounds indices and present keys return correct values.
   - OOB index, missing key with/without `default` → `nil` / default value respectively.
 - `set`
-  - Simple targets update in place; compounds remain unchanged and yield `nil`.
+  - Simple targets update in place; compounds remain unchanged (silent).
   - No structural edits occur; list/maplist shapes are preserved.
+  - `set` leaves no value on the stack.
 - find family (addressing)
   - `find` returns correct addresses for list indices and maplist keys; matches `fetch` results.
   - `bfind` with correct pre-sorted inputs returns address of the first equal (lower_bound) or `nil`.
