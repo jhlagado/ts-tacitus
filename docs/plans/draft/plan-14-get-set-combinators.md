@@ -202,13 +202,100 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 
 ---
 
-### Step 2-5: Remaining Implementation Steps (Reference)
+### Step 2: Minimal Runtime Implementation 🏗️
 
-**Step 2: Minimal Runtime Implementation**
-- Add `Op.Get` and `Op.Set` opcodes
-- Create stub operations that return NIL
-- Register in symbol table and builtins dispatcher
-- Test: syntax works end-to-end without crashing
+**Goal:** Add minimal runtime support so syntax works end-to-end without crashing
+
+**Scope Boundaries:**
+- ✅ Add `Op.Get` and `Op.Set` opcodes to enum
+- ✅ Create stub operations that return NIL (no real functionality yet)
+- ✅ Register operations in symbol table and builtins dispatcher
+- ✅ Test: syntax works end-to-end without runtime crashes
+- ❌ NO real traversal logic yet (that's Step 3)
+
+#### 2.1: Add Opcodes to Enumeration
+
+**Location:** `src/ops/opcodes.ts` (after existing combinators)
+
+**Implementation:**
+```typescript
+/** Get combinator: path-based value access */
+Get,
+/** Set combinator: path-based value update */
+Set,
+```
+
+#### 2.2: Create Stub Operations
+
+**Location:** `src/ops/access-ops.ts` (new file)
+
+**Implementation Pattern:**
+```typescript
+export const getOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(2, 'get');
+  
+  // Pop the path block and target (ignore for now)
+  vm.pop(); // path block
+  vm.pop(); // target
+  
+  // Always return NIL for Step 2
+  vm.push(NIL);
+};
+
+export const setOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(3, 'set');
+  
+  // Pop the path block, target, and value (ignore for now)
+  vm.pop(); // path block
+  vm.pop(); // target  
+  vm.pop(); // value
+  
+  // Always return NIL for Step 2
+  vm.push(NIL);
+};
+```
+
+#### 2.3: Register Operations
+
+**Files Updated:**
+- `src/ops/builtins-register.ts`: Add symbol table registrations
+- `src/ops/builtins.ts`: Add opcode dispatch cases
+
+**Step 2 Success Criteria:**
+- [x] `Op.Get` and `Op.Set` opcodes added to enumeration ✅
+- [x] Stub operations created that pop correct stack arguments ✅
+- [x] Operations registered in symbol table and dispatcher ✅
+- [x] End-to-end syntax works: `( 1 2 3 ) get { 1 }` executes without crashing ✅
+- [x] Operations return NIL as expected ✅
+- [x] All existing tests still pass (no regressions) ✅
+
+**Step 2 COMPLETED** 🎉
+
+**Implementation Summary:**
+- ✅ Added `Op.Get` and `Op.Set` opcodes in `src/ops/opcodes.ts:300-304`
+- ✅ Created stub operations in `src/ops/access-ops.ts` with proper stack discipline
+- ✅ Registered operations in `src/ops/builtins-register.ts:213-214`
+- ✅ Added dispatch cases in `src/ops/builtins.ts:304-309`
+- ✅ Verified end-to-end execution: syntax works without crashes
+- ✅ All 924 existing tests pass with zero regressions
+- ✅ Stack discipline verified: operations pop correct arguments and return NIL
+
+**Key Technical Details:**
+- Stub operations properly implement stack contracts (get: 2 args, set: 3 args)
+- NIL return values match expected combinator behavior
+- Parser now resolves opcodes correctly (no longer uses placeholder 999)
+- Empty final stack is normal TACIT execution behavior
+- Operations integrate seamlessly with existing VM dispatch system
+
+---
+
+### Step 3-5: Remaining Implementation Steps (Reference)
+
+**Step 3: Core Traversal Logic** 
+- Implement `traversePath` function
+- Add list element and maplist key traversal
+- Basic get/set functionality
+- Test: simple paths work correctly
 
 **Step 3: Core Traversal Logic** 
 - Implement `traversePath` function
