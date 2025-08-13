@@ -9,7 +9,8 @@
 5. Method Dispatch with `with` Combinator
 6. Integration with TACIT
 7. Design Rationale
-8. Related Specifications
+8. Conclusion
+9. Related Specifications
 
 ## Introduction
 
@@ -250,7 +251,7 @@ instance with {
 
 If a method name is not found and there is no `default` entry in the dispatch maplist, the method call yields `nil` and nothing is executed.
 
-## 1. Preserve All Information
+## Design Rationale
 
 - **Lock down semantics**: Verify that every concept from the source is retained — especially technical details about slot indexing, anchored operations, `with` combinator internals, and mutability rules.
 - **Cross-link**: Make sure every term that appears here and in `lists.md` or `maplists.md` has a consistent definition and identical semantics.
@@ -258,7 +259,7 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 ---
 
-## 2. Enforce Spec Formatting
+### Spec Formatting
 
 - Use **consistent heading hierarchy**: `##` for main sections, `###` for subsections, no “floating” headings.
 - All stack effect notation and code snippets in fenced code blocks.
@@ -268,7 +269,7 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 ---
 
-## 3. Clarify Execution Model
+### Execution Model Notes
 
 - Make sure the capsule layout diagram appears once, and is referenced in:
   - Field access rules
@@ -282,7 +283,7 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 ---
 
-## 4. Consolidate Examples
+### Example Organization
 
 - Group examples by function:
   - Capsule definition
@@ -296,14 +297,14 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 ---
 
-## 5. Integrate Related Specs
+### Cross-References
 
 - At the bottom, a “Dependencies” block linking to `lists.md`, `maplists.md`, `capsules-implementation.md`.
 - If a concept here is defined elsewhere, summarise in one line and link — don’t restate the full content.
 
 ---
 
-## 6. Verification Pass
+### Verification Pass
 
 When editing:
 
