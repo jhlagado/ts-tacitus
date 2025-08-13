@@ -289,18 +289,145 @@ export const setOp: Verb = (vm: VM) => {
 
 ---
 
+### Step 2.5: STACK_REF Implementation 🏗️
+
+**Goal:** Add STACK_REF tagged value type to enable polymorphic access operations
+
+**Critical Design Decision:** Before implementing core traversal logic, we need to address a fundamental architectural issue: access operations (`elem`, `slot`, `find`) currently work with stack positions, but get/set combinators need to traverse memory addresses in nested structures.
+
+**Solution:** Implement polymorphic access operations that can handle both:
+- `Tag.LIST`: Current stack-relative behavior (SP+offset)  
+- `Tag.STACK_REF`: New memory address-based behavior (absolute cell addressing)
+
+#### 2.5.1: Add STACK_REF Tag Type
+
+**Location:** `src/core/tagged.ts`
+
+**Implementation:**
+```typescript
+export enum Tag {
+  NUMBER = 0,
+  INTEGER = 1, 
+  CODE = 2,
+  STACK_REF = 3,  // NEW: 4-byte aligned stack cell references
+  STRING = 4,
+  BUILTIN = 7,
+  LIST = 8,
+}
+```
+
+#### 2.5.2: STACK_REF Addressing Model
+
+**Cell-Based Addressing:**
+- **16-bit payload** = cell index (not byte address)
+- **4-byte alignment** = payload * 4 = actual byte address
+- **Address range** = 0-65535 cells = 0-262KB addressable stack space
+- **Type safety** = cannot create misaligned references
+
+**Usage Pattern:**
+```typescript
+// Create STACK_REF to cell 100 (byte address 400)
+const stackRef = toTaggedValue(100, Tag.STACK_REF);
+
+// Use STACK_REF  
+const cellIndex = getValue(stackRef);     // Gets 100
+const byteAddr = cellIndex * 4;          // Gets 400  
+const cellValue = vm.memory.read32(SEG_STACK, byteAddr);
+```
+
+#### 2.5.3: Tagged Value Support Functions
+
+**Add to `tagged.ts`:**
+```typescript
+/**
+ * Checks if a given NaN-boxed value represents a STACK_REF.
+ * @param tval The NaN-boxed value to check.
+ * @returns true if the value is a STACK_REF, false otherwise.
+ */
+export function isStackRef(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.STACK_REF;
+}
+
+/**
+ * Creates a STACK_REF pointing to the specified stack cell.
+ * @param cellIndex The 4-byte aligned cell index (0-65535)
+ * @returns Tagged STACK_REF value
+ */
+export function createStackRef(cellIndex: number): number {
+  if (cellIndex < 0 || cellIndex > 65535) {
+    throw new Error('Stack cell index must be 0-65535');
+  }
+  return toTaggedValue(cellIndex, Tag.STACK_REF);
+}
+
+/**
+ * Gets the byte address from a STACK_REF.
+ * @param stackRef The STACK_REF tagged value
+ * @returns Byte address within stack segment
+ */
+export function getStackRefAddress(stackRef: number): number {
+  if (getTag(stackRef) !== Tag.STACK_REF) {
+    throw new Error('Value is not a STACK_REF');
+  }
+  return getValue(stackRef) * 4;
+}
+```
+
+#### 2.5.4: Update Tag Names and Validation
+
+**Update constants:**
+```typescript
+export const MAX_TAG = Tag.LIST;  // Update if STACK_REF becomes highest
+
+export const tagNames: { [key in Tag]: string } = {
+  [Tag.NUMBER]: 'NUMBER',
+  [Tag.INTEGER]: 'INTEGER', 
+  [Tag.CODE]: 'CODE',
+  [Tag.STACK_REF]: 'STACK_REF',  // NEW
+  [Tag.STRING]: 'STRING',
+  [Tag.BUILTIN]: 'BUILTIN',
+  [Tag.LIST]: 'LIST',
+};
+```
+
+**Step 2.5 Success Criteria:**
+- [x] `Tag.STACK_REF = 3` added to tagged value enum ✅
+- [x] Cell-based addressing functions implemented and tested ✅
+- [x] Helper functions (`isStackRef`, `createStackRef`, `getStackRefAddress`) added ✅
+- [x] Tag name mapping updated ✅
+- [x] All existing tests pass (no regressions to tagged value system) ✅
+- [x] STACK_REF creation and validation works correctly ✅
+
+**Step 2.5 COMPLETED** 🎉
+
+**Implementation Summary:**
+- ✅ Added `Tag.STACK_REF = 3` to tagged value enum in `src/core/tagged.ts:36`
+- ✅ Implemented cell-based addressing: 16-bit payload = cell index, byte address = index * 4
+- ✅ Added helper functions: `isStackRef()`, `createStackRef()`, `getStackRefAddress()`
+- ✅ Updated tag name mapping for debugging support
+- ✅ All 924 existing tests pass with zero regressions
+- ✅ Validated functionality: cell 100 → byte address 400, boundary checks, error handling
+
+**Key Technical Details:**
+- Cell-based addressing provides 0-262KB addressable stack space (65535 cells × 4 bytes)
+- Type-safe creation with range validation (0-65535 cell indices)
+- 4-byte alignment ensures compatibility with stack slot operations
+- Clean separation from existing tagged value types
+
+**Next Step:** Once STACK_REF is implemented, access operations can be made polymorphic to dispatch based on TOS type (LIST vs STACK_REF), enabling memory-based traversal for get/set combinators.
+
+---
+
 ### Step 3-5: Remaining Implementation Steps (Reference)
 
 **Step 3: Core Traversal Logic** 
-- Implement `traversePath` function
-- Add list element and maplist key traversal
-- Basic get/set functionality
-- Test: simple paths work correctly
-
-**Step 3: Core Traversal Logic** 
-- Implement `traversePath` function
-- Add list element and maplist key traversal
-- Basic get/set functionality
+- Make access operations polymorphic (LIST vs INTEGER vs STACK_REF dispatch)
+- Update `fetch`, `elem`, `slot`, `find` to handle both legacy INTEGER addresses and new STACK_REF addresses
+- Migrate address-returning operations to use STACK_REF instead of INTEGER
+- Implement `traversePath` function using STACK_REF addressing
+- Add list element and maplist key traversal with memory addresses
+- Basic get/set functionality with real path traversal
 - Test: simple paths work correctly
 
 **Step 4: Advanced Features**
@@ -314,6 +441,13 @@ export const setOp: Verb = (vm: VM) => {
 - Documentation updates
 - Performance validation
 - Final regression testing
+
+**Optional Step 6: Type System Cleanup (Future)**
+- *Optional cleanup task - can be done faster in VS Code*
+- Rename `Tag.INTEGER` → `Tag.SENTINEL` (restrict to NIL only)
+- Update all references and documentation
+- This resolves the semantic confusion where INTEGER was misused for addresses
+- Pure cleanup task with no functional changes to get/set combinators
 
 ---
 

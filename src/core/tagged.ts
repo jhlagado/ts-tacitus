@@ -32,6 +32,9 @@ export enum Tag {
   /**  Represents executable code (function pointer). */
   CODE = 2,
 
+  /**  Represents a 4-byte aligned stack cell reference. */
+  STACK_REF = 3,
+
   /**  Represents a string literal. */
   STRING = 4,
 
@@ -55,6 +58,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.INTEGER]: 'INTEGER',
   [Tag.CODE]: 'CODE',
+  [Tag.STACK_REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
@@ -272,4 +276,38 @@ export function isString(tval: number): boolean {
 export function isList(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.LIST;
+}
+
+/**
+ * Checks if a given NaN-boxed value represents a STACK_REF.
+ * @param tval The NaN-boxed value to check.
+ * @returns true if the value is a STACK_REF, false otherwise.
+ */
+export function isStackRef(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.STACK_REF;
+}
+
+/**
+ * Creates a STACK_REF pointing to the specified stack cell.
+ * @param cellIndex The 4-byte aligned cell index (0-65535)
+ * @returns Tagged STACK_REF value
+ */
+export function createStackRef(cellIndex: number): number {
+  if (cellIndex < 0 || cellIndex > 65535) {
+    throw new Error('Stack cell index must be 0-65535');
+  }
+  return toTaggedValue(cellIndex, Tag.STACK_REF);
+}
+
+/**
+ * Gets the byte address from a STACK_REF.
+ * @param stackRef The STACK_REF tagged value
+ * @returns Byte address within stack segment
+ */
+export function getStackRefAddress(stackRef: number): number {
+  if (getTag(stackRef) !== Tag.STACK_REF) {
+    throw new Error('Value is not a STACK_REF');
+  }
+  return getValue(stackRef) * 4;
 }
