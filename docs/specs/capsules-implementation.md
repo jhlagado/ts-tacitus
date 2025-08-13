@@ -53,17 +53,17 @@ Each field becomes an **element** in the prototype list, with offset starting at
 ## Method Dispatch Implementation
 
 ### Dispatch Mechanism
-```tacit
-.methodName    \ Expands to: receiver 0 get `methodName maplist-find eval
+```tac
+.methodName    \ expands to:  R 0 slot-at  `methodName find-at  fetch  eval
 ```
 
 **Process**:
-1. Prefix sigil `.` reads next token as method name
-2. Access maplist from current receiver element 0
-3. Search for method symbol in maplist
-4. If found, execute corresponding code reference
-5. If not found, try `default` method or signal error
-6. **Receiver unchanged** - stays accessible via receiver register
+1. Prefix sigil `.` reads next token as method name.
+2. Compute the dispatch maplist header address anchored at the receiver: `R 0 slot-at` (no copying).
+3. Locate the method via `find-at`; this returns the value address for the code reference (or `default`'s value address if present).
+4. `fetch` the code reference and `eval` it.
+5. If the method is not found and there is no `default`, return a sentinel (e.g., `nil`); do not throw.
+6. **Receiver unchanged** — remains accessible via the receiver register.
 
 ### TACIT Sigil Family
 ```tacit
