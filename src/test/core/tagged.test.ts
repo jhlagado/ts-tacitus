@@ -14,8 +14,8 @@ import {
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
     const tests = [
-      { tag: Tag.INTEGER, value: -32768 },
-      { tag: Tag.INTEGER, value: 32767 },
+      { tag: Tag.SENTINEL, value: -32768 },
+      { tag: Tag.SENTINEL, value: 32767 },
       { tag: Tag.CODE, value: 12345 },
       { tag: Tag.STRING, value: 42 },
     ];
@@ -33,8 +33,8 @@ describe('Tagged NaN Encoding', () => {
     expect(() => toTaggedValue(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
   test('should validate value ranges for INTEGER', () => {
-    expect(() => toTaggedValue(32768, Tag.INTEGER)).toThrow();
-    expect(() => toTaggedValue(-32769, Tag.INTEGER)).toThrow();
+    expect(() => toTaggedValue(32768, Tag.SENTINEL)).toThrow();
+    expect(() => toTaggedValue(-32769, Tag.SENTINEL)).toThrow();
   });
   test('should validate unsigned value ranges for non-INTEGER types', () => {
     expect(() => toTaggedValue(-1, Tag.CODE)).toThrow();
@@ -43,8 +43,8 @@ describe('Tagged NaN Encoding', () => {
     expect(() => toTaggedValue(65536, Tag.STRING)).toThrow();
   });
   test('should correctly extract value for integer types', () => {
-    const encodedNeg = toTaggedValue(-32768, Tag.INTEGER);
-    const encodedPos = toTaggedValue(32767, Tag.INTEGER);
+    const encodedNeg = toTaggedValue(-32768, Tag.SENTINEL);
+    const encodedPos = toTaggedValue(32767, Tag.SENTINEL);
     const decodedNeg = fromTaggedValue(encodedNeg);
     const decodedPos = fromTaggedValue(encodedPos);
     expect(decodedNeg.value).toBe(-32768);
@@ -60,8 +60,8 @@ describe('Tagged NaN Encoding', () => {
     expect(getValue(encoded)).toBe(456);
   });
   test('should correctly identify NIL using isNIL', () => {
-    expect(isNIL(toTaggedValue(0, Tag.INTEGER))).toBe(true);
-    expect(isNIL(toTaggedValue(1, Tag.INTEGER))).toBe(false);
+    expect(isNIL(toTaggedValue(0, Tag.SENTINEL))).toBe(true);
+    expect(isNIL(toTaggedValue(1, Tag.SENTINEL))).toBe(false);
   });
   test('should correctly identify code types', () => {
     const func = toTaggedValue(123, Tag.CODE);

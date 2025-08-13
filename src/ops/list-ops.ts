@@ -16,7 +16,15 @@
  */
 
 import { VM } from '../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, isList, getStackRefAddress, getTag } from '../core/tagged';
+import {
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  isList,
+  getStackRefAddress,
+  getTag,
+  NIL,
+} from '../core/tagged';
 import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
@@ -28,7 +36,6 @@ import {
 } from '../core/list';
 
 const BYTES_PER_ELEMENT = 4;
-const NIL = toTaggedValue(0, Tag.INTEGER);
 
 /**
  * Opens an LIST construction with '[' token.
@@ -43,7 +50,7 @@ export function openListOp(vm: VM): void {
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
   const headerPos = vm.SP - BYTES_PER_ELEMENT;
-  vm.rpush(toTaggedValue(headerPos, Tag.INTEGER));
+  vm.rpush(toTaggedValue(headerPos, Tag.SENTINEL));
 
   if (vm.debug)
     console.log(
@@ -120,7 +127,7 @@ export function listSlotOp(vm: VM): void {
   const header = vm.peek();
   const slotCount = getListSlotCount(header);
 
-  vm.push(toTaggedValue(slotCount, Tag.INTEGER));
+  vm.push(toTaggedValue(slotCount, Tag.SENTINEL));
 }
 
 /**
@@ -139,7 +146,7 @@ export function lengthOp(vm: VM): void {
 
   const slotCount = getListSlotCount(header);
   if (slotCount === 0) {
-    vm.push(toTaggedValue(0, Tag.INTEGER));
+    vm.push(toTaggedValue(0, Tag.SENTINEL));
     return;
   }
 
@@ -157,10 +164,8 @@ export function lengthOp(vm: VM): void {
     currentAddr -= span * BYTES_PER_ELEMENT;
   }
 
-  vm.push(toTaggedValue(elementCount, Tag.INTEGER));
+  vm.push(toTaggedValue(elementCount, Tag.SENTINEL));
 }
-
-
 
 /**
  * cons (list-first): ( list value — list' )
@@ -272,7 +277,7 @@ export function headOp(vm: VM): void {
 
     // Push compound element to new position
     for (let i = slotCount; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - (i * BYTES_PER_ELEMENT));
+      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
       vm.push(slotValue);
     }
   } else {
@@ -300,7 +305,7 @@ export function unconsOp(vm: VM): void {
   const slotCount = getListSlotCount(header);
   if (slotCount === 0) {
     vm.push(header); // empty list
-    vm.push(NIL);    // nil head
+    vm.push(NIL); // nil head
     return;
   }
 
@@ -321,7 +326,7 @@ export function unconsOp(vm: VM): void {
   if (isList(firstElement)) {
     // Compound head: push full structure
     for (let i = span - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - (i * BYTES_PER_ELEMENT));
+      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
       vm.push(slotValue);
     }
   } else {
@@ -329,7 +334,6 @@ export function unconsOp(vm: VM): void {
     vm.push(firstElement);
   }
 }
-
 
 /**
  * Returns address of payload slot at slot index.
@@ -340,7 +344,7 @@ export function unconsOp(vm: VM): void {
  */
 export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
-  const {value: idx} = fromTaggedValue(vm.pop());
+  const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek(); // Keep target on stack
   const tag = getTag(target);
 
@@ -353,9 +357,8 @@ export function slotOp(vm: VM): void {
     }
 
     // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
-    const addr = vm.SP - 4 - (idx * BYTES_PER_ELEMENT);
-    vm.push(toTaggedValue(addr, Tag.INTEGER));
-
+    const addr = vm.SP - 4 - idx * BYTES_PER_ELEMENT;
+    vm.push(toTaggedValue(addr, Tag.SENTINEL));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
@@ -373,9 +376,8 @@ export function slotOp(vm: VM): void {
     }
 
     // Memory slot addressing: base - (1 + idx) * 4
-    const addr = baseAddr - ((idx + 1) * BYTES_PER_ELEMENT);
-    vm.push(toTaggedValue(addr, Tag.INTEGER));
-
+    const addr = baseAddr - (idx + 1) * BYTES_PER_ELEMENT;
+    vm.push(toTaggedValue(addr, Tag.SENTINEL));
   } else {
     vm.push(NIL);
   }
@@ -385,12 +387,12 @@ export function slotOp(vm: VM): void {
  * Returns address of element start at logical index.
  * Stack effect: ( list_or_ref idx -- list_or_ref addr )
  * Spec: lists.md §10 - uses traversal to find element start
- * 
+ *
  * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
 export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
-  const {value: idx} = fromTaggedValue(vm.pop());
+  const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek(); // Keep target on stack
   const tag = getTag(target);
 
@@ -401,26 +403,24 @@ export function elemOp(vm: VM): void {
       vm.push(NIL);
       return;
     }
-    vm.push(toTaggedValue(addr, Tag.INTEGER));
-    
+    vm.push(toTaggedValue(addr, Tag.SENTINEL));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
     const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
-    
+
     if (!isList(header)) {
       vm.push(NIL);
       return;
     }
-    
+
     // Use traversal with memory base address instead of stack position
     const addr = getListElementAddress(vm, header, baseAddr - 4, idx);
     if (addr === -1) {
       vm.push(NIL);
       return;
     }
-    vm.push(toTaggedValue(addr, Tag.INTEGER));
-    
+    vm.push(toTaggedValue(addr, Tag.SENTINEL));
   } else {
     vm.push(NIL);
   }
@@ -440,7 +440,7 @@ export function fetchOp(vm: VM): void {
   let byteAddr: number;
   const tag = getTag(addressValue);
 
-  if (tag === Tag.INTEGER) {
+  if (tag === Tag.SENTINEL) {
     // Legacy: direct byte address
     byteAddr = fromTaggedValue(addressValue).value;
   } else if (tag === Tag.STACK_REF) {
@@ -458,7 +458,7 @@ export function fetchOp(vm: VM): void {
 
     // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, byteAddr - ((i + 1) * BYTES_PER_ELEMENT));
+      const slotValue = vm.memory.readFloat32(SEG_STACK, byteAddr - (i + 1) * BYTES_PER_ELEMENT);
       vm.push(slotValue);
     }
     // Push header last (becomes TOS)
@@ -476,7 +476,7 @@ export function fetchOp(vm: VM): void {
  */
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
-  const {value: addr} = fromTaggedValue(vm.pop());
+  const { value: addr } = fromTaggedValue(vm.pop());
   const value = vm.pop();
 
   const existing = vm.memory.readFloat32(SEG_STACK, addr);
@@ -498,7 +498,7 @@ export function storeOp(vm: VM): void {
  */
 export function packOp(vm: VM): void {
   vm.ensureStackSize(1, 'pack');
-  const {value: count} = fromTaggedValue(vm.pop());
+  const { value: count } = fromTaggedValue(vm.pop());
 
   if (count < 0 || count > vm.getStackData().length) {
     vm.push(NIL);
@@ -629,7 +629,7 @@ export function reverseOp(vm: VM): void {
  * On key match: returns address of corresponding value
  * On miss with 'default' key present: returns default value address
  * On miss without default: returns NIL
- * 
+ *
  * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
 export function findOp(vm: VM): void {
@@ -641,7 +641,7 @@ export function findOp(vm: VM): void {
   if (tag === Tag.LIST) {
     // Current behavior: stack-relative addressing
     const slotCount = getListSlotCount(target);
-    
+
     // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
       vm.push(target); // Restore target
@@ -656,21 +656,21 @@ export function findOp(vm: VM): void {
     }
 
     let defaultValueAddr = -1;
-    
+
     // Search through key-value pairs (stack-relative)
     // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
     for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
-      const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
+      const keyAddr = vm.SP - BYTES_PER_ELEMENT - i * BYTES_PER_ELEMENT;
+      const valueAddr = vm.SP - BYTES_PER_ELEMENT - (i + 1) * BYTES_PER_ELEMENT;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
-      
+
       // Check for exact key match
       if (currentKey === key) {
         vm.push(target); // Restore target
-        vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+        vm.push(toTaggedValue(valueAddr, Tag.SENTINEL));
         return;
       }
-      
+
       // Check for 'default' key (special fallback semantics)
       const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
       if (keyTag === Tag.STRING) {
@@ -684,27 +684,26 @@ export function findOp(vm: VM): void {
     // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
       vm.push(target); // Restore target
-      vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
+      vm.push(toTaggedValue(defaultValueAddr, Tag.SENTINEL));
       return;
     }
 
     // No key match and no default - return NIL
     vm.push(target); // Restore target
     vm.push(NIL);
-    
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
     const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
-    
+
     if (!isList(header)) {
       vm.push(target); // Restore target
       vm.push(NIL);
       return;
     }
-    
+
     const slotCount = getListSlotCount(header);
-    
+
     // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
       vm.push(target); // Restore target
@@ -719,21 +718,21 @@ export function findOp(vm: VM): void {
     }
 
     let defaultValueAddr = -1;
-    
+
     // Search through key-value pairs (memory-relative)
     // Slots are at: baseAddr-4, baseAddr-8, baseAddr-12, etc.
     for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = baseAddr - BYTES_PER_ELEMENT - (i * BYTES_PER_ELEMENT);
-      const valueAddr = baseAddr - BYTES_PER_ELEMENT - ((i + 1) * BYTES_PER_ELEMENT);
+      const keyAddr = baseAddr - BYTES_PER_ELEMENT - i * BYTES_PER_ELEMENT;
+      const valueAddr = baseAddr - BYTES_PER_ELEMENT - (i + 1) * BYTES_PER_ELEMENT;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
-      
+
       // Check for exact key match
       if (currentKey === key) {
         vm.push(target); // Restore target
-        vm.push(toTaggedValue(valueAddr, Tag.INTEGER));
+        vm.push(toTaggedValue(valueAddr, Tag.SENTINEL));
         return;
       }
-      
+
       // Check for 'default' key (special fallback semantics)
       const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
       if (keyTag === Tag.STRING) {
@@ -747,14 +746,13 @@ export function findOp(vm: VM): void {
     // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
       vm.push(target); // Restore target
-      vm.push(toTaggedValue(defaultValueAddr, Tag.INTEGER));
+      vm.push(toTaggedValue(defaultValueAddr, Tag.SENTINEL));
       return;
     }
 
     // No key match and no default - return NIL
     vm.push(target); // Restore target
     vm.push(NIL);
-    
   } else {
     // Invalid target type
     vm.push(target); // Restore target
@@ -803,7 +801,7 @@ export function keysOp(vm: VM): void {
   // Extract keys from even positions (0, 2, 4, ...)
   // After restoring header: slot 0 at SP-8, slot 2 at SP-16, etc.
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAddr = vm.SP - BYTES_PER_ELEMENT - (i * 2 * BYTES_PER_ELEMENT);
+    const keyAddr = vm.SP - BYTES_PER_ELEMENT - i * 2 * BYTES_PER_ELEMENT;
     const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
     vm.push(keyValue);
   }
@@ -853,7 +851,7 @@ export function valuesOp(vm: VM): void {
   // Extract values from odd positions (1, 3, 5, ...)
   // After restoring header: slot 1 at SP-12, slot 3 at SP-20, etc.
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAddr = vm.SP - BYTES_PER_ELEMENT - ((i * 2 + 1) * BYTES_PER_ELEMENT);
+    const valueAddr = vm.SP - BYTES_PER_ELEMENT - (i * 2 + 1) * BYTES_PER_ELEMENT;
     const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
     vm.push(valueValue);
   }

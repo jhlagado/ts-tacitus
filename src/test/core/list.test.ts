@@ -37,7 +37,7 @@ describe('LIST Core Utilities', () => {
 
     it('should create LIST with single value', () => {
       const vm = resetVM();
-      const value = toTaggedValue(42, Tag.INTEGER);
+      const value = toTaggedValue(42, Tag.SENTINEL);
       createList(vm, [value]);
 
       expect(getStackDepth(vm)).toBe(2); // header + 1 payload
@@ -53,9 +53,9 @@ describe('LIST Core Utilities', () => {
 
     it('should create LIST with multiple values in reverse order', () => {
       const vm = resetVM();
-      const val1 = toTaggedValue(1, Tag.INTEGER);
-      const val2 = toTaggedValue(2, Tag.INTEGER);
-      const val3 = toTaggedValue(3, Tag.INTEGER);
+      const val1 = toTaggedValue(1, Tag.SENTINEL);
+      const val2 = toTaggedValue(2, Tag.SENTINEL);
+      const val3 = toTaggedValue(3, Tag.SENTINEL);
 
       createList(vm, [val1, val2, val3]);
 
@@ -160,7 +160,7 @@ describe('LIST Core Utilities', () => {
   describe('getListPayloadStart', () => {
     it('should return correct payload start address', () => {
       const vm = resetVM();
-      const value = toTaggedValue(42, Tag.INTEGER);
+      const value = toTaggedValue(42, Tag.SENTINEL);
       createList(vm, [value]);
 
       const payloadStart = getListPayloadStart(vm);

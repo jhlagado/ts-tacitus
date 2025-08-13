@@ -27,14 +27,6 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toContain('42');
     });
 
-    test('should print INTEGER tagged values', () => {
-      const intValue = toTaggedValue(123, Tag.INTEGER);
-      prn('Test Integer', intValue);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Test Integer: INTEGER: 123/);
-    });
-
     test('should print CODE tagged values', () => {
       const codeValue = toTaggedValue(50, Tag.CODE);
       prn('Test Code', codeValue);
@@ -62,20 +54,20 @@ describe('Printer', () => {
     // Legacy LINK removed from tests
 
     test('should handle empty title', () => {
-      const intValue = toTaggedValue(42, Tag.INTEGER);
+      const intValue = toTaggedValue(42, Tag.SENTINEL);
       prn('', intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/^: INTEGER: 42$/);
+      expect(consoleOutput[0]).toMatch(/^: SENTINEL: 42$/);
     });
 
     test('should handle null title', () => {
-      const intValue = toTaggedValue(42, Tag.INTEGER);
+      const intValue = toTaggedValue(42, Tag.SENTINEL);
       prn(null as unknown as string, intValue);
 
       expect(consoleOutput).toHaveLength(1);
       // Should handle null title gracefully
-      expect(consoleOutput[0]).toContain('INTEGER: 42');
+      expect(consoleOutput[0]).toContain('SENTINEL: 42');
     });
 
     test('should handle untagged NUMBER values', () => {
@@ -100,37 +92,6 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Negative Infinity: NUMBER:/);
     });
 
-    test('should handle zero values', () => {
-      const zeroInt = toTaggedValue(0, Tag.INTEGER);
-      prn('Zero Integer', zeroInt);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Zero Integer: INTEGER: 0/);
-    });
-
-    test('should handle negative values', () => {
-      const negativeInt = toTaggedValue(-100, Tag.INTEGER);
-      prn('Negative Integer', negativeInt);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Negative Integer: INTEGER: -100/);
-    });
-
-    test('should handle maximum and minimum INTEGER values', () => {
-      const maxInt = toTaggedValue(32767, Tag.INTEGER);
-      prn('Max Integer', maxInt);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Max Integer: INTEGER: 32767/);
-
-      consoleOutput = [];
-      const minInt = toTaggedValue(-32768, Tag.INTEGER);
-      prn('Min Integer', minInt);
-
-      expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Min Integer: INTEGER: -32768/);
-    });
-
     test('should handle unknown tag types gracefully', () => {
       // Since toTaggedValue validates tags, we can't easily create invalid tags
       // Instead, test that all valid tags work and the default case is covered
@@ -152,12 +113,12 @@ describe('Printer', () => {
     });
 
     test('should format output correctly with indentation', () => {
-      const intValue = toTaggedValue(42, Tag.INTEGER);
+      const intValue = toTaggedValue(42, Tag.SENTINEL);
       prn('Indented Test', intValue);
 
       expect(consoleOutput).toHaveLength(1);
       // The formatValue function uses 0 indentation by default
-      expect(consoleOutput[0]).toMatch(/^Indented Test: INTEGER: 42$/);
+      expect(consoleOutput[0]).toMatch(/^Indented Test: SENTINEL: 42$/);
     });
 
     test('should handle large string indices', () => {
@@ -198,7 +159,7 @@ describe('Printer', () => {
     test('should correctly format all standard tag types', () => {
       const testCases = [
         { tag: Tag.NUMBER, value: 3.14, title: 'Number' },
-        { tag: Tag.INTEGER, value: 42, title: 'Integer' },
+        { tag: Tag.SENTINEL, value: 42, title: 'Sentinel' },
         { tag: Tag.CODE, value: 100, title: 'Code' },
         { tag: Tag.STRING, value: 200, title: 'String' },
         { tag: Tag.LIST, value: 5, title: 'List' },
@@ -215,8 +176,8 @@ describe('Printer', () => {
         // Check that the tag name appears in the output
         if (tag === Tag.NUMBER) {
           expect(consoleOutput[0]).toMatch(/NUMBER:/);
-        } else if (tag === Tag.INTEGER) {
-          expect(consoleOutput[0]).toMatch(/INTEGER:/);
+        } else if (tag === Tag.SENTINEL) {
+          expect(consoleOutput[0]).toMatch(/SENTINEL:/);
         } else if (tag === Tag.CODE) {
           expect(consoleOutput[0]).toMatch(/CODE:/);
         } else if (tag === Tag.STRING) {
@@ -228,18 +189,18 @@ describe('Printer', () => {
     });
 
     test('should handle multiple consecutive prints', () => {
-      const value1 = toTaggedValue(1, Tag.INTEGER);
-      const value2 = toTaggedValue(2, Tag.INTEGER);
-      const value3 = toTaggedValue(3, Tag.INTEGER);
+      const value1 = toTaggedValue(1, Tag.SENTINEL);
+      const value2 = toTaggedValue(2, Tag.SENTINEL);
+      const value3 = toTaggedValue(3, Tag.SENTINEL);
 
       prn('First', value1);
       prn('Second', value2);
       prn('Third', value3);
 
       expect(consoleOutput).toHaveLength(3);
-      expect(consoleOutput[0]).toMatch(/First: INTEGER: 1/);
-      expect(consoleOutput[1]).toMatch(/Second: INTEGER: 2/);
-      expect(consoleOutput[2]).toMatch(/Third: INTEGER: 3/);
+      expect(consoleOutput[0]).toMatch(/First: SENTINEL: 1/);
+      expect(consoleOutput[1]).toMatch(/Second: SENTINEL: 2/);
+      expect(consoleOutput[2]).toMatch(/Third: SENTINEL: 3/);
     });
   });
 });

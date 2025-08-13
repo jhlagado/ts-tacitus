@@ -4,12 +4,7 @@
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import {
-  openListOp,
-  closeListOp,
-  listSlotOp,
-  lengthOp,
-} from '../../../ops/list-ops';
+import { openListOp, closeListOp, listSlotOp, lengthOp } from '../../../ops/list-ops';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('List Operations - Branch Coverage', () => {
@@ -65,7 +60,7 @@ describe('List Operations - Branch Coverage', () => {
     test('should handle lists with listDepth undefined (backward compatibility)', () => {
       // Temporarily remove listDepth to test backward compatibility
       const originalListDepth = vm.listDepth;
-      delete ((vm as unknown as Record<string, unknown>)).listDepth;
+      delete (vm as unknown as Record<string, unknown>).listDepth;
 
       openListOp(vm);
       vm.push(42);
@@ -88,7 +83,7 @@ describe('List Operations - Branch Coverage', () => {
 
       const result = vm.pop();
       const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.INTEGER);
+      expect(tag).toBe(Tag.SENTINEL);
       expect(value).toBe(0); // NIL is INTEGER 0
     });
 
@@ -101,7 +96,7 @@ describe('List Operations - Branch Coverage', () => {
 
       const result = vm.pop();
       const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.INTEGER);
+      expect(tag).toBe(Tag.SENTINEL);
       expect(value).toBe(0); // Length is 0
     });
 
@@ -163,7 +158,7 @@ describe('List Operations - Branch Coverage', () => {
       // Should return NIL for non-list
       const result = vm.pop();
       const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.INTEGER);
+      expect(tag).toBe(Tag.SENTINEL);
       expect(value).toBe(0); // NIL
     });
 
