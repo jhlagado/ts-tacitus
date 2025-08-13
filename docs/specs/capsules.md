@@ -16,9 +16,10 @@ TACIT capsules provide **object-like encapsulation** for structured data and beh
 They are built on the **list** infrastructure, using **maplist-based method dispatch**, and are designed to avoid traditional object-oriented complexities such as inheritance chains, heap allocation, or hidden closures.
 
 Capsules unify **data (fields)** and **behavior (methods)** into a single, self-contained value that behaves like any other list on the stack. This means:
-- They can be duplicated, swapped, concatenated, and inspected with list operations.
+- They can be duplicated, swapped, and inspected with list operations.
+- They can be treated as opaque values: `dup`/`swap`/`drop` act on the whole capsule; use `enlist`/`cons` to place a capsule into other lists.
 - They remain **stack-resident** -- no garbage collection or heap management is required.
-- They are **structurally immutable** -- while field values may be mutated in place if simple, the list's shape does not change after creation.
+- They are **structurally immutable**: simple field values can be updated in place, but the capsule's overall list shape is fixed once created.
 
 ### Key Principles
 - **List-based**: Capsules are specialized lists with a fixed structure.
@@ -77,7 +78,13 @@ end
 
 
 ### Access Semantics
-Capsules reuse list addressing semantics (slots vs elements) from the list specification. Refer to `lists.md` for address-based operations and traversal rules, including low-level `fetch` and `store` definitions. Access examples that rely on numeric indices are intentionally omitted here; prefer named field access and `->` assignment.
+Capsules use receiver-relative addressing with explicit addresses; the receiver is not moved to TOS.
+
+- Anchored primitives:
+  - `slot-at   ( addr idx -- addr )` — address of payload slot `idx` for the list whose header is at `addr` (no traversal)
+  - `find-at   ( addr key -- value-addr | default-addr | nil )` — maplist lookup anchored at `addr` (late binding; same rules as `find`)
+- The receiver’s capsule header address is maintained internally during `with`/method execution.
+- Per-field payload slot indices are computed at capsule assembly time; runtime field access is O(1).
 
 ## Field Access
 
@@ -98,6 +105,18 @@ Use the `->` operator for assignment:
 - Not allowed: Structural mutation (changing length or overwriting with a compound value).
 - Assignments follow list `store` semantics: simple-only in-place; compound targets are a silent no-op.
 
+### Compilation Forms (receiver-relative)
+
+Let `R` be the receiver’s capsule header address and `O[field]` the precomputed payload slot index for a field.
+
+```tac
+\ Read field
+firstName              \ expands to:  R  O[firstName]  slot-at  fetch
+
+\ Write field (simple-only via store)
+"Jane" -> firstName   \ expands to:  "Jane"  R  O[firstName]  slot-at  store
+```
+
 ## Method Dispatch with `with` Combinator
 
 ### Basic Usage
@@ -117,9 +136,17 @@ person with {
 - **Block scoping** -- `{` and `}` delimit the method call scope.
 
 ### Implementation Mechanics
-1. **`with` starts** -- Takes the receiver object from the stack and stores it as the current `receiver`.
-2. **`.method` calls** -- Look up the method name in the maplist (element 0) and execute it.
-3. **`with` ends** -- Cleans up all values pushed after the receiver and restores the previous receiver.
+1. **`with` starts** -- Captures the receiver’s capsule header address as `R` for the scope.
+2. **`.method` calls** -- Do not copy the dispatch maplist. Use element 0 anchored at `R`:
+   - `R 0 slot-at`                      \ address of dispatch maplist header
+   - `` `method find-at``               \ address of code-ref cell (or default’s value on miss)
+   - `fetch eval`
+3. **`with` ends** -- Restores the previous receiver context.
+
+### Dispatch Mechanism
+```tac
+.methodName    \ expands to:  R 0 slot-at  `methodName find-at  fetch  eval
+```
 
 ### With Arguments
 ```tac
@@ -173,11 +200,9 @@ instance with {
 Capsules are still lists and therefore follow all general list rules and operations. See `lists.md` for slot/element addressing details where needed.
 
 ### Stack Operations
-Capsules work with normal stack operators:
-```tac
-capsule dup
-capsule swap
-```
+Capsules behave like numbers with respect to stack manipulation:
+- `dup`, `swap`, `drop` operate on the whole capsule value
+- Use `enlist` or `cons` to add a capsule as a single element to a list
 
 ### Maplist Integration
 - `default` key for fallback methods is supported.
