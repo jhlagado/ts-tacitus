@@ -2,6 +2,9 @@
 
 **🎯 PROJECT CONTEXT: This TypeScript codebase is a PROTOTYPE for a future C/assembly port. All development decisions must support this eventual migration by avoiding JavaScript-specific patterns and favoring C-like implementations.**
 
+## 🆕 New Claude Instance?
+**START HERE FIRST:** Read `ONBOARDING.md` for a 5-minute quick start guide, then return to this file for detailed project rules.
+
 ## 🚨 CRITICAL WORKFLOW - MUST READ FIRST
 
 ### 1. Plan Execution Protocol (MANDATORY)
