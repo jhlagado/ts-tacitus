@@ -71,13 +71,7 @@ import {
   avgOp,
   prodOp,
 } from './math-ops';
-import {
-  mNegateOp,
-  mReciprocalOp,
-  mFloorOp,
-  mNotOp,
-  mSignumOp,
-} from './math-ops';
+import { mNegateOp, mReciprocalOp, mFloorOp, mNotOp, mSignumOp } from './math-ops';
 import { mEnlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';

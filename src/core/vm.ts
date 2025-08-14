@@ -96,9 +96,9 @@ export class VM {
     this.listDepth = 0;
     this.receiver = 0;
 
-  this.symbolTable = new SymbolTable(this.digest);
-  this.tempRegister = NIL;
-  registerBuiltins(this, this.symbolTable);
+    this.symbolTable = new SymbolTable(this.digest);
+    this.tempRegister = NIL;
+    registerBuiltins(this, this.symbolTable);
   }
 
   /**
