@@ -324,4 +324,10 @@ export enum Op {
   Keys,
   /** Extract all values from maplist - ( maplist — maplist values ) */
   Values,
+
+  /** Saves TOS to VM temp register (internal use only) */
+  SaveTemp,
+  /** Pushes value from VM temp register to stack (internal use only) */
+  RestoreTemp,
+
 }
