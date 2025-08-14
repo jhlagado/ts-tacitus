@@ -105,6 +105,18 @@ import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { getOp, setOp } from './access-ops';
 
+// Temp register operations for macro expansion
+// Pops the top of the stack and stores it in vm.tempRegister
+export function saveTempOp(vm: VM): void {
+  vm.ensureStackSize(1, 'saveTemp');
+  vm.tempRegister = vm.pop();
+}
+
+// Pushes the value in vm.tempRegister onto the stack
+export function restoreTempOp(vm: VM): void {
+  vm.push(vm.tempRegister);
+}
+
 /**
  * Executes a specific operation based on the given opcode.
  *
@@ -379,6 +391,12 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Values:
       valuesOp(vm);
+      break;
+    case Op.SaveTemp:
+      saveTempOp(vm);
+      break;
+    case Op.RestoreTemp:
+      restoreTempOp(vm);
       break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());

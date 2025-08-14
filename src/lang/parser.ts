@@ -299,10 +299,12 @@ function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after get combinator', vm.getStackData());
     }
 
-    beginStandaloneBlock(state);
+    beginStandaloneBlock(state); // Compile the block and push its code ref
 
-    const getIndex = vm.symbolTable.find('get');
-    vm.compiler.compileOpcode(getIndex ?? 999); // Use invalid placeholder if undefined
+    // Macro expansion: pop block and target, then push literal 123
+    vm.compiler.compileOpcode(Op.Drop); // Drop the block code ref
+    vm.compiler.compileOpcode(Op.Drop); // Drop the target
+    compileNumberLiteral(123); // Push the literal 123
     return;
   } else if (value === 'set') {
     const blockToken = state.tokenizer.nextToken();

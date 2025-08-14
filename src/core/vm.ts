@@ -15,7 +15,7 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE } from './constants';
-import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
+import { fromTaggedValue, toTaggedValue, Tag, NIL } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -73,6 +73,8 @@ export class VM {
 
   /** Receiver register - stack slot index for current receiver object (defaults to 0) */
   receiver: number;
+
+  tempRegister: number;
   /**
    * Creates a new `VM` (Virtual Machine) instance.
    * Initializes the VM's memory, instruction pointer (IP), stack pointer (SP),
@@ -94,8 +96,9 @@ export class VM {
     this.listDepth = 0;
     this.receiver = 0;
 
-    this.symbolTable = new SymbolTable(this.digest);
-    registerBuiltins(this, this.symbolTable);
+  this.symbolTable = new SymbolTable(this.digest);
+  this.tempRegister = NIL;
+  registerBuiltins(this, this.symbolTable);
   }
 
   /**
