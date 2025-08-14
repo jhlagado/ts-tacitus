@@ -301,10 +301,17 @@ function processWordToken(value: string, state: ParserState): void {
 
     beginStandaloneBlock(state); // Compile the block and push its code ref
 
-    // Macro expansion: pop block and target, then push literal 123
-    vm.compiler.compileOpcode(Op.Drop); // Drop the block code ref
-    vm.compiler.compileOpcode(Op.Drop); // Drop the target
-    compileNumberLiteral(123); // Push the literal 123
+    // Macro expansion for get combinator:
+    // 1. Save block code ref to temp register
+    vm.compiler.compileOpcode(Op.SaveTemp);
+    // 2. Open list (push dummy LIST:0, save SP)
+    vm.compiler.compileOpcode(Op.OpenList);
+    // 3. Restore block code ref from temp register
+    vm.compiler.compileOpcode(Op.RestoreTemp);
+    // 4. Eval block (results go above dummy header)
+    vm.compiler.compileOpcode(Op.Eval);
+    // 5. Close list (package results into list)
+    vm.compiler.compileOpcode(Op.CloseList);
     return;
   } else if (value === 'set') {
     const blockToken = state.tokenizer.nextToken();
