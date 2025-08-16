@@ -30,10 +30,10 @@ export enum Tag {
   SENTINEL = 1,
 
   /**  Represents executable code (function pointer). */
-  CODE = 2,
+  FUNC = 2,
 
   /**  Represents a 4-byte aligned stack cell reference. */
-  STACK_REF = 3,
+  REF = 3,
 
   /**  Represents a string literal. */
   STRING = 4,
@@ -57,8 +57,8 @@ export const MAX_TAG = Tag.LIST;
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
-  [Tag.CODE]: 'CODE',
-  [Tag.STACK_REF]: 'STACK_REF',
+  [Tag.FUNC]: 'FUNC',
+  [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
@@ -234,26 +234,26 @@ export function isSentinel(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents executable `CODE` (a function pointer).
- * This returns `true` if the value's tag is `Tag.CODE`.
+ * Checks if a given NaN-boxed value represents executable `FUNC` (a function pointer).
+ * This returns `true` if the value's tag is `Tag.FUNC`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `CODE`, `false` otherwise.
+ * @returns `true` if the value is `FUNC`, `false` otherwise.
  */
 export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.CODE;
+  return tag === Tag.FUNC;
 }
 
 /**
- * Checks if a given NaN-boxed value represents executable `CODE`.
+ * Checks if a given NaN-boxed value represents executable `FUNC`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `CODE`, `false` otherwise.
+ * @returns `true` if the value is `FUNC`, `false` otherwise.
  */
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.CODE;
+  return tag === Tag.FUNC;
 }
 
 /**
@@ -287,7 +287,7 @@ export function isList(tval: number): boolean {
  */
 export function isStackRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF;
+  return tag === Tag.REF;
 }
 
 /**
@@ -299,7 +299,7 @@ export function createStackRef(cellIndex: number): number {
   if (cellIndex < 0 || cellIndex > 65535) {
     throw new Error('Stack cell index must be 0-65535');
   }
-  return toTaggedValue(cellIndex, Tag.STACK_REF);
+  return toTaggedValue(cellIndex, Tag.REF);
 }
 
 /**
@@ -308,7 +308,7 @@ export function createStackRef(cellIndex: number): number {
  * @returns Byte address within stack segment
  */
 export function getStackRefAddress(stackRef: number): number {
-  if (getTag(stackRef) !== Tag.STACK_REF) {
+  if (getTag(stackRef) !== Tag.REF) {
     throw new Error('Value is not a STACK_REF');
   }
   return getValue(stackRef) * 4;

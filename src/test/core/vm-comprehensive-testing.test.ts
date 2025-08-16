@@ -15,7 +15,7 @@
  * - Mixed scenarios with built-ins, colon definitions, and standalone blocks
  */
 
-import { resetVM } from "../utils/vm-test-utils";
+import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/globalState';
 import { evalOp } from '../../ops/core-ops';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
@@ -103,7 +103,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       expect(taggedValue).toBeDefined();
 
       const { tag, value } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
       expect(value).toBe(startAddress);
 
       // This proves function table bypass is working - no function index needed
@@ -165,7 +165,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         if (useBuiltin) {
           expect(tag).toBe(Tag.BUILTIN);
         } else {
-          expect(tag).toBe(Tag.CODE);
+          expect(tag).toBe(Tag.FUNC);
         }
       }
     });
@@ -357,7 +357,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       // Test that code references are properly formatted
       vm.pushSymbolRef('square');
       const { tag, value } = fromTaggedValue(vm.pop());
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
       expect(value).toBe(5000);
     });
 
@@ -392,7 +392,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
           const def = codeDefs[i % codeDefs.length];
           vm.pushSymbolRef(def.name);
           const { tag, value } = fromTaggedValue(vm.pop());
-          expect(tag).toBe(Tag.CODE);
+          expect(tag).toBe(Tag.FUNC);
           expect(value).toBe(def.addr);
         }
       }

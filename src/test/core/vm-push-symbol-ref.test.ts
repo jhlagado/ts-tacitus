@@ -5,7 +5,7 @@
  * that enables pushing symbol references directly onto the stack for unified dispatch.
  */
 
-import { resetVM } from "../utils/vm-test-utils";
+import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/globalState';
 import { evalOp } from '../../ops/core-ops';
 import { Op } from '../../ops/opcodes';
@@ -128,7 +128,7 @@ describe('VM pushSymbolRef method', () => {
 
       // Check square (colon definition)
       const { tag: tag2, value: val2 } = fromTaggedValue(stack[1]);
-      expect(tag2).toBe(Tag.CODE);
+      expect(tag2).toBe(Tag.FUNC);
       expect(val2).toBe(1500);
 
       // Check dup (built-in)
@@ -138,7 +138,7 @@ describe('VM pushSymbolRef method', () => {
 
       // Check double (colon definition)
       const { tag: tag4, value: val4 } = fromTaggedValue(stack[3]);
-      expect(tag4).toBe(Tag.CODE);
+      expect(tag4).toBe(Tag.FUNC);
       expect(val4).toBe(1600);
     });
 

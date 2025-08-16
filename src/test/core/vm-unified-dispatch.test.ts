@@ -2,12 +2,12 @@
  * @file src/test/core/vm-unified-dispatch.test.ts
  *
  * Tests for VM-level unified dispatch system.
- * Verifies that both Tag.BUILTIN and Tag.CODE values work correctly with evalOp
+ * Verifies that both Tag.BUILTIN and Tag.FUNC values work correctly with evalOp
  * without any language changes - pure VM-level testing.
  */
 
 import { vm } from '../../core/globalState';
-import { resetVM } from "../utils/vm-test-utils";
+import { resetVM } from '../utils/vm-test-utils';
 import { createBuiltinRef } from '../../core/code-ref';
 import { toTaggedValue, Tag } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';

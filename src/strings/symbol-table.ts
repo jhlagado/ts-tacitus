@@ -31,7 +31,7 @@ type WordFunction = (vm: VM) => void;
  *
  * Each node contains:
  * - key: The address of the word name in the string digest
- * - taggedValue: The tagged value for unified @symbol system (Tag.BUILTIN or Tag.CODE)
+ * - taggedValue: The tagged value for unified @symbol system (Tag.BUILTIN or Tag.FUNC)
  * - implementation: Optional JavaScript function implementing the word (for legacy compatibility)
  * - next: Reference to the next node in the linked list
  */
@@ -80,7 +80,7 @@ export class SymbolTable {
    * Both built-ins and colon definitions use this method.
    *
    * @param name The symbol name
-   * @param taggedValue The tagged value (Tag.BUILTIN or Tag.CODE with address)
+   * @param taggedValue The tagged value (Tag.BUILTIN or Tag.FUNC with address)
    * @param implementation Optional implementation function for legacy compatibility
    */
   defineSymbol(name: string, taggedValue: number, implementation?: WordFunction): void {
@@ -94,7 +94,6 @@ export class SymbolTable {
     };
     this.head = newNode;
   }
-
 
   /**
    * Finds a tagged value for a symbol name
@@ -148,9 +147,9 @@ export class SymbolTable {
   /**
    * Finds the bytecode address for a colon definition
    *
-   * This method searches for colon definitions (Tag.CODE) and returns
+   * This method searches for colon definitions (Tag.FUNC) and returns
    * their bytecode address. Built-ins (Tag.BUILTIN) return undefined
-   * since they don't have bytecode addresses in the CODE segment.
+   * since they don't have bytecode addresses in the code segment.
    *
    * @param {string} name - The name of the word to find
    * @returns {number | undefined} The bytecode address if it's a colon definition, undefined otherwise
@@ -159,8 +158,8 @@ export class SymbolTable {
     const taggedValue = this.findTaggedValue(name);
     if (taggedValue !== undefined) {
       const { tag, value } = fromTaggedValue(taggedValue);
-      // Only return bytecode addresses for colon definitions (Tag.CODE)
-      if (tag === Tag.CODE) {
+      // Only return bytecode addresses for colon definitions (Tag.FUNC)
+      if (tag === Tag.FUNC) {
         return value;
       }
     }
@@ -279,7 +278,7 @@ export class SymbolTable {
    *
    * This method adds a colon definition (user-defined word) to the symbol table
    * with a direct tagged value that can be used by the unified @symbol system.
-   * Convenience method that calls defineSymbol with a CODE tagged value.
+   * Convenience method that calls defineSymbol with a FUNC tagged value.
    *
    * @param {string} name - The name of the colon definition (e.g., "square")
    * @param {number} bytecodeAddr - The bytecode address where the definition starts

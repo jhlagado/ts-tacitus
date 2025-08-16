@@ -42,10 +42,10 @@ describe('VM', () => {
       expect(vm.getStackData()).toEqual([1, 2, 3]);
     });
     test('should handle address tagging', () => {
-      vm.push(toTaggedValue(0x2345, Tag.CODE));
+      vm.push(toTaggedValue(0x2345, Tag.FUNC));
       const { value, tag } = fromTaggedValue(vm.pop());
       expect(value).toBe(0x2345);
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
     });
   });
 
@@ -67,9 +67,9 @@ describe('VM', () => {
       expect(() => vm.rpop()).toThrow('Return stack underflow');
     });
     test('should handle address tagging on return stack', () => {
-      vm.rpush(toTaggedValue(0x4321, Tag.CODE));
+      vm.rpush(toTaggedValue(0x4321, Tag.FUNC));
       const { value, tag } = fromTaggedValue(vm.rpop());
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
       expect(value).toBe(0x4321);
     });
     test('should handle integer tagging on return stack', () => {
@@ -94,7 +94,7 @@ describe('VM', () => {
     });
     test('should handle nextAddress correctly', () => {
       const addr = 0x2345;
-      vm.compiler.compileFloat32(toTaggedValue(addr, Tag.CODE));
+      vm.compiler.compileFloat32(toTaggedValue(addr, Tag.FUNC));
       vm.IP = 0;
       expect(vm.nextAddress()).toBe(addr);
     });

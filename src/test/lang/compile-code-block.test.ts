@@ -36,7 +36,7 @@ describe('compileCodeBlock function', () => {
       expect(stack[1]).toBe(200);
 
       const { tag } = fromTaggedValue(stack[2]);
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
     });
 
     it('should execute nested blocks when evaluated', () => {

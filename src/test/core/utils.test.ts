@@ -116,9 +116,9 @@ describe('Utility Functions', () => {
       const taggedNil = toTaggedValue(0, Tag.SENTINEL);
       expect(formatValue(testVM, taggedNil)).toBe('NIL');
     });
-    test('formats CODE tagged value', () => {
-      const taggedCode = toTaggedValue(1234, Tag.CODE);
-      expect(formatValue(testVM, taggedCode)).toBe('CODE(1234)');
+    test('formats FUNC tagged value', () => {
+      const taggedCode = toTaggedValue(1234, Tag.FUNC);
+      expect(formatValue(testVM, taggedCode)).toBe('FUNC(1234)');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = testVM.digest.add('TestString');

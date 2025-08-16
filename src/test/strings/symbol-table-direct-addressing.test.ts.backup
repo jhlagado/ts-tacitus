@@ -72,7 +72,7 @@ describe('SymbolTable Direct Addressing', () => {
       const taggedValue = symbolTable.findCodeRef('square');
 
       expect(codeRef).toBeDefined();
-      expect(taggedValue!.tag).toBe(Tag.CODE);
+      expect(taggedValue!.tag).toBe(Tag.FUNC);
       expect(taggedValue!.addr).toBe(squareAddr);
     });
 
@@ -99,7 +99,7 @@ describe('SymbolTable Direct Addressing', () => {
       codeDefs.forEach(({ name, addr }) => {
         const taggedValue = symbolTable.findCodeRef(name);
         expect(codeRef).toBeDefined();
-        expect(taggedValue!.tag).toBe(Tag.CODE);
+        expect(taggedValue!.tag).toBe(Tag.FUNC);
         expect(taggedValue!.addr).toBe(addr);
       });
     });
@@ -122,7 +122,7 @@ describe('SymbolTable Direct Addressing', () => {
       expect(addRef!.tag).toBe(Tag.BUILTIN);
       expect(addRef!.addr).toBe(Op.Add);
 
-      expect(squareRef!.tag).toBe(Tag.CODE);
+      expect(squareRef!.tag).toBe(Tag.FUNC);
       expect(squareRef!.addr).toBe(1000);
     });
 
@@ -134,7 +134,7 @@ describe('SymbolTable Direct Addressing', () => {
       const taggedValue = symbolTable.findCodeRef('test');
 
       // Should find the most recent definition (code definition)
-      expect(taggedValue!.tag).toBe(Tag.CODE);
+      expect(taggedValue!.tag).toBe(Tag.FUNC);
       expect(taggedValue!.addr).toBe(5000);
     });
   });
@@ -149,9 +149,9 @@ describe('SymbolTable Direct Addressing', () => {
 
       // Verify all definitions are findable
       expect(symbolTable.findCodeRef('add')!.tag).toBe(Tag.BUILTIN);
-      expect(symbolTable.findCodeRef('square')!.tag).toBe(Tag.CODE);
+      expect(symbolTable.findCodeRef('square')!.tag).toBe(Tag.FUNC);
       expect(symbolTable.findCodeRef('dup')!.tag).toBe(Tag.BUILTIN);
-      expect(symbolTable.findCodeRef('cube')!.tag).toBe(Tag.CODE);
+      expect(symbolTable.findCodeRef('cube')!.tag).toBe(Tag.FUNC);
 
       // Verify backward compatibility
       expect(symbolTable.find('add')).toBe(Op.Add);
