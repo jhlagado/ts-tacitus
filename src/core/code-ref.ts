@@ -184,11 +184,11 @@ export function getBuiltinOpcode(builtinRef: number): number {
  * @example
  * ```typescript
  * const codeRef = createCodeRef(1000);
- * const addr = getCodeAddress(codeRef);
+ * const addr = getFuncAddress(codeRef);
  * console.log(addr === 1000); // true
  * ```
  */
-export function getCodeAddress(codeRef: number): number {
+export function getFuncAddress(codeRef: number): number {
   if (!isFuncRef(codeRef)) {
     throw new Error('Value is not a code reference');
   }

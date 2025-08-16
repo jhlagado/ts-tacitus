@@ -17,7 +17,7 @@ import {
   isBuiltinRef,
   isFuncRef,
   getBuiltinOpcode,
-  getCodeAddress,
+  getFuncAddress,
 } from '../../core/code-ref';
 import { evalOp } from '../../ops/core-ops';
 
@@ -59,7 +59,7 @@ describe('VM Symbol Resolution', () => {
 
       expect(result).toBeDefined();
       expect(isFuncRef(result!)).toBe(true);
-      expect(getCodeAddress(result!)).toBe(testAddr);
+      expect(getFuncAddress(result!)).toBe(testAddr);
 
       // Verify it has the correct tag
       const { tag, value } = fromTaggedValue(result!);
@@ -86,11 +86,11 @@ describe('VM Symbol Resolution', () => {
       // Verify code definitions
       const squareResult = vm.resolveSymbol('square');
       expect(isFuncRef(squareResult!)).toBe(true);
-      expect(getCodeAddress(squareResult!)).toBe(1000);
+      expect(getFuncAddress(squareResult!)).toBe(1000);
 
       const cubeResult = vm.resolveSymbol('cube');
       expect(isFuncRef(cubeResult!)).toBe(true);
-      expect(getCodeAddress(cubeResult!)).toBe(2000);
+      expect(getFuncAddress(cubeResult!)).toBe(2000);
     });
 
     test('should handle symbol shadowing correctly', () => {
@@ -102,7 +102,7 @@ describe('VM Symbol Resolution', () => {
 
       // Should resolve to the most recent definition (code definition)
       expect(isFuncRef(result!)).toBe(true);
-      expect(getCodeAddress(result!)).toBe(5000);
+      expect(getFuncAddress(result!)).toBe(5000);
     });
 
     test('resolved values should be executable by VM', () => {
@@ -171,7 +171,7 @@ describe('VM Symbol Resolution', () => {
       expect(resolved).toBeDefined();
 
       expect(isFuncRef(resolved!)).toBe(true);
-      expect(getCodeAddress(resolved!)).toBe(200);
+      expect(getFuncAddress(resolved!)).toBe(200);
 
       // And should still be findable with old method for backward compatibility
       expect(vm.symbolTable.find('oldStyle')).toBe(200);

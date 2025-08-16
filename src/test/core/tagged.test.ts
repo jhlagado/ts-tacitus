@@ -7,7 +7,6 @@ import {
   getValue,
   isNIL,
   isFunc,
-  isAnyCode,
   isList,
   MAX_TAG,
 } from '../../core/tagged';
@@ -68,8 +67,6 @@ describe('Tagged NaN Encoding', () => {
     const str = toTaggedValue(789, Tag.STRING);
     expect(isFunc(func)).toBe(true);
     expect(isFunc(str)).toBe(false);
-    expect(isAnyCode(func)).toBe(true);
-    expect(isAnyCode(str)).toBe(false);
   });
 
   test('should correctly identify LIST types', () => {
