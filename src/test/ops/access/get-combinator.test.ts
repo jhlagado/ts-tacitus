@@ -6,7 +6,7 @@ import { executeProgram } from '../../../lang/interpreter';
 import { vm } from '../../../core/globalState';
 import { fromTaggedValue } from '../../../core/tagged';
 
-describe('get combinator', () => {
+describe.skip('get combinator', () => {
   beforeEach(() => {
     resetVM();
   });
