@@ -95,69 +95,6 @@ export class SymbolTable {
     this.head = newNode;
   }
 
-  /**
-   * Defines a new word in the symbol table
-   *
-   * This method adds a new word definition to the symbol table. The word name
-   * is added to the digest, and a new node is created at the head of the linked list.
-   * Maintains backward compatibility while transitioning to tagged values.
-   *
-   * @param {string} name - The name of the word to define
-   * @param {number} functionIndex - The function index/opcode for the word
-   * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
-   */
-  define(name: string, functionIndex: number, implementation?: WordFunction): void {
-    const key = this.digest.add(name);
-
-    // Create appropriate tagged value based on function index
-    let taggedValue: number;
-    if (functionIndex < MIN_USER_OPCODE) {
-      // Built-in opcode
-      taggedValue = createBuiltinRef(functionIndex);
-    } else {
-      // For now, user-defined words still use function indices
-      // This will be updated in later steps when we have direct bytecode addresses
-      taggedValue = createCodeRef(functionIndex);
-    }
-
-    const newNode: SymbolTableNode = {
-      key,
-      taggedValue,
-      implementation,
-      next: this.head,
-    };
-    this.head = newNode;
-  }
-
-  /**
-   * Defines a callable word in the symbol table
-   *
-   * This is an alias for the define method, provided for semantic clarity
-   * when defining words that are meant to be called directly.
-   *
-   * @param {string} name - The name of the word to define
-   * @param {number} functionIndex - The function index/opcode for the word
-   * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
-   */
-  defineCall(name: string, functionIndex: number): void {
-    this.define(name, functionIndex);
-  }
-
-  /**
-   * Defines a colon definition with direct addressing
-   *
-   * This method stores the bytecode address directly in the symbol table,
-   * enabling direct jumps to user-defined words without any intermediate lookups.
-   *
-   * @param {string} name - The name of the colon definition
-   * @param {number} bytecodeAddr - The bytecode address for direct addressing
-   * @param {WordFunction} [implementation] - Optional JavaScript function implementing the word
-   */
-  defineColonDefinition(name: string, bytecodeAddr: number, _implementation?: WordFunction): void {
-    // Store the bytecode address directly using defineCode
-    // This enables direct addressing without any intermediate lookups
-    this.defineCode(name, bytecodeAddr);
-  }
 
   /**
    * Finds a tagged value for a symbol name
@@ -333,8 +270,8 @@ export class SymbolTable {
    * @param {string} name - The name of the built-in operation (e.g., "add")
    * @param {number} opcode - The opcode for the built-in operation
    */
-  defineBuiltin(name: string, opcode: number): void {
-    this.defineSymbol(name, createBuiltinRef(opcode));
+  defineBuiltin(name: string, opcode: number, implementation?: WordFunction): void {
+    this.defineSymbol(name, createBuiltinRef(opcode), implementation);
   }
 
   /**

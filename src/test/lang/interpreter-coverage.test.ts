@@ -73,11 +73,6 @@ describe('Interpreter - Branch Coverage', () => {
       }
     });
 
-    test('should handle non-Error exceptions in error handler', () => {
-      // This branch is hard to test directly without complex mocking
-      // The main error handler branch (Error instance) is covered by existing tests
-      expect(true).toBe(true); // Placeholder
-    });
   });
 
   describe('callTacitFunction', () => {
