@@ -172,20 +172,20 @@ describe('SymbolTable Direct Addressing', () => {
 
   describe('Legacy method compatibility', () => {
     test('should not resolve symbols defined with old methods', () => {
-      // Use old-style define which doesn't create proper tagged values for new system
-      symbolTable.define('oldStyle', 42);
+      // Use builtin define for opcodes < 128
+      symbolTable.defineBuiltin('oldStyle', 42);
 
       const taggedValue = symbolTable.findCodeRef('oldStyle');
       expect(taggedValue).toBeDefined(); // findCodeRef now maps to findTaggedValue
 
-      // But the old-style defines still work with the unified system since Step 8.5
+      // defineBuiltin creates proper tagged values for the unified system
       const { tag } = fromTaggedValue(taggedValue!);
       expect(tag).toBe(Tag.BUILTIN); // 42 < 128, so it's treated as builtin
     });
 
     test('should maintain independence from legacy function calling', () => {
-      // Define using legacy method
-      symbolTable.define('oldCall', 200); // >= 128, so CODE
+      // Use code define for addresses >= 128
+      symbolTable.defineCode('oldCall', 200); // >= 128, so CODE
 
       const taggedValue = symbolTable.findCodeRef('oldCall');
       expect(taggedValue).toBeDefined();

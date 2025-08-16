@@ -506,7 +506,7 @@ function endDefinition(state: ParserState): void {
   // We did not store it; recompute: start address = (branchPos + 2)
   const defStart = state.currentDefinition.branchPos + 2; // start of body immediately after 16-bit placeholder
 
-  vm.symbolTable.defineColonDefinition(name, defStart);
+  vm.symbolTable.defineCode(name, defStart);
 
   state.currentDefinition = null;
 }

@@ -124,94 +124,94 @@ import {
  * @param symbolTable - The symbol table to register operations in
  */
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
-  symbolTable.define('lit', Op.LiteralNumber, literalNumberOp);
-  symbolTable.define('branch', Op.Branch, skipDefOp);
-  symbolTable.define('branch-call', Op.BranchCall, skipBlockOp);
-  symbolTable.define('call', Op.Call, callOp);
-  symbolTable.define('abort', Op.Abort, abortOp);
-  symbolTable.define('exit', Op.Exit, exitOp);
-  symbolTable.define('eval', Op.Eval, evalOp);
-  symbolTable.define('pushSymbolRef', Op.PushSymbolRef, pushSymbolRefOp);
-  symbolTable.define('.', Op.Print, printOp);
-  symbolTable.define('print', Op.RawPrint, rawPrintOp);
-  symbolTable.define('str', Op.LiteralString, literalStringOp);
-  symbolTable.define('addr', Op.LiteralAddress, literalAddressOp);
+  symbolTable.defineBuiltin('lit', Op.LiteralNumber);
+  symbolTable.defineBuiltin('branch', Op.Branch);
+  symbolTable.defineBuiltin('branch-call', Op.BranchCall);
+  symbolTable.defineBuiltin('call', Op.Call);
+  symbolTable.defineBuiltin('abort', Op.Abort);
+  symbolTable.defineBuiltin('exit', Op.Exit);
+  symbolTable.defineBuiltin('eval', Op.Eval, evalOp);
+  symbolTable.defineBuiltin('pushSymbolRef', Op.PushSymbolRef);
+  symbolTable.defineBuiltin('.', Op.Print);
+  symbolTable.defineBuiltin('print', Op.RawPrint);
+  symbolTable.defineBuiltin('str', Op.LiteralString);
+  symbolTable.defineBuiltin('addr', Op.LiteralAddress);
 
   // Parentheses build unified LIST
-  symbolTable.define('(', Op.OpenList, openListOp);
-  symbolTable.define(')', Op.CloseList, closeListOp);
+  symbolTable.defineBuiltin('(', Op.OpenList);
+  symbolTable.defineBuiltin(')', Op.CloseList);
 
   // Lists.md spec operations - Section 9 & 10
-  symbolTable.define('slots', Op.Slots, listSlotOp);
-  symbolTable.define('length', Op.Length, lengthOp);
-  symbolTable.define('slot', Op.Slot, slotOp);
-  symbolTable.define('elem', Op.Elem, elemOp);
-  symbolTable.define('fetch', Op.Fetch, fetchOp);
-  symbolTable.define('store', Op.Store, storeOp);
+  symbolTable.defineBuiltin('slots', Op.Slots);
+  symbolTable.defineBuiltin('length', Op.Length);
+  symbolTable.defineBuiltin('slot', Op.Slot);
+  symbolTable.defineBuiltin('elem', Op.Elem);
+  symbolTable.defineBuiltin('fetch', Op.Fetch);
+  symbolTable.defineBuiltin('store', Op.Store);
   
   // Lists.md spec operations - Section 12
-  symbolTable.define('cons', Op.Cons, consOp);
-  symbolTable.define('concat', Op.Concat, concatOp);
-  symbolTable.define('tail', Op.Tail, dropHeadOp);
-  symbolTable.define('head', Op.Head, headOp);
-  symbolTable.define('uncons', Op.Uncons, unconsOp);
-  symbolTable.define('pack', Op.Pack, packOp);
-  symbolTable.define('unpack', Op.Unpack, unpackOp);
-  symbolTable.define('reverse', Op.Reverse, reverseOp);
+  symbolTable.defineBuiltin('cons', Op.Cons);
+  symbolTable.defineBuiltin('concat', Op.Concat);
+  symbolTable.defineBuiltin('tail', Op.Tail);
+  symbolTable.defineBuiltin('head', Op.Head);
+  symbolTable.defineBuiltin('uncons', Op.Uncons);
+  symbolTable.defineBuiltin('pack', Op.Pack);
+  symbolTable.defineBuiltin('unpack', Op.Unpack);
+  symbolTable.defineBuiltin('reverse', Op.Reverse);
 
   // Maplist operations per maplists.md spec
-  symbolTable.define('find', Op.Find, findOp);
-  symbolTable.define('keys', Op.Keys, keysOp);
-  symbolTable.define('values', Op.Values, valuesOp);
+  symbolTable.defineBuiltin('find', Op.Find);
+  symbolTable.defineBuiltin('keys', Op.Keys);
+  symbolTable.defineBuiltin('values', Op.Values);
 
-  symbolTable.define('add', Op.Add, addOp);
-  symbolTable.define('sub', Op.Minus, subtractOp);
-  symbolTable.define('mul', Op.Multiply, multiplyOp);
-  symbolTable.define('div', Op.Divide, divideOp);
-  symbolTable.define('pow', Op.Power, powerOp);
-  symbolTable.define('mod', Op.Mod, modOp);
-  symbolTable.define('min', Op.Min, minOp);
-  symbolTable.define('max', Op.Max, maxOp);
-  symbolTable.define('lt', Op.LessThan, lessThanOp);
-  symbolTable.define('le', Op.LessOrEqual, lessOrEqualOp);
-  symbolTable.define('gt', Op.GreaterThan, greaterThanOp);
-  symbolTable.define('ge', Op.GreaterOrEqual, greaterOrEqualOp);
-  symbolTable.define('eq', Op.Equal, equalOp);
+  symbolTable.defineBuiltin('add', Op.Add);
+  symbolTable.defineBuiltin('sub', Op.Minus);
+  symbolTable.defineBuiltin('mul', Op.Multiply);
+  symbolTable.defineBuiltin('div', Op.Divide);
+  symbolTable.defineBuiltin('pow', Op.Power);
+  symbolTable.defineBuiltin('mod', Op.Mod);
+  symbolTable.defineBuiltin('min', Op.Min);
+  symbolTable.defineBuiltin('max', Op.Max);
+  symbolTable.defineBuiltin('lt', Op.LessThan);
+  symbolTable.defineBuiltin('le', Op.LessOrEqual);
+  symbolTable.defineBuiltin('gt', Op.GreaterThan);
+  symbolTable.defineBuiltin('ge', Op.GreaterOrEqual);
+  symbolTable.defineBuiltin('eq', Op.Equal);
 
-  symbolTable.define('neg', Op.mNegate, mNegateOp);
-  symbolTable.define('recip', Op.mReciprocal, mReciprocalOp);
-  symbolTable.define('floor', Op.mFloor, mFloorOp);
-  symbolTable.define('not', Op.mNot, mNotOp);
-  symbolTable.define('signum', Op.mSignum, mSignumOp);
-  symbolTable.define('enlist', Op.mEnlist, mEnlistOp);
+  symbolTable.defineBuiltin('neg', Op.mNegate);
+  symbolTable.defineBuiltin('recip', Op.mReciprocal);
+  symbolTable.defineBuiltin('floor', Op.mFloor);
+  symbolTable.defineBuiltin('not', Op.mNot);
+  symbolTable.defineBuiltin('signum', Op.mSignum);
+  symbolTable.defineBuiltin('enlist', Op.mEnlist);
 
-  symbolTable.define('dup', Op.Dup, dupOp);
-  symbolTable.define('drop', Op.Drop, dropOp);
-  symbolTable.define('swap', Op.Swap, swapOp);
-  symbolTable.define('rot', Op.Rot, rotOp);
-  symbolTable.define('revrot', Op.RevRot, revrotOp);
-  symbolTable.define('over', Op.Over, overOp);
-  symbolTable.define('pick', Op.Pick, pickOp);
-  symbolTable.define('nip', Op.Nip, nipOp);
-  symbolTable.define('tuck', Op.Tuck, tuckOp);
+  symbolTable.defineBuiltin('dup', Op.Dup);
+  symbolTable.defineBuiltin('drop', Op.Drop);
+  symbolTable.defineBuiltin('swap', Op.Swap);
+  symbolTable.defineBuiltin('rot', Op.Rot);
+  symbolTable.defineBuiltin('revrot', Op.RevRot);
+  symbolTable.defineBuiltin('over', Op.Over);
+  symbolTable.defineBuiltin('pick', Op.Pick);
+  symbolTable.defineBuiltin('nip', Op.Nip);
+  symbolTable.defineBuiltin('tuck', Op.Tuck);
 
-  symbolTable.define('abs', Op.Abs, absOp);
-  symbolTable.define('neg', Op.Neg, negOp);
-  symbolTable.define('sign', Op.Sign, signOp);
-  symbolTable.define('exp', Op.Exp, expOp);
-  symbolTable.define('ln', Op.Ln, lnOp);
-  symbolTable.define('log', Op.Log, logOp);
-  symbolTable.define('sqrt', Op.Sqrt, sqrtOp);
-  symbolTable.define('pow', Op.Pow, powOp);
-  symbolTable.define('avg', Op.Avg, avgOp);
-  symbolTable.define('prod', Op.Prod, prodOp);
+  symbolTable.defineBuiltin('abs', Op.Abs);
+  symbolTable.defineBuiltin('neg', Op.Neg);
+  symbolTable.defineBuiltin('sign', Op.Sign);
+  symbolTable.defineBuiltin('exp', Op.Exp);
+  symbolTable.defineBuiltin('ln', Op.Ln);
+  symbolTable.defineBuiltin('log', Op.Log);
+  symbolTable.defineBuiltin('sqrt', Op.Sqrt);
+  symbolTable.defineBuiltin('pow', Op.Pow);
+  symbolTable.defineBuiltin('avg', Op.Avg);
+  symbolTable.defineBuiltin('prod', Op.Prod);
 
-  symbolTable.define('if', Op.SimpleIf, simpleIfOp);
-  symbolTable.define('ifcurlybf', Op.IfFalseBranch, ifCurlyBranchFalseOp);
+  symbolTable.defineBuiltin('if', Op.SimpleIf);
+  symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);
 
-  symbolTable.define('do', Op.Do, doOp);
-  symbolTable.define('repeat', Op.Repeat, repeatOp);
-  symbolTable.define('get', Op.Get, getOp);
-  symbolTable.define('set', Op.Set, setOp);
-  symbolTable.define('makeList', Op.MakeList, makeListOp);
+  symbolTable.defineBuiltin('do', Op.Do, doOp);
+  symbolTable.defineBuiltin('repeat', Op.Repeat, repeatOp);
+  symbolTable.defineBuiltin('get', Op.Get);
+  symbolTable.defineBuiltin('set', Op.Set);
+  symbolTable.defineBuiltin('makeList', Op.MakeList);
 }

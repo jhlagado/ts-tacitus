@@ -164,7 +164,7 @@ describe('VM Symbol Resolution', () => {
     test('should resolve symbols defined with unified define method', () => {
       // Use existing define method (now unified with tagged values)
       // Use value >= 128 to get a code reference, not builtin reference
-      vm.symbolTable.define('oldStyle', 200);
+      vm.symbolTable.defineCode('oldStyle', 200);
 
       // Should be resolvable since all definitions now create tagged values
       const resolved = vm.resolveSymbol('oldStyle');

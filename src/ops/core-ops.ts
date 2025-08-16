@@ -203,7 +203,6 @@ export const exitOp: Verb = (vm: VM) => {
       return;
     }
 
-    const _oldBP = vm.BP;
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
