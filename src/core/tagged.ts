@@ -250,29 +250,6 @@ export function isFunc(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents executable `FUNC`.
- *
- * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `FUNC`, `false` otherwise.
- */
-export function isAnyCode(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.FUNC;
-}
-
-/**
- * Checks if a given NaN-boxed value represents executable `CODE`.
- * This returns `true` if the value's tag is `Tag.CODE`.
- *
- * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `CODE`, `false` otherwise.
- */
-export function isFuncTag(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.CODE;
-}
-
-/**
  * Checks if a given NaN-boxed value represents a `STRING` literal.
  * This returns `true` if the value's tag is `Tag.STRING`.
  *

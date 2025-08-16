@@ -112,20 +112,6 @@ export class VM {
   }
 
   /**
-   * Evaluates a code pointer (address) popped from the data stack.
-   * The current instruction pointer (`IP`) is pushed onto the return stack
-   * to allow for return to the calling context. The `IP` is then updated
-   * to the address popped from the data stack, effectively transferring
-   * control to the new code location.
-   * This mechanism is used for function calls and executing code blocks.
-   */
-  eval() {
-    this.rpush(toTaggedValue(this.IP, Tag.FUNC));
-    const { value: pointer } = fromTaggedValue(this.pop());
-    this.IP = pointer;
-  }
-
-  /**
    * Pushes a 32-bit float onto the data stack.
    *
    * @param value - The 32-bit float value to push onto the stack
