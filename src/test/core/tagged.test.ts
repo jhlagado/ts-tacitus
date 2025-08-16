@@ -6,7 +6,7 @@ import {
   getTag,
   getValue,
   isNIL,
-  isCode,
+  isFunc,
   isAnyCode,
   isList,
   MAX_TAG,
@@ -66,8 +66,8 @@ describe('Tagged NaN Encoding', () => {
   test('should correctly identify code types', () => {
     const func = toTaggedValue(123, Tag.FUNC);
     const str = toTaggedValue(789, Tag.STRING);
-    expect(isCode(func)).toBe(true);
-    expect(isCode(str)).toBe(false);
+    expect(isFunc(func)).toBe(true);
+    expect(isFunc(str)).toBe(false);
     expect(isAnyCode(func)).toBe(true);
     expect(isAnyCode(str)).toBe(false);
   });

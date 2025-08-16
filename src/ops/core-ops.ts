@@ -16,7 +16,7 @@
 import { VM } from '../core/vm';
 import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/errors';
 import { Verb } from '../core/types';
-import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
+import { toTaggedValue, Tag, fromTaggedValue, isFunc } from '../core/tagged';
 import { RSTACK_SIZE } from '../core/constants';
 import { executeOp } from './builtins';
 
@@ -206,7 +206,7 @@ export const exitOp: Verb = (vm: VM) => {
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
-    if (isCode(returnAddr)) {
+    if (isFunc(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
       vm.IP = returnIP;
     } else {
@@ -244,7 +244,7 @@ export const exitCodeOp: Verb = (vm: VM) => {
     }
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
-    if (isCode(returnAddr)) {
+    if (isFunc(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
       vm.IP = returnIP;
     } else {

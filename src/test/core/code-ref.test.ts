@@ -9,7 +9,7 @@ import {
   createBuiltinRef,
   createCodeRef,
   isBuiltinRef,
-  isCodeRef,
+  isFuncRef,
   isExecutableRef,
   getBuiltinOpcode,
   getCodeAddress,
@@ -101,11 +101,11 @@ describe('Code Reference Utilities', () => {
     });
   });
 
-  describe('isCodeRef', () => {
+  describe('isFuncRef', () => {
     test('should identify code references correctly', () => {
       const codeRef = createCodeRef(1000);
 
-      expect(isCodeRef(codeRef)).toBe(true);
+      expect(isFuncRef(codeRef)).toBe(true);
     });
 
     test('should reject non-code references', () => {
@@ -113,15 +113,15 @@ describe('Code Reference Utilities', () => {
       const numberValue = 42;
       const stringRef = toTaggedValue(100, Tag.STRING);
 
-      expect(isCodeRef(builtinRef)).toBe(false);
-      expect(isCodeRef(numberValue)).toBe(false);
-      expect(isCodeRef(stringRef)).toBe(false);
+      expect(isFuncRef(builtinRef)).toBe(false);
+      expect(isFuncRef(numberValue)).toBe(false);
+      expect(isFuncRef(stringRef)).toBe(false);
     });
 
     test('should handle malformed values gracefully', () => {
-      expect(isCodeRef(NaN)).toBe(false);
-      expect(isCodeRef(Infinity)).toBe(false);
-      expect(isCodeRef(-Infinity)).toBe(false);
+      expect(isFuncRef(NaN)).toBe(false);
+      expect(isFuncRef(Infinity)).toBe(false);
+      expect(isFuncRef(-Infinity)).toBe(false);
     });
   });
 
