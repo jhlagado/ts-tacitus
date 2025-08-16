@@ -109,12 +109,12 @@ export function isBuiltinRef(value: number): boolean {
  * const addRef = createBuiltinRef(Op.Add);
  * const codeRef = createCodeRef(1000);
  *
- * console.log(isCodeRef(addRef));  // false
- * console.log(isCodeRef(codeRef)); // true
- * console.log(isCodeRef(42));      // false
+ * console.log(isFuncRef(addRef));  // false
+ * console.log(isFuncRef(codeRef)); // true
+ * console.log(isFuncRef(42));      // false
  * ```
  */
-export function isCodeRef(value: number): boolean {
+export function isFuncRef(value: number): boolean {
   try {
     const { tag } = fromTaggedValue(value);
     return tag === Tag.FUNC;
@@ -143,7 +143,7 @@ export function isCodeRef(value: number): boolean {
  * ```
  */
 export function isExecutableRef(value: number): boolean {
-  return isBuiltinRef(value) || isCodeRef(value);
+  return isBuiltinRef(value) || isFuncRef(value);
 }
 
 /**
@@ -189,7 +189,7 @@ export function getBuiltinOpcode(builtinRef: number): number {
  * ```
  */
 export function getCodeAddress(codeRef: number): number {
-  if (!isCodeRef(codeRef)) {
+  if (!isFuncRef(codeRef)) {
     throw new Error('Value is not a code reference');
   }
   const { value } = fromTaggedValue(codeRef);

@@ -244,7 +244,7 @@ export function isSentinel(tval: number): boolean {
  * @param tval The NaN-boxed 32-bit floating-point number to check.
  * @returns `true` if the value is `FUNC`, `false` otherwise.
  */
-export function isCode(tval: number): boolean {
+export function isFunc(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.FUNC;
 }
@@ -267,7 +267,7 @@ export function isAnyCode(tval: number): boolean {
  * @param tval The NaN-boxed 32-bit floating-point number to check.
  * @returns `true` if the value is `CODE`, `false` otherwise.
  */
-export function isCodeTag(tval: number): boolean {
+export function isFuncTag(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.CODE;
 }

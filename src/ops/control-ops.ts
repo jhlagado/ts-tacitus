@@ -15,7 +15,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 
-import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { isFunc, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 /**
  * Implements a ternary if operator (legacy version).
@@ -64,7 +64,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
   }
 
   const selectedBranch = condition ? thenBranch : elseBranch;
-  if (isCode(selectedBranch)) {
+  if (isFunc(selectedBranch)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.FUNC));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;

@@ -15,7 +15,7 @@ import {
   createBuiltinRef,
   createCodeRef,
   isBuiltinRef,
-  isCodeRef,
+  isFuncRef,
   getBuiltinOpcode,
   getCodeAddress,
 } from '../../core/code-ref';
@@ -58,7 +58,7 @@ describe('VM Symbol Resolution', () => {
       const result = vm.resolveSymbol('square');
 
       expect(result).toBeDefined();
-      expect(isCodeRef(result!)).toBe(true);
+      expect(isFuncRef(result!)).toBe(true);
       expect(getCodeAddress(result!)).toBe(testAddr);
 
       // Verify it has the correct tag
@@ -85,11 +85,11 @@ describe('VM Symbol Resolution', () => {
 
       // Verify code definitions
       const squareResult = vm.resolveSymbol('square');
-      expect(isCodeRef(squareResult!)).toBe(true);
+      expect(isFuncRef(squareResult!)).toBe(true);
       expect(getCodeAddress(squareResult!)).toBe(1000);
 
       const cubeResult = vm.resolveSymbol('cube');
-      expect(isCodeRef(cubeResult!)).toBe(true);
+      expect(isFuncRef(cubeResult!)).toBe(true);
       expect(getCodeAddress(cubeResult!)).toBe(2000);
     });
 
@@ -101,7 +101,7 @@ describe('VM Symbol Resolution', () => {
       const result = vm.resolveSymbol('test');
 
       // Should resolve to the most recent definition (code definition)
-      expect(isCodeRef(result!)).toBe(true);
+      expect(isFuncRef(result!)).toBe(true);
       expect(getCodeAddress(result!)).toBe(5000);
     });
 
@@ -170,7 +170,7 @@ describe('VM Symbol Resolution', () => {
       const resolved = vm.resolveSymbol('oldStyle');
       expect(resolved).toBeDefined();
 
-      expect(isCodeRef(resolved!)).toBe(true);
+      expect(isFuncRef(resolved!)).toBe(true);
       expect(getCodeAddress(resolved!)).toBe(200);
 
       // And should still be findable with old method for backward compatibility
