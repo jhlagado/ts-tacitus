@@ -39,83 +39,40 @@ import {
 const BYTES_PER_ELEMENT = 4;
 
 /**
- * Opens an LIST construction with '[' token.
+ * Opens an LIST construction with '(' token.
  * Stack effect: ( — )
- * Return stack: Pushes current SP position for later span calculation.
+ * Return stack: Pushes header position for later span calculation.
  */
 export function openListOp(vm: VM): void {
-  if (vm.debug) console.log('openListOp: listDepth before', vm.listDepth);
   vm.listDepth++;
-
-  // Push placeholder LIST header at current top and remember its address
-  const placeholderHeader = toTaggedValue(0, Tag.LIST);
-  vm.push(placeholderHeader);
-  const headerPos = vm.SP - BYTES_PER_ELEMENT;
-  vm.rpush(toTaggedValue(headerPos, Tag.SENTINEL));
-
-  if (vm.debug)
-    console.log(
-      'openListOp: pushed placeholder header at',
-      headerPos,
-      'listDepth after',
-      vm.listDepth,
-    );
+  vm.push(toTaggedValue(0, Tag.LIST));
+  vm.rpush(toTaggedValue(vm.SP - BYTES_PER_ELEMENT, Tag.SENTINEL));
 }
 
 /**
- * Closes an LIST construction with ']' token.
+ * Closes an LIST construction with ')' token.
  * Stack effect: ( values... — list )
- * Reverses the accumulated values and pushes LIST header.
+ * Updates placeholder header and reverses span to bring header to TOS.
  */
 export function closeListOp(vm: VM): void {
   if (vm.RP < BYTES_PER_ELEMENT) {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
-  // Retrieve header position from return stack
-  const taggedHeaderPos = vm.rpop();
-  const { value: headerPos } = fromTaggedValue(taggedHeaderPos);
-
-  // Compute payload size (number of elements after header)
+  const { value: headerPos } = fromTaggedValue(vm.rpop());
   const payloadSlots = (vm.SP - headerPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
 
-  if (vm.debug)
-    console.log(
-      'closeListOp: headerPos',
-      headerPos,
-      'payloadSlots',
-      payloadSlots,
-      'listDepth',
-      vm.listDepth,
-    );
+  vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
 
-  // Update placeholder header in place with correct slot count
-  const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_STACK, headerPos, finalizedHeader);
-
-  // Reverse header + payload to bring header to TOS.
-  // Preferred behavior: reverse only at outermost depth.
-  // Backward-compatibility fallback: if listDepth is not present, reverse unconditionally.
-  const anyVm = vm as unknown as { listDepth?: number };
-  const hasRDepth = typeof anyVm.listDepth === 'number';
-  const isOutermost = hasRDepth ? anyVm.listDepth === 1 : true;
-
+  const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT; // header + payload
+    const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
   }
 
   vm.listDepth--;
-
-  if (vm.debug)
-    console.log(
-      'closeListOp: finalized LIST with',
-      payloadSlots,
-      'slots, listDepth now',
-      vm.listDepth,
-    );
 }
 
 /**

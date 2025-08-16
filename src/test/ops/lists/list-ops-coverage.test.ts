@@ -13,36 +13,34 @@ describe('List Operations - Branch Coverage', () => {
     vm.debug = false;
   });
 
-  describe('openListOp debug output', () => {
-    test('should log debug information when debug mode is enabled', () => {
-      vm.debug = true;
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  describe('openListOp functionality', () => {
+    test('should initialize list construction correctly', () => {
+      const initialRP = vm.RP;
+      const initialListDepth = vm.listDepth;
 
       openListOp(vm);
 
-      // Should have logged debug information
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
-      vm.debug = false;
+      expect(vm.listDepth).toBe(initialListDepth + 1);
+      expect(vm.RP).toBe(initialRP + 4);
+      expect(vm.getStackData()).toHaveLength(1);
     });
   });
 
-  describe('closeListOp debug output and edge cases', () => {
-    test('should log debug information when debug mode is enabled', () => {
-      vm.debug = true;
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  describe('closeListOp functionality and edge cases', () => {
+    test('should complete list construction correctly', () => {
+      const initialListDepth = vm.listDepth;
 
-      // Set up for list creation
       openListOp(vm);
-      vm.push(42); // Add an element
+      vm.push(42);
       closeListOp(vm);
 
-      // Should have logged debug information
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
-      vm.debug = false;
+      expect(vm.listDepth).toBe(initialListDepth);
+      expect(vm.getStackData()).toHaveLength(2);
+      
+      const header = vm.peek();
+      const { tag, value } = require('../../../core/tagged').fromTaggedValue(header);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(1);
     });
 
     test('should handle empty lists (no reversal needed)', () => {
