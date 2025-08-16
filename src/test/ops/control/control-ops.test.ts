@@ -20,7 +20,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       // Create a code block that pushes 42
       const codeAddr = 100;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // then-branch as code
+      vm.push(toTaggedValue(codeAddr, Tag.FUNC)); // then-branch as code
       vm.push(99); // else-branch as value
 
       // Mock the code at address 100 to be a simple push operation
@@ -41,7 +41,7 @@ describe('Control Operations - Branch Coverage', () => {
       vm.push(42); // then-branch as value
 
       const codeAddr = 200;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // else-branch as code
+      vm.push(toTaggedValue(codeAddr, Tag.FUNC)); // else-branch as code
 
       simpleIfOp(vm);
 
@@ -92,8 +92,8 @@ describe('Control Operations - Branch Coverage', () => {
       expect(() => simpleIfOp(vm)).toThrow("Type error: 'if' condition must be a number");
     });
 
-    test('should reject CODE tagged values as conditions', () => {
-      vm.push(toTaggedValue(100, Tag.CODE)); // code condition (should be rejected)
+    test('should reject FUNC tagged values as conditions', () => {
+      vm.push(toTaggedValue(100, Tag.FUNC)); // func condition (should be rejected)
       vm.push(42); // then-branch as value
       vm.push(99); // else-branch as value
 
@@ -104,8 +104,8 @@ describe('Control Operations - Branch Coverage', () => {
       vm.push(5); // truthy condition
 
       const codeAddr = 150;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // then-branch as code
-      vm.push(toTaggedValue(250, Tag.CODE)); // else-branch as code (should not execute)
+      vm.push(toTaggedValue(codeAddr, Tag.FUNC)); // then-branch as code
+      vm.push(toTaggedValue(250, Tag.FUNC)); // else-branch as code (should not execute)
 
       simpleIfOp(vm);
 
@@ -114,7 +114,7 @@ describe('Control Operations - Branch Coverage', () => {
 
     test('should handle mixed code and value branches', () => {
       vm.push(0); // falsy condition
-      vm.push(toTaggedValue(150, Tag.CODE)); // then-branch as code (should not execute)
+      vm.push(toTaggedValue(150, Tag.FUNC)); // then-branch as code (should not execute)
       vm.push(777); // else-branch as value
 
       simpleIfOp(vm);
@@ -172,7 +172,7 @@ describe('Control Operations - Branch Coverage', () => {
       vm.next16 = () => 10; // Mock offset
 
       // Push a non-number condition (should be treated as falsy)
-      vm.push(toTaggedValue(100, Tag.CODE));
+      vm.push(toTaggedValue(100, Tag.FUNC));
 
       const originalIP = vm.IP;
 

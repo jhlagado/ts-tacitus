@@ -7,7 +7,7 @@
  */
 
 import { vm } from '../../core/globalState';
-import { resetVM } from "../utils/vm-test-utils";
+import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag } from '../../core/tagged';
 import { fromTaggedValue } from '../../core/tagged';
@@ -49,7 +49,7 @@ describe('VM Symbol Resolution', () => {
       expect(value).toBe(Op.Add);
     });
 
-    test('should resolve code symbols to Tag.CODE tagged values', () => {
+    test('should resolve code symbols to Tag.FUNC tagged values', () => {
       const testAddr = 1000;
 
       // Register a code symbol
@@ -63,7 +63,7 @@ describe('VM Symbol Resolution', () => {
 
       // Verify it has the correct tag
       const { tag, value } = fromTaggedValue(result!);
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
       expect(value).toBe(testAddr);
     });
 
@@ -169,7 +169,7 @@ describe('VM Symbol Resolution', () => {
       // Should be resolvable since all definitions now create tagged values
       const resolved = vm.resolveSymbol('oldStyle');
       expect(resolved).toBeDefined();
-      
+
       expect(isCodeRef(resolved!)).toBe(true);
       expect(getCodeAddress(resolved!)).toBe(200);
 

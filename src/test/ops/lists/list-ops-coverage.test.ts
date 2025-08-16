@@ -36,7 +36,7 @@ describe('List Operations - Branch Coverage', () => {
 
       expect(vm.listDepth).toBe(initialListDepth);
       expect(vm.getStackData()).toHaveLength(2);
-      
+
       const header = vm.peek();
       const { tag, value } = require('../../../core/tagged').fromTaggedValue(header);
       expect(tag).toBe(Tag.LIST);
@@ -149,7 +149,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed data types in operations', () => {
-      vm.push(toTaggedValue(100, Tag.CODE)); // CODE value
+      vm.push(toTaggedValue(100, Tag.FUNC)); // CODE value
 
       lengthOp(vm);
 

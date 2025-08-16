@@ -349,12 +349,12 @@ function processWordToken(value: string, state: ParserState): void {
  * Process @symbol tokens for unified code references.
  *
  * This function handles @symbol syntax by calling vm.pushSymbolRef() to resolve
- * the symbol to either a Tag.BUILTIN or Tag.CODE tagged value and push it to the stack.
+ * the symbol to either a Tag.BUILTIN or Tag.FUNC tagged value and push it to the stack.
  * The resulting tagged value can be used with 'eval' for metaprogramming.
  *
  * Examples:
  * - @add → Tag.BUILTIN(Op.Add)
- * - @square → Tag.CODE(bytecode_addr)
+ * - @square → Tag.FUNC(bytecode_addr)
  *
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)

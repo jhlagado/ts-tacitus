@@ -18,7 +18,7 @@
  * @version 1.0.0
  */
 
-import { executeTacitCode, resetVM } from "../utils/vm-test-utils";
+import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/globalState';
 import { Tag, fromTaggedValue } from '../../core/tagged';
 
@@ -79,13 +79,13 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
       // The value should be the opcode for add
     });
 
-    it('should push Tag.CODE for colon definitions', () => {
+    it('should push Tag.FUNC for colon definitions', () => {
       executeTacitCode(': test 42 ; @test');
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
 
       const { tag, value: _value2 } = fromTaggedValue(stack[0]);
-      expect(tag).toBe(Tag.CODE);
+      expect(tag).toBe(Tag.FUNC);
       // The value should be a bytecode address
     });
   });

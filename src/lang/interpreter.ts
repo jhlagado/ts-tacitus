@@ -108,7 +108,7 @@ export function executeProgram(code: string): void {
 export function callTacitFunction(codePtr: number): void {
   const returnIP = vm.IP;
 
-  vm.rpush(toTaggedValue(returnIP, Tag.CODE));
+  vm.rpush(toTaggedValue(returnIP, Tag.FUNC));
   vm.rpush(vm.BP);
   vm.BP = vm.RP;
 
