@@ -219,6 +219,44 @@ export const exitOp: Verb = (vm: VM) => {
 };
 
 /**
+ * Implements the exit code operation.
+ *
+ * This operation has exactly the same implementation as exitOp, handling the
+ * return from a subroutine call by:
+ * 1. Checking if there's enough data on the return stack
+ * 2. Popping the base pointer from the return stack
+ * 3. Popping the return address from the return stack
+ * 4. Jumping to the return address
+ *
+ * If the return stack is empty after popping the base pointer, the VM execution stops.
+ * This handles the case of returning from the main program.
+ *
+ * @param {VM} vm - The virtual machine instance.
+ *
+ * @throws {Error} If an error occurs during the exit operation, the VM is stopped
+ * and the error is propagated.
+ */
+export const exitCodeOp: Verb = (vm: VM) => {
+  try {
+    if (vm.RP < 2 * BYTES_PER_ELEMENT) {
+      vm.running = false;
+      return;
+    }
+    vm.BP = vm.rpop();
+    const returnAddr = vm.rpop();
+    if (isCode(returnAddr)) {
+      const { value: returnIP } = fromTaggedValue(returnAddr);
+      vm.IP = returnIP;
+    } else {
+      vm.IP = Math.floor(returnAddr);
+    }
+  } catch (e) {
+    vm.running = false;
+    throw e;
+  }
+};
+
+/**
  * Implements the evaluate operation.
  *
  * Pops a value from the stack. If it's a code reference, executes it by setting up

@@ -27,6 +27,7 @@ import {
   callOp,
   abortOp,
   exitOp,
+  exitCodeOp,
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
@@ -214,4 +215,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('get', Op.Get);
   symbolTable.defineBuiltin('set', Op.Set);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
+  
+  symbolTable.defineBuiltin('exit', Op.Exit);
+  symbolTable.defineBuiltin('exitCode', Op.ExitCode);
 }
