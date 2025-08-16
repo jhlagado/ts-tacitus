@@ -38,6 +38,9 @@ export enum Tag {
   /**  Represents a string literal. */
   STRING = 4,
 
+  /**  Represents executable code (distinct from FUNC). */
+  CODE = 5,
+
   /**  Represents a built-in operation opcode. */
   BUILTIN = 7,
 
@@ -60,6 +63,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.FUNC]: 'FUNC',
   [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
+  [Tag.CODE]: 'CODE',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
 };
@@ -254,6 +258,18 @@ export function isCode(tval: number): boolean {
 export function isAnyCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.FUNC;
+}
+
+/**
+ * Checks if a given NaN-boxed value represents executable `CODE`.
+ * This returns `true` if the value's tag is `Tag.CODE`.
+ *
+ * @param tval The NaN-boxed 32-bit floating-point number to check.
+ * @returns `true` if the value is `CODE`, `false` otherwise.
+ */
+export function isCodeTag(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.CODE;
 }
 
 /**

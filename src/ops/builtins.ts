@@ -42,6 +42,7 @@ import {
   callOp,
   abortOp,
   exitOp,
+  exitCodeOp,
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
@@ -168,6 +169,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Exit:
       exitOp(vm);
+      break;
+    case Op.ExitCode:
+      exitCodeOp(vm);
       break;
     case Op.Eval:
       evalOp(vm);

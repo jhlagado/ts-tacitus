@@ -42,6 +42,9 @@ export enum Op {
   /**  Exits the program. */
   Exit,
 
+  /**  Exits the program (code variant). */
+  ExitCode,
+
   /**  Evaluates the expression on the top of the stack. */
   Eval,
 
