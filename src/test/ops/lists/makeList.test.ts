@@ -200,7 +200,7 @@ describe.skip('makeListOp - SKIPPED: Using combinator approach instead', () => {
       expect(makeListResult).toEqual(standardList);
     });
 
-    it('should work as foundation for get/set combinator integration', () => {
+    it.skip('should work as foundation for get/set combinator integration', () => {
       // This tests the intended usage pattern for get/set
       executeProgram('( "key1" 100 "key2" 200 ) { "key1" } makeList');
       

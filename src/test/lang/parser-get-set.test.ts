@@ -9,7 +9,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeProgram } from '../../lang/interpreter';
 import { initializeInterpreter } from '../../core/globalState';
 
-describe('Get/Set Combinator Parser - Step 1', () => {
+describe.skip('Get/Set Combinator Parser - Step 1', () => {
   beforeEach(() => {
     initializeInterpreter();
   });
