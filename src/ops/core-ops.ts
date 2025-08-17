@@ -16,7 +16,7 @@
 import { VM } from '../core/vm';
 import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/errors';
 import { Verb } from '../core/types';
-import { toTaggedValue, Tag, fromTaggedValue, isFunc } from '../core/tagged';
+import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
 import { RSTACK_SIZE } from '../core/constants';
 import { executeOp } from './builtins';
 
@@ -95,7 +95,7 @@ export const skipDefOp: Verb = (vm: VM) => {
  * Implements the skip block operation.
  *
  * Reads a 16-bit offset from the bytecode stream, pushes the current instruction pointer
- * as a FUNC tag onto the stack, and then advances the instruction pointer by the offset.
+ * as a CODE tag onto the stack, and then advances the instruction pointer by the offset.
  * This is used to create code blocks that can be executed later.
  *
  * @param {VM} vm - The virtual machine instance.
@@ -112,7 +112,7 @@ export const skipDefOp: Verb = (vm: VM) => {
  */
 export const skipBlockOp: Verb = (vm: VM) => {
   const offset = vm.next16();
-  vm.push(toTaggedValue(vm.IP, Tag.FUNC));
+  vm.push(toTaggedValue(vm.IP, Tag.CODE));
   vm.IP += offset;
 };
 
@@ -142,7 +142,7 @@ export const skipBlockOp: Verb = (vm: VM) => {
  */
 export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.next16();
-  vm.rpush(toTaggedValue(vm.IP, Tag.FUNC));
+  vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
   vm.rpush(vm.BP);
   vm.BP = vm.RP;
   vm.IP = callAddress;
@@ -206,7 +206,7 @@ export const exitOp: Verb = (vm: VM) => {
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
-    if (isFunc(returnAddr)) {
+    if (isCode(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
       vm.IP = returnIP;
     } else {
@@ -244,7 +244,7 @@ export const exitCodeOp: Verb = (vm: VM) => {
     }
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
-    if (isFunc(returnAddr)) {
+    if (isCode(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
       vm.IP = returnIP;
     } else {
@@ -286,10 +286,9 @@ export const evalOp: Verb = (vm: VM) => {
   const { tag, value: addr } = fromTaggedValue(value);
 
   switch (tag) {
-
-      case Tag.FUNC:
+    case Tag.CODE:
       // Bytecode execution: set up call frame and jump to address
-      vm.rpush(toTaggedValue(vm.IP, Tag.FUNC));
+      vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
       vm.rpush(vm.BP);
       vm.BP = vm.RP;
       vm.IP = addr;
@@ -404,14 +403,14 @@ export const printOp: Verb = (vm: VM) => {
  * Implements the pushSymbolRef operation for @symbol syntax support.
  *
  * Expects a string on the stack containing the symbol name.
- * Resolves the symbol to a tagged value (Tag.BUILTIN or Tag.FUNC) and pushes it.
+ * Resolves the symbol to a tagged value (Tag.BUILTIN or Tag.CODE) and pushes it.
  * This enables metaprogramming by creating references to operations and colon definitions.
  *
  * Stack effect: ( string -- tagged_value )
  *
  * Examples:
  * - "add" pushSymbolRef → Tag.BUILTIN(Op.Add)
- * - "square" pushSymbolRef → Tag.FUNC(bytecode_addr)
+ * - "square" pushSymbolRef → Tag.CODE(bytecode_addr)
  *
  * @param {VM} vm - The virtual machine instance
  */

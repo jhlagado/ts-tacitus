@@ -116,14 +116,14 @@ export class Compiler {
   /**
    * Compiles an address value as a tagged pointer (tagNum) and writes it as a float.
    *
-   * Tags the provided address with the FUNC tag using NaN-boxing and writes it
+   * Tags the provided address with the CODE tag using NaN-boxing and writes it
    * to the code segment as a 32-bit float. This is used for func addresses that
    * need to be treated as tagged values within the VM.
    *
    * @param value The address value to compile and tag
    */
   compileAddress(value: number): void {
-    const tagNum = toTaggedValue(value, Tag.FUNC);
+    const tagNum = toTaggedValue(value, Tag.CODE);
     this.compileFloat32(tagNum);
   }
 

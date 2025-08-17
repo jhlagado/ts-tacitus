@@ -2,7 +2,7 @@
  * @file src/test/core/vm-unified-dispatch.test.ts
  *
  * Tests for VM-level unified dispatch system.
- * Verifies that both Tag.BUILTIN and Tag.FUNC values work correctly with evalOp
+ * Verifies that both Tag.BUILTIN and Tag.CODE values work correctly with evalOp
  * without any language changes - pure VM-level testing.
  */
 

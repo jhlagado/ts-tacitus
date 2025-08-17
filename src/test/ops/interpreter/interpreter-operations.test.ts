@@ -28,7 +28,7 @@ describe('Built-in Words', () => {
     test('exitOp should restore IP from return stack and BP frame', () => {
       const testAddress = 0x2345;
       const originalBP = 0x9029;
-      vm.rpush(toTaggedValue(testAddress, Tag.FUNC));
+      vm.rpush(toTaggedValue(testAddress, Tag.CODE));
       vm.rpush(originalBP);
       const currentBP = vm.RP;
       vm.BP = currentBP;
@@ -40,7 +40,7 @@ describe('Built-in Words', () => {
       const testAddress = 0x2345;
       const originalIP = vm.IP;
       const originalBP = vm.BP;
-      vm.push(toTaggedValue(testAddress, Tag.FUNC));
+      vm.push(toTaggedValue(testAddress, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
       expect(vm.BP).toBe(vm.RP);
@@ -135,7 +135,7 @@ describe('Built-in Words', () => {
       expect(vm.pop()).toBe(42);
     });
     test('should handle tagged pointers', () => {
-      const addr = toTaggedValue(0x2345, Tag.FUNC);
+      const addr = toTaggedValue(0x2345, Tag.CODE);
       vm.compiler.compileFloat32(addr);
       literalNumberOp(vm);
       expect(vm.pop()).toBe(addr);

@@ -73,7 +73,7 @@ describe('SymbolTable Direct Addressing', () => {
 
       expect(taggedValue).toBeDefined();
       const { tag, value: addr } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(addr).toBe(squareAddr);
     });
 
@@ -100,7 +100,7 @@ describe('SymbolTable Direct Addressing', () => {
         const taggedValue = symbolTable.findCodeRef(name);
         expect(taggedValue).toBeDefined();
         const { tag, value: resolvedAddr } = fromTaggedValue(taggedValue!);
-        expect(tag).toBe(Tag.FUNC);
+        expect(tag).toBe(Tag.CODE);
         expect(resolvedAddr).toBe(addr);
       });
     });
@@ -125,7 +125,7 @@ describe('SymbolTable Direct Addressing', () => {
 
       expect(addTag).toBe(Tag.BUILTIN);
       expect(addAddr).toBe(Op.Add);
-      expect(squareTag).toBe(Tag.FUNC);
+      expect(squareTag).toBe(Tag.CODE);
       expect(squareAddr).toBe(1000);
     });
 
@@ -135,7 +135,7 @@ describe('SymbolTable Direct Addressing', () => {
       const taggedValue = symbolTable.findCodeRef('test');
       expect(taggedValue).toBeDefined();
       const { tag, value: addr } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(addr).toBe(5000);
     });
   });
@@ -164,9 +164,9 @@ describe('SymbolTable Direct Addressing', () => {
       const { tag: cubeTag } = fromTaggedValue(cubeTagged!);
 
       expect(addTag).toBe(Tag.BUILTIN);
-      expect(squareTag).toBe(Tag.FUNC);
+      expect(squareTag).toBe(Tag.CODE);
       expect(dupTag).toBe(Tag.BUILTIN);
-      expect(cubeTag).toBe(Tag.FUNC);
+      expect(cubeTag).toBe(Tag.CODE);
     });
   });
 
@@ -191,7 +191,7 @@ describe('SymbolTable Direct Addressing', () => {
       expect(taggedValue).toBeDefined();
 
       const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.FUNC); // 200 >= 128, so it's treated as code
+      expect(tag).toBe(Tag.CODE); // 200 >= 128, so it's treated as code
     });
   });
 

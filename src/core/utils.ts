@@ -124,7 +124,7 @@ export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== t
  * specialized formatting:
  * - Numbers: Formatted with appropriate precision (integers shown without decimals)
  * - Integers: Special case for NIL (0) value
- * - Func: Shown as FUNC(address)
+ * - Func: Shown as CODE(address)
  * - Strings: Retrieved from the VM's string digest and shown in quotes
  *
  * @param vm - The VM instance used for decoding string values and accessing memory
@@ -138,8 +138,8 @@ export function formatValue(vm: VM, value32: number): string {
       return value32.toString();
     case Tag.SENTINEL:
       return value === 0 ? 'NIL' : String(value);
-    case Tag.FUNC:
-      return `FUNC(${value})`;
+    case Tag.CODE:
+      return `CODE(${value})`;
     case Tag.STRING:
       try {
         const str = vm.digest.get(value);

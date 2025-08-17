@@ -60,7 +60,7 @@ function toTagName(tag: number): string {
  *
  * This function produces a string representation of a tagged value based on its tag type:
  * - INTEGER: The numeric value as a string
- * - FUNC: A placeholder "<func>" string
+ * - CODE: A placeholder "<func>" string
  * - STRING: A string representation with its digest index
  * - Other tags: The raw numeric value
  *
@@ -72,7 +72,7 @@ function scalarRepr(tval: number): string {
   switch (tag) {
     case Tag.SENTINEL:
       return `${value}`;
-    case Tag.FUNC:
+    case Tag.CODE:
       return `<func>`;
     case Tag.STRING:
       return `"[string:${value}]"`;

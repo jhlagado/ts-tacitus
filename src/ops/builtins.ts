@@ -10,7 +10,7 @@
  * The executeOp fu      if (opcode >= 128) {
         // Direct addressing for user-defined words (colon definitions)
         // The opcode IS the bytecode address - set up call frame and jump there
-        vm.rpush(toTaggedValue(vm.IP, Tag.FUNC));
+        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
         vm.rpush(vm.BP);
         vm.BP = vm.RP;
         vm.IP = opcode; // Direct jump to bytecode address
@@ -127,14 +127,14 @@ export function restoreTempOp(vm: VM): void {
 /**
  * Implements the LiteralCode operation.
  *
- * Reads a 16-bit address from the instruction stream, tags it as Tag.FUNC, and pushes it onto the stack.
+ * Reads a 16-bit address from the instruction stream, tags it as Tag.CODE, and pushes it onto the stack.
  * This is used for pushing quotations (code pointers) onto the stack.
  *
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalCodeOp(vm: VM): void {
   const address = vm.read16();
-  const tagged = toTaggedValue(address, Tag.FUNC);
+  const tagged = toTaggedValue(address, Tag.CODE);
   vm.push(tagged);
 }
 
@@ -143,7 +143,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     // Direct addressing: opcode IS the bytecode address for user-defined words
     // The 15-bit address was already decoded by nextOpcode(), just jump to it
-    vm.rpush(toTaggedValue(vm.IP, Tag.FUNC));
+    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
     vm.IP = opcode; // Direct jump to bytecode address

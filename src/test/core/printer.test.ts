@@ -28,11 +28,11 @@ describe('Printer', () => {
     });
 
     test('should print FUNC tagged values', () => {
-      const codeValue = toTaggedValue(50, Tag.FUNC);
+      const codeValue = toTaggedValue(50, Tag.CODE);
       prn('Test Code', codeValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Test Code: FUNC: <func>/);
+      expect(consoleOutput[0]).toMatch(/Test Code: CODE: <func>/);
     });
 
     test('should print STRING tagged values', () => {
@@ -131,14 +131,14 @@ describe('Printer', () => {
 
     test('should handle edge case values for different tag types', () => {
       // Test CODE with different values
-      const smallCode = toTaggedValue(0, Tag.FUNC);
+      const smallCode = toTaggedValue(0, Tag.CODE);
       prn('Small Code', smallCode);
-      expect(consoleOutput[0]).toMatch(/Small Code: FUNC: <func>/);
+      expect(consoleOutput[0]).toMatch(/Small Code: CODE: <func>/);
 
       consoleOutput = [];
-      const largeCode = toTaggedValue(1000, Tag.FUNC);
+      const largeCode = toTaggedValue(1000, Tag.CODE);
       prn('Large Code', largeCode);
-      expect(consoleOutput[0]).toMatch(/Large Code: FUNC: <func>/);
+      expect(consoleOutput[0]).toMatch(/Large Code: CODE: <func>/);
     });
 
     test('should work with LIST tag values of different sizes', () => {
@@ -160,7 +160,7 @@ describe('Printer', () => {
       const testCases = [
         { tag: Tag.NUMBER, value: 3.14, title: 'Number' },
         { tag: Tag.SENTINEL, value: 42, title: 'Sentinel' },
-        { tag: Tag.FUNC, value: 100, title: 'Code' },
+        { tag: Tag.CODE, value: 100, title: 'Code' },
         { tag: Tag.STRING, value: 200, title: 'String' },
         { tag: Tag.LIST, value: 5, title: 'List' },
       ];
@@ -178,8 +178,8 @@ describe('Printer', () => {
           expect(consoleOutput[0]).toMatch(/NUMBER:/);
         } else if (tag === Tag.SENTINEL) {
           expect(consoleOutput[0]).toMatch(/SENTINEL:/);
-        } else if (tag === Tag.FUNC) {
-          expect(consoleOutput[0]).toMatch(/FUNC:/);
+        } else if (tag === Tag.CODE) {
+          expect(consoleOutput[0]).toMatch(/CODE:/);
         } else if (tag === Tag.STRING) {
           expect(consoleOutput[0]).toMatch(/STRING:/);
         } else if (tag === Tag.LIST) {

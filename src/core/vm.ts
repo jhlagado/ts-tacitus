@@ -278,7 +278,7 @@ export class VM {
   }
 
   /**
-   * Reads the next address (which is a tagged `FUNC` value) from the code segment
+   * Reads the next address (which is a tagged `CODE` value) from the code segment
    * at the current instruction pointer (`IP`) and advances the `IP` by 4 bytes.
    * The tagged value is decoded to extract the raw code pointer.
    *
@@ -357,7 +357,7 @@ export class VM {
    *
    * This method enables the unified @symbol system by looking up symbols in the
    * symbol table and returning the appropriate tagged value for either built-in
-   * operations (Tag.BUILTIN) or colon definitions (Tag.FUNC).
+   * operations (Tag.BUILTIN) or colon definitions (Tag.CODE).
    *
    * @param name The symbol name to resolve (without @ prefix)
    * @returns Tagged value for the symbol, or undefined if not found
@@ -367,7 +367,7 @@ export class VM {
    * const addRef = vm.resolveSymbol('add'); // Returns Tag.BUILTIN tagged value
    *
    * // After defineCode('square', 1000):
-   * const squareRef = vm.resolveSymbol('square'); // Returns Tag.FUNC tagged value
+   * const squareRef = vm.resolveSymbol('square'); // Returns Tag.CODE tagged value
    */
   resolveSymbol(name: string): number | undefined {
     return this.symbolTable.findTaggedValue(name);
@@ -387,7 +387,7 @@ export class VM {
    * evalOp(vm); // Executes the add operation
    *
    * // Push colon definition reference:
-   * vm.pushSymbolRef("square"); // Pushes Tag.FUNC(bytecode_addr) to stack
+   * vm.pushSymbolRef("square"); // Pushes Tag.CODE(bytecode_addr) to stack
    * evalOp(vm); // Executes the square definition
    */
   pushSymbolRef(name: string): void {

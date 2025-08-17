@@ -49,7 +49,7 @@ describe('VM Symbol Resolution', () => {
       expect(value).toBe(Op.Add);
     });
 
-    test('should resolve code symbols to Tag.FUNC tagged values', () => {
+    test('should resolve code symbols to Tag.CODE tagged values', () => {
       const testAddr = 1000;
 
       // Register a code symbol
@@ -63,7 +63,7 @@ describe('VM Symbol Resolution', () => {
 
       // Verify it has the correct tag
       const { tag, value } = fromTaggedValue(result!);
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(value).toBe(testAddr);
     });
 

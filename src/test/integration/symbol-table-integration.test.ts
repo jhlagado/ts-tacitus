@@ -127,7 +127,7 @@ describe('Symbol Table Integration Tests', () => {
 
       // Verify tagged value structure
       const { tag, value } = fromTaggedValue(testRef!);
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(value).toBe(1000);
     });
 
@@ -163,7 +163,7 @@ describe('Symbol Table Integration Tests', () => {
       const codeRef = vm.symbolTable.findTaggedValue('test');
       expect(codeRef).toBeDefined();
       const { tag, value: addr } = fromTaggedValue(codeRef!);
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(addr).toBe(1500);
     });
   });

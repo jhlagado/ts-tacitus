@@ -149,7 +149,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed data types in operations', () => {
-      vm.push(toTaggedValue(100, Tag.FUNC)); // CODE value
+      vm.push(toTaggedValue(100, Tag.CODE)); // CODE value
 
       lengthOp(vm);
 

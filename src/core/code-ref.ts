@@ -44,12 +44,12 @@ export function createBuiltinRef(opcode: number): number {
 /**
  * Creates a tagged reference to bytecode at a specific address.
  *
- * This function takes a bytecode address and wraps it in a Tag.FUNC tagged value
+ * This function takes a bytecode address and wraps it in a Tag.CODE tagged value
  * that can be executed by evalOp. This is used to create executable references
  * to user-defined functions and code blocks.
  *
  * @param bytecodeAddr - The address of the bytecode in the code segment
- * @returns A Tag.FUNC tagged value that can be executed by evalOp
+ * @returns A Tag.CODE tagged value that can be executed by evalOp
  * @throws {Error} If the address is out of valid range
  *
  * @example
@@ -64,7 +64,7 @@ export function createCodeRef(bytecodeAddr: number): number {
   if (bytecodeAddr < 0 || bytecodeAddr > 65535) {
     throw new Error(`Invalid bytecode address: ${bytecodeAddr}. Must be in range 0-65535.`);
   }
-  return toTaggedValue(bytecodeAddr, Tag.FUNC);
+  return toTaggedValue(bytecodeAddr, Tag.CODE);
 }
 
 /**
@@ -102,7 +102,7 @@ export function isBuiltinRef(value: number): boolean {
  * that can be executed by setting up a call frame and jumping to the address.
  *
  * @param value - The tagged value to check
- * @returns True if the value is a Tag.FUNC reference, false otherwise
+ * @returns True if the value is a Tag.CODE reference, false otherwise
  *
  * @example
  * ```typescript
@@ -117,7 +117,7 @@ export function isBuiltinRef(value: number): boolean {
 export function isFuncRef(value: number): boolean {
   try {
     const { tag } = fromTaggedValue(value);
-    return tag === Tag.FUNC;
+    return tag === Tag.CODE;
   } catch {
     return false;
   }
@@ -130,7 +130,7 @@ export function isFuncRef(value: number): boolean {
  * regardless of whether it's a built-in operation or bytecode.
  *
  * @param value - The tagged value to check
- * @returns True if the value is executable (Tag.BUILTIN or Tag.FUNC)
+ * @returns True if the value is executable (Tag.BUILTIN or Tag.CODE)
  *
  * @example
  * ```typescript
@@ -174,10 +174,10 @@ export function getBuiltinOpcode(builtinRef: number): number {
 /**
  * Extracts the bytecode address from a code reference.
  *
- * This function safely extracts the address from a Tag.FUNC
+ * This function safely extracts the address from a Tag.CODE
  * tagged value. It should only be called on values that have been verified as code references.
  *
- * @param codeRef - A Tag.FUNC tagged value
+ * @param codeRef - A Tag.CODE tagged value
  * @returns The bytecode address
  * @throws {Error} If the value is not a valid code reference
  *

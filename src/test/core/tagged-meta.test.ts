@@ -36,7 +36,7 @@ describe('Tagged Value Meta Bit Support', () => {
 
     it('should work with different tag types and meta=1', () => {
       const testCases = [
-        { value: 100, tag: Tag.FUNC },
+        { value: 100, tag: Tag.CODE },
         { value: 200, tag: Tag.STRING },
         { value: 42, tag: Tag.BUILTIN },
         { value: 5, tag: Tag.LIST },
@@ -55,11 +55,15 @@ describe('Tagged Value Meta Bit Support', () => {
     it('should throw error for invalid meta bit values', () => {
       expect(() => toTaggedValue(42, Tag.SENTINEL, 2)).toThrow('Meta bit must be 0 or 1, got: 2');
       expect(() => toTaggedValue(42, Tag.SENTINEL, -1)).toThrow('Meta bit must be 0 or 1, got: -1');
-      expect(() => toTaggedValue(42, Tag.SENTINEL, 0.5)).toThrow('Meta bit must be 0 or 1, got: 0.5');
+      expect(() => toTaggedValue(42, Tag.SENTINEL, 0.5)).toThrow(
+        'Meta bit must be 0 or 1, got: 0.5',
+      );
     });
 
     it('should throw error when trying to set meta bit on NUMBER tag', () => {
-      expect(() => toTaggedValue(3.14, Tag.NUMBER, 1)).toThrow('Meta bit must be 0 for NUMBER tag (stored as raw IEEE 754)');
+      expect(() => toTaggedValue(3.14, Tag.NUMBER, 1)).toThrow(
+        'Meta bit must be 0 for NUMBER tag (stored as raw IEEE 754)',
+      );
     });
   });
 
@@ -76,8 +80,8 @@ describe('Tagged Value Meta Bit Support', () => {
       const testCases = [
         { value: 42, tag: Tag.SENTINEL, meta: 0 },
         { value: 42, tag: Tag.SENTINEL, meta: 1 },
-        { value: 1000, tag: Tag.FUNC, meta: 0 },
-        { value: 1000, tag: Tag.FUNC, meta: 1 },
+        { value: 1000, tag: Tag.CODE, meta: 0 },
+        { value: 1000, tag: Tag.CODE, meta: 1 },
         { value: 50, tag: Tag.BUILTIN, meta: 0 },
         { value: 50, tag: Tag.BUILTIN, meta: 1 },
       ];
@@ -108,7 +112,6 @@ describe('Tagged Value Meta Bit Support', () => {
       const view1 = new DataView(buffer1);
       view1.setFloat32(0, tagged1, true);
       const bits1 = view1.getUint32(0, true);
-
 
       // Different meta bits should produce different raw bit patterns
       expect(bits0).not.toBe(bits1);
