@@ -140,4 +140,81 @@ describe('Code Block Meta Bit', () => {
     expect(codeBlock?.meta).toBe(1); // Code blocks have meta=1
     expect(functionRef?.meta).toBe(0); // Functions have meta=0
   });
+
+  test('should implement lexical scoping for code blocks vs dynamic scoping for functions', () => {
+    // Test that demonstrates the difference in scoping behavior
+    resetVM();
+    
+    // Set up initial BP to simulate being inside a function with local variables
+    const initialBP = 100;
+    vm.BP = initialBP;
+    
+    // Test code block (meta=1) - should preserve parent BP
+    const codeBlockAddr = 500;
+    const codeBlockRef = require('../../core/tagged').toTaggedValue(codeBlockAddr, Tag.CODE, 1);
+    
+    vm.push(codeBlockRef);
+    
+    // Record state before eval
+    const beforeBP = vm.BP;
+    const beforeRP = vm.RP;
+    
+    // Execute eval for code block
+    require('../../ops/core-ops').evalOp(vm);
+    
+    // Check that BP was NOT changed (lexical scoping)
+    expect(vm.BP).toBe(initialBP); // BP should remain unchanged
+    expect(vm.RP).toBe(beforeRP + 8); // RP should have 2 values pushed (IP + BP)
+    expect(vm.IP).toBe(codeBlockAddr); // Should have jumped to code block
+    
+    // Reset for function test
+    resetVM();
+    vm.BP = initialBP;
+    
+    // Test function (meta=0) - should create new frame
+    const functionAddr = 600;
+    const functionRef = require('../../core/tagged').toTaggedValue(functionAddr, Tag.CODE, 0);
+    
+    vm.push(functionRef);
+    
+    // Execute eval for function
+    require('../../ops/core-ops').evalOp(vm);
+    
+    // Check that BP was changed to create new frame (dynamic scoping)
+    expect(vm.BP).toBe(vm.RP); // BP should point to current return stack top
+    expect(vm.BP).not.toBe(initialBP); // BP should have changed
+    expect(vm.IP).toBe(functionAddr); // Should have jumped to function
+  });
+
+  test('should handle exit correctly for both scoping types', () => {
+    resetVM();
+    
+    const initialBP = 200;
+    vm.BP = initialBP;
+    
+    // Test exitCodeOp (for code blocks) - should discard saved BP
+    vm.rpush(500); // Simulate return address
+    vm.rpush(initialBP); // Simulate saved BP
+    
+    const beforeBP = vm.BP;
+    require('../../ops/core-ops').exitCodeOp(vm);
+    
+    // BP should remain unchanged (saved BP was discarded)
+    expect(vm.BP).toBe(beforeBP);
+    expect(vm.IP).toBe(500); // Should have returned to correct address
+    
+    // Reset for function exit test
+    resetVM();
+    vm.BP = 300; // Different BP to show it gets restored
+    
+    // Test exitOp (for functions) - should restore saved BP
+    vm.rpush(600); // Simulate return address  
+    vm.rpush(initialBP); // Simulate saved BP
+    
+    require('../../ops/core-ops').exitOp(vm);
+    
+    // BP should be restored from saved value
+    expect(vm.BP).toBe(initialBP);
+    expect(vm.IP).toBe(600); // Should have returned to correct address
+  });
 });
