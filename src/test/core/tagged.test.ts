@@ -63,9 +63,9 @@ describe('Tagged NaN Encoding', () => {
     expect(isNIL(toTaggedValue(1, Tag.SENTINEL))).toBe(false);
   });
   test('should correctly identify code types', () => {
-    const func = toTaggedValue(123, Tag.CODE);
+    const code = toTaggedValue(123, Tag.CODE);
     const str = toTaggedValue(789, Tag.STRING);
-    expect(isCode(func)).toBe(true);
+    expect(isCode(code)).toBe(true);
     expect(isCode(str)).toBe(false);
   });
 

@@ -43,7 +43,6 @@ export function execute(start: number): void {
   vm.running = true;
 
   while (vm.running && vm.IP < vm.compiler.CP) {
-    const _beforeIP = vm.IP;
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
 

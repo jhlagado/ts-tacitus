@@ -23,7 +23,7 @@ import {
   isBuiltinRef,
   isFuncRef,
   getBuiltinOpcode,
-  getFuncAddress,
+  getCodeAddress,
 } from '../../core/code-ref';
 import { evalOp } from '../../ops/core-ops';
 
@@ -123,7 +123,7 @@ describe('Symbol Table Integration Tests', () => {
       const testRef = vm.resolveSymbol('test');
       expect(testRef).toBeDefined();
       expect(isFuncRef(testRef!)).toBe(true);
-      expect(getFuncAddress(testRef!)).toBe(1000);
+      expect(getCodeAddress(testRef!)).toBe(1000);
 
       // Verify tagged value structure
       const { tag, value } = fromTaggedValue(testRef!);
@@ -140,15 +140,15 @@ describe('Symbol Table Integration Tests', () => {
       // Verify all resolve correctly
       const squareRef = vm.resolveSymbol('square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getFuncAddress(squareRef!)).toBe(1024);
+      expect(getCodeAddress(squareRef!)).toBe(1024);
 
       const cubeRef = vm.resolveSymbol('cube');
       expect(isFuncRef(cubeRef!)).toBe(true);
-      expect(getFuncAddress(cubeRef!)).toBe(2048);
+      expect(getCodeAddress(cubeRef!)).toBe(2048);
 
       const factorialRef = vm.resolveSymbol('factorial');
       expect(isFuncRef(factorialRef!)).toBe(true);
-      expect(getFuncAddress(factorialRef!)).toBe(4096);
+      expect(getCodeAddress(factorialRef!)).toBe(4096);
     });
 
     test('should maintain symbol table backward compatibility', () => {
@@ -188,11 +188,11 @@ describe('Symbol Table Integration Tests', () => {
       // Verify code symbols resolve correctly
       const squareRef = vm.resolveSymbol('square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getFuncAddress(squareRef!)).toBe(2000);
+      expect(getCodeAddress(squareRef!)).toBe(2000);
 
       const doubleRef = vm.resolveSymbol('double');
       expect(isFuncRef(doubleRef!)).toBe(true);
-      expect(getFuncAddress(doubleRef!)).toBe(3000);
+      expect(getCodeAddress(doubleRef!)).toBe(3000);
     });
 
     test('should execute built-ins while preserving code symbol references', () => {
@@ -212,7 +212,7 @@ describe('Symbol Table Integration Tests', () => {
       // Verify code symbol still resolves correctly
       const squareRef = vm.resolveSymbol('square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getFuncAddress(squareRef!)).toBe(1500);
+      expect(getCodeAddress(squareRef!)).toBe(1500);
     });
   });
 
@@ -296,7 +296,7 @@ describe('Symbol Table Integration Tests', () => {
       // For this test, we just verify the tagged value is correct
       const poppedRef = vm.pop();
       expect(isFuncRef(poppedRef)).toBe(true);
-      expect(getFuncAddress(poppedRef)).toBe(100);
+      expect(getCodeAddress(poppedRef)).toBe(100);
 
       // Verify stack state
       expect(vm.getStackData()).toEqual([5]);
@@ -323,7 +323,7 @@ describe('Symbol Table Integration Tests', () => {
 
       const code43 = vm.resolveSymbol('code_43');
       expect(isFuncRef(code43!)).toBe(true);
-      expect(getFuncAddress(code43!)).toBe(1043);
+      expect(getCodeAddress(code43!)).toBe(1043);
 
       // Verify non-existent symbol still returns undefined
       expect(vm.resolveSymbol('nonexistent')).toBeUndefined();

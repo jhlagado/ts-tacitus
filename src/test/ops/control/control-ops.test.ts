@@ -92,8 +92,8 @@ describe('Control Operations - Branch Coverage', () => {
       expect(() => simpleIfOp(vm)).toThrow("Type error: 'if' condition must be a number");
     });
 
-    test('should reject FUNC tagged values as conditions', () => {
-      vm.push(toTaggedValue(100, Tag.CODE)); // func condition (should be rejected)
+    test('should reject CODE tagged values as conditions', () => {
+      vm.push(toTaggedValue(100, Tag.CODE)); // code condition (should be rejected)
       vm.push(42); // then-branch as value
       vm.push(99); // else-branch as value
 

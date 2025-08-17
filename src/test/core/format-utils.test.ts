@@ -123,7 +123,7 @@ describe('Format Utils', () => {
     });
 
     describe('other tag types', () => {
-      test('should format FUNC tags with tag name and value', () => {
+      test('should format CODE tags with tag name and value', () => {
         const codeValue = toTaggedValue(100, Tag.CODE);
         expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:100]');
       });
@@ -243,9 +243,9 @@ describe('Format Utils', () => {
     });
 
     describe('other value types', () => {
-      test('should format FUNC values', () => {
+      test('should format CODE values', () => {
         const codeValue = toTaggedValue(100, Tag.CODE);
-        expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); // FUNC treated as NaN-boxed list
+        expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); // CODE treated as NaN-boxed list
       });
 
       test('should format SENTINEL values', () => {
@@ -256,7 +256,7 @@ describe('Format Utils', () => {
       test('should format unknown tag types', () => {
         // This would use formatAtomicValue for unknown tags
         const unknownValue = toTaggedValue(123, Tag.CODE);
-        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )'); // FUNC treated as NaN-boxed list
+        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )'); // CODE treated as NaN-boxed list
       });
     });
 

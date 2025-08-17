@@ -13,19 +13,6 @@
 import { fromTaggedValue, Tag, tagNames } from './tagged';
 
 /**
- * Recursively prints any Tacit value with indentation, tags, and contents.
- *
- * This is the main entry point for debugging output of Tacit values.
- * It prints a title followed by a formatted representation of the value.
- *
- * @param title - A descriptive title to prefix the output
- * @param tval - The tagged value to print
- */
-export function prn(title: string, tval: number): void {
-  console.warn(`${title ?? ''}: ${formatValue(tval, 0)}`);
-}
-
-/**
  * Formats a tagged value as a string with proper indentation.
  *
  * This function handles the formatting of a tagged value, including its tag name
@@ -60,7 +47,7 @@ function toTagName(tag: number): string {
  *
  * This function produces a string representation of a tagged value based on its tag type:
  * - INTEGER: The numeric value as a string
- * - CODE: A placeholder "<func>" string
+ * - CODE: A placeholder "<code>" string
  * - STRING: A string representation with its digest index
  * - Other tags: The raw numeric value
  *
@@ -73,7 +60,7 @@ function scalarRepr(tval: number): string {
     case Tag.SENTINEL:
       return `${value}`;
     case Tag.CODE:
-      return `<func>`;
+      return `<code>`;
     case Tag.STRING:
       return `"[string:${value}]"`;
     default:

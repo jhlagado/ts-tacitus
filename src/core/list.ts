@@ -12,33 +12,9 @@
  */
 
 import { VM } from './vm';
-import { toTaggedValue, fromTaggedValue, Tag, isList } from './tagged';
+import { fromTaggedValue, isList } from './tagged';
 import { SEG_STACK } from './constants';
 
-/**
- * Creates an LIST on the VM stack from an array of tagged values.
- * Values are pushed in forward order then reversed to achieve proper LIST layout.
- *
- * @param vm - The virtual machine instance
- * @param values - Array of tagged values to include in the LIST
- */
-export function createList(vm: VM, values: number[]): void {
-  const slotCount = values.length;
-
-  // Push values in forward order
-  for (const value of values) {
-    vm.push(value);
-  }
-
-  // Reverse the span to achieve LIST layout
-  if (slotCount > 1) {
-    reverseSpan(vm, slotCount);
-  }
-
-  // Push LIST header with slot count
-  const header = toTaggedValue(slotCount, Tag.LIST);
-  vm.push(header);
-}
 
 /**
  * Extracts the slot count from an LIST header.
