@@ -283,15 +283,23 @@ export const exitCodeOp: Verb = (vm: VM) => {
 export const evalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
-  const { tag, value: addr } = fromTaggedValue(value);
+  const { tag, value: addr, meta } = fromTaggedValue(value);
 
   switch (tag) {
     case Tag.CODE:
-      // Bytecode execution: set up call frame and jump to address
-      vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-      vm.rpush(vm.BP);
-      vm.BP = vm.RP;
-      vm.IP = addr;
+      if (meta === 1) {
+        // Code block execution (identical to function for now)
+        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+        vm.rpush(vm.BP);
+        vm.BP = vm.RP;
+        vm.IP = addr;
+      } else {
+        // Function execution (current behavior)
+        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+        vm.rpush(vm.BP);
+        vm.BP = vm.RP;
+        vm.IP = addr;
+      }
       break;
 
     case Tag.BUILTIN:
