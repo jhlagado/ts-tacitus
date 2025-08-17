@@ -11,14 +11,13 @@ import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag } from '../../core/tagged';
 import { fromTaggedValue } from '../../core/tagged';
+import { createBuiltinRef, createCodeRef } from '../../core/code-ref';
 import {
-  createBuiltinRef,
-  createCodeRef,
   isBuiltinRef,
   isFuncRef,
   getBuiltinOpcode,
   getCodeAddress,
-} from '../../core/code-ref';
+} from '../utils/core-test-utils';
 import { evalOp } from '../../ops/core-ops';
 
 describe('VM Symbol Resolution', () => {

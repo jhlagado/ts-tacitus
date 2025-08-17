@@ -18,13 +18,13 @@ import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core/tagged';
+import { createCodeRef } from '../../core/code-ref';
 import {
-  createCodeRef,
   isBuiltinRef,
   isFuncRef,
   getBuiltinOpcode,
   getCodeAddress,
-} from '../../core/code-ref';
+} from '../utils/core-test-utils';
 import { evalOp } from '../../ops/core-ops';
 
 describe('Symbol Table Integration Tests', () => {

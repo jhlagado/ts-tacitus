@@ -5,6 +5,7 @@
 
 import { VM } from '../../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core/tagged';
+import { MAX_BUILTIN_OPCODE } from '../../core/constants';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -82,4 +83,64 @@ function scalarRepr(tval: number): string {
     default:
       return `${tval}`;
   }
+}
+
+// Test-only code-ref functions previously exported from src/core/code-ref.ts
+
+/**
+ * Checks if a tagged value represents a built-in operation reference.
+ * Test-only function.
+ */
+export function isBuiltinRef(value: number): boolean {
+  try {
+    const { tag } = fromTaggedValue(value);
+    return tag === Tag.BUILTIN;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if a tagged value represents a bytecode reference.
+ * Test-only function.
+ */
+export function isFuncRef(value: number): boolean {
+  try {
+    const { tag } = fromTaggedValue(value);
+    return tag === Tag.CODE;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if a tagged value represents any kind of executable code reference.
+ * Test-only function.
+ */
+export function isExecutableRef(value: number): boolean {
+  return isBuiltinRef(value) || isFuncRef(value);
+}
+
+/**
+ * Extracts the opcode from a built-in reference.
+ * Test-only function.
+ */
+export function getBuiltinOpcode(builtinRef: number): number {
+  if (!isBuiltinRef(builtinRef)) {
+    throw new Error('Value is not a built-in reference');
+  }
+  const { value } = fromTaggedValue(builtinRef);
+  return value;
+}
+
+/**
+ * Extracts the bytecode address from a code reference.
+ * Test-only function.
+ */
+export function getCodeAddress(codeRef: number): number {
+  if (!isFuncRef(codeRef)) {
+    throw new Error('Value is not a code reference');
+  }
+  const { value } = fromTaggedValue(codeRef);
+  return value;
 }

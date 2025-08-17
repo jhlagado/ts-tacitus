@@ -26,7 +26,7 @@ import { fromTaggedValue, Tag } from './tagged';
  * @param value - Number to format
  * @returns Formatted string representation with appropriate precision
  */
-export function formatFloat(value: number): string {
+function formatFloat(value: number): string {
   if (isNaN(value)) return 'NaN';
   if (!isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity';
 
@@ -92,7 +92,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
  * @param index - The index in the stack where the list starts
  * @returns Formatted string representation of the list with proper parentheses
  */
-export function formatListAt(vm: VM, stack: number[], index: number): string {
+function formatListAt(vm: VM, stack: number[], index: number): string {
   if (index < 0 || index >= stack.length) return '[Invalid list index]';
   const value = stack[index];
   const { tag } = fromTaggedValue(value);

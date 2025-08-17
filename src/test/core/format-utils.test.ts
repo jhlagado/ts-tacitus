@@ -1,4 +1,4 @@
-import { formatFloat, formatAtomicValue, formatListAt, formatValue } from '../../core/format-utils';
+import { formatAtomicValue, formatValue } from '../../core/format-utils';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { Tag, toTaggedValue } from '../../core/tagged';
 import { executeTacitCode } from '../utils/vm-test-utils';
@@ -8,74 +8,6 @@ describe('Format Utils', () => {
     initializeInterpreter();
   });
 
-  describe('formatFloat', () => {
-    describe('simple values', () => {
-      test('should format positive integers without decimals', () => {
-        expect(formatFloat(42)).toBe('42');
-        expect(formatFloat(0)).toBe('0');
-        expect(formatFloat(1)).toBe('1');
-      });
-
-      test('should format negative integers without decimals', () => {
-        expect(formatFloat(-42)).toBe('-42');
-        expect(formatFloat(-1)).toBe('-1');
-      });
-
-      test('should format floating point numbers with appropriate precision', () => {
-        expect(formatFloat(3.14)).toBe('3.14');
-        expect(formatFloat(2.5)).toBe('2.5');
-        expect(formatFloat(0.1)).toBe('0.1');
-      });
-
-      test('should handle very small numbers close to integers', () => {
-        expect(formatFloat(42.00001)).toBe('42');
-        expect(formatFloat(41.99999)).toBe('42');
-      });
-
-      test('should format very small decimal numbers', () => {
-        expect(formatFloat(0.01)).toBe('0.01');
-        expect(formatFloat(0.001)).toBe('0');
-        expect(formatFloat(0.00001)).toBe('0');
-      });
-
-      test('should remove trailing zeros', () => {
-        expect(formatFloat(3.1)).toBe('3.1');
-        expect(formatFloat(5.0)).toBe('5');
-      });
-    });
-
-    describe('special values', () => {
-      test('should handle NaN', () => {
-        expect(formatFloat(NaN)).toBe('NaN');
-      });
-
-      test('should handle positive infinity', () => {
-        expect(formatFloat(Infinity)).toBe('Infinity');
-      });
-
-      test('should handle negative infinity', () => {
-        expect(formatFloat(-Infinity)).toBe('-Infinity');
-      });
-    });
-
-    describe('edge cases', () => {
-      test('should handle zero variations', () => {
-        expect(formatFloat(0)).toBe('0');
-        expect(formatFloat(-0)).toBe('0');
-      });
-
-      test('should handle numbers near zero threshold', () => {
-        expect(formatFloat(0.0001)).toBe('0');
-        expect(formatFloat(0.00011)).toBe('0');
-        expect(formatFloat(-0.0001)).toBe('-0'); // formatFloat preserves -0
-      });
-
-      test('should handle large numbers', () => {
-        expect(formatFloat(1000000)).toBe('1000000');
-        expect(formatFloat(999999.99)).toBe('999999.99'); // formatFloat doesn't round to nearest integer
-      });
-    });
-  });
 
   describe('formatAtomicValue', () => {
     describe('simple values', () => {
@@ -140,72 +72,6 @@ describe('Format Utils', () => {
     });
   });
 
-  describe('formatListAt', () => {
-    describe('simple values', () => {
-      test('should format a simple list with atomic values', () => {
-        const stack = executeTacitCode('( 1 2 )');
-        const result = formatValue(vm, stack[stack.length - 1]);
-        expect(result).toBe('( 1 2 )');
-      });
-
-      test('should format an empty list', () => {
-        const stack = executeTacitCode('( )');
-        const result = formatValue(vm, stack[stack.length - 1]);
-        expect(result).toBe('(  )'); // Empty list has two spaces
-      });
-
-      test('should format a single-element list', () => {
-        const stack = executeTacitCode('( 42 )');
-        const result = formatValue(vm, stack[stack.length - 1]);
-        expect(result).toBe('( 42 )');
-      });
-    });
-
-    describe('list operations', () => {
-      test('should handle NaN-boxed lists', () => {
-        const stack = executeTacitCode('( 1 2 )');
-        const result = formatValue(vm, stack[stack.length - 1]);
-        expect(result).toBe('( 1 2 )');
-      });
-    });
-
-    describe('error cases', () => {
-      test('should handle invalid index (negative)', () => {
-        const stack = vm.getStackData();
-        expect(formatListAt(vm, stack, -1)).toBe('[Invalid list index]');
-      });
-
-      test('should handle invalid index (out of bounds)', () => {
-        const stack = vm.getStackData();
-        expect(formatListAt(vm, stack, 100)).toBe('[Invalid list index]');
-      });
-
-      test('should handle non-list values', () => {
-        vm.push(42); // Not a list
-        const stack = vm.getStackData();
-
-        const result = formatListAt(vm, stack, stack.length - 1);
-        expect(result).toBe('[Not a list]');
-      });
-
-      test('should handle corrupted list structure', () => {
-        // Create an LIST header that over-claims elements (manually corrupted)
-        // Push payload smaller than header claims
-        const corruptedHeader = toTaggedValue(2, Tag.LIST);
-        vm.push(1);
-        vm.push(corruptedHeader);
-        const stack = vm.getStackData();
-
-        const result = formatValue(vm, stack[stack.length - 1]);
-        // Formatter should not throw; result may include only available elements
-        expect(typeof result).toBe('string');
-      });
-    });
-
-    describe('integration tests', () => {
-      // Removed complex integration test that was too difficult to set up correctly
-    });
-  });
 
   describe('formatValue', () => {
     describe('simple values', () => {
