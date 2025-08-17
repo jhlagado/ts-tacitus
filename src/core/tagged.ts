@@ -38,9 +38,6 @@ export enum Tag {
   /**  Represents a string literal. */
   STRING = 4,
 
-  /**  Represents executable code (distinct from FUNC). */
-  CODE = 5,
-
   /**  Represents a built-in operation opcode. */
   BUILTIN = 7,
 
@@ -63,7 +60,6 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.FUNC]: 'FUNC',
   [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
-  [Tag.CODE]: 'CODE',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
 };
