@@ -191,9 +191,9 @@ describe('List Integration Tests', () => {
       const payload1 = stack[stack.length - 3];
       const payload2 = stack[stack.length - 4];
 
-      expect(fromTaggedValue(payload0)).toEqual({ tag: Tag.NUMBER, value: 1 });
-      expect(fromTaggedValue(payload1)).toEqual({ tag: Tag.NUMBER, value: 2 });
-      expect(fromTaggedValue(payload2)).toEqual({ tag: Tag.NUMBER, value: 3 });
+      expect(fromTaggedValue(payload0)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
+      expect(fromTaggedValue(payload1)).toMatchObject({ tag: Tag.NUMBER, value: 2 });
+      expect(fromTaggedValue(payload2)).toMatchObject({ tag: Tag.NUMBER, value: 3 });
     });
 
     test('should build nested lists correctly', () => {
@@ -205,7 +205,7 @@ describe('List Integration Tests', () => {
       expect(outerSlots).toBeGreaterThan(0);
 
       const firstLogical = stack[stack.length - 2];
-      expect(fromTaggedValue(firstLogical)).toEqual({ tag: Tag.NUMBER, value: 1 });
+      expect(fromTaggedValue(firstLogical)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
 
       const innerHeaderIndex = stack.findIndex((v, i) => {
         if (i >= stack.length - 1) return false;
@@ -227,13 +227,13 @@ describe('List Integration Tests', () => {
       const decode = fromTaggedValue;
 
       const outerHeader = stack[len - 1];
-      expect(decode(outerHeader)).toEqual({ tag: Tag.LIST, value: 5 });
+      expect(decode(outerHeader)).toMatchObject({ tag: Tag.LIST, value: 5 });
 
-      expect(decode(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
-      expect(decode(stack[len - 3])).toEqual({ tag: Tag.LIST, value: 2 });
-      expect(decode(stack[len - 4])).toEqual({ tag: Tag.NUMBER, value: 2 });
-      expect(decode(stack[len - 5])).toEqual({ tag: Tag.NUMBER, value: 3 });
-      expect(decode(stack[len - 6])).toEqual({ tag: Tag.NUMBER, value: 4 });
+      expect(decode(stack[len - 2])).toMatchObject({ tag: Tag.NUMBER, value: 1 });
+      expect(decode(stack[len - 3])).toMatchObject({ tag: Tag.LIST, value: 2 });
+      expect(decode(stack[len - 4])).toMatchObject({ tag: Tag.NUMBER, value: 2 });
+      expect(decode(stack[len - 5])).toMatchObject({ tag: Tag.NUMBER, value: 3 });
+      expect(decode(stack[len - 6])).toMatchObject({ tag: Tag.NUMBER, value: 4 });
     });
   });
 

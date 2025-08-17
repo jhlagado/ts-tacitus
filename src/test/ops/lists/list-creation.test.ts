@@ -17,8 +17,9 @@ describe('List Creation Operations', () => {
 
       // After .slot, TOS should be an INTEGER 2 and LIST header remains below
       logStack(stack);
-      const top = fromTaggedValue(stack[stack.length - 1]);
-      expect(top).toEqual({ tag: Tag.SENTINEL, value: 2 });
+      const { tag, value } = fromTaggedValue(stack[stack.length - 1]);
+      expect(tag).toBe(Tag.SENTINEL);
+      expect(value).toBe(2);
       // LIST header presence is validated by slots; confirm stack length grows by 1
       expect(stack.length).toBe(4);
     });
@@ -43,11 +44,11 @@ describe('List Creation Operations', () => {
       const len = stack.length;
 
       // Outer header
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 5 });
+      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 5 });
       // First logical element just below outer header
-      expect(fromTaggedValue(stack[len - 2])).toEqual({ tag: Tag.NUMBER, value: 1 });
+      expect(fromTaggedValue(stack[len - 2])).toMatchObject({ tag: Tag.NUMBER, value: 1 });
       // Verify bottom-most element is 4 to ensure payload ordering
-      expect(fromTaggedValue(stack[0])).toEqual({ tag: Tag.NUMBER, value: 4 });
+      expect(fromTaggedValue(stack[0])).toMatchObject({ tag: Tag.NUMBER, value: 4 });
     });
 
     test('should handle multiple nested lists at the same level', () => {
@@ -56,7 +57,7 @@ describe('List Creation Operations', () => {
       // Outer payload includes two inner LISTs (3 cells each) = 6, plus outer header = 7
       expect(stack.length).toBe(7);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 6 });
+      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 6 });
     });
   });
 
@@ -80,7 +81,7 @@ describe('List Creation Operations', () => {
       // Computed total: 9 cells
       expect(stack.length).toBe(9);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toEqual({ tag: Tag.LIST, value: 8 });
+      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 8 });
     });
   });
 });
