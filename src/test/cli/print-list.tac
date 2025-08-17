@@ -7,7 +7,7 @@
 "Printing a nested list:" .
 ( 1 ( 2 3 ) 4 ) .
 
-"Printing a list with LINK reference:" .
+"Printing a list" .
 ( 10 20 ) dup .
 
 "Done testing" .

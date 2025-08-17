@@ -22,7 +22,7 @@ function main() {
   resetVM();
   executeTacitCode('( 1 ( 2 3 ) 4 ) .');
 
-  console.log('\nTesting list with LINK:');
+  console.log('\nTesting list');
   resetVM();
   executeTacitCode('( 10 20 ) dup .');
 

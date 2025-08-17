@@ -21,7 +21,7 @@ import { formatValue as coreFormatValue, formatAtomicValue } from '../core/forma
  * Formats a LIST structure by consuming elements from the stack.
  *
  * This function handles nested LIST structures by:
- * 1. Reading the LIST header value to get the slot count  
+ * 1. Reading the LIST header value to get the slot count
  * 2. Popping and formatting each slot from the stack
  * 3. Recursively formatting nested LIST structures
  * 4. Joining all elements with spaces and wrapping in parentheses
@@ -87,7 +87,6 @@ export function printOp(vm: VM): void {
       return;
     }
 
-    // Fallback scalar print only (legacy LIST/LINK removed)
     vm.pop();
     console.log(coreFormatValue(vm, topValue));
   } catch (error: unknown) {
@@ -105,7 +104,7 @@ export function printOp(vm: VM): void {
 }
 
 // ============================================================================
-// RAW PRINT OPERATION (from builtins-raw-print.ts)  
+// RAW PRINT OPERATION (from builtins-raw-print.ts)
 // ============================================================================
 
 /**
