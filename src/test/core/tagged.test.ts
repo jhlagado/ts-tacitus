@@ -6,7 +6,7 @@ import {
   getTag,
   getValue,
   isNIL,
-  isFunc,
+  isCode,
   isList,
   MAX_TAG,
 } from '../../core/tagged';
@@ -15,7 +15,7 @@ describe('Tagged NaN Encoding', () => {
     const tests = [
       { tag: Tag.SENTINEL, value: -32768 },
       { tag: Tag.SENTINEL, value: 32767 },
-      { tag: Tag.FUNC, value: 12345 },
+      { tag: Tag.CODE, value: 12345 },
       { tag: Tag.STRING, value: 42 },
     ];
 
@@ -36,8 +36,8 @@ describe('Tagged NaN Encoding', () => {
     expect(() => toTaggedValue(-32769, Tag.SENTINEL)).toThrow();
   });
   test('should validate unsigned value ranges for non-INTEGER types', () => {
-    expect(() => toTaggedValue(-1, Tag.FUNC)).toThrow();
-    expect(() => toTaggedValue(65536, Tag.FUNC)).toThrow();
+    expect(() => toTaggedValue(-1, Tag.CODE)).toThrow();
+    expect(() => toTaggedValue(65536, Tag.CODE)).toThrow();
     expect(() => toTaggedValue(-1, Tag.STRING)).toThrow();
     expect(() => toTaggedValue(65536, Tag.STRING)).toThrow();
   });
@@ -51,11 +51,11 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should return the correct tag using getTag', () => {
-    const encoded = toTaggedValue(123, Tag.FUNC);
-    expect(getTag(encoded)).toBe(Tag.FUNC);
+    const encoded = toTaggedValue(123, Tag.CODE);
+    expect(getTag(encoded)).toBe(Tag.CODE);
   });
   test('should return the correct value using getValue', () => {
-    const encoded = toTaggedValue(456, Tag.FUNC);
+    const encoded = toTaggedValue(456, Tag.CODE);
     expect(getValue(encoded)).toBe(456);
   });
   test('should correctly identify NIL using isNIL', () => {
@@ -63,10 +63,10 @@ describe('Tagged NaN Encoding', () => {
     expect(isNIL(toTaggedValue(1, Tag.SENTINEL))).toBe(false);
   });
   test('should correctly identify code types', () => {
-    const func = toTaggedValue(123, Tag.FUNC);
+    const func = toTaggedValue(123, Tag.CODE);
     const str = toTaggedValue(789, Tag.STRING);
-    expect(isFunc(func)).toBe(true);
-    expect(isFunc(str)).toBe(false);
+    expect(isCode(func)).toBe(true);
+    expect(isCode(str)).toBe(false);
   });
 
   test('should correctly identify LIST types', () => {

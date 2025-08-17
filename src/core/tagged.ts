@@ -30,7 +30,7 @@ export enum Tag {
   SENTINEL = 1,
 
   /**  Represents executable code (function pointer). */
-  FUNC = 2,
+  CODE = 2,
 
   /**  Represents a 4-byte aligned stack cell reference. */
   REF = 3,
@@ -57,7 +57,7 @@ export const MAX_TAG = Tag.LIST;
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
-  [Tag.FUNC]: 'FUNC',
+  [Tag.CODE]: 'CODE',
   [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
   [Tag.BUILTIN]: 'BUILTIN',
@@ -128,7 +128,7 @@ export function toTaggedValue(value: number, tag: Tag, meta: number = 0): number
   }
 
   const mantissaTagBits = (tag & 0x3f) << 16;
-  const signBit = meta ? (1 << 31) : 0;
+  const signBit = meta ? 1 << 31 : 0;
   const bits = signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
@@ -246,15 +246,15 @@ export function isSentinel(tval: number): boolean {
 }
 
 /**
- * Checks if a given NaN-boxed value represents executable `FUNC` (a function pointer).
- * This returns `true` if the value's tag is `Tag.FUNC`.
+ * Checks if a given NaN-boxed value represents executable `CODE` (a function pointer).
+ * This returns `true` if the value's tag is `Tag.CODE`.
  *
  * @param tval The NaN-boxed 32-bit floating-point number to check.
- * @returns `true` if the value is `FUNC`, `false` otherwise.
+ * @returns `true` if the value is `CODE`, `false` otherwise.
  */
-export function isFunc(tval: number): boolean {
+export function isCode(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.FUNC;
+  return tag === Tag.CODE;
 }
 
 /**

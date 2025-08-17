@@ -54,7 +54,7 @@ describe('Code Reference Utilities', () => {
       const codeRef = createCodeRef(1000);
       const { tag, value } = fromTaggedValue(codeRef);
 
-      expect(tag).toBe(Tag.FUNC);
+      expect(tag).toBe(Tag.CODE);
       expect(value).toBe(1000);
     });
 
@@ -65,7 +65,7 @@ describe('Code Reference Utilities', () => {
         const ref = createCodeRef(addr);
         const { tag, value } = fromTaggedValue(ref);
 
-        expect(tag).toBe(Tag.FUNC);
+        expect(tag).toBe(Tag.CODE);
         expect(value).toBe(addr);
       });
     });
@@ -199,7 +199,7 @@ describe('Code Reference Utilities', () => {
 
       expect(builtinTag).toBe(Tag.BUILTIN);
       expect(builtinValue).toBe(Op.Add);
-      expect(codeTag).toBe(Tag.FUNC);
+      expect(codeTag).toBe(Tag.CODE);
       expect(codeValue).toBe(1000);
     });
 
