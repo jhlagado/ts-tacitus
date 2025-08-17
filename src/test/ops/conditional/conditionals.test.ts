@@ -50,11 +50,9 @@ describe('Conditional Operations', () => {
   });
 
   describe('list operations', () => {
-    // TODO: Add list-specific conditional tests when list operations are implemented
   });
 
   describe('error cases', () => {
-    // TODO: Add error handling tests for stack underflow and invalid conditions
   });
 
   describe('integration tests', () => {

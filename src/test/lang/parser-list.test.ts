@@ -32,7 +32,6 @@ describe('Parser LIST Integration (() )', () => {
     expect(value).toBeGreaterThan(0);
   });
 
-  // Legacy LIST/LINK mixed structures have been removed
 
   it('throws on unmatched LIST closing bracket', () => {
     expect(() => parse(new Tokenizer(')'))).toThrow();

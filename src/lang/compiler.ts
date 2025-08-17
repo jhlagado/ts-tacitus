@@ -1,14 +1,6 @@
 /**
  * @file Compiler for the Tacit virtual machine
- *
- * This module implements the bytecode compiler for the Tacit language. The compiler
- * translates parsed Tacit code into bytecode that can be executed by the VM's interpreter.
- * It handles the generation of opcodes, literals, and control flow instructions, and provides
- * facilities for patching jump addresses during compilation of branching constructs.
- *
- * The compiler works with the VM's memory model, writing bytecode directly to the CODE segment.
- * It supports both single-byte opcodes for built-in operations and two-byte encodings for
- * user-defined words, following a unified addressing scheme.
+ * Bytecode compiler for the Tacit language.
  */
 
 import { VM } from '../core/vm';
@@ -17,49 +9,21 @@ import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
 import { InvalidOpcodeAddressError } from '../core/errors';
 
 /**
- * Compiler for the Tacit virtual machine
- *
- * The Compiler class is responsible for generating bytecode from parsed Tacit code.
- * It maintains a compile pointer (CP) that tracks the current position in the code segment
- * where bytecode is being written, and provides methods for compiling various types of
- * values (8-bit, 16-bit, 32-bit float) and opcodes.
- *
- * The compiler also supports patching previously written bytecode, which is essential for
- * implementing control flow constructs like conditionals and loops where jump addresses
- * may not be known at the time of initial compilation.
+ * Compiler for generating bytecode from parsed Tacit code.
  */
 export class Compiler {
-  /**
-   * Tracks the nesting level of control structures
-   */
   nestingScore: number;
 
-  /**
-   * Compile Pointer - current position in the code segment where bytecode is being written
-   */
   CP: number;
 
-  /**
-   * Buffer Compile Pointer - saved position for reset operations
-   */
   BCP: number;
 
-  /**
-   * Flag indicating whether the compiler state should be preserved during reset
-   */
   preserve: boolean;
 
-  /**
-   * Reference to the VM instance for memory access
-   */
   private vm: VM;
   /**
    * Creates a new Compiler instance.
-   *
-   * Initializes the compiler with default values for compile pointers and nesting score.
-   * The compiler requires a VM instance to access memory for bytecode writing.
-   *
-   * @param vm The VM instance to use for memory access and other operations.
+   * @param vm VM instance for memory access
    */
   constructor(vm: VM) {
     this.nestingScore = 0;
@@ -70,13 +34,8 @@ export class Compiler {
   }
 
   /**
-   * Compiles an 8-bit value to the CODE area.
-   *
-   * Writes a single byte to the code segment at the current compile pointer position
-   * and advances the compile pointer by 1 byte.
-   *
-   * @param value The 8-bit value to compile (0-255)
-   * @note Use this only for raw byte values, not for opcodes (use compileOpcode instead).
+   * Compiles 8-bit value to CODE area.
+   * @param value 8-bit value to compile
    */
   compile8(value: number): void {
     this.vm.memory.write8(SEG_CODE, this.CP, value);

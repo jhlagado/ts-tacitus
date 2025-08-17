@@ -15,14 +15,11 @@ describe('Interpreter - Branch Coverage', () => {
 
   describe('execute function edge cases', () => {
     test('should handle debug mode output for valid opcodes', () => {
-      // Enable debug mode and capture console output
       vm.debug = true;
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-      // Execute a simple program
       executeProgram('5 3 add');
 
-      // Should have logged debug information
       expect(consoleSpy).toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -34,10 +31,8 @@ describe('Interpreter - Branch Coverage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       try {
-        // Trigger an error that should cause debug output
-        executeProgram('drop'); // Stack underflow
+        executeProgram('drop'); 
       } catch {
-        // Should have logged error stack trace in debug mode
         expect(consoleSpy).toHaveBeenCalled();
       }
 
@@ -50,13 +45,12 @@ describe('Interpreter - Branch Coverage', () => {
       vm.push(24);
 
       const codeAddr = vm.compiler.CP;
-      vm.memory.write8(SEG_CODE, codeAddr, 200); // Invalid opcode
+      vm.memory.write8(SEG_CODE, codeAddr, 200); 
       vm.compiler.CP += 1;
 
       try {
         execute(codeAddr);
       } catch (error) {
-        // Stack should still contain our values
         expect(vm.getStackData()).toEqual([42, 24]);
         expect((error as Error).message).toContain('Invalid opcode: 200');
       }
@@ -66,9 +60,8 @@ describe('Interpreter - Branch Coverage', () => {
       vm.compiler.preserve = true;
 
       try {
-        executeProgram('drop'); // This will fail with stack underflow
+        executeProgram('drop'); 
       } catch {
-        // Compiler should have been reset
         expect(vm.compiler.preserve).toBe(false);
       }
     });
@@ -77,20 +70,16 @@ describe('Interpreter - Branch Coverage', () => {
 
   describe('callTacitFunction', () => {
     test('should be accessible but complex to test directly', () => {
-      // callTacitFunction is complex to test without proper function setup
-      // The function exists and can be called, but requires valid bytecode
       expect(typeof callTacitFunction).toBe('function');
     });
   });
 
   describe('executeProgram edge cases', () => {
     test('should handle empty code string', () => {
-      // Empty programs are handled by the parser, not the interpreter
       expect(() => executeProgram('')).not.toThrow();
     });
 
     test('should handle code with only whitespace and comments', () => {
-      // These are handled by the tokenizer/parser layers
       expect(() => executeProgram('   \n\t  ')).not.toThrow();
     });
   });

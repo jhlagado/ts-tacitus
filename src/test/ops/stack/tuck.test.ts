@@ -66,7 +66,6 @@ describe('tuck Operation', () => {
     test('should duplicate simple value under a list', () => {
       const stack = executeTacitCode('( 10 20 ) 42 tuck');
 
-      // Expect two 42 values after tuck around an LIST
       expect(stack.filter(x => x === 42).length).toBe(2);
       expect(stack).toContain(10);
       expect(stack).toContain(20);
@@ -75,11 +74,9 @@ describe('tuck Operation', () => {
     test('should duplicate list under simple value', () => {
       const stack = executeTacitCode('42 ( 99 88 ) tuck');
 
-      // Two LIST headers present
       expect(stack).toContain(42);
       expect(stack).toContain(99);
       expect(stack).toContain(88);
-      // At least two occurrences of payload values due to duplication
       expect(stack.filter(x => x === 99).length).toBeGreaterThanOrEqual(2);
       expect(stack.filter(x => x === 88).length).toBeGreaterThanOrEqual(2);
     });

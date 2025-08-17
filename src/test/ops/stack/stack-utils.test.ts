@@ -39,7 +39,6 @@ describe('Stack Utils', () => {
     }
 
     function createList(...values: number[]): void {
-      // LIST layout: [payload...] [LIST:slotCount] with header at TOS
       values.forEach(val => pushValue(val));
       pushValue(values.length, Tag.LIST);
     }
@@ -62,7 +61,7 @@ describe('Stack Utils', () => {
       expect(size2).toBe(1);
 
       const [offset3, size3] = findElement(vm, offset2);
-      expect(offset3).toBe(5); // LIST size is header+payload = 3
+      expect(offset3).toBe(5); 
       expect(size3).toBe(3);
     });
 
@@ -79,10 +78,10 @@ describe('Stack Utils', () => {
       createList(1);
 
       const [offset1, size1] = findElement(vm, 0);
-      expect(size1).toBe(2); // (1) -> payload(1)+header(1)
+      expect(size1).toBe(2); 
 
       const [_offset2, size2] = findElement(vm, offset1);
-      expect(size2).toBe(3); // (3,4) -> payload(2)+header(1)
+      expect(size2).toBe(3); 
     });
   });
 });

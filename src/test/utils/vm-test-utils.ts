@@ -15,9 +15,6 @@ import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
 
-// ================================
-// CORE VM UTILITIES
-// ================================
 
 /**
  * Reset VM to clean state for testing
@@ -35,7 +32,6 @@ export function resetVM(): void {
   vm.compiler.BCP = 0;
   vm.compiler.CP = 0;
 
-  // Clear stack completely
   const stackData = vm.getStackData();
   for (let i = 0; i < stackData.length; i++) {
     vm.pop();
@@ -58,22 +54,18 @@ export function executeTacitCode(code: string): number[] {
 export function testTacitCode(code: string, expectedStack: number[]): void {
   const result = executeTacitCode(code);
   
-  // Check stack length first
   if (result.length !== expectedStack.length) {
     throw new Error(`Stack length mismatch: expected ${expectedStack.length}, got ${result.length}`);
   }
   
-  // Check each value with detailed error messages
   for (let i = 0; i < result.length; i++) {
     const actual = result[i];
     const expected = expectedStack[i];
     
-    // Handle string comparisons (when test passes strings as expected values)
     if (typeof expected === 'string') {
       throw new Error(`Stack value is NaN at position ${i}: expected string, got ${actual}`);
     }
     
-    // Handle NaN values
     if (isNaN(actual) || isNaN(expected)) {
       if (isNaN(actual) && !isNaN(expected)) {
         throw new Error(`Stack value is NaN at position ${i}: expected ${expected}, got NaN`);
@@ -81,10 +73,9 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
       if (!isNaN(actual) && isNaN(expected)) {
         throw new Error(`Stack value is NaN at position ${i}: expected NaN, got ${actual}`);
       }
-      continue; // Both NaN, consider equal
+      continue;
     }
     
-    // Handle floating-point precision (tolerance for 32-bit floats)
     const tolerance = 1e-6;
     if (Math.abs(actual - expected) > tolerance) {
       throw new Error(`Stack value mismatch at position ${i}: expected ${expected}, got ${actual}`);
@@ -119,9 +110,6 @@ export function captureTacitOutput(code: string): string[] {
   return output;
 }
 
-// ================================
-// STACK MANIPULATION
-// ================================
 
 /**
  * Push values onto VM stack
@@ -160,9 +148,6 @@ export function formatStack(vm: VM): string {
     .join(' ');
 }
 
-// ================================
-// LIST UTILITIES (UNIFIED)
-// ================================
 
 /**
  * Unified TestList class - replaces duplicates
@@ -178,11 +163,9 @@ export class TestList {
    * Copy list to VM stack with proper LIST header
    */
   copyToStack(vm: VM): void {
-    // Push payload values
     for (const value of this.values) {
       vm.push(value);
     }
-    // Push LIST header with slot count
     vm.push(toTaggedValue(this.values.length, Tag.LIST));
   }
 
@@ -242,9 +225,6 @@ export function countListsOnStack(stack: number[]): number {
   return count;
 }
 
-// ================================
-// OPERATION TESTING FRAMEWORK
-// ================================
 
 export interface OperationTestCase {
   name: string;
@@ -264,10 +244,8 @@ export function runOperationTests(testCases: OperationTestCase[], setup?: () => 
       if (setup) setup();
       resetVM();
       
-      // Setup initial stack state
       testCase.setup(vm);
       
-      // Execute operation
       if (typeof testCase.operation === 'string') {
         executeTacitCode(testCase.operation);
       } else {
@@ -276,7 +254,6 @@ export function runOperationTests(testCases: OperationTestCase[], setup?: () => 
       
       const result = vm.getStackData();
       
-      // Verify results
       if (testCase.expectedStack) {
         expect(result).toEqual(testCase.expectedStack);
       }
@@ -288,9 +265,6 @@ export function runOperationTests(testCases: OperationTestCase[], setup?: () => 
   });
 }
 
-// ================================
-// VERIFICATION UTILITIES
-// ================================
 
 /**
  * Verify tagged value has expected tag and value
@@ -330,9 +304,6 @@ export function logStack(stack: number[], label = 'Stack'): void {
   }).join(' '));
 }
 
-// ================================
-// STACK STATE VERIFICATION
-// ================================
 
 /**
  * Expect operation to throw stack underflow

@@ -151,7 +151,6 @@ describe('Comparison Operations', () => {
   });
 
   describe('list operations', () => {
-    // TODO: Add list-specific comparison tests when list operations are implemented
   });
 
   describe('error cases', () => {

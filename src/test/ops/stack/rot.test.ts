@@ -54,7 +54,6 @@ describe('rot Operation', () => {
     });
 
     test('should rotate three lists', () => {
-      // Build three lists: (1 2), (3 4), (5 6)
       vm.push(1);
       vm.push(2);
       vm.push(toTaggedValue(2, Tag.LIST));
@@ -68,19 +67,17 @@ describe('rot Operation', () => {
       rotOp(vm);
 
       const stack = vm.getStackData();
-      // Total cells = 3 lists * (2 payload + 1 header) = 9
       expect(stack.length).toBe(9);
     });
 
     test('should handle nested lists', () => {
-      // outer ( (1 2 3) 4 5 )
       vm.push(1);
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(3, Tag.LIST)); // inner
+      vm.push(toTaggedValue(3, Tag.LIST)); 
       vm.push(4);
       vm.push(5);
-      vm.push(toTaggedValue(3, Tag.LIST)); // outer
+      vm.push(toTaggedValue(3, Tag.LIST)); 
 
       rotOp(vm);
 

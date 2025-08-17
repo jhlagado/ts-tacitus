@@ -40,13 +40,10 @@ describe('LIST Core Utilities', () => {
       const value = toTaggedValue(42, Tag.SENTINEL);
       createList(vm, [value]);
 
-      expect(getStackDepth(vm)).toBe(2); // header + 1 payload
+      expect(getStackDepth(vm)).toBe(2); 
       const header = vm.peek();
       expect(getListSlotCount(header)).toBe(1);
 
-      // Check payload is at correct position
-      // LIST layout: [payload0] [LIST:1] ← TOS
-      // So payload is at SP - 4 (one slot below header)
       const payload = vm.memory.readFloat32(0, vm.SP - 4);
       expect(payload).toBe(value);
     });
@@ -59,25 +56,23 @@ describe('LIST Core Utilities', () => {
 
       createList(vm, [val1, val2, val3]);
 
-      expect(getStackDepth(vm)).toBe(4); // header + 3 payload
+      expect(getStackDepth(vm)).toBe(4); 
       const header = vm.peek();
       expect(getListSlotCount(header)).toBe(3);
 
-      // Values should be in reverse order: val3, val2, val1, header
-      // LIST layout: [val3] [val2] [val1] [LIST:3] ← TOS
-      const payload0 = vm.memory.readFloat32(0, vm.SP - 4); // logical first (val1)
-      const payload1 = vm.memory.readFloat32(0, vm.SP - 8); // logical second (val2)
-      const payload2 = vm.memory.readFloat32(0, vm.SP - 12); // logical third (val3)
+      const payload0 = vm.memory.readFloat32(0, vm.SP - 4); 
+      const payload1 = vm.memory.readFloat32(0, vm.SP - 8); 
+      const payload2 = vm.memory.readFloat32(0, vm.SP - 12); 
 
-      expect(payload0).toBe(val1); // payload[0] = first input value (at SP-4)
-      expect(payload1).toBe(val2); // payload[1] = second input value (at SP-8)
-      expect(payload2).toBe(val3); // payload[2] = third input value (at SP-12)
+      expect(payload0).toBe(val1); 
+      expect(payload1).toBe(val2); 
+      expect(payload2).toBe(val3); 
     });
 
     it('should handle mixed tag types', () => {
       const vm = resetVM();
       const intVal = 42;
-      const numVal = 3.14; // NUMBER tag
+      const numVal = 3.14; 
       const strVal = toTaggedValue(100, Tag.STRING);
 
       createList(vm, [intVal, numVal, strVal]);
@@ -119,7 +114,7 @@ describe('LIST Core Utilities', () => {
       skipList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(4); // 1 slot * 4 bytes removed
+      expect(initialSP - finalSP).toBe(4); 
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -132,7 +127,7 @@ describe('LIST Core Utilities', () => {
       skipList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(8); // 2 slots * 4 bytes removed
+      expect(initialSP - finalSP).toBe(8); 
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -145,7 +140,7 @@ describe('LIST Core Utilities', () => {
       skipList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(16); // 4 slots * 4 bytes removed
+      expect(initialSP - finalSP).toBe(16); 
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -164,12 +159,10 @@ describe('LIST Core Utilities', () => {
       createList(vm, [value]);
 
       const payloadStart = getListPayloadStart(vm);
-      const expectedStart = vm.SP - 4; // First payload slot below header
+      const expectedStart = vm.SP - 4; 
 
       expect(payloadStart).toBe(expectedStart);
 
-      // Verify we can read the payload value at this address
-      // Payload should be at SP - 4 (one slot below header)
       const readValue = vm.memory.readFloat32(0, vm.SP - 4);
       expect(readValue).toBe(value);
     });
@@ -179,7 +172,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, []);
 
       const payloadStart = getListPayloadStart(vm);
-      const expectedStart = vm.SP; // No payload for empty LIST
+      const expectedStart = vm.SP; 
 
       expect(payloadStart).toBe(expectedStart);
     });
@@ -208,7 +201,6 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on insufficient payload space', () => {
       const vm = resetVM();
-      // Manually create invalid LIST header claiming 10 slots but no payload
       const invalidHeader = toTaggedValue(10, Tag.LIST);
       vm.push(invalidHeader);
 
@@ -217,14 +209,11 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on slot count exceeding maximum', () => {
       const vm = resetVM();
-      // This is a theoretical test - actual toTaggedValue may not allow 65536
-      // But we test the validation logic
       try {
         const invalidHeader = toTaggedValue(65536, Tag.LIST);
         vm.push(invalidHeader);
         expect(() => validateListHeader(vm)).toThrow('exceeds maximum of 65535');
       } catch (e) {
-        // If toTaggedValue doesn't allow 65536, that's also correct behavior
         expect((e as Error).message).toContain('16-bit');
       }
     });
@@ -257,7 +246,6 @@ describe('LIST Core Utilities', () => {
 
       reverseSpan(vm, 2);
 
-      // After reversal: val1 should be at TOS, val2 below it
       expect(vm.peek()).toBe(val1);
       vm.pop();
       expect(vm.peek()).toBe(val2);
@@ -270,14 +258,13 @@ describe('LIST Core Utilities', () => {
       const val3 = 3;
       const val4 = 4;
 
-      vm.push(val1); // Bottom
+      vm.push(val1); 
       vm.push(val2);
       vm.push(val3);
-      vm.push(val4); // Top
+      vm.push(val4); 
 
       reverseSpan(vm, 4);
 
-      // After reversal: val1 at TOS, val4 at bottom
       expect(vm.pop()).toBe(val1);
       expect(vm.pop()).toBe(val2);
       expect(vm.pop()).toBe(val3);
@@ -296,7 +283,6 @@ describe('LIST Core Utilities', () => {
 
       reverseSpan(vm, 3);
 
-      // After reversal: val1, val2, val3 -> val1, val2, val3
       expect(vm.pop()).toBe(val1);
       expect(vm.pop()).toBe(val2);
       expect(vm.pop()).toBe(val3);
@@ -327,19 +313,15 @@ describe('LIST Core Utilities', () => {
     it('should handle nested LIST creation workflow', () => {
       const vm = resetVM();
 
-      // First create and validate an inner LIST
       const innerValues = [1, 2];
       createList(vm, innerValues);
       validateListHeader(vm);
 
-      // Extract just the header for use as a value (this pops the entire LIST)
       const innerListValue = vm.pop();
-      // Clear any remaining payload
       while (vm.getStackData().length > 0) {
         vm.pop();
       }
 
-      // Create outer LIST with the inner LIST as a value
       const outerValues = [0, innerListValue, 3];
       createList(vm, outerValues);
 
@@ -348,7 +330,6 @@ describe('LIST Core Utilities', () => {
 
       validateListHeader(vm);
 
-      // Skip the entire outer structure
       skipList(vm);
       expect(getStackDepth(vm)).toBe(0);
     });

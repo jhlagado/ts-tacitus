@@ -1,54 +1,33 @@
 /**
  * @file src/lang/tokenizer.ts
- *
- * This file implements the tokenizer (lexical analyzer) for the Tacit language.
- *
- * The tokenizer is responsible for breaking down the input source code into a stream
- * of tokens that can be processed by the parser. It handles various token types including
- * numbers, words (identifiers), strings, special characters, code blocks, and word quotes.
- *
- * The tokenizer also manages source position tracking for error reporting and supports
- * features like token pushback for lookahead parsing.
+ * Tokenizer for the Tacit language.
  */
 
 import { TokenError, UnterminatedStringError } from '../core/errors';
 import { isDigit, isWhitespace, isSpecialChar } from '../core/utils';
 
 /**
- * Enumeration of token types recognized by the Tacit tokenizer.
+ * Token types for the Tacit tokenizer.
  */
 export enum TokenType {
-  /** Numeric literal (integer or floating point) */
   NUMBER,
-  /** Word/identifier (function name, variable, etc.) */
   WORD,
-  /** String literal enclosed in double quotes */
   STRING,
-  /** Special character like :, ;, (, ), [, ] */
   SPECIAL,
-  /** Opening curly brace { for code blocks */
   BLOCK_START,
-  /** Closing curly brace } for code blocks */
   BLOCK_END,
-  /** Word quote marker (`) for symbol literals */
   WORD_QUOTE,
-  /** Symbol reference starting with @ */
   SYMBOL,
-  /** End of file marker */
   EOF,
 }
 
 /**
- * Represents the value of a token, which can be a number, string, or null (for EOF).
+ * Token value type.
  */
 export type TokenValue = number | string | null;
 
 /**
- * Represents a token in the Tacit language.
- *
- * @property {TokenType} type - The type of the token
- * @property {TokenValue} value - The value of the token
- * @property {number} position - The position of the token in the input source
+ * Token in the Tacit language.
  */
 export interface Token {
   type: TokenType;
@@ -57,27 +36,17 @@ export interface Token {
 }
 
 /**
- * The Tokenizer class is responsible for converting Tacit source code into a stream of tokens.
- *
- * It processes the input character by character, identifying and categorizing language elements
- * such as numbers, words, strings, and special characters. The tokenizer maintains position
- * information for error reporting and supports token pushback for lookahead parsing.
+ * Tokenizer for converting source code into tokens.
  */
 export class Tokenizer {
-  /** The input source code being tokenized */
   public input: string;
-  /** The current position in the input string */
   public position: number;
-  /** The current line number (1-based) for error reporting */
   public line: number;
-  /** The current column number (1-based) for error reporting */
   public column: number;
-  /** Storage for a single pushed-back token for lookahead parsing */
   private pushedBack: Token | null;
   /**
    * Creates a new Tokenizer instance.
-   *
-   * @param {string} input - The source code to tokenize
+   * @param input Source code to tokenize
    */
   constructor(input: string) {
     this.input = input;
@@ -88,13 +57,9 @@ export class Tokenizer {
   }
 
   /**
-   * Pushes a token back into the tokenizer's stream.
-   *
-   * This allows for lookahead parsing where a token needs to be examined
-   * and then put back for later processing.
-   *
-   * @param {Token} token - The token to push back
-   * @throws {TokenError} If there is already a pushed back token
+   * Pushes token back for lookahead parsing.
+   * @param token Token to push back
+   * @throws {TokenError} If token already pushed back
    */
   pushBack(token: Token): void {
     if (this.pushedBack !== null) {

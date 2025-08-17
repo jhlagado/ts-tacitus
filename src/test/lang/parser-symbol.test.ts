@@ -76,7 +76,6 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
       const { tag, value: _value } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.BUILTIN);
-      // The value should be the opcode for add
     });
 
     it('should push Tag.CODE for colon definitions', () => {
@@ -86,7 +85,6 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
       const { tag, value: _value2 } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.CODE);
-      // The value should be a bytecode address
     });
   });
 
@@ -104,28 +102,27 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         : test-op 1 eq IF { @add } ELSE { @sub } ;
         5 3 1 test-op eval
       `);
-      expect(result).toEqual([8]); // 1 == 1, so use add: 5 + 3 = 8
+      expect(result).toEqual([8]); 
     });
 
     it('should work with list of operations', () => {
-      // Simplified test - use @symbols in sequence rather than lists for now
       const result = executeTacitCode(`
         2 3 @add eval
         4 @mul eval
       `);
-      expect(result).toEqual([20]); // (2 + 3) * 4 = 20
+      expect(result).toEqual([20]); 
     });
   });
 
   describe('@symbol with combinators', () => {
     it('should work with do combinator', () => {
       const result = executeTacitCode('10 do { @dup eval @add eval }');
-      expect(result).toEqual([20]); // 10 -> dup -> 10, 10 -> add -> 20
+      expect(result).toEqual([20]); 
     });
 
     it('should work with repeat combinator', () => {
       const result = executeTacitCode('5 3 repeat { @dup eval @add eval }');
-      expect(result).toEqual([40]); // 5 -> 10 -> 20 -> 40 (3 iterations of double)
+      expect(result).toEqual([40]); 
     });
   });
 
@@ -138,7 +135,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
     it('should throw error for malformed @symbol syntax', () => {
       expect(() => {
-        executeTacitCode('@ eval'); // @ without name should be caught by tokenizer
+        executeTacitCode('@ eval'); 
       }).toThrow();
     });
   });
@@ -146,7 +143,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
   describe('@symbol mixed with regular operations', () => {
     it('should work alongside regular operations', () => {
       const result = executeTacitCode('5 dup 3 @add eval mul');
-      expect(result).toEqual([40]); // 5 dup -> 5, 5; 3 add -> 5, 8; mul -> 40
+      expect(result).toEqual([40]); 
     });
 
     it('should work in word definitions', () => {
@@ -156,7 +153,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
     it('should work with multiple @symbols in one expression', () => {
       const result = executeTacitCode('1 2 @add eval 3 4 @mul eval @add eval');
-      expect(result).toEqual([15]); // (1+2) + (3*4) = 3 + 12 = 15
+      expect(result).toEqual([15]); 
     });
   });
 
@@ -165,12 +162,12 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
       const result = executeTacitCode(
         ': my_word 42 ; : my-word 24 ; @my_word eval @my-word eval add',
       );
-      expect(result).toEqual([66]); // 42 + 24 = 66
+      expect(result).toEqual([66]); 
     });
 
     it('should handle @symbols with numbers', () => {
       const result = executeTacitCode(': word2 100 ; : test123 50 ; @word2 eval @test123 eval add');
-      expect(result).toEqual([150]); // 100 + 50 = 150
+      expect(result).toEqual([150]); 
     });
 
     it('should work with nested @symbol calls', () => {
@@ -178,7 +175,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         : get-op @add ;
         5 3 get-op eval eval
       `);
-      expect(result).toEqual([8]); // get-op pushes @add, eval executes add(5,3)
+      expect(result).toEqual([8]); 
     });
   });
 });

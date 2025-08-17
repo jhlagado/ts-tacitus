@@ -1,14 +1,6 @@
 /**
  * @file src/core/stack-ops.ts
- * Consolidated stack manipulation operations and utilities for the Tacit VM.
- * 
- * This file consolidates functionality from:
- * - src/stack/find.ts - Stack element finding utilities
- * - src/stack/slots.ts - Low-level slot manipulation
- * - src/ops/builtins-stack.ts - Stack operation implementations
- * 
- * Provides both low-level slot utilities and high-level stack operations
- * for efficient stack manipulation in the C-port ready architecture.
+ * Stack manipulation operations for the Tacit VM.
  */
 
 import { VM } from '../core/vm';
@@ -17,32 +9,17 @@ import { fromTaggedValue, Tag } from '../core/tagged';
 import { SEG_STACK, BYTES_PER_ELEMENT } from '../core/constants';
 import { StackUnderflowError, VMError } from '../core/errors';
 
-// ============================================================================
-// STACK ELEMENT FINDING UTILITIES (from src/stack/find.ts)
-// ============================================================================
 
 /**
- * Type representing information about a stack argument.
- * A tuple containing [nextSlot, size] where:
- * - nextSlot: The offset to the next element after the current one
- * - size: The size of the current element in slots
+ * Stack argument info: [nextSlot, size].
  */
 export type StackArgInfo = [number, number];
 
 /**
- * Internal utility: Finds an element in the stack starting from a given slot.
- *
- * This function is essential for LIST-aware stack operations. It correctly identifies 
- * both simple values and compound LISTs, returning the total size including headers.
- * 
- * Used internally by stack operations (dup, swap, pick, etc.) to maintain proper
- * LIST semantics. Not intended as a user-facing operation.
- *
- * @param vm - The `VM` instance containing the stack to search.
- * @param startSlot - The slot offset from the current stack pointer (0 = top of stack).
- * @returns A tuple `[nextSlot, size]` where:
- *   - `nextSlot`: The offset to the next element after the current one.
- *   - `size`: The size of the current element in slots (1 for simple values, n+1 for lists).
+ * Finds stack element from given slot.
+ * @param vm VM instance
+ * @param startSlot Slot offset from stack pointer
+ * @returns [nextSlot, size] tuple
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
   const slotAddr = vm.SP / BYTES_PER_ELEMENT - startSlot - 1;
@@ -63,16 +40,12 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
   return [startSlot + 1, 1];
 }
 
-// ============================================================================
-// SLOT MANIPULATION UTILITIES (from src/stack/slots.ts)
-// ============================================================================
 
 /**
- * Copies a range of elements in the stack to the top of the stack.
- *
- * @param vm - The `VM` instance containing the stack.
- * @param startSlot - The starting slot index (0-based, relative to the stack top).
- * @param slotCount - The number of slots to copy.
+ * Copies stack elements to top.
+ * @param vm VM instance
+ * @param startSlot Starting slot index
+ * @param slotCount Number of slots to copy
  */
 export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) return;

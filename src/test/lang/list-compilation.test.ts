@@ -23,7 +23,6 @@ describe('LIST Literal Compilation', () => {
     parse(new Tokenizer('( 1 2 3 )'));
     const code = vm.getCompileData();
 
-    // Expected opcode sequence: OpenList, (LitNum, f32)*3, CloseList, Abort
     let i = 0;
     expect(code[i++]).toBe(Op.OpenList);
 
@@ -42,7 +41,6 @@ describe('LIST Literal Compilation', () => {
     parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
     const code = vm.getCompileData();
 
-    // Expected: OpenList, Lit 1, OpenList, Lit 2, Lit 3, CloseList, Lit 4, CloseList, Abort
     let i = 0;
     expect(code[i++]).toBe(Op.OpenList);
 

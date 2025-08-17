@@ -264,7 +264,7 @@ describe('Tokenizer', () => {
     expect(() => {
       const tokenizer = new Tokenizer('"Unterminated string');
       while ((tokenizer.nextToken()).type !== TokenType.EOF) {
-        // Keep consuming tokens until EOF or error
+        /* empty */
       }
     }).toThrow('Unterminated string literal');
   });

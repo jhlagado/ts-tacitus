@@ -61,9 +61,8 @@ describe('Interpreter', () => {
   describe('Code blocks', () => {});
   describe('Error handling', () => {
     test('should handle invalid opcodes', () => {
-      // First, let's set up proper execution conditions
-      vm.compiler.CP = vm.compiler.BCP + 1; // Make sure there's something to execute
-      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110); // Use opcode 110 which should be invalid
+      vm.compiler.CP = vm.compiler.BCP + 1; 
+      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110); 
       
       let errorThrown = false;
       let errorMessage = '';

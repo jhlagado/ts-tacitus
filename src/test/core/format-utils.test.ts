@@ -41,7 +41,6 @@ describe('Format Utils', () => {
       });
 
       test('should handle invalid string addresses', () => {
-        // Test with a smaller address that won't cause memory bounds error
         const invalidStringValue = toTaggedValue(999, Tag.STRING);
         expect(formatAtomicValue(vm, invalidStringValue)).toBe('[String:999]');
       });
@@ -50,7 +49,7 @@ describe('Format Utils', () => {
         const emptyString = '';
         const stringAddr = vm.digest.intern(emptyString);
         const stringValue = toTaggedValue(stringAddr, Tag.STRING);
-        expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`); // Empty string fallback
+        expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`); 
       });
     });
 
@@ -88,12 +87,10 @@ describe('Format Utils', () => {
       test('should format string values', () => {
         const strAddr = vm.digest.intern('test string');
         const stringValue = toTaggedValue(strAddr, Tag.STRING);
-        // formatValue treats tagged values as NaN-boxed lists if not found on stack
         expect(formatValue(vm, stringValue)).toBe(`( ${strAddr} elements )`);
       });
 
       test('should format invalid string values', () => {
-        // Use a smaller invalid address
         const invalidStringValue = toTaggedValue(1000, Tag.STRING);
         expect(formatValue(vm, invalidStringValue)).toBe('( 1000 elements )');
       });
@@ -111,25 +108,24 @@ describe('Format Utils', () => {
     describe('other value types', () => {
       test('should format CODE values', () => {
         const codeValue = toTaggedValue(100, Tag.CODE);
-        expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); // CODE treated as NaN-boxed list
+        expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); 
       });
 
       test('should format SENTINEL values', () => {
         const intValue = toTaggedValue(42, Tag.SENTINEL);
-        expect(formatValue(vm, intValue)).toBe('( 42 elements )'); // SENTINEL treated as NaN-boxed list
+        expect(formatValue(vm, intValue)).toBe('( 42 elements )'); 
       });
 
       test('should format unknown tag types', () => {
-        // This would use formatAtomicValue for unknown tags
         const unknownValue = toTaggedValue(123, Tag.CODE);
-        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )'); // CODE treated as NaN-boxed list
+        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )'); 
       });
     });
 
     describe('error cases', () => {
       test('should handle special float values through formatFloat', () => {
         const nanValue = toTaggedValue(NaN, Tag.NUMBER);
-        expect(formatValue(vm, nanValue)).toBe('( 0 elements )'); // NaN treated as NaN-boxed list
+        expect(formatValue(vm, nanValue)).toBe('( 0 elements )'); 
       });
 
       test('should handle infinity values', () => {
@@ -140,15 +136,11 @@ describe('Format Utils', () => {
         expect(formatValue(vm, negInfValue)).toBe('-Infinity');
       });
 
-      // Legacy LINK references removed
     });
 
     describe('integration tests', () => {
       test('should handle mixed data types in complex structures', () => {
         const strAddr = vm.digest.intern('hello');
-        // Build LIST manually: push STRING, NUMBER, NUMBER then LIST header (3)
-        // LIST layout expects payload reversed under header: payload-0 at SP-4
-        // Push values in reverse order so printing is ( hello 42 3.14 )
         vm.push(3.14);
         vm.push(42);
         vm.push(toTaggedValue(strAddr, Tag.STRING));

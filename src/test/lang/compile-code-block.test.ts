@@ -8,7 +8,6 @@ describe('compileCodeBlock function', () => {
   });
 
   describe('Basic Block Creation', () => {
-    // All previous tests were skipped due to test isolation issues and have been removed
   });
 
   describe('Block Execution', () => {

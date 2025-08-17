@@ -33,7 +33,6 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve built-in symbols to Tag.BUILTIN tagged values', () => {
-      // Register a built-in symbol
       vm.symbolTable.defineBuiltin('add', Op.Add);
 
       const result = vm.resolveSymbol('add');
@@ -42,7 +41,6 @@ describe('VM Symbol Resolution', () => {
       expect(isBuiltinRef(result!)).toBe(true);
       expect(getBuiltinOpcode(result!)).toBe(Op.Add);
 
-      // Verify it has the correct tag
       const { tag, value } = fromTaggedValue(result!);
       expect(tag).toBe(Tag.BUILTIN);
       expect(value).toBe(Op.Add);
@@ -51,7 +49,6 @@ describe('VM Symbol Resolution', () => {
     test('should resolve code symbols to Tag.CODE tagged values', () => {
       const testAddr = 1000;
 
-      // Register a code symbol
       vm.symbolTable.defineCode('square', testAddr);
 
       const result = vm.resolveSymbol('square');
@@ -60,20 +57,17 @@ describe('VM Symbol Resolution', () => {
       expect(isFuncRef(result!)).toBe(true);
       expect(getCodeAddress(result!)).toBe(testAddr);
 
-      // Verify it has the correct tag
       const { tag, value } = fromTaggedValue(result!);
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(testAddr);
     });
 
     test('should resolve multiple different symbol types', () => {
-      // Register multiple symbols of different types
       vm.symbolTable.defineBuiltin('add', Op.Add);
       vm.symbolTable.defineBuiltin('dup', Op.Dup);
       vm.symbolTable.defineCode('square', 1000);
       vm.symbolTable.defineCode('cube', 2000);
 
-      // Verify built-ins
       const addResult = vm.resolveSymbol('add');
       expect(isBuiltinRef(addResult!)).toBe(true);
       expect(getBuiltinOpcode(addResult!)).toBe(Op.Add);
@@ -82,7 +76,6 @@ describe('VM Symbol Resolution', () => {
       expect(isBuiltinRef(dupResult!)).toBe(true);
       expect(getBuiltinOpcode(dupResult!)).toBe(Op.Dup);
 
-      // Verify code definitions
       const squareResult = vm.resolveSymbol('square');
       expect(isFuncRef(squareResult!)).toBe(true);
       expect(getCodeAddress(squareResult!)).toBe(1000);
@@ -93,35 +86,29 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should handle symbol shadowing correctly', () => {
-      // Define a symbol, then redefine it
       vm.symbolTable.defineBuiltin('test', Op.Add);
-      vm.symbolTable.defineCode('test', 5000); // Shadow with code definition
+      vm.symbolTable.defineCode('test', 5000); 
 
       const result = vm.resolveSymbol('test');
 
-      // Should resolve to the most recent definition (code definition)
       expect(isFuncRef(result!)).toBe(true);
       expect(getCodeAddress(result!)).toBe(5000);
     });
 
     test('resolved values should be executable by VM', () => {
-      // Setup: define symbols and prepare test data
       vm.symbolTable.defineBuiltin('add', Op.Add);
       vm.symbolTable.defineBuiltin('dup', Op.Dup);
 
-      // Test built-in execution
       vm.push(5);
       vm.push(3);
 
       const addRef = vm.resolveSymbol('add');
       expect(addRef).toBeDefined();
 
-      // Push the resolved reference and execute it
       vm.push(addRef!);
       evalOp(vm);
 
-      // Should have computed 5 + 3 = 8
-      expect(vm.SP).toBe(4); // One value on stack
+      expect(vm.SP).toBe(4); 
       expect(vm.pop()).toBe(8);
     });
 
@@ -148,31 +135,24 @@ describe('VM Symbol Resolution', () => {
 
       vm.symbolTable.defineCode('square', 1000);
 
-      // Both should be resolvable
       expect(vm.resolveSymbol('add')).toBeDefined();
       expect(vm.resolveSymbol('square')).toBeDefined();
 
-      // Revert to checkpoint
       vm.symbolTable.revert(checkpoint);
 
-      // Only 'add' should be resolvable now
       expect(vm.resolveSymbol('add')).toBeDefined();
       expect(vm.resolveSymbol('square')).toBeUndefined();
     });
 
     test('should resolve symbols defined with unified define method', () => {
-      // Use existing define method (now unified with tagged values)
-      // Use value >= 128 to get a code reference, not builtin reference
       vm.symbolTable.defineCode('oldStyle', 200);
 
-      // Should be resolvable since all definitions now create tagged values
       const resolved = vm.resolveSymbol('oldStyle');
       expect(resolved).toBeDefined();
 
       expect(isFuncRef(resolved!)).toBe(true);
       expect(getCodeAddress(resolved!)).toBe(200);
 
-      // And should still be findable with old method for backward compatibility
       expect(vm.symbolTable.find('oldStyle')).toBe(200);
     });
   });
@@ -189,7 +169,6 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should handle symbols with unusual characters', () => {
-      // These shouldn't be found since they weren't defined
       expect(vm.resolveSymbol('symbol-with-dash')).toBeUndefined();
       expect(vm.resolveSymbol('symbol_with_underscore')).toBeUndefined();
       expect(vm.resolveSymbol('symbol123')).toBeUndefined();

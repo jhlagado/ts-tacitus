@@ -321,7 +321,6 @@ describe('Arithmetic Operations', () => {
   });
 
   describe('integration tests', () => {
-    // Integration tests using TACIT syntax (moved from binaryOps.test.ts)
     test('should handle add operation with TACIT syntax', () => {
       executeProgram('5 3 add');
       expect(vm.getStackData()).toEqual([8]);

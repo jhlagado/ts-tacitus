@@ -106,7 +106,7 @@ describe('Tokenizer @symbol Support - Step 13', () => {
     it('should handle @ at end of input', () => {
       tokenizer = new Tokenizer('word @');
       
-      tokenizer.nextToken(); // consume 'word'
+      tokenizer.nextToken(); 
       
       expect(() => {
         tokenizer.nextToken();
@@ -195,24 +195,23 @@ describe('Tokenizer @symbol Support - Step 13', () => {
       const token1 = tokenizer.nextToken();
       expect(token1.type).toBe(TokenType.SYMBOL);
       expect(token1.value).toBe('add');
-      expect(token1.position).toBe(2); // Position of @
+      expect(token1.position).toBe(2); 
       
       const token2 = tokenizer.nextToken();
       expect(token2.type).toBe(TokenType.SYMBOL);
       expect(token2.value).toBe('sub');
-      expect(token2.position).toBe(8); // Position of second @
+      expect(token2.position).toBe(8); 
     });
 
     it('should handle line and column tracking for @symbols', () => {
       tokenizer = new Tokenizer('line1\n@symbol');
       
-      // Consume first line
-      tokenizer.nextToken(); // 'line1'
+      tokenizer.nextToken(); 
       
       const symbolToken = tokenizer.nextToken();
       expect(symbolToken.type).toBe(TokenType.SYMBOL);
       expect(symbolToken.value).toBe('symbol');
-      expect(symbolToken.position).toBe(6); // Position of @ after newline
+      expect(symbolToken.position).toBe(6); 
     });
   });
 

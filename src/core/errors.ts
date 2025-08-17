@@ -1,21 +1,16 @@
 /**
  * @file src/core/errors.ts
- *
- * This file implements structured error classes for the Tacit VM.
- * These error classes provide more context for debugging and error recovery,
- * including information about the VM state at the time of the error.
+ * Structured error classes for the Tacit VM.
  */
 
 /**
- * Base error class for all VM-related errors.
- * Includes information about the stack state at the time of the error.
+ * Base error class for VM-related errors.
  */
 export class VMError extends Error {
   /**
    * Creates a new VMError instance.
-   *
-   * @param {string} message - The error message
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * @param message The error message
+   * @param stackState Stack state at error time
    */
   constructor(
     message: string,
@@ -27,15 +22,14 @@ export class VMError extends Error {
 }
 
 /**
- * Error thrown when a stack operation would cause a stack underflow.
+ * Stack underflow error.
  */
 export class StackUnderflowError extends VMError {
   /**
-   * Creates a new StackUnderflowError instance.
-   *
-   * @param {string} operation - The operation that caused the underflow
-   * @param {number} required - The number of elements required by the operation
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates StackUnderflowError.
+   * @param operation Operation causing underflow
+   * @param required Required operands
+   * @param stackState Stack state
    */
   constructor(
     operation: string,
@@ -51,14 +45,13 @@ export class StackUnderflowError extends VMError {
 }
 
 /**
- * Error thrown when a stack operation would cause a stack overflow.
+ * Stack overflow error.
  */
 export class StackOverflowError extends VMError {
   /**
-   * Creates a new StackOverflowError instance.
-   *
-   * @param {string} operation - The operation that caused the overflow
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates StackOverflowError.
+   * @param operation Operation causing overflow
+   * @param stackState Stack state
    */
   constructor(operation: string, stackState: number[]) {
     super(`Stack overflow: '${operation}' would exceed stack size`, stackState);
@@ -67,14 +60,13 @@ export class StackOverflowError extends VMError {
 }
 
 /**
- * Error thrown when a return stack operation would cause a return stack underflow.
+ * Return stack underflow error.
  */
 export class ReturnStackUnderflowError extends VMError {
   /**
-   * Creates a new ReturnStackUnderflowError instance.
-   *
-   * @param {string} operation - The operation that caused the underflow
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates ReturnStackUnderflowError.
+   * @param operation Operation causing underflow
+   * @param stackState Stack state
    */
   constructor(operation: string, stackState: number[]) {
     super(`Return stack underflow: '${operation}' operation failed`, stackState);
@@ -83,14 +75,13 @@ export class ReturnStackUnderflowError extends VMError {
 }
 
 /**
- * Error thrown when a return stack operation would cause a return stack overflow.
+ * Return stack overflow error.
  */
 export class ReturnStackOverflowError extends VMError {
   /**
-   * Creates a new ReturnStackOverflowError instance.
-   *
-   * @param {string} operation - The operation that caused the overflow
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates ReturnStackOverflowError.
+   * @param operation Operation causing overflow
+   * @param stackState Stack state
    */
   constructor(operation: string, stackState: number[]) {
     super(`Return stack overflow: '${operation}' would exceed return stack size`, stackState);
@@ -99,14 +90,13 @@ export class ReturnStackOverflowError extends VMError {
 }
 
 /**
- * Error thrown when an invalid opcode is encountered.
+ * Invalid opcode error.
  */
 export class InvalidOpcodeError extends VMError {
   /**
-   * Creates a new InvalidOpcodeError instance.
-   *
-   * @param {number} opcode - The invalid opcode
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates InvalidOpcodeError.
+   * @param opcode The invalid opcode
+   * @param stackState Stack state
    */
   constructor(
     public readonly opcode: number,
@@ -118,15 +108,14 @@ export class InvalidOpcodeError extends VMError {
 }
 
 /**
- * Error thrown when an operation with an invalid tag is attempted.
+ * Invalid tag error.
  */
 export class InvalidTagError extends VMError {
   /**
-   * Creates a new InvalidTagError instance.
-   *
-   * @param {number} tag - The invalid tag
-   * @param {string} operation - The operation that was attempted
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates InvalidTagError.
+   * @param tag The invalid tag
+   * @param operation The operation attempted
+   * @param stackState Stack state
    */
   constructor(
     public readonly tag: number,
@@ -139,13 +128,12 @@ export class InvalidTagError extends VMError {
 }
 
 /**
- * Error thrown when an invalid opcode address is encountered during compilation or patching.
+ * Invalid opcode address error.
  */
 export class InvalidOpcodeAddressError extends VMError {
   /**
-   * Creates a new InvalidOpcodeAddressError instance.
-   *
-   * @param {number} address - The invalid opcode address
+   * Creates InvalidOpcodeAddressError.
+   * @param address The invalid address
    */
   constructor(public readonly address: number) {
     super(`Invalid opcode address: ${address}`, []);
@@ -154,15 +142,14 @@ export class InvalidOpcodeAddressError extends VMError {
 }
 
 /**
- * Base error class for all tokenizer-related errors.
+ * Base tokenizer error.
  */
 export class TokenError extends VMError {
   /**
-   * Creates a new TokenError instance.
-   *
-   * @param {string} message - The error message
-   * @param {number} line - The line number where the error occurred
-   * @param {number} column - The column number where the error occurred
+   * Creates TokenError.
+   * @param message Error message
+   * @param line Line number
+   * @param column Column number
    */
   constructor(
     message: string,
@@ -175,14 +162,13 @@ export class TokenError extends VMError {
 }
 
 /**
- * Error thrown when a string literal is not properly terminated.
+ * Unterminated string error.
  */
 export class UnterminatedStringError extends TokenError {
   /**
-   * Creates a new UnterminatedStringError instance.
-   *
-   * @param {number} line - The line number where the error occurred
-   * @param {number} column - The column number where the error occurred
+   * Creates UnterminatedStringError.
+   * @param line Line number
+   * @param column Column number
    */
   constructor(line: number, column: number) {
     super(`Unterminated string literal`, line, column);
@@ -191,14 +177,13 @@ export class UnterminatedStringError extends TokenError {
 }
 
 /**
- * Base error class for all parser-related errors.
+ * Base parser error.
  */
 export class ParserError extends VMError {
   /**
-   * Creates a new ParserError instance.
-   *
-   * @param {string} message - The error message
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates ParserError.
+   * @param message Error message
+   * @param stackState Stack state
    */
   constructor(message: string, stackState: number[]) {
     super(message, stackState);
@@ -207,14 +192,13 @@ export class ParserError extends VMError {
 }
 
 /**
- * Error thrown when a definition is not properly closed.
+ * Unclosed definition error.
  */
 export class UnclosedDefinitionError extends ParserError {
   /**
-   * Creates a new UnclosedDefinitionError instance.
-   *
-   * @param {string} definitionName - The name of the unclosed definition
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates UnclosedDefinitionError.
+   * @param definitionName Name of unclosed definition
+   * @param stackState Stack state
    */
   constructor(
     public readonly definitionName: string,
@@ -226,14 +210,13 @@ export class UnclosedDefinitionError extends ParserError {
 }
 
 /**
- * Error thrown when an undefined word is encountered during parsing.
+ * Undefined word error.
  */
 export class UndefinedWordError extends ParserError {
   /**
-   * Creates a new UndefinedWordError instance.
-   *
-   * @param {string} wordName - The name of the undefined word
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates UndefinedWordError.
+   * @param wordName Name of undefined word
+   * @param stackState Stack state
    */
   constructor(
     public readonly wordName: string,
@@ -245,15 +228,13 @@ export class UndefinedWordError extends ParserError {
 }
 
 /**
- * Error thrown when a syntax error is encountered during parsing.
+ * Syntax error.
  */
 export class SyntaxError extends ParserError {
   /**
-   * Creates a new SyntaxError instance.
-   *
-   * @param {string} expected - The expected token or structure
-   * @param {string} found - The token or structure that was found
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates SyntaxError.
+   * @param message Error message
+   * @param stackState Stack state
    */
   constructor(message: string, stackState: number[]) {
     super(message, stackState);
@@ -262,13 +243,12 @@ export class SyntaxError extends ParserError {
 }
 
 /**
- * Error thrown when nesting definitions inside code blocks, which is not allowed.
+ * Nested definition error.
  */
 export class NestedDefinitionError extends ParserError {
   /**
-   * Creates a new NestedDefinitionError instance.
-   *
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates NestedDefinitionError.
+   * @param stackState Stack state
    */
   constructor(stackState: number[]) {
     super('Cannot nest definition inside code block', stackState);
@@ -277,14 +257,13 @@ export class NestedDefinitionError extends ParserError {
 }
 
 /**
- * Error thrown when a word is redefined.
+ * Word already defined error.
  */
 export class WordAlreadyDefinedError extends ParserError {
   /**
-   * Creates a new WordAlreadyDefinedError instance.
-   *
-   * @param {string} wordName - The name of the word that was redefined
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates WordAlreadyDefinedError.
+   * @param wordName Name of redefined word
+   * @param stackState Stack state
    */
   constructor(
     public readonly wordName: string,
@@ -296,14 +275,13 @@ export class WordAlreadyDefinedError extends ParserError {
 }
 
 /**
- * Error thrown when an unexpected token is encountered during parsing.
+ * Unexpected token error.
  */
 export class UnexpectedTokenError extends ParserError {
   /**
-   * Creates a new UnexpectedTokenError instance.
-   *
-   * @param {string} token - The unexpected token
-   * @param {number[]} stackState - The state of the data stack at the time of the error
+   * Creates UnexpectedTokenError.
+   * @param token The unexpected token
+   * @param stackState Stack state
    */
   constructor(
     public readonly token: string,

@@ -102,7 +102,6 @@ describe('Tagged Value Meta Bit Support', () => {
       const tagged0 = toTaggedValue(42, Tag.SENTINEL, 0);
       const tagged1 = toTaggedValue(42, Tag.SENTINEL, 1);
 
-      // Check raw bits
       const buffer0 = new ArrayBuffer(4);
       const view0 = new DataView(buffer0);
       view0.setFloat32(0, tagged0, true);
@@ -113,10 +112,8 @@ describe('Tagged Value Meta Bit Support', () => {
       view1.setFloat32(0, tagged1, true);
       const bits1 = view1.getUint32(0, true);
 
-      // Different meta bits should produce different raw bit patterns
       expect(bits0).not.toBe(bits1);
 
-      // But they should decode to the same logical value with different meta
       const decoded0 = fromTaggedValue(tagged0);
       const decoded1 = fromTaggedValue(tagged1);
 
@@ -130,12 +127,10 @@ describe('Tagged Value Meta Bit Support', () => {
     it('should work with existing code that destructures without meta', () => {
       const tagged = toTaggedValue(42, Tag.SENTINEL, 1);
 
-      // This should work without errors (typical existing usage)
       const { value, tag } = fromTaggedValue(tagged);
 
       expect(value).toBe(42);
       expect(tag).toBe(Tag.SENTINEL);
-      // meta is available but not destructured
     });
   });
 });

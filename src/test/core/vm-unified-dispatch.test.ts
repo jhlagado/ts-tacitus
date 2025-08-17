@@ -63,9 +63,9 @@ describe('VM Unified Dispatch', () => {
   describe('non-executable values', () => {
     test('should push back non-executable values unchanged', () => {
       const nonExecutableValues = [
-        42, // Plain number
-        toTaggedValue(100, Tag.STRING), // String reference
-        toTaggedValue(5, Tag.LIST), // List reference
+        42, 
+        toTaggedValue(100, Tag.STRING), 
+        toTaggedValue(5, Tag.LIST), 
       ];
 
       nonExecutableValues.forEach(value => {
@@ -88,7 +88,7 @@ describe('VM Unified Dispatch', () => {
     });
 
     test('should handle stack underflow in built-ins', () => {
-      vm.push(5); // Only one item, but Add needs two
+      vm.push(5); 
       vm.push(createBuiltinRef(Op.Add));
 
       expect(() => evalOp(vm)).toThrow();
@@ -108,12 +108,11 @@ describe('VM Unified Dispatch', () => {
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
 
-      expect(vm.RP).toBe(originalRP); // Return stack unchanged
+      expect(vm.RP).toBe(originalRP); 
       expect(vm.getStackData()).toEqual([5]);
     });
 
     test('should handle complex sequences efficiently', () => {
-      // Test: (2 + 3) * (4 + 5) = 5 * 9 = 45
       vm.push(2);
       vm.push(3);
       vm.push(createBuiltinRef(Op.Add));

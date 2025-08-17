@@ -26,7 +26,6 @@ describe('Compiler - Branch Coverage', () => {
     });
 
     test('should handle opcode address at boundary (32767)', () => {
-      // This should work - it's the maximum valid address
       expect(() => vm.compiler.compileOpcode(32767)).not.toThrow();
     });
   });
@@ -34,17 +33,15 @@ describe('Compiler - Branch Coverage', () => {
   describe('compileOpcode encoding paths', () => {
     test('should use single-byte encoding for opcodes < MIN_USER_OPCODE', () => {
       const initialCP = vm.compiler.CP;
-      vm.compiler.compileOpcode(5); // Should be < MIN_USER_OPCODE
+      vm.compiler.compileOpcode(5); 
       
-      // Should have advanced CP by 1 byte (single-byte encoding)
       expect(vm.compiler.CP).toBe(initialCP + 1);
     });
 
     test('should use two-byte encoding for opcodes >= MIN_USER_OPCODE', () => {
       const initialCP = vm.compiler.CP;
-      vm.compiler.compileOpcode(MIN_USER_OPCODE); // Should trigger two-byte encoding
+      vm.compiler.compileOpcode(MIN_USER_OPCODE); 
       
-      // Should have advanced CP by 2 bytes (two-byte encoding)
       expect(vm.compiler.CP).toBe(initialCP + 2);
     });
 
@@ -52,15 +49,12 @@ describe('Compiler - Branch Coverage', () => {
       const largeOpcode = MIN_USER_OPCODE + 1000;
       vm.compiler.compileOpcode(largeOpcode);
       
-      // Verify the encoding by reading back the bytes
       vm.reset();
       const firstByte = vm.next8();
       const secondByte = vm.next8();
       
-      // First byte should have MSB set
       expect(firstByte & 0x80).toBe(0x80);
       
-      // Decode and verify
       const decodedOpcode = ((secondByte & 0xff) << 7) | (firstByte & 0x7f);
       expect(decodedOpcode).toBe(largeOpcode);
     });
@@ -78,10 +72,8 @@ describe('Compiler - Branch Coverage', () => {
     test('should always use two-byte encoding regardless of address', () => {
       const initialCP = vm.compiler.CP;
       
-      // Even for small addresses, should use two-byte encoding
       vm.compiler.compileUserWordCall(5); 
       
-      // Should have advanced CP by 2 bytes
       expect(vm.compiler.CP).toBe(initialCP + 2);
     });
 
@@ -91,7 +83,6 @@ describe('Compiler - Branch Coverage', () => {
       vm.reset();
       const firstByte = vm.next8();
       
-      // First byte should always have MSB set for user word calls
       expect(firstByte & 0x80).toBe(0x80);
     });
   });
@@ -106,36 +97,30 @@ describe('Compiler - Branch Coverage', () => {
     });
 
     test('should handle single-byte opcode patching', () => {
-      // Compile some initial bytecode
       vm.compiler.compile8(0);
       const patchAddress = vm.compiler.CP - 1;
       
-      // Patch with a small opcode (single-byte)
       vm.compiler.patchOpcode(patchAddress, 5);
       
-      // Verify the patch
       vm.reset();
       vm.IP = patchAddress;
       expect(vm.next8()).toBe(5);
     });
 
     test('should handle two-byte opcode patching', () => {
-      // Compile some initial bytecode (reserve 2 bytes)
       vm.compiler.compile8(0);
       vm.compiler.compile8(0);
       const patchAddress = vm.compiler.CP - 2;
       
-      // Patch with a large opcode (two-byte)
       const largeOpcode = MIN_USER_OPCODE + 100;
       vm.compiler.patchOpcode(patchAddress, largeOpcode);
       
-      // Verify the patch
       vm.reset();
       vm.IP = patchAddress;
       const firstByte = vm.next8();
       const secondByte = vm.next8();
       
-      expect(firstByte & 0x80).toBe(0x80); // MSB should be set
+      expect(firstByte & 0x80).toBe(0x80); 
       const decodedOpcode = ((secondByte & 0xff) << 7) | (firstByte & 0x7f);
       expect(decodedOpcode).toBe(largeOpcode);
     });
@@ -149,8 +134,8 @@ describe('Compiler - Branch Coverage', () => {
       
       vm.compiler.reset();
       
-      expect(vm.compiler.BCP).toBe(100); // Should have saved CP to BCP
-      expect(vm.compiler.CP).toBe(100); // CP should remain unchanged
+      expect(vm.compiler.BCP).toBe(100); 
+      expect(vm.compiler.CP).toBe(100); 
     });
 
     test('should restore CP from BCP when preserve is false', () => {
@@ -160,8 +145,8 @@ describe('Compiler - Branch Coverage', () => {
       
       vm.compiler.reset();
       
-      expect(vm.compiler.CP).toBe(50); // Should have restored CP from BCP
-      expect(vm.compiler.BCP).toBe(50); // BCP should remain unchanged
+      expect(vm.compiler.CP).toBe(50); 
+      expect(vm.compiler.BCP).toBe(50); 
     });
   });
 
@@ -171,18 +156,16 @@ describe('Compiler - Branch Coverage', () => {
     });
 
     test('should handle MIN_USER_OPCODE boundary', () => {
-      // Just below the boundary - should use single-byte
       const initialCP1 = vm.compiler.CP;
       vm.compiler.compileOpcode(MIN_USER_OPCODE - 1);
       const bytesUsed1 = vm.compiler.CP - initialCP1;
       
-      // At the boundary - should use two-byte
       const initialCP2 = vm.compiler.CP;
       vm.compiler.compileOpcode(MIN_USER_OPCODE);
       const bytesUsed2 = vm.compiler.CP - initialCP2;
       
-      expect(bytesUsed1).toBe(1); // Single-byte
-      expect(bytesUsed2).toBe(2); // Two-byte
+      expect(bytesUsed1).toBe(1); 
+      expect(bytesUsed2).toBe(2); 
     });
 
     test('should handle maximum valid opcode address', () => {
@@ -190,20 +173,17 @@ describe('Compiler - Branch Coverage', () => {
     });
 
     test('should handle patching at various memory locations', () => {
-      // Write some bytecode to establish memory layout
       vm.compiler.compile8(1);
       vm.compiler.compile8(2);
       vm.compiler.compile8(3);
       vm.compiler.compile8(4);
       
-      // Patch the second byte
       vm.compiler.patchOpcode(1, 99);
       
-      // Verify the patch worked
       vm.reset();
-      expect(vm.next8()).toBe(1);  // First byte unchanged
-      expect(vm.next8()).toBe(99); // Second byte patched
-      expect(vm.next8()).toBe(3);  // Third byte unchanged
+      expect(vm.next8()).toBe(1);  
+      expect(vm.next8()).toBe(99); 
+      expect(vm.next8()).toBe(3);  
     });
   });
 
