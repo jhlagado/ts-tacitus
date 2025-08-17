@@ -12,7 +12,7 @@ import {
   isFuncRef,
   isExecutableRef,
   getBuiltinOpcode,
-  getFuncAddress,
+  getCodeAddress,
 } from '../../core/code-ref';
 import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
@@ -166,13 +166,13 @@ describe('Code Reference Utilities', () => {
     });
   });
 
-  describe('getFuncAddress', () => {
+  describe('getCodeAddress', () => {
     test('should extract address from valid code references', () => {
       const testAddresses = [0, 1000, 8192, 32767];
 
       testAddresses.forEach(addr => {
         const ref = createCodeRef(addr);
-        const extractedAddr = getFuncAddress(ref);
+        const extractedAddr = getCodeAddress(ref);
 
         expect(extractedAddr).toBe(addr);
       });
@@ -182,8 +182,8 @@ describe('Code Reference Utilities', () => {
       const builtinRef = createBuiltinRef(Op.Add);
       const numberValue = 42;
 
-      expect(() => getFuncAddress(builtinRef)).toThrow('Value is not a code reference');
-      expect(() => getFuncAddress(numberValue)).toThrow('Value is not a code reference');
+      expect(() => getCodeAddress(builtinRef)).toThrow('Value is not a code reference');
+      expect(() => getCodeAddress(numberValue)).toThrow('Value is not a code reference');
     });
   });
 
@@ -213,7 +213,7 @@ describe('Code Reference Utilities', () => {
 
       // Extract values
       const extractedOpcode = getBuiltinOpcode(builtinRef);
-      const extractedAddr = getFuncAddress(codeRef);
+      const extractedAddr =   getCodeAddress(codeRef);
 
       expect(extractedOpcode).toBe(originalOpcode);
       expect(extractedAddr).toBe(originalAddr);

@@ -1,4 +1,4 @@
-import { prn } from '../../core/printer';
+import { prn } from '../utils/core-test-utils';
 import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core/tagged';
 
 // Mock console.warn to capture output
@@ -27,12 +27,12 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toContain('42');
     });
 
-    test('should print FUNC tagged values', () => {
+    test('should print CODE tagged values', () => {
       const codeValue = toTaggedValue(50, Tag.CODE);
       prn('Test Code', codeValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/Test Code: CODE: <func>/);
+      expect(consoleOutput[0]).toMatch(/Test Code: CODE: <code>/);
     });
 
     test('should print STRING tagged values', () => {
@@ -133,12 +133,12 @@ describe('Printer', () => {
       // Test CODE with different values
       const smallCode = toTaggedValue(0, Tag.CODE);
       prn('Small Code', smallCode);
-      expect(consoleOutput[0]).toMatch(/Small Code: CODE: <func>/);
+      expect(consoleOutput[0]).toMatch(/Small Code: CODE: <code>/);
 
       consoleOutput = [];
       const largeCode = toTaggedValue(1000, Tag.CODE);
       prn('Large Code', largeCode);
-      expect(consoleOutput[0]).toMatch(/Large Code: CODE: <func>/);
+      expect(consoleOutput[0]).toMatch(/Large Code: CODE: <code>/);
     });
 
     test('should work with LIST tag values of different sizes', () => {

@@ -6,13 +6,13 @@
 import { VM } from '../../core/vm';
 import { toTaggedValue, Tag } from '../../core/tagged';
 import {
-  createList,
   getListSlotCount,
   skipList,
   getListPayloadStart,
   validateListHeader,
   reverseSpan,
 } from '../../core/list';
+import { createList } from '../utils/core-test-utils';
 
 function resetVM(): VM {
   const vm = new VM();
