@@ -84,6 +84,7 @@ const EXPONENT_MASK = 0xff << 23;
  *
  * The NaN-boxing scheme uses the following structure:
  *
+ * -   **Sign Bit (Bit 31):** Meta bit for additional tagging (0 or 1).
  * -   **Exponent (Bits 23-30):** Set to all 1s (0xff) to ensure the number is a NaN.
  * -   **Mantissa (Bits 0-22):**
  *     -   **Tag (Bits 16-21):**  6 bits representing the type tag (from Tag).
@@ -95,15 +96,23 @@ const EXPONENT_MASK = 0xff << 23;
  * @param value The value to encode. For Tag.SENTINEL, this should be a signed integer (-32768 to 32767); for
  *     other tags, it should be an unsigned integer (0 to 65535).
  * @param tag The tag representing the data type. This should be a value from Tag.
+ * @param meta Optional meta bit (0 or 1) stored in the sign bit. Defaults to 0.
  * @returns A 32-bit floating-point number representing the NaN-boxed tagged value.
- * @throws {Error} If the tag or value is invalid.
+ * @throws {Error} If the tag, value, or meta bit is invalid.
  */
-export function toTaggedValue(value: number, tag: Tag): number {
+export function toTaggedValue(value: number, tag: Tag, meta: number = 0): number {
   if (tag < Tag.NUMBER || tag > MAX_TAG) {
     throw new Error(`Invalid tag: ${tag}`);
   }
 
+  if (meta !== 0 && meta !== 1) {
+    throw new Error(`Meta bit must be 0 or 1, got: ${meta}`);
+  }
+
   if (tag === Tag.NUMBER) {
+    if (meta !== 0) {
+      throw new Error('Meta bit must be 0 for NUMBER tag (stored as raw IEEE 754)');
+    }
     return value;
   }
 
@@ -123,7 +132,8 @@ export function toTaggedValue(value: number, tag: Tag): number {
   }
 
   const mantissaTagBits = (tag & 0x3f) << 16;
-  const bits = EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
+  const signBit = meta ? (1 << 31) : 0;
+  const bits = signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setUint32(0, bits, true);
@@ -134,17 +144,18 @@ export const NIL = toTaggedValue(0, Tag.SENTINEL);
 
 /**
  * Decodes a NaN-boxed 32-bit floating-point number into its constituent
- * components: value and tag.
+ * components: value, tag, and meta bit.
  *
  * This function reverses the process performed by `toTaggedValue`, extracting
  * the original value and its type information from the NaN-boxed representation.
  *
  * It handles standard floating-point numbers (which are not NaNs) as a special
- * case, returning them with a Tag.NUMBER tag.
+ * case, returning them with a Tag.NUMBER tag and meta bit 0.
  *
  * For NaN-boxed values, it extracts the components as follows:
  *
- * -   **Tag:** Extracted from bits 16-22 of the mantissa using TAG_MANTISSA_MASK.
+ * -   **Meta:** Extracted from bit 31 (sign bit).
+ * -   **Tag:** Extracted from bits 16-21 of the mantissa using TAG_MANTISSA_MASK.
  * -   **Value:** Extracted from bits 0-15 of the mantissa using `VALUE_MASK`. If
  *     the tag is Tag.SENTINEL, the value is sign-extended to ensure correct
  *     interpretation as a 16-bit signed integer.
@@ -152,23 +163,24 @@ export const NIL = toTaggedValue(0, Tag.SENTINEL);
  * @param nanValue The 32-bit floating-point number representing the potentially
  *     NaN-boxed value.
  * @returns An object containing the decoded components:
- *     -   `value`: The 16-bit value (sign-extended if it was a
- *         Tag.SENTINEL.
+ *     -   `value`: The 16-bit value (sign-extended if it was a Tag.SENTINEL).
  *     -   `tag`: The tag indicating the data type.
+ *     -   `meta`: The meta bit (0 or 1) from the sign bit.
  */
-export function fromTaggedValue(nanValue: number): { value: number; tag: Tag } {
+export function fromTaggedValue(nanValue: number): { value: number; tag: Tag; meta: number } {
   if (!isNaN(nanValue)) {
-    return { value: nanValue, tag: Tag.NUMBER };
+    return { value: nanValue, tag: Tag.NUMBER, meta: 0 };
   }
 
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
   view.setFloat32(0, nanValue, true);
   const bits = view.getUint32(0, true);
+  const meta = (bits >>> 31) & 1;
   const tagBits = ((bits & TAG_MANTISSA_MASK) >>> 16) & 0x3f;
   const valueBits = bits & VALUE_MASK;
   const value = tagBits === Tag.SENTINEL ? (valueBits << 16) >> 16 : valueBits;
-  return { value, tag: tagBits };
+  return { value, tag: tagBits, meta };
 }
 
 /**

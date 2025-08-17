@@ -90,7 +90,7 @@ describe('swap Operation', () => {
       const stack = vm.getStackData();
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(5);
-      expect(fromTaggedValue(stack[1])).toEqual({ tag: Tag.LIST, value: 0 });
+      expect(fromTaggedValue(stack[1])).toMatchObject({ tag: Tag.LIST, value: 0 });
       expect(stack[2]).toBe(42);
     });
   });
