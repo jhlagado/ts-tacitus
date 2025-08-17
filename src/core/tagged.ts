@@ -226,3 +226,4 @@ export function getStackRefAddress(stackRef: number): number {
   }
   return getValue(stackRef) * 4;
 }
+
