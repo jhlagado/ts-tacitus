@@ -15,45 +15,39 @@ describe('Control Operations - Branch Coverage', () => {
 
   describe('simpleIfOp (deprecated ternary if)', () => {
     test('should execute then-code when condition is truthy', () => {
-      // Set up: push condition (1), then-branch (code), else-branch (value)
-      vm.push(1); // truthy condition
+      vm.push(1); 
 
-      // Create a code block that pushes 42
       const codeAddr = 100;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // then-branch as code
-      vm.push(99); // else-branch as value
+      vm.push(toTaggedValue(codeAddr, Tag.CODE)); 
+      vm.push(99); 
 
-      // Mock the code at address 100 to be a simple push operation
-      vm.memory.write8(3, codeAddr, 0); // Op.LiteralNumber
+      vm.memory.write8(3, codeAddr, 0); 
       vm.memory.writeFloat32(3, codeAddr + 1, 42);
-      vm.memory.write8(3, codeAddr + 5, 5); // Op.Exit
+      vm.memory.write8(3, codeAddr + 5, 5); 
 
       simpleIfOp(vm);
 
-      // Should have set up call frame for code execution
       expect(vm.IP).toBe(codeAddr);
-      expect(vm.RP).toBeGreaterThan(0); // Return stack should have call frame
+      expect(vm.RP).toBeGreaterThan(0); 
     });
 
     test('should execute else-code when condition is falsy', () => {
-      // Set up: push condition (0), then-branch (value), else-branch (code)
-      vm.push(0); // falsy condition
-      vm.push(42); // then-branch as value
+      vm.push(0); 
+      vm.push(42); 
 
       const codeAddr = 200;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // else-branch as code
+      vm.push(toTaggedValue(codeAddr, Tag.CODE)); 
 
       simpleIfOp(vm);
 
-      // Should have set up call frame for code execution
       expect(vm.IP).toBe(codeAddr);
-      expect(vm.RP).toBeGreaterThan(0); // Return stack should have call frame
+      expect(vm.RP).toBeGreaterThan(0); 
     });
 
     test('should push then-value when condition is truthy and then-branch is not code', () => {
-      vm.push(1); // truthy condition
-      vm.push(42); // then-branch as value
-      vm.push(99); // else-branch as value
+      vm.push(1); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -61,9 +55,9 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should push else-value when condition is falsy and else-branch is not code', () => {
-      vm.push(0); // falsy condition
-      vm.push(42); // then-branch as value
-      vm.push(99); // else-branch as value
+      vm.push(0); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -71,41 +65,41 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should throw error if condition is not a number', () => {
-      vm.push(toTaggedValue(0, Tag.STRING)); // non-number condition
-      vm.push(42); // then-branch
-      vm.push(99); // else-branch
+      vm.push(toTaggedValue(0, Tag.STRING)); 
+      vm.push(42); 
+      vm.push(99); 
 
       expect(() => simpleIfOp(vm)).toThrow("Type error: 'if' condition must be a number");
     });
 
     test('should throw on stack underflow', () => {
-      vm.push(1); // only one item instead of three
+      vm.push(1); 
 
       expect(() => simpleIfOp(vm)).toThrow('Stack underflow');
     });
 
     test('should reject INTEGER tagged values as conditions', () => {
-      vm.push(toTaggedValue(1, Tag.SENTINEL)); // integer condition (should be rejected)
-      vm.push(42); // then-branch as value
-      vm.push(99); // else-branch as value
+      vm.push(toTaggedValue(1, Tag.SENTINEL)); 
+      vm.push(42); 
+      vm.push(99); 
 
       expect(() => simpleIfOp(vm)).toThrow("Type error: 'if' condition must be a number");
     });
 
     test('should reject CODE tagged values as conditions', () => {
-      vm.push(toTaggedValue(100, Tag.CODE)); // code condition (should be rejected)
-      vm.push(42); // then-branch as value
-      vm.push(99); // else-branch as value
+      vm.push(toTaggedValue(100, Tag.CODE)); 
+      vm.push(42); 
+      vm.push(99); 
 
       expect(() => simpleIfOp(vm)).toThrow("Type error: 'if' condition must be a number");
     });
 
     test('should handle code in then-branch with truthy condition', () => {
-      vm.push(5); // truthy condition
+      vm.push(5); 
 
       const codeAddr = 150;
-      vm.push(toTaggedValue(codeAddr, Tag.CODE)); // then-branch as code
-      vm.push(toTaggedValue(250, Tag.CODE)); // else-branch as code (should not execute)
+      vm.push(toTaggedValue(codeAddr, Tag.CODE)); 
+      vm.push(toTaggedValue(250, Tag.CODE)); 
 
       simpleIfOp(vm);
 
@@ -113,9 +107,9 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed code and value branches', () => {
-      vm.push(0); // falsy condition
-      vm.push(toTaggedValue(150, Tag.CODE)); // then-branch as code (should not execute)
-      vm.push(777); // else-branch as value
+      vm.push(0); 
+      vm.push(toTaggedValue(150, Tag.CODE)); 
+      vm.push(777); 
 
       simpleIfOp(vm);
 
@@ -125,9 +119,9 @@ describe('Control Operations - Branch Coverage', () => {
 
   describe('Edge cases for control operations', () => {
     test('should handle negative numbers as truthy conditions', () => {
-      vm.push(-1); // negative truthy condition
-      vm.push(42); // then-branch
-      vm.push(99); // else-branch
+      vm.push(-1); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -135,9 +129,9 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should handle large numbers as truthy conditions', () => {
-      vm.push(999999); // large truthy condition
-      vm.push(42); // then-branch
-      vm.push(99); // else-branch
+      vm.push(999999); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -145,9 +139,9 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should handle very small positive numbers as truthy', () => {
-      vm.push(0.001); // small positive truthy condition
-      vm.push(42); // then-branch
-      vm.push(99); // else-branch
+      vm.push(0.001); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -155,9 +149,9 @@ describe('Control Operations - Branch Coverage', () => {
     });
 
     test('should handle NaN as falsy (since NaN is falsy in JavaScript)', () => {
-      vm.push(NaN); // NaN condition (falsy in JavaScript)
-      vm.push(42); // then-branch
-      vm.push(99); // else-branch
+      vm.push(NaN); 
+      vm.push(42); 
+      vm.push(99); 
 
       simpleIfOp(vm);
 
@@ -167,31 +161,25 @@ describe('Control Operations - Branch Coverage', () => {
 
   describe('ifCurlyBranchFalseOp edge cases', () => {
     test('should handle non-number conditions by treating them as falsy', () => {
-      // Mock vm.next16() to return an offset
       const originalNext16 = vm.next16;
-      vm.next16 = () => 10; // Mock offset
+      vm.next16 = () => 10; 
 
-      // Push a non-number condition (should be treated as falsy)
       vm.push(toTaggedValue(100, Tag.CODE));
 
       const originalIP = vm.IP;
 
-      // Import and test ifCurlyBranchFalseOp
       const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
       ifCurlyBranchFalseOp(vm);
 
-      // Should have jumped by the offset since condition is not a number
       expect(vm.IP).toBe(originalIP + 10);
 
-      // Restore original method
       vm.next16 = originalNext16;
     });
 
     test('should not jump when condition is truthy number', () => {
       const originalNext16 = vm.next16;
-      vm.next16 = () => 10; // Mock offset
+      vm.next16 = () => 10; 
 
-      // Push a truthy number condition
       vm.push(5);
 
       const originalIP = vm.IP;
@@ -199,7 +187,6 @@ describe('Control Operations - Branch Coverage', () => {
       const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
       ifCurlyBranchFalseOp(vm);
 
-      // Should NOT have jumped since condition is truthy
       expect(vm.IP).toBe(originalIP);
 
       vm.next16 = originalNext16;
@@ -207,9 +194,8 @@ describe('Control Operations - Branch Coverage', () => {
 
     test('should jump when condition is zero', () => {
       const originalNext16 = vm.next16;
-      vm.next16 = () => 15; // Mock offset
+      vm.next16 = () => 15; 
 
-      // Push zero (falsy) condition
       vm.push(0);
 
       const originalIP = vm.IP;
@@ -217,7 +203,6 @@ describe('Control Operations - Branch Coverage', () => {
       const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
       ifCurlyBranchFalseOp(vm);
 
-      // Should have jumped since condition is zero (falsy)
       expect(vm.IP).toBe(originalIP + 15);
 
       vm.next16 = originalNext16;

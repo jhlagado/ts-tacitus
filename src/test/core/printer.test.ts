@@ -1,7 +1,6 @@
 import { prn } from '../utils/core-test-utils';
 import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core/tagged';
 
-// Mock console.warn to capture output
 let consoleOutput: string[] = [];
 const originalConsoleWarn = console.warn;
 
@@ -51,7 +50,6 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Test List: LIST:/);
     });
 
-    // Legacy LINK removed from tests
 
     test('should handle empty title', () => {
       const intValue = toTaggedValue(42, Tag.SENTINEL);
@@ -66,12 +64,11 @@ describe('Printer', () => {
       prn(null as unknown as string, intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      // Should handle null title gracefully
       expect(consoleOutput[0]).toContain('SENTINEL: 42');
     });
 
     test('should handle untagged NUMBER values', () => {
-      const regularNumber = 3.14; // Not tagged
+      const regularNumber = 3.14; 
       prn('Regular Number', regularNumber);
 
       expect(consoleOutput).toHaveLength(1);
@@ -93,21 +90,16 @@ describe('Printer', () => {
     });
 
     test('should handle unknown tag types gracefully', () => {
-      // Since toTaggedValue validates tags, we can't easily create invalid tags
-      // Instead, test that all valid tags work and the default case is covered
       const validTags = Object.values(Tag).filter(t => typeof t === 'number') as number[];
       const maxValidTag = Math.max(...validTags);
 
-      // Verify we're using the correct max tag
       expect(maxValidTag).toBe(MAX_TAG);
 
-      // Test with the highest valid tag to ensure it works
       const highTagValue = toTaggedValue(42, maxValidTag);
       prn('High Tag', highTagValue);
 
       expect(consoleOutput).toHaveLength(1);
       expect(consoleOutput[0]).toContain(': ');
-      // Use the tag name dynamically instead of hardcoding
       const expectedTagName = tagNames[maxValidTag as Tag];
       expect(consoleOutput[0]).toContain(`${expectedTagName}:`);
     });
@@ -117,7 +109,6 @@ describe('Printer', () => {
       prn('Indented Test', intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      // The formatValue function uses 0 indentation by default
       expect(consoleOutput[0]).toMatch(/^Indented Test: SENTINEL: 42$/);
     });
 
@@ -130,7 +121,6 @@ describe('Printer', () => {
     });
 
     test('should handle edge case values for different tag types', () => {
-      // Test CODE with different values
       const smallCode = toTaggedValue(0, Tag.CODE);
       prn('Small Code', smallCode);
       expect(consoleOutput[0]).toMatch(/Small Code: CODE: <code>/);
@@ -152,7 +142,6 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Large List: LIST:/);
     });
 
-    // Legacy LINK removed from tests
   });
 
   describe('integration with tagged values', () => {
@@ -173,7 +162,6 @@ describe('Printer', () => {
         expect(consoleOutput).toHaveLength(1);
         expect(consoleOutput[0]).toContain(`${title}:`);
 
-        // Check that the tag name appears in the output
         if (tag === Tag.NUMBER) {
           expect(consoleOutput[0]).toMatch(/NUMBER:/);
         } else if (tag === Tag.SENTINEL) {

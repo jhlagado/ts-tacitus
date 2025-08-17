@@ -1,18 +1,6 @@
 /**
  * @file src/ops/list-ops.ts
- *
- * This file implements the LIST operations for the Tacit VM.
- *
- * LISTs (Reverse Lists) are stack-native compound data structures that store
- * elements in reverse order with the header at top-of-stack. This enables
- * O(1) prepend operations and O(1) skip/drop of entire structures while
- * maintaining contiguous memory layout for cache efficiency.
- *
- * The LIST operations include:
- * - Construction: openListOp, closeListOp
- * - Inspection: listSlotOp
- * - Manipulation: listSkipOp, listPrependOp, listAppendOp
- * - Access: slotOp, elemOp, fetchOp, storeOp (spec-compliant)
+ * LIST operations for the Tacit VM.
  */
 
 import { VM } from '../core/vm';
@@ -40,9 +28,7 @@ import {
 const BYTES_PER_ELEMENT = 4;
 
 /**
- * Opens an LIST construction with '(' token.
- * Stack effect: ( — )
- * Return stack: Pushes header position for later span calculation.
+ * Opens LIST construction.
  */
 export function openListOp(vm: VM): void {
   vm.listDepth++;
@@ -51,9 +37,7 @@ export function openListOp(vm: VM): void {
 }
 
 /**
- * Closes an LIST construction with ')' token.
- * Stack effect: ( values... — list )
- * Updates placeholder header and reverses span to bring header to TOS.
+ * Closes LIST construction.
  */
 export function closeListOp(vm: VM): void {
   if (vm.RP < BYTES_PER_ELEMENT) {
@@ -77,8 +61,7 @@ export function closeListOp(vm: VM): void {
 }
 
 /**
- * Gets the slot count from an LIST header.
- * Stack effect: ( list — list n )
+ * Gets slot count from LIST header.
  */
 export function listSlotOp(vm: VM): void {
   validateListHeader(vm);
@@ -90,9 +73,7 @@ export function listSlotOp(vm: VM): void {
 }
 
 /**
- * Returns logical element count by traversal.
- * Stack effect: ( list -- list n )
- * Spec: lists.md §9.2
+ * Returns element count by traversal.
  */
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
@@ -109,7 +90,6 @@ export function lengthOp(vm: VM): void {
     return;
   }
 
-  // Traverse payload and count elements
   let elementCount = 0;
   let currentAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
   let remainingSlots = slotCount;
@@ -127,8 +107,7 @@ export function lengthOp(vm: VM): void {
 }
 
 /**
- * cons (list-first): ( list value — list' )
- * Thin wrapper to enforce list-first ordering using listPrependOp semantics.
+ * cons: ( list value — list' )
  */
 export function consOp(vm: VM): void {
   vm.ensureStackSize(2, 'cons');
@@ -147,38 +126,30 @@ export function consOp(vm: VM): void {
 
 /**
  * drop-head: ( list — list' )
- * Removes the logical head element in O(1) by using span at SP-1.
  */
 export function dropHeadOp(vm: VM): void {
   vm.ensureStackSize(1, 'drop-head');
   const header = vm.pop();
   if (!isList(header)) {
-    // Not a list: restore and push NIL
     vm.push(header);
     vm.push(NIL);
     return;
   }
   const s = getListSlotCount(header);
   if (s === 0) {
-    // Already empty: remains empty
     vm.push(header); // LIST:0
     return;
   }
-  // Element 0 starts at SP-1; read its header/span
   const topAddr = vm.SP - BYTES_PER_ELEMENT; // SP after popping header
   const topVal = vm.memory.readFloat32(SEG_STACK, topAddr);
   const isCompound = isList(topVal);
   const span = isCompound ? getListSlotCount(topVal) + 1 : 1;
-  // Remove head payload by moving SP
   vm.SP -= span * BYTES_PER_ELEMENT;
-  // Push updated header with reduced payload slots
   vm.push(toTaggedValue(s - span, Tag.LIST));
 }
 
 /**
  * concat: ( listA listB — listC )
- * Flattens: merges elements of listB after listA.
- * If listB is not a list, behaves as cons (listA value).
  */
 export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
@@ -186,7 +157,6 @@ export function concatOp(vm: VM): void {
   const lhs = vm.pop(); // listA
 
   if (!isList(lhs)) {
-    // invalid lhs: restore and NIL
     vm.push(lhs);
     vm.push(rhs);
     vm.push(NIL);
@@ -194,7 +164,6 @@ export function concatOp(vm: VM): void {
   }
 
   if (!isList(rhs)) {
-    // Fallback to cons(list, value)
     vm.push(lhs);
     vm.push(rhs);
     consOp(vm);

@@ -1,15 +1,6 @@
 /**
  * @file src/strings/symbol-table.ts
- *
- * This file implements the symbol table for the Tacit VM.
- *
- * The symbol table is responsible for mapping word names (symbols) to their
- * function indices and implementations. It provides functionality for defining,
- * finding, and executing words in the Tacit language. The symbol table uses
- * a linked list structure for efficient insertion and lookup.
- *
- * The symbol table also supports checkpointing and reverting, which is useful
- * for implementing scoping and temporary definitions.
+ * Symbol table for the Tacit VM.
  */
 
 import { Digest } from './digest';
@@ -18,69 +9,43 @@ import { Tag, fromTaggedValue } from '../core/tagged';
 import { createBuiltinRef, createCodeRef } from '../core/code-ref';
 
 /**
- * Type definition for a word implementation function
- *
- * A WordFunction is a JavaScript function that implements a Tacit word.
- * It receives the VM instance as its argument and manipulates the VM state directly.
+ * Word implementation function type.
  */
 type WordFunction = (vm: VM) => void;
 
 /**
- * Represents a node in the symbol table linked list
- *
- * Each node contains:
- * - key: The address of the word name in the string digest
- * - taggedValue: The tagged value for unified @symbol system (Tag.BUILTIN or Tag.CODE)
- * - implementation: Optional JavaScript function implementing the word (for legacy compatibility)
- * - next: Reference to the next node in the linked list
+ * Symbol table node.
  */
 interface SymbolTableNode {
   key: number;
-  taggedValue: number; // Unified storage for tagged values
-  implementation?: WordFunction; // Keep for transition compatibility
+  taggedValue: number;
+  implementation?: WordFunction;
   next: SymbolTableNode | null;
 }
 
 /**
- * Represents a saved state of the symbol table
- *
- * A checkpoint is simply a reference to the head of the symbol table
- * linked list at the time the checkpoint was created. This allows for
- * efficient reverting to a previous state.
+ * Symbol table checkpoint.
  */
 export type SymbolTableCheckpoint = SymbolTableNode | null;
 /**
- * The SymbolTable class manages word definitions in the Tacit VM
- *
- * It provides methods for defining words, looking up words by name or opcode,
- * and managing the symbol table state through checkpoints and reverting.
- * The symbol table is implemented as a linked list for efficient insertion
- * and lookup operations.
+ * Symbol table for managing word definitions.
  */
 export class SymbolTable {
-  /**
-   * The head of the symbol table linked list
-   */
   private head: SymbolTableNode | null;
 
   /**
-   * Creates a new SymbolTable instance
-   *
-   * @param {Digest} digest - The string digest to use for storing word names
+   * Creates a new SymbolTable instance.
+   * @param digest String digest for word names
    */
   constructor(private digest: Digest) {
     this.head = null;
   }
 
   /**
-   * Defines a symbol in the symbol table with a tagged value
-   *
-   * This is the unified method for storing symbols with their tagged values.
-   * Both built-ins and colon definitions use this method.
-   *
-   * @param name The symbol name
-   * @param taggedValue The tagged value (Tag.BUILTIN or Tag.CODE with address)
-   * @param implementation Optional implementation function for legacy compatibility
+   * Defines symbol with tagged value.
+   * @param name Symbol name
+   * @param taggedValue Tagged value
+   * @param implementation Optional implementation function
    */
   defineSymbol(name: string, taggedValue: number, implementation?: WordFunction): void {
     const key = this.digest.add(name);
@@ -128,7 +93,6 @@ export class SymbolTable {
   find(name: string): number | undefined {
     const taggedValue = this.findTaggedValue(name);
     if (taggedValue !== undefined) {
-      // Extract the address from the tagged value for backward compatibility
       const { value: address } = fromTaggedValue(taggedValue);
       return address;
     }
@@ -157,7 +121,6 @@ export class SymbolTable {
     const taggedValue = this.findTaggedValue(name);
     if (taggedValue !== undefined) {
       const { tag, value } = fromTaggedValue(taggedValue);
-      // Only return bytecode addresses for colon definitions (Tag.CODE)
       if (tag === Tag.CODE) {
         return value;
       }
@@ -181,7 +144,6 @@ export class SymbolTable {
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
-        // Extract address from tagged value for backward compatibility
         const { value: address } = fromTaggedValue(current.taggedValue);
         return {
           index: address,
@@ -211,7 +173,6 @@ export class SymbolTable {
   findImplementationByOpcode(opcode: number): WordFunction | undefined {
     let current = this.head;
     while (current !== null) {
-      // Extract address from tagged value for comparison
       const { value: address } = fromTaggedValue(current.taggedValue);
       if (address === opcode && current.implementation) {
         return current.implementation;
@@ -254,9 +215,6 @@ export class SymbolTable {
     this.head = checkpoint;
   }
 
-  // =================================================================================
-  // UNIFIED @SYMBOL SYSTEM METHODS (NEW)
-  // =================================================================================
 
   /**
    * Defines a built-in operation in the symbol table with direct addressing

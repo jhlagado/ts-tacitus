@@ -32,7 +32,6 @@ describe('dup Operation', () => {
       dupOp(vm);
 
       const stack = vm.getStackData();
-      // Expect two copies of payload and two headers
       expect(stack.slice(-8)).toEqual([
         10,
         20,
@@ -85,7 +84,6 @@ describe('dup Operation', () => {
     });
 
     test('should duplicate a nested list', () => {
-      // Build ( 1 ( 2 3 ) 4 )
       vm.push(2);
       vm.push(3);
       vm.push(toTaggedValue(2, Tag.LIST));

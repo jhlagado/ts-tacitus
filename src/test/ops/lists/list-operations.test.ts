@@ -12,7 +12,6 @@ describe('List Operations', () => {
     resetVM();
   });
 
-  // Legacy LIST/LINK tests removed. Stack ops are validated against unified reverse-list semantics below.
 
   describe('list operations', () => {
     test('should duplicate simple value under a list', () => {
@@ -53,28 +52,24 @@ describe('List Operations', () => {
     test('should swap two simple lists', () => {
       const stack = executeTacitCode('5 ( 10 20 ) ( 30 40 ) swap');
       expect(stack).toContain(5);
-      // Without LINK overhead, total cells: 1 (5) + 3 + 3 = 7
       expect(stack.length).toBe(7);
     });
 
     test('should rotate a list with two simple values', () => {
       const stack = executeTacitCode('( 1 2 ) 3 4 rot');
-      // reverse-list is multi-slot; rotation keeps total cell count at 5 (2 payload + header + 2 scalars)
       expect(stack.length).toBe(5);
     });
 
     test('should pick a list from the stack', () => {
-      // Use VM-level pick to avoid parser opcode edge-cases
       vm.push(10);
       vm.push(20);
-      vm.push(1); // index
+      vm.push(1); 
       pickOp(vm);
       const stack = vm.getStackData();
       expect(stack[stack.length - 1]).toBe(10);
     });
   });
 
-  // Error cases for legacy LIST/LINK removed during unification.
 
   describe('integration tests', () => {
     test('should duplicate a nested list', () => {

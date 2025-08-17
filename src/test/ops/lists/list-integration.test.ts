@@ -20,8 +20,6 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(2);
       expect(stack).toContain(3);
 
-      // Should have duplicated content overall (header duplication is not guaranteed at the end due to stack policy)
-      // Assert that at least one LIST header exists
       const headers = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
       expect(headers.length).toBeGreaterThanOrEqual(1);
     });
@@ -48,18 +46,16 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(5);
       expect(stack).toContain(6);
 
-      // Verify list structure tags are present
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;
       });
-      expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple nested LISTs
+      expect(listTags.length).toBeGreaterThanOrEqual(4); 
     });
 
     test('should manipulate mixed data types in lists', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) drop');
 
-      // drop removes the top element (which is the LIST header only), leaving payload on stack
       expect(stack.length).toBe(0);
     });
 
@@ -71,7 +67,6 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(3);
       expect(stack).toContain(4);
 
-      // Should have copied the first list over the second
       expect(stack.filter(x => x === 1).length).toBe(2);
       expect(stack.filter(x => x === 2).length).toBe(2);
     });
@@ -84,7 +79,6 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(1);
       expect(stack).toContain(2);
 
-      // Should have empty list somewhere in the result
       const listTags = stack.filter(item => {
         const { tag, value } = fromTaggedValue(item);
         return tag === Tag.LIST && value === 0;
@@ -93,8 +87,6 @@ describe('List Integration Tests', () => {
     });
 
     test('should gracefully handle malformed list operations', () => {
-      // This test verifies that even if list operations have issues,
-      // they don't crash the system
       expect(() => {
         executeTacitCode('( 1 2 3 4 5 6 7 8 9 10 ) dup drop');
       }).not.toThrow();
@@ -134,7 +126,6 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(126);
       expect(stack).toContain(168);
 
-      // Verify list structure is maintained
       const headersAfter = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
       expect(headersAfter.length).toBeGreaterThanOrEqual(1);
     });
@@ -151,17 +142,14 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(7);
       expect(stack).toContain(8);
 
-      // Verify deeply nested structure
       const listTags = stack.filter(item => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;
       });
-      expect(listTags.length).toBeGreaterThanOrEqual(4); // Multiple levels of nesting
+      expect(listTags.length).toBeGreaterThanOrEqual(4); 
     });
 
     test('should support list operations in conditional contexts', () => {
-      // This would test list operations within IF/ELSE blocks
-      // For now, just verify basic list creation works in preparation for conditionals
       const stack = executeTacitCode('( 1 2 3 )');
 
       expect(stack).toContain(1);
@@ -176,7 +164,6 @@ describe('List Integration Tests', () => {
     });
   });
 
-  // Consolidated from former list-integration tests
   describe('parser + VM integration (LIST semantics)', () => {
     test('should build a simple list using ( ) syntax', () => {
       const stack = executeTacitCode('( 1 2 3 )');

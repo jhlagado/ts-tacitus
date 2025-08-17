@@ -59,7 +59,6 @@ describe('revrot Operation', () => {
     });
 
     test('should handle nested lists', () => {
-      // Build ( ( 1 2 3 ) ) then 4 5
       vm.push(1);
       vm.push(2);
       vm.push(3);

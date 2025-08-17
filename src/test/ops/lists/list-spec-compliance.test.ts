@@ -15,7 +15,6 @@ describe('Lists.md Specification Compliance', () => {
     test('slots returns payload slot count', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) slots');
 
-      // Should return 5 (total payload slots)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.tag).toBe(Tag.SENTINEL);
@@ -25,7 +24,6 @@ describe('Lists.md Specification Compliance', () => {
     test('length returns element count via traversal', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) length');
 
-      // Should return 3 (logical element count)
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.tag).toBe(Tag.SENTINEL);
@@ -45,21 +43,15 @@ describe('Lists.md Specification Compliance', () => {
   describe('Section 10: Address queries', () => {
     test('slot operation returns slot addresses', () => {
       executeTacitCode('( 42 99 ) 0 slot');
-      // This test verifies slot operation works - address details are implementation specific
-      // Main point is that it doesn't crash and returns an address
     });
 
     test('elem operation returns element addresses', () => {
       executeTacitCode('( 1 ( 2 3 ) 4 ) 1 elem');
-      // This test verifies elem operation works with compound elements
-      // Should return address of the nested list element
     });
 
     test('fetch and store work with addresses', () => {
-      // Test the address-based access pattern: elem -> fetch
       const stack = executeTacitCode('( 42 99 ) 0 elem fetch');
 
-      // Should fetch element 0 which is 42
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.value).toBe(42);
@@ -83,11 +75,10 @@ describe('Lists.md Specification Compliance', () => {
     test('head returns nil for empty list', () => {
       const stack = executeTacitCode('( ) head');
 
-      // Should return NIL
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(0); // NIL
+      expect(decoded.value).toBe(0); 
     });
 
     test('uncons splits list correctly', () => {
@@ -108,19 +99,14 @@ describe('Lists.md Specification Compliance', () => {
       expect(isList(header)).toBe(true);
     });
 
-    // Basic structural operation registration test
     test('structural operations are properly registered', () => {
-      // Test that operations exist and don't throw "undefined word" errors
       expect(() => executeTacitCode('( )')).not.toThrow();
 
-      // These operations should be registered (even if implementation needs work)
-      // We can't test execution due to bugs, but we can verify they're not "undefined word"
       const operations = ['head', 'tail', 'cons', 'concat', 'uncons'];
       operations.forEach(op => {
         try {
           executeTacitCode(`( ) ${op}`);
         } catch (error) {
-          // Should not be "undefined word" error
           expect(error instanceof Error ? error.message : String(error)).not.toContain(
             'Undefined word',
           );
@@ -141,7 +127,6 @@ describe('Lists.md Specification Compliance', () => {
     });
 
     test('head and uncons consistency', () => {
-      // uncons stack effect: ( list -- tail head ), so need swap drop to get head
       const headResult = executeTacitCode('( 1 2 3 ) head');
       resetVM();
       const unconsResult = executeTacitCode('( 1 2 3 ) uncons swap drop');
@@ -153,20 +138,18 @@ describe('Lists.md Specification Compliance', () => {
       const stack = executeTacitCode('0 pack');
       const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
-      expect(fromTaggedValue(header).value).toBe(0); // 0 slots
+      expect(fromTaggedValue(header).value).toBe(0); 
     });
 
     test('unpack pushes list elements to stack', () => {
       const stack = executeTacitCode('( 1 2 3 ) unpack');
-      // Should have: 1 2 3 on stack (in that order)
       expect(stack.length).toBe(3);
-      expect(fromTaggedValue(stack[0]).value).toBe(3); // First element
-      expect(fromTaggedValue(stack[1]).value).toBe(2); // Second element
-      expect(fromTaggedValue(stack[2]).value).toBe(1); // Third element
+      expect(fromTaggedValue(stack[0]).value).toBe(3); 
+      expect(fromTaggedValue(stack[1]).value).toBe(2); 
+      expect(fromTaggedValue(stack[2]).value).toBe(1); 
     });
 
     test('pack and unpack are inverses', () => {
-      // Test: 1 2 3 3 pack unpack should restore 1 2 3
       const original = executeTacitCode('1 2 3');
       resetVM();
       const restored = executeTacitCode('1 2 3 3 pack unpack');

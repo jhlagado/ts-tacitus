@@ -49,7 +49,7 @@ describe('VM Receiver Register', () => {
     });
 
     test('should handle large slot indices', () => {
-      const largeIndex = 65535; // 16-bit limit
+      const largeIndex = 65535; 
       vm.setReceiver(largeIndex);
       expect(vm.getReceiver()).toBe(largeIndex);
     });
@@ -59,7 +59,6 @@ describe('VM Receiver Register', () => {
     test('should maintain receiver value across stack operations', () => {
       vm.setReceiver(15);
       
-      // Perform various stack operations
       vm.push(1.0);
       vm.push(2.0);
       vm.push(3.0);
@@ -78,7 +77,7 @@ describe('VM Receiver Register', () => {
       vm.IP = 100;
       expect(vm.getReceiver()).toBe(42);
       
-      vm.reset(); // Reset IP to 0
+      vm.reset(); 
       expect(vm.getReceiver()).toBe(42);
     });
 
@@ -104,13 +103,11 @@ describe('VM Receiver Register', () => {
       
       vm.setReceiver(99);
       
-      // Verify other registers unchanged
       expect(vm.SP).toBe(initialSP);
       expect(vm.RP).toBe(initialRP);
       expect(vm.BP).toBe(initialBP);
       expect(vm.IP).toBe(initialIP);
       
-      // Verify receiver is set correctly
       expect(vm.getReceiver()).toBe(99);
     });
 
@@ -135,7 +132,6 @@ describe('VM Receiver Register', () => {
       
       resetVM();
       
-      // Create new VM instance to verify global state
       const freshVM = new VM();
       const compiler = new Compiler(freshVM);
       freshVM.initializeCompiler(compiler);
@@ -146,7 +142,7 @@ describe('VM Receiver Register', () => {
     test('should maintain receiver through regular VM.reset()', () => {
       vm.setReceiver(456);
       
-      vm.reset(); // Only resets IP
+      vm.reset(); 
       
       expect(vm.getReceiver()).toBe(456);
     });
@@ -154,16 +150,13 @@ describe('VM Receiver Register', () => {
 
   describe('Edge Cases', () => {
     test('should handle boundary values correctly', () => {
-      // Test 0
       vm.setReceiver(0);
       expect(vm.getReceiver()).toBe(0);
       
-      // Test maximum safe integer
       const maxSafe = Number.MAX_SAFE_INTEGER;
       vm.setReceiver(maxSafe);
       expect(vm.getReceiver()).toBe(maxSafe);
       
-      // Test minimum safe integer
       const minSafe = Number.MIN_SAFE_INTEGER;
       vm.setReceiver(minSafe);
       expect(vm.getReceiver()).toBe(minSafe);
@@ -171,7 +164,7 @@ describe('VM Receiver Register', () => {
 
     test('should handle floating point values by truncation', () => {
       vm.setReceiver(42.7);
-      expect(vm.getReceiver()).toBe(42.7); // JavaScript allows floats in number type
+      expect(vm.getReceiver()).toBe(42.7); 
     });
   });
 });

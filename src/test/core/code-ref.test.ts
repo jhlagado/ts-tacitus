@@ -188,11 +188,9 @@ describe('Code Reference Utilities', () => {
 
   describe('integration with evalOp', () => {
     test('should create references compatible with enhanced evalOp', () => {
-      // Test that our utilities create the same tagged values that evalOp expects
       const builtinRef = createBuiltinRef(Op.Add);
       const codeRef = createCodeRef(1000);
 
-      // Verify these have the expected structure for evalOp
       const { tag: builtinTag, value: builtinValue } = fromTaggedValue(builtinRef);
       const { tag: codeTag, value: codeValue } = fromTaggedValue(codeRef);
 
@@ -206,11 +204,9 @@ describe('Code Reference Utilities', () => {
       const originalOpcode = Op.Multiply;
       const originalAddr = 12345;
 
-      // Create references
       const builtinRef = createBuiltinRef(originalOpcode);
       const codeRef = createCodeRef(originalAddr);
 
-      // Extract values
       const extractedOpcode = getBuiltinOpcode(builtinRef);
       const extractedAddr =   getCodeAddress(codeRef);
 

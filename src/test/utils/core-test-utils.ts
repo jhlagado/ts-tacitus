@@ -21,36 +21,31 @@ export function prn(title: string, tval: number): void {
 export function createList(vm: VM, values: number[]): void {
   const slotCount = values.length;
 
-  // Push values in forward order
   for (const value of values) {
     vm.push(value);
   }
 
-  // Reverse the span to achieve LIST layout
   if (slotCount > 1) {
     reverseSpan(vm, slotCount);
   }
 
-  // Push LIST header with slot count
   const header = toTaggedValue(slotCount, Tag.LIST);
   vm.push(header);
 }
 
-// Helper function for createList - reverses a span on the VM stack
 function reverseSpan(vm: VM, spanSize: number): void {
-  if (spanSize <= 1) return; // Nothing to reverse
+  if (spanSize <= 1) return;
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
 
   const startAddr = vm.SP - spanSize * 4;
   const endAddr = vm.SP - 4;
 
-  // In-place reversal using temporary storage
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
     const leftAddr = startAddr + i * 4;
     const rightAddr = endAddr - i * 4;
 
-    const leftValue = vm.memory.readFloat32(0, leftAddr); // SEG_STACK = 0
+    const leftValue = vm.memory.readFloat32(0, leftAddr);
     const rightValue = vm.memory.readFloat32(0, rightAddr);
 
     vm.memory.writeFloat32(0, leftAddr, rightValue);
@@ -58,7 +53,6 @@ function reverseSpan(vm: VM, spanSize: number): void {
   }
 }
 
-// Helper functions for prn()
 function formatValue(tval: number, indent = 0): string {
   const { value: _value, tag } = fromTaggedValue(tval);
   const name = toTagName(tag);
@@ -84,7 +78,6 @@ function scalarRepr(tval: number): string {
   }
 }
 
-// Test-only code-ref functions previously exported from src/core/code-ref.ts
 
 /**
  * Checks if a tagged value represents a built-in operation reference.

@@ -147,7 +147,6 @@ describe('SymbolTable Direct Addressing', () => {
       symbolTable.defineBuiltin('dup', Op.Dup);
       symbolTable.defineCode('cube', 2000);
 
-      // Test that findCodeRef returns tagged values with correct tags
       const addTagged = symbolTable.findCodeRef('add');
       const squareTagged = symbolTable.findCodeRef('square');
       const dupTagged = symbolTable.findCodeRef('dup');
@@ -172,26 +171,23 @@ describe('SymbolTable Direct Addressing', () => {
 
   describe('Legacy method compatibility', () => {
     test('should not resolve symbols defined with old methods', () => {
-      // Use builtin define for opcodes < 128
       symbolTable.defineBuiltin('oldStyle', 42);
 
       const taggedValue = symbolTable.findCodeRef('oldStyle');
-      expect(taggedValue).toBeDefined(); // findCodeRef now maps to findTaggedValue
+      expect(taggedValue).toBeDefined(); 
 
-      // defineBuiltin creates proper tagged values for the unified system
       const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.BUILTIN); // 42 < 128, so it's treated as builtin
+      expect(tag).toBe(Tag.BUILTIN); 
     });
 
     test('should maintain independence from legacy function calling', () => {
-      // Use code define for addresses >= 128
-      symbolTable.defineCode('oldCall', 200); // >= 128, so CODE
+      symbolTable.defineCode('oldCall', 200); 
 
       const taggedValue = symbolTable.findCodeRef('oldCall');
       expect(taggedValue).toBeDefined();
 
       const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.CODE); // 200 >= 128, so it's treated as code
+      expect(tag).toBe(Tag.CODE); 
     });
   });
 
@@ -212,8 +208,8 @@ describe('SymbolTable Direct Addressing', () => {
 
       const addTaggedAfter = symbolTable.findCodeRef('add');
       const squareTaggedAfter = symbolTable.findCodeRef('square');
-      expect(addTaggedAfter).toBeDefined(); // Should still be there
-      expect(squareTaggedAfter).toBeUndefined(); // Should be reverted
+      expect(addTaggedAfter).toBeDefined(); 
+      expect(squareTaggedAfter).toBeUndefined(); 
     });
   });
 });

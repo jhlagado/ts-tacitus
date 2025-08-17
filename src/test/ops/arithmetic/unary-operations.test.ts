@@ -116,7 +116,6 @@ describe('Unary Operations', () => {
   });
 
   describe('list operations', () => {
-    // TODO: Add list-specific unary operation tests when list operations are implemented
   });
 
   describe('error cases', () => {

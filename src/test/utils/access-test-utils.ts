@@ -122,7 +122,6 @@ export class BehavioralTester {
       const once = executeTacitCode(`${setup} ${operation}`);
       const twice = executeTacitCode(`${setup} ${operation} ${operation}`);
 
-      // For truly idempotent operations, results should be equal
       return JSON.stringify(once) === JSON.stringify(twice);
     } catch {
       return false;
@@ -137,7 +136,6 @@ export class BehavioralTester {
       const before = executeTacitCode('( 1 2 3 4 5 )');
       const after = executeTacitCode(`( 1 2 3 4 5 ) ${operation}`);
 
-      // Operation should produce some result without corrupting basic structure
       return after.length >= before.length;
     } catch {
       return false;
@@ -167,7 +165,6 @@ export class ComparatorTester {
    * Test basic numeric comparator
    */
   static testNumericComparator(): boolean {
-    // When comparator support is added, test { - } comparator
     return this.BehavioralTester.testOperationWorks('3 1 -'); // Basic subtraction
   }
 
@@ -202,7 +199,6 @@ export class ComparatorTester {
     ];
   }
 
-  // Reference to avoid name collision
   private static BehavioralTester = BehavioralTester;
 }
 

@@ -38,7 +38,7 @@ describe('Print Operations', () => {
     describe('error cases', () => {
       test('should handle empty stack for print operation', () => {
         const output = captureTacitOutput('( 10 20 ) .');
-        expect(output).toEqual(['( 10 20 )']); // Fallback behavior
+        expect(output).toEqual(['( 10 20 )']); 
       });
     });
 
@@ -73,7 +73,6 @@ describe('Print Operations', () => {
       test('should handle complex list structures', () => {
         const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) print');
         expect(output.length).toBeGreaterThan(0);
-        // Raw print shows internal representation
       });
     });
 

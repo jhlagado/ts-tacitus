@@ -17,13 +17,9 @@ describe('LIST Memory Management Validation', () => {
     const before = stackDepth();
     expect(before).toBe(11);
 
-    // .skip equivalent via builtin op sequence: push header remains after execution
-    // We can simulate skip by calling `.skip` if registered
-    // Build bytecode to execute listSkipOp: header already at TOS
     const { tag } = fromTaggedValue(vm.peek());
     expect(tag).toBe(Tag.LIST);
 
-    // Normal drop removes entire list per spec
     executeProgram('drop');
     expect(stackDepth()).toBe(0);
   });

@@ -28,39 +28,34 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Performance Testing', () => {
     it('should have no performance regression for built-in operations', () => {
-      const iterations = 100; // Reduced for more stable timing
+      const iterations = 100; 
 
-      // Test direct built-in execution (baseline)
       const start1 = performance.now();
       for (let i = 0; i < iterations; i++) {
         vm.push(5);
         vm.push(3);
         vm.push(toTaggedValue(Op.Add, Tag.BUILTIN));
         evalOp(vm);
-        vm.pop(); // Clear result
+        vm.pop(); 
       }
       const directTime = performance.now() - start1;
 
-      // Test @symbol-based execution
       const start2 = performance.now();
       for (let i = 0; i < iterations; i++) {
         vm.push(5);
         vm.push(3);
         vm.pushSymbolRef('add');
         evalOp(vm);
-        vm.pop(); // Clear result
+        vm.pop(); 
       }
       const symbolTime = performance.now() - start2;
 
-      // Symbol-based execution should be within reasonable range (timing can vary)
-      // Just verify it completes successfully and produces correct results
       vm.push(10);
       vm.push(20);
       vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.pop()).toBe(30);
 
-      // Ensure both methods took reasonable time (less than 1 second each)
       expect(directTime).toBeLessThan(1000);
       expect(symbolTime).toBeLessThan(1000);
     });
@@ -72,16 +67,14 @@ describe('VM Comprehensive Testing - Step 12', () => {
       for (let i = 0; i < iterations; i++) {
         try {
           vm.pushSymbolRef('dup');
-          vm.pop(); // Immediately remove to test symbol resolution overhead
-        } catch (_error) {
-          // Expected for dup when stack is empty, but symbol resolution should still work
+          vm.pop(); 
+        } catch {
+          /* empty */
         }
       }
 
-      // Stack should return to initial state
       expect(vm.getStackData().length).toBe(initialStackSize);
 
-      // Symbol resolution should still work correctly
       vm.push(42);
       vm.pushSymbolRef('dup');
       evalOp(vm);
@@ -91,14 +84,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Memory Usage Patterns', () => {
     it('should demonstrate function table can be eliminated for colon definitions', () => {
-      // Define a colon definition manually (simulating parser behavior)
       const colonDefName = 'testSquare';
       const startAddress = 1000;
 
-      // Register in symbol table with direct bytecode address
       vm.symbolTable.defineCode(colonDefName, startAddress);
 
-      // Verify we can resolve to direct address
       const taggedValue = vm.resolveSymbol(colonDefName);
       expect(taggedValue).toBeDefined();
 
@@ -106,19 +96,17 @@ describe('VM Comprehensive Testing - Step 12', () => {
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(startAddress);
 
-      // This proves function table bypass is working - no function index needed
       vm.pushSymbolRef(colonDefName);
       const stackValue = vm.peek();
       expect(stackValue).toBe(taggedValue);
     });
 
     it('should handle symbol table growth efficiently', () => {
-      const symbolCount = 100; // Reduced to avoid string digest overflow
+      const symbolCount = 100; 
       const symbols: string[] = [];
 
-      // Create many symbols
       for (let i = 0; i < symbolCount; i++) {
-        const symbolName = `sym${i}`; // Shorter names to save space
+        const symbolName = `sym${i}`; 
         symbols.push(symbolName);
 
         if (i % 2 === 0) {
@@ -128,7 +116,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
         }
       }
 
-      // Verify all symbols can be resolved
       for (const symbol of symbols) {
         const resolved = vm.resolveSymbol(symbol);
         expect(resolved).toBeDefined();
@@ -143,17 +130,14 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const builtinSymbols = ['add', 'dup', 'swap', 'drop', 'over'];
       const codeSymbols = ['square', 'double', 'triple', 'quad'];
 
-      // Register built-ins
       builtinSymbols.forEach((name, index) => {
         vm.symbolTable.defineBuiltin(name, index + 1);
       });
 
-      // Register code definitions
       codeSymbols.forEach((name, index) => {
         vm.symbolTable.defineCode(name, 3000 + index * 100);
       });
 
-      // Test rapid mixed access
       for (let i = 0; i < 100; i++) {
         const useBuiltin = i % 2 === 0;
         const symbols = useBuiltin ? builtinSymbols : codeSymbols;
@@ -178,21 +162,18 @@ describe('VM Comprehensive Testing - Step 12', () => {
       invalidSymbols.forEach(symbol => {
         expect(() => vm.pushSymbolRef(symbol)).toThrow();
 
-        // Verify stack is unchanged after error
         expect(vm.getStackData().length).toBe(0);
       });
     });
 
     it('should handle stack underflow during symbol execution', () => {
-      // Try to execute operations that require stack elements
-      vm.pushSymbolRef('add'); // Requires 2 elements
+      vm.pushSymbolRef('add'); 
       expect(() => evalOp(vm)).toThrow();
 
-      vm.push(5); // Only 1 element
-      vm.pushSymbolRef('add'); // Still requires 2
+      vm.push(5); 
+      vm.pushSymbolRef('add'); 
       expect(() => evalOp(vm)).toThrow();
 
-      // With correct number of elements, should work
       vm.push(3);
       vm.pushSymbolRef('add');
       evalOp(vm);
@@ -200,42 +181,38 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle complex execution chains without corruption', () => {
-      // Set up a complex chain: 5 → dup → add → dup → swap → add
       vm.push(5);
 
-      vm.pushSymbolRef('dup'); // Stack: [5, 5]
+      vm.pushSymbolRef('dup'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 5]);
 
-      vm.pushSymbolRef('add'); // Stack: [10]
+      vm.pushSymbolRef('add'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10]);
 
-      vm.pushSymbolRef('dup'); // Stack: [10, 10]
+      vm.pushSymbolRef('dup'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 10]);
 
-      vm.push(2); // Stack: [10, 10, 2]
-      vm.pushSymbolRef('add'); // Stack: [10, 12]
+      vm.push(2); 
+      vm.pushSymbolRef('add'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 12]);
 
-      vm.pushSymbolRef('add'); // Stack: [22]
+      vm.pushSymbolRef('add'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([22]);
     });
 
     it('should handle symbol resolution with corrupted internal state', () => {
-      // Test symbol resolution robustness
       vm.symbolTable.defineBuiltin('test', Op.Add);
 
-      // Force some internal state changes
       vm.push(999);
       vm.push(-999);
       vm.pop();
       vm.pop();
 
-      // Symbol resolution should still work
       vm.pushSymbolRef('test');
       const { tag, value } = fromTaggedValue(vm.pop());
       expect(tag).toBe(Tag.BUILTIN);
@@ -252,12 +229,10 @@ describe('VM Comprehensive Testing - Step 12', () => {
         vm.pushSymbolRef('dup');
         evalOp(vm);
 
-        // Stack now has [1, 1], clean up
         vm.pop();
         vm.pop();
       }
 
-      // Verify system is still functional
       vm.push(42);
       vm.pushSymbolRef('dup');
       evalOp(vm);
@@ -265,7 +240,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle nested symbol execution patterns', () => {
-      // Create a pattern that simulates complex metaprogramming
       const symbols = ['add', 'dup', 'swap'];
 
       for (let depth = 0; depth < 100; depth++) {
@@ -275,20 +249,17 @@ describe('VM Comprehensive Testing - Step 12', () => {
           const symbol = symbols[i % symbols.length];
           try {
             vm.pushSymbolRef(symbol);
-            // Note: Not calling evalOp to test symbol resolution overhead
-            vm.pop(); // Remove the symbol reference
-          } catch (_error) {
-            // Expected for some operations with insufficient stack
+            vm.pop(); 
+          } catch {
+            /* empty */
           }
         }
 
-        // Clean up any remaining stack
         while (vm.getStackData().length > 0) {
           vm.pop();
         }
       }
 
-      // System should still be functional
       vm.push(100);
       vm.pushSymbolRef('dup');
       evalOp(vm);
@@ -299,7 +270,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const warmupIterations = 1000;
       const testIterations = 5000;
 
-      // Warmup phase
       for (let i = 0; i < warmupIterations; i++) {
         vm.push(i);
         vm.pushSymbolRef('dup');
@@ -308,7 +278,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
         vm.pop();
       }
 
-      // Measure consistent performance
       const times: number[] = [];
 
       for (let i = 0; i < testIterations; i++) {
@@ -323,26 +292,22 @@ describe('VM Comprehensive Testing - Step 12', () => {
         times.push(performance.now() - start);
       }
 
-      // Calculate variance - should be relatively stable
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       const variance =
         times.reduce((acc, time) => acc + Math.pow(time - avgTime, 2), 0) / times.length;
       const stdDev = Math.sqrt(variance);
 
-      // Standard deviation should be reasonable (less than 100% of average)
       expect(stdDev).toBeLessThan(avgTime);
     });
   });
 
   describe('Integration Workflow Testing', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
-      // Register various symbol types
       vm.symbolTable.defineBuiltin('add', Op.Add);
       vm.symbolTable.defineBuiltin('mul', Op.Multiply);
       vm.symbolTable.defineCode('square', 5000);
       vm.symbolTable.defineCode('double', 5100);
 
-      // Test workflow: 3 4 @add → 7, then @mul with 2 → 14
       vm.push(3);
       vm.push(4);
       vm.pushSymbolRef('add');
@@ -354,7 +319,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       evalOp(vm);
       expect(vm.peek()).toBe(14);
 
-      // Test that code references are properly formatted
       vm.pushSymbolRef('square');
       const { tag, value } = fromTaggedValue(vm.pop());
       expect(tag).toBe(Tag.CODE);
@@ -362,7 +326,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle rapid symbol type switching', () => {
-      // Set up alternating pattern
       const builtins = [
         { name: 'op1', code: Op.Add },
         { name: 'op2', code: Op.Multiply },
@@ -378,7 +341,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       builtins.forEach(op => vm.symbolTable.defineBuiltin(op.name, op.code));
       codeDefs.forEach(def => vm.symbolTable.defineCode(def.name, def.addr));
 
-      // Rapid alternating access
       for (let i = 0; i < 100; i++) {
         const useBuiltin = i % 2 === 0;
 
@@ -399,61 +361,56 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should integrate properly with existing VM operations', () => {
-      // Test that @symbol resolution works alongside normal VM operations
 
-      // Normal stack operations
       vm.push(10);
       vm.push(20);
       vm.push(30);
       expect(vm.getStackData()).toEqual([10, 20, 30]);
 
-      // Insert symbol references
-      vm.pushSymbolRef('dup'); // Should duplicate 30
+      vm.pushSymbolRef('dup'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 20, 30, 30]);
 
-      vm.pushSymbolRef('add'); // Should add 30 + 30 = 60
+      vm.pushSymbolRef('add'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 20, 60]);
 
-      vm.pushSymbolRef('add'); // Should add 20 + 60 = 80
+      vm.pushSymbolRef('add'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 80]);
 
-      // Continue with normal operations
       vm.push(5);
-      vm.pushSymbolRef('mul'); // Use 'mul' symbol (multiply)
+      vm.pushSymbolRef('mul'); 
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 400]);
     });
 
     it('should maintain stack integrity across complex operations', () => {
-      // Start with simple sequence and build up
-      vm.push(5); // Stack: [5]
-      vm.pushSymbolRef('dup'); // Stack: [5, dup]
-      evalOp(vm); // Stack: [5, 5]
+      vm.push(5); 
+      vm.pushSymbolRef('dup'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 5]);
 
-      vm.push(3); // Stack: [5, 5, 3]
-      vm.pushSymbolRef('add'); // Stack: [5, 5, 3, add]
-      evalOp(vm); // Stack: [5, 8] (5+3=8)
+      vm.push(3); 
+      vm.pushSymbolRef('add'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 8]);
 
-      vm.pushSymbolRef('dup'); // Stack: [5, 8, dup]
-      evalOp(vm); // Stack: [5, 8, 8]
+      vm.pushSymbolRef('dup'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 8, 8]);
 
-      vm.push(2); // Stack: [5, 8, 8, 2]
-      vm.pushSymbolRef('mul'); // Stack: [5, 8, 8, 2, mul]
-      evalOp(vm); // Stack: [5, 8, 16] (8*2=16)
+      vm.push(2); 
+      vm.pushSymbolRef('mul'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 8, 16]);
 
-      vm.pushSymbolRef('swap'); // Stack: [5, 8, 16, swap]
-      evalOp(vm); // Stack: [5, 16, 8]
+      vm.pushSymbolRef('swap'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 16, 8]);
 
-      vm.pushSymbolRef('add'); // Stack: [5, 16, 8, add]
-      evalOp(vm); // Stack: [5, 24] (16+8=24)
+      vm.pushSymbolRef('add'); 
+      evalOp(vm); 
       expect(vm.getStackData()).toEqual([5, 24]);
     });
   });
@@ -464,7 +421,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const initialSP = vm.SP;
       const initialRP = vm.RP;
 
-      // Perform various symbol operations
       vm.push(42);
       vm.pushSymbolRef('dup');
       evalOp(vm);
@@ -472,15 +428,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
       vm.pushSymbolRef('add');
       evalOp(vm);
 
-      // Clean up stack
       vm.pop();
 
-      // IP, SP should return to expected state (some changes expected)
-      // RP should be back to initial (no pending calls)
       expect(vm.RP).toBe(initialRP);
       expect(vm.SP).toBe(initialSP);
 
-      // VM should still be functional
       vm.push(100);
       vm.pushSymbolRef('dup');
       evalOp(vm);
@@ -490,13 +442,12 @@ describe('VM Comprehensive Testing - Step 12', () => {
     it('should handle error recovery gracefully', () => {
       const initialStackSize = vm.getStackData().length;
 
-      // Cause various errors and verify recovery
       const errorCases = [
         () => vm.pushSymbolRef('nonexistent'),
         () => {
           vm.pushSymbolRef('add');
           evalOp(vm);
-        }, // Stack underflow
+        }, 
         () => vm.pushSymbolRef(''),
       ];
 
@@ -504,12 +455,10 @@ describe('VM Comprehensive Testing - Step 12', () => {
         try {
           errorCase();
         } catch (_error) {
-          // Expected error, verify system is still stable
           expect(vm.getStackData().length).toBe(initialStackSize);
         }
       });
 
-      // System should still work after errors
       vm.push(99);
       vm.pushSymbolRef('dup');
       evalOp(vm);

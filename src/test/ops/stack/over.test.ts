@@ -52,12 +52,11 @@ describe('over Operation', () => {
     });
 
     test('should handle nested lists correctly', () => {
-      // Build outer ( 1 ( 2 3 ) ) as LIST
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(2, Tag.LIST)); // inner
+      vm.push(toTaggedValue(2, Tag.LIST)); 
       vm.push(1);
-      vm.push(toTaggedValue(2, Tag.LIST)); // outer
+      vm.push(toTaggedValue(2, Tag.LIST)); 
 
       vm.push(99);
 

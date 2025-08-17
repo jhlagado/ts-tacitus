@@ -53,7 +53,6 @@ describe('drop Operation', () => {
       expect(stack).toEqual([5]);
     });
 
-    // Removed ambiguous nested drop; drop removes only TOS LIST per operation
 
 
 

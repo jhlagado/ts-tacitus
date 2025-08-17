@@ -38,14 +38,12 @@ describe('findElement', () => {
   });
 
   test('should find nested lists', () => {
-    // Inner (2): 2 payload + header
     createList(vm, 1, 2);
     const [_innerNext, innerSize] = findElement(vm, 0);
     expect(innerSize).toBe(3);
 
-    // Wrap inner within outer: push inner payload+header remains contiguous; then add outer header
-    pushValue(vm, 4); // another payload under inner header
-    pushValue(vm, 3, Tag.LIST); // outer header with 3 slots total for payload (inner header counts as one slot)
+    pushValue(vm, 4); 
+    pushValue(vm, 3, Tag.LIST); 
 
     const [_outerNext, outerSize] = findElement(vm, 0);
     expect(outerSize).toBe(4);
@@ -85,14 +83,12 @@ describe('findElement', () => {
   });
 
   test('should return size 1 for invalid list structure (missing LIST tag)', () => {
-    // Legacy scenario removed; LIST must have header tag
     pushValue(vm, 1, Tag.NUMBER);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should return size 1 for invalid list structure (size mismatch)', () => {
-    // Invalid LIST-like sequence (no header or wrong tag): treated as atomic
     pushValue(vm, 2);
     pushValue(vm, 1);
     const [_next, size] = findElement(vm, 0);
