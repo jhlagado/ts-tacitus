@@ -12,6 +12,7 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { NIL, fromTaggedValue, toTaggedValue, Tag, isList } from '../core/tagged';
+import { evalOp } from './core-ops';
 import { getListSlotCount } from '../core/list';
 
 /**
@@ -30,14 +31,9 @@ export const getOp: Verb = (vm: VM) => {
   
   // Execute block to get path elements
   vm.push(blockAddr);
-  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
-  if (!evalImpl) {
-    vm.push(NIL);
-    return;
-  }
   
   const beforeSP = vm.SP - 4; // SP before block execution (after pushing blockAddr)
-  evalImpl(vm);
+  evalOp(vm);
   const afterSP = vm.SP;
   
   // Calculate how many elements the block produced

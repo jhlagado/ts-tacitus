@@ -10,6 +10,7 @@
 import { VM } from '../../core/vm';
 import { Verb } from '../../core/types';
 import { fromTaggedValue } from '../../core/tagged';
+import { evalOp } from '../core-ops';
 
 export const repeatOp: Verb = (vm: VM) => {
   vm.ensureStackSize(3, 'repeat');
@@ -25,11 +26,8 @@ export const repeatOp: Verb = (vm: VM) => {
 
   vm.push(value);
 
-  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
   for (let i = 0; i < count; i++) {
     vm.push(block);
-    if (evalImpl) {
-      evalImpl(vm);
-    }
+    evalOp(vm);
   }
 };

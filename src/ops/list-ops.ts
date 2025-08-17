@@ -26,6 +26,7 @@ import {
   createStackRef,
   NIL,
 } from '../core/tagged';
+import { evalOp } from './core-ops';
 import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
@@ -479,12 +480,8 @@ export function makeListOp(vm: VM): void {
   // 3. Execute block (like do combinator)
   vm.push(blockAddr);
   if (vm.debug) console.log('makeList: pushing blockAddr back onto stack for eval, SP now', vm.SP);
-  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
-  if (!evalImpl) {
-    throw new Error('eval operation not found');
-  }
   if (vm.debug) console.log('makeList: calling eval...');
-  evalImpl(vm);
+  evalOp(vm);
   if (vm.debug) console.log('makeList: eval completed');
 
   if (vm.debug)

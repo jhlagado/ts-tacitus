@@ -8,6 +8,7 @@
  */
 import { VM } from '../../core/vm';
 import { Verb } from '../../core/types';
+import { evalOp } from '../core-ops';
 
 export const doOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'do');
@@ -16,8 +17,5 @@ export const doOp: Verb = (vm: VM) => {
   vm.push(value);
 
   vm.push(block);
-  const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
-  if (evalImpl) {
-    evalImpl(vm);
-  }
+  evalOp(vm);
 };

@@ -273,11 +273,7 @@ function processWordToken(value: string, state: ParserState): void {
 
     beginStandaloneBlock(state);
 
-    const doIndex = vm.symbolTable.find('do');
-    if (doIndex === undefined) {
-      throw new UndefinedWordError('do', vm.getStackData());
-    }
-    vm.compiler.compileOpcode(doIndex);
+    vm.compiler.compileOpcode(Op.Do);
     return;
   } else if (value === 'repeat') {
     const blockToken = state.tokenizer.nextToken();
@@ -287,11 +283,7 @@ function processWordToken(value: string, state: ParserState): void {
 
     beginStandaloneBlock(state);
 
-    const repeatIndex = vm.symbolTable.find('repeat');
-    if (repeatIndex === undefined) {
-      throw new UndefinedWordError('repeat', vm.getStackData());
-    }
-    vm.compiler.compileOpcode(repeatIndex);
+    vm.compiler.compileOpcode(Op.Repeat);
     return;
   } else if (value === 'get') {
     const blockToken = state.tokenizer.nextToken();
@@ -321,8 +313,7 @@ function processWordToken(value: string, state: ParserState): void {
 
     beginStandaloneBlock(state);
 
-    const setIndex = vm.symbolTable.find('set');
-    vm.compiler.compileOpcode(setIndex ?? 999); // Use invalid placeholder if undefined
+    vm.compiler.compileOpcode(Op.Set);
     return;
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
@@ -364,10 +355,6 @@ function processAtSymbol(symbolName: string): void {
   // This pushes the resolved tagged value directly onto the stack
 
   // Compile a call to the pushSymbolRef built-in with the symbol name
-  const pushSymbolRefIndex = vm.symbolTable.find('pushSymbolRef');
-  if (pushSymbolRefIndex === undefined) {
-    throw new UndefinedWordError('pushSymbolRef', vm.getStackData());
-  }
 
   // First push the symbol name as a string literal
   vm.compiler.compileOpcode(Op.LiteralString);
@@ -375,7 +362,7 @@ function processAtSymbol(symbolName: string): void {
   vm.compiler.compile16(stringAddress);
 
   // Then call pushSymbolRef
-  vm.compiler.compileOpcode(pushSymbolRefIndex);
+  vm.compiler.compileOpcode(Op.PushSymbolRef);
 }
 
 /**
