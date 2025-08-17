@@ -32,7 +32,3 @@ export function createCodeRef(bytecodeAddr: number): number {
   return toTaggedValue(bytecodeAddr, Tag.CODE);
 }
 
-
-
-
-
