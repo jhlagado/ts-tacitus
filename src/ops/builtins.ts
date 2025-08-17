@@ -134,7 +134,7 @@ export function restoreTempOp(vm: VM): void {
  */
 export function literalCodeOp(vm: VM): void {
   const address = vm.read16();
-  const tagged = toTaggedValue(address, Tag.CODE);
+  const tagged = toTaggedValue(address, Tag.CODE, 1); // meta=1 for code blocks
   vm.push(tagged);
 }
 
