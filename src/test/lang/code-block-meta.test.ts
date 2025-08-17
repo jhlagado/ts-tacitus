@@ -54,7 +54,7 @@ describe('Code Block Meta Bit', () => {
     const bytecode = vm.getCompileData();
     let pos = 0;
     
-    // Expect: LiteralNumber, Branch, Print, ExitCode, LiteralCode, Eval, Abort
+    // Expect: LiteralNumber, Branch, Print, Exit, LiteralCode, Eval, Abort
     expect(bytecode[pos]).toBe(Op.LiteralNumber);
     pos += 5; // LiteralNumber + 4 bytes for float32
     
@@ -64,7 +64,7 @@ describe('Code Block Meta Bit', () => {
     expect(bytecode[pos]).toBe(Op.Print);
     pos += 1;
     
-    expect(bytecode[pos]).toBe(Op.ExitCode);
+    expect(bytecode[pos]).toBe(Op.Exit);
     pos += 1;
     
     expect(bytecode[pos]).toBe(Op.LiteralCode);
@@ -186,34 +186,34 @@ describe('Code Block Meta Bit', () => {
     expect(vm.IP).toBe(functionAddr); // Should have jumped to function
   });
 
-  test('should handle exit correctly for both scoping types', () => {
+  test('should handle exit correctly for both scoping types using unified exitOp', () => {
     resetVM();
     
+    // Test code block exit behavior (BP never changed, so restoring saved BP has no effect)
     const initialBP = 200;
     vm.BP = initialBP;
     
-    // Test exitCodeOp (for code blocks) - should discard saved BP
     vm.rpush(500); // Simulate return address
-    vm.rpush(initialBP); // Simulate saved BP
+    vm.rpush(initialBP); // Simulate saved BP (same as current)
     
-    const beforeBP = vm.BP;
-    require('../../ops/core-ops').exitCodeOp(vm);
+    require('../../ops/core-ops').exitOp(vm);
     
-    // BP should remain unchanged (saved BP was discarded)
-    expect(vm.BP).toBe(beforeBP);
+    // BP should remain the same (restoring same value has no effect)
+    expect(vm.BP).toBe(initialBP);
     expect(vm.IP).toBe(500); // Should have returned to correct address
     
     // Reset for function exit test
     resetVM();
-    vm.BP = 300; // Different BP to show it gets restored
+    const newBP = 300;
+    vm.BP = newBP; // Different BP to show it gets restored
     
     // Test exitOp (for functions) - should restore saved BP
     vm.rpush(600); // Simulate return address  
-    vm.rpush(initialBP); // Simulate saved BP
+    vm.rpush(initialBP); // Simulate saved BP (different from current)
     
     require('../../ops/core-ops').exitOp(vm);
     
-    // BP should be restored from saved value
+    // BP should be restored from saved value (different from current)
     expect(vm.BP).toBe(initialBP);
     expect(vm.IP).toBe(600); // Should have returned to correct address
   });

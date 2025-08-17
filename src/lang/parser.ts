@@ -602,7 +602,7 @@ function compileCodeBlock(state: ParserState): { startAddress: number; offsetAdd
   vm.compiler.compile16(0);
 
   const startAddress = parseCurlyBlock(state);
-  vm.compiler.compileOpcode(Op.ExitCode);
+  vm.compiler.compileOpcode(Op.Exit);
   const blockEnd = vm.compiler.CP;
 
   const skipOffset = blockEnd - (skipAddr + 3);
