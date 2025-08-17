@@ -21,93 +21,11 @@ import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 
 import {
-  literalNumberOp,
-  skipDefOp,
-  skipBlockOp,
-  callOp,
-  abortOp,
-  exitOp,
-  exitCodeOp,
   evalOp,
-  literalStringOp,
-  pushSymbolRefOp,
 } from './core-ops';
 
-import { literalAddressOp } from './builtins';
-
-import {
-  addOp,
-  subtractOp,
-  multiplyOp,
-  divideOp,
-  powerOp,
-  modOp,
-  minOp,
-  maxOp,
-  equalOp,
-  lessThanOp,
-  lessOrEqualOp,
-  greaterThanOp,
-  greaterOrEqualOp,
-  absOp,
-  negOp,
-  signOp,
-  expOp,
-  lnOp,
-  logOp,
-  sqrtOp,
-  powOp,
-  avgOp,
-  prodOp,
-  mNegateOp,
-  mReciprocalOp,
-  mFloorOp,
-  mNotOp,
-  mSignumOp,
-} from './math-ops';
-
-import { mEnlistOp } from './list-ops';
-
-import {
-  dupOp,
-  dropOp,
-  swapOp,
-  rotOp,
-  revrotOp,
-  overOp,
-  pickOp,
-  nipOp,
-  tuckOp,
-} from './stack-ops';
-
-import { simpleIfOp, ifCurlyBranchFalseOp } from './control-ops';
-
-import { printOp, rawPrintOp } from './print-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { getOp, setOp } from './access-ops';
-import {
-  openListOp,
-  closeListOp,
-  listSlotOp,
-  lengthOp,
-  slotOp,
-  elemOp,
-  fetchOp,
-  storeOp,
-  consOp,
-  concatOp,
-  dropHeadOp,
-  headOp,
-  unconsOp,
-  packOp,
-  unpackOp,
-  reverseOp,
-  findOp,
-  keysOp,
-  valuesOp,
-  makeListOp,
-} from './list-ops';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -125,12 +43,6 @@ import {
  * @param symbolTable - The symbol table to register operations in
  */
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
-  symbolTable.defineBuiltin('lit', Op.LiteralNumber);
-  symbolTable.defineBuiltin('branch', Op.Branch);
-  symbolTable.defineBuiltin('branch-call', Op.BranchCall);
-  symbolTable.defineBuiltin('call', Op.Call);
-  symbolTable.defineBuiltin('abort', Op.Abort);
-  symbolTable.defineBuiltin('exit', Op.Exit);
   symbolTable.defineBuiltin('eval', Op.Eval, evalOp);
   symbolTable.defineBuiltin('pushSymbolRef', Op.PushSymbolRef);
   symbolTable.defineBuiltin('.', Op.Print);
@@ -149,7 +61,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('elem', Op.Elem);
   symbolTable.defineBuiltin('fetch', Op.Fetch);
   symbolTable.defineBuiltin('store', Op.Store);
-  
+
   // Lists.md spec operations - Section 12
   symbolTable.defineBuiltin('cons', Op.Cons);
   symbolTable.defineBuiltin('concat', Op.Concat);
@@ -215,7 +127,4 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('get', Op.Get);
   symbolTable.defineBuiltin('set', Op.Set);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
-  
-  symbolTable.defineBuiltin('exit', Op.Exit);
-  symbolTable.defineBuiltin('exitCode', Op.ExitCode);
 }
