@@ -96,7 +96,7 @@ const EXPONENT_MASK = 0xff << 23;
  * @returns A 32-bit floating-point number representing the NaN-boxed tagged value.
  * @throws {Error} If the tag, value, or meta bit is invalid.
  */
-export function toTaggedValue(value: number, tag: Tag, meta: number = 0): number {
+export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
   if (tag < Tag.NUMBER || tag > MAX_TAG) {
     throw new Error(`Invalid tag: ${tag}`);
   }

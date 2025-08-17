@@ -10,7 +10,7 @@
  * making it easier to work with code references throughout the VM system.
  */
 
-import { Tag, toTaggedValue, fromTaggedValue } from './tagged';
+import { Tag, toTaggedValue } from './tagged';
 import { MAX_BUILTIN_OPCODE } from './constants';
 
 /**

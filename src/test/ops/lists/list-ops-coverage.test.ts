@@ -2,7 +2,7 @@
  * Tests for list-ops.ts - targeting uncovered branches
  * This focuses on error conditions, edge cases, and debug output not covered in main list tests
  */
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { openListOp, closeListOp, listSlotOp, lengthOp } from '../../../ops/list-ops';
 import { toTaggedValue, Tag } from '../../../core/tagged';

@@ -5,7 +5,6 @@
 
 import { VM } from '../../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core/tagged';
-import { MAX_BUILTIN_OPCODE } from '../../core/constants';
 
 /**
  * Print function for debugging tagged values during tests.
