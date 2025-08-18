@@ -13,7 +13,8 @@
 9. [Variable Lifetime and Safety](#9-variable-lifetime-and-safety)
 10. [Stack Register Summary](#10-stack-register-summary)
 11. [Examples](#11-examples)
-12. [Conclusion](#12-conclusion)
+12. [Design Philosophy](#12-design-philosophy)
+13. [Conclusion](#13-conclusion)
 
 ## 1. Stack Architecture
 
@@ -228,7 +229,51 @@ Both SP and RP are pointers into the same STACK segment but operate on different
 ;
 ```
 
-## 12. Conclusion
+## 12. Design Philosophy
+
+### Address-Oriented Locals
+
+TACIT treats local variables not as named values but as named addresses. A `var` declaration doesn’t define a value; it reserves a slot in the current function’s stack frame and gives you a symbolic way to fetch or store into it. This is not sugar — it’s a deliberate move toward a uniform memory model where everything is accessed through explicit pointer operations.
+
+This keeps the language consistent. Whether you're working with a list element, a field in a capsule, or a local variable, the same `fetch` and `store` primitives apply. No runtime symbol lookup. No hidden binding environments. Just static offsets and direct memory access.
+
+---
+
+### Stack Frames Without the Heap
+
+Function stack frames in TACIT live entirely on the return stack. There’s no call frame object, no boxed environment, and no closures. Locals are just stack slots above a saved base pointer.
+
+Code blocks, in contrast, don't get frames of their own. They’re control constructs, not scope constructs. They execute inline, share access to the parent function’s frame, and leave the stack cleanup to you. This creates a tight, predictable execution model: stack grows in, stack grows out.
+
+This is closer to Forth than to Lisp. There’s no GC, no persistent environment. Just disciplined stack discipline.
+
+---
+
+### Declaration Discipline
+
+Variable declarations in TACIT are lexically scoped to their function and must appear at the top level of that function’s body. This isn’t just syntactic pedantry — it reflects a deeper truth about the language's execution model.
+
+When a function begins execution, it lays out its locals in a flat stack frame. That layout is determined statically. Allowing dynamic or nested declarations would break that predictability and require dynamic name tracking or reallocation — both of which are off the table in TACIT.
+
+In that sense, TACIT's variable model has more in common with WASM or early C than with dynamic languages. It's stack-native and structurally transparent.
+
+---
+
+### Dictionary Hygiene via Forget
+
+When you declare a variable with `var`, it adds an entry to the dictionary, mapping the name to an offset from BP. But those entries aren’t permanent. They’re scoped to the function by using a dictionary mark: a snapshot of the dictionary's depth at the start of function compilation.
+
+When the function ends (with `;`), all variable names declared since the mark are forgotten. This allows names to be reused across functions without name collisions or pollution. It also mirrors the memory behavior: once the function exits, its locals are gone — so are their names.
+
+---
+
+### Ownership and Lifetime
+
+TACIT’s choice to put locals on the return stack is tightly linked to its ownership model. Functions may borrow references to variables in their callers, but they may not return them. Lifetimes are enforced structurally: if you try to return a reference to a local whose frame has been popped, the address will be visibly invalid — higher than the current local stack pointer.
+
+In other words, **you don't need a borrow checker**. You've designed the stack layout so that illegal lifetimes are naturally invalid addresses. This is a very Forth-like approach to memory safety: don't prohibit mistakes through type theory, just make them impossible to get past the metal.
+
+## 13. Conclusion
 
 This specification establishes the foundational model for local variables in TACIT functions. Local variables provide stable, compile-time addresses within function stack frames, accessed through explicit `fetch` and `store` operations. Code blocks preserve lexical access to these variables without creating new frames.
 
