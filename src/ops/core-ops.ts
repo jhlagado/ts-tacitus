@@ -238,13 +238,11 @@ export const exitOp: Verb = (vm: VM) => {
  */
 export const exitCodeOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < 2 * BYTES_PER_ELEMENT) {
+    if (vm.RP < BYTES_PER_ELEMENT) {
       vm.running = false;
       return;
     }
-    // For code blocks (lexical scoping): discard saved BP, don't restore it
-    // BP was never changed during the call, so we just pop and discard the saved value
-    vm.rpop(); // Discard saved BP
+    // For code blocks (lexical scoping): only return address was saved
     const returnAddr = vm.rpop();
     if (isCode(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
@@ -290,10 +288,9 @@ export const evalOp: Verb = (vm: VM) => {
   switch (tag) {
     case Tag.CODE:
       if (meta === 1) {
-        // Code block execution (lexical scoping - preserve parent's BP)
+        // Code block execution (lexical scoping - no stack frame)
         vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-        vm.rpush(vm.BP);
-        // DON'T change BP - keep parent's frame for lexical scoping
+        // DON'T save/change BP - keep parent's frame for lexical scoping
         vm.IP = addr;
       } else {
         // Function execution (dynamic scoping - new frame)
