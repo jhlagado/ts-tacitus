@@ -259,8 +259,6 @@ When you declare a variable with `var`, it adds an entry to the dictionary, mapp
 
 When the function ends (with `;`), all variable names declared since the mark are forgotten. This allows names to be reused across functions without name collisions or pollution. It also mirrors the memory behavior: once the function exits, its locals are gone — so are their names.
 
----
-
 ### Ownership and Lifetime
 
 TACIT’s choice to put locals on the return stack is tightly linked to its ownership model. Functions may borrow references to variables in their callers, but they may not return them. Lifetimes are enforced structurally: if you try to return a reference to a local whose frame has been popped, the address will be visibly invalid — higher than the current local stack pointer.
