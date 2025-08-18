@@ -18,7 +18,7 @@
 
 ## 1. Stack Architecture
 
-TACIT VM uses a dual-stack architecture similar to Forth. Both stacks share the same STACK segment:
+TACIT VM uses a dual-stack architecture. Both stacks share the same STACK segment:
 
 - **Data Stack (SP)**: For computation and parameter passing
 - **Return Stack (RP)**: For function calls and local variables
@@ -27,7 +27,7 @@ Local variables live on the return stack. The Base Pointer (BP) provides a stabl
 
 ## 2. Functions and Code Blocks
 
-**Functions** are declared in Forth style:
+**Functions** are declared using colon syntax:
 ```
 : function-name ... ;
 ```
@@ -243,7 +243,7 @@ Function stack frames in TACIT live entirely on the return stack. There’s no c
 
 Code blocks, in contrast, don't get frames of their own. They’re control constructs, not scope constructs. They execute inline, share access to the parent function’s frame, and leave the stack cleanup to you. This creates a tight, predictable execution model: stack grows in, stack grows out.
 
-This is closer to Forth than to Lisp. There’s no GC, no persistent environment. Just disciplined stack discipline.
+There's no GC, no persistent environment. Just disciplined stack discipline.
 
 ### Declaration Discipline
 
@@ -251,7 +251,7 @@ Variable declarations in TACIT are lexically scoped to their function and must a
 
 When a function begins execution, it lays out its locals in a flat stack frame. That layout is determined statically. Allowing dynamic or nested declarations would break that predictability and require dynamic name tracking or reallocation — both of which are off the table in TACIT.
 
-In that sense, TACIT's variable model has more in common with WASM or early C than with dynamic languages. It's stack-native and structurally transparent.
+TACIT's variable model is stack-native and structurally transparent.
 
 ### Dictionary Hygiene via Forget
 
@@ -263,7 +263,7 @@ When the function ends (with `;`), all variable names declared since the mark ar
 
 TACIT’s choice to put locals on the return stack is tightly linked to its ownership model. Functions may borrow references to variables in their callers, but they may not return them. Lifetimes are enforced structurally: if you try to return a reference to a local whose frame has been popped, the address will be visibly invalid — higher than the current local stack pointer.
 
-In other words, **you don't need a borrow checker**. You've designed the stack layout so that illegal lifetimes are naturally invalid addresses. This is a very Forth-like approach to memory safety: don't prohibit mistakes through type theory, just make them impossible to get past the metal.
+In other words, **you don't need a borrow checker**. The stack layout ensures that illegal lifetimes are naturally invalid addresses. This approach to memory safety makes mistakes impossible to get past the metal rather than prohibiting them through type theory.
 
 ## 13. Conclusion
 
