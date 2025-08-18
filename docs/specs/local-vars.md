@@ -1,5 +1,20 @@
 # TACIT Local Variables and Function Stack Frame Specification
 
+## Table of Contents
+
+1. [Stack Architecture](#1-stack-architecture)
+2. [Functions and Code Blocks](#2-functions-and-code-blocks)
+3. [Function Stack Frame](#3-function-stack-frame)
+4. [Local Variable Declaration](#4-local-variable-declaration)
+5. [Variable Access and Addressing](#5-variable-access-and-addressing)
+6. [Code Block Behavior](#6-code-block-behavior)
+7. [Function Entry and Exit](#7-function-entry-and-exit)
+8. [Dictionary Management](#8-dictionary-management)
+9. [Variable Lifetime and Safety](#9-variable-lifetime-and-safety)
+10. [Stack Register Summary](#10-stack-register-summary)
+11. [Examples](#11-examples)
+12. [Conclusion](#12-conclusion)
+
 ## 1. Stack Architecture
 
 TACIT VM uses a dual-stack architecture similar to Forth. Both stacks share the same STACK segment:
@@ -70,6 +85,10 @@ When called as `5 3 ok`, values are captured in reverse stack order: `a` gets 3 
 
 ## 5. Variable Access and Addressing
 
+### Address-Based Model
+
+Variable symbols resolve to addresses, not values. This follows TACIT's unified addressing architecture where all memory access uses the same `fetch` and `store` primitives.
+
 Each variable's address is computed at compile time:
 ```
 address = BP + offset
@@ -80,11 +99,24 @@ Offset calculation:
 - Second: offset +8 (BP + 8)
 - Third: offset +12 (BP + 12)
 
-Variable references compile to:
-- Read: `LOAD_LOCAL offset(x)`
-- Write: `STORE_LOCAL offset(x)`
+### Memory Operations
 
-No runtime name lookup occurs - all resolution is static.
+Variable access requires explicit memory operations:
+- **Reading a variable**: Push address, then `fetch`
+- **Writing a variable**: Push value, push address, then `store`
+
+Stack effects:
+```
+myvar         ( — addr )       \ Push variable address
+myvar fetch   ( — value )      \ Read variable value  
+value myvar store ( — )        \ Write variable value
+```
+
+### Foundation for Complex Access
+
+Local variables serve as base addresses for complex data structure access. Higher-level addressing operations build upon this foundation using the same `fetch` and `store` primitives.
+
+No runtime name lookup occurs - all address resolution is static.
 
 ## 6. Code Block Behavior
 
@@ -171,13 +203,21 @@ Both SP and RP are pointers into the same STACK segment but operate on different
 
 ## 11. Examples
 
-**Legal Function:**
+**Basic Variable Access:**
 ```
 : calculate
     10 var a
     5 var b
-    a b add
-    if { a 0 gt } then { a print } endif
+    a fetch b fetch add    \ Read both variables and add
+    c store                \ Store result in another variable
+;
+```
+
+**Variable as Base Address:**
+```
+: process-data
+    ( 1 2 3 ) var mylist         \ Store a list in variable
+    mylist fetch                 \ Get the list address for further operations
 ;
 ```
 
@@ -187,3 +227,9 @@ Both SP and RP are pointers into the same STACK segment but operate on different
     if { 3 var x } then { x } endif  // Error: variable declaration inside block
 ;
 ```
+
+## 12. Conclusion
+
+This specification establishes the foundational model for local variables in TACIT functions. Local variables provide stable, compile-time addresses within function stack frames, accessed through explicit `fetch` and `store` operations. Code blocks preserve lexical access to these variables without creating new frames.
+
+This address-based approach forms the foundation for TACIT's unified memory architecture, where all data access - from simple variables to complex data structures - uses the same addressing and memory access primitives. Higher-level addressing mechanisms build upon this foundation while maintaining the same stack discipline and memory safety guarantees.
