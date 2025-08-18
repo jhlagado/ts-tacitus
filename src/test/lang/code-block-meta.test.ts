@@ -54,7 +54,7 @@ describe('Code Block Meta Bit', () => {
     const bytecode = vm.getCompileData();
     let pos = 0;
     
-    // Expect: LiteralNumber, Branch, Print, Exit, LiteralCode, Eval, Abort
+    // Expect: LiteralNumber, Branch, Print, ExitCode, LiteralCode, Eval, Abort
     expect(bytecode[pos]).toBe(Op.LiteralNumber);
     pos += 5; // LiteralNumber + 4 bytes for float32
     
@@ -64,7 +64,7 @@ describe('Code Block Meta Bit', () => {
     expect(bytecode[pos]).toBe(Op.Print);
     pos += 1;
     
-    expect(bytecode[pos]).toBe(Op.Exit);
+    expect(bytecode[pos]).toBe(Op.ExitCode);
     pos += 1;
     
     expect(bytecode[pos]).toBe(Op.LiteralCode);
@@ -149,7 +149,7 @@ describe('Code Block Meta Bit', () => {
     const initialBP = 100;
     vm.BP = initialBP;
     
-    // Test code block (meta=1) - should preserve parent BP
+    // Test code block (meta=1) - should preserve parent BP and not save it
     const codeBlockAddr = 500;
     const codeBlockRef = require('../../core/tagged').toTaggedValue(codeBlockAddr, Tag.CODE, 1);
     
@@ -164,7 +164,7 @@ describe('Code Block Meta Bit', () => {
     
     // Check that BP was NOT changed (lexical scoping)
     expect(vm.BP).toBe(initialBP); // BP should remain unchanged
-    expect(vm.RP).toBe(beforeRP + 8); // RP should have 2 values pushed (IP + BP)
+    expect(vm.RP).toBe(beforeRP + 4); // RP should have only 1 value pushed (IP only)
     expect(vm.IP).toBe(codeBlockAddr); // Should have jumped to code block
     
     // Reset for function test
@@ -186,34 +186,33 @@ describe('Code Block Meta Bit', () => {
     expect(vm.IP).toBe(functionAddr); // Should have jumped to function
   });
 
-  test('should handle exit correctly for both scoping types using unified exitOp', () => {
+  test('should handle exit correctly for both scoping types with separate opcodes', () => {
     resetVM();
     
-    // Test code block exit behavior (BP never changed, so restoring saved BP has no effect)
+    // Test exitCodeOp (for code blocks) - only return address was saved
     const initialBP = 200;
     vm.BP = initialBP;
     
-    vm.rpush(500); // Simulate return address
-    vm.rpush(initialBP); // Simulate saved BP (same as current)
+    vm.rpush(500); // Simulate return address (only thing saved for code blocks)
     
-    require('../../ops/core-ops').exitOp(vm);
+    const beforeBP = vm.BP;
+    require('../../ops/core-ops').exitCodeOp(vm);
     
-    // BP should remain the same (restoring same value has no effect)
-    expect(vm.BP).toBe(initialBP);
+    // BP should remain unchanged (was never saved/modified)
+    expect(vm.BP).toBe(beforeBP);
     expect(vm.IP).toBe(500); // Should have returned to correct address
     
     // Reset for function exit test
     resetVM();
-    const newBP = 300;
-    vm.BP = newBP; // Different BP to show it gets restored
+    vm.BP = 300; // Different BP to show it gets restored
     
     // Test exitOp (for functions) - should restore saved BP
     vm.rpush(600); // Simulate return address  
-    vm.rpush(initialBP); // Simulate saved BP (different from current)
+    vm.rpush(initialBP); // Simulate saved BP
     
     require('../../ops/core-ops').exitOp(vm);
     
-    // BP should be restored from saved value (different from current)
+    // BP should be restored from saved value
     expect(vm.BP).toBe(initialBP);
     expect(vm.IP).toBe(600); // Should have returned to correct address
   });
