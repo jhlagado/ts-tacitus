@@ -34,7 +34,7 @@ Local variables live on the return stack. The Base Pointer (BP) provides a stabl
 
 **Code blocks** are sections of code enclosed in curly braces `{ ... }`:
 ```
-if condition { true-branch } else { false-branch } endif
+if { condition } then { true-branch } else { false-branch } endif
 ```
 
 Key difference: Functions create new stack frames, code blocks execute within their containing function's frame.
@@ -53,10 +53,10 @@ Stack frame layout:
 STACK Segment (return stack area):
 [ return addr ]
 [ previous BP ] ← BP (points to saved base pointer)
-[ local N     ]
-[ local N-1   ]
+[ local 0     ]
+[ local 1     ]
 ...
-[ local 0     ] ← RP (grows upward from here)
+[ local N     ] ← RP (grows upward from here)
 ```
 
 The stack frame is the space between BP and RP.
@@ -132,10 +132,10 @@ Example with nested code blocks:
 STACK Segment (return stack area):
 [ return addr ]
 [ previous BP ] ← BP (function's base pointer)
-[ local N     ]
-[ local N-1   ]
-...
 [ local 0     ]
+[ local 1     ]
+...
+[ local N     ]
 [ return addr1] (first code block's return address)
 [ return addr2] ← RP (second code block's return address)
 ```
@@ -237,8 +237,6 @@ TACIT treats local variables not as named values but as named addresses. A `var`
 
 This keeps the language consistent. Whether you're working with a list element, a field in a capsule, or a local variable, the same `fetch` and `store` primitives apply. No runtime symbol lookup. No hidden binding environments. Just static offsets and direct memory access.
 
----
-
 ### Stack Frames Without the Heap
 
 Function stack frames in TACIT live entirely on the return stack. There’s no call frame object, no boxed environment, and no closures. Locals are just stack slots above a saved base pointer.
@@ -247,8 +245,6 @@ Code blocks, in contrast, don't get frames of their own. They’re control const
 
 This is closer to Forth than to Lisp. There’s no GC, no persistent environment. Just disciplined stack discipline.
 
----
-
 ### Declaration Discipline
 
 Variable declarations in TACIT are lexically scoped to their function and must appear at the top level of that function’s body. This isn’t just syntactic pedantry — it reflects a deeper truth about the language's execution model.
@@ -256,8 +252,6 @@ Variable declarations in TACIT are lexically scoped to their function and must a
 When a function begins execution, it lays out its locals in a flat stack frame. That layout is determined statically. Allowing dynamic or nested declarations would break that predictability and require dynamic name tracking or reallocation — both of which are off the table in TACIT.
 
 In that sense, TACIT's variable model has more in common with WASM or early C than with dynamic languages. It's stack-native and structurally transparent.
-
----
 
 ### Dictionary Hygiene via Forget
 
