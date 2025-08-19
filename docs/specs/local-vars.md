@@ -4,269 +4,419 @@
 
 1. [Stack Architecture](#1-stack-architecture)
 2. [Functions and Code Blocks](#2-functions-and-code-blocks)
-3. [Function Stack Frame](#3-function-stack-frame)
-4. [Local Variable Declaration](#4-local-variable-declaration)
-5. [Variable Access and Addressing](#5-variable-access-and-addressing)
-6. [Code Block Behavior](#6-code-block-behavior)
-7. [Function Entry and Exit](#7-function-entry-and-exit)
-8. [Dictionary Management](#8-dictionary-management)
-9. [Variable Lifetime and Safety](#9-variable-lifetime-and-safety)
-10. [Stack Register Summary](#10-stack-register-summary)
-11. [Examples](#11-examples)
-12. [Design Philosophy](#12-design-philosophy)
-13. [Conclusion](#13-conclusion)
+3. [Function Stack Frame Layout](#3-function-stack-frame-layout)
+4. [Local Variable Slots](#4-local-variable-slots)
+5. [Variable Declaration and Compilation](#5-variable-declaration-and-compilation)
+6. [Runtime Initialization](#6-runtime-initialization)
+7. [Variable Access and Addressing](#7-variable-access-and-addressing)
+8. [Compound Data Storage](#8-compound-data-storage)
+9. [Function Entry and Exit](#9-function-entry-and-exit)
+10. [Dictionary Management](#10-dictionary-management)
+11. [New Opcodes](#11-new-opcodes)
+12. [Code Block Behavior](#12-code-block-behavior)
+13. [Variable Lifetime and Safety](#13-variable-lifetime-and-safety)
+14. [Examples](#14-examples)
+15. [Design Philosophy](#15-design-philosophy)
+16. [Conclusion](#16-conclusion)
 
 ## 1. Stack Architecture
 
 TACIT VM uses a dual-stack architecture. Both stacks share the same STACK segment:
 
 - **Data Stack (SP)**: For computation and parameter passing
-- **Return Stack (RP)**: For function calls and local variables
+- **Return Stack (RP)**: For function calls, local variables, and compound data storage
 
-Local variables live on the return stack. The Base Pointer (BP) provides a stable reference point for addressing these variables within each function's frame.
+Local variables are stored in fixed-size slots on the return stack. The Base Pointer (BP) provides a stable reference point for addressing these slots within each function's frame.
 
 ## 2. Functions and Code Blocks
 
-**Functions** are declared using colon syntax:
+**Functions*mul are declared using colon syntax:
 ```
 : function-name ... ;
 ```
 
-**Code blocks** are sections of code enclosed in curly braces `{ ... }`:
+**Code blocks*mul are sections of code enclosed in curly braces `{ ... }`:
 ```
 if { condition } then { true-branch } else { false-branch } endif
 ```
 
-Key difference: Functions create new stack frames, code blocks execute within their containing function's frame.
+Key difference: Functions create new stack frames with local variable slots, code blocks execute within their containing function's frame and access parent locals.
 
-## 3. Function Stack Frame
+## 3. Function Stack Frame Layout
 
-When a function is called:
+When a function is called, the stack frame has the following structure:
 
-- The return address is pushed onto the return stack (RP)
-- The current base pointer (BP) is pushed onto the return stack (RP)
-- BP is set to point to the current state of the stack pointer
-- Local variable slots are reserved by advancing RP
-
-Stack frame layout:
 ```
-STACK Segment (return stack area):
 [ return addr ]
 [ previous BP ] ← BP (points to saved base pointer)
-[ local 0     ]
-[ local 1     ]
+[ slot 0      ] ← BP + 0 (first local variable)
+[ slot 1      ] ← BP + 4 (second local variable)
+[ slot 2      ] ← BP + 8 (third local variable)
 ...
-[ local N     ] ← RP (grows upward from here)
+[ slot N-1    ] ← BP + (N-1)*4 (last local variable)
+[ compound    ] ← RP grows upward (compound data storage)
+[ data...     ]
 ```
 
-The stack frame is the space between BP and RP.
+The stack frame consists of:
+1. **Standard frame header**: Return address and saved BP
+2. **Local variable slots**: Fixed-size 32-bit slots for variable storage
+3. **Compound data area**: Variable-size area for lists and complex structures
 
-## 4. Local Variable Declaration
+## 4. Local Variable Slots
 
+Each local variable occupies exactly **one 32-bit slot*mul that can contain:
+
+- **Simple values**: Numbers, strings, symbols stored directly as tagged values
+- **Compound references**: `Tag.REF` values pointing to compound data in the return stack
+
+### Slot Storage Types:
+- `Tag.NUMBER` - Direct numeric values
+- `Tag.STRING` - String table references  
+- `Tag.CODE` - Code pointers
+- `Tag.REF` - References to compound data on return stack
+- `Tag.BUILTIN` - Builtin operation references
+
+### Slot Capacity:
+- **Maximum 255 local variables*mul per function (8-bit slot count)
+- **Unlimited compound data*mul (grows dynamically on return stack)
+
+## 5. Variable Declaration and Compilation
+
+### Syntax
 Variables are declared using:
 ```
 value var name
 ```
 
-Variables can capture values from the data stack, effectively creating formal parameters:
+The `value` is popped from the data stack at runtime and stored in the variable.
+
+### Compilation Process
+
+1. **Function Prologue**: Emit `RESERVE` with placeholder slot count
+2. **Variable Registration**: Each `var` statement:
+   - Registers symbol in compile-time dictionary
+   - Assigns sequential slot number
+   - Emits `INIT_VAR_SLOT` opcode
+3. **Back-patching**: Update `RESERVE` with final slot count
+
+### Example Compilation:
+```tacit
+: area var radius 3.142 var pi radius square pi mul ;
 ```
-: ok
-    var b
-    var a
-    a b add
+
+Generates bytecode:
+```
+CALL area-addr
+RESERVE 2          ← back-patched from placeholder
+INIT_VAR_SLOT 0    ← radius = TOS (runtime value)
+LITERAL_NUMBER 3.142
+INIT_VAR_SLOT 1    ← pi = 3.142
+LOCAL_VAR_ADDR 0   ← push address of radius slot
+FETCH              ← get radius value
+SQUARE
+LOCAL_VAR_ADDR 1   ← push address of pi slot  
+FETCH              ← get pi value
+MUL
+EXIT
+```
+
+## 6. Runtime Initialization
+
+### Function Entry Sequence:
+1. **Standard frame setup*mul (handled by existing `callOp`):
+   - Save return address: `rpush(IP)`
+   - Save base pointer: `rpush(BP)`
+   - Set new base pointer: `BP = RP`
+
+2. **Slot allocation*mul (`RESERVE` opcode):
+   - Read slot count from bytecode
+   - Advance RP: `RP += slot_count mul 4`
+
+3. **Variable initialization*mul (`INIT_VAR_SLOT` opcodes):
+   - Pop value from data stack
+   - Store in designated slot with appropriate tagging
+
+### Initialization Types:
+
+**Simple Values**: `42 var x`
+- Calculate slot address: BP + slot × 4
+- Store value directly as tagged number in slot
+
+**Compound Values**: `(1 2 3) var mylist`  
+- Calculate slot address: BP + slot × 4
+- Store Tag.REF pointing to current RP position
+- Copy entire compound structure to return stack above RP
+
+## 7. Variable Access and Addressing
+
+### Address Resolution
+Variable symbols resolve to slot addresses at compile time:
+```
+variable_name → LOCAL_VAR_ADDR slot_number → BP + slot_number mul 4
+```
+
+### Memory Operations
+Variable access requires explicit memory operations:
+- **Reading a variable**: `variable_name fetch`
+- **Writing a variable**: `value variable_name store`
+
+### Stack Effects:
+```
+myvar           ( — addr )        \ Push variable slot address
+myvar fetch     ( — value )       \ Read variable value  
+value myvar store ( — )           \ Write variable value
+```
+
+### Compound Value Access:
+For compound values, the slot contains a `Tag.REF` pointing to the actual data:
+```
+mylist           ( — slot_addr )   \ Address of slot containing reference
+mylist fetch     ( — ref_addr )    \ Address of actual compound data
+mylist fetch fetch ( — first_elem ) \ First element of compound data
+```
+
+## 8. Compound Data Storage
+
+Compound values (lists, maplists) are stored in the return stack area above the variable slots:
+
+### Storage Strategy:
+1. **Slot contains reference**: Store `Tag.REF` pointing to compound data
+2. **Data copied to return stack**: Complete structure copied, not referenced
+3. **Proper structure layout**: Maintains list format (payload + header)
+
+### Example - List Storage:
+```
+: process-data (1 2 3) var mylist mylist fetch ;
+```
+
+Frame layout after initialization:
+```
+[ return addr ]
+[ previous BP ] ← BP
+[ slot 0: Tag.REF(RP_addr) ] ← mylist slot
+[ list_data: 1 ]             ← RP_addr (compound data)
+[ list_data: 2 ]
+[ list_data: 3 ]
+[ list_header: LIST:3 ]      ← RP
+```
+
+## 9. Function Entry and Exit
+
+### Function Entry:
+1. Standard frame setup (existing `callOp`)
+2. Execute `RESERVE N` - allocate N local variable slots
+3. Execute `INIT_VAR_SLOT` operations - initialize each variable
+
+### Function Exit:
+1. **Single instruction cleanup**: `RP = BP`
+   - Deallocates all local variable slots
+   - Deallocates all compound data
+   - Handles nested structures automatically
+2. Restore previous BP: `BP = rpop()`
+3. Restore return address and jump: `IP = rpop()`
+
+### Cleanup Elegance:
+The `RP = BP` operation instantly deallocates:
+- All local variable slots
+- All compound data structures  
+- All nested compound data
+- Everything above the saved BP
+
+No complex deallocation logic, reference counting, or memory management required.
+
+## 10. Dictionary Management
+
+### Compile-Time Scope:
+- `mark()` at function start (existing)
+- Register each local variable: `define(name, LOCAL_VAR, slot_number)`
+- `revert()` at function end (existing) - removes all local symbols
+
+### Symbol Resolution Priority:
+1. **Local variables*mul (if inside function)
+2. **Global symbols*mul 
+3. **Built-in operations**
+
+### Symbol Types:
+
+| Symbol Kind | Purpose | Data Stored |
+|-------------|---------|-------------|
+| BUILTIN | Built-in operations | Opcode number |
+| USER_DEF | User-defined functions | Bytecode address |
+| LOCAL_VAR | Local variables | Slot number |
+
+Local variables store slot numbers instead of opcodes or addresses.
+
+## 11. New Opcodes
+
+| Opcode | Purpose | Encoding | Operation |
+|--------|---------|----------|-----------|
+| RESERVE | Allocate local slots | `RESERVE slot_count` | Advance RP by slot_count × 4 |
+| INIT_VAR_SLOT | Initialize variable slot | `INIT_VAR_SLOT slot_number` | Pop TOS, store in slot with tagging |
+| LOCAL_VAR_ADDR | Push slot address | `LOCAL_VAR_ADDR slot_number` | Push BP + slot_number × 4 |
+
+### RESERVE Details:
+- **Limits**: slot_count is 8-bit (0-255 variables maximum)
+- **Memory**: Allocates contiguous 32-bit slots on return stack
+- **Timing**: Executed once per function call during prologue
+
+### INIT_VAR_SLOT Details:
+- **Simple values**: Store directly as tagged value in slot
+- **Compound values**: Store Tag.REF pointing to return stack data
+- **Data copying**: Compound structures copied to return stack above slots
+
+### LOCAL_VAR_ADDR Details:
+- **Address calculation**: BP + slot_number × 4
+- **Usage**: Combined with FETCH/STORE for variable access
+- **Compile-time**: slot_number resolved from symbol table
+
+### Back-Patching Support:
+- RESERVE emitted with placeholder slot count during compilation
+- Slot count incremented for each var declaration encountered
+- Compiler back-patches final slot count using patch8 method
+
+## 12. Code Block Behavior
+
+Code blocks preserve lexical access to parent function's local variables:
+
+- **No new stack frame**: Execute in parent's frame
+- **Access parent locals**: Use same `LOCAL_VAR_ADDR` opcodes
+- **No cleanup required**: Parent function handles all cleanup
+
+Example:
+```
+: conditional-math 
+    5 var x
+    if { x fetch 0 gt } then { x fetch 2 mul } else { 0 } endif
 ;
 ```
 
-When called as `5 3 ok`, values are captured in reverse stack order: `a` gets 3 (TOS) and `b` gets 5.
+The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent function's local variable `x` using the existing meta-bit system for lexical scoping.
 
-**Important restrictions:**
-- All locals must be declared at the top level of the function, not inside code blocks
-- Variables must be declared before use
-- Declaration order determines memory offsets
+## 13. Variable Lifetime and Safety
 
-## 5. Variable Access and Addressing
+### Structural Lifetime Enforcement:
+- **Variables live**: From declaration until function return
+- **Memory safety**: Automatic via stack discipline  
+- **Invalid references**: Impossible due to stack layout
+- **No borrow checker needed**: Stack structure prevents illegal access
 
-### Address-Based Model
+### Safety Guarantees:
+- **Automatic deallocation**: `RP = BP` cleanup
+- **No memory leaks**: Stack-based allocation
+- **No dangling pointers**: References can't outlive function
+- **No fragmentation**: Contiguous stack allocation
 
-Variable symbols resolve to addresses, not values. This follows TACIT's unified addressing architecture where all memory access uses the same `fetch` and `store` primitives.
+### Illegal Operations:
+- **Returning local references**: Stack addresses become invalid
+- **Storing locals in globals**: Lifetime mismatch
+- **Variable declarations in code blocks**: Compile-time error
 
-Each variable's address is computed at compile time:
-```
-address = BP + offset
-```
+## 14. Examples
 
-Offset calculation:
-- First declared variable: offset +4 (BP + 4, first slot above saved BP)
-- Second: offset +8 (BP + 8)
-- Third: offset +12 (BP + 12)
-
-### Memory Operations
-
-Variable access requires explicit memory operations:
-- **Reading a variable**: Push address, then `fetch`
-- **Writing a variable**: Push value, push address, then `store`
-
-Stack effects:
-```
-myvar         ( — addr )       \ Push variable address
-myvar fetch   ( — value )      \ Read variable value  
-value myvar store ( — )        \ Write variable value
-```
-
-### Foundation for Complex Access
-
-Local variables serve as base addresses for complex data structure access. Higher-level addressing operations build upon this foundation using the same `fetch` and `store` primitives.
-
-No runtime name lookup occurs - all address resolution is static.
-
-## 6. Code Block Behavior
-
-Code blocks:
-- Push only their return address onto RP
-- Do not modify BP
-- Access parent function's locals using the same offsets
-- Do not clean up the data stack automatically
-
-Example with nested code blocks:
-```
-STACK Segment (return stack area):
-[ return addr ]
-[ previous BP ] ← BP (function's base pointer)
-[ local 0     ]
-[ local 1     ]
-...
-[ local N     ]
-[ return addr1] (first code block's return address)
-[ return addr2] ← RP (second code block's return address)
-```
-
-## 7. Function Entry and Exit
-
-**Function Prologue:**
-1. Push return address to RP
-2. Push current BP to RP
-3. Set BP to point to the saved base pointer (current RP - 4 bytes)
-4. Reserve slots for all locals by advancing RP
-
-**Function Epilogue:**
-1. RP := BP + 4 (drops locals, points to just above saved BP)
-2. Pop old BP from RP and restore BP
-3. Pop return address from RP
-4. Jump to return address
-
-**Code Block Entry:**
-1. Push return address to RP
-2. Execute block body (no BP modification)
-
-**Code Block Exit:**
-1. Pop return address from RP
-2. Jump to return address
-
-## 8. Dictionary Management
-
-On function compilation start:
-- A dictionary mark is recorded
-
-Each `var` adds a word to the dictionary with:
-- Name = variable name
-- Value = stack offset from BP
-- Kind = local variable
-
-On function end (`;`):
-- The dictionary is forgotten back to the function's mark
-- This removes all locals, allowing names to be reused in other functions
-
-## 9. Variable Lifetime and Safety
-
-Local variables:
-- Are live from point of declaration until function return
-- Are addressed via static offsets from BP
-- Cannot be returned by reference
-
-Values may be copied from local variables to the data stack (SP) for safe return.
-
-**Illegal operations:**
-- Returning references to local variables
-- Storing local references in globals
-- Variable declarations inside code blocks
-
-## 10. Stack Register Summary
-
-- **SP (Stack Pointer):** 16-bit pointer into STACK segment for data stack operations (computation)
-- **RP (Return Stack Pointer):** 16-bit pointer into STACK segment for return stack operations (calls and locals)
-- **BP (Base Pointer):** Points to the start of current function's local frame within return stack area
-- **IP (Instruction Pointer):** Current instruction location in bytecode
-
-Both SP and RP are pointers into the same STACK segment but operate on different areas:
-- BP is updated only on function entry and restored on function exit
-- RP is updated for both functions and blocks
-- SP operates independently for data stack operations
-
-## 11. Examples
-
-**Basic Variable Access:**
+### Basic Variable Declaration and Access:
 ```
 : calculate
     10 var a
     5 var b
     a fetch b fetch add    \ Read both variables and add
-    c store                \ Store result in another variable
 ;
 ```
 
-**Variable as Base Address:**
+### Compound Variable Storage:
 ```
-: process-data
-    ( 1 2 3 ) var mylist         \ Store a list in variable
-    mylist fetch                 \ Get the list address for further operations
+: process-list
+    (1 2 3) var mylist         \ Store list in variable (copied)
+    mylist fetch               \ Get reference to list data
+    length                     \ Get list length
 ;
 ```
 
-**Illegal Block Declaration:**
+### Formal Parameters via Variables:
 ```
-: fail
-    if { 3 var x } then { x } endif  // Error: variable declaration inside block
+: area ( radius -- area )
+    var radius                 \ Capture parameter from stack
+    3.14159 var pi            \ Local constant
+    radius fetch               \ Get radius value
+    dup mul                    \ radius²
+    pi fetch mul               \ × π
+;
+
+\ Usage: 5 area  → 78.54
+```
+
+### Multiple Locals with Mixed Types:
+```
+: complex-calc
+    var input                  \ Runtime value from stack
+    (10 20 30) var coeffs     \ Compile-time list
+    0 var result              \ Initialize to zero
+    
+    input fetch coeffs fetch head
+    result fetch add result store
 ;
 ```
 
-## 12. Design Philosophy
+### Code Blocks Accessing Locals:
+```
+: conditional-process
+    var data
+    data fetch 0 gt
+    if { data fetch 2 mul } 
+    else { 0 } 
+    endif
+;
+```
 
-### Address-Oriented Locals
+## 15. Design Philosophy
 
-TACIT treats local variables not as named values but as named addresses. A `var` declaration doesn’t define a value; it reserves a slot in the current function’s stack frame and gives you a symbolic way to fetch or store into it. This is not sugar — it’s a deliberate move toward a uniform memory model where everything is accessed through explicit pointer operations.
+### Slot-Based Architecture
+TACIT treats local variables as fixed-size slots that can hold any tagged value. This uniform approach allows:
+- **Predictable frame layout**: Compile-time slot allocation
+- **Runtime type flexibility**: Slots adapt to actual data types
+- **Efficient access**: Direct slot addressing
+- **Clean separation**: Allocation vs initialization
 
-This keeps the language consistent. Whether you're working with a list element, a field in a capsule, or a local variable, the same `fetch` and `store` primitives apply. No runtime symbol lookup. No hidden binding environments. Just static offsets and direct memory access.
+### Copy Semantics for Compound Data
+All variable assignment copies data rather than sharing references:
+- **Ownership clarity**: Each variable owns its data
+- **No aliasing issues**: Changes to one variable don't affect others
+- **Predictable behavior**: Assignment always copies
+- **Memory safety**: No shared mutable state
 
-### Stack Frames Without the Heap
+### Stack-Native Memory Management
+Local variables use the return stack as a "local heap":
+- **Automatic lifetime**: Variables live exactly as long as function
+- **Zero-cost cleanup**: Single pointer assignment deallocates everything
+- **No garbage collection**: Stack discipline handles all memory
+- **C-port ready**: Direct translation to stack-based allocation
 
-Function stack frames in TACIT live entirely on the return stack. There’s no call frame object, no boxed environment, and no closures. Locals are just stack slots above a saved base pointer.
+### Unified Tagged Value System
+Local variables use the same tagged value system as the rest of TACIT:
+- **No special types**: Variables store standard tagged values
+- **Existing operations**: `fetch` and `store` work unchanged
+- **Type safety**: Tags prevent interpretation errors
+- **Consistent addressing**: Same memory model throughout
 
-Code blocks, in contrast, don't get frames of their own. They’re control constructs, not scope constructs. They execute inline, share access to the parent function’s frame, and leave the stack cleanup to you. This creates a tight, predictable execution model: stack grows in, stack grows out.
+## 16. Conclusion
 
-There's no GC, no persistent environment. Just disciplined stack discipline.
+This specification establishes a complete local variable system for TACIT that separates compile-time allocation from runtime initialization. The slot-based architecture provides:
 
-### Declaration Discipline
+**Compile-Time Benefits**:
+- Fixed frame layout with known slot count
+- Symbol resolution through existing dictionary
+- Back-patching for efficient code generation
 
-Variable declarations in TACIT are lexically scoped to their function and must appear at the top level of that function’s body. This isn’t just syntactic pedantry — it reflects a deeper truth about the language's execution model.
+**Runtime Benefits**:  
+- Type-flexible slots using tagged values
+- Efficient compound data storage with copy semantics
+- Automatic memory management via stack discipline
+- Zero-overhead cleanup with single instruction
 
-When a function begins execution, it lays out its locals in a flat stack frame. That layout is determined statically. Allowing dynamic or nested declarations would break that predictability and require dynamic name tracking or reallocation — both of which are off the table in TACIT.
+**Integration Benefits**:
+- Builds on existing stack frame infrastructure
+- Uses proven tagged value system
+- Maintains code block lexical scoping
+- Supports both simple and compound data types
 
-TACIT's variable model is stack-native and structurally transparent.
-
-### Dictionary Hygiene via Forget
-
-When you declare a variable with `var`, it adds an entry to the dictionary, mapping the name to an offset from BP. But those entries aren’t permanent. They’re scoped to the function by using a dictionary mark: a snapshot of the dictionary's depth at the start of function compilation.
-
-When the function ends (with `;`), all variable names declared since the mark are forgotten. This allows names to be reused across functions without name collisions or pollution. It also mirrors the memory behavior: once the function exits, its locals are gone — so are their names.
-
-### Ownership and Lifetime
-
-TACIT’s choice to put locals on the return stack is tightly linked to its ownership model. Functions may borrow references to variables in their callers, but they may not return them. Lifetimes are enforced structurally: if you try to return a reference to a local whose frame has been popped, the address will be visibly invalid — higher than the current local stack pointer.
-
-In other words, **you don't need a borrow checker**. The stack layout ensures that illegal lifetimes are naturally invalid addresses. This approach to memory safety makes mistakes impossible to get past the metal rather than prohibiting them through type theory.
-
-## 13. Conclusion
-
-This specification establishes the foundational model for local variables in TACIT functions. Local variables provide stable, compile-time addresses within function stack frames, accessed through explicit `fetch` and `store` operations. Code blocks preserve lexical access to these variables without creating new frames.
-
-This address-based approach forms the foundation for TACIT's unified memory architecture, where all data access - from simple variables to complex data structures - uses the same addressing and memory access primitives. Higher-level addressing mechanisms build upon this foundation while maintaining the same stack discipline and memory safety guarantees.
+The design provides a foundation for sophisticated local variable usage while maintaining TACIT's stack-oriented philosophy and preparing for eventual C translation.
