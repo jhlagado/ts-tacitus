@@ -5,7 +5,7 @@
 
 import { Digest } from './digest';
 import { VM } from '../core/vm';
-import { Tag, fromTaggedValue } from '../core/tagged';
+import { Tag, fromTaggedValue, toTaggedValue } from '../core/tagged';
 import { createBuiltinRef, createCodeRef } from '../core/code-ref';
 
 /**
@@ -32,6 +32,7 @@ export type SymbolTableCheckpoint = SymbolTableNode | null;
  */
 export class SymbolTable {
   private head: SymbolTableNode | null;
+  private localSlotCount: number;
 
   /**
    * Creates a new SymbolTable instance.
@@ -39,6 +40,7 @@ export class SymbolTable {
    */
   constructor(private digest: Digest) {
     this.head = null;
+    this.localSlotCount = 0;
   }
 
   /**
@@ -190,11 +192,15 @@ export class SymbolTable {
    * to its current state at a later time. The checkpoint is simply a reference
    * to the current head of the linked list.
    *
+   * This also resets the local slot counter to zero, which is used for 
+   * auto-assigning slot numbers to local variables in functions.
+   *
    * This is useful for implementing scoping and temporary definitions.
    *
    * @returns {SymbolTableCheckpoint} A checkpoint object representing the current state
    */
   mark(): SymbolTableCheckpoint {
+    this.localSlotCount = 0;
     return this.head;
   }
 
@@ -242,5 +248,31 @@ export class SymbolTable {
    */
   defineCode(name: string, bytecodeAddr: number): void {
     this.defineSymbol(name, createCodeRef(bytecodeAddr));
+  }
+
+  /**
+   * Defines a local variable in the symbol table with auto-slot assignment
+   *
+   * This method adds a local variable to the symbol table with an automatically
+   * assigned slot number. Each call increments the internal slot counter.
+   * Uses Tag.LOCAL tagged values for consistency with the existing system.
+   *
+   * @param {string} name - The name of the local variable (e.g., "x", "radius")
+   */
+  defineLocal(name: string): void {
+    const slotNumber = this.localSlotCount++;
+    this.defineSymbol(name, toTaggedValue(slotNumber, Tag.LOCAL));
+  }
+
+  /**
+   * Gets the current local variable count
+   *
+   * This method returns the number of local variables that have been defined
+   * since the last mark() call. Useful for back-patching Reserve opcodes.
+   *
+   * @returns {number} The current local slot count
+   */
+  getLocalCount(): number {
+    return this.localSlotCount;
   }
 }
