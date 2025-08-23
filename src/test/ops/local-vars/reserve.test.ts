@@ -17,7 +17,7 @@ describe('Reserve Operation', () => {
     // Write immediate argument to bytecode (follows existing test pattern)
     vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
     
-    // Call opcode function - vm.next16() reads the 1000 we just wrote
+    // Call opcode function - vm.nextInt16() reads the 1000 we just wrote
     reserveOp(vm); 
     
     expect(vm.RP).toBe(initialRP + 4000); // 1000 slots * 4 bytes each

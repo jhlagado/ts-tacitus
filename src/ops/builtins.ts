@@ -133,7 +133,7 @@ export function restoreTempOp(vm: VM): void {
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalCodeOp(vm: VM): void {
-  const address = vm.read16();
+  const address = vm.nextUint16();
   const tagged = toTaggedValue(address, Tag.CODE, 1); // meta=1 for code blocks
   vm.push(tagged);
 }
@@ -413,7 +413,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalAddressOp(vm: VM): void {
-  const address = vm.read16();
+  const address = vm.nextUint16();
   vm.push(address);
 }
 
@@ -426,6 +426,6 @@ export function literalAddressOp(vm: VM): void {
  * @param {VM} vm - The virtual machine instance.
  */
 export function reserveOp(vm: VM): void {
-  const slotCount = vm.read16();
+  const slotCount = vm.nextUint16();
   vm.RP += slotCount * 4;
 }

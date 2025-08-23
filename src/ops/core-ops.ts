@@ -64,7 +64,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
  *
  */
 export const literalStringOp: Verb = (vm: VM) => {
-  const address = vm.next16();
+  const address = vm.nextInt16();
   const taggedString = toTaggedValue(address, Tag.STRING);
   vm.push(taggedString);
 };
@@ -87,7 +87,7 @@ export const literalStringOp: Verb = (vm: VM) => {
  *
  */
 export const skipDefOp: Verb = (vm: VM) => {
-  const offset = vm.next16();
+  const offset = vm.nextInt16();
   vm.IP += offset;
 };
 
@@ -111,7 +111,7 @@ export const skipDefOp: Verb = (vm: VM) => {
  *
  */
 export const skipBlockOp: Verb = (vm: VM) => {
-  const offset = vm.next16();
+  const offset = vm.nextInt16();
   vm.push(toTaggedValue(vm.IP, Tag.CODE));
   vm.IP += offset;
 };
@@ -141,7 +141,7 @@ export const skipBlockOp: Verb = (vm: VM) => {
  * 4. Jumping to the function's address
  */
 export const callOp: Verb = (vm: VM) => {
-  const callAddress = vm.next16();
+  const callAddress = vm.nextInt16();
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
   vm.rpush(vm.BP);
   vm.BP = vm.RP;

@@ -31,7 +31,7 @@ describe('Comprehensive Parser Tests', () => {
       expect(emptyWord).toBeDefined();
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
-      const _skipOffset = vm.next16();
+      const _skipOffset = vm.nextInt16();
       expect(vm.next8()).toBe(Op.Exit);
     });
     test('should handle words with special characters in name', () => {
@@ -67,11 +67,11 @@ describe('Comprehensive Parser Tests', () => {
       parse(new Tokenizer('IF { 1 } ELSE { 2 }'));
       vm.reset();
       expect(vm.next8()).toBe(Op.IfFalseBranch);
-      const _falseJumpAddr = vm.next16();
+      const _falseJumpAddr = vm.nextInt16();
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(1);
       expect(vm.next8()).toBe(Op.Branch);
-      const _endIfAddr = vm.next16();
+      const _endIfAddr = vm.nextInt16();
       expect(vm.next8()).toBe(Op.LiteralNumber);
       expect(vm.nextFloat32()).toBe(2);
       expect(vm.next8()).toBe(Op.Abort);
@@ -82,7 +82,7 @@ describe('Comprehensive Parser Tests', () => {
       parse(new Tokenizer('""'));
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
-      const addr = vm.next16();
+      const addr = vm.nextInt16();
       expect(addr).toBeGreaterThan(0);
       const str = vm.digest.get(addr);
       expect(str).toBe('');
@@ -91,7 +91,7 @@ describe('Comprehensive Parser Tests', () => {
       parse(new Tokenizer('"hello world"'));
       vm.reset();
       expect(vm.next8()).toBe(Op.LiteralString);
-      const addr = vm.next16();
+      const addr = vm.nextInt16();
       const str = vm.digest.get(addr);
       expect(str).toBe('hello world');
     });
@@ -102,7 +102,7 @@ describe('Comprehensive Parser Tests', () => {
       parse(new Tokenizer('`test-symbol'));
       vm.reset();
       expect(vm.next8()).toBe(1);
-      const _addr = vm.next16();
+      const _addr = vm.nextInt16();
     });
   });
 });

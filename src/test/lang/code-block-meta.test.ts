@@ -28,7 +28,7 @@ describe('Code Block Meta Bit', () => {
       
       if (opcode === Op.LiteralCode) {
         // Get the address that will be tagged
-        const address = vm.read16();
+        const address = vm.nextUint16();
         
         // Execute the literalCodeOp to create the tagged value
         const tagged = require('../../core/tagged').toTaggedValue(address, Tag.CODE, 1);
@@ -112,7 +112,7 @@ describe('Code Block Meta Bit', () => {
       
       if (opcode === Op.LiteralCode) {
         // Code block
-        const address = vm.read16();
+        const address = vm.nextUint16();
         const tagged = require('../../core/tagged').toTaggedValue(address, Tag.CODE, 1);
         vm.push(tagged);
         
