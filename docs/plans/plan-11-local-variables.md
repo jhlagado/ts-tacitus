@@ -175,22 +175,22 @@ test('should shadow globals naturally', () => {
 - Included comprehensive stack effect documentation
 - All tests pass (241 tests), no conflicts with existing opcodes
 
-#### 2.2 Reserve Opcode Implementation (2 hours)
+#### 2.2 Reserve Opcode Implementation (2 hours) ✅ COMPLETED
 **Files**: `src/ops/builtins.ts`, test file  
 **Goal**: Implement slot allocation
 
 **Tasks**:
-- Implement `reserveOp(vm: VM)` function (short, inline implementation)
-- Read 16-bit slot count from bytecode: `vm.next16()`
-- Advance RP: `vm.RP += slotCount * 4` (inline - no helper needed)
-- Use existing bounds checking patterns from codebase
-- Add to executeOp() switch statement
+- ✅ Implement `reserveOp(vm: VM)` function (short, inline implementation)
+- ✅ Read 16-bit slot count from bytecode: `vm.read16()` (unsigned)
+- ✅ Advance RP: `vm.RP += slotCount * 4` (inline - no helper needed)
+- ✅ Use existing bounds checking patterns from codebase
+- ✅ Add to executeOp() switch statement
 
 **Success Criteria**:
-- Allocates correct number of slots
-- Uses 16-bit slot counts (up to 65,535 variables)
-- Reuses existing error handling patterns
-- No new utility functions needed
+- ✅ Allocates correct number of slots
+- ✅ Uses 16-bit slot counts (up to 65,535 variables)
+- ✅ Reuses existing error handling patterns
+- ✅ No new utility functions needed
 
 **Tests Required**:
 ```typescript
@@ -200,7 +200,7 @@ test('should allocate slots correctly', () => {
     // Write immediate argument to bytecode (follows existing test pattern)
     vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
     
-    // Call opcode function - vm.next16() reads the 1000 we just wrote
+    // Call opcode function - vm.read16() reads the 1000 we just wrote
     reserveOp(vm); 
     
     expect(vm.RP).toBe(initialRP + 4000); // 1000 slots * 4 bytes each
@@ -208,9 +208,11 @@ test('should allocate slots correctly', () => {
 ```
 
 **Implementation Notes**:
-- Reserve opcode reads immediate 16-bit argument using `vm.next16()`
+- Reserve opcode reads immediate 16-bit argument using `vm.read16()` (unsigned)
 - Follows standard TACIT pattern: opcode + immediate value in bytecode stream
-- NOT stack-based - immediate argument embedded in instruction stream like branch opcodes
+- Fixed: Used `vm.read16()` instead of `vm.next16()` to handle unsigned values correctly
+- Created comprehensive test suite with 6 tests covering edge cases
+- All tests pass (247 tests), no regressions
 
 #### 2.3 InitVar Opcode - Simple Values Only (2 hours)
 **Files**: `src/ops/builtins.ts`, test file  
