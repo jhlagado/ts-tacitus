@@ -161,14 +161,19 @@ test('should shadow globals naturally', () => {
 
 ### Phase 2: Opcode Foundation (8 hours total - simplified for simple types)
 
-#### 2.1 Opcode Enum Additions (30 minutes)
+#### 2.1 Opcode Enum Additions (30 minutes) ✅ COMPLETED
 **Files**: `src/ops/opcodes.ts`  
 **Goal**: Define new opcode numbers
 
 **Tasks**:
-- Add `Reserve`, `InitVar`, `LocalRef` to Op enum (camelCase)
-- Update opcode documentation
-- Ensure no conflicts with existing opcodes
+- ✅ Add `Reserve`, `InitVar`, `LocalRef` to Op enum (camelCase)
+- ✅ Update opcode documentation
+- ✅ Ensure no conflicts with existing opcodes
+
+**Implementation Notes**:
+- Added `Reserve`, `InitVar`, `LocalRef` opcodes at end of enum
+- Included comprehensive stack effect documentation
+- All tests pass (241 tests), no conflicts with existing opcodes
 
 #### 2.2 Reserve Opcode Implementation (2 hours)
 **Files**: `src/ops/builtins.ts`, test file  
@@ -191,11 +196,21 @@ test('should shadow globals naturally', () => {
 ```typescript
 test('should allocate slots correctly', () => {
     const initialRP = vm.RP;
-    vm.memory.write16(SEG_CODE, vm.IP, 1000); // 1000 slots
-    reserveOp(vm);
-    expect(vm.RP).toBe(initialRP + 4000); // 1000 * 4 bytes
+    
+    // Write immediate argument to bytecode (follows existing test pattern)
+    vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
+    
+    // Call opcode function - vm.next16() reads the 1000 we just wrote
+    reserveOp(vm); 
+    
+    expect(vm.RP).toBe(initialRP + 4000); // 1000 slots * 4 bytes each
 });
 ```
+
+**Implementation Notes**:
+- Reserve opcode reads immediate 16-bit argument using `vm.next16()`
+- Follows standard TACIT pattern: opcode + immediate value in bytecode stream
+- NOT stack-based - immediate argument embedded in instruction stream like branch opcodes
 
 #### 2.3 InitVar Opcode - Simple Values Only (2 hours)
 **Files**: `src/ops/builtins.ts`, test file  
@@ -203,10 +218,14 @@ test('should allocate slots correctly', () => {
 
 **Tasks**:
 - Implement `initVarOp(vm: VM)` function (inline, no helpers)
-- Read 16-bit slot number: `vm.next16()`
+- Read 16-bit slot number: `vm.next16()` (immediate argument)
 - Pop value from data stack: `vm.pop()`
 - Store directly: `vm.memory.writeFloat32(SEG_RSTACK, vm.BP + slot * 4, value)`
 - Simple values only - no compound data handling needed
+
+**Implementation Notes**:
+- InitVar opcode: `INITVAR slot_number` where slot_number is immediate 16-bit argument
+- Follows pattern: opcode reads immediate slot number, pops stack value, stores in slot
 
 #### 2.4 LocalRef Opcode Implementation (1.5 hours)
 **Files**: `src/ops/builtins.ts`, test file  
@@ -214,10 +233,14 @@ test('should allocate slots correctly', () => {
 
 **Tasks**:
 - Implement `localRefOp(vm: VM)` function (inline, simple)
-- Read 16-bit slot number: `vm.next16()`
+- Read 16-bit slot number: `vm.next16()` (immediate argument)
 - Calculate address: `vm.BP + slot * 4` (inline)
 - Push address: `vm.push(address)`
 - No validation helpers needed - keep simple
+
+**Implementation Notes**:
+- LocalRef opcode: `LOCALREF slot_number` where slot_number is immediate 16-bit argument
+- Follows pattern: opcode reads immediate slot number, pushes calculated address to stack
 
 #### 2.5 Integration with executeOp (2 hours)
 **Files**: `src/ops/builtins.ts`, test file  

@@ -315,4 +315,12 @@ export enum Op {
   SaveTemp,
   /** Pushes value from VM temp register to stack (internal use only) */
   RestoreTemp,
+
+  // Local variable opcodes
+  /** Allocates local variable slots on return stack - ( -- ) reads 16-bit slot count */
+  Reserve,
+  /** Initializes local variable slot with stack value - ( value -- ) reads 16-bit slot number */
+  InitVar,
+  /** Pushes local variable slot address - ( -- addr ) reads 16-bit slot number */
+  LocalRef,
 }
