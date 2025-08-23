@@ -13,6 +13,8 @@ export enum Tag {
 
   STRING = 4,
 
+  LOCAL = 6,
+
   BUILTIN = 7,
 
   LIST = 8,
@@ -26,6 +28,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.CODE]: 'CODE',
   [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
+  [Tag.LOCAL]: 'LOCAL',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
 };
@@ -191,6 +194,16 @@ export function isString(tval: number): boolean {
 export function isList(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.LIST;
+}
+
+/**
+ * Checks if a value is a LOCAL.
+ * @param tval The value to check
+ * @returns true if the value is a LOCAL
+ */
+export function isLocal(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.LOCAL;
 }
 
 /**
