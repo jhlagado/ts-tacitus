@@ -115,21 +115,21 @@ test('should reset slot count on revert', () => {
 });
 ```
 
-#### 1.3 Natural Shadowing Verification (2 hours)
+#### 1.3 Natural Shadowing Verification (2 hours) ✅ COMPLETED
 **Files**: `src/strings/symbol-table.ts`, test file  
 **Goal**: Verify Forth-style dictionary shadowing works
 
 **Tasks**:
-- Test existing `findTaggedValue()` with Tag.LOCAL values
-- Verify most recent definition wins automatically (natural shadowing)
-- No priority logic needed - dictionary order handles it
-- Test mixed locals/globals/builtins
+- ✅ Test existing `findTaggedValue()` with Tag.LOCAL values
+- ✅ Verify most recent definition wins automatically (natural shadowing)
+- ✅ No priority logic needed - dictionary order handles it
+- ✅ Test mixed locals/globals/builtins
 
 **Success Criteria**:
-- Local variables shadow globals automatically
-- Dictionary order determines resolution
-- No custom priority logic required
-- Existing findTaggedValue() works unchanged
+- ✅ Local variables shadow globals automatically
+- ✅ Dictionary order determines resolution
+- ✅ No custom priority logic required
+- ✅ Existing findTaggedValue() works unchanged
 
 **Tests Required**:
 ```typescript
@@ -149,6 +149,15 @@ test('should shadow globals naturally', () => {
     expect(fromTaggedValue(globalResolved).tag).toBe(Tag.BUILTIN); // Global restored
 });
 ```
+
+**Implementation Notes**:
+- Created comprehensive shadowing test suite with 7 tests
+- Verified natural Forth-style dictionary shadowing works automatically
+- No custom priority logic needed - linked list order handles shadowing
+- Tested multiple shadowing levels, mixed symbol types, and complex operations
+- Confirmed that localSlotCount behavior (resets on mark() only) is correct
+- All existing findTaggedValue() functionality works unchanged with Tag.LOCAL values
+- All tests pass (241 tests), no regressions
 
 ### Phase 2: Opcode Foundation (8 hours total - simplified for simple types)
 
