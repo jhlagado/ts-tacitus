@@ -396,6 +396,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.RestoreTemp:
       restoreTempOp(vm);
       break;
+    case Op.Reserve:
+      reserveOp(vm);
+      break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
@@ -412,4 +415,17 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
 export function literalAddressOp(vm: VM): void {
   const address = vm.read16();
   vm.push(address);
+}
+
+/**
+ * Implements the Reserve operation for local variable slot allocation.
+ *
+ * Reads a 16-bit slot count from the instruction stream and allocates that many
+ * 32-bit slots on the return stack for local variables. Each slot is 4 bytes.
+ *
+ * @param {VM} vm - The virtual machine instance.
+ */
+export function reserveOp(vm: VM): void {
+  const slotCount = vm.read16();
+  vm.RP += slotCount * 4;
 }
