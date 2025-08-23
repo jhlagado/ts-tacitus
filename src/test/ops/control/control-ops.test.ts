@@ -161,8 +161,8 @@ describe('Control Operations - Branch Coverage', () => {
 
   describe('ifCurlyBranchFalseOp edge cases', () => {
     test('should handle non-number conditions by treating them as falsy', () => {
-      const originalNext16 = vm.next16;
-      vm.next16 = () => 10; 
+      const originalNextInt16 = vm.nextInt16;
+      vm.nextInt16 = () => 10; 
 
       vm.push(toTaggedValue(100, Tag.CODE));
 
@@ -173,12 +173,12 @@ describe('Control Operations - Branch Coverage', () => {
 
       expect(vm.IP).toBe(originalIP + 10);
 
-      vm.next16 = originalNext16;
+      vm.nextInt16 = originalNextInt16;
     });
 
     test('should not jump when condition is truthy number', () => {
-      const originalNext16 = vm.next16;
-      vm.next16 = () => 10; 
+      const originalNextInt16 = vm.nextInt16;
+      vm.nextInt16 = () => 10; 
 
       vm.push(5);
 
@@ -189,12 +189,12 @@ describe('Control Operations - Branch Coverage', () => {
 
       expect(vm.IP).toBe(originalIP);
 
-      vm.next16 = originalNext16;
+      vm.nextInt16 = originalNextInt16;
     });
 
     test('should jump when condition is zero', () => {
-      const originalNext16 = vm.next16;
-      vm.next16 = () => 15; 
+      const originalNextInt16 = vm.nextInt16;
+      vm.nextInt16 = () => 15; 
 
       vm.push(0);
 
@@ -205,7 +205,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       expect(vm.IP).toBe(originalIP + 15);
 
-      vm.next16 = originalNext16;
+      vm.nextInt16 = originalNextInt16;
     });
   });
 });

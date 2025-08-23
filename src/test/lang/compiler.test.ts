@@ -9,12 +9,12 @@ describe('Compiler', () => {
   test('should compile a positive integer as a tagged pointer', () => {
     vm.compiler.compile16(42);
     vm.reset();
-    expect(vm.next16()).toBe(42);
+    expect(vm.nextInt16()).toBe(42);
   });
   test('should compile a negative integer as a tagged pointer', () => {
     vm.compiler.compile16(-42);
     vm.reset();
-    expect(vm.next16()).toBe(-42);
+    expect(vm.nextInt16()).toBe(-42);
   });
   test('should compile an address as a tagged pointer', () => {
     vm.compiler.compileAddress(0x2345);

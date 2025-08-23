@@ -135,7 +135,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
  * @remarks
  * This operation consumes the condition value from the stack.
  * The offset to jump is encoded in the bytecode as a 16-bit value following
- * the operation code, retrieved using vm.next16().
+ * the operation code, retrieved using vm.nextInt16().
  *
  * If the condition is falsy (zero), the VM's instruction pointer (IP) is
  * incremented by the offset, effectively skipping the then-branch code.
@@ -148,7 +148,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
  * @see simpleIfOp The deprecated version of if-then-else
  */
 export const ifCurlyBranchFalseOp: Verb = (vm: VM) => {
-  const offset = vm.next16();
+  const offset = vm.nextInt16();
   vm.ensureStackSize(1, 'IF');
   const cond = vm.pop();
   if (!isNumber(cond) || cond === 0) {

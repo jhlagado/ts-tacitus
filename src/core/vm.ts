@@ -204,7 +204,7 @@ export class VM {
    * Reads the next 16-bit signed integer from code and advances IP.
    * @returns The signed integer value
    */
-  next16(): number {
+  nextInt16(): number {
     const unsignedValue = this.memory.read16(SEG_CODE, this.IP);
     const signedValue = (unsignedValue << 16) >> 16;
     this.IP += 2;
@@ -232,14 +232,13 @@ export class VM {
   }
 
   /**
-   * Reads a 16-bit unsigned integer from code and advances IP.
+   * Reads the next 16-bit unsigned integer from code and advances IP.
    * @returns The unsigned integer value
    */
-  read16(): number {
-    const lowByte = this.memory.read8(SEG_CODE, this.IP);
-    const highByte = this.memory.read8(SEG_CODE, this.IP + 1);
+  nextUint16(): number {
+    const value = this.memory.read16(SEG_CODE, this.IP);
     this.IP += 2;
-    return (highByte << 8) | lowByte;
+    return value;
   }
 
   /**

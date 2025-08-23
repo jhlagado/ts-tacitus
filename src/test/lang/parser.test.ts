@@ -61,7 +61,7 @@ describe('Parser with Tokenizer', () => {
       expect(doubleWord).toBeDefined();
       vm.reset();
       expect(vm.next8()).toBe(Op.Branch);
-      const skipOffset = vm.next16();
+      const skipOffset = vm.nextInt16();
       expect(vm.next8()).toBe(Op.Dup);
       expect(vm.next8()).toBe(Op.Add);
       expect(vm.next8()).toBe(Op.Exit);

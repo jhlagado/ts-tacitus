@@ -83,13 +83,13 @@ describe('VM', () => {
       vm.compiler.compile16(5);
       vm.compiler.compile16(10);
       vm.compiler.compile16(15);
-      expect(vm.next16()).toBe(5);
-      expect(vm.next16()).toBe(10);
-      expect(vm.next16()).toBe(15);
+      expect(vm.nextInt16()).toBe(5);
+      expect(vm.nextInt16()).toBe(10);
+      expect(vm.nextInt16()).toBe(15);
     });
     test('should increment the instruction pointer after reading', () => {
       vm.compiler.compile16(42);
-      vm.next16();
+      vm.nextInt16();
       expect(vm.IP).toBe(2);
     });
     test('should handle nextAddress correctly', () => {
