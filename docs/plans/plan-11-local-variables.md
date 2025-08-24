@@ -181,7 +181,7 @@ test('should shadow globals naturally', () => {
 
 **Tasks**:
 - ✅ Implement `reserveOp(vm: VM)` function (short, inline implementation)
-- ✅ Read 16-bit slot count from bytecode: `vm.read16()` (unsigned)
+- ✅ Read 16-bit slot count from bytecode: `vm.nextUint16()` (unsigned)
 - ✅ Advance RP: `vm.RP += slotCount * 4` (inline - no helper needed)
 - ✅ Use existing bounds checking patterns from codebase
 - ✅ Add to executeOp() switch statement
@@ -200,7 +200,7 @@ test('should allocate slots correctly', () => {
     // Write immediate argument to bytecode (follows existing test pattern)
     vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
     
-    // Call opcode function - vm.read16() reads the 1000 we just wrote
+    // Call opcode function - vm.nextUint16() reads the 1000 we just wrote
     reserveOp(vm); 
     
     expect(vm.RP).toBe(initialRP + 4000); // 1000 slots * 4 bytes each
@@ -208,11 +208,13 @@ test('should allocate slots correctly', () => {
 ```
 
 **Implementation Notes**:
-- Reserve opcode reads immediate 16-bit argument using `vm.read16()` (unsigned)
+- Reserve opcode reads immediate 16-bit argument using `vm.nextUint16()` (unsigned)
 - Follows standard TACIT pattern: opcode + immediate value in bytecode stream
-- Fixed: Used `vm.read16()` instead of `vm.next16()` to handle unsigned values correctly
+- Fixed: Used `vm.nextUint16()` instead of `vm.nextInt16()` to handle unsigned values correctly
 - Created comprehensive test suite with 6 tests covering edge cases
 - All tests pass (247 tests), no regressions
+
+**ARCHITECTURAL DECISION**: Replaced separate LocalRef opcode with unified reference system for better polymorphism and future extensibility.
 
 #### 2.3 InitVar Opcode - Simple Values Only (2 hours)
 **Files**: `src/ops/builtins.ts`, test file  
@@ -220,7 +222,7 @@ test('should allocate slots correctly', () => {
 
 **Tasks**:
 - Implement `initVarOp(vm: VM)` function (inline, no helpers)
-- Read 16-bit slot number: `vm.next16()` (immediate argument)
+- Read 16-bit slot number: `vm.nextInt16()` (immediate argument)
 - Pop value from data stack: `vm.pop()`
 - Store directly: `vm.memory.writeFloat32(SEG_RSTACK, vm.BP + slot * 4, value)`
 - Simple values only - no compound data handling needed
@@ -229,42 +231,93 @@ test('should allocate slots correctly', () => {
 - InitVar opcode: `INITVAR slot_number` where slot_number is immediate 16-bit argument
 - Follows pattern: opcode reads immediate slot number, pops stack value, stores in slot
 
-#### 2.4 LocalRef Opcode Implementation (1.5 hours)
-**Files**: `src/ops/builtins.ts`, test file  
-**Goal**: Push slot addresses onto stack
+#### 2.4 Unified Data Reference System Implementation (2 hours) ✅ COMPLETED
+**Files**: `src/core/tagged.ts`, `src/ops/list-ops.ts`, test file  
+**Goal**: Replace LocalRef opcode with unified reference system
 
 **Tasks**:
-- Implement `localRefOp(vm: VM)` function (inline, simple)
-- Read 16-bit slot number: `vm.next16()` (immediate argument)
-- Calculate address: `vm.BP + slot * 4` (inline)
-- Push address: `vm.push(address)`
-- No validation helpers needed - keep simple
+- ✅ Add `Tag.STACK_REF`, `Tag.LOCAL_REF`, `Tag.GLOBAL_REF` to tagged values
+- ✅ Implement unified `deref()` and `assign()` operations 
+- ✅ Update `fetchOp/storeOp` to handle all reference types polymorphically
+- ✅ Remove SENTINEL hack from fetchOp (legacy compatibility code)
+- ✅ Create reference construction helpers
+
+**Success Criteria**:
+- ✅ Same `fetch/store` operations work with stack, local, and global references
+- ✅ No separate LocalRef opcode needed - use existing fetch infrastructure
+- ✅ Polymorphic reference handling - operations don't care about storage location
+- ✅ All existing tests pass after SENTINEL hack removal
 
 **Implementation Notes**:
-- LocalRef opcode: `LOCALREF slot_number` where slot_number is immediate 16-bit argument
-- Follows pattern: opcode reads immediate slot number, pushes calculated address to stack
+- **SENTINEL hack removed**: Was legacy compatibility for old `elemOp` that used `Tag.INTEGER` addresses
+- **Unified approach**: `Tag.STACK_REF`, `Tag.LOCAL_REF`, `Tag.GLOBAL_REF` extend conceptual `REF` base
+- **Polymorphic operations**: `fetchOp` handles all reference types via switch statement
+- **Local variables**: Use `toTaggedValue(slot, Tag.LOCAL_REF)` instead of raw addresses
+- **Future-ready**: System supports heap references and other storage types
 
-#### 2.5 Integration with executeOp (2 hours)
-**Files**: `src/ops/builtins.ts`, test file  
-**Goal**: Wire up new opcodes to execution
+#### 2.5 Reference Tag Implementation (2 hours) ✅ COMPLETED
+**Files**: `src/core/tagged.ts`, `src/ops/list-ops.ts`, `src/test/core/unified-references.test.ts`  
+**Goal**: Implement the actual unified reference tag system
 
 **Tasks**:
-- Add cases to executeOp() switch statement
-- Test all three opcodes in isolation
-- Test opcode sequence: Reserve → InitVar → LocalRef → Fetch
-- Verify 16-bit addressing works correctly
+- ✅ Add `Tag.STACK_REF = 9`, `Tag.LOCAL_REF = 10`, `Tag.GLOBAL_REF = 11` to enum
+- ✅ Implement `isRef(value)` helper function
+- ✅ Add reference construction helpers: `createLocalRef(slot)`, `createGlobalRef(key)`
+- ✅ Update `fetchOp` to handle `LOCAL_REF` and `GLOBAL_REF` cases
+- ✅ Create comprehensive test suite for reference polymorphism
+
+**Success Criteria**:
+- ✅ All reference types work with existing `fetch/store` operations
+- ✅ `isRef()` correctly identifies all reference types
+- ✅ Reference construction helpers work correctly
+- ✅ Tag.REF eliminated - only concrete reference types remain
+- ✅ All 411 tests pass (16 new reference tests + 395 existing)
+
+**Implementation Notes**:
+- **Tag assignments**: `STACK_REF = 9`, `LOCAL_REF = 10`, `GLOBAL_REF = 11`
+- **Polymorphic fetchOp**: Handles all reference types via switch statement on tag
+- **Memory segments**: LOCAL_REF uses SEG_RSTACK, others use SEG_STACK
+- **✅ Tag.REF removed**: Abstract concept eliminated from code - only concrete reference types exist
+- **Future ready**: GLOBAL_REF structure in place, throws appropriate "not implemented" error
+- **Type guards**: `isRef()`, `isStackRef()`, `isLocalRef()`, `isGlobalRef()` all working
+- **Construction helpers**: `createLocalRef(slot)`, `createGlobalRef(key)` implemented
+
+#### 2.6 Tag.REF Elimination (30 minutes) ✅ COMPLETED
+**Files**: `src/core/tagged.ts`, `src/ops/list-ops.ts`, `src/test/core/unified-references.test.ts`
+**Goal**: Remove abstract Tag.REF and use only concrete reference types
+
+**Tasks**:
+- ✅ Audit all Tag.REF usage in codebase (11 locations found)
+- ✅ Replace Tag.REF with Tag.STACK_REF in all code locations
+- ✅ Update type guards to remove Tag.REF compatibility layer
+- ✅ Remove Tag.REF from enum and tagNames mapping entirely
+- ✅ Update tests to expect Tag.STACK_REF instead of Tag.REF
+
+**Success Criteria**:
+- ✅ No Tag.REF references remain in codebase
+- ✅ Only concrete reference types exist: STACK_REF, LOCAL_REF, GLOBAL_REF
+- ✅ All 411 tests pass with no regressions
+- ✅ Clean polymorphic reference system without legacy compatibility
+
+**Implementation Notes**:
+- **Abstract concept eliminated**: REF remains conceptual in docs but not in code
+- **Cleaner type system**: No confusion between abstract and concrete reference types
+- **Simplified type guards**: `isRef()` only checks concrete types now
+- **Future maintenance**: No legacy compatibility layer to maintain
 
 ### Phase 3: Simple Values Integration Testing (2 hours total)
 
-#### 3.1 End-to-End Simple Values Testing (2 hours)
+#### 3.1 End-to-End Simple Values Testing (2 hours) - NEXT STEP
 **Files**: Test files  
 **Goal**: Verify complete slot workflow for simple values
 
 **Tasks**:
-- Test complete flow: Reserve → InitVar → LocalRef → Fetch
-- Test simple values only (numbers, strings, symbols)
+- Test complete flow: Reserve → InitVar → createLocalRef → Fetch
+- Test simple values only (numbers, strings, symbols)  
 - Test multiple slots in same function
-- Test slot access via fetch/store operations
+- Test slot access via unified fetch/store operations
+- Verify local references work polymorphically with existing operations
+- Test integration with existing list operations and combinators
 - Defer compound values to later phase
 
 **Success Criteria**:

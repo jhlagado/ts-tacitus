@@ -34,6 +34,7 @@
  */
 import { VM } from '../core/vm';
 import { toTaggedValue, Tag } from '../core/tagged';
+import { SEG_RSTACK } from '../core/constants';
 
 import {
   literalNumberOp,
@@ -399,6 +400,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Reserve:
       reserveOp(vm);
       break;
+    case Op.InitVar:
+      initVarOp(vm);
+      break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
@@ -428,4 +432,20 @@ export function literalAddressOp(vm: VM): void {
 export function reserveOp(vm: VM): void {
   const slotCount = vm.nextUint16();
   vm.RP += slotCount * 4;
+}
+
+/**
+ * Implements the InitVar operation for local variable initialization.
+ *
+ * Reads a 16-bit slot number from the instruction stream, pops a value from the
+ * data stack, and stores it in the specified local variable slot on the return stack.
+ *
+ * @param {VM} vm - The virtual machine instance.
+ */
+export function initVarOp(vm: VM): void {
+  const slotNumber = vm.nextInt16();
+  vm.ensureStackSize(1, 'InitVar');
+  const value = vm.pop();
+  const address = vm.BP + slotNumber * 4;
+  vm.memory.writeFloat32(SEG_RSTACK, address, value);
 }
