@@ -21,6 +21,7 @@ import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
+import { fromTaggedValue, Tag, createLocalRef } from '../core/tagged';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
@@ -315,6 +316,9 @@ function processWordToken(value: string, state: ParserState): void {
 
     vm.compiler.compileOpcode(Op.Set);
     return;
+  } else if (value === 'var') {
+    processVarDeclaration(state);
+    return;
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
@@ -324,6 +328,21 @@ function processWordToken(value: string, state: ParserState): void {
       // Found a colon definition - compile direct bytecode address
       vm.compiler.compileUserWordCall(bytecodeAddr);
       return;
+    }
+
+    // Check for local variables using tagged value lookup
+    const taggedValue = vm.symbolTable.findTaggedValue(value);
+    if (taggedValue !== undefined) {
+      const { tag, value: tagValue } = fromTaggedValue(taggedValue);
+      
+      if (tag === Tag.LOCAL) {
+        // Found a local variable - generate bytecode to push its value
+        // This compiles to: LocalRef slot_number, then Fetch
+        vm.compiler.compileOpcode(Op.LocalRef);
+        vm.compiler.compile16(tagValue); // Raw slot number
+        vm.compiler.compileOpcode(Op.Fetch);
+        return;
+      }
     }
 
     // Fall back to built-in lookup (function index)
@@ -363,6 +382,38 @@ function processAtSymbol(symbolName: string): void {
 
   // Then call pushSymbolRef
   vm.compiler.compileOpcode(Op.PushSymbolRef);
+}
+
+/**
+ * Process variable declarations with 'var' keyword.
+ *
+ * This function handles variable declarations in TACIT using the syntax: value var name
+ * It expects a value to already be on the stack and reads the variable name from the next token.
+ *
+ * @param {ParserState} state - The current parser state
+ * @throws {Error} If not inside a function definition or invalid variable name
+ */
+function processVarDeclaration(state: ParserState): void {
+  // Validate we're inside a function definition
+  if (!state.currentDefinition) {
+    throw new SyntaxError('Variable declarations only allowed inside function definitions', vm.getStackData());
+  }
+
+  // Read the variable name token
+  const nameToken = state.tokenizer.nextToken();
+  if (nameToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after var', vm.getStackData());
+  }
+
+  const varName = nameToken.value as string;
+
+  // Define the local variable and get auto-assigned slot number
+  vm.symbolTable.defineLocal(varName);
+  const slotNumber = vm.symbolTable.getLocalCount() - 1;
+
+  // Generate InitVar opcode with slot number
+  vm.compiler.compileOpcode(Op.InitVar);
+  vm.compiler.compile16(slotNumber);
 }
 
 /**

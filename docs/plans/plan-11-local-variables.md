@@ -342,7 +342,38 @@ test('should allocate slots correctly', () => {
 
 ### Phase 4: Compiler Infrastructure (5 hours total)
 
-#### 4.1 16-bit Back-Patching Support (1 hour)
+#### 4.1 Variable Declaration Parsing (1 hour) ✅ COMPLETED
+**Files**: `src/lang/parser.ts`, `src/ops/builtins.ts`, `src/test/lang/parser-variables.test.ts`  
+**Goal**: Add TACIT syntax for variable declarations and implement parsing
+
+**Tasks**:
+- ✅ Design TACIT syntax: `value var name` (postfix, follows existing patterns)
+- ✅ Add 'var' keyword recognition in `processWordToken()`
+- ✅ Implement `processVarDeclaration()` function with validation
+- ✅ Implement variable reference resolution in symbol lookup
+- ✅ Add `LocalRef` opcode implementation (`localRefOp`)
+- ✅ Create comprehensive parser tests (11 tests covering all scenarios)
+
+**Implementation Notes**:
+- **TACIT Syntax**: `42 var x` declares variable x with value 42
+- **Parser Integration**: Added 'var' as special word token with proper validation
+- **Bytecode Generation**: Variable declarations emit `InitVar slot_number`
+- **Variable References**: Compile to `LocalRef slot_number; Fetch` sequence
+- **Error Handling**: Validates function context, variable names, syntax
+- **LocalRef Opcode**: Reads 16-bit slot number, creates local reference at runtime
+- **Symbol Resolution**: Variables naturally shadow globals via dictionary order
+- **Compilation Strategy**: Raw slot numbers in bytecode, tagged values created at runtime
+- **Tests Pass**: All 11 parser tests pass, full test suite shows no regressions
+
+**Success Criteria**:
+- ✅ Can parse `42 var x` syntax without errors
+- ✅ Rejects variable declarations outside functions
+- ✅ Variable references (`x`) compile to correct bytecode sequence  
+- ✅ Natural shadowing works automatically
+- ✅ All validation and error cases handled
+- ✅ Integration with symbol table auto-slot assignment works
+
+#### 4.2 16-bit Back-Patching Support (1 hour)
 **Files**: `src/lang/compiler.ts`, test file  
 **Goal**: Add 16-bit back-patching support
 
