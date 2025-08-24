@@ -1,3 +1,4 @@
+import { ifCurlyBranchFalseOp } from '../../../ops/control-ops';
 /**
  * Tests for control-ops.ts - specifically targeting uncovered branches
  * This includes the deprecated simpleIfOp and edge cases for ifCurlyBranchFalseOp
@@ -168,8 +169,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-      const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
-      ifCurlyBranchFalseOp(vm);
+  ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP + 10);
 
@@ -184,8 +184,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-      const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
-      ifCurlyBranchFalseOp(vm);
+  ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP);
 
@@ -200,8 +199,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-      const { ifCurlyBranchFalseOp } = require('../../../ops/control-ops');
-      ifCurlyBranchFalseOp(vm);
+  ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP + 15);
 
