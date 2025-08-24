@@ -7,6 +7,7 @@ import { VM } from '../core/vm';
 import { Tag, toTaggedValue } from '../core/tagged';
 import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
 import { InvalidOpcodeAddressError } from '../core/errors';
+import { Op } from '../ops/opcodes';
 
 /**
  * Compiler for generating bytecode from parsed Tacit code.
@@ -20,6 +21,10 @@ export class Compiler {
 
   preserve: boolean;
 
+  // Function compilation context
+  isInFunction: boolean;
+  reservePatchAddr: number;
+
   private vm: VM;
   /**
    * Creates a new Compiler instance.
@@ -30,6 +35,8 @@ export class Compiler {
     this.CP = 0;
     this.BCP = 0;
     this.preserve = false;
+    this.isInFunction = false;
+    this.reservePatchAddr = -1;
     this.vm = vm;
   }
 
@@ -189,5 +196,49 @@ export class Compiler {
 
     this.vm.memory.write8(SEG_CODE, address, 0x80 | (opcodeAddress & 0x7f));
     this.vm.memory.write8(SEG_CODE, address + 1, (opcodeAddress >> 7) & 0xff);
+  }
+
+  /**
+   * Begins function compilation context.
+   * 
+   * This method is called when starting to compile a function.
+   * It tracks that we are in a function context but does not emit
+   * Reserve opcode until variables are actually declared.
+   */
+  enterFunction(): void {
+    this.isInFunction = true;
+    this.reservePatchAddr = -1;
+  }
+
+  /**
+   * Emits Reserve opcode placeholder on first variable declaration.
+   * 
+   * This method is called when the first local variable is encountered
+   * in a function. It emits the Reserve opcode with a placeholder that
+   * will be patched when the function ends.
+   */
+  emitReserveIfNeeded(): void {
+    if (this.isInFunction && this.reservePatchAddr === -1) {
+      // Emit Reserve opcode with placeholder slot count
+      this.compileOpcode(Op.Reserve);
+      this.reservePatchAddr = this.CP;
+      this.compile16(0); // Placeholder - will be patched in exitFunction
+    }
+  }
+
+  /**
+   * Ends function compilation context and patches Reserve slot count.
+   * 
+   * This method is called when finishing compilation of a function.
+   * It patches the Reserve opcode's slot count if any variables were declared.
+   */
+  exitFunction(): void {
+    if (this.isInFunction && this.reservePatchAddr !== -1) {
+      const localCount = this.vm.symbolTable.getLocalCount();
+      this.patch16(this.reservePatchAddr, localCount);
+    }
+    
+    this.isInFunction = false;
+    this.reservePatchAddr = -1;
   }
 }
