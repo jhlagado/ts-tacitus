@@ -9,8 +9,6 @@ export enum Tag {
 
   CODE = 2,
 
-  REF = 3,
-
   STRING = 4,
 
   LOCAL = 6,
@@ -18,19 +16,24 @@ export enum Tag {
   BUILTIN = 7,
 
   LIST = 8,
+  STACK_REF = 9,
+  LOCAL_REF = 10,
+  GLOBAL_REF = 11,
 }
 
-export const MAX_TAG = Tag.LIST;
+export const MAX_TAG = Tag.GLOBAL_REF;
 
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
   [Tag.CODE]: 'CODE',
-  [Tag.REF]: 'STACK_REF',
   [Tag.STRING]: 'STRING',
   [Tag.LOCAL]: 'LOCAL',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
+  [Tag.STACK_REF]: 'STACK_REF',
+  [Tag.LOCAL_REF]: 'LOCAL_REF',
+  [Tag.GLOBAL_REF]: 'GLOBAL_REF',
 };
 
 const VALUE_BITS = 16;
@@ -167,6 +170,54 @@ export function isSentinel(tval: number): boolean {
 }
 
 /**
+ * Checks if a value is any type of data reference.
+ * @param tval The value to check
+ * @returns true if the value is a STACK_REF, LOCAL_REF, or GLOBAL_REF
+ */
+export function isRef(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.STACK_REF || tag === Tag.LOCAL_REF || tag === Tag.GLOBAL_REF;
+}
+
+/**
+ * Checks if a value is a LOCAL_REF.
+ * @param tval The value to check
+ * @returns true if the value is a local variable reference
+ */
+export function isLocalRef(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.LOCAL_REF;
+}
+
+/**
+ * Checks if a value is a GLOBAL_REF.
+ * @param tval The value to check
+ * @returns true if the value is a global variable reference
+ */
+export function isGlobalRef(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.GLOBAL_REF;
+}
+
+/**
+ * Creates a LOCAL_REF tagged value.
+ * @param slot The local variable slot number to reference
+ * @returns A LOCAL_REF tagged value
+ */
+export function createLocalRef(slot: number): number {
+  return toTaggedValue(slot, Tag.LOCAL_REF);
+}
+
+/**
+ * Creates a GLOBAL_REF tagged value.
+ * @param key The global variable key to reference
+ * @returns A GLOBAL_REF tagged value
+ */
+export function createGlobalRef(key: number): number {
+  return toTaggedValue(key, Tag.GLOBAL_REF);
+}
+
+/**
  * Checks if a value is CODE.
  * @param tval The value to check
  * @returns true if the value is CODE
@@ -213,7 +264,7 @@ export function isLocal(tval: number): boolean {
  */
 export function isStackRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.REF;
+  return tag === Tag.STACK_REF;
 }
 
 /**
@@ -225,7 +276,7 @@ export function createStackRef(cellIndex: number): number {
   if (cellIndex < 0 || cellIndex > 65535) {
     throw new Error('Stack cell index must be 0-65535');
   }
-  return toTaggedValue(cellIndex, Tag.REF);
+  return toTaggedValue(cellIndex, Tag.STACK_REF);
 }
 
 /**
@@ -234,7 +285,7 @@ export function createStackRef(cellIndex: number): number {
  * @returns Byte address
  */
 export function getStackRefAddress(stackRef: number): number {
-  if (getTag(stackRef) !== Tag.REF) {
+  if (getTag(stackRef) !== Tag.STACK_REF) {
     throw new Error('Value is not a STACK_REF');
   }
   return getValue(stackRef) * 4;

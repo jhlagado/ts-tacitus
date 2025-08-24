@@ -15,7 +15,7 @@ import {
   NIL,
 } from '../core/tagged';
 import { evalOp } from './core-ops';
-import { SEG_STACK } from '../core/constants';
+import { SEG_STACK, SEG_RSTACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
@@ -288,7 +288,7 @@ export function slotOp(vm: VM): void {
     const addr = vm.SP - 4 - idx * BYTES_PER_ELEMENT;
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
-  } else if (tag === Tag.REF) {
+  } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
     const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
@@ -335,7 +335,7 @@ export function elemOp(vm: VM): void {
     }
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
-  } else if (tag === Tag.REF) {
+  } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
     const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
@@ -372,17 +372,27 @@ export function fetchOp(vm: VM): void {
   let byteAddr: number;
   const tag = getTag(addressValue);
 
-  if (tag === Tag.SENTINEL) {
-    // Legacy: direct byte address
-    byteAddr = fromTaggedValue(addressValue).value;
-  } else if (tag === Tag.REF) {
-    // New: cell-based addressing
+  if (tag === Tag.STACK_REF) {
+    // Stack reference: cell-based addressing
     byteAddr = getStackRefAddress(addressValue);
+  } else if (tag === Tag.LOCAL_REF) {
+    // Local variable reference: return stack slot
+    const slot = fromTaggedValue(addressValue).value;
+    byteAddr = vm.BP + slot * 4;
+  } else if (tag === Tag.GLOBAL_REF) {
+    // Global variable reference: not yet implemented
+    throw new Error('Global variable references not yet implemented');
   } else {
-    throw new Error('fetch expects address (INTEGER or STACK_REF)');
+    throw new Error('fetch expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
   }
 
-  const value = vm.memory.readFloat32(SEG_STACK, byteAddr);
+  // Read from appropriate memory segment
+  let value: number;
+  if (tag === Tag.LOCAL_REF) {
+    value = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
+  } else {
+    value = vm.memory.readFloat32(SEG_STACK, byteAddr);
+  }
 
   if (isList(value)) {
     // Compound value: need to materialize entire structure
@@ -684,7 +694,7 @@ export function findOp(vm: VM): void {
     // No key match and no default - return NIL
     vm.push(target); // Restore target
     vm.push(NIL);
-  } else if (tag === Tag.REF) {
+  } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
     const baseAddr = getStackRefAddress(target);
     const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
