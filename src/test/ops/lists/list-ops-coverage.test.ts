@@ -1,3 +1,4 @@
+import { fromTaggedValue } from '../../../core/tagged';
 /**
  * Tests for list-ops.ts - targeting uncovered branches
  * This focuses on error conditions, edge cases, and debug output not covered in main list tests
@@ -38,9 +39,9 @@ describe('List Operations - Branch Coverage', () => {
       expect(vm.getStackData()).toHaveLength(2);
 
       const header = vm.peek();
-      const { tag, value } = require('../../../core/tagged').fromTaggedValue(header);
-      expect(tag).toBe(Tag.LIST);
-      expect(value).toBe(1);
+  const { tag, value } = fromTaggedValue(header);
+  expect(tag).toBe(Tag.LIST);
+  expect(value).toBe(1);
     });
 
     test('should handle empty lists (no reversal needed)', () => {
@@ -48,9 +49,9 @@ describe('List Operations - Branch Coverage', () => {
       closeListOp(vm);
 
       const header = vm.peek();
-      const { tag, value } = require('../../../core/tagged').fromTaggedValue(header);
-      expect(tag).toBe(Tag.LIST);
-      expect(value).toBe(0); 
+  const { tag, value } = fromTaggedValue(header);
+  expect(tag).toBe(Tag.LIST);
+  expect(value).toBe(0); 
     });
 
     test('should handle lists with listDepth undefined (backward compatibility)', () => {
@@ -75,9 +76,9 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const result = vm.pop();
-      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.SENTINEL);
-      expect(value).toBe(0); 
+  const { tag, value } = fromTaggedValue(result);
+  expect(tag).toBe(Tag.SENTINEL);
+  expect(value).toBe(0); 
     });
 
     test('should return 0 for empty lists', () => {
@@ -87,9 +88,9 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const result = vm.pop();
-      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.SENTINEL);
-      expect(value).toBe(0); 
+  const { tag, value } = fromTaggedValue(result);
+  expect(tag).toBe(Tag.SENTINEL);
+  expect(value).toBe(0); 
     });
 
     test('should count nested lists correctly', () => {
@@ -105,8 +106,8 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const lengthTagged = vm.pop();
-      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
-      expect(length).toBe(3); 
+  const { value: length } = fromTaggedValue(lengthTagged);
+  expect(length).toBe(3); 
     });
   });
 
@@ -141,9 +142,9 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const result = vm.pop();
-      const { tag, value } = require('../../../core/tagged').fromTaggedValue(result);
-      expect(tag).toBe(Tag.SENTINEL);
-      expect(value).toBe(0); 
+  const { tag, value } = fromTaggedValue(result);
+  expect(tag).toBe(Tag.SENTINEL);
+  expect(value).toBe(0); 
     });
 
   });
@@ -161,8 +162,8 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const lengthTagged = vm.pop();
-      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
-      expect(length).toBe(1); 
+  const { value: length } = fromTaggedValue(lengthTagged);
+  expect(length).toBe(1); 
     });
 
     test('should handle large lists efficiently', () => {
@@ -177,8 +178,8 @@ describe('List Operations - Branch Coverage', () => {
       lengthOp(vm);
 
       const lengthTagged = vm.pop();
-      const { value: length } = require('../../../core/tagged').fromTaggedValue(lengthTagged);
-      expect(length).toBe(50);
+  const { value: length } = fromTaggedValue(lengthTagged);
+  expect(length).toBe(50);
     });
   });
 
