@@ -407,6 +407,9 @@ function processVarDeclaration(state: ParserState): void {
 
   const varName = nameToken.value as string;
 
+  // Emit Reserve opcode if this is the first variable
+  vm.compiler.emitReserveIfNeeded();
+
   // Define the local variable and get auto-assigned slot number
   vm.symbolTable.defineLocal(varName);
   const slotNumber = vm.symbolTable.getLocalCount() - 1;
@@ -514,6 +517,7 @@ function beginDefinition(state: ParserState): void {
   };
 
   vm.compiler.preserve = true;
+  vm.compiler.enterFunction();
 }
 
 /**
@@ -534,6 +538,8 @@ function endDefinition(state: ParserState): void {
   }
 
   vm.compiler.compileOpcode(Op.Exit);
+  
+  vm.compiler.exitFunction();
 
   patchBranchOffset(state.currentDefinition.branchPos);
 

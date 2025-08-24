@@ -373,15 +373,34 @@ test('should allocate slots correctly', () => {
 - ✅ All validation and error cases handled
 - ✅ Integration with symbol table auto-slot assignment works
 
-#### 4.2 16-bit Back-Patching Support (1 hour)
-**Files**: `src/lang/compiler.ts`, test file  
-**Goal**: Add 16-bit back-patching support
+#### 4.2 Function Context and Reserve Back-Patching (2 hours) ✅ COMPLETED
+**Files**: `src/lang/compiler.ts`, `src/lang/parser.ts`, `src/test/lang/compiler-functions.test.ts`  
+**Goal**: Add function context tracking and lazy Reserve opcode emission
 
 **Tasks**:
-- Check if `patch16()` method already exists (likely does)
-- If not, add simple implementation using existing patterns
-- Validate value fits in 16 bits (0-65535)
-- Reuse existing code segment writing patterns
+- ✅ Verify `patch16()` method exists (confirmed - fully implemented)
+- ✅ Add function context tracking: `isInFunction`, `reservePatchAddr` fields
+- ✅ Implement `enterFunction()`, `emitReserveIfNeeded()`, `exitFunction()` methods
+- ✅ Integrate with parser definition start/end points
+- ✅ Create comprehensive compiler infrastructure tests (9 tests)
+
+**Implementation Notes**:
+- **Lazy Reserve Emission**: Only emits Reserve opcode when first variable is declared
+- **Back-Patching**: Reserve slot count patched after function compilation completes
+- **Non-Breaking**: Functions without variables generate identical bytecode as before
+- **Parser Integration**: `enterFunction()` called at `:`, `exitFunction()` called at `;`
+- **Variable Integration**: `emitReserveIfNeeded()` called in `processVarDeclaration()`
+- **Compiler State**: Proper tracking of function context and patch addresses
+- **Testing**: Complete coverage including edge cases and error conditions
+- **Existing Tests**: All existing parser tests continue to pass
+
+**Success Criteria**:
+- ✅ Functions without variables: no Reserve opcode emitted
+- ✅ Functions with variables: Reserve emitted with correct slot count  
+- ✅ Back-patching works correctly for multiple variables
+- ✅ All existing parser tests pass (no regressions)
+- ✅ Comprehensive test coverage for new functionality
+- ✅ Clean separation of concerns in compiler architecture
 
 #### 4.2 Opcode Compilation Methods (2 hours)
 **Files**: `src/lang/compiler.ts`, test file  
