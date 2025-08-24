@@ -33,7 +33,7 @@
  * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
-import { toTaggedValue, Tag } from '../core/tagged';
+import { toTaggedValue, Tag, createLocalRef } from '../core/tagged';
 import { SEG_RSTACK } from '../core/constants';
 
 import {
@@ -403,6 +403,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.InitVar:
       initVarOp(vm);
       break;
+    case Op.LocalRef:
+      localRefOp(vm);
+      break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
@@ -448,4 +451,10 @@ export function initVarOp(vm: VM): void {
   const value = vm.pop();
   const address = vm.BP + slotNumber * 4;
   vm.memory.writeFloat32(SEG_RSTACK, address, value);
+}
+
+export function localRefOp(vm: VM): void {
+  const slotNumber = vm.nextInt16();
+  const localRef = createLocalRef(slotNumber);
+  vm.push(localRef);
 }
