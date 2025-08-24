@@ -203,6 +203,7 @@ export const exitOp: Verb = (vm: VM) => {
       return;
     }
 
+    vm.RP = vm.BP; // Reset return stack pointer to deallocate local variables
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
