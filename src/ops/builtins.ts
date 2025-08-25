@@ -33,7 +33,7 @@
  * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
-import { toTaggedValue, Tag, createLocalRef } from '../core/tagged';
+import { toTaggedValue, Tag, createLocalRef, createStackRef } from '../core/tagged';
 import { SEG_RSTACK } from '../core/constants';
 
 import {
@@ -100,6 +100,7 @@ import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { getOp, setOp } from './access-ops';
+import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
 // Temp register operations for macro expansion
 // Pops the top of the stack and stores it in vm.tempRegister
@@ -448,9 +449,20 @@ export function reserveOp(vm: VM): void {
 export function initVarOp(vm: VM): void {
   const slotNumber = vm.nextInt16();
   vm.ensureStackSize(1, 'InitVar');
-  const value = vm.pop();
-  const address = vm.BP + slotNumber * 4;
-  vm.memory.writeFloat32(SEG_RSTACK, address, value);
+  
+  const value = vm.peek(); // Don't pop yet - check if compound first
+  const slotAddr = vm.BP + slotNumber * 4;
+  
+  if (isCompoundData(value)) {
+    // Compound value: transfer to return stack and store STACK_REF in slot
+    const headerAddr = transferCompoundToReturnStack(vm);
+    const stackRef = createStackRef(headerAddr / 4); // Cell-based addressing
+    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, stackRef);
+  } else {
+    // Simple value: store directly (existing behavior)  
+    const simpleValue = vm.pop();
+    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, simpleValue);
+  }
 }
 
 export function localRefOp(vm: VM): void {
