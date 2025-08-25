@@ -33,7 +33,8 @@
  * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
-import { toTaggedValue, Tag, createLocalRef, createStackRef } from '../core/tagged';
+import { toTaggedValue, Tag } from '../core/tagged';
+import { createLocalRef, createStackRef } from '../core/refs';
 import { SEG_RSTACK } from '../core/constants';
 
 import {
@@ -454,10 +455,11 @@ export function initVarOp(vm: VM): void {
   const slotAddr = vm.BP + slotNumber * 4;
   
   if (isCompoundData(value)) {
-    // Compound value: transfer to return stack and store STACK_REF in slot
+    // Compound value: transfer to return stack and store LOCAL_REF in slot
     const headerAddr = transferCompoundToReturnStack(vm);
-    const stackRef = createStackRef(headerAddr / 4); // Cell-based addressing
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, stackRef);
+    const offset = (headerAddr - vm.BP) / 4; // Calculate slot offset from BP
+    const localRef = createLocalRef(offset);
+    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
     // Simple value: store directly (existing behavior)  
     const simpleValue = vm.pop();

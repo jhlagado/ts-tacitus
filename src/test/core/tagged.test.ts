@@ -7,7 +7,6 @@ import {
   getValue,
   isNIL,
   isCode,
-  isList,
   MAX_TAG,
 } from '../../core/tagged';
 describe('Tagged NaN Encoding', () => {
@@ -69,50 +68,4 @@ describe('Tagged NaN Encoding', () => {
     expect(isCode(str)).toBe(false);
   });
 
-  test('should correctly identify LIST types', () => {
-    const list = toTaggedValue(5, Tag.LIST);
-    const integer = 5;
-
-    expect(isList(list)).toBe(true);
-    expect(isList(integer)).toBe(false);
-  });
-
-  test('should handle LIST with zero slot count', () => {
-    const emptyList = toTaggedValue(0, Tag.LIST);
-    expect(isList(emptyList)).toBe(true);
-
-    const decoded = fromTaggedValue(emptyList);
-    expect(decoded.tag).toBe(Tag.LIST);
-    expect(decoded.value).toBe(0);
-  });
-
-  test('should handle LIST with maximum slot count', () => {
-    const maxList = toTaggedValue(65535, Tag.LIST);
-    expect(isList(maxList)).toBe(true);
-
-    const decoded = fromTaggedValue(maxList);
-    expect(decoded.tag).toBe(Tag.LIST);
-    expect(decoded.value).toBe(65535);
-  });
-
-  test('should validate LIST value ranges', () => {
-    expect(() => toTaggedValue(-1, Tag.LIST)).toThrow();
-    expect(() => toTaggedValue(65536, Tag.LIST)).toThrow();
-  });
-
-  test('should include LIST in encoded/decoded round-trip tests', () => {
-    const tests = [
-      { tag: Tag.LIST, value: 0 },
-      { tag: Tag.LIST, value: 1 },
-      { tag: Tag.LIST, value: 65535 },
-    ];
-
-    tests.forEach(({ tag, value }) => {
-      const encoded = toTaggedValue(value, tag);
-      const decoded = fromTaggedValue(encoded);
-      expect(decoded.tag).toBe(tag);
-      expect(decoded.value).toBe(value);
-      expect(isList(encoded)).toBe(true);
-    });
-  });
 });

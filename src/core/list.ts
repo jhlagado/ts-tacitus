@@ -4,9 +4,18 @@
  */
 
 import { VM } from './vm';
-import { fromTaggedValue, isList } from './tagged';
+import { fromTaggedValue, Tag } from './tagged';
 import { SEG_STACK } from './constants';
 
+/**
+ * Checks if a value is a LIST.
+ * @param tval The value to check
+ * @returns true if the value is a LIST
+ */
+export function isList(tval: number): boolean {
+  const { tag } = fromTaggedValue(tval);
+  return tag === Tag.LIST;
+}
 
 /**
  * Extracts slot count from LIST header.
@@ -22,10 +31,10 @@ export function getListSlotCount(header: number): number {
 }
 
 /**
- * Skips entire LIST from stack.
+ * Drops entire LIST from stack.
  * @param vm The virtual machine instance
  */
-export function skipList(vm: VM): void {
+export function dropList(vm: VM): void {
   validateListHeader(vm);
 
   const header = vm.peek();
@@ -34,21 +43,6 @@ export function skipList(vm: VM): void {
   for (let i = 0; i < slotCount + 1; i++) {
     vm.pop();
   }
-}
-
-/**
- * Returns memory address of first payload slot.
- * @param vm The virtual machine instance
- * @returns Memory address of payload[0]
- */
-export function getListPayloadStart(vm: VM): number {
-  validateListHeader(vm);
-  const header = vm.peek();
-  const slotCount = getListSlotCount(header);
-  if (slotCount === 0) {
-    return vm.SP;
-  }
-  return vm.SP - 4;
 }
 
 /**
