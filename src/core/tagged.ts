@@ -238,16 +238,6 @@ export function isString(tval: number): boolean {
 }
 
 /**
- * Checks if a value is a LIST.
- * @param tval The value to check
- * @returns true if the value is a LIST
- */
-export function isList(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.LIST;
-}
-
-/**
  * Checks if a value is a LOCAL.
  * @param tval The value to check
  * @returns true if the value is a LOCAL

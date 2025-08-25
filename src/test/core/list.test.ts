@@ -4,13 +4,13 @@
  */
 
 import { VM } from '../../core/vm';
-import { toTaggedValue, Tag } from '../../core/tagged';
+import { toTaggedValue, Tag, fromTaggedValue } from '../../core/tagged';
 import {
   getListSlotCount,
-  skipList,
-  getListPayloadStart,
+  dropList,
   validateListHeader,
   reverseSpan,
+  isList,
 } from '../../core/list';
 import { createList } from '../utils/core-test-utils';
 
@@ -25,6 +25,54 @@ function getStackDepth(vm: VM): number {
 }
 
 describe('LIST Core Utilities', () => {
+
+  test('should correctly identify LIST types', () => {
+    const list = toTaggedValue(5, Tag.LIST);
+    const integer = 5;
+
+    expect(isList(list)).toBe(true);
+    expect(isList(integer)).toBe(false);
+  });
+
+  test('should handle LIST with zero slot count', () => {
+    const emptyList = toTaggedValue(0, Tag.LIST);
+    expect(isList(emptyList)).toBe(true);
+
+    const decoded = fromTaggedValue(emptyList);
+    expect(decoded.tag).toBe(Tag.LIST);
+    expect(decoded.value).toBe(0);
+  });
+
+  test('should handle LIST with maximum slot count', () => {
+    const maxList = toTaggedValue(65535, Tag.LIST);
+    expect(isList(maxList)).toBe(true);
+
+    const decoded = fromTaggedValue(maxList);
+    expect(decoded.tag).toBe(Tag.LIST);
+    expect(decoded.value).toBe(65535);
+  });
+
+  test('should validate LIST value ranges', () => {
+    expect(() => toTaggedValue(-1, Tag.LIST)).toThrow();
+    expect(() => toTaggedValue(65536, Tag.LIST)).toThrow();
+  });
+
+  test('should include LIST in encoded/decoded round-trip tests', () => {
+    const tests = [
+      { tag: Tag.LIST, value: 0 },
+      { tag: Tag.LIST, value: 1 },
+      { tag: Tag.LIST, value: 65535 },
+    ];
+
+    tests.forEach(({ tag, value }) => {
+      const encoded = toTaggedValue(value, tag);
+      const decoded = fromTaggedValue(encoded);
+      expect(decoded.tag).toBe(tag);
+      expect(decoded.value).toBe(value);
+      expect(isList(encoded)).toBe(true);
+    });
+  });
+
   describe('createList', () => {
     it('should create empty LIST', () => {
       const vm = resetVM();
@@ -40,7 +88,7 @@ describe('LIST Core Utilities', () => {
       const value = toTaggedValue(42, Tag.SENTINEL);
       createList(vm, [value]);
 
-      expect(getStackDepth(vm)).toBe(2); 
+      expect(getStackDepth(vm)).toBe(2);
       const header = vm.peek();
       expect(getListSlotCount(header)).toBe(1);
 
@@ -56,23 +104,23 @@ describe('LIST Core Utilities', () => {
 
       createList(vm, [val1, val2, val3]);
 
-      expect(getStackDepth(vm)).toBe(4); 
+      expect(getStackDepth(vm)).toBe(4);
       const header = vm.peek();
       expect(getListSlotCount(header)).toBe(3);
 
-      const payload0 = vm.memory.readFloat32(0, vm.SP - 4); 
-      const payload1 = vm.memory.readFloat32(0, vm.SP - 8); 
-      const payload2 = vm.memory.readFloat32(0, vm.SP - 12); 
+      const payload0 = vm.memory.readFloat32(0, vm.SP - 4);
+      const payload1 = vm.memory.readFloat32(0, vm.SP - 8);
+      const payload2 = vm.memory.readFloat32(0, vm.SP - 12);
 
-      expect(payload0).toBe(val1); 
-      expect(payload1).toBe(val2); 
-      expect(payload2).toBe(val3); 
+      expect(payload0).toBe(val1);
+      expect(payload1).toBe(val2);
+      expect(payload2).toBe(val3);
     });
 
     it('should handle mixed tag types', () => {
       const vm = resetVM();
       const intVal = 42;
-      const numVal = 3.14; 
+      const numVal = 3.14;
       const strVal = toTaggedValue(100, Tag.STRING);
 
       createList(vm, [intVal, numVal, strVal]);
@@ -105,16 +153,16 @@ describe('LIST Core Utilities', () => {
     });
   });
 
-  describe('skipList', () => {
+  describe('dropList', () => {
     it('should skip empty LIST', () => {
       const vm = resetVM();
       createList(vm, []);
 
       const initialSP = vm.SP;
-      skipList(vm);
+      dropList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(4); 
+      expect(initialSP - finalSP).toBe(4);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -124,10 +172,10 @@ describe('LIST Core Utilities', () => {
       createList(vm, [value]);
 
       const initialSP = vm.SP;
-      skipList(vm);
+      dropList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(8); 
+      expect(initialSP - finalSP).toBe(8);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -137,10 +185,10 @@ describe('LIST Core Utilities', () => {
       createList(vm, values);
 
       const initialSP = vm.SP;
-      skipList(vm);
+      dropList(vm);
       const finalSP = vm.SP;
 
-      expect(initialSP - finalSP).toBe(16); 
+      expect(initialSP - finalSP).toBe(16);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -148,33 +196,7 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       vm.push(5);
 
-      expect(() => skipList(vm)).toThrow('Expected LIST header at TOS');
-    });
-  });
-
-  describe('getListPayloadStart', () => {
-    it('should return correct payload start address', () => {
-      const vm = resetVM();
-      const value = toTaggedValue(42, Tag.SENTINEL);
-      createList(vm, [value]);
-
-      const payloadStart = getListPayloadStart(vm);
-      const expectedStart = vm.SP - 4; 
-
-      expect(payloadStart).toBe(expectedStart);
-
-      const readValue = vm.memory.readFloat32(0, vm.SP - 4);
-      expect(readValue).toBe(value);
-    });
-
-    it('should work with empty LIST', () => {
-      const vm = resetVM();
-      createList(vm, []);
-
-      const payloadStart = getListPayloadStart(vm);
-      const expectedStart = vm.SP; 
-
-      expect(payloadStart).toBe(expectedStart);
+      expect(() => dropList(vm)).toThrow('Expected LIST header at TOS');
     });
   });
 
@@ -258,10 +280,10 @@ describe('LIST Core Utilities', () => {
       const val3 = 3;
       const val4 = 4;
 
-      vm.push(val1); 
+      vm.push(val1);
       vm.push(val2);
       vm.push(val3);
-      vm.push(val4); 
+      vm.push(val4);
 
       reverseSpan(vm, 4);
 
@@ -306,7 +328,7 @@ describe('LIST Core Utilities', () => {
 
       validateListHeader(vm);
 
-      skipList(vm);
+      dropList(vm);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -330,7 +352,7 @@ describe('LIST Core Utilities', () => {
 
       validateListHeader(vm);
 
-      skipList(vm);
+      dropList(vm);
       expect(getStackDepth(vm)).toBe(0);
     });
   });

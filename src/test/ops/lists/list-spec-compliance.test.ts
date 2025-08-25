@@ -4,7 +4,8 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
-import { fromTaggedValue, Tag, isList } from '../../../core/tagged';
+import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { isList } from '../../../core/list';
 
 describe('Lists.md Specification Compliance', () => {
   beforeEach(() => {
@@ -78,7 +79,7 @@ describe('Lists.md Specification Compliance', () => {
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
       expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(0); 
+      expect(decoded.value).toBe(0);
     });
 
     test('uncons splits list correctly', () => {
@@ -138,15 +139,15 @@ describe('Lists.md Specification Compliance', () => {
       const stack = executeTacitCode('0 pack');
       const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
-      expect(fromTaggedValue(header).value).toBe(0); 
+      expect(fromTaggedValue(header).value).toBe(0);
     });
 
     test('unpack pushes list elements to stack', () => {
       const stack = executeTacitCode('( 1 2 3 ) unpack');
       expect(stack.length).toBe(3);
-      expect(fromTaggedValue(stack[0]).value).toBe(3); 
-      expect(fromTaggedValue(stack[1]).value).toBe(2); 
-      expect(fromTaggedValue(stack[2]).value).toBe(1); 
+      expect(fromTaggedValue(stack[0]).value).toBe(3);
+      expect(fromTaggedValue(stack[1]).value).toBe(2);
+      expect(fromTaggedValue(stack[2]).value).toBe(1);
     });
 
     test('pack and unpack are inverses', () => {

@@ -11,9 +11,9 @@
 
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-import { NIL, isList } from '../core/tagged';
+import { NIL } from '../core/tagged';
 import { evalOp } from './core-ops';
-import { getListSlotCount } from '../core/list';
+import { getListSlotCount, isList } from '../core/list';
 
 /**
  * Get combinator: path-based value access

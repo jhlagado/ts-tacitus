@@ -8,22 +8,24 @@ import {
   fromTaggedValue,
   toTaggedValue,
   Tag,
-  isList,
-  getStackRefAddress,
   getTag,
-  createStackRef,
-  isRef,
   NIL,
 } from '../core/tagged';
+import {
+  isRef,
+  createStackRef,
+  resolveReference,
+  readReference,
+} from '../core/refs';
 import { evalOp } from './core-ops';
-import { SEG_STACK, SEG_RSTACK } from '../core/constants';
+import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import {
   getListSlotCount,
-  validateListHeader,
   reverseSpan,
   getListElementAddress,
+  isList,
 } from '../core/list';
 
 const BYTES_PER_ELEMENT = 4;
@@ -68,39 +70,22 @@ export function listSlotOp(vm: VM): void {
   vm.ensureStackSize(1, 'slots');
   const value = vm.peek();
   const tag = getTag(value);
-  
+
   let header: number;
-  
+
   if (tag === Tag.LIST) {
     header = value;
   } else if (isRef(value)) {
-    if (tag === Tag.STACK_REF) {
-      const byteAddr = getStackRefAddress(value);
-      header = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
-    } else if (tag === Tag.LOCAL_REF) {
-      const slot = fromTaggedValue(value).value;
-      const slotAddr = vm.BP + slot * 4;
-      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
-      
-      if (getTag(slotValue) === Tag.STACK_REF) {
-        const byteAddr = getStackRefAddress(slotValue);
-        header = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
-      } else {
-        header = slotValue;
-      }
-    } else {
-      vm.push(NIL);
-      return;
-    }
+    header = readReference(vm, value);
   } else {
     throw new Error('slots expects LIST or reference');
   }
-  
+
   if (!isList(header)) {
     vm.push(NIL);
     return;
   }
-  
+
   const slotCount = getListSlotCount(header);
   vm.push(toTaggedValue(slotCount, Tag.SENTINEL));
 }
@@ -112,44 +97,19 @@ export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
   const tag = getTag(value);
-  
+
   let header: number;
   let baseAddr: number;
   let segment = SEG_STACK;
-  
+
   if (tag === Tag.LIST) {
     header = value;
     baseAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
   } else if (isRef(value)) {
-    if (tag === Tag.STACK_REF) {
-      const headerAddr = getStackRefAddress(value);
-      header = vm.memory.readFloat32(SEG_RSTACK, headerAddr);
-      baseAddr = headerAddr - 8; // First payload slot
-      segment = SEG_RSTACK;
-    } else if (tag === Tag.LOCAL_REF) {
-      const slot = fromTaggedValue(value).value;
-      const slotAddr = vm.BP + slot * 4;
-      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
-      
-      if (getTag(slotValue) === Tag.STACK_REF) {
-        const headerAddr = getStackRefAddress(slotValue);
-        header = vm.memory.readFloat32(SEG_RSTACK, headerAddr);
-        baseAddr = headerAddr - 8; // First payload slot
-        segment = SEG_RSTACK;
-      } else {
-        header = slotValue;
-        if (!isList(header)) {
-          vm.push(NIL);
-          return;
-        }
-        // This shouldn't happen for compound locals, but handle gracefully
-        vm.push(NIL);
-        return;
-      }
-    } else {
-      vm.push(NIL);
-      return;
-    }
+    const { address, segment: refSegment } = resolveReference(vm, value);
+    header = vm.memory.readFloat32(refSegment, address);
+    baseAddr = address - 8; // First payload slot
+    segment = refSegment;
   } else {
     vm.push(NIL);
     return;
@@ -366,8 +326,8 @@ export function slotOp(vm: VM): void {
     vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
-    const baseAddr = getStackRefAddress(target);
-    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+    const { address: baseAddr, segment } = resolveReference(vm, target);
+    const header = vm.memory.readFloat32(segment, baseAddr);
 
     if (!isList(header)) {
       vm.push(NIL);
@@ -413,8 +373,8 @@ export function elemOp(vm: VM): void {
     vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
-    const baseAddr = getStackRefAddress(target);
-    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+    const { address: baseAddr, segment } = resolveReference(vm, target);
+    const header = vm.memory.readFloat32(segment, baseAddr);
 
     if (!isList(header)) {
       vm.push(NIL);
@@ -445,30 +405,12 @@ export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
   const addressValue = vm.pop();
 
-  let byteAddr: number;
-  const tag = getTag(addressValue);
-
-  if (tag === Tag.STACK_REF) {
-    // Stack reference: cell-based addressing
-    byteAddr = getStackRefAddress(addressValue);
-  } else if (tag === Tag.LOCAL_REF) {
-    // Local variable reference: return stack slot
-    const slot = fromTaggedValue(addressValue).value;
-    byteAddr = vm.BP + slot * 4;
-  } else if (tag === Tag.GLOBAL_REF) {
-    // Global variable reference: not yet implemented
-    throw new Error('Global variable references not yet implemented');
-  } else {
+  if (!isRef(addressValue)) {
     throw new Error('fetch expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
   }
 
-  // Read from appropriate memory segment
-  let value: number;
-  if (tag === Tag.LOCAL_REF) {
-    value = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
-  } else {
-    value = vm.memory.readFloat32(SEG_STACK, byteAddr);
-  }
+  const { address, segment } = resolveReference(vm, addressValue);
+  const value = vm.memory.readFloat32(segment, address);
 
   if (isList(value)) {
     // Compound value: need to materialize entire structure
@@ -476,7 +418,7 @@ export function fetchOp(vm: VM): void {
 
     // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, byteAddr - (i + 1) * BYTES_PER_ELEMENT);
+      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
       vm.push(slotValue);
     }
     // Push header last (becomes TOS)
@@ -772,8 +714,8 @@ export function findOp(vm: VM): void {
     vm.push(NIL);
   } else if (tag === Tag.STACK_REF) {
     // New behavior: memory-based addressing
-    const baseAddr = getStackRefAddress(target);
-    const header = vm.memory.readFloat32(SEG_STACK, baseAddr);
+    const { address: baseAddr, segment } = resolveReference(vm, target);
+    const header = vm.memory.readFloat32(segment, baseAddr);
 
     if (!isList(header)) {
       vm.push(target); // Restore target
@@ -803,7 +745,7 @@ export function findOp(vm: VM): void {
     for (let i = 0; i < slotCount; i += 2) {
       const keyAddr = baseAddr - BYTES_PER_ELEMENT - i * BYTES_PER_ELEMENT;
       const valueAddr = baseAddr - BYTES_PER_ELEMENT - (i + 1) * BYTES_PER_ELEMENT;
-      const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
+      const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
       // Check for exact key match
       if (currentKey === key) {
