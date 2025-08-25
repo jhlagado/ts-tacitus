@@ -110,7 +110,50 @@ export function listSlotOp(vm: VM): void {
  */
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
-  const header = vm.peek(); // Keep list on stack
+  const value = vm.peek();
+  const tag = getTag(value);
+  
+  let header: number;
+  let baseAddr: number;
+  let segment = SEG_STACK;
+  
+  if (tag === Tag.LIST) {
+    header = value;
+    baseAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
+  } else if (isRef(value)) {
+    if (tag === Tag.STACK_REF) {
+      const headerAddr = getStackRefAddress(value);
+      header = vm.memory.readFloat32(SEG_RSTACK, headerAddr);
+      baseAddr = headerAddr - 8; // First payload slot
+      segment = SEG_RSTACK;
+    } else if (tag === Tag.LOCAL_REF) {
+      const slot = fromTaggedValue(value).value;
+      const slotAddr = vm.BP + slot * 4;
+      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
+      
+      if (getTag(slotValue) === Tag.STACK_REF) {
+        const headerAddr = getStackRefAddress(slotValue);
+        header = vm.memory.readFloat32(SEG_RSTACK, headerAddr);
+        baseAddr = headerAddr - 8; // First payload slot
+        segment = SEG_RSTACK;
+      } else {
+        header = slotValue;
+        if (!isList(header)) {
+          vm.push(NIL);
+          return;
+        }
+        // This shouldn't happen for compound locals, but handle gracefully
+        vm.push(NIL);
+        return;
+      }
+    } else {
+      vm.push(NIL);
+      return;
+    }
+  } else {
+    vm.push(NIL);
+    return;
+  }
 
   if (!isList(header)) {
     vm.push(NIL);
@@ -124,11 +167,11 @@ export function lengthOp(vm: VM): void {
   }
 
   let elementCount = 0;
-  let currentAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
+  let currentAddr = baseAddr;
   let remainingSlots = slotCount;
 
   while (remainingSlots > 0) {
-    const value = vm.memory.readFloat32(SEG_STACK, currentAddr);
+    const value = vm.memory.readFloat32(segment, currentAddr);
     const span = isList(value) ? getListSlotCount(value) + 1 : 1;
 
     elementCount++;
