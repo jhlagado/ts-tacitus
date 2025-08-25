@@ -5,6 +5,14 @@
 ## 🆕 New Claude Instance?
 **START HERE FIRST:** Read `ONBOARDING.md` for a 5-minute quick start guide, then return to this file for detailed project rules.
 
+## 📖 MANDATORY READING BEFORE CODING
+Before implementing any features related to these areas, you MUST read these specifications:
+- **`docs/specs/lists.md`** - Required before any LIST operations or compound data work
+- **`docs/specs/tagged.md`** - Required before any tagged value manipulation  
+- **`docs/specs/opcodes.md`** - Required before any VM operation implementation
+
+**Failure to read specs results in fundamental misunderstandings that waste significant time.**
+
 ## 🚨 CRITICAL WORKFLOW - MUST READ FIRST
 
 ### 1. Plan Execution Protocol (MANDATORY)
@@ -125,12 +133,16 @@ yarn dev     # REPL for testing
 - Heap allocation in hot paths, garbage collection dependencies
 - Circular dependencies, multiple abstraction layers
 - Modifying specs, breaking stack contracts, unnecessary comments
+- **Manual list construction** - Never use `toTaggedValue(n, Tag.LIST)` directly
+- **Assuming slot counts** - Lists use total slot count, not element count
 
 **FOLLOW:**
 - Consolidation approach (proven 62% code reduction)
 - Systematic migration with full test verification
 - C-ready error handling (simple codes, direct returns)
 - Single ownership (one file per functional area)
+- **Use TACIT code for test data** - `executeTacitCode("( 1 2 3 )")` not manual construction
+- **Read specifications first** - Understand data structures before implementing
 
 ## 🎯 Naming Conventions
 - **Files/Folders**: kebab-case (`list-ops.ts`, `test-utils.ts`)
