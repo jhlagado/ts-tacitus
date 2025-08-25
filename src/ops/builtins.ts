@@ -34,7 +34,7 @@
  */
 import { VM } from '../core/vm';
 import { toTaggedValue, Tag } from '../core/tagged';
-import { createLocalRef, createStackRef } from '../core/refs';
+import { createLocalRef } from '../core/refs';
 import { SEG_RSTACK } from '../core/constants';
 
 import {
@@ -450,10 +450,10 @@ export function reserveOp(vm: VM): void {
 export function initVarOp(vm: VM): void {
   const slotNumber = vm.nextInt16();
   vm.ensureStackSize(1, 'InitVar');
-  
+
   const value = vm.peek(); // Don't pop yet - check if compound first
   const slotAddr = vm.BP + slotNumber * 4;
-  
+
   if (isCompoundData(value)) {
     // Compound value: transfer to return stack and store LOCAL_REF in slot
     const headerAddr = transferCompoundToReturnStack(vm);
@@ -461,7 +461,7 @@ export function initVarOp(vm: VM): void {
     const localRef = createLocalRef(offset);
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
-    // Simple value: store directly (existing behavior)  
+    // Simple value: store directly (existing behavior)
     const simpleValue = vm.pop();
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, simpleValue);
   }
