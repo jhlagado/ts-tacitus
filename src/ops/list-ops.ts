@@ -12,6 +12,7 @@ import {
   getStackRefAddress,
   getTag,
   createStackRef,
+  isRef,
   NIL,
 } from '../core/tagged';
 import { evalOp } from './core-ops';
@@ -64,11 +65,43 @@ export function closeListOp(vm: VM): void {
  * Gets slot count from LIST header.
  */
 export function listSlotOp(vm: VM): void {
-  validateListHeader(vm);
-
-  const header = vm.peek();
+  vm.ensureStackSize(1, 'slots');
+  const value = vm.peek();
+  const tag = getTag(value);
+  
+  let header: number;
+  
+  if (tag === Tag.LIST) {
+    header = value;
+  } else if (isRef(value)) {
+    if (tag === Tag.STACK_REF) {
+      const byteAddr = getStackRefAddress(value);
+      header = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
+    } else if (tag === Tag.LOCAL_REF) {
+      const slot = fromTaggedValue(value).value;
+      const slotAddr = vm.BP + slot * 4;
+      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
+      
+      if (getTag(slotValue) === Tag.STACK_REF) {
+        const byteAddr = getStackRefAddress(slotValue);
+        header = vm.memory.readFloat32(SEG_RSTACK, byteAddr);
+      } else {
+        header = slotValue;
+      }
+    } else {
+      vm.push(NIL);
+      return;
+    }
+  } else {
+    throw new Error('slots expects LIST or reference');
+  }
+  
+  if (!isList(header)) {
+    vm.push(NIL);
+    return;
+  }
+  
   const slotCount = getListSlotCount(header);
-
   vm.push(toTaggedValue(slotCount, Tag.SENTINEL));
 }
 
