@@ -5,7 +5,7 @@ import { fromTaggedValue } from '../../../core/tagged';
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import { openListOp, closeListOp, listSlotOp, sizeOp } from '../../../ops/list-ops';
+import { openListOp, closeListOp, lengthOp, sizeOp } from '../../../ops/list-ops';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('List Operations - Branch Coverage', () => {
@@ -118,9 +118,9 @@ describe('List Operations - Branch Coverage', () => {
     });
 
 
-    test('listSlotOp should handle non-list at TOS', () => {
+    test('lengthOp should handle non-list at TOS', () => {
       vm.push(42);
-      expect(() => listSlotOp(vm)).toThrow();
+      expect(() => lengthOp(vm)).toThrow();
     });
 
     test('closeListOp should handle return stack underflow', () => {

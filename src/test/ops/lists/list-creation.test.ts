@@ -13,7 +13,7 @@ describe('List Creation Operations', () => {
 
   describe('simple values', () => {
     test('should create a simple list with 2 elements', () => {
-      const stack = executeTacitCode('( 1 2 ) slots');
+      const stack = executeTacitCode('( 1 2 ) length');
 
       logStack(stack);
       const { tag, value } = fromTaggedValue(stack[stack.length - 1]);

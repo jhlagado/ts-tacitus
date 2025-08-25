@@ -65,9 +65,10 @@ export function closeListOp(vm: VM): void {
 
 /**
  * Gets slot count from LIST header.
+ * Renamed from slots to length.
  */
-export function listSlotOp(vm: VM): void {
-  vm.ensureStackSize(1, 'slots');
+export function lengthOp(vm: VM): void {
+  vm.ensureStackSize(1, 'length');
   const value = vm.peek();
   const tag = getTag(value);
 
@@ -78,7 +79,7 @@ export function listSlotOp(vm: VM): void {
   } else if (isRef(value)) {
     header = readReference(vm, value);
   } else {
-    throw new Error('slots expects LIST or reference');
+    throw new Error('length expects LIST or reference');
   }
 
   if (!isList(header)) {
