@@ -56,7 +56,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   // Lists.md spec operations - Section 9 & 10
   symbolTable.defineBuiltin('slots', Op.Slots);
-  symbolTable.defineBuiltin('length', Op.Length);
+  symbolTable.defineBuiltin('size', Op.Size);
   symbolTable.defineBuiltin('slot', Op.Slot);
   symbolTable.defineBuiltin('elem', Op.Elem);
   symbolTable.defineBuiltin('fetch', Op.Fetch);

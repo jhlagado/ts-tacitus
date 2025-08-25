@@ -5,7 +5,7 @@ import { fromTaggedValue } from '../../../core/tagged';
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import { openListOp, closeListOp, listSlotOp, lengthOp } from '../../../ops/list-ops';
+import { openListOp, closeListOp, listSlotOp, sizeOp } from '../../../ops/list-ops';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('List Operations - Branch Coverage', () => {
@@ -51,7 +51,7 @@ describe('List Operations - Branch Coverage', () => {
       const header = vm.peek();
   const { tag, value } = fromTaggedValue(header);
   expect(tag).toBe(Tag.LIST);
-  expect(value).toBe(0); 
+  expect(value).toBe(0);
     });
 
     test('should handle lists with listDepth undefined (backward compatibility)', () => {
@@ -69,28 +69,28 @@ describe('List Operations - Branch Coverage', () => {
     });
   });
 
-  describe('lengthOp edge cases', () => {
+  describe('sizeOp edge cases', () => {
     test('should return NIL for non-list values', () => {
-      vm.push(42); 
+      vm.push(42);
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const result = vm.pop();
   const { tag, value } = fromTaggedValue(result);
   expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0); 
+  expect(value).toBe(0);
     });
 
     test('should return 0 for empty lists', () => {
       const emptyList = toTaggedValue(0, Tag.LIST);
       vm.push(emptyList);
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const result = vm.pop();
   const { tag, value } = fromTaggedValue(result);
   expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0); 
+  expect(value).toBe(0);
     });
 
     test('should count nested lists correctly', () => {
@@ -99,28 +99,28 @@ describe('List Operations - Branch Coverage', () => {
       openListOp(vm);
       vm.push(2);
       vm.push(3);
-      closeListOp(vm); 
+      closeListOp(vm);
       vm.push(4);
-      closeListOp(vm); 
+      closeListOp(vm);
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const lengthTagged = vm.pop();
   const { value: length } = fromTaggedValue(lengthTagged);
-  expect(length).toBe(3); 
+  expect(length).toBe(3);
     });
   });
 
 
   describe('Stack underflow protection', () => {
-    test('lengthOp should handle empty stack', () => {
-      expect(() => lengthOp(vm)).toThrow('Stack underflow');
+    test('sizeOp should handle empty stack', () => {
+      expect(() => sizeOp(vm)).toThrow('Stack underflow');
     });
 
 
     test('listSlotOp should handle non-list at TOS', () => {
-      vm.push(42); 
-      expect(() => listSlotOp(vm)).toThrow(); 
+      vm.push(42);
+      expect(() => listSlotOp(vm)).toThrow();
     });
 
     test('closeListOp should handle return stack underflow', () => {
@@ -130,21 +130,21 @@ describe('List Operations - Branch Coverage', () => {
 
   describe('List validation and type checking', () => {
     test('should handle large list headers', () => {
-      const largeList = toTaggedValue(100, Tag.LIST); 
+      const largeList = toTaggedValue(100, Tag.LIST);
       vm.push(largeList);
 
-      expect(() => lengthOp(vm)).toThrow(); 
+      expect(() => sizeOp(vm)).toThrow();
     });
 
     test('should handle mixed data types in operations', () => {
-      vm.push(toTaggedValue(100, Tag.CODE)); 
+      vm.push(toTaggedValue(100, Tag.CODE));
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const result = vm.pop();
   const { tag, value } = fromTaggedValue(result);
   expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0); 
+  expect(value).toBe(0);
     });
 
   });
@@ -159,11 +159,11 @@ describe('List Operations - Branch Coverage', () => {
       closeListOp(vm);
       closeListOp(vm);
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const lengthTagged = vm.pop();
   const { value: length } = fromTaggedValue(lengthTagged);
-  expect(length).toBe(1); 
+  expect(length).toBe(1);
     });
 
     test('should handle large lists efficiently', () => {
@@ -175,7 +175,7 @@ describe('List Operations - Branch Coverage', () => {
 
       closeListOp(vm);
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       const lengthTagged = vm.pop();
   const { value: length } = fromTaggedValue(lengthTagged);
@@ -193,7 +193,7 @@ describe('List Operations - Branch Coverage', () => {
       closeListOp(vm);
 
 
-      lengthOp(vm);
+      sizeOp(vm);
 
       expect(vm.SP).toBeGreaterThan(initialSP);
       expect(vm.getStackData()).toBeDefined();

@@ -84,7 +84,7 @@ import {
   openListOp,
   closeListOp,
   listSlotOp,
-  lengthOp,
+  sizeOp,
   slotOp,
   elemOp,
   fetchOp,
@@ -339,8 +339,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Slots:
       listSlotOp(vm);
       break;
-    case Op.Length:
-      lengthOp(vm);
+    case Op.Size:
+      sizeOp(vm);
       break;
     case Op.Slot:
       slotOp(vm);
