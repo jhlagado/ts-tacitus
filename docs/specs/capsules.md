@@ -74,6 +74,11 @@ An example capsule in memory might look like this:
   "Doe"
   0 
 )
+  Capsules, like other TACIT data structures, use an abstract concept of a **ref**: a tagged address pointing to a cell in a memory segment. There are three ref types:
+    - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
+    - **LOCAL_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+    - **GLOBAL_REF**: (future) will refer to a cell location in a global segment
+  Unless otherwise specified, references in this document refer to STACK_REFs, but the addressing model is designed to be polymorphic and extensible to other ref types.
 ```
 
 Here:

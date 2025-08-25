@@ -10,7 +10,12 @@
 
 1. Introduction and design goals
 2. Terminology
-3. Stack model and registers
+**ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
+  - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
+  - **LOCAL_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+  - **GLOBAL_REF**: (future) will refer to a cell location in a global segment
+Refs are used for polymorphic memory addressing and are encoded as tagged values. Unless otherwise specified, references in this document refer to STACK_REFs.
+
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
 6. Literal syntax and grammar (BNF)
@@ -21,28 +26,28 @@
    - `length ( list -- n )`
 10. Address queries
     - `slot ( idx -- addr )`
-    - `elem ( idx -- addr )`
-    - `fetch ( addr -- value )`
-    - `store ( value addr -- )`
-11. Traversal rule (type-agnostic span)
+* Returns a **ref** (typically a STACK_REF) to the payload slot at **slot index `idx`** in the data stack segment (SEG_STACK).
+* **Preconditions:** `0 ≤ idx < s`.
+* **Result:** returns a STACK_REF to the payload slot at index `idx`.
+* **Cost:** O(1).
 12. Structural operations
-    - `enlist`
-    - `cons`
-    - `tail`
+* Returns a **ref** (typically a STACK_REF) to the **start slot** for **element index `idx`** in the data stack segment (SEG_STACK).
+* **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
+* **Cost:** O(s) worst-case.
     - `pack`
-    - `unpack`
-    - `append`
-    - `concat`
-    - `head`
-    - `uncons`
-13. Mutation (high-level)
+* Returns the value located at the address referenced by `addr` (which may be a STACK_REF, LOCAL_REF, or GLOBAL_REF).
+* If the value at `addr` is **simple** (single-slot), returns that slot's value.
+* If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
+* `addr` is typically a STACK_REF address, but may be any ref type depending on context.
+* **Cost:** O(1) for simple; O(span) to materialize a compound.
+* **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
 14. Sorting
-15. Binary search (bfind)
-16. Safety and validation
-17. Constraints and implementation-defined limits
-18. Zero-length lists
-19. Complexity summary
-20. Algebraic laws and identities
+* Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a STACK_REF, but may be any ref type depending on context.
+* Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
+* If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
+* Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
+* **Cost:** O(1).
+* **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
 21. Worked examples (diagrams)
 22. Edge cases and failure modes
 23. Testing checklist
@@ -221,44 +226,45 @@ Final stack (deep → TOS):
 ```
 addr := SP-1
 while not done:
-  if isSimple(addr): addr := addr - 1
-  else:              addr := addr - span(headerAt(addr))
-```
 
-This rule is **type-agnostic** and remains valid as new compound types are introduced.
-
----
-
-## 12. Structural operations
-
-### enlist
-
-**Stack effect:** `( value -- list )`
-**Semantics:** wraps a single value (simple or compound) into a one-element list. If `value` is already a list, the result is a nested list where that list is the sole element.
-**Mechanics:** push `LIST:s` above the value, where `s = 1` for a simple value, or `s = span(value)` if the value is a compound (its header encodes the span). The element becomes the payload immediately beneath the new header.
-**Cost:** O(1).
-
-**Examples**
-
-```tac
-42 enlist          \ -> ( 42 )
-( 1 2 ) enlist     \ -> ( ( 1 2 ) )
-```
-
-### cons
-
-**Stack effect:** `( list value -- list' )`
-**Semantics:** prepend `value` (simple or compound) as a **single element**. If `value` is a list, it becomes a **nested** list element.
-**Mechanics:** pop `LIST:s`, push `value` (already complete if compound), push `LIST:s+1`.
-**Cost:** O(1).
-**Ordering:** list-first is the natural ordering; the list precedes the value being added at the head.
-
-### tail
-
-**Stack effect:** `( list -- list' )`
-**Semantics:** remove the first element.
-**Mechanics:** pop `LIST:s`, pop element 0 span (1 if simple, else `span(header)`), push `LIST:s'` where `s' = s - span(element0)`.
-**Cost:** O(1) to locate/remove the head (span is at `SP-1`).
+1. Introduction and design goals
+2. Terminology and ref types
+3. Stack model and registers
+4. Tagged values and headers (overview)
+5. Representation of a list on the stack
+6. Literal syntax and grammar (BNF)
+7. Parser semantics
+8. Printing / pretty representation
+9. Length and counting
+   - `slots ( list -- n )`
+   - `length ( list -- n )`
+10. Address queries and refs
+  - `slot ( idx -- addr )`
+  - `elem ( idx -- addr )`
+  - `fetch ( addr -- value )`
+  - `store ( value addr -- )`
+11. Traversal rule (type-agnostic span)
+12. Structural operations
+  - `enlist`
+  - `cons`
+  - `tail`
+  - `pack`
+  - `unpack`
+  - `append`
+  - `concat`
+  - `head`
+  - `uncons`
+13. Mutation (high-level)
+14. Sorting
+15. Binary search (bfind)
+16. Safety and validation
+17. Constraints and implementation-defined limits
+18. Zero-length lists
+19. Complexity summary
+20. Algebraic laws and identities
+21. Worked examples (diagrams)
+22. Edge cases and failure modes
+23. Testing checklist
 
 ### concat
 
