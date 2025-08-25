@@ -189,7 +189,7 @@ export enum Op {
 
   // List operations per lists.md spec
   /**  Returns payload slot count from LIST header. */
-  Slots,
+  Length,
 
   /**  Returns element count by traversal. */
   Size,

@@ -168,10 +168,10 @@ Final stack (deep → TOS):
 ---
 
 ## 9. Length and counting
-
+### length ( list -- n )
 ### slots ( list -- n )
-
-* Returns the **payload slot count** `s` directly from the header.
+* Returns the **element count** by traversing the payload from `SP-1` downward.
+* **Cost:** O(s).
 * **Cost:** O(1).
 
 ### length ( list -- n )

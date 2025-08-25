@@ -83,7 +83,7 @@ import { simpleIfOp } from './control-ops';
 import {
   openListOp,
   closeListOp,
-  listSlotOp,
+  lengthOp,
   sizeOp,
   slotOp,
   elemOp,
@@ -336,8 +336,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       closeListOp(vm);
       break;
     // Lists.md spec operations
-    case Op.Slots:
-      listSlotOp(vm);
+    case Op.Length:
+      lengthOp(vm);
       break;
     case Op.Size:
       sizeOp(vm);
