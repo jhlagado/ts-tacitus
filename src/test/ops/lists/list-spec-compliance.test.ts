@@ -12,7 +12,7 @@ describe('Lists.md Specification Compliance', () => {
     resetVM();
   });
 
-  describe('Section 9: Length and counting', () => {
+  describe('Section 9: size and counting', () => {
     test('slots returns payload slot count', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) slots');
 
@@ -22,8 +22,8 @@ describe('Lists.md Specification Compliance', () => {
       expect(decoded.value).toBe(5);
     });
 
-    test('length returns element count via traversal', () => {
-      const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) length');
+    test('size returns element count via traversal', () => {
+      const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) size');
 
       const result = stack[stack.length - 1];
       const decoded = fromTaggedValue(result);
@@ -31,12 +31,12 @@ describe('Lists.md Specification Compliance', () => {
       expect(decoded.value).toBe(3);
     });
 
-    test('empty list slots and length both return 0', () => {
+    test('empty list slots and size both return 0', () => {
       let stack = executeTacitCode('( ) slots');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
 
       resetVM();
-      stack = executeTacitCode('( ) length');
+      stack = executeTacitCode('( ) size');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
     });
   });

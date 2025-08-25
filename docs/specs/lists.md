@@ -22,15 +22,15 @@ Refs are used for polymorphic memory addressing and are encoded as tagged values
 7. Parser semantics
 8. Printing / pretty representation
 9. Length and counting
-   - `slots ( list -- n )`
-   - `length ( list -- n )`
-10. Address queries
-    - `slot ( idx -- addr )`
-* Returns a **ref** (typically a STACK_REF) to the payload slot at **slot index `idx`** in the data stack segment (SEG_STACK).
-* **Preconditions:** `0 ≤ idx < s`.
-* **Result:** returns a STACK_REF to the payload slot at index `idx`.
+### slots ( list -- n )
+
+* Returns the **payload slot count** `s` directly from the header.
 * **Cost:** O(1).
-12. Structural operations
+
+### size ( list -- n )
+
+* Returns the **element count** by traversing the payload from `SP-1` downward.
+* **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
 * Returns a **ref** (typically a STACK_REF) to the **start slot** for **element index `idx`** in the data stack segment (SEG_STACK).
 * **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
 * **Cost:** O(s) worst-case.

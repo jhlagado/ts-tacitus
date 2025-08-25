@@ -93,8 +93,8 @@ export function listSlotOp(vm: VM): void {
 /**
  * Returns element count by traversal.
  */
-export function lengthOp(vm: VM): void {
-  vm.ensureStackSize(1, 'length');
+export function sizeOp(vm: VM): void {
+  vm.ensureStackSize(1, 'size');
   const value = vm.peek();
   const tag = getTag(value);
 

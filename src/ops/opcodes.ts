@@ -192,7 +192,7 @@ export enum Op {
   Slots,
 
   /**  Returns element count by traversal. */
-  Length,
+  Size,
 
   /**  Returns address of payload slot at slot index. */
   Slot,
