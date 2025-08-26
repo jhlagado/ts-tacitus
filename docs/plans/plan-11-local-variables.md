@@ -395,12 +395,21 @@ test('should allocate slots correctly', () => {
 - **Existing Tests**: All existing parser tests continue to pass
 
 **Success Criteria**:
-- ✅ Functions without variables: no Reserve opcode emitted
-- ✅ Functions with variables: Reserve emitted with correct slot count  
-- ✅ Back-patching works correctly for multiple variables
-- ✅ All existing parser tests pass (no regressions)
-- ✅ Comprehensive test coverage for new functionality
-- ✅ Clean separation of concerns in compiler architecture
+
+#### 4.3 Assignment Semantics (1 hour)
+**Goal**: Implement and test assignment for local variables
+
+**Tasks**:
+- Implement assignment for simple values: direct slot overwrite
+- Implement assignment for compound values: element-wise copy if compatible
+- Raise error for incompatible compound assignment (length/type mismatch)
+- Add tests for assignment (simple and compound)
+
+**Success Criteria**:
+- Simple assignment (`100 -> x`) overwrites slot value
+- Compound assignment (`(1 2 3) -> y`) copies elements if compatible
+- Error raised for incompatible assignment
+- All assignment tests pass
 
 #### 4.2 Opcode Compilation Methods (2 hours)
 **Files**: `src/lang/compiler.ts`, test file  
@@ -910,3 +919,64 @@ This revised plan reduces complexity by 40% while maintaining full functionality
 **Issue**: `BYTES_PER_ELEMENT` name conflicts with reserved "element" terminology that has special meaning in TACIT.
 
 **Action**: Rename constant from `BYTES_PER_ELEMENT` to `CELL_SIZE` throughout codebase to reflect that we're working with memory cells, not logical elements.
+
+## Appendix A: Future Symbol Block Syntax Ideas
+
+### Problem Statement
+Current variable declaration ergonomics are poor:
+```tacit
+: add-multiply
+    var c var b var a    # Declares in reverse order - confusing!
+    ( a b add c mul ) unref-all
+;
+```
+
+### Proposed Solution: Symbol Blocks `< >`
+
+#### **Angle Bracket Symbol Blocks**
+- **Compile-time constructs**: `< a b c >` contains only symbol identifiers
+- **Symmetric with lists**: `( 1 2 3 )` = runtime data, `< a b c >` = compile-time symbols  
+- **No expressions allowed**: Only bare symbols, parsed at compile time
+- **Tagged value**: Could be `Tag.SYMBOL_BLOCK` or similar
+
+#### **Unified Assignment System**
+```tacit
+# Single assignment
+100 -> x
+
+# Multiple assignment  
+100 200 300 -> < a b c >   # a=100, b=200, c=300
+```
+
+#### **Function Parameters**
+```tacit
+: add-multiply < a b c >
+    a b add c mul
+;
+```
+
+#### **Variable Declaration**
+```tacit
+1 2 3 var < a b c >   # or: 1 2 3 -> < a b c >
+```
+
+#### **Implementation Strategy: Compile-Time Stack**
+
+**Compilation sequence for `var < a b c >`**:
+1. **Parse `<`**: Save compile-time SP, start collecting symbols
+2. **Parse symbols**: Push each symbol onto compile-time stack (not as opcodes!)
+3. **Parse `>`**: Calculate symbol count, write LIST header on compile-time stack
+4. **`var` processes**: Iterate over symbol list, generate slot allocations
+
+**Benefits**:
+- ✅ **Consistent grammar**: `->` always means assignment, `< >` always means symbol block
+- ✅ **No syntax changes**: Uses angle brackets (freed up since `lt`/`gt` replace `<`/`>`)
+- ✅ **Flexible patterns**: Works for params, assignment, variable declaration
+- ✅ **Single-pass parsing**: `< >` always contains only symbols, no ambiguity
+
+**Integration Challenges**:
+- Current parser is token-driven with immediate bytecode generation
+- Symbol blocks need to be compile-time data structures
+- Requires extending parser state with symbol block processing
+
+**Status**: Brainstorming phase - needs more development before implementation

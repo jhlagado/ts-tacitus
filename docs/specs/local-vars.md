@@ -225,6 +225,28 @@ The `RP = BP` operation instantly deallocates:
 
 No complex deallocation logic, reference counting, or memory management required.
 
+## 10. Assignment Semantics
+
+### Simple Values
+Assignment to a local variable slot is direct:
+```
+100 -> x
+```
+This stores the value `100` in the slot for `x`. The value is tagged appropriately (e.g., `Tag.NUMBER`).
+
+### Compound Values (Lists)
+Assignment to a local variable slot containing a compound value (e.g., a list) is only allowed if the target slot already contains a compatible compound structure.
+The assignment copies the contents of the new value into the existing structure, element-wise, **without changing the slot reference**.
+If the lengths/types do not match, assignment is invalid and should raise an error.
+```
+(1 2 3) -> y
+```
+Only works if `y` is already a list of length 3; otherwise, error.
+
+### General Rule
+Assignment never changes the slot reference for compound types—only the contents are updated.
+For simple types, assignment replaces the value in the slot.
+
 ## 10. Dictionary Management
 
 ### Compile-Time Scope:
