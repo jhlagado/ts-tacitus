@@ -896,14 +896,15 @@ export function refOp(vm: VM): void {
   const value = vm.peek(); // Don't pop - list stays on stack
   const tag = getTag(value);
 
-  if (tag !== Tag.LIST) {
-    throw new Error('ref expects LIST value');
+  if (tag === Tag.LIST) {
+    // Create STACK_REF pointing to the list header at TOS
+    const headerCellIndex = (vm.SP - 4) / 4; // SP-4 is current TOS address
+    const stackRef = createStackRef(headerCellIndex);
+    vm.push(stackRef);
+  } else {
+    // Pass through non-LIST values unchanged (including existing refs)
+    // No-op: value already on stack
   }
-
-  // Create STACK_REF pointing to the list header at TOS
-  const headerCellIndex = (vm.SP - 4) / 4; // SP-4 is current TOS address
-  const stackRef = createStackRef(headerCellIndex);
-  vm.push(stackRef);
 }
 
 /**
@@ -917,28 +918,30 @@ export function refOp(vm: VM): void {
  */
 export function unrefOp(vm: VM): void {
   vm.ensureStackSize(1, 'unref');
-  const ref = vm.pop();
+  const value = vm.pop();
 
-  if (!isRef(ref)) {
-    throw new Error('unref expects reference (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
-  }
+  if (isRef(value)) {
+    // Materialize reference
+    const { address, segment } = resolveReference(vm, value);
+    const referencedValue = vm.memory.readFloat32(segment, address);
 
-  const { address, segment } = resolveReference(vm, ref);
-  const value = vm.memory.readFloat32(segment, address);
+    if (getTag(referencedValue) === Tag.LIST) {
+      // Compound value: materialize entire structure
+      const slotCount = getListSlotCount(referencedValue);
 
-  if (getTag(value) === Tag.LIST) {
-    // Compound value: materialize entire structure
-    const slotCount = getListSlotCount(value);
-
-    // Copy compound structure: payload slots first, then header
-    for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
-      vm.push(slotValue);
+      // Copy compound structure: payload slots first, then header
+      for (let i = slotCount - 1; i >= 0; i--) {
+        const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
+        vm.push(slotValue);
+      }
+      // Push header last (becomes TOS)
+      vm.push(referencedValue);
+    } else {
+      // Simple value: direct copy
+      vm.push(referencedValue);
     }
-    // Push header last (becomes TOS)
-    vm.push(value);
   } else {
-    // Simple value: direct copy
+    // Pass through non-reference values unchanged
     vm.push(value);
   }
 }
