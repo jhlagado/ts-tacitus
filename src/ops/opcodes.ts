@@ -323,4 +323,10 @@ export enum Op {
   InitVar,
   /** Pushes local variable slot address - ( -- addr ) reads 16-bit slot number */
   LocalRef,
+
+  // Reference operations
+  /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */
+  Ref,
+  /** Materializes any reference to data stack - ( ref -- value ) polymorphic */
+  Unref,
 }
