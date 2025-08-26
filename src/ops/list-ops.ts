@@ -882,3 +882,63 @@ export function valuesOp(vm: VM): void {
   // Push LIST header for values
   vm.push(toTaggedValue(valueCount, Tag.LIST));
 }
+
+/**
+ * Creates a STACK_REF pointing to a list on the data stack.
+ * Stack effect: ( list -- list STACK_REF )
+ * Spec: polymorphic-operations.md §84 - Convert list to reference
+ *
+ * The list remains on the stack, the STACK_REF points to its header location.
+ * Only works with LIST values on the data stack.
+ */
+export function refOp(vm: VM): void {
+  vm.ensureStackSize(1, 'ref');
+  const value = vm.peek(); // Don't pop - list stays on stack
+  const tag = getTag(value);
+
+  if (tag !== Tag.LIST) {
+    throw new Error('ref expects LIST value');
+  }
+
+  // Create STACK_REF pointing to the list header at TOS
+  const headerCellIndex = (vm.SP - 4) / 4; // SP-4 is current TOS address
+  const stackRef = createStackRef(headerCellIndex);
+  vm.push(stackRef);
+}
+
+/**
+ * Materializes any reference to the data stack.
+ * Stack effect: ( ref -- value )
+ * Spec: polymorphic-operations.md §95 - Polymorphic reference materialization
+ *
+ * Works with STACK_REF, LOCAL_REF, and GLOBAL_REF (when implemented).
+ * For compound data (lists), materializes the entire structure.
+ * For simple values, copies the value directly.
+ */
+export function unrefOp(vm: VM): void {
+  vm.ensureStackSize(1, 'unref');
+  const ref = vm.pop();
+
+  if (!isRef(ref)) {
+    throw new Error('unref expects reference (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
+  }
+
+  const { address, segment } = resolveReference(vm, ref);
+  const value = vm.memory.readFloat32(segment, address);
+
+  if (getTag(value) === Tag.LIST) {
+    // Compound value: materialize entire structure
+    const slotCount = getListSlotCount(value);
+
+    // Copy compound structure: payload slots first, then header
+    for (let i = slotCount - 1; i >= 0; i--) {
+      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
+      vm.push(slotValue);
+    }
+    // Push header last (becomes TOS)
+    vm.push(value);
+  } else {
+    // Simple value: direct copy
+    vm.push(value);
+  }
+}

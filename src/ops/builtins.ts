@@ -92,7 +92,7 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp } from './list-ops';
+import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -407,6 +407,12 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.LocalRef:
       localRefOp(vm);
+      break;
+    case Op.Ref:
+      refOp(vm);
+      break;
+    case Op.Unref:
+      unrefOp(vm);
       break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());
