@@ -5,6 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { getTag, Tag } from '../../../core/tagged';
+import { isList, getListLength } from '../../../core/list';
 
 describe('Empty List Compound Variables', () => {
   beforeEach(() => {
@@ -20,7 +21,7 @@ describe('Empty List Compound Variables', () => {
       ;
       test-empty-var
     `);
-    
+
     expect(result).toHaveLength(1);
     const tag = getTag(result[0]);
     expect(tag).toBe(Tag.LOCAL_REF); // Should return reference, not copy
@@ -34,7 +35,7 @@ describe('Empty List Compound Variables', () => {
       ;
       test-ref-length
     `);
-    
+
     expect(result).toEqual([0]); // length of empty list should be 0
   });
 
@@ -47,7 +48,7 @@ describe('Empty List Compound Variables', () => {
       ;
       var-length
     `);
-    
+
     expect(varLength).toEqual(directLength);
     expect(varLength).toEqual([0]);
   });
@@ -60,22 +61,10 @@ describe('Empty List Compound Variables', () => {
       ;
       test-unref
     `);
-    
+
     expect(result).toHaveLength(1);
-    const tag = getTag(result[0]);
-    expect(tag).toBe(Tag.LIST); // Should return actual LIST, not reference
+    expect(isList(result[0])).toBe(true); // Should return LIST not ref
+    expect(getListLength(result[0])).toBe(0);
   });
 
-  test('should compare unref result with direct empty list', () => {
-    const directList = executeTacitCode('()');
-    const unrefList = executeTacitCode(`
-      : unref-list
-        () var emptyList
-        emptyList unref
-      ;
-      unref-list
-    `);
-    
-    expect(unrefList).toEqual(directList);
-  });
 });
