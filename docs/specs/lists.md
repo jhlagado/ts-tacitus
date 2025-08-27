@@ -216,6 +216,16 @@ Final stack (deep → TOS):
 * **Cost:** O(1).
 * **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
 
+#### Compound Mutation: Compatibility Rule
+
+Compound elements (e.g., lists, maplists) may be replaced in place **only if the new value has the same slot (cell) count and type** as the existing value. This is called compatibility. Assignment to a compound slot copies the new value into the existing structure, element-wise, without changing the slot reference. If the slot count or type does not match, the operation is an error and must be rejected.
+
+**Examples:**
+* Assigning `(1 2 3)` (4 cells) to a slot containing `(4 5 6)` (4 cells) is allowed.
+* Assigning `(1 2)` (3 cells) to a slot containing `(4 5 6)` (4 cells) is an error.
+* Assigning a maplist of 5 cells to a slot containing a maplist of 5 cells is allowed.
+* Assigning a list to a slot containing a maplist (even if slot count matches) is not allowed; type must also match.
+
 ---
 
 ## 11. Traversal rule (type-agnostic span)
