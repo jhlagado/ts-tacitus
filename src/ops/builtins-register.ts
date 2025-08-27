@@ -80,7 +80,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   // Reference operations per polymorphic-operations.md spec
   symbolTable.defineBuiltin('ref', Op.Ref);
   symbolTable.defineBuiltin('unref', Op.Unref);
-  symbolTable.defineBuiltin('localref', Op.LocalRef);
+  symbolTable.defineBuiltin('varRef', Op.VarRef);
+  symbolTable.defineBuiltin('dumpStackFrame', Op.DumpStackFrame);
 
   symbolTable.defineBuiltin('add', Op.Add);
   symbolTable.defineBuiltin('sub', Op.Minus);

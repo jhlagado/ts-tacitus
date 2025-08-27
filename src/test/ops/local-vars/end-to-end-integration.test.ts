@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/list-ops';
-import { createLocalRef } from '../../../core/tagged';
+import { getVarRef } from '../../../core/refs';
 
 describe('Local Variables End-to-End Integration', () => {
   beforeEach(() => {
@@ -33,8 +33,7 @@ describe('Local Variables End-to-End Integration', () => {
       initVarOp(vm);
       
       // Step 3: Create reference to slot 1 and fetch value
-      const localRef = createLocalRef(1);
-      vm.push(localRef);
+      vm.push(getVarRef(vm, 1));
       fetchOp(vm);
       
       // Step 4: Verify we got the original value back
@@ -54,7 +53,7 @@ describe('Local Variables End-to-End Integration', () => {
       initVarOp(vm);
       
       // Fetch via local reference
-      vm.push(createLocalRef(0));
+      vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       
       expect(vm.pop()).toBeCloseTo(3.14159);
@@ -70,7 +69,7 @@ describe('Local Variables End-to-End Integration', () => {
       vm.compiler.compile16(0);
       initVarOp(vm);
       
-      vm.push(createLocalRef(0));
+      vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       
       expect(vm.pop()).toBe(-99.5);
@@ -86,7 +85,7 @@ describe('Local Variables End-to-End Integration', () => {
       vm.compiler.compile16(0);
       initVarOp(vm);
       
-      vm.push(createLocalRef(0));
+      vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       
       expect(vm.pop()).toBe(0);
@@ -114,7 +113,7 @@ describe('Local Variables End-to-End Integration', () => {
       const results: number[] = [];
       
       fetchOrder.forEach(slot => {
-        vm.push(createLocalRef(slot));
+        vm.push(getVarRef(vm, slot));
         fetchOp(vm);
         results.push(vm.pop());
       });
@@ -136,15 +135,15 @@ describe('Local Variables End-to-End Integration', () => {
       vm.push(900); vm.compiler.compile16(9); initVarOp(vm);
       
       // Fetch the values
-      vm.push(createLocalRef(5));
+      vm.push(getVarRef(vm, 5));
       fetchOp(vm);
       expect(vm.pop()).toBe(500);
       
-      vm.push(createLocalRef(1));
+      vm.push(getVarRef(vm, 1));
       fetchOp(vm);
       expect(vm.pop()).toBe(100);
       
-      vm.push(createLocalRef(9));
+      vm.push(getVarRef(vm, 9));
       fetchOp(vm);
       expect(vm.pop()).toBe(900);
     });
@@ -166,7 +165,7 @@ describe('Local Variables End-to-End Integration', () => {
       initVarOp(vm);
       
       // Should get the new value
-      vm.push(createLocalRef(0));
+      vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       expect(vm.pop()).toBe(222);
     });
@@ -183,9 +182,9 @@ describe('Local Variables End-to-End Integration', () => {
       vm.push(222); vm.compiler.compile16(1); initVarOp(vm);
       
       // Verify first frame values
-      vm.push(createLocalRef(0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0)); fetchOp(vm);
       expect(vm.pop()).toBe(111);
-      vm.push(createLocalRef(1)); fetchOp(vm);
+      vm.push(getVarRef(vm, 1)); fetchOp(vm);
       expect(vm.pop()).toBe(222);
       
       // Second function frame (different BP)
@@ -197,14 +196,14 @@ describe('Local Variables End-to-End Integration', () => {
       vm.push(444); vm.compiler.compile16(1); initVarOp(vm);
       
       // Verify second frame values
-      vm.push(createLocalRef(0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0)); fetchOp(vm);
       expect(vm.pop()).toBe(333);
-      vm.push(createLocalRef(1)); fetchOp(vm);
+      vm.push(getVarRef(vm, 1)); fetchOp(vm);
       expect(vm.pop()).toBe(444);
       
       // Switch back to first frame and verify isolation
       vm.BP = 1000;
-      vm.push(createLocalRef(0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0)); fetchOp(vm);
       expect(vm.pop()).toBe(111); // Still the original value
     });
   });
@@ -221,8 +220,8 @@ describe('Local Variables End-to-End Integration', () => {
       vm.push(5);  vm.compiler.compile16(1); initVarOp(vm); // slot 1 = 5
       
       // Load both values and add them
-      vm.push(createLocalRef(0)); fetchOp(vm); // Stack: [10]
-      vm.push(createLocalRef(1)); fetchOp(vm); // Stack: [10, 5]
+      vm.push(getVarRef(vm, 0)); fetchOp(vm); // Stack: [10]
+      vm.push(getVarRef(vm, 1)); fetchOp(vm); // Stack: [10, 5]
       
       // Add them
       const sum = vm.pop() + vm.pop();
@@ -241,8 +240,8 @@ describe('Local Variables End-to-End Integration', () => {
       vm.push(24); vm.compiler.compile16(1); initVarOp(vm);
       
       // Load values in specific order
-      vm.push(createLocalRef(0)); fetchOp(vm); // Stack: [42]
-      vm.push(createLocalRef(1)); fetchOp(vm); // Stack: [42, 24]
+      vm.push(getVarRef(vm, 0)); fetchOp(vm); // Stack: [42]
+      vm.push(getVarRef(vm, 1)); fetchOp(vm); // Stack: [42, 24]
       
       // Verify stack contents
       expect(vm.getStackData()).toEqual([42, 24]);
@@ -266,7 +265,7 @@ describe('Local Variables End-to-End Integration', () => {
       vm.compiler.compile16(maxSlot);
       initVarOp(vm);
       
-      vm.push(createLocalRef(maxSlot));
+      vm.push(getVarRef(vm, maxSlot));
       fetchOp(vm);
       
       expect(vm.pop()).toBe(999);
@@ -282,7 +281,7 @@ describe('Local Variables End-to-End Integration', () => {
       vm.compiler.compile16(1);
       initVarOp(vm);
       
-      vm.push(createLocalRef(1));
+      vm.push(getVarRef(vm, 1));
       fetchOp(vm);
       
       expect(vm.pop()).toBe(12345);
@@ -306,7 +305,7 @@ describe('Local Variables End-to-End Integration', () => {
       
       // Fetch values in reverse order
       for (let i = numSlots - 1; i >= 0; i--) {
-        vm.push(createLocalRef(i));
+        vm.push(getVarRef(vm, i));
         fetchOp(vm);
         expect(vm.pop()).toBe(i * 10);
       }

@@ -322,7 +322,9 @@ export enum Op {
   /** Initializes local variable slot with stack value - ( value -- ) reads 16-bit slot number */
   InitVar,
   /** Pushes local variable slot address - ( -- addr ) reads 16-bit slot number */
-  LocalRef,
+  VarRef,
+  /** Debug: dumps current stack frame state - ( -- ) */
+  DumpStackFrame,
 
   // Reference operations
   /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */

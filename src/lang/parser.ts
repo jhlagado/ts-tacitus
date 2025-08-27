@@ -337,8 +337,8 @@ function processWordToken(value: string, state: ParserState): void {
       
       if (tag === Tag.LOCAL) {
         // Found a local variable - generate bytecode to push its value
-        // This compiles to: LocalRef slot_number, then Fetch
-        vm.compiler.compileOpcode(Op.LocalRef);
+        // This compiles to: VarRef slot_number, then Fetch
+        vm.compiler.compileOpcode(Op.VarRef);
         vm.compiler.compile16(tagValue); // Raw slot number
         vm.compiler.compileOpcode(Op.Fetch);
         return;

@@ -4,9 +4,9 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
-import { 
-  Tag, 
-  toTaggedValue, 
+import {
+  Tag,
+  toTaggedValue,
   fromTaggedValue,
   isRef,
   isStackRef,
@@ -17,7 +17,7 @@ import {
   createGlobalRef
 } from '../../core/tagged';
 import { fetchOp } from '../../ops/list-ops';
-import { initVarOp } from '../../ops/builtins';
+import { SEG_RSTACK } from '../../core/constants';
 
 describe('Unified Reference System', () => {
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe('Unified Reference System', () => {
     test('createStackRef should create correct tagged value', () => {
       const ref = createStackRef(42);
       const {tag, value} = fromTaggedValue(ref);
-      
+
       expect(tag).toBe(Tag.STACK_REF);
       expect(value).toBe(42);
       expect(isStackRef(ref)).toBe(true);
@@ -86,7 +86,7 @@ describe('Unified Reference System', () => {
     test('createLocalRef should create correct tagged value', () => {
       const ref = createLocalRef(7);
       const {tag, value} = fromTaggedValue(ref);
-      
+
       expect(tag).toBe(Tag.LOCAL_REF);
       expect(value).toBe(7);
     });
@@ -94,7 +94,7 @@ describe('Unified Reference System', () => {
     test('createGlobalRef should create correct tagged value', () => {
       const ref = createGlobalRef(123);
       const {tag, value} = fromTaggedValue(ref);
-      
+
       expect(tag).toBe(Tag.GLOBAL_REF);
       expect(value).toBe(123);
     });
@@ -108,21 +108,16 @@ describe('Unified Reference System', () => {
 
   describe('fetchOp polymorphism', () => {
     test('should handle LOCAL_REF correctly', () => {
-      // Set up a function frame
-      vm.BP = 1000;  // Simulate function call frame
-      
-      // Initialize local variable slot 2 with value 99
-      vm.push(99);
-      vm.compiler.compile16(2);  // slot 2
-      initVarOp(vm);
-      
-      // Create local reference to slot 2
-      const localRef = createLocalRef(2);
+      // Store value directly at absolute address 1008 on return stack
+      vm.memory.writeFloat32(SEG_RSTACK, 1008, 99);
+
+      // Create local reference pointing to absolute cell index 252 (1008/4)
+      const localRef = createLocalRef(252);
       vm.push(localRef);
-      
+
       // Fetch via reference
       fetchOp(vm);
-      
+
       // Should get the stored value
       expect(vm.getStackData()).toEqual([99]);
     });
@@ -130,58 +125,52 @@ describe('Unified Reference System', () => {
     test('should handle GLOBAL_REF with appropriate error', () => {
       const globalRef = createGlobalRef(42);
       vm.push(globalRef);
-      
+
       expect(() => fetchOp(vm)).toThrow('Global variable references not yet implemented');
     });
 
     test('should reject invalid reference types', () => {
       vm.push(42);  // Raw number, not a reference
-      
+
       expect(() => fetchOp(vm)).toThrow('fetch expects reference address');
     });
 
     test('should work with multiple LOCAL_REF in same function', () => {
-      vm.BP = 2000;
-      
-      // Initialize multiple local variables
-      vm.push(10); vm.compiler.compile16(0); initVarOp(vm);  // slot 0 = 10
-      vm.push(20); vm.compiler.compile16(1); initVarOp(vm);  // slot 1 = 20  
-      vm.push(30); vm.compiler.compile16(5); initVarOp(vm);  // slot 5 = 30
-      
-      // Fetch slot 1
-      vm.push(createLocalRef(1));
+      // Store values directly at different absolute addresses on return stack
+      vm.memory.writeFloat32(SEG_RSTACK, 100, 10);  // cell index 25
+      vm.memory.writeFloat32(SEG_RSTACK, 200, 20);  // cell index 50
+      vm.memory.writeFloat32(SEG_RSTACK, 500, 30);  // cell index 125
+
+      // Fetch from cell index 50
+      vm.push(createLocalRef(50));
       fetchOp(vm);
       expect(vm.pop()).toBe(20);
-      
-      // Fetch slot 5  
-      vm.push(createLocalRef(5));
+
+      // Fetch from cell index 125
+      vm.push(createLocalRef(125));
       fetchOp(vm);
       expect(vm.pop()).toBe(30);
-      
-      // Fetch slot 0
-      vm.push(createLocalRef(0));
+
+      // Fetch from cell index 25
+      vm.push(createLocalRef(25));
       fetchOp(vm);
       expect(vm.pop()).toBe(10);
     });
 
     test('should handle different function frames correctly', () => {
-      // First function frame
-      vm.BP = 500;
-      vm.push(100); vm.compiler.compile16(0); initVarOp(vm);
-      
-      const ref1 = createLocalRef(0);
+      // Store values at different absolute addresses on return stack
+      vm.memory.writeFloat32(SEG_RSTACK, 800, 100);   // cell index 200
+      vm.memory.writeFloat32(SEG_RSTACK, 1200, 200);  // cell index 300
+
+      const ref1 = createLocalRef(200);
       vm.push(ref1);
       fetchOp(vm);
       expect(vm.pop()).toBe(100);
-      
-      // Second function frame (different BP)
-      vm.BP = 1500;  
-      vm.push(200); vm.compiler.compile16(0); initVarOp(vm);
-      
-      const ref2 = createLocalRef(0);
+
+      const ref2 = createLocalRef(300);
       vm.push(ref2);
       fetchOp(vm);
-      expect(vm.pop()).toBe(200);  // Should get value from new frame
+      expect(vm.pop()).toBe(200);
     });
   });
 
@@ -189,24 +178,20 @@ describe('Unified Reference System', () => {
     test('same operations work with different reference types', () => {
       // This test demonstrates that the same fetch operation
       // works polymorphically with different reference types
-      
-      vm.BP = 3000;
-      
-      // Setup local variable
-      vm.push(42);
-      vm.compiler.compile16(3);
-      initVarOp(vm);
-      
+
+      // Store value directly at absolute address on return stack
+      vm.memory.writeFloat32(SEG_RSTACK, 1600, 42);  // cell index 400
+
       // Create different reference types pointing to different storage
-      const localRef = createLocalRef(3);
+      const localRef = createLocalRef(400);
       // Note: STACK_REF would point to stack storage (tested elsewhere)
       // Note: GLOBAL_REF not yet implemented
-      
+
       // Verify local reference works
       vm.push(localRef);
       fetchOp(vm);
       expect(vm.pop()).toBe(42);
-      
+
       // Same fetchOp function, different behavior based on reference type
       expect(isLocalRef(localRef)).toBe(true);
     });
@@ -216,7 +201,7 @@ describe('Unified Reference System', () => {
     test('should provide clear error messages', () => {
       const nilValue = toTaggedValue(0, Tag.SENTINEL);
       vm.push(nilValue);
-      
+
       expect(() => fetchOp(vm)).toThrow('fetch expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
     });
 
