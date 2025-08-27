@@ -92,9 +92,9 @@ describe('LIST Core Utilities', () => {
 
     it('should create LIST with multiple values in reverse order', () => {
       const vm = resetVM();
-      const val1 = toTaggedValue(1, Tag.SENTINEL);
-      const val2 = toTaggedValue(2, Tag.SENTINEL);
-      const val3 = toTaggedValue(3, Tag.SENTINEL);
+      const val1 = 1;
+      const val2 = 2;
+      const val3 = 3;
 
       createList(vm, [val1, val2, val3]);
 
@@ -106,10 +106,12 @@ describe('LIST Core Utilities', () => {
       const payload0 = vm.memory.readFloat32(0, vm.SP - 4);
       const payload1 = vm.memory.readFloat32(0, vm.SP - 8);
       const payload2 = vm.memory.readFloat32(0, vm.SP - 12);
+      const payload3 = vm.memory.readFloat32(0, vm.SP - 16);
 
-      expect(payload0).toBe(val1);
-      expect(payload1).toBe(val2);
-      expect(payload2).toBe(val3);
+      expect(isList(payload0)).toBe(true);
+      expect(payload1).toBe(val1);
+      expect(payload2).toBe(val2);
+      expect(payload3).toBe(val3);
     });
 
     it('should handle mixed tag types', () => {
