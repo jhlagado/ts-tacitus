@@ -50,10 +50,13 @@ export function createStackRef(cellIndex: number): number {
 }
 
 /**
- * Creates a LOCAL_REF tagged value.
+ * Creates a reference to a local variable slot.
+ * Takes a slot number (0, 1, 2, etc.) and returns a LOCAL_REF tagged value
+ * that points to the absolute address of that slot in the current stack frame.
  */
-export function createLocalRef(slot: number): number {
-  return toTaggedValue(slot, Tag.LOCAL_REF);
+export function getVarRef(vm: VM, slotNumber: number): number {
+  const absoluteCellIndex = vm.BP / 4 + slotNumber;
+  return toTaggedValue(absoluteCellIndex, Tag.LOCAL_REF);
 }
 
 /**
@@ -81,19 +84,12 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
   
   switch (tag) {
     case Tag.STACK_REF:
-      return {
-        address: value * 4, // Convert cell index to byte address
-        segment: SEG_STACK
-      };
+      return { address: value * 4, segment: SEG_STACK };
       
     case Tag.LOCAL_REF:
-      return {
-        address: vm.BP + value * 4, // Slot offset from base pointer
-        segment: SEG_RSTACK
-      };
+      return { address: value * 4, segment: SEG_RSTACK }; // Absolute cell index
       
     case Tag.GLOBAL_REF:
-      // Future: global segment addressing
       throw new Error('Global variable references not yet implemented');
       
     default:

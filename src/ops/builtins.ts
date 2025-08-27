@@ -33,8 +33,8 @@
  * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
  */
 import { VM } from '../core/vm';
-import { toTaggedValue, Tag } from '../core/tagged';
-import { createLocalRef } from '../core/refs';
+import { toTaggedValue, fromTaggedValue, getTag, Tag } from '../core/tagged';
+import { getVarRef } from '../core/refs';
 import { SEG_RSTACK } from '../core/constants';
 
 import {
@@ -101,7 +101,7 @@ import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { getOp, setOp } from './access-ops';
-import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
+import { isCompoundData } from './local-vars-transfer';
 
 // Temp register operations for macro expansion
 // Pops the top of the stack and stores it in vm.tempRegister
@@ -405,8 +405,11 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.InitVar:
       initVarOp(vm);
       break;
-    case Op.LocalRef:
-      localRefOp(vm);
+    case Op.VarRef:
+      varRefOp(vm);
+      break;
+    case Op.DumpStackFrame:
+      dumpStackFrameOp(vm);
       break;
     case Op.Ref:
       refOp(vm);
@@ -461,11 +464,8 @@ export function initVarOp(vm: VM): void {
   const slotAddr = vm.BP + slotNumber * 4;
 
   if (isCompoundData(value)) {
-    // Compound value: transfer to return stack and store LOCAL_REF in slot
-    const headerAddr = transferCompoundToReturnStack(vm);
-    const offset = (headerAddr - vm.BP) / 4; // Calculate slot offset from BP
-    const localRef = createLocalRef(offset);
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
+    // DISABLED: Compound local variables not supported yet
+    throw new Error('Compound local variables not yet implemented');
   } else {
     // Simple value: store directly (existing behavior)
     const simpleValue = vm.pop();
@@ -473,8 +473,39 @@ export function initVarOp(vm: VM): void {
   }
 }
 
-export function localRefOp(vm: VM): void {
+export function varRefOp(vm: VM): void {
   const slotNumber = vm.nextInt16();
-  const localRef = createLocalRef(slotNumber);
-  vm.push(localRef);
+  vm.push(getVarRef(vm, slotNumber));
+}
+
+/**
+ * Debug opcode to dump current stack frame state
+ */
+export function dumpStackFrameOp(vm: VM): void {
+  console.log('\n=== STACK FRAME DUMP ===');
+  console.log('BP:', vm.BP, 'RP:', vm.RP, 'SP:', vm.SP);
+
+  if (vm.BP > 0) {
+    const localCount = vm.symbolTable.getLocalCount();
+    console.log('Local variable count:', localCount);
+
+    for (let i = 0; i < localCount; i++) {
+      const slotAddr = vm.BP + i * 4;
+      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
+      const tag = getTag(slotValue);
+      const { value } = fromTaggedValue(slotValue);
+      console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
+
+      if (tag === Tag.LOCAL_REF) {
+        const targetAddr = value * 4; // LOCAL_REF contains absolute cell index
+        const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+        const targetTag = getTag(targetValue);
+        const { value: targetVal } = fromTaggedValue(targetValue);
+        console.log(`    -> Points to tag: ${Tag[targetTag]}, value: ${targetVal}`);
+      }
+    }
+  } else {
+    console.log('No active stack frame');
+  }
+  console.log('========================\n');
 }
