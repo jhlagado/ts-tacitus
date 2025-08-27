@@ -434,13 +434,20 @@ export function fetchOp(vm: VM): void {
  * Stores value at memory address (simple values only).
  * Stack effect: ( value addr -- )
  * Spec: lists.md §10 - Only simple values, compounds are no-op
+ * 
+ * Polymorphic: accepts STACK_REF, LOCAL_REF, and GLOBAL_REF addresses
  */
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
-  const { value: addr } = fromTaggedValue(vm.pop());
+  const addressValue = vm.pop();
   const value = vm.pop();
 
-  const existing = vm.memory.readFloat32(SEG_STACK, addr);
+  if (!isRef(addressValue)) {
+    throw new Error('store expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
+  }
+
+  const { address, segment } = resolveReference(vm, addressValue);
+  const existing = vm.memory.readFloat32(segment, address);
 
   // Only allow simple value storage per spec
   if (isList(existing)) {
@@ -449,7 +456,7 @@ export function storeOp(vm: VM): void {
   }
 
   // Store simple value
-  vm.memory.writeFloat32(SEG_STACK, addr, value);
+  vm.memory.writeFloat32(segment, address, value);
 }
 
 /**

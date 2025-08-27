@@ -319,6 +319,9 @@ function processWordToken(value: string, state: ParserState): void {
   } else if (value === 'var') {
     processVarDeclaration(state);
     return;
+  } else if (value === '->') {
+    processAssignmentOperator(state);
+    return;
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
@@ -417,6 +420,47 @@ function processVarDeclaration(state: ParserState): void {
   // Generate InitVar opcode with slot number
   vm.compiler.compileOpcode(Op.InitVar);
   vm.compiler.compile16(slotNumber);
+}
+
+/**
+ * Process assignment operator '->'.
+ *
+ * This function handles local variable assignment using the syntax: value -> variable
+ * It expects a value to already be on the stack and reads the variable name from the next token.
+ * Compiles to: VarRef slot_number, Store
+ *
+ * @param {ParserState} state - The current parser state
+ * @throws {Error} If not inside a function definition or invalid variable name
+ */
+function processAssignmentOperator(state: ParserState): void {
+  // Validate we're inside a function definition
+  if (!state.currentDefinition) {
+    throw new SyntaxError('Assignment operator (->) only allowed inside function definitions', vm.getStackData());
+  }
+
+  // Read the variable name token
+  const nameToken = state.tokenizer.nextToken();
+  if (nameToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after ->', vm.getStackData());
+  }
+
+  const varName = nameToken.value as string;
+
+  // Look up the local variable
+  const taggedValue = vm.symbolTable.findTaggedValue(varName);
+  if (taggedValue === undefined) {
+    throw new Error(`Undefined local variable: ${varName}`);
+  }
+
+  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  if (tag !== Tag.LOCAL) {
+    throw new Error(`${varName} is not a local variable`);
+  }
+
+  // Compile: VarRef slot_number (pushes address), Store (pops value and address)
+  vm.compiler.compileOpcode(Op.VarRef);
+  vm.compiler.compile16(slotNumber);
+  vm.compiler.compileOpcode(Op.Store);
 }
 
 /**
