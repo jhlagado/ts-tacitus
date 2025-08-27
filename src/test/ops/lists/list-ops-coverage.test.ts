@@ -5,7 +5,7 @@ import { fromTaggedValue } from '../../../core/tagged';
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import { openListOp, closeListOp, lengthOp, sizeOp } from '../../../ops/list-ops';
+import { openListOp, closeListOp, sizeOp } from '../../../ops/list-ops';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('List Operations - Branch Coverage', () => {

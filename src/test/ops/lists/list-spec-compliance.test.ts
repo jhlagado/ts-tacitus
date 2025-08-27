@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
-import { fromTaggedValue, isNIL, Tag } from '../../../core/tagged';
+import { fromTaggedValue, isNIL } from '../../../core/tagged';
 import { isList } from '../../../core/list';
 
 describe('Lists.md Specification Compliance', () => {

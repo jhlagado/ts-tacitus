@@ -4,7 +4,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/globalState';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
-import { getTag, Tag } from '../../../core/tagged';
 import { isList, getListLength } from '../../../core/list';
 
 describe('Compound Variables - Empty Lists', () => {
