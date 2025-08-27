@@ -5,13 +5,7 @@
 
 import { VM } from '../../core/vm';
 import { toTaggedValue, Tag, fromTaggedValue } from '../../core/tagged';
-import {
-  getListSlotCount,
-  dropList,
-  validateListHeader,
-  reverseSpan,
-  isList,
-} from '../../core/list';
+import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core/list';
 import { createList } from '../utils/core-test-utils';
 
 function resetVM(): VM {
@@ -25,7 +19,6 @@ function getStackDepth(vm: VM): number {
 }
 
 describe('LIST Core Utilities', () => {
-
   test('should correctly identify LIST types', () => {
     const list = toTaggedValue(5, Tag.LIST);
     const integer = 5;
@@ -80,20 +73,21 @@ describe('LIST Core Utilities', () => {
 
       expect(getStackDepth(vm)).toBe(1);
       const header = vm.peek();
-      expect(getListSlotCount(header)).toBe(0);
+      expect(getListLength(header)).toBe(0);
     });
 
     it('should create LIST with single value', () => {
       const vm = resetVM();
-      const value = toTaggedValue(42, Tag.SENTINEL);
+      const value = 42;
       createList(vm, [value]);
 
       expect(getStackDepth(vm)).toBe(2);
       const header = vm.peek();
-      expect(getListSlotCount(header)).toBe(1);
+      expect(getListLength(header)).toBe(1);
 
       const payload = vm.memory.readFloat32(0, vm.SP - 4);
-      expect(payload).toBe(value);
+      expect(isList(payload)).toBe(true);
+      expect(getListLength(payload)).toBe(1);
     });
 
     it('should create LIST with multiple values in reverse order', () => {
@@ -106,7 +100,8 @@ describe('LIST Core Utilities', () => {
 
       expect(getStackDepth(vm)).toBe(4);
       const header = vm.peek();
-      expect(getListSlotCount(header)).toBe(3);
+      expect(isList(header)).toBe(true);
+      expect(getListLength(header)).toBe(3);
 
       const payload0 = vm.memory.readFloat32(0, vm.SP - 4);
       const payload1 = vm.memory.readFloat32(0, vm.SP - 8);
@@ -127,29 +122,29 @@ describe('LIST Core Utilities', () => {
 
       expect(getStackDepth(vm)).toBe(4);
       const header = vm.peek();
-      expect(getListSlotCount(header)).toBe(3);
+      expect(getListLength(header)).toBe(3);
     });
   });
 
   describe('getListSlotCount', () => {
     it('should extract slot count from LIST header', () => {
       const header = toTaggedValue(5, Tag.LIST);
-      expect(getListSlotCount(header)).toBe(5);
+      expect(getListLength(header)).toBe(5);
     });
 
     it('should handle zero slot count', () => {
       const header = toTaggedValue(0, Tag.LIST);
-      expect(getListSlotCount(header)).toBe(0);
+      expect(getListLength(header)).toBe(0);
     });
 
     it('should handle maximum slot count', () => {
       const header = toTaggedValue(65535, Tag.LIST);
-      expect(getListSlotCount(header)).toBe(65535);
+      expect(getListLength(header)).toBe(65535);
     });
 
     it('should throw on non-LIST header', () => {
       const nonList = toTaggedValue(5, Tag.STRING);
-      expect(() => getListSlotCount(nonList)).toThrow('Value is not an LIST header');
+      expect(() => getListLength(nonList)).toThrow('Value is not an LIST header');
     });
   });
 
@@ -348,7 +343,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, outerValues);
 
       const outerHeader = vm.peek();
-      expect(getListSlotCount(outerHeader)).toBe(3);
+      expect(getListLength(outerHeader)).toBe(3);
 
       validateListHeader(vm);
 

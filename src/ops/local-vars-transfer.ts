@@ -5,7 +5,7 @@
 
 import { VM } from '../core/vm';
 import { getTag, Tag } from '../core/tagged';
-import { getListSlotCount, validateListHeader, isList } from '../core/list';
+import { getListLength, validateListHeader, isList } from '../core/list';
 import { SEG_RSTACK, SEG_STACK, BYTES_PER_ELEMENT } from '../core/constants';
 import { dropList } from '../core/list';
 
@@ -25,7 +25,7 @@ export function transferCompoundToReturnStack(vm: VM): number {
   // 1. Validate LIST at TOS
   validateListHeader(vm);
   const header = vm.peek();
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   if (slotCount === 0) {
     // Empty list - just transfer header
@@ -70,7 +70,7 @@ export function materializeCompoundFromReturnStack(vm: VM, headerAddr: number): 
     throw new Error('Expected LIST header at return stack address');
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   if (slotCount === 0) {
     // Empty list - just push header

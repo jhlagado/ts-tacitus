@@ -13,7 +13,7 @@ import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { NIL } from '../core/tagged';
 import { evalOp } from './core-ops';
-import { getListSlotCount, isList } from '../core/list';
+import { getListLength, isList } from '../core/list';
 
 /**
  * Get combinator: path-based value access
@@ -57,7 +57,7 @@ export const getOp: Verb = (vm: VM) => {
     }
 
     // Simple maplist lookup - find key in target
-    const slotCount = getListSlotCount(target);
+    const slotCount = getListLength(target);
     if (slotCount % 2 !== 0) {
       vm.push(NIL); // Invalid maplist
       return;

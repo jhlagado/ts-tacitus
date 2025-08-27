@@ -4,28 +4,13 @@
  */
 
 import { VM } from '../core/vm';
-import {
-  fromTaggedValue,
-  toTaggedValue,
-  Tag,
-  getTag,
-  NIL,
-} from '../core/tagged';
-import {
-  isRef,
-  createStackRef,
-  resolveReference,
-} from '../core/refs';
+import { fromTaggedValue, toTaggedValue, Tag, getTag, NIL } from '../core/tagged';
+import { isRef, createStackRef, resolveReference } from '../core/refs';
 import { evalOp } from './core-ops';
 import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
-import {
-  getListSlotCount,
-  reverseSpan,
-  getListElementAddress,
-  isList,
-} from '../core/list';
+import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
 import { dropOp } from './stack-ops';
 
 const BYTES_PER_ELEMENT = 4;
@@ -63,12 +48,14 @@ export function closeListOp(vm: VM): void {
   vm.listDepth--;
 }
 
-
 /**
  * Helper to extract list header and base address from stack or reference.
  * Returns { header, baseAddr, segment } or null if not a valid list/ref.
  */
-function getListHeaderAndBase(vm: VM, value: number): { header: number, baseAddr: number, segment: number } | null {
+function getListHeaderAndBase(
+  vm: VM,
+  value: number,
+): { header: number; baseAddr: number; segment: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     // Stack-resident list: header is value, baseAddr is SP-8 (first payload slot)
@@ -91,12 +78,11 @@ export function lengthOp(vm: VM): void {
   const info = getListHeaderAndBase(vm, value);
   let slotCount = -1;
   if (info && isList(info.header)) {
-    slotCount = getListSlotCount(info.header);
+    slotCount = getListLength(info.header);
   }
   dropOp(vm);
   vm.push(slotCount);
 }
-
 
 /**
  * Returns element count by traversal.
@@ -110,7 +96,7 @@ export function sizeOp(vm: VM): void {
     vm.push(-1);
     return;
   }
-  const slotCount = getListSlotCount(info.header);
+  const slotCount = getListLength(info.header);
   if (slotCount === 0) {
     dropOp(vm);
     vm.push(slotCount);
@@ -121,7 +107,7 @@ export function sizeOp(vm: VM): void {
   let remainingSlots = slotCount;
   while (remainingSlots > 0) {
     const v = vm.memory.readFloat32(info.segment, currentAddr);
-    const span = isList(v) ? getListSlotCount(v) + 1 : 1;
+    const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
     currentAddr -= span * BYTES_PER_ELEMENT;
@@ -143,7 +129,7 @@ export function consOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
   vm.push(value);
   vm.push(toTaggedValue(slotCount + 1, Tag.LIST));
 }
@@ -159,7 +145,7 @@ export function dropHeadOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const s = getListSlotCount(header);
+  const s = getListLength(header);
   if (s === 0) {
     vm.push(header); // LIST:0
     return;
@@ -167,7 +153,7 @@ export function dropHeadOp(vm: VM): void {
   const topAddr = vm.SP - BYTES_PER_ELEMENT; // SP after popping header
   const topVal = vm.memory.readFloat32(SEG_STACK, topAddr);
   const isCompound = isList(topVal);
-  const span = isCompound ? getListSlotCount(topVal) + 1 : 1;
+  const span = isCompound ? getListLength(topVal) + 1 : 1;
   vm.SP -= span * BYTES_PER_ELEMENT;
   vm.push(toTaggedValue(s - span, Tag.LIST));
 }
@@ -194,8 +180,8 @@ export function concatOp(vm: VM): void {
     return;
   }
 
-  const sA = getListSlotCount(lhs);
-  const sB = getListSlotCount(rhs);
+  const sA = getListLength(lhs);
+  const sB = getListLength(rhs);
 
   // Create new header with combined slot count
   // The payload slots should already be properly arranged on the stack
@@ -211,7 +197,7 @@ export function headOp(vm: VM): void {
   vm.ensureStackSize(1, 'head');
   const header = vm.pop();
 
-  if (!isList(header) || getListSlotCount(header) === 0) {
+  if (!isList(header) || getListLength(header) === 0) {
     vm.push(NIL);
     return;
   }
@@ -222,7 +208,7 @@ export function headOp(vm: VM): void {
 
   if (isList(firstElement)) {
     // Compound element: materialize full structure
-    const slotCount = getListSlotCount(firstElement);
+    const slotCount = getListLength(firstElement);
 
     // Skip past the compound element in original list
     vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
@@ -254,7 +240,7 @@ export function unconsOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
   if (slotCount === 0) {
     vm.push(header); // empty list
     vm.push(NIL); // nil head
@@ -264,7 +250,7 @@ export function unconsOp(vm: VM): void {
   // Determine first element span (first element is at SP-4)
   const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
-  const span = isList(firstElement) ? getListSlotCount(firstElement) + 1 : 1;
+  const span = isList(firstElement) ? getListLength(firstElement) + 1 : 1;
 
   // Create tail list (remaining payload)
   const tailSlotCount = slotCount - span;
@@ -302,7 +288,7 @@ export function slotOp(vm: VM): void {
 
   if (tag === Tag.LIST) {
     // Current behavior: stack-relative addressing
-    const slotCount = getListSlotCount(target);
+    const slotCount = getListLength(target);
     if (idx < 0 || idx >= slotCount) {
       vm.push(NIL);
       return;
@@ -322,7 +308,7 @@ export function slotOp(vm: VM): void {
       return;
     }
 
-    const slotCount = getListSlotCount(header);
+    const slotCount = getListLength(header);
     if (idx < 0 || idx >= slotCount) {
       vm.push(NIL);
       return;
@@ -402,7 +388,7 @@ export function fetchOp(vm: VM): void {
 
   if (isList(value)) {
     // Compound value: need to materialize entire structure
-    const slotCount = getListSlotCount(value);
+    const slotCount = getListLength(value);
 
     // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
@@ -557,7 +543,7 @@ export function unpackOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   if (slotCount === 0) {
     // Empty list - nothing to unpack
@@ -597,7 +583,7 @@ export function reverseOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   if (slotCount === 0) {
     // Empty list - return empty list
@@ -655,7 +641,7 @@ export function findOp(vm: VM): void {
 
   if (tag === Tag.LIST) {
     // Current behavior: stack-relative addressing
-    const slotCount = getListSlotCount(target);
+    const slotCount = getListLength(target);
 
     // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
@@ -718,7 +704,7 @@ export function findOp(vm: VM): void {
       return;
     }
 
-    const slotCount = getListSlotCount(header);
+    const slotCount = getListLength(header);
 
     // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
@@ -795,7 +781,7 @@ export function keysOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
@@ -845,7 +831,7 @@ export function valuesOp(vm: VM): void {
     return;
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
@@ -921,7 +907,7 @@ export function unrefOp(vm: VM): void {
 
     if (getTag(referencedValue) === Tag.LIST) {
       // Compound value: materialize entire structure
-      const slotCount = getListSlotCount(referencedValue);
+      const slotCount = getListLength(referencedValue);
 
       // Copy compound structure: payload slots first, then header
       for (let i = slotCount - 1; i >= 0; i--) {
