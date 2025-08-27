@@ -76,9 +76,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const result = vm.pop();
-  const { tag, value } = fromTaggedValue(result);
-  expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0);
+      expect(result).toBe(-1);
     });
 
     test('should return 0 for empty lists', () => {
@@ -117,12 +115,6 @@ describe('List Operations - Branch Coverage', () => {
       expect(() => sizeOp(vm)).toThrow('Stack underflow');
     });
 
-
-    test('lengthOp should handle non-list at TOS', () => {
-      vm.push(42);
-      expect(() => lengthOp(vm)).toThrow();
-    });
-
     test('closeListOp should handle return stack underflow', () => {
       expect(() => closeListOp(vm)).toThrow('Return stack underflow');
     });
@@ -138,13 +130,9 @@ describe('List Operations - Branch Coverage', () => {
 
     test('should handle mixed data types in operations', () => {
       vm.push(toTaggedValue(100, Tag.CODE));
-
       sizeOp(vm);
-
       const result = vm.pop();
-  const { tag, value } = fromTaggedValue(result);
-  expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0);
+      expect(result).toBe(-1);
     });
 
   });

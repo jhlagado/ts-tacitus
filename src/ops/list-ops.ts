@@ -15,7 +15,6 @@ import {
   isRef,
   createStackRef,
   resolveReference,
-  readReference,
 } from '../core/refs';
 import { evalOp } from './core-ops';
 import { SEG_STACK } from '../core/constants';
@@ -27,6 +26,7 @@ import {
   getListElementAddress,
   isList,
 } from '../core/list';
+import { dropOp } from './stack-ops';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -63,6 +63,24 @@ export function closeListOp(vm: VM): void {
   vm.listDepth--;
 }
 
+
+/**
+ * Helper to extract list header and base address from stack or reference.
+ * Returns { header, baseAddr, segment } or null if not a valid list/ref.
+ */
+function getListHeaderAndBase(vm: VM, value: number): { header: number, baseAddr: number, segment: number } | null {
+  const tag = getTag(value);
+  if (tag === Tag.LIST) {
+    // Stack-resident list: header is value, baseAddr is SP-8 (first payload slot)
+    return { header: value, baseAddr: vm.SP - 8, segment: SEG_STACK };
+  } else if (isRef(value)) {
+    const { address, segment } = resolveReference(vm, value);
+    const header = vm.memory.readFloat32(segment, address);
+    return { header, baseAddr: address - 8, segment };
+  }
+  return null;
+}
+
 /**
  * Gets slot count from LIST header.
  * Renamed from slots to length.
@@ -70,26 +88,15 @@ export function closeListOp(vm: VM): void {
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
-  const tag = getTag(value);
-
-  let header: number;
-
-  if (tag === Tag.LIST) {
-    header = value;
-  } else if (isRef(value)) {
-    header = readReference(vm, value);
-  } else {
-    throw new Error('length expects LIST or reference');
+  const info = getListHeaderAndBase(vm, value);
+  let slotCount = -1;
+  if (info && isList(info.header)) {
+    slotCount = getListSlotCount(info.header);
   }
-
-  if (!isList(header)) {
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListSlotCount(header);
-  vm.push(toTaggedValue(slotCount, Tag.SENTINEL));
+  dropOp(vm);
+  vm.push(slotCount);
 }
+
 
 /**
  * Returns element count by traversal.
@@ -97,50 +104,30 @@ export function lengthOp(vm: VM): void {
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
-  const tag = getTag(value);
-
-  let header: number;
-  let baseAddr: number;
-  let segment = SEG_STACK;
-
-  if (tag === Tag.LIST) {
-    header = value;
-    baseAddr = vm.SP - 8; // Start at first payload slot (SP-4-4)
-  } else if (isRef(value)) {
-    const { address, segment: refSegment } = resolveReference(vm, value);
-    header = vm.memory.readFloat32(refSegment, address);
-    baseAddr = address - 8; // First payload slot
-    segment = refSegment;
-  } else {
-    vm.push(NIL);
+  const info = getListHeaderAndBase(vm, value);
+  if (!info || !isList(info.header)) {
+    dropOp(vm);
+    vm.push(-1);
     return;
   }
-
-  if (!isList(header)) {
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListSlotCount(info.header);
   if (slotCount === 0) {
+    dropOp(vm);
     vm.push(toTaggedValue(0, Tag.SENTINEL));
     return;
   }
-
   let elementCount = 0;
-  let currentAddr = baseAddr;
+  let currentAddr = info.baseAddr;
   let remainingSlots = slotCount;
-
   while (remainingSlots > 0) {
-    const value = vm.memory.readFloat32(segment, currentAddr);
-    const span = isList(value) ? getListSlotCount(value) + 1 : 1;
-
+    const v = vm.memory.readFloat32(info.segment, currentAddr);
+    const span = isList(v) ? getListSlotCount(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
     currentAddr -= span * BYTES_PER_ELEMENT;
   }
-
-  vm.push(toTaggedValue(elementCount, Tag.SENTINEL));
+  dropOp(vm);
+  vm.push(elementCount);
 }
 
 /**
@@ -434,7 +421,7 @@ export function fetchOp(vm: VM): void {
  * Stores value at memory address (simple values only).
  * Stack effect: ( value addr -- )
  * Spec: lists.md §10 - Only simple values, compounds are no-op
- * 
+ *
  * Polymorphic: accepts STACK_REF, LOCAL_REF, and GLOBAL_REF addresses
  */
 export function storeOp(vm: VM): void {

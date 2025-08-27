@@ -17,18 +17,14 @@ describe('Lists.md Specification Compliance', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) length');
 
       const result = stack[stack.length - 1];
-      const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(5);
+      expect(result).toBe(5);
     });
 
     test('size returns element count via traversal', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) size');
 
       const result = stack[stack.length - 1];
-      const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(3);
+      expect(result).toBe(3);
     });
 
     test('empty list length and size both return 0', () => {
