@@ -8,7 +8,6 @@ describe('Format Utils', () => {
     initializeInterpreter();
   });
 
-
   describe('formatAtomicValue', () => {
     describe('simple values', () => {
       test('should format integer numbers', () => {
@@ -49,7 +48,7 @@ describe('Format Utils', () => {
         const emptyString = '';
         const stringAddr = vm.digest.intern(emptyString);
         const stringValue = toTaggedValue(stringAddr, Tag.STRING);
-        expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`); 
+        expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`);
       });
     });
 
@@ -64,13 +63,12 @@ describe('Format Utils', () => {
         expect(formatAtomicValue(vm, listValue)).toBe('[LIST:2]');
       });
 
-      test('should format SENTINEL tags with tag name and value', () => {
-        const intValue = toTaggedValue(42, Tag.SENTINEL);
-        expect(formatAtomicValue(vm, intValue)).toBe('[SENTINEL:42]');
+      test('should format numeric value', () => {
+        const intValue = 42;
+        expect(formatAtomicValue(vm, intValue)).toBe('42');
       });
     });
   });
-
 
   describe('formatValue', () => {
     describe('simple values', () => {
@@ -108,24 +106,20 @@ describe('Format Utils', () => {
     describe('other value types', () => {
       test('should format CODE values', () => {
         const codeValue = toTaggedValue(100, Tag.CODE);
-        expect(formatValue(vm, codeValue)).toBe('( 100 elements )'); 
+        expect(formatValue(vm, codeValue)).toBe('( 100 elements )');
       });
 
-      test('should format SENTINEL values', () => {
-        const intValue = toTaggedValue(42, Tag.SENTINEL);
-        expect(formatValue(vm, intValue)).toBe('( 42 elements )'); 
-      });
 
       test('should format unknown tag types', () => {
         const unknownValue = toTaggedValue(123, Tag.CODE);
-        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )'); 
+        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )');
       });
     });
 
     describe('error cases', () => {
       test('should handle special float values through formatFloat', () => {
         const nanValue = toTaggedValue(NaN, Tag.NUMBER);
-        expect(formatValue(vm, nanValue)).toBe('( 0 elements )'); 
+        expect(formatValue(vm, nanValue)).toBe('( 0 elements )');
       });
 
       test('should handle infinity values', () => {
@@ -135,7 +129,6 @@ describe('Format Utils', () => {
         const negInfValue = toTaggedValue(-Infinity, Tag.NUMBER);
         expect(formatValue(vm, negInfValue)).toBe('-Infinity');
       });
-
     });
 
     describe('integration tests', () => {

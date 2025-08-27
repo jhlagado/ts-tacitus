@@ -50,25 +50,24 @@ describe('Printer', () => {
       expect(consoleOutput[0]).toMatch(/Test List: LIST:/);
     });
 
-
     test('should handle empty title', () => {
-      const intValue = toTaggedValue(42, Tag.SENTINEL);
+      const intValue = 42;
       prn('', intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/^: SENTINEL: 42$/);
+      expect(consoleOutput[0]).toMatch(/^: NUMBER: 42$/);
     });
 
     test('should handle null title', () => {
-      const intValue = toTaggedValue(42, Tag.SENTINEL);
+      const intValue = 42;
       prn(null as unknown as string, intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toContain('SENTINEL: 42');
+      expect(consoleOutput[0]).toContain('NUMBER: 42');
     });
 
     test('should handle untagged NUMBER values', () => {
-      const regularNumber = 3.14; 
+      const regularNumber = 3.14;
       prn('Regular Number', regularNumber);
 
       expect(consoleOutput).toHaveLength(1);
@@ -105,11 +104,11 @@ describe('Printer', () => {
     });
 
     test('should format output correctly with indentation', () => {
-      const intValue = toTaggedValue(42, Tag.SENTINEL);
+      const intValue = 42;
       prn('Indented Test', intValue);
 
       expect(consoleOutput).toHaveLength(1);
-      expect(consoleOutput[0]).toMatch(/^Indented Test: SENTINEL: 42$/);
+      expect(consoleOutput[0]).toMatch(/^Indented Test: NUMBER: 42$/);
     });
 
     test('should handle large string indices', () => {
@@ -141,14 +140,12 @@ describe('Printer', () => {
       prn('Large List', largeList);
       expect(consoleOutput[0]).toMatch(/Large List: LIST:/);
     });
-
   });
 
   describe('integration with tagged values', () => {
     test('should correctly format all standard tag types', () => {
       const testCases = [
         { tag: Tag.NUMBER, value: 3.14, title: 'Number' },
-        { tag: Tag.SENTINEL, value: 42, title: 'Sentinel' },
         { tag: Tag.CODE, value: 100, title: 'Code' },
         { tag: Tag.STRING, value: 200, title: 'String' },
         { tag: Tag.LIST, value: 5, title: 'List' },
@@ -164,8 +161,6 @@ describe('Printer', () => {
 
         if (tag === Tag.NUMBER) {
           expect(consoleOutput[0]).toMatch(/NUMBER:/);
-        } else if (tag === Tag.SENTINEL) {
-          expect(consoleOutput[0]).toMatch(/SENTINEL:/);
         } else if (tag === Tag.CODE) {
           expect(consoleOutput[0]).toMatch(/CODE:/);
         } else if (tag === Tag.STRING) {
@@ -177,18 +172,18 @@ describe('Printer', () => {
     });
 
     test('should handle multiple consecutive prints', () => {
-      const value1 = toTaggedValue(1, Tag.SENTINEL);
-      const value2 = toTaggedValue(2, Tag.SENTINEL);
-      const value3 = toTaggedValue(3, Tag.SENTINEL);
+  const value1 = 1;
+  const value2 = 2;
+  const value3 = 3;
 
-      prn('First', value1);
-      prn('Second', value2);
-      prn('Third', value3);
+  prn('First', value1);
+  prn('Second', value2);
+  prn('Third', value3);
 
-      expect(consoleOutput).toHaveLength(3);
-      expect(consoleOutput[0]).toMatch(/First: SENTINEL: 1/);
-      expect(consoleOutput[1]).toMatch(/Second: SENTINEL: 2/);
-      expect(consoleOutput[2]).toMatch(/Third: SENTINEL: 3/);
+  expect(consoleOutput).toHaveLength(3);
+  expect(consoleOutput[0]).toMatch(/First: NUMBER: 1/);
+  expect(consoleOutput[1]).toMatch(/Second: NUMBER: 2/);
+  expect(consoleOutput[2]).toMatch(/Third: NUMBER: 3/);
     });
   });
 });
