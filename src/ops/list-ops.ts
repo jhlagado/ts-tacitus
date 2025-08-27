@@ -36,7 +36,7 @@ const BYTES_PER_ELEMENT = 4;
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(toTaggedValue(vm.SP - BYTES_PER_ELEMENT, Tag.SENTINEL));
+  vm.rpush(vm.SP - BYTES_PER_ELEMENT);
 }
 
 /**
@@ -47,7 +47,7 @@ export function closeListOp(vm: VM): void {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
-  const { value: headerPos } = fromTaggedValue(vm.rpop());
+  const headerPos = vm.rpop();
   const payloadSlots = (vm.SP - headerPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
 
   vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
@@ -113,7 +113,7 @@ export function sizeOp(vm: VM): void {
   const slotCount = getListSlotCount(info.header);
   if (slotCount === 0) {
     dropOp(vm);
-    vm.push(toTaggedValue(0, Tag.SENTINEL));
+    vm.push(slotCount);
     return;
   }
   let elementCount = 0;

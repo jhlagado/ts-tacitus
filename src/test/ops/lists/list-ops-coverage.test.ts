@@ -86,9 +86,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const result = vm.pop();
-  const { tag, value } = fromTaggedValue(result);
-  expect(tag).toBe(Tag.SENTINEL);
-  expect(value).toBe(0);
+      expect(result).toBe(0);
     });
 
     test('should count nested lists correctly', () => {

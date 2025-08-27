@@ -6,7 +6,6 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import {
   Tag,
-  toTaggedValue,
   fromTaggedValue,
   isRef,
   isStackRef,
@@ -14,7 +13,8 @@ import {
   isGlobalRef,
   createStackRef,
   createLocalRef,
-  createGlobalRef
+  createGlobalRef,
+  NIL
 } from '../../core/tagged';
 import { fetchOp } from '../../ops/list-ops';
 import { SEG_RSTACK } from '../../core/constants';
@@ -37,13 +37,12 @@ describe('Unified Reference System', () => {
       const localRef = createLocalRef(3);
       const globalRef = createGlobalRef(7);
       const number = 42;
-      const nilValue = toTaggedValue(0, Tag.SENTINEL);
 
       expect(isRef(stackRef)).toBe(true);
       expect(isRef(localRef)).toBe(true);
       expect(isRef(globalRef)).toBe(true);
       expect(isRef(number)).toBe(false);
-      expect(isRef(nilValue)).toBe(false);
+      expect(isRef(NIL)).toBe(false);
     });
 
     test('specific type guards should work correctly', () => {
@@ -199,8 +198,7 @@ describe('Unified Reference System', () => {
 
   describe('Error handling', () => {
     test('should provide clear error messages', () => {
-      const nilValue = toTaggedValue(0, Tag.SENTINEL);
-      vm.push(nilValue);
+      vm.push(NIL);
 
       expect(() => fetchOp(vm)).toThrow('fetch expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
     });
