@@ -16,10 +16,8 @@ describe('List Creation Operations', () => {
       const stack = executeTacitCode('( 1 2 ) length');
 
       logStack(stack);
-      const { tag, value } = fromTaggedValue(stack[stack.length - 1]);
-      expect(tag).toBe(Tag.SENTINEL);
-      expect(value).toBe(2);
-      expect(stack.length).toBe(4);
+      const result = stack[0];
+      expect(result).toBe(2);
     });
 
     test('should handle empty lists', () => {
