@@ -16,14 +16,14 @@ describe('Lists.md Specification Compliance', () => {
     test('length returns payload slot count', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) length');
 
-      const result = stack[stack.length - 1];
+      const result = stack[0];
       expect(result).toBe(5);
     });
 
     test('size returns element count via traversal', () => {
       const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) size');
 
-      const result = stack[stack.length - 1];
+      const result = stack[0];
       expect(result).toBe(3);
     });
 
@@ -72,7 +72,7 @@ describe('Lists.md Specification Compliance', () => {
     test('head returns nil for empty list', () => {
       const stack = executeTacitCode('( ) head');
 
-      const result = stack[stack.length - 1];
+      const result = stack[0];
       const decoded = fromTaggedValue(result);
       expect(decoded.tag).toBe(Tag.SENTINEL);
       expect(decoded.value).toBe(0);
