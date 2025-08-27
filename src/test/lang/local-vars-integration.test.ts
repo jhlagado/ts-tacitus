@@ -145,4 +145,51 @@ describe('Local Variables Integration with Existing Features', () => {
       expect(result).toEqual([20]);
     });
   });
+
+  describe('Variable Mutation', () => {
+    test('should support variable mutation using -> operator', () => {
+      const result = executeTacitCode(`
+        : test-mutation
+            42 var x
+            99 -> x
+            x
+        ;
+        test-mutation
+      `);
+      
+      // x initialized to 42, then mutated to 99 using -> operator
+      expect(result).toEqual([99]);
+    });
+
+    test('should support multiple variable mutations with ->', () => {
+      const result = executeTacitCode(`
+        : multi-mutation
+            10 var a
+            20 var b
+            100 -> a
+            200 -> b
+            a b add
+        ;
+        multi-mutation
+      `);
+      
+      // a=10→100, b=20→200, sum=300
+      expect(result).toEqual([300]);
+    });
+
+    test('should support mutation and reading in sequence with ->', () => {
+      const result = executeTacitCode(`
+        : sequence-test
+            5 var counter
+            counter 10 add -> counter
+            counter 2 mul -> counter
+            counter
+        ;
+        sequence-test
+      `);
+      
+      // counter=5, then 5+10=15, then 15*2=30
+      expect(result).toEqual([30]);
+    });
+  });
 });

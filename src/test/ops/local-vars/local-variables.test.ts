@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/list-ops';
-import { getVarRef } from '../../../core/refs';
+import { getVarRef, writeReference } from '../../../core/refs';
 
 describe('Local Variables System', () => {
   beforeEach(() => {
@@ -223,6 +223,84 @@ describe('Local Variables System', () => {
       vm.push(result);
       
       expect(vm.pop()).toBe(52);
+    });
+  });
+
+  describe('Variable Mutation', () => {
+    test('should support variable mutation via writeReference', () => {
+      vm.BP = 8000;
+      vm.compiler.compile16(1);
+      reserveOp(vm);
+      
+      // Initialize with 42
+      vm.push(42);
+      vm.compiler.compile16(0);
+      initVarOp(vm);
+      
+      // Verify initial value
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
+      expect(vm.pop()).toBe(42);
+      
+      // Mutate using writeReference
+      const varRef = getVarRef(vm, 0);
+      writeReference(vm, varRef, 99);
+      
+      // Verify mutation
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
+      expect(vm.pop()).toBe(99);
+    });
+
+    test('should handle multiple variable mutations', () => {
+      vm.BP = 8500;
+      vm.compiler.compile16(3);
+      reserveOp(vm);
+      
+      // Initialize variables
+      const initialValues = [10, 20, 30];
+      initialValues.forEach((value, slot) => {
+        vm.push(value);
+        vm.compiler.compile16(slot);
+        initVarOp(vm);
+      });
+      
+      // Mutate all variables
+      const newValues = [100, 200, 300];
+      newValues.forEach((value, slot) => {
+        const varRef = getVarRef(vm, slot);
+        writeReference(vm, varRef, value);
+      });
+      
+      // Verify all mutations
+      newValues.forEach((expectedValue, slot) => {
+        vm.push(getVarRef(vm, slot));
+        fetchOp(vm);
+        expect(vm.pop()).toBe(expectedValue);
+      });
+    });
+
+    test('should maintain isolation during mixed read/write operations', () => {
+      vm.BP = 9000;
+      vm.compiler.compile16(2);
+      reserveOp(vm);
+      
+      // Initialize variables
+      vm.push(111); vm.compiler.compile16(0); initVarOp(vm);
+      vm.push(222); vm.compiler.compile16(1); initVarOp(vm);
+      
+      // Read first, mutate second
+      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      const firstValue = vm.pop();
+      
+      writeReference(vm, getVarRef(vm, 1), 999);
+      
+      // Verify first unchanged, second mutated
+      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      expect(vm.pop()).toBe(111); // unchanged
+      
+      vm.push(getVarRef(vm, 1)); fetchOp(vm);
+      expect(vm.pop()).toBe(999); // mutated
     });
   });
 });
