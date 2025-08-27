@@ -11,7 +11,7 @@ import {
   xor,
   formatValue,
 } from '../../core/utils';
-import { toTaggedValue, Tag } from '../../core/tagged';
+import { toTaggedValue, Tag, NIL } from '../../core/tagged';
 import { VM } from '../../core/vm';
 
 const testVM = {
@@ -113,8 +113,7 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
     test('formats INTEGER tagged value representing NIL', () => {
-      const taggedNil = toTaggedValue(0, Tag.SENTINEL);
-      expect(formatValue(testVM, taggedNil)).toBe('NIL');
+      expect(formatValue(testVM, NIL)).toBe('NIL');
     });
     test('formats CODE tagged value', () => {
       const taggedCode = toTaggedValue(1234, Tag.CODE);

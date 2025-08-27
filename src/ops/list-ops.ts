@@ -465,7 +465,7 @@ export function makeListOp(vm: VM): void {
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
   const headerPos = vm.SP - BYTES_PER_ELEMENT;
-  vm.rpush(toTaggedValue(headerPos, Tag.SENTINEL));
+  vm.rpush(headerPos);
 
   if (vm.debug) console.log('makeList: placeholder header at', headerPos, 'SP now', vm.SP);
 
@@ -700,7 +700,7 @@ export function findOp(vm: VM): void {
     // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
       vm.push(target); // Restore target
-      vm.push(toTaggedValue(defaultValueAddr, Tag.SENTINEL));
+      vm.push(defaultValueAddr);
       return;
     }
 
@@ -763,7 +763,7 @@ export function findOp(vm: VM): void {
     // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
       vm.push(target); // Restore target
-      vm.push(toTaggedValue(defaultValueAddr, Tag.SENTINEL));
+      vm.push(defaultValueAddr);
       return;
     }
 

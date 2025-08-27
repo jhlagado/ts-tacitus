@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
-import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { fromTaggedValue, isNIL, Tag } from '../../../core/tagged';
 import { isList } from '../../../core/list';
 
 describe('Lists.md Specification Compliance', () => {
@@ -73,9 +73,7 @@ describe('Lists.md Specification Compliance', () => {
       const stack = executeTacitCode('( ) head');
 
       const result = stack[0];
-      const decoded = fromTaggedValue(result);
-      expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(0);
+      expect(isNIL(result)).toBe(true);
     });
 
     test('uncons splits list correctly', () => {
