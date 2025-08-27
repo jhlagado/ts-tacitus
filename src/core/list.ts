@@ -23,7 +23,7 @@ export function isList(tval: number): boolean {
  * @returns Number of slots in payload
  * @throws Error if header is not valid LIST
  */
-export function getListSlotCount(header: number): number {
+export function getListLength(header: number): number {
   if (!isList(header)) {
     throw new Error('Value is not an LIST header');
   }
@@ -38,7 +38,7 @@ export function dropList(vm: VM): void {
   validateListHeader(vm);
 
   const header = vm.peek();
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
 
   for (let i = 0; i < slotCount + 1; i++) {
     vm.pop();
@@ -58,7 +58,7 @@ export function validateListHeader(vm: VM): void {
     throw new Error('Expected LIST header at TOS');
   }
 
-  const slotCount = getListSlotCount(header);
+  const slotCount = getListLength(header);
   vm.ensureStackSize(slotCount + 1, 'LIST payload validation');
 
   if (slotCount > 65535) {
@@ -84,7 +84,7 @@ export function getListElementAddress(
     throw new Error('Invalid LIST header provided to getListElementAddress');
   }
 
-  const totalSlots = getListSlotCount(header);
+  const totalSlots = getListLength(header);
 
   if (logicalIndex < 0) return -1;
 
@@ -99,7 +99,7 @@ export function getListElementAddress(
 
     if (isList(currentValue)) {
       elementStartAddr = currentAddr;
-      stepSize = getListSlotCount(currentValue) + 1;
+      stepSize = getListLength(currentValue) + 1;
     }
 
     if (currentLogicalIndex === logicalIndex) {
