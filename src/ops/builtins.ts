@@ -101,7 +101,7 @@ import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { getOp, setOp } from './access-ops';
-import { isCompoundData } from './local-vars-transfer';
+import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
 // Temp register operations for macro expansion
 // Pops the top of the stack and stores it in vm.tempRegister
@@ -464,13 +464,9 @@ export function initVarOp(vm: VM): void {
   const slotAddr = vm.BP + slotNumber * 4;
 
   if (isCompoundData(value)) {
-    // Compound value: store LIST on return stack, put LOCAL_REF in slot
-    const listHeader = vm.pop(); // Pop the LIST header from data stack
-    
-    // Store LIST header at current RP location on return stack
-    const headerCellIndex = vm.RP / 4; // Convert byte address to cell index
-    vm.memory.writeFloat32(SEG_RSTACK, vm.RP, listHeader);
-    vm.RP += BYTES_PER_ELEMENT; // Advance RP past the stored header
+    // Compound value: transfer entire structure to return stack, put LOCAL_REF in slot
+    const headerAddr = transferCompoundToReturnStack(vm);
+    const headerCellIndex = headerAddr / 4; // Convert byte address to cell index
     
     // Create LOCAL_REF pointing to where we stored the header
     const localRef = toTaggedValue(headerCellIndex, Tag.LOCAL_REF);

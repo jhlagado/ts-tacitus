@@ -63,7 +63,10 @@ function getListHeaderAndBase(
   } else if (isRef(value)) {
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
-    return { header, baseAddr: address - 8, segment };
+    // For return stack storage: elements are stored before header
+    // First payload slot (element 0) is at address - slotCount*4
+    const slotCount = getListLength(header);
+    return { header, baseAddr: address - slotCount * 4, segment };
   }
   return null;
 }
@@ -195,33 +198,68 @@ export function concatOp(vm: VM): void {
  */
 export function headOp(vm: VM): void {
   vm.ensureStackSize(1, 'head');
-  const header = vm.pop();
+  const value = vm.pop();
+  const tag = getTag(value);
 
-  if (!isList(header) || getListLength(header) === 0) {
-    vm.push(NIL);
-    return;
-  }
+  if (tag === Tag.LIST) {
+    // Stack-resident list: header was just popped
+    if (getListLength(value) === 0) {
+      vm.push(NIL);
+      return;
+    }
 
-  // First element is at SP-4 (first payload slot after popping header)
-  const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
-  const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
+    // First element is at SP-4 (first payload slot after popping header)
+    const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
+    const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
 
-  if (isList(firstElement)) {
-    // Compound element: materialize full structure
-    const slotCount = getListLength(firstElement);
+    if (isList(firstElement)) {
+      // Compound element: materialize full structure
+      const slotCount = getListLength(firstElement);
 
-    // Skip past the compound element in original list
-    vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
+      // Skip past the compound element in original list
+      vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
 
-    // Push compound element to new position
-    for (let i = slotCount; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
-      vm.push(slotValue);
+      // Push compound element to new position
+      for (let i = slotCount; i >= 0; i--) {
+        const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
+        vm.push(slotValue);
+      }
+    } else {
+      // Simple element: direct access
+      vm.SP -= BYTES_PER_ELEMENT; // Skip past first element
+      vm.push(firstElement);
+    }
+  } else if (isRef(value)) {
+    // Reference to compound data (LOCAL_REF, STACK_REF, etc.)
+    const { address, segment } = resolveReference(vm, value);
+    const header = vm.memory.readFloat32(segment, address);
+
+    if (!isList(header) || getListLength(header) === 0) {
+      vm.push(NIL);
+      return;
+    }
+
+    // For return stack storage: first element is at address - slotCount*4
+    const slotCount = getListLength(header);
+    const firstElementAddr = address - slotCount * BYTES_PER_ELEMENT;
+    const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
+
+    if (isList(firstElement)) {
+      // Compound element: materialize full structure
+      const elementSlotCount = getListLength(firstElement);
+
+      // Push compound element to data stack
+      for (let i = 0; i < elementSlotCount; i++) {
+        const slotValue = vm.memory.readFloat32(segment, firstElementAddr - (elementSlotCount - 1 - i) * BYTES_PER_ELEMENT);
+        vm.push(slotValue);
+      }
+      vm.push(firstElement); // Push header last
+    } else {
+      // Simple element: direct push
+      vm.push(firstElement);
     }
   } else {
-    // Simple element: direct access
-    vm.SP -= BYTES_PER_ELEMENT; // Skip past first element
-    vm.push(firstElement);
+    vm.push(NIL);
   }
 }
 
@@ -910,8 +948,10 @@ export function unrefOp(vm: VM): void {
       const slotCount = getListLength(referencedValue);
 
       // Copy compound structure: payload slots first, then header
-      for (let i = slotCount - 1; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
+      // Storage pattern: [elem0, elem1, ..., elem(n-1), header]
+      // Elements are at: address - n*4, address - (n-1)*4, ..., address - 4
+      for (let i = 0; i < slotCount; i++) {
+        const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * BYTES_PER_ELEMENT);
         vm.push(slotValue);
       }
       // Push header last (becomes TOS)
