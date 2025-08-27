@@ -35,7 +35,7 @@
 import { VM } from '../core/vm';
 import { toTaggedValue, fromTaggedValue, getTag, Tag } from '../core/tagged';
 import { getVarRef } from '../core/refs';
-import { SEG_RSTACK } from '../core/constants';
+import { SEG_RSTACK, BYTES_PER_ELEMENT } from '../core/constants';
 
 import {
   literalNumberOp,
@@ -464,8 +464,19 @@ export function initVarOp(vm: VM): void {
   const slotAddr = vm.BP + slotNumber * 4;
 
   if (isCompoundData(value)) {
-    // DISABLED: Compound local variables not supported yet
-    throw new Error('Compound local variables not yet implemented');
+    // Compound value: store LIST on return stack, put LOCAL_REF in slot
+    const listHeader = vm.pop(); // Pop the LIST header from data stack
+    
+    // Store LIST header at current RP location on return stack
+    const headerCellIndex = vm.RP / 4; // Convert byte address to cell index
+    vm.memory.writeFloat32(SEG_RSTACK, vm.RP, listHeader);
+    vm.RP += BYTES_PER_ELEMENT; // Advance RP past the stored header
+    
+    // Create LOCAL_REF pointing to where we stored the header
+    const localRef = toTaggedValue(headerCellIndex, Tag.LOCAL_REF);
+    
+    // Store the LOCAL_REF in the variable slot
+    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
     // Simple value: store directly (existing behavior)
     const simpleValue = vm.pop();

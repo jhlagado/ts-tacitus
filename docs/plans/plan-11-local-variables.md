@@ -546,253 +546,87 @@ test('should compile and execute function with simple locals', () => {
 - Run full existing test suite to ensure no regressions
 - Test locals with existing stack operations
 
-### Phase 9: Compound Data Support - Two-Tier Storage System
+### Phase 9: Compound Data Support - Return Stack Storage ❌ IN PROGRESS
 
-**STATUS**: Ready for implementation (Phases 1-8 completed successfully)
+**STATUS**: Currently implementing - Starting with empty lists
 
-## Architecture Overview
+## Current Implementation Strategy
 
-### Two-Tier Storage Design
-The Phase 9 system uses a two-tier approach to support compound data (lists, maplists) in local variables:
+### Simplified Approach for Empty Lists First
+Starting with the simplest compound type `()` (empty list = LIST:0):
 
-1. **Tier 1 - Slots**: Store STACK_REFs pointing to compound data (not the data itself)
-2. **Tier 2 - Return Stack Storage**: Compound data stored after slot table on return stack
-3. **Transfer Process**: Maintains stack semantics through reverse-order transfer operations
-4. **Polymorphic Access**: Same fetch/store operations work for simple and compound values
+1. **Input**: Empty list `()` on data stack (LIST:0 header only, no payload)
+2. **Storage**: Store LIST:0 header at current RP location on return stack  
+3. **Reference**: Store LOCAL_REF in variable slot pointing to the header location
+4. **Memory**: LIST header stored above slots, accessible via LOCAL_REF
 
-### Memory Layout Example
+### Memory Layout for Empty List
 ```
-Return Stack Layout with Compound Local Variables:
+Return Stack Layout with Empty List Variable:
 [... previous frames ...]
-[BP] -> [old BP]           <- Base Pointer (function entry)
-[BP+4]  [STACK_REF]        <- Slot 0: points to compound data below
-[BP+8]  [simple value]     <- Slot 1: direct simple value 
-[BP+12] [STACK_REF]        <- Slot 2: points to compound data below
-[... slot table continues ...]
-[RP-20] [LIST:2]           <- Compound data for slot 2 (header)
-[RP-16] [item1]            <- Payload item 1
-[RP-12] [item0]            <- Payload item 0 (TOS when transferred)
-[RP-8]  [LIST:3]           <- Compound data for slot 0 (header) 
-[RP-4]  [item2]            <- Payload item 2
-[RP]    [item1]            <- Payload item 1
-                           <- Current RP (next allocation point)
+[BP] -> [old BP]           <- Base Pointer (function entry) 
+[BP+4]  [LOCAL_REF]        <- Slot 0: points to LIST:0 header below
+[... other slots ...]
+[RP-4]  [LIST:0]           <- Empty list header stored at RP
+[RP]                       <- Current RP (next allocation point)
 ```
 
-### Transfer Order Preservation
-TACIT lists use stack-native encoding where `( 1 2 3 )` becomes `[3, 2, 1, LIST:3]` with LIST:3 at TOS.
+### Key Insight: LOCAL_REF for Return Stack Data
+- **LOCAL_REF** addresses **SEG_RSTACK** (return stack segment)
+- Compound data stored on return stack uses LOCAL_REF addressing
+- This is different from STACK_REF which addresses SEG_STACK (data stack)
 
-To maintain stack semantics during transfer:
-1. **Pop** LIST header from data stack
-2. **Pop** payload elements in stack order (TOS-1, TOS-2, TOS-3...)
-3. **rpush** elements in the same order to preserve stack-native encoding
-4. **rpush** LIST header last (becomes accessible address)
-5. **Store** STACK_REF pointing to LIST header in slot
-
-**Example Transfer:**
-- Data stack: `[3, 2, 1, LIST:3]` ← TOS  
-- Transfer sequence: `rpush(3), rpush(2), rpush(1), rpush(LIST:3)`
-- Return stack result: `[LIST:3, 1, 2, 3]` ← LIST:3 at TOS, preserving stack-native order
-
-#### 9.1 Transfer Operation Design (3 hours) ✅ COMPLETED
-**Files**: `src/ops/local-vars-transfer.ts`, test file  
-**Goal**: Implement reusable compound data transfer operations
-
-**Tasks**:
-- Implement `transferCompoundToReturnStack(vm: VM): number` function
-- Returns byte address of transferred LIST header on return stack
-- Handles traversal of compound elements and span calculations
-- Uses existing list utility functions (`getListSlotCount`, `isList`)
-- Preserves element ordering through reverse-order transfer
-
-**Transfer Algorithm**:
-```typescript
-function transferCompoundToReturnStack(vm: VM): number {
-  // 1. Validate LIST at TOS
-  validateListHeader(vm);
-  const header = vm.pop();
-  const slotCount = getListSlotCount(header);
-  
-  // 2. Pop payload elements in stack order (TOS-1 first, deepest last)
-  const elements: number[] = [];
-  for (let i = 0; i < slotCount; i++) {
-    elements.push(vm.pop()); // Pop in stack order: 3, 2, 1 for ( 1 2 3 )
-  }
-  
-  // 3. rpush elements in the same order to preserve stack-native encoding
-  for (let i = 0; i < elements.length; i++) {
-    vm.rpush(elements[i]); // rpush(3), rpush(2), rpush(1)
-  }
-  
-  // 4. rpush header last (becomes accessible at return stack TOS)
-  const headerAddr = vm.RP;
-  vm.rpush(header);
-  
-  return headerAddr; // Return address of LIST header
-}
-```
-
-**Success Criteria**: ✅ ALL COMPLETED
-- ✅ Preserves element ordering (stack semantics maintained)
-- ✅ Returns correct header address for STACK_REF creation
-- ✅ **C-port ready**: No JavaScript arrays, direct memory operations only
-- ✅ **Uses BYTES_PER_ELEMENT**: No magic numbers, proper constants
-- ✅ **Polymorphic list dropping**: Uses skipList() for clean stack management
-- ✅ Integrates with existing list validation functions
-
-**Implementation Notes**:
-- **CRITICAL REWORK COMPLETED**: Eliminated JavaScript garbage (intermediate arrays, .push() operations)
-- **Direct memory transfer**: `elementAddr += BYTES_PER_ELEMENT` pattern for efficient address calculation  
-- **11/12 tests passing**: All core functionality working, nested structures deferred to future enhancement
-- **Reusable design**: Can be used by other operations requiring compound data movement
-
-#### 9.2 InitVar Opcode Enhancement (2 hours) ✅ COMPLETED
+#### 9.1 Empty List Support (2 hours) ❌ IN PROGRESS
 **Files**: `src/ops/builtins.ts`, test file  
-**Goal**: Extend InitVar to detect and handle compound values
+**Goal**: Support `()` empty lists in local variables
 
 **Tasks**:
-- Modify `initVarOp()` to check if TOS value is compound (using `isList()`)
-- For simple values: store directly in slot (existing behavior)
-- For compound values: call transfer operation and store STACK_REF in slot
-- Use existing error handling patterns
+- ❌ Modify `initVarOp()` to detect LIST:0 (empty list) 
+- ❌ Store LIST:0 header at RP on return stack
+- ❌ Store LOCAL_REF in variable slot pointing to header location
+- ❌ Create test cases for empty list variables
 
-**Enhanced InitVar Logic**:
+**Implementation Strategy**:
 ```typescript
-export function initVarOp(vm: VM): void {
-  const slotNumber = vm.nextInt16();
-  vm.ensureStackSize(1, 'InitVar');
+if (isCompoundData(value)) {
+  // For empty list: just store header, no payload transfer needed
+  const listHeader = vm.pop(); // Pop LIST:0 from data stack
+  const headerCellIndex = vm.RP / 4; // Cell index for header location
   
-  const value = vm.peek(); // Don't pop yet
-  const slotAddr = vm.BP + slotNumber * 4;
+  // Store LIST:0 header at current RP location  
+  vm.memory.writeFloat32(SEG_RSTACK, vm.RP, listHeader);
+  vm.RP += BYTES_PER_ELEMENT; // Advance past header
   
-  if (isList(value)) {
-    // Compound value: transfer to return stack and store STACK_REF
-    const headerAddr = transferCompoundToReturnStack(vm);
-    const stackRef = createStackRef(headerAddr / 4); // Cell-based addressing
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, stackRef);
-  } else {
-    // Simple value: store directly (existing behavior)
-    const simpleValue = vm.pop();
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, simpleValue);
-  }
+  // Store LOCAL_REF in slot pointing to header
+  const localRef = toTaggedValue(headerCellIndex, Tag.LOCAL_REF);
+  vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
 }
 ```
-
-**Success Criteria**: ✅ ALL COMPLETED  
-- ✅ Simple values continue to work exactly as before (no regressions)
-- ✅ Compound values are transferred and STACK_REF stored in slot
-- ✅ Error handling follows existing patterns
-- ✅ All existing local variable tests continue to pass
-
-**Implementation Notes**:
-- **7/8 tests passing**: All core functionality working, nested compound test skipped for future enhancement
-- **Mixed variable types**: Simple and compound variables coexist properly in same function
-- **Cell addressing**: Proper STACK_REF creation using `createStackRef(headerAddr / 4)`
-- **No regressions**: All existing simple variable functionality preserved
-
-#### 9.3 Polymorphic Fetch Enhancement (1 hour)
-**Files**: `src/ops/list-ops.ts`, test file  
-**Goal**: Verify fetch works polymorphically with STACK_REFs in local slots
-
-**Current Status**: Already implemented! The existing `fetchOp` in `src/ops/list-ops.ts` lines 368-412 already handles:
-- `Tag.LOCAL_REF`: Reads from return stack slots
-- `Tag.STACK_REF`: Materializes compound values from data stack 
-- Polymorphic compound value materialization
-
-**Tasks**:
-- **Verify** existing fetchOp works with STACK_REFs stored in LOCAL_REF slots
-- Test compound value materialization from return stack storage
-- No implementation changes needed - validation only
-
-**Test Scenario**:
-```typescript
-// This should already work with existing fetchOp:
-// 1. LOCAL_REF points to slot containing STACK_REF
-// 2. fetchOp reads STACK_REF from return stack slot
-// 3. fetchOp materializes compound data from STACK_REF target
-```
-
-#### 9.4 End-to-End Compound Variables Testing (2 hours)
-**Files**: `src/test/lang/local-vars-compound.test.ts`  
-**Goal**: Comprehensive testing of compound local variables
-
-**Test Categories**:
-1. **Basic Compound Variables**:
-   ```typescript
-   test('should store and retrieve lists in local variables', () => {
-     const result = executeTacitCode(`
-       : test-compound
-         ( 1 2 3 ) var mylist
-         mylist
-       ;
-       test-compound
-     `);
-     expect(result).toEqual([1, 2, 3, Tag.LIST << 16 | 3]); // LIST:3
-   });
-   ```
-
-2. **Mixed Simple and Compound Variables**:
-   ```typescript
-   test('should handle mixed variable types', () => {
-     const result = executeTacitCode(`
-       : mixed-vars
-         42 var num
-         ( 10 20 ) var list
-         num list 0 elem fetch add
-       ;
-       mixed-vars
-     `);
-     expect(result).toEqual([52]); // 42 + 10
-   });
-   ```
-
-3. **Nested Compound Data**:
-   ```typescript
-   test('should handle nested lists', () => {
-     const result = executeTacitCode(`
-       : nested-test
-         ( ( 1 2 ) ( 3 4 ) ) var nested
-         nested
-       ;
-       nested-test
-     `);
-     // Should preserve full nested structure
-   });
-   ```
-
-4. **Maplist Support**:
-   ```typescript
-   test('should handle maplists in variables', () => {
-     const result = executeTacitCode(`
-       : maplist-test
-         ( "key1" 100 "key2" 200 ) var data
-         data "key1" find fetch
-       ;
-       maplist-test
-     `);
-     expect(result).toEqual([100]);
-   });
-   ```
 
 **Success Criteria**:
-- All compound data types work in local variables
-- Mixed simple/compound variables coexist properly  
-- Nested structures preserved during transfer
-- Integration with existing list operations (elem, find, etc.)
-- No regressions in simple variable functionality
+- Empty lists can be stored in local variables
+- `() var x; x` returns empty list
+- Existing simple variable functionality preserved
+- LOCAL_REF correctly addresses return stack data
 
-### Phase 9 Timeline
+#### 9.2 Non-Empty List Support (4 hours)
+**Files**: `src/ops/builtins.ts`, test file  
+**Goal**: Extend to support lists with payload
 
-**Total Estimated Time: 8 hours**
-- 9.1 Transfer Operations: 3 hours
-- 9.2 InitVar Enhancement: 2 hours  
-- 9.3 Fetch Verification: 1 hour
-- 9.4 End-to-End Testing: 2 hours
+**Tasks**: 
+- Handle payload elements transfer to return stack
+- Preserve list element ordering (stack semantics)
+- Support lists of any size
+- Test with various list contents
 
-**Risk Factors**:
-- **Low Risk**: Building on proven polymorphic reference system
-- **Existing Infrastructure**: Transfer patterns exist in list operations
-- **Validation Layer**: Comprehensive testing at each step
-- **Fallback Plan**: Simple variables continue working if compound support delayed
+#### 9.3 Mixed Variable Types Testing (1 hour)
+**Files**: Test file  
+**Goal**: Verify simple and compound variables coexist
+
+**Tasks**:
+- Test functions with both simple and compound variables
+- Verify no interference between variable types
+- Test edge cases and memory layout
 
 ## Implementation Strategy
 
@@ -1040,3 +874,38 @@ STORE                   # polymorphic store operation
 - ✅ **Production ready**: Can be used in real TACIT programs
 
 **FINAL STATUS: Local variables implementation is 100% complete with full mutation support!**
+
+## Phase 10: Reference Type Renaming ❌ INCOMPLETE
+
+### Final Cleanup Step
+**FILES**: Multiple files across codebase  
+**GOAL**: Rename LOCAL_REF to RSTACK_REF for clarity
+
+### Rationale
+The name `LOCAL_REF` is confusing because:
+- It suggests "local variables" but it's really "return stack addressing"  
+- Local variables can contain any type of reference (LOCAL_REF, STACK_REF, etc.)
+- The segment mapping should be obvious from the name
+
+### Clear Segment Mapping
+**BEFORE:**
+- `STACK_REF` → `SEG_STACK` ✅ (clear)
+- `LOCAL_REF` → `SEG_RSTACK` ❌ (confusing) 
+- `GLOBAL_REF` → `SEG_GLOBAL` ✅ (clear)
+
+**AFTER:**
+- `STACK_REF` → `SEG_STACK` ✅ (clear)
+- `RSTACK_REF` → `SEG_RSTACK` ✅ (clear)
+- `GLOBAL_REF` → `SEG_GLOBAL` ✅ (clear)
+
+### Tasks
+- ❌ Rename `Tag.LOCAL_REF` to `Tag.RSTACK_REF` in tagged.ts
+- ❌ Update all `LOCAL_REF` references throughout codebase
+- ❌ Update type guard functions (`isLocalRef` → `isRStackRef`)
+- ❌ Update documentation and comments
+- ❌ Run full test suite to ensure no regressions
+- ❌ Update specs if needed
+
+**ESTIMATED TIME: 1-2 hours** (systematic find-replace operation)
+
+**NOTE: This should be done as the FINAL step after all compound data support is complete.**
