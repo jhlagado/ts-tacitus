@@ -235,13 +235,13 @@ Assignment to a local variable slot is direct:
 This stores the value `100` in the slot for `x`. The value is tagged appropriately (e.g., `Tag.NUMBER`).
 
 ### Compound Values (Lists)
-Assignment to a local variable slot containing a compound value (e.g., a list) is only allowed if the target slot already contains a compatible compound structure.
-The assignment copies the contents of the new value into the existing structure, element-wise, **without changing the slot reference**.
-If the lengths/types do not match, assignment is invalid and should raise an error.
+Assignment to a local variable slot containing a compound value (e.g., a list or maplist) is only allowed if the new value is **compatible**: it must have the same slot (cell) count and type as the existing value. The assignment copies the contents of the new value into the existing structure, element-wise, **without changing the slot reference**. If the slot count or type does not match, assignment is invalid and should raise an error.
 ```
-(1 2 3) -> y
+(1 2 3) -> y   # allowed if y is a list of 4 cells (1 header + 3 payload)
+(1 2)   -> y   # error if y is a list of 4 cells
+maplist5 -> z  # allowed if z is a maplist of 5 cells
+list4    -> z  # error if z is a maplist, even if slot count matches
 ```
-Only works if `y` is already a list of length 3; otherwise, error.
 
 ### General Rule
 Assignment never changes the slot reference for compound types—only the contents are updated.
