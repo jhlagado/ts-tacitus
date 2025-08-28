@@ -101,3 +101,36 @@ export function isCompoundData(value: number): boolean {
   return tag === Tag.LIST;
   // Future: extend for other compound types (maplists, etc.)
 }
+
+/**
+ * Checks if two compound values are compatible for mutation.
+ * 
+ * Compatibility requirements from lists.md §10:
+ * - Same compound type (LIST can only replace LIST)
+ * - Same total slot count (header + payload slots)
+ * - No recursive analysis needed - just check outer header
+ * 
+ * @param existing The existing compound value at target location
+ * @param newValue The new compound value being assigned
+ * @returns true if compatible, false otherwise
+ */
+export function isCompatibleCompound(existing: number, newValue: number): boolean {
+  const existingTag = getTag(existing);
+  const newTag = getTag(newValue);
+  
+  // Must be same compound type
+  if (existingTag !== newTag) {
+    return false;
+  }
+  
+  // Must be compound data (currently only LIST supported)
+  if (existingTag !== Tag.LIST) {
+    return false; // Future: add Tag.MAPLIST support
+  }
+  
+  // Must have same total slot count
+  const existingSlots = getListLength(existing);
+  const newSlots = getListLength(newValue);
+  
+  return existingSlots === newSlots;
+}
