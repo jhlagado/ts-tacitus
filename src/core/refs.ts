@@ -8,11 +8,11 @@ import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import { SEG_STACK, SEG_RSTACK } from './constants';
 
 /**
- * Checks if a value is a reference (STACK_REF, LOCAL_REF, or GLOBAL_REF).
+ * Checks if a value is a reference (STACK_REF, RSTACK_REF, or GLOBAL_REF).
  */
 export function isRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF || tag === Tag.LOCAL_REF || tag === Tag.GLOBAL_REF;
+  return tag === Tag.STACK_REF || tag === Tag.RSTACK_REF || tag === Tag.GLOBAL_REF;
 }
 
 /**
@@ -24,11 +24,11 @@ export function isStackRef(tval: number): boolean {
 }
 
 /**
- * Checks if a value is a LOCAL_REF.
+ * Checks if a value is a RSTACK_REF.
  */
 export function isLocalRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.LOCAL_REF;
+  return tag === Tag.RSTACK_REF;
 }
 
 /**
@@ -51,12 +51,12 @@ export function createStackRef(cellIndex: number): number {
 
 /**
  * Creates a reference to a local variable slot.
- * Takes a slot number (0, 1, 2, etc.) and returns a LOCAL_REF tagged value
+ * Takes a slot number (0, 1, 2, etc.) and returns a RSTACK_REF tagged value
  * that points to the absolute address of that slot in the current stack frame.
  */
 export function getVarRef(vm: VM, slotNumber: number): number {
   const absoluteCellIndex = vm.BP / 4 + slotNumber;
-  return toTaggedValue(absoluteCellIndex, Tag.LOCAL_REF);
+  return toTaggedValue(absoluteCellIndex, Tag.RSTACK_REF);
 }
 
 /**
@@ -81,21 +81,21 @@ export interface ResolvedReference {
 export function resolveReference(vm: VM, ref: number): ResolvedReference {
   const tag = getTag(ref);
   const { value } = fromTaggedValue(ref);
-  
+
   switch (tag) {
     case Tag.STACK_REF:
       return { address: value * 4, segment: SEG_STACK };
-      
-    case Tag.LOCAL_REF:
+
+    case Tag.RSTACK_REF:
       return { address: value * 4, segment: SEG_RSTACK }; // Absolute cell index
-      
+
     case Tag.GLOBAL_REF:
       throw new Error('Global variable references not yet implemented');
-      
+
     default:
-      throw new Error(`Invalid reference type: ${tag}`);
+        throw new Error(`Invalid reference type: ${tag}`);
+    }
   }
-}
 
 /**
  * Reads a value from memory using a polymorphic reference.

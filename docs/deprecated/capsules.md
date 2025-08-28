@@ -39,15 +39,15 @@ Under the hood, a capsule is a specialized **list** that follows a fixed shape. 
 Every capsule is a list whose first element is a method table, and the rest are the capsule’s fields. In abstract form:
 
 ```
-( 
-  ( `name1 @method1 
-    `name2 @method2 
-    ... 
+(
+  ( `name1 @method1
+    `name2 @method2
+    ...
     `nameN @methodN )
-  field1-value 
-  field2-value 
-  ... 
-  fieldN-value 
+  field1-value
+  field2-value
+  ...
+  fieldN-value
 )
 ```
 
@@ -66,17 +66,17 @@ The dispatch maplist in element 0 follows TACIT’s standard **maplist** convent
 An example capsule in memory might look like this:
 
 ```
-( 
+(
   ( `greet @greet-code
     `reset @reset-code
     `incrementViews @increment-code )
   "John"
   "Doe"
-  0 
+  0
 )
   Capsules, like other TACIT data structures, use an abstract concept of a **ref**: a tagged address pointing to a cell in a memory segment. There are three ref types:
     - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
-    - **LOCAL_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+    - **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
     - **GLOBAL_REF**: (future) will refer to a cell location in a global segment
   Unless otherwise specified, references in this document refer to STACK_REFs, but the addressing model is designed to be polymorphic and extensible to other ref types.
 ```
