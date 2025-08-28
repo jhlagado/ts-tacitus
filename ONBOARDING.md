@@ -1,157 +1,117 @@
-# 🚀 CLAUDE ONBOARDING: TACIT VM Development
+# 🚀 ONBOARDING: TACIT VM Development
 
-> **For Fresh Claude Instances**: This gets you up to speed in 5 minutes
+## Introduction
 
-## 🔴 CRITICAL: Read These First (2 minutes)
-- [ ] `CLAUDE.md` - Project rules & architecture (MUST READ FIRST)
-- [ ] `docs/plans/plan-14-get-set-combinators.md` - Current active plan
-- [ ] Last session status from `#handoff-status` below
+Welcome to the TACIT VM development project! This document is designed to rapidly onboard new contributors, especially Large Language Models (LLMs), to effectively understand and contribute to this codebase.
 
-## ⚡ Quick Status Check (1 minute) 
-```bash
-# Verify environment works
-yarn test  # Should pass 924+ tests
-```
+**Our primary goal is to develop a robust and efficient Virtual Machine for the TACIT language, with a strong focus on its eventual port to C/assembly.** This means all development decisions prioritize C-like implementations and avoid JavaScript-specific patterns.
 
-## 🎯 Current Focus: Plan 14 Get/Set Combinators - Step 3.8
-**Problem:** Block execution in get combinator produces 0 elements instead of 1  
-**Goal:** Complete get/set combinators for path-based nested structure access  
-**Blocker:** `get { "key" }` blocks not executing properly in evalImpl() call
+By following the steps outlined here, you will gain a comprehensive understanding of the project's architecture, coding standards, development workflows, and the TACIT language itself.
 
-## 📍 Handoff Status
-<!-- UPDATE THIS SECTION WHEN ENDING SESSIONS -->
-### Session Date: 2024-12-19
-**Completed:** Steps 1.1-3.7 (get combinator foundation working)
-**In Progress:** Step 3.8 (block execution debugging) 
-**Next Task:** Fix `{ "key" }` block execution in getOp - produces 0 elements instead of 1
-**Files Modified:** `src/ops/access-ops.ts`, `src/test/ops/access/get-combinator.test.ts`
-**Tests Status:** 924 core tests pass, 3 get combinator tests pass, 2 skipped (TODO: fix block execution)
+## 📚 Foundational Documents
 
-### Key Insights from Last Session:
-- ✅ Combinator approach works (abandoned makeListOp approach)
-- ✅ Parser support implemented correctly (`target get { path }` syntax)
-- ✅ Basic maplist lookup works: `( "name" "Alice" ) get { "name" }` returns "Alice"
-- ❌ Issue is in evalImpl() call within getOp - single-element blocks don't execute
-- 🔍 Compare with `src/ops/combinators/do.ts` doOp implementation for reference
-- 💡 Polymorphic access operations (slot, elem, fetch) already implemented and working
+Before making any changes or implementing new features, it is crucial to understand the core principles, architectural constraints, and development workflows of this project. Read the following documents thoroughly:
 
-## 🏗️ **Architecture Overview (2 minutes)**
+1.  **`GEMINI.md`**: Contains the primary directives for Gemini (me) regarding project context, mandatory reading, critical workflows, C-port focused development, architecture reference, anti-patterns, and naming conventions. This is your core operational guide.
+2.  **`CLAUDE.md`**: Provides similar directives and guidelines for Claude, another AI assistant working on this project. Review this to understand the shared and distinct expectations for AI agents, ensuring consistent collaboration.
+3.  **`docs/rules/ai-guidelines.md`**: Details specific rules and guidelines for AI development, including core principles, implementation rules, architectural constraints, development workflow, communication guidelines, and anti-patterns to avoid. This document is essential for ensuring your contributions align with project standards and maintain high quality.
 
-### **Tagged Values System**
-- **NaN-boxed 32-bit values** with 6-bit tags + 16-bit payload
-- **Key types:** NUMBER(0), SENTINEL(1), CODE(2), STACK_REF(3), STRING(4), LIST(5), BUILTIN(7)
-- **STACK_REF:** Cell-based addressing for polymorphic operations
+## 📖 Core Specifications
 
-### **Stack-based VM Architecture** 
-- **64KB segmented memory:** STACK(16KB) + RSTACK(4KB) + CODE(8KB) + STRING(36KB)
-- **LIST format:** `[payload-n] ... [payload-0] [LIST:n] ← TOS` (header at top-of-stack)
-- **Postfix operations:** All operations work on stack, no infix except combinators
+The following specifications are fundamental to understanding the TACIT VM and its data structures. You **MUST** consult these documents before implementing any features related to their respective areas. Adhering to these specifications is paramount for maintaining consistency and enabling the future C/assembly port.
 
-### **Combinator System**
-- **Parser-supported:** `do { }`, `repeat { }`, `get { }`, `set { }` 
-- **Compilation:** `{ block }` compiles to bytecode address, then operation called
-- **Execution:** Operations receive block address, use `evalImpl(vm)` to execute
+-   **`docs/specs/access.md`**: Details the `get` and `set` polymorphic access operators for uniform traversal and modification of nested data structures using paths.
+-   **`docs/specs/capsules-reified.md`**: Explains the unified model of local variables and fields, where capsule construction is a frame transfer, simplifying compiler and runtime logic.
+-   **`docs/specs/lists.md`**: Defines the contiguous, stack-resident list structure, including representation, traversal, operations, and mutation rules. This is foundational for all compound data.
+-   **`docs/specs/local-vars.md`**: Specifies the local variable system and function stack frame layout, including variable declaration, access, and lifetime.
+-   **`docs/specs/maplists.md`**: Describes maplists as key-value alternating lists, providing TACIT's primary associative data structure, building on the foundational list infrastructure.
+-   **`docs/specs/polymorphic-operations.md`**: Outlines the expected behavior of TACIT operations when encountering reference values, establishing consistent semantics across operations.
+-   **`docs/specs/stack-operations.md`**: Covers the fundamental stack model, RPN execution, stack effect notation, and common operations, crucial for understanding data flow.
+-   **`docs/specs/tagged.md`**: The canonical source for active runtime tags, payload bit widths, and encoding rules for NaN-boxed values, essential for type system understanding.
+-   **`docs/specs/vm-architecture.md`**: Provides an overview of the TACIT VM's stack-based architecture, segmented memory layout, and execution model.
+-   **`docs/specs/drafts/var-indexing.md`**: A draft specification detailing the terms, surface syntax, parser treatment, and opcode palette for variable indexing.
 
-## 🎯 **Current Implementation Status**
+Always reference these specifications in your commits and code when implementing features related to them.
 
-### **✅ Working Components:**
-```javascript
-// Parser combinator support
-'target get { path }'              // ✅ Syntax parses correctly
+## 💻 Codebase Overview
 
-// Basic maplist lookup  
-'( "name" "Alice" ) get { "name" }' // ✅ Returns "Alice"
-'42 get { }'                       // ✅ Returns 42 (empty path)
+To gain a comprehensive understanding of the project's implementation, it is essential to review the source code. The primary source files are located in the `src/` directory and its subdirectories.
 
-// Polymorphic operations (slot/elem/find/fetch)
-// ✅ Work with both LIST and STACK_REF inputs
-```
+**Key areas to focus on include:**
 
-### **🔨 TODO Components:**
-```javascript
-// Block execution issue
-'( "name" "Alice" ) get { "missing" }' // ❌ Should return NIL, but breaks
+-   **`src/core/`**: Contains the core Virtual Machine (VM) implementation, memory management, tagged value system, and fundamental data structures like lists.
+-   **`src/lang/`**: Houses the language processing components, including the tokenizer, parser, compiler, interpreter, and REPL (Read-Eval-Print Loop).
+-   **`src/ops/`**: Defines all built-in operations (opcodes) and their implementations, categorized by functionality (math, stack, control flow, list operations, etc.).
+-   **`src/strings/`**: Manages string storage (digest) and the symbol table, which handles word definitions and symbol resolution.
+-   **`src/test/`**: Contains a comprehensive suite of unit and integration tests. Reviewing these tests can provide valuable insights into expected behavior, edge cases, and how different components interact.
 
-// Multi-element paths (not implemented yet)  
-'maplist get { "users" 0 "name" }'    // ❌ Multi-step traversal
+Familiarize yourself with the overall structure and the purpose of each module. Pay attention to how the concepts from the specifications (e.g., NaN-boxing, stack-based execution, list representation) are translated into code.
 
-// Set combinator (stub only)
-'target set { path } newValue'        // ❌ Not implemented
-```
+## 🧪 Testing and Tacit Syntax
 
-## 📋 **Key Files to Know**
+To understand how the project ensures correctness and to familiarize yourself with the Tacit language syntax, it is highly recommended to review the test files.
 
-### **Core Implementation:**
-- `src/ops/access-ops.ts:22-92` - getOp combinator (main implementation)
-- `src/lang/parser.ts:296-317` - Parser support for get/set combinators
-- `src/ops/list-ops.ts:340-432` - Polymorphic access operations (slot/elem/find/fetch)
+**Key aspects to focus on:**
 
-### **Testing:**
-- `src/test/ops/access/get-combinator.test.ts` - Current get combinator tests
-- `src/test/utils/vm-test-utils.ts` - Use `resetVM()` in test setup
+-   **Test Structure**: Observe how tests are organized (unit, integration, end-to-end) and how `jest` is used.
+-   **`vm-test-utils.ts`**: This utility file in `src/test/utils/` provides helper functions like `executeTacitCode`, `testTacitCode`, and `captureTacitOutput`. These are crucial for writing and understanding tests.
+-   **Tacit Code Examples**: Pay close attention to the strings passed to `executeTacitCode` and similar functions. These strings contain actual Tacit code snippets, demonstrating the language's syntax, operators, and control flow in practical scenarios. This is an excellent way to learn the language by example.
+-   **Assertions**: Understand the types of assertions used (e.g., `expect(result).toEqual(...)`, `expect().toThrow()`) to verify VM behavior and output.
+-   **Edge Cases**: Tests often cover edge cases and error conditions, which can provide deeper insights into the VM's robustness and expected behavior under unusual circumstances.
 
-### **Reference Implementation:**
-- `src/ops/combinators/do.ts` - Working combinator for comparison
-- `src/core/tagged.ts:140-160` - STACK_REF implementation
+By studying the tests, you will not only grasp the project's testing philosophy but also gain practical exposure to the Tacit language itself.
 
-## 🚀 **Development Workflow**
+## 🛠️ Development Workflow and Best Practices
 
-### **Always Follow This Pattern:**
-```bash
-# 1. Make changes
-# 2. Build and test immediately
-yarn build && yarn test
+Adhering to the established development workflow and best practices is critical for maintaining code quality, consistency, and ensuring a smooth transition to the C/assembly port.
 
-# 3. Test specific functionality
-yarn test src/test/ops/access/get-combinator.test.ts
+### 1. Specification-First Development
 
-# 4. Use TodoWrite tool to track progress  
-# 5. Never commit - user handles git
-```
+-   **ALWAYS consult relevant specifications** in `docs/specs/` before implementing any features.
+-   **NEVER modify `docs/specs/` files** unless explicitly instructed.
+-   **Validate against specifications** before considering an implementation complete.
+-   **Reference specs in commit messages** and code comments (sparingly, for *why*).
 
-### **Critical Rules from CLAUDE.md:**
-- **ALWAYS run `yarn test` after every change** - 924 tests must pass
-- **Use `resetVM()` in test setup** - prevents test isolation issues
-- **Never modify `docs/specs/`** - specifications are read-only
-- **C-like code style** - avoid .map/.filter, write for future C port
-- **No comments unless requested** - follow existing patterns
+### 2. C-Port Focused Development
 
-## 🔍 **Debugging the Current Issue**
+-   **C-like implementations**: Favor direct loops, fixed-size arrays, and simple functions.
+-   **Avoid JavaScript idioms**: Do not use `.map()`, `.filter()`, `.reduce()`, or complex closures in hot paths.
+-   **Stack-based memory**: All operations must operate within the 64KB segmented memory model.
+-   **No comments unless requested**: Follow existing patterns exactly. If comments are necessary, focus on *why* something is done, not *what*.
 
-### **Problem Analysis:**
-```javascript
-// In getOp (src/ops/access-ops.ts:39-46):
-evalImpl(vm);
-const elementCount = (afterSP - beforeSP) / 4;
-// elementCount should be 1 for { "key" }, but it's 0
-```
+### 3. Testing Protocol
 
-### **Debug Steps:**
-1. **Compare with doOp** - `src/ops/combinators/do.ts:18-22` does same pattern
-2. **Add debug output** - log block address, SP before/after eval
-3. **Check block compilation** - ensure `{ "key" }` creates valid block address
-4. **Verify eval implementation** - ensure evalImpl actually executes blocks
+-   **Run `yarn test` after every significant change**. This ensures zero regressions.
+-   **Run `yarn lint` before completing any task**. This enforces code style and quality.
+-   **Use `resetVM()` consistently** in test setup to ensure a clean state.
+-   **Test error conditions**: Include invalid inputs, edge cases, and empty stacks.
+-   **CRITICAL**: Never use `fromTaggedValue` in tests; it can cause NaN-boxing corruption in Jest.
+-   **Behavioral testing only**: Test operation results, not internal tagged structure.
 
-### **Expected Behavior:**
-```javascript
-// Should work like do combinator:
-'5 do { 1 add }'    // ✅ Works: block executes, pushes 1, adds to 5
-'target get { key }' // ❌ Broken: block should execute, push key, but doesn't
-```
+### 4. Code Quality Standards
 
-## 📈 **Success Metrics**
-- [ ] All existing 924+ tests continue to pass
-- [ ] `get { "key" }` produces 1 element (not 0)
-- [ ] Single-key maplist lookup works with missing keys (returns NIL)  
-- [ ] Multi-element path traversal implemented
-- [ ] Set combinator basic functionality
-- [ ] Coverage stays above 80%
+-   **Consolidation-first**: Always merge duplicates into a single source.
+-   **Stack safety**: Use `vm.ensureStackSize(n, operation)` before all pops.
+-   **Error handling**: Return `NIL` for invalid inputs; preserve stack integrity.
+-   **Symbol table registration**: Use `symbolTable.define('name', Op.Opcode, functionOp)` for built-ins.
 
-## 🎯 **Next Session Goals**
-1. **Immediate:** Fix block execution in getOp
-2. **Short-term:** Complete single-key get/set functionality  
-3. **Medium-term:** Multi-element path traversal
-4. **Long-term:** Advanced features (nested updates, error handling)
+### 5. Critical Workflow
 
----
-**🚨 Update the handoff status above when ending sessions!**
+-   **Plan Execution Protocol**:
+    1.  Create proper plan documents in `/docs/plans/`.
+    2.  Implement incrementally with testing at each stage.
+    3.  Update plan document after each step.
+    4.  **WAIT at completion of each stage** for user direction before proceeding.
+    5.  Zero regressions tolerance: Every change must pass the full test suite.
+
+## ▶️ Next Steps
+
+Congratulations on completing the initial onboarding! You now have a foundational understanding of the TACIT VM project. Here are some suggested next steps to deepen your expertise and begin contributing effectively:
+
+1.  **Explore the `docs/plans/` directory**: Review existing and completed plans to understand how features are designed and implemented incrementally.
+2.  **Familiarize yourself with `yarn test` and `yarn lint`**: Practice running these commands to ensure your environment is set up correctly and you can verify code quality.
+3.  **Implement a small, well-defined task**: Start with a minor bug fix or a small feature addition. Always create a plan document in `docs/plans/draft/` first, following the "Plan Execution Protocol" outlined above.
+4.  **Ask clarifying questions**: If any aspect of the project, a specification, or a task is unclear, do not hesitate to ask for clarification. Precision is key in this codebase.
+5.  **Propose improvements**: Once you're comfortable, feel free to suggest enhancements to the codebase, documentation, or development process, always aligning with the C-port focus.
+
+Remember to always prioritize **specification-first development**, maintain **stack safety**, and ensure **zero regressions** in your contributions.
