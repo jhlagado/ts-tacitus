@@ -6,10 +6,8 @@ import { resetVM } from '../utils/vm-test-utils';
 describe('compileCodeBlock function', () => {
   beforeEach(() => {
     // Ensure completely clean state to avoid test isolation issues
-    try { initializeInterpreter(); } catch {}
-    try { resetVM(); } catch {}
-    try { initializeInterpreter(); } catch {}
-    try { resetVM(); } catch {}
+    initializeInterpreter();
+    resetVM();
   });
 
   describe('Basic Block Creation', () => {
@@ -32,10 +30,10 @@ describe('compileCodeBlock function', () => {
     });
 
     it('should preserve stack state during block creation', () => {
-      // Extra thorough reset to prevent isolation issues  
+      // Extra thorough reset to prevent isolation issues
       initializeInterpreter();
       resetVM();
-      
+
       executeProgram('100 200 { 5 }');
 
       const stack = vm.getStackData();
