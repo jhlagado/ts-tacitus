@@ -18,6 +18,7 @@ module.exports = {
     '!src/**/*.test.ts',
     '!src/**/*.spec.ts',
     '!src/index.ts',
+    '!src/test/**/*.ts',
     '!**/node_modules/**',
   ],
   coverageDirectory: 'coverage',

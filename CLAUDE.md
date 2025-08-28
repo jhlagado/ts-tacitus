@@ -9,7 +9,6 @@
 Before implementing any features related to these areas, you MUST read these specifications:
 - **`docs/specs/lists.md`** - Required before any LIST operations or compound data work
 - **`docs/specs/tagged.md`** - Required before any tagged value manipulation  
-- **`docs/specs/opcodes.md`** - Required before any VM operation implementation
 
 **Failure to read specs results in fundamental misunderstandings that waste significant time.**
 
