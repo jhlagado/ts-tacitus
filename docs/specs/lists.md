@@ -10,11 +10,12 @@
 
 1. Introduction and design goals
 2. Terminology
-**ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
-  - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
-  - **LOCAL_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
-  - **GLOBAL_REF**: (future) will refer to a cell location in a global segment
-Refs are used for polymorphic memory addressing and are encoded as tagged values. Unless otherwise specified, references in this document refer to STACK_REFs.
+   **ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
+
+- **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
+- **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+- **GLOBAL_REF**: (future) will refer to a cell location in a global segment
+  Refs are used for polymorphic memory addressing and are encoded as tagged values. Unless otherwise specified, references in this document refer to STACK_REFs.
 
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
@@ -22,32 +23,36 @@ Refs are used for polymorphic memory addressing and are encoded as tagged values
 7. Parser semantics
 8. Printing / pretty representation
 9. Length and counting
+
 ### slots ( list -- n )
 
-* Returns the **payload slot count** `s` directly from the header.
-* **Cost:** O(1).
+- Returns the **payload slot count** `s` directly from the header.
+- **Cost:** O(1).
 
 ### size ( list -- n )
 
-* Returns the **element count** by traversing the payload from `SP-1` downward.
-* **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
-* Returns a **ref** (typically a STACK_REF) to the **start slot** for **element index `idx`** in the data stack segment (SEG_STACK).
-* **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
-* **Cost:** O(s) worst-case.
-    - `pack`
-* Returns the value located at the address referenced by `addr` (which may be a STACK_REF, LOCAL_REF, or GLOBAL_REF).
-* If the value at `addr` is **simple** (single-slot), returns that slot's value.
-* If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
-* `addr` is typically a STACK_REF address, but may be any ref type depending on context.
-* **Cost:** O(1) for simple; O(span) to materialize a compound.
-* **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
+- Returns the **element count** by traversing the payload from `SP-1` downward.
+- **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
+- Returns a **ref** (typically a STACK_REF) to the **start slot** for **element index `idx`** in the data stack segment (SEG_STACK).
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
+- **Cost:** O(s) worst-case.
+  - `pack`
+- Returns the value located at the address referenced by `addr` (which may be a STACK_REF, RSTACK_REF, or GLOBAL_REF).
+- If the value at `addr` is **simple** (single-slot), returns that slot's value.
+- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
+- `addr` is typically a STACK_REF address, but may be any ref type depending on context.
+- **Cost:** O(1) for simple; O(span) to materialize a compound.
+- **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
+
 14. Sorting
-* Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a STACK_REF, but may be any ref type depending on context.
-* Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
-* If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
-* Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
-* **Cost:** O(1).
-* **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
+
+- Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a STACK_REF, but may be any ref type depending on context.
+- Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
+- If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
+- Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
+- **Cost:** O(1).
+- **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
+
 21. Worked examples (diagrams)
 22. Edge cases and failure modes
 23. Testing checklist
@@ -58,12 +63,12 @@ Refs are used for polymorphic memory addressing and are encoded as tagged values
 
 Lists in **tacit** are contiguous, stack-resident aggregates. They are engineered to:
 
-* **Avoid heaps and pointers.** There are no cons cells or linked lists; all structure is encoded in-place on the data stack.
-* **Support constant-time skipping/dropping** via a run-length header at TOS.
-* **Separate physical vs logical view.** A *slot* is a fixed-size 32‑bit cell in a list’s payload; an *element* is a logical member that can span one or more slots (for compounds).
-* **Favor prepend and front-drop.** These operations are O(1) and map to simple header rewrites; append is possible but O(n) and discouraged.
-* **Permit limited in-place mutation.** Only simple (fixed-size) slots may be overwritten; compounds preserve structure.
-* **Be type-agnostic for traversal.** Any compound’s header encodes its total span in slots so walking the payload never branches on type.
+- **Avoid heaps and pointers.** There are no cons cells or linked lists; all structure is encoded in-place on the data stack.
+- **Support constant-time skipping/dropping** via a run-length header at TOS.
+- **Separate physical vs logical view.** A _slot_ is a fixed-size 32‑bit cell in a list’s payload; an _element_ is a logical member that can span one or more slots (for compounds).
+- **Favor prepend and front-drop.** These operations are O(1) and map to simple header rewrites; append is possible but O(n) and discouraged.
+- **Permit limited in-place mutation.** Only simple (fixed-size) slots may be overwritten; compounds preserve structure.
+- **Be type-agnostic for traversal.** Any compound’s header encodes its total span in slots so walking the payload never branches on type.
 
 This document is intentionally explicit and example-heavy to eliminate ambiguity around stack direction, offsets, and costs.
 
@@ -73,22 +78,22 @@ This document is intentionally explicit and example-heavy to eliminate ambiguity
 
 **cell** — a 32‑bit memory unit anywhere (stack, code, etc.).
 **slot** — a cell addressed **relative to a list’s payload**; all slots are cells, but scoped to a particular list.
-**element** — a logical member of a list: either a *simple* (1 slot) or a *compound* (multiple slots).
+**element** — a logical member of a list: either a _simple_ (1 slot) or a _compound_ (multiple slots).
 **simple** — a fixed-size value occupying exactly 1 slot (e.g., number, bool as 1/0, interned symbol/id, `nil`, code ref).
 **compound** — a value occupying multiple slots; **must** start with a header slot that encodes its total span (e.g., a **list** with `LIST:s` header plus `s` payload slots → span = `s+1`).
 **span(header)** — the total number of slots for a compound, including its header.
 
-**Note:** a list is a compound, but compounds are not limited to lists. Future compound types must conform to the *header-with-span-in-first-slot* contract.
+**Note:** a list is a compound, but compounds are not limited to lists. Future compound types must conform to the _header-with-span-in-first-slot_ contract.
 
 ---
 
 ## 3. Stack model and registers
 
-* The **data stack grows upward**: pushing increases `SP`.
-* **TOS** is the slot at index `SP`.
-* A list header is **at TOS**; its payload lies **below TOS** at decreasing addresses.
-* The first payload slot (element 0 start) is **`SP-1`**.
-* Higher element indices lie **deeper** (i.e., at lower addresses: `SP-2`, `SP-3`, … minus spans).
+- The **data stack grows upward**: pushing increases `SP`.
+- **TOS** is the slot at index `SP`.
+- A list header is **at TOS**; its payload lies **below TOS** at decreasing addresses.
+- The first payload slot (element 0 start) is **`SP-1`**.
+- Higher element indices lie **deeper** (i.e., at lower addresses: `SP-2`, `SP-3`, … minus spans).
 
 When this doc says “beneath” or “deeper,” it means **lower addresses** since the stack grows upward.
 
@@ -96,9 +101,9 @@ When this doc says “beneath” or “deeper,” it means **lower addresses** s
 
 ## 4. Tagged values and headers (overview)
 
-* `LIST:s` is a tagged 32‑bit header. The tag identifies “list,” and a length field encodes the **payload slot count** `s` (implementation-defined width; see §15).
-* For lists, **span** = `s + 1` (header + payload).
-* For all compounds, the **first slot** is a header that **must** encode the compound’s total slot span (directly or derivably from fields).
+- `LIST:s` is a tagged 32‑bit header. The tag identifies “list,” and a length field encodes the **payload slot count** `s` (implementation-defined width; see §15).
+- For lists, **span** = `s + 1` (header + payload).
+- For all compounds, the **first slot** is a header that **must** encode the compound’s total slot span (directly or derivably from fields).
 
 ---
 
@@ -120,8 +125,8 @@ A list with `s` payload slots occupies `s+1` contiguous slots:
 
 **Key points**
 
-* The printed order `( 1 2 3 )` matches **element order**; physically the payload is in reverse depth order because the header sits at TOS.
-* `s` counts **slots**, not elements. Elements are counted by traversal (see §9.2).
+- The printed order `( 1 2 3 )` matches **element order**; physically the payload is in reverse depth order because the header sits at TOS.
+- `s` counts **slots**, not elements. Elements are counted by traversal (see §9.2).
 
 ---
 
@@ -161,25 +166,28 @@ Final stack (deep → TOS):
 
 ## 8. Printing / pretty representation
 
-* A simple printer uses **element traversal** to reconstruct `( … )`.
-* `LIST:0` prints as `( )`.
-* Compound elements are printed according to their own printers (lists recurse).
+- A simple printer uses **element traversal** to reconstruct `( … )`.
+- `LIST:0` prints as `( )`.
+- Compound elements are printed according to their own printers (lists recurse).
 
 ---
 
 ## 9. Length and counting
+
 ### length ( list -- n )
+
 ### slots ( list -- n )
-* Returns the **element count** by traversing the payload from `SP-1` downward.
-* **Cost:** O(s).
-* **Cost:** O(1).
+
+- Returns the **element count** by traversing the payload from `SP-1` downward.
+- **Cost:** O(s).
+- **Cost:** O(1).
 
 ### length ( list -- n )
 
-* Returns the **element count** by traversing the payload from `SP-1` downward.
-* **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
-* **Cost:** O(s).
-* **Note:** elements **cannot** be random-accessed without traversal.
+- Returns the **element count** by traversing the payload from `SP-1` downward.
+- **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
+- **Cost:** O(s).
+- **Note:** elements **cannot** be random-accessed without traversal.
 
 ---
 
@@ -187,44 +195,45 @@ Final stack (deep → TOS):
 
 ### slot ( idx -- addr )
 
-* Returns the **address** (stack index) of a payload slot at **slot index `idx`**.
-* **Preconditions:** `0 ≤ idx < s`.
-* **Result:** returns a STACK_REF to the payload slot at index `idx`.
-* **Cost:** O(1).
+- Returns the **address** (stack index) of a payload slot at **slot index `idx`**.
+- **Preconditions:** `0 ≤ idx < s`.
+- **Result:** returns a STACK_REF to the payload slot at index `idx`.
+- **Cost:** O(1).
 
 ### elem ( idx -- addr )
 
-* Returns the **address** of the **start slot** for **element index `idx`**.
-* **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
-* **Cost:** O(s) worst-case.
+- Returns the **address** of the **start slot** for **element index `idx`**.
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
+- **Cost:** O(s) worst-case.
 
 ### fetch ( addr -- value )
 
-* Returns the value located at stack address `addr`.
-* If the value at `addr` is **simple** (single-slot), returns that slot's value.
-* If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
-* `addr` is a STACK_REF address.
-* **Cost:** O(1) for simple; O(span) to materialize a compound.
-* **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
+- Returns the value located at stack address `addr`.
+- If the value at `addr` is **simple** (single-slot), returns that slot's value.
+- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
+- `addr` is a STACK_REF address.
+- **Cost:** O(1) for simple; O(span) to materialize a compound.
+- **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
 
 ### store ( value addr -- )
 
-* Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF.
-* Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
-* If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
-* Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
-* **Cost:** O(1).
-* **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
+- Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF.
+- Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
+- If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
+- Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
+- **Cost:** O(1).
+- **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
 
 #### Compound Mutation: Compatibility Rule
 
 Compound elements (e.g., lists, maplists) may be replaced in place **only if the new value has the same slot (cell) count and type** as the existing value. This is called compatibility. Assignment to a compound slot copies the new value into the existing structure, element-wise, without changing the slot reference. If the slot count or type does not match, the operation is an error and must be rejected.
 
 **Examples:**
-* Assigning `(1 2 3)` (4 cells) to a slot containing `(4 5 6)` (4 cells) is allowed.
-* Assigning `(1 2)` (3 cells) to a slot containing `(4 5 6)` (4 cells) is an error.
-* Assigning a maplist of 5 cells to a slot containing a maplist of 5 cells is allowed.
-* Assigning a list to a slot containing a maplist (even if slot count matches) is not allowed; type must also match.
+
+- Assigning `(1 2 3)` (4 cells) to a slot containing `(4 5 6)` (4 cells) is allowed.
+- Assigning `(1 2)` (3 cells) to a slot containing `(4 5 6)` (4 cells) is an error.
+- Assigning a maplist of 5 cells to a slot containing a maplist of 5 cells is allowed.
+- Assigning a list to a slot containing a maplist (even if slot count matches) is not allowed; type must also match.
 
 ---
 
@@ -233,7 +242,7 @@ Compound elements (e.g., lists, maplists) may be replaced in place **only if the
 **Invariant:** Every compound’s first slot is a header that **encodes its total span** in slots.
 **Algorithm:**
 
-```
+````
 addr := SP-1
 while not done:
 
@@ -288,7 +297,7 @@ while not done:
 ```tac
 ( 1 2 ) 3 append         \ -> ( 1 2 3 )
 ( 1 ) ( 2 3 ) append     \ -> ( 1 ( 2 3 ) )
-```
+````
 
 ### head
 
@@ -381,41 +390,41 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 ## 16. Safety and validation
 
-* **Header validity:** tag = `LIST`; `0 ≤ s ≤ maxSlots` (see §15).
-* **Depth checks:** ensure `s+1` slots are available on the stack before operating.
-* **Atomicity:** failing mutations **must leave the list unchanged**.
-* **Traversal safety:** always read span from header; never assume fixed widths for compounds.
+- **Header validity:** tag = `LIST`; `0 ≤ s ≤ maxSlots` (see §15).
+- **Depth checks:** ensure `s+1` slots are available on the stack before operating.
+- **Atomicity:** failing mutations **must leave the list unchanged**.
+- **Traversal safety:** always read span from header; never assume fixed widths for compounds.
 
 ---
 
 ## 17. Constraints and implementation-defined limits
 
-* **Word size:** 32‑bit cells.
-* **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **16 bits**, giving `s ≤ 65,535` (≈256 KiB payload at 4 bytes/slot).
-* **Future variants:** increasing `LIST_LEN_BITS` (e.g., 18) scales maximum payload (e.g., ≈1 MiB total including header).
-* **Effective maximum:** `min( (1<<LIST_LEN_BITS)-1, available_stack_space )`.
+- **Word size:** 32‑bit cells.
+- **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **16 bits**, giving `s ≤ 65,535` (≈256 KiB payload at 4 bytes/slot).
+- **Future variants:** increasing `LIST_LEN_BITS` (e.g., 18) scales maximum payload (e.g., ≈1 MiB total including header).
+- **Effective maximum:** `min( (1<<LIST_LEN_BITS)-1, available_stack_space )`.
 
 ---
 
 ## 18. Zero-length lists
 
-* `LIST:0` prints as `( )`.
-* `slots(( )) = 0`, `length(( )) = 0`.
-* `drop` on a list removes the **entire list** (header plus payload) from the stack.
-* `cons` on `LIST:0` yields a one-element list via the normal header rewrite.
+- `LIST:0` prints as `( )`.
+- `slots(( )) = 0`, `length(( )) = 0`.
+- `drop` on a list removes the **entire list** (header plus payload) from the stack.
+- `cons` on `LIST:0` yields a one-element list via the normal header rewrite.
 
 ---
 
 ## 19. Complexity summary
 
-* `slots` → O(1)
-* `length` → O(s)
-* `slot` → O(1)
-* `elem` → O(s)
-* `cons` → O(1)
-* `tail` → O(1)
-* `concat` → O(n)
-* In-place overwrite of a simple slot (if supported) → O(1)
+- `slots` → O(1)
+- `length` → O(s)
+- `slot` → O(1)
+- `elem` → O(s)
+- `cons` → O(1)
+- `tail` → O(1)
+- `concat` → O(n)
+- In-place overwrite of a simple slot (if supported) → O(1)
 
 ---
 
@@ -426,7 +435,7 @@ Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys`, `z
 - Head/tail with cons
   - `xs x cons tail == xs`
   - `xs x cons head == x`
-  - `xs x cons uncons == xs x`  (order: tail head)
+  - `xs x cons uncons == xs x` (order: tail head)
 
 - Concat identity
   - `xs ( ) concat == xs`
@@ -449,9 +458,9 @@ Note: `concat` flattens and `cons` nests a compound as a single element.
 Tokens: `1 2 3 )`
 
 ```
-… 1         
-… 1 2       
-… 1 2 3     
+… 1
+… 1 2
+… 1 2 3
 … 1 2 3 LIST:3   ← close, s=3
 … 3 2 1 LIST:3   ← physical view deep→TOS
 ```
@@ -461,11 +470,11 @@ Element order: `1, 2, 3` (logical). Element 0 at `SP-1` is `1`.
 ### Nested `( 1 ( 2 3 ) 4 )`
 
 ```
-… 1                     
-… 1 2                   
-… 1 2 3                 
+… 1
+… 1 2
+… 1 2 3
 … 1 LIST:2 3 2          ← oops (reader view)
-… 1 LIST:2 3 2 4        
+… 1 LIST:2 3 2 4
 … 1 LIST:2 3 2 4 LIST:5 ← close outer, s=5
 … 4 LIST:2 3 2 1 LIST:5 ← deep→TOS
 ```
@@ -480,7 +489,7 @@ After `cons`: `… x 3 2 1 LIST:4` (logical head is `x`).
 ### tail
 
 Before: `… x 3 2 1 LIST:4`
-After:  `… 3 2 1 LIST:3`.
+After: `… 3 2 1 LIST:3`.
 
 ### concat
 
@@ -510,37 +519,35 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ## 22. Edge cases and failure modes
 
-* **Empty:** `( )` behaves as described in §16.
-* **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; return `nil`.
-* **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
-* **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
+- **Empty:** `( )` behaves as described in §16.
+- **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; return `nil`.
+- **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
+- **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
 
 ---
 
 ## 23. Testing checklist
 
-* **Parsing**
+- **Parsing**
+  - `()` → `LIST:0`
+  - `(1 2 3)` → `LIST:3` with correct payload order
+  - Nested: `(1 (2 3) 4)` → correct `s` and element traversal
 
-  * `()` → `LIST:0`
-  * `(1 2 3)` → `LIST:3` with correct payload order
-  * Nested: `(1 (2 3) 4)` → correct `s` and element traversal
-* **Printing**
+- **Printing**
+  - Round-trip: parse → print → parse yields isomorphic lists
+  - Empty prints `( )`
 
-  * Round-trip: parse → print → parse yields isomorphic lists
-  * Empty prints `( )`
-* **Lengths**
+- **Lengths**
+  - `slots` matches header
+  - `length` matches traversal count
 
-  * `slots` matches header
-  * `length` matches traversal count
-* **Address queries**
+- **Address queries**
+  - `slot 0` = `SP-1`
+  - `elem i` returns the start slot per traversal
 
-  * `slot 0` = `SP-1`
-  * `elem i` returns the start slot per traversal
-* **Ops**
+- **Ops**
+  - `cons` then `tail` restores original
+  - `concat xs () == xs` and associativity
 
-  * `cons` then `tail` restores original
-  * `concat xs () == xs` and associativity
-* **Mutation**
-
-  * Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list
-
+- **Mutation**
+  - Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list

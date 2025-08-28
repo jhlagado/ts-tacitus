@@ -231,7 +231,7 @@ export function headOp(vm: VM): void {
       vm.push(firstElement);
     }
   } else if (isRef(value)) {
-    // Reference to compound data (LOCAL_REF, STACK_REF, etc.)
+    // Reference to compound data (RSTACK_REF, STACK_REF, etc.)
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
 
@@ -419,7 +419,7 @@ export function fetchOp(vm: VM): void {
   const addressValue = vm.pop();
 
   if (!isRef(addressValue)) {
-    throw new Error('fetch expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
+    throw new Error('fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
 
   const { address, segment } = resolveReference(vm, addressValue);
@@ -447,7 +447,7 @@ export function fetchOp(vm: VM): void {
  * Stack effect: ( value addr -- )
  * Spec: lists.md §10 - Only simple values, compounds are no-op
  *
- * Polymorphic: accepts STACK_REF, LOCAL_REF, and GLOBAL_REF addresses
+ * Polymorphic: accepts STACK_REF, RSTACK_REF, and GLOBAL_REF addresses
  */
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
@@ -455,7 +455,7 @@ export function storeOp(vm: VM): void {
   const value = vm.peek(); // Peek at the value, don't pop it yet
 
   if (!isRef(addressValue)) {
-    throw new Error('store expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
+    throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
 
   const { address, segment } = resolveReference(vm, addressValue);
@@ -950,7 +950,7 @@ export function refOp(vm: VM): void {
  * Stack effect: ( ref -- value )
  * Spec: polymorphic-operations.md §95 - Polymorphic reference materialization
  *
- * Works with STACK_REF, LOCAL_REF, and GLOBAL_REF (when implemented).
+ * Works with STACK_REF, RSTACK_REF, and GLOBAL_REF (when implemented).
  * For compound data (lists), materializes the entire structure.
  * For simple values, copies the value directly.
  */

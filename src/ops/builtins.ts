@@ -464,14 +464,14 @@ export function initVarOp(vm: VM): void {
   const slotAddr = vm.BP + slotNumber * 4;
 
   if (isCompoundData(value)) {
-    // Compound value: transfer entire structure to return stack, put LOCAL_REF in slot
+    // Compound value: transfer entire structure to return stack, put RSTACK_REF in slot
     const headerAddr = transferCompoundToReturnStack(vm);
     const headerCellIndex = headerAddr / 4; // Convert byte address to cell index
-    
-    // Create LOCAL_REF pointing to where we stored the header
-    const localRef = toTaggedValue(headerCellIndex, Tag.LOCAL_REF);
-    
-    // Store the LOCAL_REF in the variable slot
+
+    // Create RSTACK_REF pointing to where we stored the header
+    const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
+
+    // Store the RSTACK_REF in the variable slot
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
     // Simple value: store directly (existing behavior)
@@ -503,8 +503,8 @@ export function dumpStackFrameOp(vm: VM): void {
       const { value } = fromTaggedValue(slotValue);
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
-      if (tag === Tag.LOCAL_REF) {
-        const targetAddr = value * 4; // LOCAL_REF contains absolute cell index
+      if (tag === Tag.RSTACK_REF) {
+        const targetAddr = value * 4; // RSTACK_REF contains absolute cell index
         const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
@@ -516,3 +516,4 @@ export function dumpStackFrameOp(vm: VM): void {
   }
   console.log('========================\n');
 }
+

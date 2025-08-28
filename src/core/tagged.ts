@@ -17,7 +17,7 @@ export enum Tag {
 
   LIST = 8,
   STACK_REF = 9,
-  LOCAL_REF = 10,
+  RSTACK_REF = 10,
   GLOBAL_REF = 11,
 }
 
@@ -32,7 +32,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
   [Tag.STACK_REF]: 'STACK_REF',
-  [Tag.LOCAL_REF]: 'LOCAL_REF',
+  [Tag.RSTACK_REF]: 'RSTACK_REF',
   [Tag.GLOBAL_REF]: 'GLOBAL_REF',
 };
 
@@ -172,21 +172,21 @@ export function isSentinel(tval: number): boolean {
 /**
  * Checks if a value is any type of data reference.
  * @param tval The value to check
- * @returns true if the value is a STACK_REF, LOCAL_REF, or GLOBAL_REF
+ * @returns true if the value is a STACK_REF, RSTACK_REF, or GLOBAL_REF
  */
 export function isRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF || tag === Tag.LOCAL_REF || tag === Tag.GLOBAL_REF;
+  return tag === Tag.STACK_REF || tag === Tag.RSTACK_REF || tag === Tag.GLOBAL_REF;
 }
 
 /**
- * Checks if a value is a LOCAL_REF.
+ * Checks if a value is a RSTACK_REF.
  * @param tval The value to check
  * @returns true if the value is a local variable reference
  */
 export function isLocalRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.LOCAL_REF;
+  return tag === Tag.RSTACK_REF;
 }
 
 /**
@@ -200,12 +200,12 @@ export function isGlobalRef(tval: number): boolean {
 }
 
 /**
- * Creates a LOCAL_REF tagged value.
+ * Creates a RSTACK_REF tagged value.
  * @param slot The local variable slot number to reference
- * @returns A LOCAL_REF tagged value
+ * @returns A RSTACK_REF tagged value
  */
 export function createLocalRef(slot: number): number {
-  return toTaggedValue(slot, Tag.LOCAL_REF);
+  return toTaggedValue(slot, Tag.RSTACK_REF);
 }
 
 /**
@@ -280,4 +280,3 @@ export function getStackRefAddress(stackRef: number): number {
   }
   return getValue(stackRef) * 4;
 }
-
