@@ -22,7 +22,7 @@ ts-tacitus/
 
 TACIT implements a complete stack-based virtual machine with:
 
-- **64KB segmented memory** (STACK, RSTACK, CODE, STRING segments)
+ - **Segmented memory** (STACK, RSTACK, CODE, STRING segments; sizes are implementation‑defined)
 - **NaN-boxed tagged values** for efficient type representation
 - **Unified code references** enabling metaprogramming capabilities
 - **Immutable list structures** with LINK metadata
