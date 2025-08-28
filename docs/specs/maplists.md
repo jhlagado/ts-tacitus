@@ -164,7 +164,7 @@ config `default find fetch → "unset"       # Explicit default lookup
 
 - **Key found**: Return associated value
 - **Key not found + `default` present**: Return `default` key's value  
-- **Key not found + no `default`**: Return NIL (INTEGER tagged value, value 0)
+- **Key not found + no `default`**: Return NIL (SENTINEL tagged value, value 0)
 - **Never throws exceptions**: Always returns a value (graceful degradation)
 
 ### Benefits
