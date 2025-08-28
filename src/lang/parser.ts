@@ -95,7 +95,7 @@ export function parse(tokenizer: Tokenizer): void {
  *
  * @param {ParserState} state - The current parser state
  */
-function parseProgram(state: ParserState): void {
+export function parseProgram(state: ParserState): void {
   while (true) {
     const token = state.tokenizer.nextToken();
     if (token.type === TokenType.EOF) {
@@ -115,7 +115,7 @@ function parseProgram(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If there are any unclosed definitions
  */
-function validateFinalState(state: ParserState): void {
+export function validateFinalState(state: ParserState): void {
   if (state.currentDefinition) {
     throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
   }
@@ -140,7 +140,7 @@ function validateFinalState(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a quoted word is undefined
  */
-function processToken(token: Token, state: ParserState): void {
+export function processToken(token: Token, state: ParserState): void {
   switch (token.type) {
     case TokenType.NUMBER:
       compileNumberLiteral(token.value as number);
@@ -184,7 +184,7 @@ function processToken(token: Token, state: ParserState): void {
  *
  * @param {number} value - The numeric value to compile
  */
-function compileNumberLiteral(value: number): void {
+export function compileNumberLiteral(value: number): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(value);
 }
@@ -198,7 +198,7 @@ function compileNumberLiteral(value: number): void {
  *
  * @param {string} value - The string value to compile
  */
-function compileStringLiteral(value: string): void {
+export function compileStringLiteral(value: string): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const address = vm.digest.add(value);
   vm.compiler.compile16(address);
@@ -215,7 +215,7 @@ function compileStringLiteral(value: string): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
-function processWordToken(value: string, state: ParserState): void {
+export function processWordToken(value: string, state: ParserState): void {
   if (value === 'IF') {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
 
@@ -372,7 +372,7 @@ function processWordToken(value: string, state: ParserState): void {
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-function processAtSymbol(symbolName: string): void {
+export function processAtSymbol(symbolName: string): void {
   // Generate bytecode to call vm.pushSymbolRef() at runtime
   // This pushes the resolved tagged value directly onto the stack
 
@@ -396,7 +396,7 @@ function processAtSymbol(symbolName: string): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-function processVarDeclaration(state: ParserState): void {
+export function processVarDeclaration(state: ParserState): void {
   // Validate we're inside a function definition
   if (!state.currentDefinition) {
     throw new SyntaxError('Variable declarations only allowed inside function definitions', vm.getStackData());
@@ -432,7 +432,7 @@ function processVarDeclaration(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-function processAssignmentOperator(state: ParserState): void {
+export function processAssignmentOperator(state: ParserState): void {
   // Validate we're inside a function definition
   if (!state.currentDefinition) {
     throw new SyntaxError('Assignment operator (->) only allowed inside function definitions', vm.getStackData());
@@ -477,7 +477,7 @@ function processAssignmentOperator(state: ParserState): void {
  * @param {string} value - The special token value
  * @param {ParserState} state - The current parser state
  */
-function processSpecialToken(value: string, state: ParserState): void {
+export function processSpecialToken(value: string, state: ParserState): void {
   if (value === ':') {
     beginDefinition(state);
   } else if (value === ';') {
@@ -503,7 +503,7 @@ function processSpecialToken(value: string, state: ParserState): void {
  *
  * @param {ParserState} state - The current parser state
  */
-function parseBacktickSymbol(state: ParserState): void {
+export function parseBacktickSymbol(state: ParserState): void {
   let sym = '';
 
   while (state.tokenizer.position < state.tokenizer.input.length) {
@@ -532,7 +532,7 @@ function parseBacktickSymbol(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If definitions are nested, inside code blocks, or the word is already defined
  */
-function beginDefinition(state: ParserState): void {
+export function beginDefinition(state: ParserState): void {
   if (state.insideCodeBlock) {
     throw new NestedDefinitionError(vm.getStackData());
   }
@@ -576,7 +576,7 @@ function beginDefinition(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If there is no active definition to end
  */
-function endDefinition(state: ParserState): void {
+export function endDefinition(state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError('Unexpected semicolon', vm.getStackData());
   }
@@ -603,7 +603,7 @@ function endDefinition(state: ParserState): void {
  * Begin an LIST with opening bracket ([).
  * Mirrors beginList but targets LIST ops.
  */
-function beginList(_state: ParserState): void {
+export function beginList(_state: ParserState): void {
   vm.listDepth++;
   vm.compiler.compileOpcode(Op.OpenList);
 }
@@ -612,7 +612,7 @@ function beginList(_state: ParserState): void {
  * End an LIST with closing bracket (]).
  * Mirrors endList but targets LIST ops.
  */
-function endList(_state: ParserState): void {
+export function endList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
     throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
   }
@@ -630,7 +630,7 @@ function endList(_state: ParserState): void {
  *
  * @param {ParserState} state - The current parser state
  */
-function beginStandaloneBlock(state: ParserState): void {
+export function beginStandaloneBlock(state: ParserState): void {
   const prevInside = state.insideCodeBlock;
   state.insideCodeBlock = true;
   const { startAddress } = compileCodeBlock(state);
@@ -648,7 +648,7 @@ function beginStandaloneBlock(state: ParserState): void {
  *
  * @param {number} branchPos - The position in the bytecode where the branch offset needs to be patched
  */
-function patchBranchOffset(branchPos: number): void {
+export function patchBranchOffset(branchPos: number): void {
   const endAddress = vm.compiler.CP;
   const branchOffset = endAddress - (branchPos + 2);
 
@@ -670,7 +670,7 @@ function patchBranchOffset(branchPos: number): void {
  * @param {ParserState} state - The current parser state
  * @returns {number} The starting address of the block in the bytecode
  */
-function parseCurlyBlock(state: ParserState): number {
+export function parseCurlyBlock(state: ParserState): number {
   const startAddress = vm.compiler.CP;
 
   while (true) {
@@ -696,7 +696,7 @@ function parseCurlyBlock(state: ParserState): number {
  * @param {ParserState} state - The current parser state
  * @returns {object} Object containing startAddress and offsetAddr for further processing
  */
-function compileCodeBlock(state: ParserState): { startAddress: number; offsetAddr: number } {
+export function compileCodeBlock(state: ParserState): { startAddress: number; offsetAddr: number } {
   const skipAddr = vm.compiler.CP;
   vm.compiler.compileOpcode(Op.Branch);
   const offsetAddr = vm.compiler.CP;

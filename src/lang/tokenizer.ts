@@ -32,7 +32,7 @@ export type TokenValue = number | string | null;
 export interface Token {
   type: TokenType;
   value: TokenValue;
-  position: number;
+  position?: number;
 }
 
 /**
@@ -179,7 +179,7 @@ export class Tokenizer {
       this.position++;
       this.column++;
       let symbolName = '';
-      
+
       // Read the symbol name after @
       while (
         this.position < this.input.length &&
