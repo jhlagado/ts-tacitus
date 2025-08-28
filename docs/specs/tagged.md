@@ -192,6 +192,6 @@ length                     \ -> 3
 | Aspect              | This Spec                   | Referenced Spec                              |
 | ------------------- | --------------------------- | -------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                          |
-| Address bounds      | CODE < 8192                 | `vm-architecture.md` (8KB CODE)              |
+| Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
 | NIL definition      | SENTINEL 0                  | `access.md`, `maplists.md` (lookup failures) |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                   |
