@@ -23,7 +23,7 @@ import { executeOp } from './builtins';
 import { formatValue } from '../core/utils';
 
 /** Number of bytes per stack element */
-const BYTES_PER_ELEMENT = 4;
+const CELL_SIZE = 4;
 
 /**
  * Implements the literal number operation.
@@ -198,7 +198,7 @@ export const abortOp: Verb = (vm: VM) => {
  */
 export const exitOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < 2 * BYTES_PER_ELEMENT) {
+    if (vm.RP < 2 * CELL_SIZE) {
       vm.running = false;
       return;
     }
@@ -239,7 +239,7 @@ export const exitOp: Verb = (vm: VM) => {
  */
 export const exitCodeOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < BYTES_PER_ELEMENT) {
+    if (vm.RP < CELL_SIZE) {
       vm.running = false;
       return;
     }
@@ -334,7 +334,7 @@ export const evalOp: Verb = (vm: VM) => {
  * the number of items pushed onto the stack between the two operations.
  */
 export const groupLeftOp: Verb = (vm: VM) => {
-  if (vm.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
+  if (vm.RP + CELL_SIZE > RSTACK_SIZE) {
     throw new ReturnStackOverflowError('group-left', vm.getStackData());
   }
   vm.rpush(vm.SP);
@@ -365,12 +365,12 @@ export const groupLeftOp: Verb = (vm: VM) => {
  */
 export const groupRightOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < BYTES_PER_ELEMENT) {
+    if (vm.RP < CELL_SIZE) {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();
     const sp1 = vm.SP;
-    const d = (sp1 - sp0) / BYTES_PER_ELEMENT;
+    const d = (sp1 - sp0) / CELL_SIZE;
     vm.push(d);
   } catch (e) {
     vm.running = false;

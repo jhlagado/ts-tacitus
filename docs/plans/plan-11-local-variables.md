@@ -678,7 +678,7 @@ if (isCompoundData(value)) {
 
   // Store LIST:0 header at current RP location
   vm.memory.writeFloat32(SEG_RSTACK, vm.RP, listHeader);
-  vm.RP += BYTES_PER_ELEMENT; // Advance past header
+  vm.RP += CELL_SIZE; // Advance past header
 
   // Store RSTACK_REF in slot pointing to header
   const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
@@ -856,11 +856,11 @@ This revised plan reduces complexity by 40% while maintaining full functionality
 
 **Future Plan Needed**: Align SP/RP to use cell addressing for consistency with reference system. This would eliminate conversion overhead and create uniform addressing throughout the VM.
 
-### BYTES_PER_ELEMENT → CELL_SIZE Rename
+### CELL_SIZE → CELL_SIZE Rename
 
-**Issue**: `BYTES_PER_ELEMENT` name conflicts with reserved "element" terminology that has special meaning in TACIT.
+**Issue**: `CELL_SIZE` name conflicts with reserved "element" terminology that has special meaning in TACIT.
 
-**Action**: Rename constant from `BYTES_PER_ELEMENT` to `CELL_SIZE` throughout codebase to reflect that we're working with memory cells, not logical elements.
+**Action**: Rename constant from `CELL_SIZE` to `CELL_SIZE` throughout codebase to reflect that we're working with memory cells, not logical elements.
 
 ## Appendix A: Future Symbol Block Syntax Ideas
 
@@ -1264,93 +1264,6 @@ export function storeOp(vm: VM): void {
 ## Phase 11: Reference Type Renaming ✅ COMPLETED
 
 ### Final Cleanup Step
-**FILES**: Multiple files across codebase  
-**GOAL**: Rename RSTACK_REF to RSTACK_REF for clarity
-
-### Rationale
-The name `RSTACK_REF` is confusing because:
-- It suggests "local variables" but it's really "return stack addressing"  
-- Local variables can contain any type of reference (RSTACK_REF, STACK_REF, etc.)
-- The segment mapping should be obvious from the name
-
-### Clear Segment Mapping
-**BEFORE:**
-- `STACK_REF` → `SEG_STACK` ✅ (clear)
-- `RSTACK_REF` → `SEG_RSTACK` ❌ (confusing) 
-- `GLOBAL_REF` → `SEG_GLOBAL` ✅ (clear)
-
-**AFTER:**
-- `STACK_REF` → `SEG_STACK` ✅ (clear)
-- `RSTACK_REF` → `SEG_RSTACK` ✅ (clear)
-- `GLOBAL_REF` → `SEG_GLOBAL` ✅ (clear)
-
-### Tasks
-- ✅ Rename `Tag.RSTACK_REF` to `Tag.RSTACK_REF` in tagged.ts
-- ✅ Update all `RSTACK_REF` references throughout codebase
-- ✅ Update type guard functions (`isLocalRef` → `isRStackRef`)
-- ✅ Update documentation and comments
-- ✅ Run full test suite to ensure no regressions
-- ✅ Update specs if needed
-
-**ESTIMATED TIME: 1-2 hours** (systematic find-replace operation)
-
-# Plan 12: Test Coverage Improvement
-
-## Executive Summary
-
-This plan outlines the process for systematically improving the test coverage of the TACIT codebase. The goal is to increase confidence in the stability and correctness of the VM and its surrounding tooling. The plan will be executed in phases, prioritizing the most critical and least-tested components first.
-
-## Phase 12.1: Core VM Coverage
-
-**Goal**: Increase test coverage for `src/core/vm.ts`.
-
-**Tasks**:
-- Write tests for the `VM` constructor to ensure proper initialization of all state.
-- Add tests for stack operations (`push`, `pop`, `peek`, `popArray`) to cover edge cases like overflow and underflow.
-- Add tests for return stack operations (`rpush`, `rpop`) with similar edge case coverage.
-- Add tests for instruction pointer operations (`next8`, `nextOpcode`, `nextInt16`, `nextFloat32`, `nextAddress`).
-- Test the `ensureStackSize` utility with various inputs.
-- Test the `resolveSymbol` and `pushSymbolRef` methods.
-- Test the `getReceiver` and `setReceiver` methods.
-
-## Phase 12.2: Language Parser and Interpreter Coverage
-
-**Goal**: Improve test coverage for `src/lang/parser.ts` and `src/lang/interpreter.ts`.
-
-### 12.2.1 Parser Coverage
-
-**Tasks**:
-- Add tests for all token processing functions (`processToken`, `processSpecialToken`, etc.).
-- Add tests for error handling in the parser (e.g., unclosed definitions, unexpected tokens).
-- Add tests for all control flow structures (`IF`/`ELSE`).
-- Add tests for list and string literal parsing.
-- Add tests for `var` and `->` parsing.
-
-### 12.2.2 Interpreter Coverage
-
-**Tasks**:
-- Add tests for the main `execute` loop, including the `breakAtIP` functionality.
-- Add tests for error handling in the interpreter, ensuring that the VM state is preserved on error.
-- Add tests for `executeProgram` and `callTacitFunction`.
-
-## Phase 12.3: Core Operations Coverage
-
-**Goal**: Increase test coverage for the core operations in `src/ops`.
-
-### 12.3.1 `core-ops.ts`
-
-**Tasks**:
-- Add tests for `literalNumberOp`, `literalStringOp`, `skipDefOp`, `skipBlockOp`, `callOp`, `abortOp`, `exitOp`, `exitCodeOp`, `evalOp`, `groupLeftOp`, `groupRightOp`, `printOp`, and `pushSymbolRefOp`.
-- Focus on edge cases and interactions between these core operations.
-
-### 12.3.2 `stack-ops.ts`
-
-**Tasks**:
-- Add tests for all stack manipulation operations (`dupOp`, `dropOp`, `swapOp`, `rotOp`, `revrotOp`, `overOp`, `pickOp`, `nipOp`, `tuckOp`).
-- Test these operations with both simple and compound values (lists).
-- Test for stack underflow and other error conditions.
-
-### Final Cleanup Step
 
 **FILES**: Multiple files across codebase  
 **GOAL**: Rename RSTACK_REF to RSTACK_REF for clarity
@@ -1379,11 +1292,72 @@ The name `RSTACK_REF` is confusing because:
 
 ### Tasks
 
-- ❌ Rename `Tag.RSTACK_REF` to `Tag.RSTACK_REF` in tagged.ts
-- ❌ Update all `RSTACK_REF` references throughout codebase
-- ❌ Update type guard functions (`isLocalRef` → `isRStackRef`)
-- ❌ Update documentation and comments
-- ❌ Run full test suite to ensure no regressions
-- ❌ Update specs if needed
+- ✅ Rename `Tag.RSTACK_REF` to `Tag.RSTACK_REF` in tagged.ts
+- ✅ Update all `RSTACK_REF` references throughout codebase
+- ✅ Update type guard functions (`isLocalRef` → `isRStackRef`)
+- ✅ Update documentation and comments
+- ✅ Run full test suite to ensure no regressions
+- ✅ Update specs if needed
 
 **ESTIMATED TIME: 1-2 hours** (systematic find-replace operation)
+
+### Phase 12: Test Coverage Improvement
+
+#### Executive Summary
+
+This phase outlines the process for systematically improving the test coverage of the TACIT codebase. The goal is to increase confidence in the stability and correctness of the VM and its surrounding tooling. The plan will be executed in phases, prioritizing the most critical and least-tested components first.
+
+#### 12.1: Core VM Coverage
+
+**Goal**: Increase test coverage for `src/core/vm.ts`.
+
+**Tasks**:
+
+- Write tests for the `VM` constructor to ensure proper initialization of all state.
+- Add tests for stack operations (`push`, `pop`, `peek`, `popArray`) to cover edge cases like overflow and underflow.
+- Add tests for return stack operations (`rpush`, `rpop`) with similar edge case coverage.
+- Add tests for instruction pointer operations (`next8`, `nextOpcode`, `nextInt16`, `nextFloat32`, `nextAddress`).
+- Test the `ensureStackSize` utility with various inputs.
+- Test the `resolveSymbol` and `pushSymbolRef` methods.
+- Test the `getReceiver` and `setReceiver` methods.
+
+#### 12.2: Language Parser and Interpreter Coverage
+
+**Goal**: Improve test coverage for `src/lang/parser.ts` and `src/lang/interpreter.ts`.
+
+##### 12.2.1 Parser Coverage
+
+**Tasks**:
+
+- Add tests for all token processing functions (`processToken`, `processSpecialToken`, etc.).
+- Add tests for error handling in the parser (e.g., unclosed definitions, unexpected tokens).
+- Add tests for all control flow structures (`IF`/`ELSE`).
+- Add tests for list and string literal parsing.
+- Add tests for `var` and `->` parsing.
+
+##### 12.2.2 Interpreter Coverage
+
+**Tasks**:
+
+- Add tests for the main `execute` loop, including the `breakAtIP` functionality.
+- Add tests for error handling in the interpreter, ensuring that the VM state is preserved on error.
+- Add tests for `executeProgram` and `callTacitFunction`.
+
+#### 12.3: Core Operations Coverage
+
+**Goal**: Increase test coverage for the core operations in `src/ops`.
+
+##### 12.3.1 `core-ops.ts`
+
+**Tasks**:
+
+- Add tests for `literalNumberOp`, `literalStringOp`, `skipDefOp`, `skipBlockOp`, `callOp`, `abortOp`, `exitOp`, `exitCodeOp`, `evalOp`, `groupLeftOp`, `groupRightOp`, `printOp`, and `pushSymbolRefOp`.
+- Focus on edge cases and interactions between these core operations.
+
+##### 12.3.2 `stack-ops.ts`
+
+**Tasks**:
+
+- Add tests for all stack manipulation operations (`dupOp`, `dropOp`, `swapOp`, `rotOp`, `revrotOp`, `overOp`, `pickOp`, `nipOp`, `tuckOp`).
+- Test these operations with both simple and compound values (lists).
+- Test for stack underflow and other error conditions.

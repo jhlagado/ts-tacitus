@@ -35,7 +35,7 @@
 import { VM } from '../core/vm';
 import { toTaggedValue, fromTaggedValue, getTag, Tag } from '../core/tagged';
 import { getVarRef } from '../core/refs';
-import { SEG_RSTACK, BYTES_PER_ELEMENT } from '../core/constants';
+import { SEG_RSTACK } from '../core/constants';
 
 import {
   literalNumberOp,
@@ -92,7 +92,17 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { consOp, concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
+import {
+  consOp,
+  concatOp,
+  dropHeadOp,
+  packOp,
+  unpackOp,
+  reverseOp,
+  makeListOp,
+  refOp,
+  unrefOp,
+} from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -516,4 +526,3 @@ export function dumpStackFrameOp(vm: VM): void {
   }
   console.log('========================\n');
 }
-

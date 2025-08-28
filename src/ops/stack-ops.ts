@@ -6,9 +6,8 @@
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { SEG_STACK, BYTES_PER_ELEMENT } from '../core/constants';
+import { SEG_STACK, CELL_SIZE } from '../core/constants';
 import { StackUnderflowError, VMError } from '../core/errors';
-
 
 /**
  * Stack argument info: [nextSlot, size].
@@ -22,13 +21,13 @@ export type StackArgInfo = [number, number];
  * @returns [nextSlot, size] tuple
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
-  const slotAddr = vm.SP / BYTES_PER_ELEMENT - startSlot - 1;
+  const slotAddr = vm.SP / CELL_SIZE - startSlot - 1;
 
-  if (slotAddr < 0 || slotAddr * BYTES_PER_ELEMENT >= vm.SP) {
+  if (slotAddr < 0 || slotAddr * CELL_SIZE >= vm.SP) {
     return [startSlot + 1, 1];
   }
 
-  const addr = slotAddr * BYTES_PER_ELEMENT;
+  const addr = slotAddr * CELL_SIZE;
   const value = vm.memory.readFloat32(SEG_STACK, addr);
   const { tag, value: tagValue } = fromTaggedValue(value);
 
@@ -40,7 +39,6 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
   return [startSlot + 1, 1];
 }
 
-
 /**
  * Copies stack elements to top.
  * @param vm VM instance
@@ -50,13 +48,13 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
 export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) return;
 
-  const startAddr = startSlot * BYTES_PER_ELEMENT;
+  const startAddr = startSlot * CELL_SIZE;
   let addr = startAddr;
 
   for (let i = 0; i < slotCount; i++) {
     const slot = vm.memory.readFloat32(SEG_STACK, addr);
     vm.push(slot);
-    addr += BYTES_PER_ELEMENT;
+    addr += CELL_SIZE;
   }
 }
 
@@ -70,8 +68,8 @@ export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
 export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) return;
 
-  const startAddr = startSlot * BYTES_PER_ELEMENT;
-  const endAddr = startAddr + (slotCount - 1) * BYTES_PER_ELEMENT;
+  const startAddr = startSlot * CELL_SIZE;
+  const endAddr = startAddr + (slotCount - 1) * CELL_SIZE;
 
   let left = startAddr;
   let right = endAddr;
@@ -83,8 +81,8 @@ export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void
     vm.memory.writeFloat32(SEG_STACK, left, rightVal);
     vm.memory.writeFloat32(SEG_STACK, right, temp);
 
-    left += BYTES_PER_ELEMENT;
-    right -= BYTES_PER_ELEMENT;
+    left += CELL_SIZE;
+    right -= CELL_SIZE;
   }
 }
 
@@ -120,21 +118,21 @@ export function slotsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlo
  * like `pick` that need to access elements by their logical position.
  *
  * @param vm - The VM instance
- * @param index - The logical element index (0 = TOS)  
+ * @param index - The logical element index (0 = TOS)
  * @returns A tuple `[targetSlot, size]` for the element at the given index
  */
 function findElementAtIndex(vm: VM, index: number): [number, number] {
   let currentSlot = 0;
 
   for (let i = 0; i <= index; i++) {
-    if (currentSlot * BYTES_PER_ELEMENT >= vm.SP) {
+    if (currentSlot * CELL_SIZE >= vm.SP) {
       throw new StackUnderflowError('pick', index + 1, vm.getStackData());
     }
 
     const [nextSlot, size] = findElement(vm, currentSlot);
 
     if (i === index) {
-      const targetSlot = vm.SP / BYTES_PER_ELEMENT - nextSlot;
+      const targetSlot = vm.SP / CELL_SIZE - nextSlot;
       return [targetSlot, size];
     }
 
@@ -200,10 +198,10 @@ export const overOp: Verb = (vm: VM) => {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-    const secondAddr = vm.SP - (topSlots + secondSlots) * BYTES_PER_ELEMENT;
+    const secondAddr = vm.SP - (topSlots + secondSlots) * CELL_SIZE;
 
     for (let i = 0; i < secondSlots; i++) {
-      const value = vm.memory.readFloat32(SEG_STACK, secondAddr + i * BYTES_PER_ELEMENT);
+      const value = vm.memory.readFloat32(SEG_STACK, secondAddr + i * CELL_SIZE);
       vm.push(value);
     }
   } catch (error) {
@@ -243,7 +241,7 @@ export const dropOp: Verb = (vm: VM) => {
   const { tag, value } = fromTaggedValue(topValue);
   if (tag === Tag.LIST) {
     const totalSlots = value + 1;
-    vm.SP -= totalSlots * BYTES_PER_ELEMENT;
+    vm.SP -= totalSlots * CELL_SIZE;
     return;
   }
   vm.pop();
@@ -263,7 +261,7 @@ export const swapOp: Verb = (vm: VM) => {
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
     const totalSlots = topSlots + secondSlots;
-    const stackLength = vm.SP / BYTES_PER_ELEMENT;
+    const stackLength = vm.SP / CELL_SIZE;
     const startSlot = stackLength - totalSlots;
 
     slotsRoll(vm, startSlot, totalSlots, topSlots);
@@ -354,18 +352,18 @@ export const nipOp: Verb = (vm: VM) => {
       const [_tosNextSlot, tosSize] = findElement(vm, 0);
       const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
 
-      const tosStartAddr = vm.SP - tosSize * BYTES_PER_ELEMENT;
-      const nosStartAddr = vm.SP - (tosSize + nosSize) * BYTES_PER_ELEMENT;
+      const tosStartAddr = vm.SP - tosSize * CELL_SIZE;
+      const nosStartAddr = vm.SP - (tosSize + nosSize) * CELL_SIZE;
 
       for (let i = 0; i < tosSize; i++) {
-        const sourceAddr = tosStartAddr + i * BYTES_PER_ELEMENT;
-        const destAddr = nosStartAddr + i * BYTES_PER_ELEMENT;
+        const sourceAddr = tosStartAddr + i * CELL_SIZE;
+        const destAddr = nosStartAddr + i * CELL_SIZE;
 
         const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
         vm.memory.writeFloat32(SEG_STACK, destAddr, value);
       }
 
-      vm.SP -= nosSize * BYTES_PER_ELEMENT;
+      vm.SP -= nosSize * CELL_SIZE;
     },
     'nip',
   );

@@ -4,7 +4,7 @@ import { SEG_STACK } from '../../../core/constants';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { slotsRoll, findElement } from '../../../ops/stack-ops';
 
-const BYTES_PER_ELEMENT = 4;
+const CELL_SIZE = 4;
 
 describe('Stack Utils', () => {
   let vm: VM;
@@ -35,7 +35,7 @@ describe('Stack Utils', () => {
   describe('findElement', () => {
     function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
       vm.memory.writeFloat32(SEG_STACK, vm.SP, toTaggedValue(value, tag));
-      vm.SP += BYTES_PER_ELEMENT;
+      vm.SP += CELL_SIZE;
     }
 
     function createList(...values: number[]): void {
@@ -61,7 +61,7 @@ describe('Stack Utils', () => {
       expect(size2).toBe(1);
 
       const [offset3, size3] = findElement(vm, offset2);
-      expect(offset3).toBe(5); 
+      expect(offset3).toBe(5);
       expect(size3).toBe(3);
     });
 
@@ -78,10 +78,10 @@ describe('Stack Utils', () => {
       createList(1);
 
       const [offset1, size1] = findElement(vm, 0);
-      expect(size1).toBe(2); 
+      expect(size1).toBe(2);
 
       const [_offset2, size2] = findElement(vm, offset1);
-      expect(size2).toBe(3); 
+      expect(size2).toBe(3);
     });
   });
 });
