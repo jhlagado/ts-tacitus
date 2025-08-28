@@ -875,7 +875,237 @@ STORE                   # polymorphic store operation
 
 **FINAL STATUS: Local variables implementation is 100% complete with full mutation support!**
 
-## Phase 10: Reference Type Renaming ❌ INCOMPLETE
+## Phase 10: Compound Variable Mutation with Compatibility ❌ NOT STARTED
+
+### Overview
+Implement compound variable mutation using the compatibility principle from lists.md. Variables containing compound data (lists) can be assigned new compound values if and only if they are **compatible**: same type and same total slot count.
+
+### Compatibility Principle (from lists.md §10)
+- **Same type**: LIST can only replace LIST, MAPLIST only replaces MAPLIST
+- **Same slot count**: Total slots (header + payload) must match exactly
+- **Slot-based, not element-based**: `(1 2 3)` (4 slots) can replace `(4 (5 6))` (4 slots) regardless of nesting
+- **No recursive analysis**: Just check outer header slot count
+
+### Key Insight: Mutation vs Initialization
+**Initialization (`initVar`)**: Allocates NEW space, advances RP
+```
+() var x              # Allocates new space at RP, stores LOCAL_REF to new location
+```
+
+**Mutation (`->`)**: Overwrites EXISTING space, preserves RP and LOCAL_REF
+```
+(1 2 3) -> x         # Overwrites existing data at LOCAL_REF target, no RP change
+```
+
+### Architecture Analysis
+
+**Current Transfer Functions Are Wrong for Mutation:**
+- `transferCompoundToReturnStack()` advances RP (allocates new space)
+- `materializeCompoundFromReturnStack()` reads from return stack
+- These work for initialization but not mutation
+
+**Current storeOp Limitations:**
+- Only handles simple value assignment
+- Does silent no-op for compound targets (per lists.md spec for general store)
+- No compatibility checking for compound-to-compound assignment
+
+### Implementation Plan
+
+#### Phase 10.1: Compatibility Checking (2 hours)
+**Files**: `src/ops/local-vars-transfer.ts`, test file  
+**Goal**: Add compatibility validation functions
+
+**Tasks**:
+- ✅ Add `isCompatibleCompound(existing, newValue)` function
+- ✅ Check same tag type: `getTag(existing) === getTag(newValue)`
+- ✅ Check same slot count: `getListLength(existing) === getListLength(newValue)`
+- ✅ Return boolean compatibility result
+- ✅ Add comprehensive test cases for compatibility checking
+
+**Success Criteria**:
+- ✅ `(1 2 3)` and `(4 5 6)` are compatible (both LIST:3, 4 total slots)
+- ✅ `(1 2)` and `(4 5 6)` are incompatible (LIST:2 vs LIST:3)
+- ✅ `(1 (2 3) 4)` and `(5 6 7)` are compatible if both have same total slot count
+- ✅ Empty lists `()` and `()` are compatible
+- ✅ LIST vs MAPLIST (when implemented) are incompatible
+
+**Implementation Notes**:
+```typescript
+export function isCompatibleCompound(existing: number, newValue: number): boolean {
+  const existingTag = getTag(existing);
+  const newTag = getTag(newValue);
+  
+  // Must be same compound type
+  if (existingTag !== newTag) return false;
+  
+  // Must be compound data
+  if (existingTag !== Tag.LIST) return false; // Future: add MAPLIST
+  
+  // Must have same total slot count
+  const existingSlots = getListLength(existing);
+  const newSlots = getListLength(newValue);
+  
+  return existingSlots === newSlots;
+}
+```
+
+#### Phase 10.2: In-Place Compound Mutation (3 hours)
+**Files**: `src/ops/local-vars-transfer.ts`, test file  
+**Goal**: Add in-place compound data overwriting (NO RP advancement)
+
+**Tasks**:
+- ✅ Add `mutateCompoundInPlace(vm, targetAddr, segment, newValue)` function
+- ✅ Read new compound data from data stack (like transferCompoundToReturnStack)
+- ✅ Overwrite existing data at targetAddr WITHOUT advancing RP
+- ✅ Maintain correct element ordering during copy
+- ✅ Clean up data stack after successful mutation
+- ✅ Add comprehensive test coverage
+
+**Key Differences from transferCompoundToReturnStack**:
+```typescript
+// ❌ transferCompoundToReturnStack (for initialization)
+const headerAddr = vm.RP;        // Use current RP
+vm.rpush(value);                 // Advances RP (allocates new space)
+
+// ✅ mutateCompoundInPlace (for mutation)  
+const headerAddr = targetAddr;   // Use existing address
+vm.memory.writeFloat32(segment, targetAddr, value); // Direct write (no RP change)
+```
+
+**Memory Layout Before/After Mutation**:
+```
+BEFORE: (1 2) var x
+Return Stack: [BP] [LOCAL_REF] [...] [1] [2] [LIST:2] [RP]
+                                      ^targetAddr
+
+AFTER: (3 4) -> x  
+Return Stack: [BP] [LOCAL_REF] [...] [3] [4] [LIST:2] [RP]
+                                      ^same targetAddr, RP unchanged
+```
+
+#### Phase 10.3: Enhanced storeOp for Compound Mutation (2 hours)
+**Files**: `src/ops/list-ops.ts`, test file  
+**Goal**: Enhance storeOp to handle compound-to-compound assignments
+
+**Tasks**:
+- ✅ Modify storeOp to detect compound value + compound target scenarios
+- ✅ Add compatibility checking before mutation
+- ✅ Call mutateCompoundInPlace for compatible assignments
+- ✅ Error handling for incompatible assignments
+- ✅ Preserve existing simple-to-simple behavior
+- ✅ Add compound assignment test coverage
+
+**Enhanced storeOp Logic**:
+```typescript
+export function storeOp(vm: VM): void {
+  const addressValue = vm.pop();
+  const value = vm.pop();
+  
+  const { address, segment } = resolveReference(vm, addressValue);
+  const existing = vm.memory.readFloat32(segment, address);
+  
+  const valueIsCompound = isCompoundData(value);
+  const existingIsCompound = isCompoundData(existing);
+  
+  if (valueIsCompound && existingIsCompound) {
+    // Compound-to-compound assignment
+    if (isCompatibleCompound(existing, value)) {
+      mutateCompoundInPlace(vm, address, segment, value);
+    } else {
+      throw new Error('Incompatible compound assignment: slot count or type mismatch');
+    }
+  } else if (!valueIsCompound && !existingIsCompound) {
+    // Simple-to-simple assignment (existing behavior)
+    vm.memory.writeFloat32(segment, address, value);
+  } else {
+    // Mixed assignments not allowed
+    throw new Error('Cannot assign simple to compound or compound to simple');
+  }
+}
+```
+
+#### Phase 10.4: Integration Testing and TACIT Syntax (2 hours)
+**Files**: Integration test file  
+**Goal**: Test complete compound mutation workflow in TACIT code
+
+**Tasks**:
+- ✅ Test compound variable assignment with `->` operator  
+- ✅ Test compatibility validation in real TACIT functions
+- ✅ Test error cases (incompatible assignments)
+- ✅ Test mixed simple and compound variables
+- ✅ Performance testing with large compound data
+- ✅ Integration with existing local variable features
+
+**TACIT Syntax Examples**:
+```tacit
+: test-compound-mutation
+  (1 2 3) var myList          # Initialize with LIST:3
+  (4 5 6) -> myList            # ✅ Compatible: both LIST:3
+  myList unref                 # Should be (4 5 6)
+;
+
+: test-incompatible
+  (1 2 3) var myList          # Initialize with LIST:3  
+  (7 8) -> myList              # ❌ Error: LIST:2 cannot replace LIST:3
+;
+
+: test-nested-compatibility  
+  (1 (2 3) 4) var nested      # LIST with 4 total slots
+  (5 6 7) -> nested            # ✅ Compatible if both have 4 total slots
+;
+```
+
+### Error Handling Strategy
+
+**Compatibility Errors**:
+- Clear error messages indicating slot count mismatch
+- Show expected vs actual slot counts  
+- Indicate compound types involved
+
+**Memory Safety**:
+- Validate addresses before mutation
+- Ensure data stack cleanup on both success and failure
+- Preserve VM state consistency
+
+### Testing Strategy
+
+**Unit Tests**:
+- Compatibility checking with all combinations
+- In-place mutation with various list sizes
+- Error conditions and edge cases
+
+**Integration Tests**:
+- End-to-end TACIT code execution
+- Mixed simple and compound variables
+- Complex nesting scenarios
+
+**Performance Tests**:
+- Large compound data mutation
+- Multiple mutations in sequence
+- Memory usage validation
+
+### Success Criteria
+
+**Functional Requirements**:
+- ✅ Compatible compound assignments work: `(1 2 3) -> x` succeeds if x contains LIST:3
+- ✅ Incompatible assignments error: `(1 2) -> x` fails if x contains LIST:3  
+- ✅ Mixed assignments error: simple ↔ compound not allowed
+- ✅ LOCAL_REF preserved: variable still points to same return stack location
+- ✅ Memory efficient: no RP advancement, in-place overwriting
+
+**Non-Functional Requirements**:
+- ✅ All existing tests still pass
+- ✅ Performance acceptable for large compound data
+- ✅ Clear error messages for debugging
+- ✅ Code follows existing architectural patterns
+
+**ESTIMATED TIME: 9 hours total**
+- Phase 10.1: 2 hours (compatibility checking)
+- Phase 10.2: 3 hours (in-place mutation)  
+- Phase 10.3: 2 hours (enhanced storeOp)
+- Phase 10.4: 2 hours (integration testing)
+
+## Phase 11: Reference Type Renaming ❌ INCOMPLETE
 
 ### Final Cleanup Step
 **FILES**: Multiple files across codebase  
@@ -907,5 +1137,3 @@ The name `LOCAL_REF` is confusing because:
 - ❌ Update specs if needed
 
 **ESTIMATED TIME: 1-2 hours** (systematic find-replace operation)
-
-**NOTE: This should be done as the FINAL step after all compound data support is complete.**
