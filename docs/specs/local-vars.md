@@ -176,6 +176,11 @@ mylist fetch     ( — ref_addr )    \ Address of actual compound data
 mylist fetch fetch ( — first_elem ) \ First element of compound data
 ```
 
+### Tagging & Resolution Notes
+
+- Parser/symbol table uses `Tag.LOCAL` to identify local variables and emit `VarRef` + `Fetch/Store` during compilation.
+- At runtime, local variable slots are addressed via `RSTACK_REF` (absolute cell index within the current return stack frame). `Tag.LOCAL` is not a runtime reference and should not appear on the data stack.
+
 ## 8. Compound Data Storage
 
 Compound values (lists, maplists) are stored in the return stack area above the variable slots:

@@ -24,7 +24,7 @@ Current runtime enum (see `src/core/tagged.ts`). Numeric values are implementati
 ```typescript
 export enum Tag {
   NUMBER = 0, // IEEE 754 float (non-NaN) – raw value, no embedded tag bits
-  INTEGER = 1, // 16-bit signed integer payload
+  SENTINEL = 1, // Reserved sentinel; currently only NIL (value = 0)
   CODE = 2, // Bytecode address (direct dispatch)
   STACK_REF = 3, // Stack cell reference (address as cell index)
   STRING = 4, // String segment reference
@@ -40,7 +40,7 @@ Active tags are listed below; this definition takes precedence.
 | Tag     | Payload Meaning                    | Mutable In-Place                           | Printable Form                         | Notes                                  |
 | ------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
 | NUMBER  | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
-| INTEGER | 16-bit signed (-32768..32767)      | Yes (slot overwrite)                       | integer literal                        | Used for NIL sentinel (0)              |
+| SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                                    | Single legitimate value: NIL (0)       |
 | CODE    | Bytecode address (0..8191 current) | No (structural)                            | `@name` or `{ … }` when printed as ref | Executed via `eval`                    |
 | STRING  | String segment offset              | No                                         | string literal                         | Immutable contents                     |
 | BUILTIN | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
@@ -64,7 +64,7 @@ S = Sign bit (available for extended tagging)
 EXP = Exponent (0xFF for NaN)  
 Q = Quiet NaN bit (always 1)
 TAG = 6-bit type tag (0-63 possible values)
-VALUE = 16-bit payload (signed for INTEGER, unsigned otherwise)
+VALUE = 16-bit payload (unsigned for all tags; SENTINEL uses 0 only)
 
 Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation directly.
 ```
@@ -72,7 +72,6 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 ## Encoding Rules
 
 - **Numbers**: Full IEEE 754 float (no tag needed)
-- **Integers**: Tag.INTEGER + 16-bit signed value
 - **Addresses**: Tag.CODE + 16-bit bytecode address
 - **Built-ins**: Tag.BUILTIN + opcode (0-127)
 - **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
@@ -92,12 +91,23 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 
 This unified mechanism eliminates function table indirection present in earlier designs.
 
+### CODE Meta Semantics (lexical vs dynamic frames)
+
+The NaN-boxed encoding reserves the sign bit as a single meta flag. For `Tag.CODE` values:
+
+- `meta = 1` designates a code block (quotation) that executes in the caller's lexical frame:
+  - Runtime preserves the current base pointer (BP) and only pushes a return address.
+  - Execution jumps to the block address and returns with `ExitCode`.
+- `meta = 0` designates a function (colon definition) that executes in a new dynamic frame:
+  - Runtime pushes return address and the current BP, then sets BP to the new frame base.
+  - Execution returns with `Exit`, restoring the saved BP and IP.
+
+This distinction matches `eval` behavior in the runtime and allows blocks to access the caller's locals safely without creating a new frame.
+
 ## Constraints
 
-- Payload (non-number) is 16 bits (0–65535 unsigned or signed for INTEGER)
-- CODE segment currently: 8KB ⇒ valid bytecode addresses 0–8191 (13-bit). The encoding _capacity_ (payload width) allows growth to larger segments (up to 16-bit minus any reserved high bits) without changing tag format.
-- Built-in opcodes: 0–127 (fits in payload)
-- List payload slot count: 0–65535 (practical limits smaller due to 64KB memory)
+- Payload (non-number) is 16 bits (0–65535 unsigned). SENTINEL has a single valid payload value: 0 (NIL).
+- CODE payload, BUILTIN payload, and LIST payload follow their respective ranges.
 
 ## Validation
 
@@ -122,6 +132,11 @@ All tagged values must:
 - Quotation parsing yields a bytecode block; references are encoded with `Tag.CODE` (no distinct `CODE_BLOCK`)
 - Addressing operations (`elem`, `slot`, `find`) consume tagged headers uniformly
 
+### Compile-time vs Runtime Tags
+
+- `Tag.LOCAL` is a symbol-table/compile-time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`).
+- Runtime local variable addressing uses `RSTACK_REF` (absolute cell index within the return stack frame). `Tag.LOCAL` values are not part of the runtime's polymorphic reference set and should not appear on the data stack at execution time.
+
 ## Related Specifications
 
 - `specs/vm-architecture.md` – Memory segments & stack layout
@@ -133,13 +148,13 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN-boxed non-number value MUST decode to a tag in the active set {INTEGER, CODE, STRING, BUILTIN, LIST}.
+1. Any NaN-boxed non-number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST}.
 2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
-5. NIL is defined exactly as `(tag=INTEGER, value=0)` and MUST be used for soft absence/failure (no alternate sentinel).
+5. NIL is defined exactly as `(tag=SENTINEL, value=0)` and MUST be used for soft absence/failure (no alternate sentinel).
 6. Tags MUST be valid for all newly constructed values; detection of unsupported tags constitutes a validation error.
-7. Simple in-place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, INTEGER, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
+7. Simple in-place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, SENTINEL, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
 
 ## Worked Examples
 
@@ -178,5 +193,5 @@ length                     \ -> 3
 | ------------------- | --------------------------- | -------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                          |
 | Address bounds      | CODE < 8192                 | `vm-architecture.md` (8KB CODE)              |
-| NIL definition      | INTEGER 0                   | `access.md`, `maplists.md` (lookup failures) |
+| NIL definition      | SENTINEL 0                  | `access.md`, `maplists.md` (lookup failures) |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                   |
