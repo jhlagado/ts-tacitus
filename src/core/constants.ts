@@ -13,8 +13,6 @@ export const TRUE = 1;
 
 export const CELL_SIZE = 4;
 
-export const BYTES_PER_ELEMENT = 4;
-
 export const MEMORY_SIZE = 65536;
 
 export const SEG_STACK = 0;

@@ -14,7 +14,7 @@ import { getListLength, reverseSpan, getListElementAddress, isList } from '../co
 import { dropOp } from './stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
 
-const BYTES_PER_ELEMENT = 4;
+const CELL_SIZE = 4;
 
 /**
  * Opens LIST construction.
@@ -22,25 +22,25 @@ const BYTES_PER_ELEMENT = 4;
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(vm.SP - BYTES_PER_ELEMENT);
+  vm.rpush(vm.SP - CELL_SIZE);
 }
 
 /**
  * Closes LIST construction.
  */
 export function closeListOp(vm: VM): void {
-  if (vm.RP < BYTES_PER_ELEMENT) {
+  if (vm.RP < CELL_SIZE) {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
   const headerPos = vm.rpop();
-  const payloadSlots = (vm.SP - headerPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
+  const payloadSlots = (vm.SP - headerPos - CELL_SIZE) / CELL_SIZE;
 
   vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = (vm.SP - headerPos) / BYTES_PER_ELEMENT;
+    const totalSpan = (vm.SP - headerPos) / CELL_SIZE;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
@@ -114,7 +114,7 @@ export function sizeOp(vm: VM): void {
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
-    currentAddr -= span * BYTES_PER_ELEMENT;
+    currentAddr -= span * CELL_SIZE;
   }
   dropOp(vm);
   vm.push(elementCount);
@@ -154,11 +154,11 @@ export function dropHeadOp(vm: VM): void {
     vm.push(header); // LIST:0
     return;
   }
-  const topAddr = vm.SP - BYTES_PER_ELEMENT; // SP after popping header
+  const topAddr = vm.SP - CELL_SIZE; // SP after popping header
   const topVal = vm.memory.readFloat32(SEG_STACK, topAddr);
   const isCompound = isList(topVal);
   const span = isCompound ? getListLength(topVal) + 1 : 1;
-  vm.SP -= span * BYTES_PER_ELEMENT;
+  vm.SP -= span * CELL_SIZE;
   vm.push(toTaggedValue(s - span, Tag.LIST));
 }
 
@@ -210,7 +210,7 @@ export function headOp(vm: VM): void {
     }
 
     // First element is at SP-4 (first payload slot after popping header)
-    const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
+    const firstElementAddr = vm.SP - CELL_SIZE;
     const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
 
     if (isList(firstElement)) {
@@ -218,16 +218,16 @@ export function headOp(vm: VM): void {
       const slotCount = getListLength(firstElement);
 
       // Skip past the compound element in original list
-      vm.SP -= (slotCount + 1) * BYTES_PER_ELEMENT;
+      vm.SP -= (slotCount + 1) * CELL_SIZE;
 
       // Push compound element to new position
       for (let i = slotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
+        const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
         vm.push(slotValue);
       }
     } else {
       // Simple element: direct access
-      vm.SP -= BYTES_PER_ELEMENT; // Skip past first element
+      vm.SP -= CELL_SIZE; // Skip past first element
       vm.push(firstElement);
     }
   } else if (isRef(value)) {
@@ -242,7 +242,7 @@ export function headOp(vm: VM): void {
 
     // For return stack storage: first element is at address - slotCount*4
     const slotCount = getListLength(header);
-    const firstElementAddr = address - slotCount * BYTES_PER_ELEMENT;
+    const firstElementAddr = address - slotCount * CELL_SIZE;
     const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
 
     if (isList(firstElement)) {
@@ -251,7 +251,10 @@ export function headOp(vm: VM): void {
 
       // Push compound element to data stack
       for (let i = 0; i < elementSlotCount; i++) {
-        const slotValue = vm.memory.readFloat32(segment, firstElementAddr - (elementSlotCount - 1 - i) * BYTES_PER_ELEMENT);
+        const slotValue = vm.memory.readFloat32(
+          segment,
+          firstElementAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
+        );
         vm.push(slotValue);
       }
       vm.push(firstElement); // Push header last
@@ -287,7 +290,7 @@ export function unconsOp(vm: VM): void {
   }
 
   // Determine first element span (first element is at SP-4)
-  const firstElementAddr = vm.SP - BYTES_PER_ELEMENT;
+  const firstElementAddr = vm.SP - CELL_SIZE;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
   const span = isList(firstElement) ? getListLength(firstElement) + 1 : 1;
 
@@ -296,14 +299,14 @@ export function unconsOp(vm: VM): void {
   const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
 
   // Move SP past first element to position tail
-  vm.SP -= span * BYTES_PER_ELEMENT;
+  vm.SP -= span * CELL_SIZE;
   vm.push(tailHeader);
 
   // Materialize head element
   if (isList(firstElement)) {
     // Compound head: push full structure
     for (let i = span - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * BYTES_PER_ELEMENT);
+      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
       vm.push(slotValue);
     }
   } else {
@@ -334,7 +337,7 @@ export function slotOp(vm: VM): void {
     }
 
     // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
-    const addr = vm.SP - 4 - idx * BYTES_PER_ELEMENT;
+    const addr = vm.SP - 4 - idx * CELL_SIZE;
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
@@ -354,7 +357,7 @@ export function slotOp(vm: VM): void {
     }
 
     // Memory slot addressing: base - (1 + idx) * 4
-    const addr = baseAddr - (idx + 1) * BYTES_PER_ELEMENT;
+    const addr = baseAddr - (idx + 1) * CELL_SIZE;
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
   } else {
@@ -431,7 +434,7 @@ export function fetchOp(vm: VM): void {
 
     // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * BYTES_PER_ELEMENT);
+      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     // Push header last (becomes TOS)
@@ -463,8 +466,8 @@ export function storeOp(vm: VM): void {
 
   let existingValue = valueInSlot;
   if (isRef(valueInSlot)) {
-      const resolved = resolveReference(vm, valueInSlot);
-      existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
+    const resolved = resolveReference(vm, valueInSlot);
+    existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
   }
 
   const valueIsCompound = isCompoundData(value);
@@ -508,7 +511,7 @@ export function makeListOp(vm: VM): void {
   // 2. Create placeholder header (like openListOp)
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
-  const headerPos = vm.SP - BYTES_PER_ELEMENT;
+  const headerPos = vm.SP - CELL_SIZE;
   vm.rpush(headerPos);
 
   if (vm.debug) console.log('makeList: placeholder header at', headerPos, 'SP now', vm.SP);
@@ -526,7 +529,7 @@ export function makeListOp(vm: VM): void {
   // 4. Calculate payload slots (like closeListOp)
   const taggedHeaderPos = vm.rpop();
   const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
-  const payloadSlots = (vm.SP - retrievedHeaderPos - BYTES_PER_ELEMENT) / BYTES_PER_ELEMENT;
+  const payloadSlots = (vm.SP - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
 
   if (vm.debug)
     console.log('makeList: headerPos', retrievedHeaderPos, 'payloadSlots', payloadSlots);
@@ -542,7 +545,7 @@ export function makeListOp(vm: VM): void {
   if (vm.debug) console.log('makeList: updated header, stack before reverse:', vm.getStackData());
 
   // 6. Reverse span to get proper LIST format (like closeListOp)
-  const totalSpan = (vm.SP - retrievedHeaderPos) / BYTES_PER_ELEMENT; // header + payload
+  const totalSpan = (vm.SP - retrievedHeaderPos) / CELL_SIZE; // header + payload
   if (vm.debug) console.log('makeList: totalSpan to reverse:', totalSpan);
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
@@ -719,8 +722,8 @@ export function findOp(vm: VM): void {
     // Search through key-value pairs (stack-relative)
     // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
     for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = vm.SP - BYTES_PER_ELEMENT - i * BYTES_PER_ELEMENT;
-      const valueAddr = vm.SP - BYTES_PER_ELEMENT - (i + 1) * BYTES_PER_ELEMENT;
+      const keyAddr = vm.SP - CELL_SIZE - i * CELL_SIZE;
+      const valueAddr = vm.SP - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
 
       // Check for exact key match
@@ -782,8 +785,8 @@ export function findOp(vm: VM): void {
     // Search through key-value pairs (memory-relative)
     // Slots are at: baseAddr-4, baseAddr-8, baseAddr-12, etc.
     for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = baseAddr - BYTES_PER_ELEMENT - i * BYTES_PER_ELEMENT;
-      const valueAddr = baseAddr - BYTES_PER_ELEMENT - (i + 1) * BYTES_PER_ELEMENT;
+      const keyAddr = baseAddr - CELL_SIZE - i * CELL_SIZE;
+      const valueAddr = baseAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
       // Check for exact key match
@@ -862,7 +865,7 @@ export function keysOp(vm: VM): void {
   // Extract keys from even positions (0, 2, 4, ...)
   // After restoring header: slot 0 at SP-8, slot 2 at SP-16, etc.
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAddr = vm.SP - BYTES_PER_ELEMENT - i * 2 * BYTES_PER_ELEMENT;
+    const keyAddr = vm.SP - CELL_SIZE - i * 2 * CELL_SIZE;
     const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
     vm.push(keyValue);
   }
@@ -912,7 +915,7 @@ export function valuesOp(vm: VM): void {
   // Extract values from odd positions (1, 3, 5, ...)
   // After restoring header: slot 1 at SP-12, slot 3 at SP-20, etc.
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAddr = vm.SP - BYTES_PER_ELEMENT - (i * 2 + 1) * BYTES_PER_ELEMENT;
+    const valueAddr = vm.SP - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
     const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
     vm.push(valueValue);
   }
@@ -971,7 +974,7 @@ export function unrefOp(vm: VM): void {
       // Storage pattern: [elem0, elem1, ..., elem(n-1), header]
       // Elements are at: address - n*4, address - (n-1)*4, ..., address - 4
       for (let i = 0; i < slotCount; i++) {
-        const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * BYTES_PER_ELEMENT);
+        const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * CELL_SIZE);
         vm.push(slotValue);
       }
       // Push header last (becomes TOS)

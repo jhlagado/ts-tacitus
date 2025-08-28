@@ -17,7 +17,7 @@ import {
   ReturnStackOverflowError,
 } from './errors';
 
-const BYTES_PER_ELEMENT = 4;
+const CELL_SIZE = 4;
 
 /**
  * Virtual Machine for executing Tacit bytecode.
@@ -83,12 +83,12 @@ export class VM {
    * @throws {StackOverflowError} If stack overflow occurs
    */
   push(value: number): void {
-    if (this.SP + BYTES_PER_ELEMENT > STACK_SIZE) {
+    if (this.SP + CELL_SIZE > STACK_SIZE) {
       throw new StackOverflowError('push', this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_STACK, this.SP, value);
-    this.SP += BYTES_PER_ELEMENT;
+    this.SP += CELL_SIZE;
   }
 
   /**
@@ -101,7 +101,7 @@ export class VM {
       throw new StackUnderflowError('pop', 1, this.getStackData());
     }
 
-    this.SP -= BYTES_PER_ELEMENT;
+    this.SP -= CELL_SIZE;
     return this.memory.readFloat32(SEG_STACK, this.SP);
   }
 
@@ -115,7 +115,7 @@ export class VM {
       throw new StackUnderflowError('peek', 1, this.getStackData());
     }
 
-    return this.memory.readFloat32(SEG_STACK, this.SP - BYTES_PER_ELEMENT);
+    return this.memory.readFloat32(SEG_STACK, this.SP - CELL_SIZE);
   }
 
   /**
@@ -125,7 +125,7 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   popArray(size: number): number[] {
-    if (this.SP < size * BYTES_PER_ELEMENT) {
+    if (this.SP < size * CELL_SIZE) {
       throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
@@ -143,12 +143,12 @@ export class VM {
    * @throws {ReturnStackOverflowError} If return stack overflow occurs
    */
   rpush(value: number): void {
-    if (this.RP + BYTES_PER_ELEMENT > RSTACK_SIZE) {
+    if (this.RP + CELL_SIZE > RSTACK_SIZE) {
       throw new ReturnStackOverflowError('rpush', this.getStackData());
     }
 
     this.memory.writeFloat32(SEG_RSTACK, this.RP, value);
-    this.RP += BYTES_PER_ELEMENT;
+    this.RP += CELL_SIZE;
   }
 
   /**
@@ -161,7 +161,7 @@ export class VM {
       throw new ReturnStackUnderflowError('rpop', this.getStackData());
     }
 
-    this.RP -= BYTES_PER_ELEMENT;
+    this.RP -= CELL_SIZE;
     return this.memory.readFloat32(SEG_RSTACK, this.RP);
   }
 
@@ -217,7 +217,7 @@ export class VM {
    */
   nextFloat32(): number {
     const value = this.memory.readFloat32(SEG_CODE, this.IP);
-    this.IP += BYTES_PER_ELEMENT;
+    this.IP += CELL_SIZE;
     return value;
   }
 
@@ -247,7 +247,7 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    for (let i = 0; i < this.SP; i += BYTES_PER_ELEMENT) {
+    for (let i = 0; i < this.SP; i += CELL_SIZE) {
       stackData.push(this.memory.readFloat32(SEG_STACK, i));
     }
 
@@ -261,7 +261,7 @@ export class VM {
    * @throws {Error} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
-    if (this.SP < size * BYTES_PER_ELEMENT) {
+    if (this.SP < size * CELL_SIZE) {
       throw new Error(
         `Stack underflow: '${operation}' requires ${size} operand${size !== 1 ? 's' : ''} (stack: ${JSON.stringify(this.getStackData())})`,
       );

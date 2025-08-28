@@ -10,7 +10,7 @@
  */
 import { VM } from '../core/vm';
 import { fromTaggedValue, Tag } from '../core/tagged';
-import { BYTES_PER_ELEMENT } from '../core/constants';
+import { CELL_SIZE } from '../core/constants';
 import { formatValue as coreFormatValue, formatAtomicValue } from '../core/format-utils';
 
 // ============================================================================
@@ -36,7 +36,7 @@ function formatAndConsumeListFromHeaderValue(vm: VM, headerValue: number): strin
   const parts: string[] = [];
   let consumed = 0;
 
-  while (consumed < totalSlots && vm.SP >= BYTES_PER_ELEMENT) {
+  while (consumed < totalSlots && vm.SP >= CELL_SIZE) {
     const cell = vm.pop();
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
@@ -70,7 +70,7 @@ function formatAndConsumeListFromHeaderValue(vm: VM, headerValue: number): strin
  */
 export function printOp(vm: VM): void {
   try {
-    if (vm.SP < BYTES_PER_ELEMENT) {
+    if (vm.SP < CELL_SIZE) {
       console.log('[Error: Stack empty]');
       return;
     }
@@ -93,7 +93,7 @@ export function printOp(vm: VM): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`[Print error: ${errorMessage}]`);
 
-    if (vm.SP >= BYTES_PER_ELEMENT) {
+    if (vm.SP >= CELL_SIZE) {
       try {
         vm.pop();
       } catch {
