@@ -12,6 +12,7 @@ import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
 import { dropOp } from './stack-ops';
+import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
 
 const BYTES_PER_ELEMENT = 4;
 
@@ -451,23 +452,42 @@ export function fetchOp(vm: VM): void {
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
-  const value = vm.pop();
+  const value = vm.peek(); // Peek at the value, don't pop it yet
 
   if (!isRef(addressValue)) {
     throw new Error('store expects reference address (STACK_REF, LOCAL_REF, or GLOBAL_REF)');
   }
 
   const { address, segment } = resolveReference(vm, addressValue);
-  const existing = vm.memory.readFloat32(segment, address);
+  const valueInSlot = vm.memory.readFloat32(segment, address);
 
-  // Only allow simple value storage per spec
-  if (isList(existing)) {
-    // Silent no-op for compound targets (spec requirement)
-    return;
+  let existingValue = valueInSlot;
+  if (isRef(valueInSlot)) {
+      const resolved = resolveReference(vm, valueInSlot);
+      existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
   }
 
-  // Store simple value
-  vm.memory.writeFloat32(segment, address, value);
+  const valueIsCompound = isCompoundData(value);
+  const existingIsCompound = isCompoundData(existingValue);
+
+  if (valueIsCompound && existingIsCompound) {
+    // Compound-to-compound assignment
+    if (isCompatibleCompound(existingValue, value)) {
+      const { address: targetAddress, segment: targetSegment } = resolveReference(vm, valueInSlot);
+      mutateCompoundInPlace(vm, targetAddress, targetSegment, value);
+    } else {
+      vm.pop(); // Clean up the value we peeked
+      throw new Error('Incompatible compound assignment: slot count or type mismatch');
+    }
+  } else if (!valueIsCompound && !existingIsCompound) {
+    // Simple-to-simple assignment
+    vm.pop(); // Clean up the value we peeked
+    vm.memory.writeFloat32(segment, address, value);
+  } else {
+    vm.pop(); // Clean up the value we peeked
+    // Mixed assignments not allowed
+    throw new Error('Cannot assign simple to compound or compound to simple');
+  }
 }
 
 /**
