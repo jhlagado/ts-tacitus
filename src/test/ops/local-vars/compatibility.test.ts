@@ -94,11 +94,13 @@ describe('Compound Compatibility Checking', () => {
     }); 
 
     test('should detect incompatibility for different-sized lists', () => {
-      // Ensure clean VM state before each executeTacitCode call
+      // Ensure completely clean VM state before each executeTacitCode call
       resetVM();
+      vm.debug = false; // Ensure debug state is consistent
       const shortList = executeTacitCode('(1 2)');
       
       resetVM(); 
+      vm.debug = false;
       const longList = executeTacitCode('(1 2 3)');
 
       const shortHeader = shortList[shortList.length - 1];

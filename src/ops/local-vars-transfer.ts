@@ -134,3 +134,59 @@ export function isCompatibleCompound(existing: number, newValue: number): boolea
   
   return existingSlots === newSlots;
 }
+
+/**
+ * Mutates compound data in-place at a specific memory location.
+ * 
+ * Key differences from transferCompoundToReturnStack:
+ * - NO RP advancement (overwrites existing space)
+ * - Uses provided targetAddr instead of current RP
+ * - For variable mutation, not initialization
+ * 
+ * @param vm The VM instance
+ * @param targetAddr Byte address of existing compound data header
+ * @param segment Memory segment (SEG_RSTACK for local variables)
+ * @param newValue The new compound value from data stack (LIST header at TOS)
+ */
+export function mutateCompoundInPlace(vm: VM, targetAddr: number, segment: number, newValue: number): void {
+  // 1. Validate TOS has compound data
+  vm.ensureStackSize(1, 'mutateCompoundInPlace');
+  const header = vm.peek();
+  
+  if (!isCompoundData(header)) {
+    throw new Error('mutateCompoundInPlace expects compound data');
+  }
+  
+  validateListHeader(vm);
+  const slotCount = getListLength(header);
+  
+  // 2. Verify compatibility with existing data
+  const existingHeader = vm.memory.readFloat32(segment, targetAddr);
+  if (!isCompatibleCompound(existingHeader, header)) {
+    throw new Error('Incompatible compound assignment: slot count or type mismatch');
+  }
+  
+  if (slotCount === 0) {
+    // Empty list - just overwrite header
+    vm.memory.writeFloat32(segment, targetAddr, header);
+    dropList(vm);
+    return;
+  }
+  
+  // 3. Overwrite payload elements directly (NO RP advancement)
+  // Read elements from data stack and write to existing memory locations
+  let sourceAddr = vm.SP - (slotCount + 1) * BYTES_PER_ELEMENT; // Start at deepest item
+  
+  for (let i = 0; i < slotCount; i++) {
+    const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
+    const targetElementAddr = targetAddr - (slotCount - i) * BYTES_PER_ELEMENT;
+    vm.memory.writeFloat32(segment, targetElementAddr, value);
+    sourceAddr += BYTES_PER_ELEMENT; // Move to next item on stack
+  }
+  
+  // 4. Overwrite header last
+  vm.memory.writeFloat32(segment, targetAddr, header);
+  
+  // 5. Clean up data stack
+  dropList(vm);
+}
