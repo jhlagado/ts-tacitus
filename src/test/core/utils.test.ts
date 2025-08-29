@@ -113,20 +113,20 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
     test('formats INTEGER tagged value representing NIL', () => {
-      expect(formatValue(testVM, NIL)).toBe('( 0 elements )');
+      expect(formatValue(testVM, NIL)).toBe('[SENTINEL:0]');
     });
     test('formats CODE tagged value', () => {
       const taggedCode = toTaggedValue(1234, Tag.CODE);
-      expect(formatValue(testVM, taggedCode)).toBe('( 1234 elements )');
+      expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = testVM.digest.add('TestString');
       const taggedString = toTaggedValue(strAddr, Tag.STRING);
-      expect(formatValue(testVM, taggedString)).toBe('( 100 elements )');
+      expect(formatValue(testVM, taggedString)).toBe('"TestString"');
     });
     test('formats STRING tagged value when digest.get throws', () => {
       const taggedString = toTaggedValue(999, Tag.STRING);
-      expect(formatValue(testVM as VM, taggedString)).toBe('( 999 elements )');
+      expect(formatValue(testVM as VM, taggedString)).toBe('[String:999]');
     });
   });
 });

@@ -63,58 +63,91 @@ export function formatAtomicValue(vm: VM, value: number): string {
 }
 
 
-function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string {
-  if (headerIndex < 0 || headerIndex >= stack.length) {
-    return '[ Invalid LIST index ]';
-  }
+/**
+ * Formats a LIST structure by consuming elements from the stack.
+ * This is the same logic as in print-ops.ts but adapted for format-utils.
+ */
+function formatListFromHeader(vm: VM, headerValue: number): string {
+  const decoded = fromTaggedValue(headerValue);
+  const totalSlots = decoded.value;
+  const parts: string[] = [];
+  let consumed = 0;
 
-  const header = stack[headerIndex];
-  const { tag, value: slotCount } = fromTaggedValue(header);
-  if (tag !== Tag.LIST || slotCount < 0) {
-    return '[ Not an LIST ]';
-  }
-
-  // C-style direct string building without heap allocation
-  let result = '( ';
-  let remainingSlots = slotCount;
-  let currentIndex = headerIndex - 1;
-  let isFirst = true;
-
-  while (remainingSlots > 0 && currentIndex >= 0) {
-    const currentValue = stack[currentIndex];
-    let stepSize = 1;
-    let elementStartIndex = currentIndex;
-
-    const decoded = fromTaggedValue(currentValue);
-    if (decoded.tag === Tag.LIST) {
-      stepSize = decoded.value + 1;
+  while (consumed < totalSlots && vm.SP >= 4) {
+    const cell = vm.pop();
+    const cellDecoded = fromTaggedValue(cell);
+    if (cellDecoded.tag === Tag.LIST) {
+      const nestedSlots = cellDecoded.value;
+      const nested = formatListFromHeader(vm, cell);
+      parts.push(nested);
+      consumed += 1 + nestedSlots;
     } else {
-      const nextIndex = currentIndex - 1;
-      if (remainingSlots > 1 && nextIndex >= 0) {
-        const nextDecoded = fromTaggedValue(stack[nextIndex]);
-        if (nextDecoded.tag === Tag.LIST) {
-          elementStartIndex = nextIndex;
-          stepSize = nextDecoded.value + 1;
-        }
-      }
+      parts.push(formatAtomicValue(vm, cell));
+      consumed += 1;
     }
+  }
 
-    if (!isFirst) result += ' '; // Add space between elements
-    isFirst = false;
+  return `( ${parts.join(' ')} )`;
+}
+
+/**
+ * Formats a LIST structure from stack data.
+ * 
+ * @param vm VM instance for memory access
+ * @param stack Current stack data
+ * @param headerIndex Index of LIST header in stack
+ * @returns Formatted string representation
+ */
+function formatListFromStack(vm: VM, stack: number[], headerIndex: number): string {
+  const slotCount = getListLength(stack[headerIndex]);
+  if (slotCount === 0) {
+    return '(  )';
+  }
+
+  const parts: string[] = [];
+  for (let i = 0; i < slotCount; i++) {
+    const valueIndex = headerIndex - 1 - i;
+    if (valueIndex < 0) break;
     
-    const startVal = stack[elementStartIndex];
-    const startDecoded = fromTaggedValue(startVal);
-    if (startDecoded.tag === Tag.LIST) {
-      result += formatListAtImpl(vm, stack, elementStartIndex);
+    const element = stack[valueIndex];
+    if (getTag(element) === Tag.LIST) {
+      parts.push(formatListFromStack(vm, stack, valueIndex));
     } else {
-      result += formatAtomicValue(vm, startVal);
+      parts.push(formatAtomicValue(vm, element));
     }
+  }
+  
+  return `( ${parts.join(' ')} )`;
+}
 
-    currentIndex -= stepSize;
-    remainingSlots -= stepSize;
+/**
+ * Formats a LIST structure from reference in memory by materializing to stack.
+ */
+function formatListFromMemory(vm: VM, address: number, segment: number): string {
+  const header = vm.memory.readFloat32(segment, address);
+  const slotCount = getListLength(header);
+  
+  if (slotCount === 0) {
+    return '(  )';
   }
 
-  return result + ' )';
+  // Save current stack state
+  const originalSP = vm.SP;
+  
+  // Materialize the list to the stack for formatting (just the payload)
+  for (let i = 0; i < slotCount; i++) {
+    const elementAddr = address - (slotCount - i) * 4;
+    const element = vm.memory.readFloat32(segment, elementAddr);
+    vm.push(element);
+  }
+  
+  // Format using stack-based formatter (pass header separately)
+  const formatted = formatListFromHeader(vm, header);
+  
+  // Restore stack state
+  vm.SP = originalSP;
+  
+  return formatted;
 }
 
 /**
@@ -124,45 +157,23 @@ function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string 
  * @returns Formatted string representation
  */
 export function formatValue(vm: VM, value: number): string {
-  // Handle references polymorphically like lengthOp does
+  // Handle references polymorphically
   if (isRef(value)) {
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
     if (getTag(header) === Tag.LIST) {
-      const slotCount = getListLength(header);
-      const baseAddr = address - slotCount * 4;
-      // Build stack representation and use existing formatListAtImpl
-      const stackRepr: number[] = [];
-      for (let i = 0; i < slotCount; i++) {
-        stackRepr.push(vm.memory.readFloat32(segment, baseAddr + i * 4));
-      }
-      stackRepr.push(header);
-      return formatListAtImpl(vm, stackRepr, stackRepr.length - 1);
+      return formatListFromMemory(vm, address, segment);
     }
     return formatAtomicValue(vm, header);
   }
   
-  const stack = vm.getStackData();
   const { tag, value: tagValue } = fromTaggedValue(value);
 
-  {
-    let rIndex = -1;
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const d = fromTaggedValue(stack[i]);
-      if (d.tag === Tag.LIST) {
-        rIndex = i;
-        break;
-      }
-    }
-    if (rIndex >= 0) {
-      return formatListAtImpl(vm, stack, rIndex);
-    }
-  }
-
-
-  if (Number.isNaN(value) && tagValue >= 0) {
-    // Direct fallback for NaN-boxed tagged values without heap allocation
-    return `( ${tagValue} elements )`;
+  // Check if this value is a LIST header on the stack
+  if (getTag(value) === Tag.LIST) {
+    const stack = vm.getStackData();
+    const headerIndex = stack.length - 1;
+    return formatListFromStack(vm, stack, headerIndex);
   }
 
   switch (tag) {
