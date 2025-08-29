@@ -180,7 +180,6 @@ export class Tokenizer {
       this.column++;
       let symbolName = '';
 
-      // Read the symbol name after @
       while (
         this.position < this.input.length &&
         !isWhitespace(this.input[this.position]) &&
@@ -191,9 +190,12 @@ export class Tokenizer {
         this.column++;
       }
 
-      // Handle edge case: @ without a symbol name
       if (symbolName === '') {
-        throw new TokenError('Invalid symbol: @ must be followed by a symbol name', this.line, this.column);
+        throw new TokenError(
+          'Invalid symbol: @ must be followed by a symbol name',
+          this.line,
+          this.column,
+        );
       }
 
       return { type: TokenType.SYMBOL, value: symbolName, position: startPos };

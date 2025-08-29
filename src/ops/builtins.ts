@@ -1,36 +1,6 @@
 /**
  * @file src/ops/builtins.ts
- *
- * This file defines the built-in operations (functions) available in the Tacit language.
- * It serves as the central dispatcher for all VM operations, mapping opcodes to their
- * implementation functions.
- *
- * ## Architecture
- *
- * The executeOp fu      if (opcode >= 128) {
-        // Direct addressing for user-defined words (colon definitions)
-        // The opcode IS the bytecode address - set up call frame and jump there
-        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-        vm.rpush(vm.BP);
-        vm.BP = vm.RP;
-        vm.IP = opcode; // Direct jump to bytecode address
-        return;
-      } the core dispatch mechanism of the VM's execution engine.
- * When the interpreter encounters an opcode during bytecode execution, it calls
- * executeOp with the current VM state and the opcode to execute.
- *
- * Operations are organized into several categories, each implemented in separate files:
- * - Interpreter operations (control flow, literals)
- * - Math operations (arithmetic, comparisons)
- * - Stack operations (dup, drop, swap)
- * - List operations (list creation and manipulation)
- * - Unary operations (operations that work on a single value)
- * - Conditional operations (if/else logic)
- *
- * ## Extension Mechanism
- *
- * The system supports user-defined operations through the direct addressing system.
- * User-defined words are encoded with opcodes 128+ and jump directly to their bytecode addresses.
+ * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
 import { VM } from '../core/vm';
 import { toTaggedValue, fromTaggedValue, getTag, Tag } from '../core/tagged';
@@ -70,14 +40,12 @@ import {
   logOp,
   sqrtOp,
   powOp,
-  
 } from './math-ops';
 import { recipOp, floorOp, notOp } from './math-ops';
 import { enlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
-// LIST operations following lists.md specification
 import {
   openListOp,
   closeListOp,
@@ -90,7 +58,16 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { concatOp, tailOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
+import {
+  concatOp,
+  tailOp,
+  packOp,
+  unpackOp,
+  reverseOp,
+  makeListOp,
+  refOp,
+  unrefOp,
+} from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -101,14 +78,12 @@ import { repeatOp } from './combinators/repeat';
 import { getOp, setOp } from './access-ops';
 import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
-// Temp register operations for macro expansion
-// Pops the top of the stack and stores it in vm.tempRegister
+/** Stores TOS into vm.tempRegister. */
 export function saveTempOp(vm: VM): void {
   vm.ensureStackSize(1, 'saveTemp');
   vm.tempRegister = vm.pop();
 }
-
-// Pushes the value in vm.tempRegister onto the stack
+/** Pushes vm.tempRegister onto the stack. */
 export function restoreTempOp(vm: VM): void {
   vm.push(vm.tempRegister);
 }
@@ -135,23 +110,19 @@ export function restoreTempOp(vm: VM): void {
  */
 export function literalCodeOp(vm: VM): void {
   const address = vm.nextUint16();
-  const tagged = toTaggedValue(address, Tag.CODE, 1); // meta=1 for code blocks
+  const tagged = toTaggedValue(address, Tag.CODE, 1);
   vm.push(tagged);
 }
 
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
-  // Check for user-defined words FIRST before the switch statement
   if (isUserDefined) {
-    // Direct addressing: opcode IS the bytecode address for user-defined words
-    // The 15-bit address was already decoded by nextOpcode(), just jump to it
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
-    vm.IP = opcode; // Direct jump to bytecode address
+    vm.IP = opcode;
     return;
   }
 
-  // Handle built-in operations
   switch (opcode) {
     case Op.LiteralNumber:
       literalNumberOp(vm);
@@ -219,7 +190,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.GreaterOrEqual:
       greaterOrEqualOp(vm);
       break;
-    
+
     case Op.Mod:
       modOp(vm);
       break;
@@ -283,7 +254,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Pow:
       powOp(vm);
       break;
-    
+
     case Op.If:
       simpleIfOp(vm);
       break;
@@ -317,7 +288,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.CloseList:
       closeListOp(vm);
       break;
-    // Lists.md spec operations
+    /** List operations. */
     case Op.Length:
       lengthOp(vm);
       break;
@@ -439,21 +410,16 @@ export function initVarOp(vm: VM): void {
   const slotNumber = vm.nextInt16();
   vm.ensureStackSize(1, 'InitVar');
 
-  const value = vm.peek(); // Don't pop yet - check if compound first
+  const value = vm.peek();
   const slotAddr = vm.BP + slotNumber * 4;
 
   if (isCompoundData(value)) {
-    // Compound value: transfer entire structure to return stack, put RSTACK_REF in slot
     const headerAddr = transferCompoundToReturnStack(vm);
-    const headerCellIndex = headerAddr / 4; // Convert byte address to cell index
-
-    // Create RSTACK_REF pointing to where we stored the header
+    const headerCellIndex = headerAddr / 4;
     const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
 
-    // Store the RSTACK_REF in the variable slot
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
-    // Simple value: store directly (existing behavior)
     const simpleValue = vm.pop();
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, simpleValue);
   }
@@ -483,7 +449,7 @@ export function dumpStackFrameOp(vm: VM): void {
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (tag === Tag.RSTACK_REF) {
-        const targetAddr = value * 4; // RSTACK_REF contains absolute cell index
+        const targetAddr = value * 4;
         const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);

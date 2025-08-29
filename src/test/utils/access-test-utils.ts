@@ -18,7 +18,7 @@ export class TestDataGenerator {
    * Generate a simple list of sequential numbers
    */
   static createNumberList(size: number): string {
-    const numbers = Array.from({length: size}, (_, i) => i + 1);
+    const numbers = Array.from({ length: size }, (_, i) => i + 1);
     return `( ${numbers.join(' ')} )`;
   }
 
@@ -26,7 +26,7 @@ export class TestDataGenerator {
    * Generate a maplist with numeric keys and values
    */
   static createNumberMaplist(size: number): string {
-    const pairs = Array.from({length: size}, (_, i) => `${i + 1} ${(i + 1) * 100}`);
+    const pairs = Array.from({ length: size }, (_, i) => `${i + 1} ${(i + 1) * 100}`);
     return `( ${pairs.join(' ')} )`;
   }
 
@@ -34,7 +34,7 @@ export class TestDataGenerator {
    * Generate a maplist with mixed key types (for future string key testing)
    */
   static createMixedMaplist(): string {
-    return '( 1 100 2 200 3 300 )'; // Simple numeric for now
+    return '( 1 100 2 200 3 300 )';
   }
 
   /**
@@ -68,7 +68,11 @@ export class PerformanceTester {
   /**
    * Compare two operations performance
    */
-  static compareOperations(op1: string, op2: string, iterations = 1000): {
+  static compareOperations(
+    op1: string,
+    op2: string,
+    iterations = 1000,
+  ): {
     op1Time: number;
     op2Time: number;
     ratio: number;
@@ -79,20 +83,23 @@ export class PerformanceTester {
     return {
       op1Time,
       op2Time,
-      ratio: op1Time / op2Time
+      ratio: op1Time / op2Time,
     };
   }
 
   /**
    * Test scalability with different data sizes
    */
-  static testScalability(operationTemplate: (size: number) => string, sizes: number[]): Array<{
+  static testScalability(
+    operationTemplate: (size: number) => string,
+    sizes: number[],
+  ): Array<{
     size: number;
     time: number;
   }> {
     return sizes.map(size => ({
       size,
-      time: this.measureOperation(operationTemplate(size), 100)
+      time: this.measureOperation(operationTemplate(size), 100),
     }));
   }
 }
@@ -165,7 +172,7 @@ export class ComparatorTester {
    * Test basic numeric comparator
    */
   static testNumericComparator(): boolean {
-    return this.BehavioralTester.testOperationWorks('3 1 -'); // Basic subtraction
+    return this.BehavioralTester.testOperationWorks('3 1 -');
   }
 
   /**
@@ -182,20 +189,20 @@ export class ComparatorTester {
         description: 'Numeric ascending sort',
         setup: '( 3 1 4 2 )',
         comparator: '{ - }',
-        expectedBehavior: 'Ascending order'
+        expectedBehavior: 'Ascending order',
       },
       {
         description: 'Numeric descending sort',
         setup: '( 1 3 2 4 )',
         comparator: '{ swap - }',
-        expectedBehavior: 'Descending order'
+        expectedBehavior: 'Descending order',
       },
       {
         description: 'Stable sort test',
         setup: '( 1 2 1 3 )',
         comparator: '{ - }',
-        expectedBehavior: 'Equal elements preserve order'
-      }
+        expectedBehavior: 'Equal elements preserve order',
+      },
     ];
   }
 
@@ -225,7 +232,7 @@ export class InfrastructureChecker {
       store: BehavioralTester.testOperationWorks('( 1 2 3 ) dup 0 elem 99 swap store'),
       find: BehavioralTester.testOperationWorks('( 1 100 2 200 ) 1 find'),
       keys: BehavioralTester.testOperationWorks('( 1 100 2 200 ) keys'),
-      values: BehavioralTester.testOperationWorks('( 1 100 2 200 ) values')
+      values: BehavioralTester.testOperationWorks('( 1 100 2 200 ) values'),
     };
   }
 
@@ -242,8 +249,8 @@ export class InfrastructureChecker {
 
     return {
       basicOpsReady: allBasicReady,
-      testingInfrastructure: true, // This file exists
-      performanceFramework: true   // Performance utils available
+      testingInfrastructure: true,
+      performanceFramework: true,
     };
   }
 

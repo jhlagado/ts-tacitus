@@ -3,9 +3,7 @@
  * Operation codes for all built-in operations in the Tacit VM.
  */
 
-/**
- * Operation codes for built-in operations.
- */
+/** Operation codes for built-in operations. */
 export enum Op {
   /**  Pushes a literal number onto the stack. */
   LiteralNumber,
@@ -85,8 +83,6 @@ export enum Op {
   /**  Checks if the top two values on the stack are equal. */
   Equal,
 
-  
-
   /**  Canonical unary ops */
   Recip,
   Floor,
@@ -125,7 +121,6 @@ export enum Op {
   /**  Counts the elements in a vector. */
   mCount,
 
-  // List operations per lists.md spec
   /**  Returns payload slot count from LIST header. */
   Length,
 
@@ -164,8 +159,6 @@ export enum Op {
 
   /**  Reverses the elements of a list. */
   Reverse,
-
-  
 
   /**  Calculates the absolute value. */
   Abs,
@@ -221,14 +214,9 @@ export enum Op {
 
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
-
-  // LIST operations are available via standard operations
-
-  // New list primitives aligned with lists.md
   /** Drop logical head element: ( list — list' ) */
   DropHead,
 
-  // Maplist operations per maplists.md spec
   /** Address-returning key lookup in maplist with default fallback - ( maplist key — maplist addr | default-addr | NIL ) */
   Find,
   /** Extract all keys from maplist - ( maplist — maplist keys ) */
@@ -241,7 +229,6 @@ export enum Op {
   /** Pushes value from VM temp register to stack (internal use only) */
   RestoreTemp,
 
-  // Local variable opcodes
   /** Allocates local variable slots on return stack - ( -- ) reads 16-bit slot count */
   Reserve,
   /** Initializes local variable slot with stack value - ( value -- ) reads 16-bit slot number */
@@ -251,7 +238,6 @@ export enum Op {
   /** Debug: dumps current stack frame state - ( -- ) */
   DumpStackFrame,
 
-  // Reference operations
   /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */
   Ref,
   /** Materializes any reference to data stack - ( ref -- value ) polymorphic */

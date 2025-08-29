@@ -217,7 +217,6 @@ export function isLocal(tval: number): boolean {
   return tag === Tag.LOCAL;
 }
 
-
 /**
  * Creates a STACK_REF for a stack cell.
  * @param cellIndex The cell index (0-65535)

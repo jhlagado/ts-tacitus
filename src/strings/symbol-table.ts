@@ -192,7 +192,7 @@ export class SymbolTable {
    * to its current state at a later time. The checkpoint is simply a reference
    * to the current head of the linked list.
    *
-   * This also resets the local slot counter to zero, which is used for 
+   * This also resets the local slot counter to zero, which is used for
    * auto-assigning slot numbers to local variables in functions.
    *
    * This is useful for implementing scoping and temporary definitions.
@@ -220,8 +220,6 @@ export class SymbolTable {
   revert(checkpoint: SymbolTableCheckpoint): void {
     this.head = checkpoint;
   }
-
-
   /**
    * Defines a built-in operation in the symbol table with direct addressing
    *

@@ -3,7 +3,6 @@
  * Utility functions for the Tacit VM implementation.
  */
 
-
 /**
  * Checks if character is a digit.
  * @param char The character to check
@@ -87,9 +86,5 @@ export const or = (a: number, b: number): number => toNumber(toBoolean(a) || toB
 export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== toBoolean(b));
 
 /**
- * Formats tagged value for display.
- * @param vm VM instance for string decoding
- * @param value32 Tagged value to format
- * @returns Formatted string representation
+ * Formats are provided by core/format-utils.
  */
-// formatValue provided by core/format-utils

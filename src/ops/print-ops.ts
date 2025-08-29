@@ -12,11 +12,6 @@ import { VM } from '../core/vm';
 import { fromTaggedValue, Tag } from '../core/tagged';
 import { CELL_SIZE } from '../core/constants';
 import { formatValue as coreFormatValue, formatAtomicValue } from '../core/format-utils';
-
-// ============================================================================
-// HUMAN-READABLE PRINT OPERATION (from builtins-print.ts)
-// ============================================================================
-
 /**
  * Formats a LIST structure by consuming elements from the stack.
  *
@@ -78,9 +73,7 @@ export function printOp(vm: VM): void {
     const topValue = vm.peek();
     const decoded = fromTaggedValue(topValue);
 
-    // Direct LIST handling: use core formatter and pop header+payload
     if (decoded.tag === Tag.LIST) {
-      // Pop header and then format by consuming payload
       const headerVal = vm.pop();
       const formatted = formatListFromHeader(vm, headerVal);
       console.log(formatted);
@@ -102,11 +95,6 @@ export function printOp(vm: VM): void {
     }
   }
 }
-
-// ============================================================================
-// RAW PRINT OPERATION (from builtins-raw-print.ts)
-// ============================================================================
-
 /**
  * Raw print operation - prints the raw tagged value from the top of the stack.
  *

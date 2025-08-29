@@ -5,8 +5,6 @@
 
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
-
-
 export const addOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'add');
   const b = vm.pop();
@@ -35,7 +33,6 @@ export const divideOp: Verb = (vm: VM) => {
   vm.push(a / b);
 };
 
-
 export const modOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'mod');
   const b = vm.pop();
@@ -56,8 +53,6 @@ export const maxOp: Verb = (vm: VM) => {
   const a = vm.pop();
   vm.push(Math.max(a, b));
 };
-
-
 export const equalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '=');
   const b = vm.pop();
@@ -92,8 +87,6 @@ export const greaterOrEqualOp: Verb = (vm: VM) => {
   const a = vm.pop();
   vm.push(a >= b ? 1 : 0);
 };
-
-
 export const absOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'abs');
   const a = vm.pop();
@@ -143,9 +136,6 @@ export const powOp: Verb = (vm: VM) => {
   vm.push(Math.pow(a, b));
 };
 
-// avg/prod are not part of the core vocabulary
-
-
 export const recipOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'recip');
   const a = vm.pop();
@@ -163,5 +153,3 @@ export const notOp: Verb = (vm: VM) => {
   const a = vm.pop();
   vm.push(a === 0 ? 1 : 0);
 };
-
-// Use negOp/signOp for negate/sign

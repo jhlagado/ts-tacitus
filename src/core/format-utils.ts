@@ -62,7 +62,6 @@ export function formatAtomicValue(vm: VM, value: number): string {
   }
 }
 
-
 /**
  * Formats a LIST structure by consuming elements from the stack.
  * This is the same logic as in print-ops.ts but adapted for format-utils.
@@ -92,7 +91,7 @@ function formatListFromHeader(vm: VM, headerValue: number): string {
 
 /**
  * Formats a LIST structure from stack data.
- * 
+ *
  * @param vm VM instance for memory access
  * @param stack Current stack data
  * @param headerIndex Index of LIST header in stack
@@ -108,7 +107,7 @@ function formatListFromStack(vm: VM, stack: number[], headerIndex: number): stri
   for (let i = 0; i < slotCount; i++) {
     const valueIndex = headerIndex - 1 - i;
     if (valueIndex < 0) break;
-    
+
     const element = stack[valueIndex];
     if (getTag(element) === Tag.LIST) {
       parts.push(formatListFromStack(vm, stack, valueIndex));
@@ -116,7 +115,7 @@ function formatListFromStack(vm: VM, stack: number[], headerIndex: number): stri
       parts.push(formatAtomicValue(vm, element));
     }
   }
-  
+
   return `( ${parts.join(' ')} )`;
 }
 
@@ -126,27 +125,23 @@ function formatListFromStack(vm: VM, stack: number[], headerIndex: number): stri
 function formatListFromMemory(vm: VM, address: number, segment: number): string {
   const header = vm.memory.readFloat32(segment, address);
   const slotCount = getListLength(header);
-  
+
   if (slotCount === 0) {
     return '(  )';
   }
 
-  // Save current stack state
   const originalSP = vm.SP;
-  
-  // Materialize the list to the stack for formatting (just the payload)
+
   for (let i = 0; i < slotCount; i++) {
     const elementAddr = address - (slotCount - i) * 4;
     const element = vm.memory.readFloat32(segment, elementAddr);
     vm.push(element);
   }
-  
-  // Format using stack-based formatter (pass header separately)
+
   const formatted = formatListFromHeader(vm, header);
-  
-  // Restore stack state
+
   vm.SP = originalSP;
-  
+
   return formatted;
 }
 
@@ -157,7 +152,6 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
  * @returns Formatted string representation
  */
 export function formatValue(vm: VM, value: number): string {
-  // Handle references polymorphically
   if (isRef(value)) {
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
@@ -166,10 +160,9 @@ export function formatValue(vm: VM, value: number): string {
     }
     return formatAtomicValue(vm, header);
   }
-  
+
   const { tag, value: tagValue } = fromTaggedValue(value);
 
-  // Check if this value is a LIST header on the stack
   if (getTag(value) === Tag.LIST) {
     const stack = vm.getStackData();
     const headerIndex = stack.length - 1;

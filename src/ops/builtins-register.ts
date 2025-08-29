@@ -50,11 +50,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('str', Op.LiteralString);
   symbolTable.defineBuiltin('addr', Op.LiteralAddress);
 
-  // Parentheses build unified LIST
+  /** Parentheses build unified LIST. */
   symbolTable.defineBuiltin('(', Op.OpenList);
   symbolTable.defineBuiltin(')', Op.CloseList);
 
-  // Lists.md spec operations - Section 9 & 10
+  /** List operations (Sections 9 & 10). */
   symbolTable.defineBuiltin('length', Op.Length);
   symbolTable.defineBuiltin('size', Op.Size);
   symbolTable.defineBuiltin('slot', Op.Slot);
@@ -62,7 +62,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('fetch', Op.Fetch);
   symbolTable.defineBuiltin('store', Op.Store);
 
-  // Lists.md spec operations - Section 12 (unified under concat)
+  /** Structural operations (concat unified). */
   symbolTable.defineBuiltin('concat', Op.Concat);
   symbolTable.defineBuiltin('tail', Op.Tail);
   symbolTable.defineBuiltin('head', Op.Head);
@@ -71,12 +71,12 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('unpack', Op.Unpack);
   symbolTable.defineBuiltin('reverse', Op.Reverse);
 
-  // Maplist operations per maplists.md spec
+  /** Maplist operations. */
   symbolTable.defineBuiltin('find', Op.Find);
   symbolTable.defineBuiltin('keys', Op.Keys);
   symbolTable.defineBuiltin('values', Op.Values);
 
-  // Reference operations per polymorphic-operations.md spec
+  /** Reference operations. */
   symbolTable.defineBuiltin('ref', Op.Ref);
   symbolTable.defineBuiltin('unref', Op.Unref);
   symbolTable.defineBuiltin('varRef', Op.VarRef);
@@ -86,7 +86,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('sub', Op.Minus);
   symbolTable.defineBuiltin('mul', Op.Multiply);
   symbolTable.defineBuiltin('div', Op.Divide);
-  // Use canonical pow → Op.Pow
+  /** Canonical pow. */
   symbolTable.defineBuiltin('mod', Op.Mod);
   symbolTable.defineBuiltin('min', Op.Min);
   symbolTable.defineBuiltin('max', Op.Max);
@@ -96,7 +96,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('ge', Op.GreaterOrEqual);
   symbolTable.defineBuiltin('eq', Op.Equal);
 
-  // Canonical neg maps to Op.Neg
+  /** Canonical neg maps to Op.Neg. */
   symbolTable.defineBuiltin('recip', Op.Recip);
   symbolTable.defineBuiltin('floor', Op.Floor);
   symbolTable.defineBuiltin('not', Op.Not);
@@ -120,7 +120,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('log', Op.Log);
   symbolTable.defineBuiltin('sqrt', Op.Sqrt);
   symbolTable.defineBuiltin('pow', Op.Pow);
-  // Drop non-core math ops avg/prod
+  /** Non-core math ops not included. */
 
   symbolTable.defineBuiltin('if', Op.SimpleIf);
   symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);

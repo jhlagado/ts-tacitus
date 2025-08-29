@@ -59,13 +59,10 @@ function getListHeaderAndBase(
 ): { header: number; baseAddr: number; segment: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    // Stack-resident list: header is value, baseAddr is SP-8 (first payload slot)
     return { header: value, baseAddr: vm.SP - 8, segment: SEG_STACK };
   } else if (isRef(value)) {
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
-    // For return stack storage: elements are stored before header
-    // First payload slot (element 0) is at address - slotCount*4
     const slotCount = getListLength(header);
     return { header, baseAddr: address - slotCount * 4, segment };
   }
@@ -127,7 +124,6 @@ export function sizeOp(vm: VM): void {
 /**
  * cons: ( list value — list' )
  */
-// consOp removed; concat is the single polymorphic concatenation op
 
 /**
  * tail: ( list — list' )
@@ -143,10 +139,10 @@ export function tailOp(vm: VM): void {
   }
   const s = getListLength(header);
   if (s === 0) {
-    vm.push(header); // LIST:0
+    vm.push(header);
     return;
   }
-  const topAddr = vm.SP - CELL_SIZE; // SP after popping header
+  const topAddr = vm.SP - CELL_SIZE;
   const topVal = vm.memory.readFloat32(SEG_STACK, topAddr);
   const isCompound = isList(topVal);
   const span = isCompound ? getListLength(topVal) + 1 : 1;
@@ -154,48 +150,43 @@ export function tailOp(vm: VM): void {
   vm.push(toTaggedValue(s - span, Tag.LIST));
 }
 
-// Legacy alias for backward compatibility
 export const dropHeadOp = tailOp;
 
 /**
  * Concatenates two lists into a new combined list.
  * Stack effect: ( listA listB — listC )
- * 
+ *
  * NOTE: Current implementation is incomplete - only creates combined headers
  * without properly copying payload data for list-to-list concatenation.
- * 
+ *
  * Working fallback semantics:
  * - If listA is not a list: returns NIL
  * - If listB is not a list: performs cons(listA, listB)
  * - Empty list cases work correctly
- * 
+ *
  * See docs/specs/lists.md for list concatenation semantics.
  */
-// concat is polymorphic and replaces earlier separate variants
 
 /**
  * Polymorphic concatenation operation.
  * Stack effect: ( a b — result )
  * Dispatches to optimal implementation based on argument types:
  * - simple + simple → create 2-element list
- * - list + simple → O(1) append (increment header) 
+ * - list + simple → O(1) append (increment header)
  * - simple + list → O(n) prepend
  * - list + list → O(n) concatenate
  */
 export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
-  
-  // Analyze arguments without popping using findElement
+
   const [, rhsSize] = findElement(vm, 0);
   const [, lhsSize] = findElement(vm, rhsSize);
 
-  // Helper to peek a value at slot offset from TOS (0 = TOS)
   const peekBySlots = (offsetSlots: number): number => {
     const addr = vm.SP - (offsetSlots + 1) * CELL_SIZE;
     return vm.memory.readFloat32(SEG_STACK, addr);
   };
 
-  // Determine structural types using tags, not just slot size (to distinguish LIST:0)
   const rhsHeaderVal = peekBySlots(0);
   const lhsHeaderVal = peekBySlots(rhsSize);
   const rhsIsList = isList(rhsHeaderVal);
@@ -204,12 +195,11 @@ export function concatOp(vm: VM): void {
   const lhsIsSimple = !lhsIsList && lhsSize === 1;
 
   if (lhsIsSimple && rhsIsSimple) {
-    ccatSimpleSimple(vm);
+    concatSimpleSimple(vm);
     return;
   }
 
   if (!lhsIsSimple && rhsIsSimple) {
-    // list + simple
     const lhsHeader = peekBySlots(rhsSize);
     if (!isList(lhsHeader)) {
       throw new Error('concat: left compound must be LIST when appending simple');
@@ -217,7 +207,6 @@ export function concatOp(vm: VM): void {
 
     const currentSlots = getListLength(lhsHeader);
     if (currentSlots === 0) {
-      // ( ) x -> ( x )
       const simple = vm.pop();
       vm.pop();
       vm.push(simple);
@@ -225,7 +214,6 @@ export function concatOp(vm: VM): void {
       return;
     }
 
-    // Non-empty: swap elements, bump header
     swapOp(vm);
     vm.pop();
     vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));
@@ -233,33 +221,27 @@ export function concatOp(vm: VM): void {
   }
 
   if (lhsIsSimple && !rhsIsSimple) {
-    // simple + list
     const rhsHeader = peekBySlots(0);
     if (!isList(rhsHeader)) {
       throw new Error('concat: right compound must be LIST when prepending simple');
     }
-    ccatSimpleList(vm);
+    concatSimpleList(vm);
     return;
   }
 
-  // list + list
   if (lhsIsList && rhsIsList) {
-    // Materialize combined list by removing both list structures and rebuilding
-    // 1) Pop RHS header and capture RHS payload
     const rhsHeader = vm.pop();
     const sB = getListLength(rhsHeader);
     const rhsElems: number[] = [];
     for (let i = 0; i < sB; i++) {
       rhsElems.push(vm.pop());
     }
-    // 2) Pop LHS header and capture LHS payload
     const lhsHeader = vm.pop();
     const sA = getListLength(lhsHeader);
     const lhsElems: number[] = [];
     for (let i = 0; i < sA; i++) {
       lhsElems.push(vm.pop());
     }
-    // 3) Rebuild combined list: push elements in reverse order (B then A), then combined header
     for (let i = rhsElems.length - 1; i >= 0; i--) {
       vm.push(rhsElems[i]);
     }
@@ -268,7 +250,8 @@ export function concatOp(vm: VM): void {
     }
     vm.push(toTaggedValue(sA + sB, Tag.LIST));
   } else {
-    vm.pop(); vm.pop();
+    vm.pop();
+    vm.pop();
     vm.push(NIL);
   }
 }
@@ -276,38 +259,26 @@ export function concatOp(vm: VM): void {
 /**
  * Sub-operation: simple + simple → create 2-element list
  */
-function ccatSimpleSimple(vm: VM): void {
-  const rhs = vm.pop(); // second arg (3 in "5 3 concat")  
-  const lhs = vm.pop(); // first arg (5 in "5 3 concat")
-  // For "5 3 concat" we want result like "( 5 3 )" which is [3, 5, NaN]
-  // List structure: deepest element is first element of list
-  vm.push(rhs); // push 3 first (deepest, shows as index 0 in array)
-  vm.push(lhs); // push 5 second (shows as index 1 in array)  
+function concatSimpleSimple(vm: VM): void {
+  const rhs = vm.pop();
+  const lhs = vm.pop();
+  vm.push(rhs);
+  vm.push(lhs);
   vm.push(toTaggedValue(2, Tag.LIST));
 }
 
 /**
- * Sub-operation: simple + list → O(n) prepend 
+ * Sub-operation: simple + list → O(n) prepend
  */
-function ccatSimpleList(vm: VM): void {
-  // Goal: 5   2 1 LIST:2   ->   2 1 5 LIST:3
-  // Strategy: swap top two, then pop/push to insert simple at bottom
-  
-  const rhsHeaderAddr = vm.SP - CELL_SIZE;  // TOS is header of RHS list
+function concatSimpleList(vm: VM): void {
+  const rhsHeaderAddr = vm.SP - CELL_SIZE;
   const rhsHeader = vm.memory.readFloat32(SEG_STACK, rhsHeaderAddr);
   const currentSlots = getListLength(rhsHeader);
-  
-  // Use swapOp to swap simple and list: 5 (2 1 LIST:2) -> (2 1 LIST:2) 5  
   swapOp(vm);
-  
-  // Now stack is: 2 1 LIST:2   5
-  const simple = vm.pop();    // pop 5
-  const header = vm.pop();    // pop LIST:2
-  
-  // Stack now: 2 1 (payload remains)
-  // Push simple (goes to bottom), then new header
-  vm.push(simple);                              // 2 1 5
-  vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));  // 2 1 5 LIST:3
+  const simple = vm.pop();
+  vm.pop();
+  vm.push(simple);
+  vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));
 }
 
 /**
@@ -321,35 +292,26 @@ export function headOp(vm: VM): void {
   const tag = getTag(value);
 
   if (tag === Tag.LIST) {
-    // Stack-resident list: header was just popped
     if (getListLength(value) === 0) {
       vm.push(NIL);
       return;
     }
 
-    // First element is at SP-4 (first payload slot after popping header)
     const firstElementAddr = vm.SP - CELL_SIZE;
     const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
 
     if (isList(firstElement)) {
-      // Compound element: materialize full structure
       const slotCount = getListLength(firstElement);
-
-      // Skip past the compound element in original list
       vm.SP -= (slotCount + 1) * CELL_SIZE;
-
-      // Push compound element to new position
       for (let i = slotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
         vm.push(slotValue);
       }
     } else {
-      // Simple element: direct access
-      vm.SP -= CELL_SIZE; // Skip past first element
+      vm.SP -= CELL_SIZE;
       vm.push(firstElement);
     }
   } else if (isRef(value)) {
-    // Reference to compound data (RSTACK_REF, STACK_REF, etc.)
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);
 
@@ -357,17 +319,13 @@ export function headOp(vm: VM): void {
       vm.push(NIL);
       return;
     }
-
-    // For return stack storage: first element is at address - slotCount*4
     const slotCount = getListLength(header);
     const firstElementAddr = address - slotCount * CELL_SIZE;
     const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
 
     if (isList(firstElement)) {
-      // Compound element: materialize full structure
       const elementSlotCount = getListLength(firstElement);
 
-      // Push compound element to data stack
       for (let i = 0; i < elementSlotCount; i++) {
         const slotValue = vm.memory.readFloat32(
           segment,
@@ -375,9 +333,8 @@ export function headOp(vm: VM): void {
         );
         vm.push(slotValue);
       }
-      vm.push(firstElement); // Push header last
+      vm.push(firstElement);
     } else {
-      // Simple element: direct push
       vm.push(firstElement);
     }
   } else {
@@ -395,40 +352,34 @@ export function unconsOp(vm: VM): void {
   const header = vm.pop();
 
   if (!isList(header)) {
-    vm.push(toTaggedValue(0, Tag.LIST)); // empty list
-    vm.push(NIL); // nil head
+    vm.push(toTaggedValue(0, Tag.LIST));
+    vm.push(NIL);
     return;
   }
 
   const slotCount = getListLength(header);
   if (slotCount === 0) {
-    vm.push(header); // empty list
-    vm.push(NIL); // nil head
+    vm.push(header);
+    vm.push(NIL);
     return;
   }
 
-  // Determine first element span (first element is at SP-4)
   const firstElementAddr = vm.SP - CELL_SIZE;
   const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
   const span = isList(firstElement) ? getListLength(firstElement) + 1 : 1;
 
-  // Create tail list (remaining payload)
   const tailSlotCount = slotCount - span;
   const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
 
-  // Move SP past first element to position tail
   vm.SP -= span * CELL_SIZE;
   vm.push(tailHeader);
 
-  // Materialize head element
   if (isList(firstElement)) {
-    // Compound head: push full structure
     for (let i = span - 1; i >= 0; i--) {
       const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
       vm.push(slotValue);
     }
   } else {
-    // Simple head
     vm.push(firstElement);
   }
 }
@@ -443,23 +394,20 @@ export function unconsOp(vm: VM): void {
 export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek(); // Keep target on stack
+  const target = vm.peek();
   const tag = getTag(target);
 
   if (tag === Tag.LIST) {
-    // Current behavior: stack-relative addressing
     const slotCount = getListLength(target);
     if (idx < 0 || idx >= slotCount) {
       vm.push(NIL);
       return;
     }
 
-    // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
     const addr = vm.SP - 4 - idx * CELL_SIZE;
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
-    // New behavior: memory-based addressing
     const { address: baseAddr, segment } = resolveReference(vm, target);
     const header = vm.memory.readFloat32(segment, baseAddr);
 
@@ -474,7 +422,6 @@ export function slotOp(vm: VM): void {
       return;
     }
 
-    // Memory slot addressing: base - (1 + idx) * 4
     const addr = baseAddr - (idx + 1) * CELL_SIZE;
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
@@ -493,11 +440,10 @@ export function slotOp(vm: VM): void {
 export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
   const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek(); // Keep target on stack
+  const target = vm.peek();
   const tag = getTag(target);
 
   if (tag === Tag.LIST) {
-    // Current behavior: stack-relative addressing
     const addr = getListElementAddress(vm, target, vm.SP - 4, idx);
     if (addr === -1) {
       vm.push(NIL);
@@ -506,7 +452,6 @@ export function elemOp(vm: VM): void {
     const cellIndex = addr / 4;
     vm.push(createStackRef(cellIndex));
   } else if (tag === Tag.STACK_REF) {
-    // New behavior: memory-based addressing
     const { address: baseAddr, segment } = resolveReference(vm, target);
     const header = vm.memory.readFloat32(segment, baseAddr);
 
@@ -515,7 +460,6 @@ export function elemOp(vm: VM): void {
       return;
     }
 
-    // Use traversal with memory base address instead of stack position
     const addr = getListElementAddress(vm, header, baseAddr - 4, idx);
     if (addr === -1) {
       vm.push(NIL);
@@ -547,18 +491,14 @@ export function fetchOp(vm: VM): void {
   const value = vm.memory.readFloat32(segment, address);
 
   if (isList(value)) {
-    // Compound value: need to materialize entire structure
     const slotCount = getListLength(value);
 
-    // Copy compound structure: payload slots first, then header
     for (let i = slotCount - 1; i >= 0; i--) {
       const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
-    // Push header last (becomes TOS)
     vm.push(value);
   } else {
-    // Simple value: direct copy
     vm.push(value);
   }
 }
@@ -573,8 +513,7 @@ export function fetchOp(vm: VM): void {
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
-  const value = vm.peek(); // Peek at the value, don't pop it yet
-
+  const value = vm.peek();
   if (!isRef(addressValue)) {
     throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
@@ -592,21 +531,18 @@ export function storeOp(vm: VM): void {
   const existingIsCompound = isCompoundData(existingValue);
 
   if (valueIsCompound && existingIsCompound) {
-    // Compound-to-compound assignment
     if (isCompatibleCompound(existingValue, value)) {
       const { address: targetAddress, segment: targetSegment } = resolveReference(vm, valueInSlot);
-      mutateCompoundInPlace(vm, targetAddress, targetSegment, value);
+      mutateCompoundInPlace(vm, targetAddress, targetSegment);
     } else {
-      vm.pop(); // Clean up the value we peeked
+      vm.pop();
       throw new Error('Incompatible compound assignment: slot count or type mismatch');
     }
   } else if (!valueIsCompound && !existingIsCompound) {
-    // Simple-to-simple assignment
-    vm.pop(); // Clean up the value we peeked
+    vm.pop();
     vm.memory.writeFloat32(segment, address, value);
   } else {
-    vm.pop(); // Clean up the value we peeked
-    // Mixed assignments not allowed
+    vm.pop();
     throw new Error('Cannot assign simple to compound or compound to simple');
   }
 }
@@ -621,12 +557,10 @@ export function storeOp(vm: VM): void {
 export function makeListOp(vm: VM): void {
   vm.ensureStackSize(1, 'makeList');
 
-  // 1. Pop block address from stack
   const blockAddr = vm.pop();
 
   if (vm.debug) console.log('makeList: got blockAddr', blockAddr, 'hex:', blockAddr.toString(16));
 
-  // 2. Create placeholder header (like openListOp)
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
   const headerPos = vm.SP - CELL_SIZE;
@@ -634,7 +568,6 @@ export function makeListOp(vm: VM): void {
 
   if (vm.debug) console.log('makeList: placeholder header at', headerPos, 'SP now', vm.SP);
 
-  // 3. Execute block (like do combinator)
   vm.push(blockAddr);
   if (vm.debug) console.log('makeList: pushing blockAddr back onto stack for eval, SP now', vm.SP);
   if (vm.debug) console.log('makeList: calling eval...');
@@ -644,7 +577,6 @@ export function makeListOp(vm: VM): void {
   if (vm.debug)
     console.log('makeList: after block exec, SP now', vm.SP, 'stack:', vm.getStackData());
 
-  // 4. Calculate payload slots (like closeListOp)
   const taggedHeaderPos = vm.rpop();
   const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
   const payloadSlots = (vm.SP - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
@@ -656,14 +588,12 @@ export function makeListOp(vm: VM): void {
     throw new Error('makeList: negative payload slot count detected');
   }
 
-  // 5. Update placeholder header in place with correct slot count (like closeListOp)
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
   vm.memory.writeFloat32(SEG_STACK, retrievedHeaderPos, finalizedHeader);
 
   if (vm.debug) console.log('makeList: updated header, stack before reverse:', vm.getStackData());
 
-  // 6. Reverse span to get proper LIST format (like closeListOp)
-  const totalSpan = (vm.SP - retrievedHeaderPos) / CELL_SIZE; // header + payload
+  const totalSpan = (vm.SP - retrievedHeaderPos) / CELL_SIZE;
   if (vm.debug) console.log('makeList: totalSpan to reverse:', totalSpan);
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
@@ -693,14 +623,12 @@ export function packOp(vm: VM): void {
   const values: number[] = [];
   for (let i = 0; i < count; i++) {
     if (vm.getStackData().length === 0) {
-      // Not enough items on stack
       vm.push(NIL);
       return;
     }
     values.push(vm.pop());
   }
 
-  // Push values back in reverse order (they were popped in reverse)
   for (let i = values.length - 1; i >= 0; i--) {
     vm.push(values[i]);
   }
@@ -725,13 +653,8 @@ export function unpackOp(vm: VM): void {
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-    // Empty list - nothing to unpack
     return;
   }
-
-  // The payload elements are already on the stack in the correct order
-  // for LIST semantics (reversed), so we don't need to do anything else.
-  // The elements are now available on the stack as individual items.
 }
 
 /**
@@ -743,12 +666,10 @@ export function unpackOp(vm: VM): void {
 export const enlistOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'enlist');
   const a = vm.pop();
-  // LIST semantics: push value, then LIST header with slot count 1
   vm.push(a);
   vm.push(toTaggedValue(1, Tag.LIST));
 };
 
-// Legacy alias for backward compatibility
 export const mEnlistOp = enlistOp;
 
 /**
@@ -768,39 +689,29 @@ export function reverseOp(vm: VM): void {
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-    // Empty list - return empty list
     vm.push(header);
     return;
   }
 
   if (slotCount === 1) {
-    // Single element list - return as-is
     const element = vm.pop();
     vm.push(element);
     vm.push(header);
     return;
   }
 
-  // Pop all elements from the list payload
   const elements: number[] = [];
   for (let i = 0; i < slotCount; i++) {
     elements.push(vm.pop());
   }
 
-  // In LIST format, elements are already stored in reverse order
-  // To reverse the list logically, we need to reverse the order again
-  // This requires pushing elements in reverse order from our array
   for (let i = elements.length - 1; i >= 0; i--) {
     vm.push(elements[i]);
   }
 
-  // Push the header back
   vm.push(header);
 }
 
-// ============================================================================
-// MAPLIST OPERATIONS (maplists.md specification)
-// ============================================================================
 
 /**
  * Implements maplist key lookup with address-returning semantics.
@@ -818,44 +729,38 @@ export function reverseOp(vm: VM): void {
 export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
-  const target = vm.pop(); // Pop target (LIST or STACK_REF)
+  const target = vm.pop();
   const tag = getTag(target);
 
   if (tag === Tag.LIST) {
-    // Current behavior: stack-relative addressing
     const slotCount = getListLength(target);
 
-    // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(NIL);
       return;
     }
 
     if (slotCount === 0) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(NIL);
       return;
     }
 
     let defaultValueAddr = -1;
 
-    // Search through key-value pairs (stack-relative)
-    // After popping header: slot 0 at SP-4, slot 1 at SP-8, etc.
     for (let i = 0; i < slotCount; i += 2) {
       const keyAddr = vm.SP - CELL_SIZE - i * CELL_SIZE;
       const valueAddr = vm.SP - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
 
-      // Check for exact key match
       if (currentKey === key) {
-        vm.push(target); // Restore target
+        vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));
         return;
       }
 
-      // Check for 'default' key (special fallback semantics)
       const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
       if (keyTag === Tag.STRING) {
         const keyStr = vm.digest.get(keyValue);
@@ -865,60 +770,52 @@ export function findOp(vm: VM): void {
       }
     }
 
-    // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(defaultValueAddr);
       return;
     }
 
-    // No key match and no default - return NIL
-    vm.push(target); // Restore target
+    vm.push(target);
     vm.push(NIL);
   } else if (tag === Tag.STACK_REF) {
-    // New behavior: memory-based addressing
     const { address: baseAddr, segment } = resolveReference(vm, target);
     const header = vm.memory.readFloat32(segment, baseAddr);
 
     if (!isList(header)) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(NIL);
       return;
     }
 
     const slotCount = getListLength(header);
 
-    // Maplist must have even number of slots (key-value pairs)
     if (slotCount % 2 !== 0) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(NIL);
       return;
     }
 
     if (slotCount === 0) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(NIL);
       return;
     }
 
     let defaultValueAddr = -1;
 
-    // Search through key-value pairs (memory-relative)
-    // Slots are at: baseAddr-4, baseAddr-8, baseAddr-12, etc.
     for (let i = 0; i < slotCount; i += 2) {
       const keyAddr = baseAddr - CELL_SIZE - i * CELL_SIZE;
       const valueAddr = baseAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
-      // Check for exact key match
       if (currentKey === key) {
-        vm.push(target); // Restore target
+        vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));
         return;
       }
 
-      // Check for 'default' key (special fallback semantics)
       const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
       if (keyTag === Tag.STRING) {
         const keyStr = vm.digest.get(keyValue);
@@ -928,19 +825,16 @@ export function findOp(vm: VM): void {
       }
     }
 
-    // Key not found - check for default fallback
     if (defaultValueAddr !== -1) {
-      vm.push(target); // Restore target
+      vm.push(target);
       vm.push(defaultValueAddr);
       return;
     }
 
-    // No key match and no default - return NIL
-    vm.push(target); // Restore target
+    vm.push(target);
     vm.push(NIL);
   } else {
-    // Invalid target type
-    vm.push(target); // Restore target
+    vm.push(target);
     vm.push(NIL);
   }
 }
@@ -955,43 +849,36 @@ export function findOp(vm: VM): void {
  */
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
-  const header = vm.pop(); // Pop header like other operations
-
+  const header = vm.pop();
   if (!isList(header)) {
-    vm.push(header); // Restore header
+    vm.push(header);
     vm.push(NIL);
     return;
   }
 
   const slotCount = getListLength(header);
 
-  // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
-    vm.push(header); // Restore header
+    vm.push(header);
     vm.push(NIL);
     return;
   }
 
-  // Restore the header first
   vm.push(header);
 
   if (slotCount === 0) {
-    // Empty maplist - return empty list
     vm.push(toTaggedValue(0, Tag.LIST));
     return;
   }
 
   const keyCount = slotCount / 2;
 
-  // Extract keys from even positions (0, 2, 4, ...)
-  // After restoring header: slot 0 at SP-8, slot 2 at SP-16, etc.
   for (let i = keyCount - 1; i >= 0; i--) {
     const keyAddr = vm.SP - CELL_SIZE - i * 2 * CELL_SIZE;
     const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
     vm.push(keyValue);
   }
 
-  // Push LIST header for keys
   vm.push(toTaggedValue(keyCount, Tag.LIST));
 }
 
@@ -1005,43 +892,36 @@ export function keysOp(vm: VM): void {
  */
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
-  const header = vm.pop(); // Pop header like other operations
-
+  const header = vm.pop();
   if (!isList(header)) {
-    vm.push(header); // Restore header
+    vm.push(header);
     vm.push(NIL);
     return;
   }
 
   const slotCount = getListLength(header);
 
-  // Maplist must have even number of slots
   if (slotCount % 2 !== 0) {
-    vm.push(header); // Restore header
+    vm.push(header);
     vm.push(NIL);
     return;
   }
 
-  // Restore the header first
   vm.push(header);
 
   if (slotCount === 0) {
-    // Empty maplist - return empty list
     vm.push(toTaggedValue(0, Tag.LIST));
     return;
   }
 
   const valueCount = slotCount / 2;
 
-  // Extract values from odd positions (1, 3, 5, ...)
-  // After restoring header: slot 1 at SP-12, slot 3 at SP-20, etc.
   for (let i = valueCount - 1; i >= 0; i--) {
     const valueAddr = vm.SP - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
     const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
     vm.push(valueValue);
   }
 
-  // Push LIST header for values
   vm.push(toTaggedValue(valueCount, Tag.LIST));
 }
 
@@ -1055,17 +935,13 @@ export function valuesOp(vm: VM): void {
  */
 export function refOp(vm: VM): void {
   vm.ensureStackSize(1, 'ref');
-  const value = vm.peek(); // Don't pop - list stays on stack
+  const value = vm.peek();
   const tag = getTag(value);
 
   if (tag === Tag.LIST) {
-    // Create STACK_REF pointing to the list header at TOS
-    const headerCellIndex = (vm.SP - 4) / 4; // SP-4 is current TOS address
+    const headerCellIndex = (vm.SP - 4) / 4;
     const stackRef = createStackRef(headerCellIndex);
     vm.push(stackRef);
-  } else {
-    // Pass through non-LIST values unchanged (including existing refs)
-    // No-op: value already on stack
   }
 }
 
@@ -1083,29 +959,21 @@ export function unrefOp(vm: VM): void {
   const value = vm.pop();
 
   if (isRef(value)) {
-    // Materialize reference
     const { address, segment } = resolveReference(vm, value);
     const referencedValue = vm.memory.readFloat32(segment, address);
 
     if (getTag(referencedValue) === Tag.LIST) {
-      // Compound value: materialize entire structure
       const slotCount = getListLength(referencedValue);
 
-      // Copy compound structure: payload slots first, then header
-      // Storage pattern: [elem0, elem1, ..., elem(n-1), header]
-      // Elements are at: address - n*4, address - (n-1)*4, ..., address - 4
       for (let i = 0; i < slotCount; i++) {
         const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * CELL_SIZE);
         vm.push(slotValue);
       }
-      // Push header last (becomes TOS)
       vm.push(referencedValue);
     } else {
-      // Simple value: direct copy
       vm.push(referencedValue);
     }
   } else {
-    // Pass through non-reference values unchanged
     vm.push(value);
   }
 }
