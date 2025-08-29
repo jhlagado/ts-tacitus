@@ -176,6 +176,7 @@ function safeStackOperation(vm: VM, operation: () => void, operationName: string
 
 /**
  * Implements the dup (duplicate) operation.
+ * Stack effect: ( a — a a )
  * Duplicates the top element of the stack, handling both simple values and complex data structures.
  */
 export const dupOp: Verb = (vm: VM) => {
@@ -187,6 +188,7 @@ export const dupOp: Verb = (vm: VM) => {
 
 /**
  * Implements the over operation.
+ * Stack effect: ( a b — a b a )
  * Copies the second element on the stack to the top, preserving the original.
  */
 export const overOp: Verb = (vm: VM) => {
@@ -212,6 +214,7 @@ export const overOp: Verb = (vm: VM) => {
 
 /**
  * Implements the pick operation.
+ * Stack effect: ( ... n — ... copy_of_nth )
  * Copies an element from a specific depth in the stack to the top.
  */
 export const pickOp: Verb = (vm: VM) => {
@@ -233,6 +236,7 @@ export const pickOp: Verb = (vm: VM) => {
 
 /**
  * Implements the drop operation.
+ * Stack effect: ( a — )
  * Removes the top element from the stack. If the top element is a list, removes the entire list structure.
  */
 export const dropOp: Verb = (vm: VM) => {
@@ -249,6 +253,7 @@ export const dropOp: Verb = (vm: VM) => {
 
 /**
  * Implements the swap operation.
+ * Stack effect: ( a b — b a )
  * Exchanges the top two elements on the stack.
  */
 export const swapOp: Verb = (vm: VM) => {
@@ -280,6 +285,7 @@ export const swapOp: Verb = (vm: VM) => {
 
 /**
  * Implements the rot (rotate) operation.
+ * Stack effect: ( a b c — b c a )
  * Rotates the top three elements on the stack, moving the third element to the top.
  */
 export const rotOp: Verb = (vm: VM) => {
@@ -311,6 +317,7 @@ export const rotOp: Verb = (vm: VM) => {
 
 /**
  * Implements the revrot (reverse rotate) operation.
+ * Stack effect: ( a b c — c a b )
  * Performs a reverse rotation of the top three elements on the stack.
  */
 export const revrotOp: Verb = (vm: VM) => {
@@ -341,6 +348,7 @@ export const revrotOp: Verb = (vm: VM) => {
 
 /**
  * Implements the nip operation.
+ * Stack effect: ( a b — b )
  * Removes the second element from the top of the stack (NOS - Next On Stack).
  */
 export const nipOp: Verb = (vm: VM) => {
@@ -371,6 +379,7 @@ export const nipOp: Verb = (vm: VM) => {
 
 /**
  * Implements the tuck operation.
+ * Stack effect: ( a b — b a b )
  * Duplicates the top element and inserts the copy under the second element.
  */
 export const tuckOp: Verb = (vm: VM) => {
