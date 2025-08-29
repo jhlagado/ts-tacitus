@@ -3,7 +3,9 @@
  * Utility functions for formatting Tacit VM values.
  */
 import { VM } from './vm';
-import { fromTaggedValue, Tag } from './tagged';
+import { fromTaggedValue, Tag, isRef, getTag } from './tagged';
+import { resolveReference } from './refs';
+import { getListLength } from './list';
 
 /**
  * Formats float with reasonable precision.
@@ -122,6 +124,24 @@ function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string 
  * @returns Formatted string representation
  */
 export function formatValue(vm: VM, value: number): string {
+  // Handle references polymorphically like lengthOp does
+  if (isRef(value)) {
+    const { address, segment } = resolveReference(vm, value);
+    const header = vm.memory.readFloat32(segment, address);
+    if (getTag(header) === Tag.LIST) {
+      const slotCount = getListLength(header);
+      const baseAddr = address - slotCount * 4;
+      // Build stack representation and use existing formatListAtImpl
+      const stackRepr: number[] = [];
+      for (let i = 0; i < slotCount; i++) {
+        stackRepr.push(vm.memory.readFloat32(segment, baseAddr + i * 4));
+      }
+      stackRepr.push(header);
+      return formatListAtImpl(vm, stackRepr, stackRepr.length - 1);
+    }
+    return formatAtomicValue(vm, header);
+  }
+  
   const stack = vm.getStackData();
   const { tag, value: tagValue } = fromTaggedValue(value);
 

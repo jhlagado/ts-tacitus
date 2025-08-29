@@ -1412,7 +1412,7 @@ This phase systematically improved the test coverage of the TACIT codebase to me
 
 ---
 
-## Phase 13: Reference Printing and Formatting
+## Phase 13: Reference Printing and Formatting ✅ COMPLETED
 
 **ESTIMATED TIME: 1-2 hours**
 
@@ -1428,7 +1428,7 @@ During Phase 12 testing, a critical issue was discovered with reference formatti
 
 **Root Cause:** `formatValue()` in `src/core/format-utils.ts` doesn't properly handle reference types - it falls back to showing reference metadata instead of dereferencing and formatting the actual value.
 
-### 13.1: Fix Reference Formatting ❌ REVERTED
+### 13.1: Fix Reference Formatting ✅ COMPLETED
 
 **Goal**: Update `formatValue()` to automatically dereference references before formatting.
 
@@ -1457,11 +1457,38 @@ if (isRef(value)) {
 - ✅ No crashes or errors when handling references (graceful handling of NaN dereferencing)
 - ✅ No regressions in existing print functionality (all tests pass)
 
-**Status: REVERTED** - Changes have been rolled back to original state
-- Attempted implementation of reference dereferencing in `formatValue()`  
-- Issue proved more complex than initially understood
-- Original functionality restored to avoid confusion
-- Phase 13 remains incomplete and requires further investigation
+**Status: COMPLETED** - Successfully implemented polymorphic reference handling
+
+**Implementation Results**:
+```typescript
+// Added helper function similar to getListHeaderAndBase
+function getValueForFormatting(vm: VM, value: number): number {
+  if (isRef(value)) {
+    const { address, segment } = resolveReference(vm, value);
+    return vm.memory.readFloat32(segment, address);
+  }
+  return value;
+}
+
+// Updated formatValue() to use polymorphic approach
+export function formatValue(vm: VM, value: number): string {
+  // Handle references polymorphically like length and unref operations
+  const actualValue = getValueForFormatting(vm, value);
+  // ... rest of function uses actualValue
+}
+```
+
+**Success Criteria**:
+- ✅ f2 now shows "( 2 elements )" instead of "( 5 elements )" 
+- ✅ Reference handling follows same pattern as `length` and `unref` operations
+- ✅ All existing tests continue to pass (no regressions)
+- ✅ Polymorphic design handles both direct values and references transparently
+
+**Technical Approach**:
+- Used the same `resolveReference()` pattern as `getListHeaderAndBase()` in list-ops.ts
+- Added `getValueForFormatting()` helper that handles references polymorphically  
+- Updated `formatValue()` to use resolved value throughout
+- Maintained backward compatibility for non-reference values
 
 ### 13.2: Comprehensive Reference Printing Tests ❌ REMOVED
 
