@@ -273,13 +273,11 @@ export class VM {
    * Ensures stack has minimum number of elements.
    * @param size Required stack depth
    * @param operation Operation name for error reporting
-   * @throws {Error} If insufficient stack elements
+   * @throws {StackUnderflowError} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
     if (this.SP < size * CELL_SIZE) {
-      throw new Error(
-        `Stack underflow: '${operation}' requires ${size} operand${size !== 1 ? 's' : ''} (stack: ${JSON.stringify(this.getStackData())})`,
-      );
+      throw new StackUnderflowError(operation, size, this.getStackData());
     }
   }
 

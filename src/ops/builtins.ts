@@ -73,7 +73,7 @@ import {
   
 } from './math-ops';
 import { recipOp, floorOp, notOp } from './math-ops';
-import { mEnlistOp, findOp, keysOp, valuesOp } from './list-ops';
+import { enlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
@@ -90,7 +90,7 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import { concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
+import { concatOp, tailOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -233,7 +233,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       notOp(vm);
       break;
     case Op.Enlist:
-      mEnlistOp(vm);
+      enlistOp(vm);
       break;
     case Op.Dup:
       dupOp(vm);
@@ -355,10 +355,10 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       concatOp(vm);
       break;
     case Op.Tail:
-      dropHeadOp(vm);
+      tailOp(vm);
       break;
     case Op.DropHead:
-      dropHeadOp(vm);
+      tailOp(vm);
       break;
     case Op.PushSymbolRef:
       pushSymbolRefOp(vm);

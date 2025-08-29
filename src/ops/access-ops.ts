@@ -14,6 +14,8 @@ import { Verb } from '../core/types';
 import { NIL } from '../core/tagged';
 import { evalOp } from './core-ops';
 import { getListLength, isList } from '../core/list';
+import { SEG_STACK } from '../core/constants';
+import { isRef, resolveReference } from '../core/refs';
 
 /**
  * Get combinator: path-based value access
@@ -63,16 +65,33 @@ export const getOp: Verb = (vm: VM) => {
       return;
     }
 
-    // Search for key in maplist (basic implementation)
-    for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = vm.SP - 8 - i * 4; // target at SP-4, first key at SP-8
-      const valueAddr = keyAddr - 4;
-      const currentKey = vm.memory.readFloat32(0, keyAddr);
+    // Search for key in maplist - handle both stack and reference cases
+    if (isRef(target)) {
+      // Target is a reference - resolve and read from proper segment
+      const { address, segment } = resolveReference(vm, target);
+      for (let i = 0; i < slotCount; i += 2) {
+        const keyAddr = address - (slotCount - i) * 4;
+        const valueAddr = keyAddr - 4;
+        const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
-      if (currentKey === key) {
-        const value = vm.memory.readFloat32(0, valueAddr);
-        vm.push(value);
-        return;
+        if (currentKey === key) {
+          const value = vm.memory.readFloat32(segment, valueAddr);
+          vm.push(value);
+          return;
+        }
+      }
+    } else {
+      // Target is stack-based list - read from stack segment
+      for (let i = 0; i < slotCount; i += 2) {
+        const keyAddr = vm.SP - 8 - i * 4; // target at SP-4, first key at SP-8
+        const valueAddr = keyAddr - 4;
+        const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
+
+        if (currentKey === key) {
+          const value = vm.memory.readFloat32(SEG_STACK, valueAddr);
+          vm.push(value);
+          return;
+        }
       }
     }
 
