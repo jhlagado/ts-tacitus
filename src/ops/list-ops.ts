@@ -11,7 +11,7 @@ import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
-import { dropOp } from './stack-ops';
+import { dropOp, findElement, cellsCopy, cellsReverse, swapOp } from './stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
 
 const CELL_SIZE = 4;
@@ -205,6 +205,125 @@ export function concatOp(vm: VM): void {
   // Create new header with combined slot count
   // The payload slots should already be properly arranged on the stack
   vm.push(toTaggedValue(sA + sB, Tag.LIST));
+}
+
+/**
+ * Polymorphic concatenation operation (experimental).
+ * Stack effect: ( a b — result )
+ * Dispatches to optimal implementation based on argument types:
+ * - simple + simple → create 2-element list
+ * - list + simple → O(1) append (increment header) 
+ * - simple + list → O(n) prepend
+ * - list + list → O(n) concatenate
+ */
+export function ccatOp(vm: VM): void {
+  vm.ensureStackSize(2, 'ccat');
+  
+  // Analyze arguments without popping using findElement
+  const [, rhsSize] = findElement(vm, 0);
+  const [, lhsSize] = findElement(vm, rhsSize);
+
+  // Helper to peek a value at slot offset from TOS (0 = TOS)
+  const peekBySlots = (offsetSlots: number): number => {
+    const addr = vm.SP - (offsetSlots + 1) * CELL_SIZE;
+    return vm.memory.readFloat32(SEG_STACK, addr);
+  };
+
+  // Determine structural types using tags, not just slot size (to distinguish LIST:0)
+  const rhsHeaderVal = peekBySlots(0);
+  const lhsHeaderVal = peekBySlots(rhsSize);
+  const rhsIsList = isList(rhsHeaderVal);
+  const lhsIsList = isList(lhsHeaderVal);
+  const rhsIsSimple = !rhsIsList && rhsSize === 1;
+  const lhsIsSimple = !lhsIsList && lhsSize === 1;
+
+  if (lhsIsSimple && rhsIsSimple) {
+    ccatSimpleSimple(vm);
+    return;
+  }
+
+  if (!lhsIsSimple && rhsIsSimple) {
+    // list + simple
+    const lhsHeader = peekBySlots(rhsSize);
+    if (!isList(lhsHeader)) {
+      vm.pop(); vm.pop();
+      vm.push(NIL);
+      return;
+    }
+
+    const currentSlots = getListLength(lhsHeader);
+    if (currentSlots === 0) {
+      // ( ) x -> ( x )
+      const simple = vm.pop();
+      vm.pop();
+      vm.push(simple);
+      vm.push(toTaggedValue(1, Tag.LIST));
+      return;
+    }
+
+    // Non-empty: swap elements, bump header
+    swapOp(vm);
+    vm.pop();
+    vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));
+    return;
+  }
+
+  if (lhsIsSimple && !rhsIsSimple) {
+    // simple + list
+    const rhsHeader = peekBySlots(0);
+    if (!isList(rhsHeader)) {
+      vm.pop(); vm.pop();
+      vm.push(NIL);
+      return;
+    }
+    ccatSimpleList(vm);
+    return;
+  }
+
+  // list + list
+  if (lhsIsList && rhsIsList) {
+    concatOp(vm);
+  } else {
+    vm.pop(); vm.pop();
+    vm.push(NIL);
+  }
+}
+
+/**
+ * Sub-operation: simple + simple → create 2-element list
+ */
+function ccatSimpleSimple(vm: VM): void {
+  const rhs = vm.pop(); // second arg (3 in "5 3 ccat")  
+  const lhs = vm.pop(); // first arg (5 in "5 3 ccat")
+  // For "5 3 ccat" we want result like "( 5 3 )" which is [3, 5, NaN]
+  // List structure: deepest element is first element of list
+  vm.push(rhs); // push 3 first (deepest, shows as index 0 in array)
+  vm.push(lhs); // push 5 second (shows as index 1 in array)  
+  vm.push(toTaggedValue(2, Tag.LIST));
+}
+
+/**
+ * Sub-operation: simple + list → O(n) prepend 
+ */
+function ccatSimpleList(vm: VM): void {
+  // Goal: 5   2 1 LIST:2   ->   2 1 5 LIST:3
+  // Strategy: swap top two, then pop/push to insert simple at bottom
+  
+  const rhsHeaderAddr = vm.SP - CELL_SIZE;  // TOS is header of RHS list
+  const rhsHeader = vm.memory.readFloat32(SEG_STACK, rhsHeaderAddr);
+  const currentSlots = getListLength(rhsHeader);
+  
+  // Use swapOp to swap simple and list: 5 (2 1 LIST:2) -> (2 1 LIST:2) 5  
+  swapOp(vm);
+  
+  // Now stack is: 2 1 LIST:2   5
+  const simple = vm.pop();    // pop 5
+  const header = vm.pop();    // pop LIST:2
+  
+  // Stack now: 2 1 (payload remains)
+  // Push simple (goes to bottom), then new header
+  vm.push(simple);                              // 2 1 5
+  vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));  // 2 1 5 LIST:3
 }
 
 /**

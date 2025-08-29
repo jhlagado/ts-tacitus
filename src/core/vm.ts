@@ -119,6 +119,21 @@ export class VM {
   }
 
   /**
+   * Peeks at a value at a specific slot offset from the top of the stack.
+   * @param slotOffset Number of slots from the top (0 = top, 1 = second from top, etc.)
+   * @returns The value at the specified offset
+   * @throws {StackUnderflowError} If the stack doesn't have enough values
+   */
+  peekAt(slotOffset: number): number {
+    const requiredCells = slotOffset + 1;
+    if (this.SP < requiredCells * CELL_SIZE) {
+      throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
+    }
+
+    return this.memory.readFloat32(SEG_STACK, this.SP - (slotOffset + 1) * CELL_SIZE);
+  }
+
+  /**
    * Pops multiple values from the stack.
    * @param size Number of values to pop
    * @returns Array of values in stack order

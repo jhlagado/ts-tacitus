@@ -93,6 +93,7 @@ import {
 import {
   consOp,
   concatOp,
+  ccatOp,
   dropHeadOp,
   packOp,
   unpackOp,
@@ -369,6 +370,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Concat:
       concatOp(vm);
+      break;
+    case Op.Ccat:
+      ccatOp(vm);
       break;
     case Op.Tail:
       dropHeadOp(vm);

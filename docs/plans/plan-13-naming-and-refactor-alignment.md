@@ -62,10 +62,10 @@ Status: ✅ COMPLETED
 
 ## Phase 6: List Semantics Discussion (Low Priority)
 
-6.1 Write a short design note on list semantics for `concat` and `cons` (edge cases, fallback behavior).  
-6.2 Align ops after discussion (if needed); add/adjust tests accordingly.
+6.1 ✅ Write a short design note on list semantics for `concat` and `cons` (edge cases, fallback behavior).  
+6.2 ✅ Implement experimental polymorphic `ccat` with O(1) append optimization.
 
-Status: ⭕ PENDING
+Status: ✅ COMPLETED (Core functionality proven)
 
 ## Phase 4: Stack Ops Naming Polish
 

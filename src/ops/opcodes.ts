@@ -147,6 +147,9 @@ export enum Op {
   /**  Concatenates two lists. */
   Concat,
 
+  /**  Polymorphic concatenation (experimental). */
+  Ccat,
+
   /**  Removes first element from list (O(1)). */
   Tail,
 
