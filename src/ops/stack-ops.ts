@@ -45,7 +45,7 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
  * @param startSlot Starting slot index
  * @param slotCount Number of slots to copy
  */
-export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
+export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) return;
 
   const startAddr = startSlot * CELL_SIZE;
@@ -65,7 +65,7 @@ export function slotsCopy(vm: VM, startSlot: number, slotCount: number): void {
  * @param startSlot - The starting slot index (0-based, relative to the stack top).
  * @param slotCount - The number of slots to reverse.
  */
-export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void {
+export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) return;
 
   const startAddr = startSlot * CELL_SIZE;
@@ -94,16 +94,16 @@ export function slotsReverse(vm: VM, startSlot: number, slotCount: number): void
  * @param rangeSize - The number of slots in the range to rotate.
  * @param shiftSlots - The number of positions to rotate (positive for right rotation, negative for left).
  */
-export function slotsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
+export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
 
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
   if (normalizedShift === 0) return;
 
   const splitPoint = rangeSize - normalizedShift;
-  slotsReverse(vm, startSlot, splitPoint);
-  slotsReverse(vm, startSlot + splitPoint, normalizedShift);
-  slotsReverse(vm, startSlot, rangeSize);
+  cellsReverse(vm, startSlot, splitPoint);
+  cellsReverse(vm, startSlot + splitPoint, normalizedShift);
+  cellsReverse(vm, startSlot, rangeSize);
 }
 
 // ============================================================================
@@ -182,7 +182,7 @@ export const dupOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'dup');
 
   const [tosStartSlot, tosSize] = findElementAtIndex(vm, 0);
-  slotsCopy(vm, tosStartSlot, tosSize);
+  cellsCopy(vm, tosStartSlot, tosSize);
 };
 
 /**
@@ -225,7 +225,7 @@ export const pickOp: Verb = (vm: VM) => {
 
   try {
     const [targetSlot, targetSize] = findElementAtIndex(vm, index);
-    slotsCopy(vm, targetSlot, targetSize);
+    cellsCopy(vm, targetSlot, targetSize);
   } catch {
     throw new Error(`Stack underflow in pick operation`);
   }
@@ -264,7 +264,7 @@ export const swapOp: Verb = (vm: VM) => {
     const stackLength = vm.SP / CELL_SIZE;
     const startSlot = stackLength - totalSlots;
 
-    slotsRoll(vm, startSlot, totalSlots, topSlots);
+    cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
     vm.SP = originalSP;
     if (error instanceof VMError) {
@@ -295,7 +295,7 @@ export const rotOp: Verb = (vm: VM) => {
     const totalSlots = topSlots + midSlots + bottomSlots;
     const rotationSlots = midSlots + topSlots;
 
-    slotsRoll(vm, 0, totalSlots, rotationSlots);
+    cellsRoll(vm, 0, totalSlots, rotationSlots);
   } catch (error) {
     vm.SP = originalSP;
     if (error instanceof VMError) {
@@ -325,7 +325,7 @@ export const revrotOp: Verb = (vm: VM) => {
 
     const totalSlots = topSlots + midSlots + bottomSlots;
 
-    slotsRoll(vm, 0, totalSlots, topSlots);
+    cellsRoll(vm, 0, totalSlots, topSlots);
   } catch (error) {
     vm.SP = originalSP;
     if (error instanceof VMError) {

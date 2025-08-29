@@ -22,7 +22,7 @@ Systematically align naming with TACIT language words, remove duplication, and c
   - Recommendation: Add in‑file spec references; tighten `concat` to explicit construction or add tests locking current behavior.
 
 - ops/stack-ops
-  - Internal helpers: `slotsCopy`, `slotsReverse`, `slotsRoll`, `findElementAtIndex` — consistent internally but consider renaming to “cells” or “elements” per TACIT wording. Add brief docstrings (stack‑effect intent) for each public op.
+  - Internal helpers: `cellsCopy`, `cellsReverse`, `cellsRoll`, `findElementAtIndex` — consistent internally but consider renaming to “cells” or “elements” per TACIT wording. Add brief docstrings (stack‑effect intent) for each public op.
 
 - core/refs.ts vs core/tagged.ts
   - Overlap: `isRef`/`isStackRef`/`isLocalRef`/`isGlobalRef` appear in both; prefer `core/refs` as the runtime reference hub; keep tag constants in `tagged` only.
@@ -32,32 +32,31 @@ Systematically align naming with TACIT language words, remove duplication, and c
   - Status: `getOp` partial; `setOp` stub; not spec‑compliant; slated in Plan 12, Phases 3–4.
   - Recommendation: No naming action yet; complete implementation first.
 
-## Phase 1: Math Ops Consolidation 
+## Phase 1: Math Ops Consolidation
 
-1.5 ✅ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.  
- 
+1.5 ✅ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.
 
 1.1 ✅ Canonical verbs decided: `add`, `sub`, `mul`, `div`, `pow`, `mod`, `min`, `max`, `abs`, `neg`, `sign`, `exp`, `ln`, `log`, `sqrt`.  
 1.2 ✅ Remove duplicates: drop `prodOp`, `mNegateOp`, `mSignumOp`, `powerOp` (prefer `powOp`).  
 1.3 ✅ Ensure ensureStackSize messages match op names (e.g., `min`, `max`).  
 1.4 ✅ Update `builtins-register.ts` imports/exports accordingly; run tests.  
-1.5 ✅ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.  
+1.5 ✅ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.
 
 Status: ✅ COMPLETED
 
-## Phase 2: Formatting Single‑Source of Truth 
+## Phase 2: Formatting Single‑Source of Truth
 
 2.1 ✅ Make `core/utils` formatter delegate to `core/format-utils` or remove duplicate.  
 2.2 ✅ Rename `formatAndConsumeListFromHeaderValue` → `formatListFromHeader` (internal).  
 2.3 ✅ Enforce quoted strings per Plan 12 (D1) and add tests for escapes.  
-2.4 ✅ Rename debug builtin from `print` → `raw` (keep human `.` unchanged). Update registration and docs; adjust any tests invoking `print`.  
+2.4 ✅ Rename debug builtin from `print` → `raw` (keep human `.` unchanged). Update registration and docs; adjust any tests invoking `print`.
 
 Status: ✅ COMPLETED
 
-## Phase 3: List Ops Clarity & Safety 
+## Phase 3: List Ops Clarity & Safety
 
 3.1 ✅ Add spec references to `lengthOp`/`sizeOp` docstrings (slots vs elements).  
-3.2 ✅ Document `concat` invariant: requires two contiguous lists; if either input is not a list, fall back semantics (e.g., `cons`) may apply. Add tests that lock current invariant.  
+3.2 ✅ Document `concat` invariant: requires two contiguous lists; if either input is not a list, fall back semantics (e.g., `cons`) may apply. Add tests that lock current invariant.
 
 Status: ✅ COMPLETED
 
@@ -68,36 +67,36 @@ Status: ✅ COMPLETED
 
 Status: ⭕ PENDING
 
-## Phase 4: Stack Ops Naming Polish 
+## Phase 4: Stack Ops Naming Polish
 
-4.1 Consider `slotsCopy` → `cellsCopy` or `elementsCopy` for clarity; similarly for `slotsReverse`/`slotsRoll`.  
-4.2 Add succinct docstrings for user‑facing ops (`dup`, `swap`, `rot`, etc.) referencing stack‑effects.  
+4.1 Consider `cellsCopy` → `cellsCopy` or `elementsCopy` for clarity; similarly for `cellsReverse`/`cellsRoll`.  
+4.2 Add succinct docstrings for user‑facing ops (`dup`, `swap`, `rot`, etc.) referencing stack‑effects.
 
 Status: ⭕ PENDING
 
-## Phase 5: Refs/Tagged Separation 
+## Phase 5: Refs/Tagged Separation
 
 5.1 Move/refactor reference type guards to `core/refs` and re‑export if needed; deprecate duplicates in `tagged`.  
-5.2 Add small tests verifying guards’ single source and behavior parity.  
+5.2 Add small tests verifying guards’ single source and behavior parity.
 
 Status: ⭕ PENDING
 
 ## Non‑Goals
 
-- Do not change op semantics.  
-- Do not implement access ops here (covered in Plan 12).  
+- Do not change op semantics.
+- Do not implement access ops here (covered in Plan 12).
 - No API churn beyond renames/refactors above.
 
 ## Testing Protocol
 
-- Update or add focused unit tests after each rename/consolidation.  
-- Run full suite (`yarn test`) after every step.  
+- Update or add focused unit tests after each rename/consolidation.
+- Run full suite (`yarn test`) after every step.
 - Behavioral tests only for tagged values (NaN‑boxing caveat).
 
 ## Acceptance Criteria
 
-- No duplicate math ops remain; canonical naming matches TACIT words.  
-- One formatter source with consistent string quoting.  
-- List ops documented and `concat` behavior locked by tests.  
-- Stack ops helpers/names clarified without behavior drift.  
+- No duplicate math ops remain; canonical naming matches TACIT words.
+- One formatter source with consistent string quoting.
+- List ops documented and `concat` behavior locked by tests.
+- Stack ops helpers/names clarified without behavior drift.
 - Reference guards live in one place.
