@@ -230,9 +230,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.GreaterOrEqual:
       greaterOrEqualOp(vm);
       break;
-    case Op.Match:
-      equalOp(vm);
-      break;
+    
     case Op.Mod:
       modOp(vm);
       break;
