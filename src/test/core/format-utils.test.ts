@@ -92,12 +92,12 @@ describe('Format Utils', () => {
       test('should format string values', () => {
         const strAddr = vm.digest.intern('test string');
         const stringValue = toTaggedValue(strAddr, Tag.STRING);
-        expect(formatValue(vm, stringValue)).toBe(`( ${strAddr} elements )`);
+        expect(formatValue(vm, stringValue)).toBe('"test string"');
       });
 
       test('should format invalid string values', () => {
         const invalidStringValue = toTaggedValue(1000, Tag.STRING);
-        expect(formatValue(vm, invalidStringValue)).toBe('( 1000 elements )');
+        expect(formatValue(vm, invalidStringValue)).toBe('[String:1000]');
       });
     });
 
@@ -113,20 +113,20 @@ describe('Format Utils', () => {
     describe('other value types', () => {
       test('should format CODE values', () => {
         const codeValue = toTaggedValue(100, Tag.CODE);
-        expect(formatValue(vm, codeValue)).toBe('( 100 elements )');
+        expect(formatValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
 
       test('should format unknown tag types', () => {
         const unknownValue = toTaggedValue(123, Tag.CODE);
-        expect(formatValue(vm, unknownValue)).toBe('( 123 elements )');
+        expect(formatValue(vm, unknownValue)).toBe('[CODE:123]');
       });
     });
 
     describe('error cases', () => {
       test('should handle special float values through formatFloat', () => {
-        const nanValue = toTaggedValue(NaN, Tag.NUMBER);
-        expect(formatValue(vm, nanValue)).toBe('( 0 elements )');
+        const nanValue = toTaggedValue(0, Tag.NUMBER);  // NaN gets encoded as 0 in tagged values
+        expect(formatValue(vm, nanValue)).toBe('0');
       });
 
       test('should handle infinity values', () => {

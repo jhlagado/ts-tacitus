@@ -10,10 +10,10 @@ import { initializeInterpreter } from '../../../core/globalState';
 describe('List Creation Operations', () => {
   beforeEach(() => {
     // Ensure completely clean state to avoid test isolation issues
-    try { initializeInterpreter(); } catch {}
-    try { resetVM(); } catch {}
-    try { initializeInterpreter(); } catch {}
-    try { resetVM(); } catch {}
+    try { initializeInterpreter(); } catch { /* ignore */ }
+    try { resetVM(); } catch { /* ignore */ }
+    try { initializeInterpreter(); } catch { /* ignore */ }
+    try { resetVM(); } catch { /* ignore */ }
   });
 
   describe('simple values', () => {
