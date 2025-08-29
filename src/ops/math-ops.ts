@@ -35,12 +35,6 @@ export const divideOp: Verb = (vm: VM) => {
   vm.push(a / b);
 };
 
-export const powerOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'pow');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(Math.pow(a, b));
-};
 
 export const modOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'mod');

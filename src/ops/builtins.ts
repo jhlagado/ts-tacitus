@@ -54,7 +54,6 @@ import {
   subtractOp,
   multiplyOp,
   divideOp,
-  powerOp,
   modOp,
   minOp,
   maxOp,
@@ -210,7 +209,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       divideOp(vm);
       break;
     case Op.Power:
-      powerOp(vm);
+      // Route legacy Power opcode to canonical pow implementation
+      powOp(vm);
       break;
     case Op.Min:
       minOp(vm);
