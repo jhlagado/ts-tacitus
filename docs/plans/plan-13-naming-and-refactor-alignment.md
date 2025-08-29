@@ -48,16 +48,16 @@ Status: ✅ COMPLETED
 ## Phase 2: Formatting Single‑Source of Truth 
 
 2.1 ✅ Make `core/utils` formatter delegate to `core/format-utils` or remove duplicate.  
-2.2 ⭕ Rename `formatAndConsumeListFromHeaderValue` → `formatListFromHeader` (internal).  
-2.3 ⭕ Enforce quoted strings per Plan 12 (D1) and add tests for escapes.  
+2.2 ✅ Rename `formatAndConsumeListFromHeaderValue` → `formatListFromHeader` (internal).  
+2.3 ✅ Enforce quoted strings per Plan 12 (D1) and add tests for escapes.  
 2.4 ✅ Rename debug builtin from `print` → `raw` (keep human `.` unchanged). Update registration and docs; adjust any tests invoking `print`.  
 
-Status: 🔄 IN PROGRESS (2.1, 2.4 completed)
+Status: ✅ COMPLETED
 
 ## Phase 3: List Ops Clarity & Safety 
 
-3.1 Add spec references to `lengthOp`/`sizeOp` docstrings (slots vs elements).  
-3.2 Document `concat` invariant: requires two contiguous lists; if either input is not a list, fall back semantics (e.g., `cons`) may apply. Add tests that lock current invariant.  
+3.1 ✅ Add spec references to `lengthOp`/`sizeOp` docstrings (slots vs elements).  
+3.2 ✅ Document `concat` invariant: requires two contiguous lists; if either input is not a list, fall back semantics (e.g., `cons`) may apply. Add tests that lock current invariant.  
 
 Status: ✅ COMPLETED
 

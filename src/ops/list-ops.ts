@@ -74,6 +74,8 @@ function getListHeaderAndBase(
 
 /**
  * Gets slot count from LIST header.
+ * Returns the total number of stack slots occupied by the list (including nested lists).
+ * See docs/specs/lists.md for slot vs element count semantics.
  * Renamed from slots to length.
  */
 export function lengthOp(vm: VM): void {
@@ -90,6 +92,8 @@ export function lengthOp(vm: VM): void {
 
 /**
  * Returns element count by traversal.
+ * Counts the number of top-level elements in the list (not stack slots).
+ * See docs/specs/lists.md for slot vs element count semantics.
  */
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
@@ -163,7 +167,18 @@ export function dropHeadOp(vm: VM): void {
 }
 
 /**
- * concat: ( listA listB — listC )
+ * Concatenates two lists into a new combined list.
+ * Stack effect: ( listA listB — listC )
+ * 
+ * NOTE: Current implementation is incomplete - only creates combined headers
+ * without properly copying payload data for list-to-list concatenation.
+ * 
+ * Working fallback semantics:
+ * - If listA is not a list: returns NIL
+ * - If listB is not a list: performs cons(listA, listB)
+ * - Empty list cases work correctly
+ * 
+ * See docs/specs/lists.md for list concatenation semantics.
  */
 export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');

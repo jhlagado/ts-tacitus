@@ -36,7 +36,7 @@ describe('Format Utils', () => {
         const testString = 'hello world';
         const stringAddr = vm.digest.intern(testString);
         const stringValue = toTaggedValue(stringAddr, Tag.STRING);
-        expect(formatAtomicValue(vm, stringValue)).toBe(testString);
+        expect(formatAtomicValue(vm, stringValue)).toBe(`"${testString}"`);
       });
 
       test('should handle invalid string addresses', () => {
@@ -49,6 +49,13 @@ describe('Format Utils', () => {
         const stringAddr = vm.digest.intern(emptyString);
         const stringValue = toTaggedValue(stringAddr, Tag.STRING);
         expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`);
+      });
+
+      test('should format strings with escape sequences', () => {
+        const escapedString = 'hello\n"world"\t\\test';
+        const stringAddr = vm.digest.intern(escapedString);
+        const stringValue = toTaggedValue(stringAddr, Tag.STRING);
+        expect(formatAtomicValue(vm, stringValue)).toBe(`"hello\\n\\"world\\"\\t\\\\test"`);
       });
     });
 
@@ -140,7 +147,7 @@ describe('Format Utils', () => {
         vm.push(toTaggedValue(3, Tag.LIST));
         const header = vm.getStackData()[vm.getStackData().length - 1];
         const result = formatValue(vm, header);
-        expect(result).toBe('( hello 42 3.14 )');
+        expect(result).toBe('( "hello" 42 3.14 )');
       });
 
       test('should handle empty containers gracefully', () => {
