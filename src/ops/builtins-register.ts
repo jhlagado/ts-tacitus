@@ -87,7 +87,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('sub', Op.Minus);
   symbolTable.defineBuiltin('mul', Op.Multiply);
   symbolTable.defineBuiltin('div', Op.Divide);
-  symbolTable.defineBuiltin('pow', Op.Power);
+  // Use canonical pow → Op.Pow
   symbolTable.defineBuiltin('mod', Op.Mod);
   symbolTable.defineBuiltin('min', Op.Min);
   symbolTable.defineBuiltin('max', Op.Max);
@@ -97,11 +97,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('ge', Op.GreaterOrEqual);
   symbolTable.defineBuiltin('eq', Op.Equal);
 
-  symbolTable.defineBuiltin('neg', Op.mNegate);
+  // Canonical neg maps to Op.Neg; drop earlier mNegate alias
   symbolTable.defineBuiltin('recip', Op.mReciprocal);
   symbolTable.defineBuiltin('floor', Op.mFloor);
   symbolTable.defineBuiltin('not', Op.mNot);
-  symbolTable.defineBuiltin('signum', Op.mSignum);
+  // Drop legacy alias 'signum'
   symbolTable.defineBuiltin('enlist', Op.mEnlist);
 
   symbolTable.defineBuiltin('dup', Op.Dup);
@@ -122,8 +122,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('log', Op.Log);
   symbolTable.defineBuiltin('sqrt', Op.Sqrt);
   symbolTable.defineBuiltin('pow', Op.Pow);
-  symbolTable.defineBuiltin('avg', Op.Avg);
-  symbolTable.defineBuiltin('prod', Op.Prod);
+  // Drop non-core math ops avg/prod
 
   symbolTable.defineBuiltin('if', Op.SimpleIf);
   symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);

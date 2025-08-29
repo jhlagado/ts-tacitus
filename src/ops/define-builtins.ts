@@ -48,18 +48,18 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.defineBuiltin('div', Op.Divide);
   dict.defineBuiltin('min', Op.Min);
   dict.defineBuiltin('max', Op.Max);
-  dict.defineBuiltin('pow', Op.Power);
+  // Canonical pow mapping provided below
   dict.defineBuiltin('eq', Op.Equal);
   dict.defineBuiltin('lt', Op.LessThan);
   dict.defineBuiltin('le', Op.LessOrEqual);
   dict.defineBuiltin('gt', Op.GreaterThan);
   dict.defineBuiltin('ge', Op.GreaterOrEqual);
   dict.defineBuiltin('mod', Op.Mod);
-  dict.defineBuiltin('neg', Op.mNegate);
+  // Canonical neg mapping provided below
   dict.defineBuiltin('recip', Op.mReciprocal);
   dict.defineBuiltin('floor', Op.mFloor);
   dict.defineBuiltin('not', Op.mNot);
-  dict.defineBuiltin('sign', Op.mSignum);
+  // Canonical sign mapping provided below
   dict.defineBuiltin('enlist', Op.mEnlist);
   dict.defineBuiltin('dup', Op.Dup);
   dict.defineBuiltin('drop', Op.Drop);
@@ -72,8 +72,6 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.defineBuiltin('log', Op.Log);
   dict.defineBuiltin('sqrt', Op.Sqrt);
   dict.defineBuiltin('pow', Op.Pow);
-  dict.defineBuiltin('avg', Op.Avg);
-  dict.defineBuiltin('prod', Op.Prod);
   dict.defineBuiltin('if', Op.If);
   dict.defineBuiltin('rot', Op.Rot);
   dict.defineBuiltin('revrot', Op.RevRot);
