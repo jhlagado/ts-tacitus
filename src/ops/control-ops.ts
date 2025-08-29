@@ -6,7 +6,7 @@
  * Conditional operations allow for control flow based on runtime conditions.
  * The VM supports two main forms of conditionals:
  * 1. The modern IF { ... } ELSE { ... } syntax using conditional jumps
- * 2. The legacy ternary-style if operation (deprecated)
+ * 2. The ternary-style if operation (simpleIfOp)
  *
  * Both approaches evaluate a condition and execute different code paths based on
  * whether the condition is truthy (non-zero) or falsy (zero).
@@ -18,9 +18,8 @@ import { Verb } from '../core/types';
 import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
 
 /**
- * Implements a ternary if operator (legacy version).
+ * Implements a ternary if operator.
  *
- * @deprecated Use the new IF { ... } ELSE { ... } syntax instead
  *
  * Takes three values from the stack:
  * - else-clause (top) - can be code block or a regular value

@@ -90,18 +90,7 @@ import {
   headOp,
   unconsOp,
 } from './list-ops';
-import {
-  consOp,
-  concatOp,
-  ccatOp,
-  dropHeadOp,
-  packOp,
-  unpackOp,
-  reverseOp,
-  makeListOp,
-  refOp,
-  unrefOp,
-} from './list-ops';
+import { concatOp, dropHeadOp, packOp, unpackOp, reverseOp, makeListOp, refOp, unrefOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -209,7 +198,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Divide:
       divideOp(vm);
       break;
-    // Power opcode removed; use Pow
     case Op.Min:
       minOp(vm);
       break;
@@ -235,7 +223,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Mod:
       modOp(vm);
       break;
-    // Op.mNegate removed from vocabulary
     case Op.Recip:
       recipOp(vm);
       break;
@@ -245,7 +232,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Not:
       notOp(vm);
       break;
-    // Op.mSignum removed from vocabulary
     case Op.Enlist:
       mEnlistOp(vm);
       break;
@@ -365,14 +351,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Reverse:
       reverseOp(vm);
       break;
-    case Op.Cons:
-      consOp(vm);
-      break;
     case Op.Concat:
       concatOp(vm);
-      break;
-    case Op.Ccat:
-      ccatOp(vm);
       break;
     case Op.Tail:
       dropHeadOp(vm);

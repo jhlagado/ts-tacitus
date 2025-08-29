@@ -15,12 +15,13 @@ This glossary reflects the current, canonical TACIT specs. Legacy terms (e.g., L
 
 Structural ops
 - enlist ( value — list ): Wrap value as one-element list.
-- cons ( list value — list' ): Prepend value as single element. O(1).
+- concat ( a b — list' ): Polymorphic concatenate.
+  - simple + list → prepend. O(1).
+  - list + simple → append. O(1).
+  - list + list → flat merge. O(n).
 - tail ( list — list' ): Remove head element. O(1).
 - head ( list — head | nil ): Return head element, or nil for empty.
 - uncons ( list — tail head ): Split into tail and head. O(1).
-- append ( list value — list' ): Append value as last element. O(n).
-- concat ( listA listB — listC ): Flat merge; O(n).
 - pack ( item-n … item0 n — list ): Build list from n stack items.
 - unpack ( list — item-n … item0 ): Push elements; inverse of pack (without count).
 

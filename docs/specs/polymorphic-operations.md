@@ -42,7 +42,7 @@ These operations currently treat references as opaque values:
 
 These operations expect LIST values and may need reference support:
 
-**Operations**: `cons`, `head`, `uncons`, `concat`, `pack`, `unpack`, `reverse`, `keys`, `values`
+**Operations**: `concat`, `head`, `uncons`, `pack`, `unpack`, `reverse`, `keys`, `values`
 
 **Current Status**: Unknown - needs audit
 
@@ -83,7 +83,7 @@ RSTACK_REF(3) STACK_REF(8) swap → STACK_REF(8) RSTACK_REF(3)
 **Examples**:
 
 ```tacit
-RSTACK_REF→[1,2,3] cons 4     → RSTACK_REF→[4,1,2,3] (modifies referenced list)
+RSTACK_REF→[1,2,3] 4 concat   → RSTACK_REF→[4,1,2,3] (modifies referenced list)
 STACK_REF→[1,2,3] head       → 1 (returns first element)
 RSTACK_REF→[] uncons          → RSTACK_REF→[] NIL
 ```

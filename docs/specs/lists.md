@@ -265,12 +265,11 @@ while not done:
 11. Traversal rule (type-agnostic span)
 12. Structural operations
   - `enlist`
-  - `cons`
   - `tail`
   - `pack`
   - `unpack`
   - `append`
-  - `concat`
+  - `concat` (polymorphic)
   - `head`
   - `uncons`
 13. Mutation (high-level)
@@ -291,7 +290,7 @@ while not done:
 
 **Stack effect:** `( list value -- list' )`
 **Semantics:** appends `value` (simple or compound) as the last element. Compounds remain intact; the list stays flat.
-**Cost:** O(n). Requires shifting payload to make room at the tail and updating the header. Prefer `cons`/`tail` in hot paths.
+**Cost:** O(n). Requires shifting payload to make room at the tail and updating the header. Prefer `concat` (simple/list) and `tail` in hot paths.
 **Examples**
 
 ```tac
@@ -311,20 +310,22 @@ while not done:
 **Semantics:** splits the list into its tail and head. On empty, returns `( ) nil`.
 **Cost:** O(1): head is read from `SP-1`, tail is built by reducing the header length by the head span.
 
-### concat
+### concat (polymorphic)
 
-**Stack effect:** `( listA listB -- listC )`
-**Semantics:** merge the **elements of `listB`** into `listA` to form a **flat** list.
-**Fallback:** if the second arg is **not** a list, **behave as `cons`**.
-**Mechanics:** increase `sA` by `sB`; shift `listA`’s payload deeper or splice `listB`’s payload as needed; push new header.
-**Cost:** O(n) due to shifting; discouraged on hot paths.
-**Ordering:** list-first ordering `( listA listB -- listC )`.
+**Stack effect:** `( a b -- list' )`
+**Semantics:** polymorphic concatenate.
+- simple + list → prepend
+- list + simple → append
+- list + list → flat merge
+**Mechanics:** for list+list, increase `sA` by `sB`, rebuild payload, and push new header.
+**Cost:** O(1) for simple/list cases; O(n) for list/list.
+**Ordering:** for list+list, list-first `( listA listB -- listC )`.
 
 ---
 
 ## 13. Mutation (high-level)
 
-Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`elem` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `cons` and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
+Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`elem` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `concat` (simple/list) and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
 
 ---
 
@@ -358,7 +359,7 @@ list  sort { cmp }   ->  list'
 ### Complexity (informative)
 
 - Time: O(n log n) comparisons.
-- Space: O(n) (built via `cons` + final `reverse`).
+- Space: O(n) (builder with `concat` + final `reverse`).
 
 ### Examples
 
@@ -411,7 +412,7 @@ This is the list case of the unified `bfind` defined in Access §3.
 - `LIST:0` prints as `( )`.
 - `slots(( )) = 0`, `length(( )) = 0`.
 - `drop` on a list removes the **entire list** (header plus payload) from the stack.
-- `cons` on `LIST:0` yields a one-element list via the normal header rewrite.
+- `concat` on `LIST:0` with a simple value yields a one-element list via the normal header rewrite.
 
 ---
 
@@ -421,9 +422,8 @@ This is the list case of the unified `bfind` defined in Access §3.
 - `length` → O(s)
 - `slot` → O(1)
 - `elem` → O(s)
-- `cons` → O(1)
 - `tail` → O(1)
-- `concat` → O(n)
+- `concat` → O(1) for simple/list or list/simple; O(n) for list/list
 - In-place overwrite of a simple slot (if supported) → O(1)
 
 ---
@@ -432,10 +432,10 @@ This is the list case of the unified `bfind` defined in Access §3.
 
 Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys`, `zs` be lists.
 
-- Head/tail with cons
-  - `xs x cons tail == xs`
-  - `xs x cons head == x`
-  - `xs x cons uncons == xs x` (order: tail head)
+- Head/tail with concat (simple + list)
+  - `x xs concat tail == xs`
+  - `x xs concat head == x`
+  - `x xs concat uncons == xs x` (order: tail head)
 
 - Concat identity
   - `xs ( ) concat == xs`
@@ -444,10 +444,7 @@ Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys`, `z
 - Concat associativity (flat)
   - `xs ys concat zs concat == xs ys zs concat concat`
 
-- Cons vs concat (singleton)
-  - `xs ( ) x cons concat == xs x cons`
-
-Note: `concat` flattens and `cons` nests a compound as a single element.
+Note: `concat` flattens when both inputs are lists and nests a singleton when one input is simple.
 
 ---
 
@@ -481,10 +478,10 @@ Element order: `1, 2, 3` (logical). Element 0 at `SP-1` is `1`.
 
 Traversal sees the nested list as a **single element** with span 3.
 
-### cons
+### concat (simple + list)
 
 Stack before: `… 3 2 1 LIST:3   x`
-After `cons`: `… x 3 2 1 LIST:4` (logical head is `x`).
+After `concat`: `… x 3 2 1 LIST:4` (logical head is `x`).
 
 ### tail
 
@@ -500,7 +497,7 @@ ys = ( 3 4 )  → stack: … 4 3 LIST:2
 concat xs ys  → … 4 3 2 1 LIST:4  (flattened)
 ```
 
-If `ys` is **not** a list, treat as `cons xs ys`.
+If one argument is simple and the other is a list, concat adds the simple element (prepend for simple+list, append for list+simple).
 
 ### Slot vs element queries
 
@@ -546,7 +543,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
   - `elem i` returns the start slot per traversal
 
 - **Ops**
-  - `cons` then `tail` restores original
+  - `x xs concat` then `tail` restores `xs`
   - `concat xs () == xs` and associativity
 
 - **Mutation**

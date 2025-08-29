@@ -248,7 +248,7 @@ maplist  mapsort { kcmp }   ->  maplist'
 #### Complexity (informative)
 
 - Time: O(n log n) comparisons.
-- Space: O(n) (pair-wise builder with `cons` + `reverse`).
+- Space: O(n) (pair-wise builder with `concat` + `reverse`).
 
 #### Examples
 

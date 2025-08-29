@@ -2,67 +2,50 @@
 
 ## Overview
 
-This note documents the key semantic decisions for list operations `concat` and `cons`, particularly around edge cases and fallback behavior.
+This note documents the key semantic decisions for list operations and the polymorphic `concat`, particularly around edge cases and behavior.
 
 ## Core Operations
 
-### `cons` - Element Addition
+### `concat` (simple + list) - Element Addition
 - **Stack effect:** `( list value — list' )`
 - **Semantics:** Always adds `value` as a single element at the front
 - **Nesting:** Compounds (including lists) are preserved as single elements
 - **Edge cases:** 
   - If first arg is not a list → error/NIL
-  - Empty list: `( ) x cons` → `( x )`
+  - Empty list: `x ( ) concat` → `( x )`
 
-### `concat` - List Combination  
+### `concat` (list + list) - List Combination  
 - **Stack effect:** `( listA listB — listC )`
 - **Primary:** Merges elements of both lists into a flat structure
-- **Fallback:** If `listB` is not a list → behaves as `cons listA listB`
-- **Flattening:** Unlike `cons`, `concat` merges list contents, not list structures
+- **Polymorphism:**
+  - simple + list → prepend
+  - list + simple → append
+  - list + list → flatten
 
 ## Key Distinction
 
 ```tacit
-( 1 2 ) ( 3 4 ) cons    → ( ( 3 4 ) 1 2 )    // nested
 ( 1 2 ) ( 3 4 ) concat  → ( 3 4 1 2 )        // flattened
 ```
 
-## Current Implementation Issues
+## Current Implementation Notes
 
-### 1. `concat` Fallback Logic
-- **Spec requirement:** "If `ys` is not a list, treat as `cons xs ys`"
-- **Current implementation:** ✅ Correctly calls `consOp(vm)` when RHS is not a list
-- **Edge case:** What if LHS is also not a list? (spec unclear)
-
-### 2. Error Handling Consistency
-- **`cons`:** Returns NIL if first arg is not a list
-- **`concat`:** Falls back to cons behavior rather than erroring
-- **Question:** Should non-list LHS in concat return NIL or error?
-
-### 3. Empty List Handling
-- **Current:** Both operations handle `LIST:0` correctly
-- **Behavior:** Well-defined in specs
-
-## Recommendations
-
-1. **Keep current fallback:** `concat` fallback to `cons` is spec-compliant
-2. **Document edge case:** When LHS is not a list in `concat`, current behavior returns NIL (via cons failure)
-3. **Add tests:** Lock current fallback behavior with comprehensive edge case tests
-4. **No semantic changes needed:** Implementation matches spec requirements
+- `concat` is polymorphic and handles all combinations: simple+list (prepend), list+simple (append), list+list (flatten), simple+simple (create 2‑element list).
+- Empty list: `x ( ) concat` → `( x )` and `( ) x concat` → `( x )`.
 
 ## Proposed: Polymorphic `concat` Implementation
 
 ### Design Goal
-Replace separate `cons`/`append`/`concat` operations with a single polymorphic `concat` that chooses optimal implementation based on argument types.
+Use a single polymorphic `concat` that chooses optimal implementation based on argument types.
 
 ### Type-Based Dispatch Table
 
-| LHS Type | RHS Type | Operation | Complexity | Implementation |
-|----------|----------|-----------|------------|----------------|
-| simple   | simple   | create list | O(1) | Push both, create `LIST:2` header |
-| list     | simple   | append | O(1) | Increment header count (efficient!) |
-| simple   | list     | prepend | O(n) | Shift list payload, update header |
-| list     | list     | concatenate | O(n) | Merge payloads, combine headers |
+| LHS Type | RHS Type | Operation       | Complexity | Implementation                         |
+|----------|----------|------------------|------------|----------------------------------------|
+| simple   | simple   | create list      | O(1)       | Push both, create `LIST:2` header      |
+| list     | simple   | append           | O(1)       | Increment header count                 |
+| simple   | list     | prepend          | O(n)       | Shift payload, update header           |
+| list     | list     | flatten/concatenate | O(n)    | Merge payloads, combine headers        |
 
 ### Implementation Plan
 
@@ -76,18 +59,16 @@ Replace separate `cons`/`append`/`concat` operations with a single polymorphic `
 function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
   
-  // Analyze arguments without popping yet
-  const [rhsNextSlot, rhsSize] = findElement(vm, 0);
-  const [lhsNextSlot, lhsSize] = findElement(vm, rhsSize);
+  // Analyze arguments without popping yet (element-aware)
+  const [, rhsSize] = findElement(vm, 0);
+  const [, lhsSize] = findElement(vm, rhsSize);
   
   const rhsIsSimple = (rhsSize === 1);
   const lhsIsSimple = (lhsSize === 1);
   
-  // Peek to check if compounds are lists
-  const rhsHeader = vm.peekAt(0);
-  const lhsHeader = vm.peekAt(rhsSize);
-  const rhsIsList = !rhsIsSimple && isList(rhsHeader);
-  const lhsIsList = !lhsIsSimple && isList(lhsHeader);
+  // Determine structural types using tags, not just slot sizes
+  const rhsIsList = !rhsIsSimple && isList(peekBySlots(0));
+  const lhsIsList = !lhsIsSimple && isList(peekBySlots(rhsSize));
   
   // Dispatch to appropriate sub-function
   if (lhsIsSimple && rhsIsSimple) {
@@ -99,8 +80,7 @@ function concatOp(vm: VM): void {
   } else if (lhsIsList && rhsIsList) {
     concatListList(vm);
   } else {
-    // Error: unsupported compound types
-    vm.push(NIL);
+    throw new Error('concat: unsupported compound types');
   }
 }
 ```

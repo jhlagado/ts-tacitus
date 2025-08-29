@@ -61,9 +61,8 @@ These opcodes had no implementations, registrations, or tests. They were declare
 ## Notes
 
 - All canonical math ops remain: add, sub, mul, div, pow, mod, min, max, abs, neg, sign, exp, ln, log, sqrt.
-- List ops remain per `lists.md`: length, size, slot, elem, fetch, store, cons, concat, tail, head, uncons, pack, unpack, reverse.
+- List ops remain per `lists.md`: length, size, slot, elem, fetch, store, concat, tail, head, uncons, pack, unpack, reverse.
 - If any removed operation is needed in the future, we should:
   1) Add a minimal spec stub (stack effect + semantics),
   2) Implement the opcode and register vocabulary name(s),
   3) Add focused tests (unit + integration where applicable).
-

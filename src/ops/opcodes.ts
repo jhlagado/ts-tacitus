@@ -144,11 +144,8 @@ export enum Op {
   /**  Stores value at memory address (simple values only). */
   Store,
 
-  /**  Concatenates two lists. */
+  /**  Polymorphic concatenation (all combinations). */
   Concat,
-
-  /**  Polymorphic concatenation (experimental). */
-  Ccat,
 
   /**  Removes first element from list (O(1)). */
   Tail,
@@ -191,7 +188,7 @@ export enum Op {
   /**  Calculates the square root. */
   Sqrt,
 
-  /**  (duplicate removed; see earlier Pow) */
+  /**  Exponentiation (power). */
 
   /**  Conditional if operation (ternary operator: condition ? then : else) based on immediate numeric condition. */
   SimpleIf,
@@ -225,11 +222,9 @@ export enum Op {
   /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
 
-  // Legacy LIST opcodes removed - functionality available via standard operations
+  // LIST operations are available via standard operations
 
   // New list primitives aligned with lists.md
-  /** Prepend (list-first): cons - ( list value — list' ) */
-  Cons,
   /** Drop logical head element: ( list — list' ) */
   DropHead,
 

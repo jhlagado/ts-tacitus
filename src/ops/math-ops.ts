@@ -143,7 +143,7 @@ export const powOp: Verb = (vm: VM) => {
   vm.push(Math.pow(a, b));
 };
 
-// avg/prod removed from core vocabulary
+// avg/prod are not part of the core vocabulary
 
 
 export const recipOp: Verb = (vm: VM) => {
@@ -164,4 +164,4 @@ export const notOp: Verb = (vm: VM) => {
   vm.push(a === 0 ? 1 : 0);
 };
 
-// mNegate/mSignum removed; use negOp/signOp
+// Use negOp/signOp for negate/sign
