@@ -62,20 +62,6 @@ export function formatAtomicValue(vm: VM, value: number): string {
   }
 }
 
-/**
- * Formats list starting at stack index.
- * @param vm VM instance
- * @param stack Stack array
- * @param index Stack index where list starts
- * @returns Formatted list string
- */
-function formatListAt(vm: VM, stack: number[], index: number): string {
-  if (index < 0 || index >= stack.length) return '[Invalid list index]';
-  const value = stack[index];
-  const { tag } = fromTaggedValue(value);
-  if (tag !== Tag.LIST) return '[Not a list]';
-  return formatListAtImpl(vm, stack, index);
-}
 
 function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string {
   if (headerIndex < 0 || headerIndex >= stack.length) {
@@ -88,9 +74,11 @@ function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string 
     return '[ Not an LIST ]';
   }
 
-  const elements: string[] = [];
+  // C-style direct string building without heap allocation
+  let result = '( ';
   let remainingSlots = slotCount;
   let currentIndex = headerIndex - 1;
+  let isFirst = true;
 
   while (remainingSlots > 0 && currentIndex >= 0) {
     const currentValue = stack[currentIndex];
@@ -111,19 +99,22 @@ function formatListAtImpl(vm: VM, stack: number[], headerIndex: number): string 
       }
     }
 
+    if (!isFirst) result += ' '; // Add space between elements
+    isFirst = false;
+    
     const startVal = stack[elementStartIndex];
     const startDecoded = fromTaggedValue(startVal);
     if (startDecoded.tag === Tag.LIST) {
-      elements.push(formatListAtImpl(vm, stack, elementStartIndex));
+      result += formatListAtImpl(vm, stack, elementStartIndex);
     } else {
-      elements.push(formatAtomicValue(vm, startVal));
+      result += formatAtomicValue(vm, startVal);
     }
 
     currentIndex -= stepSize;
     remainingSlots -= stepSize;
   }
 
-  return `( ${elements.join(' ')} )`;
+  return result + ' )';
 }
 
 /**
@@ -170,10 +161,7 @@ export function formatValue(vm: VM, value: number): string {
 
 
   if (Number.isNaN(value) && tagValue >= 0) {
-    const index = stack.indexOf(value);
-    if (index >= 0) {
-      return formatListAt(vm, stack, index);
-    }
+    // Direct fallback for NaN-boxed tagged values without heap allocation
     return `( ${tagValue} elements )`;
   }
 
