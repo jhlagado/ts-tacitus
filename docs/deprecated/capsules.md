@@ -21,7 +21,7 @@ Under the hood, a capsule is a specialized **list** that follows a fixed shape. 
 
 - Duplicate or swap them like any other value.
 - Treat them as opaque units — `dup`, `swap`, and `drop` work on the whole capsule at once.
-- Insert them into other lists with `enlist` or `cons`.
+- Insert them into other lists with `enlist` or `concat` (simple + list).
 - Keep them entirely **stack-resident**: there’s no garbage collector or hidden memory pool to manage.
 - Mutate **simple field values** in place when needed, while the overall capsule layout stays fixed.
 

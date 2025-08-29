@@ -82,10 +82,10 @@ describe('Lists.md Specification Compliance', () => {
       expect(fromTaggedValue(head).value).toBe(1);
     });
 
-    test('cons prepends element', () => {
-      const stack = executeTacitCode('( 2 3 ) 1 cons');
-      const header = stack[stack.length - 1];
-      expect(isList(header)).toBe(true);
+    test('concat prepends element (simple + list)', () => {
+      const stack = executeTacitCode('1 ( 2 3 ) concat');
+      const result = stack[stack.length - 1];
+      expect(isList(result)).toBe(true);
     });
 
     test('tail removes first element', () => {
@@ -97,7 +97,7 @@ describe('Lists.md Specification Compliance', () => {
     test('structural operations are properly registered', () => {
       expect(() => executeTacitCode('( )')).not.toThrow();
 
-      const operations = ['head', 'tail', 'cons', 'concat', 'uncons'];
+      const operations = ['head', 'tail', 'concat', 'uncons'];
       operations.forEach(op => {
         try {
           executeTacitCode(`( ) ${op}`);
@@ -112,10 +112,10 @@ describe('Lists.md Specification Compliance', () => {
   });
 
   describe('Algebraic laws (Section 20)', () => {
-    test('cons then tail restores original', () => {
+    test('concat then tail restores original for prepend case', () => {
       const original = executeTacitCode('( 2 3 )');
       resetVM();
-      const restored = executeTacitCode('( 2 3 ) 1 cons tail');
+      const restored = executeTacitCode('1 ( 2 3 ) concat tail');
       const origHeader = original[original.length - 1];
       const restHeader = restored[restored.length - 1];
       expect(fromTaggedValue(origHeader).value).toBe(fromTaggedValue(restHeader).value);

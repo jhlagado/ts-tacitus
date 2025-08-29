@@ -127,20 +127,7 @@ export function sizeOp(vm: VM): void {
 /**
  * cons: ( list value — list' )
  */
-export function consOp(vm: VM): void {
-  vm.ensureStackSize(2, 'cons');
-  const value = vm.pop();
-  const header = vm.pop();
-  if (!isList(header)) {
-    vm.push(header);
-    vm.push(value);
-    vm.push(NIL);
-    return;
-  }
-  const slotCount = getListLength(header);
-  vm.push(value);
-  vm.push(toTaggedValue(slotCount + 1, Tag.LIST));
-}
+// consOp removed; concat is the single polymorphic concatenation op
 
 /**
  * drop-head: ( list — list' )
@@ -180,35 +167,10 @@ export function dropHeadOp(vm: VM): void {
  * 
  * See docs/specs/lists.md for list concatenation semantics.
  */
-export function concatOp(vm: VM): void {
-  vm.ensureStackSize(2, 'concat');
-  const rhs = vm.pop(); // listB or value
-  const lhs = vm.pop(); // listA
-
-  if (!isList(lhs)) {
-    vm.push(lhs);
-    vm.push(rhs);
-    vm.push(NIL);
-    return;
-  }
-
-  if (!isList(rhs)) {
-    vm.push(lhs);
-    vm.push(rhs);
-    consOp(vm);
-    return;
-  }
-
-  const sA = getListLength(lhs);
-  const sB = getListLength(rhs);
-
-  // Create new header with combined slot count
-  // The payload slots should already be properly arranged on the stack
-  vm.push(toTaggedValue(sA + sB, Tag.LIST));
-}
+// concat is polymorphic and replaces earlier separate variants
 
 /**
- * Polymorphic concatenation operation (experimental).
+ * Polymorphic concatenation operation.
  * Stack effect: ( a b — result )
  * Dispatches to optimal implementation based on argument types:
  * - simple + simple → create 2-element list
@@ -216,8 +178,8 @@ export function concatOp(vm: VM): void {
  * - simple + list → O(n) prepend
  * - list + list → O(n) concatenate
  */
-export function ccatOp(vm: VM): void {
-  vm.ensureStackSize(2, 'ccat');
+export function concatOp(vm: VM): void {
+  vm.ensureStackSize(2, 'concat');
   
   // Analyze arguments without popping using findElement
   const [, rhsSize] = findElement(vm, 0);
@@ -246,7 +208,7 @@ export function ccatOp(vm: VM): void {
     // list + simple
     const lhsHeader = peekBySlots(rhsSize);
     if (!isList(lhsHeader)) {
-      throw new Error('ccat: left compound must be LIST when appending simple');
+      throw new Error('concat: left compound must be LIST when appending simple');
     }
 
     const currentSlots = getListLength(lhsHeader);
@@ -270,7 +232,7 @@ export function ccatOp(vm: VM): void {
     // simple + list
     const rhsHeader = peekBySlots(0);
     if (!isList(rhsHeader)) {
-      throw new Error('ccat: right compound must be LIST when prepending simple');
+      throw new Error('concat: right compound must be LIST when prepending simple');
     }
     ccatSimpleList(vm);
     return;
@@ -278,7 +240,29 @@ export function ccatOp(vm: VM): void {
 
   // list + list
   if (lhsIsList && rhsIsList) {
-    concatOp(vm);
+    // Materialize combined list by removing both list structures and rebuilding
+    // 1) Pop RHS header and capture RHS payload
+    const rhsHeader = vm.pop();
+    const sB = getListLength(rhsHeader);
+    const rhsElems: number[] = [];
+    for (let i = 0; i < sB; i++) {
+      rhsElems.push(vm.pop());
+    }
+    // 2) Pop LHS header and capture LHS payload
+    const lhsHeader = vm.pop();
+    const sA = getListLength(lhsHeader);
+    const lhsElems: number[] = [];
+    for (let i = 0; i < sA; i++) {
+      lhsElems.push(vm.pop());
+    }
+    // 3) Rebuild combined list: push elements in reverse order (B then A), then combined header
+    for (let i = rhsElems.length - 1; i >= 0; i--) {
+      vm.push(rhsElems[i]);
+    }
+    for (let i = lhsElems.length - 1; i >= 0; i--) {
+      vm.push(lhsElems[i]);
+    }
+    vm.push(toTaggedValue(sA + sB, Tag.LIST));
   } else {
     vm.pop(); vm.pop();
     vm.push(NIL);
@@ -289,9 +273,9 @@ export function ccatOp(vm: VM): void {
  * Sub-operation: simple + simple → create 2-element list
  */
 function ccatSimpleSimple(vm: VM): void {
-  const rhs = vm.pop(); // second arg (3 in "5 3 ccat")  
-  const lhs = vm.pop(); // first arg (5 in "5 3 ccat")
-  // For "5 3 ccat" we want result like "( 5 3 )" which is [3, 5, NaN]
+  const rhs = vm.pop(); // second arg (3 in "5 3 concat")  
+  const lhs = vm.pop(); // first arg (5 in "5 3 concat")
+  // For "5 3 concat" we want result like "( 5 3 )" which is [3, 5, NaN]
   // List structure: deepest element is first element of list
   vm.push(rhs); // push 3 first (deepest, shows as index 0 in array)
   vm.push(lhs); // push 5 second (shows as index 1 in array)  
@@ -545,7 +529,7 @@ export function elemOp(vm: VM): void {
  * Stack effect: ( addr -- value )
  * Spec: lists.md §10 - Simple values direct, compound values materialized
  *
- * Polymorphic: accepts both INTEGER (legacy byte addresses) and STACK_REF (cell addresses)
+ * Polymorphic: accepts STACK_REF and RSTACK_REF (cell addresses)
  */
 export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');

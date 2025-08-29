@@ -36,8 +36,8 @@ import { repeatOp } from './combinators/repeat';
  * - An opcode value (from the Op enum)
  * - An implementation function (that manipulates the VM state)
  *
- * Many operations have multiple names (aliases) for compatibility with different
- * coding styles or for backward compatibility with test cases.
+ * Many operations have multiple names (aliases) to support different coding styles
+ * and test coverage.
  *
  * @param vm - The virtual machine instance
  * @param symbolTable - The symbol table to register operations in
@@ -62,10 +62,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('fetch', Op.Fetch);
   symbolTable.defineBuiltin('store', Op.Store);
 
-  // Lists.md spec operations - Section 12
-  symbolTable.defineBuiltin('cons', Op.Cons);
+  // Lists.md spec operations - Section 12 (unified under concat)
   symbolTable.defineBuiltin('concat', Op.Concat);
-  symbolTable.defineBuiltin('ccat', Op.Ccat);
   symbolTable.defineBuiltin('tail', Op.Tail);
   symbolTable.defineBuiltin('head', Op.Head);
   symbolTable.defineBuiltin('uncons', Op.Uncons);
@@ -98,11 +96,10 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('ge', Op.GreaterOrEqual);
   symbolTable.defineBuiltin('eq', Op.Equal);
 
-  // Canonical neg maps to Op.Neg; drop earlier mNegate alias
+  // Canonical neg maps to Op.Neg
   symbolTable.defineBuiltin('recip', Op.Recip);
   symbolTable.defineBuiltin('floor', Op.Floor);
   symbolTable.defineBuiltin('not', Op.Not);
-  // Drop legacy alias 'signum'
   symbolTable.defineBuiltin('enlist', Op.Enlist);
 
   symbolTable.defineBuiltin('dup', Op.Dup);

@@ -143,7 +143,7 @@ export function isNIL(tval: number): boolean {
 }
 
 /**
- * @deprecated Always returns false.
+ * Unused helper. Always returns false.
  */
 export function isRefCounted(_value: number): boolean {
   return false;
