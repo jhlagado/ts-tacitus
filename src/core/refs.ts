@@ -1,6 +1,6 @@
 /**
  * @file src/core/refs.ts
- * Reference utilities for polymorphic memory addressing
+ * Reference utilities for polymorphic memory addressing.
  */
 
 import { VM } from './vm';
@@ -87,7 +87,7 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
       return { address: value * 4, segment: SEG_STACK };
 
     case Tag.RSTACK_REF:
-      return { address: value * 4, segment: SEG_RSTACK }; // Absolute cell index
+      return { address: value * 4, segment: SEG_RSTACK };
 
     case Tag.GLOBAL_REF:
       throw new Error('Global variable references not yet implemented');

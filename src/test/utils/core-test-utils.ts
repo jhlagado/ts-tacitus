@@ -77,8 +77,6 @@ function scalarRepr(tval: number): string {
       return `${tval}`;
   }
 }
-
-
 /**
  * Checks if a tagged value represents a built-in operation reference.
  * Test-only function.

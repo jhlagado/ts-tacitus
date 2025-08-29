@@ -106,9 +106,7 @@ export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlo
   cellsReverse(vm, startSlot, rangeSize);
 }
 
-// ============================================================================
-// STACK OPERATION UTILITIES (from src/ops/builtins-stack.ts)
-// ============================================================================
+/** Stack operation utilities. */
 
 /**
  * Internal utility: Finds an element at a specific logical index in the stack.
@@ -170,9 +168,7 @@ function safeStackOperation(vm: VM, operation: () => void, operationName: string
   }
 }
 
-// ============================================================================
-// STACK OPERATIONS (from src/ops/builtins-stack.ts)
-// ============================================================================
+/** Stack operations. */
 
 /**
  * Implements the dup (duplicate) operation.

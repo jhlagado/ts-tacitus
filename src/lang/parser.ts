@@ -120,7 +120,6 @@ export function validateFinalState(state: ParserState): void {
     throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
   }
 
-  // Ensure all list/lists were properly closed
   if (vm.listDepth !== 0) {
     throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
   }
@@ -292,18 +291,11 @@ export function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after get combinator', vm.getStackData());
     }
 
-    beginStandaloneBlock(state); // Compile the block and push its code ref
-
-    // Macro expansion for get combinator:
-    // 1. Save block code ref to temp register
+    beginStandaloneBlock(state);
     vm.compiler.compileOpcode(Op.SaveTemp);
-    // 2. Open list (push dummy LIST:0, save SP)
     vm.compiler.compileOpcode(Op.OpenList);
-    // 3. Restore block code ref from temp register
     vm.compiler.compileOpcode(Op.RestoreTemp);
-    // 4. Eval block (results go above dummy header)
     vm.compiler.compileOpcode(Op.Eval);
-    // 5. Close list (package results into list)
     vm.compiler.compileOpcode(Op.CloseList);
     return;
   } else if (value === 'set') {
@@ -325,30 +317,24 @@ export function processWordToken(value: string, state: ParserState): void {
   } else if (value === ':' || value === ';' || value === '`') {
     processSpecialToken(value, state);
   } else {
-    // First check for bytecode address (colon definitions)
     const bytecodeAddr = vm.symbolTable.findBytecodeAddress(value);
     if (bytecodeAddr !== undefined) {
-      // Found a colon definition - compile direct bytecode address
       vm.compiler.compileUserWordCall(bytecodeAddr);
       return;
     }
 
-    // Check for local variables using tagged value lookup
     const taggedValue = vm.symbolTable.findTaggedValue(value);
     if (taggedValue !== undefined) {
       const { tag, value: tagValue } = fromTaggedValue(taggedValue);
-      
+
       if (tag === Tag.LOCAL) {
-        // Found a local variable - generate bytecode to push its value
-        // This compiles to: VarRef slot_number, then Fetch
         vm.compiler.compileOpcode(Op.VarRef);
-        vm.compiler.compile16(tagValue); // Raw slot number
+        vm.compiler.compile16(tagValue);
         vm.compiler.compileOpcode(Op.Fetch);
         return;
       }
     }
 
-    // Fall back to built-in lookup (function index)
     const functionIndex = vm.symbolTable.find(value);
     if (functionIndex === undefined) {
       throw new UndefinedWordError(value, vm.getStackData());
@@ -373,17 +359,10 @@ export function processWordToken(value: string, state: ParserState): void {
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
 export function processAtSymbol(symbolName: string): void {
-  // Generate bytecode to call vm.pushSymbolRef() at runtime
-  // This pushes the resolved tagged value directly onto the stack
-
-  // Compile a call to the pushSymbolRef built-in with the symbol name
-
-  // First push the symbol name as a string literal
   vm.compiler.compileOpcode(Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
   vm.compiler.compile16(stringAddress);
 
-  // Then call pushSymbolRef
   vm.compiler.compileOpcode(Op.PushSymbolRef);
 }
 
@@ -397,12 +376,13 @@ export function processAtSymbol(symbolName: string): void {
  * @throws {Error} If not inside a function definition or invalid variable name
  */
 export function processVarDeclaration(state: ParserState): void {
-  // Validate we're inside a function definition
   if (!state.currentDefinition) {
-    throw new SyntaxError('Variable declarations only allowed inside function definitions', vm.getStackData());
+    throw new SyntaxError(
+      'Variable declarations only allowed inside function definitions',
+      vm.getStackData(),
+    );
   }
 
-  // Read the variable name token
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after var', vm.getStackData());
@@ -410,14 +390,11 @@ export function processVarDeclaration(state: ParserState): void {
 
   const varName = nameToken.value as string;
 
-  // Emit Reserve opcode if this is the first variable
   vm.compiler.emitReserveIfNeeded();
 
-  // Define the local variable and get auto-assigned slot number
   vm.symbolTable.defineLocal(varName);
   const slotNumber = vm.symbolTable.getLocalCount() - 1;
 
-  // Generate InitVar opcode with slot number
   vm.compiler.compileOpcode(Op.InitVar);
   vm.compiler.compile16(slotNumber);
 }
@@ -433,12 +410,13 @@ export function processVarDeclaration(state: ParserState): void {
  * @throws {Error} If not inside a function definition or invalid variable name
  */
 export function processAssignmentOperator(state: ParserState): void {
-  // Validate we're inside a function definition
   if (!state.currentDefinition) {
-    throw new SyntaxError('Assignment operator (->) only allowed inside function definitions', vm.getStackData());
+    throw new SyntaxError(
+      'Assignment operator (->) only allowed inside function definitions',
+      vm.getStackData(),
+    );
   }
 
-  // Read the variable name token
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after ->', vm.getStackData());
@@ -446,7 +424,6 @@ export function processAssignmentOperator(state: ParserState): void {
 
   const varName = nameToken.value as string;
 
-  // Look up the local variable
   const taggedValue = vm.symbolTable.findTaggedValue(varName);
   if (taggedValue === undefined) {
     throw new Error(`Undefined local variable: ${varName}`);
@@ -457,7 +434,6 @@ export function processAssignmentOperator(state: ParserState): void {
     throw new Error(`${varName} is not a local variable`);
   }
 
-  // Compile: VarRef slot_number (pushes address), Store (pops value and address)
   vm.compiler.compileOpcode(Op.VarRef);
   vm.compiler.compile16(slotNumber);
   vm.compiler.compileOpcode(Op.Store);
@@ -483,7 +459,6 @@ export function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ';') {
     endDefinition(state);
   } else if (value === '(') {
-    // Retarget parentheses to LIST construction (keep [ ] as alias during migration)
     beginList(state);
   } else if (value === ')') {
     endList(state);
@@ -552,7 +527,6 @@ export function beginDefinition(state: ParserState): void {
   const branchPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  // Save checkpoint so body sees previous definition; defer new define until ';'
   const checkpoint = vm.symbolTable.mark();
   state.currentDefinition = {
     name: wordName,
@@ -582,18 +556,13 @@ export function endDefinition(state: ParserState): void {
   }
 
   vm.compiler.compileOpcode(Op.Exit);
-  
+
   vm.compiler.exitFunction();
 
   patchBranchOffset(state.currentDefinition.branchPos);
 
-  // Now that body compiled against prior dictionary, register new definition at head
   const { name } = state.currentDefinition;
-  // The actual start address is where we began compiling after branch; reconstruct from branch position
-  // branchPos is after Op.Branch (1 byte) at the 16-bit offset; the target start was saved earlier as startAddress in beginDefinition.
-  // We did not store it; recompute: start address = (branchPos + 2)
-  const defStart = state.currentDefinition.branchPos + 2; // start of body immediately after 16-bit placeholder
-
+  const defStart = state.currentDefinition.branchPos + 2;
   vm.symbolTable.defineCode(name, defStart);
 
   state.currentDefinition = null;

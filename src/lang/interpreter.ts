@@ -85,7 +85,7 @@ export function execute(start: number): void {
 export function executeProgram(code: string): void {
   parse(new Tokenizer(code));
 
-  execute(0); // Start execution from the beginning of compiled code
+  execute(0);
 }
 
 /**

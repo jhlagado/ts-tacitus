@@ -22,7 +22,7 @@ import { executeOp } from './builtins';
 
 import { formatValue } from '../core/format-utils';
 
-/** Number of bytes per stack element */
+/** Number of bytes per stack element. */
 const CELL_SIZE = 4;
 
 /**
@@ -203,7 +203,7 @@ export const exitOp: Verb = (vm: VM) => {
       return;
     }
 
-    vm.RP = vm.BP; // Reset return stack pointer to deallocate local variables
+    vm.RP = vm.BP;
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
@@ -243,7 +243,6 @@ export const exitCodeOp: Verb = (vm: VM) => {
       vm.running = false;
       return;
     }
-    // For code blocks (lexical scoping): only return address was saved
     const returnAddr = vm.rpop();
     if (isCode(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
@@ -289,12 +288,9 @@ export const evalOp: Verb = (vm: VM) => {
   switch (tag) {
     case Tag.CODE:
       if (meta === 1) {
-        // Code block execution (lexical scoping - no stack frame)
         vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-        // DON'T save/change BP - keep parent's frame for lexical scoping
         vm.IP = addr;
       } else {
-        // Function execution (dynamic scoping - new frame)
         vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
         vm.rpush(vm.BP);
         vm.BP = vm.RP;
@@ -303,12 +299,10 @@ export const evalOp: Verb = (vm: VM) => {
       break;
 
     case Tag.BUILTIN:
-      // Built-in execution: direct JS function dispatch
       executeOp(vm, addr);
       break;
 
     default:
-      // Not executable - push back onto stack
       vm.push(value);
       break;
   }
@@ -425,7 +419,6 @@ export const printOp: Verb = (vm: VM) => {
 export const pushSymbolRefOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'pushSymbolRef');
 
-  // Pop the string containing the symbol name
   const stringTaggedValue = vm.pop();
   const { tag, value } = fromTaggedValue(stringTaggedValue);
 
@@ -433,12 +426,10 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
     throw new Error('pushSymbolRef expects a string on the stack');
   }
 
-  // Get the string from the digest
   const symbolName = vm.digest.get(value);
   if (symbolName === undefined) {
     throw new Error(`String not found in digest: ${value}`);
   }
 
-  // Call the VM's pushSymbolRef method (implemented in Step 11)
   vm.pushSymbolRef(symbolName);
 };

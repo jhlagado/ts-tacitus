@@ -1,9 +1,9 @@
 /**
  * Consolidated VM Test Utilities - Single source for all VM testing needs
- * 
+ *
  * This file consolidates and replaces:
  * - src/test/utils/test-utils.ts
- * - src/test/utils/list-test-utils.ts  
+ * - src/test/utils/list-test-utils.ts
  * - src/test/utils/stack-test-utils.ts
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
@@ -14,8 +14,6 @@ import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
-
-
 /**
  * Reset VM to clean state for testing
  */
@@ -53,19 +51,21 @@ export function executeTacitCode(code: string): number[] {
  */
 export function testTacitCode(code: string, expectedStack: number[]): void {
   const result = executeTacitCode(code);
-  
+
   if (result.length !== expectedStack.length) {
-    throw new Error(`Stack length mismatch: expected ${expectedStack.length}, got ${result.length}`);
+    throw new Error(
+      `Stack length mismatch: expected ${expectedStack.length}, got ${result.length}`,
+    );
   }
-  
+
   for (let i = 0; i < result.length; i++) {
     const actual = result[i];
     const expected = expectedStack[i];
-    
+
     if (typeof expected === 'string') {
       throw new Error(`Stack value is NaN at position ${i}: expected string, got ${actual}`);
     }
-    
+
     if (isNaN(actual) || isNaN(expected)) {
       if (isNaN(actual) && !isNaN(expected)) {
         throw new Error(`Stack value is NaN at position ${i}: expected ${expected}, got NaN`);
@@ -75,7 +75,7 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
       }
       continue;
     }
-    
+
     const tolerance = 1e-6;
     if (Math.abs(actual - expected) > tolerance) {
       throw new Error(`Stack value mismatch at position ${i}: expected ${expected}, got ${actual}`);
@@ -96,21 +96,19 @@ export function runTacitTest(code: string): number[] {
 export function captureTacitOutput(code: string): string[] {
   const output: string[] = [];
   const originalLog = console.log;
-  
+
   console.log = (...args: unknown[]) => {
     output.push(args.join(' '));
   };
-  
+
   try {
     executeTacitCode(code);
   } finally {
     console.log = originalLog;
   }
-  
+
   return output;
 }
-
-
 /**
  * Push values onto VM stack
  */
@@ -147,8 +145,6 @@ export function formatStack(vm: VM): string {
     .map(({ value, tag }) => `${value}(${tag})`)
     .join(' ');
 }
-
-
 /**
  * Unified TestList class - replaces duplicates
  */
@@ -224,8 +220,6 @@ export function countListsOnStack(stack: number[]): number {
   }
   return count;
 }
-
-
 export interface OperationTestCase {
   name: string;
   setup: (vm: VM) => void;
@@ -239,40 +233,37 @@ export interface OperationTestCase {
  */
 export function runOperationTests(testCases: OperationTestCase[], setup?: () => void): void {
   testCases.forEach(testCase => {
-    
     it(testCase.name, () => {
       if (setup) setup();
       resetVM();
-      
+
       testCase.setup(vm);
-      
+
       if (typeof testCase.operation === 'string') {
         executeTacitCode(testCase.operation);
       } else {
         testCase.operation(vm);
       }
-      
+
       const result = vm.getStackData();
-      
+
       if (testCase.expectedStack) {
         expect(result).toEqual(testCase.expectedStack);
       }
-      
+
       if (testCase.verify) {
         testCase.verify(result);
       }
     });
   });
 }
-
-
 /**
  * Verify tagged value has expected tag and value
  */
 export function verifyTaggedValue(
   taggedValue: number,
   expectedTag: Tag,
-  expectedValue?: number
+  expectedValue?: number,
 ): void {
   const { tag, value } = fromTaggedValue(taggedValue);
   expect(tag).toBe(expectedTag);
@@ -294,17 +285,20 @@ export function verifyStackContains(stack: number[], expectedValues: number[]): 
  * Log stack contents for debugging
  */
 export function logStack(stack: number[], label = 'Stack'): void {
-  console.log(`${label}:`, stack.map(v => {
-    try {
-      const { value, tag } = fromTaggedValue(v);
-      return `${value}(${Tag[tag]})`;
-    } catch {
-      return `${v}(RAW)`;
-    }
-  }).join(' '));
+  console.log(
+    `${label}:`,
+    stack
+      .map(v => {
+        try {
+          const { value, tag } = fromTaggedValue(v);
+          return `${value}(${Tag[tag]})`;
+        } catch {
+          return `${v}(RAW)`;
+        }
+      })
+      .join(' '),
+  );
 }
-
-
 /**
  * Expect operation to throw stack underflow
  */

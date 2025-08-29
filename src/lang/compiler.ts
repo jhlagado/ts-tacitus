@@ -21,7 +21,6 @@ export class Compiler {
 
   preserve: boolean;
 
-  // Function compilation context
   isInFunction: boolean;
   reservePatchAddr: number;
 
@@ -137,7 +136,6 @@ export class Compiler {
       throw new InvalidOpcodeAddressError(address);
     }
 
-    // Always use 15-bit encoding for user-defined words
     this.compile8(0x80 | (address & 0x7f));
     this.compile8((address >> 7) & 0xff);
   }
@@ -200,7 +198,7 @@ export class Compiler {
 
   /**
    * Begins function compilation context.
-   * 
+   *
    * This method is called when starting to compile a function.
    * It tracks that we are in a function context but does not emit
    * Reserve opcode until variables are actually declared.
@@ -212,23 +210,22 @@ export class Compiler {
 
   /**
    * Emits Reserve opcode placeholder on first variable declaration.
-   * 
+   *
    * This method is called when the first local variable is encountered
    * in a function. It emits the Reserve opcode with a placeholder that
    * will be patched when the function ends.
    */
   emitReserveIfNeeded(): void {
     if (this.isInFunction && this.reservePatchAddr === -1) {
-      // Emit Reserve opcode with placeholder slot count
       this.compileOpcode(Op.Reserve);
       this.reservePatchAddr = this.CP;
-      this.compile16(0); // Placeholder - will be patched in exitFunction
+      this.compile16(0);
     }
   }
 
   /**
    * Ends function compilation context and patches Reserve slot count.
-   * 
+   *
    * This method is called when finishing compilation of a function.
    * It patches the Reserve opcode's slot count if any variables were declared.
    */
@@ -237,7 +234,7 @@ export class Compiler {
       const localCount = this.vm.symbolTable.getLocalCount();
       this.patch16(this.reservePatchAddr, localCount);
     }
-    
+
     this.isInFunction = false;
     this.reservePatchAddr = -1;
   }

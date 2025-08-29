@@ -18,38 +18,26 @@ import { SEG_STACK } from '../core/constants';
 import { isRef, resolveReference } from '../core/refs';
 
 /**
- * Get combinator: path-based value access
- * Stack effect: ( target get { path } -- target value )
- * Syntax: target get { key1 index1 key2 ... }
+ * Get combinator: path-based value access.
+ * Stack: ( target get { path } -- target value ).
+ * Note: currently supports single-key maplist lookup and returns NIL for multi-element paths.
  */
 export const getOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'get'); // Need target and block address
-
-  // Pop block address and target
+  vm.ensureStackSize(2, 'get');
   const blockAddr = vm.pop();
-  const target = vm.peek(); // Keep target on stack
-
-  if (vm.debug) console.log('getOp: target =', target, 'blockAddr =', blockAddr);
-
-  // Execute block to get path elements
+  const target = vm.peek();
   vm.push(blockAddr);
 
-  const beforeSP = vm.SP - 4; // SP before block execution (after pushing blockAddr)
+  const beforeSP = vm.SP - 4;
   evalOp(vm);
   const afterSP = vm.SP;
-
-  // Calculate how many elements the block produced
   const elementCount = (afterSP - beforeSP) / 4;
 
-  if (vm.debug) console.log('getOp: block produced', elementCount, 'elements');
-
   if (elementCount === 0) {
-    // Empty path - return target itself
     vm.push(target);
     return;
   }
 
-  // For now, just implement simple single-key lookup
   if (elementCount === 1) {
     const key = vm.pop();
 
@@ -57,17 +45,13 @@ export const getOp: Verb = (vm: VM) => {
       vm.push(NIL);
       return;
     }
-
-    // Simple maplist lookup - find key in target
     const slotCount = getListLength(target);
     if (slotCount % 2 !== 0) {
-      vm.push(NIL); // Invalid maplist
+      vm.push(NIL);
       return;
     }
 
-    // Search for key in maplist - handle both stack and reference cases
     if (isRef(target)) {
-      // Target is a reference - resolve and read from proper segment
       const { address, segment } = resolveReference(vm, target);
       for (let i = 0; i < slotCount; i += 2) {
         const keyAddr = address - (slotCount - i) * 4;
@@ -81,9 +65,8 @@ export const getOp: Verb = (vm: VM) => {
         }
       }
     } else {
-      // Target is stack-based list - read from stack segment
       for (let i = 0; i < slotCount; i += 2) {
-        const keyAddr = vm.SP - 8 - i * 4; // target at SP-4, first key at SP-8
+        const keyAddr = vm.SP - 8 - i * 4;
         const valueAddr = keyAddr - 4;
         const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
 
@@ -95,10 +78,8 @@ export const getOp: Verb = (vm: VM) => {
       }
     }
 
-    vm.push(NIL); // Key not found
+    vm.push(NIL);
   } else {
-    // Multiple path elements - not implemented yet
-    // Pop all elements and return NIL
     for (let i = 0; i < elementCount; i++) {
       vm.pop();
     }
@@ -107,21 +88,15 @@ export const getOp: Verb = (vm: VM) => {
 };
 
 /**
- * Set combinator stub - Step 2 minimal implementation
- *
- * Stack effect: ( value target blockAddr -- nil )
- *
- * This is a placeholder that ensures syntax works without crashing.
- * Full implementation will be added in Step 3.
+ * Set combinator (stub).
+ * Stack: ( value target { path } -- nil ).
+ * Note: placeholder implementation — always returns NIL.
  */
 export const setOp: Verb = (vm: VM) => {
   vm.ensureStackSize(3, 'set');
 
-  // Pop the path block, target, and value (ignore for now)
-  vm.pop(); // path block
-  vm.pop(); // target
-  vm.pop(); // value
-
-  // Always return NIL for Step 2
+  vm.pop();
+  vm.pop();
+  vm.pop();
   vm.push(NIL);
 };

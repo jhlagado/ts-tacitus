@@ -33,7 +33,7 @@ describe('In-Place Compound Mutation', () => {
       }
 
       // Perform mutation
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, newHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify header was written
       const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
@@ -57,7 +57,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr - CELL_SIZE, 999); // Old value
 
       // Perform mutation
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, newHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify header was updated
       const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
@@ -86,7 +86,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE, 777); // elem2 (old)
 
       // Perform mutation
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, newHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify header unchanged (same slot count)
       const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
@@ -124,7 +124,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Should throw compatibility error
       expect(() => {
-        mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, newHeader);
+        mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
       }).toThrow('Incompatible compound assignment');
     });
 
@@ -138,7 +138,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Should throw error for non-compound data
       expect(() => {
-        mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, 42);
+        mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
       }).toThrow('mutateCompoundInPlace expects compound data');
     });
   });
@@ -161,7 +161,7 @@ describe('In-Place Compound Mutation', () => {
       const rpBeforeMutation = vm.RP;
 
       // Perform mutation
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, newHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify RP unchanged (key difference from transferCompoundToReturnStack)
       expect(vm.RP).toBe(rpBeforeMutation);
@@ -188,7 +188,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingFlatHeader);
 
       // Should work since slot counts match
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, nestedHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify mutation succeeded
       const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
@@ -211,7 +211,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE, 333);
 
       // Perform successful mutation
-      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK, validHeader);
+      mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify all elements updated correctly
       // Stack order for (100 200 300) is [300, 200, 100, header]
