@@ -24,6 +24,15 @@ function formatFloat(value: number): string {
 }
 
 /**
+ * Escapes special characters in strings for display.
+ * @param str String to escape
+ * @returns Escaped string with double quotes
+ */
+function formatString(str: string): string {
+  return `"${str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r')}"`;
+}
+
+/**
  * Formats atomic (non-list) value.
  * @param vm VM instance for string access
  * @param value Tagged value to format
@@ -43,7 +52,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
     case Tag.STRING: {
       const str = vm.digest.get(tagValue);
       if (str) {
-        return str;
+        return formatString(str);
       }
       return `[String:${tagValue}]`;
     }
@@ -169,8 +178,10 @@ export function formatValue(vm: VM, value: number): string {
   }
 
   switch (tag) {
-    case Tag.STRING:
-      return vm.digest.get(tagValue) || `[String:${tagValue}]`;
+    case Tag.STRING: {
+      const str = vm.digest.get(tagValue);
+      return str ? formatString(str) : `[String:${tagValue}]`;
+    }
 
     case Tag.NUMBER:
       return formatFloat(tagValue);
