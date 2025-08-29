@@ -152,19 +152,19 @@ export const powOp: Verb = (vm: VM) => {
 // avg/prod removed from core vocabulary
 
 
-export const mReciprocalOp: Verb = (vm: VM) => {
+export const recipOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'recip');
   const a = vm.pop();
   vm.push(1 / a);
 };
 
-export const mFloorOp: Verb = (vm: VM) => {
+export const floorOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'floor');
   const a = vm.pop();
   vm.push(Math.floor(a));
 };
 
-export const mNotOp: Verb = (vm: VM) => {
+export const notOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'not');
   const a = vm.pop();
   vm.push(a === 0 ? 1 : 0);
