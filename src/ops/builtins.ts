@@ -73,7 +73,7 @@ import {
   powOp,
   
 } from './math-ops';
-import { mReciprocalOp, mFloorOp, mNotOp } from './math-ops';
+import { recipOp, floorOp, notOp } from './math-ops';
 import { mEnlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
@@ -241,13 +241,13 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     // Op.mNegate removed from vocabulary
     case Op.mReciprocal:
-      mReciprocalOp(vm);
+      recipOp(vm);
       break;
     case Op.mFloor:
-      mFloorOp(vm);
+      floorOp(vm);
       break;
     case Op.mNot:
-      mNotOp(vm);
+      notOp(vm);
       break;
     // Op.mSignum removed from vocabulary
     case Op.mEnlist:

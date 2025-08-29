@@ -34,28 +34,32 @@ Systematically align naming with TACIT language words, remove duplication, and c
 
 ## Phase 1: Math Ops Consolidation 
 
-1.1 Rename/keep canonical verbs: `add`, `sub`, `mul`, `div`, `pow`, `mod`, `min`, `max`, `abs`, `neg`, `sign`, `exp`, `ln`, `log`, `sqrt`.  
-1.2 Remove duplicates: drop `prodOp`, `mNegateOp`, `mSignumOp`, `powerOp` (prefer `powOp`).  
-1.3 Ensure ensureStackSize messages match op names (e.g., `min`, `max`).  
-1.4 Update `builtins-register.ts` imports/exports accordingly; run tests.  
+1.5 ✅ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.  
+ 
 
-Status: ⭕ PENDING
+1.1 ✅ Canonical verbs decided: `add`, `sub`, `mul`, `div`, `pow`, `mod`, `min`, `max`, `abs`, `neg`, `sign`, `exp`, `ln`, `log`, `sqrt`.  
+1.2 ✅ Remove duplicates: drop `prodOp`, `mNegateOp`, `mSignumOp`, `powerOp` (prefer `powOp`).  
+1.3 ⭕ Ensure ensureStackSize messages match op names (e.g., `min`, `max`).  
+1.4 ✅ Update `builtins-register.ts` imports/exports accordingly; run tests.  
+1.5 ⭕ Remove legacy "m" prefixes from remaining unary ops (rename to canonical: `recip`, `floor`, `not`), update imports/dispatch/tests.  
+
+Status: 🔄 IN PROGRESS (1.2, 1.4 completed)
 
 ## Phase 2: Formatting Single‑Source of Truth 
 
-2.1 Make `core/utils` formatter delegate to `core/format-utils` or remove duplicate.  
-2.2 Rename `formatAndConsumeListFromHeaderValue` → `formatListFromHeader` (internal).  
-2.3 Enforce quoted strings per Plan 12 (D1) and add tests for escapes.  
-2.4 Rename debug builtin from `print` → `raw` (keep human `.` unchanged). Update registration and docs; adjust any tests invoking `print`.  
+2.1 ⭕ Make `core/utils` formatter delegate to `core/format-utils` or remove duplicate.  
+2.2 ⭕ Rename `formatAndConsumeListFromHeaderValue` → `formatListFromHeader` (internal).  
+2.3 ⭕ Enforce quoted strings per Plan 12 (D1) and add tests for escapes.  
+2.4 ✅ Rename debug builtin from `print` → `raw` (keep human `.` unchanged). Update registration and docs; adjust any tests invoking `print`.  
 
-Status: ⭕ PENDING
+Status: ⏸ QUEUED (2.4 pre-completed; will start after Phase 1)
 
 ## Phase 3: List Ops Clarity & Safety 
 
 3.1 Add spec references to `lengthOp`/`sizeOp` docstrings (slots vs elements).  
 3.2 Document `concat` invariant: requires two contiguous lists; if either input is not a list, fall back semantics (e.g., `cons`) may apply. Add tests that lock current invariant.  
 
-Status: ⭕ PENDING
+Status: ✅ COMPLETED
 
 ## Phase 6: List Semantics Discussion (Low Priority)
 
