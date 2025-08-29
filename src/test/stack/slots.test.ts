@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../core/vm';
-import { slotsRoll, slotsReverse } from '../../ops/stack-ops';
+import { cellsRoll, cellsReverse } from '../../ops/stack-ops';
 
 describe('rangeRoll', () => {
   let vm: VM;
@@ -13,7 +13,7 @@ describe('rangeRoll', () => {
     vm.push(1);
     const start = vm.SP / 4;
 
-    slotsRoll(vm, start, 0, 1);
+    cellsRoll(vm, start, 0, 1);
 
     expect(vm.pop()).toBe(1);
   });
@@ -23,7 +23,7 @@ describe('rangeRoll', () => {
     vm.push(2);
     const start = vm.SP / 4 - 1;
 
-    slotsRoll(vm, start, 2, 0);
+    cellsRoll(vm, start, 2, 0);
 
     expect(vm.pop()).toBe(2);
     expect(vm.pop()).toBe(1);
@@ -35,7 +35,7 @@ describe('rangeRoll', () => {
     vm.push(3);
     vm.push(4);
 
-    slotsRoll(vm, 0, 4, 1);
+    cellsRoll(vm, 0, 4, 1);
     expect(vm.pop()).toBe(3);
     expect(vm.pop()).toBe(2);
     expect(vm.pop()).toBe(1);
@@ -48,7 +48,7 @@ describe('rangeRoll', () => {
     vm.push(3);
     vm.push(4);
 
-    slotsRoll(vm, 0, 4, -1);
+    cellsRoll(vm, 0, 4, -1);
     expect(vm.pop()).toBe(1);
     expect(vm.pop()).toBe(4);
     expect(vm.pop()).toBe(3);
@@ -60,7 +60,7 @@ describe('rangeRoll', () => {
     vm.push(2);
     vm.push(3);
 
-    slotsRoll(vm, 0, 3, 3);
+    cellsRoll(vm, 0, 3, 3);
     expect(vm.pop()).toBe(3);
     expect(vm.pop()).toBe(2);
     expect(vm.pop()).toBe(1);
@@ -81,7 +81,7 @@ describe('reverseRange', () => {
     vm.push(4);
 
     const start = 1;
-    slotsReverse(vm, start, 2);
+    cellsReverse(vm, start, 2);
 
     expect(vm.pop()).toBe(4);
     expect(vm.pop()).toBe(2);
@@ -93,7 +93,7 @@ describe('reverseRange', () => {
     vm.push(42);
     const start = 0;
 
-    slotsReverse(vm, start, 0);
+    cellsReverse(vm, start, 0);
 
     expect(vm.pop()).toBe(42);
   });
@@ -104,7 +104,7 @@ describe('reverseRange', () => {
     vm.push(3);
 
     const start = 1;
-    slotsReverse(vm, start, 1);
+    cellsReverse(vm, start, 1);
 
     expect(vm.pop()).toBe(3);
     expect(vm.pop()).toBe(2);
