@@ -46,7 +46,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('eval', Op.Eval, evalOp);
   symbolTable.defineBuiltin('pushSymbolRef', Op.PushSymbolRef);
   symbolTable.defineBuiltin('.', Op.Print);
-  symbolTable.defineBuiltin('print', Op.RawPrint);
+  symbolTable.defineBuiltin('raw', Op.RawPrint);
   symbolTable.defineBuiltin('str', Op.LiteralString);
   symbolTable.defineBuiltin('addr', Op.LiteralAddress);
 

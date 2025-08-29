@@ -1,6 +1,6 @@
 /**
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
- * Tests both high-level 'print' operation and low-level 'print' operator
+ * Tests both high-level '.' operation and low-level 'raw' operator
  */
 import { resetVM, captureTacitOutput } from "../../utils/vm-test-utils";
 
@@ -50,15 +50,15 @@ describe('Print Operations', () => {
     });
   });
 
-  describe('Low-level raw print operation (print)', () => {
+  describe('Low-level raw print operation (raw)', () => {
     describe('simple values', () => {
       test('should print a simple number', () => {
-        const output = captureTacitOutput('42 print');
+        const output = captureTacitOutput('42 raw');
         expect(output[0]).toBe('42');
       });
 
       test('should print multiple simple values', () => {
-        const output = captureTacitOutput('42 print 84 print');
+        const output = captureTacitOutput('42 raw 84 raw');
         expect(output).toContain('42');
         expect(output).toContain('84');
       });
@@ -66,41 +66,41 @@ describe('Print Operations', () => {
 
     describe('list operations', () => {
       test('should print a tagged value', () => {
-        const output = captureTacitOutput('(1 2) print');
+        const output = captureTacitOutput('(1 2) raw');
         expect(output[0]).toMatch(/^LIST:\d+/);
       });
 
       test('should handle complex list structures', () => {
-        const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) print');
+        const output = captureTacitOutput('( 1 ( 2 3 ) 4 ) raw');
         expect(output.length).toBeGreaterThan(0);
       });
     });
 
     describe('error cases', () => {
       test('should handle empty stack', () => {
-        const output = captureTacitOutput('print');
+        const output = captureTacitOutput('raw');
         expect(output[0]).toContain('Stack empty');
       });
 
       test('should handle multiple empty stack attempts', () => {
-        const output = captureTacitOutput('print print');
+        const output = captureTacitOutput('raw raw');
         expect(output.every(line => line.includes('Stack empty'))).toBe(true);
       });
     });
 
     describe('integration tests', () => {
       test('should work with arithmetic operations', () => {
-        const output = captureTacitOutput('5 3 add print');
+        const output = captureTacitOutput('5 3 add raw');
         expect(output[0]).toBe('8');
       });
 
       test('should work with stack operations', () => {
-        const output = captureTacitOutput('42 dup print print');
+        const output = captureTacitOutput('42 dup raw raw');
         expect(output).toEqual(['42', '42']);
       });
 
       test('should handle mixed print and raw print operations', () => {
-        const output = captureTacitOutput('123 print 456 .');
+        const output = captureTacitOutput('123 raw 456 .');
         expect(output).toContain('123');
         expect(output).toContain('456');
       });
