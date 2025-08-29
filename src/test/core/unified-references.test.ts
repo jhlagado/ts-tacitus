@@ -7,9 +7,7 @@ import { vm, initializeInterpreter } from '../../core/globalState';
 import {
   Tag,
   fromTaggedValue,
-  createStackRef,
   createLocalRef,
-  createGlobalRef,
   NIL,
 } from '../../core/tagged';
 import {
@@ -17,6 +15,8 @@ import {
   isStackRef,
   isLocalRef,
   isGlobalRef,
+  createGlobalRef,
+  createStackRef,
 } from '../../core/refs';
 import { fetchOp } from '../../ops/list-ops';
 import { SEG_RSTACK } from '../../core/constants';
@@ -32,31 +32,16 @@ describe('Unified Reference System', () => {
       const stackRef = createStackRef(5);
       const localRef = createLocalRef(3);
       const globalRef = createGlobalRef(7);
-      
+
       expect(typeof isRef).toBe('function');
       expect(typeof isStackRef).toBe('function');
       expect(typeof isLocalRef).toBe('function');
       expect(typeof isGlobalRef).toBe('function');
-      
+
       expect(isRef(stackRef)).toBe(true);
       expect(isStackRef(stackRef)).toBe(true);
       expect(isLocalRef(localRef)).toBe(true);
       expect(isGlobalRef(globalRef)).toBe(true);
-    });
-
-    test('should verify no duplicate exports in tagged module', () => {
-      // This test ensures the consolidation worked - tagged should not export ref guards
-      const taggedModule = require('../../core/tagged');
-      
-      expect(taggedModule.isRef).toBeUndefined();
-      expect(taggedModule.isStackRef).toBeUndefined();
-      expect(taggedModule.isLocalRef).toBeUndefined();
-      expect(taggedModule.isGlobalRef).toBeUndefined();
-      
-      // But creation functions should still be there
-      expect(typeof taggedModule.createStackRef).toBe('function');
-      expect(typeof taggedModule.createLocalRef).toBe('function');
-      expect(typeof taggedModule.createGlobalRef).toBe('function');
     });
   });
 

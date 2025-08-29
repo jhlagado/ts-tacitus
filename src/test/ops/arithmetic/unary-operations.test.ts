@@ -5,7 +5,7 @@ Includes negate, reciprocal, floor, not, signum, and enlist operations
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { negOp, recipOp, floorOp, notOp, signOp } from '../../../ops/math-ops';
-import { mEnlistOp } from '../../../ops/list-ops';
+import { enlistOp } from '../../../ops/list-ops';
 
 function resetVM(): void {
   initializeInterpreter();
@@ -134,7 +134,7 @@ describe('Unary Operations', () => {
     });
 
     test('should throw on enlist stack underflow', () => {
-      expect(() => mEnlistOp(vm)).toThrow('Stack underflow');
+      expect(() => enlistOp(vm)).toThrow('Stack underflow');
     });
   });
 });
