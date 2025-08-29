@@ -208,10 +208,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Divide:
       divideOp(vm);
       break;
-    case Op.Power:
-      // Route legacy Power opcode to canonical pow implementation
-      powOp(vm);
-      break;
+    // Power opcode removed; use Pow
     case Op.Min:
       minOp(vm);
       break;
@@ -240,17 +237,17 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       modOp(vm);
       break;
     // Op.mNegate removed from vocabulary
-    case Op.mReciprocal:
+    case Op.Recip:
       recipOp(vm);
       break;
-    case Op.mFloor:
+    case Op.Floor:
       floorOp(vm);
       break;
-    case Op.mNot:
+    case Op.Not:
       notOp(vm);
       break;
     // Op.mSignum removed from vocabulary
-    case Op.mEnlist:
+    case Op.Enlist:
       mEnlistOp(vm);
       break;
     case Op.Dup:

@@ -98,11 +98,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('eq', Op.Equal);
 
   // Canonical neg maps to Op.Neg; drop earlier mNegate alias
-  symbolTable.defineBuiltin('recip', Op.mReciprocal);
-  symbolTable.defineBuiltin('floor', Op.mFloor);
-  symbolTable.defineBuiltin('not', Op.mNot);
+  symbolTable.defineBuiltin('recip', Op.Recip);
+  symbolTable.defineBuiltin('floor', Op.Floor);
+  symbolTable.defineBuiltin('not', Op.Not);
   // Drop legacy alias 'signum'
-  symbolTable.defineBuiltin('enlist', Op.mEnlist);
+  symbolTable.defineBuiltin('enlist', Op.Enlist);
 
   symbolTable.defineBuiltin('dup', Op.Dup);
   symbolTable.defineBuiltin('drop', Op.Drop);

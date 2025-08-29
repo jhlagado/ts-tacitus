@@ -59,7 +59,7 @@ export enum Op {
   Divide,
 
   /**  Performs exponentiation (power) of the top two values on the stack. */
-  Power,
+  Pow,
 
   /**  Performs modulo operation of the top two values on the stack. */
   Mod,
@@ -88,35 +88,10 @@ export enum Op {
   /**  Checks if the top two values on the stack match (have the same structure). */
   Match,
 
-  /**  Unary Op negation (negates the value on the top of the stack). */
-  mNegate,
-
-  /**  Unary Op reciprocal (calculates the reciprocal of the value on the top of the stack). */
-  mReciprocal,
-
-  /**  Unary Op floor (rounds the value on the top of the stack down to the nearest integer). */
-  mFloor,
-
-  /**  Unary Op ceiling (rounds the value on the top of the stack up to the nearest integer). */
-  mCeiling,
-
-  /**  Unary Op signum (returns the sign of the value on the top of the stack: -1, 0, or 1). */
-  mSignum,
-
-  /**  Unary Op absolute value (returns the absolute value of the value on the top of the stack). */
-  mAbsolute,
-
-  /**  Unary Op exponential (calculates e raised to the power of the value on the top of the stack). */
-  mExp,
-
-  /**  Unary Op natural logarithm (calculates the natural logarithm of the value on the top of the stack). */
-  mLn,
-
-  /**  Unary Op square root (calculates the square root of the value on the top of the stack). */
-  mSqrt,
-
-  /**  Unary Op base-10 logarithm (calculates the base-10 logarithm of the value on the top of the stack). */
-  mLog,
+  /**  Canonical unary ops */
+  Recip,
+  Floor,
+  Not,
 
   /**  Duplicates the value on the top of the stack. */
   Dup,
@@ -145,44 +120,13 @@ export enum Op {
   /**  Duplicates the top element and inserts the copy under the second element. */
   Tuck,
 
-  /**  Performs a bitwise AND operation on the top two values of the stack */
-  And,
-
-  /**  Performs a bitwise OR operation on the top two values of the stack */
-  Or,
-
-  /**  Performs a bitwise XOR operation on the top two values of the stack */
-  Xor,
-
-  /**  Performs a bitwise NAND operation on the top two values of the stack */
-  Nand,
-
-  /**  Unary Op NOT (performs a logical NOT on the value on the top of the stack). */
-  mNot,
-
-  /**  Unary Op where (returns the indices where the value on the top of the stack is non-zero). */
-  mWhere,
-
-  /**  Unary Op reverse (reverses the elements of a vector on the top of the stack). */
-  mReverse,
-
-  /**  Unary Op type (returns the type of the value on the top of the stack). */
-  mType,
-
-  /**  Unary Op string (converts the value on the top of the stack to a string). */
-  mString,
-
-  /**  Unary Op group (groups elements of a vector based on unique values). */
-  mGroup,
-
-  /**  Unary Op distinct (returns the unique elements of a vector). */
-  mDistinct,
+  /**  Legacy vector ops removed */
 
   /**  Joins two vectors into a single vector. */
   Join,
 
-  /**  Enlists a value as a single-element vector. */
-  mEnlist,
+  /**  Enlists a value as a single-element list. */
+  Enlist,
 
   /**  Counts the elements in a vector. */
   mCount,
@@ -254,14 +198,7 @@ export enum Op {
   /**  Calculates the square root. */
   Sqrt,
 
-  /**  Calculates the power of a number (x^y). */
-  Pow,
-
-  /**  Calculates the average of a vector. */
-  Avg,
-
-  /**  Calculates the product of elements in a vector. */
-  Prod,
+  /**  (duplicate removed; see earlier Pow) */
 
   /**  Conditional if operation (ternary operator: condition ? then : else) based on immediate numeric condition. */
   SimpleIf,

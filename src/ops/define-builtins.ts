@@ -56,11 +56,11 @@ export const defineBuiltins = (dict: SymbolTable) => {
   dict.defineBuiltin('ge', Op.GreaterOrEqual);
   dict.defineBuiltin('mod', Op.Mod);
   // Canonical neg mapping provided below
-  dict.defineBuiltin('recip', Op.mReciprocal);
-  dict.defineBuiltin('floor', Op.mFloor);
-  dict.defineBuiltin('not', Op.mNot);
+  dict.defineBuiltin('recip', Op.Recip);
+  dict.defineBuiltin('floor', Op.Floor);
+  dict.defineBuiltin('not', Op.Not);
   // Canonical sign mapping provided below
-  dict.defineBuiltin('enlist', Op.mEnlist);
+  dict.defineBuiltin('enlist', Op.Enlist);
   dict.defineBuiltin('dup', Op.Dup);
   dict.defineBuiltin('drop', Op.Drop);
   dict.defineBuiltin('swap', Op.Swap);
