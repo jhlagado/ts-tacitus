@@ -246,9 +246,7 @@ export function ccatOp(vm: VM): void {
     // list + simple
     const lhsHeader = peekBySlots(rhsSize);
     if (!isList(lhsHeader)) {
-      vm.pop(); vm.pop();
-      vm.push(NIL);
-      return;
+      throw new Error('ccat: left compound must be LIST when appending simple');
     }
 
     const currentSlots = getListLength(lhsHeader);
@@ -272,9 +270,7 @@ export function ccatOp(vm: VM): void {
     // simple + list
     const rhsHeader = peekBySlots(0);
     if (!isList(rhsHeader)) {
-      vm.pop(); vm.pop();
-      vm.push(NIL);
-      return;
+      throw new Error('ccat: right compound must be LIST when prepending simple');
     }
     ccatSimpleList(vm);
     return;
