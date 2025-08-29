@@ -4,13 +4,7 @@ Includes negate, reciprocal, floor, not, signum, and enlist operations
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import {
-  mNegateOp,
-  mReciprocalOp,
-  mFloorOp,
-  mNotOp,
-  mSignumOp,
-} from '../../../ops/math-ops';
+import { negOp, mReciprocalOp, mFloorOp, mNotOp, signOp } from '../../../ops/math-ops';
 import { mEnlistOp } from '../../../ops/list-ops';
 
 function resetVM(): void {
@@ -26,19 +20,19 @@ describe('Unary Operations', () => {
   describe('simple values', () => {
     test('should negate a positive number', () => {
       vm.push(5);
-      mNegateOp(vm);
+      negOp(vm);
       expect(vm.pop()).toBe(-5);
     });
 
     test('should negate a negative number', () => {
       vm.push(-10);
-      mNegateOp(vm);
+      negOp(vm);
       expect(vm.pop()).toBe(10);
     });
 
     test('should negate zero', () => {
       vm.push(0);
-      mNegateOp(vm);
+      negOp(vm);
       expect(vm.pop()).toBe(-0);
     });
 
@@ -98,19 +92,19 @@ describe('Unary Operations', () => {
 
     test('should return 1 for signum of positive numbers', () => {
       vm.push(5);
-      mSignumOp(vm);
+      signOp(vm);
       expect(vm.pop()).toBe(1);
     });
 
     test('should return -1 for signum of negative numbers', () => {
       vm.push(-3);
-      mSignumOp(vm);
+      signOp(vm);
       expect(vm.pop()).toBe(-1);
     });
 
     test('should return 0 for signum of zero', () => {
       vm.push(0);
-      mSignumOp(vm);
+      signOp(vm);
       expect(vm.pop()).toBe(0);
     });
   });
@@ -120,7 +114,7 @@ describe('Unary Operations', () => {
 
   describe('error cases', () => {
     test('should throw on negate stack underflow', () => {
-      expect(() => mNegateOp(vm)).toThrow('Stack underflow');
+      expect(() => negOp(vm)).toThrow('Stack underflow');
     });
 
     test('should throw on reciprocal stack underflow', () => {
@@ -136,7 +130,7 @@ describe('Unary Operations', () => {
     });
 
     test('should throw on signum stack underflow', () => {
-      expect(() => mSignumOp(vm)).toThrow('Stack underflow');
+      expect(() => signOp(vm)).toThrow('Stack underflow');
     });
 
     test('should throw on enlist stack underflow', () => {

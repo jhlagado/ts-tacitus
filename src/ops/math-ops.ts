@@ -50,14 +50,14 @@ export const modOp: Verb = (vm: VM) => {
 };
 
 export const minOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '&');
+  vm.ensureStackSize(2, 'min');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(Math.min(a, b));
 };
 
 export const maxOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '|');
+  vm.ensureStackSize(2, 'max');
   const b = vm.pop();
   const a = vm.pop();
   vm.push(Math.max(a, b));
@@ -149,26 +149,8 @@ export const powOp: Verb = (vm: VM) => {
   vm.push(Math.pow(a, b));
 };
 
-export const avgOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'avg');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push((a + b) / 2);
-};
+// avg/prod removed from core vocabulary
 
-export const prodOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'prod');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a * b);
-};
-
-
-export const mNegateOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'neg');
-  const a = vm.pop();
-  vm.push(-a);
-};
 
 export const mReciprocalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'recip');
@@ -188,8 +170,4 @@ export const mNotOp: Verb = (vm: VM) => {
   vm.push(a === 0 ? 1 : 0);
 };
 
-export const mSignumOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'signum');
-  const a = vm.pop();
-  vm.push(Math.sign(a));
-};
+// mNegate/mSignum removed; use negOp/signOp

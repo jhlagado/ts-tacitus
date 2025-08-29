@@ -71,10 +71,9 @@ import {
   logOp,
   sqrtOp,
   powOp,
-  avgOp,
-  prodOp,
+  
 } from './math-ops';
-import { mNegateOp, mReciprocalOp, mFloorOp, mNotOp, mSignumOp } from './math-ops';
+import { mReciprocalOp, mFloorOp, mNotOp } from './math-ops';
 import { mEnlistOp, findOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
@@ -240,9 +239,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Mod:
       modOp(vm);
       break;
-    case Op.mNegate:
-      mNegateOp(vm);
-      break;
+    // Op.mNegate removed from vocabulary
     case Op.mReciprocal:
       mReciprocalOp(vm);
       break;
@@ -252,9 +249,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.mNot:
       mNotOp(vm);
       break;
-    case Op.mSignum:
-      mSignumOp(vm);
-      break;
+    // Op.mSignum removed from vocabulary
     case Op.mEnlist:
       mEnlistOp(vm);
       break;
@@ -306,12 +301,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     case Op.Pow:
       powOp(vm);
       break;
-    case Op.Avg:
-      avgOp(vm);
-      break;
-    case Op.Prod:
-      prodOp(vm);
-      break;
+    
     case Op.If:
       simpleIfOp(vm);
       break;

@@ -5,7 +5,7 @@ import {
   subtractOp,
   multiplyOp,
   divideOp,
-  powerOp,
+  powOp,
   modOp,
   minOp,
   maxOp,
@@ -119,28 +119,28 @@ describe('Arithmetic Operations', () => {
     test('should calculate power correctly', () => {
       vm.push(2);
       vm.push(3);
-      powerOp(vm);
+      powOp(vm);
       expect(vm.getStackData()).toEqual([8]);
     });
 
     test('should handle fractional exponents', () => {
       vm.push(4);
       vm.push(0.5);
-      powerOp(vm);
+      powOp(vm);
       expect(vm.getStackData()).toEqual([2]);
     });
 
     test('should handle negative base', () => {
       vm.push(-2);
       vm.push(2);
-      powerOp(vm);
+      powOp(vm);
       expect(vm.getStackData()).toEqual([4]);
     });
 
     test('should handle zero base', () => {
       vm.push(0);
       vm.push(5);
-      powerOp(vm);
+      powOp(vm);
       expect(vm.getStackData()).toEqual([0]);
     });
 
@@ -301,7 +301,7 @@ describe('Arithmetic Operations', () => {
 
     test('should throw on power stack underflow', () => {
       vm.push(5);
-      expect(() => powerOp(vm)).toThrow('Stack underflow');
+      expect(() => powOp(vm)).toThrow('Stack underflow');
     });
 
     test('should throw on modulo stack underflow', () => {
