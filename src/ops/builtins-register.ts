@@ -65,6 +65,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   // Lists.md spec operations - Section 12
   symbolTable.defineBuiltin('cons', Op.Cons);
   symbolTable.defineBuiltin('concat', Op.Concat);
+  symbolTable.defineBuiltin('ccat', Op.Ccat);
   symbolTable.defineBuiltin('tail', Op.Tail);
   symbolTable.defineBuiltin('head', Op.Head);
   symbolTable.defineBuiltin('uncons', Op.Uncons);
