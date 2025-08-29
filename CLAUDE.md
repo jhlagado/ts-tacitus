@@ -30,6 +30,7 @@ Before implementing any features related to these areas, you MUST read these spe
 - **Test error conditions** - invalid inputs, edge cases, empty stacks
 - **CRITICAL: Never use `fromTaggedValue` in tests** - causes NaN-boxing corruption in Jest environment
 - **Use behavioral testing only** - test operation results, not internal tagged structure
+- **PREFER TACIT CODE OVER FUNCTION TESTS** - test `executeTacitCode(': f (1 2) var x x . ; f')` with `jest.spyOn(console, 'log')` instead of calling `formatValue()` directly
 
 ### 3. Testing Best Practices (NaN-Boxing Safe)
 
