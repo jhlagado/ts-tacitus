@@ -69,10 +69,10 @@ Status: ⭕ PENDING
 
 ## Phase 4: Stack Ops Naming Polish
 
-4.1 Consider `cellsCopy` → `cellsCopy` or `elementsCopy` for clarity; similarly for `cellsReverse`/`cellsRoll`.  
-4.2 Add succinct docstrings for user‑facing ops (`dup`, `swap`, `rot`, etc.) referencing stack‑effects.
+4.1 ✅ Consider `slotsCopy` → `cellsCopy` or `elementsCopy` for clarity; similarly for `cellsReverse`/`cellsRoll`.  
+4.2 ✅ Add succinct docstrings for user‑facing ops (`dup`, `swap`, `rot`, etc.) referencing stack‑effects.
 
-Status: ⭕ PENDING
+Status: ✅ COMPLETED
 
 ## Phase 5: Refs/Tagged Separation
 
