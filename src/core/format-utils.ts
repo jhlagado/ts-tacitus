@@ -3,8 +3,8 @@
  * Utility functions for formatting Tacit VM values.
  */
 import { VM } from './vm';
-import { fromTaggedValue, Tag, isRef, getTag } from './tagged';
-import { resolveReference } from './refs';
+import { fromTaggedValue, Tag, getTag } from './tagged';
+import { resolveReference, isRef } from './refs';
 import { getListLength } from './list';
 
 /**

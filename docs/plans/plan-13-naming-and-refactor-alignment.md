@@ -76,10 +76,10 @@ Status: ✅ COMPLETED
 
 ## Phase 5: Refs/Tagged Separation
 
-5.1 Move/refactor reference type guards to `core/refs` and re‑export if needed; deprecate duplicates in `tagged`.  
-5.2 Add small tests verifying guards’ single source and behavior parity.
+5.1 ✅ Move/refactor reference type guards to `core/refs` and re‑export if needed; deprecate duplicates in `tagged`.  
+5.2 ✅ Add small tests verifying guards' single source and behavior parity.
 
-Status: ⭕ PENDING
+Status: ✅ COMPLETED
 
 ## Non‑Goals
 

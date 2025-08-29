@@ -170,36 +170,6 @@ export function isSentinel(tval: number): boolean {
 }
 
 /**
- * Checks if a value is any type of data reference.
- * @param tval The value to check
- * @returns true if the value is a STACK_REF, RSTACK_REF, or GLOBAL_REF
- */
-export function isRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF || tag === Tag.RSTACK_REF || tag === Tag.GLOBAL_REF;
-}
-
-/**
- * Checks if a value is a RSTACK_REF.
- * @param tval The value to check
- * @returns true if the value is a local variable reference
- */
-export function isLocalRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.RSTACK_REF;
-}
-
-/**
- * Checks if a value is a GLOBAL_REF.
- * @param tval The value to check
- * @returns true if the value is a global variable reference
- */
-export function isGlobalRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.GLOBAL_REF;
-}
-
-/**
  * Creates a RSTACK_REF tagged value.
  * @param slot The local variable slot number to reference
  * @returns A RSTACK_REF tagged value
@@ -247,15 +217,6 @@ export function isLocal(tval: number): boolean {
   return tag === Tag.LOCAL;
 }
 
-/**
- * Checks if a value is a STACK_REF.
- * @param tval The value to check
- * @returns true if the value is a STACK_REF
- */
-export function isStackRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF;
-}
 
 /**
  * Creates a STACK_REF for a stack cell.
