@@ -30,7 +30,7 @@ import { formatValue as coreFormatValue, formatAtomicValue } from '../core/forma
  * @param headerValue - The LIST header value containing the slot count
  * @returns A string representation of the list in the format "( elem1 elem2 ... )"
  */
-function formatAndConsumeListFromHeaderValue(vm: VM, headerValue: number): string {
+function formatListFromHeader(vm: VM, headerValue: number): string {
   const decoded = fromTaggedValue(headerValue);
   const totalSlots = decoded.value;
   const parts: string[] = [];
@@ -41,7 +41,7 @@ function formatAndConsumeListFromHeaderValue(vm: VM, headerValue: number): strin
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
-      const nested = formatAndConsumeListFromHeaderValue(vm, cell);
+      const nested = formatListFromHeader(vm, cell);
       parts.push(nested);
       consumed += 1 + nestedSlots;
     } else {
@@ -82,7 +82,7 @@ export function printOp(vm: VM): void {
     if (decoded.tag === Tag.LIST) {
       // Pop header and then format by consuming payload
       const headerVal = vm.pop();
-      const formatted = formatAndConsumeListFromHeaderValue(vm, headerVal);
+      const formatted = formatListFromHeader(vm, headerVal);
       console.log(formatted);
       return;
     }
