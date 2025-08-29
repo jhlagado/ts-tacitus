@@ -20,7 +20,7 @@ import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
 import { RSTACK_SIZE } from '../core/constants';
 import { executeOp } from './builtins';
 
-import { formatValue } from '../core/utils';
+import { formatValue } from '../core/format-utils';
 
 /** Number of bytes per stack element */
 const CELL_SIZE = 4;

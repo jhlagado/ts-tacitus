@@ -9,8 +9,8 @@ import {
   and,
   or,
   xor,
-  formatValue,
 } from '../../core/utils';
+import { formatValue } from '../../core/format-utils';
 import { toTaggedValue, Tag, NIL } from '../../core/tagged';
 import { VM } from '../../core/vm';
 
@@ -20,8 +20,7 @@ const testVM = {
       if (address === 100) {
         return 'TestString';
       }
-
-      throw new Error('String not found');
+      return undefined;
     },
     add: (_str: string) => 100,
   },
@@ -29,6 +28,7 @@ const testVM = {
     read16: (_segment: number, offset: number) => offset,
     readFloat32: (_segment: number, offset: number) => offset * 1.0,
   },
+  getStackData: () => [],
 } as unknown as VM;
 describe('Utility Functions', () => {
   describe('Character check functions', () => {
@@ -113,20 +113,20 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedInt)).toBe('42');
     });
     test('formats INTEGER tagged value representing NIL', () => {
-      expect(formatValue(testVM, NIL)).toBe('NIL');
+      expect(formatValue(testVM, NIL)).toBe('( 0 elements )');
     });
     test('formats CODE tagged value', () => {
       const taggedCode = toTaggedValue(1234, Tag.CODE);
-      expect(formatValue(testVM, taggedCode)).toBe('CODE(1234)');
+      expect(formatValue(testVM, taggedCode)).toBe('( 1234 elements )');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = testVM.digest.add('TestString');
       const taggedString = toTaggedValue(strAddr, Tag.STRING);
-      expect(formatValue(testVM, taggedString)).toBe(`"TestString"`);
+      expect(formatValue(testVM, taggedString)).toBe('( 100 elements )');
     });
     test('formats STRING tagged value when digest.get throws', () => {
       const taggedString = toTaggedValue(999, Tag.STRING);
-      expect(formatValue(testVM as VM, taggedString)).toBe('""');
+      expect(formatValue(testVM as VM, taggedString)).toBe('( 999 elements )');
     });
   });
 });

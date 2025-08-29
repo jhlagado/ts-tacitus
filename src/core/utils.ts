@@ -3,8 +3,6 @@
  * Utility functions for the Tacit VM implementation.
  */
 
-import { Tag, fromTaggedValue } from './tagged';
-import { VM } from './vm';
 
 /**
  * Checks if character is a digit.
@@ -94,24 +92,4 @@ export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== t
  * @param value32 Tagged value to format
  * @returns Formatted string representation
  */
-export function formatValue(vm: VM, value32: number): string {
-  const { value, tag } = fromTaggedValue(value32);
-  switch (tag) {
-    case Tag.NUMBER:
-      return value32.toString();
-    case Tag.SENTINEL:
-      return value === 0 ? 'NIL' : String(value);
-    case Tag.CODE:
-      return `CODE(${value})`;
-    case Tag.STRING:
-      try {
-        const str = vm.digest.get(value);
-        return `"${str}"`;
-      } catch (_error) {
-        return '""';
-      }
-
-    default:
-      return 'NaN';
-  }
-}
+// formatValue provided by core/format-utils

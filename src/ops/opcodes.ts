@@ -85,8 +85,7 @@ export enum Op {
   /**  Checks if the top two values on the stack are equal. */
   Equal,
 
-  /**  Checks if the top two values on the stack match (have the same structure). */
-  Match,
+  
 
   /**  Canonical unary ops */
   Recip,
@@ -119,11 +118,6 @@ export enum Op {
 
   /**  Duplicates the top element and inserts the copy under the second element. */
   Tuck,
-
-  /**  Legacy vector ops removed */
-
-  /**  Joins two vectors into a single vector. */
-  Join,
 
   /**  Enlists a value as a single-element list. */
   Enlist,
@@ -171,11 +165,7 @@ export enum Op {
   /**  Reverses the elements of a list. */
   Reverse,
 
-  /**  Checks if a value is present in a vector. */
-  mIn,
-
-  /**  Returns the keys of a dictionary. */
-  mKey,
+  
 
   /**  Calculates the absolute value. */
   Abs,
