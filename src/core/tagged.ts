@@ -178,14 +178,7 @@ export function createLocalRef(slot: number): number {
   return toTaggedValue(slot, Tag.RSTACK_REF);
 }
 
-/**
- * Creates a GLOBAL_REF tagged value.
- * @param key The global variable key to reference
- * @returns A GLOBAL_REF tagged value
- */
-export function createGlobalRef(key: number): number {
-  return toTaggedValue(key, Tag.GLOBAL_REF);
-}
+// Global references are not yet supported.
 
 /**
  * Checks if a value is CODE.
@@ -217,26 +210,4 @@ export function isLocal(tval: number): boolean {
   return tag === Tag.LOCAL;
 }
 
-/**
- * Creates a STACK_REF for a stack cell.
- * @param cellIndex The cell index (0-65535)
- * @returns Tagged STACK_REF value
- */
-export function createStackRef(cellIndex: number): number {
-  if (cellIndex < 0 || cellIndex > 65535) {
-    throw new Error('Stack cell index must be 0-65535');
-  }
-  return toTaggedValue(cellIndex, Tag.STACK_REF);
-}
-
-/**
- * Gets byte address from a STACK_REF.
- * @param stackRef The STACK_REF value
- * @returns Byte address
- */
-export function getStackRefAddress(stackRef: number): number {
-  if (getTag(stackRef) !== Tag.STACK_REF) {
-    throw new Error('Value is not a STACK_REF');
-  }
-  return getValue(stackRef) * 4;
-}
+// Stack reference helpers are provided via core/refs.

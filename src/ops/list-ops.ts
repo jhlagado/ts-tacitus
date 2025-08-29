@@ -670,8 +670,6 @@ export const enlistOp: Verb = (vm: VM) => {
   vm.push(toTaggedValue(1, Tag.LIST));
 };
 
-export const mEnlistOp = enlistOp;
-
 /**
  * Reverses the elements of a list.
  * Stack effect: ( list -- list' )

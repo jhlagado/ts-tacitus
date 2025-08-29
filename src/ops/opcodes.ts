@@ -118,9 +118,6 @@ export enum Op {
   /**  Enlists a value as a single-element list. */
   Enlist,
 
-  /**  Counts the elements in a vector. */
-  mCount,
-
   /**  Returns payload slot count from LIST header. */
   Length,
 
