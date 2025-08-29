@@ -1,7 +1,8 @@
 import { Memory } from '../../../core/memory';
 import { SymbolTable, SymbolTableCheckpoint } from '../../../../src/strings/symbol-table';
 import { Digest } from '../../../../src/strings/digest';
-import { defineBuiltins } from '../../../ops/define-builtins';
+import { VM } from '../../../core/vm';
+import { registerBuiltins } from '../../../ops/builtins-register';
 
 describe('SymbolTable', () => {
   let symbolTable: SymbolTable;
@@ -9,7 +10,8 @@ describe('SymbolTable', () => {
   const dummyFunctionIndex = 200;
   beforeEach(() => {
     symbolTable = new SymbolTable(new Digest(new Memory()));
-    defineBuiltins(symbolTable);
+    const vm = new VM();
+    registerBuiltins(vm, symbolTable);
     initialCheckpoint = symbolTable.mark();
   });
 

@@ -11,7 +11,7 @@ import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
-import { dropOp, findElement, cellsCopy, cellsReverse, swapOp } from './stack-ops';
+import { dropOp, findElement, swapOp } from './stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
 
 const CELL_SIZE = 4;
@@ -130,10 +130,11 @@ export function sizeOp(vm: VM): void {
 // consOp removed; concat is the single polymorphic concatenation op
 
 /**
- * drop-head: ( list — list' )
+ * tail: ( list — list' )
+ * Removes the first element from a list (drops the head).
  */
-export function dropHeadOp(vm: VM): void {
-  vm.ensureStackSize(1, 'drop-head');
+export function tailOp(vm: VM): void {
+  vm.ensureStackSize(1, 'tail');
   const header = vm.pop();
   if (!isList(header)) {
     vm.push(header);
@@ -152,6 +153,9 @@ export function dropHeadOp(vm: VM): void {
   vm.SP -= span * CELL_SIZE;
   vm.push(toTaggedValue(s - span, Tag.LIST));
 }
+
+// Legacy alias for backward compatibility
+export const dropHeadOp = tailOp;
 
 /**
  * Concatenates two lists into a new combined list.
@@ -736,13 +740,16 @@ export function unpackOp(vm: VM): void {
  *
  * Stack effect: ( value — LIST:1 )
  */
-export const mEnlistOp: Verb = (vm: VM) => {
+export const enlistOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'enlist');
   const a = vm.pop();
   // LIST semantics: push value, then LIST header with slot count 1
   vm.push(a);
   vm.push(toTaggedValue(1, Tag.LIST));
 };
+
+// Legacy alias for backward compatibility
+export const mEnlistOp = enlistOp;
 
 /**
  * Reverses the elements of a list.
