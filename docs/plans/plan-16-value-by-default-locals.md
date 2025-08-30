@@ -5,28 +5,22 @@ Implement complete reference system per refs.md specification, bringing entire c
 
 ## Full Audit Requirements
 
-### 1. Cross-Specification Alignment Audit
-**Action Required**: Review and revise related specifications to align with refs.md:
+### 1. Cross-Specification Alignment Audit  
+**Action Required**: Minimal updates to align with simplified refs.md:
 
 #### A. Update `docs/specs/local-vars.md`
-- **Section to revise**: Variable access semantics (currently describes ref-by-default)
-- **Changes needed**: Update to value-by-default model, clarify `&x` sigil usage
-- **Cross-references**: Ensure frame layout examples align with refs.md addressing
+- **Section to revise**: "Variable Access and Addressing" - update to value-by-default model
+- **Changes needed**: Add `&x` sigil documentation, remove escape-related content
+- **Scope**: Minor update, most content still valid
 
-#### B. Update `docs/specs/access.md` 
-- **Section to revise**: Path traversal with refs, get/set source resolution
-- **Changes needed**: Clarify mandatory source resolution in `set` operations
-- **Cross-references**: Ensure examples use `resolve` not `unref`
+#### B. Update `docs/specs/polymorphic-operations.md`  
+- **Section to revise**: `unref` operation documentation
+- **Changes needed**: Update to use `resolve` terminology throughout
+- **Scope**: Terminology update only, concepts remain the same
 
-#### C. Update `docs/specs/polymorphic-operations.md`
-- **Section to revise**: Reference handling across all ops
-- **Changes needed**: Update function signatures, resolve vs unref terminology
-- **Cross-references**: Align with refs.md polymorphism requirements
-
-#### D. Update `docs/specs/lists.md`
-- **Section to revise**: Reference materialization, compound storage
-- **Changes needed**: Clarify ref vs value semantics in list operations
-- **Cross-references**: Ensure consistent with refs.md resolution rules
+#### C. Skip access.md and lists.md updates
+- **Reason**: These specs don't conflict with simplified refs.md
+- **Status**: No changes needed - existing content is compatible
 
 ### 2. Implementation Gaps Analysis
 **Action Required**: Comprehensive codebase audit for ref semantic compliance:
@@ -41,15 +35,9 @@ Implement complete reference system per refs.md specification, bringing entire c
 - **Audit needed**: All ops that write/store values
 - **Fix required**: Ensure mandatory resolution boundaries are enforced
 
-#### C. Error Handling (`src/core/errors.ts`)
-- **Missing**: RefEscapeError, IncompatibleCompoundAssignmentError classes
-- **Issue**: Generic error messages instead of ref-specific ones
-- **Fix required**: Add ref-specific error types per refs.md section 8
-
-#### D. Return Path Enforcement
-- **Missing**: Frame exit scanning for owned ref resolution
-- **Issue**: Refs can escape their owning frames
-- **Fix required**: VM return operation must scan and resolve owned refs
+#### C. Error Handling Updates  
+- **Issue**: Some error messages could be more ref-specific
+- **Fix required**: Update messages to be segment-aware where helpful
 
 ### 3. Detailed Implementation Steps
 
@@ -79,15 +67,9 @@ Implement complete reference system per refs.md specification, bringing entire c
    - Ensure sources are resolved before writing
    - Add ref-specific error messages
 
-2. **Add missing error classes**:
-   - `RefEscapeError` for frame escape attempts  
-   - `IncompatibleCompoundAssignmentError` for type mismatches
-   - Update error messages to be ref-aware
-
-3. **Implement frame exit enforcement**:
-   - Add return-time scanning in VM return path
-   - Resolve owned refs, preserve borrowed refs
-   - Add frame ownership tracking
+2. **Update error messages**:
+   - Make error messages segment-aware and ref-specific
+   - Remove escape-related error handling (not enforced per spec)
 
 #### Phase 4: Access Operations Complete Implementation  
 1. **Complete `access-ops.ts`**:
@@ -104,7 +86,6 @@ Implement complete reference system per refs.md specification, bringing entire c
 1. **Comprehensive test suite**:
    - Value-by-default behavior for all local types
    - `&x` explicit reference access
-   - Ref escape prevention
    - Polymorphic equivalence tests
    - Assignment resolution tests
 
@@ -141,15 +122,12 @@ x -> y   → VarRef + Store                 (unchanged - already correct)
 - Local symbol resolution for both forms
 
 #### VM Enhancements  
-- Frame ownership tracking for return-time scanning
 - Enhanced error reporting with ref context
 
-### 6. Specification Update Tasks
+### 6. Specification Update Tasks (Minimal)
 
-1. **local-vars.md**: Update variable access model, add `&x` examples
-2. **access.md**: Clarify source resolution in `set`, update terminology
-3. **polymorphic-operations.md**: Update function signatures, resolve terminology  
-4. **lists.md**: Clarify ref materialization rules
+1. **local-vars.md**: Update variable access section for value-by-default, add `&x`
+2. **polymorphic-operations.md**: Update `unref` → `resolve` terminology
 
 ### 7. Success Criteria
 
@@ -157,7 +135,6 @@ x -> y   → VarRef + Store                 (unchanged - already correct)
 - `x` returns actual values for both simple and compound locals
 - `&x` returns RSTACK_REF for explicit aliasing
 - All polymorphic operations work identically with values and refs
-- Refs cannot escape their owning frames
 - Sources are resolved before assignment/storage
 
 #### Quality Requirements  
