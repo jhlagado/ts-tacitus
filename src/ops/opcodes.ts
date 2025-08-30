@@ -239,4 +239,6 @@ export enum Op {
   Ref,
   /** Materializes any reference to data stack - ( ref -- value ) polymorphic */
   Unref,
+  /** Path-based address access - ( target path -- target addr|NIL ) */
+  Select,
 }
