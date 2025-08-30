@@ -17,7 +17,7 @@ describe('Compound Variable Mutation', () => {
       : main
         ( 1 2 3 ) var x
         ( 4 5 6 ) -> x
-        x unref
+        x resolve
       ;
       main
     `;
@@ -36,7 +36,9 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow('Incompatible compound assignment: slot count or type mismatch');
+    expect(() => executeTacitCode(code)).toThrow(
+      'Incompatible compound assignment: slot count or type mismatch',
+    );
   });
 
   test('should throw error for assigning simple to compound', () => {
@@ -47,7 +49,9 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow('Cannot assign simple to compound or compound to simple');
+    expect(() => executeTacitCode(code)).toThrow(
+      'Cannot assign simple to compound or compound to simple',
+    );
   });
 
   test('should throw error for assigning compound to simple', () => {
@@ -58,6 +62,8 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow('Cannot assign simple to compound or compound to simple');
+    expect(() => executeTacitCode(code)).toThrow(
+      'Cannot assign simple to compound or compound to simple',
+    );
   });
 });

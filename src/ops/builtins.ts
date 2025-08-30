@@ -75,7 +75,7 @@ import { InvalidOpcodeError } from '../core/errors';
 import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { getOp, setOp } from './access-ops';
+import { getOp, setOp, selectOp } from './access-ops';
 import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
 /** Stores TOS into vm.tempRegister. */
@@ -272,6 +272,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Set:
       setOp(vm);
+      break;
+    case Op.Select:
+      selectOp(vm);
       break;
     case Op.MakeList:
       makeListOp(vm);

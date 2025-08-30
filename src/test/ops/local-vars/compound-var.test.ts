@@ -23,16 +23,16 @@ describe('Compound Variables - Empty Lists', () => {
 
     expect(result).toHaveLength(1);
     // Test behavioral difference: references and direct lists behave differently
-    // A reference should work with unref to materialize the list
+    // A reference should work with resolve to materialize the list
     const materializedResult = executeTacitCode(`
       : test-empty-materialized
         () var emptyList
-        emptyList unref
+        emptyList resolve
       ;
       test-empty-materialized
     `);
     expect(materializedResult).toHaveLength(1);
-    // Both should work with length operation but reference doesn't need unref
+    // Both should work with length operation but reference doesn't need resolve
     const refLength = executeTacitCode(`
       : test-ref-length
         () var emptyList
@@ -69,15 +69,15 @@ describe('Compound Variables - Empty Lists', () => {
     expect(varLength).toEqual([0]);
   });
 
-  test('should materialize actual list with unref', () => {
+  test('should materialize actual list with resolve', () => {
     // Test behavioral equivalence rather than tagged value inspection
     const directEmpty = executeTacitCode('()');
     const unrefEmpty = executeTacitCode(`
-      : test-unref
+      : test-resolve
         () var emptyList
-        emptyList unref
+        emptyList resolve
       ;
-      test-unref
+      test-resolve
     `);
 
     expect(unrefEmpty).toHaveLength(1);
@@ -85,16 +85,15 @@ describe('Compound Variables - Empty Lists', () => {
     // Test that both behave the same with length operation
     const directLength = executeTacitCode('() length');
     const unrefLength = executeTacitCode(`
-      : test-unref-length
+      : test-resolve-length
         () var emptyList
-        emptyList unref length
+        emptyList resolve length
       ;
-      test-unref-length
+      test-resolve-length
     `);
     expect(unrefLength).toEqual(directLength);
     expect(unrefLength).toEqual([0]);
   });
-
 });
 
 describe('Compound Variables - Single Element Lists', () => {
@@ -114,7 +113,7 @@ describe('Compound Variables - Single Element Lists', () => {
 
     expect(result).toHaveLength(2); // Now returns value: [1, LIST:1]
     expect(result[0]).toBe(1); // First element should be 1
-    
+
     // Test explicit reference access with &x sigil
     const refResult = executeTacitCode(`
       : test-single-ref
@@ -152,13 +151,13 @@ describe('Compound Variables - Single Element Lists', () => {
     expect(varLength).toEqual([1]);
   });
 
-  test('should materialize triple-element list with unref', () => {
+  test('should materialize triple-element list with resolve', () => {
     const result = executeTacitCode(`
-      : test-triple-unref
+      : test-triple-resolve
         (1 2 3) var tripleList
-        tripleList unref
+        tripleList resolve
       ;
-      test-triple-unref
+      test-triple-resolve
     `);
 
     expect(result).toHaveLength(4); // Should be [3 2 1, LIST:1]
@@ -180,5 +179,4 @@ describe('Compound Variables - Single Element Lists', () => {
 
     expect(result).toEqual([1]); // head of (1) should be 1
   });
-
 });
