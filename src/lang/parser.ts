@@ -369,7 +369,7 @@ export function processAtSymbol(symbolName: string): void {
 /**
  * Process variable declarations with 'var' keyword.
  *
- * This function handles variable declarations in TACIT using the syntax: value var name
+ * This function handles variable declarations in Tacit using the syntax: value var name
  * It expects a value to already be on the stack and reads the variable name from the next token.
  *
  * @param {ParserState} state - The current parser state

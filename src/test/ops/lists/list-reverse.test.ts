@@ -1,7 +1,7 @@
 /**
  * @file src/test/ops/lists/list-reverse.test.ts
  *
- * Tests for the reverse operation on TACIT lists.
+ * Tests for the reverse operation on Tacit lists.
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';

@@ -2,7 +2,7 @@
 
 Status: ✅ **COMPLETE** - All Core Phases Implemented
 Owner: core
-Scope: Bring the TACIT VM's list implementation into full compliance with `docs/specs/lists.md` specification
+Scope: Bring the Tacit VM's list implementation into full compliance with `docs/specs/lists.md` specification
 Timebox: 13-18 days (5 phases, iterative implementation with testing after each step)
 
 ---
@@ -21,7 +21,7 @@ Timebox: 13-18 days (5 phases, iterative implementation with testing after each 
 
 ## 1. Executive Summary
 
-After comprehensive analysis, the TACIT VM's list implementation has a solid architectural foundation but significant gaps in spec compliance:
+After comprehensive analysis, the Tacit VM's list implementation has a solid architectural foundation but significant gaps in spec compliance:
 
 ### Current State
 
@@ -822,7 +822,7 @@ describe('List Performance', () => {
 
 ### ✅ Phase 1 Success Criteria - COMPLETE
 
-- [x] All existing operations properly registered and accessible via TACIT syntax
+- [x] All existing operations properly registered and accessible via Tacit syntax
 - [x] Non-spec operations (get-at/set-at) removed and replaced with spec-compliant operations
 - [x] `length` operation implemented and returns correct element count for nested lists
 - [x] All Phase 1 tests pass
@@ -909,7 +909,7 @@ describe('List Performance', () => {
 
 ## 🏆 **PROJECT IMPACT**
 
-This implementation represents a **major advancement** in the TACIT VM's capabilities:
+This implementation represents a **major advancement** in the Tacit VM's capabilities:
 
 1. **Foundational**: All core list operations now work correctly
 2. **Reliable**: 90% test success rate with comprehensive coverage
@@ -917,7 +917,7 @@ This implementation represents a **major advancement** in the TACIT VM's capabil
 4. **Extensible**: Architecture supports future advanced features
 5. **Production-Ready**: Robust error handling and edge case coverage
 
-**The lists.md specification alignment has been successfully completed with exceptional results, providing a solid foundation for all list-based programming in the TACIT VM.**
+**The lists.md specification alignment has been successfully completed with exceptional results, providing a solid foundation for all list-based programming in the Tacit VM.**
 
 ---
 
@@ -953,7 +953,7 @@ This implementation represents a **major advancement** in the TACIT VM's capabil
 
 #### 3. Complete System Integration
 
-- **Symbol table registration**: All 10 operations properly registered for TACIT syntax access
+- **Symbol table registration**: All 10 operations properly registered for Tacit syntax access
 - **Opcode dispatch integration**: Full integration with VM execution pipeline
 - **Test coverage excellence**: Comprehensive edge case coverage including empty lists, compound elements
 - **Regression safety**: Zero regressions in existing 700+ test suite after integration
@@ -1005,14 +1005,14 @@ This implementation represents a **major advancement** in the TACIT VM's capabil
 
 **Technical Achievement**: This plan successfully delivered a **production-quality list implementation** that demonstrates:
 
-- Complete mastery of TACIT VM architecture
+- Complete mastery of Tacit VM architecture
 - Full compliance with lists.md specification for core functionality
 - Engineering excellence in error handling, memory management, and integration
 - Outstanding test coverage and regression safety
 
 **Strategic Achievement**: The 90% success rate with robust core functionality represents **exceptional value delivery** while maintaining focus on critical user needs rather than pursuing perfectionist completion of advanced features.
 
-**Legacy Impact**: Establishes the foundation for all future compound data structure work in TACIT VM, with clean interfaces and proven architectural patterns.
+**Legacy Impact**: Establishes the foundation for all future compound data structure work in Tacit VM, with clean interfaces and proven architectural patterns.
 
 ---
 

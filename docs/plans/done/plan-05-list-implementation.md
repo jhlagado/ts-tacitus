@@ -1,12 +1,13 @@
-# TACIT Reverse Lists (RLIST) Implementation Plan (Unified)
+# Tacit Reverse Lists (RLIST) Implementation Plan (Unified)
 
 ## Overview
 
-This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-native compound data structure that stores elements in reverse order with the header at top-of-stack. The runtime has been unified on RLIST-only semantics; legacy LIST/LINK functionality and types have been removed.
+This plan outlines the implementation of Tacit Reverse Lists (RLIST), a stack-native compound data structure that stores elements in reverse order with the header at top-of-stack. The runtime has been unified on RLIST-only semantics; legacy LIST/LINK functionality and types have been removed.
 
 ## Phase 1: Core Infrastructure
 
 ### Step 1.1: Add RLIST Tag to Tagged Value System
+
 - Status: Completed
 - **File**: `src/core/tagged.ts`
 - **Tasks**:
@@ -18,6 +19,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Validation**: All existing tagged value tests pass
 
 ### Step 1.2: Implement RLIST Core Utilities
+
 - Status: Completed
 - **File**: `src/core/rlist.ts` (new)
 - **Functions**:
@@ -31,6 +33,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Performance**: O(1) prepend, O(s) append operations
 
 ### Step 1.3: Add RLIST Opcodes
+
 - Status: Completed
 - **File**: `src/ops/opcodes.ts`
 - **New Opcodes**:
@@ -45,6 +48,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Integration**: Update opcode enumeration and dispatch tables
 
 ### Step 1.4: Implement RLIST Primitive Operations
+
 - Status: Completed
 - **File**: `src/ops/builtins-rlist.ts` (new)
 - **Operations**:
@@ -60,16 +64,18 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Stack Effects**: All operations documented with proper notation
 
 ### Step 1.5: Register RLIST Builtins in Symbol Table
+
 - Status: Completed
 - **File**: `src/ops/builtins.ts`
 - **Registration Tasks**:
   - Add RLIST operations to builtin symbol table
-  - Ensure operations callable from TACIT code
+  - Ensure operations callable from Tacit code
   - Map operation names to function implementations
   - Test symbol resolution for all RLIST operations
 - **Names**: `.slot`, `.skip`, `prepend`, `append`, `get-at`, `set-at`
 
 ### Step 1.6: Add RLIST to Format/Display System
+
 - Status: Completed
 - **File**: `src/core/format-utils.ts`
 - **Display Tasks**:
@@ -81,6 +87,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 ## Phase 2: Testing Infrastructure
 
 ### Step 2.1: Core RLIST Tests
+
 - Status: Completed
 - **File**: `src/test/ops/lists/rlist.test.ts` (new)
 - **Test Cases**:
@@ -93,6 +100,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Performance**: Validate O(1) prepend, O(s) append characteristics
 
 ### Step 2.2: RLIST Operations Tests
+
 - Status: Completed
 - **File**: `src/test/ops/lists/rlist-operations.test.ts` (new)
 - **Operations Testing**:
@@ -105,6 +113,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Edge Cases**: Zero-length RLISTs, maximum slot counts
 
 ### Step 2.3: RLIST Integration Tests
+
 - Status: Completed
 - **File**: `src/test/ops/lists/rlist-integration.test.ts` (new)
 - **Integration Testing**:
@@ -115,12 +124,14 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Stress Testing**: Large RLISTs, deep nesting, memory pressure
 
 ### Step 2.4: Parser Tokenizer Updates
+
 - Status: Completed
 - **File**: `src/lang/tokenizer.ts`
 - Unified syntax uses `( )` for RLIST literals. No additional tokens required.
 - **Testing**: Comprehensive tokenizer tests for bracket combinations
 
 ### Step 2.5: RLIST Literal Compilation Tests
+
 - Status: Completed
 - **File**: `src/test/lang/rlist-compilation.test.ts` (new)
 - **Compilation Testing**:
@@ -133,6 +144,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 ## Phase 3: Parser Integration
 
 ### Step 3.1: Parser Integration for `( )` Syntax
+
 - Status: Completed
 - **File**: `src/lang/parser.ts`
 - **Parser Changes**:
@@ -145,6 +157,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Nesting**: Support arbitrary nesting depth with boundary tracking
 
 ### Step 3.2: Add RLIST Opcodes to VM Dispatch
+
 - Status: Completed
 - **File**: `src/ops/builtins.ts`
 - **Registration**:
@@ -153,7 +166,8 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
   - Ensure proper opcode-to-function binding
 - **Testing**: Validate all RLIST operations accessible from parser
 
-### Step 3.3: Parser Integration Tests  
+### Step 3.3: Parser Integration Tests
+
 - Status: Completed
 - **File**: `src/test/lang/parser-rlist.test.ts` (new)
 - **Test Cases**:
@@ -165,10 +179,12 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 ## Phase 4: Interoperability & Validation
 
 ### Step 4.1: Legacy Removal and Consolidation
+
 - Status: Completed
 - Removed legacy LIST/LINK tags, code paths, and tests. Unified on `Tag.RLIST`.
 
 ### Step 4.2: Documentation Updates
+
 - Status: Skipped (deferred; will change post-plan)
 - **Files**: Update relevant documentation
 - **Updates**:
@@ -178,6 +194,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Validation**: Ensure documentation matches implementation
 
 ### Step 4.3: Memory Management Validation
+
 - Status: Completed
 - **File**: `src/test/core/rlist-memory.test.ts` (new)
 - **Memory Testing**:
@@ -188,6 +205,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Stack Integration**: Ensure RLIST works with `dup`, `swap`, `rot`, etc.
 
 ### Step 4.4: Performance Benchmarking
+
 - **File**: `src/test/performance/rlist-benchmarks.test.ts` (new)
 - **Benchmark Tasks**:
   - Compare RLIST vs LIST for prepend/append operations
@@ -197,14 +215,15 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Validation**: Confirm performance matches specification claims
 
 ### Step 4.5: REPL Integration Testing
+
 - **File**: `src/test/repl/rlist-repl.test.ts` (new)
 - **REPL Testing**:
   - Test RLIST display in interactive mode
   - Validate error messages in REPL context
   - Ensure proper formatting and output using `( … )`
-  
 
 ### Step 4.6: Error Message Consistency
+
 - **Files**: All RLIST operation files
 - **Consistency Tasks**:
   - Ensure RLIST errors match existing LIST error patterns
@@ -214,6 +233,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 - **Documentation**: Error conditions clearly documented
 
 ### Step 4.7: Final Validation
+
 - **Testing**: Run complete test suite with `yarn test`
 - **Validation Checklist**:
   - [ ] All RLIST operations match specification
@@ -224,26 +244,29 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
   - [ ] REPL integration seamless
   - [ ] All tests pass (coverage threshold separate)
 
-
 ## Implementation Notes
 
 ### Stack Safety
+
 - Always use `vm.ensureStackSize()` before operations
 - Validate RLIST headers before accessing payload
 - Handle empty stack conditions gracefully
 
 ### Memory Layout
+
 ```
 [payload-s-1] ... [payload-1] [payload-0] [RLIST:s] ← TOS (SP)
 ```
 
 ### Key Constraints
+
 - Maximum slot count: 65,535 (16-bit field)
 - Header always at TOS for O(1) access
 - Payload stored in reverse logical order
 - Structural immutability (build new for resize)
 
 ### Performance Targets
+
 - O(1) prepend operations
 - O(1) skip/drop entire RLIST
 - O(s) append operations
@@ -252,6 +275,7 @@ This plan outlines the implementation of TACIT Reverse Lists (RLIST), a stack-na
 ---
 
 **Construction Algorithm Notes**
+
 - Outermost-only reversal: a placeholder header is pushed on `[`; only when closing the outermost `]` do we reverse the contiguous block (header + payload) once. Inner RLISTs are not individually reversed; they are treated as single units during the outer reversal. This guarantees a single global reversal per nested structure.
 
 **Next Action**: Step 4.7 - Final Validation & Rollback Procedures

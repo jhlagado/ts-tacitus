@@ -1,10 +1,10 @@
 /**
- * Tests for list integration scenarios - Complex TACIT syntax and advanced list use cases
- * Focuses on end-to-end list functionality with TACIT language features
+ * Tests for list integration scenarios - Complex Tacit syntax and advanced list use cases
+ * Focuses on end-to-end list functionality with Tacit language features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
+import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 
 describe('List Integration Tests', () => {
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('List Integration Tests', () => {
   });
 
   describe('simple values', () => {
-    test('should create and manipulate simple lists with TACIT syntax (LIST)', () => {
+    test('should create and manipulate simple lists with Tacit syntax (LIST)', () => {
       const stack = executeTacitCode('( 1 2 3 ) dup');
 
       expect(stack.length).toBeGreaterThan(4);
@@ -50,7 +50,7 @@ describe('List Integration Tests', () => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;
       });
-      expect(listTags.length).toBeGreaterThanOrEqual(4); 
+      expect(listTags.length).toBeGreaterThanOrEqual(4);
     });
 
     test('should manipulate mixed data types in lists', () => {
@@ -146,7 +146,7 @@ describe('List Integration Tests', () => {
         const { tag } = fromTaggedValue(item);
         return tag === Tag.LIST;
       });
-      expect(listTags.length).toBeGreaterThanOrEqual(4); 
+      expect(listTags.length).toBeGreaterThanOrEqual(4);
     });
 
     test('should support list operations in conditional contexts', () => {

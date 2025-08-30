@@ -1,4 +1,4 @@
-# AI Development Guidelines for TACIT
+# AI Development Guidelines for Tacit
 
 ## Core Principles
 
@@ -9,7 +9,7 @@
 - **Validate against specifications** before considering implementation complete
 - **Reference specs in commit messages** and code comments
 
-### TACIT Language Conventions
+### Tacit Language Conventions
 
 - **Stack effect notation**: Use `( before — after )` format consistently
 - **Left-to-right evaluation**: All operations process arguments in order

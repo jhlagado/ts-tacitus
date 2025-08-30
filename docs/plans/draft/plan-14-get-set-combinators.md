@@ -10,6 +10,7 @@
 Implement high-level `get` and `set` combinators that provide elegant path-based access to nested list/maplist structures. These combinators leverage the existing combinator architecture (like `do`/`repeat`) and build on the foundational access operations from Plan 13.
 
 **Key Innovation:** Transform complex address-returning traversals into readable path expressions:
+
 ```
 root get { `users 0 `name }        // Instead of: root `users find fetch 0 elem fetch `name find fetch
 "Jane" root set { `users 0 `name } // Instead of: root `users find fetch 0 elem "Jane" swap store
@@ -22,6 +23,7 @@ root get { `users 0 `name }        // Instead of: root `users find fetch 0 elem 
 Based on comprehensive analysis of existing `do`/`repeat` combinators, the system works as follows:
 
 #### 1. **Parser Phase (Compile Time)**
+
 ```typescript
 // When parser encounters 'get' or 'set':
 1. Verify next token is BLOCK_START ('{')
@@ -34,6 +36,7 @@ Based on comprehensive analysis of existing `do`/`repeat` combinators, the syste
 ```
 
 #### 2. **Runtime Phase (Execution)**
+
 ```typescript
 // Stack before combinator executes:
 // get: [target, blockAddress] ← TOS
@@ -48,6 +51,7 @@ Based on comprehensive analysis of existing `do`/`repeat` combinators, the syste
 ```
 
 #### 3. **Critical Insight: Enhanced Infix on Pure RPN**
+
 - **Apparent syntax:** `target get { path }` (looks infix)
 - **Actual compilation:** `target { path } get` (pure postfix)
 - **Runtime stack:** All data present before combinator executes
@@ -61,14 +65,15 @@ The `beginStandaloneBlock` function implements sophisticated block compilation:
 function beginStandaloneBlock(state: ParserState): void {
   const prevInside = state.insideCodeBlock;
   state.insideCodeBlock = true;
-  const { startAddress } = compileCodeBlock(state);  // Returns block start address
+  const { startAddress } = compileCodeBlock(state); // Returns block start address
   state.insideCodeBlock = prevInside;
-  vm.compiler.compileOpcode(Op.LiteralCode);        // Push block as tagged value
-  vm.compiler.compile16(startAddress);              // Block address operand
+  vm.compiler.compileOpcode(Op.LiteralCode); // Push block as tagged value
+  vm.compiler.compile16(startAddress); // Block address operand
 }
 ```
 
 **Key Properties:**
+
 - **Deferred execution**: Block compiled but not executed until combinator runs
 - **Closure-like**: Block can reference symbols from current scope
 - **Stack discipline**: Block execution maintains proper stack contracts
@@ -93,6 +98,7 @@ Based on developer feedback, this plan now follows a proven incremental approach
 **Goal:** Parser accepts `get`/`set` combinator syntax without runtime implementation
 
 **Scope Boundaries:**
+
 - ✅ Parser recognizes `get { path }` and `set { path }` syntax
 - ✅ Block compilation works (bytecode: Branch, block-body, Exit, opcode)
 - ✅ Syntax error handling (missing `{`, unclosed blocks)
@@ -104,6 +110,7 @@ Based on developer feedback, this plan now follows a proven incremental approach
 **Location:** `src/lang/parser.ts:268-295` (exact location as do/repeat)
 
 **Implementation Pattern (Mirror do/repeat exactly):**
+
 ```typescript
 } else if (value === 'get') {
   const blockToken = state.tokenizer.nextToken();
@@ -136,39 +143,40 @@ Based on developer feedback, this plan now follows a proven incremental approach
 **Location:** `src/test/lang/parser-get-set.test.ts` (new file)
 
 **Test Strategy:** Focus on parser behavior only, no runtime execution
+
 ```typescript
 describe('Get/Set Combinator Parser - Step 1', () => {
   describe('Syntax Requirements', () => {
     test('get requires block syntax', () => {
       expect(() => parseProgram('target get')).toThrow('Expected { after get combinator');
     });
-    
+
     test('set requires block syntax', () => {
       expect(() => parseProgram('value target set')).toThrow('Expected { after set combinator');
     });
-    
+
     test('get accepts block syntax without error', () => {
       expect(() => parseProgram('target get { 1 }')).not.toThrow();
     });
-    
+
     test('set accepts block syntax without error', () => {
       expect(() => parseProgram('value target set { key }')).not.toThrow();
     });
   });
-  
+
   describe('Bytecode Structure Validation', () => {
     test('get compiles correct block-then-opcode pattern', () => {
       const program = parseProgram('x get { 1 }');
-      
+
       // Verify bytecode structure matches do/repeat pattern:
       // 1. Push block address (LiteralCode + address)
-      // 2. Block bytecode (Branch, body, Exit) 
+      // 2. Block bytecode (Branch, body, Exit)
       // 3. Get opcode (undefined is OK for Step 1)
-      
+
       expect(program.bytecode).toMatchBytecodeStructure([
-        Op.LiteralCode,   // Push block address
+        Op.LiteralCode, // Push block address
         // ... block content validation
-        undefined,        // Get opcode (undefined expected in Step 1)
+        undefined, // Get opcode (undefined expected in Step 1)
       ]);
     });
   });
@@ -176,7 +184,8 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 ```
 
 **Step 1 Success Criteria:**
-- [x] Parser accepts `get { ... }` syntax without parse errors ✅ 
+
+- [x] Parser accepts `get { ... }` syntax without parse errors ✅
 - [x] Parser accepts `set { ... }` syntax without parse errors ✅
 - [x] Parser rejects `get` without `{` (proper error message) ✅
 - [x] Parser rejects `set` without `{` (proper error message) ✅
@@ -186,6 +195,7 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 **Step 1 COMPLETED** 🎉
 
 **Implementation Summary:**
+
 - ✅ Added `get` and `set` combinator recognition in `src/lang/parser.ts:296-317`
 - ✅ Follows exact pattern as `do`/`repeat` combinators
 - ✅ Uses placeholder opcode (999) when symbols not found (intentional for Step 1)
@@ -194,6 +204,7 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 - ✅ Zero regressions introduced
 
 **Key Technical Details:**
+
 - Parser correctly requires `{` token after `get`/`set` keywords
 - Block compilation using `beginStandaloneBlock()` works as expected
 - Error messages match existing combinator patterns
@@ -207,6 +218,7 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 **Goal:** Add minimal runtime support so syntax works end-to-end without crashing
 
 **Scope Boundaries:**
+
 - ✅ Add `Op.Get` and `Op.Set` opcodes to enum
 - ✅ Create stub operations that return NIL (no real functionality yet)
 - ✅ Register operations in symbol table and builtins dispatcher
@@ -218,6 +230,7 @@ describe('Get/Set Combinator Parser - Step 1', () => {
 **Location:** `src/ops/opcodes.ts` (after existing combinators)
 
 **Implementation:**
+
 ```typescript
 /** Get combinator: path-based value access */
 Get,
@@ -230,26 +243,27 @@ Set,
 **Location:** `src/ops/access-ops.ts` (new file)
 
 **Implementation Pattern:**
+
 ```typescript
 export const getOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'get');
-  
+
   // Pop the path block and target (ignore for now)
   vm.pop(); // path block
   vm.pop(); // target
-  
+
   // Always return NIL for Step 2
   vm.push(NIL);
 };
 
 export const setOp: Verb = (vm: VM) => {
   vm.ensureStackSize(3, 'set');
-  
+
   // Pop the path block, target, and value (ignore for now)
   vm.pop(); // path block
-  vm.pop(); // target  
+  vm.pop(); // target
   vm.pop(); // value
-  
+
   // Always return NIL for Step 2
   vm.push(NIL);
 };
@@ -258,10 +272,12 @@ export const setOp: Verb = (vm: VM) => {
 #### 2.3: Register Operations
 
 **Files Updated:**
+
 - `src/ops/builtins-register.ts`: Add symbol table registrations
 - `src/ops/builtins.ts`: Add opcode dispatch cases
 
 **Step 2 Success Criteria:**
+
 - [x] `Op.Get` and `Op.Set` opcodes added to enumeration ✅
 - [x] Stub operations created that pop correct stack arguments ✅
 - [x] Operations registered in symbol table and dispatcher ✅
@@ -272,6 +288,7 @@ export const setOp: Verb = (vm: VM) => {
 **Step 2 COMPLETED** 🎉
 
 **Implementation Summary:**
+
 - ✅ Added `Op.Get` and `Op.Set` opcodes in `src/ops/opcodes.ts:300-304`
 - ✅ Created stub operations in `src/ops/access-ops.ts` with proper stack discipline
 - ✅ Registered operations in `src/ops/builtins-register.ts:213-214`
@@ -281,10 +298,11 @@ export const setOp: Verb = (vm: VM) => {
 - ✅ Stack discipline verified: operations pop correct arguments and return NIL
 
 **Key Technical Details:**
+
 - Stub operations properly implement stack contracts (get: 2 args, set: 3 args)
 - NIL return values match expected combinator behavior
 - Parser now resolves opcodes correctly (no longer uses placeholder 999)
-- Empty final stack is normal TACIT execution behavior
+- Empty final stack is normal Tacit execution behavior
 - Operations integrate seamlessly with existing VM dispatch system
 
 ---
@@ -296,7 +314,8 @@ export const setOp: Verb = (vm: VM) => {
 **Critical Design Decision:** Before implementing core traversal logic, we need to address a fundamental architectural issue: access operations (`elem`, `slot`, `find`) currently work with stack positions, but get/set combinators need to traverse memory addresses in nested structures.
 
 **Solution:** Implement polymorphic access operations that can handle both:
-- `Tag.LIST`: Current stack-relative behavior (SP+offset)  
+
+- `Tag.LIST`: Current stack-relative behavior (SP+offset)
 - `Tag.STACK_REF`: New memory address-based behavior (absolute cell addressing)
 
 #### 2.5.1: Add STACK_REF Tag Type
@@ -304,12 +323,13 @@ export const setOp: Verb = (vm: VM) => {
 **Location:** `src/core/tagged.ts`
 
 **Implementation:**
+
 ```typescript
 export enum Tag {
   NUMBER = 0,
-  INTEGER = 1, 
+  INTEGER = 1,
   CODE = 2,
-  STACK_REF = 3,  // NEW: 4-byte aligned stack cell references
+  STACK_REF = 3, // NEW: 4-byte aligned stack cell references
   STRING = 4,
   BUILTIN = 7,
   LIST = 8,
@@ -319,25 +339,28 @@ export enum Tag {
 #### 2.5.2: STACK_REF Addressing Model
 
 **Cell-Based Addressing:**
+
 - **16-bit payload** = cell index (not byte address)
-- **4-byte alignment** = payload * 4 = actual byte address
+- **4-byte alignment** = payload \* 4 = actual byte address
 - **Address range** = 0-65535 cells = 0-262KB addressable stack space
 - **Type safety** = cannot create misaligned references
 
 **Usage Pattern:**
+
 ```typescript
 // Create STACK_REF to cell 100 (byte address 400)
 const stackRef = toTaggedValue(100, Tag.STACK_REF);
 
-// Use STACK_REF  
-const cellIndex = getValue(stackRef);     // Gets 100
-const byteAddr = cellIndex * 4;          // Gets 400  
+// Use STACK_REF
+const cellIndex = getValue(stackRef); // Gets 100
+const byteAddr = cellIndex * 4; // Gets 400
 const cellValue = vm.memory.read32(SEG_STACK, byteAddr);
 ```
 
 #### 2.5.3: Tagged Value Support Functions
 
 **Add to `tagged.ts`:**
+
 ```typescript
 /**
  * Checks if a given NaN-boxed value represents a STACK_REF.
@@ -377,14 +400,15 @@ export function getStackRefAddress(stackRef: number): number {
 #### 2.5.4: Update Tag Names and Validation
 
 **Update constants:**
+
 ```typescript
-export const MAX_TAG = Tag.LIST;  // Update if STACK_REF becomes highest
+export const MAX_TAG = Tag.LIST; // Update if STACK_REF becomes highest
 
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
-  [Tag.INTEGER]: 'INTEGER', 
+  [Tag.INTEGER]: 'INTEGER',
   [Tag.CODE]: 'CODE',
-  [Tag.STACK_REF]: 'STACK_REF',  // NEW
+  [Tag.STACK_REF]: 'STACK_REF', // NEW
   [Tag.STRING]: 'STRING',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
@@ -392,6 +416,7 @@ export const tagNames: { [key in Tag]: string } = {
 ```
 
 **Step 2.5 Success Criteria:**
+
 - [x] `Tag.STACK_REF = 3` added to tagged value enum ✅
 - [x] Cell-based addressing functions implemented and tested ✅
 - [x] Helper functions (`isStackRef`, `createStackRef`, `getStackRefAddress`) added ✅
@@ -402,14 +427,16 @@ export const tagNames: { [key in Tag]: string } = {
 **Step 2.5 COMPLETED** 🎉
 
 **Implementation Summary:**
+
 - ✅ Added `Tag.STACK_REF = 3` to tagged value enum in `src/core/tagged.ts:36`
-- ✅ Implemented cell-based addressing: 16-bit payload = cell index, byte address = index * 4
+- ✅ Implemented cell-based addressing: 16-bit payload = cell index, byte address = index \* 4
 - ✅ Added helper functions: `isStackRef()`, `createStackRef()`, `getStackRefAddress()`
 - ✅ Updated tag name mapping for debugging support
 - ✅ All 924 existing tests pass with zero regressions
 - ✅ Validated functionality: cell 100 → byte address 400, boundary checks, error handling
 
 **Key Technical Details:**
+
 - Cell-based addressing provides 0-262KB addressable stack space (65535 cells × 4 bytes)
 - Type-safe creation with range validation (0-65535 cell indices)
 - 4-byte alignment ensures compatibility with stack slot operations
@@ -422,11 +449,13 @@ Next: Migrate address-returning ops to return STACK_REF only, and update fetch/s
 Goal: Unify on STACK_REF for all address-returning operations.
 
 Scope:
+
 - Change `slot`, `elem`, and `find` to return STACK_REF
 - Update `fetch`/`store` to consume STACK_REF (keep INTEGER temporarily for backward compatibility if needed)
 - Update docs: `lists.md` §10, `capsules.md` Access Semantics
 
 Tests:
+
 - Adjust any tests assuming INTEGER addresses
 - Ensure behavior unchanged for value results and side effects
 
@@ -443,13 +472,15 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Goal:** Deep understanding of `openListOp`/`closeListOp` to extract reusable patterns
 
 **Scope Boundaries:**
-- ✅ Study `openListOp`: SP marking, return stack usage, placeholder header  
+
+- ✅ Study `openListOp`: SP marking, return stack usage, placeholder header
 - ✅ Study `closeListOp`: SP calculation, slot count, list structure building
 - ✅ Understand return stack protocol for SP preservation
 - ✅ Document the generic pattern for block → list conversion
 - ❌ NO implementation yet - analysis and documentation only
 
 **Detailed Analysis Required:**
+
 1. **SP Marking Protocol**: How does `openListOp` save current SP to return stack?
 2. **Block Execution**: How is the placeholder maintained during element collection?
 3. **Slot Count Calculation**: How does `closeListOp` compute `(current_SP - saved_SP) / 4`?
@@ -457,13 +488,15 @@ Based on architectural discussion, we need a clean separation using proven list 
 5. **Return Stack Management**: When/how is saved SP popped and restored?
 
 **Deliverables:**
+
 - Detailed code analysis document
 - Generic pattern extracted for `{block} → list` conversion
 - Implementation plan for `makeListOp`
 
 **Success Criteria:**
+
 - [x] Complete understanding of list construction internals
-- [x] Documented reusable pattern for block-to-list conversion  
+- [x] Documented reusable pattern for block-to-list conversion
 - [x] Ready to implement generic `makeListOp`
 
 ---
@@ -475,25 +508,29 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Stack Effect:** `( {block} -- list )`
 
 **Implementation Approach:**
+
 - Reuse `openListOp`/`closeListOp` patterns
 - Handle SP marking and return stack protocol
 - Generic utility for any block execution → list conversion
 
 **Detailed Implementation:**
+
 1. **Save current SP** to return stack (like `openListOp`)
 2. **Execute block** using VM block execution
-3. **Calculate element count** from SP difference  
+3. **Calculate element count** from SP difference
 4. **Build list structure** (payload + header)
 5. **Clean up return stack** and restore state
 
 **Testing Requirements:**
+
 - Simple blocks: `{ 1 2 3 } makeList` → `( 1 2 3 LIST:3 )`
 - Complex blocks: `{ 1 "key" dup }` → proper list creation
-- Empty blocks: `{ } makeList` → `( LIST:0 )`  
+- Empty blocks: `{ } makeList` → `( LIST:0 )`
 - Error cases: Invalid blocks, stack underflow
 
 **Success Criteria:**
-- [x] `makeListOp` implemented and working  
+
+- [x] `makeListOp` implemented and working
 - [x] All test cases pass
 - [x] Reusable for any block → list conversion
 - [x] Ready for integration into get/set combinators
@@ -505,24 +542,28 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Goal:** Use `makeListOp` to solve variadic path problem in get/set
 
 **Implementation Changes:**
+
 ```typescript
 // Before: target {path} get → variadic stack problem
 // After:  target {path} → target pathList → clean interface
 ```
 
 **get/set Combinator Updates:**
+
 1. **Pop target and blockAddr** from combinator stack setup
-2. **Push blockAddr back** for `makeListOp` processing  
+2. **Push blockAddr back** for `makeListOp` processing
 3. **Call makeListOp** → converts `{path}` to `pathList`
 4. **Result**: Clean `target pathList` on stack
 
 **Testing Requirements:**
+
 - `( 1 2 3 ) get { 1 }` → `target pathList` correctly formed
-- `99 ( 1 2 3 ) set { 1 }` → `value target pathList` correctly formed  
+- `99 ( 1 2 3 ) set { 1 }` → `value target pathList` correctly formed
 - Complex paths: `root get { 1 "users" 0 "name" }` → proper list creation
 - Error cases: Malformed blocks, syntax errors
 
 **Success Criteria:**
+
 - [x] get/set combinators use `makeListOp` for path collection
 - [x] Clean `target pathList` interface achieved
 - [x] All existing get/set syntax still works
@@ -537,29 +578,33 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Stack Effect:** `( (list | stack_ref) pathList -- stack_ref )`
 
 **Traversal Algorithm:**
+
 1. **Iterate through pathList** elements (pop from list)
 2. **For each path element**: Determine type (number vs string)
 3. **Apply appropriate operation**:
-   - Number → `elemOp` for list index  
+   - Number → `elemOp` for list index
    - String → `findOp` for maplist key
 4. **Handle intermediate results**: Convert LIST results to STACK_REF
 5. **Return final STACK_REF** pointing to target location
 
 **Implementation Details:**
+
 - Use polymorphic access operations we built (elem/slot/find)
 - Handle both LIST and STACK_REF inputs at each step
 - Proper error handling for invalid paths
 - Support for nested traversal through mixed list/maplist structures
 
 **Testing Requirements:**
+
 - Simple paths: `( 1 2 3 ) ( 1 LIST:1 ) traverseOp` → STACK_REF to element 1
 - Nested paths: Complex list/maplist navigation
 - Mixed types: Numbers and strings in same path
 - Error cases: Invalid indices, missing keys, type mismatches
 
 **Success Criteria:**
+
 - [x] `traverseOp` implemented and working
-- [x] Handles all path types correctly  
+- [x] Handles all path types correctly
 - [x] Returns proper STACK_REF addresses
 - [x] Ready for final get/set integration
 
@@ -570,25 +615,29 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Goal:** Final get/set logic using makeListOp + traverseOp + fetch/store
 
 **Complete Flow:**
+
 ```typescript
 // get: target {path} → target pathList → traverseOp → fetchOp
 // set: value target {path} → value target pathList → traverseOp → storeOp
 ```
 
 **Implementation:**
-1. **Path collection**: Use `makeListOp` (from Step 3.6)  
+
+1. **Path collection**: Use `makeListOp` (from Step 3.6)
 2. **Traversal**: Use `traverseOp` (from Step 3.7)
 3. **Final operations**:
    - get: Call `fetchOp` on result STACK_REF
    - set: Call `storeOp` with value and result STACK_REF
 
 **Testing Requirements:**
+
 - End-to-end: `( 1 ( 2 3 ) 4 ) get { 1 0 }` → retrieves value 2
-- Complex paths: Multi-level list/maplist navigation  
+- Complex paths: Multi-level list/maplist navigation
 - set operations: `99 target set { path }` → stores value correctly
 - Error propagation: Invalid paths return NIL
 
 **Success Criteria:**
+
 - [x] Complete get/set functionality working
 - [x] All syntax examples from plan work correctly
 - [x] Error handling robust and consistent
@@ -596,20 +645,23 @@ Based on architectural discussion, we need a clean separation using proven list 
 
 ---
 
-### Step 4: Advanced Features**
-- Comprehensive error handling  
+### Step 4: Advanced Features\*\*
+
+- Comprehensive error handling
 - Edge case coverage (empty paths, type mismatches)
 - Performance optimization
 - Test: robust error handling and edge cases
 
-### Step 5: Integration & Polish**
+### Step 5: Integration & Polish\*\*
+
 - Full test suite integration
-- Documentation updates  
+- Documentation updates
 - Performance validation
 - Final regression testing
 
 **Optional Step 6: Type System Cleanup (Future)**
-- *Optional cleanup task - can be done faster in VS Code*
+
+- _Optional cleanup task - can be done faster in VS Code_
 - Rename `Tag.INTEGER` → `Tag.SENTINEL` (restrict to NIL only)
 - Update all references and documentation
 - This resolves the semantic confusion where INTEGER was misused for addresses
@@ -619,7 +671,7 @@ Based on architectural discussion, we need a clean separation using proven list 
 
 ## 📋 Original Detailed Implementation (Reference)
 
-*This section preserved for Step 2+ implementation reference*
+_This section preserved for Step 2+ implementation reference_
 
 ### Phase 1: Parser Integration
 
@@ -628,6 +680,7 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Location:** `src/lang/parser.ts:268-295`
 
 **Implementation Pattern (Mirror do/repeat):**
+
 ```typescript
 } else if (value === 'get') {
   const blockToken = state.tokenizer.nextToken();
@@ -660,20 +713,22 @@ Based on architectural discussion, we need a clean separation using proven list 
 ```
 
 **Testing Requirements:**
+
 - Parser rejects `get` without `{`
-- Parser rejects `set` without `{`  
+- Parser rejects `set` without `{`
 - Block compilation works correctly
 - Syntax errors have proper error messages
 
 #### 1.2: Error Handling Enhancement
 
 **Additional Error Cases:**
+
 ```typescript
 // In parser error handling section
-- 'Expected { after get combinator' 
-- 'Expected { after set combinator'
-- 'Unclosed path block in get combinator'
-- 'Unclosed path block in set combinator'
+-'Expected { after get combinator' -
+  'Expected { after set combinator' -
+  'Unclosed path block in get combinator' -
+  'Unclosed path block in set combinator';
 ```
 
 ### Phase 2: Core Operations Implementation
@@ -683,13 +738,14 @@ Based on architectural discussion, we need a clean separation using proven list 
 **Location:** `src/ops/access-ops.ts`
 
 **File Structure:**
+
 ```typescript
 /**
  * @file src/ops/access-ops.ts
- * 
- * High-level access combinators for TACIT VM.
+ *
+ * High-level access combinators for Tacit VM.
  * Provides path-based navigation through nested list/maplist structures.
- * 
+ *
  * Stack Effects:
  * - get: ( target { path } -- value | nil )
  * - set: ( value target { path } -- ok | nil )
@@ -706,13 +762,14 @@ const OK = toTaggedValue(1, Tag.INTEGER);
 #### 2.2: Core Combinator Functions
 
 **getOp Implementation:**
+
 ```typescript
 export const getOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'get');
-  
-  const pathBlock = vm.pop();    // Pop { path } block address
-  const target = vm.pop();       // Pop target structure
-  
+
+  const pathBlock = vm.pop(); // Pop { path } block address
+  const target = vm.pop(); // Pop target structure
+
   // Execute path block to produce path list
   vm.push(pathBlock);
   const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
@@ -720,21 +777,21 @@ export const getOp: Verb = (vm: VM) => {
     vm.push(NIL);
     return;
   }
-  
+
   try {
-    evalImpl(vm);  // Execute { path } block
+    evalImpl(vm); // Execute { path } block
   } catch (error) {
     vm.push(NIL);
     return;
   }
-  
+
   if (vm.getStackData().length === 0) {
     vm.push(NIL);
     return;
   }
-  
-  const pathList = vm.pop();     // Path list result from block
-  
+
+  const pathList = vm.pop(); // Path list result from block
+
   // Traverse path and push result
   const result = traversePath(vm, target, pathList, 'get');
   vm.push(result || NIL);
@@ -742,14 +799,15 @@ export const getOp: Verb = (vm: VM) => {
 ```
 
 **setOp Implementation:**
+
 ```typescript
 export const setOp: Verb = (vm: VM) => {
   vm.ensureStackSize(3, 'set');
-  
-  const pathBlock = vm.pop();    // Pop { path } block address
-  const target = vm.pop();       // Pop target structure
-  const value = vm.pop();        // Pop value to set
-  
+
+  const pathBlock = vm.pop(); // Pop { path } block address
+  const target = vm.pop(); // Pop target structure
+  const value = vm.pop(); // Pop value to set
+
   // Execute path block to produce path list
   vm.push(pathBlock);
   const evalImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('eval')!);
@@ -757,21 +815,21 @@ export const setOp: Verb = (vm: VM) => {
     vm.push(NIL);
     return;
   }
-  
+
   try {
-    evalImpl(vm);  // Execute { path } block
+    evalImpl(vm); // Execute { path } block
   } catch (error) {
     vm.push(NIL);
     return;
   }
-  
+
   if (vm.getStackData().length === 0) {
     vm.push(NIL);
     return;
   }
-  
-  const pathList = vm.pop();     // Path list result from block
-  
+
+  const pathList = vm.pop(); // Path list result from block
+
   // Traverse path and attempt to set value
   const result = traversePath(vm, target, pathList, 'set', value);
   vm.push(result || NIL);
@@ -783,22 +841,22 @@ export const setOp: Verb = (vm: VM) => {
 #### 3.1: Core Traversal Algorithm
 
 **Comprehensive Path Traversal:**
+
 ```typescript
 function traversePath(
-  vm: VM, 
-  target: number, 
-  pathList: number, 
-  operation: 'get' | 'set', 
-  setValue?: number
+  vm: VM,
+  target: number,
+  pathList: number,
+  operation: 'get' | 'set',
+  setValue?: number,
 ): number | null {
-  
   // Validate path is a list
   if (!isList(pathList)) {
     return null;
   }
-  
+
   const { value: pathLength } = fromTaggedValue(pathList);
-  
+
   // Handle empty path
   if (pathLength === 0) {
     if (operation === 'get') {
@@ -807,37 +865,37 @@ function traversePath(
       return OK; // set with empty path is no-op success
     }
   }
-  
+
   let current = target;
-  const pathStartAddr = vm.SP - 1 - pathLength;  // Address of first path element
-  
+  const pathStartAddr = vm.SP - 1 - pathLength; // Address of first path element
+
   // Traverse path elements
   for (let i = 0; i < pathLength; i++) {
     const pathItemAddr = pathStartAddr + i;
     const pathItem = vm.memory[pathItemAddr];
     const { tag, value } = fromTaggedValue(pathItem);
-    
+
     if (tag === Tag.INTEGER || tag === Tag.NUMBER) {
       // Numeric index -> list element access
       current = traverseListElement(vm, current, value as number);
     } else if (tag === Tag.STRING) {
-      // String key -> maplist value access  
+      // String key -> maplist value access
       current = traverseMaplistKey(vm, current, value as number);
     } else {
       // Invalid path item type
       return null;
     }
-    
+
     if (current === null) {
       return null; // Traversal failed
     }
-    
+
     // For set operation, stop at final element for address access
     if (operation === 'set' && i === pathLength - 1) {
       return performSet(vm, current, setValue!);
     }
   }
-  
+
   return current; // Final value for get operation
 }
 ```
@@ -849,30 +907,31 @@ function traverseListElement(vm: VM, listHeader: number, index: number): number 
   if (!isList(listHeader)) {
     return null;
   }
-  
+
   // Use existing elem operation to get element address
   vm.push(listHeader);
   vm.push(toTaggedValue(index, Tag.INTEGER));
-  
+
   const elemImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('elem')!);
   if (!elemImpl) {
-    vm.pop(); vm.pop(); // Clean up stack
+    vm.pop();
+    vm.pop(); // Clean up stack
     return null;
   }
-  
+
   try {
     elemImpl(vm); // Call elem operation
   } catch (error) {
     return null;
   }
-  
+
   if (vm.getStackData().length < 2) {
     return null;
   }
-  
+
   const address = vm.pop();
   const originalList = vm.pop();
-  
+
   // Use fetch to get element value
   vm.push(address);
   const fetchImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('fetch')!);
@@ -880,17 +939,17 @@ function traverseListElement(vm: VM, listHeader: number, index: number): number 
     vm.pop(); // Clean up
     return null;
   }
-  
+
   try {
-    fetchImpl(vm); // Call fetch operation  
+    fetchImpl(vm); // Call fetch operation
   } catch (error) {
     return null;
   }
-  
+
   if (vm.getStackData().length === 0) {
     return null;
   }
-  
+
   return vm.pop(); // Return fetched element value
 }
 ```
@@ -902,36 +961,37 @@ function traverseMaplistKey(vm: VM, maplistHeader: number, key: number): number 
   if (!isList(maplistHeader)) {
     return null;
   }
-  
+
   // Use existing find operation to get value address
   vm.push(maplistHeader);
   vm.push(toTaggedValue(key, Tag.STRING));
-  
+
   const findImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('find')!);
   if (!findImpl) {
-    vm.pop(); vm.pop(); // Clean up stack
+    vm.pop();
+    vm.pop(); // Clean up stack
     return null;
   }
-  
+
   try {
     findImpl(vm); // Call find operation
   } catch (error) {
     return null;
   }
-  
+
   if (vm.getStackData().length < 2) {
     return null;
   }
-  
+
   const address = vm.pop();
   const originalMaplist = vm.pop();
-  
+
   // Check if find returned NIL (not found)
   const { tag, value } = fromTaggedValue(address);
   if (tag === Tag.INTEGER && value === 0) {
     return null; // Key not found
   }
-  
+
   // Use fetch to get value
   vm.push(address);
   const fetchImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('fetch')!);
@@ -939,17 +999,17 @@ function traverseMaplistKey(vm: VM, maplistHeader: number, key: number): number 
     vm.pop(); // Clean up
     return null;
   }
-  
+
   try {
     fetchImpl(vm); // Call fetch operation
   } catch (error) {
     return null;
   }
-  
+
   if (vm.getStackData().length === 0) {
     return null;
   }
-  
+
   return vm.pop(); // Return fetched value
 }
 ```
@@ -962,23 +1022,24 @@ function performSet(vm: VM, targetAddress: number, value: number): number | null
   if (!isSimple(targetAddress)) {
     return null; // Cannot overwrite compound values
   }
-  
+
   // Use store operation to set value
   vm.push(value);
   vm.push(targetAddress);
-  
+
   const storeImpl = vm.symbolTable.findImplementationByOpcode(vm.symbolTable.find('store')!);
   if (!storeImpl) {
-    vm.pop(); vm.pop(); // Clean up
+    vm.pop();
+    vm.pop(); // Clean up
     return null;
   }
-  
+
   try {
     storeImpl(vm); // Call store operation
   } catch (error) {
     return null;
   }
-  
+
   return OK; // Success marker
 }
 ```
@@ -990,6 +1051,7 @@ function performSet(vm: VM, targetAddress: number, value: number): number | null
 **Location:** `src/ops/opcodes.ts`
 
 **Add after existing combinators (~line 298):**
+
 ```typescript
 /** Get combinator: path-based value access */
 Get,
@@ -1003,14 +1065,16 @@ Set,
 **Location:** `src/ops/builtins-register.ts`
 
 **Import Addition:**
+
 ```typescript
 import { getOp, setOp } from './access-ops';
 ```
 
 **Registration Addition (~line 211):**
+
 ```typescript
-  symbolTable.define('get', Op.Get, getOp);
-  symbolTable.define('set', Op.Set, setOp);
+symbolTable.define('get', Op.Get, getOp);
+symbolTable.define('set', Op.Set, setOp);
 ```
 
 #### 4.3: Builtin Dispatch
@@ -1018,11 +1082,13 @@ import { getOp, setOp } from './access-ops';
 **Location:** `src/ops/builtins.ts`
 
 **Import Addition:**
+
 ```typescript
 import { getOp, setOp } from './access-ops';
 ```
 
 **Switch Case Addition (~line 301):**
+
 ```typescript
     case Op.Get:
       getOp(vm);
@@ -1039,6 +1105,7 @@ import { getOp, setOp } from './access-ops';
 **Location:** `src/test/ops/access/get-set-combinators.test.ts`
 
 **Test Categories:**
+
 1. **Parser Integration Tests**
 2. **Basic Path Traversal Tests**
 3. **Error Handling Tests**
@@ -1049,21 +1116,22 @@ import { getOp, setOp } from './access-ops';
 #### 5.2: Detailed Test Specifications
 
 **Parser Integration Tests:**
+
 ```typescript
 describe('Parser Integration', () => {
   test('get combinator requires block syntax', () => {
     expect(() => executeTacitCode('( 1 2 3 ) get')).toThrow('Expected { after get combinator');
   });
-  
+
   test('set combinator requires block syntax', () => {
     expect(() => executeTacitCode('99 ( 1 2 3 ) set')).toThrow('Expected { after set combinator');
   });
-  
+
   test('get compiles path block correctly', () => {
     const result = executeTacitCode('( 10 20 30 ) get { 1 }');
     expect(result).toEqual([20]);
   });
-  
+
   test('set compiles path block correctly', () => {
     // Create list, modify it, verify change
     executeTacitCode(': testlist ( 10 20 30 ) ;');
@@ -1075,25 +1143,26 @@ describe('Parser Integration', () => {
 ```
 
 **Basic Path Traversal Tests:**
+
 ```typescript
 describe('Basic Path Traversal', () => {
   test('simple list index access', () => {
     const result = executeTacitCode('( 10 20 30 ) get { 1 }');
     expect(result).toEqual([20]);
   });
-  
+
   test('maplist key access', () => {
     const result = executeTacitCode('( `name "Alice" `age 30 ) get { `name }');
     expect(result).toEqual(["Alice"]);
   });
-  
+
   test('nested mixed path traversal', () => {
     // Complex structure: ( `users ( ( `name "Alice" ) ( `name "Bob" ) ) )
     const setup = '( `users ( ( `name "Alice" ) ( `name "Bob" ) ) )';
     const result = executeTacitCode(`${setup} get { `users 1 `name }`);
     expect(result).toEqual(["Bob"]);
   });
-  
+
   test('empty path returns target unchanged', () => {
     const result = executeTacitCode('( 10 20 30 ) get { }');
     // Should return the original list
@@ -1103,28 +1172,29 @@ describe('Basic Path Traversal', () => {
 ```
 
 **Error Handling Tests:**
+
 ```typescript
 describe('Error Handling', () => {
   test('out-of-bounds index returns nil', () => {
     const result = executeTacitCode('( 10 20 30 ) get { 5 }');
     expect(result).toEqual([0]); // NIL
   });
-  
+
   test('missing key returns nil', () => {
     const result = executeTacitCode('( `name "Alice" ) get { `missing }');
     expect(result).toEqual([0]); // NIL
   });
-  
+
   test('type mismatch in path returns nil', () => {
     const result = executeTacitCode('( 10 20 30 ) get { `name }'); // Symbol on list
     expect(result).toEqual([0]); // NIL
   });
-  
+
   test('non-list target with numeric index returns nil', () => {
     const result = executeTacitCode('42 get { 0 }');
     expect(result).toEqual([0]); // NIL
   });
-  
+
   test('set compound element returns nil', () => {
     const result = executeTacitCode('99 ( ( 1 2 ) 20 30 ) set { 0 }');
     expect(result).toEqual([0]); // NIL - cannot overwrite compound
@@ -1133,6 +1203,7 @@ describe('Error Handling', () => {
 ```
 
 **Advanced Integration Tests:**
+
 ```typescript
 describe('Advanced Integration', () => {
   test('deeply nested structure access', () => {
@@ -1147,24 +1218,26 @@ describe('Advanced Integration', () => {
         )
       )
     `;
-    const result = executeTacitCode(`${structure} get { \`company \`employees 0 \`department \`budget }`);
+    const result = executeTacitCode(
+      `${structure} get { \`company \`employees 0 \`department \`budget }`,
+    );
     expect(result).toEqual([100000]);
   });
-  
+
   test('chained get/set operations', () => {
     executeTacitCode(': data ( `users ( ( `name "Alice" ) ( `name "Bob" ) ) ) ;');
-    
+
     // Get original value
     const original = executeTacitCode('data get { `users 0 `name }');
-    expect(original).toEqual(["Alice"]);
-    
+    expect(original).toEqual(['Alice']);
+
     // Set new value
     const setResult = executeTacitCode('"Charlie" data set { `users 0 `name }');
     expect(setResult).toEqual([1]); // OK
-    
+
     // Verify change
     const updated = executeTacitCode('data get { `users 0 `name }');
-    expect(updated).toEqual(["Charlie"]);
+    expect(updated).toEqual(['Charlie']);
   });
 });
 ```
@@ -1175,17 +1248,19 @@ describe('Advanced Integration', () => {
 describe('Performance Baselines', () => {
   test('linear traversal performance', () => {
     // Create large nested structure
-    const largeList = Array.from({length: 100}, (_, i) => `( \`id ${i} \`value ${i * 10} )`).join(' ');
+    const largeList = Array.from({ length: 100 }, (_, i) => `( \`id ${i} \`value ${i * 10} )`).join(
+      ' ',
+    );
     const structure = `( \`items ( ${largeList} ) )`;
-    
+
     const startTime = Date.now();
     const result = executeTacitCode(`${structure} get { \`items 99 \`value }`);
     const endTime = Date.now();
-    
+
     expect(result).toEqual([990]);
     expect(endTime - startTime).toBeLessThan(100); // Should be fast
   });
-  
+
   test('deep nesting performance', () => {
     // Create deeply nested structure (10 levels)
     let structure = '( `level0 ';
@@ -1196,12 +1271,12 @@ describe('Performance Baselines', () => {
     for (let i = 0; i < 10; i++) {
       structure += ' )';
     }
-    
+
     let path = '';
     for (let i = 0; i < 10; i++) {
       path += ` \`level${i}`;
     }
-    
+
     const result = executeTacitCode(`${structure} get { ${path} }`);
     expect(result).toEqual([42]);
   });
@@ -1213,6 +1288,7 @@ describe('Performance Baselines', () => {
 #### 6.1: Full System Integration
 
 **Test Integration Points:**
+
 1. Parser correctly handles combinator syntax
 2. Opcodes are properly allocated and dispatched
 3. Symbol table registration works correctly
@@ -1223,6 +1299,7 @@ describe('Performance Baselines', () => {
 #### 6.2: Regression Testing
 
 **Critical Regression Areas:**
+
 1. Existing combinators (`do`, `repeat`) still work
 2. List/maplist operations unaffected
 3. Parser still handles non-combinator cases
@@ -1232,6 +1309,7 @@ describe('Performance Baselines', () => {
 #### 6.3: Documentation Integration
 
 **Documentation Updates Needed:**
+
 1. Update `docs/reference/glossary.md` with get/set entries
 2. Create usage examples in spec
 3. Document path syntax patterns
@@ -1240,8 +1318,9 @@ describe('Performance Baselines', () => {
 ## 🎯 Success Criteria
 
 ### Functional Requirements ✅
+
 - [ ] `get` combinator works with list indices
-- [ ] `get` combinator works with maplist keys  
+- [ ] `get` combinator works with maplist keys
 - [ ] `set` combinator updates simple values
 - [ ] `set` combinator rejects compound values
 - [ ] Mixed paths traverse correctly
@@ -1250,6 +1329,7 @@ describe('Performance Baselines', () => {
 - [ ] Parser enforces block syntax
 
 ### Technical Requirements ✅
+
 - [ ] Zero regressions in existing tests
 - [ ] `yarn test` passes completely
 - [ ] `yarn lint` passes without warnings
@@ -1258,6 +1338,7 @@ describe('Performance Baselines', () => {
 - [ ] C-port compatible implementation patterns
 
 ### Quality Requirements ✅
+
 - [ ] Comprehensive test coverage (>95%)
 - [ ] Error messages are clear and actionable
 - [ ] Code follows existing patterns
@@ -1267,12 +1348,14 @@ describe('Performance Baselines', () => {
 ## ⚡ Performance Characteristics
 
 ### Complexity Analysis
+
 - **Path evaluation**: O(p) where p = path length
 - **List element access**: O(s) worst-case for element traversal
 - **Maplist key access**: O(n) linear search
 - **Overall**: O(p × max(s,n)) for path length p, max slots s, max maplist size n
 
 ### Memory Usage
+
 - **Stack discipline**: Maintains proper stack contracts
 - **No copying**: Uses address-based access throughout
 - **Block compilation**: One-time compilation cost per path block
@@ -1281,6 +1364,7 @@ describe('Performance Baselines', () => {
 ## 🔧 Implementation Notes
 
 ### C-Port Compatibility
+
 - **Direct loops**: No functional programming patterns
 - **Explicit control flow**: Clear branching and error handling
 - **Stack-based**: All operations maintain stack discipline
@@ -1288,12 +1372,14 @@ describe('Performance Baselines', () => {
 - **Error propagation**: Simple return codes and NIL values
 
 ### Stack Safety
+
 - **Aggressive bounds checking**: `ensureStackSize` on all entry points
 - **Error cleanup**: Proper stack restoration on all error paths
 - **Block execution isolation**: Block failures don't corrupt parent stack
 - **Memory bounds**: All address calculations validated
 
 ### Testing Strategy
+
 - **Behavioral testing**: Avoids NaN-boxing corruption issues
 - **Integration focused**: Tests end-to-end workflows
 - **Error coverage**: Comprehensive error path validation
@@ -1302,16 +1388,18 @@ describe('Performance Baselines', () => {
 ## 📈 Future Enhancements
 
 ### Post-Implementation Opportunities
+
 1. **Optimized Search**: `bfind`/`hfind` integration for sorted structures
-2. **Path Caching**: Cache compiled path blocks for repeated access  
+2. **Path Caching**: Cache compiled path blocks for repeated access
 3. **Structural Operations**: Limited structural editing (insert/delete)
 4. **Path Introspection**: Operations to query path validity
 5. **Batch Operations**: Multi-path get/set in single operation
 
 ### Performance Optimizations
+
 1. **Hash Index Integration**: O(1) maplist access with prebuilt indices
 2. **Path Compilation**: More efficient path representation
 3. **Address Caching**: Cache intermediate addresses during traversal
 4. **SIMD Integration**: Vectorized operations for large structures
 
-This plan provides comprehensive, implementation-ready specifications for the get/set combinators while maintaining the elegance and power of the combinator model. The result will be a natural extension of TACIT's access capabilities that feels like a native part of the language.
+This plan provides comprehensive, implementation-ready specifications for the get/set combinators while maintaining the elegance and power of the combinator model. The result will be a natural extension of Tacit's access capabilities that feels like a native part of the language.

@@ -6,7 +6,7 @@
 
 ## Overview
 
-This specification defines the expected behavior of TACIT operations when they encounter reference values (`STACK_REF`, `RSTACK_REF`, `GLOBAL_REF`) instead of direct values. It establishes consistent semantics across all operations and defines missing reference operations.
+This specification defines the expected behavior of Tacit operations when they encounter reference values (`STACK_REF`, `RSTACK_REF`, `GLOBAL_REF`) instead of direct values. It establishes consistent semantics across all operations and defines missing reference operations.
 
 ## Reference Types
 

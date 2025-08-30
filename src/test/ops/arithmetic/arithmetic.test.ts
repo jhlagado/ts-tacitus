@@ -17,7 +17,7 @@ import {
   logOp,
   sqrtOp,
 } from '../../../ops/math-ops';
-import { resetVM } from "../../utils/vm-test-utils";
+import { resetVM } from '../../utils/vm-test-utils';
 
 describe('Arithmetic Operations', () => {
   beforeEach(() => {
@@ -321,27 +321,27 @@ describe('Arithmetic Operations', () => {
   });
 
   describe('integration tests', () => {
-    test('should handle add operation with TACIT syntax', () => {
+    test('should handle add operation with Tacit syntax', () => {
       executeProgram('5 3 add');
       expect(vm.getStackData()).toEqual([8]);
     });
 
-    test('should handle sub operation with TACIT syntax', () => {
+    test('should handle sub operation with Tacit syntax', () => {
       executeProgram('10 4 sub');
       expect(vm.getStackData()).toEqual([6]);
     });
 
-    test('should handle mul operation with TACIT syntax', () => {
+    test('should handle mul operation with Tacit syntax', () => {
       executeProgram('5 4 mul');
       expect(vm.getStackData()).toEqual([20]);
     });
 
-    test('should handle div operation with TACIT syntax', () => {
+    test('should handle div operation with Tacit syntax', () => {
       executeProgram('10 2 div');
       expect(vm.getStackData()).toEqual([5]);
     });
 
-    test('should handle min operation with TACIT syntax', () => {
+    test('should handle min operation with Tacit syntax', () => {
       executeProgram('10 5 min');
       expect(vm.getStackData()).toEqual([5]);
       resetVM();
@@ -349,7 +349,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([3]);
     });
 
-    test('should handle max operation with TACIT syntax', () => {
+    test('should handle max operation with Tacit syntax', () => {
       executeProgram('10 5 max');
       expect(vm.getStackData()).toEqual([10]);
       resetVM();
@@ -357,12 +357,12 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([8]);
     });
 
-    test('should handle pow operation with TACIT syntax', () => {
+    test('should handle pow operation with Tacit syntax', () => {
       executeProgram('2 3 pow');
       expect(vm.getStackData()).toEqual([8]);
     });
 
-    test('should handle eq operation with TACIT syntax', () => {
+    test('should handle eq operation with Tacit syntax', () => {
       executeProgram('5 5 eq');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();
@@ -370,7 +370,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([0]);
     });
 
-    test('should handle lt operation with TACIT syntax', () => {
+    test('should handle lt operation with Tacit syntax', () => {
       executeProgram('5 10 lt');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();
@@ -381,7 +381,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([0]);
     });
 
-    test('should handle le operation with TACIT syntax', () => {
+    test('should handle le operation with Tacit syntax', () => {
       executeProgram('5 10 le');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();
@@ -392,7 +392,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([1]);
     });
 
-    test('should handle gt operation with TACIT syntax', () => {
+    test('should handle gt operation with Tacit syntax', () => {
       executeProgram('10 5 gt');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();
@@ -403,7 +403,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([0]);
     });
 
-    test('should handle ge operation with TACIT syntax', () => {
+    test('should handle ge operation with Tacit syntax', () => {
       executeProgram('10 5 ge');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();
@@ -414,7 +414,7 @@ describe('Arithmetic Operations', () => {
       expect(vm.getStackData()).toEqual([1]);
     });
 
-    test('should handle mod operation with TACIT syntax', () => {
+    test('should handle mod operation with Tacit syntax', () => {
       executeProgram('10 3 mod');
       expect(vm.getStackData()).toEqual([1]);
       resetVM();

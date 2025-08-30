@@ -1,4 +1,4 @@
-# TACIT Maplists Specification
+# Tacit Maplists Specification
 
 ## Table of contents
 
@@ -21,11 +21,12 @@
 
 ## 1. Overview
 
-**Maplists** are ordinary lists following a key-value alternating pattern, providing TACIT's primary associative data structure. They build on the foundational list infrastructure documented in `docs/specs/lists.md`.
+**Maplists** are ordinary lists following a key-value alternating pattern, providing Tacit's primary associative data structure. They build on the foundational list infrastructure documented in `docs/specs/lists.md`.
 
 ## 2. Foundational Dependencies
 
-Maplists inherit all properties from TACIT lists:
+Maplists inherit all properties from Tacit lists:
+
 - Header-at-TOS `LIST:s` representation (payload slot count `s`)
 - Type-agnostic traversal by span encoded in compound headers
 - Forward-only traversal from header
@@ -42,6 +43,7 @@ Maplists inherit all properties from TACIT lists:
 ```
 
 **Examples**:
+
 ```tacit
 ( `key1 100 `key2 200 `key3 300 )                    # Simple key-value pairs
 ( `name "John" `age 30 `skills ( "coding" "math" ) ) # Mixed value types
@@ -67,18 +69,21 @@ See Access §3 for stack effects, semantics (defaults via `default`), and comple
 ## Key Constraints and Recommendations
 
 **Key recommendations**:
+
 - **Prefer simple values** for keys (efficient comparison)
 - **Ensure uniqueness** for predictable behavior (except `default`)
 - **Keep small** (typically ≤12 entries for linear search efficiency)
 - **Use `default` key** for fallback values when lookup fails
 
 **Value flexibility**:
+
 - Values can be simple or compound
 - Variable-length values supported (lists, nested maplists)
 - No constraints on value types
 - `default` value can be any type appropriate for the use case
 
 **Example with compound values and defaults**:
+
 ```tacit
 ( `config ( `timeout 5000 `retries 3 ) `data ( 1 2 3 4 ) `default null )
 ( `error-404 "Not Found" `error-500 "Server Error" `default "Unknown Error" )
@@ -131,6 +136,7 @@ See `docs/specs/tagged.md` for the NIL sentinel definition. Maplist lookups retu
 ### Convention Rules
 
 **Special key**: The symbol `default` is reserved for fallback behavior
+
 - When a lookup fails to find the requested key
 - The maplist is searched again for a `default` key
 - If found, the `default` key's value is returned
@@ -163,7 +169,7 @@ config `default find fetch → "unset"       # Explicit default lookup
 ### NIL vs Default Behavior
 
 - **Key found**: Return associated value
-- **Key not found + `default` present**: Return `default` key's value  
+- **Key not found + `default` present**: Return `default` key's value
 - **Key not found + no `default`**: Return NIL (SENTINEL tagged value, value 0)
 - **Never throws exceptions**: Always returns a value (graceful degradation)
 
@@ -186,17 +192,19 @@ config `default find fetch → "unset"       # Explicit default lookup
 ### When to Use Maplists
 
 **Ideal scenarios**:
+
 - Associative lookup needed
 - Key-based access patterns
 - Configuration data, properties, lookup tables
 - Small datasets (≤12 entries typically)
 
 **Examples**:
+
 ```tacit
 # Configuration with fallbacks
 ( `timeout 5000 `retries 3 `debug true `default false )
 
-# Object properties with missing value handling  
+# Object properties with missing value handling
 ( `name "John" `age 30 `department "Engineering" `default "N/A" )
 
 # Error code lookup tables
@@ -206,8 +214,9 @@ config `default find fetch → "unset"       # Explicit default lookup
 ### When to Use Regular Lists
 
 **Better alternatives**:
+
 - Sequential processing predominates
-- Index-based access sufficient  
+- Index-based access sufficient
 - Preserving insertion order critical
 - Performance-critical iteration
 - Large datasets requiring specialized indexing
@@ -276,6 +285,7 @@ maplist  mapsort { kcmp }   ->  maplist'
 ### Stack Effects
 
 **Retrieval**:
+
 - `( maplist key — addr | default-addr | NIL )`
 - `( maplist — keys )`
 - `( maplist — values )`
@@ -283,6 +293,7 @@ maplist  mapsort { kcmp }   ->  maplist'
 <!-- Removed structural modifications stack effects -->
 
 **Element mutations**:
+
 - Prefer address-based updates via `find` + `store` from `lists.md`.
 
 ## 10. Integration with List Operations
@@ -298,7 +309,8 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 
 ## 11. Performance Characteristics
 
-### Access Patterns  
+### Access Patterns
+
 - **Key lookup**: O(n/2) average for linear search
 - **Key iteration**: O(n) for all keys (positions 0, 2, 4, ...)
 - **Value iteration**: O(n) for all values (positions 1, 3, 5, ...)
@@ -306,6 +318,7 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 - **Structural changes**: O(n) to create new maplist with modifications
 
 ### Optimization Guidelines
+
 - **Small datasets**: Linear search sufficient (≤12 entries)
 - **Medium datasets**: Consider pre-sorting for binary search
 - **Large datasets**: Consider specialized data structures beyond maplists
@@ -313,6 +326,7 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 - **Hot keys**: Place commonly accessed entries near the beginning
 
 ### Memory Efficiency
+
 - **Zero overhead**: Maplists are just lists with conventions
 - **Header-at-TOS**: Standard list header with contiguous payload
 - **Flat structure**: No additional pointer indirection
@@ -330,7 +344,7 @@ Maplists are lists with conventions, so all list operations work. Use `find` (Ac
 
 **Gradual optimization**: Start with simple linear search, upgrade to more sophisticated algorithms when datasets grow larger.
 
-This approach aligns with TACIT's philosophy of building complex functionality from simple, composable primitives.
+This approach aligns with Tacit's philosophy of building complex functionality from simple, composable primitives.
 
 ## 13. Implementation Examples
 

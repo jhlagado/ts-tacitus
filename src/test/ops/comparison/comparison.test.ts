@@ -1,5 +1,5 @@
 /*
-Tests for comparison operations - TACIT's relational operators
+Tests for comparison operations - Tacit's relational operators
 All operations work on stack values and return 1 (true) or 0 (false)
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -150,8 +150,7 @@ describe('Comparison Operations', () => {
     });
   });
 
-  describe('list operations', () => {
-  });
+  describe('list operations', () => {});
 
   describe('error cases', () => {
     test('equal - should throw on stack underflow', () => {

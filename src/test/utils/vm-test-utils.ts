@@ -37,7 +37,7 @@ export function resetVM(): void {
 }
 
 /**
- * Execute TACIT code and return final stack state
+ * Execute Tacit code and return final stack state
  */
 export function executeTacitCode(code: string): number[] {
   resetVM();
@@ -47,7 +47,7 @@ export function executeTacitCode(code: string): number[] {
 }
 
 /**
- * Execute TACIT code and verify expected stack state with detailed error messages
+ * Execute Tacit code and verify expected stack state with detailed error messages
  */
 export function testTacitCode(code: string, expectedStack: number[]): void {
   const result = executeTacitCode(code);
@@ -84,14 +84,14 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
 }
 
 /**
- * Execute TACIT code and return final stack state (alias for executeTacitCode)
+ * Execute Tacit code and return final stack state (alias for executeTacitCode)
  */
 export function runTacitTest(code: string): number[] {
   return executeTacitCode(code);
 }
 
 /**
- * Execute TACIT code and capture console output
+ * Execute Tacit code and capture console output
  */
 export function captureTacitOutput(code: string): string[] {
   const output: string[] = [];

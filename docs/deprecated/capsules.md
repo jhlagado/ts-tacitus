@@ -1,4 +1,4 @@
-# TACIT Capsules Specification
+# Tacit Capsules Specification
 
 ## Table of contents
 
@@ -7,17 +7,17 @@
 3. Definition Syntax
 4. Field Access
 5. Method Dispatch with `with` Combinator
-6. Integration with TACIT
+6. Integration with Tacit
 7. Design Rationale
 8. Conclusion
 9. Related Specifications
 
 ## Introduction
 
-Capsules in TACIT are the language’s way of packaging data and the code that operates on it into a single, portable value — all without leaving the safety and predictability of the stack.
+Capsules in Tacit are the language’s way of packaging data and the code that operates on it into a single, portable value — all without leaving the safety and predictability of the stack.
 If you’ve worked with “objects” in other languages, capsules will feel familiar in some ways, but they’re deliberately simpler: no inheritance tangles, no heap allocations, and no hidden closures. Everything is explicit.
 
-Under the hood, a capsule is a specialized **list** that follows a fixed shape. It uses TACIT’s **maplist** format for method dispatch, so method names and their code references live side by side in the data structure. Because they’re lists, capsules can do all the normal stack tricks:
+Under the hood, a capsule is a specialized **list** that follows a fixed shape. It uses Tacit’s **maplist** format for method dispatch, so method names and their code references live side by side in the data structure. Because they’re lists, capsules can do all the normal stack tricks:
 
 - Duplicate or swap them like any other value.
 - Treat them as opaque units — `dup`, `swap`, and `drop` work on the whole capsule at once.
@@ -30,7 +30,7 @@ Under the hood, a capsule is a specialized **list** that follows a fixed shape. 
 - **List-based**: A capsule _is_ a list, just with a fixed, known structure.
 - **Copy-based instantiation**: New instances are made by copying a prototype, not by chaining references.
 - **Closure-free**: Every piece of state is stored directly; there’s no lexical environment hiding off to the side.
-- **Stack-compatible**: All the usual TACIT stack operators work without special cases.
+- **Stack-compatible**: All the usual Tacit stack operators work without special cases.
 
 ## Basic Structure
 
@@ -58,7 +58,7 @@ Where:
 
 ### Maplist Format
 
-The dispatch maplist in element 0 follows TACIT’s standard **maplist** convention:
+The dispatch maplist in element 0 follows Tacit’s standard **maplist** convention:
 
 - **Even positions** (0, 2, 4, …): method name symbols like `` `greet `` or `` `reset ``.
 - **Odd positions** (1, 3, 5, …): code references, such as `@greet-code`.
@@ -74,7 +74,7 @@ An example capsule in memory might look like this:
   "Doe"
   0
 )
-  Capsules, like other TACIT data structures, use an abstract concept of a **ref**: a tagged address pointing to a cell in a memory segment. There are three ref types:
+  Capsules, like other Tacit data structures, use an abstract concept of a **ref**: a tagged address pointing to a cell in a memory segment. There are three ref types:
     - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
     - **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
     - **GLOBAL_REF**: (future) will refer to a cell location in a global segment
@@ -108,7 +108,7 @@ end
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `capsule <name>`         | Begins a capsule definition scope, marking the dictionary position and storing the capsule’s name.                                                               |
 | `<value> field <symbol>` | Declares a field with an initial value from the stack. The field is stored at a fixed **element offset** within the capsule (element 0 is the dispatch maplist). |
-| `: name ... ;`           | Defines a method as a standard TACIT function, with direct access to fields via precomputed offsets.                                                             |
+| `: name ... ;`           | Defines a method as a standard Tacit function, with direct access to fields via precomputed offsets.                                                             |
 | `end`                    | Terminates the capsule definition, assembles the prototype, and installs the completed structure into the dictionary.                                            |
 
 ### Access Semantics
@@ -319,13 +319,13 @@ If a method name is not found and there is no `default` entry in the dispatch ma
 
 When editing:
 
-- Check all code expands to valid TACIT bytecode patterns (verify slot/store/find usage with STACK_REF addresses).
+- Check all code expands to valid Tacit bytecode patterns (verify slot/store/find usage with STACK_REF addresses).
 - Ensure mutability restrictions match the list spec exactly.
 - Confirm `.method` expansion matches the actual maplist search algorithm.
 
 ## Conclusion
 
-Capsules unify data and behaviour into a single stack value using TACIT’s list and maplist conventions. They provide predictable, closure-free state handling, fixed-layout mutability rules, and a consistent runtime model for field access and method dispatch. By building on the existing list infrastructure, capsules remain lightweight, fully stack-compatible, and easy to reason about in both code and execution.
+Capsules unify data and behaviour into a single stack value using Tacit’s list and maplist conventions. They provide predictable, closure-free state handling, fixed-layout mutability rules, and a consistent runtime model for field access and method dispatch. By building on the existing list infrastructure, capsules remain lightweight, fully stack-compatible, and easy to reason about in both code and execution.
 
 ## Related Specifications
 

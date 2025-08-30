@@ -1,4 +1,4 @@
-# TACIT Capsule Construction via Unified Stack Frame Transfer
+# Tacit Capsule Construction via Unified Stack Frame Transfer
 
 ## Table of Contents
 
@@ -50,7 +50,7 @@ This approach simplifies compiler implementation, eliminates dual slot systems, 
 
 ### Why Unify Locals and Fields?
 
-Historically, TACIT maintained separate systems for local variables and object fields, leading to duplicated logic and subtle bugs. By unifying these into a single slot model, we:
+Historically, Tacit maintained separate systems for local variables and object fields, leading to duplicated logic and subtle bugs. By unifying these into a single slot model, we:
 
 - Eliminate dual access paths and slot numbering confusion
 - Enable direct, zero-overhead access for both locals and fields
@@ -275,10 +275,10 @@ For example, if a slot contains a list occupying 4 cells (1 header + 3 payload),
 
 #### Examples
 
-* Assigning `(1 2 3)` (4 cells) to a slot containing `(4 5 6)` (4 cells) is allowed.
-* Assigning `(1 2)` (3 cells) to a slot containing `(4 5 6)` (4 cells) is an error.
-* Assigning a maplist of 5 cells to a slot containing a maplist of 5 cells is allowed.
-* Assigning a list to a slot containing a maplist (even if slot count matches) is not allowed; type must also match.
+- Assigning `(1 2 3)` (4 cells) to a slot containing `(4 5 6)` (4 cells) is allowed.
+- Assigning `(1 2)` (3 cells) to a slot containing `(4 5 6)` (4 cells) is an error.
+- Assigning a maplist of 5 cells to a slot containing a maplist of 5 cells is allowed.
+- Assigning a list to a slot containing a maplist (even if slot count matches) is not allowed; type must also match.
 
 This rule applies to all compound mutation operations in capsules.
 

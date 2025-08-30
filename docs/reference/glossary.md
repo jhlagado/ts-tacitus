@@ -1,6 +1,6 @@
-# TACIT Reference Glossary
+# Tacit Reference Glossary
 
-This glossary reflects the current, canonical TACIT specs. Legacy terms (e.g., LINK, function table) are intentionally omitted.
+This glossary reflects the current, canonical Tacit specs. Legacy terms (e.g., LINK, function table) are intentionally omitted.
 
 ## Lists (data structure)
 
@@ -14,6 +14,7 @@ This glossary reflects the current, canonical TACIT specs. Legacy terms (e.g., L
 - store ( value addr — ): In-place write to simple cell; compounds are no-op.
 
 Structural ops
+
 - enlist ( value — list ): Wrap value as one-element list.
 - concat ( a b — list' ): Polymorphic concatenate.
   - simple + list → prepend. O(1).
@@ -26,6 +27,7 @@ Structural ops
 - unpack ( list — item-n … item0 ): Push elements; inverse of pack (without count).
 
 Sorting and search
+
 - sort ( list { cmp } — list' ): Stable element reorder; comparator `( A B — r )`.
 - bfind ( target key { cmp } — addr | nil ):
   - List: binary search over elements (pre-sorted by same cmp).
