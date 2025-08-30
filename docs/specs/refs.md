@@ -21,26 +21,6 @@ Non-goals:
 - No ambiguous “relative” addressing language. Refs hold absolute cell indices; ownership is about lifetime, not address relativity.
 - No inconsistent use of infix nomenclature. Avoid terms like LHS/RHS; use “destination” and “source”.
 
-Contents
-
-- 1. Overview and Terminology
-- 2. Memory Model and Tag Encoding
-- 3. Ownership, Lifetimes, and Borrowing
-- 4. Access Forms and Sigils
-- 5. Resolve Semantics and Escape Boundaries
-- 6. Locals, Slots, and Assignment
-- 7. Lists and Other Compounds
-- 8. Access Operations (get/set) and Traversal
-- 9. Stack Operations and Ref Transparency
-- 10. Function Return and Frame Exit
-- 11. Errors and Diagnostics
-- 12. Examples and Idioms
-- 13. Implementation Notes (Current vs Target)
-- 14. Migration Plan
-- 15. Testable Assertions
-- 16. Glossary
-- 17. Cross-References
-
 ## 1. Overview and Terminology
 
 - Ref (data): A tagged, NaN-boxed handle whose payload is an absolute cell index into a specific VM memory segment. Data refs are never code and are never executed.
@@ -113,53 +93,31 @@ Aliasing scope (safety rule):
 - References may only alias named variables (locals or fields). General aliasing of anonymous data stack slots is prohibited because the data stack is volatile and stack operations (e.g., swap, drop, over) can invalidate such aliases.
 - Exception: the `ref` opcode may produce a short-lived `STACK_REF` to a list header on the data stack for immediate structural operations (e.g., elem/slot/fetch/store). Do not interleave arbitrary stack-reordering ops while holding such a `STACK_REF`, and do not persist it; consume it promptly.
 
-## 4. Access Forms and Sigils
+## 4. Access and Resolve
 
-Access model (target):
-
-- Value access: `x` — pushes a copy of the value of local `x` onto the data stack.
-- Ref access: `&x` — pushes an RSTACK_REF alias to slot `x`.
-- Code ref access: `@f` — pushes a code reference to symbol `f` (builtin or bytecode), to be evaluated with `eval`.
+Access (target):
+- `x` — push a copy of the value of local `x`.
+- `&x` — push an RSTACK_REF alias to slot `x`.
+- `@f` — push a code reference to symbol `f`; evaluate via `eval`.
 
 Rationale:
+- Explicit aliasing avoids hidden refs; value-first reads are safer and clearer.
+- Code refs and data refs are disjoint: data refs are never executed; code refs are evaluated.
 
-- Avoids hidden aliasing; ref usage is explicit and local.
-- Maintains value-first semantics for clarity and safety.
+Compatibility (current):
+- Bare local access often yields RSTACK_REF; polymorphic ops (e.g., `length`, `head`) read through refs. Target behavior is value-by-default; see Migration.
 
-Compatibility (current behavior):
+Resolve (aka `unref` currently):
+- Converts a data ref (STACK_REF, RSTACK_REF, GLOBAL_REF) to its value; for lists, materializes payload+header per lists.md.
 
-- Existing code often treats bare local access as “address-of local” (RSTACK_REF), and relies on polymorphic ops (e.g., `length`, `head`) to read through refs.
-- This spec standardizes the target behavior (value by default) and allows a transitional period where both forms are supported; see Migration Plan.
+Mandatory resolution (normative):
+- Before assignment/storage (destinations: local slots, addressed elements, fields) when the source is a ref.
+- At function return for any ref owned by the current frame (borrowed refs may return to their owner).
+- For cross-segment persistence attempts (always copy values, never persist refs across segments).
 
-Code refs and data refs are disjoint:
+Optional resolution: allowed anytime for clarity or to end aliasing. Use “destination” and “source” terminology; polymorphic read-only ops may work through refs without materializing.
 
-- Data refs are never executed.
-- Code refs are not resolved like data; they are evaluated (`eval`) or inspected.
-
-## 5. Resolve Semantics and Escape Boundaries
-
-Resolve (a.k.a. “unref” currently):
-
-- Converts a data ref (STACK_REF, RSTACK_REF, GLOBAL_REF) to its value.
-- For compound values (lists), materialization pushes the full structure (per docs/specs/lists.md) onto the data stack.
-
-Mandatory resolve boundaries (normative):
-
-- Assignment into destinations (local slots, addressed list elements, fields): if the source is a ref, resolve first.
-- Storage via `set`/access traversal: resolve the source before writing into a destination.
-- Function return: resolve refs owned by the returning frame; allow returning borrowed refs to their owners.
-- Cross-segment persistence: never persist a ref across segments in a way that can outlive its owner; resolve instead.
-
-Optional resolve:
-
-- Programmers may call `resolve` explicitly to force materialization earlier for clarity or to break an alias intentionally.
-
-Notes:
-
-- This spec avoids the terms “left/right hand side.” Use “destination” and “source.”
-- The rule is about escaping lifetimes and persistence across contexts; polymorphic read-only operations remain free to work through refs without materializing.
-
-## 6. Working with Lists and Other Compounds
+## 5. Lists, Access, and Traversal
 
 Ref creation on data stack:
 
@@ -169,19 +127,19 @@ Materialization:
 
 - `resolve` (currently `unref`) materializes any data ref. For lists, pushes all payload slots followed by the header, conforming to docs/specs/lists.md.
 
-Polymorphic read ops:
+Polymorphic reads:
 
 - `length`, `head`, `fetch`, `elem`, `slot`, `find`, `keys`, `values` must accept values or refs transparently. Internally, they compute addresses via `resolveReference()` when given a ref.
 
-Polymorphic write ops (destination-based):
+Writes:
 
-- `store`, `set` must write to destination addresses resolved via `resolveReference()`. Sources that are refs MUST be resolved first (target model) to avoid embedding refs into structures.
+- `store`, `set` write to destination addresses resolved via `resolveReference()`. Sources that are refs MUST be resolved first to avoid embedding refs into structures.
 
-Compound storage for locals:
+Locals with compounds:
 
 - Local slots that contain compound values store a tagged reference to internal return-stack storage. Assignment updates the payload in-place if compatible, without changing the slot’s header address (see local-vars.md).
 
-## 7. Locals, Slots, and Assignment
+## 6. Locals, Slots, and Assignment
 
 Slots and addressing:
 
@@ -200,27 +158,19 @@ Compatibility note (current implementation):
 
 - Some paths may write a ref into a destination (e.g., `storeOp` writing the source without resolve). The target model requires resolve-first for sources; see Migration Plan for phased fixes.
 
-## 8. Access Operations (get/set) and Traversal
+Access traversal (docs/specs/access.md):
 
-Access (docs/specs/access.md):
+- Path traversal computes destination addresses within lists/maplists. Inputs and intermediate results may be values or refs.
+- `get` materializes to value at the end of traversal; `set` resolves source and writes to the destination; traversal accepts LIST or refs at each step and may form transient refs internally.
 
-- Access uses path traversal to compute destination addresses within lists/maplists. Inputs and intermediate results may be values or refs.
-- Result of traversal SHOULD be a ref (address) for mutation; `get` materializes to value; `set` resolves source and writes to the destination.
-
-Rules:
-
-- Traversal MAY accept LIST or STACK_REF/RSTACK_REF at each step. When encountering LIST, it may internally form transient refs for further steps.
-- `get`: materializes to value at the end of traversal, never a ref.
-- `set`: resolves the source to value, then writes into the addressed destination; never stores a ref.
-
-## 9. Stack Operations and Ref Transparency
+## 7. Stack Operations and Ref Transparency
 
 Stack ops (`dup`, `drop`, `swap`, `rot`, `over`, `nip`, `tuck`, `pick`) treat refs as opaque values:
 
 - They manipulate the reference values themselves; they do not implicitly dereference.
 - This preserves identity and performance. Materialization remains explicit via `resolve` or via destination-based rules in store/set.
 
-## 10. Function Return and Frame Exit
+ 
 
 Return-time enforcement (normative):
 
@@ -236,7 +186,7 @@ Implementation guidance:
 
 - This can be implemented in the return op or in a prologue/epilogue pair. For now, explicit coding patterns and tests should ensure that dangerous escapes do not occur.
 
-## 11. Errors and Diagnostics
+## 8. Errors and Diagnostics
 
 Error classes (examples):
 
@@ -247,7 +197,7 @@ Error classes (examples):
 
 Messages should be precise and segment-aware, e.g., “store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)”.
 
-## 12. Examples and Idioms
+## 9. Examples and Idioms
 
 Locals as values vs refs:
 
@@ -294,7 +244,7 @@ Notes:
 - This pattern illustrates why explicit refs (`&list`) are useful: it avoids copying large structures by operating in place through addresses returned by `elem`.
 - The `swap-elements` and `repeat` words are placeholders to illustrate flow; concrete implementations may differ. The key idea is addressing both ends via refs and mutating in place.
 
-## 13. Implementation Notes (current vs target)
+## 10. Implementation and Migration
 
 Current:
 
@@ -311,7 +261,7 @@ Rename:
 
 - `unref` → `resolve` (alias preserved during migration).
 
-## 14. Migration Plan
+Migration Plan
 
 Phase 0: keep current behavior; expand tests around polymorphism.
 
@@ -319,7 +269,7 @@ Phase 1: add `&x`; update store/set to resolve sources; deprecate `unref` name.
 
 Phase 2: switch bare local access to value-by-default; enforce return-time resolve.
 
-## 15. Testable Assertions
+Testable Assertions
 
 - `&x resolve` equals `x` value.
 - Polymorphic list ops return identical results for values and refs.
@@ -330,7 +280,7 @@ Phase 2: switch bare local access to value-by-default; enforce return-time resol
 - Returning current-frame-owned ref triggers resolve or error; borrowed ref can return to owner.
 - GLOBAL_REF operations error with “not implemented”.
 
-## 16. Glossary
+## 11. Glossary and Cross-References
 
 - Absolute cell index — integer payload in a ref; address = index × 4.
 - Borrowing — using a ref owned by another frame; safe to return to owner.
@@ -341,8 +291,7 @@ Phase 2: switch bare local access to value-by-default; enforce return-time resol
 - Owner — the frame that holds the slot to which the ref points.
 - Source — the value provided for storage or assignment.
 
-## 17. Cross-References
-
+Cross-References:
 - Locals and frames: docs/specs/local-vars.md (§ frame layout, assignment, lifetime)
 - Lists and compounds: docs/specs/lists.md (§ header, slots, materialization)
 - Access ops: docs/specs/access.md (§ get/set traversal and storage rules)
@@ -350,7 +299,11 @@ Phase 2: switch bare local access to value-by-default; enforce return-time resol
 
 ---
 
-## 18. Opcode Semantics (Normative)
+## Appendix
+
+This appendix consolidates detailed reference material. The core rules are defined in sections 1–12 above; use these notes for implementation detail and extended guidance.
+
+### A. Opcode Semantics (Normative)
 
 This section documents the required behavior for ops when handling refs. Some ops already satisfy these requirements; others are targets for migration.
 
@@ -392,7 +345,7 @@ This section documents the required behavior for ops when handling refs. Some op
 
 ---
 
-## 19. Detailed Algorithms (Reference)
+### B. Detailed Algorithms (Reference)
 
 `resolveReference(vm, ref)`
 
@@ -432,7 +385,7 @@ This section documents the required behavior for ops when handling refs. Some op
 
 ---
 
-## 20. Frame Layout and Absolute Addressing Examples
+### C. Frame Layout and Absolute Addressing Examples
 
 Example frame with two locals and one list stored in return-stack compounds area:
 
@@ -452,7 +405,7 @@ No relative addressing ambiguity exists: payload carries the absolute index and 
 
 ---
 
-## 21. Borrowing Scenarios and Lifetimes
+### D. Borrowing Scenarios and Lifetimes
 
 Call tree A→B→C:
 
@@ -471,7 +424,7 @@ Nested blocks (same frame):
 
 ---
 
-## 22. References with Access Paths
+### E. References with Access Paths
 
 `elem` and `slot` examples:
 
@@ -489,7 +442,7 @@ Maplist access:
 
 ---
 
-## 23. Error Conditions Matrix (Guidance)
+### F. Error Conditions Matrix (Guidance)
 
 - `fetch` with non-ref input → InvalidReferenceError
 - `store` with non-ref destination → InvalidReferenceError
@@ -501,7 +454,7 @@ Maplist access:
 
 ---
 
-## 24. Security and Robustness Considerations
+### G. Security and Robustness Considerations
 
 - Deterministic addressing via absolute indices prevents overflow from relative math.
 - Enforcing resolve-before-escape ensures no data structure persists pointers to destroyed frames.
@@ -509,7 +462,7 @@ Maplist access:
 
 ---
 
-## 25. Migration Cookbook
+### H. Migration Cookbook
 
 Pattern: bare local read yields ref (current) → value (target)
 
@@ -532,7 +485,7 @@ Rename:
 
 ---
 
-## 26. Implementation Checklist
+### I. Implementation Checklist
 
 - Parser/Compiler:
   - Add `&x` sigil handling to compile-time local resolution → `VarRef` emit.
@@ -552,7 +505,7 @@ Rename:
 
 ---
 
-## 27. Rationale and Alternatives
+### J. Rationale and Alternatives
 
 - Why value-by-default? It keeps the mental model simple and avoids hidden aliasing pitfalls. Ref-based optimization remains available explicitly.
 - Why absolute addressing? It aligns with the VM architecture (cell-indexed addressing) and simplifies correctness reasoning.
@@ -565,7 +518,7 @@ Alternatives considered:
 
 ---
 
-## 28. Interaction with Code Refs
+### K. Interaction with Code Refs
 
 - `@symbol` pushes a code ref (Tag.BUILTIN or Tag.CODE). Code refs are not affected by data ref rules and are never “resolved” like data.
 - `eval` executes code refs: builtins dispatch to native implementations; code refs jump to bytecode.
@@ -573,7 +526,7 @@ Alternatives considered:
 
 ---
 
-## 29. Worked Examples
+### L. Worked Examples
 
 Example A: Borrowing and returning ref to owner
 
@@ -623,7 +576,7 @@ Example D: Preventing ref escape on return
 
 ---
 
-## 30. Reference Lifecycle (Summary)
+### M. Reference Lifecycle (Summary)
 
 1. Creation: via `&x` (alias to local) or address ops (`ref`, `elem`, `slot`, `find`).
 2. Usage: read/write through the ref within its valid scope; stack ops remain ref-transparent.
@@ -635,7 +588,7 @@ Related utilities: use `dumpStackFrame` for introspection when debugging (see sr
 
 ---
 
-## 31. Reference Polymorphism and Patterns
+### N. Reference Polymorphism and Patterns
 
 Polymorphism examples:
 
@@ -656,7 +609,7 @@ Guidelines:
 
 ---
 
-## 32. Prohibited Operations (Expanded)
+### O. Prohibited Operations (Expanded)
 
 - Returning a ref owned by the current frame to any longer-lived context.
 - Storing a ref into lists, maplists, or fields; always store values (resolution occurs automatically at `set`/`store`).
@@ -670,14 +623,14 @@ VM enforcement mechanisms:
 
 ---
 
-## 33. Debugging and Introspection
+### P. Debugging and Introspection
 
 - `dumpStackFrameOp` prints slot tags and, for RSTACK_REF, the target’s tag and value at the addressed cell.
 - Use this to confirm which locals hold simple values vs refs to compounds and to visualize frame layouts during development.
 
 ---
 
-## 34. Best Practices
+### Q. Best Practices
 
 Use refs when:
 
@@ -697,7 +650,7 @@ Style tips:
 
 ---
 
-## 35. Future Extensions
+### R. Future Extensions
 
 Global refs:
 
