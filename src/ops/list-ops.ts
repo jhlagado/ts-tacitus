@@ -952,8 +952,8 @@ export function refOp(vm: VM): void {
  * For compound data (lists), materializes the entire structure.
  * For simple values, copies the value directly.
  */
-export function unrefOp(vm: VM): void {
-  vm.ensureStackSize(1, 'unref');
+export function resolveOp(vm: VM): void {
+  vm.ensureStackSize(1, 'resolve');
   const value = vm.pop();
 
   if (isRef(value)) {

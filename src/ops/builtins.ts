@@ -66,7 +66,7 @@ import {
   reverseOp,
   makeListOp,
   refOp,
-  unrefOp,
+  resolveOp,
 } from './list-ops';
 
 import { Op } from './opcodes';
@@ -365,7 +365,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       refOp(vm);
       break;
     case Op.Unref:
-      unrefOp(vm);
+      resolveOp(vm);
       break;
     default:
       throw new InvalidOpcodeError(opcode, vm.getStackData());

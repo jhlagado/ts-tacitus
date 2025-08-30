@@ -78,6 +78,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   /** Reference operations. */
   symbolTable.defineBuiltin('ref', Op.Ref);
+  symbolTable.defineBuiltin('resolve', Op.Unref);
   symbolTable.defineBuiltin('unref', Op.Unref);
   symbolTable.defineBuiltin('varRef', Op.VarRef);
   symbolTable.defineBuiltin('dumpStackFrame', Op.DumpStackFrame);
