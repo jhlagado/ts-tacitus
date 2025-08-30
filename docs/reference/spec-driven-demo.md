@@ -5,22 +5,26 @@
 This shows how to use the spec-driven structure for numbered plans and AI-assisted development.
 
 ### 1. Read the Plan Definition
+
 ```bash
 cat tasks/todo/plan-01-unified-code-reference-system.md
 ```
 
 **Result**: Complete understanding of:
-- Plan overview: Unified @symbol reference system  
+
+- Plan overview: Unified @symbol reference system
 - Current status: Step 8/17 active
 - Step 8 goal: Create function table bypass mechanism
 - Dependencies: VM architecture, tagged values specs
 - Success criteria: Direct bytecode addressing
 
 ### 2. Locate Active Step Details
+
 Within the plan file, find the 🎯 **ACTIVE** step:
 
 ```markdown
 ## Step 08: 🎯 **ACTIVE** - Create function table bypass mechanism
+
 - Add `getFunctionTableBypass(functionIndex: number): number | undefined`
 - Maps function indices directly to bytecode addresses
 - Use existing function table as source of truth initially
@@ -28,27 +32,32 @@ Within the plan file, find the 🎯 **ACTIVE** step:
 ```
 
 ### 2. Review Dependency Specifications
+
 ```bash
 cat specs/vm-architecture.md
 cat specs/tagged-values.md
 ```
 
 **Result**: Understanding of:
+
 - 64KB segmented memory layout
 - Function index encoding (≥128 for user words)
 - Tagged value constraints and addressing limits
 
 ### 3. Apply Development Guidelines
+
 ```bash
 cat rules/ai-guidelines.md
 ```
 
 **Result**: Following established patterns for:
+
 - Code quality and testing standards
-- TACIT language conventions
+- Tacit language conventions
 - VM design constraints and anti-patterns
 
 ### 4. Consult Reference Materials
+
 ```bash
 cat reference/glossary.md        # Terminology
 cat reference/test-cases.md      # Example patterns
@@ -57,7 +66,9 @@ cat reference/test-cases.md      # Example patterns
 **Result**: Shared vocabulary and testing approaches
 
 ### 5. Implement Current Step with Confidence
+
 With complete context from the numbered plan and specifications:
+
 - Current step requirements are clear and unambiguous
 - Previous steps provide foundation and context
 - Constraints are well-defined and documented
@@ -67,24 +78,28 @@ With complete context from the numbered plan and specifications:
 ## Benefits Demonstrated
 
 ### For Multi-Step Development
+
 - **Sequential context**: Each step builds on previous work
 - **Plan coherence**: Related work stays together in one document
 - **Progress tracking**: Clear visibility of completion status
 - **Dependency management**: Steps reference each other and specs
 
 ### For AI Development
+
 - **Complete plan context**: All steps visible for better understanding
 - **Clear current focus**: Active step clearly marked
 - **Progress awareness**: Understanding of what's been completed
 - **Future visibility**: Can plan implementation considering upcoming steps
 
-### For Human Developers  
+### For Human Developers
+
 - **Onboarding efficiency**: New developers can quickly understand system
 - **Decision transparency**: Rationale documented in specifications
 - **Quality consistency**: Guidelines ensure uniform implementation
 - **Knowledge preservation**: Nothing lost when people leave
 
 ### For Project Maintenance
+
 - **Authoritative documentation**: Specs are single source of truth
 - **Change impact analysis**: Dependencies clearly tracked
 - **Regression prevention**: Comprehensive test requirements
@@ -93,6 +108,7 @@ With complete context from the numbered plan and specifications:
 ## Comparison: Before vs After
 
 ### Before (Traditional Approach)
+
 ```
 README.md                    # Basic project description
 src/                        # Code without clear specifications
@@ -100,12 +116,14 @@ src/                        # Code without clear specifications
 ```
 
 **Problems**:
+
 - Documentation and code often out of sync
 - Requirements scattered across multiple files
 - No clear task organization
 - AI assistants lack complete context
 
 ### After (Spec-Driven Approach)
+
 ```
 specs/                      # Authoritative feature specifications
 tasks/todo/                 # Discrete, well-defined work units
@@ -114,6 +132,7 @@ rules/                      # Consistent development guidelines
 ```
 
 **Benefits**:
+
 - Documentation drives development
 - Requirements centralized and authoritative
 - Clear task-based workflow
@@ -133,14 +152,16 @@ The current task demonstrates the workflow:
 ## Scalability
 
 This structure scales from:
+
 - **Single features** (individual specs and tasks)
-- **Module-level development** (related specs and task sequences)  
+- **Module-level development** (related specs and task sequences)
 - **System-wide architecture** (cross-cutting specs and coordination tasks)
 - **Multi-team projects** (shared reference materials and guidelines)
 
 ## Adoption Path
 
 For existing projects:
+
 1. **Start small**: Create one spec for current development area
 2. **Add task structure**: Convert current work into discrete tasks
 3. **Establish guidelines**: Document development patterns and constraints

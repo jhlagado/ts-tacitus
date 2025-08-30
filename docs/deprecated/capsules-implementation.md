@@ -1,4 +1,4 @@
-# TACIT Capsules Implementation
+# Tacit Capsules Implementation
 
 ## Terminology
 
@@ -67,7 +67,7 @@ Each field becomes an **element** in the prototype list, with offset starting at
 5. If the method is not found and there is no `default`, return a sentinel (e.g., `nil`); do not throw.
 6. **Receiver unchanged** — remains accessible via the receiver register.
 
-### TACIT Sigil Family
+### Tacit Sigil Family
 
 ```tacit
 @coderef     \ Code reference sigil
@@ -117,7 +117,7 @@ Each `field` declaration:
 
 Each method definition:
 
-1. Compiles as standard TACIT function with capsule context
+1. Compiles as standard Tacit function with capsule context
 2. Resolves field references to fixed offsets using stored mappings
 3. Field symbols marked with flag for relative addressing
 4. Creates code reference for dispatch table entry

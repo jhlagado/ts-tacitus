@@ -1,4 +1,4 @@
-# TACIT Test Cases and Examples
+# Tacit Test Cases and Examples
 
 ## Stack Operation Examples
 

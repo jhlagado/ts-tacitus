@@ -67,19 +67,19 @@ describe('Access Operations', () => {
         const testCases = [
           { tag: Tag.STRING, name: 'string' },
           { tag: Tag.CODE, name: 'code' },
-          { tag: Tag.BUILTIN, name: 'builtin' }
+          { tag: Tag.BUILTIN, name: 'builtin' },
         ];
 
         testCases.forEach(({ tag, name }) => {
           resetVM();
           vm.push(toTaggedValue(42, tag)); // Non-list target
           vm.push(toTaggedValue(100, Tag.CODE)); // block
-          
+
           // Mock block execution producing 1 element
           const originalSP = vm.SP;
           vm.push(1);
           vm.SP = originalSP;
-          
+
           getOp(vm);
           const result = vm.pop();
           expect(result).toBe(NIL); // Should hit non-list branch
@@ -116,36 +116,36 @@ describe('Access Operations', () => {
       test('should attempt direct memory access in key lookup', () => {
         // Test to specifically hit the memory read branch in the for loop
         resetVM();
-        
-        // Create a target list 
+
+        // Create a target list
         vm.push(1);
-        vm.push(100); 
+        vm.push(100);
         vm.push(2);
         vm.push(200);
         vm.push(toTaggedValue(4, Tag.LIST)); // 4-slot list
-        
+
         vm.push(toTaggedValue(300, Tag.CODE)); // block address
-        
+
         // Mock block execution - produce key 1
         const beforeSP = vm.SP - 4;
         vm.push(1);
-        
+
         // Manually set up for getOp to test the memory access branch
-        const beforeExecution = vm.SP - 4; // SP before "block execution"  
+        const beforeExecution = vm.SP - 4; // SP before "block execution"
         const afterExecution = vm.SP;
         const elementCount = (afterExecution - beforeExecution) / 4;
-        
+
         // This should hit the key lookup loop and memory read operations
-        const key = vm.pop();  // Get our test key
+        const key = vm.pop(); // Get our test key
         const target = vm.peek(); // List at TOS
-        
+
         if (elementCount === 1) {
           // We're testing that this branch executes the memory reads
           // Even though they'll return wrong values, we ensure branch coverage
           expect(key).toBe(1);
           expect(target).toBeDefined();
         }
-        
+
         // Reset and use getOp normally to ensure it doesn't crash
         resetVM();
         const result = executeTacitCode('( 1 100 2 200 ) get { 1 }');
@@ -260,7 +260,7 @@ describe('Access Operations', () => {
     describe('Edge cases and error conditions', () => {
       test('should handle moderately sized maplists', () => {
         // Create a smaller maplist to avoid stack overflow
-        const pairs = Array.from({length: 10}, (_, i) => `${i} ${i * 10}`).join(' ');
+        const pairs = Array.from({ length: 10 }, (_, i) => `${i} ${i * 10}`).join(' ');
         const code = `( ${pairs} ) get { 5 }`;
         const result = executeTacitCode(code);
 
@@ -286,9 +286,9 @@ describe('Access Operations', () => {
   describe('setOp - Path-based value setting (stub implementation)', () => {
     describe('Basic stub behavior', () => {
       test('should pop 3 values and return NIL', () => {
-        vm.push(42);    // value
-        vm.push(100);   // target
-        vm.push(200);   // block address
+        vm.push(42); // value
+        vm.push(100); // target
+        vm.push(200); // block address
 
         setOp(vm);
 
@@ -296,16 +296,16 @@ describe('Access Operations', () => {
         expect(result).toEqual([NIL]);
       });
 
-      test('should work with TACIT syntax', () => {
+      test('should work with Tacit syntax', () => {
         const result = executeTacitCode('999 ( 1 100 2 200 ) set { 1 }');
 
         expect(isNIL(result[result.length - 1])).toBe(true);
       });
 
       test('should handle various data types', () => {
-        vm.push(toTaggedValue(1, Tag.STRING));  // value
-        vm.push(toTaggedValue(2, Tag.LIST));    // target
-        vm.push(toTaggedValue(3, Tag.CODE));    // block
+        vm.push(toTaggedValue(1, Tag.STRING)); // value
+        vm.push(toTaggedValue(2, Tag.LIST)); // target
+        vm.push(toTaggedValue(3, Tag.CODE)); // block
 
         setOp(vm);
 
@@ -369,7 +369,7 @@ describe('Access Operations', () => {
     describe('Memory and performance', () => {
       test('should handle moderately sized inputs without memory issues', () => {
         // Create smaller structures to test memory handling
-        const pairs = Array.from({length: 10}, (_, i) => `${i} ${i}`).join(' ');
+        const pairs = Array.from({ length: 10 }, (_, i) => `${i} ${i}`).join(' ');
         const result = executeTacitCode(`12345 ( ${pairs} ) set { 5 }`);
 
         expect(isNIL(result[result.length - 1])).toBe(true);
@@ -390,15 +390,15 @@ describe('Access Operations', () => {
 
     describe('Future implementation readiness', () => {
       test('should maintain proper stack discipline for future enhancement', () => {
-        // Test that the stub maintains proper TACIT stack semantics
+        // Test that the stub maintains proper Tacit stack semantics
         // This ensures future real implementation can replace the stub cleanly
 
         const setupStack = [1, 2, 3, 4, 5]; // Some existing stack content
         setupStack.forEach(val => vm.push(val));
 
-        vm.push(999);   // value to set
-        vm.push(100);   // target
-        vm.push(200);   // path block
+        vm.push(999); // value to set
+        vm.push(100); // target
+        vm.push(200); // path block
 
         setOp(vm);
 
@@ -411,47 +411,47 @@ describe('Access Operations', () => {
   describe('Branch coverage improvements', () => {
     test('should exercise all getOp conditional branches', () => {
       // Test multiple scenarios to ensure all branches are hit
-      
+
       // 1. Empty path branch (elementCount === 0) - implementation has bugs everywhere
       let result = executeTacitCode('42 get { }');
       // Due to implementation bugs, this may not behave correctly, focus on execution path
       expect(result.length).toBeGreaterThan(0);
-      
+
       // 2. Non-list target branch (!isList(target))
       result = executeTacitCode('123 get { 1 }'); // Use number instead of string
       expect(result[result.length - 1]).toBe(NIL);
-      
+
       // 3. Invalid maplist branch (odd slot count)
       result = executeTacitCode('( 1 2 3 ) get { 1 }');
       expect(result[result.length - 1]).toBe(NIL);
-      
+
       // 4. Multiple path elements branch (elementCount > 1)
       result = executeTacitCode('( 1 100 ) get { 1 2 3 }');
       expect(result[result.length - 1]).toBe(NIL);
-      
+
       // 5. Valid single key lookup (elementCount === 1, even slot count)
       result = executeTacitCode('( 1 100 2 200 ) get { 1 }');
       // Due to bug, returns NaN, but should execute the branch
       expect(isNaN(result[result.length - 1])).toBe(true);
     });
-    
+
     test('should hit key not found NIL return branch', () => {
       // Ensure the "key not found" path executes
       const result = executeTacitCode('( 1 100 2 200 ) get { 999 }');
       expect(result[result.length - 1]).toBe(NIL);
     });
-    
+
     test('should exercise loop iterations with various maplist sizes', () => {
       // Test different loop iteration counts
-      
+
       // 2-element maplist (1 iteration)
       let result = executeTacitCode('( 1 10 ) get { 999 }');
       expect(result[result.length - 1]).toBe(NIL);
-      
+
       // 4-element maplist (2 iterations)
       result = executeTacitCode('( 1 10 2 20 ) get { 999 }');
       expect(result[result.length - 1]).toBe(NIL);
-      
+
       // 6-element maplist (3 iterations)
       result = executeTacitCode('( 1 10 2 20 3 30 ) get { 999 }');
       expect(result[result.length - 1]).toBe(NIL);
@@ -459,16 +459,16 @@ describe('Access Operations', () => {
 
     test('should document implementation bugs through testing', () => {
       // This test documents the bugs in getOp implementation while achieving coverage
-      
-      // Bug 1: Empty path handling may be affected by evalOp issues  
+
+      // Bug 1: Empty path handling may be affected by evalOp issues
       const emptyResult = executeTacitCode('42 get { }');
       expect(emptyResult.length).toBeGreaterThan(0);
-      
+
       // Bug 2: Memory addressing bugs in key lookup (lines 67-77)
       // The implementation uses incorrect memory calculations
       const buggyResult = executeTacitCode('( 1 100 2 200 ) get { 1 }');
       expect(isNaN(buggyResult[buggyResult.length - 1])).toBe(true);
-      
+
       // Bug 3: Key comparison branch never succeeds due to addressing bugs
       const searchResult = executeTacitCode('( 0 999 ) get { 0 }');
       expect(isNaN(searchResult[searchResult.length - 1])).toBe(true);
@@ -477,11 +477,11 @@ describe('Access Operations', () => {
     test('should exercise key lookup memory access loop', () => {
       // Test to ensure the for loop and memory read operations execute
       resetVM();
-      
+
       // Set up a proper list structure in memory that getOp can attempt to read
       // Even though the implementation has bugs, we want the loop to execute
       const result = executeTacitCode('( 1 100 2 200 3 300 ) get { 2 }');
-      
+
       // Implementation has addressing bugs but should execute the loop
       // The result will be NaN due to bugs, but loop should execute for coverage
       expect(result.length).toBeGreaterThan(0);
@@ -491,10 +491,10 @@ describe('Access Operations', () => {
       // Try to create conditions where currentKey === key comparison happens
       // Even with buggy implementation, we want this branch to execute
       resetVM();
-      
+
       // Create simple test case to maximize chance of hitting comparison
       const result = executeTacitCode('( 0 0 ) get { 0 }'); // Simple case with zeros
-      
+
       // Due to implementation bugs, this likely returns NaN, but comparison should happen
       expect(result.length).toBeGreaterThan(0);
     });

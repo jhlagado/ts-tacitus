@@ -1,4 +1,4 @@
-# TACIT Local Variables and Function Stack Frame Specification
+# Tacit Local Variables and Function Stack Frame Specification
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@
 
 ## 1. Stack Architecture
 
-TACIT VM uses a dual-stack architecture. Both stacks share the same STACK segment:
+Tacit VM uses a dual-stack architecture. Both stacks share the same STACK segment:
 
 - **Data Stack (SP)**: For computation and parameter passing
 - **Return Stack (RP)**: For function calls, local variables, and compound data storage
@@ -30,12 +30,14 @@ Local variables are stored in fixed-size slots on the return stack. The Base Poi
 
 ## 2. Functions and Code Blocks
 
-**Functions*mul are declared using colon syntax:
+\**Functions*mul are declared using colon syntax:
+
 ```
 : function-name ... ;
 ```
 
-**Code blocks*mul are sections of code enclosed in curly braces `{ ... }`:
+\**Code blocks*mul are sections of code enclosed in curly braces `{ ... }`:
+
 ```
 if { condition } then { true-branch } else { false-branch } endif
 ```
@@ -59,32 +61,37 @@ When a function is called, the stack frame has the following structure:
 ```
 
 The stack frame consists of:
+
 1. **Standard frame header**: Return address and saved BP
 2. **Local variable slots**: Fixed-size 32-bit slots for variable storage
 3. **Compound data area**: Variable-size area for lists and complex structures
 
 ## 4. Local Variable Slots
 
-Each local variable occupies exactly **one 32-bit slot*mul that can contain:
+Each local variable occupies exactly \**one 32-bit slot*mul that can contain:
 
 - **Simple values**: Numbers, strings, symbols stored directly as tagged values
 - **Compound references**: `Tag.REF` values pointing to compound data in the return stack
 
 ### Slot Storage Types:
+
 - `Tag.NUMBER` - Direct numeric values
-- `Tag.STRING` - String table references  
+- `Tag.STRING` - String table references
 - `Tag.CODE` - Code pointers
 - `Tag.REF` - References to compound data on return stack
 - `Tag.BUILTIN` - Builtin operation references
 
 ### Slot Capacity:
-- **Maximum 255 local variables*mul per function (8-bit slot count)
-- **Unlimited compound data*mul (grows dynamically on return stack)
+
+- \**Maximum 255 local variables*mul per function (8-bit slot count)
+- \**Unlimited compound data*mul (grows dynamically on return stack)
 
 ## 5. Variable Declaration and Compilation
 
 ### Syntax
+
 Variables are declared using:
+
 ```
 value var name
 ```
@@ -101,11 +108,13 @@ The `value` is popped from the data stack at runtime and stored in the variable.
 3. **Back-patching**: Update `RESERVE` with final slot count
 
 ### Example Compilation:
+
 ```tacit
 : area var radius 3.142 var pi radius square pi mul ;
 ```
 
 Generates bytecode:
+
 ```
 CALL area-addr
 RESERVE 2          ← back-patched from placeholder
@@ -115,7 +124,7 @@ INIT_VAR_SLOT 1    ← pi = 3.142
 LOCAL_VAR_ADDR 0   ← push address of radius slot
 FETCH              ← get radius value
 SQUARE
-LOCAL_VAR_ADDR 1   ← push address of pi slot  
+LOCAL_VAR_ADDR 1   ← push address of pi slot
 FETCH              ← get pi value
 MUL
 EXIT
@@ -124,26 +133,29 @@ EXIT
 ## 6. Runtime Initialization
 
 ### Function Entry Sequence:
-1. **Standard frame setup*mul (handled by existing `callOp`):
+
+1. \**Standard frame setup*mul (handled by existing `callOp`):
    - Save return address: `rpush(IP)`
    - Save base pointer: `rpush(BP)`
    - Set new base pointer: `BP = RP`
 
-2. **Slot allocation*mul (`RESERVE` opcode):
+2. \**Slot allocation*mul (`RESERVE` opcode):
    - Read slot count from bytecode
    - Advance RP: `RP += slot_count mul 4`
 
-3. **Variable initialization*mul (`INIT_VAR_SLOT` opcodes):
+3. \**Variable initialization*mul (`INIT_VAR_SLOT` opcodes):
    - Pop value from data stack
    - Store in designated slot with appropriate tagging
 
 ### Initialization Types:
 
 **Simple Values**: `42 var x`
+
 - Calculate slot address: BP + slot × 4
 - Store value directly as tagged number in slot
 
-**Compound Values**: `(1 2 3) var mylist`  
+**Compound Values**: `(1 2 3) var mylist`
+
 - Calculate slot address: BP + slot × 4
 - Store Tag.REF pointing to current RP position
 - Copy entire compound structure to return stack above RP
@@ -151,25 +163,32 @@ EXIT
 ## 7. Variable Access and Addressing
 
 ### Address Resolution
+
 Variable symbols resolve to slot addresses at compile time:
+
 ```
 variable_name → LOCAL_VAR_ADDR slot_number → BP + slot_number mul 4
 ```
 
 ### Memory Operations
+
 Variable access requires explicit memory operations:
+
 - **Reading a variable**: `variable_name fetch`
 - **Writing a variable**: `value variable_name store`
 
 ### Stack Effects:
+
 ```
 myvar           ( — addr )        \ Push variable slot address
-myvar fetch     ( — value )       \ Read variable value  
+myvar fetch     ( — value )       \ Read variable value
 value myvar store ( — )           \ Write variable value
 ```
 
 ### Compound Value Access:
+
 For compound values, the slot contains a `Tag.REF` pointing to the actual data:
+
 ```
 mylist           ( — slot_addr )   \ Address of slot containing reference
 mylist fetch     ( — ref_addr )    \ Address of actual compound data
@@ -186,16 +205,19 @@ mylist fetch fetch ( — first_elem ) \ First element of compound data
 Compound values (lists, maplists) are stored in the return stack area above the variable slots:
 
 ### Storage Strategy:
+
 1. **Slot contains reference**: Store `Tag.REF` pointing to compound data
 2. **Data copied to return stack**: Complete structure copied, not referenced
 3. **Proper structure layout**: Maintains list format (payload + header)
 
 ### Example - List Storage:
+
 ```
 : process-data (1 2 3) var mylist mylist fetch ;
 ```
 
 Frame layout after initialization:
+
 ```
 [ return addr ]
 [ previous BP ] ← BP
@@ -209,11 +231,13 @@ Frame layout after initialization:
 ## 9. Function Entry and Exit
 
 ### Function Entry:
+
 1. Standard frame setup (existing `callOp`)
 2. Execute `RESERVE N` - allocate N local variable slots
 3. Execute `INIT_VAR_SLOT` operations - initialize each variable
 
 ### Function Exit:
+
 1. **Single instruction cleanup**: `RP = BP`
    - Deallocates all local variable slots
    - Deallocates all compound data
@@ -222,9 +246,11 @@ Frame layout after initialization:
 3. Restore return address and jump: `IP = rpop()`
 
 ### Cleanup Elegance:
+
 The `RP = BP` operation instantly deallocates:
+
 - All local variable slots
-- All compound data structures  
+- All compound data structures
 - All nested compound data
 - Everything above the saved BP
 
@@ -233,14 +259,19 @@ No complex deallocation logic, reference counting, or memory management required
 ## 10. Assignment Semantics
 
 ### Simple Values
+
 Assignment to a local variable slot is direct:
+
 ```
 100 -> x
 ```
+
 This stores the value `100` in the slot for `x`. The value is tagged appropriately (e.g., `Tag.NUMBER`).
 
 ### Compound Values (Lists)
+
 Assignment to a local variable slot containing a compound value (e.g., a list or maplist) is only allowed if the new value is **compatible**: it must have the same slot (cell) count and type as the existing value. The assignment copies the contents of the new value into the existing structure, element-wise, **without changing the slot reference**. If the slot count or type does not match, assignment is invalid and should raise an error.
+
 ```
 (1 2 3) -> y   # allowed if y is a list of 4 cells (1 header + 3 payload)
 (1 2)   -> y   # error if y is a list of 4 cells
@@ -249,55 +280,62 @@ list4    -> z  # error if z is a maplist, even if slot count matches
 ```
 
 ### General Rule
+
 Assignment never changes the slot reference for compound types—only the contents are updated.
 For simple types, assignment replaces the value in the slot.
 
 ## 10. Dictionary Management
 
 ### Compile-Time Scope:
+
 - `mark()` at function start (existing)
 - Register each local variable: `define(name, LOCAL_VAR, slot_number)`
 - `revert()` at function end (existing) - removes all local symbols
 
 ### Symbol Resolution Priority:
-1. **Local variables*mul (if inside function)
-2. **Global symbols*mul 
+
+1. \**Local variables*mul (if inside function)
+2. \**Global symbols*mul
 3. **Built-in operations**
 
 ### Symbol Types:
 
-| Symbol Kind | Purpose | Data Stored |
-|-------------|---------|-------------|
-| BUILTIN | Built-in operations | Opcode number |
-| USER_DEF | User-defined functions | Bytecode address |
-| LOCAL_VAR | Local variables | Slot number |
+| Symbol Kind | Purpose                | Data Stored      |
+| ----------- | ---------------------- | ---------------- |
+| BUILTIN     | Built-in operations    | Opcode number    |
+| USER_DEF    | User-defined functions | Bytecode address |
+| LOCAL_VAR   | Local variables        | Slot number      |
 
 Local variables store slot numbers instead of opcodes or addresses.
 
 ## 11. New Opcodes
 
-| Opcode | Purpose | Encoding | Operation |
-|--------|---------|----------|-----------|
-| RESERVE | Allocate local slots | `RESERVE slot_count` | Advance RP by slot_count × 4 |
-| INIT_VAR_SLOT | Initialize variable slot | `INIT_VAR_SLOT slot_number` | Pop TOS, store in slot with tagging |
-| LOCAL_VAR_ADDR | Push slot address | `LOCAL_VAR_ADDR slot_number` | Push BP + slot_number × 4 |
+| Opcode         | Purpose                  | Encoding                     | Operation                           |
+| -------------- | ------------------------ | ---------------------------- | ----------------------------------- |
+| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RP by slot_count × 4        |
+| INIT_VAR_SLOT  | Initialize variable slot | `INIT_VAR_SLOT slot_number`  | Pop TOS, store in slot with tagging |
+| LOCAL_VAR_ADDR | Push slot address        | `LOCAL_VAR_ADDR slot_number` | Push BP + slot_number × 4           |
 
 ### RESERVE Details:
+
 - **Limits**: slot_count is 8-bit (0-255 variables maximum)
 - **Memory**: Allocates contiguous 32-bit slots on return stack
 - **Timing**: Executed once per function call during prologue
 
 ### INIT_VAR_SLOT Details:
+
 - **Simple values**: Store directly as tagged value in slot
 - **Compound values**: Store Tag.REF pointing to return stack data
 - **Data copying**: Compound structures copied to return stack above slots
 
 ### LOCAL_VAR_ADDR Details:
+
 - **Address calculation**: BP + slot_number × 4
 - **Usage**: Combined with FETCH/STORE for variable access
 - **Compile-time**: slot_number resolved from symbol table
 
 ### Back-Patching Support:
+
 - RESERVE emitted with placeholder slot count during compilation
 - Slot count incremented for each var declaration encountered
 - Compiler back-patches final slot count using patch8 method
@@ -311,8 +349,9 @@ Code blocks preserve lexical access to parent function's local variables:
 - **No cleanup required**: Parent function handles all cleanup
 
 Example:
+
 ```
-: conditional-math 
+: conditional-math
     5 var x
     if { x fetch 0 gt } then { x fetch 2 mul } else { 0 } endif
 ;
@@ -323,18 +362,21 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ## 13. Variable Lifetime and Safety
 
 ### Structural Lifetime Enforcement:
+
 - **Variables live**: From declaration until function return
-- **Memory safety**: Automatic via stack discipline  
+- **Memory safety**: Automatic via stack discipline
 - **Invalid references**: Impossible due to stack layout
 - **No borrow checker needed**: Stack structure prevents illegal access
 
 ### Safety Guarantees:
+
 - **Automatic deallocation**: `RP = BP` cleanup
 - **No memory leaks**: Stack-based allocation
 - **No dangling pointers**: References can't outlive function
 - **No fragmentation**: Contiguous stack allocation
 
 ### Illegal Operations:
+
 - **Returning local references**: Stack addresses become invalid
 - **Storing locals in globals**: Lifetime mismatch
 - **Variable declarations in code blocks**: Compile-time error
@@ -342,6 +384,7 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ## 14. Examples
 
 ### Basic Variable Declaration and Access:
+
 ```
 : calculate
     10 var a
@@ -351,6 +394,7 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ```
 
 ### Compound Variable Storage:
+
 ```
 : process-list
     (1 2 3) var mylist         \ Store list in variable (copied)
@@ -360,6 +404,7 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ```
 
 ### Formal Parameters via Variables:
+
 ```
 : area ( radius -- area )
     var radius                 \ Capture parameter from stack
@@ -373,24 +418,26 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ```
 
 ### Multiple Locals with Mixed Types:
+
 ```
 : complex-calc
     var input                  \ Runtime value from stack
     (10 20 30) var coeffs     \ Compile-time list
     0 var result              \ Initialize to zero
-    
+
     input fetch coeffs fetch head
     result fetch add result store
 ;
 ```
 
 ### Code Blocks Accessing Locals:
+
 ```
 : conditional-process
     var data
     data fetch 0 gt
-    if { data fetch 2 mul } 
-    else { 0 } 
+    if { data fetch 2 mul }
+    else { 0 }
     endif
 ;
 ```
@@ -398,28 +445,36 @@ The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent fun
 ## 15. Design Philosophy
 
 ### Slot-Based Architecture
-TACIT treats local variables as fixed-size slots that can hold any tagged value. This uniform approach allows:
+
+Tacit treats local variables as fixed-size slots that can hold any tagged value. This uniform approach allows:
+
 - **Predictable frame layout**: Compile-time slot allocation
 - **Runtime type flexibility**: Slots adapt to actual data types
 - **Efficient access**: Direct slot addressing
 - **Clean separation**: Allocation vs initialization
 
 ### Copy Semantics for Compound Data
+
 All variable assignment copies data rather than sharing references:
+
 - **Ownership clarity**: Each variable owns its data
 - **No aliasing issues**: Changes to one variable don't affect others
 - **Predictable behavior**: Assignment always copies
 - **Memory safety**: No shared mutable state
 
 ### Stack-Native Memory Management
+
 Local variables use the return stack as a "local heap":
+
 - **Automatic lifetime**: Variables live exactly as long as function
 - **Zero-cost cleanup**: Single pointer assignment deallocates everything
 - **No garbage collection**: Stack discipline handles all memory
 - **C-port ready**: Direct translation to stack-based allocation
 
 ### Unified Tagged Value System
-Local variables use the same tagged value system as the rest of TACIT:
+
+Local variables use the same tagged value system as the rest of Tacit:
+
 - **No special types**: Variables store standard tagged values
 - **Existing operations**: `fetch` and `store` work unchanged
 - **Type safety**: Tags prevent interpretation errors
@@ -427,23 +482,26 @@ Local variables use the same tagged value system as the rest of TACIT:
 
 ## 16. Conclusion
 
-This specification establishes a complete local variable system for TACIT that separates compile-time allocation from runtime initialization. The slot-based architecture provides:
+This specification establishes a complete local variable system for Tacit that separates compile-time allocation from runtime initialization. The slot-based architecture provides:
 
 **Compile-Time Benefits**:
+
 - Fixed frame layout with known slot count
 - Symbol resolution through existing dictionary
 - Back-patching for efficient code generation
 
-**Runtime Benefits**:  
+**Runtime Benefits**:
+
 - Type-flexible slots using tagged values
 - Efficient compound data storage with copy semantics
 - Automatic memory management via stack discipline
 - Zero-overhead cleanup with single instruction
 
 **Integration Benefits**:
+
 - Builds on existing stack frame infrastructure
 - Uses proven tagged value system
 - Maintains code block lexical scoping
 - Supports both simple and compound data types
 
-The design provides a foundation for sophisticated local variable usage while maintaining TACIT's stack-oriented philosophy and preparing for eventual C translation.
+The design provides a foundation for sophisticated local variable usage while maintaining Tacit's stack-oriented philosophy and preparing for eventual C translation.

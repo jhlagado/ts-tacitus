@@ -11,7 +11,7 @@ import { dropList } from '../core/list';
 
 /**
  * Transfers compound data from data stack to return stack.
- * Maintains TACIT's stack-native list encoding during transfer.
+ * Maintains Tacit's stack-native list encoding during transfer.
  *
  * Stack effect: ( list -- ) [transfers to return stack]
  * Returns: byte address of LIST header on return stack
@@ -125,11 +125,7 @@ export function isCompatibleCompound(existing: number, newValue: number): boolea
  * @param segment Memory segment (SEG_RSTACK for local variables)
  * @param newValue The new compound value from data stack (LIST header at TOS)
  */
-export function mutateCompoundInPlace(
-  vm: VM,
-  targetAddr: number,
-  segment: number,
-): void {
+export function mutateCompoundInPlace(vm: VM, targetAddr: number, segment: number): void {
   vm.ensureStackSize(1, 'mutateCompoundInPlace');
   const header = vm.peek();
 

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Tests for Step 14: @symbol parser/compiler integration.
  *
- * This test suite validates that @symbol syntax works end-to-end in TACIT code:
+ * This test suite validates that @symbol syntax works end-to-end in Tacit code:
  * 1. Tokenizer recognizes @symbol (Step 13)
  * 2. Parser compiles @symbol to pushSymbolRef call (Step 14)
  * 3. VM resolves symbol and pushes tagged value (Step 11)
@@ -14,7 +14,7 @@
  * - Integration with eval for metaprogramming
  * - Error cases and edge conditions
  *
- * @author TACIT VM
+ * @author Tacit VM
  * @version 1.0.0
  */
 
@@ -102,7 +102,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         : test-op 1 eq IF { @add } ELSE { @sub } ;
         5 3 1 test-op eval
       `);
-      expect(result).toEqual([8]); 
+      expect(result).toEqual([8]);
     });
 
     it('should work with list of operations', () => {
@@ -110,19 +110,19 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         2 3 @add eval
         4 @mul eval
       `);
-      expect(result).toEqual([20]); 
+      expect(result).toEqual([20]);
     });
   });
 
   describe('@symbol with combinators', () => {
     it('should work with do combinator', () => {
       const result = executeTacitCode('10 do { @dup eval @add eval }');
-      expect(result).toEqual([20]); 
+      expect(result).toEqual([20]);
     });
 
     it('should work with repeat combinator', () => {
       const result = executeTacitCode('5 3 repeat { @dup eval @add eval }');
-      expect(result).toEqual([40]); 
+      expect(result).toEqual([40]);
     });
   });
 
@@ -135,7 +135,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
     it('should throw error for malformed @symbol syntax', () => {
       expect(() => {
-        executeTacitCode('@ eval'); 
+        executeTacitCode('@ eval');
       }).toThrow();
     });
   });
@@ -143,7 +143,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
   describe('@symbol mixed with regular operations', () => {
     it('should work alongside regular operations', () => {
       const result = executeTacitCode('5 dup 3 @add eval mul');
-      expect(result).toEqual([40]); 
+      expect(result).toEqual([40]);
     });
 
     it('should work in word definitions', () => {
@@ -153,7 +153,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
     it('should work with multiple @symbols in one expression', () => {
       const result = executeTacitCode('1 2 @add eval 3 4 @mul eval @add eval');
-      expect(result).toEqual([15]); 
+      expect(result).toEqual([15]);
     });
   });
 
@@ -162,12 +162,12 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
       const result = executeTacitCode(
         ': my_word 42 ; : my-word 24 ; @my_word eval @my-word eval add',
       );
-      expect(result).toEqual([66]); 
+      expect(result).toEqual([66]);
     });
 
     it('should handle @symbols with numbers', () => {
       const result = executeTacitCode(': word2 100 ; : test123 50 ; @word2 eval @test123 eval add');
-      expect(result).toEqual([150]); 
+      expect(result).toEqual([150]);
     });
 
     it('should work with nested @symbol calls', () => {
@@ -175,7 +175,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         : get-op @add ;
         5 3 get-op eval eval
       `);
-      expect(result).toEqual([8]); 
+      expect(result).toEqual([8]);
     });
   });
 });

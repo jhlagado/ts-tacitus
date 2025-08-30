@@ -1,7 +1,7 @@
 /**
  * @file src/ops/access-ops.ts
  *
- * High-level access combinators for TACIT VM.
+ * High-level access combinators for Tacit VM.
  * Provides path-based navigation through nested list/maplist structures.
  *
  * Stack Effects:

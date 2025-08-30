@@ -1,4 +1,4 @@
-# TACIT Stack Operations Specification
+# Tacit Stack Operations Specification
 
 ## Table of contents
 
@@ -11,7 +11,7 @@
 7. Critical Mental Model Rules
 8. Execution Examples
 9. Advanced Concepts
-10. TACIT-Specific Considerations
+10. Tacit-Specific Considerations
 11. Common Pitfalls for AI Systems
 12. Verification Strategies
 13. Related Specifications
@@ -19,7 +19,7 @@
 
 ## 1. Fundamental Stack Model
 
-TACIT uses a **data stack** where all computation occurs. Understanding stack mechanics is critical for correct implementation and reasoning about program behavior.
+Tacit uses a **data stack** where all computation occurs. Understanding stack mechanics is critical for correct implementation and reasoning about program behavior.
 
 ## 2. RPN: Immediate Execution Model
 
@@ -314,7 +314,7 @@ variadic-add    # How many items should it consume?
    1 2 3 4 →list sum-list    # Convert to list, then sum
    ```
 
-**TACIT follows this rule**: All built-in operations have fixed arity, enabling immediate execution and stack safety.
+**Tacit follows this rule**: All built-in operations have fixed arity, enabling immediate execution and stack safety.
 
 ### Stack Effect Composition
 
@@ -332,7 +332,7 @@ if     ( flag true-branch false-branch — result )
 
 The flag (deepest item) determines which branch executes.
 
-## 10. TACIT-Specific Considerations
+## 10. Tacit-Specific Considerations
 
 ### Tagged Values
 

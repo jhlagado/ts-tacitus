@@ -1,7 +1,7 @@
 {
   "folders": [
     {
-      "name": "TACIT VM Root",
+      "name": "Tacit VM Root",
       "path": "."
     },
     {
@@ -9,7 +9,7 @@
       "path": "./docs"
     },
     {
-      "name": "📋 Specifications", 
+      "name": "📋 Specifications",
       "path": "./docs/specs"
     },
     {

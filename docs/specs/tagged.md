@@ -1,4 +1,4 @@
-# TACIT Tagged Values Specification
+# Tacit Tagged Values Specification
 
 > Status: Harmonised with current implementation.
 
@@ -15,7 +15,7 @@ Implementations (VM, parser, symbol table, printers) MUST conform.
 
 ## Overview
 
-TACIT uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 6-bit tag with up to 16 bits of payload data, enabling efficient type dispatch and memory usage. This document supersedes any older references that still include `LINK` or `CODE_BLOCK` tags.
+Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 6-bit tag with up to 16 bits of payload data, enabling efficient type dispatch and memory usage. This document supersedes any older references that still include `LINK` or `CODE_BLOCK` tags.
 
 ## Tag System
 
@@ -37,16 +37,14 @@ Active tags are listed below; this definition takes precedence.
 
 ### Tag Table
 
-| Tag     | Payload Meaning                    | Mutable In-Place                           | Printable Form                         | Notes                                  |
-| ------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
-| NUMBER  | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
+| Tag      | Payload Meaning                    | Mutable In-Place                           | Printable Form                         | Notes                                  |
+| -------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
+| NUMBER   | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
 | SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                                    | Single legitimate value: NIL (0)       |
-| CODE    | Bytecode address (0..8191 current) | No (structural)                            | `@name` or `{ … }` when printed as ref | Executed via `eval`                    |
-| STRING  | String segment offset              | No                                         | string literal                         | Immutable contents                     |
-| BUILTIN | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
-| LIST    | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
-
- 
+| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or `{ … }` when printed as ref | Executed via `eval`                    |
+| STRING   | String segment offset              | No                                         | string literal                         | Immutable contents                     |
+| BUILTIN  | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
+| LIST     | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
 
 ## Memory Layout
 
@@ -61,7 +59,7 @@ IEEE 754 Float32 NaN-Boxing Layout:
 └─┴───────────┴─┴──────┴────────────────┘
 
 S = Sign bit (available for extended tagging)
-EXP = Exponent (0xFF for NaN)  
+EXP = Exponent (0xFF for NaN)
 Q = Quiet NaN bit (always 1)
 TAG = 6-bit type tag (0-63 possible values)
 VALUE = 16-bit payload (unsigned for all tags; SENTINEL uses 0 only)
@@ -75,7 +73,6 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 - **Addresses**: Tag.CODE + 16-bit bytecode address
 - **Built-ins**: Tag.BUILTIN + opcode (0-127)
 - **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
- 
 
 ### Dispatch Semantics
 
@@ -144,8 +141,6 @@ All tagged values must:
 - `specs/access.md` – Address-returning find family & high-level get/set
 - `specs/capsules.md` – Capsule structure built on lists
 
- 
-
 ## Runtime Invariants (Normative)
 
 1. Any NaN-boxed non-number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST}.
@@ -189,9 +184,9 @@ length                     \ -> 3
 
 ## Consistency Cross-Check
 
-| Aspect              | This Spec                   | Referenced Spec                              |
-| ------------------- | --------------------------- | -------------------------------------------- |
-| Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                          |
+| Aspect              | This Spec                   | Referenced Spec                               |
+| ------------------- | --------------------------- | --------------------------------------------- |
+| Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `access.md`, `maplists.md` (lookup failures) |
-| Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                   |
+| NIL definition      | SENTINEL 0                  | `access.md`, `maplists.md` (lookup failures)  |
+| Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |

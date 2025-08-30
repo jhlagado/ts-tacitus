@@ -1,5 +1,5 @@
 /*
-Tests for unary operations - TACIT's single-operand mathematical operations
+Tests for unary operations - Tacit's single-operand mathematical operations
 Includes negate, reciprocal, floor, not, signum, and enlist operations
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -109,8 +109,7 @@ describe('Unary Operations', () => {
     });
   });
 
-  describe('list operations', () => {
-  });
+  describe('list operations', () => {});
 
   describe('error cases', () => {
     test('should throw on negate stack underflow', () => {

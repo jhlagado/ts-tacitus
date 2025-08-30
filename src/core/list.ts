@@ -1,6 +1,6 @@
 /**
  * @file src/core/list.ts
- * Core utilities for TACIT Reverse Lists.
+ * Core utilities for Tacit Reverse Lists.
  */
 
 import { VM } from './vm';

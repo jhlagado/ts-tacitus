@@ -1,6 +1,6 @@
 # Removed or Consolidated Operations (Plan 13)
 
-This document tracks VM opcodes removed or consolidated during Plan 13 (Naming & Refactor Alignment). The goal is to keep the opcode surface aligned with TACIT vocabulary, remove unused placeholders, and avoid duplicate names. If any of these should be (re)introduced later, this list provides context and suggested replacements.
+This document tracks VM opcodes removed or consolidated during Plan 13 (Naming & Refactor Alignment). The goal is to keep the opcode surface aligned with Tacit vocabulary, remove unused placeholders, and avoid duplicate names. If any of these should be (re)introduced later, this list provides context and suggested replacements.
 
 ## Canonical Replacements
 
@@ -10,27 +10,27 @@ This document tracks VM opcodes removed or consolidated during Plan 13 (Naming &
 
 - mNegate → Neg
   - Status: Removed legacy alias; canonical is `neg`.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 - mSignum → Sign
   - Status: Removed legacy alias; canonical is `sign`.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 - mReciprocal → Recip
   - Status: Removed legacy alias; canonical opcode `Recip`. Vocabulary maps `recip` → `Recip`.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 - mFloor → Floor
   - Status: Removed legacy alias; canonical opcode `Floor`. Vocabulary maps `floor` → `Floor`.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 - mNot → Not
   - Status: Removed legacy alias; canonical opcode `Not`. Vocabulary maps `not` → `Not`.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 - mEnlist → Enlist
   - Status: Removed legacy alias; canonical opcode `Enlist`. Existing implementation function `mEnlistOp` retained internally.
-  - Rationale: Drop "m" prefixes; align with TACIT words.
+  - Rationale: Drop "m" prefixes; align with Tacit words.
 
 ## Dropped Placeholders (Unimplemented / Not in Spec)
 
@@ -38,19 +38,19 @@ These opcodes had no implementations, registrations, or tests. They were declare
 
 - Bitwise: And, Or, Xor, Nand
   - Status: Removed from opcode surface.
-  - Rationale: Not part of current TACIT core; no implementation/tests.
+  - Rationale: Not part of current Tacit core; no implementation/tests.
 
 - Vector/Meta utilities: mWhere, mReverse, mType, mString, mGroup, mDistinct, mCount
   - Status: Removed from opcode surface.
-  - Rationale: Not part of current TACIT core; no implementation/tests.
+  - Rationale: Not part of current Tacit core; no implementation/tests.
 
 - Collection/dict placeholders: Join, mIn, mKey
   - Status: Removed from opcode surface.
-  - Rationale: Not part of current TACIT core; no implementation/tests.
+  - Rationale: Not part of current Tacit core; no implementation/tests.
 
 - Aggregates: Avg, Prod
   - Status: Removed from opcode surface.
-  - Rationale: Not part of current TACIT core; no implementation/tests.
+  - Rationale: Not part of current Tacit core; no implementation/tests.
 
 ## Other Removals
 
@@ -63,6 +63,6 @@ These opcodes had no implementations, registrations, or tests. They were declare
 - All canonical math ops remain: add, sub, mul, div, pow, mod, min, max, abs, neg, sign, exp, ln, log, sqrt.
 - List ops remain per `lists.md`: length, size, slot, elem, fetch, store, concat, tail, head, uncons, pack, unpack, reverse.
 - If any removed operation is needed in the future, we should:
-  1) Add a minimal spec stub (stack effect + semantics),
-  2) Implement the opcode and register vocabulary name(s),
-  3) Add focused tests (unit + integration where applicable).
+  1. Add a minimal spec stub (stack effect + semantics),
+  2. Implement the opcode and register vocabulary name(s),
+  3. Add focused tests (unit + integration where applicable).

@@ -2,14 +2,14 @@
 
 ## Executive Summary
 
-Systematically align naming with TACIT language words, remove duplication, and clarify hard‑to‑read areas. Work one library at a time with small, verifiable changes. No behavior drift; prioritize clarity and consistency.
+Systematically align naming with Tacit language words, remove duplication, and clarify hard‑to‑read areas. Work one library at a time with small, verifiable changes. No behavior drift; prioritize clarity and consistency.
 
 ## Phase 0: Audit Findings (Snapshot)
 
 - ops/math-ops
   - Redundancy: `multiplyOp` vs `prodOp`; `negOp` vs `mNegateOp`; `signOp` vs `mSignumOp`; `powOp` vs `powerOp`.
   - Naming: `minOp`/`maxOp` use ensure messages "&"/"|" — inconsistent; prefer operation name.
-  - Recommendation: Consolidate duplicates under canonical names: `add`, `sub`, `mul`, `div`, `pow`, `mod`, `min`, `max`, `abs`, `neg`, `sign`, `exp`, `ln`, `log`, `sqrt`, `avg` (optional: keep only one of `pow*` forms; consider removing `avg` if not in TACIT core).
+  - Recommendation: Consolidate duplicates under canonical names: `add`, `sub`, `mul`, `div`, `pow`, `mod`, `min`, `max`, `abs`, `neg`, `sign`, `exp`, `ln`, `log`, `sqrt`, `avg` (optional: keep only one of `pow*` forms; consider removing `avg` if not in Tacit core).
 
 - ops/print-ops & core/format-utils vs core/utils
   - Duplication: `formatValue` exists in both `core/utils.ts` and `core/format-utils.ts` with different behaviors (quotes, ref deref strategy).
@@ -22,7 +22,7 @@ Systematically align naming with TACIT language words, remove duplication, and c
   - Recommendation: Add in‑file spec references; tighten `concat` to explicit construction or add tests locking current behavior.
 
 - ops/stack-ops
-  - Internal helpers: `cellsCopy`, `cellsReverse`, `cellsRoll`, `findElementAtIndex` — consistent internally but consider renaming to “cells” or “elements” per TACIT wording. Add brief docstrings (stack‑effect intent) for each public op.
+  - Internal helpers: `cellsCopy`, `cellsReverse`, `cellsRoll`, `findElementAtIndex` — consistent internally but consider renaming to “cells” or “elements” per Tacit wording. Add brief docstrings (stack‑effect intent) for each public op.
 
 - core/refs.ts vs core/tagged.ts
   - Overlap: `isRef`/`isStackRef`/`isLocalRef`/`isGlobalRef` appear in both; prefer `core/refs` as the runtime reference hub; keep tag constants in `tagged` only.
@@ -95,7 +95,7 @@ Status: ✅ COMPLETED
 
 ## Acceptance Criteria
 
-- No duplicate math ops remain; canonical naming matches TACIT words.
+- No duplicate math ops remain; canonical naming matches Tacit words.
 - One formatter source with consistent string quoting.
 - List ops documented and `concat` behavior locked by tests.
 - Stack ops helpers/names clarified without behavior drift.

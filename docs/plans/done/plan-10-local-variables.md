@@ -1,8 +1,8 @@
-# Plan 11: TACIT Local Variables Implementation
+# Plan 11: Tacit Local Variables Implementation
 
 ## Executive Summary
 
-This plan implements the complete local variable system for TACIT functions as specified in `docs/specs/local-vars.md`. The implementation uses a slot-based architecture with compile-time allocation and runtime initialization, building on existing infrastructure.
+This plan implements the complete local variable system for Tacit functions as specified in `docs/specs/local-vars.md`. The implementation uses a slot-based architecture with compile-time allocation and runtime initialization, building on existing infrastructure.
 
 The plan is organized as **8 major phases** broken down into **22 manageable micro-phases** of 1-3 hours each, ensuring systematic progress with full testing at each step.
 
@@ -236,7 +236,7 @@ test('should allocate slots correctly', () => {
 **Implementation Notes**:
 
 - Reserve opcode reads immediate 16-bit argument using `vm.nextUint16()` (unsigned)
-- Follows standard TACIT pattern: opcode + immediate value in bytecode stream
+- Follows standard Tacit pattern: opcode + immediate value in bytecode stream
 - Fixed: Used `vm.nextUint16()` instead of `vm.nextInt16()` to handle unsigned values correctly
 - Created comprehensive test suite with 6 tests covering edge cases
 - All tests pass (247 tests), no regressions
@@ -391,11 +391,11 @@ test('should allocate slots correctly', () => {
 #### 4.1 Variable Declaration Parsing (1 hour) ✅ COMPLETED
 
 **Files**: `src/lang/parser.ts`, `src/ops/builtins.ts`, `src/test/lang/parser-variables.test.ts`  
-**Goal**: Add TACIT syntax for variable declarations and implement parsing
+**Goal**: Add Tacit syntax for variable declarations and implement parsing
 
 **Tasks**:
 
-- ✅ Design TACIT syntax: `value var name` (postfix, follows existing patterns)
+- ✅ Design Tacit syntax: `value var name` (postfix, follows existing patterns)
 - ✅ Add 'var' keyword recognition in `processWordToken()`
 - ✅ Implement `processVarDeclaration()` function with validation
 - ✅ Implement variable reference resolution in symbol lookup
@@ -404,7 +404,7 @@ test('should allocate slots correctly', () => {
 
 **Implementation Notes**:
 
-- **TACIT Syntax**: `42 var x` declares variable x with value 42
+- **Tacit Syntax**: `42 var x` declares variable x with value 42
 - **Parser Integration**: Added 'var' as special word token with proper validation
 - **Bytecode Generation**: Variable declarations emit `InitVar slot_number`
 - **Variable References**: Compile to `LocalRef slot_number; Fetch` sequence
@@ -612,8 +612,9 @@ test('should compile and execute function with simple locals', () => {
 - Keep error handling simple and consistent.
 
 **Implementation Notes**:
+
 - Due to the directive to not edit source files, the task "Add validation for error conditions" has been reinterpreted to "Identify and document areas where validation for error conditions should be added".
-- This involves reviewing existing code for potential error scenarios and documenting how they *could* be handled, without making direct modifications to the source code.
+- This involves reviewing existing code for potential error scenarios and documenting how they _could_ be handled, without making direct modifications to the source code.
 - The focus remains on understanding and identifying patterns for future implementation.
 
 #### 8.2 Integration with Existing Features (2 hours)
@@ -783,7 +784,7 @@ Phase 9 leverages the existing infrastructure:
 - **All 18 end-to-end local variables tests passing**
 - **Core bug fixed**: exitOp properly deallocates local variables with `vm.RP = vm.BP`
 - **No regressions**: 99.9% of existing tests still pass
-- **Production ready**: Can be used in TACIT programs with `value var name` syntax
+- **Production ready**: Can be used in Tacit programs with `value var name` syntax
 
 ## Testing Strategy
 
@@ -863,7 +864,7 @@ This revised plan reduces complexity by 40% while maintaining full functionality
 
 ### CELL_SIZE → CELL_SIZE Rename
 
-**Issue**: `CELL_SIZE` name conflicts with reserved "element" terminology that has special meaning in TACIT.
+**Issue**: `CELL_SIZE` name conflicts with reserved "element" terminology that has special meaning in Tacit.
 
 **Action**: Rename constant from `CELL_SIZE` to `CELL_SIZE` throughout codebase to reflect that we're working with memory cells, not logical elements.
 
@@ -969,7 +970,7 @@ VAR_REF slot_number     # pushes RSTACK_REF address
 STORE                   # polymorphic store operation
 ```
 
-### TACIT Syntax Examples
+### Tacit Syntax Examples
 
 ```tacit
 : mutation-test
@@ -989,7 +990,7 @@ STORE                   # polymorphic store operation
 ### Testing Results ✅ ALL PASSING
 
 - **Unit Tests**: 26 tests passing (VM-level operations)
-- **Integration Tests**: 12 tests passing (TACIT code execution)
+- **Integration Tests**: 12 tests passing (Tacit code execution)
 - **Mutation Tests**: 3 new tests covering:
   - Simple variable mutation with `->` operator
   - Multiple variable mutations in single function
@@ -997,11 +998,11 @@ STORE                   # polymorphic store operation
 
 ### Technical Achievements
 
-- ✅ **Complete read/write support**: Both reading and mutation work in TACIT code
+- ✅ **Complete read/write support**: Both reading and mutation work in Tacit code
 - ✅ **Spec compliance**: Implements `->` operator exactly as documented
 - ✅ **Polymorphic storage**: Store operation works across all memory segments
 - ✅ **Zero regressions**: All existing functionality preserved
-- ✅ **Production ready**: Can be used in real TACIT programs
+- ✅ **Production ready**: Can be used in real Tacit programs
 
 **FINAL STATUS: Local variables implementation is 100% complete with full mutation support!**
 
@@ -1174,21 +1175,21 @@ export function storeOp(vm: VM): void {
 }
 ```
 
-#### Phase 10.4: Integration Testing and TACIT Syntax (2 hours)
+#### Phase 10.4: Integration Testing and Tacit Syntax (2 hours)
 
 **Files**: Integration test file  
-**Goal**: Test complete compound mutation workflow in TACIT code
+**Goal**: Test complete compound mutation workflow in Tacit code
 
 **Tasks**:
 
 - ✅ Test compound variable assignment with `->` operator
-- ✅ Test compatibility validation in real TACIT functions
+- ✅ Test compatibility validation in real Tacit functions
 - ✅ Test error cases (incompatible assignments)
 - ✅ Test mixed simple and compound variables
 - ✅ Performance testing with large compound data
 - ✅ Integration with existing local variable features
 
-**TACIT Syntax Examples**:
+**Tacit Syntax Examples**:
 
 ```tacit
 : test-compound-mutation
@@ -1232,7 +1233,7 @@ export function storeOp(vm: VM): void {
 
 **Integration Tests**:
 
-- End-to-end TACIT code execution
+- End-to-end Tacit code execution
 - Mixed simple and compound variables
 - Complex nesting scenarios
 
@@ -1306,19 +1307,21 @@ The name `RSTACK_REF` is confusing because:
 
 **ESTIMATED TIME: 1-2 hours** (systematic find-replace operation)
 
-### Phase 12: Test Coverage Improvement ✅ COMPLETED 
+### Phase 12: Test Coverage Improvement ✅ COMPLETED
 
 #### Executive Summary
 
-This phase systematically improved the test coverage of the TACIT codebase to meet the 80% branch coverage threshold. Successfully achieved **81.53% branch coverage** (exceeding the 80% requirement) through targeted test creation for ops files with the lowest coverage.
+This phase systematically improved the test coverage of the Tacit codebase to meet the 80% branch coverage threshold. Successfully achieved **81.53% branch coverage** (exceeding the 80% requirement) through targeted test creation for ops files with the lowest coverage.
 
 **RESULTS**:
-- ✅ **Overall Coverage**: 81.53% branches (exceeds 80% threshold) 
+
+- ✅ **Overall Coverage**: 81.53% branches (exceeds 80% threshold)
 - ✅ **access-ops.ts**: Comprehensive test suite added (46 tests) - **discovered multiple implementation bugs**
 - ✅ **core-ops.ts**: Branch coverage improved from 46.66% to 73.33% with targeted tests
 - ✅ **Critical Issues Found**: Memory addressing bugs in access-ops.ts key lookup implementation
 
 **Files Created**:
+
 - `src/test/ops/access/access-ops.test.ts` (46 comprehensive tests)
 - `src/test/ops/core/core-ops-coverage.test.ts` (14 branch coverage tests)
 
@@ -1382,12 +1385,13 @@ This phase systematically improved the test coverage of the TACIT codebase to me
 **Goal**: Improve test coverage for path-based navigation operations.
 
 **Results**:
+
 - **Baseline**: 0% coverage (not in coverage report)
 - **After Implementation**: 50% statement coverage, 12.5% branch coverage, 100% function coverage
 - **Lines Covered**: 44/88 total lines, with uncovered lines 51-86 (mostly error handling paths)
 - **Created**: Comprehensive test suite with 39 test cases covering:
   - Empty path handling
-  - Non-list target scenarios  
+  - Non-list target scenarios
   - Invalid maplist validation
   - Key lookup paths (valid and invalid)
   - Multiple path elements handling
@@ -1397,15 +1401,17 @@ This phase systematically improved the test coverage of the TACIT codebase to me
   - Both `getOp` and `setOp` stub functionality
 
 **Implementation Notes**:
+
 - Tests designed around actual implementation behavior (which has bugs) rather than expected behavior
 - Focus on execution path coverage rather than correctness verification
 - Comprehensive error condition testing including stack underflow scenarios
-- Integration tests with TACIT syntax using proper `\` comment syntax
+- Integration tests with Tacit syntax using proper `\` comment syntax
 - All tests pass and maintain zero regressions in existing functionality
 
 **Technical Challenges Overcome**:
-- Created comprehensive test suites for previously untested operations 
-- Fixed TACIT comment syntax (using `\` instead of `#`)  
+
+- Created comprehensive test suites for previously untested operations
+- Fixed Tacit comment syntax (using `\` instead of `#`)
 - Avoided stack overflow issues by limiting test data sizes
 - Maintained test isolation with proper `resetVM()` usage
 - Successfully achieved targeted branch coverage improvements across multiple ops files
@@ -1421,6 +1427,7 @@ This phase systematically improved the test coverage of the TACIT codebase to me
 During Phase 12 testing, a critical issue was discovered with reference formatting in the print system. When local variables (references) are printed directly, they show metadata instead of their actual values.
 
 **Issue Example:**
+
 ```tacit
 : f2 (1 2) var x x . ;           # Prints "( 5 elements )" - WRONG
 : f3 (1 2) var x x . unref ;     # Prints "(1 2)" - CORRECT
@@ -1435,13 +1442,15 @@ During Phase 12 testing, a critical issue was discovered with reference formatti
 **Files**: `src/core/format-utils.ts`, `src/core/refs.ts`
 
 **Tasks**:
-- ✅ Add reference type detection to `formatValue()` 
+
+- ✅ Add reference type detection to `formatValue()`
 - ✅ Import and use reference utilities (`isRef`, `readReference`)
 - ✅ Add proper dereferencing logic before formatting
 - ✅ Handle all reference types: `STACK_REF`, `RSTACK_REF`, `GLOBAL_REF`
 - ✅ Maintain existing formatting for non-reference values
 
 **Implementation Results**:
+
 ```typescript
 // Added to formatValue() before existing logic:
 if (isRef(value)) {
@@ -1451,6 +1460,7 @@ if (isRef(value)) {
 ```
 
 **Success Criteria**:
+
 - ✅ Reference detection works correctly (`isRef()` properly identifies references)
 - ✅ Dereferencing logic is implemented (calls `readReference()`)
 - ✅ Non-reference values continue to format unchanged (backward compatibility maintained)
@@ -1460,6 +1470,7 @@ if (isRef(value)) {
 **Status: COMPLETED** - Successfully implemented polymorphic reference handling
 
 **Implementation Results**:
+
 ```typescript
 // Added helper function similar to getListHeaderAndBase
 function getValueForFormatting(vm: VM, value: number): number {
@@ -1479,14 +1490,16 @@ export function formatValue(vm: VM, value: number): string {
 ```
 
 **Success Criteria**:
-- ✅ f2 now shows "( 2 elements )" instead of "( 5 elements )" 
+
+- ✅ f2 now shows "( 2 elements )" instead of "( 5 elements )"
 - ✅ Reference handling follows same pattern as `length` and `unref` operations
 - ✅ All existing tests continue to pass (no regressions)
 - ✅ Polymorphic design handles both direct values and references transparently
 
 **Technical Approach**:
+
 - Used the same `resolveReference()` pattern as `getListHeaderAndBase()` in list-ops.ts
-- Added `getValueForFormatting()` helper that handles references polymorphically  
+- Added `getValueForFormatting()` helper that handles references polymorphically
 - Updated `formatValue()` to use resolved value throughout
 - Maintained backward compatibility for non-reference values
 
@@ -1497,6 +1510,7 @@ export function formatValue(vm: VM, value: number): string {
 **File**: `src/test/core/reference-printing.test.ts`
 
 **Test Cases**:
+
 - ✅ Direct reference printing: `var x x .`
 - ✅ Mixed stack with references and values
 - ✅ All reference types: STACK_REF, RSTACK_REF handling
@@ -1506,6 +1520,7 @@ export function formatValue(vm: VM, value: number): string {
 - ✅ Integration tests: stack operations, arithmetic, conditionals
 
 **Success Criteria**:
+
 - ✅ All reference printing scenarios covered (14 comprehensive test cases)
 - ✅ Behavioral verification (not tag inspection) - tests focus on behavior not internal structure
 - ✅ No regressions in existing tests (full test suite passes)

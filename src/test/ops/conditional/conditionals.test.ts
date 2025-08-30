@@ -1,5 +1,5 @@
 /*
-Tests for conditional operations - TACIT's control flow operations
+Tests for conditional operations - Tacit's control flow operations
 IF/ELSE statements that execute code blocks based on stack conditions
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -49,11 +49,9 @@ describe('Conditional Operations', () => {
     });
   });
 
-  describe('list operations', () => {
-  });
+  describe('list operations', () => {});
 
-  describe('error cases', () => {
-  });
+  describe('error cases', () => {});
 
   describe('integration tests', () => {
     test('IF - should handle nested IF statements', () => {

@@ -1,4 +1,4 @@
-# TACIT Lists Specification
+# Tacit Lists Specification
 
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
@@ -314,12 +314,13 @@ while not done:
 
 **Stack effect:** `( a b -- list' )`
 **Semantics:** polymorphic concatenate.
+
 - simple + list → prepend
 - list + simple → append
 - list + list → flat merge
-**Mechanics:** for list+list, increase `sA` by `sB`, rebuild payload, and push new header.
-**Cost:** O(1) for simple/list cases; O(n) for list/list.
-**Ordering:** for list+list, list-first `( listA listB -- listC )`.
+  **Mechanics:** for list+list, increase `sA` by `sB`, rebuild payload, and push new header.
+  **Cost:** O(1) for simple/list cases; O(n) for list/list.
+  **Ordering:** for list+list, list-first `( listA listB -- listC )`.
 
 ---
 

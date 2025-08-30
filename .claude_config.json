@@ -11,7 +11,7 @@
     }
   },
   "projectContext": {
-    "name": "TACIT VM Development",
+    "name": "Tacit VM Development",
     "description": "Specification-driven development of a stack-based virtual machine",
     "primaryDocs": [
       "docs/specs/vm-architecture.md",

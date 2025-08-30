@@ -59,7 +59,7 @@ describe('Compound Compatibility Checking', () => {
     });
   });
 
-  describe('Real List Compatibility via TACIT Code', () => {
+  describe('Real List Compatibility via Tacit Code', () => {
     test('should detect compatibility for equivalent simple lists', () => {
       // Test with known working lists - use same construction
       resetVM();
@@ -78,7 +78,9 @@ describe('Compound Compatibility Checking', () => {
 
       // Skip if not both lists (indicates test setup issue)
       if (tag1 !== Tag.LIST || tag2 !== Tag.LIST) {
-        console.log(`Warning: Not both lists - Header1: tag=${Tag[tag1]}, Header2: tag=${Tag[tag2]}`);
+        console.log(
+          `Warning: Not both lists - Header1: tag=${Tag[tag1]}, Header2: tag=${Tag[tag2]}`,
+        );
         console.log('List1 result:', list1Result);
         console.log('List2 result:', list2Result);
         return; // Skip this test for now
@@ -120,10 +122,10 @@ describe('Compound Compatibility Checking', () => {
       // (1 2 3) = 3 payload + 1 header = 4 total slots = LIST:3
       // (1 (2) 3) = 1 (for '1') + 2 (for nested list (2)) + 1 (for '3') + 1 (outer header) = 5 total = LIST:4
       resetVM();
-      const simple3 = executeTacitCode('(1 2 3)');     // LIST:3
+      const simple3 = executeTacitCode('(1 2 3)'); // LIST:3
 
       resetVM();
-      const nested3 = executeTacitCode('(1 (2) 3)');   // LIST:4 (different total slots)
+      const nested3 = executeTacitCode('(1 (2) 3)'); // LIST:4 (different total slots)
 
       const simpleHeader = simple3[simple3.length - 1];
       const nestedHeader = nested3[nested3.length - 1];
@@ -143,10 +145,10 @@ describe('Compound Compatibility Checking', () => {
       // Find two different structures with same total slot count
       // This is tricky - let's test with identical slot counts
       resetVM();
-      const list1 = executeTacitCode('(1 2 3 4)');     // LIST:4 (4 payload + 1 header = 5 total)
+      const list1 = executeTacitCode('(1 2 3 4)'); // LIST:4 (4 payload + 1 header = 5 total)
 
       resetVM();
-      const list2 = executeTacitCode('(5 6 7 8)');     // LIST:4 (4 payload + 1 header = 5 total)
+      const list2 = executeTacitCode('(5 6 7 8)'); // LIST:4 (4 payload + 1 header = 5 total)
 
       const header1 = list1[list1.length - 1];
       const header2 = list2[list2.length - 1];

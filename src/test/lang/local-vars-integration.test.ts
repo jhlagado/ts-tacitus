@@ -1,5 +1,5 @@
 /**
- * Integration tests for local variables with existing TACIT features
+ * Integration tests for local variables with existing Tacit features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
@@ -21,7 +21,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         simple-calc
       `);
-      
+
       expect(result).toEqual([15]);
     });
   });
@@ -36,7 +36,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         test-conditional
       `);
-      
+
       // flag=1 (truthy), so should execute then branch: 42 + 10 = 52
       expect(result).toEqual([52]);
     });
@@ -49,7 +49,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         simple-conditional
       `);
-      
+
       // x=5: 5>3 is true, so 5+100=105
       expect(result).toEqual([105]);
     });
@@ -65,7 +65,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         stack-ops-test
       `);
-      
+
       // Stack: [10, 20] -> dup -> [10, 20, 20] -> rot -> [20, 20, 10] -> add add -> [50]
       expect(result).toEqual([50]);
     });
@@ -74,12 +74,12 @@ describe('Local Variables Integration with Existing Features', () => {
       const result = executeTacitCode(`
         : basic-stack
             1 var a
-            2 var b  
+            2 var b
             a b dup add
         ;
         basic-stack
       `);
-      
+
       // a=1, b=2, dup gives [1,2,2], add gives [1,4] - only one add, so result is [1,4]
       expect(result).toEqual([1, 4]);
     });
@@ -96,7 +96,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         simple-math
       `);
-      
+
       // 2 * 3 + 5 = 11
       expect(result).toEqual([11]);
     });
@@ -110,7 +110,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         math-functions
       `);
-      
+
       // abs(-25) = 25, sqrt(25) = 5
       expect(result).toEqual([5]);
     });
@@ -126,7 +126,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         caller
       `);
-      
+
       // input=5, helper adds 100, result=105
       expect(result).toEqual([105]);
     });
@@ -140,7 +140,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         processor
       `);
-      
+
       // base=10, doubled=20
       expect(result).toEqual([20]);
     });
@@ -156,7 +156,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         test-mutation
       `);
-      
+
       // x initialized to 42, then mutated to 99 using -> operator
       expect(result).toEqual([99]);
     });
@@ -172,7 +172,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         multi-mutation
       `);
-      
+
       // a=10→100, b=20→200, sum=300
       expect(result).toEqual([300]);
     });
@@ -187,7 +187,7 @@ describe('Local Variables Integration with Existing Features', () => {
         ;
         sequence-test
       `);
-      
+
       // counter=5, then 5+10=15, then 15*2=30
       expect(result).toEqual([30]);
     });

@@ -1,16 +1,18 @@
-# TACIT VM Architecture Specification
+# Tacit VM Architecture Specification
 
 ## Overview
 
-The TACIT VM is a stack-based virtual machine with segmented memory, NaN-boxed values, and unified addressing. It executes bytecode while maintaining strict separation between data and code segments.
+The Tacit VM is a stack-based virtual machine with segmented memory, NaN-boxed values, and unified addressing. It executes bytecode while maintaining strict separation between data and code segments.
 
 Execution pipeline (high level):
+
 - Tokenize & Parse → Compile to bytecode
 - Execute opcode loop with unified dispatch (builtins + bytecode)
 
 ## Memory Layout
 
 Segments (implementation‑defined sizes):
+
 - STACK — Main data stack
 - RSTACK — Return stack (call frames, locals)
 - CODE — Bytecode storage
@@ -19,20 +21,23 @@ Segments (implementation‑defined sizes):
 ## Stack Architecture
 
 **Main Stack (STACK segment)**:
+
 - Growth: Low to high addresses
 - Elements: 32-bit tagged values
 - Operations: push, pop, peek, dup, swap, drop
 - Stack pointer: SP (byte offset)
 
 **Return Stack (RSTACK segment)**:
+
 - Call frame management
-- Local variable storage  
+- Local variable storage
 - Return address tracking
 - Base pointer: BP
 
 Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 values encoding NaN‑boxed tags or raw numbers.
 
 VM registers:
+
 - SP — data stack pointer (bytes)
 - RP — return stack pointer (bytes)
 - BP — base pointer for current frame (bytes)
@@ -42,12 +47,14 @@ VM registers:
 
 **Instruction Pointer**: IP (bytecode address)
 **Execution cycle**:
+
 1. Fetch instruction at IP
 2. Decode opcode and operands
 3. Execute operation
 4. Update IP and continue
 
 Opcode encoding & dispatch:
+
 - Builtins (0–127): single‑byte opcodes.
 - User words (bytecode addresses ≥128): two‑byte encoding with MSB set (15‑bit address), executed via direct jump.
 - Dispatch is unified: builtins resolved through the symbol table; user words execute by jumping to bytecode addresses. See `Compiler.compileOpcode` and VM `nextOpcode`.
@@ -85,6 +92,7 @@ Opcode encoding & dispatch:
 - GLOBAL_REF — reserved for future; unimplemented (errors).
 
 Reference helpers (see `core/refs.ts`):
+
 - `resolveReference(vm, ref)` → { segment, address }
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 
@@ -113,7 +121,7 @@ Reference helpers (see `core/refs.ts`):
 - Invalid address protection
 - Type mismatch prevention
 - Graceful error recovery
-Errors use structured types (e.g., StackUnderflowError, ReturnStackOverflowError, InvalidOpcodeError) and include stack state snapshots to aid diagnostics. Stack depth checks (e.g., `ensureStackSize`) run before destructive pops.
+  Errors use structured types (e.g., StackUnderflowError, ReturnStackOverflowError, InvalidOpcodeError) and include stack state snapshots to aid diagnostics. Stack depth checks (e.g., `ensureStackSize`) run before destructive pops.
 
 ## Implementation Notes
 
