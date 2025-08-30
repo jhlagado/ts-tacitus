@@ -15,8 +15,11 @@ import { NIL } from '../core/tagged';
 import { evalOp } from './core-ops';
 import { getListLength, isList } from '../core/list';
 import { SEG_STACK, CELL_SIZE } from '../core/constants';
-import { isRef, resolveReference, createStackRef } from '../core/refs';
-import { Tag, fromTaggedValue } from '../core/tagged';
+import { isRef, resolveReference } from '../core/refs';
+import { Tag, getTag, isNIL } from '../core/tagged';
+import { elemOp, findOp } from './list-ops';
+import { fetchOp } from './list-ops';
+import { swapOp } from './stack-ops';
 
 /**
  * Get combinator: path-based value access.
@@ -89,104 +92,101 @@ export const getOp: Verb = (vm: VM) => {
 };
 
 /**
- * Select combinator: path-based address access.
- * Stack: ( target path -- target STACK_REF|RSTACK_REF|NIL )
- * Returns an address that can be used with fetch/store, not the value itself.
- * Traverses nested structures based on key type in the path list.
+ * Select operation: path-based address access (RPN).
+ * Stack: ( target path -- target STACK_REF|NIL )
+ * 
+ * Path can be:
+ * - Simple value (number/string) → treated as single-element path
+ * - List of values → multi-element path for drilling down
+ * 
+ * For each path element:
+ * - Number → use elem logic (list element access)  
+ * - String/Symbol → use find logic (maplist key access)
+ * 
+ * Returns address that can be used with fetch/store.
  */
 export const selectOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'select');
-  const pathList = vm.pop();
+  const pathArg = vm.pop();
   let currentTarget = vm.peek(); // Keep original target on stack
 
-  if (!isList(pathList)) {
-    vm.push(NIL); // Path must be a list
-    return;
+  // Convert simple path to single-element list
+  let path: number[];
+  if (isList(pathArg)) {
+    const pathLength = getListLength(pathArg);
+    if (pathLength === 0) {
+      vm.push(NIL);
+      return;
+    }
+    // Extract path elements from stack
+    path = [];
+    for (let i = 0; i < pathLength; i++) {
+      path.push(vm.memory.readFloat32(SEG_STACK, vm.SP - (pathLength - i) * CELL_SIZE));
+    }
+    // Pop path payload from stack
+    vm.SP -= pathLength * CELL_SIZE;
+  } else {
+    // Simple value becomes single-element path
+    path = [pathArg];
   }
 
-  const pathSlotCount = getListLength(pathList);
-  if (pathSlotCount === 0) {
-    vm.push(NIL); // Empty path is not a valid selection
-    return;
-  }
-
-  // Extract path elements from the stack
-  const path = [];
-  const pathStartAddr = vm.SP - pathSlotCount * CELL_SIZE;
-  for (let i = 0; i < pathSlotCount; i++) {
-    path.push(vm.memory.readFloat32(SEG_STACK, pathStartAddr + i * CELL_SIZE));
-  }
-  vm.SP -= pathSlotCount * CELL_SIZE; // Pop path payload
-
+  // Traverse path using elem/find logic
   for (const key of path) {
-    if (currentTarget === NIL) break; // Stop traversal if any step fails
-
-    let header, baseAddr, segment;
-
-    // 1. Resolve the current target to get its header and memory location
-    if (isRef(currentTarget)) {
-      const resolved = resolveReference(vm, currentTarget);
-      header = vm.memory.readFloat32(resolved.segment, resolved.address);
-      baseAddr = resolved.address;
-      segment = resolved.segment;
-    } else if (isList(currentTarget)) {
-      // Handle transient list on the stack by creating a temporary reference to it
-      const listSize = getListLength(currentTarget) + 1;
-      // The target list is now below the original path list that was popped.
-      // Its header is at SP - listSize * 4
-      const headerAddr = vm.SP - listSize * CELL_SIZE;
-      header = currentTarget;
-      baseAddr = headerAddr;
-      segment = SEG_STACK;
-    } else {
-      currentTarget = NIL;
-      continue; // Not a traversable type
+    if (isNIL(currentTarget)) {
+      break; // Stop if any step failed
     }
 
-    if (!isList(header)) {
-      currentTarget = NIL;
-      continue;
-    }
-
-    const slotCount = getListLength(header);
-    const { tag: keyTag, value: keyValue } = fromTaggedValue(key);
-
-    // 2. Dispatch traversal logic based on the key's type
+    const keyTag = getTag(key);
+    
     if (keyTag === Tag.NUMBER) {
-      // --- Elem-like traversal for numeric indices ---
-      let elemAddr = -1;
-      let currentAddr = baseAddr - CELL_SIZE;
-      let logicalIndex = 0;
-      let slotsRemaining = slotCount;
-      while (slotsRemaining > 0) {
-        if (logicalIndex === keyValue) {
-          elemAddr = currentAddr;
-          break;
-        }
-        const currentVal = vm.memory.readFloat32(segment, currentAddr);
-        const step = isList(currentVal) ? getListLength(currentVal) + 1 : 1;
-        currentAddr -= step * CELL_SIZE;
-        slotsRemaining -= step;
-        logicalIndex++;
-      }
-      currentTarget = elemAddr !== -1 ? createStackRef(elemAddr / CELL_SIZE) : NIL;
-
-    } else {
-      // --- Find-like traversal for string/symbol keys ---
-      if (slotCount % 2 !== 0) {
+      // Use elem logic for numeric indices
+      vm.push(currentTarget);
+      vm.push(key);
+      elemOp(vm);
+      const elemResult = vm.pop();
+      currentTarget = vm.pop(); // elem leaves target on stack
+      
+      if (isNIL(elemResult)) {
         currentTarget = NIL;
-        continue; // Not a valid maplist
+        break;
       }
-      let foundAddr = -1;
-      for (let i = 0; i < slotCount; i += 2) {
-        const currentKeyAddr = baseAddr - (i + 1) * CELL_SIZE;
-        const currentKey = vm.memory.readFloat32(segment, currentKeyAddr);
-        if (currentKey === key) {
-          foundAddr = baseAddr - (i + 2) * CELL_SIZE;
-          break;
-        }
+      
+      // For intermediate steps, fetch the value to traverse deeper
+      if (path.indexOf(key) < path.length - 1) {
+        vm.push(elemResult);
+        vm.push(currentTarget); // restore target
+        swapOp(vm); // put ref on top
+        fetchOp(vm); // get value at that address
+        currentTarget = vm.pop();
+      } else {
+        // Final step - return the address
+        currentTarget = elemResult;
       }
-      currentTarget = foundAddr !== -1 ? createStackRef(foundAddr / CELL_SIZE) : NIL;
+      
+    } else {
+      // Use find logic for string/symbol keys
+      vm.push(currentTarget);
+      vm.push(key);
+      findOp(vm);
+      const findResult = vm.pop();
+      currentTarget = vm.pop(); // find leaves target on stack
+      
+      if (isNIL(findResult)) {
+        currentTarget = NIL;
+        break;
+      }
+      
+      // For intermediate steps, fetch the value to traverse deeper
+      if (path.indexOf(key) < path.length - 1) {
+        vm.push(findResult);
+        vm.push(currentTarget); // restore target
+        swapOp(vm); // put ref on top
+        fetchOp(vm); // get value at that address
+        currentTarget = vm.pop();
+      } else {
+        // Final step - return the address
+        currentTarget = findResult;
+      }
     }
   }
 
