@@ -5,7 +5,7 @@
 
 import { VM } from '../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, getTag, NIL } from '../core/tagged';
-import { isRef, createStackRef, resolveReference } from '../core/refs';
+import { isRef, createStackRef, resolveReference, readReference } from '../core/refs';
 import { evalOp } from './core-ops';
 import { SEG_STACK } from '../core/constants';
 import { Verb } from '../core/types';
@@ -513,7 +513,15 @@ export function fetchOp(vm: VM): void {
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
-  const value = vm.peek();
+  let value = vm.peek();
+  
+  // Resolve source if it's a reference (per refs.md spec)
+  if (isRef(value)) {
+    value = readReference(vm, value);
+    vm.pop(); // Remove original ref from stack
+    vm.push(value); // Push resolved value
+  }
+  
   if (!isRef(addressValue)) {
     throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }

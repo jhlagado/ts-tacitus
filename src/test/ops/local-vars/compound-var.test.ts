@@ -103,7 +103,7 @@ describe('Compound Variables - Single Element Lists', () => {
     vm.debug = false;
   });
 
-  test('should store single-element list in local variable and return reference', () => {
+  test('should store single-element list in local variable and return value', () => {
     const result = executeTacitCode(`
       : test-single-var
         (1) var singleList
@@ -112,17 +112,18 @@ describe('Compound Variables - Single Element Lists', () => {
       test-single-var
     `);
 
-    expect(result).toHaveLength(1);
-    // Test behavioral difference: reference should work with unref
-    const materializedResult = executeTacitCode(`
-      : test-single-materialized
+    expect(result).toHaveLength(2); // Now returns value: [1, LIST:1]
+    expect(result[0]).toBe(1); // First element should be 1
+    
+    // Test explicit reference access with &x sigil
+    const refResult = executeTacitCode(`
+      : test-single-ref
         (1) var singleList
-        singleList unref
+        &singleList
       ;
-      test-single-materialized
+      test-single-ref
     `);
-    expect(materializedResult).toHaveLength(2); // Should be [1, LIST:1]
-    expect(materializedResult[0]).toBe(1); // First element should be 1
+    expect(refResult).toHaveLength(1); // Should be RSTACK_REF
   });
 
   test('should work with length operation on single-element list', () => {

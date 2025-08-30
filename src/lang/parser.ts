@@ -21,7 +21,7 @@ import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar } from '../core/utils';
-import { fromTaggedValue, Tag, createLocalRef } from '../core/tagged';
+import { fromTaggedValue, Tag } from '../core/tagged';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
@@ -160,6 +160,9 @@ export function processToken(token: Token, state: ParserState): void {
       break;
     case TokenType.SYMBOL:
       processAtSymbol(token.value as string);
+      break;
+    case TokenType.REF_SIGIL:
+      processRefSigil(token.value as string, state);
       break;
     case TokenType.WORD_QUOTE: {
       const wordName = token.value as string;
@@ -328,9 +331,11 @@ export function processWordToken(value: string, state: ParserState): void {
       const { tag, value: tagValue } = fromTaggedValue(taggedValue);
 
       if (tag === Tag.LOCAL) {
+        // Target: x → VarRef + Fetch + Resolve (value-by-default)
         vm.compiler.compileOpcode(Op.VarRef);
         vm.compiler.compile16(tagValue);
         vm.compiler.compileOpcode(Op.Fetch);
+        vm.compiler.compileOpcode(Op.Unref);
         return;
       }
     }
@@ -364,6 +369,40 @@ export function processAtSymbol(symbolName: string): void {
   vm.compiler.compile16(stringAddress);
 
   vm.compiler.compileOpcode(Op.PushSymbolRef);
+}
+
+/**
+ * Process &variable tokens for explicit reference access.
+ *
+ * This function handles &variable syntax by compiling VarRef + Fetch
+ * to create an RSTACK_REF to the local variable slot.
+ *
+ * @param {string} varName - The variable name after & (without the & prefix)
+ * @param {ParserState} state - The current parser state
+ * @throws {Error} If variable is undefined or not a local variable
+ */
+export function processRefSigil(varName: string, state: ParserState): void {
+  if (!state.currentDefinition) {
+    throw new SyntaxError(
+      'Reference sigil (&) only allowed inside function definitions',
+      vm.getStackData(),
+    );
+  }
+
+  const taggedValue = vm.symbolTable.findTaggedValue(varName);
+  if (taggedValue === undefined) {
+    throw new UndefinedWordError(varName, vm.getStackData());
+  }
+
+  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  if (tag !== Tag.LOCAL) {
+    throw new Error(`${varName} is not a local variable`);
+  }
+
+  // Compile VarRef + Fetch (existing behavior for &x)
+  vm.compiler.compileOpcode(Op.VarRef);
+  vm.compiler.compile16(slotNumber);
+  vm.compiler.compileOpcode(Op.Fetch);
 }
 
 /**
