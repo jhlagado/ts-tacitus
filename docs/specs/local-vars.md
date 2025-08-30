@@ -162,37 +162,38 @@ EXIT
 
 ## 7. Variable Access and Addressing
 
-### Address Resolution
+### Access Forms (Target Model)
 
-Variable symbols resolve to slot addresses at compile time:
+Variable access has two forms:
+
+- **Value access**: `x` — pushes the actual value (simple or compound) onto the data stack
+- **Reference access**: `&x` — pushes an RSTACK_REF to the variable slot for optimization
+
+### Current vs Target Behavior
+
+**Current (temporary)**:
+- `x` returns reference for compound variables (requires `resolve` to get value)
+- `&x` syntax not yet implemented
+
+**Target**:
+- `x` always returns the materialized value 
+- `&x` returns RSTACK_REF for performance optimization
+
+### Compilation Sequences
+
+**Target compilation**:
+```
+x        → VarRef + Fetch + Resolve   (value-by-default)
+&x       → VarRef + Fetch             (explicit reference)
+x -> y   → VarRef + Store             (assignment, unchanged)
+```
+
+### Stack Effects (Target):
 
 ```
-variable_name → LOCAL_VAR_ADDR slot_number → BP + slot_number mul 4
-```
-
-### Memory Operations
-
-Variable access requires explicit memory operations:
-
-- **Reading a variable**: `variable_name fetch`
-- **Writing a variable**: `value variable_name store`
-
-### Stack Effects:
-
-```
-myvar           ( — addr )        \ Push variable slot address
-myvar fetch     ( — value )       \ Read variable value
-value myvar store ( — )           \ Write variable value
-```
-
-### Compound Value Access:
-
-For compound values, the slot contains a `Tag.REF` pointing to the actual data:
-
-```
-mylist           ( — slot_addr )   \ Address of slot containing reference
-mylist fetch     ( — ref_addr )    \ Address of actual compound data
-mylist fetch fetch ( — first_elem ) \ First element of compound data
+x           ( — value )       \ Direct value (simple or compound)
+&x          ( — RSTACK_REF )  \ Reference to slot for optimization
+value -> x  ( — )             \ Assignment (resolves source refs)
 ```
 
 ### Tagging & Resolution Notes

@@ -18,6 +18,7 @@ export enum TokenType {
   BLOCK_END,
   WORD_QUOTE,
   SYMBOL,
+  REF_SIGIL,
   EOF,
 }
 
@@ -199,6 +200,32 @@ export class Tokenizer {
       }
 
       return { type: TokenType.SYMBOL, value: symbolName, position: startPos };
+    }
+
+    if (char === '&') {
+      this.position++;
+      this.column++;
+      let varName = '';
+
+      while (
+        this.position < this.input.length &&
+        !isWhitespace(this.input[this.position]) &&
+        !isSpecialChar(this.input[this.position])
+      ) {
+        varName += this.input[this.position];
+        this.position++;
+        this.column++;
+      }
+
+      if (varName === '') {
+        throw new TokenError(
+          'Invalid reference sigil: & must be followed by a variable name',
+          this.line,
+          this.column,
+        );
+      }
+
+      return { type: TokenType.REF_SIGIL, value: varName, position: startPos };
     }
 
     if (isSpecialChar(char)) {

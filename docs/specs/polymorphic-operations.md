@@ -51,7 +51,7 @@ These operations expect LIST values and may need reference support:
 These reference operations don't exist but are needed:
 
 - `ref` - Convert list on data stack to STACK_REF
-- `unref` - Materialize any reference to data stack
+- `resolve` - Materialize any reference to data stack
 
 ## Proposed Polymorphic Semantics
 
@@ -108,9 +108,9 @@ RSTACK_REF→[] uncons          → RSTACK_REF→[] NIL
 **Use Case**: Convert any reference back to direct value
 
 ```tacit
-RSTACK_REF→42     unref → 42
-STACK_REF→[1,2,3] unref → ( 1 2 3 )
-RSTACK_REF→[x,y]   unref → ( x y )
+RSTACK_REF→42     resolve → 42
+STACK_REF→[1,2,3] resolve → ( 1 2 3 )
+RSTACK_REF→[x,y]   resolve → ( x y )
 ```
 
 ## Implementation Guidelines
@@ -137,14 +137,14 @@ RSTACK_REF→[x,y]   unref → ( x y )
 ### For Missing Operations
 
 - Implement `ref` operation to create STACK_REFs
-- Implement `unref` operation with polymorphic reference resolution
+- Implement `resolve` operation with polymorphic reference resolution
 - Add to opcode table and register in builtins
 
 ## Testing Requirements
 
 - Test all polymorphic operations with each reference type
 - Verify reference transparency in stack operations
-- Test `ref`/`unref` round-trip behavior
+- Test `ref`/`resolve` round-trip behavior
 - Test mixed reference types in complex expressions
 
 ## Future Considerations
