@@ -33,4 +33,24 @@ describe('selectOp - Path-based address access', () => {
     // Should return NIL for odd-length list (not a valid maplist)
     expect(result[result.length - 1]).toBe(NIL);
   });
+
+  test('should handle two-element numeric path', () => {
+    // Debug elem operations on the outer list
+    const elem0 = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) 0 elem fetch');
+    console.log('elem 0 result:', elem0.slice(-3));
+    
+    const elem1 = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) 1 elem fetch');
+    console.log('elem 1 result:', elem1.slice(-3));
+    
+    // Full path test
+    const result = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) ( 1 0 ) select fetch');
+    expect(result[result.length - 1]).toBe(4);
+  });
+
+  test('should handle mixed path with number then string', () => {
+    // Structure: ( ("name" "John" "age" 25) ("name" "Jane" "age" 30) )
+    // Path ( 0 "name" ) should get first maplist, then "name" key = "John"
+    const result = executeTacitCode('( ( "name" "John" "age" 25 ) ( "name" "Jane" "age" 30 ) ) ( 0 "name" ) select fetch');
+    expect(result[result.length - 1]).toBe("John");
+  });
 });

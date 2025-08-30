@@ -19,7 +19,6 @@ import { isRef, resolveReference } from '../core/refs';
 import { Tag, getTag, isNIL } from '../core/tagged';
 import { elemOp, findOp } from './list-ops';
 import { fetchOp } from './list-ops';
-import { swapOp } from './stack-ops';
 
 /**
  * Get combinator: path-based value access.
@@ -92,105 +91,71 @@ export const getOp: Verb = (vm: VM) => {
 };
 
 /**
- * Select operation: path-based address access (RPN).
- * Stack: ( target path -- target STACK_REF|NIL )
- * 
- * Path can be:
- * - Simple value (number/string) → treated as single-element path
- * - List of values → multi-element path for drilling down
- * 
- * For each path element:
- * - Number → use elem logic (list element access)  
- * - String/Symbol → use find logic (maplist key access)
- * 
- * Returns address that can be used with fetch/store.
+ * Select operation: path-based address access.
+ * Stack: ( target path -- target address|NIL )
  */
 export const selectOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'select');
   const pathArg = vm.pop();
-  let currentTarget = vm.peek(); // Keep original target on stack
-
-  // Convert simple path to single-element list
-  let path: number[];
+  const originalTarget = vm.peek();
+  
+  // Handle simple values as single-element paths
+  let pathElements: number[];
   if (isList(pathArg)) {
     const pathLength = getListLength(pathArg);
     if (pathLength === 0) {
       vm.push(NIL);
       return;
     }
-    // Extract path elements from stack
-    path = [];
+    pathElements = [];
     for (let i = 0; i < pathLength; i++) {
-      path.push(vm.memory.readFloat32(SEG_STACK, vm.SP - (pathLength - i) * CELL_SIZE));
+      pathElements.push(vm.memory.readFloat32(SEG_STACK, vm.SP - (pathLength - i) * CELL_SIZE));
     }
-    // Pop path payload from stack
     vm.SP -= pathLength * CELL_SIZE;
+    pathElements.reverse(); // Lists are stored in reverse order on stack
   } else {
-    // Simple value becomes single-element path
-    path = [pathArg];
+    pathElements = [pathArg];
   }
 
-  // Traverse path using elem/find logic
-  for (const key of path) {
-    if (isNIL(currentTarget)) {
-      break; // Stop if any step failed
-    }
-
-    const keyTag = getTag(key);
+  // Start with target already on stack
+  for (let i = 0; i < pathElements.length; i++) {
+    const key = pathElements[i];
+    const isLastElement = i === pathElements.length - 1;
     
-    if (keyTag === Tag.NUMBER) {
-      // Use elem logic for numeric indices
-      vm.push(currentTarget);
-      vm.push(key);
+    // Stack: ( target )
+    vm.push(key);
+    // Stack: ( target key )
+    
+    if (getTag(key) === Tag.NUMBER) {
       elemOp(vm);
-      const elemResult = vm.pop();
-      currentTarget = vm.pop(); // elem leaves target on stack
-      
-      if (isNIL(elemResult)) {
-        currentTarget = NIL;
-        break;
-      }
-      
-      // For intermediate steps, fetch the value to traverse deeper
-      if (path.indexOf(key) < path.length - 1) {
-        vm.push(elemResult);
-        vm.push(currentTarget); // restore target
-        swapOp(vm); // put ref on top
-        fetchOp(vm); // get value at that address
-        currentTarget = vm.pop();
-      } else {
-        // Final step - return the address
-        currentTarget = elemResult;
-      }
-      
     } else {
-      // Use find logic for string/symbol keys
-      vm.push(currentTarget);
-      vm.push(key);
       findOp(vm);
-      const findResult = vm.pop();
-      currentTarget = vm.pop(); // find leaves target on stack
-      
-      if (isNIL(findResult)) {
-        currentTarget = NIL;
-        break;
-      }
-      
-      // For intermediate steps, fetch the value to traverse deeper
-      if (path.indexOf(key) < path.length - 1) {
-        vm.push(findResult);
-        vm.push(currentTarget); // restore target
-        swapOp(vm); // put ref on top
-        fetchOp(vm); // get value at that address
-        currentTarget = vm.pop();
-      } else {
-        // Final step - return the address
-        currentTarget = findResult;
-      }
     }
+    
+    // Stack: ( target address )
+    const address = vm.pop();
+    
+    if (isNIL(address)) {
+      vm.pop(); // remove target
+      vm.push(originalTarget);
+      vm.push(NIL);
+      return;
+    }
+    
+    if (isLastElement) {
+      // Keep original target, return final address
+      vm.pop(); // remove current target
+      vm.push(originalTarget);
+      vm.push(address);
+      return;
+    }
+    
+    // Not last element - fetch value for next iteration
+    vm.pop(); // remove target from stack
+    vm.push(address);
+    fetchOp(vm);
+    // Stack: ( nextTarget )
   }
-
-  vm.push(currentTarget); // Push final reference or NIL
 };
 
 /**

@@ -778,7 +778,8 @@ export function findOp(vm: VM): void {
 
     if (defaultValueAddr !== -1) {
       vm.push(target);
-      vm.push(defaultValueAddr);
+      const cellIndex = defaultValueAddr / 4;
+      vm.push(createStackRef(cellIndex));
       return;
     }
 
@@ -833,7 +834,8 @@ export function findOp(vm: VM): void {
 
     if (defaultValueAddr !== -1) {
       vm.push(target);
-      vm.push(defaultValueAddr);
+      const cellIndex = defaultValueAddr / 4;
+      vm.push(createStackRef(cellIndex));
       return;
     }
 
