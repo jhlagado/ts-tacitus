@@ -50,12 +50,12 @@ Implement complete reference system per refs.md specification, bringing entire c
 1. **Add `&x` sigil parsing**:
    - Modify tokenizer to recognize `&` prefix
    - Update `processValue()` to handle `&variable` syntax
-   - Compile `&x` as `VarRef` only (no Fetch)
+   - Compile `&x` as `VarRef + Fetch` (existing behavior)
 
 2. **Fix bare local access**:
    - Modify local variable compilation in `processValue()`
-   - Change `x` from `VarRef + Fetch` to `VarRef + Fetch + AutoResolve`
-   - Implement `autoResolveOp` that materializes refs but passes through values
+   - Change `x` from `VarRef + Fetch` to `VarRef + Fetch + Resolve`
+   - (No new opcode needed - just use existing `resolveOp`)
 
 3. **Update assignment operator**:
    - Verify `->` operator handles ref sources correctly
@@ -105,16 +105,15 @@ x -> y   → VarRef + Store        (works correctly)
 
 #### Target (Spec Compliant)
 ```
-x        → VarRef + Fetch + AutoResolve   (always returns value)
-&x       → VarRef                         (returns RSTACK_REF)
-x -> y   → VarRef + Store                 (unchanged - already correct)
+x        → VarRef + Fetch + Resolve   (always returns value)
+&x       → VarRef + Fetch             (returns ref - existing behavior)
+x -> y   → VarRef + Store             (unchanged - already correct)
 ```
 
 ### 5. Implementation Dependencies
 
 #### New Opcodes Needed
-- `AutoResolve` - materializes refs, passes through values
-- Potentially `RefGuard` - validates ref types in strict mode
+- None - use existing `Resolve` opcode
 
 #### Parser Enhancements
 - Tokenizer support for `&` prefix
