@@ -13,6 +13,7 @@ import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
 import { dropOp, findElement, swapOp } from './stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
+import { areValuesEqual } from '../core/utils';
 
 const CELL_SIZE = 4;
 
@@ -760,17 +761,7 @@ export function findOp(vm: VM): void {
       const valueAddr = vm.SP - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
 
-      // Proper tagged value comparison
-      let keysMatch = false;
-      if (!isNaN(currentKey) && !isNaN(key)) {
-        keysMatch = currentKey === key;
-      } else {
-        const currentDecoded = fromTaggedValue(currentKey);
-        const keyDecoded = fromTaggedValue(key);
-        keysMatch = currentDecoded.tag === keyDecoded.tag && currentDecoded.value === keyDecoded.value;
-      }
-      
-      if (keysMatch) {
+      if (areValuesEqual(currentKey, key)) {
         vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));
@@ -826,17 +817,7 @@ export function findOp(vm: VM): void {
       const valueAddr = baseAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
-      // Proper tagged value comparison
-      let keysMatch = false;
-      if (!isNaN(currentKey) && !isNaN(key)) {
-        keysMatch = currentKey === key;
-      } else {
-        const currentDecoded = fromTaggedValue(currentKey);
-        const keyDecoded = fromTaggedValue(key);
-        keysMatch = currentDecoded.tag === keyDecoded.tag && currentDecoded.value === keyDecoded.value;
-      }
-      
-      if (keysMatch) {
+      if (areValuesEqual(currentKey, key)) {
         vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));
