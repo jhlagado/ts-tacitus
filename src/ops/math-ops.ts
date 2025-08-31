@@ -5,6 +5,7 @@
 
 import { VM } from '../core/vm';
 import { Verb } from '../core/types';
+import { fromTaggedValue } from '../core/tagged';
 export const addOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'add');
   const b = vm.pop();
@@ -57,7 +58,18 @@ export const equalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '=');
   const b = vm.pop();
   const a = vm.pop();
-  vm.push(a === b ? 1 : 0);
+  
+  // Proper tagged value comparison
+  let isEqual = false;
+  if (!isNaN(a) && !isNaN(b)) {
+    isEqual = a === b;
+  } else {
+    const aDecoded = fromTaggedValue(a);
+    const bDecoded = fromTaggedValue(b);
+    isEqual = aDecoded.tag === bDecoded.tag && aDecoded.value === bDecoded.value;
+  }
+  
+  vm.push(isEqual ? 1 : 0);
 };
 
 export const lessThanOp: Verb = (vm: VM) => {

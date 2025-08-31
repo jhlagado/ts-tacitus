@@ -760,7 +760,17 @@ export function findOp(vm: VM): void {
       const valueAddr = vm.SP - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
 
-      if (currentKey === key) {
+      // Proper tagged value comparison
+      let keysMatch = false;
+      if (!isNaN(currentKey) && !isNaN(key)) {
+        keysMatch = currentKey === key;
+      } else {
+        const currentDecoded = fromTaggedValue(currentKey);
+        const keyDecoded = fromTaggedValue(key);
+        keysMatch = currentDecoded.tag === keyDecoded.tag && currentDecoded.value === keyDecoded.value;
+      }
+      
+      if (keysMatch) {
         vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));
@@ -816,7 +826,17 @@ export function findOp(vm: VM): void {
       const valueAddr = baseAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
       const currentKey = vm.memory.readFloat32(segment, keyAddr);
 
-      if (currentKey === key) {
+      // Proper tagged value comparison
+      let keysMatch = false;
+      if (!isNaN(currentKey) && !isNaN(key)) {
+        keysMatch = currentKey === key;
+      } else {
+        const currentDecoded = fromTaggedValue(currentKey);
+        const keyDecoded = fromTaggedValue(key);
+        keysMatch = currentDecoded.tag === keyDecoded.tag && currentDecoded.value === keyDecoded.value;
+      }
+      
+      if (keysMatch) {
         vm.push(target);
         const cellIndex = valueAddr / 4;
         vm.push(createStackRef(cellIndex));

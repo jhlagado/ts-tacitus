@@ -47,6 +47,28 @@ export function executeTacitCode(code: string): number[] {
 }
 
 /**
+ * Get formatted stack for debugging (shows actual values instead of null)
+ */
+export function getFormattedStack(): string[] {
+  const stack = vm.getStackData();
+  return stack.map(value => {
+    if (isNaN(value)) {
+      const { tag, value: tagValue } = fromTaggedValue(value);
+      switch (tag) {
+        case Tag.STRING:
+          const str = vm.digest.get(tagValue);
+          return `STRING:${tagValue}(${str})`;
+        case Tag.LIST:
+          return `LIST:${tagValue}`;
+        default:
+          return `${Tag[tag]}:${tagValue}`;
+      }
+    }
+    return value.toString();
+  });
+}
+
+/**
  * Execute Tacit code and verify expected stack state with detailed error messages
  */
 export function testTacitCode(code: string, expectedStack: number[]): void {
