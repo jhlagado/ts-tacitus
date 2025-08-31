@@ -202,7 +202,7 @@ export function compileNumberLiteral(value: number): void {
  */
 export function compileStringLiteral(value: string): void {
   vm.compiler.compileOpcode(Op.LiteralString);
-  const address = vm.digest.add(value);
+  const address = vm.digest.intern(value);
   vm.compiler.compile16(address);
 }
 
