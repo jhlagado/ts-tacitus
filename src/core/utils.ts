@@ -3,6 +3,22 @@
  * Utility functions for the Tacit VM implementation.
  */
 
+import { fromTaggedValue } from './tagged';
+
+/**
+ * Compares two tagged values for equality.
+ * Handles both regular numbers and NaN-boxed tagged values.
+ */
+export function areValuesEqual(a: number, b: number): boolean {
+  if (!isNaN(a) && !isNaN(b)) {
+    return a === b;
+  }
+  
+  const aDecoded = fromTaggedValue(a);
+  const bDecoded = fromTaggedValue(b);
+  return aDecoded.tag === bDecoded.tag && aDecoded.value === bDecoded.value;
+}
+
 /**
  * Checks if character is a digit.
  * @param char The character to check
