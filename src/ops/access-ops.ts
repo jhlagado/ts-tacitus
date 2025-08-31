@@ -14,11 +14,9 @@ import { Verb } from '../core/types';
 import { NIL } from '../core/tagged';
 import { evalOp } from './core-ops';
 import { getListLength, isList } from '../core/list';
-import { SEG_STACK, CELL_SIZE } from '../core/constants';
+import { SEG_STACK } from '../core/constants';
 import { isRef, resolveReference } from '../core/refs';
-import { Tag, getTag, isNIL } from '../core/tagged';
-import { elemOp, findOp } from './list-ops';
-import { fetchOp } from './list-ops';
+export { selectOp } from './select-ops';
 
 /**
  * Get combinator: path-based value access.
@@ -90,73 +88,6 @@ export const getOp: Verb = (vm: VM) => {
   }
 };
 
-/**
- * Select operation: path-based address access.
- * Stack: ( target path -- target address|NIL )
- */
-export const selectOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'select');
-  const pathArg = vm.pop();
-  const originalTarget = vm.peek();
-  
-  // Handle simple values as single-element paths
-  let pathElements: number[];
-  if (isList(pathArg)) {
-    const pathLength = getListLength(pathArg);
-    if (pathLength === 0) {
-      vm.push(NIL);
-      return;
-    }
-    pathElements = [];
-    for (let i = 0; i < pathLength; i++) {
-      pathElements.push(vm.memory.readFloat32(SEG_STACK, vm.SP - (pathLength - i) * CELL_SIZE));
-    }
-    vm.SP -= pathLength * CELL_SIZE;
-    pathElements.reverse(); // Lists are stored in reverse order on stack
-  } else {
-    pathElements = [pathArg];
-  }
-
-  // Start with target already on stack
-  for (let i = 0; i < pathElements.length; i++) {
-    const key = pathElements[i];
-    const isLastElement = i === pathElements.length - 1;
-    
-    // Stack: ( target )
-    vm.push(key);
-    // Stack: ( target key )
-    
-    if (getTag(key) === Tag.NUMBER) {
-      elemOp(vm);
-    } else {
-      findOp(vm);
-    }
-    
-    // Stack: ( target address )
-    const address = vm.pop();
-    
-    if (isNIL(address)) {
-      vm.pop(); // remove target
-      vm.push(originalTarget);
-      vm.push(NIL);
-      return;
-    }
-    
-    if (isLastElement) {
-      // Keep original target, return final address
-      vm.pop(); // remove current target
-      vm.push(originalTarget);
-      vm.push(address);
-      return;
-    }
-    
-    // Not last element - fetch value for next iteration
-    vm.pop(); // remove target from stack
-    vm.push(address);
-    fetchOp(vm);
-    // Stack: ( nextTarget )
-  }
-};
 
 /**
  * Set combinator (stub).
@@ -171,3 +102,4 @@ export const setOp: Verb = (vm: VM) => {
   vm.pop();
   vm.push(NIL);
 };
+
