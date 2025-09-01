@@ -101,43 +101,29 @@ export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
   
-  // Create a special getListHeaderAndTraversalBase function for traversal operations
-  let header: number, startAddr: number, segment: number;
-  
-  if (getTag(value) === Tag.LIST) {
-    header = value;
-    startAddr = vm.SP - 8; // Start just below header for traversal
-    segment = SEG_STACK;
-  } else if (isRef(value)) {
-    const { address, segment: refSegment } = resolveReference(vm, value);
-    header = vm.memory.readFloat32(refSegment, address);
-    if (!isList(header)) {
-      dropOp(vm);
-      vm.push(-1);
-      return;
-    }
-    startAddr = address - 4; // Start just below header for traversal
-    segment = refSegment;
-  } else {
-    // Not a list
+  // Use unified helper but adjust for traversal needs
+  const info = getListHeaderAndBase(vm, value);
+  if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(-1);
     return;
   }
   
-  const slotCount = getListLength(header);
+  const slotCount = getListLength(info.header);
   if (slotCount === 0) {
     dropOp(vm);
     vm.push(0);
     return;
   }
   
-  // Unified traversal logic
+  // For traversal, we need to start at first element (baseAddr + slotCount*4 - 4)
+  const traversalStartAddr = info.baseAddr + slotCount * 4 - 4;
+  
   let elementCount = 0;
-  let currentAddr = startAddr;
+  let currentAddr = traversalStartAddr;
   let remainingSlots = slotCount;
   while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(segment, currentAddr);
+    const v = vm.memory.readFloat32(info.segment, currentAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
@@ -382,43 +368,50 @@ function concatSimpleList(vm: VM): void {
 export function headOp(vm: VM): void {
   vm.ensureStackSize(1, 'head');
   const value = vm.pop();
-  const tag = getTag(value);
-
-  if (tag === Tag.LIST) {
-    if (getListLength(value) === 0) {
+  
+  // Unified setup for both direct lists and references
+  let header: number, firstElementAddr: number, segment: number, isDirectList: boolean;
+  
+  if (getTag(value) === Tag.LIST) {
+    header = value;
+    if (getListLength(header) === 0) {
       vm.push(NIL);
       return;
     }
-
-    const firstElementAddr = vm.SP - CELL_SIZE;
-    const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
-
-    if (isList(firstElement)) {
-      const slotCount = getListLength(firstElement);
-      vm.SP -= (slotCount + 1) * CELL_SIZE;
-      for (let i = slotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
-        vm.push(slotValue);
-      }
-    } else {
-      vm.SP -= CELL_SIZE;
-      vm.push(firstElement);
-    }
+    firstElementAddr = vm.SP - CELL_SIZE;
+    segment = SEG_STACK;
+    isDirectList = true;
   } else if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const header = vm.memory.readFloat32(segment, address);
-
+    const { address, segment: refSegment } = resolveReference(vm, value);
+    header = vm.memory.readFloat32(refSegment, address);
     if (!isList(header) || getListLength(header) === 0) {
       vm.push(NIL);
       return;
     }
     const slotCount = getListLength(header);
-    const firstElementAddr = address - slotCount * CELL_SIZE;
-    const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
-
-    if (isList(firstElement)) {
-      const elementSlotCount = getListLength(firstElement);
-
+    firstElementAddr = address - slotCount * CELL_SIZE;
+    segment = refSegment;
+    isDirectList = false;
+  } else {
+    vm.push(NIL);
+    return;
+  }
+  
+  // Unified logic for extracting first element
+  const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
+  
+  if (isList(firstElement)) {
+    const elementSlotCount = getListLength(firstElement);
+    
+    if (isDirectList) {
+      // For direct list: adjust SP and push in reverse order
+      vm.SP -= (elementSlotCount + 1) * CELL_SIZE;
+      for (let i = elementSlotCount; i >= 0; i--) {
+        const slotValue = vm.memory.readFloat32(segment, firstElementAddr - i * CELL_SIZE);
+        vm.push(slotValue);
+      }
+    } else {
+      // For reference: push elements then header
       for (let i = 0; i < elementSlotCount; i++) {
         const slotValue = vm.memory.readFloat32(
           segment,
@@ -427,11 +420,12 @@ export function headOp(vm: VM): void {
         vm.push(slotValue);
       }
       vm.push(firstElement);
-    } else {
-      vm.push(firstElement);
     }
   } else {
-    vm.push(NIL);
+    if (isDirectList) {
+      vm.SP -= CELL_SIZE;
+    }
+    vm.push(firstElement);
   }
 }
 
