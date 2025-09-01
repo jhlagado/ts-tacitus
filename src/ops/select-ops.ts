@@ -10,7 +10,7 @@ import { SEG_STACK, CELL_SIZE } from '../core/constants';
 import { isRef, createStackRef } from '../core/refs';
 import { Tag, getTag, isNIL, NIL } from '../core/tagged';
 import { elemOp, findOp, enlistOp } from './list-ops';
-import { nipOp, findElement } from './stack-ops';
+import { nipOp, dropOp, findElement } from './stack-ops';
 
 /**
  * Creates initial target reference for path traversal.
@@ -42,10 +42,46 @@ export function createTargetRef(vm: VM): boolean {
 }
 
 
+
 /**
  * Iterates through multi-element path.
  * Stack: ( target path current-ref -- target final-ref ) or ( target NIL ) on error
  */
+/**
+ * Processes one path element step for multi-step traversal.
+ * Stack: ( target path current-ref -- target path new-ref ) or ( target NIL ) on error
+ * Returns false if NIL encountered (stack left as target NIL)
+ */
+export function processPathStep(vm: VM, pathElement: number): boolean {
+  // Stack: ( target path current-ref )
+  vm.push(pathElement);
+  // Stack: ( target path current-ref path-element )
+
+  if (getTag(pathElement) === Tag.NUMBER) {
+    elemOp(vm); // ( ref index -- ref new-ref )
+  } else {
+    findOp(vm); // ( ref key -- ref new-ref )
+  }
+  // Stack: ( target path current-ref new-ref )
+
+  const newRef = vm.pop();
+  
+  // Check only for actual NIL failure (not all NaN values!)
+  if (isNIL(newRef)) {
+    vm.pop(); // remove current-ref
+    dropOp(vm); // remove path  
+    vm.push(NIL); // target NIL
+    return false;
+  }
+
+  // Stack: ( target path current-ref )
+  vm.push(newRef);
+  // Stack: ( target path current-ref new-ref )
+  nipOp(vm); // remove current-ref, keep new-ref
+  // Stack: ( target path new-ref )
+  return true;
+}
+
 export function traverseMultiPath(vm: VM): void {
   const pathHeader = vm.memory.readFloat32(SEG_STACK, vm.SP - 2 * CELL_SIZE);
   const pathLength = getListLength(pathHeader);
@@ -55,34 +91,16 @@ export function traverseMultiPath(vm: VM): void {
     const pathElement = vm.memory.readFloat32(SEG_STACK, pathElementAddr);
     pathElementAddr -= CELL_SIZE;
 
-    // Stack: ( target path current-ref )
-    vm.push(pathElement);
-    // Stack: ( target path current-ref path-element )
-
-    if (getTag(pathElement) === Tag.NUMBER) {
-      elemOp(vm);
-    } else {
-      findOp(vm);
+    if (!processPathStep(vm, pathElement)) {
+      return; // NIL case handled in processPathStep
     }
-
-    // Stack: ( target path current-ref result-ref )
-    const resultRef = vm.pop();
-
-    if (isNIL(resultRef)) {
-      // Cleanup and return NIL
-      vm.pop(); // remove current-ref
-      vm.pop(); // remove path
-      vm.push(NIL);
-      return;
-    }
-
-    // Stack: ( target path current-ref )
-    nipOp(vm); // remove current-ref
-    // Stack: ( target path result-ref )
   }
 
   // Stack: ( target path final-ref )
-  nipOp(vm); // remove path
+  // We need to remove the path that's in the middle, not the final-ref at the top
+  const finalRef = vm.pop(); // Remove final-ref temporarily
+  dropOp(vm); // remove path
+  vm.push(finalRef); // Put final-ref back
   // Stack: ( target final-ref )
 }
 
