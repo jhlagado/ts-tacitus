@@ -663,37 +663,59 @@ export const enlistOp: Verb = (vm: VM) => {
  */
 export function reverseOp(vm: VM): void {
   vm.ensureStackSize(1, 'reverse');
-  const header = vm.pop();
+  const target = vm.peek();
 
-  if (!isList(header)) {
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  const slotCount = getListLength(header);
+  const slotCount = getListLength(info.header);
+  vm.pop();
 
   if (slotCount === 0) {
-    vm.push(header);
+    vm.push(toTaggedValue(0, Tag.LIST));
     return;
   }
 
-  if (slotCount === 1) {
-    const element = vm.pop();
-    vm.push(element);
-    vm.push(header);
-    return;
+  // Build element descriptors (start address and span)
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  let currentAddr = headerAddr - CELL_SIZE;
+  let remainingSlots = slotCount;
+  const elements: Array<{ start: number; span: number }> = [];
+  while (remainingSlots > 0) {
+    const v = vm.memory.readFloat32(info.segment, currentAddr);
+    const span = isList(v) ? getListLength(v) + 1 : 1;
+    elements.push({ start: currentAddr, span });
+    currentAddr -= span * CELL_SIZE;
+    remainingSlots -= span;
   }
 
-  const elements: number[] = [];
-  for (let i = 0; i < slotCount; i++) {
-    elements.push(vm.pop());
+  // If direct list on stack, remove original payload before writing result
+  if (info.segment === SEG_STACK) {
+    vm.SP -= slotCount * CELL_SIZE;
   }
 
-  for (let i = elements.length - 1; i >= 0; i--) {
-    vm.push(elements[i]);
+  // Push elements in reversed order, preserving each element as a unit
+  for (let e = elements.length - 1; e >= 0; e--) {
+    const { start, span } = elements[e];
+    if (span === 1) {
+      const val = vm.memory.readFloat32(info.segment, start);
+      vm.push(val);
+    } else {
+      const payloadSlots = span - 1;
+      for (let i = payloadSlots - 1; i >= 0; i--) {
+        const slotVal = vm.memory.readFloat32(info.segment, start - (i + 1) * CELL_SIZE);
+        vm.push(slotVal);
+      }
+      const headerVal = vm.memory.readFloat32(info.segment, start);
+      vm.push(headerVal);
+    }
   }
 
-  vm.push(header);
+  vm.push(toTaggedValue(slotCount, Tag.LIST));
 }
 
 
