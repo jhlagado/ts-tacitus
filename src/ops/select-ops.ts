@@ -7,7 +7,7 @@ import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { getListLength, isList } from '../core/list';
 import { SEG_STACK, CELL_SIZE } from '../core/constants';
-import { isRef, createStackRef } from '../core/refs';
+import { isRef, createStackRef, createSegmentRef } from '../core/refs';
 import { Tag, getTag, isNIL, NIL } from '../core/tagged';
 import { elemOp, findOp, enlistOp } from './list-ops';
 import { nipOp, dropOp, findElement } from './stack-ops';
@@ -27,9 +27,9 @@ export function createTargetRef(vm: VM): boolean {
   const target = vm.memory.readFloat32(SEG_STACK, targetByteAddr);
 
   if (isList(target)) {
-    // Create STACK_REF from absolute cell index
-    const targetRef = createStackRef(targetCellIndex);
-    vm.push(targetRef); // push after path
+    // Create segment-aware ref (currently SEG_STACK)
+    const targetRef = createSegmentRef(SEG_STACK, targetCellIndex);
+    vm.push(targetRef);
     return true;
   } else if (isRef(target)) {
     // Copy existing ref

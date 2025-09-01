@@ -5,7 +5,7 @@
 
 import { VM } from '../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, getTag, NIL } from '../core/tagged';
-import { isRef, createStackRef, resolveReference, readReference } from '../core/refs';
+import { isRef, createStackRef, resolveReference, readReference, createSegmentRef } from '../core/refs';
 import { evalOp } from './core-ops';
 import { SEG_STACK, SEG_RSTACK } from '../core/constants';
 import { Verb } from '../core/types';
@@ -422,14 +422,7 @@ export function slotOp(vm: VM): void {
   const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
   const addr = headerAddr - (idx + 1) * CELL_SIZE;
   const cellIndex = addr / CELL_SIZE;
-
-  if (info.segment === SEG_STACK) {
-    vm.push(createStackRef(cellIndex));
-  } else if (info.segment === SEG_RSTACK) {
-    vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
-  } else {
-    vm.push(NIL);
-  }
+  vm.push(createSegmentRef(info.segment, cellIndex));
 }
 
 /**
@@ -459,7 +452,7 @@ export function elemOp(vm: VM): void {
   }
 
   const cellIndex = addr / 4;
-  vm.push(createStackRef(cellIndex));
+  vm.push(createSegmentRef(info.segment, cellIndex));
 }
 
 /**
@@ -787,13 +780,7 @@ export function findOp(vm: VM): void {
 
     if (areValuesEqual(currentKey, key)) {
       const cellIndex = valueAddr / CELL_SIZE;
-      if (info.segment === SEG_STACK) {
-        vm.push(createStackRef(cellIndex));
-      } else if (info.segment === SEG_RSTACK) {
-        vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
-      } else {
-        vm.push(NIL);
-      }
+      vm.push(createSegmentRef(info.segment, cellIndex));
       return;
     }
 
@@ -808,13 +795,7 @@ export function findOp(vm: VM): void {
 
   if (defaultValueAddr !== -1) {
     const cellIndex = defaultValueAddr / CELL_SIZE;
-    if (info.segment === SEG_STACK) {
-      vm.push(createStackRef(cellIndex));
-    } else if (info.segment === SEG_RSTACK) {
-      vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
-    } else {
-      vm.push(NIL);
-    }
+    vm.push(createSegmentRef(info.segment, cellIndex));
     return;
   }
 
