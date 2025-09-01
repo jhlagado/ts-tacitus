@@ -857,22 +857,25 @@ export function findOp(vm: VM): void {
  */
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
-  const header = vm.pop();
-  if (!isList(header)) {
-    vm.push(header);
+  const target = vm.peek();
+
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  const slotCount = getListLength(header);
-
+  const slotCount = getListLength(info.header);
   if (slotCount % 2 !== 0) {
-    vm.push(header);
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  vm.push(header);
+  // Preserve original target on the stack as per spec stack effect
+  vm.pop();
+  vm.push(info.header);
 
   if (slotCount === 0) {
     vm.push(toTaggedValue(0, Tag.LIST));
@@ -880,10 +883,11 @@ export function keysOp(vm: VM): void {
   }
 
   const keyCount = slotCount / 2;
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
 
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAddr = vm.SP - CELL_SIZE - i * 2 * CELL_SIZE;
-    const keyValue = vm.memory.readFloat32(SEG_STACK, keyAddr);
+    const keyAddr = headerAddr - CELL_SIZE - i * 2 * CELL_SIZE;
+    const keyValue = vm.memory.readFloat32(info.segment, keyAddr);
     vm.push(keyValue);
   }
 
