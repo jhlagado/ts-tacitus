@@ -139,16 +139,13 @@ export enum Op {
   /**  Polymorphic concatenation (all combinations). */
   Concat,
 
-  /**  Removes first element from list (O(1)). */
+  /**  Removes last element from list (O(1)). */
   Tail,
 
   /**  Returns first element or nil. */
   Head,
 
-  /**  Splits list into tail and head. */
-  Uncons,
-
-  /**  Creates list from n stack items. */
+    /**  Creates list from n stack items. */
   Pack,
 
   /**  Pushes list elements onto stack individually. */

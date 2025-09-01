@@ -100,7 +100,7 @@ export function lengthOp(vm: VM): void {
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
-  
+
   // Use unified helper but adjust for traversal needs
   const info = getListHeaderAndBase(vm, value);
   if (!info || !isList(info.header)) {
@@ -108,17 +108,17 @@ export function sizeOp(vm: VM): void {
     vm.push(-1);
     return;
   }
-  
+
   const slotCount = getListLength(info.header);
   if (slotCount === 0) {
     dropOp(vm);
     vm.push(0);
     return;
   }
-  
+
   // For traversal, we need to start at first element (baseAddr + slotCount*4 - 4)
   const traversalStartAddr = info.baseAddr + slotCount * 4 - 4;
-  
+
   let elementCount = 0;
   let currentAddr = traversalStartAddr;
   let remainingSlots = slotCount;
@@ -129,7 +129,7 @@ export function sizeOp(vm: VM): void {
     remainingSlots -= span;
     currentAddr -= span * CELL_SIZE;
   }
-  
+
   dropOp(vm);
   vm.push(elementCount);
 }
@@ -145,88 +145,50 @@ export function sizeOp(vm: VM): void {
 export function tailOp(vm: VM): void {
   vm.ensureStackSize(1, 'tail');
   const target = vm.peek();
-  
-  // Handle direct list on stack
-  if (getTag(target) === Tag.LIST) {
-    const slotCount = getListLength(target);
-    if (slotCount === 0) {
-      // Empty list - return as-is
-      return;
-    }
-    
-    // Get the first element to determine its span
-    const firstElemAddr = vm.SP - 8; // Just below header
-    const firstElem = vm.memory.readFloat32(SEG_STACK, firstElemAddr);
-    const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
-    
-    const newSlotCount = slotCount - firstElemSpan;
-    if (newSlotCount <= 0) {
-      dropOp(vm);
-      vm.push(toTaggedValue(0, Tag.LIST)); // Empty list
-      return;
-    }
-    
-    // Copy remaining elements to new list
-    const remainingElems: number[] = [];
-    for (let i = 0; i < newSlotCount; i++) {
-      const elemAddr = firstElemAddr - firstElemSpan * 4 - i * 4;
-      const elem = vm.memory.readFloat32(SEG_STACK, elemAddr);
-      remainingElems.push(elem);
-    }
-    
-    // Remove original list from stack
-    vm.SP -= (slotCount + 1) * 4;
-    
-    // Push new list elements in reverse order
-    for (let i = remainingElems.length - 1; i >= 0; i--) {
-      vm.push(remainingElems[i]);
-    }
-    vm.push(toTaggedValue(newSlotCount, Tag.LIST));
+
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    // Replace non-list with NIL
+    vm.pop();
+    vm.push(NIL);
     return;
   }
-  
-  // Handle reference
-  if (isRef(target)) {
-    const { address, segment } = resolveReference(vm, target);
-    const header = vm.memory.readFloat32(segment, address);
-    if (!isList(header)) {
-      vm.push(NIL);
-      return;
-    }
-    
-    const slotCount = getListLength(header);
-    if (slotCount === 0) {
-      dropOp(vm);
-      vm.push(toTaggedValue(0, Tag.LIST)); // Empty list
-      return;
-    }
-    
-    // Get the first element to determine its span
-    const firstElemAddr = address - 4; // Just below header
-    const firstElem = vm.memory.readFloat32(segment, firstElemAddr);
-    const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
-    
-    const newSlotCount = slotCount - firstElemSpan;
-    if (newSlotCount <= 0) {
-      dropOp(vm);
-      vm.push(toTaggedValue(0, Tag.LIST)); // Empty list
-      return;
-    }
-    
-    // Copy remaining elements to new list on stack
+
+  const slotCount = getListLength(info.header);
+  if (slotCount === 0) {
+    // Tail of empty is empty
+    vm.pop();
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const firstElemAddr = headerAddr - CELL_SIZE;
+  const firstElem = vm.memory.readFloat32(info.segment, firstElemAddr);
+  const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
+  const newSlotCount = slotCount - firstElemSpan;
+
+  // Drop the original target
+  vm.pop();
+
+  if (newSlotCount <= 0) {
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+
+  if (info.segment === SEG_STACK) {
+    // Remove head span from stack payload then push reduced header
+    vm.SP -= firstElemSpan * CELL_SIZE;
+    vm.push(toTaggedValue(newSlotCount, Tag.LIST));
+  } else {
+    // Materialize tail payload from referenced memory
     for (let i = 0; i < newSlotCount; i++) {
-      const elemAddr = firstElemAddr - firstElemSpan * 4 - i * 4;
-      const elem = vm.memory.readFloat32(segment, elemAddr);
+      const elemAddr = firstElemAddr - firstElemSpan * CELL_SIZE - i * CELL_SIZE;
+      const elem = vm.memory.readFloat32(info.segment, elemAddr);
       vm.push(elem);
     }
-    
-    dropOp(vm); // Remove original reference
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
-    return;
   }
-  
-  // Not a list
-  vm.push(NIL);
 }
 
 export const dropHeadOp = tailOp;
@@ -420,47 +382,6 @@ export function headOp(vm: VM): void {
   }
 }
 
-/**
- * Splits list into tail and head.
- * Stack effect: ( list -- tail head )
- * Spec: lists.md §12
- */
-export function unconsOp(vm: VM): void {
-  vm.ensureStackSize(1, 'uncons');
-  const header = vm.pop();
-
-  if (!isList(header)) {
-    vm.push(toTaggedValue(0, Tag.LIST));
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListLength(header);
-  if (slotCount === 0) {
-    vm.push(header);
-    vm.push(NIL);
-    return;
-  }
-
-  const firstElementAddr = vm.SP - CELL_SIZE;
-  const firstElement = vm.memory.readFloat32(SEG_STACK, firstElementAddr);
-  const span = isList(firstElement) ? getListLength(firstElement) + 1 : 1;
-
-  const tailSlotCount = slotCount - span;
-  const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
-
-  vm.SP -= span * CELL_SIZE;
-  vm.push(tailHeader);
-
-  if (isList(firstElement)) {
-    for (let i = span - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_STACK, firstElementAddr - i * CELL_SIZE);
-      vm.push(slotValue);
-    }
-  } else {
-    vm.push(firstElement);
-  }
-}
 
 /**
  * Returns address of payload slot at slot index.
@@ -511,7 +432,7 @@ export function elemOp(vm: VM): void {
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
   const info = getListHeaderAndBase(vm, target);
-  
+
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -524,7 +445,7 @@ export function elemOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  
+
   const cellIndex = addr / 4;
   vm.push(createStackRef(cellIndex));
 }
@@ -571,14 +492,14 @@ export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
   let value = vm.peek();
-  
+
   // Resolve source if it's a reference (per refs.md spec)
   if (isRef(value)) {
     value = readReference(vm, value);
     vm.pop(); // Remove original ref from stack
     vm.push(value); // Push resolved value
   }
-  
+
   if (!isRef(addressValue)) {
     throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }

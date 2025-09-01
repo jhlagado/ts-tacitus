@@ -76,12 +76,6 @@ describe('Lists.md Specification Compliance', () => {
       expect(isNIL(result)).toBe(true);
     });
 
-    test('uncons splits list correctly', () => {
-      const stack = executeTacitCode('( 1 2 3 ) uncons');
-      const head = stack[stack.length - 1];
-      expect(fromTaggedValue(head).value).toBe(1);
-    });
-
     test('concat prepends element (simple + list)', () => {
       const stack = executeTacitCode('1 ( 2 3 ) concat');
       const result = stack[stack.length - 1];
@@ -97,7 +91,7 @@ describe('Lists.md Specification Compliance', () => {
     test('structural operations are properly registered', () => {
       expect(() => executeTacitCode('( )')).not.toThrow();
 
-      const operations = ['head', 'tail', 'concat', 'uncons'];
+      const operations = ['head', 'tail', 'concat'];
       operations.forEach(op => {
         try {
           executeTacitCode(`( ) ${op}`);
@@ -119,14 +113,6 @@ describe('Lists.md Specification Compliance', () => {
       const origHeader = original[original.length - 1];
       const restHeader = restored[restored.length - 1];
       expect(fromTaggedValue(origHeader).value).toBe(fromTaggedValue(restHeader).value);
-    });
-
-    test('head and uncons consistency', () => {
-      const headResult = executeTacitCode('( 1 2 3 ) head');
-      resetVM();
-      const unconsResult = executeTacitCode('( 1 2 3 ) uncons swap drop');
-      expect(fromTaggedValue(headResult[headResult.length - 1]).value).toBe(1);
-      expect(fromTaggedValue(unconsResult[unconsResult.length - 1]).value).toBe(1);
     });
 
     test('pack with 0 count creates empty list', () => {
