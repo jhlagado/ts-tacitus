@@ -56,7 +56,6 @@ import {
   fetchOp,
   storeOp,
   headOp,
-  unconsOp,
 } from './list-ops';
 import {
   concatOp,
@@ -312,9 +311,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       break;
     case Op.Head:
       headOp(vm);
-      break;
-    case Op.Uncons:
-      unconsOp(vm);
       break;
     case Op.Pack:
       packOp(vm);

@@ -66,7 +66,6 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('concat', Op.Concat);
   symbolTable.defineBuiltin('tail', Op.Tail);
   symbolTable.defineBuiltin('head', Op.Head);
-  symbolTable.defineBuiltin('uncons', Op.Uncons);
   symbolTable.defineBuiltin('pack', Op.Pack);
   symbolTable.defineBuiltin('unpack', Op.Unpack);
   symbolTable.defineBuiltin('reverse', Op.Reverse);
