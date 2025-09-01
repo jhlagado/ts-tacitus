@@ -751,116 +751,62 @@ export function reverseOp(vm: VM): void {
 export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
-  const target = vm.pop();
-  const tag = getTag(target);
+  const target = vm.peek();
 
-  if (tag === Tag.LIST) {
-    const slotCount = getListLength(target);
-
-    if (slotCount % 2 !== 0) {
-      vm.push(target);
-      vm.push(NIL);
-      return;
-    }
-
-    if (slotCount === 0) {
-      vm.push(target);
-      vm.push(NIL);
-      return;
-    }
-
-    let defaultValueAddr = -1;
-
-    for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = vm.SP - CELL_SIZE - i * CELL_SIZE;
-      const valueAddr = vm.SP - CELL_SIZE - (i + 1) * CELL_SIZE;
-      const currentKey = vm.memory.readFloat32(SEG_STACK, keyAddr);
-
-      if (areValuesEqual(currentKey, key)) {
-        vm.push(target);
-        const cellIndex = valueAddr / 4;
-        vm.push(createStackRef(cellIndex));
-        return;
-      }
-
-      const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
-      if (keyTag === Tag.STRING) {
-        const keyStr = vm.digest.get(keyValue);
-        if (keyStr === 'default') {
-          defaultValueAddr = valueAddr;
-        }
-      }
-    }
-
-    if (defaultValueAddr !== -1) {
-      vm.push(target);
-      const cellIndex = defaultValueAddr / 4;
-      vm.push(createStackRef(cellIndex));
-      return;
-    }
-
-    vm.push(target);
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
     vm.push(NIL);
-  } else if (tag === Tag.STACK_REF) {
-    const { address: baseAddr, segment } = resolveReference(vm, target);
-    const header = vm.memory.readFloat32(segment, baseAddr);
-
-    if (!isList(header)) {
-      vm.push(target);
-      vm.push(NIL);
-      return;
-    }
-
-    const slotCount = getListLength(header);
-
-    if (slotCount % 2 !== 0) {
-      vm.push(target);
-      vm.push(NIL);
-      return;
-    }
-
-    if (slotCount === 0) {
-      vm.push(target);
-      vm.push(NIL);
-      return;
-    }
-
-    let defaultValueAddr = -1;
-
-    for (let i = 0; i < slotCount; i += 2) {
-      const keyAddr = baseAddr - CELL_SIZE - i * CELL_SIZE;
-      const valueAddr = baseAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
-      const currentKey = vm.memory.readFloat32(segment, keyAddr);
-
-      if (areValuesEqual(currentKey, key)) {
-        vm.push(target);
-        const cellIndex = valueAddr / 4;
-        vm.push(createStackRef(cellIndex));
-        return;
-      }
-
-      const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
-      if (keyTag === Tag.STRING) {
-        const keyStr = vm.digest.get(keyValue);
-        if (keyStr === 'default') {
-          defaultValueAddr = valueAddr;
-        }
-      }
-    }
-
-    if (defaultValueAddr !== -1) {
-      vm.push(target);
-      const cellIndex = defaultValueAddr / 4;
-      vm.push(createStackRef(cellIndex));
-      return;
-    }
-
-    vm.push(target);
-    vm.push(NIL);
-  } else {
-    vm.push(target);
-    vm.push(NIL);
+    return;
   }
+
+  const slotCount = getListLength(info.header);
+  if (slotCount % 2 !== 0 || slotCount === 0) {
+    vm.push(NIL);
+    return;
+  }
+
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  let defaultValueAddr = -1;
+
+  for (let i = 0; i < slotCount; i += 2) {
+    const keyAddr = headerAddr - CELL_SIZE - i * CELL_SIZE;
+    const valueAddr = headerAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
+    const currentKey = vm.memory.readFloat32(info.segment, keyAddr);
+
+    if (areValuesEqual(currentKey, key)) {
+      const cellIndex = valueAddr / CELL_SIZE;
+      if (info.segment === SEG_STACK) {
+        vm.push(createStackRef(cellIndex));
+      } else if (info.segment === SEG_RSTACK) {
+        vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
+      } else {
+        vm.push(NIL);
+      }
+      return;
+    }
+
+    const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
+    if (keyTag === Tag.STRING) {
+      const keyStr = vm.digest.get(keyValue);
+      if (keyStr === 'default') {
+        defaultValueAddr = valueAddr;
+      }
+    }
+  }
+
+  if (defaultValueAddr !== -1) {
+    const cellIndex = defaultValueAddr / CELL_SIZE;
+    if (info.segment === SEG_STACK) {
+      vm.push(createStackRef(cellIndex));
+    } else if (info.segment === SEG_RSTACK) {
+      vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
+    } else {
+      vm.push(NIL);
+    }
+    return;
+  }
+
+  vm.push(NIL);
 }
 
 /**
