@@ -79,6 +79,7 @@ export function getListElementAddress(
   header: number,
   headerAddr: number,
   logicalIndex: number,
+  segment: number = SEG_STACK,
 ): number {
   if (!isList(header)) {
     throw new Error('Invalid LIST header provided to getListElementAddress');
@@ -93,7 +94,7 @@ export function getListElementAddress(
   let remainingSlots = totalSlots;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readFloat32(SEG_STACK, currentAddr);
+    const currentValue = vm.memory.readFloat32(segment, currentAddr);
     let stepSize = 1;
     let elementStartAddr = currentAddr;
 
