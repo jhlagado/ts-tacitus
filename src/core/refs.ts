@@ -67,6 +67,21 @@ export function createGlobalRef(key: number): number {
 }
 
 /**
+ * Creates a reference value for a given segment and cell index.
+ * SEG_STACK -> STACK_REF, SEG_RSTACK -> RSTACK_REF, other (e.g., GLOBAL) -> GLOBAL_REF.
+ */
+export function createSegmentRef(segment: number, cellIndex: number): number {
+  if (segment === SEG_STACK) {
+    return toTaggedValue(cellIndex, Tag.STACK_REF);
+  }
+  if (segment === SEG_RSTACK) {
+    return toTaggedValue(cellIndex, Tag.RSTACK_REF);
+  }
+  // Future: use proper global segment addressing; for now map to GLOBAL_REF payload
+  return toTaggedValue(cellIndex, Tag.GLOBAL_REF);
+}
+
+/**
  * Result of reference resolution containing memory address and segment.
  */
 export interface ResolvedReference {
