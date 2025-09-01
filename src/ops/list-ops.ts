@@ -911,8 +911,7 @@ export function refOp(vm: VM): void {
 
   if (tag === Tag.LIST) {
     const headerCellIndex = (vm.SP - 4) / 4;
-    const stackRef = createStackRef(headerCellIndex);
-    vm.push(stackRef);
+    vm.push(createSegmentRef(SEG_STACK, headerCellIndex));
   }
 }
 

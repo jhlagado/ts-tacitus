@@ -10,14 +10,7 @@ import {
   createLocalRef,
   NIL,
 } from '../../core/tagged';
-import {
-  isRef,
-  isStackRef,
-  isLocalRef,
-  isGlobalRef,
-  createGlobalRef,
-  createStackRef,
-} from '../../core/refs';
+import { isRef, isStackRef, isLocalRef, isGlobalRef, createGlobalRef, createSegmentRef } from '../../core/refs';
 import { fetchOp } from '../../ops/list-ops';
 import { SEG_RSTACK } from '../../core/constants';
 
@@ -29,7 +22,7 @@ describe('Unified Reference System', () => {
 
   describe('Single source verification', () => {
     test('reference guards should be available from refs module only', () => {
-      const stackRef = createStackRef(5);
+      const stackRef = createSegmentRef(0, 5);
       const localRef = createLocalRef(3);
       const globalRef = createGlobalRef(7);
 
@@ -53,7 +46,7 @@ describe('Unified Reference System', () => {
     });
 
     test('isRef should identify all reference types', () => {
-      const stackRef = createStackRef(5);
+      const stackRef = createSegmentRef(0, 5);
       const localRef = createLocalRef(3);
       const globalRef = createGlobalRef(7);
       const number = 42;
@@ -66,7 +59,7 @@ describe('Unified Reference System', () => {
     });
 
     test('specific type guards should work correctly', () => {
-      const stackRef = createStackRef(5);
+      const stackRef = createSegmentRef(0, 5);
       const localRef = createLocalRef(3);
       const globalRef = createGlobalRef(7);
 
@@ -84,7 +77,7 @@ describe('Unified Reference System', () => {
     });
 
     test('should identify STACK_REF correctly', () => {
-      const stackRef = createStackRef(5);
+      const stackRef = createSegmentRef(0, 5);
       expect(isRef(stackRef)).toBe(true);
       expect(isStackRef(stackRef)).toBe(true);
       expect(isLocalRef(stackRef)).toBe(false);
@@ -94,7 +87,7 @@ describe('Unified Reference System', () => {
 
   describe('Reference construction helpers', () => {
     test('createStackRef should create correct tagged value', () => {
-      const ref = createStackRef(42);
+      const ref = createSegmentRef(0, 42);
       const { tag, value } = fromTaggedValue(ref);
 
       expect(tag).toBe(Tag.STACK_REF);
