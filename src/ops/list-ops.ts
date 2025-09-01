@@ -220,81 +220,97 @@ export const dropHeadOp = tailOp;
 export function concatOp(vm: VM): void {
   vm.ensureStackSize(2, 'concat');
 
+  // Determine spans for RHS and LHS without mutating stack
   const [, rhsSize] = findElement(vm, 0);
   const [, lhsSize] = findElement(vm, rhsSize);
 
-  const peekBySlots = (offsetSlots: number): number => {
+  const readCellAtOffset = (offsetSlots: number): number => {
     const addr = vm.SP - (offsetSlots + 1) * CELL_SIZE;
     return vm.memory.readFloat32(SEG_STACK, addr);
   };
 
-  const rhsHeaderVal = peekBySlots(0);
-  const lhsHeaderVal = peekBySlots(rhsSize);
-  const rhsIsList = isList(rhsHeaderVal);
-  const lhsIsList = isList(lhsHeaderVal);
-  const rhsIsSimple = !rhsIsList && rhsSize === 1;
-  const lhsIsSimple = !lhsIsList && lhsSize === 1;
+  // Inspect operand kinds (LIST, REF->LIST, SIMPLE)
+  const rhsTop = readCellAtOffset(0);
+  const lhsTop = readCellAtOffset(rhsSize);
 
-  if (lhsIsSimple && rhsIsSimple) {
-    concatSimpleSimple(vm);
-    return;
-  }
+  const rhsInfo = isList(rhsTop) ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: vm.SP - CELL_SIZE } : (isRef(rhsTop) ? getListHeaderAndBase(vm, rhsTop) : null);
+  const lhsHeaderAddr = vm.SP - (rhsSize + 1) * CELL_SIZE;
+  const lhsInfo = isList(lhsTop)
+    ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
+    : (isRef(lhsTop) ? getListHeaderAndBase(vm, lhsTop) : null);
 
-  if (!lhsIsSimple && rhsIsSimple) {
-    const lhsHeader = peekBySlots(rhsSize);
-    if (!isList(lhsHeader)) {
-      throw new Error('concat: left compound must be LIST when appending simple');
+  const lhsIsList = !!lhsInfo;
+  const rhsIsList = !!rhsInfo;
+
+  // Helper to materialize payload slots for operand
+  const materializeSlots = (op: { kind: 'stack-list'; header: number; headerAddr: number } | { header: number; baseAddr: number; segment: number } | null, size: number, topCell: number, topOffset: number): number[] => {
+    if (op && 'kind' in op && op.kind === 'stack-list') {
+      const s = getListLength(op.header);
+      const slots: number[] = [];
+      for (let i = 0; i < s; i++) {
+        const addr = op.headerAddr - (i + 1) * CELL_SIZE;
+        slots.push(vm.memory.readFloat32(SEG_STACK, addr));
+      }
+      return slots;
     }
-
-    const currentSlots = getListLength(lhsHeader);
-    if (currentSlots === 0) {
-      const simple = vm.pop();
-      vm.pop();
-      vm.push(simple);
-      vm.push(toTaggedValue(1, Tag.LIST));
-      return;
+    if (op && 'baseAddr' in op) {
+      const s = getListLength(op.header);
+      const headerAddr = op.baseAddr + s * CELL_SIZE;
+      const slots: number[] = [];
+      for (let i = 0; i < s; i++) {
+        const addr = headerAddr - (i + 1) * CELL_SIZE;
+        slots.push(vm.memory.readFloat32(op.segment, addr));
+      }
+      return slots;
     }
+    // Simple single slot value
+    return [readCellAtOffset(topOffset)];
+  };
 
-    swapOp(vm);
-    vm.pop();
-    vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));
-    return;
-  }
+  const lhsSlots = materializeSlots(lhsInfo as any, lhsSize, lhsTop, rhsSize);
+  const rhsSlots = materializeSlots(rhsInfo as any, rhsSize, rhsTop, 0);
 
-  if (lhsIsSimple && !rhsIsSimple) {
-    const rhsHeader = peekBySlots(0);
-    if (!isList(rhsHeader)) {
-      throw new Error('concat: right compound must be LIST when prepending simple');
-    }
-    concatSimpleList(vm);
+  // Compute drop span in slots: for stack-lists, their actual span; for simple/ref, size from findElement
+  const lhsDrop = lhsIsList && 'kind' in (lhsInfo as any) ? getListLength((lhsInfo as any).header) + 1 : lhsSize;
+  const rhsDrop = rhsIsList && 'kind' in (rhsInfo as any) ? getListLength((rhsInfo as any).header) + 1 : rhsSize;
+
+  // Remove inputs
+  vm.SP -= (lhsDrop + rhsDrop) * CELL_SIZE;
+
+  // Compose result according to cases
+  if (!lhsIsList && !rhsIsList) {
+    // simple + simple → logical [lhs, rhs]; push reverse: rhs then lhs
+    for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
+    for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);
+    vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
     return;
   }
 
   if (lhsIsList && rhsIsList) {
-    const rhsHeader = vm.pop();
-    const sB = getListLength(rhsHeader);
-    const rhsElems: number[] = [];
-    for (let i = 0; i < sB; i++) {
-      rhsElems.push(vm.pop());
-    }
-    const lhsHeader = vm.pop();
-    const sA = getListLength(lhsHeader);
-    const lhsElems: number[] = [];
-    for (let i = 0; i < sA; i++) {
-      lhsElems.push(vm.pop());
-    }
-    for (let i = rhsElems.length - 1; i >= 0; i--) {
-      vm.push(rhsElems[i]);
-    }
-    for (let i = lhsElems.length - 1; i >= 0; i--) {
-      vm.push(lhsElems[i]);
-    }
-    vm.push(toTaggedValue(sA + sB, Tag.LIST));
-  } else {
-    vm.pop();
-    vm.pop();
-    vm.push(NIL);
+    // list + list → logical [lhs..., rhs...]; push reverse: rhs then lhs
+    for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
+    for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);
+    vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
+    return;
   }
+
+  if (lhsIsList && !rhsIsList) {
+    // list + simple → logical [lhs..., rhs]; push reverse: rhs then lhs
+    for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
+    for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);
+    vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
+    return;
+  }
+
+  if (!lhsIsList && rhsIsList) {
+    // simple + list → logical [lhs, rhs...]; push reverse: rhs then lhs
+    for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
+    for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);
+    vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
+    return;
+  }
+
+  vm.push(NIL);
 }
 
 /**
@@ -312,14 +328,10 @@ function concatSimpleSimple(vm: VM): void {
  * Sub-operation: simple + list → O(n) prepend
  */
 function concatSimpleList(vm: VM): void {
-  const rhsHeaderAddr = vm.SP - CELL_SIZE;
-  const rhsHeader = vm.memory.readFloat32(SEG_STACK, rhsHeaderAddr);
-  const currentSlots = getListLength(rhsHeader);
-  swapOp(vm);
-  const simple = vm.pop();
-  vm.pop();
-  vm.push(simple);
-  vm.push(toTaggedValue(currentSlots + 1, Tag.LIST));
+  // Deprecated; handled in concatOp unified path
+  const rhs = vm.pop();
+  const lhs = vm.pop();
+  vm.push(NIL);
 }
 
 /**
