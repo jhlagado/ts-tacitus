@@ -904,22 +904,25 @@ export function keysOp(vm: VM): void {
  */
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
-  const header = vm.pop();
-  if (!isList(header)) {
-    vm.push(header);
+  const target = vm.peek();
+
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  const slotCount = getListLength(header);
-
+  const slotCount = getListLength(info.header);
   if (slotCount % 2 !== 0) {
-    vm.push(header);
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  vm.push(header);
+  // Preserve original target on the stack as per spec stack effect
+  vm.pop();
+  vm.push(info.header);
 
   if (slotCount === 0) {
     vm.push(toTaggedValue(0, Tag.LIST));
@@ -927,10 +930,11 @@ export function valuesOp(vm: VM): void {
   }
 
   const valueCount = slotCount / 2;
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
 
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAddr = vm.SP - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
-    const valueValue = vm.memory.readFloat32(SEG_STACK, valueAddr);
+    const valueAddr = headerAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
+    const valueValue = vm.memory.readFloat32(info.segment, valueAddr);
     vm.push(valueValue);
   }
 
