@@ -629,17 +629,33 @@ export function packOp(vm: VM): void {
  */
 export function unpackOp(vm: VM): void {
   vm.ensureStackSize(1, 'unpack');
-  const header = vm.pop();
+  const target = vm.peek();
 
-  if (!isList(header)) {
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
     vm.push(NIL);
     return;
   }
 
-  const slotCount = getListLength(header);
+  const slotCount = getListLength(info.header);
+  // Drop the original target (list header or ref)
+  vm.pop();
 
   if (slotCount === 0) {
     return;
+  }
+
+  if (info.segment === SEG_STACK) {
+    // Direct list on stack: payload already remains on stack after popping header
+    return;
+  }
+
+  // Reference case: materialize payload slots deep→TOS order
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  for (let i = slotCount - 1; i >= 0; i--) {
+    const slotValue = vm.memory.readFloat32(info.segment, headerAddr - (i + 1) * CELL_SIZE);
+    vm.push(slotValue);
   }
 }
 
