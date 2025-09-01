@@ -7,7 +7,7 @@ import { VM } from '../core/vm';
 import { fromTaggedValue, toTaggedValue, Tag, getTag, NIL } from '../core/tagged';
 import { isRef, createStackRef, resolveReference, readReference } from '../core/refs';
 import { evalOp } from './core-ops';
-import { SEG_STACK } from '../core/constants';
+import { SEG_STACK, SEG_RSTACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
@@ -367,54 +367,45 @@ function concatSimpleList(vm: VM): void {
  */
 export function headOp(vm: VM): void {
   vm.ensureStackSize(1, 'head');
-  const value = vm.pop();
-  
-  // Unified setup for both direct lists and references
-  let header: number, firstElementAddr: number, segment: number, isDirectList: boolean;
-  
-  if (getTag(value) === Tag.LIST) {
-    header = value;
-    if (getListLength(header) === 0) {
-      vm.push(NIL);
-      return;
-    }
-    firstElementAddr = vm.SP - CELL_SIZE;
-    segment = SEG_STACK;
-    isDirectList = true;
-  } else if (isRef(value)) {
-    const { address, segment: refSegment } = resolveReference(vm, value);
-    header = vm.memory.readFloat32(refSegment, address);
-    if (!isList(header) || getListLength(header) === 0) {
-      vm.push(NIL);
-      return;
-    }
-    const slotCount = getListLength(header);
-    firstElementAddr = address - slotCount * CELL_SIZE;
-    segment = refSegment;
-    isDirectList = false;
-  } else {
+  const target = vm.peek();
+
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    // Remove target and return NIL
+    vm.pop();
     vm.push(NIL);
     return;
   }
-  
-  // Unified logic for extracting first element
-  const firstElement = vm.memory.readFloat32(segment, firstElementAddr);
-  
+
+  const slotCount = getListLength(info.header);
+  if (slotCount === 0) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+
+  // Pop only the target (LIST header or ref), leave payload if it was a direct list
+  vm.pop();
+
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const firstElementAddr = headerAddr - CELL_SIZE;
+  const firstElement = vm.memory.readFloat32(info.segment, firstElementAddr);
+
   if (isList(firstElement)) {
     const elementSlotCount = getListLength(firstElement);
-    
-    if (isDirectList) {
-      // For direct list: adjust SP and push in reverse order
+
+    // If the original target was a direct LIST, the element span is at TOS; remove it before pushing
+    if (info.segment === SEG_STACK) {
       vm.SP -= (elementSlotCount + 1) * CELL_SIZE;
       for (let i = elementSlotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(segment, firstElementAddr - i * CELL_SIZE);
+        const slotValue = vm.memory.readFloat32(info.segment, firstElementAddr - i * CELL_SIZE);
         vm.push(slotValue);
       }
     } else {
-      // For reference: push elements then header
+      // Reference-based: materialize element to data stack
       for (let i = 0; i < elementSlotCount; i++) {
         const slotValue = vm.memory.readFloat32(
-          segment,
+          info.segment,
           firstElementAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
         );
         vm.push(slotValue);
@@ -422,7 +413,7 @@ export function headOp(vm: VM): void {
       vm.push(firstElement);
     }
   } else {
-    if (isDirectList) {
+    if (info.segment === SEG_STACK) {
       vm.SP -= CELL_SIZE;
     }
     vm.push(firstElement);
@@ -482,36 +473,27 @@ export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const tag = getTag(target);
+  const info = getListHeaderAndBase(vm, target);
 
-  if (tag === Tag.LIST) {
-    const slotCount = getListLength(target);
-    if (idx < 0 || idx >= slotCount) {
-      vm.push(NIL);
-      return;
-    }
+  if (!info || !isList(info.header)) {
+    vm.push(NIL);
+    return;
+  }
 
-    const addr = vm.SP - 4 - idx * CELL_SIZE;
-    const cellIndex = addr / 4;
+  const slotCount = getListLength(info.header);
+  if (idx < 0 || idx >= slotCount) {
+    vm.push(NIL);
+    return;
+  }
+
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const addr = headerAddr - (idx + 1) * CELL_SIZE;
+  const cellIndex = addr / CELL_SIZE;
+
+  if (info.segment === SEG_STACK) {
     vm.push(createStackRef(cellIndex));
-  } else if (tag === Tag.STACK_REF) {
-    const { address: baseAddr, segment } = resolveReference(vm, target);
-    const header = vm.memory.readFloat32(segment, baseAddr);
-
-    if (!isList(header)) {
-      vm.push(NIL);
-      return;
-    }
-
-    const slotCount = getListLength(header);
-    if (idx < 0 || idx >= slotCount) {
-      vm.push(NIL);
-      return;
-    }
-
-    const addr = baseAddr - (idx + 1) * CELL_SIZE;
-    const cellIndex = addr / 4;
-    vm.push(createStackRef(cellIndex));
+  } else if (info.segment === SEG_RSTACK) {
+    vm.push(toTaggedValue(cellIndex, Tag.RSTACK_REF));
   } else {
     vm.push(NIL);
   }
