@@ -101,62 +101,51 @@ export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
   
-  // Handle direct list on stack
-  if (getTag(value) === Tag.LIST) {
-    const slotCount = getListLength(value);
-    if (slotCount === 0) {
-      dropOp(vm);
-      vm.push(0);
-      return;
-    }
-    let elementCount = 0;
-    let currentAddr = vm.SP - 8; // Start just below header
-    let remainingSlots = slotCount;
-    while (remainingSlots > 0) {
-      const v = vm.memory.readFloat32(SEG_STACK, currentAddr);
-      const span = isList(v) ? getListLength(v) + 1 : 1;
-      elementCount++;
-      remainingSlots -= span;
-      currentAddr -= span * CELL_SIZE;
-    }
-    dropOp(vm);
-    vm.push(elementCount);
-    return;
-  }
+  // Create a special getListHeaderAndTraversalBase function for traversal operations
+  let header: number, startAddr: number, segment: number;
   
-  // Handle reference
-  if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const header = vm.memory.readFloat32(segment, address);
+  if (getTag(value) === Tag.LIST) {
+    header = value;
+    startAddr = vm.SP - 8; // Start just below header for traversal
+    segment = SEG_STACK;
+  } else if (isRef(value)) {
+    const { address, segment: refSegment } = resolveReference(vm, value);
+    header = vm.memory.readFloat32(refSegment, address);
     if (!isList(header)) {
       dropOp(vm);
       vm.push(-1);
       return;
     }
-    const slotCount = getListLength(header);
-    if (slotCount === 0) {
-      dropOp(vm);
-      vm.push(0);
-      return;
-    }
-    let elementCount = 0;
-    let currentAddr = address - 4; // Start just below header
-    let remainingSlots = slotCount;
-    while (remainingSlots > 0) {
-      const v = vm.memory.readFloat32(segment, currentAddr);
-      const span = isList(v) ? getListLength(v) + 1 : 1;
-      elementCount++;
-      remainingSlots -= span;
-      currentAddr -= span * CELL_SIZE;
-    }
+    startAddr = address - 4; // Start just below header for traversal
+    segment = refSegment;
+  } else {
+    // Not a list
     dropOp(vm);
-    vm.push(elementCount);
+    vm.push(-1);
     return;
   }
   
-  // Not a list
+  const slotCount = getListLength(header);
+  if (slotCount === 0) {
+    dropOp(vm);
+    vm.push(0);
+    return;
+  }
+  
+  // Unified traversal logic
+  let elementCount = 0;
+  let currentAddr = startAddr;
+  let remainingSlots = slotCount;
+  while (remainingSlots > 0) {
+    const v = vm.memory.readFloat32(segment, currentAddr);
+    const span = isList(v) ? getListLength(v) + 1 : 1;
+    elementCount++;
+    remainingSlots -= span;
+    currentAddr -= span * CELL_SIZE;
+  }
+  
   dropOp(vm);
-  vm.push(-1);
+  vm.push(elementCount);
 }
 
 /**
