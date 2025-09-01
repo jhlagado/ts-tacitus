@@ -537,7 +537,7 @@ export function elemOp(vm: VM): void {
 
   const slotCount = getListLength(info.header);
   const headerAddr = info.baseAddr + slotCount * 4;
-  const addr = getListElementAddress(vm, info.header, headerAddr, idx);
+  const addr = getListElementAddress(vm, info.header, headerAddr, idx, info.segment);
   if (addr === -1) {
     vm.push(NIL);
     return;
