@@ -10,6 +10,7 @@ import { getListLength, reverseSpan, isList } from '../../core/list';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { Verb } from '../../core/types';
 import { evalOp } from '../core-ops';
+import { ReturnStackUnderflowError } from '../../core/errors';
 
 /**
  * Opens LIST construction.
@@ -25,7 +26,7 @@ export function openListOp(vm: VM): void {
  */
 export function closeListOp(vm: VM): void {
   if (vm.RP < CELL_SIZE) {
-    throw new Error('closeListOp: return stack underflow');
+    throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
   const headerPos = vm.rpop();
