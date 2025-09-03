@@ -42,15 +42,15 @@ import {
   powOp,
 } from './math-ops';
 import { recipOp, floorOp, notOp } from './math-ops';
-import { enlistOp, keysOp, valuesOp } from './list-ops';
+import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
-import { openListOp, closeListOp } from './list-ops';
-import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';
-import { makeListOp, packOp, unpackOp } from './lists/build-ops';
-import { refOp, resolveOp } from './list-ops';
-import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists/structure-ops';
+import { openListOp, closeListOp } from './lists';
+import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists';
+import { makeListOp, packOp, unpackOp } from './lists';
+import { refOp, resolveOp } from './lists';
+import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
