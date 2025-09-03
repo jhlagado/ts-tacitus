@@ -9,8 +9,7 @@ import { getListLength, isList } from '../core/list';
 import { SEG_STACK, CELL_SIZE } from '../core/constants';
 import { isRef, createSegmentRef } from '../core/refs';
 import { Tag, getTag, isNIL, NIL } from '../core/tagged';
-import { enlistOp } from './list-ops';
-import { elemOp, findOp } from './lists/query-ops';
+import { enlistOp, elemOp, findOp } from './lists';
 import { nipOp, dropOp, findElement } from './stack-ops';
 
 /**
