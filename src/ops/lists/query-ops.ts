@@ -12,6 +12,7 @@ import { isRef, resolveReference, readReference, createSegmentRef } from '../../
 import { dropOp } from '../stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from '../local-vars-transfer';
 import { areValuesEqual } from '../../core/utils';
+import { getTag } from '../../core/tagged';
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
@@ -191,4 +192,97 @@ export function findOp(vm: VM): void {
     return;
   }
   vm.push(NIL);
+}
+
+export function keysOp(vm: VM): void {
+  vm.ensureStackSize(1, 'keys');
+  const target = vm.peek();
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+  const slotCount = getListLength(info.header);
+  if (slotCount % 2 !== 0) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+  vm.pop();
+  vm.push(info.header);
+  if (slotCount === 0) {
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+  const keyCount = slotCount / 2;
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  for (let i = keyCount - 1; i >= 0; i--) {
+    const keyAddr = headerAddr - CELL_SIZE - i * 2 * CELL_SIZE;
+    const keyValue = vm.memory.readFloat32(info.segment, keyAddr);
+    vm.push(keyValue);
+  }
+  vm.push(toTaggedValue(keyCount, Tag.LIST));
+}
+
+export function valuesOp(vm: VM): void {
+  vm.ensureStackSize(1, 'values');
+  const target = vm.peek();
+  const info = getListHeaderAndBase(vm, target);
+  if (!info || !isList(info.header)) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+  const slotCount = getListLength(info.header);
+  if (slotCount % 2 !== 0) {
+    vm.pop();
+    vm.push(NIL);
+    return;
+  }
+  vm.pop();
+  vm.push(info.header);
+  if (slotCount === 0) {
+    vm.push(toTaggedValue(0, Tag.LIST));
+    return;
+  }
+  const valueCount = slotCount / 2;
+  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  for (let i = valueCount - 1; i >= 0; i--) {
+    const valueAddr = headerAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
+    const valueValue = vm.memory.readFloat32(info.segment, valueAddr);
+    vm.push(valueValue);
+  }
+  vm.push(toTaggedValue(valueCount, Tag.LIST));
+}
+
+export function refOp(vm: VM): void {
+  vm.ensureStackSize(1, 'ref');
+  const value = vm.peek();
+  const tag = getTag(value);
+  if (tag === Tag.LIST) {
+    const headerCellIndex = (vm.SP - 4) / 4;
+    vm.push(createSegmentRef(0, headerCellIndex));
+  }
+}
+
+export function resolveOp(vm: VM): void {
+  vm.ensureStackSize(1, 'resolve');
+  const value = vm.pop();
+  if (isRef(value)) {
+    const { address, segment } = resolveReference(vm, value);
+    const referencedValue = vm.memory.readFloat32(segment, address);
+    if (isList(referencedValue)) {
+      const slotCount = getListLength(referencedValue);
+      for (let i = 0; i < slotCount; i++) {
+        const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * CELL_SIZE);
+        vm.push(slotValue);
+      }
+      vm.push(referencedValue);
+    } else {
+      vm.push(referencedValue);
+    }
+  } else {
+    vm.push(value);
+  }
 }
