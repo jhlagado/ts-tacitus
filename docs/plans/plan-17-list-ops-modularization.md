@@ -82,25 +82,31 @@ src/ops/lists/
 4. Tests: targeted suites passed (global coverage gate remains intentionally unmet).
 5. Paused and reviewed.
 
-### Phase 6 — Test Reorganization (PENDING)
+### Phase 6 — Test Reorganization (IN PROGRESS)
 Goal: group tests thematically to mirror the new module layout while keeping suites < ~300 LOC each.
 
-- Create `src/test/ops/lists/build/`:
-  - `pack-unpack.test.ts` (pack, unpack, enlist, makeList)
-  - `open-close-parser-integration.test.ts` (openList/closeList basic integration)
-- Create `src/test/ops/lists/query/`:
-  - `length-size.test.ts`
-  - `addressing-slot-elem.test.ts`
-  - `fetch-store.test.ts`
-  - `find-maplist-basic.test.ts` (move from `maplist-basic.test.ts`)
-- Create `src/test/ops/lists/structure/`:
-  - `head-tail-uncons.test.ts`
-  - `reverse.test.ts` (move from `list-reverse.test.ts`)
-  - `concat-basic.test.ts` (move from `concat-scenarios.test.ts`)
-  - `concat-polymorphic.test.ts` (move from existing)
+Completed:
+- Created themed folders: `src/test/ops/lists/{build,query,structure}/`.
+- Moved and renamed for clarity:
+  - Structure: `concat-scenarios.test.ts` → `structure/concat-basic.test.ts`
+  - Structure: `concat-polymorphic.test.ts` → `structure/concat-polymorphic.test.ts`
+  - Structure: `list-reverse.test.ts` → `structure/reverse.test.ts`
+  - Query: `maplist-basic.test.ts` → `query/find-maplist-basic.test.ts`
+  - Build: `list-creation.test.ts` → `build/list-creation.test.ts`
+- Fixed relative imports after moves; targeted suites pass.
+
+Remaining TODO:
+- Build:
+  - Add `pack-unpack.test.ts` (pack, unpack, enlist, makeList)
+  - Add/port `open-close-parser-integration.test.ts` (openList/closeList basics)
+- Query:
+  - Add `length-size.test.ts`
+  - Add `addressing-slot-elem.test.ts`
+  - Add `fetch-store.test.ts`
+- Structure:
+  - Add `head-tail-uncons.test.ts` (skip uncons if not in scope)
 - Keep `src/test/ops/lists/list-spec-compliance.test.ts` as a high-level spec suite.
-- Update imports to use `@ops/lists` re-exports after Phase 5.
-- Ensure no behavioral changes; only file moves/renames.
+- Consider folding `list-operations.test.ts` and `list-integration.test.ts` into themed suites or keep as integration.
 - Tests: run each folder group incrementally, then full suite.
 
 ### Phase 7 — Cleanups & Docs (PENDING)

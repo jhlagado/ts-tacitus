@@ -167,7 +167,7 @@ _No imports_
 - `../strings/symbol-table`
 - `./opcodes`
 
-## ops/list-ops.ts
+## ops/lists/*
 - `../core/vm`
 - `../core/tagged`
 - `../core/refs`
@@ -276,7 +276,7 @@ _No imports_
 - `@jest/globals`
 - `../../core/globalState`
 - `../../core/tagged`
-- `../../ops/list-ops`
+- `../../ops/lists`
 - `../../ops/builtins`
 
 ## test/core/utils.test.ts
@@ -489,7 +489,7 @@ _No imports_
 - `@jest/globals`
 - `../../../core/globalState`
 - `../../../ops/math-ops`
-- `../../../ops/list-ops`
+- `../../../ops/lists`
 
 ## test/ops/combinators/do.test.ts
 - `../../../core/globalState`
@@ -552,7 +552,7 @@ _No imports_
 - `../../../core/tagged`
 - `@jest/globals`
 - `../../../core/globalState`
-- `../../../ops/list-ops`
+- `../../../ops/lists`
 - `../../../core/tagged`
 
 ## test/ops/lists/list-reverse.test.ts
@@ -573,7 +573,7 @@ _No imports_
 - `@jest/globals`
 - `../../../core/globalState`
 - `../../../ops/builtins`
-- `../../../ops/list-ops`
+- `../../../ops/lists`
 - `../../../core/tagged`
 - `../../utils/vm-test-utils`
 
