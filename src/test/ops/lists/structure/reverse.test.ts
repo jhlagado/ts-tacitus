@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 
 describe('List reverse operation', () => {
   beforeEach(() => {
