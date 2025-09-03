@@ -2,7 +2,7 @@
  * Basic maplist tests - start simple and build up
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM, getFormattedStack } from '../../utils/vm-test-utils';
+import { executeTacitCode, resetVM, getFormattedStack } from '../../../utils/vm-test-utils';
 
 describe('Basic Maplist Tests', () => {
   beforeEach(() => {

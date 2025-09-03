@@ -2,7 +2,7 @@
  * Tests for polymorphic concat operation
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode } from '../../utils/vm-test-utils';
+import { executeTacitCode } from '../../../utils/vm-test-utils';
 
 describe('Polymorphic concat Operation', () => {
   beforeEach(() => {

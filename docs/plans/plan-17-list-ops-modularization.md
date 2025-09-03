@@ -56,33 +56,33 @@ src/ops/lists/
 4. Tests: run full list/maplist suites.
 5. Pause for review.
 
-### Phase 2 — Split queries
-1. Create `query-ops.ts` and move: `lengthOp`, `sizeOp`, `slotOp`, `elemOp`, `fetchOp`, `storeOp`, `findOp`.
-2. Update `builtins.ts` imports to reference `@ops/lists` index aggregating from new module.
-3. Keep `export` names intact to avoid opcode mapping churn.
-4. Tests: list + access suites.
-5. Pause for review.
+### Phase 2 — Split queries (COMPLETED)
+1. Created `query-ops.ts` and moved: `lengthOp`, `sizeOp`, `slotOp`, `elemOp`, `fetchOp`, `storeOp`, `findOp`, plus later migrated `keysOp`, `valuesOp`, `refOp`, `resolveOp` for consolidation.
+2. Updated `builtins.ts` to import query ops from `@ops/lists`.
+3. Kept export names intact to avoid opcode mapping churn.
+4. Tests: list + access suites passed.
+5. Paused and reviewed.
 
-### Phase 3 — Split builders
-1. Move `openListOp`, `closeListOp`, `packOp`, `unpackOp`, `makeListOp`, `enlistOp` into `build-ops.ts`.
-2. Ensure `reverseSpan` stays in core (existing location `src/core/list.ts`) — only import/use.
-3. Tests: parser/close/open list tests + list suites.
-4. Pause for review.
+### Phase 3 — Split builders (COMPLETED)
+1. Moved `openListOp`, `closeListOp`, `packOp`, `unpackOp`, `makeListOp`, `enlistOp` into `build-ops.ts`.
+2. Ensured `reverseSpan` remains in `src/core/list.ts` and only imported/used.
+3. Tests: parser/close/open list tests + list suites passed.
+4. Paused and reviewed.
 
-### Phase 4 — Split structure ops
-1. Move `headOp`, `tailOp`, `unconsOp`, `reverseOp`, `concatOp` into `structure-ops.ts`.
-2. Ensure shared helper usage stays consistent; remove any file-local duplicates.
-3. Tests: list-structure tests, concat scenarios, algebraic laws.
-4. Pause for review.
+### Phase 4 — Split structure ops (COMPLETED)
+1. Moved `headOp`, `tailOp` (with alias `dropHeadOp`), `reverseOp`, `concatOp` into `structure-ops.ts`.
+2. Ensured shared helper usage stays consistent; removed file-local duplicates.
+3. Tests: list-structure tests and concat scenarios passed.
+4. Paused and reviewed.
 
-### Phase 5 — Consolidate exports
-1. Add `src/ops/lists/index.ts` to re-export ops from build/query/structure modules.
-2. Update `src/ops/builtins.ts` to import all list ops from `@ops/lists`.
-3. Remove legacy `src/ops/list-ops.ts` once parity is verified.
-4. Tests: full suite.
-5. Pause for review.
+### Phase 5 — Consolidate exports (COMPLETED)
+1. Added `src/ops/lists/index.ts` to re-export ops from build/query/structure modules.
+2. Updated `src/ops/builtins.ts` and `src/ops/select-ops.ts` to import all list ops from `@ops/lists`.
+3. Removed legacy `src/ops/list-ops.ts` after verifying parity and updating tests to reference `@ops/lists`.
+4. Tests: targeted suites passed (global coverage gate remains intentionally unmet).
+5. Paused and reviewed.
 
-### Phase 6 — Test Reorganization (this task)
+### Phase 6 — Test Reorganization (PENDING)
 Goal: group tests thematically to mirror the new module layout while keeping suites < ~300 LOC each.
 
 - Create `src/test/ops/lists/build/`:
@@ -103,7 +103,7 @@ Goal: group tests thematically to mirror the new module layout while keeping sui
 - Ensure no behavioral changes; only file moves/renames.
 - Tests: run each folder group incrementally, then full suite.
 
-### Phase 7 — Cleanups & Docs
+### Phase 7 — Cleanups & Docs (PENDING)
 1. Remove redundant or overlapping tests after consolidation (avoid double coverage of identical paths).
 2. Update any README or contributor docs referencing old test locations.
 3. Tests: full suite.

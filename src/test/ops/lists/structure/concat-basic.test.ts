@@ -1,4 +1,4 @@
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 
 describe('Concat operation scenarios', () => {
   beforeEach(() => {

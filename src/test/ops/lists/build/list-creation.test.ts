@@ -3,9 +3,9 @@
  * Previous files: list-creation.test.ts, lists-creation.test.ts, lists-creation-isolated.test.ts, list-nested.test.ts
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode, resetVM, logStack } from '../../utils/vm-test-utils';
-import { initializeInterpreter } from '../../../core/globalState';
+import { fromTaggedValue, Tag } from '../../../../core/tagged';
+import { executeTacitCode, resetVM, logStack } from '../../../utils/vm-test-utils';
+import { initializeInterpreter } from '../../../../core/globalState';
 
 describe('List Creation Operations', () => {
   beforeEach(() => {
