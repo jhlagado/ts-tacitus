@@ -11,7 +11,7 @@ import {
   NIL,
 } from '../../core/tagged';
 import { isRef, isStackRef, isLocalRef, isGlobalRef, createGlobalRef, createSegmentRef } from '../../core/refs';
-import { fetchOp } from '../../ops/list-ops';
+import { fetchOp } from '../../ops/lists';
 import { SEG_RSTACK } from '../../core/constants';
 
 describe('Unified Reference System', () => {

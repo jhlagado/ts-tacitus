@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
-import { fetchOp } from '../../../ops/list-ops';
+import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeReference } from '../../../core/refs';
 
 describe('Local Variables System', () => {

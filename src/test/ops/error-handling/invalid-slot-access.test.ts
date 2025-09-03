@@ -4,7 +4,7 @@ import { ReturnStackUnderflowError } from '../../../core/errors';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { MEMORY_SIZE, RSTACK_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
-import { fetchOp } from '../../../ops/list-ops';
+import { fetchOp } from '../../../ops/lists';
 import { executeOp } from '../../../ops/builtins';
 import { Op } from '../../../ops/opcodes';
 
