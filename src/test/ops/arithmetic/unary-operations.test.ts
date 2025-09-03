@@ -5,7 +5,7 @@ Includes negate, reciprocal, floor, not, signum, and enlist operations
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { negOp, recipOp, floorOp, notOp, signOp } from '../../../ops/math-ops';
-import { enlistOp } from '../../../ops/list-ops';
+import { enlistOp } from '../../../ops/lists';
 
 function resetVM(): void {
   initializeInterpreter();
