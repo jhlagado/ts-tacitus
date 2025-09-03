@@ -46,10 +46,11 @@ import { enlistOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
-import { openListOp, closeListOp, headOp } from './list-ops';
+import { openListOp, closeListOp } from './list-ops';
 import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';
 import { makeListOp, packOp, unpackOp } from './lists/build-ops';
-import { reverseOp, concatOp, tailOp, refOp, resolveOp } from './list-ops';
+import { refOp, resolveOp } from './list-ops';
+import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists/structure-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
@@ -293,7 +294,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       storeOp(vm);
       break;
     case Op.Head:
-      headOp(vm);
+      _headOp(vm);
       break;
     case Op.Pack:
       packOp(vm);
