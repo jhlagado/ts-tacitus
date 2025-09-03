@@ -7,7 +7,7 @@ import { VM } from '../core/vm';
 import { Verb } from '../core/types';
 import { getListLength, isList } from '../core/list';
 import { SEG_STACK, CELL_SIZE } from '../core/constants';
-import { isRef, createStackRef, createSegmentRef } from '../core/refs';
+import { isRef, createSegmentRef } from '../core/refs';
 import { Tag, getTag, isNIL, NIL } from '../core/tagged';
 import { elemOp, findOp, enlistOp } from './list-ops';
 import { nipOp, dropOp, findElement } from './stack-ops';
@@ -20,7 +20,7 @@ export function createTargetRef(vm: VM): boolean {
   // Use findElement to locate target below path
   const [, pathSize] = findElement(vm, 0); // path is at TOS
   findElement(vm, pathSize); // target is below path
-  
+
   // findElement examined the cell at: vm.SP / CELL_SIZE - pathSize - 1
   const targetCellIndex = vm.SP / CELL_SIZE - pathSize - 1;
   const targetByteAddr = targetCellIndex * CELL_SIZE;
@@ -65,11 +65,11 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
   // Stack: ( target path current-ref new-ref )
 
   const newRef = vm.pop();
-  
+
   // Check only for actual NIL failure (not all NaN values!)
   if (isNIL(newRef)) {
     vm.pop(); // remove current-ref
-    dropOp(vm); // remove path  
+    dropOp(vm); // remove path
     vm.push(NIL); // target NIL
     return false;
   }
