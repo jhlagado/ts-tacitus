@@ -11,6 +11,7 @@ import { SEG_STACK, SEG_RSTACK } from '../core/constants';
 import { Verb } from '../core/types';
 import { ReturnStackUnderflowError } from '../core/errors';
 import { getListLength, reverseSpan, getListElementAddress, isList } from '../core/list';
+import { getListHeaderAndBase, computeHeaderAddr } from './lists/core-helpers';
 import { dropOp, findElement, swapOp } from './stack-ops';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from './local-vars-transfer';
 import { areValuesEqual } from '../core/utils';
@@ -50,29 +51,7 @@ export function closeListOp(vm: VM): void {
   vm.listDepth--;
 }
 
-/**
- * Helper to extract list header and base address from stack or reference.
- * Returns { header, baseAddr, segment } or null if not a valid list/ref.
- */
-function getListHeaderAndBase(
-  vm: VM,
-  value: number,
-): { header: number; baseAddr: number; segment: number } | null {
-  const tag = getTag(value);
-  if (tag === Tag.LIST) {
-    const slotCount = getListLength(value);
-    return { header: value, baseAddr: vm.SP - 4 - slotCount * 4, segment: SEG_STACK };
-  } else if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const header = vm.memory.readFloat32(segment, address);
-    if (!isList(header)) {
-      return null;
-    }
-    const slotCount = getListLength(header);
-    return { header, baseAddr: address - slotCount * 4, segment };
-  }
-  return null;
-}
+// getListHeaderAndBase now imported from './lists/core-helpers'
 
 /**
  * Gets slot count from LIST header.
@@ -80,59 +59,14 @@ function getListHeaderAndBase(
  * See docs/specs/lists.md for slot vs element count semantics.
  * Renamed from slots to length.
  */
-export function lengthOp(vm: VM): void {
-  vm.ensureStackSize(1, 'length');
-  const value = vm.peek();
-  const info = getListHeaderAndBase(vm, value);
-  let slotCount = -1;
-  if (info && isList(info.header)) {
-    slotCount = getListLength(info.header);
-  }
-  dropOp(vm);
-  vm.push(slotCount);
-}
+// lengthOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Returns element count by traversal.
  * Counts the number of top-level elements in the list (not stack slots).
  * See docs/specs/lists.md for slot vs element count semantics.
  */
-export function sizeOp(vm: VM): void {
-  vm.ensureStackSize(1, 'size');
-  const value = vm.peek();
-
-  // Use unified helper but adjust for traversal needs
-  const info = getListHeaderAndBase(vm, value);
-  if (!info || !isList(info.header)) {
-    dropOp(vm);
-    vm.push(-1);
-    return;
-  }
-
-  const slotCount = getListLength(info.header);
-  if (slotCount === 0) {
-    dropOp(vm);
-    vm.push(0);
-    return;
-  }
-
-  // For traversal, we need to start at first element (baseAddr + slotCount*4 - 4)
-  const traversalStartAddr = info.baseAddr + slotCount * 4 - 4;
-
-  let elementCount = 0;
-  let currentAddr = traversalStartAddr;
-  let remainingSlots = slotCount;
-  while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(info.segment, currentAddr);
-    const span = isList(v) ? getListLength(v) + 1 : 1;
-    elementCount++;
-    remainingSlots -= span;
-    currentAddr -= span * CELL_SIZE;
-  }
-
-  dropOp(vm);
-  vm.push(elementCount);
-}
+// sizeOp moved to src/ops/lists/query-ops.ts
 
 /**
  * cons: ( list value — list' )
@@ -162,7 +96,7 @@ export function tailOp(vm: VM): void {
     return;
   }
 
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
   const firstElemAddr = headerAddr - CELL_SIZE;
   const firstElem = vm.memory.readFloat32(info.segment, firstElemAddr);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
@@ -402,28 +336,7 @@ export function headOp(vm: VM): void {
  *
  * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
-export function slotOp(vm: VM): void {
-  vm.ensureStackSize(2, 'slot');
-  const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
-
-  if (!info || !isList(info.header)) {
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListLength(info.header);
-  if (idx < 0 || idx >= slotCount) {
-    vm.push(NIL);
-    return;
-  }
-
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
-  const addr = headerAddr - (idx + 1) * CELL_SIZE;
-  const cellIndex = addr / CELL_SIZE;
-  vm.push(createSegmentRef(info.segment, cellIndex));
-}
+// slotOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Returns address of element start at logical index.
@@ -432,28 +345,7 @@ export function slotOp(vm: VM): void {
  *
  * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
-export function elemOp(vm: VM): void {
-  vm.ensureStackSize(2, 'elem');
-  const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
-
-  if (!info || !isList(info.header)) {
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListLength(info.header);
-  const headerAddr = info.baseAddr + slotCount * 4;
-  const addr = getListElementAddress(vm, info.header, headerAddr, idx, info.segment);
-  if (addr === -1) {
-    vm.push(NIL);
-    return;
-  }
-
-  const cellIndex = addr / 4;
-  vm.push(createSegmentRef(info.segment, cellIndex));
-}
+// elemOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Fetches value at memory address.
@@ -462,29 +354,7 @@ export function elemOp(vm: VM): void {
  *
  * Polymorphic: accepts STACK_REF and RSTACK_REF (cell addresses)
  */
-export function fetchOp(vm: VM): void {
-  vm.ensureStackSize(1, 'fetch');
-  const addressValue = vm.pop();
-
-  if (!isRef(addressValue)) {
-    throw new Error('fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
-  }
-
-  const { address, segment } = resolveReference(vm, addressValue);
-  const value = vm.memory.readFloat32(segment, address);
-
-  if (isList(value)) {
-    const slotCount = getListLength(value);
-
-    for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * CELL_SIZE);
-      vm.push(slotValue);
-    }
-    vm.push(value);
-  } else {
-    vm.push(value);
-  }
-}
+// fetchOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Stores value at memory address (simple values only).
@@ -493,50 +363,7 @@ export function fetchOp(vm: VM): void {
  *
  * Polymorphic: accepts STACK_REF, RSTACK_REF, and GLOBAL_REF addresses
  */
-export function storeOp(vm: VM): void {
-  vm.ensureStackSize(2, 'store');
-  const addressValue = vm.pop();
-  let value = vm.peek();
-
-  // Resolve source if it's a reference (per refs.md spec)
-  if (isRef(value)) {
-    value = readReference(vm, value);
-    vm.pop(); // Remove original ref from stack
-    vm.push(value); // Push resolved value
-  }
-
-  if (!isRef(addressValue)) {
-    throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
-  }
-
-  const { address, segment } = resolveReference(vm, addressValue);
-  const valueInSlot = vm.memory.readFloat32(segment, address);
-
-  let existingValue = valueInSlot;
-  if (isRef(valueInSlot)) {
-    const resolved = resolveReference(vm, valueInSlot);
-    existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
-  }
-
-  const valueIsCompound = isCompoundData(value);
-  const existingIsCompound = isCompoundData(existingValue);
-
-  if (valueIsCompound && existingIsCompound) {
-    if (isCompatibleCompound(existingValue, value)) {
-      const { address: targetAddress, segment: targetSegment } = resolveReference(vm, valueInSlot);
-      mutateCompoundInPlace(vm, targetAddress, targetSegment);
-    } else {
-      vm.pop();
-      throw new Error('Incompatible compound assignment: slot count or type mismatch');
-    }
-  } else if (!valueIsCompound && !existingIsCompound) {
-    vm.pop();
-    vm.memory.writeFloat32(segment, address, value);
-  } else {
-    vm.pop();
-    throw new Error('Cannot assign simple to compound or compound to simple');
-  }
-}
+// storeOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Generic block-to-list converter.
@@ -657,7 +484,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readFloat32(info.segment, headerAddr - (i + 1) * CELL_SIZE);
     vm.push(slotValue);
@@ -702,7 +529,7 @@ export function reverseOp(vm: VM): void {
   }
 
   // Build element descriptors (start address and span)
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
   let currentAddr = headerAddr - CELL_SIZE;
   let remainingSlots = slotCount;
   const elements: Array<{ start: number; span: number }> = [];
@@ -753,54 +580,7 @@ export function reverseOp(vm: VM): void {
  *
  * Polymorphic: accepts LIST (stack-relative) or STACK_REF (memory-based)
  */
-export function findOp(vm: VM): void {
-  vm.ensureStackSize(2, 'find');
-  const key = vm.pop();
-  const target = vm.peek();
-
-  const info = getListHeaderAndBase(vm, target);
-  if (!info || !isList(info.header)) {
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListLength(info.header);
-  if (slotCount % 2 !== 0 || slotCount === 0) {
-    vm.push(NIL);
-    return;
-  }
-
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
-  let defaultValueAddr = -1;
-
-  for (let i = 0; i < slotCount; i += 2) {
-    const keyAddr = headerAddr - CELL_SIZE - i * CELL_SIZE;
-    const valueAddr = headerAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
-    const currentKey = vm.memory.readFloat32(info.segment, keyAddr);
-
-    if (areValuesEqual(currentKey, key)) {
-      const cellIndex = valueAddr / CELL_SIZE;
-      vm.push(createSegmentRef(info.segment, cellIndex));
-      return;
-    }
-
-    const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
-    if (keyTag === Tag.STRING) {
-      const keyStr = vm.digest.get(keyValue);
-      if (keyStr === 'default') {
-        defaultValueAddr = valueAddr;
-      }
-    }
-  }
-
-  if (defaultValueAddr !== -1) {
-    const cellIndex = defaultValueAddr / CELL_SIZE;
-    vm.push(createSegmentRef(info.segment, cellIndex));
-    return;
-  }
-
-  vm.push(NIL);
-}
+// findOp moved to src/ops/lists/query-ops.ts
 
 /**
  * Extracts all keys from a maplist.
@@ -947,3 +727,6 @@ export function resolveOp(vm: VM): void {
     vm.push(value);
   }
 }
+
+// Forward exports for moved query ops (Phase 2)
+export { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';

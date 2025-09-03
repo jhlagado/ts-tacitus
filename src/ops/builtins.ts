@@ -42,31 +42,13 @@ import {
   powOp,
 } from './math-ops';
 import { recipOp, floorOp, notOp } from './math-ops';
-import { enlistOp, findOp, keysOp, valuesOp } from './list-ops';
+import { enlistOp, keysOp, valuesOp } from './list-ops';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
-import {
-  openListOp,
-  closeListOp,
-  lengthOp,
-  sizeOp,
-  slotOp,
-  elemOp,
-  fetchOp,
-  storeOp,
-  headOp,
-} from './list-ops';
-import {
-  concatOp,
-  tailOp,
-  packOp,
-  unpackOp,
-  reverseOp,
-  makeListOp,
-  refOp,
-  resolveOp,
-} from './list-ops';
+import { openListOp, closeListOp, headOp } from './list-ops';
+import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';
+import { makeListOp, packOp, unpackOp, reverseOp, concatOp, tailOp, refOp, resolveOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
