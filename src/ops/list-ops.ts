@@ -21,35 +21,12 @@ const CELL_SIZE = 4;
 /**
  * Opens LIST construction.
  */
-export function openListOp(vm: VM): void {
-  vm.listDepth++;
-  vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(vm.SP - CELL_SIZE);
-}
+// openListOp moved to src/ops/lists/build-ops.ts
 
 /**
  * Closes LIST construction.
  */
-export function closeListOp(vm: VM): void {
-  if (vm.RP < CELL_SIZE) {
-    throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
-  }
-
-  const headerPos = vm.rpop();
-  const payloadSlots = (vm.SP - headerPos - CELL_SIZE) / CELL_SIZE;
-
-  vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
-
-  const isOutermost = vm.listDepth === 1;
-  if (isOutermost) {
-    const totalSpan = (vm.SP - headerPos) / CELL_SIZE;
-    if (totalSpan > 1) {
-      reverseSpan(vm, totalSpan);
-    }
-  }
-
-  vm.listDepth--;
-}
+// closeListOp moved to src/ops/lists/build-ops.ts
 
 // getListHeaderAndBase now imported from './lists/core-helpers'
 
@@ -372,124 +349,21 @@ export function headOp(vm: VM): void {
  * Executes the block and converts all pushed elements into a list.
  * Uses the same SP marking and list construction patterns as openListOp/closeListOp.
  */
-export function makeListOp(vm: VM): void {
-  vm.ensureStackSize(1, 'makeList');
-
-  const blockAddr = vm.pop();
-
-  if (vm.debug) console.log('makeList: got blockAddr', blockAddr, 'hex:', blockAddr.toString(16));
-
-  const placeholderHeader = toTaggedValue(0, Tag.LIST);
-  vm.push(placeholderHeader);
-  const headerPos = vm.SP - CELL_SIZE;
-  vm.rpush(headerPos);
-
-  if (vm.debug) console.log('makeList: placeholder header at', headerPos, 'SP now', vm.SP);
-
-  vm.push(blockAddr);
-  if (vm.debug) console.log('makeList: pushing blockAddr back onto stack for eval, SP now', vm.SP);
-  if (vm.debug) console.log('makeList: calling eval...');
-  evalOp(vm);
-  if (vm.debug) console.log('makeList: eval completed');
-
-  if (vm.debug)
-    console.log('makeList: after block exec, SP now', vm.SP, 'stack:', vm.getStackData());
-
-  const taggedHeaderPos = vm.rpop();
-  const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
-  const payloadSlots = (vm.SP - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
-
-  if (vm.debug)
-    console.log('makeList: headerPos', retrievedHeaderPos, 'payloadSlots', payloadSlots);
-
-  if (payloadSlots < 0) {
-    throw new Error('makeList: negative payload slot count detected');
-  }
-
-  const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_STACK, retrievedHeaderPos, finalizedHeader);
-
-  if (vm.debug) console.log('makeList: updated header, stack before reverse:', vm.getStackData());
-
-  const totalSpan = (vm.SP - retrievedHeaderPos) / CELL_SIZE;
-  if (vm.debug) console.log('makeList: totalSpan to reverse:', totalSpan);
-  if (totalSpan > 1) {
-    reverseSpan(vm, totalSpan);
-    if (vm.debug) console.log('makeList: after reverse, stack:', vm.getStackData());
-  }
-}
+// makeListOp moved to src/ops/lists/build-ops.ts
 
 /**
  * Creates list from n stack items.
  * Stack effect: ( item-n ... item-0 n -- list )
  * Spec: glossary.md - Build list from n stack items
  */
-export function packOp(vm: VM): void {
-  vm.ensureStackSize(1, 'pack');
-  const { value: count } = fromTaggedValue(vm.pop());
-
-  if (count < 0 || count > vm.getStackData().length) {
-    vm.push(NIL);
-    return;
-  }
-
-  if (count === 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
-    return;
-  }
-
-  const values: number[] = [];
-  for (let i = 0; i < count; i++) {
-    if (vm.getStackData().length === 0) {
-      vm.push(NIL);
-      return;
-    }
-    values.push(vm.pop());
-  }
-
-  for (let i = values.length - 1; i >= 0; i--) {
-    vm.push(values[i]);
-  }
-
-  vm.push(toTaggedValue(count, Tag.LIST));
-}
+// packOp moved to src/ops/lists/build-ops.ts
 
 /**
  * Pushes list elements onto stack individually.
  * Stack effect: ( list -- item-n ... item-0 )
  * Spec: glossary.md - Push elements; inverse of pack (without count)
  */
-export function unpackOp(vm: VM): void {
-  vm.ensureStackSize(1, 'unpack');
-  const target = vm.peek();
-
-  const info = getListHeaderAndBase(vm, target);
-  if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
-    return;
-  }
-
-  const slotCount = getListLength(info.header);
-  // Drop the original target (list header or ref)
-  vm.pop();
-
-  if (slotCount === 0) {
-    return;
-  }
-
-  if (info.segment === SEG_STACK) {
-    // Direct list on stack: payload already remains on stack after popping header
-    return;
-  }
-
-  // Reference case: materialize payload slots deep→TOS order
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  for (let i = slotCount - 1; i >= 0; i--) {
-    const slotValue = vm.memory.readFloat32(info.segment, headerAddr - (i + 1) * CELL_SIZE);
-    vm.push(slotValue);
-  }
-}
+// unpackOp moved to src/ops/lists/build-ops.ts
 
 /**
  * Implements the enlist operation.
@@ -497,12 +371,7 @@ export function unpackOp(vm: VM): void {
  *
  * Stack effect: ( value — LIST:1 )
  */
-export const enlistOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'enlist');
-  const a = vm.pop();
-  vm.push(a);
-  vm.push(toTaggedValue(1, Tag.LIST));
-};
+// enlistOp moved to src/ops/lists/build-ops.ts
 
 /**
  * Reverses the elements of a list.
@@ -730,3 +599,5 @@ export function resolveOp(vm: VM): void {
 
 // Forward exports for moved query ops (Phase 2)
 export { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';
+// Forward exports for moved build ops (Phase 3)
+export { openListOp, closeListOp, makeListOp, packOp, unpackOp, enlistOp } from './lists/build-ops';
