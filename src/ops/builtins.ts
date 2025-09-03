@@ -48,7 +48,8 @@ import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
 import { openListOp, closeListOp, headOp } from './list-ops';
 import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists/query-ops';
-import { makeListOp, packOp, unpackOp, reverseOp, concatOp, tailOp, refOp, resolveOp } from './list-ops';
+import { makeListOp, packOp, unpackOp } from './lists/build-ops';
+import { reverseOp, concatOp, tailOp, refOp, resolveOp } from './list-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
