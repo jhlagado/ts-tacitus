@@ -420,7 +420,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('System State Validation', () => {
     it('should maintain consistent VM state across all operations', () => {
-      const _initialIP = vm.IP;
       const initialSP = vm.SP;
       const initialRP = vm.RP;
 

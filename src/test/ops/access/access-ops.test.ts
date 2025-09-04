@@ -64,13 +64,13 @@ describe('Access Operations', () => {
 
       test('should hit non-list branch with different tagged values', () => {
         // Test various non-list types to ensure branch coverage
-        const testCases = [
-          { tag: Tag.STRING, name: 'string' },
-          { tag: Tag.CODE, name: 'code' },
-          { tag: Tag.BUILTIN, name: 'builtin' },
+        const testCases: Array<{ tag: Tag; _name: string }> = [
+          { tag: Tag.STRING, _name: 'string' },
+          { tag: Tag.CODE, _name: 'code' },
+          { tag: Tag.BUILTIN, _name: 'builtin' },
         ];
 
-        testCases.forEach(({ tag, name }) => {
+        testCases.forEach(({ tag }) => {
           resetVM();
           vm.push(toTaggedValue(42, tag)); // Non-list target
           vm.push(toTaggedValue(100, Tag.CODE)); // block

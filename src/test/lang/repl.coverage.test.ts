@@ -10,7 +10,7 @@ jest.mock('../../lang/executor', () => ({
 }));
 
 // Keep typing simple to avoid TS generic issues across ts-jest
-const processFileMock: any = jest.fn();
+const processFileMock = jest.fn();
 jest.mock('../../lang/fileProcessor', () => ({
   processFile: (file: string) => processFileMock(file),
 }));

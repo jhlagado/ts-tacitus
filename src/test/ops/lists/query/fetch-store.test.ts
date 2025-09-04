@@ -31,7 +31,6 @@ describe('List reference operations: fetch/store', () => {
     vm.push(99);
     vm.push(addr);
     storeOp(vm);
-    const after = vm.getStackData();
     // Now fetch via same addr
     vm.push(addr);
     fetchOp(vm);
