@@ -17,8 +17,7 @@
 import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
-import { Tag, fromTaggedValue } from '@src/core';
-import { createCodeRef } from '@src/core';
+import { Tag, fromTaggedValue, createCodeRef } from '../../core';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -138,7 +137,7 @@ describe('Symbol Table Integration Tests', () => {
       vm.symbolTable.defineCode('test', 1500);
 
       const functionIndex = vm.symbolTable.find('test');
-      expect(functionIndex).toBe(1500); 
+      expect(functionIndex).toBe(1500);
 
       const codeRef = vm.symbolTable.findTaggedValue('test');
       expect(codeRef).toBeDefined();
@@ -205,8 +204,6 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should not interfere with existing symbol table functionality', () => {
-      const _existingSymbol = vm.symbolTable.find('add'); 
-
       vm.symbolTable.defineBuiltin('custom_add', Op.Add);
 
       const customRef = vm.resolveSymbol('custom_add');
@@ -243,10 +240,10 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
       expect(vm.getStackData()).toEqual([42, 42]);
 
-      vm.SP = 0; 
+      vm.SP = 0;
       vm.push(5);
 
-      const codeBlockRef = createCodeRef(100); 
+      const codeBlockRef = createCodeRef(100);
       vm.push(codeBlockRef);
 
       const poppedRef = vm.pop();
@@ -259,7 +256,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Performance and Memory Verification', () => {
     test('should handle large numbers of symbols efficiently', () => {
-      const numSymbols = 100; 
+      const numSymbols = 100;
 
       for (let i = 0; i < numSymbols; i++) {
         if (i % 2 === 0) {

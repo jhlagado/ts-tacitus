@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
 import { ReturnStackUnderflowError } from '../../../core/errors';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { MEMORY_SIZE, RSTACK_SIZE } from '../../../core/constants';
+import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
 import { fetchOp } from '../../../ops/lists';
 import { executeOp } from '../../../ops/builtins';
