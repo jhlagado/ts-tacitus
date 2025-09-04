@@ -51,19 +51,18 @@ export function executeTacitCode(code: string): number[] {
 export function getFormattedStack(): string[] {
   const stack = vm.getStackData();
   return stack.map(value => {
-    if (isNaN(value)) {
-      const { tag, value: tagValue } = fromTaggedValue(value);
-      switch (tag) {
-        case Tag.STRING:
-          const str = vm.digest.get(tagValue);
-          return `STRING:${tagValue}(${str})`;
-        case Tag.LIST:
-          return `LIST:${tagValue}`;
-        default:
-          return `${Tag[tag]}:${tagValue}`;
+    if (!isNaN(value)) return value.toString();
+    const { tag, value: tagValue } = fromTaggedValue(value);
+    switch (tag) {
+      case Tag.STRING: {
+        const s = vm.digest.get(tagValue);
+        return `STRING:${tagValue}(${s})`;
       }
+      case Tag.LIST:
+        return `LIST:${tagValue}`;
+      default:
+        return `${Tag[tag]}:${tagValue}`;
     }
-    return value.toString();
   });
 }
 

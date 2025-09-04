@@ -94,7 +94,7 @@ Status: COMPLETED (imports normalized; stray unused import fixed; remaining test
 2. Configure `import/no-restricted-paths` or module boundaries.
 3. Verify: `yarn lint` and full tests green.
 
-Status: Pending
+Status: COMPLETED (added boundary rule via no-restricted-imports; lint passes with expected warnings)
 
 ### Phase 8 — Public runtime surface (optional)
 1. Add `src/lang/runtime/index.ts` that re-exports `vm`, `setupRuntime`, and high-level execution helpers.
