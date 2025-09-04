@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
 import { SEG_STACK } from '../../../core/constants';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { cellsRoll, findElement } from '../../../ops/stack-ops';
+import { cellsRoll, findElement } from '../../../ops/stack';
 
 const CELL_SIZE = 4;
 

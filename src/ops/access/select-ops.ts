@@ -10,7 +10,7 @@ import { SEG_STACK, CELL_SIZE } from '../../core/constants';
 import { isRef, createSegmentRef } from '../../core/refs';
 import { Tag, getTag, isNIL, NIL } from '../../core/tagged';
 import { enlistOp, elemOp, findOp } from '../lists';
-import { nipOp, dropOp, findElement } from '../stack-ops';
+import { nipOp, dropOp, findElement } from '../stack';
 
 /**
  * Creates initial target reference for path traversal.

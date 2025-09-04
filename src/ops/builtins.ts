@@ -43,7 +43,7 @@ import {
 } from './math-ops';
 import { recipOp, floorOp, notOp } from './math-ops';
 import { enlistOp, keysOp, valuesOp } from './lists';
-import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack-ops';
+import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print-ops';
 import { simpleIfOp } from './control-ops';
 import { openListOp, closeListOp } from './lists';
