@@ -84,7 +84,7 @@ Status: COMPLETED (centralized opcode→Verb mapping inside builtins; behavior u
 2. Normalize imports: prefer aliases (`@src/core`, `@src/strings`) and domain barrels.
 3. Verify: `yarn lint` and full tests green.
 
-Status: Pending
+Status: COMPLETED (imports normalized; stray unused import fixed; remaining test warnings deferred to separate test cleanup)
 
 ### Phase 7 — Enforce layering via ESLint
 1. Add import restrictions:

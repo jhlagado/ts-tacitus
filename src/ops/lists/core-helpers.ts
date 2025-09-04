@@ -3,7 +3,7 @@
  * Shared, segment-aware helpers for list operations.
  */
 
-import { VM, getListHeaderAndBase, computeHeaderAddr } from '@src/core';
+import { getListHeaderAndBase, computeHeaderAddr } from '@src/core';
 
 /**
  * Extract list header and base address from a direct LIST or a reference.
