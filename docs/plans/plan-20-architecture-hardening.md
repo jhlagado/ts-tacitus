@@ -46,7 +46,7 @@ Each phase is independently shippable. Status starts as Pending.
 4. Update entrypoints to call `initializeInterpreter()` explicitly (CLI/REPL as applicable).
 5. Verify: full tests green; no Core→Lang imports remain.
 
-Status: Pending
+Status: COMPLETED (runtime moved to Lang; shim left for tests; executor/CLI updated; tests green)
 
 ### Phase 2 — Finish facade migration (imports consistency)
 1. Prefer barrels and aliases over deep Core internals: use `@src/core` and domain indices in Ops/Lang.
@@ -54,14 +54,14 @@ Status: Pending
 3. Update `docs/dependency-map.md` and confirm no deep imports remain.
 4. Verify: full tests green; no cycles.
 
-Status: Pending
+Status: COMPLETED (aliases via @src/core adopted across Lang/Ops; no deep core imports in Ops; tests green)
 
 ### Phase 3 — Decouple Strings from VM (type-only)
 1. In `strings/symbol-table.ts`, replace `VM` usage with `Verb` type where possible.
 2. Ensure `strings/**` has no direct runtime coupling (type-only Core usage allowed).
 3. Verify: full tests green.
 
-Status: Pending
+Status: COMPLETED (Strings now uses Verb type; no VM import; tests green)
 
 ### Phase 4 — Consolidate generic list primitives in Core
 1. Promote generic, segment-aware helpers from `ops/lists/core-helpers.ts` to `src/core/list.ts` (e.g., `getListHeaderAndBase`, `computeHeaderAddr`).
@@ -69,7 +69,7 @@ Status: Pending
 3. Update list ops to consume Core helpers uniformly.
 4. Verify: full tests green; no duplicated traversal/addressing logic.
 
-Status: Pending
+Status: COMPLETED (getListHeaderAndBase/computeHeaderAddr moved to Core; ops re-export; list suites green)
 
 ### Phase 5 — Table-driven builtin dispatch (internal to ops)
 1. Introduce a single source of truth for builtin opcode → Verb mapping (e.g., `ops/dispatch.ts` or extend `builtins-register.ts`).
@@ -125,10 +125,10 @@ Status: Pending
 - Each phase is small and localized. If tests fail, revert the last phase’s edits and pause. Facade/import changes can be reverted file-by-file with minimal blast radius.
 
 ## Tracking Checklist
-- [ ] Phase 1 — Runtime wiring moved to Lang
-- [ ] Phase 2 — Facade migration complete (aliases/barrels)
-- [ ] Phase 3 — Strings decoupled from VM (type-only)
-- [ ] Phase 4 — List primitives consolidated in Core
+- [x] Phase 1 — Runtime wiring moved to Lang
+- [x] Phase 2 — Facade migration complete (aliases/barrels)
+- [x] Phase 3 — Strings decoupled from VM (type-only)
+- [x] Phase 4 — List primitives consolidated in Core
 - [ ] Phase 5 — Table-driven builtin dispatch
 - [ ] Phase 6 — Hygiene and naming consistency
 - [ ] Phase 7 — ESLint boundaries enforced
