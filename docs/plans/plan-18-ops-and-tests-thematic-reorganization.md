@@ -76,19 +76,20 @@ src/test/ops/
 - Updated imports in lists/access to reference `../stack`; updated all stack tests to import via `@ops/stack`.
 - All stack-related suites and impacted integrations pass.
 
-### Phase 4 — Math ops split
-- Move arithmetic and comparison into separate files under `ops/math/` with an index re-export.
-- Update `ops/builtins.ts` and math tests.
-- Tests: arithmetic and comparison suites.
+### Phase 4 — Math ops split (COMPLETED)
+- Moved `math-ops.ts` to `math/arithmetic-ops.ts` and created `math/comparison-ops.ts` with `ops/math/index.ts` re-exports.
+- Updated `ops/builtins.ts` and all math-related tests to import via `./math`.
+- Targeted arithmetic/comparison/interpreter suites pass.
 
-### Phase 5 — Control ops grouping
-- Consolidate control flow ops (if, ifFalseBranch/do/repeat) into `ops/control/` with index.
-- Update builtins and tests.
+### Phase 5 — Control ops grouping (COMPLETED)
+- Moved `control-ops.ts` to `control/branch-ops.ts` and added `ops/control/index.ts`.
+- Updated builtins and control tests to import from `./control`.
+- Control suites pass.
 
-### Phase 6 — Core/Print ops cleanup
-- Keep core/print in their directories with small files and a clean index.
-- Ensure formatting helpers live in `core/format-utils` and `print-ops` only triggers side effects.
-- Tests: print & core suites.
+### Phase 6 — Core/Print ops cleanup (COMPLETED)
+- Moved `core-ops.ts` to `core/core-ops.ts` and `print-ops.ts` to `print/print-ops.ts`; added `ops/core/index.ts` and `ops/print/index.ts`.
+- Updated imports in builtins, builtins-register, combinators, and tests to use `./core` and `./print`.
+- Core-related suites pass.
 
 ### Phase 7 — Test rationalization
 - Remove redundant or overlapping tests; convert internal-structure assertions to behavioral checks.
