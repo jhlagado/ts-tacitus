@@ -3,8 +3,7 @@
  * Mathematical operations for the Tacit VM.
  */
 
-import { VM } from '../../core/vm';
-import { Verb } from '../../core/types';
+import { VM, Verb } from '@src/core';
 // no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'add');

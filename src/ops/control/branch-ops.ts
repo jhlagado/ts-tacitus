@@ -12,10 +12,7 @@
  * whether the condition is truthy (non-zero) or falsy (zero).
  */
 
-import { VM } from '../../core/vm';
-import { Verb } from '../../core/types';
-
-import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../../core/tagged';
+import { VM, Verb, isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '@src/core';
 
 /**
  * Implements a ternary if operator.
