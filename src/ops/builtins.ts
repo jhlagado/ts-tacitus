@@ -47,7 +47,7 @@ import {
 import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print-ops';
-import { simpleIfOp } from './control-ops';
+import { simpleIfOp } from './control';
 import { openListOp, closeListOp } from './lists';
 import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists';
 import { makeListOp, packOp, unpackOp } from './lists';
@@ -57,7 +57,7 @@ import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '../core/errors';
 
-import { ifCurlyBranchFalseOp } from './control-ops';
+import { ifCurlyBranchFalseOp } from './control';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { getOp, setOp, selectOp } from './access';

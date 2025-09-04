@@ -1,5 +1,5 @@
 /**
- * @file src/ops/control-ops.ts
+ * @file src/ops/control/branch-ops.ts
  *
  * This file implements conditional branching operations for the Tacit VM.
  *
@@ -12,10 +12,10 @@
  * whether the condition is truthy (non-zero) or falsy (zero).
  */
 
-import { VM } from '../core/vm';
-import { Verb } from '../core/types';
+import { VM } from '../../core/vm';
+import { Verb } from '../../core/types';
 
-import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../core/tagged';
+import { isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '../../core/tagged';
 
 /**
  * Implements a ternary if operator.

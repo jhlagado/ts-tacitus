@@ -1,11 +1,11 @@
-import { ifCurlyBranchFalseOp } from '../../../ops/control-ops';
+import { ifCurlyBranchFalseOp } from '../../../ops/control';
 /**
  * Tests for control-ops.ts - specifically targeting uncovered branches
  * This includes the deprecated simpleIfOp and edge cases for ifCurlyBranchFalseOp
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/globalState';
-import { simpleIfOp } from '../../../ops/control-ops';
+import { simpleIfOp } from '../../../ops/control';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Control Operations - Branch Coverage', () => {
