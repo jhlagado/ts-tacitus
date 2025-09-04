@@ -25,7 +25,7 @@ import {
   getBuiltinOpcode,
   getCodeAddress,
 } from '../utils/core-test-utils';
-import { evalOp } from '../../ops/core-ops';
+import { evalOp } from '../../ops/core';
 
 describe('Symbol Table Integration Tests', () => {
   beforeEach(() => {

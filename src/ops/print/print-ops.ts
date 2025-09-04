@@ -1,5 +1,5 @@
 /**
- * @file src/ops/print-ops.ts
+ * @file src/ops/print/print-ops.ts
  * Consolidated print operations for the Tacit VM.
  *
  * This file contains both print operations:
@@ -8,10 +8,10 @@
  *
  * Both operations pop values from the stack and output them to console.
  */
-import { VM } from '../core/vm';
-import { fromTaggedValue, Tag } from '../core/tagged';
-import { CELL_SIZE } from '../core/constants';
-import { formatValue as coreFormatValue, formatAtomicValue } from '../core/format-utils';
+import { VM } from '../../core/vm';
+import { fromTaggedValue, Tag } from '../../core/tagged';
+import { CELL_SIZE } from '../../core/constants';
+import { formatValue as coreFormatValue, formatAtomicValue } from '../../core/format-utils';
 /**
  * Formats a LIST structure by consuming elements from the stack.
  *

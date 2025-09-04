@@ -12,7 +12,7 @@
 import { VM } from '../../core/vm';
 import { Verb } from '../../core/types';
 import { NIL } from '../../core/tagged';
-import { evalOp } from '../core-ops';
+import { evalOp } from '../core';
 import { getListLength, isList } from '../../core/list';
 import { SEG_STACK } from '../../core/constants';
 import { isRef, resolveReference } from '../../core/refs';

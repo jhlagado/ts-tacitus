@@ -18,7 +18,7 @@ import {
   getBuiltinOpcode,
   getCodeAddress,
 } from '../utils/core-test-utils';
-import { evalOp } from '../../ops/core-ops';
+import { evalOp } from '../../ops/core';
 
 describe('VM Symbol Resolution', () => {
   beforeEach(() => {
