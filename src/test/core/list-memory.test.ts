@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { executeProgram } from '../../lang/interpreter';
-import { fromTaggedValue, Tag } from '../../core/tagged';
+import { fromTaggedValue, Tag } from '@src/core';
 
 function stackDepth(): number {
   return vm.getStackData().length;

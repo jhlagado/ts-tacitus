@@ -1,5 +1,5 @@
 import { prn } from '../utils/core-test-utils';
-import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core/tagged';
+import { toTaggedValue, Tag, MAX_TAG, tagNames } from '@src/core';
 
 let consoleOutput: string[] = [];
 const originalConsoleWarn = console.warn;

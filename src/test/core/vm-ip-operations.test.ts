@@ -1,7 +1,6 @@
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { SEG_CODE } from '../../core/constants';
-import { toTaggedValue, Tag } from '../../core/tagged';
+import { SEG_CODE, toTaggedValue, Tag } from '@src/core';
 import { Op } from '../../ops/opcodes';
 import { initializeInterpreter, vm } from '../../core/globalState';
 

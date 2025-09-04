@@ -5,7 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
-import { SEG_CODE } from '../../core/constants';
+import { SEG_CODE } from '@src/core';
 
 describe('Compiler Function Context', () => {
   beforeEach(() => {

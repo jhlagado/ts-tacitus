@@ -3,9 +3,8 @@
  * Tests for LIST core utilities
  */
 
-import { VM } from '../../core/vm';
-import { toTaggedValue, Tag, fromTaggedValue } from '../../core/tagged';
-import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core/list';
+import { VM, toTaggedValue, Tag, fromTaggedValue } from '@src/core';
+import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '@src/core';
 import { createList } from '../utils/core-test-utils';
 
 function resetVM(): VM {

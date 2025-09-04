@@ -3,7 +3,7 @@
  * Tests for Tag.LOCAL tagged values
  */
 
-import { toTaggedValue, fromTaggedValue, isLocal, Tag } from '../../core/tagged';
+import { toTaggedValue, fromTaggedValue, isLocal, Tag } from '@src/core';
 
 describe('Tag.LOCAL Tagged Values', () => {
   test('should create LOCAL tagged value with slot number', () => {

@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { SyntaxError, UndefinedWordError } from '../../core/errors';
+import { SyntaxError, UndefinedWordError } from '@src/core';
 
 describe('Local Variables Error Handling', () => {
   beforeEach(() => {

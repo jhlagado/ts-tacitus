@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { STACK_SIZE, RSTACK_SIZE } from '../../core/constants';
-import { StackOverflowError, ReturnStackOverflowError, StackUnderflowError } from '../../core/errors';
+import { STACK_SIZE, RSTACK_SIZE, StackOverflowError, ReturnStackOverflowError, StackUnderflowError } from '@src/core';
 import { initializeInterpreter, vm } from '../../core/globalState';
 
 const CELL_SIZE = 4;

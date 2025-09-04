@@ -9,7 +9,7 @@ import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/globalState';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
-import { fromTaggedValue, Tag } from '../../core/tagged';
+import { fromTaggedValue, Tag } from '@src/core';
 
 describe('VM pushSymbolRef method', () => {
   beforeEach(() => {

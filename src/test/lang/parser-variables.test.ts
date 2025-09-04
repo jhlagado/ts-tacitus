@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { Tag, fromTaggedValue } from '../../core/tagged';
+import { Tag, fromTaggedValue } from '@src/core';
 
 describe('Parser Variable Support', () => {
   beforeEach(() => {
