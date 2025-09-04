@@ -58,7 +58,7 @@ import { InvalidOpcodeError } from '../core/errors';
 import { ifCurlyBranchFalseOp } from './control-ops';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { getOp, setOp, selectOp } from './access-ops';
+import { getOp, setOp, selectOp } from './access';
 import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
 /** Stores TOS into vm.tempRegister. */

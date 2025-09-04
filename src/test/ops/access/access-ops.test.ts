@@ -6,7 +6,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { vm } from '../../../core/globalState';
-import { getOp, setOp } from '../../../ops/access-ops';
+import { getOp, setOp } from '../../../ops/access/get-set-ops';
 import { toTaggedValue, Tag, NIL, isNIL } from '../../../core/tagged';
 
 describe('Access Operations', () => {

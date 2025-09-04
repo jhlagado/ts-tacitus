@@ -4,7 +4,7 @@
 Bring the rest of the ops and their tests up to the same standard as the lists work: group operations thematically by domain, reduce file bloat, remove duplication, and align tests with the new structure. Maintain C-port readiness and behavioral tests.
 
 ## Rationale
-- Current ops are mixed and sometimes monolithic (e.g., core-ops, print-ops). Thematic grouping improves navigability and long-term maintainability.
+- Current ops are mixed and sometimes monolithic (e.g., access-ops, stack-ops). Thematic grouping improves navigability and long-term maintainability.
 - Tests are scattered and sometimes overlap or assert internals; bring them to behavioral assertions and themed layout.
 - Prepare for future C/assembly port by simplifying module interfaces and avoiding JS-heavy idioms.
 
@@ -99,7 +99,7 @@ src/test/ops/
 
 ## Acceptance Criteria
 - Ops organized by domain under `src/ops/<domain>/` with concise files and `index.ts` re-exports per domain.
-- `ops/builtins.ts` imports only via domain indices (e.g., `@ops/lists`, `@ops/stack`).
+- `ops/builtins.ts` imports only via domain indices (e.g., `@ops/lists`, `@ops/stack`, `@ops/access`).
 - Tests reorganized under `src/test/ops/<domain>/`; integration kept in `integration/`.
 - All tests green at each phase; no behavior regressions.
 

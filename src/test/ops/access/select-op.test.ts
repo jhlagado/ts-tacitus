@@ -4,7 +4,7 @@
  */
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { NIL, Tag, getTag } from '../../../core/tagged';
-import { createTargetRef, traverseMultiPath, processPathStep } from '../../../ops/select-ops';
+import { createTargetRef, traverseMultiPath, processPathStep } from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef } from '../../../core/refs';
 import { initializeInterpreter, vm } from '../../../core/globalState';
