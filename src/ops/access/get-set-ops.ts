@@ -9,13 +9,10 @@
  * - set: ( value target { path } -- ok | nil )
  */
 
-import { VM } from '../../core/vm';
-import { Verb } from '../../core/types';
-import { NIL } from '../../core/tagged';
+import { VM, Verb, NIL, SEG_STACK } from '@src/core';
 import { evalOp } from '../core';
 import { getListLength, isList } from '../../core/list';
-import { SEG_STACK } from '../../core/constants';
-import { isRef, resolveReference } from '../../core/refs';
+import { isRef, resolveReference } from '@src/core';
 
 /**
  * Get combinator: path-based value access.
@@ -101,4 +98,3 @@ export const setOp: Verb = (vm: VM) => {
   vm.pop();
   vm.push(NIL);
 };
-

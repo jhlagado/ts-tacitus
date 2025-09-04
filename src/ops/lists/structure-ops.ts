@@ -3,12 +3,10 @@
  * Structural list operations: head, tail, reverse, concat.
  */
 
-import { VM } from '../../core/vm';
-import { toTaggedValue, Tag, NIL } from '../../core/tagged';
+import { VM, toTaggedValue, Tag, NIL, SEG_STACK, CELL_SIZE } from '@src/core';
 import { getListLength, isList } from '../../core/list';
-import { SEG_STACK, CELL_SIZE } from '../../core/constants';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
-import { isRef } from '../../core/refs';
+import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
 export function tailOp(vm: VM): void {

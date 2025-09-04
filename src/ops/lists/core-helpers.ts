@@ -3,10 +3,7 @@
  * Shared, segment-aware helpers for list operations.
  */
 
-import { VM } from '../../core/vm';
-import { getTag, Tag } from '../../core/tagged';
-import { SEG_STACK, CELL_SIZE } from '../../core/constants';
-import { isRef, resolveReference } from '../../core/refs';
+import { VM, getTag, Tag, SEG_STACK, CELL_SIZE, isRef, resolveReference } from '@src/core';
 import { getListLength, isList } from '../../core/list';
 
 /**
