@@ -3,12 +3,12 @@
  * Focuses on how list-aware stack operations handle lists differently from simple values
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from "../../utils/vm-test-utils";
-import { vm } from '../../../core/globalState';
-import { pickOp } from '../../../ops/stack-ops';
-import { elemOp } from '../../../ops/lists';
-import { isRef } from '../../../core/refs';
-import { getTag, isNIL } from '../../../core/tagged';
+import { executeTacitCode, resetVM } from "../../../utils/vm-test-utils";
+import { vm } from '../../../../core/globalState';
+import { pickOp } from '../../../../ops/stack-ops';
+import { elemOp } from '../../../../ops/lists';
+import { isRef } from '../../../../core/refs';
+import { getTag, isNIL } from '../../../../core/tagged';
 
 describe('List Operations', () => {
   beforeEach(() => {
@@ -193,44 +193,7 @@ describe('List Operations', () => {
       console.log('\n=== The problem is clear: off-by-one in reference-based elem access ===');
     });
 
-    test.skip('FOCUSED DEBUG: direct vs reference-based elemOp access', () => {
-      console.log('\n=== FOCUSED DEBUG: Compare direct vs reference access ===');
-
-      // Test 1: Direct access to a simple list (this should work correctly)
-      console.log('--- Test 1: Direct list access (baseline) ---');
-      const direct = executeTacitCode('( 30 40 ) 0 elem fetch');
-      console.log('Direct ( 30 40 ) 0 elem fetch:', direct[direct.length - 1]);
-      console.log('Expected: 30, Got:', direct[direct.length - 1], '- Result:', direct[direct.length - 1] === 30 ? 'CORRECT' : 'WRONG');
-
-      // Test 2: Create a reference to the same list, then access it
-      console.log('--- Test 2: Reference-based access to same list ---');
-      resetVM();
-      // First get a reference to ( 30 40 ) which is element 1 of the nested structure
-      const ref = executeTacitCode('( ( 10 20 ) ( 30 40 ) ) 1 elem');
-      console.log('Created reference to ( 30 40 ):', ref);
-
-      // Now use that reference with elemOp
-      vm.push(0); // Add index 0
-      console.log('Stack before elemOp (should have ref + index):', vm.getStackData());
-
-      elemOp(vm); // Access element 0 through the reference
-      console.log('Stack after elemOp:', vm.getStackData());
-
-      const refResult = vm.pop();
-      console.log('Reference-based access result tag:', getTag(refResult), 'isNIL:', isNIL(refResult));
-
-      if (!isNIL(refResult)) {
-        // Fetch the actual value
-        vm.push(refResult);
-        const fetchResult = executeTacitCode('fetch');
-        console.log('Final fetch result:', fetchResult[fetchResult.length - 1]);
-        console.log('Expected: 30, Got:', fetchResult[fetchResult.length - 1], '- Result:', fetchResult[fetchResult.length - 1] === 30 ? 'CORRECT' : 'WRONG');
-      }
-
-      console.log('\n=== KEY INSIGHT: Compare the two results above ===');
-      console.log('If direct access gives 30 but reference access gives 40,');
-      console.log('then elemOp has an off-by-one bug when working with references');
-    });
+    // Removed skipped debug test to keep suite lean
 
     test('sizeOp verification - next op to fix', () => {
       console.log('\n=== Testing sizeOp (already uses correct approach) ===');

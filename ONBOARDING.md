@@ -12,6 +12,7 @@ Must-read specs (before coding)
   • ONBOARDING.md: Quick start; how tests are written and run here.
   • CLAUDE.md: C/assembly-port constraints; C-like loops, no JS idioms; spec-first, zero
     regressions.
+  • Change Policy: Do not modify repository files unless explicitly instructed to do so. Ask first.
 
 
   Critical source files

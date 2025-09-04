@@ -82,7 +82,7 @@ src/ops/lists/
 4. Tests: targeted suites passed (global coverage gate remains intentionally unmet).
 5. Paused and reviewed.
 
-### Phase 6 — Test Reorganization (IN PROGRESS)
+### Phase 6 — Test Reorganization (COMPLETED)
 Goal: group tests thematically to mirror the new module layout while keeping suites < ~300 LOC each.
 
 Completed:
@@ -99,12 +99,11 @@ Completed:
   - Query: `query/length-size.test.ts`, `query/addressing-slot-elem.test.ts`, `query/fetch-store.test.ts`
 - All new and moved suites pass locally (global coverage gate remains intentionally unmet).
 
-Remaining TODO:
-- Structure:
-  - Add `head-tail-uncons.test.ts` (skip uncons if not in scope)
-- Keep `src/test/ops/lists/list-spec-compliance.test.ts` as a high-level spec suite.
-- Consider folding `list-operations.test.ts` and `list-integration.test.ts` into themed suites or keep as integration.
-- Tests: run each folder group incrementally, then full suite.
+Final state:
+- Structure: added `head-tail-uncons.test.ts` (uncons omitted by scope)
+- Integration: moved `list-operations.test.ts` and `list-integration.test.ts` to `integration/` with clearer names
+- Kept `src/test/ops/lists/list-spec-compliance.test.ts` as a high-level spec suite
+- All themed and integration suites pass locally
 
 ### Phase 7 — Cleanups & Docs (PENDING)
 1. Remove redundant or overlapping tests after consolidation (avoid double coverage of identical paths).

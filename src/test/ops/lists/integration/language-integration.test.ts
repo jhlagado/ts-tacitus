@@ -3,8 +3,8 @@
  * Focuses on end-to-end list functionality with Tacit language features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../../core/tagged';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { fromTaggedValue, Tag } from '../../../../core/tagged';
+import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 
 describe('List Integration Tests', () => {
   beforeEach(() => {
