@@ -16,7 +16,7 @@ import {
   lnOp,
   logOp,
   sqrtOp,
-} from '../../../ops/math-ops';
+} from '../../../ops/math';
 import { resetVM } from '../../utils/vm-test-utils';
 
 describe('Arithmetic Operations', () => {
