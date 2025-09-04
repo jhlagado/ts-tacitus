@@ -9,14 +9,13 @@
  * - set: ( value target { path } -- ok | nil )
  */
 
-import { VM } from '../core/vm';
-import { Verb } from '../core/types';
-import { NIL } from '../core/tagged';
-import { evalOp } from './core-ops';
-import { getListLength, isList } from '../core/list';
-import { SEG_STACK } from '../core/constants';
-import { isRef, resolveReference } from '../core/refs';
-export { selectOp } from './select-ops';
+import { VM } from '../../core/vm';
+import { Verb } from '../../core/types';
+import { NIL } from '../../core/tagged';
+import { evalOp } from '../core-ops';
+import { getListLength, isList } from '../../core/list';
+import { SEG_STACK } from '../../core/constants';
+import { isRef, resolveReference } from '../../core/refs';
 
 /**
  * Get combinator: path-based value access.
