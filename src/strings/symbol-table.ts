@@ -4,14 +4,12 @@
  */
 
 import { Digest } from './digest';
-import { VM } from '../core/vm';
-import { Tag, fromTaggedValue, toTaggedValue } from '../core/tagged';
-import { createBuiltinRef, createCodeRef } from '../core/code-ref';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb } from '@src/core';
 
 /**
  * Word implementation function type.
  */
-type WordFunction = (vm: VM) => void;
+type WordFunction = Verb;
 
 /**
  * Symbol table node.

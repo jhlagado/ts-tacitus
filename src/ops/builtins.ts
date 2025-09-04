@@ -2,10 +2,7 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import { VM } from '../core/vm';
-import { toTaggedValue, fromTaggedValue, getTag, Tag } from '../core/tagged';
-import { getVarRef } from '../core/refs';
-import { SEG_RSTACK } from '../core/constants';
+import { VM, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, SEG_RSTACK } from '@src/core';
 
 import {
   literalNumberOp,
@@ -55,7 +52,7 @@ import { refOp, resolveOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 
 import { Op } from './opcodes';
-import { InvalidOpcodeError } from '../core/errors';
+import { InvalidOpcodeError } from '@src/core';
 
 import { ifCurlyBranchFalseOp } from './control';
 import { doOp } from './combinators/do';

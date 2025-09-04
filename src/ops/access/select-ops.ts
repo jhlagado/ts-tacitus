@@ -4,7 +4,7 @@
  */
 
 import { VM, Verb, Tag, getTag, isNIL, NIL, SEG_STACK, CELL_SIZE } from '@src/core';
-import { getListLength, isList } from '../../core/list';
+import { getListLength, isList } from '@src/core';
 import { isRef, createSegmentRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';

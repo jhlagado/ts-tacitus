@@ -4,7 +4,7 @@
  */
 
 import { VM, toTaggedValue, Tag, NIL, SEG_STACK, CELL_SIZE } from '@src/core';
-import { getListLength, isList } from '../../core/list';
+import { getListLength, isList } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';

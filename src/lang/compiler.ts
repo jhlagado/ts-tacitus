@@ -3,10 +3,7 @@
  * Bytecode compiler for the Tacit language.
  */
 
-import { VM } from '../core/vm';
-import { Tag, toTaggedValue } from '../core/tagged';
-import { SEG_CODE, MIN_USER_OPCODE } from '../core/constants';
-import { InvalidOpcodeAddressError } from '../core/errors';
+import { VM, Tag, toTaggedValue, SEG_CODE, MIN_USER_OPCODE, InvalidOpcodeAddressError } from '@src/core';
 import { Op } from '../ops/opcodes';
 
 /**

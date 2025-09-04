@@ -26,7 +26,7 @@ import {
 } from '@src/core';
 import { executeOp } from '../builtins';
 
-import { formatValue } from '../../core/format-utils';
+import { formatValue } from '@src/core';
 
 /** Number of bytes per stack element. */
 const CELL_SIZE = 4;

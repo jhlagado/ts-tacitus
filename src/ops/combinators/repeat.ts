@@ -7,9 +7,7 @@
  *
  * @param {VM} vm - The virtual machine instance.
  */
-import { VM } from '../../core/vm';
-import { Verb } from '../../core/types';
-import { fromTaggedValue } from '../../core/tagged';
+import { VM, Verb, fromTaggedValue } from '@src/core';
 import { evalOp } from '../core';
 
 export const repeatOp: Verb = (vm: VM) => {
