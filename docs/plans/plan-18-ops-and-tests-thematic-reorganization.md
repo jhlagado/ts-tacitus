@@ -62,21 +62,19 @@ src/test/ops/
 
 ## Staging Plan
 
-### Phase 1 — Discovery and mapping
-- Inventory all ops and tests; map each to a target module and test suite.
-- Identify shared helpers that should be moved into small, reusable files to avoid cycles.
+### Phase 1 — Discovery and mapping (COMPLETED)
+- Inventoried ops and tests and mapped each to target modules/suites (see plan header structure).
+- Identified shared helpers; lists already centralized, others to be kept small to avoid cycles.
 
-### Phase 2 — Access ops consolidation
-- Split `access-ops.ts` into `get-set-ops.ts` and keep `select-ops.ts` colocated under `ops/access/`.
-- Create `ops/access/index.ts` and update `ops/builtins.ts` to import via `@ops/access`.
-- Update tests under `src/test/ops/access/` to import from `@ops/access`.
-- Tests: run access suites.
+### Phase 2 — Access ops consolidation (COMPLETED)
+- Split `access-ops.ts` into `access/get-set-ops.ts` and colocated `access/select-ops.ts`.
+- Added `src/ops/access/index.ts`; updated `ops/builtins.ts` to import via `./access`.
+- Updated `src/test/ops/access/*` imports; select and access suites pass.
 
-### Phase 3 — Stack ops consolidation
-- Split `stack-ops.ts` into `data-move-ops.ts` (dup, drop, swap, rot, over, nip, tuck, pick, revrot) and reserve space for future segment ops.
-- Create `ops/stack/index.ts`; update `ops/builtins.ts` imports.
-- Update stack tests to import via `@ops/stack`.
-- Tests: run stack suites.
+### Phase 3 — Stack ops consolidation (COMPLETED)
+- Moved `stack-ops.ts` to `stack/data-move-ops.ts` and created `ops/stack/index.ts`.
+- Updated imports in lists/access to reference `../stack`; updated all stack tests to import via `@ops/stack`.
+- All stack-related suites and impacted integrations pass.
 
 ### Phase 4 — Math ops split
 - Move arithmetic and comparison into separate files under `ops/math/` with an index re-export.

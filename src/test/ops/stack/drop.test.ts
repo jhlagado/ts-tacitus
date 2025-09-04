@@ -1,6 +1,6 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
-import { dropOp } from '../../../ops/stack-ops';
+import { dropOp } from '../../../ops/stack';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('drop Operation', () => {

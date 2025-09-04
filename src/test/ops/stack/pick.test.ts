@@ -1,6 +1,6 @@
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
-import { pickOp } from '../../../ops/stack-ops';
+import { pickOp } from '../../../ops/stack';
 import { resetVM } from "../../utils/vm-test-utils";
 
 describe('pick Operation', () => {

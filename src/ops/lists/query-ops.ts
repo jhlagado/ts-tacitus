@@ -9,7 +9,7 @@ import { getListLength, getListElementAddress, isList } from '../../core/list';
 import { CELL_SIZE } from '../../core/constants';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '../../core/refs';
-import { dropOp } from '../stack-ops';
+import { dropOp } from '../stack';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from '../local-vars-transfer';
 import { areValuesEqual } from '../../core/utils';
 import { getTag } from '../../core/tagged';

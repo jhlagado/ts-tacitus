@@ -9,7 +9,7 @@ import { getListLength, isList } from '../../core/list';
 import { SEG_STACK, CELL_SIZE } from '../../core/constants';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { isRef } from '../../core/refs';
-import { findElement } from '../stack-ops';
+import { findElement } from '../stack';
 
 export function tailOp(vm: VM): void {
   vm.ensureStackSize(1, 'tail');
