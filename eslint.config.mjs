@@ -43,6 +43,14 @@ const config = [
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
+      // Layering boundaries
+      'no-restricted-imports': [
+        'error',
+        {
+          name: '../lang/*',
+          message: 'Core/Ops must not import from Lang.'
+        },
+      ],
 
       // Relaxed rules for test files
       'no-console': 'off',
