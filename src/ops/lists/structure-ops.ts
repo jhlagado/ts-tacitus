@@ -220,11 +220,21 @@ export function concatOp(vm: VM): void {
     return [readCellAtOffset(topOffset)];
   };
 
-  const lhsSlots = materializeSlots(lhsInfo as any, lhsSize, lhsTop, rhsSize);
-  const rhsSlots = materializeSlots(rhsInfo as any, rhsSize, rhsTop, 0);
+  const lhsSlots = materializeSlots(
+    (lhsInfo as { kind: 'stack-list'; header: number; headerAddr: number } | { baseAddr: number; header: number; segment: number } | null) ?? null,
+    lhsSize,
+    lhsTop,
+    rhsSize,
+  );
+  const rhsSlots = materializeSlots(
+    (rhsInfo as { kind: 'stack-list'; header: number; headerAddr: number } | { baseAddr: number; header: number; segment: number } | null) ?? null,
+    rhsSize,
+    rhsTop,
+    0,
+  );
 
-  const lhsDrop = lhsIsList && 'kind' in (lhsInfo as any) ? getListLength((lhsInfo as any).header) + 1 : lhsSize;
-  const rhsDrop = rhsIsList && 'kind' in (rhsInfo as any) ? getListLength((rhsInfo as any).header) + 1 : rhsSize;
+  const lhsDrop = lhsIsList && lhsInfo && 'kind' in lhsInfo ? getListLength((lhsInfo as { kind: 'stack-list'; header: number }).header) + 1 : lhsSize;
+  const rhsDrop = rhsIsList && rhsInfo && 'kind' in rhsInfo ? getListLength((rhsInfo as { kind: 'stack-list'; header: number }).header) + 1 : rhsSize;
 
   vm.SP -= (lhsDrop + rhsDrop) * CELL_SIZE;
 
