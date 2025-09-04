@@ -3,14 +3,11 @@
  * List construction and conversion operations (builders).
  */
 
-import { VM } from '../../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, NIL } from '../../core/tagged';
-import { SEG_STACK, CELL_SIZE } from '../../core/constants';
+import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_STACK, CELL_SIZE, Verb } from '@src/core';
 import { getListLength, reverseSpan, isList } from '../../core/list';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
-import { Verb } from '../../core/types';
 import { evalOp } from '../core';
-import { ReturnStackUnderflowError } from '../../core/errors';
+import { ReturnStackUnderflowError } from '@src/core';
 
 /**
  * Opens LIST construction.

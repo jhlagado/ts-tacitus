@@ -69,10 +69,15 @@ Result:
 - `ops/control/branch-ops.ts` now imports `VM`, `Verb`, and tagged helpers via `@src/core`.
 - Full test suite green (coverage gate unchanged).
 
-### Phase 4 — Migrate lists/access ops to facades (careful with helpers)
+### Phase 4 — Migrate lists/access ops to facades (careful with helpers) — COMPLETED
 1. Update `ops/lists/*` and `ops/access/*` imports to use `@src/core` facades where feasible.
 2. Keep list‑specific helpers in `ops/lists/core-helpers.ts`; do not move list logic into core.
 Validation: run tests; confirm no behavioral changes.
+
+Result:
+- `ops/lists/*` imports now prefer `@src/core` for `VM`, tags, constants, refs, and utils; list internals remain in `lists/core-helpers.ts`.
+- `ops/access/*` imports updated similarly; list helpers remain localized.
+- One run showed a flaky perf test; rerun produced green suite (coverage gate unchanged).
 
 ### Phase 5 — Lang surface cleanup (compiler/interpreter/executor)
 1. Review imports in `src/lang/**` and migrate to `@src/core`/`@src/strings` facades where it reduces deep coupling.

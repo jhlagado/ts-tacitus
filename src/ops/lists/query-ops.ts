@@ -3,16 +3,14 @@
  * Read-only and address-returning list operations (segment-aware).
  */
 
-import { VM } from '../../core/vm';
-import { fromTaggedValue, toTaggedValue, Tag, NIL } from '../../core/tagged';
+import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
 import { getListLength, getListElementAddress, isList } from '../../core/list';
-import { CELL_SIZE } from '../../core/constants';
+import { CELL_SIZE } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
-import { isRef, resolveReference, readReference, createSegmentRef } from '../../core/refs';
+import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from '../local-vars-transfer';
-import { areValuesEqual } from '../../core/utils';
-import { getTag } from '../../core/tagged';
+import { areValuesEqual, getTag } from '@src/core';
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');

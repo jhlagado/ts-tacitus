@@ -2,15 +2,6 @@
 
 This file is auto-generated. It lists all imports for each TS file in `src/`.
 
-## Import Facades (Plan 19)
-
-Preferred public import surfaces:
-- `@src/core` — stable facade for VM/runtime primitives (re-exports: `vm`, `memory`, `constants`, `tagged`, `refs`, `errors`, `utils`).
-- `@src/strings` — stable facade for string/dictionary infrastructure (re-exports: `digest`, `symbol-table`, `string`).
-
-Use domain barrels for ops (e.g., `@ops/lists`, `@ops/stack`, `@ops/access`, `@ops/math`, `@ops/control`, `@ops/print`).
-This note documents the intended surfaces; the sections below remain a raw import map.
-
 ## cli.ts
 - `./lang/repl`
 - `./lang/fileProcessor`
@@ -35,6 +26,9 @@ _No imports_
 ## core/globalState.ts
 - `./vm`
 - `../lang/compiler`
+
+## core/index.ts
+_No imports_
 
 ## core/list.ts
 - `./vm`
@@ -177,19 +171,13 @@ _No imports_
 - `../core`
 
 ## ops/control/branch-ops.ts
-- `../../core/vm`
-- `../../core/types`
-- `../../core/tagged`
+- `@src/core`
 
 ## ops/control/index.ts
 _No imports_
 
 ## ops/core/core-ops.ts
-- `../../core/vm`
-- `../../core/errors`
-- `../../core/types`
-- `../../core/tagged`
-- `../../core/constants`
+- `@src/core`
 - `../builtins`
 - `../../core/format-utils`
 
@@ -245,13 +233,10 @@ _No imports_
 - `../core/list`
 
 ## ops/math/arithmetic-ops.ts
-- `../../core/vm`
-- `../../core/types`
+- `@src/core`
 
 ## ops/math/comparison-ops.ts
-- `../../core/vm`
-- `../../core/types`
-- `../../core/utils`
+- `@src/core`
 
 ## ops/math/index.ts
 _No imports_
@@ -263,9 +248,7 @@ _No imports_
 _No imports_
 
 ## ops/print/print-ops.ts
-- `../../core/vm`
-- `../../core/tagged`
-- `../../core/constants`
+- `@src/core`
 - `../../core/format-utils`
 
 ## ops/stack/data-move-ops.ts
@@ -281,6 +264,9 @@ _No imports_
 ## strings/digest.ts
 - `../core/memory`
 - `../core/constants`
+
+## strings/index.ts
+_No imports_
 
 ## strings/string.ts
 - `./digest`
@@ -931,3 +917,4 @@ _No imports_
 - `../../lang/parser`
 - `../../lang/interpreter`
 - `../../core/globalState`
+
