@@ -20,15 +20,14 @@
 import { Op } from '../ops/opcodes';
 import { vm } from '../core/globalState';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isWhitespace, isGroupingChar } from '../core/utils';
-import { fromTaggedValue, Tag } from '../core/tagged';
+import { isWhitespace, isGroupingChar, fromTaggedValue, Tag } from '@src/core';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
   SyntaxError,
   NestedDefinitionError,
   UnexpectedTokenError,
-} from '../core/errors';
+} from '@src/core';
 
 /**
  * Represents a word definition in the Tacit language.

@@ -17,10 +17,10 @@
 import { executeOp } from '../ops/builtins';
 import { vm } from '../core/globalState';
 import { parse } from './parser';
-import { toTaggedValue, Tag } from '../core/tagged';
+import { toTaggedValue, Tag, SEG_CODE } from '@src/core';
 import { Tokenizer } from './tokenizer';
 
-import { SEG_CODE } from '../core/constants';
+// SEG_CODE imported from @src/core
 
 /**
  * Executes Tacit bytecode starting from a specific address.
