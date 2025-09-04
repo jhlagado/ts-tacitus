@@ -84,17 +84,15 @@ _No imports_
 - `../ops/builtins`
 - `../core/globalState`
 - `./parser`
-- `../core/tagged`
+- `@src/core`
 - `./tokenizer`
-- `../core/constants`
 
 ## lang/parser.ts
 - `../ops/opcodes`
 - `../core/globalState`
 - `./tokenizer`
-- `../core/utils`
-- `../core/tagged`
-- `../core/errors`
+- `@src/core`
+- `@src/core`
 
 ## lang/repl.ts
 - `readline`
@@ -102,28 +100,21 @@ _No imports_
 - `./fileProcessor`
 
 ## lang/tokenizer.ts
-- `../core/errors`
-- `../core/utils`
+- `@src/core`
 
 ## ops/access/get-set-ops.ts
-- `../../core/vm`
-- `../../core/types`
-- `../../core/tagged`
+- `@src/core`
 - `../core`
 - `../../core/list`
-- `../../core/constants`
-- `../../core/refs`
+- `@src/core`
 
 ## ops/access/index.ts
 _No imports_
 
 ## ops/access/select-ops.ts
-- `../../core/vm`
-- `../../core/types`
+- `@src/core`
 - `../../core/list`
-- `../../core/constants`
-- `../../core/refs`
-- `../../core/tagged`
+- `@src/core`
 - `../lists`
 - `../stack`
 
@@ -185,44 +176,34 @@ _No imports_
 _No imports_
 
 ## ops/lists/build-ops.ts
-- `../../core/vm`
-- `../../core/tagged`
-- `../../core/constants`
+- `@src/core`
 - `../../core/list`
 - `./core-helpers`
-- `../../core/types`
 - `../core`
-- `../../core/errors`
+- `@src/core`
 
 ## ops/lists/core-helpers.ts
-- `../../core/vm`
-- `../../core/tagged`
-- `../../core/constants`
-- `../../core/refs`
+- `@src/core`
 - `../../core/list`
 
 ## ops/lists/index.ts
 _No imports_
 
 ## ops/lists/query-ops.ts
-- `../../core/vm`
-- `../../core/tagged`
+- `@src/core`
 - `../../core/list`
-- `../../core/constants`
+- `@src/core`
 - `./core-helpers`
-- `../../core/refs`
+- `@src/core`
 - `../stack`
 - `../local-vars-transfer`
-- `../../core/utils`
-- `../../core/tagged`
+- `@src/core`
 
 ## ops/lists/structure-ops.ts
-- `../../core/vm`
-- `../../core/tagged`
+- `@src/core`
 - `../../core/list`
-- `../../core/constants`
 - `./core-helpers`
-- `../../core/refs`
+- `@src/core`
 - `../stack`
 
 ## ops/local-vars-transfer.ts
