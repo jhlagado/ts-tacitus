@@ -9,7 +9,7 @@
  * Both operations pop values from the stack and output them to console.
  */
 import { VM, fromTaggedValue, Tag, CELL_SIZE } from '@src/core';
-import { formatValue as coreFormatValue, formatAtomicValue } from '../../core/format-utils';
+import { formatValue as coreFormatValue, formatListByConsumingStack } from '../../core/format-utils';
 /**
  * Formats a LIST structure by consuming elements from the stack.
  *
@@ -23,28 +23,7 @@ import { formatValue as coreFormatValue, formatAtomicValue } from '../../core/fo
  * @param headerValue - The LIST header value containing the slot count
  * @returns A string representation of the list in the format "( elem1 elem2 ... )"
  */
-function formatListFromHeader(vm: VM, headerValue: number): string {
-  const decoded = fromTaggedValue(headerValue);
-  const totalSlots = decoded.value;
-  const parts: string[] = [];
-  let consumed = 0;
-
-  while (consumed < totalSlots && vm.SP >= CELL_SIZE) {
-    const cell = vm.pop();
-    const cellDecoded = fromTaggedValue(cell);
-    if (cellDecoded.tag === Tag.LIST) {
-      const nestedSlots = cellDecoded.value;
-      const nested = formatListFromHeader(vm, cell);
-      parts.push(nested);
-      consumed += 1 + nestedSlots;
-    } else {
-      parts.push(formatAtomicValue(vm, cell));
-      consumed += 1;
-    }
-  }
-
-  return `( ${parts.join(' ')} )`;
-}
+// formatting handled by core: formatListByConsumingStack
 
 /**
  * Human-readable print operation - formats and prints the top stack value.
@@ -73,7 +52,7 @@ export function printOp(vm: VM): void {
 
     if (decoded.tag === Tag.LIST) {
       const headerVal = vm.pop();
-      const formatted = formatListFromHeader(vm, headerVal);
+      const formatted = formatListByConsumingStack(vm, headerVal);
       console.log(formatted);
       return;
     }
