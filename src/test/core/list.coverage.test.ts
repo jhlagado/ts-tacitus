@@ -1,7 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { reverseSpan, getListElementAddress } from '../../core/list';
-import { SEG_STACK } from '../../core/constants';
-import { Tag, toTaggedValue } from '../../core/tagged';
+import { reverseSpan, getListElementAddress } from '@src/core';
+import { SEG_STACK, Tag, toTaggedValue } from '@src/core';
 
 describe('core/list additional coverage', () => {
   beforeEach(() => {

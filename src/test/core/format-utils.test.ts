@@ -1,6 +1,6 @@
-import { formatAtomicValue, formatValue } from '../../core/format-utils';
+import { formatAtomicValue, formatValue } from '@src/core';
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { Tag, toTaggedValue } from '../../core/tagged';
+import { Tag, toTaggedValue } from '@src/core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Format Utils', () => {

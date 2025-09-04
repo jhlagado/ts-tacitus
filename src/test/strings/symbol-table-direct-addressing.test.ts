@@ -8,9 +8,8 @@
 
 import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
-import { SymbolTable } from '../../strings/symbol-table';
-import { Digest } from '../../strings/digest';
-import { Tag, fromTaggedValue } from '../../core/tagged';
+import { SymbolTable, Digest } from '@src/strings';
+import { Tag, fromTaggedValue } from '@src/core';
 import { Op } from '../../ops/opcodes';
 
 describe('SymbolTable Direct Addressing', () => {

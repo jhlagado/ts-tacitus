@@ -1,7 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../core/vm';
-import { SEG_STACK } from '../../core/constants';
-import { toTaggedValue, Tag } from '../../core/tagged';
+import { VM, SEG_STACK, toTaggedValue, Tag } from '@src/core';
 import { findElement } from '../../ops/stack';
 
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {

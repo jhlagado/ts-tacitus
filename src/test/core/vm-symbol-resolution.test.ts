@@ -9,9 +9,8 @@
 import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
-import { Tag } from '../../core/tagged';
-import { fromTaggedValue } from '../../core/tagged';
-import { createBuiltinRef, createCodeRef } from '../../core/code-ref';
+import { Tag, fromTaggedValue } from '@src/core';
+import { createBuiltinRef, createCodeRef } from '@src/core';
 import {
   isBuiltinRef,
   isFuncRef,

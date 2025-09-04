@@ -1,7 +1,7 @@
 import { execute, executeProgram } from '../../lang/interpreter';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import * as math from '../../ops/math/arithmetic-ops';
-import { SEG_CODE } from '../../core/constants';
+import { SEG_CODE } from '@src/core';
 
 function expectStack(expected: number[]): void {
   expect(vm.getStackData()).toEqual(expected);

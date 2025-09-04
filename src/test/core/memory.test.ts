@@ -1,5 +1,4 @@
-import { Memory } from '../../core/memory';
-import { MEMORY_SIZE, SEG_STACK } from '../../core/constants';
+import { Memory, MEMORY_SIZE, SEG_STACK } from '@src/core';
 
 describe('Memory', () => {
   let memory: Memory;

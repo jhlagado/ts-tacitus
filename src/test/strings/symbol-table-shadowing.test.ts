@@ -3,10 +3,8 @@
  * Tests for natural Forth-style shadowing in SymbolTable
  */
 
-import { SymbolTable } from '../../strings/symbol-table';
-import { Digest } from '../../strings/digest';
-import { Memory } from '../../core/memory';
-import { fromTaggedValue, isLocal, Tag } from '../../core/tagged';
+import { SymbolTable, Digest } from '@src/strings';
+import { Memory, fromTaggedValue, isLocal, Tag } from '@src/core';
 
 describe('SymbolTable Natural Shadowing', () => {
   let digest: Digest;

@@ -17,8 +17,8 @@
 import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
-import { Tag, fromTaggedValue } from '../../core/tagged';
-import { createCodeRef } from '../../core/code-ref';
+import { Tag, fromTaggedValue } from '@src/core';
+import { createCodeRef } from '@src/core';
 import {
   isBuiltinRef,
   isFuncRef,

@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/globalState';
 import { Compiler } from '../../lang/compiler';
-import { MIN_USER_OPCODE } from '../../core/constants';
+import { MIN_USER_OPCODE } from '@src/core';
 
 describe('Compiler - Branch Coverage', () => {
   beforeEach(() => {

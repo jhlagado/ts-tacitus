@@ -1,4 +1,4 @@
-import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
+import { toTaggedValue, fromTaggedValue, Tag } from '@src/core';
 import { Op } from '../../ops/opcodes';
 
 describe('Tag.BUILTIN functionality', () => {

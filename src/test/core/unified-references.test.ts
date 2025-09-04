@@ -9,10 +9,15 @@ import {
   fromTaggedValue,
   createLocalRef,
   NIL,
-} from '../../core/tagged';
-import { isRef, isStackRef, isLocalRef, isGlobalRef, createGlobalRef, createSegmentRef } from '../../core/refs';
+  isRef,
+  isStackRef,
+  isLocalRef,
+  isGlobalRef,
+  createGlobalRef,
+  createSegmentRef,
+} from '@src/core';
 import { fetchOp } from '../../ops/lists';
-import { SEG_RSTACK } from '../../core/constants';
+import { SEG_RSTACK } from '@src/core';
 
 describe('Unified Reference System', () => {
   beforeEach(() => {

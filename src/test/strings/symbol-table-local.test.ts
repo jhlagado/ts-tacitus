@@ -3,10 +3,8 @@
  * Tests for local variable functionality in SymbolTable
  */
 
-import { SymbolTable } from '../../strings/symbol-table';
-import { Digest } from '../../strings/digest';
-import { Memory } from '../../core/memory';
-import { fromTaggedValue, isLocal } from '../../core/tagged';
+import { SymbolTable, Digest } from '@src/strings';
+import { Memory, fromTaggedValue, isLocal } from '@src/core';
 
 describe('SymbolTable Local Variables', () => {
   let digest: Digest;
