@@ -4,7 +4,7 @@
  */
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
-import { getListLength, getListElementAddress, isList } from '../../core/list';
+import { getListLength, getListElementAddress, isList } from '@src/core';
 import { CELL_SIZE } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';

@@ -16,7 +16,7 @@
  * - Arithmetic operations (abs, exp, sqrt, etc.)
  * - Conditional operations (if, ifcurlybf)
  */
-import { VM } from '../core/vm';
+import { VM } from '@src/core';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 

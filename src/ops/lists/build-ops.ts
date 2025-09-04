@@ -4,7 +4,7 @@
  */
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_STACK, CELL_SIZE, Verb } from '@src/core';
-import { getListLength, reverseSpan, isList } from '../../core/list';
+import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';
 import { ReturnStackUnderflowError } from '@src/core';

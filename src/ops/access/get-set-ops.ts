@@ -11,7 +11,7 @@
 
 import { VM, Verb, NIL, SEG_STACK } from '@src/core';
 import { evalOp } from '../core';
-import { getListLength, isList } from '../../core/list';
+import { getListLength, isList } from '@src/core';
 import { isRef, resolveReference } from '@src/core';
 
 /**

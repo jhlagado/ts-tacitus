@@ -4,7 +4,7 @@
  */
 
 import { VM, getTag, Tag, SEG_STACK, CELL_SIZE, isRef, resolveReference } from '@src/core';
-import { getListLength, isList } from '../../core/list';
+import { getListLength, isList } from '@src/core';
 
 /**
  * Extract list header and base address from a direct LIST or a reference.
