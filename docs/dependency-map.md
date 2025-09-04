@@ -268,68 +268,74 @@ _No imports_
 - `../utils/vm-test-utils`
 
 ## test/core/builtin-tag.test.ts
-- `../../core/tagged`
+- `@src/core`
 - `../../ops/opcodes`
 
 ## test/core/code-ref.test.ts
-- `../../core/code-ref`
+- `@src/core`
 - `../utils/core-test-utils`
-- `../../core/tagged`
+- `@src/core`
 - `../../ops/opcodes`
-- `../../core/constants`
+- `@src/core`
+
+## test/core/format-utils.coverage.test.ts
+- `../../core/globalState`
+- `@src/core`
+- `@src/core`
 
 ## test/core/format-utils.test.ts
-- `../../core/format-utils`
+- `@src/core`
 - `../../core/globalState`
-- `../../core/tagged`
+- `@src/core`
 - `../utils/vm-test-utils`
 
 ## test/core/list-memory.test.ts
 - `@jest/globals`
 - `../../core/globalState`
 - `../../lang/interpreter`
-- `../../core/tagged`
+- `@src/core`
+
+## test/core/list.coverage.test.ts
+- `../../core/globalState`
+- `@src/core`
+- `@src/core`
 
 ## test/core/list.test.ts
-- `../../core/vm`
-- `../../core/tagged`
-- `../../core/list`
+- `@src/core`
+- `@src/core`
 - `../utils/core-test-utils`
 
 ## test/core/memory.test.ts
-- `../../core/memory`
-- `../../core/constants`
+- `@src/core`
 
 ## test/core/printer.test.ts
 - `../utils/core-test-utils`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/core/reference-formatting.test.ts
 - `@jest/globals`
 - `../utils/vm-test-utils`
 
 ## test/core/tagged-local.test.ts
-- `../../core/tagged`
+- `@src/core`
 
 ## test/core/tagged-meta.test.ts
-- `../../core/tagged`
+- `@src/core`
 
 ## test/core/tagged.test.ts
-- `../../core/tagged`
+- `@src/core`
 
 ## test/core/unified-references.test.ts
 - `@jest/globals`
 - `../../core/globalState`
-- `../../core/tagged`
-- `../../core/refs`
+- `@src/core`
 - `../../ops/lists`
-- `../../core/constants`
+- `@src/core`
 
 ## test/core/utils.test.ts
-- `../../core/utils`
-- `../../core/format-utils`
-- `../../core/tagged`
-- `../../core/vm`
+- `@src/core`
+- `@src/core`
+- `@src/core`
 
 ## test/core/vm-comprehensive-testing.test.ts
 - `../utils/vm-test-utils`
@@ -349,8 +355,7 @@ _No imports_
 
 ## test/core/vm-ip-operations.test.ts
 - `@jest/globals`
-- `../../core/constants`
-- `../../core/tagged`
+- `@src/core`
 - `../../ops/opcodes`
 - `../../core/globalState`
 
@@ -359,43 +364,40 @@ _No imports_
 - `../../core/globalState`
 - `../../ops/core`
 - `../../ops/opcodes`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/core/vm-receiver-register.test.ts
-- `../../core/vm`
+- `@src/core`
 - `../../lang/compiler`
 - `../utils/vm-test-utils`
 
 ## test/core/vm-stack-operations.test.ts
 - `@jest/globals`
-- `../../core/constants`
-- `../../core/errors`
+- `@src/core`
 - `../../core/globalState`
 
 ## test/core/vm-symbol-resolution.test.ts
 - `../../core/globalState`
 - `../utils/vm-test-utils`
 - `../../ops/opcodes`
-- `../../core/tagged`
-- `../../core/tagged`
-- `../../core/code-ref`
+- `@src/core`
+- `@src/core`
 - `../utils/core-test-utils`
 - `../../ops/core`
 
 ## test/core/vm-unified-dispatch.test.ts
 - `../../core/globalState`
 - `../utils/vm-test-utils`
-- `../../core/code-ref`
-- `../../core/tagged`
+- `@src/core`
+- `@src/core`
 - `../../ops/opcodes`
 - `../../ops/core`
 
 ## test/core/vm.test.ts
-- `../../core/vm`
-- `../../core/constants`
+- `@src/core`
 - `../../lang/compiler`
-- `../../strings/symbol-table`
-- `../../core/tagged`
+- `@src/strings`
+- `@src/core`
 
 ## test/integration/advancedOperations.test.ts
 - `../utils/vm-test-utils`
@@ -407,8 +409,8 @@ _No imports_
 - `../../core/globalState`
 - `../utils/vm-test-utils`
 - `../../ops/opcodes`
-- `../../core/tagged`
-- `../../core/code-ref`
+- `@src/core`
+- `@src/core`
 - `../utils/core-test-utils`
 - `../../ops/core`
 
@@ -420,26 +422,26 @@ _No imports_
 ## test/lang/compile-code-block.test.ts
 - `../../lang/interpreter`
 - `../../core/globalState`
-- `../../core/tagged`
+- `@src/core`
 - `../utils/vm-test-utils`
 
 ## test/lang/compiler-coverage.test.ts
 - `@jest/globals`
 - `../../core/globalState`
 - `../../lang/compiler`
-- `../../core/constants`
+- `@src/core`
 
 ## test/lang/compiler-functions.test.ts
 - `@jest/globals`
 - `../../core/globalState`
 - `../utils/vm-test-utils`
 - `../../ops/opcodes`
-- `../../core/constants`
+- `@src/core`
 
 ## test/lang/compiler.test.ts
 - `../../ops/opcodes`
 - `../../core/globalState`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/lang/end-to-end-local-vars.test.ts
 - `@jest/globals`
@@ -463,13 +465,13 @@ _No imports_
 - `@jest/globals`
 - `../../core/globalState`
 - `../../lang/interpreter`
-- `../../core/constants`
+- `@src/core`
 
 ## test/lang/interpreter.test.ts
 - `../../lang/interpreter`
 - `../../core/globalState`
 - `../../ops/math/arithmetic-ops`
-- `../../core/constants`
+- `@src/core`
 
 ## test/lang/list-compilation.test.ts
 - `@jest/globals`
@@ -487,7 +489,7 @@ _No imports_
 - `@jest/globals`
 - `../../core/globalState`
 - `../utils/vm-test-utils`
-- `../../core/errors`
+- `@src/core`
 
 ## test/lang/local-vars-integration.test.ts
 - `@jest/globals`
@@ -498,7 +500,7 @@ _No imports_
 - `@jest/globals`
 - `../../core/globalState`
 - `../../lang/interpreter`
-- `../../core/tagged`
+- `@src/core`
 - `../../lang/tokenizer`
 - `../../lang/parser`
 
@@ -509,13 +511,13 @@ _No imports_
 ## test/lang/parser-symbol.test.ts
 - `../utils/vm-test-utils`
 - `../../core/globalState`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/lang/parser-variables.test.ts
 - `@jest/globals`
 - `../../core/globalState`
 - `../utils/vm-test-utils`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/lang/parser.comprehensive.test.ts
 - `../../ops/opcodes`
@@ -533,6 +535,10 @@ _No imports_
 ## test/lang/ref-sigil.test.ts
 - `@jest/globals`
 - `../utils/vm-test-utils`
+
+## test/lang/repl.coverage.test.ts
+- `@jest/globals`
+- `../../lang/repl`
 
 ## test/lang/repl.test.ts
 - `readline`
@@ -851,35 +857,28 @@ _No imports_
 
 ## test/stack/find.test.ts
 - `@jest/globals`
-- `../../core/vm`
-- `../../core/constants`
-- `../../core/tagged`
+- `@src/core`
 - `../../ops/stack`
 
 ## test/stack/slots.test.ts
 - `@jest/globals`
-- `../../core/vm`
+- `@src/core`
 - `../../ops/stack`
 
 ## test/strings/symbol-table-direct-addressing.test.ts
 - `../../core/globalState`
 - `../utils/vm-test-utils`
-- `../../strings/symbol-table`
-- `../../strings/digest`
-- `../../core/tagged`
+- `@src/strings`
+- `@src/core`
 - `../../ops/opcodes`
 
 ## test/strings/symbol-table-local.test.ts
-- `../../strings/symbol-table`
-- `../../strings/digest`
-- `../../core/memory`
-- `../../core/tagged`
+- `@src/strings`
+- `@src/core`
 
 ## test/strings/symbol-table-shadowing.test.ts
-- `../../strings/symbol-table`
-- `../../strings/digest`
-- `../../core/memory`
-- `../../core/tagged`
+- `@src/strings`
+- `@src/core`
 
 ## test/tacitTestUtils.test.ts
 - `./utils/vm-test-utils`
@@ -888,12 +887,10 @@ _No imports_
 - `./vm-test-utils`
 
 ## test/utils/core-test-utils.ts
-- `../../core/vm`
-- `../../core/tagged`
+- `@src/core`
 
 ## test/utils/vm-test-utils.ts
-- `../../core/vm`
-- `../../core/tagged`
+- `@src/core`
 - `../../lang/tokenizer`
 - `../../lang/parser`
 - `../../lang/interpreter`
