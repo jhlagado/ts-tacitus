@@ -13,11 +13,17 @@
  * for implementing higher-level language constructs.
  */
 
-import { VM } from '../../core/vm';
-import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../../core/errors';
-import { Verb } from '../../core/types';
-import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../../core/tagged';
-import { RSTACK_SIZE } from '../../core/constants';
+import {
+  VM,
+  ReturnStackOverflowError,
+  ReturnStackUnderflowError,
+  Verb,
+  toTaggedValue,
+  Tag,
+  fromTaggedValue,
+  isCode,
+  RSTACK_SIZE,
+} from '@src/core';
 import { executeOp } from '../builtins';
 
 import { formatValue } from '../../core/format-utils';

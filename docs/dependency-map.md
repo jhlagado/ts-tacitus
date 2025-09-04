@@ -2,6 +2,15 @@
 
 This file is auto-generated. It lists all imports for each TS file in `src/`.
 
+## Import Facades (Plan 19)
+
+Preferred public import surfaces:
+- `@src/core` — stable facade for VM/runtime primitives (re-exports: `vm`, `memory`, `constants`, `tagged`, `refs`, `errors`, `utils`).
+- `@src/strings` — stable facade for string/dictionary infrastructure (re-exports: `digest`, `symbol-table`, `string`).
+
+Use domain barrels for ops (e.g., `@ops/lists`, `@ops/stack`, `@ops/access`, `@ops/math`, `@ops/control`, `@ops/print`).
+This note documents the intended surfaces; the sections below remain a raw import map.
+
 ## cli.ts
 - `./lang/repl`
 - `./lang/fileProcessor`
@@ -922,4 +931,3 @@ _No imports_
 - `../../lang/parser`
 - `../../lang/interpreter`
 - `../../core/globalState`
-
