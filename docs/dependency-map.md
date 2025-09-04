@@ -102,20 +102,33 @@ _No imports_
 - `../core/errors`
 - `../core/utils`
 
-## ops/access-ops.ts
-- `../core/vm`
-- `../core/types`
-- `../core/tagged`
-- `./core-ops`
-- `../core/list`
-- `../core/constants`
-- `../core/refs`
+## ops/access/get-set-ops.ts
+- `../../core/vm`
+- `../../core/types`
+- `../../core/tagged`
+- `../core`
+- `../../core/list`
+- `../../core/constants`
+- `../../core/refs`
+
+## ops/access/index.ts
+_No imports_
+
+## ops/access/select-ops.ts
+- `../../core/vm`
+- `../../core/types`
+- `../../core/list`
+- `../../core/constants`
+- `../../core/refs`
+- `../../core/tagged`
+- `../lists`
+- `../stack`
 
 ## ops/builtins-register.ts
 - `../core/vm`
 - `./opcodes`
 - `../strings/symbol-table`
-- `./core-ops`
+- `./core`
 - `./combinators/do`
 - `./combinators/repeat`
 
@@ -124,13 +137,12 @@ _No imports_
 - `../core/tagged`
 - `../core/refs`
 - `../core/constants`
-- `./core-ops`
-- `./math-ops`
-- `./math-ops`
+- `./core`
+- `./math`
 - `./lists`
-- `./stack-ops`
-- `./print-ops`
-- `./control-ops`
+- `./stack`
+- `./print`
+- `./control`
 - `./lists`
 - `./lists`
 - `./lists`
@@ -138,36 +150,42 @@ _No imports_
 - `./lists`
 - `./opcodes`
 - `../core/errors`
-- `./control-ops`
+- `./control`
 - `./combinators/do`
 - `./combinators/repeat`
-- `./access-ops`
+- `./access`
 - `./local-vars-transfer`
 
 ## ops/combinators/do.ts
 - `../../core/vm`
 - `../../core/types`
-- `../core-ops`
+- `../core`
 
 ## ops/combinators/repeat.ts
 - `../../core/vm`
 - `../../core/types`
 - `../../core/tagged`
-- `../core-ops`
+- `../core`
 
-## ops/control-ops.ts
-- `../core/vm`
-- `../core/types`
-- `../core/tagged`
+## ops/control/branch-ops.ts
+- `../../core/vm`
+- `../../core/types`
+- `../../core/tagged`
 
-## ops/core-ops.ts
-- `../core/vm`
-- `../core/errors`
-- `../core/types`
-- `../core/tagged`
-- `../core/constants`
-- `./builtins`
-- `../core/format-utils`
+## ops/control/index.ts
+_No imports_
+
+## ops/core/core-ops.ts
+- `../../core/vm`
+- `../../core/errors`
+- `../../core/types`
+- `../../core/tagged`
+- `../../core/constants`
+- `../builtins`
+- `../../core/format-utils`
+
+## ops/core/index.ts
+_No imports_
 
 ## ops/lists/build-ops.ts
 - `../../core/vm`
@@ -176,7 +194,7 @@ _No imports_
 - `../../core/list`
 - `./core-helpers`
 - `../../core/types`
-- `../core-ops`
+- `../core`
 - `../../core/errors`
 
 ## ops/lists/core-helpers.ts
@@ -196,7 +214,7 @@ _No imports_
 - `../../core/constants`
 - `./core-helpers`
 - `../../core/refs`
-- `../stack-ops`
+- `../stack`
 - `../local-vars-transfer`
 - `../../core/utils`
 - `../../core/tagged`
@@ -208,7 +226,7 @@ _No imports_
 - `../../core/constants`
 - `./core-helpers`
 - `../../core/refs`
-- `../stack-ops`
+- `../stack`
 
 ## ops/local-vars-transfer.ts
 - `../core/vm`
@@ -217,36 +235,39 @@ _No imports_
 - `../core/constants`
 - `../core/list`
 
-## ops/math-ops.ts
-- `../core/vm`
-- `../core/types`
-- `../core/utils`
+## ops/math/arithmetic-ops.ts
+- `../../core/vm`
+- `../../core/types`
+
+## ops/math/comparison-ops.ts
+- `../../core/vm`
+- `../../core/types`
+- `../../core/utils`
+
+## ops/math/index.ts
+_No imports_
 
 ## ops/opcodes.ts
 _No imports_
 
-## ops/print-ops.ts
-- `../core/vm`
-- `../core/tagged`
-- `../core/constants`
-- `../core/format-utils`
+## ops/print/index.ts
+_No imports_
 
-## ops/select-ops.ts
-- `../core/vm`
-- `../core/types`
-- `../core/list`
-- `../core/constants`
-- `../core/refs`
-- `../core/tagged`
-- `./lists`
-- `./stack-ops`
+## ops/print/print-ops.ts
+- `../../core/vm`
+- `../../core/tagged`
+- `../../core/constants`
+- `../../core/format-utils`
 
-## ops/stack-ops.ts
-- `../core/vm`
-- `../core/types`
-- `../core/tagged`
-- `../core/constants`
-- `../core/errors`
+## ops/stack/data-move-ops.ts
+- `../../core/vm`
+- `../../core/types`
+- `../../core/tagged`
+- `../../core/constants`
+- `../../core/errors`
+
+## ops/stack/index.ts
+_No imports_
 
 ## strings/digest.ts
 - `../core/memory`
@@ -337,7 +358,7 @@ _No imports_
 ## test/core/vm-comprehensive-testing.test.ts
 - `../utils/vm-test-utils`
 - `../../core/globalState`
-- `../../ops/core-ops`
+- `../../ops/core`
 - `../../core/tagged`
 - `../../ops/opcodes`
 
@@ -360,7 +381,7 @@ _No imports_
 ## test/core/vm-push-symbol-ref.test.ts
 - `../utils/vm-test-utils`
 - `../../core/globalState`
-- `../../ops/core-ops`
+- `../../ops/core`
 - `../../ops/opcodes`
 - `../../core/tagged`
 
@@ -383,7 +404,7 @@ _No imports_
 - `../../core/tagged`
 - `../../core/code-ref`
 - `../utils/core-test-utils`
-- `../../ops/core-ops`
+- `../../ops/core`
 
 ## test/core/vm-unified-dispatch.test.ts
 - `../../core/globalState`
@@ -391,7 +412,7 @@ _No imports_
 - `../../core/code-ref`
 - `../../core/tagged`
 - `../../ops/opcodes`
-- `../../ops/core-ops`
+- `../../ops/core`
 
 ## test/core/vm.test.ts
 - `../../core/vm`
@@ -413,7 +434,7 @@ _No imports_
 - `../../core/tagged`
 - `../../core/code-ref`
 - `../utils/core-test-utils`
-- `../../ops/core-ops`
+- `../../ops/core`
 
 ## test/lang/clean-exit-test.test.ts
 - `@jest/globals`
@@ -471,7 +492,7 @@ _No imports_
 ## test/lang/interpreter.test.ts
 - `../../lang/interpreter`
 - `../../core/globalState`
-- `../../ops/math-ops`
+- `../../ops/math/arithmetic-ops`
 - `../../core/constants`
 
 ## test/lang/list-compilation.test.ts
@@ -557,7 +578,7 @@ _No imports_
 - `@jest/globals`
 - `../../utils/vm-test-utils`
 - `../../../core/globalState`
-- `../../../ops/access-ops`
+- `../../../ops/access/get-set-ops`
 - `../../../core/tagged`
 
 ## test/ops/access/select-helper-functions.test.ts
@@ -568,7 +589,7 @@ _No imports_
 ## test/ops/access/select-op.test.ts
 - `../../utils/vm-test-utils`
 - `../../../core/tagged`
-- `../../../ops/select-ops`
+- `../../../ops/access/select-ops`
 - `../../../ops/lists/query-ops`
 - `../../../core/refs`
 - `../../../core/globalState`
@@ -576,13 +597,13 @@ _No imports_
 ## test/ops/arithmetic/arithmetic.test.ts
 - `../../../core/globalState`
 - `../../../lang/interpreter`
-- `../../../ops/math-ops`
+- `../../../ops/math`
 - `../../utils/vm-test-utils`
 
 ## test/ops/arithmetic/unary-operations.test.ts
 - `@jest/globals`
 - `../../../core/globalState`
-- `../../../ops/math-ops`
+- `../../../ops/math`
 - `../../../ops/lists`
 
 ## test/ops/combinators/do.test.ts
@@ -597,7 +618,7 @@ _No imports_
 - `@jest/globals`
 - `../../../core/vm`
 - `../../../core/globalState`
-- `../../../ops/math-ops`
+- `../../../ops/math`
 
 ## test/ops/conditional/conditionals.test.ts
 - `@jest/globals`
@@ -605,17 +626,17 @@ _No imports_
 - `../../../lang/interpreter`
 
 ## test/ops/control/control-ops.test.ts
-- `../../../ops/control-ops`
+- `../../../ops/control`
 - `@jest/globals`
 - `../../../core/globalState`
-- `../../../ops/control-ops`
+- `../../../ops/control`
 - `../../../core/tagged`
 
 ## test/ops/core/core-ops-coverage.test.ts
 - `@jest/globals`
 - `../../utils/vm-test-utils`
 - `../../../core/globalState`
-- `../../../ops/core-ops`
+- `../../../ops/core`
 - `../../../core/tagged`
 
 ## test/ops/core/temp-register-opcodes.test.ts
@@ -636,13 +657,13 @@ _No imports_
 - `../../../ops/opcodes`
 
 ## test/ops/interpreter/interpreter-operations.test.ts
-- `../../../ops/math-ops`
-- `../../../ops/stack-ops`
+- `../../../ops/math`
+- `../../../ops/stack`
 - `../../../core/globalState`
 - `../../../core/tagged`
 - `../../../core/utils`
 - `../../../ops/opcodes`
-- `../../../ops/core-ops`
+- `../../../ops/core`
 
 ## test/ops/lists/build/list-creation.test.ts
 - `@jest/globals`
@@ -667,7 +688,7 @@ _No imports_
 - `@jest/globals`
 - `../../../utils/vm-test-utils`
 - `../../../../core/globalState`
-- `../../../../ops/stack-ops`
+- `../../../../ops/stack`
 - `../../../../ops/lists`
 - `../../../../core/refs`
 - `../../../../core/tagged`
@@ -770,42 +791,42 @@ _No imports_
 ## test/ops/stack/drop.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/dup.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/nip.test.ts
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/over.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/pick.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/revrot.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/rot.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/stack-utils.test.ts
@@ -813,17 +834,17 @@ _No imports_
 - `../../../core/vm`
 - `../../../core/constants`
 - `../../../core/tagged`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 
 ## test/ops/stack/swap.test.ts
 - `../../../core/tagged`
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../utils/vm-test-utils`
 
 ## test/ops/stack/tuck.test.ts
 - `../../../core/globalState`
-- `../../../ops/stack-ops`
+- `../../../ops/stack`
 - `../../../core/tagged`
 - `../../utils/vm-test-utils`
 
@@ -857,12 +878,12 @@ _No imports_
 - `../../core/vm`
 - `../../core/constants`
 - `../../core/tagged`
-- `../../ops/stack-ops`
+- `../../ops/stack`
 
 ## test/stack/slots.test.ts
 - `@jest/globals`
 - `../../core/vm`
-- `../../ops/stack-ops`
+- `../../ops/stack`
 
 ## test/strings/symbol-table-direct-addressing.test.ts
 - `../../core/globalState`
