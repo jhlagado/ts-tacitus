@@ -105,10 +105,10 @@ Final state:
 - Kept `src/test/ops/lists/list-spec-compliance.test.ts` as a high-level spec suite
 - All themed and integration suites pass locally
 
-### Phase 7 — Cleanups & Docs (PENDING)
-1. Remove redundant or overlapping tests after consolidation (avoid double coverage of identical paths).
-2. Update any README or contributor docs referencing old test locations.
-3. Tests: full suite.
+### Phase 7 — Cleanups & Docs (COMPLETED)
+1. Removed skipped debug test; trimmed suites to behavioral assertions only.
+2. Updated docs references to new `src/ops/lists/*` modules and test locations in `docs/dependency-map.md`.
+3. Confirmed themed and integration suites run green locally; global coverage gate remains out of scope.
 
 ## Risk Management
 - Move tests without changing content first; only split/rename.
@@ -123,3 +123,23 @@ Final state:
 
 ## Rollback Strategy
 - Revert the last move commit if tests fail; since moves are staged, blast radius remains small.
+
+## Appendix — Future list operations (for later phases)
+
+The following operations are obvious, non-processing additions that would round out the list library. These are not part of this plan’s implementation, but are captured here for future work.
+
+- last: return final element
+- init: all but last element
+- cons / snoc: prepend / append single element
+- take / drop n: prefix / suffix by count
+- takeLast / dropLast n: from the end
+- slice start count: sublist by range
+- splitAt n: returns [prefix, suffix]
+- chunk size: split into fixed-size blocks
+- join (concatAll): flatten one level of list-of-lists
+- zip / unzip: pair two lists / separate pairs
+- insertAt / removeAt / replaceAt index: positional edits
+- rotate n: cyclic shift
+- isEmpty / singleton: boolean predicates
+- startsWith / endsWith: prefix/suffix check
+- maplist utilities: entries (pairs of [key value]) and fromEntries; has (key exists); merge (right-biased)
