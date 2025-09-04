@@ -40,8 +40,10 @@ import {
   logOp,
   sqrtOp,
   powOp,
-} from './math-ops';
-import { recipOp, floorOp, notOp } from './math-ops';
+  recipOp,
+  floorOp,
+  notOp,
+} from './math';
 import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print-ops';

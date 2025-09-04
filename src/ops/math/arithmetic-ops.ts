@@ -1,11 +1,11 @@
 /**
- * @file src/ops/math-ops.ts
+ * @file src/ops/math/arithmetic-ops.ts
  * Mathematical operations for the Tacit VM.
  */
 
-import { VM } from '../core/vm';
-import { Verb } from '../core/types';
-import { areValuesEqual } from '../core/utils';
+import { VM } from '../../core/vm';
+import { Verb } from '../../core/types';
+// no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'add');
   const b = vm.pop();
@@ -53,40 +53,6 @@ export const maxOp: Verb = (vm: VM) => {
   const b = vm.pop();
   const a = vm.pop();
   vm.push(Math.max(a, b));
-};
-export const equalOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '=');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(areValuesEqual(a, b) ? 1 : 0);
-};
-
-export const lessThanOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '<');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a < b ? 1 : 0);
-};
-
-export const lessOrEqualOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '<=');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a <= b ? 1 : 0);
-};
-
-export const greaterThanOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '>');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a > b ? 1 : 0);
-};
-
-export const greaterOrEqualOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, '>=');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a >= b ? 1 : 0);
 };
 export const absOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'abs');
