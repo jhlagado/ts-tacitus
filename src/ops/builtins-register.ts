@@ -20,9 +20,7 @@ import { VM } from '../core/vm';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 
-import {
-  evalOp,
-} from './core-ops';
+import { evalOp } from './core';
 
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';

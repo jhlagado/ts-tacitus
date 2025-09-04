@@ -1,5 +1,5 @@
 /**
- * @file src/ops/core-ops.ts
+ * @file src/ops/core/core-ops.ts
  *
  * This file implements core interpreter control operations for the Tacit VM.
  *
@@ -13,14 +13,14 @@
  * for implementing higher-level language constructs.
  */
 
-import { VM } from '../core/vm';
-import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../core/errors';
-import { Verb } from '../core/types';
-import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../core/tagged';
-import { RSTACK_SIZE } from '../core/constants';
-import { executeOp } from './builtins';
+import { VM } from '../../core/vm';
+import { ReturnStackOverflowError, ReturnStackUnderflowError } from '../../core/errors';
+import { Verb } from '../../core/types';
+import { toTaggedValue, Tag, fromTaggedValue, isCode } from '../../core/tagged';
+import { RSTACK_SIZE } from '../../core/constants';
+import { executeOp } from '../builtins';
 
-import { formatValue } from '../core/format-utils';
+import { formatValue } from '../../core/format-utils';
 
 /** Number of bytes per stack element. */
 const CELL_SIZE = 4;

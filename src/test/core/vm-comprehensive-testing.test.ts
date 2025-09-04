@@ -17,7 +17,7 @@
 
 import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/globalState';
-import { evalOp } from '../../ops/core-ops';
+import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 
@@ -28,7 +28,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Performance Testing', () => {
     it('should have no performance regression for built-in operations', () => {
-      const iterations = 100; 
+      const iterations = 100;
 
       const start1 = performance.now();
       for (let i = 0; i < iterations; i++) {
@@ -36,7 +36,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         vm.push(3);
         vm.push(toTaggedValue(Op.Add, Tag.BUILTIN));
         evalOp(vm);
-        vm.pop(); 
+        vm.pop();
       }
       const directTime = performance.now() - start1;
 
@@ -46,7 +46,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         vm.push(3);
         vm.pushSymbolRef('add');
         evalOp(vm);
-        vm.pop(); 
+        vm.pop();
       }
       const symbolTime = performance.now() - start2;
 
@@ -67,7 +67,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       for (let i = 0; i < iterations; i++) {
         try {
           vm.pushSymbolRef('dup');
-          vm.pop(); 
+          vm.pop();
         } catch {
           /* empty */
         }
@@ -102,11 +102,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle symbol table growth efficiently', () => {
-      const symbolCount = 100; 
+      const symbolCount = 100;
       const symbols: string[] = [];
 
       for (let i = 0; i < symbolCount; i++) {
-        const symbolName = `sym${i}`; 
+        const symbolName = `sym${i}`;
         symbols.push(symbolName);
 
         if (i % 2 === 0) {
@@ -167,11 +167,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle stack underflow during symbol execution', () => {
-      vm.pushSymbolRef('add'); 
+      vm.pushSymbolRef('add');
       expect(() => evalOp(vm)).toThrow();
 
-      vm.push(5); 
-      vm.pushSymbolRef('add'); 
+      vm.push(5);
+      vm.pushSymbolRef('add');
       expect(() => evalOp(vm)).toThrow();
 
       vm.push(3);
@@ -183,24 +183,24 @@ describe('VM Comprehensive Testing - Step 12', () => {
     it('should handle complex execution chains without corruption', () => {
       vm.push(5);
 
-      vm.pushSymbolRef('dup'); 
+      vm.pushSymbolRef('dup');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 5]);
 
-      vm.pushSymbolRef('add'); 
+      vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10]);
 
-      vm.pushSymbolRef('dup'); 
+      vm.pushSymbolRef('dup');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 10]);
 
-      vm.push(2); 
-      vm.pushSymbolRef('add'); 
+      vm.push(2);
+      vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 12]);
 
-      vm.pushSymbolRef('add'); 
+      vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([22]);
     });
@@ -249,7 +249,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
           const symbol = symbols[i % symbols.length];
           try {
             vm.pushSymbolRef(symbol);
-            vm.pop(); 
+            vm.pop();
           } catch {
             /* empty */
           }
@@ -367,50 +367,50 @@ describe('VM Comprehensive Testing - Step 12', () => {
       vm.push(30);
       expect(vm.getStackData()).toEqual([10, 20, 30]);
 
-      vm.pushSymbolRef('dup'); 
+      vm.pushSymbolRef('dup');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 20, 30, 30]);
 
-      vm.pushSymbolRef('add'); 
+      vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 20, 60]);
 
-      vm.pushSymbolRef('add'); 
+      vm.pushSymbolRef('add');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 80]);
 
       vm.push(5);
-      vm.pushSymbolRef('mul'); 
+      vm.pushSymbolRef('mul');
       evalOp(vm);
       expect(vm.getStackData()).toEqual([10, 400]);
     });
 
     it('should maintain stack integrity across complex operations', () => {
-      vm.push(5); 
-      vm.pushSymbolRef('dup'); 
-      evalOp(vm); 
+      vm.push(5);
+      vm.pushSymbolRef('dup');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 5]);
 
-      vm.push(3); 
-      vm.pushSymbolRef('add'); 
-      evalOp(vm); 
+      vm.push(3);
+      vm.pushSymbolRef('add');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 8]);
 
-      vm.pushSymbolRef('dup'); 
-      evalOp(vm); 
+      vm.pushSymbolRef('dup');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 8, 8]);
 
-      vm.push(2); 
-      vm.pushSymbolRef('mul'); 
-      evalOp(vm); 
+      vm.push(2);
+      vm.pushSymbolRef('mul');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 8, 16]);
 
-      vm.pushSymbolRef('swap'); 
-      evalOp(vm); 
+      vm.pushSymbolRef('swap');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 16, 8]);
 
-      vm.pushSymbolRef('add'); 
-      evalOp(vm); 
+      vm.pushSymbolRef('add');
+      evalOp(vm);
       expect(vm.getStackData()).toEqual([5, 24]);
     });
   });
@@ -447,7 +447,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         () => {
           vm.pushSymbolRef('add');
           evalOp(vm);
-        }, 
+        },
         () => vm.pushSymbolRef(''),
       ];
 

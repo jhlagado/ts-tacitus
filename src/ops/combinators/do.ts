@@ -8,7 +8,7 @@
  */
 import { VM } from '../../core/vm';
 import { Verb } from '../../core/types';
-import { evalOp } from '../core-ops';
+import { evalOp } from '../core';
 
 export const doOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'do');

@@ -18,7 +18,7 @@ import {
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
-} from './core-ops';
+} from './core';
 import {
   addOp,
   subtractOp,
@@ -46,7 +46,7 @@ import {
 } from './math';
 import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
-import { printOp, rawPrintOp } from './print-ops';
+import { printOp, rawPrintOp } from './print';
 import { simpleIfOp } from './control';
 import { openListOp, closeListOp } from './lists';
 import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists';

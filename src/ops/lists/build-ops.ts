@@ -9,7 +9,7 @@ import { SEG_STACK, CELL_SIZE } from '../../core/constants';
 import { getListLength, reverseSpan, isList } from '../../core/list';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { Verb } from '../../core/types';
-import { evalOp } from '../core-ops';
+import { evalOp } from '../core';
 import { ReturnStackUnderflowError } from '../../core/errors';
 
 /**
