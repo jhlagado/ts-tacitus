@@ -66,7 +66,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
  * Formats a LIST structure by consuming elements from the stack.
  * This is the same logic as in print-ops.ts but adapted for format-utils.
  */
-function formatListFromHeader(vm: VM, headerValue: number): string {
+export function formatListByConsumingStack(vm: VM, headerValue: number): string {
   const decoded = fromTaggedValue(headerValue);
   const totalSlots = decoded.value;
   const parts: string[] = [];
@@ -77,7 +77,7 @@ function formatListFromHeader(vm: VM, headerValue: number): string {
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
-      const nested = formatListFromHeader(vm, cell);
+      const nested = formatListByConsumingStack(vm, cell);
       parts.push(nested);
       consumed += 1 + nestedSlots;
     } else {
@@ -138,7 +138,7 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
     vm.push(element);
   }
 
-  const formatted = formatListFromHeader(vm, header);
+  const formatted = formatListByConsumingStack(vm, header);
 
   vm.SP = originalSP;
 

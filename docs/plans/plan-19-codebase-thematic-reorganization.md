@@ -79,20 +79,35 @@ Result:
 - `ops/access/*` imports updated similarly; list helpers remain localized.
 - One run showed a flaky perf test; rerun produced green suite (coverage gate unchanged).
 
-### Phase 5 — Lang surface cleanup (compiler/interpreter/executor)
+### Phase 5 — Lang surface cleanup (compiler/interpreter/executor) — COMPLETED
 1. Review imports in `src/lang/**` and migrate to `@src/core`/`@src/strings` facades where it reduces deep coupling.
 2. Ensure no circular dependencies with `VM` and `Compiler`; retain direct imports if needed to avoid cycles.
 Validation: run tests; confirm no behavioral changes.
 
-### Phase 6 — Standardize diagnostics and error messages
+Result:
+- Audited `src/lang/**` imports; migrated safe sites to `@src/core`/`@src/strings` facades.
+- Kept direct imports for compiler/VM hot paths to avoid cycles.
+- Full test suite green (coverage gate unchanged).
+
+### Phase 6 — Standardize diagnostics and error messages — COMPLETED
 1. Audit thrown error messages in ops/lang/core for consistency (operation name, required stack depth, segment/tag context when helpful).
 2. Normalize wordings via `core/errors.ts` where appropriate (no new dependencies; keep hot paths lean).
 Validation: run tests; confirm messages remain covered by existing behavioral tests (where assertions exist).
 
-### Phase 7 — Clarify formatting vs printing boundaries (docs + safe refactor)
+Result:
+- Reviewed diagnostics across core/ops/lang; normalized via helpers in `core/errors.ts` where safe.
+- Preserved exact strings where tests assert messages; no behavior changes.
+- Full test suite green (coverage gate unchanged).
+
+### Phase 7 — Clarify formatting vs printing boundaries (docs + safe refactor) — COMPLETED
 1. Document the roles of `core/format-utils.ts` vs `ops/print/print-ops.ts` (pure vs side‑effectful).
 2. If any formatting logic lives in `print-ops.ts` that has no I/O, move it to `format-utils` and re‑use (no signature changes).
 Validation: run tests; confirm printed output tests pass unchanged.
+
+Result:
+- Introduced `src/core/format-utils.ts` with pure formatting helpers (e.g., `formatListByConsumingStack`).
+- `ops/print/print-ops.ts` delegates to `format-utils` for pure logic; no output changes.
+- Full test suite green (coverage gate unchanged).
 
 ### Phase 8 — Naming guide and focused renames (optional, staged)
 1. Add a short naming guide doc (1 page) under `docs/` capturing conventions above.
