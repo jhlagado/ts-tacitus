@@ -77,7 +77,7 @@ Status: COMPLETED (getListHeaderAndBase/computeHeaderAddr moved to Core; ops re-
 3. User-defined calls (>=128) unchanged.
 4. Verify: full tests green.
 
-Status: Pending
+Status: COMPLETED (centralized opcode→Verb mapping inside builtins; behavior unchanged; interpreter tests pass)
 
 ### Phase 6 — Hygiene and naming consistency
 1. Fix file headers with accurate `@file` paths; remove duplicates.

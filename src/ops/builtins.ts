@@ -2,7 +2,7 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import { VM, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, SEG_RSTACK } from '@src/core';
+import { VM, Verb, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, SEG_RSTACK } from '@src/core';
 
 import {
   literalNumberOp,
@@ -105,253 +105,94 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     return;
   }
 
-  switch (opcode) {
-    case Op.LiteralNumber:
-      literalNumberOp(vm);
-      break;
-    case Op.Branch:
-      skipDefOp(vm);
-      break;
-    case Op.BranchCall:
-      skipBlockOp(vm);
-      break;
-    case Op.Call:
-      callOp(vm);
-      break;
-    case Op.Abort:
-      abortOp(vm);
-      break;
-    case Op.Exit:
-      exitOp(vm);
-      break;
-    case Op.ExitCode:
-      exitCodeOp(vm);
-      break;
-    case Op.Eval:
-      evalOp(vm);
-      break;
-    case Op.RawPrint:
-      rawPrintOp(vm);
-      break;
-    case Op.Print:
-      printOp(vm);
-      break;
-    case Op.LiteralString:
-      literalStringOp(vm);
-      break;
-    case Op.Add:
-      addOp(vm);
-      break;
-    case Op.Minus:
-      subtractOp(vm);
-      break;
-    case Op.Multiply:
-      multiplyOp(vm);
-      break;
-    case Op.Divide:
-      divideOp(vm);
-      break;
-    case Op.Min:
-      minOp(vm);
-      break;
-    case Op.Max:
-      maxOp(vm);
-      break;
-    case Op.Equal:
-      equalOp(vm);
-      break;
-    case Op.LessThan:
-      lessThanOp(vm);
-      break;
-    case Op.LessOrEqual:
-      lessOrEqualOp(vm);
-      break;
-    case Op.GreaterThan:
-      greaterThanOp(vm);
-      break;
-    case Op.GreaterOrEqual:
-      greaterOrEqualOp(vm);
-      break;
+  const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
+    [Op.LiteralNumber]: literalNumberOp,
+    [Op.Branch]: skipDefOp,
+    [Op.BranchCall]: skipBlockOp,
+    [Op.Call]: callOp,
+    [Op.Abort]: abortOp,
+    [Op.Exit]: exitOp,
+    [Op.ExitCode]: exitCodeOp,
+    [Op.Eval]: evalOp,
+    [Op.RawPrint]: rawPrintOp,
+    [Op.Print]: printOp,
+    [Op.LiteralString]: literalStringOp,
+    [Op.Add]: addOp,
+    [Op.Minus]: subtractOp,
+    [Op.Multiply]: multiplyOp,
+    [Op.Divide]: divideOp,
+    [Op.Min]: minOp,
+    [Op.Max]: maxOp,
+    [Op.Equal]: equalOp,
+    [Op.LessThan]: lessThanOp,
+    [Op.LessOrEqual]: lessOrEqualOp,
+    [Op.GreaterThan]: greaterThanOp,
+    [Op.GreaterOrEqual]: greaterOrEqualOp,
+    [Op.Mod]: modOp,
+    [Op.Recip]: recipOp,
+    [Op.Floor]: floorOp,
+    [Op.Not]: notOp,
+    [Op.Enlist]: enlistOp,
+    [Op.Dup]: dupOp,
+    [Op.Drop]: dropOp,
+    [Op.Swap]: swapOp,
+    [Op.Rot]: rotOp,
+    [Op.RevRot]: revrotOp,
+    [Op.Over]: overOp,
+    [Op.Nip]: nipOp,
+    [Op.Tuck]: tuckOp,
+    [Op.Abs]: absOp,
+    [Op.Neg]: negOp,
+    [Op.Sign]: signOp,
+    [Op.Exp]: expOp,
+    [Op.Ln]: lnOp,
+    [Op.Log]: logOp,
+    [Op.Sqrt]: sqrtOp,
+    [Op.Pow]: powOp,
+    [Op.If]: simpleIfOp,
+    [Op.IfFalseBranch]: ifCurlyBranchFalseOp,
+    [Op.Do]: doOp,
+    [Op.Repeat]: repeatOp,
+    [Op.Get]: getOp,
+    [Op.Set]: setOp,
+    [Op.Select]: selectOp,
+    [Op.MakeList]: makeListOp,
+    [Op.LiteralAddress]: literalAddressOp,
+    [Op.LiteralCode]: literalCodeOp,
+    [Op.OpenList]: openListOp,
+    [Op.CloseList]: closeListOp,
+    [Op.Length]: lengthOp,
+    [Op.Size]: sizeOp,
+    [Op.Slot]: slotOp,
+    [Op.Elem]: elemOp,
+    [Op.Fetch]: fetchOp,
+    [Op.Store]: storeOp,
+    [Op.Head]: _headOp,
+    [Op.Pack]: packOp,
+    [Op.Unpack]: unpackOp,
+    [Op.Reverse]: reverseOp,
+    [Op.Concat]: concatOp,
+    [Op.Tail]: tailOp,
+    [Op.DropHead]: tailOp,
+    [Op.PushSymbolRef]: pushSymbolRefOp,
+    [Op.Find]: findOp,
+    [Op.Keys]: keysOp,
+    [Op.Values]: valuesOp,
+    [Op.SaveTemp]: saveTempOp,
+    [Op.RestoreTemp]: restoreTempOp,
+    [Op.Reserve]: reserveOp,
+    [Op.InitVar]: initVarOp,
+    [Op.VarRef]: varRefOp,
+    [Op.DumpStackFrame]: dumpStackFrameOp,
+    [Op.Ref]: refOp,
+    [Op.Unref]: resolveOp,
+  };
 
-    case Op.Mod:
-      modOp(vm);
-      break;
-    case Op.Recip:
-      recipOp(vm);
-      break;
-    case Op.Floor:
-      floorOp(vm);
-      break;
-    case Op.Not:
-      notOp(vm);
-      break;
-    case Op.Enlist:
-      enlistOp(vm);
-      break;
-    case Op.Dup:
-      dupOp(vm);
-      break;
-    case Op.Drop:
-      dropOp(vm);
-      break;
-    case Op.Swap:
-      swapOp(vm);
-      break;
-    case Op.Rot:
-      rotOp(vm);
-      break;
-    case Op.RevRot:
-      revrotOp(vm);
-      break;
-    case Op.Over:
-      overOp(vm);
-      break;
-    case Op.Nip:
-      nipOp(vm);
-      break;
-    case Op.Tuck:
-      tuckOp(vm);
-      break;
-    case Op.Abs:
-      absOp(vm);
-      break;
-    case Op.Neg:
-      negOp(vm);
-      break;
-    case Op.Sign:
-      signOp(vm);
-      break;
-    case Op.Exp:
-      expOp(vm);
-      break;
-    case Op.Ln:
-      lnOp(vm);
-      break;
-    case Op.Log:
-      logOp(vm);
-      break;
-    case Op.Sqrt:
-      sqrtOp(vm);
-      break;
-    case Op.Pow:
-      powOp(vm);
-      break;
-
-    case Op.If:
-      simpleIfOp(vm);
-      break;
-    case Op.IfFalseBranch:
-      ifCurlyBranchFalseOp(vm);
-      break;
-    case Op.Do:
-      doOp(vm);
-      break;
-    case Op.Repeat:
-      repeatOp(vm);
-      break;
-    case Op.Get:
-      getOp(vm);
-      break;
-    case Op.Set:
-      setOp(vm);
-      break;
-    case Op.Select:
-      selectOp(vm);
-      break;
-    case Op.MakeList:
-      makeListOp(vm);
-      break;
-    case Op.LiteralAddress:
-      literalAddressOp(vm);
-      break;
-    case Op.LiteralCode:
-      literalCodeOp(vm);
-      break;
-    case Op.OpenList:
-      openListOp(vm);
-      break;
-    case Op.CloseList:
-      closeListOp(vm);
-      break;
-    /** List operations. */
-    case Op.Length:
-      lengthOp(vm);
-      break;
-    case Op.Size:
-      sizeOp(vm);
-      break;
-    case Op.Slot:
-      slotOp(vm);
-      break;
-    case Op.Elem:
-      elemOp(vm);
-      break;
-    case Op.Fetch:
-      fetchOp(vm);
-      break;
-    case Op.Store:
-      storeOp(vm);
-      break;
-    case Op.Head:
-      _headOp(vm);
-      break;
-    case Op.Pack:
-      packOp(vm);
-      break;
-    case Op.Unpack:
-      unpackOp(vm);
-      break;
-    case Op.Reverse:
-      reverseOp(vm);
-      break;
-    case Op.Concat:
-      concatOp(vm);
-      break;
-    case Op.Tail:
-      tailOp(vm);
-      break;
-    case Op.DropHead:
-      tailOp(vm);
-      break;
-    case Op.PushSymbolRef:
-      pushSymbolRefOp(vm);
-      break;
-    case Op.Find:
-      findOp(vm);
-      break;
-    case Op.Keys:
-      keysOp(vm);
-      break;
-    case Op.Values:
-      valuesOp(vm);
-      break;
-    case Op.SaveTemp:
-      saveTempOp(vm);
-      break;
-    case Op.RestoreTemp:
-      restoreTempOp(vm);
-      break;
-    case Op.Reserve:
-      reserveOp(vm);
-      break;
-    case Op.InitVar:
-      initVarOp(vm);
-      break;
-    case Op.VarRef:
-      varRefOp(vm);
-      break;
-    case Op.DumpStackFrame:
-      dumpStackFrameOp(vm);
-      break;
-    case Op.Ref:
-      refOp(vm);
-      break;
-    case Op.Unref:
-      resolveOp(vm);
-      break;
-    default:
-      throw new InvalidOpcodeError(opcode, vm.getStackData());
+  const impl = OPCODE_TO_VERB[opcode];
+  if (!impl) {
+    throw new InvalidOpcodeError(opcode, vm.getStackData());
   }
+  impl(vm);
 }
 
 /**
