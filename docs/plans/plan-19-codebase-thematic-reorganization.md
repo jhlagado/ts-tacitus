@@ -39,16 +39,25 @@ Public imports should prefer facades (`@src/core`, `@src/strings`) and domain in
 ## Staging Plan
 Each phase is independently shippable and should keep the full test suite green. After each phase: run `yarn test` and pause for review.
 
-### Phase 1 — Introduce facades (no consumer changes)
+### Phase 1 — Introduce facades (no consumer changes) — COMPLETED
 1. Add `src/core/index.ts` that re‑exports the stable public surface (VM, Memory, constants, tagged, refs, errors, utils). Keep exports minimal.
 2. Add `src/strings/index.ts` that re‑exports `digest`, `symbol-table`, and `string`.
 3. Documentation: add a short note in `docs/dependency-map.md` (or companion doc) describing the intended import surfaces.
 Validation: run tests; no import sites updated yet.
 
-### Phase 2 — Migrate low‑blast consumers to facades (print/core ops)
+Result:
+- Added `src/core/index.ts` and `src/strings/index.ts` facades.
+- Added a facades note to `docs/dependency-map.md`.
+- Full test suite remains green (global branch coverage threshold unchanged).
+
+### Phase 2 — Migrate low‑blast consumers to facades (print/core ops) — COMPLETED
 1. Update `ops/print/*` and `ops/core/*` imports to use `@src/core` and (if needed) `@src/strings` facades.
 2. Ensure no import cycles introduced; if cycles appear, narrow the facade export list (do not widen internals).
 Validation: run tests; confirm no behavioral changes.
+
+Result:
+- `ops/print/print-ops.ts` and `ops/core/core-ops.ts` now import core symbols via `@src/core`.
+- No behavioral changes; full test suite green (coverage gate unchanged).
 
 ### Phase 3 — Migrate math/control ops to facades
 1. Update `ops/math/*` and `ops/control/*` imports to use `@src/core` and `@src/strings` as applicable.
@@ -105,4 +114,3 @@ Validation: run tests after each small rename; zero behavior changes.
 ---
 
 When ready, proceed with Phase 1. After completing each phase, run the full suite (`yarn test`) and pause for review before the next phase.
-

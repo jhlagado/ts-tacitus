@@ -8,9 +8,7 @@
  *
  * Both operations pop values from the stack and output them to console.
  */
-import { VM } from '../../core/vm';
-import { fromTaggedValue, Tag } from '../../core/tagged';
-import { CELL_SIZE } from '../../core/constants';
+import { VM, fromTaggedValue, Tag, CELL_SIZE } from '@src/core';
 import { formatValue as coreFormatValue, formatAtomicValue } from '../../core/format-utils';
 /**
  * Formats a LIST structure by consuming elements from the stack.
