@@ -101,7 +101,7 @@ Status: COMPLETED (added boundary rule via no-restricted-imports; lint passes wi
 2. Optional: `src/index.ts` for embedders; keep internal imports on `@src/*`.
 3. Verify: full tests green.
 
-Status: Pending
+Status: COMPLETED (added lang/runtime index re-exports and top-level src/index.ts for embedders)
 
 ## Acceptance Criteria
 - No Core→Lang or Core→Ops imports; runtime wiring lives in Lang without import-time side effects.
@@ -129,7 +129,7 @@ Status: Pending
 - [x] Phase 2 — Facade migration complete (aliases/barrels)
 - [x] Phase 3 — Strings decoupled from VM (type-only)
 - [x] Phase 4 — List primitives consolidated in Core
-- [ ] Phase 5 — Table-driven builtin dispatch
-- [ ] Phase 6 — Hygiene and naming consistency
-- [ ] Phase 7 — ESLint boundaries enforced
-- [ ] Phase 8 — Public runtime surface (optional)
+- [x] Phase 5 — Table-driven builtin dispatch
+- [x] Phase 6 — Hygiene and naming consistency
+- [x] Phase 7 — ESLint boundaries enforced
+- [x] Phase 8 — Public runtime surface (optional)
