@@ -4,8 +4,9 @@
  */
 
 import { VM } from './vm';
-import { fromTaggedValue, Tag } from './tagged';
-import { SEG_STACK } from './constants';
+import { fromTaggedValue, Tag, getTag } from './tagged';
+import { SEG_STACK, CELL_SIZE } from './constants';
+import { isRef, resolveReference } from './refs';
 
 /**
  * Checks if a value is a LIST.
@@ -138,4 +139,35 @@ export function reverseSpan(vm: VM, spanSize: number): void {
     vm.memory.writeFloat32(SEG_STACK, leftAddr, rightValue);
     vm.memory.writeFloat32(SEG_STACK, rightAddr, leftValue);
   }
+}
+
+/**
+ * Extract list header and base address from a direct LIST or a reference.
+ * Returns null if value is neither a list nor a ref-to-list.
+ */
+export function getListHeaderAndBase(
+  vm: VM,
+  value: number,
+): { header: number; baseAddr: number; segment: number } | null {
+  const tag = getTag(value);
+  if (tag === Tag.LIST) {
+    const slotCount = getListLength(value);
+    return { header: value, baseAddr: vm.SP - CELL_SIZE - slotCount * CELL_SIZE, segment: SEG_STACK };
+  } else if (isRef(value)) {
+    const { address, segment } = resolveReference(vm, value);
+    const header = vm.memory.readFloat32(segment, address);
+    if (!isList(header)) {
+      return null;
+    }
+    const slotCount = getListLength(header);
+    return { header, baseAddr: address - slotCount * CELL_SIZE, segment };
+  }
+  return null;
+}
+
+/**
+ * Computes header address given base address and slot count.
+ */
+export function computeHeaderAddr(baseAddr: number, slotCount: number): number {
+  return baseAddr + slotCount * CELL_SIZE;
 }

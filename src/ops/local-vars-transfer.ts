@@ -3,11 +3,7 @@
  * Compound data transfer operations for local variables
  */
 
-import { VM } from '../core/vm';
-import { getTag, Tag } from '../core/tagged';
-import { getListLength, validateListHeader, isList } from '../core/list';
-import { SEG_RSTACK, SEG_STACK, CELL_SIZE } from '../core/constants';
-import { dropList } from '../core/list';
+import { VM, getTag, Tag, getListLength, validateListHeader, isList, SEG_RSTACK, SEG_STACK, CELL_SIZE, dropList } from '@src/core';
 
 /**
  * Transfers compound data from data stack to return stack.
