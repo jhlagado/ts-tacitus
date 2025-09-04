@@ -59,10 +59,15 @@ Result:
 - `ops/print/print-ops.ts` and `ops/core/core-ops.ts` now import core symbols via `@src/core`.
 - No behavioral changes; full test suite green (coverage gate unchanged).
 
-### Phase 3 — Migrate math/control ops to facades
+### Phase 3 — Migrate math/control ops to facades — COMPLETED
 1. Update `ops/math/*` and `ops/control/*` imports to use `@src/core` and `@src/strings` as applicable.
 2. Keep domain barrel imports for ops (e.g., `@ops/math`, `@ops/control`).
 Validation: run tests; confirm no behavioral changes.
+
+Result:
+- `ops/math/arithmetic-ops.ts` and `ops/math/comparison-ops.ts` now import `VM`, `Verb`, and `areValuesEqual` via `@src/core`.
+- `ops/control/branch-ops.ts` now imports `VM`, `Verb`, and tagged helpers via `@src/core`.
+- Full test suite green (coverage gate unchanged).
 
 ### Phase 4 — Migrate lists/access ops to facades (careful with helpers)
 1. Update `ops/lists/*` and `ops/access/*` imports to use `@src/core` facades where feasible.

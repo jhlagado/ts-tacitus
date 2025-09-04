@@ -1,6 +1,4 @@
-import { VM } from '../../core/vm';
-import { Verb } from '../../core/types';
-import { areValuesEqual } from '../../core/utils';
+import { VM, Verb, areValuesEqual } from '@src/core';
 
 export const equalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, '=');
