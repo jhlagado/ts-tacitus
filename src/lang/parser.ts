@@ -18,7 +18,7 @@
  */
 
 import { Op } from '../ops/opcodes';
-import { vm } from '../core/globalState';
+import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import { isWhitespace, isGroupingChar, fromTaggedValue, Tag } from '@src/core';
 import {

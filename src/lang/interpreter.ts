@@ -15,7 +15,7 @@
  */
 
 import { executeOp } from '../ops/builtins';
-import { vm } from '../core/globalState';
+import { vm } from './runtime';
 import { parse } from './parser';
 import { toTaggedValue, Tag, SEG_CODE } from '@src/core';
 import { Tokenizer } from './tokenizer';
