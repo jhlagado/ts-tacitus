@@ -30,6 +30,12 @@
 - Read relevant specs before coding (e.g., `docs/specs/lists.md`, `docs/specs/tagged.md`). Do not modify specs unless asked.
 - After each step: run tests, then lint; pause for review if scope is staged.
 
+### Hard Guardrails (Assistant Behavior)
+- Do not modify any repository files unless explicitly instructed by the user to do so.
+- Never create, edit, or delete files proactively to “help” (e.g., coverage bumps, refactors, test additions) without an explicit request.
+- If a task appears to require changes, pause and ask for confirmation with a brief proposal of what you plan to change.
+- For read-only or analysis requests, restrict actions to inspection and reporting only.
+
 ## Commits & PRs
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`). Reference specs/plan docs when relevant.
 - PRs: clear description, linked issues, behavior screenshots/logs if UI/CLI output changes, and notes on tests/coverage.
