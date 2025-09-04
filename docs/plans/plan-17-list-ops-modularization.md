@@ -94,15 +94,12 @@ Completed:
   - Query: `maplist-basic.test.ts` → `query/find-maplist-basic.test.ts`
   - Build: `list-creation.test.ts` → `build/list-creation.test.ts`
 - Fixed relative imports after moves; targeted suites pass.
+- Added new thematic suites:
+  - Build: `build/pack-unpack.test.ts`, `build/open-close-parser-integration.test.ts`
+  - Query: `query/length-size.test.ts`, `query/addressing-slot-elem.test.ts`, `query/fetch-store.test.ts`
+- All new and moved suites pass locally (global coverage gate remains intentionally unmet).
 
 Remaining TODO:
-- Build:
-  - Add `pack-unpack.test.ts` (pack, unpack, enlist, makeList)
-  - Add/port `open-close-parser-integration.test.ts` (openList/closeList basics)
-- Query:
-  - Add `length-size.test.ts`
-  - Add `addressing-slot-elem.test.ts`
-  - Add `fetch-store.test.ts`
 - Structure:
   - Add `head-tail-uncons.test.ts` (skip uncons if not in scope)
 - Keep `src/test/ops/lists/list-spec-compliance.test.ts` as a high-level spec suite.
