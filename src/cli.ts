@@ -15,7 +15,7 @@
 import { startREPL } from './lang/repl';
 import { processFiles } from './lang/fileProcessor';
 
-import { initializeInterpreter } from './core/globalState';
+import { initializeInterpreter } from './lang/runtime';
 
 /**
  * Main entry point for the CLI.

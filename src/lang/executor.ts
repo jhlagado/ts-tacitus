@@ -12,7 +12,7 @@ import { Tokenizer } from './tokenizer';
 import { parse } from './parser';
 import { execute } from './interpreter';
 
-import { initializeInterpreter, vm } from '../core/globalState';
+import { initializeInterpreter, vm } from './runtime';
 
 /**
  * Executes a single line of Tacit code.
