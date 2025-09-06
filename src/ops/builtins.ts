@@ -57,7 +57,7 @@ import { simpleIfOp } from './control';
 import { openListOp, closeListOp } from './lists';
 import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp, loadOp } from './lists';
 import { makeListOp, packOp, unpackOp } from './lists';
-import { refOp, resolveOp } from './lists';
+import { refOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 
 import { Op } from './opcodes';
@@ -194,7 +194,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.VarRef]: varRefOp,
     [Op.DumpStackFrame]: dumpStackFrameOp,
     [Op.Ref]: refOp,
-    [Op.Resolve]: resolveOp,
     [Op.Load]: loadOp,
   };
 

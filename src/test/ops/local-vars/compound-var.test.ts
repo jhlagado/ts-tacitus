@@ -27,7 +27,7 @@ describe('Compound Variables - Empty Lists', () => {
     const materializedResult = executeTacitCode(`
       : test-empty-materialized
         () var emptyList
-        emptyList resolve
+        emptyList load
       ;
       test-empty-materialized
     `);
@@ -69,13 +69,13 @@ describe('Compound Variables - Empty Lists', () => {
     expect(varLength).toEqual([0]);
   });
 
-  test('should materialize actual list with resolve', () => {
+  test('should materialize actual list with load', () => {
     // Test behavioral equivalence rather than tagged value inspection
     const directEmpty = executeTacitCode('()');
     const resolveEmpty = executeTacitCode(`
       : test-resolve
         () var emptyList
-        emptyList resolve
+        emptyList load
       ;
       test-resolve
     `);
@@ -87,7 +87,7 @@ describe('Compound Variables - Empty Lists', () => {
     const resolveLength = executeTacitCode(`
       : test-resolve-length
         () var emptyList
-        emptyList resolve length
+        emptyList load length
       ;
       test-resolve-length
     `);
@@ -151,11 +151,11 @@ describe('Compound Variables - Single Element Lists', () => {
     expect(varLength).toEqual([1]);
   });
 
-  test('should materialize triple-element list with resolve', () => {
+  test('should materialize triple-element list with load', () => {
     const result = executeTacitCode(`
       : test-triple-resolve
         (1 2 3) var tripleList
-        tripleList resolve
+        tripleList load
       ;
       test-triple-resolve
     `);

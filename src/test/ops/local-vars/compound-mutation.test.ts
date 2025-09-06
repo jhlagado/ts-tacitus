@@ -17,7 +17,7 @@ describe('Compound Variable Mutation', () => {
       : main
         ( 1 2 3 ) var x
         ( 4 5 6 ) -> x
-        x resolve
+        x load
       ;
       main
     `;
