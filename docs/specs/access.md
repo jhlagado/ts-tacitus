@@ -30,7 +30,8 @@ A failed lookup at any step produces `nil` and terminates the operation.
 These combinators are layered on the foundational list/maplist primitives:
 
 - Addressing via `elem` for lists and `find` for maplists
-- Value access via `fetch ( addr -- value )`
+- Value access via `fetch ( addr -- value )` for strict address reads
+- Value-by-default dereference via `load ( value-or-ref -- value )` when inputs may be refs or values
 - In-place simple updates via `store ( value addr -- )`
 
 They hide address arithmetic and traversal details while preserving stack discipline.
@@ -124,8 +125,8 @@ target  get { … }   ⇒   value | nil
 
 Traversal details per path item:
 
-- Number `i`: target must be a list; compute address with `elem i`, then `fetch` the element.
-- Symbol `k`: target must be a maplist; compute address with `find k`, then `fetch` the value (or `nil` if not found and no default).
+- Number `i`: target must be a list; compute address with `elem i`, then `fetch` the element (or `load` for value-by-default behavior when a ref may appear).
+- Symbol `k`: target must be a maplist; compute address with `find k`, then `fetch` the value (or `nil` if not found and no default). `load` may be used where value-by-default semantics are desired.
 - If the current target is not of the expected shape for the item type, return `nil`.
 
 #### Examples
