@@ -161,7 +161,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-  ifCurlyBranchFalseOp(vm);
+      ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP + 10);
 
@@ -176,7 +176,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-  ifCurlyBranchFalseOp(vm);
+      ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP);
 
@@ -191,7 +191,7 @@ describe('Control Operations - Branch Coverage', () => {
 
       const originalIP = vm.IP;
 
-  ifCurlyBranchFalseOp(vm);
+      ifCurlyBranchFalseOp(vm);
 
       expect(vm.IP).toBe(originalIP + 15);
 

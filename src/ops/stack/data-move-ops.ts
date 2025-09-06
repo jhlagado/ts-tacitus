@@ -3,7 +3,16 @@
  * Stack manipulation operations for the Tacit VM.
  */
 
-import { VM, Verb, fromTaggedValue, Tag, SEG_STACK, CELL_SIZE, StackUnderflowError, VMError } from '@src/core';
+import {
+  VM,
+  Verb,
+  fromTaggedValue,
+  Tag,
+  SEG_STACK,
+  CELL_SIZE,
+  StackUnderflowError,
+  VMError,
+} from '@src/core';
 
 /**
  * Stack argument info: [nextSlot, size].

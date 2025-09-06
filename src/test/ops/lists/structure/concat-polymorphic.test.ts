@@ -63,7 +63,7 @@ describe('Polymorphic concat Operation', () => {
     });
 
     test('list+simple should be equivalent to existing append-like behavior', () => {
-      // This tests the O(1) append efficiency 
+      // This tests the O(1) append efficiency
       const ccatResult = executeTacitCode('( 10 20 ) 30 concat');
       const expectedResult = executeTacitCode('( 10 20 30 )');
       expect(ccatResult).toEqual(expectedResult);

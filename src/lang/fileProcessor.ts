@@ -1,8 +1,8 @@
 /**
  * @file src/lang/fileProcessor.ts
- * 
+ *
  * This file provides utilities for processing Tacit source files.
- * 
+ *
  * The file processor is responsible for reading Tacit source files from disk,
  * parsing them line by line, and executing the code. It handles file extension
  * management, error reporting with line numbers, and batch processing of multiple files.
@@ -18,10 +18,10 @@ export const TACIT_FILE_EXTENSION = '.tacit';
 
 /**
  * Ensures a file path has the correct Tacit extension.
- * 
+ *
  * If the file path doesn't have an extension, this function appends the standard
  * Tacit file extension (.tacit). If it already has an extension, it's returned unchanged.
- * 
+ *
  * @param {string} filePath - The file path to check and potentially modify
  * @returns {string} The file path with the correct extension
  */
@@ -35,11 +35,11 @@ function ensureFileExtension(filePath: string): string {
 
 /**
  * Processes a single Tacit file.
- * 
+ *
  * This function reads a Tacit source file, processes it line by line, and executes each line.
  * It skips empty lines and comments (lines starting with \). If an error occurs during
  * execution, it reports the error with the line number and returns false.
- * 
+ *
  * @param {string} filePath - The path to the Tacit file to process
  * @returns {boolean} True if the file was processed successfully, false if errors occurred
  */
@@ -87,11 +87,11 @@ export function processFile(filePath: string): boolean {
 
 /**
  * Processes multiple Tacit files in sequence.
- * 
+ *
  * This function initializes the interpreter environment and then processes each file
  * in the provided array. If a file fails to process and exitOnError is true, the process
  * will exit with an error code. Otherwise, it will continue with the next file.
- * 
+ *
  * @param {string[]} files - Array of file paths to process
  * @param {boolean} [exitOnError=true] - Whether to exit the process if an error occurs
  * @param {Function} [processFileFn=processFile] - Function to use for processing each file

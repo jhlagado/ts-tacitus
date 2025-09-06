@@ -127,7 +127,6 @@ describe('Access Operations', () => {
         vm.push(toTaggedValue(300, Tag.CODE)); // block address
 
         // Mock block execution - produce key 1
-        const beforeSP = vm.SP - 4;
         vm.push(1);
 
         // Manually set up for getOp to test the memory access branch

@@ -1,7 +1,7 @@
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
 import { revrotOp } from '../../../ops/stack';
-import { resetVM } from "../../utils/vm-test-utils";
+import { resetVM } from '../../utils/vm-test-utils';
 
 describe('revrot Operation', () => {
   beforeEach(() => {

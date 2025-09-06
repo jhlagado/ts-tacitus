@@ -3,7 +3,7 @@
  * Focuses on how list-aware stack operations handle lists differently from simple values
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from "../../../utils/vm-test-utils";
+import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 import { vm } from '../../../../core/globalState';
 import { pickOp } from '../../../../ops/stack';
 import { elemOp } from '../../../../ops/lists';
@@ -14,7 +14,6 @@ describe('List Operations', () => {
   beforeEach(() => {
     resetVM();
   });
-
 
   describe('list operations', () => {
     test('should duplicate simple value under a list', () => {
@@ -72,7 +71,6 @@ describe('List Operations', () => {
       expect(stack[stack.length - 1]).toBe(10);
     });
   });
-
 
   describe('integration tests', () => {
     test('should duplicate a nested list', () => {
@@ -180,7 +178,12 @@ describe('List Operations', () => {
 
       const step1 = executeTacitCode('( ( 10 20 ) ( 30 40 ) ) 1 elem fetch');
       console.log('Step 1 - get element 1 and fetch:', step1);
-      console.log('Should be ( 30 40 ) - first element is:', step1[step1.length - 2], 'second element is:', step1[step1.length - 1]);
+      console.log(
+        'Should be ( 30 40 ) - first element is:',
+        step1[step1.length - 2],
+        'second element is:',
+        step1[step1.length - 1],
+      );
 
       const step2 = executeTacitCode('( ( 10 20 ) ( 30 40 ) ) 1 elem 0 elem fetch');
       console.log('Step 2 - get element 1, then element 0, then fetch:', step2);

@@ -20,7 +20,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         no-vars
       `);
-      
+
       expect(result).toEqual([42]);
     });
 
@@ -32,7 +32,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         simple-test
       `);
-      
+
       // Should just return the variable value
       expect(result).toEqual([42]);
     });
@@ -55,7 +55,7 @@ describe('End-to-End Local Variables Integration', () => {
         4 multiply-three
         no-vars
       `);
-      
+
       // Stack should have: [7, 12, 42]
       expect(result).toEqual([7, 12, 42]);
     });
@@ -63,7 +63,7 @@ describe('End-to-End Local Variables Integration', () => {
     test('should handle variable shadowing correctly', () => {
       // Define a global-like builtin first
       vm.symbolTable.defineBuiltin('x', 99);
-      
+
       const result = executeTacitCode(`
         : test-shadow
             10 var x
@@ -71,7 +71,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         test-shadow
       `);
-      
+
       expect(result).toEqual([10]); // Local x (10), not global x (99)
     });
 
@@ -89,8 +89,8 @@ describe('End-to-End Local Variables Integration', () => {
         
         5 outer
       `);
-      
-      // outer: base=10, calls inner with 5 still on stack  
+
+      // outer: base=10, calls inner with 5 still on stack
       // inner: x=10 (from base), offset=1, computes 10+1=11
       // Result: original 5 + computed 11
       expect(result).toEqual([5, 11]);
@@ -100,9 +100,9 @@ describe('End-to-End Local Variables Integration', () => {
   describe('Reserve back-patching verification', () => {
     test('should emit correct Reserve opcode for functions with variables', () => {
       // This test verifies that Reserve back-patching works correctly
-      // by checking that functions with different numbers of variables 
+      // by checking that functions with different numbers of variables
       // execute correctly (which wouldn't work if Reserve was wrong)
-      
+
       const result = executeTacitCode(`
         : one-var 42 var x x ;
         : two-vars 10 var a 20 var b a b add ;
@@ -112,7 +112,7 @@ describe('End-to-End Local Variables Integration', () => {
         two-vars  
         three-vars
       `);
-      
+
       expect(result).toEqual([42, 30, 6]);
     });
 
@@ -126,7 +126,7 @@ describe('End-to-End Local Variables Integration', () => {
         no-vars-2
         5 with-vars
       `);
-      
+
       expect(result).toEqual([100, 5, 5, 1]);
     });
   });
@@ -141,7 +141,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         calculate
       `);
-      
+
       // x = 5, y = x + 10 = 15, result = x * y = 5 * 15 = 75
       expect(result).toEqual([75]);
     });
@@ -155,7 +155,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         area
       `);
-      
+
       // pi * radius^2 = 3.14 * 2.5 * 2.5 = 19.625
       expect(result[0]).toBeCloseTo(19.625);
     });
@@ -169,7 +169,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         negative-math
       `);
-      
+
       expect(result).toEqual([-5]); // -10 + 5 = -5
     });
   });
@@ -183,7 +183,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         stack-test
       `);
-      
+
       // Variables: a=1, b=2, c=3 (var pops from top of stack)
       // Result: push a, b, c = [1, 2, 3]
       expect(result).toEqual([1, 2, 3]);
@@ -200,7 +200,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         arithmetic
       `);
-      
+
       expect(result).toEqual([15, 5, 50]);
     });
 
@@ -212,7 +212,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         conditional
       `);
-      
+
       expect(result).toEqual([42]); // flag is 1 (truthy), so 42
     });
   });
@@ -226,7 +226,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         zero-test
       `);
-      
+
       expect(result).toEqual([0]);
     });
 
@@ -238,7 +238,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         large-nums
       `);
-      
+
       expect(result).toEqual([2000000]);
     });
 
@@ -252,7 +252,7 @@ describe('End-to-End Local Variables Integration', () => {
         test-isolation
         test-isolation
       `);
-      
+
       expect(result).toEqual([99, 99]); // Both calls independent
     });
   });
@@ -268,7 +268,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         many-vars
       `);
-      
+
       // Sum of 1+2+3+4+5+6+7+8+9+10 = 55
       expect(result).toEqual([55]);
     });
@@ -285,7 +285,7 @@ describe('End-to-End Local Variables Integration', () => {
         ;
         accumulate
       `);
-      
+
       // acc starts at 0, adds 1 three times = 3
       expect(result).toEqual([3]);
     });

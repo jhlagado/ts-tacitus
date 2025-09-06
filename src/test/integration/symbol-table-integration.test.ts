@@ -214,7 +214,6 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Complete Workflow Simulation', () => {
     test('should simulate future @symbol eval workflow', () => {
-
       vm.symbolTable.defineBuiltin('add', Op.Add);
 
       vm.push(2);
@@ -228,7 +227,6 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
 
       expect(vm.getStackData()).toEqual([5]);
-
     });
 
     test('should demonstrate unified eval behavior with different code types', () => {
@@ -278,7 +276,6 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should maintain consistent memory usage patterns', () => {
-
       const initialStackSize = vm.getStackData().length;
 
       vm.symbolTable.defineBuiltin('test1', Op.Add);

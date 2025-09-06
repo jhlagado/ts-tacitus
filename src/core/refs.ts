@@ -108,9 +108,9 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
       throw new Error('Global variable references not yet implemented');
 
     default:
-        throw new Error(`Invalid reference type: ${tag}`);
-    }
+      throw new Error(`Invalid reference type: ${tag}`);
   }
+}
 
 /**
  * Reads a value from memory using a polymorphic reference.

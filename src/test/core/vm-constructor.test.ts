@@ -1,4 +1,3 @@
-
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';

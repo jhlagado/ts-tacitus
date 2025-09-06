@@ -3,7 +3,16 @@
  * List construction and conversion operations (builders).
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_STACK, CELL_SIZE, Verb } from '@src/core';
+import {
+  VM,
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  NIL,
+  SEG_STACK,
+  CELL_SIZE,
+  Verb,
+} from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';

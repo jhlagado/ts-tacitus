@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { captureTacitOutput } from "../utils/vm-test-utils";
+import { captureTacitOutput } from '../utils/vm-test-utils';
 
 describe('REPL LIST display', () => {
   it('prints simple LIST', () => {

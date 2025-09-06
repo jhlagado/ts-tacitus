@@ -4,7 +4,14 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb } from '@src/core';
+import {
+  Tag,
+  fromTaggedValue,
+  toTaggedValue,
+  createBuiltinRef,
+  createCodeRef,
+  Verb,
+} from '@src/core';
 
 /**
  * Word implementation function type.

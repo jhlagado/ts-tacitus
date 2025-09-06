@@ -67,5 +67,4 @@ describe('Tagged NaN Encoding', () => {
     expect(isCode(code)).toBe(true);
     expect(isCode(str)).toBe(false);
   });
-
 });

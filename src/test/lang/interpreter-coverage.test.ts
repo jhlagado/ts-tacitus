@@ -31,7 +31,7 @@ describe('Interpreter - Branch Coverage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       try {
-        executeProgram('drop'); 
+        executeProgram('drop');
       } catch {
         expect(consoleSpy).toHaveBeenCalled();
       }
@@ -45,7 +45,7 @@ describe('Interpreter - Branch Coverage', () => {
       vm.push(24);
 
       const codeAddr = vm.compiler.CP;
-      vm.memory.write8(SEG_CODE, codeAddr, 200); 
+      vm.memory.write8(SEG_CODE, codeAddr, 200);
       vm.compiler.CP += 1;
 
       try {
@@ -60,12 +60,11 @@ describe('Interpreter - Branch Coverage', () => {
       vm.compiler.preserve = true;
 
       try {
-        executeProgram('drop'); 
+        executeProgram('drop');
       } catch {
         expect(vm.compiler.preserve).toBe(false);
       }
     });
-
   });
 
   describe('callTacitFunction', () => {

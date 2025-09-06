@@ -4,7 +4,11 @@
  */
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { NIL, Tag, getTag } from '../../../core/tagged';
-import { createTargetRef, traverseMultiPath, processPathStep } from '../../../ops/access/select-ops';
+import {
+  createTargetRef,
+  traverseMultiPath,
+  processPathStep,
+} from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef } from '../../../core/refs';
 import { initializeInterpreter, vm } from '../../../core/globalState';
@@ -70,9 +74,9 @@ describe('selectOp - Path-based address access', () => {
       // Set up: target path current-ref
       executeTacitCode('( 10 20 30 ) ( 1 )');
       createTargetRef(vm);
-      
+
       const success = processPathStep(vm, 1);
-      
+
       expect(success).toBe(true);
       // Should have: target path result-ref
       expect(vm.SP / 4).toBe(7); // 4 for target + 2 for path + 1 for result-ref
@@ -85,21 +89,21 @@ describe('selectOp - Path-based address access', () => {
       // Path: ( 1 0 ) - get element 1 (which is (30 40)), then element 0 (which is 30)
       executeTacitCode('( ( 10 20 ) ( 30 40 ) ) ( 1 0 )');
       console.log('Initial stack:', vm.getStackData());
-      
+
       createTargetRef(vm);
       console.log('After createTargetRef:', vm.getStackData());
-      
+
       // First step: process path element 1 (should get ref to (30 40))
       const success1 = processPathStep(vm, 1);
       console.log('After first processPathStep(1):', vm.getStackData());
       console.log('Success 1:', success1);
-      
+
       if (success1) {
         // Second step: process path element 0 (should get ref to 30)
         const success2 = processPathStep(vm, 0);
         console.log('After second processPathStep(0):', vm.getStackData());
         console.log('Success 2:', success2);
-        
+
         expect(success2).toBe(true);
         const finalRef = vm.peek();
         expect(isRef(finalRef)).toBe(true);
@@ -116,9 +120,9 @@ describe('selectOp - Path-based address access', () => {
       // The issue is that elemOp is getting wrong stack layout
       executeTacitCode('( 10 20 30 ) ( 99 )');
       createTargetRef(vm);
-      
+
       const success = processPathStep(vm, 99);
-      
+
       expect(success).toBe(false);
       expect(vm.SP / 4).toBe(5);
       const result = vm.peek();
@@ -142,13 +146,13 @@ describe('selectOp - Path-based address access', () => {
   });
 
   // Integration tests - skipped for now
-    test('should handle simple numeric path (list path)', () => {
+  test('should handle simple numeric path (list path)', () => {
     expect(() => {
       executeTacitCode('( "a" 10 "b" 20 "c" 30 ) "a" select drop drop');
     }).not.toThrow();
   });
 
-    test('should handle simple path as list with fetch', () => {
+  test('should handle simple path as list with fetch', () => {
     const result = executeTacitCode('( 1 2 3 ) ( 1 ) select fetch');
     expect(result[result.length - 1]).toBe(2);
   });
@@ -176,7 +180,9 @@ describe('selectOp - Path-based address access', () => {
   });
 
   test('should handle mixed path with number then string', () => {
-    const result = executeTacitCode('( ( "name" "John" "age" 25 ) ( "name" "Jane" "age" 30 ) ) ( 0 "name" ) select fetch');
+    const result = executeTacitCode(
+      '( ( "name" "John" "age" 25 ) ( "name" "Jane" "age" 30 ) ) ( 0 "name" ) select fetch',
+    );
     // Fetch returns a STRING tagged value; verify tag (content check via digest is outside this test)
     const last = result[result.length - 1];
     expect(getTag(last)).toBe(Tag.STRING);
@@ -188,7 +194,9 @@ describe('selectOp - Path-based address access', () => {
   });
 
   test('should handle selection on RSTACK_REF target', () => {
-    const result = executeTacitCode(': f ( ( 10 20 ) ( 30 40 ) ) var xs &xs ( 1 0 ) select fetch ; f');
+    const result = executeTacitCode(
+      ': f ( ( 10 20 ) ( 30 40 ) ) var xs &xs ( 1 0 ) select fetch ; f',
+    );
     expect(result[result.length - 1]).toBe(30);
   });
 
@@ -198,7 +206,8 @@ describe('selectOp - Path-based address access', () => {
   });
 
   test('should traverse mixed numeric/string path to nested field', () => {
-    const code = '( ( "user" ( "name" "Ada" "age" 37 ) ) ( "user" ( "name" "Bob" "age" 44 ) ) ) ( 1 "user" "age" ) select fetch';
+    const code =
+      '( ( "user" ( "name" "Ada" "age" 37 ) ) ( "user" ( "name" "Bob" "age" 44 ) ) ) ( 1 "user" "age" ) select fetch';
     const result = executeTacitCode(code);
     expect(result[result.length - 1]).toBe(44);
   });

@@ -1,7 +1,7 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
 import { rotOp } from '../../../ops/stack';
-import { resetVM } from "../../utils/vm-test-utils";
+import { resetVM } from '../../utils/vm-test-utils';
 
 describe('rot Operation', () => {
   beforeEach(() => {
@@ -74,10 +74,10 @@ describe('rot Operation', () => {
       vm.push(1);
       vm.push(2);
       vm.push(3);
-      vm.push(toTaggedValue(3, Tag.LIST)); 
+      vm.push(toTaggedValue(3, Tag.LIST));
       vm.push(4);
       vm.push(5);
-      vm.push(toTaggedValue(3, Tag.LIST)); 
+      vm.push(toTaggedValue(3, Tag.LIST));
 
       rotOp(vm);
 

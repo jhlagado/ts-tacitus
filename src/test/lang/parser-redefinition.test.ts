@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { resetVM } from "../utils/vm-test-utils";
+import { resetVM } from '../utils/vm-test-utils';
 
 function captureOutput(run: () => void): string[] {
   const logs: string[] = [];
@@ -21,9 +21,7 @@ describe('Forth-style word redefinition (shadowing)', () => {
   });
 
   test('redefinition shadows previous and new body can call old one', () => {
-    const out = captureOutput(() =>
-      executeProgram(': x 123 . ; x : x x x ; x'),
-    );
+    const out = captureOutput(() => executeProgram(': x 123 . ; x : x x x ; x'));
     expect(out).toEqual(['123', '123', '123']);
   });
 });

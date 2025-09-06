@@ -38,8 +38,6 @@ export function createTargetRef(vm: VM): boolean {
   }
 }
 
-
-
 /**
  * Iterates through multi-element path.
  * Stack: ( target path current-ref -- target final-ref ) or ( target NIL ) on error

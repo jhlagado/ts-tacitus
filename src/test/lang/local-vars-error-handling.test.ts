@@ -53,7 +53,7 @@ describe('Local Variables Error Handling', () => {
         define-var
         use-builtin
       `);
-      
+
       // define-var returns its local variable value, use-builtin returns 999
       expect(result).toEqual([42, 999]);
     });
@@ -63,11 +63,11 @@ describe('Local Variables Error Handling', () => {
     test('should handle functions with many variables without crashing', () => {
       // Test with a reasonable number of variables (50)
       const manyVarCode = `: many-vars
-        ${Array.from({length: 50}, (_, i) => `${i} var v${i}`).join(' ')}
+        ${Array.from({ length: 50 }, (_, i) => `${i} var v${i}`).join(' ')}
         v0 v49 add
       ;
       many-vars`;
-      
+
       const result = executeTacitCode(manyVarCode);
       expect(result).toEqual([49]); // 0 + 49
     });
@@ -79,7 +79,7 @@ describe('Local Variables Error Handling', () => {
         ;
         empty-with-vars
       `);
-      
+
       // Function declares variable but doesn't use it
       expect(result).toEqual([]);
     });
@@ -94,7 +94,7 @@ describe('Local Variables Error Handling', () => {
         ;
         unused-vars
       `);
-      
+
       expect(result).toEqual([999]);
     });
   });
@@ -108,7 +108,7 @@ describe('Local Variables Error Handling', () => {
         ;
         zero-test
       `);
-      
+
       expect(result).toEqual([0]);
     });
 
@@ -120,7 +120,7 @@ describe('Local Variables Error Handling', () => {
         ;
         negative-test
       `);
-      
+
       expect(result).toEqual([100]);
     });
 
@@ -132,14 +132,14 @@ describe('Local Variables Error Handling', () => {
         ;
         large-test
       `);
-      
+
       expect(result).toEqual([2000000]);
     });
 
     test('should handle variable shadowing edge cases', () => {
       // Define a global using a valid builtin opcode (Add = 5)
       vm.symbolTable.defineBuiltin('global_var', 5);
-      
+
       const result = executeTacitCode(`
         : shadow-test
             42 var global_var
@@ -147,7 +147,7 @@ describe('Local Variables Error Handling', () => {
         ;
         shadow-test
       `);
-      
+
       // Local should shadow global
       expect(result).toEqual([42]);
     });
@@ -161,7 +161,7 @@ describe('Local Variables Error Handling', () => {
         ;
         rapid-test
       `);
-      
+
       expect(result).toEqual([1, 2, 3]);
     });
   });
@@ -176,7 +176,7 @@ describe('Local Variables Error Handling', () => {
         ;
         math-test
       `);
-      
+
       expect(result).toEqual([2]); // 10 / 5
     });
 
@@ -189,7 +189,7 @@ describe('Local Variables Error Handling', () => {
         ;
         stack-test
       `);
-      
+
       expect(result).toEqual([1, 2, 1]);
     });
 
@@ -202,7 +202,7 @@ describe('Local Variables Error Handling', () => {
         ;
         outer
       `);
-      
+
       expect(result).toEqual([150]); // 50 + 100
     });
   });

@@ -58,34 +58,34 @@ describe('Parser Variable Support', () => {
     test('should define local variable in symbol table', () => {
       // Create a function with a variable and check symbol table state
       const checkpoint = vm.symbolTable.mark(); // Simulate function start
-      
+
       // Simulate parsing "42 var x"
       vm.symbolTable.defineLocal('x');
-      
+
       const xRef = vm.symbolTable.findTaggedValue('x');
       expect(xRef).toBeDefined();
-      
+
       const { tag } = fromTaggedValue(xRef!);
       expect(tag).toBe(Tag.LOCAL);
-      
+
       expect(vm.symbolTable.getLocalCount()).toBe(1);
-      
+
       vm.symbolTable.revert(checkpoint); // Clean up
     });
 
     test('should handle natural shadowing', () => {
       // Define a builtin (simulate global)
       vm.symbolTable.defineBuiltin('x', 42);
-      
+
       // Start function and define local with same name
       const checkpoint = vm.symbolTable.mark();
       vm.symbolTable.defineLocal('x');
-      
+
       // Local should shadow global
       const xRef = vm.symbolTable.findTaggedValue('x');
       const { tag } = fromTaggedValue(xRef!);
       expect(tag).toBe(Tag.LOCAL);
-      
+
       // Restore global scope
       vm.symbolTable.revert(checkpoint);
       const globalXRef = vm.symbolTable.findTaggedValue('x');

@@ -20,7 +20,7 @@ describe('Reference Sigil (&x) Parsing', () => {
   test('should differentiate between x and &x behavior', () => {
     const resultValue = executeTacitCode(': test (1 2 3) var mylist mylist ; test');
     const resultRef = executeTacitCode(': test (1 2 3) var mylist &mylist ; test');
-    
+
     // They should produce different stack states
     expect(resultValue).not.toEqual(resultRef);
   });
