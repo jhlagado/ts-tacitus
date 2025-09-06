@@ -44,7 +44,7 @@ describe('Basic Maplist Tests', () => {
   test('basic string equality test', () => {
     executeTacitCode('"string" "string"');
     console.log('Two strings on stack:', getFormattedStack());
-    
+
     const result = executeTacitCode('"string" "string" eq');
     expect(result[result.length - 1]).toBe(1); // Should be 1 for true
   });

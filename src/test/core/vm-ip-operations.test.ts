@@ -1,4 +1,3 @@
-
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, toTaggedValue, Tag } from '@src/core';
 import { Op } from '../../ops/opcodes';
@@ -15,9 +14,9 @@ describe('VM Instruction Pointer Operations', () => {
   });
 
   test('next8 should read a byte and advance IP by 1', () => {
-    vm.memory.write8(SEG_CODE, 0, 0xAB);
+    vm.memory.write8(SEG_CODE, 0, 0xab);
     const value = vm.next8();
-    expect(value).toBe(0xAB);
+    expect(value).toBe(0xab);
     expect(vm.IP).toBe(1);
   });
 
@@ -30,8 +29,8 @@ describe('VM Instruction Pointer Operations', () => {
 
   test('nextOpcode should read a two-byte opcode and advance IP by 2', () => {
     const twoByteOpcode = Op.Add + 128; // Simulate a user-defined opcode
-    vm.memory.write8(SEG_CODE, 0, 0x80 | (twoByteOpcode & 0x7F));
-    vm.memory.write8(SEG_CODE, 1, (twoByteOpcode >> 7) & 0xFF);
+    vm.memory.write8(SEG_CODE, 0, 0x80 | (twoByteOpcode & 0x7f));
+    vm.memory.write8(SEG_CODE, 1, (twoByteOpcode >> 7) & 0xff);
     const opcode = vm.nextOpcode();
     expect(opcode).toBe(twoByteOpcode);
     expect(vm.IP).toBe(2);

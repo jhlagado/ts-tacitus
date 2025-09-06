@@ -124,10 +124,10 @@ describe('VM pushSymbolRef method', () => {
       vm.push(5);
 
       vm.pushSymbolRef('dup');
-      evalOp(vm); 
+      evalOp(vm);
 
       vm.pushSymbolRef('mul');
-      evalOp(vm); 
+      evalOp(vm);
 
       const stack = vm.getStackData();
       expect(stack.length).toBe(1);
@@ -163,7 +163,6 @@ describe('VM pushSymbolRef method', () => {
 
   describe('workflow simulation', () => {
     test('should simulate complete @symbol eval workflow', () => {
-
       vm.symbolTable.defineBuiltin('add', Op.Add);
 
       vm.push(3);

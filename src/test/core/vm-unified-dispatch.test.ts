@@ -62,11 +62,7 @@ describe('VM Unified Dispatch', () => {
 
   describe('non-executable values', () => {
     test('should push back non-executable values unchanged', () => {
-      const nonExecutableValues = [
-        42, 
-        toTaggedValue(100, Tag.STRING), 
-        toTaggedValue(5, Tag.LIST), 
-      ];
+      const nonExecutableValues = [42, toTaggedValue(100, Tag.STRING), toTaggedValue(5, Tag.LIST)];
 
       nonExecutableValues.forEach(value => {
         resetVM();
@@ -88,7 +84,7 @@ describe('VM Unified Dispatch', () => {
     });
 
     test('should handle stack underflow in built-ins', () => {
-      vm.push(5); 
+      vm.push(5);
       vm.push(createBuiltinRef(Op.Add));
 
       expect(() => evalOp(vm)).toThrow();
@@ -108,7 +104,7 @@ describe('VM Unified Dispatch', () => {
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
 
-      expect(vm.RP).toBe(originalRP); 
+      expect(vm.RP).toBe(originalRP);
       expect(vm.getStackData()).toEqual([5]);
     });
 

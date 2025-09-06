@@ -9,7 +9,11 @@ import { CELL_SIZE } from '@src/core';
 import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
-import { isCompoundData, isCompatibleCompound, mutateCompoundInPlace } from '../local-vars-transfer';
+import {
+  isCompoundData,
+  isCompatibleCompound,
+  mutateCompoundInPlace,
+} from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
 
 export function lengthOp(vm: VM): void {

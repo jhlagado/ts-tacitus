@@ -1,10 +1,17 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { STACK_SIZE, RSTACK_SIZE, StackOverflowError, ReturnStackOverflowError, StackUnderflowError } from '@src/core';
+import {
+  STACK_SIZE,
+  RSTACK_SIZE,
+  StackOverflowError,
+  ReturnStackOverflowError,
+  StackUnderflowError,
+} from '@src/core';
 import { initializeInterpreter, vm } from '../../core/globalState';
 
 const CELL_SIZE = 4;
 
-describe('VM Stack Operations Error Handling', () => { // Changed describe block name
+describe('VM Stack Operations Error Handling', () => {
+  // Changed describe block name
   beforeEach(() => {
     initializeInterpreter();
     vm.debug = false;
@@ -27,7 +34,9 @@ describe('VM Stack Operations Error Handling', () => { // Changed describe block
     }
 
     expect(() => vm.rpush(999)).toThrow(ReturnStackOverflowError);
-    expect(() => vm.rpush(999)).toThrow(/Return stack overflow: 'rpush' would exceed return stack size/);
+    expect(() => vm.rpush(999)).toThrow(
+      /Return stack overflow: 'rpush' would exceed return stack size/,
+    );
   });
 
   test('StackOverflowError should contain correct stack state', () => {

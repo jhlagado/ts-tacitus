@@ -40,8 +40,8 @@ describe('findElement', () => {
     const [_innerNext, innerSize] = findElement(vm, 0);
     expect(innerSize).toBe(3);
 
-    pushValue(vm, 4); 
-    pushValue(vm, 3, Tag.LIST); 
+    pushValue(vm, 4);
+    pushValue(vm, 3, Tag.LIST);
 
     const [_outerNext, outerSize] = findElement(vm, 0);
     expect(outerSize).toBe(4);

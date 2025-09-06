@@ -19,7 +19,7 @@ describe('Local Variables in Code Blocks', () => {
       ;
       func-with-block
     `);
-    
+
     // Should return 101 (x=100, then x + 1 inside the code block)
     expect(result).toEqual([101]);
   });
@@ -33,7 +33,7 @@ describe('Local Variables in Code Blocks', () => {
       ;
       multi-vars-block
     `);
-    
+
     // Should return 30 (x=10, y=20, then x + y = 30)
     expect(result).toEqual([30]);
   });
@@ -46,7 +46,7 @@ describe('Local Variables in Code Blocks', () => {
       ;
       nested-blocks
     `);
-    
+
     // x=5, temp=15 (x+10), result = temp + x = 15 + 5 = 20
     expect(result).toEqual([20]);
   });
@@ -60,7 +60,7 @@ describe('Local Variables in Code Blocks', () => {
       ;
       preserve-vars
     `);
-    
+
     // Should push answer twice: once from inside block, once after
     expect(result).toEqual([42, 42]);
   });

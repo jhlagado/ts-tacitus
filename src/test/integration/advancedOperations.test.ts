@@ -1,4 +1,4 @@
-import { runTacitTest } from "../utils/vm-test-utils";
+import { runTacitTest } from '../utils/vm-test-utils';
 
 describe('Tacit Advanced Operations', () => {
   test('word definitions', () => {

@@ -1,7 +1,7 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../core/globalState';
 import { dropOp } from '../../../ops/stack';
-import { resetVM } from "../../utils/vm-test-utils";
+import { resetVM } from '../../utils/vm-test-utils';
 
 describe('drop Operation', () => {
   beforeEach(() => {
@@ -52,9 +52,6 @@ describe('drop Operation', () => {
       const stack = vm.getStackData();
       expect(stack).toEqual([5]);
     });
-
-
-
 
     test('should drop multiple lists consecutively', () => {
       vm.push(10);

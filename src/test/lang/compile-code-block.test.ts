@@ -10,8 +10,7 @@ describe('compileCodeBlock function', () => {
     resetVM();
   });
 
-  describe('Basic Block Creation', () => {
-  });
+  describe('Basic Block Creation', () => {});
 
   describe('Block Execution', () => {
     it('should execute simple blocks with eval', () => {
@@ -47,7 +46,11 @@ describe('compileCodeBlock function', () => {
         // Test passes - this is the correct behavior
       } else {
         // Test contamination case: skip assertion but warn
-        console.warn('Test isolation issue detected: code block parsed as', tagName, 'instead of CODE');
+        console.warn(
+          'Test isolation issue detected: code block parsed as',
+          tagName,
+          'instead of CODE',
+        );
       }
     });
 

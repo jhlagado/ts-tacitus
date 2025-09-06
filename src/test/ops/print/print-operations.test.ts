@@ -2,7 +2,7 @@
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
  * Tests both high-level '.' operation and low-level 'raw' operator
  */
-import { resetVM, captureTacitOutput } from "../../utils/vm-test-utils";
+import { resetVM, captureTacitOutput } from '../../utils/vm-test-utils';
 
 describe('Print Operations', () => {
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('Print Operations', () => {
     describe('error cases', () => {
       test('should handle empty stack for print operation', () => {
         const output = captureTacitOutput('( 10 20 ) .');
-        expect(output).toEqual(['( 10 20 )']); 
+        expect(output).toEqual(['( 10 20 )']);
       });
     });
 

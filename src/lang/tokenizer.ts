@@ -3,7 +3,13 @@
  * Tokenizer for the Tacit language.
  */
 
-import { TokenError, UnterminatedStringError, isDigit, isWhitespace, isSpecialChar } from '@src/core';
+import {
+  TokenError,
+  UnterminatedStringError,
+  isDigit,
+  isWhitespace,
+  isSpecialChar,
+} from '@src/core';
 
 /**
  * Token types for the Tacit tokenizer.

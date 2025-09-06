@@ -61,19 +61,19 @@ describe('Interpreter', () => {
   describe('Code blocks', () => {});
   describe('Error handling', () => {
     test('should handle invalid opcodes', () => {
-      vm.compiler.CP = vm.compiler.BCP + 1; 
-      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110); 
-      
+      vm.compiler.CP = vm.compiler.BCP + 1;
+      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110);
+
       let errorThrown = false;
       let errorMessage = '';
-      
+
       try {
         execute(vm.compiler.BCP);
       } catch (error) {
         errorThrown = true;
         errorMessage = error instanceof Error ? error.message : String(error);
       }
-      
+
       expect(errorThrown).toBe(true);
       expect(errorMessage).toContain('Invalid opcode: 110');
     });

@@ -3,7 +3,7 @@ import {
   executeTacitCode,
   runTacitTest,
   captureTacitOutput,
-} from "./utils/vm-test-utils";
+} from './utils/vm-test-utils';
 describe('tacitTestUtils', () => {
   describe('testTacitCode', () => {
     test('should validate stack output correctly', () => {

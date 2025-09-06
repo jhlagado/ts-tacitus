@@ -84,7 +84,6 @@ export const getOp: Verb = (vm: VM) => {
   }
 };
 
-
 /**
  * Set combinator (stub).
  * Stack: ( value target { path } -- nil ).

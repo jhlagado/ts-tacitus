@@ -13,7 +13,7 @@ export function areValuesEqual(a: number, b: number): boolean {
   if (!isNaN(a) && !isNaN(b)) {
     return a === b;
   }
-  
+
   const aDecoded = fromTaggedValue(a);
   const bDecoded = fromTaggedValue(b);
   return aDecoded.tag === bDecoded.tag && aDecoded.value === bDecoded.value;

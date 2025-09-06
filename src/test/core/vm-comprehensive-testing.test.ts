@@ -295,13 +295,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
         times.push(performance.now() - start);
       }
-
-      const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
-      const variance =
-        times.reduce((acc, time) => acc + Math.pow(time - avgTime, 2), 0) / times.length;
-      const stdDev = Math.sqrt(variance);
-
-      // expect(stdDev).toBeLessThan(avgTime);
     });
   });
 
@@ -365,7 +358,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should integrate properly with existing VM operations', () => {
-
       vm.push(10);
       vm.push(20);
       vm.push(30);

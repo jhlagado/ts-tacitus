@@ -5,8 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/globalState';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { isCompatibleCompound } from '../../../ops/local-vars-transfer';
-import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
-import { getListLength } from '../../../core/list';
+import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Compound Compatibility Checking', () => {
   beforeEach(() => {

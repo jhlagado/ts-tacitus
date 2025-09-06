@@ -115,27 +115,38 @@ describe('Local Variables System', () => {
       vm.BP = 1000;
       vm.compiler.compile16(2);
       reserveOp(vm);
-      vm.push(111); vm.compiler.compile16(0); initVarOp(vm);
-      vm.push(222); vm.compiler.compile16(1); initVarOp(vm);
+      vm.push(111);
+      vm.compiler.compile16(0);
+      initVarOp(vm);
+      vm.push(222);
+      vm.compiler.compile16(1);
+      initVarOp(vm);
 
       // Verify first frame
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
       expect(vm.pop()).toBe(111);
 
       // Second frame (different BP)
       vm.BP = 5000;
       vm.compiler.compile16(2);
       reserveOp(vm);
-      vm.push(333); vm.compiler.compile16(0); initVarOp(vm);
-      vm.push(444); vm.compiler.compile16(1); initVarOp(vm);
+      vm.push(333);
+      vm.compiler.compile16(0);
+      initVarOp(vm);
+      vm.push(444);
+      vm.compiler.compile16(1);
+      initVarOp(vm);
 
       // Verify second frame
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
       expect(vm.pop()).toBe(333);
 
       // Switch back to first frame - should still have original values
       vm.BP = 1000;
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
       expect(vm.pop()).toBe(111);
     });
   });
@@ -187,12 +198,18 @@ describe('Local Variables System', () => {
       reserveOp(vm);
 
       // Store operands
-      vm.push(15); vm.compiler.compile16(0); initVarOp(vm); // a = 15
-      vm.push(25); vm.compiler.compile16(1); initVarOp(vm); // b = 25
+      vm.push(15);
+      vm.compiler.compile16(0);
+      initVarOp(vm); // a = 15
+      vm.push(25);
+      vm.compiler.compile16(1);
+      initVarOp(vm); // b = 25
 
       // Calculate: a + b
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
-      vm.push(getVarRef(vm, 1)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
+      vm.push(getVarRef(vm, 1));
+      fetchOp(vm);
       const sum = vm.pop() + vm.pop();
 
       // Store result
@@ -286,20 +303,27 @@ describe('Local Variables System', () => {
       reserveOp(vm);
 
       // Initialize variables
-      vm.push(111); vm.compiler.compile16(0); initVarOp(vm);
-      vm.push(222); vm.compiler.compile16(1); initVarOp(vm);
+      vm.push(111);
+      vm.compiler.compile16(0);
+      initVarOp(vm);
+      vm.push(222);
+      vm.compiler.compile16(1);
+      initVarOp(vm);
 
       // Read first, mutate second
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
       vm.pop();
 
       writeReference(vm, getVarRef(vm, 1), 999);
 
       // Verify first unchanged, second mutated
-      vm.push(getVarRef(vm, 0)); fetchOp(vm);
+      vm.push(getVarRef(vm, 0));
+      fetchOp(vm);
       expect(vm.pop()).toBe(111); // unchanged
 
-      vm.push(getVarRef(vm, 1)); fetchOp(vm);
+      vm.push(getVarRef(vm, 1));
+      fetchOp(vm);
       expect(vm.pop()).toBe(999); // mutated
     });
   });

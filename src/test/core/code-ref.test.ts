@@ -208,7 +208,7 @@ describe('Code Reference Utilities', () => {
       const codeRef = createCodeRef(originalAddr);
 
       const extractedOpcode = getBuiltinOpcode(builtinRef);
-      const extractedAddr =   getCodeAddress(codeRef);
+      const extractedAddr = getCodeAddress(codeRef);
 
       expect(extractedOpcode).toBe(originalOpcode);
       expect(extractedAddr).toBe(originalAddr);

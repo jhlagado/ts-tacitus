@@ -172,18 +172,18 @@ describe('Printer', () => {
     });
 
     test('should handle multiple consecutive prints', () => {
-  const value1 = 1;
-  const value2 = 2;
-  const value3 = 3;
+      const value1 = 1;
+      const value2 = 2;
+      const value3 = 3;
 
-  prn('First', value1);
-  prn('Second', value2);
-  prn('Third', value3);
+      prn('First', value1);
+      prn('Second', value2);
+      prn('Third', value3);
 
-  expect(consoleOutput).toHaveLength(3);
-  expect(consoleOutput[0]).toMatch(/First: NUMBER: 1/);
-  expect(consoleOutput[1]).toMatch(/Second: NUMBER: 2/);
-  expect(consoleOutput[2]).toMatch(/Third: NUMBER: 3/);
+      expect(consoleOutput).toHaveLength(3);
+      expect(consoleOutput[0]).toMatch(/First: NUMBER: 1/);
+      expect(consoleOutput[1]).toMatch(/Second: NUMBER: 2/);
+      expect(consoleOutput[2]).toMatch(/Third: NUMBER: 3/);
     });
   });
 });

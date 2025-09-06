@@ -12,8 +12,6 @@ describe('Standalone Code Blocks', () => {
     expect(() => executeProgram(code)).not.toThrow();
   });
 
-
-
   it('should actually execute code when called with eval', () => {
     const code = '{ 1 2 add } eval';
     executeProgram(code);

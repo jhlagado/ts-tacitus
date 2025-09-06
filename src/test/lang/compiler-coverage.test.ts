@@ -33,28 +33,28 @@ describe('Compiler - Branch Coverage', () => {
   describe('compileOpcode encoding paths', () => {
     test('should use single-byte encoding for opcodes < MIN_USER_OPCODE', () => {
       const initialCP = vm.compiler.CP;
-      vm.compiler.compileOpcode(5); 
-      
+      vm.compiler.compileOpcode(5);
+
       expect(vm.compiler.CP).toBe(initialCP + 1);
     });
 
     test('should use two-byte encoding for opcodes >= MIN_USER_OPCODE', () => {
       const initialCP = vm.compiler.CP;
-      vm.compiler.compileOpcode(MIN_USER_OPCODE); 
-      
+      vm.compiler.compileOpcode(MIN_USER_OPCODE);
+
       expect(vm.compiler.CP).toBe(initialCP + 2);
     });
 
     test('should properly encode large user opcodes', () => {
       const largeOpcode = MIN_USER_OPCODE + 1000;
       vm.compiler.compileOpcode(largeOpcode);
-      
+
       vm.reset();
       const firstByte = vm.next8();
       const secondByte = vm.next8();
-      
+
       expect(firstByte & 0x80).toBe(0x80);
-      
+
       const decodedOpcode = ((secondByte & 0xff) << 7) | (firstByte & 0x7f);
       expect(decodedOpcode).toBe(largeOpcode);
     });
@@ -71,18 +71,18 @@ describe('Compiler - Branch Coverage', () => {
 
     test('should always use two-byte encoding regardless of address', () => {
       const initialCP = vm.compiler.CP;
-      
-      vm.compiler.compileUserWordCall(5); 
-      
+
+      vm.compiler.compileUserWordCall(5);
+
       expect(vm.compiler.CP).toBe(initialCP + 2);
     });
 
     test('should properly encode user word call with MSB set', () => {
       vm.compiler.compileUserWordCall(100);
-      
+
       vm.reset();
       const firstByte = vm.next8();
-      
+
       expect(firstByte & 0x80).toBe(0x80);
     });
   });
@@ -99,9 +99,9 @@ describe('Compiler - Branch Coverage', () => {
     test('should handle single-byte opcode patching', () => {
       vm.compiler.compile8(0);
       const patchAddress = vm.compiler.CP - 1;
-      
+
       vm.compiler.patchOpcode(patchAddress, 5);
-      
+
       vm.reset();
       vm.IP = patchAddress;
       expect(vm.next8()).toBe(5);
@@ -111,16 +111,16 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.compile8(0);
       vm.compiler.compile8(0);
       const patchAddress = vm.compiler.CP - 2;
-      
+
       const largeOpcode = MIN_USER_OPCODE + 100;
       vm.compiler.patchOpcode(patchAddress, largeOpcode);
-      
+
       vm.reset();
       vm.IP = patchAddress;
       const firstByte = vm.next8();
       const secondByte = vm.next8();
-      
-      expect(firstByte & 0x80).toBe(0x80); 
+
+      expect(firstByte & 0x80).toBe(0x80);
       const decodedOpcode = ((secondByte & 0xff) << 7) | (firstByte & 0x7f);
       expect(decodedOpcode).toBe(largeOpcode);
     });
@@ -131,22 +131,22 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.CP = 100;
       vm.compiler.BCP = 50;
       vm.compiler.preserve = true;
-      
+
       vm.compiler.reset();
-      
-      expect(vm.compiler.BCP).toBe(100); 
-      expect(vm.compiler.CP).toBe(100); 
+
+      expect(vm.compiler.BCP).toBe(100);
+      expect(vm.compiler.CP).toBe(100);
     });
 
     test('should restore CP from BCP when preserve is false', () => {
       vm.compiler.CP = 100;
       vm.compiler.BCP = 50;
       vm.compiler.preserve = false;
-      
+
       vm.compiler.reset();
-      
-      expect(vm.compiler.CP).toBe(50); 
-      expect(vm.compiler.BCP).toBe(50); 
+
+      expect(vm.compiler.CP).toBe(50);
+      expect(vm.compiler.BCP).toBe(50);
     });
   });
 
@@ -159,13 +159,13 @@ describe('Compiler - Branch Coverage', () => {
       const initialCP1 = vm.compiler.CP;
       vm.compiler.compileOpcode(MIN_USER_OPCODE - 1);
       const bytesUsed1 = vm.compiler.CP - initialCP1;
-      
+
       const initialCP2 = vm.compiler.CP;
       vm.compiler.compileOpcode(MIN_USER_OPCODE);
       const bytesUsed2 = vm.compiler.CP - initialCP2;
-      
-      expect(bytesUsed1).toBe(1); 
-      expect(bytesUsed2).toBe(2); 
+
+      expect(bytesUsed1).toBe(1);
+      expect(bytesUsed2).toBe(2);
     });
 
     test('should handle maximum valid opcode address', () => {
@@ -177,20 +177,20 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.compile8(2);
       vm.compiler.compile8(3);
       vm.compiler.compile8(4);
-      
+
       vm.compiler.patchOpcode(1, 99);
-      
+
       vm.reset();
-      expect(vm.next8()).toBe(1);  
-      expect(vm.next8()).toBe(99); 
-      expect(vm.next8()).toBe(3);  
+      expect(vm.next8()).toBe(1);
+      expect(vm.next8()).toBe(99);
+      expect(vm.next8()).toBe(3);
     });
   });
 
   describe('Compiler instance methods', () => {
     test('should work with new compiler instance', () => {
       const newCompiler = new Compiler(vm);
-      
+
       expect(newCompiler.CP).toBe(0);
       expect(newCompiler.BCP).toBe(0);
       expect(newCompiler.preserve).toBe(false);
@@ -199,10 +199,10 @@ describe('Compiler - Branch Coverage', () => {
 
     test('should handle compile operations on new instance', () => {
       const newCompiler = new Compiler(vm);
-      
+
       newCompiler.compile8(42);
       expect(newCompiler.CP).toBe(1);
-      
+
       newCompiler.compile16(1000);
       expect(newCompiler.CP).toBe(3);
     });

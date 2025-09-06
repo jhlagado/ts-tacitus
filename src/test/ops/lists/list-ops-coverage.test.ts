@@ -39,9 +39,9 @@ describe('List Operations - Branch Coverage', () => {
       expect(vm.getStackData()).toHaveLength(2);
 
       const header = vm.peek();
-  const { tag, value } = fromTaggedValue(header);
-  expect(tag).toBe(Tag.LIST);
-  expect(value).toBe(1);
+      const { tag, value } = fromTaggedValue(header);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(1);
     });
 
     test('should handle empty lists (no reversal needed)', () => {
@@ -49,9 +49,9 @@ describe('List Operations - Branch Coverage', () => {
       closeListOp(vm);
 
       const header = vm.peek();
-  const { tag, value } = fromTaggedValue(header);
-  expect(tag).toBe(Tag.LIST);
-  expect(value).toBe(0);
+      const { tag, value } = fromTaggedValue(header);
+      expect(tag).toBe(Tag.LIST);
+      expect(value).toBe(0);
     });
 
     test('should handle lists with listDepth undefined (backward compatibility)', () => {
@@ -102,11 +102,10 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = vm.pop();
-  const { value: length } = fromTaggedValue(lengthTagged);
-  expect(length).toBe(3);
+      const { value: length } = fromTaggedValue(lengthTagged);
+      expect(length).toBe(3);
     });
   });
-
 
   describe('Stack underflow protection', () => {
     test('sizeOp should handle empty stack', () => {
@@ -132,7 +131,6 @@ describe('List Operations - Branch Coverage', () => {
       const result = vm.pop();
       expect(result).toBe(-1);
     });
-
   });
 
   describe('Complex list structures', () => {
@@ -148,8 +146,8 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = vm.pop();
-  const { value: length } = fromTaggedValue(lengthTagged);
-  expect(length).toBe(1);
+      const { value: length } = fromTaggedValue(lengthTagged);
+      expect(length).toBe(1);
     });
 
     test('should handle large lists efficiently', () => {
@@ -164,8 +162,8 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = vm.pop();
-  const { value: length } = fromTaggedValue(lengthTagged);
-  expect(length).toBe(50);
+      const { value: length } = fromTaggedValue(lengthTagged);
+      expect(length).toBe(50);
     });
   });
 
@@ -178,12 +176,10 @@ describe('List Operations - Branch Coverage', () => {
       vm.push(2);
       closeListOp(vm);
 
-
       sizeOp(vm);
 
       expect(vm.SP).toBeGreaterThan(initialSP);
       expect(vm.getStackData()).toBeDefined();
     });
-
   });
 });

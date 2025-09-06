@@ -152,7 +152,11 @@ export function getListHeaderAndBase(
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     const slotCount = getListLength(value);
-    return { header: value, baseAddr: vm.SP - CELL_SIZE - slotCount * CELL_SIZE, segment: SEG_STACK };
+    return {
+      header: value,
+      baseAddr: vm.SP - CELL_SIZE - slotCount * CELL_SIZE,
+      segment: SEG_STACK,
+    };
   } else if (isRef(value)) {
     const { address, segment } = resolveReference(vm, value);
     const header = vm.memory.readFloat32(segment, address);

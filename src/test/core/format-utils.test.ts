@@ -1,7 +1,5 @@
-import { formatAtomicValue, formatValue } from '@src/core';
+import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '@src/core';
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { Tag, toTaggedValue } from '@src/core';
-import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Format Utils', () => {
   beforeEach(() => {
@@ -109,7 +107,6 @@ describe('Format Utils', () => {
         expect(formatValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
-
       test('should format unknown tag types', () => {
         const unknownValue = toTaggedValue(123, Tag.CODE);
         expect(formatValue(vm, unknownValue)).toBe('[CODE:123]');
@@ -118,7 +115,7 @@ describe('Format Utils', () => {
 
     describe('error cases', () => {
       test('should handle special float values through formatFloat', () => {
-        const nanValue = toTaggedValue(0, Tag.NUMBER);  // NaN gets encoded as 0 in tagged values
+        const nanValue = toTaggedValue(0, Tag.NUMBER); // NaN gets encoded as 0 in tagged values
         expect(formatValue(vm, nanValue)).toBe('0');
       });
 

@@ -173,20 +173,20 @@ describe('SymbolTable Direct Addressing', () => {
       symbolTable.defineBuiltin('oldStyle', 42);
 
       const taggedValue = symbolTable.findCodeRef('oldStyle');
-      expect(taggedValue).toBeDefined(); 
+      expect(taggedValue).toBeDefined();
 
       const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.BUILTIN); 
+      expect(tag).toBe(Tag.BUILTIN);
     });
 
     test('should maintain independence from legacy function calling', () => {
-      symbolTable.defineCode('oldCall', 200); 
+      symbolTable.defineCode('oldCall', 200);
 
       const taggedValue = symbolTable.findCodeRef('oldCall');
       expect(taggedValue).toBeDefined();
 
       const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.CODE); 
+      expect(tag).toBe(Tag.CODE);
     });
   });
 
@@ -207,8 +207,8 @@ describe('SymbolTable Direct Addressing', () => {
 
       const addTaggedAfter = symbolTable.findCodeRef('add');
       const squareTaggedAfter = symbolTable.findCodeRef('square');
-      expect(addTaggedAfter).toBeDefined(); 
-      expect(squareTaggedAfter).toBeUndefined(); 
+      expect(addTaggedAfter).toBeDefined();
+      expect(squareTaggedAfter).toBeUndefined();
     });
   });
 });

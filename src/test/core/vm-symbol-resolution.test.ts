@@ -86,7 +86,7 @@ describe('VM Symbol Resolution', () => {
 
     test('should handle symbol shadowing correctly', () => {
       vm.symbolTable.defineBuiltin('test', Op.Add);
-      vm.symbolTable.defineCode('test', 5000); 
+      vm.symbolTable.defineCode('test', 5000);
 
       const result = vm.resolveSymbol('test');
 
@@ -107,7 +107,7 @@ describe('VM Symbol Resolution', () => {
       vm.push(addRef!);
       evalOp(vm);
 
-      expect(vm.SP).toBe(4); 
+      expect(vm.SP).toBe(4);
       expect(vm.pop()).toBe(8);
     });
 

@@ -10,10 +10,26 @@ import { initializeInterpreter } from '../../../../core/globalState';
 describe('List Creation Operations', () => {
   beforeEach(() => {
     // Ensure completely clean state to avoid test isolation issues
-    try { initializeInterpreter(); } catch { /* ignore */ }
-    try { resetVM(); } catch { /* ignore */ }
-    try { initializeInterpreter(); } catch { /* ignore */ }
-    try { resetVM(); } catch { /* ignore */ }
+    try {
+      initializeInterpreter();
+    } catch {
+      /* ignore */
+    }
+    try {
+      resetVM();
+    } catch {
+      /* ignore */
+    }
+    try {
+      initializeInterpreter();
+    } catch {
+      /* ignore */
+    }
+    try {
+      resetVM();
+    } catch {
+      /* ignore */
+    }
   });
 
   describe('simple values', () => {
@@ -30,12 +46,12 @@ describe('List Creation Operations', () => {
       resetVM();
       initializeInterpreter();
       resetVM();
-      
+
       const stack = executeTacitCode('( )');
 
       expect(stack.length).toBe(1);
       const { tag, value } = fromTaggedValue(stack[0]);
-      
+
       // Handle both correct case and test contamination case
       const tagName = Tag[tag];
       if (tagName === 'LIST') {
@@ -43,7 +59,11 @@ describe('List Creation Operations', () => {
         expect(value).toBe(0);
       } else {
         // Test contamination case: skip assertion but don't fail
-        console.warn('Test isolation issue detected: empty list parsed as', tagName, 'instead of LIST');
+        console.warn(
+          'Test isolation issue detected: empty list parsed as',
+          tagName,
+          'instead of LIST',
+        );
       }
     });
   });
@@ -69,8 +89,7 @@ describe('List Creation Operations', () => {
     });
   });
 
-  describe('error cases', () => {
-  });
+  describe('error cases', () => {});
 
   describe('integration tests', () => {
     test('should handle complex mixed nested structures', () => {

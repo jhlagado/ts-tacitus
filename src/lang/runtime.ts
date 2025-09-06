@@ -33,4 +33,3 @@ export function setupRuntime(): void {
 
 // Backward-compatible alias for legacy imports/tests
 export { setupRuntime as initializeInterpreter };
-
