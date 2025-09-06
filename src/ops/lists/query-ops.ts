@@ -97,11 +97,6 @@ export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
   const addressValue = vm.pop();
   if (!isRef(addressValue)) {
-    // Tolerant mode: act as identity on non-references to enable "fetch fetch" patterns.
-    if (vm.tolerantFetch) {
-      vm.push(addressValue);
-      return;
-    }
     throw new Error('fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
   const { address, segment } = resolveReference(vm, addressValue);
@@ -116,6 +111,47 @@ export function fetchOp(vm: VM): void {
   } else {
     vm.push(value);
   }
+}
+
+/**
+ * load: Value-by-default dereference.
+ * Stack: ( x -- v )
+ * - If x is not a reference: push x unchanged (identity)
+ * - If x is a reference: read once; if the read value is a reference, dereference one more level;
+ *   if the final value is a LIST header, materialize payload+header; else push the simple value.
+ */
+export function loadOp(vm: VM): void {
+  vm.ensureStackSize(1, 'load');
+  const input = vm.pop();
+
+  // Identity on non-refs
+  if (!isRef(input)) {
+    vm.push(input);
+    return;
+  }
+
+  // First dereference
+  const first = resolveReference(vm, input);
+  let value = vm.memory.readFloat32(first.segment, first.address);
+
+  // Optional second dereference if the loaded value is itself a reference
+  if (isRef(value)) {
+    const second = resolveReference(vm, value);
+    value = vm.memory.readFloat32(second.segment, second.address);
+  }
+
+  // Materialize if final value is a LIST header
+  if (isList(value)) {
+    const slotCount = getListLength(value);
+    for (let i = slotCount - 1; i >= 0; i--) {
+      const slotValue = vm.memory.readFloat32(first.segment, first.address - (i + 1) * CELL_SIZE);
+      vm.push(slotValue);
+    }
+    vm.push(value);
+    return;
+  }
+
+  vm.push(value);
 }
 
 export function storeOp(vm: VM): void {
