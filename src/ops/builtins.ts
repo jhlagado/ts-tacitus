@@ -2,7 +2,16 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import { VM, Verb, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, SEG_RSTACK } from '@src/core';
+import {
+  VM,
+  Verb,
+  toTaggedValue,
+  fromTaggedValue,
+  getTag,
+  Tag,
+  getVarRef,
+  SEG_RSTACK,
+} from '@src/core';
 
 import {
   literalNumberOp,
@@ -185,7 +194,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.VarRef]: varRefOp,
     [Op.DumpStackFrame]: dumpStackFrameOp,
     [Op.Ref]: refOp,
-    [Op.Unref]: resolveOp,
+    [Op.Resolve]: resolveOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];

@@ -334,7 +334,7 @@ export function processWordToken(value: string, state: ParserState): void {
         vm.compiler.compileOpcode(Op.VarRef);
         vm.compiler.compile16(tagValue);
         vm.compiler.compileOpcode(Op.Fetch);
-        vm.compiler.compileOpcode(Op.Unref);
+        vm.compiler.compileOpcode(Op.Resolve);
         return;
       }
     }
