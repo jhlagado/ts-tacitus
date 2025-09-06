@@ -330,11 +330,10 @@ export function processWordToken(value: string, state: ParserState): void {
       const { tag, value: tagValue } = fromTaggedValue(taggedValue);
 
       if (tag === Tag.LOCAL) {
-        // Target: x → VarRef + Fetch + Resolve (value-by-default)
+        // Target: x → VarRef + Load (value-by-default)
         vm.compiler.compileOpcode(Op.VarRef);
         vm.compiler.compile16(tagValue);
-        vm.compiler.compileOpcode(Op.Fetch);
-        vm.compiler.compileOpcode(Op.Resolve);
+        vm.compiler.compileOpcode(Op.Load);
         return;
       }
     }

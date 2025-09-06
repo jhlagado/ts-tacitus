@@ -132,19 +132,23 @@ export function loadOp(vm: VM): void {
 
   // First dereference
   const first = resolveReference(vm, input);
-  let value = vm.memory.readFloat32(first.segment, first.address);
+  let addr = first.address;
+  let seg = first.segment;
+  let value = vm.memory.readFloat32(seg, addr);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
     const second = resolveReference(vm, value);
-    value = vm.memory.readFloat32(second.segment, second.address);
+    seg = second.segment;
+    addr = second.address;
+    value = vm.memory.readFloat32(seg, addr);
   }
 
   // Materialize if final value is a LIST header
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(first.segment, first.address - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(seg, addr - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -305,23 +309,4 @@ export function refOp(vm: VM): void {
   }
 }
 
-export function resolveOp(vm: VM): void {
-  vm.ensureStackSize(1, 'resolve');
-  const value = vm.pop();
-  if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const referencedValue = vm.memory.readFloat32(segment, address);
-    if (isList(referencedValue)) {
-      const slotCount = getListLength(referencedValue);
-      for (let i = 0; i < slotCount; i++) {
-        const slotValue = vm.memory.readFloat32(segment, address - (slotCount - i) * CELL_SIZE);
-        vm.push(slotValue);
-      }
-      vm.push(referencedValue);
-    } else {
-      vm.push(referencedValue);
-    }
-  } else {
-    vm.push(value);
-  }
-}
+// resolveOp removed; use loadOp instead

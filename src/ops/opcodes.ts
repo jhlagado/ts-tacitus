@@ -234,8 +234,6 @@ export enum Op {
 
   /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */
   Ref,
-  /** Materializes any reference to data stack - ( ref -- value ) polymorphic */
-  Resolve,
   /** Path-based address access - ( target path -- target addr|NIL ) */
   Select,
 
