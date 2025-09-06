@@ -100,7 +100,7 @@ RSTACK_REF→[] uncons          → RSTACK_REF→[] NIL
 ( 1 2 3 ) ref    → STACK_REF→[1,2,3] (list remains on stack, ref points to it)
 ```
 
-#### `unref` Operation
+#### `resolve` Operation
 
 **Stack Effect**: `( ref -- value )`
 **Semantics**: Materializes the referenced data onto the data stack
@@ -108,9 +108,9 @@ RSTACK_REF→[] uncons          → RSTACK_REF→[] NIL
 **Use Case**: Convert any reference back to direct value
 
 ```tacit
-RSTACK_REF→42     resolve → 42
-STACK_REF→[1,2,3] resolve → ( 1 2 3 )
-RSTACK_REF→[x,y]   resolve → ( x y )
+RSTACK_REF→42       resolve → 42
+STACK_REF→[1,2,3]   resolve → ( 1 2 3 )
+RSTACK_REF→[x,y]     resolve → ( x y )
 ```
 
 ## Implementation Guidelines

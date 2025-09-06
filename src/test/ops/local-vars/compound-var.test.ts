@@ -72,7 +72,7 @@ describe('Compound Variables - Empty Lists', () => {
   test('should materialize actual list with resolve', () => {
     // Test behavioral equivalence rather than tagged value inspection
     const directEmpty = executeTacitCode('()');
-    const unrefEmpty = executeTacitCode(`
+    const resolveEmpty = executeTacitCode(`
       : test-resolve
         () var emptyList
         emptyList resolve
@@ -80,19 +80,19 @@ describe('Compound Variables - Empty Lists', () => {
       test-resolve
     `);
 
-    expect(unrefEmpty).toHaveLength(1);
+    expect(resolveEmpty).toHaveLength(1);
     expect(directEmpty).toHaveLength(1);
     // Test that both behave the same with length operation
     const directLength = executeTacitCode('() length');
-    const unrefLength = executeTacitCode(`
+    const resolveLength = executeTacitCode(`
       : test-resolve-length
         () var emptyList
         emptyList resolve length
       ;
       test-resolve-length
     `);
-    expect(unrefLength).toEqual(directLength);
-    expect(unrefLength).toEqual([0]);
+    expect(resolveLength).toEqual(directLength);
+    expect(resolveLength).toEqual([0]);
   });
 });
 

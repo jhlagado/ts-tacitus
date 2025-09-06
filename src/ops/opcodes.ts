@@ -145,7 +145,7 @@ export enum Op {
   /**  Returns first element or nil. */
   Head,
 
-    /**  Creates list from n stack items. */
+  /**  Creates list from n stack items. */
   Pack,
 
   /**  Pushes list elements onto stack individually. */
@@ -235,7 +235,7 @@ export enum Op {
   /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */
   Ref,
   /** Materializes any reference to data stack - ( ref -- value ) polymorphic */
-  Unref,
+  Resolve,
   /** Path-based address access - ( target path -- target addr|NIL ) */
   Select,
 }

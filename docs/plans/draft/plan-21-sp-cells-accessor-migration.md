@@ -49,13 +49,13 @@ Helpers:
 
 Debug/strict (feature‑flagged via `vm.debug` or a new `vm.strictUnits`):
 - `assertAlignedSP()` — `SP % CELL_SIZE === 0`.
-- (Phase 4+) `assertSPShadowsMatch()` — when a shadow `SP_cells` exists: `SP === SP_cells * CELL_SIZE`.
+- (Phase 5+) `assertSPShadowsMatch()` — when a shadow `SP_cells` exists: `SP === SP_cells * CELL_SIZE`.
 
 Note: This API is additive and non‑breaking. Existing direct uses of `vm.SP` continue to work during migration.
 
 ## Migration Phases (SP only)
 
-Phase A — Inventory & Hotspot Mapping (no code change)
+Phase 1 — Inventory & Hotspot Mapping (no code change)
 - Identify direct usages of `vm.SP`/`/ CELL_SIZE` across modules.
 - Group by module for phased updates:
   - Stack ops: `src/ops/stack/` (dup/swap/rot/over/nip/tuck, pick, helpers).
@@ -66,50 +66,50 @@ Phase A — Inventory & Hotspot Mapping (no code change)
 
 Deliverable: Checklist of call sites by file/line (tracked in PR description or a temporary doc comment in this plan).
 
-Phase B — Introduce Accessor API (no behavior change)
+Phase 2 — Introduce Accessor API (no behavior change)
 - Add the accessor and helper methods to `VM`.
 - Add `assertAlignedSP()` calls in sensitive operations under `vm.debug`/`vm.strictUnits`.
 - Do not modify `push/pop` internals yet.
 
-Phase C — Replace Read-Only Computations (low risk)
+Phase 3 — Replace Read-Only Computations (low risk)
 - Replace common patterns:
   - `vm.SP / CELL_SIZE` → `vm.spCells()`.
   - `vm.SP - CELL_SIZE` → `vm.tosAddrBytes()`.
   - `vm.SP - n * CELL_SIZE` (read) → `vm.spBytes() - n * CELL_SIZE` (or helper that documents intent).
 - Target modules (order): stack ops helpers → core lists → access ops → format utils.
 
-Acceptance for C:
+Acceptance for Phase 3:
 - All tests green, zero functional changes.
 - Lint passes; no new cyclic deps.
 
-Phase D — Localized Writers to Helpers (medium risk)
+Phase 4 — Localized Writers to Helpers (medium risk)
 - Convert arithmetic writers for `SP` to `incSPCells/decSPCells` in a few operations that are already span‑aware:
   - `dropOp` (list branch): `vm.SP -= totalSlots * CELL_SIZE` → `vm.decSPCells(totalSlots)`.
   - `reverseSpan`/stack shuffles that adjust SP deterministically.
 - Keep core `push/pop` unchanged. The goal is to evaluate helper correctness without deep surgery.
 
-Acceptance for D:
+Acceptance for Phase 4:
 - Tests green, including list/stack manipulation suites.
 - Add toggled invariant: when helpers are used, call `assertAlignedSP()`.
 
-Phase E — Dual-Counter Shadow (assert-only)
+Phase 5 — Dual-Counter Shadow (assert-only)
 - Add `private spCellsShadow: number` to VM; update it wherever `push/pop` and new cell helpers change SP.
 - On every `push/pop` (and helper), assert `SP === spCellsShadow * CELL_SIZE` when `vm.strictUnits` is enabled.
 - Report mismatches with operation name and stack snapshot.
 
-Acceptance for E:
+Acceptance for Phase 5:
 - No test failures under strict mode; confidence that helpers and direct writes do not drift.
 
-Phase F — Flip Internals for SP (primary in cells)
+Phase 6 — Flip Internals for SP (primary in cells)
 - Change `push/pop/peek/peekAt/popArray/ensureStackSize/getStackData` to operate on `spCellsShadow` (cells) and convert to bytes only at memory access boundaries.
 - Maintain `SP` byte field as a derived or shadow value for one deprecation cycle with assertions.
 - Update any remaining direct byte arithmetic on SP to accessors.
 
-Acceptance for F:
+Acceptance for Phase 6:
 - Full test suite green; performance parity within tolerance.
 - Remove most direct `vm.SP` references from ops and core.
 
-Phase G — Cleanup & Deprecation
+Phase 7 — Cleanup & Deprecation
 - Mark direct `vm.SP` access as deprecated in comments; optionally guard against writes outside VM internals when `strictUnits` is enabled.
 - Keep compatibility until the follow‑up RP plan is complete; schedule final removal thereafter.
 
@@ -143,15 +143,15 @@ Each file change should be self‑contained, with tests run after each step (zer
 
 ## Metrics & Exit Criteria
 
-- Metric: Count of direct `vm.SP` references decreases to near zero outside VM internals before Phase F.
-- All tests pass with `strictUnits=false` throughout; before Phase F, run with `strictUnits=true` cleanly.
-- After Phase F, no functional regressions and assertions clean for one deprecation cycle.
+- Metric: Count of direct `vm.SP` references decreases to near zero outside VM internals before Phase 6.
+- All tests pass with `strictUnits=false` throughout; before Phase 6, run with `strictUnits=true` cleanly.
+- After Phase 6, no functional regressions and assertions clean for one deprecation cycle.
 
 ## Backout Plan
 
 - Accessor API is additive; if regressions occur, revert call‑site changes to direct `vm.SP` usage.
 - Shadow counter and assertions are removable without touching functional paths.
-- Internals flip (Phase F) happens only after sustained green runs; revert is limited to VM methods.
+- Internals flip (Phase 6) happens only after sustained green runs; revert is limited to VM methods.
 
 ## Follow-Up (Separate Plan)
 
@@ -164,4 +164,3 @@ Each file change should be self‑contained, with tests run after each step (zer
 
 - Specs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/local-vars.md`.
 - Code hotspots: `src/ops/stack/`, `src/core/list.ts`, `src/ops/access/`, `src/core/format-utils.ts`.
-
