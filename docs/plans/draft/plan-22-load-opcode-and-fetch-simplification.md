@@ -2,7 +2,7 @@
 
 ## Summary
 
-Replace the resolve step with a single, efficient Load opcode that performs the combined logic of “fetch then tolerant fetch” in one operation. Simplify fetch to a strict, raw address read (with list materialization), remove the tolerant-fetch flag, and update the compiler to use the new opcode for value-by-default local access. Preserve a temporary alias so the public word `resolve` maps to the new Load behavior during migration.
+Replace the resolve step with a single, efficient Load opcode that performs the combined logic of “fetch then tolerant fetch” in one operation. Simplify fetch to a strict, raw address read (with list materialization), remove the tolerant-fetch flag, and update the compiler to use the new opcode for value-by-default local access. Optionally preserve a temporary alias so the public word `resolve` maps to the new Load behavior during migration (current build omits the alias; see Progress).
 
 ## Goals
 
@@ -28,7 +28,7 @@ Replace the resolve step with a single, efficient Load opcode that performs the 
 
 Phase 1 — Introduce Load Opcode
 1) Add `Op.Load` and its implementation (`loadOp`).
-2) Register user words: `load` (primary) and `resolve` (compatibility alias) → `Op.Load`.
+2) Register user words: `load` (primary). Optionally add `resolve` (compatibility alias) → `Op.Load` if needed.
 3) Unit tests for `load` covering: identity on non-refs; single-level deref; LIST materialization; STACK_REF and RSTACK_REF cases; GLOBAL_REF error path.
 
 Phase 2 — Simplify Fetch (strict)
@@ -63,8 +63,8 @@ Phase 5 — Documentation & Deprecation
 
 - Risk: Hidden dependencies on tolerant `fetch` identity behavior.
   - Mitigation: Update tests to use `load` for value-by-default paths, maintain `fetch` only for raw address reads.
-- Risk: Naming confusion between `load` and `resolve`.
-  - Mitigation: Keep both names pointing to `Op.Load` during migration; prefer `load` in docs/examples.
+- Risk: Naming confusion between `load` and historical `resolve`.
+  - Mitigation: Prefer `load` in docs/examples. If compatibility is required, temporarily alias `resolve` → `Op.Load`.
 - Risk: Behavior drift in address-returning list ops.
   - Mitigation: Add tests using `slot/elem/find` with `fetch` and `load`, covering both simple and compound cells.
 
@@ -72,7 +72,7 @@ Phase 5 — Documentation & Deprecation
 
 - `src/ops/opcodes.ts`: Add `Op.Load`.
 - `src/ops/builtins.ts`: Wire `Op.Load` to `loadOp`.
-- `src/ops/builtins-register.ts`: Register `load` and alias `resolve` → `Op.Load`.
+- `src/ops/builtins-register.ts`: Register `load` (optionally alias `resolve` → `Op.Load`).
 - `src/ops/lists/query-ops.ts`: 
   - Implement `loadOp`.
   - Simplify `fetchOp` (remove tolerant branch; ensure non-ref error).
@@ -99,20 +99,23 @@ Phase 5 — Documentation & Deprecation
 ## Timeline & Rollback
 
 - Phases 1–4 can be staged and validated independently; rollback is straightforward by reverting to previous parser op sequence and keeping `fetch` tolerant (if needed).
-- Specs updates come after code and tests are green; `resolve` remains available as an alias until the follow-up deprecation/removal plan.
+- Specs updates come after code and tests are green; prefer `load`. If an alias is introduced, document deprecation and removal window.
 
 ## Progress
 
 - Phase 1 — Introduce Load Opcode: COMPLETED
-  - Added `Op.Load`, wired dispatch, and registered `load` (kept `resolve` as separate for now).
+  - Added `Op.Load`, wired dispatch, and registered `load`.
   - Implemented `loadOp` with identity on non-refs, one-level deref, and LIST materialization.
+  - Decision: do not expose `resolve` alias during migration to reduce surface area; prefer `load` everywhere. If compatibility is requested, map `resolve` → `Op.Load` in builtins.
 - Phase 2 — Simplify Fetch (strict): COMPLETED
   - Removed tolerant branch and the `vm.tolerantFetch` flag.
   - `fetch` now errors on non-refs; retains list materialization when the cell is a header.
-- Phase 3 — Parser/Compiler Update: PENDING
-  - Next: compile bare local `x` as `VarRef + Load`.
-- Phase 4 — Test Suite Adjustments: COMPLETED (initial set)
+- Phase 3 — Parser/Compiler Update: COMPLETED
+  - Bare local `x` now compiles to `VarRef + Load`. `&x` remains `VarRef + Fetch`; `->` (assignment) remains `VarRef + Store`.
+- Phase 4 — Test Suite Adjustments: COMPLETED
   - Replaced tolerant-fetch tests with `load`-based tests; validated address-returning ops with `load`.
   - Existing fetch/store tests remain valid under strict fetch.
-- Phase 5 — Documentation & Deprecation: PENDING
-  - Next: update specs to describe `load` and fetch strictness; mark `resolve` as an alias during migration.
+  - Full suite run verifies behavior; one perf-oriented suite (`vm-comprehensive-testing`) has stray top-level warmup code and is tracked separately, unrelated to Load/Fetch changes.
+- Phase 5 — Documentation & Deprecation: COMPLETED
+  - Updated specs to document `load` and fetch strictness: lists.md (fetch strictness, load overview), local-vars.md (x → VarRef+Load; &x → VarRef+Fetch; example fix), access.md (mention load alongside fetch), refs.md (value-by-default via load; materialize-at-boundaries), polymorphic-operations.md (load replaces resolve; testing guidance).
+  - Migration note: replace patterns `fetch resolve` → `load` or `fetch load` as applicable. Historical `resolve` is deprecated; alias may be added if needed.

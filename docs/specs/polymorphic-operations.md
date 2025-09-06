@@ -46,12 +46,12 @@ These operations expect LIST values and may need reference support:
 
 **Current Status**: Unknown - needs audit
 
-### ❌ Missing Operations
+### 🔧 Convenience Operations
 
-These reference operations don't exist but are needed:
+These operations assist with interoperating between values and references:
 
-- `ref` - Convert list on data stack to STACK_REF
-- `resolve` - Materialize any reference to data stack
+- `ref` — Convert a list on the data stack to a `STACK_REF` pointing to its header (short-lived; consume promptly).
+- `load` — Value-by-default dereference; identity on non-refs, dereferences once (with a single additional deref if the first read yields a ref), and materializes lists when a header is read. Replaces historical `resolve`.
 
 ## Proposed Polymorphic Semantics
 
@@ -100,18 +100,20 @@ RSTACK_REF→[] uncons          → RSTACK_REF→[] NIL
 ( 1 2 3 ) ref    → STACK_REF→[1,2,3] (list remains on stack, ref points to it)
 ```
 
-#### `resolve` Operation
+#### `load` Operation
 
-**Stack Effect**: `( ref -- value )`
-**Semantics**: Materializes the referenced data onto the data stack
-**Polymorphic**: Works with STACK_REF, RSTACK_REF, GLOBAL_REF
-**Use Case**: Convert any reference back to direct value
+**Stack Effect**: `( value-or-ref -- value )`
+**Semantics**: Identity on non-refs; if input is a ref, read once; if the result is a ref, dereference one more level; if the final value is a LIST header, materialize header+payload.
+**Polymorphic**: Handles `STACK_REF`, `RSTACK_REF`, and (future) `GLOBAL_REF`.
+**Use Case**: Obtain the value regardless of whether the input is direct or an address.
 
 ```tacit
-RSTACK_REF→42       resolve → 42
-STACK_REF→[1,2,3]   resolve → ( 1 2 3 )
-RSTACK_REF→[x,y]     resolve → ( x y )
+RSTACK_REF→42       load → 42
+STACK_REF→[1,2,3]   load → ( 1 2 3 )
+( 1 2 )             load → ( 1 2 )   \ identity on non-refs
 ```
+
+Note: Historical `resolve` is deprecated in favor of `load`. An alias may be provided during migration but is not required.
 
 ## Implementation Guidelines
 
@@ -134,17 +136,16 @@ RSTACK_REF→[x,y]     resolve → ( x y )
   }
   ```
 
-### For Missing Operations
+### For Convenience Operations
 
 - Implement `ref` operation to create STACK_REFs
-- Implement `resolve` operation with polymorphic reference resolution
-- Add to opcode table and register in builtins
+- Ensure `load` is available as value-by-default dereference and registered in builtins
 
 ## Testing Requirements
 
 - Test all polymorphic operations with each reference type
 - Verify reference transparency in stack operations
-- Test `ref`/`resolve` round-trip behavior
+- Test `ref`/`load` round-trip behavior
 - Test mixed reference types in complex expressions
 
 ## Future Considerations

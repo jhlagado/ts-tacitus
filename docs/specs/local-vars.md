@@ -171,19 +171,18 @@ Variable access has two forms:
 
 ### Current vs Target Behavior
 
-**Current (temporary)**:
-- `x` returns reference for compound variables (requires `resolve` to get value)
-- `&x` syntax not yet implemented
+**Current (historical)**:
+- Earlier builds returned references for some accesses and required an explicit resolve step. This has been replaced.
 
-**Target**:
-- `x` always returns the materialized value 
-- `&x` returns RSTACK_REF for performance optimization
+**Target (current)**:
+- `x` always returns the materialized value (via `Load`).
+- `&x` returns RSTACK_REF for performance optimization; pair with `fetch` to read slot content or `load` to materialize.
 
 ### Compilation Sequences
 
 **Target compilation**:
 ```
-x        → VarRef + Fetch + Resolve   (value-by-default)
+x        → VarRef + Load              (value-by-default)
 &x       → VarRef + Fetch             (explicit reference)
 x -> y   → VarRef + Store             (assignment, unchanged)
 ```
@@ -193,7 +192,7 @@ x -> y   → VarRef + Store             (assignment, unchanged)
 ```
 x           ( — value )       \ Direct value (simple or compound)
 &x          ( — RSTACK_REF )  \ Reference to slot for optimization
-value -> x  ( — )             \ Assignment (resolves source refs)
+value -> x  ( — )             \ Assignment (resolves source refs where applicable)
 ```
 
 ### Tagging & Resolution Notes
@@ -354,11 +353,11 @@ Example:
 ```
 : conditional-math
     5 var x
-    if { x fetch 0 gt } then { x fetch 2 mul } else { 0 } endif
+    if { x 0 gt } then { x 2 mul } else { 0 } endif
 ;
 ```
 
-The code blocks `{ x fetch 0 gt }` and `{ x fetch 2 mul }` access the parent function's local variable `x` using the existing meta-bit system for lexical scoping.
+The code blocks access the parent function's local variable `x` using the existing meta-bit system for lexical scoping. Note: `x` produces the value directly; use `&x fetch` if an address-based read is required.
 
 ## 13. Variable Lifetime and Safety
 

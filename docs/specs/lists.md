@@ -208,12 +208,17 @@ Final stack (deep → TOS):
 
 ### fetch ( addr -- value )
 
-- Returns the value located at stack address `addr`.
+- Strict reference read: expects a reference address (`STACK_REF`, `RSTACK_REF`, or future `GLOBAL_REF`). Errors on non-reference input.
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
-- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
-- `addr` is a STACK_REF address.
+- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value (materializes the list when header is read).
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
 - **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
+
+### load ( value-or-ref -- value )
+
+- Value-by-default dereference: identity on non-refs; if input is a reference, dereference once; if the result is also a reference, dereference one additional level; if the final value is a LIST header, materialize header+payload.
+- Use `load` when you want the value regardless of whether the input is a direct value or an address.
+- Complements `fetch` (which is strictly address-based).
 
 ### store ( value addr -- )
 

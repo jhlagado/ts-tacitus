@@ -1,6 +1,6 @@
 # References (Refs) — Specification
 
-Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear resolve-at-boundaries guidance.
+Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear materialize-at-boundaries guidance.
 
 This specification defines how Tacit handles references (refs) to data stored in the VM’s memory segments. It clarifies ownership and lifetimes, unifies terminology, and sets behavioral requirements for reading variables, assignment, traversal, and return semantics. It integrates with:
 
@@ -24,15 +24,15 @@ Non-goals:
 
 - Ref (data): A tagged, NaN-boxed handle whose payload is an absolute cell index into a specific VM memory segment. Data refs are never code and are never executed.
 - Code ref: A tagged handle to builtins or compiled bytecode (e.g., from `@symbol`). Code refs are separate from data refs and must be explicitly evaluated (`eval`).
-- Resolve: Converting a data ref to the current value at its target address.
+- Load (value-by-default): Converting a reference to its current value; identity on non-refs. Performs one dereference (plus one additional deref if the first read yields a ref). If the final value is a LIST header, materializes header+payload.
 - Destination: The location being written (e.g., a slot, an addressed list element).
 - Source: The data being written (could be a value or a ref that must be resolved).
 
 Design principles:
 
-- Value-first: variable reads produce values by default (target model).
+- Value-first: variable reads produce values by default via `load`.
 - Explicit aliasing: `&x` explicitly requests an alias (ref) to a local.
-- Resolve at boundaries: resolve refs before assignment and persistent storage.
+- Resolve at boundaries: use `load` before assignment and persistent storage when sources may be refs.
 - Polymorphism: data-structure operations accept values or refs without behavioral differences.
 
 ## 2. Memory Model and Tag Encoding
@@ -63,7 +63,7 @@ Helpers (src/core/refs.ts):
 Consequences:
 
 - There is no such thing as a “relative ref.” A ref is absolute, but its validity is governed by the lifetime of the owning frame.
-- Address computations are deterministic and straightforward; safety comes from lifetime rules and resolve-at-boundaries discipline.
+- Address computations are deterministic and straightforward; safety comes from lifetime rules and materialize-at-boundaries discipline.
 
 ## 3. Ownership, Lifetimes, and Borrowing
 
@@ -90,7 +90,7 @@ Aliasing scope (safety rule):
 
 Access (target):
 
-- `x` — push a copy of the value of local `x`.
+- `x` — push a copy of the value of local `x` (compiled as `VarRef + Load`).
 - `&x` — push an RSTACK_REF alias to slot `x`.
 - `@f` — push a code reference to symbol `f`; evaluate via `eval`.
 
@@ -101,7 +101,7 @@ Rationale:
 
 Compatibility (current):
 
-- Bare local access often yields RSTACK_REF; polymorphic ops (e.g., `length`, `head`) read through refs. Target behavior is value-by-default; see Migration.
+- Bare local access yields values by default (`VarRef + Load`). `&x` yields RSTACK_REF when an explicit address is needed. Polymorphic ops (e.g., `length`, `head`) also accept refs transparently.
 
 Resolve (current):
 
@@ -121,7 +121,7 @@ Ref creation on data stack:
 
 Materialization:
 
-- `resolve` materializes any data ref. For lists, pushes all payload slots followed by the header, conforming to docs/specs/lists.md.
+- `load` materializes values by default. For references to lists, it pushes all payload slots followed by the header, conforming to docs/specs/lists.md. Historical `resolve` is deprecated in favor of `load`.
 
 Polymorphic reads:
 
@@ -129,7 +129,7 @@ Polymorphic reads:
 
 Writes:
 
-- `store`, `set` write to destination addresses resolved via `resolveReference()`. Sources that are refs MUST be resolved first to avoid embedding refs into structures.
+- `store`, `set` write to destination addresses resolved via `resolveReference()`. Sources that are refs MUST be materialized (e.g., via `load`) first to avoid embedding refs into structures.
 
 Locals with compounds:
 
@@ -145,14 +145,14 @@ Slots and addressing:
 Assignment semantics (normative target):
 
 - Simple → simple: write the source value into the destination slot.
-- Ref (to simple) → simple: resolve source to its value, then write.
+- Ref (to simple) → simple: materialize source to its value, then write.
 - Compound → compound: enforce compatibility per local-vars.md (same structural type and slot count); update in place without altering header location.
-- Ref (to compound) → compound: resolve source, then enforce compatibility, then update in place.
+- Ref (to compound) → compound: materialize source, then enforce compatibility, then update in place.
 - Simple ↔ compound mismatch: error (cannot assign simple into a compound slot or vice versa).
 
 Compatibility note (current implementation):
 
-- Some paths may write a ref into a destination (e.g., `storeOp` writing the source without resolve). The target model requires resolve-first for sources; see Migration Plan for phased fixes.
+- Some paths may write a ref into a destination (e.g., `storeOp` writing the source without materialization). The target model requires materialize-first for sources; see Migration Plan for phased fixes.
 
 Access traversal (docs/specs/access.md):
 
@@ -164,7 +164,7 @@ Access traversal (docs/specs/access.md):
 Stack ops (`dup`, `drop`, `swap`, `rot`, `over`, `nip`, `tuck`, `pick`) treat refs as opaque values:
 
 - They manipulate the reference values themselves; they do not implicitly dereference.
-- This preserves identity and performance. Materialization remains explicit via `resolve` or via destination-based rules in store/set.
+- This preserves identity and performance. Materialization remains explicit via `load` or via destination-based rules in store/set.
 
 
 ## 8. Errors and Diagnostics
@@ -182,12 +182,12 @@ Locals as values vs refs:
 
 - `x` → push copy of value in x
 - `&x` → push RSTACK_REF to slot x
-- `&x resolve` → materialize value currently in x
+- `&x load` → materialize value currently in x
 
-Assignments always resolve sources when needed:
+Assignments always materialize sources when needed:
 
 - `value -> x` → store value into x
-- `&y -> x` → resolve y, then store into x
+- `&y -> x` → load y, then store into x
 - `(1 2 3) -> xs` → store list per compound assignment rules
 
 Borrowing across calls:
@@ -198,34 +198,34 @@ Borrowing across calls:
 Lists and refs:
 
 - `(1 2 3) ref` → list, STACK_REF  
-- `resolve` → materialize a ref to its value
+- `load` → materialize a ref to its value (identity on non-refs)
 - `length`/`head` → operate on value or ref identically
 
 ## 10. Implementation and Migration
 
 Current:
 
-- `varRefOp` pushes RSTACK_REF for locals; `ref`/`resolve` implemented; list ops reference-aware.
+- `varRefOp` underpins `&x`; `ref`/`load` implemented; list ops reference-aware.
 - Some stores may embed refs instead of resolving sources first.
 
 Target:
 
 - Bare local access yields values; `&x` yields refs.
-- Sources that are refs are resolved before assignment/storage.
+- Sources that are refs are materialized before assignment/storage.
 
 Migration Plan
 
-Phase 1: add `&x`; update store/set to resolve sources.
+Phase 1: add `&x`; update store/set to materialize sources.
 
 Phase 2: switch bare local access to value-by-default.
 
 Testable Assertions
 
-- `&x resolve` equals `x` value.
+- `&x load` equals `x` value.
 - Polymorphic list ops return identical results for values and refs.
 - `ref` returns STACK_REF to correct header.
-- `resolve` materializes entire list per lists.md.
-- `store`/`set` resolve source refs before writing (target).
+- `load` materializes entire list per lists.md.
+- `store`/`set` materialize source refs before writing (target).
 - GLOBAL_REF operations error with "not implemented".
 
 ## 11. Glossary and Cross-References
@@ -253,9 +253,9 @@ Cross-References:
 **Key Operations:**
 
 - `VarRef` — pushes `RSTACK_REF(BP/4 + slotNumber)` (underpins `&x`)
-- `resolve` — materializes any ref to its value; no-op on non-refs  
+- `load` — value-by-default materialization; identity on non-refs  
 - `fetch` — reads value at ref address; errors on non-ref
-- `store` — writes to ref address; resolves source refs before writing
+- `store` — writes to ref address; materializes source refs before writing
 
 **Polymorphic Operations:**
 All list operations (`length`, `head`, `elem`, `slot`, `find`, etc.) accept values or refs transparently via `resolveReference()` internally.
