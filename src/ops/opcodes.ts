@@ -238,4 +238,7 @@ export enum Op {
   Resolve,
   /** Path-based address access - ( target path -- target addr|NIL ) */
   Select,
+
+  /** Value-by-default dereference - ( x -- v ) */
+  Load,
 }

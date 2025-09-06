@@ -55,7 +55,7 @@ import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from '.
 import { printOp, rawPrintOp } from './print';
 import { simpleIfOp } from './control';
 import { openListOp, closeListOp } from './lists';
-import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp } from './lists';
+import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp, loadOp } from './lists';
 import { makeListOp, packOp, unpackOp } from './lists';
 import { refOp, resolveOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
@@ -195,6 +195,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.DumpStackFrame]: dumpStackFrameOp,
     [Op.Ref]: refOp,
     [Op.Resolve]: resolveOp,
+    [Op.Load]: loadOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];
