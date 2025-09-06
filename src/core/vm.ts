@@ -48,6 +48,13 @@ export class VM {
   receiver: number;
 
   tempRegister: number;
+
+  /**
+   * When true, `fetch` becomes tolerant of non-reference inputs and acts as identity.
+   * Useful for experimenting with unified fetch/resolve semantics.
+   * Default is false to preserve strict behavior and existing tests.
+   */
+  tolerantFetch: boolean;
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
    */
@@ -66,6 +73,7 @@ export class VM {
 
     this.symbolTable = new SymbolTable(this.digest);
     this.tempRegister = NIL;
+    this.tolerantFetch = false;
     registerBuiltins(this, this.symbolTable);
   }
 

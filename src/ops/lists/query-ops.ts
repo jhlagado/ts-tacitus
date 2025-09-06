@@ -97,6 +97,11 @@ export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
   const addressValue = vm.pop();
   if (!isRef(addressValue)) {
+    // Tolerant mode: act as identity on non-references to enable "fetch fetch" patterns.
+    if (vm.tolerantFetch) {
+      vm.push(addressValue);
+      return;
+    }
     throw new Error('fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
   const { address, segment } = resolveReference(vm, addressValue);
