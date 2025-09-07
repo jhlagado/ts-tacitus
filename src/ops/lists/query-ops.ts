@@ -20,10 +20,12 @@ export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
   const info = getListHeaderAndBase(vm, value);
-  let slotCount = -1;
-  if (info && isList(info.header)) {
-    slotCount = getListLength(info.header);
+  if (!info || !isList(info.header)) {
+    dropOp(vm);
+    vm.push(NIL);
+    return;
   }
+  const slotCount = getListLength(info.header);
   dropOp(vm);
   vm.push(slotCount);
 }
@@ -34,7 +36,7 @@ export function sizeOp(vm: VM): void {
   const info = getListHeaderAndBase(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
-    vm.push(-1);
+    vm.push(NIL);
     return;
   }
   const slotCount = getListLength(info.header);
@@ -185,7 +187,15 @@ export function storeOp(vm: VM): void {
   const existingIsCompound = isCompoundData(existingValue);
   if (valueIsCompound && existingIsCompound) {
     if (isCompatibleCompound(existingValue, value)) {
-      const { address: targetAddress, segment: targetSegment } = resolveReference(vm, valueInSlot);
+      // Determine target location: either the resolved destination address itself,
+      // or, if the slot holds a reference, resolve it to get the true header address.
+      let targetAddress = address;
+      let targetSegment = segment;
+      if (isRef(valueInSlot)) {
+        const resolved = resolveReference(vm, valueInSlot);
+        targetAddress = resolved.address;
+        targetSegment = resolved.segment;
+      }
       mutateCompoundInPlace(vm, targetAddress, targetSegment);
     } else {
       vm.pop();

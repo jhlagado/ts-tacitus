@@ -239,4 +239,10 @@ export enum Op {
 
   /** Value-by-default dereference - ( x -- v ) */
   Load,
+
+  /** Path-based value retrieval - ( target path -- value|NIL ) */
+  Retrieve,
+
+  /** Path-based update - ( value target path -- ) */
+  Update,
 }
