@@ -134,7 +134,7 @@ Reference helpers (see `core/refs.ts`):
 
 - Tagged values: `specs/tagged.md`
 - Lists & traversal: `specs/lists.md`
-- Access operations: `specs/access.md`
+- Addressing & paths: see `specs/lists.md` (Addressing & Bracket Paths)
 - Local variables & frames: `specs/local-vars.md`
 
 ## Related Specifications

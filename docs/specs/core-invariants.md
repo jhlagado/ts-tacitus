@@ -9,7 +9,8 @@ This short document centralizes the rules all other specs assume.
 - Analogy: treat refs like symlinks rather than raw pointers — structure-aware operations follow them transparently; stack ops manipulate the ref value itself; use `load` to “follow the link”, and `store` materializes source refs before writing.
 - Assignment materializes sources: when writing, if the source is a ref, materialize to a value before comparing/applying. Do not materialize the destination; destinations are mutated in place.
 - Compound compatibility: in-place mutation of compound destinations is allowed only when the source has the same structural type and total slot count; otherwise it is an error. List headers and compound starts are immutable as targets for simple writes.
-- Access consistency: `get`/`set` are built on address-returning `elem`/`find` plus `fetch`/`store`. `set` updates only simple element cells; no structural edits.
+- Access consistency: bracket paths are primary. Reads: `expr[ … ]` → select→load→nip, return value or NIL. Writes: `value -> x[ … ]` → &x, select→nip→store, mutate in place or throw. Low-level `elem`/`slot`/`find`/`select`/`fetch`/`store` are supporting operations.
+- Liberal sources; strict destinations: sources may auto‑dereference and materialize; destinations must be addresses and are never materialized.
 - Errors and NIL: Out-of-bounds address queries yield NIL; invalid reference kinds for fetch/store error; `GLOBAL_REF` deref is not implemented and must throw.
 
 Quick Patterns (for day-to-day use)

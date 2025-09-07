@@ -9,10 +9,11 @@ Principles
 - Writes throw: mutations fail fast with clear messages; no return values.
 
 Operations
-- Address queries: `select`, `slot`, `elem`, `find` → ref|NIL (no throws for not‑found).
-- Value queries: `retrieve` → value|NIL; `load` → identity/materialize; `fetch` → throws if not a reference.
+- Bracket read: `expr[ … ]` → value|NIL (no throws for not‑found).
+- Address queries: `select`, `slot`, `elem`, `find` → ref|NIL.
+- Value by default: `load` → identity/materialize; strict address read: `fetch` → throws if not a reference.
 - List queries: `length`, `size` → count; NIL if target is not a list.
-- Mutations: `update`, `store`, `initvar`, in‑place compound mutation → throw on failure; no outputs.
+- Mutations: `value -> x[ … ]` and low-level `store`/compound mutation → throw on failure; no outputs.
 
 Canonical Errors (messages)
 - Bad address: "store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)".
@@ -23,4 +24,4 @@ Canonical Errors (messages)
 Notes
 - Reads do not encode errors as numbers; NIL indicates invalid/missing data.
 - Writes never materialize destinations; mutate in place or fail.
-
+ - Destinations must be addresses; bracket writes restrict destination to locals to guarantee write‑through.
