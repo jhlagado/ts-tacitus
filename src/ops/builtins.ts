@@ -69,15 +69,7 @@ import { repeatOp } from './combinators/repeat';
 import { selectOp } from './access';
 import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
 
-/** Stores TOS into vm.tempRegister. */
-export function saveTempOp(vm: VM): void {
-  vm.ensureStackSize(1, 'saveTemp');
-  vm.tempRegister = vm.pop();
-}
-/** Pushes vm.tempRegister onto the stack. */
-export function restoreTempOp(vm: VM): void {
-  vm.push(vm.tempRegister);
-}
+// Temp register and related opcodes have been removed.
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -185,8 +177,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Find]: findOp,
     [Op.Keys]: keysOp,
     [Op.Values]: valuesOp,
-    [Op.SaveTemp]: saveTempOp,
-    [Op.RestoreTemp]: restoreTempOp,
     [Op.Reserve]: reserveOp,
     [Op.InitVar]: initVarOp,
     [Op.VarRef]: varRefOp,

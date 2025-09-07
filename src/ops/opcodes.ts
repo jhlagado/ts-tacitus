@@ -213,11 +213,6 @@ export enum Op {
   /** Extract all values from maplist - ( maplist — maplist values ) */
   Values,
 
-  /** Saves TOS to VM temp register (internal use only) */
-  SaveTemp,
-  /** Pushes value from VM temp register to stack (internal use only) */
-  RestoreTemp,
-
   /** Allocates local variable slots on return stack - ( -- ) reads 16-bit slot count */
   Reserve,
   /** Initializes local variable slot with stack value - ( value -- ) reads 16-bit slot number */
