@@ -16,3 +16,9 @@ Helpful next reads
 - VM architecture: docs/specs/vm-architecture.md
 - Polymorphic ops overview: docs/specs/polymorphic-operations.md
 
+Learning Guide (source files)
+- Core: `src/core/vm.ts`, `src/core/tagged.ts`, `src/core/list.ts`, `src/core/refs.ts`
+- Lists ops: `src/ops/lists/query-ops.ts` (+ structure/build/query folders)
+- Access ops: `src/ops/access/*`
+- Locals init/transfer: `src/ops/builtins.ts` (InitVar, VarRef), `src/ops/local-vars-transfer.ts`
+- Parser/Compiler: `src/lang/parser.ts`, `src/lang/compiler.ts`

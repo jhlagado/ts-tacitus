@@ -101,14 +101,13 @@ yarn test lang        # Language processing
 ### Reference Materials
 
   (Glossary removed; see cheatsheet and specs instead)
-- [`docs/reference/test-cases.md`](docs/reference/test-cases.md) - Examples and expected behaviors
-- [`docs/reference/known-issues.md`](docs/reference/known-issues.md) - Documented test isolation and other issues
-- [`docs/reference/spec-driven-demo.md`](docs/reference/spec-driven-demo.md) - Development methodology examples
+- [`docs/reference/memory-refs-and-assignment-cheatsheet.md`](docs/reference/memory-refs-and-assignment-cheatsheet.md) - Quick ops and patterns
+- [`docs/reference/future-enhancements.md`](docs/reference/future-enhancements.md) - Notes and ideas
 
 ### Specifications
 
 - [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Core VM design and memory layout
-- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system implementation
+- [`docs/specs/tagged.md`](docs/specs/tagged.md) - Type system implementation
 - [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
 - [`docs/specs/drafts/`](docs/specs/drafts/) - Work-in-progress specifications
 

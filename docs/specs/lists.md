@@ -235,6 +235,8 @@ Final stack (deep → TOS):
 
 #### Compound Mutation: Compatibility Rule
 
+See also: docs/specs/core-invariants.md (canonical mutation rule).
+
 Compound elements (e.g., lists, maplists) may be replaced in place **only if the new value has the same slot (cell) count and type** as the existing value. This is called compatibility. Assignment to a compound slot copies the new value into the existing structure, element-wise, without changing the slot reference. If the slot count or type does not match, the operation is an error and must be rejected.
 
 **Examples:**
