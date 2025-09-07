@@ -44,10 +44,7 @@ export class VM {
   symbolTable: SymbolTable;
 
   listDepth: number;
-
-  receiver: number;
-
-  tempRegister: number;
+  
 
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
@@ -63,10 +60,8 @@ export class VM {
     this.debug = false;
     this.listDepth = 0;
     this.listDepth = 0;
-    this.receiver = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
-    this.tempRegister = NIL;
     registerBuiltins(this, this.symbolTable);
   }
 
@@ -317,19 +312,4 @@ export class VM {
     this.push(taggedValue);
   }
 
-  /**
-   * Gets the current receiver register value.
-   * @returns The receiver stack slot index
-   */
-  getReceiver(): number {
-    return this.receiver;
-  }
-
-  /**
-   * Sets the receiver register to a new stack slot index.
-   * @param slotIndex The stack slot index of the receiver object
-   */
-  setReceiver(slotIndex: number): void {
-    this.receiver = slotIndex;
-  }
 }

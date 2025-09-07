@@ -49,17 +49,11 @@ describe('VM Constructor Initialization', () => {
     expect(vm.listDepth).toBe(0);
   });
 
-  test('should initialize receiver to 0', () => {
-    expect(vm.receiver).toBe(0);
-  });
 
   test('should initialize symbolTable as a SymbolTable instance', () => {
     expect(vm.symbolTable).toBeInstanceOf(SymbolTable);
   });
 
-  test('should initialize tempRegister to NIL', () => {
-    expect(vm.tempRegister).toBe(NIL);
-  });
 
   test('should initialize compiler property after constructor call', () => {
     // The compiler is initialized by initializeInterpreter, which is called globally
