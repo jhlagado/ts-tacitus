@@ -4,7 +4,7 @@
  */
 
 import { SymbolTable, Digest } from '@src/strings';
-import { Memory, fromTaggedValue, isLocal } from '@src/core';
+import { Memory, fromTaggedValue, isLocal } from '../../core';
 
 describe('SymbolTable Local Variables', () => {
   let digest: Digest;

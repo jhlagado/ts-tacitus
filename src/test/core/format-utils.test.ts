@@ -1,4 +1,4 @@
-import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '@src/core';
+import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '../../core';
 import { initializeInterpreter, vm } from '../../core/globalState';
 
 describe('Format Utils', () => {

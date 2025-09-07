@@ -1,6 +1,6 @@
 import { executeProgram } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { Tag, fromTaggedValue } from '@src/core';
+import { Tag, fromTaggedValue } from '../../core';
 import { resetVM } from '../utils/vm-test-utils';
 
 describe('compileCodeBlock function', () => {

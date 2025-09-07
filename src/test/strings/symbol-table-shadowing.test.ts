@@ -4,7 +4,7 @@
  */
 
 import { SymbolTable, Digest } from '@src/strings';
-import { Memory, fromTaggedValue, isLocal, Tag } from '@src/core';
+import { Memory, fromTaggedValue, isLocal, Tag } from '../../core';
 
 describe('SymbolTable Natural Shadowing', () => {
   let digest: Digest;

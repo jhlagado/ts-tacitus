@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../core/globalState';
 import { executeProgram } from '../../lang/interpreter';
-import { fromTaggedValue, Tag } from '@src/core';
+import { fromTaggedValue, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 

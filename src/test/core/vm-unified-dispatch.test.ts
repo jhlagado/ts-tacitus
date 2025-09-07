@@ -8,8 +8,8 @@
 
 import { vm } from '../../core/globalState';
 import { resetVM } from '../utils/vm-test-utils';
-import { createBuiltinRef } from '@src/core';
-import { toTaggedValue, Tag } from '@src/core';
+import { createBuiltinRef } from '../../core';
+import { toTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
 

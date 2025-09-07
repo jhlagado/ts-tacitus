@@ -8,7 +8,7 @@
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
  */
-import { VM, Tag, toTaggedValue, fromTaggedValue } from '@src/core';
+import { VM, Tag, toTaggedValue, fromTaggedValue } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';

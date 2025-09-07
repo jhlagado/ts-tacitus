@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/globalState';
-import { formatAtomicValue, formatValue, formatListByConsumingStack } from '@src/core';
-import { Tag, toTaggedValue, createStackRef, SEG_STACK } from '@src/core';
+import { formatAtomicValue, formatValue, formatListByConsumingStack } from '../../core';
+import { Tag, toTaggedValue, createStackRef, SEG_STACK } from '../../core';
 
 describe('format-utils additional coverage', () => {
   beforeEach(() => {
