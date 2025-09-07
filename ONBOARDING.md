@@ -1,5 +1,7 @@
 Must-read specs (before coding)
 
+  • docs/specs/core-invariants.md: One-page rules all specs assume.
+  • docs/reference/memory-refs-and-assignment-cheatsheet.md: Quick ops + patterns.
   • docs/specs/lists.md: Reverse list layout, slots vs elements, span traversal, structural ops.
   • docs/specs/tagged.md: NaN-boxed tags, active tags, payload widths, runtime invariants.
   • docs/specs/refs.md: STACK_REF/RSTACK_REF/GLOBAL_REF semantics, resolve rules, segment model.

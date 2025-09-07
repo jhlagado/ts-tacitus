@@ -4,7 +4,7 @@
 
 ## 🆕 New Claude Instance?
 
-**START HERE FIRST:** Read `ONBOARDING.md` for a 5-minute quick start guide, then return to this file for detailed project rules.
+**START HERE FIRST:** Read `ONBOARDING.md` for a 5-minute quick start guide. Then skim `docs/specs/core-invariants.md` and `docs/reference/memory-refs-and-assignment-cheatsheet.md`.
 
 ## 📖 MANDATORY READING BEFORE CODING
 

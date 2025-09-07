@@ -1,5 +1,9 @@
 # References (Refs) — Specification
 
+Orientation
+- Start with core invariants: docs/specs/core-invariants.md
+- Quick usage: docs/reference/memory-refs-and-assignment-cheatsheet.md
+
 Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear materialize-at-boundaries guidance.
 
 This specification defines how Tacit handles references (refs) to data stored in the VM’s memory segments. It clarifies ownership and lifetimes, unifies terminology, and sets behavioral requirements for reading variables, assignment, traversal, and return semantics. It integrates with:

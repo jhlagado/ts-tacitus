@@ -139,6 +139,6 @@ Reference helpers (see `core/refs.ts`):
 
 ## Related Specifications
 
-- `specs/tagged-values.md` - Value representation
-- `specs/bytecode.md` - Instruction encoding
+- `specs/tagged.md` - Value representation
 - `specs/stack-operations.md` - Stack manipulation
+- `specs/core-invariants.md` - Shared invariants and rules
