@@ -297,7 +297,27 @@ while not done:
 22. Edge cases and failure modes
 23. Testing checklist
 
-### concat
+### concat (polymorphic)
+
+Semantics overview (RPN stack order)
+- Stack effect: `( next top — result )` where “top” is TOS.
+- Behavior by types:
+
+| Next (under TOS) | Top (TOS) | Operation             | Complexity | Notes |
+|------------------|-----------|-----------------------|------------|-------|
+| simple           | simple    | create list           | O(1)       | Push both, make `LIST:2` |
+| list             | simple    | append                | O(1)       | Header increment when representation allows |
+| simple           | list      | prepend               | O(n)       | Shift payload, update header |
+| list             | list      | flatten/concatenate   | O(n)       | Merge payloads, combine headers |
+
+Design guideline
+- Use element-aware traversal to detect types without prematurely materializing when a ref is provided.
+- Maintain reverse layout invariants; avoid structural mutation that breaks header/payload integrity.
+- Prefer O(1) append path when the left operand is already a list and right is a simple.
+
+Testing checklist
+- All four combinations behave as documented.
+- Edge cases: empty list on either side; nested compounds preserved as single elements for simple+list and list+simple.
 
 ### append
 

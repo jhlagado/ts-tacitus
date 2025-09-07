@@ -16,6 +16,11 @@
 - **Immutable data structures**: No in-place modification of lists or capsules
 - **Type safety**: Preserve tagged value semantics across all operations
 
+### Terminology Rules
+
+- **No LHS/RHS**: Do not use “LHS”/“RHS” (left/right hand side). Tacit is RPN; use “destination” (where a write happens) and “source” (what is written).
+- **Acronym restraint**: Prefer plain English over acronyms. Acronyms are acceptable for widely understood terms (e.g., RAM, CPU, VM). Otherwise spell out on first use and avoid inventing new acronyms for niche concepts.
+
 ### Code Quality Standards
 
 - **Follow existing patterns**: Match style and structure of current codebase
