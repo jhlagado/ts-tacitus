@@ -287,29 +287,6 @@ export function processWordToken(value: string, state: ParserState): void {
 
     vm.compiler.compileOpcode(Op.Repeat);
     return;
-  } else if (value === 'get') {
-    const blockToken = state.tokenizer.nextToken();
-    if (blockToken.type !== TokenType.BLOCK_START) {
-      throw new SyntaxError('Expected { after get combinator', vm.getStackData());
-    }
-
-    beginStandaloneBlock(state);
-    vm.compiler.compileOpcode(Op.SaveTemp);
-    vm.compiler.compileOpcode(Op.OpenList);
-    vm.compiler.compileOpcode(Op.RestoreTemp);
-    vm.compiler.compileOpcode(Op.Eval);
-    vm.compiler.compileOpcode(Op.CloseList);
-    return;
-  } else if (value === 'set') {
-    const blockToken = state.tokenizer.nextToken();
-    if (blockToken.type !== TokenType.BLOCK_START) {
-      throw new SyntaxError('Expected { after set combinator', vm.getStackData());
-    }
-
-    beginStandaloneBlock(state);
-
-    vm.compiler.compileOpcode(Op.Set);
-    return;
   } else if (value === 'var') {
     processVarDeclaration(state);
     return;

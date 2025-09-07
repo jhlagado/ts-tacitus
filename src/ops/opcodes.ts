@@ -197,11 +197,6 @@ export enum Op {
   /** Repeat combinator: executes a quotation a specified number of times */
   Repeat,
 
-  /** Get combinator: path-based value access */
-  Get,
-
-  /** Set combinator: path-based value update */
-  Set,
 
   /** Generic block-to-list converter: executes block and converts results to list */
   MakeList,
