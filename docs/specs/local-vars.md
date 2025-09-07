@@ -87,14 +87,14 @@ The stack frame consists of:
 Each local variable occupies exactly \**one 32-bit slot*mul that can contain:
 
 - **Simple values**: Numbers, strings, symbols stored directly as tagged values
-- **Compound references**: `Tag.REF` values pointing to compound data in the return stack
+- **Compound references**: `Tag.RSTACK_REF` values pointing to compound data in the return stack
 
 ### Slot Storage Types:
 
 - `Tag.NUMBER` - Direct numeric values
 - `Tag.STRING` - String table references
 - `Tag.CODE` - Code pointers
-- `Tag.REF` - References to compound data on return stack
+- `Tag.RSTACK_REF` - References to compound data on return stack
 - `Tag.BUILTIN` - Builtin operation references
 
 ### Slot Capacity:
@@ -222,7 +222,7 @@ Compound values (lists, maplists) are stored in the return stack area above the 
 
 ### Storage Strategy:
 
-1. **Slot contains reference**: Store `Tag.REF` pointing to compound data
+1. **Slot contains reference**: Store `Tag.RSTACK_REF` pointing to compound data
 2. **Data copied to return stack**: Complete structure copied, not referenced
 3. **Proper structure layout**: Maintains list format (payload + header)
 
@@ -298,6 +298,18 @@ list4    -> z  # error if z is a maplist, even if slot count matches
 ### General Rule
 
 Assignment never changes the slot reference for compound types—only the contents are updated.
+
+## 10.1 In-Place Mutation of Locals (Normative)
+
+- Destination locality: Local variables live in the return stack segment (SEG_RSTACK). Assignment mutates the destination in place in SEG_RSTACK. The destination is not copied/materialized to the data stack for modification.
+- Simple locals: The slot at `BP + slot*4` is directly overwritten with the source value (after materializing the source if it is a ref).
+- Compound locals: The slot contains an `RSTACK_REF` to the compound header stored above BP. On assignment with a compatible compound source, the payload cells at that address are overwritten from the source list on the data stack, then the header is written. The slot continues to point to the same header address.
+- Alias preservation: `&x` continues to refer to the same region after assignment; assignment does not rebind the slot for compounds.
+- Errors: Simple↔compound mismatches error; incompatible compound shapes (different type or slot count) error.
+
+Implementation notes (for readers of the codebase)
+- Parser: `x` compiles to `VarRef + Load`; `value -> x` compiles to `VarRef + Store`.
+- Store path: `store` materializes source refs, resolves the destination ref, and for compound locals calls an in-place mutation that writes directly in SEG_RSTACK without advancing RP.
 For simple types, assignment replaces the value in the slot.
 
 ## 10. Dictionary Management

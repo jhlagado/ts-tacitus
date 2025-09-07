@@ -250,6 +250,11 @@ Target:
 - Bare local access yields values; `&x` yields refs.
 - Sources that are refs are materialized before assignment/storage.
 
+In-place locals (normative clarification)
+- Destination locality: When the destination is a local variable, updates occur in place in the return stack segment (SEG_RSTACK). The destination is not materialized to the data stack for mutation.
+- Mechanism: Compound locals store an `RSTACK_REF` to their header. `store` resolves that ref and overwrites the existing region (payload then header) if compatible; simple locals are overwritten directly in their slot.
+- Implications: Aliasing through `&x` is preserved across assignments; assignment does not rebind the slot for compounds, it mutates the existing region.
+
 Migration Plan
 
 Phase 1: add `&x`; update store/set to materialize sources.
