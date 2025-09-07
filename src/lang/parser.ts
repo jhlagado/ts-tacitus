@@ -523,9 +523,15 @@ function compileBracketPathAsList(state: ParserState): void {
     if (tok.type === TokenType.NUMBER) {
       compileNumberLiteral(tok.value as number);
       continue;
+    } else if (tok.type === TokenType.STRING) {
+      compileStringLiteral(tok.value as string);
+      continue;
     }
     // Allow empty path [] or numbers only for now
-    throw new SyntaxError('Only numeric indices are supported in bracket paths', vm.getStackData());
+    throw new SyntaxError(
+      'Only numeric indices or string keys are supported in bracket paths',
+      vm.getStackData(),
+    );
   }
   vm.compiler.compileOpcode(Op.CloseList);
 }
@@ -557,6 +563,13 @@ export function processSpecialToken(value: string, state: ParserState): void {
     beginStandaloneBlock(state);
   } else if (value === '`') {
     parseBacktickSymbol(state);
+  } else if (value === '[') {
+    // General postfix bracket path for any expression on stack: expr[ ... ]
+    // Compile path list and then value-by-default retrieval via select→load→nip
+    compileBracketPathAsList(state);
+    vm.compiler.compileOpcode(Op.Select);
+    vm.compiler.compileOpcode(Op.Load);
+    vm.compiler.compileOpcode(Op.Nip);
   }
 }
 

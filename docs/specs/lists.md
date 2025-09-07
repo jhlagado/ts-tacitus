@@ -170,7 +170,43 @@ Final stack (deep → TOS):
 
 ---
 
-## 8. Printing / pretty representation
+## 8. Addressing & Bracket Paths (high-level)
+
+Introduce path brackets early; they are the ergonomic way to read and write inside compounds (lists and, soon, maplists).
+
+Syntax
+- Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` (maplist string keys)
+- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` (destination restricted to locals)
+
+Lowering (normative)
+- Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
+- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
+
+Semantics
+- Path items:
+  - Numbers: list indices (0-based)
+  - Strings: maplist keys (e.g., "users")
+  - Mixed paths traverse accordingly: numbers step through list elements; strings look up maplist values.
+- Reads are value-by-default: refs are dereferenced; list headers/materialized compounds are returned.
+- Writes mutate in place: simple→simple overwrite; compound→compound only if compatible (type + slot count), otherwise error.
+
+Examples
+- Lists: `( (1 2) (3 4) ) [0 1]  ⇒ 2`
+- Lists write: `5 -> x[1 1]` updates the second element of the second nested list in local `x`.
+- Lists compound write: `(1 2 3) -> x[0 0]` replaces a nested list in-place when compatible (3 payload slots).
+- Maplists (string keys):
+  - Read: `obj[ "stats" "count" ]  ⇒ 2`
+  - Mixed: `obj[ "users" 0 "email" ]  ⇒ "alice@example.com"`
+  - Write: `"Charlie" -> obj[ "users" 0 "name" ]`
+
+Notes
+- Postfix brackets are allowed on any expression for reads. For writes, destinations are restricted to locals (ensures write‑through via `&x`).
+- Low-level ops like `slot`/`elem`/`find`/`select`/`fetch`/`store` remain available and are documented later in this spec.
+- Implementation status: numeric indices and string keys are supported today. Non‑string keys for maplists are an advanced case and are not supported in bracket paths; use low‑level ops (`select`/`find`) when needed.
+
+---
+
+## 9. Printing / pretty representation
 
 - A simple printer uses **element traversal** to reconstruct `( … )`.
 - `LIST:0` prints as `( )`.
@@ -178,7 +214,7 @@ Final stack (deep → TOS):
 
 ---
 
-## 9. Length and counting
+## 10. Length and counting
 
 ### length ( list -- n )
 
@@ -197,7 +233,7 @@ Final stack (deep → TOS):
 
 ---
 
-## 10. Address queries
+## 11. Address queries (low-level)
 
 ### slot ( idx -- addr )
 
@@ -235,7 +271,7 @@ Final stack (deep → TOS):
 - **Cost:** O(1).
 - **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
 
-#### Compound Mutation: Compatibility Rule
+#### Compound Mutation: Compatibility Rule (low-level)
 
 See also: docs/specs/core-invariants.md (canonical mutation rule).
 
@@ -250,7 +286,7 @@ Compound elements (e.g., lists, maplists) may be replaced in place **only if the
 
 ---
 
-## 11. Traversal rule (type-agnostic span)
+## 12. Traversal rule (type-agnostic span)
 
 **Invariant:** Every compound’s first slot is a header that **encodes its total span** in slots.
 **Algorithm:**

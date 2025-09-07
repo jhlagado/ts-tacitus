@@ -20,6 +20,35 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
     expect(stack[stack.length - 1]).toBe(2);
   });
 
+  test('postfix path on arbitrary expression: (1 2 3)[0] => 1', () => {
+    executeProgram('(1 2 3) [0]');
+    const tos = vm.getStackData().at(-1)!;
+    expect(tos).toBe(1);
+  });
+
+  test('maplist string keys in bracket: obj["stats" "count"] => 2', () => {
+    // Maplist layout: ( key1 val1 key2 val2 ... )
+    // Here: ( "stats" ( "count" 2 ) )
+    const code = ': f ( "stats" ( "count" 2 ) ) var obj obj["stats" "count"] ; f';
+    executeProgram(code);
+    const tos = vm.getStackData().at(-1)!;
+    expect(tos).toBe(2);
+  });
+
+  test('maplist write via string keys: 7 -> obj["stats" "count"]', () => {
+    const code = `
+      : f
+        ( "stats" ( "count" 2 ) ) var obj
+        7 -> obj["stats" "count"]
+        obj["stats" "count"]
+      ;
+      f
+    `;
+    executeProgram(code);
+    const tos = vm.getStackData().at(-1)!;
+    expect(tos).toBe(7);
+  });
+
   test('update simple value: 5 -> x[1 1] then x[1 1] == 5', () => {
     executeProgram(': f ((1 2)(3 4)) var x 5 -> x[1 1] x[1 1] ; f');
     const stack = vm.getStackData();
@@ -75,9 +104,9 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
     expect(tos).toBe(2);
   });
 
-  test('non-numeric path element errors at parse time', () => {
+  test('non-numeric, non-string path element errors at parse time', () => {
     expect(() => executeProgram(': f (1 2) var x x[foo] ; f')).toThrow(
-      /Only numeric indices are supported in bracket paths/i,
+      /Only numeric indices or string keys are supported in bracket paths/i,
     );
   });
 
