@@ -17,13 +17,13 @@ describe('List query operations: length/size', () => {
     expect(stack[stack.length - 1]).toBe(3);
   });
 
-  test('length for non-list returns -1', () => {
+  test('length for non-list returns NIL', () => {
     const stack = executeTacitCode('42 length');
-    expect(stack[stack.length - 1]).toBe(-1);
+    expect(Number.isNaN(stack[stack.length - 1])).toBe(true);
   });
 
-  test('size for non-list returns -1', () => {
+  test('size for non-list returns NIL', () => {
     const stack = executeTacitCode('42 size');
-    expect(stack[stack.length - 1]).toBe(-1);
+    expect(Number.isNaN(stack[stack.length - 1])).toBe(true);
   });
 });
