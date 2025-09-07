@@ -6,6 +6,7 @@ This short document centralizes the rules all other specs assume.
 - Traversal by span: element stepping uses simple=1, compound=span(header). Never assume fixed widths for compounds.
 - Refs: data refs are absolute cell indices tagged by segment (`STACK_REF`, `RSTACK_REF`, `GLOBAL_REF` [not implemented]). Code refs are separate (`BUILTIN`, `CODE`).
 - Value-by-default: `load` dereferences refs (up to two levels) and materializes lists; `fetch` strictly reads by address and materializes lists when the slot read is a LIST header.
+- Analogy: treat refs like symlinks rather than raw pointers — structure-aware operations follow them transparently; stack ops manipulate the ref value itself; use `load` to “follow the link”, and `store` materializes source refs before writing.
 - Assignment materializes sources: when writing, if the source is a ref, materialize to a value before comparing/applying.
 - Compound compatibility: in-place mutation of compound destinations is allowed only when the source has the same structural type and total slot count; otherwise it is an error. List headers and compound starts are immutable as targets for simple writes.
 - Access consistency: `get`/`set` are built on address-returning `elem`/`find` plus `fetch`/`store`. `set` updates only simple element cells; no structural edits.

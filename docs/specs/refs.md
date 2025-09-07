@@ -36,6 +36,14 @@ Non-goals:
 - Destination: The location being written (e.g., a slot, an addressed list element).
 - Source: The data being written (could be a value or a ref that must be resolved).
 
+Analogy — Symlinks vs Pointers
+- Think of data refs more like filesystem symbolic links than C pointers.
+  - Many structure-aware operations (e.g., list ops like `length`, `elem`, `head`) behave like syscalls that follow symlinks transparently (they dereference as needed).
+  - Pure stack operations treat refs as opaque, like manipulating a path string or the symlink inode itself (no automatic deref).
+  - `load` acts like opening a path and reading its contents (follows the link), while `fetch` is a strict address read (akin to reading the cell at a specific address; if that cell is a list header, the full content is materialized).
+  - Assignment is careful: before writing you materialize sources (follow the link), and compound writes require compatibility with the destination “file shape”.
+- Differences to keep in mind: Tacit refs carry absolute cell indices and are bound by stack frame lifetimes; filesystem symlinks persist independently of process memory.
+
 Design principles:
 
 - Value-first: variable reads produce values by default via `load`.
