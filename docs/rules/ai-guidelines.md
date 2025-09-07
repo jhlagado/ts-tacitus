@@ -139,7 +139,7 @@
 
 - **Keep specs synchronized** with implementation
 - **Update test cases** when behavior changes
-- **Maintain glossary** with new terms
+- **Keep cheatsheets and orientation pages current**
 - **Document performance characteristics**
 
 ## Anti-Patterns to Avoid
