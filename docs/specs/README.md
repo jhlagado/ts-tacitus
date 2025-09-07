@@ -3,7 +3,7 @@
 Start here to get a zero-to-productive overview.
 
 - Core invariants: docs/specs/core-invariants.md
-- Quick cheatsheet: docs/reference/memory-refs-and-assignment-cheatsheet.md
+- Quick patterns and usage are summarized inside core-invariants.md, refs.md, and local-vars.md.
 
 Deep dives (essentials)
 - Tagged values: docs/specs/tagged.md
@@ -14,7 +14,7 @@ Deep dives (essentials)
 
 Helpful next reads
 - VM architecture: docs/specs/vm-architecture.md
-- Polymorphic ops overview: docs/specs/polymorphic-operations.md
+- Refs & polymorphism: docs/specs/refs.md
 
 Learning Guide (source files)
 - Core: `src/core/vm.ts`, `src/core/tagged.ts`, `src/core/list.ts`, `src/core/refs.ts`

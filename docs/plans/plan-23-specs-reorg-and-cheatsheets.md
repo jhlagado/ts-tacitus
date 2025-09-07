@@ -19,8 +19,8 @@ Refocus and streamline the documentation for fast onboarding and LLM-friendly ab
 
 ## Deliverables
 
-1) New cheatsheet (added):
-   - docs/reference/memory-refs-and-assignment-cheatsheet.md (done in this PR)
+1) Cheatsheet content integrated:
+   - Quick usage patterns consolidated into `core-invariants.md`, `refs.md`, and `local-vars.md` (former standalone cheatsheet removed)
 
 2) Specs reorg (proposed structure):
    - docs/specs/core-invariants.md (new):
@@ -53,17 +53,17 @@ Refocus and streamline the documentation for fast onboarding and LLM-friendly ab
 Current core docs:
 - vm-architecture.md, tagged.md, lists.md, maplists.md, access.md, refs.md, local-vars.md, stack-operations.md, polymorphic-operations.md, capsules-reified.md, removed-ops.md.
 - Orientation: specs/README.md, core-invariants.md.
-- Reference: memory-refs-and-assignment-cheatsheet.md, future-enhancements.md.
+- Reference: future-enhancements.md.
 
 Target consolidated set:
 - Orientation: specs/README.md, core-invariants.md, cheatsheet.
 - Deep dives: tagged.md; lists.md (with Maplists folded in); refs.md (with polymorphism folded in); access.md; local-vars.md; vm-architecture.md; stack-operations.md (trimmed) ; removed-ops.md.
-- Deprecated: capsules-reified.md moved under docs/deprecated/.
+- Drafts: capsules-reified.md moved under docs/specs/drafts/ (do-not-read).
 
 Change map (source → target):
 - maplists.md → Fold into lists.md#Maplists; then delete maplists.md.
 - polymorphic-operations.md → Fold guidance into refs.md (reference transparency + auto-deref expectations) and core-invariants.md (summary rules); then delete polymorphic-operations.md.
-- capsules-reified.md → Move to docs/deprecated/capsules-reified.md with a status preface.
+- capsules-reified.md → Move to docs/specs/drafts/capsules-reified.md with a status preface.
 - stack-operations.md → Keep, trim, and link prominently to core-invariants.md.
 - Any “tagged-values.md” mentions → tagged.md.
 
@@ -76,7 +76,7 @@ Link update matrix:
 ## Execution Plan
 
 Phase 1 — Add cheatsheet (complete)
-- Created `docs/reference/memory-refs-and-assignment-cheatsheet.md` with stack effects and patterns.
+- Consolidated quick usage patterns into relevant specs.
 
 Phase 2 — Introduce core-invariants.md (small new doc)
 - Extract common invariants from lists.md, refs.md, tagged.md into a concise landing doc; link from each spec.
@@ -99,7 +99,7 @@ Phase 5 — Index and navigation
 Phase 6 — Consolidations (structural changes)
 - Fold Maplists into Lists; delete maplists.md; update links (matrix above).
 - Fold Polymorphism into Refs; delete polymorphic-operations.md; update links.
-- Move Capsules doc to docs/deprecated/ with status note.
+- Move Capsules doc to docs/specs/drafts/ with status note.
 - Trim stack-operations.md to a concise primer that defers core rules to core-invariants.md.
 
 Phase 7 — Final link sweep and validation
@@ -118,7 +118,7 @@ Phase 7 — Final link sweep and validation
 
 - Migrate content first, then delete deprecated files (no content loss).
 - Preserve contextual examples where they add clarity; if moved, keep links.
-- Experimental/forward-looking material (capsules) preserved under docs/deprecated/.
+- Experimental/forward-looking material (capsules) preserved under docs/specs/drafts/.
 
 ## Status (checkpoint)
 
@@ -129,7 +129,7 @@ Phase 7 — Final link sweep and validation
 
 1) Fold Maplists into Lists; delete specs/maplists.md; update links.
 2) Fold Polymorphic Operations into Refs; delete specs/polymorphic-operations.md; update links.
-3) Move specs/capsules-reified.md → docs/deprecated/ with status note.
+3) Move specs/capsules-reified.md → docs/specs/drafts/ with status note.
 4) Trim specs/stack-operations.md and link to core-invariants.md.
 5) Ripgrep and fix: `tagged-values.md`, `polymorphic-operations.md`, `maplists.md`, `resolve` (normative) → `load`.
 6) Re-check specs/README.md and README.md for a clean “Start here” path.

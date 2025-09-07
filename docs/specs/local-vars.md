@@ -2,7 +2,12 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-- Quick usage for locals/assignment: docs/reference/memory-refs-and-assignment-cheatsheet.md
+- Quick usage (locals and assignment):
+  - `x` → VarRef + Load (value-by-default)
+  - `&x` → VarRef + Fetch (slot ref)
+  - Simple assignment: `42 -> x` or `&y -> x` (when y is simple)
+  - Compound assignment: `(1 2 3) -> x` or `y -> x` (bare y compiles to Load)
+  - Avoid `&y -> x` for compounds; use `&y load -> x` instead.
 
 ## Table of Contents
 

@@ -2,7 +2,9 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-- Quick usage for refs/load/store: docs/reference/memory-refs-and-assignment-cheatsheet.md
+- Quick addressing/mutation
+  - `slot` returns payload slot address (O(1)); `elem` returns element start (O(s)).
+  - `fetch`/`load` materialize lists; `store` writes only simple cells; compound updates require compatibility.
 
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
@@ -560,3 +562,36 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 - **Mutation**
   - Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list
+
+---
+
+## Maplists (Key–Value Lists)
+
+Overview
+- A maplist is an ordinary list that follows a key–value alternating pattern: `( k1 v1 k2 v2 … )`.
+- Pairs are atomic units for sorting and traversal in maplist-specific ops.
+- All list invariants apply (reverse layout, span traversal); values may be simple or compound.
+
+Structure convention
+- Even payload positions are keys; odd positions are their values.
+- Keys are typically simple (symbols/numbers) for efficient comparison.
+
+Core operations
+- keys ( maplist — keys ) → Extract keys at even positions into a flat list.
+- values ( maplist — values ) → Extract values at odd positions into a flat list.
+- mapsort ( maplist { kcmp } — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units.
+  - Comparator: `( k1 k2 — r )` (same sign rules as list sort).
+  - Enables `bfind` on sorted maplists with consistent key comparator.
+
+Lookup and addressing (see Access spec)
+- find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address.
+- bfind: `( sorted-maplist key { kcmp } — addr | nil )` → binary search over keys.
+- hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix).
+- Combine with `fetch`/`store` for reads/writes; only simple writes allowed; no structural edits.
+
+Default key convention
+- Special key `default` provides a fallback when lookup fails: if `key` not found, use `default`’s value when present.
+
+Performance notes (informative)
+- Linear search is fine for small payloads (≈ ≤ 12 pairs).
+- For larger sets, prefer `mapsort` + `bfind` or prebuilt hash index + `hfind`.

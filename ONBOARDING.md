@@ -1,12 +1,11 @@
 Must-read specs (before coding)
 
-  • docs/specs/core-invariants.md: One-page rules all specs assume.
-  • docs/reference/memory-refs-and-assignment-cheatsheet.md: Quick ops + patterns.
+  • docs/specs/core-invariants.md: One-page rules and quick patterns.
   • docs/specs/lists.md: Reverse list layout, slots vs elements, span traversal, structural ops.
   • docs/specs/tagged.md: NaN-boxed tags, active tags, payload widths, runtime invariants.
-  • docs/specs/refs.md: STACK_REF/RSTACK_REF/GLOBAL_REF semantics, resolve rules, segment model.
+  • docs/specs/refs.md: STACK_REF/RSTACK_REF/GLOBAL_REF semantics, load/fetch/store rules, segment model.
   • docs/specs/access.md: Path-based get/set semantics, address-returning traversal.
-  • docs/specs/polymorphic-operations.md: How ops accept values or refs transparently.
+  • docs/specs/refs.md (§12): How ops accept values or refs transparently (polymorphism).
 
 
   Project rules and onboarding
@@ -15,6 +14,7 @@ Must-read specs (before coding)
   • CLAUDE.md: C/assembly-port constraints; C-like loops, no JS idioms; spec-first, zero
     regressions.
   • Change Policy: Do not modify repository files unless explicitly instructed to do so. Ask first.
+  • Do not read or learn from non-authoritative folders: `docs/deprecated/**`, `docs/plans/done/**`, `docs/specs/drafts/**`.
 
 
   Critical source files
@@ -27,7 +27,7 @@ Must-read specs (before coding)
     • src/core/constants.ts: SEG_STACK, SEG_RSTACK, sizes.
   • Ops
     • src/ops/list-ops.ts: List ops
-      (length/size/slot/elem/fetch/store/find/head/tail/unpack/concat/reverse/ref/resolve).
+      (length/size/slot/elem/fetch/store/find/head/tail/unpack/concat/reverse/ref/load).
     • src/ops/select-ops.ts: Path-based address traversal (select); stack-only iterative
       pipeline.
     • src/ops/builtins.ts + src/ops/opcodes.ts: Dispatch wiring and opcodes.
@@ -70,7 +70,7 @@ Must-read specs (before coding)
   • fetch/store: ref-aware; store resolves source refs; compound compatibility enforced.
   • find: maplist key → value address; supports default fallback; segment-correct refs.
   • head/tail/reverse/concat: structural, preserve element units; new list on stack.
-  • ref/resolve: convert list to STACK_REF; materialize any ref.
+  • ref/load: convert list to STACK_REF; materialize any ref.
 
 
   selectOp approach (path-based address access)

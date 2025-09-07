@@ -2,7 +2,11 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-- Quick usage: docs/reference/memory-refs-and-assignment-cheatsheet.md
+- Quick usage (summary):
+  - `load ( x — v )`: value-by-default; identity on non-refs; deref up to two levels; materializes lists.
+  - `fetch ( addr — v )`: strict address read; materializes lists when the slot is a LIST header.
+  - `store ( v addr — )`: materialize source refs; simple/simple writes allowed; compound/compound only if compatible.
+  - Locals: `x` (VarRef+Load), `&x` (VarRef+Fetch), `&x fetch`, `&x load`.
 
 Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear materialize-at-boundaries guidance.
 
@@ -11,7 +15,7 @@ This specification defines how Tacit handles references (refs) to data stored in
 - docs/specs/local-vars.md — frame layout, slot assignment, compound assignment rules
 - docs/specs/lists.md — list structure, header/payload layout, traversal
 - docs/specs/access.md — get/set polymorphic traversal and storage rules
-- docs/specs/polymorphic-operations.md — operations that accept values or references consistently
+- Polymorphism summary is consolidated here; see also docs/specs/core-invariants.md
 
 Primary goals:
 
@@ -170,6 +174,27 @@ Stack ops (`dup`, `drop`, `swap`, `rot`, `over`, `nip`, `tuck`, `pick`) treat re
 - They manipulate the reference values themselves; they do not implicitly dereference.
 - This preserves identity and performance. Materialization remains explicit via `load` or via destination-based rules in store/set.
 
+## 12. Polymorphic Semantics (Consolidated)
+
+Principles
+- Stack operations are reference-transparent: they copy/move the reference value, not the referenced data.
+- Structure-aware list operations accept values or refs and internally dereference when needed (use `resolveReference()` pattern established by `length`/`size`).
+- Convenience: use `ref` to create a short‑lived `STACK_REF` to a list on the data stack; use `load` for value‑by‑default deref (identity on non‑refs; two‑level deref; materialize lists).
+
+Examples
+- `RSTACK_REF(5) dup` → `RSTACK_REF(5) RSTACK_REF(5)` (no deref)
+- `STACK_REF→(1 2 3) head` → `1` (internal deref)
+- `RSTACK_REF→(1 2 3) 4 concat` → modifies referenced list (element‑unit)
+- `RSTACK_REF→42 load` → `42`; `STACK_REF→(1 2) load` → `( 1 2 )`
+
+Implementation guideline
+- For list ops expecting a list: if given a ref, resolve to segment/address and read the header; if it’s a list, proceed as direct.
+- For strict address reads/writes: `fetch`/`store` resolve addresses and operate without hidden deref beyond the address cell; `store` must materialize source refs before type checks and writes.
+
+Testing notes
+- Verify stack ops keep refs opaque.
+- Verify list ops behave identically for direct lists and refs to lists.
+
 
 ## 8. Errors and Diagnostics
 
@@ -248,7 +273,7 @@ Cross-References:
 - Locals and frames: docs/specs/local-vars.md (§ frame layout, assignment, lifetime)
 - Lists and compounds: docs/specs/lists.md (§ header, slots, materialization)
 - Access ops: docs/specs/access.md (§ get/set traversal and storage rules)
-- Polymorphism: docs/specs/polymorphic-operations.md (§ ref-aware behaviors)
+- Polymorphism: consolidated in this doc (§12) and summarized in core-invariants.md
 
 ---
 

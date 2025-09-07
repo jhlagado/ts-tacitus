@@ -32,7 +32,6 @@ Tacit implements a complete stack-based virtual machine with:
 ### Core Specifications
 
 - Start here: [`docs/specs/README.md`](docs/specs/README.md)
-- Cheatsheet: [`docs/reference/memory-refs-and-assignment-cheatsheet.md`](docs/reference/memory-refs-and-assignment-cheatsheet.md)
 - [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
 - [`docs/specs/tagged.md`](docs/specs/tagged.md) - Type system and value encoding
 - [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
@@ -101,7 +100,7 @@ yarn test lang        # Language processing
 ### Reference Materials
 
   (Glossary removed; see cheatsheet and specs instead)
-- [`docs/reference/memory-refs-and-assignment-cheatsheet.md`](docs/reference/memory-refs-and-assignment-cheatsheet.md) - Quick ops and patterns
+  (Quick patterns now live inside specs: see `docs/specs/core-invariants.md`, `docs/specs/refs.md`, `docs/specs/local-vars.md`)
 - [`docs/reference/future-enhancements.md`](docs/reference/future-enhancements.md) - Notes and ideas
 
 ### Specifications
