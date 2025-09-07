@@ -1,5 +1,9 @@
 # Tacit Local Variables and Function Stack Frame Specification
 
+Orientation
+- Start with core invariants: docs/specs/core-invariants.md
+- Quick usage for locals/assignment: docs/reference/memory-refs-and-assignment-cheatsheet.md
+
 ## Table of Contents
 
 1. [Stack Architecture](#1-stack-architecture)

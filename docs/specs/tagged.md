@@ -1,5 +1,9 @@
 # Tacit Tagged Values Specification
 
+Orientation
+- Start with core invariants: docs/specs/core-invariants.md
+- Quick usage for refs/load/store: docs/reference/memory-refs-and-assignment-cheatsheet.md
+
 > Status: Harmonised with current implementation.
 
 ## Normative Scope

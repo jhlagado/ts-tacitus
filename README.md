@@ -25,14 +25,16 @@ Tacit implements a complete stack-based virtual machine with:
 - **Segmented memory** (STACK, RSTACK, CODE, STRING segments; sizes are implementation‑defined)
 - **NaN-boxed tagged values** for efficient type representation
 - **Unified code references** enabling metaprogramming capabilities
-- **Immutable list structures** with LINK metadata
+- **Immutable list structures** using reverse layout headers (no LINK tag)
 - **Comprehensive type system** with built-in operations
 - **Stack-based execution model** with call frame management
 
 ### Core Specifications
 
+- Start here: [`docs/specs/README.md`](docs/specs/README.md)
+- Cheatsheet: [`docs/reference/memory-refs-and-assignment-cheatsheet.md`](docs/reference/memory-refs-and-assignment-cheatsheet.md)
 - [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
-- [`docs/specs/tagged-values.md`](docs/specs/tagged-values.md) - Type system and value encoding
+- [`docs/specs/tagged.md`](docs/specs/tagged.md) - Type system and value encoding
 - [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
 
 ## 🧪 Testing & Quality
@@ -86,7 +88,7 @@ yarn test --coverage
 # Review project structure
 ls docs/specs/        # Core specifications
 ls docs/tasks/        # Development plans
-ls docs/reference/    # Examples and glossary
+ls docs/reference/    # Examples and reference
 
 # Run specific test suites
 yarn test core        # Core VM functionality
@@ -98,7 +100,7 @@ yarn test lang        # Language processing
 
 ### Reference Materials
 
-- [`docs/reference/glossary.md`](docs/reference/glossary.md) - Tacit terminology and concepts
+  (Glossary removed; see cheatsheet and specs instead)
 - [`docs/reference/test-cases.md`](docs/reference/test-cases.md) - Examples and expected behaviors
 - [`docs/reference/known-issues.md`](docs/reference/known-issues.md) - Documented test isolation and other issues
 - [`docs/reference/spec-driven-demo.md`](docs/reference/spec-driven-demo.md) - Development methodology examples
@@ -133,7 +135,8 @@ yarn start
 
 # Explore the documentation
 cat docs/specs/vm-architecture.md    # Understand the VM design
-cat docs/reference/glossary.md       # Learn Tacit terminology
+# See specs orientation instead
+cat docs/specs/README.md
 ls docs/tasks/                       # See development history
 ```
 
@@ -155,7 +158,7 @@ ls docs/tasks/                       # See development history
 
 ### For Collaboration
 
-- **Shared vocabulary** through glossary and specs
+- **Shared vocabulary** through focused specs and cheatsheets
 - **Transparent process** with visible tasks and rules
 - **Quality gates** through testing and validation
 - **Knowledge preservation** in structured documentation
@@ -175,7 +178,7 @@ This structure demonstrates how documentation-driven development can create more
 
 - **Comprehensive specifications** covering all major components
 - **Development methodology** demonstrating specification-driven approach
-- **Extensive reference materials** including glossary and examples
+- **Focused reference materials** including examples
 - **Quality guidelines** ensuring consistent implementation
 
 ### Testing

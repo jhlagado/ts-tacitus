@@ -35,7 +35,7 @@ Within the plan file, find the 🎯 **ACTIVE** step:
 
 ```bash
 cat specs/vm-architecture.md
-cat specs/tagged-values.md
+cat specs/tagged.md
 ```
 
 **Result**: Understanding of:

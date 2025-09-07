@@ -1,5 +1,9 @@
 # Tacit Lists Specification
 
+Orientation
+- Start with core invariants: docs/specs/core-invariants.md
+- Quick usage for refs/load/store: docs/reference/memory-refs-and-assignment-cheatsheet.md
+
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
 > **Audience:** implementers and advanced users building capsules/VM ops over lists.
