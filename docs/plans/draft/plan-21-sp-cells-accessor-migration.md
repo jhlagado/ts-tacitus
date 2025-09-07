@@ -1,8 +1,10 @@
-# Plan 21 — SP Cells Accessor Migration (Phase 1 of SP/RP Units Alignment)
+# Plan 21 — Stack Pointer (SP) Cells Accessor Migration
+
+Phase 1 of aligning stack pointer units (cells vs bytes). This plan is updated to current repository state and remains scheduled (not started).
 
 ## Summary
 
-Gradually migrate the Tacit VM from byte-based `SP`/`RP` to cell-based semantics, starting with `SP` only, using an accessor‑first strategy. The plan introduces non‑breaking getters/setters and helpers that operate in cells, migrates call sites in waves, adds runtime assertions and toggles for observability, and only flips internals after call sites are largely converted. `RP` migration is explicitly deferred until `SP` is complete and stabilized.
+Gradually migrate the Tacit VM from byte-based `SP` (Stack Pointer) and `RP` (Return Stack Pointer) to cell-based semantics, starting with `SP` only, using an accessor‑first strategy. The plan introduces non‑breaking getters/setters and helpers that operate in cells, migrates call sites in waves, adds runtime assertions and toggles for observability, and only flips internals after call sites are largely converted. `RP` migration is explicitly deferred until `SP` is complete and stabilized.
 
 ## Goals
 
@@ -10,22 +12,25 @@ Gradually migrate the Tacit VM from byte-based `SP`/`RP` to cell-based semantics
 - Allow both direct access and accessor usage during migration; convert callers incrementally.
 - Preserve behavior and test results (zero regressions) at each phase.
 - Provide clear toggles and assertions to detect unit mixups early.
+ - Keep public stack effects and list invariants unchanged.
 
 ## Non-Goals
 
 - No immediate change to `push/pop/rpush/rpop` behavior.
 - No simultaneous migration of `RP` — handle `SP` first, then `RP` in a later plan.
-- No spec changes; implementation only.
+- No change to list layout or traversal spans.
+- No user‑visible language changes; internal implementation only.
 
 ## Constraints & Invariants
 
 - Cells are 4 bytes (`CELL_SIZE = 4`).
 - Memory access continues to use byte offsets; only the logical stack pointer representation changes over time.
 - All intermediate states must keep `SP % CELL_SIZE === 0` and not break list span semantics.
+ - VM segments and addressing remain unchanged (SEG_STACK, SEG_RSTACK, SEG_CODE).
 
-## Approach Overview (Accessor-First)
+## Approach Overview (Accessor‑First)
 
-1. Introduce an accessor API on `VM` that exposes cell‑centric operations for `SP` (read depth, TOS address, inc/dec in cells) alongside existing byte fields.
+1. Introduce an accessor API on `VM` that exposes cell‑centric operations for `SP` (read depth, top‑of‑stack address, increment/decrement in cells) alongside existing byte fields.
 2. Migrate read‑only usages first (calculations that derive counts/indices from SP).
 3. Migrate write sites gradually (decrements/increments of `SP`) to helpers that take cells.
 4. Introduce an optional shadow `SP_cells` and invariants under a debug/strict toggle to verify equivalence before flipping internals.
@@ -37,9 +42,9 @@ Gradually migrate the Tacit VM from byte-based `SP`/`RP` to cell-based semantics
 Read:
 - `spBytes(): number` — current `SP` byte offset (pass‑through to existing field).
 - `spCells(): number` — derived `SP / CELL_SIZE` (integer division).
-- `tosAddrBytes(): number` — address of TOS in bytes (`SP - CELL_SIZE`); throws if empty.
+- `tosAddrBytes(): number` — address of the top of the data stack in bytes (`SP - CELL_SIZE`); throws if empty.
 
-Write (cell-based):
+Write (cell‑based):
 - `incSPCells(n: number): void` — increase SP by `n * CELL_SIZE`.
 - `decSPCells(n: number): void` — decrease SP by `n * CELL_SIZE` with underflow checks.
 
@@ -47,7 +52,7 @@ Helpers:
 - `byteOffsetForCellIndex(cellIndex: number): number`.
 - `cellIndexForByteOffset(byteOffset: number): number` (with `CELL_SIZE` multiple check).
 
-Debug/strict (feature‑flagged via `vm.debug` or a new `vm.strictUnits`):
+Debug/strict (feature‑flagged via `vm.debug` or a new `vm.strictUnits` flag):
 - `assertAlignedSP()` — `SP % CELL_SIZE === 0`.
 - (Phase 5+) `assertSPShadowsMatch()` — when a shadow `SP_cells` exists: `SP === SP_cells * CELL_SIZE`.
 
@@ -75,7 +80,7 @@ Phase 3 — Replace Read-Only Computations (low risk)
 - Replace common patterns:
   - `vm.SP / CELL_SIZE` → `vm.spCells()`.
   - `vm.SP - CELL_SIZE` → `vm.tosAddrBytes()`.
-  - `vm.SP - n * CELL_SIZE` (read) → `vm.spBytes() - n * CELL_SIZE` (or helper that documents intent).
+  - `vm.SP - n * CELL_SIZE` (read) → `vm.spBytes() - n * CELL_SIZE` (or a helper that documents intent).
 - Target modules (order): stack ops helpers → core lists → access ops → format utils.
 
 Acceptance for Phase 3:
@@ -112,6 +117,11 @@ Acceptance for Phase 6:
 Phase 7 — Cleanup & Deprecation
 - Mark direct `vm.SP` access as deprecated in comments; optionally guard against writes outside VM internals when `strictUnits` is enabled.
 - Keep compatibility until the follow‑up RP plan is complete; schedule final removal thereafter.
+
+## Dependencies & Current State
+
+- Plan 22 (Load opcode and fetch simplification): COMPLETED. Parser, ops, and specs reflect value‑by‑default `load` and strict `fetch`.
+- Current code (as of this revision): no accessor API yet; widespread direct byte arithmetic on `vm.SP` remains across `src/ops/stack`, `src/ops/lists`, `src/ops/access`, and tests.
 
 ## Validation & Safety Nets
 
@@ -153,7 +163,7 @@ Each file change should be self‑contained, with tests run after each step (zer
 - Shadow counter and assertions are removable without touching functional paths.
 - Internals flip (Phase 6) happens only after sustained green runs; revert is limited to VM methods.
 
-## Follow-Up (Separate Plan)
+## Follow‑Up (Separate Plan)
 
 - Apply the same accessor‑first strategy to `RP` and `BP` interactions tied to locals and frames:
   - Introduce `rpBytes()/rpCells()`, `incRPCells/decRPCells`.
@@ -162,5 +172,15 @@ Each file change should be self‑contained, with tests run after each step (zer
 
 ## References
 
-- Specs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/local-vars.md`.
+- Specs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/local-vars.md`, `docs/specs/lists.md`.
 - Code hotspots: `src/ops/stack/`, `src/core/list.ts`, `src/ops/access/`, `src/core/format-utils.ts`.
+
+## Restart‑Safe Checklist (to begin work later)
+
+- [ ] Add accessor API to `VM` with alignment assertion and optional strict toggle.
+- [ ] Replace read‑only `SP` math in `src/ops/stack` helpers.
+- [ ] Replace read‑only `SP` math in `src/core/list.ts`.
+- [ ] Replace read‑only `SP` math in `src/ops/access/*`.
+- [ ] Add `spCellsShadow` and strict invariant checks; run full test suite in strict mode.
+- [ ] Convert one or two writer sites to `decSPCells/incSPCells`; validate.
+- [ ] Flip internals; keep shadow during deprecation window; monitor performance.
