@@ -3,7 +3,7 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames } from '@src/core';
+import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core';
 
 /**
  * Print function for debugging tagged values during tests.

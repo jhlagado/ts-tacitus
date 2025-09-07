@@ -5,7 +5,7 @@
  * Verifies creation, validation, and extraction of code references for the unified @symbol system.
  */
 
-import { createBuiltinRef, createCodeRef } from '@src/core';
+import { createBuiltinRef, createCodeRef } from '../../core';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -13,9 +13,9 @@ import {
   getBuiltinOpcode,
   getCodeAddress,
 } from '../utils/core-test-utils';
-import { toTaggedValue, fromTaggedValue, Tag } from '@src/core';
+import { toTaggedValue, fromTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
-import { MIN_USER_OPCODE } from '@src/core';
+import { MIN_USER_OPCODE } from '../../core';
 
 describe('Code Reference Utilities', () => {
   describe('createBuiltinRef', () => {

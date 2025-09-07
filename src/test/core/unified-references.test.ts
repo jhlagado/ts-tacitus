@@ -15,9 +15,9 @@ import {
   isGlobalRef,
   createGlobalRef,
   createSegmentRef,
-} from '@src/core';
+} from '../../core';
 import { fetchOp } from '../../ops/lists';
-import { SEG_RSTACK } from '@src/core';
+import { SEG_RSTACK } from '../../core';
 
 describe('Unified Reference System', () => {
   beforeEach(() => {

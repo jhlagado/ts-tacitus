@@ -9,9 +9,9 @@ import {
   and,
   or,
   xor,
-} from '@src/core';
-import { formatValue } from '@src/core';
-import { toTaggedValue, Tag, NIL, VM } from '@src/core';
+} from '../../core';
+import { formatValue } from '../../core';
+import { toTaggedValue, Tag, NIL, VM } from '../../core';
 
 const testVM = {
   digest: {

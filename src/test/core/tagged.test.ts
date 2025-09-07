@@ -8,7 +8,7 @@ import {
   isNIL,
   isCode,
   MAX_TAG,
-} from '@src/core';
+} from '../../core';
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
     const tests = [

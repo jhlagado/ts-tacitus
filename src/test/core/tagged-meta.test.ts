@@ -3,7 +3,7 @@
  * Tests the sign bit usage in tagged values.
  */
 
-import { toTaggedValue, fromTaggedValue, Tag } from '@src/core';
+import { toTaggedValue, fromTaggedValue, Tag } from '../../core';
 
 describe('Tagged Value Meta Bit Support', () => {
   describe('toTaggedValue with meta bit', () => {

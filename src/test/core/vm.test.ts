@@ -1,7 +1,7 @@
-import { VM, STACK_SIZE, RSTACK_SIZE } from '@src/core';
+import { VM, STACK_SIZE, RSTACK_SIZE } from '../../core';
 import { Compiler } from '../../lang/compiler';
 import { SymbolTable } from '@src/strings';
-import { fromTaggedValue, toTaggedValue, Tag } from '@src/core';
+import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
 
 describe('VM', () => {
   let vm: VM;

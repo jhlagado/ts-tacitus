@@ -1,4 +1,4 @@
-import { VM } from '@src/core';
+import { VM } from '../../core';
 import { Compiler } from '../../lang/compiler';
 import { resetVM } from '../utils/vm-test-utils';
 
