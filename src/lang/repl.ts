@@ -12,7 +12,7 @@
 import { createInterface } from 'readline';
 import { executeLine, setupInterpreter } from './executor';
 
-import { processFile } from './fileProcessor';
+import { processFile } from './file-processor';
 
 /**
  * Starts an interactive REPL (Read-Eval-Print Loop) session.

@@ -3,7 +3,7 @@
  * Tests Tag.STACK_REF, Tag.RSTACK_REF, Tag.GLOBAL_REF polymorphism
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../core/global-state';
 import {
   Tag,
   fromTaggedValue,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { executeProgram } from '../../lang/interpreter';
 import { fromTaggedValue, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';

@@ -4,7 +4,7 @@ import { fromTaggedValue, isNIL } from '../../../core/tagged';
  * This focuses on error conditions, edge cases, and debug output not covered in main list tests
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { openListOp, closeListOp, sizeOp } from '../../../ops/lists';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 

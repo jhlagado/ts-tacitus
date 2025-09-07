@@ -1,5 +1,5 @@
 /**
- * @file src/lang/fileProcessor.ts
+ * @file src/lang/file-processor.ts
  *
  * This file provides utilities for processing Tacit source files.
  *
@@ -37,7 +37,7 @@ function ensureFileExtension(filePath: string): string {
  * Processes a single Tacit file.
  *
  * This function reads a Tacit source file, processes it line by line, and executes each line.
- * It skips empty lines and comments (lines starting with \). If an error occurs during
+ * It skips empty lines and comments (lines starting with \\). If an error occurs during
  * execution, it reports the error with the line number and returns false.
  *
  * @param {string} filePath - The path to the Tacit file to process
@@ -124,3 +124,4 @@ export function processFiles(
 
   return allSucceeded;
 }
+

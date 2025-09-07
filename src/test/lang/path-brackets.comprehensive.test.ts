@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { executeProgram } from '../../lang/interpreter';
 
 describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {

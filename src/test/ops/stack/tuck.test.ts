@@ -6,7 +6,7 @@
  * under the second element.
  */
 
-import { vm } from '../../../core/globalState';
+import { vm } from '../../../core/global-state';
 import { tuckOp } from '../../../ops/stack';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';

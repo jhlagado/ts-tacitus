@@ -30,6 +30,6 @@ module.exports = {
       statements: 80,
     },
   },
-  setupFilesAfterEnv: ['<rootDir>/src/test/setupTests.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/test/setup-tests.ts'],
   moduleDirectories: ['node_modules', 'src'],
 };

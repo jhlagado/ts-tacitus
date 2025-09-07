@@ -4,7 +4,7 @@ All operations work on stack values and return 1 (true) or 0 (false)
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
-import { initializeInterpreter, vm } from '../../../core/globalState';
+import { initializeInterpreter, vm } from '../../../core/global-state';
 import {
   equalOp,
   lessThanOp,

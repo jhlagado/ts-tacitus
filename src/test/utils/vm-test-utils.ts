@@ -12,7 +12,7 @@ import { VM, Tag, toTaggedValue, fromTaggedValue } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 /**
  * Reset VM to clean state for testing
  */

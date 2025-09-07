@@ -3,7 +3,7 @@
  * Tests the complete local variable system: Reserve → InitVar → VarRef → Fetch
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeReference } from '../../../core/refs';

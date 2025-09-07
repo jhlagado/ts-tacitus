@@ -1,4 +1,4 @@
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { reverseSpan, getListElementAddress } from '../../core';
 import { SEG_STACK, Tag, toTaggedValue } from '../../core';
 

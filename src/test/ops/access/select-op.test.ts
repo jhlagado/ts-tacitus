@@ -11,7 +11,7 @@ import {
 } from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef } from '../../../core/refs';
-import { initializeInterpreter, vm } from '../../../core/globalState';
+import { initializeInterpreter, vm } from '../../../core/global-state';
 
 describe('selectOp - Path-based address access', () => {
   beforeEach(() => {

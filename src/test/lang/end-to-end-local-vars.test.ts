@@ -3,7 +3,7 @@
  * Tests complete workflow: Parse → Compile → Execute
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../core/global-state';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('End-to-End Local Variables Integration', () => {

@@ -1,5 +1,5 @@
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
-import { vm } from '../../../core/globalState';
+import { vm } from '../../../core/global-state';
 import { swapOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
 

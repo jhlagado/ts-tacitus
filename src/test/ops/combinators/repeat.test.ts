@@ -1,4 +1,4 @@
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { executeProgram } from '../../../lang/interpreter';
 
 describe('Repeat Combinator', () => {

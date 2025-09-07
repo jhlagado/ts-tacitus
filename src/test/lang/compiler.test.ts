@@ -1,5 +1,5 @@
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { fromTaggedValue } from '../../core';
 
 describe('Compiler', () => {
