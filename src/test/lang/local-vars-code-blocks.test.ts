@@ -2,7 +2,7 @@
  * Test local variables access from inside code blocks
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../core/global-state';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Local Variables in Code Blocks', () => {

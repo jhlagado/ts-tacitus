@@ -6,7 +6,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import { vm } from '../../../core/globalState';
+import { vm } from '../../../core/global-state';
 import { exitOp, exitCodeOp, evalOp } from '../../../ops/core';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 

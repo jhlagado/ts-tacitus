@@ -14,7 +14,7 @@
  * language-level features.
  */
 
-import { vm } from '../../core/globalState';
+import { vm } from '../../core/global-state';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, createCodeRef } from '../../core';

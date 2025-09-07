@@ -4,7 +4,7 @@
  */
 
 import { reserveOp } from '../../../ops/builtins';
-import { initializeInterpreter, vm } from '../../../core/globalState';
+import { initializeInterpreter, vm } from '../../../core/global-state';
 
 describe('Reserve Operation', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '../../core';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 
 describe('Format Utils', () => {
   beforeEach(() => {

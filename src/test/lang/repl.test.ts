@@ -1,11 +1,11 @@
 import { createInterface } from 'readline';
 import { startREPL } from '../../lang/repl';
 import { executeLine, setupInterpreter } from '../../lang/executor';
-import { processFile } from '../../lang/fileProcessor';
+import { processFile } from '../../lang/file-processor';
 
 jest.mock('readline');
 jest.mock('../../lang/executor');
-jest.mock('../../lang/fileProcessor');
+jest.mock('../../lang/file-processor');
 describe('REPL', () => {
   let mockCreateInterface: jest.Mock;
   let mockOn: jest.Mock;

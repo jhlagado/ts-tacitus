@@ -1,5 +1,5 @@
 import { execute, executeProgram } from '../../lang/interpreter';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../core/global-state';
 import * as math from '../../ops/math/arithmetic-ops';
 import { SEG_CODE } from '../../core';
 

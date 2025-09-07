@@ -6,7 +6,7 @@
  * without breaking existing functionality.
  */
 
-import { vm } from '../../core/globalState';
+import { vm } from '../../core/global-state';
 import { resetVM } from '../utils/vm-test-utils';
 import { SymbolTable, Digest } from '@src/strings';
 import { Tag, fromTaggedValue } from '../../core';

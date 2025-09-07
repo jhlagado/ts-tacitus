@@ -6,7 +6,7 @@
  * both built-in operations and colon definitions.
  */
 
-import { vm } from '../../core/globalState';
+import { vm } from '../../core/global-state';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';

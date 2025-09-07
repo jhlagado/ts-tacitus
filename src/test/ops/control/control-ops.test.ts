@@ -4,7 +4,7 @@ import { ifCurlyBranchFalseOp } from '../../../ops/control';
  * This includes the deprecated simpleIfOp and edge cases for ifCurlyBranchFalseOp
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { simpleIfOp } from '../../../ops/control';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 

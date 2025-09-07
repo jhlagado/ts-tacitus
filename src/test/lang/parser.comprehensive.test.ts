@@ -1,5 +1,5 @@
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { executeProgram } from '../../lang/interpreter';

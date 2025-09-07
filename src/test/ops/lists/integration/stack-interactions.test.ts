@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
-import { vm } from '../../../../core/globalState';
+import { vm } from '../../../../core/global-state';
 import { pickOp } from '../../../../ops/stack';
 import { elemOp } from '../../../../ops/lists';
 import { isRef } from '../../../../core/refs';

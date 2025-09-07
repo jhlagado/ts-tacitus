@@ -2,7 +2,7 @@
  * Clean test for exitOp behavior with proper function calls
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/globalState';
+import { vm, initializeInterpreter } from '../../core/global-state';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Function Exit Behavior', () => {

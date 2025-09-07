@@ -2,7 +2,7 @@
  * Tests for InitVar opcode implementation
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { initVarOp } from '../../../ops/builtins';
 import { SEG_RSTACK } from '../../../core/constants';
 

@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { Tag, fromTaggedValue } from '../../core';
 import { resetVM } from '../utils/vm-test-utils';
 

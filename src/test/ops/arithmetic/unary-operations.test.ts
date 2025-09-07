@@ -3,7 +3,7 @@ Tests for unary operations - Tacit's single-operand mathematical operations
 Includes negate, reciprocal, floor, not, signum, and enlist operations
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/globalState';
+import { vm, initializeInterpreter } from '../../../core/global-state';
 import { negOp, recipOp, floorOp, notOp, signOp } from '../../../ops/math';
 import { enlistOp } from '../../../ops/lists';
 

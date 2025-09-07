@@ -1,6 +1,6 @@
 import { addOp } from '../../../ops/math';
 import { dupOp, swapOp } from '../../../ops/stack';
-import { initializeInterpreter, vm } from '../../../core/globalState';
+import { initializeInterpreter, vm } from '../../../core/global-state';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';

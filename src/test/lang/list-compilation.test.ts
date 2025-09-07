@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { Op } from '../../ops/opcodes';

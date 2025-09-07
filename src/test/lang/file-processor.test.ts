@@ -8,8 +8,8 @@ const mockExit = jest.fn();
 
 process.exit = mockExit as unknown as typeof process.exit;
 
-jest.mock('../../lang/fileProcessor', () => {
-  const actual = jest.requireActual('../../lang/fileProcessor');
+jest.mock('../../lang/file-processor', () => {
+  const actual = jest.requireActual('../../lang/file-processor');
   return {
     ...actual,
     processFile: jest.fn((filePath: string) => actual.processFile(filePath)),
@@ -18,7 +18,7 @@ jest.mock('../../lang/fileProcessor', () => {
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { processFile, processFiles, TACIT_FILE_EXTENSION } from '../../lang/fileProcessor';
+import { processFile, processFiles, TACIT_FILE_EXTENSION } from '../../lang/file-processor';
 import { executeLine, setupInterpreter } from '../../lang/executor';
 
 const originalConsoleLog = console.log;
@@ -157,3 +157,4 @@ describe('processFiles', () => {
     expect(result).toBe(false);
   });
 });
+

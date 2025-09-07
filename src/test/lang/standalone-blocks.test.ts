@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 
 describe('Standalone Code Blocks', () => {
   beforeEach(() => {

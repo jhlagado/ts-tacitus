@@ -6,7 +6,7 @@ import {
   ReturnStackOverflowError,
   StackUnderflowError,
 } from '../../core';
-import { initializeInterpreter, vm } from '../../core/globalState';
+import { initializeInterpreter, vm } from '../../core/global-state';
 
 const CELL_SIZE = 4;
 

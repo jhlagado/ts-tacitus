@@ -1,4 +1,4 @@
-import { vm } from '../../../core/globalState';
+import { vm } from '../../../core/global-state';
 import { executeProgram } from '../../../lang/interpreter';
 import {
   addOp,

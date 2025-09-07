@@ -13,7 +13,7 @@
  */
 
 import { startREPL } from './lang/repl';
-import { processFiles } from './lang/fileProcessor';
+import { processFiles } from './lang/file-processor';
 
 import { initializeInterpreter } from './lang/runtime';
 
