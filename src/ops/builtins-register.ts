@@ -128,7 +128,5 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('get', Op.Get);
   symbolTable.defineBuiltin('set', Op.Set);
   symbolTable.defineBuiltin('select', Op.Select);
-  symbolTable.defineBuiltin('retrieve', Op.Retrieve);
-  symbolTable.defineBuiltin('update', Op.Update);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
 }

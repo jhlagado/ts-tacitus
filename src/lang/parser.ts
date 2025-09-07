@@ -334,6 +334,19 @@ export function processWordToken(value: string, state: ParserState): void {
         vm.compiler.compileOpcode(Op.VarRef);
         vm.compiler.compile16(tagValue);
         vm.compiler.compileOpcode(Op.Load);
+
+        // Optional bracket suffix: x[ ... ] → compile path list + Retrieve
+        const next = state.tokenizer.nextToken();
+        if (next && next.type === TokenType.SPECIAL && next.value === '[') {
+          compileBracketPathAsList(state);
+          // Inline retrieve: select → load → nip
+          vm.compiler.compileOpcode(Op.Select);
+          vm.compiler.compileOpcode(Op.Load);
+          vm.compiler.compileOpcode(Op.Nip);
+        } else if (next) {
+          // No bracket suffix; push back for outer parser
+          state.tokenizer.pushBack(next);
+        }
         return;
       }
     }
@@ -471,9 +484,50 @@ export function processAssignmentOperator(state: ParserState): void {
     throw new Error(`${varName} is not a local variable`);
   }
 
+  // Check for bracketed path assignment: value -> x[ ... ]
+  const maybeBracket = state.tokenizer.nextToken();
+  if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+    // Compile &x semantics for path-based assignment
+    vm.compiler.compileOpcode(Op.VarRef);
+    vm.compiler.compile16(slotNumber);
+    vm.compiler.compileOpcode(Op.Fetch);
+    compileBracketPathAsList(state);
+    // Inline update: select → nip → store
+    vm.compiler.compileOpcode(Op.Select);
+    vm.compiler.compileOpcode(Op.Nip);
+    vm.compiler.compileOpcode(Op.Store);
+    return;
+  } else if (maybeBracket) {
+    // No bracket; put the token back
+    state.tokenizer.pushBack(maybeBracket);
+  }
+
+  // Simple variable assignment
   vm.compiler.compileOpcode(Op.VarRef);
   vm.compiler.compile16(slotNumber);
   vm.compiler.compileOpcode(Op.Store);
+}
+
+/**
+ * Compiles a bracket path like [0 1] into a list literal on the stack.
+ * Supports numeric indices; closes on ']'.
+ */
+function compileBracketPathAsList(state: ParserState): void {
+  // Build list: OpenList, emit elements, CloseList
+  vm.compiler.compileOpcode(Op.OpenList);
+  while (true) {
+    const tok = state.tokenizer.nextToken();
+    if (tok.type === TokenType.SPECIAL && tok.value === ']') {
+      break;
+    }
+    if (tok.type === TokenType.NUMBER) {
+      compileNumberLiteral(tok.value as number);
+      continue;
+    }
+    // Allow empty path [] or numbers only for now
+    throw new SyntaxError('Only numeric indices are supported in bracket paths', vm.getStackData());
+  }
+  vm.compiler.compileOpcode(Op.CloseList);
 }
 
 /**

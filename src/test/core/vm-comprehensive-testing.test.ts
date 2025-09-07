@@ -269,33 +269,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       expect(vm.getStackData()).toEqual([100, 100]);
     });
 
-    // Removed flaky performance test to keep CI stable
-    it.skip('should maintain consistent performance under load (flaky in CI)', () => {
-      const warmupIterations = 1000;
-      const testIterations = 5000;
-
-      for (let i = 0; i < warmupIterations; i++) {
-        vm.push(i);
-        vm.pushSymbolRef('dup');
-        evalOp(vm);
-        vm.pop();
-        vm.pop();
-      }
-
-      const times: number[] = [];
-
-      for (let i = 0; i < testIterations; i++) {
-        const start = performance.now();
-
-        vm.push(i);
-        vm.pushSymbolRef('dup');
-        evalOp(vm);
-        vm.pop();
-        vm.pop();
-
-        times.push(performance.now() - start);
-      }
-    });
   });
 
   describe('Integration Workflow Testing', () => {

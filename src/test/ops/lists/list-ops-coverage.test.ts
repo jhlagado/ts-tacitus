@@ -1,4 +1,4 @@
-import { fromTaggedValue } from '../../../core/tagged';
+import { fromTaggedValue, isNIL } from '../../../core/tagged';
 /**
  * Tests for list-ops.ts - targeting uncovered branches
  * This focuses on error conditions, edge cases, and debug output not covered in main list tests
@@ -76,7 +76,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const result = vm.pop();
-      expect(result).toBe(-1);
+      expect(isNIL(result)).toBe(true);
     });
 
     test('should return 0 for empty lists', () => {
@@ -129,7 +129,7 @@ describe('List Operations - Branch Coverage', () => {
       vm.push(toTaggedValue(100, Tag.CODE));
       sizeOp(vm);
       const result = vm.pop();
-      expect(result).toBe(-1);
+      expect(isNIL(result)).toBe(true);
     });
   });
 
