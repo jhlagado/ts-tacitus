@@ -9,6 +9,13 @@ Orientation
   - Compound assignment: `(1 2 3) -> x` or `y -> x` (bare y compiles to Load)
   - Avoid `&y -> x` for compounds; use `&y load -> x` instead.
 
+Analogy — Refs as Symlinks
+- Treat `&x` (refs to local slots) like filesystem symlinks rather than raw pointers:
+  - Structure-aware ops (e.g., list `length`, `head`, `elem`) follow refs transparently, like syscalls following symlinks.
+  - Stack ops (`dup`, `swap`, …) manipulate the ref value itself (no implicit deref).
+  - `load` “follows the link” and yields the current value (materializes lists); `fetch` is a strict slot read.
+  - Assignment materializes source refs before writing; compound writes require compatibility with the existing slot’s compound.
+
 ## Table of Contents
 
 1. [Stack Architecture](#1-stack-architecture)
