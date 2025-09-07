@@ -11,5 +11,8 @@ This short document centralizes the rules all other specs assume.
 - Access consistency: `get`/`set` are built on address-returning `elem`/`find` plus `fetch`/`store`. `set` updates only simple element cells; no structural edits.
 - Errors and NIL: Out-of-bounds address queries yield NIL; invalid reference kinds for fetch/store error; `GLOBAL_REF` deref is not implemented and must throw.
 
-Read next: cheatsheet — docs/reference/memory-refs-and-assignment-cheatsheet.md
-
+Quick Patterns (for day-to-day use)
+- Read value regardless of being a ref: `load` (identity on non-refs; deref up to two levels; materializes lists).
+- Strict address read: `fetch` (requires ref; materializes lists when the cell read is a LIST header).
+- Assignment: destination must be a ref; if source is a ref, materialize first; simple→simple allowed; compound→compound allowed only if compatible (type + slot count); otherwise error.
+- Locals: `x` → VarRef + Load (value); `&x` → VarRef + Fetch (slot ref); `&x fetch` → slot content (possibly a ref); `&x load` → value.

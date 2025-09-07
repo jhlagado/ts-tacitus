@@ -1,4 +1,6 @@
-# Tacit Capsule Construction via Unified Stack Frame Transfer
+# Tacit Capsule Construction via Unified Stack Frame Transfer (Draft Spec)
+
+Status: Draft/experimental design (future consideration). Not normative. Do not learn from this file; see current specs under `docs/specs/` for authoritative guidance.
 
 ## Table of Contents
 

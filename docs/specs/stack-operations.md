@@ -1,4 +1,8 @@
-# Tacit Stack Operations Specification
+# Tacit Stack Operations — Primer
+
+Orientation
+- Start with core invariants: docs/specs/core-invariants.md (stack model, fixed arity, TOS rules)
+- This primer focuses on essentials and examples; defer to core-invariants for canonical rules.
 
 ## Table of contents
 
@@ -263,7 +267,7 @@ mul:        [ 10 10 ]     # 5*2=10, result is TOS
 sub:        [ 0 ]         # 10-10=0
 ```
 
-## 9. Advanced Concepts
+## 9. Advanced Concepts (Brief)
 
 ### Arity and Stack Safety
 
@@ -357,7 +361,7 @@ Blocks are pushed as executable references, not executed immediately.
 
 @ prefix creates references to operations for metaprogramming.
 
-## 11. Common Pitfalls for AI Systems
+## 11. Pitfalls (Quick)
 
 1. **Index Confusion**: Treating stack like array[0] = TOS
 2. **Direction Errors**: Reading stack effects backwards
@@ -373,7 +377,7 @@ Blocks are pushed as executable references, not executed immediately.
 - The "backwards" printing is **correct** - it reflects true stack (LIFO) behavior
 - **Fixed arity is mandatory** - operations must know exactly how many items to consume
 
-## 12. Verification Strategies
+## 12. Verification Strategies (Quick)
 
 When implementing stack operations:
 

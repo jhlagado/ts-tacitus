@@ -2,7 +2,10 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-- Quick usage for refs/load/store: docs/reference/memory-refs-and-assignment-cheatsheet.md
+- Quick path rules
+  - Numbers index list elements; symbols index maplist keys.
+  - Traversal is address-returning (`elem`/`find`), then `fetch`/`load` for values.
+  - `set` writes only simple cells; no structural edits; failure is silent/error as specified here.
 
 ## Table of contents
 

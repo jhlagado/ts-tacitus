@@ -2,7 +2,7 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-- Quick usage for refs/load/store: docs/reference/memory-refs-and-assignment-cheatsheet.md
+  (See refs.md for quick usage of refs/load/fetch/store.)
 
 > Status: Harmonised with current implementation.
 
@@ -192,5 +192,5 @@ length                     \ -> 3
 | ------------------- | --------------------------- | --------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `access.md`, `maplists.md` (lookup failures)  |
+| NIL definition      | SENTINEL 0                  | `access.md`, `lists.md` (Maplists)            |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |

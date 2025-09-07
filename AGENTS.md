@@ -30,6 +30,13 @@
 - Read relevant specs before coding (e.g., `docs/specs/lists.md`, `docs/specs/tagged.md`). Do not modify specs unless asked.
 - After each step: run tests, then lint; pause for review if scope is staged.
 
+## Ignore Paths for Learning
+- Do not read or learn from these non-authoritative folders:
+  - `docs/deprecated/**`
+  - `docs/plans/done/**`
+  - `docs/specs/drafts/**`
+- Current, authoritative sources live under `docs/specs/` and `docs/reference/` as linked by `docs/specs/README.md`.
+
 ### Hard Guardrails (Assistant Behavior)
 - Do not modify any repository files unless explicitly instructed by the user to do so.
 - Never create, edit, or delete files proactively to “help” (e.g., coverage bumps, refactors, test additions) without an explicit request.
