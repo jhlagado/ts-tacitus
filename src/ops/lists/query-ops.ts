@@ -167,47 +167,114 @@ export function loadOp(vm: VM): void {
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
-  let value = vm.peek();
-  if (isRef(value)) {
-    value = readReference(vm, value);
-    vm.pop();
-    vm.push(value);
-  }
+  const rhsTop = vm.peek();
+
   if (!isRef(addressValue)) {
     throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
-  const { address, segment } = resolveReference(vm, addressValue);
-  const valueInSlot = vm.memory.readFloat32(segment, address);
+
+  // Resolve destination slot and read existing value for compatibility checks.
+  const dest = resolveReference(vm, addressValue);
+  const valueInSlot = vm.memory.readFloat32(dest.segment, dest.address);
   let existingValue = valueInSlot;
   if (isRef(valueInSlot)) {
     const resolved = resolveReference(vm, valueInSlot);
     existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
   }
-  const valueIsCompound = isCompoundData(value);
-  const existingIsCompound = isCompoundData(existingValue);
-  if (valueIsCompound && existingIsCompound) {
-    if (isCompatibleCompound(existingValue, value)) {
-      // Determine target location: either the resolved destination address itself,
-      // or, if the slot holds a reference, resolve it to get the true header address.
-      let targetAddress = address;
-      let targetSegment = segment;
-      if (isRef(valueInSlot)) {
-        const resolved = resolveReference(vm, valueInSlot);
-        targetAddress = resolved.address;
-        targetSegment = resolved.segment;
-      }
-      mutateCompoundInPlace(vm, targetAddress, targetSegment);
-    } else {
+
+  // Attempt compound path first, using unified header/base resolver. This handles both
+  // materialized lists (Tag.LIST at TOS) and refs-to-lists. We will:
+  // - If materialized: use mutateCompoundInPlace (existing behavior)
+  // - If ref-to-list: perform direct ref→ref copy without materializing
+  const rhsInfo = getListHeaderAndBase(vm, rhsTop);
+  if (rhsInfo && isList(rhsInfo.header)) {
+    const existingIsCompound = isCompoundData(existingValue);
+    if (!existingIsCompound) {
+      // Cannot assign compound to simple
+      vm.pop();
+      throw new Error('Cannot assign simple to compound or compound to simple');
+    }
+
+    // Validate compatibility against destination's existing compound header
+    if (!isCompatibleCompound(existingValue, rhsInfo.header)) {
       vm.pop();
       throw new Error('Incompatible compound assignment: slot count or type mismatch');
     }
-  } else if (!valueIsCompound && !existingIsCompound) {
+
+    // Determine destination write location: either the resolved destination address itself,
+    // or, if the slot holds a reference, resolve it to get the true header address.
+    let targetAddress = dest.address;
+    let targetSegment = dest.segment;
+    if (isRef(valueInSlot)) {
+      const resolved = resolveReference(vm, valueInSlot);
+      targetAddress = resolved.address;
+      targetSegment = resolved.segment;
+    }
+
+    const slotCount = getListLength(rhsInfo.header);
+
+    // If RHS is materialized on the data stack (Tag.LIST), retain existing fast path:
+    // write from stack via mutateCompoundInPlace which also drops the materialized list.
+    if (getTag(rhsTop) === Tag.LIST) {
+      mutateCompoundInPlace(vm, targetAddress, targetSegment);
+      return;
+    }
+
+    // RHS is a ref-to-list. Copy directly from source memory to destination
+    // without materializing, with overlap safety via a scratch buffer.
+    const srcHeaderAddr = computeHeaderAddr(rhsInfo.baseAddr, slotCount);
+    const destBaseAddr = targetAddress - slotCount * CELL_SIZE;
+
+    // Early no-op if source and destination are the exact same region
+    if (
+      rhsInfo.segment === targetSegment &&
+      rhsInfo.baseAddr === destBaseAddr &&
+      srcHeaderAddr === targetAddress
+    ) {
+      vm.pop();
+      return;
+    }
+
+    // Stage payload cells (memmove semantics)
+    const tmp: number[] = new Array(slotCount);
+    for (let i = 0; i < slotCount; i++) {
+      const addr = rhsInfo.baseAddr + i * CELL_SIZE;
+      tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
+    }
+
+    // Write payload first
+    for (let i = 0; i < slotCount; i++) {
+      const addr = destBaseAddr + i * CELL_SIZE;
+      vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
+    }
+    // Then write header last
+    vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
+
+    // Stack effect mirrors simple store: pop one RHS value
     vm.pop();
-    vm.memory.writeFloat32(segment, address, value);
-  } else {
-    vm.pop();
-    throw new Error('Cannot assign simple to compound or compound to simple');
+    return;
   }
+
+  // Simple path: scalar or non-compound values. Maintain prior behavior:
+  // If RHS is a ref, dereference once and replace TOS with that single value.
+  let value = rhsTop;
+  if (isRef(value)) {
+    value = readReference(vm, value);
+    vm.pop();
+    vm.push(value);
+  }
+
+  const valueIsCompound = isCompoundData(value);
+  const existingIsCompound = isCompoundData(existingValue);
+  if (!valueIsCompound && !existingIsCompound) {
+    vm.pop();
+    vm.memory.writeFloat32(dest.segment, dest.address, value);
+    return;
+  }
+
+  // Remaining mismatches error out like before
+  vm.pop();
+  throw new Error('Cannot assign simple to compound or compound to simple');
 }
 
 export function findOp(vm: VM): void {

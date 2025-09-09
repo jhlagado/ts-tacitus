@@ -1,4 +1,6 @@
-# Plan 24: Assignment Fast Path — Direct Copy From Source Ref
+# Plan 24: Assignment Fast Path — Direct Copy From Source Ref (DONE)
+
+Status: DONE — implemented and tested. See “Status (Implemented)” section.
 
 ## Objective
 Add a guarded fast path to assignment that copies data directly from a reference source into the destination without first materializing the RHS onto the data stack, preserving all current semantics while reducing one copy in common cases.
@@ -85,3 +87,16 @@ Implement a direct-copy fast path inside `storeOp`:
 ## Backout Plan
 - Revert the fast-path code in `storeOp`; baseline materialization path remains intact.
 
+## Status (Implemented)
+- Implemented guarded direct-copy fast path in `storeOp` (`src/ops/lists/query-ops.ts`).
+- Uses `getListHeaderAndBase` for unified RHS detection; validates with `isCompatibleCompound`.
+- Resolves destination indirection; copies payload first, header last; memmove-safe via scratch buffer.
+- Early no-op when source and destination regions are identical.
+
+### Tests Added
+- `src/test/ops/local-vars/ref-assign-fast-path.test.ts`
+  - `&x -> y` copies without materializing x; verifies resulting list contents.
+  - Self-assignment `&x -> x` is a no-op and preserves contents.
+  - Sublist-to-sibling copy using bracketed destination: `&xs 0 elem -> xs[1]`.
+
+All existing tests pass unchanged; new tests pass.
