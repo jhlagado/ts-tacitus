@@ -4,22 +4,18 @@
  */
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
-import { getListLength, getListElementAddress, isList } from '@src/core';
+import { getListLength, getListElemAddr, isList } from '@src/core';
 import { CELL_SIZE } from '@src/core';
-import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
+import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
-import {
-  isCompoundData,
-  isCompatibleCompound,
-  mutateCompoundInPlace,
-} from '../local-vars-transfer';
+import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
-  const info = getListHeaderAndBase(vm, value);
+  const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -33,7 +29,7 @@ export function lengthOp(vm: VM): void {
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
-  const info = getListHeaderAndBase(vm, value);
+  const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -63,7 +59,7 @@ export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -83,14 +79,14 @@ export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  const addr = getListElementAddress(vm, info.header, headerAddr, idx, info.segment);
+  const addr = getListElemAddr(vm, info.header, headerAddr, idx, info.segment);
   if (addr === -1) {
     vm.push(NIL);
     return;
@@ -184,11 +180,11 @@ export function storeOp(vm: VM): void {
 
   // Attempt compound path first, using unified header/base resolver. This handles both
   // materialized lists (Tag.LIST at TOS) and refs-to-lists. We will:
-  // - If materialized: use mutateCompoundInPlace (existing behavior)
+  // - If materialized: use updateListInPlace (existing behavior)
   // - If ref-to-list: perform direct ref→ref copy without materializing
-  const rhsInfo = getListHeaderAndBase(vm, rhsTop);
+  const rhsInfo = getListBounds(vm, rhsTop);
   if (rhsInfo && isList(rhsInfo.header)) {
-    const existingIsCompound = isCompoundData(existingValue);
+    const existingIsCompound = isList(existingValue);
     if (!existingIsCompound) {
       // Cannot assign compound to simple
       vm.pop();
@@ -196,7 +192,7 @@ export function storeOp(vm: VM): void {
     }
 
     // Validate compatibility against destination's existing compound header
-    if (!isCompatibleCompound(existingValue, rhsInfo.header)) {
+    if (!isCompatible(existingValue, rhsInfo.header)) {
       vm.pop();
       throw new Error('Incompatible compound assignment: slot count or type mismatch');
     }
@@ -214,9 +210,9 @@ export function storeOp(vm: VM): void {
     const slotCount = getListLength(rhsInfo.header);
 
     // If RHS is materialized on the data stack (Tag.LIST), retain existing fast path:
-    // write from stack via mutateCompoundInPlace which also drops the materialized list.
+    // write from stack via updateListInPlace which also drops the materialized list.
     if (getTag(rhsTop) === Tag.LIST) {
-      mutateCompoundInPlace(vm, targetAddress, targetSegment);
+      updateListInPlace(vm, targetAddress, targetSegment);
       return;
     }
 
@@ -264,8 +260,8 @@ export function storeOp(vm: VM): void {
     vm.push(value);
   }
 
-  const valueIsCompound = isCompoundData(value);
-  const existingIsCompound = isCompoundData(existingValue);
+  const valueIsCompound = isList(value);
+  const existingIsCompound = isList(existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     vm.pop();
     vm.memory.writeFloat32(dest.segment, dest.address, value);
@@ -281,7 +277,7 @@ export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
   const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -321,7 +317,7 @@ export function findOp(vm: VM): void {
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
   const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -352,7 +348,7 @@ export function keysOp(vm: VM): void {
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
   const target = vm.peek();
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);

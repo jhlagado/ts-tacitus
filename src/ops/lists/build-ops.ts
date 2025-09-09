@@ -14,7 +14,7 @@ import {
   Verb,
 } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
-import { getListHeaderAndBase, computeHeaderAddr } from './core-helpers';
+import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';
 import { ReturnStackUnderflowError } from '@src/core';
 
@@ -128,7 +128,7 @@ export function unpackOp(vm: VM): void {
   vm.ensureStackSize(1, 'unpack');
   const target = vm.peek();
 
-  const info = getListHeaderAndBase(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);

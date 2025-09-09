@@ -9,7 +9,7 @@ This guide captures the agreed conventions used across the codebase to improve c
 
 ## Functions and Helpers
 - Ops: imperative verb with `Op` suffix, e.g. `fetchOp`, `printOp`, `selectOp`.
-- Helpers: descriptive nouns/phrases, e.g. `getListHeaderAndBase`, `computeHeaderAddr`.
+- Helpers: descriptive nouns/phrases, e.g. `getListBounds`, `computeHeaderAddr`.
 - Tagged/refs helpers: clear prefixes: `is<Tag>`, `make<Tag>` (or `create<Tag>`), `tagOf`, `valueOf`.
 - Formatting vs printing: keep formatting pure and side-effect free, I/O in print layer.
 
@@ -30,7 +30,6 @@ This guide captures the agreed conventions used across the codebase to improve c
 - Prefer additive, incremental changes with test verification at each step.
 
 ## Examples
-- `formatListByConsumingStack(vm, header)` — pure formatting for lists.
+- `formatList(vm, header)` — pure formatting for lists.
 - `printOp(vm)` — side-effectful printing; uses `formatValue` from `format-utils`.
 - `isRef(tval)`, `createStackRef(idx)`, `resolveReference(vm, ref)` — reference utilities with explicit prefixes.
-

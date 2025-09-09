@@ -64,7 +64,7 @@ Phase 1 — Inventory & Hotspot Mapping (no code change)
 - Identify direct usages of `vm.SP`/`/ CELL_SIZE` across modules.
 - Group by module for phased updates:
   - Stack ops: `src/ops/stack/` (dup/swap/rot/over/nip/tuck, pick, helpers).
-  - Core lists: `src/core/list.ts` (`reverseSpan`, `getListHeaderAndBase`, address math).
+  - Core lists: `src/core/list.ts` (`reverseSpan`, `getListBounds`, address math).
   - Access ops: `src/ops/access/*` (path traversal indexing).
   - Core formatting utils: `src/core/format-utils.ts` (uses original SP snapshots).
   - Tests/utilities that compute stack depths for assertions.
@@ -144,7 +144,7 @@ Phase 7 — Cleanup & Deprecation
 ## File-Level Migration Order (SP)
 
 1) `src/ops/stack/data-move-ops.ts` — central span logic; many `/ CELL_SIZE` usages.
-2) `src/core/list.ts` — `reverseSpan`, `getListHeaderAndBase`, address math.
+2) `src/core/list.ts` — `reverseSpan`, `getListBounds`, address math.
 3) `src/ops/access/select-ops.ts` — path traversal SP math.
 4) `src/core/format-utils.ts` — SP snapshots and restores.
 5) Misc helpers in `src/test/utils/*` that compute depths.

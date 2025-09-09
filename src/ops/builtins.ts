@@ -67,7 +67,7 @@ import { ifCurlyBranchFalseOp } from './control';
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
 import { selectOp } from './access';
-import { isCompoundData, transferCompoundToReturnStack } from './local-vars-transfer';
+import { isList, rpushList } from './local-vars-transfer';
 
 // Temp register and related opcodes have been removed.
 
@@ -180,7 +180,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Reserve]: reserveOp,
     [Op.InitVar]: initVarOp,
     [Op.VarRef]: varRefOp,
-    [Op.DumpStackFrame]: dumpStackFrameOp,
+    [Op.DumpStackFrame]: dumpFrameOp,
     [Op.Ref]: refOp,
     [Op.Load]: loadOp,
   };
@@ -233,8 +233,8 @@ export function initVarOp(vm: VM): void {
   const value = vm.peek();
   const slotAddr = vm.BP + slotNumber * 4;
 
-  if (isCompoundData(value)) {
-    const headerAddr = transferCompoundToReturnStack(vm);
+  if (isList(value)) {
+    const headerAddr = rpushList(vm);
     const headerCellIndex = headerAddr / 4;
     const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
 
@@ -253,7 +253,7 @@ export function varRefOp(vm: VM): void {
 /**
  * Debug opcode to dump current stack frame state
  */
-export function dumpStackFrameOp(vm: VM): void {
+export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   console.log('BP:', vm.BP, 'RP:', vm.RP, 'SP:', vm.SP);
 

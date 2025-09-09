@@ -141,27 +141,27 @@ export function validateFinalState(state: ParserState): void {
 export function processToken(token: Token, state: ParserState): void {
   switch (token.type) {
     case TokenType.NUMBER:
-      compileNumberLiteral(token.value as number);
+      emitNumber(token.value as number);
       break;
     case TokenType.STRING:
-      compileStringLiteral(token.value as string);
+      emitString(token.value as string);
       break;
     case TokenType.SPECIAL:
-      processSpecialToken(token.value as string, state);
+      handleSpecial(token.value as string, state);
       break;
     case TokenType.BLOCK_START:
-      beginStandaloneBlock(state);
+      beginBlock(state);
       break;
     case TokenType.BLOCK_END:
       throw new UnexpectedTokenError('}', vm.getStackData());
     case TokenType.WORD:
-      processWordToken(token.value as string, state);
+      emitWord(token.value as string, state);
       break;
     case TokenType.SYMBOL:
-      processAtSymbol(token.value as string);
+      emitAtSymbol(token.value as string);
       break;
     case TokenType.REF_SIGIL:
-      processRefSigil(token.value as string, state);
+      emitRefSigil(token.value as string, state);
       break;
     case TokenType.WORD_QUOTE: {
       const wordName = token.value as string;
@@ -185,7 +185,7 @@ export function processToken(token: Token, state: ParserState): void {
  *
  * @param {number} value - The numeric value to compile
  */
-export function compileNumberLiteral(value: number): void {
+export function emitNumber(value: number): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(value);
 }
@@ -199,7 +199,7 @@ export function compileNumberLiteral(value: number): void {
  *
  * @param {string} value - The string value to compile
  */
-export function compileStringLiteral(value: string): void {
+export function emitString(value: string): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const address = vm.digest.intern(value);
   vm.compiler.compile16(address);
@@ -216,7 +216,7 @@ export function compileStringLiteral(value: string): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
-export function processWordToken(value: string, state: ParserState): void {
+export function emitWord(value: string, state: ParserState): void {
   if (value === 'IF') {
     console.log(`Parsing IF statement at CP=${vm.compiler.CP}`);
 
@@ -273,7 +273,7 @@ export function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after do combinator', vm.getStackData());
     }
 
-    beginStandaloneBlock(state);
+    beginBlock(state);
 
     vm.compiler.compileOpcode(Op.Do);
     return;
@@ -283,18 +283,18 @@ export function processWordToken(value: string, state: ParserState): void {
       throw new SyntaxError('Expected { after repeat combinator', vm.getStackData());
     }
 
-    beginStandaloneBlock(state);
+    beginBlock(state);
 
     vm.compiler.compileOpcode(Op.Repeat);
     return;
   } else if (value === 'var') {
-    processVarDeclaration(state);
+    emitVarDecl(state);
     return;
   } else if (value === '->') {
-    processAssignmentOperator(state);
+    emitAssignment(state);
     return;
   } else if (value === ':' || value === ';' || value === '`') {
-    processSpecialToken(value, state);
+    handleSpecial(value, state);
   } else {
     const bytecodeAddr = vm.symbolTable.findBytecodeAddress(value);
     if (bytecodeAddr !== undefined) {
@@ -351,7 +351,7 @@ export function processWordToken(value: string, state: ParserState): void {
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-export function processAtSymbol(symbolName: string): void {
+export function emitAtSymbol(symbolName: string): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
   vm.compiler.compile16(stringAddress);
@@ -369,7 +369,7 @@ export function processAtSymbol(symbolName: string): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If variable is undefined or not a local variable
  */
-export function processRefSigil(varName: string, state: ParserState): void {
+export function emitRefSigil(varName: string, state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError(
       'Reference sigil (&) only allowed inside function definitions',
@@ -402,7 +402,7 @@ export function processRefSigil(varName: string, state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function processVarDeclaration(state: ParserState): void {
+export function emitVarDecl(state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
@@ -436,7 +436,7 @@ export function processVarDeclaration(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function processAssignmentOperator(state: ParserState): void {
+export function emitAssignment(state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError(
       'Assignment operator (->) only allowed inside function definitions',
@@ -498,10 +498,10 @@ function compileBracketPathAsList(state: ParserState): void {
       break;
     }
     if (tok.type === TokenType.NUMBER) {
-      compileNumberLiteral(tok.value as number);
+      emitNumber(tok.value as number);
       continue;
     } else if (tok.type === TokenType.STRING) {
-      compileStringLiteral(tok.value as string);
+      emitString(tok.value as string);
       continue;
     }
     // Allow empty path [] or numbers only for now
@@ -527,7 +527,7 @@ function compileBracketPathAsList(state: ParserState): void {
  * @param {string} value - The special token value
  * @param {ParserState} state - The current parser state
  */
-export function processSpecialToken(value: string, state: ParserState): void {
+export function handleSpecial(value: string, state: ParserState): void {
   if (value === ':') {
     beginDefinition(state);
   } else if (value === ';') {
@@ -537,7 +537,7 @@ export function processSpecialToken(value: string, state: ParserState): void {
   } else if (value === ')') {
     endList(state);
   } else if (value === '{') {
-    beginStandaloneBlock(state);
+    beginBlock(state);
   } else if (value === '`') {
     parseBacktickSymbol(state);
   } else if (value === '[') {
@@ -680,7 +680,7 @@ export function endList(_state: ParserState): void {
  *
  * @param {ParserState} state - The current parser state
  */
-export function beginStandaloneBlock(state: ParserState): void {
+export function beginBlock(state: ParserState): void {
   const prevInside = state.insideCodeBlock;
   state.insideCodeBlock = true;
   const { startAddress } = compileCodeBlock(state);
@@ -761,3 +761,6 @@ export function compileCodeBlock(state: ParserState): { startAddress: number; of
 
   return { startAddress, offsetAddr };
 }
+
+// Style aliases (Phase 1): prefer shorter emit/handle names for public API
+// old aliases removed

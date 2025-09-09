@@ -1,5 +1,5 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
-import { reverseSpan, getListElementAddress } from '../../core';
+import { reverseSpan, getListElemAddr } from '../../core';
 import { SEG_STACK, Tag, toTaggedValue } from '../../core';
 
 describe('core/list additional coverage', () => {
@@ -21,13 +21,13 @@ describe('core/list additional coverage', () => {
     expect(vm.getStackData()).toEqual([3, 2, 1]);
   });
 
-  test('getListElementAddress returns -1 for negative index', () => {
+  test('getListElemAddr returns -1 for negative index', () => {
     const header = toTaggedValue(1, Tag.LIST);
     const addr = 100;
-    expect(getListElementAddress(vm, header, addr, -1, SEG_STACK)).toBe(-1);
+    expect(getListElemAddr(vm, header, addr, -1, SEG_STACK)).toBe(-1);
   });
 
-  test('getListElementAddress computes correct addresses for flat list', () => {
+  test('getListElemAddr computes correct addresses for flat list', () => {
     // Layout: e1, e2, e3, header (cells 5..8)
     const cellHeader = 8;
     const headerAddr = cellHeader * 4;
@@ -42,8 +42,8 @@ describe('core/list additional coverage', () => {
     vm.memory.writeFloat32(SEG_STACK, headerAddr, header);
 
     // Logical index 0 refers to nearest element (just below header)
-    expect(getListElementAddress(vm, header, headerAddr, 0, SEG_STACK)).toBe(headerAddr - 4);
-    expect(getListElementAddress(vm, header, headerAddr, 1, SEG_STACK)).toBe(headerAddr - 8);
-    expect(getListElementAddress(vm, header, headerAddr, 2, SEG_STACK)).toBe(headerAddr - 12);
+    expect(getListElemAddr(vm, header, headerAddr, 0, SEG_STACK)).toBe(headerAddr - 4);
+    expect(getListElemAddr(vm, header, headerAddr, 1, SEG_STACK)).toBe(headerAddr - 8);
+    expect(getListElemAddr(vm, header, headerAddr, 2, SEG_STACK)).toBe(headerAddr - 12);
   });
 });
