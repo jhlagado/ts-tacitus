@@ -11,7 +11,7 @@
  * The interpreter provides three main entry points:
  * - execute: Runs bytecode starting from a specific address
  * - executeProgram: Parses and executes a string of Tacit code
- * - callTacitFunction: Calls a Tacit function and returns to the caller
+ * - callTacit: Calls a Tacit function and returns to the caller
  */
 
 import { executeOp } from '../ops/builtins';
@@ -104,7 +104,7 @@ export function executeProgram(code: string): void {
  *
  * @param {number} codePtr - The starting address (instruction pointer) of the Tacit code to execute
  */
-export function callTacitFunction(codePtr: number): void {
+export function callTacit(codePtr: number): void {
   const returnIP = vm.IP;
 
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
@@ -120,3 +120,6 @@ export function callTacitFunction(codePtr: number): void {
     vm.IP = returnIP;
   }
 }
+
+// Style alias (Phase 1):
+// old alias removed

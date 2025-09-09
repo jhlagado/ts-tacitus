@@ -4,7 +4,7 @@
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../core/global-state';
-import { execute, executeProgram, callTacitFunction } from '../../lang/interpreter';
+import { execute, executeProgram, callTacit as callTacitFunction } from '../../lang/interpreter';
 import { SEG_CODE } from '../../core';
 
 describe('Interpreter - Branch Coverage', () => {
@@ -67,7 +67,7 @@ describe('Interpreter - Branch Coverage', () => {
     });
   });
 
-  describe('callTacitFunction', () => {
+  describe('callTacit', () => {
     test('should be accessible but complex to test directly', () => {
       expect(typeof callTacitFunction).toBe('function');
     });

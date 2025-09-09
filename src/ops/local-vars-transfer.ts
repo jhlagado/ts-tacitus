@@ -28,7 +28,7 @@ import {
  * - Transfer: rpush(3), rpush(2), rpush(1), rpush(LIST:3)
  * - Return stack result: [LIST:3, 1, 2, 3] ← LIST:3 at TOS
  */
-export function transferCompoundToReturnStack(vm: VM): number {
+export function rpushList(vm: VM): number {
   validateListHeader(vm);
   const header = vm.peek();
   const slotCount = getListLength(header);
@@ -61,7 +61,7 @@ export function transferCompoundToReturnStack(vm: VM): number {
  * Parameters: headerAddr - byte address of LIST header on return stack
  * Stack effect: ( -- list ) [materializes from return stack]
  */
-export function materializeCompoundFromReturnStack(vm: VM, headerAddr: number): void {
+export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const header = vm.memory.readFloat32(SEG_RSTACK, headerAddr);
 
   if (!isList(header)) {
@@ -86,10 +86,7 @@ export function materializeCompoundFromReturnStack(vm: VM, headerAddr: number): 
 /**
  * Checks if a value is compound data that needs special transfer handling.
  */
-export function isCompoundData(value: number): boolean {
-  const tag = getTag(value);
-  return tag === Tag.LIST;
-}
+// isList exported from core should be used for type checks
 
 /**
  * Checks if two compound values are compatible for mutation.
@@ -103,7 +100,7 @@ export function isCompoundData(value: number): boolean {
  * @param newValue The new compound value being assigned
  * @returns true if compatible, false otherwise
  */
-export function isCompatibleCompound(existing: number, newValue: number): boolean {
+export function isCompatible(existing: number, newValue: number): boolean {
   const existingTag = getTag(existing);
   const newTag = getTag(newValue);
 
@@ -132,18 +129,18 @@ export function isCompatibleCompound(existing: number, newValue: number): boolea
  * @param segment Memory segment (SEG_RSTACK for local variables)
  * @param newValue The new compound value from data stack (LIST header at TOS)
  */
-export function mutateCompoundInPlace(vm: VM, targetAddr: number, segment: number): void {
-  vm.ensureStackSize(1, 'mutateCompoundInPlace');
+export function updateListInPlace(vm: VM, targetAddr: number, segment: number): void {
+  vm.ensureStackSize(1, 'updateListInPlace');
   const header = vm.peek();
 
-  if (!isCompoundData(header)) {
-    throw new Error('mutateCompoundInPlace expects compound data');
+  if (!isList(header)) {
+    throw new Error('updateListInPlace expects list data');
   }
 
   validateListHeader(vm);
   const slotCount = getListLength(header);
   const existingHeader = vm.memory.readFloat32(segment, targetAddr);
-  if (!isCompatibleCompound(existingHeader, header)) {
+  if (!isCompatible(existingHeader, header)) {
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 
@@ -163,3 +160,5 @@ export function mutateCompoundInPlace(vm: VM, targetAddr: number, segment: numbe
   vm.memory.writeFloat32(segment, targetAddr, header);
   dropList(vm);
 }
+
+export { isList } from '@src/core';

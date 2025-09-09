@@ -75,7 +75,7 @@ export function validateListHeader(vm: VM): void {
  * @param logicalIndex The logical index (0-based)
  * @returns Memory address or -1 if out of bounds
  */
-export function getListElementAddress(
+export function getListElemAddr(
   vm: VM,
   header: number,
   headerAddr: number,
@@ -83,7 +83,7 @@ export function getListElementAddress(
   segment: number = SEG_STACK,
 ): number {
   if (!isList(header)) {
-    throw new Error('Invalid LIST header provided to getListElementAddress');
+    throw new Error('Invalid LIST header provided to getListElemAddr');
   }
 
   const totalSlots = getListLength(header);
@@ -145,7 +145,7 @@ export function reverseSpan(vm: VM, spanSize: number): void {
  * Extract list header and base address from a direct LIST or a reference.
  * Returns null if value is neither a list nor a ref-to-list.
  */
-export function getListHeaderAndBase(
+export function getListBounds(
   vm: VM,
   value: number,
 ): { header: number; baseAddr: number; segment: number } | null {
@@ -175,3 +175,6 @@ export function getListHeaderAndBase(
 export function computeHeaderAddr(baseAddr: number, slotCount: number): number {
   return baseAddr + slotCount * CELL_SIZE;
 }
+
+// Style aliases (Phase 1):
+// old alias exports removed

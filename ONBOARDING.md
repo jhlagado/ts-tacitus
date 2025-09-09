@@ -22,7 +22,7 @@ Must-read specs (before coding)
   • Core
     • src/core/vm.ts: VM state, SP/RP/BP/IP; memory segments.
     • src/core/tagged.ts: Tag enum, to/from encoding, NIL.
-    • src/core/list.ts: isList, getListLength, getListElementAddress, reverseSpan.
+  • src/core/list.ts: isList, getListLength, getListElemAddr, reverseSpan.
     • src/core/refs.ts: isRef, resolveReference, readReference, createSegmentRef.
     • src/core/constants.ts: SEG_STACK, SEG_RSTACK, sizes.
   • Ops
@@ -97,7 +97,7 @@ Must-read specs (before coding)
 
   Practical guidelines
 
-  • Favor helpers: getListHeaderAndBase, createSegmentRef, resolveReference.
+  • Favor helpers: getListBounds, createSegmentRef, resolveReference.
   • Keep ops SP-neutral where intended (e.g., per-step in select); drop inputs in single SP
     adjustment for builders.
   • Think in element spans, not raw cells; no heap or intermediate variables—use stack spans and

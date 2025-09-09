@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/global-state';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import { mutateCompoundInPlace, isCompatibleCompound } from '../../../ops/local-vars-transfer';
+import { updateListInPlace as mutateCompoundInPlace, isCompatible as isCompatibleCompound } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
 import { SEG_RSTACK, CELL_SIZE } from '../../../core/constants';
@@ -136,7 +136,7 @@ describe('In-Place Compound Mutation', () => {
       // Should throw error for non-compound data
       expect(() => {
         mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
-      }).toThrow('mutateCompoundInPlace expects compound data');
+      }).toThrow('updateListInPlace expects list data');
     });
   });
 

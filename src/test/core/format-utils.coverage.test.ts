@@ -1,5 +1,5 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
-import { formatAtomicValue, formatValue, formatListByConsumingStack } from '../../core';
+import { formatAtomicValue, formatValue, formatList } from '../../core';
 import { Tag, toTaggedValue, createStackRef, SEG_STACK } from '../../core';
 
 describe('format-utils additional coverage', () => {
@@ -54,9 +54,9 @@ describe('format-utils additional coverage', () => {
     expect(formatValue(vm, tagged)).toBe('"line1\\rline2"');
   });
 
-  test('formatListByConsumingStack returns empty list when SP insufficient', () => {
+  test('formatList returns empty list when SP insufficient', () => {
     // No values on stack; header claims 1 slot
     const header = toTaggedValue(1, Tag.LIST);
-    expect(formatListByConsumingStack(vm, header)).toBe('(  )');
+    expect(formatList(vm, header)).toBe('(  )');
   });
 });

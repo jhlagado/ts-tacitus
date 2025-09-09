@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/global-state';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import { isCompatibleCompound } from '../../../ops/local-vars-transfer';
+import { isCompatible } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Compound Compatibility Checking', () => {
@@ -19,7 +19,7 @@ describe('Compound Compatibility Checking', () => {
       const list1 = toTaggedValue(3, Tag.LIST);
       const list2 = toTaggedValue(3, Tag.LIST);
 
-      expect(isCompatibleCompound(list1, list2)).toBe(true);
+      expect(isCompatible(list1, list2)).toBe(true);
     });
 
     test('should be incompatible for different-length lists', () => {
@@ -27,8 +27,8 @@ describe('Compound Compatibility Checking', () => {
       const list2 = toTaggedValue(2, Tag.LIST);
       const list3 = toTaggedValue(3, Tag.LIST);
 
-      expect(isCompatibleCompound(list2, list3)).toBe(false);
-      expect(isCompatibleCompound(list3, list2)).toBe(false);
+      expect(isCompatible(list2, list3)).toBe(false);
+      expect(isCompatible(list3, list2)).toBe(false);
     });
 
     test('should be compatible for empty lists', () => {
@@ -36,7 +36,7 @@ describe('Compound Compatibility Checking', () => {
       const empty1 = toTaggedValue(0, Tag.LIST);
       const empty2 = toTaggedValue(0, Tag.LIST);
 
-      expect(isCompatibleCompound(empty1, empty2)).toBe(true);
+      expect(isCompatible(empty1, empty2)).toBe(true);
     });
 
     test('should be incompatible for different compound types', () => {
@@ -44,8 +44,8 @@ describe('Compound Compatibility Checking', () => {
       const list = toTaggedValue(3, Tag.LIST);
       const nonList = toTaggedValue(3, Tag.STRING); // Different type
 
-      expect(isCompatibleCompound(list, nonList)).toBe(false);
-      expect(isCompatibleCompound(nonList, list)).toBe(false);
+      expect(isCompatible(list, nonList)).toBe(false);
+      expect(isCompatible(nonList, list)).toBe(false);
     });
 
     test('should be incompatible for non-compound types', () => {
@@ -53,8 +53,8 @@ describe('Compound Compatibility Checking', () => {
       const number = toTaggedValue(42, Tag.NUMBER);
       const list = toTaggedValue(3, Tag.LIST);
 
-      expect(isCompatibleCompound(number, list)).toBe(false);
-      expect(isCompatibleCompound(list, number)).toBe(false);
+      expect(isCompatible(number, list)).toBe(false);
+      expect(isCompatible(list, number)).toBe(false);
     });
   });
 
@@ -67,8 +67,8 @@ describe('Compound Compatibility Checking', () => {
       const large2 = toTaggedValue(65535, Tag.LIST);
       const smaller = toTaggedValue(65534, Tag.LIST);
 
-      expect(isCompatibleCompound(large1, large2)).toBe(true);
-      expect(isCompatibleCompound(large1, smaller)).toBe(false);
+      expect(isCompatible(large1, large2)).toBe(true);
+      expect(isCompatible(large1, smaller)).toBe(false);
     });
 
     test('should handle single-element lists (behavioral assignment)', () => {
@@ -91,7 +91,7 @@ describe('Compound Compatibility Checking', () => {
       const emptyHeader = empty[empty.length - 1];
       const singleHeader = single[single.length - 1];
 
-      expect(isCompatibleCompound(emptyHeader, singleHeader)).toBe(false);
+      expect(isCompatible(emptyHeader, singleHeader)).toBe(false);
     });
   });
 
