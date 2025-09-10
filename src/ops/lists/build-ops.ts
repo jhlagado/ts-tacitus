@@ -31,7 +31,7 @@ export function openListOp(vm: VM): void {
  * Closes LIST construction.
  */
 export function closeListOp(vm: VM): void {
-  if (vm.RP < CELL_SIZE) {
+  if (vm.RSP < 1) {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 

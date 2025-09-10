@@ -150,6 +150,7 @@ export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
   vm.rpush(vm.BP);
+  // Base pointer remains byte-based; align to current return stack (bytes)
   vm.BP = vm.RP;
   vm.IP = callAddress;
 };
@@ -204,12 +205,17 @@ export const abortOp: Verb = (vm: VM) => {
  */
 export const exitOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < 2 * CELL_SIZE) {
+    if (vm.RSP < 2) {
       vm.running = false;
       return;
     }
 
-    vm.RP = vm.BP;
+    // Restore return stack pointer from BP (BP is bytes; validate + convert to cells)
+    const bpBytes = vm.BP;
+    if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
+      throw new ReturnStackUnderflowError('exit', vm.getStackData());
+    }
+    vm.RSP = Math.floor(bpBytes / CELL_SIZE);
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
@@ -245,7 +251,7 @@ export const exitOp: Verb = (vm: VM) => {
  */
 export const exitCodeOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < CELL_SIZE) {
+    if (vm.RSP < 1) {
       vm.running = false;
       return;
     }
@@ -334,7 +340,7 @@ export const evalOp: Verb = (vm: VM) => {
  * the number of items pushed onto the stack between the two operations.
  */
 export const groupLeftOp: Verb = (vm: VM) => {
-  if (vm.RP + CELL_SIZE > RSTACK_SIZE) {
+  if ((vm.RSP + 1) * CELL_SIZE > RSTACK_SIZE) {
     throw new ReturnStackOverflowError('group-left', vm.getStackData());
   }
   vm.rpush(vm.SP);
@@ -365,7 +371,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
  */
 export const groupRightOp: Verb = (vm: VM) => {
   try {
-    if (vm.RP < CELL_SIZE) {
+    if (vm.RSP < 1) {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();
