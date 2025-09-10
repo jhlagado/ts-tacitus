@@ -86,7 +86,7 @@
   - Progress: rpushList/updateListInPlace now compute stack-side addressing via `SPCells`; loadListFromReturn and update paths use header/base cell helpers; cross-segment copies remain byte-based as designed.
  - [x] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
    - Completed: createTargetRef and traverseMultiPath use `SPCells`; address reads remain byte-based at the boundary.
-- [ ] Printers/formatters: Iterate cell slots and header/payload spans without byte math.
+ - [x] Printers/formatters: Iterate cell slots and header/payload spans without byte math. (Updated `formatList`, `formatListFromMemory` SP restoration, and print ops guards to use `SPCells`)
 - [ ] Maintain 16-bit payload semantics: Any 16-bit fields in headers remain read/written through `DataView` (`read16`/`write16`).
 
 ### Phase 4: Periphery, Naming, and Docs
@@ -95,7 +95,7 @@
 - [ ] Update docs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/lists.md`, `docs/specs/refs.md`, and `docs/naming-guide.md` to reflect cell-based stacks and `RSP` naming.
 - [ ] Update debugger/trace dumps to present SP/RSP in cells (optionally include bytes for context).
 - [ ] Sweep for `* 4` patterns in ops; replace with cell helpers.
-  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; added optional runtime toggle `frameBpInCells` to allow future BP-in-cells frame layout.
+  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; added optional runtime toggle `frameBpInCells` to allow future BP-in-cells frame layout. Converted printers and several ops to use SPCells; remaining `*4` occur only at memory boundaries or where bytes are required.
 
 ### Phase 5: Cleanup & Hardening
 - Goal: Remove transitional code; validate boundaries and performance.
