@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/global-state';
 import { initVarOp } from '../../../ops/builtins';
-import { SEG_RSTACK } from '../../../core/constants';
+import { SEG_RSTACK, CELL_SIZE } from '../../../core/constants';
 
 describe('InitVar Opcode', () => {
   beforeEach(() => {
@@ -14,7 +14,7 @@ describe('InitVar Opcode', () => {
 
   test('should store value in correct slot', () => {
     // Set up BP to simulate being inside a function
-  vm.BPBytes = 100;
+  vm.BP = 100 / CELL_SIZE;
 
     // Push test value onto stack
     vm.push(42);
@@ -26,7 +26,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify value was stored in correct slot
-  const expectedAddress = vm.BPBytes + 5 * 4; // slot 5, 4 bytes per slot
+  const expectedAddress = vm.BP * CELL_SIZE + 5 * CELL_SIZE; // slot 5
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBe(42);
 
@@ -35,54 +35,54 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle slot 0', () => {
-  vm.BPBytes = 200;
+  vm.BP = 200 / CELL_SIZE;
     vm.push(123);
 
     vm.compiler.compile16(0); // slot 0
     initVarOp(vm);
 
-  const storedValue = vm.memory.readFloat32(SEG_RSTACK, vm.BPBytes);
+  const storedValue = vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE);
     expect(storedValue).toBe(123);
   });
 
   test('should handle negative values', () => {
-  vm.BPBytes = 300;
+  vm.BP = 300 / CELL_SIZE;
     vm.push(-99.5);
 
     vm.compiler.compile16(3); // slot 3
     initVarOp(vm);
 
-  const expectedAddress = vm.BPBytes + 3 * 4;
+  const expectedAddress = vm.BP * CELL_SIZE + 3 * CELL_SIZE;
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBe(-99.5);
   });
 
   test('should handle large slot numbers', () => {
-  vm.BPBytes = 400;
+  vm.BP = 400 / CELL_SIZE;
     vm.push(777);
 
     vm.compiler.compile16(1000); // large slot number
     initVarOp(vm);
 
-  const expectedAddress = vm.BPBytes + 1000 * 4;
+  const expectedAddress = vm.BP * CELL_SIZE + 1000 * CELL_SIZE;
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBe(777);
   });
 
   test('should handle floating point values', () => {
-  vm.BPBytes = 500;
+  vm.BP = 500 / CELL_SIZE;
     vm.push(3.14159);
 
     vm.compiler.compile16(7); // slot 7
     initVarOp(vm);
 
-  const expectedAddress = vm.BPBytes + 7 * 4;
+  const expectedAddress = vm.BP * CELL_SIZE + 7 * CELL_SIZE;
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBeCloseTo(3.14159);
   });
 
   test('should throw on stack underflow', () => {
-  vm.BPBytes = 100;
+  vm.BP = 100 / CELL_SIZE;
     // Don't push anything to stack
 
     vm.compiler.compile16(1); // slot 1
@@ -91,7 +91,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle multiple sequential initializations', () => {
-  vm.BPBytes = 600;
+  vm.BP = 600 / CELL_SIZE;
 
     // Initialize slot 0 with value 10
     vm.push(10);
@@ -109,16 +109,16 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify all values stored correctly
-  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BPBytes + 0 * 4)).toBe(10);
-  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BPBytes + 1 * 4)).toBe(20);
-  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BPBytes + 2 * 4)).toBe(30);
+  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 0 * CELL_SIZE)).toBe(10);
+  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 1 * CELL_SIZE)).toBe(20);
+  expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 2 * CELL_SIZE)).toBe(30);
 
     // Stack should be empty
     expect(vm.getStackData()).toEqual([]);
   });
 
   test('should overwrite existing slot values', () => {
-  vm.BPBytes = 700;
+  vm.BP = 700 / CELL_SIZE;
 
     // Initialize slot 5 with first value
     vm.push(100);
@@ -131,7 +131,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Should have new value
-  const expectedAddress = vm.BPBytes + 5 * 4;
+  const expectedAddress = vm.BP * CELL_SIZE + 5 * CELL_SIZE;
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBe(200);
   });

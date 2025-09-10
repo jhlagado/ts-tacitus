@@ -32,15 +32,15 @@ Segments (implementation‑defined sizes):
 - Call frame management
 - Local variable storage
 - Return address tracking
-- Base pointer: BP (byte offset)
+- Base pointer: BP (cell index, canonical). A derived byte view (`BPBytes = BP * CELL_SIZE`) exists only at memory boundary helpers. All frame arithmetic and slot addressing are cell-native.
 
 Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 values encoding NaN‑boxed tags or raw numbers.
 
 VM registers:
 
-- SP — data stack pointer (cells; legacy byte access maintained via accessor)
-- RSP — return stack pointer (cells; legacy RP byte accessor maintained during migration)
-- BP — base pointer for current frame (bytes)
+- SP — data stack pointer (cells)
+- RSP — return stack pointer (cells)
+- BP — base pointer (cells) for current function frame (alias: BPCells); `BPBytes` provided for diagnostics/corruption testing only.
 - IP — instruction pointer (byte address in CODE)
 
 ## Execution Model
@@ -81,9 +81,32 @@ Opcode encoding & dispatch:
 
 ## Blocks vs Functions (Frames)
 
-- `Tag.CODE` meta flag selects execution mode:
-  - meta = 1: code block (quotation) — preserves caller BP; only pushes return address; returns via `ExitCode`.
-  - meta = 0: function (colon definition) — pushes return address + current BP; sets BP to new frame; returns via `Exit`.
+`Tag.CODE` meta bit determines execution form:
+
+- meta = 1 (block / quotation): Prologue pushes only the return address (cell index of caller IP). BP remains unchanged (no frame root shift). Epilogue (`ExitCode`) pops return address and resumes execution; locals are not introduced.
+- meta = 0 (function / colon definition): Prologue sequence (cell units):
+  1. Push return address (next IP)
+  2. Push caller BP (BPCells)
+  3. Set BP = RSP (frame root at current top)
+  Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
+
+Frame Layout on RSTACK (top → bottom after prologue):
+
+```
+┌───────────────┐  RSP-1 : Return Address (CODE tagged value / address sentinel)
+│ Return Address│
+├───────────────┤  RSP-2 : Saved Caller BP (cell index)
+│ Saved BP      │
+├───────────────┤  (grows downward as locals reserved by Reserve)
+│ Local Slot 0  │  (absolute cell index = BP + 0)
+│ Local Slot 1  │  (absolute cell index = BP + 1)
+│ ...           │
+└───────────────┘
+```
+
+Local variable addressing: slot N resides at cell index `BP + N` (byte address obtained only when writing to memory: `(BP + N) * CELL_SIZE`). No `/4` or `*4` implicit arithmetic remains elsewhere.
+
+Corruption / Testing: A helper `unsafeSetBPBytes(byteIndex)` (alignment‑checked) converts to a cell index for targeted error simulation without reintroducing byte-centric logic.
 
 ## References & Addressing
 
