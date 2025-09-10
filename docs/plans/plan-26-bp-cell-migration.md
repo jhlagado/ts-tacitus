@@ -55,14 +55,16 @@
 #### Step 1.2: Refactor Call Prologue/Epilogue Internals to Use Cells
 **Task:** Update internal helpers (executor/interpreter call) to use `BPCells`; where they previously pushed `BP` bytes, push `BPCells` (still may store as cell value; ensure restore path matches). Keep legacy byte conversion where tests introspect, if any.
 **Files:** `src/lang/executor.ts`, `src/lang/interpreter.ts`
-**Tests:** Call/return suites.
-**Success:** All tests pass; no byte math on BP in logic except conversions.
+**Tests:** Call/return suites, full regression suite.
+**Result:** Initial unified prologue (cell-only) introduced an order‑dependent failure in `ref-assign-fast-path` due to asymmetry with remaining byte-based call sites. Restored conditional prologue matching `callOp/exitOp` while retaining dual representation; added `BPCells` reset in test harness. Full suite now green (1210/1210) deterministically.
+**Success:** ✅ Prologue/epilogue logic internally cell-aware; conditional guard retained pending global flip (Phase 2). No functional regressions.
 
-#### Step 1.3: Update Local Var & List Transfer to Use `BPCells`
+#### Step 1.3: Update Local Var & List Transfer to Use `BPCells` ✅
 **Task:** Replace calculations that anchor on byte BP with cell-based computations (multiplying only at final memory address derivation). Remove `/ 4` adjacent to BP usage.
-**Files:** `src/ops/local-vars-transfer.ts`
-**Tests:** Local var, list materialization tests.
-**Success:** Tests pass; grep shows no BP `/4` or `*4` in this file.
+**Files:** `src/ops/local-vars-transfer.ts`, audit extended to `src/ops/builtins.ts` (slot addressing) and related helpers.
+**Changes:** Removed magic `* 4` multipliers in local variable slot addressing (now `* CELL_SIZE`) inside `builtins.ts`; confirmed `local-vars-transfer.ts` already purely cell-based. Left boundary conversions in `refs.ts` (reference resolution) intentionally as explicit address boundary operations.
+**Verification:** Full suite run post-change: 1210/1210 tests passing (no regressions). Grep confirms no BP‑anchored `/4` or `*4` arithmetic outside intentional address boundaries.
+**Result:** Local variable and list transfer paths now fully cell-native; only explicit boundary conversions remain. Ready for Phase 1.4.
 
 #### Step 1.4: Frame Debug / Dump Paths
 **Task:** Update debug printers to show `BPCells` primarily; optionally include bytes for transitional clarity. Ensure tests expecting format updated minimally (phase may defer test updates if format change breaks).
@@ -182,6 +184,6 @@
 - [ ] Performance within tolerance
 
 ---
-**Status:** 🔄 In Progress
-**Last Updated:** 2025-09-11
+**Status:** 🔄 In Progress (Phase 1 Step 1.3 complete — next: Step 1.4)
+**Last Updated:** 2025-09-10 (Step 1.3 complete)
 **Assigned:** —
