@@ -87,11 +87,12 @@
  - [x] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
    - Completed: createTargetRef and traverseMultiPath use `SPCells`; address reads remain byte-based at the boundary.
  - [x] Printers/formatters: Iterate cell slots and header/payload spans without byte math. (Updated `formatList`, `formatListFromMemory` SP restoration, and print ops guards to use `SPCells`)
-- [ ] Maintain 16-bit payload semantics: Any 16-bit fields in headers remain read/written through `DataView` (`read16`/`write16`).
+- [x] Maintain 16-bit payload semantics: Audit confirmed only code/string addressing use `read16`/`write16`; list/tag headers unchanged.
 
 ### Phase 4: Periphery, Naming, and Docs
 - Goal: Align naming and documentation; update tests.
 - [ ] Rename references of `RP` → `RSP` in code and tests; update comments and error strings.
+  - Progress: Comments/docs aligned; kept `RP` where byte semantics are intentional (reserve, diagrams, specific tests). Preferred checks/maths use `RSP`.
 - [ ] Update docs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/lists.md`, `docs/specs/refs.md`, and `docs/naming-guide.md` to reflect cell-based stacks and `RSP` naming.
 - [ ] Update debugger/trace dumps to present SP/RSP in cells (optionally include bytes for context).
 - [ ] Sweep for `* 4` patterns in ops; replace with cell helpers.
