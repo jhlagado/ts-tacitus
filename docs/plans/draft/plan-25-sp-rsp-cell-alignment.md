@@ -81,6 +81,7 @@
 - [ ] Update docs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/lists.md`, `docs/specs/refs.md`, and `docs/naming-guide.md` to reflect cell-based stacks and `RSP` naming.
 - [ ] Update debugger/trace dumps to present SP/RSP in cells (optionally include bytes for context).
 - [ ] Sweep for `* 4` patterns in ops; replace with cell helpers.
+  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; kept RP accessor in hot paths (reserve) for compatibility.
 
 ### Phase 5: Cleanup & Hardening
 - Goal: Remove transitional code; validate boundaries and performance.
