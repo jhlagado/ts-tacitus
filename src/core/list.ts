@@ -125,19 +125,21 @@ export function reverseSpan(vm: VM, spanSize: number): void {
   if (spanSize <= 1) return;
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
-
-  const startAddr = vm.SP - spanSize * 4;
-  const endAddr = vm.SP - 4;
-
-  for (let i = 0; i < Math.floor(spanSize / 2); i++) {
-    const leftAddr = startAddr + i * 4;
-    const rightAddr = endAddr - i * 4;
-
-    const leftValue = vm.memory.readFloat32(SEG_STACK, leftAddr);
-    const rightValue = vm.memory.readFloat32(SEG_STACK, rightAddr);
-
-    vm.memory.writeFloat32(SEG_STACK, leftAddr, rightValue);
-    vm.memory.writeFloat32(SEG_STACK, rightAddr, leftValue);
+  // Reverse using cell-native indices via u32 view
+  const endCellExclusive = vm.SPCells;
+  const startCell = endCellExclusive - spanSize;
+  let i = 0;
+  let j = spanSize - 1;
+  const baseCell = (vm.memory.resolveAddress(SEG_STACK, 0) >> 2);
+  while (i < j) {
+    const leftIdx = baseCell + startCell + i;
+    const rightIdx = baseCell + startCell + j;
+    const left = vm.memory.u32[leftIdx];
+    const right = vm.memory.u32[rightIdx];
+    vm.memory.u32[leftIdx] = right;
+    vm.memory.u32[rightIdx] = left;
+    i++;
+    j--;
   }
 }
 
