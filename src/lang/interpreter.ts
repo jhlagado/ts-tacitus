@@ -107,7 +107,7 @@ export function executeProgram(code: string): void {
 export function callTacit(codePtr: number): void {
   const returnIP = vm.IP;
   // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
-  // full migration flips frameBpInCells globally. This preserves backward
+  // Frame migration complete: BP is cell-based and unified.
   // compatibility for code/tests still expecting byte-based BP frames.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
   // Unified cell-only frame prologue

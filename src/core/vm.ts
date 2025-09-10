@@ -29,13 +29,8 @@ export class VM {
   private _spCells: number;
   private _rspCells: number;
 
-  // Byte-oriented base pointer for return stack frames (legacy, bytes)
-  
-  // Transitional dual representation:
-  // _bpCells is the new canonical base pointer (cells). _bpBytes retained for
-  // legacy byte-oriented tests / corruption scenarios. Both kept in sync.
+  // Base pointer for return stack frames (cells, canonical)
   private _bpCells: number;
-  private _bpBytes: number;
 
   IP: number;
 
@@ -64,7 +59,6 @@ export class VM {
     this._spCells = 0;
     this._rspCells = 0;
   this._bpCells = 0;
-  this._bpBytes = 0; // retains raw bytes for legacy behaviors
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
@@ -115,38 +109,18 @@ export class VM {
   }
 
   /**
-   * Base pointer accessors (Phase 2 Step 2.1 flip)
-   * Canonical representation is _bpCells (cells). The legacy byte view is now
-   * exposed via BPBytes (getter/setter) explicitly. For ergonomic continuity
-   * BP (getter/setter) now aliases the cell form. Tests expecting byte math
-   * must migrate to BPBytes. Direct byte mutation is still allowed through
-   * BPBytes setter (with truncation) for corruption scenarios until Phase 3.
+  * Base pointer accessors (cell-based canonical representation)
    */
-  // Canonical cell-based BP
   get BP(): number { return this._bpCells; }
   set BP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`BP (cells) set to invalid value: ${cells}`);
     }
     this._bpCells = cells;
-    this._bpBytes = cells * CELL_SIZE_BYTES;
   }
 
   get BPCells(): number { return this._bpCells; }
-  set BPCells(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
-      throw new Error(`BPCells set to invalid value: ${cells}`);
-    }
-    this._bpCells = cells;
-    this._bpBytes = cells * CELL_SIZE_BYTES;
-  }
-
-  // Explicit byte view (legacy / corruption tests). Setting derives cells via floor.
-  get BPBytes(): number { return this._bpBytes; }
-  set BPBytes(bytes: number) {
-    this._bpBytes = bytes | 0;
-    this._bpCells = (this._bpBytes / CELL_SIZE_BYTES) | 0;
-  }
+  set BPCells(cells: number) { this.BP = cells; }
 
   /**
    * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
@@ -160,8 +134,33 @@ export class VM {
     if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
       throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
     }
-    this._bpBytes = rawBytes;
     this._bpCells = rawBytes / CELL_SIZE_BYTES;
+    if (this.debug) this.ensureInvariants();
+  }
+
+  /**
+   * Development-only invariant checks (enabled when vm.debug === true).
+   * Validates relationships among SP, RSP, BP and segment bounds.
+   */
+  ensureInvariants() {
+    // Non-negative integers
+    if (this._spCells < 0 || this._rspCells < 0 || this._bpCells < 0) {
+      throw new Error('Invariant violation: negative stack pointer');
+    }
+    if (!Number.isInteger(this._spCells) || !Number.isInteger(this._rspCells) || !Number.isInteger(this._bpCells)) {
+      throw new Error('Invariant violation: non-integer stack pointer');
+    }
+    // Bounds vs configured sizes
+    if (this._spCells * CELL_SIZE_BYTES > STACK_SIZE) {
+      throw new Error('Invariant violation: SP beyond STACK_SIZE');
+    }
+    if (this._rspCells * CELL_SIZE_BYTES > RSTACK_SIZE) {
+      throw new Error('Invariant violation: RSP beyond RSTACK_SIZE');
+    }
+    // BP within [0, RSP]
+    if (this._bpCells > this._rspCells) {
+      throw new Error(`Invariant violation: BP (${this._bpCells}) > RSP (${this._rspCells})`);
+    }
   }
 
   /**
@@ -176,6 +175,7 @@ export class VM {
 
     this.memory.writeFloat32(SEG_STACK, this._spCells * CELL_SIZE_BYTES, value);
     this._spCells += 1;
+  if (this.debug) this.ensureInvariants();
   }
 
   /**
@@ -189,6 +189,7 @@ export class VM {
     }
 
     this._spCells -= 1;
+  if (this.debug) this.ensureInvariants();
     return this.memory.readFloat32(SEG_STACK, this._spCells * CELL_SIZE_BYTES);
   }
 
@@ -251,6 +252,7 @@ export class VM {
 
     this.memory.writeFloat32(SEG_RSTACK, this._rspCells * CELL_SIZE_BYTES, value);
     this._rspCells += 1;
+  if (this.debug) this.ensureInvariants();
   }
 
   /**
@@ -264,6 +266,7 @@ export class VM {
     }
 
     this._rspCells -= 1;
+  if (this.debug) this.ensureInvariants();
     return this.memory.readFloat32(SEG_RSTACK, this._rspCells * CELL_SIZE_BYTES);
   }
 

@@ -262,10 +262,9 @@ export function varRefOp(vm: VM): void {
  */
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
-  // Prefer cell-based representation; include legacy byte values parenthetically for transition (Plan 26 Step 1.4)
+  // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
     'BP(cells):', vm.BPCells,
-  'BP(bytes):', vm.BPBytes,
     'RSP(cells):', vm.RSP,
     'RSP(bytes):', vm.RSP * CELL_SIZE,
     'SP(cells):', vm.SPCells,

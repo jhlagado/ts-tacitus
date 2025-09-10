@@ -40,11 +40,11 @@ describe('Built-in Words', () => {
     test('evalOp should push IP to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
       const originalIP = vm.IP;
-  const originalBP = vm.BPBytes;
+  const originalBP = vm.BP; // cells
       vm.push(toTaggedValue(testAddress, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-  expect(vm.BPBytes).toBe(vm.RSP * 4);
+  expect(vm.BP).toBe(vm.RSP);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
@@ -58,12 +58,12 @@ describe('Built-in Words', () => {
     });
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.IP;
-  const originalBP = vm.BPBytes;
+  const originalBP = vm.BP;
       const testAddress = 0x12345;
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-  expect(vm.BPBytes).toBe(vm.RSP * 4);
+  expect(vm.BP).toBe(vm.RSP);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
