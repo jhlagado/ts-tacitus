@@ -47,6 +47,12 @@ export class VM {
   symbolTable: SymbolTable;
 
   listDepth: number;
+
+  /**
+   * Frame layout toggle: when true, call prologues push BP in cells and epilogues
+   * pop BP as cells. Default false to maintain compatibility (BP stored as bytes).
+   */
+  frameBpInCells: boolean;
   
 
   /**
@@ -63,6 +69,7 @@ export class VM {
     this.debug = false;
     this.listDepth = 0;
     this.listDepth = 0;
+    this.frameBpInCells = false;
 
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);

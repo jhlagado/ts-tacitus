@@ -62,8 +62,13 @@ export const simpleIfOp: Verb = (vm: VM) => {
   const selectedBranch = condition ? thenBranch : elseBranch;
   if (isCode(selectedBranch)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    vm.rpush(vm.BP);
-    vm.BP = vm.RP; // BP remains byte-based; RP accessor provides bytes
+    if (vm.frameBpInCells) {
+      vm.rpush(vm.BPCells);
+      vm.BPCells = vm.RSP;
+    } else {
+      vm.rpush(vm.BP);
+      vm.BP = vm.RP; // BP remains byte-based; RP accessor provides bytes
+    }
     const { value: pointer } = fromTaggedValue(selectedBranch);
     vm.IP = pointer;
   } else {

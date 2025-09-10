@@ -68,8 +68,15 @@
 - Goal: Introduce `BPCells` view while keeping `BP` canonical in bytes (to maintain test and frame-layout compatibility). Validate on exit when converting.
 - [x] Add `BPCells` derived view (no validation on set of `BP` to allow corruption tests).
 - [x] Exit validates `BP` bytes and restores `RSP` accordingly.
-- [ ] Evaluate storing BP in cells on the stack (requires broader change and test updates).
- - [x] Update local slot helpers to optionally accept `BPCells` and convert at the boundary. (Updated `getVarRef`, `initVarOp`)
+ - [ ] Evaluate storing BP in cells on the stack (requires broader change and test updates).
+ - [x] Update local slot helpers to optionally accept `BPCells` and convert at the boundary. (Updated `getVarRef`, `initVarOp`, `dumpFrameOp`)
+
+#### Flip BP to Cells (Future)
+- [ ] Prologue writes: push `BPCells` (cells) instead of `BP` (bytes); set `BPCells = RSP`.
+- [ ] Epilogue reads: set `RSP = BPCells`; `BPCells = rpop()`; `IP = rpop()`.
+- [ ] Update any frame readers (debug/dumps) to treat saved BP as cells.
+- [ ] Confirm no code/tests expect saved BP bytes; update tests accordingly.
+- [ ] Grep audit: remove `/4` and `*4` from BP math except final memory access.
   - Progress: core ops updated to use `RSP` in checks; list ops and access paths now use `SPCells` for stack math.
 
 ### Phase 3: Cell-Native Ops & Fast Paths
@@ -88,7 +95,7 @@
 - [ ] Update docs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/lists.md`, `docs/specs/refs.md`, and `docs/naming-guide.md` to reflect cell-based stacks and `RSP` naming.
 - [ ] Update debugger/trace dumps to present SP/RSP in cells (optionally include bytes for context).
 - [ ] Sweep for `* 4` patterns in ops; replace with cell helpers.
-  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; kept RP accessor in hot paths (reserve) for compatibility.
+  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; added optional runtime toggle `frameBpInCells` to allow future BP-in-cells frame layout.
 
 ### Phase 5: Cleanup & Hardening
 - Goal: Remove transitional code; validate boundaries and performance.

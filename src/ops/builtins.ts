@@ -100,9 +100,14 @@ export function literalCodeOp(vm: VM): void {
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    vm.rpush(vm.BP);
-    // BP is byte-based; RP accessor returns bytes for compatibility
-    vm.BP = vm.RP;
+    if (vm.frameBpInCells) {
+      vm.rpush(vm.BPCells);
+      vm.BPCells = vm.RSP;
+    } else {
+      vm.rpush(vm.BP);
+      // BP is byte-based; RP accessor returns bytes for compatibility
+      vm.BP = vm.RP;
+    }
     vm.IP = opcode;
     return;
   }
@@ -265,7 +270,7 @@ export function dumpFrameOp(vm: VM): void {
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotAddr = vm.BP + i * 4;
+      const slotAddr = (vm.BPCells + i) * 4;
       const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);

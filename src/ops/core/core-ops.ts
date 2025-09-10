@@ -149,9 +149,14 @@ export const skipBlockOp: Verb = (vm: VM) => {
 export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  vm.rpush(vm.BP);
-  // Base pointer remains byte-based; align to current return stack (bytes)
-  vm.BP = vm.RP;
+  if (vm.frameBpInCells) {
+    vm.rpush(vm.BPCells);
+    vm.BPCells = vm.RSP;
+  } else {
+    vm.rpush(vm.BP);
+    // Base pointer remains byte-based; align to current return stack (bytes)
+    vm.BP = vm.RP;
+  }
   vm.IP = callAddress;
 };
 
@@ -210,14 +215,19 @@ export const exitOp: Verb = (vm: VM) => {
       return;
     }
 
-    // Restore return stack pointer from BP (BP is bytes; validate + convert to cells)
-    const bpBytes = vm.BP;
-    if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
-      throw new ReturnStackUnderflowError('exit', vm.getStackData());
+    if (vm.frameBpInCells) {
+      vm.RSP = vm.BPCells;
+      vm.BPCells = vm.rpop();
+    } else {
+      // Restore return stack pointer from BP (BP is bytes; validate + convert to cells)
+      const bpBytes = vm.BP;
+      if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
+        throw new ReturnStackUnderflowError('exit', vm.getStackData());
+      }
+      // Restore RSP from BP (bytes) with validation
+      vm.RSP = Math.floor(bpBytes / CELL_SIZE);
+      vm.BP = vm.rpop();
     }
-    // Restore RSP from BP (bytes) with validation
-    vm.RSP = Math.floor(bpBytes / CELL_SIZE);
-    vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
     if (isCode(returnAddr)) {
