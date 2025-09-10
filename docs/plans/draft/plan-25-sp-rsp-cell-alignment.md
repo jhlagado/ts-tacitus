@@ -66,7 +66,7 @@
 
 ### Phase 3: Cell-Native Ops & Fast Paths
 - Goal: Remove ad-hoc `* 4` in ops; standardize on cells.
-- [ ] Lists: Update build/query/structure ops to compute spans in cells; use `Memory.u32.copyWithin` for header+payload moves with overlap safety.
+- [x] Lists: Update build/query/structure ops to compute spans in cells; use `Memory.u32.copyWithin` for header+payload moves with overlap safety. (Completed: structure ops, reverseSpan; query store fast path same-segment via `copyCells`)
 - [ ] Locals transfer: Convert materialization and in-place update to cell indices and `u32` copies; validate cross-segment math.
 - [ ] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
 - [ ] Printers/formatters: Iterate cell slots and header/payload spans without byte math.

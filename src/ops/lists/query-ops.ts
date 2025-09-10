@@ -11,6 +11,7 @@ import { isRef, resolveReference, readReference, createSegmentRef } from '@src/c
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
+import { copyCells } from '../../core/units';
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
@@ -231,20 +232,27 @@ export function storeOp(vm: VM): void {
       return;
     }
 
-    // Stage payload cells (memmove semantics)
-    const tmp: number[] = new Array(slotCount);
-    for (let i = 0; i < slotCount; i++) {
-      const addr = rhsInfo.baseAddr + i * CELL_SIZE;
-      tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
+    if (rhsInfo.segment === targetSegment) {
+      // Same-segment fast path: copy payload via u32.copyWithin (memmove semantics)
+      const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
+      const dstBaseCell = destBaseAddr / CELL_SIZE;
+      copyCells(vm.memory, targetSegment, dstBaseCell as any, srcBaseCell as any, slotCount as any);
+      // Write header last
+      vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
+    } else {
+      // Cross-segment fallback: stage into a temporary buffer
+      const tmp: number[] = new Array(slotCount);
+      for (let i = 0; i < slotCount; i++) {
+        const addr = rhsInfo.baseAddr + i * CELL_SIZE;
+        tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
+      }
+      for (let i = 0; i < slotCount; i++) {
+        const addr = destBaseAddr + i * CELL_SIZE;
+        vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
+      }
+      // Then write header last
+      vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
     }
-
-    // Write payload first
-    for (let i = 0; i < slotCount; i++) {
-      const addr = destBaseAddr + i * CELL_SIZE;
-      vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
-    }
-    // Then write header last
-    vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
 
     // Stack effect mirrors simple store: pop one RHS value
     vm.pop();
@@ -381,7 +389,7 @@ export function refOp(vm: VM): void {
   const value = vm.peek();
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    const headerCellIndex = (vm.SP - 4) / 4;
+    const headerCellIndex = vm.SPCells - 1;
     vm.push(createSegmentRef(0, headerCellIndex));
   }
 }
