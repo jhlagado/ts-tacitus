@@ -267,7 +267,15 @@ export function varRefOp(vm: VM): void {
  */
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
-  console.log('BP:', vm.BP, 'RSP(bytes):', vm.RSP * CELL_SIZE, 'RSP(cells):', vm.RSP, 'SP(bytes):', vm.SP, 'SP(cells):', vm.SPCells);
+  // Prefer cell-based representation; include legacy byte values parenthetically for transition (Plan 26 Step 1.4)
+  console.log(
+    'BP(cells):', vm.BPCells,
+    'BP(bytes):', vm.BP,
+    'RSP(cells):', vm.RSP,
+    'RSP(bytes):', vm.RSP * CELL_SIZE,
+    'SP(cells):', vm.SPCells,
+    'SP(bytes):', vm.SP
+  );
 
   if (vm.BP > 0) {
     const localCount = vm.symbolTable.getLocalCount();
