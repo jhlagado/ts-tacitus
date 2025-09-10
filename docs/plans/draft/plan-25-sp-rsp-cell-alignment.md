@@ -48,20 +48,20 @@
 
 ### Phase 0: Unit Abstractions & Guardrails
 - Goal: Prevent mixed units, and centralize conversions.
-- [ ] Introduce branded types in TS for `CellIndex`, `CellCount`, `ByteIndex` (internal only) and small helpers: `asBytes(cells)`, `asCells(bytes)` with assertions.
-- [ ] Add `copyCells`, `fillCells`, `loadCell`, `storeCell` helpers using `U32` view; keep `copyBytes`/`loadByte` etc.
+- [x] Introduce branded types in TS for `CellIndex`, `CellCount`, `ByteIndex` (internal only) and small helpers: `asBytes(cells)`, `asCells(bytes)` with assertions.
+- [x] Add `copyCells`, `fillCells`, `loadCell`, `storeCell` helpers using `U32` view; keep `copyBytes`/`loadByte` etc.
 
 ### Phase 1: Dual-View Memory
 - Goal: Keep byte memory model; add fast cell view.
-- [ ] Augment `Memory` to expose `u8`, `u32`, and `view` based on a single `ArrayBuffer` (current `Uint8Array.buffer`).
-- [ ] Ensure bounds checks reflect bytes vs cells correctly; document endianness (little-endian for serialization).
+- [x] Augment `Memory` to expose `u8`, `u32`, and `view` based on a single `ArrayBuffer` (current `Uint8Array.buffer`).
+- [x] Ensure bounds checks reflect bytes vs cells correctly; document endianness (little-endian for serialization).
 
 ### Phase 2: Convert SP/RSP to Cells (Core VM)
 - Goal: Switch stack pointers to cell indices with minimal churn.
-- [ ] Replace `SP`/`RP` with `SP`/`RSP` measured in cells; update ctor/reset and invariants.
-- [ ] Update `push`/`pop`/`peek`/`peekAt`/`popArray` and return-stack variants to use `Memory.u32` for loads/stores.
-- [ ] Update stack iteration (`getStackData`) to iterate cells; keep external shape the same.
-- [ ] Add temporary compat (optional): `getSpBytes()`/`getRspBytes()` accessors if any periphery still expects bytes.
+- [x] Replace `SP`/`RP` with `SP`/`RSP` measured in cells; update ctor/reset and invariants (back-compat `SP`/`RP` accessors retained).
+- [x] Update `push`/`pop`/`peek`/`peekAt`/`popArray` and return-stack variants to operate in cells internally.
+- [x] Update stack iteration (`getStackData`) to iterate cells; external shape unchanged.
+- [ ] Add temporary compat (optional): `getSpBytes()`/`getRspBytes()` if needed (not required yet).
 - [ ] Rename `RP` to `RSP` across code; provide a temporary alias only if needed to keep compile green during migration.
 
 ### Phase 3: Cell-Native Ops & Fast Paths
