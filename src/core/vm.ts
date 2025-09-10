@@ -51,11 +51,7 @@ export class VM {
 
   listDepth: number;
 
-  /**
-   * Frame layout toggle: when true, call prologues push BP in cells and epilogues
-   * pop BP as cells. Default false to maintain compatibility (BP stored as bytes).
-   */
-  frameBpInCells: boolean;
+  // Phase 2: frameBpInCells removed; frames are always cell-based.
   
 
   /**
@@ -72,8 +68,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.listDepth = 0;
-    this.frameBpInCells = false;
+  this.listDepth = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);
@@ -151,6 +146,22 @@ export class VM {
   set BPBytes(bytes: number) {
     this._bpBytes = bytes | 0;
     this._bpCells = (this._bpBytes / CELL_SIZE_BYTES) | 0;
+  }
+
+  /**
+   * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
+   * This bypasses normal validation to allow corruption/underflow tests to simulate
+   * malformed frames. Caller must ensure provided bytes are within overall return stack
+   * segment range. Alignment is still enforced (throws if not cell-aligned) to avoid
+   * undefined behavior in core logic.
+   * @param rawBytes Byte offset to force as BP
+   */
+  unsafeSetBPBytes(rawBytes: number) {
+    if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
+      throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
+    }
+    this._bpBytes = rawBytes;
+    this._bpCells = rawBytes / CELL_SIZE_BYTES;
   }
 
   /**

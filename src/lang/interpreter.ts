@@ -110,14 +110,9 @@ export function callTacit(codePtr: number): void {
   // full migration flips frameBpInCells globally. This preserves backward
   // compatibility for code/tests still expecting byte-based BP frames.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
-  if (vm.frameBpInCells) {
-    vm.rpush(vm.BPCells);
-    vm.BPCells = vm.RSP;
-  } else {
-  vm.rpush(vm.BP); // cells now
-    // Set BP (bytes) from current RSP (cells)
-  vm.BP = vm.RSP; // in cells
-  }
+  // Unified cell-only frame prologue
+  vm.rpush(vm.BPCells);
+  vm.BPCells = vm.RSP;
 
   vm.IP = codePtr;
   vm.running = true;

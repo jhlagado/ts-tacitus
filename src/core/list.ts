@@ -160,13 +160,24 @@ export function getListBounds(
       segment: SEG_STACK,
     };
   } else if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const header = vm.memory.readFloat32(segment, address);
+    const first = resolveReference(vm, value);
+    let addr = first.address;
+    let seg = first.segment;
+    let header = vm.memory.readFloat32(seg, addr);
+
+    // Support ref-to-ref indirection: dereference one additional level if needed.
+    if (isRef(header)) {
+      const inner = resolveReference(vm, header);
+      seg = inner.segment;
+      addr = inner.address;
+      header = vm.memory.readFloat32(seg, addr);
+    }
+
     if (!isList(header)) {
       return null;
     }
     const slotCount = getListLength(header);
-    return { header, baseAddr: address - slotCount * CELL_SIZE, segment };
+    return { header, baseAddr: addr - slotCount * CELL_SIZE, segment: seg };
   }
   return null;
 }

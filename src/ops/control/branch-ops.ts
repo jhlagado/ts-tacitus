@@ -62,14 +62,9 @@ export const simpleIfOp: Verb = (vm: VM) => {
   const selectedBranch = condition ? thenBranch : elseBranch;
   if (isCode(selectedBranch)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    if (vm.frameBpInCells) {
-      vm.rpush(vm.BPCells);
-      vm.BPCells = vm.RSP;
-    } else {
-  vm.rpush(vm.BP); // cells
-  // Set BP (bytes) from RSP (cells)
-  vm.BP = vm.RSP; // cells
-    }
+    // Unified cell-only frame setup
+    vm.rpush(vm.BPCells);
+    vm.BPCells = vm.RSP;
     const { value: pointer } = fromTaggedValue(selectedBranch);
     vm.IP = pointer;
   } else {
