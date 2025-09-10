@@ -242,7 +242,8 @@ export function initVarOp(vm: VM): void {
 
   const value = vm.peek();
   // Compute slot address using BPCells and convert to bytes at the boundary
-  const slotAddr = (vm.BPCells + slotNumber) * 4;
+  // Use CELL_SIZE instead of magic 4 for address computation
+  const slotAddr = (vm.BPCells + slotNumber) * CELL_SIZE;
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
@@ -266,21 +267,21 @@ export function varRefOp(vm: VM): void {
  */
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
-  console.log('BP:', vm.BP, 'RSP(bytes):', vm.RSP * 4, 'RSP(cells):', vm.RSP, 'SP(bytes):', vm.SP, 'SP(cells):', vm.SPCells);
+  console.log('BP:', vm.BP, 'RSP(bytes):', vm.RSP * CELL_SIZE, 'RSP(cells):', vm.RSP, 'SP(bytes):', vm.SP, 'SP(cells):', vm.SPCells);
 
   if (vm.BP > 0) {
     const localCount = vm.symbolTable.getLocalCount();
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotAddr = (vm.BPCells + i) * 4;
+  const slotAddr = (vm.BPCells + i) * CELL_SIZE;
       const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (tag === Tag.RSTACK_REF) {
-        const targetAddr = value * 4;
+  const targetAddr = value * CELL_SIZE;
         const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);

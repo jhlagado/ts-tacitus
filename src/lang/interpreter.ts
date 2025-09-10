@@ -106,14 +106,16 @@ export function executeProgram(code: string): void {
  */
 export function callTacit(codePtr: number): void {
   const returnIP = vm.IP;
-
+  // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
+  // full migration flips frameBpInCells globally. This preserves backward
+  // compatibility for code/tests still expecting byte-based BP frames.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
   if (vm.frameBpInCells) {
     vm.rpush(vm.BPCells);
     vm.BPCells = vm.RSP;
   } else {
     vm.rpush(vm.BP);
-    // BP is stored in bytes; set it from RSP (cells)
+    // Set BP (bytes) from current RSP (cells)
     vm.BP = vm.RSP * CELL_SIZE;
   }
 
