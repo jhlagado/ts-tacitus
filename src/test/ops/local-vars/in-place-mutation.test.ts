@@ -152,14 +152,15 @@ describe('In-Place Compound Mutation', () => {
       const existingHeader = toTaggedValue(2, Tag.LIST);
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
 
-      // Record RP before mutation
-      const rpBeforeMutation = vm.RP;
+  // Record RSP (return stack in cells) before mutation
+  const rspBeforeMutation = vm.RSP;
 
       // Perform mutation
       mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify RP unchanged (key difference from transferCompoundToReturnStack)
-      expect(vm.RP).toBe(rpBeforeMutation);
+  // Verify RSP unchanged (key difference from transferCompoundToReturnStack)
+  expect(vm.RSP).toBe(rspBeforeMutation);
 
       // Verify data was written to correct location
       // Stack order for (10 20) is [20, 10, header]

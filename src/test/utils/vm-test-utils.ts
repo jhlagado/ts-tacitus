@@ -19,7 +19,7 @@ import { initializeInterpreter, vm } from '../../core/global-state';
 export function resetVM(): void {
   initializeInterpreter();
   vm.SP = 0;
-  vm.RP = 0;
+  vm.RSP = 0; // Reset return stack in cells
   vm.BP = 0;
   vm.IP = 0;
   vm.listDepth = 0;
@@ -338,7 +338,7 @@ export function verifyStackDepth(vm: VM, expectedDepth: number): void {
  */
 export function verifyVMState(vm: VM): void {
   expect(vm.SP).toBeGreaterThanOrEqual(0);
-  expect(vm.RP).toBeGreaterThanOrEqual(0);
+  expect(vm.RSP).toBeGreaterThanOrEqual(0);
   expect(vm.IP).toBeGreaterThanOrEqual(0);
   expect(vm.running).toBe(true);
 }

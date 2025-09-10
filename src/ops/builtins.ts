@@ -266,7 +266,7 @@ export function varRefOp(vm: VM): void {
  */
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
-  console.log('BP:', vm.BP, 'RP(bytes):', vm.RP, 'RSP(cells):', vm.RSP, 'SP(bytes):', vm.SP, 'SP(cells):', vm.SPCells);
+  console.log('BP:', vm.BP, 'RSP(bytes):', vm.RSP * 4, 'RSP(cells):', vm.RSP, 'SP(bytes):', vm.SP, 'SP(cells):', vm.SPCells);
 
   if (vm.BP > 0) {
     const localCount = vm.symbolTable.getLocalCount();

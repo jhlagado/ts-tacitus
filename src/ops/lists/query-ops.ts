@@ -271,7 +271,7 @@ export function storeOp(vm: VM): void {
   const valueIsCompound = isList(value);
   const existingIsCompound = isList(existingValue);
   if (!valueIsCompound && !existingIsCompound) {
-    vm.pop();
+  vm.pop();
     vm.memory.writeFloat32(dest.segment, dest.address, value);
     return;
   }

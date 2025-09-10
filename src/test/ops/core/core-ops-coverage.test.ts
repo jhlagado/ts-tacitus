@@ -18,7 +18,8 @@ describe('Core Operations Branch Coverage', () => {
   describe('exitOp edge cases', () => {
     test('should handle return stack underflow (lines 202-203)', () => {
       // Set up minimal return stack that will trigger underflow condition
-      vm.RP = 4; // Less than 2 * CELL_SIZE (8)
+  // Set return stack to 1 cell (4 bytes); less than required 2 cells (8 bytes)
+  vm.RSP = 1;
 
       // Call exitOp which should hit the underflow branch
       exitOp(vm);
@@ -29,8 +30,8 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should handle non-code return address (line 214)', () => {
       // Set up return stack properly with enough entries
-      vm.BP = 16; // Set base pointer
-      vm.RP = 16; // Set return stack pointer to match
+  vm.BP = 16; // Set base pointer (bytes)
+  vm.RSP = 4; // 4 cells = 16 bytes to match BP
       vm.rpush(vm.BP); // Base pointer
       vm.rpush(1000); // Non-code return address (number, not tagged as CODE)
 
@@ -45,7 +46,7 @@ describe('Core Operations Branch Coverage', () => {
   describe('exitCodeOp edge cases', () => {
     test('should handle return stack underflow (lines 243-244)', () => {
       // Set up return stack with less than CELL_SIZE
-      vm.RP = 0; // Empty return stack
+  vm.RSP = 0; // Empty return stack
 
       exitCodeOp(vm);
 
@@ -104,7 +105,7 @@ describe('Core Operations Branch Coverage', () => {
   describe('Error handling branches', () => {
     test('should handle edge case in exitOp', () => {
       // Test that exitOp handles edge cases properly
-      vm.RP = 4; // Minimal valid return stack (will trigger early return)
+  vm.RSP = 1; // Minimal valid return stack (1 cell) triggers early return condition
 
       exitOp(vm);
 
@@ -113,7 +114,7 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should handle edge case in exitCodeOp', () => {
       // Test that exitCodeOp handles edge cases properly
-      vm.RP = 0; // Empty return stack (will trigger early return)
+  vm.RSP = 0; // Empty return stack (will trigger early return)
 
       exitCodeOp(vm);
 
