@@ -219,13 +219,14 @@ export const exitOp: Verb = (vm: VM) => {
       vm.RSP = vm.BPCells;
       vm.BPCells = vm.rpop();
     } else {
-      // Restore return stack pointer from BP (BP is bytes; validate + convert to cells)
-      const bpBytes = vm.BP;
+      // Transitional (Plan 26 Phase 1): legacy frame stored BP in bytes.
+      // Validate alignment then convert to cells. Once Phase 2 flips fully
+      // to cell representation this branch will be removed.
+      const bpBytes = vm.BP; // legacy byte-form (derived from _bpCells)
       if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
         throw new ReturnStackUnderflowError('exit', vm.getStackData());
       }
-      // Restore RSP from BP (bytes) with validation
-      vm.RSP = Math.floor(bpBytes / CELL_SIZE);
+      vm.RSP = bpBytes / CELL_SIZE; // division is safe after alignment check
       vm.BP = vm.rpop();
     }
     const returnAddr = vm.rpop();

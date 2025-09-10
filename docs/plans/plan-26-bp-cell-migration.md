@@ -66,17 +66,28 @@
 **Verification:** Full suite run post-change: 1210/1210 tests passing (no regressions). Grep confirms no BP‑anchored `/4` or `*4` arithmetic outside intentional address boundaries.
 **Result:** Local variable and list transfer paths now fully cell-native; only explicit boundary conversions remain. Ready for Phase 1.4.
 
-#### Step 1.4: Frame Debug / Dump Paths
-**Task:** Update debug printers to show `BPCells` primarily; optionally include bytes for transitional clarity. Ensure tests expecting format updated minimally (phase may defer test updates if format change breaks).
-**Files:** `src/ops/builtins-interpreter.ts`, `src/core/printer.ts` or related debug modules.
-**Tests:** Debug/dump tests.
-**Success:** Tests pass; debug output stable or intentionally adjusted.
+#### Step 1.4: Frame Debug / Dump Paths ✅
+**Task:** Update debug printers to show `BPCells` primarily; optionally include bytes for transitional clarity. Ensure tests expecting format updated minimally.
+**Files:** `src/ops/builtins.ts` (`dumpFrameOp`). (No other frame dump sites found via grep.)
+**Changes:** Modified `dumpFrameOp` output format to: `BP(cells)` first, then `BP(bytes)` plus RSP/SP in both units. Added migration comment referencing Plan 26 Step 1.4.
+**Verification:** No tests assert on this console output (grep showed zero matches for previous banner strings). Full suite re-run: 1210/1210 passing.
+**Result:** Debug output now cell-first while retaining byte values for transparency. Safe to proceed to Step 1.5.
 
 #### Step 1.5: Transitional Audit
 **Task:** Grep for `BP` arithmetic patterns (`BP * 4`, `/ 4`, `bpBytes`). Replace with `BPCells` and explicit `* CELL_SIZE` only at memory boundaries (address computations passing to memory load/store utilities).
 **Files:** Global (search & patch subset).
-**Tests:** Full suite.
-**Success:** No stray arithmetic; tests green.
+**Changes:**
+	- Searched for patterns: `bpBytes`, `BPBytes`, `BP * 4`, `/ 4` — only intentional sites remained.
+	- Confirmed removal (in earlier steps) of magic `*4` multipliers in builtins/local var logic.
+	- Annotated `exitOp` legacy (byte) branch with transitional comments; simplified division (`bpBytes / CELL_SIZE`) post alignment check.
+	- Verified no hidden arithmetic in list/local-variable transfer paths or refs beyond explicit boundary conversions.
+**Remaining intentional byte references (documented for Phase 2 removal):**
+	1. `src/core/vm.ts` dual representation (`_bpCells`, derived `_bpBytes` via getter path) & legacy `BP` byte getter.
+	2. `exitOp` legacy branch (will be removed when prologue unified in Phase 2).
+	3. Explicit boundary conversions in reference utilities (`refs.ts`) where raw addresses are required.
+**Tests:** Full regression suite executed post-refactor — 1210/1210 passing.
+**Result:** Audit complete; no stray or implicit BP byte arithmetic remains outside enumerated transitional points.
+**Success:** ✅ Step 1.5 complete. Ready to enter Phase 2 (flip & legacy removal).
 
 ### Phase 2: Flip Canonical External Representation
 **Goal:** Remove legacy byte-centric naming; expose cell-based BP; adapt any tests relying on old getter.
@@ -184,6 +195,6 @@
 - [ ] Performance within tolerance
 
 ---
-**Status:** 🔄 In Progress (Phase 1 Step 1.3 complete — next: Step 1.4)
-**Last Updated:** 2025-09-10 (Step 1.3 complete)
+**Status:** 🔄 In Progress (Phase 1 complete — next: Phase 2 Step 2.1)
+**Last Updated:** 2025-09-11 (Step 1.5 complete)
 **Assigned:** —
