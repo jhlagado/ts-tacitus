@@ -18,9 +18,19 @@ import {
  * Segmented memory implementation for the Tacit VM.
  */
 export class Memory {
+  /** Primary byte view (backing buffer). */
   buffer: Uint8Array;
 
+  /** Alias for byte view for clarity in dual-view usage. */
+  u8: Uint8Array;
+
+  /** 32-bit cell view over the same underlying buffer. */
+  u32: Uint32Array;
+
+  /** DataView for mixed-size typed access (8/16/32). */
   dataView: DataView;
+  /** Alias for DataView when used along with dual views. */
+  view: DataView;
 
   private SEGMENT_TABLE: number[] = new Array(8).fill(0);
 
@@ -29,7 +39,11 @@ export class Memory {
    */
   constructor() {
     this.buffer = new Uint8Array(MEMORY_SIZE);
+    this.u8 = this.buffer;
+    // Ensure u32 view spans the whole buffer; alignment is 4 by design.
+    this.u32 = new Uint32Array(this.buffer.buffer, 0, Math.floor(MEMORY_SIZE / 4));
     this.dataView = new DataView(this.buffer.buffer);
+    this.view = this.dataView;
     this.initializeSegments();
   }
 
@@ -180,7 +194,7 @@ export class Memory {
     const length = end - start + 1;
     const result = new Array(length);
     for (let i = 0; i < length; i++) {
-      const byte = this.buffer[start + i];
+      const byte = this.u8[start + i];
       result[i] = byte.toString(16).padStart(2, '0');
     }
     return result.join(' ');
@@ -201,7 +215,7 @@ export class Memory {
     const length = end - start + 1;
     const result = new Array(length);
     for (let i = 0; i < length; i++) {
-      const byte = this.buffer[start + i];
+      const byte = this.u8[start + i];
       result[i] = String.fromCharCode(byte);
     }
     return result.join(' ');
