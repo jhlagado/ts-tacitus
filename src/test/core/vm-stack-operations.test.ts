@@ -35,7 +35,7 @@ describe('VM Stack Operations Error Handling', () => {
 
     expect(() => vm.rpush(999)).toThrow(ReturnStackOverflowError);
     expect(() => vm.rpush(999)).toThrow(
-      /Return stack overflow: 'rpush' would exceed return stack size/,
+      /Return stack \(RSP\) overflow: 'rpush' would exceed return stack size/,
     );
   });
 

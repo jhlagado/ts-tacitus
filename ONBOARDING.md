@@ -20,7 +20,7 @@ Must-read specs (before coding)
   Critical source files
 
   • Core
-    • src/core/vm.ts: VM state, SP/RP/BP/IP; memory segments.
+    • src/core/vm.ts: VM state, SP/RSP/BP/IP; memory segments.
     • src/core/tagged.ts: Tag enum, to/from encoding, NIL.
   • src/core/list.ts: isList, getListLength, getListElemAddr, reverseSpan.
     • src/core/refs.ts: isRef, resolveReference, readReference, createSegmentRef.

@@ -113,7 +113,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('closeListOp should handle return stack underflow', () => {
-      expect(() => closeListOp(vm)).toThrow('Return stack underflow');
+      expect(() => closeListOp(vm)).toThrow('Return stack (RSP) underflow');
     });
   });
 
