@@ -109,7 +109,7 @@ export function callTacit(codePtr: number): void {
 
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
   vm.rpush(vm.BP);
-  vm.BP = vm.RP;
+  vm.BP = vm.RP; // BP is byte-based; RP accessor returns bytes
 
   vm.IP = codePtr;
   vm.running = true;

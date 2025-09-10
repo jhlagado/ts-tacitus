@@ -63,7 +63,7 @@ export const simpleIfOp: Verb = (vm: VM) => {
   if (isCode(selectedBranch)) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
-    vm.BP = vm.RP;
+    vm.BP = vm.RP; // BP remains byte-based; RP accessor provides bytes
     const { value: pointer } = fromTaggedValue(selectedBranch);
     vm.IP = pointer;
   } else {
