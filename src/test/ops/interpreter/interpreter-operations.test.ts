@@ -30,8 +30,8 @@ describe('Built-in Words', () => {
       const originalBP = 0x9029;
       vm.rpush(toTaggedValue(testAddress, Tag.CODE));
       vm.rpush(originalBP);
-      const currentBP = vm.RP;
-      vm.BP = currentBP;
+  const currentBPCandidate = vm.RSP * 4; // derive bytes from cells
+  vm.BP = currentBPCandidate;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
       expect(vm.BP).toBe(originalBP);
@@ -43,7 +43,7 @@ describe('Built-in Words', () => {
       vm.push(toTaggedValue(testAddress, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(vm.BP).toBe(vm.RP);
+  expect(vm.BP).toBe(vm.RSP * 4);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
@@ -62,7 +62,7 @@ describe('Built-in Words', () => {
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(vm.BP).toBe(vm.RP);
+  expect(vm.BP).toBe(vm.RSP * 4);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
@@ -177,8 +177,8 @@ describe('Built-in Words', () => {
       );
     });
     test('should handle return stack overflow', () => {
-      const maxDepth = vm.RP / 4;
-      for (let i = 0; i < maxDepth; i++) {
+  const maxDepth = vm.RSP; // already in cells
+  for (let i = 0; i < maxDepth; i++) {
         vm.rpush(0);
       }
 

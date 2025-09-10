@@ -11,6 +11,7 @@ import {
   Tag,
   getVarRef,
   SEG_RSTACK,
+  CELL_SIZE,
 } from '@src/core';
 
 import {
@@ -105,8 +106,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       vm.BPCells = vm.RSP;
     } else {
       vm.rpush(vm.BP);
-      // BP is byte-based; RP accessor returns bytes for compatibility
-      vm.BP = vm.RP;
+  // BP is byte-based; set it from the cell-based RSP (convert to bytes)
+  vm.BP = vm.RSP * CELL_SIZE;
     }
     vm.IP = opcode;
     return;
