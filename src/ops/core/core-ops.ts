@@ -153,9 +153,9 @@ export const callOp: Verb = (vm: VM) => {
     vm.rpush(vm.BPCells);
     vm.BPCells = vm.RSP;
   } else {
-    vm.rpush(vm.BP);
-    // Base pointer remains byte-based; align to current return stack (bytes)
-    vm.BP = vm.RP;
+  vm.rpush(vm.BP);
+  // Base pointer remains byte-based; align to current return stack (cells -> bytes)
+  vm.BP = vm.RSP * CELL_SIZE;
   }
   vm.IP = callAddress;
 };
@@ -315,8 +315,9 @@ export const evalOp: Verb = (vm: VM) => {
         vm.IP = addr;
       } else {
         vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-        vm.rpush(vm.BP);
-        vm.BP = vm.RP;
+  vm.rpush(vm.BP);
+  // Convert RSP (cells) to bytes for BP
+  vm.BP = vm.RSP * CELL_SIZE;
         vm.IP = addr;
       }
       break;

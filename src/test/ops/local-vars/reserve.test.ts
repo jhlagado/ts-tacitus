@@ -12,7 +12,7 @@ describe('Reserve Operation', () => {
   });
 
   test('should allocate slots correctly', () => {
-    const initialRP = vm.RP;
+  const initialRSP = vm.RSP; // cells
 
     // Write immediate argument to bytecode (follows existing test pattern)
     vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
@@ -20,48 +20,48 @@ describe('Reserve Operation', () => {
     // Call opcode function - vm.nextInt16() reads the 1000 we just wrote
     reserveOp(vm);
 
-    expect(vm.RP).toBe(initialRP + 4000); // 1000 slots * 4 bytes each
+  expect(vm.RSP).toBe(initialRSP + 1000); // 1000 slots (cells)
   });
 
   test('should allocate zero slots', () => {
-    const initialRP = vm.RP;
+  const initialRSP = vm.RSP;
 
     vm.compiler.compile16(0); // 0 slots
     reserveOp(vm);
 
-    expect(vm.RP).toBe(initialRP); // No change
+  expect(vm.RSP).toBe(initialRSP); // No change (0 slots)
   });
 
   test('should allocate single slot', () => {
-    const initialRP = vm.RP;
+  const initialRSP = vm.RSP;
 
     vm.compiler.compile16(1); // 1 slot
     reserveOp(vm);
 
-    expect(vm.RP).toBe(initialRP + 4); // 1 slot * 4 bytes
+  expect(vm.RSP).toBe(initialRSP + 1); // 1 slot (cell)
   });
 
   test('should allocate maximum 16-bit slots', () => {
-    const initialRP = vm.RP;
+  const initialRSP = vm.RSP;
 
     vm.compiler.compile16(65535); // Maximum 16-bit value
     reserveOp(vm);
 
-    expect(vm.RP).toBe(initialRP + 262140); // 65535 slots * 4 bytes each
+  expect(vm.RSP).toBe(initialRSP + 65535); // 65535 slots (cells)
   });
 
   test('should handle multiple allocations', () => {
-    const initialRP = vm.RP;
+  const initialRSP = vm.RSP;
 
     // First allocation
     vm.compiler.compile16(10);
     reserveOp(vm);
-    expect(vm.RP).toBe(initialRP + 40);
+  expect(vm.RSP).toBe(initialRSP + 10); // first allocation
 
     // Second allocation (cumulative)
     vm.compiler.compile16(5);
     reserveOp(vm);
-    expect(vm.RP).toBe(initialRP + 60); // 10 + 5 = 15 slots * 4 bytes
+  expect(vm.RSP).toBe(initialRSP + 15); // cumulative 15 slots
   });
 
   test('should advance IP correctly', () => {

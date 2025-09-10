@@ -13,8 +13,8 @@ describe('Function Exit Behavior', () => {
 
   test('should properly restore BP after function call', () => {
     // Record initial state
-    const initialBP = vm.BP;
-    const initialRP = vm.RP;
+  const initialBP = vm.BP;
+  const initialRSP = vm.RSP;
 
     // Execute a simple function call
     const result = executeTacitCode(`
@@ -27,12 +27,12 @@ describe('Function Exit Behavior', () => {
 
     // BP and RP should be restored to initial values
     expect(vm.BP).toBe(initialBP);
-    expect(vm.RP).toBe(initialRP);
+  expect(vm.RSP).toBe(initialRSP);
   });
 
   test('should properly restore BP after function with local variables', () => {
-    const initialBP = vm.BP;
-    const initialRP = vm.RP;
+  const initialBP = vm.BP;
+  const initialRSP = vm.RSP;
 
     const result = executeTacitCode(`
       : func-with-vars 42 var x x ;
@@ -43,12 +43,12 @@ describe('Function Exit Behavior', () => {
 
     // BP should be restored even with local variables
     expect(vm.BP).toBe(initialBP);
-    expect(vm.RP).toBe(initialRP);
+  expect(vm.RSP).toBe(initialRSP);
   });
 
   test('should handle nested function calls correctly', () => {
-    const initialBP = vm.BP;
-    const initialRP = vm.RP;
+  const initialBP = vm.BP;
+  const initialRSP = vm.RSP;
 
     const result = executeTacitCode(`
       : inner 1 add ;
@@ -58,6 +58,6 @@ describe('Function Exit Behavior', () => {
 
     expect(result).toEqual([5, 11]); // 5 + 10 + 1
     expect(vm.BP).toBe(initialBP);
-    expect(vm.RP).toBe(initialRP);
+  expect(vm.RSP).toBe(initialRSP);
   });
 });

@@ -118,6 +118,12 @@ export class VM {
   }
 
   /**
+   * Compatibility alias: returns RP in bytes computed from cell-based RSP.
+   * Use as a temporary shim while tests and legacy code are migrated.
+   */
+  get RPBytes(): number { return this.RSP * CELL_SIZE_BYTES; }
+
+  /**
    * Initializes the compiler for the VM.
    * @param compiler The compiler instance
    */

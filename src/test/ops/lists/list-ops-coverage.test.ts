@@ -16,13 +16,13 @@ describe('List Operations - Branch Coverage', () => {
 
   describe('openListOp functionality', () => {
     test('should initialize list construction correctly', () => {
-      const initialRP = vm.RP;
+  const initialRSP = vm.RSP; // cells
       const initialListDepth = vm.listDepth;
 
       openListOp(vm);
 
       expect(vm.listDepth).toBe(initialListDepth + 1);
-      expect(vm.RP).toBe(initialRP + 4);
+  expect(vm.RSP).toBe(initialRSP + 1); // one header cell pushed
       expect(vm.getStackData()).toHaveLength(1);
     });
   });
