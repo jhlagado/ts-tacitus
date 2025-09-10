@@ -120,8 +120,8 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * Mutates compound data in-place at a specific memory location.
  *
  * Key differences from transferCompoundToReturnStack:
- * - NO RP advancement (overwrites existing space)
- * - Uses provided targetAddr instead of current RP
+ * - NO RSP advancement (overwrites existing space)
+ * - Uses provided targetAddr instead of current RSP
  * - For variable mutation, not initialization
  *
  * @param vm The VM instance

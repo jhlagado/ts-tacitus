@@ -62,7 +62,7 @@ Segments:
 Reference kinds (data):
 
 - STACK_REF — points to a data stack cell; the payload is the absolute cell index (address = index × 4 bytes).
-- RSTACK_REF — points to a return stack cell (e.g., a local slot or an element in return-stack-resident compound).
+- RSTACK_REF — points to a return stack cell (e.g., a local slot or an element in return-stack-resident compound). Return stack indexing uses RSP (cells); legacy RP refers to the byte accessor.
 - GLOBAL_REF — reserved for persistent globals; not implemented.
 
 Encoding:
