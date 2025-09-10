@@ -78,13 +78,15 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 }
 
 export function traverseMultiPath(vm: VM): void {
-  const pathHeader = vm.memory.readFloat32(SEG_STACK, vm.SP - 2 * CELL_SIZE);
+  // Read path header using cell-based indexing
+  const pathHeaderCell = vm.SPCells - 2;
+  const pathHeader = vm.memory.readFloat32(SEG_STACK, pathHeaderCell * CELL_SIZE);
   const pathLength = getListLength(pathHeader);
-  let pathElementAddr = vm.SP - 3 * CELL_SIZE;
+  let pathElementCell = vm.SPCells - 3;
 
   for (let i = 0; i < pathLength; i++) {
-    const pathElement = vm.memory.readFloat32(SEG_STACK, pathElementAddr);
-    pathElementAddr -= CELL_SIZE;
+    const pathElement = vm.memory.readFloat32(SEG_STACK, pathElementCell * CELL_SIZE);
+    pathElementCell -= 1;
 
     if (!processPathStep(vm, pathElement)) {
       return; // NIL case handled in processPathStep

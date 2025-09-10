@@ -16,6 +16,15 @@ import {
   dropList,
 } from '@src/core';
 
+// Helpers for cell-oriented reasoning on return-stack-resident compounds
+function headerAddrToHeaderCell(headerAddrBytes: number): number {
+  return headerAddrBytes / CELL_SIZE;
+}
+
+function computeBaseCellFromHeader(headerCell: number, slotCount: number): number {
+  return headerCell - slotCount;
+}
+
 /**
  * Transfers compound data from data stack to return stack.
  * Maintains Tacit's stack-native list encoding during transfer.
@@ -75,9 +84,10 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
     return;
   }
 
+  const headerCell = headerAddrToHeaderCell(headerAddr);
+  const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
-    const elementAddr = headerAddr - (slotCount - i) * CELL_SIZE;
-    const element = vm.memory.readFloat32(SEG_RSTACK, elementAddr);
+    const element = vm.memory.readFloat32(SEG_RSTACK, (baseCell + i) * CELL_SIZE);
     vm.push(element);
   }
   vm.push(header);
@@ -150,10 +160,11 @@ export function updateListInPlace(vm: VM, targetAddr: number, segment: number): 
     return;
   }
   let sourceCell = vm.SPCells - (slotCount + 1);
+  const targetHeaderCell = headerAddrToHeaderCell(targetAddr);
+  const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readFloat32(SEG_STACK, sourceCell * CELL_SIZE);
-    const targetElementAddr = targetAddr - (slotCount - i) * CELL_SIZE;
-    vm.memory.writeFloat32(segment, targetElementAddr, value);
+    vm.memory.writeFloat32(segment, (targetBaseCell + i) * CELL_SIZE, value);
     sourceCell += 1;
   }
   vm.memory.writeFloat32(segment, targetAddr, header);

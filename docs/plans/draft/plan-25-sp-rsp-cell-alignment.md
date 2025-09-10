@@ -69,9 +69,9 @@
 - Goal: Remove ad-hoc `* 4` in ops; standardize on cells.
 - [x] Lists: Update build/query/structure ops to compute spans in cells; use `Memory.u32.copyWithin` for header+payload moves with overlap safety. (Completed: structure ops, reverseSpan; query store fast path same-segment via `copyCells`)
 - [ ] Locals transfer: Convert materialization and in-place update to cell indices and `u32` copies; validate cross-segment math.
-  - Progress: rpushList/updateListInPlace now compute stack-side addressing via `SPCells` (cross-segment copies still use byte reads/writes as intended).
-- [ ] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
-  - Progress: select-ops uses `SPCells` to locate target under path.
+  - Progress: rpushList/updateListInPlace now compute stack-side addressing via `SPCells`; loadListFromReturn and update paths use header/base cell helpers; cross-segment copies remain byte-based as designed.
+ - [x] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
+   - Completed: createTargetRef and traverseMultiPath use `SPCells`; address reads remain byte-based at the boundary.
 - [ ] Printers/formatters: Iterate cell slots and header/payload spans without byte math.
 - [ ] Maintain 16-bit payload semantics: Any 16-bit fields in headers remain read/written through `DataView` (`read16`/`write16`).
 
