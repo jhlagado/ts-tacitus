@@ -69,7 +69,7 @@
 - [x] Add `BPCells` derived view (no validation on set of `BP` to allow corruption tests).
 - [x] Exit validates `BP` bytes and restores `RSP` accordingly.
 - [ ] Evaluate storing BP in cells on the stack (requires broader change and test updates).
-- [ ] Update local slot helpers to optionally accept `BPCells` and convert at the boundary.
+ - [x] Update local slot helpers to optionally accept `BPCells` and convert at the boundary. (Updated `getVarRef`, `initVarOp`)
   - Progress: core ops updated to use `RSP` in checks; list ops and access paths now use `SPCells` for stack math.
 
 ### Phase 3: Cell-Native Ops & Fast Paths

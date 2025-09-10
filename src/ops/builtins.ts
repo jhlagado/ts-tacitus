@@ -233,7 +233,8 @@ export function initVarOp(vm: VM): void {
   vm.ensureStackSize(1, 'InitVar');
 
   const value = vm.peek();
-  const slotAddr = vm.BP + slotNumber * 4;
+  // Compute slot address using BPCells and convert to bytes at the boundary
+  const slotAddr = (vm.BPCells + slotNumber) * 4;
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
