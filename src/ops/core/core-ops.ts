@@ -149,15 +149,9 @@ export const skipBlockOp: Verb = (vm: VM) => {
 export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  if (vm.frameBpInCells) {
-    vm.rpush(vm.BPCells);
-    vm.BPCells = vm.RSP;
-  } else {
-  // Save caller BP (cells)
-  vm.rpush(vm.BP);
-  // Base pointer remains byte-based; align to current return stack (cells -> bytes)
-  vm.BP = vm.RSP; // BP now in cells
-  }
+  // Cell-only frame prologue (Phase 2 unified): push caller BP (cells), set new BP to RSP
+  vm.rpush(vm.BPCells);
+  vm.BPCells = vm.RSP;
   vm.IP = callAddress;
 };
 
@@ -215,21 +209,14 @@ export const exitOp: Verb = (vm: VM) => {
       vm.running = false;
       return;
     }
-
-    if (vm.frameBpInCells) {
-      vm.RSP = vm.BPCells;
-      vm.BPCells = vm.rpop();
-    } else {
-      // Transitional (Plan 26 Phase 1): legacy frame stored BP in bytes.
-      // Validate alignment then convert to cells. Once Phase 2 flips fully
-      // to cell representation this branch will be removed.
-  const bpBytes = vm.BPBytes; // explicit legacy byte-form
-      if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
-        throw new ReturnStackUnderflowError('exit', vm.getStackData());
-      }
-      vm.RSP = bpBytes / CELL_SIZE; // division is safe after alignment check
-  vm.BP = vm.rpop(); // restored value is cells
+    // Unified cell-only epilogue with corruption guard: if BPCells points outside
+    // current return stack depth (or negative) treat as underflow corruption.
+    const bpCells = vm.BPCells;
+    if (bpCells < 0 || bpCells > vm.RSP) {
+      throw new ReturnStackUnderflowError('exit', vm.getStackData());
     }
+    vm.RSP = bpCells;
+    vm.BPCells = vm.rpop();
     const returnAddr = vm.rpop();
 
     if (isCode(returnAddr)) {

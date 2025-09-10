@@ -101,15 +101,9 @@ export function literalCodeOp(vm: VM): void {
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    if (vm.frameBpInCells) {
-      vm.rpush(vm.BPCells);
-      vm.BPCells = vm.RSP;
-    } else {
-  // Save caller BP in cells (now vm.BP is cells); legacy byte view accessible via BPBytes
-  vm.rpush(vm.BP);
-  // BP is byte-based; set it from the cell-based RSP (convert to bytes)
-  vm.BP = vm.RSP; // set BP in cells
-    }
+  // Unified cell-only frame prologue
+  vm.rpush(vm.BPCells);
+  vm.BPCells = vm.RSP;
     vm.IP = opcode;
     return;
   }
