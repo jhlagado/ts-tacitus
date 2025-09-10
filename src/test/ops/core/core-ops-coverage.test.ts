@@ -30,9 +30,9 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should handle non-code return address (line 214)', () => {
       // Set up return stack properly with enough entries
-  vm.BP = 16; // Set base pointer (bytes)
+  vm.BPBytes = 16; // Set base pointer (bytes)
   vm.RSP = 4; // 4 cells = 16 bytes to match BP
-      vm.rpush(vm.BP); // Base pointer
+  vm.rpush(vm.BP); // BP (cells) saved
       vm.rpush(1000); // Non-code return address (number, not tagged as CODE)
 
       exitOp(vm);

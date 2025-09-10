@@ -153,9 +153,10 @@ export const callOp: Verb = (vm: VM) => {
     vm.rpush(vm.BPCells);
     vm.BPCells = vm.RSP;
   } else {
+  // Save caller BP (cells)
   vm.rpush(vm.BP);
   // Base pointer remains byte-based; align to current return stack (cells -> bytes)
-  vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // BP now in cells
   }
   vm.IP = callAddress;
 };
@@ -222,12 +223,12 @@ export const exitOp: Verb = (vm: VM) => {
       // Transitional (Plan 26 Phase 1): legacy frame stored BP in bytes.
       // Validate alignment then convert to cells. Once Phase 2 flips fully
       // to cell representation this branch will be removed.
-      const bpBytes = vm.BP; // legacy byte-form (derived from _bpCells)
+  const bpBytes = vm.BPBytes; // explicit legacy byte-form
       if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
         throw new ReturnStackUnderflowError('exit', vm.getStackData());
       }
       vm.RSP = bpBytes / CELL_SIZE; // division is safe after alignment check
-      vm.BP = vm.rpop();
+  vm.BP = vm.rpop(); // restored value is cells
     }
     const returnAddr = vm.rpop();
 
@@ -316,9 +317,9 @@ export const evalOp: Verb = (vm: VM) => {
         vm.IP = addr;
       } else {
         vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  vm.rpush(vm.BP);
+  vm.rpush(vm.BP); // save caller BP (cells)
   // Convert RSP (cells) to bytes for BP
-  vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // BP in cells
         vm.IP = addr;
       }
       break;

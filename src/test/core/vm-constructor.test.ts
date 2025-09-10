@@ -33,7 +33,7 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize BP to 0', () => {
-    expect(vm.BP).toBe(0);
+  expect(vm.BP).toBe(0); // cells
   });
 
   test('should initialize digest as a Digest instance', () => {

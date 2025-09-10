@@ -18,7 +18,7 @@ describe('Invalid Slot Access Error Handling', () => {
 
   test('should throw error when accessing unallocated local variable slot (beyond total memory)', () => {
     // Simulate a function frame
-    vm.BP = 0; // Start BP at 0 for simplicity
+  vm.BPBytes = 0; // Start BP at 0 (bytes view)
     // Create a slot number so large that the calculated address exceeds total MEMORY_SIZE
     const extremelyLargeSlot = MEMORY_SIZE / CELL_SIZE + 1000;
     vm.push(getVarRef(vm, extremelyLargeSlot));
@@ -29,12 +29,12 @@ describe('Invalid Slot Access Error Handling', () => {
   test('should throw ReturnStackUnderflowError if BP is corrupted and points to invalid location', () => {
     // Simulate a function call setup that would lead to exitOp trying to restore BP/IP
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE)); // Return IP
-  vm.rpush(vm.BP); // Saved BP
+  vm.rpush(vm.BP); // save BP (cells)
   // Establish new frame base pointer from current return stack (cells -> bytes)
-  vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // set BP cells
 
     // Now corrupt BP to cause underflow on exit
-    vm.BP = -100; // Corrupt BP to an invalid negative value
+  vm.BPBytes = -100; // Corrupt BP via bytes view
 
     expect(() => executeOp(vm, Op.Exit)).toThrow(ReturnStackUnderflowError);
   });
