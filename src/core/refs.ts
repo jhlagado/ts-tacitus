@@ -55,7 +55,8 @@ export function createStackRef(cellIndex: number): number {
  * that points to the absolute address of that slot in the current stack frame.
  */
 export function getVarRef(vm: VM, slotNumber: number): number {
-  const absoluteCellIndex = vm.BP / 4 + slotNumber;
+  // Use BPCells for unit-safe math; payload expects absolute cell index
+  const absoluteCellIndex = vm.BPCells + slotNumber;
   return toTaggedValue(absoluteCellIndex, Tag.RSTACK_REF);
 }
 
