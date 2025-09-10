@@ -6,6 +6,9 @@ Orientation
   - `slot` returns payload slot address (O(1)); `elem` returns element start (O(s)).
   - `fetch`/`load` materialize lists; `store` writes only simple cells; compound updates require compatibility.
 
+Units
+- SP/RSP are cell-indexed (one unit = one 32‑bit cell). Any byte offsets shown are only at memory read/write boundaries.
+
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
 > **Audience:** implementers and advanced users building capsules/VM ops over lists.
@@ -84,6 +87,7 @@ This document is intentionally explicit and example-heavy to eliminate ambiguity
 
 **cell** — a 32‑bit memory unit anywhere (stack, code, etc.).
 **slot** — a cell addressed **relative to a list’s payload**; all slots are cells, but scoped to a particular list.
+**SP** — the data stack pointer measured in cells. `SP-1` refers to the cell immediately beneath the top-of-stack.
 **element** — a logical member of a list: either a _simple_ (1 slot) or a _compound_ (multiple slots).
 **simple** — a fixed-size value occupying exactly 1 slot (e.g., number, bool as 1/0, interned symbol/id, `nil`, code ref).
 **compound** — a value occupying multiple slots; **must** start with a header slot that encodes its total span (e.g., a **list** with `LIST:s` header plus `s` payload slots → span = `s+1`).

@@ -42,7 +42,7 @@ import { formatValue as coreFormatValue, formatList } from '@src/core';
  */
 export function printOp(vm: VM): void {
   try {
-    if (vm.SP < CELL_SIZE) {
+    if (vm.SPCells < 1) {
       console.log('[Error: Stack empty]');
       return;
     }
@@ -63,7 +63,7 @@ export function printOp(vm: VM): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`[Print error: ${errorMessage}]`);
 
-    if (vm.SP >= CELL_SIZE) {
+    if (vm.SPCells >= 1) {
       try {
         vm.pop();
       } catch {
@@ -90,7 +90,7 @@ export function printOp(vm: VM): void {
  */
 export function rawPrintOp(vm: VM): void {
   try {
-    if (vm.SP < 1) {
+    if (vm.SPCells < 1) {
       console.log('[Error: Stack empty]');
       return;
     }
