@@ -221,8 +221,10 @@ export function literalAddressOp(vm: VM): void {
  */
 export function reserveOp(vm: VM): void {
   const slotCount = vm.nextUint16();
-  // Reserve local slots: advance RP in BYTES for compatibility with existing frame layout/tests
-  vm.RP += slotCount * 4;
+  // Reserve local slots: advance RSP in CELLS. RP (bytes) remains a compatible view
+  // via the `RP` accessor so external callers/tests that read `vm.RP` will see the
+  // equivalent byte offset (RSP * CELL_SIZE).
+  vm.RSP += slotCount;
 }
 
 /**
