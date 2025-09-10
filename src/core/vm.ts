@@ -31,7 +31,10 @@ export class VM {
 
   // Byte-oriented base pointer for return stack frames (legacy, bytes)
   
-  // Base pointer raw bytes (compat); BPCells derived on demand
+  // Transitional dual representation:
+  // _bpCells is the new canonical base pointer (cells). _bpBytes retained for
+  // legacy byte-oriented tests / corruption scenarios. Both kept in sync.
+  private _bpCells: number;
   private _bpBytes: number;
 
   IP: number;
@@ -64,7 +67,8 @@ export class VM {
     this.running = true;
     this._spCells = 0;
     this._rspCells = 0;
-    this._bpBytes = 0;
+  this._bpCells = 0;
+  this._bpBytes = 0; // retains raw bytes for legacy behaviors
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
@@ -116,25 +120,30 @@ export class VM {
   }
 
   /**
-   * Base pointer accessors.
-   * BP: returns/accepts BYTES (legacy; tests and frame layout rely on bytes).
-   * BPCells: derived view of BP in cells (floor division; may be inconsistent if BP is corrupted in tests).
+   * Base pointer accessors (Step 1.1 — dual mode).
+   * Canonical representation is now _bpCells. _bpBytes is maintained for legacy
+   * byte-oriented access & corruption tests. Setting either keeps the pair in sync.
+   * TODO(Plan26 Phase2): Remove direct byte canonical usage and migrate tests to BPCells.
    */
   get BP(): number { return this._bpBytes; }
   set BP(bytes: number) {
-    // Accept raw bytes without validation to allow tests to simulate corruption.
+    // Allow misaligned / raw byte injection (legacy tests) without throwing.
     this._bpBytes = bytes | 0;
+    // Derive cells via floor to preserve previous behavior of truncation.
+    this._bpCells = (this._bpBytes / CELL_SIZE_BYTES) | 0;
   }
 
-  get BPCells(): number {
-    return Math.floor(this._bpBytes / CELL_SIZE_BYTES);
-  }
+  get BPCells(): number { return this._bpCells; }
   set BPCells(cells: number) {
-    if (!Number.isInteger(cells)) {
+    if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`BPCells set to invalid value: ${cells}`);
     }
+    this._bpCells = cells;
     this._bpBytes = cells * CELL_SIZE_BYTES;
   }
+
+  // Derived convenience accessor for explicit byte view when migrating code.
+  get BPBytes(): number { return this._bpBytes; }
 
   /**
    * Pushes a value onto the data stack.
