@@ -63,12 +63,15 @@
 - [x] Update stack iteration (`getStackData`) to iterate cells; external shape unchanged.
 - [ ] Add temporary compat (optional): `getSpBytes()`/`getRspBytes()` if needed (not required yet).
 - [ ] Rename `RP` to `RSP` across code; provide a temporary alias only if needed to keep compile green during migration.
+  - Progress: core ops updated to use `RSP` in checks; list ops and access paths now use `SPCells` for stack math.
 
 ### Phase 3: Cell-Native Ops & Fast Paths
 - Goal: Remove ad-hoc `* 4` in ops; standardize on cells.
 - [x] Lists: Update build/query/structure ops to compute spans in cells; use `Memory.u32.copyWithin` for header+payload moves with overlap safety. (Completed: structure ops, reverseSpan; query store fast path same-segment via `copyCells`)
 - [ ] Locals transfer: Convert materialization and in-place update to cell indices and `u32` copies; validate cross-segment math.
+  - Progress: rpushList/updateListInPlace now compute stack-side addressing via `SPCells` (cross-segment copies still use byte reads/writes as intended).
 - [ ] Access/select: Ensure path traversal and address-returning functions operate in cells end-to-end.
+  - Progress: select-ops uses `SPCells` to locate target under path.
 - [ ] Printers/formatters: Iterate cell slots and header/payload spans without byte math.
 - [ ] Maintain 16-bit payload semantics: Any 16-bit fields in headers remain read/written through `DataView` (`read16`/`write16`).
 
