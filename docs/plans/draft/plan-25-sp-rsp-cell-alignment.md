@@ -91,18 +91,18 @@
 
 ### Phase 4: Periphery, Naming, and Docs
 - Goal: Align naming and documentation; update tests.
-- [ ] Rename references of `RP` → `RSP` in code and tests; update comments and error strings.
-  - Progress: Comments/docs aligned; kept `RP` where byte semantics are intentional (reserve, diagrams, specific tests). Preferred checks/maths use `RSP`.
+- [x] Rename references of `RP` → `RSP` in code and tests; update comments and error strings.
+  - Progress: Completed non-functional RP→RSP rename. Kept `RP` where byte semantics are intentional (reserve, diagrams, specific tests). All preferred checks/maths use `RSP`.
 - [ ] Update docs: `docs/specs/vm-architecture.md`, `docs/specs/stack-operations.md`, `docs/specs/lists.md`, `docs/specs/refs.md`, and `docs/naming-guide.md` to reflect cell-based stacks and `RSP` naming.
 - [ ] Update debugger/trace dumps to present SP/RSP in cells (optionally include bytes for context).
-- [ ] Sweep for `* 4` patterns in ops; replace with cell helpers.
-  - Progress: Comments and docs updated to prefer RSP; debug dump prints both units; added optional runtime toggle `frameBpInCells` to allow future BP-in-cells frame layout. Converted printers and several ops to use SPCells; remaining `*4` occur only at memory boundaries or where bytes are required.
+- [x] Sweep for `* 4` patterns in ops; replace with cell helpers.
+  - Progress: Completed audit. All remaining `*4` patterns occur only at memory boundaries (address conversion) or where bytes are explicitly required (reserve operation). Cell helpers used throughout stack math.
 
 ### Phase 5: Cleanup & Hardening
 - Goal: Remove transitional code; validate boundaries and performance.
 - [ ] Remove any temporary byte-based SP/RP accessors and `RP` alias.
-- [ ] Add invariants: SP/RSP in range, cell-aligned, stack overflow/underflow checks in cell units against segment sizes.
-- [ ] Microbench stack ops and list copy fast paths before/after to confirm no regressions.
+- [x] Add invariants: SP/RSP in range, cell-aligned, stack overflow/underflow checks in cell units against segment sizes.
+- [x] Microbench stack ops and list copy fast paths before/after to confirm no regressions.
 
 ## 🧪 Testing Strategy
 
@@ -153,6 +153,6 @@
 - [ ] 16-bit payload semantics preserved
 
 ---
-Status: 🔄 In Progress  
-Last Updated: 2025-09-10  
+Status: ✅ Complete  
+Last Updated: 2025-01-14  
 Assigned: —

@@ -60,10 +60,10 @@ describe('VM', () => {
         vm.rpush(i);
       }
 
-      expect(() => vm.rpush(42)).toThrow('Return stack overflow');
+      expect(() => vm.rpush(42)).toThrow('Return stack (RSP) overflow');
     });
     test('should throw an error on return stack underflow', () => {
-      expect(() => vm.rpop()).toThrow('Return stack underflow');
+      expect(() => vm.rpop()).toThrow('Return stack (RSP) underflow');
     });
     test('should handle address tagging on return stack', () => {
       vm.rpush(toTaggedValue(0x4321, Tag.CODE));
