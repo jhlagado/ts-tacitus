@@ -101,6 +101,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
+    // BP is byte-based; RP accessor returns bytes for compatibility
     vm.BP = vm.RP;
     vm.IP = opcode;
     return;
@@ -215,6 +216,7 @@ export function literalAddressOp(vm: VM): void {
  */
 export function reserveOp(vm: VM): void {
   const slotCount = vm.nextUint16();
+  // Reserve local slots: advance RP in BYTES for compatibility with existing frame layout/tests
   vm.RP += slotCount * 4;
 }
 

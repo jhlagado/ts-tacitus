@@ -29,6 +29,10 @@ This guide captures the agreed conventions used across the codebase to improve c
 - Keep public surfaces minimal; avoid widening facades without need.
 - Prefer additive, incremental changes with test verification at each step.
 
+## Registers and Units
+- Prefer `SP` and `RSP` (cell-indexed) in code and docs. `RP` refers specifically to the legacy byte-based accessor, which remains available for compatibility.
+- `BP` remains byte-based (frame layout and slot addressing). When converting `BP`→`RSP`, validate alignment and bounds before dividing by cell size.
+
 ## Examples
 - `formatList(vm, header)` — pure formatting for lists.
 - `printOp(vm)` — side-effectful printing; uses `formatValue` from `format-utils`.

@@ -69,3 +69,6 @@ This document codifies conventions for naming public functions and shaping small
 - Applies to exported/public functions in `src/core`, `src/lang`, and `src/ops`.
 - Test helpers can be more verbose if needed for clarity.
 
+## Registers and Addressing
+- Use `SP`/`RSP` in names and prose; both are cell-indexed. The legacy `RP` byte-based accessor may appear in compatibility shims and frame prologues/epilogues; prefer `RSP` in checks and new code.
+- `BP` is byte-based; when converting between `BP` and `RSP`, ensure cell alignment and bounds.
