@@ -120,17 +120,21 @@ export class VM {
   }
 
   /**
-   * Base pointer accessors (Step 1.1 — dual mode).
-   * Canonical representation is now _bpCells. _bpBytes is maintained for legacy
-   * byte-oriented access & corruption tests. Setting either keeps the pair in sync.
-   * TODO(Plan26 Phase2): Remove direct byte canonical usage and migrate tests to BPCells.
+   * Base pointer accessors (Phase 2 Step 2.1 flip)
+   * Canonical representation is _bpCells (cells). The legacy byte view is now
+   * exposed via BPBytes (getter/setter) explicitly. For ergonomic continuity
+   * BP (getter/setter) now aliases the cell form. Tests expecting byte math
+   * must migrate to BPBytes. Direct byte mutation is still allowed through
+   * BPBytes setter (with truncation) for corruption scenarios until Phase 3.
    */
-  get BP(): number { return this._bpBytes; }
-  set BP(bytes: number) {
-    // Allow misaligned / raw byte injection (legacy tests) without throwing.
-    this._bpBytes = bytes | 0;
-    // Derive cells via floor to preserve previous behavior of truncation.
-    this._bpCells = (this._bpBytes / CELL_SIZE_BYTES) | 0;
+  // Canonical cell-based BP
+  get BP(): number { return this._bpCells; }
+  set BP(cells: number) {
+    if (!Number.isInteger(cells) || cells < 0) {
+      throw new Error(`BP (cells) set to invalid value: ${cells}`);
+    }
+    this._bpCells = cells;
+    this._bpBytes = cells * CELL_SIZE_BYTES;
   }
 
   get BPCells(): number { return this._bpCells; }
@@ -142,8 +146,12 @@ export class VM {
     this._bpBytes = cells * CELL_SIZE_BYTES;
   }
 
-  // Derived convenience accessor for explicit byte view when migrating code.
+  // Explicit byte view (legacy / corruption tests). Setting derives cells via floor.
   get BPBytes(): number { return this._bpBytes; }
+  set BPBytes(bytes: number) {
+    this._bpBytes = bytes | 0;
+    this._bpCells = (this._bpBytes / CELL_SIZE_BYTES) | 0;
+  }
 
   /**
    * Pushes a value onto the data stack.

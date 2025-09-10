@@ -12,7 +12,7 @@
  * whether the condition is truthy (non-zero) or falsy (zero).
  */
 
-import { VM, Verb, isCode, isNumber, fromTaggedValue, toTaggedValue, Tag, CELL_SIZE } from '@src/core';
+import { VM, Verb, isCode, isNumber, fromTaggedValue, toTaggedValue, Tag } from '@src/core';
 
 /**
  * Implements a ternary if operator.
@@ -66,9 +66,9 @@ export const simpleIfOp: Verb = (vm: VM) => {
       vm.rpush(vm.BPCells);
       vm.BPCells = vm.RSP;
     } else {
-  vm.rpush(vm.BP);
+  vm.rpush(vm.BP); // cells
   // Set BP (bytes) from RSP (cells)
-  vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // cells
     }
     const { value: pointer } = fromTaggedValue(selectedBranch);
     vm.IP = pointer;

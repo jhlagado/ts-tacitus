@@ -105,9 +105,10 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
       vm.rpush(vm.BPCells);
       vm.BPCells = vm.RSP;
     } else {
-      vm.rpush(vm.BP);
+  // Save caller BP in cells (now vm.BP is cells); legacy byte view accessible via BPBytes
+  vm.rpush(vm.BP);
   // BP is byte-based; set it from the cell-based RSP (convert to bytes)
-  vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // set BP in cells
     }
     vm.IP = opcode;
     return;
@@ -270,7 +271,7 @@ export function dumpFrameOp(vm: VM): void {
   // Prefer cell-based representation; include legacy byte values parenthetically for transition (Plan 26 Step 1.4)
   console.log(
     'BP(cells):', vm.BPCells,
-    'BP(bytes):', vm.BP,
+  'BP(bytes):', vm.BPBytes,
     'RSP(cells):', vm.RSP,
     'RSP(bytes):', vm.RSP * CELL_SIZE,
     'SP(cells):', vm.SPCells,

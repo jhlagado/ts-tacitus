@@ -27,23 +27,24 @@ describe('Built-in Words', () => {
     });
     test('exitOp should restore IP from return stack and BP frame', () => {
       const testAddress = 0x2345;
-      const originalBP = 0x9029;
+      // In the migrated model BP is cell-based. Simulate a call frame by
+      // pushing return address then saved BP (cells) and setting BP to current RSP.
+      const originalBPCells = vm.BP; // capture current (cells)
       vm.rpush(toTaggedValue(testAddress, Tag.CODE));
-      vm.rpush(originalBP);
-  const currentBPCandidate = vm.RSP * 4; // derive bytes from cells
-  vm.BP = currentBPCandidate;
+      vm.rpush(originalBPCells); // saved BP (cells)
+      vm.BP = vm.RSP; // prologue effect (cells)
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(vm.BP).toBe(originalBP);
+      expect(vm.BP).toBe(originalBPCells);
     });
     test('evalOp should push IP to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
       const originalIP = vm.IP;
-      const originalBP = vm.BP;
+  const originalBP = vm.BPBytes;
       vm.push(toTaggedValue(testAddress, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-  expect(vm.BP).toBe(vm.RSP * 4);
+  expect(vm.BPBytes).toBe(vm.RSP * 4);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
@@ -57,12 +58,12 @@ describe('Built-in Words', () => {
     });
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.IP;
-      const originalBP = vm.BP;
+  const originalBP = vm.BPBytes;
       const testAddress = 0x12345;
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-  expect(vm.BP).toBe(vm.RSP * 4);
+  expect(vm.BPBytes).toBe(vm.RSP * 4);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();

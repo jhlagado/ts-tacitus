@@ -20,7 +20,7 @@ export function resetVM(): void {
   initializeInterpreter();
   vm.SP = 0;
   vm.RSP = 0; // Reset return stack in cells
-  vm.BP = 0;
+  vm.BP = 0; // reset BP (cells)
   // Also reset cell-based BP representation (dual representation safety)
   // Type guard for BPCells presence (added in migration)
   if (typeof (vm as unknown as { BPCells?: unknown }).BPCells === 'number') {

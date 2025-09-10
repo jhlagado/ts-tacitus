@@ -16,7 +16,7 @@ describe('Local Variables System', () => {
 
   describe('Basic Operations', () => {
     test('should handle complete workflow: reserve → init → fetch', () => {
-      vm.BP = 1000;
+  vm.BPBytes = 1000;
 
       // Reserve 1 slot
       vm.compiler.compile16(1);
@@ -35,7 +35,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle different data types', () => {
-      vm.BP = 1500;
+  vm.BPBytes = 1500;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -62,7 +62,7 @@ describe('Local Variables System', () => {
 
   describe('Multiple Variables', () => {
     test('should handle multiple variables without interference', () => {
-      vm.BP = 2000;
+  vm.BPBytes = 2000;
       vm.compiler.compile16(5);
       reserveOp(vm);
 
@@ -88,7 +88,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle slot overwrites', () => {
-      vm.BP = 2500;
+  vm.BPBytes = 2500;
       vm.compiler.compile16(2);
       reserveOp(vm);
 
@@ -112,7 +112,7 @@ describe('Local Variables System', () => {
   describe('Frame Isolation', () => {
     test('should isolate variables between different function frames', () => {
       // First frame
-      vm.BP = 1000;
+  vm.BPBytes = 1000;
       vm.compiler.compile16(2);
       reserveOp(vm);
       vm.push(111);
@@ -128,7 +128,7 @@ describe('Local Variables System', () => {
       expect(vm.pop()).toBe(111);
 
       // Second frame (different BP)
-      vm.BP = 5000;
+  vm.BPBytes = 5000;
       vm.compiler.compile16(2);
       reserveOp(vm);
       vm.push(333);
@@ -144,7 +144,7 @@ describe('Local Variables System', () => {
       expect(vm.pop()).toBe(333);
 
       // Switch back to first frame - should still have original values
-      vm.BP = 1000;
+  vm.BPBytes = 1000;
       vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       expect(vm.pop()).toBe(111);
@@ -153,7 +153,7 @@ describe('Local Variables System', () => {
 
   describe('Edge Cases', () => {
     test('should handle large slot numbers', () => {
-      vm.BP = 8000;
+  vm.BPBytes = 8000;
       const maxSlot = 100;
 
       vm.compiler.compile16(maxSlot + 1);
@@ -169,7 +169,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle many variables efficiently', () => {
-      vm.BP = 10000;
+  vm.BPBytes = 10000;
       const numVars = 50;
 
       vm.compiler.compile16(numVars);
@@ -193,7 +193,7 @@ describe('Local Variables System', () => {
 
   describe('Integration with Operations', () => {
     test('should work with arithmetic operations', () => {
-      vm.BP = 6000;
+  vm.BPBytes = 6000;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -224,7 +224,7 @@ describe('Local Variables System', () => {
     });
 
     test('should work with do combinator', () => {
-      vm.BP = 7000;
+  vm.BPBytes = 7000;
       vm.compiler.compile16(1);
       reserveOp(vm);
 
@@ -245,7 +245,7 @@ describe('Local Variables System', () => {
 
   describe('Variable Mutation', () => {
     test('should support variable mutation via writeReference', () => {
-      vm.BP = 8000;
+  vm.BPBytes = 8000;
       vm.compiler.compile16(1);
       reserveOp(vm);
 
@@ -270,7 +270,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle multiple variable mutations', () => {
-      vm.BP = 8500;
+  vm.BPBytes = 8500;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -298,7 +298,7 @@ describe('Local Variables System', () => {
     });
 
     test('should maintain isolation during mixed read/write operations', () => {
-      vm.BP = 9000;
+  vm.BPBytes = 9000;
       vm.compiler.compile16(2);
       reserveOp(vm);
 

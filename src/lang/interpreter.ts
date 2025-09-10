@@ -17,7 +17,7 @@
 import { executeOp } from '../ops/builtins';
 import { vm } from './runtime';
 import { parse } from './parser';
-import { toTaggedValue, Tag, SEG_CODE, CELL_SIZE } from '@src/core';
+import { toTaggedValue, Tag, SEG_CODE } from '@src/core';
 import { Tokenizer } from './tokenizer';
 
 // SEG_CODE imported from @src/core
@@ -114,9 +114,9 @@ export function callTacit(codePtr: number): void {
     vm.rpush(vm.BPCells);
     vm.BPCells = vm.RSP;
   } else {
-    vm.rpush(vm.BP);
+  vm.rpush(vm.BP); // cells now
     // Set BP (bytes) from current RSP (cells)
-    vm.BP = vm.RSP * CELL_SIZE;
+  vm.BP = vm.RSP; // in cells
   }
 
   vm.IP = codePtr;
