@@ -28,8 +28,9 @@ describe('Control Operations - Branch Coverage', () => {
 
       simpleIfOp(vm);
 
-      expect(vm.IP).toBe(codeAddr);
-      expect(vm.RP).toBeGreaterThan(0);
+  expect(vm.IP).toBe(codeAddr);
+  // RSP (return stack in cells) should have at least one entry after pushing return frame
+  expect(vm.RSP).toBeGreaterThan(0);
     });
 
     test('should execute else-code when condition is falsy', () => {
@@ -41,8 +42,8 @@ describe('Control Operations - Branch Coverage', () => {
 
       simpleIfOp(vm);
 
-      expect(vm.IP).toBe(codeAddr);
-      expect(vm.RP).toBeGreaterThan(0);
+  expect(vm.IP).toBe(codeAddr);
+  expect(vm.RSP).toBeGreaterThan(0);
     });
 
     test('should push then-value when condition is truthy and then-branch is not code', () => {

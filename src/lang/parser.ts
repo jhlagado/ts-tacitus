@@ -387,7 +387,8 @@ export function emitRefSigil(varName: string, state: ParserState): void {
     throw new Error(`${varName} is not a local variable`);
   }
 
-  // Compile VarRef + Fetch (existing behavior for &x)
+  // Compile VarRef + Fetch (existing behavior for &x) so that &x yields the slot value
+  // (which for list locals is a reference to the list header enabling fast path copies).
   vm.compiler.compileOpcode(Op.VarRef);
   vm.compiler.compile16(slotNumber);
   vm.compiler.compileOpcode(Op.Fetch);

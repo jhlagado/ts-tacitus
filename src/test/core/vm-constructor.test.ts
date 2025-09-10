@@ -3,7 +3,6 @@ import { VM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
 import { SymbolTable } from '../../../src/strings/symbol-table';
-import { NIL } from '../../../src/core/tagged';
 import { Compiler } from '../../../src/lang/compiler';
 
 describe('VM Constructor Initialization', () => {
@@ -29,8 +28,8 @@ describe('VM Constructor Initialization', () => {
     expect(vm.SP).toBe(0);
   });
 
-  test('should initialize RP to 0', () => {
-    expect(vm.RP).toBe(0);
+  test('should initialize RSP (return stack depth in cells) to 0', () => {
+    expect(vm.RSP).toBe(0);
   });
 
   test('should initialize BP to 0', () => {

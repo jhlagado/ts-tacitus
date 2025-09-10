@@ -7,7 +7,7 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import { STACK_SIZE, RSTACK_SIZE, SEG_STACK, SEG_RSTACK, SEG_CODE, CELL_SIZE } from './constants';
-import { fromTaggedValue, NIL } from './tagged';
+import { fromTaggedValue } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -97,18 +97,8 @@ export class VM {
   }
 
   /**
-   * Return stack pointer accessors
-   * RP: returns/accepts BYTES for backward compatibility
-   * RSP: returns/accepts CELLS (preferred)
+   * Return stack pointer (canonical, cells). Byte-based RP accessor removed after migration.
    */
-  get RP(): number { return this._rspCells * CELL_SIZE_BYTES; }
-  set RP(bytes: number) {
-    if ((bytes & (CELL_SIZE_BYTES - 1)) !== 0) {
-      throw new Error(`RP set to non-cell-aligned byte offset: ${bytes}`);
-    }
-    this._rspCells = bytes / CELL_SIZE_BYTES;
-  }
-
   get RSP(): number { return this._rspCells; }
   set RSP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
@@ -116,12 +106,6 @@ export class VM {
     }
     this._rspCells = cells;
   }
-
-  /**
-   * Compatibility alias: returns RP in bytes computed from cell-based RSP.
-   * Use as a temporary shim while tests and legacy code are migrated.
-   */
-  get RPBytes(): number { return this.RSP * CELL_SIZE_BYTES; }
 
   /**
    * Initializes the compiler for the VM.

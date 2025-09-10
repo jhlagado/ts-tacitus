@@ -1,71 +1,38 @@
-# RP/RSP Hotspots Report
+# RSP Migration Hotspots Report (Post-Removal)
 
-This file lists hotspots where `vm.RP` (byte-based) or ad-hoc `* 4` conversions appear and recommends actions.
+The legacy byte-based `vm.RP` accessor and temporary `vm.RPBytes` shim have been removed. The canonical return stack pointer is `vm.RSP` (cells). Any byte computation should derive `bytes = vm.RSP * CELL_SIZE` only at memory access boundaries.
 
-Generated: automated scan
+## Current State
+- All code & tests reference `vm.RSP` exclusively.
+- Transfer utilities (`local-vars-transfer.ts`) updated to compute header addresses from `vm.RSP`.
+- Debug utilities replaced `vm.RP` with derived byte values.
 
----
+## Rationale
+Cell alignment removes ambiguity and eliminates redundant conversions. It also simplifies overlap checks for list fast paths and avoids mixed-unit off-by-one errors in frame handling.
 
-## Summary
-- Total `vm.RP` usages found: 61 (representative locations listed below)
-- `* 4` pattern hits: many; often used at memory boundary conversions for addresses
+## Migration Steps Completed
+1. Refactored operations and tests to use `RSP` cells.
+2. Removed `RP` getter/setter and `RPBytes` alias from `VM`.
+3. Replaced remaining byte math with explicit `RSP * CELL_SIZE` where necessary.
+4. Verified full test suite passes (ensuring no hidden dependencies remained).
 
-## Priority 1 (High) — tests and core ops that still depend on byte-based RP
-- `src/test/ops/local-vars/reserve.test.ts` lines where `expect(vm.RP).toBe(initialRP + 4000)` etc. — Tests must be migrated to assert `vm.RSP` or use conversion helpers.
-- `src/test/ops/lists/list-ops-coverage.test.ts` — expects `vm.RP` increment by 4 after closeListOp
-- `src/test/ops/interpreter/interpreter-operations.test.ts` — uses `vm.RP` and math `vm.RP / 4` in tests
+## Guidelines Going Forward
+- Do not reintroduce a byte-based RP accessor. If a byte value is required in a localized context, compute it inline.
+- Prefer documenting stack effects in terms of cells for return stack operations.
+- When adding new features touching the return stack, assert cell alignment invariants early.
 
-Recommended action: Update tests to use `vm.RSP` cell-based asserts, or add `vm.RPBytes` alias and convert expectations (temporary).
+## Optional Helpers (Deferred)
+If repetition grows, consider utility functions:
+```ts
+export const cellsToBytes = (cells: number) => cells * CELL_SIZE;
+export const bytesToCells = (bytes: number) => bytes / CELL_SIZE; // assume validated alignment
+```
 
-## Priority 2 (Medium) — ops that perform byte math on `vm.RP`
-- `src/ops/builtins.ts` line ~225: `vm.RP += slotCount * 4;` (reserve locals)
-  - Action: Replace with `vm.RSP += slotCount` and ensure memory writes use `vm.RSP * CELL_SIZE`.
-- `src/ops/local-vars-transfer.ts` uses `const headerAddr = vm.RP;` — likely expects bytes
-  - Action: Convert to cell-aware code path and use `headerCell = vm.RSP - ...` or add conversion helper at boundary.
-- `src/ops/core/core-ops.ts` and `src/ops/control/branch-ops.ts` set `vm.BP = vm.RP` for compatibility at frame entry/exit
-  - Action: Ensure the BP/BPCells invariants and conversions are explicit; replace `vm.BP = vm.RP` with `vm.BP = vm.RSP * CELL_SIZE` or introduce `vm.RPBytes` accessor.
+Currently not needed due to low duplication.
 
-## Priority 3 (Low) — docs and debug prints
-- `docs/*` mention `vm.RP` and byte math; update docs after code migration.
-- Debug prints in `src/ops/builtins.ts` refer to both bytes and cells.
-
-## Tools & helper suggestions
-- Add helpers in `src/core/units.ts` or `src/core/vm.ts`:
-  - `cellsToBytes(cells: number): number` and `bytesToCells(bytes: number): number`
-  - `vm.RPBytes` getter for temporary compatibility returning `vm.RSP * CELL_SIZE`
-
-## Patch plan (safe order)
-1. Add `vm.RPBytes` getter on VM returning `this.RSP * CELL_SIZE` (non-invasive).
-2. Update tests to use `vm.RPBytes` or better convert to `vm.RSP` (cells) where appropriate.
-3. Replace `vm.RP += slotCount * 4` with `vm.RSP += slotCount` in ops; convert memory writes to use `vm.RSP * CELL_SIZE`.
-4. Sweep and remove `vm.RP` usages after tests update.
+## Historical Note
+An earlier scan enumerated 61 usages of `vm.RP`; that list is retained only in version control history for archaeology and was intentionally removed here to reduce noise.
 
 ---
 
-Full hit list (file:line snippet):
-
-`src/test/ops/interpreter/interpreter-operations.test.ts`:
-- line 33: `const currentBP = vm.RP;`
-- line 46: `expect(vm.BP).toBe(vm.RP);`
-- line 65: `expect(vm.BP).toBe(vm.RP);`
-- line 180: `const maxDepth = vm.RP / 4;`
-
-`src/ops/local-vars-transfer.ts`:
-- line 46: `const headerAddr = vm.RP;`
-- line 59: `const headerAddr = vm.RP;`
-
-`src/ops/builtins.ts`:
-- line 109: `vm.BP = vm.RP;`
-- line 225: `vm.RP += slotCount * 4;`
-- line 266: debug print containing `vm.RP`
-
-`src/ops/control/branch-ops.ts`:
-- line 70: `vm.BP = vm.RP; // BP remains byte-based; RP accessor provides bytes`
-
-`src/test/ops/control/control-ops.test.ts`:
-- line 32: `expect(vm.RP).toBeGreaterThan(0);`
-- line 45: `expect(vm.RP).toBeGreaterThan(0);`
-
-... (report truncated; full list saved)
-
-*Full list saved to this file.*
+End of report.

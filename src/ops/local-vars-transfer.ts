@@ -57,7 +57,8 @@ export function rpushList(vm: VM): number {
     vm.rpush(value);
     elementCell += 1;
   }
-  const headerAddr = vm.RP;
+  // Compute header byte address from cell-oriented RSP (RP accessor removed)
+  const headerAddr = vm.RSP * CELL_SIZE;
   vm.rpush(header);
   dropList(vm);
 
