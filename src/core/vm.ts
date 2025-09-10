@@ -31,7 +31,8 @@ export class VM {
 
   // Byte-oriented base pointer for return stack frames (legacy, bytes)
   
-  BP: number;
+  // Base pointer raw bytes (compat); BPCells derived on demand
+  private _bpBytes: number;
 
   IP: number;
 
@@ -57,7 +58,7 @@ export class VM {
     this.running = true;
     this._spCells = 0;
     this._rspCells = 0;
-    this.BP = 0;
+    this._bpBytes = 0;
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
@@ -115,6 +116,27 @@ export class VM {
    */
   initializeCompiler(compiler: Compiler): void {
     this.compiler = compiler;
+  }
+
+  /**
+   * Base pointer accessors.
+   * BP: returns/accepts BYTES (legacy; tests and frame layout rely on bytes).
+   * BPCells: derived view of BP in cells (floor division; may be inconsistent if BP is corrupted in tests).
+   */
+  get BP(): number { return this._bpBytes; }
+  set BP(bytes: number) {
+    // Accept raw bytes without validation to allow tests to simulate corruption.
+    this._bpBytes = bytes | 0;
+  }
+
+  get BPCells(): number {
+    return Math.floor(this._bpBytes / CELL_SIZE_BYTES);
+  }
+  set BPCells(cells: number) {
+    if (!Number.isInteger(cells)) {
+      throw new Error(`BPCells set to invalid value: ${cells}`);
+    }
+    this._bpBytes = cells * CELL_SIZE_BYTES;
   }
 
   /**

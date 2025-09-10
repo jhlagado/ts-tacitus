@@ -66,7 +66,7 @@ When a function is called, the stack frame has the following structure:
 
 ```
 [ return addr ]
-[ previous BP ] ← BP (points to saved base pointer)
+[ previous BP ] ← BP (bytes)
 [ slot 0      ] ← BP + 0 (first local variable)
 [ slot 1      ] ← BP + 4 (second local variable)
 [ slot 2      ] ← BP + 8 (third local variable)

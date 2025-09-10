@@ -63,6 +63,13 @@
 - [x] Update stack iteration (`getStackData`) to iterate cells; external shape unchanged.
 - [ ] Add temporary compat (optional): `getSpBytes()`/`getRspBytes()` if needed (not required yet).
 - [ ] Rename `RP` to `RSP` across code; provide a temporary alias only if needed to keep compile green during migration.
+
+### Phase 2.5: BP Cell View (Deferred Canonical Switch)
+- Goal: Introduce `BPCells` view while keeping `BP` canonical in bytes (to maintain test and frame-layout compatibility). Validate on exit when converting.
+- [x] Add `BPCells` derived view (no validation on set of `BP` to allow corruption tests).
+- [x] Exit validates `BP` bytes and restores `RSP` accordingly.
+- [ ] Evaluate storing BP in cells on the stack (requires broader change and test updates).
+- [ ] Update local slot helpers to optionally accept `BPCells` and convert at the boundary.
   - Progress: core ops updated to use `RSP` in checks; list ops and access paths now use `SPCells` for stack math.
 
 ### Phase 3: Cell-Native Ops & Fast Paths

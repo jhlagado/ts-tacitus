@@ -215,6 +215,7 @@ export const exitOp: Verb = (vm: VM) => {
     if (bpBytes < 0 || (bpBytes & (CELL_SIZE - 1)) !== 0 || bpBytes > RSTACK_SIZE) {
       throw new ReturnStackUnderflowError('exit', vm.getStackData());
     }
+    // Restore RSP from BP (bytes) with validation
     vm.RSP = Math.floor(bpBytes / CELL_SIZE);
     vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
