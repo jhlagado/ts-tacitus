@@ -25,21 +25,21 @@ Segments (implementation‑defined sizes):
 - Growth: Low to high addresses
 - Elements: 32-bit tagged values
 - Operations: push, pop, peek, dup, swap, drop
-- Stack pointer: SP (byte offset)
+- Stack pointer: SP (cell-indexed; accessor exposes bytes for compatibility)
 
 **Return Stack (RSTACK segment)**:
 
 - Call frame management
 - Local variable storage
 - Return address tracking
-- Base pointer: BP
+- Base pointer: BP (byte offset)
 
 Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 values encoding NaN‑boxed tags or raw numbers.
 
 VM registers:
 
-- SP — data stack pointer (bytes)
-- RP — return stack pointer (bytes)
+- SP — data stack pointer (cells; legacy byte access maintained via accessor)
+- RSP — return stack pointer (cells; legacy RP byte accessor maintained during migration)
 - BP — base pointer for current frame (bytes)
 - IP — instruction pointer (byte address in CODE)
 

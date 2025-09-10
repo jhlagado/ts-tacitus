@@ -39,8 +39,8 @@ Analogy — Refs as Symlinks
 
 Tacit VM uses a dual-stack architecture. Both stacks share the same STACK segment:
 
-- **Data Stack (SP)**: For computation and parameter passing
-- **Return Stack (RP)**: For function calls, local variables, and compound data storage
+- **Data Stack (SP)**: For computation and parameter passing (cell-indexed)
+- **Return Stack (RSP)**: For function calls, local variables, and compound data storage (cell-indexed; legacy byte-based RP accessor remains for compatibility)
 
 Local variables are stored in fixed-size slots on the return stack. The Base Pointer (BP) provides a stable reference point for addressing these slots within each function's frame.
 
@@ -72,7 +72,7 @@ When a function is called, the stack frame has the following structure:
 [ slot 2      ] ← BP + 8 (third local variable)
 ...
 [ slot N-1    ] ← BP + (N-1)*4 (last local variable)
-[ compound    ] ← RP grows upward (compound data storage)
+[ compound    ] ← RSP grows upward (compound data storage)
 [ data...     ]
 ```
 
