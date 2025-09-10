@@ -40,12 +40,12 @@ export function rpushList(vm: VM): number {
     return headerAddr;
   }
 
-  let elementAddr = vm.SP - (slotCount + 1) * CELL_SIZE;
-
+  // Data stack is cell-indexed; compute first element cell and stream-copy to RSTACK via rpush
+  let elementCell = vm.SPCells - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_STACK, elementAddr);
+    const value = vm.memory.readFloat32(SEG_STACK, elementCell * CELL_SIZE);
     vm.rpush(value);
-    elementAddr += CELL_SIZE;
+    elementCell += 1;
   }
   const headerAddr = vm.RP;
   vm.rpush(header);
@@ -149,13 +149,12 @@ export function updateListInPlace(vm: VM, targetAddr: number, segment: number): 
     dropList(vm);
     return;
   }
-  let sourceAddr = vm.SP - (slotCount + 1) * CELL_SIZE;
-
+  let sourceCell = vm.SPCells - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
+    const value = vm.memory.readFloat32(SEG_STACK, sourceCell * CELL_SIZE);
     const targetElementAddr = targetAddr - (slotCount - i) * CELL_SIZE;
     vm.memory.writeFloat32(segment, targetElementAddr, value);
-    sourceAddr += CELL_SIZE;
+    sourceCell += 1;
   }
   vm.memory.writeFloat32(segment, targetAddr, header);
   dropList(vm);

@@ -18,8 +18,8 @@ export function createTargetRef(vm: VM): boolean {
   const [, pathSize] = findElement(vm, 0); // path is at TOS
   findElement(vm, pathSize); // target is below path
 
-  // findElement examined the cell at: vm.SP / CELL_SIZE - pathSize - 1
-  const targetCellIndex = vm.SP / CELL_SIZE - pathSize - 1;
+  // findElement examined the cell at: vm.SPCells - pathSize - 1
+  const targetCellIndex = vm.SPCells - pathSize - 1;
   const targetByteAddr = targetCellIndex * CELL_SIZE;
   const target = vm.memory.readFloat32(SEG_STACK, targetByteAddr);
 
