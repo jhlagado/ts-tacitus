@@ -152,12 +152,12 @@ EXIT
 
 1. \**Standard frame setup*mul (handled by existing `callOp`):
    - Save return address: `rpush(IP)`
-   - Save base pointer: `rpush(BP)`
-   - Set new base pointer: `BP = RP`
+   - Save base pointer: `rpush(BP)` (or `BPCells` if `frameBpInCells` is enabled)
+   - Set new base pointer: `BP = RP` (bytes) or `BPCells = RSP` (cells) per runtime toggle
 
 2. \**Slot allocation*mul (`RESERVE` opcode):
    - Read slot count from bytecode
-   - Advance RP: `RP += slot_count mul 4`
+   - Advance RP: `RP += slot_count × 4` (bytes)
 
 3. \**Variable initialization*mul (`INIT_VAR_SLOT` opcodes):
    - Pop value from data stack
@@ -167,12 +167,12 @@ EXIT
 
 **Simple Values**: `42 var x`
 
-- Calculate slot address: BP + slot × 4
+- Calculate slot address: `(BPCells + slot) × 4` (bytes at memory boundary)
 - Store value directly as tagged number in slot
 
 **Compound Values**: `(1 2 3) var mylist`
 
-- Calculate slot address: BP + slot × 4
+- Calculate slot address: `(BPCells + slot) × 4` (bytes at memory boundary)
 - Store Tag.REF pointing to current RP position
 - Copy entire compound structure to return stack above RP
 
@@ -241,7 +241,7 @@ Frame layout after initialization:
 [ list_data: 1 ]             ← RP_addr (compound data)
 [ list_data: 2 ]
 [ list_data: 3 ]
-[ list_header: LIST:3 ]      ← RP
+[ list_header: LIST:3 ]      ← RSP
 ```
 
 ## 9. Function Entry and Exit
@@ -254,7 +254,7 @@ Frame layout after initialization:
 
 ### Function Exit:
 
-1. **Single instruction cleanup**: `RP = BP`
+1. **Single instruction cleanup**: `RSP = BPCells` (or `RP = BP` in byte mode)
    - Deallocates all local variable slots
    - Deallocates all compound data
    - Handles nested structures automatically
@@ -263,7 +263,7 @@ Frame layout after initialization:
 
 ### Cleanup Elegance:
 
-The `RP = BP` operation instantly deallocates:
+The `RSP = BPCells` (or `RP = BP`) operation instantly deallocates:
 
 - All local variable slots
 - All compound data structures

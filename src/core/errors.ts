@@ -69,7 +69,7 @@ export class ReturnStackUnderflowError extends VMError {
    * @param stackState Stack state
    */
   constructor(operation: string, stackState: number[]) {
-    super(`Return stack underflow: '${operation}' operation failed`, stackState);
+    super(`Return stack (RSP) underflow: '${operation}' operation failed`, stackState);
     this.name = 'ReturnStackUnderflowError';
   }
 }
@@ -84,7 +84,7 @@ export class ReturnStackOverflowError extends VMError {
    * @param stackState Stack state
    */
   constructor(operation: string, stackState: number[]) {
-    super(`Return stack overflow: '${operation}' would exceed return stack size`, stackState);
+    super(`Return stack (RSP) overflow: '${operation}' would exceed return stack size`, stackState);
     this.name = 'ReturnStackOverflowError';
   }
 }
