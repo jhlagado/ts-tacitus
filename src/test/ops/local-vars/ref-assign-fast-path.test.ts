@@ -4,7 +4,8 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM, extractListFromStack, getFormattedStack } from '../../utils/vm-test-utils';
-import { fromTaggedValue, Tag } from '../../../core/tagged';
+// Use core index re-exports to ensure consistent tag decoding
+import { fromTaggedValue, Tag } from '../../../core';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
@@ -17,6 +18,10 @@ function expectTopIsListWith(values: number[], stack: number[]) {
   }
   // Fallback: if not found (flaky ordering issue), attempt linear forward scan
   if (headerIndex === -1) {
+    if (process.env.DEBUG_TESTS === '1') {
+      // eslint-disable-next-line no-console
+      console.log('Tags by element (reverse):', stack.map(v => fromTaggedValue(v).tag).reverse());
+    }
     for (let i = 0; i < stack.length; i++) {
       const { tag } = fromTaggedValue(stack[i]);
       if (tag === Tag.LIST) { headerIndex = i; break; }
@@ -44,13 +49,10 @@ describe('Ref-to-list assignment fast path', () => {
       ;
       f
     `;
-    const stack = executeTacitCode(code);
-    // Debug aid if failure occurs
-    if (process.env.DEBUG_TESTS === '1') {
-      // eslint-disable-next-line no-console
-      console.log('Stack (formatted):', getFormattedStack());
-    }
-    expectTopIsListWith([3, 2, 1], stack);
+    executeTacitCode(code);
+    const formatted = getFormattedStack();
+    // Expect top-of-stack is a LIST:3 with payload 3,2,1 beneath it
+    expect(formatted.slice(-4)).toEqual(['3', '2', '1', 'LIST:3']);
   });
 
   test('self-assignment `&x -> x` is a no-op', () => {
@@ -62,8 +64,9 @@ describe('Ref-to-list assignment fast path', () => {
       ;
       f
     `;
-    const stack = executeTacitCode(code);
-    expectTopIsListWith([6, 5, 4], stack);
+    executeTacitCode(code);
+    const formatted = getFormattedStack();
+    expect(formatted.slice(-4)).toEqual(['6', '5', '4', 'LIST:3']);
   });
 
   test('copy sublist into sibling via bracketed destination', () => {

@@ -8,7 +8,7 @@ Orientation
   - Simple assignment: `42 -> x` or `&y -> x` (when y is simple)
   - Compound assignment: `(1 2 3) -> x` or `y -> x` (bare y compiles to Load)
   - Avoid `&y -> x` for compounds; use `&y load -> x` instead.
-  - Increment: `value +> x` (locals-only; sugar for `value x add -> x`)
+  - Increment: `value +> x` or `value +> x[ … ]` (locals-only; sugar for `value x add -> x` and `value x[ … ] add -> x[ … ]`)
 
 Analogy — Refs as Symlinks
 - Treat `&x` (refs to local slots) like filesystem symlinks rather than raw pointers:
@@ -308,12 +308,15 @@ Syntax and desugaring
 - Form: `value +> x`
 - Desugars to: `value x add -> x`
 
+- Bracket-path form: `value +> x[ … ]`
+- Desugars to: `value x[ … ] add -> x[ … ]`
+
 Stack effects (logical)
-- `+>` operates as sugar over existing primitives; effect is equivalent to reading `x`, adding `value`, and writing back to `x`.
+- `+>` operates as sugar over existing primitives; effect is equivalent to reading the current value (directly or via a bracket path), adding `value`, and writing back to the same destination.
 
 Scope and constraints
-- Locals-only: Only valid inside function definitions and only targets local variables.
-- No bracket paths (current stage): `value +> x[ ... ]` is not supported; use explicit `&x fetch` with `select` and `store` if path updates are needed.
+- Locals-only destination: Only valid inside function definitions and only targets local variables (either the slot `x` or a bracket-path selection within `x`).
+- Path rules: Bracket-path destinations follow the same validity and error semantics as `value -> x[ … ]` (e.g., invalid paths throw; type/shape checks apply for compound elements).
 - Errors:
   - Using `+>` outside a function: “Increment operator (+>) only allowed inside function definitions”.
   - Undefined local name after `+>`: “Undefined local variable: <name>”.
@@ -344,7 +347,25 @@ Examples
   1 +> x          \ same as: 1 x add -> x
   x
 ;
+
+: inc-bracket
+  ( 10 20 ) var xs
+  7 +> xs[0]       \ same as: 7 xs[0] add -> xs[0]
+  xs
+;
+
+: inc-nested
+  ( ( 1 2 ) ( 3 4 ) ) var xs
+  1 +> xs[0 1]     \ increment nested element
+  xs
+;
 ```
+
+Lowering details (for implementers)
+- Simple form `value +> x` compiles to: `VarRef(slot)` → `Swap` → `Over` → `Fetch` → `Add` → `Swap` → `Store`.
+- Bracket-path form `value +> x[ … ]` compiles the destination address like assignment, then performs RMW:
+  - Address build: `VarRef(slot)` → `Fetch` → `[path]` → `Select` → `Nip`
+  - RMW: `Swap` → `Over` → `Fetch` → `Add` → `Swap` → `Store`
 
 ## 10.1 In-Place Mutation of Locals (Normative)
 
