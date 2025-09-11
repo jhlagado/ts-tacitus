@@ -4,7 +4,7 @@ Orientation
 - Start with core invariants: docs/specs/core-invariants.md
 - Lists and bracket paths: docs/specs/lists.md
 
-Status: Authoritative spec for variables (locals and globals) and data references in Tacit. Consolidates and supersedes `local-vars.md` and `refs.md`.
+Status: Authoritative spec for variables (locals and globals) and data references in Tacit.
 
 ## Table of Contents
 
@@ -346,11 +346,7 @@ The code blocks access the parent function's local `x` using the current `BP`. B
 
 ---
 
-## Appendix D: Migration & Testing Notes
-
-Migration (historical)
-- Phase 1: add `&x`; update store/set to materialize sources.
-- Phase 2: switch bare local access to value-by-default.
+## Appendix D: Testing Notes
 
 Testable assertions
 - `&x load` equals `x` value.

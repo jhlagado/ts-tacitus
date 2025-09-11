@@ -50,6 +50,11 @@ References and values
 - Stack ops treat refs as opaque values; structure-aware ops dereference as needed.
 - Use `load` for value-by-default; use `fetch` for strict address reads.
 
+Notation
+- Stack effects `( before — after )` are documentation only. Inside code fences they are written as `\ ( — … )` so examples remain valid Tacit.
+- Tacit comments use backslash `\` to end-of-line. `//`, `#`, and `;` are not comment markers.
+- Blocks `{ … }` produce a code reference; they do not execute without `eval`.
+
 ### Visualization
 
 ```tacit
