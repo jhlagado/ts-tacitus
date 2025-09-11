@@ -5,7 +5,7 @@
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE } from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
@@ -187,7 +187,30 @@ export function storeOp(vm: VM): void {
   if (rhsInfo && isList(rhsInfo.header)) {
     const existingIsCompound = isList(existingValue);
     if (!existingIsCompound) {
-      // Cannot assign compound to simple
+      // Initialization path for globals: allocate region in SEG_GLOBAL and bind slot to it
+      if (dest.segment === SEG_GLOBAL) {
+        const slotCount = getListLength(rhsInfo.header);
+        // Allocate slotCount (payload) + 1 (header) cells in global segment
+        const baseCells = (vm as any)._globalTopCells ?? 0;
+        const baseAddr = baseCells * CELL_SIZE;
+        // Copy payload
+        for (let i = 0; i < slotCount; i++) {
+          const srcAddr = rhsInfo.baseAddr + i * CELL_SIZE;
+          const v = vm.memory.readFloat32(rhsInfo.segment, srcAddr);
+          vm.memory.writeFloat32(SEG_GLOBAL, baseAddr + i * CELL_SIZE, v);
+        }
+        // Write header
+        const headerAddr = baseAddr + slotCount * CELL_SIZE;
+        vm.memory.writeFloat32(SEG_GLOBAL, headerAddr, rhsInfo.header);
+        // Rebind slot: write GLOBAL_REF(headerCellIndex) into the destination slot
+        const headerCellIndex = headerAddr / CELL_SIZE;
+        vm.memory.writeFloat32(dest.segment, dest.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
+        // Advance global top pointer
+        (vm as any)._globalTopCells = baseCells + slotCount + 1;
+        vm.pop();
+        return;
+      }
+      // Cannot assign compound to simple (non-global destinations)
       vm.pop();
       throw new Error('Cannot assign simple to compound or compound to simple');
     }

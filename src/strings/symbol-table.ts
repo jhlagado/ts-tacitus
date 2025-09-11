@@ -38,6 +38,7 @@ export type SymbolTableCheckpoint = SymbolTableNode | null;
 export class SymbolTable {
   private head: SymbolTableNode | null;
   private localSlotCount: number;
+  private globalSlotCount: number;
 
   /**
    * Creates a new SymbolTable instance.
@@ -46,6 +47,7 @@ export class SymbolTable {
   constructor(private digest: Digest) {
     this.head = null;
     this.localSlotCount = 0;
+    this.globalSlotCount = 0;
   }
 
   /**
@@ -265,6 +267,26 @@ export class SymbolTable {
   defineLocal(name: string): void {
     const slotNumber = this.localSlotCount++;
     this.defineSymbol(name, toTaggedValue(slotNumber, Tag.LOCAL));
+  }
+
+  /**
+   * Defines a global variable in the symbol table with auto-slot assignment
+   *
+   * Globals persist for the lifetime of the program and are not reset by mark()/revert().
+   * The tagged value is a GLOBAL_REF with payload = global cell index (slot number).
+   */
+  defineGlobal(name: string): number {
+    const slotNumber = this.globalSlotCount++;
+    const tagged = toTaggedValue(slotNumber, Tag.GLOBAL_REF);
+    this.defineSymbol(name, tagged);
+    return slotNumber;
+  }
+
+  /**
+   * Returns the number of globals defined so far.
+   */
+  getGlobalCount(): number {
+    return this.globalSlotCount;
   }
 
   /**

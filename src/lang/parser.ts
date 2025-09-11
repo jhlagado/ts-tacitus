@@ -20,7 +20,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isWhitespace, isGroupingChar, fromTaggedValue, Tag } from '@src/core';
+import { isWhitespace, isGroupingChar, fromTaggedValue, toTaggedValue, Tag } from '@src/core';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
@@ -293,6 +293,9 @@ export function emitWord(value: string, state: ParserState): void {
   } else if (value === '->') {
     emitAssignment(state);
     return;
+  } else if (value === 'global') {
+    emitGlobalDecl(state);
+    return;
   } else if (value === '+>') {
     emitIncrement(state);
     return;
@@ -326,6 +329,25 @@ export function emitWord(value: string, state: ParserState): void {
         } else if (next) {
           // No bracket suffix; push back for outer parser
           state.tokenizer.pushBack(next);
+        }
+        return;
+      } else if (tag === Tag.GLOBAL_REF) {
+        // Globals: push literal GLOBAL_REF then Load
+        vm.compiler.compileOpcode(Op.LiteralNumber);
+        vm.compiler.compileFloat32(toTaggedValue(tagValue, Tag.GLOBAL_REF));
+
+        // Optional bracket suffix: a[ ... ] → compile path list + Retrieve
+        const next = state.tokenizer.nextToken();
+        if (next && next.type === TokenType.SPECIAL && next.value === '[') {
+          compileBracketPathAsList(state);
+          vm.compiler.compileOpcode(Op.Select);
+          vm.compiler.compileOpcode(Op.Load);
+          vm.compiler.compileOpcode(Op.Nip);
+        } else if (next) {
+          state.tokenizer.pushBack(next);
+          vm.compiler.compileOpcode(Op.Load);
+        } else {
+          vm.compiler.compileOpcode(Op.Load);
         }
         return;
       }
@@ -386,15 +408,18 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   }
 
   const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
-  if (tag !== Tag.LOCAL) {
-    throw new Error(`${varName} is not a local variable`);
+  if (tag === Tag.LOCAL) {
+    vm.compiler.compileOpcode(Op.VarRef);
+    vm.compiler.compile16(slotNumber);
+    vm.compiler.compileOpcode(Op.Fetch);
+    return;
   }
-
-  // Compile VarRef + Fetch (existing behavior for &x) so that &x yields the slot value
-  // (which for list locals is a reference to the list header enabling fast path copies).
-  vm.compiler.compileOpcode(Op.VarRef);
-  vm.compiler.compile16(slotNumber);
-  vm.compiler.compileOpcode(Op.Fetch);
+  if (tag === Tag.GLOBAL_REF) {
+    vm.compiler.compileOpcode(Op.LiteralNumber);
+    vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+    return;
+  }
+  throw new Error(`${varName} is not a local variable`);
 }
 
 /**
@@ -431,6 +456,34 @@ export function emitVarDecl(state: ParserState): void {
 }
 
 /**
+ * Process global variable declaration with 'global' keyword.
+ *
+ * Syntax: value global name
+ * Behavior: registers a global slot for 'name' and stores TOS into it at runtime.
+ */
+export function emitGlobalDecl(state: ParserState): void {
+  if (state.currentDefinition) {
+    throw new SyntaxError(
+      'Global declarations not allowed inside function definitions',
+      vm.getStackData(),
+    );
+  }
+
+  const nameToken = state.tokenizer.nextToken();
+  if (nameToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after global', vm.getStackData());
+  }
+
+  const varName = nameToken.value as string;
+  // Define global symbol and get its slot index (payload)
+  const slot = vm.symbolTable.defineGlobal(varName);
+  // Emit: LiteralNumber(GLOBAL_REF(slot)) → Store
+  vm.compiler.compileOpcode(Op.LiteralNumber);
+  vm.compiler.compileFloat32(toTaggedValue(slot, Tag.GLOBAL_REF));
+  vm.compiler.compileOpcode(Op.Store);
+}
+
+/**
  * Process assignment operator '->'.
  *
  * This function handles local variable assignment using the syntax: value -> variable
@@ -441,13 +494,6 @@ export function emitVarDecl(state: ParserState): void {
  * @throws {Error} If not inside a function definition or invalid variable name
  */
 export function emitAssignment(state: ParserState): void {
-  if (!state.currentDefinition) {
-    throw new SyntaxError(
-      'Assignment operator (->) only allowed inside function definitions',
-      vm.getStackData(),
-    );
-  }
-
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after ->', vm.getStackData());
@@ -457,36 +503,58 @@ export function emitAssignment(state: ParserState): void {
 
   const taggedValue = vm.symbolTable.findTaggedValue(varName);
   if (taggedValue === undefined) {
-    throw new Error(`Undefined local variable: ${varName}`);
+    throw new Error(`Undefined local or global variable: ${varName}`);
   }
 
   const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
-  if (tag !== Tag.LOCAL) {
-    throw new Error(`${varName} is not a local variable`);
-  }
-
-  // Check for bracketed path assignment: value -> x[ ... ]
-  const maybeBracket = state.tokenizer.nextToken();
-  if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-    // Compile &x semantics for path-based assignment
+  if (tag === Tag.LOCAL) {
+    // Check for bracketed path assignment: value -> x[ ... ]
+    const maybeBracket = state.tokenizer.nextToken();
+    if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+      // Compile &x semantics for path-based assignment
+      vm.compiler.compileOpcode(Op.VarRef);
+      vm.compiler.compile16(slotNumber);
+      vm.compiler.compileOpcode(Op.Fetch);
+      compileBracketPathAsList(state);
+      // Inline update: select → nip → store
+      vm.compiler.compileOpcode(Op.Select);
+      vm.compiler.compileOpcode(Op.Nip);
+      vm.compiler.compileOpcode(Op.Store);
+      return;
+    } else if (maybeBracket) {
+      // No bracket; put the token back
+      state.tokenizer.pushBack(maybeBracket);
+    }
+    // Simple variable assignment
     vm.compiler.compileOpcode(Op.VarRef);
     vm.compiler.compile16(slotNumber);
-    vm.compiler.compileOpcode(Op.Fetch);
-    compileBracketPathAsList(state);
-    // Inline update: select → nip → store
-    vm.compiler.compileOpcode(Op.Select);
-    vm.compiler.compileOpcode(Op.Nip);
     vm.compiler.compileOpcode(Op.Store);
     return;
-  } else if (maybeBracket) {
-    // No bracket; put the token back
-    state.tokenizer.pushBack(maybeBracket);
   }
-
-  // Simple variable assignment
-  vm.compiler.compileOpcode(Op.VarRef);
-  vm.compiler.compile16(slotNumber);
-  vm.compiler.compileOpcode(Op.Store);
+  if (tag === Tag.GLOBAL_REF) {
+    const maybeBracket = state.tokenizer.nextToken();
+    if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+      vm.compiler.compileOpcode(Op.LiteralNumber);
+      vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+      vm.compiler.compileOpcode(Op.Fetch);
+      compileBracketPathAsList(state);
+      vm.compiler.compileOpcode(Op.Select);
+      vm.compiler.compileOpcode(Op.Nip);
+      vm.compiler.compileOpcode(Op.Store);
+      return;
+    } else if (maybeBracket) {
+      state.tokenizer.pushBack(maybeBracket);
+    }
+    vm.compiler.compileOpcode(Op.LiteralNumber);
+    vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+    vm.compiler.compileOpcode(Op.Store);
+    return;
+  }
+  // Otherwise, not a recognized assignable
+  throw new SyntaxError(
+    'Assignment operator (->) only allowed for locals or globals',
+    vm.getStackData(),
+  );
 }
 
 /**

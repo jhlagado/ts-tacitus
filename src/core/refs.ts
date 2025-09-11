@@ -5,7 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
-import { SEG_STACK, SEG_RSTACK } from './constants';
+import { SEG_STACK, SEG_RSTACK, SEG_GLOBAL } from './constants';
 
 /**
  * Checks if a value is a reference (STACK_REF, RSTACK_REF, or GLOBAL_REF).
@@ -106,7 +106,7 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
       return { address: value * 4, segment: SEG_RSTACK };
 
     case Tag.GLOBAL_REF:
-      throw new Error('Global variable references not yet implemented');
+      return { address: value * 4, segment: SEG_GLOBAL };
 
     default:
       throw new Error(`Invalid reference type: ${tag}`);
