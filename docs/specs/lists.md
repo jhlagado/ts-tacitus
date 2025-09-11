@@ -21,9 +21,9 @@ Units
 2. Terminology
    **ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
 
-- **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
-- **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
-- **GLOBAL_REF**: (future) will refer to a cell location in a global segment
+  - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
+  - **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+  - **GLOBAL_REF**: refers to a cell location in the global segment (SEG_GLOBAL)
   Refs are used for polymorphic memory addressing and are encoded as tagged values. Unless otherwise specified, references in this document refer to STACK_REFs.
 
 4. Tagged values and headers (overview)
@@ -180,11 +180,11 @@ Introduce path brackets early; they are the ergonomic way to read and write insi
 
 Syntax
 - Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` (maplist string keys)
-- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` (destination restricted to locals)
+- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` (destination must be an address: local `&x` or global `&name`)
 
 Lowering (normative)
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
-- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
+- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (GLOBAL_REF), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
 
 Semantics
 - Path items:
@@ -196,7 +196,8 @@ Semantics
 
 Examples
 - Lists: `( (1 2) (3 4) ) [0 1]  ⇒ 2`
-- Lists write: `5 -> x[1 1]` updates the second element of the second nested list in local `x`.
+- Lists write (local): `5 -> x[1 1]` updates the second element of the second nested list in local `x`.
+- Lists write (global): `5 -> xs[0]` updates the first element of global `xs` when that element is simple.
 - Lists compound write: `(1 2 3) -> x[0 0]` replaces a nested list in-place when compatible (3 payload slots).
 - Maplists (string keys):
   - Read: `obj[ "stats" "count" ]  ⇒ 2`
@@ -366,10 +367,10 @@ Testing checklist
 **Cost:** O(n). Requires shifting payload to make room at the tail and updating the header. Prefer `concat` (simple/list) and `tail` in hot paths.
 **Examples**
 
-```tac
+```tacit
 ( 1 2 ) 3 append         \ -> ( 1 2 3 )
 ( 1 ) ( 2 3 ) append     \ -> ( 1 ( 2 3 ) )
-````
+```
 
 ### head
 
@@ -437,7 +438,7 @@ list  sort { cmp }   ->  list'
 
 ### Examples
 
-```tac
+```tacit
 ( 3 1 2 )                 sort { - }        \ -> ( 1 2 3 )
 ( 3 1 2 )                 sort { swap - }   \ -> ( 3 2 1 )
 ( (2 9) 1 (0 0 0) )       sort { length swap length - }

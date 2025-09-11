@@ -11,7 +11,7 @@ This short document centralizes the rules all other specs assume.
 - Compound compatibility: in-place mutation of compound destinations is allowed only when the source has the same structural type and total slot count; otherwise it is an error. List headers and compound starts are immutable as targets for simple writes.
 - Access consistency: bracket paths are primary. Reads: `expr[ … ]` → select→load→nip, return value or NIL. Writes: `value -> var[ … ]` → &var (local or global), select→nip→store, mutate in place or throw. Low-level `elem`/`slot`/`find`/`select`/`fetch`/`store` are supporting operations.
 - Liberal sources; strict destinations: sources may auto‑dereference and materialize; destinations must be addresses and are never materialized.
-- Errors and NIL: Out-of-bounds address queries yield NIL; invalid reference kinds for fetch/store error; `GLOBAL_REF` deref is not implemented and must throw.
+- Errors and NIL: Out-of-bounds address queries yield NIL; invalid reference kinds for fetch/store error; `GLOBAL_REF` is implemented and resolves to the global segment for reads/writes.
 
 Quick Patterns (for day-to-day use)
 - Read value regardless of being a ref: `load` (identity on non-refs; deref up to two levels; materializes lists).

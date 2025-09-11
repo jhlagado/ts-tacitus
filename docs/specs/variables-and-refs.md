@@ -93,7 +93,7 @@ See docs/specs/vm-architecture.md (Frames & BP) for full layout, diagrams, and i
 ## 5. Access Forms and Value-by-Default
 
 Target compilation (locals/globals)
-```
+```tacit
 x        → VarRef + Load              (value-by-default)
 &x       → VarRef + Fetch             (slot address)
 name     → GlobalRef + Load           (value-by-default)
@@ -103,7 +103,7 @@ value -> name  → GlobalRef + Store    (assignment)
 ```
 
 Stack effects (logical)
-```
+```tacit
 x, name      ( — value )        \ value of variable (simple or compound)
 &x           ( — RSTACK_REF )   \ local slot address
 &name        ( — GLOBAL_REF )   \ global address
@@ -240,7 +240,7 @@ Canonical errors
 ## 12. Examples
 
 Locals — basic
-```
+```tacit
 : calculate
   10 var a
   5 var b
@@ -249,7 +249,7 @@ Locals — basic
 ```
 
 Locals — compounds and in-place update
-```
+```tacit
 : process-list
   (1 2 3) var xs
   5 -> xs[1]
@@ -258,7 +258,7 @@ Locals — compounds and in-place update
 ```
 
 Globals — basics
-```
+```tacit
 42 global answer
 answer              \ -> 42
 
@@ -271,7 +271,7 @@ answer              \ -> 42
 ```
 
 Increment (locals-only)
-```
+```tacit
 : inc1
   0 var x
   1 +> x
@@ -335,7 +335,7 @@ LOCAL_VAR_ADDR
 Blocks preserve lexical access to parent locals and do not create a new frame.
 
 Example
-```
+```tacit
 : conditional-math
   5 var x
   if { x 0 gt } then { x 2 mul } else { 0 } endif
@@ -384,7 +384,7 @@ Cross‑references
 ## Appendix F: Additional Examples
 
 Formal parameters via variables
-```
+```tacit
 : area ( radius -- area )
   var radius
   3.14159 var pi
@@ -394,7 +394,7 @@ Formal parameters via variables
 ```
 
 Multiple locals with mixed types
-```
+```tacit
 : complex-calc
   var input
   (10 20 30) var coeffs
@@ -405,10 +405,44 @@ Multiple locals with mixed types
 ```
 
 Code blocks accessing locals
-```
+```tacit
 : conditional-process
   var data
   data 0 gt
   if { data 2 mul } else { 0 } endif
 ;
+
+---
+
+## Appendix G: Lowering Cookbook (Surface → Ops)
+
+Common surface forms and their canonical lowering:
+
+Locals
+```tacit
+x                 → VarRef(slot) · Load
+&x                → VarRef(slot) · Fetch
+value -> x        → VarRef(slot) · Store
+
+value +> x        → VarRef(slot) · Swap · Over · Fetch · Add · Swap · Store
+value +> x[ … ]   → VarRef(slot) · Fetch · [path] · Select · Nip · Swap · Over · Fetch · Add · Swap · Store
+```
+
+Globals
+```tacit
+name              → LiteralNumber(GLOBAL_REF(slot)) · Load
+&name             → LiteralNumber(GLOBAL_REF(slot))
+value -> name     → LiteralNumber(GLOBAL_REF(slot)) · Store
+value -> name[ … ]→ LiteralNumber(GLOBAL_REF(slot)) · Fetch · [path] · Select · Nip · Store
+```
+
+Bracket-path read (any expr)
+```tacit
+expr[ … ]         → [path] · Select · Load · Nip
+```
+
+Notes
+- “[path]” means the parser emits an OpenList · elements · CloseList path literal.
+- Destinations must be addresses; sources that are refs are materialized before writes.
+- `+>` is locals-only; use `value name add -> name` for globals.
 ```
