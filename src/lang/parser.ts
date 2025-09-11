@@ -527,20 +527,31 @@ export function emitIncrement(state: ParserState): void {
     throw new Error(`${varName} is not a local variable`);
   }
 
-  // Disallow bracket-path increments in this stage: value +> x[ ... ]
+  // Check for optional bracketed path: value +> x[ ... ]
   const maybeBracket = state.tokenizer.nextToken();
   if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-    // Put back the '[' so higher stages could handle if implemented later
-    // but for this staged implementation we throw a clear error.
-    throw new SyntaxError(
-      'Increment on bracket paths not implemented in this stage',
-      vm.getStackData(),
-    );
+    // Build destination sub-address from local list slot: &x fetch [path] select nip
+    vm.compiler.compileOpcode(Op.VarRef);
+    vm.compiler.compile16(slotNumber);
+    vm.compiler.compileOpcode(Op.Fetch);
+    compileBracketPathAsList(state);
+    vm.compiler.compileOpcode(Op.Select);
+    vm.compiler.compileOpcode(Op.Nip);
+
+    // Now perform RMW on that address: swap, over, fetch, add, swap, store
+    vm.compiler.compileOpcode(Op.Swap);
+    vm.compiler.compileOpcode(Op.Over);
+    vm.compiler.compileOpcode(Op.Fetch);
+    vm.compiler.compileOpcode(Op.Add);
+    vm.compiler.compileOpcode(Op.Swap);
+    vm.compiler.compileOpcode(Op.Store);
+    return;
   } else if (maybeBracket) {
+    // No bracket; put the token back for outer parsing
     state.tokenizer.pushBack(maybeBracket);
   }
 
-  // Compile sugar: value x add -> x
+  // Simple locals-only increment sugar: value x add -> x
   // Start: [..., inc]
   vm.compiler.compileOpcode(Op.VarRef);
   vm.compiler.compile16(slotNumber); // [..., inc, addr]

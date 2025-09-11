@@ -73,17 +73,7 @@ describe('Increment operator +> (locals-only)', () => {
       ).toThrow(/Undefined local variable: y/);
     });
 
-    test('bracket path increments not implemented in this stage', () => {
-      expect(() =>
-        executeTacitCode(`
-          : bad-path
-            ( 1 2 ) var xs
-            1 +> xs[0]
-          ;
-          bad-path
-        `),
-      ).toThrow(/Increment on bracket paths not implemented in this stage/);
-    });
+    // No specific error for bracketed +> anymore; covered by positive tests below
   });
 
   describe('equivalence with sugar (value x add -> x)', () => {
@@ -107,6 +97,30 @@ describe('Increment operator +> (locals-only)', () => {
       `);
 
       expect(resultSugar[0]).toBeCloseTo(resultDesugared[0]);
+    });
+  });
+
+  describe('bracket path increments', () => {
+    test('parity with desugared form on bracket path', () => {
+      const sugar = executeTacitCode(`
+        : using-plus-greater-br
+          ( 10 20 ) var xs
+          7 +> xs[0]
+          xs
+        ;
+        using-plus-greater-br
+      `);
+
+      const desugared = executeTacitCode(`
+        : using-desugar-br
+          ( 10 20 ) var xs
+          7 xs[0] add -> xs[0]
+          xs
+        ;
+        using-desugar-br
+      `);
+
+      expect(sugar).toEqual(desugared);
     });
   });
 });

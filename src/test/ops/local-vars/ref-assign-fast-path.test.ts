@@ -3,7 +3,7 @@
  * Verifies direct ref-to-list assignment fast path in storeOp.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM, extractListFromStack } from '../../utils/vm-test-utils';
+import { executeTacitCode, resetVM, extractListFromStack, getFormattedStack } from '../../utils/vm-test-utils';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
@@ -45,6 +45,11 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     const stack = executeTacitCode(code);
+    // Debug aid if failure occurs
+    if (process.env.DEBUG_TESTS === '1') {
+      // eslint-disable-next-line no-console
+      console.log('Stack (formatted):', getFormattedStack());
+    }
     expectTopIsListWith([3, 2, 1], stack);
   });
 
