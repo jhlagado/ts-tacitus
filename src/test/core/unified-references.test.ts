@@ -17,7 +17,7 @@ import {
   createSegmentRef,
 } from '../../core';
 import { fetchOp } from '../../ops/lists';
-import { SEG_RSTACK } from '../../core';
+import { SEG_RSTACK, SEG_GLOBAL, CELL_SIZE } from '../../core';
 
 describe('Unified Reference System', () => {
   beforeEach(() => {
@@ -139,11 +139,14 @@ describe('Unified Reference System', () => {
       expect(vm.getStackData()).toEqual([99]);
     });
 
-    test('should handle GLOBAL_REF with appropriate error', () => {
-      const globalRef = createGlobalRef(42);
+    test('should handle GLOBAL_REF read', () => {
+      // Write a value into SEG_GLOBAL at cell index 42
+      const cellIndex = 42;
+      vm.memory.writeFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE, 123.5);
+      const globalRef = createGlobalRef(cellIndex);
       vm.push(globalRef);
-
-      expect(() => fetchOp(vm)).toThrow('Global variable references not yet implemented');
+      fetchOp(vm);
+      expect(vm.getStackData()).toEqual([123.5]);
     });
 
     test('should reject invalid reference types', () => {

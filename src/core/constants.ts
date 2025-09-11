@@ -19,6 +19,8 @@ export const SEG_STACK = 0;
 
 export const SEG_RSTACK = 1;
 
+export const SEG_GLOBAL = 2;
+
 export const SEG_CODE = 4;
 
 export const SEG_STRING = 5;
@@ -26,6 +28,8 @@ export const SEG_STRING = 5;
 export const STACK_SIZE = 0x0100;
 
 export const RSTACK_SIZE = 0x0100;
+
+export const GLOBAL_SIZE = 0x0100;
 
 export const STRING_SIZE = 0x0800;
 
