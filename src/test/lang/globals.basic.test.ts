@@ -36,4 +36,37 @@ describe('Global variables (SEG_GLOBAL + GLOBAL_REF)', () => {
     expect(result[0]).toEqual(2);
   });
 
+  test('bracket-path update of global list element (path exercised)', () => {
+    const result = executeTacitCode(`
+      ( 1 2 ) global xs
+      9 -> xs[0]
+      xs length
+    `);
+    expect(result[0]).toEqual(2);
+  });
+
+
+  test('incompatible compound reassignment errors', () => {
+    expect(() => executeTacitCode(`
+      ( 1 2 ) global xs
+      ( 1 2 3 ) -> xs
+    `)).toThrow(/Incompatible compound assignment/);
+  });
+
+  test('simple to compound mismatch errors', () => {
+    expect(() => executeTacitCode(`
+      ( 1 2 ) global xs
+      42 -> xs
+    `)).toThrow(/Cannot assign simple to compound or compound to simple/);
+  });
+
+  test('global segment exhaustion throws on compound init overflow', () => {
+    const make32 = Array.from({ length: 32 }, () => '1').join(' ');
+    const code = `
+      ( ${make32} ) global g1
+      ( ${make32} ) global g2
+    `;
+    expect(() => executeTacitCode(code)).toThrow(/Global segment exhausted/);
+  });
+
 });

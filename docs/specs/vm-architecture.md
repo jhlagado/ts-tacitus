@@ -108,6 +108,61 @@ Local variable addressing: slot N resides at cell index `BP + N` (byte address o
 
 Corruption / Testing: A helper `unsafeSetBPBytes(byteIndex)` (alignment‑checked) converts to a cell index for targeted error simulation without reintroducing byte-centric logic.
 
+## Frames & BP (Cell Canonical)
+
+Overview
+Tacit uses a split-stack model: the data stack (STACK) for operand values and the return stack (RSTACK) for call frame metadata and local variables. Frames are fully cell-based: all indices (`SP`, `RSP`, `BP`) are stored and manipulated in cell units (32‑bit words). Byte addresses are derived only at memory access boundaries by multiplying by `CELL_SIZE` (4).
+
+Frame Prologue & Epilogue
+Function (meta = 0)
+1. Push return address (next IP)
+2. Push caller `BP`
+3. Set `BP = RSP`
+
+Epilogue (`Exit`):
+1. Validate saved BP (0 ≤ savedBP ≤ RSP) else `ReturnStackUnderflowError`
+2. Set `RSP = savedBP`
+3. Pop previous BP
+4. Pop return address and jump
+
+Code Block (meta = 1)
+- Blocks do not introduce a new frame: only the return address is pushed and later popped by `ExitCode`; `BP` is preserved.
+
+Layout Diagram
+```
+Top (High RSP)
+┌──────────────────┐ RSP-1  Return Address (function)
+│ Return Address   │
+├──────────────────┤ RSP-2  Saved Caller BP
+│ Saved BP         │
+├──────────────────┤ RSP-3  Local Slot 0 (BP + 0)
+│ Local Slot 0     │
+│ Local Slot 1     │ (BP + 1)
+│ ...              │
+└──────────────────┘
+Increasing depth ↓ (toward lower indices)
+```
+
+Locals
+- Allocation via `Reserve` advances `RSP` by slot count (cells) after the frame root is established.
+- Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within `SEG_RSTACK`.
+- References (`&x`) compile to `RSTACK_REF` with payload = absolute cell index `(BP + slot)`.
+
+Compound Locals (Lists)
+- Lists are stored on RSTACK in reverse layout: `[payload cells...] [LIST header]`.
+- When initializing a LIST local, the materialized LIST on STACK is transferred to RSTACK; the slot receives an `RSTACK_REF` pointing to the header cell.
+- Fast path for ref-to-list assignment copies payload + header directly when segments match; slot reference is preserved.
+
+Corruption Testing
+- `unsafeSetBPBytes(byteIndex)` (test helper) injects a byte-aligned value for BP (multiple of 4) that is converted to cells to keep invariants while enabling negative / out-of-range scenarios for error-path coverage.
+
+Invariants
+- `BP`, `SP`, `RSP` are non-negative integers (cells)
+- `BP <= RSP`
+- Frame locals occupy `[BP, RSP)`
+- `Reserve` never reduces `RSP`
+- No hidden `/4` or `*4` arithmetic outside explicit address formation
+
 ## References & Addressing
 
 - STACK_REF — address of a data stack cell (cell index encoded as payload).
@@ -158,10 +213,30 @@ Reference helpers (see `core/refs.ts`):
 - Tagged values: `specs/tagged.md`
 - Lists & traversal: `specs/lists.md`
 - Addressing & paths: see `specs/lists.md` (Addressing & Bracket Paths)
-- Local variables & frames: `specs/local-vars.md`
+- Local variables & frames: `specs/variables-and-refs.md`
 
 ## Related Specifications
 
 - `specs/tagged.md` - Value representation
-- `specs/stack-operations.md` - Stack manipulation
+- `specs/README.md` - Stack primer and index
 - `specs/core-invariants.md` - Shared invariants and rules
+
+---
+
+## Rationale for Cell Canonicalization
+
+- Removes pervasive divide/multiply by 4 noise in frame math.
+- Aligns with SP/RSP migration and simplifies reasoning about slot addressing.
+- Keeps corruption tests meaningful via explicit helper instead of implicit byte state.
+
+## Related Files
+- `src/core/vm.ts` — register storage & helpers
+- `src/ops/core/core-ops.ts` — `exitOp` / `exitCodeOp`
+- `src/ops/builtins.ts` — `reserveOp`, `initVarOp`
+- `src/ops/lists/query-ops.ts` — `storeOp` fast paths
+- `src/core/refs.ts` — reference resolution (cell index → byte address)
+
+## Future Hardening (Phase 3)
+- Remove any residual transitional comments
+- Add optional runtime invariant assertions in debug builds
+- Microbenchmark call/return path vs pre‑migration baseline

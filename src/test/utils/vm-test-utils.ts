@@ -8,7 +8,7 @@
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
  */
-import { VM, Tag, toTaggedValue, fromTaggedValue } from '../../core';
+import { VM, Tag, toTaggedValue, fromTaggedValue, SEG_GLOBAL, GLOBAL_SIZE } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
@@ -36,6 +36,12 @@ export function resetVM(): void {
   const stackData = vm.getStackData();
   for (let i = 0; i < stackData.length; i++) {
     vm.pop();
+  }
+
+  // Reset globals allocation pointer and clear global segment
+  (vm as unknown as { _globalTopCells?: number })._globalTopCells = 0;
+  for (let i = 0; i < GLOBAL_SIZE; i++) {
+    vm.memory.write8(SEG_GLOBAL, i, 0);
   }
 }
 

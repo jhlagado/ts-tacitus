@@ -135,8 +135,8 @@ This guarantees strong encapsulation and predictable lifetimes, with all state c
 ## 5. Integration with Other Specs
 
 * Capsules are lists: all operations in `lists.md` apply.
-* References inside capsules behave exactly as described in `refs.md`.
-* Local variables remain governed by `local-vars.md`.
+* References inside capsules behave exactly as described in `variables-and-refs.md`.
+* Local variables remain governed by `variables-and-refs.md` and `vm-architecture.md`.
 
 ---
 
@@ -156,3 +156,4 @@ This guarantees strong encapsulation and predictable lifetimes, with all state c
 The `methods` combinator makes capsule construction concise and idiomatic.  By automatically performing the reification process, it lets Tacit code focus on state and behavior while the VM guarantees determinism and message-driven semantics.
 
 Capsules remain pure stack values, ensuring predictable lifetimes and a clean integration with Tacit’s value-first model. They provide a simple yet powerful foundation for building objects, actors, and generators entirely on the stack.
+

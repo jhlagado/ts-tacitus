@@ -25,10 +25,15 @@ describe('Reference Sigil (&x) Parsing', () => {
     expect(resultValue).not.toEqual(resultRef);
   });
 
-  test('should reject &x outside function definitions', () => {
+  test('should allow &global at top level', () => {
+    const result = executeTacitCode('42 global g &g fetch');
+    expect(result).toEqual([42]);
+  });
+
+  test('should reject &x for undefined names at top level', () => {
     expect(() => {
       executeTacitCode('&undefined');
-    }).toThrow(/Reference sigil.*only allowed inside function definitions/);
+    }).toThrow(/Undefined word.*undefined/);
   });
 
   test('should reject &x for undefined variables', () => {

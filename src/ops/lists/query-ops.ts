@@ -5,7 +5,7 @@
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL } from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL, GLOBAL_SIZE } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
@@ -191,7 +191,13 @@ export function storeOp(vm: VM): void {
       if (dest.segment === SEG_GLOBAL) {
         const slotCount = getListLength(rhsInfo.header);
         // Allocate slotCount (payload) + 1 (header) cells in global segment
+        const neededCells = slotCount + 1;
+        const maxCells = GLOBAL_SIZE / CELL_SIZE;
         const baseCells = (vm as any)._globalTopCells ?? 0;
+        if (baseCells + neededCells > maxCells) {
+          vm.pop();
+          throw new Error('Global segment exhausted while allocating compound');
+        }
         const baseAddr = baseCells * CELL_SIZE;
         // Copy payload
         for (let i = 0; i < slotCount; i++) {
@@ -207,7 +213,9 @@ export function storeOp(vm: VM): void {
         vm.memory.writeFloat32(dest.segment, dest.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
         // Advance global top pointer
         (vm as any)._globalTopCells = baseCells + slotCount + 1;
+        // Pop the source list from data stack: header + payload
         vm.pop();
+        for (let i = 0; i < slotCount; i++) vm.pop();
         return;
       }
       // Cannot assign compound to simple (non-global destinations)
