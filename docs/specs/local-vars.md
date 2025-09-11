@@ -8,6 +8,7 @@ Orientation
   - Simple assignment: `42 -> x` or `&y -> x` (when y is simple)
   - Compound assignment: `(1 2 3) -> x` or `y -> x` (bare y compiles to Load)
   - Avoid `&y -> x` for compounds; use `&y load -> x` instead.
+  - Increment: `value +> x` (locals-only; sugar for `value x add -> x`)
 
 Analogy — Refs as Symlinks
 - Treat `&x` (refs to local slots) like filesystem symlinks rather than raw pointers:
@@ -298,6 +299,52 @@ list4    -> z  # error if z is a maplist, even if slot count matches
 ### General Rule
 
 Assignment never changes the slot reference for compound types—only the contents are updated.
+
+## 10.2 Increment Operator (+>)
+
+The increment operator provides concise syntax for in-place updates of local variables:
+
+Syntax and desugaring
+- Form: `value +> x`
+- Desugars to: `value x add -> x`
+
+Stack effects (logical)
+- `+>` operates as sugar over existing primitives; effect is equivalent to reading `x`, adding `value`, and writing back to `x`.
+
+Scope and constraints
+- Locals-only: Only valid inside function definitions and only targets local variables.
+- No bracket paths (current stage): `value +> x[ ... ]` is not supported; use explicit `&x fetch` with `select` and `store` if path updates are needed.
+- Errors:
+  - Using `+>` outside a function: “Increment operator (+>) only allowed inside function definitions”.
+  - Undefined local name after `+>`: “Undefined local variable: <name>”.
+
+Examples
+```
+: inc1
+  0 var x
+  1 +> x
+  x
+;
+
+: inc-multi
+  5 var x
+  1 +> x
+  2 +> x
+  x
+;
+
+: inc-float
+  1.5 var x
+  -0.5 +> x
+  x
+;
+
+: equivalence
+  10 var x
+  1 +> x          \ same as: 1 x add -> x
+  x
+;
+```
 
 ## 10.1 In-Place Mutation of Locals (Normative)
 
