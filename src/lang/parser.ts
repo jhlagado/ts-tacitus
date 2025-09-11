@@ -293,6 +293,9 @@ export function emitWord(value: string, state: ParserState): void {
   } else if (value === '->') {
     emitAssignment(state);
     return;
+  } else if (value === '+>') {
+    emitIncrement(state);
+    return;
   } else if (value === ':' || value === ';' || value === '`') {
     handleSpecial(value, state);
   } else {
@@ -484,6 +487,69 @@ export function emitAssignment(state: ParserState): void {
   vm.compiler.compileOpcode(Op.VarRef);
   vm.compiler.compile16(slotNumber);
   vm.compiler.compileOpcode(Op.Store);
+}
+
+/**
+ * Implement locals-only increment operator: value +> x
+ *
+ * Sugar for: value x add -> x
+ * Bytecode sequence (starting with [..., inc] on stack):
+ *   VarRef slot
+ *   Swap
+ *   Over
+ *   Fetch
+ *   Add
+ *   Swap
+ *   Store
+ */
+export function emitIncrement(state: ParserState): void {
+  if (!state.currentDefinition) {
+    throw new SyntaxError(
+      'Increment operator (+>) only allowed inside function definitions',
+      vm.getStackData(),
+    );
+  }
+
+  const nameToken = state.tokenizer.nextToken();
+  if (nameToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after +>', vm.getStackData());
+  }
+
+  const varName = nameToken.value as string;
+
+  const taggedValue = vm.symbolTable.findTaggedValue(varName);
+  if (taggedValue === undefined) {
+    throw new Error(`Undefined local variable: ${varName}`);
+  }
+
+  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  if (tag !== Tag.LOCAL) {
+    throw new Error(`${varName} is not a local variable`);
+  }
+
+  // Disallow bracket-path increments in this stage: value +> x[ ... ]
+  const maybeBracket = state.tokenizer.nextToken();
+  if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+    // Put back the '[' so higher stages could handle if implemented later
+    // but for this staged implementation we throw a clear error.
+    throw new SyntaxError(
+      'Increment on bracket paths not implemented in this stage',
+      vm.getStackData(),
+    );
+  } else if (maybeBracket) {
+    state.tokenizer.pushBack(maybeBracket);
+  }
+
+  // Compile sugar: value x add -> x
+  // Start: [..., inc]
+  vm.compiler.compileOpcode(Op.VarRef);
+  vm.compiler.compile16(slotNumber); // [..., inc, addr]
+  vm.compiler.compileOpcode(Op.Swap); // [..., addr, inc]
+  vm.compiler.compileOpcode(Op.Over); // [..., addr, inc, addr]
+  vm.compiler.compileOpcode(Op.Fetch); // [..., addr, inc, value]
+  vm.compiler.compileOpcode(Op.Add); // [..., addr, sum]
+  vm.compiler.compileOpcode(Op.Swap); // [..., sum, addr]
+  vm.compiler.compileOpcode(Op.Store); // []
 }
 
 /**
