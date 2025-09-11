@@ -226,7 +226,7 @@ Reference helpers (see `core/refs.ts`):
 ## Rationale for Cell Canonicalization
 
 - Removes pervasive divide/multiply by 4 noise in frame math.
-- Aligns with SP/RSP migration and simplifies reasoning about slot addressing.
+- Simplifies reasoning about slot addressing and stack layout.
 - Keeps corruption tests meaningful via explicit helper instead of implicit byte state.
 
 ## Related Files
@@ -236,7 +236,7 @@ Reference helpers (see `core/refs.ts`):
 - `src/ops/lists/query-ops.ts` — `storeOp` fast paths
 - `src/core/refs.ts` — reference resolution (cell index → byte address)
 
-## Future Hardening (Phase 3)
+## Future Hardening
 - Remove any residual transitional comments
 - Add optional runtime invariant assertions in debug builds
-- Microbenchmark call/return path vs pre‑migration baseline
+- Microbenchmark call/return path

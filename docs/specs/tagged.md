@@ -4,7 +4,7 @@ Orientation
 - Start with core invariants: docs/specs/core-invariants.md
   (See variables-and-refs.md for refs/load/fetch/store.)
 
-> Status: Harmonised with current implementation.
+> Status: Authoritative.
 
 ## Normative Scope
 
@@ -19,7 +19,7 @@ Implementations (VM, parser, symbol table, printers) MUST conform.
 
 ## Overview
 
-Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 6-bit tag with up to 16 bits of payload data, enabling efficient type dispatch and memory usage. This document supersedes any older references that still include `LINK` or `CODE_BLOCK` tags.
+Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 6-bit tag with up to 16 bits of payload data, enabling efficient type dispatch and memory usage.
 
 ## Tag System
 
@@ -90,7 +90,7 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 - BUILTIN → invokes native op implementation
 - CODE → jumps to bytecode address
 
-This unified mechanism eliminates function table indirection present in earlier designs.
+This is the unified mechanism used for dispatch.
 
 ### CODE Meta Semantics (lexical vs dynamic frames)
 
