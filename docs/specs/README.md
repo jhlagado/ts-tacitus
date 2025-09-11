@@ -9,6 +9,9 @@ Start here to get a zero-to-productive overview. Read in this order:
 - lists.md — Reverse lists, traversal, bracket paths, addressing
 - errors-and-failures.md — Error policy and messages
 
+Quick Reference
+- quick-reference.md — One‑page cheatsheet of common patterns and lowerings
+
 Drafts and future work live under `drafts/`.
 
 ---
@@ -22,7 +25,7 @@ Top-of-Stack (TOS)
 - Operations consume from TOS and produce to TOS.
 
 Stack effects
-```
+```tacit
 ( before — after )
 dup   ( a — a a )
 swap  ( a b — b a )
@@ -35,7 +38,7 @@ Immediate execution (RPN)
 - Fixed arity is mandatory: each op knows exactly how many items it consumes.
 
 LIFO output is normal
-```
+```tacit
 1 2 3        \ stack: [ 1 2 3 ] (3 is TOS)
 . . .        \ prints: 3 2 1
 ```
@@ -49,7 +52,7 @@ References and values
 
 ### Visualization
 
-```
+```tacit
 Stack grows upward (toward TOS):
 
 [item4]  ← Bottom of Stack (BOS)
@@ -63,19 +66,19 @@ Critical rule: all operations act at TOS (rightmost in effects).
 ### Common Operations by Arity
 
 Nullary
-```
+```tacit
 42     ( — 42 )
 ```
 
 Unary
-```
+```tacit
 dup    ( a — a a )
 abs    ( a — |a| )
 not    ( a — ¬a )
 ```
 
 Binary
-```
+```tacit
 add    ( a b — a+b )
 sub    ( a b — a-b )
 mul    ( a b — a*b )
@@ -83,7 +86,7 @@ div    ( a b — a/b )
 ```
 
 Stack manipulation
-```
+```tacit
 drop   ( a — )
 swap   ( a b — b a )
 over   ( a b — a b a )
@@ -107,22 +110,22 @@ rot    ( a b c — b c a )
 ### Workarounds for Variable Arity
 
 Length prefix
-```
+```tacit
 1 2 3 4  4 sum-n
 ```
 
 Sentinel
-```
+```tacit
 1 2 3 4 nil sum-until-nil
 ```
 
 Collection
-```
+```tacit
 1 2 3 4 →list sum-list
 ```
 
 ### Composition
-```
+```tacit
 ( — a )  ( a — b )  ( b — c )  ≡  ( — c )
 ```
 
@@ -132,7 +135,7 @@ Tagged values
 - 32-bit NaN-boxing; see tagged.md.
 
 Code blocks
-```
+```tacit
 { 1 2 add }    \ ( — code-block )
 ```
 - Blocks are references; execute via `eval`.
