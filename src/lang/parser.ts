@@ -395,31 +395,36 @@ export function emitAtSymbol(symbolName: string): void {
  * @throws {Error} If variable is undefined or not a local variable
  */
 export function emitRefSigil(varName: string, state: ParserState): void {
-  if (!state.currentDefinition) {
-    throw new SyntaxError(
-      'Reference sigil (&) only allowed inside function definitions',
-      vm.getStackData(),
-    );
-  }
-
   const taggedValue = vm.symbolTable.findTaggedValue(varName);
   if (taggedValue === undefined) {
     throw new UndefinedWordError(varName, vm.getStackData());
   }
 
   const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
-  if (tag === Tag.LOCAL) {
-    vm.compiler.compileOpcode(Op.VarRef);
-    vm.compiler.compile16(slotNumber);
-    vm.compiler.compileOpcode(Op.Fetch);
-    return;
+
+  // Inside function: allow locals and globals
+  if (state.currentDefinition) {
+    if (tag === Tag.LOCAL) {
+      vm.compiler.compileOpcode(Op.VarRef);
+      vm.compiler.compile16(slotNumber);
+      vm.compiler.compileOpcode(Op.Fetch);
+      return;
+    }
+    if (tag === Tag.GLOBAL_REF) {
+      vm.compiler.compileOpcode(Op.LiteralNumber);
+      vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+      return;
+    }
+    throw new Error(`${varName} is not a local variable`);
   }
+
+  // Top level: allow &global; locals are invalid (no frame)
   if (tag === Tag.GLOBAL_REF) {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
     return;
   }
-  throw new Error(`${varName} is not a local variable`);
+  throw new Error(`${varName} is not a global variable`);
 }
 
 /**

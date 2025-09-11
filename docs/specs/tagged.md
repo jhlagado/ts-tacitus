@@ -2,7 +2,7 @@
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
-  (See refs.md for quick usage of refs/load/fetch/store.)
+  (See variables-and-refs.md for refs/load/fetch/store.)
 
 > Status: Harmonised with current implementation.
 
@@ -135,15 +135,14 @@ All tagged values must:
 
 ### Compile-time vs Runtime Tags
 
-- `Tag.LOCAL` is a symbol-table/compile-time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`).
-- Runtime local variable addressing uses `RSTACK_REF` (absolute cell index within the return stack frame). `Tag.LOCAL` values are not part of the runtime's polymorphic reference set and should not appear on the data stack at execution time.
+- `Tag.LOCAL` is a symbol-table/compile-time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `RSTACK_REF` and `GLOBAL_REF` respectively. `Tag.LOCAL` values are not part of the runtime's polymorphic reference set and should not appear on the data stack at execution time.
 
 ## Related Specifications
 
 - `specs/vm-architecture.md` – Memory segments & stack layout
 - `specs/lists.md` – Reverse list representation and traversal
-- `specs/access.md` – Address-returning find family & high-level get/set
-- `specs/capsules.md` – Capsule structure built on lists
+- `specs/variables-and-refs.md` – Locals/globals, references, assignment, +>
+- `specs/capsules.md` – Capsule structure built on lists (draft)
 
 ## Runtime Invariants (Normative)
 
@@ -192,5 +191,5 @@ length                     \ -> 3
 | ------------------- | --------------------------- | --------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `access.md`, `lists.md` (Maplists)            |
+| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                          |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |
