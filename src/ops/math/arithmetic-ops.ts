@@ -4,11 +4,11 @@
  */
 
 import { VM, Verb } from '@src/core';
-import { binaryFlat, unaryFlat, unaryRecursive } from '../broadcast';
+import { binaryFlat, unaryFlat, unaryRecursive, binaryRecursive } from '../broadcast';
 // no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
-  // Delegate to shared flat broadcasting helper (keeps simple×simple fast path)
-  binaryFlat(vm, 'add', (a, b) => a + b);
+  // Delegate to recursive helper (currently delegates to flat; future-proofed)
+  binaryRecursive(vm, 'add', (a, b) => a + b);
 };
 
 export const subtractOp: Verb = (vm: VM) => {
