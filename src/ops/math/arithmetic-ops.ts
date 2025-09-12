@@ -4,12 +4,11 @@
  */
 
 import { VM, Verb } from '@src/core';
+import { binaryFlat, unaryFlat, unaryRecursive } from '../broadcast';
 // no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'add');
-  const b = vm.pop();
-  const a = vm.pop();
-  vm.push(a + b);
+  // Delegate to shared flat broadcasting helper (keeps simple×simple fast path)
+  binaryFlat(vm, 'add', (a, b) => a + b);
 };
 
 export const subtractOp: Verb = (vm: VM) => {
@@ -60,9 +59,7 @@ export const absOp: Verb = (vm: VM) => {
 };
 
 export const negOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'neg');
-  const a = vm.pop();
-  vm.push(-a);
+  unaryRecursive(vm, 'neg', (a) => -a);
 };
 
 export const signOp: Verb = (vm: VM) => {
