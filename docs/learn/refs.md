@@ -1,6 +1,21 @@
 # References (Refs) — Specification
 
-Note: This learning doc predates the consolidated variables-and-refs spec. For up-to-date authoritative details on locals, globals, references, assignment, and frames, see `docs/specs/variables-and-refs.md` and `docs/specs/vm-architecture.md`.
+
+Try it (refs vs values)
+```tacit
+: show
+  10 var x
+  x            \ value-by-default (10)
+  &x fetch     \ strict slot read (10)
+  &x load      \ materialize value (10)
+;
+```
+
+Try it (stack ref to list)
+```tacit
+( 1 2 ) ref    \ -> ( 1 2 ) STACK_REF
+load           \ -> ( 1 2 )
+```
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
@@ -12,12 +27,11 @@ Orientation
 
 Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear materialize-at-boundaries guidance.
 
-This specification defines how Tacit handles references (refs) to data stored in the VM’s memory segments. It clarifies ownership and lifetimes, unifies terminology, and sets behavioral requirements for reading variables, assignment, traversal, and return semantics. It integrates with:
+This document explains how Tacit handles references (refs) to data stored in the VM’s memory segments. It clarifies ownership and lifetimes, unifies terminology, and sets behavioral requirements for reading variables, assignment, traversal, and return semantics. It integrates with:
 
-- docs/specs/local-vars.md — frame layout, slot assignment, compound assignment rules
-- docs/specs/lists.md — list structure, header/payload layout, traversal
-- docs/specs/access.md — get/set polymorphic traversal and storage rules
-- Polymorphism summary is consolidated here; see also docs/specs/core-invariants.md
+- docs/specs/variables-and-refs.md — locals, globals, assignment rules, lifetimes
+- docs/specs/lists.md — list structure, header/payload layout, traversal and bracket paths
+- docs/specs/core-invariants.md — canonical rules
 
 Primary goals:
 
@@ -59,13 +73,13 @@ Segments:
 
 - Data stack segment (SEG_STACK): computation values, list headers/payload when built on data stack.
 - Return stack segment (SEG_RSTACK): frames, saved BP, local slots, and return-stack-resident compounds.
-- Global segment: not yet implemented.
+- Global segment (SEG_GLOBAL): persistent globals storage.
 
 Reference kinds (data):
 
 - STACK_REF — points to a data stack cell; the payload is the absolute cell index (address = index × 4 bytes).
-- RSTACK_REF — points to a return stack cell (e.g., a local slot or an element in return-stack-resident compound). Return stack indexing uses RSP (cells); legacy RP refers to the byte accessor.
-- GLOBAL_REF — reserved for persistent globals; not implemented.
+- RSTACK_REF — points to a return stack cell (e.g., a local slot or an element in return-stack-resident compound). Return stack indexing uses RSP (cells).
+- GLOBAL_REF — address of a global cell (SEG_GLOBAL).
 
 Encoding:
 
@@ -76,7 +90,7 @@ Helpers (src/core/refs.ts):
 
 - `resolveReference(vm, ref) → { segment, address }` — segment-aware dereferencing.
 - `readReference(vm, ref)` / `writeReference(vm, ref)` — read/write via resolved address.
-- `getVarRef(vm, slotNumber) → RSTACK_REF` — creates a ref to a local slot using `absoluteCellIndex = BP/4 + slotNumber`.
+- `getVarRef(vm, slotNumber) → RSTACK_REF` — creates a ref to a local slot using `absoluteCellIndex = BP + slotNumber`.
 
 Consequences:
 
@@ -139,7 +153,7 @@ Ref creation on data stack:
 
 Materialization:
 
-- `load` materializes values by default. For references to lists, it pushes all payload slots followed by the header, conforming to docs/specs/lists.md. Historical `resolve` is deprecated in favor of `load`.
+- `load` materializes values by default. For references to lists, it pushes all payload slots followed by the header, conforming to docs/specs/lists.md.
 
 Polymorphic reads:
 
@@ -151,31 +165,32 @@ Writes:
 
 Locals with compounds:
 
-- Local slots that contain compound values store a tagged reference to internal return-stack storage. Assignment updates the payload in-place if compatible, without changing the slot’s header address (see local-vars.md).
+- Local slots that contain compound values store a tagged reference to internal return-stack storage. Assignment updates the payload in-place if compatible, without changing the slot’s header address (see docs/specs/variables-and-refs.md).
 
 ## 6. Locals, Slots, and Assignment
 
 Slots and addressing:
 
-- `var` allocates fixed-size slots on the return stack. Slots store either simple values or tagged refs pointing to compound structures within SEG_RSTACK (see local-vars.md).
-- `&x` forms an RSTACK_REF to slot `x` via absolute cell index `BP/4 + slot`.
+- `var` allocates fixed-size slots on the return stack. Slots store either simple values or tagged refs pointing to compound structures within SEG_RSTACK (see docs/specs/variables-and-refs.md).
+- `&x` forms an RSTACK_REF to slot `x` via absolute cell index `BP + slot`.
 
 Assignment semantics (normative target):
 
 - Simple → simple: write the source value into the destination slot.
 - Ref (to simple) → simple: materialize source to its value, then write.
-- Compound → compound: enforce compatibility per local-vars.md (same structural type and slot count); update in place without altering header location.
+- Compound → compound: enforce compatibility per docs/specs/variables-and-refs.md (same structural type and slot count); update in place without altering header location.
 - Ref (to compound) → compound: materialize source, then enforce compatibility, then update in place.
 - Simple ↔ compound mismatch: error (cannot assign simple into a compound slot or vice versa).
 
-Compatibility note (current implementation):
+Compatibility note:
 
-- Some paths may write a ref into a destination (e.g., `storeOp` writing the source without materialization). The target model requires materialize-first for sources; see Migration Plan for phased fixes.
+- Sources that are refs are materialized before writing; destinations are never materialized. Compound → compound requires compatibility (type + slot count).
 
-Access traversal (docs/specs/access.md):
+Access traversal (see docs/specs/lists.md):
 
-- Path traversal computes destination addresses within lists/maplists. Inputs and intermediate results may be values or refs.
-- `get` materializes to value at the end of traversal; `set` resolves source and writes to the destination; traversal accepts LIST or refs at each step and may form transient refs internally.
+- Bracket paths compute destination addresses within lists/maplists. Inputs and intermediate results may be values or refs.
+- Reads: `expr[ … ]` compiles to Select → Load → Nip (value-by-default).
+- Writes: `value -> var[ … ]` compiles to &var → Select → Nip → Store (strict destination).
 
 ## 7. Stack Operations and Ref Transparency
 
@@ -269,8 +284,7 @@ Testable Assertions
 - Polymorphic list ops return identical results for values and refs.
 - `ref` returns STACK_REF to correct header.
 - `load` materializes entire list per lists.md.
-- `store`/`set` materialize source refs before writing (target).
-- GLOBAL_REF operations error with "not implemented".
+- `store`/`set` materialize source refs before writing.
 
 ## 11. Glossary and Cross-References
 
@@ -285,10 +299,9 @@ Testable Assertions
 
 Cross-References:
 
-- Locals and frames: docs/specs/local-vars.md (§ frame layout, assignment, lifetime)
-- Lists and compounds: docs/specs/lists.md (§ header, slots, materialization)
-- Access ops: docs/specs/access.md (§ get/set traversal and storage rules)
-- Polymorphism: consolidated in this doc (§12) and summarized in core-invariants.md
+- Variables & frames: docs/specs/variables-and-refs.md (§ frames, assignment, lifetime)
+- Lists and compounds: docs/specs/lists.md (§ header, slots, materialization, bracket paths)
+- Core invariants: docs/specs/core-invariants.md
 
 ---
 
@@ -296,7 +309,7 @@ Cross-References:
 
 **Key Operations:**
 
-- `VarRef` — pushes `RSTACK_REF(BP/4 + slotNumber)` (underpins `&x`)
+- `VarRef` — pushes `RSTACK_REF(BP + slotNumber)` (underpins `&x`)
 - `load` — value-by-default materialization; identity on non-refs  
 - `fetch` — reads value at ref address; errors on non-ref
 - `store` — writes to ref address; materializes source refs before writing
@@ -307,7 +320,7 @@ All list operations (`length`, `head`, `elem`, `slot`, `find`, etc.) accept valu
 **Frame Layout:**
 ```
 [ return addr ]
-[ saved BP    ] ← BP (byte address)  
-[ slot0       ] ← BP + 0 = cellIndex (BP/4 + 0)
-[ slot1       ] ← BP + 4 = cellIndex (BP/4 + 1)
+[ saved BP    ] ← BP (cell index)
+[ slot0       ] ← BP + 0
+[ slot1       ] ← BP + 1
 ```

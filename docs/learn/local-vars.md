@@ -1,6 +1,21 @@
 # Tacit Local Variables and Function Stack Frame Specification
 
-Note: This learning doc predates the consolidated variables-and-refs spec. For up-to-date authoritative details on locals, globals, references, assignment, and frames, see `docs/specs/variables-and-refs.md` and `docs/specs/vm-architecture.md`.
+
+Try it (locals and increment)
+```tacit
+: demo
+  5 var x
+  2 +> x        \ same as: 2 x add -> x
+  x
+;
+```
+
+Try it (globals and bracket paths)
+```tacit
+( 1 2 3 ) global nums
+9 -> nums[0]    \ nums becomes ( 9 2 3 )
+nums
+```
 
 Orientation
 - Start with core invariants: docs/specs/core-invariants.md
@@ -43,7 +58,7 @@ Analogy — Refs as Symlinks
 Tacit VM uses a dual-stack architecture. Both stacks share the same STACK segment:
 
 - **Data Stack (SP)**: For computation and parameter passing (cell-indexed)
-- **Return Stack (RSP)**: For function calls, local variables, and compound data storage (cell-indexed; legacy byte-based RP accessor remains for compatibility)
+- **Return Stack (RSP)**: For function calls, local variables, and compound data storage (cell-indexed)
 
 Local variables are stored in fixed-size slots on the return stack. The Base Pointer (BP) provides a stable reference point for addressing these slots within each function's frame.
 
@@ -69,12 +84,12 @@ When a function is called, the stack frame has the following structure:
 
 ```
 [ return addr ]
-[ previous BP ] ← BP (bytes)
+[ previous BP ] ← BP (cells)
 [ slot 0      ] ← BP + 0 (first local variable)
-[ slot 1      ] ← BP + 4 (second local variable)
-[ slot 2      ] ← BP + 8 (third local variable)
+[ slot 1      ] ← BP + 1 (second local variable)
+[ slot 2      ] ← BP + 2 (third local variable)
 ...
-[ slot N-1    ] ← BP + (N-1)*4 (last local variable)
+[ slot N-1    ] ← BP + (N-1) (last local variable)
 [ compound    ] ← RSP grows upward (compound data storage)
 [ data...     ]
 ```
@@ -155,12 +170,12 @@ EXIT
 
 1. \**Standard frame setup*mul (handled by existing `callOp`):
    - Save return address: `rpush(IP)`
-   - Save base pointer: `rpush(BP)` (or `BPCells` if `frameBpInCells` is enabled)
-   - Set new base pointer: `BP = RP` (bytes) or `BPCells = RSP` (cells) per runtime toggle
+   - Save base pointer: `rpush(BP)`
+   - Set new base pointer: `BP = RSP`
 
 2. \**Slot allocation*mul (`RESERVE` opcode):
    - Read slot count from bytecode
-   - Advance RP: `RP += slot_count × 4` (bytes)
+   - Advance RSP: `RSP += slot_count` (cells)
 
 3. \**Variable initialization*mul (`INIT_VAR_SLOT` opcodes):
    - Pop value from data stack
@@ -170,32 +185,25 @@ EXIT
 
 **Simple Values**: `42 var x`
 
-- Calculate slot address: `(BPCells + slot) × 4` (bytes at memory boundary)
+- Calculate slot address: `BP + slot` (cell index)
 - Store value directly as tagged number in slot
 
 **Compound Values**: `(1 2 3) var mylist`
 
-- Calculate slot address: `(BPCells + slot) × 4` (bytes at memory boundary)
-- Store Tag.REF pointing to current RP position
-- Copy entire compound structure to return stack above RP
+- Calculate slot address: `BP + slot` (cell index)
+- Store an `RSTACK_REF` pointing to the list header cell on RSTACK
+- Copy entire compound structure to return stack above the slots
 
 ## 7. Variable Access and Addressing
 
-### Access Forms (Target Model)
+### Access Forms
 
 Variable access has two forms:
 
 - **Value access**: `x` — pushes the actual value (simple or compound) onto the data stack
 - **Reference access**: `&x` — pushes an RSTACK_REF to the variable slot for optimization
 
-### Current vs Target Behavior
-
-**Current (historical)**:
-- Earlier builds returned references for some accesses and required an explicit resolve step. This has been replaced.
-
-**Target (current)**:
-- `x` always returns the materialized value (via `Load`).
-- `&x` returns RSTACK_REF for performance optimization; pair with `fetch` to read slot content or `load` to materialize.
+`x` returns the materialized value (via `load`). `&x` returns an `RSTACK_REF` for performance optimization; pair with `fetch` to read slot content or `load` to materialize.
 
 ### Compilation Sequences
 
