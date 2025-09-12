@@ -147,3 +147,4 @@ Notes
 ## Rollout
 - Land M1–M3 behind a feature flag if needed; enable by default once tests stabilize.
 - Document in specs/broadcasting.md + examples.
+
