@@ -170,6 +170,17 @@ All tagged values must:
 6 { dup mul } eval       \ -> 36
 ```
 
+## Try it (symbols and eval)
+
+```tacit
+: square dup mul ;
+@square        \ Tag.CODE for the function
+5 @square eval \ -> 25
+
+@add           \ Tag.BUILTIN for builtin add
+2 3 @add eval  \ -> 5
+```
+
 ### List Slots vs Elements
 
 ```

@@ -108,6 +108,15 @@ Borrowing model:
 - A callee may receive a ref whose owner is the caller (borrowed ref). The callee can read/write through it while executing.
 - Borrowed refs may be returned to their owner.
 
+---
+
+## Common Pitfalls (Quick)
+
+- Using `fetch` on a non-ref errors; use `load` when you want value-by-default.
+- Stack ops (`dup`, `swap`, …) do not dereference; they move the ref itself.
+- Never return a local reference past its owning frame’s lifetime.
+- Globals live in SEG_GLOBAL; `&global` is valid at top level, `&local` is not.
+
 Escape considerations:
 
 - Refs that outlive their owning frame become dangling. Programmers using `&x` accept this responsibility.

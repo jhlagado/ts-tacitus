@@ -295,7 +295,7 @@ Compound elements (e.g., lists, maplists) may be replaced in place **only if the
 **Invariant:** Every compound’s first slot is a header that **encodes its total span** in slots.
 **Algorithm:**
 
-````
+```
 addr := SP-1
 while not done:
 
@@ -366,10 +366,10 @@ Testing checklist
 **Cost:** O(n). Requires shifting payload to make room at the tail and updating the header. Prefer `concat` (simple/list) and `tail` in hot paths.
 **Examples**
 
-```tac
+```tacit
 ( 1 2 ) 3 append         \ -> ( 1 2 3 )
 ( 1 ) ( 2 3 ) append     \ -> ( 1 ( 2 3 ) )
-````
+```
 
 ### head
 
@@ -437,7 +437,7 @@ list  sort { cmp }   ->  list'
 
 ### Examples
 
-```tac
+```tacit
 ( 3 1 2 )                 sort { - }        \ -> ( 1 2 3 )
 ( 3 1 2 )                 sort { swap - }   \ -> ( 3 2 1 )
 ( (2 9) 1 (0 0 0) )       sort { length swap length - }
@@ -585,6 +585,34 @@ elem 0 → SP-1 (1)
 elem 1 → SP-2 (start of nested, span 3)
 elem 2 → address after skipping span 3 → SP-5 (4)
 ```
+
+---
+
+## Try it (quick hands‑on)
+
+```tacit
+( 1 2 3 )         \ build a list; header at TOS, payload beneath
+length            \ -> 3 (elements)
+slots             \ -> 3 (payload slots)
+
+( ( 1 2 ) 3 )     \ nested list spans 3 cells (header+payload)
+length            \ -> 2
+
+( 10 20 ) var xs  \ locals: store a list in a local
+7 -> xs[1]        \ in-place update of element 1
+xs                \ -> ( 10 7 )
+
+( a b ) global ys \ globals: store a list in a global
+"z" -> ys[0]      \ overwrite simple element 0
+ys                \ -> ( "z" b )
+```
+
+## Common Pitfalls
+
+- Header at TOS: lists are reversed physically; element 0 starts at SP-1.
+- Length vs slots: `length` counts elements; `slots` counts payload cells.
+- In-place overwrite: only simple payload cells can be overwritten directly; compound elements preserve structure.
+- Bracket writes: destination must be a variable (local/global); `value -> expr[ … ]` requires `expr` to be an addressable var.
 
 ---
 

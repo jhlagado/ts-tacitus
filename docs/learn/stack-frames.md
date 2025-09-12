@@ -66,7 +66,6 @@ Corruption guard lives in `exitOp` prior to frame tear-down; invalid `bpCells` t
 
 ## Rationale for Cell Canonicalization
 - Removes pervasive divide/multiply by 4 noise
-- Aligns with SP/RSP migration (Plan 25)
 - Simplifies reasoning about list and local variable addressing
 - Keeps corruption tests meaningful via explicit helper instead of implicit byte state
 
@@ -77,7 +76,29 @@ Corruption guard lives in `exitOp` prior to frame tear-down; invalid `bpCells` t
 - `src/ops/lists/query-ops.ts` — `storeOp` fast paths
 - `src/core/refs.ts` — reference resolution (cell index → byte address)
 
-## Future Hardening (Phase 3)
+## Future Hardening
 - Remove any residual transitional comments
 - Add optional runtime invariant assertions in debug builds
-- Microbenchmark call/return path vs pre-migration baseline
+- Microbenchmark call/return path
+
+---
+
+## Try it (frame locals and refs)
+
+```tacit
+: demo
+  10 var a
+  ( 1 2 ) var xs
+  a             \ value-by-default (10)
+  &a fetch      \ strict slot read (10)
+  7 -> xs[1]    \ in-place update inside local compound
+  xs
+;
+```
+
+Expected: `xs` becomes `( 1 7 )`. `a` reads identically via value or via `&a fetch`.
+
+## Pitfalls
+- Returning a local reference across frames is invalid (lifetime ends at function return).
+- `&local` at top level is invalid (no frame exists); use globals for top-level state.
+- Do not mix byte math with cells; all BP/RSP logic is in cells (`BP + slot`).
