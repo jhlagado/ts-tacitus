@@ -20,3 +20,26 @@ Learning Guide (source files)
 - Lists ops: `src/ops/lists/query-ops.ts`
 - Locals init/transfer: `src/ops/builtins.ts` (Reserve/InitVar), `src/ops/local-vars-transfer.ts`
 - Parser/Interpreter: `src/lang/parser.ts`, `src/lang/interpreter.ts`
+
+Try it (quick hands‑on)
+```tacit
+42 global answer
+answer                \ -> 42
+
+( 10 20 ) global xs
+7 -> xs[1]           \ xs becomes ( 10 7 )
+
+: inc
+  0 var x
+  1 +> x             \ same as: 1 x add -> x
+  x
+;
+
+{ dup mul }          \ pushes a code ref
+5 { dup mul } eval   \ -> 25
+```
+
+Common pitfalls
+- TOS is rightmost in stack effects and diagrams.
+- Only `\` is a comment in Tacit examples; `//` and `#` are not.
+- Blocks `{ … }` do not execute without `eval`.

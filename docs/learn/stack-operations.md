@@ -46,25 +46,25 @@ Tacit uses a **data stack** where all computation occurs. Understanding stack me
 **This creates seemingly "backwards" behavior**:
 
 ```tacit
-1 2 3           # Push three values
+1 2 3           \ Push three values
 ```
 
 **Results in stack**:
 
 ```
-[ 1 2 3 ]      # 3 is TOS (rightmost)
+[ 1 2 3 ]      \ 3 is TOS (rightmost)
 ```
 
 **When printed with successive pops**:
 
 ```tacit
-1 2 3 . . .    # Three print operations
+1 2 3 . . .    \ Three print operations
 ```
 
 **Output appears as**:
 
 ```
-3 2 1          # Prints TOS first, then next, then bottom
+3 2 1          \ Prints TOS first, then next, then bottom
 ```
 
 **This is standard stack behavior** - not a bug or confusion, but the natural result of Last-In-First-Out (LIFO) ordering.
@@ -100,11 +100,11 @@ Stack effects show the before and after state using this format:
 ### Examples
 
 ```tacit
-dup    ( a — a a )           # Copy TOS
-swap   ( a b — b a )         # Exchange top two items
-drop   ( a — )               # Remove TOS
-rot    ( a b c — b c a )     # Rotate three items
-add    ( a b — sum )         # Add top two items
+dup    ( a — a a )           \ Copy TOS
+swap   ( a b — b a )         \ Exchange top two items
+drop   ( a — )               \ Remove TOS
+rot    ( a b c — b c a )     \ Rotate three items
+add    ( a b — sum )         \ Add top two items
 ```
 
 ## 5. Stack Representation in Documentation
@@ -297,8 +297,8 @@ sub:        [ 0 ]         # 10-10=0
 **Variadic operations are problematic**:
 
 ```tacit
-# This is impossible in pure RPN:
-variadic-add    # How many items should it consume?
+\ This is impossible in pure RPN:
+variadic-add    \ How many items should it consume?
 ```
 
 **The operation cannot determine**:
@@ -312,18 +312,18 @@ variadic-add    # How many items should it consume?
 1. **Length prefix**: Pass count as explicit argument
 
    ```tacit
-   1 2 3 4  4 sum-n    # 4 tells sum-n to consume 4 items
+   1 2 3 4  4 sum-n    \ 4 tells sum-n to consume 4 items
    ```
 
 2. **Sentinel values**: Use special markers
 
    ```tacit
-   1 2 3 4 nil sum-until-nil    # nil marks end of arguments
+   1 2 3 4 nil sum-until-nil    \ nil marks end of arguments
    ```
 
 3. **Collection operations**: Build lists first
    ```tacit
-   1 2 3 4 →list sum-list    # Convert to list, then sum
+   1 2 3 4 →list sum-list    \ Convert to list, then sum
    ```
 
 **Tacit follows this rule**: All built-in operations have fixed arity, enabling immediate execution and stack safety.
@@ -356,7 +356,7 @@ All stack items are 32-bit NaN-boxed values with type tags:
 ### Code Blocks
 
 ```tacit
-{ 1 2 add }    ( — code-block )
+{ 1 2 add }    \ ( — code-block )
 ```
 
 Blocks are pushed as executable references, not executed immediately.
@@ -364,7 +364,7 @@ Blocks are pushed as executable references, not executed immediately.
 ### Symbol References
 
 ```tacit
-@add           ( — symbol-ref )
+@add           \ ( — symbol-ref )
 ```
 
 @ prefix creates references to operations for metaprogramming.
@@ -403,5 +403,4 @@ When implementing stack operations:
 
 ## 14. See also
 
-- `docs/specs/lists.md` §10 Address queries (elem, length, fetch, store)
-- `docs/specs/access.md` §3 Addressing and search (find, bfind, hfind)
+- `docs/specs/lists.md` — Address queries (elem, length, fetch, store) and Bracket Paths

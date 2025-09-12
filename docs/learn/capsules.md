@@ -134,9 +134,9 @@ This guarantees strong encapsulation and predictable lifetimes, with all state c
 
 ## 5. Integration with Other Specs
 
-* Capsules are lists: all operations in `lists.md` apply.
-* References inside capsules behave exactly as described in `refs.md`.
-* Local variables remain governed by `local-vars.md`.
+* Capsules are lists: all operations in `docs/specs/lists.md` apply.
+* References inside capsules behave as described in `docs/specs/variables-and-refs.md`.
+* Local variables and globals follow `docs/specs/variables-and-refs.md`.
 
 ---
 

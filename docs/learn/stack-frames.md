@@ -1,6 +1,5 @@
 # Stack Frames & Base Pointer (Cell Canonical)
 
-Note: For the consolidated, authoritative frame and slot model see `docs/specs/vm-architecture.md` (Frames & BP) and `docs/specs/variables-and-refs.md`.
 
 ## Overview
 Tacit uses a split-stack model: the data stack (STACK) for operand values and the return stack (RSTACK) for call frame metadata and local variables. Frames are fully cell-based: all indices (`SP`, `RSP`, `BP`) are stored and manipulated in cell units (32‑bit words). Byte addresses are derived only at memory access boundaries by multiplying by `CELL_SIZE` (4).
