@@ -95,6 +95,150 @@ export function binaryFlat(vm: VM, opName: string, f: NumberOp2): void {
   vm.push(f(a, b));
 }
 
+// Wrapper to prepare for nested recursion; currently delegates to flat.
+export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
+  vm.ensureStackSize(2, opName);
+
+  const isNum = (x: number) => isNumber(x);
+
+  const popListSlots = (): number[] => {
+    const header = vm.pop();
+    const slots = getListLength(header);
+    const payload: number[] = new Array(slots);
+    for (let i = 0; i < slots; i++) payload[i] = vm.pop(); // pops slot0,slot1,...
+    const out: number[] = new Array(slots + 1);
+    out[0] = header;
+    // payload is already index-order (slot0..slotN-1)
+    for (let i = 0; i < slots; i++) out[i + 1] = payload[i];
+    return out; // [header, payload index-order]
+  };
+
+  const pushListSlots = (slotsArr: number[]) => {
+    const header = slotsArr[0];
+    const payloadLen = slotsArr.length - 1;
+    // Push payload in index order so bottom→top reads [slot0 .. slotN-1, header]
+    for (let i = 0; i < payloadLen; i++) vm.push(slotsArr[1 + i]);
+    vm.push(header);
+  };
+
+  const enumerateElements = (slotsArr: number[]): Array<{ start: number; span: number }> => {
+    const total = getListLength(slotsArr[0]);
+    const out: Array<{ start: number; span: number }> = [];
+    let remaining = total;
+    let p = 1;
+    while (remaining > 0) {
+      const v = slotsArr[p];
+      let span = 1;
+      if (isList(v)) span = getListLength(v) + 1;
+      out.push({ start: p, span });
+      p += span;
+      remaining -= span;
+    }
+    return out;
+  };
+
+  const transformScalarOverSlots = (scalar: number, listSlots: number[], left: boolean): number[] => {
+    // listSlots: [header, payload...]
+    const out: number[] = new Array(listSlots.length);
+    out[0] = listSlots[0];
+    const elems = enumerateElements(listSlots);
+    let write = 1;
+    for (const { start, span } of elems) {
+      if (span === 1) {
+        const v = listSlots[start];
+        if (!isNum(v)) throw new Error('broadcast type mismatch');
+        out[write++] = left ? f(scalar, v) : f(v, scalar);
+      } else {
+        const sub = listSlots.slice(start, start + span);
+        const rec = transformScalarOverSlots(scalar, sub, left);
+        for (let i = 0; i < rec.length; i++) out[write++] = rec[i];
+      }
+    }
+    return out;
+  };
+
+  const transformBinarySlots = (aSlots: number[], bSlots: number[]): number[] => {
+    const aElems = enumerateElements(aSlots);
+    const bElems = enumerateElements(bSlots);
+    const m = aElems.length;
+    const n = bElems.length;
+    if (m === 0 || n === 0) {
+      return [toTaggedValue(0, Tag.LIST)];
+    }
+    const L = m > n ? m : n;
+    // First pass to collect element results and total payload span
+    const results: number[][] = new Array(L);
+    let totalPayload = 0;
+    for (let i = 0; i < L; i++) {
+      const ea = aElems[i % m];
+      const eb = bElems[i % n];
+      const aSpan = ea.span;
+      const bSpan = eb.span;
+      let elemSlots: number[];
+      if (aSpan === 1 && bSpan === 1) {
+        const av = aSlots[ea.start];
+        const bv = bSlots[eb.start];
+        if (!isNum(av) || !isNum(bv)) throw new Error('broadcast type mismatch');
+        elemSlots = [f(av, bv)];
+      } else if (aSpan === 1 && bSpan > 1) {
+        const av = aSlots[ea.start];
+        if (!isNum(av)) throw new Error('broadcast type mismatch');
+        const subB = bSlots.slice(eb.start, eb.start + bSpan);
+        elemSlots = transformScalarOverSlots(av, subB, true);
+      } else if (aSpan > 1 && bSpan === 1) {
+        const bv = bSlots[eb.start];
+        if (!isNum(bv)) throw new Error('broadcast type mismatch');
+        const subA = aSlots.slice(ea.start, ea.start + aSpan);
+        elemSlots = transformScalarOverSlots(bv, subA, false);
+      } else {
+        const subA = aSlots.slice(ea.start, ea.start + aSpan);
+        const subB = bSlots.slice(eb.start, eb.start + bSpan);
+        elemSlots = transformBinarySlots(subA, subB);
+      }
+      results[i] = elemSlots;
+      totalPayload += elemSlots.length;
+    }
+    // Build output slots [header, payload...]
+    const out: number[] = new Array(1 + totalPayload);
+    out[0] = toTaggedValue(totalPayload, Tag.LIST);
+    let write = 1;
+    for (let i = 0; i < L; i++) {
+      const r = results[i];
+      for (let j = 0; j < r.length; j++) out[write++] = r[j];
+    }
+    return out;
+  };
+
+  // Dispatch based on top stack types
+  if (isList(vm.peek())) {
+    const bSlots = popListSlots();
+    if (isList(vm.peek())) {
+      const aSlots = popListSlots();
+      const res = transformBinarySlots(aSlots, bSlots);
+      pushListSlots(res);
+      return;
+    }
+    const a = vm.pop();
+    if (!isNum(a)) throw new Error('broadcast type mismatch');
+    const res = transformScalarOverSlots(a, bSlots, true);
+    pushListSlots(res);
+    return;
+  }
+
+  const b = vm.pop();
+  if (isList(vm.peek())) {
+    if (!isNum(b)) throw new Error('broadcast type mismatch');
+    const aSlots = popListSlots();
+    const res = transformScalarOverSlots(b, aSlots, false);
+    pushListSlots(res);
+    return;
+  }
+
+  const a = vm.pop();
+  if (!isNum(a) || !isNum(b)) throw new Error('broadcast type mismatch');
+  vm.push(f(a, b));
+}
+
 // -------- Recursive (nested) unary broadcasting --------
 
 import { isNumber } from '@src/core';
@@ -135,13 +279,10 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   // Pop list into slots (index order), transform, then push back
   const header = vm.pop();
   const slots = getListLength(header);
-  const popped: number[] = new Array(slots);
-  for (let i = 0; i < slots; i++) popped[i] = vm.pop();
-  // Convert to index order: slot0 near header is popped[slots-1]
   const payload: number[] = new Array(slots);
-  for (let i = 0; i < slots; i++) payload[i] = popped[slots - 1 - i];
+  for (let i = 0; i < slots; i++) payload[i] = vm.pop(); // slot0..slotN-1
   const transformed = transformSlotsUnary(payload, f);
-  // Push back in reverse (deep first), then header
-  for (let i = slots - 1; i >= 0; i--) vm.push(transformed[i]);
+  // Push back in index order, then header (so bottom→top reads [slot0.., header])
+  for (let i = 0; i < slots; i++) vm.push(transformed[i]);
   vm.push(header);
 }
