@@ -11,7 +11,7 @@ import { isRef, resolveReference, readReference, createSegmentRef } from '@src/c
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
-import { copyCells } from '../../core/units';
+import { copyCells, cellIndex, cells } from '../../core/units';
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
@@ -267,7 +267,7 @@ export function storeOp(vm: VM): void {
       // Same-segment fast path: copy payload via u32.copyWithin (memmove semantics)
       const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
       const dstBaseCell = destBaseAddr / CELL_SIZE;
-      copyCells(vm.memory, targetSegment, dstBaseCell as any, srcBaseCell as any, slotCount as any);
+      copyCells(vm.memory, targetSegment, cellIndex(dstBaseCell), cellIndex(srcBaseCell), cells(slotCount));
       // Write header last
       vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
     } else {

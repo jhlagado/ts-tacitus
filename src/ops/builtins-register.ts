@@ -72,6 +72,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('find', Op.Find);
   symbolTable.defineBuiltin('keys', Op.Keys);
   symbolTable.defineBuiltin('values', Op.Values);
+  symbolTable.defineBuiltin('walk', Op.Walk);
 
   /** Reference operations. */
   symbolTable.defineBuiltin('ref', Op.Ref);

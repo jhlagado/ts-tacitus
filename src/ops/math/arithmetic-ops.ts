@@ -4,7 +4,7 @@
  */
 
 import { VM, Verb } from '@src/core';
-import { binaryFlat, unaryFlat, unaryRecursive, binaryRecursive } from '../broadcast';
+import { unaryRecursive, binaryRecursive } from '../broadcast';
 // no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
   // Delegate to recursive helper (currently delegates to flat; future-proofed)
