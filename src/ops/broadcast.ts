@@ -9,6 +9,7 @@
 import { VM } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { toTaggedValue, Tag } from '@src/core';
+import { SEG_STACK, CELL_SIZE } from '@src/core';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
@@ -242,31 +243,7 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
 // -------- Recursive (nested) unary broadcasting --------
 
 import { isNumber } from '@src/core';
-
-function transformSlotsUnary(slots: number[], f: NumberOp1): number[] {
-  const out: number[] = new Array(slots.length);
-  let k = 0;
-  while (k < slots.length) {
-    const v = slots[k];
-    if (isList(v)) {
-      const s = getListLength(v);
-      out[k] = v; // copy header unchanged
-      if (s > 0) {
-        const payload = slots.slice(k + 1, k + 1 + s);
-        const rec = transformSlotsUnary(payload, f);
-        for (let i = 0; i < s; i++) out[k + 1 + i] = rec[i];
-      }
-      k += s + 1;
-    } else {
-      if (!isNumber(v)) {
-        throw new Error('broadcast type mismatch');
-      }
-      out[k] = f(v);
-      k += 1;
-    }
-  }
-  return out;
-}
+import { dupOp, nipOp } from './stack';
 
 export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   vm.ensureStackSize(1, opName);
@@ -276,13 +253,23 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
     vm.push(f(x));
     return;
   }
-  // Pop list into slots (index order), transform, then push back
-  const header = vm.pop();
-  const slots = getListLength(header);
-  const payload: number[] = new Array(slots);
-  for (let i = 0; i < slots; i++) payload[i] = vm.pop(); // slot0..slotN-1
-  const transformed = transformSlotsUnary(payload, f);
-  // Push back in index order, then header (so bottom→top reads [slot0.., header])
-  for (let i = 0; i < slots; i++) vm.push(transformed[i]);
-  vm.push(header);
+
+  // Duplicate the entire list block (payload + header) to top
+  // then transform the top copy and remove the original (nip).
+  dupOp(vm);
+
+  // Transform the top copy in place using direct memory writes
+  const headerAddr = vm.SP - CELL_SIZE;
+  const headerVal = vm.memory.readFloat32(SEG_STACK, headerAddr);
+  const copySlots = getListLength(headerVal);
+  for (let i = 0; i < copySlots; i++) {
+    const cellAddr = headerAddr - (i + 1) * CELL_SIZE;
+    const v = vm.memory.readFloat32(SEG_STACK, cellAddr);
+    if (isList(v)) continue; // leave headers untouched
+    if (!isNumber(v)) throw new Error('broadcast type mismatch');
+    vm.memory.writeFloat32(SEG_STACK, cellAddr, f(v));
+  }
+
+  // Remove the original list under the transformed copy
+  nipOp(vm);
 }

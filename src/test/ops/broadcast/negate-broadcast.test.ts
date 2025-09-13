@@ -1,4 +1,4 @@
-import { runTacitTest } from '../../utils/vm-test-utils';
+import { runTacitTest, captureTacitOutput } from '../../utils/vm-test-utils';
 
 describe('Unary broadcasting: neg', () => {
 
@@ -8,14 +8,34 @@ describe('Unary broadcasting: neg', () => {
   });
 
   test('flat list', () => {
-    const stack = runTacitTest('( 1 2 3 ) neg unpack');
-    expect(stack).toEqual([-1, -2, -3]);
+    const out = captureTacitOutput('( 1 2 3 ) neg .');
+    expect(out).toEqual(['( -1 -2 -3 )']);
   });
 
-  // Nested broadcasting will be covered in a later phase once flat cases are fully stabilized.
+  test('nested list (pretty-printed assertions)', () => {
+    // Baseline: non-broadcast nested element read
+    const baseline = captureTacitOutput('( ( 1 2 ) 3 ) 0 elem fetch .');
+    expect(baseline).toEqual(['( 1 2 )']);
+
+    // Whole result pretty
+    const pretty = captureTacitOutput('( ( 1 2 ) 3 ) neg .');
+    expect(pretty).toEqual(['( ( -1 -2 ) -3 )']);
+
+    // First element pretty
+    const firstPretty = captureTacitOutput('( ( 1 2 ) 3 ) neg 0 elem fetch .');
+    expect(firstPretty).toEqual(['( -1 -2 )']);
+
+    // Second element pretty (simple)
+    const secondPretty = captureTacitOutput('( ( 1 2 ) 3 ) neg 1 elem fetch .');
+    expect(secondPretty).toEqual(['-3']);
+
+    // Element count preserved
+    const lengths = runTacitTest('( ( 1 2 ) 3 ) neg size');
+    expect(lengths).toEqual([2]);
+  });
 
   test('empty list', () => {
-    const stack = runTacitTest('( ) neg length');
-    expect(stack).toEqual([0]);
+    const out = captureTacitOutput('( ) neg .');
+    expect(out).toEqual(['(  )']);
   });
 });
