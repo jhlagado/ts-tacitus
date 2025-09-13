@@ -312,6 +312,48 @@ export function storeOp(vm: VM): void {
   throw new Error('Cannot assign simple to compound or compound to simple');
 }
 
+/**
+ * walk: Iterates payload cells of a LIST by relative slot index.
+ * Stack: ( ref idx -- ref idx' val )
+ * - `ref` must reference a LIST header (segment-aware). It is left on stack.
+ * - `idx` is 0-based relative offset into payload slots.
+ * - If idx < slots:
+ *    - Reads the cell at position idx (from element 0 upward).
+ *    - Returns simple values directly; returns a reference for LIST cells (no materialization).
+ *    - `idx' = idx + 1`.
+ * - If idx >= slots:
+ *    - Returns `NIL` and resets `idx' = 0` for convenient looping.
+ */
+export function walkOp(vm: VM): void {
+  vm.ensureStackSize(2, 'walk');
+  const { value: idx } = fromTaggedValue(vm.pop());
+  const target = vm.peek();
+  const info = getListBounds(vm, target);
+  if (!info || Tag.LIST !== Tag.LIST) {
+    // Leave target, push idx (reset) and NIL
+    vm.push(0);
+    vm.push(NIL);
+    return;
+  }
+  const slotCount = getListLength(info.header);
+  if (idx >= slotCount || idx < 0) {
+    vm.push(0);
+    vm.push(NIL);
+    return;
+  }
+  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
+  const cellAddr = headerAddr - (idx + 1) * CELL_SIZE;
+  const v = vm.memory.readFloat32(info.segment, cellAddr);
+  const nextIdx = idx + 1;
+  vm.push(nextIdx);
+  if (isList(v)) {
+    const cellIndex = cellAddr / CELL_SIZE;
+    vm.push(createSegmentRef(info.segment, cellIndex));
+  } else {
+    vm.push(v);
+  }
+}
+
 export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();

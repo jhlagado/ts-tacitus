@@ -130,6 +130,9 @@ export enum Op {
   /**  Returns address of element start at logical index. */
   Elem,
 
+  /**  Walks a list's payload cells one-by-one, returning value or ref. */
+  Walk,
+
   /**  Fetches value at memory address. */
   Fetch,
 
