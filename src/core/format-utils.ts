@@ -69,6 +69,9 @@ export function formatAtomicValue(vm: VM, value: number): string {
 export function formatList(vm: VM, headerValue: number): string {
   const decoded = fromTaggedValue(headerValue);
   const totalSlots = decoded.value;
+  if (totalSlots === 0) {
+    return '()';
+  }
   const parts: string[] = [];
   let consumed = 0;
 
@@ -100,7 +103,7 @@ export function formatList(vm: VM, headerValue: number): string {
 function formatListFromStack(vm: VM, stack: number[], headerIndex: number): string {
   const slotCount = getListLength(stack[headerIndex]);
   if (slotCount === 0) {
-    return '(  )';
+    return '()';
   }
 
   const parts: string[] = [];
@@ -127,7 +130,7 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-    return '(  )';
+    return '()';
   }
 
   const originalSPCells = vm.SPCells;

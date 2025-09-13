@@ -36,6 +36,6 @@ describe('Unary broadcasting: neg', () => {
 
   test('empty list', () => {
     const out = captureTacitOutput('( ) neg .');
-    expect(out).toEqual(['(  )']);
+    expect(out).toEqual(['()']);
   });
 });
