@@ -53,9 +53,8 @@ export const maxOp: Verb = (vm: VM) => {
   vm.push(Math.max(a, b));
 };
 export const absOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'abs');
-  const a = vm.pop();
-  vm.push(Math.abs(a));
+  // Lift to unary broadcasting (handles simple and nested lists)
+  unaryRecursive(vm, 'abs', (a) => Math.abs(a));
 };
 
 export const negOp: Verb = (vm: VM) => {
@@ -63,6 +62,7 @@ export const negOp: Verb = (vm: VM) => {
 };
 
 export const signOp: Verb = (vm: VM) => {
+  // Not listed in broadcasting spec set, keep simple fast path for now
   vm.ensureStackSize(1, 'sign');
   const a = vm.pop();
   vm.push(Math.sign(a));
@@ -106,13 +106,11 @@ export const recipOp: Verb = (vm: VM) => {
 };
 
 export const floorOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'floor');
-  const a = vm.pop();
-  vm.push(Math.floor(a));
+  // Lift to unary broadcasting (handles simple and nested lists)
+  unaryRecursive(vm, 'floor', (a) => Math.floor(a));
 };
 
 export const notOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'not');
-  const a = vm.pop();
-  vm.push(a === 0 ? 1 : 0);
+  // Lift to unary broadcasting (numeric truth domain: 0 -> 1, non-zero -> 0)
+  unaryRecursive(vm, 'not', (a) => (a === 0 ? 1 : 0));
 };
