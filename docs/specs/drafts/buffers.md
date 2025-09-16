@@ -1,95 +1,109 @@
-# Ring Buffer Specification for TACIT Capsules
+# Buffer (LIST‑backed Ring Buffer)
 
-## Purpose
+Purpose
+- Define a fixed‑size, mutable buffer primitive for Tacit, built entirely on the existing LIST representation and stack addressing. Buffers can act like stacks (push/pop) or queues (unshift/shift) and live as first‑class values or inside locals/globals via refs.
 
-To define a unified structure for fixed-size, mutable buffers used in stack-like or queue-like modes within TACIT capsules. These buffers are implemented as ring buffers (circular arrays) and may be embedded as local variables in capsule memory frames.
+Design goals
+- Constant‑size: no resizing or heap allocation.
+- Pure LIST semantics: header at TOS; payload slots addressed via `slot`/`fetch`/`store`.
+- Dual‑mode: O(1) push/pop and shift/unshift with wrap‑around.
+- In‑place mutation: only simple slots are written; structure remains intact.
+- Caller policy: no internal overwrite policy; compose behavior explicitly.
 
-## Design Goals
+Stack representation (cells)
+- A buffer is a LIST with payload layout: `[ start, end, data0, data1, …, data(capCells-1) ]`.
+- Header `LIST:s` sits at TOS; payload lies beneath (lower addresses) per list spec.
+- Meta slots (nearest the header):
+  - slot 0 (SP-1): start — index of the first logical element
+  - slot 1 (SP-2): end — one past the last logical element
+- Capacity and size are derived:
+  - `s = slots(list)` (payload slots from header)
+  - `capCells = s - 2` (ring storage including one reserved cell)
+  - `capacity = capCells - 1` (maximum storable elements)
+  - `size = (end - start + capCells) % capCells`
+  - `empty ⇔ start == end`
+  - `full  ⇔ ((end + 1) % capCells) == start`
 
-- **Constant-size allocation:** No dynamic resizing or heap allocation.
-- **Modular indexing:** Wrapping behavior for index increment/decrement.
-- **Dual-mode usage:** Allow push/pop for stack mode, shift/unshift for queue mode.
-- **Encapsulation:** Buffer is self-contained within a capsule or a local var frame.
-- **In-place mutation:** Safe updates to simple values within buffer.
+Addressing rules (no raw memory)
+- Use `slot` to address payload cells relative to the header, then `fetch`/`store`.
+- Works equally with a materialized LIST or a ref‑to‑LIST header; `slot` is segment‑aware.
 
-## Memory Layout
+Creation
+- `buffer` ( N -- list )
+  - Allocates a LIST with `s = 2 + (N + 1)` payload slots (one reserved to distinguish full vs empty).
+  - Initializes `start = 0`, `end = 0` and sets each data slot to `NIL`.
+  - Minimum `N` is 1; invalid sizes throw.
 
-Each buffer is represented as a fixed-length list with an attached header. The header contains:
+Operations (no dots; human‑readable names)
+- `buf-size` ( list/ref -- n )
+  - Computes current element count using the size formula above.
+- `is-empty` ( list/ref -- 1|NIL )
+  - Pushes `1` when `start == end`, otherwise `NIL`.
+- `is-full` ( list/ref -- 1|NIL )
+  - Pushes `1` when `((end + 1) % capCells) == start`, otherwise `NIL`.
+- `push` ( list/ref x -- list/ref 1|NIL )
+  - If full, returns `NIL` (no mutation). Otherwise, writes `x` at `data[end]`, then `end = (end + 1) % capCells`, returns `1`.
+- `pop` ( list/ref -- list/ref v|NIL )
+  - If empty, returns `NIL`. Otherwise, `end = (end - 1 + capCells) % capCells`, then returns `data[end]`.
+- `unshift` ( list/ref x -- list/ref 1|NIL )
+  - If full, returns `NIL`. Otherwise, `start = (start - 1 + capCells) % capCells`, writes `x` at `data[start]`, returns `1`.
+- `shift` ( list/ref -- list/ref v|NIL )
+  - If empty, returns `NIL`. Otherwise, returns `data[start]`, then `start = (start + 1) % capCells`.
 
-- **capacity** (fixed at creation)
-- **start index** (points to first logical element)
-- **end index** (points to where next insert will happen)
-- **count** (number of valid elements)
+Aliases
+- `read`  ≡ `pop`
+- `write` ≡ `unshift`
 
-All indices are modulo `capacity`.
+Notes on policy and composition
+- Overwrite‑on‑full is left to the caller. For example: `is-full` guarded `shift` then `push` implements drop‑oldest.
+- All meta/data cells are simple; `store` to those slots is always allowed by the list spec.
 
-## API
+Integration in capsules and locals
+- Buffers are just lists. To embed a buffer in a local, allocate with `buffer N` and `store` into the local’s ref. All subsequent updates operate in place via the ref.
+- Example (sketch):
+  - `( buffer 8 ) &q store   \ allocate 8‑cap buffer and bind local q`
+  - `42 &q fetch write       \ unshift 42 into q`
+  - `&q fetch read           \ pop from the tail`
 
-### Stack-like (LIFO)
+Use cases
+- Traversal stacks, bounded histories, token queues, sliding windows.
 
-- `push(x)`:
-  - Writes `x` at `end index`, then increments `end`, increments `count`.
+Future extensions (non‑normative)
+- Optional timestamp metadata per slot, blocking semantics, or multi‑VM variants — all can be layered without changing the base layout.
 
-- `pop()`:
-  - Decrements `end`, reads value at new `end`, decrements `count`.
+Operational lowering (illustrative)
+- The following shows how each op interacts with list cells using only `slot`/`fetch`/`store` and integer arithmetic. Pseudocode expresses stack effects; it is not a separate API.
 
-### Queue-like (FIFO)
+Size
+1. `s = slots(list)`
+2. `cap = s - 2`
+3. `start = list[0] load`, `end = list[1] load`
+4. `size = (end - start + cap) % cap`
 
-- `shift()`:
-  - Reads value at `start`, increments `start`, decrements `count`.
+Push
+1. Compute `cap` and read `start,end` as above; if `((end + 1) % cap) == start` → `NIL`.
+2. `addr = 2 + end` → `slot` → `store x`.
+3. `end' = (end + 1) % cap` → `slot 1` → `store end'`.
 
-- `unshift(x)`:
-  - Decrements `start`, writes `x`, increments `count`.
+Pop
+1. Read `start,end`; if `start == end` → `NIL`.
+2. `end' = (end - 1 + cap) % cap` → `slot 1` → `store end'`.
+3. `addr = 2 + end'` → `slot` → `fetch` to return value.
 
-### Random access
+Unshift
+1. Read `start,end`; if `((end + 1) % cap) == start` → `NIL`.
+2. `start' = (start - 1 + cap) % cap` → `slot 0` → `store start'`.
+3. `addr = 2 + start'` → `slot` → `store x`.
 
-- `get(i)`:
-  - Reads value at `(start + i) % capacity`.
+Shift
+1. Read `start,end`; if `start == end` → `NIL`.
+2. `addr = 2 + start` → `slot` → `fetch` to return value.
+3. `start' = (start + 1) % cap` → `slot 0` → `store start'`.
 
-- `set(i, x)`:
-  - Writes value at `(start + i) % capacity`.
+Testing checklist (behavioral)
+- Creation: `buffer 0/1/N` valid ranges; meta zeroed; data set to `NIL`.
+- Meta queries: `buf-size`, `is-empty`, `is-full` match constructed scenarios.
+- Wrap‑around: push/unshift past boundary; pop/shift across boundary.
+- Under/overflow: return `NIL` with no meta changes.
+- Locals/refs: same behavior when operating via a local’s ref.
 
-## Overflow Policy
-
-By default, `push` and `unshift` fail silently or return NIL if `count == capacity`.
-
-### Optional Mode: Overwrite
-
-If `overwrite` flag is set:
-
-- `push` overwrites the oldest value by incrementing `start` when full.
-- `unshift` overwrites newest value by decrementing `end`.
-
-## Integration in Capsules
-
-Buffers may be declared as:
-
-```tacit
-var myStack stack[16]  \ allocates 16-slot stack
-var myQueue queue[8]   \ allocates 8-slot ring buffer for queueing
-```
-
-These allocate a structure on the return stack (or later, in capsule memory) with embedded metadata and payload.
-
-## Use Cases
-
-- **Tree traversal stacks**
-- **Undo/redo history**
-- **Windowed joins (buffered zip)**
-- **Token queues / stream buffers**
-
-## Future Extensions
-
-- Optional timestamp metadata per slot
-- Clock-triggered purge / expiration
-- Blocking semantics (wait until non-empty/full)
-- Shared-memory or multi-VM safe version
-
-### Ring Buffer Operations
-
-| Operation   |  Direction      | Pointer Affected | Semantics         | Wrap Behavior | Tacit Use Case      |
-| ----------- |  -------------- | ---------------- | ----------------- | ------------- | ------------------- |
-| `push`      |  → tail (end)   | `tail++`         | Append to end     | wrap if full  | Stack push          |
-| `pop`       |  ← tail (end)   | `tail--`         | Remove from end   | wrap if empty | Stack pop           |
-| `shift`     |  → head (start) | `head++`         | Remove from start | wrap if empty | FIFO dequeue        |
-| `unshift`   |  ← head (start) | `head--`         | Prepend to start  | wrap if full  | FIFO enqueue        |

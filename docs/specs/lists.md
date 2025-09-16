@@ -4,7 +4,7 @@ Orientation
 - Start with core invariants: docs/specs/core-invariants.md
 - Quick addressing/mutation
   - `slot` returns payload slot address (O(1)); `elem` returns element start (O(s)).
-  - `fetch`/`load` materialize lists; `store` writes only simple cells; compound updates require compatibility.
+  - `fetch`/`load` materialize lists; `store` overwrites simple cells; compatible compound updates are allowed; incompatible attempts error.
 
 Units
 - SP/RSP are cell-indexed (one unit = one 32‑bit cell). Any byte offsets shown are only at memory read/write boundaries.
@@ -56,11 +56,12 @@ Units
 14. Sorting
 
 - Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a STACK_REF, but may be any ref type depending on context.
-- Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
-- If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
-- Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
-- **Cost:** O(1).
-- **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
+- When the target at `addr` is **simple** (single-slot): the `value` must also be simple. Writing a compound into a simple slot is an error and must not alter structure.
+- When the target at `addr` is a **compound header** (e.g., a `LIST:s`): the `value` must be a compound of the **same type and identical slot count** (compatible). The operation copies the new compound into the existing region in-place; the address/ref remains stable. If types or slot counts differ, it is an error.
+- **Cost:** O(1) for simple; O(span) to copy a compatible compound.
+- **Examples:**
+  - Simple: `100 list 2 elem store` overwrites element 2 when that element is simple.
+  - Compatible compound: `(1 2 3) list 0 elem store` replaces a nested 3-slot list with another 3-slot list.
 
 21. Worked examples (diagrams)
 22. Edge cases and failure modes
@@ -76,7 +77,7 @@ Lists in **tacit** are contiguous, stack-resident aggregates. They are engineere
 - **Support constant-time skipping/dropping** via a run-length header at TOS.
 - **Separate physical vs logical view.** A _slot_ is a fixed-size 32‑bit cell in a list’s payload; an _element_ is a logical member that can span one or more slots (for compounds).
 - **Favor prepend and front-drop.** These operations are O(1) and map to simple header rewrites; append is possible but O(n) and discouraged.
-- **Permit limited in-place mutation.** Only simple (fixed-size) slots may be overwritten; compounds preserve structure.
+- **Permit in-place mutation.** Simple (fixed-size) slots may be overwritten; compound elements may be replaced in place when the new value is **compatible** (same type and slot count); otherwise error. Structure (slot counts) does not change.
 - **Be type-agnostic for traversal.** Any compound’s header encodes its total span in slots so walking the payload never branches on type.
 
 This document is intentionally explicit and example-heavy to eliminate ambiguity around stack direction, offsets, and costs.
@@ -270,11 +271,9 @@ Notes
 ### store ( value addr -- )
 
 - Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF.
-- Allowed only when the target at `addr` is a **simple** (single-slot) value; this preserves list structure.
-- If the target at `addr` is a **compound header** (e.g., a `LIST:s` header) or otherwise not simple, the operation is a **no-op (silent fail)**.
-- Implementations may additionally require `value` itself to be simple; attempting to write a compound must not alter structure.
-- **Cost:** O(1).
-- **Example:** `100 list 2 elem store` overwrites element 2 if and only if that element is simple.
+- Simple targets only; for compound targets see Compatibility Rule below.
+- **Cost:** O(1) for simple; O(span) to materialize a compound on fetch or to copy a compatible compound on store.
+- **Example:** `100 list 2 elem store` overwrites element 2 when that element is simple.
 
 #### Compound Mutation: Compatibility Rule (low-level)
 
@@ -400,7 +399,10 @@ Testing checklist
 
 ## 13. Mutation (high-level)
 
-Only **simple** (single-slot) payload cells may be overwritten in place. Use `store ( value addr -- )` for in-place updates to simple cells obtained via `slot`/`elem` addressing. Attempts to overwrite a **compound** element (i.e., when `addr` points to a compound header such as `LIST:s`) must leave the list unchanged and are a **no-op (silent)**. Structural operations like `concat` (simple/list) and `tail` are the canonical way to change list shape. `fetch ( addr -- value )` returns either a simple value or a full compound value when the address points to a compound header.
+Use `store ( value addr -- )` for in-place updates.
+- Simple targets: overwrite with simple values only.
+- Compound targets: allowed only for **compatible** compounds (same type and slot count); otherwise error. The destination address does not change; contents are replaced in place.
+Structural edits that change slot counts require higher-level operations (e.g., `concat`, `tail`). `fetch ( addr -- value )` returns either a simple value or a full compound when the address points to a compound header.
 
 ---
 
@@ -622,7 +624,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
   - `concat xs () == xs` and associativity
 
 - **Mutation**
-  - Overwrite of a simple slot (if supported) succeeds; attempts on compound must not alter the list
+  - Overwrite of a simple slot succeeds; compound replacement is allowed only when compatible (same type and slot count); otherwise error; no structural edits.
 
 ---
 
@@ -648,7 +650,7 @@ Lookup and addressing (see Access spec)
 - find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address.
 - bfind: `( sorted-maplist key { kcmp } — addr | nil )` → binary search over keys.
 - hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix).
-- Combine with `fetch`/`store` for reads/writes; only simple writes allowed; no structural edits.
+- Combine with `fetch`/`store` for reads/writes; writes to simple slots only, or compatible compound replacement at compound headers; no structural edits that change slot counts.
 
 Default key convention
 - Special key `default` provides a fallback when lookup fails: if `key` not found, use `default`’s value when present.
