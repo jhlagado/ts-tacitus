@@ -93,5 +93,3 @@ These allocate a structure on the return stack (or later, in capsule memory) wit
 | `pop`       |  ← tail (end)   | `tail--`         | Remove from end   | wrap if empty | Stack pop           |
 | `shift`     |  → head (start) | `head++`         | Remove from start | wrap if empty | FIFO dequeue        |
 | `unshift`   |  ← head (start) | `head--`         | Prepend to start  | wrap if full  | FIFO enqueue        |
-| `get(i)`    |  random access  | ``               | Read at index i   | wrap if OOB   | Random access read  |
-| `set(i, x)` |  random access  | ``               | Write at index i  | wrap if OOB   | Random access write |
