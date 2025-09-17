@@ -595,7 +595,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 - **Empty:** `( )` behaves as described in §16.
 - **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; return `nil`.
-- **Illegal in-place overwrite on compound:** list remains unchanged; return `nil` or no-op.
+- **Incompatible compound overwrite:** must error; compatible compound replacement is allowed (same type and slot count) and mutates in place; no structural edits.
 - **Malformed header:** operations must validate tag/length before acting; reject invalid structures.
 
 ---
