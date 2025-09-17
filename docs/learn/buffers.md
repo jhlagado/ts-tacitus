@@ -1,21 +1,5 @@
 # Buffers in Tacit: An Introduction
 
-## Table of contents
-
-- [1. Motivation](#1-motivation)
-- [2. Built on Lists](#2-built-on-lists)
-- [3. Stack and Ring Semantics](#3-stack-and-ring-semantics)
-- [4. Structural Rules](#4-structural-rules)
-- [5. Buffer Capabilities](#5-buffer-capabilities)
-- [6. Lifetimes and Ownership](#6-lifetimes-and-ownership)
-- [7. Basic API Overview](#7-basic-api-overview)
-- [8. Error Scenarios and Design Considerations](#8-error-scenarios-and-design-considerations)
-  - [Underflow](#underflow)
-  - [Overflow](#overflow)
-  - [Corruption Risk](#corruption-risk)
-  - [Open Questions](#open-questions)
-- [9. Next Steps](#9-next-steps)
-
 Buffers in Tacit are a flexible, general-purpose data structure designed to support both stack-like and ring-like operations. They are not a separate primitive but a higher-level construct **built upon Tacit lists**, which are themselves compound, reverse-ordered structures that can store any kind of Tacit value. This document introduces buffers in relation to lists, focusing on their design, behavior, and capabilities.
 
 ## 1. Motivation
@@ -57,7 +41,7 @@ This creates an empty buffer with room for fifty slots. Storing it in a variable
 50 buffer var x
 ```
 
-This allocates a buffer of 50 slots and keeps a reference to it in `x`. All subsequent operations (`push`, `pop`, etc.) can then work on `x` without recreating it.
+This allocates a buffer of 50 slots and keeps a reference to it in `x`. All subsequent operations (`push`, `pop`, etc.) use the variable’s address in RPN form, e.g. `&x 5 push` to push the value 5 into `x`.
 
 ## 3. Stack and Ring Semantics
 
@@ -70,7 +54,7 @@ Internally, these two modes of access are compatible. A buffer retains its state
 
 Practical scenarios:
 
-* A **stack** example: repeatedly pushing results of calculations and popping them as needed, e.g. `x push 42 push pop` to retrieve the last inserted value.
+* A **stack** example: repeatedly pushing results of calculations and popping them as needed, e.g. `&x 42 push  &x pop` to retrieve the last inserted value.
 * A **ring** example: maintaining a moving window of the last ten sensor readings: `10 buffer var readings` and then pushing each new value as it arrives. When the buffer is full, new pushes overwrite the oldest elements, maintaining a continuous rolling history.
 
 This dual nature means that the same buffer can move fluidly between stack and queue usage as required.
@@ -85,7 +69,7 @@ Buffers maintain the same structural rules as lists:
 
 When constructing buffers, you may:
 
-* Push values into them one at a time (stack-style), e.g. `x push 5`.
+* Push values into them one at a time (stack-style), e.g. `&x 5 push`.
 * Pre-build a list and wrap it as a buffer for immediate use.
 * Read and mutate buffer contents directly (as with lists), subject to the rules of element size compatibility.
 
@@ -135,14 +119,16 @@ Buffers also support **inspection and introspection**:
 * **Peek / Index**: Allows you to read (without consuming) an element at a given position, with bounds checked cyclically.
 * **Mutate**: You can overwrite simple elements in-place, as long as slot compatibility is preserved.
 
-Example session:
+Example session (RPN):
 
 ```
 10 buffer var q
-q push 1 push 2 push 3    # stack up three numbers
-q pop                     # returns 3
-q shift                   # advance cursor in ring mode
-q length                  # returns 2 (after pop)
+&q 1 push                 \ stack up three numbers
+&q 2 push
+&q 3 push
+&q pop                    \ => 3
+&q shift                  \ advance cursor in ring mode
+&q buf-size               \ => 2 (after pop)
 ```
 
 This API enables a range of usage styles — from transient stacks to fixed-size queues and lazy intermediate stores — all grounded in Tacit’s stack discipline and list model.
