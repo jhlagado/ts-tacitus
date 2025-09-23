@@ -1,27 +1,38 @@
 Errors and Failures
 
-Scope: minimal, predictable behavior for reads vs writes without stack noise.
+Tacit keeps runtime errors predictable: reads soft-fail with `NIL`, while illegal writes and stack corruption throw. Unhandled errors now ship with a concise stacktrace so you see where things went wrong.
 
 Principles
-- Stack safety throws: over/underflow on data/return stacks always raise errors.
-- Preconditions throw: malformed tags, invalid references, or required inputs missing.
-- Reads soft‑fail: non‑mutating queries return NIL on invalid target or not‑found.
-- Writes throw: mutations fail fast with clear messages; no return values.
+- Stack safety throws: data/return-stack overflows or underflows always raise errors.
+- Preconditions throw: malformed tags, invalid references, or missing required inputs abort execution.
+- Reads soft-fail: non-mutating queries yield `NIL` when the target is missing or incompatible.
+- Writes throw: assignment and mutation either succeed in place or raise an error; no partial state.
 
-Operations
-- Bracket read: `expr[ … ]` → value|NIL (no throws for not‑found).
-- Address queries: `select`, `slot`, `elem`, `find` → ref|NIL.
-- Value by default: `load` → identity/materialize; strict address read: `fetch` → throws if not a reference.
-- List queries: `length`, `size` → count; NIL if target is not a list.
-- Mutations: `value -> x[ … ]` and low-level `store`/compound mutation → throw on failure; no outputs.
+Operations quick reference
+- Bracket read: `expr[ … ]` → value or `NIL` (no throw on not-found).
+- Address queries: `select`, `slot`, `elem`, `find` → ref or `NIL`.
+- Value-by-default: `load` → identity/materialize. Strict read: `fetch` → throws if input is not a reference.
+- List queries: `length`, `size` → counts; `NIL` if input is not a list.
+- Mutations: `value -> x[ … ]`, `store`, compound writes → throw on failure; no return values.
 
-Canonical Errors (messages)
-- Bad address: "store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)".
-- Type mismatch: "Cannot assign simple to compound or compound to simple".
-- Incompatible compound: "Incompatible compound assignment: slot count or type mismatch".
-- Strict read: "fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)".
+Canonical error messages
+- "store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)"
+- "Cannot assign simple to compound or compound to simple"
+- "Incompatible compound assignment: slot count or type mismatch"
+- "fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)"
+
+Stacktraces for unhandled errors
+- When an error is about to escape to the host, the VM walks the call stack (up to eight frames) and resolves each return address to the closest function start recorded by the compiler.
+- Frames are rendered from innermost to outermost in the form `function-name : +offset`, where `offset` is the byte distance from the function’s entry point to the failing location.
+- Missing metadata falls back to a raw address label like `@0x1234 : +0`.
+- Example host output:
+  ```
+  Error: broadcast type mismatch
+    at add : +12
+    at map-list : +40
+  ```
 
 Notes
-- Reads do not encode errors as numbers; NIL indicates invalid/missing data.
-- Writes never materialize destinations; mutate in place or fail.
- - Destinations must be addresses; bracket writes restrict destination to locals to guarantee write‑through.
+- Reads never encode errors as numeric sentinels; `NIL` signals the soft-failure path.
+- Destinations for writes must be references; bracket writes remain locals-only to enforce write-through semantics.
+- Error catching/rethrowing is not yet exposed; every escaping error includes the stacktrace described above.
