@@ -1,7 +1,7 @@
 # Plan 31 — Forth-Style Conditionals
 
 ## Status
-- **State:** Draft (blocked on Plan 30)
+- **State:** In Progress
 - **Owner:** Tacit control-flow initiative
 - **Prerequisites:** Plan 30 (immediate words + colon definitions + generic `;`)
 
