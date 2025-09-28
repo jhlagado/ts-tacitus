@@ -1,14 +1,13 @@
 # Immediate Words & Generic Terminators — Draft Specification
 
 ## Status
-- **Stage:** exploratory draft
+- **Stage:** draft (aligned with implementation)
 - **Scope:** immediate-word infrastructure, shared `;` terminator, colon definitions
-- **Not yet implemented:** parser changes, dictionary updates, tests
 
 ## Goals
 - Allow selected words to execute during compilation (Forth-style immediates).
 - Provide a generic terminator `;` that finalizes whichever construct is currently open.
-- Rework colon definitions and control structures to use immediates plus the shared terminator.
+- Rework colon definitions and, eventually, other control structures to use immediates plus the shared terminator.
 
 ## Immediate Words
 - Dictionary entries gain an `immediate` flag.
@@ -18,36 +17,35 @@
   3. If the word is not immediate, emit bytecode as usual.
 - Because Tacit always compiles a chunk before executing it, immediate execution occurs entirely within the compilation pass and returns control to the parser once the word finishes.
 
-### Colon `:` Immediate (reference implementation plan)
+### Colon `:` Immediate (implemented)
 ```
 : (immediate)
   ensure not already defining a word
   read next token → name
-  startAddr ← vm.compiler.CP
-  vm.symbolTable.defineCode(name, startAddr)
-  parserState.currentDefinition ← { name, startAddr }
-  vm.push(toTaggedValue(Op.EndDef, Tag.BUILTIN))   # closer for ';'
+  compile Branch and placeholder to skip over definition body until the closer patches it
+  checkpoint symbol table so we can roll back if compilation fails
+  record definition metadata (name, branch position, checkpoint)
+  enter function compilation, preserving current code segment
+  push createBuiltinRef(Op.EndDefinition)   # closer for ';'
 ```
-- Any prologue bytecode (if required later) can be emitted after the dictionary entry is created.
 - Subsequent tokens are compiled as the definition body until the matching `;` appears.
 
 ## Generic Terminator `;`
 - Defined as an immediate alias of `eval` (same implementation, immediate flag set).
-- Pops the top code reference from the VM data stack and **invokes it immediately** so the closer executes right away (and may emit additional bytecode itself).
-- The value is validated with an `isExecutable(value)` helper (accepting `Tag.BUILTIN` and `Tag.CODE`). If the check fails, `;` raises `Unexpected ';'` and compilation aborts.
-- Openers (e.g. `:`/`if`/`do`) push the appropriate closer reference onto the stack before control reaches `;`. For built-in closers this is done directly by pushing `toTaggedValue(opcode, Tag.BUILTIN)` (e.g. `toTaggedValue(Op.EndDef, Tag.BUILTIN)`), avoiding dictionary lookups. Future user-defined closers may push `Tag.CODE` values created via `Op.LiteralCode`.
-- Supports nesting: innermost opener’s reference is on TOS, so the innermost `;` resolves the correct closer first.
+- Ensures the data stack is not empty; otherwise raises `Unexpected semicolon`.
+- Pops the top value and asks `eval` to execute it. If the value is not executable, `eval` simply pushes it back, so only openers that placed a closer on the stack succeed.
+- Openers (e.g. `:`/`if`/`do`) push the appropriate closer reference onto the stack before control reaches `;`. Builtin closers use `createBuiltinRef(opcode)`; future user-defined closers may push bytecode references directly.
+- Supports nesting: innermost opener’s reference lives on TOS, so the innermost `;` resolves the correct closer first.
 
 ## Colon Definitions
-- `:` becomes immediate:
-  - Emits prologue code (reserve entry in dictionary, mark start address).
-  - Pushes the closing word reference directly as a `Tag.BUILTIN` value (e.g. `toTaggedValue(Op.EndDef, Tag.BUILTIN)`) so the following `;` can invoke it.
-- Closer (invoked via `;`) emits epilogue code (`Exit`, dictionary finalization), clears `parserState.currentDefinition`, and leaves the compiled word ready for use.
+- `:` is immediate and orchestrates the prologue described above.
+- Closer logic lives in the builtin `enddef` opcode. When executed via `;` it emits `Exit`, back-patches the initial branch, defines the word in the symbol table, and clears parser state.
+- Because the parser no longer has bespoke colon handling, new openers can reuse the same pattern by pushing their matching closer onto the stack.
 
 ## Control Structures
-- Immediate `if`/`else` push their closer reference (e.g. `toTaggedValue(Op.EndIf, Tag.BUILTIN)`) onto the stack alongside branch placeholders.
-- Terminator `;` validates the TOS with `isExecutable`, pops, and evaluates the closer, which patches outstanding offsets.
-- Other structures (`do`/`loop`, `begin`/`until`, etc.) follow the same pattern.
+- Future immediate `if`/`else` (Plan 31) will push their closer reference (e.g. `createBuiltinRef(Op.EndIf)`) alongside branch placeholders.
+- Terminator `;` continues to act as the dispatcher, evaluating the closer that patches outstanding offsets.
+- Other structures (`do`/`loop`, `begin`/`until`, etc.) can follow the same pattern once migrated.
 
 ## Stack Discipline During Compilation
 - Immediate words operate directly on the VM's own data and return stacks (no shadow stacks).
@@ -55,12 +53,12 @@
 - Closers rely on the presence of the pushed code reference/placeholder data; missing entries trigger immediate-word errors (e.g., `Unexpected ';'`).
 
 ## Error Handling
-- `;` with no code reference on TOS → compile-time error.
-- Opener encountering a mismatched closer (e.g. `else` without `if`) → compile-time error.
-- Nested constructs rely on LIFO discipline; any imbalance is caught when the closer compares current stack depth with the saved marker.
+- `;` with an empty stack → compile-time error (`Unexpected semicolon`).
+- Openers detect illegal re-entry (e.g. nested `:`) and throw syntax errors immediately.
+- Nested constructs rely on LIFO discipline; mismatches surface when the closer executes and discovers the expected metadata is absent.
 
 ## Open Questions / Decisions
-1. **Closer reference shape** — use raw code references (`@word` tagged values). No sentinel tokens required.
-2. **User-defined immediates** — out of scope for this phase; future work can mirror Forth's `IMMEDIATE` (mark most recently defined word).
-3. **Closer words** — provide dictionary entries (e.g. `endif`) but discourage direct use; they exist chiefly for the terminator to `eval`.
-4. **REPL diagnostics** — detect stray `;` or missing closers during compilation, print an error, and reject the line.
+1. **Closer reference shape** — implemented via `createBuiltinRef(opcode)` for builtins; user bytecode remains an option.
+2. **User-defined immediates** — still out of scope; future work can mirror Forth's `IMMEDIATE` (mark most recently defined word).
+3. **Closer words** — dictionary entries (e.g. `enddef`, future `endif`) remain runtime-accessible but are primarily targets for the terminator.
+4. **REPL diagnostics** — richer messaging for mismatched openers/closers is desirable once more structures migrate.
