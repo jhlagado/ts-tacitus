@@ -238,4 +238,7 @@ export enum Op {
 
   /** Ends a colon definition during compilation (invoked via generic `;`). */
   EndDefinition,
+
+  /** Ends an IF/ELSE construct during compilation (invoked via generic `;`). */
+  EndIf,
 }
