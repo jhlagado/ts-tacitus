@@ -64,7 +64,7 @@ describe('Immediate words', () => {
   });
 
   test('if immediate compiles single-branch conditionals', () => {
-    const negateTrue = executeTacitCode(': maybe-negate dup 0 lt if neg ; ; -5 maybe-negate');
+    const negateTrue = executeTacitCode('-5 dup 0 lt if neg ;');
     expect(negateTrue).toEqual([5]);
 
     const negateFalse = executeTacitCode(': maybe-negate dup 0 lt if neg ; ; 4 maybe-negate');
@@ -76,7 +76,7 @@ describe('Immediate words', () => {
     const positive = executeTacitCode('3 0 lt if -1 else 1 ;');
     expect(positive).toEqual([1]);
 
-    const negative = executeTacitCode(': sign 0 lt if -1 else 1 ; ; -7 sign');
+    const negative = executeTacitCode('-7 0 lt if -1 else 1 ;');
     expect(negative).toEqual([-1]);
   });
 
