@@ -64,16 +64,18 @@ describe('Comprehensive Parser Tests', () => {
   });
   describe('Control Structures', () => {
     test('should parse IF-ELSE-THEN', () => {
-      parse(new Tokenizer('IF { 1 } ELSE { 2 }'));
+      parse(new Tokenizer('1 if 2 else 3 ;'));
       vm.reset();
+      expect(vm.next8()).toBe(Op.LiteralNumber);
+      expect(vm.nextFloat32()).toBe(1);
       expect(vm.next8()).toBe(Op.IfFalseBranch);
       vm.nextInt16();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(1);
+      expect(vm.nextFloat32()).toBe(2);
       expect(vm.next8()).toBe(Op.Branch);
       vm.nextInt16();
       expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(2);
+      expect(vm.nextFloat32()).toBe(3);
       expect(vm.next8()).toBe(Op.Abort);
     });
   });

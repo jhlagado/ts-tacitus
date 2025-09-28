@@ -10,12 +10,11 @@ describe('Tacit Advanced Operations', () => {
     expect(result).toEqual([10]);
   });
   test('complex conditions', () => {
-    let result = runTacitTest('1 IF { 2 } ELSE { 3 }');
+    let result = runTacitTest('1 if 2 else 3 ;');
     expect(result).toEqual([2]);
   });
-  test('nested if with code blocks (using new IF syntax)', () => {
-    let result = runTacitTest('1 IF { 5 2 add } ELSE { 8 3 sub }');
+  test('nested if expressions', () => {
+    let result = runTacitTest('1 if 5 2 add else 8 3 sub ;');
     expect(result).toEqual([7]);
   });
 });
-
