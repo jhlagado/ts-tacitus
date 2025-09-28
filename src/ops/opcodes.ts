@@ -14,9 +14,6 @@ export enum Op {
   /**  Unconditional jump to a different instruction. */
   Branch,
 
-  /**  Conditional jump to a different instruction based on the top of the stack. */
-  BranchCall,
-
   /**  Calls a function. */
   Call,
 
@@ -25,9 +22,6 @@ export enum Op {
 
   /**  Exits the program. */
   Exit,
-
-  /**  Exits the program (code variant). */
-  ExitCode,
 
   /**  Evaluates the expression on the top of the stack. */
   Eval,

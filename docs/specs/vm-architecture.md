@@ -231,7 +231,7 @@ Reference helpers (see `core/refs.ts`):
 
 ## Related Files
 - `src/core/vm.ts` — register storage & helpers
-- `src/ops/core/core-ops.ts` — `exitOp` / `exitCodeOp`
+- `src/ops/core/core-ops.ts` — `exitOp`
 - `src/ops/builtins.ts` — `reserveOp`, `initVarOp`
 - `src/ops/lists/query-ops.ts` — `storeOp` fast paths
 - `src/core/refs.ts` — reference resolution (cell index → byte address)

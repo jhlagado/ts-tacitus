@@ -100,31 +100,6 @@ export const skipDefOp: Verb = (vm: VM) => {
 };
 
 /**
- * Implements the skip block operation.
- *
- * Reads a 16-bit offset from the bytecode stream, pushes the current instruction pointer
- * as a CODE tag onto the stack, and then advances the instruction pointer by the offset.
- * This is used to create code blocks that can be executed later.
- *
- * @param {VM} vm - The virtual machine instance.
- *
- * @example
- *
- *
- *
- *
- *
- * skipBlockOp(vm)
- *
- *
- */
-export const skipBlockOp: Verb = (vm: VM) => {
-  const offset = vm.nextInt16();
-  vm.push(toTaggedValue(vm.IP, Tag.CODE));
-  vm.IP += offset;
-};
-
-/**
  * Implements the function call operation.
  *
  * Reads a 16-bit address from the bytecode stream, saves the current execution context
@@ -221,43 +196,6 @@ export const exitOp: Verb = (vm: VM) => {
     vm.BPCells = vm.rpop();
     const returnAddr = vm.rpop();
 
-    if (isCode(returnAddr)) {
-      const { value: returnIP } = fromTaggedValue(returnAddr);
-      vm.IP = returnIP;
-    } else {
-      vm.IP = Math.floor(returnAddr);
-    }
-  } catch (e) {
-    vm.running = false;
-    throw e;
-  }
-};
-
-/**
- * Implements the exit code operation.
- *
- * This operation has exactly the same implementation as exitOp, handling the
- * return from a subroutine call by:
- * 1. Checking if there's enough data on the return stack
- * 2. Popping the base pointer from the return stack
- * 3. Popping the return address from the return stack
- * 4. Jumping to the return address
- *
- * If the return stack is empty after popping the base pointer, the VM execution stops.
- * This handles the case of returning from the main program.
- *
- * @param {VM} vm - The virtual machine instance.
- *
- * @throws {Error} If an error occurs during the exit operation, the VM is stopped
- * and the error is propagated.
- */
-export const exitCodeOp: Verb = (vm: VM) => {
-  try {
-    if (vm.RSP < 1) {
-      vm.running = false;
-      return;
-    }
-    const returnAddr = vm.rpop();
     if (isCode(returnAddr)) {
       const { value: returnIP } = fromTaggedValue(returnAddr);
       vm.IP = returnIP;

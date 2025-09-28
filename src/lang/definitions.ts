@@ -5,10 +5,6 @@ import { Op } from '../ops/opcodes';
 import type { ParserState, ActiveDefinition } from './state';
 
 export function beginDefinition(state: ParserState): void {
-  if (state.insideCodeBlock) {
-    throw new NestedDefinitionError(vm.getStackData());
-  }
-
   if (state.currentDefinition) {
     throw new NestedDefinitionError(vm.getStackData());
   }

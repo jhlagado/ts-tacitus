@@ -73,7 +73,7 @@ Error handling: invalid address/tag → throw with canonical messages (see `erro
   - copy capsule payload (locals) to RSTACK
   - set `BP = RSP - frameCells`
   - read code pointer from element 0; `IP = codePtr`
-- Execute reentry; upon `Exit`/`ExitCode`:
+- Execute reentry; upon `Exit`:
   - reify updated frame into list (same as `makeCapsuleOp` but without changing caller’s BP)
   - write the list back to `addr` (materialize sources as required by store rules)
   - leave any results pushed by method

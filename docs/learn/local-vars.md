@@ -483,7 +483,7 @@ Example:
 
 - **Returning local references**: Stack addresses become invalid
 - **Storing locals in globals**: Lifetime mismatch
-- **Variable declarations in code blocks**: Compile-time error
+- **Variable declarations outside colon definitions**: Compile-time error
 
 ## 14. Examples
 
@@ -602,7 +602,7 @@ This specification establishes a complete local variable system for Tacit that s
 
 - Builds on existing stack frame infrastructure
 - Uses proven tagged value system
-- Maintains code block lexical scoping
+- Keeps immediate-word constructs (e.g., `if … ;`, `methods … ;`) within the same lexical scope
 - Supports both simple and compound data types
 
 The design provides a foundation for sophisticated local variable usage while maintaining Tacit's stack-oriented philosophy and preparing for eventual C translation.

@@ -1,31 +1,19 @@
-# Brace Code Block Removal Brief
+# Brace Code Block Removal Summary
 
-## Context
-Legacy Tacit syntax treated `{ … }` as block literals that compiled to quotations and executed via `eval` (using `Op.ExitCode`). With the adoption of immediate words (`:` definitions, `if/else`), these block constructs are redundant and create parser/VM complexity.
+## Status
+- **Completed:** Plan 32 replaced legacy `{ … }` quotations with immediate-word constructs.
 
-## Objectives
-- Retire `{ … }` tokens and the associated compile-time pathways (`TokenType.BLOCK_START/BLOCK_END`, `beginBlock`, `parseCurlyBlock`, `compileCodeBlock`).
-- Remove runtime support for `Op.ExitCode` and the old distinction between “code blocks” and “functions” in code references; the meta bit in `Tag.CODE` remains reserved for future use but no longer changes runtime behaviour.
-- Provide alternative patterns (e.g., immediate comparators, named definitions) for scenarios currently illustrated with braces.
+## Outcome
+- Tokenizer no longer emits dedicated block tokens; encountering `{` or `}` now raises a syntax error that directs authors to use immediate words closed by `;`.
+- Parser helpers (`beginBlock`, `parseCurlyBlock`, `compileCodeBlock`) and the `insideCodeBlock` flag were deleted.
+- VM runtime shed specialised support: `Op.BranchCall`, `skipBlockOp`, and `Op.ExitCode` are gone. Immediate control flow continues to rely on `Op.Branch` and `Op.IfFalseBranch`.
+- Test suites relying on brace blocks were retired or converted to the new `… ;` form, and documentation/examples were rewritten accordingly.
 
-## Affected Areas
-- **Parser/Tokenizer:** block tokens, code-block compilation helpers, uppercase `IF` combinator fallback.
-- **VM Runtime:** `ExitCode` verb, meta-bit handling for lexical quotations, brace-specific tests.
-- **Documentation:** specs and learn guides referencing `{ … }`, comparator examples, capsules drafts.
-- **Test Suites:** `standalone-blocks`, tokenizer fixtures, comparator helpers in `access-test-utils`.
+## Migration Notes
+- Use colon definitions or inline immediates (`if … else … ;`, `sort - ;`) instead of `{ … }` quotations.
+- `eval` still executes tagged code references but now only encounters values emitted by the immediate infrastructure.
+- The `Tag.CODE` meta bit remains reserved; it no longer distinguishes “brace blocks” at runtime.
 
-## Migration Strategy
-1. Introduce replacement syntax (immediate comparator words, named helper definitions) and update documentation.
-2. Deprecate brace usage by flagging it during parsing (warning/error) while replacements exist.
-3. Remove parser/runtime support once codebase, docs, and tests no longer depend on braces.
-4. Communicate change in release notes with migration examples (`sort - ;`, `1 if … ;`).
-
-## Risks & Mitigations
-- **Third-party code using braces:** Provide a deprecation window and automated migration tips.
-- **Comparator ergonomics:** Ensure new syntax remains concise, possibly via helper words/macros.
-- **Capsules/method tables drafts:** Coordinate with capsule design to avoid reintroducing braces.
-
-## Next Steps
-- Execute Plan 32 (Remove Legacy Brace Blocks).
-- Update specs/learn docs as part of the plan deliverables.
-- Remove standby tests (`standalone-blocks`) once parser changes land.
+## Follow-Up
+- Track external libraries for lingering brace syntax and provide upgrade snippets where needed.
+- Audit future metaprogramming features so they register immediates rather than reintroducing brace literals.

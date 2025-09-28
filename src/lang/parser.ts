@@ -26,7 +26,7 @@ import {
   fromTaggedValue,
   Tag,
 } from '@src/core';
-import { UndefinedWordError, SyntaxError, UnexpectedTokenError } from '@src/core';
+import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString, parseBacktickSymbol } from './literals';
 import { ParserState, setParserState } from './state';
 import { ensureNoOpenDefinition } from './definitions';
@@ -46,7 +46,6 @@ export function parse(tokenizer: Tokenizer): void {
   const state: ParserState = {
     tokenizer,
     currentDefinition: null,
-    insideCodeBlock: false,
   };
 
   setParserState(state);
@@ -123,11 +122,6 @@ export function processToken(token: Token, state: ParserState): void {
     case TokenType.SPECIAL:
       handleSpecial(token.value as string, state);
       break;
-    case TokenType.BLOCK_START:
-      beginBlock(state);
-      break;
-    case TokenType.BLOCK_END:
-      throw new UnexpectedTokenError('}', vm.getStackData());
     case TokenType.WORD:
       emitWord(token.value as string, state);
       break;
@@ -588,12 +582,12 @@ function compileBracketPathAsList(state: ParserState): void {
 }
 
 /**
- * Process special tokens such as (, ), {, `, and postfix list selectors.
+ * Process special tokens such as (, ), `, and postfix list selectors.
  *
  * This function dispatches to the appropriate handler based on the special token:
  * - '(' begins a list
  * - ')' ends a list
- * - '{' begins a standalone code block
+ * - '{' or '}' raises a legacy syntax error (brace blocks removed)
  * - '`' begins a symbol literal
  *
  * @param {string} value - The special token value
@@ -604,8 +598,8 @@ export function handleSpecial(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
-  } else if (value === '{') {
-    beginBlock(state);
+  } else if (value === '{' || value === '}') {
+    throw new SyntaxError('Curly brace code blocks have been removed; use immediate constructs with ;', vm.getStackData());
   } else if (value === '`') {
     parseBacktickSymbol(state);
   } else if (value === '[') {
@@ -647,76 +641,6 @@ export function endList(_state: ParserState): void {
 
   vm.compiler.compileOpcode(Op.CloseList);
   vm.listDepth--;
-}
-
-/**
- * Begin a standalone code block with opening brace ({).
- *
- * This function handles standalone code blocks that produce a code reference
- * on the stack. It uses the same pattern as combinators but without the
- * combinator operation at the end.
- *
- * @param {ParserState} state - The current parser state
- */
-export function beginBlock(state: ParserState): void {
-  const prevInside = state.insideCodeBlock;
-  state.insideCodeBlock = true;
-  const { startAddress } = compileCodeBlock(state);
-  state.insideCodeBlock = prevInside;
-  vm.compiler.compileOpcode(Op.LiteralCode);
-  vm.compiler.compile16(startAddress);
-}
-
-/**
- * Parse a curly brace block ({...}).
- *
- * This function processes all tokens within a curly brace block until
- * the closing brace is encountered. It returns the starting address of
- * the block in the bytecode.
- *
- * @param {ParserState} state - The current parser state
- * @returns {number} The starting address of the block in the bytecode
- */
-export function parseCurlyBlock(state: ParserState): number {
-  const startAddress = vm.compiler.CP;
-
-  while (true) {
-    const token = state.tokenizer.nextToken();
-    if (token.type === TokenType.BLOCK_END) {
-      break;
-    }
-
-    processToken(token, state);
-  }
-
-  return startAddress;
-}
-
-/**
- * Compile a code block using the standard BranchCall pattern.
- *
- * This function implements the shared compilation pattern used by standalone
- * blocks and combinators. It compiles a BranchCall instruction with a placeholder
- * offset, parses the block content, adds an Exit instruction, and patches the
- * offset to skip over the block when not executing.
- *
- * @param {ParserState} state - The current parser state
- * @returns {object} Object containing startAddress and offsetAddr for further processing
- */
-export function compileCodeBlock(state: ParserState): { startAddress: number; offsetAddr: number } {
-  const skipAddr = vm.compiler.CP;
-  vm.compiler.compileOpcode(Op.Branch);
-  const offsetAddr = vm.compiler.CP;
-  vm.compiler.compile16(0);
-
-  const startAddress = parseCurlyBlock(state);
-  vm.compiler.compileOpcode(Op.ExitCode);
-  const blockEnd = vm.compiler.CP;
-
-  const skipOffset = blockEnd - (skipAddr + 3);
-  vm.compiler.patch16(offsetAddr, skipOffset);
-
-  return { startAddress, offsetAddr };
 }
 
 // Style aliases (Phase 1): prefer shorter emit/handle names for public API
