@@ -1,7 +1,7 @@
 # Plan 31 — Forth-Style Conditionals
 
 ## Status
-- **State:** In Progress
+- **State:** Completed
 - **Owner:** Tacit control-flow initiative
 - **Prerequisites:** Plan 30 (immediate words + colon definitions + generic `;`)
 
@@ -15,9 +15,9 @@
 - Introducing additional control words (`do`, `loop`, etc.) — they will follow after this plan.
 
 ## Deliverables
-- Immediate definitions for `if`, `else`, and their closer helper that manage branch placeholders on the VM stacks.
-- Regression tests covering single-branch (`if … ;`) and dual-branch (`if … else … ;`) forms.
-- Updated conditional spec and brief release notes.
+- Immediate definitions for `if`, `else`, and their closer helper that manage branch placeholders on the VM stacks. ✅
+- Regression tests covering single-branch (`if … ;`) and dual-branch (`if … else … ;`) forms. ✅
+- Updated conditional spec and brief release notes. ✅
 
 ## Work Breakdown
 1. **Immediate words**
@@ -26,7 +26,12 @@
 2. **Testing**
    - Add regression tests for nested conditionals, REPL usage, and error cases (stray `else`, missing `;`).
 3. **Docs**
-   - Refresh `cond-control-flow` to match the implementation.
+   - Refresh `cond-control-flow` to match the implementation. ✅
 
 ## Dependencies
 - Requires Plan 30 completion (immediate infrastructure, colon definitions, generic `;`).
+
+## Outcome
+- Immediate `if`/`else` now reuse the generic `;` terminator and push their closers as executable refs.
+- Parser combinators for uppercase `IF` and brace constructs removed; tests cover success and failure paths for the new immediates.
+- Documentation updated across specs/learn materials to describe the immediate conditional workflow and drop brace-block examples.

@@ -136,7 +136,7 @@ describe('Tokenizer @symbol Support - Step 13', () => {
     });
 
     it('should tokenize @symbols with special characters', () => {
-      tokenizer = new Tokenizer('(@add) [@sub] {@mul}');
+      tokenizer = new Tokenizer('(@add) [@sub] (@mul)');
 
       const token1 = tokenizer.nextToken();
       expect(token1.type).toBe(TokenType.SPECIAL);
