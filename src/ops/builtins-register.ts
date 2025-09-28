@@ -24,6 +24,7 @@ import { evalOp } from './core';
 
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
+import { beginDefinitionImmediate, endDefinitionImmediate } from '../lang/parser';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -128,4 +129,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('repeat', Op.Repeat, repeatOp);
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
+
+  symbolTable.defineBuiltin('DEF', Op.Nop, _vm => beginDefinitionImmediate(), true);
+  symbolTable.defineBuiltin('ENDDEF', Op.Nop, _vm => endDefinitionImmediate(), true);
 }

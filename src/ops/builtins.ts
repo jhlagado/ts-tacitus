@@ -72,6 +72,8 @@ import { isList, rpushList } from './local-vars-transfer';
 
 // Temp register and related opcodes have been removed.
 
+const nopOp: Verb = () => {};
+
 /**
  * Executes a specific operation based on the given opcode.
  *
@@ -160,6 +162,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.MakeList]: makeListOp,
     [Op.LiteralAddress]: literalAddressOp,
     [Op.LiteralCode]: literalCodeOp,
+    [Op.Nop]: nopOp,
     [Op.OpenList]: openListOp,
     [Op.CloseList]: closeListOp,
     [Op.Length]: lengthOp,

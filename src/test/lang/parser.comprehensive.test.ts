@@ -101,8 +101,9 @@ describe('Comprehensive Parser Tests', () => {
       parse(new Tokenizer(': test-symbol 42 ;'));
       parse(new Tokenizer('`test-symbol'));
       vm.reset();
-      expect(vm.next8()).toBe(1);
+      expect(vm.next8()).toBe(Op.Branch); // skips over definition
       vm.nextInt16();
+      expect(vm.next8()).toBe(Op.LiteralNumber); // body of defintion
     });
   });
 });

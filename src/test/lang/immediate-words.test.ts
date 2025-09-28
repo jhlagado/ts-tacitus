@@ -3,7 +3,7 @@ import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { vm } from '../../core/global-state';
 import { Op } from '../../ops/opcodes';
-import { resetVM } from '../utils/vm-test-utils';
+import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Immediate words', () => {
   beforeEach(() => {
@@ -56,5 +56,10 @@ describe('Immediate words', () => {
     const stack = vm.getStackData();
     expect(stack.length).toBe(1);
     expect(stack[0]).toBe(6);
+  });
+
+  test('DEF/ENDDEF define words immediately', () => {
+    const stack = executeTacitCode('DEF double dup add ENDDEF 2 double');
+    expect(stack).toEqual([4]);
   });
 });

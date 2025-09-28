@@ -5,6 +5,9 @@
 
 /** Operation codes for built-in operations. */
 export enum Op {
+  /** No operation (used for immediate-only words). */
+  Nop,
+
   /**  Pushes a literal number onto the stack. */
   LiteralNumber,
 
