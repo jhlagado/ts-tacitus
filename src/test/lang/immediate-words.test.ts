@@ -72,10 +72,10 @@ describe('Immediate words', () => {
   });
 
   test('if/else immediate compiles dual-branch conditionals', () => {
-    const positive = executeTacitCode(': sign dup 0 lt if drop -1 else drop 1 ; ; 3 sign');
+    const positive = executeTacitCode(': sign 0 lt if -1 else 1 ; ; 3 sign');
     expect(positive).toEqual([1]);
 
-    const negative = executeTacitCode(': sign dup 0 lt if drop -1 else drop 1 ; ; -7 sign');
+    const negative = executeTacitCode(': sign 0 lt if -1 else 1 ; ; -7 sign');
     expect(negative).toEqual([-1]);
   });
 
