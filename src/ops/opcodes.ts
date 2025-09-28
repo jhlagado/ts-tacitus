@@ -235,4 +235,7 @@ export enum Op {
 
   /** Value-by-default dereference - ( x -- v ) */
   Load,
+
+  /** Ends a colon definition during compilation (invoked via generic `;`). */
+  EndDefinition,
 }

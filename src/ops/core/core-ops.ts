@@ -24,6 +24,7 @@ import {
   isCode,
   RSTACK_SIZE,
 } from '@src/core';
+import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
 
 import { formatValue } from '@src/core';
@@ -319,6 +320,16 @@ export const evalOp: Verb = (vm: VM) => {
       vm.push(value);
       break;
   }
+};
+
+/**
+ * Invokes the compiler hook that closes the current colon definition.
+ *
+ * At runtime this opcode should never be reached; it exists so that the generic
+ * `;` immediate can call into the appropriate closer without dictionary lookups.
+ */
+export const endDefinitionOp: Verb = () => {
+  invokeEndDefinitionHandler();
 };
 
 /**

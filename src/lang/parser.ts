@@ -37,6 +37,8 @@ import {
   UnexpectedTokenError,
 } from '@src/core';
 import { executeOp } from '../ops/builtins';
+import { createBuiltinRef } from '../core/code-ref';
+import { setEndDefinitionHandler } from './compiler-hooks';
 import type { SymbolTableEntry } from '../strings/symbol-table';
 
 /**
@@ -74,12 +76,16 @@ interface ParserState {
 
 let currentParserState: ParserState | null = null;
 
+const ENDDEF_CODE_REF = createBuiltinRef(Op.EndDefinition);
+
 function requireParserState(): ParserState {
   if (!currentParserState) {
     throw new SyntaxError('Definition opener/closer used outside of parser context', vm.getStackData());
   }
   return currentParserState;
 }
+
+setEndDefinitionHandler(() => endDefinition(requireParserState()));
 
 function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
   if (entry.implementation) {
@@ -924,11 +930,9 @@ export function endDefinition(state: ParserState): void {
 }
 
 export function beginDefinitionImmediate(): void {
-  beginDefinition(requireParserState());
-}
-
-export function endDefinitionImmediate(): void {
-  endDefinition(requireParserState());
+  const state = requireParserState();
+  beginDefinition(state);
+  vm.push(ENDDEF_CODE_REF);
 }
 
 /**
