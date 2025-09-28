@@ -21,125 +21,17 @@ import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
 import {
-  isWhitespace,
-  isGroupingChar,
   isSpecialChar,
-  fromTaggedValue,
   toTaggedValue,
+  fromTaggedValue,
   Tag,
-  SEG_CODE,
 } from '@src/core';
-import {
-  UnclosedDefinitionError,
-  UndefinedWordError,
-  SyntaxError,
-  NestedDefinitionError,
-  UnexpectedTokenError,
-} from '@src/core';
-import { executeOp } from '../ops/builtins';
-import { createBuiltinRef } from '../core/code-ref';
-import { setEndDefinitionHandler } from './compiler-hooks';
+import { UndefinedWordError, SyntaxError, UnexpectedTokenError } from '@src/core';
 import type { SymbolTableEntry } from '../strings/symbol-table';
-
-/**
- * Represents a word definition in the Tacit language.
- *
- * During compilation, word definitions are tracked to ensure proper
- * structure and to patch branch offsets when the definition is complete.
- *
- * @property {string} name - The name of the defined word
- * @property {number} branchPos - Position in bytecode where branch offset needs to be patched
- */
-export interface Definition {
-  name: string;
-  branchPos: number;
-}
-
-/**
- * Maintains the state of the parser during compilation.
- *
- * The parser state tracks the current tokenizer, any active word definition,
- * whether we're inside a code block, and the next available function index
- * for user-defined words.
- *
- * @property {Tokenizer} tokenizer - The tokenizer providing input tokens
- * @property {Definition | null} currentDefinition - The currently active word definition, if any
- * @property {boolean} insideCodeBlock - Whether parsing is currently inside a code block
- */
-interface ParserState {
-  tokenizer: Tokenizer;
-  currentDefinition:
-    | (Definition & { checkpoint: import('../strings/symbol-table').SymbolTableCheckpoint })
-    | null;
-  insideCodeBlock: boolean;
-}
-
-let currentParserState: ParserState | null = null;
-
-const ENDDEF_CODE_REF = createBuiltinRef(Op.EndDefinition);
-
-function requireParserState(): ParserState {
-  if (!currentParserState) {
-    throw new SyntaxError('Definition opener/closer used outside of parser context', vm.getStackData());
-  }
-  return currentParserState;
-}
-
-setEndDefinitionHandler(() => endDefinition(requireParserState()));
-
-function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
-  if (entry.implementation) {
-    entry.implementation(vm);
-    return;
-  }
-
-  const { tag, value } = fromTaggedValue(entry.taggedValue);
-
-  if (tag === Tag.BUILTIN) {
-    executeOp(vm, value as Op);
-    return;
-  }
-
-  if (tag === Tag.CODE) {
-    runImmediateCode(value);
-    return;
-  }
-
-  throw new SyntaxError(`Immediate word ${name} is not executable`, vm.getStackData());
-}
-
-function runImmediateCode(address: number): void {
-  const savedIP = vm.IP;
-  const savedBPCells = vm.BPCells;
-  const savedRSP = vm.RSP;
-  const savedRunning = vm.running;
-  const savedCP = vm.compiler.CP;
-  const savedBCP = vm.compiler.BCP;
-  const savedPreserve = vm.compiler.preserve;
-
-  vm.rpush(toTaggedValue(savedIP, Tag.CODE));
-  vm.rpush(vm.BPCells);
-  vm.BPCells = vm.RSP;
-  vm.IP = address;
-  vm.running = true;
-
-  while (vm.running) {
-    const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
-    const isUserDefined = (firstByte & 0x80) !== 0;
-    const opcode = vm.nextOpcode();
-    executeOp(vm, opcode as Op, isUserDefined);
-    if (vm.IP === savedIP && vm.RSP === savedRSP) {
-      break;
-    }
-  }
-
-  vm.running = savedRunning;
-  vm.IP = savedIP;
-  vm.BPCells = savedBPCells;
-  vm.compiler.CP = savedCP;
-  vm.compiler.BCP = savedBCP;
-  vm.compiler.preserve = savedPreserve;
-}
+import { emitNumber, emitString, parseBacktickSymbol } from './literals';
+import { ParserState, setParserState } from './state';
+import { ensureNoOpenDefinition } from './definitions';
+import { executeImmediateWord } from './immediates';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -158,7 +50,7 @@ export function parse(tokenizer: Tokenizer): void {
     insideCodeBlock: false,
   };
 
-  currentParserState = state;
+  setParserState(state);
   try {
     parseProgram(state);
 
@@ -166,7 +58,7 @@ export function parse(tokenizer: Tokenizer): void {
 
     vm.compiler.compileOpcode(Op.Abort);
   } finally {
-    currentParserState = null;
+    setParserState(null);
   }
 }
 
@@ -199,9 +91,7 @@ export function parseProgram(state: ParserState): void {
  * @throws {Error} If there are any unclosed definitions
  */
 export function validateFinalState(state: ParserState): void {
-  if (state.currentDefinition) {
-    throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
-  }
+  ensureNoOpenDefinition(state);
 
   if (vm.listDepth !== 0) {
     throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
@@ -269,26 +159,6 @@ export function processToken(token: Token, state: ParserState): void {
  *
  * @param {number} value - The numeric value to compile
  */
-export function emitNumber(value: number): void {
-  vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(value);
-}
-
-/**
- * Compile a string literal into bytecode.
- *
- * This function generates the bytecode for pushing a string literal onto the stack.
- * It adds the string to the VM's digest (string table) and compiles the LiteralString
- * opcode followed by the 16-bit address of the string in the digest.
- *
- * @param {string} value - The string value to compile
- */
-export function emitString(value: string): void {
-  vm.compiler.compileOpcode(Op.LiteralString);
-  const address = vm.digest.intern(value);
-  vm.compiler.compile16(address);
-}
-
 /**
  * Process a word token and generate appropriate bytecode.
  *
@@ -794,11 +664,9 @@ function compileBracketPathAsList(state: ParserState): void {
 }
 
 /**
- * Process special tokens like :, ;, (, ), {, and `.
+ * Process special tokens such as (, ), {, `, and postfix list selectors.
  *
  * This function dispatches to the appropriate handler based on the special token:
- * - ':' begins a word definition
- * - ';' ends a word definition
  * - '(' begins a list
  * - ')' ends a list
  * - '{' begins a standalone code block
@@ -835,106 +703,6 @@ export function handleSpecial(value: string, state: ParserState): void {
  *
  * @param {ParserState} state - The current parser state
  */
-export function parseBacktickSymbol(state: ParserState): void {
-  let sym = '';
-
-  while (state.tokenizer.position < state.tokenizer.input.length) {
-    const ch = state.tokenizer.input[state.tokenizer.position];
-    if (isWhitespace(ch) || isGroupingChar(ch)) break;
-    sym += ch;
-    state.tokenizer.position++;
-    state.tokenizer.column++;
-  }
-
-  const addr = vm.digest.add(sym);
-  vm.compiler.compileOpcode(Op.LiteralString);
-  vm.compiler.compile16(addr);
-}
-
-/**
- * Begin a word definition with colon (:).
- *
- * This function handles the start of a word definition in Tacit. It:
- * 1. Validates that definitions are not nested or inside code blocks
- * 2. Reads the word name from the next token
- * 3. Compiles a branch instruction to skip over the definition
- * 4. Defers symbol registration until ';' to allow body to see previous definition
- * 5. Updates the parser state to track the current definition
- *
- * @param {ParserState} state - The current parser state
- * @throws {Error} If definitions are nested, inside code blocks, or the word is already defined
- */
-export function beginDefinition(state: ParserState): void {
-  if (state.insideCodeBlock) {
-    throw new NestedDefinitionError(vm.getStackData());
-  }
-
-  if (state.currentDefinition) {
-    throw new NestedDefinitionError(vm.getStackData());
-  }
-
-  const nameToken = state.tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
-    throw new SyntaxError(`Expected word name after :`, vm.getStackData());
-  }
-
-  const wordName = String(nameToken.value);
-
-  if (wordName === ':' || wordName === ';') {
-    throw new SyntaxError('Expected word name after :', vm.getStackData());
-  }
-
-  vm.compiler.compileOpcode(Op.Branch);
-  const branchPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
-
-  const checkpoint = vm.symbolTable.mark();
-  state.currentDefinition = {
-    name: wordName,
-    branchPos,
-    checkpoint,
-  };
-
-  vm.compiler.preserve = true;
-  vm.compiler.enterFunction();
-}
-
-/**
- * End a word definition with semicolon (;).
- *
- * This function handles the end of a word definition in Tacit. It:
- * 1. Validates that there is an active definition to end
- * 2. Compiles an exit instruction to return from the word
- * 3. Patches the branch offset at the beginning of the definition
- * 4. Updates the parser state to clear the current definition
- *
- * @param {ParserState} state - The current parser state
- * @throws {Error} If there is no active definition to end
- */
-export function endDefinition(state: ParserState): void {
-  if (!state.currentDefinition) {
-    throw new SyntaxError('Unexpected semicolon', vm.getStackData());
-  }
-
-  vm.compiler.compileOpcode(Op.Exit);
-
-  vm.compiler.exitFunction();
-
-  patchBranchOffset(state.currentDefinition.branchPos);
-
-  const { name } = state.currentDefinition;
-  const defStart = state.currentDefinition.branchPos + 2;
-  vm.symbolTable.defineCode(name, defStart);
-
-  state.currentDefinition = null;
-}
-
-export function beginDefinitionImmediate(): void {
-  const state = requireParserState();
-  beginDefinition(state);
-  vm.push(ENDDEF_CODE_REF);
-}
-
 /**
  * Begin an LIST with opening bracket ([).
  * Mirrors beginList but targets LIST ops.
@@ -973,27 +741,6 @@ export function beginBlock(state: ParserState): void {
   state.insideCodeBlock = prevInside;
   vm.compiler.compileOpcode(Op.LiteralCode);
   vm.compiler.compile16(startAddress);
-}
-
-/**
- * Patch a branch offset at the given position in the bytecode.
- *
- * This function calculates the correct branch offset based on the current
- * compiler position and patches it into the bytecode at the specified position.
- * This is used to resolve forward references in control structures and word definitions.
- *
- * @param {number} branchPos - The position in the bytecode where the branch offset needs to be patched
- */
-export function patchBranchOffset(branchPos: number): void {
-  const endAddress = vm.compiler.CP;
-  const branchOffset = endAddress - (branchPos + 2);
-
-  const prevCP = vm.compiler.CP;
-
-  vm.compiler.CP = branchPos;
-  vm.compiler.compile16(branchOffset);
-
-  vm.compiler.CP = prevCP;
 }
 
 /**

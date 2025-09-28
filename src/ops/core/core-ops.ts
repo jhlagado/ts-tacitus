@@ -319,7 +319,7 @@ export const evalOp: Verb = (vm: VM) => {
 
     default:
       vm.push(value);
-      throw new SyntaxError('eval expects executable code', vm.getStackData());
+      break;
   }
 };
 
