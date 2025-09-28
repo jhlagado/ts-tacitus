@@ -10,6 +10,7 @@ import { vm } from '../../core/global-state';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
+import { SEG_STACK, CELL_SIZE } from '../../core/constants';
 
 describe('VM pushSymbolRef method', () => {
   beforeEach(() => {
@@ -97,24 +98,17 @@ describe('VM pushSymbolRef method', () => {
       vm.pushSymbolRef('dup');
       vm.pushSymbolRef('double');
 
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(4);
+      const stackDepth = vm.SPCells;
+      expect(stackDepth).toBe(4);
 
-      const { tag: tag1, value: val1 } = fromTaggedValue(stack[0]);
-      expect(tag1).toBe(Tag.BUILTIN);
-      expect(val1).toBe(Op.Add);
+      const decoded = Array.from({ length: stackDepth }, (_, i) =>
+        fromTaggedValue(vm.memory.readFloat32(SEG_STACK, i * CELL_SIZE)),
+      );
 
-      const { tag: tag2, value: val2 } = fromTaggedValue(stack[1]);
-      expect(tag2).toBe(Tag.CODE);
-      expect(val2).toBe(1500);
-
-      const { tag: tag3, value: val3 } = fromTaggedValue(stack[2]);
-      expect(tag3).toBe(Tag.BUILTIN);
-      expect(val3).toBe(Op.Dup);
-
-      const { tag: tag4, value: val4 } = fromTaggedValue(stack[3]);
-      expect(tag4).toBe(Tag.CODE);
-      expect(val4).toBe(1600);
+      expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });
+      expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: 1500 });
+      expect(decoded[2]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Dup });
+      expect(decoded[3]).toMatchObject({ tag: Tag.CODE, value: 1600 });
     });
 
     test('should enable chained execution with evalOp', () => {

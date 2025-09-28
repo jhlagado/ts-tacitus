@@ -58,8 +58,8 @@ describe('Immediate words', () => {
     expect(stack[0]).toBe(6);
   });
 
-  test('DEF/ENDDEF define words immediately', () => {
-    const stack = executeTacitCode('DEF double dup add ENDDEF 2 double');
+  test('colon definition words execute immediately', () => {
+    const stack = executeTacitCode(': double dup add ; 2 double');
     expect(stack).toEqual([4]);
   });
 });

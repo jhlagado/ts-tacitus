@@ -130,6 +130,6 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
 
-  symbolTable.defineBuiltin('DEF', Op.Nop, _vm => beginDefinitionImmediate(), true);
-  symbolTable.defineBuiltin('ENDDEF', Op.Nop, _vm => endDefinitionImmediate(), true);
+  symbolTable.defineBuiltin(':', Op.Nop, _vm => beginDefinitionImmediate(), true);
+  symbolTable.defineBuiltin(';', Op.Nop, _vm => endDefinitionImmediate(), true);
 }
