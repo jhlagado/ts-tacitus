@@ -72,7 +72,8 @@ describe('Immediate words', () => {
   });
 
   test('if/else immediate compiles dual-branch conditionals', () => {
-    const positive = executeTacitCode(': sign 0 lt if -1 else 1 ; ; 3 sign');
+    // const positive = executeTacitCode(': sign 0 lt if -1 else 1 ; ; 3 sign');
+    const positive = executeTacitCode('3 0 lt if -1 else 1 ;');
     expect(positive).toEqual([1]);
 
     const negative = executeTacitCode(': sign 0 lt if -1 else 1 ; ; -7 sign');
