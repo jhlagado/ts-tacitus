@@ -21,6 +21,7 @@
 - Updated dictionary entry structure carrying an `immediate` flag plus helper(s) for registering immediate natives.
 - Colon-definition opener (`:`) and closer (via `;`) rewritten as immediate words that manage dictionary entries and rely on the shared terminator (pushing builtin closers via `toTaggedValue(opcode, Tag.BUILTIN)`).
 - Generic terminator `;` (immediate alias of `eval`) that pops a code reference, errors if TOS is not a code ref, and invokes it.
+- An `isExecutable` helper in tagged utilities so `;` can accept both builtin and bytecode closers.
 - Parser/compiler changes so immediate words run during the streaming compilation pass while other tokens emit bytecode as today.
 - Unit tests covering the immediate infrastructure and colon definitions.
 - Documentation touch-up to keep the draft spec aligned and note the new behaviour in README/changelog.
@@ -36,7 +37,7 @@
    - Provide helper for registering immediate natives (colon definition uses it immediately).
 
 3. **Generic terminator**
-   - Implement the shared `;` behaviour (validate TOS is a code ref) so colon definitions can rely on it.
+   - Implement the shared `;` behaviour (using `isExecutable` to validate TOS) so colon definitions can rely on it.
 
 4. **Testing & docs**
    - Maintain regression tests for immediates/colon definitions.
