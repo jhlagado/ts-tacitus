@@ -20,7 +20,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isWhitespace, isGroupingChar, fromTaggedValue, toTaggedValue, Tag } from '@src/core';
+import { isWhitespace, isGroupingChar, fromTaggedValue, toTaggedValue, Tag, SEG_CODE } from '@src/core';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
@@ -28,6 +28,8 @@ import {
   NestedDefinitionError,
   UnexpectedTokenError,
 } from '@src/core';
+import { executeOp } from '../ops/builtins';
+import type { SymbolTableEntry } from '../strings/symbol-table';
 
 /**
  * Represents a word definition in the Tacit language.
@@ -60,6 +62,60 @@ interface ParserState {
     | (Definition & { checkpoint: import('../strings/symbol-table').SymbolTableCheckpoint })
     | null;
   insideCodeBlock: boolean;
+}
+
+function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
+  if (entry.implementation) {
+    entry.implementation(vm);
+    return;
+  }
+
+  const { tag, value } = fromTaggedValue(entry.taggedValue);
+
+  if (tag === Tag.BUILTIN) {
+    executeOp(vm, value as Op);
+    return;
+  }
+
+  if (tag === Tag.CODE) {
+    runImmediateCode(value);
+    return;
+  }
+
+  throw new SyntaxError(`Immediate word ${name} is not executable`, vm.getStackData());
+}
+
+function runImmediateCode(address: number): void {
+  const savedIP = vm.IP;
+  const savedBPCells = vm.BPCells;
+  const savedRSP = vm.RSP;
+  const savedRunning = vm.running;
+  const savedCP = vm.compiler.CP;
+  const savedBCP = vm.compiler.BCP;
+  const savedPreserve = vm.compiler.preserve;
+
+  vm.rpush(toTaggedValue(savedIP, Tag.CODE));
+  vm.rpush(vm.BPCells);
+  vm.BPCells = vm.RSP;
+  vm.IP = address;
+  vm.running = true;
+
+  while (vm.running) {
+    const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+    const isUserDefined = (firstByte & 0x80) !== 0;
+    const opcode = vm.nextOpcode();
+    executeOp(vm, opcode as Op, isUserDefined);
+    if (vm.IP === savedIP && vm.RSP === savedRSP) {
+      break;
+    }
+  }
+
+  vm.running = savedRunning;
+  vm.IP = savedIP;
+  vm.BPCells = savedBPCells;
+  vm.compiler.CP = savedCP;
+  vm.compiler.BCP = savedBCP;
+  vm.compiler.preserve = savedPreserve;
 }
 
 /**
@@ -267,7 +323,10 @@ export function emitWord(value: string, state: ParserState): void {
         `Patched IF jump at offsetAddr=${jumpOffsetAddr}, offset=${falseJumpOffset} (no ELSE)`,
       );
     }
-  } else if (value === 'do') {
+    return;
+  }
+
+  if (value === 'do') {
     const blockToken = state.tokenizer.nextToken();
     if (blockToken.type !== TokenType.BLOCK_START) {
       throw new SyntaxError('Expected { after do combinator', vm.getStackData());
@@ -277,7 +336,9 @@ export function emitWord(value: string, state: ParserState): void {
 
     vm.compiler.compileOpcode(Op.Do);
     return;
-  } else if (value === 'repeat') {
+  }
+
+  if (value === 'repeat') {
     const blockToken = state.tokenizer.nextToken();
     if (blockToken.type !== TokenType.BLOCK_START) {
       throw new SyntaxError('Expected { after repeat combinator', vm.getStackData());
@@ -287,79 +348,92 @@ export function emitWord(value: string, state: ParserState): void {
 
     vm.compiler.compileOpcode(Op.Repeat);
     return;
-  } else if (value === 'var') {
+  }
+
+  if (value === 'var') {
     emitVarDecl(state);
     return;
-  } else if (value === '->') {
+  }
+
+  if (value === '->') {
     emitAssignment(state);
     return;
-  } else if (value === 'global') {
+  }
+
+  if (value === 'global') {
     emitGlobalDecl(state);
     return;
-  } else if (value === '+>') {
+  }
+
+  if (value === '+>') {
     emitIncrement(state);
     return;
-  } else if (value === ':' || value === ';' || value === '`') {
-    handleSpecial(value, state);
-  } else {
-    const bytecodeAddr = vm.symbolTable.findBytecodeAddress(value);
-    if (bytecodeAddr !== undefined) {
-      vm.compiler.compileUserWordCall(bytecodeAddr);
-      return;
-    }
-
-    const taggedValue = vm.symbolTable.findTaggedValue(value);
-    if (taggedValue !== undefined) {
-      const { tag, value: tagValue } = fromTaggedValue(taggedValue);
-
-      if (tag === Tag.LOCAL) {
-        // Target: x → VarRef + Load (value-by-default)
-        vm.compiler.compileOpcode(Op.VarRef);
-        vm.compiler.compile16(tagValue);
-        vm.compiler.compileOpcode(Op.Load);
-
-        // Optional bracket suffix: x[ ... ] → compile path list + Retrieve
-        const next = state.tokenizer.nextToken();
-        if (next && next.type === TokenType.SPECIAL && next.value === '[') {
-          compileBracketPathAsList(state);
-          // Inline retrieve: select → load → nip
-          vm.compiler.compileOpcode(Op.Select);
-          vm.compiler.compileOpcode(Op.Load);
-          vm.compiler.compileOpcode(Op.Nip);
-        } else if (next) {
-          // No bracket suffix; push back for outer parser
-          state.tokenizer.pushBack(next);
-        }
-        return;
-      } else if (tag === Tag.GLOBAL_REF) {
-        // Globals: push literal GLOBAL_REF then Load
-        vm.compiler.compileOpcode(Op.LiteralNumber);
-        vm.compiler.compileFloat32(toTaggedValue(tagValue, Tag.GLOBAL_REF));
-
-        // Optional bracket suffix: a[ ... ] → compile path list + Retrieve
-        const next = state.tokenizer.nextToken();
-        if (next && next.type === TokenType.SPECIAL && next.value === '[') {
-          compileBracketPathAsList(state);
-          vm.compiler.compileOpcode(Op.Select);
-          vm.compiler.compileOpcode(Op.Load);
-          vm.compiler.compileOpcode(Op.Nip);
-        } else if (next) {
-          state.tokenizer.pushBack(next);
-          vm.compiler.compileOpcode(Op.Load);
-        } else {
-          vm.compiler.compileOpcode(Op.Load);
-        }
-        return;
-      }
-    }
-
-    const functionIndex = vm.symbolTable.find(value);
-    if (functionIndex === undefined) {
-      throw new UndefinedWordError(value, vm.getStackData());
-    }
-
-    vm.compiler.compileOpcode(functionIndex);
   }
+
+  if (value === '`') {
+    handleSpecial('`', state);
+    return;
+  }
+
+  const entry = vm.symbolTable.findEntry(value);
+  if (!entry) {
+    throw new UndefinedWordError(value, vm.getStackData());
+  }
+
+  if (entry.isImmediate) {
+    executeImmediateWord(value, entry);
+    return;
+  }
+
+  const { tag, value: tagValue } = fromTaggedValue(entry.taggedValue);
+
+  if (tag === Tag.CODE) {
+    vm.compiler.compileUserWordCall(tagValue);
+    return;
+  }
+
+  if (tag === Tag.BUILTIN) {
+    vm.compiler.compileOpcode(tagValue);
+    return;
+  }
+
+  if (tag === Tag.LOCAL) {
+    vm.compiler.compileOpcode(Op.VarRef);
+    vm.compiler.compile16(tagValue);
+    vm.compiler.compileOpcode(Op.Load);
+
+    const nextToken = state.tokenizer.nextToken();
+    if (nextToken && nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
+      compileBracketPathAsList(state);
+      vm.compiler.compileOpcode(Op.Select);
+      vm.compiler.compileOpcode(Op.Load);
+      vm.compiler.compileOpcode(Op.Nip);
+    } else if (nextToken) {
+      state.tokenizer.pushBack(nextToken);
+    }
+    return;
+  }
+
+  if (tag === Tag.GLOBAL_REF) {
+    vm.compiler.compileOpcode(Op.LiteralNumber);
+    vm.compiler.compileFloat32(toTaggedValue(tagValue, Tag.GLOBAL_REF));
+
+    const nextToken = state.tokenizer.nextToken();
+    if (nextToken && nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
+      compileBracketPathAsList(state);
+      vm.compiler.compileOpcode(Op.Select);
+      vm.compiler.compileOpcode(Op.Load);
+      vm.compiler.compileOpcode(Op.Nip);
+    } else if (nextToken) {
+      state.tokenizer.pushBack(nextToken);
+      vm.compiler.compileOpcode(Op.Load);
+    } else {
+      vm.compiler.compileOpcode(Op.Load);
+    }
+    return;
+  }
+
+  throw new UndefinedWordError(value, vm.getStackData());
 }
 
 /**

@@ -21,10 +21,14 @@ type WordFunction = Verb;
 /**
  * Symbol table node.
  */
-interface SymbolTableNode {
-  key: number;
+export interface SymbolTableEntry {
   taggedValue: number;
   implementation?: WordFunction;
+  isImmediate: boolean;
+}
+
+interface SymbolTableNode extends SymbolTableEntry {
+  key: number;
   next: SymbolTableNode | null;
 }
 
@@ -56,13 +60,19 @@ export class SymbolTable {
    * @param taggedValue Tagged value
    * @param implementation Optional implementation function
    */
-  defineSymbol(name: string, taggedValue: number, implementation?: WordFunction): void {
+  defineSymbol(
+    name: string,
+    taggedValue: number,
+    implementation?: WordFunction,
+    isImmediate = false,
+  ): void {
     const key = this.digest.add(name);
 
     const newNode: SymbolTableNode = {
       key,
       taggedValue,
       implementation,
+      isImmediate,
       next: this.head,
     };
     this.head = newNode;
@@ -149,7 +159,7 @@ export class SymbolTable {
    */
   findWithImplementation(
     name: string,
-  ): { index: number; implementation?: WordFunction } | undefined {
+  ): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined {
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
@@ -157,12 +167,28 @@ export class SymbolTable {
         return {
           index: address,
           implementation: current.implementation,
+          isImmediate: current.isImmediate,
         };
       }
 
       current = current.next;
     }
 
+    return undefined;
+  }
+
+  findEntry(name: string): SymbolTableEntry | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (this.digest.get(current.key) === name) {
+        return {
+          taggedValue: current.taggedValue,
+          implementation: current.implementation,
+          isImmediate: current.isImmediate,
+        };
+      }
+      current = current.next;
+    }
     return undefined;
   }
 
@@ -237,8 +263,13 @@ export class SymbolTable {
    * @param {string} name - The name of the built-in operation (e.g., "add")
    * @param {number} opcode - The opcode for the built-in operation
    */
-  defineBuiltin(name: string, opcode: number, implementation?: WordFunction): void {
-    this.defineSymbol(name, createBuiltinRef(opcode), implementation);
+  defineBuiltin(
+    name: string,
+    opcode: number,
+    implementation?: WordFunction,
+    isImmediate = false,
+  ): void {
+    this.defineSymbol(name, createBuiltinRef(opcode), implementation, isImmediate);
   }
 
   /**
@@ -251,8 +282,8 @@ export class SymbolTable {
    * @param {string} name - The name of the colon definition (e.g., "square")
    * @param {number} bytecodeAddr - The bytecode address where the definition starts
    */
-  defineCode(name: string, bytecodeAddr: number): void {
-    this.defineSymbol(name, createCodeRef(bytecodeAddr));
+  defineCode(name: string, bytecodeAddr: number, isImmediate = false): void {
+    this.defineSymbol(name, createCodeRef(bytecodeAddr), undefined, isImmediate);
   }
 
   /**
