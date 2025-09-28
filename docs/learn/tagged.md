@@ -45,7 +45,7 @@ Active tags are listed below; this definition takes precedence.
 | -------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
 | NUMBER   | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
 | SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                                    | Single legitimate value: NIL (0)       |
-| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or `{ … }` when printed as ref | Executed via `eval`                    |
+| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or bytecode addr               | Executed via `eval`                    |
 | STRING   | String segment offset              | No                                         | string literal                         | Immutable contents                     |
 | BUILTIN  | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
 | LIST     | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
@@ -92,18 +92,9 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 
 This is the unified mechanism used for dispatch.
 
-### CODE Meta Semantics (lexical vs dynamic frames)
+### CODE Meta Semantics
 
-The NaN-boxed encoding reserves the sign bit as a single meta flag. For `Tag.CODE` values:
-
-- `meta = 1` designates a code block (quotation) that executes in the caller's lexical frame:
-  - Runtime preserves the current base pointer (BP) and only pushes a return address.
-  - Execution jumps to the block address and returns with `ExitCode`.
-- `meta = 0` designates a function (colon definition) that executes in a new dynamic frame:
-  - Runtime pushes return address and the current BP, then sets BP to the new frame base.
-  - Execution returns with `Exit`, restoring the saved BP and IP.
-
-This distinction matches `eval` behavior in the runtime and allows blocks to access the caller's locals safely without creating a new frame.
+The NaN-boxed encoding reserves the sign bit alongside `Tag.CODE`. Present Tacit bytecode does not differentiate values with this flag: colon definitions run via the standard `Exit` path, and immediate words emit branch logic inside the caller frame. The bit remains reserved in case future lexical constructs need a separate mode.
 
 ## Constraints
 
@@ -130,7 +121,7 @@ All tagged values must:
 
 - `toTaggedValue(value, tag)` / `fromTaggedValue()` implement encoding/decoding
 - Reverse lists depend only on header payload count; traversal uses span rule (see `lists.md §11`)
-- Quotation parsing yields a bytecode block; references are encoded with `Tag.CODE` (no distinct `CODE_BLOCK`)
+- Parser-generated code (colon definitions, meta constructs) yields `Tag.CODE` references; there is no separate `CODE_BLOCK` tag
 - Addressing operations (`elem`, `slot`, `find`) consume tagged headers uniformly
 
 ### Compile-time vs Runtime Tags
@@ -166,8 +157,8 @@ All tagged values must:
 @add                     \ builtin (e.g., opcode 3) Tag.BUILTIN(3)
 2 3 @add eval            \ -> 5
 
-{ dup mul }              \ quotation compiled to bytecode at address B → Tag.CODE(B)
-6 { dup mul } eval       \ -> 36
+: abs dup 0 lt if neg ; ;
+-6 abs                   \ -> 6
 ```
 
 ## Try it (symbols and eval)

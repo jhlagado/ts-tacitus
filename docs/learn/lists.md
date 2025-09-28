@@ -412,16 +412,16 @@ Only **simple** (single-slot) payload cells may be overwritten in place. Use `st
 ### Stack effect
 
 ```
-list  sort { cmp }   ->  list'
+list  sort cmp ;   ->  list'
 ```
 
 ### Comparator contract
 
-- The block is called with A B on the stack (A = earlier, B = later):
+- The comparator between `sort` and the terminating `;` runs with A B on the stack (A = earlier, B = later):
   `( A B -- r )` where `r < 0` ⇒ A before B; `r > 0` ⇒ B before A; `r = 0` ⇒ keep order (stable).
 - Short forms:
-  - numeric ascending: `{ - }`
-  - numeric descending: `{ swap - }`
+  - numeric ascending: `sort - ;`
+  - numeric descending: `sort swap - ;`
 - Mixed types require a comparator that can compare them.
 
 ### Semantics
@@ -438,9 +438,9 @@ list  sort { cmp }   ->  list'
 ### Examples
 
 ```tacit
-( 3 1 2 )                 sort { - }        \ -> ( 1 2 3 )
-( 3 1 2 )                 sort { swap - }   \ -> ( 3 2 1 )
-( (2 9) 1 (0 0 0) )       sort { length swap length - }
+( 3 1 2 )                 sort - ;                 \ -> ( 1 2 3 )
+( 3 1 2 )                 sort swap - ;            \ -> ( 3 2 1 )
+( (2 9) 1 (0 0 0) )       sort length swap length - ;
                                            \ by element count: -> ( 1 (2 9) (0 0 0) )
 ```
 
@@ -456,7 +456,7 @@ list  sort { cmp }   ->  list'
 This is the list case of the unified `bfind` defined in Access §3.
 
 - Precondition: list sorted by the same comparator used for `bfind`.
-- Stack: `list key bfind { cmp } -> addr | nil` (address of matching element start)
+- Stack: `list key bfind cmp ; -> addr | nil` (address of matching element start)
 - Comparator: `cmp ( key elem -- r )`; r<0 search upper, r>0 lower, r=0 match.
 - Semantics: binary search over elements (compounds move as units).
 - Complexity: O(log n) comparisons; O(1) space.
@@ -667,13 +667,13 @@ Structure convention
 Core operations
 - keys ( maplist — keys ) → Extract keys at even positions into a flat list.
 - values ( maplist — values ) → Extract values at odd positions into a flat list.
-- mapsort ( maplist { kcmp } — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units.
+- mapsort ( maplist kcmp ; — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units.
   - Comparator: `( k1 k2 — r )` (same sign rules as list sort).
   - Enables `bfind` on sorted maplists with consistent key comparator.
 
 Lookup and addressing (see Access spec)
 - find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address.
-- bfind: `( sorted-maplist key { kcmp } — addr | nil )` → binary search over keys.
+- bfind: `( sorted-maplist key kcmp ; — addr | nil )` → binary search over keys.
 - hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix).
 - Combine with `fetch`/`store` for reads/writes; only simple writes allowed; no structural edits.
 

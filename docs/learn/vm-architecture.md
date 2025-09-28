@@ -83,7 +83,7 @@ Opcode encoding & dispatch:
 
 `Tag.CODE` meta bit determines execution form:
 
-- meta = 1 (block / quotation): Prologue pushes only the return address (cell index of caller IP). BP remains unchanged (no frame root shift). Epilogue (`ExitCode`) pops return address and resumes execution; locals are not introduced.
+- meta = 1 (reserved): lexical quotations formerly used this mode. The current immediate words run in the caller's frame without needing a dedicated opcode.
 - meta = 0 (function / colon definition): Prologue sequence (cell units):
   1. Push return address (next IP)
   2. Push caller BP (BPCells)

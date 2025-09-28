@@ -330,19 +330,19 @@ LOCAL_VAR_ADDR
 
 ---
 
-## Appendix C: Code Block Behavior (Lexical Access)
+## Appendix C: Immediate Conditionals (Lexical Access)
 
-Blocks preserve lexical access to parent locals and do not create a new frame.
+`if … else … ;` executes at compile time but emits bytecode that runs inside the current frame. Branch bodies therefore access the surrounding locals directly; no additional function frame is created.
 
 Example
 ```tacit
 : conditional-math
   5 var x
-  if { x 0 gt } then { x 2 mul } else { 0 } endif
+  x 0 gt if x 2 mul else 0 ;
 ;
 ```
 
-The code blocks access the parent function's local `x` using the current `BP`. Bare `x` yields the value; `&x fetch` reads the slot content.
+The branch bodies access the parent function's local `x` using the current `BP`. Bare `x` yields the value; `&x fetch` reads the slot content.
 
 ---
 
@@ -400,12 +400,11 @@ Multiple locals with mixed types
 ;
 ```
 
-Code blocks accessing locals
+Conditional access to locals
 ```tacit
 : conditional-process
   var data
-  data 0 gt
-  if { data 2 mul } else { 0 } endif
+  data 0 gt if data 2 mul else 0 ;
 ;
 
 ---
