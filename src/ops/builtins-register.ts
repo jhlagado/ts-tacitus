@@ -16,7 +16,7 @@
  * - Arithmetic operations (abs, exp, sqrt, etc.)
  * - Conditional operations (if, ifcurlybf)
  */
-import { VM } from '@src/core';
+import { VM, SyntaxError } from '@src/core';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 
@@ -24,7 +24,7 @@ import { evalOp } from './core';
 
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { beginDefinitionImmediate, endDefinitionImmediate } from '../lang/parser';
+import { beginDefinitionImmediate } from '../lang/parser';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -130,6 +130,17 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
 
+  symbolTable.defineBuiltin('enddef', Op.EndDefinition);
   symbolTable.defineBuiltin(':', Op.Nop, _vm => beginDefinitionImmediate(), true);
-  symbolTable.defineBuiltin(';', Op.Nop, _vm => endDefinitionImmediate(), true);
+  symbolTable.defineBuiltin(
+    ';',
+    Op.Nop,
+    vmInstance => {
+      if (vmInstance.SPCells === 0) {
+        throw new SyntaxError('Unexpected semicolon', vmInstance.getStackData());
+      }
+      evalOp(vmInstance);
+    },
+    true,
+  );
 }
