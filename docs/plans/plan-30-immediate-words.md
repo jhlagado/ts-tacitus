@@ -8,7 +8,7 @@
 ## Goals
 1. Introduce immediate-word support in the Tacit dictionary so selected words execute as soon as they are parsed.
 2. Reimplement colon definitions (`: … ;`) using immediate words and the shared terminator.
-3. Provide the generic `;` infrastructure required by colon definitions.
+3. Provide the generic `;` infrastructure required by colon definitions (including an `isExecutable` helper for closer validation).
 4. Keep draft documentation (`immediate-words-and-terminators`) aligned with the implementation.
 
 ## Non-Goals
@@ -19,7 +19,7 @@
 
 ## Deliverables
 - Updated dictionary entry structure carrying an `immediate` flag plus helper(s) for registering immediate natives.
-- Colon-definition opener (`:`) and closer (via `;`) rewritten as immediate words that manage dictionary entries and rely on the shared terminator.
+- Colon-definition opener (`:`) and closer (via `;`) rewritten as immediate words that manage dictionary entries and rely on the shared terminator (pushing builtin closers via `toTaggedValue(opcode, Tag.BUILTIN)`).
 - Generic terminator `;` (immediate alias of `eval`) that pops a code reference, errors if TOS is not a code ref, and invokes it.
 - Parser/compiler changes so immediate words run during the streaming compilation pass while other tokens emit bytecode as today.
 - Unit tests covering the immediate infrastructure and colon definitions.
@@ -27,7 +27,7 @@
 
 ## Work Breakdown
 1. **Colon definitions first**
-   - Make `:` an immediate word: reserve dictionary entry, record start address, push closer reference for `;`.
+   - Make `:` an immediate word: reserve dictionary entry, record start address, push the closer reference directly as `toTaggedValue(Op.EndDef, Tag.BUILTIN)` so `;` can invoke it.
    - Ensure `;` pops the colon closer, emits the proper epilogue (`Exit`, dictionary finalisation), and validates stack state.
    - Add targeted tests verifying that `: foo … ;` works in the REPL and nested definitions are rejected appropriately.
 
