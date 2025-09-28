@@ -24,7 +24,7 @@ import { evalOp } from './core';
 
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { beginDefinitionImmediate } from '../lang/immediates';
+import { beginDefinitionImmediate, beginIfImmediate, beginElseImmediate } from '../lang/immediates';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -122,7 +122,9 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  symbolTable.defineBuiltin('if', Op.SimpleIf);
+  symbolTable.defineBuiltin('if', Op.Nop, _vm => beginIfImmediate(), true);
+  symbolTable.defineBuiltin('else', Op.Nop, _vm => beginElseImmediate(), true);
+  symbolTable.defineBuiltin('endif', Op.EndIf);
   symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);
 
   symbolTable.defineBuiltin('do', Op.Do, doOp);

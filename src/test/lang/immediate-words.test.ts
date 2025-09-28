@@ -62,4 +62,24 @@ describe('Immediate words', () => {
     const stack = executeTacitCode(': double dup add ; 2 double');
     expect(stack).toEqual([4]);
   });
+
+  test('if immediate compiles single-branch conditionals', () => {
+    const negateTrue = executeTacitCode(': maybe-negate dup 0 lt if neg ; ; -5 maybe-negate');
+    expect(negateTrue).toEqual([5]);
+
+    const negateFalse = executeTacitCode(': maybe-negate dup 0 lt if neg ; ; 4 maybe-negate');
+    expect(negateFalse).toEqual([4]);
+  });
+
+  test('if/else immediate compiles dual-branch conditionals', () => {
+    const positive = executeTacitCode(': sign dup 0 lt if drop -1 else drop 1 ; ; 3 sign');
+    expect(positive).toEqual([1]);
+
+    const negative = executeTacitCode(': sign dup 0 lt if drop -1 else drop 1 ; ; -7 sign');
+    expect(negative).toEqual([-1]);
+  });
+
+  test('else without if raises syntax error', () => {
+    expect(() => parse(new Tokenizer(': stray else ;'))).toThrow('ELSE without IF');
+  });
 });

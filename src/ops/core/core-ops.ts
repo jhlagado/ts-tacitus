@@ -334,6 +334,35 @@ export const endDefinitionOp: Verb = () => {
 };
 
 /**
+ * Finalises an IF/ELSE construct by backpatching the most recent branch placeholder.
+ *
+ * Expects the branch placeholder address on the data stack (left there by the
+ * immediate `if`/`else` words). Calculates the jump offset to the current compile
+ * position and patches the placeholder before returning control to the parser.
+ */
+export const endIfOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'endif');
+
+  const placeholder = vm.pop();
+  if (!Number.isFinite(placeholder)) {
+    throw new SyntaxError('ENDIF missing branch placeholder', vm.getStackData());
+  }
+
+  const branchPos = Math.trunc(placeholder);
+  if (branchPos < 0) {
+    throw new SyntaxError('Invalid branch placeholder for ENDIF', vm.getStackData());
+  }
+
+  const endAddress = vm.compiler.CP;
+  const branchOffset = endAddress - (branchPos + 2);
+
+  const prevCP = vm.compiler.CP;
+  vm.compiler.CP = branchPos;
+  vm.compiler.compile16(branchOffset);
+  vm.compiler.CP = prevCP;
+};
+
+/**
  * Implements the group left operation.
  *
  * Pushes the current stack pointer onto the return stack, marking the beginning
