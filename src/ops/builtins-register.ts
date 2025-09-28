@@ -24,7 +24,7 @@ import { evalOp } from './core';
 
 import { doOp } from './combinators/do';
 import { repeatOp } from './combinators/repeat';
-import { beginDefinitionImmediate } from '../lang/parser';
+import { beginDefinitionImmediate } from '../lang/immediates';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
