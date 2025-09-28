@@ -29,7 +29,8 @@ import {
 import { UndefinedWordError, SyntaxError, UnexpectedTokenError } from '@src/core';
 import { emitNumber, emitString, parseBacktickSymbol } from './literals';
 import { ParserState, setParserState } from './state';
-import { ensureNoOpenDefinition, executeImmediateWord } from './immediates';
+import { ensureNoOpenDefinition } from './definitions';
+import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -90,6 +91,7 @@ export function parseProgram(state: ParserState): void {
  */
 export function validateFinalState(state: ParserState): void {
   ensureNoOpenDefinition(state);
+  ensureNoOpenConditionals();
 
   if (vm.listDepth !== 0) {
     throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
