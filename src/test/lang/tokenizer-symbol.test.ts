@@ -167,7 +167,7 @@ describe('Tokenizer @symbol Support - Step 13', () => {
       tokenizer = new Tokenizer(': double @dup @add ;');
 
       const token1 = tokenizer.nextToken();
-      expect(token1.type).toBe(TokenType.SPECIAL);
+      expect(token1.type).toBe(TokenType.WORD);
       expect(token1.value).toBe(':');
 
       const token2 = tokenizer.nextToken();
@@ -183,7 +183,7 @@ describe('Tokenizer @symbol Support - Step 13', () => {
       expect(token4.value).toBe('add');
 
       const token5 = tokenizer.nextToken();
-      expect(token5.type).toBe(TokenType.SPECIAL);
+      expect(token5.type).toBe(TokenType.WORD);
       expect(token5.value).toBe(';');
     });
   });

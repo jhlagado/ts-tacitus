@@ -147,7 +147,7 @@ export class Tokenizer {
     if (char === ':' || char === ';') {
       this.position++;
       this.column++;
-      return { type: TokenType.SPECIAL, value: char, position: startPos };
+      return { type: TokenType.WORD, value: char, position: startPos };
     }
 
     if ('()[]'.includes(char)) {

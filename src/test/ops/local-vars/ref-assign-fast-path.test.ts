@@ -6,6 +6,8 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM, extractListFromStack, getFormattedStack } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag } from '../../../core';
+import { vm } from '../../../core/global-state';
+import { SEG_STACK, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
@@ -64,8 +66,12 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     executeTacitCode(code);
-    const formatted = getFormattedStack();
-    expect(formatted.slice(-4)).toEqual(['6', '5', '4', 'LIST:3']);
+    const decoded = Array.from({ length: vm.SPCells }, (_, i) =>
+      fromTaggedValue(vm.memory.readFloat32(SEG_STACK, i * CELL_SIZE)),
+    );
+
+    expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);
+    expect(decoded[decoded.length - 1]).toMatchObject({ tag: Tag.LIST, value: 3 });
   });
 
   test('copy sublist into sibling via bracketed destination', () => {

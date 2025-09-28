@@ -20,7 +20,15 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isWhitespace, isGroupingChar, fromTaggedValue, toTaggedValue, Tag, SEG_CODE } from '@src/core';
+import {
+  isWhitespace,
+  isGroupingChar,
+  isSpecialChar,
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  SEG_CODE,
+} from '@src/core';
 import {
   UnclosedDefinitionError,
   UndefinedWordError,
@@ -68,7 +76,7 @@ let currentParserState: ParserState | null = null;
 
 function requireParserState(): ParserState {
   if (!currentParserState) {
-    throw new SyntaxError('DEF/ENDDEF used outside of parser context', vm.getStackData());
+    throw new SyntaxError('Definition opener/closer used outside of parser context', vm.getStackData());
   }
   return currentParserState;
 }
@@ -539,6 +547,15 @@ export function emitVarDecl(state: ParserState): void {
 
   const varName = nameToken.value as string;
 
+  if (
+    varName.length === 0 ||
+    varName === ':' ||
+    varName === ';' ||
+    (varName.length === 1 && isSpecialChar(varName))
+  ) {
+    throw new SyntaxError('Expected variable name after var', vm.getStackData());
+  }
+
   vm.compiler.emitReserveIfNeeded();
 
   vm.symbolTable.defineLocal(varName);
@@ -568,6 +585,15 @@ export function emitGlobalDecl(state: ParserState): void {
   }
 
   const varName = nameToken.value as string;
+
+  if (
+    varName.length === 0 ||
+    varName === ':' ||
+    varName === ';' ||
+    (varName.length === 1 && isSpecialChar(varName))
+  ) {
+    throw new SyntaxError('Expected variable name after global', vm.getStackData());
+  }
   // Define global symbol and get its slot index (payload)
   const slot = vm.symbolTable.defineGlobal(varName);
   // Emit: LiteralNumber(GLOBAL_REF(slot)) → Store
@@ -593,6 +619,15 @@ export function emitAssignment(state: ParserState): void {
   }
 
   const varName = nameToken.value as string;
+
+  if (
+    varName.length === 0 ||
+    varName === ':' ||
+    varName === ';' ||
+    (varName.length === 1 && isSpecialChar(varName))
+  ) {
+    throw new SyntaxError('Expected variable name after ->', vm.getStackData());
+  }
 
   const taggedValue = vm.symbolTable.findTaggedValue(varName);
   if (taggedValue === undefined) {
@@ -767,11 +802,7 @@ function compileBracketPathAsList(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  */
 export function handleSpecial(value: string, state: ParserState): void {
-  if (value === ':') {
-    beginDefinition(state);
-  } else if (value === ';') {
-    endDefinition(state);
-  } else if (value === '(') {
+  if (value === '(') {
     beginList(state);
   } else if (value === ')') {
     endList(state);
@@ -842,6 +873,10 @@ export function beginDefinition(state: ParserState): void {
   }
 
   const wordName = String(nameToken.value);
+
+  if (wordName === ':' || wordName === ';') {
+    throw new SyntaxError('Expected word name after :', vm.getStackData());
+  }
 
   vm.compiler.compileOpcode(Op.Branch);
   const branchPos = vm.compiler.CP;
