@@ -23,6 +23,7 @@ import {
   fromTaggedValue,
   isCode,
   RSTACK_SIZE,
+  SyntaxError,
 } from '@src/core';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
@@ -318,7 +319,7 @@ export const evalOp: Verb = (vm: VM) => {
 
     default:
       vm.push(value);
-      break;
+      throw new SyntaxError('eval expects executable code', vm.getStackData());
   }
 };
 
