@@ -39,19 +39,19 @@ describe('End-to-End Local Variables Integration', () => {
 
     test('should handle multiple functions with different variable counts', () => {
       const result = executeTacitCode(`
-        : add-two 
+        : add-two
             var x
-            2 var increment 
-            x increment add 
+            2 var increment
+            x increment add
         ;
-        : multiply-three 
+        : multiply-three
             var x
-            3 var factor 
-            x factor mul 
+            3 var factor
+            x factor mul
         ;
         : no-vars 42 ;
-        
-        5 add-two    
+
+        5 add-two
         4 multiply-three
         no-vars
       `);
@@ -77,16 +77,16 @@ describe('End-to-End Local Variables Integration', () => {
 
     test('should handle nested function calls with locals', () => {
       const result = executeTacitCode(`
-        : inner 
+        : inner
             var x
-            1 var offset 
-            x offset add 
+            1 var offset
+            x offset add
         ;
-        : outer 
-            10 var base 
-            base inner 
+        : outer
+            10 var base
+            base inner
         ;
-        
+
         5 outer
       `);
 
@@ -107,9 +107,9 @@ describe('End-to-End Local Variables Integration', () => {
         : one-var 42 var x x ;
         : two-vars 10 var a 20 var b a b add ;
         : three-vars 1 var x 2 var y 3 var z x y z add add ;
-        
+
         one-var
-        two-vars  
+        two-vars
         three-vars
       `);
 
@@ -121,7 +121,7 @@ describe('End-to-End Local Variables Integration', () => {
         : no-vars-1 100 ;
         : no-vars-2 2 3 add ;
         : with-vars 1 var x x ;
-        
+
         no-vars-1
         no-vars-2
         5 with-vars
@@ -208,7 +208,7 @@ describe('End-to-End Local Variables Integration', () => {
       const result = executeTacitCode(`
         : conditional
             1 var flag
-            flag IF { 42 } ELSE { 0 }
+            flag if 42 else 0 ;
         ;
         conditional
       `);
@@ -248,7 +248,7 @@ describe('End-to-End Local Variables Integration', () => {
             99 var x
             x
         ;
-        
+
         test-isolation
         test-isolation
       `);
@@ -279,7 +279,7 @@ describe('End-to-End Local Variables Integration', () => {
             0 var acc
             1 var i
             acc i add var acc
-            acc i add var acc  
+            acc i add var acc
             acc i add var acc
             acc
         ;

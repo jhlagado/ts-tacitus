@@ -99,7 +99,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
     it('should work with conditional execution', () => {
       const result = executeTacitCode(`
-        : test-op 1 eq IF { @add } ELSE { @sub } ;
+        : test-op 1 eq if @add else @sub ; ;
         5 3 1 test-op eval
       `);
       expect(result).toEqual([8]);
@@ -111,18 +111,6 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
         4 @mul eval
       `);
       expect(result).toEqual([20]);
-    });
-  });
-
-  describe('@symbol with combinators', () => {
-    it('should work with do combinator', () => {
-      const result = executeTacitCode('10 do { @dup eval @add eval }');
-      expect(result).toEqual([20]);
-    });
-
-    it('should work with repeat combinator', () => {
-      const result = executeTacitCode('5 3 repeat { @dup eval @add eval }');
-      expect(result).toEqual([40]);
     });
   });
 

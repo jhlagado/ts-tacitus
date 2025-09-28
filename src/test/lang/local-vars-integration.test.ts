@@ -32,7 +32,7 @@ describe('Local Variables Integration with Existing Features', () => {
         : test-conditional
             1 var flag
             42 var value
-            flag IF { value 10 add } ELSE { value 100 add }
+            flag if value 10 add else value 100 add ;
         ;
         test-conditional
       `);
@@ -45,7 +45,7 @@ describe('Local Variables Integration with Existing Features', () => {
       const result = executeTacitCode(`
         : simple-conditional
             5 var x
-            x 3 gt IF { x 100 add } ELSE { x 999 add }
+            x 3 gt if x 100 add else x 999 add ;
         ;
         simple-conditional
       `);

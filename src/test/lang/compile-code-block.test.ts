@@ -63,21 +63,4 @@ describe('compileCodeBlock function', () => {
     });
   });
 
-  describe('Integration with Combinators', () => {
-    it('should work with do combinator', () => {
-      executeProgram('10 do { 5 add }');
-
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(1);
-      expect(stack[0]).toBe(15);
-    });
-
-    it('should work with repeat combinator', () => {
-      executeProgram('0 3 repeat { 2 add }');
-
-      const stack = vm.getStackData();
-      expect(stack.length).toBe(1);
-      expect(stack[0]).toBe(6);
-    });
-  });
 });

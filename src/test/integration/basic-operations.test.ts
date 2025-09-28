@@ -29,10 +29,10 @@ describe('Tacit Basic Operations', () => {
     result = runTacitTest('5 6 eq');
     expect(result).toEqual([0]);
   });
-  test('if operator (using new IF syntax)', () => {
-    let result = runTacitTest('1 IF {10} ELSE {20}');
+  test('if operator (new immediate syntax)', () => {
+    let result = runTacitTest('1 if 10 else 20 ;');
     expect(result).toEqual([10]);
-    result = runTacitTest('0 IF {10} ELSE {20}');
+    result = runTacitTest('0 if 10 else 20 ;');
     expect(result).toEqual([20]);
   });
   test('word quoting with back-tick', () => {
@@ -41,21 +41,20 @@ describe('Tacit Basic Operations', () => {
     expect(typeof result[0]).toBe('number');
   });
 
-  test('should execute IF {} with true condition', () => {
-    let result = runTacitTest('1 IF {10}');
+  test('should execute if with true condition', () => {
+    let result = runTacitTest('1 if 10 ;');
     expect(result).toEqual([10]);
   });
-  test('should execute IF {} with false condition', () => {
-    let result = runTacitTest('0 IF {10}');
+  test('should execute if with false condition', () => {
+    let result = runTacitTest('0 if 10 ;');
     expect(result).toEqual([]);
   });
-  test('should execute IF {} ELSE {} with true condition', () => {
-    let result = runTacitTest('1 IF {10} ELSE {20}');
+  test('should execute if/else with true condition', () => {
+    let result = runTacitTest('1 if 10 else 20 ;');
     expect(result).toEqual([10]);
   });
-  test('should execute IF {} ELSE {} with false condition', () => {
-    let result = runTacitTest('0 IF {10} ELSE {20}');
+  test('should execute if/else with false condition', () => {
+    let result = runTacitTest('0 if 10 else 20 ;');
     expect(result).toEqual([20]);
   });
 });
-

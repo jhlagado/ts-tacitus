@@ -13,38 +13,38 @@ describe('Conditional Operations', () => {
   });
 
   describe('simple values', () => {
-    test('IF - should execute then-branch when condition is true', () => {
-      executeProgram('1 IF { 2 3 add }');
+    test('if executes then-branch when condition is true', () => {
+      executeProgram('1 if 2 3 add ;');
       expect(vm.getStackData()).toEqual([5]);
     });
 
-    test('IF - should not execute then-branch when condition is false', () => {
-      executeProgram('0 IF { 2 3 add }');
+    test('if skips then-branch when condition is false', () => {
+      executeProgram('0 if 2 3 add ;');
       expect(vm.getStackData()).toEqual([]);
     });
 
-    test('IF - should handle empty then-branch', () => {
-      executeProgram('1 IF { }');
+    test('if handles empty then-branch', () => {
+      executeProgram('1 if ;');
       expect(vm.getStackData()).toEqual([]);
     });
 
-    test('IF ELSE - should execute then-branch when condition is true', () => {
-      executeProgram('1 IF { 10 } ELSE { 20 }');
+    test('if/else executes then-branch when condition is true', () => {
+      executeProgram('1 if 10 else 20 ;');
       expect(vm.getStackData()).toEqual([10]);
     });
 
-    test('IF ELSE - should execute else-branch when condition is false', () => {
-      executeProgram('0 IF { 10 } ELSE { 20 }');
+    test('if/else executes else-branch when condition is false', () => {
+      executeProgram('0 if 10 else 20 ;');
       expect(vm.getStackData()).toEqual([20]);
     });
 
-    test('IF ELSE - should handle empty else-branch', () => {
-      executeProgram('0 IF { 10 } ELSE { }');
+    test('if/else handles empty else-branch', () => {
+      executeProgram('0 if 10 else ;');
       expect(vm.getStackData()).toEqual([]);
     });
 
-    test('IF ELSE - should work with comparison operators', () => {
-      executeProgram('5 10 lt IF { 100 } ELSE { 200 }');
+    test('if/else works with comparison operators', () => {
+      executeProgram('5 10 lt if 100 else 200 ;');
       expect(vm.getStackData()).toEqual([100]);
     });
   });
@@ -54,31 +54,31 @@ describe('Conditional Operations', () => {
   describe('error cases', () => {});
 
   describe('integration tests', () => {
-    test('IF - should handle nested IF statements', () => {
-      executeProgram('1 IF { 2 0 IF { 3 } }');
+    test('if handles nested conditionals', () => {
+      executeProgram('1 if 2 0 if 3 ; ;');
       expect(vm.getStackData()).toEqual([2]);
     });
 
-    test('IF ELSE - should handle complex expressions in branches', () => {
-      executeProgram('5 3 gt IF { 2 3 mul } ELSE { 2 3 add }');
+    test('if/else handles complex expressions', () => {
+      executeProgram('5 3 gt if 2 3 mul else 2 3 add ;');
       expect(vm.getStackData()).toEqual([6]);
     });
 
-    test('IF ELSE - should handle multiple statements in branches', () => {
+    test('if/else handles multiple statements in branches', () => {
       executeProgram(`
-        1 IF {
+        1 if
           2 3 mul
           4 5 mul
           add
-        } ELSE {
+        else
           6 7 mul
-        }
+        ;
       `);
       expect(vm.getStackData()).toEqual([26]);
     });
 
-    test('IF ELSE - should work with multiple conditions', () => {
-      executeProgram('3 3 eq IF { 7 7 eq IF { 42 } ELSE { 24 } } ELSE { 0 }');
+    test('if/else works with multiple conditions', () => {
+      executeProgram('3 3 eq if 7 7 eq if 42 else 24 ; else 0 ;');
       expect(vm.getStackData()).toEqual([42]);
     });
   });
