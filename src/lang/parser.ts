@@ -27,11 +27,9 @@ import {
   Tag,
 } from '@src/core';
 import { UndefinedWordError, SyntaxError, UnexpectedTokenError } from '@src/core';
-import type { SymbolTableEntry } from '../strings/symbol-table';
 import { emitNumber, emitString, parseBacktickSymbol } from './literals';
 import { ParserState, setParserState } from './state';
-import { ensureNoOpenDefinition } from './definitions';
-import { executeImmediateWord } from './immediates';
+import { ensureNoOpenDefinition, executeImmediateWord } from './immediates';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
