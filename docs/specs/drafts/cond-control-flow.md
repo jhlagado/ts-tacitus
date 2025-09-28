@@ -1,14 +1,14 @@
 # Conditional Control Flow — Draft Specification
 
 ## Status
-- **Stage:** exploratory draft
+- **Stage:** living specification (implemented)
 - **Scope:** Forth-style conditional words `if`, `else`, terminating `;`
-- **Not yet implemented:** immediate word infrastructure, compiler updates, tests
+- **Implementation:** Plan 31 (immediate conditionals) and Plan 32 (brace removal)
 
 ## Goals
 - Bring Tacit control flow in line with traditional Forth: conditions on the data stack, immediate words build the branch scaffolding.
 - Use a single terminator `;` for all control constructs. The matching closer is provided by the opener.
-- Keep braces-based combinators available temporarily, but treat them as legacy once the immediate-word path lands.
+
 
 ## Surface Syntax
 ```

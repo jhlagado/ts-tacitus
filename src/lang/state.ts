@@ -12,7 +12,6 @@ export interface ActiveDefinition {
 export interface ParserState {
   tokenizer: Tokenizer;
   currentDefinition: ActiveDefinition | null;
-  insideCodeBlock: boolean;
 }
 
 let currentParserState: ParserState | null = null;

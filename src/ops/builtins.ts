@@ -17,11 +17,9 @@ import {
 import {
   literalNumberOp,
   skipDefOp,
-  skipBlockOp,
   callOp,
   abortOp,
   exitOp,
-  exitCodeOp,
   evalOp,
   literalStringOp,
   pushSymbolRefOp,
@@ -115,11 +113,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
     [Op.LiteralNumber]: literalNumberOp,
     [Op.Branch]: skipDefOp,
-    [Op.BranchCall]: skipBlockOp,
     [Op.Call]: callOp,
     [Op.Abort]: abortOp,
     [Op.Exit]: exitOp,
-    [Op.ExitCode]: exitCodeOp,
     [Op.Eval]: evalOp,
     [Op.RawPrint]: rawPrintOp,
     [Op.Print]: printOp,

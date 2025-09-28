@@ -19,8 +19,6 @@ export enum TokenType {
   WORD,
   STRING,
   SPECIAL,
-  BLOCK_START,
-  BLOCK_END,
   WORD_QUOTE,
   SYMBOL,
   REF_SIGIL,
@@ -154,13 +152,6 @@ export class Tokenizer {
       this.position++;
       this.column++;
       return { type: TokenType.SPECIAL, value: char, position: startPos };
-    }
-
-    if (char === '{' || char === '}') {
-      const type = char === '{' ? TokenType.BLOCK_START : TokenType.BLOCK_END;
-      this.position++;
-      this.column++;
-      return { type, value: char, position: startPos };
     }
 
     if (char === '`') {

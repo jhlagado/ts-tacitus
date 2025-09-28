@@ -27,7 +27,6 @@ This document codifies conventions for naming public functions and shaping small
   - `emitNumber`, `emitString`, `emitWord`, `emitAtSymbol`, `emitRefSigil`, `emitVarDecl`, `emitAssignment`.
 - Handlers:
   - `handleSpecial` for special tokens.
-  - `beginBlock` for standalone curly-blocks.
 
 ## Examples (Accepted Aliases)
 - Local vars transfer

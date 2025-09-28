@@ -11,7 +11,6 @@ import {
   evalOp,
   skipDefOp,
   callOp,
-  skipBlockOp,
   literalNumberOp,
   groupLeftOp,
   groupRightOp,
@@ -107,26 +106,6 @@ describe('Built-in Words', () => {
       evalOp(vm);
 
       expect(vm.getStackData()).toEqual([123]);
-    });
-  });
-  describe('Branch Operations', () => {
-    test('branchCallOp should jump relative', () => {
-      const initialIP = vm.IP;
-      vm.compiler.compile16(10);
-      skipBlockOp(vm);
-      expect(vm.IP).toBe(initialIP + 12);
-    });
-    test('should handle negative offsets', () => {
-      vm.IP = 10;
-      vm.compiler.compile16(-10);
-      skipBlockOp(vm);
-      expect(vm.IP).toBe(12);
-    });
-    test('should push return address', () => {
-      const initialIP = vm.IP;
-      skipBlockOp(vm);
-      const { value: pointer } = fromTaggedValue(vm.pop());
-      expect(pointer).toBe(initialIP + 2);
     });
   });
   describe('Literal Operations', () => {

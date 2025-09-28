@@ -37,25 +37,35 @@ This enables powerful behaviors such as:
 
 ### 2.1 Syntax
 
-Capsules are defined by declaring variables and a **methods combinator**:
+Capsules are defined by declaring variables and a **methods combinator**. With brace blocks removed, method bodies are supplied as executable references—typically named colon definitions:
 
 ```tacit
+: move-point-method
+    +> y +> x
+;
+
+: draw-point-method
+    x y native_draw
+;
+
 : makepoint
     var y var x
 
-    methods {
-        `move { +> y +> x }
-        `draw { x y native_draw }
-    }
+    methods
+        `move move-point-method
+        `draw draw-point-method
+    ;
 ;
 ```
+
+Each table entry expects an executable reference. These named colon definitions are placeholders until a dedicated `method … ;` immediate is finalised.
 
 This structure divides a function into two conceptual parts:
 
 1. **Initialization**: variable declarations and any setup code appear before `methods`.
-2. **Method table**: everything inside the `methods { … }` block defines how the capsule responds to dispatches.
+2. **Method table**: the `methods … ;` section pairs message symbols with executable references (colon definitions, future immediates, etc.).
 
-When the parser reaches `methods`, it automatically performs the full capsule creation process described below.  No additional keyword is required.
+When the parser reaches `methods`, it automatically performs the full capsule creation process described below. No additional keyword is required, and the terminator `;` closes the table just like other immediate constructs.
 
 ### 2.2 Exact Creation Process
 
@@ -69,7 +79,7 @@ At the point where `methods` is encountered, the Tacit VM performs these steps:
 2. **Save reentry point**
 
    * The current Instruction Pointer (**IP**) is pushed as a `CODE`-tagged value on top of the stack frame.
-   * This becomes **element 0** of the capsule, pointing to the first instruction after the `methods` block.
+   * This becomes **element 0** of the capsule, pointing to the first instruction after the `methods` table.
 
 3. **Push list header**
 
@@ -156,4 +166,3 @@ This guarantees strong encapsulation and predictable lifetimes, with all state c
 The `methods` combinator makes capsule construction concise and idiomatic.  By automatically performing the reification process, it lets Tacit code focus on state and behavior while the VM guarantees determinism and message-driven semantics.
 
 Capsules remain pure stack values, ensuring predictable lifetimes and a clean integration with Tacit’s value-first model. They provide a simple yet powerful foundation for building objects, actors, and generators entirely on the stack.
-
