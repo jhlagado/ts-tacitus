@@ -18,7 +18,7 @@ Epilogue (`Exit`):
 4. Pop return address and jump
 
 ### Code Block (meta = 1)
-Blocks do not introduce a new frame: only the return address is pushed and later popped by `ExitCode`; `BP` is preserved.
+Immediate control flow executes inside the current frame: branches jump over one another and return with the usual `Exit` sequence.
 
 ## Layout Diagram
 ```

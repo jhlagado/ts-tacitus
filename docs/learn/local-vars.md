@@ -62,7 +62,7 @@ Tacit VM uses a dual-stack architecture. Both stacks share the same STACK segmen
 
 Local variables are stored in fixed-size slots on the return stack. The Base Pointer (BP) provides a stable reference point for addressing these slots within each function's frame.
 
-## 2. Functions and Code Blocks
+## 2. Functions and Immediate Control Words
 
 \**Functions*mul are declared using colon syntax:
 
@@ -70,13 +70,13 @@ Local variables are stored in fixed-size slots on the return stack. The Base Poi
 : function-name ... ;
 ```
 
-\**Code blocks*mul are sections of code enclosed in curly braces `{ ... }`:
+Conditionals are composed with immediate words that run during compilation:
 
 ```
-if { condition } then { true-branch } else { false-branch } endif
+flag if true-branch else false-branch ;
 ```
 
-Key difference: Functions create new stack frames with local variable slots, code blocks execute within their containing function's frame and access parent locals.
+The branch bodies execute in the current function frame, so locals remain directly accessible.
 
 ## 3. Function Stack Frame Layout
 
@@ -446,24 +446,22 @@ Local variables store slot numbers instead of opcodes or addresses.
 - Slot count incremented for each var declaration encountered
 - Compiler back-patches final slot count using patch8 method
 
-## 12. Code Block Behavior
+## 12. Immediate Conditionals and Locals
 
-Code blocks preserve lexical access to parent function's local variables:
+Immediate control flow executes inside the current function frame, so branch bodies can use local variables directly:
 
-- **No new stack frame**: Execute in parent's frame
-- **Access parent locals**: Use same `LOCAL_VAR_ADDR` opcodes
-- **No cleanup required**: Parent function handles all cleanup
+- **No new stack frame**: `if … else … ;` emits bytecode that reuses the caller's BP.
+- **Direct access**: Locals such as `x` remain in scope for each branch.
+- **Cleanup unchanged**: The surrounding function still unwinds the frame.
 
 Example:
 
 ```
 : conditional-math
     5 var x
-    if { x 0 gt } then { x 2 mul } else { 0 } endif
+    x 0 gt if x 2 mul else 0 ;
 ;
 ```
-
-The code blocks access the parent function's local variable `x` using the existing meta-bit system for lexical scoping. Note: `x` produces the value directly; use `&x fetch` if an address-based read is required.
 
 ## 13. Variable Lifetime and Safety
 
@@ -536,15 +534,12 @@ The code blocks access the parent function's local variable `x` using the existi
 ;
 ```
 
-### Code Blocks Accessing Locals:
+### Conditional Access to Locals:
 
 ```
 : conditional-process
     var data
-    data fetch 0 gt
-    if { data fetch 2 mul }
-    else { 0 }
-    endif
+    data fetch 0 gt if data fetch 2 mul else 0 ;
 ;
 ```
 

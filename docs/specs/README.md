@@ -53,7 +53,6 @@ References and values
 Notation
 - Stack effects `( before — after )` are documentation only. Inside code fences they are written as `\ ( — … )` so examples remain valid Tacit.
 - Tacit comments use backslash `\` to end-of-line. `//`, `#`, and `;` are not comment markers.
-- Blocks `{ … }` produce a code reference; they do not execute without `eval`.
 
 ### Visualization
 
@@ -140,9 +139,7 @@ Tagged values
 - 32-bit NaN-boxing; see tagged.md.
 
 Code blocks
-```tacit
-{ 1 2 add }    \ ( — code-block )
-```
+Immediate control words such as `if … else … ;` execute during parsing to generate the required bytecode.
 - Blocks are references; execute via `eval`.
 
 Symbols

@@ -353,14 +353,6 @@ All stack items are 32-bit NaN-boxed values with type tags:
 - Operations must respect type constraints
 - Stack effects include type information where relevant
 
-### Code Blocks
-
-```tacit
-{ 1 2 add }    \ ( — code-block )
-```
-
-Blocks are pushed as executable references, not executed immediately.
-
 ### Symbol References
 
 ```tacit

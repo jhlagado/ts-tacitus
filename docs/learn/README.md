@@ -13,7 +13,6 @@ Essentials
 Notation
 - Stack effects `( before — after )` are documentation only. In code fences, they are written as `\ ( — … )` so examples are valid Tacit.
 - Tacit comments use backslash `\` to end-of-line. `//`, `#`, and `;` are not comment markers.
-- Blocks `{ … }` push a code reference; they do not execute without `eval`.
 
 Learning Guide (source files)
 - Core: `src/core/vm.ts`, `src/core/tagged.ts`, `src/core/list.ts`, `src/core/refs.ts`
@@ -35,11 +34,10 @@ answer                \ -> 42
   x
 ;
 
-{ dup mul }          \ pushes a code ref
-5 { dup mul } eval   \ -> 25
+: abs dup 0 lt if neg ; ;
+-7 abs               \ -> 7
 ```
 
 Common pitfalls
 - TOS is rightmost in stack effects and diagrams.
 - Only `\` is a comment in Tacit examples; `//` and `#` are not.
-- Blocks `{ … }` do not execute without `eval`.

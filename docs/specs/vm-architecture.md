@@ -83,7 +83,7 @@ Opcode encoding & dispatch:
 
 `Tag.CODE` meta bit determines execution form:
 
-- meta = 1 (block / quotation): Prologue pushes only the return address (cell index of caller IP). BP remains unchanged (no frame root shift). Epilogue (`ExitCode`) pops return address and resumes execution; locals are not introduced.
+- meta = 1 (reserved): lexical quotations formerly used this mode. New immediate constructs no longer emit it, but the encoding remains reserved for future lexical forms.
 - meta = 0 (function / colon definition): Prologue sequence (cell units):
   1. Push return address (next IP)
   2. Push caller BP (BPCells)
@@ -126,7 +126,7 @@ Epilogue (`Exit`):
 4. Pop return address and jump
 
 Code Block (meta = 1)
-- Blocks do not introduce a new frame: only the return address is pushed and later popped by `ExitCode`; `BP` is preserved.
+- Immediate control flow compiled by the parser runs within the current frame; no separate opcode is required for teardown.
 
 Layout Diagram
 ```
