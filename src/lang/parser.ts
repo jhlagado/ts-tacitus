@@ -64,6 +64,15 @@ interface ParserState {
   insideCodeBlock: boolean;
 }
 
+let currentParserState: ParserState | null = null;
+
+function requireParserState(): ParserState {
+  if (!currentParserState) {
+    throw new SyntaxError('DEF/ENDDEF used outside of parser context', vm.getStackData());
+  }
+  return currentParserState;
+}
+
 function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
   if (entry.implementation) {
     entry.implementation(vm);
@@ -135,11 +144,16 @@ export function parse(tokenizer: Tokenizer): void {
     insideCodeBlock: false,
   };
 
-  parseProgram(state);
+  currentParserState = state;
+  try {
+    parseProgram(state);
 
-  validateFinalState(state);
+    validateFinalState(state);
 
-  vm.compiler.compileOpcode(Op.Abort);
+    vm.compiler.compileOpcode(Op.Abort);
+  } finally {
+    currentParserState = null;
+  }
 }
 
 /**
@@ -872,6 +886,14 @@ export function endDefinition(state: ParserState): void {
   vm.symbolTable.defineCode(name, defStart);
 
   state.currentDefinition = null;
+}
+
+export function beginDefinitionImmediate(): void {
+  beginDefinition(requireParserState());
+}
+
+export function endDefinitionImmediate(): void {
+  endDefinition(requireParserState());
 }
 
 /**
