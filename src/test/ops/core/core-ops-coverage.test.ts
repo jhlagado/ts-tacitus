@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { vm } from '../../../core/global-state';
-import { exitOp, exitCodeOp, evalOp } from '../../../ops/core';
+import { exitOp, evalOp } from '../../../ops/core';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Core Operations Branch Coverage', () => {
@@ -40,28 +40,6 @@ describe('Core Operations Branch Coverage', () => {
       // Should have executed the non-code branch (line 214) even if IP is different
       // The test documents that this branch is covered
       expect(vm.IP).toBeDefined();
-    });
-  });
-
-  describe('exitCodeOp edge cases', () => {
-    test('should handle return stack underflow (lines 243-244)', () => {
-      // Set up return stack with less than CELL_SIZE
-  vm.RSP = 0; // Empty return stack
-
-      exitCodeOp(vm);
-
-      // Should have stopped VM execution
-      expect(vm.running).toBe(false);
-    });
-
-    test('should handle non-code return address (lines 252-256)', () => {
-      // Set up return stack with non-code return address
-      vm.rpush(500); // Non-code return address
-
-      exitCodeOp(vm);
-
-      // Should have used Math.floor path
-      expect(vm.IP).toBe(500);
     });
   });
 
@@ -111,15 +89,6 @@ describe('Core Operations Branch Coverage', () => {
 
       expect(vm.running).toBe(false);
     });
-
-    test('should handle edge case in exitCodeOp', () => {
-      // Test that exitCodeOp handles edge cases properly
-  vm.RSP = 0; // Empty return stack (will trigger early return)
-
-      exitCodeOp(vm);
-
-      expect(vm.running).toBe(false);
-    });
   });
 
   describe('Integration tests to hit more branches', () => {
@@ -133,11 +102,13 @@ describe('Core Operations Branch Coverage', () => {
       expect(result[result.length - 1]).toBe(42);
     });
 
-    test('should exercise block execution paths', () => {
-      // Test block execution to hit different eval branches
-      const result = executeTacitCode('{ 1 2 } eval');
+    test('should exercise eval with colon definition', () => {
+      const result = executeTacitCode(`
+        : inc 1 add ;
+        41 @inc eval
+      `);
 
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual([42]);
     });
 
     test('should exercise function calls', () => {

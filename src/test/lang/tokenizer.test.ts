@@ -58,8 +58,8 @@ describe('Tokenizer', () => {
     expect(values).toEqual([123, 0.5]);
   });
   test('should handle numbers adjacent to special characters', () => {
-    const values = getTokenValues('{-345}');
-    expect(values).toEqual(['{', -345, '}']);
+    const values = getTokenValues('(-345)');
+    expect(values).toEqual(['(', -345, ')']);
   });
 
   test('should tokenize words like swap and drop', () => {
@@ -85,16 +85,16 @@ describe('Tokenizer', () => {
   });
 
   test('should tokenize special characters', () => {
-    const tokens = getAllTokens('{ } ( ) + - * /');
+    const tokens = getAllTokens('( ) [ ] + - * /');
     expect(tokens.length).toBe(8);
-    expect(tokens[0].type).toBe(TokenType.BLOCK_START);
-    expect(tokens[0].value).toBe('{');
-    expect(tokens[1].type).toBe(TokenType.BLOCK_END);
-    expect(tokens[1].value).toBe('}');
+    expect(tokens[0].type).toBe(TokenType.SPECIAL);
+    expect(tokens[0].value).toBe('(');
+    expect(tokens[1].type).toBe(TokenType.SPECIAL);
+    expect(tokens[1].value).toBe(')');
     expect(tokens[2].type).toBe(TokenType.SPECIAL);
-    expect(tokens[2].value).toBe('(');
+    expect(tokens[2].value).toBe('[');
     expect(tokens[3].type).toBe(TokenType.SPECIAL);
-    expect(tokens[3].value).toBe(')');
+    expect(tokens[3].value).toBe(']');
     expect(tokens[4].type).toBe(TokenType.WORD);
     expect(tokens[4].value).toBe('+');
   });
@@ -120,8 +120,8 @@ describe('Tokenizer', () => {
     expect(values).toEqual([5, 3, 'add']);
   });
   test('should handle mixed input with numbers, words, and special characters', () => {
-    const values = getTokenValues('{-345} swap drop 42.5 add');
-    expect(values).toEqual(['{', -345, '}', 'swap', 'drop', 42.5, 'add']);
+    const values = getTokenValues('(-345) swap drop 42.5 add');
+    expect(values).toEqual(['(', -345, ')', 'swap', 'drop', 42.5, 'add']);
   });
   test('should handle multiple lines with mixed content', () => {
     const values = getTokenValues('5 3 add\n\\ Comment\n10 20 sub\nswap');
@@ -133,12 +133,12 @@ describe('Tokenizer', () => {
   });
 
   test('should tokenize complex expressions', () => {
-    const values = getTokenValues('5 dup { 3 add } drop');
-    expect(values).toEqual([5, 'dup', '{', 3, 'add', '}', 'drop']);
+    const values = getTokenValues('5 dup ( 3 add ) drop');
+    expect(values).toEqual([5, 'dup', '(', 3, 'add', ')', 'drop']);
   });
   test('should handle nested expressions', () => {
-    const values = getTokenValues('{ { 5 } { 3 } add }');
-    expect(values).toEqual(['{', '{', 5, '}', '{', 3, '}', 'add', '}']);
+    const values = getTokenValues('( ( 5 ) ( 3 ) add )');
+    expect(values).toEqual(['(', '(', 5, ')', '(', 3, ')', 'add', ')']);
   });
 
   test('should handle numbers with leading zeros', () => {
@@ -149,25 +149,6 @@ describe('Tokenizer', () => {
   test('should handle words with mixed case', () => {
     const values = getTokenValues('Swap DROP');
     expect(values).toEqual(['Swap', 'DROP']);
-  });
-  test('should handle { and } as symbol terminators', () => {
-    const tokens = getAllTokens('xy{ 123 }z');
-    expect(tokens).toHaveLength(5);
-    expect(tokens[0]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'xy' }));
-    expect(tokens[1]).toEqual(expect.objectContaining({ type: TokenType.BLOCK_START, value: '{' }));
-    expect(tokens[2]).toEqual(expect.objectContaining({ type: TokenType.NUMBER, value: 123 }));
-    expect(tokens[3]).toEqual(expect.objectContaining({ type: TokenType.BLOCK_END, value: '}' }));
-    expect(tokens[4]).toEqual(expect.objectContaining({ type: TokenType.WORD, value: 'z' }));
-  });
-  test('should handle { and } in complex expressions', () => {
-    const tokens = getAllTokens('if { x 1 add } { y 2 mul } then');
-    const types = tokens.map(t => t.type);
-    const values = tokens.map(t => t.value);
-    expect(types).toContain(TokenType.BLOCK_START);
-    expect(types).toContain(TokenType.BLOCK_END);
-    expect(types).toContain(TokenType.WORD);
-    expect(types).toContain(TokenType.NUMBER);
-    expect(values).toEqual(['if', '{', 'x', 1, 'add', '}', '{', 'y', 2, 'mul', '}', 'then']);
   });
   test('should handle ( and ) as symbol terminators', () => {
     const tokens = getAllTokens('xy( 123 )z');
@@ -208,11 +189,6 @@ describe('Tokenizer', () => {
   test('should handle words with underscores', () => {
     const values = getTokenValues('my_word another_word');
     expect(values).toEqual(['my_word', 'another_word']);
-  });
-
-  test('should handle multiple special characters in a row', () => {
-    const values = getTokenValues('{{}}');
-    expect(values).toEqual(['{', '{', '}', '}']);
   });
 
   test('should track token positions correctly', () => {

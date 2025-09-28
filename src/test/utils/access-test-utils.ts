@@ -188,19 +188,19 @@ export class ComparatorTester {
       {
         description: 'Numeric ascending sort',
         setup: '( 3 1 4 2 )',
-        comparator: '{ - }',
+        comparator: 'sort - ;',
         expectedBehavior: 'Ascending order',
       },
       {
         description: 'Numeric descending sort',
         setup: '( 1 3 2 4 )',
-        comparator: '{ swap - }',
+        comparator: 'sort swap - ;',
         expectedBehavior: 'Descending order',
       },
       {
         description: 'Stable sort test',
         setup: '( 1 2 1 3 )',
-        comparator: '{ - }',
+        comparator: 'sort - ;',
         expectedBehavior: 'Equal elements preserve order',
       },
     ];
