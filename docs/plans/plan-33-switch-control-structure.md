@@ -1,62 +1,125 @@
-# Plan 33 — Immediate `switch/case/default`
+# Plan 33 — Immediate `case/of` Switch Control Structure
 
-## Status
-- **State:** Draft
-- **Owner:** Tacit control-flow initiative
-- **Prerequisites:** Plan 31 (immediate `if/else`) and Plan 32 (brace block removal)
+Status
+- Stage: Planning and design ready for implementation
+- Depends on:
+  - Plan 31 — Generic `;` closer infrastructure (in place)
+  - Plan 32 — Brace-block removal (in place)
+- Spec source: docs/specs/drafts/switch-control-flow.md (normative draft)
 
-## Goals
-1. Add a forward-only, immediate-word driven `switch … case … default … ;` construct suited for Tacit's RPN style.
-2. Reuse the existing data-stack backpatch discipline so each clause emits its own jump to a shared exit without auxiliary metadata.
-3. Provide documentation and tests covering guard duplication, clause ordering (no fall-through), nested switches, and compile-time error handling (`case` after `default`, missing `default`, etc.).
+Objectives
+- Add a Forth-style switch construct using immediate words:
+  - `case` (open switch), `of` (start clause), `;` (generic closer executes `endof`/`endcase`)
+- Ensure:
+  - No new grammar; immediate words drive compilation
+  - Fixed-arity semantics: `of` consumes exactly one runtime flag
+  - All compiler state lives on the VM data stack (numbers as placeholders, BUILTIN closers)
+- Preserve Tacit invariants and closer stack behavior used by `if … else … ;`
 
-## Non-Goals
-- Pattern matching or destructuring beyond boolean predicates.
-- Fall-through semantics (each clause either runs or skips in isolation).
-- Compiler optimisations such as jump tables; first version relies on chained conditional branches.
+Scope (Implementation Units)
+1) Opcodes
+   - Add new closers:
+     - `Op.EndOf` — closes a single clause; emits exit-branch placeholder and patches false-branch placeholder
+     - `Op.EndCase` — closes switch; patches all exit-branch placeholders to the common exit
+2) Meta (compile-time immediates)
+   - `beginCaseImmediate()` — pushes EndCase closer; emits no bytecode
+   - `beginOfImmediate()` — emits `IfFalseBranch`, pushes p_false (number), then EndOf closer
+   - `ensureNoOpenSwitches()` — scans compile-time data stack for unclosed EndCase closer
+3) Registration
+   - Symbol table definitions:
+     - `case` → `Op.Nop`, immediate impl: `beginCaseImmediate`
+     - `of` → `Op.Nop`, immediate impl: `beginOfImmediate`
+     - `endof` → `Op.EndOf` (non-immediate closer)
+     - `endcase` → `Op.EndCase` (non-immediate closer)
+   - `;` remains the generic closer that evals the BUILTIN closer at TOS
+4) Parser validation
+   - Call `ensureNoOpenSwitches()` in `validateFinalState` alongside existing open-definition/conditional checks
+5) Tests
+   - Unit and end-to-end tests covering simple, default-only, single/multi-clauses, nesting, and error cases
+6) Documentation
+   - Spec already authored in docs/specs/drafts/switch-control-flow.md; keep in sync as needed
 
-## Deliverables
-- Immediate-word implementations for `switch`, `case`, `of`, `default`, and the shared closer `;` that manipulate only the data stack (`exit`, `closer`, branch placeholder, skip placeholder) using the sentinel values `0` (none), `>0` (address), `-1` (switch closed).
-- Updated spec (`docs/specs/drafts/switch-control-flow.md`) describing the exact stack diagrams for each word.
-- Comprehensive tests in `src/test/lang` and `src/test/ops/control` covering success paths and compile-time failures (stray `case`/`default`, missing `of`, missing `default`, duplicate `default`, missing `;`).
+Design Summary (from Spec)
+- Lowering rules (fixed arity):
+  - `of` emits `IfFalseBranch p_false`, pushes `p_false` (number), pushes EndOf closer
+  - Clause `;` executes EndOf:
+    - pop `p_false`
+    - emit `Branch p_exit` (to be patched by EndCase)
+    - temporarily pop EndCase, push `p_exit`, push EndCase (stash under EndCase)
+    - patch `p_false` → here (fallthrough for false)
+  - Final `;` executes EndCase:
+    - pop EndCase
+    - while TOS is a finite number: pop `p_exit` and patch to here (common exit)
+- Control flow (explicit):
+  - Pred true → fallthrough into body → Branch to exit (skip remainder)
+  - Pred false → IfFalseBranch jumps over body → next clause or default; if none, to exit
+- Compiler-state-on-stack only; no additional parser fields beyond existing validation hooks
 
-## Work Breakdown
-1. **Design & Specification**
-   - Finalise the stack protocol (`... exit closer branch skip`) and sentinel values: `0`, placeholder address, and `-1` for closed switch.
-   - Document a complete bytecode example showing where each `Branch`/`IfFalseBranch` is generated and later patched.
+File Changes (Detailed Checklist)
+- src/ops/opcodes.ts
+  - Add enum entries: `EndOf`, `EndCase`
+- src/ops/core/core-ops.ts
+  - Implement:
+    - `endOfOp(vm)` — validates numeric placeholder; emits `Branch` placeholder; stashes under EndCase; patches false-branch to here
+    - `endCaseOp(vm)` — pops EndCase; patches all numeric exit placeholders to here
+  - Export via `executeOp` dispatch
+- src/lang/meta/switch.ts (new)
+  - `beginCaseImmediate()`
+  - `beginOfImmediate()`
+  - `ensureNoOpenSwitches()`
+- src/lang/meta/index.ts
+  - `export { beginCaseImmediate, beginOfImmediate, ensureNoOpenSwitches } from './switch';`
+- src/ops/builtins-register.ts
+  - Register immediate words and closers:
+    - `symbolTable.defineBuiltin('case', Op.Nop, _ => beginCaseImmediate(), true);`
+    - `symbolTable.defineBuiltin('of', Op.Nop, _ => beginOfImmediate(), true);`
+    - `symbolTable.defineBuiltin('endof', Op.EndOf);`
+    - `symbolTable.defineBuiltin('endcase', Op.EndCase);`
+- src/lang/parser.ts
+  - In `validateFinalState(state)`: call `ensureNoOpenSwitches()` after `ensureNoOpenConditionals()`
+- Tests
+  - src/test/lang/switch-case.test.ts (new)
+    - “case ;” → no-op
+    - “case … ;” → runs default-only
+    - “case pred of body ; ;” → body when true; nothing when false
+    - “case pred of body ; default ;” → body when true, default when false
+    - 2+ clauses with default
+    - Nested `if … ;` inside clause body
+    - Errors:
+      - `of` without `case`
+      - Unclosed `case` at EOF
+    - Stack discipline: after parse, compile-time stack should be clean (no stray numbers/closers)
+- Docs
+  - Spec is current (explicit true/false flow, fixed arity, stack-only state). Keep synced if code nuances appear during implementation.
 
-2. **Immediate Word Implementation**
-   - Implement `switch`: emit exit branch, push closer, push `0 0` placeholders.
-   - Implement `case`: patch pending skip/branch, error on `-1`, emit new branch, push `0`, emit guard `Dup`.
-   - Implement `of`: require branch > 0, emit `IfFalseBranch`, push skip, emit guard `Drop`.
-   - Implement `default`: patch skip, patch branch, emit guard `Drop`, push `-1 0` to mark closed.
-   - Implement closer `;`: verify skip == 0, branch == -1, patch exit.
+Acceptance Criteria
+- Parsing any of the worked examples produces correct bytecode and runtime results
+- All compiler state represented strictly by stack items (numbers, BUILTIN closer refs)
+- Generic `;` closes the innermost construct correctly (EndIf, EndOf, EndCase) with proper LIFO semantics
+- Validation catches “OF without CASE” and “Unclosed CASE”
+- No reliance on variadic detection; `of` requires exactly one runtime flag
+- Coverage added for nesting and error paths
 
-3. **Parser & Runtime Wiring**
-   - Register these immediates in the language initialisation sequence.
-   - Ensure the runtime VM already supports the required core opcodes (`Branch`, `IfFalseBranch`, `Drop`, `Dup`).
+Risks / Mitigations
+- Risk: Accidentally popping numbers that are not placeholders in EndCase
+  - Mitigation: During parse, user literals compile to bytecode, not data stack; only our placeholders are left. Add unit tests to guard.
+- Risk: Closer ordering with nested constructs
+  - Mitigation: Explicit tests exercising nested `if … ;` within clauses
+- Risk: Backward-compatibility (symbols ‘case’, ‘of’)
+  - Mitigation: They are new; no prior semantics to preserve
 
-4. **Testing**
-   - Unit tests for the immediate words inspecting the data stack after each step (patches, error conditions).
-   - Integration tests compiling and executing sample programs covering:
-     - Switch with single clause and default.
-     - Switch with multiple clauses, including match in the middle and default fallback.
-     - Switch nested inside another switch.
-     - Error cases: `case` outside switch, `default` outside switch, missing `of`, missing `default`, duplicate `default`, `case` after `default`, missing `;`.
+Rollout Steps
+1) Add opcodes and meta functions
+2) Register builtins
+3) Parser validation hook
+4) Implement core ops
+5) Tests (unit + e2e)
+6) CI green; update spec references if any minor discrepancies found
 
-5. **Documentation**
-   - Publish the updated spec (`switch-control-flow.md`).
-   - Update learning materials and release notes explaining the new construct.
+Out of Scope (Future Work)
+- Additional switch syntaxes (e.g., `default` keyword) — intentionally avoided; default is implicit region before final `;`
+- Pattern forms that manage a discriminant for you — users explicitly manage stack/locals per predicate
 
-## Dependencies
-- Immediate-word infrastructure from Plan 31 (colon definitions, `;` closer).
-- Existing control opcodes (`Branch`, `IfFalseBranch`) and stack ops (`Dup`, `Drop`).
-
-## Open Questions
-- Should we provide syntactic sugar for common predicates (equality cases), or postpone to a later plan?
-- Do we warn users when a predicate consumes the duplicated guard (runtime behaviour) or leave this to documentation?
-
-## Timeline (Tentative)
-- Week 1: Finalise design & spec.
-- Week 2: Implement immediates and parser wiring.
-- Week 3: Tests and documentation sweep.
+References
+- Spec: docs/specs/drafts/switch-control-flow.md
+- Immediate control model: src/lang/meta/conditionals.ts, src/ops/core/core-ops.ts (EndIf/EndDefinition patterns)
