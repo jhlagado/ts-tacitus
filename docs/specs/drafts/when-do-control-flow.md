@@ -1,7 +1,6 @@
 # `when … do` Control Flow (Draft, Normative)
 
 Status
-- Stage: design draft (renamed tokens: `case` → `when` opener, `of` → `do` clause body)
 - Depends on: Plan 31 (`;` generic closer infrastructure), Plan 32 (brace-block removal)
 - Scope: Immediate-word control structure compiled with fixed arity. All compiler state MUST live on the VM data stack (no hidden side state). Design keeps Tacit’s Forth‑style immediate metaprogramming.
 
