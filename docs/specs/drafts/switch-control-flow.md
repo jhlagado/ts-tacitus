@@ -39,13 +39,16 @@ Design Goals (Normative)
   - No extra state in parser structs beyond what already exists for lists/definitions/conditionals.
 
 Semantics Summary
-- `case` (immediate): Opens a switch context. Emits no bytecode. Pushes an EndCase closer on the data stack.
+- `case` (immediate): Opens a switch context. Emits a two‑instruction prologue so the common exit is reachable without scanning/counting and normal entry skips it:
+  - `Branch +3` to skip over the next instruction (a fixed 3‑byte branch).
+  - `Branch +0` (forward) as the anchor to the common exit, with its 16‑bit operand address recorded as `anchorPos` (patched by EndCase). The first branch guarantees the anchor is not executed on entry.
+  - Push `anchorPos` beneath an EndCase closer on the data stack.
 - `of` (immediate): Starts a clause guarded by the immediately preceding predicate (which leaves a single flag on TOS at runtime).
   - Emits `IfFalseBranch` with a forward 16‑bit placeholder.
   - Pushes the placeholder (number) then pushes an EndOf closer.
 - `;` (generic closer, immediate): Executes whichever closer is at TOS:
-  - If it is EndOf: closes the current clause (patch false branch, emit and collect an exit branch placeholder).
-  - If it is EndCase: closes the whole construct (patch all clause exit branches to the common exit).
+  - If it is EndOf: closes the current clause by emitting a backward `Branch` to the anchor and patching the clause’s `p_false` to fall through.
+  - If it is EndCase: closes the construct by patching the single anchor’s forward branch to the common exit.
 - Default body: Any code between the last clause `;` and the final `;` (EndCase) is the default.
 
 Immediate Words and Closers (API)
@@ -57,7 +60,7 @@ Immediate Words and Closers (API)
 
 All compiler-time state for an open case is represented on the VM data stack as:
 - One EndCase closer (BUILTIN ref) for the open switch
-- Zero or more numeric placeholders (exit branches) collected directly beneath EndCase during clause closures
+- One numeric anchor position (branch operand address) directly beneath EndCase; this forward-branch placeholder is emitted by `case` and later patched by EndCase to the common exit
 - For an active, not-yet-closed clause: the stack will additionally have a numeric false-branch placeholder and an EndOf closer on TOS until the clause’s `;` executes
 
 Lowering Rules (Normative)
@@ -68,15 +71,29 @@ Let CP be the current compile pointer (bytecode index).
   3) push `p_false`
   4) push EndOf (BUILTIN ref to `Op.EndOf`)
 - ; in a clause (EndOf executes):
-  1) Pop `p_false` (number)
-  2) Emit `Branch`; let `p_exit = CP`; compile16(0) to reserve an exit placeholder that should jump to the common exit
-  3) Keep EndCase at TOS while stashing `p_exit` beneath it:
-     - Pop EndCase closer (BUILTIN), push `p_exit` (number), push EndCase closer
-  4) Patch `p_false` to `here` (current CP) so non-matching flows fall through to the next clause or default
+  1) Pop `p_false` (number).
+  2) Temporarily pop the EndCase closer, then pop the `anchorPos` number beneath it (the operand address of the anchor branch emitted by `case`). Emit a backward `Branch` that jumps to the anchor’s opcode and compute its offset immediately:
+     ```
+     vm.compiler.compileOpcode(Op.Branch);
+     const pBack = vm.compiler.CP;
+     const targetOpcode = Math.trunc(anchorPos) - 1;     // anchor opcode byte before its operand
+     const off = targetOpcode - (pBack + 2);             // relative from after operand
+     vm.compiler.compile16(off);
+     ```
+     Restore compile-time stack order by pushing `anchorPos` then the EndCase closer back onto the data stack.
+  3) Patch `p_false` to `here` (current CP) so non-matching flows fall through to the next clause or default.
 - Final ; (EndCase executes):
-  1) Pop EndCase closer
-  2) While TOS is a finite number: pop `p_exit`, patch it to `here`
-  3) Done
+  1) Pop EndCase closer.
+  2) Pop `anchorPos` (number) and patch the anchor’s forward branch to `here`:
+     ```
+     const here = vm.compiler.CP;
+     const off = here - (Math.trunc(anchorPos) + 2);   // patch operand of anchor Branch
+     const prev = vm.compiler.CP;
+     vm.compiler.CP = Math.trunc(anchorPos);
+     vm.compiler.compile16(off);
+     vm.compiler.CP = prev;
+     ```
+  3) Done.
 
 Explicit Control-Flow on Predicate Result (Normative)
 - Predicate true (non‑zero flag when `of` runs):
@@ -87,14 +104,18 @@ Explicit Control-Flow on Predicate Result (Normative)
   - Execution continues with the next clause’s predicate if present; otherwise into the default body; if no default exists, it falls through to the common exit.
 
 Note on Numbers on the Compile-Time Stack
-During parsing, ordinary literals are compiled to bytecode; they are not kept on the VM data stack. The only numbers placed on the VM data stack during compilation are placeholders we explicitly push (branch positions). Therefore, “pop while TOS is a finite number” is safe and will not consume user data.
+During parsing, ordinary literals are compiled to bytecode; they are not kept on the VM data stack. The only numbers placed on the VM data stack by this construct are:
+- `p_false` (clause-local false-branch placeholder), which is consumed by EndOf, and
+- `anchorPos` (the operand address of the case anchor), which is consumed by EndCase.
+No variadic scanning or “pop while number” loops are required.
 
 Stack Discipline (Compile-Time)
 - ONLY numeric placeholders (branch positions) and BUILTIN closer references are pushed by this construct.
 - Invariants:
   - EndCase is always present as the topmost closer for an open switch.
   - After `of`, TOS is EndOf; under it is the numeric `p_false`.
-  - After EndOf executes, TOS returns to EndCase; under EndCase is a (possibly empty) pack of numeric exit placeholders gathered so far.
+  - After EndOf executes, TOS returns to EndCase; directly beneath EndCase is the single numeric `anchorPos` (no collection of exits).
+  - The `case` prologue guarantees normal entry jumps over the anchor using a fixed `Branch +3`, keeping fixed-arity operations and avoiding any scanning/counting.
 - Nesting is naturally LIFO: any nested immediates (e.g., `if … ;`) push their own closers above EndOf/EndCase and are closed by their own `;` before the outer one is visible to `;`.
 
 Fixed Arity Constraints (Normative)
@@ -122,8 +143,19 @@ Implementation Sketch (Informative)
 Immediate: beginCaseImmediate
 ```ts
 export function beginCaseImmediate(): void {
-  // Require parser state if desired (like IF does); actual state is on stack:
-  // Push EndCase closer.
+  // Emit a prologue that ensures the anchor is not executed on entry:
+  // 1) Branch +3 to skip over the next Branch (1 opcode byte + 2 operand bytes)
+  vm.compiler.compileOpcode(Op.Branch);
+  vm.compiler.compile16(3);
+
+  // 2) Anchor: a forward Branch whose operand we will patch at EndCase to the common exit
+  vm.compiler.compileOpcode(Op.Branch);
+  const anchorPos = vm.compiler.CP;
+  vm.compiler.compile16(0);
+
+  // Keep the anchor operand address beneath EndCase on the compile-time stack
+  // Stack state (top ↓): EndCase, anchorPos
+  vm.push(anchorPos);
   vm.push(createBuiltinRef(Op.EndCase));
 }
 ```
@@ -151,22 +183,28 @@ export const endOfOp: Verb = (vm: VM) => {
     throw new SyntaxError('ENDOF invalid branch placeholder', vm.getStackData());
   }
 
-  // Emit exit branch placeholder that will be patched by EndCase.
+  // Access anchor beneath EndCase, compute backward branch to it, then restore stack.
+  vm.ensureStackSize(2, 'endof');
+  const endCaseCloser = vm.pop(); // EndCase BUILTIN
+  const anchorPos = vm.pop();     // numeric operand address of anchor branch
+
+  // Emit direct backward branch to anchor’s opcode (two-step exit: anchor will branch to final exit).
   vm.compiler.compileOpcode(Op.Branch);
-  const pExit = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  const pBack = vm.compiler.CP;
+  const targetOpcode = Math.trunc(anchorPos) - 1;
+  const offBack = targetOpcode - (pBack + 2);
+  vm.compiler.compile16(offBack);
 
-  // Keep EndCase at TOS while stashing pExit beneath it.
-  const closer = vm.pop(); // must be EndCase (BUILTIN)
-  vm.push(pExit);
-  vm.push(closer);
+  // Restore compile-time stack shape: anchorPos under EndCase on TOS.
+  vm.push(anchorPos);
+  vm.push(endCaseCloser);
 
-  // Patch the predicate's false branch to fall through here.
+  // Patch predicate’s false branch to fall through to next clause/default.
   const endAddr = vm.compiler.CP;
-  const offset = endAddr - (Math.trunc(pFalse) + 2);
+  const offFalse = endAddr - (Math.trunc(pFalse) + 2);
   const prev = vm.compiler.CP;
   vm.compiler.CP = Math.trunc(pFalse);
-  vm.compiler.compile16(offset);
+  vm.compiler.compile16(offFalse);
   vm.compiler.CP = prev;
 };
 ```
@@ -174,22 +212,17 @@ export const endOfOp: Verb = (vm: VM) => {
 Closer: endCaseOp (executed via generic `;`)
 ```ts
 export const endCaseOp: Verb = (vm: VM) => {
-  // Pop EndCase closer.
-  vm.ensureStackSize(1, 'endcase');
-  const closer = vm.pop(); // discard; type checking is optional here
+  // Pop EndCase closer and its anchor position; patch anchor to the final exit.
+  vm.ensureStackSize(2, 'endcase');
+  vm.pop(); // EndCase
+  const anchorPos = Math.trunc(vm.pop());
 
-  // Patch all collected exit branches to this point.
   const here = vm.compiler.CP;
-  while (vm.SPCells > 0) {
-    const top = vm.peek();
-    if (!Number.isFinite(top)) break;
-    const pExit = Math.trunc(vm.pop());
-    const off = here - (pExit + 2);
-    const prev = vm.compiler.CP;
-    vm.compiler.CP = pExit;
-    vm.compiler.compile16(off);
-    vm.compiler.CP = prev;
-  }
+  const off = here - (anchorPos + 2);
+  const prev = vm.compiler.CP;
+  vm.compiler.CP = anchorPos;
+  vm.compiler.compile16(off);
+  vm.compiler.CP = prev;
 };
 ```
 
@@ -205,7 +238,23 @@ Registration (Informative)
   ```
 - In parser `validateFinalState`: call `ensureNoOpenSwitches()`.
 
-Worked Examples (Normative Behavior)
+Alternative Design: Single‑Jump Variant via RSTACK SP Snapshot (Informative)
+Motivation
+- Avoid the extra backward jump to the anchor (Option B) by collecting per‑clause exit placeholders and patching them all directly to the final exit. This yields a single jump from a taken clause body to the exit.
+
+Fixed‑arity, stack‑only state
+- Use the return stack to record a compile‑time SP snapshot at `case` open, then compute the exact number of placeholders at `endcase` without scanning for sentinels:
+  - At `case`:
+    - rpush the current data‑stack depth in cells (SPCells) before any case state is pushed.
+    - Push EndCase closer on the data stack (TOS).
+  - At each clause `;` (EndOf):
+    - Emit `Branch +0` (forward) and push its operand address (pExit) beneath EndCase (temporarily pop EndCase to keep it at TOS), then patch `p_false` to fall through.
+  - At final `;` (EndCase):
+    - rpop the saved baseline SPCells → `base`.
+    - Compute `count = currentSPCells - base`. This includes 1 EndCase closer plus `k` numeric pExit placeholders.
+    - Pop EndCase, then iterate `k = count - 1` times:
+      - Pop one numeric placeholder address and patch it to `here`.
+    - Done
 
 1) No-op
 ```tacit
@@ -248,7 +297,7 @@ case
   p2 of  b2  ;
   dflt
 ;
-\ Each clause’s EndOf emits and records an exit branch; EndCase patches all to exit after dflt.
+\ Each clause’s EndOf emits a backward branch to the single anchor; EndCase patches the anchor to the exit after dflt.
 ```
 
 Nesting
