@@ -51,12 +51,12 @@ Examples
   ;
   ```
 
-Compiler emits with stack (each step shows data stack, TOS rightmost)
+Compiler emits with stack (tables; TOS → right)
 
 Legend
 
 - EndWhen / EndDo are Tag.BUILTIN closer refs (executed by generic `;`).
-- preExit: code address (number) immediately AFTER the first `Branch +3` (the opcode of the second Branch). Back‑branch target for taken clauses (the “pre‑exit” hop before the final forward exit).
+- preExit: code address (number) immediately AFTER the first `Branch +3` (the opcode of the second Branch). Back‑branch target for taken clauses (the “pre‑exit” hop before the final forward exit). It is kept at NOS (next‑on‑stack) across clause closes; it is peeked (e.g., via over) and only dropped by EndWhen.
 - p_exit: 16‑bit operand address (number) of the opener’s forward Branch (to be patched to final exit).
 - p_false: 16‑bit operand address (number) of the clause’s IfFalseBranch (to be patched to fall‑through).
 
@@ -67,55 +67,41 @@ Branch addressing (used below)
 - Backward jump to a known opcode at `targetOpcode`: `offset = targetOpcode - (operandPos + 2)`.
 - `Branch +3` skips exactly one Branch instruction (1‑byte opcode + 2‑byte operand).
 
-1. when (immediate opener)
+1) when (immediate opener)
 
-- Start: [ … ]
-- Emit: Branch +3; let preExit := CP \ skip next instruction; remember address after operand (next opcode)
-  Stack: [ … ]
-- Emit: Branch +0; let p_exit := CP \ record operand address of forward branch
-  Stack: [ … ]
-- Push p_exit \ number
-  Stack: [ …, p_exit ]
-- Push preExit \ number
-  Stack: [ …, p_exit, preExit ]
-- Push EndWhen \ BUILTIN closer
-  Stack: [ …, p_exit, preExit, EndWhen ] \ invariant for open construct
+| Emit | Notes | Stack (TOS → right) |
+|------|-------|----------------------|
+| Branch +3 | Let preExit := CP (address of next opcode) | [ … ] |
+| Branch +0 | Let p_exit := CP (operand address placeholder) | [ … ] |
+| push p_exit | Number | [ …, p_exit ] |
+| push preExit | Number (kept at NOS) | [ …, p_exit, preExit ] |
+| push EndWhen | BUILTIN closer | [ …, p_exit, preExit, EndWhen ] |
 
-2. do (start of a clause body)
+2) do (start of a clause body)
 
-- Start: [ …, p_exit, preExit, EndWhen ]
-- Emit: IfFalseBranch +0; let p_false := CP \ record operand address
-  Stack: [ …, p_exit, preExit, EndWhen ]
-- Push p_false \ number
-  Stack: [ …, p_exit, preExit, EndWhen, p_false ]
-- Push EndDo \ BUILTIN closer
-  Stack: [ …, p_exit, preExit, EndWhen, p_false, EndDo ] \ invariant inside clause
+| Emit | Notes | Stack (TOS → right) |
+|------|-------|----------------------|
+| IfFalseBranch +0 | Let p_false := CP (operand address placeholder) | [ …, p_exit, preExit, EndWhen ] |
+| push p_false | Number | [ …, p_exit, preExit, EndWhen, p_false ] |
+| push EndDo | BUILTIN closer | [ …, p_exit, preExit, EndWhen, p_false, EndDo ] |
 
-3. Clause terminator ‘;’ → generic eval executes EndDo
+3) Clause terminator ‘;’ (executes EndDo via generic `;`)
 
-- Start: [ …, p_exit, preExit, EndWhen, p_false, EndDo ]
-- Pop EndDo (exec) \ generic ‘;’ executes closer on TOS
-  Stack: [ …, p_exit, preExit, EndWhen, p_false ]
-- Pop p_false \ get operand address to patch
-  Stack: [ …, p_exit, preExit, EndWhen ]
-- Emit: Branch back to opener’s second Branch opcode at preExit
-  \ compute offset = (preExit) - (hereOperandPos + 2)
-  Stack: [ …, p_exit, preExit, EndWhen ]
-- Patch p_false to fall through here
-  \ write offset = here - (p_false + 2)
-  Stack: [ …, p_exit, preExit, EndWhen ] \ clause now closed
+| Action | Notes | Stack (TOS → right) |
+|--------|-------|----------------------|
+| pop EndDo (execute) | Generic `;` eval | [ …, p_exit, preExit, EndWhen, p_false ] |
+| pop p_false | Get operand address to patch | [ …, p_exit, preExit, EndWhen ] |
+| emit Branch (back) | Target = preExit (peek via over), offBack = preExit − (hereOperandPos + 2) | [ …, p_exit, preExit, EndWhen ] |
+| patch p_false (fall‑through) | offFalse = here − (p_false + 2) | [ …, p_exit, preExit, EndWhen ] |
 
-4. Final ‘;’ → generic eval executes EndWhen
+4) Final ‘;’ (executes EndWhen via generic `;`)
 
-- Start: [ …, p_exit, preExit, EndWhen ]
-- Pop EndWhen (exec)
-  Stack: [ …, p_exit, preExit ]
-- Drop preExit \ not needed after final patch
-  Stack: [ …, p_exit ]
-- Patch p_exit forward to here \ write offset = here - (p_exit + 2)
-  Stack: [ …, p_exit ]
-- Pop p_exit
-  Stack: [ … ] \ whole construct closed
+| Action | Notes | Stack (TOS → right) |
+|--------|-------|----------------------|
+| pop EndWhen (execute) | Generic `;` eval | [ …, p_exit, preExit ] |
+| drop preExit | No longer needed | [ …, p_exit ] |
+| patch p_exit (forward) | offExit = here − (p_exit + 2) | [ …, p_exit ] |
+| pop p_exit | Close construct | [ … ] |
 
 Constraints
 
@@ -143,6 +129,7 @@ B) do (clause start) emits (bytes + stack)
     - next8() == Op.IfFalseBranch
     - nextInt16() == 0 (placeholder)
   - Data stack: [ …, p_exit, preExit, EndWhen, p_false(number), EndDo(BUILTIN) ]
+
 - Input: "do" (no opener)
   - Expect syntax error: "do without when"
 
@@ -182,5 +169,3 @@ G) Negative
 
 H) Offset fuzz (optional)
 - Insert harmless ops between do bodies and ';' to vary here positions; assert relative offsets remain correct
-
-These scenarios ensure each piece works alone before end‑to‑end use, and they lock down stack shapes, byte sequences, and relative jump math.
