@@ -41,17 +41,19 @@ Scope (Implementation Units)
 
 Design Summary (from Spec)
 - Lowering rules (fixed arity):
-  - `of` emits `IfFalseBranch p_false`, pushes `p_false` (number), pushes EndOf closer
+  - `case` emits a forward-branch anchor (`Branch` + 16-bit 0) and pushes its operand address (`anchorPos`) beneath an EndCase closer on the data stack.
+  - `of` emits `IfFalseBranch p_false`, then pushes `p_false` (number) and EndOf closer.
   - Clause `;` executes EndOf:
     - pop `p_false`
-    - emit `Branch p_exit` (to be patched by EndCase)
-    - temporarily pop EndCase, push `p_exit`, push EndCase (stash under EndCase)
+    - temporarily pop EndCase, then pop `anchorPos`
+    - emit a backward `Branch` to the anchor’s opcode and compute its offset immediately (no accumulation of exits)
+    - restore stack (push `anchorPos`, then EndCase)
     - patch `p_false` → here (fallthrough for false)
   - Final `;` executes EndCase:
     - pop EndCase
-    - while TOS is a finite number: pop `p_exit` and patch to here (common exit)
+    - pop `anchorPos` and patch its forward branch to here (common exit)
 - Control flow (explicit):
-  - Pred true → fallthrough into body → Branch to exit (skip remainder)
+  - Pred true → fallthrough into body → backward Branch to anchor → anchor’s forward Branch to exit (skip remainder)
   - Pred false → IfFalseBranch jumps over body → next clause or default; if none, to exit
 - Compiler-state-on-stack only; no additional parser fields beyond existing validation hooks
 
@@ -60,8 +62,8 @@ File Changes (Detailed Checklist)
   - Add enum entries: `EndOf`, `EndCase`
 - src/ops/core/core-ops.ts
   - Implement:
-    - `endOfOp(vm)` — validates numeric placeholder; emits `Branch` placeholder; stashes under EndCase; patches false-branch to here
-    - `endCaseOp(vm)` — pops EndCase; patches all numeric exit placeholders to here
+    - `endOfOp(vm)` — pop `p_false`; temporarily pop EndCase and `anchorPos`; emit backward `Branch` to the anchor’s opcode and compute offset; restore `anchorPos` + EndCase; patch `p_false` → here
+    - `endCaseOp(vm)` — pop EndCase; pop `anchorPos`; patch the anchor’s forward branch to here
   - Export via `executeOp` dispatch
 - src/lang/meta/switch.ts (new)
   - `beginCaseImmediate()`
@@ -101,10 +103,12 @@ Acceptance Criteria
 - Coverage added for nesting and error paths
 
 Risks / Mitigations
-- Risk: Accidentally popping numbers that are not placeholders in EndCase
-  - Mitigation: During parse, user literals compile to bytecode, not data stack; only our placeholders are left. Add unit tests to guard.
-- Risk: Closer ordering with nested constructs
-  - Mitigation: Explicit tests exercising nested `if … ;` within clauses
+- Risk: Anchor offset calculation errors (forward/backward branch math)
+  - Mitigation: Unit tests asserting exact byte offsets for small synthetic programs; reuse the same offset computation patterns as EndIf and colon definition branch patching.
+- Risk: Preserving EndCase + anchorPos adjacency on the compile-time stack across nested constructs
+  - Mitigation: LIFO closer tests with nested `if … ;` inside clauses; assert stack shape after each `;`.
+- Risk: Backward branch to anchor opcode alignment (target = opcode byte before operand)
+  - Mitigation: Centralize helper to compute “targetOpcode = anchorPos - 1” and document it in code comments; add tests covering non-trivial CP movements between EndOf and EndCase.
 - Risk: Backward-compatibility (symbols ‘case’, ‘of’)
   - Mitigation: They are new; no prior semantics to preserve
 
