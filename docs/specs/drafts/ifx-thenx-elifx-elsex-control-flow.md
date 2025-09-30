@@ -107,7 +107,7 @@ After elifx, another predicate is expected, followed by thenx … and a subseque
 
 | Action                   | Notes                                                                 | Stack (TOS → right)               |
 |--------------------------|-----------------------------------------------------------------------|-----------------------------------|
-| if p_false slot==p_false | Close clause as in elifx (back‑branch + patch); set slot=NIL          | [ …, p_exit, preExit, NIL ]       |
+| if p_false slot != NIL   | Close clause as in elifx (back‑branch + patch); set slot=NIL          | [ …, p_exit, preExit, NIL ]       |
 | begin default region     | Subsequent code until endifx is default                               | [ …, p_exit, preExit, NIL ]       |
 
 5) endifx (final closer)
@@ -115,7 +115,7 @@ After elifx, another predicate is expected, followed by thenx … and a subseque
 | Action                    | Notes                                                                    | Stack (TOS → right)           |
 |---------------------------|--------------------------------------------------------------------------|-------------------------------|
 | pop p_false slot          | Always exactly one item (NIL or p_false)                                 | [ …, p_exit, preExit ]        |
-| if popped==p_false        | Close last clause (back‑branch to preExit + patch); stack size constant  | [ …, p_exit, preExit ]        |
+| if popped != NIL          | Close last clause (back‑branch to preExit + patch); stack size constant  | [ …, p_exit, preExit ]        |
 | drop preExit              | No longer needed                                                         | [ …, p_exit ]                 |
 | patch p_exit              | Forward: offExit = here − (p_exit + 2)                                   | [ …, p_exit ]                 |
 | pop p_exit                | Close construct                                                          | [ … ]                         |
