@@ -109,6 +109,45 @@ Constraints
 - Every `do` must be closed by a `;` before the final `;`.
 - Manage subject values explicitly (dup/drop or locals).
 
+Happy path (informative)
+A two-clause when with default; first predicate is true:
+```
+when
+  P0 do B0 ;
+  P1 do B1 ;
+  DFLT
+;
+```
+- Compile-time (high level):
+  - Opener pushes [ p_exit, preExit, EndWhen ]
+  - Each `do` pushes [ p_false, EndDo ]
+  - Each clause `;` (EndDo) emits a back Branch to preExit and patches its p_false; stack restored to [ p_exit, preExit, EndWhen ]
+  - Final `;` (EndWhen) drops preExit, patches p_exit to the common exit, then drops p_exit
+- Runtime (P0 true):
+  - IfFalseBranch(p_false0) does not jump → B0 runs
+  - EndDo’s back Branch jumps to preExit; preExit’s forward Branch (patched at EndWhen) jumps to the single exit, skipping P1/B1 and DFLT
+
+Correctness invariants (normative)
+- Stack frames
+  - Open construct invariant: [ p_exit(number), preExit(number), EndWhen(BUILTIN) ] with EndWhen at TOS and preExit at NOS
+  - In-clause invariant: temporary [ p_false(number), EndDo(BUILTIN) ] pushed on top; EndDo must consume exactly these two
+- preExit discipline
+  - preExit remains at NOS for the lifetime of the open construct
+  - EndDo MUST NOT pop or reorder preExit; it may only peek it (e.g., via over) to compute the backward Branch
+  - EndWhen drops preExit after patching p_exit
+- Single-exit guarantee
+  - All taken clauses back-branch to preExit, then the unified forward Branch at preExit jumps to the single exit after EndWhen
+- Relative-branch math
+  - VM applies `IP := IP + offset` after reading a 16‑bit operand
+  - Backward (to opcode at preExit): `offBack = preExit − (hereOperandPos + 2)`
+  - Fall‑through (IfFalseBranch): `offFalse = here − (p_false + 2)`
+  - Final exit (forward): `offExit = here − (p_exit + 2)`
+- Nesting and LIFO
+  - Nested whens are allowed anywhere ordinary code is allowed
+  - Closers are strictly LIFO; inner EndDo/EndWhen restore their own frames before any outer closer runs
+- Default region
+  - Default is ordinary code between the last clause `;` and the final `;`; a taken clause’s back‑then‑forward jumps skip it; otherwise control falls into it naturally
+
 Test scenarios (to be implemented one-by-one)
 
 A) when (opener) emits (bytes + stack)
