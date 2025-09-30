@@ -122,3 +122,65 @@ Constraints
 - Predicates must leave exactly one numeric flag (0 or non‑zero).
 - Every `do` must be closed by a `;` before the final `;`.
 - Manage subject values explicitly (dup/drop or locals).
+
+Test scenarios (to be implemented one-by-one)
+
+A) when (opener) emits (bytes + stack)
+- Input: "when"
+  - CODE:
+    - next8() == Op.Branch
+    - nextInt16() == 3
+    - next8() == Op.Branch
+    - nextInt16() == 0 (placeholder)
+  - Data stack (TOS → right): [ …, p_exit(number), preExit(number), EndWhen(BUILTIN) ]
+  - Sanity:
+    - preExit is the byte index of the second Branch opcode (address immediately after the first Branch’s operand)
+    - p_exit is the byte index of the 16‑bit operand for the second Branch
+
+B) do (clause start) emits (bytes + stack)
+- Input: "when do"
+  - CODE appended:
+    - next8() == Op.IfFalseBranch
+    - nextInt16() == 0 (placeholder)
+  - Data stack: [ …, p_exit, preExit, EndWhen, p_false(number), EndDo(BUILTIN) ]
+- Input: "do" (no opener)
+  - Expect syntax error: "do without when"
+
+C) EndDo (clause ';') in isolation (stack preservation + backward branch + fall‑through patch)
+- Input: "when do ;"
+  - After first ';':
+    - Data stack restored to [ …, p_exit, preExit, EndWhen ] (EndDo consumed; p_false popped; preExit remains NOS)
+- Input: "when 1 do 2 ;"
+  - CODE around clause close:
+    - An Op.Branch emitted backward; its operand encodes offBack = preExit - (hereOperandPos + 2)
+    - p_false patched to offFalse = here - (p_false + 2)
+
+D) EndWhen (final ';') in isolation (forward patch + cleanup)
+- Input: "when ;"
+  - Data stack becomes [ … ] (EndWhen popped; preExit dropped; p_exit patched to offExit = here - (p_exit + 2) and then popped)
+
+E) Nesting (valid)
+- Input:
+  ```
+  when
+    when ;          \ inner when inside outer default area
+  ;
+  ```
+  - Closers run LIFO: inner EndWhen runs first; outer EndWhen runs last
+  - No interference: the outer [ p_exit, preExit, EndWhen ] frame is intact across inner open/close
+
+F) Behavioral (first‑true‑wins, default)
+- "when 1 do 10 ; 1 do 20 ; ;" → produces 10 (first true wins, exit after first body)
+- "when 0 do 10 ; 1 do 20 ; ;" → produces 20
+- "when 0 do 10 ; 0 do 20 ; 99 ;" → produces 99 (default)
+- Transient subject: "10 when dup 3 eq do 'three' ; 'default' ; drop" → leaves 'three' or 'default', subject dropped
+
+G) Negative
+- Unclosed when: "when" → syntax error "Unclosed when"
+- do without opener: "do" → syntax error "do without when"
+- (Runtime) Bad predicate: if a predicate does not leave a number flag, the consumer op that expects it fails (existing semantics)
+
+H) Offset fuzz (optional)
+- Insert harmless ops between do bodies and ';' to vary here positions; assert relative offsets remain correct
+
+These scenarios ensure each piece works alone before end‑to‑end use, and they lock down stack shapes, byte sequences, and relative jump math.
