@@ -44,10 +44,10 @@ Behavior
 Compiler model (constant meta-arity)
 
 Legend (compile-time data stack; TOS rightmost)
-- EndSwitch: Tag.BUILTIN closer executed by the generic ‘;’ to finalize the construct (mirrors EndWhen in when/do).
+- EndSwitch: Tag.BUILTIN closer executed by the generic ‘;’ to finalize the construct (mirrors EndWhen in when/do). It sits directly beneath the pending slot (second from top).
 - preExit: code address (number) immediately AFTER `Branch +3` (the opcode of the second Branch). Back‑branch target for taken cases (the “pre‑exit” hop). Kept until the final ‘;’.
 - p_exit: 16‑bit operand address (number) of the opener’s forward Branch (patched to the final exit at the final ‘;’).
-- pending: single slot always present atop preExit (under EndSwitch); holds:
+- pending: single slot always present above EndSwitch; holds:
   - NIL → no open case
   - p_false (number) → operand address of the current case’s IfFalseBranch (case is open)
 
@@ -64,21 +64,21 @@ Emits (tables; TOS → right)
 
 1) switch (immediate opener)
 
-| Emit        | Notes                                          | Stack (TOS → right)              |
-|-------------|------------------------------------------------|----------------------------------|
-| Branch +3   | preExit := CP (address of next opcode)         | [ … ]                            |
-| Branch +0   | p_exit := CP (operand address placeholder)     | [ … ]                            |
-| push p_exit | Number                                         | [ …, p_exit ]                    |
-| push preExit| Number                                         | [ …, p_exit, preExit ]           |
-| push NIL    | pending slot (NIL)                             | [ …, p_exit, preExit, NIL ]      |
-| push EndSwitch | BUILTIN closer (generic ‘;’ executes this)  | [ …, p_exit, preExit, NIL, EndSwitch ] |
+| Emit        | Notes                                          | Stack (TOS → right)                |
+|-------------|------------------------------------------------|------------------------------------|
+| Branch +3   | preExit := CP (address of next opcode)         | [ … ]                              |
+| Branch +0   | p_exit := CP (operand address placeholder)     | [ … ]                              |
+| push p_exit | Number                                         | [ …, p_exit ]                      |
+| push preExit| Number                                         | [ …, p_exit, preExit ]             |
+| push EndSwitch | BUILTIN closer (generic ‘;’ executes this)  | [ …, p_exit, preExit, EndSwitch ]  |
+| push NIL    | pending slot (NIL)                             | [ …, p_exit, preExit, EndSwitch, NIL ] |
 
 2) case (begin a new case’s predicate region)
 
 | Action                 | Notes                                           | Stack (TOS → right)         |
 |------------------------|-------------------------------------------------|------------------------------|
-| ensure switch is open  | Error if no `[p_exit, preExit, pending]` frame  | [ …, p_exit, preExit, * ]    |
-| (no emit yet)          | Predicates compile as ordinary code until `of`  | [ …, p_exit, preExit, * ]    |
+| ensure switch is open  | Require frame [ p_exit, preExit, EndSwitch, (NIL or p_false) ] | [ …, p_exit, preExit, EndSwitch, (NIL or p_false) ] |
+| (no emit yet)          | After boundary auto-close, predicates compile until `of` | [ …, p_exit, preExit, EndSwitch, NIL ] |
 
 3) of (start of this case’s body)
 
@@ -91,15 +91,14 @@ Case body compiles until the next boundary token: case, default, or `;`.
 
 4) Boundary auto-close (when encountering case/default/‘;’)
 
-If pending != NIL, close the previously opened case (without consuming EndSwitch):
+If pending != NIL, close the previously opened case (EndSwitch remains in place):
 
-| Action                 | Notes                                                                 | Stack (TOS → right)                     |
-|------------------------|-----------------------------------------------------------------------|-----------------------------------------|
-| pop EndSwitch (temp)   | Temporarily remove closer to reach pending/preExit                    | [ …, p_exit, preExit, pending ]         |
-| emit Branch (back)     | Target = preExit, offBack = preExit − (hereOperandPos + 2)           | [ …, p_exit, preExit, pending ]         |
-| patch p_false          | Fall‑through: offFalse = here − (p_false + 2)                        | [ …, p_exit, preExit, pending ]         |
-| set pending = NIL      | Reset slot to NIL                                                     | [ …, p_exit, preExit, NIL ]             |
-| push EndSwitch         | Restore closer                                                        | [ …, p_exit, preExit, NIL, EndSwitch ]  |
+| Action             | Notes                                                                 | Stack (TOS → right)                          |
+|--------------------|-----------------------------------------------------------------------|----------------------------------------------|
+| pop pending        | Pop p_false from TOS                                                  | [ …, p_exit, preExit, EndSwitch ]            |
+| emit Branch (back) | Target = preExit, offBack = preExit − (hereOperandPos + 2)           | [ …, p_exit, preExit, EndSwitch ]            |
+| patch p_false      | Fall‑through: offFalse = here − (p_false + 2)                        | [ …, p_exit, preExit, EndSwitch ]            |
+| push NIL           | Restore pending slot to NIL (constant frame size)                    | [ …, p_exit, preExit, EndSwitch, NIL ]       |
 
 5) default (introduces default region; optional)
 
@@ -110,11 +109,12 @@ If pending != NIL, close the previously opened case (without consuming EndSwitch
 
 6) ‘;’ (final closer — executes EndSwitch via generic closer)
 
-| Action                  | Notes                                                                      | Stack (TOS → right)               |
-|-------------------------|----------------------------------------------------------------------------|-----------------------------------|
-| execute EndSwitch       | Generic ‘;’ eval: auto-close if pending != NIL, then finalize              | [ …, p_exit, preExit, NIL ] → [ … ] |
-| (EndSwitch behavior)    | If pending != NIL: close last case (back‑branch + patch), set pending=NIL  |                                   |
-|                         | Drop preExit; patch p_exit (offExit = here − (p_exit + 2)); pop p_exit     |                                   |
+| Action                  | Notes                                                                      | Stack (TOS → right)                         |
+|-------------------------|----------------------------------------------------------------------------|---------------------------------------------|
+| pop pending             | Generic ‘;’ first pops pending (NIL or p_false)                            | [ …, p_exit, preExit, EndSwitch ]           |
+| execute EndSwitch       | Generic ‘;’ then evals EndSwitch (now at TOS):                             | [ …, p_exit, preExit ] → [ … ]              |
+| (EndSwitch behavior)    | If popped value was p_false: close last case (back‑branch + patch)         |                                             |
+|                         | Drop preExit; patch p_exit (offExit = here − (p_exit + 2)); pop p_exit     |                                             |
 
 Notes
 - Auto-close at boundaries removes the need for per-clause explicit terminators and keeps the surface compact.
@@ -127,8 +127,9 @@ Correctness invariants (normative)
   - case/of sets pending to p_false; boundary auto-close resets pending to NIL.
   - The final `;` pops exactly one pending (should be NIL after auto-close), then tears down preExit and p_exit in fixed sequence.
 - preExit and closer discipline
-  - EndSwitch must remain on TOS for the lifetime of the construct. Boundary auto-closes may temporarily pop EndSwitch to access the pending slot, but must restore it immediately (constant frame restored).
-  - preExit remains directly beneath the pending slot; boundary closes compute the back-branch relative to preExit and must not reorder it.
+  - EndSwitch sits beneath the pending slot for the lifetime of the construct: frame shape is always [ p_exit, preExit, EndSwitch, (NIL or p_false) ].
+  - Boundary auto-closes manipulate only the pending slot (pop/patch/push NIL) and must not move EndSwitch or preExit.
+  - The final ‘;’ first pops the pending slot (to NIL or p_false), then executes the EndSwitch closer at TOS.
 - Single‑exit guarantee
   - All taken cases back‑branch to preExit, then the unified forward Branch at preExit jumps to a single exit set by the final `;`.
 - Relative‑branch math
@@ -144,6 +145,31 @@ Correctness invariants (normative)
   - If all predicates are false and default is omitted, control reaches the final `;` and exits.
 
 Isolated test scenarios (to be implemented)
+- Degenerate forms (all must compile and run with correct exits)
+  - No cases, no default:
+    - Input:
+      ```
+      switch ;
+      ```
+    - CODE: two Branches from opener; final ‘;’ pops NIL, executes EndSwitch → patches p_exit to here; no bodies emitted
+    - Stack behavior: frame [ p_exit, preExit, EndSwitch, NIL ] → final ‘;’ → [ … ]
+  - No cases, default only:
+    - Input:
+      ```
+      switch default D ;
+      ```
+    - Boundary at default auto-closes nothing (pending==NIL), compiles D; final ‘;’ pops NIL and finalizes; D runs unconditionally
+  - Cases but no default:
+    - Input:
+      ```
+      switch
+        case P0 of B0
+        case P1 of B1
+      ;
+      ```
+    - Each case boundary auto-closes previous pending; if all predicates false → final ‘;’ pops NIL and exits; if any true → back-branch to preExit then generic forward exit at final ‘;’
+
+A) switch (opener) emits (bytes + stack)
 
 A) switch (opener) emits (bytes + stack)
 - Input: "switch"
