@@ -85,7 +85,7 @@ Emits (tables; TOS → right)
 
 | Action                | Notes                                                          | Stack (TOS → right)                                 |
 | --------------------- | -------------------------------------------------------------- | --------------------------------------------------- |
-| ensure switch is open | Require frame [ p_exit, preExit, EndSwitch, (NIL or p_skip) ] | [ …, p_exit, preExit, EndSwitch, (NIL or p_skip) ] |
+| ensure switch is open | Require frame [ p_exit, preExit, EndSwitch, skip ] | [ …, p_exit, preExit, EndSwitch, skip ] |
 | (no emit yet)         | After boundary auto-close, predicates compile until `of`       | [ …, p_exit, preExit, EndSwitch, NIL ]              |
 
 3. of (start of this case’s body)
@@ -133,11 +133,11 @@ Correctness invariants (normative)
 - Runtime fixed arity
   - Each predicate leaves exactly one numeric flag; bodies have explicit stack behavior.
 - Constant compile-time meta‑arity
-  - Open frame is always 4 items: [ p_exit, preExit, EndSwitch, (NIL or p_skip) ] with the TOS slot named skip.
+  - Open frame is always 4 items: [ p_exit, preExit, EndSwitch, skip ] with the TOS slot named skip.
   - of sets skip to p_skip; boundary auto-close resets skip to NIL.
   - The final `;` pops exactly one skip (NIL or p_skip), then executes EndSwitch to drop preExit, patch p_exit, and pop p_exit.
 - preExit and closer discipline
-  - EndSwitch sits beneath the skip slot for the lifetime of the construct: frame shape is always [ p_exit, preExit, EndSwitch, (NIL or p_skip) ].
+  - EndSwitch sits beneath the skip slot for the lifetime of the construct: frame shape is always [ p_exit, preExit, EndSwitch, skip ].
   - Boundary auto-closes manipulate only the skip slot (pop/patch/push NIL) and must not move EndSwitch or preExit.
   - The final ‘;’ first pops the skip slot (to NIL or p_skip), then executes the EndSwitch closer at TOS.
 - Single‑exit guarantee
