@@ -66,7 +66,7 @@ Legend (compile-time stacks; TOS rightmost)
 Branch addressing (relative)
 
 - `Branch` / `IfFalseBranch` take a signed 16‑bit relative offset; VM does `IP := IP + offset` after reading the operand.
-- Forward patch “to here”: `offset = here - (operandPos + 2)`
+- Forward patch “to CP”: `offset = CP - (operandPos + 2)`
 - Backward jump “to opcode at target”: `offset = targetOpcode - (operandPos + 2)`
 
 Emits (tables; TOS → right)
@@ -87,7 +87,7 @@ Emits (tables; TOS → right)
 | pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]       | [ …, … ]            |
 | emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]       | [ …, … ]            |
 | push operand on RSP | Rpush(operandAddressOf(Branch +0))                                                        | [ …, savedRSP ]       | [ …, …, patchAddr ] |
-| patch p_skip        | Fall‑through: offFalse = here − (p_skip + 2)                                              | [ …, savedRSP ]       | [ …, …, patchAddr ] |
+| patch p_skip        | Fall‑through: offFalse = CP − (p_skip + 2)                                                | [ …, savedRSP ]       | [ …, …, patchAddr ] |
 | push NIL            | Restore skip slot to NIL (constant frame size)                                            | [ …, savedRSP, NIL ]  | [ …, …, patchAddr ] |
 | (no emit yet)       | Subsequent tokens are processed normally; the next `do` immediate starts this when’s body | [ …, savedRSP, NIL ]  | [ …, … ]            |
 
@@ -107,7 +107,7 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 | pop skip             | Pop p_skip from TOS                                                                            | [ …, savedRSP ]      | [ …, … ]             |
 | emit Branch +0       | Record a forward branch to exit (placeholder operand)                                          | [ …, savedRSP ]      | [ …, … ]             |
 | push operand on RSP  | Rpush(operandAddressOf(Branch +0))                                                             | [ …, savedRSP ]      | [ …, …, patchAddr ]  |
-| patch p_skip         | Fall‑through: offFalse = here − (p_skip + 2)                                                   | [ …, savedRSP ]      | [ …, …, patchAddr ]  |
+| patch p_skip         | Fall‑through: offFalse = CP − (p_skip + 2)                                                     | [ …, savedRSP ]      | [ …, …, patchAddr ]  |
 | push NIL             | Restore skip slot to NIL (constant frame size)                                                 | [ …, savedRSP, NIL ] | [ …, …, patchAddr ]  |
 | compile default body | Subsequent tokens are processed normally; the next `endcond` immediate finalizes the construct | [ …, savedRSP, NIL ] | [ …, …, patchAddr? ] |
 
@@ -118,8 +118,8 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 | pop skip                 | Pop p_skip from TOS                                        | [ …, savedRSP ] | [ …, … ]             |
 | emit Branch +0           | Record a forward branch to exit (placeholder operand)      | [ …, savedRSP ] | [ …, … ]             |
 | push operand on RSP      | Rpush(operandAddressOf(Branch +0))                         | [ …, savedRSP ] | [ …, …, patchAddr ]  |
-| patch p_skip             | Fall‑through: offFalse = here − (p_skip + 2)               | [ …, savedRSP ] | [ …, …, patchAddr ]  |
-| exitAddr := here         | Compute the final exit address (byte index of next opcode) | [ …, savedRSP ] | [ …, …, patchAddr? ] |
+| patch p_skip             | Fall‑through: offFalse = CP − (p_skip + 2)                 | [ …, savedRSP ] | [ …, …, patchAddr ]  |
+| exitAddr := CP           | Compute the final exit address (byte index of next opcode) | [ …, savedRSP ] | [ …, …, patchAddr? ] |
 | while RSP > savedRSP:    | Repeatedly backpatch all recorded exits:                   |                 |                      |
 | • addr := RPOP()         | Pop top recorded exit patch address                        | [ …, savedRSP ] | [ …, … ]             |
 | • patch16(addr, offExit) | offExit := exitAddr − (addr + 2)                           | [ …, savedRSP ] | [ …, … ]             |
@@ -142,7 +142,7 @@ Correctness invariants (normative)
   - All taken whens record an exit and then skip subsequent whens/default via their forward branch; all such exits are backpatched to the same exit at endcond.
 - Relative‑branch math
   - VM applies `IP := IP + offset` after reading a 16‑bit operand:
-    - Fall‑through (IfFalseBranch): `offFalse = here − (p_skip + 2)`
+    - Fall‑through (IfFalseBranch): `offFalse = CP − (p_skip + 2)`
     - Final exit (forward): `offExit = exitAddr − (addr + 2)` for each recorded patch address
 - Nesting and LIFO
   - Nested cond constructs are allowed anywhere ordinary code is allowed.
