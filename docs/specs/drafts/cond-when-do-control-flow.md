@@ -2,7 +2,7 @@
 
 Status
 
-- Purpose: Explore a familiar “cond/when/default” surface over Tacit’s guard-based, first-true-wins semantics; assess advantages vs when/do and ifx/thenx/elifx/elsex
+- Purpose: Explore a familiar “cond/when/default” surface over Tacit’s guard-based, first-true-wins semantics
 - Depends on: Plan 31 (`;` generic closer), Plan 32 (brace-block removal)
 - Scope: Immediate words only. Fixed arity at runtime AND constant compile-time arity (normative) via a single skip slot (NIL-or-address)
 - Tokens (proposed): cond, when, do, default, ; (final ‘;’ executes the EndCond closer via the generic closer)
@@ -85,8 +85,8 @@ Emits (tables; TOS → right)
 
 | Action                | Notes                                                          | Stack (TOS → right)                                 |
 | --------------------- | -------------------------------------------------------------- | --------------------------------------------------- |
-| ensure cond is open | Require frame [ p_exit, preExit, EndCond, skip ]; if skip != NIL, boundary auto-close runs first | [ …, p_exit, preExit, EndCond, skip ] |
-| (no emit yet)         | After boundary auto-close, predicates compile until `do`       | [ …, p_exit, preExit, EndCond, NIL ]              |
+| ensure cond is open | Require frame [ p_exit, preExit, EndCond, skip ]; if skip != NIL, first close the current when | [ …, p_exit, preExit, EndCond, skip ] |
+| (no emit yet)         | After closing any open when, predicates compile until `do`     | [ …, p_exit, preExit, EndCond, NIL ]              |
 
 3. do (start of this when’s body)
 
@@ -97,7 +97,7 @@ Emits (tables; TOS → right)
 
 When body compiles until the next boundary token: when, default, or `;`.
 
-4. Boundary auto-close (when encountering when/default/‘;’)
+4. Closing the current when (triggered by when/default/‘;’)
 
 If skip != NIL, close the previously opened when (EndCond remains in place):
 
@@ -126,7 +126,7 @@ If skip != NIL, close the previously opened when (EndCond remains in place):
 
 Notes
 
-- Auto-close at boundaries removes the need for per-clause explicit terminators and keeps the surface compact.
+- when, default, and the final `;` automatically close the current when if one is open; this removes the need for per-when explicit terminators and keeps the surface compact.
 
 Correctness invariants (normative)
 
@@ -134,11 +134,11 @@ Correctness invariants (normative)
   - Each predicate leaves exactly one numeric flag; bodies have explicit stack behavior.
 - Constant compile-time meta‑arity
   - Open frame is always 4 items: [ p_exit, preExit, EndCond, skip ] with the TOS slot named skip.
-  - do sets skip to p_skip; boundary auto-close resets skip to NIL.
+  - do sets skip to p_skip; closing a when resets skip to NIL.
   - The final `;` pops exactly one skip (NIL or p_skip), then executes EndCond to drop preExit, patch p_exit, and pop p_exit.
 - preExit and closer discipline
   - EndCond sits beneath the skip slot for the lifetime of the construct: frame shape is always [ p_exit, preExit, EndCond, skip ].
-  - Boundary auto-closes manipulate only the skip slot (pop/patch/push NIL) and must not move EndCond or preExit.
+  - Closing a when manipulates only the skip slot (pop/patch/push NIL) and must not move EndCond or preExit.
   - The final ‘;’ first pops the skip slot (to NIL or p_skip), then executes the EndCond closer at TOS.
 - Single‑exit guarantee
   - All taken whens back‑branch to preExit, then the unified forward Branch at preExit jumps to a single exit set by the final `;`.
@@ -169,7 +169,7 @@ Isolated test scenarios (to be implemented)
       ```
       cond default D ;
       ```
-    - Boundary at default auto-closes nothing (skip==NIL), compiles D; final ‘;’ pops NIL and finalizes; D runs unconditionally
+    - At default, if skip==NIL, no when is closed; compiles D; final ‘;’ pops NIL and finalizes; D runs unconditionally
   - Whens but no default:
     - Input:
       ```
@@ -178,7 +178,7 @@ Isolated test scenarios (to be implemented)
         when P1 do B1
       ;
       ```
-    - Each when boundary auto-closes previous skip; if all predicates false → final ‘;’ pops NIL and exits; if any true → back-branch to preExit then generic forward exit at final ‘;’
+    - Each new when closes the previous when if one is open; if all predicates are false → final ‘;’ pops NIL and exits; if any true → back-branch to preExit then generic forward exit at the final ‘;’
 
 A) cond (opener) emits (bytes + stack)
 
@@ -203,7 +203,7 @@ B) do (clause start) emits (bytes + stack)
 C) Auto-close at boundary (stack constancy + back‑branch + fall‑through patch)
 
 - Input: "cond when P do B when …"
-  - Just before the second when, the first when is auto‑closed:
+  - Just before the second when, the first when is closed automatically:
     - Data stack returns to [ …, p_exit, preExit, EndCond, NIL ]
   - CODE:
     - One backward Branch; operand encodes `offBack = preExit − (hereOperandPos + 2)`
@@ -253,18 +253,9 @@ vs when/do
   - Keyword after predicate (“do”) is slightly “reversed” compared to “when … then”-style; this was a prior concern.
   - Auto‑close adds a small amount of immediate‑side logic at boundary tokens (still constant meta‑arity).
 
-vs ifx/thenx/elifx/elsex
-
-- Pros:
-  - Fewer distinct keywords to learn; `when/do/default/;` mirrors common idioms.
-  - Natural reading order in clause: predicate, then “do”, then body.
-  - Auto‑close at boundaries reduces the chance of forgetting a clause closer.
-- Cons:
-  - ifx/thenx/elifx separates clause start (thenx) from clause boundary (elifx) more explicitly; some may prefer explicit “elifx” to implicit boundary control.
-
 Open questions to evaluate during prototyping
 
-- Do we want to allow “empty body” whens (e.g., “when P do” followed by immediate boundary)? If allowed, ensure `do` sets skip, boundary auto‑close fires, yielding a no‑op body.
+- Do we want to allow “empty body” whens (e.g., “when P do” followed by immediate boundary)? If allowed, ensure `do` sets skip, and the next when/default/‘;’ closes the current when, yielding a no‑op body.
 - Error policy if a programmer writes `do` twice within a when without an intervening boundary.
 - Diagnostics quality: “when without cond”, “do without when”, “; with skip==NIL but unexpected state”, etc.
 
@@ -272,4 +263,3 @@ Summary
 
 - This exploration keeps Tacit’s invariants: immediate‑only, constant compile‑time meta‑arity, first‑true‑wins, single exit.
 - It provides a familiar surface with less punctuation via boundary auto‑close, while preserving explicit subject management.
-- Worth prototyping alongside when/do and ifx/thenx/elifx to compare readability, error rates, and bytecode clarity.
