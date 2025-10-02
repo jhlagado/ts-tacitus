@@ -60,7 +60,7 @@ Legend (compile-time stacks; TOS rightmost)
   - savedRSP: snapshot of the return-stack pointer (RSP) at cond entry
   - skip: NIL or p_skip (operand address of current when’s IfFalseBranch)
   - EndCode: Tag.BUILTIN closer placed on TOS so the generic `;` can pop and execute it
-  - Shape: [ …, savedRSP, skip, EndCode ]
+  - Shape: predicate: [ …, savedRSP, EndCode ]; body: [ …, savedRSP, p_skip, EndCode ]
 - Return stack (variable during an open cond):
   - Holds zero or more exit patch addresses (operand positions of Branch +0 recorded at taken-when closes)
   - EndCode uses savedRSP to know how many entries to pop/patch
@@ -75,51 +75,46 @@ Emits (tables; TOS → right)
 
 1. cond (immediate opener)
 
-| Emit/Action   | Notes                                                      | Data Stack (TOS → right)      | Return Stack |
-| ------------- | ---------------------------------------------------------- | ----------------------------- | ------------ |
-| push RSP      | savedRSP := RSP current value                              | [ …, savedRSP ]               | [ … ]        |
-| push NIL      | Initialize skip slot                                       | [ …, savedRSP, NIL ]          | [ … ]        |
-| push EndCode  | BUILTIN closer (to be popped and evaluated by generic `;`) | [ …, savedRSP, NIL, EndCode ] | [ … ]        |
-| (no branches) | No pre-exit anchors or forward branches at opener          | —                             | —            |
+| Emit/Action   | Notes                                                      | Data Stack (TOS → right) | Return Stack |
+| ------------- | ---------------------------------------------------------- | ------------------------ | ------------ |
+| push RSP      | savedRSP := RSP current value                              | [ …, savedRSP ]          | [ … ]        |
+| push EndCode  | BUILTIN closer (to be popped and evaluated by generic `;`) | [ …, savedRSP, EndCode ] | [ … ]        |
+| (no branches) | No pre-exit anchors or forward branches at opener          | —                        | —            |
 
 2. when (start new predicate region)
 
-| Action                | Notes                                                                                     | Data Stack                    | Return Stack        |
-| --------------------- | ----------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
-| pop EndCode           | Preserve closer on entry; restore before returning                                        | [ …, savedRSP, skip ]         | [ …, … ]            |
-| if skip != NIL        | Close current when (emit/record/patch; see rows below)                                    | —                             | —                   |
-| • pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]               | [ …, … ]            |
-| • emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]               | [ …, … ]            |
-| • rpush operand       | operandAddressOf(Branch +0)                                                                | [ …, savedRSP ]               | [ …, …, patchAddr ] |
-| • patch p_skip        | Fall‑through: offFalse = CP − (p_skip + 2)                                                | [ …, savedRSP ]               | [ …, …, patchAddr ] |
-| • push NIL            | Restore skip slot to NIL (constant frame size)                                            | [ …, savedRSP, NIL ]          | [ …, …, patchAddr ] |
-| (no emit yet)         | Subsequent tokens are processed normally; the next `do` immediate starts this when’s body | [ …, savedRSP, NIL ]          | [ …, … ]            |
-| push EndCode          | Restore EndCode to TOS                                                                    | [ …, savedRSP, NIL, EndCode ] | [ …, … ]            |
+| Action            | Notes                                                  | Data Stack               | Return Stack        |
+| ----------------- | ------------------------------------------------------ | ------------------------ | ------------------- |
+| pop EndCode       | Preserve closer on entry; restore before returning     | [ …, savedRSP ]          | [ …, … ]            |
+| if p_skip present | Close current when (emit/record/patch; see rows below) | —                        | —                   |
+| • pop skip        | Pop p_skip from TOS                                    | [ …, savedRSP ]          | [ …, … ]            |
+| • emit Branch +0  | Record a forward branch to exit (placeholder operand)  | [ …, savedRSP ]          | [ …, … ]            |
+| • rpush operand   | operandAddressOf(Branch +0)                            | [ …, savedRSP ]          | [ …, …, patchAddr ] |
+| • patch p_skip    | Fall‑through: offFalse = CP − (p_skip + 2)             | [ …, savedRSP ]          | [ …, …, patchAddr ] |
+| push EndCode      | Restore EndCode to TOS                                 | [ …, savedRSP, EndCode ] | [ …, … ]            |
 
 3. do (start of this when’s body)
 
-| Emit/Action       | Notes                                              | Data Stack                       | Return Stack |
-| ----------------- | -------------------------------------------------- | -------------------------------- | ------------ |
-| pop EndCode       | Preserve closer on entry; restore before returning | [ …, savedRSP, skip ]            | [ …, … ]     |
-| IfFalseBranch +0  | p_skip := CP (operand address placeholder)         | [ …, savedRSP, skip ]            | [ …, … ]     |
-| set skip = p_skip | Replace NIL with p_skip (constant frame size)      | [ …, savedRSP, p_skip ]          | [ …, … ]     |
-| push EndCode      | Restore EndCode to TOS                             | [ …, savedRSP, p_skip, EndCode ] | [ …, … ]     |
+| Emit/Action      | Notes                                                      | Data Stack                       | Return Stack |
+| ---------------- | ---------------------------------------------------------- | -------------------------------- | ------------ |
+| pop EndCode      | Preserve closer on entry; restore before returning         | [ …, savedRSP ]                  | [ …, … ]     |
+| IfFalseBranch +0 | Record a forward branch to skip body (placeholder operand) | [ …, savedRSP ]                  | [ …, … ]     |
+| push p_skip      | p_skip := CP (operand address placeholder)                 | [ …, savedRSP, p_skip ]          | [ …, … ]     |
+| push EndCode     | Restore EndCode to TOS                                     | [ …, savedRSP, p_skip, EndCode ] | [ …, … ]     |
 
 After `do`, subsequent tokens are processed normally; the next boundary immediate (when/default/`;`) closes the current when.
 
 4. default (introduces default region; optional)
 
-| Action                | Notes                                                                                     | Data Stack                    | Return Stack         |
-| --------------------- | ----------------------------------------------------------------------------------------- | ----------------------------- | -------------------- |
-| pop EndCode           | Preserve closer on entry; restore before returning                                        | [ …, savedRSP, skip ]         | [ …, … ]             |
-| if skip != NIL        | Close current when (emit/record/patch; see rows below)                                    | —                             | —                    |
-| • pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]               | [ …, … ]             |
-| • emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]               | [ …, … ]             |
-| • rpush operand       | operandAddressOf(Branch +0)                                                                | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
-| • patch p_skip        | Fall‑through: offFalse = CP − (p_skip + 2)                                                | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
-| • push NIL            | Restore skip slot to NIL (constant frame size)                                            | [ …, savedRSP, NIL ]          | [ …, …, patchAddr ]  |
-| compile default body  | Subsequent tokens are processed normally; the final generic `;` will finish the construct | [ …, savedRSP, NIL ]          | [ …, …, patchAddr? ] |
-| push EndCode          | Restore EndCode to TOS                                                                    | [ …, savedRSP, NIL, EndCode ] | [ …, …, patchAddr? ] |
+| Action            | Notes                                                  | Data Stack                    | Return Stack         |
+| ----------------- | ------------------------------------------------------ | ----------------------------- | -------------------- |
+| pop EndCode       | Preserve closer on entry; restore before returning     | [ …, savedRSP ]               | [ …, … ]             |
+| if p_skip present | Close current when (emit/record/patch; see rows below) | —                             | —                    |
+| • pop skip        | Pop p_skip from TOS                                    | [ …, savedRSP ]               | [ …, … ]             |
+| • emit Branch +0  | Record a forward branch to exit (placeholder operand)  | [ …, savedRSP ]               | [ …, … ]             |
+| • rpush operand   | operandAddressOf(Branch +0)                            | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
+| • patch p_skip    | Fall‑through: offFalse = CP − (p_skip + 2)             | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
+| push EndCode      | Restore EndCode to TOS                                 | [ …, savedRSP, NIL, EndCode ] | [ …, …, patchAddr? ] |
 
 5. Generic `;` (final closer — pops and evaluates EndCode)
 
@@ -127,10 +122,10 @@ Generic `;` pops EndCode from TOS and executes it:
 
 | EndCode (execute)        | Notes                                                           | Data Stack      | Return Stack         |
 | ------------------------ | --------------------------------------------------------------- | --------------- | -------------------- |
-| if skip != NIL           | Close current when (emit/record/patch; see rows below)          | —               | —                    |
+| if p_skip present        | Close current when (emit/record/patch; see rows below)          | —               | —                    |
 | • pop skip               | Pop p_skip from TOS                                             | [ …, savedRSP ] | [ …, … ]             |
 | • emit Branch +0         | Record a forward branch to exit (placeholder operand)           | [ …, savedRSP ] | [ …, … ]             |
-| • rpush operand          | operandAddressOf(Branch +0)                                    | [ …, savedRSP ] | [ …, …, patchAddr ]  |
+| • rpush operand          | operandAddressOf(Branch +0)                                     | [ …, savedRSP ] | [ …, …, patchAddr ]  |
 | • patch p_skip           | Fall‑through: offFalse = CP − (p_skip + 2)                      | [ …, savedRSP ] | [ …, …, patchAddr ]  |
 | exitAddr := CP           | Compute the final exit address (CP = byte index of next opcode) | [ …, savedRSP ] | [ …, …, patchAddr? ] |
 | while RSP > savedRSP:    | Repeatedly backpatch all recorded exits:                        |                 |                      |
@@ -148,8 +143,8 @@ Correctness invariants (normative)
 - Runtime fixed arity
   - Each predicate leaves exactly one numeric flag; bodies have explicit stack behavior.
 - Constant compile-time meta‑arity
-  - Open frame is always 3 items: [ savedRSP, skip, EndCode ].
-  - do sets skip to p_skip; closing a when (when/default/EndCode) consumes p_skip (no restoring needed).
+  - Frame during predicates: [ savedRSP, EndCode ]; during a when body: [ savedRSP, p_skip, EndCode ].
+  - do records p_skip at `do`; closing a when (when/default/EndCode) consumes p_skip (no separate skip cell).
   - EndCode pops skip (if present), backpatches until RSP == savedRSP, then drops savedRSP.
 - Single‑exit guarantee
   - All taken whens record a forward exit branch; EndCode backpatches all recorded exits to the same final exit.
