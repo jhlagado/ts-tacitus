@@ -1,11 +1,5 @@
 # cond / when … do / default / ; — Return-stack Exit Backpatching with Generic Closer (Exploration Draft)
 
-Status
-
-- Purpose: Explore return-stack-based exit backpatching for cond/when/do/default using the generic `;` closer. The generic `;` pops and evaluates an EndCode BUILTIN closer placed on TOS by the construct, same pattern as other generic-closer constructs.
-- Depends on: Plan 31 (`;` generic closer), Plan 32 (brace-block removal)
-- Scope: Immediate words only. Immediate-driven compilation (Forth/Tacit style). Fixed arity at runtime and constant compile-time meta-arity via a 3-cell data-frame plus a return-stack ledger.
-
 Tokens (proposed)
 
 - cond, when, do, default, ;
@@ -58,7 +52,7 @@ Legend (compile-time stacks; TOS rightmost)
 
 - Data stack (constant during an open cond):
   - savedRSP: snapshot of the return-stack pointer (RSP) at cond entry
-  - skip: NIL or p_skip (operand address of current when’s IfFalseBranch)
+  - p_skip: operand address of the current when’s IfFalseBranch; present only during a when body
   - EndCode: Tag.BUILTIN closer placed on TOS so the generic `;` can pop and execute it
   - Shape: predicate: [ …, savedRSP, EndCode ]; body: [ …, savedRSP, p_skip, EndCode ]
 - Return stack (variable during an open cond):
@@ -114,7 +108,8 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 | • emit Branch +0  | Record a forward branch to exit (placeholder operand)  | [ …, savedRSP ]               | [ …, … ]             |
 | • rpush operand   | operandAddressOf(Branch +0)                            | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
 | • patch p_skip    | Fall‑through: offFalse = CP − (p_skip + 2)             | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
-| push EndCode      | Restore EndCode to TOS                                 | [ …, savedRSP, NIL, EndCode ] | [ …, …, patchAddr? ] |
+| push EndCode      | Restore EndCode to TOS                                 | [ …, savedRSP, EndCode ] | [ …, …, patchAddr? ] |
+| compile default body  | Subsequent tokens are processed normally; the final generic `;` will finish the construct | [ …, savedRSP, EndCode ]          | [ …, …, patchAddr? ] |
 
 5. Generic `;` (final closer — pops and evaluates EndCode)
 
@@ -145,7 +140,7 @@ Correctness invariants (normative)
 - Constant compile-time meta‑arity
   - Frame during predicates: [ savedRSP, EndCode ]; during a when body: [ savedRSP, p_skip, EndCode ].
   - do records p_skip at `do`; closing a when (when/default/EndCode) consumes p_skip (no separate skip cell).
-  - EndCode pops skip (if present), backpatches until RSP == savedRSP, then drops savedRSP.
+  - EndCode pops p_skip (if present), backpatches until RSP == savedRSP, then drops savedRSP.
 - Single‑exit guarantee
   - All taken whens record a forward exit branch; EndCode backpatches all recorded exits to the same final exit.
 - Relative‑branch math
@@ -165,10 +160,17 @@ A) cond (opener) frame
 
 - Input: "cond"
   - CODE: no branches emitted at opener
-  - Data stack: [ …, savedRSP, NIL, EndCode ] (savedRSP equals current RSP snapshot)
+  - Data stack: [ …, savedRSP, EndCode ] (savedRSP equals current RSP snapshot)
   - Return stack: unchanged
 
-B) do (clause start) emits
+B) Closing a when at a following when
+
+- Input: "cond when P do B when …"
+  - Just before the second when:
+    - CODE: emitted Branch +0; its operand address was pushed on RSP; p_skip was patched to skip the close sequence
+    - Data stack returns to [ …, savedRSP, EndCode ]
+
+C) do (clause start) emits
 
 - Input: "cond when P do"
   - CODE append:
@@ -176,17 +178,10 @@ B) do (clause start) emits
     - nextInt16() == 0 (placeholder for p_skip)
   - Data stack: [ …, savedRSP, p_skip, EndCode ]
 
-C) Closing a when at a following when
-
-- Input: "cond when P do B when …"
-  - Just before the second when:
-    - CODE: emitted Branch +0; its operand address was pushed on RSP; p_skip was patched to skip the close sequence
-    - Data stack returns to [ …, savedRSP, NIL, EndCode ]
-
 D) default
 
 - Input: "cond when P do B default D ;"
-  - If skip was set, default first closes the current when (emit Branch +0, Rpush operand, patch p_skip), leaving [ …, savedRSP, NIL, EndCode ]
+  - If p_skip present, default first closes the current when (emit Branch +0, rpush operand, patch p_skip), leaving [ …, savedRSP, EndCode ]
   - D compiles; `;` later backpatches all recorded exit addresses
 
 E) final generic `;`
@@ -215,26 +210,3 @@ Worked example (bytes, sketch)
   - close → Branch +0; push addr1; patch p_skip1
   - default D
   - ; → for addr in [addr1, addr0] pop and patch to CP (final exit)
-
-Comparative analysis (advantages and tradeoffs)
-
-- Advantages:
-  - Integrates with the standard generic `;` closer pattern via EndCode on TOS
-  - No up-front pre-exit anchor or unified forward Branch at cond
-  - Straight-line close logic; all exits centralized at EndCode
-- Tradeoffs:
-  - Requires each immediate (when/do/default) to pop/restore EndCode on TOS
-  - EndCode backpatch loop at `;` handles all recorded exits
-  - Uses return stack as an exit-ledger; savedRSP bounds the ledger
-
-Diagnostics (errors)
-
-- when without cond
-- do without when
-- Multiple do’s in the same when without a boundary
-- `;` evaluating EndCode with an incoherent frame (e.g., missing savedRSP/skip due to earlier errors)
-
-Summary
-
-- This exploration merges return-stack-based exit backpatching with the generic-closer model by placing EndCode on TOS.
-- Entry discipline (push savedRSP, NIL, EndCode), per-when close discipline (emit Branch +0 + record + patch p_skip), and EndCode’s backpatch loop together yield a single exit and preserve a constant compile-time frame shape during the construct.
