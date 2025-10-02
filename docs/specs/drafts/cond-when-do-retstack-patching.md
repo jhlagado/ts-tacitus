@@ -90,7 +90,7 @@ Emits (tables; TOS → right)
 | if skip != NIL        | Close current when (emit/record/patch; see rows below)                                    | —                             | —                   |
 | • pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]               | [ …, … ]            |
 | • emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]               | [ …, … ]            |
-| • push operand on RSP | Rpush(operandAddressOf(Branch +0))                                                        | [ …, savedRSP ]               | [ …, …, patchAddr ] |
+| • rpush operand       | operandAddressOf(Branch +0)                                                                | [ …, savedRSP ]               | [ …, …, patchAddr ] |
 | • patch p_skip        | Fall‑through: offFalse = CP − (p_skip + 2)                                                | [ …, savedRSP ]               | [ …, …, patchAddr ] |
 | • push NIL            | Restore skip slot to NIL (constant frame size)                                            | [ …, savedRSP, NIL ]          | [ …, …, patchAddr ] |
 | (no emit yet)         | Subsequent tokens are processed normally; the next `do` immediate starts this when’s body | [ …, savedRSP, NIL ]          | [ …, … ]            |
@@ -115,7 +115,7 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 | if skip != NIL        | Close current when (emit/record/patch; see rows below)                                    | —                             | —                    |
 | • pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]               | [ …, … ]             |
 | • emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]               | [ …, … ]             |
-| • push operand on RSP | Rpush(operandAddressOf(Branch +0))                                                        | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
+| • rpush operand       | operandAddressOf(Branch +0)                                                                | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
 | • patch p_skip        | Fall‑through: offFalse = CP − (p_skip + 2)                                                | [ …, savedRSP ]               | [ …, …, patchAddr ]  |
 | • push NIL            | Restore skip slot to NIL (constant frame size)                                            | [ …, savedRSP, NIL ]          | [ …, …, patchAddr ]  |
 | compile default body  | Subsequent tokens are processed normally; the final generic `;` will finish the construct | [ …, savedRSP, NIL ]          | [ …, …, patchAddr? ] |
@@ -130,7 +130,7 @@ Generic `;` pops EndCode from TOS and executes it:
 | if skip != NIL           | Close current when (emit/record/patch; see rows below)          | —               | —                    |
 | • pop skip               | Pop p_skip from TOS                                             | [ …, savedRSP ] | [ …, … ]             |
 | • emit Branch +0         | Record a forward branch to exit (placeholder operand)           | [ …, savedRSP ] | [ …, … ]             |
-| • push operand on RSP    | Rpush(operandAddressOf(Branch +0))                              | [ …, savedRSP ] | [ …, …, patchAddr ]  |
+| • rpush operand          | operandAddressOf(Branch +0)                                    | [ …, savedRSP ] | [ …, …, patchAddr ]  |
 | • patch p_skip           | Fall‑through: offFalse = CP − (p_skip + 2)                      | [ …, savedRSP ] | [ …, …, patchAddr ]  |
 | exitAddr := CP           | Compute the final exit address (CP = byte index of next opcode) | [ …, savedRSP ] | [ …, …, patchAddr? ] |
 | while RSP > savedRSP:    | Repeatedly backpatch all recorded exits:                        |                 |                      |
