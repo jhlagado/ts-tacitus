@@ -38,7 +38,7 @@ Essentials
 - Subject/value management is explicit (dup/drop or locals).
 
 High-level behavior (runtime)
-- True predicate → run the when body. At the boundary (when/default/endcond), code executes a short close sequence that:
+- True predicate → run the when body. At the boundary (when/default/endcond), the compiler emits a short close sequence (only if skip != NIL) that:
   - Emits a forward Branch +0 (to be patched to the cond exit)
   - Pushes the operand address of that Branch on the return stack (as a patch record)
   - Patches the do’s IfFalseBranch (p_skip) to jump past this close sequence
@@ -77,8 +77,12 @@ Emits (tables; TOS → right)
 | Action                 | Notes                                                                    | Data Stack                      | Return Stack |
 |------------------------|--------------------------------------------------------------------------|----------------------------------|--------------|
 | ensure cond is open    | Require frame [ savedRSP, (NIL or p_skip) ]                              | [ …, savedRSP, skip ]           | [ … ]        |
-| close current when     | If skip != NIL, close the current when (see §4)                          | [ …, savedRSP, NIL ]            | [ …, … ]     |
-| (no emit yet)          | Predicates compile as ordinary code until `do`                           | [ …, savedRSP, NIL ]            | [ …, … ]     |
+| pop skip             | Pop p_skip from TOS                                                   | [ …, savedRSP ]            | [ …, … ]                 |
+| emit Branch +0       | Record a forward branch to exit (placeholder operand)                 | [ …, savedRSP ]            | [ …, … ]                 |
+| push operand on RSP  | Rpush(operandAddressOf(Branch +0))                                    | [ …, savedRSP ]            | [ …, …, patchAddr ]      |
+| patch p_skip         | Fall‑through: offFalse = here − (p_skip + 2)                          | [ …, savedRSP ]            | [ …, …, patchAddr ]      |
+| push NIL             | Restore skip slot to NIL (constant frame size)                        | [ …, savedRSP, NIL ]       | [ …, …, patchAddr ]      |
+| (no emit yet)          | Subsequent tokens are processed normally; the next `do` immediate starts this when’s body | [ …, savedRSP, NIL ]            | [ …, … ]     |
 
 3) `do` (start of this when’s body)
 
@@ -87,32 +91,28 @@ Emits (tables; TOS → right)
 | IfFalseBranch +0      | p_skip := CP (operand address placeholder)            | [ …, savedRSP, NIL ]          | [ …, … ]     |
 | set skip = p_skip     | Replace NIL with p_skip (constant frame size)         | [ …, savedRSP, p_skip ]       | [ …, … ]     |
 
-When body compiles until the next boundary token: when, default, or endcond.
+After `do`, subsequent tokens are processed normally; the next boundary immediate (when/default/endcond) closes the current when.
 
-4) Closing the current `when` (triggered by `when`/`default`/`endcond`)
-
-If skip != NIL, close the currently open when:
-
-| Action               | Notes                                                                 | Data Stack                  | Return Stack                       |
-|----------------------|-----------------------------------------------------------------------|-----------------------------|------------------------------------|
-| pop skip             | Pop p_skip from TOS                                                   | [ …, savedRSP ]            | [ …, … ]                           |
-| emit Branch +0       | Record a forward branch to exit (placeholder operand)                 | [ …, savedRSP ]            | [ …, … ]                           |
-| push operand on RSP  | Rpush(operandAddressOf(Branch +0))                                    | [ …, savedRSP ]            | [ …, …, patchAddr ]                |
-| patch p_skip         | Fall‑through: `offFalse = here − (p_skip + 2)`                        | [ …, savedRSP ]            | [ …, …, patchAddr ]                |
-| push NIL             | Restore skip slot to NIL (constant frame size)                        | [ …, savedRSP, NIL ]       | [ …, …, patchAddr ]                |
-
-5) `default` (introduces default region; optional)
+4) `default` (introduces default region; optional)
 
 | Action               | Notes                                           | Data Stack                  | Return Stack          |
 |----------------------|-------------------------------------------------|-----------------------------|-----------------------|
-| close current when   | If skip != NIL, close the current when          | [ …, savedRSP, NIL ]       | [ …, …, patchAddr? ]  |
-| compile default body | Ordinary code until endcond                      | [ …, savedRSP, NIL ]       | [ …, …, patchAddr? ]  |
+| pop skip             | Pop p_skip from TOS                                                   | [ …, savedRSP ]            | [ …, … ]                 |
+| emit Branch +0       | Record a forward branch to exit (placeholder operand)                 | [ …, savedRSP ]            | [ …, … ]                 |
+| push operand on RSP  | Rpush(operandAddressOf(Branch +0))                                    | [ …, savedRSP ]            | [ …, …, patchAddr ]      |
+| patch p_skip         | Fall‑through: offFalse = here − (p_skip + 2)                          | [ …, savedRSP ]            | [ …, …, patchAddr ]      |
+| push NIL             | Restore skip slot to NIL (constant frame size)                        | [ …, savedRSP, NIL ]       | [ …, …, patchAddr ]      |
+| compile default body | Subsequent tokens are processed normally; the next `endcond` immediate finalizes the construct | [ …, savedRSP, NIL ]       | [ …, …, patchAddr? ]  |
 
-6) `endcond` (final closer)
+5) `endcond` (final closer)
 
 | Action                         | Notes                                                                                   | Data Stack                 | Return Stack            |
 |--------------------------------|-----------------------------------------------------------------------------------------|----------------------------|-------------------------|
-| close current when             | If skip != NIL, close the current when                                                  | [ …, savedRSP, NIL ]      | [ …, …, patchAddr? ]    |
+| pop skip                       | Pop p_skip from TOS                                                                      | [ …, savedRSP ]           | [ …, … ]                 |
+| emit Branch +0                 | Record a forward branch to exit (placeholder operand)                                    | [ …, savedRSP ]           | [ …, … ]                 |
+| push operand on RSP            | Rpush(operandAddressOf(Branch +0))                                                       | [ …, savedRSP ]           | [ …, …, patchAddr ]      |
+| patch p_skip                   | Fall‑through: offFalse = here − (p_skip + 2)                                             | [ …, savedRSP ]           | [ …, …, patchAddr ]      |
+| push NIL                       | Restore skip slot to NIL (constant frame size)                                           | [ …, savedRSP, NIL ]      | [ …, …, patchAddr ]      |
 | exitAddr := here               | Compute the final exit address (byte index of next opcode)                              | [ …, savedRSP, NIL ]      | [ …, …, patchAddr? ]    |
 | while RSP > savedRSP:          | Repeatedly backpatch all recorded exits:                                                |                            |                         |
 | • addr := RPOP()               | Pop top recorded exit patch address                                                     | [ …, savedRSP, NIL ]      | [ …, … ]                |
@@ -167,7 +167,7 @@ C) Closing a when (stack constancy + forward exit record + fall‑through patch)
 
 D) default (introducer)
 - Input: "cond when P do B default D endcond"
-  - If skip was set, it is closed; stack returns to [ …, savedRSP, NIL ]
+  - If skip was set, default FIRST closes the current when by emitting Branch +0, pushing its operand address on RSP, patching p_skip to fall through, and restoring skip to NIL; stack returns to [ …, savedRSP, NIL ]
   - D compiles; endcond later backpatches all recorded exit addresses
 
 E) endcond (closer)
