@@ -84,6 +84,7 @@ Emits (tables; TOS → right)
 | Action              | Notes                                                                                     | Data Stack            | Return Stack        |
 | ------------------- | ----------------------------------------------------------------------------------------- | --------------------- | ------------------- |
 | ensure cond is open | Require frame [ savedRSP, (NIL or p_skip) ]                                               | [ …, savedRSP, skip ] | [ … ]               |
+| if skip != NIL      | Close the current when (emit exit Branch +0 and record its operand; patch p_skip; set skip := NIL) | —                     | —                    |
 | pop skip            | Pop p_skip from TOS                                                                       | [ …, savedRSP ]       | [ …, … ]            |
 | emit Branch +0      | Record a forward branch to exit (placeholder operand)                                     | [ …, savedRSP ]       | [ …, … ]            |
 | push operand on RSP | Rpush(operandAddressOf(Branch +0))                                                        | [ …, savedRSP ]       | [ …, …, patchAddr ] |
@@ -104,6 +105,7 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 
 | Action               | Notes                                                                                          | Data Stack           | Return Stack         |
 | -------------------- | ---------------------------------------------------------------------------------------------- | -------------------- | -------------------- |
+| if skip != NIL       | Close the current when (emit exit Branch +0 and record its operand; patch p_skip; set skip := NIL) | —                    | —                    |
 | pop skip             | Pop p_skip from TOS                                                                            | [ …, savedRSP ]      | [ …, … ]             |
 | emit Branch +0       | Record a forward branch to exit (placeholder operand)                                          | [ …, savedRSP ]      | [ …, … ]             |
 | push operand on RSP  | Rpush(operandAddressOf(Branch +0))                                                             | [ …, savedRSP ]      | [ …, …, patchAddr ]  |
@@ -115,6 +117,7 @@ After `do`, subsequent tokens are processed normally; the next boundary immediat
 
 | Action                   | Notes                                                      | Data Stack      | Return Stack         |
 | ------------------------ | ---------------------------------------------------------- | --------------- | -------------------- |
+| if skip != NIL          | Close the current when (emit exit Branch +0 and record its operand; patch p_skip; set skip := NIL) | —               | —                    |
 | pop skip                 | Pop p_skip from TOS                                        | [ …, savedRSP ] | [ …, … ]             |
 | emit Branch +0           | Record a forward branch to exit (placeholder operand)      | [ …, savedRSP ] | [ …, … ]             |
 | push operand on RSP      | Rpush(operandAddressOf(Branch +0))                         | [ …, savedRSP ] | [ …, …, patchAddr ]  |
