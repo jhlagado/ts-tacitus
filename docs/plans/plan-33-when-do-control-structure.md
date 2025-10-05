@@ -15,12 +15,12 @@ Deliver the return-stack–based guarded multi-branch described in the spec:
 ## Implementation phases
 Each phase is intentionally small so a sub-agent can execute it without broader context.
 
-### Phase 0 — Preflight
-1. Re-read `docs/specs/drafts/when-do-control-flow.md` and note terminology (`CP`, `p_skip`, `p_exit`, `savedRSP`).
-2. Locate existing conditional infrastructure for reference:
-   - Immediate registration (`src/lang/immediates.ts`, `src/lang/definitions.ts`).
-   - Generic closer plumbing (`src/lang/closers.ts`, `src/ops/core/core-ops.ts`).
-   - Existing tests for immediate words (`src/test/lang/*immediate*.test.ts`).
+### Phase 0 — Preflight ✅
+1. Re-read `docs/specs/drafts/when-do-control-flow.md` and note terminology (`CP`, `p_skip`, `p_exit`, `savedRSP`). ✅
+2. Locate existing conditional infrastructure for reference: ✅
+   - Immediate registration (`src/lang/meta/index.ts`, `src/lang/meta/conditionals.ts`, `src/lang/meta/definitions.ts`).
+   - Generic closer plumbing (`src/lang/meta/conditionals.ts`, `src/ops/core/core-ops.ts`).
+   - Existing tests for immediate words (`src/test/lang/parser.comprehensive.test.ts`, related suites). ✅
 
 ### Phase 1 — Immediate word implementations
 Create `src/lang/meta/when-do.ts` (or analogous module) that exports three helpers:

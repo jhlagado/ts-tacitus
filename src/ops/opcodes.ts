@@ -191,12 +191,6 @@ export enum Op {
   /**  Closes a list with ')' - creates list tag with size information */
   CloseList,
 
-  /** Do combinator: applies a quotation to a value */
-  Do,
-
-  /** Repeat combinator: executes a quotation a specified number of times */
-  Repeat,
-
 
   /** Generic block-to-list converter: executes block and converts results to list */
   MakeList,
