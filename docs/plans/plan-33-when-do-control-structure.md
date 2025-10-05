@@ -37,14 +37,11 @@ Implemented closers in `src/ops/core/core-ops.ts`:
 
 TODO: add unit/bytecode tests exercising both closers across multi-clause and nested scenarios.
 
-### Phase 3 — Wiring and registration
-1. Export the new helpers via `src/lang/immediates.ts` (or relevant re-export file).
-2. Register the immediates in `src/ops/builtins-register.ts`:
-   - `symbolTable.defineBuiltin('when', Op.Nop, beginWhenImmediate, /*immediate=*/true)`.
-   - `symbolTable.defineBuiltin('do', Op.Nop, beginDoImmediate, true)`.
-   - Mark the internal closers (`EndDo`, `EndWhen`) so the generic `;` dispatcher can reach them, but do **not** expose `enddo` / `endwhen` to user code or the dictionary.
-3. No parser changes required; `ensureNoOpenConditionals` now also flags `EndWhen` tokens left on the data stack.
-4. Ensure the generic `;` routing includes the new closer opcodes if it uses an explicit dispatch table.
+### Phase 3 — Wiring and registration ✅
+1. Helpers exported via `src/lang/meta/index.ts`.
+2. Immediates registered in `src/ops/builtins-register.ts` (`when`, `do`), closers kept internal.
+3. Parser untouched; `ensureNoOpenConditionals` handles unclosed `when` constructs.
+4. Dispatcher updated: `Op.EndDo` / `Op.EndWhen` reachable through generic `;`.
 
 ### Phase 4 — Test matrix
 Create a dedicated test file `src/test/lang/when-do-control-flow.test.ts` covering:
