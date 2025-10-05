@@ -1,210 +1,167 @@
-# when … do — Guarded Multi-branch (Draft, Normative)
+# `when` … `do` — Guarded Multi-branch (Draft, Normative)
 
-Status
+## Status
 
-- Depends on: Plan 31 (`;` generic closer), Plan 32 (brace-block removal)
-- Scope: Immediate words only. Fixed arity. All compile-time state lives on the data stack.
+- Scope: Immediate words only. All compile-time bookkeeping lives on the regular data stack and, when needed, the return stack. Runtime arity is fixed by the user’s predicates/bodies.
+- Terminology: `CP` denotes the current compile pointer ("here").
 
-What it is (for programmers)
+## Programmer View
 
-- A compact “first-true-wins” chain (like if / else-if / else).
-- Each clause has a predicate (must leave 0/false or non‑zero/true) and a body.
-- The first true clause runs its body and the construct exits. An optional default runs if no clause matched.
-- No discriminant is managed for you. If you have a subject value, manage duplication/cleanup explicitly (dup / drop or locals).
+`tacit` provides a single opener `when`, clause bodies introduced by `do`, and a shared closer `;`. Each clause consists of a predicate immediately followed by `do` and its body, terminated by `;`. The first clause whose predicate evaluates true runs its body; remaining clauses are skipped. If no predicate matches, control falls into the default code region between the last clause `;` and the final `;`.
 
-Form
+Predicates and bodies manage their own stack usage. If you need to retain a subject value across multiple predicates, store it in a variable or duplicate/drop it explicitly.
+
+### Examples
+
+Using a transient subject value:
 
 ```
-when
-  <predicate> do  <body>  ;
-  <predicate> do  <body>  ;
-  ...optional default...
+10 when
+  dup 3 eq  do  "three"  ;
+  dup 9 gt  do  "big"    ;
+              "default"  \ optional fall-through body
+;
+drop                        \ caller discards the subject
+```
+
+Using locals:
+
+```
+: describe
+  10 var x
+  when
+    x 3 eq  do  "three"  ;
+    x 9 gt  do  "big"    ;
+              "default"
+  ;
 ;
 ```
 
-Behavior
+## Runtime Behaviour
 
-- Predicate true → fall through into the body → clause terminator `;` exits the construct (skips the rest).
-- Predicate false → jump over the body to the next predicate; if none, run the default (if present) and exit.
-- Subject/value management is explicit and up to you.
+- Predicate true → execution falls straight into the clause body. When the clause `;` runs, the compiler-emitted branch transfers control to the common exit, skipping the rest.
+- Predicate false → the clause’s `IfFalseBranch` skips over the body and its closing machinery, so evaluation continues with the next predicate.
+- If no predicate succeeds, execution reaches the optional default region (ordinary code before the final `;`) and then exits the construct naturally.
 
-Examples
+## Compile-time Stack Discipline
 
-- With a transient subject:
-  ```
-  10 when
-    dup 3 eq  do  "three"  ;
-    dup 9 gt  do  "big"    ;
-                "default"
-  ;
-  drop             \ discard subject after the construct
-  ```
-- With a local:
-  ```
-  : describe
-    10 var x
-    when
-      x 3 eq  do  "three"  ;
-      x 9 gt  do  "big"    ;
-                "default"
+All bookkeeping is visible on the data stack; exit patch addresses accumulate on the return stack.
+
+### Data Stack Invariants (TOS → right)
+
+- Open construct (no active clause): `[…, savedRSP, EndWhen]`
+  - `savedRSP` – snapshot of the return-stack pointer taken by `when`.
+  - `EndWhen` – closer executable consumed by the generic `;` to finish the construct.
+- Inside a clause body (after `do` until its `;`): `[…, savedRSP, EndWhen, p_skip, EndDo]`
+  - `p_skip` – operand address of the clause’s `IfFalseBranch` (placeholder to be patched at clause close).
+  - `EndDo` – closer executable consumed by the clause terminator `;`.
+
+### Return Stack Discipline
+
+- At `when`, no entries are pushed; the return stack must be exactly as it was.
+- Each clause terminator records a forward branch (`p_exit`) to the common exit by pushing its operand address onto the return stack.
+- `EndWhen` back-patches every recorded `p_exit` in LIFO order until the return stack pointer matches `savedRSP`.
+
+## Immediate Words
+
+The tables below show emitted code and stack effects. TOS is on the right.
+
+### `when` (opener)
+
+| Emit / Action | Notes | Data Stack | Return Stack |
+| --- | --- | --- | --- |
+| (no pre-check) | Nested `when` inside predicates/bodies is permitted | — | — |
+| Snapshot RSP | `savedRSP := RSP` (push snapshot) | `[…, savedRSP]` | unchanged |
+| Push `EndWhen` | generic closer stays at TOS | `[…, savedRSP, EndWhen]` | unchanged |
+
+No code is emitted; the construct begins with the first predicate.
+
+### `do` (start clause body)
+
+Precondition: data stack must be `[…, savedRSP, EndWhen]`; otherwise signal `do without when`.
+
+| Emit / Action | Notes | Data Stack | Return Stack |
+| --- | --- | --- | --- |
+| Emit `IfFalseBranch +0` | Reserve predicate skip; let `p_skip := CP` (address of operand) | `[…, savedRSP, EndWhen]` | unchanged |
+| Push `p_skip` | Remember skip placeholder | `[…, savedRSP, EndWhen, p_skip]` | unchanged |
+| Push `EndDo` | Clause closer sits on TOS | `[…, savedRSP, EndWhen, p_skip, EndDo]` | unchanged |
+
+The predicate must already have compiled code that leaves a boolean flag on the runtime stack when `do` executes.
+
+### Clause `;` (generic `;` executes `EndDo`)
+
+When the clause terminator `;` is read, the generic closer pops `EndDo` and executes it. Expected stack when `EndDo` runs: `[…, savedRSP, EndWhen, p_skip]` with `p_skip > 0`.
+
+`EndDo` performs:
+
+1. Validate `p_skip` (if zero or missing → “clause closer without do”).
+2. Emit `Branch +0`; let `p_exit := CP` (operand address). This branch will jump to the shared exit.
+3. Push `p_exit` on the return stack (`>r`).
+4. Patch the predicate skip to the current `CP`: `offset_skip = CP − (p_skip + 2)`; store into the operand at `p_skip`.
+5. Drop `p_skip` from the data stack, restoring `[…, savedRSP, EndWhen]`.
+
+### Final `;` (generic `;` executes `EndWhen`)
+
+At the final `;`, the generic closer pops `EndWhen` and executes it. Expected stack: `[…, savedRSP, EndWhen]`.
+
+`EndWhen` performs:
+
+1. Pop `EndWhen` (already removed by the generic closer call).
+2. Pop `savedRSP` into `targetRSP`.
+3. While `RSP > targetRSP`:
+   - Pop a pending exit placeholder (`p_exit := r>`).
+   - Patch it forward to the common exit: `offset_exit = CP − (p_exit + 2)`.
+4. Done; the loop leaves `RSP == targetRSP` under the invariants below, so the compile-time data stack matches its pre-`when` shape.
+
+## Default Region
+
+Any code between the last clause `;` and the final `;` acts as the default. Because every executed clause records a branch to be patched to the exit, control skips the default whenever a predicate succeeds. If no predicate succeeds, execution falls through into the default naturally. The compiler imposes no additional structure here; the programmer is responsible for stack hygiene (e.g., dropping a duplicated subject if needed).
+
+## Error Conditions (non-exhaustive)
+
+- `do` encountered when the data stack top is not `EndWhen` → “do without when”.
+- Clause `;` encountered when TOS is not `EndDo` → “clause closer without do”.
+- Clause `;` with `p_skip == 0` → “clause closer without predicate”.
+- Final `;` encountered when TOS is not `EndWhen` → “when not open”.
+- Any new `do` or final `;` while a previous clause’s `EndDo` is still on TOS → “previous clause not closed”.
+
+## Correctness Invariants
+
+- **Compile-time frame:** `when` establishes `[savedRSP, EndWhen]`; clauses temporarily extend it with `[p_skip, EndDo]`. No other cells may be inserted between these values.
+- **Return-stack balance:** Every clause `;` pushes exactly one `p_exit` address. `EndWhen` must consume exactly as many addresses as the difference `RSP − savedRSP` at entry.
+- **Branch patching:**
+  - Predicate skip: `offset_skip = CP − (p_skip + 2)`.
+  - Exit jumps: `offset_exit = CP − (p_exit + 2)`.
+- **LIFO nesting:** Because `savedRSP` captures the return stack depth, nested `when` constructs compose naturally; each inner construct restores the return stack before any outer closer executes.
+- **Runtime arity:** Clauses may manipulate the runtime stack arbitrarily, but predicates must leave exactly one flag before each `do`.
+
+### Nested and Degenerate Forms (valid)
+
+The stack discipline above supports `when` anywhere ordinary code may appear:
+
+```
+when
+  predicate0 do
+    …
+    when                     \ inner `when` in a clause body
+      innerPredicate do … ;
     ;
   ;
-  ```
-
-Compiler emits with stack (tables; TOS → right)
-
-Legend
-
-- EndWhen / EndDo are Tag.BUILTIN closer refs (executed by generic `;`).
-- preExit: code address (number) immediately AFTER the first `Branch +3` (the opcode of the second Branch). Back‑branch target for taken clauses (the “pre‑exit” hop before the final forward exit). It is kept at NOS (next‑on‑stack) across clause closes; it is peeked (e.g., via over) and only dropped by EndWhen.
-- p_exit: 16‑bit operand address (number) of the opener’s forward Branch (to be patched to final exit).
-- p_false: 16‑bit operand address (number) of the clause’s IfFalseBranch (to be patched to fall‑through).
-
-Branch addressing (used below)
-
-- `Branch` / `IfFalseBranch` take a signed 16‑bit relative offset; the VM does `IP := IP + offset` after reading the operand.
-- Forward patch to “here”: `offset = here - (operandPos + 2)`.
-- Backward jump to a known opcode at `targetOpcode`: `offset = targetOpcode - (operandPos + 2)`.
-- `Branch +3` skips exactly one Branch instruction (1‑byte opcode + 2‑byte operand).
-
-1) when (immediate opener)
-
-| Emit | Notes | Stack (TOS → right) |
-|------|-------|----------------------|
-| Branch +3 | Let preExit := CP (address of next opcode) | [ … ] |
-| Branch +0 | Let p_exit := CP (operand address placeholder) | [ … ] |
-| push p_exit | Number | [ …, p_exit ] |
-| push preExit | Number (kept at NOS) | [ …, p_exit, preExit ] |
-| push EndWhen | BUILTIN closer | [ …, p_exit, preExit, EndWhen ] |
-
-2) do (start of a clause body)
-
-| Emit | Notes | Stack (TOS → right) |
-|------|-------|----------------------|
-| IfFalseBranch +0 | Let p_false := CP (operand address placeholder) | [ …, p_exit, preExit, EndWhen ] |
-| push p_false | Number | [ …, p_exit, preExit, EndWhen, p_false ] |
-| push EndDo | BUILTIN closer | [ …, p_exit, preExit, EndWhen, p_false, EndDo ] |
-
-3) Clause terminator ‘;’ (executes EndDo via generic `;`)
-
-| Action | Notes | Stack (TOS → right) |
-|--------|-------|----------------------|
-| pop EndDo (execute) | Generic `;` eval | [ …, p_exit, preExit, EndWhen, p_false ] |
-| pop p_false | Get operand address to patch | [ …, p_exit, preExit, EndWhen ] |
-| emit Branch (back) | Target = preExit (peek via over), offBack = preExit − (hereOperandPos + 2) | [ …, p_exit, preExit, EndWhen ] |
-| patch p_false (fall‑through) | offFalse = here − (p_false + 2) | [ …, p_exit, preExit, EndWhen ] |
-
-4) Final ‘;’ (executes EndWhen via generic `;`)
-
-| Action | Notes | Stack (TOS → right) |
-|--------|-------|----------------------|
-| pop EndWhen (execute) | Generic `;` eval | [ …, p_exit, preExit ] |
-| drop preExit | No longer needed | [ …, p_exit ] |
-| patch p_exit (forward) | offExit = here − (p_exit + 2) | [ …, p_exit ] |
-| pop p_exit | Close construct | [ … ] |
-
-Constraints
-
-- Predicates must leave exactly one numeric flag (0 or non‑zero).
-- Every `do` must be closed by a `;` before the final `;`.
-- Manage subject values explicitly (dup/drop or locals).
-
-Happy path (informative)
-A two-clause when with default; first predicate is true:
-```
-when
-  P0 do B0 ;
-  P1 do B1 ;
-  DFLT
+  predicate1 do … ;
+  when                     \ `when` used in the default region
+    inner2Predicate do … ;
+  ;
 ;
 ```
-- Compile-time (high level):
-  - Opener pushes [ p_exit, preExit, EndWhen ]
-  - Each `do` pushes [ p_false, EndDo ]
-  - Each clause `;` (EndDo) emits a back Branch to preExit and patches its p_false; stack restored to [ p_exit, preExit, EndWhen ]
-  - Final `;` (EndWhen) drops preExit, patches p_exit to the common exit, then drops p_exit
-- Runtime (P0 true):
-  - IfFalseBranch(p_false0) does not jump → B0 runs
-  - EndDo’s back Branch jumps to preExit; preExit’s forward Branch (patched at EndWhen) jumps to the single exit, skipping P1/B1 and DFLT
 
-Correctness invariants (normative)
-- Stack frames
-  - Open construct invariant: [ p_exit(number), preExit(number), EndWhen(BUILTIN) ] with EndWhen at TOS and preExit at NOS
-  - In-clause invariant: temporary [ p_false(number), EndDo(BUILTIN) ] pushed on top; EndDo must consume exactly these two
-- preExit discipline
-  - preExit remains at NOS for the lifetime of the open construct
-  - EndDo MUST NOT pop or reorder preExit; it may only peek it (e.g., via over) to compute the backward Branch
-  - EndWhen drops preExit after patching p_exit
-- Single-exit guarantee
-  - All taken clauses back-branch to preExit, then the unified forward Branch at preExit jumps to the single exit after EndWhen
-- Relative-branch math
-  - VM applies `IP := IP + offset` after reading a 16‑bit operand
-  - Backward (to opcode at preExit): `offBack = preExit − (hereOperandPos + 2)`
-  - Fall‑through (IfFalseBranch): `offFalse = here − (p_false + 2)`
-  - Final exit (forward): `offExit = here − (p_exit + 2)`
-- Nesting and LIFO
-  - Nested whens are allowed anywhere ordinary code is allowed
-  - Closers are strictly LIFO; inner EndDo/EndWhen restore their own frames before any outer closer runs
-- Default region
-  - Default is ordinary code between the last clause `;` and the final `;`; a taken clause’s back‑then‑forward jumps skip it; otherwise control falls into it naturally
+The inner constructs snapshot the current `RSP` and push their own `EndWhen`; the outer clause’s `p_skip`/`EndDo` pair sits beneath them and is untouched until the inner construct closes. Because the opener performs no `EndDo` pre-check, both “`when` inside a clause body” and “`when` in the default region” compile without extra ceremony.
 
-Test scenarios (to be implemented one-by-one)
+## Test Scenarios (to implement)
 
-A) when (opener) emits (bytes + stack)
-- Input: "when"
-  - CODE:
-    - next8() == Op.Branch
-    - nextInt16() == 3
-    - next8() == Op.Branch
-    - nextInt16() == 0 (placeholder)
-  - Data stack (TOS → right): [ …, p_exit(number), preExit(number), EndWhen(BUILTIN) ]
-  - Sanity:
-    - preExit is the byte index of the second Branch opcode (address immediately after the first Branch’s operand)
-    - p_exit is the byte index of the 16‑bit operand for the second Branch
-
-B) do (clause start) emits (bytes + stack)
-- Input: "when do"
-  - CODE appended:
-    - next8() == Op.IfFalseBranch
-    - nextInt16() == 0 (placeholder)
-  - Data stack: [ …, p_exit, preExit, EndWhen, p_false(number), EndDo(BUILTIN) ]
-
-- Input: "do" (no opener)
-  - Expect syntax error: "do without when"
-
-C) EndDo (clause ';') in isolation (stack preservation + backward branch + fall‑through patch)
-- Input: "when do ;"
-  - After first ';':
-    - Data stack restored to [ …, p_exit, preExit, EndWhen ] (EndDo consumed; p_false popped; preExit remains NOS)
-- Input: "when 1 do 2 ;"
-  - CODE around clause close:
-    - An Op.Branch emitted backward; its operand encodes offBack = preExit - (hereOperandPos + 2)
-    - p_false patched to offFalse = here - (p_false + 2)
-
-D) EndWhen (final ';') in isolation (forward patch + cleanup)
-- Input: "when ;"
-  - Data stack becomes [ … ] (EndWhen popped; preExit dropped; p_exit patched to offExit = here - (p_exit + 2) and then popped)
-
-E) Nesting (valid)
-- Input:
-  ```
-  when
-    when ;          \ inner when inside outer default area
-  ;
-  ```
-  - Closers run LIFO: inner EndWhen runs first; outer EndWhen runs last
-  - No interference: the outer [ p_exit, preExit, EndWhen ] frame is intact across inner open/close
-
-F) Behavioral (first‑true‑wins, default)
-- "when 1 do 10 ; 1 do 20 ; ;" → produces 10 (first true wins, exit after first body)
-- "when 0 do 10 ; 1 do 20 ; ;" → produces 20
-- "when 0 do 10 ; 0 do 20 ; 99 ;" → produces 99 (default)
-- Transient subject: "10 when dup 3 eq do 'three' ; 'default' ; drop" → leaves 'three' or 'default', subject dropped
-
-G) Negative
-- Unclosed when: "when" → syntax error "Unclosed when"
-- do without opener: "do" → syntax error "do without when"
-- (Runtime) Bad predicate: if a predicate does not leave a number flag, the consumer op that expects it fails (existing semantics)
-
-H) Offset fuzz (optional)
-- Insert harmless ops between do bodies and ';' to vary here positions; assert relative offsets remain correct
+1. **Opener frame:** parsing `when` pushes `[savedRSP, EndWhen]` and does not emit code.
+2. **Clause start:** `when … do` emits `IfFalseBranch +0`, records its operand as `p_skip`, and pushes `EndDo`.
+3. **Clause close:** `when … do … ;` emits a forward `Branch +0`, pushes its operand to the return stack, patches `p_skip` to the current `CP`, and restores the frame.
+4. **Final close:** `when … ;` patches all recorded `p_exit` operands to the final `CP` and restores both stacks to their entry shapes.
+5. **Default fall-through:** with no predicates true, execution reaches the default region and exits without recorded exits.
+6. **Taken clause:** with an early predicate true, observe that only one branch operand is recorded/patched and that default code is skipped at runtime.
+7. **Error cases:** `do` without `when`, clause `;` without `do`, missing clause `;`, nested constructs, and mismatched return-stack depth.
