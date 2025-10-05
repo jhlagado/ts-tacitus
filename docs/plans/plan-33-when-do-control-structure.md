@@ -22,20 +22,13 @@ Each phase is intentionally small so a sub-agent can execute it without broader 
    - Generic closer plumbing (`src/lang/meta/conditionals.ts`, `src/ops/core/core-ops.ts`).
    - Existing tests for immediate words (`src/test/lang/parser.comprehensive.test.ts`, related suites). ✅
 
-### Phase 1 — Immediate word implementations
-Create `src/lang/meta/when-do.ts` (or analogous module) that exports three helpers:
-1. `beginWhenImmediate(state)`
-   - Snapshot return stack pointer (`savedRSP`) and push onto the data stack.
-   - Push the `EndWhen` closer token.
-2. `beginDoImmediate(state)`
-   - Preconditions: TOS must be `EndWhen`; otherwise throw “`do` without `when`”.
-   - Emit `IfFalseBranch +0` and push the operand address as `p_skip`.
-   - Push the `EndDo` closer token.
-3. `ensureNoOpenWhen(state)`
-   - Called during parser finalization to ensure no `EndWhen` remains on the data stack.
-   - Mirror existing `ensureNoOpenConditionals` style: scan the stack for any leftover `EndWhen` tokens and report “unclosed `when`”.
+### Phase 1 — Immediate word implementations ✅
+Created `src/lang/meta/when-do.ts` exporting:
+1. `beginWhenImmediate(state)` — snapshots `RSP`, pushes the snapshot and `EndWhen` closer.
+2. `beginDoImmediate(state)` — validates top-of-stack is `EndWhen`, emits `IfFalseBranch +0`, pushes `p_skip` and `EndDo` closer.
+3. `ensureNoOpenWhen` folded into the existing `ensureNoOpenConditionals` (no parser changes).
 
-Add focused unit tests for each helper (e.g., in `src/test/lang/when-do-immediate.test.ts`) using a fake `CompileState` to assert stack contents and emitted bytecode. In particular, cover nested scenarios where a clause body opens another `when` while `EndDo` still sits on the stack below it; `beginWhenImmediate` must leave the existing `EndDo` undisturbed.
+TODO: add focused unit tests for the helpers (e.g., `src/test/lang/when-do-immediate.test.ts`) covering nested scenarios where a clause body opens another `when` while an `EndDo` sits beneath it.
 
 ### Phase 2 — Closer executions
 Implement the logic described in the spec for the two closers (compile-time execution when `;` pops them):
@@ -62,7 +55,7 @@ Implement the logic described in the spec for the two closers (compile-time exec
    - `symbolTable.defineBuiltin('when', Op.Nop, beginWhenImmediate, /*immediate=*/true)`.
    - `symbolTable.defineBuiltin('do', Op.Nop, beginDoImmediate, true)`.
    - Mark the internal closers (`EndDo`, `EndWhen`) so the generic `;` dispatcher can reach them, but do **not** expose `enddo` / `endwhen` to user code or the dictionary.
-3. Update parser finalization (`src/lang/parser.ts`) to invoke `ensureNoOpenWhen(state)` alongside existing checks (no additional requirements at each `when`).
+3. No parser changes required; `ensureNoOpenConditionals` now also flags `EndWhen` tokens left on the data stack.
 4. Ensure the generic `;` routing includes the new closer opcodes if it uses an explicit dispatch table.
 
 ### Phase 4 — Test matrix
@@ -99,7 +92,7 @@ Create a dedicated test file `src/test/lang/when-do-control-flow.test.ts` coveri
 
 ## Deliverables checklist
 - [ ] `Op.EndDo`, `Op.EndWhen` defined and wired.
-- [ ] Immediate helpers (`when`, `do`, `ensureNoOpenWhen`) implemented and tested.
+- [ ] Immediate helpers (`when`, `do`) implemented and tested.
 - [ ] Closer logic (`endDo`, `endWhen`) matches spec and passes unit tests.
 - [ ] Builtins registered; parser validation updated.
 - [ ] Comprehensive test suite for happy paths, nesting, and errors.

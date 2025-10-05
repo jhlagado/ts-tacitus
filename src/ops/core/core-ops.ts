@@ -27,6 +27,7 @@ import {
 } from '@src/core';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
+import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
 
@@ -298,6 +299,78 @@ export const endIfOp: Verb = (vm: VM) => {
   vm.compiler.CP = branchPos;
   vm.compiler.compile16(branchOffset);
   vm.compiler.CP = prevCP;
+};
+
+/**
+ * Closes a single `when` clause body during compilation.
+ *
+ * Expects the predicate skip placeholder on the data stack (left there by the
+ * immediate `do`). Emits a forward branch to the shared exit, records that
+ * branch on the return stack, patches the predicate’s skip to the current
+ * compile pointer, and restores the stack to `[... savedRSP, EndWhen]`.
+ */
+export const endDoOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'enddo');
+
+  const rawSkipPos = vm.pop();
+  if (!Number.isFinite(rawSkipPos)) {
+    throw new SyntaxError('enddo missing predicate placeholder', vm.getStackData());
+  }
+
+  const skipPos = Math.trunc(rawSkipPos);
+  if (skipPos <= 0) {
+    throw new SyntaxError('enddo invalid predicate placeholder', vm.getStackData());
+  }
+
+  vm.compiler.compileOpcode(Op.Branch);
+  const exitOperandPos = vm.compiler.CP;
+  vm.compiler.compile16(0);
+
+  vm.rpush(exitOperandPos);
+
+  const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
+  const prevCP = vm.compiler.CP;
+  vm.compiler.CP = skipPos;
+  vm.compiler.compile16(fallthroughOffset);
+  vm.compiler.CP = prevCP;
+};
+
+/**
+ * Closes an entire `when` construct during compilation.
+ *
+ * Expects the saved return-stack pointer snapshot on the data stack (pushed by
+ * the immediate `when`). Pops it, then back-patches every pending exit branch
+ * recorded by clause terminators so they land at the common exit after the
+ * construct.
+ */
+export const endWhenOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'endwhen');
+
+  const rawSavedRSP = vm.pop();
+  if (!Number.isFinite(rawSavedRSP)) {
+    throw new SyntaxError('endwhen missing saved RSP', vm.getStackData());
+  }
+
+  const savedRSP = Math.trunc(rawSavedRSP);
+
+  while (vm.RSP > savedRSP) {
+    const rawExitPos = vm.rpop();
+    if (!Number.isFinite(rawExitPos)) {
+      throw new SyntaxError('endwhen invalid exit placeholder', vm.getStackData());
+    }
+
+    const exitPos = Math.trunc(rawExitPos);
+    const exitOffset = vm.compiler.CP - (exitPos + 2);
+
+    const prevCP = vm.compiler.CP;
+    vm.compiler.CP = exitPos;
+    vm.compiler.compile16(exitOffset);
+    vm.compiler.CP = prevCP;
+  }
+
+  if (vm.RSP !== savedRSP) {
+    throw new SyntaxError('endwhen corrupted return stack', vm.getStackData());
+  }
 };
 
 /**

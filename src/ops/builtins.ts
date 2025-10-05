@@ -25,6 +25,8 @@ import {
   pushSymbolRefOp,
   endDefinitionOp,
   endIfOp,
+  endDoOp,
+  endWhenOp,
 } from './core';
 import {
   addOp,
@@ -185,6 +187,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Load]: loadOp,
     [Op.EndDefinition]: endDefinitionOp,
     [Op.EndIf]: endIfOp,
+    [Op.EndDo]: endDoOp,
+    [Op.EndWhen]: endWhenOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];

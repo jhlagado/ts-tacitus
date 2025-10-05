@@ -22,7 +22,13 @@ import { SymbolTable } from '../strings/symbol-table';
 
 import { evalOp } from './core';
 
-import { beginDefinitionImmediate, beginIfImmediate, beginElseImmediate } from '../lang/meta';
+import {
+  beginDefinitionImmediate,
+  beginIfImmediate,
+  beginElseImmediate,
+  beginWhenImmediate,
+  beginDoImmediate,
+} from '../lang/meta';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -122,6 +128,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
 
   symbolTable.defineBuiltin('if', Op.Nop, _vm => beginIfImmediate(), true);
   symbolTable.defineBuiltin('else', Op.Nop, _vm => beginElseImmediate(), true);
+  symbolTable.defineBuiltin('when', Op.Nop, _vm => beginWhenImmediate(), true);
+  symbolTable.defineBuiltin('do', Op.Nop, _vm => beginDoImmediate(), true);
   symbolTable.defineBuiltin('endif', Op.EndIf);
   symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);
 
