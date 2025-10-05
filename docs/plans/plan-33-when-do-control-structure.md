@@ -1,128 +1,107 @@
-# Plan 33 — Immediate `when … do` Guarded Control Structure
+# Plan 33 — Implement `when` / `do` guarded control flow
 
-Status
-- Stage: Planning and design ready for implementation (final naming: opener `when`, clause body `do`)
-- Depends on:
-  - Plan 31 — Generic `;` closer infrastructure (in place)
-  - Plan 32 — Brace-block removal (in place)
-- Spec source: docs/specs/drafts/when-do-control-flow.md (normative draft)
+## Status
+- **Stage:** Ready for implementation (spec finalized in `docs/specs/drafts/when-do-control-flow.md`).
+- **Scope:** Immediate opener `when`, immediate clause starter `do`, and their non-immediate closers (`endWhen`, `endDo`) executed via the generic `;`.
 
-Objectives
-- Introduce a guard-based multi-clause control structure using immediate words:
-  - `when` (open construct), `do` (begin clause body), `;` (generic closer executes `enddo` / `endwhen`)
-- Ensure:
-  - No new grammar; immediate words drive compilation
-  - Fixed-arity semantics: each clause predicate leaves exactly one runtime flag
-  - All compiler state lives on the VM data stack (numbers as placeholders, BUILTIN closers)
-- Preserve Tacit invariants and closer stack behavior used by `if … else … ;`
+## High-level objective
+Deliver the return-stack–based guarded multi-branch described in the spec:
+- `when` snapshots `RSP`, pushes `savedRSP` and the `EndWhen` closer onto the data stack.
+- `do` emits `IfFalseBranch +0`, pushes its operand placeholder (`p_skip`) and the `EndDo` closer.
+- Clause `;` (running `EndDo`) records a forward exit branch (`p_exit`) on the return stack and patches `p_skip`.
+- Final `;` (running `EndWhen`) drains every `p_exit` pushed since the opener, patching each to the common exit and restoring both stacks.
+- Error handling: missing/extra closers, stray `do`, nested constructs, and malformed stack states must all be caught with precise diagnostics.
 
-Design Summary (from Spec)
-- Lowering rules (fixed arity, anchor approach):
-  - `when` emits a two-instruction prologue so the common exit is reachable without scanning and normal entry skips the anchor:
-    - `Branch +3` to skip over the next 3-byte Branch
-    - `Branch +0` (anchor); record its 16-bit operand address as `anchorPos` (beneath EndWhen)
-  - `do` emits `IfFalseBranch p_false`, then pushes `p_false` (number) and EndDo closer
-  - Clause `;` executes EndDo:
-    - pop `p_false`
-    - temporarily pop EndWhen, pop `anchorPos`
-    - emit backward `Branch` to the anchor’s opcode and compute offset immediately
-    - restore stack (push `anchorPos`, then EndWhen)
-    - patch `p_false` → here (fallthrough for false)
-  - Final `;` executes EndWhen:
-    - pop EndWhen
-    - pop `anchorPos` and patch its forward branch to here (common exit)
-- Control flow (explicit):
-  - Pred true → fallthrough into body → back-branch to anchor → anchor’s forward Branch to exit
-  - Pred false → IfFalseBranch jumps over body → next clause or default; if none, to exit
-- Compile-time stack shape:
-  - Always EndWhen at TOS, anchorPos beneath it (during open `when`)
-  - During an open clause: TOS EndDo, then p_false, then EndWhen, then anchorPos
+## Implementation phases
+Each phase is intentionally small so a sub-agent can execute it without broader context.
 
-Alternative (Informative)
-- Single-jump variant via RSTACK SP snapshot:
-  - rpush SPCells at `when`, for each clause `;` push forward-branch placeholder beneath EndWhen, at EndWhen rpop baseline and patch exactly k placeholders directly to exit (no anchor). This adds rpush/rpop discipline but removes the extra jump when a clause is taken.
+### Phase 0 — Preflight
+1. Re-read `docs/specs/drafts/when-do-control-flow.md` and note terminology (`CP`, `p_skip`, `p_exit`, `savedRSP`).
+2. Locate existing conditional infrastructure for reference:
+   - Immediate registration (`src/lang/immediates.ts`, `src/lang/definitions.ts`).
+   - Generic closer plumbing (`src/lang/closers.ts`, `src/ops/core/core-ops.ts`).
+   - Existing tests for immediate words (`src/test/lang/*immediate*.test.ts`).
 
-File Changes (Implementation Units)
-1) Opcodes
-   - Add closers:
-     - `Op.EndDo` — closes a single clause; emits backward Branch to the anchor and patches p_false
-     - `Op.EndWhen` — closes construct; patches anchor forward to common exit
-2) Meta (compile-time immediates)
-   - `beginWhenImmediate()` — emit prologue (Branch +3; anchor Branch +0), push `anchorPos` then EndWhen (EndWhen at TOS)
-   - `beginDoImmediate()` — emit `IfFalseBranch p_false`; push `p_false`, push EndDo closer
-   - `ensureNoOpenWhen()` — scans for EndWhen closer on data stack
-3) Registration
-   - Symbol table definitions:
-     - `when` → `Op.Nop`, immediate impl: `beginWhenImmediate`
-     - `do` → `Op.Nop`, immediate impl: `beginDoImmediate`
-     - `enddo` → `Op.EndDo` (non-immediate closer)
-     - `endwhen` → `Op.EndWhen` (non-immediate closer)
-   - `;` remains the generic closer (evals the BUILTIN closer at TOS)
-4) Parser validation
-   - Call `ensureNoOpenWhen()` in `validateFinalState` alongside existing checks
-5) Tests
-   - Unit and end-to-end tests covering: no-op, default-only, single/multi-clause, with default, nesting, and errors
-   - Bytecode offset assertions for:
-     - Backward branch from EndDo to anchor opcode (targetOpcode = anchorPos - 1)
-     - Final anchor patch (here - (anchorPos + 2))
-6) Documentation
-   - Spec authored in docs/specs/drafts/when-do-control-flow.md
+### Phase 1 — Immediate word implementations
+Create `src/lang/meta/when-do.ts` (or analogous module) that exports three helpers:
+1. `beginWhenImmediate(state)`
+   - Snapshot return stack pointer (`savedRSP`) and push onto the data stack.
+   - Push the `EndWhen` closer token.
+2. `beginDoImmediate(state)`
+   - Preconditions: TOS must be `EndWhen`; otherwise throw “`do` without `when`”.
+   - Emit `IfFalseBranch +0` and push the operand address as `p_skip`.
+   - Push the `EndDo` closer token.
+3. `ensureNoOpenWhen(state)`
+   - Called during parser finalization to ensure no `EndWhen` remains on the data stack.
+   - Mirror existing `ensureNoOpenConditionals` style: scan the stack for any leftover `EndWhen` tokens and report “unclosed `when`”.
 
-Implementation Sketch (Pointers)
-- src/ops/opcodes.ts
-  - Add enum entries: `EndDo`, `EndWhen`
-- src/ops/core/core-ops.ts
-  - Implement:
-    - `endDoOp(vm)` — pop `p_false`; temporarily pop EndWhen and `anchorPos`; emit backward `Branch` to anchor opcode; restore `anchorPos` + EndWhen; patch `p_false` → here
-    - `endWhenOp(vm)` — pop EndWhen; pop `anchorPos`; patch anchor forward to here
-- src/lang/meta/when-do.ts (new)
-  - `beginWhenImmediate()`, `beginDoImmediate()`, `ensureNoOpenWhen()`
-- src/lang/meta/index.ts
-  - `export { beginWhenImmediate, beginDoImmediate, ensureNoOpenWhen } from './when-do';`
-- src/ops/builtins-register.ts
-  - Register immediate words and closers:
-    - `symbolTable.defineBuiltin('when', Op.Nop, _ => beginWhenImmediate(), true)`
-    - `symbolTable.defineBuiltin('do', Op.Nop, _ => beginDoImmediate(), true)`
-    - `symbolTable.defineBuiltin('enddo', Op.EndDo)`
-    - `symbolTable.defineBuiltin('endwhen', Op.EndWhen)`
-- src/lang/parser.ts
-  - In `validateFinalState(state)`: call `ensureNoOpenWhen()` after `ensureNoOpenConditionals()`
+Add focused unit tests for each helper (e.g., in `src/test/lang/when-do-immediate.test.ts`) using a fake `CompileState` to assert stack contents and emitted bytecode. In particular, cover nested scenarios where a clause body opens another `when` while `EndDo` still sits on the stack below it; `beginWhenImmediate` must leave the existing `EndDo` undisturbed.
 
-Tests (src/test/lang/when-do-control.test.ts)
-- Parse-time behavior
-  - “when ;” → no code emitted (anchor patched to here)
-  - “when default ;” → default-only code compiles; anchor patched to exit
-  - Single clause, no default: true → body then two-step exit; false → skip to exit
-  - Single clause + default: true → skip default; false → default, exit
-  - Multi-clause with default and without
-  - Nesting: `if … ;` inside a do-body closes correctly before EndDo and EndWhen
-- Errors
-  - `do` without open `when`
-  - Unclosed `when`
-  - Invalid `p_false` at EndDo
-- Offset assertions
-  - Backward branch target = (anchorPos - 1)
-  - EndWhen patch (here - (anchorPos + 2))
+### Phase 2 — Closer executions
+Implement the logic described in the spec for the two closers (compile-time execution when `;` pops them):
+1. `endDoCloser(state)` (invoked when generic `;` evaluates `EndDo`)
+   - Stack contract: `[..., savedRSP, EndWhen, p_skip]` on entry.
+   - Steps:
+     1. Validate `p_skip` (error if zero/missing).
+     2. Emit `Branch +0`; record operand address as `p_exit`.
+     3. Push `p_exit` onto the return stack (`state.rpush`).
+     4. Patch `p_skip` to the current `CP`.
+     5. Drop `p_skip`, leaving `[..., savedRSP, EndWhen]`.
+   - Tests: ensure the emitted branch operand is recorded, the predicate skip is patched, and errors fire if the stack contract is violated.
+2. `endWhenCloser(state)`
+   - Stack contract: `[..., savedRSP, EndWhen]`.
+   - Steps:
+     1. Pop `savedRSP` (after the generic closer removes `EndWhen`).
+     2. Loop while `state.rsp > savedRSP`: pop each `p_exit`, patch it forward to `CP`.
+     3. Verify the loop emptied exactly the entries contributed inside this construct (under invariants, no underflow should occur). Keep an assertion to flag underflow during development.
+   - Tests: multi-branch scenarios confirming all recorded exits are patched; ensure nested constructs restore the outer `savedRSP` untouched.
 
-Risks / Mitigations
-- Anchor offset calculation errors
-  - Mitigation: unit tests assert offset math; reuse EndIf/definition patch patterns
-- Preserving EndWhen + anchorPos adjacency across nested constructs
-  - Mitigation: LIFO closer tests asserting stack shape and closers ordering
+### Phase 3 — Wiring and registration
+1. Export the new helpers via `src/lang/immediates.ts` (or relevant re-export file).
+2. Register the immediates and closers in `src/ops/builtins-register.ts`:
+   - `symbolTable.defineBuiltin('when', Op.Nop, beginWhenImmediate, /*immediate=*/true)`.
+   - `symbolTable.defineBuiltin('do', Op.Nop, beginDoImmediate, true)`.
+   - `symbolTable.defineBuiltin('enddo', Op.EndDo)`.
+   - `symbolTable.defineBuiltin('endwhen', Op.EndWhen)`.
+3. Update parser finalization (`src/lang/parser.ts`) to invoke `ensureNoOpenWhen(state)` alongside existing invariants.
+4. Add any necessary wiring for generic `;` to recognize the new closers if the dispatcher uses tagged enums.
 
-Rollout Steps
-1) Add opcodes
-2) Implement core ops
-3) Meta immediates and exports
-4) Register builtins
-5) Parser validation hook
-6) Tests (incl. offset assertions)
-7) CI, iterate docs if nuances surface
+### Phase 4 — Test matrix
+Create a dedicated test file `src/test/lang/when-do-control-flow.test.ts` covering:
+1. **Immediate stack discipline**
+   - `when` pushes `[savedRSP, EndWhen]`; `do` extends it; clause `;` restores it.
+   - Nested `when` inside clause body and default region maintains LIFO order.
+2. **Bytecode layout**
+   - Single clause: verify emitted opcodes (`IfFalseBranch`, clause body, `Branch +0`) and patched offsets for both true and false predicate cases.
+   - Multi-clause with default: ensure each clause adds one pending `p_exit` and the final `;` patches them all to the common exit.
+3. **Runtime behavior (integration tests)**
+   - Evaluate sample programs (using existing VM harness) to confirm first-true wins, fall-through default, and stack cleanup responsibilities remain on the programmer.
+4. **Error coverage**
+   - `do` without `when`.
+   - Clause `;` without `do` (missing `p_skip`).
+   - Final `;` with outstanding `EndDo` (`previous clause not closed`).
+   - Unterminated `when` at EOF.
+   - Nested constructs to ensure no cross-talk between saved snapshots.
 
-Out of Scope (Future Work)
-- Optimized single-jump variant (RSTACK snapshot) can be added if the extra jump is a measurable hot path
-- Additional syntactic sugar beyond when/do — not planned
+### Phase 5 — Documentation
+1. Update any learning or reference docs that list control structures (e.g., `docs/learn/local-vars.md`, `docs/specs/drafts/immediate-words-and-terminators.md`) to mention `when` / `do`.
+2. Add migration notes if older plans referenced the anchor-based design (call out the return-stack approach).
+3. Ensure doctests/examples mirror the final syntax with quoted keywords in comments.
 
-References
-- Spec: docs/specs/drafts/when-do-control-flow.md
-- Immediate control model: src/lang/meta/conditionals.ts, src/ops/core/core-ops.ts (EndIf/EndDefinition patterns)
+### Phase 6 — Wrap-up
+1. Run formatting (`pnpm lint` or project equivalent), unit tests, and integration tests.
+2. Review diff to confirm no unintended files changed (respecting existing dirty state policy).
+3. Update `CHANGELOG` or release notes if project requires.
+
+## Risks & mitigations
+- **Return-stack misuse:** Guard with assertions in development builds (ensure `rsp >= savedRSP`). Tests explicitly cover nested constructs.
+- **Offset miscalculation:** Unit tests assert the exact operand bytes and offsets; leverage helpers used by other control structures for consistency.
+- **Error messaging drift:** Snapshot expected error strings in tests to prevent silent regressions.
+
+## Deliverables checklist
+- [ ] `Op.EndDo`, `Op.EndWhen` defined and wired.
+- [ ] Immediate helpers (`when`, `do`, `ensureNoOpenWhen`) implemented and tested.
+- [ ] Closer logic (`endDo`, `endWhen`) matches spec and passes unit tests.
+- [ ] Builtins registered; parser validation updated.
+- [ ] Comprehensive test suite for happy paths, nesting, and errors.
+- [ ] Documentation synchronized with implementation.
