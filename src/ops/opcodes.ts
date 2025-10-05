@@ -229,4 +229,10 @@ export enum Op {
 
   /** Ends an IF/ELSE construct during compilation (invoked via generic `;`). */
   EndIf,
+
+  /** Ends a `when` clause body during compilation (invoked via generic `;`). */
+  EndDo,
+
+  /** Ends a `when` construct during compilation (invoked via generic `;`). */
+  EndWhen,
 }

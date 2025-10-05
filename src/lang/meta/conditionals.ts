@@ -73,8 +73,13 @@ export function ensureNoOpenConditionals(): void {
       continue;
     }
     const { tag, value: opcode } = fromTaggedValue(value);
-    if (tag === Tag.BUILTIN && opcode === Op.EndIf) {
-      throw new SyntaxError('Unclosed IF', vm.getStackData());
+    if (tag === Tag.BUILTIN) {
+      if (opcode === Op.EndIf) {
+        throw new SyntaxError('Unclosed IF', vm.getStackData());
+      }
+      if (opcode === Op.EndWhen) {
+        throw new SyntaxError('Unclosed `when`', vm.getStackData());
+      }
     }
   }
 }
