@@ -22,8 +22,6 @@ import { SymbolTable } from '../strings/symbol-table';
 
 import { evalOp } from './core';
 
-import { doOp } from './combinators/do';
-import { repeatOp } from './combinators/repeat';
 import { beginDefinitionImmediate, beginIfImmediate, beginElseImmediate } from '../lang/meta';
 
 /**
@@ -127,8 +125,6 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('endif', Op.EndIf);
   symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);
 
-  symbolTable.defineBuiltin('do', Op.Do, doOp);
-  symbolTable.defineBuiltin('repeat', Op.Repeat, repeatOp);
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
 

@@ -65,8 +65,6 @@ import { Op } from './opcodes';
 import { InvalidOpcodeError } from '@src/core';
 
 import { ifCurlyBranchFalseOp } from './control';
-import { doOp } from './combinators/do';
-import { repeatOp } from './combinators/repeat';
 import { selectOp } from './access';
 import { isList, rpushList } from './local-vars-transfer';
 
@@ -154,8 +152,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Pow]: powOp,
     [Op.If]: simpleIfOp,
     [Op.IfFalseBranch]: ifCurlyBranchFalseOp,
-    [Op.Do]: doOp,
-    [Op.Repeat]: repeatOp,
     [Op.Select]: selectOp,
     [Op.MakeList]: makeListOp,
     [Op.LiteralAddress]: literalAddressOp,
