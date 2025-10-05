@@ -58,13 +58,12 @@ Implement the logic described in the spec for the two closers (compile-time exec
 
 ### Phase 3 — Wiring and registration
 1. Export the new helpers via `src/lang/immediates.ts` (or relevant re-export file).
-2. Register the immediates and closers in `src/ops/builtins-register.ts`:
+2. Register the immediates in `src/ops/builtins-register.ts`:
    - `symbolTable.defineBuiltin('when', Op.Nop, beginWhenImmediate, /*immediate=*/true)`.
    - `symbolTable.defineBuiltin('do', Op.Nop, beginDoImmediate, true)`.
-   - `symbolTable.defineBuiltin('enddo', Op.EndDo)`.
-   - `symbolTable.defineBuiltin('endwhen', Op.EndWhen)`.
-3. Update parser finalization (`src/lang/parser.ts`) to invoke `ensureNoOpenWhen(state)` alongside existing invariants.
-4. Add any necessary wiring for generic `;` to recognize the new closers if the dispatcher uses tagged enums.
+   - Mark the internal closers (`EndDo`, `EndWhen`) so the generic `;` dispatcher can reach them, but do **not** expose `enddo` / `endwhen` to user code or the dictionary.
+3. Update parser finalization (`src/lang/parser.ts`) to invoke `ensureNoOpenWhen(state)` alongside existing checks (no additional requirements at each `when`).
+4. Ensure the generic `;` routing includes the new closer opcodes if it uses an explicit dispatch table.
 
 ### Phase 4 — Test matrix
 Create a dedicated test file `src/test/lang/when-do-control-flow.test.ts` covering:
