@@ -30,24 +30,12 @@ Created `src/lang/meta/when-do.ts` exporting:
 
 TODO: add focused unit tests for the helpers (e.g., `src/test/lang/when-do-immediate.test.ts`) covering nested scenarios where a clause body opens another `when` while an `EndDo` sits beneath it.
 
-### Phase 2 — Closer executions
-Implement the logic described in the spec for the two closers (compile-time execution when `;` pops them):
-1. `endDoCloser(state)` (invoked when generic `;` evaluates `EndDo`)
-   - Stack contract: `[..., savedRSP, EndWhen, p_skip]` on entry.
-   - Steps:
-     1. Validate `p_skip` (error if zero/missing).
-     2. Emit `Branch +0`; record operand address as `p_exit`.
-     3. Push `p_exit` onto the return stack (`state.rpush`).
-     4. Patch `p_skip` to the current `CP`.
-     5. Drop `p_skip`, leaving `[..., savedRSP, EndWhen]`.
-   - Tests: ensure the emitted branch operand is recorded, the predicate skip is patched, and errors fire if the stack contract is violated.
-2. `endWhenCloser(state)`
-   - Stack contract: `[..., savedRSP, EndWhen]`.
-   - Steps:
-     1. Pop `savedRSP` (after the generic closer removes `EndWhen`).
-     2. Loop while `state.rsp > savedRSP`: pop each `p_exit`, patch it forward to `CP`.
-     3. Verify the loop emptied exactly the entries contributed inside this construct (under invariants, no underflow should occur). Keep an assertion to flag underflow during development.
-   - Tests: multi-branch scenarios confirming all recorded exits are patched; ensure nested constructs restore the outer `savedRSP` untouched.
+### Phase 2 — Closer executions ✅
+Implemented closers in `src/ops/core/core-ops.ts`:
+1. `endDoOp` — validates `p_skip`, emits `Branch +0`, records its operand on the return stack, patches the predicate skip to fall through, and restores the frame to `[savedRSP, EndWhen]`.
+2. `endWhenOp` — pops the saved return-stack snapshot and patches every pending exit placeholder to the common exit, asserting the return stack depth matches the snapshot on exit.
+
+TODO: add unit/bytecode tests exercising both closers across multi-clause and nested scenarios.
 
 ### Phase 3 — Wiring and registration
 1. Export the new helpers via `src/lang/immediates.ts` (or relevant re-export file).
