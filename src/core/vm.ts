@@ -32,6 +32,9 @@ export class VM {
   // Base pointer for return stack frames (cells, canonical)
   private _bpCells: number;
 
+  // Global segment bump pointer (cells)
+  private _gpCells: number;
+
   IP: number;
 
   running: boolean;
@@ -62,7 +65,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-  this.listDepth = 0;
+    this._gpCells = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);
@@ -121,6 +124,15 @@ export class VM {
 
   get BPCells(): number { return this._bpCells; }
   set BPCells(cells: number) { this.BP = cells; }
+
+  /** Global segment bump pointer (cells). */
+  get GP(): number { return this._gpCells; }
+  set GP(cells: number) {
+    if (!Number.isInteger(cells) || cells < 0) {
+      throw new Error(`GP set to invalid value: ${cells}`);
+    }
+    this._gpCells = cells;
+  }
 
   /**
    * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.

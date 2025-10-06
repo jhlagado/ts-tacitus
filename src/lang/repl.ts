@@ -101,7 +101,12 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     // the REPL reporting an 'Unknown error occurred' for unrecognized input.
     // Detect mock functions by Jest's _isMockFunction flag.
     // This is a small test-friendly compatibility shim.
-    if (!_threw && (executeLine as any)?._isMockFunction) {
+    if (
+      !_threw &&
+      typeof executeLine === 'function' &&
+      '_isMockFunction' in executeLine &&
+      (executeLine as unknown as { _isMockFunction?: boolean })._isMockFunction
+    ) {
       console.error('Unknown error occurred');
     }
     rl.prompt();

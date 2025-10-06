@@ -150,18 +150,7 @@ _No imports_
 - `./access`
 - `./local-vars-transfer`
 
-## ops/combinators/do.ts
-- `../../core/vm`
-- `../../core/types`
-- `../core`
-
-## ops/combinators/repeat.ts
-- `../../core/vm`
-- `../../core/types`
-- `../../core/tagged`
-- `../core`
-
-## ops/control/branch-ops.ts
+## ops/control/conditional-ops.ts
 - `@src/core`
 
 ## ops/control/index.ts
@@ -588,14 +577,6 @@ _No imports_
 - `../../../ops/math`
 - `../../../ops/lists`
 
-## test/ops/combinators/do.test.ts
-- `../../../core/globalState`
-- `../../../lang/interpreter`
-
-## test/ops/combinators/repeat.test.ts
-- `../../../core/globalState`
-- `../../../lang/interpreter`
-
 ## test/ops/comparison/comparison.test.ts
 - `@jest/globals`
 - `../../../core/vm`
@@ -895,4 +876,3 @@ _No imports_
 - `../../lang/parser`
 - `../../lang/interpreter`
 - `../../core/globalState`
-

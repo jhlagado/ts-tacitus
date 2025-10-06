@@ -8,6 +8,7 @@ Start here to get a zero-to-productive overview. Read in this order:
 - variables-and-refs.md — Locals, globals, references, assignment, +>
 - lists.md — Reverse lists, traversal, bracket paths, addressing
 - errors-and-failures.md — Error policy and messages
+- metaprogramming.md — Immediate words, shared terminator, `if`/`when` lowering
 
 Quick Reference
 - quick-reference.md — One‑page cheatsheet of common patterns and lowerings

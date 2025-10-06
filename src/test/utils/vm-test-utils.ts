@@ -39,7 +39,7 @@ export function resetVM(): void {
   }
 
   // Reset globals allocation pointer and clear global segment
-  (vm as unknown as { _globalTopCells?: number })._globalTopCells = 0;
+  vm.GP = 0;
   for (let i = 0; i < GLOBAL_SIZE; i++) {
     vm.memory.write8(SEG_GLOBAL, i, 0);
   }

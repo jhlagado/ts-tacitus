@@ -70,14 +70,12 @@ describe('when/do control flow', () => {
   });
 
   test('raises when when is not closed by final semicolon', () => {
-    let threw = false;
     try {
       parse(new Tokenizer('when dup 0 eq do drop 1 ;'));
       // If parse did not throw, the construct must still be marked open.
-      expect(vm.getStackData().some(value => Number.isNaN(value))).toBe(true);
+      expect(vm.getStackData().some((value: number) => Number.isNaN(value))).toBe(true);
       expect(() => ensureNoOpenConditionals()).toThrow('Unclosed `when`');
     } catch (err) {
-      threw = true;
       expect((err as Error).message).toContain('Unclosed `when`');
     }
   });
