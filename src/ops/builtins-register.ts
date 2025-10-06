@@ -14,7 +14,7 @@
  * - Unary operations (negate, reciprocal, floor, etc.)
  * - Stack operations (dup, drop, swap, etc.)
  * - Arithmetic operations (abs, exp, sqrt, etc.)
- * - Conditional operations (if, ifcurlybf)
+ * - Conditional operations (if)
  */
 import { VM, SyntaxError } from '@src/core';
 import { Op } from './opcodes';
@@ -130,13 +130,10 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('else', Op.Nop, _vm => beginElseImmediate(), true);
   symbolTable.defineBuiltin('when', Op.Nop, _vm => beginWhenImmediate(), true);
   symbolTable.defineBuiltin('do', Op.Nop, _vm => beginDoImmediate(), true);
-  symbolTable.defineBuiltin('endif', Op.EndIf);
-  symbolTable.defineBuiltin('ifcurlybf', Op.IfFalseBranch);
 
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
 
-  symbolTable.defineBuiltin('enddef', Op.EndDefinition);
   symbolTable.defineBuiltin(':', Op.Nop, _vm => beginDefinitionImmediate(), true);
   symbolTable.defineBuiltin(
     ';',

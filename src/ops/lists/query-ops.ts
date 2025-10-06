@@ -3,7 +3,7 @@
  * Read-only and address-returning list operations (segment-aware).
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, NIL } from '@src/core';
+import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, dropList } from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
 import { CELL_SIZE, SEG_GLOBAL, GLOBAL_SIZE } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
@@ -161,6 +161,156 @@ export function loadOp(vm: VM): void {
   vm.push(value);
 }
 
+type SlotAddress = { segment: number; address: number };
+
+interface SlotInfo {
+  root: SlotAddress;
+  rootValue: number;
+  resolved: SlotAddress;
+  existingValue: number;
+}
+
+function resolveSlot(vm: VM, addressValue: number): SlotInfo {
+  const root = resolveReference(vm, addressValue);
+  const rootValue = vm.memory.readFloat32(root.segment, root.address);
+  let resolved = root;
+  let existingValue = rootValue;
+  if (isRef(rootValue)) {
+    resolved = resolveReference(vm, rootValue);
+    existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
+  }
+  return { root, rootValue, resolved, existingValue };
+}
+
+function discardCompoundSource(vm: VM, rhsTag: Tag, slotCount: number): void {
+  if (rhsTag === Tag.LIST) {
+    dropList(vm);
+    return;
+  }
+  vm.pop();
+}
+
+function initializeGlobalCompound(
+  vm: VM,
+  slot: SlotInfo,
+  rhsInfo: { header: number; baseAddr: number; segment: number },
+  rhsTag: Tag,
+  slotCount: number,
+): void {
+  const neededCells = slotCount + 1;
+  const maxCells = GLOBAL_SIZE / CELL_SIZE;
+  const baseCells = vm.GP;
+  if (baseCells + neededCells > maxCells) {
+    discardCompoundSource(vm, rhsTag, slotCount);
+    throw new Error('Global segment exhausted while allocating compound');
+  }
+
+  const baseAddr = baseCells * CELL_SIZE;
+  for (let i = 0; i < slotCount; i++) {
+    const srcAddr = rhsInfo.baseAddr + i * CELL_SIZE;
+    const v = vm.memory.readFloat32(rhsInfo.segment, srcAddr);
+    vm.memory.writeFloat32(SEG_GLOBAL, baseAddr + i * CELL_SIZE, v);
+  }
+  const headerAddr = baseAddr + slotCount * CELL_SIZE;
+  vm.memory.writeFloat32(SEG_GLOBAL, headerAddr, rhsInfo.header);
+  const headerCellIndex = headerAddr / CELL_SIZE;
+  vm.memory.writeFloat32(slot.root.segment, slot.root.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
+  vm.GP = baseCells + neededCells;
+  discardCompoundSource(vm, rhsTag, slotCount);
+}
+
+function copyCompoundFromReference(
+  vm: VM,
+  rhsInfo: { header: number; baseAddr: number; segment: number },
+  targetSegment: number,
+  targetAddress: number,
+  slotCount: number,
+): void {
+  const srcHeaderAddr = computeHeaderAddr(rhsInfo.baseAddr, slotCount);
+  const destBaseAddr = targetAddress - slotCount * CELL_SIZE;
+
+  if (
+    rhsInfo.segment === targetSegment &&
+    rhsInfo.baseAddr === destBaseAddr &&
+    srcHeaderAddr === targetAddress
+  ) {
+    return;
+  }
+
+  if (rhsInfo.segment === targetSegment) {
+    const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
+    const dstBaseCell = destBaseAddr / CELL_SIZE;
+    copyCells(vm.memory, targetSegment, cellIndex(dstBaseCell), cellIndex(srcBaseCell), cells(slotCount));
+    vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
+    return;
+  }
+
+  const tmp: number[] = new Array(slotCount);
+  for (let i = 0; i < slotCount; i++) {
+    const addr = rhsInfo.baseAddr + i * CELL_SIZE;
+    tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
+  }
+  for (let i = 0; i < slotCount; i++) {
+    const addr = destBaseAddr + i * CELL_SIZE;
+    vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
+  }
+  vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
+}
+
+function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
+  const rhsInfo = getListBounds(vm, rhsValue);
+  if (!rhsInfo || !isList(rhsInfo.header)) {
+    return false;
+  }
+
+  const rhsTag = getTag(rhsValue);
+  const slotCount = getListLength(rhsInfo.header);
+  const existingIsCompound = isList(slot.existingValue);
+
+  if (!existingIsCompound) {
+    if (slot.root.segment === SEG_GLOBAL) {
+      initializeGlobalCompound(vm, slot, rhsInfo, rhsTag, slotCount);
+      return true;
+    }
+    discardCompoundSource(vm, rhsTag, slotCount);
+    throw new Error('Cannot assign simple to compound or compound to simple');
+  }
+
+  if (!isCompatible(slot.existingValue, rhsInfo.header)) {
+    discardCompoundSource(vm, rhsTag, slotCount);
+    throw new Error('Incompatible compound assignment: slot count or type mismatch');
+  }
+
+  if (rhsTag === Tag.LIST) {
+    updateListInPlace(vm, slot.resolved.address, slot.resolved.segment);
+    return true;
+  }
+
+  copyCompoundFromReference(vm, rhsInfo, slot.resolved.segment, slot.resolved.address, slotCount);
+  vm.pop();
+  return true;
+}
+
+function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
+  let value = rhsValue;
+  if (isRef(value)) {
+    value = readReference(vm, value);
+    vm.pop();
+    vm.push(value);
+  }
+
+  const valueIsCompound = isList(value);
+  const existingIsCompound = isList(slot.existingValue);
+  if (!valueIsCompound && !existingIsCompound) {
+    vm.pop();
+    vm.memory.writeFloat32(slot.root.segment, slot.root.address, value);
+    return;
+  }
+
+  vm.pop();
+  throw new Error('Cannot assign simple to compound or compound to simple');
+}
+
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
   const addressValue = vm.pop();
@@ -170,146 +320,13 @@ export function storeOp(vm: VM): void {
     throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
   }
 
-  // Resolve destination slot and read existing value for compatibility checks.
-  const dest = resolveReference(vm, addressValue);
-  const valueInSlot = vm.memory.readFloat32(dest.segment, dest.address);
-  let existingValue = valueInSlot;
-  if (isRef(valueInSlot)) {
-    const resolved = resolveReference(vm, valueInSlot);
-    existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
-  }
+  const slot = resolveSlot(vm, addressValue);
 
-  // Attempt compound path first, using unified header/base resolver. This handles both
-  // materialized lists (Tag.LIST at TOS) and refs-to-lists. We will:
-  // - If materialized: use updateListInPlace (existing behavior)
-  // - If ref-to-list: perform direct ref→ref copy without materializing
-  const rhsInfo = getListBounds(vm, rhsTop);
-  if (rhsInfo && isList(rhsInfo.header)) {
-    const existingIsCompound = isList(existingValue);
-    if (!existingIsCompound) {
-      // Initialization path for globals: allocate region in SEG_GLOBAL and bind slot to it
-      if (dest.segment === SEG_GLOBAL) {
-        const slotCount = getListLength(rhsInfo.header);
-        // Allocate slotCount (payload) + 1 (header) cells in global segment
-        const neededCells = slotCount + 1;
-        const maxCells = GLOBAL_SIZE / CELL_SIZE;
-        const baseCells = vm.GP;
-        if (baseCells + neededCells > maxCells) {
-          vm.pop();
-          throw new Error('Global segment exhausted while allocating compound');
-        }
-        const baseAddr = baseCells * CELL_SIZE;
-        // Copy payload
-        for (let i = 0; i < slotCount; i++) {
-          const srcAddr = rhsInfo.baseAddr + i * CELL_SIZE;
-          const v = vm.memory.readFloat32(rhsInfo.segment, srcAddr);
-          vm.memory.writeFloat32(SEG_GLOBAL, baseAddr + i * CELL_SIZE, v);
-        }
-        // Write header
-        const headerAddr = baseAddr + slotCount * CELL_SIZE;
-        vm.memory.writeFloat32(SEG_GLOBAL, headerAddr, rhsInfo.header);
-        // Rebind slot: write GLOBAL_REF(headerCellIndex) into the destination slot
-        const headerCellIndex = headerAddr / CELL_SIZE;
-        vm.memory.writeFloat32(dest.segment, dest.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
-        // Advance global top pointer
-        vm.GP = baseCells + slotCount + 1;
-        // Pop the source list from data stack: header + payload
-        vm.pop();
-        for (let i = 0; i < slotCount; i++) vm.pop();
-        return;
-      }
-      // Cannot assign compound to simple (non-global destinations)
-      vm.pop();
-      throw new Error('Cannot assign simple to compound or compound to simple');
-    }
-
-    // Validate compatibility against destination's existing compound header
-    if (!isCompatible(existingValue, rhsInfo.header)) {
-      vm.pop();
-      throw new Error('Incompatible compound assignment: slot count or type mismatch');
-    }
-
-    // Determine destination write location: either the resolved destination address itself,
-    // or, if the slot holds a reference, resolve it to get the true header address.
-    let targetAddress = dest.address;
-    let targetSegment = dest.segment;
-    if (isRef(valueInSlot)) {
-      const resolved = resolveReference(vm, valueInSlot);
-      targetAddress = resolved.address;
-      targetSegment = resolved.segment;
-    }
-
-    const slotCount = getListLength(rhsInfo.header);
-
-    // If RHS is materialized on the data stack (Tag.LIST), retain existing fast path:
-    // write from stack via updateListInPlace which also drops the materialized list.
-    if (getTag(rhsTop) === Tag.LIST) {
-      updateListInPlace(vm, targetAddress, targetSegment);
-      return;
-    }
-
-    // RHS is a ref-to-list. Copy directly from source memory to destination
-    // without materializing, with overlap safety via a scratch buffer.
-    const srcHeaderAddr = computeHeaderAddr(rhsInfo.baseAddr, slotCount);
-    const destBaseAddr = targetAddress - slotCount * CELL_SIZE;
-
-    // Early no-op if source and destination are the exact same region
-    if (
-      rhsInfo.segment === targetSegment &&
-      rhsInfo.baseAddr === destBaseAddr &&
-      srcHeaderAddr === targetAddress
-    ) {
-      vm.pop();
-      return;
-    }
-
-    if (rhsInfo.segment === targetSegment) {
-      // Same-segment fast path: copy payload via u32.copyWithin (memmove semantics)
-      const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
-      const dstBaseCell = destBaseAddr / CELL_SIZE;
-      copyCells(vm.memory, targetSegment, cellIndex(dstBaseCell), cellIndex(srcBaseCell), cells(slotCount));
-      // Write header last
-      vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
-    } else {
-      // Cross-segment fallback: stage into a temporary buffer
-      const tmp: number[] = new Array(slotCount);
-      for (let i = 0; i < slotCount; i++) {
-        const addr = rhsInfo.baseAddr + i * CELL_SIZE;
-        tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
-      }
-      for (let i = 0; i < slotCount; i++) {
-        const addr = destBaseAddr + i * CELL_SIZE;
-        vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
-      }
-      // Then write header last
-      vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
-    }
-
-    // Stack effect mirrors simple store: pop one RHS value
-    vm.pop();
+  if (tryStoreCompound(vm, slot, rhsTop)) {
     return;
   }
 
-  // Simple path: scalar or non-compound values. Maintain prior behavior:
-  // If RHS is a ref, dereference once and replace TOS with that single value.
-  let value = rhsTop;
-  if (isRef(value)) {
-    value = readReference(vm, value);
-    vm.pop();
-    vm.push(value);
-  }
-
-  const valueIsCompound = isList(value);
-  const existingIsCompound = isList(existingValue);
-  if (!valueIsCompound && !existingIsCompound) {
-  vm.pop();
-    vm.memory.writeFloat32(dest.segment, dest.address, value);
-    return;
-  }
-
-  // Remaining mismatches error out like before
-  vm.pop();
-  throw new Error('Cannot assign simple to compound or compound to simple');
+  storeSimpleValue(vm, slot, rhsTop);
 }
 
 /**
