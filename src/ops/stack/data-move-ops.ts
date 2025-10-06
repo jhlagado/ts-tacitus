@@ -26,9 +26,9 @@ export type StackArgInfo = [number, number];
  * @returns [nextSlot, size] tuple
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
-  const slotAddr = vm.SP / CELL_SIZE - startSlot - 1;
+  const slotAddr = vm.SPBytes / CELL_SIZE - startSlot - 1;
 
-  if (slotAddr < 0 || slotAddr * CELL_SIZE >= vm.SP) {
+  if (slotAddr < 0 || slotAddr * CELL_SIZE >= vm.SPBytes) {
     return [startSlot + 1, 1];
   }
 
@@ -128,14 +128,14 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
   let currentSlot = 0;
 
   for (let i = 0; i <= index; i++) {
-    if (currentSlot * CELL_SIZE >= vm.SP) {
+    if (currentSlot * CELL_SIZE >= vm.SPBytes) {
       throw new StackUnderflowError('pick', index + 1, vm.getStackData());
     }
 
     const [nextSlot, size] = findElement(vm, currentSlot);
 
     if (i === index) {
-      const targetSlot = vm.SP / CELL_SIZE - nextSlot;
+      const targetSlot = vm.SPBytes / CELL_SIZE - nextSlot;
       return [targetSlot, size];
     }
 
@@ -156,12 +156,12 @@ function validateStackDepth(vm: VM, requiredElements: number, operationName: str
  * Safely executes a stack operation with error handling and stack pointer restoration.
  */
 function safeStackOperation(vm: VM, operation: () => void, operationName: string): void {
-  const originalSP = vm.SP;
+  const originalSP = vm.SPBytes;
 
   try {
     operation();
   } catch (error) {
-    vm.SP = originalSP;
+    vm.SPBytes = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -195,20 +195,20 @@ export const dupOp: Verb = (vm: VM) => {
 export const overOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 2, 'over');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.SPBytes;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-    const secondAddr = vm.SP - (topSlots + secondSlots) * CELL_SIZE;
+    const secondAddr = vm.SPBytes - (topSlots + secondSlots) * CELL_SIZE;
 
     for (let i = 0; i < secondSlots; i++) {
       const value = vm.memory.readFloat32(SEG_STACK, secondAddr + i * CELL_SIZE);
       vm.push(value);
     }
   } catch (error) {
-    vm.SP = originalSP;
+    vm.SPBytes = originalSP;
     throw new Error(`over failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
@@ -246,7 +246,7 @@ export const dropOp: Verb = (vm: VM) => {
   const { tag, value } = fromTaggedValue(topValue);
   if (tag === Tag.LIST) {
     const totalSlots = value + 1;
-    vm.SP -= totalSlots * CELL_SIZE;
+    vm.SPBytes -= totalSlots * CELL_SIZE;
     return;
   }
   vm.pop();
@@ -260,19 +260,19 @@ export const dropOp: Verb = (vm: VM) => {
 export const swapOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 2, 'swap');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.SPBytes;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
     const totalSlots = topSlots + secondSlots;
-    const stackLength = vm.SP / CELL_SIZE;
+    const stackLength = vm.SPBytes / CELL_SIZE;
     const startSlot = stackLength - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.SPBytes = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -292,7 +292,7 @@ export const swapOp: Verb = (vm: VM) => {
 export const rotOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 3, 'rot');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.SPBytes;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
@@ -304,7 +304,7 @@ export const rotOp: Verb = (vm: VM) => {
 
     cellsRoll(vm, 0, totalSlots, rotationSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.SPBytes = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -324,7 +324,7 @@ export const rotOp: Verb = (vm: VM) => {
 export const revrotOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 3, 'revrot');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.SPBytes;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
@@ -335,7 +335,7 @@ export const revrotOp: Verb = (vm: VM) => {
 
     cellsRoll(vm, 0, totalSlots, topSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.SPBytes = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -361,8 +361,8 @@ export const nipOp: Verb = (vm: VM) => {
       const [_tosNextSlot, tosSize] = findElement(vm, 0);
       const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
 
-      const tosStartAddr = vm.SP - tosSize * CELL_SIZE;
-      const nosStartAddr = vm.SP - (tosSize + nosSize) * CELL_SIZE;
+      const tosStartAddr = vm.SPBytes - tosSize * CELL_SIZE;
+      const nosStartAddr = vm.SPBytes - (tosSize + nosSize) * CELL_SIZE;
 
       for (let i = 0; i < tosSize; i++) {
         const sourceAddr = tosStartAddr + i * CELL_SIZE;
@@ -372,7 +372,7 @@ export const nipOp: Verb = (vm: VM) => {
         vm.memory.writeFloat32(SEG_STACK, destAddr, value);
       }
 
-      vm.SP -= nosSize * CELL_SIZE;
+      vm.SPBytes -= nosSize * CELL_SIZE;
     },
     'nip',
   );

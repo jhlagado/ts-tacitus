@@ -396,7 +396,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
   if ((vm.RSP + 1) * CELL_SIZE > RSTACK_SIZE) {
     throw new ReturnStackOverflowError('group-left', vm.getStackData());
   }
-  vm.rpush(vm.SP);
+  vm.rpush(vm.SPBytes);
 };
 
 /**
@@ -428,7 +428,7 @@ export const groupRightOp: Verb = (vm: VM) => {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();
-    const sp1 = vm.SP;
+    const sp1 = vm.SPBytes;
     const d = (sp1 - sp0) / CELL_SIZE;
     vm.push(d);
   } catch (e) {
