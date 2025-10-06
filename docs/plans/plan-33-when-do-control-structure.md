@@ -77,8 +77,8 @@ Create a dedicated test file `src/test/lang/when-do-control-flow.test.ts` coveri
 
 ## Deliverables checklist
 - [ ] `Op.EndDo`, `Op.EndWhen` defined and wired.
-- [ ] Immediate helpers (`when`, `do`) implemented and tested.
-- [ ] Closer logic (`endDo`, `endWhen`) matches spec and passes unit tests.
-- [ ] Builtins registered; parser validation updated.
-- [ ] Comprehensive test suite for happy paths, nesting, and errors.
+- [x] Immediate helpers (`when`, `do`) implemented and tested.
+- [x] Closer logic (`endDo`, `endWhen`) matches spec and passes unit tests.
+- [x] Builtins registered; parser validation updated.
+- [x] Comprehensive test suite for happy paths, nesting, and errors.
 - [ ] Documentation synchronized with implementation.

@@ -17,7 +17,10 @@ export function beginWhenImmediate(): void {
 export function beginDoImmediate(): void {
   requireParserState();
 
-  vm.ensureStackSize(1, 'do');
+  if (vm.SPCells === 0) {
+    throw new SyntaxError('do without when', vm.getStackData());
+  }
+
   const top = vm.peek();
   const { tag, value } = fromTaggedValue(top);
   if (tag !== Tag.BUILTIN || value !== Op.EndWhen) {
