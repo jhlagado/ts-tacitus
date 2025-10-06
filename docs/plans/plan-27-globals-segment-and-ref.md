@@ -27,7 +27,7 @@ Last updated: 2025-09-11
   - `value -> name[ … ]` compiles `GLOBAL_REF(slot) → Fetch → Select → Nip → Store`.
   - `&name` inside functions produces `GLOBAL_REF(slot)`.
 - Compound semantics:
-  - First-time compound write into a simple (uninitialized) global slot allocates payload+header in `SEG_GLOBAL`, writes a `GLOBAL_REF(headerCell)` into the slot, and advances `_globalTopCells`.
+  - First-time compound write into a simple (uninitialized) global slot allocates payload+header in `SEG_GLOBAL`, writes a `GLOBAL_REF(headerCell)` into the slot, and advances the global pointer (`GP`).
   - Subsequent compatible compound writes are in-place, reusing list fast-paths.
   - Bracket-path updates traverse to sub-address via `Select` and then store.
 
@@ -46,8 +46,8 @@ Last updated: 2025-09-11
 - [x] Tests: basic declare/assign/read; GLOBAL_REF fetch; compound init sanity (length check).
 
 ### Phase 2 — Hardening, &-Sigil Semantics, and Docs
-- [ ] Bounds & exhaustion: error if `_globalTopCells + needed > GLOBAL_SIZE/CELL_SIZE`.
-- [ ] Reset behavior: ensure `resetVM()` resets `_globalTopCells` and clears global data if desired.
+- [ ] Bounds & exhaustion: error if `GP + needed > GLOBAL_SIZE/CELL_SIZE`.
+- [ ] Reset behavior: ensure `resetVM()` resets `GP` and clears global data if desired.
 - [ ] Ref Sigil (&) expansion:
   - [x] Inside functions: `&global` produces `GLOBAL_REF` (implemented).
   - [ ] Top level: allow `&global` (no local frame) to produce `GLOBAL_REF`.

@@ -193,7 +193,7 @@ export function storeOp(vm: VM): void {
         // Allocate slotCount (payload) + 1 (header) cells in global segment
         const neededCells = slotCount + 1;
         const maxCells = GLOBAL_SIZE / CELL_SIZE;
-        const baseCells = (vm as any)._globalTopCells ?? 0;
+        const baseCells = vm.GP;
         if (baseCells + neededCells > maxCells) {
           vm.pop();
           throw new Error('Global segment exhausted while allocating compound');
@@ -212,7 +212,7 @@ export function storeOp(vm: VM): void {
         const headerCellIndex = headerAddr / CELL_SIZE;
         vm.memory.writeFloat32(dest.segment, dest.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
         // Advance global top pointer
-        (vm as any)._globalTopCells = baseCells + slotCount + 1;
+        vm.GP = baseCells + slotCount + 1;
         // Pop the source list from data stack: header + payload
         vm.pop();
         for (let i = 0; i < slotCount; i++) vm.pop();
