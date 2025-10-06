@@ -56,9 +56,18 @@ import {
 import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print';
-import { simpleIfOp } from './control';
 import { openListOp, closeListOp } from './lists';
-import { lengthOp, sizeOp, slotOp, elemOp, fetchOp, storeOp, findOp, loadOp, walkOp } from './lists';
+import {
+  lengthOp,
+  sizeOp,
+  slotOp,
+  elemOp,
+  fetchOp,
+  storeOp,
+  findOp,
+  loadOp,
+  walkOp,
+} from './lists';
 import { makeListOp, packOp, unpackOp } from './lists';
 import { refOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
@@ -66,7 +75,7 @@ import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '@src/core';
 
-import { ifCurlyBranchFalseOp } from './control';
+import { ifFalseBranchOp } from './control';
 import { selectOp } from './access';
 import { isList, rpushList } from './local-vars-transfer';
 
@@ -103,9 +112,9 @@ export function literalCodeOp(vm: VM): void {
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  // Unified cell-only frame prologue
-  vm.rpush(vm.BPCells);
-  vm.BPCells = vm.RSP;
+    // Unified cell-only frame prologue
+    vm.rpush(vm.BPCells);
+    vm.BPCells = vm.RSP;
     vm.IP = opcode;
     return;
   }
@@ -152,8 +161,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Log]: logOp,
     [Op.Sqrt]: sqrtOp,
     [Op.Pow]: powOp,
-    [Op.If]: simpleIfOp,
-    [Op.IfFalseBranch]: ifCurlyBranchFalseOp,
+    [Op.IfFalseBranch]: ifFalseBranchOp,
     [Op.Select]: selectOp,
     [Op.MakeList]: makeListOp,
     [Op.LiteralAddress]: literalAddressOp,
@@ -268,11 +276,16 @@ export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
-    'BP(cells):', vm.BPCells,
-    'RSP(cells):', vm.RSP,
-    'RSP(bytes):', vm.RSP * CELL_SIZE,
-    'SP(cells):', vm.SPCells,
-    'SP(bytes):', vm.SP
+    'BP(cells):',
+    vm.BPCells,
+    'RSP(cells):',
+    vm.RSP,
+    'RSP(bytes):',
+    vm.RSP * CELL_SIZE,
+    'SP(cells):',
+    vm.SPCells,
+    'SP(bytes):',
+    vm.SP,
   );
 
   if (vm.BP > 0) {
@@ -280,14 +293,14 @@ export function dumpFrameOp(vm: VM): void {
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-  const slotAddr = (vm.BPCells + i) * CELL_SIZE;
+      const slotAddr = (vm.BPCells + i) * CELL_SIZE;
       const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (tag === Tag.RSTACK_REF) {
-  const targetAddr = value * CELL_SIZE;
+        const targetAddr = value * CELL_SIZE;
         const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
