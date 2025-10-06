@@ -50,7 +50,7 @@ export class VM {
   listDepth: number;
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
-  
+
 
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
@@ -61,11 +61,12 @@ export class VM {
     this.running = true;
     this._spCells = 0;
     this._rspCells = 0;
-  this._bpCells = 0;
+    this._bpCells = 0;
+    this._gpCells = 0;
+
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this._gpCells = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     registerBuiltins(this, this.symbolTable);
