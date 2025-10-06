@@ -598,8 +598,6 @@ export function handleSpecial(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
-  } else if (value === '{' || value === '}') {
-    throw new SyntaxError('Curly brace code blocks have been removed; use immediate constructs with ;', vm.getStackData());
   } else if (value === '`') {
     parseBacktickSymbol(state);
   } else if (value === '[') {
