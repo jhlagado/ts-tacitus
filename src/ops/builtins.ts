@@ -285,7 +285,7 @@ export function dumpFrameOp(vm: VM): void {
     'SP(cells):',
     vm.SPCells,
     'SP(bytes):',
-    vm.SP,
+    vm.SPBytes,
   );
 
   if (vm.BP > 0) {

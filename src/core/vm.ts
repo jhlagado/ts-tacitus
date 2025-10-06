@@ -76,13 +76,17 @@ export class VM {
    * SP: returns/accepts BYTES for backward compatibility (legacy code paths).
    * Prefer SPCells for new code.
    */
-  get SP(): number { return this._spCells * CELL_SIZE_BYTES; }
-  set SP(bytes: number) {
+  get SPBytes(): number { return this._spCells * CELL_SIZE_BYTES; }
+  set SPBytes(bytes: number) {
     if ((bytes & (CELL_SIZE_BYTES - 1)) !== 0) {
       throw new Error(`SP set to non-cell-aligned byte offset: ${bytes}`);
     }
     this._spCells = bytes / CELL_SIZE_BYTES;
   }
+
+  // Deprecated: legacy byte-based accessor retained for now
+  get SP(): number { return this.SPBytes; }
+  set SP(bytes: number) { this.SPBytes = bytes; }
 
   get SPCells(): number { return this._spCells; }
   set SPCells(cells: number) {
