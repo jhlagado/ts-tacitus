@@ -24,7 +24,7 @@ import { ReturnStackUnderflowError } from '@src/core';
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(vm.SP - CELL_SIZE);
+  vm.rpush(vm.SPBytes - CELL_SIZE);
 }
 
 /**
@@ -36,13 +36,13 @@ export function closeListOp(vm: VM): void {
   }
 
   const headerPos = vm.rpop();
-  const payloadSlots = (vm.SP - headerPos - CELL_SIZE) / CELL_SIZE;
+  const payloadSlots = (vm.SPBytes - headerPos - CELL_SIZE) / CELL_SIZE;
 
   vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = (vm.SP - headerPos) / CELL_SIZE;
+    const totalSpan = (vm.SPBytes - headerPos) / CELL_SIZE;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
@@ -62,7 +62,7 @@ export function makeListOp(vm: VM): void {
 
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
-  const headerPos = vm.SP - CELL_SIZE;
+  const headerPos = vm.SPBytes - CELL_SIZE;
   vm.rpush(headerPos);
 
   vm.push(blockAddr);
@@ -70,7 +70,7 @@ export function makeListOp(vm: VM): void {
 
   const taggedHeaderPos = vm.rpop();
   const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
-  const payloadSlots = (vm.SP - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
+  const payloadSlots = (vm.SPBytes - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
 
   if (payloadSlots < 0) {
     throw new Error('makeList: negative payload slot count detected');
@@ -79,7 +79,7 @@ export function makeListOp(vm: VM): void {
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
   vm.memory.writeFloat32(SEG_STACK, retrievedHeaderPos, finalizedHeader);
 
-  const totalSpan = (vm.SP - retrievedHeaderPos) / CELL_SIZE;
+  const totalSpan = (vm.SPBytes - retrievedHeaderPos) / CELL_SIZE;
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
   }

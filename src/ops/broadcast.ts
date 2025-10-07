@@ -259,7 +259,7 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   dupOp(vm);
 
   // Transform the top copy in place using direct memory writes
-  const headerAddr = vm.SP - CELL_SIZE;
+  const headerAddr = vm.SPBytes - CELL_SIZE;
   const headerVal = vm.memory.readFloat32(SEG_STACK, headerAddr);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {
