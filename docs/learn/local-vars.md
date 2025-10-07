@@ -265,7 +265,7 @@ Frame layout after initialization:
 
 ### Function Exit:
 
-1. **Single instruction cleanup**: `RSP = BPCells` (or `RP = BP` in byte mode)
+1. **Single instruction cleanup**: `RSP = BP`
    - Deallocates all local variable slots
    - Deallocates all compound data
    - Handles nested structures automatically
@@ -274,7 +274,7 @@ Frame layout after initialization:
 
 ### Cleanup Elegance:
 
-The `RSP = BPCells` (or `RP = BP`) operation instantly deallocates:
+The `RSP = BP` operation instantly deallocates:
 
 - All local variable slots
 - All compound data structures
@@ -387,7 +387,7 @@ Lowering details (for implementers)
 
 Implementation notes (for readers of the codebase)
 - Parser: `x` compiles to `VarRef + Load`; `value -> x` compiles to `VarRef + Store`.
-- Store path: `store` materializes source refs, resolves the destination ref, and for compound locals calls an in-place mutation that writes directly in SEG_RSTACK without advancing RP.
+- Store path: `store` materializes source refs, resolves the destination ref, and for compound locals calls an in-place mutation that writes directly in SEG_RSTACK without advancing RSP.
 For simple types, assignment replaces the value in the slot.
 
 ## 10. Dictionary Management
@@ -418,9 +418,9 @@ Local variables store slot numbers instead of opcodes or addresses.
 
 | Opcode         | Purpose                  | Encoding                     | Operation                           |
 | -------------- | ------------------------ | ---------------------------- | ----------------------------------- |
-| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RP by slot_count × 4        |
+| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RSP by slot_count (cells)   |
 | INIT_VAR_SLOT  | Initialize variable slot | `INIT_VAR_SLOT slot_number`  | Pop TOS, store in slot with tagging |
-| LOCAL_VAR_ADDR | Push slot address        | `LOCAL_VAR_ADDR slot_number` | Push BP + slot_number × 4           |
+| LOCAL_VAR_ADDR | Push slot address        | `LOCAL_VAR_ADDR slot_number` | Push BP + slot_number (cells)       |
 
 ### RESERVE Details:
 
@@ -436,7 +436,7 @@ Local variables store slot numbers instead of opcodes or addresses.
 
 ### LOCAL_VAR_ADDR Details:
 
-- **Address calculation**: BP + slot_number × 4
+- **Address calculation**: BP + slot_number (cells). Multiply by `CELL_SIZE` only when passing the address to raw memory helpers.
 - **Usage**: Combined with FETCH/STORE for variable access
 - **Compile-time**: slot_number resolved from symbol table
 
@@ -474,7 +474,7 @@ Example:
 
 ### Safety Guarantees:
 
-- **Automatic deallocation**: `RP = BP` cleanup
+- **Automatic deallocation**: `RSP = BP` cleanup
 - **No memory leaks**: Stack-based allocation
 - **No dangling pointers**: References can't outlive function
 - **No fragmentation**: Contiguous stack allocation

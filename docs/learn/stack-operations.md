@@ -29,9 +29,9 @@ Tacit uses a **data stack** where all computation occurs. Understanding stack me
 
 ### Stack Pointers (Units)
 
-- SP: data stack pointer, measured in cells (32-bit words). A byte-based accessor is available for compatibility, but operations and effects are defined in cells.
-- RSP: return stack pointer, measured in cells. Legacy RP refers to the byte-based accessor and remains available during migration.
-- BP: base pointer, measured in bytes (frame layout and slot addressing). A cell view may be provided for internal calculations.
+- SP: data stack pointer, measured in cells (32-bit words). When byte offsets are required, compute them explicitly as `SP * CELL_SIZE`.
+- RSP: return stack pointer, measured in cells. Byte math is derived on demand via `RSP * CELL_SIZE` when interacting with memory helpers.
+- BP: base pointer, measured in cells for frame layout and slot addressing. Byte offsets are derived by multiplying the cell index by `CELL_SIZE`.
 
 ## 2. RPN: Immediate Execution Model
 

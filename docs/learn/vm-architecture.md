@@ -25,7 +25,7 @@ Segments (implementation‑defined sizes):
 - Growth: Low to high addresses
 - Elements: 32-bit tagged values
 - Operations: push, pop, peek, dup, swap, drop
-- Stack pointer: SP (cell-indexed; accessor exposes bytes for compatibility)
+- Stack pointer: SP (cell-indexed; derive byte offsets explicitly as `SP * CELL_SIZE` when required)
 
 **Return Stack (RSTACK segment)**:
 
@@ -40,7 +40,7 @@ VM registers:
 
 - SP — data stack pointer (cells)
 - RSP — return stack pointer (cells)
-- BP — base pointer (cells) for current function frame (alias: BPCells); `BPBytes` provided for diagnostics/corruption testing only.
+- BP — base pointer (cells) for the current function frame. Byte offsets are obtained on demand via `BP * CELL_SIZE` (debug helpers may display both forms).
 - IP — instruction pointer (byte address in CODE)
 
 ## Execution Model
@@ -86,7 +86,7 @@ Opcode encoding & dispatch:
 - meta = 1 (reserved): lexical quotations formerly used this mode. The current immediate words run in the caller's frame without needing a dedicated opcode.
 - meta = 0 (function / colon definition): Prologue sequence (cell units):
   1. Push return address (next IP)
-  2. Push caller BP (BPCells)
+  2. Push caller BP (cells)
   3. Set BP = RSP (frame root at current top)
   Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
 
