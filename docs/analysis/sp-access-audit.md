@@ -6,7 +6,7 @@ _Audit date:_ 2025-02-14
 - Automated sweeps (executed from repository root):
   - `rg "vm\\.SP" -n` — catch every direct byte-oriented accessor site.
   - `rg "vm\\.SPCells" -n` — enumerate cell-oriented call sites.
-  - `rg "vm\\.SPBytes" -n` — locate explicit byte helpers already in use.
+  - `rg "vm\\.SPBytes" -n` — legacy check (now expected to return no hits after accessor removal).
   - `rg "vm.SP /" -n` — highlight manual division patterns (e.g. `/ 4`).
 - Each hit was classified by file into one of four buckets:
   - **Byte math (prod)** — production/runtime code consuming `vm.SP` as a byte offset.
@@ -20,9 +20,9 @@ _Audit date:_ 2025-02-14
 ### Byte-oriented `vm.SP` usage in production code
 | File | Lines | Notes |
 | --- | --- | --- |
-| `src/ops/lists/build-ops.ts` | 27, 39, 45, 65, 73, 82 | Heavy mix of byte and cell math; pushes byte addresses onto return stack (`vm.rpush(vm.SP - CELL_SIZE)`). Requires a design decision on whether future stored offsets stay in bytes or switch to helper that derives byte address from cell pointer. |
-| `src/ops/lists/structure-ops.ts` | 170, 178, 182 | Computes element headers via `vm.SP - … * CELL_SIZE`. Will need refactor to pure cell arithmetic with a shared helper. |
-| `src/ops/broadcast.ts` | 262 | Single header address calculation in bytes. |
+| `src/ops/lists/build-ops.ts` | 27, 39, 45, 65, 73, 82 | ✅ Refactored to operate purely on cell indices; converts to bytes only at memory IO boundaries. |
+| `src/ops/lists/structure-ops.ts` | 170, 178, 182 | ✅ Updated to shared cell-based helpers; no direct byte arithmetic remains. |
+| `src/ops/broadcast.ts` | 262 | ✅ Header address now derived from `vm.SP` (cells) with a single conversion when reading memory. |
 
 _No other runtime modules reference `vm.SP` directly; they already rely on `SPCells`/`SPBytes`._
 
@@ -30,7 +30,7 @@ _No other runtime modules reference `vm.SP` directly; they already rely on `SPCe
 | File | Lines | Notes |
 | --- | --- | --- |
 | `src/test/stack/slots.test.ts` | 14, 24 | Uses `vm.SP / 4` to assert cell counts. Straightforward swap to `SPCells` once accessor flips. |
-| `src/test/stack/find.test.ts` | 6-14, 97 | Writes raw bytes to memory and increments `vm.SP` manually; classified as **raw memory IO** fixture but kept here because it mutates the accessor directly. Will need to switch to `SPBytes` for clarity. |
+| `src/test/stack/find.test.ts` | 6-14, 97 | ✅ Uses `vm.push` and cell semantics; no direct byte math. |
 | `src/test/core/list.test.ts` | 87-185 | Reads payload via `vm.SP - n`. Assertions should move to helper that converts `SPCells` to byte addresses. |
 | `src/test/utils/core-test-utils.ts` | 40-41 | Computes byte spans for validation. |
 | `src/test/utils/vm-test-utils.ts` | 21, 351 | Resets `vm.SP = 0`; safe to convert to `vm.SPBytes = 0` during migration. |
@@ -40,8 +40,8 @@ _No other runtime modules reference `vm.SP` directly; they already rely on `SPCe
 | `src/test/ops/local-vars/in-place-mutation.test.ts` | 44, 70, 107 | Ensures SP returns to zero. |
 | `src/test/core/vm-*.test.ts` (constructor, symbol-resolution, comprehensive) | various | Similar zero-depth assertions. |
 | `src/test/core/vm-push-symbol-ref.test.ts` | already uses `SPCells`; listed here for completeness. |
-| `src/test/ops/stack/stack-utils.test.ts` | 37-38 | Uses `vm.SP` when writing specific tagged values; best moved to `SPBytes` helper. |
-| `scripts/debug-base-addr.js` | 13-24 | Developer debug script; keeps byte math intentionally. |
+| `src/test/ops/stack/stack-utils.test.ts` | 37-38 | ✅ Updated to push tagged values via `vm.push`; relies solely on cell counts. |
+| `scripts/debug-base-addr.js` | 13-24 | ✅ Logs both cells and derived bytes; no accessor required. |
 
 ### Cell-oriented usage already in place (production)
 The following modules exclusively use cell semantics via `vm.SPCells` / `vm.SPBytes` and require no behavioural change, only mechanical renames in Phase 3:

@@ -73,8 +73,7 @@ export class VM {
   }
 
   /**
-   * Canonical stack pointer accessors.
-   * `SP` is measured in cells; use `SPBytes` when byte precision is required.
+   * Canonical stack pointer accessor (measured in cells).
    */
   get SP(): number { return this._spCells; }
   set SP(cells: number) {
@@ -82,14 +81,6 @@ export class VM {
       throw new Error(`SP set to invalid value: ${cells}`);
     }
     this._spCells = cells;
-  }
-
-  get SPBytes(): number { return this._spCells * CELL_SIZE_BYTES; }
-  set SPBytes(bytes: number) {
-    if ((bytes & (CELL_SIZE_BYTES - 1)) !== 0) {
-      throw new Error(`SP set to non-cell-aligned byte offset: ${bytes}`);
-    }
-    this._spCells = bytes / CELL_SIZE_BYTES;
   }
 
   /**
