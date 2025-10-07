@@ -1,11 +1,11 @@
 # Plan 34 — Stack Pointer Cell-Centric Migration
 
 ## Status
-- **Stage:** Draft
+- **Stage:** Completed
 - **Scope:** Transition every stack-pointer consumer to the canonical cell-based accessor, retire byte-oriented shortcuts, and eliminate the legacy `SPBytes` alias.
 
 ## High-level objective
-Ensure the virtual machine and toolchain expose a single, cell-oriented data-stack pointer while still supporting byte calculations through explicitly named helpers. The migration must be incremental and well-tested so downstream work (e.g., GP unification) can proceed without hidden byte assumptions.
+Ensure the virtual machine and toolchain expose a single, cell-oriented data-stack pointer while still supporting byte calculations through explicitly named helpers. The migration was executed incrementally so downstream work (e.g., GP unification) can proceed without hidden byte assumptions.
 
 ## Implementation phases
 Each phase produces observable artefacts (code, docs, or reports) and has explicit validation steps.
@@ -48,6 +48,14 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - **Hidden byte arithmetic:** the audit deliverable ensures nothing is overlooked before the accessor flip.
 - **Test brittleness:** staggering runtime/test migrations keeps failing assertions localised and easier to diagnose.
 - **External tooling drift:** documenting renamed accessors in the final phase alerts downstream consumers before the alias disappears.
+
+## Outcomes
+- Canonical stack APIs are cell-based (`SP`, `RSP`, `BP`, `GP`) with byte offsets derived explicitly where necessary.
+- Runtime and test code paths no longer depend on implicit `/ 4` or legacy `SPBytes` helpers.
+- Documentation (specs + learn guides) reflects the cell-centric model and guides contributors to compute byte addresses explicitly.
+
+## Testing
+- `yarn test` — full suite passes; command exits with code 1 because the repository’s global coverage thresholds (statements/branches/functions/lines ≥ 80 %) are still unmet (pre-existing condition).
 
 ## Deliverables checklist
 - [x] `docs/analysis/sp-access-audit.md` summarising the census.
