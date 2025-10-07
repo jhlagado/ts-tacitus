@@ -39,7 +39,7 @@ export function beginIfImmediate(): void {
 export function beginElseImmediate(): void {
   requireParserState();
 
-  if (vm.SPCells < 2) {
+  if (vm.SP < 2) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
@@ -49,7 +49,7 @@ export function beginElseImmediate(): void {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
-  if (vm.SPCells === 0) {
+  if (vm.SP === 0) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 

@@ -18,14 +18,9 @@ import { initializeInterpreter, vm } from '../../core/global-state';
  */
 export function resetVM(): void {
   initializeInterpreter();
-  vm.SPCells = 0;
+  vm.SP = 0;
   vm.RSP = 0; // Reset return stack in cells
   vm.BP = 0; // reset BP (cells)
-  // Also reset cell-based BP representation (dual representation safety)
-  // Type guard for BPCells presence (added in migration)
-  if (typeof (vm as unknown as { BPCells?: unknown }).BPCells === 'number') {
-    (vm as unknown as { BPCells: number }).BPCells = 0;
-  }
   vm.IP = 0;
   vm.listDepth = 0;
   vm.running = true;
@@ -348,7 +343,7 @@ export function verifyStackDepth(vm: VM, expectedDepth: number): void {
  * Verify VM is in valid state
  */
 export function verifyVMState(vm: VM): void {
-  expect(vm.SPCells).toBeGreaterThanOrEqual(0);
+  expect(vm.SP).toBeGreaterThanOrEqual(0);
   expect(vm.RSP).toBeGreaterThanOrEqual(0);
   expect(vm.IP).toBeGreaterThanOrEqual(0);
   expect(vm.running).toBe(true);

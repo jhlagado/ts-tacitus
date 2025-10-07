@@ -139,7 +139,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
     ';',
     Op.Nop,
     vmInstance => {
-      if (vmInstance.SPCells === 0) {
+      if (vmInstance.SP === 0) {
         throw new SyntaxError('Unexpected semicolon', vmInstance.getStackData());
       }
       evalOp(vmInstance);

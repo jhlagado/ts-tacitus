@@ -126,7 +126,7 @@ export function reverseSpan(vm: VM, spanSize: number): void {
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
   // Reverse using cell-native indices via u32 view
-  const endCellExclusive = vm.SPCells;
+  const endCellExclusive = vm.SP;
   const startCell = endCellExclusive - spanSize;
   let i = 0;
   let j = spanSize - 1;

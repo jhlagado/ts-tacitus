@@ -18,8 +18,8 @@ export function createTargetRef(vm: VM): boolean {
   const [, pathSize] = findElement(vm, 0); // path is at TOS
   findElement(vm, pathSize); // target is below path
 
-  // findElement examined the cell at: vm.SPCells - pathSize - 1
-  const targetCellIndex = vm.SPCells - pathSize - 1;
+  // findElement examined the cell at: vm.SP - pathSize - 1
+  const targetCellIndex = vm.SP - pathSize - 1;
   const targetByteAddr = targetCellIndex * CELL_SIZE;
   const target = vm.memory.readFloat32(SEG_STACK, targetByteAddr);
 
@@ -79,10 +79,10 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 
 export function traverseMultiPath(vm: VM): void {
   // Read path header using cell-based indexing
-  const pathHeaderCell = vm.SPCells - 2;
+  const pathHeaderCell = vm.SP - 2;
   const pathHeader = vm.memory.readFloat32(SEG_STACK, pathHeaderCell * CELL_SIZE);
   const pathLength = getListLength(pathHeader);
-  let pathElementCell = vm.SPCells - 3;
+  let pathElementCell = vm.SP - 3;
 
   for (let i = 0; i < pathLength; i++) {
     const pathElement = vm.memory.readFloat32(SEG_STACK, pathElementCell * CELL_SIZE);

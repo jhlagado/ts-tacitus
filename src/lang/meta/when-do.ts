@@ -17,7 +17,7 @@ export function beginWhenImmediate(): void {
 export function beginDoImmediate(): void {
   requireParserState();
 
-  if (vm.SPCells === 0) {
+  if (vm.SP === 0) {
     throw new SyntaxError('do without when', vm.getStackData());
   }
 

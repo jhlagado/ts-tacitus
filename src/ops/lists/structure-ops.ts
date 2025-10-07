@@ -43,7 +43,7 @@ export function tailOp(vm: VM): void {
   }
 
   if (info.segment === SEG_STACK) {
-    vm.SPCells -= firstElemSpan;
+    vm.SP -= firstElemSpan;
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
@@ -85,7 +85,7 @@ export function headOp(vm: VM): void {
     const elementSlotCount = getListLength(firstElement);
 
     if (info.segment === SEG_STACK) {
-      vm.SPCells -= (elementSlotCount + 1);
+      vm.SP -= (elementSlotCount + 1);
       for (let i = elementSlotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(info.segment, firstElementAddr - i * CELL_SIZE);
         vm.push(slotValue);
@@ -102,7 +102,7 @@ export function headOp(vm: VM): void {
     }
   } else {
     if (info.segment === SEG_STACK) {
-      vm.SPCells -= 1;
+      vm.SP -= 1;
     }
     vm.push(firstElement);
   }
@@ -140,7 +140,7 @@ export function reverseOp(vm: VM): void {
   }
 
   if (info.segment === SEG_STACK) {
-    vm.SPCells -= slotCount;
+    vm.SP -= slotCount;
   }
 
   for (let e = elements.length - 1; e >= 0; e--) {
@@ -250,7 +250,7 @@ export function concatOp(vm: VM): void {
       ? getListLength((rhsInfo as { kind: 'stack-list'; header: number }).header) + 1
       : rhsSize;
 
-  vm.SPCells -= (lhsDrop + rhsDrop);
+  vm.SP -= (lhsDrop + rhsDrop);
 
   for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
   for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);

@@ -75,7 +75,7 @@ export function formatList(vm: VM, headerValue: number): string {
   const parts: string[] = [];
   let consumed = 0;
 
-  while (consumed < totalSlots && vm.SPCells >= 1) {
+  while (consumed < totalSlots && vm.SP >= 1) {
     const cell = vm.pop();
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
@@ -133,7 +133,7 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
     return '()';
   }
 
-  const originalSPCells = vm.SPCells;
+  const originalSP = vm.SP;
 
   for (let i = 0; i < slotCount; i++) {
     const elementAddr = address - (slotCount - i) * 4;
@@ -143,7 +143,7 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
 
   const formatted = formatList(vm, header);
 
-  vm.SPCells = originalSPCells;
+  vm.SP = originalSP;
 
   return formatted;
 }

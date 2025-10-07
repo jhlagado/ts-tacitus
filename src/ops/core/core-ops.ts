@@ -128,8 +128,8 @@ export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
   // Cell-only frame prologue (Phase 2 unified): push caller BP (cells), set new BP to RSP
-  vm.rpush(vm.BPCells);
-  vm.BPCells = vm.RSP;
+  vm.rpush(vm.BP);
+  vm.BP = vm.RSP;
   vm.IP = callAddress;
 };
 
@@ -187,14 +187,14 @@ export const exitOp: Verb = (vm: VM) => {
       vm.running = false;
       return;
     }
-    // Unified cell-only epilogue with corruption guard: if BPCells points outside
+    // Unified cell-only epilogue with corruption guard: if BP points outside
     // current return stack depth (or negative) treat as underflow corruption.
-    const bpCells = vm.BPCells;
+    const bpCells = vm.BP;
     if (bpCells < 0 || bpCells > vm.RSP) {
       throw new ReturnStackUnderflowError('exit', vm.getStackData());
     }
     vm.RSP = bpCells;
-    vm.BPCells = vm.rpop();
+    vm.BP = vm.rpop();
     const returnAddr = vm.rpop();
 
     if (isCode(returnAddr)) {
