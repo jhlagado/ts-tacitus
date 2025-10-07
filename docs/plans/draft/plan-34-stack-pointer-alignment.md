@@ -10,17 +10,17 @@ Ensure the virtual machine and toolchain expose a single, cell-oriented data-sta
 ## Implementation phases
 Each phase produces observable artefacts (code, docs, or reports) and has explicit validation steps.
 
-### Phase 0 — Usage census & classification
+### Phase 0 — Usage census & classification ✅
 - Collect every occurrence of `vm.SP`, `vm.SPCells`, and manual `CELL_SIZE` arithmetic via an automated sweep (CLI script or notebook).
 - Classify each use as one of: *byte math*, *cell math*, *raw memory IO*, or *test fixture*; record the mapping in `docs/analysis/sp-access-audit.md`.
 - Flag any ambiguous sites that will require design decisions before rewriting (e.g., interoperability layers).
 - **Validation:** audit document checked in; no code changes, so no tests expected.
 
-### Phase 1 — Runtime code migration (core + ops)
+### Phase 1 — Runtime code migration (core + ops) ⏳
 - Update production TypeScript (everything under `src/core` and `src/ops`) to stop consuming `vm.SP` as bytes: replace division/multiplication by `CELL_SIZE` with direct calls to `vm.SPCells` (or helper functions introduced where reuse makes sense).
 - Introduce small utilities where repetitive translations appear (e.g., `cellsToBytes`, `stackCellOffset(vm, slots)`), keeping behaviour identical.
 - Leave byte-centric helpers (`vm.SPBytes`) in place for now but ensure no production logic depends on the legacy `vm.SP` alias.
-- **Validation:** targeted regression suites — at minimum `npm test -- --runTestsByPath src/test/ops/stack/stack-utils.test.ts src/test/stack/slots.test.ts` and the list-operation tests touching SP math.
+- **Validation:** targeted regression suites — at minimum `npm test -- --runTestsByPath src/test/ops/stack/stack-utils.test.ts src/test/stack/slots.test.ts` and the list-operation tests touching SP math. *(Executed: full `npm test` plus focused list/broadcast suites; both fail solely on global coverage thresholds.)*
 
 ### Phase 2 — Test & tooling migration
 - Rewrite fixtures, helpers, and scripts (`src/test/**`, `scripts/debug-*.js`) to pivot to cell semantics; only use `SPBytes` when deliberately validating byte offsets.
@@ -44,8 +44,8 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - **External tooling drift:** documenting renamed accessors in the final phase alerts downstream consumers before the alias disappears.
 
 ## Deliverables checklist
-- [ ] `docs/analysis/sp-access-audit.md` summarising the census.
-- [ ] Production code free of byte-based `vm.SP` usage.
+- [x] `docs/analysis/sp-access-audit.md` summarising the census.
+- [x] Production code free of byte-based `vm.SP` usage.
 - [ ] Test/helpers updated to cell semantics.
 - [ ] Accessors renamed (`SP`→cells, `SPBytes` explicit) with redundant aliases removed.
 - [ ] Docs and snippets aligned with the new naming.
