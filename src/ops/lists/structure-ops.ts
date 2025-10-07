@@ -9,7 +9,7 @@ import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
-const stackAddrFromTop = (vm: VM, offsetSlots: number): number => vm.SPBytes - (offsetSlots + 1) * CELL_SIZE;
+const stackAddrFromTop = (vm: VM, offsetSlots: number): number => (vm.SP - (offsetSlots + 1)) * CELL_SIZE;
 
 export function tailOp(vm: VM): void {
   vm.ensureStackSize(1, 'tail');
@@ -177,11 +177,11 @@ export function concatOp(vm: VM): void {
   const lhsTop = readCellAtOffset(rhsSize);
 
   const rhsInfo = isList(rhsTop)
-    ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: vm.SPBytes - CELL_SIZE }
+    ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: (vm.SP - 1) * CELL_SIZE }
     : isRef(rhsTop)
       ? getListBounds(vm, rhsTop)
       : null;
-  const lhsHeaderAddr = vm.SPBytes - (rhsSize + 1) * CELL_SIZE;
+  const lhsHeaderAddr = (vm.SP - (rhsSize + 1)) * CELL_SIZE;
   const lhsInfo = isList(lhsTop)
     ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
     : isRef(lhsTop)

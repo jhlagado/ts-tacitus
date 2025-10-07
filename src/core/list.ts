@@ -156,7 +156,7 @@ export function getListBounds(
     const slotCount = getListLength(value);
     return {
       header: value,
-      baseAddr: vm.SPBytes - CELL_SIZE - slotCount * CELL_SIZE,
+      baseAddr: (vm.SP - 1 - slotCount) * CELL_SIZE,
       segment: SEG_STACK,
     };
   } else if (isRef(value)) {

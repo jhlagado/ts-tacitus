@@ -24,7 +24,8 @@ import { ReturnStackUnderflowError } from '@src/core';
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
-  vm.rpush(vm.SPBytes - CELL_SIZE);
+  const headerAddr = (vm.SP - 1) * CELL_SIZE;
+  vm.rpush(headerAddr);
 }
 
 /**
@@ -35,14 +36,15 @@ export function closeListOp(vm: VM): void {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
-  const headerPos = vm.rpop();
-  const payloadSlots = (vm.SPBytes - headerPos - CELL_SIZE) / CELL_SIZE;
+  const headerAddr = vm.rpop();
+  const headerCell = headerAddr / CELL_SIZE;
+  const payloadSlots = vm.SP - headerCell - 1;
 
-  vm.memory.writeFloat32(SEG_STACK, headerPos, toTaggedValue(payloadSlots, Tag.LIST));
+  vm.memory.writeFloat32(SEG_STACK, headerAddr, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = (vm.SPBytes - headerPos) / CELL_SIZE;
+    const totalSpan = vm.SP - headerCell;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
@@ -62,24 +64,24 @@ export function makeListOp(vm: VM): void {
 
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
-  const headerPos = vm.SPBytes - CELL_SIZE;
-  vm.rpush(headerPos);
+  const headerAddr = (vm.SP - 1) * CELL_SIZE;
+  vm.rpush(headerAddr);
 
   vm.push(blockAddr);
   evalOp(vm);
 
-  const taggedHeaderPos = vm.rpop();
-  const { value: retrievedHeaderPos } = fromTaggedValue(taggedHeaderPos);
-  const payloadSlots = (vm.SPBytes - retrievedHeaderPos - CELL_SIZE) / CELL_SIZE;
+  const retrievedHeaderAddr = vm.rpop();
+  const headerCell = retrievedHeaderAddr / CELL_SIZE;
+  const payloadSlots = vm.SP - headerCell - 1;
 
   if (payloadSlots < 0) {
     throw new Error('makeList: negative payload slot count detected');
   }
 
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_STACK, retrievedHeaderPos, finalizedHeader);
+  vm.memory.writeFloat32(SEG_STACK, retrievedHeaderAddr, finalizedHeader);
 
-  const totalSpan = (vm.SPBytes - retrievedHeaderPos) / CELL_SIZE;
+  const totalSpan = vm.SP - headerCell;
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
   }

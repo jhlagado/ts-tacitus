@@ -122,13 +122,13 @@ describe('Built-in Words', () => {
     });
   });
   describe('Grouping Operations', () => {
-    test('groupLeftOp should push the current SP onto the return stack', () => {
-      const initialSP = vm.SPBytes;
+    test('groupLeftOp should push the current SP (cells) onto the return stack', () => {
+      const initialSP = vm.SP;
       groupLeftOp(vm);
       const savedSP = vm.rpop();
       expect(savedSP).toBe(initialSP);
     });
-    test('groupRightOp should compute the number of 4-byte items pushed since group left', () => {
+    test('groupRightOp should compute the number of stack cells pushed since group left', () => {
       groupLeftOp(vm);
       vm.push(10);
       vm.push(20);

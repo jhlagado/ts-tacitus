@@ -33,10 +33,16 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - Eliminate redundant `BPCells()` once the naming pattern (`SP`, `RSP`, `BP`, `GP`) is consistent; maintain backwards-compat shims only if discoverable call sites remain (document them if so).
 - **Validation:** rerun the stack-heavy suites and a smoke `yarn test`. (Executed: full `yarn test`; suites pass, run exits non-zero only due to global coverage thresholds.)
 
-### Phase 4 — Documentation & developer ergonomics
+### Phase 4 — Documentation & developer ergonomics ⏳
 - Update specs and learn docs referencing the byte-oriented `SP` (notably `docs/specs/metaprogramming.md`, stack architecture references, and any developer guides).
 - Revise debugging utilities/docs (e.g., README snippets) to reflect the new API.
 - **Validation:** documentation builds (if any) plus manual inspection; no runtime tests required beyond Phase 3 regressions.
+
+### Phase 5 — `SPBytes` dependency removal ✅
+- Catalogue remaining `SPBytes` usages and classify whether byte offsets are truly required (e.g., raw memory pokes) or can be rewritten in cells.
+- Replace eligible call sites with the canonical `SP` accessor or helper utilities that operate in cells, keeping `SPBytes` only where interacting with byte-addressed memory routines.
+- Document any locations that must stay byte-based (e.g., Memory write/read boundaries) along with rationale.
+- **Validation:** smoke `yarn test` plus targeted suites touched during refactors. Track regressions where byte math proved necessary and report back before removal. *(Executed: full `yarn test`; suites pass, run exits non-zero only due to branch coverage threshold.)*
 
 ## Risks & mitigations
 - **Hidden byte arithmetic:** the audit deliverable ensures nothing is overlooked before the accessor flip.
@@ -49,3 +55,4 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - [x] Test/helpers updated to cell semantics.
 - [x] Accessors renamed (`SP`→cells, `SPBytes` explicit) with redundant aliases removed.
 - [ ] Docs and snippets aligned with the new naming.
+- [x] `SPBytes` usage reduced to byte-boundary helpers only, with remaining sites documented.

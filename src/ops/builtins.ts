@@ -276,16 +276,14 @@ export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
-    'BP(cells):',
-    vm.BP,
     'RSP(cells):',
     vm.RSP,
-    'RSP(bytes):',
-    vm.RSP * CELL_SIZE,
     'SP(cells):',
     vm.SP,
-    'SP(bytes):',
-    vm.SPBytes,
+    'BP(cells):',
+    vm.BP,
+    'GP(cells):',
+    vm.GP,
   );
 
   if (vm.BP > 0) {
