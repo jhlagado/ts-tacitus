@@ -24,7 +24,7 @@ _Audit date:_ 2025-02-14
 | `src/ops/lists/structure-ops.ts` | 170, 178, 182 | ✅ Updated to shared cell-based helpers; no direct byte arithmetic remains. |
 | `src/ops/broadcast.ts` | 262 | ✅ Header address now derived from `vm.SP` (cells) with a single conversion when reading memory. |
 
-_No other runtime modules reference `vm.SP` directly; they already rely on `SPCells`/`SPBytes`._
+_No other runtime modules reference `vm.SP` directly; they already rely on cell semantics and explicit `CELL_SIZE` conversions when needed._
 
 ### Byte-oriented `vm.SP` usage in tests & tooling
 | File | Lines | Notes |
@@ -33,7 +33,7 @@ _No other runtime modules reference `vm.SP` directly; they already rely on `SPCe
 | `src/test/stack/find.test.ts` | 6-14, 97 | ✅ Uses `vm.push` and cell semantics; no direct byte math. |
 | `src/test/core/list.test.ts` | 87-185 | Reads payload via `vm.SP - n`. Assertions should move to helper that converts `SPCells` to byte addresses. |
 | `src/test/utils/core-test-utils.ts` | 40-41 | Computes byte spans for validation. |
-| `src/test/utils/vm-test-utils.ts` | 21, 351 | Resets `vm.SP = 0`; safe to convert to `vm.SPBytes = 0` during migration. |
+| `src/test/utils/vm-test-utils.ts` | 21, 351 | Resets `vm.SP = 0`; continues to operate purely on cell counts. |
 | `src/test/ops/access/select-op.test.ts` | 82, 127, 142 | Derives counts via `vm.SP / 4`; migrate to `SPCells`. |
 | `src/test/ops/lists/list-ops-coverage.test.ts` | 172-181 | Stores initial `vm.SP` for delta checks. |
 | `src/test/ops/interpreter/interpreter-operations.test.ts` | 126 | Captures initial stack depth. |
@@ -44,7 +44,7 @@ _No other runtime modules reference `vm.SP` directly; they already rely on `SPCe
 | `scripts/debug-base-addr.js` | 13-24 | ✅ Logs both cells and derived bytes; no accessor required. |
 
 ### Cell-oriented usage already in place (production)
-The following modules exclusively use cell semantics via `vm.SPCells` / `vm.SPBytes` and require no behavioural change, only mechanical renames in Phase 3:
+The following modules exclusively use cell semantics (via `vm.SP` and helper conversions) and require no behavioural change, only mechanical renames in Phase 3:
 - `src/core/list.ts`
 - `src/core/format-utils.ts`
 - `src/ops/builtins.ts`
@@ -56,14 +56,14 @@ The following modules exclusively use cell semantics via `vm.SPCells` / `vm.SPBy
 - `src/ops/stack/data-move-ops.ts`
 - `src/lang/meta/conditionals.ts`
 - `src/lang/meta/when-do.ts`
-- `src/ops/core/core-ops.ts` (already using `SPBytes` for return-stack pushes)
+- `src/ops/core/core-ops.ts`
 
 ### Manual `CELL_SIZE` arithmetic of note
 - `(vm.SP - headerPos - CELL_SIZE) / CELL_SIZE` and similar constructs (primarily in `src/ops/lists/build-ops.ts`) mix byte deltas with cell results. These should be rewritten around cell counts and a shared helper that converts to bytes only when interacting with raw memory.
 - `vm.SP / 4` idioms appear in several tests; once `vm.SP` returns cells these divisions disappear.
 
 ## Ambiguities / design considerations
-1. **Return stack payload format in list ops** — `vm.rpush(vm.SP - CELL_SIZE)` currently records raw byte addresses. Decide whether future implementations keep return-stack operands in bytes (and therefore use `SPBytes`) or switch to cell indices plus a conversion at branch resolution time.
+1. **Return stack payload format in list ops** — `vm.rpush(vm.SP - CELL_SIZE)` currently records raw byte addresses. Decide whether future implementations keep return-stack operands in bytes (by multiplying cells on demand) or switch to cell indices plus a conversion at branch resolution time.
 2. **Low-level fixtures writing raw memory** — Tests that directly poke `vm.memory` likely need byte offsets; introduce explicit helpers (e.g., `stackByteOffset(vm, slotIndex)`) to keep intent obvious while the canonical accessor exposes cells.
 3. **Documentation footprints** — Multiple historical plan docs (`docs/plans/done/plan-08-*`) reference `vm.SP` byte semantics. They are archived but should be annotated or left untouched? (Probably safe to leave as historical context; flagging here for awareness.)
 
