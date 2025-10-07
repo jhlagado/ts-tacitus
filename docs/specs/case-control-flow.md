@@ -79,7 +79,7 @@ Because the `DEFAULT` clause pushes a runtime sentinel constant, the sequence ab
 
 - `DEFAULT` pushes a distinguished sentinel constant (e.g., `toTaggedValue(Sentinel.DEFAULT, Tag.SENTINEL)`) onto the stack via an immediate word. The emitted `eq` must treat comparisons involving this sentinel as an automatic match, so the default clause reuses the standard comparison/branch sequence without alteration.
 - Because the `DEFAULT` clause still goes through the standard `of` lowering, there are no compile-time differences: the comparison sequence is emitted, `IfFalseBranch` is recorded (it simply never triggers at runtime), and the trailing `drop` removes the discriminant before the body executes.
-- Only one default is permitted; encountering a second raises “duplicate DEFAULT clause”.
+- Additional defaults are permitted. Because the sentinel wildcard causes the equality check to succeed immediately, the first encountered default will match; later defaults are effectively dead code but remain legal.
 
 ## Emitted Bytecode Skeleton
 
@@ -100,24 +100,27 @@ case
   of       ; emits: over, eq (wildcard match), IfFalseBranch p5, drop
     …default body…
   ;        ; emits: Branch p6 (patch no-op)
-; final closer patches p2/p4/p6, drops discriminant if still present
+; final closer drops discriminant if still present, then patches p2/p4/p6
 ```
 
 ## Error Handling
 
-- `of` outside an open `case` → `SyntaxError("'of' without open case")`.
-- `DEFAULT` outside `case` or repeated within the same `case` → syntax errors.
-- Clause body terminator `;` without a pending predicate placeholder → `SyntaxError("clause closer without of")`.
-- Final `;` without `EndCase` on TOS → `SyntaxError("case not open")`.
-- Return stack corruption detected when unwinding → `SyntaxError("case corrupted return stack")`.
+- `of` outside an open `case`
+  - Immediate can check that the next-on-stack entry is `EndCase`; otherwise signal `SyntaxError("'of' without open case")`.
+- Clause body terminator `;` without a pending predicate placeholder
+  - When the terminator attempts to pop a skip placeholder and finds none, raise `SyntaxError("clause closer without of")`.
+- Final `;` without `EndCase` on TOS
+  - Terminator validates the closer on TOS; absence triggers `SyntaxError("case not open")`.
+- Return stack mismatch when unwinding
+  - Optional assertion mirroring `when/do`; implementers may raise `SyntaxError("case corrupted return stack")` if the snapshot invariant fails.
 
 ## Interaction with Other Immediates
 
 - Cases may nest inside other immediate constructs (e.g., inside `when` clauses) because each opener snapshots and restores `RSP` independently.
 - Clause bodies can freely open additional immediate constructs; they execute after the discriminant has been dropped.
-- `DEFAULT` must appear after all specific clauses; the spec does not support fall-through semantics.
+- `DEFAULT` acts as a wildcard via the sentinel value; multiple defaults are legal (the first will match, subsequent defaults are effectively dead code).
 
 ## Future Extensions
 
-- Pattern matching on non-constant predicates (e.g., ranges, types) could be layered on top by providing alternative clause heads while reusing the same stack/closer discipline.
+- Additional clause heads (e.g., `range`, `match`) can reuse the same stack/closer discipline to support pattern matching on ranges, types, or other predicates.
 - Bytecode generation helpers may be factored to reuse tuple (`over`/`eq`/`IfFalseBranch`) patterns used by existing conditional constructs.
