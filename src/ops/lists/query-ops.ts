@@ -182,7 +182,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   return { root, rootValue, resolved, existingValue };
 }
 
-function discardCompoundSource(vm: VM, rhsTag: Tag, slotCount: number): void {
+function discardCompoundSource(vm: VM, rhsTag: Tag): void {
   if (rhsTag === Tag.LIST) {
     dropList(vm);
     return;
@@ -201,7 +201,7 @@ function initializeGlobalCompound(
   const maxCells = GLOBAL_SIZE / CELL_SIZE;
   const baseCells = vm.GP;
   if (baseCells + neededCells > maxCells) {
-    discardCompoundSource(vm, rhsTag, slotCount);
+    discardCompoundSource(vm, rhsTag);
     throw new Error('Global segment exhausted while allocating compound');
   }
 
@@ -216,7 +216,7 @@ function initializeGlobalCompound(
   const headerCellIndex = headerAddr / CELL_SIZE;
   vm.memory.writeFloat32(slot.root.segment, slot.root.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
   vm.GP = baseCells + neededCells;
-  discardCompoundSource(vm, rhsTag, slotCount);
+  discardCompoundSource(vm, rhsTag);
 }
 
 function copyCompoundFromReference(
@@ -272,12 +272,12 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
       initializeGlobalCompound(vm, slot, rhsInfo, rhsTag, slotCount);
       return true;
     }
-    discardCompoundSource(vm, rhsTag, slotCount);
+    discardCompoundSource(vm, rhsTag);
     throw new Error('Cannot assign simple to compound or compound to simple');
   }
 
   if (!isCompatible(slot.existingValue, rhsInfo.header)) {
-    discardCompoundSource(vm, rhsTag, slotCount);
+    discardCompoundSource(vm, rhsTag);
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 

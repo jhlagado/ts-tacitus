@@ -39,8 +39,6 @@ function reverseSpan(vm: VM, spanSize: number): void {
 
   const startCell = vm.SP - spanSize;
   const endCell = vm.SP - 1;
-  const startAddr = startCell * CELL_SIZE;
-  const endAddr = endCell * CELL_SIZE;
 
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
     const leftAddr = (startCell + i) * CELL_SIZE;
