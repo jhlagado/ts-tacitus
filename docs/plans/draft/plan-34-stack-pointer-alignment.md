@@ -33,10 +33,10 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - Eliminate redundant `BPCells()` once the naming pattern (`SP`, `RSP`, `BP`, `GP`) is consistent; maintain backwards-compat shims only if discoverable call sites remain (document them if so).
 - **Validation:** rerun the stack-heavy suites and a smoke `yarn test`. (Executed: full `yarn test`; suites pass, run exits non-zero only due to global coverage thresholds.)
 
-### Phase 4 — Documentation & developer ergonomics ⏳
-- Update specs and learn docs referencing the byte-oriented `SP` (notably `docs/specs/metaprogramming.md`, stack architecture references, and any developer guides).
-- Revise debugging utilities/docs (e.g., README snippets) to reflect the new API.
-- **Validation:** documentation builds (if any) plus manual inspection; no runtime tests required beyond Phase 3 regressions.
+### Phase 4 — Documentation & developer ergonomics ✅
+- Update specs and learn docs referencing the byte-oriented `SP` (completed: `docs/specs/metaprogramming.md`, `docs/specs/vm-architecture.md`, and the learning guides for VM architecture, stack operations, and locals).
+- Ensure guidance consistently states that byte offsets are derived explicitly from cell indices.
+- **Validation:** manual inspection of updated docs; no runtime tests required beyond Phase 3 regressions.
 
 ### Phase 5 — `SPBytes` dependency removal ✅
 - Catalogue remaining `SPBytes` usages and classify whether byte offsets are truly required (e.g., raw memory pokes) or can be rewritten in cells.
@@ -54,5 +54,5 @@ Each phase produces observable artefacts (code, docs, or reports) and has explic
 - [x] Production code free of byte-based `vm.SP` usage.
 - [x] Test/helpers updated to cell semantics.
 - [x] Accessors renamed (`SP`→cells) with redundant aliases removed.
-- [ ] Docs and snippets aligned with the new naming.
+- [x] Docs and snippets aligned with the new naming.
 - [x] Temporary `SPBytes` alias retired after confirming no remaining consumers.

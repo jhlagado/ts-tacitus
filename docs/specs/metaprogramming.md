@@ -10,7 +10,7 @@ This specification supersedes the older drafts `immediate-words-and-terminators.
 ## Overview
 Tacit adopts a Forth-like metaprogramming model:
 
-- Words marked **immediate** run during parsing. They execute with full access to the VM’s data (`SP`) and return (`RSP`) stacks and may emit bytecode via the compiler.
+- Words marked **immediate** run during parsing. They execute with full access to the VM’s data (`SP`) and return (`RSP`) stacks—both expressed in **cells**. If an immediate needs raw byte addresses it must derive them explicitly (e.g. `SP * CELL_SIZE`).
 - A single shared terminator `;` executes the closer that the opener pushed onto the stack. Closers are plain words (usually builtins) that patch placeholders and restore compile-time invariants.
 - Colon definitions, conditionals, and the new multi-branch `when/do` construct are all built on this pattern.
 
