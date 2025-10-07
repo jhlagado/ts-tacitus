@@ -169,7 +169,7 @@ describe('List Operations - Branch Coverage', () => {
 
   describe('Memory and stack management', () => {
     test('should maintain stack integrity during complex operations', () => {
-      const initialSP = vm.SP;
+      const initialSP = vm.SPCells;
 
       openListOp(vm);
       vm.push(1);
@@ -178,7 +178,7 @@ describe('List Operations - Branch Coverage', () => {
 
       sizeOp(vm);
 
-      expect(vm.SP).toBeGreaterThan(initialSP);
+      expect(vm.SPCells).toBeGreaterThan(initialSP);
       expect(vm.getStackData()).toBeDefined();
     });
   });

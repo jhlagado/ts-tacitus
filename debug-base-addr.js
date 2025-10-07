@@ -10,18 +10,19 @@ try {
   const result = executeTacitCode('( 1 2 3 )');
   console.log('After ( 1 2 3 ):', result);
   console.log('Stack contents:', vm.getStackData());
-  console.log('SP:', vm.SP);
+  console.log('SPBytes:', vm.SPBytes);
   
   // List header should be at SP - 4
-  const headerAddr = vm.SP - 4;
+  const CELL_SIZE = 4;
+  const headerAddr = vm.SPBytes - CELL_SIZE;
   console.log('Header should be at addr:', headerAddr);
   const header = vm.memory.readFloat32(0, headerAddr);
   console.log('Header value:', header);
   
   // Calculate base address
   const slotCount = 3; // We know this is 3 for ( 1 2 3 )
-  const baseAddr1 = vm.SP - 4 - slotCount * 4; // My calculation
-  const baseAddr2 = vm.SP - (slotCount + 1) * 4; // Alternative 
+  const baseAddr1 = vm.SPBytes - CELL_SIZE - slotCount * CELL_SIZE; // My calculation
+  const baseAddr2 = vm.SPBytes - (slotCount + 1) * CELL_SIZE; // Alternative 
   
   console.log('Base addr method 1 (SP - 4 - slots*4):', baseAddr1);
   console.log('Base addr method 2 (SP - (slots+1)*4):', baseAddr2);

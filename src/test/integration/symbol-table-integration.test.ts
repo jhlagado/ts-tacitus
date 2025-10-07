@@ -238,7 +238,7 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
       expect(vm.getStackData()).toEqual([42, 42]);
 
-      vm.SP = 0;
+      vm.SPCells = 0;
       vm.push(5);
 
       const codeBlockRef = createCodeRef(100);

@@ -25,7 +25,7 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize SP to 0', () => {
-    expect(vm.SP).toBe(0);
+    expect(vm.SPCells).toBe(0);
   });
 
   test('should initialize RSP (return stack depth in cells) to 0', () => {
