@@ -41,7 +41,7 @@ describe('In-Place Compound Mutation', () => {
       expect(getListLength(resultHeader)).toBe(0);
 
       // Verify data stack was cleaned up
-      expect(vm.SPCells).toBe(0);
+      expect(vm.SP).toBe(0);
     });
 
     test('should mutate single-element list in place', () => {
@@ -67,7 +67,7 @@ describe('In-Place Compound Mutation', () => {
       expect(resultElement).toBe(42); // New value, not 999
 
       // Verify data stack cleanup
-      expect(vm.SPCells).toBe(0);
+      expect(vm.SP).toBe(0);
     });
 
     test('should mutate multi-element list in place', () => {
@@ -104,7 +104,7 @@ describe('In-Place Compound Mutation', () => {
       expect(elem2).toBe(1); // Element closest to header (last in copy sequence)
 
       // Verify data stack cleanup
-      expect(vm.SPCells).toBe(0);
+      expect(vm.SP).toBe(0);
     });
   });
 

@@ -28,7 +28,7 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
 
 export function runImmediateCode(address: number): void {
   const savedIP = vm.IP;
-  const savedBPCells = vm.BPCells;
+  const savedBP = vm.BP;
   const savedRSP = vm.RSP;
   const savedRunning = vm.running;
   const savedCP = vm.compiler.CP;
@@ -36,8 +36,8 @@ export function runImmediateCode(address: number): void {
   const savedPreserve = vm.compiler.preserve;
 
   vm.rpush(toTaggedValue(savedIP, Tag.CODE));
-  vm.rpush(vm.BPCells);
-  vm.BPCells = vm.RSP;
+  vm.rpush(vm.BP);
+  vm.BP = vm.RSP;
   vm.IP = address;
   vm.running = true;
 
@@ -53,7 +53,7 @@ export function runImmediateCode(address: number): void {
 
   vm.running = savedRunning;
   vm.IP = savedIP;
-  vm.BPCells = savedBPCells;
+  vm.BP = savedBP;
   vm.compiler.CP = savedCP;
   vm.compiler.BCP = savedBCP;
   vm.compiler.preserve = savedPreserve;

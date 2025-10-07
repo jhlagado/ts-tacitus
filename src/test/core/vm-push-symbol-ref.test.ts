@@ -98,7 +98,7 @@ describe('VM pushSymbolRef method', () => {
       vm.pushSymbolRef('dup');
       vm.pushSymbolRef('double');
 
-      const stackDepth = vm.SPCells;
+      const stackDepth = vm.SP;
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>

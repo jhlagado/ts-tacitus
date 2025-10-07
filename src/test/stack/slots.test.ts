@@ -11,7 +11,7 @@ describe('rangeRoll', () => {
 
   test('should handle empty range', () => {
     vm.push(1);
-    const start = vm.SPCells;
+    const start = vm.SP;
 
     cellsRoll(vm, start, 0, 1);
 
@@ -21,7 +21,7 @@ describe('rangeRoll', () => {
   test('should handle zero shift', () => {
     vm.push(1);
     vm.push(2);
-    const start = vm.SPCells - 1;
+    const start = vm.SP - 1;
 
     cellsRoll(vm, start, 2, 0);
 

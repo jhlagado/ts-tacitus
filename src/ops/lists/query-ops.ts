@@ -479,7 +479,7 @@ export function refOp(vm: VM): void {
   const value = vm.peek();
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    const headerCellIndex = vm.SPCells - 1;
+    const headerCellIndex = vm.SP - 1;
     vm.push(createSegmentRef(0, headerCellIndex));
   }
 }

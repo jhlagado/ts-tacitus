@@ -113,8 +113,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
     // Unified cell-only frame prologue
-    vm.rpush(vm.BPCells);
-    vm.BPCells = vm.RSP;
+  vm.rpush(vm.BP);
+  vm.BP = vm.RSP;
     vm.IP = opcode;
     return;
   }
@@ -248,9 +248,9 @@ export function initVarOp(vm: VM): void {
   vm.ensureStackSize(1, 'InitVar');
 
   const value = vm.peek();
-  // Compute slot address using BPCells and convert to bytes at the boundary
+  // Compute slot address using BP (cells) and convert to bytes at the boundary
   // Use CELL_SIZE instead of magic 4 for address computation
-  const slotAddr = (vm.BPCells + slotNumber) * CELL_SIZE;
+  const slotAddr = (vm.BP + slotNumber) * CELL_SIZE;
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
@@ -277,13 +277,13 @@ export function dumpFrameOp(vm: VM): void {
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
     'BP(cells):',
-    vm.BPCells,
+    vm.BP,
     'RSP(cells):',
     vm.RSP,
     'RSP(bytes):',
     vm.RSP * CELL_SIZE,
     'SP(cells):',
-    vm.SPCells,
+    vm.SP,
     'SP(bytes):',
     vm.SPBytes,
   );
@@ -293,7 +293,7 @@ export function dumpFrameOp(vm: VM): void {
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotAddr = (vm.BPCells + i) * CELL_SIZE;
+      const slotAddr = (vm.BP + i) * CELL_SIZE;
       const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);

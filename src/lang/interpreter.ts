@@ -111,8 +111,8 @@ export function callTacit(codePtr: number): void {
   // compatibility for code/tests still expecting byte-based BP frames.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
   // Unified cell-only frame prologue
-  vm.rpush(vm.BPCells);
-  vm.BPCells = vm.RSP;
+  vm.rpush(vm.BP);
+  vm.BP = vm.RSP;
 
   vm.IP = codePtr;
   vm.running = true;

@@ -73,28 +73,23 @@ export class VM {
   }
 
   /**
-   * Canonical stack pointer accessors
-   * SP: returns/accepts BYTES for backward compatibility (legacy code paths).
-   * Prefer SPCells for new code.
+   * Canonical stack pointer accessors.
+   * `SP` is measured in cells; use `SPBytes` when byte precision is required.
    */
+  get SP(): number { return this._spCells; }
+  set SP(cells: number) {
+    if (!Number.isInteger(cells) || cells < 0) {
+      throw new Error(`SP set to invalid value: ${cells}`);
+    }
+    this._spCells = cells;
+  }
+
   get SPBytes(): number { return this._spCells * CELL_SIZE_BYTES; }
   set SPBytes(bytes: number) {
     if ((bytes & (CELL_SIZE_BYTES - 1)) !== 0) {
       throw new Error(`SP set to non-cell-aligned byte offset: ${bytes}`);
     }
     this._spCells = bytes / CELL_SIZE_BYTES;
-  }
-
-  // Deprecated: legacy byte-based accessor retained for now
-  get SP(): number { return this.SPBytes; }
-  set SP(bytes: number) { this.SPBytes = bytes; }
-
-  get SPCells(): number { return this._spCells; }
-  set SPCells(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
-      throw new Error(`SPCells set to invalid value: ${cells}`);
-    }
-    this._spCells = cells;
   }
 
   /**
@@ -126,9 +121,6 @@ export class VM {
     }
     this._bpCells = cells;
   }
-
-  get BPCells(): number { return this._bpCells; }
-  set BPCells(cells: number) { this.BP = cells; }
 
   /** Global segment bump pointer (cells). */
   get GP(): number { return this._gpCells; }
