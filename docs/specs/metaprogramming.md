@@ -146,12 +146,23 @@ when
 ### Nested forms
 `when` can appear inside clause bodies or default regions. Each nested construct snapshots its own `savedRSP`, leaving outer placeholders untouched until the inner construct has closed.
 
+## Switch-style multi-branch (`case` … `of` … `;`)
+
+The forthcoming `case` / `of` / `DEFAULT` suite follows the same immediate pattern. See `docs/specs/case-control-flow.md` for the full draft; highlights:
+
+- `case` snapshots `RSP`, pushes `savedRSP` and `EndCase`, leaving the discriminant beneath the metadata.
+- `of` duplicates the discriminant (`over`), compares it to the clause constant, emits `IfFalseBranch +0`, records the skip placeholder, then emits a `drop` so matching bodies do not see the discriminant.
+- Clause terminator `;` (running `EndClause`) patches the predicate skip, emits a forward exit branch, and restores the discriminant for subsequent clauses.
+- `DEFAULT` provides an unconditional match via a recognised sentinel.
+- Final `;` (running `EndCase`) drops any remaining discriminant, patches recorded exits to the shared continuation, and validates the return stack snapshot.
+
 ## Closer summary
 | Construct | Opener pushes | Closer word (executed via `;`) | Compile-time duties |
 |-----------|---------------|-------------------------------|---------------------|
 | `:` … `;` | `Op.EndDefinition` | `endDefinitionOp` | Emit `Exit`, patch prologue branch, register definition |
 | `if` … `;` | `Op.EndIf` | `endIfOp` | Patch `IfFalseBranch` and optional trailing `Branch` |
 | `when` … `;` | `Op.EndWhen` (clauses push `Op.EndDo`) | `endWhenOp`, `endDoOp` | Record/patch clause skips, backpatch exit branches |
+| `case` … `;` | `Op.EndCase` (clauses push `Op.EndOf`) | `endCaseOp`, `endOfOp` | Compare discriminant, manage clause exits, drop unmatched discriminant |
 
 All closers live in `src/ops/core/core-ops.ts` and are dispatched through the generic terminator.
 

@@ -23,6 +23,15 @@ export enum Tag {
 
 export const MAX_TAG = Tag.GLOBAL_REF;
 
+/**
+ * Enumerates the canonical sentinel payload values carried by `Tag.SENTINEL`.
+ * Extend this enum when new sentinel literals are introduced at the language level.
+ */
+export enum Sentinel {
+  NIL = 0,
+  DEFAULT = 1,
+}
+
 export const tagNames: { [key in Tag]: string } = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
@@ -91,7 +100,7 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
   return view.getFloat32(0, true);
 }
 
-export const NIL = toTaggedValue(0, Tag.SENTINEL);
+export const NIL = toTaggedValue(Sentinel.NIL, Tag.SENTINEL);
 
 /**
  * Decodes a NaN-boxed value into components.
