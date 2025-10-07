@@ -37,12 +37,14 @@ function reverseSpan(vm: VM, spanSize: number): void {
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
 
-  const startAddr = vm.SPBytes - spanSize * CELL_SIZE;
-  const endAddr = vm.SPBytes - CELL_SIZE;
+  const startCell = vm.SP - spanSize;
+  const endCell = vm.SP - 1;
+  const startAddr = startCell * CELL_SIZE;
+  const endAddr = endCell * CELL_SIZE;
 
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
-    const leftAddr = startAddr + i * CELL_SIZE;
-    const rightAddr = endAddr - i * CELL_SIZE;
+    const leftAddr = (startCell + i) * CELL_SIZE;
+    const rightAddr = (endCell - i) * CELL_SIZE;
 
     const leftValue = vm.memory.readFloat32(0, leftAddr);
     const rightValue = vm.memory.readFloat32(0, rightAddr);
