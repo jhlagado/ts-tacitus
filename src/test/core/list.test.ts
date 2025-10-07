@@ -3,7 +3,7 @@
  * Tests for LIST core utilities
  */
 
-import { VM, toTaggedValue, Tag, fromTaggedValue } from '../../core';
+import { VM, toTaggedValue, Tag, fromTaggedValue, CELL_SIZE } from '../../core';
 import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core';
 import { createList } from '../utils/core-test-utils';
 
@@ -84,7 +84,7 @@ describe('LIST Core Utilities', () => {
       const header = vm.peek();
       expect(getListLength(header)).toBe(1);
 
-      const payload = vm.memory.readFloat32(0, vm.SP - 4);
+      const payload = vm.memory.readFloat32(0, vm.SPBytes - CELL_SIZE);
       expect(isList(payload)).toBe(true);
       expect(getListLength(payload)).toBe(1);
     });
@@ -102,10 +102,10 @@ describe('LIST Core Utilities', () => {
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
-      const payload0 = vm.memory.readFloat32(0, vm.SP - 4);
-      const payload1 = vm.memory.readFloat32(0, vm.SP - 8);
-      const payload2 = vm.memory.readFloat32(0, vm.SP - 12);
-      const payload3 = vm.memory.readFloat32(0, vm.SP - 16);
+      const payload0 = vm.memory.readFloat32(0, vm.SPBytes - CELL_SIZE);
+      const payload1 = vm.memory.readFloat32(0, vm.SPBytes - 2 * CELL_SIZE);
+      const payload2 = vm.memory.readFloat32(0, vm.SPBytes - 3 * CELL_SIZE);
+      const payload3 = vm.memory.readFloat32(0, vm.SPBytes - 4 * CELL_SIZE);
 
       expect(isList(payload0)).toBe(true);
       expect(payload1).toBe(val1);
@@ -154,11 +154,11 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       createList(vm, []);
 
-      const initialSP = vm.SP;
+      const initialSP = vm.SPBytes;
       dropList(vm);
-      const finalSP = vm.SP;
+      const finalSP = vm.SPBytes;
 
-      expect(initialSP - finalSP).toBe(4);
+      expect(initialSP - finalSP).toBe(CELL_SIZE);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -167,11 +167,11 @@ describe('LIST Core Utilities', () => {
       const value = 42;
       createList(vm, [value]);
 
-      const initialSP = vm.SP;
+      const initialSP = vm.SPBytes;
       dropList(vm);
-      const finalSP = vm.SP;
+      const finalSP = vm.SPBytes;
 
-      expect(initialSP - finalSP).toBe(8);
+      expect(initialSP - finalSP).toBe(2 * CELL_SIZE);
       expect(getStackDepth(vm)).toBe(0);
     });
 
@@ -180,11 +180,11 @@ describe('LIST Core Utilities', () => {
       const values = [1, 2, 3];
       createList(vm, values);
 
-      const initialSP = vm.SP;
+      const initialSP = vm.SPBytes;
       dropList(vm);
-      const finalSP = vm.SP;
+      const finalSP = vm.SPBytes;
 
-      expect(initialSP - finalSP).toBe(16);
+      expect(initialSP - finalSP).toBe(4 * CELL_SIZE);
       expect(getStackDepth(vm)).toBe(0);
     });
 

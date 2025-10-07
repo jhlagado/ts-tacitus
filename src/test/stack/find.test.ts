@@ -1,17 +1,17 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM, SEG_STACK, toTaggedValue, Tag } from '../../core';
+import { VM, SEG_STACK, toTaggedValue, Tag, CELL_SIZE } from '../../core';
 import { findElement } from '../../ops/stack';
 
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
-  vm.memory.writeFloat32(SEG_STACK, vm.SP, toTaggedValue(value, tag));
-  vm.SP += 4;
+  vm.memory.writeFloat32(SEG_STACK, vm.SPBytes, toTaggedValue(value, tag));
+  vm.SPBytes += CELL_SIZE;
 }
 
 function createList(vm: VM, ...values: number[]): { start: number; end: number } {
-  const start = vm.SP;
+  const start = vm.SPBytes;
   values.forEach(val => pushValue(vm, val));
   pushValue(vm, values.length, Tag.LIST);
-  return { start, end: vm.SP };
+  return { start, end: vm.SPBytes };
 }
 
 describe('findElement', () => {
@@ -94,7 +94,7 @@ describe('findElement', () => {
   });
 
   test('should handle out of bounds access', () => {
-    vm.SP = 0;
+    vm.SPBytes = 0;
     const [_next1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
 

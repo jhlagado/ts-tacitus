@@ -123,7 +123,7 @@ describe('Built-in Words', () => {
   });
   describe('Grouping Operations', () => {
     test('groupLeftOp should push the current SP onto the return stack', () => {
-      const initialSP = vm.SP;
+      const initialSP = vm.SPBytes;
       groupLeftOp(vm);
       const savedSP = vm.rpop();
       expect(savedSP).toBe(initialSP);

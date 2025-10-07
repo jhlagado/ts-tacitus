@@ -1,10 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
-import { SEG_STACK } from '../../../core/constants';
+import { SEG_STACK, CELL_SIZE } from '../../../core/constants';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { cellsRoll, findElement } from '../../../ops/stack';
-
-const CELL_SIZE = 4;
 
 describe('Stack Utils', () => {
   let vm: VM;
@@ -34,8 +32,8 @@ describe('Stack Utils', () => {
 
   describe('findElement', () => {
     function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-      vm.memory.writeFloat32(SEG_STACK, vm.SP, toTaggedValue(value, tag));
-      vm.SP += CELL_SIZE;
+      vm.memory.writeFloat32(SEG_STACK, vm.SPBytes, toTaggedValue(value, tag));
+      vm.SPBytes += CELL_SIZE;
     }
 
     function createList(...values: number[]): void {

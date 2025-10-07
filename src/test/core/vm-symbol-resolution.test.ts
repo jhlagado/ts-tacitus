@@ -107,7 +107,7 @@ describe('VM Symbol Resolution', () => {
       vm.push(addRef!);
       evalOp(vm);
 
-      expect(vm.SP).toBe(4);
+      expect(vm.SPCells).toBe(1);
       expect(vm.pop()).toBe(8);
     });
 
