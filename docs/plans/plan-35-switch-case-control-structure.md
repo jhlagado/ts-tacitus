@@ -2,7 +2,7 @@
 
 ## Status
 - **Stage:** Draft
-- **Scope:** Introduce a `case` / `of` / `DEFAULT` immediate-family that lowers to existing Tacit opcodes (dup/eq/branch) without parser extensions.
+- **Scope:** Introduce a `case` / `of` immediate-family that lowers to existing Tacit opcodes (dup/eq/branch) without parser extensions.
 
 ## High-level objective
 Deliver a discriminant-based multi-branch construct built entirely with immediates, mirroring the ergonomics of high-level switch-case while preserving Tacit’s stack discipline. Clause bodies should not manage discriminant cleanup explicitly; the immediates must handle comparison, branching, and stack restoration automatically.
@@ -18,7 +18,6 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - Create `src/lang/meta/case.ts` exporting:
   - `beginCaseImmediate(state)`
   - `clauseOfImmediate(state, sentinelAware)`
-  - `defaultImmediate(state)`
   - `ensureNoOpenCase(state)` (hooked into existing parser finalisation alongside `ensureNoOpenConditionals`).
 - Unit-test the helper stack behaviour in isolation (e.g., `src/test/lang/case-immediate.test.ts`).
 
@@ -36,7 +35,8 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 
 ### Phase 3 — Wiring & registration
 - Export immediates from `src/lang/meta/index.ts`.
-- Register `case`, `of`, `DEFAULT` builtins (immediate flag) in `src/ops/builtins-register.ts`.
+- Register `case`, `of` builtins (immediate flag) in `src/ops/builtins-register.ts`.
+- REGISTER `DEFAULT`, `NIL` as immediate literals pushing the sentinel value.
 - Ensure the generic terminator dispatch includes new closer opcodes.
 - Update dependency maps (docs) to reference the new spec file.
 
