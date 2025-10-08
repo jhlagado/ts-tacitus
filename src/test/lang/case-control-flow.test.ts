@@ -87,7 +87,7 @@ describe('case control flow', () => {
   test('detects unclosed case constructs during final validation', () => {
     try {
       parse(new Tokenizer('1 case 1 of 2 ;'));
-      expect(vm.getStackData().some(value => Number.isNaN(value))).toBe(true);
+      expect(vm.getStackData().some((value: unknown) => Number.isNaN(value as number))).toBe(true);
       expect(() => ensureNoOpenConditionals()).toThrow('Unclosed case');
     } catch (error) {
       expect((error as Error).message).toContain('Unclosed case');

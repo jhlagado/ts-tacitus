@@ -45,10 +45,10 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - Ensured the runtime honours the wildcard sentinel by updating `areValuesEqual` so `Sentinel.DEFAULT` compares truthy against any discriminant.
 - Validation: `yarn test --runTestsByPath src/test/lang/case-control-flow.test.ts` and `yarn test` (full suite still exits 1 because the long-standing global coverage gate is below 80%; all suites pass).
 
-### Phase 5 — Documentation & developer ergonomics
-- Update `docs/specs/metaprogramming.md` with a summary and link to the detailed spec.
-- Extend learn docs (control flow tutorials) with examples demonstrating `case` usage.
-- Announce the new construct in `docs/dependency-map.md` or relevant overviews.
+### Phase 5 — Documentation & developer ergonomics ✅
+- `docs/specs/metaprogramming.md` highlights the `case/of/DEFAULT` lowering and links to the dedicated spec; `docs/specs/README.md` lists the new spec entry.
+- Added `docs/learn/control-flow.md` with quick examples for `if`, `when`, and `case`, and surfaced it from `docs/learn/README.md`.
+- Overview references now point to the new control-flow materials so the construct is discoverable from the learn/spec landing pages.
 
 ### Phase 6 — Wrap-up
 - Run `yarn lint`, targeted `yarn test -- runTestsByPath …`, and finally `yarn test`.
@@ -66,4 +66,4 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - [x] Closer operations wired and tested.
 - [x] Builtins registered; parser validation updated.
 - [x] End-to-end language tests covering success/error paths.
-- [ ] Documentation and dependency map updates.
+- [x] Documentation and dependency map updates.
