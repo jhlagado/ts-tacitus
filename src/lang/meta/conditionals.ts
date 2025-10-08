@@ -80,6 +80,9 @@ export function ensureNoOpenConditionals(): void {
       if (opcode === Op.EndWhen) {
         throw new SyntaxError('Unclosed `when`', vm.getStackData());
       }
+      if (opcode === Op.EndCase) {
+        throw new SyntaxError('Unclosed case', vm.getStackData());
+      }
     }
   }
 }
