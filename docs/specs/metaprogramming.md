@@ -148,11 +148,11 @@ when
 
 ## Switch-style multi-branch (`case` … `of` … `;`)
 
-The forthcoming `case` / `of` / `DEFAULT` suite follows the same immediate pattern. See `docs/specs/case-control-flow.md` for the full draft; highlights:
+The `case` / `of` / `DEFAULT` suite follows the same immediate pattern. See `docs/specs/case-control-flow.md` for full normative details; highlights:
 
 - `case` snapshots `RSP`, pushes `savedRSP` and `EndCase`, leaving the discriminant beneath the metadata.
 - `of` duplicates the discriminant (`over`), compares it to the clause constant, emits `IfFalseBranch +0`, records the skip placeholder, then emits a `drop` so matching bodies do not see the discriminant.
-- Clause terminator `;` (running `EndClause`) patches the predicate skip, emits a forward exit branch, and restores the discriminant for subsequent clauses.
+- Clause terminator `;` (running `EndOf`) patches the predicate skip, emits a forward exit branch, and restores the discriminant for subsequent clauses.
 - `DEFAULT` provides an unconditional match via a recognised sentinel.
 - Final `;` (running `EndCase`) drops any remaining discriminant, patches recorded exits to the shared continuation, and validates the return stack snapshot.
 
@@ -173,4 +173,4 @@ All closers live in `src/ops/core/core-ops.ts` and are dispatched through the ge
 ## Future work
 - Expose a user-level `immediate` word to mark freshly defined colon definitions as immediates.
 - Migrate remaining legacy combinators (e.g. repeat-style loops) onto the immediate infrastructure or retire them.
-- Expand this spec with additional structures (`case`, loop families) as they are ported.
+- Expand this spec with additional structures (loop families, pattern match variants) as they are ported.
