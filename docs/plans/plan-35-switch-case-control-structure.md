@@ -40,13 +40,10 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - Updated documentation entry points so the new construct is discoverable (`docs/specs/metaprogramming.md` references the normative spec, and `docs/specs/README.md` lists `case-control-flow.md`).
 - Validation: `yarn test` *(full suite still exits 1 because the long-standing global coverage gate is < 80%; individual suites pass).* 
 
-### Phase 4 — Test suite
-- Author end-to-end tests `src/test/lang/case-control-flow.test.ts` exercising:
-  - Single clause success/failure.
-  - Multiple clauses with and without default.
-  - Nested `case` constructs.
-  - Error diagnostics (missing case, duplicate default, stray clause `;`).
-- Expand bytecode-focused tests (if necessary) to assert emitted instruction sequences.
+### Phase 4 — Test suite ✅
+- Added `src/test/lang/case-control-flow.test.ts` covering happy-path dispatch, default matching, multi-clause fall-through, nested cases, multiple defaults, and parser error reporting.
+- Ensured the runtime honours the wildcard sentinel by updating `areValuesEqual` so `Sentinel.DEFAULT` compares truthy against any discriminant.
+- Validation: `yarn test --runTestsByPath src/test/lang/case-control-flow.test.ts` and `yarn test` (full suite still exits 1 because the long-standing global coverage gate is below 80%; all suites pass).
 
 ### Phase 5 — Documentation & developer ergonomics
 - Update `docs/specs/metaprogramming.md` with a summary and link to the detailed spec.
@@ -68,5 +65,5 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - [x] Immediate helpers implemented with unit tests.
 - [x] Closer operations wired and tested.
 - [x] Builtins registered; parser validation updated.
-- [ ] End-to-end language tests covering success/error paths.
+- [x] End-to-end language tests covering success/error paths.
 - [ ] Documentation and dependency map updates.
