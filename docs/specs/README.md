@@ -9,6 +9,7 @@ Start here to get a zero-to-productive overview. Read in this order:
 - lists.md — Reverse lists, traversal, bracket paths, addressing
 - errors-and-failures.md — Error policy and messages
 - metaprogramming.md — Immediate words, shared terminator, `if`/`when` lowering
+- case-control-flow.md — Immediate `case/of/DEFAULT` multi-branching semantics
 
 Quick Reference
 - quick-reference.md — One‑page cheatsheet of common patterns and lowerings

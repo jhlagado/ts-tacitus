@@ -34,10 +34,11 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 - Extended `src/test/lang/case-immediate.test.ts` with clause/construct coverage including empty-case, predicate failure, and metadata validation scenarios.
 - Validation: `yarn test --runTestsByPath src/test/lang/case-immediate.test.ts` *(suite passes; run exits 1 because the project-wide coverage gate remains < 80% as before).* 
 
-### Phase 3 — Wiring & registration *(in progress)*
-- ✅ Immediates (`case`, `of`, `DEFAULT`, `NIL`) exposed through `src/lang/meta/index.ts` and wired into the dictionary via `src/ops/builtins-register.ts` (immediate flag set so they execute during parsing).
-- ☐ Ensure the generic terminator dispatch includes the new closer opcodes once interpreter wiring is finalised.
-- ☐ Update dependency maps (docs) to reference the new spec file.
+### Phase 3 — Wiring & registration ✅
+- Immediates (`case`, `of`, `DEFAULT`, `NIL`) exposed through `src/lang/meta/index.ts` and wired into the dictionary via `src/ops/builtins-register.ts` (immediate flag set so they execute during parsing).
+- Confirmed the generic terminator dispatch reaches `EndOf`/`EndCase` through the existing builtin table (`src/ops/builtins.ts` now maps both opcodes).
+- Updated documentation entry points so the new construct is discoverable (`docs/specs/metaprogramming.md` references the normative spec, and `docs/specs/README.md` lists `case-control-flow.md`).
+- Validation: `yarn test` *(full suite still exits 1 because the long-standing global coverage gate is < 80%; individual suites pass).* 
 
 ### Phase 4 — Test suite
 - Author end-to-end tests `src/test/lang/case-control-flow.test.ts` exercising:
@@ -65,7 +66,7 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 ## Deliverables checklist
 - [ ] `docs/specs/case-control-flow.md` finalised (currently draft).
 - [x] Immediate helpers implemented with unit tests.
-- [ ] Closer operations wired and tested.
-- [ ] Builtins registered; parser validation updated.
+- [x] Closer operations wired and tested.
+- [x] Builtins registered; parser validation updated.
 - [ ] End-to-end language tests covering success/error paths.
 - [ ] Documentation and dependency map updates.
