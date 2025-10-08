@@ -3,7 +3,7 @@
  * Utility functions for the Tacit VM implementation.
  */
 
-import { fromTaggedValue } from './tagged';
+import { fromTaggedValue, Tag, Sentinel } from './tagged';
 
 /**
  * Compares two tagged values for equality.
@@ -16,6 +16,12 @@ export function areValuesEqual(a: number, b: number): boolean {
 
   const aDecoded = fromTaggedValue(a);
   const bDecoded = fromTaggedValue(b);
+  if (aDecoded.tag === Tag.SENTINEL && aDecoded.value === Sentinel.DEFAULT) {
+    return true;
+  }
+  if (bDecoded.tag === Tag.SENTINEL && bDecoded.value === Sentinel.DEFAULT) {
+    return true;
+  }
   return aDecoded.tag === bDecoded.tag && aDecoded.value === bDecoded.value;
 }
 
