@@ -9,6 +9,7 @@ Essentials
 - Variables & refs (locals + globals): `docs/specs/variables-and-refs.md`
 - Lists (representation, traversal, bracket paths): `docs/specs/lists.md`
 - Errors & failures: `docs/specs/errors-and-failures.md`
+- Control flow walkthroughs (`if`, `when`, `case`): `docs/learn/control-flow.md`
 
 Notation
 - Stack effects `( before — after )` are documentation only. In code fences, they are written as `\ ( — … )` so examples are valid Tacit.
