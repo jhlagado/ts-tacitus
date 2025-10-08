@@ -1,7 +1,7 @@
-# Switch / Case Control Flow (Draft)
+# Switch / Case Control Flow
 
 ## Status
-- **Stage:** Draft
+- **Stage:** Normative
 - **Scope:** Immediate multi-branch selection construct `case` / `of` / `DEFAULT` / `;`.
 - **Audience:** Compiler/runtime implementors and language designers looking to extend Tacit’s immediate-word suite.
 
@@ -79,6 +79,7 @@ Because the `DEFAULT` clause pushes a runtime sentinel constant, the sequence ab
 
 - `DEFAULT` pushes a distinguished sentinel constant (e.g., `toTaggedValue(Sentinel.DEFAULT, Tag.SENTINEL)`) onto the stack via an immediate word. The emitted `eq` must treat comparisons involving this sentinel as an automatic match, so the default clause reuses the standard comparison/branch sequence without alteration.
 - Because the `DEFAULT` clause still goes through the standard `of` lowering, there are no compile-time differences: the comparison sequence is emitted, `IfFalseBranch` is recorded (it simply never triggers at runtime), and the trailing `drop` removes the discriminant before the body executes.
+- Equality treats `Sentinel.DEFAULT` as a wildcard (`areValuesEqual` returns `true` when either operand carries `Tag.SENTINEL` with payload `Sentinel.DEFAULT`).
 - Additional defaults are permitted. Because the sentinel wildcard causes the equality check to succeed immediately, the first encountered default will match; later defaults are effectively dead code but remain legal.
 
 ## Emitted Bytecode Skeleton

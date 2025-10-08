@@ -1,6 +1,6 @@
 # Plan 27 — Global Segment and GLOBAL_REF
 
-Status: Draft (Phase 1 implemented)
+Status: Draft (Phases 1–2 complete; no further work scheduled)
 Owner: VM + Parser
 Last updated: 2025-09-11
 
@@ -46,26 +46,20 @@ Last updated: 2025-09-11
 - [x] Tests: basic declare/assign/read; GLOBAL_REF fetch; compound init sanity (length check).
 
 ### Phase 2 — Hardening, &-Sigil Semantics, and Docs
-- [ ] Bounds & exhaustion: error if `GP + needed > GLOBAL_SIZE/CELL_SIZE`.
-- [ ] Reset behavior: ensure `resetVM()` resets `GP` and clears global data if desired.
-- [ ] Ref Sigil (&) expansion:
+- [x] Bounds & exhaustion: error when `GP + neededCells > GLOBAL_SIZE / CELL_SIZE` (`initializeGlobalCompound` raises “Global segment exhausted…”; covered by `globals.basic.test.ts`).
+- [x] Ref Sigil (&) expansion:
   - [x] Inside functions: `&global` produces `GLOBAL_REF` (implemented).
-  - [ ] Top level: allow `&global` (no local frame) to produce `GLOBAL_REF`.
-  - [ ] Parser: remove function-only restriction for `&` where applicable; keep error for non-variable names (builtins/code).
-  - [ ] Tests: replace “reject &x for non-local variables” with cases asserting `&global` works (function + top-level) and `&word` errors.
-- [ ] Docs:
-  - [ ] New `globals.md` or section in `local-vars.md` describing syntax, semantics, lifetime, and examples.
-  - [ ] Update `refs.md` to reflect implemented GLOBAL_REF.
-  - [ ] Note: `+>` remains locals-only; use `value name add -> name` for globals.
-- [ ] Tests:
-  - [ ] Bracket-path global store (element update).
-  - [ ] Compatible vs incompatible compound reassign to global.
-  - [ ] Error on global segment exhaustion.
-
-### Phase 3 — Ergonomics & Tooling
-- [ ] REPL: globals persist across input lines; add command to list/reset globals.
-- [ ] Introspection: print/dump of global segment for debugging.
-- [ ] Optional: `const` for immutable top-level bindings (literal folding).
+  - [x] Top level: `&global` now succeeds and is tested (`ref-sigil.test.ts`).
+  - [x] Parser: still errors for undefined names / non-variables while allowing globals.
+  - [x] Tests updated: coverage for top-level `&global` and rejection of `&word` without locals.
+- [x] Docs:
+  - [x] Globals documented in `docs/specs/variables-and-refs.md` and learner guide (`docs/learn/local-vars.md`).
+  - [x] References overview (`docs/learn/refs.md`) mentions `GLOBAL_REF` behaviour.
+  - [x] Explicit reminder that `+>` remains locals-only.
+- [x] Tests:
+  - [x] Bracket-path global store (element update).
+  - [x] Compatible vs incompatible compound reassignment to globals.
+  - [x] Error on global segment exhaustion.
 
 ## Success Criteria
 - Access: `name` and `&name` usable inside functions; bracket paths work.
