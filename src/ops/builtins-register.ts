@@ -28,6 +28,10 @@ import {
   beginElseImmediate,
   beginWhenImmediate,
   beginDoImmediate,
+  beginCaseImmediate,
+  clauseOfImmediate,
+  defaultImmediate,
+  nilImmediate,
 } from '../lang/meta';
 
 /**
@@ -130,6 +134,10 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('else', Op.Nop, _vm => beginElseImmediate(), true);
   symbolTable.defineBuiltin('when', Op.Nop, _vm => beginWhenImmediate(), true);
   symbolTable.defineBuiltin('do', Op.Nop, _vm => beginDoImmediate(), true);
+  symbolTable.defineBuiltin('case', Op.Nop, _vm => beginCaseImmediate(), true);
+  symbolTable.defineBuiltin('of', Op.Nop, _vm => clauseOfImmediate(), true);
+  symbolTable.defineBuiltin('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
+  symbolTable.defineBuiltin('NIL', Op.Nop, _vm => nilImmediate(), true);
 
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);

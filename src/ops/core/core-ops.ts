@@ -336,6 +336,50 @@ export const endDoOp: Verb = (vm: VM) => {
 };
 
 /**
+ * Closes a single `case` clause body during compilation.
+ *
+ * Expects the predicate skip placeholder on the data stack (left there by the
+ * immediate `of`). Emits a forward branch to the shared exit, records that
+ * branch location on the return stack, and patches the predicate skip so failed
+ * comparisons fall through to the next clause.
+ */
+export const endOfOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'endof');
+
+  const rawSkipPos = vm.pop();
+  if (!Number.isFinite(rawSkipPos)) {
+    throw new SyntaxError('endof missing predicate placeholder', vm.getStackData());
+  }
+
+  const skipPos = Math.trunc(rawSkipPos);
+  if (skipPos <= 0) {
+    throw new SyntaxError('endof invalid predicate placeholder', vm.getStackData());
+  }
+
+  if (vm.SP === 0) {
+    throw new SyntaxError('clause closer without of', vm.getStackData());
+  }
+
+  const closer = vm.peek();
+  const { tag, value } = fromTaggedValue(closer);
+  if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
+    throw new SyntaxError('clause closer without of', vm.getStackData());
+  }
+
+  vm.compiler.compileOpcode(Op.Branch);
+  const exitOperandPos = vm.compiler.CP;
+  vm.compiler.compile16(0);
+
+  vm.rpush(exitOperandPos);
+
+  const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
+  const prevCP = vm.compiler.CP;
+  vm.compiler.CP = skipPos;
+  vm.compiler.compile16(fallthroughOffset);
+  vm.compiler.CP = prevCP;
+};
+
+/**
  * Closes an entire `when` construct during compilation.
  *
  * Expects the saved return-stack pointer snapshot on the data stack (pushed by
@@ -370,6 +414,47 @@ export const endWhenOp: Verb = (vm: VM) => {
 
   if (vm.RSP !== savedRSP) {
     throw new SyntaxError('endwhen corrupted return stack', vm.getStackData());
+  }
+};
+
+/**
+ * Finalises an entire `case` construct during compilation.
+ *
+ * Expects the saved return-stack snapshot (left by the `case` opener). Emits a
+ * final `drop` to consume the discriminant when no clause matched and back
+ * patches every exit branch recorded by `endof` terminators so successful
+ * clauses skip that drop.
+ */
+export const endCaseOp: Verb = (vm: VM) => {
+  vm.ensureStackSize(1, 'endcase');
+
+  const rawSavedRSP = vm.pop();
+  if (!Number.isFinite(rawSavedRSP)) {
+    throw new SyntaxError('endcase missing saved RSP', vm.getStackData());
+  }
+
+  const savedRSP = Math.trunc(rawSavedRSP);
+
+  vm.compiler.compileOpcode(Op.Drop);
+  const exitTarget = vm.compiler.CP;
+
+  while (vm.RSP > savedRSP) {
+    const rawExitPos = vm.rpop();
+    if (!Number.isFinite(rawExitPos)) {
+      throw new SyntaxError('endcase invalid exit placeholder', vm.getStackData());
+    }
+
+    const exitPos = Math.trunc(rawExitPos);
+    const exitOffset = exitTarget - (exitPos + 2);
+
+    const prevCP = vm.compiler.CP;
+    vm.compiler.CP = exitPos;
+    vm.compiler.compile16(exitOffset);
+    vm.compiler.CP = prevCP;
+  }
+
+  if (vm.RSP !== savedRSP) {
+    throw new SyntaxError('case corrupted return stack', vm.getStackData());
   }
 };
 

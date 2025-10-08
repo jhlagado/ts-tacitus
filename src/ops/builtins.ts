@@ -27,6 +27,8 @@ import {
   endIfOp,
   endDoOp,
   endWhenOp,
+  endOfOp,
+  endCaseOp,
 } from './core';
 import {
   addOp,
@@ -197,6 +199,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.EndIf]: endIfOp,
     [Op.EndDo]: endDoOp,
     [Op.EndWhen]: endWhenOp,
+    [Op.EndOf]: endOfOp,
+    [Op.EndCase]: endCaseOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];

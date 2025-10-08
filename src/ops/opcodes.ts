@@ -235,4 +235,10 @@ export enum Op {
 
   /** Ends a `when` construct during compilation (invoked via generic `;`). */
   EndWhen,
+
+  /** Ends a `case` clause body during compilation (invoked via generic `;`). */
+  EndOf,
+
+  /** Ends a `case` construct during compilation (invoked via generic `;`). */
+  EndCase,
 }
