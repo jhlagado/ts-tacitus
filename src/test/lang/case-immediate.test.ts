@@ -81,7 +81,18 @@ describe('case immediates', () => {
   });
 
   test('ensureNoOpenConditionals flags unclosed case', () => {
+    // Guard against surprising shared-state interactions: reinit the VM and parser stub explicitly.
+    resetVM();
+    setDummyParserState();
+
     beginCaseImmediate();
+
+    // Sanity check that the closer marker is actually on the stack before asserting behaviour.
+    expect(vm.SP).toBeGreaterThanOrEqual(2);
+    const { tag, value } = fromTaggedValue(vm.peek());
+    expect(tag).toBe(Tag.BUILTIN);
+    expect(value).toBe(Op.EndCase);
+
     expect(() => ensureNoOpenConditionals()).toThrow('Unclosed case');
   });
 
