@@ -1,4 +1,4 @@
-import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
+import { SEG_CODE, SEG_STACK, Tag, fromTaggedValue } from '../../core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../core/global-state';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
@@ -68,6 +68,17 @@ describe('conditional immediates', () => {
     expect(exitPlaceholder).toBe(cpBeforeElse + 1);
 
     const closerInfo = fromTaggedValue(vm.peek());
+
+    console.log('peek raw', vm.peek());
+
+    console.log('peek decoded', closerInfo);
+    const byteDump = [0, 1, 2, 3].map(i => vm.memory.read8(SEG_STACK, 4 + i));
+
+    console.log('peek bytes', byteDump);
+    const peekBitsBuffer = new ArrayBuffer(4);
+    const peekBitsView = new DataView(peekBitsBuffer);
+    peekBitsView.setFloat32(0, vm.peek(), true);
+    console.log('peek bits', peekBitsView.getUint32(0, true).toString(16));
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndIf);
   });
@@ -78,9 +89,25 @@ describe('conditional immediates', () => {
     const closerInfo = fromTaggedValue(vm.peek());
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndIf);
-    const stackSnapshot = vm.getStackData().map((value) => fromTaggedValue(value));
-    // eslint-disable-next-line no-console
-    console.log('snapshot', stackSnapshot);
+    const stackData = vm.getStackData();
+
+    console.log(
+      'stackData raw',
+      stackData,
+      stackData.map((v: number) => Number.isNaN(v)),
+    );
+    const rawBitsBuffer = new ArrayBuffer(4);
+    const rawBitsView = new DataView(rawBitsBuffer);
+    rawBitsView.setFloat32(0, stackData[1], true);
+    console.log('stackData second bits', rawBitsView.getUint32(0, true).toString(16));
+    const directRead = vm.memory.readFloat32(SEG_STACK, 4);
+    const directBuffer = new ArrayBuffer(4);
+    const directView = new DataView(directBuffer);
+    directView.setFloat32(0, directRead, true);
+    console.log('direct read bits', directView.getUint32(0, true).toString(16));
+    const stackSnapshot = stackData.map((value: number) => fromTaggedValue(value));
+
+    console.log('snapshot decoded', stackSnapshot);
     expect(stackSnapshot).toEqual([
       expect.objectContaining({ tag: Tag.NUMBER }),
       expect.objectContaining({ tag: Tag.BUILTIN, value: Op.EndIf }),
