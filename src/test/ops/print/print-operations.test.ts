@@ -2,6 +2,9 @@
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
  * Tests both high-level '.' operation and low-level 'raw' operator
  */
+import { Tag, toTaggedValue } from '@src/core';
+import { vm } from '@src/core/global-state';
+import { printOp, rawPrintOp } from '@src/ops/print/print-ops';
 import { resetVM, captureTacitOutput } from '../../utils/vm-test-utils';
 
 describe('Print Operations', () => {
@@ -37,8 +40,8 @@ describe('Print Operations', () => {
 
     describe('error cases', () => {
       test('should handle empty stack for print operation', () => {
-        const output = captureTacitOutput('( 10 20 ) .');
-        expect(output).toEqual(['( 10 20 )']);
+        const output = captureTacitOutput('.');
+        expect(output).toEqual(['[Error: Stack empty]']);
       });
     });
 
@@ -104,6 +107,54 @@ describe('Print Operations', () => {
         expect(output).toContain('123');
         expect(output).toContain('456');
       });
+    });
+  });
+
+  describe('Direct invocation edge cases', () => {
+    let logSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    test('printOp reports formatter failures and leaves stack consistent', () => {
+      resetVM();
+      vm.push(42);
+      const originalPop = vm.pop.bind(vm);
+      const popSpy = jest.spyOn(vm, 'pop');
+      popSpy.mockImplementationOnce(() => {
+        throw new Error('pop fail');
+      });
+      popSpy.mockImplementation(originalPop);
+
+      printOp(vm);
+
+      expect(logSpy).toHaveBeenCalledWith('[Print error: pop fail]');
+      expect(vm.SP).toBe(0);
+
+      popSpy.mockRestore();
+      resetVM();
+    });
+
+    test('rawPrintOp handles unexpected errors gracefully', () => {
+      resetVM();
+      vm.push(toTaggedValue(1, Tag.NUMBER));
+      const originalPop = vm.pop.bind(vm);
+      const popSpy = jest.spyOn(vm, 'pop').mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      rawPrintOp(vm);
+
+      expect(logSpy).toHaveBeenCalledWith('[Raw print error: boom]');
+      expect(vm.SP).toBe(1);
+
+      popSpy.mockRestore();
+      resetVM();
     });
   });
 });
