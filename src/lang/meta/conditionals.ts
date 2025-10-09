@@ -66,13 +66,10 @@ export function beginElseImmediate(): void {
 }
 
 export function ensureNoOpenConditionals(): void {
-  const stack = vm.getStackData();
-  for (let i = 0; i < stack.length; i++) {
-    const value = stack[i];
-    if (!isNaN(value)) {
-      continue;
-    }
-    const { tag, value: opcode } = fromTaggedValue(value);
+  // Scan stack via VM.peekAt to avoid potential NaN canonicalization issues
+  for (let offset = 0; offset < vm.SP; offset++) {
+    const tval = vm.peekAt(offset); // 0 = TOS
+    const { tag, value: opcode } = fromTaggedValue(tval);
     if (tag === Tag.BUILTIN) {
       if (opcode === Op.EndIf) {
         throw new SyntaxError('Unclosed IF', vm.getStackData());
