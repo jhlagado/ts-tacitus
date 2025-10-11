@@ -241,4 +241,20 @@ export enum Op {
 
   /** Ends a `case` construct during compilation (invoked via generic `;`). */
   EndCase,
+
+  /** Buffer allocation: buffer N -- list */
+  Buffer,
+
+  /** Buffer queries: buf-size/list/ref -- n */
+  BufSize,
+  /** Buffer empty check: buf-empty list/ref -- 1|NIL */
+  BufEmpty,
+  /** Buffer full check: buf-full list/ref -- 1|NIL */
+  BufFull,
+
+  /** Buffer mutations (non-throwing on under/overflow, return 1|NIL or v|NIL) */
+  BufPush,
+  BufPop,
+  BufUnshift,
+  BufShift,
 }
