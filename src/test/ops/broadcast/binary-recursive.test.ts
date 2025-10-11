@@ -1,5 +1,5 @@
-import { fromTaggedValue, Tag } from '@src/core';
-import { vm } from '@src/core/global-state';
+import { fromTaggedValue, Tag } from '../../../../src/core';
+import { vm } from '../../../../src/core/global-state';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 
 describe('Recursive broadcasting: add', () => {
@@ -7,7 +7,7 @@ describe('Recursive broadcasting: add', () => {
     resetVM();
   });
 
-  const snapshotValues = () => vm.getStackData().map((v) => fromTaggedValue(v));
+  const snapshotValues = () => vm.getStackData().map((v: number) => fromTaggedValue(v));
 
   test('scalar broadcast over nested list (scalar on left)', () => {
     executeTacitCode('5 ( ( 1 2 ) 3 ) add');
