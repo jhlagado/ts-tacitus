@@ -142,66 +142,40 @@ _Exit criteria:_ `dispatch` respects calling convention, tests pass.
 
 ---
 
-## Phase 5 – Builtin Wiring & Parser
+## Phase 5 – Comprehensive Testing & Integration
 
-**Objective:** Expose commands to users.
-
-| Step | Description                                                                                | Tests                                                         |
-| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| 5.1  | Register `methods` (immediate) and `dispatch` (regular) in `src/ops/builtins-register.ts`. | Integration test that executing Tacit snippet uses new words. |
-| 5.2  | Update any alias tables or compatibility layers if needed.                                 | Existing tests remain green.                                  |
-| 5.3  | Ensure assembler/disassembler output handles new opcodes (if tools exist).                 | Tooling smoke test.                                           |
-
-_Exit criteria:_ Users can write capsules in Tacit snippet.
-
----
-
-## Phase 6 – Comprehensive Testing
-
-**Objective:** Build a rigorous test suite that exercises each behaviour individually before combined scenarios.
+**Objective:** Build exhaustive test suite and wire into builtin registry.
 
 ### Unit Suites
-
-- `frame-utils.test.ts` (Phase 2).
+- `frame-utils.test.ts` (Phase 2)
 - `methods.test.ts`
 - `dispatch.test.ts`
-- `exit-dispatch.test.ts` (ensures no locals cleaned up accidentally).
+- `exit-dispatch.test.ts` (ensures no locals cleaned up accidentally)
 
 ### Integration Suites
+1. **Counter Capsule** — multiple dispatches mutate state and return values correctly
+2. **Point Capsule** — nested `case`, list arguments
+3. **Degenerate Capsule** — no `case`, single routine
+4. **Failure Paths** — dispatch on non-capsule, methods without definition
 
-1. **Counter Capsule** — ensures multiple dispatches mutate state and return values correctly.
-2. **Point Capsule** — nested `case`, list arguments `( 'move 10 20 )`.
-3. **Degenerate Capsule** — no `case`, single routine (ensures dispatch works without symbol use).
-4. **Failure Paths** — dispatch on non-capsule, methods without definition.
+### Builtin Wiring
+- Register `methods` as immediate command in `src/ops/builtins-register.ts`
+- Register `dispatch` as regular operation in `src/ops/builtins-register.ts`
+- Integration test: execute full Tacit snippet using both words
 
-### Property Tests (Optional but recommended)
-
-- Random locals count (0..N) to ensure freeze/dispatch stable across sizes.
-- Random message forms (symbol vs list) to catch argument handling.
-
-_Exit criteria:_ `yarn test` (full suite) + targeted `capsules` suite star green. Introduce coverage checkpoint focusing on new files.
-
----
-
-## Phase 7 – Documentation & Examples
-
-**Objective:** Ensure developer guidance matches implementation.
-
-| Deliverable                                                                                         | Description |
-| --------------------------------------------------------------------------------------------------- | ----------- |
-| Update `docs/specs/capsules.md` (already current; just confirm final behaviour).                    |
-| Update `docs/specs/metaprogramming.md` to include `methods` + `dispatch` in immediate command list. |
-| Add tutorial snippet under `docs/learn/` demonstrating a simple capsule (counter).                  |
-| Provide example in `docs/learn/refs.md` showing `&alias` usage with capsules.                       |
+_Exit criteria:_ `yarn test` (full suite) passes, targeted capsules suite green.
 
 ---
 
-## Phase 8 – Roll-out Checklist
+## Phase 6 – Documentation & Release
 
-1. ✅ All phases merged with review signoff.
-2. ✅ Final `yarn test` & `yarn lint`.
-3. ✅ Update changelog / release notes.
-4. ✅ Announce ready-to-use capsules in developer docs.
+**Objective:** Update docs and prepare for release.
+
+- Update `docs/specs/metaprogramming.md` to include `methods` + `dispatch`
+- Add tutorial snippet under `docs/learn/` demonstrating a simple capsule (counter)
+- Provide example in `docs/learn/refs.md` showing `&alias` usage with capsules
+
+_Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complete, ready to announce.
 
 ---
 
