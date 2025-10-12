@@ -69,9 +69,9 @@ When `methods` executes during compilation **the constructor terminates immediat
    Compute the CODE reference as `CP + size(Op.Exit)` (single byte). This is where dispatch will resume.
 
 3. **Freeze the frame onto the data stack**  
-   - Copy each local between `BP` (oldest) and `RSP` (newest) onto the data stack.  
-   - Leave the list header at TOS.  
-   - Overwrite slot 0 (just beneath the header) with the CODE reference.  
+   - Push each local `1 … N` onto the data stack (local 1 = oldest, local N = newest).  
+   - Push the computed CODE reference (re-entry point).  
+   - Push the list header with length `N + 1` so that TOS is the header.  
    - The resulting layout is:  
      ```
      [ local0 … localN, CODE_REF, LIST:(N+1) ]
