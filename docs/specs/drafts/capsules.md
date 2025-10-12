@@ -110,28 +110,36 @@ Dispatch performs symbolic control:
    * If list: extracts symbol from element 0 and uses the tail as args
    * Fallback behavior (`DEFAULT`) is optional and user-defined
 
-### 3.3 Dispatch Prologue vs Function Call Prologue
+### 3.3 Dispatch Calling Convention
 
-Capsule dispatch uses a modified call protocol:
+When `dispatch` re-enters the capsule, it uses a shallow frame convention distinct from ordinary calls:
 
-| Feature             | Normal Function Call  | Capsule Dispatch      |
-| ------------------- | --------------------- | --------------------- |
-| Return address      | Pushed to RSTACK      | Pushed to RSTACK      |
-| Old `BP` saved      | Yes                   | Yes                   |
-| `BP` set to         | Current `SP`          | Capsule frame address |
-| RSTACK frame layout | Includes locals, args | Only return addr + BP |
-| Epilogue behavior   | Pops full frame       | Only restores BP      |
+| Feature             | Normal Function Call  | Capsule Dispatch              |
+| ------------------- | --------------------- | ----------------------------- |
+| Return address      | Push to RSTACK        | Push to RSTACK                |
+| Save caller `BP`    | Push to RSTACK        | Push to RSTACK                |
+| Set new `BP`        | `BP = RSP` (top frame)| `BP = start of capsule locals`|
+| Locals layout       | Fresh frame           | Replayed capsule payload      |
+| Exit opcode         | `Op.Exit`             | `Op.ExitDispatch`             |
 
-Detailed flow:
+**Dispatch prologue emitted by the `dispatch` op:**
 
-- **Dispatch prologue**
-  1. Push return address onto RSTACK.
-  2. Push caller’s `BP`.
-  3. Replay the capsule’s frozen locals onto RSTACK and set `BP` to the start of that payload.
-- **Dispatch epilogue**
-  1. Emit no local-variable cleanup; the payload remains untouched on RSTACK.
-  2. Restore `BP` by popping the saved value.
-  3. Pop the return address and jump back to the caller.
+1. Pop the capsule list and decode it.  
+2. Push return IP and caller BP onto RSTACK (same as normal).  
+3. Replay the payload cells (locals) back onto RSTACK; record the index of the first payload cell.  
+4. Set `BP` to that index so the capsule environment becomes the active frame.  
+5. Push the message discriminant (and arguments if the message was a list) onto the data stack.  
+6. Jump to the CODE reference stored in slot 0.
+
+**Dispatch epilogue emitted by `Op.EndCapsule`:**
+
+1. Emit `Op.ExitDispatch` instead of `Op.Exit`.  
+2. `Op.ExitDispatch` assumes `RSP` already points to the saved BP:  
+   * Pop BP → restore caller BP.  
+   * Pop return address → resume caller IP.  
+   * No local cleanup; the capsule payload remains intact for future dispatches.
+
+This ensures the capsule behaves like a delimited continuation: the environment is restored and preserved without the usual frame teardown.
 
 Because the capsule environment already occupies the return stack, `dispatch` skips the usual “collapse locals and reset `SP`” step. The caller’s stack shape is identical before and after dispatch, apart from the method’s return values on the data stack.
 
