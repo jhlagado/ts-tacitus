@@ -48,8 +48,8 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 | Step | Description                                                                                          | Tests                                                             |
 | ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1.2  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Unit test expecting stub throw.                                   |
-| 1.3  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
+| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Unit test expecting stub throw.                                   |
+| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
