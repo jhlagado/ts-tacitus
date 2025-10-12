@@ -95,7 +95,7 @@ Everything that appears in source **after** `methods` forms the dispatch routine
     'inc of step +> count ;
     'get of count ;
     'set of -> count ;
-    DEFAULT of 'unknown raw ;
+    DEFAULT of 'unknown . ;
   ;
 ;
 ```
@@ -195,22 +195,11 @@ methods
     drop count
   else
     drop step +> count
-  then ;
+  ;
 ;
 ```
 
 Here the caller supplies a numeric message (0 = read, 1 ≠ 0 = increment). The dispatch body itself chooses the branch and the automatically generated epilogue takes care of unwinding.
-
-#### Default-Only Behaviour
-
-```
-methods
-drop 'unsupported raw ;
-```
-
-A capsule can ignore inputs entirely; only the calling convention is fixed.
-
----
 
 ## 4. Ergonomic Patterns
 
@@ -219,25 +208,10 @@ A capsule can ignore inputs entirely; only the calling convention is fixed.
 Since dispatch consumes the receiver, capsules should be stored in locals as soon as they are constructed:
 
 ```
-makePoint var point
+100 100 make-point var point
 ```
 
 Reading `&point` later is cheap; duplicating the capsule list repeatedly would be expensive.
-
-### 4.2 Reusable Helpers (Optional)
-
-Implementations may provide helpers that build message lists or reorder stack items, but they must respect RPN parsing. Example:
-
-```
-: dispatch/list ( list receiver -- )
-  over elem0 swap drop     \ extract symbol
-  swap elem-tail           \ leave args below
-  dispatch ;
-```
-
-This helper consumes only stack values (no lookahead), keeping with Tacit/Forth style.
-
----
 
 ## 5. Worked Examples
 
@@ -253,7 +227,7 @@ This helper consumes only stack values (no lookahead), keeping with Tacit/Forth 
     'translate of
       rot rot +> x0 +> y0 ;    \ expecting dx dy
     'coords of x0 y0 ;         \ pushes coords
-    DEFAULT of drop 'unknown raw ;
+    DEFAULT of drop 'unknown . ;
   ;
 ;
 
@@ -281,9 +255,9 @@ This helper consumes only stack values (no lookahead), keeping with Tacit/Forth 
         drop NIL
       else
         current dup 1 +-> current
-      then ;
+      ;
     'reset of -> current ;
-    DEFAULT of drop 'unknown raw ;
+    DEFAULT of drop 'unknown . ;
   ;
 ;
 ```
@@ -295,7 +269,7 @@ This helper consumes only stack values (no lookahead), keeping with Tacit/Forth 
   var destination
 
   methods
-  drop destination raw ;
+  drop destination . ;
 ;
 ```
 
