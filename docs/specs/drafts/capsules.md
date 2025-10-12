@@ -34,7 +34,7 @@ They behave much like delimited continuations or reified closures but remain ful
 | Environment    | Contains all locals between `BP` and `RSP`                            |
 | Continuation   | Slot 0 of the list is the CODE reference used to resume execution     |
 | Stack-resident | No heap allocation; payload lives in the data segment                 |
-| Symbolic       | Dispatch uses message symbols (or lists) to select behaviour          |
+| Symbolic       | Dispatch uses message symbols to select behaviour                     |
 | Deterministic  | Explicit push/pop discipline; no hidden garbage collection            |
 
 ---
@@ -129,7 +129,7 @@ Stack at return from constructor:
 
 Dispatch uses a **shallow frame** distinct from normal function calls:
 
-| Feature             | Normal Colon Call        | Capsule Dispatch                    |
+| Feature             | Normal Function Call     | Capsule Dispatch                    |
 | ------------------- | ------------------------ | ----------------------------------- |
 | Return address      | Push to RSTACK           | Push to RSTACK                      |
 | Save caller `BP`    | Push to RSTACK           | Push to RSTACK                      |
@@ -139,12 +139,11 @@ Dispatch uses a **shallow frame** distinct from normal function calls:
 
 **Dispatch prologue** (emitted by the `dispatch` op):
 
-1. Pop receiver capsule list from data stack.
-2. Extract CODE reference (slot 0) and payload cells (locals).
+1. Pop the receiver capsule reference from the stack (typically supplied via alias).
+2. Read slot 0 to obtain the CODE reference and compute the address of the first payload cell; leave the payload cells exactly where they already live.
 3. Push return IP and caller BP onto RSTACK.
-4. Replay payload onto RSTACK and set `BP` to the first payload cell.
-5. Push message discriminant (symbol) and any arguments already on stack.
-6. Jump to the CODE reference.
+4. Set `BP` to the payload base address (no data is moved or copied).
+5. Jump to the CODE reference.
 
 **Dispatch epilogue** (`Op.EndCapsule` emits `Op.ExitDispatch`):
 
