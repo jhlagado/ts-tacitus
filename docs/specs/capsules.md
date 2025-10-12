@@ -317,7 +317,7 @@ During dispatch:
 | Dispatch prologue          | Only consumes method symbol + receiver, leaves args intact   |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |
-| Alias usage                | Receivers should typically be accessed via aliases           |
+| Alias usage                | Receivers should typically be accessed via `&name` aliases (`RSTACK_REF`) |
 
 ---
 
