@@ -18,7 +18,7 @@
 4. Update docs/tests/tooling so capsules are safe to use by Tacit programs.
 
 ## Deliverables
-- New opcodes (`Op.Methods`, `Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) with TypeScript implementations.
+- New opcodes (`Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) with TypeScript implementations.
 - Capsule helper module (frame capture, validation asserts).
 - Integration in builtin registry and parser.
 - Comprehensive tests (unit + integration + negative cases).
@@ -46,7 +46,7 @@
 | --- | --- | --- |
 | 1.1 | Add enums (`Op.Methods`, `Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) in `src/ops/opcodes.ts`. | Enum smoke test ensuring values assigned & exported. |
 | 1.2 | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”). | Unit test expecting stub throw. |
-| 1.3 | Update parser tokens table to map the word `methods` to `Op.Methods` (immediate). | Parser test verifying `methods` is marked `isImmediate`. |
+| 1.3 | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
 
 *Exit criteria:* Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
