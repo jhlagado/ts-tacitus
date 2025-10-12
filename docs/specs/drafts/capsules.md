@@ -150,7 +150,7 @@ Dispatch uses a **shallow frame** distinct from normal function calls:
 1. Assume `RSP` points to the saved BP (no local cleanup).
 2. Pop and restore BP.
 3. Pop return address and jump.
-4. Leave capsule payload untouched on the data stack.
+4. Leave the capsule payload untouched in place (memory location unchanged).
 
 ### 3.2 Invocation Order
 
