@@ -173,43 +173,39 @@ Example:
 
 Inside the `'move` clause, the data stack still holds `10 20` because dispatch only consumes the method symbol and receiver.
 
-### 3.3 Message Lists (Optional)
+### 3.3 Degenerate Dispatch Bodies
 
-For complex messages, callers may package arguments into a list explicitly:
+Code after `methods` is free-form—no requirement to use `case`, symbols, or even a discriminant at all. Examples:
 
-```
-('move 10 20) &point dispatch-list
-```
-
-Where `dispatch-list` is a helper that:
-
-1. Consumes list + receiver.
-2. Extracts the head element as method symbol.
-3. Pushes the remaining payload as arguments.
-4. Invokes `dispatch`.
-
-This helper is optional; the canonical pattern remains the fixed-arity form above.
-
-### 3.4 Degenerate Dispatch Bodies
-
-Code after `methods` is free-form—no requirement to use `case`. Examples:
-
-#### Direct Symbol Comparison
+#### Single Routine (no message required)
 
 ```
 methods
-dup 'inc eq if   drop step +> count Op.ExitDispatch ;
-dup 'get eq if   drop count          Op.ExitDispatch ;
-drop 'unknown raw Op.ExitDispatch ;
+step +> count
+count ;
 ```
 
-The compiler must still emit `Op.EndCapsule` for the final `;`, but intermediate terminators can invoke `Op.ExitDispatch` manually if desired.
+The capsule now behaves like a resumable coroutine: every `dispatch` call ignores its arguments, increments `count` by `step`, and returns the updated value.
+
+#### Manual Branching
+
+```
+methods
+  dup 0 eq if
+    drop count
+  else
+    drop step +> count
+  then ;
+;
+```
+
+Here the caller supplies a numeric message (0 = read, 1 ≠ 0 = increment). The dispatch body itself chooses the branch and the automatically generated epilogue takes care of unwinding.
 
 #### Default-Only Behaviour
 
 ```
 methods
-drop 'unsupported raw Op.ExitDispatch ;
+drop 'unsupported raw ;
 ```
 
 A capsule can ignore inputs entirely; only the calling convention is fixed.
@@ -299,7 +295,7 @@ This helper consumes only stack values (no lookahead), keeping with Tacit/Forth 
   var destination
 
   methods
-  drop destination raw Op.ExitDispatch ;
+  drop destination raw ;
 ;
 ```
 
@@ -346,7 +342,7 @@ During dispatch:
 | Constructor exit           | `methods` always emits `Op.Exit` immediately                 |
 | Dispatch prologue          | Only consumes method symbol + receiver, leaves args intact   |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
-| BP semantics               | During dispatch BP references capsule payload on data stack  |
+| BP semantics               | During dispatch BP references the capsule payload in place   |
 | Alias usage                | Receivers should typically be accessed via aliases           |
 
 ---
