@@ -242,6 +242,18 @@ export enum Op {
   /** Ends a `case` construct during compilation (invoked via generic `;`). */
   EndCase,
 
+  /** Ends a capsule dispatch body during compilation (invoked via generic `;`). */
+  EndCapsule,
+
+  /** Captures locals into a capsule list and freezes continuation. */
+  FreezeCapsule,
+
+  /** Dispatch epilogue restoring caller without touching capsule payload. */
+  ExitDispatch,
+
+  /** Capsule dispatch runtime entry point. */
+  Dispatch,
+
   /** Buffer allocation: buffer N -- list */
   Buffer,
 

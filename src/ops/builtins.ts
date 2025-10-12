@@ -73,6 +73,7 @@ import {
 import { makeListOp, packOp, unpackOp } from './lists';
 import { refOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
+import { freezeCapsuleOp, exitDispatchOp, dispatchOp, endCapsuleOp } from './capsules/capsule-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '@src/core';
@@ -201,6 +202,10 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.EndWhen]: endWhenOp,
     [Op.EndOf]: endOfOp,
     [Op.EndCase]: endCaseOp,
+    [Op.EndCapsule]: endCapsuleOp,
+    [Op.FreezeCapsule]: freezeCapsuleOp,
+    [Op.ExitDispatch]: exitDispatchOp,
+    [Op.Dispatch]: dispatchOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];

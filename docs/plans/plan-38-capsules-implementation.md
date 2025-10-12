@@ -32,11 +32,11 @@
 
 **Objective:** Freeze assumptions and add safety rails before coding.
 
-| Item | Description                                                                                                  | Owner      | Tests                                                    |
-| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------- |
-| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                                        |
-| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | New tests to ensure assertions fire on malformed values. |
-| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | Smoke test to ensure helpers produce consistent output.  |
+| Item | Description                                                                                                  | Owner      | Tests                                                    | Status      |
+| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------- | ------------ |
+| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                                        | ✅ Complete |
+| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                          | ✅ Complete |
+| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                        | ✅ Complete |
 
 _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted stack inspections.
 
@@ -46,10 +46,10 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 **Objective:** Introduce opcodes and parser hooks without feature logic.
 
-| Step | Description                                                                                          | Tests                                                             |
-| ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Unit test expecting stub throw.                                   |
-| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
+| Step | Description                                                                                          | Tests                                                             | Status      |
+| ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------ |
+| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Capsule opcode stub tests                                        | ✅ Complete |
+| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   | ✅ Complete |
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 

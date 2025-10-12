@@ -8,7 +8,16 @@
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
  */
-import { VM, Tag, toTaggedValue, fromTaggedValue, SEG_GLOBAL, GLOBAL_SIZE } from '../../core';
+import {
+  VM,
+  Tag,
+  toTaggedValue,
+  fromTaggedValue,
+  SEG_GLOBAL,
+  GLOBAL_SIZE,
+  SEG_RSTACK,
+  CELL_SIZE,
+} from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
@@ -48,6 +57,34 @@ export function executeTacitCode(code: string): number[] {
   parse(new Tokenizer(code));
   execute(vm.compiler.BCP);
   return vm.getStackData();
+}
+
+export interface VMStateSnapshot {
+  stack: number[];
+  returnStack: number[];
+  sp: number;
+  rsp: number;
+  bp: number;
+}
+
+export function captureVMState(): VMStateSnapshot {
+  const stack = vm.getStackData();
+  const returnStack: number[] = [];
+  for (let i = 0; i < vm.RSP; i++) {
+    returnStack.push(vm.memory.readFloat32(SEG_RSTACK, i * CELL_SIZE));
+  }
+  return {
+    stack,
+    returnStack,
+    sp: vm.SP,
+    rsp: vm.RSP,
+    bp: vm.BP,
+  };
+}
+
+export function executeTacitWithState(code: string): VMStateSnapshot {
+  executeTacitCode(code);
+  return captureVMState();
 }
 
 /**

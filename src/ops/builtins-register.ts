@@ -32,6 +32,7 @@ import {
   clauseOfImmediate,
   defaultImmediate,
   nilImmediate,
+  beginMethodsImmediate,
 } from '../lang/meta';
 
 /**
@@ -51,6 +52,7 @@ import {
  */
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('eval', Op.Eval, evalOp);
+  symbolTable.defineBuiltin('dispatch', Op.Dispatch);
   symbolTable.defineBuiltin('pushSymbolRef', Op.PushSymbolRef);
   symbolTable.defineBuiltin('.', Op.Print);
   symbolTable.defineBuiltin('raw', Op.RawPrint);
@@ -138,6 +140,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('of', Op.Nop, _vm => clauseOfImmediate(), true);
   symbolTable.defineBuiltin('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
   symbolTable.defineBuiltin('NIL', Op.Nop, _vm => nilImmediate(), true);
+  symbolTable.defineBuiltin('methods', Op.Nop, _vm => beginMethodsImmediate(), true);
 
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
