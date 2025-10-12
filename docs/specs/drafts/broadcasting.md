@@ -19,7 +19,7 @@ When list lengths differ, **the shorter list is logically repeated (cycled) to t
 **Rules**
 
 * If `x` is simple → apply operator directly.
-* If `x` is a list → apply operator to each **element**; result list preserves slot count and element structure per `lists.md`.&#x20;
+* If `x` is a list → apply operator to each **element**; result list preserves slot count and element structure per `lists.md`. 
 
 **Examples**
 
@@ -49,7 +49,7 @@ Given lists `A` (length `m`) and `B` (length `n`):
 
 * Let `L = max(m, n)`.
 * Form logical views `A*` and `B*` of length `L` by repeating each list’s elements **in order**, cycling from the start, until length `L` is reached. (Conceptual: implementations may compute indices modulo `m`/`n` without materializing.)
-* Apply `op` pairwise over `A*` and `B*` to produce a length-`L` result; header and payload are constructed per list layout rules.&#x20;
+* Apply `op` pairwise over `A*` and `B*` to produce a length-`L` result; header and payload are constructed per list layout rules. 
 
 **Canonical example (your rule)**
 
@@ -72,7 +72,7 @@ Given lists `A` (length `m`) and `B` (length `n`):
 ## 4. Nesting & Types
 
 * If an element is itself a list and `op` is defined for lists, broadcast **recursively** at that element; otherwise this pair is a type error.
-* Result element spans follow `lists.md` span rules; structure is preserved; compound compatibility rules still apply when storing results.&#x20;
+* Result element spans follow `lists.md` span rules; structure is preserved; compound compatibility rules still apply when storing results. 
 
 ## 5. Empty Lists
 
@@ -85,18 +85,18 @@ x ( ) op             \ -> ( )          \ binary with one empty → empty
 ## 6. Errors (normative)
 
 * If a paired element combination has **no defined `op`** at that level:
-  `"broadcast type mismatch"` (throw).&#x20;
+  `"broadcast type mismatch"` (throw). 
 * Reads still follow value-by-default; strict address reads use `fetch`; invalid addresses error per variables-and-refs spec.
 
 ## 7. Interaction with Refs & Assignment
 
-* Inputs may be **values or refs**; evaluation uses value-by-default (`load`) so element values are operated on, not their addresses.&#x20;
-* Storing broadcast results with `->` respects list mutation rules: simple→simple allowed; compound→compound requires **compatibility**; otherwise error.&#x20;
+* Inputs may be **values or refs**; evaluation uses value-by-default (`load`) so element values are operated on, not their addresses. 
+* Storing broadcast results with `->` respects list mutation rules: simple→simple allowed; compound→compound requires **compatibility**; otherwise error. 
 
 ## 8. Determinism & Layout
 
-* Result length is deterministically `max(length(a), length(b))` for binary list cases; headers and payloads obey standard reverse layout (header at TOS).&#x20;
-* No hidden side effects; works within the VM’s cell-indexed frame model.&#x20;
+* Result length is deterministically `max(length(a), length(b))` for binary list cases; headers and payloads obey standard reverse layout (header at TOS). 
+* No hidden side effects; works within the VM’s cell-indexed frame model. 
 
 ## 9. Operators in Scope (initial)
 
@@ -192,5 +192,5 @@ Empties
 - Binary: simple×simple; simple×list; list×simple; list×list equal length; list×list unequal with modulo cycling.
 - Nested: list elements that are lists (recurse vs mismatch).
 - Empties: unary over empty; one or both empty in binary.
-- Refs: inputs as `&x`/`&name` behave as values (value‑by‑default).
+- Refs: inputs as `&x`/`&name` behave as values (value‑by-default).
 - Assignment: writing broadcast results with `->` respects compatibility rules; incompatible assignments throw.

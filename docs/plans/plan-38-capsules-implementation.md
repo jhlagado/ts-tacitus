@@ -61,19 +61,17 @@ _Exit criteria:_ Build succeeds; any use of the commands throws “Not implement
 
 ### Implementation
 
-- New module `src/ops/capsules/frame-utils.ts` exporting:
-  - `freezeCapsuleTest(vm: VM, entryAddr: number)`
-    - Push locals (oldest first) to current stack, then CODE ref, then header value.
-    - Must not mutate RSTACK, only read.
-  - `readCapsuleLayout(vm: VM, capsule: number)`
-    - Returns `{ codeRef, payloadStartAddr, slotCount, segment }` and validates tags.
+| Step | Description                                                                                                            | Tests                                         | Status      |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting `freezeCapsule(vm, entryAddr)` (read-only capture) and `readCapsuleLayout`. | `capsule frame utilities` unit suite          | ✅ Complete |
 
 ### Tests
 
-- `src/test/ops/capsules/frame-utils.test.ts`
-  - **Capture simple frame:** Setup VM with locals `[count=2, step=5]`; assert resulting stack `[2,5,CODE,LIST:3]`.
-  - **Zero locals:** Ensure output is `[CODE, LIST:1]`.
-  - **Validation errors:** Passing non-LIST or LIST without CODE ref throws descriptive error.
+| Case            | Coverage                                                           | Status      |
+| --------------- | ------------------------------------------------------------------ | ------------ |
+| Simple frame    | `[count, step, CODE, LIST:3]` captured in stack order              | ✅ Complete |
+| Zero locals     | Capsule reduces to `[CODE, LIST:1]`                                | ✅ Complete |
+| Validation errs | Non-code slot0 and non-list inputs raise descriptive exceptions    | ✅ Complete |
 
 _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 
