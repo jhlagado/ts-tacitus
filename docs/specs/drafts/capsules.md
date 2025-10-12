@@ -106,8 +106,8 @@ Invoking:
 make-counter var counter
 
 10 'set &counter dispatch
-&counter 'inc dispatch
-&counter 'get dispatch   \ returns current count
+'inc &counter dispatch
+'get &counter dispatch   \ returns current count
 ```
 
 Stack at return from constructor:
