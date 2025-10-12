@@ -60,26 +60,28 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
 
 ### 2.2 Constructor Semantics (`methods` Command)
 
-When `methods` executes during compilation **the constructor terminates immediately**:
+When `methods` executes during compilation, it emits a small runtime prologue to build the capsule, then closes the constructor, and immediately continues compiling the dispatch body:
 
-1. **Compute the re-entry address (deterministic)**  
-   Set `dispatchAddr = CP + size(Op.Exit)` (single byte). This is where dispatch will resume.
+1. **Validate and swap closer (compile-time)**
+   - Validate TOS has `Op.EndDef` closer (inside colon definition).
+   - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)` (the next `;` will close the dispatch body).
 
-2. **Return immediately**  
-   Emit a plain `Op.Exit` (constructor terminator). The constructor returns here; no source after `methods` executes during construction.
+2. **Emit `Op.FreezeCapsule 0` (runtime freeze with 2‑byte placeholder operand)**
+   - The `methods` immediate emits `Op.FreezeCapsule 0` with a 2‑byte placeholder operand.
+   - At runtime, `Op.FreezeCapsule`:
+     - Pushes each local `1 … N` (oldest → newest) from the current frame onto the data stack.
+     - Pushes `CODE_REF(entryAddr)` supplied by the patched operand.
+     - Pushes the list header `LIST:(N+1)` so TOS is the header.
+   The resulting layout is:
+   ```
+   [ local0 … localN, CODE_REF(entryAddr), LIST:(N+1) ]
+   ```
 
-3. **Swap the closer for the dispatch body**  
-   Pop the current `Op.EndDef` closer and push `Op.EndCapsule` so the next `;` will close the dispatch body.
+3. **Emit `Op.Exit` (constructor terminator)**
+   The constructor returns immediately, leaving the capsule list on the data stack.
 
-4. **Freeze the frame with the computed CODE reference**  
-   - Push each local `1 … N` onto the data stack (local 1 = oldest, local N = newest).  
-   - Push `CODE_REF(dispatchAddr)` (re-entry point).  
-   - Push the list header with length `N + 1` so that TOS is the header.  
-   - The resulting layout is:  
-     ```
-     [ local0 … localN, CODE_REF, LIST:(N+1) ]
-     ```
-     The list header’s length equals the number of captured cells (locals + code).
+4. **Patch operand (compile-time)**
+   - Patch the 2‑byte operand of the just‑emitted `Op.FreezeCapsule` to the current `CP` (this is the dispatch entry address after `Exit`).
 
 Everything that appears in source **after** `methods` forms the dispatch routine. It will be executed only when the capsule is re-entered via `dispatch`.
 
@@ -316,7 +318,7 @@ During dispatch:
 | -------------------------- | ------------------------------------------------------------ |
 | Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` remains intact      |
 | Constructor exit           | `methods` always emits `Op.Exit` immediately                 |
-| Dispatch prologue          | Only consumes method symbol + receiver, leaves args intact   |
+| Dispatch prologue          | Consumes receiver only; leaves message/args intact           |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |
 | Alias usage                | Receivers should typically be accessed via `&name` aliases (`RSTACK_REF`) |
