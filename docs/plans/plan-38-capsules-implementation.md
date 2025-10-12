@@ -21,7 +21,6 @@
 
 ## Deliverables
 
-- New opcodes (`Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) with TypeScript implementations.
 - Capsule helper module (frame capture, validation asserts).
 - Integration in builtin registry and parser.
 - Comprehensive tests (unit + integration + negative cases).
@@ -49,7 +48,6 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 | Step | Description                                                                                          | Tests                                                             |
 | ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1.1  | Add enums (`Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) in `src/ops/opcodes.ts`. | Enum smoke test ensuring values assigned & exported.              |
 | 1.2  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Unit test expecting stub throw.                                   |
 | 1.3  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
 
@@ -64,7 +62,7 @@ _Exit criteria:_ Build succeeds; any use of the commands throws “Not implement
 ### Implementation
 
 - New module `src/ops/capsules/frame-utils.ts` exporting:
-  - `freezeFrame(vm: VM, { includeBP?: boolean } = {})`
+  - `freezeCapsuleTest(vm: VM, entryAddr: number)`
     - Push locals (oldest first) to current stack, then CODE ref, then header value.
     - Must not mutate RSTACK, only read.
   - `readCapsuleLayout(vm: VM, capsule: number)`
@@ -88,14 +86,14 @@ _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 ### Steps
 
 1. **Opener (`beginMethodsImmediate`)**
-   - Validate TOS has `Op.EndDef` closer (confirms we're inside colon definition).
+   - Validate TOS has `Op.EndDef` closer (inside colon definition).
+   - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)` (the next `;` will close the dispatch body).
+   - Emit `Op.FreezeCapsule 0` with a 2-byte placeholder operand.
    - Emit `Op.Exit` (constructor terminator).
-   - Dispatch entry: `dispatchAddr = vm.compiler.CP`.
-   - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)`.
-   - Freeze frame with `dispatchAddr` as CODE_REF (call `freezeFrame(vm, dispatchAddr)`).
+   - Patch the operand of the just-emitted `Op.FreezeCapsule` to the current `CP` (dispatch entry after `Exit`).
 
 2. **Closer verb (`endCapsuleOp`)**
-   - Emit actual `Op.ExitDispatch`
+   - Emit `Op.ExitDispatch` (dispatch epilogue)
 
 ### Tests
 
@@ -133,8 +131,8 @@ _Exit criteria:_ Constructors produce capsule list (`[locals…, CODE, LIST]`) a
 
 - Unit: `dispatchOp` error on malformed capsule, missing CODE, etc.
 - Integration: compile and run snippet verifying:
-  - `'inc` increments internal state.
-  - `'get` returns latest.
+  - `inc` increments internal state.
+  - `get` returns latest.
   - Capsule can be stored in global/local, reused.
 - Negative: calling `dispatch` with non-capsule raises descriptive error.
 
@@ -190,5 +188,5 @@ _Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complet
 
 ## Summary
 
-- Constructors: run normal colon prologue, push locals, execute `methods`, which freezes the frame (`freezeFrame`) and emits `Op.Exit`, leaving `[locals…, CODE_REF, LIST:(N+1)]` on the stack.
+- Constructors: run normal colon prologue, push locals, execute `methods`, which emits `Op.FreezeCapsule entryAddr` and `Op.Exit`, leaving `[locals…, CODE_REF(entryAddr), LIST:(N+1)]` on the stack.
 - Dispatch: call pattern `args … method receiver dispatch`; runtime sets `BP` to the capsule payload, jumps to CODE ref, and `Op.ExitDispatch` restores BP/IP without modifying the payload.
