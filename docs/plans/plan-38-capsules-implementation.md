@@ -49,7 +49,7 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 | Step | Description                                                                                          | Tests                                                             |
 | ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1.1  | Add enums (`Op.Methods`, `Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) in `src/ops/opcodes.ts`. | Enum smoke test ensuring values assigned & exported.              |
+| 1.1  | Add enums (`Op.EndCapsule`, `Op.Dispatch`, `Op.ExitDispatch`) in `src/ops/opcodes.ts`. | Enum smoke test ensuring values assigned & exported.              |
 | 1.2  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Unit test expecting stub throw.                                   |
 | 1.3  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Parser/builtin test verifying `methods` is flagged `isImmediate`. |
 
@@ -89,8 +89,8 @@ _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 
 1. **Opener (`beginMethodsImmediate`)**
    - Validate TOS has `Op.EndDef` closer (confirms we're inside colon definition).
-   - Compute dispatch entry: `dispatchAddr = vm.compiler.CP + size(Op.Exit)`.
    - Emit `Op.Exit` (constructor terminator).
+   - Dispatch entry: `dispatchAddr = vm.compiler.CP`.
    - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)`.
    - Freeze frame with `dispatchAddr` as CODE_REF (call `freezeFrame(vm, dispatchAddr)`).
 

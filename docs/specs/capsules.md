@@ -62,24 +62,24 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
 
 When `methods` executes during compilation **the constructor terminates immediately**:
 
-1. **Swap the closer**  
-   Pop the current `Op.EndDef` closer and push `Op.EndCapsule`.
+1. **Compute the re-entry address (deterministic)**  
+   Set `dispatchAddr = CP + size(Op.Exit)` (single byte). This is where dispatch will resume.
 
-2. **Capture the re-entry address**  
-   Compute the CODE reference as `CP + size(Op.Exit)` (single byte). This is where dispatch will resume.
+2. **Return immediately**  
+   Emit a plain `Op.Exit` (constructor terminator). The constructor returns here; no source after `methods` executes during construction.
 
-3. **Freeze the frame onto the data stack**  
+3. **Swap the closer for the dispatch body**  
+   Pop the current `Op.EndDef` closer and push `Op.EndCapsule` so the next `;` will close the dispatch body.
+
+4. **Freeze the frame with the computed CODE reference**  
    - Push each local `1 … N` onto the data stack (local 1 = oldest, local N = newest).  
-   - Push the computed CODE reference (re-entry point).  
+   - Push `CODE_REF(dispatchAddr)` (re-entry point).  
    - Push the list header with length `N + 1` so that TOS is the header.  
    - The resulting layout is:  
      ```
      [ local0 … localN, CODE_REF, LIST:(N+1) ]
      ```
      The list header’s length equals the number of captured cells (locals + code).
-
-4. **Return immediately**  
-   Emit a plain `Op.Exit`. The constructor returns, leaving the capsule list on the data stack. No source after `methods` executes during construction.
 
 Everything that appears in source **after** `methods` forms the dispatch routine. It will be executed only when the capsule is re-entered via `dispatch`.
 
@@ -146,6 +146,8 @@ Dispatch uses a **shallow frame** distinct from normal function calls:
 5. Jump to the CODE reference.
 
 **Dispatch epilogue** (`Op.EndCapsule` emits `Op.ExitDispatch`):
+
+Op.ExitDispatch is the dispatch epilogue. It restores caller BP/IP and returns; it does not touch the capsule payload or perform arbitrary stack cleanup. The called function (dispatch body) is responsible for cleaning up any state it created.
 
 1. Assume `RSP` points to the saved BP (no local cleanup).
 2. Pop and restore BP.
