@@ -9,16 +9,16 @@ describe('Capsule stored in function local (frame extension)', () => {
         0 var count
 
         does case
-          "inc" of 1 +> count ;
-          "get" of count ;
+          'inc of 1 +> count ;
+          'get of count ;
         ;
       ;
 
       : use-counter
         make-counter var c
-        "inc" &c dispatch
-        "inc" &c dispatch
-        "get" &c dispatch
+        'inc &c dispatch
+        'inc &c dispatch
+        'get &c dispatch
       ;
       use-counter
     `;

@@ -9,14 +9,14 @@ describe('Counter capsule (case/of)', () => {
         0 var count
 
         does case
-          "inc" of 1 +> count ;
-          "get" of count ;
+          'inc of 1 +> count ;
+          'get of count ;
         ;
       ;
 
       make-counter dup
-      "inc" swap dispatch
-      "get" swap dispatch
+      'inc swap dispatch
+      'get swap dispatch
     `;
 
     const stack = executeTacitCode(code);

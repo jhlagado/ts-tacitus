@@ -26,21 +26,21 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
     expect(tos).toBe(1);
   });
 
-  test('maplist string keys in bracket: obj["stats" "count"] => 2', () => {
+  test("maplist string keys in bracket: obj['stats 'count] => 2", () => {
     // Maplist layout: ( key1 val1 key2 val2 ... )
-    // Here: ( "stats" ( "count" 2 ) )
-    const code = ': f ( "stats" ( "count" 2 ) ) var obj obj["stats" "count"] ; f';
+    // Here: ( 'stats ( 'count 2 ) )
+    const code = ": f ( 'stats ( 'count 2 ) ) var obj obj['stats 'count] ; f";
     executeProgram(code);
     const tos = vm.getStackData().at(-1)!;
     expect(tos).toBe(2);
   });
 
-  test('maplist write via string keys: 7 -> obj["stats" "count"]', () => {
+  test("maplist write via string keys: 7 -> obj['stats 'count]", () => {
     const code = `
       : f
-        ( "stats" ( "count" 2 ) ) var obj
-        7 -> obj["stats" "count"]
-        obj["stats" "count"]
+        ( 'stats ( 'count 2 ) ) var obj
+        7 -> obj['stats 'count]
+        obj['stats 'count]
       ;
       f
     `;
