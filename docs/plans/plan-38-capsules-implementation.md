@@ -32,11 +32,11 @@
 
 **Objective:** Freeze assumptions and add safety rails before coding.
 
-| Item | Description                                                                                                  | Owner      | Tests                                                    |
-| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------- |
-| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                                        |
-| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                          |
-| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                        |
+| Item | Description                                                                                                  | Owner      | Tests                                           | Status      |
+| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------ | ------------ |
+| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                               | ✅ Complete |
+| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                 | ✅ Complete |
+| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                | ✅ Complete |
 
 _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted stack inspections.
 

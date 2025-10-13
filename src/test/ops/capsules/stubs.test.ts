@@ -1,10 +1,5 @@
 import { vm } from '@src/core/global-state';
-import {
-  freezeCapsuleOp,
-  exitDispatchOp,
-  dispatchOp,
-  endCapsuleOp,
-} from '@src/ops/capsules/capsule-ops';
+import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from '@src/ops/capsules/capsule-ops';
 import { resetVM } from '@test/utils/vm-test-utils';
 
 describe('capsule opcode stubs', () => {
@@ -12,8 +7,8 @@ describe('capsule opcode stubs', () => {
     resetVM();
   });
 
-  test('freezeCapsuleOp throws not implemented', () => {
-    expect(() => freezeCapsuleOp(vm)).toThrow('not implemented');
+  test('exitConstructorOp throws not implemented', () => {
+    expect(() => exitConstructorOp(vm)).toThrow('not implemented');
   });
 
   test('exitDispatchOp throws not implemented', () => {

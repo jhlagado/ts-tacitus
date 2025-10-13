@@ -1,7 +1,7 @@
 import { VM } from '@src/core';
 
-export function freezeCapsuleOp(_vm: VM): void {
-  throw new Error('FreezeCapsule not implemented');
+export function exitConstructorOp(_vm: VM): void {
+  throw new Error('ExitConstructor not implemented');
 }
 
 export function exitDispatchOp(_vm: VM): void {
