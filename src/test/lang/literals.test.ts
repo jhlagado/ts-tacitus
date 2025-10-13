@@ -44,24 +44,5 @@ describe('literal emission helpers', () => {
     expect(vmMocks.compiler.compile16).toHaveBeenCalledWith(42);
   });
 
-  it('parseBacktickSymbol consumes the symbol and emits literal', async () => {
-    const vmMocks = createVmMocks();
-    vmMocks.digest.add.mockReturnValue(7);
-    const { parseBacktickSymbol } = await loadLiterals(vmMocks);
-    const tokenizer = {
-      input: 'foo bar',
-      position: 0,
-      column: 0,
-    } as unknown as Tokenizer;
-    const state: ParserState = {
-      tokenizer,
-      currentDefinition: null,
-    };
-    parseBacktickSymbol(state);
-    expect(vmMocks.digest.add).toHaveBeenCalledWith('foo');
-    expect(vmMocks.compiler.compileOpcode).toHaveBeenCalledWith(Op.LiteralString);
-    expect(vmMocks.compiler.compile16).toHaveBeenCalledWith(7);
-    expect(tokenizer.position).toBe(3);
-    expect(tokenizer.column).toBe(3);
-  });
+  // Backtick parsing removed; apostrophe shorthand is handled inside parser
 });

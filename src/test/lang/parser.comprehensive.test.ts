@@ -98,14 +98,15 @@ describe('Comprehensive Parser Tests', () => {
       expect(str).toBe('hello world');
     });
   });
-  describe('Symbol Literals', () => {
-    test('should parse symbol literals', () => {
-      parse(new Tokenizer(': test-symbol 42 ;'));
-      parse(new Tokenizer('`test-symbol'));
+  describe('Bare String Shorthand', () => {
+    test("should parse 'key as a string literal", () => {
+      // parse only the apostrophe shorthand
+      parse(new Tokenizer("'test-symbol"));
       vm.reset();
-      expect(vm.next8()).toBe(Op.Branch); // skips over definition
-      vm.nextInt16();
-      expect(vm.next8()).toBe(Op.LiteralNumber); // body of defintion
+      expect(vm.next8()).toBe(Op.LiteralString);
+      const addr = vm.nextInt16();
+      const str = vm.digest.get(addr);
+      expect(str).toBe('test-symbol');
     });
   });
 });

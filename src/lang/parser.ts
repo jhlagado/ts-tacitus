@@ -27,7 +27,7 @@ import {
   Tag,
 } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
-import { emitNumber, emitString, parseBacktickSymbol } from './literals';
+import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
@@ -131,17 +131,7 @@ export function processToken(token: Token, state: ParserState): void {
     case TokenType.REF_SIGIL:
       emitRefSigil(token.value as string, state);
       break;
-    case TokenType.WORD_QUOTE: {
-      const wordName = token.value as string;
-      const address = vm.symbolTable.find(wordName) as number | undefined;
-      if (address === undefined) {
-        throw new UndefinedWordError(wordName, vm.getStackData());
-      }
-
-      vm.compiler.compileOpcode(Op.LiteralAddress);
-      vm.compiler.compile16(address);
-      break;
-    }
+    // WORD_QUOTE removed: backtick word-address literals no longer supported
   }
 }
 
@@ -186,10 +176,7 @@ export function emitWord(value: string, state: ParserState): void {
     return;
   }
 
-  if (value === '`') {
-    handleSpecial('`', state);
-    return;
-  }
+  // backtick removed
 
   const entry = vm.symbolTable.findEntry(value);
   if (!entry) {
@@ -598,8 +585,9 @@ export function handleSpecial(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
-  } else if (value === '`') {
-    parseBacktickSymbol(state);
+  } else if (value === '\'') {
+    // Apostrophe shorthand: read next non-space, non-grouping run as a string
+    parseApostropheString(state);
   } else if (value === '[') {
     // General postfix bracket path for any expression on stack: expr[ ... ]
     // Compile path list and then value-by-default retrieval via select→load→nip
@@ -608,6 +596,23 @@ export function handleSpecial(value: string, state: ParserState): void {
     vm.compiler.compileOpcode(Op.Load);
     vm.compiler.compileOpcode(Op.Nip);
   }
+}
+
+/**
+ * Parse apostrophe-based bare string shorthand: 'key → LiteralString("key")
+ * Reads characters directly until whitespace or grouping.
+ */
+function parseApostropheString(state: ParserState): void {
+  let s = '';
+  while (state.tokenizer.position < state.tokenizer.input.length) {
+    const ch = state.tokenizer.input[state.tokenizer.position];
+    // reuse core helpers via emitString path; stop on space or grouping
+    if (isSpecialChar(ch) || ch.trim() === '') break;
+    s += ch;
+    state.tokenizer.position++;
+    state.tokenizer.column++;
+  }
+  emitString(s);
 }
 
 /**

@@ -35,10 +35,10 @@ describe('Tacit Basic Operations', () => {
     result = runTacitTest('0 if 10 else 20 ;');
     expect(result).toEqual([20]);
   });
-  test('word quoting with back-tick', () => {
-    let result = runTacitTest(': testWord 42 ; `testWord');
+  test("bare string shorthand with apostrophe", () => {
+    const result = runTacitTest("'testWord");
     expect(result.length).toBe(1);
-    expect(typeof result[0]).toBe('number');
+    expect(typeof result[0]).toBe('number'); // tagged STRING value
   });
 
   test('should execute if with true condition', () => {
