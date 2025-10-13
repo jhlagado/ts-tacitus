@@ -66,22 +66,13 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
    - Ensure a colon definition is open: the data stack must contain `Op.EndDef`.
    - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
-2. **Emit `Op.FreezeCapsule <entry>`**
-   - `methods` emits `Op.FreezeCapsule` with a 16-bit placeholder operand.
-   - At runtime the opcode:
+2. **Emit `Op.ExitConstructor`**
+   - `methods` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
      - Leaves the callee's locals where they already live (`[BP … RSP)`).
-     - `rpush`es `CODE_REF(entryAddr)` (patched operand) directly above the locals.
-     - `rpush`es the list header `LIST:(locals+1)`; `RSP` now points at the capsule header.
+     - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
+     - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
      - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
-
-3. **Emit `Op.ExitConstructor`**
-   - Instead of the normal `Exit`, the constructor ends with `Op.ExitConstructor`, which:
-     - Reads the caller's saved BP from (BP-1) and return address from (BP-2).
-     - Restores those registers so execution returns to the caller.
-     - Leaves `RSP` untouched so the capsule payload remains appended to the caller's frame.
-
-4. **Patch operand (compile-time)**
-   - After the dispatch body is compiled, the placeholder operand of `Op.FreezeCapsule` is patched to its entry point.
+     - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
 Everything compiled after `methods` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
 
@@ -276,7 +267,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
 
 ## 6. Data Layout Recap
 
-Immediately after `Op.FreezeCapsule`:
+Immediately after `Op.ExitConstructor`:
 
 ```
 Return stack (top → bottom)
@@ -301,7 +292,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 - **lists.md**: Capsule payload obeys normal list semantics (header + payload cells).
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
 - **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
-- **metaprogramming.md**: `methods`, `dispatch`, `Op.FreezeCapsule`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **metaprogramming.md**: `methods`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
 - **vm-architecture.md**: Frame layout (BP-1 = saved BP, BP-2 = return address) matches `Op.ExitConstructor` assumptions.
 
 ---

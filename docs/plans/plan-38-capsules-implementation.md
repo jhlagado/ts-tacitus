@@ -63,7 +63,7 @@ _Exit criteria:_ Build succeeds; any use of the commands throws “Not implement
 
 | Step | Description                                                                                                            | Tests                                         |
 | ---- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting `freezeCapsule(vm, entryAddr)` (read-only capture) and `readCapsuleLayout`. | `capsule frame utilities` unit suite          |
+| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting helpers to append capsule metadata to a frame (test harness) and to read capsule layout/validate invariants. | `capsule frame utilities` unit suite          |
 
 ### Tests
 
@@ -86,9 +86,7 @@ _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 1. **Opener (`beginMethodsImmediate`)**
    - Validate TOS has `Op.EndDef` (we are inside a colon definition).
    - Swap closer: replace `Op.EndDef` with `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the dispatch epilogue.
-   - Emit `Op.FreezeCapsule <placeholder>` (runtime freeze that appends `[CODE_REF, LIST]` to the existing frame and pushes an `RSTACK_REF` handle).
-   - Emit `Op.ExitConstructor` (restores caller BP/IP while leaving the extended frame intact).
-   - Patch the placeholder operand to the dispatch entry address once the body has been compiled.
+   - Emit `Op.ExitConstructor` (single opcode that appends `[CODE_REF(vm.IP), LIST]` to the current frame, pushes an `RSTACK_REF`, and unwinds to the caller).
 
 2. **Closer verb (`endCapsuleOp`)**
    - Emit `Op.ExitDispatch` (pops the saved BP and return address pushed by the dispatch prologue).
@@ -181,5 +179,5 @@ _Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complet
 
 ## Summary
 
-- Constructors: run normal colon prologue, push locals, execute `methods`, which emits `Op.FreezeCapsule entryAddr` and `Op.ExitConstructor`. FreezeCapsule rpushes `[CODE_REF(entryAddr), LIST:(N+1)]` onto the RSTACK, extending the caller's frame. ExitConstructor restores caller BP (from BP-1) and return address (from BP-2) while leaving RSP untouched. The caller receives an RSTACK_REF handle pointing to the capsule list header.
+- Constructors: run normal colon prologue, push locals, execute `methods`, which emits a single `Op.ExitConstructor`. The opcode wraps the current `vm.IP` as a `CODE_REF`, `rpush`es `[CODE_REF(entryAddr), LIST:(N+1)]` onto the RSTACK (extending the caller's frame), pushes an `RSTACK_REF` handle to the data stack, then restores the caller BP (from BP-1) and return address (from BP-2) while leaving RSP untouched.
 - Dispatch: call pattern `args … method receiver dispatch`; runtime resolves the RSTACK_REF handle, sets `BP` to the capsule payload base (in the caller's frame), jumps to CODE ref, and `Op.ExitDispatch` restores BP/IP without modifying the payload.
