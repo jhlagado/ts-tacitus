@@ -63,6 +63,7 @@ Opcode encoding & dispatch:
 
 - Bytecode addresses: implementation‑defined (byte‑addressed), validated at runtime.
 - String addresses: implementation‑defined (segment‑relative), validated at runtime.
+ - String literals: use double quotes for general strings; apostrophe shorthand `'key` is equivalent to `"key"` for bare, space‑less keys.
 - Stack addresses: word‑aligned (4‑byte elements).
 
 ## Constraints
