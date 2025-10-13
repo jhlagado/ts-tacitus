@@ -1,168 +1,167 @@
-# Capsules
+# Capsules — State + Methods on the Stack
 
-## Status and Intent
+This guide introduces capsules in Tacit: compact, stack‑resident “objects” that capture local state and a re‑entry point. You will learn how to build them with `methods`, call them with `dispatch`, and avoid common pitfalls.
 
-This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `methods` combinator.  It provides both a precise implementation guide and an approachable conceptual explanation.  It assumes familiarity with Tacit’s core specifications (lists, refs, local-vars, vm-architecture), but reintroduces key concepts where needed.
-
----
-
-## 1. Overview
-
-### 1.1 Motivation
-
-Tacit capsules allow a function to **suspend itself mid-execution** and return a **self-contained object** that can later be resumed.  A capsule:
-
-* Preserves **local variables** and their values
-* Captures a **reentry point** (a code pointer)
-* Presents itself as a **list value** on the data stack
-
-This enables powerful behaviors such as:
-
-* **Objects and actors** with private state
-* **Generators and coroutines** that yield and resume
-* **Pipelines and asynchronous tasks**
-
-### 1.2 Key Properties
-
-| Property       | Meaning                                             |
-| -------------- | --------------------------------------------------- |
-| Value-first    | A capsule is a first-class list value               |
-| Self-contained | Includes code pointer, locals, and metadata         |
-| Deterministic  | All memory is on Tacit’s stacks; no heap allocation |
-| Message-driven | External code interacts by **dispatching messages** |
+See the normative spec for complete details: `docs/specs/capsules.md`.
 
 ---
 
-## 2. Capsule Creation
+## 1) What Is a Capsule?
 
-### 2.1 Syntax
+A capsule packages two things:
 
-Capsules are defined by declaring variables and a **methods combinator**. With brace blocks removed, method bodies are supplied as executable references—typically named colon definitions for now:
+- The current function’s local variables (the environment)
+- A re‑entry code reference (the continuation)
+
+It lives entirely on the return stack (no heap). Callers receive a handle (an `RSTACK_REF`) and use `dispatch` to invoke methods against the captured state.
+
+Key properties:
+
+- Value‑first: created and passed like any other value
+- Stack‑resident: no allocation or GC; predictable lifetimes
+- Message‑driven: `args … method receiver dispatch`
+
+---
+
+## 2) Quick Start
+
+### Counter capsule
 
 ```tacit
-: move-point-method
-    +> y +> x
+: make-counter
+  0 var count
+  1 var step
+
+  methods
+  case
+    'inc of step +> count ;
+    'get of count ;
+    'set of -> count ;
+    DEFAULT of 'unknown . ;
+  ;
 ;
 
-: draw-point-method
-    x y native_draw
-;
-
-: makepoint
-    var y var x
-
-    methods
-        `move move-point-method
-        `draw draw-point-method
-    ;
-;
+\ Construct and use it
+make-counter var c
+'inc &c dispatch      \ count += step
+'get &c dispatch      \ => pushes current count
+10 'set &c dispatch   \ set count = 10
+'get &c dispatch      \ => 10
 ```
 
-Each table entry expects an executable reference. In this sketch we reuse named colon definitions, but the final capsule DSL may provide an immediate helper that captures the lexical frame without additional boilerplate.
-
-This structure divides a function into two conceptual parts:
-
-1. **Initialization**: variable declarations and any setup code appear before `methods`.
-2. **Method table**: the `methods … ;` section pairs message symbols with executable references (colon definitions, future immediates, etc.).
-
-When the parser reaches `methods`, it automatically performs the full capsule creation process described below. No additional keyword is required, and the terminator `;` closes the table just like other immediate constructs.
-
-### 2.2 Exact Creation Process
-
-At the point where `methods` is encountered, the Tacit VM performs these steps:
-
-1. **Determine stack-frame size**
-
-   * The Base Pointer (**BP**) marks the bottom of the current frame; the Return Stack Pointer (**RSP**) marks the top.
-   * The VM computes `RSP - BP` to get the total number of cells in the frame.
-
-2. **Save reentry point**
-
-   * The current Instruction Pointer (**IP**) is pushed as a `CODE`-tagged value on top of the stack frame.
-   * This becomes **element 0** of the capsule, pointing to the first instruction after the `methods` table.
-
-3. **Push list header**
-
-   * A `LIST` header with the computed length is pushed above the saved IP.
-   * This header covers the entire frame (locals plus code pointer).
-
-4. **Move to data stack**
-
-   * The entire list (now a complete capsule) is copied from the return stack to the data stack.
-
-5. **Restore call state**
-
-   * The VM sets `RSP` back to `BP`, restores the previous BP, and returns normally to the caller.
-
-The result is a single list value on the data stack that encapsulates the function’s state and its method table.
+Call order is fixed: push arguments (if any), then the method symbol, then the receiver handle, then `dispatch`.
 
 ---
 
-## 3. Dispatch and Message Passing
+## 3) Building Capsules with `methods`
 
-Dispatch is **convention-based**.  The VM provides a single primitive:
-
-```
-( message &capsule -- result ) dispatch
-```
-
-* `message` can be **any Tacit value**: a symbol, number, list, or even nothing at all.
-* The capsule decides how to interpret it.  Common patterns include:
-
-  * Symbols like `move`, `next`, `destroy`
-  * Structured messages (lists or maplists)
-  * Pure data streams with no symbol
-
-When `dispatch` is called:
-
-1. BP is set to the capsule’s saved frame.
-2. The saved code pointer (element 0) is jumped to.
-3. The method reads its arguments directly from the data stack in natural reverse order.
-4. Control structures inside the capsule (e.g. a `maplist` or future `switch`) decide how to route the message.
-
-### Example
+Place `methods` inside a colon definition after your local `var` declarations. Everything after `methods` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
 
 ```tacit
-100 100 makepoint var p1
-10 10 `move &p1 dispatch
-`draw &p1 dispatch
+: make-point ( x y -- capsule )
+  var y0
+  var x0
+
+  methods
+  case
+    'translate of             \ dx dy 'translate &p dispatch
+      rot rot +> x0 +> y0 ;
+    'coords of x0 y0 ;        \ 'coords &p dispatch  => x y
+    DEFAULT of drop 'unknown . ;
+  ;
+;
 ```
 
-This creates a `makepoint` capsule with private `x` and `y`. Messages like `` `move `` and `` `draw `` are interpreted internally.
+What `methods` does (intuitively):
+
+- Freezes the locals in place and appends a small list to the caller’s return stack: `[ locals…, CODE_REF, LIST:(locals+1) ]`
+- Pushes an `RSTACK_REF` handle to that list on the data stack (your “receiver”)
+- Returns to the caller immediately; nothing is copied to the heap
+
+Store the handle right away so you can reuse it:
+
+```tacit
+100 200 make-point var p
+10 -5 'translate &p dispatch
+'coords &p dispatch    \ => 110 195
+```
 
 ---
 
-## 4. Mutation and Encapsulation
+## 4) Calling Capsules with `dispatch`
 
-* Only **locals inside the capsule** may be mutated.
-* Mutation is done via **stack operations** such as `+>` or `->`.
-* No direct external access to locals is allowed.
+Calling convention:
 
-This guarantees strong encapsulation and predictable lifetimes, with all state confined to the stack.
+```
+<argN> … <arg1>   <method-symbol>   <receiver>   dispatch
+```
 
----
+Behavior:
 
-## 5. Integration with Other Specs
+- `dispatch` consumes the method symbol and receiver; arguments remain for the method body
+- The VM temporarily rebinds `BP` to the capsule’s captured locals and jumps to the stored code reference (slot 0)
+- A custom epilogue restores the caller without touching the capsule payload
 
-* Capsules are lists: all operations in `docs/specs/lists.md` apply.
-* References inside capsules behave as described in `docs/specs/variables-and-refs.md`.
-* Local variables and globals follow `docs/specs/variables-and-refs.md`.
+Examples:
 
----
+```tacit
+'inc &c dispatch     \ mutate count inside the capsule
+'get &c dispatch     \ leaves the current count on stack
+10 'set &c dispatch  \ update state via argument
+```
 
-## 6. Summary of Invariants
-
-1. **Outer span is immutable**.
-2. **All state lives in locals inside the capsule**.
-3. **Mutation only through dispatch**.
-4. **BP is correctly restored on every dispatch**.
-5. **Dispatch arguments are unconstrained**.
-6. **Capsule is a list value and follows all list rules**.
+Degenerate (coroutine‑like) capsules also work: the body can ignore the method symbol entirely and just resume work on each call.
 
 ---
 
-## 7. Closing Commentary
+## 5) Lifetime and Safety
 
-The `methods` combinator makes capsule construction concise and idiomatic.  By automatically performing the reification process, it lets Tacit code focus on state and behavior while the VM guarantees determinism and message-driven semantics.
+- Capsule storage is part of the caller’s return stack frame. The handle (`RSTACK_REF`) is valid only while that frame is alive.
+- If a capsule must outlive the frame that created it (e.g., stored in a global or returned), copy the capsule list just like any list value, then keep a handle to the copy.
+- Access a stored capsule via an alias: `var p` then later `&p` to pass the handle to `dispatch`.
 
-Capsules remain pure stack values, ensuring predictable lifetimes and a clean integration with Tacit’s value-first model. They provide a simple yet powerful foundation for building objects, actors, and generators entirely on the stack.
+Do:
+
+- `make-counter var c` and reuse `&c` for dispatches
+- Copy a capsule list before storing it beyond its frame
+
+Avoid:
+
+- Using a stale handle after the creator frame has returned
+- Mutating capsule internals from outside; always go through `dispatch`
+
+---
+
+## 6) Patterns You’ll Use
+
+- Object‑like API
+  - Use `case/of` to branch on method symbols (`'get`, `'set`, `'inc`, …)
+  - Keep all state as locals; mutate via `+>` or `->`
+
+- Single‑routine coroutine
+  - Body ignores the message and just resumes work each `dispatch`
+  - Example: counters, generators, finite‑state machines
+
+- Structured messages
+  - Accept lists as arguments to carry multiple fields
+  - Split with normal stack ops inside the body
+
+---
+
+## 7) Troubleshooting
+
+- “methods outside definition” → `methods` must appear inside a `:`…`;` definition
+- “dispatch on non‑capsule” → receiver must be an `RSTACK_REF` handle produced by a capsule constructor (`methods`)
+- “stale capsule handle” → you used a handle after the creating frame returned; copy the capsule if it must escape
+- Body never runs → check call order; it must be `args … method receiver dispatch`
+
+---
+
+## 8) Reference Links
+
+- Spec: `docs/specs/capsules.md`
+- Locals & references: `docs/learn/local-vars.md`, `docs/learn/refs.md`
+- Lists (reverse layout): `docs/learn/lists.md`
+- VM frames: `docs/learn/stack-frames.md`
+
+Capsules give you object‑like expressiveness without leaving the stack discipline: fast to make, cheap to pass, and easy to reason about.

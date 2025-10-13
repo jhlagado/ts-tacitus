@@ -245,8 +245,8 @@ export enum Op {
   /** Ends a capsule dispatch body during compilation (invoked via generic `;`). */
   EndCapsule,
 
-  /** Captures locals into a capsule list and freezes continuation. */
-  FreezeCapsule,
+  /** Constructor exit: capture locals into capsule, push handle, restore caller. */
+  ExitConstructor,
 
   /** Dispatch epilogue restoring caller without touching capsule payload. */
   ExitDispatch,

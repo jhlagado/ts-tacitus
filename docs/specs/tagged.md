@@ -23,32 +23,39 @@ Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each 
 
 ## Tag System
 
-Current runtime enum (see `src/core/tagged.ts`). Numeric values are implementation details but shown for completeness:
+Current enum (source of truth is `src/core/tagged.ts`). Numeric values are shown for clarity and must match the implementation:
 
 ```typescript
 export enum Tag {
-  NUMBER = 0, // IEEE 754 float (non-NaN) – raw value, no embedded tag bits
-  SENTINEL = 1, // Reserved sentinel; currently only NIL (value = 0)
-  CODE = 2, // Bytecode address (direct dispatch)
-  STACK_REF = 3, // Stack cell reference (address as cell index)
-  STRING = 4, // String segment reference
-  BUILTIN = 7, // Built-in opcode (0–127)
-  LIST = 8, // Reverse list header (payload length in slots)
+  NUMBER = 0,      // IEEE‑754 float32 (non‑NaN) — raw value, no boxing
+  SENTINEL = 1,    // Named sentinels (e.g., NIL=0, DEFAULT=1)
+  CODE = 2,        // Bytecode address (direct dispatch)
+  STRING = 4,      // String segment reference
+  LOCAL = 6,       // Compile‑time local symbol (parser only)
+  BUILTIN = 7,     // Built‑in opcode (0–127)
+  LIST = 8,        // Reverse list header (payload slot count)
+  STACK_REF = 9,   // Data stack cell reference (absolute cell index)
+  RSTACK_REF = 10, // Return stack cell reference (absolute cell index)
+  GLOBAL_REF = 11, // Global cell reference (absolute cell index)
 }
 ```
 
-Active tags are listed below; this definition takes precedence.
+Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a compile‑time tag used by the parser and symbol table and is not part of the runtime’s polymorphic reference set.
 
 ### Tag Table
 
-| Tag      | Payload Meaning                    | Mutable In-Place                           | Printable Form                         | Notes                                  |
-| -------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
-| NUMBER   | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
-| SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                                    | Single legitimate value: NIL (0)       |
-| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or bytecode addr               | Executed via `eval`                    |
-| STRING   | String segment offset              | No                                         | string literal                         | Immutable contents                     |
-| BUILTIN  | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
-| LIST     | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
+| Tag        | Payload Meaning                            | Mutable In-Place                           | Printable Form                 | Notes                                                  |
+| ---------- | ------------------------------------------ | ------------------------------------------ | ------------------------------ | ------------------------------------------------------ |
+| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)             | n/a (value itself)                         | numeric literal                | Not NaN‑box encoded                                    |
+| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)    | Yes (slot overwrite where used as NIL)     | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved        |
+| CODE       | Bytecode address (0..8191 current)         | No (structural)                            | `@name` or bytecode addr       | Executed via `eval`                                    |
+| STRING     | String segment offset                      | No                                         | string literal                 | Immutable contents                                     |
+| LOCAL      | Local slot number (compile‑time only)      | n/a                                        | —                              | Parser/symbol table only; never a runtime ref          |
+| BUILTIN    | Opcode (0..127)                            | No                                         | builtin name                   | Dispatch via builtin table                             |
+| LIST       | Payload slot count (0..65535)              | Header no; simple payload slots yes        | `( … )`                        | Reverse layout; payload beneath header                 |
+| STACK_REF  | Data stack absolute cell index (0..65535)  | n/a                                        | `STACK_REF:<idx>`              | Address kind for SEG_STACK                             |
+| RSTACK_REF | Return stack absolute cell index (0..65535)| n/a                                        | `RSTACK_REF:<idx>`             | Address kind for SEG_RSTACK                            |
+| GLOBAL_REF | Global segment absolute cell index         | n/a                                        | `GLOBAL_REF:<idx>`             | Address kind for SEG_GLOBAL                            |
 
 ## Memory Layout
 
@@ -66,7 +73,7 @@ S = Sign bit (available for extended tagging)
 EXP = Exponent (0xFF for NaN)
 Q = Quiet NaN bit (always 1)
 TAG = 6-bit type tag (0-63 possible values)
-VALUE = 16-bit payload (unsigned for all tags; SENTINEL uses 0 only)
+VALUE = 16-bit payload (unsigned for most tags; SENTINEL uses signed 16-bit)
 
 Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation directly.
 ```
@@ -94,12 +101,13 @@ This is the unified mechanism used for dispatch.
 
 ### CODE Meta Semantics
 
-The NaN-boxed encoding reserves the sign bit alongside `Tag.CODE`. Current Tacit bytecode treats the bit as reserved: colon definitions execute via the usual `Exit` opcode, and immediate control flow emits ordinary branch sequences within the caller frame. Future lexical constructs may reuse the flag, but no runtime distinction is required today.
+The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE`. Current Tacit bytecode treats the bit as reserved: colon definitions execute via the usual `Exit` opcode, and immediate control flow emits ordinary branch sequences within the caller frame. Future lexical constructs may reuse the flag, but no runtime distinction is required today.
 
 ## Constraints
 
-- Payload (non-number) is 16 bits (0–65535 unsigned). SENTINEL has a single valid payload value: 0 (NIL).
-- CODE payload, BUILTIN payload, and LIST payload follow their respective ranges.
+- Payload (non‑number) is 16 bits. Unless otherwise noted, values are unsigned (0–65535).
+- SENTINEL payload is signed 16‑bit for convenience; named values currently used are: NIL=0 and DEFAULT=1.
+- CODE payload, BUILTIN payload, LIST payload, and reference payloads follow their respective ranges.
 
 ## Validation
 
@@ -126,7 +134,7 @@ All tagged values must:
 
 ### Compile-time vs Runtime Tags
 
-- `Tag.LOCAL` is a symbol-table/compile-time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `RSTACK_REF` and `GLOBAL_REF` respectively. `Tag.LOCAL` values are not part of the runtime's polymorphic reference set and should not appear on the data stack at execution time.
+- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `RSTACK_REF` and `GLOBAL_REF` respectively. `Tag.LOCAL` should not appear on the data stack during execution.
 
 ## Related Specifications
 
@@ -137,13 +145,13 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN-boxed non-number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST}.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, STACK_REF, RSTACK_REF, GLOBAL_REF}. `LOCAL` is compile‑time only.
 2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
-5. NIL is defined exactly as `(tag=SENTINEL, value=0)` and MUST be used for soft absence/failure (no alternate sentinel).
+5. NIL is defined exactly as `(tag=SENTINEL, value=0)`; DEFAULT is `(tag=SENTINEL, value=1)` and is used as a case wildcard sentinel.
 6. Tags MUST be valid for all newly constructed values; detection of unsupported tags constitutes a validation error.
-7. Simple in-place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, SENTINEL, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
+7. Simple in‑place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, SENTINEL, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
 
 ## Worked Examples
 
