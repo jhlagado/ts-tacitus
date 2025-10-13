@@ -1,4 +1,4 @@
-import { Tag, fromTaggedValue } from '../../../core';
+import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
 import { Op } from '../../../ops/opcodes';
 import { vm, initializeInterpreter } from '../../../core/global-state';
 import { resetVM } from '../../utils/vm-test-utils';
@@ -12,14 +12,21 @@ describe('capsule word registration', () => {
     resetVM();
   });
 
-  test('methods is registered as immediate', () => {
+  test('methods is registered as immediate and compiles constructor exit', () => {
     const entry = vm.symbolTable.findEntry('methods');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(true);
     expect(entry?.implementation).toBeDefined();
-    expect(() => entry?.implementation?.(vm)).toThrow('not implemented');
-    const { tag } = fromTaggedValue(entry!.taggedValue);
-    expect(tag).toBe(Tag.BUILTIN);
+    // Simulate being inside a definition by placing EndDefinition closer on stack
+    vm.push(toTaggedValue(Op.EndDefinition, Tag.BUILTIN));
+    // Invoke immediate
+    entry?.implementation?.(vm);
+    // After invocation, closer should be EndCapsule (BUILTIN Op.EndCapsule)
+    const { tag: closerTag, value } = fromTaggedValue(vm.peek());
+    expect(closerTag).toBe(Tag.BUILTIN);
+    expect(value).toBe(Op.EndCapsule);
+    const { tag: entryTag } = fromTaggedValue(entry!.taggedValue);
+    expect(entryTag).toBe(Tag.BUILTIN);
   });
 
   test('dispatch builtin maps to opcode', () => {

@@ -19,7 +19,7 @@ describe('capsule opcode stubs', () => {
     expect(() => dispatchOp(vm)).toThrow('not implemented');
   });
 
-  test('endCapsuleOp throws not implemented', () => {
-    expect(() => endCapsuleOp(vm)).toThrow('not implemented');
+  test('endCapsuleOp errors outside parser context', () => {
+    expect(() => endCapsuleOp(vm)).toThrow();
   });
 });

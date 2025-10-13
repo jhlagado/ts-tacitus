@@ -20,9 +20,12 @@ ts-tacitus/
 
 ## ⚙️ Technical Features
 
-Tacit implements a complete stack-based virtual machine with:
+Tacit implements a complete stack-based virtual machine with a compact implementation (~8,500 lines of production code) that includes a full source-to-execution language system:
 
-- **Segmented memory** (STACK, RSTACK, CODE, STRING segments; sizes are implementation‑defined)
+- **Complete compiler pipeline** (tokenizer, parser, bytecode compiler)
+- **Stack-based VM runtime** with interpreter support
+
+- **Segmented memory** (STACK, RSTACK, CODE, STRING segments)
 - **NaN-boxed tagged values** for efficient type representation
 - **Unified code references** enabling metaprogramming capabilities
 - **Immutable list structures** using reverse layout headers (no LINK tag)

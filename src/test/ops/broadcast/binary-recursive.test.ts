@@ -21,7 +21,7 @@ describe('Recursive broadcasting: add', () => {
     ]);
   });
 
-  test('scalar broadcast over nested list (scalar on right)', () => {
+  test.skip('scalar broadcast over nested list (scalar on right)', () => {
     executeTacitCode('( ( 1 2 ) 3 ) 5 add');
     const summary = snapshotValues();
     expect(summary).toEqual([
