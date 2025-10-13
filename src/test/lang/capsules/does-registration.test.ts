@@ -38,3 +38,4 @@ describe('capsule word registration', () => {
     expect(value).toBe(Op.Dispatch);
   });
 });
+

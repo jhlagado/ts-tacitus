@@ -50,8 +50,7 @@ A capsule is produced inside a colon definition by executing `does`. The source 
   100 var x
   200 var y
 
-  does             \ constructor terminates here
-  case             \ dispatch routine (optional but idiomatic)
+  does case        \ constructor terminates here
     'move of +> y +> x ;
     'draw of x y native_draw ;
   ;
@@ -83,8 +82,7 @@ Everything compiled after `does` is the dispatch routine and runs only when the 
   0  var count
   1  var step
 
-  does
-  case
+  does case
     'inc of step +> count ;
     'get of count ;
     'set of -> count ;
@@ -211,8 +209,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var y0
   var x0
 
-  methods
-  case
+  does case
     'translate of
       rot rot +> x0 +> y0 ;    \ expecting dx dy
     'coords of x0 y0 ;         \ pushes coords
@@ -237,8 +234,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var limit
   var current
 
-  methods
-  case
+  does case
     'next of
       current limit ge if
         drop NIL
@@ -257,7 +253,8 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
 : make-logger ( addr -- capsule )
   var destination
 
-  methods
+  does
+
   drop destination . ;
 ;
 ```
@@ -291,7 +288,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 - **lists.md**: Capsule payload obeys normal list semantics (header + payload cells).
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
 - **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
-- **metaprogramming.md**: `methods`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **metaprogramming.md**: `does`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
 - **vm-architecture.md**: Frame layout (BP-1 = saved BP, BP-2 = return address) matches `Op.ExitConstructor` assumptions.
 
 ---
@@ -301,7 +298,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 | Invariant                  | Description                                                  |
 | -------------------------- | ------------------------------------------------------------ |
 | Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame |
-| Constructor exit           | `methods` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
+| Constructor exit           | `does` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
 | Dispatch prologue          | Consumes receiver only; leaves message/args intact           |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |

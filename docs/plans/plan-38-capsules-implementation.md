@@ -14,7 +14,7 @@
 
 ## Goals
 
-1. Implement the `does` command (formerly `methods`) exactly as specified: constructor extends caller's RSTACK frame with capsule list, returns RSTACK_REF handle to data stack, slot 0 holds re-entry CODE reference.
+1. Implement the `does` command exactly as specified: constructor extends caller's RSTACK frame with capsule list, returns RSTACK_REF handle to data stack, slot 0 holds re-entry CODE reference.
 2. Provide a robust `dispatch` operation with a custom epilogue (`Op.ExitDispatch`) that restores the caller without touching capsule payload cells.
 3. Build a thin capsule runtime layer (helper utilities, assertions) with exhaustive unit/integration tests.
 4. Update docs/tests/tooling so capsules are safe to use by Tacit programs.
@@ -56,7 +56,7 @@ _Exit criteria:_ Build succeeds; any use of the commands throws “Not implement
 Status: ✅ Complete
 
 - Opcodes present: `EndCapsule`, `ExitConstructor` (renamed from old `FreezeCapsule`), `ExitDispatch`, `Dispatch`.
-- Builtin registry: `dispatch` registered as regular op; `does` registered as immediate with tests in `src/test/lang/capsules/methods-registration.test.ts`.
+- Builtin registry: `dispatch` registered as regular op; `does` registered as immediate with tests in `src/test/lang/capsules/does-registration.test.ts`.
 
 ---
 
@@ -118,7 +118,7 @@ Status: ✅ Complete
 - Implemented `beginMethodsImmediate` (opener) with validation, closer swap to `EndCapsule`, and emission of `Op.ExitConstructor`.
 - Implemented `endCapsuleOp` (closer) to emit `Op.ExitDispatch` then finalize the definition via the compiler hook.
 - Tests added/updated:
-  - Registration + opener behavior (closer swap, constructor exit compiled): `src/test/lang/capsules/methods-registration.test.ts`
+  - Registration + opener behavior (closer swap, constructor exit compiled): `src/test/lang/capsules/does-registration.test.ts`
   - Closer behavior guarded outside parser context: `src/test/ops/capsules/stubs.test.ts`
   - Capsule layout helper unit suite (Phase 2): `src/test/ops/capsules/layout.test.ts` (expanded error cases)
 - Full test suite passes with broadcast WIP cases explicitly skipped per policy.

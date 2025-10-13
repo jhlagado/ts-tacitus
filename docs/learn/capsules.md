@@ -13,7 +13,7 @@ A capsule packages two things:
 - The current function’s local variables (the environment)
 - A re‑entry code reference (the continuation)
 
-It lives entirely on the return stack (no heap). Callers receive a handle (an `RSTACK_REF`) and use `dispatch` to invoke methods against the captured state.
+It lives entirely on the return stack (no heap). Callers receive a handle (an `RSTACK_REF`) and use `dispatch` to invoke code against the captured state.
 
 Key properties:
 
@@ -32,8 +32,7 @@ Key properties:
   0 var count
   1 var step
 
-  does
-  case
+  does case
     'inc of step +> count ;
     'get of count ;
     'set of -> count ;
@@ -62,8 +61,7 @@ Place `does` inside a colon definition after your local `var` declarations. Ever
   var y0
   var x0
 
-  does
-  case
+  does case
     'translate of             \ dx dy 'translate &p dispatch
       rot rot +> x0 +> y0 ;
     'coords of x0 y0 ;        \ 'coords &p dispatch  => x y

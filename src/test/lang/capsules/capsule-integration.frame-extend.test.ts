@@ -3,10 +3,11 @@ import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 describe('Capsule stored in function local (frame extension)', () => {
   beforeEach(() => resetVM());
 
-  test('function creates counter capsule, stores in local, dispatches methods', () => {
+  test('function creates counter capsule, stores in local, dispatches', () => {
     const code = `
       : make-counter
         0 var count
+
         does case
           "inc" of 1 +> count ;
           "get" of count ;
