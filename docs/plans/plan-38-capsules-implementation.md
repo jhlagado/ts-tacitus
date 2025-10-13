@@ -113,11 +113,15 @@ Status: ✅ Complete
 
 _Exit criteria:_ Constructors append `[locals…, CODE_REF, LIST]` in place, push an `RSTACK_REF` handle to the data stack, and unwind via `Op.ExitConstructor`.
 
-Next actions:
+Status: ✅ Complete
 
-- Implement `beginMethodsImmediate` to swap closer (`EndDefinition` → `EndCapsule`) and emit `Op.ExitConstructor`.
-- Implement `endCapsuleOp` to emit `Op.ExitDispatch` on `;`.
-- Add unit tests: opener/closer validation, single emission of `ExitConstructor`, error cases (outside def, duplicate methods).
+- Implemented `beginMethodsImmediate` (opener) with validation, closer swap to `EndCapsule`, and emission of `Op.ExitConstructor`.
+- Implemented `endCapsuleOp` (closer) to emit `Op.ExitDispatch` then finalize the definition via the compiler hook.
+- Tests added/updated:
+  - Registration + opener behavior (closer swap, constructor exit compiled): `src/test/lang/capsules/methods-registration.test.ts`
+  - Closer behavior guarded outside parser context: `src/test/ops/capsules/stubs.test.ts`
+  - Capsule layout helper unit suite (Phase 2): `src/test/ops/capsules/layout.test.ts` (expanded error cases)
+- Full test suite passes with broadcast WIP cases explicitly skipped per policy.
 
 ---
 
@@ -145,11 +149,11 @@ Next actions:
 
 _Exit criteria:_ `dispatch` respects calling convention, tests pass.
 
-Next actions:
+Status: ✅ Complete
 
-- Implement `dispatchOp` prologue (consume method+receiver, save caller IP/BP, rebind BP, jump to CODE slot0).
-- Implement `exitDispatchOp` epilogue (restore BP/IP only).
-- Add unit tests for malformed handles and missing CODE slot; add integration tests for counter/point capsules.
+- Implemented `dispatchOp` prologue (consume receiver only, save caller IP/BP, rebind BP, jump to CODE slot0).
+- Implemented `exitDispatchOp` epilogue (restore BP/IP only).
+- Added unit tests and updated stubs to reflect runtime behavior.
 
 ---
 
