@@ -1,6 +1,6 @@
-import { vm } from '@src/core/global-state';
-import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from '@src/ops/capsules/capsule-ops';
-import { resetVM } from '@test/utils/vm-test-utils';
+import { vm } from '../../../core/global-state';
+import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from '../../../ops/capsules/capsule-ops';
+import { resetVM } from '../../utils/vm-test-utils';
 
 describe('capsule opcode stubs', () => {
   beforeEach(() => {

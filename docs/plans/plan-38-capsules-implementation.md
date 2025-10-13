@@ -53,27 +53,37 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
+Status: ✅ Complete
+
+- Opcodes present: `EndCapsule`, `ExitConstructor` (renamed from old `FreezeCapsule`), `ExitDispatch`, `Dispatch`.
+- Builtin registry: `dispatch` registered as regular op; `methods` registered as immediate (stub) with tests in `src/test/lang/capsules/methods-registration.test.ts`.
+
 ---
 
-## Phase 2 – Frame Capture Utilities
+## Phase 2 – Layout Helpers (Revised)
 
-**Objective:** Provide low-level helpers with standalone tests before wiring them into `methods`.
+**Objective:** Replace the old frame-capture helpers with handle‑based utilities aligned to the revised capsule semantics.
 
-### Implementation
+### Implementation (new)
 
-| Step | Description                                                                                                            | Tests                                         |
-| ---- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting helpers to append capsule metadata to a frame (test harness) and to read capsule layout/validate invariants. | `capsule frame utilities` unit suite          |
+| Step | Description                                                                                          | Tests                                  |
+| ---- | ---------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 2.1  | Add `src/ops/capsules/layout.ts` with `readCapsuleLayoutFromHandle(vm, handle:RSTACK_REF)` that validates the LIST header lives on RSTACK, slot 0 is CODE, and returns payload bounds. | `capsule layout (handle)` unit suite   |
 
-### Tests
+### Tests (new)
 
-| Case            | Coverage                                                           |
-| --------------- | ------------------------------------------------------------------ |
-| Simple frame    | `[count, step, CODE, LIST:3]` captured in stack order              |
-| Zero locals     | Capsule reduces to `[CODE, LIST:1]`                                |
-| Validation errs | Non-code slot0 and non-list inputs raise descriptive exceptions    |
+| Case                       | Coverage                                            |
+| -------------------------- | --------------------------------------------------- |
+| Valid handle               | Resolves header on RSTACK; slot0 is CODE            |
+| Non‑capsule handle         | Errors (header not LIST or missing CODE slot0)      |
+| Non‑RSTACK_REF input       | Errors (type mismatch)                              |
 
-_Exit criteria:_ Utilities thoroughly tested; no integration yet.
+_Exit criteria:_ Utilities refer to handles (RSTACK_REF) rather than copying locals; all tests reflect revised calling convention.
+
+Status: ✅ Complete
+
+- Removed legacy `frame-utils.ts` and its tests as they relied on the old model.
+- Implemented `readCapsuleLayoutFromHandle` and corresponding unit tests; full test suite passes.
 
 ---
 
@@ -103,6 +113,12 @@ _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 
 _Exit criteria:_ Constructors append `[locals…, CODE_REF, LIST]` in place, push an `RSTACK_REF` handle to the data stack, and unwind via `Op.ExitConstructor`.
 
+Next actions:
+
+- Implement `beginMethodsImmediate` to swap closer (`EndDefinition` → `EndCapsule`) and emit `Op.ExitConstructor`.
+- Implement `endCapsuleOp` to emit `Op.ExitDispatch` on `;`.
+- Add unit tests: opener/closer validation, single emission of `ExitConstructor`, error cases (outside def, duplicate methods).
+
 ---
 
 ## Phase 4 – Dispatch Runtime
@@ -129,6 +145,12 @@ _Exit criteria:_ Constructors append `[locals…, CODE_REF, LIST]` in place, pus
 
 _Exit criteria:_ `dispatch` respects calling convention, tests pass.
 
+Next actions:
+
+- Implement `dispatchOp` prologue (consume method+receiver, save caller IP/BP, rebind BP, jump to CODE slot0).
+- Implement `exitDispatchOp` epilogue (restore BP/IP only).
+- Add unit tests for malformed handles and missing CODE slot; add integration tests for counter/point capsules.
+
 ---
 
 ## Phase 5 – Comprehensive Testing & Integration
@@ -154,6 +176,8 @@ _Exit criteria:_ `dispatch` respects calling convention, tests pass.
 
 _Exit criteria:_ `yarn test` (full suite) passes, targeted capsules suite green.
 
+Status: ⏳ Pending
+
 ---
 
 ## Phase 6 – Documentation & Release
@@ -165,6 +189,11 @@ _Exit criteria:_ `yarn test` (full suite) passes, targeted capsules suite green.
 - Provide example in `docs/learn/refs.md` showing `&alias` usage with capsules
 
 _Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complete, ready to announce.
+
+Progress:
+
+- Learn doc updated: `docs/learn/capsules.md` rewritten with counter and point capsule examples, call order, and safety notes.
+- Remaining: update `docs/specs/metaprogramming.md` with `methods` + `dispatch`; add `&alias` capsule example to `docs/learn/refs.md`.
 
 ---
 

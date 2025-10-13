@@ -1,7 +1,7 @@
-import { Tag, fromTaggedValue } from '@src/core';
-import { Op } from '@src/ops/opcodes';
-import { vm, initializeInterpreter } from '@src/core/global-state';
-import { resetVM } from '@test/utils/vm-test-utils';
+import { Tag, fromTaggedValue } from '../../../core';
+import { Op } from '../../../ops/opcodes';
+import { vm, initializeInterpreter } from '../../../core/global-state';
+import { resetVM } from '../../utils/vm-test-utils';
 
 beforeAll(() => {
   initializeInterpreter();

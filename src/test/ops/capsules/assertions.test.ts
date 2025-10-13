@@ -1,7 +1,7 @@
-import { Tag, toTaggedValue } from '@src/core';
-import { vm } from '@src/core/global-state';
-import { assertCapsuleShape } from '@src/ops/capsules/assertions';
-import { resetVM, pushTestList } from '@test/utils/vm-test-utils';
+import { Tag, toTaggedValue } from '../../../core';
+import { vm } from '../../../core/global-state';
+import { assertCapsuleShape } from '../../../ops/capsules/assertions';
+import { resetVM, pushTestList } from '../../utils/vm-test-utils';
 
 describe('capsule assertions', () => {
   beforeEach(() => {
