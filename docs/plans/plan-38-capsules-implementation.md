@@ -49,14 +49,14 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 | Step | Description                                                                                          | Tests                                                             |
 | ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing "Not implemented").         | Capsule opcode stub tests                                        |
-| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   |
+| 1.2  | Register the builtin word `does` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   |
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
 Status: ✅ Complete
 
 - Opcodes present: `EndCapsule`, `ExitConstructor` (renamed from old `FreezeCapsule`), `ExitDispatch`, `Dispatch`.
-- Builtin registry: `dispatch` registered as regular op; `methods` registered as immediate (stub) with tests in `src/test/lang/capsules/methods-registration.test.ts`.
+- Builtin registry: `dispatch` registered as regular op; `does` registered as immediate with tests in `src/test/lang/capsules/methods-registration.test.ts`.
 
 ---
 
@@ -163,7 +163,7 @@ Status: ✅ Complete
 
 ### Unit Suites
 - `frame-utils.test.ts` (Phase 2)
-- `methods.test.ts`
+- `does.test.ts`
 - `dispatch.test.ts`
 - `exit-dispatch.test.ts` (ensures no locals cleaned up accidentally)
 
@@ -174,7 +174,7 @@ Status: ✅ Complete
 4. **Failure Paths** — dispatch on non-capsule, methods without definition
 
 ### Builtin Wiring
-- Register `does` as immediate command (keep `methods` as alias temporarily) in `src/ops/builtins-register.ts`
+- Register `does` as immediate command in `src/ops/builtins-register.ts`
 - Register `dispatch` as regular operation in `src/ops/builtins-register.ts`
 - Integration test: execute full Tacit snippet using both words
 
@@ -188,7 +188,7 @@ Status: ⏳ Pending
 
 **Objective:** Update docs and prepare for release.
 
-- Update `docs/specs/metaprogramming.md` to include `methods` + `dispatch`
+- Update `docs/specs/metaprogramming.md` to include `does` + `dispatch`
 - Add tutorial snippet under `docs/learn/` demonstrating a simple capsule (counter)
 - Provide example in `docs/learn/refs.md` showing `&alias` usage with capsules
 
@@ -197,7 +197,7 @@ _Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complet
 Progress:
 
 - Learn doc updated: `docs/learn/capsules.md` rewritten with counter and point capsule examples, call order, and safety notes.
-- Remaining: update `docs/specs/metaprogramming.md` with `methods` + `dispatch`; add `&alias` capsule example to `docs/learn/refs.md`.
+- Remaining: add `&alias` capsule example to `docs/learn/refs.md`.
 
 ---
 
@@ -212,5 +212,5 @@ Progress:
 
 ## Summary
 
-- Constructors: run normal colon prologue, push locals, execute `methods`, which emits a single `Op.ExitConstructor`. The opcode wraps the current `vm.IP` as a `CODE_REF`, `rpush`es `[CODE_REF(entryAddr), LIST:(N+1)]` onto the RSTACK (extending the caller's frame), pushes an `RSTACK_REF` handle to the data stack, then restores the caller BP (from BP-1) and return address (from BP-2) while leaving RSP untouched.
+- Constructors: run normal colon prologue, push locals, execute `does`, which emits a single `Op.ExitConstructor`. The opcode wraps the current `vm.IP` as a `CODE_REF`, `rpush`es `[CODE_REF(entryAddr), LIST:(N+1)]` onto the RSTACK (extending the caller's frame), pushes an `RSTACK_REF` handle to the data stack, then restores the caller BP (from BP-1) and return address (from BP-2) while leaving RSP untouched.
 - Dispatch: call pattern `args … method receiver dispatch`; runtime resolves the RSTACK_REF handle, sets `BP` to the capsule payload base (in the caller's frame), jumps to CODE ref, and `Op.ExitDispatch` restores BP/IP without modifying the payload.

@@ -83,7 +83,7 @@ Everything compiled after `does` is the dispatch routine and runs only when the 
   0  var count
   1  var step
 
-  methods
+  does
   case
     'inc of step +> count ;
     'get of count ;
@@ -164,12 +164,12 @@ Inside the `'move` clause, the data stack still holds `10 20` because dispatch o
 
 ### 3.3 Degenerate Dispatch Bodies
 
-Code after `methods` is free-form—no requirement to use `case`, symbols, or even a discriminant at all. Examples:
+Code after `does` is free-form—no requirement to use `case`, symbols, or even a discriminant at all. Examples:
 
 #### Single Routine (no message required)
 
 ```
-methods
+does
 step +> count
 count ;
 ```
@@ -179,7 +179,7 @@ The capsule now behaves like a resumable coroutine: every `dispatch` call ignore
 #### Manual Branching
 
 ```
-methods
+does
   dup 0 eq if
     drop count
   else

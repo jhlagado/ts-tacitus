@@ -268,7 +268,7 @@ case
 | `if` … `;` | `Op.EndIf` | `endIfOp` | Patch `IfFalseBranch` and optional trailing `Branch` |
 | `when` … `;` | `Op.EndWhen` (clauses push `Op.EndDo`) | `endWhenOp`, `endDoOp` | Record/patch clause skips, backpatch exit branches |
 | `case` … `;` | `Op.EndCase` (clauses push `Op.EndOf`) | `endCaseOp`, `endOfOp` | Compare discriminant, manage clause exits, drop unmatched discriminant |
-| `does` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp` | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition (alias: `methods`) |
+| `does` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp` | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition |
 
 All closers live in `src/ops/core/core-ops.ts` and are dispatched through the generic terminator.
 
@@ -281,11 +281,11 @@ All closers live in `src/ops/core/core-ops.ts` and are dispatched through the ge
 - Migrate remaining legacy combinators (e.g. repeat-style loops) onto the immediate infrastructure or retire them.
 - Expand this spec with additional structures (loop families, pattern match variants) as they are ported.
 
-## Capsules (`methods`)
+## Capsules (`does`)
 
-`methods` is an immediate opener used inside a colon definition to construct a capsule (see docs/specs/capsules.md). It follows the same opener/closer protocol:
+`does` is an immediate opener used inside a colon definition to construct a capsule (see docs/specs/capsules.md). It follows the same opener/closer protocol:
 
-- Opener (`methods`):
+- Opener (`does`):
   - Validates a colon definition is open (TOS must be `Op.EndDefinition`).
   - Swaps the closer on TOS to `Op.EndCapsule` so the shared `;` will close the capsule body.
   - Emits `Op.ExitConstructor`, which at runtime freezes the current locals in place, appends `[CODE_REF(entry), LIST:(locals+1)]` to the caller’s return frame, pushes an `RSTACK_REF` handle to the data stack, and restores the caller.
@@ -294,4 +294,4 @@ All closers live in `src/ops/core/core-ops.ts` and are dispatched through the ge
   - Emits `Op.ExitDispatch`, the custom epilogue used by capsule dispatch bodies to restore the caller without touching the payload.
   - Invokes the standard end-definition handler to finalise the surrounding colon definition (no extra terminator required).
 
-The dispatch body code after `methods` is entered via the `dispatch` runtime operation, which consumes the receiver handle and rebinds `BP` to the capsule payload before jumping to the `CODE_REF` captured at slot 0. The epilogue (`Op.ExitDispatch`) restores the caller and preserves the payload in the caller’s frame.
+The dispatch body code after `does` is entered via the `dispatch` runtime operation, which consumes the receiver handle and rebinds `BP` to the capsule payload before jumping to the `CODE_REF` captured at slot 0. The epilogue (`Op.ExitDispatch`) restores the caller and preserves the payload in the caller’s frame.
