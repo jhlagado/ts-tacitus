@@ -1,0 +1,16 @@
+---
+
+## Phase 7 – Language-Level Capsule Tests
+
+Objective: Add parser-level Tacit tests that exercise capsules incrementally, from minimal constructors to full message-dispatch examples.
+
+Milestones
+- Minimal constructor (no locals): verify returned handle and layout (slot0 CODE, LIST:1)
+- Constructor with locals: verify layout slot count = N+1, BP/IP restored
+- Degenerate dispatch: body ignores message, returns constant via dispatch
+- `case/of` dispatch: `inc`/`get` counter capsule; verify state changes across calls
+- Failure paths: `methods` outside definition; dispatch with non-capsule receiver
+
+Exit criteria
+- All new tests pass alongside existing suite.
+- Tests use relative imports; cover both stack and return-stack assertions where appropriate.
