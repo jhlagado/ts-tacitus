@@ -84,26 +84,26 @@ _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 ### Steps
 
 1. **Opener (`beginMethodsImmediate`)**
-   - Validate TOS has `Op.EndDef` closer (inside colon definition).
-   - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)` (the next `;` will close the dispatch body).
-   - Emit `Op.FreezeCapsule 0` with a 2-byte placeholder operand.
-   - Emit `Op.Exit` (constructor terminator).
-   - Patch the operand of the just-emitted `Op.FreezeCapsule` to the current `CP` (dispatch entry after `Exit`).
+   - Validate TOS has `Op.EndDef` (we are inside a colon definition).
+   - Swap closer: replace `Op.EndDef` with `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the dispatch epilogue.
+   - Emit `Op.FreezeCapsule <placeholder>` (runtime freeze that appends `[CODE_REF, LIST]` to the existing frame and pushes an `RSTACK_REF` handle).
+   - Emit `Op.ExitConstructor` (restores caller BP/IP while leaving the extended frame intact).
+   - Patch the placeholder operand to the dispatch entry address once the body has been compiled.
 
 2. **Closer verb (`endCapsuleOp`)**
-   - Emit `Op.ExitDispatch` (dispatch epilogue)
+   - Emit `Op.ExitDispatch` (pops the saved BP and return address pushed by the dispatch prologue).
 
 ### Tests
 
 - `methods-basic.test.ts`
   - Compiles `: counter 0 var count methods ... ;`
-  - After running `counter`, stack contains capsule list.
-  - Ensures `Op.Exit` inserted once.
+  - After invocation, data stack contains the `RSTACK_REF` handle and return stack shows `[locals…, CODE_REF, LIST]` above the caller frame.
+  - Ensures `Op.ExitConstructor` is emitted exactly once.
 - Negative tests:
   - `methods` outside definition → syntax error.
   - Multiple `methods` (incorrect closer) → fail fast.
 
-_Exit criteria:_ Constructors produce capsule list (`[locals…, CODE, LIST]`) and return.
+_Exit criteria:_ Constructors append `[locals…, CODE_REF, LIST]` in place, push an `RSTACK_REF` handle to the data stack, and unwind via `Op.ExitConstructor`.
 
 ---
 
@@ -114,20 +114,15 @@ _Exit criteria:_ Constructors produce capsule list (`[locals…, CODE, LIST]`) a
 ### Implementation
 
 - `dispatchOp(vm: VM)`
-  - Ensure top-of-stack order matches spec (`receiver`).
-  - Read capsule layout with helper (slot 0 is CODE ref).
-  - Push return IP and caller BP.
-  - Set `BP = payloadBase` (no copying).
-  - Set `IP = dispatchAddr`.
-  - Leave arguments/method symbol beneath.
+  - Expect `(args… method capsule-ref)` with `capsule-ref` tagged as `RSTACK_REF`.
+  - Resolve the handle, push caller return address and BP, set `BP` to the capsule payload base, and jump to the patched entry (`CODE_REF` in slot 0).
 
 - `exitDispatchOp` (`Op.ExitDispatch`)
-  - Pop BP, pop return address, set `IP`.
-  - Do not modify payload or data stack.
+  - Pop the saved BP and return address pushed by the prologue and resume the caller without touching the capsule payload.
 
 ### Tests
 
-- Unit: `dispatchOp` error on malformed capsule, missing CODE, etc.
+- Unit: `dispatchOp` error on malformed capsule handle, missing CODE slot, etc.
 - Integration: compile and run snippet verifying:
   - `inc` increments internal state.
   - `get` returns latest.
