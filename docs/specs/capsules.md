@@ -75,7 +75,10 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
      - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
 
 3. **Emit `Op.ExitConstructor`**
-   - Instead of the normal `Exit`, the constructor ends with `Op.ExitConstructor`, which restores the caller’s saved BP/IP but intentionally leaves `RSP` unchanged.
+   - Instead of the normal `Exit`, the constructor ends with `Op.ExitConstructor`, which:
+     - Reads the caller’s saved return address and BP via the current `BP` (they sit at `BP-2`/`BP-1`).
+     - Restores those registers so execution returns to the caller.
+     - Leaves `RSP` untouched so the capsule payload remains appended to the caller’s frame.
 
 4. **Patch operand (compile-time)**
    - After the dispatch body is compiled, the placeholder operand of `Op.FreezeCapsule` is patched to its entry point.
@@ -144,10 +147,8 @@ Dispatch uses the same call scaffolding but rebinds BP to the capsule payload in
 
 **Dispatch epilogue** (`Op.EndCapsule` emits `Op.ExitDispatch`):
 
-Op.ExitDispatch is the dispatch epilogue. It restores caller BP/IP and returns; it does not touch the capsule payload or perform arbitrary stack cleanup. The called function (dispatch body) is responsible for cleaning up any state it created.
-
-1. Pop and restore BP.
-2. Pop return address and jump.
+1. Pop the saved BP from the top of RSTACK (recorded in the dispatch prologue) and restore it.
+2. Pop the saved return address and jump.
 3. Leave the capsule payload untouched; it remains part of the caller’s frame until the caller returns.
 
 ### 3.2 Invocation Order
