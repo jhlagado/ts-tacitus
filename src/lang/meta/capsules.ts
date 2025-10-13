@@ -9,15 +9,15 @@ import { Op } from '@src/ops/opcodes';
  * - Swaps the definition closer with EndCapsule so the shared `;` will close the capsule body
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
-export function beginMethodsImmediate(): void {
+export function beginDoesImmediate(): void {
   if (vm.SP === 0) {
-    throw new SyntaxError('`methods` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`does` must appear inside a colon definition', vm.getStackData());
   }
 
   const tos = vm.peek();
   const { tag, value } = fromTaggedValue(tos);
   if (tag !== Tag.BUILTIN || value !== Op.EndDefinition) {
-    throw new SyntaxError('`methods` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`does` must appear inside a colon definition', vm.getStackData());
   }
 
   // Swap closer: EndDefinition -> EndCapsule

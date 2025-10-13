@@ -2,7 +2,7 @@
 
 ## Status and Intent
 
-This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `does` command (formerly `methods`). Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
+This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `does` command. Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
 
 - Core stack and segment model (`docs/specs/vm-architecture.md`)
 - Colon definitions and immediate commands (`docs/specs/metaprogramming.md`)
@@ -50,7 +50,7 @@ A capsule is produced inside a colon definition by executing `does`. The source 
   100 var x
   200 var y
 
-  methods          \ constructor terminates here
+  does             \ constructor terminates here
   case             \ dispatch routine (optional but idiomatic)
     'move of +> y +> x ;
     'draw of x y native_draw ;
@@ -58,23 +58,23 @@ A capsule is produced inside a colon definition by executing `does`. The source 
 ;
 ```
 
-### 2.2 Constructor Semantics (`methods` Command)
+### 2.2 Constructor Semantics (`does` Command)
 
-`methods` lowers to a dedicated freeze + constructor exit sequence:
+`does` lowers to a dedicated freeze + constructor exit sequence:
 
 1. **Validate and swap closer (compile-time)**
    - Ensure a colon definition is open: the data stack must contain `Op.EndDef`.
    - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
 2. **Emit `Op.ExitConstructor`**
-   - `methods` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
+   - `does` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
      - Leaves the callee's locals where they already live (`[BP … RSP)`).
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
      - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
      - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
-Everything compiled after `methods` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
+Everything compiled after `does` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
 
 ### 2.3 Example: Counter Capsule
 
