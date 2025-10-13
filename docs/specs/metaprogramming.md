@@ -268,7 +268,7 @@ case
 | `if` … `;` | `Op.EndIf` | `endIfOp` | Patch `IfFalseBranch` and optional trailing `Branch` |
 | `when` … `;` | `Op.EndWhen` (clauses push `Op.EndDo`) | `endWhenOp`, `endDoOp` | Record/patch clause skips, backpatch exit branches |
 | `case` … `;` | `Op.EndCase` (clauses push `Op.EndOf`) | `endCaseOp`, `endOfOp` | Compare discriminant, manage clause exits, drop unmatched discriminant |
-| `methods` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp` | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition |
+| `does` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp` | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition (alias: `methods`) |
 
 All closers live in `src/ops/core/core-ops.ts` and are dispatched through the generic terminator.
 

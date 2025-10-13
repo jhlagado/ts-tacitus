@@ -7,8 +7,7 @@ describe('Capsule stored in function local (frame extension)', () => {
     const code = `
       : make-counter
         0 var count
-        methods
-        case
+        does case
           "inc" of 1 +> count ;
           "get" of count ;
         ;
@@ -28,4 +27,3 @@ describe('Capsule stored in function local (frame extension)', () => {
     expect(stack[stack.length - 1]).toBe(2);
   });
 });
-

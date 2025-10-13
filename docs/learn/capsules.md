@@ -55,14 +55,14 @@ Call order is fixed: push arguments (if any), then the method symbol, then the r
 
 ## 3) Building Capsules with `methods`
 
-Place `methods` inside a colon definition after your local `var` declarations. Everything after `methods` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
+Place `does` inside a colon definition after your local `var` declarations. Everything after `does` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
 
 ```tacit
 : make-point ( x y -- capsule )
   var y0
   var x0
 
-  methods
+  does
   case
     'translate of             \ dx dy 'translate &p dispatch
       rot rot +> x0 +> y0 ;

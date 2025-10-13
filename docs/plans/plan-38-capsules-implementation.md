@@ -14,7 +14,7 @@
 
 ## Goals
 
-1. Implement the `methods` command exactly as specified: constructor extends caller's RSTACK frame with capsule list, returns RSTACK_REF handle to data stack, slot 0 holds re-entry CODE reference.
+1. Implement the `does` command (formerly `methods`) exactly as specified: constructor extends caller's RSTACK frame with capsule list, returns RSTACK_REF handle to data stack, slot 0 holds re-entry CODE reference.
 2. Provide a robust `dispatch` operation with a custom epilogue (`Op.ExitDispatch`) that restores the caller without touching capsule payload cells.
 3. Build a thin capsule runtime layer (helper utilities, assertions) with exhaustive unit/integration tests.
 4. Update docs/tests/tooling so capsules are safe to use by Tacit programs.
@@ -87,7 +87,7 @@ Status: ✅ Complete
 
 ---
 
-## Phase 3 – `methods` Command
+## Phase 3 – `does` Command (was `methods`)
 
 **Objective:** Implement the immediate command behaviour exactly as specified.
 
@@ -103,12 +103,12 @@ Status: ✅ Complete
 
 ### Tests
 
-- `methods-basic.test.ts`
-  - Compiles `: counter 0 var count methods ... ;`
+- `does-basic.test.ts`
+  - Compiles `: counter 0 var count does ... ;`
   - After invocation, data stack contains the `RSTACK_REF` handle and return stack shows `[locals…, CODE_REF, LIST]` above the caller frame.
   - Ensures `Op.ExitConstructor` is emitted exactly once.
 - Negative tests:
-  - `methods` outside definition → syntax error.
+- `does` outside definition → syntax error.
   - Multiple `methods` (incorrect closer) → fail fast.
 
 _Exit criteria:_ Constructors append `[locals…, CODE_REF, LIST]` in place, push an `RSTACK_REF` handle to the data stack, and unwind via `Op.ExitConstructor`.
@@ -174,7 +174,7 @@ Status: ✅ Complete
 4. **Failure Paths** — dispatch on non-capsule, methods without definition
 
 ### Builtin Wiring
-- Register `methods` as immediate command in `src/ops/builtins-register.ts`
+- Register `does` as immediate command (keep `methods` as alias temporarily) in `src/ops/builtins-register.ts`
 - Register `dispatch` as regular operation in `src/ops/builtins-register.ts`
 - Integration test: execute full Tacit snippet using both words
 

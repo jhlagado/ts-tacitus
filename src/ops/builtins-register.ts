@@ -140,6 +140,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('of', Op.Nop, _vm => clauseOfImmediate(), true);
   symbolTable.defineBuiltin('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
   symbolTable.defineBuiltin('NIL', Op.Nop, _vm => nilImmediate(), true);
+  // Capsule re-entry opener (preferred name: 'does'); 'methods' kept as alias for compatibility.
+  symbolTable.defineBuiltin('does', Op.Nop, _vm => beginMethodsImmediate(), true);
   symbolTable.defineBuiltin('methods', Op.Nop, _vm => beginMethodsImmediate(), true);
 
   symbolTable.defineBuiltin('select', Op.Select);

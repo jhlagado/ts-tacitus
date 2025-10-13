@@ -6,12 +6,12 @@ import { Tag, fromTaggedValue } from '../../../core';
 describe('Capsule constructor (language-level) — minimal to locals', () => {
   beforeEach(() => resetVM());
 
-  test('zero locals: methods returns RSTACK_REF handle; layout LIST:1 (CODE only)', () => {
+  test('zero locals: does returns RSTACK_REF handle; layout LIST:1 (CODE only)', () => {
     const code = `
       : mk
-        methods
-      ;
-      mk
+        does
+        ;
+        mk
     `;
     const state = executeTacitWithState(code);
     expect(state.stack.length).toBe(1);
@@ -28,9 +28,9 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
       : mk2
         10 var a
         20 var b
-        methods
-      ;
-      mk2
+        does
+        ;
+        mk2
     `;
     const state = executeTacitWithState(code);
     expect(state.stack.length).toBe(1);
@@ -44,4 +44,3 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     expect(vm.BP).toBe(0);
   });
 });
-
