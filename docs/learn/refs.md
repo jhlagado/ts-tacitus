@@ -25,6 +25,15 @@ Orientation
   - `store ( v addr — )`: materialize source refs; simple/simple writes allowed; compound/compound only if compatible.
   - Locals: `x` (VarRef+Load), `&x` (VarRef+Fetch), `&x fetch`, `&x load`.
 
+Capsule receivers and `&alias`
+- Capsules return an `RSTACK_REF` handle. Store it in a local and use `&alias` when dispatching to avoid copying:
+  ```tacit
+  : make-counter 0 var count methods 'inc of 1 +> count ; ;
+  make-counter var c
+  'inc &c dispatch    \ receiver via &alias; handle remains stable within the frame
+  ```
+  The receiver is always passed as a reference; arguments and method symbol are regular values.
+
 Status: authoritative spec for Tacit data references. Aligns with current implementation while defining the target, value-first model with explicit aliasing and clear materialize-at-boundaries guidance.
 
 This document explains how Tacit handles references (refs) to data stored in the VM’s memory segments. It clarifies ownership and lifetimes, unifies terminology, and sets behavioral requirements for reading variables, assignment, traversal, and return semantics. It integrates with:
