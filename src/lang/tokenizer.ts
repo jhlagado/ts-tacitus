@@ -19,7 +19,6 @@ export enum TokenType {
   WORD,
   STRING,
   SPECIAL,
-  WORD_QUOTE,
   SYMBOL,
   REF_SIGIL,
   EOF,
@@ -154,10 +153,11 @@ export class Tokenizer {
       return { type: TokenType.SPECIAL, value: char, position: startPos };
     }
 
-    if (char === '`') {
+    // Apostrophe shorthand for bare string keys: 'key -> STRING("key")
+    if (char === '\'') {
       this.position++;
       this.column++;
-      const wordStartPos = this.position;
+      const startPosAfterQuote = this.position;
       let word = '';
       while (
         this.position < this.input.length &&
@@ -169,7 +169,7 @@ export class Tokenizer {
         this.column++;
       }
 
-      return { type: TokenType.WORD_QUOTE, value: word, position: wordStartPos - 1 };
+      return { type: TokenType.STRING, value: word, position: startPosAfterQuote - 1 };
     }
 
     if (char === '@') {

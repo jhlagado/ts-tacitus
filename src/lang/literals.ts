@@ -14,18 +14,4 @@ export function emitString(value: string): void {
   vm.compiler.compile16(address);
 }
 
-export function parseBacktickSymbol(state: ParserState): void {
-  let sym = '';
-
-  while (state.tokenizer.position < state.tokenizer.input.length) {
-    const ch = state.tokenizer.input[state.tokenizer.position];
-    if (isWhitespace(ch) || isGroupingChar(ch)) break;
-    sym += ch;
-    state.tokenizer.position++;
-    state.tokenizer.column++;
-  }
-
-  const addr = vm.digest.add(sym);
-  vm.compiler.compileOpcode(Op.LiteralString);
-  vm.compiler.compile16(addr);
-}
+// Backtick symbol parsing removed. Apostrophe shorthand handled in parser.
