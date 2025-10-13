@@ -1,5 +1,6 @@
 import { vm } from '../../../core/global-state';
 import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from '../../../ops/capsules/capsule-ops';
+import { Tag, toTaggedValue } from '../../../core';
 import { resetVM } from '../../utils/vm-test-utils';
 
 describe('capsule opcode stubs', () => {
@@ -7,8 +8,31 @@ describe('capsule opcode stubs', () => {
     resetVM();
   });
 
-  test('exitConstructorOp throws not implemented', () => {
-    expect(() => exitConstructorOp(vm)).toThrow('not implemented');
+  test('exitConstructorOp produces capsule handle and restores caller', () => {
+    // Simulate frame prologue: push RA then saved BP, set BP
+    const ra = toTaggedValue(9999, Tag.CODE);
+    vm.rpush(ra);
+    vm.rpush(0); // caller BP = 0
+    vm.BP = vm.RSP;
+    // Push 2 locals
+    vm.rpush(10);
+    vm.rpush(20);
+    vm.IP = 123;
+
+    const prevRSP = vm.RSP;
+    exitConstructorOp(vm);
+
+    // Data stack: handle to RSTACK header
+    const handle = vm.peek();
+    const { tag, value: headerIndex } = (require('../../../core').fromTaggedValue)(handle);
+    expect(tag).toBe(Tag.RSTACK_REF);
+    expect(headerIndex).toBe(vm.RSP - 1);
+
+    // RSTACK: appended CODE + LIST, so grew by 2
+    expect(vm.RSP).toBe(prevRSP + 2);
+    // Restored caller registers
+    expect(vm.BP).toBe(0);
+    expect(vm.IP).toBe(9999);
   });
 
   test('exitDispatchOp underflow outside prologue', () => {

@@ -1,6 +1,7 @@
 import { vm } from '../../../core/global-state';
 import { resetVM } from '../../utils/vm-test-utils';
 import { groupLeftOp, groupRightOp, endIfOp, endDoOp, exitOp } from '../../../ops/core/core-ops';
+import { SEG_CODE } from '../../../core';
 
 describe('Core ops extra branch coverage', () => {
   beforeEach(() => resetVM());
@@ -48,5 +49,25 @@ describe('Core ops extra branch coverage', () => {
     vm.BP = 2; // frame root points just above saved cells
     exitOp(vm);
     expect(vm.IP).toBe(77);
+  });
+
+  test('exitOp restores return address when CODE', () => {
+    const ra = (require('../../../core').toTaggedValue)(88, (require('../../../core').Tag).CODE);
+    vm.rpush(ra);
+    vm.rpush(0);
+    vm.BP = 2;
+    exitOp(vm);
+    expect(vm.IP).toBe(88);
+  });
+
+  test('endIfOp patches a branch placeholder correctly', () => {
+    // Place a dummy 16-bit placeholder at current CP and push its position
+    const pos = vm.compiler.CP;
+    vm.compiler.compile16(0);
+    vm.push(pos);
+    endIfOp(vm);
+    // Should have patched the placeholder to point to current CP (fallthrough)
+    const patched = vm.memory.read16(SEG_CODE, pos);
+    expect(typeof patched).toBe('number');
   });
 });

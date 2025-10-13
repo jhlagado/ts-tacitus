@@ -1,10 +1,35 @@
-import { VM, Tag, toTaggedValue, fromTaggedValue, CELL_SIZE } from '@src/core';
+import { VM, Tag, toTaggedValue, fromTaggedValue, CELL_SIZE, SEG_RSTACK } from '@src/core';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { readCapsuleLayoutFromHandle } from './layout';
 
-export function exitConstructorOp(_vm: VM): void {
-  throw new Error('ExitConstructor not implemented');
+export function exitConstructorOp(vm: VM): void {
+  // Number of locals currently reserved in this frame (cells)
+  const oldBpCells = vm.BP;
+  const localCount = vm.RSP - oldBpCells;
+
+  // Wrap current IP as CODE entry for dispatch body
+  const entryAddr = vm.IP;
+  vm.rpush(toTaggedValue(entryAddr, Tag.CODE));
+
+  // Append LIST header: payload = locals + 1 (CODE)
+  vm.rpush(toTaggedValue(localCount + 1, Tag.LIST));
+
+  // Push RSTACK_REF handle to the capsule header on data stack
+  const headerCellIndex = vm.RSP - 1;
+  vm.push(toTaggedValue(headerCellIndex, Tag.RSTACK_REF));
+
+  // Restore caller BP and return address from beneath the frame root
+  const savedBP = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 1) * CELL_SIZE);
+  const returnAddr = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 2) * CELL_SIZE);
+
+  vm.BP = Math.trunc(savedBP);
+  const { tag, value } = fromTaggedValue(returnAddr);
+  if (tag === Tag.CODE) {
+    vm.IP = value;
+  } else {
+    vm.IP = Math.trunc(returnAddr);
+  }
 }
 
 export function exitDispatchOp(_vm: VM): void {
