@@ -6,7 +6,7 @@ describe('Capsule dispatch (degenerate body)', () => {
   test('dispatch ignores message and returns constant', () => {
     const code = `
       : mk
-        does
+        capsule
         123
       ;
       mk

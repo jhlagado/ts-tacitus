@@ -1,6 +1,6 @@
 # Capsules — State + Re‑Entry on the Stack
 
-This guide introduces capsules in Tacit: compact, stack‑resident “objects” that capture local state and a re‑entry point. You will learn how to build them with `does`, call them with `dispatch`, and avoid common pitfalls.
+This guide introduces capsules in Tacit: compact, stack‑resident “objects” that capture local state and a re‑entry point. You will learn how to build them with `capsule`, call them with `dispatch`, and avoid common pitfalls.
 
 See the normative spec for complete details: `docs/specs/capsules.md`.
 
@@ -32,7 +32,7 @@ Key properties:
   0 var count
   1 var step
 
-  does case
+  capsule case
     'inc of step +> count ;
     'get of count ;
     'set of -> count ;
@@ -52,16 +52,16 @@ Call order is fixed: push arguments (if any), then the method symbol, then the r
 
 ---
 
-## 3) Building Capsules with `does`
+## 3) Building Capsules with `capsule`
 
-Place `does` inside a colon definition after your local `var` declarations. Everything after `does` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
+Place `capsule` inside a colon definition after your local `var` declarations. Everything after `capsule` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
 
 ```tacit
 : make-point ( x y -- capsule )
   var y0
   var x0
 
-  does case
+  capsule case
     'translate of             \ dx dy 'translate &p dispatch
       rot rot +> x0 +> y0 ;
     'coords of x0 y0 ;        \ 'coords &p dispatch  => x y
@@ -70,7 +70,7 @@ Place `does` inside a colon definition after your local `var` declarations. Ever
 ;
 ```
 
-What `does` does (intuitively):
+What `capsule` does (intuitively):
 
 - Freezes the locals in place and appends a small list to the caller’s return stack: `[ locals…, CODE_REF, LIST:(locals+1) ]`
 - Pushes an `RSTACK_REF` handle to that list on the data stack (your “receiver”)
@@ -148,8 +148,8 @@ Avoid:
 
 ## 7) Troubleshooting
 
-- “does outside definition” → `does` must appear inside a `:`…`;` definition
-- “dispatch on non‑capsule” → receiver must be an `RSTACK_REF` handle produced by a capsule constructor (`does`)
+- "capsule outside definition” → `capsule` must appear inside a `:`…`;` definition
+- “dispatch on non‑capsule” → receiver must be an `RSTACK_REF` handle produced by a capsule constructor (`capsule`)
 - “stale capsule handle” → you used a handle after the creating frame returned; copy the capsule if it must escape
 - Body never runs → check call order; it must be `args … method receiver dispatch`
 

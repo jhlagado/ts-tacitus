@@ -602,7 +602,7 @@ This specification establishes a complete local variable system for Tacit that s
 
 - Builds on existing stack frame infrastructure
 - Uses proven tagged value system
-- Keeps immediate-word constructs (e.g., `if … ;`, `does … ;`) within the same lexical scope
+- Keeps immediate-word constructs (e.g., `if … ;`, `capsule … ;`) within the same lexical scope
 - Supports both simple and compound data types
 
 The design provides a foundation for sophisticated local variable usage while maintaining Tacit's stack-oriented philosophy and preparing for eventual C translation.

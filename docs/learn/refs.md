@@ -28,7 +28,7 @@ Orientation
 Capsule receivers and `&alias`
 - Capsules return an `RSTACK_REF` handle. Store it in a local and use `&alias` when dispatching to avoid copying:
   ```tacit
-  : make-counter 0 var count does 'inc of 1 +> count ; ;
+  : make-counter 0 var count capsule 'inc of 1 +> count ; ;
   make-counter var c
   'inc &c dispatch    \ receiver via &alias; handle remains stable within the frame
   ```

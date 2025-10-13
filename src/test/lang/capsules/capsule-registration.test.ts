@@ -12,8 +12,8 @@ describe('capsule word registration', () => {
     resetVM();
   });
 
-  test('does is registered as immediate and compiles constructor exit', () => {
-    const entry = vm.symbolTable.findEntry('does');
+  test('capsule is registered as immediate and compiles constructor exit', () => {
+    const entry = vm.symbolTable.findEntry('capsule');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(true);
     expect(entry?.implementation).toBeDefined();
@@ -29,6 +29,18 @@ describe('capsule word registration', () => {
     expect(entryTag).toBe(Tag.BUILTIN);
   });
 
+  test('does remains available as a temporary alias (deprecated)', () => {
+    const entry = vm.symbolTable.findEntry('does');
+    expect(entry).toBeDefined();
+    expect(entry?.isImmediate).toBe(true);
+    // Simulate being inside a definition by placing EndDefinition closer on stack
+    vm.push(toTaggedValue(Op.EndDefinition, Tag.BUILTIN));
+    entry?.implementation?.(vm);
+    const { tag: closerTag, value } = fromTaggedValue(vm.peek());
+    expect(closerTag).toBe(Tag.BUILTIN);
+    expect(value).toBe(Op.EndCapsule);
+  });
+
   test('dispatch builtin maps to opcode', () => {
     const entry = vm.symbolTable.findEntry('dispatch');
     expect(entry).toBeDefined();
@@ -38,4 +50,3 @@ describe('capsule word registration', () => {
     expect(value).toBe(Op.Dispatch);
   });
 });
-
