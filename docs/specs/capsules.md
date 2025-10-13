@@ -125,7 +125,7 @@ Dispatch uses the same call scaffolding but rebinds BP to the capsule payload in
 | ------------------- | ------------------------ | ---------------------------------------------- |
 | Return address      | `rpush`                  | `rpush`                                         |
 | Save caller `BP`    | `rpush`                  | `rpush`                                         |
-| Set new `BP`        | `BP = RSP`               | `BP = capsule payload base`                    |
+| Set new `BP`        | `BP = RSP`               | `BP = capsule header index − payloadSlots`     |
 | Payload storage     | Caller frame only        | Capsule locals remain in caller's frame segment |
 | Exit opcode         | `Op.Exit`                | `Op.ExitDispatch`                              |
 
