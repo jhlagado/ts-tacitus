@@ -2,7 +2,7 @@
 
 ## Status and Intent
 
-This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `does` command. Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
+This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `capsule` command. Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
 
 - Core stack and segment model (`docs/specs/vm-architecture.md`)
 - Colon definitions and immediate commands (`docs/specs/metaprogramming.md`)
@@ -43,37 +43,37 @@ They behave much like delimited continuations or reified closures but remain ful
 
 ### 2.1 Syntax
 
-A capsule is produced inside a colon definition by executing `does`. The source after `does` belongs to the dispatch routine, often—but not necessarily—a `case/of` structure:
+A capsule is produced inside a colon definition by executing `capsule`. The source after `capsule` belongs to the dispatch routine, often—but not necessarily—a `case/of` structure:
 
 ```tacit
 : makePoint
   100 var x
   200 var y
 
-  does case        \ constructor terminates here
+  capsule case        \ constructor terminates here
     'move of +> y +> x ;
     'draw of x y native_draw ;
   ;
 ;
 ```
 
-### 2.2 Constructor Semantics (`does` Command)
+### 2.2 Constructor Semantics (`capsule` Command)
 
-`does` lowers to a dedicated freeze + constructor exit sequence:
+`capsule` lowers to a dedicated freeze + constructor exit sequence:
 
 1. **Validate and swap closer (compile-time)**
    - Ensure a colon definition is open: the data stack must contain `Op.EndDef`.
    - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
 2. **Emit `Op.ExitConstructor`**
-   - `does` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
+   - `capsule` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
      - Leaves the callee's locals where they already live (`[BP … RSP)`).
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
      - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
      - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
-Everything compiled after `does` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
+Everything compiled after `capsule` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
 
 ### 2.3 Example: Counter Capsule
 
@@ -82,7 +82,7 @@ Everything compiled after `does` is the dispatch routine and runs only when the 
   0  var count
   1  var step
 
-  does case
+  capsule case
     'inc of step +> count ;
     'get of count ;
     'set of -> count ;
@@ -162,12 +162,12 @@ Inside the `'move` clause, the data stack still holds `10 20` because dispatch o
 
 ### 3.3 Degenerate Dispatch Bodies
 
-Code after `does` is free-form—no requirement to use `case`, symbols, or even a discriminant at all. Examples:
+Code after `capsule` is free-form—no requirement to use `case`, symbols, or even a discriminant at all. Examples:
 
 #### Single Routine (no message required)
 
 ```
-does
+capsule
 step +> count
 count ;
 ```
@@ -177,7 +177,7 @@ The capsule now behaves like a resumable coroutine: every `dispatch` call ignore
 #### Manual Branching
 
 ```
-does
+capsule
   dup 0 eq if
     drop count
   else
@@ -209,7 +209,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var y0
   var x0
 
-  does case
+  capsule case
     'translate of
       rot rot +> x0 +> y0 ;    \ expecting dx dy
     'coords of x0 y0 ;         \ pushes coords
@@ -234,7 +234,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var limit
   var current
 
-  does case
+  capsule case
     'next of
       current limit ge if
         drop NIL
@@ -253,7 +253,7 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
 : make-logger ( addr -- capsule )
   var destination
 
-  does
+  capsule
 
   drop destination . ;
 ;
@@ -288,7 +288,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 - **lists.md**: Capsule payload obeys normal list semantics (header + payload cells).
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
 - **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
-- **metaprogramming.md**: `does`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **metaprogramming.md**: `capsule`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
 - **vm-architecture.md**: Frame layout (BP-1 = saved BP, BP-2 = return address) matches `Op.ExitConstructor` assumptions.
 
 ---
@@ -298,7 +298,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 | Invariant                  | Description                                                  |
 | -------------------------- | ------------------------------------------------------------ |
 | Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame |
-| Constructor exit           | `does` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
+| Constructor exit           | `capsule` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
 | Dispatch prologue          | Consumes receiver only; leaves message/args intact           |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |

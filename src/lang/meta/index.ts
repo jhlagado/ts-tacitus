@@ -3,4 +3,4 @@ export { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '
 export { executeImmediateWord, runImmediateCode } from './executor';
 export { beginWhenImmediate, beginDoImmediate } from './when-do';
 export { beginCaseImmediate, clauseOfImmediate, defaultImmediate, nilImmediate } from './case';
-export { beginDoesImmediate } from './capsules';
+export { beginCapsuleImmediate } from './capsules';

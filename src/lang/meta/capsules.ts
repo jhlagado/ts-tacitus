@@ -4,20 +4,20 @@ import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
 
 /**
- * `does` opener (immediate):
+ * `capsule` opener (immediate):
  * - Validates we are inside a colon definition (TOS must be EndDefinition closer)
  * - Swaps the definition closer with EndCapsule so the shared `;` will close the capsule body
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
-export function beginDoesImmediate(): void {
+export function beginCapsuleImmediate(): void {
   if (vm.SP === 0) {
-    throw new SyntaxError('`does` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
   }
 
   const tos = vm.peek();
   const { tag, value } = fromTaggedValue(tos);
   if (tag !== Tag.BUILTIN || value !== Op.EndDefinition) {
-    throw new SyntaxError('`does` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
   }
 
   // Swap closer: EndDefinition -> EndCapsule

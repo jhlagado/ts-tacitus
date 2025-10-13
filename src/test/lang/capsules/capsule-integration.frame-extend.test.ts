@@ -8,7 +8,7 @@ describe('Capsule stored in function local (frame extension)', () => {
       : make-counter
         0 var count
 
-        does case
+        capsule case
           'inc of 1 +> count ;
           'get of count ;
         ;

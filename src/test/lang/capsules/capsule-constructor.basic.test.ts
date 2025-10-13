@@ -6,10 +6,10 @@ import { Tag, fromTaggedValue } from '../../../core';
 describe('Capsule constructor (language-level) — minimal to locals', () => {
   beforeEach(() => resetVM());
 
-  test('zero locals: does returns RSTACK_REF handle; layout LIST:1 (CODE only)', () => {
+  test('zero locals: capsule returns RSTACK_REF handle; layout LIST:1 (CODE only)', () => {
     const code = `
       : mk
-        does
+        capsule
         ;
         mk
     `;
@@ -28,7 +28,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
       : mk2
         10 var a
         20 var b
-        does
+        capsule
         ;
         mk2
     `;

@@ -8,7 +8,7 @@ describe('Counter capsule (case/of)', () => {
       : make-counter
         0 var count
 
-        does case
+        capsule case
           'inc of 1 +> count ;
           'get of count ;
         ;
