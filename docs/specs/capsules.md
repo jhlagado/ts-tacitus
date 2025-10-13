@@ -2,7 +2,7 @@
 
 ## Status and Intent
 
-This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `methods` command. Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
+This document is a **complete, self-contained specification** for **Capsules** in Tacit using the `does` command (formerly `methods`). Capsules fuse environment capture and symbolic re-entry into a single value. The spec targets Tacit implementors and advanced users; it assumes familiarity with:
 
 - Core stack and segment model (`docs/specs/vm-architecture.md`)
 - Colon definitions and immediate commands (`docs/specs/metaprogramming.md`)
@@ -43,7 +43,7 @@ They behave much like delimited continuations or reified closures but remain ful
 
 ### 2.1 Syntax
 
-A capsule is produced inside a colon definition by executing `methods`. The source after `methods` belongs to the dispatch routine, often—but not necessarily—a `case/of` structure:
+A capsule is produced inside a colon definition by executing `does`. The source after `does` belongs to the dispatch routine, often—but not necessarily—a `case/of` structure:
 
 ```tacit
 : makePoint

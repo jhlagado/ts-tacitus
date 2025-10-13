@@ -7,12 +7,12 @@ describe('Counter capsule (case/of)', () => {
     const code = `
       : make-counter
         0 var count
-        methods
-        case
+        does case
           "inc" of 1 +> count ;
           "get" of count ;
         ;
       ;
+      
       make-counter dup
       "inc" swap dispatch
       "get" swap dispatch

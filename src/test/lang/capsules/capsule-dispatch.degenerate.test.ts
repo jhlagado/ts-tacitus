@@ -7,9 +7,9 @@ describe('Capsule dispatch (degenerate body)', () => {
   test('dispatch ignores message and returns constant', () => {
     const code = `
       : mk
-        methods
-        123
-      ;
+        does
+          123
+        ;
       mk
       ` +
       // args… method receiver dispatch ; no args, swap to put receiver last
