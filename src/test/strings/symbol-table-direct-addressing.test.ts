@@ -8,7 +8,7 @@
 
 import { vm } from '../../core/global-state';
 import { resetVM } from '../utils/vm-test-utils';
-import { SymbolTable, Digest } from '@src/strings';
+import { SymbolTable, Digest } from '../../strings';
 import { Tag, fromTaggedValue } from '../../core';
 import { Op } from '../../ops/opcodes';
 
@@ -168,27 +168,7 @@ describe('SymbolTable Direct Addressing', () => {
     });
   });
 
-  describe('Legacy method compatibility', () => {
-    test('should not resolve symbols defined with old methods', () => {
-      symbolTable.defineBuiltin('oldStyle', 42);
-
-      const taggedValue = symbolTable.findCodeRef('oldStyle');
-      expect(taggedValue).toBeDefined();
-
-      const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.BUILTIN);
-    });
-
-    test('should maintain independence from legacy function calling', () => {
-      symbolTable.defineCode('oldCall', 200);
-
-      const taggedValue = symbolTable.findCodeRef('oldCall');
-      expect(taggedValue).toBeDefined();
-
-      const { tag } = fromTaggedValue(taggedValue!);
-      expect(tag).toBe(Tag.CODE);
-    });
-  });
+  // Legacy method compatibility tests removed (methods → does migration complete)
 
   describe('Checkpoint and revert functionality', () => {
     test('should preserve new definitions across checkpoints', () => {
