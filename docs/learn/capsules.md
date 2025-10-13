@@ -1,6 +1,6 @@
-# Capsules — State + Methods on the Stack
+# Capsules — State + Re‑Entry on the Stack
 
-This guide introduces capsules in Tacit: compact, stack‑resident “objects” that capture local state and a re‑entry point. You will learn how to build them with `methods`, call them with `dispatch`, and avoid common pitfalls.
+This guide introduces capsules in Tacit: compact, stack‑resident “objects” that capture local state and a re‑entry point. You will learn how to build them with `does`, call them with `dispatch`, and avoid common pitfalls.
 
 See the normative spec for complete details: `docs/specs/capsules.md`.
 
@@ -32,7 +32,7 @@ Key properties:
   0 var count
   1 var step
 
-  methods
+  does
   case
     'inc of step +> count ;
     'get of count ;
@@ -53,7 +53,7 @@ Call order is fixed: push arguments (if any), then the method symbol, then the r
 
 ---
 
-## 3) Building Capsules with `methods`
+## 3) Building Capsules with `does`
 
 Place `does` inside a colon definition after your local `var` declarations. Everything after `does` (up to the matching `;`) becomes the capsule’s dispatch body. A `case/of` is idiomatic but optional.
 
@@ -72,7 +72,7 @@ Place `does` inside a colon definition after your local `var` declarations. Ever
 ;
 ```
 
-What `methods` does (intuitively):
+What `does` does (intuitively):
 
 - Freezes the locals in place and appends a small list to the caller’s return stack: `[ locals…, CODE_REF, LIST:(locals+1) ]`
 - Pushes an `RSTACK_REF` handle to that list on the data stack (your “receiver”)
@@ -150,8 +150,8 @@ Avoid:
 
 ## 7) Troubleshooting
 
-- “methods outside definition” → `methods` must appear inside a `:`…`;` definition
-- “dispatch on non‑capsule” → receiver must be an `RSTACK_REF` handle produced by a capsule constructor (`methods`)
+- “does outside definition” → `does` must appear inside a `:`…`;` definition
+- “dispatch on non‑capsule” → receiver must be an `RSTACK_REF` handle produced by a capsule constructor (`does`)
 - “stale capsule handle” → you used a handle after the creating frame returned; copy the capsule if it must escape
 - Body never runs → check call order; it must be `args … method receiver dispatch`
 
