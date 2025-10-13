@@ -52,4 +52,31 @@ describe('capsule layout (handle-based)', () => {
     const bad = toTaggedValue(0, Tag.STACK_REF);
     expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('RSTACK_REF');
   });
+
+  test('errors when capsule list lives on STACK (wrong segment)', () => {
+    // Build a list on the data stack: ( CODE 1 ) then convert to STACK_REF handle
+    const codeRef = toTaggedValue(99, Tag.CODE);
+    vm.push(1);
+    vm.push(codeRef);
+    vm.push(toTaggedValue(2, Tag.LIST));
+    // Convert list to STACK_REF via ref op path: here we emulate by taking SP-1 as header index
+    const headerCellIndex = vm.SP - 1; // data stack cell index
+    const stackHandle = toTaggedValue(headerCellIndex, Tag.STACK_REF);
+    expect(() => readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number)).toThrow(
+      'RSTACK_REF',
+    );
+  });
+
+  test('errors when payload slot count is zero', () => {
+    // header LIST:0 on RSTACK (no payload)
+    vm.rpush(toTaggedValue(0, Tag.LIST));
+    const handle = toTaggedValue(vm.RSP - 1, Tag.RSTACK_REF);
+    expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('include CODE slot');
+  });
+
+  test('errors when RSTACK_REF does not point to a LIST header', () => {
+    vm.rpush(12345); // simple value on RSTACK
+    const handle = toTaggedValue(vm.RSP - 1, Tag.RSTACK_REF);
+    expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('does not reference a LIST');
+  });
 });
