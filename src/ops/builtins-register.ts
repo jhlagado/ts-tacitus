@@ -140,9 +140,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('of', Op.Nop, _vm => clauseOfImmediate(), true);
   symbolTable.defineBuiltin('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
   symbolTable.defineBuiltin('NIL', Op.Nop, _vm => nilImmediate(), true);
-  // Capsule opener: preferred 'capsule'. Temporary alias: 'does' (deprecated)
+  // Capsule opener: 'capsule'
   symbolTable.defineBuiltin('capsule', Op.Nop, _vm => beginCapsuleImmediate(), true);
-  symbolTable.defineBuiltin('does', Op.Nop, _vm => beginCapsuleImmediate(), true);
 
   symbolTable.defineBuiltin('select', Op.Select);
   symbolTable.defineBuiltin('makeList', Op.MakeList);
