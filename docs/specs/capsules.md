@@ -69,16 +69,16 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
 2. **Emit `Op.FreezeCapsule <entry>`**
    - `methods` emits `Op.FreezeCapsule` with a 16-bit placeholder operand.
    - At runtime the opcode:
-     - Leaves the callee’s locals where they already live (`[BP … RSP)`).
+     - Leaves the callee's locals where they already live (`[BP … RSP)`).
      - `rpush`es `CODE_REF(entryAddr)` (patched operand) directly above the locals.
      - `rpush`es the list header `LIST:(locals+1)`; `RSP` now points at the capsule header.
      - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
 
 3. **Emit `Op.ExitConstructor`**
    - Instead of the normal `Exit`, the constructor ends with `Op.ExitConstructor`, which:
-     - Reads the caller’s saved return address and BP via the current `BP` (they sit at `BP-2`/`BP-1`).
+     - Reads the caller's saved BP from (BP-1) and return address from (BP-2).
      - Restores those registers so execution returns to the caller.
-     - Leaves `RSP` untouched so the capsule payload remains appended to the caller’s frame.
+     - Leaves `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
 4. **Patch operand (compile-time)**
    - After the dispatch body is compiled, the placeholder operand of `Op.FreezeCapsule` is patched to its entry point.
@@ -120,7 +120,7 @@ Stack at return from constructor:
 
 - `count` is oldest local (lowest address)
 - `step` is next
-The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Callers may stash the handle in a local (`var point`). If it needs to escape the caller’s frame (e.g., assigned to a global or returned) the capsule must be copied because the underlying storage is reclaimed when the caller returns.
+The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Callers may stash the handle in a local (`var point`). If it needs to escape the caller's frame (e.g., assigned to a global or returned) the capsule must be copied (using normal list copy operations) because the underlying storage is reclaimed when the caller returns. Using a capsule handle after the owning frame has been reclaimed results in undefined behavior; it is the programmer's responsibility to ensure handle validity.
 
 ---
 
@@ -135,7 +135,7 @@ Dispatch uses the same call scaffolding but rebinds BP to the capsule payload in
 | Return address      | `rpush`                  | `rpush`                                         |
 | Save caller `BP`    | `rpush`                  | `rpush`                                         |
 | Set new `BP`        | `BP = RSP`               | `BP = capsule payload base`                    |
-| Payload storage     | Caller frame only        | Capsule locals remain in caller’s frame segment |
+| Payload storage     | Caller frame only        | Capsule locals remain in caller's frame segment |
 | Exit opcode         | `Op.Exit`                | `Op.ExitDispatch`                              |
 
 **Dispatch prologue** (`dispatch` opcode):
@@ -149,7 +149,7 @@ Dispatch uses the same call scaffolding but rebinds BP to the capsule payload in
 
 1. Pop the saved BP from the top of RSTACK (recorded in the dispatch prologue) and restore it.
 2. Pop the saved return address and jump.
-3. Leave the capsule payload untouched; it remains part of the caller’s frame until the caller returns.
+3. Leave the capsule payload untouched; it remains part of the caller's frame until the caller returns.
 
 ### 3.2 Invocation Order
 
@@ -292,7 +292,7 @@ Data stack (top → bottom)
   … caller operands …
 ```
 
-No locals move; the capsule simply extends the caller’s frame. When `dispatch` runs, `BP` is temporarily rebound to `cellIndexOf(local0)`. When the caller later executes its own `Exit`, `RSP` is reset to the saved BP, reclaiming the capsule with the rest of the frame.
+No locals move; the capsule simply extends the caller's frame. When `dispatch` runs, `BP` is temporarily rebound to `cellIndexOf(local0)`. When the caller later executes its own `Exit`, `RSP` is reset to the saved BP, reclaiming the capsule with the rest of the frame.
 
 ---
 
@@ -302,6 +302,7 @@ No locals move; the capsule simply extends the caller’s frame. When `dispatch`
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
 - **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
 - **metaprogramming.md**: `methods`, `dispatch`, `Op.FreezeCapsule`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **vm-architecture.md**: Frame layout (BP-1 = saved BP, BP-2 = return address) matches `Op.ExitConstructor` assumptions.
 
 ---
 
@@ -315,16 +316,17 @@ No locals move; the capsule simply extends the caller’s frame. When `dispatch`
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |
 | Alias usage                | Receivers should typically be accessed via `&name` aliases (`RSTACK_REF`) |
+| Handle validity            | RSTACK_REF handles are valid only within the lifetime of the frame that created them |
 
 ---
 
 ## 9. Commentary
 
-- Capsules reconcile Tacit’s macro-style metaprogramming with a structured object model. Immediate commands manipulate the compilation stream directly, inserting the exact opcode sequence needed for environment capture and re-entry.
+- Capsules reconcile Tacit's macro-style metaprogramming with a structured object model. Immediate commands manipulate the compilation stream directly, inserting the exact opcode sequence needed for environment capture and re-entry.
 - Leaving the capsule environment in place on the return stack avoids alloc/free churn and still gives callers a first-class reference they can store like any other `RSTACK_REF`.
 - By enforcing a fixed dispatch signature (`args... method receiver dispatch`), the system cleanly separates concerns:
   - `dispatch` only needs the receiver and method symbol.
   - `case` (or other dispatch bodies) only inspect the discriminant.
   - Arguments remain untouched until the clause consumes them.
 
-Capsules therefore deliver resumable, stateful behaviour within Tacit’s pure stack discipline, aligning well with Forth-like ergonomics while offering object-like expressiveness.
+Capsules therefore deliver resumable, stateful behaviour within Tacit's pure stack discipline, aligning well with Forth-like ergonomics while offering object-like expressiveness.
