@@ -78,6 +78,15 @@ describe('Core Operations Branch Coverage', () => {
       const result = vm.pop();
       expect(result).toBe(toTaggedValue(4, Tag.LIST));
     });
+
+    test('should execute CODE with meta=1 (block) path', () => {
+      // meta=1 branch in evalOp should rpush return address and jump to addr
+      const addr = 12345;
+      vm.IP = 77;
+      vm.push(toTaggedValue(addr, Tag.CODE, 1));
+      evalOp(vm);
+      expect(vm.IP).toBe(addr);
+    });
   });
 
   describe('Error handling branches', () => {
