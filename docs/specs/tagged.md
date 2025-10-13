@@ -49,7 +49,7 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 | NUMBER     | Raw IEEE‑754 float32 (non‑NaN)             | n/a (value itself)                         | numeric literal                | Not NaN‑box encoded                                    |
 | SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)    | Yes (slot overwrite where used as NIL)     | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved        |
 | CODE       | Bytecode address (0..8191 current)         | No (structural)                            | `@name` or bytecode addr       | Executed via `eval`                                    |
-| STRING     | String segment offset                      | No                                         | string literal                 | Immutable contents                                     |
+| STRING     | String segment offset                      | No                                         | string literal ('key or "key") | Immutable contents                                     |
 | LOCAL      | Local slot number (compile‑time only)      | n/a                                        | —                              | Parser/symbol table only; never a runtime ref          |
 | BUILTIN    | Opcode (0..127)                            | No                                         | builtin name                   | Dispatch via builtin table                             |
 | LIST       | Payload slot count (0..65535)              | Header no; simple payload slots yes        | `( … )`                        | Reverse layout; payload beneath header                 |
@@ -84,6 +84,13 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 - **Addresses**: Tag.CODE + 16-bit bytecode address
 - **Built-ins**: Tag.BUILTIN + opcode (0-127)
 - **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
+
+### String Shorthand
+
+Tacit supports a shorthand for simple string keys without spaces or grouping characters:
+
+- `'key` is equivalent to `"key"` and compiles to `Tag.STRING` with the same contents.
+- Use the shorthand for maplist keys and symbolic selectors; continue using double quotes for general strings (spaces, escapes, punctuation requiring grouping).
 
 ### Dispatch Semantics
 

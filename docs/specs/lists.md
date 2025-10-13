@@ -180,8 +180,8 @@ Final stack (deep → TOS):
 Introduce path brackets early; they are the ergonomic way to read and write inside compounds (lists and, soon, maplists).
 
 Syntax
-- Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` (maplist string keys)
-- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` (destination must be an address: local `&x` or global `&name`)
+- Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` / `expr[ 'key … ]` (maplist string keys)
+- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` / `value -> x[ 'key … ]` (destination must be an address: local `&x` or global `&name`)
 
 Lowering (normative)
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
@@ -201,9 +201,9 @@ Examples
 - Lists write (global): `5 -> xs[0]` updates the first element of global `xs` when that element is simple.
 - Lists compound write: `(1 2 3) -> x[0 0]` replaces a nested list in-place when compatible (3 payload slots).
 - Maplists (string keys):
-  - Read: `obj[ "stats" "count" ]  ⇒ 2`
+  - Read: `obj[ "stats" "count" ]  ⇒ 2` (also `obj[ 'stats 'count ]`)
   - Mixed: `obj[ "users" 0 "email" ]  ⇒ "alice@example.com"`
-  - Write: `"Charlie" -> obj[ "users" 0 "name" ]`
+  - Write: `"Charlie" -> obj[ "users" 0 "name" ]` (also `"Charlie" -> obj[ 'users 0 'name ]`)
 
 Notes
 - Postfix brackets are allowed on any expression for reads. For writes, destinations are restricted to locals (ensures write‑through via `&x`).

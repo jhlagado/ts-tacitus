@@ -167,8 +167,8 @@ For globals, use explicit RMW: `value name add -> name` or `value name[ … ] ad
 Bracket paths are the primary ergonomic way to read/write inside compounds.
 
 Syntax
-- Read: `expr[ i j … ]`, `expr[ "key" … ]`
-- Write: `value -> x[ … ]`, `value -> name[ … ]` (destinations must be addresses)
+- Read: `expr[ i j … ]`, `expr[ "key" … ]` or `expr[ 'key … ]`
+- Write: `value -> x[ … ]`, `value -> name[ … ]` (destinations must be addresses). For string keys, both `"key"` and `'key` are accepted when the key has no spaces.
 
 Lowering (normative)
 - Read (liberal): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the source expression.

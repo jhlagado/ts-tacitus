@@ -179,8 +179,8 @@ Final stack (deep → TOS):
 Introduce path brackets early; they are the ergonomic way to read and write inside compounds (lists and, soon, maplists).
 
 Syntax
-- Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` (maplist string keys)
-- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` (destination restricted to locals)
+- Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` / `expr[ 'key … ]` (maplist string keys)
+- Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` / `value -> x[ 'key … ]` (destination restricted to locals)
 
 Lowering (normative)
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
@@ -189,7 +189,7 @@ Lowering (normative)
 Semantics
 - Path items:
   - Numbers: list indices (0-based)
-  - Strings: maplist keys (e.g., "users")
+  - Strings: maplist keys (e.g., "users"). For bare keys without spaces, `'users` is equivalent to `"users"`.
   - Mixed paths traverse accordingly: numbers step through list elements; strings look up maplist values.
 - Reads are value-by-default: refs are dereferenced; list headers/materialized compounds are returned.
 - Writes mutate in place: simple→simple overwrite; compound→compound only if compatible (type + slot count), otherwise error.

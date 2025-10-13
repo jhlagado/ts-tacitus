@@ -32,6 +32,7 @@ value +> x[ … ] → VarRef(slot) · Fetch · [path] · Select · Nip · Swap �
 Bracket Paths
 - Read: numbers index list elements; strings index maplist keys.
 - Reads are liberal; writes require an address destination.
+ - Shorthand: `'key` is equivalent to `"key"` for bare keys (no spaces/grouping).
 
 Invariants (essentials)
 - Value-by-default: `load` materializes refs; `fetch` strictly reads addresses.
