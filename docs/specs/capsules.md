@@ -30,10 +30,10 @@ They behave much like delimited continuations or reified closures but remain ful
 
 | Property       | Meaning                                                               |
 | -------------- | --------------------------------------------------------------------- |
-| Value-first    | A capsule is just another list value on the data stack                |
-| Environment    | Contains all locals between `BP` and `RSP`                            |
+| Value-first    | A capsule is a list that lives on the return stack; callers receive an `RSTACK_REF` handle |
+| Environment    | Contains all locals between `BP` and `RSP` captured in place          |
 | Continuation   | Slot 0 of the list is the CODE reference used to resume execution     |
-| Stack-resident | No heap allocation; payload lives in the data segment                 |
+| Stack-resident | No heap allocation; payload remains in the existing frame             |
 | Symbolic       | Dispatch uses message symbols to select behaviour                     |
 | Deterministic  | Explicit push/pop discipline; no hidden garbage collection            |
 
@@ -60,30 +60,27 @@ A capsule is produced inside a colon definition by executing `methods`. The sour
 
 ### 2.2 Constructor Semantics (`methods` Command)
 
-When `methods` executes during compilation, it emits a small runtime prologue to build the capsule, then closes the constructor, and immediately continues compiling the dispatch body:
+`methods` lowers to a dedicated freeze + constructor exit sequence:
 
 1. **Validate and swap closer (compile-time)**
-   - Validate TOS has `Op.EndDef` closer (inside colon definition).
-   - Swap closer: pop `Op.EndDef` and push `createBuiltinRef(Op.EndCapsule)` (the next `;` will close the dispatch body).
+   - Ensure a colon definition is open: the data stack must contain `Op.EndDef`.
+   - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
-2. **Emit `Op.FreezeCapsule 0` (runtime freeze with 2‑byte placeholder operand)**
-   - The `methods` immediate emits `Op.FreezeCapsule 0` with a 2‑byte placeholder operand.
-   - At runtime, `Op.FreezeCapsule`:
-     - Pushes each local `1 … N` (oldest → newest) from the current frame onto the data stack.
-     - Pushes `CODE_REF(entryAddr)` supplied by the patched operand.
-     - Pushes the list header `LIST:(N+1)` so TOS is the header.
-   The resulting layout is:
-   ```
-   [ local0 … localN, CODE_REF(entryAddr), LIST:(N+1) ]
-   ```
+2. **Emit `Op.FreezeCapsule <entry>`**
+   - `methods` emits `Op.FreezeCapsule` with a 16-bit placeholder operand.
+   - At runtime the opcode:
+     - Leaves the callee’s locals where they already live (`[BP … RSP)`).
+     - `rpush`es `CODE_REF(entryAddr)` (patched operand) directly above the locals.
+     - `rpush`es the list header `LIST:(locals+1)`; `RSP` now points at the capsule header.
+     - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
 
-3. **Emit `Op.Exit` (constructor terminator)**
-   The constructor returns immediately, leaving the capsule list on the data stack.
+3. **Emit `Op.ExitConstructor`**
+   - Instead of the normal `Exit`, the constructor ends with `Op.ExitConstructor`, which restores the caller’s saved BP/IP but intentionally leaves `RSP` unchanged.
 
 4. **Patch operand (compile-time)**
-   - Patch the 2‑byte operand of the just‑emitted `Op.FreezeCapsule` to the current `CP` (this is the dispatch entry address after `Exit`).
+   - After the dispatch body is compiled, the placeholder operand of `Op.FreezeCapsule` is patched to its entry point.
 
-Everything that appears in source **after** `methods` forms the dispatch routine. It will be executed only when the capsule is re-entered via `dispatch`.
+Everything compiled after `methods` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
 
 ### 2.3 Example: Counter Capsule
 
@@ -120,8 +117,7 @@ Stack at return from constructor:
 
 - `count` is oldest local (lowest address)
 - `step` is next
-- `CODE_REF` is the re-entry pointer
-- `LIST:3` header indicates 3 payload cells
+The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Callers may stash the handle in a local (`var point`). If it needs to escape the caller’s frame (e.g., assigned to a global or returned) the capsule must be copied because the underlying storage is reclaimed when the caller returns.
 
 ---
 
@@ -129,32 +125,30 @@ Stack at return from constructor:
 
 ### 3.1 Calling Convention
 
-Dispatch uses a **shallow frame** distinct from normal function calls:
+Dispatch uses the same call scaffolding but rebinds BP to the capsule payload instead of allocating a fresh frame:
 
-| Feature             | Normal Function Call     | Capsule Dispatch                    |
-| ------------------- | ------------------------ | ----------------------------------- |
-| Return address      | Push to RSTACK           | Push to RSTACK                      |
-| Save caller `BP`    | Push to RSTACK           | Push to RSTACK                      |
-| Set new `BP`        | `BP = RSP`               | `BP = start of capsule payload`     |
-| Payload storage     | New frame on RSTACK      | Capsule payload stays on data stack |
-| Exit opcode         | `Op.Exit`                | `Op.ExitDispatch`                   |
+| Feature             | Normal Function Call     | Capsule Dispatch                               |
+| ------------------- | ------------------------ | ---------------------------------------------- |
+| Return address      | `rpush`                  | `rpush`                                         |
+| Save caller `BP`    | `rpush`                  | `rpush`                                         |
+| Set new `BP`        | `BP = RSP`               | `BP = capsule payload base`                    |
+| Payload storage     | Caller frame only        | Capsule locals remain in caller’s frame segment |
+| Exit opcode         | `Op.Exit`                | `Op.ExitDispatch`                              |
 
-**Dispatch prologue** (emitted by the `dispatch` op):
+**Dispatch prologue** (`dispatch` opcode):
 
-1. Pop the receiver capsule reference from the stack (typically supplied via alias).
-2. Read slot 0 to obtain the CODE reference and compute the address of the first payload cell; leave the payload cells exactly where they already live.
-3. Push return IP and caller BP onto RSTACK.
-4. Set `BP` to the payload base address (no data is moved or copied).
-5. Jump to the CODE reference.
+1. Pop the capsule handle (`RSTACK_REF`) and method symbol; leave arguments in place.
+2. Save caller return address and BP on RSTACK.
+3. Read the capsule header via the handle, resolve slot 0 to the `CODE_REF`, and set `BP` to the first payload cell.
+4. Jump to the dispatch entry address.
 
 **Dispatch epilogue** (`Op.EndCapsule` emits `Op.ExitDispatch`):
 
 Op.ExitDispatch is the dispatch epilogue. It restores caller BP/IP and returns; it does not touch the capsule payload or perform arbitrary stack cleanup. The called function (dispatch body) is responsible for cleaning up any state it created.
 
-1. Assume `RSP` points to the saved BP (no local cleanup).
-2. Pop and restore BP.
-3. Pop return address and jump.
-4. Leave the capsule payload untouched in place (memory location unchanged).
+1. Pop and restore BP.
+2. Pop return address and jump.
+3. Leave the capsule payload untouched; it remains part of the caller’s frame until the caller returns.
 
 ### 3.2 Invocation Order
 
@@ -281,25 +275,23 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
 
 ## 6. Data Layout Recap
 
-Data stack after `methods`:
+Immediately after `Op.FreezeCapsule`:
 
 ```
-payload[0]  = local0        (BP points here conceptually)
-payload[1]  = local1
-...
-payload[N]  = localN
-payload[N+1]= CODE_REF
-header      = LIST:(N+1)
+Return stack (top → bottom)
+  LIST:(locals+1)   ← RSP
+  CODE_REF(entry)
+  localN-1
+  …
+  local0            ← BP during dispatch
+  … caller locals …
+
+Data stack (top → bottom)
+  toTaggedValue(cellIndexOf(LIST header), Tag.RSTACK_REF)
+  … caller operands …
 ```
 
-- `N+1` payload cells: all locals plus the CODE reference.
-- Capsule list is first-class; it can be stored, passed, or serialized like any list.
-
-During dispatch:
-
-- The payload remains on the data stack in the same order.
-- BP is set to the start of this payload to satisfy code that expects locals at `BP`.
-- No locals are popped at epilogue.
+No locals move; the capsule simply extends the caller’s frame. When `dispatch` runs, `BP` is temporarily rebound to `cellIndexOf(local0)`. When the caller later executes its own `Exit`, `RSP` is reset to the saved BP, reclaiming the capsule with the rest of the frame.
 
 ---
 
@@ -308,7 +300,7 @@ During dispatch:
 - **lists.md**: Capsule payload obeys normal list semantics (header + payload cells).
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
 - **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
-- **metaprogramming.md**: `methods`, `dispatch`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **metaprogramming.md**: `methods`, `dispatch`, `Op.FreezeCapsule`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
 
 ---
 
@@ -316,8 +308,8 @@ During dispatch:
 
 | Invariant                  | Description                                                  |
 | -------------------------- | ------------------------------------------------------------ |
-| Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` remains intact      |
-| Constructor exit           | `methods` always emits `Op.Exit` immediately                 |
+| Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame |
+| Constructor exit           | `methods` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
 | Dispatch prologue          | Consumes receiver only; leaves message/args intact           |
 | Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
 | BP semantics               | During dispatch BP references the capsule payload in place   |
@@ -328,7 +320,7 @@ During dispatch:
 ## 9. Commentary
 
 - Capsules reconcile Tacit’s macro-style metaprogramming with a structured object model. Immediate commands manipulate the compilation stream directly, inserting the exact opcode sequence needed for environment capture and re-entry.
-- Keeping the capsule environment on the data stack avoids alloc/free churn and allows straightforward persistence (capsules can be serialized as lists).
+- Leaving the capsule environment in place on the return stack avoids alloc/free churn and still gives callers a first-class reference they can store like any other `RSTACK_REF`.
 - By enforcing a fixed dispatch signature (`args... method receiver dispatch`), the system cleanly separates concerns:
   - `dispatch` only needs the receiver and method symbol.
   - `case` (or other dispatch bodies) only inspect the discriminant.
