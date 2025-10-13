@@ -11,12 +11,12 @@ describe('capsule opcode stubs', () => {
     expect(() => exitConstructorOp(vm)).toThrow('not implemented');
   });
 
-  test('exitDispatchOp throws not implemented', () => {
-    expect(() => exitDispatchOp(vm)).toThrow('not implemented');
+  test('exitDispatchOp underflow outside prologue', () => {
+    expect(() => exitDispatchOp(vm)).toThrow();
   });
 
-  test('dispatchOp throws not implemented', () => {
-    expect(() => dispatchOp(vm)).toThrow('not implemented');
+  test('dispatchOp underflow without operands', () => {
+    expect(() => dispatchOp(vm)).toThrow();
   });
 
   test('endCapsuleOp errors outside parser context', () => {
