@@ -12,7 +12,7 @@ describe('Capsule dispatch (degenerate body)', () => {
       mk
       ` +
       // args… method receiver dispatch ; no args, swap to put receiver last
-      ' "any" swap dispatch ';
+      " 'any swap dispatch ";
 
     const stack = executeTacitCode(code);
     // Expect the constant on stack

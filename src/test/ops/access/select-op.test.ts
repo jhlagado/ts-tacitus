@@ -148,7 +148,7 @@ describe('selectOp - Path-based address access', () => {
   // Integration tests - skipped for now
   test('should handle simple numeric path (list path)', () => {
     expect(() => {
-      executeTacitCode('( "a" 10 "b" 20 "c" 30 ) "a" select drop drop');
+      executeTacitCode("( 'a 10 'b 20 'c 30 ) 'a select drop drop");
     }).not.toThrow();
   });
 
@@ -181,7 +181,8 @@ describe('selectOp - Path-based address access', () => {
 
   test('should handle mixed path with number then string', () => {
     const result = executeTacitCode(
-      '( ( "name" "John" "age" 25 ) ( "name" "Jane" "age" 30 ) ) ( 0 "name" ) select fetch',
+      '( ( ' +
+        "'name \"John\" 'age 25 ) ( 'name \"Jane\" 'age 30 ) ) ( 0 'name ) select fetch",
     );
     // Fetch returns a STRING tagged value; verify tag (content check via digest is outside this test)
     const last = result[result.length - 1];
@@ -201,13 +202,13 @@ describe('selectOp - Path-based address access', () => {
   });
 
   test('should return default value for missing key when default present', () => {
-    const result = executeTacitCode('( "a" 1 "default" 42 ) ( "b" ) select fetch');
+    const result = executeTacitCode("( 'a 1 'default 42 ) ( 'b ) select fetch");
     expect(result[result.length - 1]).toBe(42);
   });
 
   test('should traverse mixed numeric/string path to nested field', () => {
     const code =
-      '( ( "user" ( "name" "Ada" "age" 37 ) ) ( "user" ( "name" "Bob" "age" 44 ) ) ) ( 1 "user" "age" ) select fetch';
+      "( ( 'user ( 'name \"Ada\" 'age 37 ) ) ( 'user ( 'name \"Bob\" 'age 44 ) ) ) ( 1 'user 'age ) select fetch";
     const result = executeTacitCode(code);
     expect(result[result.length - 1]).toBe(44);
   });

@@ -32,12 +32,12 @@ describe('Basic Maplist Tests', () => {
 
   test('find operation with string keys', () => {
     // Test that find + fetch works correctly
-    const result = executeTacitCode('( "key" 42 ) "key" find fetch');
+    const result = executeTacitCode("( 'key 42 ) 'key find fetch");
     expect(result[result.length - 1]).toBe(42);
   });
 
   test('find operation with reference targets', () => {
-    const result = executeTacitCode('( "key" 42 ) ref "key" find fetch');
+    const result = executeTacitCode("( 'key 42 ) ref 'key find fetch");
     expect(result[result.length - 1]).toBe(42);
   });
 

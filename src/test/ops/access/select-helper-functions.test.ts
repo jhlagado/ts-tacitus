@@ -25,7 +25,7 @@ describe('selectOp Helper Functions', () => {
 
     test('should return NIL for simple value target', () => {
       // Simple targets can't be traversed
-      const result = executeTacitCode('42 "key" select');
+      const result = executeTacitCode("42 'key select");
       expect(result[result.length - 1]).toBe(NIL);
     });
   });
@@ -37,7 +37,7 @@ describe('selectOp Helper Functions', () => {
     });
 
     test('should handle string path element', () => {
-      const result = executeTacitCode('( "key" 42 ) "key" select fetch');
+      const result = executeTacitCode("( 'key 42 ) 'key select fetch");
       expect(result[result.length - 1]).toBe(42);
     });
   });
