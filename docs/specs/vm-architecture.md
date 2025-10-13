@@ -93,10 +93,10 @@ Opcode encoding & dispatch:
 Frame Layout on RSTACK (top → bottom after prologue):
 
 ```
-┌───────────────┐  RSP-1 : Return Address (CODE tagged value / address sentinel)
-│ Return Address│
-├───────────────┤  RSP-2 : Saved Caller BP (cell index)
+┌───────────────┐  RSP-1 (BP-1): Saved Caller BP (cell index)
 │ Saved BP      │
+├───────────────┤  RSP-2 (BP-2): Return Address (CODE tagged value / address sentinel)
+│ Return Address│
 ├───────────────┤  (grows downward as locals reserved by Reserve)
 │ Local Slot 0  │  (absolute cell index = BP + 0)
 │ Local Slot 1  │  (absolute cell index = BP + 1)

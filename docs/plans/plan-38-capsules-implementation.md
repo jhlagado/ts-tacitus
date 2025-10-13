@@ -14,7 +14,7 @@
 
 ## Goals
 
-1. Implement the `methods` command exactly as specified: constructor terminates immediately, capsule list frozen to the data stack (or wherever locals reside), slot 0 holds re-entry CODE reference.
+1. Implement the `methods` command exactly as specified: constructor extends caller's RSTACK frame with capsule list, returns RSTACK_REF handle to data stack, slot 0 holds re-entry CODE reference.
 2. Provide a robust `dispatch` operation with a custom epilogue (`Op.ExitDispatch`) that restores the caller without touching capsule payload cells.
 3. Build a thin capsule runtime layer (helper utilities, assertions) with exhaustive unit/integration tests.
 4. Update docs/tests/tooling so capsules are safe to use by Tacit programs.
@@ -32,11 +32,11 @@
 
 **Objective:** Freeze assumptions and add safety rails before coding.
 
-| Item | Description                                                                                                  | Owner      | Tests                                                    | Status      |
-| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------- | ------------ |
-| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                                        | ✅ Complete |
-| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                          | ✅ Complete |
-| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                        | ✅ Complete |
+| Item | Description                                                                                                  | Owner      | Tests                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------- |
+| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                                        |
+| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                          |
+| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                        |
 
 _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted stack inspections.
 
@@ -46,10 +46,10 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 **Objective:** Introduce opcodes and parser hooks without feature logic.
 
-| Step | Description                                                                                          | Tests                                                             | Status      |
-| ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------ |
-| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing “Not implemented”).         | Capsule opcode stub tests                                        | ✅ Complete |
-| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   | ✅ Complete |
+| Step | Description                                                                                          | Tests                                                             |
+| ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing "Not implemented").         | Capsule opcode stub tests                                        |
+| 1.2  | Register the builtin word `methods` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   |
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
@@ -61,17 +61,17 @@ _Exit criteria:_ Build succeeds; any use of the commands throws “Not implement
 
 ### Implementation
 
-| Step | Description                                                                                                            | Tests                                         | Status      |
-| ---- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------ |
-| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting `freezeCapsule(vm, entryAddr)` (read-only capture) and `readCapsuleLayout`. | `capsule frame utilities` unit suite          | ✅ Complete |
+| Step | Description                                                                                                            | Tests                                         |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 2.1  | Add `src/ops/capsules/frame-utils.ts` exporting `freezeCapsule(vm, entryAddr)` (read-only capture) and `readCapsuleLayout`. | `capsule frame utilities` unit suite          |
 
 ### Tests
 
-| Case            | Coverage                                                           | Status      |
-| --------------- | ------------------------------------------------------------------ | ------------ |
-| Simple frame    | `[count, step, CODE, LIST:3]` captured in stack order              | ✅ Complete |
-| Zero locals     | Capsule reduces to `[CODE, LIST:1]`                                | ✅ Complete |
-| Validation errs | Non-code slot0 and non-list inputs raise descriptive exceptions    | ✅ Complete |
+| Case            | Coverage                                                           |
+| --------------- | ------------------------------------------------------------------ |
+| Simple frame    | `[count, step, CODE, LIST:3]` captured in stack order              |
+| Zero locals     | Capsule reduces to `[CODE, LIST:1]`                                |
+| Validation errs | Non-code slot0 and non-list inputs raise descriptive exceptions    |
 
 _Exit criteria:_ Utilities thoroughly tested; no integration yet.
 
@@ -181,5 +181,5 @@ _Exit criteria:_ All phases merged, `yarn test` & `yarn lint` pass, docs complet
 
 ## Summary
 
-- Constructors: run normal colon prologue, push locals, execute `methods`, which emits `Op.FreezeCapsule entryAddr` and `Op.Exit`, leaving `[locals…, CODE_REF(entryAddr), LIST:(N+1)]` on the stack.
-- Dispatch: call pattern `args … method receiver dispatch`; runtime sets `BP` to the capsule payload, jumps to CODE ref, and `Op.ExitDispatch` restores BP/IP without modifying the payload.
+- Constructors: run normal colon prologue, push locals, execute `methods`, which emits `Op.FreezeCapsule entryAddr` and `Op.ExitConstructor`. FreezeCapsule rpushes `[CODE_REF(entryAddr), LIST:(N+1)]` onto the RSTACK, extending the caller's frame. ExitConstructor restores caller BP (from BP-1) and return address (from BP-2) while leaving RSP untouched. The caller receives an RSTACK_REF handle pointing to the capsule list header.
+- Dispatch: call pattern `args … method receiver dispatch`; runtime resolves the RSTACK_REF handle, sets `BP` to the capsule payload base (in the caller's frame), jumps to CODE ref, and `Op.ExitDispatch` restores BP/IP without modifying the payload.
