@@ -53,7 +53,7 @@ _Exit criteria:_ Memory operations accept absolute cell indices and validate aga
 | ---- | ----------- | ------ |
 | 2.1  | Update `resolveReference` to translate tag payloads into absolute byte offsets via new bases. | ✅ |
 | 2.2  | Adjust `createStackRef` / `createSegmentRef` / `getVarRef` to encode payloads relative to unified ranges. | ✅ |
-| 2.3  | Audit list helpers (`getListBounds`, etc.) to ensure boundary-aware resolution. | ☐ |
+| 2.3  | Audit list helpers (`getListBounds`, etc.) to ensure boundary-aware resolution. | ✅ |
 
 _Exit criteria:_ All reference helpers return correct addresses regardless of region.
 
