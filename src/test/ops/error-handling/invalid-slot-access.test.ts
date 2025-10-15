@@ -23,7 +23,7 @@ describe('Invalid Slot Access Error Handling', () => {
     const extremelyLargeSlot = MEMORY_SIZE / CELL_SIZE + 1000;
     vm.push(getVarRef(vm, extremelyLargeSlot));
 
-    expect(() => fetchOp(vm)).toThrow(/Address .* is outside memory bounds/);
+    expect(() => fetchOp(vm)).toThrow(/Offset .* outside segment/);
   });
 
   test('should throw ReturnStackUnderflowError if BP is corrupted and points to invalid location', () => {

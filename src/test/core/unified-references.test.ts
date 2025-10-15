@@ -126,10 +126,10 @@ describe('Unified Reference System', () => {
   describe('fetchOp polymorphism', () => {
     test('should handle RSTACK_REF correctly', () => {
       // Store value directly at absolute address 1008 on return stack
-      vm.memory.writeFloat32(SEG_RSTACK, 1008, 99);
+      vm.memory.writeFloat32(SEG_RSTACK, 80, 99);
 
-      // Create local reference pointing to absolute cell index 252 (1008/4)
-      const localRef = createLocalRef(252);
+      // Create local reference pointing to absolute cell index 20 (80/4)
+      const localRef = createLocalRef(20);
       vm.push(localRef);
 
       // Fetch via reference
@@ -157,37 +157,37 @@ describe('Unified Reference System', () => {
 
     test('should work with multiple RSTACK_REF in same function', () => {
       // Store values directly at different absolute addresses on return stack
-      vm.memory.writeFloat32(SEG_RSTACK, 100, 10); // cell index 25
-      vm.memory.writeFloat32(SEG_RSTACK, 200, 20); // cell index 50
-      vm.memory.writeFloat32(SEG_RSTACK, 500, 30); // cell index 125
+      vm.memory.writeFloat32(SEG_RSTACK, 40, 10); // cell index 10
+      vm.memory.writeFloat32(SEG_RSTACK, 80, 20); // cell index 20
+      vm.memory.writeFloat32(SEG_RSTACK, 120, 30); // cell index 30
 
       // Fetch from cell index 50
-      vm.push(createLocalRef(50));
+      vm.push(createLocalRef(20));
       fetchOp(vm);
       expect(vm.pop()).toBe(20);
 
       // Fetch from cell index 125
-      vm.push(createLocalRef(125));
+      vm.push(createLocalRef(30));
       fetchOp(vm);
       expect(vm.pop()).toBe(30);
 
       // Fetch from cell index 25
-      vm.push(createLocalRef(25));
+      vm.push(createLocalRef(10));
       fetchOp(vm);
       expect(vm.pop()).toBe(10);
     });
 
     test('should handle different function frames correctly', () => {
       // Store values at different absolute addresses on return stack
-      vm.memory.writeFloat32(SEG_RSTACK, 800, 100); // cell index 200
-      vm.memory.writeFloat32(SEG_RSTACK, 1200, 200); // cell index 300
+      vm.memory.writeFloat32(SEG_RSTACK, 160, 100); // cell index 40
+      vm.memory.writeFloat32(SEG_RSTACK, 200, 200); // cell index 50
 
-      const ref1 = createLocalRef(200);
+      const ref1 = createLocalRef(40);
       vm.push(ref1);
       fetchOp(vm);
       expect(vm.pop()).toBe(100);
 
-      const ref2 = createLocalRef(300);
+      const ref2 = createLocalRef(50);
       vm.push(ref2);
       fetchOp(vm);
       expect(vm.pop()).toBe(200);
@@ -200,10 +200,10 @@ describe('Unified Reference System', () => {
       // works polymorphically with different reference types
 
       // Store value directly at absolute address on return stack
-      vm.memory.writeFloat32(SEG_RSTACK, 1600, 42); // cell index 400
+      vm.memory.writeFloat32(SEG_RSTACK, 200, 42); // cell index 50
 
       // Create different reference types pointing to different storage
-      const localRef = createLocalRef(400);
+      const localRef = createLocalRef(50);
       // Note: STACK_REF would point to stack storage (tested elsewhere)
       // Note: GLOBAL_REF not yet implemented
 

@@ -178,7 +178,7 @@ describe('In-Place Compound Mutation', () => {
       executeTacitCode('(1 (2) 3)'); // LIST:4 total
 
       // Setup existing flat list with same slot count
-      const targetAddr = 150;
+      const targetAddr = 120;
       const existingFlatHeader = toTaggedValue(4, Tag.LIST); // Same slot count
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingFlatHeader);
 
@@ -195,7 +195,7 @@ describe('In-Place Compound Mutation', () => {
       resetVM();
       executeTacitCode('(100 200 300)');
 
-      const targetAddr = 300;
+      const targetAddr = 200;
       const existingHeader = toTaggedValue(3, Tag.LIST);
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
 
