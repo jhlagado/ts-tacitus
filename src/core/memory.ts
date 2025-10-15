@@ -18,7 +18,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE,
   STRING_SIZE,
- CODE_SIZE,
+  CODE_SIZE,
 } from './constants';
 
 /**
