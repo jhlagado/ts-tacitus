@@ -14,11 +14,11 @@ import {
   STACK_SIZE,
   RSTACK_BASE,
   RSTACK_SIZE,
+  RSTACK_TOP,
   GLOBAL_BASE,
   GLOBAL_SIZE,
-  RSTACK_TOP,
   STRING_SIZE,
-  CODE_SIZE,
+ CODE_SIZE,
 } from './constants';
 
 /**
@@ -39,8 +39,6 @@ export class Memory {
   /** Alias for DataView when used along with dual views. */
   view: DataView;
 
-  private SEGMENT_TABLE: number[] = new Array(8).fill(0);
-
   /**
    * Creates a new Memory instance with initialized segments.
    */
@@ -51,21 +49,9 @@ export class Memory {
     this.u32 = new Uint32Array(this.buffer.buffer, 0, Math.floor(MEMORY_SIZE / 4));
     this.dataView = new DataView(this.buffer.buffer);
     this.view = this.dataView;
-    this.initializeSegments();
   }
 
-  /**
-   * Initializes segment table with base addresses.
-   */
-  private initializeSegments() {
-    this.SEGMENT_TABLE[SEG_GLOBAL] = GLOBAL_BASE;
-    this.SEGMENT_TABLE[SEG_STACK] = STACK_BASE;
-    this.SEGMENT_TABLE[SEG_RSTACK] = RSTACK_BASE;
-    this.SEGMENT_TABLE[SEG_STRING] = RSTACK_TOP;
-    this.SEGMENT_TABLE[SEG_CODE] = this.SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
-  }
-
-  private resolveDataSegment(segment: number, offset: number, width: number): number | null {
+  private resolveAddressWithWidth(segment: number, offset: number, width: number): number {
     let base = 0;
     let size = 0;
 
@@ -82,8 +68,16 @@ export class Memory {
         base = RSTACK_BASE;
         size = RSTACK_SIZE;
         break;
+      case SEG_STRING:
+        base = RSTACK_TOP;
+        size = STRING_SIZE;
+        break;
+      case SEG_CODE:
+        base = RSTACK_TOP + STRING_SIZE;
+        size = CODE_SIZE;
+        break;
       default:
-        return null;
+        throw new RangeError(`Invalid segment ID: ${segment}`);
     }
 
     if (offset < 0 || offset + width > size) {
@@ -91,38 +85,6 @@ export class Memory {
     }
 
     return base + offset;
-  }
-
-  private resolveAddressWithWidth(segment: number, offset: number, width: number): number {
-    const dataAddress = this.resolveDataSegment(segment, offset, width);
-    if (dataAddress !== null) {
-      return dataAddress;
-    }
-
-    if (segment === SEG_STRING) {
-      if (offset < 0 || offset + width > STRING_SIZE) {
-        throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
-      }
-      return this.SEGMENT_TABLE[SEG_STRING] + offset;
-    }
-
-    if (segment === SEG_CODE) {
-      if (offset < 0 || offset + width > CODE_SIZE) {
-        throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
-      }
-      return this.SEGMENT_TABLE[SEG_CODE] + offset;
-    }
-
-    if (segment < 0 || segment >= this.SEGMENT_TABLE.length) {
-      throw new RangeError(`Invalid segment ID: ${segment}`);
-    }
-
-    const baseAddress = this.SEGMENT_TABLE[segment];
-    const address = baseAddress + offset;
-    if (offset < 0 || address + width > MEMORY_SIZE) {
-      throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
-    }
-    return address;
   }
 
   /**

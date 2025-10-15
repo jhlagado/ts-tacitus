@@ -40,8 +40,8 @@ _Exit criteria:_ Complete map of affected code paths and agreed boundary definit
 | Step | Description | Status |
 | ---- | ----------- | ------ |
 | 1.1  | Introduce `GLOBAL_BASE/TOP`, `STACK_BASE/TOP`, `RSTACK_BASE/TOP`, `TOTAL_CELLS` in `src/core/constants.ts`. | ✅ |
-| 1.2  | Rewrite `Memory.resolveAddress` and read/write helpers to use unified boundaries. | ☐ |
-| 1.3  | Remove legacy `SEGMENT_TABLE`; keep enum values only as logical labels. | ☐ |
+| 1.2  | Rewrite `Memory.resolveAddress` and read/write helpers to use unified boundaries. | ✅ |
+| 1.3  | Remove legacy `SEGMENT_TABLE`; keep enum values only as logical labels. | ✅ |
 
 _Exit criteria:_ Memory operations accept absolute cell indices and validate against configurable region bounds.
 
