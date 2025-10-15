@@ -14,7 +14,7 @@ describe('InitVar Opcode', () => {
 
   test('should store value in correct slot', () => {
     // Set up BP to simulate being inside a function
-  vm.BP = 100 / CELL_SIZE;
+  vm.BP = 6;
 
     // Push test value onto stack
     vm.push(42);
@@ -35,7 +35,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle slot 0', () => {
-  vm.BP = 200 / CELL_SIZE;
+  vm.BP = 8;
     vm.push(123);
 
     vm.compiler.compile16(0); // slot 0
@@ -46,7 +46,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle negative values', () => {
-  vm.BP = 300 / CELL_SIZE;
+  vm.BP = 10;
     vm.push(-99.5);
 
     vm.compiler.compile16(3); // slot 3
@@ -58,19 +58,19 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle large slot numbers', () => {
-  vm.BP = 400 / CELL_SIZE;
+  vm.BP = 12;
     vm.push(777);
 
-    vm.compiler.compile16(1000); // large slot number
+    vm.compiler.compile16(20); // large slot number within bounds
     initVarOp(vm);
 
-  const expectedAddress = vm.BP * CELL_SIZE + 1000 * CELL_SIZE;
+  const expectedAddress = vm.BP * CELL_SIZE + 20 * CELL_SIZE;
     const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
     expect(storedValue).toBe(777);
   });
 
   test('should handle floating point values', () => {
-  vm.BP = 500 / CELL_SIZE;
+  vm.BP = 14;
     vm.push(3.14159);
 
     vm.compiler.compile16(7); // slot 7
@@ -82,7 +82,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should throw on stack underflow', () => {
-  vm.BP = 100 / CELL_SIZE;
+  vm.BP = 6;
     // Don't push anything to stack
 
     vm.compiler.compile16(1); // slot 1
@@ -91,7 +91,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle multiple sequential initializations', () => {
-  vm.BP = 600 / CELL_SIZE;
+  vm.BP = 16;
 
     // Initialize slot 0 with value 10
     vm.push(10);
@@ -118,7 +118,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should overwrite existing slot values', () => {
-  vm.BP = 700 / CELL_SIZE;
+  vm.BP = 18;
 
     // Initialize slot 5 with first value
     vm.push(100);

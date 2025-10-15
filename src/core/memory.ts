@@ -11,10 +11,14 @@ import {
   SEG_CODE,
   SEG_STRING,
   STACK_BASE,
+  STACK_SIZE,
   RSTACK_BASE,
+  RSTACK_SIZE,
   GLOBAL_BASE,
+  GLOBAL_SIZE,
   RSTACK_TOP,
   STRING_SIZE,
+  CODE_SIZE,
 } from './constants';
 
 /**
@@ -61,6 +65,66 @@ export class Memory {
     this.SEGMENT_TABLE[SEG_CODE] = this.SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
   }
 
+  private resolveDataSegment(segment: number, offset: number, width: number): number | null {
+    let base = 0;
+    let size = 0;
+
+    switch (segment) {
+      case SEG_GLOBAL:
+        base = GLOBAL_BASE;
+        size = GLOBAL_SIZE;
+        break;
+      case SEG_STACK:
+        base = STACK_BASE;
+        size = STACK_SIZE;
+        break;
+      case SEG_RSTACK:
+        base = RSTACK_BASE;
+        size = RSTACK_SIZE;
+        break;
+      default:
+        return null;
+    }
+
+    if (offset < 0 || offset + width > size) {
+      throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
+    }
+
+    return base + offset;
+  }
+
+  private resolveAddressWithWidth(segment: number, offset: number, width: number): number {
+    const dataAddress = this.resolveDataSegment(segment, offset, width);
+    if (dataAddress !== null) {
+      return dataAddress;
+    }
+
+    if (segment === SEG_STRING) {
+      if (offset < 0 || offset + width > STRING_SIZE) {
+        throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
+      }
+      return this.SEGMENT_TABLE[SEG_STRING] + offset;
+    }
+
+    if (segment === SEG_CODE) {
+      if (offset < 0 || offset + width > CODE_SIZE) {
+        throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
+      }
+      return this.SEGMENT_TABLE[SEG_CODE] + offset;
+    }
+
+    if (segment < 0 || segment >= this.SEGMENT_TABLE.length) {
+      throw new RangeError(`Invalid segment ID: ${segment}`);
+    }
+
+    const baseAddress = this.SEGMENT_TABLE[segment];
+    const address = baseAddress + offset;
+    if (offset < 0 || address + width > MEMORY_SIZE) {
+      throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
+    }
+    return address;
+  }
+
   /**
    * Resolves segmented address to linear address.
    * @param segment The segment ID
@@ -69,12 +133,7 @@ export class Memory {
    * @throws {RangeError} If segment ID is invalid
    */
   resolveAddress(segment: number, offset: number): number {
-    if (segment < 0 || segment >= this.SEGMENT_TABLE.length) {
-      throw new RangeError(`Invalid segment ID: ${segment}`);
-    }
-
-    const baseAddress = this.SEGMENT_TABLE[segment];
-    return baseAddress + offset;
+    return this.resolveAddressWithWidth(segment, offset, 1);
   }
 
   /**
@@ -85,11 +144,7 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   write8(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
+    const address = this.resolveAddressWithWidth(segment, offset, 1);
     this.buffer[address] = value & 0xff;
   }
 
@@ -101,11 +156,7 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   read8(segment: number, offset: number): number {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
+    const address = this.resolveAddressWithWidth(segment, offset, 1);
     return this.buffer[address];
   }
 
@@ -117,11 +168,7 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   write16(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 1 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
+    const address = this.resolveAddressWithWidth(segment, offset, 2);
     this.dataView.setUint16(address, value & 0xffff, true);
   }
 
@@ -133,11 +180,7 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   read16(segment: number, offset: number): number {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 1 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
+    const address = this.resolveAddressWithWidth(segment, offset, 2);
     return this.dataView.getUint16(address, true);
   }
 
@@ -149,17 +192,8 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   writeFloat32(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 3 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
-    const buffer = new ArrayBuffer(4);
-    const view = new DataView(buffer);
-    view.setFloat32(0, value, true);
-    for (let i = 0; i < 4; i++) {
-      this.write8(segment, offset + i, view.getUint8(i));
-    }
+    const address = this.resolveAddressWithWidth(segment, offset, 4);
+    this.dataView.setFloat32(address, value, true);
   }
   /**
    * Reads a 32-bit float from memory.
@@ -169,18 +203,8 @@ export class Memory {
    * @throws {RangeError} If address is out of bounds
    */
   readFloat32(segment: number, offset: number): number {
-    const address = this.resolveAddress(segment, offset);
-    if (address < 0 || address + 3 >= MEMORY_SIZE) {
-      throw new RangeError(`Address ${address} is outside memory bounds`);
-    }
-
-    const buffer = new ArrayBuffer(4);
-    const view = new DataView(buffer);
-    for (let i = 0; i < 4; i++) {
-      view.setUint8(i, this.read8(segment, offset + i));
-    }
-
-    return view.getFloat32(0, true);
+    const address = this.resolveAddressWithWidth(segment, offset, 4);
+    return this.dataView.getFloat32(address, true);
   }
 
   /**
