@@ -10,9 +10,10 @@ import {
   SEG_GLOBAL,
   SEG_CODE,
   SEG_STRING,
-  STACK_SIZE,
-  RSTACK_SIZE,
-  GLOBAL_SIZE,
+  STACK_BASE,
+  RSTACK_BASE,
+  GLOBAL_BASE,
+  RSTACK_TOP,
   STRING_SIZE,
 } from './constants';
 
@@ -53,10 +54,10 @@ export class Memory {
    * Initializes segment table with base addresses.
    */
   private initializeSegments() {
-    this.SEGMENT_TABLE[SEG_STACK] = 0x0000;
-    this.SEGMENT_TABLE[SEG_RSTACK] = this.SEGMENT_TABLE[SEG_STACK] + STACK_SIZE;
-    this.SEGMENT_TABLE[SEG_GLOBAL] = this.SEGMENT_TABLE[SEG_RSTACK] + RSTACK_SIZE;
-    this.SEGMENT_TABLE[SEG_STRING] = this.SEGMENT_TABLE[SEG_GLOBAL] + GLOBAL_SIZE;
+    this.SEGMENT_TABLE[SEG_GLOBAL] = GLOBAL_BASE;
+    this.SEGMENT_TABLE[SEG_STACK] = STACK_BASE;
+    this.SEGMENT_TABLE[SEG_RSTACK] = RSTACK_BASE;
+    this.SEGMENT_TABLE[SEG_STRING] = RSTACK_TOP;
     this.SEGMENT_TABLE[SEG_CODE] = this.SEGMENT_TABLE[SEG_STRING] + STRING_SIZE;
   }
 

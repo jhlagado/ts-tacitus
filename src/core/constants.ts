@@ -35,6 +35,18 @@ export const STRING_SIZE = 0x0800;
 
 export const CODE_SIZE = 0x2000;
 
+// Unified arena boundaries (byte offsets)
+export const GLOBAL_BASE = 0x0000;
+export const GLOBAL_TOP = GLOBAL_BASE + GLOBAL_SIZE;
+
+export const STACK_BASE = GLOBAL_TOP;
+export const STACK_TOP = STACK_BASE + STACK_SIZE;
+
+export const RSTACK_BASE = STACK_TOP;
+export const RSTACK_TOP = RSTACK_BASE + RSTACK_SIZE;
+
+export const TOTAL_DATA_BYTES = RSTACK_TOP;
+
 /** Maximum opcode value for built-in operations (0-127) */
 export const MAX_BUILTIN_OPCODE = 127;
 
