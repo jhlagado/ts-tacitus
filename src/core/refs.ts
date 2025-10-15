@@ -5,7 +5,18 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
-import { SEG_STACK, SEG_RSTACK, SEG_GLOBAL } from './constants';
+import {
+  SEG_STACK,
+  SEG_RSTACK,
+  SEG_GLOBAL,
+  STACK_BASE,
+  STACK_SIZE,
+  RSTACK_BASE,
+  RSTACK_SIZE,
+  GLOBAL_BASE,
+  GLOBAL_SIZE,
+  CELL_SIZE,
+} from './constants';
 
 /**
  * Checks if a value is a reference (STACK_REF, RSTACK_REF, or GLOBAL_REF).
@@ -55,8 +66,16 @@ export function createStackRef(cellIndex: number): number {
  * that points to the absolute address of that slot in the current stack frame.
  */
 export function getVarRef(vm: VM, slotNumber: number): number {
+  if (slotNumber < 0) {
+    throw new Error('Slot number must be non-negative');
+  }
+
   // Use BP (cells) for unit-safe math; payload expects absolute cell index
   const absoluteCellIndex = vm.BP + slotNumber;
+  const maxCells = RSTACK_SIZE / CELL_SIZE;
+  if (absoluteCellIndex < 0 || absoluteCellIndex >= maxCells) {
+    throw new RangeError('Local reference outside return stack bounds');
+  }
   return toTaggedValue(absoluteCellIndex, Tag.RSTACK_REF);
 }
 
@@ -98,15 +117,30 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
   const tag = getTag(ref);
   const { value } = fromTaggedValue(ref);
 
+  if (!Number.isInteger(value)) {
+    throw new Error('Reference payload must be an integer cell index');
+  }
+
+  const offset = value * CELL_SIZE;
+
   switch (tag) {
     case Tag.STACK_REF:
-      return { address: value * 4, segment: SEG_STACK };
+      if (offset < 0 || offset + CELL_SIZE > STACK_SIZE) {
+        throw new RangeError(`Offset ${offset} is outside segment ${SEG_STACK} bounds`);
+      }
+      return { address: offset, segment: SEG_STACK };
 
     case Tag.RSTACK_REF:
-      return { address: value * 4, segment: SEG_RSTACK };
+      if (offset < 0 || offset + CELL_SIZE > RSTACK_SIZE) {
+        throw new RangeError(`Offset ${offset} is outside segment ${SEG_RSTACK} bounds`);
+      }
+      return { address: offset, segment: SEG_RSTACK };
 
     case Tag.GLOBAL_REF:
-      return { address: value * 4, segment: SEG_GLOBAL };
+      if (offset < 0 || offset + CELL_SIZE > GLOBAL_SIZE) {
+        throw new RangeError(`Offset ${offset} is outside segment ${SEG_GLOBAL} bounds`);
+      }
+      return { address: offset, segment: SEG_GLOBAL };
 
     default:
       throw new Error(`Invalid reference type: ${tag}`);

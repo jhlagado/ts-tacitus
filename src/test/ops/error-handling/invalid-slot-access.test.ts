@@ -21,9 +21,7 @@ describe('Invalid Slot Access Error Handling', () => {
   vm.unsafeSetBPBytes(0); // Start BP at 0
     // Create a slot number so large that the calculated address exceeds total MEMORY_SIZE
     const extremelyLargeSlot = MEMORY_SIZE / CELL_SIZE + 1000;
-    vm.push(getVarRef(vm, extremelyLargeSlot));
-
-    expect(() => fetchOp(vm)).toThrow(/Offset .* outside segment/);
+    expect(() => getVarRef(vm, extremelyLargeSlot)).toThrow('Local reference outside return stack bounds');
   });
 
   test('should throw ReturnStackUnderflowError if BP is corrupted and points to invalid location', () => {
