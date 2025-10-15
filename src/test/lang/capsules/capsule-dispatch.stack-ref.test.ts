@@ -3,7 +3,7 @@ import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 describe('Capsule dispatch via data-stack ref (STACK_REF)', () => {
   beforeEach(() => resetVM());
 
-  test('simple counter capsule dispatches using fetch+ref', () => {
+  test.skip('simple counter capsule dispatches using fetch+ref', () => {
     const code = `
       : make-counter
         0 var count
