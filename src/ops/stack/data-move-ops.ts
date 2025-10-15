@@ -149,7 +149,23 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
  * Validates that the stack has at least the specified number of elements.
  */
 function validateStackDepth(vm: VM, requiredElements: number, operationName: string): void {
-  vm.ensureStackSize(requiredElements, operationName);
+  if (requiredElements <= 0) return;
+
+  if (requiredElements > 2) {
+    vm.ensureStackSize(requiredElements, operationName);
+    return;
+  }
+
+  let currentSlot = 0;
+
+  for (let i = 0; i < requiredElements; i++) {
+    if (currentSlot >= vm.SP) {
+      throw new StackUnderflowError(operationName, requiredElements, vm.getStackData());
+    }
+
+    const [nextSlot] = findElement(vm, currentSlot);
+    currentSlot = nextSlot;
+  }
 }
 
 /**

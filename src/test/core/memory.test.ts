@@ -1,10 +1,12 @@
-import { Memory, MEMORY_SIZE, SEG_STACK } from '../../core';
+import { Memory, MEMORY_SIZE, SEG_STACK, STACK_SIZE, CELL_SIZE, STACK_BASE } from '../../core';
 
 describe('Memory', () => {
   let memory: Memory;
   beforeEach(() => {
     memory = new Memory();
   });
+  const stackBaseAddr = () => memory.resolveAddress(SEG_STACK, 0);
+
   test('should write and read 8-bit values correctly', () => {
     memory.write8(SEG_STACK, 0, 255);
     expect(memory.read8(SEG_STACK, 0)).toBe(255);
@@ -26,7 +28,8 @@ describe('Memory', () => {
     memory.write8(SEG_STACK, 0, 0xaa);
     memory.write8(SEG_STACK, 1, 0xbb);
     memory.write8(SEG_STACK, 2, 0xcc);
-    const dump = memory.dump(0, 2);
+    const base = stackBaseAddr();
+    const dump = memory.dump(base, base + 2);
     expect(dump).toBe('aa bb cc');
   });
   test('should write and read 16-bit values correctly', () => {
@@ -34,13 +37,14 @@ describe('Memory', () => {
     expect(memory.read16(SEG_STACK, 0)).toBe(0x1234);
     memory.write16(SEG_STACK, 10, 0xffff);
     expect(memory.read16(SEG_STACK, 10)).toBe(0xffff);
-    const lastValidAddress = MEMORY_SIZE - 2;
-    memory.write16(SEG_STACK, lastValidAddress, 0xabcd);
-    expect(memory.read16(SEG_STACK, lastValidAddress)).toBe(0xabcd);
+    const lastValidOffset = STACK_SIZE - 2;
+    memory.write16(SEG_STACK, lastValidOffset, 0xabcd);
+    expect(memory.read16(SEG_STACK, lastValidOffset)).toBe(0xabcd);
   });
   test('should throw RangeError for 16-bit boundary violations', () => {
-    expect(() => memory.write16(SEG_STACK, MEMORY_SIZE - 1, 0x1234)).toThrow(RangeError);
-    expect(() => memory.read16(SEG_STACK, MEMORY_SIZE - 1)).toThrow(RangeError);
+    const overflowOffset = MEMORY_SIZE - STACK_BASE - 1;
+    expect(() => memory.write16(SEG_STACK, overflowOffset, 0x1234)).toThrow(RangeError);
+    expect(() => memory.read16(SEG_STACK, overflowOffset)).toThrow(RangeError);
   });
   test('should handle invalid dump ranges', () => {
     expect(() => memory.dump(10, 5)).toThrow(RangeError);
@@ -48,17 +52,19 @@ describe('Memory', () => {
     expect(() => memory.dump(0, MEMORY_SIZE)).toThrow(RangeError);
   });
   test('should handle full float boundary conditions', () => {
-    const lastFloatAddress = MEMORY_SIZE - 4;
-    memory.writeFloat32(SEG_STACK, lastFloatAddress, 1.234);
-    expect(memory.readFloat32(SEG_STACK, lastFloatAddress)).toBeCloseTo(1.234);
-    expect(() => memory.writeFloat32(SEG_STACK, MEMORY_SIZE - 3, 5.678)).toThrow(RangeError);
+    const lastFloatOffset = STACK_SIZE - CELL_SIZE;
+    memory.writeFloat32(SEG_STACK, lastFloatOffset, 1.234);
+    expect(memory.readFloat32(SEG_STACK, lastFloatOffset)).toBeCloseTo(1.234);
+    const overflowOffset = MEMORY_SIZE - STACK_BASE - (CELL_SIZE - 1);
+    expect(() => memory.writeFloat32(SEG_STACK, overflowOffset, 5.678)).toThrow(RangeError);
   });
 
   test('should handle dumping memory as characters', () => {
     memory.write8(SEG_STACK, 0, 0x41);
     memory.write8(SEG_STACK, 1, 0x42);
     memory.write8(SEG_STACK, 2, 0x43);
-    const dumpChars = memory.dumpChars(0, 2);
+    const base = stackBaseAddr();
+    const dumpChars = memory.dumpChars(base, base + 2);
     expect(dumpChars).toBe('A B C');
   });
   test('should handle invalid dumpChars ranges', () => {
