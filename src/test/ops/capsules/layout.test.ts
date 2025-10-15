@@ -48,23 +48,23 @@ describe('capsule layout (handle-based)', () => {
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('slot0 must be a CODE');
   });
 
-  test('errors on non-RSTACK_REF input', () => {
+  test('errors on non-list handle (bad reference)', () => {
     const bad = toTaggedValue(0, Tag.STACK_REF);
-    expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('RSTACK_REF');
+    expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('does not reference a LIST');
   });
 
-  test('errors when capsule list lives on STACK (wrong segment)', () => {
-    // Build a list on the data stack: ( CODE 1 ) then convert to STACK_REF handle
+  test('reads capsule layout when list lives on STACK segment', () => {
+    // Build a capsule-like list on the data stack: ( CODE 1 )
     const codeRef = toTaggedValue(99, Tag.CODE);
     vm.push(1);
     vm.push(codeRef);
     vm.push(toTaggedValue(2, Tag.LIST));
-    // Convert list to STACK_REF via ref op path: here we emulate by taking SP-1 as header index
     const headerCellIndex = vm.SP - 1; // data stack cell index
     const stackHandle = toTaggedValue(headerCellIndex, Tag.STACK_REF);
-    expect(() => readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number)).toThrow(
-      'RSTACK_REF',
-    );
+    const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
+    expect(layout.segment).toBe(0); // SEG_STACK
+    expect(layout.codeRef).toBe(codeRef);
+    expect(layout.slotCount).toBe(2);
   });
 
   test('errors when payload slot count is zero', () => {
