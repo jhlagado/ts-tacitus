@@ -2,9 +2,9 @@
 
 ## Status & Context
 
-- **Stage:** Implementation Complete (documentation pending)
+- **Stage:** Complete
 - **Priority:** High — prerequisite for segment-agnostic BP and capsule support across globals, data stack, and return stack.
-- **Completion:** Phases 0-4 complete. Tests passing (1285/1290). Documentation updates needed.
+- **Completion:** All phases complete. Tests passing (1285/1290 - 99.6%).
 - **Spec References:** `docs/specs/vm-architecture.md`, `docs/specs/capsules.md`, `docs/specs/lists.md`.
 - **Background:** Current architecture hard-partitions memory into `SEG_STACK`, `SEG_RSTACK`, and `SEG_GLOBAL`. BP is treated as a plain cell index into `SEG_RSTACK`, which prevents capsules (and other compounds) from living outside that segment without extensive rewrites.
 
@@ -155,5 +155,9 @@ All memory operations validate against configurable [BASE, TOP) ranges, enabling
 
 ## Follow-Up Work
 
-- Revisit BP handling for capsules once the unified arena is in place (expected to be a no-op aside from removing segment juggling).
-- Explore dynamic resizing APIs if future plans require runtime-controlled region growth.
+- Spec documentation updates (vm-architecture.md, capsules.md, lists.md) to describe unified arena
+- Explore dynamic resizing APIs if future plans require runtime-controlled region growth
+
+## Notes on Skipped Tests
+
+Two capsule dispatch tests remain skipped (`capsule-dispatch.global-ref.test.ts`, `capsule-dispatch.stack-ref.test.ts`). These tests attempt to store capsule RSTACK_REF handles in globals and dispatch to them after the creating frame exits. Per the capsule spec: "RSTACK_REF handles are valid only within the lifetime of the frame that created them." The tests demonstrate undefined behavior (accessing deallocated stack memory) and should remain skipped.
