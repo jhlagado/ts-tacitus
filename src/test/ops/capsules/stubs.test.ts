@@ -10,8 +10,7 @@ describe('capsule opcode stubs', () => {
 
   test('exitConstructorOp produces capsule handle and restores caller', () => {
     // Simulate frame prologue: push RA then saved BP, set BP
-    const ra = toTaggedValue(9999, Tag.CODE);
-    vm.rpush(ra);
+    vm.rpush(9999);
     vm.rpush(0); // caller BP = 0
     vm.BP = vm.RSP;
     // Push 2 locals

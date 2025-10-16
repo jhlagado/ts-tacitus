@@ -114,10 +114,9 @@ export function literalCodeOp(vm: VM): void {
 
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
-    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-    // Unified cell-only frame prologue
-  vm.rpush(vm.BP);
-  vm.BP = vm.RSP;
+    vm.rpush(vm.IP);
+    vm.rpush(vm.BP);
+    vm.BP = vm.RSP;
     vm.IP = opcode;
     return;
   }

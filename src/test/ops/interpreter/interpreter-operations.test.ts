@@ -29,9 +29,9 @@ describe('Built-in Words', () => {
       // In the migrated model BP is cell-based. Simulate a call frame by
       // pushing return address then saved BP (cells) and setting BP to current RSP.
       const originalBP = vm.BP; // capture current (cells)
-      vm.rpush(toTaggedValue(testAddress, Tag.CODE));
-      vm.rpush(originalBP); // saved BP (cells)
-      vm.BP = vm.RSP; // prologue effect (cells)
+      vm.rpush(testAddress);
+      vm.rpush(originalBP);
+      vm.BP = vm.RSP;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
       expect(vm.BP).toBe(originalBP);
@@ -47,7 +47,7 @@ describe('Built-in Words', () => {
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
-      expect(fromTaggedValue(returnAddr).value).toBe(originalIP);
+      expect(returnAddr).toBe(originalIP);
     });
     test('branchOp should jump relative', () => {
       const initialIP = vm.IP;
@@ -66,8 +66,7 @@ describe('Built-in Words', () => {
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
-      const { value } = fromTaggedValue(returnAddr);
-      expect(value).toBe(originalIP + 2);
+      expect(returnAddr).toBe(originalIP + 2);
     });
   });
   describe('evalOp with Tag.BUILTIN', () => {

@@ -51,9 +51,8 @@ describe('Core ops extra branch coverage', () => {
     expect(vm.IP).toBe(77);
   });
 
-  test('exitOp restores return address when CODE', () => {
-    const ra = (require('../../../core').toTaggedValue)(88, (require('../../../core').Tag).CODE);
-    vm.rpush(ra);
+  test('exitOp restores return address when numeric', () => {
+    vm.rpush(88);
     vm.rpush(0);
     vm.BP = 2;
     exitOp(vm);

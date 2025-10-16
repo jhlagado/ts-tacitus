@@ -64,6 +64,22 @@ export class VM {
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
+  private get stackBaseCells(): number {
+    return STACK_BASE / CELL_SIZE;
+  }
+
+  private get stackTopCells(): number {
+    return STACK_TOP / CELL_SIZE;
+  }
+
+  private get rstackBaseCells(): number {
+    return RSTACK_BASE / CELL_SIZE;
+  }
+
+  private get rstackTopCells(): number {
+    return RSTACK_TOP / CELL_SIZE;
+  }
+
 
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
@@ -72,9 +88,9 @@ export class VM {
     this.memory = new Memory();
     this.IP = 0;
     this.running = true;
-    this._spCells = 0;
-    this._rspCells = 0;
-    this._bpCells = 0;
+    this._spCells = this.stackBaseCells;
+    this._rspCells = this.rstackBaseCells;
+    this._bpCells = this.rstackBaseCells;
     this._gpCells = 0;
 
     this.digest = new Digest(this.memory);
@@ -88,23 +104,23 @@ export class VM {
   /**
    * Canonical stack pointer accessor (measured in cells).
    */
-  get SP(): number { return this._spCells; }
+  get SP(): number { return this._spCells - this.stackBaseCells; }
   set SP(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
+    if (!Number.isInteger(cells) || cells < 0 || cells > this.stackTopCells - this.stackBaseCells) {
       throw new Error(`SP set to invalid value: ${cells}`);
     }
-    this._spCells = cells;
+    this._spCells = this.stackBaseCells + cells;
   }
 
   /**
    * Return stack pointer (canonical, cells). Byte-based RP accessor removed after migration.
    */
-  get RSP(): number { return this._rspCells; }
+  get RSP(): number { return this._rspCells - this.rstackBaseCells; }
   set RSP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`RSP set to invalid value: ${cells}`);
     }
-    this._rspCells = cells;
+    this._rspCells = this.rstackBaseCells + cells;
   }
 
   /**
@@ -118,12 +134,13 @@ export class VM {
   /**
   * Base pointer accessors (cell-based canonical representation)
    */
-  get BP(): number { return this._bpCells; }
+  get BP(): number { return this._bpCells - this.rstackBaseCells; }
   set BP(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
+    const maxDepth = this.rstackTopCells - this.rstackBaseCells;
+    if (!Number.isInteger(cells) || cells < 0 || cells > maxDepth) {
       throw new Error(`BP (cells) set to invalid value: ${cells}`);
     }
-    this._bpCells = cells;
+    this._bpCells = this.rstackBaseCells + cells;
   }
 
   /** Global segment bump pointer (cells). */
@@ -147,7 +164,8 @@ export class VM {
     if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
       throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
     }
-    this._bpCells = rawBytes / CELL_SIZE_BYTES;
+    const relativeCells = rawBytes / CELL_SIZE_BYTES;
+    this._bpCells = this.rstackBaseCells + relativeCells;
     if (this.debug) this.ensureInvariants();
   }
 
@@ -164,11 +182,11 @@ export class VM {
       throw new Error('Invariant violation: non-integer stack pointer');
     }
     // Bounds vs configured sizes
-    if (this._spCells * CELL_SIZE_BYTES > STACK_SIZE) {
-      throw new Error('Invariant violation: SP beyond STACK_SIZE');
+    if (this._spCells < this.stackBaseCells || this._spCells > this.stackTopCells) {
+      throw new Error('Invariant violation: SP outside stack segment');
     }
-    if (this._rspCells * CELL_SIZE_BYTES > RSTACK_SIZE) {
-      throw new Error('Invariant violation: RSP beyond RSTACK_SIZE');
+    if (this._rspCells < this.rstackBaseCells || this._rspCells > this.rstackTopCells) {
+      throw new Error('Invariant violation: RSP outside return stack segment');
     }
     // BP within [0, RSP]
     if (this._bpCells > this._rspCells) {
@@ -182,11 +200,12 @@ export class VM {
    * @throws {StackOverflowError} If stack overflow occurs
    */
   push(value: number): void {
-    if ((this._spCells + 1) * CELL_SIZE_BYTES > STACK_SIZE) {
+    if (this._spCells >= this.stackTopCells) {
       throw new StackOverflowError('push', this.getStackData());
     }
 
-    this.memory.writeFloat32(SEG_STACK, this._spCells * CELL_SIZE_BYTES, value);
+    const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
+    this.memory.writeFloat32(SEG_STACK, offsetBytes, value);
     this._spCells += 1;
   if (this.debug) this.ensureInvariants();
   }
@@ -197,13 +216,14 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   pop(): number {
-    if (this._spCells <= 0) {
+    if (this._spCells <= this.stackBaseCells) {
       throw new StackUnderflowError('pop', 1, this.getStackData());
     }
 
     this._spCells -= 1;
+    const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
   if (this.debug) this.ensureInvariants();
-    return this.memory.readFloat32(SEG_STACK, this._spCells * CELL_SIZE_BYTES);
+    return this.memory.readFloat32(SEG_STACK, offsetBytes);
   }
 
   /**
@@ -212,11 +232,12 @@ export class VM {
    * @throws {StackUnderflowError} If stack is empty
    */
   peek(): number {
-    if (this._spCells <= 0) {
+    if (this._spCells <= this.stackBaseCells) {
       throw new StackUnderflowError('peek', 1, this.getStackData());
     }
 
-    return this.memory.readFloat32(SEG_STACK, (this._spCells - 1) * CELL_SIZE_BYTES);
+    const offsetBytes = (this._spCells - this.stackBaseCells - 1) * CELL_SIZE_BYTES;
+    return this.memory.readFloat32(SEG_STACK, offsetBytes);
   }
 
   /**
@@ -227,11 +248,12 @@ export class VM {
    */
   peekAt(slotOffset: number): number {
     const requiredCells = slotOffset + 1;
-    if (this._spCells < requiredCells) {
+    if (this.SP < requiredCells) {
       throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
     }
 
-    return this.memory.readFloat32(SEG_STACK, (this._spCells - requiredCells) * CELL_SIZE_BYTES);
+    const offsetBytes = (this._spCells - this.stackBaseCells - requiredCells) * CELL_SIZE_BYTES;
+    return this.memory.readFloat32(SEG_STACK, offsetBytes);
   }
 
   /**
@@ -241,7 +263,7 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   popArray(size: number): number[] {
-    if (this._spCells < size) {
+    if (this.SP < size) {
       throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
@@ -259,11 +281,12 @@ export class VM {
    * @throws {ReturnStackOverflowError} If return stack overflow occurs
    */
   rpush(value: number): void {
-    if ((this._rspCells + 1) * CELL_SIZE_BYTES > RSTACK_SIZE) {
+    if (this._rspCells >= this.rstackTopCells) {
       throw new ReturnStackOverflowError('rpush', this.getStackData());
     }
 
-    this.memory.writeFloat32(SEG_RSTACK, this._rspCells * CELL_SIZE_BYTES, value);
+    const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
+    this.memory.writeFloat32(SEG_RSTACK, offsetBytes, value);
     this._rspCells += 1;
   if (this.debug) this.ensureInvariants();
   }
@@ -274,13 +297,14 @@ export class VM {
    * @throws {ReturnStackUnderflowError} If return stack underflow occurs
    */
   rpop(): number {
-    if (this._rspCells <= 0) {
+    if (this._rspCells <= this.rstackBaseCells) {
       throw new ReturnStackUnderflowError('rpop', this.getStackData());
     }
 
     this._rspCells -= 1;
+    const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
   if (this.debug) this.ensureInvariants();
-    return this.memory.readFloat32(SEG_RSTACK, this._rspCells * CELL_SIZE_BYTES);
+    return this.memory.readFloat32(SEG_RSTACK, offsetBytes);
   }
 
   /**
@@ -365,7 +389,7 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    for (let i = 0; i < this._spCells; i += 1) {
+    for (let i = 0; i < this.SP; i += 1) {
       stackData.push(this.memory.readFloat32(SEG_STACK, i * CELL_SIZE_BYTES));
     }
 
@@ -379,7 +403,7 @@ export class VM {
    * @throws {StackUnderflowError} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
-    if (this._spCells < size) {
+    if (this.SP < size) {
       throw new StackUnderflowError(operation, size, this.getStackData());
     }
   }

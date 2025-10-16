@@ -24,25 +24,13 @@ export function exitConstructorOp(vm: VM): void {
   const returnAddr = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 2) * CELL_SIZE);
 
   vm.BP = Math.trunc(savedBP);
-  const { tag, value } = fromTaggedValue(returnAddr);
-  if (tag === Tag.CODE) {
-    vm.IP = value;
-  } else {
-    vm.IP = Math.trunc(returnAddr);
-  }
+  vm.IP = Math.trunc(returnAddr);
 }
 
 export function exitDispatchOp(_vm: VM): void {
   // Epilogue: restore caller BP and return address without touching capsule payload
-  const savedBP = _vm.rpop();
-  _vm.BP = Math.trunc(savedBP);
-  const returnAddr = _vm.rpop();
-  const { tag, value } = fromTaggedValue(returnAddr);
-  if (tag === Tag.CODE) {
-    _vm.IP = value;
-  } else {
-    _vm.IP = Math.trunc(returnAddr);
-  }
+  _vm.BP = _vm.rpop();
+  _vm.IP = _vm.rpop();
 }
 
 export function dispatchOp(_vm: VM): void {
@@ -54,7 +42,7 @@ export function dispatchOp(_vm: VM): void {
   const layout = readCapsuleLayoutFromHandle(_vm, receiver);
 
   // Save caller return address and BP; rebind BP to capsule payload base
-  _vm.rpush(toTaggedValue(_vm.IP, Tag.CODE));
+  _vm.rpush(_vm.IP);
   _vm.rpush(_vm.BP);
   _vm.BP = Math.trunc(layout.baseAddr / CELL_SIZE);
 
