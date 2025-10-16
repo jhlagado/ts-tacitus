@@ -64,8 +64,8 @@ _Exit criteria:_ All reference helpers return correct addresses regardless of re
 | Step | Description | Status |
 | ---- | ----------- | ------ |
 | 3.1  | Initialise SP, RSP, and GP to their respective bases; update invariants to guard `[BASE, TOP)` ranges. | ☐ |
-| 3.1.a| VM constructor sets `SP`/`RSP`/`BP` to arena bases; tests updated accordingly. | ☐ |
-| 3.1.b| Accessors validate against `[BASE, TOP)` rather than zero-only ranges. | ☐ |
+| 3.1.a| VM constructor sets `SP`/`RSP`/`BP` to arena bases; tests updated accordingly. | ✅ |
+| 3.1.b| Accessors validate against `[BASE, TOP)` rather than zero-only ranges. | ✅ |
 | 3.2  | Refactor prologue/epilogue sites (`callOp`, `exitOp`, `evalOp`, interpreter, immediate executor) to rely on absolute indices. | ☐ |
 | 3.2.a| Call/return scaffolding stores/restores absolute stack addresses. | ☐ |
 | 3.2.b| Interpreter helpers (`callTacit`, immediates) expect non-zero bases. | ☐ |

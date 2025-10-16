@@ -126,8 +126,7 @@ export const skipDefOp: Verb = (vm: VM) => {
  */
 export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
-  vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  // Cell-only frame prologue (Phase 2 unified): push caller BP (cells), set new BP to RSP
+  vm.rpush(vm.IP);
   vm.rpush(vm.BP);
   vm.BP = vm.RSP;
   vm.IP = callAddress;
@@ -195,14 +194,7 @@ export const exitOp: Verb = (vm: VM) => {
     }
     vm.RSP = bpCells;
     vm.BP = vm.rpop();
-    const returnAddr = vm.rpop();
-
-    if (isCode(returnAddr)) {
-      const { value: returnIP } = fromTaggedValue(returnAddr);
-      vm.IP = returnIP;
-    } else {
-      vm.IP = Math.floor(returnAddr);
-    }
+    vm.IP = vm.rpop();
   } catch (e) {
     vm.running = false;
     throw e;
@@ -241,13 +233,12 @@ export const evalOp: Verb = (vm: VM) => {
   switch (tag) {
     case Tag.CODE:
       if (meta === 1) {
-        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+        vm.rpush(vm.IP);
         vm.IP = addr;
       } else {
-        vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
-  vm.rpush(vm.BP); // save caller BP (cells)
-  // Convert RSP (cells) to bytes for BP
-  vm.BP = vm.RSP; // BP in cells
+        vm.rpush(vm.IP);
+        vm.rpush(vm.BP);
+        vm.BP = vm.RSP;
         vm.IP = addr;
       }
       break;

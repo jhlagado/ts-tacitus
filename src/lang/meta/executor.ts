@@ -35,7 +35,7 @@ export function runImmediateCode(address: number): void {
   const savedBCP = vm.compiler.BCP;
   const savedPreserve = vm.compiler.preserve;
 
-  vm.rpush(toTaggedValue(savedIP, Tag.CODE));
+  vm.rpush(savedIP);
   vm.rpush(vm.BP);
   vm.BP = vm.RSP;
   vm.IP = address;
