@@ -1,184 +1,151 @@
-# Plan 40: Top-Level Variables
+# Plan 40: Heap-Backed Dictionary & Global Variable Overhaul
 
 ## Status & Context
 
-- **Stage:** Draft (design approved)
-- **Priority:** High - Fixes storage collision bug, enables top-level variables
-- **Spec:** `docs/specs/top-level-variables.md`
-- **Background:** Current implementation doesn't allow `var` at top level, and the global implementation has a storage collision bug (GP=0 overwrites slot 0).
+- **Stage:** Draft (post-rationalisation with Plan 39 unified arena)
+- **Priority:** High — replaces legacy slot-based globals with heap dictionary entries
+- **Dependencies:** Plan 39 (unified arena), forthcoming `variables.md` spec rewrite
+- **Motivation:** The root-frame global-slot model conflicts with heap residency, shadowing, and dictionary uniformity. We must migrate globals, dictionary storage, and name resolution onto the global heap and prepare for a single `DATA_REF` tag.
 
 ## Goals
 
-1. Enable `var` declarations at top-level (stored in root frame on return stack)
-2. Fix storage collision by using hybrid storage (slots on return stack, compounds in global segment)
-3. Maintain same `var` syntax as function-local variables
+1. Store all dictionary entries (functions, globals, immediates, transient locals) as first-class lists in the global heap.
+2. Represent global variables via dictionary payloads, copying compound values into the heap and keeping references stable.
+3. Update the parser, compiler, and runtime to operate on heap-backed dictionary entries instead of slot tables or JS linked lists.
+4. Collapse `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` into a single `DATA_REF` tag and align downstream work with that unified reference model.
 
 ## Non-Goals
 
-- Global promotion keyword (deferred to future plan)
-- Making top-level vars visible in functions
-- Automatic reclamation of top-level variables
-
-## Deliverables
-
-- Root frame initialization on return stack for top-level execution
-- Parser changes to allow top-level `var` declarations
-- Hybrid storage: slots on return stack, compounds at GP in global segment
-- Updated tests demonstrating top-level variables
-- Updated documentation
+- Garbage collection or heap compaction.
+- Exposing heap internals directly to user code (inspection tools may arrive later).
+- Changing string/code reference tags; they remain distinct segments.
 
 ---
 
-## Phase 0: Root Frame Setup
+## Phase 0 – Data Reference Unification
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 0.1  | Add VM initialization to create root frame on return stack | ☐ |
-| 0.2  | Set BP to RSTACK_BASE at VM start | ☐ |
-| 0.3  | Add topLevelLocalCount tracking to VM | ☐ |
-| 0.4  | Ensure root frame persists across top-level code execution | ☐ |
+| Step | Description                                                                                                                 | Status |
+| ---- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ☐      |
+| 0.2  | Define unified `DATA_REF` encoding (segment discriminant, bounds checks, mutation rules) and update tagged-value spec draft | ☐      |
+| 0.3  | Prototype tagged helpers for constructing/decoding `DATA_REF`; ensure backwards-compatibility shims for legacy tags         | ☐      |
+| 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ☐      |
 
-_Exit criteria:_ Root frame exists and persists for program duration.
-
----
-
-## Phase 1: Parser Changes
-
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 1.1  | Modify `emitVarDecl` to allow top-level declarations | ☐ |
-| 1.2  | Add symbol table support for top-level locals | ☐ |
-| 1.3  | Emit InitVar for top-level (targets root frame) | ☐ |
-| 1.4  | Test simple value declaration at top-level | ☐ |
-
-_Exit criteria:_ Can declare and use simple-valued variables at top-level.
+_Exit criteria:_ Signed-off encoding and migration strategy for `DATA_REF`, including updated specs and helper APIs ready for implementation.
 
 ---
 
-## Phase 2: Compound Storage
+## Phase 1 – Contracts & Design Sign-off
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 2.1  | Verify InitVar handles compound values correctly | ☐ |
-| 2.2  | Ensure compounds go to GP in global segment | ☐ |
-| 2.3  | Ensure slot holds GLOBAL_REF to compound | ☐ |
-| 2.4  | Test list storage at top-level | ☐ |
-| 2.5  | Test capsule storage at top-level | ☐ |
+| Step | Description                                                                                                             | Status |
+| ---- | ----------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1.1  | Canonicalise dictionary entry layout (`[payload name prev LIST:3]`) with sign-bit metadata for `IMMEDIATE` and `HIDDEN` | ☐      |
+| 1.2  | Define globals: expose `vm.dict` (initialised to `NIL`) as `DICT_HEAD`, plus `GP` bump semantics and shadowing rules    | ☐      |
+| 1.3  | Document transient-local lifecycle (mark/revert of `DICT_HEAD` + `GP`)                                                  | ☐      |
+| 1.4  | Publish reference taxonomy tying `DATA_REF` back to retained `STRING` / `CODE` tags                                     | ☐      |
 
-_Exit criteria:_ Compounds store correctly with no collision.
-
----
-
-## Phase 3: Fix Storage Collision Bug
-
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 3.1  | Verify GP starts at 0 (no slot reservation needed) | ☐ |
-| 3.2  | Test that list-to-var works (original bug case) | ☐ |
-| 3.3  | Test that capsule-to-var works | ☐ |
-| 3.4  | Verify no collision between slots and GP | ☐ |
-
-_Exit criteria:_ Storage collision bug resolved; compounds work correctly.
+_Exit criteria:_ Signed-off spec addendum describing heap dictionary, global payload behaviour, and ref alignment with unified `DATA_REF`.
 
 ---
 
-## Phase 4: Test Suite
+## Phase 2 – Runtime Infrastructure Rewrite
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 4.1  | Create tests for simple top-level variables | ☐ |
-| 4.2  | Create tests for compound top-level variables | ☐ |
-| 4.3  | Test scope isolation (top-level vars not in functions) | ☐ |
-| 4.4  | Test interaction with function calls | ☐ |
-| 4.5  | Run full test suite and verify no regressions | ☐ |
+| Step | Description                                                                               | Status |
+| ---- | ----------------------------------------------------------------------------------------- | ------ |
+| 2.1  | Replace `SymbolTable` JS list with heap-backed dictionary helpers                         | ☐      |
+| 2.2  | Implement primitive to push `[payload name prev LIST:3]` into heap and update `DICT_HEAD` | ☐      |
+| 2.3  | Introduce mark/revert capturing both `DICT_HEAD` and `GP` for transient entries           | ☐      |
+| 2.4  | Provide introspection utility for debugging (optional)                                    | ☐      |
 
-_Exit criteria:_ Comprehensive test coverage; all tests pass.
-
----
-
-## Phase 5: Documentation
-
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 5.1  | Finalize `top-level-variables.md` spec | ☐ |
-| 5.2  | Update `variables-and-refs.md` with top-level info | ☐ |
-| 5.3  | Update tutorial examples | ☐ |
-| 5.4  | Add examples to learn docs | ☐ |
-
-_Exit criteria:_ Complete documentation of top-level variables.
+_Exit criteria:_ VM owns a heap-resident dictionary; no runtime relies on JS-linked nodes.
 
 ---
 
-## Implementation Notes
+## Phase 3 – Locals During Function Definition
 
-### Key Design Points
+| Step | Description                                                                      | Status |
+| ---- | -------------------------------------------------------------------------------- | ------ |
+| 3.1  | Emit transient dictionary entries for locals (flagged `LOCAL`) during definition | ☐      |
+| 3.2  | Ensure slot numbers remain BP-relative and recorded in entry payloads            | ☐      |
+| 3.3  | On definition exit, revert `DICT_HEAD`/`GP` to remove transient locals           | ☐      |
+| 3.4  | Backfill tests covering nested definitions, shadowing, and cleanup               | ☐      |
 
-1. **Root Frame**: Top-level code executes in persistent frame on return stack
-2. **Hybrid Storage**: Slots on return stack, compounds in global segment
-3. **No Collision**: Slots and GP are in separate memory segments
-4. **Scope**: Top-level vars not visible in function definitions
+_Exit criteria:_ Local lookup uses heap dictionary entries; mark/revert reliably restores pre-definition state.
 
-### Critical Implementation Areas
+---
 
-**Parser Changes (src/lang/parser.ts):**
-- Modify `emitVarDecl` to detect top-level context
-- Track top-level locals separately
-- Emit InitVar targeting root frame for top-level
-- Preserve existing function-local behavior
+## Phase 4 – Global Variable Storage Semantics
 
-**VM Initialization (src/core/vm.ts):**
-- Initialize BP to RSTACK_BASE for root frame
-- Add topLevelLocalCount tracking
-- Ensure root frame persistence
+| Step | Description                                                                                                   | Status |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ------ |
+| 4.1  | Create dictionary entries flagged `GLOBAL` at declaration time                                                | ☐      |
+| 4.2  | Runtime initialisation: copy simple values inline; allocate compounds in heap and store `GLOBAL_REF` payloads | ☐      |
+| 4.3  | Teach `store`/assignment paths to mutate dictionary payloads (respecting compatibility rules)                 | ☐      |
+| 4.4  | Validate shadowing and redeclaration behaviour                                                                | ☐      |
 
-### Storage Layout
+_Exit criteria:_ Globals are heap-backed dictionary entries; no return-stack slots or global slot tables remain.
 
-**Before (Broken):**
-```
-Global Segment:
-  [0]: glist slot (should be variable)
-  [0-3]: List data (overwrites slot!)  ← COLLISION
-```
+---
 
-**After (Fixed):**
-```
-Return Stack (Root Frame):
-  [BP+0]: glist = GLOBAL_REF(0)  ← Slot
+## Phase 5 – Parser & Bytecode Integration
 
-Global Segment:
-  [0-2]: List payload
-  [3]: List header  ← GP points here
-```
+| Step | Description                                                                                 | Status |
+| ---- | ------------------------------------------------------------------------------------------- | ------ |
+| 5.1  | Rewrite `emitGlobalDecl`, assignment, and `&name` parsing to target heap dictionary entries | ☐      |
+| 5.2  | Update bracket-path lowering to operate on dictionary-backed refs                           | ☐      |
+| 5.3  | Ensure runtime lookups traverse heap entries via `DICT_HEAD`                                | ☐      |
+| 5.4  | Remove legacy root-frame slot machinery                                                     | ☐      |
 
-### Test Cases
+_Exit criteria:_ All compiler and interpreter paths rely on the heap dictionary abstraction.
 
-```tacit
-# Simple value
-10 var x
-x .  # 10
+---
 
-# Compound
-( 1 2 3 ) var mylist
-mylist length .  # 3
+## Phase 6 – Validation & Tests
 
-# Capsule
-make-counter var c
-'inc c dispatch
-'get c dispatch .  # 1
-```
+| Step | Description                                                                         | Status |
+| ---- | ----------------------------------------------------------------------------------- | ------ |
+| 6.1  | Add unit tests for dictionary entry creation, shadowing, and payload updates        | ☐      |
+| 6.2  | Integration tests for global declarations, compound assignments, and locals cleanup | ☐      |
+| 6.3  | Heap inspection tests ensuring layout correctness and `GP` bump discipline          | ☐      |
+| 6.4  | Run full suite and capture baseline metrics                                         | ☐      |
+
+_Exit criteria:_ Comprehensive test coverage for heap-backed dictionary and globals.
+
+---
+
+## Phase 7 – Documentation & Tooling
+
+| Step | Description                                                                                                    | Status |
+| ---- | -------------------------------------------------------------------------------------------------------------- | ------ |
+| 7.1  | Update `variables.md`, `variables-and-refs.md`, `vm-architecture.md`, `lists.md`, and `top-level-variables.md` | ☐      |
+| 7.2  | Retire documentation describing return-stack root frames for globals                                           | ☐      |
+| 7.3  | Document dictionary inspection workflow (if tooling added)                                                     | ☐      |
+
+_Exit criteria:_ Specs reflect heap dictionary model and announce DATA_REF convergence plan.
+
+---
+
+## Key Considerations
+
+- **Heap residency:** Dictionary entries are immutable lists in the global heap. Payload updates must preserve compatibility rules for compounds (payload copied first, then header).
+- **Shadowing:** Prepend-on-redefine; lookup walks via `prev` field starting at `DICT_HEAD`.
+- **Dictionary root:** VM exposes `vm.dict` (initially `NIL`) as the dictionary head pointer; all entry insertions update this cell.
+- **Transient locals:** Mark/revert must rewind both the dictionary head pointer and any GP allocations performed during definition.
+- **Meta flags:** `IMMEDIATE` lives in the sign bit of CODE/BUILTIN payloads; `HIDDEN` lives in the sign bit of STRING names. Dictionary payload lists no longer carry a separate flags slot.
+- **Reference roadmap:** Phase 0 drives the shift to `DATA_REF`; keep clear bridge logic so legacy `STACK_REF`/`RSTACK_REF`/`GLOBAL_REF` tags remain documented until the cutover lands.
+- **Tooling:** Heap inspectors/debuggers may be necessary to validate entry chain integrity during development.
 
 ## Success Criteria
 
-- [ ] Can declare variables at top-level with `var`
-- [ ] Simple values work correctly
-- [ ] Compounds (lists, capsules) work correctly
-- [ ] No storage collision
-- [ ] Top-level vars scoped correctly (not visible in functions)
-- [ ] All existing tests still pass
-- [ ] Documentation complete
+- [ ] Dictionary storage fully heap-backed with no JS-linked nodes.
+- [ ] Global variables stored via dictionary payloads; compounds allocated in heap without collisions.
+- [ ] Parser, compiler, interpreter operate solely on heap dictionary abstraction.
+- [ ] Spec suite updated; root-frame global slot story removed.
+- [ ] Tests cover heap layout, shadowing, local cleanup, and global mutations.
+- [ ] Unified `DATA_REF` tag implemented with documented migration bridge for legacy references.
 
 ## Future Work
 
-- Plan 41: Global promotion keyword to make top-level vars permanent/visible
-- Consider allowing optional function access to top-level vars
-- Implement variable deletion/reclamation
+- Heap compaction/GC exploration once dictionary migration stabilises.
+- Developer tooling for visualising heap dictionaries and debugging reference chains.
+- Post-`DATA_REF` clean-up: remove obsolete helpers and consolidate reference APIs.

@@ -1,6 +1,7 @@
 # Tacit Tagged Values Specification
 
 Orientation
+
 - Start with core invariants: docs/specs/core-invariants.md
   (See variables-and-refs.md for refs/load/fetch/store.)
 
@@ -27,14 +28,14 @@ Current enum (source of truth is `src/core/tagged.ts`). Numeric values are shown
 
 ```typescript
 export enum Tag {
-  NUMBER = 0,      // IEEE‑754 float32 (non‑NaN) — raw value, no boxing
-  SENTINEL = 1,    // Named sentinels (e.g., NIL=0, DEFAULT=1)
-  CODE = 2,        // Bytecode address (direct dispatch)
-  STRING = 4,      // String segment reference
-  LOCAL = 6,       // Compile‑time local symbol (parser only)
-  BUILTIN = 7,     // Built‑in opcode (0–127)
-  LIST = 8,        // Reverse list header (payload slot count)
-  STACK_REF = 9,   // Data stack cell reference (absolute cell index)
+  NUMBER = 0, // IEEE‑754 float32 (non‑NaN) — raw value, no boxing
+  SENTINEL = 1, // Named sentinels (e.g., NIL=0, DEFAULT=1)
+  CODE = 2, // Bytecode address (direct dispatch)
+  STRING = 4, // String segment reference
+  LOCAL = 6, // Compile‑time local symbol (parser only)
+  BUILTIN = 7, // Built‑in opcode (0–127)
+  LIST = 8, // Reverse list header (payload slot count)
+  STACK_REF = 9, // Data stack cell reference (absolute cell index)
   RSTACK_REF = 10, // Return stack cell reference (absolute cell index)
   GLOBAL_REF = 11, // Global cell reference (absolute cell index)
 }
@@ -44,18 +45,18 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 
 ### Tag Table
 
-| Tag        | Payload Meaning                            | Mutable In-Place                           | Printable Form                 | Notes                                                  |
-| ---------- | ------------------------------------------ | ------------------------------------------ | ------------------------------ | ------------------------------------------------------ |
-| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)             | n/a (value itself)                         | numeric literal                | Not NaN‑box encoded                                    |
-| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)    | Yes (slot overwrite where used as NIL)     | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved        |
-| CODE       | Bytecode address (0..8191 current)         | No (structural)                            | `@name` or bytecode addr       | Executed via `eval`                                    |
-| STRING     | String segment offset                      | No                                         | string literal ('key or "key") | Immutable contents                                     |
-| LOCAL      | Local slot number (compile‑time only)      | n/a                                        | —                              | Parser/symbol table only; never a runtime ref          |
-| BUILTIN    | Opcode (0..127)                            | No                                         | builtin name                   | Dispatch via builtin table                             |
-| LIST       | Payload slot count (0..65535)              | Header no; simple payload slots yes        | `( … )`                        | Reverse layout; payload beneath header                 |
-| STACK_REF  | Data stack absolute cell index (0..65535)  | n/a                                        | `STACK_REF:<idx>`              | Address kind for SEG_STACK                             |
-| RSTACK_REF | Return stack absolute cell index (0..65535)| n/a                                        | `RSTACK_REF:<idx>`             | Address kind for SEG_RSTACK                            |
-| GLOBAL_REF | Global segment absolute cell index         | n/a                                        | `GLOBAL_REF:<idx>`             | Address kind for SEG_GLOBAL                            |
+| Tag        | Payload Meaning                             | Mutable In-Place                       | Printable Form                 | Notes                                                    |
+| ---------- | ------------------------------------------- | -------------------------------------- | ------------------------------ | -------------------------------------------------------- |
+| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)              | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                      |
+| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)     | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved          |
+| CODE       | Bytecode address (0..8191 current)          | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`        |
+| STRING     | String segment offset                       | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table  |
+| LOCAL      | Local slot number (compile‑time only)       | n/a                                    | —                              | Parser/symbol table only; never a runtime ref            |
+| BUILTIN    | Opcode (0..127)                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table |
+| LIST       | Payload slot count (0..65535)               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                   |
+| STACK_REF  | Data stack absolute cell index (0..65535)   | n/a                                    | `STACK_REF:<idx>`              | Address kind for SEG_STACK                               |
+| RSTACK_REF | Return stack absolute cell index (0..65535) | n/a                                    | `RSTACK_REF:<idx>`             | Address kind for SEG_RSTACK                              |
+| GLOBAL_REF | Global segment absolute cell index          | n/a                                    | `GLOBAL_REF:<idx>`             | Address kind for SEG_GLOBAL                              |
 
 ## Memory Layout
 
@@ -108,7 +109,11 @@ This is the unified mechanism used for dispatch.
 
 ### CODE Meta Semantics
 
-The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE`. Current Tacit bytecode treats the bit as reserved: colon definitions execute via the usual `Exit` opcode, and immediate control flow emits ordinary branch sequences within the caller frame. Future lexical constructs may reuse the flag, but no runtime distinction is required today.
+The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE` and `Tag.BUILTIN`. Tacit uses that bit as the **`IMMEDIATE`** flag: when set, the word executes during compilation. VM dispatch MUST mask the sign bit before interpreting the payload as a bytecode address or builtin opcode; compiler helpers set or clear it when registering dictionary entries.
+
+### STRING Meta Semantics
+
+`Tag.STRING` also reserves its sign bit. Tacit interprets this as the **`HIDDEN`** flag for dictionary names. Hidden entries remain linkable via the dictionary, but tools that enumerate, compare, or pretty-print names MUST clear the sign bit before reading from the string segment.
 
 ## Constraints
 
@@ -135,6 +140,7 @@ All tagged values must:
 ## Implementation Notes
 
 - `toTaggedValue(value, tag)` / `fromTaggedValue()` implement encoding/decoding
+- Helper routines MUST mask sign-bit metadata when converting CODE, BUILTIN, or STRING payloads to raw addresses, opcodes, or string offsets.
 - Reverse lists depend only on header payload count; traversal uses span rule (see `lists.md §11`)
 - Parser-generated code (colon definitions, meta constructs) yields `Tag.CODE` references; there is no separate `CODE_BLOCK` tag
 - Addressing operations (`elem`, `slot`, `find`) consume tagged headers uniformly
@@ -197,5 +203,5 @@ length                     \ -> 3
 | ------------------- | --------------------------- | --------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                          |
+| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                         |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |
