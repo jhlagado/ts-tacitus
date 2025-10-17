@@ -196,6 +196,7 @@ length                     \ -> 3
 
 - Increasing CODE segment size requires no tag format change; only address range validation updates.
 - Additional compound types must adopt the same “header encodes span” contract to remain traversal-compatible with existing list algorithms.
+- Upcoming `DATA_REF` consolidation (Plan 40) will replace `STACK_REF`/`RSTACK_REF`/`GLOBAL_REF` with a single tag carrying absolute cell indices. Segment discrimination will be handled by comparing the payload against unified arena bounds (`GLOBAL_BASE`, `STACK_BASE`, `RSTACK_BASE`), keeping the payload zero-based.
 
 ## Consistency Cross-Check
 

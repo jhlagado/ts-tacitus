@@ -64,7 +64,7 @@ _Exit criteria:_ All reference helpers return correct addresses regardless of re
 
 | Step | Description | Status |
 | ---- | ----------- | ------ |
-| 3.1  | Initialise SP, RSP, and GP to their respective bases; update invariants to guard `[BASE, TOP)` ranges. | ☐ |
+| 3.1  | Initialise SP, RSP, and GP to their respective bases; update invariants to guard `[BASE, TOP)` ranges. | ✅ |
 | 3.1.a| VM constructor sets `SP`/`RSP`/`BP` to arena bases; tests updated accordingly. | ✅ |
 | 3.1.b| Accessors validate against `[BASE, TOP)` rather than zero-only ranges. | ✅ |
 | 3.2  | Refactor prologue/epilogue sites (`callOp`, `exitOp`, `evalOp`, interpreter, immediate executor) to rely on absolute indices. | ✅ |
@@ -94,7 +94,7 @@ _Exit criteria:_ Globals and compound allocations coexist safely with the new la
 | Step | Description | Status |
 | ---- | ----------- | ------ |
 | 5.1  | Update unit/integration tests to align with new boundary constants. | ✅ |
-| 5.2  | Refresh docs (`vm-architecture`, `capsules`, `lists`) to describe the unified arena. | ☐ |
+| 5.2  | Refresh docs (`vm-architecture`, `capsules`, `lists`) to describe the unified arena. | ✅ |
 | 5.3  | Execute full test suite; capture baseline for future regressions. | ✅ |
 
 _Exit criteria:_ Tests green, docs current, ready for downstream BP work.
@@ -102,7 +102,7 @@ _Exit criteria:_ Tests green, docs current, ready for downstream BP work.
 **Notes:**
 - Tests already aligned due to accessor abstraction layer (SP/RSP/BP getters hide absolute addressing)
 - Baseline: 1285/1290 tests passing (99.6%)
-- Remaining work: Documentation updates for specs
+- Documentation refreshed (`vm-architecture`, `capsules`, `lists`) to reflect unified arena semantics and absolute reference payloads
 
 ---
 
@@ -155,7 +155,6 @@ All memory operations validate against configurable [BASE, TOP) ranges, enabling
 
 ## Follow-Up Work
 
-- Spec documentation updates (vm-architecture.md, capsules.md, lists.md) to describe unified arena
 - Explore dynamic resizing APIs if future plans require runtime-controlled region growth
 
 ## Notes on Skipped Tests

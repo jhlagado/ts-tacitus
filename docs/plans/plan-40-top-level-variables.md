@@ -26,7 +26,7 @@
 
 | Step | Description                                                                                                                 | Status |
 | ---- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ☐      |
+| 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ✅      |
 | 0.2  | Define unified `DATA_REF` encoding (segment discriminant, bounds checks, mutation rules) and update tagged-value spec draft | ☐      |
 | 0.3  | Prototype tagged helpers for constructing/decoding `DATA_REF`; ensure backwards-compatibility shims for legacy tags         | ☐      |
 | 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ☐      |
@@ -38,30 +38,57 @@ _Exit criteria:_ Signed-off encoding and migration strategy for `DATA_REF`, incl
 ### Phase 0.1 Audit Notes (STACK_REF / RSTACK_REF / GLOBAL_REF)
 
 - **Core definitions & helpers**
-	- `src/core/tagged.ts` declares the three reference tags and exposes `createLocalRef`. `createSegmentRef` / `resolveReference` in `src/core/refs.ts` are the single point of truth for constructing and decoding refs; each tag maps to a fixed segment (`SEG_STACK`, `SEG_RSTACK`, `SEG_GLOBAL`) with cell-index payloads limited to 0..65535. Bounds checks are enforced per segment before reads/writes.
-	- Reference helpers expect absolute *cell indices* (not byte offsets). All arithmetic converts to bytes via `CELL_SIZE`. Any segment other than `SEG_STACK`/`SEG_RSTACK` currently falls back to `GLOBAL_REF` in `createSegmentRef`.
+  - `src/core/tagged.ts` declares the three reference tags and exposes `createLocalRef`. `createSegmentRef` / `resolveReference` in `src/core/refs.ts` are the single point of truth for constructing and decoding refs; each tag maps to a fixed segment (`SEG_STACK`, `SEG_RSTACK`, `SEG_GLOBAL`) with cell-index payloads limited to 0..65535. Bounds checks are enforced per segment before reads/writes.
+  - Reference helpers expect absolute _cell indices_ (not byte offsets). All arithmetic converts to bytes via `CELL_SIZE`. Any segment other than `SEG_STACK`/`SEG_RSTACK` currently falls back to `GLOBAL_REF` in `createSegmentRef`.
 
 - **Symbol table & compiler**
-	- `src/strings/symbol-table.ts` stores locals as `Tag.LOCAL` payloads and globals as `Tag.GLOBAL_REF` payloads. `emitGlobalDecl`, `emitAssignment`, `emitRefSigil`, and top-level name resolution in `src/lang/parser.ts` emit literal `GLOBAL_REF` values, flow them through `LiteralNumber`, `Fetch`, `Store`, and bracket-path lowering.
-	- Local slot access (`VarRef`, `InitVar`, `Reserve`) in `src/ops/builtins.ts` pushes `RSTACK_REF` handles when lists are stored in locals, so downstream ops must tolerate nested refs.
+  - `src/strings/symbol-table.ts` stores locals as `Tag.LOCAL` payloads and globals as `Tag.GLOBAL_REF` payloads. `emitGlobalDecl`, `emitAssignment`, `emitRefSigil`, and top-level name resolution in `src/lang/parser.ts` emit literal `GLOBAL_REF` values, flow them through `LiteralNumber`, `Fetch`, `Store`, and bracket-path lowering.
+  - Local slot access (`VarRef`, `InitVar`, `Reserve`) in `src/ops/builtins.ts` pushes `RSTACK_REF` handles when lists are stored in locals, so downstream ops must tolerate nested refs.
 
 - **Runtime operations**
-	- `src/ops/lists/query-ops.ts` is the primary polymorphic consumer. `slot`, `elem`, `walk`, and maplist traversals fabricate refs via `createSegmentRef`, while `fetch`, `load`, and `store` accept any reference tag and rely on `resolveReference`. Global compound initialisation writes a `GLOBAL_REF` back to the dictionary payload and advances `GP` when copying list payloads into `SEG_GLOBAL`.
-	- `src/ops/access/select-ops.ts` seeds traversal by manufacturing `STACK_REF` handles for in-stack lists; it preserves existing refs if the target is already a ref.
+  - `src/ops/lists/query-ops.ts` is the primary polymorphic consumer. `slot`, `elem`, `walk`, and maplist traversals fabricate refs via `createSegmentRef`, while `fetch`, `load`, and `store` accept any reference tag and rely on `resolveReference`. Global compound initialisation writes a `GLOBAL_REF` back to the dictionary payload and advances `GP` when copying list payloads into `SEG_GLOBAL`.
+  - `src/ops/access/select-ops.ts` seeds traversal by manufacturing `STACK_REF` handles for in-stack lists; it preserves existing refs if the target is already a ref.
 
 - **Capsules**
-	- Capsule constructors (`exitConstructorOp`) expose the capsule header via `Tag.RSTACK_REF`, and `readCapsuleLayoutFromHandle` expects an `RSTACK_REF` pointing at a LIST header on `SEG_RSTACK`.
+  - Capsule constructors (`exitConstructorOp`) expose the capsule header via `Tag.RSTACK_REF`, and `readCapsuleLayoutFromHandle` expects an `RSTACK_REF` pointing at a LIST header on `SEG_RSTACK`.
 
 - **Tests & diagnostics**
-	- `src/test/core/unified-references.test.ts` exercises guards, construction, and `fetchOp` polymorphism for all three tags.
-	- Capsule and global-variable integration tests rely on the current tag semantics (`capsule-constructor.basic`, `capsule-dispatch.global-ref`, `globals.basic`). Debug helpers like `dumpFrameOp` walk `RSTACK_REF` payloads when printing locals.
+  - `src/test/core/unified-references.test.ts` exercises guards, construction, and `fetchOp` polymorphism for all three tags.
+  - Capsule and global-variable integration tests rely on the current tag semantics (`capsule-constructor.basic`, `capsule-dispatch.global-ref`, `globals.basic`). Debug helpers like `dumpFrameOp` walk `RSTACK_REF` payloads when printing locals.
 
 - **Edge cases / gaps**
-	- `resolveReference` demands integer payloads and hard-bounds segments at their current fixed sizes (0x0100 bytes). Overflow raises `RangeError`; there is no segment rebasing yet.
-	- `createSegmentRef` implicitly treats any non-STACK/return segment as GLOBAL, so a unified tag will need an explicit segment discriminator to avoid misclassification once heap segments proliferate.
-	- `createLocalRef` comment still says "Global references are not yet supported" even though `GLOBAL_REF` is partially live; documentation should be updated alongside the DATA_REF spec.
+  - `resolveReference` demands integer payloads and hard-bounds segments at their current fixed sizes (0x0100 bytes). Overflow raises `RangeError`; there is no segment rebasing yet.
+  - `createSegmentRef` implicitly treats any non-STACK/return segment as GLOBAL, so a unified tag will need an explicit segment discriminator to avoid misclassification once heap segments proliferate.
+  - `createLocalRef` comment still says "Global references are not yet supported" even though `GLOBAL_REF` is partially live; documentation should be updated alongside the DATA_REF spec.
 
 These findings feed directly into Step 0.2 (encoding design) and the subsequent migration playbook.
+
+### Phase 0.2 Encoding Draft (2025-10-18)
+
+- **Tag allocation:** Introduce `Tag.DATA_REF = 9` as the unified runtime reference tag. Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` remain defined temporarily but are marked legacy; new code emits `DATA_REF` only.
+- **Payload contract:** Payload stores an absolute cell index across the entire data arena (0 ≤ index < `TOTAL_DATA_BYTES / CELL_SIZE`). No segment bits are embedded in the payload; segment inference occurs via arena boundary comparison.
+- **Validation flow:** Updated `resolveReference` performs:
+  1. Decode payload → `absoluteCellIndex`.
+  2. Compute byte offset `absoluteCellIndex * CELL_SIZE`.
+  3. Compare against `[GLOBAL_BASE, STACK_BASE, STACK_TOP, RSTACK_BASE, RSTACK_TOP)` to determine segment. Errors are raised when the index falls outside all data ranges.
+- **Segment helpers:** Provide `getDataRefSegment(cellIndex)` returning `{ segment, offset }`, enabling ops to branch without inspecting tag subtypes.
+- **Meta bit policy:** Reserve the sign bit for future state (e.g., read-only handles); currently forced to 0 for all `DATA_REF` creation.
+- **Compatibility:** During transition, `isRef` treats both legacy tags and `DATA_REF` as truthy. Legacy constructors delegate to `createDataRef` but retain existing names for staged refactors.
+
+### Phase 0.3 Migration Scaffold Outline
+
+- **Creation helpers:**
+  - Implement `createDataRef(cellIndex)` and `assertDataRefInSegment(cellIndex, segment)`.
+  - Retool `createStackRef`, `createLocalRef`, `createGlobalRef`, and `createSegmentRef` to call shared helpers while emitting deprecation warnings in comments.
+- **Resolution helpers:**
+  - Introduce `resolveDataRef(vm, ref)` that understands both `DATA_REF` and legacy tags, returning `{ segment, address }`.
+  - Update list/capsule operations (`fetch`, `store`, capsule read/write) to rely on the polymorphic resolver without assuming tag identity.
+- **Type guards:**
+  - Add `isDataRef` and `getRefSegment(ref)` utilities to replace `isStackRef`/`isLocalRef`/`isGlobalRef`. Legacy guards wrap the new helpers until callers migrate.
+- **Testing bridge:**
+  - Extend `unified-references.test.ts` with `DATA_REF` fixtures while keeping legacy assertions to verify compatibility during rollout.
+- **Deprecation plan:**
+  - Stage removals: mark legacy tag constants as deprecated in code comments/spec, delete after parser/runtime stop emitting them.
 
 ---
 
