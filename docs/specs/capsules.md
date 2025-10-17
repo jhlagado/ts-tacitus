@@ -70,7 +70,7 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
      - Leaves the callee's locals where they already live (`[BP … RSP)`).
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
-     - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle.
+  - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle. The payload is an **absolute cell index** inside the unified arena, so no segment-relative adjustment is required when dereferencing later.
      - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
 Everything compiled after `capsule` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
@@ -109,7 +109,7 @@ Stack at return from constructor:
 
 - `count` is oldest local (lowest address)
 - `step` is next
-The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Callers may stash the handle in a local (`var point`). If it needs to escape the caller's frame (e.g., assigned to a global or returned) the capsule must be copied (using normal list copy operations) because the underlying storage is reclaimed when the caller returns. Using a capsule handle after the owning frame has been reclaimed results in undefined behavior; it is the programmer's responsibility to ensure handle validity.
+The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Because the handle stores an absolute arena index, the reference remains valid across any future changes to segment bases so long as the owning frame is alive. Callers may stash the handle in a local (`var point`). If it needs to escape the caller's frame (e.g., assigned to a global or returned) the capsule must be copied (using normal list copy operations) because the underlying storage is reclaimed when the caller returns. Using a capsule handle after the owning frame has been reclaimed results in undefined behavior; it is the programmer's responsibility to ensure handle validity.
 
 ---
 

@@ -11,12 +11,33 @@ Execution pipeline (high level):
 
 ## Memory Layout
 
-Segments (implementation‑defined sizes):
+### Unified Memory Arena
+
+Tacit uses a single contiguous arena sized at compile time. The arena is partitioned
+into ordered segments whose bounds are exposed through constants in
+`src/core/constants.ts`:
+
+| Constant        | Meaning                                      |
+| --------------- | -------------------------------------------- |
+| `GLOBAL_BASE`   | Absolute byte offset for the first global cell |
+| `GLOBAL_TOP`    | End (exclusive) of the globals range           |
+| `STACK_BASE`    | Start of the data stack segment                |
+| `STACK_TOP`     | End (exclusive) of the data stack segment      |
+| `RSTACK_BASE`   | Start of the return stack segment              |
+| `RSTACK_TOP`    | End (exclusive) of the return stack segment    |
+| `TOTAL_CELLS`   | Total cells available across all segments      |
+
+Segments are contiguous and ordered `GLOBAL → STACK → RSTACK`. Adjusting any
+boundary only requires updating these constants; no runtime code assumes fixed
+sizes or zero-based segments.
+
+### Segment Roles
 
 - STACK — Main data stack
 - RSTACK — Return stack (call frames, locals)
-- CODE — Bytecode storage
-- STRING — String storage
+- GLOBAL — Global storage and literals
+- CODE — Bytecode storage (byte-addressed, managed separately)
+- STRING — String storage (byte-addressed, managed separately)
 
 ## Stack Architecture
 
@@ -36,11 +57,13 @@ Segments (implementation‑defined sizes):
 
 Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 values encoding NaN‑boxed tags or raw numbers.
 
-VM registers:
+VM registers store **absolute cell indices** inside the arena; public accessors
+expose relative depths by subtracting the segment base:
 
-- SP — data stack pointer (cells)
-- RSP — return stack pointer (cells)
-- BP — base pointer (cells) for the current function frame. Byte offsets are obtained on demand via `BP * CELL_SIZE` (debug helpers may display both forms).
+- SP — canonical data stack pointer (`_spCells`), initialised to `STACK_BASE / CELL_SIZE`
+- RSP — canonical return stack pointer (`_rspCells`), initialised to `RSTACK_BASE / CELL_SIZE`
+- BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE / CELL_SIZE`
+- GP — global bump pointer (cell count from `GLOBAL_BASE / CELL_SIZE`)
 - IP — instruction pointer (byte address in CODE)
 
 ## Execution Model
@@ -165,14 +188,20 @@ Invariants
 
 ## References & Addressing
 
-- STACK_REF — address of a data stack cell (cell index encoded as payload).
-- RSTACK_REF — address of a return stack cell (absolute cell index).
-- GLOBAL_REF — reserved for future; unimplemented (errors).
+- STACK_REF — absolute data stack cell index (payload) tagged with `SEG_STACK`.
+- RSTACK_REF — absolute return stack cell index tagged with `SEG_RSTACK`.
+- GLOBAL_REF — reserved for future unified globals; currently errors when produced.
 
 Reference helpers (see `core/refs.ts`):
 
 - `resolveReference(vm, ref)` → { segment, address }
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
+
+All reference payloads are **absolute cell indices** within the unified arena.
+Encoding a reference subtracts no base; decoding resolves the payload and then
+validates that it falls inside the tagged segment range `[BASE, TOP)`. This keeps
+zero still representing “first cell of the arena” for diagnostics while enabling
+non-zero bases for each segment.
 
 ## Lists (Reverse Layout)
 

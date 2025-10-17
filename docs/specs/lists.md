@@ -24,7 +24,7 @@ Units
   - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
   - **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
   - **GLOBAL_REF**: refers to a cell location in the global segment (SEG_GLOBAL)
-  Refs are used for polymorphic memory addressing and are encoded as tagged values. Unless otherwise specified, references in this document refer to STACK_REFs.
+  Refs are used for polymorphic memory addressing and are encoded as tagged values. Each ref’s payload is an **absolute cell index inside the unified arena**; helpers validate that index against the tagged segment’s `[BASE, TOP)` range. Unless otherwise specified, references in this document refer to STACK_REFs.
 
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
@@ -243,7 +243,7 @@ Notes
 
 ### slot ( idx -- addr )
 
-- Returns the **address** (stack index) of a payload slot at **slot index `idx`**.
+- Returns the **address** (absolute cell index) of a payload slot at **slot index `idx`**.
 - **Preconditions:** `0 ≤ idx < s`.
 - **Result:** returns a STACK_REF to the payload slot at index `idx`.
 - **Cost:** O(1).
@@ -270,7 +270,7 @@ Notes
 
 ### store ( value addr -- )
 
-- Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF.
+- Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF carrying an absolute cell index.
 - Simple targets only; for compound targets see Compatibility Rule below.
 - **Cost:** O(1) for simple; O(span) to materialize a compound on fetch or to copy a compatible compound on store.
 - **Example:** `100 list 2 elem store` overwrites element 2 when that element is simple.
