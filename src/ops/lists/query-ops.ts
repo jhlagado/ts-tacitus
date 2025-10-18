@@ -100,7 +100,9 @@ export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
   const addressValue = vm.pop();
   if (!isRef(addressValue)) {
-    throw new Error('fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
+    throw new Error(
+      'fetch expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)',
+    );
   }
   const { address, segment } = resolveReference(vm, addressValue);
   const value = vm.memory.readFloat32(segment, address);
@@ -317,7 +319,9 @@ export function storeOp(vm: VM): void {
   const rhsTop = vm.peek();
 
   if (!isRef(addressValue)) {
-    throw new Error('store expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)');
+    throw new Error(
+      'store expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)',
+    );
   }
 
   const slot = resolveSlot(vm, addressValue);

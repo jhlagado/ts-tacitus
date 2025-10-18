@@ -27,7 +27,7 @@
 | Step | Description                                                                                                                 | Status |
 | ---- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
 | 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ✅     |
-| 0.2  | Define unified `DATA_REF` encoding (segment discriminant, bounds checks, mutation rules) and update tagged-value spec draft | ☐      |
+| 0.2  | Define unified `DATA_REF` encoding (absolute cell index payload + window classification, bounds checks, mutation rules) and update tagged-value spec draft | ✅     |
 | 0.3  | Prototype tagged helpers for constructing/decoding `DATA_REF`; ensure backwards-compatibility shims for legacy tags         | ☐      |
 | 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ☐      |
 
@@ -65,13 +65,13 @@ These findings feed directly into Step 0.2 (encoding design) and the subsequent 
 
 ### Phase 0.2 Encoding Draft (2025-10-18)
 
-- **Tag allocation:** Introduce `Tag.DATA_REF = 9` as the unified runtime reference tag. Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` remain defined temporarily but are marked legacy; new code emits `DATA_REF` only.
+- **Tag allocation:** Promote `Tag.DATA_REF = 12` as the unified runtime reference tag (legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` remain defined temporarily for backward compatibility).
 - **Payload contract:** Payload stores an absolute cell index across the entire data arena (0 ≤ index < `TOTAL_DATA_BYTES / CELL_SIZE`). No segment bits are embedded in the payload; segment inference occurs via arena boundary comparison.
 - **Validation flow:** Updated `resolveReference` performs:
   1. Decode payload → `absoluteCellIndex`.
   2. Compute byte offset `absoluteCellIndex * CELL_SIZE`.
   3. Compare against `[GLOBAL_BASE, STACK_BASE, STACK_TOP, RSTACK_BASE, RSTACK_TOP)` to determine segment. Errors are raised when the index falls outside all data ranges.
-- **Segment helpers:** Provide `getDataRefSegment(cellIndex)` returning `{ segment, offset }`, enabling ops to branch without inspecting tag subtypes.
+- **Segment helpers:** Map `absoluteCellIndex` values to window metadata when decoding, enabling ops to branch without inspecting tag subtypes.
 - **Meta bit policy:** Reserve the sign bit for future state (e.g., read-only handles); currently forced to 0 for all `DATA_REF` creation.
 - **Compatibility:** During transition, `isRef` treats both legacy tags and `DATA_REF` as truthy. Legacy constructors delegate to `createDataRef` but retain existing names for staged refactors.
 

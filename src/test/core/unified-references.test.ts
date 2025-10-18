@@ -8,6 +8,8 @@ import {
   Tag,
   fromTaggedValue,
   createLocalRef,
+  createDataRef,
+  decodeDataRef,
   NIL,
   isRef,
   isStackRef,
@@ -17,7 +19,15 @@ import {
   createSegmentRef,
 } from '../../core';
 import { fetchOp } from '../../ops/lists';
-import { SEG_RSTACK, SEG_GLOBAL, CELL_SIZE } from '../../core';
+import {
+  SEG_STACK,
+  SEG_RSTACK,
+  SEG_GLOBAL,
+  STACK_BASE,
+  RSTACK_BASE,
+  GLOBAL_BASE,
+  CELL_SIZE,
+} from '../../core';
 
 describe('Unified Reference System', () => {
   beforeEach(() => {
@@ -116,6 +126,26 @@ describe('Unified Reference System', () => {
       expect(value).toBe(123);
     });
 
+    test('createDataRef encodes absolute cell index per segment', () => {
+      const samples = [
+        { segment: SEG_GLOBAL, base: GLOBAL_BASE, cellIndex: 3 },
+        { segment: SEG_STACK, base: STACK_BASE, cellIndex: 5 },
+        { segment: SEG_RSTACK, base: RSTACK_BASE, cellIndex: 7 },
+      ];
+
+      for (const { segment, base, cellIndex } of samples) {
+        const ref = createDataRef(segment, cellIndex);
+        const { tag, value } = fromTaggedValue(ref);
+        expect(tag).toBe(Tag.DATA_REF);
+        expect(value).toBe(base / CELL_SIZE + cellIndex);
+
+        const components = decodeDataRef(ref);
+        expect(components.segment).toBe(segment);
+        expect(components.cellIndex).toBe(cellIndex);
+        expect(components.absoluteCellIndex).toBe(value);
+      }
+    });
+
     test('should handle 16-bit reference values', () => {
       const maxRef = createLocalRef(65535);
       const { value } = fromTaggedValue(maxRef);
@@ -152,7 +182,9 @@ describe('Unified Reference System', () => {
     test('should reject invalid reference types', () => {
       vm.push(42); // Raw number, not a reference
 
-      expect(() => fetchOp(vm)).toThrow('fetch expects reference address');
+      expect(() => fetchOp(vm)).toThrow(
+        /fetch expects reference address \(DATA_REF or legacy/i,
+      );
     });
 
     test('should work with multiple RSTACK_REF in same function', () => {
@@ -222,7 +254,7 @@ describe('Unified Reference System', () => {
       vm.push(NIL);
 
       expect(() => fetchOp(vm)).toThrow(
-        'fetch expects reference address (STACK_REF, RSTACK_REF, or GLOBAL_REF)',
+        'fetch expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)',
       );
     });
 

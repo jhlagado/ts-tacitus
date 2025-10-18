@@ -8,7 +8,7 @@ Essentials
 - Tagged values: `docs/specs/tagged.md`
 - Variables & refs (locals + globals): `docs/specs/variables-and-refs.md`
 - Lists (representation, traversal, bracket paths): `docs/specs/lists.md`
-- Errors & failures: `docs/specs/errors-and-failures.md`
+- Error handling notes: `docs/reference/known-issues.md`
 - Control flow walkthroughs (`if`, `when`, `case`): `docs/learn/control-flow.md`
 
 Notation

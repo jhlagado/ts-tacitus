@@ -35,7 +35,7 @@ export enum Tag {
   LOCAL = 6, // Compile‑time local symbol (parser only)
   BUILTIN = 7, // Built‑in opcode (0–127)
   LIST = 8, // Reverse list header (payload slot count)
-  DATA_REF = 12, // Unified data-arena reference (region + cell index)
+  DATA_REF = 12, // Unified data-arena reference (absolute cell index)
 }
 ```
 
@@ -52,8 +52,8 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 | LOCAL      | Local slot number (compile‑time only)                       | n/a                                    | —                              | Parser/symbol table only; never a runtime ref                         |
 | BUILTIN    | Opcode (0..127)                                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table              |
 | LIST       | Payload slot count (0..65535)                               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                |
-| DATA_REF   | Unified data-arena address (region code + 14-bit cell index) | n/a                                    | `DATA_REF:<region>:<idx>`      | Region codes: 0=data stack, 1=return stack, 2=global heap             |
-| STACK_REF / RSTACK_REF / GLOBAL_REF (legacy) | Same payload as DATA_REF with implicit region | n/a | historical notation | Accepted for backward compatibility; helpers normalise to DATA_REF   |
+| DATA_REF   | Unified data-arena absolute cell index                       | n/a                                    | `DATA_REF:<abs-idx>`           | Helper routines map the index to global/data/return windows           |
+| STACK_REF / RSTACK_REF / GLOBAL_REF (legacy) | Segment-relative cell indices (historic encoding) | n/a | historical notation | Accepted for backward compatibility; helpers normalise via DATA_REF  |
 
 ## Memory Layout
 
@@ -144,7 +144,7 @@ All tagged values must:
 
 ### Compile-time vs Runtime Tags
 
-- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognise local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `DATA_REF` handles with region codes identifying the return-stack or global windows. `Tag.LOCAL` must not appear on the data stack during execution.
+- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognise local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `DATA_REF` handles whose payloads are classified into the appropriate window. `Tag.LOCAL` must not appear on the data stack during execution.
 
 ## Related Specifications
 
@@ -193,7 +193,7 @@ length                     \ -> 3
 
 - Increasing CODE segment size requires no tag format change; only address range validation updates.
 - Additional compound types must adopt the same “header encodes span” contract to remain traversal-compatible with existing list algorithms.
-- Additional `DATA_REF` region codes may be allocated for future residency zones (e.g., buffers or readonly snapshots). Any extension must preserve the 2-bit region + 14-bit index layout and continue to respect arena bounds.
+- Future expansions may partition the data arena into additional windows (e.g., readonly snapshots). Any extension must continue to encode absolute cell indices and respect arena bounds.
 
 ## Consistency Cross-Check
 
