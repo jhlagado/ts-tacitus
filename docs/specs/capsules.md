@@ -30,7 +30,7 @@ They behave much like delimited continuations or reified closures but remain ful
 
 | Property       | Meaning                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| Value-first    | A capsule is a list that lives on the return stack; callers receive a `DATA_REF` (return region) handle |
+| Value-first    | A capsule is a list that lives on the return stack; callers receive a `DATA_REF` handle that resolves into the return-stack window |
 | Environment    | Contains all locals between `BP` and `RSP` captured in place                               |
 | Continuation   | Slot 0 of the list is the CODE reference used to resume execution                          |
 | Stack-resident | No heap allocation; payload remains in the existing frame                                  |
@@ -129,7 +129,7 @@ Dispatch uses the same call scaffolding but rebinds BP to the capsule payload in
 
 **Dispatch prologue** (`dispatch` opcode):
 
-1. Pop the capsule handle (`DATA_REF`, return-stack region) and method symbol; leave arguments in place.
+1. Pop the capsule handle (`DATA_REF` resolving into the return-stack window) and method symbol; leave arguments in place.
 2. Save caller return address and BP on RSTACK.
 3. Read the capsule header via the handle, resolve slot 0 to the `CODE_REF`, and set `BP` to the first payload cell.
 4. Jump to the dispatch entry address.
@@ -303,7 +303,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 | Dispatch prologue | Consumes receiver only; leaves message/args intact                                   |
 | Dispatch epilogue | `Op.ExitDispatch` restores caller BP/IP without collapsing locals                    |
 | BP semantics      | During dispatch BP references the capsule payload in place                           |
-| Alias usage       | Receivers should typically be accessed via `&name` aliases (`DATA_REF`, return region) |
+| Alias usage       | Receivers should typically be accessed via `&name` aliases (`DATA_REF` resolving to the return stack) |
 | Handle validity   | DATA_REF handles remain valid only within the lifetime of the frame that created them |
 
 ---

@@ -19,7 +19,7 @@ export enum Tag {
   STACK_REF = 9,
   RSTACK_REF = 10,
   GLOBAL_REF = 11,
-  DATA_REF = 12,
+  DATA_REF = 12, // Unified data-arena reference (absolute cell index)
 }
 
 export const MAX_TAG = Tag.DATA_REF;

@@ -59,8 +59,10 @@ expose relative depths by subtracting the relevant window base:
 - SP — data stack pointer (`_spCells`), initialised to `STACK_BASE / CELL_SIZE`
 - RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE / CELL_SIZE`
 - BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE / CELL_SIZE`
-- GP — global bump pointer (cell count from `GLOBAL_BASE / CELL_SIZE`)
+- GP — global bump pointer (cell offset from `GLOBAL_BASE / CELL_SIZE`)
 - IP — instruction pointer (byte address in CODE)
+
+`SP`, `RSP`, and `BP` are stored internally as absolute cell indices within the unified arena. `GP` remains window-relative: a value of 0 represents `GLOBAL_BASE`, and helpers add the base offset when forming byte addresses for the global heap.
 
 ## Execution Model
 
@@ -75,8 +77,8 @@ expose relative depths by subtracting the relevant window base:
 Opcode encoding & dispatch:
 
 - Builtins (0–127): single‑byte opcodes.
-- User words (bytecode addresses ≥128): two‑byte encoding with MSB set (15‑bit address), executed via direct jump.
-- Dispatch is unified: builtins resolved through the symbol table; user words execute by jumping to bytecode addresses. See `Compiler.compileOpcode` and VM `nextOpcode`.
+- User words (bytecode addresses ≥128): two‑byte encoding with MSB set. The compiler encodes 15 bits of address space (0–32767) while the current `CODE_SIZE` (0x2000) bounds active bytecode to 0–8191. The extra range is reserved for future expansion.
+- Dispatch is unified: builtins resolve through the symbol table; user words execute by jumping to bytecode addresses. See `Compiler.compileOpcode` and VM `nextOpcode`.
 
 ## Address Spaces
 
@@ -102,7 +104,7 @@ Opcode encoding & dispatch:
 
 `Tag.CODE` meta bit determines execution form:
 
-- meta = 1 (reserved): lexical quotations formerly used this mode. New immediate constructs no longer emit it, but the encoding remains reserved for future lexical forms.
+- meta = 1 (immediate): dictionary entries flagged with the sign-bit set execute during compilation (`@immediate` words, control-flow macros). Builtins reuse the same flag.
 - meta = 0 (function / colon definition): Prologue sequence (cell units):
   1. Push return address (next IP)
   2. Push caller BP (cells)
@@ -154,10 +156,10 @@ Layout Diagram
 
 ```
 Top (High RSP)
-┌──────────────────┐ RSP-1  Return Address (function)
-│ Return Address   │
-├──────────────────┤ RSP-2  Saved Caller BP
+┌──────────────────┐ RSP-1  Saved Caller BP
 │ Saved BP         │
+├──────────────────┤ RSP-2  Return Address (function)
+│ Return Address   │
 ├──────────────────┤ RSP-3  Local Slot 0 (BP + 0)
 │ Local Slot 0     │
 │ Local Slot 1     │ (BP + 1)
@@ -170,12 +172,12 @@ Locals
 
 - Allocation via `Reserve` advances `RSP` by slot count (cells) after the frame root is established.
 - Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within the return-stack window.
-- References (`&x`) compile to a `DATA_REF` whose region code targets the return-stack window and whose payload is the absolute cell index `(BP + slot)`.
+- References (`&x`) compile to a `DATA_REF` whose payload stores the absolute cell index `(BP + slot)` within the unified data arena.
 
 Compound Locals (Lists)
 
 - Lists are stored on the return-stack window in reverse layout: `[payload cells...] [LIST header]`.
-- When initializing a LIST local, the materialized LIST on the data stack is transferred to the return stack; the slot receives a `DATA_REF` (return-stack region) pointing to the header cell.
+- When initializing a LIST local, the materialized LIST on the data stack is transferred to the return stack; the slot receives a `DATA_REF` whose payload resolves to the header cell inside the return-stack window.
 - Fast path for ref-to-list assignment copies payload + header directly when the source is already in the return-stack region; slot reference is preserved.
 
 Corruption Testing
@@ -192,7 +194,7 @@ Invariants
 
 ## References & Addressing
 
-- `Tag.DATA_REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload is partitioned into a 2-bit region code (0=data stack, 1=return stack, 2=global heap) and a 14-bit absolute cell index within that region.
+- `Tag.DATA_REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload stores the absolute cell index; helpers infer which window (global heap, data stack, return stack) owns that index by comparing against segment bounds.
 - Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` tags remain defined during the migration window but new code emits `DATA_REF` exclusively. The helpers accept either form and normalise to the unified representation.
 
 Reference helpers (see `core/refs.ts`):
@@ -201,7 +203,7 @@ Reference helpers (see `core/refs.ts`):
 - `resolveReference(vm, ref)` → `{ segment, address }`
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 
-All reference payloads use arena-absolute cell indices. Decoding validates the requested region and enforces the window bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
+All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
 
 ## Lists (Reverse Layout)
 
@@ -213,7 +215,7 @@ All reference payloads use arena-absolute cell indices. Decoding validates the r
 
 - `@symbol` pushes a tagged reference: `Tag.BUILTIN(op)` for builtins or `Tag.CODE(addr)` for colon definitions/compiled blocks.
 - `eval` executes tagged references: BUILTIN dispatches native implementation; CODE jumps to bytecode address (block/function per meta flag).
-- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `DATA_REF` handles that target the return-stack region (see locals spec).
+- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `DATA_REF` handles that resolve into the return-stack window (see locals spec).
 
 ## Operations
 

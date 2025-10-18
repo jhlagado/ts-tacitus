@@ -53,7 +53,7 @@ Signature: `( message &capsule -- result* ) dispatch`
 - On return, reify the updated frame back into a Capsule list and write through to the same `&capsule` destination (preserving state).
 - Leave any method results on STACK (arity unconstrained, driven by method body).
 
-Error handling: invalid address/tag → throw with canonical messages (see `errors-and-failures.md`).
+Error handling: invalid address/tag → throw with canonical messages (see `docs/reference/known-issues.md`).
 
 ## Algorithmic Sketches
 
@@ -120,4 +120,4 @@ Error handling: invalid address/tag → throw with canonical messages (see `erro
 - `docs/specs/core-invariants.md` — Invariants and patterns
 - `docs/specs/local-vars.md` — Locals/frames and assignment rules
 - `docs/specs/vm-architecture.md` — Segments and unified dispatch
-- `docs/specs/errors-and-failures.md` — Error policy
+- `docs/reference/known-issues.md` — Error policy notes

@@ -15,58 +15,72 @@ import {
   RSTACK_SIZE,
   GLOBAL_BASE,
   GLOBAL_SIZE,
+  TOTAL_DATA_BYTES,
   CELL_SIZE,
 } from './constants';
 
-const DATA_REF_SEGMENT_SHIFT = 14;
-const DATA_REF_SEGMENT_MASK = 0x3 << DATA_REF_SEGMENT_SHIFT;
-const DATA_REF_INDEX_MASK = (1 << DATA_REF_SEGMENT_SHIFT) - 1;
+const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
 
-const DATA_REF_SEGMENT_TABLE = [SEG_STACK, SEG_RSTACK, SEG_GLOBAL];
-
-const DATA_REF_SEGMENT_LIMITS: Record<number, number> = {
-  [SEG_STACK]: STACK_SIZE / CELL_SIZE,
-  [SEG_RSTACK]: RSTACK_SIZE / CELL_SIZE,
-  [SEG_GLOBAL]: GLOBAL_SIZE / CELL_SIZE,
-};
-
-function encodeDataRefSegment(segment: number): number {
-  const index = DATA_REF_SEGMENT_TABLE.indexOf(segment);
-  if (index === -1) {
-    throw new Error(`Unsupported DATA_REF segment: ${segment}`);
-  }
-  return index;
+interface SegmentWindow {
+  segment: number;
+  baseBytes: number;
+  topBytes: number;
 }
 
-function decodeDataRefSegment(code: number): number {
-  const segment = DATA_REF_SEGMENT_TABLE[code];
-  if (segment === undefined) {
-    throw new Error(`Invalid DATA_REF segment code: ${code}`);
+const DATA_SEGMENT_WINDOWS: SegmentWindow[] = [
+  { segment: SEG_GLOBAL, baseBytes: GLOBAL_BASE, topBytes: GLOBAL_BASE + GLOBAL_SIZE },
+  { segment: SEG_STACK, baseBytes: STACK_BASE, topBytes: STACK_BASE + STACK_SIZE },
+  { segment: SEG_RSTACK, baseBytes: RSTACK_BASE, topBytes: RSTACK_BASE + RSTACK_SIZE },
+];
+
+function getSegmentWindow(segment: number): SegmentWindow {
+  const window = DATA_SEGMENT_WINDOWS.find((entry) => entry.segment === segment);
+  if (!window) {
+    throw new Error(`Unsupported DATA_REF segment: ${segment}`);
   }
-  return segment;
+  return window;
+}
+
+function toAbsoluteCellIndex(segment: number, segmentCellIndex: number): number {
+  const { baseBytes, topBytes } = getSegmentWindow(segment);
+  const segmentCellCount = (topBytes - baseBytes) / CELL_SIZE;
+  if (segmentCellIndex < 0 || segmentCellIndex >= segmentCellCount) {
+    throw new RangeError(
+      `DATA_REF cell index ${segmentCellIndex} exceeds segment capacity ${segmentCellCount}`,
+    );
+  }
+  return baseBytes / CELL_SIZE + segmentCellIndex;
+}
+
+function classifyAbsoluteCellIndex(
+  absoluteCellIndex: number,
+): { segment: number; segmentCellIndex: number } {
+  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
+    throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
+  }
+
+  const byteOffset = absoluteCellIndex * CELL_SIZE;
+  const window = DATA_SEGMENT_WINDOWS.find(
+    ({ baseBytes, topBytes }) => byteOffset >= baseBytes && byteOffset < topBytes,
+  );
+
+  if (!window) {
+    throw new RangeError(`DATA_REF byte offset ${byteOffset} does not map to a data segment`);
+  }
+
+  const segmentCellIndex = (byteOffset - window.baseBytes) / CELL_SIZE;
+  return { segment: window.segment, segmentCellIndex };
 }
 
 export interface DataRefComponents {
   segment: number;
   cellIndex: number;
+  absoluteCellIndex: number;
 }
 
 export function createDataRef(segment: number, cellIndex: number): number {
-  const segmentCode = encodeDataRefSegment(segment);
-  if (cellIndex < 0 || cellIndex > DATA_REF_INDEX_MASK) {
-    throw new Error(`DATA_REF cell index out of range: ${cellIndex}`);
-  }
-
-  const limit = DATA_REF_SEGMENT_LIMITS[segment];
-  if (limit === undefined) {
-    throw new Error(`DATA_REF limit missing for segment: ${segment}`);
-  }
-  if (cellIndex >= limit) {
-    throw new Error(`DATA_REF cell index ${cellIndex} exceeds segment capacity ${limit}`);
-  }
-
-  const payload = (segmentCode << DATA_REF_SEGMENT_SHIFT) | (cellIndex & DATA_REF_INDEX_MASK);
-  return toTaggedValue(payload, Tag.DATA_REF);
+  const absoluteCellIndex = toAbsoluteCellIndex(segment, cellIndex);
+  return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
 }
 
 export function decodeDataRef(ref: number): DataRefComponents {
@@ -75,14 +89,16 @@ export function decodeDataRef(ref: number): DataRefComponents {
     throw new Error('decodeDataRef called with non-DATA_REF value');
   }
 
-  const segmentCode = (value & DATA_REF_SEGMENT_MASK) >>> DATA_REF_SEGMENT_SHIFT;
-  const cellIndex = value & DATA_REF_INDEX_MASK;
-  const segment = decodeDataRefSegment(segmentCode);
-  return { segment, cellIndex };
+  const { segment, segmentCellIndex } = classifyAbsoluteCellIndex(value);
+  return {
+    segment,
+    cellIndex: segmentCellIndex,
+    absoluteCellIndex: value,
+  };
 }
 
 /**
- * Checks if a value is a reference (STACK_REF, RSTACK_REF, or GLOBAL_REF).
+ * Checks if a value is a reference (legacy STACK/RSTACK/GLOBAL or unified DATA_REF).
  */
 export function isRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
@@ -216,13 +232,6 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
 
     case Tag.DATA_REF: {
       const { segment, cellIndex } = decodeDataRef(ref);
-      const limit = DATA_REF_SEGMENT_LIMITS[segment];
-      if (limit === undefined) {
-        throw new Error(`DATA_REF limit missing for segment: ${segment}`);
-      }
-      if (cellIndex < 0 || cellIndex >= limit) {
-        throw new RangeError(`DATA_REF cell index ${cellIndex} outside segment limit ${limit}`);
-      }
       return { address: cellIndex * CELL_SIZE, segment };
     }
 

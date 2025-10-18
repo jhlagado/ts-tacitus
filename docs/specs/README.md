@@ -7,9 +7,8 @@ Start here to get a zero-to-productive overview. Read in this order:
 - tagged.md — Tagged values and CODE meta semantics
 - variables-and-refs.md — Locals, globals, references, assignment, +>
 - lists.md — Reverse lists, traversal, bracket paths, addressing
-- errors-and-failures.md — Error policy and messages
-- metaprogramming.md — Immediate words, shared terminator, `if`/`when` lowering
-- case-control-flow.md — Immediate `case/of/DEFAULT` multi-branching semantics
+- metaprogramming.md — Immediate words, shared terminator, `if`/`when`/`case` lowering
+- finally.md — Wrapper-based `finally` compilation and dispatch
 
 Quick Reference
 - quick-reference.md — One‑page cheatsheet of common patterns and lowerings

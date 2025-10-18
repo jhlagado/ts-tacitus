@@ -1,7 +1,7 @@
 # Plan 29 — Broadcasting (APL‑style) Implementation
 
 Status: draft
-Depends on: specs/broadcasting.md, specs/lists.md, specs/variables-and-refs.md, specs/errors-and-failures.md
+Depends on: specs/broadcasting.md, specs/lists.md, specs/variables-and-refs.md, docs/reference/known-issues.md
 
 ## Goals
 - Add elementwise broadcasting for core unary/binary built‑ins over simple values and lists.

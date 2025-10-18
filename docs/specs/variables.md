@@ -37,13 +37,13 @@ In summary, the heap is not a stack in terms of frequent popping, but it is **st
 
 ---
 
-## **Chapter 2: Dictionary Structure and Heap Integration**
+## Chapter 2 — Dictionary Structure and Heap Integration
 
 The Tacit dictionary is a globally persistent structure implemented using ordinary list values in the global heap. It acts as the primary symbol table, allowing symbolic resolution of functions, global variables, constants, and other named values. Every entry in the dictionary is a first-class Tacit list, indistinguishable in structure from any other compound value. This allows the dictionary to fully participate in the language’s type and memory model without special treatment.
 
 ---
 
-### **2.1 Purpose and Design**
+### 2.1 Purpose and Design
 
 All global symbols in Tacit are associated with dictionary entries. These entries are created as standard list structures in the global heap and are linked together via backward pointers to form a singly-linked list.
 
@@ -57,7 +57,7 @@ There is no separate dictionary segment, registry, or namespace object. The dict
 
 ---
 
-### **2.2 Dictionary Entry Format and Layout**
+### 2.2 Dictionary Entry Format and Layout
 
 Each dictionary entry is a **list with three payload cells** and a `LIST:3` header, for a total of four contiguous slots in memory. As with all Tacit lists, the header is placed at the top of the stack (TOS), and the payload grows downward. This means **element 0** is immediately beneath the header, and **element 2** is the deepest (first) field on the stack.
 
@@ -87,7 +87,7 @@ All helpers that read dictionary entries MUST mask these sign bits before derefe
 
 ---
 
-### **2.3 Allocation and Heap Integration**
+### 2.3 Allocation and Heap Integration
 
 Each new dictionary entry is allocated using the global bump allocator, like any other heap compound. The steps are:
 
@@ -101,7 +101,7 @@ There is **no mutation or removal** of entries. Shadowing is accomplished by add
 
 ---
 
-### **2.4 Traversal and Lookup**
+### 2.4 Traversal and Lookup
 
 Symbol resolution operates by walking the dictionary list backwards from `DICT_HEAD`. For each entry:
 
@@ -114,7 +114,7 @@ This process is linear but well-structured, and always resolves the most recentl
 
 ---
 
-### **2.5 Reference Stability**
+### 2.5 Reference Stability
 
 Because dictionary entries are ordinary lists in the global heap:
 
@@ -127,7 +127,7 @@ This makes the dictionary a stable symbolic backbone for the language. Its entri
 
 ---
 
-### **2.6 Summary**
+### 2.6 Summary
 
 - Dictionary entries are standard Tacit lists of 3 payload slots and a `LIST:3` header.
 - Field order is: `[ payload  name  prev  LIST:3 ]`, with `payload` deepest and `LIST:3` at TOS.
@@ -291,15 +291,7 @@ This enables use of named constants, capsule values, embedded structures, and mo
 - Name resolution is **final**: there is no further lookup after retrieving an entry.
 - This design allows for uniform storage and flexible dispatch without runtime ambiguity.
 
-Understood. Here's the revised version of **Chapter 6**, integrating your clarifications and phrasing preferences—specifically:
-
-- Using **“during a function definition”** instead of “compilation phase”.
-- Emphasizing that **only local variables** can be introduced during a function definition.
-- Explicitly stating that declaring globals or functions inside a function definition is **not allowed**.
-
----
-
-## Chapter 6: Local Variables and Function Scope
+## Chapter 6 — Local Variables and Function Scope
 
 ### 6.1 Overview
 
@@ -356,10 +348,6 @@ Once a global variable is populated, it can be read and written just like any ot
 ### 7.6 Summary
 
 Global variables are a persistent, top-level concept in Tacit. They are declared in the dictionary and initialized after compilation, with their values residing either as simple constants or as references to the global heap. This model ensures that global variables are always accessible and maintain their state for the entire program duration.
-
-Absolutely! Here’s the chapter text for you:
-
----
 
 ## Chapter 8 — Compilation and Runtime Behavior of Global Variables
 

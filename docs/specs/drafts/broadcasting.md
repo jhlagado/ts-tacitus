@@ -1,6 +1,6 @@
 # Broadcasting — Specification (Normative)
 
-Depends on: `lists.md`, `variables-and-refs.md`, `errors-and-failures.md`, `vm-architecture.md`
+Depends on: `lists.md`, `variables-and-refs.md`, `docs/reference/known-issues.md`, `vm-architecture.md`
 Assumes list invariants (reverse layout, header at TOS) and value-by-default deref for refs.
 
 ## 1. Scope & Intent

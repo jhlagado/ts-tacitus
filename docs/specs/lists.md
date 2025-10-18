@@ -21,48 +21,29 @@ Units
 
 1. Introduction and design goals
 2. Terminology
-   **ref** — a `DATA_REF` tagged address pointing to a cell in the unified data arena. The 2-bit region code identifies the window: 0=data stack, 1=return stack, 2=global heap. Unless otherwise specified, references in this document refer to the data-stack region.
-
+3. Stack model and registers
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
 6. Literal syntax and grammar (BNF)
 7. Parser semantics
-8. Printing / pretty representation
-9. Length and counting
-
-### slots ( list -- n )
-
-- Returns the **payload slot count** `s` directly from the header.
-- **Cost:** O(1).
-
-### size ( list -- n )
-
-- Returns the **element count** by traversing the payload from `SP-1` downward.
-- **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
-- Returns a **ref** (typically a `DATA_REF` targeting the data-stack region) to the **start slot** for **element index `idx`**.
-- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` to the element start slot.
-- **Cost:** O(s) worst-case.
-  - `pack`
-- Returns the value located at the address referenced by `addr` (any `DATA_REF` region is accepted).
-- If the value at `addr` is **simple** (single-slot), returns that slot's value.
-- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
-- `addr` is typically a data-stack `DATA_REF`, but may reference any region depending on context.
-- **Cost:** O(1) for simple; O(span) to materialize a compound.
-- **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
-
-14. Sorting
-
-- Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a data-stack `DATA_REF`, but may be any region depending on context.
-- When the target at `addr` is **simple** (single-slot): the `value` must also be simple. Writing a compound into a simple slot is an error and must not alter structure.
-- When the target at `addr` is a **compound header** (e.g., a `LIST:s`): the `value` must be a compound of the **same type and identical slot count** (compatible). The operation copies the new compound into the existing region in-place; the address/ref remains stable. If types or slot counts differ, it is an error.
-- **Cost:** O(1) for simple; O(span) to copy a compatible compound.
-- **Examples:**
-  - Simple: `100 list 2 elem store` overwrites element 2 when that element is simple.
-  - Compatible compound: `(1 2 3) list 0 elem store` replaces a nested 3-slot list with another 3-slot list.
-
-21. Worked examples (diagrams)
-22. Edge cases and failure modes
-23. Testing checklist
+8. Addressing & bracket paths (high-level)
+9. Printing / pretty representation
+10. Length and counting
+11. Address queries (low-level)
+12. Traversal rule (type-agnostic span)
+13. Structural operations
+14. Mutation (high-level)
+15. Sorting
+16. Binary search (bfind)
+17. Safety and validation
+18. Constraints and implementation-defined limits
+19. Zero-length lists
+20. Complexity summary
+21. Algebraic laws and identities
+22. Worked examples (diagrams)
+23. Edge cases and failure modes
+24. Testing checklist
+25. Maplists (Key–Value Lists)
 
 ---
 
@@ -184,7 +165,7 @@ Syntax
 Lowering (normative)
 
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
-- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (DATA_REF global region), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
+- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (DATA_REF resolving to the global heap), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
 
 Semantics
 
@@ -224,12 +205,9 @@ Notes
 
 ## 10. Length and counting
 
-### length ( list -- n )
-
 ### slots ( list -- n )
 
-- Returns the **element count** by traversing the payload from `SP-1` downward.
-- **Cost:** O(s).
+- Returns the **payload slot count** `s` directly from the header (`LIST:s`).
 - **Cost:** O(1).
 
 ### length ( list -- n )
@@ -247,18 +225,18 @@ Notes
 
 - Returns the **address** (absolute cell index) of a payload slot at **slot index `idx`**.
 - **Preconditions:** `0 ≤ idx < s`.
-- **Result:** returns a `DATA_REF` (data-stack region) to the payload slot at index `idx`.
+- **Result:** returns a `DATA_REF` that resolves to the data-stack window at the payload slot index `idx`.
 - **Cost:** O(1).
 
 ### elem ( idx -- addr )
 
 - Returns the **address** of the **start slot** for **element index `idx`**.
-- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` (data-stack region) to the element start slot.
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` (data-stack window) to the element start slot.
 - **Cost:** O(s) worst-case.
 
 ### fetch ( addr -- value )
 
-- Strict reference read: expects a `DATA_REF` (any region). Errors on non-reference input.
+- Strict reference read: expects a `DATA_REF` (any window). Errors on non-reference input.
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
 - If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value (materializes the list when header is read).
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
@@ -298,46 +276,20 @@ Compound elements (e.g., lists, maplists) may be replaced in place **only if the
 **Algorithm:**
 
 ````
-addr := SP-1
-while not done:
+addr := SP - 1              \ start at element 0 (just beneath the header)
+remaining := payloadSlots   \ slots encoded in the LIST header
 
-1. Introduction and design goals
-2. Terminology and ref types
-3. Stack model and registers
-4. Tagged values and headers (overview)
-5. Representation of a list on the stack
-6. Literal syntax and grammar (BNF)
-7. Parser semantics
-8. Printing / pretty representation
-9. Length and counting
-   - `slots ( list -- n )`
-   - `length ( list -- n )`
-10. Address queries and refs
-  - `slot ( idx -- addr )`
-  - `elem ( idx -- addr )`
-  - `fetch ( addr -- value )`
-  - `store ( value addr -- )`
-11. Traversal rule (type-agnostic span)
-12. Structural operations
-  - `enlist`
-  - `tail`
-  - `pack`
-  - `unpack`
-  - `append`
-  - `concat` (polymorphic)
-  - `head`
-  - `uncons`
-13. Mutation (high-level)
-14. Sorting
-15. Binary search (bfind)
-16. Safety and validation
-17. Constraints and implementation-defined limits
-18. Zero-length lists
-19. Complexity summary
-20. Algebraic laws and identities
-21. Worked examples (diagrams)
-22. Edge cases and failure modes
-23. Testing checklist
+while remaining > 0:
+  header := stack[addr]
+  span := span(header)      \ 1 for simple values, header-derived for compounds
+  yield (addr, header)
+  addr  := addr - span
+  remaining := remaining - span
+````
+
+This span walk underpins `length`, `elem`, `tail`, `concat`, and any traversal that must treat compound values as indivisible elements.
+
+## 13. Structural operations
 
 ### concat (polymorphic)
 
@@ -399,7 +351,7 @@ Testing checklist
 
 ---
 
-## 13. Mutation (high-level)
+## 14. Mutation (high-level)
 
 Use `store ( value addr -- )` for in-place updates.
 - Simple targets: overwrite with simple values only.
@@ -408,7 +360,7 @@ Structural edits that change slot counts require higher-level operations (e.g., 
 
 ---
 
-## 14. Sorting
+## 15. Sorting
 
 ### Overview
 
@@ -456,7 +408,7 @@ list  sort cmp ;   ->  list'
 
 ---
 
-## 15. Binary search (bfind)
+## 16. Binary search (bfind)
 
 This is the list case of the unified `bfind` (see this section for list semantics).
 
@@ -468,7 +420,7 @@ This is the list case of the unified `bfind` (see this section for list semantic
 
 ---
 
-## 16. Safety and validation
+## 17. Safety and validation
 
 - **Header validity:** tag = `LIST`; `0 ≤ s ≤ maxSlots` (see §15).
 - **Depth checks:** ensure `s+1` slots are available on the stack before operating.
@@ -477,7 +429,7 @@ This is the list case of the unified `bfind` (see this section for list semantic
 
 ---
 
-## 17. Constraints and implementation-defined limits
+## 18. Constraints and implementation-defined limits
 
 - **Word size:** 32‑bit cells.
 - **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **16 bits**, giving `s ≤ 65,535` (≈256 KiB payload at 4 bytes/slot).
@@ -486,7 +438,7 @@ This is the list case of the unified `bfind` (see this section for list semantic
 
 ---
 
-## 18. Zero-length lists
+## 19. Zero-length lists
 
 - `LIST:0` prints as `( )`.
 - `slots(( )) = 0`, `length(( )) = 0`.
@@ -495,7 +447,7 @@ This is the list case of the unified `bfind` (see this section for list semantic
 
 ---
 
-## 19. Complexity summary
+## 20. Complexity summary
 
 - `slots` → O(1)
 - `length` → O(s)
@@ -507,7 +459,7 @@ This is the list case of the unified `bfind` (see this section for list semantic
 
 ---
 
-## 20. Algebraic laws and identities
+## 21. Algebraic laws and identities
 
 Let `x` be a simple or compound value (complete if compound). Let `xs`, `ys`, `zs` be lists.
 
@@ -527,7 +479,7 @@ Note: `concat` flattens when both inputs are lists and nests a singleton when on
 
 ---
 
-## 21. Worked examples (diagrams)
+## 22. Worked examples (diagrams)
 
 ### Building `( 1 2 3 )`
 
@@ -593,7 +545,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## 22. Edge cases and failure modes
+## 23. Edge cases and failure modes
 
 - **Empty:** `( )` behaves as described in §16.
 - **Out-of-bounds `slot`/`elem`:** must not read beyond the payload; return `nil`.
@@ -602,7 +554,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## 23. Testing checklist
+## 24. Testing checklist
 
 - **Parsing**
   - `()` → `LIST:0`
@@ -630,7 +582,7 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 
 ---
 
-## Maplists (Key–Value Lists)
+## 25. Maplists (Key–Value Lists)
 
 Overview
 - A maplist is an ordinary list that follows a key–value alternating pattern: `( k1 v1 k2 v2 … )`.
