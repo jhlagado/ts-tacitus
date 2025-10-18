@@ -26,7 +26,7 @@
 
 | Step | Description                                                                                                                 | Status |
 | ---- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ✅      |
+| 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ✅     |
 | 0.2  | Define unified `DATA_REF` encoding (segment discriminant, bounds checks, mutation rules) and update tagged-value spec draft | ☐      |
 | 0.3  | Prototype tagged helpers for constructing/decoding `DATA_REF`; ensure backwards-compatibility shims for legacy tags         | ☐      |
 | 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ☐      |

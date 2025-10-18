@@ -1,12 +1,14 @@
 # Tacit Lists Specification
 
 Orientation
+
 - Start with core invariants: docs/specs/core-invariants.md
 - Quick addressing/mutation
   - `slot` returns payload slot address (O(1)); `elem` returns element start (O(s)).
   - `fetch`/`load` materialize lists; `store` overwrites simple cells; compatible compound updates are allowed; incompatible attempts error.
 
 Units
+
 - SP/RSP are cell-indexed (one unit = one 32‑bit cell). Any byte offsets shown are only at memory read/write boundaries.
 
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
@@ -21,9 +23,9 @@ Units
 2. Terminology
    **ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
 
-  - **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
-  - **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
-  - **GLOBAL_REF**: refers to a cell location in the global segment (SEG_GLOBAL)
+- **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
+- **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
+- **GLOBAL_REF**: refers to a cell location in the global segment (SEG_GLOBAL)
   Refs are used for polymorphic memory addressing and are encoded as tagged values. Each ref’s payload is an **absolute cell index inside the unified arena**; helpers validate that index against the tagged segment’s `[BASE, TOP)` range. Unless otherwise specified, references in this document refer to STACK_REFs.
 
 4. Tagged values and headers (overview)
@@ -180,14 +182,17 @@ Final stack (deep → TOS):
 Introduce path brackets early; they are the ergonomic way to read and write inside compounds (lists and, soon, maplists).
 
 Syntax
+
 - Read: `expr[ i j … ]` (indices) and `expr[ "key" … ]` / `expr[ 'key … ]` (maplist string keys)
 - Write: `value -> x[ i j … ]` and `value -> x[ "key" … ]` / `value -> x[ 'key … ]` (destination must be an address: local `&x` or global `&name`)
 
 Lowering (normative)
+
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
 - Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (GLOBAL_REF), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
 
 Semantics
+
 - Path items:
   - Numbers: list indices (0-based)
   - Strings: maplist keys (e.g., "users")
@@ -196,6 +201,7 @@ Semantics
 - Writes mutate in place: simple→simple overwrite; compound→compound only if compatible (type + slot count), otherwise error.
 
 Examples
+
 - Lists: `( (1 2) (3 4) ) [0 1]  ⇒ 2`
 - Lists write (local): `5 -> x[1 1]` updates the second element of the second nested list in local `x`.
 - Lists write (global): `5 -> xs[0]` updates the first element of global `xs` when that element is simple.
@@ -206,6 +212,7 @@ Examples
   - Write: `"Charlie" -> obj[ "users" 0 "name" ]` (also `"Charlie" -> obj[ 'users 0 'name ]`)
 
 Notes
+
 - Postfix brackets are allowed on any expression for reads. For writes, destinations are restricted to locals (ensures write‑through via `&x`).
 - Low-level ops like `slot`/`elem`/`find`/`select`/`fetch`/`store` remain available and are documented later in this spec.
 - Implementation status: numeric indices and string keys are supported today. Non‑string keys for maplists are an advanced case and are not supported in bracket paths; use low‑level ops (`select`/`find`) when needed.
@@ -658,3 +665,4 @@ Default key convention
 Performance notes (informative)
 - Linear search is fine for small payloads (≈ ≤ 12 pairs).
 - For larger sets, prefer `mapsort` + `bfind` or prebuilt hash index + `hfind`.
+````
