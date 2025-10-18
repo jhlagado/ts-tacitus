@@ -49,4 +49,3 @@ describe('capsule dispatch runtime', () => {
     expect(() => dispatchOp(vm)).toThrow();
   });
 });
-

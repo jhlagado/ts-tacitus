@@ -35,7 +35,7 @@ describe('Tacit Basic Operations', () => {
     result = runTacitTest('0 if 10 else 20 ;');
     expect(result).toEqual([20]);
   });
-  test("bare string shorthand with apostrophe", () => {
+  test('bare string shorthand with apostrophe', () => {
     const result = runTacitTest("'testWord");
     expect(result.length).toBe(1);
     expect(typeof result[0]).toBe('number'); // tagged STRING value

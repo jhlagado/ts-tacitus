@@ -181,8 +181,7 @@ describe('selectOp - Path-based address access', () => {
 
   test('should handle mixed path with number then string', () => {
     const result = executeTacitCode(
-      '( ( ' +
-        "'name \"John\" 'age 25 ) ( 'name \"Jane\" 'age 30 ) ) ( 0 'name ) select fetch",
+      '( ( ' + "'name \"John\" 'age 25 ) ( 'name \"Jane\" 'age 30 ) ) ( 0 'name ) select fetch",
     );
     // Fetch returns a STRING tagged value; verify tag (content check via digest is outside this test)
     const last = result[result.length - 1];

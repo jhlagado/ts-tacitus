@@ -1,25 +1,11 @@
 # Variables and References — Specification
 
 Orientation
+
 - Start with core invariants: docs/specs/core-invariants.md
 - Lists and bracket paths: docs/specs/lists.md
 
 Status: Authoritative spec for variables (locals and globals) and data references in Tacit.
-
-## Table of Contents
-
-1. Overview and Terminology
-2. Data Arena and Reference Encoding
-3. Variable Model: Locals and Globals
-4. Frames and Slots (summary)
-5. Access Forms and Value-by-Default
-6. Assignment and In-Place Mutation (compatibility)
-7. Increment Operator (+>)
-8. Bracket Paths with Variables (lowering)
-9. Opcodes & Compilation (locals)
-10. Lifetime, Aliasing, and Safety
-11. Errors and Diagnostics
-12. Examples
 
 ---
 
@@ -33,6 +19,7 @@ Status: Authoritative spec for variables (locals and globals) and data reference
 - Store (write): destination must be an address; sources that are refs are materialized before the write; compound writes require compatibility.
 
 Analogy — Refs as Symlinks
+
 - Structure-aware operations (e.g., list `length`, `head`, `elem`) transparently follow refs, like syscalls following filesystem symlinks.
 - Pure stack ops (`dup`, `swap`, …) treat refs as opaque values (no implicit dereference).
 - `load` “follows the link”; `fetch` strictly reads the addressed cell.
@@ -53,6 +40,7 @@ Runtime references use the unified `Tag.DATA_REF`. Its 16-bit payload stores an 
 Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` encodings remain accepted during migration, but the helpers normalise them to `DATA_REF`.
 
 Helpers
+
 - `createDataRef(segment, cellIndex)` → `DATA_REF`
 - `resolveReference(vm, ref)` → { segment, address }
 - `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at resolved address
@@ -72,6 +60,7 @@ Helpers
 - Access: `name` yields the value (value-by-default); `&name` yields a `DATA_REF` address; `value -> name` overwrites; bracket-path writes allowed (`value -> name[ … ]`).
 
 Local vs Global symmetry
+
 - Reads are value-by-default for both; `&name`/`&x` returns a ref.
 - Writes require a destination address; sources that are refs are materialized before writing.
 - Increment operator `+>` is locals-only (see §7); for globals, use explicit RMW (`value name add -> name`).
@@ -81,6 +70,7 @@ Local vs Global symmetry
 ## 4. Frames and Slots (summary)
 
 Frame root and slots (cells)
+
 - Function prologue saves return address and caller BP, then sets `BP = RSP`.
 - `Reserve` allocates N local slots: `RSP += N` (cells). Slot `i` resides at cell index `BP + i`.
 - Compounds for locals live above the slots within the return-stack window; slots store `DATA_REF` handles that resolve to those payloads.
@@ -92,6 +82,7 @@ See docs/specs/vm-architecture.md (Frames & BP) for full layout, diagrams, and i
 ## 5. Access Forms and Value-by-Default
 
 Target compilation (locals/globals)
+
 ```tacit
 x        → VarRef + Load              (value-by-default)
 &x       → VarRef + Fetch             (slot address)
@@ -102,6 +93,7 @@ value -> name  → LiteralNumber(DATA_REF(global-slot)) + Store
 ```
 
 Stack effects (logical)
+
 ```tacit
 x, name      ( — value )        \ value of variable (simple or compound)
 &x           ( — DATA_REF )     \ local slot address (resolves into return-stack window)
@@ -113,11 +105,13 @@ value -> name( — )              \ assignment
 > Migration note: until the parser switch lands, `LiteralNumber(Tag.GLOBAL_REF(slot))` may still appear in bytecode. The runtime treats it as the `DATA_REF` form that resolves to the global heap window, so semantics remain identical.
 
 Load / Fetch / Store
+
 - `load ( value|ref — value )`: identity on non-refs; if ref, deref once; if result is ref, deref once more; materializes lists.
 - `fetch ( ref — value )`: strict address read; materializes lists when the cell read is a LIST header; errors on non-ref.
 - `store ( value ref — )`: destination must be a ref; if source is a ref, materialize first; simple→simple allowed; compound→compound allowed only if compatible (see §6); simple↔compound mismatch is an error.
 
 Stack ops transparency
+
 - `dup`, `swap`, `rot`, `over`, `pick`, `tuck` manipulate the ref value itself; no implicit deref.
 
 ---
@@ -125,18 +119,22 @@ Stack ops transparency
 ## 6. Assignment and In-Place Mutation (compatibility)
 
 Principles
+
 - Liberal sources; strict destinations: sources may auto-deref; destinations must be addresses and are never materialized.
 - In-place for locals and globals: destinations in the return-stack or global-heap windows are updated in place.
 
 Compatibility rule (compound→compound)
+
 - Allowed only when source and destination have the same structural type and total slot count; update payload then header at the destination; do not change the destination reference (aliasing preserved).
 - Attempts to assign simple↔compound are errors.
 
 Locals (normative)
+
 - Simple locals: overwrite slot `(BP + slot)` directly (after materializing source).
 - Compound locals: slot holds a `DATA_REF` that resolves to the return-stack window; compatible assignment copies payload then header in-place at that address; slot’s reference is unchanged.
 
 Globals
+
 - Same compatibility rule; storage lives in the global-heap window; `DATA_REF` addresses are resolved before write; compatible compound assignments mutate in place.
 
 ---
@@ -144,18 +142,22 @@ Globals
 ## 7. Increment Operator (+>)
 
 Purpose
+
 - Concise syntax for in-place updates of local variables and their bracket-selected subparts.
 
 Syntax and desugaring
-- `value +> x`          ⇒ `value x add -> x`
-- `value +> x[ … ]`     ⇒ `value x[ … ] add -> x[ … ]`
+
+- `value +> x` ⇒ `value x add -> x`
+- `value +> x[ … ]` ⇒ `value x[ … ] add -> x[ … ]`
 
 Scope and constraints
+
 - Locals-only destination: valid only inside function definitions; targets local slots or bracket-path selections within locals.
 - Using `+>` outside a function errors: “Increment operator (+>) only allowed inside function definitions”.
 - Undefined destination local errors: “Undefined local variable: <name>”.
 
 Lowering (implementers)
+
 - Simple: `VarRef(slot)` → `Swap` → `Over` → `Fetch` → `Add` → `Swap` → `Store`.
 - Bracket-path: build destination address like assignment, then RMW as above.
 
@@ -168,14 +170,17 @@ For globals, use explicit RMW: `value name add -> name` or `value name[ … ] ad
 Bracket paths are the primary ergonomic way to read/write inside compounds.
 
 Syntax
+
 - Read: `expr[ i j … ]`, `expr[ "key" … ]` or `expr[ 'key … ]`
 - Write: `value -> x[ … ]`, `value -> name[ … ]` (destinations must be addresses). For string keys, both `"key"` and `'key` are accepted when the key has no spaces.
 
 Lowering (normative)
+
 - Read (liberal): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the source expression.
 - Write (strict): destination compiles to `&x` or `&name`, then `Select` → `Nip` → `Store`.
 
 Semantics
+
 - Path items: numbers index list elements; strings index maplist keys.
 - Reads are value-by-default; writes mutate in place; compound compatibility applies (§6).
 
@@ -186,23 +191,28 @@ Canonical details and low-level addressing ops live in docs/specs/lists.md.
 ## 9. Opcodes & Compilation (locals)
 
 Reserve & init
+
 - `RESERVE N` allocates N local slots in the frame (cells).
 - `INIT_VAR_SLOT slot` pops TOS and stores into the slot (simple direct, compound copies into the return-stack window and stores a `DATA_REF` handle).
 
 Addressing
+
 - `LOCAL_VAR_ADDR slot` pushes the absolute address `(BP + slot)` as a `DATA_REF` for `&x`.
 
 Compilation pattern
+
 1. Function prologue emits `RESERVE` with placeholder count.
 2. Each `var` registers a local symbol with its slot number and emits `INIT_VAR_SLOT slot`.
 3. Compiler back-patches the final slot count into `RESERVE`.
 
 Symbol resolution priority
+
 1. Local variables (if inside function)
 2. Global symbols
 3. Built-in operations
 
 Compile-time vs runtime tags
+
 - Parser marks locals with a compile-time `LOCAL_VAR` kind; runtime addressing uses `DATA_REF` handles (no `Tag.LOCAL` at runtime).
 
 ---
@@ -210,15 +220,18 @@ Compile-time vs runtime tags
 ## 10. Lifetime, Aliasing, and Safety
 
 Locals
+
 - Lifetime: from declaration until function return; automatic deallocation by restoring `RSP = BP`.
 - Aliasing: `&x` remains valid within the owner frame; compound assignments preserve the existing handle (slot ref unchanged).
 - Illegal: returning local references; storing locals into globals (lifetime mismatch).
 
 Globals
+
 - Lifetime: program/VM lifetime.
 - Aliasing: `&name` remains stable; compatible compound assignments do not rebind.
 
 Safety guarantees
+
 - Automatic deallocation for locals; no dangling refs when respecting lifetimes.
 - No fragmentation: contiguous stack/global allocation.
 
@@ -227,9 +240,11 @@ Safety guarantees
 ## 11. Errors and Diagnostics
 
 Principles (see `docs/specs/core-invariants.md` for mutation rules and `docs/reference/known-issues.md` for documented failure cases.)
+
 - Reads soft-fail where applicable; writes throw on failure.
 
 Canonical errors
+
 - Bad address: "store expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)".
 - Type mismatch: "Cannot assign simple to compound or compound to simple".
 - Incompatible compound: "Incompatible compound assignment: slot count or type mismatch".
@@ -241,6 +256,7 @@ Canonical errors
 ## 12. Examples
 
 Locals — basic
+
 ```tacit
 : calculate
   10 var a
@@ -250,6 +266,7 @@ Locals — basic
 ```
 
 Locals — compounds and in-place update
+
 ```tacit
 : process-list
   (1 2 3) var xs
@@ -259,6 +276,7 @@ Locals — compounds and in-place update
 ```
 
 Globals — basics
+
 ```tacit
 42 global answer
 answer              \ -> 42
@@ -272,6 +290,7 @@ answer              \ -> 42
 ```
 
 Increment (locals-only)
+
 ```tacit
 : inc1
   0 var x
@@ -291,10 +310,12 @@ Increment (locals-only)
 ## Appendix A: Dictionary Management
 
 Compile-time scope
+
 - Mark at function start; revert at function end. The compiler maintains a scoped dictionary for names.
 - Each `var` registers the symbol with kind `LOCAL_VAR` and its slot number.
 
 Symbol resolution priority
+
 1. Local variables (if inside a function)
 2. Global symbols
 3. Built-in operations
@@ -311,21 +332,24 @@ Symbol kinds
 
 ## Appendix B: Opcode Details (locals)
 
-| Opcode         | Purpose                  | Encoding                     | Operation                           |
-| -------------- | ------------------------ | ---------------------------- | ----------------------------------- |
-| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RSP by `slot_count` cells   |
-| INIT_VAR_SLOT  | Initialize variable slot | `INIT_VAR_SLOT slot_number`  | Pop TOS, store in slot with tagging |
+| Opcode         | Purpose                  | Encoding                     | Operation                                |
+| -------------- | ------------------------ | ---------------------------- | ---------------------------------------- |
+| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RSP by `slot_count` cells        |
+| INIT_VAR_SLOT  | Initialize variable slot | `INIT_VAR_SLOT slot_number`  | Pop TOS, store in slot with tagging      |
 | LOCAL_VAR_ADDR | Push slot address        | `LOCAL_VAR_ADDR slot_number` | Push `DATA_REF` resolving to `BP + slot` |
 
 RESERVE
+
 - Limits: 8-bit slot count (0–255 locals per function)
 - Timing: executed once per function call during prologue
 
 INIT_VAR_SLOT
+
 - Simple: store directly into `(BP + slot)`
 - Compound: transfer list into the return-stack window and store a `DATA_REF` that resolves to the header in the slot
 
 LOCAL_VAR_ADDR
+
 - Address calculation: `BP + slot` (cell index)
 - Used for `&x` and as a base for bracket-path destination construction
 
@@ -336,6 +360,7 @@ LOCAL_VAR_ADDR
 `if … else … ;` executes at compile time but emits bytecode that runs inside the current frame. Branch bodies therefore access the surrounding locals directly; no additional function frame is created.
 
 Example
+
 ```tacit
 : conditional-math
   5 var x
@@ -350,6 +375,7 @@ The branch bodies access the parent function's local `x` using the current `BP`.
 ## Appendix D: Testing Notes
 
 Testable assertions
+
 - `&x load` equals `x` value.
 - Polymorphic list ops return identical results for values and refs.
 - `ref` returns a `DATA_REF` pointing at the correct header.
@@ -361,6 +387,7 @@ Testable assertions
 ## Appendix E: Glossary and Cross‑References
 
 Glossary
+
 - Absolute cell index — integer payload in a ref; address = index × 4.
 - Borrowing — using a ref owned by another frame; safe to return to owner.
 - Code ref — handle to builtins/bytecode; evaluated via `eval`.
@@ -371,6 +398,7 @@ Glossary
 - Source — the value provided for storage or assignment.
 
 Cross‑references
+
 - Locals/globals and refs: this doc
 - Lists and compounds: docs/specs/lists.md
 - Frames & BP: docs/specs/vm-architecture.md
@@ -381,6 +409,7 @@ Cross‑references
 ## Appendix F: Additional Examples
 
 Formal parameters via variables
+
 ```tacit
 : area ( radius -- area )
   var radius
@@ -391,6 +420,7 @@ Formal parameters via variables
 ```
 
 Multiple locals with mixed types
+
 ```tacit
 : complex-calc
   var input
@@ -402,7 +432,8 @@ Multiple locals with mixed types
 ```
 
 Conditional access to locals
-```tacit
+
+````tacit
 : conditional-process
   var data
   data 0 gt if data 2 mul else 0 ;
@@ -422,9 +453,10 @@ value -> x        → VarRef(slot) · Store
 
 value +> x        → VarRef(slot) · Swap · Over · Fetch · Add · Swap · Store
 value +> x[ … ]   → VarRef(slot) · Fetch · [path] · Select · Nip · Swap · Over · Fetch · Add · Swap · Store
-```
+````
 
 Globals
+
 ```tacit
 name              → LiteralNumber(DATA_REF(global-slot)) · Load
 &name             → LiteralNumber(DATA_REF(global-slot))
@@ -433,12 +465,17 @@ value -> name[ … ]→ LiteralNumber(DATA_REF(global-slot)) · Fetch · [path] 
 ```
 
 Bracket-path read (any expr)
+
 ```tacit
 expr[ … ]         → [path] · Select · Load · Nip
 ```
 
 Notes
+
 - “[path]” means the parser emits an OpenList · elements · CloseList path literal.
 - Destinations must be addresses; sources that are refs are materialized before writes.
 - `+>` is locals-only; use `value name add -> name` for globals.
+
+```
+
 ```

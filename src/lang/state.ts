@@ -26,7 +26,10 @@ export function getParserState(): ParserState | null {
 
 export function requireParserState(): ParserState {
   if (!currentParserState) {
-    throw new SyntaxError('Definition opener/closer used outside of parser context', vm.getStackData());
+    throw new SyntaxError(
+      'Definition opener/closer used outside of parser context',
+      vm.getStackData(),
+    );
   }
   return currentParserState;
 }

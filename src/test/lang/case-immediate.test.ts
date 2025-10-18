@@ -1,7 +1,12 @@
 import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../core/global-state';
-import { beginCaseImmediate, clauseOfImmediate, defaultImmediate, nilImmediate } from '../../lang/meta/case';
+import {
+  beginCaseImmediate,
+  clauseOfImmediate,
+  defaultImmediate,
+  nilImmediate,
+} from '../../lang/meta/case';
 import { ensureNoOpenConditionals } from '../../lang/meta';
 import { setParserState } from '../../lang/state';
 import { Tokenizer } from '../../lang/tokenizer';

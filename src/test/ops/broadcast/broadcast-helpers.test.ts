@@ -16,7 +16,7 @@ describe('broadcast helpers', () => {
   describe('unaryFlat', () => {
     test('applies function to simple scalar', () => {
       vm.push(5);
-      unaryFlat(vm, 'neg', (x) => -x);
+      unaryFlat(vm, 'neg', x => -x);
       expect(vm.getStackData()).toEqual([-5]);
     });
 
@@ -46,7 +46,7 @@ describe('broadcast helpers', () => {
     });
 
     test('throws stack underflow when no operands', () => {
-      expect(() => unaryFlat(vm, 'neg', (x) => -x)).toThrow(/Stack underflow/);
+      expect(() => unaryFlat(vm, 'neg', x => -x)).toThrow(/Stack underflow/);
     });
   });
 
@@ -132,21 +132,21 @@ describe('broadcast helpers', () => {
 
       const before = vm.getStackData();
 
-      unaryRecursive(vm, 'inc', (x) => x + 1);
+      unaryRecursive(vm, 'inc', x => x + 1);
 
       const after = vm.getStackData();
       expect(after).toHaveLength(before.length);
 
-      const decoded = after.map((value) => fromTaggedValue(value));
+      const decoded = after.map(value => fromTaggedValue(value));
       const listHeaders = decoded
-        .filter((entry) => entry.tag === Tag.LIST)
-        .map((entry) => entry.value)
+        .filter(entry => entry.tag === Tag.LIST)
+        .map(entry => entry.value)
         .sort((a, b) => a - b);
       expect(listHeaders).toEqual([2, 4]);
 
       const numericValues = decoded
-        .filter((entry) => entry.tag === Tag.NUMBER)
-        .map((entry) => entry.value)
+        .filter(entry => entry.tag === Tag.NUMBER)
+        .map(entry => entry.value)
         .sort((a, b) => a - b);
 
       expect(numericValues).toEqual([2, 3, 4]);
@@ -164,7 +164,7 @@ describe('broadcast helpers', () => {
 
       binaryRecursive(vm, 'add', (a, b) => a + b);
 
-      const snapshot = vm.getStackData().map((value) => fromTaggedValue(value));
+      const snapshot = vm.getStackData().map(value => fromTaggedValue(value));
       expect(snapshot).toEqual([
         { tag: Tag.LIST, value: 2, meta: 0 },
         { tag: Tag.NUMBER, value: 6, meta: 0 },

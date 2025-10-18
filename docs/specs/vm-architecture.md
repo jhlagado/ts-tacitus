@@ -15,14 +15,14 @@ Execution pipeline (high level):
 
 Tacit allocates a single data arena sized at compile time. Three contiguous windows inside that arena provide storage for globals, the data stack, and the return stack. Their byte boundaries are defined in `src/core/constants.ts`:
 
-| Constant         | Meaning                                                         |
-| ---------------- | --------------------------------------------------------------- |
-| `GLOBAL_BASE`    | Absolute byte offset for the first global-heap cell             |
-| `GLOBAL_TOP`     | End (exclusive) of the global-heap window                       |
-| `STACK_BASE`     | Start of the data-stack window                                  |
-| `STACK_TOP`      | End (exclusive) of the data-stack window                        |
-| `RSTACK_BASE`    | Start of the return-stack window                                |
-| `RSTACK_TOP`     | End (exclusive) of the return-stack window                      |
+| Constant           | Meaning                                                      |
+| ------------------ | ------------------------------------------------------------ |
+| `GLOBAL_BASE`      | Absolute byte offset for the first global-heap cell          |
+| `GLOBAL_TOP`       | End (exclusive) of the global-heap window                    |
+| `STACK_BASE`       | Start of the data-stack window                               |
+| `STACK_TOP`        | End (exclusive) of the data-stack window                     |
+| `RSTACK_BASE`      | Start of the return-stack window                             |
+| `RSTACK_TOP`       | End (exclusive) of the return-stack window                   |
 | `TOTAL_DATA_BYTES` | Total byte capacity of the unified data arena (`RSTACK_TOP`) |
 
 Adjusting capacities only requires editing these constants; runtime code operates on absolute cell indices and does not bake in window sizes.
@@ -109,7 +109,10 @@ Opcode encoding & dispatch:
   1. Push return address (next IP)
   2. Push caller BP (cells)
   3. Set BP = RSP (frame root at current top)
-     Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
+
+After step 2 completes, RSP points one past the frame root: the most recent push (saved caller BP) resides at RSP-1, and the earlier push (return address) resides at RSP-2. This layout is reflected in the diagram below and enforced by the epilogue.
+
+Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
 
 Frame Layout on RSTACK (top → bottom after prologue):
 

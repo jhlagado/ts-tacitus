@@ -130,7 +130,7 @@ export function reverseSpan(vm: VM, spanSize: number): void {
   const startCell = endCellExclusive - spanSize;
   let i = 0;
   let j = spanSize - 1;
-  const baseCell = (vm.memory.resolveAddress(SEG_STACK, 0) >> 2);
+  const baseCell = vm.memory.resolveAddress(SEG_STACK, 0) >> 2;
   while (i < j) {
     const leftIdx = baseCell + startCell + i;
     const rightIdx = baseCell + startCell + j;

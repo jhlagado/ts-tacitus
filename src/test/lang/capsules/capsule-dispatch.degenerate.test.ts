@@ -4,7 +4,8 @@ describe('Capsule dispatch (degenerate body)', () => {
   beforeEach(() => resetVM());
 
   test('dispatch ignores message and returns constant', () => {
-    const code = `
+    const code =
+      `
       : mk
         capsule
         123

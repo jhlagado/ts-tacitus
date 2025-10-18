@@ -33,7 +33,7 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize BP to 0', () => {
-  expect(vm.BP).toBe(0); // cells
+    expect(vm.BP).toBe(0); // cells
   });
 
   test('should initialize digest as a Digest instance', () => {
@@ -48,11 +48,9 @@ describe('VM Constructor Initialization', () => {
     expect(vm.listDepth).toBe(0);
   });
 
-
   test('should initialize symbolTable as a SymbolTable instance', () => {
     expect(vm.symbolTable).toBeInstanceOf(SymbolTable);
   });
-
 
   test('should initialize compiler property after constructor call', () => {
     // The compiler is initialized by initializeInterpreter, which is called globally

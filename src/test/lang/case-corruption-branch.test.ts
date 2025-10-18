@@ -11,4 +11,3 @@ describe('case end corruption branch', () => {
     expect(() => endCaseOp(vm)).toThrow('case corrupted return stack');
   });
 });
-

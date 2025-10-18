@@ -80,7 +80,6 @@ export class VM {
     return RSTACK_TOP / CELL_SIZE;
   }
 
-
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
    */
@@ -104,7 +103,9 @@ export class VM {
   /**
    * Canonical stack pointer accessor (measured in cells).
    */
-  get SP(): number { return this._spCells - this.stackBaseCells; }
+  get SP(): number {
+    return this._spCells - this.stackBaseCells;
+  }
   set SP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0 || cells > this.stackTopCells - this.stackBaseCells) {
       throw new Error(`SP set to invalid value: ${cells}`);
@@ -115,7 +116,9 @@ export class VM {
   /**
    * Return stack pointer (canonical, cells). Byte-based RP accessor removed after migration.
    */
-  get RSP(): number { return this._rspCells - this.rstackBaseCells; }
+  get RSP(): number {
+    return this._rspCells - this.rstackBaseCells;
+  }
   set RSP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`RSP set to invalid value: ${cells}`);
@@ -132,9 +135,11 @@ export class VM {
   }
 
   /**
-  * Base pointer accessors (cell-based canonical representation)
+   * Base pointer accessors (cell-based canonical representation)
    */
-  get BP(): number { return this._bpCells - this.rstackBaseCells; }
+  get BP(): number {
+    return this._bpCells - this.rstackBaseCells;
+  }
   set BP(cells: number) {
     const maxDepth = this.rstackTopCells - this.rstackBaseCells;
     if (!Number.isInteger(cells) || cells < 0 || cells > maxDepth) {
@@ -144,7 +149,9 @@ export class VM {
   }
 
   /** Global segment bump pointer (cells). */
-  get GP(): number { return this._gpCells; }
+  get GP(): number {
+    return this._gpCells;
+  }
   set GP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`GP set to invalid value: ${cells}`);
@@ -178,7 +185,11 @@ export class VM {
     if (this._spCells < 0 || this._rspCells < 0 || this._bpCells < 0) {
       throw new Error('Invariant violation: negative stack pointer');
     }
-    if (!Number.isInteger(this._spCells) || !Number.isInteger(this._rspCells) || !Number.isInteger(this._bpCells)) {
+    if (
+      !Number.isInteger(this._spCells) ||
+      !Number.isInteger(this._rspCells) ||
+      !Number.isInteger(this._bpCells)
+    ) {
       throw new Error('Invariant violation: non-integer stack pointer');
     }
     // Bounds vs configured sizes
@@ -207,7 +218,7 @@ export class VM {
     const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
     this.memory.writeFloat32(SEG_STACK, offsetBytes, value);
     this._spCells += 1;
-  if (this.debug) this.ensureInvariants();
+    if (this.debug) this.ensureInvariants();
   }
 
   /**
@@ -222,7 +233,7 @@ export class VM {
 
     this._spCells -= 1;
     const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
-  if (this.debug) this.ensureInvariants();
+    if (this.debug) this.ensureInvariants();
     return this.memory.readFloat32(SEG_STACK, offsetBytes);
   }
 
@@ -288,7 +299,7 @@ export class VM {
     const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
     this.memory.writeFloat32(SEG_RSTACK, offsetBytes, value);
     this._rspCells += 1;
-  if (this.debug) this.ensureInvariants();
+    if (this.debug) this.ensureInvariants();
   }
 
   /**
@@ -303,7 +314,7 @@ export class VM {
 
     this._rspCells -= 1;
     const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
-  if (this.debug) this.ensureInvariants();
+    if (this.debug) this.ensureInvariants();
     return this.memory.readFloat32(SEG_RSTACK, offsetBytes);
   }
 
@@ -442,5 +453,4 @@ export class VM {
     }
     this.push(taggedValue);
   }
-
 }

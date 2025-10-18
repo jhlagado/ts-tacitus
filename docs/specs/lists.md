@@ -5,7 +5,7 @@ Orientation
 - Start with core invariants: docs/specs/core-invariants.md
 - Quick addressing/mutation
   - `slot` returns payload slot address (O(1)); `elem` returns element start (O(s)).
-  - `fetch`/`load` materialize lists; `store` overwrites simple cells; compatible compound updates are allowed; incompatible attempts error.
+  - `fetch`/`load` materialize lists to the stack (push payload slots in reverse order, then header); `store` overwrites simple cells; compatible compound updates are allowed; incompatible attempts error.
 
 Units
 
@@ -14,36 +14,6 @@ Units
 > **Status:** normative for lists; implementation-defined parameters are called out explicitly.
 > **Scope:** stack representation, parsing, traversal, operations, invariants, edge cases, and design rationale.
 > **Audience:** implementers and advanced users building capsules/VM ops over lists.
-
----
-
-## Table of contents
-
-1. Introduction and design goals
-2. Terminology
-3. Stack model and registers
-4. Tagged values and headers (overview)
-5. Representation of a list on the stack
-6. Literal syntax and grammar (BNF)
-7. Parser semantics
-8. Addressing & bracket paths (high-level)
-9. Printing / pretty representation
-10. Length and counting
-11. Address queries (low-level)
-12. Traversal rule (type-agnostic span)
-13. Structural operations
-14. Mutation (high-level)
-15. Sorting
-16. Binary search (bfind)
-17. Safety and validation
-18. Constraints and implementation-defined limits
-19. Zero-length lists
-20. Complexity summary
-21. Algebraic laws and identities
-22. Worked examples (diagrams)
-23. Edge cases and failure modes
-24. Testing checklist
-25. Maplists (Key–Value Lists)
 
 ---
 
@@ -238,13 +208,13 @@ Notes
 
 - Strict reference read: expects a `DATA_REF` (any window). Errors on non-reference input.
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
-- If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value (materializes the list when header is read).
+- If the value at `addr` is the start of a **compound** (its header), materializes the entire list: pushes all payload slots (in reverse order from deepest to shallowest), then pushes the header. Result is a stack-resident list.
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
-- **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
+- **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound (if compound, as a materialized stack list).
 
 ### load ( value-or-ref -- value )
 
-- Value-by-default dereference: identity on non-refs; if input is a reference, dereference once; if the result is also a reference, dereference one additional level; if the final value is a LIST header, materialize header+payload.
+- Value-by-default dereference: identity on non-refs; if input is a reference, dereference once; if the result is also a reference, dereference one additional level; if the final value is a LIST header, materialize the entire list (push all payload slots in reverse order, then push the header).
 - Use `load` when you want the value regardless of whether the input is a direct value or an address.
 - Complements `fetch` (which is strictly address-based).
 
@@ -275,7 +245,7 @@ Compound elements (e.g., lists, maplists) may be replaced in place **only if the
 **Invariant:** Every compound’s first slot is a header that **encodes its total span** in slots.
 **Algorithm:**
 
-````
+```
 addr := SP - 1              \ start at element 0 (just beneath the header)
 remaining := payloadSlots   \ slots encoded in the LIST header
 
@@ -285,7 +255,7 @@ while remaining > 0:
   yield (addr, header)
   addr  := addr - span
   remaining := remaining - span
-````
+```
 
 This span walk underpins `length`, `elem`, `tail`, `concat`, and any traversal that must treat compound values as indivisible elements.
 
@@ -294,22 +264,25 @@ This span walk underpins `length`, `elem`, `tail`, `concat`, and any traversal t
 ### concat (polymorphic)
 
 Semantics overview (RPN stack order)
+
 - Stack effect: `( next top — result )` where “top” is TOS.
 - Behavior by types:
 
-| Next (under TOS) | Top (TOS) | Operation             | Complexity | Notes |
-|------------------|-----------|-----------------------|------------|-------|
-| simple           | simple    | create list           | O(1)       | Push both, make `LIST:2` |
-| list             | simple    | append                | O(1)       | Header increment when representation allows |
-| simple           | list      | prepend               | O(n)       | Shift payload, update header |
-| list             | list      | flatten/concatenate   | O(n)       | Merge payloads, combine headers |
+| Next (under TOS) | Top (TOS) | Operation           | Complexity | Notes                                       |
+| ---------------- | --------- | ------------------- | ---------- | ------------------------------------------- |
+| simple           | simple    | create list         | O(1)       | Push both, make `LIST:2`                    |
+| list             | simple    | append              | O(1)       | Header increment when representation allows |
+| simple           | list      | prepend             | O(n)       | Shift payload, update header                |
+| list             | list      | flatten/concatenate | O(n)       | Merge payloads, combine headers             |
 
 Design guideline
+
 - Use element-aware traversal to detect types without prematurely materializing when a ref is provided.
 - Maintain reverse layout invariants; avoid structural mutation that breaks header/payload integrity.
 - Prefer O(1) append path when the left operand is already a list and right is a simple.
 
 Testing checklist
+
 - All four combinations behave as documented.
 - Edge cases: empty list on either side; nested compounds preserved as single elements for simple+list and list+simple.
 
@@ -354,9 +327,10 @@ Testing checklist
 ## 14. Mutation (high-level)
 
 Use `store ( value addr -- )` for in-place updates.
+
 - Simple targets: overwrite with simple values only.
 - Compound targets: allowed only for **compatible** compounds (same type and slot count); otherwise error. The destination address does not change; contents are replaced in place.
-Structural edits that change slot counts require higher-level operations (e.g., `concat`, `tail`). `fetch ( addr -- value )` returns either a simple value or a full compound when the address points to a compound header.
+  Structural edits that change slot counts require higher-level operations (e.g., `concat`, `tail`). `fetch ( addr -- value )` returns either a simple value or a full compound when the address points to a compound header.
 
 ---
 
@@ -585,15 +559,18 @@ elem 2 → address after skipping span 3 → SP-5 (4)
 ## 25. Maplists (Key–Value Lists)
 
 Overview
+
 - A maplist is an ordinary list that follows a key–value alternating pattern: `( k1 v1 k2 v2 … )`.
 - Pairs are atomic units for sorting and traversal in maplist-specific ops.
 - All list invariants apply (reverse layout, span traversal); values may be simple or compound.
 
 Structure convention
+
 - Even payload positions are keys; odd positions are their values.
 - Keys are typically simple (symbols/numbers) for efficient comparison.
 
 Core operations
+
 - keys ( maplist — keys ) → Extract keys at even positions into a flat list.
 - values ( maplist — values ) → Extract values at odd positions into a flat list.
 - mapsort ( maplist kcmp ; — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units.
@@ -601,15 +578,21 @@ Core operations
   - Enables `bfind` on sorted maplists with consistent key comparator.
 
 Lookup and addressing (see Access spec)
+
 - find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address.
 - bfind: `( sorted-maplist key kcmp ; — addr | nil )` → binary search over keys.
 - hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix).
 - Combine with `fetch`/`store` for reads/writes; writes to simple slots only, or compatible compound replacement at compound headers; no structural edits that change slot counts.
 
 Default key convention
+
 - Special key `default` provides a fallback when lookup fails: if `key` not found, use `default`’s value when present.
 
 Performance notes (informative)
+
 - Linear search is fine for small payloads (≈ ≤ 12 pairs).
 - For larger sets, prefer `mapsort` + `bfind` or prebuilt hash index + `hfind`.
-````
+
+```
+
+```

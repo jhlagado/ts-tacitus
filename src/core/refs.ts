@@ -34,7 +34,7 @@ const DATA_SEGMENT_WINDOWS: SegmentWindow[] = [
 ];
 
 function getSegmentWindow(segment: number): SegmentWindow {
-  const window = DATA_SEGMENT_WINDOWS.find((entry) => entry.segment === segment);
+  const window = DATA_SEGMENT_WINDOWS.find(entry => entry.segment === segment);
   if (!window) {
     throw new Error(`Unsupported DATA_REF segment: ${segment}`);
   }
@@ -52,9 +52,10 @@ function toAbsoluteCellIndex(segment: number, segmentCellIndex: number): number 
   return baseBytes / CELL_SIZE + segmentCellIndex;
 }
 
-function classifyAbsoluteCellIndex(
-  absoluteCellIndex: number,
-): { segment: number; segmentCellIndex: number } {
+function classifyAbsoluteCellIndex(absoluteCellIndex: number): {
+  segment: number;
+  segmentCellIndex: number;
+} {
   if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
     throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
   }
