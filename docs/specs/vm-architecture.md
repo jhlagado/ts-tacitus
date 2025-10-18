@@ -17,15 +17,15 @@ Tacit uses a single contiguous arena sized at compile time. The arena is partiti
 into ordered segments whose bounds are exposed through constants in
 `src/core/constants.ts`:
 
-| Constant        | Meaning                                      |
-| --------------- | -------------------------------------------- |
-| `GLOBAL_BASE`   | Absolute byte offset for the first global cell |
-| `GLOBAL_TOP`    | End (exclusive) of the globals range           |
-| `STACK_BASE`    | Start of the data stack segment                |
-| `STACK_TOP`     | End (exclusive) of the data stack segment      |
-| `RSTACK_BASE`   | Start of the return stack segment              |
-| `RSTACK_TOP`    | End (exclusive) of the return stack segment    |
-| `TOTAL_CELLS`   | Total cells available across all segments      |
+| Constant      | Meaning                                        |
+| ------------- | ---------------------------------------------- |
+| `GLOBAL_BASE` | Absolute byte offset for the first global cell |
+| `GLOBAL_TOP`  | End (exclusive) of the globals range           |
+| `STACK_BASE`  | Start of the data stack segment                |
+| `STACK_TOP`   | End (exclusive) of the data stack segment      |
+| `RSTACK_BASE` | Start of the return stack segment              |
+| `RSTACK_TOP`  | End (exclusive) of the return stack segment    |
+| `TOTAL_CELLS` | Total cells available across all segments      |
 
 Segments are contiguous and ordered `GLOBAL → STACK → RSTACK`. Adjusting any
 boundary only requires updating these constants; no runtime code assumes fixed
@@ -111,7 +111,7 @@ Opcode encoding & dispatch:
   1. Push return address (next IP)
   2. Push caller BP (cells)
   3. Set BP = RSP (frame root at current top)
-  Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
+     Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
 
 Frame Layout on RSTACK (top → bottom after prologue):
 
@@ -138,20 +138,24 @@ Tacit uses a split-stack model: the data stack (STACK) for operand values and th
 
 Frame Prologue & Epilogue
 Function (meta = 0)
+
 1. Push return address (next IP)
 2. Push caller `BP`
 3. Set `BP = RSP`
 
 Epilogue (`Exit`):
+
 1. Validate saved BP (0 ≤ savedBP ≤ RSP) else `ReturnStackUnderflowError`
 2. Set `RSP = savedBP`
 3. Pop previous BP
 4. Pop return address and jump
 
 Code Block (meta = 1)
+
 - Immediate control flow compiled by the parser runs within the current frame; no separate opcode is required for teardown.
 
 Layout Diagram
+
 ```
 Top (High RSP)
 ┌──────────────────┐ RSP-1  Return Address (function)
@@ -167,19 +171,23 @@ Increasing depth ↓ (toward lower indices)
 ```
 
 Locals
+
 - Allocation via `Reserve` advances `RSP` by slot count (cells) after the frame root is established.
 - Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within `SEG_RSTACK`.
 - References (`&x`) compile to `RSTACK_REF` with payload = absolute cell index `(BP + slot)`.
 
 Compound Locals (Lists)
+
 - Lists are stored on RSTACK in reverse layout: `[payload cells...] [LIST header]`.
 - When initializing a LIST local, the materialized LIST on STACK is transferred to RSTACK; the slot receives an `RSTACK_REF` pointing to the header cell.
 - Fast path for ref-to-list assignment copies payload + header directly when segments match; slot reference is preserved.
 
 Corruption Testing
+
 - `unsafeSetBPBytes(byteIndex)` (test helper) injects a byte-aligned value for BP (multiple of 4) that is converted to cells to keep invariants while enabling negative / out-of-range scenarios for error-path coverage.
 
 Invariants
+
 - `BP`, `SP`, `RSP` are non-negative integers (cells)
 - `BP <= RSP`
 - Frame locals occupy `[BP, RSP)`
@@ -259,6 +267,7 @@ non-zero bases for each segment.
 - Keeps corruption tests meaningful via explicit helper instead of implicit byte state.
 
 ## Related Files
+
 - `src/core/vm.ts` — register storage & helpers
 - `src/ops/core/core-ops.ts` — `exitOp`
 - `src/ops/builtins.ts` — `reserveOp`, `initVarOp`
@@ -266,6 +275,7 @@ non-zero bases for each segment.
 - `src/core/refs.ts` — reference resolution (cell index → byte address)
 
 ## Future Hardening
+
 - Remove any residual transitional comments
 - Add optional runtime invariant assertions in debug builds
 - Microbenchmark call/return path

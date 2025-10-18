@@ -17,8 +17,8 @@ This document is a **complete, self-contained specification** for **Capsules** i
 
 Capsules provide a lightweight way to package:
 
-1. The current local-variable frame (the *environment*)
-2. A re-entry code pointer (the *continuation*)
+1. The current local-variable frame (the _environment_)
+2. A re-entry code pointer (the _continuation_)
 
 They behave much like delimited continuations or reified closures but remain fully stack-resident. Typical use cases:
 
@@ -28,14 +28,14 @@ They behave much like delimited continuations or reified closures but remain ful
 
 ### 1.2 Key Properties
 
-| Property       | Meaning                                                               |
-| -------------- | --------------------------------------------------------------------- |
+| Property       | Meaning                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------ |
 | Value-first    | A capsule is a list that lives on the return stack; callers receive an `RSTACK_REF` handle |
-| Environment    | Contains all locals between `BP` and `RSP` captured in place          |
-| Continuation   | Slot 0 of the list is the CODE reference used to resume execution     |
-| Stack-resident | No heap allocation; payload remains in the existing frame             |
-| Symbolic       | Dispatch uses message symbols to select behaviour                     |
-| Deterministic  | Explicit push/pop discipline; no hidden garbage collection            |
+| Environment    | Contains all locals between `BP` and `RSP` captured in place                               |
+| Continuation   | Slot 0 of the list is the CODE reference used to resume execution                          |
+| Stack-resident | No heap allocation; payload remains in the existing frame                                  |
+| Symbolic       | Dispatch uses message symbols to select behaviour                                          |
+| Deterministic  | Explicit push/pop discipline; no hidden garbage collection                                 |
 
 ---
 
@@ -70,8 +70,9 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
      - Leaves the callee's locals where they already live (`[BP … RSP)`).
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
-  - Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle. The payload is an **absolute cell index** inside the unified arena, so no segment-relative adjustment is required when dereferencing later.
-     - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
+
+- Pushes `toTaggedValue(RSP_before_header, Tag.RSTACK_REF)` onto the data stack so the caller receives a handle. The payload is an **absolute cell index** inside the unified arena, so no segment-relative adjustment is required when dereferencing later.
+  - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
 Everything compiled after `capsule` is the dispatch routine and runs only when the returned `RSTACK_REF` is supplied to `dispatch`.
 
@@ -109,7 +110,7 @@ Stack at return from constructor:
 
 - `count` is oldest local (lowest address)
 - `step` is next
-The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Because the handle stores an absolute arena index, the reference remains valid across any future changes to segment bases so long as the owning frame is alive. Callers may stash the handle in a local (`var point`). If it needs to escape the caller's frame (e.g., assigned to a global or returned) the capsule must be copied (using normal list copy operations) because the underlying storage is reclaimed when the caller returns. Using a capsule handle after the owning frame has been reclaimed results in undefined behavior; it is the programmer's responsibility to ensure handle validity.
+  The returned reference points at the capsule list header; the payload cells beneath it hold the captured locals. Because the handle stores an absolute arena index, the reference remains valid across any future changes to segment bases so long as the owning frame is alive. Callers may stash the handle in a local (`var point`). If it needs to escape the caller's frame (e.g., assigned to a global or returned) the capsule must be copied (using normal list copy operations) because the underlying storage is reclaimed when the caller returns. Using a capsule handle after the owning frame has been reclaimed results in undefined behavior; it is the programmer's responsibility to ensure handle validity.
 
 ---
 
@@ -119,12 +120,12 @@ The returned reference points at the capsule list header; the payload cells bene
 
 Dispatch uses the same call scaffolding but rebinds BP to the capsule payload instead of allocating a fresh frame:
 
-| Feature             | Normal Function Call     | Capsule Dispatch                               |
-| ------------------- | ------------------------ | ---------------------------------------------- |
-| Return address      | `rpush`                  | `rpush`                                         |
-| Save caller `BP`    | `rpush`                  | `rpush`                                         |
-| Set new `BP`        | `BP = RSP`               | `BP = capsule header index − payloadSlots`     |
-| Exit opcode         | `Op.Exit`                | `Op.ExitDispatch`                              |
+| Feature          | Normal Function Call | Capsule Dispatch                           |
+| ---------------- | -------------------- | ------------------------------------------ |
+| Return address   | `rpush`              | `rpush`                                    |
+| Save caller `BP` | `rpush`              | `rpush`                                    |
+| Set new `BP`     | `BP = RSP`           | `BP = capsule header index − payloadSlots` |
+| Exit opcode      | `Op.Exit`            | `Op.ExitDispatch`                          |
 
 **Dispatch prologue** (`dispatch` opcode):
 
@@ -295,15 +296,15 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 
 ## 8. Summary of Invariants
 
-| Invariant                  | Description                                                  |
-| -------------------------- | ------------------------------------------------------------ |
-| Capsule layout             | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame |
-| Constructor exit           | `capsule` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP) |
-| Dispatch prologue          | Consumes receiver only; leaves message/args intact           |
-| Dispatch epilogue          | `Op.ExitDispatch` restores caller BP/IP without collapsing locals |
-| BP semantics               | During dispatch BP references the capsule payload in place   |
-| Alias usage                | Receivers should typically be accessed via `&name` aliases (`RSTACK_REF`) |
-| Handle validity            | RSTACK_REF handles are valid only within the lifetime of the frame that created them |
+| Invariant         | Description                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| Capsule layout    | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame                    |
+| Constructor exit  | `capsule` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP)                     |
+| Dispatch prologue | Consumes receiver only; leaves message/args intact                                   |
+| Dispatch epilogue | `Op.ExitDispatch` restores caller BP/IP without collapsing locals                    |
+| BP semantics      | During dispatch BP references the capsule payload in place                           |
+| Alias usage       | Receivers should typically be accessed via `&name` aliases (`RSTACK_REF`)            |
+| Handle validity   | RSTACK_REF handles are valid only within the lifetime of the frame that created them |
 
 ---
 

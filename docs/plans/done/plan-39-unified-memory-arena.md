@@ -26,11 +26,11 @@
 
 ## Phase 0 – Inventory & Design
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 0.1  | Catalogue all usages of `SEG_STACK`, `SEG_RSTACK`, `SEG_GLOBAL`, and any direct segment math. | ✅ |
-| 0.2  | Confirm reference tag consumers (lists, buffers, locals, capsules) that will need boundary-aware logic. | ✅ |
-| 0.3  | Finalise boundary constants and initial sizing strategy (defaults from existing segment sizes). | ✅ |
+| Step | Description                                                                                             | Status |
+| ---- | ------------------------------------------------------------------------------------------------------- | ------ |
+| 0.1  | Catalogue all usages of `SEG_STACK`, `SEG_RSTACK`, `SEG_GLOBAL`, and any direct segment math.           | ✅     |
+| 0.2  | Confirm reference tag consumers (lists, buffers, locals, capsules) that will need boundary-aware logic. | ✅     |
+| 0.3  | Finalise boundary constants and initial sizing strategy (defaults from existing segment sizes).         | ✅     |
 
 _Exit criteria:_ Complete map of affected code paths and agreed boundary definitions.
 
@@ -38,11 +38,11 @@ _Exit criteria:_ Complete map of affected code paths and agreed boundary definit
 
 ## Phase 1 – Constants & Memory Layer
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 1.1  | Introduce `GLOBAL_BASE/TOP`, `STACK_BASE/TOP`, `RSTACK_BASE/TOP`, `TOTAL_CELLS` in `src/core/constants.ts`. | ✅ |
-| 1.2  | Rewrite `Memory.resolveAddress` and read/write helpers to use unified boundaries. | ✅ |
-| 1.3  | Remove legacy `SEGMENT_TABLE`; keep enum values only as logical labels. | ✅ |
+| Step | Description                                                                                                 | Status |
+| ---- | ----------------------------------------------------------------------------------------------------------- | ------ |
+| 1.1  | Introduce `GLOBAL_BASE/TOP`, `STACK_BASE/TOP`, `RSTACK_BASE/TOP`, `TOTAL_CELLS` in `src/core/constants.ts`. | ✅     |
+| 1.2  | Rewrite `Memory.resolveAddress` and read/write helpers to use unified boundaries.                           | ✅     |
+| 1.3  | Remove legacy `SEGMENT_TABLE`; keep enum values only as logical labels.                                     | ✅     |
 
 _Exit criteria:_ Memory operations accept absolute cell indices and validate against configurable region bounds.
 
@@ -50,11 +50,11 @@ _Exit criteria:_ Memory operations accept absolute cell indices and validate aga
 
 ## Phase 2 – Reference Utilities
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 2.1  | Update `resolveReference` to translate tag payloads into absolute byte offsets via new bases. | ✅ |
-| 2.2  | Adjust `createStackRef` / `createSegmentRef` / `getVarRef` to encode payloads relative to unified ranges. | ✅ |
-| 2.3  | Audit list helpers (`getListBounds`, etc.) to ensure boundary-aware resolution. | ✅ |
+| Step | Description                                                                                               | Status |
+| ---- | --------------------------------------------------------------------------------------------------------- | ------ |
+| 2.1  | Update `resolveReference` to translate tag payloads into absolute byte offsets via new bases.             | ✅     |
+| 2.2  | Adjust `createStackRef` / `createSegmentRef` / `getVarRef` to encode payloads relative to unified ranges. | ✅     |
+| 2.3  | Audit list helpers (`getListBounds`, etc.) to ensure boundary-aware resolution.                           | ✅     |
 
 _Exit criteria:_ All reference helpers return correct addresses regardless of region.
 
@@ -62,17 +62,17 @@ _Exit criteria:_ All reference helpers return correct addresses regardless of re
 
 ## Phase 3 – VM & Runtime Adjustments
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 3.1  | Initialise SP, RSP, and GP to their respective bases; update invariants to guard `[BASE, TOP)` ranges. | ✅ |
-| 3.1.a| VM constructor sets `SP`/`RSP`/`BP` to arena bases; tests updated accordingly. | ✅ |
-| 3.1.b| Accessors validate against `[BASE, TOP)` rather than zero-only ranges. | ✅ |
-| 3.2  | Refactor prologue/epilogue sites (`callOp`, `exitOp`, `evalOp`, interpreter, immediate executor) to rely on absolute indices. | ✅ |
-| 3.2.a| Call/return scaffolding stores/restores absolute stack addresses. | ✅ |
-| 3.2.b| Interpreter helpers (`callTacit`, immediates) expect non-zero bases. | ✅ |
-| 3.3  | Update locals (`initVarOp`, `dumpFrameOp`, `getVarRef`) and capsule ops to use the new address calculations. | ✅ |
-| 3.3.a| Local-variable helpers compute offsets using arena bases. | ✅ |
-| 3.3.b| Capsule constructors/dispatch use absolute addresses and restore callers correctly. | ✅ |
+| Step  | Description                                                                                                                   | Status |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 3.1   | Initialise SP, RSP, and GP to their respective bases; update invariants to guard `[BASE, TOP)` ranges.                        | ✅     |
+| 3.1.a | VM constructor sets `SP`/`RSP`/`BP` to arena bases; tests updated accordingly.                                                | ✅     |
+| 3.1.b | Accessors validate against `[BASE, TOP)` rather than zero-only ranges.                                                        | ✅     |
+| 3.2   | Refactor prologue/epilogue sites (`callOp`, `exitOp`, `evalOp`, interpreter, immediate executor) to rely on absolute indices. | ✅     |
+| 3.2.a | Call/return scaffolding stores/restores absolute stack addresses.                                                             | ✅     |
+| 3.2.b | Interpreter helpers (`callTacit`, immediates) expect non-zero bases.                                                          | ✅     |
+| 3.3   | Update locals (`initVarOp`, `dumpFrameOp`, `getVarRef`) and capsule ops to use the new address calculations.                  | ✅     |
+| 3.3.a | Local-variable helpers compute offsets using arena bases.                                                                     | ✅     |
+| 3.3.b | Capsule constructors/dispatch use absolute addresses and restore callers correctly.                                           | ✅     |
 
 _Exit criteria:_ All stack executions remain correct under unified addressing; BP never leaves the arena.
 
@@ -80,10 +80,10 @@ _Exit criteria:_ All stack executions remain correct under unified addressing; B
 
 ## Phase 4 – Globals & Allocation Utilities
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 4.1  | Ensure global allocation helpers respect `GLOBAL_TOP` and adjust bump pointers accordingly. | ✅ |
-| 4.2  | Verify capsule copying / list duplication functions operate correctly across the unified ranges. | ✅ |
+| Step | Description                                                                                      | Status |
+| ---- | ------------------------------------------------------------------------------------------------ | ------ |
+| 4.1  | Ensure global allocation helpers respect `GLOBAL_TOP` and adjust bump pointers accordingly.      | ✅     |
+| 4.2  | Verify capsule copying / list duplication functions operate correctly across the unified ranges. | ✅     |
 
 _Exit criteria:_ Globals and compound allocations coexist safely with the new layout.
 
@@ -91,15 +91,16 @@ _Exit criteria:_ Globals and compound allocations coexist safely with the new la
 
 ## Phase 5 – Validation & Documentation
 
-| Step | Description | Status |
-| ---- | ----------- | ------ |
-| 5.1  | Update unit/integration tests to align with new boundary constants. | ✅ |
-| 5.2  | Refresh docs (`vm-architecture`, `capsules`, `lists`) to describe the unified arena. | ✅ |
-| 5.3  | Execute full test suite; capture baseline for future regressions. | ✅ |
+| Step | Description                                                                          | Status |
+| ---- | ------------------------------------------------------------------------------------ | ------ |
+| 5.1  | Update unit/integration tests to align with new boundary constants.                  | ✅     |
+| 5.2  | Refresh docs (`vm-architecture`, `capsules`, `lists`) to describe the unified arena. | ✅     |
+| 5.3  | Execute full test suite; capture baseline for future regressions.                    | ✅     |
 
 _Exit criteria:_ Tests green, docs current, ready for downstream BP work.
 
 **Notes:**
+
 - Tests already aligned due to accessor abstraction layer (SP/RSP/BP getters hide absolute addressing)
 - Baseline: 1285/1290 tests passing (99.6%)
 - Documentation refreshed (`vm-architecture`, `capsules`, `lists`) to reflect unified arena semantics and absolute reference payloads
@@ -145,6 +146,7 @@ _Exit criteria:_ Tests green, docs current, ready for downstream BP work.
 ### Architecture Impact
 
 The unified arena is now functional with:
+
 - GLOBAL_BASE = 0x0000
 - STACK_BASE = GLOBAL_TOP (after globals)
 - RSTACK_BASE = STACK_TOP (after data stack)
