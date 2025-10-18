@@ -14,11 +14,13 @@ This short document centralizes the rules all other specs assume.
 - Errors and NIL: Out-of-bounds address queries yield NIL; invalid `DATA_REF` payloads for fetch/store raise errors; window bounds guard access to globals, data stack, and return stack.
 
 Quick Patterns (for day-to-day use)
+
 - Read value regardless of being a ref: `load` (identity on non-refs; deref up to two levels, i.e., ref → value or ref → ref → value; materializes lists).
 - Strict address read: `fetch` (requires ref; materializes lists when the cell read is a LIST header).
 - Assignment: destination must be a ref; if source is a ref, materialize first; simple→simple allowed; compound→compound allowed only if compatible (type + slot count); otherwise error.
 - Locals/Globals: `x`/`name` → Ref + Load (value); `&x`/`&name` → address; `&x fetch`/`&name fetch` → slot content (possibly a ref); `&x load`/`&name load` → value.
 
 Explicit local semantics (normative)
+
 - Destination for local updates: local variables inhabit the return-stack window of the unified data arena; assignment mutates that storage in place. The destination is never copied to the data stack to perform updates.
 - Compound locals: slots store a `DATA_REF` (return-stack region) to the compound header; compatible compound assignment overwrites payload+header at that address without changing the slot’s reference.
