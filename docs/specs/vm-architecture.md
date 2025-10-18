@@ -11,44 +11,40 @@ Execution pipeline (high level):
 
 ## Memory Layout
 
-### Unified Memory Arena
+### Unified Data Arena
 
-Tacit uses a single contiguous arena sized at compile time. The arena is partitioned
-into ordered segments whose bounds are exposed through constants in
-`src/core/constants.ts`:
+Tacit allocates a single data arena sized at compile time. Three contiguous windows inside that arena provide storage for globals, the data stack, and the return stack. Their byte boundaries are defined in `src/core/constants.ts`:
 
-| Constant      | Meaning                                        |
-| ------------- | ---------------------------------------------- |
-| `GLOBAL_BASE` | Absolute byte offset for the first global cell |
-| `GLOBAL_TOP`  | End (exclusive) of the globals range           |
-| `STACK_BASE`  | Start of the data stack segment                |
-| `STACK_TOP`   | End (exclusive) of the data stack segment      |
-| `RSTACK_BASE` | Start of the return stack segment              |
-| `RSTACK_TOP`  | End (exclusive) of the return stack segment    |
-| `TOTAL_CELLS` | Total cells available across all segments      |
+| Constant         | Meaning                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `GLOBAL_BASE`    | Absolute byte offset for the first global-heap cell             |
+| `GLOBAL_TOP`     | End (exclusive) of the global-heap window                       |
+| `STACK_BASE`     | Start of the data-stack window                                  |
+| `STACK_TOP`      | End (exclusive) of the data-stack window                        |
+| `RSTACK_BASE`    | Start of the return-stack window                                |
+| `RSTACK_TOP`     | End (exclusive) of the return-stack window                      |
+| `TOTAL_DATA_BYTES` | Total byte capacity of the unified data arena (`RSTACK_TOP`) |
 
-Segments are contiguous and ordered `GLOBAL → STACK → RSTACK`. Adjusting any
-boundary only requires updating these constants; no runtime code assumes fixed
-sizes or zero-based segments.
+Adjusting capacities only requires editing these constants; runtime code operates on absolute cell indices and does not bake in window sizes.
 
-### Segment Roles
+### Data Windows & Auxiliary Segments
 
-- STACK — Main data stack
-- RSTACK — Return stack (call frames, locals)
-- GLOBAL — Global storage and literals
-- CODE — Bytecode storage (byte-addressed, managed separately)
-- STRING — String storage (byte-addressed, managed separately)
+- **Global heap window** — long-lived dictionary entries and global values; managed by the `GP` bump pointer.
+- **Data-stack window** — operand stack storage; advanced/retreated by `SP`.
+- **Return-stack window** — call frames and locals; advanced/retreated by `RSP` with `BP` pointing at the current frame base.
+- **CODE segment** — byte-addressed instruction storage (separate allocation).
+- **STRING segment** — byte-addressed immutable strings (separate allocation).
 
 ## Stack Architecture
 
-**Main Stack (STACK segment)**:
+**Main Stack (data-stack window)**:
 
 - Growth: Low to high addresses
 - Elements: 32-bit tagged values
 - Operations: push, pop, peek, dup, swap, drop
 - Stack pointer: SP (cell-indexed; derive byte offsets explicitly as `SP * CELL_SIZE` when required)
 
-**Return Stack (RSTACK segment)**:
+**Return Stack (return-stack window)**:
 
 - Call frame management
 - Local variable storage
@@ -57,11 +53,11 @@ sizes or zero-based segments.
 
 Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 values encoding NaN‑boxed tags or raw numbers.
 
-VM registers store **absolute cell indices** inside the arena; public accessors
-expose relative depths by subtracting the segment base:
+VM registers store **absolute cell indices** inside the unified arena; public accessors
+expose relative depths by subtracting the relevant window base:
 
-- SP — canonical data stack pointer (`_spCells`), initialised to `STACK_BASE / CELL_SIZE`
-- RSP — canonical return stack pointer (`_rspCells`), initialised to `RSTACK_BASE / CELL_SIZE`
+- SP — data stack pointer (`_spCells`), initialised to `STACK_BASE / CELL_SIZE`
+- RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE / CELL_SIZE`
 - BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE / CELL_SIZE`
 - GP — global bump pointer (cell count from `GLOBAL_BASE / CELL_SIZE`)
 - IP — instruction pointer (byte address in CODE)
@@ -134,7 +130,7 @@ Corruption / Testing: A helper `unsafeSetBPBytes(byteIndex)` (alignment‑checke
 ## Frames & BP (Cell Canonical)
 
 Overview
-Tacit uses a split-stack model: the data stack (STACK) for operand values and the return stack (RSTACK) for call frame metadata and local variables. Frames are fully cell-based: all indices (`SP`, `RSP`, `BP`) are stored and manipulated in cell units (32‑bit words). Byte addresses are derived only at memory access boundaries by multiplying by `CELL_SIZE` (4).
+Tacit uses a split-stack model within the unified data arena: the data-stack window holds operand values and the return-stack window holds call-frame metadata plus locals. Frames are fully cell-based: all indices (`SP`, `RSP`, `BP`) are stored and manipulated in cell units (32‑bit words). Byte addresses are derived only at memory access boundaries by multiplying by `CELL_SIZE` (4).
 
 Frame Prologue & Epilogue
 Function (meta = 0)
@@ -173,14 +169,14 @@ Increasing depth ↓ (toward lower indices)
 Locals
 
 - Allocation via `Reserve` advances `RSP` by slot count (cells) after the frame root is established.
-- Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within `SEG_RSTACK`.
-- References (`&x`) compile to `RSTACK_REF` with payload = absolute cell index `(BP + slot)`.
+- Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within the return-stack window.
+- References (`&x`) compile to a `DATA_REF` whose region code targets the return-stack window and whose payload is the absolute cell index `(BP + slot)`.
 
 Compound Locals (Lists)
 
-- Lists are stored on RSTACK in reverse layout: `[payload cells...] [LIST header]`.
-- When initializing a LIST local, the materialized LIST on STACK is transferred to RSTACK; the slot receives an `RSTACK_REF` pointing to the header cell.
-- Fast path for ref-to-list assignment copies payload + header directly when segments match; slot reference is preserved.
+- Lists are stored on the return-stack window in reverse layout: `[payload cells...] [LIST header]`.
+- When initializing a LIST local, the materialized LIST on the data stack is transferred to the return stack; the slot receives a `DATA_REF` (return-stack region) pointing to the header cell.
+- Fast path for ref-to-list assignment copies payload + header directly when the source is already in the return-stack region; slot reference is preserved.
 
 Corruption Testing
 
@@ -196,20 +192,16 @@ Invariants
 
 ## References & Addressing
 
-- STACK_REF — absolute data stack cell index (payload) tagged with `SEG_STACK`.
-- RSTACK_REF — absolute return stack cell index tagged with `SEG_RSTACK`.
-- GLOBAL_REF — reserved for future unified globals; currently errors when produced.
+- `Tag.DATA_REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload is partitioned into a 2-bit region code (0=data stack, 1=return stack, 2=global heap) and a 14-bit absolute cell index within that region.
+- Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` tags remain defined during the migration window but new code emits `DATA_REF` exclusively. The helpers accept either form and normalise to the unified representation.
 
 Reference helpers (see `core/refs.ts`):
 
-- `resolveReference(vm, ref)` → { segment, address }
+- `createDataRef(segment, cellIndex)` → `DATA_REF`
+- `resolveReference(vm, ref)` → `{ segment, address }`
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 
-All reference payloads are **absolute cell indices** within the unified arena.
-Encoding a reference subtracts no base; decoding resolves the payload and then
-validates that it falls inside the tagged segment range `[BASE, TOP)`. This keeps
-zero still representing “first cell of the arena” for diagnostics while enabling
-non-zero bases for each segment.
+All reference payloads use arena-absolute cell indices. Decoding validates the requested region and enforces the window bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
 
 ## Lists (Reverse Layout)
 
@@ -221,12 +213,12 @@ non-zero bases for each segment.
 
 - `@symbol` pushes a tagged reference: `Tag.BUILTIN(op)` for builtins or `Tag.CODE(addr)` for colon definitions/compiled blocks.
 - `eval` executes tagged references: BUILTIN dispatches native implementation; CODE jumps to bytecode address (block/function per meta flag).
-- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `RSTACK_REF` (see locals spec).
+- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `DATA_REF` handles that target the return-stack region (see locals spec).
 
 ## Operations
 
 **Stack operations**: Manipulate main stack
-**Memory operations**: Load/store to segments
+**Memory operations**: Load/store to data-arena windows
 **Control flow**: Jumps, calls, returns
 **Built-ins**: Direct function dispatch
 
@@ -240,7 +232,7 @@ non-zero bases for each segment.
 
 ## Implementation Notes
 
-- Unified memory buffer with segment views
+- Unified data arena with window views
 - Efficient tagged value operations
 - Direct bytecode interpretation
 - Minimal overhead design

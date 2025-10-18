@@ -288,7 +288,7 @@ All closers live in `src/ops/core/core-ops.ts` and are dispatched through the ge
 - Opener (`capsule`):
   - Validates a colon definition is open (TOS must be `Op.EndDefinition`).
   - Swaps the closer on TOS to `Op.EndCapsule` so the shared `;` will close the capsule body.
-  - Emits `Op.ExitConstructor`, which at runtime freezes the current locals in place, appends `[CODE_REF(entry), LIST:(locals+1)]` to the caller’s return frame, pushes an `RSTACK_REF` handle to the data stack, and restores the caller.
+  - Emits `Op.ExitConstructor`, which at runtime freezes the current locals in place, appends `[CODE_REF(entry), LIST:(locals+1)]` to the caller’s return frame, pushes a `DATA_REF` handle to the data stack, and restores the caller.
 
 - Closer (`endCapsuleOp` via `;`):
   - Emits `Op.ExitDispatch`, the custom epilogue used by capsule dispatch bodies to restore the caller without touching the payload.

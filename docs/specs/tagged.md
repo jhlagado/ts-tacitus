@@ -35,9 +35,7 @@ export enum Tag {
   LOCAL = 6, // Compile‑time local symbol (parser only)
   BUILTIN = 7, // Built‑in opcode (0–127)
   LIST = 8, // Reverse list header (payload slot count)
-  STACK_REF = 9, // Data stack cell reference (absolute cell index)
-  RSTACK_REF = 10, // Return stack cell reference (absolute cell index)
-  GLOBAL_REF = 11, // Global cell reference (absolute cell index)
+  DATA_REF = 12, // Unified data-arena reference (region + cell index)
 }
 ```
 
@@ -45,18 +43,17 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 
 ### Tag Table
 
-| Tag        | Payload Meaning                             | Mutable In-Place                       | Printable Form                 | Notes                                                    |
-| ---------- | ------------------------------------------- | -------------------------------------- | ------------------------------ | -------------------------------------------------------- |
-| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)              | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                      |
-| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)     | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved          |
-| CODE       | Bytecode address (0..8191 current)          | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`        |
-| STRING     | String segment offset                       | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table  |
-| LOCAL      | Local slot number (compile‑time only)       | n/a                                    | —                              | Parser/symbol table only; never a runtime ref            |
-| BUILTIN    | Opcode (0..127)                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table |
-| LIST       | Payload slot count (0..65535)               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                   |
-| STACK_REF  | Data stack absolute cell index (0..65535)   | n/a                                    | `STACK_REF:<idx>`              | Address kind for SEG_STACK                               |
-| RSTACK_REF | Return stack absolute cell index (0..65535) | n/a                                    | `RSTACK_REF:<idx>`             | Address kind for SEG_RSTACK                              |
-| GLOBAL_REF | Global segment absolute cell index          | n/a                                    | `GLOBAL_REF:<idx>`             | Address kind for SEG_GLOBAL                              |
+| Tag        | Payload Meaning                                             | Mutable In-Place                       | Printable Form                 | Notes                                                                 |
+| ---------- | ----------------------------------------------------------- | -------------------------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)                              | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                                   |
+| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)                     | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved                       |
+| CODE       | Bytecode address (0..8191 current)                          | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`                     |
+| STRING     | String segment offset                                       | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table               |
+| LOCAL      | Local slot number (compile‑time only)                       | n/a                                    | —                              | Parser/symbol table only; never a runtime ref                         |
+| BUILTIN    | Opcode (0..127)                                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table              |
+| LIST       | Payload slot count (0..65535)                               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                |
+| DATA_REF   | Unified data-arena address (region code + 14-bit cell index) | n/a                                    | `DATA_REF:<region>:<idx>`      | Region codes: 0=data stack, 1=return stack, 2=global heap             |
+| STACK_REF / RSTACK_REF / GLOBAL_REF (legacy) | Same payload as DATA_REF with implicit region | n/a | historical notation | Accepted for backward compatibility; helpers normalise to DATA_REF   |
 
 ## Memory Layout
 
@@ -125,7 +122,7 @@ The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE` and `Tag.BUI
 
 All tagged values must:
 
-- Use valid tag (0-7)
+- Use a defined tag (≤ `Tag.DATA_REF`)
 - Stay within payload limits
 - Maintain NaN-box invariants
 - Preserve type safety across operations
@@ -147,7 +144,7 @@ All tagged values must:
 
 ### Compile-time vs Runtime Tags
 
-- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognize local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `RSTACK_REF` and `GLOBAL_REF` respectively. `Tag.LOCAL` should not appear on the data stack during execution.
+- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognise local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `DATA_REF` handles with region codes identifying the return-stack or global windows. `Tag.LOCAL` must not appear on the data stack during execution.
 
 ## Related Specifications
 
@@ -158,7 +155,7 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, STACK_REF, RSTACK_REF, GLOBAL_REF}. `LOCAL` is compile‑time only.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, DATA_REF}. Legacy `STACK_REF`/`RSTACK_REF`/`GLOBAL_REF` encodings are accepted only as aliases for `DATA_REF`. `LOCAL` is compile‑time only.
 2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
@@ -196,7 +193,7 @@ length                     \ -> 3
 
 - Increasing CODE segment size requires no tag format change; only address range validation updates.
 - Additional compound types must adopt the same “header encodes span” contract to remain traversal-compatible with existing list algorithms.
-- Upcoming `DATA_REF` consolidation (Plan 40) will replace `STACK_REF`/`RSTACK_REF`/`GLOBAL_REF` with a single tag carrying absolute cell indices. Segment discrimination will be handled by comparing the payload against unified arena bounds (`GLOBAL_BASE`, `STACK_BASE`, `RSTACK_BASE`), keeping the payload zero-based.
+- Additional `DATA_REF` region codes may be allocated for future residency zones (e.g., buffers or readonly snapshots). Any extension must preserve the 2-bit region + 14-bit index layout and continue to respect arena bounds.
 
 ## Consistency Cross-Check
 

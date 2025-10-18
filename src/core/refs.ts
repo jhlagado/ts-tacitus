@@ -18,12 +18,80 @@ import {
   CELL_SIZE,
 } from './constants';
 
+const DATA_REF_SEGMENT_SHIFT = 14;
+const DATA_REF_SEGMENT_MASK = 0x3 << DATA_REF_SEGMENT_SHIFT;
+const DATA_REF_INDEX_MASK = (1 << DATA_REF_SEGMENT_SHIFT) - 1;
+
+const DATA_REF_SEGMENT_TABLE = [SEG_STACK, SEG_RSTACK, SEG_GLOBAL];
+
+const DATA_REF_SEGMENT_LIMITS: Record<number, number> = {
+  [SEG_STACK]: STACK_SIZE / CELL_SIZE,
+  [SEG_RSTACK]: RSTACK_SIZE / CELL_SIZE,
+  [SEG_GLOBAL]: GLOBAL_SIZE / CELL_SIZE,
+};
+
+function encodeDataRefSegment(segment: number): number {
+  const index = DATA_REF_SEGMENT_TABLE.indexOf(segment);
+  if (index === -1) {
+    throw new Error(`Unsupported DATA_REF segment: ${segment}`);
+  }
+  return index;
+}
+
+function decodeDataRefSegment(code: number): number {
+  const segment = DATA_REF_SEGMENT_TABLE[code];
+  if (segment === undefined) {
+    throw new Error(`Invalid DATA_REF segment code: ${code}`);
+  }
+  return segment;
+}
+
+export interface DataRefComponents {
+  segment: number;
+  cellIndex: number;
+}
+
+export function createDataRef(segment: number, cellIndex: number): number {
+  const segmentCode = encodeDataRefSegment(segment);
+  if (cellIndex < 0 || cellIndex > DATA_REF_INDEX_MASK) {
+    throw new Error(`DATA_REF cell index out of range: ${cellIndex}`);
+  }
+
+  const limit = DATA_REF_SEGMENT_LIMITS[segment];
+  if (limit === undefined) {
+    throw new Error(`DATA_REF limit missing for segment: ${segment}`);
+  }
+  if (cellIndex >= limit) {
+    throw new Error(`DATA_REF cell index ${cellIndex} exceeds segment capacity ${limit}`);
+  }
+
+  const payload = (segmentCode << DATA_REF_SEGMENT_SHIFT) | (cellIndex & DATA_REF_INDEX_MASK);
+  return toTaggedValue(payload, Tag.DATA_REF);
+}
+
+export function decodeDataRef(ref: number): DataRefComponents {
+  const { value, tag } = fromTaggedValue(ref);
+  if (tag !== Tag.DATA_REF) {
+    throw new Error('decodeDataRef called with non-DATA_REF value');
+  }
+
+  const segmentCode = (value & DATA_REF_SEGMENT_MASK) >>> DATA_REF_SEGMENT_SHIFT;
+  const cellIndex = value & DATA_REF_INDEX_MASK;
+  const segment = decodeDataRefSegment(segmentCode);
+  return { segment, cellIndex };
+}
+
 /**
  * Checks if a value is a reference (STACK_REF, RSTACK_REF, or GLOBAL_REF).
  */
 export function isRef(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF || tag === Tag.RSTACK_REF || tag === Tag.GLOBAL_REF;
+  return (
+    tag === Tag.STACK_REF ||
+    tag === Tag.RSTACK_REF ||
+    tag === Tag.GLOBAL_REF ||
+    tag === Tag.DATA_REF
+  );
 }
 
 /**
@@ -91,14 +159,16 @@ export function createGlobalRef(key: number): number {
  * SEG_STACK -> STACK_REF, SEG_RSTACK -> RSTACK_REF, other (e.g., GLOBAL) -> GLOBAL_REF.
  */
 export function createSegmentRef(segment: number, cellIndex: number): number {
-  if (segment === SEG_STACK) {
-    return toTaggedValue(cellIndex, Tag.STACK_REF);
+  switch (segment) {
+    case SEG_STACK:
+      return toTaggedValue(cellIndex, Tag.STACK_REF);
+    case SEG_RSTACK:
+      return toTaggedValue(cellIndex, Tag.RSTACK_REF);
+    case SEG_GLOBAL:
+      return toTaggedValue(cellIndex, Tag.GLOBAL_REF);
+    default:
+      return createDataRef(segment, cellIndex);
   }
-  if (segment === SEG_RSTACK) {
-    return toTaggedValue(cellIndex, Tag.RSTACK_REF);
-  }
-  // Future: use proper global segment addressing; for now map to GLOBAL_REF payload
-  return toTaggedValue(cellIndex, Tag.GLOBAL_REF);
 }
 
 /**
@@ -115,32 +185,46 @@ export interface ResolvedReference {
  */
 export function resolveReference(vm: VM, ref: number): ResolvedReference {
   const tag = getTag(ref);
-  const { value } = fromTaggedValue(ref);
-
-  if (!Number.isInteger(value)) {
-    throw new Error('Reference payload must be an integer cell index');
-  }
-
-  const offset = value * CELL_SIZE;
 
   switch (tag) {
-    case Tag.STACK_REF:
+    case Tag.STACK_REF: {
+      const { value } = fromTaggedValue(ref);
+      const offset = value * CELL_SIZE;
       if (offset < 0 || offset + CELL_SIZE > STACK_SIZE) {
         throw new RangeError(`Offset ${offset} is outside segment ${SEG_STACK} bounds`);
       }
       return { address: offset, segment: SEG_STACK };
+    }
 
-    case Tag.RSTACK_REF:
+    case Tag.RSTACK_REF: {
+      const { value } = fromTaggedValue(ref);
+      const offset = value * CELL_SIZE;
       if (offset < 0 || offset + CELL_SIZE > RSTACK_SIZE) {
         throw new RangeError(`Offset ${offset} is outside segment ${SEG_RSTACK} bounds`);
       }
       return { address: offset, segment: SEG_RSTACK };
+    }
 
-    case Tag.GLOBAL_REF:
+    case Tag.GLOBAL_REF: {
+      const { value } = fromTaggedValue(ref);
+      const offset = value * CELL_SIZE;
       if (offset < 0 || offset + CELL_SIZE > GLOBAL_SIZE) {
         throw new RangeError(`Offset ${offset} is outside segment ${SEG_GLOBAL} bounds`);
       }
       return { address: offset, segment: SEG_GLOBAL };
+    }
+
+    case Tag.DATA_REF: {
+      const { segment, cellIndex } = decodeDataRef(ref);
+      const limit = DATA_REF_SEGMENT_LIMITS[segment];
+      if (limit === undefined) {
+        throw new Error(`DATA_REF limit missing for segment: ${segment}`);
+      }
+      if (cellIndex < 0 || cellIndex >= limit) {
+        throw new RangeError(`DATA_REF cell index ${cellIndex} outside segment limit ${limit}`);
+      }
+      return { address: cellIndex * CELL_SIZE, segment };
+    }
 
     default:
       throw new Error(`Invalid reference type: ${tag}`);
