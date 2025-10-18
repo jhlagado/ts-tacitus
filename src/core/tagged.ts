@@ -19,9 +19,10 @@ export enum Tag {
   STACK_REF = 9,
   RSTACK_REF = 10,
   GLOBAL_REF = 11,
+  DATA_REF = 12,
 }
 
-export const MAX_TAG = Tag.GLOBAL_REF;
+export const MAX_TAG = Tag.DATA_REF;
 
 /**
  * Enumerates the canonical sentinel payload values carried by `Tag.SENTINEL`.
@@ -43,6 +44,7 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.STACK_REF]: 'STACK_REF',
   [Tag.RSTACK_REF]: 'RSTACK_REF',
   [Tag.GLOBAL_REF]: 'GLOBAL_REF',
+  [Tag.DATA_REF]: 'DATA_REF',
 };
 
 const VALUE_BITS = 16;

@@ -10,15 +10,15 @@ Access & Write (lowering)
 ```tacit
 x               → VarRef(slot) · Load
 &x              → VarRef(slot) · Fetch
-name            → LiteralNumber(GLOBAL_REF(slot)) · Load
-&name           → LiteralNumber(GLOBAL_REF(slot))
+name            → LiteralNumber(DATA_REF(global-slot)) · Load
+&name           → LiteralNumber(DATA_REF(global-slot))
 
 value -> x      → VarRef(slot) · Store
-value -> name   → LiteralNumber(GLOBAL_REF(slot)) · Store
+value -> name   → LiteralNumber(DATA_REF(global-slot)) · Store
 
 expr[ … ]       → [path] · Select · Load · Nip
 value -> x[ … ] → VarRef(slot) · Fetch · [path] · Select · Nip · Store
-value -> name[ …]→ LiteralNumber(GLOBAL_REF(slot)) · Fetch · [path] · Select · Nip · Store
+value -> name[ …]→ LiteralNumber(DATA_REF(global-slot)) · Fetch · [path] · Select · Nip · Store
 ```
 
 Increment (+>)

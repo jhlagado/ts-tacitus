@@ -21,12 +21,7 @@ Units
 
 1. Introduction and design goals
 2. Terminology
-   **ref** — an abstract, tagged address pointing to a cell in a memory segment. There are three ref types:
-
-- **STACK_REF**: refers to a cell location in the data stack segment (SEG_STACK)
-- **RSTACK_REF**: refers to a cell location in the return stack segment (SEG_RSTACK)
-- **GLOBAL_REF**: refers to a cell location in the global segment (SEG_GLOBAL)
-  Refs are used for polymorphic memory addressing and are encoded as tagged values. Each ref’s payload is an **absolute cell index inside the unified arena**; helpers validate that index against the tagged segment’s `[BASE, TOP)` range. Unless otherwise specified, references in this document refer to STACK_REFs.
+   **ref** — a `DATA_REF` tagged address pointing to a cell in the unified data arena. The 2-bit region code identifies the window: 0=data stack, 1=return stack, 2=global heap. Unless otherwise specified, references in this document refer to the data-stack region.
 
 4. Tagged values and headers (overview)
 5. Representation of a list on the stack
@@ -44,20 +39,20 @@ Units
 
 - Returns the **element count** by traversing the payload from `SP-1` downward.
 - **Rule:** simple → step 1; compound → step `span(header)`; increment element count each step.
-- Returns a **ref** (typically a STACK_REF) to the **start slot** for **element index `idx`** in the data stack segment (SEG_STACK).
-- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
+- Returns a **ref** (typically a `DATA_REF` targeting the data-stack region) to the **start slot** for **element index `idx`**.
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` to the element start slot.
 - **Cost:** O(s) worst-case.
   - `pack`
-- Returns the value located at the address referenced by `addr` (which may be a STACK_REF, RSTACK_REF, or GLOBAL_REF).
+- Returns the value located at the address referenced by `addr` (any `DATA_REF` region is accepted).
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
 - If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value.
-- `addr` is typically a STACK_REF address, but may be any ref type depending on context.
+- `addr` is typically a data-stack `DATA_REF`, but may reference any region depending on context.
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
 - **Example:** `list 3 elem fetch` yields the element at index 3, whether simple or compound.
 
 14. Sorting
 
-- Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a STACK_REF, but may be any ref type depending on context.
+- Writes `value` into the slot at the address referenced by `addr` in place. `addr` is typically a data-stack `DATA_REF`, but may be any region depending on context.
 - When the target at `addr` is **simple** (single-slot): the `value` must also be simple. Writing a compound into a simple slot is an error and must not alter structure.
 - When the target at `addr` is a **compound header** (e.g., a `LIST:s`): the `value` must be a compound of the **same type and identical slot count** (compatible). The operation copies the new compound into the existing region in-place; the address/ref remains stable. If types or slot counts differ, it is an error.
 - **Cost:** O(1) for simple; O(span) to copy a compatible compound.
@@ -189,7 +184,7 @@ Syntax
 Lowering (normative)
 
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
-- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (GLOBAL_REF), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
+- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (DATA_REF global region), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
 
 Semantics
 
@@ -252,18 +247,18 @@ Notes
 
 - Returns the **address** (absolute cell index) of a payload slot at **slot index `idx`**.
 - **Preconditions:** `0 ≤ idx < s`.
-- **Result:** returns a STACK_REF to the payload slot at index `idx`.
+- **Result:** returns a `DATA_REF` (data-stack region) to the payload slot at index `idx`.
 - **Cost:** O(1).
 
 ### elem ( idx -- addr )
 
 - Returns the **address** of the **start slot** for **element index `idx`**.
-- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a STACK_REF to the element start slot.
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` (data-stack region) to the element start slot.
 - **Cost:** O(s) worst-case.
 
 ### fetch ( addr -- value )
 
-- Strict reference read: expects a reference address (`STACK_REF`, `RSTACK_REF`, or future `GLOBAL_REF`). Errors on non-reference input.
+- Strict reference read: expects a `DATA_REF` (any region). Errors on non-reference input.
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
 - If the value at `addr` is the start of a **compound** (its header), returns the entire compound value (header plus payload) as a single value (materializes the list when header is read).
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
@@ -277,7 +272,7 @@ Notes
 
 ### store ( value addr -- )
 
-- Writes `value` into the slot at stack address `addr` in place. `addr` is a STACK_REF carrying an absolute cell index.
+- Writes `value` into the slot at stack address `addr` in place. `addr` is a data-stack `DATA_REF` carrying an absolute cell index.
 - Simple targets only; for compound targets see Compatibility Rule below.
 - **Cost:** O(1) for simple; O(span) to materialize a compound on fetch or to copy a compatible compound on store.
 - **Example:** `100 list 2 elem store` overwrites element 2 when that element is simple.
