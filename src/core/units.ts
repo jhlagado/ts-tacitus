@@ -85,6 +85,6 @@ export function fillCells(
   const dstNum = dst as unknown as number;
   const count = len as unknown as number;
   for (let i = 0; i < count; i++) {
-    mem.writeFloat32(segment, ((dstNum + i) << 2), value);
+    mem.writeFloat32(segment, (dstNum + i) << 2, value);
   }
 }

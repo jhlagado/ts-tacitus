@@ -73,7 +73,12 @@ import {
 import { makeListOp, packOp, unpackOp } from './lists';
 import { refOp } from './lists';
 import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
-import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from './capsules/capsule-ops';
+import {
+  exitConstructorOp,
+  exitDispatchOp,
+  dispatchOp,
+  endCapsuleOp,
+} from './capsules/capsule-ops';
 
 import { Op } from './opcodes';
 import { InvalidOpcodeError } from '@src/core';
@@ -283,16 +288,7 @@ export function varRefOp(vm: VM): void {
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
-  console.log(
-    'RSP(cells):',
-    vm.RSP,
-    'SP(cells):',
-    vm.SP,
-    'BP(cells):',
-    vm.BP,
-    'GP(cells):',
-    vm.GP,
-  );
+  console.log('RSP(cells):', vm.RSP, 'SP(cells):', vm.SP, 'BP(cells):', vm.BP, 'GP(cells):', vm.GP);
 
   if (vm.BP > 0) {
     const localCount = vm.symbolTable.getLocalCount();

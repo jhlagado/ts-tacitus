@@ -20,12 +20,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import {
-  isSpecialChar,
-  toTaggedValue,
-  fromTaggedValue,
-  Tag,
-} from '@src/core';
+import { isSpecialChar, toTaggedValue, fromTaggedValue, Tag } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
@@ -155,7 +150,6 @@ export function processToken(token: Token, state: ParserState): void {
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
 export function emitWord(value: string, state: ParserState): void {
-
   if (value === 'var') {
     emitVarDecl(state);
     return;
@@ -586,7 +580,7 @@ export function handleSpecial(value: string, state: ParserState): void {
     beginList(state);
   } else if (value === ')') {
     endList(state);
-  } else if (value === '\'') {
+  } else if (value === "'") {
     // Apostrophe shorthand: read next non-space, non-grouping run as a string
     parseApostropheString(state);
   } else if (value === '[') {

@@ -182,9 +182,7 @@ describe('Unified Reference System', () => {
     test('should reject invalid reference types', () => {
       vm.push(42); // Raw number, not a reference
 
-      expect(() => fetchOp(vm)).toThrow(
-        /fetch expects reference address \(DATA_REF or legacy/i,
-      );
+      expect(() => fetchOp(vm)).toThrow(/fetch expects reference address \(DATA_REF or legacy/i);
     });
 
     test('should work with multiple RSTACK_REF in same function', () => {

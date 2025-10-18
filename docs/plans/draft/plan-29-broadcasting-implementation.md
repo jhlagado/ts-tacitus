@@ -4,16 +4,19 @@ Status: draft
 Depends on: specs/broadcasting.md, specs/lists.md, specs/variables-and-refs.md, docs/reference/known-issues.md
 
 ## Goals
+
 - Add elementwise broadcasting for core unary/binary built‑ins over simple values and lists.
 - Support scalar extension and cycle‑to‑match (shorter repeats modulo) for list×list.
 - Recurse into nested lists when operators are defined at that level.
 - Preserve Tacit invariants: value‑by‑default deref, reverse list layout, in‑place assignment compatibility.
 
 ## Out of Scope
+
 - General broadcast combinators (e.g., bmap/bimap).
 - Shape inference beyond list element counts.
 
 ## Deliverables
+
 - Engine: `broadcastUnary`, `broadcastBinary` helpers (non‑exported), integrated into target built‑ins.
 - Built‑ins lifted: unary (`negate abs floor ceil round not`), binary (`add sub mul div mod pow eq neq lt le gt ge and or`).
 - Error: "broadcast type mismatch" path added to errors handling.
@@ -21,27 +24,33 @@ Depends on: specs/broadcasting.md, specs/lists.md, specs/variables-and-refs.md, 
 - Tests: full matrix for unary, simple×list, list×simple, list×list (equal/unequal), nested, empties, refs, type errors.
 
 ## Approach
-1) Detection and dispatch
+
+1. Detection and dispatch
+
 - Unary: in each target builtin, if TOS is a list header → `broadcastUnary(vm, opId)`, else simple fast path.
 - Binary: if either operand is a list header → `broadcastBinary(vm, opId)`, else simple×simple fast path.
 
-2) Algorithms (no cycle materialization)
+2. Algorithms (no cycle materialization)
+
 - Unary: traverse elements by span, apply op on value (load), recurse on list elements if supported.
 - Binary:
   - simple×list / list×simple: traverse list elements; for each element, apply recursively with the simple counterpart.
   - list×list: `m = length(a)`, `n = length(b)`, `L = max(m,n)`; for `i=0..L-1`, get element addresses via modulo index, `load` values, recurse/apply.
 - Builders: push element results (preserve spans), then header (reverse layout).
 
-3) Performance
+3. Performance
+
 - Fast‑path equal‑length flat numeric lists with tight zipped loops.
 - Avoid temporary cycled lists; modulo indexing only.
 - Use existing span traversal utilities.
 
-4) Errors and assignment
+4. Errors and assignment
+
 - Throw "broadcast type mismatch" when a pair has no supported op at that level.
 - Assignment with `->` follows existing compatibility rules; destinations are never materialized.
 
 ## Milestones
+
 - M1 Engine scaffolding
   - Add helpers in lists/ or core layer (private): element address by index (reusing `elem`), length (element count), list header checks.
   - Implement `broadcastUnary` with `negate` wired.
@@ -65,12 +74,14 @@ Depends on: specs/broadcasting.md, specs/lists.md, specs/variables-and-refs.md, 
 - Binary: `Add, Sub, Mul, Div, Mod, Pow, Eq, Neq, Lt, Le, Gt, Ge, And, Or`
 
 Each builtin receives an `opId` used by broadcasting helpers to dispatch simple handlers:
+
 - `applyUnary(opId, x) → y`
 - `applyBinary(opId, a, b) → r`
 
 ## Pseudocode (sketch)
 
 Unary
+
 ```
 broadcastUnary(vm, opId):
   x = vm.peek()
@@ -87,6 +98,7 @@ broadcastUnary(vm, opId):
 ```
 
 Binary
+
 ```
 broadcastBinary(vm, opId):
   b = peek(); a = peek2()
@@ -115,19 +127,23 @@ broadcastPair(ea, eb, opId):
 ```
 
 Notes
+
 - `popList`/`pushList` are conceptual: use existing list builders and traversal without duplicating payloads unnecessarily.
 - Use value‑by‑default (`load`) on element reads; never operate on addresses.
 
 ## Invariants & Safety
+
 - No modification of input lists; broadcasting constructs new outputs.
 - Reverse list layout preserved in all outputs.
 - Assigning results via `->` follows existing destination compatibility rules.
 
 ## Success Criteria
+
 - All test matrix cases pass; performance on equal‑length flat numeric lists within acceptable factor of simple zipped loops.
 - No regressions in simple×simple built‑ins.
 
 ## Test Matrix (high‑level)
+
 - Unary: `( )`, `( 1 2 3 ) negate`, `( (1 2) 3 ) negate`.
 - Binary:
   - simple×simple: `1 2 add`.
@@ -140,11 +156,12 @@ Notes
   - refs: `&x ( 1 2 ) add` (value‑by‑default), `&name ( 1 2 ) add`.
 
 ## Risks & Mitigations
+
 - Deep recursion costs on heavily nested lists → ensure tail‑like iteration at top level; recurse only per element.
 - Type dispatch surface area across built‑ins → stage integration by opcode, reuse a central op table.
 - Performance regressions → keep simple×simple fast paths; add equal‑length flat numeric path.
 
 ## Rollout
+
 - Land M1–M3 behind a feature flag if needed; enable by default once tests stabilize.
 - Document in specs/broadcasting.md + examples.
-

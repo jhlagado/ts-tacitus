@@ -268,7 +268,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
       evalOp(vm);
       expect(vm.getStackData()).toEqual([100, 100]);
     });
-
   });
 
   describe('Integration Workflow Testing', () => {

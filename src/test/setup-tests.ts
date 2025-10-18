@@ -30,4 +30,3 @@ expect.extend({
     };
   },
 });
-

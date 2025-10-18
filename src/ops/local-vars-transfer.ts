@@ -43,8 +43,8 @@ export function rpushList(vm: VM): number {
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-  // Compute header byte address from cell-oriented RSP to avoid direct RP usage
-  const headerAddr = vm.RSP * CELL_SIZE;
+    // Compute header byte address from cell-oriented RSP to avoid direct RP usage
+    const headerAddr = vm.RSP * CELL_SIZE;
     vm.rpush(header);
     dropList(vm);
     return headerAddr;

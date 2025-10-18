@@ -138,7 +138,11 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
     return out;
   };
 
-  const transformScalarOverSlots = (scalar: number, listSlots: number[], left: boolean): number[] => {
+  const transformScalarOverSlots = (
+    scalar: number,
+    listSlots: number[],
+    left: boolean,
+  ): number[] => {
     // listSlots: [header, payload...]
     const out: number[] = new Array(listSlots.length);
     out[0] = listSlots[0];

@@ -53,7 +53,7 @@ describe('parser state helpers', () => {
     const getStackData = jest.fn(() => ['stack-snapshot']);
     const { requireParserState } = await loadStateModule(getStackData);
     expect(() => requireParserState()).toThrowErrorMatchingInlineSnapshot(
-      `"Definition opener/closer used outside of parser context"`
+      `"Definition opener/closer used outside of parser context"`,
     );
     expect(getStackData).toHaveBeenCalledTimes(1);
   });

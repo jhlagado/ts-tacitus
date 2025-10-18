@@ -24,6 +24,8 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
 
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {
-    throw new Error(`Expected ${label} slot0 to be CODE_REF, found ${Tag[codeTag] ?? 'unknown tag'}`);
+    throw new Error(
+      `Expected ${label} slot0 to be CODE_REF, found ${Tag[codeTag] ?? 'unknown tag'}`,
+    );
   }
 }

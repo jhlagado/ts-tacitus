@@ -6,4 +6,3 @@
  * Production code should import `{ vm, initializeInterpreter }` from `src/lang/runtime`.
  */
 export { vm, initializeInterpreter } from '../lang/runtime';
-

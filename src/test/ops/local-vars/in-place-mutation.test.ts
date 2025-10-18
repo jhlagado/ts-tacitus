@@ -4,7 +4,10 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/global-state';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import { updateListInPlace as mutateCompoundInPlace, isCompatible as isCompatibleCompound } from '../../../ops/local-vars-transfer';
+import {
+  updateListInPlace as mutateCompoundInPlace,
+  isCompatible as isCompatibleCompound,
+} from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
 import { SEG_RSTACK, CELL_SIZE } from '../../../core/constants';
@@ -152,15 +155,15 @@ describe('In-Place Compound Mutation', () => {
       const existingHeader = toTaggedValue(2, Tag.LIST);
       vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
 
-  // Record RSP (return stack in cells) before mutation
-  const rspBeforeMutation = vm.RSP;
+      // Record RSP (return stack in cells) before mutation
+      const rspBeforeMutation = vm.RSP;
 
       // Perform mutation
       mutateCompoundInPlace(vm, targetAddr, SEG_RSTACK);
 
       // Verify RP unchanged (key difference from transferCompoundToReturnStack)
-  // Verify RSP unchanged (key difference from transferCompoundToReturnStack)
-  expect(vm.RSP).toBe(rspBeforeMutation);
+      // Verify RSP unchanged (key difference from transferCompoundToReturnStack)
+      expect(vm.RSP).toBe(rspBeforeMutation);
 
       // Verify data was written to correct location
       // Stack order for (10 20) is [20, 10, header]

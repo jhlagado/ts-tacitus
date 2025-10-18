@@ -54,11 +54,11 @@ export const maxOp: Verb = (vm: VM) => {
 };
 export const absOp: Verb = (vm: VM) => {
   // Lift to unary broadcasting (handles simple and nested lists)
-  unaryRecursive(vm, 'abs', (a) => Math.abs(a));
+  unaryRecursive(vm, 'abs', a => Math.abs(a));
 };
 
 export const negOp: Verb = (vm: VM) => {
-  unaryRecursive(vm, 'neg', (a) => -a);
+  unaryRecursive(vm, 'neg', a => -a);
 };
 
 export const signOp: Verb = (vm: VM) => {
@@ -107,10 +107,10 @@ export const recipOp: Verb = (vm: VM) => {
 
 export const floorOp: Verb = (vm: VM) => {
   // Lift to unary broadcasting (handles simple and nested lists)
-  unaryRecursive(vm, 'floor', (a) => Math.floor(a));
+  unaryRecursive(vm, 'floor', a => Math.floor(a));
 };
 
 export const notOp: Verb = (vm: VM) => {
   // Lift to unary broadcasting (numeric truth domain: 0 -> 1, non-zero -> 0)
-  unaryRecursive(vm, 'not', (a) => (a === 0 ? 1 : 0));
+  unaryRecursive(vm, 'not', a => (a === 0 ? 1 : 0));
 };

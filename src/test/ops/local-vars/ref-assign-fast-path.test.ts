@@ -3,7 +3,12 @@
  * Verifies direct ref-to-list assignment fast path in storeOp.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM, extractListFromStack, getFormattedStack } from '../../utils/vm-test-utils';
+import {
+  executeTacitCode,
+  resetVM,
+  extractListFromStack,
+  getFormattedStack,
+} from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag } from '../../../core';
 import { vm } from '../../../core/global-state';
@@ -25,7 +30,10 @@ function expectTopIsListWith(values: number[], stack: number[]) {
     }
     for (let i = 0; i < stack.length; i++) {
       const { tag } = fromTaggedValue(stack[i]);
-      if (tag === Tag.LIST) { headerIndex = i; break; }
+      if (tag === Tag.LIST) {
+        headerIndex = i;
+        break;
+      }
     }
   }
   expect(headerIndex).toBeGreaterThanOrEqual(0);

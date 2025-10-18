@@ -191,7 +191,6 @@ export enum Op {
   /**  Closes a list with ')' - creates list tag with size information */
   CloseList,
 
-
   /** Generic block-to-list converter: executes block and converts results to list */
   MakeList,
 

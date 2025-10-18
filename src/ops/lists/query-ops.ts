@@ -216,7 +216,11 @@ function initializeGlobalCompound(
   const headerAddr = baseAddr + slotCount * CELL_SIZE;
   vm.memory.writeFloat32(SEG_GLOBAL, headerAddr, rhsInfo.header);
   const headerCellIndex = headerAddr / CELL_SIZE;
-  vm.memory.writeFloat32(slot.root.segment, slot.root.address, toTaggedValue(headerCellIndex, Tag.GLOBAL_REF));
+  vm.memory.writeFloat32(
+    slot.root.segment,
+    slot.root.address,
+    toTaggedValue(headerCellIndex, Tag.GLOBAL_REF),
+  );
   vm.GP = baseCells + neededCells;
   discardCompoundSource(vm, rhsTag);
 }
@@ -242,7 +246,13 @@ function copyCompoundFromReference(
   if (rhsInfo.segment === targetSegment) {
     const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
     const dstBaseCell = destBaseAddr / CELL_SIZE;
-    copyCells(vm.memory, targetSegment, cellIndex(dstBaseCell), cellIndex(srcBaseCell), cells(slotCount));
+    copyCells(
+      vm.memory,
+      targetSegment,
+      cellIndex(dstBaseCell),
+      cellIndex(srcBaseCell),
+      cells(slotCount),
+    );
     vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
     return;
   }

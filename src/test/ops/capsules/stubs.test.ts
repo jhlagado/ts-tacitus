@@ -1,5 +1,10 @@
 import { vm } from '../../../core/global-state';
-import { exitConstructorOp, exitDispatchOp, dispatchOp, endCapsuleOp } from '../../../ops/capsules/capsule-ops';
+import {
+  exitConstructorOp,
+  exitDispatchOp,
+  dispatchOp,
+  endCapsuleOp,
+} from '../../../ops/capsules/capsule-ops';
 import { Tag, toTaggedValue } from '../../../core';
 import { resetVM } from '../../utils/vm-test-utils';
 
@@ -23,7 +28,7 @@ describe('capsule opcode stubs', () => {
 
     // Data stack: handle to RSTACK header
     const handle = vm.peek();
-    const { tag, value: headerIndex } = (require('../../../core').fromTaggedValue)(handle);
+    const { tag, value: headerIndex } = require('../../../core').fromTaggedValue(handle);
     expect(tag).toBe(Tag.RSTACK_REF);
     expect(headerIndex).toBe(vm.RSP - 1);
 

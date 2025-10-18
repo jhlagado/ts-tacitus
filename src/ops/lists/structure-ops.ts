@@ -9,7 +9,8 @@ import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
-const stackAddrFromTop = (vm: VM, offsetSlots: number): number => (vm.SP - (offsetSlots + 1)) * CELL_SIZE;
+const stackAddrFromTop = (vm: VM, offsetSlots: number): number =>
+  (vm.SP - (offsetSlots + 1)) * CELL_SIZE;
 
 export function tailOp(vm: VM): void {
   vm.ensureStackSize(1, 'tail');
@@ -85,7 +86,7 @@ export function headOp(vm: VM): void {
     const elementSlotCount = getListLength(firstElement);
 
     if (info.segment === SEG_STACK) {
-      vm.SP -= (elementSlotCount + 1);
+      vm.SP -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(info.segment, firstElementAddr - i * CELL_SIZE);
         vm.push(slotValue);
@@ -250,7 +251,7 @@ export function concatOp(vm: VM): void {
       ? getListLength((rhsInfo as { kind: 'stack-list'; header: number }).header) + 1
       : rhsSize;
 
-  vm.SP -= (lhsDrop + rhsDrop);
+  vm.SP -= lhsDrop + rhsDrop;
 
   for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
   for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);

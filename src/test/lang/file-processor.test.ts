@@ -157,4 +157,3 @@ describe('processFiles', () => {
     expect(result).toBe(false);
   });
 });
-

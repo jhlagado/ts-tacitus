@@ -1,7 +1,6 @@
 import { runTacitTest, captureTacitOutput } from '../../utils/vm-test-utils';
 
 describe('Unary broadcasting: neg', () => {
-
   test('simple value', () => {
     const stack = runTacitTest('5 neg');
     expect(stack).toEqual([-5]);

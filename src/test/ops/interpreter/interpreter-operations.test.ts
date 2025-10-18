@@ -62,7 +62,7 @@ describe('Built-in Words', () => {
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-  expect(vm.BP).toBe(vm.RSP);
+      expect(vm.BP).toBe(vm.RSP);
       const savedBP = vm.rpop();
       expect(savedBP).toBe(originalBP);
       const returnAddr = vm.rpop();
@@ -156,8 +156,8 @@ describe('Built-in Words', () => {
       );
     });
     test('should handle return stack overflow', () => {
-  const maxDepth = vm.RSP; // already in cells
-  for (let i = 0; i < maxDepth; i++) {
+      const maxDepth = vm.RSP; // already in cells
+      for (let i = 0; i < maxDepth; i++) {
         vm.rpush(0);
       }
 

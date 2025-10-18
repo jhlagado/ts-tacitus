@@ -154,7 +154,7 @@ export class Tokenizer {
     }
 
     // Apostrophe shorthand for bare string keys: 'key -> STRING("key")
-    if (char === '\'') {
+    if (char === "'") {
       this.position++;
       this.column++;
       const startPosAfterQuote = this.position;
