@@ -4,21 +4,21 @@ This document summarises and formalises the discussions on Tacit's global memory
 
 ---
 
-## 1. Global Heap and Allocation Strategy
+## 1. Global Heap and Stack Discipline
 
 Tacit's global heap is a foundational structure that underpins the entire memory model for global values and symbol definitions. It is a dedicated, linear memory segment whose primary purpose is to hold long-lived values and metadata that must remain available throughout the lifetime of the program.
 
-The global heap is **managed by the GP register**, which points to the next available slot. Allocation proceeds using Tacit-native primitives built on a **bump allocation strategy**:
+The global heap is **managed by the GP register**, which always points to the next open cell. Growth and reclamation happen through Tacit-native primitives that treat the heap as a disciplined stack:
 
 - `gpush` copies the value at TOS onto the heap (materialising LIST payloads as needed) and pushes the resulting `DATA_REF` handle back to the data stack.
-- `gpop` rewinds the heap to the previous pushed value (used sparingly; most callers prefer marks).
+- `gpop` rewinds the heap by a single push, discarding the most recent entry when callers need a quick undo.
 - `gpeek` reads the heap top without rewinding and copies the value back to the data stack.
 - `gmark` pushes the current `GP` (cell index) onto the data stack so callers can checkpoint the heap state.
-- `gsweep` consumes a mark (`GP` cell index) and resets `vm.GP` to that value, discarding all allocations performed after the mark.
+- `gsweep` consumes a mark (`GP` cell index) and resets `vm.GP` to that value, discarding everything above the checkpoint.
 
 ### Heap as a Stack-Like Structure
 
-Although the heap is not a stack in the traditional sense, it behaves like a **monotonic, append-only stack**. Values are added via `gpush` and normally persist indefinitely. Reclamation happens only through `gsweep`, which rewinds the bump pointer to a previously recorded mark. This discipline ensures stable references for heap-resident data while still allowing scoped allocations to be discarded explicitly.
+Although the heap is not a stack in the traditional sense, it behaves like one: pushes happen through `gpush`, the newest entry can be reclaimed immediately with `gpop`, and bulk rewinds are handled by `gsweep` against prior marks. This discipline ensures stable references for heap-resident data while still allowing scoped groups of pushes to be discarded explicitly.
 
 ### Global Availability and Lifetime
 
@@ -35,9 +35,9 @@ The global heap may contain:
   - **Buffers**: mutable list-like structures that allow in-place update and growth patterns. Buffers are implemented on top of lists with additional behavioral conventions.
   - **Dictionary records**: including both function entries and global variables. These records are stored in the heap and linked via backward pointers to form the live dictionary.
 
-In all cases, the heap preserves structure and reference integrity. Once a compound structure is allocated, its memory layout is stable. This enables references to be freely shared across the runtime, embedded in capsules, or accessed via named dictionary entries. Scoped allocations (e.g., temporary data created during compilation) should capture a mark before performing `gpush` and invoke `gsweep` afterward to release their heap footprint.
+In all cases, the heap preserves structure and reference integrity. Once a compound structure is pushed, its layout is stable. This enables references to be freely shared across the runtime, embedded in capsules, or accessed via named dictionary entries. Scoped heap usage (e.g., temporary data created during compilation) should capture a mark before performing `gpush` and invoke `gsweep` afterward to release their footprint.
 
-In summary, the heap is not a stack in terms of frequent popping, but it is **stack-like** in its simplicity and monotonic growth. It provides the backbone of Tacit's global memory system and hosts all persistent values that must be available across function boundaries, time, and scopes.
+In summary, the heap is **stack-like**: it grows with each `gpush`, can drop the newest item with `gpop`, and can rewind to any saved mark. It provides the backbone of Tacit's global memory system and hosts all persistent values that must be available across function boundaries, time, and scopes.
 
 ---
 
