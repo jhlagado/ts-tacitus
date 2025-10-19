@@ -3,7 +3,7 @@ Must-read specs (before coding)
   • docs/specs/core-invariants.md: One-page rules and quick patterns.
   • docs/specs/lists.md: Reverse list layout, slots vs elements, span traversal, structural ops.
   • docs/specs/tagged.md: NaN-boxed tags, active tags, payload widths, runtime invariants.
-  • docs/specs/refs.md: STACK_REF/RSTACK_REF/GLOBAL_REF semantics, load/fetch/store rules, segment model.
+  • docs/specs/refs.md: DATA_REF semantics, load/fetch/store rules, segment model.
   • docs/specs/access.md: Path-based get/set semantics, address-returning traversal.
   • docs/specs/refs.md (§12): How ops accept values or refs transparently (polymorphism).
 
@@ -49,7 +49,7 @@ Must-read specs (before coding)
 
   References and polymorphism
 
-  • Ref kinds: STACK_REF (SEG_STACK), RSTACK_REF (SEG_RSTACK), GLOBAL_REF (future).
+  • Ref kinds: DATA_REF payloads resolve to SEG_STACK / SEG_RSTACK / SEG_GLOBAL windows.
   • Always return segment-correct refs (use createSegmentRef).
   • resolveReference for segment+address; fetch materializes compounds.
   • Ops must accept LIST or REF targets transparently (no heap; stack spans only).

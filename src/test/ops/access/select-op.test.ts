@@ -3,15 +3,16 @@
  * Tests the select operation that returns addresses/refs instead of values
  */
 import { executeTacitCode } from '../../utils/vm-test-utils';
-import { NIL, Tag, getTag } from '../../../core/tagged';
+import { getTag, NIL, Tag } from '../../../core/tagged';
 import {
   createTargetRef,
   traverseMultiPath,
   processPathStep,
 } from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
-import { isRef } from '../../../core/refs';
+import { isRef, decodeDataRef } from '../../../core/refs';
 import { initializeInterpreter, vm } from '../../../core/global-state';
+import { SEG_STACK } from '../../../core';
 
 describe('selectOp - Path-based address access', () => {
   beforeEach(() => {
@@ -39,7 +40,7 @@ describe('selectOp - Path-based address access', () => {
       // Should have: target path target-ref
       const targetRef = vm.peek();
       expect(isRef(targetRef)).toBe(true);
-      expect(getTag(targetRef)).toBe(Tag.STACK_REF);
+      expect(decodeDataRef(targetRef).segment).toBe(SEG_STACK);
     });
 
     test('should return false for simple target', () => {
@@ -188,12 +189,12 @@ describe('selectOp - Path-based address access', () => {
     expect(getTag(last)).toBe(Tag.STRING);
   });
 
-  test('should handle selection on STACK_REF target', () => {
+  test('should handle selection on data-stack DATA_REF target', () => {
     const result = executeTacitCode('( ( 10 20 ) ( 30 40 ) ) ref ( 1 0 ) select fetch');
     expect(result[result.length - 1]).toBe(30);
   });
 
-  test('should handle selection on RSTACK_REF target', () => {
+  test('should handle selection on return-stack DATA_REF target', () => {
     const result = executeTacitCode(
       ': f ( ( 10 20 ) ( 30 40 ) ) var xs &xs ( 1 0 ) select fetch ; f',
     );

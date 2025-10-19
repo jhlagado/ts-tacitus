@@ -68,7 +68,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('invalid path in update throws (bad index)', () => {
     const code = ': bad ((1 2)(3 4)) var x 5 -> x[99] ; bad';
-    expect(() => executeProgram(code)).toThrow(/store expects reference address/);
+    expect(() => executeProgram(code)).toThrow(/store expects DATA_REF address/);
   });
 
   test('deeper nested update: change head of innermost list', () => {
@@ -95,7 +95,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('empty path update throws (no target selected)', () => {
     const code = ': bad (1 2) var x 9 -> x[] ; bad';
-    expect(() => executeProgram(code)).toThrow(/store expects reference address/i);
+    expect(() => executeProgram(code)).toThrow(/store expects DATA_REF address/i);
   });
 
   test('whitespace inside brackets is tolerated', () => {
@@ -118,7 +118,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('negative index update throws', () => {
     const code = ': f (10 20) var x 99 -> x[-1] ; f';
-    expect(() => executeProgram(code)).toThrow(/store expects reference address/i);
+    expect(() => executeProgram(code)).toThrow(/store expects DATA_REF address/i);
   });
 
   test('multiple updates persist: sequence of writes reflects latest', () => {

@@ -1,6 +1,6 @@
 /**
  * @file src/test/ops/local-vars/ref-assign-cross-segment.test.ts
- * Cross-segment direct copies (STACK_REF ↔ RSTACK_REF) via storeOp fast path.
+ * Cross-segment direct copies (stack ↔ return stack DATA_REFs) via storeOp fast path.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, resetVM, extractListFromStack } from '../../utils/vm-test-utils';
@@ -27,7 +27,7 @@ describe('Cross-segment ref-to-list store', () => {
     resetVM();
   });
 
-  test('STACK_REF -> RSTACK_REF (literal list ref into local)', () => {
+  test('Stack DATA_REF -> return-stack DATA_REF (literal list ref into local)', () => {
     const code = `
       : f
         (1 2 3) ref
@@ -42,7 +42,7 @@ describe('Cross-segment ref-to-list store', () => {
     expectTopIsListWith([3, 2, 1], stack);
   });
 
-  test('RSTACK_REF -> STACK_REF (local compound into stack list via ref/store)', () => {
+  test('Return-stack DATA_REF -> stack DATA_REF (local compound into stack list via ref/store)', () => {
     const code = `
       : f
         (4 5 6) var x

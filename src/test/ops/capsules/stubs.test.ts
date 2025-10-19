@@ -5,7 +5,7 @@ import {
   dispatchOp,
   endCapsuleOp,
 } from '../../../ops/capsules/capsule-ops';
-import { Tag, toTaggedValue } from '../../../core';
+import { decodeDataRef, SEG_RSTACK } from '../../../core';
 import { resetVM } from '../../utils/vm-test-utils';
 
 describe('capsule opcode stubs', () => {
@@ -28,9 +28,9 @@ describe('capsule opcode stubs', () => {
 
     // Data stack: handle to RSTACK header
     const handle = vm.peek();
-    const { tag, value: headerIndex } = require('../../../core').fromTaggedValue(handle);
-    expect(tag).toBe(Tag.RSTACK_REF);
-    expect(headerIndex).toBe(vm.RSP - 1);
+    const { segment, cellIndex } = decodeDataRef(handle);
+    expect(segment).toBe(SEG_RSTACK);
+    expect(cellIndex).toBe(vm.RSP - 1);
 
     // RSTACK: appended CODE + LIST, so grew by 2
     expect(vm.RSP).toBe(prevRSP + 2);

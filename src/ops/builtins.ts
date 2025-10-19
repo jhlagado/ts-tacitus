@@ -10,6 +10,9 @@ import {
   getTag,
   Tag,
   getVarRef,
+  createDataRef,
+  decodeDataRef,
+  isRef,
   SEG_RSTACK,
   CELL_SIZE,
 } from '@src/core';
@@ -267,8 +270,8 @@ export function initVarOp(vm: VM): void {
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
-    const headerCellIndex = headerAddr / 4;
-    const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
+    const headerCellIndex = headerAddr / CELL_SIZE;
+    const localRef = createDataRef(SEG_RSTACK, headerCellIndex);
 
     vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
   } else {
@@ -301,12 +304,15 @@ export function dumpFrameOp(vm: VM): void {
       const { value } = fromTaggedValue(slotValue);
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
-      if (tag === Tag.RSTACK_REF) {
-        const targetAddr = value * CELL_SIZE;
-        const targetValue = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+      if (isRef(slotValue)) {
+        const { segment, cellIndex } = decodeDataRef(slotValue);
+        const targetAddr = cellIndex * CELL_SIZE;
+        const targetValue = vm.memory.readFloat32(segment, targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
-        console.log(`    -> Points to tag: ${Tag[targetTag]}, value: ${targetVal}`);
+        console.log(
+          `    -> Points to segment ${segment}, tag: ${Tag[targetTag]}, value: ${targetVal}`,
+        );
       }
     }
   } else {

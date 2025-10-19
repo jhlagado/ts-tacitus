@@ -20,7 +20,14 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isSpecialChar, toTaggedValue, fromTaggedValue, Tag } from '@src/core';
+import {
+  isSpecialChar,
+  toTaggedValue,
+  fromTaggedValue,
+  Tag,
+  decodeDataRef,
+  SEG_GLOBAL,
+} from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
@@ -183,6 +190,7 @@ export function emitWord(value: string, state: ParserState): void {
   }
 
   const { tag, value: tagValue } = fromTaggedValue(entry.taggedValue);
+  const entryValue = entry.taggedValue;
 
   if (tag === Tag.CODE) {
     vm.compiler.compileUserWordCall(tagValue);
@@ -211,9 +219,14 @@ export function emitWord(value: string, state: ParserState): void {
     return;
   }
 
-  if (tag === Tag.GLOBAL_REF) {
+  if (tag === Tag.DATA_REF) {
+    const components = decodeDataRef(entryValue);
+    if (components.segment !== SEG_GLOBAL) {
+      throw new UndefinedWordError(value, vm.getStackData());
+    }
+
     vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(toTaggedValue(tagValue, Tag.GLOBAL_REF));
+    vm.compiler.compileFloat32(entryValue);
 
     const nextToken = state.tokenizer.nextToken();
     if (nextToken && nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
@@ -259,7 +272,7 @@ export function emitAtSymbol(symbolName: string): void {
  * Process &variable tokens for explicit reference access.
  *
  * This function handles &variable syntax by compiling VarRef + Fetch
- * to create an RSTACK_REF to the local variable slot.
+ * to create a DATA_REF to the local variable slot.
  *
  * @param {string} varName - The variable name after & (without the & prefix)
  * @param {ParserState} state - The current parser state
@@ -281,9 +294,13 @@ export function emitRefSigil(varName: string, state: ParserState): void {
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
-    if (tag === Tag.GLOBAL_REF) {
+    if (tag === Tag.DATA_REF) {
+      const components = decodeDataRef(taggedValue);
+      if (components.segment !== SEG_GLOBAL) {
+        throw new Error(`${varName} is not a local variable`);
+      }
       vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+      vm.compiler.compileFloat32(taggedValue);
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
@@ -291,9 +308,9 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.GLOBAL_REF) {
+  if (tag === Tag.DATA_REF && decodeDataRef(taggedValue).segment === SEG_GLOBAL) {
     vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+    vm.compiler.compileFloat32(taggedValue);
     return;
   }
   throw new Error(`${varName} is not a global variable`);
@@ -370,11 +387,11 @@ export function emitGlobalDecl(state: ParserState): void {
   ) {
     throw new SyntaxError('Expected variable name after global', vm.getStackData());
   }
-  // Define global symbol and get its slot index (payload)
-  const slot = vm.symbolTable.defineGlobal(varName);
-  // Emit: LiteralNumber(GLOBAL_REF(slot)) → Store
+  // Define global symbol and get its DATA_REF handle
+  const globalRef = vm.symbolTable.defineGlobal(varName);
+  // Emit: LiteralNumber(DATA_REF) → Store
   vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(toTaggedValue(slot, Tag.GLOBAL_REF));
+  vm.compiler.compileFloat32(globalRef);
   vm.compiler.compileOpcode(Op.Store);
 }
 
@@ -435,11 +452,18 @@ export function emitAssignment(state: ParserState): void {
     vm.compiler.compileOpcode(Op.Store);
     return;
   }
-  if (tag === Tag.GLOBAL_REF) {
+  if (tag === Tag.DATA_REF) {
+    const components = decodeDataRef(taggedValue);
+    if (components.segment !== SEG_GLOBAL) {
+      throw new SyntaxError(
+        'Assignment operator (->) only allowed for locals or globals',
+        vm.getStackData(),
+      );
+    }
     const maybeBracket = state.tokenizer.nextToken();
     if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+      vm.compiler.compileFloat32(taggedValue);
       vm.compiler.compileOpcode(Op.Fetch);
       compileBracketPathAsList(state);
       vm.compiler.compileOpcode(Op.Select);
@@ -450,7 +474,7 @@ export function emitAssignment(state: ParserState): void {
       state.tokenizer.pushBack(maybeBracket);
     }
     vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(toTaggedValue(slotNumber, Tag.GLOBAL_REF));
+    vm.compiler.compileFloat32(taggedValue);
     vm.compiler.compileOpcode(Op.Store);
     return;
   }

@@ -1,4 +1,12 @@
-import { VM, Tag, toTaggedValue, fromTaggedValue, CELL_SIZE, SEG_RSTACK } from '@src/core';
+import {
+  VM,
+  Tag,
+  toTaggedValue,
+  fromTaggedValue,
+  CELL_SIZE,
+  SEG_RSTACK,
+  createDataRef,
+} from '@src/core';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { readCapsuleLayoutFromHandle } from './layout';
@@ -15,9 +23,9 @@ export function exitConstructorOp(vm: VM): void {
   // Append LIST header: payload = locals + 1 (CODE)
   vm.rpush(toTaggedValue(localCount + 1, Tag.LIST));
 
-  // Push RSTACK_REF handle to the capsule header on data stack
+  // Push DATA_REF handle to the capsule header on data stack
   const headerCellIndex = vm.RSP - 1;
-  vm.push(toTaggedValue(headerCellIndex, Tag.RSTACK_REF));
+  vm.push(createDataRef(SEG_RSTACK, headerCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
   const savedBP = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 1) * CELL_SIZE);

@@ -1,6 +1,6 @@
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 
-describe('Capsule dispatch via data-stack ref (STACK_REF)', () => {
+describe('Capsule dispatch via data-stack DATA_REF handle', () => {
   beforeEach(() => resetVM());
 
   test.skip('simple counter capsule dispatches using fetch+ref', () => {

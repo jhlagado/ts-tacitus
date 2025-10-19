@@ -7,7 +7,7 @@ describe('Reference Formatting', () => {
   });
 
   test('should format local variable references correctly', () => {
-    // Test local variable reference (RSTACK_REF from var operation) - use Tacit code with print
+    // Test local variable reference (return-stack DATA_REF from var operation) - use Tacit code with print
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     try {

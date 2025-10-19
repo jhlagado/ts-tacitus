@@ -98,94 +98,37 @@ export function decodeDataRef(ref: number): DataRefComponents {
   };
 }
 
-/**
- * Checks if a value is a reference (legacy STACK/RSTACK/GLOBAL or unified DATA_REF).
- */
 export function isRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return (
-    tag === Tag.STACK_REF ||
-    tag === Tag.RSTACK_REF ||
-    tag === Tag.GLOBAL_REF ||
-    tag === Tag.DATA_REF
-  );
+  return getTag(tval) === Tag.DATA_REF;
 }
 
-/**
- * Checks if a value is a STACK_REF.
- */
-export function isStackRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.STACK_REF;
+export function isDataRef(tval: number): boolean {
+  return isRef(tval);
 }
 
-/**
- * Checks if a value is a RSTACK_REF.
- */
-export function isLocalRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.RSTACK_REF;
+export function getRefSegment(ref: number): number {
+  return decodeDataRef(ref).segment;
 }
 
-/**
- * Checks if a value is a GLOBAL_REF.
- */
-export function isGlobalRef(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
-  return tag === Tag.GLOBAL_REF;
+export function createSegmentRef(segment: number, cellIndex: number): number {
+  return createDataRef(segment, cellIndex);
 }
 
-/**
- * Creates a STACK_REF tagged value.
- */
-export function createStackRef(cellIndex: number): number {
-  if (cellIndex < 0 || cellIndex > 65535) {
-    throw new Error('Stack cell index must be 0-65535');
-  }
-  return toTaggedValue(cellIndex, Tag.STACK_REF);
-}
-
-/**
- * Creates a reference to a local variable slot.
- * Takes a slot number (0, 1, 2, etc.) and returns a RSTACK_REF tagged value
- * that points to the absolute address of that slot in the current stack frame.
- */
 export function getVarRef(vm: VM, slotNumber: number): number {
   if (slotNumber < 0) {
     throw new Error('Slot number must be non-negative');
   }
 
-  // Use BP (cells) for unit-safe math; payload expects absolute cell index
-  const absoluteCellIndex = vm.BP + slotNumber;
+  const segmentCellIndex = vm.BP + slotNumber;
   const maxCells = RSTACK_SIZE / CELL_SIZE;
-  if (absoluteCellIndex < 0 || absoluteCellIndex >= maxCells) {
+  if (segmentCellIndex < 0 || segmentCellIndex >= maxCells) {
     throw new RangeError('Local reference outside return stack bounds');
   }
-  return toTaggedValue(absoluteCellIndex, Tag.RSTACK_REF);
+  return createDataRef(SEG_RSTACK, segmentCellIndex);
 }
 
-/**
- * Creates a GLOBAL_REF tagged value.
- */
-export function createGlobalRef(key: number): number {
-  return toTaggedValue(key, Tag.GLOBAL_REF);
-}
-
-/**
- * Creates a reference value for a given segment and cell index.
- * SEG_STACK -> STACK_REF, SEG_RSTACK -> RSTACK_REF, other (e.g., GLOBAL) -> GLOBAL_REF.
- */
-export function createSegmentRef(segment: number, cellIndex: number): number {
-  switch (segment) {
-    case SEG_STACK:
-      return toTaggedValue(cellIndex, Tag.STACK_REF);
-    case SEG_RSTACK:
-      return toTaggedValue(cellIndex, Tag.RSTACK_REF);
-    case SEG_GLOBAL:
-      return toTaggedValue(cellIndex, Tag.GLOBAL_REF);
-    default:
-      return createDataRef(segment, cellIndex);
-  }
+export function createGlobalRef(cellIndex: number): number {
+  return createDataRef(SEG_GLOBAL, cellIndex);
 }
 
 /**
@@ -201,44 +144,11 @@ export interface ResolvedReference {
  * Returns the byte address and memory segment for any reference type.
  */
 export function resolveReference(vm: VM, ref: number): ResolvedReference {
-  const tag = getTag(ref);
-
-  switch (tag) {
-    case Tag.STACK_REF: {
-      const { value } = fromTaggedValue(ref);
-      const offset = value * CELL_SIZE;
-      if (offset < 0 || offset + CELL_SIZE > STACK_SIZE) {
-        throw new RangeError(`Offset ${offset} is outside segment ${SEG_STACK} bounds`);
-      }
-      return { address: offset, segment: SEG_STACK };
-    }
-
-    case Tag.RSTACK_REF: {
-      const { value } = fromTaggedValue(ref);
-      const offset = value * CELL_SIZE;
-      if (offset < 0 || offset + CELL_SIZE > RSTACK_SIZE) {
-        throw new RangeError(`Offset ${offset} is outside segment ${SEG_RSTACK} bounds`);
-      }
-      return { address: offset, segment: SEG_RSTACK };
-    }
-
-    case Tag.GLOBAL_REF: {
-      const { value } = fromTaggedValue(ref);
-      const offset = value * CELL_SIZE;
-      if (offset < 0 || offset + CELL_SIZE > GLOBAL_SIZE) {
-        throw new RangeError(`Offset ${offset} is outside segment ${SEG_GLOBAL} bounds`);
-      }
-      return { address: offset, segment: SEG_GLOBAL };
-    }
-
-    case Tag.DATA_REF: {
-      const { segment, cellIndex } = decodeDataRef(ref);
-      return { address: cellIndex * CELL_SIZE, segment };
-    }
-
-    default:
-      throw new Error(`Invalid reference type: ${tag}`);
+  if (!isRef(ref)) {
+    throw new Error(`Invalid reference type: ${getTag(ref)}`);
   }
+  const { segment, cellIndex } = decodeDataRef(ref);
+  return { address: cellIndex * CELL_SIZE, segment };
 }
 
 /**

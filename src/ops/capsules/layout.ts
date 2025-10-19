@@ -17,9 +17,8 @@ export interface CapsuleLayout {
 }
 
 /**
- * Reads and validates a capsule layout from an RSTACK_REF handle.
- * Ensures the referenced value is a LIST header on the return stack and that
- * slot0 contains a CODE reference.
+ * Reads and validates a capsule layout from a DATA_REF handle.
+ * Ensures the referenced value is a LIST header and that slot0 contains a CODE reference.
  */
 export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayout {
   // Resolve list header/payload bounds via generic list bounds helper (segment‑aware).

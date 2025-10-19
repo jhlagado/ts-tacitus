@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
-import { Tag, toTaggedValue, createStackRef, SEG_STACK } from '../../core';
+import { Tag, toTaggedValue, createDataRef, SEG_STACK } from '../../core';
 
 describe('format-utils additional coverage', () => {
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe('format-utils additional coverage', () => {
     vm.memory.writeFloat32(SEG_STACK, (baseCell - 1) * 4, e3);
     vm.memory.writeFloat32(SEG_STACK, baseCell * 4, header);
 
-    const ref = createStackRef(baseCell);
+    const ref = createDataRef(SEG_STACK, baseCell);
     // Memory-based formatting consumes from stack (LIFO), so order reverses
     expect(formatValue(vm, ref)).toBe('( 3 2 1 )');
   });
@@ -43,7 +43,7 @@ describe('format-utils additional coverage', () => {
     const cell = 20;
     const num = toTaggedValue(42, Tag.NUMBER);
     vm.memory.writeFloat32(SEG_STACK, cell * 4, num);
-    const ref = createStackRef(cell);
+    const ref = createDataRef(SEG_STACK, cell);
     expect(formatValue(vm, ref)).toBe('42');
   });
 

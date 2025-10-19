@@ -1,7 +1,7 @@
 import { vm } from '../../../core/global-state';
 import { resetVM } from '../../utils/vm-test-utils';
 import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
-import { Tag, toTaggedValue } from '../../../core';
+import { Tag, toTaggedValue, createDataRef, SEG_RSTACK, SEG_STACK } from '../../../core';
 
 describe('capsule dispatch runtime', () => {
   beforeEach(() => resetVM());
@@ -12,7 +12,7 @@ describe('capsule dispatch runtime', () => {
     const codeRef = toTaggedValue(codeAddr, Tag.CODE);
     vm.rpush(codeRef);
     vm.rpush(toTaggedValue(locals.length + 1, Tag.LIST));
-    const handle = toTaggedValue(vm.RSP - 1, Tag.RSTACK_REF);
+    const handle = createDataRef(SEG_RSTACK, vm.RSP - 1);
     return { handle, codeRef };
   };
 
@@ -45,7 +45,7 @@ describe('capsule dispatch runtime', () => {
 
   test('errors on non-capsule receiver', () => {
     vm.push(0);
-    vm.push(toTaggedValue(0, Tag.STACK_REF));
+    vm.push(createDataRef(SEG_STACK, 0));
     expect(() => dispatchOp(vm)).toThrow();
   });
 });

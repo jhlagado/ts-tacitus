@@ -37,8 +37,6 @@ Tacit stores globals, the data stack, and the return stack inside a single data 
 
 Runtime references use the unified `Tag.DATA_REF`. Its 16-bit payload stores an absolute cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data-stack, and return-stack bounds.
 
-Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` encodings remain accepted during migration, but the helpers normalise them to `DATA_REF`.
-
 Helpers
 
 - `createDataRef(segment, cellIndex)` → `DATA_REF`
@@ -245,10 +243,10 @@ Principles (see `docs/specs/core-invariants.md` for mutation rules and `docs/ref
 
 Canonical errors
 
-- Bad address: "store expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)".
+- Bad address: "store expects DATA_REF address".
 - Type mismatch: "Cannot assign simple to compound or compound to simple".
 - Incompatible compound: "Incompatible compound assignment: slot count or type mismatch".
-- Strict read: "fetch expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)".
+- Strict read: "fetch expects DATA_REF address".
 - Increment out of scope: "Increment operator (+>) only allowed inside function definitions".
 
 ---
