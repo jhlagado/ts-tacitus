@@ -29,7 +29,7 @@ Adjusting capacities only requires editing these constants; runtime code operate
 
 ### Data Windows & Auxiliary Segments
 
-- **Global heap window** — long-lived dictionary entries and global values; managed by the `GP` bump pointer.
+- **Global heap window** — long-lived dictionary entries and global values; managed by the `GP` bump pointer and manipulated via Tacit primitives (`gpush`, `gpop`, `gpeek`, `gmark`, `gsweep`).
 - **Data-stack window** — operand stack storage; advanced/retreated by `SP`.
 - **Return-stack window** — call frames and locals; advanced/retreated by `RSP` with `BP` pointing at the current frame base.
 - **CODE segment** — byte-addressed instruction storage (separate allocation).
@@ -198,7 +198,6 @@ Invariants
 ## References & Addressing
 
 - `Tag.DATA_REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload stores the absolute cell index; helpers infer which window (global heap, data stack, return stack) owns that index by comparing against segment bounds.
-- Legacy `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` tags remain defined during the migration window but new code emits `DATA_REF` exclusively. The helpers accept either form and normalise to the unified representation.
 
 Reference helpers (see `core/refs.ts`):
 

@@ -100,9 +100,7 @@ export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
   const addressValue = vm.pop();
   if (!isRef(addressValue)) {
-    throw new Error(
-      'fetch expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)',
-    );
+    throw new Error('fetch expects DATA_REF address');
   }
   const { address, segment } = resolveReference(vm, addressValue);
   const value = vm.memory.readFloat32(segment, address);
@@ -219,7 +217,7 @@ function initializeGlobalCompound(
   vm.memory.writeFloat32(
     slot.root.segment,
     slot.root.address,
-    toTaggedValue(headerCellIndex, Tag.GLOBAL_REF),
+    toTaggedValue(headerCellIndex, Tag.DATA_REF),
   );
   vm.GP = baseCells + neededCells;
   discardCompoundSource(vm, rhsTag);
@@ -329,9 +327,7 @@ export function storeOp(vm: VM): void {
   const rhsTop = vm.peek();
 
   if (!isRef(addressValue)) {
-    throw new Error(
-      'store expects reference address (DATA_REF or legacy STACK_REF/RSTACK_REF/GLOBAL_REF)',
-    );
+    throw new Error('store expects DATA_REF address');
   }
 
   const slot = resolveSlot(vm, addressValue);

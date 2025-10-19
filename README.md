@@ -46,7 +46,7 @@ This TypeScript prototype demonstrates the language design while maintaining C p
 ### Type System
 - **Tagged values** using NaN-boxing (32-bit cells)
 - **No heap allocation** - all data stack-resident or in static segments
-- **Explicit references** (STACK_REF, RSTACK_REF) for indirect access
+- **Explicit references** (`DATA_REF` handles) for indirect access
 - **Immutable lists** with reverse layout (header at high address)
 
 ### Control Flow

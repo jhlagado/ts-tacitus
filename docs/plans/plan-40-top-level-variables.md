@@ -29,9 +29,38 @@
 | 0.1  | Audit all consumers of `STACK_REF`, `RSTACK_REF`, and `GLOBAL_REF` to capture segment semantics and edge cases              | ✅     |
 | 0.2  | Define unified `DATA_REF` encoding (absolute cell index payload + window classification, bounds checks, mutation rules) and update tagged-value spec draft | ✅     |
 | 0.3  | Prototype tagged helpers for constructing/decoding `DATA_REF`; ensure backwards-compatibility shims for legacy tags         | ☐      |
-| 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ☐      |
+| 0.4  | Publish migration playbook covering parser, runtime, and tests so legacy tags can be retired without breaking isolation     | ✅     |
 
 _Exit criteria:_ Signed-off encoding and migration strategy for `DATA_REF`, including updated specs and helper APIs ready for implementation.
+
+---
+
+### Global Heap Semantics Draft (2026-01-16)
+
+The global heap is a bump allocator over `SEG_GLOBAL`. All allocations advance `vm.GP` (cell index) and return `DATA_REF` handles. Memory can only be reclaimed by rewinding `vm.GP` to a previously captured mark; no compaction or free list is planned.
+
+**Principles**
+- **Allocation:** helpers reserve contiguous payload cells (plus header space when storing list-encoded structures), write values in place, and return a `DATA_REF` pointing at the header cell.
+- **Rollback:** `heapMark(vm)` captures the current bump pointer. `heapRewind(vm, mark)` restores it, discarding allocations performed since the mark. Rewinds that violate LIFO order or exceed the current pointer throw.
+- **Handles:** downstream systems observe heap-resident data exclusively via DATA_REF handles to remain consistent with the unified reference model.
+
+**Tacit-native operations**
+- `gmark` — push the current `vm.GP` (cell index) onto the data stack so callers can checkpoint the heap state.
+- `gsweep` — consume a mark (cell index) from the data stack and set `vm.GP` to that value, discarding all allocations performed after the mark.
+- `gpush` — consume the value at TOS, copy it onto the global heap (respecting list semantics by materialising LIST payloads) and push the resulting `DATA_REF` back so callers can retain a handle.
+- `gpeek` — read the value addressed by the `DATA_REF` currently on the heap (without rewinding) and push a copy to the data stack; primarily for inspection or duplication.
+- `gpop` — revert the last `gpush` by rewinding to the previous mark implicitly (stack-like pop); primarily used by code that wants to treat the heap as a temporary stack.
+
+**Intended usage**
+- **Dictionary migration:** new dictionary nodes will be produced by `gpush`-style helpers that emit `[payload name prev LIST:3]` structures. The legacy JS dictionary stays in place until the migration flips over.
+- **Globals:** `value global foo` uses `gpush` to stash the initial value on the heap and retains the returned `DATA_REF` in the dictionary payload.
+- **Compilation-time locals:** colon definitions issue `gmark` on entry and `gsweep` on exit so transient allocations (locals metadata, temporary dictionary entries) vanish automatically.
+- **Temporary structures:** user-facing constructs like `mark ... forget` become thin wrappers around `gmark`/`gsweep`, letting Tacit code manage scratch heap state without exposing raw pointers.
+
+Open questions to resolve:
+- Which metadata must accompany dictionary nodes (flags, arity, hash buckets, shadow links)?
+- Whether specialised helpers (e.g., `heapAllocAtom`) are warranted for atomics.
+- Guardrails for nested marks to prevent rewinds that would clobber persistent allocations.
 
 ---
 

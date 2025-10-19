@@ -16,9 +16,6 @@ export enum Tag {
   BUILTIN = 7,
 
   LIST = 8,
-  STACK_REF = 9,
-  RSTACK_REF = 10,
-  GLOBAL_REF = 11,
   DATA_REF = 12, // Unified data-arena reference (absolute cell index)
 }
 
@@ -41,9 +38,6 @@ export const tagNames: { [key in Tag]: string } = {
   [Tag.LOCAL]: 'LOCAL',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
-  [Tag.STACK_REF]: 'STACK_REF',
-  [Tag.RSTACK_REF]: 'RSTACK_REF',
-  [Tag.GLOBAL_REF]: 'GLOBAL_REF',
   [Tag.DATA_REF]: 'DATA_REF',
 };
 
@@ -179,17 +173,6 @@ export function isSentinel(tval: number): boolean {
   const { tag } = fromTaggedValue(tval);
   return tag === Tag.SENTINEL;
 }
-
-/**
- * Creates a RSTACK_REF tagged value.
- * @param slot The local variable slot number to reference
- * @returns A RSTACK_REF tagged value
- */
-export function createLocalRef(slot: number): number {
-  return toTaggedValue(slot, Tag.RSTACK_REF);
-}
-
-// Global references are not yet supported.
 
 /**
  * Checks if a value is CODE.

@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
-import { reverseSpan, getListElemAddr } from '../../core';
-import { SEG_STACK, Tag, toTaggedValue } from '../../core';
+import { reverseSpan, getListElemAddr, validateListHeader, getListBounds, createDataRef } from '../../core';
+import { SEG_STACK, SEG_GLOBAL, Tag, toTaggedValue, CELL_SIZE } from '../../core';
 
 describe('core/list additional coverage', () => {
   beforeEach(() => {
@@ -45,5 +45,37 @@ describe('core/list additional coverage', () => {
     expect(getListElemAddr(vm, header, headerAddr, 0, SEG_STACK)).toBe(headerAddr - 4);
     expect(getListElemAddr(vm, header, headerAddr, 1, SEG_STACK)).toBe(headerAddr - 8);
     expect(getListElemAddr(vm, header, headerAddr, 2, SEG_STACK)).toBe(headerAddr - 12);
+  });
+
+  test('getListElemAddr throws for non-list header', () => {
+    expect(() => getListElemAddr(vm, 42, 0, 0, SEG_STACK)).toThrow(
+      'Invalid LIST header provided to getListElemAddr',
+    );
+  });
+
+  test('getListBounds returns null for ref pointing to non-list', () => {
+    const cellIndex = 10;
+    vm.memory.writeFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE, 123.456);
+    const ref = createDataRef(SEG_GLOBAL, cellIndex);
+    expect(getListBounds(vm, ref)).toBeNull();
+  });
+
+  test('getListBounds follows ref-to-ref indirection', () => {
+    const baseIndex = 30;
+    const headerIndex = baseIndex + 1;
+    const header = toTaggedValue(1, Tag.LIST);
+    vm.memory.writeFloat32(SEG_GLOBAL, baseIndex * CELL_SIZE, toTaggedValue(5, Tag.NUMBER));
+    vm.memory.writeFloat32(SEG_GLOBAL, headerIndex * CELL_SIZE, header);
+
+    const innerRefIndex = headerIndex + 1;
+    const innerRef = createDataRef(SEG_GLOBAL, headerIndex);
+    vm.memory.writeFloat32(SEG_GLOBAL, innerRefIndex * CELL_SIZE, innerRef);
+
+    const outerRef = createDataRef(SEG_GLOBAL, innerRefIndex);
+    const bounds = getListBounds(vm, outerRef);
+    expect(bounds).not.toBeNull();
+    expect(bounds?.header).toBe(header);
+    expect(bounds?.segment).toBe(SEG_GLOBAL);
+    expect(bounds?.baseAddr).toBe(baseIndex * CELL_SIZE);
   });
 });

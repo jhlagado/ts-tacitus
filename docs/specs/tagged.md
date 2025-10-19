@@ -53,7 +53,6 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 | BUILTIN    | Opcode (0..127)                                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table              |
 | LIST       | Payload slot count (0..65535)                               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                |
 | DATA_REF   | Unified data-arena absolute cell index                       | n/a                                    | `DATA_REF:<abs-idx>`           | Helper routines map the index to global/data/return windows           |
-| STACK_REF / RSTACK_REF / GLOBAL_REF (legacy) | Segment-relative cell indices (historic encoding) | n/a | historical notation | Accepted for backward compatibility; helpers normalise via DATA_REF  |
 
 ## Memory Layout
 
@@ -155,7 +154,7 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, DATA_REF}. Legacy `STACK_REF`/`RSTACK_REF`/`GLOBAL_REF` encodings are accepted only as aliases for `DATA_REF`. `LOCAL` is compile‑time only.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, DATA_REF}. `LOCAL` is compile‑time only.
 2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.

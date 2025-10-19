@@ -215,7 +215,7 @@ export enum Op {
   /** Debug: dumps current stack frame state - ( -- ) */
   DumpStackFrame,
 
-  /** Converts list on data stack to STACK_REF - ( list -- STACK_REF ) */
+  /** Converts list on data stack to DATA_REF - ( list -- DATA_REF ) */
   Ref,
   /** Path-based address access - ( target path -- target addr|NIL ) */
   Select,

@@ -10,6 +10,7 @@ import {
   toTaggedValue,
   createBuiltinRef,
   createCodeRef,
+  createGlobalRef,
   Verb,
 } from '@src/core';
 
@@ -308,9 +309,9 @@ export class SymbolTable {
    */
   defineGlobal(name: string): number {
     const slotNumber = this.globalSlotCount++;
-    const tagged = toTaggedValue(slotNumber, Tag.GLOBAL_REF);
+    const tagged = createGlobalRef(slotNumber);
     this.defineSymbol(name, tagged);
-    return slotNumber;
+    return tagged;
   }
 
   /**

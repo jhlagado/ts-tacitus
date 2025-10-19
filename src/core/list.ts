@@ -61,10 +61,6 @@ export function validateListHeader(vm: VM): void {
 
   const slotCount = getListLength(header);
   vm.ensureStackSize(slotCount + 1, 'LIST payload validation');
-
-  if (slotCount > 65535) {
-    throw new Error(`LIST slot count ${slotCount} exceeds maximum of 65535`);
-  }
 }
 
 /**

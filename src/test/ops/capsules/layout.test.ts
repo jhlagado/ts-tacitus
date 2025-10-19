@@ -1,7 +1,7 @@
 import { vm } from '../../../core/global-state';
 import { resetVM } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
-import { Tag, toTaggedValue, SEG_RSTACK, CELL_SIZE } from '../../../core';
+import { Tag, toTaggedValue, SEG_RSTACK, SEG_STACK, createDataRef, CELL_SIZE } from '../../../core';
 
 describe('capsule layout (handle-based)', () => {
   beforeEach(() => {
@@ -21,11 +21,11 @@ describe('capsule layout (handle-based)', () => {
     vm.rpush(header);
 
     const headerCellIndex = vm.RSP - 1; // header is at top of RSTACK
-    const handle = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
+    const handle = createDataRef(SEG_RSTACK, headerCellIndex);
     return { handle, slotCount, codeRef };
   };
 
-  test('reads valid capsule layout from RSTACK_REF handle', () => {
+  test('reads valid capsule layout from DATA_REF handle', () => {
     const codeAddr = 1234;
     const { handle, slotCount, codeRef } = pushCapsuleLike([10, 20], codeAddr);
 
@@ -43,13 +43,13 @@ describe('capsule layout (handle-based)', () => {
     vm.rpush(42); // not CODE
     vm.rpush(toTaggedValue(3, Tag.LIST));
     const headerIdx = vm.RSP - 1;
-    const handle = toTaggedValue(headerIdx, Tag.RSTACK_REF);
+    const handle = createDataRef(SEG_RSTACK, headerIdx);
 
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('slot0 must be a CODE');
   });
 
   test('errors on non-list handle (bad reference)', () => {
-    const bad = toTaggedValue(0, Tag.STACK_REF);
+    const bad = createDataRef(SEG_STACK, 0);
     expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('does not reference a LIST');
   });
 
@@ -60,7 +60,7 @@ describe('capsule layout (handle-based)', () => {
     vm.push(codeRef);
     vm.push(toTaggedValue(2, Tag.LIST));
     const headerCellIndex = vm.SP - 1; // data stack cell index
-    const stackHandle = toTaggedValue(headerCellIndex, Tag.STACK_REF);
+    const stackHandle = createDataRef(SEG_STACK, headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
     expect(layout.segment).toBe(0); // SEG_STACK
     expect(layout.codeRef).toBe(codeRef);
@@ -70,13 +70,13 @@ describe('capsule layout (handle-based)', () => {
   test('errors when payload slot count is zero', () => {
     // header LIST:0 on RSTACK (no payload)
     vm.rpush(toTaggedValue(0, Tag.LIST));
-    const handle = toTaggedValue(vm.RSP - 1, Tag.RSTACK_REF);
+    const handle = createDataRef(SEG_RSTACK, vm.RSP - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('include CODE slot');
   });
 
-  test('errors when RSTACK_REF does not point to a LIST header', () => {
+  test('errors when return-stack DATA_REF does not point to a LIST header', () => {
     vm.rpush(12345); // simple value on RSTACK
-    const handle = toTaggedValue(vm.RSP - 1, Tag.RSTACK_REF);
+    const handle = createDataRef(SEG_RSTACK, vm.RSP - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('does not reference a LIST');
   });
 });
