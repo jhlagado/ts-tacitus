@@ -114,11 +114,11 @@ describe('Heap dictionary helpers', () => {
   });
 
   test('dictGetEntryRef returns NIL for missing names', () => {
-    expect(dictGetEntryRef(vm, vm.digest.add('missing'))).toBeUndefined();
+    expect(dictGetEntryRef(vm, vm.digest.add('missing'))).toBe(NIL);
   });
 
-  test('dictLookup returns undefined when not found', () => {
-    expect(dictLookup(vm, vm.digest.add('shadow'))).toBeUndefined();
+  test('dictLookup returns NIL when not found', () => {
+    expect(dictLookup(vm, vm.digest.add('shadow'))).toBe(NIL);
   });
 
   test('dictInit resets head and local slots', () => {
