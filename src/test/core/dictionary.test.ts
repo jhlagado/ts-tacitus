@@ -15,13 +15,10 @@ import {
   dictDefineGlobal,
   dictLookup,
   dictLookupEntry,
-  dictMark,
-  dictRevert,
   dictGetEntryRef,
 } from '../../core/dictionary';
 import { pushSimpleToGlobalHeap } from '../../core/global-heap';
 import { decodeDataRef } from '../../core/refs';
-import { isNIL } from '../../core/tagged';
 
 describe('Heap dictionary helpers', () => {
   let vm: VM;
