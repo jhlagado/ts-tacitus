@@ -10,3 +10,4 @@ export * from './types';
 export * from './list';
 export * from './format-utils';
 export * from './code-ref';
+export * from './global-heap';

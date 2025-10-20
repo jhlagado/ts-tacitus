@@ -20,14 +20,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import {
-  isSpecialChar,
-  toTaggedValue,
-  fromTaggedValue,
-  Tag,
-  decodeDataRef,
-  SEG_GLOBAL,
-} from '@src/core';
+import { isSpecialChar, fromTaggedValue, Tag, decodeDataRef, SEG_GLOBAL } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';

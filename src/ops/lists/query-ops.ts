@@ -3,9 +3,17 @@
  * Read-only and address-returning list operations (segment-aware).
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, dropList } from '@src/core';
+import {
+  VM,
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  NIL,
+  dropList,
+  pushListToGlobalHeap,
+} from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL, GLOBAL_SIZE } from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
@@ -195,31 +203,9 @@ function initializeGlobalCompound(
   slot: SlotInfo,
   rhsInfo: { header: number; baseAddr: number; segment: number },
   rhsTag: Tag,
-  slotCount: number,
 ): void {
-  const neededCells = slotCount + 1;
-  const maxCells = GLOBAL_SIZE / CELL_SIZE;
-  const baseCells = vm.GP;
-  if (baseCells + neededCells > maxCells) {
-    discardCompoundSource(vm, rhsTag);
-    throw new Error('Global segment exhausted while allocating compound');
-  }
-
-  const baseAddr = baseCells * CELL_SIZE;
-  for (let i = 0; i < slotCount; i++) {
-    const srcAddr = rhsInfo.baseAddr + i * CELL_SIZE;
-    const v = vm.memory.readFloat32(rhsInfo.segment, srcAddr);
-    vm.memory.writeFloat32(SEG_GLOBAL, baseAddr + i * CELL_SIZE, v);
-  }
-  const headerAddr = baseAddr + slotCount * CELL_SIZE;
-  vm.memory.writeFloat32(SEG_GLOBAL, headerAddr, rhsInfo.header);
-  const headerCellIndex = headerAddr / CELL_SIZE;
-  vm.memory.writeFloat32(
-    slot.root.segment,
-    slot.root.address,
-    toTaggedValue(headerCellIndex, Tag.DATA_REF),
-  );
-  vm.GP = baseCells + neededCells;
+  const heapRef = pushListToGlobalHeap(vm, rhsInfo);
+  vm.memory.writeFloat32(slot.root.segment, slot.root.address, heapRef);
   discardCompoundSource(vm, rhsTag);
 }
 
@@ -279,7 +265,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   if (!existingIsCompound) {
     if (slot.root.segment === SEG_GLOBAL) {
-      initializeGlobalCompound(vm, slot, rhsInfo, rhsTag, slotCount);
+      initializeGlobalCompound(vm, slot, rhsInfo, rhsTag);
       return true;
     }
     discardCompoundSource(vm, rhsTag);

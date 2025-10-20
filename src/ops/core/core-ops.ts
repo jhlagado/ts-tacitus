@@ -21,7 +21,6 @@ import {
   toTaggedValue,
   Tag,
   fromTaggedValue,
-  isCode,
   RSTACK_SIZE,
   SyntaxError,
 } from '@src/core';
