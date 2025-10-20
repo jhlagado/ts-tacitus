@@ -10,8 +10,10 @@ import {
   toTaggedValue,
   createBuiltinRef,
   createCodeRef,
-  createGlobalRef,
   Verb,
+  VM,
+  NIL,
+  pushDictionaryEntry,
 } from '@src/core';
 
 /**
@@ -30,6 +32,7 @@ export interface SymbolTableEntry {
 
 interface SymbolTableNode extends SymbolTableEntry {
   key: number;
+  dictEntryRef?: number;
   next: SymbolTableNode | null;
 }
 
@@ -44,6 +47,7 @@ export class SymbolTable {
   private head: SymbolTableNode | null;
   private localSlotCount: number;
   private globalSlotCount: number;
+  private vmRef: VM | null;
 
   /**
    * Creates a new SymbolTable instance.
@@ -53,6 +57,11 @@ export class SymbolTable {
     this.head = null;
     this.localSlotCount = 0;
     this.globalSlotCount = 0;
+    this.vmRef = null;
+  }
+
+  attachVM(vm: VM): void {
+    this.vmRef = vm;
   }
 
   /**
@@ -66,14 +75,17 @@ export class SymbolTable {
     taggedValue: number,
     implementation?: WordFunction,
     isImmediate = false,
+    dictEntryRef?: number,
+    stringAddress?: number,
   ): void {
-    const key = this.digest.add(name);
+    const key = stringAddress ?? this.digest.add(name);
 
     const newNode: SymbolTableNode = {
       key,
       taggedValue,
       implementation,
       isImmediate,
+      dictEntryRef,
       next: this.head,
     };
     this.head = newNode;
@@ -187,6 +199,17 @@ export class SymbolTable {
           implementation: current.implementation,
           isImmediate: current.isImmediate,
         };
+      }
+      current = current.next;
+    }
+    return undefined;
+  }
+
+  getDictionaryEntryRef(name: string): number | undefined {
+    let current = this.head;
+    while (current !== null) {
+      if (this.digest.get(current.key) === name) {
+        return current.dictEntryRef;
       }
       current = current.next;
     }
@@ -308,10 +331,20 @@ export class SymbolTable {
    * The tagged value is a GLOBAL_REF with payload = global cell index (slot number).
    */
   defineGlobal(name: string): number {
-    const slotNumber = this.globalSlotCount++;
-    const tagged = createGlobalRef(slotNumber);
-    this.defineSymbol(name, tagged);
-    return tagged;
+    const vmInstance = this.vmRef;
+    if (!vmInstance) {
+      throw new Error('SymbolTable VM reference unavailable; attach VM before defining globals');
+    }
+
+    const nameAddr = this.digest.add(name);
+    const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
+    const prevEntry = vmInstance.dictHead ?? NIL;
+    const { entryRef, payloadRef } = pushDictionaryEntry(vmInstance, NIL, nameTagged, prevEntry);
+    vmInstance.dictHead = entryRef;
+
+    this.globalSlotCount++;
+    this.defineSymbol(name, payloadRef, undefined, false, entryRef, nameAddr);
+    return payloadRef;
   }
 
   /**

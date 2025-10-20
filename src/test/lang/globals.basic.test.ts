@@ -1,5 +1,19 @@
 import { describe, test, expect } from '@jest/globals';
-import { executeTacitCode } from '../utils/vm-test-utils';
+import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
+import { vm } from '../../core/global-state';
+import {
+  decodeDataRef,
+  SEG_GLOBAL,
+  CELL_SIZE,
+  toTaggedValue,
+  Tag,
+  NIL,
+  getTag,
+  fromTaggedValue,
+} from '@src/core';
+import { Tokenizer } from '../../lang/tokenizer';
+import { parse } from '../../lang/parser';
+import { execute } from '../../lang/interpreter';
 
 describe('Global variables (SEG_GLOBAL + GLOBAL_REF)', () => {
   test('declare and read at top level', () => {
@@ -69,6 +83,76 @@ describe('Global variables (SEG_GLOBAL + GLOBAL_REF)', () => {
       ( ${make32} ) global g1
       ( ${make32} ) global g2
     `;
-    expect(() => executeTacitCode(code)).toThrow(/Global segment exhausted/);
+    expect(() => executeTacitCode(code)).toThrow(/Global heap exhausted/);
+  });
+
+  test('global dictionary entry stored on heap with payload cell', () => {
+    resetVM();
+    parse(
+      new Tokenizer(`
+      100 global alpha
+    `),
+    );
+    execute(vm.compiler.BCP);
+    const entryRef = vm.symbolTable.getDictionaryEntryRef('alpha');
+    expect(entryRef).toBeDefined();
+    const { segment: headerSegment, cellIndex: headerCellIndex } = decodeDataRef(entryRef!);
+    expect(headerSegment).toBe(SEG_GLOBAL);
+
+    const payloadCellIndex = headerCellIndex - 3;
+    const nameCellIndex = headerCellIndex - 2;
+    const prevCellIndex = headerCellIndex - 1;
+
+    const payloadValue = vm.memory.readFloat32(SEG_GLOBAL, payloadCellIndex * CELL_SIZE);
+    expect(payloadValue).toBe(100);
+
+    const nameValue = vm.memory.readFloat32(SEG_GLOBAL, nameCellIndex * CELL_SIZE);
+    expect(getTag(nameValue)).toBe(Tag.STRING);
+    const { value: nameAddr } = fromTaggedValue(nameValue);
+    expect(vm.digest.get(nameAddr)).toBe('alpha');
+
+    const prevValue = vm.memory.readFloat32(SEG_GLOBAL, prevCellIndex * CELL_SIZE);
+    expect(prevValue).toBe(NIL);
+
+    const headerValue = vm.memory.readFloat32(SEG_GLOBAL, headerCellIndex * CELL_SIZE);
+    expect(headerValue).toBe(toTaggedValue(3, Tag.LIST));
+  });
+
+  test('global dictionary entries chain via prev pointer', () => {
+    resetVM();
+    parse(
+      new Tokenizer(`
+      1 global first
+    `),
+    );
+    execute(vm.compiler.BCP);
+
+    const firstEntryRef = vm.symbolTable.getDictionaryEntryRef('first');
+    expect(firstEntryRef).toBeDefined();
+    const { cellIndex: firstHeaderIndex, segment: firstSegment } = decodeDataRef(firstEntryRef!);
+    expect(firstSegment).toBe(SEG_GLOBAL);
+
+    parse(
+      new Tokenizer(`
+      2 global second
+    `),
+    );
+    execute(vm.compiler.BCP);
+
+    const secondEntryRef = vm.symbolTable.getDictionaryEntryRef('second');
+    expect(secondEntryRef).toBeDefined();
+    const { cellIndex: secondHeaderIndex, segment: secondSegment } = decodeDataRef(secondEntryRef!);
+    expect(secondSegment).toBe(SEG_GLOBAL);
+    expect(secondHeaderIndex).toBeGreaterThan(firstHeaderIndex);
+
+    const prevValue = vm.memory.readFloat32(SEG_GLOBAL, (secondHeaderIndex - 1) * CELL_SIZE);
+    expect(getTag(prevValue)).toBe(Tag.DATA_REF);
+
+    const { cellIndex: linkedHeaderIndex, segment } = decodeDataRef(prevValue);
+    expect(segment).toBe(SEG_GLOBAL);
+    expect(linkedHeaderIndex).toBe(firstHeaderIndex);
+
+    const priorPrev = vm.memory.readFloat32(SEG_GLOBAL, (firstHeaderIndex - 1) * CELL_SIZE);
+    expect(getTag(priorPrev)).toBe(Tag.SENTINEL);
   });
 });

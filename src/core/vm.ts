@@ -7,8 +7,6 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import {
-  STACK_SIZE,
-  RSTACK_SIZE,
   SEG_STACK,
   SEG_RSTACK,
   SEG_CODE,
@@ -17,10 +15,8 @@ import {
   RSTACK_BASE,
   RSTACK_TOP,
   STACK_TOP,
-  GLOBAL_BASE,
-  GLOBAL_SIZE,
 } from './constants';
-import { fromTaggedValue } from './tagged';
+import { fromTaggedValue, NIL } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -64,6 +60,8 @@ export class VM {
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
+  dictHead: number;
+
   private get stackBaseCells(): number {
     return STACK_BASE / CELL_SIZE;
   }
@@ -95,8 +93,10 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
+    this.dictHead = NIL;
 
     this.symbolTable = new SymbolTable(this.digest);
+    this.symbolTable.attachVM(this);
     registerBuiltins(this, this.symbolTable);
   }
 

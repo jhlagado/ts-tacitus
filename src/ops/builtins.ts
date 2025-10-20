@@ -89,6 +89,7 @@ import { InvalidOpcodeError } from '@src/core';
 import { ifFalseBranchOp } from './control';
 import { selectOp } from './access';
 import { isList, rpushList } from './local-vars-transfer';
+import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
 
 // Temp register and related opcodes have been removed.
 
@@ -203,6 +204,11 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.DumpStackFrame]: dumpFrameOp,
     [Op.Ref]: refOp,
     [Op.Load]: loadOp,
+    [Op.GMark]: gmarkOp,
+    [Op.GSweep]: gsweepOp,
+    [Op.GPush]: gpushOp,
+    [Op.GPop]: gpopOp,
+    [Op.GPeek]: gpeekOp,
     [Op.EndDefinition]: endDefinitionOp,
     [Op.EndIf]: endIfOp,
     [Op.EndDo]: endDoOp,

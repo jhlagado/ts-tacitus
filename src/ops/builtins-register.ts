@@ -34,6 +34,7 @@ import {
   nilImmediate,
   beginCapsuleImmediate,
 } from '../lang/meta';
+import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -91,6 +92,11 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('load', Op.Load);
   symbolTable.defineBuiltin('varRef', Op.VarRef);
   symbolTable.defineBuiltin('dumpStackFrame', Op.DumpStackFrame);
+  symbolTable.defineBuiltin('gmark', Op.GMark, gmarkOp);
+  symbolTable.defineBuiltin('gsweep', Op.GSweep, gsweepOp);
+  symbolTable.defineBuiltin('gpush', Op.GPush, gpushOp);
+  symbolTable.defineBuiltin('gpop', Op.GPop, gpopOp);
+  symbolTable.defineBuiltin('gpeek', Op.GPeek, gpeekOp);
 
   symbolTable.defineBuiltin('add', Op.Add);
   symbolTable.defineBuiltin('sub', Op.Minus);

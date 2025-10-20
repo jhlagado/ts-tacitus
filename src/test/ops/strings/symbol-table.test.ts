@@ -92,4 +92,11 @@ describe('SymbolTable', () => {
       expect(symbolTable.find('newWordAfterRevert')).toBeUndefined();
     });
   });
+
+  describe('Global definitions', () => {
+    test('should require attached VM for defineGlobal', () => {
+      const orphanTable = new SymbolTable(new Digest(new Memory()));
+      expect(() => orphanTable.defineGlobal('orphan')).toThrow(/attach VM/);
+    });
+  });
 });

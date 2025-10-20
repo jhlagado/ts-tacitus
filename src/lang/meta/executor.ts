@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, toTaggedValue } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';

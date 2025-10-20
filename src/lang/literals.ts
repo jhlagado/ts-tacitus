@@ -1,7 +1,5 @@
-import { isWhitespace, isGroupingChar } from '@src/core';
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
-import type { ParserState } from './state';
 
 export function emitNumber(value: number): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);

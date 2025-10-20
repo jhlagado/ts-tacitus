@@ -268,4 +268,14 @@ export enum Op {
   BufPop,
   BufUnshift,
   BufShift,
+  /** Push current global heap pointer onto the data stack */
+  GMark,
+  /** Sweep global heap back to provided mark */
+  GSweep,
+  /** Copy value to global heap and return DATA_REF */
+  GPush,
+  /** Pop the most recent global heap entry */
+  GPop,
+  /** Peek at a global heap entry without mutation */
+  GPeek,
 }

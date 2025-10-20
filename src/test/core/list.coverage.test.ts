@@ -1,5 +1,11 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
-import { reverseSpan, getListElemAddr, validateListHeader, getListBounds, createDataRef } from '../../core';
+import {
+  reverseSpan,
+  getListElemAddr,
+  validateListHeader,
+  getListBounds,
+  createDataRef,
+} from '../../core';
 import { SEG_STACK, SEG_GLOBAL, Tag, toTaggedValue, CELL_SIZE } from '../../core';
 
 describe('core/list additional coverage', () => {
