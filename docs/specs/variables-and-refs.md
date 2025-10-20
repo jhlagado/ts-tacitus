@@ -43,6 +43,15 @@ Helpers
 - `resolveReference(vm, ref)` → { segment, address }
 - `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at resolved address
 
+### 2.1 Reference Taxonomy
+
+- **Heap entries:** dictionary payloads always store `Tag.DATA_REF` values. For globals they refer to the global heap window; for locals they carry `Tag.LOCAL` slot numbers that are resolved to return-stack cells at run time.
+- **Names:** the `name` field in each dictionary entry is a `Tag.STRING` offset into the interned string digest. Shadowing relies on pointer equality against those offsets.
+- **Code/Immediates:** function payloads store either `Tag.CODE` (user bytecode) or `Tag.BUILTIN` (native implementation). The sign bit carries the `IMMEDIATE` flag.
+- **Sentinels:** the `prev` field of the oldest entry is `Tag.SENTINEL` (`NIL`) so a single equality check terminates dictionary walks without special cases.
+
+Heap-backed dictionary nodes therefore bridge all three tag families—`DATA_REF` for data, `STRING` for keys, `CODE`/`BUILTIN` for behaviour—without introducing new runtime tags.
+
 ---
 
 ## 3. Variable Model: Locals and Globals
