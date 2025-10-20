@@ -58,23 +58,10 @@ function internName(nameOffset: number): number {
 
 function defineEntry(vm: VM, nameOffset: number, payload: number): DictionaryEntry {
   const nameTagged = internName(nameOffset);
-  const prev = vm.dictHead ?? NIL;
+  const prev = vm.dictHead;
   const { entryRef, payloadRef } = pushDictionaryEntry(vm, payload, nameTagged, prev);
-  if (process.env.NODE_ENV === 'test') {
-    // eslint-disable-next-line no-console
-    console.log('defineEntry push', { prev, entryRef: decodeRefDebug(entryRef) });
-  }
   vm.dictHead = entryRef;
   return readEntry(vm, entryRef, payloadRef);
-}
-
-function decodeRefDebug(ref: number) {
-  try {
-    const info = decodeDataRef(ref);
-    return { segment: info.segment, cellIndex: info.cellIndex };
-  } catch {
-    return null;
-  }
 }
 
 export function dictInit(vm: VM): void {
@@ -170,10 +157,10 @@ export function dictLookupEntry(vm: VM, nameOffset: number): DictionaryEntry | u
 
 export function dictLookup(vm: VM, nameOffset: number): number | undefined {
   const entry = dictLookupEntry(vm, nameOffset);
-  return entry?.payload;
+  return entry ? entry.payload : NIL;
 }
 
-export function dictGetEntryRef(vm: VM, nameOffset: number): number | undefined {
+export function dictGetEntryRef(vm: VM, nameOffset: number): number {
   const entry = dictLookupEntry(vm, nameOffset);
-  return entry?.entryRef;
+  return entry ? entry.entryRef : NIL;
 }
