@@ -36,10 +36,12 @@ interface SymbolTableNode extends SymbolTableEntry {
   next: SymbolTableNode | null;
 }
 
-/**
- * Symbol table checkpoint.
- */
-export type SymbolTableCheckpoint = SymbolTableNode | null;
+export interface SymbolTableCheckpoint {
+  head: SymbolTableNode | null;
+  dictHead: number;
+  gp: number;
+  localSlotCount: number;
+}
 /**
  * Symbol table for managing word definitions.
  */
@@ -257,8 +259,15 @@ export class SymbolTable {
    * @returns {SymbolTableCheckpoint} A checkpoint object representing the current state
    */
   mark(): SymbolTableCheckpoint {
+    const vmInstance = this.vmRef;
+    const checkpoint: SymbolTableCheckpoint = {
+      head: this.head,
+      dictHead: vmInstance ? vmInstance.dictHead : NIL,
+      gp: vmInstance ? vmInstance.GP : 0,
+      localSlotCount: this.localSlotCount,
+    };
     this.localSlotCount = 0;
-    return this.head;
+    return checkpoint;
   }
 
   /**
@@ -275,7 +284,12 @@ export class SymbolTable {
    * @param {SymbolTableCheckpoint} checkpoint - The checkpoint to revert to
    */
   revert(checkpoint: SymbolTableCheckpoint): void {
-    this.head = checkpoint;
+    this.head = checkpoint.head;
+    const vmInstance = this.vmRef;
+    if (vmInstance) {
+      vmInstance.dictHead = checkpoint.dictHead;
+      vmInstance.GP = checkpoint.gp;
+    }
   }
   /**
    * Defines a built-in operation in the symbol table with direct addressing

@@ -141,6 +141,12 @@ This makes the dictionary a stable symbolic backbone for the language. Its entri
 - Entries are immutable, append-only, and shadowed rather than replaced.
 - The dictionary is structurally identical to other list values, enabling full reuse of list semantics and memory discipline.
 
+### 2.7 Marks, Reverts, and Transient Entries
+
+- `dictHead` always points at the most recent dictionary entry; `NIL` means the dictionary is empty. Both `dictHead` and the heap bump pointer `GP` are part of the VM state.
+- `gmark`/`gsweep` expose that state to Tacit code. Any component emitting transient entries (e.g., the parser while defining locals) must snapshot **both** `dictHead` and `GP` and restore them together so heap allocations and links remain in lockstep.
+- Parser-driven mark/revert flows continue to call `SymbolTable.mark()` / `revert()`. Implementations must pair those calls with `gmark`/`gsweep` (or equivalent VM helpers) so that locals inserted into the dictionary during compilation disappear cleanly when the definition ends.
+
 ## Chapter 3 — Name Symbols and Interned Strings
 
 Tacit uses interned strings to ensure all named entities in the program—such as functions, variables, and keywords—are uniquely identified by pointer equality. Every symbolic name is a tagged `STRING` value whose payload is an offset into the global string digest. This guarantees that two names with the same spelling resolve to the same address, allowing fast identity checks and reliable dictionary lookups.
