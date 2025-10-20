@@ -61,6 +61,7 @@ export class VM {
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
   dictHead: number;
+  dictLocalSlots: number;
 
   private get stackBaseCells(): number {
     return STACK_BASE / CELL_SIZE;
@@ -94,6 +95,7 @@ export class VM {
     this.debug = false;
     this.listDepth = 0;
     this.dictHead = NIL;
+    this.dictLocalSlots = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     this.symbolTable.attachVM(this);
