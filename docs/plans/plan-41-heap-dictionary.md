@@ -25,10 +25,10 @@ _Exit criteria:_ Authoritative spec addendum describing heap dictionary behaviou
 
 | Step | Description                                                                               | Status |
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
-| 2.1  | Retire `SymbolTable`’s legacy JS-linked list; resolve lookups exclusively via heap entries | ☐      |
-| 2.2  | Heap primitive for pushing `[payload name prev LIST:3]` and updating `dictHead`            | ✅     |
-| 2.3  | Provide mark/revert that snapshots both `dictHead` and `GP` for transient allocations      | ✅     |
-| 2.4  | Optional: dictionary introspection utility for debugging entry chains                      | ☐      |
+| 2.1  | Build parallel Forth-style dictionary routines (head + stack pointer only) using heap entries | ☐      |
+| 2.2  | Heap primitive for pushing `[payload name prev LIST:3]` and updating `dictHead`                | ✅     |
+| 2.3  | Provide mark/revert that snapshots both `dictHead` and `GP` for transient allocations          | ✅     |
+| 2.4  | Optional: dictionary introspection utility for debugging entry chains                          | ☐      |
 
 _Exit criteria:_ Dictionary storage and updates run entirely on heap state.
 
@@ -87,5 +87,31 @@ _Exit criteria:_ Specs and tooling describe the heap dictionary model and develo
 
 ## Immediate Focus
 
-1. Deliver Phase 1 documentation tasks (1.3, 1.4) so downstream references are unambiguous.
-2. Implement Phase 2.1 & 2.3 to make the symbol table a thin bridge over the heap dictionary.
+1. Deliver Phase 2.1 by designing Forth-style dictionary routines driven solely by `dictHead` and `GP` (no heap-hosted Maps or classes).
+2. Implement Phase 2.4 if diagnostic tooling proves necessary once heap dictionary lookups are live.
+
+---
+
+## Design Notes (Working Contract)
+
+- **Heap layout**: every entry is `[ payload  name  prev  LIST:3 ]` where `payload` is one of:
+  - `Tag.BUILTIN(opcode)` (sign bit set when immediate)
+  - `Tag.CODE(address)` (sign bit set when immediate)
+  - `Tag.DATA_REF(heapCell)` for globals
+  - `Tag.LOCAL(slotNumber)` for locals (slot is BP-relative)
+  `name` is an interned `Tag.STRING` offset; `prev` links to the prior entry; `LIST:3` is the header.
+- **VM registers only**: `dictHead` (DATA_REF/`NIL`), `GP` (heap bump pointer), and `localSlots` counter. No GC-managed structures in the VM.
+- **mark/revert semantics**: `mark()` snapshots `{ dictHead, GP, localSlots }`; `revert()` restores them so any entries defined inside a colon definition vanish on exit.
+- **Functional helpers to implement** (all pure, manipulating heap + registers):
+  - `dictInit(vm)`
+  - `dictMark(vm)` / `dictRevert(vm, checkpoint)`
+  - `dictDefineBuiltin(vm, nameOffset, opcode, isImmediate)`
+  - `dictDefineCode(vm, nameOffset, address, isImmediate)`
+  - `dictDefineGlobal(vm, nameOffset, value)`
+  - `dictDefineLocal(vm, nameOffset)`
+  - `dictLookup(vm, nameOffset)` / `dictLookupEntry(vm, nameOffset)`
+  - `dictFind(opcode/name)` and `dictFindImplementation(opcode)` compat with existing call sites
+  - `dictGetEntryRef(vm, nameOffset)` for tests
+- **Shadowing & scoping**: linked-list order provides LIFO shadowing; locals are transient heap entries that disappear on `revert`.
+- **Immediate flag**: carried in the sign bit of `Tag.BUILTIN`/`Tag.CODE`, matching current behaviour.
+*** End Patch
