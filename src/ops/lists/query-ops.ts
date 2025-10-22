@@ -13,7 +13,7 @@ import {
   pushListToGlobalHeap,
 } from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL, SEG_RSTACK, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
@@ -53,7 +53,7 @@ export function sizeOp(vm: VM): void {
   let elementCount = 0;
   let currentAddr = computeHeaderAddr(info.baseAddr, slotCount) - CELL_SIZE;
   let remainingSlots = slotCount;
-  const baseForSeg = info.segment === SEG_GLOBAL ? GLOBAL_BASE : info.segment === 1 /* SEG_RSTACK */ ? RSTACK_BASE : STACK_BASE;
+  const baseForSeg = info.segment === SEG_GLOBAL ? GLOBAL_BASE : info.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
   while (remainingSlots > 0) {
     const v = vm.memory.readFloat32(SEG_DATA, baseForSeg + currentAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
@@ -112,11 +112,12 @@ export function fetchOp(vm: VM): void {
     throw new Error('fetch expects DATA_REF address');
   }
   const { address, segment } = resolveReference(vm, addressValue);
-  const value = vm.memory.readFloat32(segment, address);
+  const base = segment === SEG_GLOBAL ? GLOBAL_BASE : segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+  const value = vm.memory.readFloat32(SEG_DATA, base + address);
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(segment, address - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, base + address - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -146,21 +147,23 @@ export function loadOp(vm: VM): void {
   const first = resolveReference(vm, input);
   let addr = first.address;
   let seg = first.segment;
-  let value = vm.memory.readFloat32(seg, addr);
+  let base = seg === SEG_GLOBAL ? GLOBAL_BASE : seg === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+  let value = vm.memory.readFloat32(SEG_DATA, base + addr);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
     const second = resolveReference(vm, value);
     seg = second.segment;
     addr = second.address;
-    value = vm.memory.readFloat32(seg, addr);
+    base = seg === SEG_GLOBAL ? GLOBAL_BASE : seg === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+    value = vm.memory.readFloat32(SEG_DATA, base + addr);
   }
 
   // Materialize if final value is a LIST header
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(seg, addr - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, base + addr - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
