@@ -10,6 +10,12 @@ import {
   Tag,
   NIL,
   SEG_STACK,
+  SEG_GLOBAL,
+  SEG_RSTACK,
+  SEG_DATA,
+  STACK_BASE,
+  GLOBAL_BASE,
+  RSTACK_BASE,
   CELL_SIZE,
   Verb,
 } from '@src/core';
@@ -40,7 +46,7 @@ export function closeListOp(vm: VM): void {
   const headerCell = headerAddr / CELL_SIZE;
   const payloadSlots = vm.SP - headerCell - 1;
 
-  vm.memory.writeFloat32(SEG_STACK, headerAddr, toTaggedValue(payloadSlots, Tag.LIST));
+  vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
@@ -79,7 +85,7 @@ export function makeListOp(vm: VM): void {
   }
 
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_STACK, retrievedHeaderAddr, finalizedHeader);
+  vm.memory.writeFloat32(SEG_DATA, STACK_BASE + retrievedHeaderAddr, finalizedHeader);
 
   const totalSpan = vm.SP - headerCell;
   if (totalSpan > 1) {
@@ -152,8 +158,9 @@ export function unpackOp(vm: VM): void {
 
   // Reference case: materialize payload slots deep→TOS order
   const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
+  const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
   for (let i = slotCount - 1; i >= 0; i--) {
-    const slotValue = vm.memory.readFloat32(info.segment, headerAddr - (i + 1) * CELL_SIZE);
+    const slotValue = vm.memory.readFloat32(SEG_DATA, base + headerAddr - (i + 1) * CELL_SIZE);
     vm.push(slotValue);
   }
 }

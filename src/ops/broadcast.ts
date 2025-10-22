@@ -9,7 +9,7 @@
 import { VM } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { toTaggedValue, Tag } from '@src/core';
-import { SEG_STACK, CELL_SIZE } from '@src/core';
+import { SEG_STACK, SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
@@ -264,14 +264,14 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
 
   // Transform the top copy in place using direct memory writes
   const headerAddr = (vm.SP - 1) * CELL_SIZE;
-  const headerVal = vm.memory.readFloat32(SEG_STACK, headerAddr);
+  const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + headerAddr);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {
     const cellAddr = headerAddr - (i + 1) * CELL_SIZE;
-    const v = vm.memory.readFloat32(SEG_STACK, cellAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, STACK_BASE + cellAddr);
     if (isList(v)) continue; // leave headers untouched
     if (!isNumber(v)) throw new Error('broadcast type mismatch');
-    vm.memory.writeFloat32(SEG_STACK, cellAddr, f(v));
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + cellAddr, f(v));
   }
 
   // Remove the original list under the transformed copy
