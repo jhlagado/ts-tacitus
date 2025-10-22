@@ -592,6 +592,7 @@ yarn test --watch
 ---
 
 <a id="s-deep-dives"></a>
+
 ## Deep Dives (optional)
 
 - Heap structures: replicate the dictionary entry walk from `src/test/lang/globals.basic.test.ts` and confirm `prev` chaining.
@@ -612,8 +613,6 @@ See also
 - [VM architecture](./specs/vm-architecture.md) — memory model, stacks, frames, execution
 
 ---
-
-
 
 Reference Map (by domain)
 
