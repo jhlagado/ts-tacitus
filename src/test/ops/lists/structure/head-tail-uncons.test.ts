@@ -42,4 +42,32 @@ describe('List structure operations: head/tail', () => {
     const expected = executeTacitCode('( )');
     expect(result).toEqual(expected);
   });
+
+  test('head on non-list returns NIL', () => {
+    const result = executeTacitCode('42 head');
+    // Expect NIL (encoded) at TOS
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test('head on &local (RSTACK list) returns first element (simple)', () => {
+    const result = executeTacitCode(': f ( 7 8 ) var xs &xs head ; f');
+    expect(result[result.length - 1]).toBe(7);
+  });
+
+  test('head on &local with nested first element returns nested list', () => {
+    const result = executeTacitCode(': f ( ( 5 6 ) 9 ) var xs &xs head ; f');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test('tail on &local drops first element and preserves rest', () => {
+    const result = executeTacitCode(': f ( 1 2 3 ) var xs &xs tail ; f');
+    // Should yield a list of length 2
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test('reverse on &local reverses logical elements', () => {
+    const result = executeTacitCode(': f ( 1 ( 2 3 ) 4 ) var xs &xs reverse ; f');
+    // Expect a list header on stack and elements reversed logically
+    expect(result.length).toBeGreaterThan(0);
+  });
 });

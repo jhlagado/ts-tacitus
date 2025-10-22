@@ -22,6 +22,16 @@ describe('List query operations: length/size', () => {
     expect(result[0]).toBe(2);
   });
 
+  test('size on &local empty list returns 0', () => {
+    const result = executeTacitCode(': f ( ) var x &x size ; f');
+    expect(result[0]).toBe(0);
+  });
+
+  test('length on &local empty list returns 0', () => {
+    const result = executeTacitCode(': f ( ) var x &x length ; f');
+    expect(result[0]).toBe(0);
+  });
+
   test('length for non-list returns NIL', () => {
     const stack = executeTacitCode('42 length');
     expect(Number.isNaN(stack[stack.length - 1])).toBe(true);
