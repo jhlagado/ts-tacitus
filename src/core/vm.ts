@@ -219,7 +219,8 @@ export class VM {
     }
 
     const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
-    this.memory.writeFloat32(SEG_STACK, offsetBytes, value);
+    // Write via unified data segment
+    this.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
     this._spCells += 1;
     if (this.debug) this.ensureInvariants();
   }
@@ -301,7 +302,8 @@ export class VM {
     }
 
     const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
-    this.memory.writeFloat32(SEG_RSTACK, offsetBytes, value);
+    // Write via unified data segment
+    this.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
     this._rspCells += 1;
     if (this.debug) this.ensureInvariants();
   }

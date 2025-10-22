@@ -84,4 +84,20 @@ describe('core/list additional coverage', () => {
     expect(bounds?.segment).toBe(SEG_GLOBAL);
     expect(bounds?.baseAddr).toBe(baseIndex * CELL_SIZE);
   });
+
+  test('getListElemAddr traverses GLOBAL list via unified read', () => {
+    const baseIndex = 50;
+    const slotCount = 2;
+    const headerIndex = baseIndex + slotCount;
+    const header = toTaggedValue(slotCount, Tag.LIST);
+    // Write payload and header into GLOBAL window
+    vm.memory.writeFloat32(SEG_GLOBAL, (baseIndex + 0) * CELL_SIZE, 111);
+    vm.memory.writeFloat32(SEG_GLOBAL, (baseIndex + 1) * CELL_SIZE, 222);
+    vm.memory.writeFloat32(SEG_GLOBAL, headerIndex * CELL_SIZE, header);
+
+    const headerAddr = headerIndex * CELL_SIZE;
+    // Element 0 is just below header
+    const addr0 = getListElemAddr(vm, header, headerAddr, 0, SEG_GLOBAL);
+    expect(addr0).toBe(headerAddr - CELL_SIZE);
+  });
 });

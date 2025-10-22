@@ -5,7 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { SEG_STACK, CELL_SIZE } from './constants';
+import { SEG_STACK, SEG_GLOBAL, SEG_RSTACK, SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
 import { isRef, resolveReference } from './refs';
 
 /**
@@ -90,8 +90,16 @@ export function getListElemAddr(
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
+  const base = segment === SEG_STACK
+    ? STACK_BASE
+    : segment === SEG_GLOBAL
+    ? GLOBAL_BASE
+    : segment === SEG_RSTACK
+    ? RSTACK_BASE
+    : 0;
+
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readFloat32(segment, currentAddr);
+    const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
     let stepSize = 1;
     let elementStartAddr = currentAddr;
 
@@ -159,14 +167,16 @@ export function getListBounds(
     const first = resolveReference(vm, value);
     let addr = first.address;
     let seg = first.segment;
-    let header = vm.memory.readFloat32(seg, addr);
+    const baseForSeg = seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+    let header = vm.memory.readFloat32(SEG_DATA, baseForSeg + addr);
 
     // Support ref-to-ref indirection: dereference one additional level if needed.
     if (isRef(header)) {
       const inner = resolveReference(vm, header);
       seg = inner.segment;
       addr = inner.address;
-      header = vm.memory.readFloat32(seg, addr);
+      const innerBase = seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+      header = vm.memory.readFloat32(SEG_DATA, innerBase + addr);
     }
 
     if (!isList(header)) {

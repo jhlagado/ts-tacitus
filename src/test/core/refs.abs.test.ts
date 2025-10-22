@@ -15,9 +15,12 @@ describe('Absolute DATA_REF helpers (Phase A)', () => {
     expect(() => createDataRefAbs(outOfBounds)).toThrow(/out of bounds/);
   });
 
+  test('createDataRefAbs throws on negative index', () => {
+    expect(() => createDataRefAbs(-1)).toThrow(/out of bounds/);
+  });
+
   test('decodeDataRefAbs rejects non-DATA_REF values', () => {
     const notRef = toTaggedValue(0, Tag.LIST);
     expect(() => decodeDataRefAbs(notRef)).toThrow(/non-DATA_REF/);
   });
 });
-

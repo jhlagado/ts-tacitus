@@ -17,6 +17,11 @@ describe('List query operations: length/size', () => {
     expect(stack[stack.length - 1]).toBe(3);
   });
 
+  test('size works on return-stack list reference (&local)', () => {
+    const result = executeTacitCode(': f ( 1 2 ) var x &x size ; f');
+    expect(result[0]).toBe(2);
+  });
+
   test('length for non-list returns NIL', () => {
     const stack = executeTacitCode('42 length');
     expect(Number.isNaN(stack[stack.length - 1])).toBe(true);
