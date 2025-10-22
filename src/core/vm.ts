@@ -10,6 +10,7 @@ import {
   SEG_STACK,
   SEG_RSTACK,
   SEG_CODE,
+  SEG_DATA,
   CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
@@ -35,14 +36,14 @@ export class VM {
   memory: Memory;
 
   // Internal canonical stack pointers measured in cells
-  private _spCells: number;
-  private _rspCells: number;
+  public _spCells: number;
+  public _rspCells: number;
 
   // Base pointer for return stack frames (cells, canonical)
-  private _bpCells: number;
+  public _bpCells: number;
 
   // Global segment bump pointer (cells)
-  private _gpCells: number;
+  public _gpCells: number;
 
   IP: number;
 
@@ -403,7 +404,9 @@ export class VM {
   getStackData(): number[] {
     const stackData: number[] = [];
     for (let i = 0; i < this.SP; i += 1) {
-      stackData.push(this.memory.readFloat32(SEG_STACK, i * CELL_SIZE_BYTES));
+      // Read via unified data segment for forward-compatibility
+      const byteOffset = STACK_BASE + i * CELL_SIZE_BYTES;
+      stackData.push(this.memory.readFloat32(SEG_DATA, byteOffset));
     }
 
     return stackData;
@@ -475,48 +478,40 @@ export interface VM {
 Object.defineProperties(VM.prototype, {
   sp: {
     get(this: VM) {
-      // @ts-ignore access private storage
-      return (this as any)._spCells;
+      return this._spCells;
     },
     set(this: VM, cells: number) {
-      // @ts-ignore access private storage
-      (this as any)._spCells = cells;
+      this._spCells = cells;
     },
     configurable: true,
     enumerable: true,
   },
   rsp: {
     get(this: VM) {
-      // @ts-ignore access private storage
-      return (this as any)._rspCells;
+      return this._rspCells;
     },
     set(this: VM, cells: number) {
-      // @ts-ignore access private storage
-      (this as any)._rspCells = cells;
+      this._rspCells = cells;
     },
     configurable: true,
     enumerable: true,
   },
   bp: {
     get(this: VM) {
-      // @ts-ignore access private storage
-      return (this as any)._bpCells;
+      return this._bpCells;
     },
     set(this: VM, cells: number) {
-      // @ts-ignore access private storage
-      (this as any)._bpCells = cells;
+      this._bpCells = cells;
     },
     configurable: true,
     enumerable: true,
   },
   gp: {
     get(this: VM) {
-      // @ts-ignore access private storage
-      return (this as any)._gpCells;
+      return this._gpCells;
     },
     set(this: VM, cells: number) {
-      // @ts-ignore access private storage
-      (this as any)._gpCells = cells;
+      this._gpCells = cells;
     },
     configurable: true,
     enumerable: true,
