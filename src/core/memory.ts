@@ -10,6 +10,7 @@ import {
   SEG_GLOBAL,
   SEG_CODE,
   SEG_STRING,
+  SEG_DATA,
   STACK_BASE,
   STACK_SIZE,
   RSTACK_BASE,
@@ -19,6 +20,8 @@ import {
   GLOBAL_SIZE,
   STRING_SIZE,
   CODE_SIZE,
+  DATA_BASE,
+  DATA_TOP,
 } from './constants';
 
 /**
@@ -56,6 +59,10 @@ export class Memory {
     let size = 0;
 
     switch (segment) {
+      case SEG_DATA:
+        base = DATA_BASE;
+        size = DATA_TOP - DATA_BASE;
+        break;
       case SEG_GLOBAL:
         base = GLOBAL_BASE;
         size = GLOBAL_SIZE;
