@@ -9,6 +9,7 @@ import {
   SEG_STACK,
   SEG_RSTACK,
   SEG_GLOBAL,
+  SEG_DATA,
   STACK_BASE,
   STACK_SIZE,
   RSTACK_BASE,
@@ -115,6 +116,25 @@ export function decodeDataRefAbs(ref: number): { absoluteCellIndex: number } {
     throw new Error('decodeDataRefAbs called with non-DATA_REF value');
   }
   return { absoluteCellIndex: value };
+}
+
+/**
+ * Phase C helpers: absolute addressing utilities that do not rely on window classification.
+ */
+export function getAbsoluteCellIndexFromRef(ref: number): number {
+  const { value, tag } = fromTaggedValue(ref);
+  if (tag !== Tag.DATA_REF) throw new Error('Expected DATA_REF');
+  if (value < 0 || value >= TOTAL_DATA_CELLS) throw new RangeError('DATA_REF absolute out of bounds');
+  return value;
+}
+
+export function getAbsoluteByteAddressFromRef(ref: number): number {
+  return getAbsoluteCellIndexFromRef(ref) * CELL_SIZE;
+}
+
+export function readRefValueAbs(vm: VM, ref: number): number {
+  const byteAddr = getAbsoluteByteAddressFromRef(ref);
+  return vm.memory.readFloat32(SEG_DATA, byteAddr);
 }
 
 export function isRef(tval: number): boolean {

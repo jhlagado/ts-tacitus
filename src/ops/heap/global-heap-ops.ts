@@ -24,6 +24,8 @@ import {
   getListLength,
   pushListToGlobalHeap,
   pushSimpleToGlobalHeap,
+  readRefValueAbs,
+  getAbsoluteByteAddressFromRef,
 } from '@src/core';
 import { loadOp } from '../lists';
 
@@ -76,13 +78,9 @@ export function gpushOp(vm: VM): void {
   }
 
   if (isRef(value)) {
-    const ref = resolveReference(vm, value);
-    const base = ref.segment === SEG_GLOBAL ? GLOBAL_BASE : ref.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
-    let simple = vm.memory.readFloat32(SEG_DATA, base + ref.address);
+    let simple = readRefValueAbs(vm, value);
     if (isRef(simple)) {
-      const inner = resolveReference(vm, simple);
-      const innerBase = inner.segment === SEG_GLOBAL ? GLOBAL_BASE : inner.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
-      simple = vm.memory.readFloat32(SEG_DATA, innerBase + inner.address);
+      simple = readRefValueAbs(vm, simple);
     }
     const heapRef = pushSimpleToGlobalHeap(vm, simple);
     vm.pop();
