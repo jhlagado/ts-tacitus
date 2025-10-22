@@ -98,6 +98,25 @@ export function decodeDataRef(ref: number): DataRefComponents {
   };
 }
 
+/**
+ * Phase A: Absolute-only helpers for unified data addressing.
+ * These do not classify into legacy windows and should be used by new code paths.
+ */
+export function createDataRefAbs(absoluteCellIndex: number): number {
+  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
+    throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
+  }
+  return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
+}
+
+export function decodeDataRefAbs(ref: number): { absoluteCellIndex: number } {
+  const { value, tag } = fromTaggedValue(ref);
+  if (tag !== Tag.DATA_REF) {
+    throw new Error('decodeDataRefAbs called with non-DATA_REF value');
+  }
+  return { absoluteCellIndex: value };
+}
+
 export function isRef(tval: number): boolean {
   return getTag(tval) === Tag.DATA_REF;
 }

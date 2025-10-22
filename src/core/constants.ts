@@ -21,6 +21,9 @@ export const SEG_RSTACK = 1;
 
 export const SEG_GLOBAL = 2;
 
+// Unified data segment identifier (compat placeholder for Phase A). Not yet used broadly.
+export const SEG_DATA = 3;
+
 export const SEG_CODE = 4;
 
 export const SEG_STRING = 5;
