@@ -14,6 +14,12 @@ import {
   decodeDataRef,
   isRef,
   SEG_RSTACK,
+  SEG_GLOBAL,
+  SEG_STACK,
+  SEG_DATA,
+  RSTACK_BASE,
+  GLOBAL_BASE,
+  STACK_BASE,
   CELL_SIZE,
 } from '@src/core';
 
@@ -279,10 +285,10 @@ export function initVarOp(vm: VM): void {
     const headerCellIndex = headerAddr / CELL_SIZE;
     const localRef = createDataRef(SEG_RSTACK, headerCellIndex);
 
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
+    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, localRef);
   } else {
     const simpleValue = vm.pop();
-    vm.memory.writeFloat32(SEG_RSTACK, slotAddr, simpleValue);
+    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, simpleValue);
   }
 }
 
@@ -305,7 +311,7 @@ export function dumpFrameOp(vm: VM): void {
 
     for (let i = 0; i < localCount; i++) {
       const slotAddr = (vm.BP + i) * CELL_SIZE;
-      const slotValue = vm.memory.readFloat32(SEG_RSTACK, slotAddr);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
@@ -313,7 +319,8 @@ export function dumpFrameOp(vm: VM): void {
       if (isRef(slotValue)) {
         const { segment, cellIndex } = decodeDataRef(slotValue);
         const targetAddr = cellIndex * CELL_SIZE;
-        const targetValue = vm.memory.readFloat32(segment, targetAddr);
+        const base = segment === SEG_RSTACK ? RSTACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : STACK_BASE;
+        const targetValue = vm.memory.readFloat32(SEG_DATA, base + targetAddr);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
         console.log(

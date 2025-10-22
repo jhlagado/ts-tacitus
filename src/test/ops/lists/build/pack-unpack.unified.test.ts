@@ -24,4 +24,14 @@ describe('List build ops (pack/unpack) unified memory coverage', () => {
     expect(Array.isArray(stack)).toBe(true);
     expect(stack.length).toBeGreaterThan(0);
   });
+
+  test('unpack on empty list yields no items', () => {
+    const stack = executeTacitCode('( ) unpack');
+    expect(stack.length).toBe(0);
+  });
+
+  test('unpack on stack-resident list leaves payload on stack', () => {
+    const stack = executeTacitCode('( 1 2 ) unpack');
+    expect(stack).toEqual([2, 1]);
+  });
 });
