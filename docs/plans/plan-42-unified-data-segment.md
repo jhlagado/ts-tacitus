@@ -48,3 +48,12 @@ Risk control
 ---
 
 Immediate step (Phase A): add `SEG_DATA` and absolute ref helpers only.
+
+Progress
+
+- Phase A: COMPLETE
+  - Added `SEG_DATA` constant and absolute DATA_REF helpers (`createDataRefAbs`, `decodeDataRefAbs`).
+  - Tests added for absolute helpers; full suite remains green.
+- Phase B: IN PROGRESS
+  - Exposed VM absolute register fields `sp/rsp/bp/gp` (mapped to internal storage). No behaviour change.
+  - Next: migrate low-risk consumers to absolute helpers/fields while keeping legacy paths.

@@ -50,6 +50,10 @@ export const RSTACK_TOP = RSTACK_BASE + RSTACK_SIZE;
 
 export const TOTAL_DATA_BYTES = RSTACK_TOP;
 
+// Unified data segment boundaries (aliasing the whole data arena)
+export const DATA_BASE = GLOBAL_BASE;
+export const DATA_TOP = TOTAL_DATA_BYTES;
+
 /** Maximum opcode value for built-in operations (0-127) */
 export const MAX_BUILTIN_OPCODE = 127;
 

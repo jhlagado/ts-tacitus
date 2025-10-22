@@ -456,3 +456,69 @@ export class VM {
     this.push(taggedValue);
   }
 }
+
+/**
+ * Phase B: Public absolute register fields with validation shims.
+ * Expose `sp`, `rsp`, `bp`, and `gp` as properties mapped to internal absolute cell indices.
+ */
+export interface VM {
+  /** Absolute cell index for data stack top (one past TOS). */
+  sp: number;
+  /** Absolute cell index for return stack top (one past RTOS). */
+  rsp: number;
+  /** Absolute cell index for current frame base. */
+  bp: number;
+  /** Global heap bump pointer (absolute cell index). */
+  gp: number;
+}
+
+Object.defineProperties(VM.prototype, {
+  sp: {
+    get(this: VM) {
+      // @ts-ignore access private storage
+      return (this as any)._spCells;
+    },
+    set(this: VM, cells: number) {
+      // @ts-ignore access private storage
+      (this as any)._spCells = cells;
+    },
+    configurable: true,
+    enumerable: true,
+  },
+  rsp: {
+    get(this: VM) {
+      // @ts-ignore access private storage
+      return (this as any)._rspCells;
+    },
+    set(this: VM, cells: number) {
+      // @ts-ignore access private storage
+      (this as any)._rspCells = cells;
+    },
+    configurable: true,
+    enumerable: true,
+  },
+  bp: {
+    get(this: VM) {
+      // @ts-ignore access private storage
+      return (this as any)._bpCells;
+    },
+    set(this: VM, cells: number) {
+      // @ts-ignore access private storage
+      (this as any)._bpCells = cells;
+    },
+    configurable: true,
+    enumerable: true,
+  },
+  gp: {
+    get(this: VM) {
+      // @ts-ignore access private storage
+      return (this as any)._gpCells;
+    },
+    set(this: VM, cells: number) {
+      // @ts-ignore access private storage
+      (this as any)._gpCells = cells;
+    },
+    configurable: true,
+    enumerable: true,
+  },
+});
