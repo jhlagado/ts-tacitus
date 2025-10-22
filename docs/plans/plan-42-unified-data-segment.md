@@ -56,4 +56,5 @@ Progress
   - Tests added for absolute helpers; full suite remains green.
 - Phase B: IN PROGRESS
   - Exposed VM absolute register fields `sp/rsp/bp/gp` (mapped to internal storage). No behaviour change.
-  - Next: migrate low-risk consumers to absolute helpers/fields while keeping legacy paths.
+  - VM unified reads: getStackData, pop, peek, peekAt, rpop now read via `SEG_DATA` with byte offsets; writes unchanged. Tests green.
+  - Next: migrate another small read path (list/helper) to `SEG_DATA`, then proceed op-by-op.
