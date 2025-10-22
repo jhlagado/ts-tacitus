@@ -237,7 +237,8 @@ export class VM {
     this._spCells -= 1;
     const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
-    return this.memory.readFloat32(SEG_STACK, offsetBytes);
+    // Read via unified data segment
+    return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
   /**
@@ -251,7 +252,7 @@ export class VM {
     }
 
     const offsetBytes = (this._spCells - this.stackBaseCells - 1) * CELL_SIZE_BYTES;
-    return this.memory.readFloat32(SEG_STACK, offsetBytes);
+    return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
   /**
@@ -267,7 +268,7 @@ export class VM {
     }
 
     const offsetBytes = (this._spCells - this.stackBaseCells - requiredCells) * CELL_SIZE_BYTES;
-    return this.memory.readFloat32(SEG_STACK, offsetBytes);
+    return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
   /**
@@ -318,7 +319,8 @@ export class VM {
     this._rspCells -= 1;
     const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
-    return this.memory.readFloat32(SEG_RSTACK, offsetBytes);
+    // Read via unified data segment
+    return this.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
   }
 
   /**
