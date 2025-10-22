@@ -5,6 +5,8 @@ import {
   fromTaggedValue,
   CELL_SIZE,
   SEG_RSTACK,
+  SEG_DATA,
+  RSTACK_BASE,
   createDataRef,
 } from '@src/core';
 import { Op } from '../opcodes';
@@ -28,8 +30,8 @@ export function exitConstructorOp(vm: VM): void {
   vm.push(createDataRef(SEG_RSTACK, headerCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
-  const savedBP = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 1) * CELL_SIZE);
-  const returnAddr = vm.memory.readFloat32(SEG_RSTACK, (oldBpCells - 2) * CELL_SIZE);
+  const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpCells - 1) * CELL_SIZE);
+  const returnAddr = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpCells - 2) * CELL_SIZE);
 
   vm.BP = Math.trunc(savedBP);
   vm.IP = Math.trunc(returnAddr);

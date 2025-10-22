@@ -12,6 +12,10 @@ import {
   resolveReference,
   SEG_GLOBAL,
   SEG_DATA,
+  SEG_RSTACK,
+  SEG_STACK,
+  RSTACK_BASE,
+  STACK_BASE,
   GLOBAL_BASE,
   CELL_SIZE,
   dropList,
@@ -73,10 +77,12 @@ export function gpushOp(vm: VM): void {
 
   if (isRef(value)) {
     const ref = resolveReference(vm, value);
-    let simple = vm.memory.readFloat32(ref.segment, ref.address);
+    const base = ref.segment === SEG_GLOBAL ? GLOBAL_BASE : ref.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+    let simple = vm.memory.readFloat32(SEG_DATA, base + ref.address);
     if (isRef(simple)) {
       const inner = resolveReference(vm, simple);
-      simple = vm.memory.readFloat32(inner.segment, inner.address);
+      const innerBase = inner.segment === SEG_GLOBAL ? GLOBAL_BASE : inner.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+      simple = vm.memory.readFloat32(SEG_DATA, innerBase + inner.address);
     }
     const heapRef = pushSimpleToGlobalHeap(vm, simple);
     vm.pop();

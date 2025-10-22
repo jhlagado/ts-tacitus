@@ -31,4 +31,11 @@ describe('List addressing operations: slot/elem', () => {
     const stack = executeTacitCode('( (1 2) ) 5 elem');
     expect(stack[stack.length - 1]).toBeNaN();
   });
+
+  test('negative indices return NIL (slot/elem)', () => {
+    const s1 = executeTacitCode('( 1 2 ) -1 slot');
+    expect(s1[s1.length - 1]).toBeNaN();
+    const s2 = executeTacitCode('( (1) ) -1 elem');
+    expect(s2[s2.length - 1]).toBeNaN();
+  });
 });
