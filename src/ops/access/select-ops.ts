@@ -3,7 +3,7 @@
  * Path-based address selection operations for the Tacit VM.
  */
 
-import { VM, Verb, Tag, getTag, isNIL, NIL, SEG_STACK, CELL_SIZE } from '@src/core';
+import { VM, Verb, Tag, getTag, isNIL, NIL, SEG_STACK, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { isRef, createSegmentRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
@@ -21,7 +21,7 @@ export function createTargetRef(vm: VM): boolean {
   // findElement examined the cell at: vm.SP - pathSize - 1
   const targetCellIndex = vm.SP - pathSize - 1;
   const targetByteAddr = targetCellIndex * CELL_SIZE;
-  const target = vm.memory.readFloat32(SEG_STACK, targetByteAddr);
+  const target = vm.memory.readFloat32(SEG_DATA, STACK_BASE + targetByteAddr);
 
   if (isList(target)) {
     // Create segment-aware ref (currently SEG_STACK)
@@ -80,12 +80,12 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 export function traverseMultiPath(vm: VM): void {
   // Read path header using cell-based indexing
   const pathHeaderCell = vm.SP - 2;
-  const pathHeader = vm.memory.readFloat32(SEG_STACK, pathHeaderCell * CELL_SIZE);
+  const pathHeader = vm.memory.readFloat32(SEG_DATA, STACK_BASE + pathHeaderCell * CELL_SIZE);
   const pathLength = getListLength(pathHeader);
   let pathElementCell = vm.SP - 3;
 
   for (let i = 0; i < pathLength; i++) {
-    const pathElement = vm.memory.readFloat32(SEG_STACK, pathElementCell * CELL_SIZE);
+    const pathElement = vm.memory.readFloat32(SEG_DATA, STACK_BASE + pathElementCell * CELL_SIZE);
     pathElementCell -= 1;
 
     if (!processPathStep(vm, pathElement)) {

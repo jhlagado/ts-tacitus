@@ -9,6 +9,8 @@ import {
   fromTaggedValue,
   Tag,
   SEG_STACK,
+  SEG_DATA,
+  STACK_BASE,
   CELL_SIZE,
   StackUnderflowError,
   VMError,
@@ -33,7 +35,7 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
   }
 
   const addr = slotAddr * CELL_SIZE;
-  const value = vm.memory.readFloat32(SEG_STACK, addr);
+  const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + addr);
   const { tag, value: tagValue } = fromTaggedValue(value);
 
   if (tag === Tag.LIST) {
@@ -57,7 +59,7 @@ export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   let addr = startAddr;
 
   for (let i = 0; i < slotCount; i++) {
-    const slot = vm.memory.readFloat32(SEG_STACK, addr);
+    const slot = vm.memory.readFloat32(SEG_DATA, STACK_BASE + addr);
     vm.push(slot);
     addr += CELL_SIZE;
   }
@@ -80,11 +82,11 @@ export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void
   let right = endAddr;
 
   while (left < right) {
-    const temp = vm.memory.readFloat32(SEG_STACK, left);
-    const rightVal = vm.memory.readFloat32(SEG_STACK, right);
+    const temp = vm.memory.readFloat32(SEG_DATA, STACK_BASE + left);
+    const rightVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + right);
 
-    vm.memory.writeFloat32(SEG_STACK, left, rightVal);
-    vm.memory.writeFloat32(SEG_STACK, right, temp);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + left, rightVal);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + right, temp);
 
     left += CELL_SIZE;
     right -= CELL_SIZE;
@@ -220,7 +222,7 @@ export const overOp: Verb = (vm: VM) => {
     const secondAddr = (vm.SP - (topSlots + secondSlots)) * CELL_SIZE;
 
     for (let i = 0; i < secondSlots; i++) {
-      const value = vm.memory.readFloat32(SEG_STACK, secondAddr + i * CELL_SIZE);
+      const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + secondAddr + i * CELL_SIZE);
       vm.push(value);
     }
   } catch (error) {
@@ -384,8 +386,8 @@ export const nipOp: Verb = (vm: VM) => {
         const sourceAddr = tosStartAddr + i * CELL_SIZE;
         const destAddr = nosStartAddr + i * CELL_SIZE;
 
-        const value = vm.memory.readFloat32(SEG_STACK, sourceAddr);
-        vm.memory.writeFloat32(SEG_STACK, destAddr, value);
+        const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + sourceAddr);
+        vm.memory.writeFloat32(SEG_DATA, STACK_BASE + destAddr, value);
       }
 
       vm.SP -= nosSize;

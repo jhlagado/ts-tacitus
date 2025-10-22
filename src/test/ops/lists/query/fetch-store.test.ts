@@ -38,6 +38,10 @@ describe('List reference operations: fetch/store', () => {
     expect(fetched).toBe(99);
   });
 
+  test('fetch throws on non-reference input', () => {
+    expect(() => executeTacitCode('42 fetch')).toThrow();
+  });
+
   test('load materializes list from return-stack reference (&local)', () => {
     resetVM();
     // Build a function that creates a local list and pushes &x (ref) to stack
