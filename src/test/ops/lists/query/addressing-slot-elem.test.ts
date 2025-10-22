@@ -20,4 +20,15 @@ describe('List addressing operations: slot/elem', () => {
     expect(Array.isArray(stack)).toBe(true);
     expect(last).not.toBeUndefined();
   });
+
+  test('slot out of range returns NIL', () => {
+    const stack = executeTacitCode('( 1 2 ) 5 slot');
+    // Expect NIL on stack
+    expect(stack[stack.length - 1]).toBeNaN();
+  });
+
+  test('elem out of range returns NIL', () => {
+    const stack = executeTacitCode('( (1 2) ) 5 elem');
+    expect(stack[stack.length - 1]).toBeNaN();
+  });
 });

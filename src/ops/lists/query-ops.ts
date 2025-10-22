@@ -13,7 +13,7 @@ import {
   pushListToGlobalHeap,
 } from '@src/core';
 import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL } from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
 import { dropOp } from '../stack';
@@ -53,8 +53,9 @@ export function sizeOp(vm: VM): void {
   let elementCount = 0;
   let currentAddr = computeHeaderAddr(info.baseAddr, slotCount) - CELL_SIZE;
   let remainingSlots = slotCount;
+  const baseForSeg = info.segment === SEG_GLOBAL ? GLOBAL_BASE : info.segment === 1 /* SEG_RSTACK */ ? RSTACK_BASE : STACK_BASE;
   while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(info.segment, currentAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, baseForSeg + currentAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;

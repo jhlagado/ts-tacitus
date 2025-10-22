@@ -11,6 +11,8 @@ import {
   decodeDataRef,
   resolveReference,
   SEG_GLOBAL,
+  SEG_DATA,
+  GLOBAL_BASE,
   CELL_SIZE,
   dropList,
   getListBounds,
@@ -117,7 +119,8 @@ export function gpopOp(vm: VM): void {
     throw new Error('gpop expects reference to heap top');
   }
 
-  const headerValue = vm.memory.readFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE);
+  // Read header via unified data segment (absolute byte offset)
+  const headerValue = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE);
   if (isList(headerValue)) {
     const span = getListLength(headerValue) + 1;
     vm.GP -= span;
