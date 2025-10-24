@@ -58,4 +58,9 @@ Progress
   - Exposed VM absolute register fields `sp/rsp/bp/gp` (mapped to internal storage). No behaviour change.
   - VM unified reads/writes for stacks: `push/pop/peek/peekAt`, `rpush/rpop`, and `getStackData` operate via `SEG_DATA` with byte offsets. Tests green.
   - Lists: introduced absolute addressing surface in `getListBounds` (`absBaseAddrBytes`) and migrated `unpack` materialization path to use absolute SEG_DATA reads (no segment-derived base).
-  - Next: migrate remaining list helpers/ops (`slot/elem/fetch/store`, `head/tail/reverse/concat`, `select` createTargetRef) to absolute addressing; then convert heap ops (`gpush/gpeek/gpop/gmark/gsweep`) to absolute-only and update tests to assert behaviour/absolute indices (not segment IDs).
+  - Select: migrated `createTargetRef` to produce absolute `DATA_REF`s using `vm.sp` and absolute `SEG_DATA` reads; removed segment-derived base math. Existing tests continue to pass (segment classification via decode remains `SEG_STACK` for stack-resident lists).
+  - Lists: migrated `elem` to absolute addressing. It now scans using `absBaseAddrBytes` and pushes absolute refs via `createDataRefAbs`. No reliance on segment-derived math.
+  - Lists: migrated `slot` to absolute addressing. It computes element absolute address from `absBaseAddrBytes` and returns absolute refs via `createDataRefAbs`.
+  - Lists: migrated `fetch` to absolute addressing. It dereferences via absolute byte address and materializes list payload using unified `SEG_DATA` reads.
+  - Lists: migrated `store` to absolute addressing in core paths. Simple value writes and compound copy from references now use absolute `SEG_DATA` reads/writes; in-place mutation remains compatible with segment-aware helper.
+  - Next: migrate remaining list helpers/ops (`head/tail/reverse/concat`) to absolute addressing; then convert heap ops (`gpush/gpeek/gpop/gmark/gsweep`) to absolute-only and update tests to assert behaviour/absolute indices (not segment IDs).

@@ -12,14 +12,22 @@ import {
   dropList,
   pushListToGlobalHeap,
 } from '@src/core';
-import { getListLength, getListElemAddr, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL, SEG_RSTACK, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
+import { getListLength, isList } from '@src/core';
+import {
+  CELL_SIZE,
+  SEG_GLOBAL,
+  SEG_RSTACK,
+  SEG_DATA,
+  STACK_BASE,
+  GLOBAL_BASE,
+  RSTACK_BASE,
+} from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
-import { isRef, resolveReference, readReference, createSegmentRef } from '@src/core';
+import { isRef, resolveReference, createSegmentRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
-import { copyCells, cellIndex, cells } from '../../core/units';
+// (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
@@ -53,7 +61,12 @@ export function sizeOp(vm: VM): void {
   let elementCount = 0;
   let currentAddr = computeHeaderAddr(info.baseAddr, slotCount) - CELL_SIZE;
   let remainingSlots = slotCount;
-  const baseForSeg = info.segment === SEG_GLOBAL ? GLOBAL_BASE : info.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+  const baseForSeg =
+    info.segment === SEG_GLOBAL
+      ? GLOBAL_BASE
+      : info.segment === SEG_RSTACK
+        ? RSTACK_BASE
+        : STACK_BASE;
   while (remainingSlots > 0) {
     const v = vm.memory.readFloat32(SEG_DATA, baseForSeg + currentAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
@@ -79,10 +92,11 @@ export function slotOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  const addr = headerAddr - (idx + 1) * CELL_SIZE;
-  const cellIndex = addr / CELL_SIZE;
-  vm.push(createSegmentRef(info.segment, cellIndex));
+  // Absolute addressing: compute header absolute byte address and derive element address
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const addr = headerAbsAddr - (idx + 1) * CELL_SIZE;
+  const absCellIndex = addr / CELL_SIZE;
+  vm.push(createDataRefAbs(absCellIndex));
 }
 
 export function elemOp(vm: VM): void {
@@ -95,14 +109,36 @@ export function elemOp(vm: VM): void {
     return;
   }
   const slotCount = getListLength(info.header);
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  const addr = getListElemAddr(vm, info.header, headerAddr, idx, info.segment);
-  if (addr === -1) {
+  if (idx < 0) {
     vm.push(NIL);
     return;
   }
-  const cellIndex = addr / CELL_SIZE;
-  vm.push(createSegmentRef(info.segment, cellIndex));
+  // Absolute header address and scan using unified SEG_DATA
+  let currentAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
+  let currentLogicalIndex = 0;
+  let remainingSlots = slotCount;
+
+  while (remainingSlots > 0 && currentLogicalIndex <= idx) {
+    const currentValue = vm.memory.readFloat32(SEG_DATA, currentAddr);
+    let stepSize = 1;
+    let elementStartAddr = currentAddr;
+
+    if (isList(currentValue)) {
+      stepSize = getListLength(currentValue) + 1;
+    }
+
+    if (currentLogicalIndex === idx) {
+      const absCellIndex = elementStartAddr / CELL_SIZE;
+      vm.push(createDataRefAbs(absCellIndex));
+      return;
+    }
+
+    currentAddr -= stepSize * CELL_SIZE;
+    remainingSlots -= stepSize;
+    currentLogicalIndex++;
+  }
+
+  vm.push(NIL);
 }
 
 export function fetchOp(vm: VM): void {
@@ -111,13 +147,13 @@ export function fetchOp(vm: VM): void {
   if (!isRef(addressValue)) {
     throw new Error('fetch expects DATA_REF address');
   }
-  const { address, segment } = resolveReference(vm, addressValue);
-  const base = segment === SEG_GLOBAL ? GLOBAL_BASE : segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
-  const value = vm.memory.readFloat32(SEG_DATA, base + address);
+  // Absolute dereference
+  const absAddr = getAbsoluteByteAddressFromRef(addressValue);
+  const value = vm.memory.readFloat32(SEG_DATA, absAddr);
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_DATA, base + address - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, absAddr - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -184,12 +220,20 @@ interface SlotInfo {
 
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   const root = resolveReference(vm, addressValue);
-  const rootValue = vm.memory.readFloat32(root.segment, root.address);
+  const rootBase =
+    root.segment === SEG_GLOBAL ? GLOBAL_BASE : root.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+  const rootValue = vm.memory.readFloat32(SEG_DATA, rootBase + root.address);
   let resolved = root;
   let existingValue = rootValue;
   if (isRef(rootValue)) {
     resolved = resolveReference(vm, rootValue);
-    existingValue = vm.memory.readFloat32(resolved.segment, resolved.address);
+    const resBase =
+      resolved.segment === SEG_GLOBAL
+        ? GLOBAL_BASE
+        : resolved.segment === SEG_RSTACK
+          ? RSTACK_BASE
+          : STACK_BASE;
+    existingValue = vm.memory.readFloat32(SEG_DATA, resBase + resolved.address);
   }
   return { root, rootValue, resolved, existingValue };
 }
@@ -209,52 +253,41 @@ function initializeGlobalCompound(
   rhsTag: Tag,
 ): void {
   const heapRef = pushListToGlobalHeap(vm, rhsInfo);
-  vm.memory.writeFloat32(slot.root.segment, slot.root.address, heapRef);
+  const baseForSeg =
+    slot.root.segment === SEG_GLOBAL
+      ? GLOBAL_BASE
+      : slot.root.segment === SEG_RSTACK
+        ? RSTACK_BASE
+        : STACK_BASE;
+  vm.memory.writeFloat32(SEG_DATA, baseForSeg + slot.root.address, heapRef);
   discardCompoundSource(vm, rhsTag);
 }
 
 function copyCompoundFromReference(
   vm: VM,
-  rhsInfo: { header: number; baseAddr: number; segment: number },
+  rhsInfo: { header: number; baseAddr: number; segment: number; absBaseAddrBytes?: number },
   targetSegment: number,
   targetAddress: number,
   slotCount: number,
 ): void {
-  const srcHeaderAddr = computeHeaderAddr(rhsInfo.baseAddr, slotCount);
-  const destBaseAddr = targetAddress - slotCount * CELL_SIZE;
+  // Absolute-only copy using unified data segment
+  const srcBaseAbs = rhsInfo.absBaseAddrBytes !== undefined
+    ? rhsInfo.absBaseAddrBytes
+    : (rhsInfo.segment === SEG_GLOBAL
+        ? GLOBAL_BASE
+        : rhsInfo.segment === SEG_RSTACK
+          ? RSTACK_BASE
+          : STACK_BASE) + rhsInfo.baseAddr;
+  const targetBaseAbs =
+    (targetSegment === SEG_GLOBAL ? GLOBAL_BASE : targetSegment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE) +
+    (targetAddress - slotCount * CELL_SIZE);
 
-  if (
-    rhsInfo.segment === targetSegment &&
-    rhsInfo.baseAddr === destBaseAddr &&
-    srcHeaderAddr === targetAddress
-  ) {
-    return;
-  }
-
-  if (rhsInfo.segment === targetSegment) {
-    const srcBaseCell = rhsInfo.baseAddr / CELL_SIZE;
-    const dstBaseCell = destBaseAddr / CELL_SIZE;
-    copyCells(
-      vm.memory,
-      targetSegment,
-      cellIndex(dstBaseCell),
-      cellIndex(srcBaseCell),
-      cells(slotCount),
-    );
-    vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
-    return;
-  }
-
-  const tmp: number[] = new Array(slotCount);
   for (let i = 0; i < slotCount; i++) {
-    const addr = rhsInfo.baseAddr + i * CELL_SIZE;
-    tmp[i] = vm.memory.readFloat32(rhsInfo.segment, addr);
+    const v = vm.memory.readFloat32(SEG_DATA, srcBaseAbs + i * CELL_SIZE);
+    vm.memory.writeFloat32(SEG_DATA, targetBaseAbs + i * CELL_SIZE, v);
   }
-  for (let i = 0; i < slotCount; i++) {
-    const addr = destBaseAddr + i * CELL_SIZE;
-    vm.memory.writeFloat32(targetSegment, addr, tmp[i]);
-  }
-  vm.memory.writeFloat32(targetSegment, targetAddress, rhsInfo.header);
+  const targetHeaderAbs = targetBaseAbs + slotCount * CELL_SIZE;
+  vm.memory.writeFloat32(SEG_DATA, targetHeaderAbs, rhsInfo.header);
 }
 
 function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
@@ -294,7 +327,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   let value = rhsValue;
   if (isRef(value)) {
-    value = readReference(vm, value);
+    value = readRefValueAbs(vm, value);
     vm.pop();
     vm.push(value);
   }
@@ -303,7 +336,13 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   const existingIsCompound = isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     vm.pop();
-    vm.memory.writeFloat32(slot.root.segment, slot.root.address, value);
+    const baseForSeg =
+      slot.root.segment === SEG_GLOBAL
+        ? GLOBAL_BASE
+        : slot.root.segment === SEG_RSTACK
+          ? RSTACK_BASE
+          : STACK_BASE;
+    vm.memory.writeFloat32(SEG_DATA, baseForSeg + slot.root.address, value);
     return;
   }
 
