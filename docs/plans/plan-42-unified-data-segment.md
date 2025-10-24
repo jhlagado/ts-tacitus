@@ -101,6 +101,27 @@ Progress
       - `getRefSegment(ref)` now classifies by absolute byte address ranges (GLOBAL/STACK/RSTACK windows), not by decoding windowed refs.
       - `resolveReference(vm, ref)` now computes absolute byte address and derives segment-relative indices only for legacy callers/tests.
       - Full compact test run green after this change (145 passed, 2 skipped).
+    - Parser guards migrated to absolute classification (2025-10-24):
+      - Replaced decode-based SEG_GLOBAL checks with `getRefSegment(...) === SEG_GLOBAL` in three sites: unknown word DATA_REF handling, `&var` inside functions, and `->` assignments to globals.
+      - No behaviour change; compile-time validation only. Tests remain green.
+    - Legacy helper deprecations annotated (2025-10-24):
+      - Added `@deprecated` JSDoc on `createDataRef`, `decodeDataRef`, `createSegmentRef`, and `resolveReference` to signal upcoming removal post-flip.
+      - No runtime behavior changes; tests continue to use legacy helpers as needed.
+    - List ops (structure) segment-branch removal (2025-10-24):
+      - `structure-ops` fast paths no longer depend on `SEG_STACK`; they detect direct stack lists via `Tag.LIST` and otherwise materialize via absolute addressing (`SEG_DATA`).
+      - Keeps same behavior with simpler absolute logic; prepares for removing legacy segment notions.
+    - List ops (builders) segment-branch removal (2025-10-24):
+      - `build-ops` (`unpack`) now detects direct stack lists via `Tag.LIST`; reference case materializes via absolute addressing.
+      - Removed dependency on `SEG_STACK` in builder path; no behavior change.
+    - Ops audit (2025-10-24):
+      - Searched for segment-derived branches in ops. Remaining segment checks are semantically required (e.g., global slot handling) and classification for legacy return shapes; all reads/writes use absolute `SEG_DATA`.
+      - No further runtime dependencies on segment-derived base math identified.
+    - List query ops refinement (2025-10-24):
+      - `store` path now uses absolute address window checks for global detection (rootAbsAddr in GLOBAL window) instead of legacy segment labels.
+      - Compound copy source now uses `absBaseAddrBytes` exclusively where available; legacy fallback treated as already-absolute.
+    - Global heap fallback simplified (2025-10-24):
+      - `pushListToGlobalHeap` now uses `absBaseAddrBytes` when provided; fallback treats `baseAddr` as absolute rather than re-deriving from segments.
+      - Eliminates segment-derived math in the heap copy source; behavior unchanged for current callers.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
     - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers once all consumers are updated; keep compatibility shim until final flip.
@@ -108,8 +129,11 @@ Progress
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
     - Immediate next targets (post-2025-10-24):
       - Audit and migrate any remaining runtime constructions of `DATA_REF` to absolute creation helpers; tests may continue to classify refs until final flip. Current status: creators (locals/globals/capsule handles) migrated.
-      - Parser-only decode usage: migrate the global-segment guard to use `getRefSegment(ref) === SEG_GLOBAL` (keep other decode usages that require indices until final flip).
-      - Identify and remove any remaining segment-derived base math in ops.
-        - `local-vars-transfer`: segment-based API fully removed; ensure callers exclusively use absolute addresses.
-        - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA`.
-      - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and legacy classification fields (e.g., from `getListBounds`).
+  - Runtime flip: COMPLETE (2025-10-24) — All runtime paths use absolute addressing and unified `SEG_DATA`; no production dependencies on legacy window classification. `decodeDataRef`/`resolveReference` marked `@deprecated` and `@internal` (test-only intent).
+  - Tests migration: IN PROGRESS — Update tests to rely on absolute helpers (`createDataRefAbs`, `decodeDataRefAbs`, `getAbsoluteByteAddressFromRef`) and observable behavior; then remove legacy classification fields from helpers like `getListBounds`.
+    - Audit remaining production `decodeDataRef` usages: COMPLETE (2025-10-24) — none outside definitions; tests still rely on it. Prepare removal in the final flip while keeping tests intact.
+    - Audit remaining production `resolveReference` usages: COMPLETE (2025-10-24) — only referenced in tests; runtime no longer depends on it.
+    - Identify and remove any remaining segment-derived base math in ops.
+      - `local-vars-transfer`: segment-based API fully removed; ensure callers exclusively use absolute addresses.
+      - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA`.
+    - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and legacy classification fields (e.g., from `getListBounds`).
