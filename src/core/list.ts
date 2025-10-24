@@ -5,15 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import {
-  SEG_STACK,
-  SEG_GLOBAL,
-  SEG_DATA,
-  CELL_SIZE,
-  STACK_BASE,
-  GLOBAL_BASE,
-  RSTACK_BASE,
-} from './constants';
+import { SEG_GLOBAL, SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
 import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 
 /**
@@ -84,7 +76,7 @@ export function getListElemAddr(
   header: number,
   headerAddr: number,
   logicalIndex: number,
-  segment: number = SEG_STACK,
+  segment = 0,
 ): number {
   if (!isList(header)) {
     throw new Error('Invalid LIST header provided to getListElemAddr');
@@ -98,8 +90,7 @@ export function getListElemAddr(
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
-  const base =
-    segment === SEG_STACK ? STACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+  const base = segment === 0 ? STACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
@@ -167,7 +158,7 @@ export function getListBounds(
     return {
       header: value,
       baseAddr: (vm.SP - 1 - slotCount) * CELL_SIZE,
-      segment: SEG_STACK,
+      segment: 0,
       absBaseAddrBytes,
     };
   } else if (isRef(value)) {
@@ -185,13 +176,13 @@ export function getListBounds(
     const slotCount = getListLength(header);
     const absBaseAddrBytes = headerAddrAbs - slotCount * CELL_SIZE;
     // Classify segment for compatibility with legacy callers
-    let segment = SEG_STACK;
+    let segment = 0;
     if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = SEG_GLOBAL;
-    else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = SEG_STACK;
+    else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = 0;
     else segment = 1;
     const baseAddr =
       absBaseAddrBytes -
-      (segment === SEG_GLOBAL ? GLOBAL_BASE : segment === SEG_STACK ? STACK_BASE : RSTACK_BASE);
+      (segment === SEG_GLOBAL ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
     return { header, baseAddr, segment, absBaseAddrBytes };
   }
   return null;

@@ -15,6 +15,11 @@ export const CELL_SIZE = 4;
 
 export const MEMORY_SIZE = 65536;
 
+/**
+ * @deprecated Phase C: The data stack is addressed via absolute windows in SEG_DATA.
+ * Use SEG_DATA with STACK_BASE + offset bytes for memory I/O; SEG_STACK remains only
+ * for legacy classification values and certain tests.
+ */
 export const SEG_STACK = 0;
 
 /**

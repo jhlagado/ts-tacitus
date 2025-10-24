@@ -13,15 +13,7 @@ import {
   pushListToGlobalHeap,
 } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import {
-  CELL_SIZE,
-  SEG_GLOBAL,
-  SEG_STACK,
-  SEG_DATA,
-  STACK_BASE,
-  GLOBAL_BASE,
-  RSTACK_BASE,
-} from '@src/core';
+import { CELL_SIZE, SEG_GLOBAL, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
@@ -220,7 +212,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
       return { segment: SEG_GLOBAL, address: absAddr - GLOBAL_BASE };
     }
     if (absAddr >= STACK_BASE && absAddr < RSTACK_BASE) {
-      return { segment: SEG_STACK, address: absAddr - STACK_BASE };
+      return { segment: 0, address: absAddr - STACK_BASE };
     }
     return { segment: 1, address: absAddr - RSTACK_BASE };
   };
