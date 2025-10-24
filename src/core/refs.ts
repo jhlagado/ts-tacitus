@@ -162,6 +162,17 @@ export function getRefSegment(ref: number): number {
 }
 
 /**
+ * Region classifier for DATA_REFs that returns string labels instead of numeric ids.
+ * Use for guards/validation; not for addressing.
+ */
+export function getRefRegionAbs(ref: number): 'global' | 'stack' | 'rstack' {
+  const absByte = getAbsoluteByteAddressFromRef(ref);
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 'global';
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 'stack';
+  return 'rstack';
+}
+
+/**
  * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex). Alias for createDataRef.
  */
 export function createSegmentRef(segment: number, cellIndex: number): number {
