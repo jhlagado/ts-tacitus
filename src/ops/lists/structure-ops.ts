@@ -3,7 +3,7 @@
  * Structural list operations: head, tail, reverse, concat.
  */
 
-import { VM, toTaggedValue, Tag, NIL, SEG_STACK, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
+import { VM, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
@@ -15,6 +15,7 @@ const stackAddrFromTop = (vm: VM, offsetSlots: number): number =>
 export function tailOp(vm: VM): void {
   vm.ensureStackSize(1, 'tail');
   const target = vm.peek();
+  const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -43,7 +44,7 @@ export function tailOp(vm: VM): void {
     return;
   }
 
-  if (info.segment === SEG_STACK) {
+  if (targetIsDirectList) {
     vm.SP -= firstElemSpan;
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
   } else {
@@ -61,6 +62,7 @@ export const dropHeadOp = tailOp;
 export function headOp(vm: VM): void {
   vm.ensureStackSize(1, 'head');
   const target = vm.peek();
+  const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -85,7 +87,7 @@ export function headOp(vm: VM): void {
   if (isList(firstElement)) {
     const elementSlotCount = getListLength(firstElement);
 
-    if (info.segment === SEG_STACK) {
+    if (targetIsDirectList) {
       vm.SP -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - i * CELL_SIZE);
@@ -102,7 +104,7 @@ export function headOp(vm: VM): void {
       vm.push(firstElement);
     }
   } else {
-    if (info.segment === SEG_STACK) {
+    if (targetIsDirectList) {
       vm.SP -= 1;
     }
     vm.push(firstElement);
@@ -112,6 +114,7 @@ export function headOp(vm: VM): void {
 export function reverseOp(vm: VM): void {
   vm.ensureStackSize(1, 'reverse');
   const target = vm.peek();
+  const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -140,7 +143,7 @@ export function reverseOp(vm: VM): void {
     remainingSlots -= span;
   }
 
-  if (info.segment === SEG_STACK) {
+  if (targetIsDirectList) {
     vm.SP -= slotCount;
   }
 

@@ -268,11 +268,14 @@ function copyCompoundFromReference(
   const srcBaseAbs =
     rhsInfo.absBaseAddrBytes !== undefined
       ? rhsInfo.absBaseAddrBytes
-      : (rhsInfo.segment === SEG_GLOBAL
-          ? GLOBAL_BASE
-          : rhsInfo.segment === SEG_RSTACK
-            ? RSTACK_BASE
-            : STACK_BASE) + rhsInfo.baseAddr;
+      : ((): number => {
+          // Fallback for legacy callers without absBaseAddrBytes; classify baseAddr windows
+          // Note: current getListBounds supplies absBaseAddrBytes for both direct lists and refs
+          // Keeping this branch for safety; should be unreachable after Phase C.
+          const base = rhsInfo.baseAddr;
+          // We cannot infer segment without additional context; treat base as absolute when absent.
+          return base;
+        })();
   const targetBaseAbs = targetAbsHeaderAddr - slotCount * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
@@ -294,7 +297,8 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   const existingIsCompound = isList(slot.existingValue);
 
   if (!existingIsCompound) {
-    if (slot.root.segment === SEG_GLOBAL) {
+    // Prefer absolute address window over legacy segment label
+    if (slot.rootAbsAddr >= GLOBAL_BASE && slot.rootAbsAddr < STACK_BASE) {
       initializeGlobalCompound(vm, slot, rhsInfo, rhsTag);
       return true;
     }

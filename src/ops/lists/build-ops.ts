@@ -9,7 +9,6 @@ import {
   toTaggedValue,
   Tag,
   NIL,
-  SEG_STACK,
   SEG_DATA,
   STACK_BASE,
   CELL_SIZE,
@@ -131,6 +130,7 @@ export function packOp(vm: VM): void {
 export function unpackOp(vm: VM): void {
   vm.ensureStackSize(1, 'unpack');
   const target = vm.peek();
+  const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -147,7 +147,7 @@ export function unpackOp(vm: VM): void {
     return;
   }
 
-  if (info.segment === SEG_STACK) {
+  if (targetIsDirectList) {
     // Direct list on stack: payload already remains on stack after popping header
     return;
   }

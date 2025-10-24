@@ -80,11 +80,21 @@ export interface DataRefComponents {
   absoluteCellIndex: number;
 }
 
+/**
+ * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex).
+ * Accepts legacy (segment, cellIndex) and emits an absolute DATA_REF. Kept for tests/compat
+ * until the final flip removes segment-derived APIs from runtime paths.
+ */
 export function createDataRef(segment: number, cellIndex: number): number {
   const absoluteCellIndex = toAbsoluteCellIndex(segment, cellIndex);
   return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
 }
 
+/**
+ * @deprecated Phase C: Prefer decodeDataRefAbs(ref).
+ * @internal Test-only compatibility: retained for tests until final removal.
+ * Returns legacy classification alongside absolute index.
+ */
 export function decodeDataRef(ref: number): DataRefComponents {
   const { value, tag } = fromTaggedValue(ref);
   if (tag !== Tag.DATA_REF) {
@@ -154,6 +164,9 @@ export function getRefSegment(ref: number): number {
   return SEG_RSTACK;
 }
 
+/**
+ * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex). Alias for createDataRef.
+ */
 export function createSegmentRef(segment: number, cellIndex: number): number {
   return createDataRef(segment, cellIndex);
 }
@@ -191,8 +204,9 @@ export interface ResolvedReference {
 }
 
 /**
- * Polymorphic reference resolver that handles all reference types.
- * Returns the byte address and memory segment for any reference type.
+ * @deprecated Phase C: Prefer getAbsoluteByteAddressFromRef(ref) with unified SEG_DATA I/O.
+ * @internal Test-only compatibility: retained for tests until final removal.
+ * Polymorphic resolver that returns legacy (segment, address) from an absolute DATA_REF.
  */
 export function resolveReference(vm: VM, ref: number): ResolvedReference {
   if (!isRef(ref)) {
