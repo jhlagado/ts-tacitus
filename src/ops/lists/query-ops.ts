@@ -17,6 +17,7 @@ import {
   CELL_SIZE,
   SEG_GLOBAL,
   SEG_RSTACK,
+  SEG_STACK,
   SEG_DATA,
   STACK_BASE,
   GLOBAL_BASE,
@@ -25,7 +26,6 @@ import {
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import {
   isRef,
-  resolveReference,
   createSegmentRef,
   createDataRefAbs,
   getAbsoluteByteAddressFromRef,
@@ -186,27 +186,21 @@ export function loadOp(vm: VM): void {
     return;
   }
 
-  // First dereference
-  const first = resolveReference(vm, input);
-  let addr = first.address;
-  let seg = first.segment;
-  let base = seg === SEG_GLOBAL ? GLOBAL_BASE : seg === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
-  let value = vm.memory.readFloat32(SEG_DATA, base + addr);
+  // Absolute first dereference
+  let absAddr = getAbsoluteByteAddressFromRef(input);
+  let value = vm.memory.readFloat32(SEG_DATA, absAddr);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
-    const second = resolveReference(vm, value);
-    seg = second.segment;
-    addr = second.address;
-    base = seg === SEG_GLOBAL ? GLOBAL_BASE : seg === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
-    value = vm.memory.readFloat32(SEG_DATA, base + addr);
+    absAddr = getAbsoluteByteAddressFromRef(value);
+    value = vm.memory.readFloat32(SEG_DATA, absAddr);
   }
 
   // Materialize if final value is a LIST header
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_DATA, base + addr - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, absAddr - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -226,26 +220,30 @@ interface SlotInfo {
 }
 
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
-  const root = resolveReference(vm, addressValue);
-  const rootBase =
-    root.segment === SEG_GLOBAL
-      ? GLOBAL_BASE
-      : root.segment === SEG_RSTACK
-        ? RSTACK_BASE
-        : STACK_BASE;
-  const rootValue = vm.memory.readFloat32(SEG_DATA, rootBase + root.address);
-  let resolved = root;
+  // Absolute-only resolution of slot location and (optional) one-level indirection
+  const rootAbsAddr = getAbsoluteByteAddressFromRef(addressValue);
+  const rootValue = vm.memory.readFloat32(SEG_DATA, rootAbsAddr);
+
+  // Classify absolute address to legacy segment/address pair for compatibility
+  const classify = (absAddr: number): SlotAddress => {
+    if (absAddr >= GLOBAL_BASE && absAddr < STACK_BASE) {
+      return { segment: SEG_GLOBAL, address: absAddr - GLOBAL_BASE };
+    }
+    if (absAddr >= STACK_BASE && absAddr < RSTACK_BASE) {
+      return { segment: SEG_STACK, address: absAddr - STACK_BASE };
+    }
+    return { segment: SEG_RSTACK, address: absAddr - RSTACK_BASE };
+  };
+
+  let resolvedAbsAddr = rootAbsAddr;
   let existingValue = rootValue;
   if (isRef(rootValue)) {
-    resolved = resolveReference(vm, rootValue);
-    const resBase =
-      resolved.segment === SEG_GLOBAL
-        ? GLOBAL_BASE
-        : resolved.segment === SEG_RSTACK
-          ? RSTACK_BASE
-          : STACK_BASE;
-    existingValue = vm.memory.readFloat32(SEG_DATA, resBase + resolved.address);
+    resolvedAbsAddr = getAbsoluteByteAddressFromRef(rootValue);
+    existingValue = vm.memory.readFloat32(SEG_DATA, resolvedAbsAddr);
   }
+
+  const root = classify(rootAbsAddr);
+  const resolved = classify(resolvedAbsAddr);
   return { root, rootValue, resolved, existingValue };
 }
 

@@ -68,6 +68,10 @@ Progress
   - Heap ops: migrated `gpeek` and `gpop` to absolute addressing. Both validate references via absolute cell indices and read via unified `SEG_DATA`. `gmark`/`gsweep` already operate on absolute `GP`.
   - Heap: migrated `pushListToGlobalHeap` to accept/use absolute base addresses (`absBaseAddrBytes`) for source reads with fallback to segment+base; writes already used unified `SEG_DATA`.
   - Phase B status: COMPLETE — core consumers and helpers now read/write via absolute addressing; segment-derived math remains only for fallbacks and compatibility shims.
+  - Phase C kickoff:
+    - `load` now dereferences and materializes via absolute addressing (no `resolveReference` or segment-derived bases).
+    - Ongoing: progressively replace any remaining uses of `resolveReference` with absolute helpers where feasible.
+    - `getListBounds` now dereferences list references via absolute addressing and provides `absBaseAddrBytes`. Legacy `segment/baseAddr` are retained for compatibility but derived from absolute classification.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
     - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers.
