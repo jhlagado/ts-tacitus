@@ -3,9 +3,9 @@
  * Path-based address selection operations for the Tacit VM.
  */
 
-import { VM, Verb, Tag, getTag, isNIL, NIL, SEG_STACK, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
+import { VM, Verb, Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { isRef, createSegmentRef } from '@src/core';
+import { isRef, createDataRefAbs } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 
@@ -19,13 +19,14 @@ export function createTargetRef(vm: VM): boolean {
   findElement(vm, pathSize); // target is below path
 
   // findElement examined the cell at: vm.SP - pathSize - 1
-  const targetCellIndex = vm.SP - pathSize - 1;
-  const targetByteAddr = targetCellIndex * CELL_SIZE;
-  const target = vm.memory.readFloat32(SEG_DATA, STACK_BASE + targetByteAddr);
+  // Use absolute addressing: vm.sp is absolute cell index (one past TOS)
+  const targetAbsCellIndex = vm.sp - pathSize - 1;
+  const targetByteAddr = targetAbsCellIndex * CELL_SIZE;
+  const target = vm.memory.readFloat32(SEG_DATA, targetByteAddr);
 
   if (isList(target)) {
-    // Create segment-aware ref (currently SEG_STACK)
-    const targetRef = createSegmentRef(SEG_STACK, targetCellIndex);
+    // Create absolute DATA_REF to the list header cell
+    const targetRef = createDataRefAbs(targetAbsCellIndex);
     vm.push(targetRef);
     return true;
   } else if (isRef(target)) {
@@ -78,15 +79,15 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 }
 
 export function traverseMultiPath(vm: VM): void {
-  // Read path header using cell-based indexing
-  const pathHeaderCell = vm.SP - 2;
-  const pathHeader = vm.memory.readFloat32(SEG_DATA, STACK_BASE + pathHeaderCell * CELL_SIZE);
+  // Read path header using absolute cell-based indexing
+  const pathHeaderAbsCell = vm.sp - 2;
+  const pathHeader = vm.memory.readFloat32(SEG_DATA, pathHeaderAbsCell * CELL_SIZE);
   const pathLength = getListLength(pathHeader);
-  let pathElementCell = vm.SP - 3;
+  let pathElementAbsCell = vm.sp - 3;
 
   for (let i = 0; i < pathLength; i++) {
-    const pathElement = vm.memory.readFloat32(SEG_DATA, STACK_BASE + pathElementCell * CELL_SIZE);
-    pathElementCell -= 1;
+    const pathElement = vm.memory.readFloat32(SEG_DATA, pathElementAbsCell * CELL_SIZE);
+    pathElementAbsCell -= 1;
 
     if (!processPathStep(vm, pathElement)) {
       return; // NIL case handled in processPathStep
