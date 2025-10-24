@@ -287,7 +287,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
       return;
     }
     if (tag === Tag.DATA_REF) {
-    if (getRefRegionAbs(taggedValue) !== 'global') {
+      if (getRefRegionAbs(taggedValue) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
       vm.compiler.compileOpcode(Op.LiteralNumber);
