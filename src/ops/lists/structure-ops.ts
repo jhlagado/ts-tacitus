@@ -5,7 +5,7 @@
 
 import { VM, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { getListBounds } from './core-helpers';
+import { getListBoundsAbs } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
@@ -17,7 +17,7 @@ export function tailOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -64,7 +64,7 @@ export function headOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -116,7 +116,7 @@ export function reverseOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -183,13 +183,13 @@ export function concatOp(vm: VM): void {
   const rhsInfo = isList(rhsTop)
     ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: (vm.SP - 1) * CELL_SIZE }
     : isRef(rhsTop)
-      ? getListBounds(vm, rhsTop)
+      ? getListBoundsAbs(vm, rhsTop)
       : null;
   const lhsHeaderAddr = (vm.SP - (rhsSize + 1)) * CELL_SIZE;
   const lhsInfo = isList(lhsTop)
     ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
     : isRef(lhsTop)
-      ? getListBounds(vm, lhsTop)
+      ? getListBoundsAbs(vm, lhsTop)
       : null;
 
   const lhsIsList = !!lhsInfo;
@@ -198,7 +198,7 @@ export function concatOp(vm: VM): void {
   const materializeSlots = (
     op:
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number }
+      | { header: number; absBaseAddrBytes: number }
       | null,
     size: number,
     topCell: number,
@@ -213,7 +213,7 @@ export function concatOp(vm: VM): void {
       }
       return slots;
     }
-    if (op && 'baseAddr' in op) {
+    if (op && 'absBaseAddrBytes' in op) {
       const s = getListLength(op.header);
       const headerAbsAddr = op.absBaseAddrBytes + s * CELL_SIZE;
       const slots: number[] = [];
@@ -229,7 +229,7 @@ export function concatOp(vm: VM): void {
   const lhsSlots = materializeSlots(
     (lhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { baseAddr: number; header: number; segment: number; absBaseAddrBytes: number }
+      | { header: number; absBaseAddrBytes: number }
       | null) ?? null,
     lhsSize,
     lhsTop,
@@ -238,7 +238,7 @@ export function concatOp(vm: VM): void {
   const rhsSlots = materializeSlots(
     (rhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { baseAddr: number; header: number; segment: number; absBaseAddrBytes: number }
+      | { header: number; absBaseAddrBytes: number }
       | null) ?? null,
     rhsSize,
     rhsTop,

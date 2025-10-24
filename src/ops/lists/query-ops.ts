@@ -14,7 +14,7 @@ import {
 } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
-import { getListBounds } from './core-helpers';
+import { getListBoundsAbs } from './core-helpers';
 import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlaceAbs } from '../local-vars-transfer';
@@ -24,7 +24,7 @@ import { areValuesEqual, getTag } from '@src/core';
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
-  const info = getListBounds(vm, value);
+  const info = getListBoundsAbs(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -38,7 +38,7 @@ export function lengthOp(vm: VM): void {
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
-  const info = getListBounds(vm, value);
+  const info = getListBoundsAbs(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -69,7 +69,7 @@ export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -90,7 +90,7 @@ export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -240,10 +240,17 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
 function initializeGlobalCompound(
   vm: VM,
   slot: SlotInfo,
-  rhsInfo: { header: number; baseAddr: number; segment: number },
+  rhsInfo: { header: number; absBaseAddrBytes: number },
   rhsTag: Tag,
 ): void {
-  const heapRef = pushListToGlobalHeap(vm, rhsInfo);
+  // Adapt to ListSource shape for pushListToGlobalHeap while preferring absolute reads
+  const compat = {
+    header: rhsInfo.header,
+    baseAddr: 0,
+    segment: 2,
+    absBaseAddrBytes: rhsInfo.absBaseAddrBytes,
+  } as const;
+  const heapRef = pushListToGlobalHeap(vm, compat);
   // Write directly via absolute address
   vm.memory.writeFloat32(SEG_DATA, slot.rootAbsAddr, heapRef);
   discardCompoundSource(vm, rhsTag);
@@ -251,22 +258,12 @@ function initializeGlobalCompound(
 
 function copyCompoundFromReference(
   vm: VM,
-  rhsInfo: { header: number; baseAddr: number; segment: number; absBaseAddrBytes?: number },
+  rhsInfo: { header: number; absBaseAddrBytes: number },
   targetAbsHeaderAddr: number,
   slotCount: number,
 ): void {
   // Absolute-only copy using unified data segment
-  const srcBaseAbs =
-    rhsInfo.absBaseAddrBytes !== undefined
-      ? rhsInfo.absBaseAddrBytes
-      : ((): number => {
-          // Fallback for legacy callers without absBaseAddrBytes; classify baseAddr windows
-          // Note: current getListBounds supplies absBaseAddrBytes for both direct lists and refs
-          // Keeping this branch for safety; should be unreachable after Phase C.
-          const base = rhsInfo.baseAddr;
-          // We cannot infer segment without additional context; treat base as absolute when absent.
-          return base;
-        })();
+  const srcBaseAbs = rhsInfo.absBaseAddrBytes;
   const targetBaseAbs = targetAbsHeaderAddr - slotCount * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
@@ -278,26 +275,26 @@ function copyCompoundFromReference(
 }
 
 function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
-  const rhsInfo = getListBounds(vm, rhsValue);
-  if (!rhsInfo || !isList(rhsInfo.header)) {
+  const rhsInfoAbs = getListBoundsAbs(vm, rhsValue);
+  if (!rhsInfoAbs || !isList(rhsInfoAbs.header)) {
     return false;
   }
 
   const rhsTag = getTag(rhsValue);
-  const slotCount = getListLength(rhsInfo.header);
+  const slotCount = getListLength(rhsInfoAbs.header);
   const existingIsCompound = isList(slot.existingValue);
 
   if (!existingIsCompound) {
     // Prefer absolute address window over legacy segment label
     if (slot.rootAbsAddr >= GLOBAL_BASE && slot.rootAbsAddr < STACK_BASE) {
-      initializeGlobalCompound(vm, slot, rhsInfo, rhsTag);
+      initializeGlobalCompound(vm, slot, rhsInfoAbs, rhsTag);
       return true;
     }
     discardCompoundSource(vm, rhsTag);
     throw new Error('Cannot assign simple to compound or compound to simple');
   }
 
-  if (!isCompatible(slot.existingValue, rhsInfo.header)) {
+  if (!isCompatible(slot.existingValue, rhsInfoAbs.header)) {
     discardCompoundSource(vm, rhsTag);
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
@@ -309,7 +306,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   }
 
   // Absolute copy into resolved header location
-  copyCompoundFromReference(vm, rhsInfo, slot.resolvedAbsAddr, slotCount);
+  copyCompoundFromReference(vm, rhsInfoAbs, slot.resolvedAbsAddr, slotCount);
   vm.pop();
   return true;
 }
@@ -368,7 +365,7 @@ export function walkOp(vm: VM): void {
   vm.ensureStackSize(2, 'walk');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || Tag.LIST !== Tag.LIST) {
     // Leave target, push idx (reset) and NIL
     vm.push(0);
@@ -399,7 +396,7 @@ export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -439,7 +436,7 @@ export function findOp(vm: VM): void {
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -470,7 +467,7 @@ export function keysOp(vm: VM): void {
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
   const target = vm.peek();
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);

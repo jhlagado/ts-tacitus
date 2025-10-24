@@ -8,7 +8,6 @@ import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import {
   SEG_DATA,
   STACK_BASE,
-  STACK_SIZE,
   RSTACK_BASE,
   RSTACK_SIZE,
   GLOBAL_BASE,
@@ -19,92 +18,9 @@ import {
 
 const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
 
-interface SegmentWindow {
-  segment: number;
-  baseBytes: number;
-  topBytes: number;
-}
+// Removed legacy window classification helpers; absolute addressing is authoritative
 
-const DATA_SEGMENT_WINDOWS: SegmentWindow[] = [
-  { segment: 2, baseBytes: GLOBAL_BASE, topBytes: GLOBAL_BASE + GLOBAL_SIZE },
-  { segment: 0, baseBytes: STACK_BASE, topBytes: STACK_BASE + STACK_SIZE },
-  { segment: 1, baseBytes: RSTACK_BASE, topBytes: RSTACK_BASE + RSTACK_SIZE },
-];
-
-function getSegmentWindow(segment: number): SegmentWindow {
-  const window = DATA_SEGMENT_WINDOWS.find(entry => entry.segment === segment);
-  if (!window) {
-    throw new Error(`Unsupported DATA_REF segment: ${segment}`);
-  }
-  return window;
-}
-
-function toAbsoluteCellIndex(segment: number, segmentCellIndex: number): number {
-  const { baseBytes, topBytes } = getSegmentWindow(segment);
-  const segmentCellCount = (topBytes - baseBytes) / CELL_SIZE;
-  if (segmentCellIndex < 0 || segmentCellIndex >= segmentCellCount) {
-    throw new RangeError(
-      `DATA_REF cell index ${segmentCellIndex} exceeds segment capacity ${segmentCellCount}`,
-    );
-  }
-  return baseBytes / CELL_SIZE + segmentCellIndex;
-}
-
-function classifyAbsoluteCellIndex(absoluteCellIndex: number): {
-  segment: number;
-  segmentCellIndex: number;
-} {
-  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
-    throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
-  }
-
-  const byteOffset = absoluteCellIndex * CELL_SIZE;
-  const window = DATA_SEGMENT_WINDOWS.find(
-    ({ baseBytes, topBytes }) => byteOffset >= baseBytes && byteOffset < topBytes,
-  );
-
-  if (!window) {
-    throw new RangeError(`DATA_REF byte offset ${byteOffset} does not map to a data segment`);
-  }
-
-  const segmentCellIndex = (byteOffset - window.baseBytes) / CELL_SIZE;
-  return { segment: window.segment, segmentCellIndex };
-}
-
-export interface DataRefComponents {
-  segment: number;
-  cellIndex: number;
-  absoluteCellIndex: number;
-}
-
-/**
- * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex).
- * Accepts legacy (segment, cellIndex) and emits an absolute DATA_REF. Kept for tests/compat
- * until the final flip removes segment-derived APIs from runtime paths.
- */
-export function createDataRef(segment: number, cellIndex: number): number {
-  const absoluteCellIndex = toAbsoluteCellIndex(segment, cellIndex);
-  return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
-}
-
-/**
- * @deprecated Phase C: Prefer decodeDataRefAbs(ref).
- * @internal Test-only compatibility: retained for tests until final removal.
- * Returns legacy classification alongside absolute index.
- */
-export function decodeDataRef(ref: number): DataRefComponents {
-  const { value, tag } = fromTaggedValue(ref);
-  if (tag !== Tag.DATA_REF) {
-    throw new Error('decodeDataRef called with non-DATA_REF value');
-  }
-
-  const { segment, segmentCellIndex } = classifyAbsoluteCellIndex(value);
-  return {
-    segment,
-    cellIndex: segmentCellIndex,
-    absoluteCellIndex: value,
-  };
-}
+// Removed legacy createDataRef/decodeDataRef in favor of absolute-only APIs
 
 /**
  * Phase A: Absolute-only helpers for unified data addressing.
@@ -175,9 +91,7 @@ export function getRefRegionAbs(ref: number): 'global' | 'stack' | 'rstack' {
 /**
  * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex). Alias for createDataRef.
  */
-export function createSegmentRef(segment: number, cellIndex: number): number {
-  return createDataRef(segment, cellIndex);
-}
+// Removed legacy alias createSegmentRef
 
 export function getVarRef(vm: VM, slotNumber: number): number {
   if (slotNumber < 0) {
@@ -206,30 +120,7 @@ export function createGlobalRef(cellIndex: number): number {
 /**
  * Result of reference resolution containing memory address and segment.
  */
-export interface ResolvedReference {
-  address: number;
-  segment: number;
-}
-
-/**
- * @deprecated Phase C: Prefer getAbsoluteByteAddressFromRef(ref) with unified SEG_DATA I/O.
- * @internal Test-only compatibility: retained for tests until final removal.
- * Polymorphic resolver that returns legacy (segment, address) from an absolute DATA_REF.
- */
-export function resolveReference(vm: VM, ref: number): ResolvedReference {
-  if (!isRef(ref)) {
-    throw new Error(`Invalid reference type: ${getTag(ref)}`);
-  }
-  // Phase C: resolve via absolute byte address and classify to legacy window
-  const absByte = getAbsoluteByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
-    return { address: absByte - GLOBAL_BASE, segment: 2 };
-  }
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
-    return { address: absByte - STACK_BASE, segment: 0 };
-  }
-  return { address: absByte - RSTACK_BASE, segment: 1 };
-}
+// Removed legacy resolveReference; use getAbsoluteByteAddressFromRef instead
 
 /**
  * Reads a value from memory using a polymorphic reference.

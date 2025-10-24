@@ -2,7 +2,7 @@ import { describe, test, expect } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../core/global-state';
 import {
-  decodeDataRef,
+  decodeDataRefAbs,
   CELL_SIZE,
   toTaggedValue,
   Tag,
@@ -11,6 +11,7 @@ import {
   fromTaggedValue,
   SEG_DATA,
   GLOBAL_BASE,
+  getRefRegionAbs,
 } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -97,8 +98,9 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
     execute(vm.compiler.BCP);
     const entryRef = vm.symbolTable.getDictionaryEntryRef('alpha');
     expect(entryRef).toBeDefined();
-    const { segment: headerSegment, cellIndex: headerCellIndex } = decodeDataRef(entryRef!);
-    expect(headerSegment).toBe(2);
+    const { absoluteCellIndex: headerAbsCellIndex } = decodeDataRefAbs(entryRef!);
+    expect(getRefRegionAbs(entryRef!)).toBe('global');
+    const headerCellIndex = headerAbsCellIndex - GLOBAL_BASE / CELL_SIZE;
 
     const payloadCellIndex = headerCellIndex - 3;
     const nameCellIndex = headerCellIndex - 2;
@@ -133,8 +135,9 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
 
     const firstEntryRef = vm.symbolTable.getDictionaryEntryRef('first');
     expect(firstEntryRef).toBeDefined();
-    const { cellIndex: firstHeaderIndex, segment: firstSegment } = decodeDataRef(firstEntryRef!);
-    expect(firstSegment).toBe(2);
+    const { absoluteCellIndex: firstAbsIndex } = decodeDataRefAbs(firstEntryRef!);
+    expect(getRefRegionAbs(firstEntryRef!)).toBe('global');
+    const firstHeaderIndex = firstAbsIndex - GLOBAL_BASE / CELL_SIZE;
 
     parse(
       new Tokenizer(`
@@ -145,8 +148,9 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
 
     const secondEntryRef = vm.symbolTable.getDictionaryEntryRef('second');
     expect(secondEntryRef).toBeDefined();
-    const { cellIndex: secondHeaderIndex, segment: secondSegment } = decodeDataRef(secondEntryRef!);
-    expect(secondSegment).toBe(2);
+    const { absoluteCellIndex: secondAbsIndex } = decodeDataRefAbs(secondEntryRef!);
+    expect(getRefRegionAbs(secondEntryRef!)).toBe('global');
+    const secondHeaderIndex = secondAbsIndex - GLOBAL_BASE / CELL_SIZE;
     expect(secondHeaderIndex).toBeGreaterThan(firstHeaderIndex);
 
     const prevValue = vm.memory.readFloat32(
@@ -155,8 +159,8 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
     );
     expect(getTag(prevValue)).toBe(Tag.DATA_REF);
 
-    const { cellIndex: linkedHeaderIndex, segment } = decodeDataRef(prevValue);
-    expect(segment).toBe(2);
+    const { absoluteCellIndex: linkedAbsIndex } = decodeDataRefAbs(prevValue);
+    const linkedHeaderIndex = linkedAbsIndex - GLOBAL_BASE / CELL_SIZE;
     expect(linkedHeaderIndex).toBe(firstHeaderIndex);
 
     const priorPrev = vm.memory.readFloat32(

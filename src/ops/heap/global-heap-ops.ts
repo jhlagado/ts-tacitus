@@ -12,7 +12,7 @@ import {
   GLOBAL_BASE,
   CELL_SIZE,
   dropList,
-  getListBounds,
+  getListBoundsAbs,
   isList,
   getListLength,
   pushListToGlobalHeap,
@@ -31,11 +31,17 @@ function ensureGlobalRefAbs(vm: VM, ref: number): { absCellIndex: number } {
   return { absCellIndex };
 }
 
-function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBounds>): number {
+function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBoundsAbs>): number {
   if (!boundsReturn) {
     throw new Error('List bounds unavailable for heap copy');
   }
-  return pushListToGlobalHeap(vm, boundsReturn);
+  const compat = {
+    header: boundsReturn.header,
+    baseAddr: 0,
+    segment: 2,
+    absBaseAddrBytes: boundsReturn.absBaseAddrBytes,
+  } as const;
+  return pushListToGlobalHeap(vm, compat);
 }
 
 export function gmarkOp(vm: VM): void {
@@ -58,7 +64,7 @@ export function gsweepOp(vm: VM): void {
 export function gpushOp(vm: VM): void {
   vm.ensureStackSize(1, 'gpush');
   const value = vm.peek();
-  const listInfo = getListBounds(vm, value);
+  const listInfo = getListBoundsAbs(vm, value);
   if (listInfo) {
     const ref = copyListOntoHeap(vm, listInfo);
     const valueTag = getTag(value);

@@ -1,17 +1,12 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import {
-  createDataRef,
-  createSegmentRef,
+  createDataRefAbs,
   createGlobalRef,
-  decodeDataRef,
   isRef,
-  getRefSegment,
-  resolveReference,
-  readReference,
-  writeReference,
+  getRefRegionAbs,
+  getAbsoluteByteAddressFromRef,
+  readRefValueAbs,
   getVarRef,
-  STACK_SIZE,
-  RSTACK_SIZE,
   CELL_SIZE,
   TOTAL_DATA_BYTES,
   toTaggedValue,
@@ -20,6 +15,7 @@ import {
   RSTACK_BASE,
   SEG_DATA,
   GLOBAL_BASE,
+  STACK_BASE,
 } from '../../core';
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { fetchOp, storeOp } from '../../ops/lists';
@@ -29,50 +25,45 @@ describe('DATA_REF utilities', () => {
     initializeInterpreter();
   });
 
-  test('createDataRef encodes segment-relative cell indices', () => {
-    const refs = [
-      { segment: 2, cellIndex: 3 },
-      { segment: 0, cellIndex: 5 },
-      { segment: 1, cellIndex: 7 }, // return-stack region id
+  test('createDataRefAbs encodes absolute cell indices and region classification', () => {
+    const entries = [
+      { region: 'global' as const, absIndex: GLOBAL_BASE / CELL_SIZE + 3 },
+      { region: 'stack' as const, absIndex: STACK_BASE / CELL_SIZE + 5 },
+      { region: 'rstack' as const, absIndex: RSTACK_BASE / CELL_SIZE + 7 },
     ];
 
-    for (const { segment, cellIndex } of refs) {
-      const ref = createDataRef(segment, cellIndex);
+    for (const { region, absIndex } of entries) {
+      const ref = createDataRefAbs(absIndex);
       expect(isRef(ref)).toBe(true);
-      expect(getRefSegment(ref)).toBe(segment);
-      const components = decodeDataRef(ref);
-      expect(components.segment).toBe(segment);
-      expect(components.cellIndex).toBe(cellIndex);
+      expect(getRefRegionAbs(ref)).toBe(region);
+      const { absoluteCellIndex } = decodeDataRefAbs(ref);
+      expect(absoluteCellIndex).toBe(absIndex);
     }
   });
 
-  test('createDataRef validates segment bounds', () => {
-    expect(() => createDataRef(0, STACK_SIZE / CELL_SIZE)).toThrow();
-    expect(() => createDataRef(1, RSTACK_SIZE / CELL_SIZE)).toThrow();
-    expect(() => createDataRef(0, -1)).toThrow();
+  test('createDataRefAbs validates absolute bounds', () => {
+    const maxCell = TOTAL_DATA_BYTES / CELL_SIZE;
+    expect(() => createDataRefAbs(maxCell)).toThrow('absolute cell index');
+    expect(() => createDataRefAbs(-1)).toThrow('absolute cell index');
   });
 
-  test('createDataRef rejects unsupported segments', () => {
-    expect(() => createDataRef(1234, 0)).toThrow('Unsupported DATA_REF segment');
-  });
+  // No unsupported segments in absolute model; region classification covers windows
 
-  test('decodeDataRef enforces arena bounds', () => {
+  test('getAbsoluteCellIndexFromRef enforces arena bounds', () => {
     const invalidAbsolute = TOTAL_DATA_BYTES / CELL_SIZE + 5;
     const bogus = toTaggedValue(invalidAbsolute, Tag.DATA_REF);
-    expect(() => decodeDataRef(bogus)).toThrow('DATA_REF absolute cell index');
+    // Use address resolver to validate bounds
+    expect(() => decodeDataRefAbs(bogus)).not.toThrow();
+    expect(() => getAbsoluteByteAddressFromRef(bogus)).toThrow('absolute out of bounds');
   });
 
-  test('createSegmentRef mirrors createDataRef', () => {
-    const ref = createSegmentRef(0, 4);
-    const dataRef = createDataRef(0, 4);
-    expect(ref).toBe(dataRef);
-  });
+  // Removed: segment-relative creation is deprecated
 
   test('createGlobalRef produces data ref in global segment', () => {
     const ref = createGlobalRef(12);
-    const info = decodeDataRef(ref);
-    expect(info.segment).toBe(2);
-    expect(info.cellIndex).toBe(12);
+    const info = decodeDataRefAbs(ref);
+    expect(getRefRegionAbs(ref)).toBe('global');
+    expect(info.absoluteCellIndex).toBe(GLOBAL_BASE / CELL_SIZE + 12);
   });
 
   test('getVarRef returns DATA_REF to return-stack slot', () => {
@@ -82,23 +73,22 @@ describe('DATA_REF utilities', () => {
     expect(abs).toBe(RSTACK_BASE / CELL_SIZE + 2);
   });
 
-  test('resolveReference returns segment-address pair', () => {
-    const ref = createDataRef(2, 4);
-    const resolved = resolveReference(vm, ref);
-    expect(resolved.segment).toBe(2);
-    expect(resolved.address).toBe(4 * CELL_SIZE);
+  test('getAbsoluteByteAddressFromRef resolves absolute address', () => {
+    const ref = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + 4);
+    const absByte = getAbsoluteByteAddressFromRef(ref);
+    expect(absByte).toBe(GLOBAL_BASE + 4 * CELL_SIZE);
   });
 
-  test('readReference and writeReference operate via DATA_REF', () => {
-    const ref = createDataRef(2, 10);
-    writeReference(vm, ref, 321.25);
-    expect(readReference(vm, ref)).toBeCloseTo(321.25);
+  test('readRefValueAbs operates via DATA_REF', () => {
+    const ref = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + 10);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + 10 * CELL_SIZE, 321.25);
+    expect(readRefValueAbs(vm, ref)).toBeCloseTo(321.25);
   });
 
   test('fetchOp materializes value via DATA_REF', () => {
     const cellIndex = 15;
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 777.5);
-    const ref = createDataRef(2, cellIndex);
+    const ref = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + cellIndex);
     vm.push(ref);
     fetchOp(vm);
     expect(vm.pop()).toBeCloseTo(777.5);
@@ -106,7 +96,7 @@ describe('DATA_REF utilities', () => {
 
   test('storeOp writes value via DATA_REF', () => {
     const cellIndex = 18;
-    const ref = createDataRef(2, cellIndex);
+    const ref = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + cellIndex);
     vm.push(123.456);
     vm.push(ref);
     storeOp(vm);

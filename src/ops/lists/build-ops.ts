@@ -15,7 +15,7 @@ import {
   Verb,
 } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
-import { getListBounds, computeHeaderAddr } from './core-helpers';
+import { getListBoundsAbs, computeHeaderAddrAbs } from './core-helpers';
 import { evalOp } from '../core';
 import { ReturnStackUnderflowError } from '@src/core';
 
@@ -132,7 +132,7 @@ export function unpackOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBounds(vm, target);
+  const info = getListBoundsAbs(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -153,7 +153,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
-  const headerAbsAddr = computeHeaderAddr(info.absBaseAddrBytes, slotCount);
+  const headerAbsAddr = computeHeaderAddrAbs(info.absBaseAddrBytes, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - (i + 1) * CELL_SIZE);
     vm.push(slotValue);

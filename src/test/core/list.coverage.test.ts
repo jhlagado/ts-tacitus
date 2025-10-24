@@ -1,5 +1,5 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
-import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
+import { reverseSpan, getListElemAddrAbs, getListBoundsAbs, createDataRefAbs } from '../../core';
 import { Tag, toTaggedValue, CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE } from '../../core';
 
 describe('core/list additional coverage', () => {
@@ -21,13 +21,13 @@ describe('core/list additional coverage', () => {
     expect(vm.getStackData()).toEqual([3, 2, 1]);
   });
 
-  test('getListElemAddr returns -1 for negative index', () => {
+  test('getListElemAddrAbs returns -1 for negative index', () => {
     const header = toTaggedValue(1, Tag.LIST);
-    const addr = 100;
-    expect(getListElemAddr(vm, header, addr, -1, 0)).toBe(-1);
+    const headerAbsAddr = STACK_BASE + 100;
+    expect(getListElemAddrAbs(vm, header, headerAbsAddr, -1)).toBe(-1);
   });
 
-  test('getListElemAddr computes correct addresses for flat list', () => {
+  test('getListElemAddrAbs computes correct addresses for flat list', () => {
     // Layout: e1, e2, e3, header (cells 5..8)
     const cellHeader = 8;
     const headerAddr = cellHeader * 4;
@@ -42,25 +42,27 @@ describe('core/list additional coverage', () => {
     vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, header);
 
     // Logical index 0 refers to nearest element (just below header)
-    expect(getListElemAddr(vm, header, headerAddr, 0, 0)).toBe(headerAddr - 4);
-    expect(getListElemAddr(vm, header, headerAddr, 1, 0)).toBe(headerAddr - 8);
-    expect(getListElemAddr(vm, header, headerAddr, 2, 0)).toBe(headerAddr - 12);
+    const headerAbsAddr = STACK_BASE + headerAddr;
+    expect(getListElemAddrAbs(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE + headerAddr - 4);
+    expect(getListElemAddrAbs(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE + headerAddr - 8);
+    expect(getListElemAddrAbs(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE + headerAddr - 12);
   });
 
-  test('getListElemAddr throws for non-list header', () => {
-    expect(() => getListElemAddr(vm, 42, 0, 0, 0)).toThrow(
-      'Invalid LIST header provided to getListElemAddr',
+  test('getListElemAddrAbs throws for non-list header', () => {
+    expect(() => getListElemAddrAbs(vm, 42, STACK_BASE, 0)).toThrow(
+      'Invalid LIST header provided to getListElemAddrAbs',
     );
   });
 
-  test('getListBounds returns null for ref pointing to non-list', () => {
+  test('getListBoundsAbs returns null for ref pointing to non-list', () => {
     const cellIndex = 10;
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
-    const ref = createDataRef(2, cellIndex);
-    expect(getListBounds(vm, ref)).toBeNull();
+    const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
+    const ref = createDataRefAbs(absCellIndex);
+    expect(getListBoundsAbs(vm, ref)).toBeNull();
   });
 
-  test('getListBounds follows ref-to-ref indirection', () => {
+  test('getListBoundsAbs follows ref-to-ref indirection', () => {
     const baseIndex = 30;
     const headerIndex = baseIndex + 1;
     const header = toTaggedValue(1, Tag.LIST);
@@ -72,18 +74,17 @@ describe('core/list additional coverage', () => {
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerIndex * CELL_SIZE, header);
 
     const innerRefIndex = headerIndex + 1;
-    const innerRef = createDataRef(2, headerIndex);
+    const innerRef = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + headerIndex);
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + innerRefIndex * CELL_SIZE, innerRef);
 
-    const outerRef = createDataRef(2, innerRefIndex);
-    const bounds = getListBounds(vm, outerRef);
+    const outerRef = createDataRefAbs(GLOBAL_BASE / CELL_SIZE + innerRefIndex);
+    const bounds = getListBoundsAbs(vm, outerRef);
     expect(bounds).not.toBeNull();
     expect(bounds?.header).toBe(header);
-    expect(bounds?.segment).toBe(2);
-    expect(bounds?.baseAddr).toBe(baseIndex * CELL_SIZE);
+    expect(bounds?.absBaseAddrBytes).toBe(GLOBAL_BASE + baseIndex * CELL_SIZE);
   });
 
-  test('getListElemAddr traverses GLOBAL list via unified read', () => {
+  test('getListElemAddrAbs traverses GLOBAL list via unified read', () => {
     const baseIndex = 50;
     const slotCount = 2;
     const headerIndex = baseIndex + slotCount;
@@ -93,9 +94,9 @@ describe('core/list additional coverage', () => {
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseIndex + 1) * CELL_SIZE, 222);
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerIndex * CELL_SIZE, header);
 
-    const headerAddr = headerIndex * CELL_SIZE;
-    // Element 0 is just below header
-    const addr0 = getListElemAddr(vm, header, headerAddr, 0, 2);
-    expect(addr0).toBe(headerAddr - CELL_SIZE);
+    const headerAbsAddr = GLOBAL_BASE + headerIndex * CELL_SIZE;
+    // Element 0 is just below header (absolute)
+    const addr0 = getListElemAddrAbs(vm, header, headerAbsAddr, 0);
+    expect(addr0).toBe(headerAbsAddr - CELL_SIZE);
   });
 });
