@@ -35,13 +35,10 @@ function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBoundsA
   if (!boundsReturn) {
     throw new Error('List bounds unavailable for heap copy');
   }
-  const compat = {
+  return pushListToGlobalHeap(vm, {
     header: boundsReturn.header,
-    baseAddr: 0,
-    segment: 2,
     absBaseAddrBytes: boundsReturn.absBaseAddrBytes,
-  } as const;
-  return pushListToGlobalHeap(vm, compat);
+  });
 }
 
 export function gmarkOp(vm: VM): void {
