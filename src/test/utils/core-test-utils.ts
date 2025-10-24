@@ -3,7 +3,16 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA, STACK_BASE } from '../../core';
+import {
+  VM,
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  tagNames,
+  CELL_SIZE,
+  SEG_DATA,
+  STACK_BASE,
+} from '../../core';
 
 /**
  * Print function for debugging tagged values during tests.
