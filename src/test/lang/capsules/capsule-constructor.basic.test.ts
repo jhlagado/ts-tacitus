@@ -1,7 +1,14 @@
 import { vm } from '../../../core/global-state';
 import { resetVM, executeTacitWithState } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
-import { decodeDataRef, fromTaggedValue, Tag, SEG_RSTACK } from '../../../core';
+import {
+  fromTaggedValue,
+  Tag,
+  getRefSegment,
+  RSTACK_BASE,
+  RSTACK_SIZE,
+  getAbsoluteByteAddressFromRef,
+} from '../../../core';
 
 describe('Capsule constructor (language-level) — minimal to locals', () => {
   beforeEach(() => resetVM());
@@ -18,7 +25,11 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const handle = state.stack[0];
     const { tag } = fromTaggedValue(handle);
     expect(tag).toBe(Tag.DATA_REF);
-    expect(decodeDataRef(handle).segment).toBe(SEG_RSTACK);
+    // Return-stack handle: classify without SEG_RSTACK constant
+    expect(getRefSegment(handle)).toBe(1);
+    const abs = getAbsoluteByteAddressFromRef(handle);
+    expect(abs).toBeGreaterThanOrEqual(RSTACK_BASE);
+    expect(abs).toBeLessThan(RSTACK_BASE + RSTACK_SIZE);
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(1); // CODE only
@@ -38,7 +49,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const handle = state.stack[0];
     const { tag } = fromTaggedValue(handle);
     expect(tag).toBe(Tag.DATA_REF);
-    expect(decodeDataRef(handle).segment).toBe(SEG_RSTACK);
+    expect(getRefSegment(handle)).toBe(1);
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(3); // a, b, CODE

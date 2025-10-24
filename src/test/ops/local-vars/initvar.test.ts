@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/global-state';
 import { initVarOp } from '../../../ops/builtins';
-import { SEG_RSTACK, CELL_SIZE } from '../../../core/constants';
+import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
 
 describe('InitVar Opcode', () => {
   beforeEach(() => {
@@ -26,8 +26,8 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify value was stored in correct slot
-    const expectedAddress = vm.BP * CELL_SIZE + 5 * CELL_SIZE; // slot 5
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
+    const expectedAddress = vm.BP * CELL_SIZE + 5 * CELL_SIZE; // slot 5 (segment-relative)
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + expectedAddress);
     expect(storedValue).toBe(42);
 
     // Verify stack is empty
@@ -41,7 +41,7 @@ describe('InitVar Opcode', () => {
     vm.compiler.compile16(0); // slot 0
     initVarOp(vm);
 
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE);
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + vm.BP * CELL_SIZE);
     expect(storedValue).toBe(123);
   });
 
@@ -53,7 +53,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     const expectedAddress = vm.BP * CELL_SIZE + 3 * CELL_SIZE;
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + expectedAddress);
     expect(storedValue).toBe(-99.5);
   });
 
@@ -65,7 +65,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     const expectedAddress = vm.BP * CELL_SIZE + 20 * CELL_SIZE;
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + expectedAddress);
     expect(storedValue).toBe(777);
   });
 
@@ -77,7 +77,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     const expectedAddress = vm.BP * CELL_SIZE + 7 * CELL_SIZE;
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + expectedAddress);
     expect(storedValue).toBeCloseTo(3.14159);
   });
 
@@ -109,9 +109,15 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify all values stored correctly
-    expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 0 * CELL_SIZE)).toBe(10);
-    expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 1 * CELL_SIZE)).toBe(20);
-    expect(vm.memory.readFloat32(SEG_RSTACK, vm.BP * CELL_SIZE + 2 * CELL_SIZE)).toBe(30);
+    expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + vm.BP * CELL_SIZE + 0 * CELL_SIZE)).toBe(
+      10,
+    );
+    expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + vm.BP * CELL_SIZE + 1 * CELL_SIZE)).toBe(
+      20,
+    );
+    expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + vm.BP * CELL_SIZE + 2 * CELL_SIZE)).toBe(
+      30,
+    );
 
     // Stack should be empty
     expect(vm.getStackData()).toEqual([]);
@@ -132,7 +138,7 @@ describe('InitVar Opcode', () => {
 
     // Should have new value
     const expectedAddress = vm.BP * CELL_SIZE + 5 * CELL_SIZE;
-    const storedValue = vm.memory.readFloat32(SEG_RSTACK, expectedAddress);
+    const storedValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + expectedAddress);
     expect(storedValue).toBe(200);
   });
 });

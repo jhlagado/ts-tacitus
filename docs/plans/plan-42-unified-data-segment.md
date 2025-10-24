@@ -122,6 +122,10 @@ Progress
     - Global heap fallback simplified (2025-10-24):
       - `pushListToGlobalHeap` now uses `absBaseAddrBytes` when provided; fallback treats `baseAddr` as absolute rather than re-deriving from segments.
       - Eliminates segment-derived math in the heap copy source; behavior unchanged for current callers.
+    - SEG_RSTACK runtime removal (2025-10-25):
+      - Removed `SEG_RSTACK` symbol usage from higher-level runtime modules (`refs`, `list`, `lists/query-ops`); classification uses absolute windows and literal segment id where legacy shapes are required.
+      - Comments referencing `SEG_RSTACK` scrubbed; constant remains in `constants.ts` and is used by `memory.ts` and tests only.
+      - Marked `SEG_RSTACK` as `@deprecated` in `constants.ts` to signal upcoming removal post test migration.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
     - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers once all consumers are updated; keep compatibility shim until final flip.
@@ -129,8 +133,8 @@ Progress
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
     - Immediate next targets (post-2025-10-24):
       - Audit and migrate any remaining runtime constructions of `DATA_REF` to absolute creation helpers; tests may continue to classify refs until final flip. Current status: creators (locals/globals/capsule handles) migrated.
-  - Runtime flip: COMPLETE (2025-10-24) — All runtime paths use absolute addressing and unified `SEG_DATA`; no production dependencies on legacy window classification. `decodeDataRef`/`resolveReference` marked `@deprecated` and `@internal` (test-only intent).
-  - Tests migration: IN PROGRESS — Update tests to rely on absolute helpers (`createDataRefAbs`, `decodeDataRefAbs`, `getAbsoluteByteAddressFromRef`) and observable behavior; then remove legacy classification fields from helpers like `getListBounds`.
+  - Runtime flip: COMPLETE (2025-10-24) — All runtime paths use absolute addressing and unified `SEG_DATA`; no production dependencies on legacy window classification. `decodeDataRef`/`resolveReference` marked `@deprecated` and `@internal` (test-only intent). `SEG_RSTACK` deprecated and removed from higher-level runtime usage.
+  - Tests migration: IN PROGRESS — Update tests to rely on absolute helpers (`createDataRefAbs`, `decodeDataRefAbs`, `getAbsoluteByteAddressFromRef`) and observable behavior; then remove legacy classification fields from helpers like `getListBounds`. Once tests stop importing `SEG_RSTACK`, delete the constant and its switch case in `memory.ts`.
     - Audit remaining production `decodeDataRef` usages: COMPLETE (2025-10-24) — none outside definitions; tests still rely on it. Prepare removal in the final flip while keeping tests intact.
     - Audit remaining production `resolveReference` usages: COMPLETE (2025-10-24) — only referenced in tests; runtime no longer depends on it.
     - Identify and remove any remaining segment-derived base math in ops.

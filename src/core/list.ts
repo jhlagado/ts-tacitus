@@ -8,7 +8,6 @@ import { fromTaggedValue, Tag, getTag } from './tagged';
 import {
   SEG_STACK,
   SEG_GLOBAL,
-  SEG_RSTACK,
   SEG_DATA,
   CELL_SIZE,
   STACK_BASE,
@@ -100,13 +99,7 @@ export function getListElemAddr(
   let remainingSlots = totalSlots;
 
   const base =
-    segment === SEG_STACK
-      ? STACK_BASE
-      : segment === SEG_GLOBAL
-        ? GLOBAL_BASE
-        : segment === SEG_RSTACK
-          ? RSTACK_BASE
-          : 0;
+    segment === SEG_STACK ? STACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
@@ -195,7 +188,7 @@ export function getListBounds(
     let segment = SEG_STACK;
     if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = SEG_GLOBAL;
     else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = SEG_STACK;
-    else segment = SEG_RSTACK;
+    else segment = 1;
     const baseAddr =
       absBaseAddrBytes -
       (segment === SEG_GLOBAL ? GLOBAL_BASE : segment === SEG_STACK ? STACK_BASE : RSTACK_BASE);

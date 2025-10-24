@@ -17,6 +17,10 @@ export const MEMORY_SIZE = 65536;
 
 export const SEG_STACK = 0;
 
+/**
+ * @deprecated Phase C: Return stack is addressed via absolute windows; prefer SEG_DATA with absolute byte addressing.
+ * Kept for memory I/O API compatibility and tests until full test migration.
+ */
 export const SEG_RSTACK = 1;
 
 export const SEG_GLOBAL = 2;

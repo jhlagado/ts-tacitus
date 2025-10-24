@@ -7,7 +7,6 @@ import { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import {
   SEG_STACK,
-  SEG_RSTACK,
   SEG_GLOBAL,
   SEG_DATA,
   STACK_BASE,
@@ -31,7 +30,7 @@ interface SegmentWindow {
 const DATA_SEGMENT_WINDOWS: SegmentWindow[] = [
   { segment: SEG_GLOBAL, baseBytes: GLOBAL_BASE, topBytes: GLOBAL_BASE + GLOBAL_SIZE },
   { segment: SEG_STACK, baseBytes: STACK_BASE, topBytes: STACK_BASE + STACK_SIZE },
-  { segment: SEG_RSTACK, baseBytes: RSTACK_BASE, topBytes: RSTACK_BASE + RSTACK_SIZE },
+  { segment: 1, baseBytes: RSTACK_BASE, topBytes: RSTACK_BASE + RSTACK_SIZE },
 ];
 
 function getSegmentWindow(segment: number): SegmentWindow {
@@ -161,7 +160,7 @@ export function getRefSegment(ref: number): number {
   const absByte = getAbsoluteByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return SEG_GLOBAL;
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return SEG_STACK;
-  return SEG_RSTACK;
+  return 1;
 }
 
 /**
@@ -220,7 +219,7 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
     return { address: absByte - STACK_BASE, segment: SEG_STACK };
   }
-  return { address: absByte - RSTACK_BASE, segment: SEG_RSTACK };
+  return { address: absByte - RSTACK_BASE, segment: 1 };
 }
 
 /**

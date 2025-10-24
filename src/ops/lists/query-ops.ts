@@ -16,7 +16,6 @@ import { getListLength, isList } from '@src/core';
 import {
   CELL_SIZE,
   SEG_GLOBAL,
-  SEG_RSTACK,
   SEG_STACK,
   SEG_DATA,
   STACK_BASE,
@@ -223,7 +222,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
     if (absAddr >= STACK_BASE && absAddr < RSTACK_BASE) {
       return { segment: SEG_STACK, address: absAddr - STACK_BASE };
     }
-    return { segment: SEG_RSTACK, address: absAddr - RSTACK_BASE };
+    return { segment: 1, address: absAddr - RSTACK_BASE };
   };
 
   let resolvedAbsAddr = rootAbsAddr;

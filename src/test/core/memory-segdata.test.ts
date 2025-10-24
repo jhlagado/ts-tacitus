@@ -18,14 +18,11 @@ describe('SEG_DATA unified access (Phase B)', () => {
     expect(viaData).toBe(42);
   });
 
-  test('read return stack top via SEG_DATA matches SEG_RSTACK', () => {
+  test('read return stack TOS via SEG_DATA', () => {
     vm.rpush(7);
     const depth = vm.RSP; // 1
     const offsetBytes = RSTACK_BASE + (depth - 1) * CELL_SIZE;
     const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
-    const viaR = vm.memory.readFloat32(1 /* SEG_RSTACK */, (depth - 1) * CELL_SIZE);
-    expect(viaData).toBe(viaR);
     expect(viaData).toBe(7);
   });
 });
-

@@ -10,7 +10,7 @@ import {
 } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
-import { SEG_RSTACK, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
+import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
 
 describe('In-Place Compound Mutation', () => {
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe('In-Place Compound Mutation', () => {
       // Simulate existing empty list at return stack location
       const targetAddr = 100; // Arbitrary address
       const existingHeader = toTaggedValue(0, Tag.LIST); // Empty list
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Verify compatibility first (skip if newHeader is not LIST due to test environment quirk)
       if (getTag(newHeader) === Tag.LIST) {
@@ -39,7 +39,7 @@ describe('In-Place Compound Mutation', () => {
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify header was written
-      const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+      const resultHeader = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr);
       expect(getTag(resultHeader)).toBe(Tag.LIST);
       expect(getListLength(resultHeader)).toBe(0);
 
@@ -55,18 +55,18 @@ describe('In-Place Compound Mutation', () => {
       // Setup existing single-element list at target location
       const targetAddr = 100;
       const existingHeader = toTaggedValue(1, Tag.LIST);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - CELL_SIZE, 999); // Old value
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - CELL_SIZE, 999); // Old value
 
       // Perform mutation
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify header was updated
-      const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+      const resultHeader = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr);
       expect(getListLength(resultHeader)).toBe(1);
 
       // Verify payload was updated
-      const resultElement = vm.memory.readFloat32(SEG_RSTACK, targetAddr - CELL_SIZE);
+      const resultElement = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - CELL_SIZE);
       expect(resultElement).toBe(42); // New value, not 999
 
       // Verify data stack cleanup
@@ -81,22 +81,22 @@ describe('In-Place Compound Mutation', () => {
       // Setup existing three-element list at target location with different values
       const targetAddr = 100;
       const existingHeader = toTaggedValue(3, Tag.LIST);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 3 * CELL_SIZE, 999); // elem0 (old)
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 2 * CELL_SIZE, 888); // elem1 (old)
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE, 777); // elem2 (old)
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 3 * CELL_SIZE, 999); // elem0 (old)
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 2 * CELL_SIZE, 888); // elem1 (old)
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 1 * CELL_SIZE, 777); // elem2 (old)
 
       // Perform mutation
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify header unchanged (same slot count)
-      const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+      const resultHeader = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr);
       expect(getListLength(resultHeader)).toBe(3);
 
       // Verify payload elements were updated
-      const elem0 = vm.memory.readFloat32(SEG_RSTACK, targetAddr - 3 * CELL_SIZE);
-      const elem1 = vm.memory.readFloat32(SEG_RSTACK, targetAddr - 2 * CELL_SIZE);
-      const elem2 = vm.memory.readFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE);
+      const elem0 = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 3 * CELL_SIZE);
+      const elem1 = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 2 * CELL_SIZE);
+      const elem2 = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 1 * CELL_SIZE);
 
       // The stack order is [3,2,1,header], and this gets copied in sequence:
       // elem0 (deepest) gets first element from stack sequence = 3
@@ -120,7 +120,7 @@ describe('In-Place Compound Mutation', () => {
       // Setup existing LIST:2 at target
       const targetAddr = 100;
       const existingHeader = toTaggedValue(2, Tag.LIST); // Different slot count
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Should throw compatibility error
       expect(() => {
@@ -134,7 +134,7 @@ describe('In-Place Compound Mutation', () => {
 
       const targetAddr = 100;
       const existingHeader = toTaggedValue(1, Tag.LIST);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Should throw error for non-compound data
       expect(() => {
@@ -153,7 +153,7 @@ describe('In-Place Compound Mutation', () => {
 
       const targetAddr = 200;
       const existingHeader = toTaggedValue(2, Tag.LIST);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Record RSP (return stack in cells) before mutation
       const rspBeforeMutation = vm.RSP;
@@ -167,8 +167,8 @@ describe('In-Place Compound Mutation', () => {
 
       // Verify data was written to correct location
       // Stack order for (10 20) is [20, 10, header]
-      const elem0 = vm.memory.readFloat32(SEG_RSTACK, targetAddr - 2 * CELL_SIZE);
-      const elem1 = vm.memory.readFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE);
+      const elem0 = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 2 * CELL_SIZE);
+      const elem1 = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 1 * CELL_SIZE);
       expect(elem0).toBe(20); // First element in copy sequence
       expect(elem1).toBe(10); // Second element in copy sequence
     });
@@ -183,13 +183,13 @@ describe('In-Place Compound Mutation', () => {
       // Setup existing flat list with same slot count
       const targetAddr = 120;
       const existingFlatHeader = toTaggedValue(4, Tag.LIST); // Same slot count
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingFlatHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingFlatHeader);
 
       // Should work since slot counts match
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify mutation succeeded
-      const resultHeader = vm.memory.readFloat32(SEG_RSTACK, targetAddr);
+      const resultHeader = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr);
       expect(getListLength(resultHeader)).toBe(4); // Same slot count maintained
     });
 
@@ -200,21 +200,21 @@ describe('In-Place Compound Mutation', () => {
 
       const targetAddr = 200;
       const existingHeader = toTaggedValue(3, Tag.LIST);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr, existingHeader);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Fill with known values
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 3 * CELL_SIZE, 111);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 2 * CELL_SIZE, 222);
-      vm.memory.writeFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE, 333);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 3 * CELL_SIZE, 111);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 2 * CELL_SIZE, 222);
+      vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 1 * CELL_SIZE, 333);
 
       // Perform successful mutation
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify all elements updated correctly
       // Stack order for (100 200 300) is [300, 200, 100, header]
-      expect(vm.memory.readFloat32(SEG_RSTACK, targetAddr - 3 * CELL_SIZE)).toBe(300);
-      expect(vm.memory.readFloat32(SEG_RSTACK, targetAddr - 2 * CELL_SIZE)).toBe(200);
-      expect(vm.memory.readFloat32(SEG_RSTACK, targetAddr - 1 * CELL_SIZE)).toBe(100);
+      expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 3 * CELL_SIZE)).toBe(300);
+      expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 2 * CELL_SIZE)).toBe(200);
+      expect(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + targetAddr - 1 * CELL_SIZE)).toBe(100);
     });
   });
 });
