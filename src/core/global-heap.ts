@@ -19,17 +19,17 @@ export interface ListSourceAbs {
 }
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
-  if (cellsNeeded > 0 && vm.GP + cellsNeeded > GLOBAL_CELL_CAPACITY) {
+  if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_CELL_CAPACITY) {
     throw new Error('Global heap exhausted');
   }
 }
 
 export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
-  const cellIndex = vm.GP;
+  const cellIndex = vm.gp;
   const byteOffset = cellIndex * CELL_SIZE;
   vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + byteOffset, value);
-  vm.GP = cellIndex + 1;
+  vm.gp = cellIndex + 1;
   return createGlobalRef(cellIndex);
 }
 
@@ -37,7 +37,7 @@ export function pushListToGlobalHeap(vm: VM, source: ListSourceAbs): number {
   const slotCount = getListLength(source.header);
   const span = slotCount + 1;
   ensureGlobalCapacity(vm, span);
-  const destBaseCell = vm.GP;
+  const destBaseCell = vm.gp;
 
   // Absolute-only source base for unified reads
   const srcBaseAbs = source.absBaseAddrBytes;
@@ -50,7 +50,7 @@ export function pushListToGlobalHeap(vm: VM, source: ListSourceAbs): number {
   const headerCellIndex = destBaseCell + slotCount;
   vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerCellIndex * CELL_SIZE, source.header);
 
-  vm.GP = destBaseCell + span;
+  vm.gp = destBaseCell + span;
   return createGlobalRef(headerCellIndex);
 }
 
@@ -72,7 +72,7 @@ export function pushDictionaryEntry(
   const slotCount = 3;
   const span = slotCount + 1;
   ensureGlobalCapacity(vm, span);
-  const baseCell = vm.GP;
+  const baseCell = vm.gp;
 
   vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseCell + 0) * CELL_SIZE, payload);
   vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseCell + 1) * CELL_SIZE, name);
@@ -84,7 +84,7 @@ export function pushDictionaryEntry(
     toTaggedValue(slotCount, Tag.LIST),
   );
 
-  vm.GP = baseCell + span;
+  vm.gp = baseCell + span;
   const entryRef = createGlobalRef(headerCellIndex);
   const payloadRef = createGlobalRef(baseCell);
   return { entryRef, payloadRef };

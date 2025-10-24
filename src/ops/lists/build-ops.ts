@@ -3,17 +3,7 @@
  * List construction and conversion operations (builders).
  */
 
-import {
-  VM,
-  fromTaggedValue,
-  toTaggedValue,
-  Tag,
-  NIL,
-  SEG_DATA,
-  STACK_BASE,
-  CELL_SIZE,
-  Verb,
-} from '@src/core';
+import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, Verb } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBoundsAbs, computeHeaderAddrAbs } from './core-helpers';
 import { evalOp } from '../core';
@@ -25,8 +15,9 @@ import { ReturnStackUnderflowError } from '@src/core';
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   vm.push(toTaggedValue(0, Tag.LIST));
-  const headerAddr = (vm.SP - 1) * CELL_SIZE;
-  vm.rpush(headerAddr);
+  // Absolute header byte address one past current TOS
+  const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
+  vm.rpush(headerAbsAddr);
 }
 
 /**
@@ -37,15 +28,16 @@ export function closeListOp(vm: VM): void {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 
-  const headerAddr = vm.rpop();
-  const headerCell = headerAddr / CELL_SIZE;
-  const payloadSlots = vm.SP - headerCell - 1;
+  const headerAbsAddr = vm.rpop();
+  const headerCellAbs = headerAbsAddr / CELL_SIZE;
+  const payloadSlots = vm.sp - headerCellAbs - 1;
 
-  vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, toTaggedValue(payloadSlots, Tag.LIST));
+  // Write header at absolute address
+  vm.memory.writeFloat32(SEG_DATA, headerAbsAddr, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = vm.SP - headerCell;
+    const totalSpan = vm.sp - headerCellAbs;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
@@ -65,24 +57,24 @@ export function makeListOp(vm: VM): void {
 
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   vm.push(placeholderHeader);
-  const headerAddr = (vm.SP - 1) * CELL_SIZE;
-  vm.rpush(headerAddr);
+  const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
+  vm.rpush(headerAbsAddr);
 
   vm.push(blockAddr);
   evalOp(vm);
 
-  const retrievedHeaderAddr = vm.rpop();
-  const headerCell = retrievedHeaderAddr / CELL_SIZE;
-  const payloadSlots = vm.SP - headerCell - 1;
+  const retrievedHeaderAbsAddr = vm.rpop();
+  const headerCellAbs = retrievedHeaderAbsAddr / CELL_SIZE;
+  const payloadSlots = vm.sp - headerCellAbs - 1;
 
   if (payloadSlots < 0) {
     throw new Error('makeList: negative payload slot count detected');
   }
 
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_DATA, STACK_BASE + retrievedHeaderAddr, finalizedHeader);
+  vm.memory.writeFloat32(SEG_DATA, retrievedHeaderAbsAddr, finalizedHeader);
 
-  const totalSpan = vm.SP - headerCell;
+  const totalSpan = vm.sp - headerCellAbs;
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
   }
