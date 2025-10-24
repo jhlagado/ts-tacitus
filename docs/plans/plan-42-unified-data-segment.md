@@ -81,6 +81,13 @@ Progress
       - `keys`/`values` traverse payload via `SEG_DATA` with absolute addressing.
       - `ref` forms absolute `DATA_REF` handles using `vm.sp` (absolute cell index) and `createDataRefAbs`.
       - `size` traverses payload via absolute addressing using `absBaseAddrBytes` and unified `SEG_DATA` reads. Tests green (2025-10-24).
+    - Store path (list refs): migrated write paths to absolute-only addressing.
+      - `resolveSlot` now exposes `rootAbsAddr` and `resolvedAbsAddr` for direct writes.
+      - Simple value store writes the value to `slot.rootAbsAddr` via `SEG_DATA`.
+      - Compound copy targets the absolute header address (`resolvedAbsAddr`) and writes payload+header via `SEG_DATA`.
+      - Introduced `updateListInPlaceAbs(vm, targetAbsHeaderAddr)` in `local-vars-transfer.ts` and switched in-place mutation to absolute writes.
+      - Legacy `updateListInPlace(vm, targetAddr, segment)` retained for compatibility; no remaining production usages.
+      - Full compact suite green after change (2025-10-24).
     - Builtins (debug): `dumpFrameOp` dereference path migrated to absolute-only addressing for referenced slots (`getAbsoluteByteAddressFromRef` + `SEG_DATA`). Purely affects debug output; no behavior changes.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
@@ -89,5 +96,8 @@ Progress
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
     - Immediate next targets (post-2025-10-24):
       - Audit and migrate remaining `resolveReference` call sites (none in production as of this update; retained for tests only).
-      - Audit `decodeDataRef` usages in production (parser, capsules, builtins) and replace with absolute helpers where safe; defer parser global-classification checks until final flip.
-      - Identify and remove any remaining segment-derived base math in ops (structure/build helpers already use `absBaseAddrBytes` for read paths; keep derived legacy fields only when required by tests).
+      - Audit `decodeDataRef` usages in production (parser retains global-only checks by design for now; capsules read path migrated; builtins debug path already absolute).
+      - Identify and remove any remaining segment-derived base math in ops. Priorities:
+        - `local-vars-transfer`: consider consolidating on absolute-only APIs and deprecating segment+offset variants once call sites are removed.
+        - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA` (already true for writes; reads audited).
+      - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and derived legacy fields from `getListBounds`.

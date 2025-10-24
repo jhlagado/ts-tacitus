@@ -21,7 +21,7 @@ describe('capsule dispatch runtime', () => {
     vm.IP = savedIP;
     vm.BP = 0;
     // Build capsule with 2 locals (10,20) and entry at 777
-    const { handle, codeRef } = pushCapsuleOnRStack([10, 20], 777);
+    const { handle } = pushCapsuleOnRStack([10, 20], 777);
     // Build data stack: 1 2 'meth handle
     vm.push(1);
     vm.push(2);

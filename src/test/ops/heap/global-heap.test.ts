@@ -155,7 +155,6 @@ describe('Global heap primitives', () => {
   test('gpop requires reference to heap top', () => {
     vm.push(1);
     gpushOp(vm);
-    const firstRef = vm.peek();
     vm.push(2);
     gpushOp(vm);
     const [olderRef] = vm.getStackData();

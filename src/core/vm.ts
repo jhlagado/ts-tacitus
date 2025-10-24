@@ -7,8 +7,6 @@ import { Compiler } from '../lang/compiler';
 import { SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import {
-  SEG_STACK,
-  SEG_RSTACK,
   SEG_CODE,
   SEG_DATA,
   CELL_SIZE,

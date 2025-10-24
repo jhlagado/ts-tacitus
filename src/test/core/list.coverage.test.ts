@@ -2,7 +2,6 @@ import { initializeInterpreter, vm } from '../../core/global-state';
 import {
   reverseSpan,
   getListElemAddr,
-  validateListHeader,
   getListBounds,
   createDataRef,
 } from '../../core';

@@ -1,7 +1,5 @@
 import { jest } from '@jest/globals';
 import { Op } from '@src/ops/opcodes';
-import type { ParserState } from '@src/lang/state';
-import type { Tokenizer } from '@src/lang/tokenizer';
 
 describe('literal emission helpers', () => {
   beforeEach(() => {

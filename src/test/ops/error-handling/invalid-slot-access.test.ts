@@ -1,10 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../core/global-state';
 import { ReturnStackUnderflowError } from '../../../core/errors';
-import { toTaggedValue, Tag } from '../../../core/tagged';
 import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
-import { fetchOp } from '../../../ops/lists';
 import { executeOp } from '../../../ops/builtins';
 import { Op } from '../../../ops/opcodes';
 

@@ -8,7 +8,6 @@ import {
   Verb,
   fromTaggedValue,
   Tag,
-  SEG_STACK,
   SEG_DATA,
   STACK_BASE,
   CELL_SIZE,
