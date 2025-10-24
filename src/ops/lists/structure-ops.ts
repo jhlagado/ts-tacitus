@@ -93,7 +93,10 @@ export function headOp(vm: VM): void {
       }
     } else {
       for (let i = 0; i < elementSlotCount; i++) {
-        const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - (elementSlotCount - 1 - i) * CELL_SIZE);
+        const slotValue = vm.memory.readFloat32(
+          SEG_DATA,
+          firstElementAbsAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
+        );
         vm.push(slotValue);
       }
       vm.push(firstElement);

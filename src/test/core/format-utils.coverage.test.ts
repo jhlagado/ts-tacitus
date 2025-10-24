@@ -59,4 +59,36 @@ describe('format-utils additional coverage', () => {
     const header = toTaggedValue(1, Tag.LIST);
     expect(formatList(vm, header)).toBe('(  )');
   });
+
+  test('formatValue handles empty LIST header on stack (formatListFromStack early return)', () => {
+    // Push only a LIST header with zero slots at TOS
+    const emptyHeader = toTaggedValue(0, Tag.LIST);
+    vm.push(emptyHeader);
+    expect(formatValue(vm, emptyHeader)).toBe('()');
+  });
+
+  test('formatValue handles empty LIST via memory reference (formatListFromMemory early return)', () => {
+    // Write an empty LIST header at some memory cell and reference it
+    const baseCell = 40;
+    const emptyHeader = toTaggedValue(0, Tag.LIST);
+    vm.memory.writeFloat32(SEG_STACK, baseCell * 4, emptyHeader);
+    const ref = createDataRef(SEG_STACK, baseCell);
+    expect(formatValue(vm, ref)).toBe('()');
+  });
+
+  test('formatValue handles nested LIST from stack (formatListFromStack recursion branch)', () => {
+    // Build stack layout for nested list: ( ( 2 3 ) )
+    // Stack bottom ... [ 2, 3, LIST:2, LIST:1 ] <- TOS
+    const two = toTaggedValue(2, Tag.NUMBER);
+    const three = toTaggedValue(3, Tag.NUMBER);
+    const innerHeader = toTaggedValue(2, Tag.LIST);
+    const outerHeader = toTaggedValue(1, Tag.LIST);
+
+    vm.push(two);
+    vm.push(three);
+    vm.push(innerHeader);
+    vm.push(outerHeader);
+
+    expect(formatValue(vm, outerHeader)).toBe('( ( 3 2 ) )');
+  });
 });
