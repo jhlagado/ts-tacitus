@@ -1,6 +1,6 @@
 # Plan 42: Unified Data Segment (Cautious Migration)
 
-Status: Draft-agreed. Priority: High. Scope: Unify data windows under a single data address space without breaking existing behaviour; migrate consumers incrementally.
+Status: Phase C COMPLETE (2025-10-25). Priority: High. Scope: Unify data windows under a single data address space without breaking existing behaviour; migrate consumers incrementally.
 
 Goals
 
@@ -47,7 +47,14 @@ Risk control
 
 ---
 
-Immediate step (Phase C): continue removing legacy window classification by migrating remaining read paths to absolute helpers and unified `SEG_DATA`.
+Phase C completion — 2025-10-25
+
+- Runtime and ops now use absolute-only addressing over `SEG_DATA`; legacy window math removed from production paths.
+- Lists: legacy wrappers (`getListBounds`, `getListElemAddr`, `computeHeaderAddr`) removed; absolute-only APIs are canonical: `getListBoundsAbs`, `getListElemAddrAbs`, `computeHeaderAddrAbs`.
+- Refs: deprecated helpers (`createDataRef`, `decodeDataRef`, `createSegmentRef`, `resolveReference`) removed from runtime; absolute-only helpers retained; `getRefRegionAbs` used for guards.
+- Parser guards rely on region strings; no numeric segment checks remain.
+- Capsules/global heap: migrated to absolute addresses; compatibility objects kept only where signatures still accept legacy shapes.
+- Tests updated to assert behavior or absolute addressing; no segment equality assertions remain. Full suite: 145 passed, 2 skipped; 1350 tests passed, 2 skipped; 1 snapshot passed (macOS, 2025-10-25).
 
 Update 2025-10-25 — Absolute-first list APIs + region strings
 
@@ -75,23 +82,18 @@ Update 2025-10-25 — Absolute-first list APIs + region strings
 - Tests: suite remains green
   - Full compact run: 145 passed, 2 skipped; 1350 tests passed, 2 skipped; 1 snapshot passed (macOS, 2025-10-25)
 
-Next (Phase C – cleanups)
+Post-Phase-C cleanups
 
-- Migrate remaining ops/callers to abs list APIs and remove deprecated wrappers where feasible
-- Replace any residual assertions about numeric segments in tests with:
-  - absolute address window checks (GLOBAL_BASE/STACK_BASE/RSTACK_BASE), or
-  - `getRefRegionAbs` string comparisons, or
-  - comparisons on absolute cell/byte indices
-- Plan final removal of legacy decode/resolve helpers:
-  - `decodeDataRef(ref)` and `resolveReference(...)` are deprecated and only used by tests; remove once tests migrate
-  - Remove `segment`/`baseAddr` fields from list-bound return shapes once no callers depend on them
+- Modernize `pushListToGlobalHeap` to accept an absolute-only source shape (e.g., `{ absBaseAddrBytes, headerAbsAddrBytes, slotCount }`) and remove temporary compatibility objects at call sites.
+- Consider removing any remaining legacy classification helpers from public surfaces where not required (keep `getRefRegionAbs` for guards).
+- Documentation sweep to remove stale references to `SEG_GLOBAL/SEG_STACK/SEG_RSTACK` outside historical notes.
 
 Progress
 
 - Phase A: COMPLETE
   - Added `SEG_DATA` constant and absolute DATA_REF helpers (`createDataRefAbs`, `decodeDataRefAbs`).
   - Tests added for absolute helpers; full suite remains green.
-- Phase B: IN PROGRESS
+- Phase B: COMPLETE
   - Exposed VM absolute register fields `sp/rsp/bp/gp` (mapped to internal storage). No behaviour change.
   - VM unified reads/writes for stacks: `push/pop/peek/peekAt`, `rpush/rpop`, and `getStackData` operate via `SEG_DATA` with byte offsets. Tests green.
   - Lists: introduced absolute addressing surface in `getListBounds` (`absBaseAddrBytes`) and migrated `unpack` materialization path to use absolute SEG_DATA reads (no segment-derived base).
@@ -104,7 +106,7 @@ Progress
   - Lists: migrated `concat` materialization for referenced lists to absolute addressing using `absBaseAddrBytes`.
   - Heap ops: migrated `gpeek` and `gpop` to absolute addressing. Both validate references via absolute cell indices and read via unified `SEG_DATA`. `gmark`/`gsweep` already operate on absolute `GP`.
   - Heap: migrated `pushListToGlobalHeap` to accept/use absolute base addresses (`absBaseAddrBytes`) for source reads with fallback to segment+base; writes already used unified `SEG_DATA`.
-  - Phase B status: COMPLETE — core consumers and helpers now read/write via absolute addressing; segment-derived math remains only for fallbacks and compatibility shims.
+  - Phase B status: COMPLETE — core consumers and helpers now read/write via absolute addressing; segment-derived math removed from production paths.
   - Phase C kickoff:
     - `load` now dereferences and materializes via absolute addressing (no `resolveReference` or segment-derived bases).
     - Ongoing: progressively replace any remaining uses of `resolveReference` with absolute helpers where feasible.
@@ -163,18 +165,8 @@ Progress
       - Removed `SEG_RSTACK` symbol usage from higher-level runtime modules (`refs`, `list`, `lists/query-ops`); classification uses absolute windows and literal segment id where legacy shapes are required.
       - Comments referencing `SEG_RSTACK` scrubbed; constant remains in `constants.ts` and is used by `memory.ts` and tests only.
       - Marked `SEG_RSTACK` as `@deprecated` in `constants.ts` to signal upcoming removal post test migration.
-  - Next (Phase C - flip):
-    - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
-    - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers once all consumers are updated; keep compatibility shim until final flip.
-    - VM: remove legacy accessors/shims if any remain; rely on `sp/rsp/bp/gp` absolute properties fully.
-    - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
-    - Immediate next targets (post-2025-10-24):
-      - Audit and migrate any remaining runtime constructions of `DATA_REF` to absolute creation helpers; tests may continue to classify refs until final flip. Current status: creators (locals/globals/capsule handles) migrated.
-  - Runtime flip: COMPLETE (2025-10-24) — All runtime paths use absolute addressing and unified `SEG_DATA`; no production dependencies on legacy window classification. `decodeDataRef`/`resolveReference` marked `@deprecated` and `@internal` (test-only intent). `SEG_RSTACK` deprecated and removed from higher-level runtime usage.
-  - Tests migration: IN PROGRESS — Update tests to rely on absolute helpers (`createDataRefAbs`, `decodeDataRefAbs`, `getAbsoluteByteAddressFromRef`) and observable behavior; then remove legacy classification fields from helpers like `getListBounds`. Once tests stop importing `SEG_RSTACK`, delete the constant and its switch case in `memory.ts`.
-    - Audit remaining production `decodeDataRef` usages: COMPLETE (2025-10-24) — none outside definitions; tests still rely on it. Prepare removal in the final flip while keeping tests intact.
-    - Audit remaining production `resolveReference` usages: COMPLETE (2025-10-24) — only referenced in tests; runtime no longer depends on it.
-    - Identify and remove any remaining segment-derived base math in ops.
-      - `local-vars-transfer`: segment-based API fully removed; ensure callers exclusively use absolute addresses.
-      - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA`.
-    - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and legacy classification fields (e.g., from `getListBounds`).
+  - Final flip notes:
+    - VM and ops rely exclusively on `sp/rsp/bp/gp` absolute properties and `SEG_DATA` I/O for data.
+    - All runtime constructions of `DATA_REF` use absolute creation helpers; tests classify via `getRefRegionAbs` where necessary.
+  - Runtime flip: COMPLETE (2025-10-25) — All runtime paths use absolute addressing and unified `SEG_DATA`; no production dependencies on legacy window classification. Deprecated helpers removed from runtime.
+  - Tests migration: COMPLETE — Tests rely on absolute helpers (`createDataRefAbs`, `decodeDataRefAbs`, `getAbsoluteByteAddressFromRef`) and behavior-based assertions. No numeric-segment assertions remain; classification uses `getRefRegionAbs` only where required. Full suite green (145 passed, 2 skipped; 1350 tests passed, 2 skipped; 1 snapshot passed on macOS).

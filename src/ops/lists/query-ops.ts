@@ -243,14 +243,8 @@ function initializeGlobalCompound(
   rhsInfo: { header: number; absBaseAddrBytes: number },
   rhsTag: Tag,
 ): void {
-  // Adapt to ListSource shape for pushListToGlobalHeap while preferring absolute reads
-  const compat = {
-    header: rhsInfo.header,
-    baseAddr: 0,
-    segment: 2,
-    absBaseAddrBytes: rhsInfo.absBaseAddrBytes,
-  } as const;
-  const heapRef = pushListToGlobalHeap(vm, compat);
+  // Absolute-only global allocation of compound
+  const heapRef = pushListToGlobalHeap(vm, rhsInfo);
   // Write directly via absolute address
   vm.memory.writeFloat32(SEG_DATA, slot.rootAbsAddr, heapRef);
   discardCompoundSource(vm, rhsTag);
