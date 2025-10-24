@@ -56,5 +56,6 @@ Progress
   - Tests added for absolute helpers; full suite remains green.
 - Phase B: IN PROGRESS
   - Exposed VM absolute register fields `sp/rsp/bp/gp` (mapped to internal storage). No behaviour change.
-  - VM unified reads: getStackData, pop, peek, peekAt, rpop now read via `SEG_DATA` with byte offsets; writes unchanged. Tests green.
-  - Next: migrate another small read path (list/helper) to `SEG_DATA`, then proceed op-by-op.
+  - VM unified reads/writes for stacks: `push/pop/peek/peekAt`, `rpush/rpop`, and `getStackData` operate via `SEG_DATA` with byte offsets. Tests green.
+  - Lists: introduced absolute addressing surface in `getListBounds` (`absBaseAddrBytes`) and migrated `unpack` materialization path to use absolute SEG_DATA reads (no segment-derived base).
+  - Next: migrate remaining list helpers/ops (`slot/elem/fetch/store`, `head/tail/reverse/concat`, `select` createTargetRef) to absolute addressing; then convert heap ops (`gpush/gpeek/gpop/gmark/gsweep`) to absolute-only and update tests to assert behaviour/absolute indices (not segment IDs).

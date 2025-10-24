@@ -5,7 +5,16 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { SEG_STACK, SEG_GLOBAL, SEG_RSTACK, SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
+import {
+  SEG_STACK,
+  SEG_GLOBAL,
+  SEG_RSTACK,
+  SEG_DATA,
+  CELL_SIZE,
+  STACK_BASE,
+  GLOBAL_BASE,
+  RSTACK_BASE,
+} from './constants';
 import { isRef, resolveReference } from './refs';
 
 /**
@@ -90,13 +99,14 @@ export function getListElemAddr(
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
-  const base = segment === SEG_STACK
-    ? STACK_BASE
-    : segment === SEG_GLOBAL
-    ? GLOBAL_BASE
-    : segment === SEG_RSTACK
-    ? RSTACK_BASE
-    : 0;
+  const base =
+    segment === SEG_STACK
+      ? STACK_BASE
+      : segment === SEG_GLOBAL
+        ? GLOBAL_BASE
+        : segment === SEG_RSTACK
+          ? RSTACK_BASE
+          : 0;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
@@ -154,20 +164,25 @@ export function reverseSpan(vm: VM, spanSize: number): void {
 export function getListBounds(
   vm: VM,
   value: number,
-): { header: number; baseAddr: number; segment: number } | null {
+): { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     const slotCount = getListLength(value);
+    const headerCell = vm.SP - 1;
+    const baseCell = headerCell - slotCount;
+    const absBaseAddrBytes = STACK_BASE + baseCell * CELL_SIZE;
     return {
       header: value,
       baseAddr: (vm.SP - 1 - slotCount) * CELL_SIZE,
       segment: SEG_STACK,
+      absBaseAddrBytes,
     };
   } else if (isRef(value)) {
     const first = resolveReference(vm, value);
     let addr = first.address;
     let seg = first.segment;
-    const baseForSeg = seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+    const baseForSeg =
+      seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
     let header = vm.memory.readFloat32(SEG_DATA, baseForSeg + addr);
 
     // Support ref-to-ref indirection: dereference one additional level if needed.
@@ -175,7 +190,8 @@ export function getListBounds(
       const inner = resolveReference(vm, header);
       seg = inner.segment;
       addr = inner.address;
-      const innerBase = seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+      const innerBase =
+        seg === SEG_STACK ? STACK_BASE : seg === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
       header = vm.memory.readFloat32(SEG_DATA, innerBase + addr);
     }
 
@@ -183,7 +199,9 @@ export function getListBounds(
       return null;
     }
     const slotCount = getListLength(header);
-    return { header, baseAddr: addr - slotCount * CELL_SIZE, segment: seg };
+    const baseAddr = addr - slotCount * CELL_SIZE;
+    const absBaseAddrBytes = baseForSeg + baseAddr;
+    return { header, baseAddr, segment: seg, absBaseAddrBytes };
   }
   return null;
 }
