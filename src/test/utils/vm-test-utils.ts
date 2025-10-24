@@ -16,6 +16,7 @@ import {
   GLOBAL_SIZE,
   SEG_DATA,
   CELL_SIZE,
+  STACK_BASE,
   RSTACK_BASE,
   GLOBAL_BASE,
 } from '../../core';
@@ -28,9 +29,10 @@ import { initializeInterpreter, vm } from '../../core/global-state';
  */
 export function resetVM(): void {
   initializeInterpreter();
-  vm.SP = 0;
-  vm.RSP = 0; // Reset return stack in cells
-  vm.BP = 0; // reset BP (cells)
+  // Initialize absolute registers to segment bases; uppercase shims derive depth from these
+  vm.sp = STACK_BASE / CELL_SIZE;
+  vm.rsp = RSTACK_BASE / CELL_SIZE; // Reset return stack (absolute)
+  vm.bp = RSTACK_BASE / CELL_SIZE; // reset BP (absolute)
   vm.IP = 0;
   vm.listDepth = 0;
   vm.running = true;
@@ -44,7 +46,7 @@ export function resetVM(): void {
   }
 
   // Reset globals allocation pointer and clear global segment
-  vm.GP = 0;
+  vm.gp = 0;
   for (let i = 0; i < GLOBAL_SIZE; i++) {
     vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
   }
@@ -381,8 +383,38 @@ export function verifyStackDepth(vm: VM, expectedDepth: number): void {
  * Verify VM is in valid state
  */
 export function verifyVMState(vm: VM): void {
-  expect(vm.SP).toBeGreaterThanOrEqual(0);
-  expect(vm.RSP).toBeGreaterThanOrEqual(0);
+  // Absolute pointers must not go below their respective bases
+  const stackBaseCells = STACK_BASE / CELL_SIZE;
+  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
+  expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
+  expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
+  expect(vm.bp).toBeLessThanOrEqual(vm.rsp);
   expect(vm.IP).toBeGreaterThanOrEqual(0);
   expect(vm.running).toBe(true);
+}
+
+/**
+ * Compute data stack depth (cells) from absolute registers
+ */
+export function dataDepth(vm: VM): number {
+  return vm.sp - STACK_BASE / CELL_SIZE;
+}
+
+/**
+ * Compute return stack depth (cells) from absolute registers
+ */
+export function returnDepth(vm: VM): number {
+  return vm.rsp - RSTACK_BASE / CELL_SIZE;
+}
+
+/**
+ * Assert that stack pointers have not underflowed their bases
+ */
+export function assertNoUnderflow(vm: VM): void {
+  const stackBaseCells = STACK_BASE / CELL_SIZE;
+  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
+  expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
+  expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
 }

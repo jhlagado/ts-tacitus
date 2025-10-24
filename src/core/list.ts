@@ -5,7 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { SEG_DATA, CELL_SIZE, STACK_BASE } from './constants';
+import { SEG_DATA, CELL_SIZE } from './constants';
 import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 
 /**
@@ -123,15 +123,14 @@ export function reverseSpan(vm: VM, spanSize: number): void {
   if (spanSize <= 1) return;
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
-  // Reverse using cell-native indices via u32 view
-  const endCellExclusive = vm.SP;
-  const startCell = endCellExclusive - spanSize;
+  // Reverse using absolute cell indices via u32 view
+  const endCellExclusive = vm.sp;
+  const startCellAbs = endCellExclusive - spanSize;
   let i = 0;
   let j = spanSize - 1;
-  const baseCell = vm.memory.resolveAddress(SEG_DATA, STACK_BASE) >> 2;
   while (i < j) {
-    const leftIdx = baseCell + startCell + i;
-    const rightIdx = baseCell + startCell + j;
+    const leftIdx = startCellAbs + i;
+    const rightIdx = startCellAbs + j;
     const left = vm.memory.u32[leftIdx];
     const right = vm.memory.u32[rightIdx];
     vm.memory.u32[leftIdx] = right;
@@ -152,10 +151,10 @@ export function getListBoundsAbs(
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     const slotCount = getListLength(value);
-    const headerCell = vm.SP - 1;
-    const baseCell = headerCell - slotCount;
-    const headerAbsAddrBytes = STACK_BASE + headerCell * CELL_SIZE;
-    const absBaseAddrBytes = STACK_BASE + baseCell * CELL_SIZE;
+    const headerCellAbs = vm.sp - 1;
+    const baseCellAbs = headerCellAbs - slotCount;
+    const headerAbsAddrBytes = headerCellAbs * CELL_SIZE;
+    const absBaseAddrBytes = baseCellAbs * CELL_SIZE;
     return { header: value, absBaseAddrBytes, headerAbsAddrBytes };
   } else if (isRef(value)) {
     // Absolute dereferencing (support ref-to-ref indirection)

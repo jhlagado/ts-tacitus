@@ -1,6 +1,7 @@
 # Plan 42: Unified Data Segment (Cautious Migration)
 
-Status: Phase C COMPLETE (2025-10-25). Priority: High. Scope: Unify data windows under a single data address space without breaking existing behaviour; migrate consumers incrementally.
+Status: ARCHIVED — moved to docs/plans/done/plan-42-unified-data-segment.md (2025-10-25). Priority: High. Scope: Unify data windows under a single data address space without breaking existing behaviour; migrate consumers incrementally.
+Note: This file is a legacy copy kept temporarily for discoverability. The canonical archived version lives under docs/plans/done/.
 
 Goals
 
