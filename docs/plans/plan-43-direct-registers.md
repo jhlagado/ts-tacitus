@@ -20,25 +20,25 @@ Non-Goals
 
 Phases
 
-1) Inventory and classification (read-only)
+1. Inventory and classification (read-only)
    - Locate all uses of `vm.SP`, `vm.RSP`, `vm.BP`, `vm.GP` in src and tests.
    - Classify per site:
      - A: Safe 1:1 swap (e.g., `vm.GP` → `vm.gp` when representing a bump count measured from zero).
      - B: Absolute-friendly (ops already using absolute addresses), convert arithmetic to `vm.sp`/`vm.rsp` and remove segment-base math.
      - C: Depth-dependent logic (comparisons to constants, UI/prints, stack utils) — switch to `vm.ensureStackSize` and/or compute depth as `vm.sp - STACK_BASE/CELL_SIZE`.
 
-2) Runtime migration (src)
+2. Runtime migration (src)
    - Replace A/B sites first; keep behavior identical.
    - Update `core` helpers to avoid calling uppercase accessors internally (use private fields or lowercase regs).
    - Keep uppercase shims temporarily exported to avoid breaking tests mid-migration.
 
-3) Tests migration
+3. Tests migration
    - Replace `vm.SP`/`vm.RSP`/`vm.BP`/`vm.GP` assertions with:
      - Depth: `vm.getStackData().length` (preferred) or `vm.sp - STACK_BASE/CELL_SIZE`.
      - Return depth: `vm.rsp - RSTACK_BASE/CELL_SIZE` where depth is explicitly asserted.
      - Global: `vm.gp` for heap cell count.
 
-4) Removal
+4. Removal
    - Delete uppercase getters/setters from `VM` once no references remain.
    - Update docs to remove mentions of uppercase accessors.
 
