@@ -49,6 +49,43 @@ Risk control
 
 Immediate step (Phase C): continue removing legacy window classification by migrating remaining read paths to absolute helpers and unified `SEG_DATA`.
 
+Update 2025-10-25 — Absolute-first list APIs + region strings
+
+- Lists: introduced absolute-first APIs and migrated internals
+  - Added `getListBoundsAbs(vm, value)` → `{ header, absBaseAddrBytes, headerAbsAddrBytes }` (no segment/base fields)
+  - Added `getListElemAddrAbs(vm, header, headerAbsAddr, logicalIndex)` (returns absolute byte address or -1)
+  - Added `computeHeaderAddrAbs(absBaseAddrBytes, slotCount)` for pure-absolute math
+  - Kept legacy wrappers for compatibility:
+    - `getListBounds` now calls `getListBoundsAbs` and derives `{ segment, baseAddr }` only for legacy callers
+    - `getListElemAddr` now converts segment-relative header address → absolute, delegates to `getListElemAddrAbs`, then maps back to segment-relative
+  - Outcome: all list traversal/materialization uses `SEG_DATA` + absolute addresses internally; segment math exists only in wrappers (to be removed later)
+
+- Refs: added string-based region classifier for guards, not addressing
+  - New: `getRefRegionAbs(ref): 'global' | 'stack' | 'rstack'` (classifies by absolute byte address)
+  - Existing: numeric `getRefSegment(ref)` retained for compatibility; now implemented via absolute classification
+
+- Parser: guard checks switched to region strings
+  - Replaced numeric segment comparisons with `getRefRegionAbs(ref) === 'global'` for: unknown word DATA_REF handling, `&var` inside functions, and `->` assignment checks
+  - No behavior change; readability improved and segment constants fully avoided in parser
+
+- Constants: removed legacy data-window segment constants from runtime
+  - Deleted `SEG_STACK`, `SEG_RSTACK`, `SEG_GLOBAL` exports from `constants.ts` (data I/O is `SEG_DATA` only)
+  - Memory model (`memory.ts`) already unified on `SEG_DATA` for data I/O; `SEG_CODE/SEG_STRING` remain
+
+- Tests: suite remains green
+  - Full compact run: 145 passed, 2 skipped; 1350 tests passed, 2 skipped; 1 snapshot passed (macOS, 2025-10-25)
+
+Next (Phase C – cleanups)
+
+- Migrate remaining ops/callers to abs list APIs and remove deprecated wrappers where feasible
+- Replace any residual assertions about numeric segments in tests with:
+  - absolute address window checks (GLOBAL_BASE/STACK_BASE/RSTACK_BASE), or
+  - `getRefRegionAbs` string comparisons, or
+  - comparisons on absolute cell/byte indices
+- Plan final removal of legacy decode/resolve helpers:
+  - `decodeDataRef(ref)` and `resolveReference(...)` are deprecated and only used by tests; remove once tests migrate
+  - Remove `segment`/`baseAddr` fields from list-bound return shapes once no callers depend on them
+
 Progress
 
 - Phase A: COMPLETE
