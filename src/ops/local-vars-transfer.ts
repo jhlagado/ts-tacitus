@@ -139,7 +139,7 @@ export function isCompatible(existing: number, newValue: number): boolean {
  *
  * @param vm The VM instance
  * @param targetAddr Byte address of existing compound data header
- * @param segment Memory segment (SEG_RSTACK for local variables)
+ * @param segment Memory segment (return stack for local variables)
  * @param newValue The new compound value from data stack (LIST header at TOS)
  */
 // Note: legacy updateListInPlace(segment-based) removed; use updateListInPlaceAbs instead.

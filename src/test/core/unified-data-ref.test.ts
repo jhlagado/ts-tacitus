@@ -11,7 +11,6 @@ import {
   writeReference,
   getVarRef,
   SEG_STACK,
-  SEG_RSTACK,
   SEG_GLOBAL,
   STACK_SIZE,
   RSTACK_SIZE,
@@ -19,6 +18,8 @@ import {
   TOTAL_DATA_BYTES,
   toTaggedValue,
   Tag,
+  decodeDataRefAbs,
+  RSTACK_BASE,
 } from '../../core';
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { fetchOp, storeOp } from '../../ops/lists';
@@ -32,7 +33,7 @@ describe('DATA_REF utilities', () => {
     const refs = [
       { segment: SEG_GLOBAL, cellIndex: 3 },
       { segment: SEG_STACK, cellIndex: 5 },
-      { segment: SEG_RSTACK, cellIndex: 7 },
+      { segment: 1, cellIndex: 7 }, // return-stack segment (deprecated constant)
     ];
 
     for (const { segment, cellIndex } of refs) {
@@ -47,7 +48,7 @@ describe('DATA_REF utilities', () => {
 
   test('createDataRef validates segment bounds', () => {
     expect(() => createDataRef(SEG_STACK, STACK_SIZE / CELL_SIZE)).toThrow();
-    expect(() => createDataRef(SEG_RSTACK, RSTACK_SIZE / CELL_SIZE)).toThrow();
+    expect(() => createDataRef(1, RSTACK_SIZE / CELL_SIZE)).toThrow();
     expect(() => createDataRef(SEG_STACK, -1)).toThrow();
   });
 
@@ -77,9 +78,8 @@ describe('DATA_REF utilities', () => {
   test('getVarRef returns DATA_REF to return-stack slot', () => {
     vm.BP = 0;
     const ref = getVarRef(vm, 2);
-    const info = decodeDataRef(ref);
-    expect(info.segment).toBe(SEG_RSTACK);
-    expect(info.cellIndex).toBe(2);
+    const abs = decodeDataRefAbs(ref).absoluteCellIndex;
+    expect(abs).toBe(RSTACK_BASE / CELL_SIZE + 2);
   });
 
   test('resolveReference returns segment-address pair', () => {

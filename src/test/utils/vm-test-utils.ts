@@ -15,8 +15,9 @@ import {
   fromTaggedValue,
   SEG_GLOBAL,
   GLOBAL_SIZE,
-  SEG_RSTACK,
+  SEG_DATA,
   CELL_SIZE,
+  RSTACK_BASE,
 } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -71,7 +72,7 @@ export function captureVMState(): VMStateSnapshot {
   const stack = vm.getStackData();
   const returnStack: number[] = [];
   for (let i = 0; i < vm.RSP; i++) {
-    returnStack.push(vm.memory.readFloat32(SEG_RSTACK, i * CELL_SIZE));
+    returnStack.push(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + i * CELL_SIZE));
   }
   return {
     stack,
