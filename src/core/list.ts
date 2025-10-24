@@ -71,34 +71,29 @@ export function validateListHeader(vm: VM): void {
  * @param logicalIndex The logical index (0-based)
  * @returns Memory address or -1 if out of bounds
  */
-export function getListElemAddr(
+export function getListElemAddrAbs(
   vm: VM,
   header: number,
-  headerAddr: number,
+  headerAbsAddr: number,
   logicalIndex: number,
-  segment = 0,
 ): number {
   if (!isList(header)) {
-    throw new Error('Invalid LIST header provided to getListElemAddr');
+    throw new Error('Invalid LIST header provided to getListElemAddrAbs');
   }
 
   const totalSlots = getListLength(header);
-
   if (logicalIndex < 0) return -1;
 
-  let currentAddr = headerAddr - 4;
+  let currentAddr = headerAbsAddr - CELL_SIZE;
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
-  const base = segment === 0 ? STACK_BASE : segment === 2 ? GLOBAL_BASE : RSTACK_BASE;
-
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
+    const currentValue = vm.memory.readFloat32(SEG_DATA, currentAddr);
     let stepSize = 1;
     let elementStartAddr = currentAddr;
 
     if (isList(currentValue)) {
-      elementStartAddr = currentAddr;
       stepSize = getListLength(currentValue) + 1;
     }
 
@@ -106,12 +101,29 @@ export function getListElemAddr(
       return elementStartAddr;
     }
 
-    currentAddr -= stepSize * 4;
+    currentAddr -= stepSize * CELL_SIZE;
     remainingSlots -= stepSize;
     currentLogicalIndex++;
   }
 
   return -1;
+}
+
+/**
+ * @deprecated Use getListElemAddrAbs. This wrapper accepts a segment-relative headerAddr and returns a segment-relative result.
+ */
+export function getListElemAddr(
+  vm: VM,
+  header: number,
+  headerAddr: number,
+  logicalIndex: number,
+  segment = 0,
+): number {
+  const base = segment === 0 ? STACK_BASE : segment === 2 ? GLOBAL_BASE : RSTACK_BASE;
+  const headerAbs = base + headerAddr;
+  const abs = getListElemAddrAbs(vm, header, headerAbs, logicalIndex);
+  if (abs === -1) return -1;
+  return abs - base;
 }
 
 /**
@@ -145,22 +157,18 @@ export function reverseSpan(vm: VM, spanSize: number): void {
  * Extract list header and base address from a direct LIST or a reference.
  * Returns null if value is neither a list nor a ref-to-list.
  */
-export function getListBounds(
+export function getListBoundsAbs(
   vm: VM,
   value: number,
-): { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number } | null {
+): { header: number; absBaseAddrBytes: number; headerAbsAddrBytes: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     const slotCount = getListLength(value);
     const headerCell = vm.SP - 1;
     const baseCell = headerCell - slotCount;
+    const headerAbsAddrBytes = STACK_BASE + headerCell * CELL_SIZE;
     const absBaseAddrBytes = STACK_BASE + baseCell * CELL_SIZE;
-    return {
-      header: value,
-      baseAddr: (vm.SP - 1 - slotCount) * CELL_SIZE,
-      segment: 0,
-      absBaseAddrBytes,
-    };
+    return { header: value, absBaseAddrBytes, headerAbsAddrBytes };
   } else if (isRef(value)) {
     // Absolute dereferencing (support ref-to-ref indirection)
     let headerAddrAbs = getAbsoluteByteAddressFromRef(value);
@@ -175,16 +183,29 @@ export function getListBounds(
     }
     const slotCount = getListLength(header);
     const absBaseAddrBytes = headerAddrAbs - slotCount * CELL_SIZE;
-    // Classify segment for compatibility with legacy callers
-    let segment = 0;
-    if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = 2;
-    else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = 0;
-    else segment = 1;
-    const baseAddr =
-      absBaseAddrBytes - (segment === 2 ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
-    return { header, baseAddr, segment, absBaseAddrBytes };
+    return { header, absBaseAddrBytes, headerAbsAddrBytes: headerAddrAbs };
   }
   return null;
+}
+
+/**
+ * @deprecated Use getListBoundsAbs. This wrapper returns legacy fields (baseAddr, segment) computed from absolute addresses.
+ */
+export function getListBounds(
+  vm: VM,
+  value: number,
+): { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number } | null {
+  const abs = getListBoundsAbs(vm, value);
+  if (!abs) return null;
+  const { header, absBaseAddrBytes } = abs;
+  // Classify segment for compatibility with legacy callers
+  let segment = 0;
+  if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = 2;
+  else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = 0;
+  else segment = 1;
+  const baseAddr =
+    absBaseAddrBytes - (segment === 2 ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
+  return { header, baseAddr, segment, absBaseAddrBytes };
 }
 
 /**
@@ -192,6 +213,10 @@ export function getListBounds(
  */
 export function computeHeaderAddr(baseAddr: number, slotCount: number): number {
   return baseAddr + slotCount * CELL_SIZE;
+}
+
+export function computeHeaderAddrAbs(absBaseAddrBytes: number, slotCount: number): number {
+  return absBaseAddrBytes + slotCount * CELL_SIZE;
 }
 
 // Style aliases (Phase 1):
