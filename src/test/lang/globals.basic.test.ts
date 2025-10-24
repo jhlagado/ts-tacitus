@@ -10,6 +10,8 @@ import {
   NIL,
   getTag,
   fromTaggedValue,
+  SEG_DATA,
+  GLOBAL_BASE,
 } from '@src/core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -103,18 +105,21 @@ describe('Global variables (SEG_GLOBAL + GLOBAL_REF)', () => {
     const nameCellIndex = headerCellIndex - 2;
     const prevCellIndex = headerCellIndex - 1;
 
-    const payloadValue = vm.memory.readFloat32(SEG_GLOBAL, payloadCellIndex * CELL_SIZE);
+    const payloadValue = vm.memory.readFloat32(
+      SEG_DATA,
+      GLOBAL_BASE + payloadCellIndex * CELL_SIZE,
+    );
     expect(payloadValue).toBe(100);
 
-    const nameValue = vm.memory.readFloat32(SEG_GLOBAL, nameCellIndex * CELL_SIZE);
+    const nameValue = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + nameCellIndex * CELL_SIZE);
     expect(getTag(nameValue)).toBe(Tag.STRING);
     const { value: nameAddr } = fromTaggedValue(nameValue);
     expect(vm.digest.get(nameAddr)).toBe('alpha');
 
-    const prevValue = vm.memory.readFloat32(SEG_GLOBAL, prevCellIndex * CELL_SIZE);
+    const prevValue = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + prevCellIndex * CELL_SIZE);
     expect(prevValue).toBe(NIL);
 
-    const headerValue = vm.memory.readFloat32(SEG_GLOBAL, headerCellIndex * CELL_SIZE);
+    const headerValue = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + headerCellIndex * CELL_SIZE);
     expect(headerValue).toBe(toTaggedValue(3, Tag.LIST));
   });
 
@@ -145,14 +150,20 @@ describe('Global variables (SEG_GLOBAL + GLOBAL_REF)', () => {
     expect(secondSegment).toBe(SEG_GLOBAL);
     expect(secondHeaderIndex).toBeGreaterThan(firstHeaderIndex);
 
-    const prevValue = vm.memory.readFloat32(SEG_GLOBAL, (secondHeaderIndex - 1) * CELL_SIZE);
+    const prevValue = vm.memory.readFloat32(
+      SEG_DATA,
+      GLOBAL_BASE + (secondHeaderIndex - 1) * CELL_SIZE,
+    );
     expect(getTag(prevValue)).toBe(Tag.DATA_REF);
 
     const { cellIndex: linkedHeaderIndex, segment } = decodeDataRef(prevValue);
     expect(segment).toBe(SEG_GLOBAL);
     expect(linkedHeaderIndex).toBe(firstHeaderIndex);
 
-    const priorPrev = vm.memory.readFloat32(SEG_GLOBAL, (firstHeaderIndex - 1) * CELL_SIZE);
+    const priorPrev = vm.memory.readFloat32(
+      SEG_DATA,
+      GLOBAL_BASE + (firstHeaderIndex - 1) * CELL_SIZE,
+    );
     expect(getTag(priorPrev)).toBe(Tag.SENTINEL);
   });
 });

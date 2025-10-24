@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../../core/global-state';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
-import { SEG_GLOBAL, SEG_STACK, CELL_SIZE, GLOBAL_SIZE } from '../../../core/constants';
+import {
+  SEG_GLOBAL,
+  SEG_STACK,
+  CELL_SIZE,
+  GLOBAL_SIZE,
+  GLOBAL_BASE,
+  SEG_DATA,
+} from '../../../core/constants';
 import { isRef, decodeDataRef, createSegmentRef } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
@@ -24,7 +31,7 @@ describe('Global heap primitives', () => {
     const { segment, cellIndex } = decodeDataRef(ref);
     expect(segment).toBe(SEG_GLOBAL);
     expect(cellIndex).toBe(0);
-    expect(vm.memory.readFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE)).toBe(42);
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBe(42);
   });
 
   test('gpush copies list payload and replaces stack value with DATA_REF', () => {
@@ -41,10 +48,10 @@ describe('Global heap primitives', () => {
     expect(isRef(ref)).toBe(true);
     const { segment, cellIndex } = decodeDataRef(ref);
     expect(segment).toBe(SEG_GLOBAL);
-    const header = vm.memory.readFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE);
+    const header = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE);
     expect(header).toBe(toTaggedValue(2, Tag.LIST));
-    expect(vm.memory.readFloat32(SEG_GLOBAL, (cellIndex - 1) * CELL_SIZE)).toBe(1);
-    expect(vm.memory.readFloat32(SEG_GLOBAL, (cellIndex - 2) * CELL_SIZE)).toBe(2);
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + (cellIndex - 1) * CELL_SIZE)).toBe(1);
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + (cellIndex - 2) * CELL_SIZE)).toBe(2);
   });
 
   test('gpeek materialises list contents without altering heap', () => {
@@ -124,7 +131,7 @@ describe('Global heap primitives', () => {
     const { cellIndex: duplicateIndex } = decodeDataRef(duplicateRef);
     expect(originalIndex).toBe(0);
     expect(duplicateIndex).toBe(1);
-    expect(vm.memory.readFloat32(SEG_GLOBAL, duplicateIndex * CELL_SIZE)).toBe(7);
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + duplicateIndex * CELL_SIZE)).toBe(7);
   });
 
   test('gpeek rejects non-reference inputs', () => {

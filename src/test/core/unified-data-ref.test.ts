@@ -20,6 +20,8 @@ import {
   Tag,
   decodeDataRefAbs,
   RSTACK_BASE,
+  SEG_DATA,
+  GLOBAL_BASE,
 } from '../../core';
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { fetchOp, storeOp } from '../../ops/lists';
@@ -97,7 +99,7 @@ describe('DATA_REF utilities', () => {
 
   test('fetchOp materializes value via DATA_REF', () => {
     const cellIndex = 15;
-    vm.memory.writeFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE, 777.5);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 777.5);
     const ref = createDataRef(SEG_GLOBAL, cellIndex);
     vm.push(ref);
     fetchOp(vm);
@@ -110,6 +112,8 @@ describe('DATA_REF utilities', () => {
     vm.push(123.456);
     vm.push(ref);
     storeOp(vm);
-    expect(vm.memory.readFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE)).toBeCloseTo(123.456);
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBeCloseTo(
+      123.456,
+    );
   });
 });

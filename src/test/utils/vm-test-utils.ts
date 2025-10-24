@@ -13,11 +13,11 @@ import {
   Tag,
   toTaggedValue,
   fromTaggedValue,
-  SEG_GLOBAL,
   GLOBAL_SIZE,
   SEG_DATA,
   CELL_SIZE,
   RSTACK_BASE,
+  GLOBAL_BASE,
 } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -46,7 +46,7 @@ export function resetVM(): void {
   // Reset globals allocation pointer and clear global segment
   vm.GP = 0;
   for (let i = 0; i < GLOBAL_SIZE; i++) {
-    vm.memory.write8(SEG_GLOBAL, i, 0);
+    vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
   }
 }
 
