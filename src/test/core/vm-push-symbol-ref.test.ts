@@ -10,7 +10,7 @@ import { vm } from '../../core/global-state';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
-import { SEG_STACK, CELL_SIZE } from '../../core/constants';
+import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core/constants';
 
 describe('VM pushSymbolRef method', () => {
   beforeEach(() => {
@@ -102,7 +102,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>
-        fromTaggedValue(vm.memory.readFloat32(SEG_STACK, i * CELL_SIZE)),
+        fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE + i * CELL_SIZE)),
       );
 
       expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });

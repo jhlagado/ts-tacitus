@@ -3,7 +3,15 @@
  * Tests for LIST core utilities
  */
 
-import { VM, toTaggedValue, Tag, fromTaggedValue, CELL_SIZE } from '../../core';
+import {
+  VM,
+  toTaggedValue,
+  Tag,
+  fromTaggedValue,
+  CELL_SIZE,
+  SEG_DATA,
+  STACK_BASE,
+} from '../../core';
 import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core';
 import { createList } from '../utils/core-test-utils';
 
@@ -84,7 +92,7 @@ describe('LIST Core Utilities', () => {
       const header = vm.peek();
       expect(getListLength(header)).toBe(1);
 
-      const payload = vm.memory.readFloat32(0, (vm.SP - 1) * CELL_SIZE);
+      const payload = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 1) * CELL_SIZE);
       expect(isList(payload)).toBe(true);
       expect(getListLength(payload)).toBe(1);
     });
@@ -102,10 +110,10 @@ describe('LIST Core Utilities', () => {
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
-      const payload0 = vm.memory.readFloat32(0, (vm.SP - 1) * CELL_SIZE);
-      const payload1 = vm.memory.readFloat32(0, (vm.SP - 2) * CELL_SIZE);
-      const payload2 = vm.memory.readFloat32(0, (vm.SP - 3) * CELL_SIZE);
-      const payload3 = vm.memory.readFloat32(0, (vm.SP - 4) * CELL_SIZE);
+      const payload0 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 1) * CELL_SIZE);
+      const payload1 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 2) * CELL_SIZE);
+      const payload2 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 3) * CELL_SIZE);
+      const payload3 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 4) * CELL_SIZE);
 
       expect(isList(payload0)).toBe(true);
       expect(payload1).toBe(val1);

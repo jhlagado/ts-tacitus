@@ -1,4 +1,4 @@
-import { Memory, SEG_STACK } from '@src/core';
+import { Memory, SEG_DATA, STACK_BASE } from '@src/core';
 import {
   cells,
   cellIndex,
@@ -37,39 +37,42 @@ describe('cell unit helpers', () => {
   });
 
   test('loadCell and storeCell operate on cell granularity', () => {
-    const idx = cellIndex(2);
-    storeCell(mem, SEG_STACK, idx, 42.5);
-    expect(loadCell(mem, SEG_STACK, idx)).toBeCloseTo(42.5);
+    const baseCell = STACK_BASE / 4;
+    const idx = cellIndex(baseCell + 2);
+    storeCell(mem, SEG_DATA, idx, 42.5);
+    expect(loadCell(mem, SEG_DATA, idx)).toBeCloseTo(42.5);
   });
 
   test('copyCells handles no-ops and overlapping ranges', () => {
+    const baseCell = STACK_BASE / 4;
     for (let i = 0; i < 5; i++) {
-      mem.writeFloat32(SEG_STACK, i * 4, i + 1);
+      mem.writeFloat32(SEG_DATA, (baseCell + i) * 4, i + 1);
     }
 
-    copyCells(mem, SEG_STACK, cellIndex(1), cellIndex(1), cells(0));
-    expect(mem.readFloat32(SEG_STACK, 4)).toBe(2);
+    copyCells(mem, SEG_DATA, cellIndex(baseCell + 1), cellIndex(baseCell + 1), cells(0));
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBe(2);
 
-    copyCells(mem, SEG_STACK, cellIndex(2), cellIndex(2), cells(2));
-    expect(mem.readFloat32(SEG_STACK, 8)).toBe(3);
+    copyCells(mem, SEG_DATA, cellIndex(baseCell + 2), cellIndex(baseCell + 2), cells(2));
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBe(3);
 
-    copyCells(mem, SEG_STACK, cellIndex(4), cellIndex(0), cells(1));
-    expect(mem.readFloat32(SEG_STACK, 16)).toBe(1);
+    copyCells(mem, SEG_DATA, cellIndex(baseCell + 4), cellIndex(baseCell + 0), cells(1));
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 4) * 4)).toBe(1);
 
     for (let i = 0; i < 5; i++) {
-      mem.writeFloat32(SEG_STACK, i * 4, i + 1);
+      mem.writeFloat32(SEG_DATA, (baseCell + i) * 4, i + 1);
     }
 
-    copyCells(mem, SEG_STACK, cellIndex(0), cellIndex(2), cells(3));
-    expect(mem.readFloat32(SEG_STACK, 0)).toBe(3);
-    expect(mem.readFloat32(SEG_STACK, 4)).toBe(4);
-    expect(mem.readFloat32(SEG_STACK, 8)).toBe(5);
+    copyCells(mem, SEG_DATA, cellIndex(baseCell + 0), cellIndex(baseCell + 2), cells(3));
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 0) * 4)).toBe(3);
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBe(4);
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBe(5);
   });
 
   test('fillCells writes repeated values', () => {
-    fillCells(mem, SEG_STACK, cellIndex(1), cells(3), 9.75);
-    expect(mem.readFloat32(SEG_STACK, 4)).toBeCloseTo(9.75);
-    expect(mem.readFloat32(SEG_STACK, 8)).toBeCloseTo(9.75);
-    expect(mem.readFloat32(SEG_STACK, 12)).toBeCloseTo(9.75);
+    const baseCell = STACK_BASE / 4;
+    fillCells(mem, SEG_DATA, cellIndex(baseCell + 1), cells(3), 9.75);
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBeCloseTo(9.75);
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBeCloseTo(9.75);
+    expect(mem.readFloat32(SEG_DATA, (baseCell + 3) * 4)).toBeCloseTo(9.75);
   });
 });

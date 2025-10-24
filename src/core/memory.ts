@@ -5,16 +5,10 @@
 
 import {
   MEMORY_SIZE,
-  SEG_STACK,
-  SEG_RSTACK,
   SEG_GLOBAL,
   SEG_CODE,
   SEG_STRING,
   SEG_DATA,
-  STACK_BASE,
-  STACK_SIZE,
-  RSTACK_BASE,
-  RSTACK_SIZE,
   RSTACK_TOP,
   GLOBAL_BASE,
   GLOBAL_SIZE,
@@ -66,14 +60,6 @@ export class Memory {
       case SEG_GLOBAL:
         base = GLOBAL_BASE;
         size = GLOBAL_SIZE;
-        break;
-      case SEG_STACK:
-        base = STACK_BASE;
-        size = STACK_SIZE;
-        break;
-      case SEG_RSTACK:
-        base = RSTACK_BASE;
-        size = RSTACK_SIZE;
         break;
       case SEG_STRING:
         base = RSTACK_TOP;

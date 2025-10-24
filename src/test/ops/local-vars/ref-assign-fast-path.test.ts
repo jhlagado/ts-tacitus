@@ -12,7 +12,7 @@ import {
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag } from '../../../core';
 import { vm } from '../../../core/global-state';
-import { SEG_STACK, CELL_SIZE } from '../../../core/constants';
+import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
@@ -75,7 +75,7 @@ describe('Ref-to-list assignment fast path', () => {
     `;
     executeTacitCode(code);
     const decoded = Array.from({ length: vm.SP }, (_, i) =>
-      fromTaggedValue(vm.memory.readFloat32(SEG_STACK, i * CELL_SIZE)),
+      fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE + i * CELL_SIZE)),
     );
 
     expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);
