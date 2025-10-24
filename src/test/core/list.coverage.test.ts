@@ -8,6 +8,7 @@ import {
   CELL_SIZE,
   SEG_DATA,
   STACK_BASE,
+  GLOBAL_BASE,
 } from '../../core';
 
 describe('core/list additional coverage', () => {
@@ -63,7 +64,7 @@ describe('core/list additional coverage', () => {
 
   test('getListBounds returns null for ref pointing to non-list', () => {
     const cellIndex = 10;
-    vm.memory.writeFloat32(SEG_GLOBAL, cellIndex * CELL_SIZE, 123.456);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
     const ref = createDataRef(SEG_GLOBAL, cellIndex);
     expect(getListBounds(vm, ref)).toBeNull();
   });
@@ -72,12 +73,16 @@ describe('core/list additional coverage', () => {
     const baseIndex = 30;
     const headerIndex = baseIndex + 1;
     const header = toTaggedValue(1, Tag.LIST);
-    vm.memory.writeFloat32(SEG_GLOBAL, baseIndex * CELL_SIZE, toTaggedValue(5, Tag.NUMBER));
-    vm.memory.writeFloat32(SEG_GLOBAL, headerIndex * CELL_SIZE, header);
+    vm.memory.writeFloat32(
+      SEG_DATA,
+      GLOBAL_BASE + baseIndex * CELL_SIZE,
+      toTaggedValue(5, Tag.NUMBER),
+    );
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerIndex * CELL_SIZE, header);
 
     const innerRefIndex = headerIndex + 1;
     const innerRef = createDataRef(SEG_GLOBAL, headerIndex);
-    vm.memory.writeFloat32(SEG_GLOBAL, innerRefIndex * CELL_SIZE, innerRef);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + innerRefIndex * CELL_SIZE, innerRef);
 
     const outerRef = createDataRef(SEG_GLOBAL, innerRefIndex);
     const bounds = getListBounds(vm, outerRef);
@@ -93,9 +98,9 @@ describe('core/list additional coverage', () => {
     const headerIndex = baseIndex + slotCount;
     const header = toTaggedValue(slotCount, Tag.LIST);
     // Write payload and header into GLOBAL window
-    vm.memory.writeFloat32(SEG_GLOBAL, (baseIndex + 0) * CELL_SIZE, 111);
-    vm.memory.writeFloat32(SEG_GLOBAL, (baseIndex + 1) * CELL_SIZE, 222);
-    vm.memory.writeFloat32(SEG_GLOBAL, headerIndex * CELL_SIZE, header);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseIndex + 0) * CELL_SIZE, 111);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseIndex + 1) * CELL_SIZE, 222);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerIndex * CELL_SIZE, header);
 
     const headerAddr = headerIndex * CELL_SIZE;
     // Element 0 is just below header
