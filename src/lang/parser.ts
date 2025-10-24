@@ -20,7 +20,7 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isSpecialChar, fromTaggedValue, Tag, SEG_GLOBAL, getRefSegment } from '@src/core';
+import { isSpecialChar, fromTaggedValue, Tag, getRefSegment } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
@@ -213,7 +213,7 @@ export function emitWord(value: string, state: ParserState): void {
   }
 
   if (tag === Tag.DATA_REF) {
-    if (getRefSegment(entryValue) !== SEG_GLOBAL) {
+    if (getRefSegment(entryValue) !== 2) {
       throw new UndefinedWordError(value, vm.getStackData());
     }
 
@@ -287,7 +287,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
       return;
     }
     if (tag === Tag.DATA_REF) {
-      if (getRefSegment(taggedValue) !== SEG_GLOBAL) {
+      if (getRefSegment(taggedValue) !== 2) {
         throw new Error(`${varName} is not a local variable`);
       }
       vm.compiler.compileOpcode(Op.LiteralNumber);
@@ -299,7 +299,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.DATA_REF && getRefSegment(taggedValue) === SEG_GLOBAL) {
+  if (tag === Tag.DATA_REF && getRefSegment(taggedValue) === 2) {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(taggedValue);
     return;
@@ -444,7 +444,7 @@ export function emitAssignment(state: ParserState): void {
     return;
   }
   if (tag === Tag.DATA_REF) {
-    if (getRefSegment(taggedValue) !== SEG_GLOBAL) {
+    if (getRefSegment(taggedValue) !== 2) {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',
         vm.getStackData(),

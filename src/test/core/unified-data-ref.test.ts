@@ -10,8 +10,6 @@ import {
   readReference,
   writeReference,
   getVarRef,
-  SEG_STACK,
-  SEG_GLOBAL,
   STACK_SIZE,
   RSTACK_SIZE,
   CELL_SIZE,
@@ -33,9 +31,9 @@ describe('DATA_REF utilities', () => {
 
   test('createDataRef encodes segment-relative cell indices', () => {
     const refs = [
-      { segment: SEG_GLOBAL, cellIndex: 3 },
-      { segment: SEG_STACK, cellIndex: 5 },
-      { segment: 1, cellIndex: 7 }, // return-stack segment (deprecated constant)
+      { segment: 2, cellIndex: 3 },
+      { segment: 0, cellIndex: 5 },
+      { segment: 1, cellIndex: 7 }, // return-stack region id
     ];
 
     for (const { segment, cellIndex } of refs) {
@@ -49,9 +47,9 @@ describe('DATA_REF utilities', () => {
   });
 
   test('createDataRef validates segment bounds', () => {
-    expect(() => createDataRef(SEG_STACK, STACK_SIZE / CELL_SIZE)).toThrow();
+    expect(() => createDataRef(0, STACK_SIZE / CELL_SIZE)).toThrow();
     expect(() => createDataRef(1, RSTACK_SIZE / CELL_SIZE)).toThrow();
-    expect(() => createDataRef(SEG_STACK, -1)).toThrow();
+    expect(() => createDataRef(0, -1)).toThrow();
   });
 
   test('createDataRef rejects unsupported segments', () => {
@@ -65,15 +63,15 @@ describe('DATA_REF utilities', () => {
   });
 
   test('createSegmentRef mirrors createDataRef', () => {
-    const ref = createSegmentRef(SEG_STACK, 4);
-    const dataRef = createDataRef(SEG_STACK, 4);
+    const ref = createSegmentRef(0, 4);
+    const dataRef = createDataRef(0, 4);
     expect(ref).toBe(dataRef);
   });
 
   test('createGlobalRef produces data ref in global segment', () => {
     const ref = createGlobalRef(12);
     const info = decodeDataRef(ref);
-    expect(info.segment).toBe(SEG_GLOBAL);
+    expect(info.segment).toBe(2);
     expect(info.cellIndex).toBe(12);
   });
 
@@ -85,14 +83,14 @@ describe('DATA_REF utilities', () => {
   });
 
   test('resolveReference returns segment-address pair', () => {
-    const ref = createDataRef(SEG_GLOBAL, 4);
+    const ref = createDataRef(2, 4);
     const resolved = resolveReference(vm, ref);
-    expect(resolved.segment).toBe(SEG_GLOBAL);
+    expect(resolved.segment).toBe(2);
     expect(resolved.address).toBe(4 * CELL_SIZE);
   });
 
   test('readReference and writeReference operate via DATA_REF', () => {
-    const ref = createDataRef(SEG_GLOBAL, 10);
+    const ref = createDataRef(2, 10);
     writeReference(vm, ref, 321.25);
     expect(readReference(vm, ref)).toBeCloseTo(321.25);
   });
@@ -100,7 +98,7 @@ describe('DATA_REF utilities', () => {
   test('fetchOp materializes value via DATA_REF', () => {
     const cellIndex = 15;
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 777.5);
-    const ref = createDataRef(SEG_GLOBAL, cellIndex);
+    const ref = createDataRef(2, cellIndex);
     vm.push(ref);
     fetchOp(vm);
     expect(vm.pop()).toBeCloseTo(777.5);
@@ -108,7 +106,7 @@ describe('DATA_REF utilities', () => {
 
   test('storeOp writes value via DATA_REF', () => {
     const cellIndex = 18;
-    const ref = createDataRef(SEG_GLOBAL, cellIndex);
+    const ref = createDataRef(2, cellIndex);
     vm.push(123.456);
     vm.push(ref);
     storeOp(vm);

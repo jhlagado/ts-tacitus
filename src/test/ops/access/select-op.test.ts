@@ -12,7 +12,7 @@ import {
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef, decodeDataRef } from '../../../core/refs';
 import { initializeInterpreter, vm } from '../../../core/global-state';
-import { SEG_STACK } from '../../../core';
+// legacy segment id 0 denotes stack region in decodeDataRef classification
 
 describe('selectOp - Path-based address access', () => {
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('selectOp - Path-based address access', () => {
       // Should have: target path target-ref
       const targetRef = vm.peek();
       expect(isRef(targetRef)).toBe(true);
-      expect(decodeDataRef(targetRef).segment).toBe(SEG_STACK);
+      expect(decodeDataRef(targetRef).segment).toBe(0);
     });
 
     test('should return false for simple target', () => {

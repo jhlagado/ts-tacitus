@@ -1,14 +1,7 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../../core/global-state';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
-import {
-  SEG_GLOBAL,
-  SEG_STACK,
-  CELL_SIZE,
-  GLOBAL_SIZE,
-  GLOBAL_BASE,
-  SEG_DATA,
-} from '../../../core/constants';
+import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA } from '../../../core/constants';
 import { isRef, decodeDataRef, createSegmentRef } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
@@ -29,7 +22,7 @@ describe('Global heap primitives', () => {
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
     const { segment, cellIndex } = decodeDataRef(ref);
-    expect(segment).toBe(SEG_GLOBAL);
+    expect(segment).toBe(2);
     expect(cellIndex).toBe(0);
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBe(42);
   });
@@ -47,7 +40,7 @@ describe('Global heap primitives', () => {
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
     const { segment, cellIndex } = decodeDataRef(ref);
-    expect(segment).toBe(SEG_GLOBAL);
+    expect(segment).toBe(2);
     const header = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE);
     expect(header).toBe(toTaggedValue(2, Tag.LIST));
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + (cellIndex - 1) * CELL_SIZE)).toBe(1);
@@ -120,7 +113,7 @@ describe('Global heap primitives', () => {
     gpushOp(vm);
     const originalRef = vm.peek();
     const stackCell = vm.SP - 1;
-    const nestedRef = createSegmentRef(SEG_STACK, stackCell);
+    const nestedRef = createSegmentRef(0, stackCell);
     vm.push(nestedRef);
 
     gpushOp(vm);
@@ -141,13 +134,13 @@ describe('Global heap primitives', () => {
 
   test('gpeek rejects non-global references', () => {
     vm.push(5);
-    const stackRef = createSegmentRef(SEG_STACK, vm.SP - 1);
+    const stackRef = createSegmentRef(0, vm.SP - 1);
     vm.push(stackRef);
     expect(() => gpeekOp(vm)).toThrow(/global heap reference/);
   });
 
   test('gpop throws on empty heap', () => {
-    vm.push(createSegmentRef(SEG_GLOBAL, 0));
+    vm.push(createSegmentRef(2, 0));
     expect(() => gpopOp(vm)).toThrow(/empty heap/);
   });
 
@@ -173,7 +166,7 @@ describe('Global heap primitives', () => {
   test('gpop rejects non-global references', () => {
     vm.push(4);
     gpushOp(vm);
-    const stackRef = createSegmentRef(SEG_STACK, 0);
+    const stackRef = createSegmentRef(0, 0);
     vm.pop();
     vm.push(stackRef);
     expect(() => gpopOp(vm)).toThrow(/global heap reference/);

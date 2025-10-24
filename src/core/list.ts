@@ -5,7 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { SEG_GLOBAL, SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
+import { SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
 import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 
 /**
@@ -90,7 +90,7 @@ export function getListElemAddr(
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
-  const base = segment === 0 ? STACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
+  const base = segment === 0 ? STACK_BASE : segment === 2 ? GLOBAL_BASE : RSTACK_BASE;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
@@ -177,12 +177,11 @@ export function getListBounds(
     const absBaseAddrBytes = headerAddrAbs - slotCount * CELL_SIZE;
     // Classify segment for compatibility with legacy callers
     let segment = 0;
-    if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = SEG_GLOBAL;
+    if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = 2;
     else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = 0;
     else segment = 1;
     const baseAddr =
-      absBaseAddrBytes -
-      (segment === SEG_GLOBAL ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
+      absBaseAddrBytes - (segment === 2 ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
     return { header, baseAddr, segment, absBaseAddrBytes };
   }
   return null;

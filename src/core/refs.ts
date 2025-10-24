@@ -6,7 +6,6 @@
 import { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import {
-  SEG_GLOBAL,
   SEG_DATA,
   STACK_BASE,
   STACK_SIZE,
@@ -27,7 +26,7 @@ interface SegmentWindow {
 }
 
 const DATA_SEGMENT_WINDOWS: SegmentWindow[] = [
-  { segment: SEG_GLOBAL, baseBytes: GLOBAL_BASE, topBytes: GLOBAL_BASE + GLOBAL_SIZE },
+  { segment: 2, baseBytes: GLOBAL_BASE, topBytes: GLOBAL_BASE + GLOBAL_SIZE },
   { segment: 0, baseBytes: STACK_BASE, topBytes: STACK_BASE + STACK_SIZE },
   { segment: 1, baseBytes: RSTACK_BASE, topBytes: RSTACK_BASE + RSTACK_SIZE },
 ];
@@ -157,7 +156,7 @@ export function isDataRef(tval: number): boolean {
 export function getRefSegment(ref: number): number {
   // Phase C: classify by absolute byte address against unified data windows
   const absByte = getAbsoluteByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return SEG_GLOBAL;
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 2;
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 0;
   return 1;
 }
@@ -213,7 +212,7 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
   // Phase C: resolve via absolute byte address and classify to legacy window
   const absByte = getAbsoluteByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
-    return { address: absByte - GLOBAL_BASE, segment: SEG_GLOBAL };
+    return { address: absByte - GLOBAL_BASE, segment: 2 };
   }
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
     return { address: absByte - STACK_BASE, segment: 0 };

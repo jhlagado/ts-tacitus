@@ -13,7 +13,7 @@ import {
   pushListToGlobalHeap,
 } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { CELL_SIZE, SEG_GLOBAL, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
+import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
@@ -209,7 +209,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   // Classify absolute address to legacy segment/address pair for compatibility
   const classify = (absAddr: number): SlotAddress => {
     if (absAddr >= GLOBAL_BASE && absAddr < STACK_BASE) {
-      return { segment: SEG_GLOBAL, address: absAddr - GLOBAL_BASE };
+      return { segment: 2, address: absAddr - GLOBAL_BASE };
     }
     if (absAddr >= STACK_BASE && absAddr < RSTACK_BASE) {
       return { segment: 0, address: absAddr - STACK_BASE };

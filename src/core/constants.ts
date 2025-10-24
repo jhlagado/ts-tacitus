@@ -15,20 +15,9 @@ export const CELL_SIZE = 4;
 
 export const MEMORY_SIZE = 65536;
 
-/**
- * @deprecated Phase C: The data stack is addressed via absolute windows in SEG_DATA.
- * Use SEG_DATA with STACK_BASE + offset bytes for memory I/O; SEG_STACK remains only
- * for legacy classification values and certain tests.
- */
-export const SEG_STACK = 0;
-
-/**
- * @deprecated Phase C: Return stack is addressed via absolute windows; prefer SEG_DATA with absolute byte addressing.
- * Kept for memory I/O API compatibility and tests until full test migration.
- */
-export const SEG_RSTACK = 1;
-
-export const SEG_GLOBAL = 2;
+// Legacy per-window segment identifiers (SEG_STACK, SEG_RSTACK, SEG_GLOBAL) have been removed.
+// Use SEG_DATA with absolute byte addresses and window base constants (GLOBAL_BASE/STACK_BASE/RSTACK_BASE)
+// for all memory I/O; classification-sensitive code should infer region by address range.
 
 // Unified data segment identifier (compat placeholder for Phase A). Not yet used broadly.
 export const SEG_DATA = 3;
