@@ -45,7 +45,7 @@ export function tailOp(vm: VM): void {
   }
 
   if (targetIsDirectList) {
-  vm.sp -= firstElemSpan;
+    vm.sp -= firstElemSpan;
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
@@ -88,7 +88,7 @@ export function headOp(vm: VM): void {
     const elementSlotCount = getListLength(firstElement);
 
     if (targetIsDirectList) {
-  vm.sp -= elementSlotCount + 1;
+      vm.sp -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - i * CELL_SIZE);
         vm.push(slotValue);
