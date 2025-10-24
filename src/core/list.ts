@@ -5,7 +5,7 @@
 
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from './constants';
+import { SEG_DATA, CELL_SIZE, STACK_BASE } from './constants';
 import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 
 /**
@@ -112,19 +112,7 @@ export function getListElemAddrAbs(
 /**
  * @deprecated Use getListElemAddrAbs. This wrapper accepts a segment-relative headerAddr and returns a segment-relative result.
  */
-export function getListElemAddr(
-  vm: VM,
-  header: number,
-  headerAddr: number,
-  logicalIndex: number,
-  segment = 0,
-): number {
-  const base = segment === 0 ? STACK_BASE : segment === 2 ? GLOBAL_BASE : RSTACK_BASE;
-  const headerAbs = base + headerAddr;
-  const abs = getListElemAddrAbs(vm, header, headerAbs, logicalIndex);
-  if (abs === -1) return -1;
-  return abs - base;
-}
+// deprecated getListElemAddr removed; use getListElemAddrAbs
 
 /**
  * Reverses span of values on stack in-place.
@@ -191,29 +179,12 @@ export function getListBoundsAbs(
 /**
  * @deprecated Use getListBoundsAbs. This wrapper returns legacy fields (baseAddr, segment) computed from absolute addresses.
  */
-export function getListBounds(
-  vm: VM,
-  value: number,
-): { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number } | null {
-  const abs = getListBoundsAbs(vm, value);
-  if (!abs) return null;
-  const { header, absBaseAddrBytes } = abs;
-  // Classify segment for compatibility with legacy callers
-  let segment = 0;
-  if (absBaseAddrBytes >= GLOBAL_BASE && absBaseAddrBytes < STACK_BASE) segment = 2;
-  else if (absBaseAddrBytes >= STACK_BASE && absBaseAddrBytes < RSTACK_BASE) segment = 0;
-  else segment = 1;
-  const baseAddr =
-    absBaseAddrBytes - (segment === 2 ? GLOBAL_BASE : segment === 0 ? STACK_BASE : RSTACK_BASE);
-  return { header, baseAddr, segment, absBaseAddrBytes };
-}
+// deprecated getListBounds removed; use getListBoundsAbs
 
 /**
  * Computes header address given base address and slot count.
  */
-export function computeHeaderAddr(baseAddr: number, slotCount: number): number {
-  return baseAddr + slotCount * CELL_SIZE;
-}
+// deprecated computeHeaderAddr removed; use computeHeaderAddrAbs
 
 export function computeHeaderAddrAbs(absBaseAddrBytes: number, slotCount: number): number {
   return absBaseAddrBytes + slotCount * CELL_SIZE;

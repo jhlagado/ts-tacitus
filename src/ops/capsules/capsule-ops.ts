@@ -55,7 +55,8 @@ export function dispatchOp(_vm: VM): void {
   // Save caller return address and BP; rebind BP to capsule payload base
   _vm.rpush(_vm.IP);
   _vm.rpush(_vm.BP);
-  _vm.BP = Math.trunc(layout.baseAddr / CELL_SIZE);
+  // Capsule lives on RSTACK; convert absolute base byte address to frame-relative BP (in cells)
+  _vm.BP = Math.trunc((layout.absBaseAddrBytes - RSTACK_BASE) / CELL_SIZE);
 
   // Jump to dispatch entry address (CODE slot0)
   const { value: entryAddr } = fromTaggedValue(layout.codeRef);

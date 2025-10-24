@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
-import { Tag, toTaggedValue, createDataRef, SEG_DATA, STACK_BASE } from '../../core';
+import { Tag, toTaggedValue, createDataRefAbs, SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core';
 
 describe('format-utils additional coverage', () => {
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe('format-utils additional coverage', () => {
     vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (baseCell - 1) * 4, e3);
     vm.memory.writeFloat32(SEG_DATA, STACK_BASE + baseCell * 4, header);
 
-    const ref = createDataRef(0, baseCell); // SEG_STACK legacy id
+    const ref = createDataRefAbs(STACK_BASE / CELL_SIZE + baseCell);
     // Memory-based formatting consumes from stack (LIFO), so order reverses
     expect(formatValue(vm, ref)).toBe('( 3 2 1 )');
   });
@@ -43,7 +43,7 @@ describe('format-utils additional coverage', () => {
     const cell = 20;
     const num = toTaggedValue(42, Tag.NUMBER);
     vm.memory.writeFloat32(SEG_DATA, STACK_BASE + cell * 4, num);
-    const ref = createDataRef(0, cell); // SEG_STACK legacy id
+    const ref = createDataRefAbs(STACK_BASE / CELL_SIZE + cell);
     expect(formatValue(vm, ref)).toBe('42');
   });
 
@@ -72,7 +72,7 @@ describe('format-utils additional coverage', () => {
     const baseCell = 40;
     const emptyHeader = toTaggedValue(0, Tag.LIST);
     vm.memory.writeFloat32(SEG_DATA, STACK_BASE + baseCell * 4, emptyHeader);
-    const ref = createDataRef(0, baseCell);
+    const ref = createDataRefAbs(STACK_BASE / CELL_SIZE + baseCell);
     expect(formatValue(vm, ref)).toBe('()');
   });
 

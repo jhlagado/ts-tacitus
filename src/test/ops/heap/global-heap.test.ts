@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../../core/global-state';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
-import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA } from '../../../core/constants';
-import { isRef, decodeDataRef, createSegmentRef } from '../../../core/refs';
+import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA, STACK_BASE } from '../../../core/constants';
+import { isRef, decodeDataRefAbs, createDataRefAbs, getRefRegionAbs } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Global heap primitives', () => {
@@ -21,8 +21,9 @@ describe('Global heap primitives', () => {
 
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
-    const { segment, cellIndex } = decodeDataRef(ref);
-    expect(segment).toBe(2);
+    expect(getRefRegionAbs(ref)).toBe('global');
+    const { absoluteCellIndex } = decodeDataRefAbs(ref);
+    const cellIndex = absoluteCellIndex - GLOBAL_BASE / CELL_SIZE;
     expect(cellIndex).toBe(0);
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBe(42);
   });
@@ -39,8 +40,9 @@ describe('Global heap primitives', () => {
 
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
-    const { segment, cellIndex } = decodeDataRef(ref);
-    expect(segment).toBe(2);
+    expect(getRefRegionAbs(ref)).toBe('global');
+    const { absoluteCellIndex } = decodeDataRefAbs(ref);
+    const cellIndex = absoluteCellIndex - GLOBAL_BASE / CELL_SIZE;
     const header = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE);
     expect(header).toBe(toTaggedValue(2, Tag.LIST));
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + (cellIndex - 1) * CELL_SIZE)).toBe(1);
@@ -113,15 +115,17 @@ describe('Global heap primitives', () => {
     gpushOp(vm);
     const originalRef = vm.peek();
     const stackCell = vm.SP - 1;
-    const nestedRef = createSegmentRef(0, stackCell);
+    const nestedRef = createDataRefAbs(STACK_BASE / CELL_SIZE + stackCell);
     vm.push(nestedRef);
 
     gpushOp(vm);
 
     expect(vm.GP).toBe(2);
     const duplicateRef = vm.peek();
-    const { cellIndex: originalIndex } = decodeDataRef(originalRef);
-    const { cellIndex: duplicateIndex } = decodeDataRef(duplicateRef);
+    const { absoluteCellIndex: originalAbs } = decodeDataRefAbs(originalRef);
+    const { absoluteCellIndex: duplicateAbs } = decodeDataRefAbs(duplicateRef);
+    const originalIndex = originalAbs - GLOBAL_BASE / CELL_SIZE;
+    const duplicateIndex = duplicateAbs - GLOBAL_BASE / CELL_SIZE;
     expect(originalIndex).toBe(0);
     expect(duplicateIndex).toBe(1);
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + duplicateIndex * CELL_SIZE)).toBe(7);
@@ -134,13 +138,13 @@ describe('Global heap primitives', () => {
 
   test('gpeek rejects non-global references', () => {
     vm.push(5);
-    const stackRef = createSegmentRef(0, vm.SP - 1);
+    const stackRef = createDataRefAbs(STACK_BASE / CELL_SIZE + (vm.SP - 1));
     vm.push(stackRef);
     expect(() => gpeekOp(vm)).toThrow(/global heap reference/);
   });
 
   test('gpop throws on empty heap', () => {
-    vm.push(createSegmentRef(2, 0));
+    vm.push(createDataRefAbs(GLOBAL_BASE / CELL_SIZE + 0));
     expect(() => gpopOp(vm)).toThrow(/empty heap/);
   });
 
@@ -166,7 +170,7 @@ describe('Global heap primitives', () => {
   test('gpop rejects non-global references', () => {
     vm.push(4);
     gpushOp(vm);
-    const stackRef = createSegmentRef(0, 0);
+    const stackRef = createDataRefAbs(STACK_BASE / CELL_SIZE + 0);
     vm.pop();
     vm.push(stackRef);
     expect(() => gpopOp(vm)).toThrow(/global heap reference/);
