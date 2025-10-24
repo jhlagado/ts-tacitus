@@ -1,4 +1,12 @@
-import { VM, Tag, fromTaggedValue, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
+import {
+  VM,
+  Tag,
+  fromTaggedValue,
+  getListBounds,
+  getListLength,
+  CELL_SIZE,
+  SEG_DATA,
+} from '@src/core';
 
 export interface CapsuleLayout {
   segment: number;

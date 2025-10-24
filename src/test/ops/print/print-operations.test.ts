@@ -143,7 +143,6 @@ describe('Print Operations', () => {
     test('rawPrintOp handles unexpected errors gracefully', () => {
       resetVM();
       vm.push(toTaggedValue(1, Tag.NUMBER));
-      const originalPop = vm.pop.bind(vm);
       const popSpy = jest.spyOn(vm, 'pop').mockImplementation(() => {
         throw new Error('boom');
       });

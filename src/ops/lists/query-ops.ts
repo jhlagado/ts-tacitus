@@ -26,7 +26,7 @@ import {
 import { getListBounds } from './core-helpers';
 import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
-import { isCompatible, updateListInPlace } from '../local-vars-transfer';
+import { isCompatible, updateListInPlaceAbs } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
 // (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
@@ -206,6 +206,8 @@ interface SlotInfo {
   rootValue: number;
   resolved: SlotAddress;
   existingValue: number;
+  rootAbsAddr: number;
+  resolvedAbsAddr: number;
 }
 
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
@@ -233,7 +235,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
 
   const root = classify(rootAbsAddr);
   const resolved = classify(resolvedAbsAddr);
-  return { root, rootValue, resolved, existingValue };
+  return { root, rootValue, resolved, existingValue, rootAbsAddr, resolvedAbsAddr };
 }
 
 function discardCompoundSource(vm: VM, rhsTag: Tag): void {
@@ -251,21 +253,15 @@ function initializeGlobalCompound(
   rhsTag: Tag,
 ): void {
   const heapRef = pushListToGlobalHeap(vm, rhsInfo);
-  const baseForSeg =
-    slot.root.segment === SEG_GLOBAL
-      ? GLOBAL_BASE
-      : slot.root.segment === SEG_RSTACK
-        ? RSTACK_BASE
-        : STACK_BASE;
-  vm.memory.writeFloat32(SEG_DATA, baseForSeg + slot.root.address, heapRef);
+  // Write directly via absolute address
+  vm.memory.writeFloat32(SEG_DATA, slot.rootAbsAddr, heapRef);
   discardCompoundSource(vm, rhsTag);
 }
 
 function copyCompoundFromReference(
   vm: VM,
   rhsInfo: { header: number; baseAddr: number; segment: number; absBaseAddrBytes?: number },
-  targetSegment: number,
-  targetAddress: number,
+  targetAbsHeaderAddr: number,
   slotCount: number,
 ): void {
   // Absolute-only copy using unified data segment
@@ -277,13 +273,7 @@ function copyCompoundFromReference(
           : rhsInfo.segment === SEG_RSTACK
             ? RSTACK_BASE
             : STACK_BASE) + rhsInfo.baseAddr;
-  const targetBaseAbs =
-    (targetSegment === SEG_GLOBAL
-      ? GLOBAL_BASE
-      : targetSegment === SEG_RSTACK
-        ? RSTACK_BASE
-        : STACK_BASE) +
-    (targetAddress - slotCount * CELL_SIZE);
+  const targetBaseAbs = targetAbsHeaderAddr - slotCount * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
     const v = vm.memory.readFloat32(SEG_DATA, srcBaseAbs + i * CELL_SIZE);
@@ -318,11 +308,13 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   }
 
   if (rhsTag === Tag.LIST) {
-    updateListInPlace(vm, slot.resolved.address, slot.resolved.segment);
+    // Absolute in-place update
+    updateListInPlaceAbs(vm, slot.resolvedAbsAddr);
     return true;
   }
 
-  copyCompoundFromReference(vm, rhsInfo, slot.resolved.segment, slot.resolved.address, slotCount);
+  // Absolute copy into resolved header location
+  copyCompoundFromReference(vm, rhsInfo, slot.resolvedAbsAddr, slotCount);
   vm.pop();
   return true;
 }
@@ -339,13 +331,7 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   const existingIsCompound = isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     vm.pop();
-    const baseForSeg =
-      slot.root.segment === SEG_GLOBAL
-        ? GLOBAL_BASE
-        : slot.root.segment === SEG_RSTACK
-          ? RSTACK_BASE
-          : STACK_BASE;
-    vm.memory.writeFloat32(SEG_DATA, baseForSeg + slot.root.address, value);
+    vm.memory.writeFloat32(SEG_DATA, slot.rootAbsAddr, value);
     return;
   }
 

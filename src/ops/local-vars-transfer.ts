@@ -10,13 +10,9 @@ import {
   getListLength,
   validateListHeader,
   isList,
-  SEG_RSTACK,
-  SEG_STACK,
-  SEG_GLOBAL,
   SEG_DATA,
   STACK_BASE,
   RSTACK_BASE,
-  GLOBAL_BASE,
   CELL_SIZE,
   dropList,
 } from '@src/core';
@@ -146,7 +142,15 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * @param segment Memory segment (SEG_RSTACK for local variables)
  * @param newValue The new compound value from data stack (LIST header at TOS)
  */
-export function updateListInPlace(vm: VM, targetAddr: number, segment: number): void {
+// Note: legacy updateListInPlace(segment-based) removed; use updateListInPlaceAbs instead.
+
+/**
+ * Absolute-address variant of updateListInPlace for unified SEG_DATA writes.
+ *
+ * @param vm The VM instance
+ * @param targetAbsHeaderAddr Absolute byte address of existing compound data header (SEG_DATA)
+ */
+export function updateListInPlaceAbs(vm: VM, targetAbsHeaderAddr: number): void {
   vm.ensureStackSize(1, 'updateListInPlace');
   const header = vm.peek();
 
@@ -156,27 +160,38 @@ export function updateListInPlace(vm: VM, targetAddr: number, segment: number): 
 
   validateListHeader(vm);
   const slotCount = getListLength(header);
-  const baseForSeg = segment === SEG_RSTACK ? RSTACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : STACK_BASE;
-  const existingHeader = vm.memory.readFloat32(SEG_DATA, baseForSeg + targetAddr);
+  const existingHeader = vm.memory.readFloat32(SEG_DATA, targetAbsHeaderAddr);
   if (!isCompatible(existingHeader, header)) {
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 
   if (slotCount === 0) {
-    vm.memory.writeFloat32(SEG_DATA, baseForSeg + targetAddr, header);
+    vm.memory.writeFloat32(SEG_DATA, targetAbsHeaderAddr, header);
     dropList(vm);
     return;
   }
+
+  // Source cells from data stack (absolute addressing already used by reads)
   let sourceCell = vm.SP - (slotCount + 1);
-  const targetHeaderCell = headerAddrToHeaderCell(targetAddr);
+  const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
+  const targetBaseAbs = targetBaseCell * CELL_SIZE;
+
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + sourceCell * CELL_SIZE);
-    vm.memory.writeFloat32(SEG_DATA, baseForSeg + (targetBaseCell + i) * CELL_SIZE, value);
+    vm.memory.writeFloat32(SEG_DATA, targetBaseAbs + i * CELL_SIZE, value);
     sourceCell += 1;
   }
-  vm.memory.writeFloat32(SEG_DATA, baseForSeg + targetAddr, header);
+  vm.memory.writeFloat32(SEG_DATA, targetAbsHeaderAddr, header);
   dropList(vm);
 }
+
+/**
+ * Backward-compat shim: segment-relative in-place mutation API.
+ * Converts (segment, targetAddr) to absolute SEG_DATA address and forwards to updateListInPlaceAbs.
+ *
+ * This preserves existing test imports and older call sites during Phase C migrations.
+ */
+// Legacy segment-based API removed after tests migrated to Abs variant.
 
 export { isList } from '@src/core';
