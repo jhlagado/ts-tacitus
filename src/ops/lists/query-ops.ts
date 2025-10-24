@@ -23,7 +23,14 @@ import {
   RSTACK_BASE,
 } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
-import { isRef, resolveReference, createSegmentRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
+import {
+  isRef,
+  resolveReference,
+  createSegmentRef,
+  createDataRefAbs,
+  getAbsoluteByteAddressFromRef,
+  readRefValueAbs,
+} from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
@@ -221,7 +228,11 @@ interface SlotInfo {
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   const root = resolveReference(vm, addressValue);
   const rootBase =
-    root.segment === SEG_GLOBAL ? GLOBAL_BASE : root.segment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE;
+    root.segment === SEG_GLOBAL
+      ? GLOBAL_BASE
+      : root.segment === SEG_RSTACK
+        ? RSTACK_BASE
+        : STACK_BASE;
   const rootValue = vm.memory.readFloat32(SEG_DATA, rootBase + root.address);
   let resolved = root;
   let existingValue = rootValue;
@@ -271,15 +282,20 @@ function copyCompoundFromReference(
   slotCount: number,
 ): void {
   // Absolute-only copy using unified data segment
-  const srcBaseAbs = rhsInfo.absBaseAddrBytes !== undefined
-    ? rhsInfo.absBaseAddrBytes
-    : (rhsInfo.segment === SEG_GLOBAL
-        ? GLOBAL_BASE
-        : rhsInfo.segment === SEG_RSTACK
-          ? RSTACK_BASE
-          : STACK_BASE) + rhsInfo.baseAddr;
+  const srcBaseAbs =
+    rhsInfo.absBaseAddrBytes !== undefined
+      ? rhsInfo.absBaseAddrBytes
+      : (rhsInfo.segment === SEG_GLOBAL
+          ? GLOBAL_BASE
+          : rhsInfo.segment === SEG_RSTACK
+            ? RSTACK_BASE
+            : STACK_BASE) + rhsInfo.baseAddr;
   const targetBaseAbs =
-    (targetSegment === SEG_GLOBAL ? GLOBAL_BASE : targetSegment === SEG_RSTACK ? RSTACK_BASE : STACK_BASE) +
+    (targetSegment === SEG_GLOBAL
+      ? GLOBAL_BASE
+      : targetSegment === SEG_RSTACK
+        ? RSTACK_BASE
+        : STACK_BASE) +
     (targetAddress - slotCount * CELL_SIZE);
 
   for (let i = 0; i < slotCount; i++) {

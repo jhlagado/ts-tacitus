@@ -3,9 +3,9 @@
  * Structural list operations: head, tail, reverse, concat.
  */
 
-import { VM, toTaggedValue, Tag, NIL, SEG_STACK, SEG_GLOBAL, SEG_RSTACK, SEG_DATA, CELL_SIZE, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
+import { VM, toTaggedValue, Tag, NIL, SEG_STACK, SEG_DATA, CELL_SIZE, STACK_BASE } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { getListBounds, computeHeaderAddr } from './core-helpers';
+import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
@@ -30,10 +30,9 @@ export function tailOp(vm: VM): void {
     return;
   }
 
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  const firstElemAddr = headerAddr - CELL_SIZE;
-  const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-  const firstElem = vm.memory.readFloat32(SEG_DATA, base + firstElemAddr);
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const firstElemAbsAddr = headerAbsAddr - CELL_SIZE;
+  const firstElem = vm.memory.readFloat32(SEG_DATA, firstElemAbsAddr);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
   const newSlotCount = slotCount - firstElemSpan;
 
@@ -49,8 +48,8 @@ export function tailOp(vm: VM): void {
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
-      const elemAddr = firstElemAddr - firstElemSpan * CELL_SIZE - i * CELL_SIZE;
-      const elem = vm.memory.readFloat32(SEG_DATA, base + elemAddr);
+      const elemAbsAddr = firstElemAbsAddr - firstElemSpan * CELL_SIZE - i * CELL_SIZE;
+      const elem = vm.memory.readFloat32(SEG_DATA, elemAbsAddr);
       vm.push(elem);
     }
     vm.push(toTaggedValue(newSlotCount, Tag.LIST));
@@ -79,10 +78,9 @@ export function headOp(vm: VM): void {
 
   vm.pop();
 
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
-  const firstElementAddr = headerAddr - CELL_SIZE;
-  const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-  const firstElement = vm.memory.readFloat32(SEG_DATA, base + firstElementAddr);
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const firstElementAbsAddr = headerAbsAddr - CELL_SIZE;
+  const firstElement = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr);
 
   if (isList(firstElement)) {
     const elementSlotCount = getListLength(firstElement);
@@ -90,15 +88,12 @@ export function headOp(vm: VM): void {
     if (info.segment === SEG_STACK) {
       vm.SP -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(SEG_DATA, base + firstElementAddr - i * CELL_SIZE);
+        const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - i * CELL_SIZE);
         vm.push(slotValue);
       }
     } else {
       for (let i = 0; i < elementSlotCount; i++) {
-        const slotValue = vm.memory.readFloat32(
-          SEG_DATA,
-          base + firstElementAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
-        );
+        const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - (elementSlotCount - 1 - i) * CELL_SIZE);
         vm.push(slotValue);
       }
       vm.push(firstElement);
@@ -130,16 +125,15 @@ export function reverseOp(vm: VM): void {
     return;
   }
 
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  let currentAddr = headerAddr - CELL_SIZE;
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  let currentAbsAddr = headerAbsAddr - CELL_SIZE;
   let remainingSlots = slotCount;
   const elements: Array<{ start: number; span: number }> = [];
   while (remainingSlots > 0) {
-    const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-    const v = vm.memory.readFloat32(SEG_DATA, base + currentAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, currentAbsAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
-    elements.push({ start: currentAddr, span });
-    currentAddr -= span * CELL_SIZE;
+    elements.push({ start: currentAbsAddr, span });
+    currentAbsAddr -= span * CELL_SIZE;
     remainingSlots -= span;
   }
 
@@ -150,18 +144,15 @@ export function reverseOp(vm: VM): void {
   for (let e = elements.length - 1; e >= 0; e--) {
     const { start, span } = elements[e];
     if (span === 1) {
-      const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-      const val = vm.memory.readFloat32(SEG_DATA, base + start);
+      const val = vm.memory.readFloat32(SEG_DATA, start);
       vm.push(val);
     } else {
       const payloadSlots = span - 1;
       for (let i = payloadSlots - 1; i >= 0; i--) {
-        const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-        const slotVal = vm.memory.readFloat32(SEG_DATA, base + start - (i + 1) * CELL_SIZE);
+        const slotVal = vm.memory.readFloat32(SEG_DATA, start - (i + 1) * CELL_SIZE);
         vm.push(slotVal);
       }
-      const base = info.segment === SEG_STACK ? STACK_BASE : info.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-      const headerVal = vm.memory.readFloat32(SEG_DATA, base + start);
+      const headerVal = vm.memory.readFloat32(SEG_DATA, start);
       vm.push(headerVal);
     }
   }
@@ -201,7 +192,7 @@ export function concatOp(vm: VM): void {
   const materializeSlots = (
     op:
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; baseAddr: number; segment: number }
+      | { header: number; baseAddr: number; segment: number; absBaseAddrBytes: number }
       | null,
     size: number,
     topCell: number,
@@ -218,12 +209,11 @@ export function concatOp(vm: VM): void {
     }
     if (op && 'baseAddr' in op) {
       const s = getListLength(op.header);
-      const headerAddr = op.baseAddr + s * CELL_SIZE;
+      const headerAbsAddr = op.absBaseAddrBytes + s * CELL_SIZE;
       const slots: number[] = [];
-      const base = op.segment === SEG_STACK ? STACK_BASE : op.segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
       for (let i = 0; i < s; i++) {
-        const addr = headerAddr - (i + 1) * CELL_SIZE;
-        slots.push(vm.memory.readFloat32(SEG_DATA, base + addr));
+        const absAddr = headerAbsAddr - (i + 1) * CELL_SIZE;
+        slots.push(vm.memory.readFloat32(SEG_DATA, absAddr));
       }
       return slots;
     }
@@ -233,7 +223,7 @@ export function concatOp(vm: VM): void {
   const lhsSlots = materializeSlots(
     (lhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { baseAddr: number; header: number; segment: number }
+      | { baseAddr: number; header: number; segment: number; absBaseAddrBytes: number }
       | null) ?? null,
     lhsSize,
     lhsTop,
@@ -242,7 +232,7 @@ export function concatOp(vm: VM): void {
   const rhsSlots = materializeSlots(
     (rhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { baseAddr: number; header: number; segment: number }
+      | { baseAddr: number; header: number; segment: number; absBaseAddrBytes: number }
       | null) ?? null,
     rhsSize,
     rhsTop,
