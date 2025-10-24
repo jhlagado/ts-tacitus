@@ -1,4 +1,13 @@
-import { VM, getTag, Tag, fromTaggedValue, getListBounds, getListLength } from '@src/core';
+import {
+  VM,
+  getTag,
+  Tag,
+  fromTaggedValue,
+  getListBounds,
+  getListLength,
+  SEG_DATA,
+  CELL_SIZE,
+} from '@src/core';
 
 /**
  * Asserts that the provided value is a well-formed capsule list.
@@ -19,8 +28,9 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
     throw new Error(`Expected ${label} payload to contain at least CODE_REF`);
   }
 
-  const headerAddr = info.baseAddr + getListLength(info.header) * 4;
-  const codeCell = vm.memory.readFloat32(info.segment, headerAddr - 4);
+  const slotCount = getListLength(info.header);
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - CELL_SIZE);
 
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {

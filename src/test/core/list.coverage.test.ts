@@ -1,11 +1,14 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
+import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
 import {
-  reverseSpan,
-  getListElemAddr,
-  getListBounds,
-  createDataRef,
+  SEG_STACK,
+  SEG_GLOBAL,
+  Tag,
+  toTaggedValue,
+  CELL_SIZE,
+  SEG_DATA,
+  STACK_BASE,
 } from '../../core';
-import { SEG_STACK, SEG_GLOBAL, Tag, toTaggedValue, CELL_SIZE } from '../../core';
 
 describe('core/list additional coverage', () => {
   beforeEach(() => {
@@ -41,10 +44,10 @@ describe('core/list additional coverage', () => {
     const e2 = toTaggedValue(22, Tag.NUMBER);
     const e3 = toTaggedValue(33, Tag.NUMBER);
 
-    vm.memory.writeFloat32(SEG_STACK, (cellHeader - 3) * 4, e1);
-    vm.memory.writeFloat32(SEG_STACK, (cellHeader - 2) * 4, e2);
-    vm.memory.writeFloat32(SEG_STACK, (cellHeader - 1) * 4, e3);
-    vm.memory.writeFloat32(SEG_STACK, headerAddr, header);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 3) * 4, e1);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 2) * 4, e2);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 1) * 4, e3);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, header);
 
     // Logical index 0 refers to nearest element (just below header)
     expect(getListElemAddr(vm, header, headerAddr, 0, SEG_STACK)).toBe(headerAddr - 4);

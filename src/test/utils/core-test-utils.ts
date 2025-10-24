@@ -3,7 +3,7 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE } from '../../core';
+import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA, STACK_BASE } from '../../core';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -44,11 +44,11 @@ function reverseSpan(vm: VM, spanSize: number): void {
     const leftAddr = (startCell + i) * CELL_SIZE;
     const rightAddr = (endCell - i) * CELL_SIZE;
 
-    const leftValue = vm.memory.readFloat32(0, leftAddr);
-    const rightValue = vm.memory.readFloat32(0, rightAddr);
+    const leftValue = vm.memory.readFloat32(SEG_DATA, STACK_BASE + leftAddr);
+    const rightValue = vm.memory.readFloat32(SEG_DATA, STACK_BASE + rightAddr);
 
-    vm.memory.writeFloat32(0, leftAddr, rightValue);
-    vm.memory.writeFloat32(0, rightAddr, leftValue);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + leftAddr, rightValue);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + rightAddr, leftValue);
   }
 }
 

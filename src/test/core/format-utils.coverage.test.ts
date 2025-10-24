@@ -1,6 +1,6 @@
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
-import { Tag, toTaggedValue, createDataRef, SEG_STACK } from '../../core';
+import { Tag, toTaggedValue, createDataRef, SEG_DATA, STACK_BASE } from '../../core';
 
 describe('format-utils additional coverage', () => {
   beforeEach(() => {
@@ -29,12 +29,12 @@ describe('format-utils additional coverage', () => {
 
     // Place at cells 7..10 so address = cellIndex*4
     const baseCell = 10; // header cell index
-    vm.memory.writeFloat32(SEG_STACK, (baseCell - 3) * 4, e1);
-    vm.memory.writeFloat32(SEG_STACK, (baseCell - 2) * 4, e2);
-    vm.memory.writeFloat32(SEG_STACK, (baseCell - 1) * 4, e3);
-    vm.memory.writeFloat32(SEG_STACK, baseCell * 4, header);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (baseCell - 3) * 4, e1);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (baseCell - 2) * 4, e2);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (baseCell - 1) * 4, e3);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + baseCell * 4, header);
 
-    const ref = createDataRef(SEG_STACK, baseCell);
+    const ref = createDataRef(0, baseCell); // SEG_STACK legacy id
     // Memory-based formatting consumes from stack (LIFO), so order reverses
     expect(formatValue(vm, ref)).toBe('( 3 2 1 )');
   });
@@ -42,8 +42,8 @@ describe('format-utils additional coverage', () => {
   test('formats atomic via reference from memory (non-list)', () => {
     const cell = 20;
     const num = toTaggedValue(42, Tag.NUMBER);
-    vm.memory.writeFloat32(SEG_STACK, cell * 4, num);
-    const ref = createDataRef(SEG_STACK, cell);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + cell * 4, num);
+    const ref = createDataRef(0, cell); // SEG_STACK legacy id
     expect(formatValue(vm, ref)).toBe('42');
   });
 
@@ -71,8 +71,8 @@ describe('format-utils additional coverage', () => {
     // Write an empty LIST header at some memory cell and reference it
     const baseCell = 40;
     const emptyHeader = toTaggedValue(0, Tag.LIST);
-    vm.memory.writeFloat32(SEG_STACK, baseCell * 4, emptyHeader);
-    const ref = createDataRef(SEG_STACK, baseCell);
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + baseCell * 4, emptyHeader);
+    const ref = createDataRef(0, baseCell);
     expect(formatValue(vm, ref)).toBe('()');
   });
 
