@@ -147,7 +147,11 @@ export function isDataRef(tval: number): boolean {
 }
 
 export function getRefSegment(ref: number): number {
-  return decodeDataRef(ref).segment;
+  // Phase C: classify by absolute byte address against unified data windows
+  const absByte = getAbsoluteByteAddressFromRef(ref);
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return SEG_GLOBAL;
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return SEG_STACK;
+  return SEG_RSTACK;
 }
 
 export function createSegmentRef(segment: number, cellIndex: number): number {
@@ -164,11 +168,18 @@ export function getVarRef(vm: VM, slotNumber: number): number {
   if (segmentCellIndex < 0 || segmentCellIndex >= maxCells) {
     throw new RangeError('Local reference outside return stack bounds');
   }
-  return createDataRef(SEG_RSTACK, segmentCellIndex);
+  // Phase C: return absolute DATA_REF for local variable slot
+  const absCellIndex = RSTACK_BASE / CELL_SIZE + segmentCellIndex;
+  return createDataRefAbs(absCellIndex);
 }
 
 export function createGlobalRef(cellIndex: number): number {
-  return createDataRef(SEG_GLOBAL, cellIndex);
+  // Phase C: return absolute DATA_REF for global cell index
+  if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE / CELL_SIZE) {
+    throw new RangeError('Global reference outside global segment bounds');
+  }
+  const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
+  return createDataRefAbs(absCellIndex);
 }
 
 /**
@@ -187,8 +198,15 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
   if (!isRef(ref)) {
     throw new Error(`Invalid reference type: ${getTag(ref)}`);
   }
-  const { segment, cellIndex } = decodeDataRef(ref);
-  return { address: cellIndex * CELL_SIZE, segment };
+  // Phase C: resolve via absolute byte address and classify to legacy window
+  const absByte = getAbsoluteByteAddressFromRef(ref);
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+    return { address: absByte - GLOBAL_BASE, segment: SEG_GLOBAL };
+  }
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+    return { address: absByte - STACK_BASE, segment: SEG_STACK };
+  }
+  return { address: absByte - RSTACK_BASE, segment: SEG_RSTACK };
 }
 
 /**
