@@ -86,18 +86,30 @@ Progress
       - Simple value store writes the value to `slot.rootAbsAddr` via `SEG_DATA`.
       - Compound copy targets the absolute header address (`resolvedAbsAddr`) and writes payload+header via `SEG_DATA`.
       - Introduced `updateListInPlaceAbs(vm, targetAbsHeaderAddr)` in `local-vars-transfer.ts` and switched in-place mutation to absolute writes.
-      - Legacy `updateListInPlace(vm, targetAddr, segment)` retained for compatibility; no remaining production usages.
+      - Legacy `updateListInPlace(vm, targetAddr, segment)` has been removed after migrating tests to the absolute API.
       - Full compact suite green after change (2025-10-24).
+    - Capsules: handle creation migrated to absolute references.
+      - Constructor exit now pushes an absolute `DATA_REF` handle to the capsule header using `createDataRefAbs(RSTACK_BASE/CELL_SIZE + headerCellIndex)`.
+      - Local variable initialization now forms absolute `DATA_REF` for RSTACK-resident lists (compat preserved via `decodeDataRef` classification in tests).
+      - All capsule tests green post-migration (2025-10-24).
+    - Core ref creators: locals and globals now produce absolute refs.
+      - `getVarRef(vm, slot)` creates absolute `DATA_REF` for local slots using `RSTACK_BASE/CELL_SIZE + (BP+slot)`.
+      - `createGlobalRef(cellIndex)` creates absolute `DATA_REF` using `GLOBAL_BASE/CELL_SIZE + cellIndex` and validates bounds.
+      - Tests that decode and classify still pass (classification maps absolute indices back to expected segments).
     - Builtins (debug): `dumpFrameOp` dereference path migrated to absolute-only addressing for referenced slots (`getAbsoluteByteAddressFromRef` + `SEG_DATA`). Purely affects debug output; no behavior changes.
+    - Reference classification helpers migrated to absolute-only logic (2025-10-24):
+      - `getRefSegment(ref)` now classifies by absolute byte address ranges (GLOBAL/STACK/RSTACK windows), not by decoding windowed refs.
+      - `resolveReference(vm, ref)` now computes absolute byte address and derives segment-relative indices only for legacy callers/tests.
+      - Full compact test run green after this change (145 passed, 2 skipped).
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
     - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers once all consumers are updated; keep compatibility shim until final flip.
     - VM: remove legacy accessors/shims if any remain; rely on `sp/rsp/bp/gp` absolute properties fully.
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
     - Immediate next targets (post-2025-10-24):
-      - Audit and migrate remaining `resolveReference` call sites (none in production as of this update; retained for tests only).
-      - Audit `decodeDataRef` usages in production (parser retains global-only checks by design for now; capsules read path migrated; builtins debug path already absolute).
-      - Identify and remove any remaining segment-derived base math in ops. Priorities:
-        - `local-vars-transfer`: consider consolidating on absolute-only APIs and deprecating segment+offset variants once call sites are removed.
-        - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA` (already true for writes; reads audited).
-      - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and derived legacy fields from `getListBounds`.
+      - Audit and migrate any remaining runtime constructions of `DATA_REF` to absolute creation helpers; tests may continue to classify refs until final flip. Current status: creators (locals/globals/capsule handles) migrated.
+      - Parser-only decode usage: migrate the global-segment guard to use `getRefSegment(ref) === SEG_GLOBAL` (keep other decode usages that require indices until final flip).
+      - Identify and remove any remaining segment-derived base math in ops.
+        - `local-vars-transfer`: segment-based API fully removed; ensure callers exclusively use absolute addresses.
+        - `global-heap`: keep segment classification where semantically meaningful; ensure all reads/writes go through absolute `SEG_DATA`.
+      - Once no production code depends on segment classification, plan the final flip to retire `decodeDataRef` and legacy classification fields (e.g., from `getListBounds`).

@@ -20,7 +20,14 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isSpecialChar, fromTaggedValue, Tag, decodeDataRef, SEG_GLOBAL } from '@src/core';
+import {
+  isSpecialChar,
+  fromTaggedValue,
+  Tag,
+  decodeDataRef,
+  SEG_GLOBAL,
+  getRefSegment,
+} from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
@@ -301,7 +308,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.DATA_REF && decodeDataRef(taggedValue).segment === SEG_GLOBAL) {
+  if (tag === Tag.DATA_REF && getRefSegment(taggedValue) === SEG_GLOBAL) {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(taggedValue);
     return;

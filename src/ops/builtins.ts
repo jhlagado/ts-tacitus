@@ -10,10 +10,9 @@ import {
   getTag,
   Tag,
   getVarRef,
-  createDataRef,
+  createDataRefAbs,
   getAbsoluteByteAddressFromRef,
   isRef,
-  SEG_RSTACK,
   SEG_DATA,
   RSTACK_BASE,
   CELL_SIZE,
@@ -279,7 +278,8 @@ export function initVarOp(vm: VM): void {
   if (isList(value)) {
     const headerAddr = rpushList(vm);
     const headerCellIndex = headerAddr / CELL_SIZE;
-    const localRef = createDataRef(SEG_RSTACK, headerCellIndex);
+    const absHeaderCellIndex = RSTACK_BASE / CELL_SIZE + headerCellIndex;
+    const localRef = createDataRefAbs(absHeaderCellIndex);
 
     vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, localRef);
   } else {
