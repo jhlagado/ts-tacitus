@@ -23,14 +23,8 @@ import {
   GLOBAL_BASE,
   RSTACK_BASE,
 } from '@src/core';
-import { getListBounds, computeHeaderAddr } from './core-helpers';
-import {
-  isRef,
-  createSegmentRef,
-  createDataRefAbs,
-  getAbsoluteByteAddressFromRef,
-  readRefValueAbs,
-} from '@src/core';
+import { getListBounds } from './core-helpers';
+import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
@@ -65,21 +59,16 @@ export function sizeOp(vm: VM): void {
     vm.push(0);
     return;
   }
+  // Absolute-only traversal using unified SEG_DATA
   let elementCount = 0;
-  let currentAddr = computeHeaderAddr(info.baseAddr, slotCount) - CELL_SIZE;
+  let currentAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
   let remainingSlots = slotCount;
-  const baseForSeg =
-    info.segment === SEG_GLOBAL
-      ? GLOBAL_BASE
-      : info.segment === SEG_RSTACK
-        ? RSTACK_BASE
-        : STACK_BASE;
   while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(SEG_DATA, baseForSeg + currentAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, currentAbsAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
-    currentAddr -= span * CELL_SIZE;
+    currentAbsAddr -= span * CELL_SIZE;
   }
   dropOp(vm);
   vm.push(elementCount);
@@ -411,14 +400,15 @@ export function walkOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
-  const cellAddr = headerAddr - (idx + 1) * CELL_SIZE;
-  const v = vm.memory.readFloat32(info.segment, cellAddr);
+  // Absolute addressing via unified data segment
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const cellAbsAddr = headerAbsAddr - (idx + 1) * CELL_SIZE;
+  const v = vm.memory.readFloat32(SEG_DATA, cellAbsAddr);
   const nextIdx = idx + 1;
   vm.push(nextIdx);
   if (isList(v)) {
-    const cellIndex = cellAddr / CELL_SIZE;
-    vm.push(createSegmentRef(info.segment, cellIndex));
+    const absCellIndex = cellAbsAddr / CELL_SIZE;
+    vm.push(createDataRefAbs(absCellIndex));
   } else {
     vm.push(v);
   }
@@ -438,28 +428,28 @@ export function findOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const headerAddr = computeHeaderAddr(info.baseAddr, slotCount);
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
   let defaultValueAddr = -1;
   for (let i = 0; i < slotCount; i += 2) {
-    const keyAddr = headerAddr - CELL_SIZE - i * CELL_SIZE;
-    const valueAddr = headerAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
-    const currentKey = vm.memory.readFloat32(info.segment, keyAddr);
+    const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * CELL_SIZE;
+    const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
+    const currentKey = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     if (areValuesEqual(currentKey, key)) {
-      const cellIndex = valueAddr / CELL_SIZE;
-      vm.push(createSegmentRef(info.segment, cellIndex));
+      const absCellIndex = valueAbsAddr / CELL_SIZE;
+      vm.push(createDataRefAbs(absCellIndex));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
     if (keyTag === Tag.STRING) {
       const keyStr = vm.digest.get(keyValue);
       if (keyStr === 'default') {
-        defaultValueAddr = valueAddr;
+        defaultValueAddr = valueAbsAddr;
       }
     }
   }
   if (defaultValueAddr !== -1) {
-    const cellIndex = defaultValueAddr / CELL_SIZE;
-    vm.push(createSegmentRef(info.segment, cellIndex));
+    const absCellIndex = defaultValueAddr / CELL_SIZE;
+    vm.push(createDataRefAbs(absCellIndex));
     return;
   }
   vm.push(NIL);
@@ -487,10 +477,10 @@ export function keysOp(vm: VM): void {
     return;
   }
   const keyCount = slotCount / 2;
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAddr = headerAddr - CELL_SIZE - i * 2 * CELL_SIZE;
-    const keyValue = vm.memory.readFloat32(info.segment, keyAddr);
+    const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * 2 * CELL_SIZE;
+    const keyValue = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     vm.push(keyValue);
   }
   vm.push(toTaggedValue(keyCount, Tag.LIST));
@@ -518,10 +508,10 @@ export function valuesOp(vm: VM): void {
     return;
   }
   const valueCount = slotCount / 2;
-  const headerAddr = info.baseAddr + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAddr = headerAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
-    const valueValue = vm.memory.readFloat32(info.segment, valueAddr);
+    const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
+    const valueValue = vm.memory.readFloat32(SEG_DATA, valueAbsAddr);
     vm.push(valueValue);
   }
   vm.push(toTaggedValue(valueCount, Tag.LIST));
@@ -532,8 +522,9 @@ export function refOp(vm: VM): void {
   const value = vm.peek();
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    const headerCellIndex = vm.SP - 1;
-    vm.push(createSegmentRef(0, headerCellIndex));
+    // sp is an absolute cell index; build absolute DATA_REF
+    const headerCellIndex = vm.sp - 1;
+    vm.push(createDataRefAbs(headerCellIndex));
   }
 }
 

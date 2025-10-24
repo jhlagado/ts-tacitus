@@ -11,15 +11,11 @@ import {
   Tag,
   getVarRef,
   createDataRef,
-  decodeDataRef,
+  getAbsoluteByteAddressFromRef,
   isRef,
   SEG_RSTACK,
-  SEG_GLOBAL,
-  SEG_STACK,
   SEG_DATA,
   RSTACK_BASE,
-  GLOBAL_BASE,
-  STACK_BASE,
   CELL_SIZE,
 } from '@src/core';
 
@@ -317,14 +313,12 @@ export function dumpFrameOp(vm: VM): void {
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
-        const { segment, cellIndex } = decodeDataRef(slotValue);
-        const targetAddr = cellIndex * CELL_SIZE;
-        const base = segment === SEG_RSTACK ? RSTACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : STACK_BASE;
-        const targetValue = vm.memory.readFloat32(SEG_DATA, base + targetAddr);
+        const absAddrBytes = getAbsoluteByteAddressFromRef(slotValue);
+        const targetValue = vm.memory.readFloat32(SEG_DATA, absAddrBytes);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
         console.log(
-          `    -> Points to segment ${segment}, tag: ${Tag[targetTag]}, value: ${targetVal}`,
+          `    -> Points to absolute addr ${absAddrBytes / CELL_SIZE} (cells), tag: ${Tag[targetTag]}, value: ${targetVal}`,
         );
       }
     }

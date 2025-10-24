@@ -1,18 +1,4 @@
-import {
-  VM,
-  Tag,
-  fromTaggedValue,
-  getListBounds,
-  getListLength,
-  CELL_SIZE,
-  SEG_DATA,
-  SEG_STACK,
-  SEG_GLOBAL,
-  SEG_RSTACK,
-  STACK_BASE,
-  GLOBAL_BASE,
-  RSTACK_BASE,
-} from '@src/core';
+import { VM, Tag, fromTaggedValue, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
 
 export interface CapsuleLayout {
   segment: number;
@@ -33,7 +19,7 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
     throw new Error('capsule handle does not reference a LIST');
   }
 
-  const { header, baseAddr, segment } = info;
+  const { header, baseAddr, segment, absBaseAddrBytes } = info;
 
   const slotCount = getListLength(header);
   if (slotCount < 1) {
@@ -42,8 +28,8 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
 
   // Compute header address and read slot0 (immediately beneath the header).
   const headerAddr = baseAddr + slotCount * CELL_SIZE;
-  const base = segment === SEG_STACK ? STACK_BASE : segment === SEG_GLOBAL ? GLOBAL_BASE : RSTACK_BASE;
-  const codeCell = vm.memory.readFloat32(SEG_DATA, base + headerAddr - CELL_SIZE);
+  const headerAbsAddr = absBaseAddrBytes + slotCount * CELL_SIZE;
+  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - CELL_SIZE);
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {
     throw new Error('capsule slot0 must be a CODE reference');

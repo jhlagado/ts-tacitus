@@ -124,7 +124,8 @@ export function decodeDataRefAbs(ref: number): { absoluteCellIndex: number } {
 export function getAbsoluteCellIndexFromRef(ref: number): number {
   const { value, tag } = fromTaggedValue(ref);
   if (tag !== Tag.DATA_REF) throw new Error('Expected DATA_REF');
-  if (value < 0 || value >= TOTAL_DATA_CELLS) throw new RangeError('DATA_REF absolute out of bounds');
+  if (value < 0 || value >= TOTAL_DATA_CELLS)
+    throw new RangeError('DATA_REF absolute out of bounds');
   return value;
 }
 
@@ -194,14 +195,16 @@ export function resolveReference(vm: VM, ref: number): ResolvedReference {
  * Reads a value from memory using a polymorphic reference.
  */
 export function readReference(vm: VM, ref: number): number {
-  const { address, segment } = resolveReference(vm, ref);
-  return vm.memory.readFloat32(segment, address);
+  // Phase C: absolute-only dereference via unified SEG_DATA
+  const address = getAbsoluteByteAddressFromRef(ref);
+  return vm.memory.readFloat32(SEG_DATA, address);
 }
 
 /**
  * Writes a value to memory using a polymorphic reference.
  */
 export function writeReference(vm: VM, ref: number, value: number): void {
-  const { address, segment } = resolveReference(vm, ref);
-  vm.memory.writeFloat32(segment, address, value);
+  // Phase C: absolute-only dereference via unified SEG_DATA
+  const address = getAbsoluteByteAddressFromRef(ref);
+  vm.memory.writeFloat32(SEG_DATA, address, value);
 }

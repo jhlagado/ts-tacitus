@@ -126,8 +126,9 @@ function formatListFromStack(vm: VM, stack: number[], headerIndex: number): stri
 /**
  * Formats a LIST structure from reference in memory by materializing to stack.
  */
-function formatListFromMemory(vm: VM, address: number, segment: number): string {
-  const header = vm.memory.readFloat32(segment, address);
+function formatListFromMemory(vm: VM, address: number): string {
+  // Phase C: unified data access via SEG_DATA and absolute byte address
+  const header = vm.memory.readFloat32(SEG_DATA, address);
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
@@ -138,7 +139,7 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
 
   for (let i = 0; i < slotCount; i++) {
     const elementAddr = address - (slotCount - i) * 4;
-    const element = vm.memory.readFloat32(segment, elementAddr);
+    const element = vm.memory.readFloat32(SEG_DATA, elementAddr);
     vm.push(element);
   }
 
@@ -157,11 +158,11 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
  */
 export function formatValue(vm: VM, value: number): string {
   if (isRef(value)) {
-  const address = getAbsoluteByteAddressFromRef(value);
-  const segment = SEG_DATA; // unified data segment
-  const header = vm.memory.readFloat32(segment, address);
+    const address = getAbsoluteByteAddressFromRef(value);
+    const segment = SEG_DATA; // unified data segment
+    const header = vm.memory.readFloat32(segment, address);
     if (getTag(header) === Tag.LIST) {
-      return formatListFromMemory(vm, address, segment);
+      return formatListFromMemory(vm, address);
     }
     return formatAtomicValue(vm, header);
   }

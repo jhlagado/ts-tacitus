@@ -73,10 +73,21 @@ Progress
     - Ongoing: progressively replace any remaining uses of `resolveReference` with absolute helpers where feasible.
     - `getListBounds` now dereferences list references via absolute addressing and provides `absBaseAddrBytes`. Legacy `segment/baseAddr` are retained for compatibility but derived from absolute classification.
     - `resolveSlot` (list query path) migrated to absolute-only addressing; it computes absolute addresses and classifies only when returning legacy segment+address pairs.
-    - `formatValue` (format-utils) migrated to absolute-only reference resolution: uses `getAbsoluteByteAddressFromRef` and reads via unified `SEG_DATA`; list formatting from memory (`formatListFromMemory`) remains unchanged in behavior.
+    - `formatValue` (format-utils) migrated to absolute-only reference resolution: uses `getAbsoluteByteAddressFromRef` and reads via unified `SEG_DATA`. List formatting from memory (`formatListFromMemory`) is now unified as well: it reads list payloads via absolute byte addresses on `SEG_DATA`.
+    - `readReference`/`writeReference` migrated to absolute-only addressing: both compute the absolute byte address via `getAbsoluteByteAddressFromRef(ref)` and perform I/O on `SEG_DATA`. `resolveReference` is retained for compatibility and tests that assert segment-address pairs.
+    - List query ops: migrated remaining read paths to absolute-only addressing.
+      - `walk` now computes element addresses using `absBaseAddrBytes` and reads from `SEG_DATA`; returns absolute refs via `createDataRefAbs` for list cells.
+      - `find` reads keys/values via absolute addresses on `SEG_DATA` and returns value references via `createDataRefAbs` (including default branch).
+      - `keys`/`values` traverse payload via `SEG_DATA` with absolute addressing.
+      - `ref` forms absolute `DATA_REF` handles using `vm.sp` (absolute cell index) and `createDataRefAbs`.
+      - `size` traverses payload via absolute addressing using `absBaseAddrBytes` and unified `SEG_DATA` reads. Tests green (2025-10-24).
+    - Builtins (debug): `dumpFrameOp` dereference path migrated to absolute-only addressing for referenced slots (`getAbsoluteByteAddressFromRef` + `SEG_DATA`). Purely affects debug output; no behavior changes.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
-    - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers.
+    - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers once all consumers are updated; keep compatibility shim until final flip.
     - VM: remove legacy accessors/shims if any remain; rely on `sp/rsp/bp/gp` absolute properties fully.
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
-    - Immediate next targets: migrate `readReference`/`writeReference` in `refs.ts` to absolute helpers or gate their usage to compatibility-only paths; audit any remaining `resolveReference` call sites outside refs.
+    - Immediate next targets (post-2025-10-24):
+      - Audit and migrate remaining `resolveReference` call sites (none in production as of this update; retained for tests only).
+      - Audit `decodeDataRef` usages in production (parser, capsules, builtins) and replace with absolute helpers where safe; defer parser global-classification checks until final flip.
+      - Identify and remove any remaining segment-derived base math in ops (structure/build helpers already use `absBaseAddrBytes` for read paths; keep derived legacy fields only when required by tests).
