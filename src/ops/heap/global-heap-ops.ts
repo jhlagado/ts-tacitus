@@ -8,14 +8,7 @@ import {
   getTag,
   Tag,
   isRef,
-  decodeDataRef,
-  resolveReference,
-  SEG_GLOBAL,
   SEG_DATA,
-  SEG_RSTACK,
-  SEG_STACK,
-  RSTACK_BASE,
-  STACK_BASE,
   GLOBAL_BASE,
   CELL_SIZE,
   dropList,
@@ -25,16 +18,17 @@ import {
   pushListToGlobalHeap,
   pushSimpleToGlobalHeap,
   readRefValueAbs,
-  getAbsoluteByteAddressFromRef,
+  getAbsoluteCellIndexFromRef,
 } from '@src/core';
-import { loadOp } from '../lists';
+import { fetchOp } from '../lists';
 
-function ensureGlobalRef(ref: number): { cellIndex: number } {
-  const { segment, cellIndex } = decodeDataRef(ref);
-  if (segment !== SEG_GLOBAL) {
+function ensureGlobalRefAbs(vm: VM, ref: number): { absCellIndex: number } {
+  const absCellIndex = getAbsoluteCellIndexFromRef(ref);
+  const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
+  if (absCellIndex < globalBaseCell || absCellIndex >= globalBaseCell + (vm.GP || 0)) {
     throw new Error('Expected global heap reference');
   }
-  return { cellIndex };
+  return { absCellIndex };
 }
 
 function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBounds>): number {
@@ -99,12 +93,9 @@ export function gpeekOp(vm: VM): void {
   if (!isRef(ref)) {
     throw new Error('gpeek expects DATA_REF');
   }
-  const { segment } = decodeDataRef(ref);
-  if (segment !== SEG_GLOBAL) {
-    throw new Error('gpeek expects global heap reference');
-  }
+  ensureGlobalRefAbs(vm, ref);
   vm.push(ref);
-  loadOp(vm);
+  fetchOp(vm);
 }
 
 export function gpopOp(vm: VM): void {
@@ -117,18 +108,19 @@ export function gpopOp(vm: VM): void {
   if (!isRef(ref)) {
     throw new Error('gpop expects DATA_REF');
   }
-  const { cellIndex } = ensureGlobalRef(ref);
-  const topIndex = vm.GP - 1;
-  if (cellIndex !== topIndex) {
+  const { absCellIndex } = ensureGlobalRefAbs(vm, ref);
+  const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
+  const topAbsCellIndex = globalBaseCell + vm.GP - 1;
+  if (absCellIndex !== topAbsCellIndex) {
     throw new Error('gpop expects reference to heap top');
   }
 
   // Read header via unified data segment (absolute byte offset)
-  const headerValue = vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE);
+  const headerValue = vm.memory.readFloat32(SEG_DATA, absCellIndex * CELL_SIZE);
   if (isList(headerValue)) {
     const span = getListLength(headerValue) + 1;
     vm.GP -= span;
     return;
   }
-  vm.GP = topIndex;
+  vm.GP = vm.GP - 1;
 }

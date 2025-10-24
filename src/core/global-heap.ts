@@ -4,7 +4,16 @@
  */
 
 import { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE, SEG_GLOBAL, SEG_DATA, GLOBAL_BASE } from './constants';
+import {
+  CELL_SIZE,
+  GLOBAL_SIZE,
+  SEG_GLOBAL,
+  SEG_DATA,
+  GLOBAL_BASE,
+  SEG_RSTACK,
+  STACK_BASE,
+  RSTACK_BASE,
+} from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 import { toTaggedValue, Tag, NIL } from './tagged';
@@ -15,6 +24,8 @@ export interface ListSource {
   header: number;
   baseAddr: number;
   segment: number;
+  /** Optional absolute base byte address for payload; when provided, prefer absolute reads. */
+  absBaseAddrBytes?: number;
 }
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
@@ -38,9 +49,18 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   ensureGlobalCapacity(vm, span);
   const destBaseCell = vm.GP;
 
+  // Determine absolute source base for unified reads
+  const srcBaseAbs =
+    source.absBaseAddrBytes !== undefined
+      ? source.absBaseAddrBytes
+      : (source.segment === SEG_GLOBAL
+          ? GLOBAL_BASE
+          : source.segment === SEG_RSTACK
+            ? RSTACK_BASE
+            : STACK_BASE) + source.baseAddr;
+
   for (let i = 0; i < slotCount; i++) {
-    const srcAddr = source.baseAddr + i * CELL_SIZE;
-    const value = vm.memory.readFloat32(source.segment, srcAddr);
+    const value = vm.memory.readFloat32(SEG_DATA, srcBaseAbs + i * CELL_SIZE);
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (destBaseCell + i) * CELL_SIZE, value);
   }
 

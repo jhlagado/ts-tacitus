@@ -63,4 +63,13 @@ Progress
   - Lists: migrated `slot` to absolute addressing. It computes element absolute address from `absBaseAddrBytes` and returns absolute refs via `createDataRefAbs`.
   - Lists: migrated `fetch` to absolute addressing. It dereferences via absolute byte address and materializes list payload using unified `SEG_DATA` reads.
   - Lists: migrated `store` to absolute addressing in core paths. Simple value writes and compound copy from references now use absolute `SEG_DATA` reads/writes; in-place mutation remains compatible with segment-aware helper.
-  - Next: migrate remaining list helpers/ops (`head/tail/reverse/concat`) to absolute addressing; then convert heap ops (`gpush/gpeek/gpop/gmark/gsweep`) to absolute-only and update tests to assert behaviour/absolute indices (not segment IDs).
+  - Lists: migrated `head`, `tail`, and `reverse` to absolute addressing for reads/materialization. Stack fast-path behavior (SP adjustments) preserved where applicable.
+  - Lists: migrated `concat` materialization for referenced lists to absolute addressing using `absBaseAddrBytes`.
+  - Heap ops: migrated `gpeek` and `gpop` to absolute addressing. Both validate references via absolute cell indices and read via unified `SEG_DATA`. `gmark`/`gsweep` already operate on absolute `GP`.
+  - Heap: migrated `pushListToGlobalHeap` to accept/use absolute base addresses (`absBaseAddrBytes`) for source reads with fallback to segment+base; writes already used unified `SEG_DATA`.
+  - Phase B status: COMPLETE — core consumers and helpers now read/write via absolute addressing; segment-derived math remains only for fallbacks and compatibility shims.
+  - Next (Phase C - flip):
+    - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
+    - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers.
+    - VM: remove legacy accessors/shims if any remain; rely on `sp/rsp/bp/gp` absolute properties fully.
+    - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
