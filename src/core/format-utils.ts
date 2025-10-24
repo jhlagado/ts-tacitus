@@ -3,8 +3,9 @@
  * Utility functions for formatting Tacit VM values.
  */
 import { VM } from './vm';
+import { SEG_DATA } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { resolveReference, isRef } from './refs';
+import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 import { getListLength } from './list';
 
 /**
@@ -156,8 +157,9 @@ function formatListFromMemory(vm: VM, address: number, segment: number): string 
  */
 export function formatValue(vm: VM, value: number): string {
   if (isRef(value)) {
-    const { address, segment } = resolveReference(vm, value);
-    const header = vm.memory.readFloat32(segment, address);
+  const address = getAbsoluteByteAddressFromRef(value);
+  const segment = SEG_DATA; // unified data segment
+  const header = vm.memory.readFloat32(segment, address);
     if (getTag(header) === Tag.LIST) {
       return formatListFromMemory(vm, address, segment);
     }

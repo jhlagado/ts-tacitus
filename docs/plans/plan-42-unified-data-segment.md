@@ -47,7 +47,7 @@ Risk control
 
 ---
 
-Immediate step (Phase A): add `SEG_DATA` and absolute ref helpers only.
+Immediate step (Phase C): continue removing legacy window classification by migrating remaining read paths to absolute helpers and unified `SEG_DATA`.
 
 Progress
 
@@ -72,8 +72,11 @@ Progress
     - `load` now dereferences and materializes via absolute addressing (no `resolveReference` or segment-derived bases).
     - Ongoing: progressively replace any remaining uses of `resolveReference` with absolute helpers where feasible.
     - `getListBounds` now dereferences list references via absolute addressing and provides `absBaseAddrBytes`. Legacy `segment/baseAddr` are retained for compatibility but derived from absolute classification.
+    - `resolveSlot` (list query path) migrated to absolute-only addressing; it computes absolute addresses and classifies only when returning legacy segment+address pairs.
+    - `formatValue` (format-utils) migrated to absolute-only reference resolution: uses `getAbsoluteByteAddressFromRef` and reads via unified `SEG_DATA`; list formatting from memory (`formatListFromMemory`) remains unchanged in behavior.
   - Next (Phase C - flip):
     - Collapse data windows: remove segment-classified reads/writes in remaining helpers; prefer `SEG_DATA` + absolute.
     - Refs: retire window classification (`decodeDataRef` path) and unify on absolute-only helpers.
     - VM: remove legacy accessors/shims if any remain; rely on `sp/rsp/bp/gp` absolute properties fully.
     - Tests: remove any residual segment identity assertions; assert behavior or absolute indices.
+    - Immediate next targets: migrate `readReference`/`writeReference` in `refs.ts` to absolute helpers or gate their usage to compatibility-only paths; audit any remaining `resolveReference` call sites outside refs.
