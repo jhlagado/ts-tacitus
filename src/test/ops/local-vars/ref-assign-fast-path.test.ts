@@ -74,7 +74,7 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     executeTacitCode(code);
-    const decoded = Array.from({ length: vm.SP }, (_, i) =>
+    const decoded = Array.from({ length: vm.sp - STACK_BASE / CELL_SIZE }, (_, i) =>
       fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE + i * CELL_SIZE)),
     );
 

@@ -9,6 +9,7 @@ import {
   RSTACK_SIZE,
   getAbsoluteByteAddressFromRef,
 } from '../../../core';
+import { CELL_SIZE } from '../../../core/constants';
 
 describe('Capsule constructor (language-level) — minimal to locals', () => {
   beforeEach(() => resetVM());
@@ -53,7 +54,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(3); // a, b, CODE
-    // Caller BP restored (top-level remains 0)
-    expect(vm.BP).toBe(0);
+  // Caller BP restored (top-level remains at base)
+  expect(vm.bp).toBe(RSTACK_BASE / CELL_SIZE + 0);
   });
 });

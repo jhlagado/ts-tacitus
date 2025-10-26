@@ -1,5 +1,6 @@
 import { executeTacitWithState, resetVM, captureVMState } from './vm-test-utils';
 import { vm } from '@src/core/global-state';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '@src/core';
 
 describe('VM state snapshot helpers', () => {
   beforeEach(() => {
@@ -10,9 +11,10 @@ describe('VM state snapshot helpers', () => {
     const state = executeTacitWithState('1 2 add');
     expect(state.stack).toEqual([3]);
     expect(state.returnStack).toEqual([]);
-    expect(state.sp).toBe(1);
-    expect(state.rsp).toBe(0);
-    expect(state.bp).toBe(0);
+  // One value on stack => sp = baseCells + 1
+  expect(state.sp).toBe(STACK_BASE / CELL_SIZE + 1);
+  expect(state.rsp).toBe(RSTACK_BASE / CELL_SIZE);
+  expect(state.bp).toBe(RSTACK_BASE / CELL_SIZE);
   });
 
   test('captureVMState snapshots current VM', () => {
@@ -20,6 +22,7 @@ describe('VM state snapshot helpers', () => {
     const snapshot = captureVMState();
     expect(snapshot.stack).toEqual([5]);
     expect(snapshot.returnStack).toEqual([]);
-    expect(snapshot.sp).toBe(1);
+  // One value on stack => sp = baseCells + 1
+  expect(snapshot.sp).toBe(STACK_BASE / CELL_SIZE + 1);
   });
 });

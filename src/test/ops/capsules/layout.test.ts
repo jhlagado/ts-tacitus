@@ -27,8 +27,8 @@ describe('capsule layout (handle-based)', () => {
     const header = toTaggedValue(slotCount, Tag.LIST);
     vm.rpush(header);
 
-    const headerCellIndex = vm.RSP - 1; // header is at top of RSTACK
-    const handle = createDataRefAbs(RSTACK_BASE / CELL_SIZE + headerCellIndex);
+  const headerCellIndex = vm.rsp - 1; // absolute cell index at top of RSTACK
+  const handle = createDataRefAbs(headerCellIndex);
     return { handle, slotCount, codeRef };
   };
 
@@ -48,8 +48,8 @@ describe('capsule layout (handle-based)', () => {
     for (const v of [1, 2]) vm.rpush(v);
     vm.rpush(42); // not CODE
     vm.rpush(toTaggedValue(3, Tag.LIST));
-    const headerIdx = vm.RSP - 1;
-    const handle = createDataRefAbs(RSTACK_BASE / CELL_SIZE + headerIdx);
+  const headerIdx = vm.rsp - 1;
+  const handle = createDataRefAbs(headerIdx);
 
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('slot0 must be a CODE');
   });
@@ -65,8 +65,8 @@ describe('capsule layout (handle-based)', () => {
     vm.push(1);
     vm.push(codeRef);
     vm.push(toTaggedValue(2, Tag.LIST));
-    const headerCellIndex = vm.SP - 1; // data stack cell index
-    const stackHandle = createDataRefAbs(STACK_BASE / CELL_SIZE + headerCellIndex);
+  const headerCellIndex = vm.sp - 1; // absolute data stack cell index
+  const stackHandle = createDataRefAbs(headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
     expect(layout.absBaseAddrBytes).toBeGreaterThanOrEqual(STACK_BASE);
     expect(layout.absBaseAddrBytes).toBeLessThan(RSTACK_BASE);
@@ -77,13 +77,13 @@ describe('capsule layout (handle-based)', () => {
   test('errors when payload slot count is zero', () => {
     // header LIST:0 on RSTACK (no payload)
     vm.rpush(toTaggedValue(0, Tag.LIST));
-    const handle = createDataRefAbs(RSTACK_BASE / CELL_SIZE + (vm.RSP - 1));
+  const handle = createDataRefAbs(vm.rsp - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('include CODE slot');
   });
 
   test('errors when return-stack DATA_REF does not point to a LIST header', () => {
     vm.rpush(12345); // simple value on RSTACK
-    const handle = createDataRefAbs(RSTACK_BASE / CELL_SIZE + (vm.RSP - 1));
+  const handle = createDataRefAbs(vm.rsp - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('does not reference a LIST');
   });
 });

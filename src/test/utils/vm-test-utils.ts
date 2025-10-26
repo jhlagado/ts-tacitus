@@ -73,15 +73,17 @@ export interface VMStateSnapshot {
 export function captureVMState(): VMStateSnapshot {
   const stack = vm.getStackData();
   const returnStack: number[] = [];
-  for (let i = 0; i < vm.RSP; i++) {
-    returnStack.push(vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + i * CELL_SIZE));
+  // vm.rsp is absolute (cells). Snapshot values relative to RSTACK_BASE.
+  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  for (let i = rstackBaseCells; i < vm.rsp; i++) {
+    returnStack.push(vm.memory.readFloat32(SEG_DATA, i * CELL_SIZE));
   }
   return {
     stack,
     returnStack,
-    sp: vm.SP,
-    rsp: vm.RSP,
-    bp: vm.BP,
+    sp: vm.sp,
+    rsp: vm.rsp,
+    bp: vm.bp,
   };
 }
 
