@@ -33,15 +33,11 @@ const CELL_SIZE_BYTES = CELL_SIZE;
 export class VM {
   memory: Memory;
 
-  // Internal canonical stack pointers measured in cells
-  public _spCells: number;
-  public _rspCells: number;
-
-  // Base pointer for return stack frames (cells, canonical)
-  public _bpCells: number;
-
-  // Global segment bump pointer (cells)
-  public _gpCells: number;
+  // Canonical stack and heap registers measured in cells (plain fields)
+  public sp: number; // data stack pointer (one past TOS)
+  public rsp: number; // return stack pointer (one past RTOS)
+  public bp: number; // current frame base pointer (absolute cells)
+  public gp: number; // global heap bump pointer (cells)
 
   IP: number;
 
@@ -85,10 +81,10 @@ export class VM {
     this.memory = new Memory();
     this.IP = 0;
     this.running = true;
-    this._spCells = this.stackBaseCells;
-    this._rspCells = this.rstackBaseCells;
-    this._bpCells = this.rstackBaseCells;
-    this._gpCells = 0;
+    this.sp = this.stackBaseCells;
+    this.rsp = this.rstackBaseCells;
+    this.bp = this.rstackBaseCells;
+    this.gp = 0;
 
     this.digest = new Digest(this.memory);
     this.debug = false;
@@ -124,7 +120,7 @@ export class VM {
       throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
     }
     const relativeCells = rawBytes / CELL_SIZE_BYTES;
-    this._bpCells = this.rstackBaseCells + relativeCells;
+    this.bp = this.rstackBaseCells + relativeCells;
     if (this.debug) this.ensureInvariants();
   }
 
@@ -134,33 +130,33 @@ export class VM {
    */
   ensureInvariants() {
     // Non-negative integers
-    if (this._spCells < 0 || this._rspCells < 0 || this._bpCells < 0) {
+    if (this.sp < 0 || this.rsp < 0 || this.bp < 0) {
       throw new Error('Invariant violation: negative stack pointer');
     }
     if (
-      !Number.isInteger(this._spCells) ||
-      !Number.isInteger(this._rspCells) ||
-      !Number.isInteger(this._bpCells)
+      !Number.isInteger(this.sp) ||
+      !Number.isInteger(this.rsp) ||
+      !Number.isInteger(this.bp)
     ) {
       throw new Error('Invariant violation: non-integer stack pointer');
     }
     // Global pointer sanity (non-negative integer)
-    if (this._gpCells < 0) {
+    if (this.gp < 0) {
       throw new Error('Invariant violation: negative global pointer');
     }
-    if (!Number.isInteger(this._gpCells)) {
+    if (!Number.isInteger(this.gp)) {
       throw new Error('Invariant violation: non-integer global pointer');
     }
     // Bounds vs configured sizes
-    if (this._spCells < this.stackBaseCells || this._spCells > this.stackTopCells) {
+    if (this.sp < this.stackBaseCells || this.sp > this.stackTopCells) {
       throw new Error('Invariant violation: SP outside stack segment');
     }
-    if (this._rspCells < this.rstackBaseCells || this._rspCells > this.rstackTopCells) {
+    if (this.rsp < this.rstackBaseCells || this.rsp > this.rstackTopCells) {
       throw new Error('Invariant violation: RSP outside return stack segment');
     }
     // BP within [0, RSP]
-    if (this._bpCells > this._rspCells) {
-      throw new Error(`Invariant violation: BP (${this._bpCells}) > RSP (${this._rspCells})`);
+    if (this.bp > this.rsp) {
+      throw new Error(`Invariant violation: BP (${this.bp}) > RSP (${this.rsp})`);
     }
   }
 
@@ -170,14 +166,14 @@ export class VM {
    * @throws {StackOverflowError} If stack overflow occurs
    */
   push(value: number): void {
-    if (this._spCells >= this.stackTopCells) {
+    if (this.sp >= this.stackTopCells) {
       throw new StackOverflowError('push', this.getStackData());
     }
 
-    const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - this.stackBaseCells) * CELL_SIZE_BYTES;
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
-    this._spCells += 1;
+    this.sp += 1;
     if (this.debug) this.ensureInvariants();
   }
 
@@ -187,12 +183,12 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   pop(): number {
-    if (this._spCells <= this.stackBaseCells) {
+    if (this.sp <= this.stackBaseCells) {
       throw new StackUnderflowError('pop', 1, this.getStackData());
     }
 
-    this._spCells -= 1;
-    const offsetBytes = (this._spCells - this.stackBaseCells) * CELL_SIZE_BYTES;
+    this.sp -= 1;
+    const offsetBytes = (this.sp - this.stackBaseCells) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
@@ -204,11 +200,11 @@ export class VM {
    * @throws {StackUnderflowError} If stack is empty
    */
   peek(): number {
-    if (this._spCells <= this.stackBaseCells) {
+    if (this.sp <= this.stackBaseCells) {
       throw new StackUnderflowError('peek', 1, this.getStackData());
     }
 
-    const offsetBytes = (this._spCells - this.stackBaseCells - 1) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - this.stackBaseCells - 1) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
@@ -220,11 +216,11 @@ export class VM {
    */
   peekAt(slotOffset: number): number {
     const requiredCells = slotOffset + 1;
-    if (this._spCells - this.stackBaseCells < requiredCells) {
+    if (this.sp - this.stackBaseCells < requiredCells) {
       throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
     }
 
-    const offsetBytes = (this._spCells - this.stackBaseCells - requiredCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - this.stackBaseCells - requiredCells) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
@@ -235,7 +231,7 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   popArray(size: number): number[] {
-    if (this._spCells - this.stackBaseCells < size) {
+    if (this.sp - this.stackBaseCells < size) {
       throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
@@ -253,14 +249,14 @@ export class VM {
    * @throws {ReturnStackOverflowError} If return stack overflow occurs
    */
   rpush(value: number): void {
-    if (this._rspCells >= this.rstackTopCells) {
+    if (this.rsp >= this.rstackTopCells) {
       throw new ReturnStackOverflowError('rpush', this.getStackData());
     }
 
-    const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.rsp - this.rstackBaseCells) * CELL_SIZE_BYTES;
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
-    this._rspCells += 1;
+    this.rsp += 1;
     if (this.debug) this.ensureInvariants();
   }
 
@@ -270,12 +266,12 @@ export class VM {
    * @throws {ReturnStackUnderflowError} If return stack underflow occurs
    */
   rpop(): number {
-    if (this._rspCells <= this.rstackBaseCells) {
+    if (this.rsp <= this.rstackBaseCells) {
       throw new ReturnStackUnderflowError('rpop', this.getStackData());
     }
 
-    this._rspCells -= 1;
-    const offsetBytes = (this._rspCells - this.rstackBaseCells) * CELL_SIZE_BYTES;
+    this.rsp -= 1;
+    const offsetBytes = (this.rsp - this.rstackBaseCells) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
@@ -363,7 +359,7 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    const depthCells = this._spCells - this.stackBaseCells;
+    const depthCells = this.sp - this.stackBaseCells;
     for (let i = 0; i < depthCells; i += 1) {
       // Read via unified data segment for forward-compatibility
       const byteOffset = STACK_BASE + i * CELL_SIZE_BYTES;
@@ -380,7 +376,7 @@ export class VM {
    * @throws {StackUnderflowError} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
-    if (this._spCells - this.stackBaseCells < size) {
+    if (this.sp - this.stackBaseCells < size) {
       throw new StackUnderflowError(operation, size, this.getStackData());
     }
   }
@@ -421,61 +417,4 @@ export class VM {
   }
 }
 
-/**
- * Phase B: Public absolute register fields with validation shims.
- * Expose `sp`, `rsp`, `bp`, and `gp` as properties mapped to internal absolute cell indices.
- */
-// eslint-disable-next-line no-redeclare
-export interface VM {
-  /** Absolute cell index for data stack top (one past TOS). */
-  sp: number;
-  /** Absolute cell index for return stack top (one past RTOS). */
-  rsp: number;
-  /** Absolute cell index for current frame base. */
-  bp: number;
-  /** Global heap bump pointer (absolute cell index). */
-  gp: number;
-}
-
-Object.defineProperties(VM.prototype, {
-  sp: {
-    get(this: VM) {
-      return this._spCells;
-    },
-    set(this: VM, cells: number) {
-      this._spCells = cells;
-    },
-    configurable: true,
-    enumerable: true,
-  },
-  rsp: {
-    get(this: VM) {
-      return this._rspCells;
-    },
-    set(this: VM, cells: number) {
-      this._rspCells = cells;
-    },
-    configurable: true,
-    enumerable: true,
-  },
-  bp: {
-    get(this: VM) {
-      return this._bpCells;
-    },
-    set(this: VM, cells: number) {
-      this._bpCells = cells;
-    },
-    configurable: true,
-    enumerable: true,
-  },
-  gp: {
-    get(this: VM) {
-      return this._gpCells;
-    },
-    set(this: VM, cells: number) {
-      this._gpCells = cells;
-    },
-    configurable: true,
-    enumerable: true,
-  },
-});
+// Registers are plain public fields (sp, rsp, bp, gp). No special accessors required.
