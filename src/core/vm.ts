@@ -337,14 +337,7 @@ export class VM {
    * Gets the current compiled bytecode.
    * @returns Array of code bytes
    */
-  getCompileData(): number[] {
-    const compileData: number[] = [];
-    for (let i = 0; i < this.compiler.CP; i++) {
-      compileData.push(this.memory.read8(SEG_CODE, i));
-    }
-
-    return compileData;
-  }
+  
 
   /**
    * Resolves a symbol name to a tagged value.
