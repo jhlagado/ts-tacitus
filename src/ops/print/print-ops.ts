@@ -8,7 +8,7 @@
  *
  * Both operations pop values from the stack and output them to console.
  */
-import { VM, fromTaggedValue, Tag } from '@src/core';
+import { VM, fromTaggedValue, Tag, STACK_BASE_CELLS } from '@src/core';
 import { formatValue as coreFormatValue, formatList } from '@src/core';
 /**
  * Formats a LIST structure by consuming elements from the stack.
@@ -42,7 +42,7 @@ import { formatValue as coreFormatValue, formatList } from '@src/core';
  */
 export function printOp(vm: VM): void {
   try {
-    if (vm.SP < 1) {
+    if (vm.sp - STACK_BASE_CELLS < 1) {
       console.log('[Error: Stack empty]');
       return;
     }
@@ -63,7 +63,7 @@ export function printOp(vm: VM): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`[Print error: ${errorMessage}]`);
 
-    if (vm.SP >= 1) {
+    if (vm.sp - STACK_BASE_CELLS >= 1) {
       try {
         vm.pop();
       } catch {
@@ -90,7 +90,7 @@ export function printOp(vm: VM): void {
  */
 export function rawPrintOp(vm: VM): void {
   try {
-    if (vm.SP < 1) {
+    if (vm.sp - STACK_BASE_CELLS < 1) {
       console.log('[Error: Stack empty]');
       return;
     }

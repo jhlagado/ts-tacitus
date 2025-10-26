@@ -51,8 +51,8 @@ export function rpushList(vm: VM): number {
     return headerAddr;
   }
 
-  // Data stack is cell-indexed; compute first element cell and stream-copy to RSTACK via rpush
-  let elementCell = vm.SP - (slotCount + 1);
+  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE) and stream-copy to RSTACK via rpush
+  let elementCell = (vm.sp - STACK_BASE / CELL_SIZE) - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + elementCell * CELL_SIZE);
     vm.rpush(value);
@@ -171,8 +171,8 @@ export function updateListInPlaceAbs(vm: VM, targetAbsHeaderAddr: number): void 
     return;
   }
 
-  // Source cells from data stack (absolute addressing already used by reads)
-  let sourceCell = vm.SP - (slotCount + 1);
+  // Source cells from data stack (relative to STACK_BASE for reads below)
+  let sourceCell = (vm.sp - STACK_BASE / CELL_SIZE) - (slotCount + 1);
   const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
   const targetBaseAbs = targetBaseCell * CELL_SIZE;

@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue, STACK_BASE_CELLS } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
@@ -17,7 +17,7 @@ export function beginWhenImmediate(): void {
 export function beginDoImmediate(): void {
   requireParserState();
 
-  if (vm.SP === 0) {
+  if (vm.sp - STACK_BASE_CELLS === 0) {
     throw new SyntaxError('do without when', vm.getStackData());
   }
 
