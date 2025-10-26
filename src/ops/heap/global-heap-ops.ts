@@ -25,7 +25,7 @@ import { fetchOp } from '../lists';
 function ensureGlobalRefAbs(vm: VM, ref: number): { absCellIndex: number } {
   const absCellIndex = getAbsoluteCellIndexFromRef(ref);
   const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
-  if (absCellIndex < globalBaseCell || absCellIndex >= globalBaseCell + (vm.GP || 0)) {
+  if (absCellIndex < globalBaseCell || absCellIndex >= globalBaseCell + (vm.gp || 0)) {
     throw new Error('Expected global heap reference');
   }
   return { absCellIndex };
@@ -42,7 +42,7 @@ function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBoundsA
 }
 
 export function gmarkOp(vm: VM): void {
-  vm.push(vm.GP);
+  vm.push(vm.gp);
 }
 
 export function gsweepOp(vm: VM): void {
@@ -52,10 +52,10 @@ export function gsweepOp(vm: VM): void {
     throw new Error('gsweep expects integer heap mark');
   }
   const mark = markValue;
-  if (mark < 0 || mark > vm.GP) {
+  if (mark < 0 || mark > vm.gp) {
     throw new Error('gsweep mark out of range');
   }
-  vm.GP = mark;
+  vm.gp = mark;
 }
 
 export function gpushOp(vm: VM): void {
@@ -103,7 +103,7 @@ export function gpeekOp(vm: VM): void {
 
 export function gpopOp(vm: VM): void {
   vm.ensureStackSize(1, 'gpop');
-  if (vm.GP === 0) {
+  if (vm.gp === 0) {
     throw new Error('gpop on empty heap');
   }
 
@@ -113,7 +113,7 @@ export function gpopOp(vm: VM): void {
   }
   const { absCellIndex } = ensureGlobalRefAbs(vm, ref);
   const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
-  const topAbsCellIndex = globalBaseCell + vm.GP - 1;
+  const topAbsCellIndex = globalBaseCell + vm.gp - 1;
   if (absCellIndex !== topAbsCellIndex) {
     throw new Error('gpop expects reference to heap top');
   }
@@ -122,8 +122,8 @@ export function gpopOp(vm: VM): void {
   const headerValue = vm.memory.readFloat32(SEG_DATA, absCellIndex * CELL_SIZE);
   if (isList(headerValue)) {
     const span = getListLength(headerValue) + 1;
-    vm.GP -= span;
+    vm.gp -= span;
     return;
   }
-  vm.GP = vm.GP - 1;
+  vm.gp = vm.gp - 1;
 }

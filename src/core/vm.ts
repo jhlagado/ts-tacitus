@@ -475,6 +475,7 @@ export class VM {
  * Phase B: Public absolute register fields with validation shims.
  * Expose `sp`, `rsp`, `bp`, and `gp` as properties mapped to internal absolute cell indices.
  */
+// eslint-disable-next-line no-redeclare
 export interface VM {
   /** Absolute cell index for data stack top (one past TOS). */
   sp: number;

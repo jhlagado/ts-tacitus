@@ -6,6 +6,7 @@ import {
   CELL_SIZE,
   SEG_DATA,
   RSTACK_BASE,
+  RSTACK_BASE_CELLS,
   createDataRefAbs,
 } from '@src/core';
 import { Op } from '../opcodes';
@@ -14,8 +15,8 @@ import { readCapsuleLayoutFromHandle } from './layout';
 
 export function exitConstructorOp(vm: VM): void {
   // Number of locals currently reserved in this frame (cells)
-  const oldBpCells = vm.BP;
-  const localCount = vm.RSP - oldBpCells;
+  const oldBpRel = vm.bp - RSTACK_BASE_CELLS;
+  const localCount = vm.rsp - RSTACK_BASE_CELLS - oldBpRel;
 
   // Wrap current IP as CODE entry for dispatch body
   const entryAddr = vm.IP;
@@ -26,21 +27,23 @@ export function exitConstructorOp(vm: VM): void {
 
   // Push DATA_REF handle to the capsule header on data stack
   // Use absolute DATA_REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
-  const headerCellIndex = vm.RSP - 1;
-  const absHeaderCellIndex = RSTACK_BASE / CELL_SIZE + headerCellIndex;
+  const headerCellIndex = vm.rsp - RSTACK_BASE_CELLS - 1;
+  const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
   vm.push(createDataRefAbs(absHeaderCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
-  const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpCells - 1) * CELL_SIZE);
-  const returnAddr = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpCells - 2) * CELL_SIZE);
+  const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpRel - 1) * CELL_SIZE);
+  const returnAddr = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpRel - 2) * CELL_SIZE);
 
-  vm.BP = Math.trunc(savedBP);
+  // Saved BP stored as relative cells on return stack; restore as absolute
+  vm.bp = Math.trunc(savedBP) + RSTACK_BASE_CELLS;
   vm.IP = Math.trunc(returnAddr);
 }
 
 export function exitDispatchOp(_vm: VM): void {
   // Epilogue: restore caller BP and return address without touching capsule payload
-  _vm.BP = _vm.rpop();
+  // Saved BP stored as relative cells
+  _vm.bp = _vm.rpop() + RSTACK_BASE_CELLS;
   _vm.IP = _vm.rpop();
 }
 
@@ -54,9 +57,10 @@ export function dispatchOp(_vm: VM): void {
 
   // Save caller return address and BP; rebind BP to capsule payload base
   _vm.rpush(_vm.IP);
-  _vm.rpush(_vm.BP);
+  // Save BP as relative cells for uniform frame convention
+  _vm.rpush(_vm.bp - RSTACK_BASE_CELLS);
   // Capsule lives on RSTACK; convert absolute base byte address to frame-relative BP (in cells)
-  _vm.BP = Math.trunc((layout.absBaseAddrBytes - RSTACK_BASE) / CELL_SIZE);
+  _vm.bp = RSTACK_BASE_CELLS + Math.trunc((layout.absBaseAddrBytes - RSTACK_BASE) / CELL_SIZE);
 
   // Jump to dispatch entry address (CODE slot0)
   const { value: entryAddr } = fromTaggedValue(layout.codeRef);

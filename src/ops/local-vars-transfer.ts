@@ -14,6 +14,7 @@ import {
   STACK_BASE,
   STACK_BASE_CELLS,
   RSTACK_BASE,
+  RSTACK_BASE_CELLS,
   CELL_SIZE,
   dropList,
 } from '@src/core';
@@ -46,7 +47,7 @@ export function rpushList(vm: VM): number {
 
   if (slotCount === 0) {
     // Compute header byte address from cell-oriented RSP to avoid direct RP usage
-    const headerAddr = vm.RSP * CELL_SIZE;
+    const headerAddr = (vm.rsp - RSTACK_BASE_CELLS) * CELL_SIZE;
     vm.rpush(header);
     dropList(vm);
     return headerAddr;
@@ -60,7 +61,7 @@ export function rpushList(vm: VM): number {
     elementCell += 1;
   }
   // Compute header byte address from cell-oriented RSP (RP accessor removed)
-  const headerAddr = vm.RSP * CELL_SIZE;
+  const headerAddr = (vm.rsp - RSTACK_BASE_CELLS) * CELL_SIZE;
   vm.rpush(header);
   dropList(vm);
 

@@ -3,7 +3,17 @@
  * List construction and conversion operations (builders).
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, Verb } from '@src/core';
+import {
+  VM,
+  fromTaggedValue,
+  toTaggedValue,
+  Tag,
+  NIL,
+  SEG_DATA,
+  CELL_SIZE,
+  Verb,
+  RSTACK_BASE_CELLS,
+} from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBoundsAbs, computeHeaderAddrAbs } from './core-helpers';
 import { evalOp } from '../core';
@@ -24,7 +34,7 @@ export function openListOp(vm: VM): void {
  * Closes LIST construction.
  */
 export function closeListOp(vm: VM): void {
-  if (vm.RSP < 1) {
+  if (vm.rsp - RSTACK_BASE_CELLS < 1) {
     throw new ReturnStackUnderflowError('closeListOp', vm.getStackData());
   }
 

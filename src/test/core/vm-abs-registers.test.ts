@@ -29,4 +29,3 @@ describe('VM absolute registers (Phase B shims)', () => {
     expect(vm.rsp).toBe(rstackBaseCells + 1);
   });
 });
-
