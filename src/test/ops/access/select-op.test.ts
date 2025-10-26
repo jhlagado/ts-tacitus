@@ -41,7 +41,7 @@ describe('selectOp - Path-based address access', () => {
       // Should have: target path target-ref
       const targetRef = vm.peek();
       expect(isRef(targetRef)).toBe(true);
-  expect(getRefRegion(targetRef)).toBe('stack');
+      expect(getRefRegion(targetRef)).toBe('stack');
     });
 
     test('should return false for simple target', () => {

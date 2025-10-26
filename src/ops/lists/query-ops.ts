@@ -116,7 +116,7 @@ export function elemOp(vm: VM): void {
 
     if (currentLogicalIndex === idx) {
       const absCellIndex = elementStartAddr / CELL_SIZE;
-  vm.push(createDataRef(absCellIndex));
+      vm.push(createDataRef(absCellIndex));
       return;
     }
 
@@ -295,7 +295,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   if (rhsTag === Tag.LIST) {
     // Absolute in-place update
-  updateListInPlace(vm, slot.resolvedAbsAddr);
+    updateListInPlace(vm, slot.resolvedAbsAddr);
     return true;
   }
 
@@ -380,7 +380,7 @@ export function walkOp(vm: VM): void {
   vm.push(nextIdx);
   if (isList(v)) {
     const absCellIndex = cellAbsAddr / CELL_SIZE;
-  vm.push(createDataRef(absCellIndex));
+    vm.push(createDataRef(absCellIndex));
   } else {
     vm.push(v);
   }
@@ -408,7 +408,7 @@ export function findOp(vm: VM): void {
     const currentKey = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     if (areValuesEqual(currentKey, key)) {
       const absCellIndex = valueAbsAddr / CELL_SIZE;
-  vm.push(createDataRef(absCellIndex));
+      vm.push(createDataRef(absCellIndex));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
@@ -421,7 +421,7 @@ export function findOp(vm: VM): void {
   }
   if (defaultValueAddr !== -1) {
     const absCellIndex = defaultValueAddr / CELL_SIZE;
-  vm.push(createDataRef(absCellIndex));
+    vm.push(createDataRef(absCellIndex));
     return;
   }
   vm.push(NIL);
@@ -496,7 +496,7 @@ export function refOp(vm: VM): void {
   if (tag === Tag.LIST) {
     // sp is an absolute cell index; build absolute DATA_REF
     const headerCellIndex = vm.sp - 1;
-  vm.push(createDataRef(headerCellIndex));
+    vm.push(createDataRef(headerCellIndex));
   }
 }
 

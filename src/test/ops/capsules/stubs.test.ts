@@ -28,7 +28,7 @@ describe('capsule opcode stubs', () => {
 
     // Data stack: handle to RSTACK header
     const handle = vm.peek();
-  const { absoluteCellIndex } = decodeDataRef(handle);
+    const { absoluteCellIndex } = decodeDataRef(handle);
     const expectedAbsCellIndex = vm.rsp - 1;
     expect(absoluteCellIndex).toBe(expectedAbsCellIndex);
 

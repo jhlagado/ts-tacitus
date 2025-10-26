@@ -183,13 +183,13 @@ export function concatOp(vm: VM): void {
   const rhsInfo = isList(rhsTop)
     ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: (vm.sp - 1) * CELL_SIZE }
     : isRef(rhsTop)
-  ? getListBounds(vm, rhsTop)
+      ? getListBounds(vm, rhsTop)
       : null;
   const lhsHeaderAddr = (vm.sp - (rhsSize + 1)) * CELL_SIZE;
   const lhsInfo = isList(lhsTop)
     ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
     : isRef(lhsTop)
-  ? getListBounds(vm, lhsTop)
+      ? getListBounds(vm, lhsTop)
       : null;
 
   const lhsIsList = !!lhsInfo;

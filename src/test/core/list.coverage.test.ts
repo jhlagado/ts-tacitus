@@ -24,7 +24,7 @@ describe('core/list additional coverage', () => {
   test('getListElemAddr returns -1 for negative index', () => {
     const header = toTaggedValue(1, Tag.LIST);
     const headerAbsAddr = STACK_BASE + 100;
-  expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
+    expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
   });
 
   test('getListElemAddr computes correct addresses for flat list', () => {
@@ -43,14 +43,14 @@ describe('core/list additional coverage', () => {
 
     // Logical index 0 refers to nearest element (just below header)
     const headerAbsAddr = STACK_BASE + headerAddr;
-  expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE + headerAddr - 4);
-  expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE + headerAddr - 8);
-  expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE + headerAddr - 12);
+    expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE + headerAddr - 4);
+    expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE + headerAddr - 8);
+    expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE + headerAddr - 12);
   });
 
   test('getListElemAddr throws for non-list header', () => {
-  expect(() => getListElemAddr(vm, 42, STACK_BASE, 0)).toThrow(
-  'Invalid LIST header provided to getListElemAddr',
+    expect(() => getListElemAddr(vm, 42, STACK_BASE, 0)).toThrow(
+      'Invalid LIST header provided to getListElemAddr',
     );
   });
 
@@ -58,8 +58,8 @@ describe('core/list additional coverage', () => {
     const cellIndex = 10;
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
     const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
-  const ref = createDataRef(absCellIndex);
-  expect(getListBounds(vm, ref)).toBeNull();
+    const ref = createDataRef(absCellIndex);
+    expect(getListBounds(vm, ref)).toBeNull();
   });
 
   test('getListBounds follows ref-to-ref indirection', () => {
@@ -74,11 +74,11 @@ describe('core/list additional coverage', () => {
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + headerIndex * CELL_SIZE, header);
 
     const innerRefIndex = headerIndex + 1;
-  const innerRef = createDataRef(GLOBAL_BASE / CELL_SIZE + headerIndex);
+    const innerRef = createDataRef(GLOBAL_BASE / CELL_SIZE + headerIndex);
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + innerRefIndex * CELL_SIZE, innerRef);
 
-  const outerRef = createDataRef(GLOBAL_BASE / CELL_SIZE + innerRefIndex);
-  const bounds = getListBounds(vm, outerRef);
+    const outerRef = createDataRef(GLOBAL_BASE / CELL_SIZE + innerRefIndex);
+    const bounds = getListBounds(vm, outerRef);
     expect(bounds).not.toBeNull();
     expect(bounds?.header).toBe(header);
     expect(bounds?.absBaseAddrBytes).toBe(GLOBAL_BASE + baseIndex * CELL_SIZE);
@@ -96,7 +96,7 @@ describe('core/list additional coverage', () => {
 
     const headerAbsAddr = GLOBAL_BASE + headerIndex * CELL_SIZE;
     // Element 0 is just below header (absolute)
-  const addr0 = getListElemAddr(vm, header, headerAbsAddr, 0);
+    const addr0 = getListElemAddr(vm, header, headerAbsAddr, 0);
     expect(addr0).toBe(headerAbsAddr - CELL_SIZE);
   });
 });
