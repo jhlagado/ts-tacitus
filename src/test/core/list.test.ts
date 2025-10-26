@@ -17,7 +17,7 @@ import { createList } from '../utils/core-test-utils';
 
 function resetVM(): VM {
   const vm = new VM();
-  vm.reset();
+  vm.IP = 0;
   return vm;
 }
 

@@ -8,7 +8,7 @@ describe('VM', () => {
   beforeEach(() => {
     vm = new VM();
     const compiler = new Compiler(vm);
-    vm.initializeCompiler(compiler);
+    vm.compiler = compiler;
   });
 
   describe('Stack operations', () => {

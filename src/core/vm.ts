@@ -12,8 +12,11 @@ import {
   CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
-  RSTACK_TOP,
-  STACK_TOP,
+  // Derived cell constants for direct use (avoid tiny getters)
+  STACK_BASE_CELLS,
+  STACK_TOP_CELLS,
+  RSTACK_BASE_CELLS,
+  RSTACK_TOP_CELLS,
 } from './constants';
 import { fromTaggedValue, NIL } from './tagged';
 import { Digest } from '../strings/digest';
@@ -58,21 +61,8 @@ export class VM {
   dictHead: number;
   dictLocalSlots: number;
 
-  private get stackBaseCells(): number {
-    return STACK_BASE / CELL_SIZE;
-  }
-
-  private get stackTopCells(): number {
-    return STACK_TOP / CELL_SIZE;
-  }
-
-  private get rstackBaseCells(): number {
-    return RSTACK_BASE / CELL_SIZE;
-  }
-
-  private get rstackTopCells(): number {
-    return RSTACK_TOP / CELL_SIZE;
-  }
+  // Note: previously tiny getters returned *_BASE/TOP divided by CELL_SIZE.
+  // We now use precomputed *_CELLS constants from ./constants for clarity and speed.
 
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
@@ -81,9 +71,9 @@ export class VM {
     this.memory = new Memory();
     this.IP = 0;
     this.running = true;
-    this.sp = this.stackBaseCells;
-    this.rsp = this.rstackBaseCells;
-    this.bp = this.rstackBaseCells;
+    this.sp = STACK_BASE_CELLS;
+    this.rsp = RSTACK_BASE_CELLS;
+    this.bp = RSTACK_BASE_CELLS;
     this.gp = 0;
 
     this.digest = new Digest(this.memory);
@@ -97,13 +87,7 @@ export class VM {
     registerBuiltins(this, this.symbolTable);
   }
 
-  /**
-   * Initializes the compiler for the VM.
-   * @param compiler The compiler instance
-   */
-  initializeCompiler(compiler: Compiler): void {
-    this.compiler = compiler;
-  }
+  // Compiler is wired by assigning vm.compiler directly to reduce OO ceremony.
 
   // Uppercase SP/RSP/BP/GP shims removed: use sp/rsp/bp/gp (absolute cells)
 
@@ -120,7 +104,7 @@ export class VM {
       throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
     }
     const relativeCells = rawBytes / CELL_SIZE_BYTES;
-    this.bp = this.rstackBaseCells + relativeCells;
+    this.bp = RSTACK_BASE_CELLS + relativeCells;
     if (this.debug) this.ensureInvariants();
   }
 
@@ -133,11 +117,7 @@ export class VM {
     if (this.sp < 0 || this.rsp < 0 || this.bp < 0) {
       throw new Error('Invariant violation: negative stack pointer');
     }
-    if (
-      !Number.isInteger(this.sp) ||
-      !Number.isInteger(this.rsp) ||
-      !Number.isInteger(this.bp)
-    ) {
+    if (!Number.isInteger(this.sp) || !Number.isInteger(this.rsp) || !Number.isInteger(this.bp)) {
       throw new Error('Invariant violation: non-integer stack pointer');
     }
     // Global pointer sanity (non-negative integer)
@@ -148,10 +128,10 @@ export class VM {
       throw new Error('Invariant violation: non-integer global pointer');
     }
     // Bounds vs configured sizes
-    if (this.sp < this.stackBaseCells || this.sp > this.stackTopCells) {
+    if (this.sp < STACK_BASE_CELLS || this.sp > STACK_TOP_CELLS) {
       throw new Error('Invariant violation: SP outside stack segment');
     }
-    if (this.rsp < this.rstackBaseCells || this.rsp > this.rstackTopCells) {
+    if (this.rsp < RSTACK_BASE_CELLS || this.rsp > RSTACK_TOP_CELLS) {
       throw new Error('Invariant violation: RSP outside return stack segment');
     }
     // BP within [0, RSP]
@@ -166,11 +146,11 @@ export class VM {
    * @throws {StackOverflowError} If stack overflow occurs
    */
   push(value: number): void {
-    if (this.sp >= this.stackTopCells) {
+    if (this.sp >= STACK_TOP_CELLS) {
       throw new StackOverflowError('push', this.getStackData());
     }
 
-    const offsetBytes = (this.sp - this.stackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
     this.sp += 1;
@@ -183,12 +163,12 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   pop(): number {
-    if (this.sp <= this.stackBaseCells) {
+    if (this.sp <= STACK_BASE_CELLS) {
       throw new StackUnderflowError('pop', 1, this.getStackData());
     }
 
     this.sp -= 1;
-    const offsetBytes = (this.sp - this.stackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
@@ -200,11 +180,11 @@ export class VM {
    * @throws {StackUnderflowError} If stack is empty
    */
   peek(): number {
-    if (this.sp <= this.stackBaseCells) {
+    if (this.sp <= STACK_BASE_CELLS) {
       throw new StackUnderflowError('peek', 1, this.getStackData());
     }
 
-    const offsetBytes = (this.sp - this.stackBaseCells - 1) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - STACK_BASE_CELLS - 1) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
@@ -216,11 +196,11 @@ export class VM {
    */
   peekAt(slotOffset: number): number {
     const requiredCells = slotOffset + 1;
-    if (this.sp - this.stackBaseCells < requiredCells) {
+    if (this.sp - STACK_BASE_CELLS < requiredCells) {
       throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
     }
 
-    const offsetBytes = (this.sp - this.stackBaseCells - requiredCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
@@ -231,7 +211,7 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   popArray(size: number): number[] {
-    if (this.sp - this.stackBaseCells < size) {
+    if (this.sp - STACK_BASE_CELLS < size) {
       throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
@@ -249,11 +229,11 @@ export class VM {
    * @throws {ReturnStackOverflowError} If return stack overflow occurs
    */
   rpush(value: number): void {
-    if (this.rsp >= this.rstackTopCells) {
+    if (this.rsp >= RSTACK_TOP_CELLS) {
       throw new ReturnStackOverflowError('rpush', this.getStackData());
     }
 
-    const offsetBytes = (this.rsp - this.rstackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
     this.rsp += 1;
@@ -266,22 +246,15 @@ export class VM {
    * @throws {ReturnStackUnderflowError} If return stack underflow occurs
    */
   rpop(): number {
-    if (this.rsp <= this.rstackBaseCells) {
+    if (this.rsp <= RSTACK_BASE_CELLS) {
       throw new ReturnStackUnderflowError('rpop', this.getStackData());
     }
 
     this.rsp -= 1;
-    const offsetBytes = (this.rsp - this.rstackBaseCells) * CELL_SIZE_BYTES;
+    const offsetBytes = (this.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
     if (this.debug) this.ensureInvariants();
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
-  }
-
-  /**
-   * Resets the instruction pointer to the beginning.
-   */
-  reset() {
-    this.IP = 0;
   }
 
   /**
@@ -289,9 +262,7 @@ export class VM {
    * @returns The byte value
    */
   next8(): number {
-    const value = this.memory.read8(SEG_CODE, this.IP);
-    this.IP += 1;
-    return value;
+    return next8FromCode(this);
   }
 
   /**
@@ -299,17 +270,7 @@ export class VM {
    * @returns The decoded opcode or user-defined word address
    */
   nextOpcode(): number {
-    const firstByte = this.memory.read8(SEG_CODE, this.IP);
-    this.IP += 1;
-    if ((firstByte & 0x80) !== 0) {
-      const secondByte = this.memory.read8(SEG_CODE, this.IP);
-      this.IP += 1;
-      const lowBits = firstByte & 0x7f;
-      const highBits = secondByte << 7;
-      return highBits | lowBits;
-    }
-
-    return firstByte;
+    return nextOpcodeFromCode(this);
   }
 
   /**
@@ -317,10 +278,7 @@ export class VM {
    * @returns The signed integer value
    */
   nextInt16(): number {
-    const unsignedValue = this.memory.read16(SEG_CODE, this.IP);
-    const signedValue = (unsignedValue << 16) >> 16;
-    this.IP += 2;
-    return signedValue;
+    return nextInt16FromCode(this);
   }
 
   /**
@@ -328,9 +286,7 @@ export class VM {
    * @returns The float value
    */
   nextFloat32(): number {
-    const value = this.memory.readFloat32(SEG_CODE, this.IP);
-    this.IP += CELL_SIZE;
-    return value;
+    return nextFloat32FromCode(this);
   }
 
   /**
@@ -338,9 +294,7 @@ export class VM {
    * @returns The decoded code pointer
    */
   nextAddress(): number {
-    const tagNum = this.nextFloat32();
-    const { value: pointer } = fromTaggedValue(tagNum);
-    return pointer;
+    return nextAddressFromCode(this);
   }
 
   /**
@@ -348,9 +302,7 @@ export class VM {
    * @returns The unsigned integer value
    */
   nextUint16(): number {
-    const value = this.memory.read16(SEG_CODE, this.IP);
-    this.IP += 2;
-    return value;
+    return nextUint16FromCode(this);
   }
 
   /**
@@ -359,7 +311,7 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    const depthCells = this.sp - this.stackBaseCells;
+    const depthCells = this.sp - STACK_BASE_CELLS;
     for (let i = 0; i < depthCells; i += 1) {
       // Read via unified data segment for forward-compatibility
       const byteOffset = STACK_BASE + i * CELL_SIZE_BYTES;
@@ -376,7 +328,7 @@ export class VM {
    * @throws {StackUnderflowError} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
-    if (this.sp - this.stackBaseCells < size) {
+    if (this.sp - STACK_BASE_CELLS < size) {
       throw new StackUnderflowError(operation, size, this.getStackData());
     }
   }
@@ -418,3 +370,82 @@ export class VM {
 }
 
 // Registers are plain public fields (sp, rsp, bp, gp). No special accessors required.
+
+// ---------- Pure helpers to decouple logic from VM class ----------
+
+export function ensureInvariantsPure(vmLike: {
+  sp: number;
+  rsp: number;
+  bp: number;
+  gp: number;
+}): void {
+  if (vmLike.sp < 0 || vmLike.rsp < 0 || vmLike.bp < 0) {
+    throw new Error('Invariant violation: negative stack pointer');
+  }
+  if (
+    !Number.isInteger(vmLike.sp) ||
+    !Number.isInteger(vmLike.rsp) ||
+    !Number.isInteger(vmLike.bp)
+  ) {
+    throw new Error('Invariant violation: non-integer stack pointer');
+  }
+  if (vmLike.gp < 0) {
+    throw new Error('Invariant violation: negative global pointer');
+  }
+  if (!Number.isInteger(vmLike.gp)) {
+    throw new Error('Invariant violation: non-integer global pointer');
+  }
+  if (vmLike.sp < STACK_BASE_CELLS || vmLike.sp > STACK_TOP_CELLS) {
+    throw new Error('Invariant violation: SP outside stack segment');
+  }
+  if (vmLike.rsp < RSTACK_BASE_CELLS || vmLike.rsp > RSTACK_TOP_CELLS) {
+    throw new Error('Invariant violation: RSP outside return stack segment');
+  }
+  if (vmLike.bp > vmLike.rsp) {
+    throw new Error(`Invariant violation: BP (${vmLike.bp}) > RSP (${vmLike.rsp})`);
+  }
+}
+
+export function next8FromCode(vmLike: { memory: Memory; IP: number }): number {
+  const value = vmLike.memory.read8(SEG_CODE, vmLike.IP);
+  vmLike.IP += 1;
+  return value;
+}
+
+export function nextOpcodeFromCode(vmLike: { memory: Memory; IP: number }): number {
+  const firstByte = vmLike.memory.read8(SEG_CODE, vmLike.IP);
+  vmLike.IP += 1;
+  if ((firstByte & 0x80) !== 0) {
+    const secondByte = vmLike.memory.read8(SEG_CODE, vmLike.IP);
+    vmLike.IP += 1;
+    const lowBits = firstByte & 0x7f;
+    const highBits = secondByte << 7;
+    return highBits | lowBits;
+  }
+  return firstByte;
+}
+
+export function nextInt16FromCode(vmLike: { memory: Memory; IP: number }): number {
+  const unsignedValue = vmLike.memory.read16(SEG_CODE, vmLike.IP);
+  const signedValue = (unsignedValue << 16) >> 16;
+  vmLike.IP += 2;
+  return signedValue;
+}
+
+export function nextUint16FromCode(vmLike: { memory: Memory; IP: number }): number {
+  const value = vmLike.memory.read16(SEG_CODE, vmLike.IP);
+  vmLike.IP += 2;
+  return value;
+}
+
+export function nextFloat32FromCode(vmLike: { memory: Memory; IP: number }): number {
+  const value = vmLike.memory.readFloat32(SEG_CODE, vmLike.IP);
+  vmLike.IP += CELL_SIZE;
+  return value;
+}
+
+export function nextAddressFromCode(vmLike: { memory: Memory; IP: number }): number {
+  const tagNum = nextFloat32FromCode(vmLike);
+  const { value: pointer } = fromTaggedValue(tagNum);
+  return pointer;
+}
