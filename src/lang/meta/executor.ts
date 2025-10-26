@@ -29,7 +29,7 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
 export function runImmediateCode(address: number): void {
   const savedIP = vm.IP;
   const savedBP = vm.bp;
-  const savedRSPRel = vm.rsp - RSTACK_BASE_CELLS;
+  const savedRSPRel = vm.rdepth();
   const savedRunning = vm.running;
   const savedCP = vm.compiler.CP;
   const savedBCP = vm.compiler.BCP;
@@ -47,7 +47,7 @@ export function runImmediateCode(address: number): void {
     const isUserDefined = (firstByte & 0x80) !== 0;
     const opcode = vm.nextOpcode();
     executeOp(vm, opcode as Op, isUserDefined);
-    if (vm.IP === savedIP && vm.rsp - RSTACK_BASE_CELLS === savedRSPRel) {
+    if (vm.IP === savedIP && vm.rdepth() === savedRSPRel) {
       break;
     }
   }

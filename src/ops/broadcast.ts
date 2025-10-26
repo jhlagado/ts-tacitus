@@ -9,7 +9,7 @@
 import { VM } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { toTaggedValue, Tag } from '@src/core';
-import { SEG_DATA, STACK_BASE, CELL_SIZE, STACK_BASE_CELLS } from '@src/core';
+import { SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
@@ -263,7 +263,7 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   dupOp(vm);
 
   // Transform the top copy in place using direct memory writes
-  const headerAddr = (vm.sp - STACK_BASE_CELLS - 1) * CELL_SIZE;
+  const headerAddr = (vm.depth() - 1) * CELL_SIZE;
   const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + headerAddr);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {

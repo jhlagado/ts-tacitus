@@ -298,16 +298,16 @@ export function varRefOp(vm: VM): void {
 /**
  * Debug opcode to dump current stack frame state
  */
-import { STACK_BASE_CELLS } from '@src/core';
+// (no longer using STACK_BASE_CELLS in debug dump)
 
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
     'RSP(cells):',
-    vm.rsp - RSTACK_BASE_CELLS,
+    vm.rdepth(),
     'SP(cells):',
-    vm.sp - STACK_BASE_CELLS,
+    vm.depth(),
     'BP(cells):',
     vm.bp - RSTACK_BASE_CELLS,
     'GP(cells):',

@@ -16,7 +16,7 @@ import { readCapsuleLayoutFromHandle } from './layout';
 export function exitConstructorOp(vm: VM): void {
   // Number of locals currently reserved in this frame (cells)
   const oldBpRel = vm.bp - RSTACK_BASE_CELLS;
-  const localCount = vm.rsp - RSTACK_BASE_CELLS - oldBpRel;
+  const localCount = vm.rdepth() - oldBpRel;
 
   // Wrap current IP as CODE entry for dispatch body
   const entryAddr = vm.IP;
@@ -27,7 +27,7 @@ export function exitConstructorOp(vm: VM): void {
 
   // Push DATA_REF handle to the capsule header on data stack
   // Use absolute DATA_REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
-  const headerCellIndex = vm.rsp - RSTACK_BASE_CELLS - 1;
+  const headerCellIndex = vm.rdepth() - 1;
   const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
   vm.push(createDataRef(absHeaderCellIndex));
 
