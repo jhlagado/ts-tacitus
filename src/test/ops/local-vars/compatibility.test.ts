@@ -2,7 +2,7 @@
  * Tests for compound variable compatibility checking
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { isCompatible } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag } from '../../../core/tagged';

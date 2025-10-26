@@ -2,7 +2,7 @@
  * Integration tests for local variables with existing Tacit features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/global-state';
+import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Local Variables Integration with Existing Features', () => {

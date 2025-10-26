@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
 import { SEG_DATA, CELL_SIZE } from '../../core/constants';
 

@@ -6,7 +6,7 @@
  * leaving only the top element.
  */
 
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { nipOp } from '../../../ops/stack';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 

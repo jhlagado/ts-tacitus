@@ -1,4 +1,4 @@
-import { initializeInterpreter, vm } from '../../core/global-state';
+import { initializeInterpreter, vm } from '../../lang/runtime';
 import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
 import { Tag, toTaggedValue, CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE } from '../../core';
 

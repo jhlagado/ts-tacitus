@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../core/global-state';
+import { vm, initializeInterpreter } from '../../../lang/runtime';
 import { ReturnStackUnderflowError } from '../../../core/errors';
 import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';

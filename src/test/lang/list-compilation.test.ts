@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE } from '../../core';
-import { initializeInterpreter, vm } from '../../core/global-state';
+import { initializeInterpreter, vm } from '../../lang/runtime';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { Op } from '../../ops/opcodes';

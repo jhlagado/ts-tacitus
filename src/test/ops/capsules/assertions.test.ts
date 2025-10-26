@@ -1,5 +1,5 @@
 import { Tag, toTaggedValue } from '../../../core';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { assertCapsuleShape } from '../../../ops/capsules/assertions';
 import { resetVM, pushTestList } from '../../utils/vm-test-utils';
 

@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { fromTaggedValue, Tag } from '../../../../core/tagged';
 import { executeTacitCode, resetVM, logStack } from '../../../utils/vm-test-utils';
-import { initializeInterpreter } from '../../../../core/global-state';
+import { initializeInterpreter } from '../../../../lang/runtime';
 
 describe('List Creation Operations', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { binaryFlat, binaryRecursive, unaryFlat, unaryRecursive } from '../../../ops/broadcast';
 import {
   resetVM,

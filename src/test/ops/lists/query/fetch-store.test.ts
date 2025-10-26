@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../../core/global-state';
+import { vm, initializeInterpreter } from '../../../../lang/runtime';
 import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 import { fetchOp, storeOp, loadOp } from '../../../../ops/lists';
 import { getTag, Tag } from '../../../../core/tagged';

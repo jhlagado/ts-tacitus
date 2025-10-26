@@ -1,4 +1,4 @@
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { resetVM, executeTacitWithState } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import {

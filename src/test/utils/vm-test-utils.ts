@@ -23,7 +23,7 @@ import {
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../core/global-state';
+import { initializeInterpreter, vm } from '../../lang/runtime';
 /**
  * Reset VM to clean state for testing
  */

@@ -1,7 +1,7 @@
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
 
 describe('case control flow', () => {

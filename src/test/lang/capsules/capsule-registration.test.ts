@@ -1,6 +1,6 @@
 import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
 import { Op } from '../../../ops/opcodes';
-import { vm, initializeInterpreter } from '../../../core/global-state';
+import { vm, initializeInterpreter } from '../../../lang/runtime';
 import { resetVM } from '../../utils/vm-test-utils';
 
 beforeAll(() => {

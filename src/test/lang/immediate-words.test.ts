@@ -1,7 +1,7 @@
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { Op } from '../../ops/opcodes';
 import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
 

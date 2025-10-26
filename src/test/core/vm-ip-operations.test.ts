@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, toTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../../core/global-state';
+import { initializeInterpreter, vm } from '../../lang/runtime';
 
 const CELL_SIZE = 4;
 

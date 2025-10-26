@@ -2,7 +2,7 @@
  * Tests for in-place compound mutation functionality
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import {
   updateListInPlace as mutateCompoundInPlace,
