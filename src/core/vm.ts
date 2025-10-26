@@ -321,6 +321,16 @@ export class VM {
     return stackData;
   }
 
+  /** Returns current data stack depth in slots (cells). */
+  depth(): number {
+    return this.sp - STACK_BASE_CELLS;
+  }
+
+  /** Returns current return stack depth in slots (cells). */
+  rdepth(): number {
+    return this.rsp - RSTACK_BASE_CELLS;
+  }
+
   /**
    * Ensures stack has minimum number of elements.
    * @param size Required stack depth
@@ -334,10 +344,21 @@ export class VM {
   }
 
   /**
+   * Ensures return stack has minimum number of elements.
+   * @param size Required return stack depth
+   * @param operation Operation name for error reporting
+   * @throws {ReturnStackUnderflowError} If insufficient return stack elements
+   */
+  ensureRStackSize(size: number, operation: string): void {
+    if (this.rsp - RSTACK_BASE_CELLS < size) {
+      throw new ReturnStackUnderflowError(operation, this.getStackData());
+    }
+  }
+
+  /**
    * Gets the current compiled bytecode.
    * @returns Array of code bytes
    */
-  
 
   /**
    * Resolves a symbol name to a tagged value.
