@@ -239,7 +239,7 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
       expect(vm.getStackData()).toEqual([42, 42]);
 
-  vm.sp = STACK_BASE / CELL_SIZE;
+      vm.sp = STACK_BASE / CELL_SIZE;
       vm.push(5);
 
       const codeBlockRef = createCodeRef(100);

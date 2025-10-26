@@ -385,8 +385,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('System State Validation', () => {
     it('should maintain consistent VM state across all operations', () => {
-  const initialSP = vm.sp;
-  const initialRSP = vm.rsp; // absolute return stack cells
+      const initialSP = vm.sp;
+      const initialRSP = vm.rsp; // absolute return stack cells
 
       vm.push(42);
       vm.pushSymbolRef('dup');
@@ -397,8 +397,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
       vm.pop();
 
-  expect(vm.rsp).toBe(initialRSP);
-  expect(vm.sp).toBe(initialSP);
+      expect(vm.rsp).toBe(initialRSP);
+      expect(vm.sp).toBe(initialSP);
 
       vm.push(100);
       vm.pushSymbolRef('dup');

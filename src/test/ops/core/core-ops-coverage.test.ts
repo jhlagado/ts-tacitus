@@ -19,7 +19,7 @@ describe('Core Operations Branch Coverage', () => {
     test('should handle return stack underflow (lines 202-203)', () => {
       // Set up minimal return stack that will trigger underflow condition
       // Set return stack to 1 cell (4 bytes); less than required 2 cells (8 bytes)
-  vm.rsp = 1;
+      vm.rsp = 1;
 
       // Call exitOp which should hit the underflow branch
       exitOp(vm);
@@ -31,9 +31,13 @@ describe('Core Operations Branch Coverage', () => {
     test('should handle non-code return address (line 214)', () => {
       // Set up return stack properly with enough entries
       vm.unsafeSetBPBytes(16); // Set base pointer (bytes -> cells)
-  vm.rsp = 4; // 4 cells = 16 bytes to match BP
-  // Save BP as relative cells (depth)
-  vm.rpush(vm.bp - (require('../../../core/constants').RSTACK_BASE / require('../../../core/constants').CELL_SIZE)); // BP saved (relative)
+      vm.rsp = 4; // 4 cells = 16 bytes to match BP
+      // Save BP as relative cells (depth)
+      vm.rpush(
+        vm.bp -
+          require('../../../core/constants').RSTACK_BASE /
+            require('../../../core/constants').CELL_SIZE,
+      ); // BP saved (relative)
       vm.rpush(1000); // Non-code return address (number, not tagged as CODE)
 
       exitOp(vm);
@@ -93,7 +97,7 @@ describe('Core Operations Branch Coverage', () => {
   describe('Error handling branches', () => {
     test('should handle edge case in exitOp', () => {
       // Test that exitOp handles edge cases properly
-  vm.rsp = 1; // Minimal valid return stack (1 cell) triggers early return condition
+      vm.rsp = 1; // Minimal valid return stack (1 cell) triggers early return condition
 
       exitOp(vm);
 

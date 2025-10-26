@@ -101,7 +101,6 @@ export class VM {
     registerBuiltins(this, this.symbolTable);
   }
 
-
   /**
    * Initializes the compiler for the VM.
    * @param compiler The compiler instance

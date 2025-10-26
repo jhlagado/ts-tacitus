@@ -31,8 +31,8 @@ describe('Function Exit Behavior', () => {
   });
 
   test('should properly restore BP after function with local variables', () => {
-  const initialBP = vm.bp;
-  const initialRSP = vm.rsp;
+    const initialBP = vm.bp;
+    const initialRSP = vm.rsp;
 
     const result = executeTacitCode(`
       : func-with-vars 42 var x x ;
@@ -47,8 +47,8 @@ describe('Function Exit Behavior', () => {
   });
 
   test('should handle nested function calls correctly', () => {
-  const initialBP = vm.bp;
-  const initialRSP = vm.rsp;
+    const initialBP = vm.bp;
+    const initialRSP = vm.rsp;
 
     const result = executeTacitCode(`
       : inner 1 add ;
