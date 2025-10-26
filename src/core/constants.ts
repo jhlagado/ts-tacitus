@@ -52,6 +52,26 @@ export const TOTAL_DATA_BYTES = RSTACK_TOP;
 export const DATA_BASE = GLOBAL_BASE;
 export const DATA_TOP = TOTAL_DATA_BYTES;
 
+// Derived cell-based constants (no behavior change)
+// Use these to keep arithmetic in cells and avoid repeated divisions by CELL_SIZE.
+export const GLOBAL_BASE_CELLS = GLOBAL_BASE / CELL_SIZE;
+export const GLOBAL_TOP_CELLS = GLOBAL_TOP / CELL_SIZE;
+
+export const STACK_BASE_CELLS = STACK_BASE / CELL_SIZE;
+export const STACK_TOP_CELLS = STACK_TOP / CELL_SIZE;
+
+export const RSTACK_BASE_CELLS = RSTACK_BASE / CELL_SIZE;
+export const RSTACK_TOP_CELLS = RSTACK_TOP / CELL_SIZE;
+
+export const DATA_BASE_CELLS = DATA_BASE / CELL_SIZE;
+export const DATA_TOP_CELLS = DATA_TOP / CELL_SIZE;
+
+export const GLOBAL_SIZE_CELLS = (GLOBAL_TOP - GLOBAL_BASE) / CELL_SIZE;
+export const STACK_SIZE_CELLS = (STACK_TOP - STACK_BASE) / CELL_SIZE;
+export const RSTACK_SIZE_CELLS = (RSTACK_TOP - RSTACK_BASE) / CELL_SIZE;
+
+export const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
+
 /** Maximum opcode value for built-in operations (0-127) */
 export const MAX_BUILTIN_OPCODE = 127;
 

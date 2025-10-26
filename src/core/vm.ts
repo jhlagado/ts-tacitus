@@ -104,9 +104,11 @@ export class VM {
   /**
    * Canonical stack pointer accessor (measured in cells).
    */
+  /** @deprecated Use vm.sp (absolute cells). */
   get SP(): number {
     return this._spCells - this.stackBaseCells;
   }
+  /** @deprecated Use vm.sp (absolute cells). */
   set SP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0 || cells > this.stackTopCells - this.stackBaseCells) {
       throw new Error(`SP set to invalid value: ${cells}`);
@@ -117,9 +119,11 @@ export class VM {
   /**
    * Return stack pointer (canonical, cells). Byte-based RP accessor removed after migration.
    */
+  /** @deprecated Use vm.rsp (absolute cells). */
   get RSP(): number {
     return this._rspCells - this.rstackBaseCells;
   }
+  /** @deprecated Use vm.rsp (absolute cells). */
   set RSP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`RSP set to invalid value: ${cells}`);
@@ -138,9 +142,11 @@ export class VM {
   /**
    * Base pointer accessors (cell-based canonical representation)
    */
+  /** @deprecated Use vm.bp (absolute cells). */
   get BP(): number {
     return this._bpCells - this.rstackBaseCells;
   }
+  /** @deprecated Use vm.bp (absolute cells). */
   set BP(cells: number) {
     const maxDepth = this.rstackTopCells - this.rstackBaseCells;
     if (!Number.isInteger(cells) || cells < 0 || cells > maxDepth) {
@@ -150,9 +156,11 @@ export class VM {
   }
 
   /** Global segment bump pointer (cells). */
+  /** @deprecated Use vm.gp (absolute cells). */
   get GP(): number {
     return this._gpCells;
   }
+  /** @deprecated Use vm.gp (absolute cells). */
   set GP(cells: number) {
     if (!Number.isInteger(cells) || cells < 0) {
       throw new Error(`GP set to invalid value: ${cells}`);
@@ -262,7 +270,7 @@ export class VM {
    */
   peekAt(slotOffset: number): number {
     const requiredCells = slotOffset + 1;
-    if (this.SP < requiredCells) {
+    if (this._spCells - this.stackBaseCells < requiredCells) {
       throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
     }
 
@@ -277,7 +285,7 @@ export class VM {
    * @throws {StackUnderflowError} If stack underflow occurs
    */
   popArray(size: number): number[] {
-    if (this.SP < size) {
+    if (this._spCells - this.stackBaseCells < size) {
       throw new StackUnderflowError('popArray', size, this.getStackData());
     }
 
@@ -405,7 +413,8 @@ export class VM {
    */
   getStackData(): number[] {
     const stackData: number[] = [];
-    for (let i = 0; i < this.SP; i += 1) {
+    const depthCells = this._spCells - this.stackBaseCells;
+    for (let i = 0; i < depthCells; i += 1) {
       // Read via unified data segment for forward-compatibility
       const byteOffset = STACK_BASE + i * CELL_SIZE_BYTES;
       stackData.push(this.memory.readFloat32(SEG_DATA, byteOffset));
@@ -421,7 +430,7 @@ export class VM {
    * @throws {StackUnderflowError} If insufficient stack elements
    */
   ensureStackSize(size: number, operation: string): void {
-    if (this.SP < size) {
+    if (this._spCells - this.stackBaseCells < size) {
       throw new StackUnderflowError(operation, size, this.getStackData());
     }
   }
