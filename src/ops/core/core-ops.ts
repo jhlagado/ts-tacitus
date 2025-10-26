@@ -505,7 +505,7 @@ export const groupRightOp: Verb = (vm: VM) => {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();
-  const sp1 = vm.sp - STACK_BASE_CELLS;
+    const sp1 = vm.sp - STACK_BASE_CELLS;
     const d = sp1 - sp0;
     vm.push(d);
   } catch (e) {

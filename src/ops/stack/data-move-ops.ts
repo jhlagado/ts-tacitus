@@ -9,10 +9,10 @@ import {
   fromTaggedValue,
   Tag,
   SEG_DATA,
-  STACK_BASE,
   CELL_SIZE,
   StackUnderflowError,
   VMError,
+  STACK_BASE_CELLS,
 } from '@src/core';
 
 /**
@@ -27,14 +27,15 @@ export type StackArgInfo = [number, number];
  * @returns [nextSlot, size] tuple
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
-  const slotAddr = vm.SP - startSlot - 1;
+  const depth = vm.sp - STACK_BASE_CELLS;
+  const slotIndexFromBase = depth - startSlot - 1;
 
-  if (slotAddr < 0 || slotAddr >= vm.SP) {
+  if (slotIndexFromBase < 0 || slotIndexFromBase >= depth) {
     return [startSlot + 1, 1];
   }
 
-  const addr = slotAddr * CELL_SIZE;
-  const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + addr);
+  const absByte = (vm.sp - startSlot - 1) * CELL_SIZE;
+  const value = vm.memory.readFloat32(SEG_DATA, absByte);
   const { tag, value: tagValue } = fromTaggedValue(value);
 
   if (tag === Tag.LIST) {
@@ -51,16 +52,14 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
  * @param startSlot Starting slot index
  * @param slotCount Number of slots to copy
  */
+// startSlot: offset from STACK_BASE (in cells)
 export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) return;
 
-  const startAddr = startSlot * CELL_SIZE;
-  let addr = startAddr;
-
   for (let i = 0; i < slotCount; i++) {
-    const slot = vm.memory.readFloat32(SEG_DATA, STACK_BASE + addr);
+    const absByte = (STACK_BASE_CELLS + startSlot + i) * CELL_SIZE;
+    const slot = vm.memory.readFloat32(SEG_DATA, absByte);
     vm.push(slot);
-    addr += CELL_SIZE;
   }
 }
 
@@ -71,24 +70,22 @@ export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
  * @param startSlot - The starting slot index (0-based, relative to the stack top).
  * @param slotCount - The number of slots to reverse.
  */
+// startSlot: offset from STACK_BASE (in cells)
 export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) return;
 
-  const startAddr = startSlot * CELL_SIZE;
-  const endAddr = startAddr + (slotCount - 1) * CELL_SIZE;
+  let leftByte = (STACK_BASE_CELLS + startSlot) * CELL_SIZE;
+  let rightByte = (STACK_BASE_CELLS + startSlot + slotCount - 1) * CELL_SIZE;
 
-  let left = startAddr;
-  let right = endAddr;
+  while (leftByte < rightByte) {
+  const temp = vm.memory.readFloat32(SEG_DATA, leftByte);
+  const rightVal = vm.memory.readFloat32(SEG_DATA, rightByte);
 
-  while (left < right) {
-    const temp = vm.memory.readFloat32(SEG_DATA, STACK_BASE + left);
-    const rightVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + right);
+  vm.memory.writeFloat32(SEG_DATA, leftByte, rightVal);
+  vm.memory.writeFloat32(SEG_DATA, rightByte, temp);
 
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + left, rightVal);
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + right, temp);
-
-    left += CELL_SIZE;
-    right -= CELL_SIZE;
+    leftByte += CELL_SIZE;
+    rightByte -= CELL_SIZE;
   }
 }
 
@@ -100,6 +97,7 @@ export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void
  * @param rangeSize - The number of slots in the range to rotate.
  * @param shiftSlots - The number of positions to rotate (positive for right rotation, negative for left).
  */
+// startSlot: offset from STACK_BASE (in cells)
 export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) return;
 
@@ -129,15 +127,16 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
   let currentSlot = 0;
 
   for (let i = 0; i <= index; i++) {
-    if (currentSlot >= vm.SP) {
+    const depth = vm.sp - STACK_BASE_CELLS;
+    if (currentSlot >= depth) {
       throw new StackUnderflowError('pick', index + 1, vm.getStackData());
     }
 
     const [nextSlot, size] = findElement(vm, currentSlot);
 
     if (i === index) {
-      const targetSlot = vm.SP - nextSlot;
-      return [targetSlot, size];
+      const targetStartSlot = (vm.sp - STACK_BASE_CELLS) - nextSlot;
+      return [targetStartSlot, size];
     }
 
     currentSlot = nextSlot;
@@ -160,7 +159,8 @@ function validateStackDepth(vm: VM, requiredElements: number, operationName: str
   let currentSlot = 0;
 
   for (let i = 0; i < requiredElements; i++) {
-    if (currentSlot >= vm.SP) {
+    const depth = vm.sp - STACK_BASE_CELLS;
+    if (currentSlot >= depth) {
       throw new StackUnderflowError(operationName, requiredElements, vm.getStackData());
     }
 
@@ -173,12 +173,12 @@ function validateStackDepth(vm: VM, requiredElements: number, operationName: str
  * Safely executes a stack operation with error handling and stack pointer restoration.
  */
 function safeStackOperation(vm: VM, operation: () => void, operationName: string): void {
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   try {
     operation();
   } catch (error) {
-    vm.SP = originalSP;
+    vm.sp = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -212,20 +212,20 @@ export const dupOp: Verb = (vm: VM) => {
 export const overOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 2, 'over');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-    const secondAddr = (vm.SP - (topSlots + secondSlots)) * CELL_SIZE;
+    const secondAbsCell = vm.sp - (topSlots + secondSlots);
 
     for (let i = 0; i < secondSlots; i++) {
-      const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + secondAddr + i * CELL_SIZE);
+      const value = vm.memory.readFloat32(SEG_DATA, (secondAbsCell + i) * CELL_SIZE);
       vm.push(value);
     }
   } catch (error) {
-    vm.SP = originalSP;
+    vm.sp = originalSP;
     throw new Error(`over failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
@@ -263,7 +263,7 @@ export const dropOp: Verb = (vm: VM) => {
   const { tag, value } = fromTaggedValue(topValue);
   if (tag === Tag.LIST) {
     const totalSlots = value + 1;
-    vm.SP -= totalSlots;
+    vm.sp -= totalSlots;
     return;
   }
   vm.pop();
@@ -277,19 +277,18 @@ export const dropOp: Verb = (vm: VM) => {
 export const swapOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 2, 'swap');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-    const totalSlots = topSlots + secondSlots;
-    const stackLength = vm.SP;
-    const startSlot = stackLength - totalSlots;
+  const totalSlots = topSlots + secondSlots;
+  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
 
-    cellsRoll(vm, startSlot, totalSlots, topSlots);
+  cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.sp = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -309,19 +308,20 @@ export const swapOp: Verb = (vm: VM) => {
 export const rotOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 3, 'rot');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-    const totalSlots = topSlots + midSlots + bottomSlots;
-    const rotationSlots = midSlots + topSlots;
+  const totalSlots = topSlots + midSlots + bottomSlots;
+  const rotationSlots = midSlots + topSlots;
+  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
 
-    cellsRoll(vm, 0, totalSlots, rotationSlots);
+  cellsRoll(vm, startSlot, totalSlots, rotationSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.sp = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -341,18 +341,19 @@ export const rotOp: Verb = (vm: VM) => {
 export const revrotOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 3, 'revrot');
 
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   try {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-    const totalSlots = topSlots + midSlots + bottomSlots;
+  const totalSlots = topSlots + midSlots + bottomSlots;
+  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
 
-    cellsRoll(vm, 0, totalSlots, topSlots);
+  cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
-    vm.SP = originalSP;
+    vm.sp = originalSP;
     if (error instanceof VMError) {
       throw error;
     } else {
@@ -378,18 +379,18 @@ export const nipOp: Verb = (vm: VM) => {
       const [_tosNextSlot, tosSize] = findElement(vm, 0);
       const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
 
-      const tosStartAddr = (vm.SP - tosSize) * CELL_SIZE;
-      const nosStartAddr = (vm.SP - (tosSize + nosSize)) * CELL_SIZE;
+  const tosStartAddr = (vm.sp - tosSize) * CELL_SIZE;
+  const nosStartAddr = (vm.sp - (tosSize + nosSize)) * CELL_SIZE;
 
       for (let i = 0; i < tosSize; i++) {
         const sourceAddr = tosStartAddr + i * CELL_SIZE;
         const destAddr = nosStartAddr + i * CELL_SIZE;
 
-        const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + sourceAddr);
-        vm.memory.writeFloat32(SEG_DATA, STACK_BASE + destAddr, value);
+        const value = vm.memory.readFloat32(SEG_DATA, sourceAddr);
+        vm.memory.writeFloat32(SEG_DATA, destAddr, value);
       }
 
-      vm.SP -= nosSize;
+      vm.sp -= nosSize;
     },
     'nip',
   );

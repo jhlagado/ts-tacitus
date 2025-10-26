@@ -305,7 +305,7 @@ export function dumpFrameOp(vm: VM): void {
     'RSP(cells):',
     vm.RSP,
     'SP(cells):',
-  vm.sp - STACK_BASE_CELLS,
+    vm.sp - STACK_BASE_CELLS,
     'BP(cells):',
     vm.BP,
     'GP(cells):',
