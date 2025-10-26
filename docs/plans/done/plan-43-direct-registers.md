@@ -1,6 +1,6 @@
 # Plan 43: Direct Registers (remove uppercase shims)
 
-Status: Draft. Priority: High. Scope: Remove legacy uppercase depth accessors (SP/RSP/BP/GP) and migrate code/tests to use lowercase absolute registers (sp/rsp/bp/gp) with absolute addressing.
+Status: COMPLETE — archived under docs/plans/done on 2025-10-26. Priority: High. Scope: Remove legacy uppercase depth accessors (SP/RSP/BP/GP) and migrate code/tests to use lowercase absolute registers (sp/rsp/bp/gp) with absolute addressing.
 
 Context
 
@@ -41,6 +41,25 @@ Phases
 4. Removal
    - Delete uppercase getters/setters from `VM` once no references remain.
    - Update docs to remove mentions of uppercase accessors.
+
+---
+
+Completion (2025-10-26)
+
+- VM exposes `sp`, `rsp`, `bp`, `gp` as the only public register fields; uppercase shims have been removed from the class.
+- Runtime and ops use absolute addressing over `SEG_DATA` with lowercase registers exclusively. Representative usages appear throughout list/stack ops and helpers.
+- Repository search shows no call sites using `vm.SP`/`vm.RSP`/`vm.BP`/`vm.GP` (only human-readable debug labels remain in a print helper).
+- Tests assert depth via absolute fields or behavior; no uppercase accessor assertions remain.
+
+Acceptance confirmation
+
+- All src modules refer only to lowercase registers; stack and return-stack I/O use absolute addressing consistently.
+- Uppercase accessors are removed from `VM`.
+- Test suite remains green per latest local runs and coverage reports; branch coverage work continues under Plan 37.
+
+Follow-ups
+
+- Optional: harmonize any remaining debug print labels to reflect absolute terminology (no functional impact).
 
 Acceptance criteria
 

@@ -110,11 +110,6 @@ export function getListElemAddr(
 }
 
 /**
- * @deprecated Former segment-relative wrapper removed; use getListElemAddr (absolute addressing).
- */
-// deprecated segment-relative getListElemAddr wrapper removed; use getListElemAddr
-
-/**
  * Reverses span of values on stack in-place.
  * @param vm The virtual machine instance
  * @param spanSize Number of stack slots to reverse
@@ -174,11 +169,6 @@ export function getListBounds(
   }
   return null;
 }
-
-/**
- * @deprecated Former legacy wrapper removed; use getListBounds (absolute addressing).
- */
-// deprecated getListBounds wrapper removed; use getListBounds
 
 /**
  * Computes header address given base address and slot count.

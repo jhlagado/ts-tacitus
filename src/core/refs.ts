@@ -89,11 +89,6 @@ export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
   return 'rstack';
 }
 
-/**
- * @deprecated Former alias removed; use createDataRef(absoluteCellIndex).
- */
-// Removed legacy alias createSegmentRef
-
 export function getVarRef(vm: VM, slotNumber: number): number {
   if (slotNumber < 0) {
     throw new Error('Slot number must be non-negative');
