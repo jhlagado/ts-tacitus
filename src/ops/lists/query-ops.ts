@@ -14,17 +14,17 @@ import {
 } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
-import { getListBoundsAbs } from './core-helpers';
-import { isRef, createDataRefAbs, getAbsoluteByteAddressFromRef, readRefValueAbs } from '@src/core';
+import { getListBounds } from './core-helpers';
+import { isRef, createDataRef, getAbsoluteByteAddressFromRef, readRefValue } from '@src/core';
 import { dropOp } from '../stack';
-import { isCompatible, updateListInPlaceAbs } from '../local-vars-transfer';
+import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
 // (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
 export function lengthOp(vm: VM): void {
   vm.ensureStackSize(1, 'length');
   const value = vm.peek();
-  const info = getListBoundsAbs(vm, value);
+  const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -38,7 +38,7 @@ export function lengthOp(vm: VM): void {
 export function sizeOp(vm: VM): void {
   vm.ensureStackSize(1, 'size');
   const value = vm.peek();
-  const info = getListBoundsAbs(vm, value);
+  const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
     vm.push(NIL);
@@ -69,7 +69,7 @@ export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -83,14 +83,14 @@ export function slotOp(vm: VM): void {
   const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
   const addr = headerAbsAddr - (idx + 1) * CELL_SIZE;
   const absCellIndex = addr / CELL_SIZE;
-  vm.push(createDataRefAbs(absCellIndex));
+  vm.push(createDataRef(absCellIndex));
 }
 
 export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -116,7 +116,7 @@ export function elemOp(vm: VM): void {
 
     if (currentLogicalIndex === idx) {
       const absCellIndex = elementStartAddr / CELL_SIZE;
-      vm.push(createDataRefAbs(absCellIndex));
+  vm.push(createDataRef(absCellIndex));
       return;
     }
 
@@ -269,7 +269,7 @@ function copyCompoundFromReference(
 }
 
 function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
-  const rhsInfoAbs = getListBoundsAbs(vm, rhsValue);
+  const rhsInfoAbs = getListBounds(vm, rhsValue);
   if (!rhsInfoAbs || !isList(rhsInfoAbs.header)) {
     return false;
   }
@@ -295,7 +295,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   if (rhsTag === Tag.LIST) {
     // Absolute in-place update
-    updateListInPlaceAbs(vm, slot.resolvedAbsAddr);
+  updateListInPlace(vm, slot.resolvedAbsAddr);
     return true;
   }
 
@@ -308,7 +308,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   let value = rhsValue;
   if (isRef(value)) {
-    value = readRefValueAbs(vm, value);
+    value = readRefValue(vm, value);
     vm.pop();
     vm.push(value);
   }
@@ -359,7 +359,7 @@ export function walkOp(vm: VM): void {
   vm.ensureStackSize(2, 'walk');
   const { value: idx } = fromTaggedValue(vm.pop());
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || Tag.LIST !== Tag.LIST) {
     // Leave target, push idx (reset) and NIL
     vm.push(0);
@@ -380,7 +380,7 @@ export function walkOp(vm: VM): void {
   vm.push(nextIdx);
   if (isList(v)) {
     const absCellIndex = cellAbsAddr / CELL_SIZE;
-    vm.push(createDataRefAbs(absCellIndex));
+  vm.push(createDataRef(absCellIndex));
   } else {
     vm.push(v);
   }
@@ -390,7 +390,7 @@ export function findOp(vm: VM): void {
   vm.ensureStackSize(2, 'find');
   const key = vm.pop();
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.push(NIL);
     return;
@@ -408,7 +408,7 @@ export function findOp(vm: VM): void {
     const currentKey = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     if (areValuesEqual(currentKey, key)) {
       const absCellIndex = valueAbsAddr / CELL_SIZE;
-      vm.push(createDataRefAbs(absCellIndex));
+  vm.push(createDataRef(absCellIndex));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
@@ -421,7 +421,7 @@ export function findOp(vm: VM): void {
   }
   if (defaultValueAddr !== -1) {
     const absCellIndex = defaultValueAddr / CELL_SIZE;
-    vm.push(createDataRefAbs(absCellIndex));
+  vm.push(createDataRef(absCellIndex));
     return;
   }
   vm.push(NIL);
@@ -430,7 +430,7 @@ export function findOp(vm: VM): void {
 export function keysOp(vm: VM): void {
   vm.ensureStackSize(1, 'keys');
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -461,7 +461,7 @@ export function keysOp(vm: VM): void {
 export function valuesOp(vm: VM): void {
   vm.ensureStackSize(1, 'values');
   const target = vm.peek();
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -496,7 +496,7 @@ export function refOp(vm: VM): void {
   if (tag === Tag.LIST) {
     // sp is an absolute cell index; build absolute DATA_REF
     const headerCellIndex = vm.sp - 1;
-    vm.push(createDataRefAbs(headerCellIndex));
+  vm.push(createDataRef(headerCellIndex));
   }
 }
 

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { Op } from '@src/ops/opcodes';
+import { Op } from '../../ops/opcodes';
 
 describe('literal emission helpers', () => {
   beforeEach(() => {
@@ -20,8 +20,8 @@ describe('literal emission helpers', () => {
   });
 
   const loadLiterals = async (vmMocks: ReturnType<typeof createVmMocks>) => {
-    jest.doMock('@src/lang/runtime', () => ({ vm: vmMocks }));
-    return import('@src/lang/literals');
+    jest.doMock('../../lang/runtime', () => ({ vm: vmMocks }));
+    return import('../../lang/literals');
   };
 
   it('emitNumber compiles numeric literal opcodes', async () => {

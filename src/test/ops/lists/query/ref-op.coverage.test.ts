@@ -1,6 +1,6 @@
-import { VM } from '@src/core';
-import { toTaggedValue, Tag, isRef } from '@src/core';
-import { refOp } from '@ops/lists/query-ops';
+import { VM } from '../../../../core';
+import { toTaggedValue, Tag, isRef } from '../../../../core';
+import { refOp } from '../../../../ops/lists/query-ops';
 
 describe('refOp coverage', () => {
   let vm: VM;

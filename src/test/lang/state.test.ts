@@ -1,5 +1,5 @@
-import type { ParserState } from '@src/lang/state';
-import type { Tokenizer } from '@src/lang/tokenizer';
+import type { ParserState } from '../../lang/state';
+import type { Tokenizer } from '../../lang/tokenizer';
 import { jest } from '@jest/globals';
 
 describe('parser state helpers', () => {
@@ -15,8 +15,8 @@ describe('parser state helpers', () => {
   });
 
   const loadStateModule = async (getStackData: jest.Mock) => {
-    jest.doMock('@src/lang/runtime', () => mockRuntime(getStackData));
-    return import('@src/lang/state');
+    jest.doMock('../../lang/runtime', () => mockRuntime(getStackData));
+    return import('../../lang/state');
   };
 
   const makeState = (): ParserState => {
@@ -52,8 +52,8 @@ describe('parser state helpers', () => {
   it('requireParserState throws when state missing', async () => {
     const getStackData = jest.fn(() => ['stack-snapshot']);
     const { requireParserState } = await loadStateModule(getStackData);
-    expect(() => requireParserState()).toThrowErrorMatchingInlineSnapshot(
-      `"Definition opener/closer used outside of parser context"`,
+    expect(() => requireParserState()).toThrow(
+      'Definition opener/closer used outside of parser context',
     );
     expect(getStackData).toHaveBeenCalledTimes(1);
   });

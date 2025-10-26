@@ -144,7 +144,7 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * @param segment Memory segment (return stack for local variables)
  * @param newValue The new compound value from data stack (LIST header at TOS)
  */
-// Note: legacy updateListInPlace(segment-based) removed; use updateListInPlaceAbs instead.
+// Note: legacy updateListInPlace(segment-based) removed; use updateListInPlace instead.
 
 /**
  * Absolute-address variant of updateListInPlace for unified SEG_DATA writes.
@@ -152,7 +152,7 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * @param vm The VM instance
  * @param targetAbsHeaderAddr Absolute byte address of existing compound data header (SEG_DATA)
  */
-export function updateListInPlaceAbs(vm: VM, targetAbsHeaderAddr: number): void {
+export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
   vm.ensureStackSize(1, 'updateListInPlace');
   const header = vm.peek();
 
@@ -190,7 +190,7 @@ export function updateListInPlaceAbs(vm: VM, targetAbsHeaderAddr: number): void 
 
 /**
  * Backward-compat shim: segment-relative in-place mutation API.
- * Converts (segment, targetAddr) to absolute SEG_DATA address and forwards to updateListInPlaceAbs.
+ * Converts (segment, targetAddr) to absolute SEG_DATA address and forwards to updateListInPlace.
  *
  * This preserves existing test imports and older call sites during Phase C migrations.
  */

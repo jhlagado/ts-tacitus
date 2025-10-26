@@ -1,13 +1,4 @@
-import {
-  VM,
-  getTag,
-  Tag,
-  fromTaggedValue,
-  getListBoundsAbs,
-  getListLength,
-  SEG_DATA,
-  CELL_SIZE,
-} from '@src/core';
+import { VM, getTag, Tag, fromTaggedValue, getListBounds, getListLength, SEG_DATA, CELL_SIZE } from '@src/core';
 
 /**
  * Asserts that the provided value is a well-formed capsule list.
@@ -19,7 +10,7 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
     throw new Error(`Expected ${label} to be a LIST, found ${Tag[tag] ?? 'unknown tag'}`);
   }
 
-  const info = getListBoundsAbs(vm, value);
+  const info = getListBounds(vm, value);
   if (!info) {
     throw new Error(`Expected ${label} to reference a LIST on stack or via alias`);
   }

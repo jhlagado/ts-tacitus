@@ -1,6 +1,6 @@
 import { executeTacitWithState, resetVM, captureVMState } from './vm-test-utils';
-import { vm } from '@src/core/global-state';
-import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '@src/core';
+import { vm } from '../../core/global-state';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
 
 describe('VM state snapshot helpers', () => {
   beforeEach(() => {

@@ -7,7 +7,7 @@ import {
   SEG_DATA,
   RSTACK_BASE,
   RSTACK_BASE_CELLS,
-  createDataRefAbs,
+  createDataRef,
 } from '@src/core';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
@@ -29,7 +29,7 @@ export function exitConstructorOp(vm: VM): void {
   // Use absolute DATA_REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
   const headerCellIndex = vm.rsp - RSTACK_BASE_CELLS - 1;
   const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
-  vm.push(createDataRefAbs(absHeaderCellIndex));
+  vm.push(createDataRef(absHeaderCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
   const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpRel - 1) * CELL_SIZE);

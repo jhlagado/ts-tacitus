@@ -1,4 +1,4 @@
-import { Memory, SEG_DATA, STACK_BASE } from '@src/core';
+import { Memory, SEG_DATA, STACK_BASE } from '../../core';
 import {
   cells,
   cellIndex,
@@ -9,7 +9,7 @@ import {
   storeCell,
   copyCells,
   fillCells,
-} from '@src/core/units';
+} from '../../core/units';
 
 describe('cell unit helpers', () => {
   let mem: Memory;

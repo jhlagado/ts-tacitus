@@ -2,11 +2,11 @@
  * Comprehensive print operations tests - Consolidation of print.test.ts and raw-print.test.ts
  * Tests both high-level '.' operation and low-level 'raw' operator
  */
-import { Tag, toTaggedValue } from '@src/core';
-import { vm } from '@src/core/global-state';
-import { printOp, rawPrintOp } from '@src/ops/print/print-ops';
+import { Tag, toTaggedValue } from '../../../core';
+import { vm } from '../../../core/global-state';
+import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { resetVM, captureTacitOutput } from '../../utils/vm-test-utils';
-import { STACK_BASE, CELL_SIZE } from '@src/core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 describe('Print Operations', () => {
   beforeEach(() => {
