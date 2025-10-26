@@ -55,7 +55,7 @@ describe('VM pointer validation', () => {
   test('ensureInvariants catches negative stack pointers', () => {
     vm.debug = true;
     // Force invalid internal state and run invariant check
-    (vm as unknown as { _spCells: number })._spCells = -1;
+    vm.sp = -1;
     expect(() => vm.ensureInvariants()).toThrow('Invariant violation: negative stack pointer');
   });
 });
