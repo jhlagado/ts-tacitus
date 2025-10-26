@@ -1,4 +1,4 @@
-import { SyntaxError, fromTaggedValue, Tag } from '@src/core';
+import { SyntaxError, fromTaggedValue, Tag, STACK_BASE_CELLS } from '@src/core';
 import { vm } from '../runtime';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
@@ -10,7 +10,7 @@ import { Op } from '@src/ops/opcodes';
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
 export function beginCapsuleImmediate(): void {
-  if (vm.SP === 0) {
+  if (vm.sp - STACK_BASE_CELLS === 0) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
   }
 

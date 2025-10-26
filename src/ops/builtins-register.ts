@@ -20,6 +20,7 @@ import { VM, SyntaxError } from '@src/core';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
 
+import { STACK_BASE_CELLS } from '@src/core';
 import { evalOp } from './core';
 
 import {
@@ -157,7 +158,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
     ';',
     Op.Nop,
     vmInstance => {
-      if (vmInstance.SP === 0) {
+      if (vmInstance.sp - STACK_BASE_CELLS === 0) {
         throw new SyntaxError('Unexpected semicolon', vmInstance.getStackData());
       }
       evalOp(vmInstance);
