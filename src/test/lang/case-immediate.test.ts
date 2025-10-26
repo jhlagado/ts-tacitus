@@ -38,8 +38,8 @@ describe('case immediates', () => {
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndCase);
 
-  const snapshot = vm.peekAt(1);
-  expect(snapshot).toBe(vm.rsp - RSTACK_BASE / CELL_SIZE);
+    const snapshot = vm.peekAt(1);
+    expect(snapshot).toBe(vm.rsp - RSTACK_BASE / CELL_SIZE);
   });
 
   test('clauseOfImmediate emits comparison sequence and records placeholder', () => {
@@ -50,7 +50,7 @@ describe('case immediates', () => {
 
     clauseOfImmediate();
 
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(4);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(4);
     const closerInfo = fromTaggedValue(vm.peek());
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndOf);
@@ -94,7 +94,7 @@ describe('case immediates', () => {
     beginCaseImmediate();
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBeGreaterThanOrEqual(2);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBeGreaterThanOrEqual(2);
     const { tag, value } = fromTaggedValue(vm.peek());
     expect(tag).toBe(Tag.BUILTIN);
     expect(value).toBe(Op.EndCase);
@@ -120,7 +120,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // executes EndOf
 
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
 
     const exitPos = vm.rpop();
     expect(exitPos).toBeGreaterThan(skipPos);
@@ -176,7 +176,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // EndCase
 
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
 
     const finalDropPos = vm.compiler.CP - 1;
     expect(vm.memory.read8(SEG_CODE, finalDropPos)).toBe(Op.Drop);
@@ -194,7 +194,7 @@ describe('case immediates', () => {
 
     evalOp(vm);
 
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
     expect(vm.memory.read8(SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
   });
 });

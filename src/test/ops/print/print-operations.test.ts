@@ -134,8 +134,8 @@ describe('Print Operations', () => {
 
       printOp(vm);
 
-  expect(logSpy).toHaveBeenCalledWith('[Print error: pop fail]');
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+      expect(logSpy).toHaveBeenCalledWith('[Print error: pop fail]');
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
 
       popSpy.mockRestore();
       resetVM();
@@ -150,8 +150,8 @@ describe('Print Operations', () => {
 
       rawPrintOp(vm);
 
-  expect(logSpy).toHaveBeenCalledWith('[Raw print error: boom]');
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
+      expect(logSpy).toHaveBeenCalledWith('[Raw print error: boom]');
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
 
       popSpy.mockRestore();
       resetVM();

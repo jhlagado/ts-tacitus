@@ -161,15 +161,15 @@ describe('Built-in Words', () => {
     });
     test('should handle return stack overflow', () => {
       // Fill return stack to leave exactly one free cell so evalOp's two rpushes overflow
-  const available = RSTACK_TOP / CELL_SIZE - vm.rsp; // remaining capacity in cells (public constants)
+      const available = RSTACK_TOP / CELL_SIZE - vm.rsp; // remaining capacity in cells (public constants)
       for (let i = 0; i < available - 1; i++) {
         vm.rpush(0);
       }
 
-  // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
-  vm.push(toTaggedValue(0x1234, Tag.CODE));
-  // evalOp will attempt to push return IP and saved BP (relative), overflowing on second push
-  expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
+      // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
+      vm.push(toTaggedValue(0x1234, Tag.CODE));
+      // evalOp will attempt to push return IP and saved BP (relative), overflowing on second push
+      expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
     });
   });
 });
