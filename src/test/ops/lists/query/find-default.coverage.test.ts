@@ -1,7 +1,7 @@
-import { VM } from '@src/core';
-import { toTaggedValue, Tag } from '@src/core';
-import { findOp, fetchOp } from '@ops/lists/query-ops';
-import { stringCreate } from '@src/strings';
+import { VM } from '../../../../core';
+import { toTaggedValue, Tag } from '../../../../core';
+import { findOp, fetchOp } from '../../../../ops/lists/query-ops';
+import { stringCreate } from '../../../../strings';
 
 /**
  * Coverage for findOp default branch: when key not present but 'default' key exists.

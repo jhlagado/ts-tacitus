@@ -71,14 +71,14 @@ export function validateListHeader(vm: VM): void {
  * @param logicalIndex The logical index (0-based)
  * @returns Memory address or -1 if out of bounds
  */
-export function getListElemAddrAbs(
+export function getListElemAddr(
   vm: VM,
   header: number,
   headerAbsAddr: number,
   logicalIndex: number,
 ): number {
   if (!isList(header)) {
-    throw new Error('Invalid LIST header provided to getListElemAddrAbs');
+    throw new Error('Invalid LIST header provided to getListElemAddr');
   }
 
   const totalSlots = getListLength(header);
@@ -110,9 +110,9 @@ export function getListElemAddrAbs(
 }
 
 /**
- * @deprecated Use getListElemAddrAbs. This wrapper accepts a segment-relative headerAddr and returns a segment-relative result.
+ * @deprecated Former segment-relative wrapper removed; use getListElemAddr (absolute addressing).
  */
-// deprecated getListElemAddr removed; use getListElemAddrAbs
+// deprecated segment-relative getListElemAddr wrapper removed; use getListElemAddr
 
 /**
  * Reverses span of values on stack in-place.
@@ -144,7 +144,7 @@ export function reverseSpan(vm: VM, spanSize: number): void {
  * Extract list header and base address from a direct LIST or a reference.
  * Returns null if value is neither a list nor a ref-to-list.
  */
-export function getListBoundsAbs(
+export function getListBounds(
   vm: VM,
   value: number,
 ): { header: number; absBaseAddrBytes: number; headerAbsAddrBytes: number } | null {
@@ -176,16 +176,16 @@ export function getListBoundsAbs(
 }
 
 /**
- * @deprecated Use getListBoundsAbs. This wrapper returns legacy fields (baseAddr, segment) computed from absolute addresses.
+ * @deprecated Former legacy wrapper removed; use getListBounds (absolute addressing).
  */
-// deprecated getListBounds removed; use getListBoundsAbs
+// deprecated getListBounds wrapper removed; use getListBounds
 
 /**
  * Computes header address given base address and slot count.
  */
-// deprecated computeHeaderAddr removed; use computeHeaderAddrAbs
+// deprecated segment-relative computeHeaderAddr wrapper removed; use computeHeaderAddr
 
-export function computeHeaderAddrAbs(absBaseAddrBytes: number, slotCount: number): number {
+export function computeHeaderAddr(absBaseAddrBytes: number, slotCount: number): number {
   return absBaseAddrBytes + slotCount * CELL_SIZE;
 }
 

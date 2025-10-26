@@ -4,10 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../../core/global-state';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import {
-  updateListInPlaceAbs as mutateCompoundInPlace,
-  isCompatible as isCompatibleCompound,
-} from '../../../ops/local-vars-transfer';
+import { updateListInPlace as mutateCompoundInPlace, isCompatible as isCompatibleCompound } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
 import { SEG_DATA, CELL_SIZE, RSTACK_BASE, STACK_BASE } from '../../../core/constants';

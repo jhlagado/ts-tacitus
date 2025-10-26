@@ -5,7 +5,7 @@
 
 import { VM, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { getListBoundsAbs } from './core-helpers';
+import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 
@@ -17,7 +17,7 @@ export function tailOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -64,7 +64,7 @@ export function headOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -116,7 +116,7 @@ export function reverseOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -183,13 +183,13 @@ export function concatOp(vm: VM): void {
   const rhsInfo = isList(rhsTop)
     ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: (vm.sp - 1) * CELL_SIZE }
     : isRef(rhsTop)
-      ? getListBoundsAbs(vm, rhsTop)
+  ? getListBounds(vm, rhsTop)
       : null;
   const lhsHeaderAddr = (vm.sp - (rhsSize + 1)) * CELL_SIZE;
   const lhsInfo = isList(lhsTop)
     ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
     : isRef(lhsTop)
-      ? getListBoundsAbs(vm, lhsTop)
+  ? getListBounds(vm, lhsTop)
       : null;
 
   const lhsIsList = !!lhsInfo;

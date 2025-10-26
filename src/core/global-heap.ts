@@ -11,7 +11,7 @@ import { toTaggedValue, Tag, NIL } from './tagged';
 
 const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE / CELL_SIZE;
 
-export interface ListSourceAbs {
+export interface ListSource {
   /** LIST header value to write at destination */
   header: number;
   /** Absolute byte address of the first payload cell in the source */
@@ -33,7 +33,7 @@ export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   return createGlobalRef(cellIndex);
 }
 
-export function pushListToGlobalHeap(vm: VM, source: ListSourceAbs): number {
+export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   const slotCount = getListLength(source.header);
   const span = slotCount + 1;
   ensureGlobalCapacity(vm, span);

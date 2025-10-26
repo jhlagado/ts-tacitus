@@ -1,6 +1,6 @@
-import { VM } from '@src/core';
-import { toTaggedValue, Tag, NIL } from '@src/core';
-import { keysOp, valuesOp } from '@ops/lists/query-ops';
+import { VM } from '../../../../core';
+import { toTaggedValue, Tag, NIL } from '../../../../core';
+import { keysOp, valuesOp } from '../../../../ops/lists/query-ops';
 
 describe('keysOp/valuesOp branch coverage', () => {
   let vm: VM;

@@ -1,12 +1,4 @@
-import {
-  VM,
-  Tag,
-  fromTaggedValue,
-  getListBoundsAbs,
-  getListLength,
-  CELL_SIZE,
-  SEG_DATA,
-} from '@src/core';
+import { VM, Tag, fromTaggedValue, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
 
 export interface CapsuleLayout {
   absBaseAddrBytes: number; // absolute byte address of slot0 (first payload cell)
@@ -21,7 +13,7 @@ export interface CapsuleLayout {
  */
 export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayout {
   // Resolve list header/payload bounds via generic list bounds helper (absolute-only).
-  const info = getListBoundsAbs(vm, handle);
+  const info = getListBounds(vm, handle);
   if (!info) {
     throw new Error('capsule handle does not reference a LIST');
   }

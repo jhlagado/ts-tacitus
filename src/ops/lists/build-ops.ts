@@ -5,7 +5,7 @@
 
 import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, Verb } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
-import { getListBoundsAbs, computeHeaderAddrAbs } from './core-helpers';
+import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';
 
 /**
@@ -121,7 +121,7 @@ export function unpackOp(vm: VM): void {
   const target = vm.peek();
   const targetIsDirectList = isList(target);
 
-  const info = getListBoundsAbs(vm, target);
+  const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
     vm.pop();
     vm.push(NIL);
@@ -142,7 +142,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
-  const headerAbsAddr = computeHeaderAddrAbs(info.absBaseAddrBytes, slotCount);
+  const headerAbsAddr = computeHeaderAddr(info.absBaseAddrBytes, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - (i + 1) * CELL_SIZE);
     vm.push(slotValue);

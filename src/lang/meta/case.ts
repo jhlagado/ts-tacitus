@@ -1,4 +1,11 @@
-import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel, RSTACK_BASE_CELLS } from '@src/core';
+import {
+  SyntaxError,
+  Tag,
+  fromTaggedValue,
+  toTaggedValue,
+  Sentinel,
+  RSTACK_BASE_CELLS,
+} from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';

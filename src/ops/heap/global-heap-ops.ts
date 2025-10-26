@@ -12,17 +12,17 @@ import {
   GLOBAL_BASE,
   CELL_SIZE,
   dropList,
-  getListBoundsAbs,
+  getListBounds,
   isList,
   getListLength,
   pushListToGlobalHeap,
   pushSimpleToGlobalHeap,
-  readRefValueAbs,
+  readRefValue,
   getAbsoluteCellIndexFromRef,
 } from '@src/core';
 import { fetchOp } from '../lists';
 
-function ensureGlobalRefAbs(vm: VM, ref: number): { absCellIndex: number } {
+function ensureGlobalRef(vm: VM, ref: number): { absCellIndex: number } {
   const absCellIndex = getAbsoluteCellIndexFromRef(ref);
   const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
   if (absCellIndex < globalBaseCell || absCellIndex >= globalBaseCell + (vm.gp || 0)) {
@@ -31,7 +31,7 @@ function ensureGlobalRefAbs(vm: VM, ref: number): { absCellIndex: number } {
   return { absCellIndex };
 }
 
-function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBoundsAbs>): number {
+function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBounds>): number {
   if (!boundsReturn) {
     throw new Error('List bounds unavailable for heap copy');
   }
@@ -61,7 +61,7 @@ export function gsweepOp(vm: VM): void {
 export function gpushOp(vm: VM): void {
   vm.ensureStackSize(1, 'gpush');
   const value = vm.peek();
-  const listInfo = getListBoundsAbs(vm, value);
+  const listInfo = getListBounds(vm, value);
   if (listInfo) {
     const ref = copyListOntoHeap(vm, listInfo);
     const valueTag = getTag(value);
@@ -75,9 +75,9 @@ export function gpushOp(vm: VM): void {
   }
 
   if (isRef(value)) {
-    let simple = readRefValueAbs(vm, value);
+    let simple = readRefValue(vm, value);
     if (isRef(simple)) {
-      simple = readRefValueAbs(vm, simple);
+      simple = readRefValue(vm, simple);
     }
     const heapRef = pushSimpleToGlobalHeap(vm, simple);
     vm.pop();
@@ -96,7 +96,7 @@ export function gpeekOp(vm: VM): void {
   if (!isRef(ref)) {
     throw new Error('gpeek expects DATA_REF');
   }
-  ensureGlobalRefAbs(vm, ref);
+  ensureGlobalRef(vm, ref);
   vm.push(ref);
   fetchOp(vm);
 }
@@ -111,7 +111,7 @@ export function gpopOp(vm: VM): void {
   if (!isRef(ref)) {
     throw new Error('gpop expects DATA_REF');
   }
-  const { absCellIndex } = ensureGlobalRefAbs(vm, ref);
+  const { absCellIndex } = ensureGlobalRef(vm, ref);
   const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
   const topAbsCellIndex = globalBaseCell + vm.gp - 1;
   if (absCellIndex !== topAbsCellIndex) {

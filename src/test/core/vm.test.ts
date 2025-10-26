@@ -1,6 +1,6 @@
 import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
-import { SymbolTable } from '@src/strings';
+import { SymbolTable } from '../../strings';
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
 
 describe('VM', () => {

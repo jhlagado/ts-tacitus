@@ -27,17 +27,17 @@ const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
  * Phase A: Absolute-only helpers for unified data addressing.
  * These do not classify into legacy windows and should be used by new code paths.
  */
-export function createDataRefAbs(absoluteCellIndex: number): number {
+export function createDataRef(absoluteCellIndex: number): number {
   if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
     throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
   }
   return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
 }
 
-export function decodeDataRefAbs(ref: number): { absoluteCellIndex: number } {
+export function decodeDataRef(ref: number): { absoluteCellIndex: number } {
   const { value, tag } = fromTaggedValue(ref);
   if (tag !== Tag.DATA_REF) {
-    throw new Error('decodeDataRefAbs called with non-DATA_REF value');
+    throw new Error('decodeDataRef called with non-DATA_REF value');
   }
   return { absoluteCellIndex: value };
 }
@@ -57,7 +57,7 @@ export function getAbsoluteByteAddressFromRef(ref: number): number {
   return getAbsoluteCellIndexFromRef(ref) * CELL_SIZE;
 }
 
-export function readRefValueAbs(vm: VM, ref: number): number {
+export function readRefValue(vm: VM, ref: number): number {
   const byteAddr = getAbsoluteByteAddressFromRef(ref);
   return vm.memory.readFloat32(SEG_DATA, byteAddr);
 }
@@ -82,7 +82,7 @@ export function getRefSegment(ref: number): number {
  * Region classifier for DATA_REFs that returns string labels instead of numeric ids.
  * Use for guards/validation; not for addressing.
  */
-export function getRefRegionAbs(ref: number): 'global' | 'stack' | 'rstack' {
+export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
   const absByte = getAbsoluteByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 'global';
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 'stack';
@@ -90,7 +90,7 @@ export function getRefRegionAbs(ref: number): 'global' | 'stack' | 'rstack' {
 }
 
 /**
- * @deprecated Phase C: Prefer createDataRefAbs(absoluteCellIndex). Alias for createDataRef.
+ * @deprecated Former alias removed; use createDataRef(absoluteCellIndex).
  */
 // Removed legacy alias createSegmentRef
 
@@ -105,7 +105,7 @@ export function getVarRef(vm: VM, slotNumber: number): number {
   if (absCellIndex < RSTACK_BASE_CELLS || absCellIndex >= RSTACK_TOP_CELLS) {
     throw new RangeError('Local reference outside return stack bounds');
   }
-  return createDataRefAbs(absCellIndex);
+  return createDataRef(absCellIndex);
 }
 
 export function createGlobalRef(cellIndex: number): number {
@@ -114,7 +114,7 @@ export function createGlobalRef(cellIndex: number): number {
     throw new RangeError('Global reference outside global segment bounds');
   }
   const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
-  return createDataRefAbs(absCellIndex);
+  return createDataRef(absCellIndex);
 }
 
 /**
