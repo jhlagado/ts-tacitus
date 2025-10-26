@@ -15,24 +15,20 @@
 
 import {
   VM,
-  ReturnStackOverflowError,
   ReturnStackUnderflowError,
   Verb,
   toTaggedValue,
   Tag,
   fromTaggedValue,
-  RSTACK_SIZE,
   SyntaxError,
   STACK_BASE_CELLS,
+  RSTACK_BASE_CELLS,
 } from '@src/core';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
-
-/** Number of bytes per stack element. */
-const CELL_SIZE = 4;
 
 /**
  * Implements the literal number operation.
@@ -127,8 +123,9 @@ export const skipDefOp: Verb = (vm: VM) => {
 export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(vm.IP);
+  // Save BP as relative cells on the return stack for compatibility
   vm.rpush(vm.BP);
-  vm.BP = vm.RSP;
+  vm.bp = vm.rsp;
   vm.IP = callAddress;
 };
 
@@ -182,18 +179,20 @@ export const abortOp: Verb = (vm: VM) => {
  */
 export const exitOp: Verb = (vm: VM) => {
   try {
-    if (vm.RSP < 2) {
+    // Require at least [returnAddr, savedBP] on return stack (depth in cells)
+    if (vm.rsp - RSTACK_BASE_CELLS < 2) {
       vm.running = false;
       return;
     }
     // Unified cell-only epilogue with corruption guard: if BP points outside
     // current return stack depth (or negative) treat as underflow corruption.
-    const bpCells = vm.BP;
-    if (bpCells < 0 || bpCells > vm.RSP) {
+    const bpCells = vm.bp;
+    if (bpCells < RSTACK_BASE_CELLS || bpCells > vm.rsp) {
       throw new ReturnStackUnderflowError('exit', vm.getStackData());
     }
-    vm.RSP = bpCells;
-    vm.BP = vm.rpop();
+    vm.rsp = bpCells;
+    // Saved BP is stored as relative cells; convert to absolute before restore
+    vm.bp = vm.rpop() + RSTACK_BASE_CELLS;
     vm.IP = vm.rpop();
   } catch (e) {
     vm.running = false;
@@ -237,8 +236,9 @@ export const evalOp: Verb = (vm: VM) => {
         vm.IP = addr;
       } else {
         vm.rpush(vm.IP);
+        // Save BP as relative cells on the return stack for compatibility
         vm.rpush(vm.BP);
-        vm.BP = vm.RSP;
+        vm.bp = vm.rsp;
         vm.IP = addr;
       }
       break;
@@ -386,9 +386,10 @@ export const endWhenOp: Verb = (vm: VM) => {
     throw new SyntaxError('endwhen missing saved RSP', vm.getStackData());
   }
 
-  const savedRSP = Math.trunc(rawSavedRSP);
+  const savedRSPRel = Math.trunc(rawSavedRSP);
+  const savedRSPAbs = RSTACK_BASE_CELLS + savedRSPRel;
 
-  while (vm.RSP > savedRSP) {
+  while (vm.rsp > savedRSPAbs) {
     const rawExitPos = vm.rpop();
     if (!Number.isFinite(rawExitPos)) {
       throw new SyntaxError('endwhen invalid exit placeholder', vm.getStackData());
@@ -403,7 +404,7 @@ export const endWhenOp: Verb = (vm: VM) => {
     vm.compiler.CP = prevCP;
   }
 
-  if (vm.RSP !== savedRSP) {
+  if (vm.rsp !== savedRSPAbs) {
     throw new SyntaxError('endwhen corrupted return stack', vm.getStackData());
   }
 };
@@ -424,12 +425,13 @@ export const endCaseOp: Verb = (vm: VM) => {
     throw new SyntaxError('endcase missing saved RSP', vm.getStackData());
   }
 
-  const savedRSP = Math.trunc(rawSavedRSP);
+  const savedRSPRel = Math.trunc(rawSavedRSP);
+  const savedRSPAbs = RSTACK_BASE_CELLS + savedRSPRel;
 
   vm.compiler.compileOpcode(Op.Drop);
   const exitTarget = vm.compiler.CP;
 
-  while (vm.RSP > savedRSP) {
+  while (vm.rsp > savedRSPAbs) {
     const rawExitPos = vm.rpop();
     if (!Number.isFinite(rawExitPos)) {
       throw new SyntaxError('endcase invalid exit placeholder', vm.getStackData());
@@ -444,7 +446,7 @@ export const endCaseOp: Verb = (vm: VM) => {
     vm.compiler.CP = prevCP;
   }
 
-  if (vm.RSP !== savedRSP) {
+  if (vm.rsp !== savedRSPAbs) {
     throw new SyntaxError('case corrupted return stack', vm.getStackData());
   }
 };
@@ -469,9 +471,6 @@ export const endCaseOp: Verb = (vm: VM) => {
  * the number of items pushed onto the stack between the two operations.
  */
 export const groupLeftOp: Verb = (vm: VM) => {
-  if ((vm.RSP + 1) * CELL_SIZE > RSTACK_SIZE) {
-    throw new ReturnStackOverflowError('group-left', vm.getStackData());
-  }
   // Save current data stack depth in cells (relative to STACK_BASE)
   vm.rpush(vm.sp - STACK_BASE_CELLS);
 };
@@ -501,7 +500,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
  */
 export const groupRightOp: Verb = (vm: VM) => {
   try {
-    if (vm.RSP < 1) {
+    if (vm.rsp - RSTACK_BASE_CELLS < 1) {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();

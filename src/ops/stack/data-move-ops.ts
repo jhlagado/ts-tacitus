@@ -78,11 +78,11 @@ export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void
   let rightByte = (STACK_BASE_CELLS + startSlot + slotCount - 1) * CELL_SIZE;
 
   while (leftByte < rightByte) {
-  const temp = vm.memory.readFloat32(SEG_DATA, leftByte);
-  const rightVal = vm.memory.readFloat32(SEG_DATA, rightByte);
+    const temp = vm.memory.readFloat32(SEG_DATA, leftByte);
+    const rightVal = vm.memory.readFloat32(SEG_DATA, rightByte);
 
-  vm.memory.writeFloat32(SEG_DATA, leftByte, rightVal);
-  vm.memory.writeFloat32(SEG_DATA, rightByte, temp);
+    vm.memory.writeFloat32(SEG_DATA, leftByte, rightVal);
+    vm.memory.writeFloat32(SEG_DATA, rightByte, temp);
 
     leftByte += CELL_SIZE;
     rightByte -= CELL_SIZE;
@@ -135,7 +135,7 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
     const [nextSlot, size] = findElement(vm, currentSlot);
 
     if (i === index) {
-      const targetStartSlot = (vm.sp - STACK_BASE_CELLS) - nextSlot;
+      const targetStartSlot = vm.sp - STACK_BASE_CELLS - nextSlot;
       return [targetStartSlot, size];
     }
 
@@ -283,10 +283,10 @@ export const swapOp: Verb = (vm: VM) => {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-  const totalSlots = topSlots + secondSlots;
-  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
+    const totalSlots = topSlots + secondSlots;
+    const startSlot = vm.sp - STACK_BASE_CELLS - totalSlots;
 
-  cellsRoll(vm, startSlot, totalSlots, topSlots);
+    cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
     vm.sp = originalSP;
     if (error instanceof VMError) {
@@ -315,11 +315,11 @@ export const rotOp: Verb = (vm: VM) => {
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-  const totalSlots = topSlots + midSlots + bottomSlots;
-  const rotationSlots = midSlots + topSlots;
-  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
+    const totalSlots = topSlots + midSlots + bottomSlots;
+    const rotationSlots = midSlots + topSlots;
+    const startSlot = vm.sp - STACK_BASE_CELLS - totalSlots;
 
-  cellsRoll(vm, startSlot, totalSlots, rotationSlots);
+    cellsRoll(vm, startSlot, totalSlots, rotationSlots);
   } catch (error) {
     vm.sp = originalSP;
     if (error instanceof VMError) {
@@ -348,10 +348,10 @@ export const revrotOp: Verb = (vm: VM) => {
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-  const totalSlots = topSlots + midSlots + bottomSlots;
-  const startSlot = (vm.sp - STACK_BASE_CELLS) - totalSlots;
+    const totalSlots = topSlots + midSlots + bottomSlots;
+    const startSlot = vm.sp - STACK_BASE_CELLS - totalSlots;
 
-  cellsRoll(vm, startSlot, totalSlots, topSlots);
+    cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
     vm.sp = originalSP;
     if (error instanceof VMError) {
@@ -379,8 +379,8 @@ export const nipOp: Verb = (vm: VM) => {
       const [_tosNextSlot, tosSize] = findElement(vm, 0);
       const [_nosNextSlot, nosSize] = findElement(vm, tosSize);
 
-  const tosStartAddr = (vm.sp - tosSize) * CELL_SIZE;
-  const nosStartAddr = (vm.sp - (tosSize + nosSize)) * CELL_SIZE;
+      const tosStartAddr = (vm.sp - tosSize) * CELL_SIZE;
+      const nosStartAddr = (vm.sp - (tosSize + nosSize)) * CELL_SIZE;
 
       for (let i = 0; i < tosSize; i++) {
         const sourceAddr = tosStartAddr + i * CELL_SIZE;
