@@ -3,7 +3,7 @@
  * Utility functions for formatting Tacit VM values.
  */
 import { VM } from './vm';
-import { SEG_DATA } from './constants';
+import { SEG_DATA, CELL_SIZE, STACK_BASE_CELLS } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getAbsoluteByteAddressFromRef } from './refs';
 import { getListLength } from './list';
@@ -76,7 +76,8 @@ export function formatList(vm: VM, headerValue: number): string {
   const parts: string[] = [];
   let consumed = 0;
 
-  while (consumed < totalSlots && vm.SP >= 1) {
+  // Work in absolute cells: vm.sp is one past TOS; data segment starts at STACK_BASE_CELLS
+  while (consumed < totalSlots && vm.sp > STACK_BASE_CELLS) {
     const cell = vm.pop();
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
@@ -135,17 +136,17 @@ function formatListFromMemory(vm: VM, address: number): string {
     return '()';
   }
 
-  const originalSP = vm.SP;
+  const originalSP = vm.sp;
 
   for (let i = 0; i < slotCount; i++) {
-    const elementAddr = address - (slotCount - i) * 4;
+  const elementAddr = address - (slotCount - i) * CELL_SIZE;
     const element = vm.memory.readFloat32(SEG_DATA, elementAddr);
     vm.push(element);
   }
 
   const formatted = formatList(vm, header);
 
-  vm.SP = originalSP;
+  vm.sp = originalSP;
 
   return formatted;
 }
