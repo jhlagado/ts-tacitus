@@ -92,7 +92,7 @@ describe('LIST Core Utilities', () => {
       const header = vm.peek();
       expect(getListLength(header)).toBe(1);
 
-      const payload = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 1) * CELL_SIZE);
+  const payload = vm.memory.readFloat32(SEG_DATA, (vm.sp - 1) * CELL_SIZE);
       expect(isList(payload)).toBe(true);
       expect(getListLength(payload)).toBe(1);
     });
@@ -110,10 +110,10 @@ describe('LIST Core Utilities', () => {
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
-      const payload0 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 1) * CELL_SIZE);
-      const payload1 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 2) * CELL_SIZE);
-      const payload2 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 3) * CELL_SIZE);
-      const payload3 = vm.memory.readFloat32(SEG_DATA, STACK_BASE + (vm.SP - 4) * CELL_SIZE);
+  const payload0 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 1) * CELL_SIZE);
+  const payload1 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 2) * CELL_SIZE);
+  const payload2 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 3) * CELL_SIZE);
+  const payload3 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 4) * CELL_SIZE);
 
       expect(isList(payload0)).toBe(true);
       expect(payload1).toBe(val1);
@@ -162,9 +162,9 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       createList(vm, []);
 
-      const initialSP = vm.SP;
+  const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
       dropList(vm);
-      const finalSP = vm.SP;
+  const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
 
       expect(initialSP - finalSP).toBe(1);
       expect(getStackDepth(vm)).toBe(0);
@@ -175,9 +175,9 @@ describe('LIST Core Utilities', () => {
       const value = 42;
       createList(vm, [value]);
 
-      const initialSP = vm.SP;
+  const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
       dropList(vm);
-      const finalSP = vm.SP;
+  const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
 
       expect(initialSP - finalSP).toBe(2);
       expect(getStackDepth(vm)).toBe(0);
@@ -188,9 +188,9 @@ describe('LIST Core Utilities', () => {
       const values = [1, 2, 3];
       createList(vm, values);
 
-      const initialSP = vm.SP;
+  const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
       dropList(vm);
-      const finalSP = vm.SP;
+  const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
 
       expect(initialSP - finalSP).toBe(4);
       expect(getStackDepth(vm)).toBe(0);

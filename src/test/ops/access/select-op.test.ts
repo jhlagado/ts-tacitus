@@ -3,6 +3,7 @@
  * Tests the select operation that returns addresses/refs instead of values
  */
 import { executeTacitCode } from '../../utils/vm-test-utils';
+import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { getTag, NIL, Tag } from '../../../core/tagged';
 import {
   createTargetRef,
@@ -80,7 +81,7 @@ describe('selectOp - Path-based address access', () => {
 
       expect(success).toBe(true);
       // Should have: target path result-ref
-      expect(vm.SP).toBe(7); // 4 for target + 2 for path + 1 for result-ref
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(7); // 4 for target + 2 for path + 1 for result-ref
       const resultRef = vm.peek();
       expect(isRef(resultRef)).toBe(true);
     });
@@ -125,7 +126,7 @@ describe('selectOp - Path-based address access', () => {
       const success = processPathStep(vm, 99);
 
       expect(success).toBe(false);
-      expect(vm.SP).toBe(5);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5);
       const result = vm.peek();
       expect(result).toBe(NIL);
     });
@@ -140,7 +141,7 @@ describe('selectOp - Path-based address access', () => {
       traverseMultiPath(vm);
 
       // Should have: target final-ref
-      expect(vm.SP).toBe(5); // 4 for target + 1 for final-ref
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5); // 4 for target + 1 for final-ref
       const finalRef = vm.peek();
       expect(isRef(finalRef)).toBe(true);
     });

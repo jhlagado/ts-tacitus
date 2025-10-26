@@ -3,16 +3,7 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import {
-  VM,
-  fromTaggedValue,
-  toTaggedValue,
-  Tag,
-  tagNames,
-  CELL_SIZE,
-  SEG_DATA,
-  STACK_BASE,
-} from '../../core';
+import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA } from '../../core';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -46,18 +37,19 @@ function reverseSpan(vm: VM, spanSize: number): void {
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
 
-  const startCell = vm.SP - spanSize;
-  const endCell = vm.SP - 1;
+  // Use absolute cell indices
+  const startCell = vm.sp - spanSize;
+  const endCell = vm.sp - 1;
 
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
-    const leftAddr = (startCell + i) * CELL_SIZE;
-    const rightAddr = (endCell - i) * CELL_SIZE;
+  const leftAddr = (startCell + i) * CELL_SIZE;
+  const rightAddr = (endCell - i) * CELL_SIZE;
 
-    const leftValue = vm.memory.readFloat32(SEG_DATA, STACK_BASE + leftAddr);
-    const rightValue = vm.memory.readFloat32(SEG_DATA, STACK_BASE + rightAddr);
+  const leftValue = vm.memory.readFloat32(SEG_DATA, leftAddr);
+  const rightValue = vm.memory.readFloat32(SEG_DATA, rightAddr);
 
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + leftAddr, rightValue);
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + rightAddr, leftValue);
+  vm.memory.writeFloat32(SEG_DATA, leftAddr, rightValue);
+  vm.memory.writeFloat32(SEG_DATA, rightAddr, leftValue);
   }
 }
 

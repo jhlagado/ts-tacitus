@@ -67,7 +67,7 @@ describe('DATA_REF utilities', () => {
   });
 
   test('getVarRef returns DATA_REF to return-stack slot', () => {
-    vm.BP = 0;
+    vm.bp = RSTACK_BASE / CELL_SIZE + 0;
     const ref = getVarRef(vm, 2);
     const abs = decodeDataRefAbs(ref).absoluteCellIndex;
     expect(abs).toBe(RSTACK_BASE / CELL_SIZE + 2);
