@@ -10,16 +10,16 @@ describe('SEG_DATA unified access (Phase B)', () => {
 
   test('read stack TOS via SEG_DATA', () => {
     vm.push(42);
-  const depthAbs = vm.sp; // absolute cells
-  const offsetBytes = (depthAbs - 1) * CELL_SIZE;
+    const depthAbs = vm.sp; // absolute cells
+    const offsetBytes = (depthAbs - 1) * CELL_SIZE;
     const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
     expect(viaData).toBe(42);
   });
 
   test('read return stack TOS via SEG_DATA', () => {
     vm.rpush(7);
-  const depthAbs = vm.rsp; // absolute cells
-  const offsetBytes = (depthAbs - 1) * CELL_SIZE;
+    const depthAbs = vm.rsp; // absolute cells
+    const offsetBytes = (depthAbs - 1) * CELL_SIZE;
     const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
     expect(viaData).toBe(7);
   });

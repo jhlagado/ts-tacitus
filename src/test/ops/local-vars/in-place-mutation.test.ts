@@ -44,7 +44,7 @@ describe('In-Place Compound Mutation', () => {
       expect(getListLength(resultHeader)).toBe(0);
 
       // Verify data stack was cleaned up
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
     });
 
     test('should mutate single-element list in place', () => {
@@ -70,7 +70,7 @@ describe('In-Place Compound Mutation', () => {
       expect(resultElement).toBe(42); // New value, not 999
 
       // Verify data stack cleanup
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
     });
 
     test('should mutate multi-element list in place', () => {
@@ -107,7 +107,7 @@ describe('In-Place Compound Mutation', () => {
       expect(elem2).toBe(1); // Element closest to header (last in copy sequence)
 
       // Verify data stack cleanup
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
     });
   });
 
@@ -156,14 +156,14 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + targetAddr, existingHeader);
 
       // Record RSP (return stack in cells) before mutation
-  const rspBeforeMutation = vm.rsp;
+      const rspBeforeMutation = vm.rsp;
 
       // Perform mutation
       mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr);
 
       // Verify RP unchanged (key difference from transferCompoundToReturnStack)
       // Verify RSP unchanged (key difference from transferCompoundToReturnStack)
-  expect(vm.rsp).toBe(rspBeforeMutation);
+      expect(vm.rsp).toBe(rspBeforeMutation);
 
       // Verify data was written to correct location
       // Stack order for (10 20) is [20, 10, header]

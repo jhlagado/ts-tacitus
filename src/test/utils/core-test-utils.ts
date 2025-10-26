@@ -42,14 +42,14 @@ function reverseSpan(vm: VM, spanSize: number): void {
   const endCell = vm.sp - 1;
 
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
-  const leftAddr = (startCell + i) * CELL_SIZE;
-  const rightAddr = (endCell - i) * CELL_SIZE;
+    const leftAddr = (startCell + i) * CELL_SIZE;
+    const rightAddr = (endCell - i) * CELL_SIZE;
 
-  const leftValue = vm.memory.readFloat32(SEG_DATA, leftAddr);
-  const rightValue = vm.memory.readFloat32(SEG_DATA, rightAddr);
+    const leftValue = vm.memory.readFloat32(SEG_DATA, leftAddr);
+    const rightValue = vm.memory.readFloat32(SEG_DATA, rightAddr);
 
-  vm.memory.writeFloat32(SEG_DATA, leftAddr, rightValue);
-  vm.memory.writeFloat32(SEG_DATA, rightAddr, leftValue);
+    vm.memory.writeFloat32(SEG_DATA, leftAddr, rightValue);
+    vm.memory.writeFloat32(SEG_DATA, rightAddr, leftValue);
   }
 }
 

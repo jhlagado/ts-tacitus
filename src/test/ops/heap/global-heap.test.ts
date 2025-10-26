@@ -16,8 +16,8 @@ describe('Global heap primitives', () => {
 
     gpushOp(vm);
 
-  expect(vm.gp).toBe(1);
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
+    expect(vm.gp).toBe(1);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
 
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
@@ -35,8 +35,8 @@ describe('Global heap primitives', () => {
 
     gpushOp(vm);
 
-  expect(vm.gp).toBe(3);
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
+    expect(vm.gp).toBe(3);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
 
     const ref = vm.peek();
     expect(isRef(ref)).toBe(true);
@@ -57,12 +57,12 @@ describe('Global heap primitives', () => {
 
     gpeekOp(vm);
 
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1 + 3);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1 + 3);
     const values = vm.getStackData();
     const ref = values[0];
     expect(isRef(ref)).toBe(true);
     expect(values.slice(1)).toEqual([2, 1, toTaggedValue(2, Tag.LIST)]);
-  expect(vm.gp).toBe(3);
+    expect(vm.gp).toBe(3);
   });
 
   test('gpop rewinds heap to previous state', () => {
@@ -75,8 +75,8 @@ describe('Global heap primitives', () => {
 
     gpopOp(vm);
 
-  expect(vm.gp).toBe(1);
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
+    expect(vm.gp).toBe(1);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
     expect(vm.peek()).toBe(firstRef);
   });
 
@@ -86,12 +86,12 @@ describe('Global heap primitives', () => {
     vm.push(toTaggedValue(2, Tag.LIST));
     gpushOp(vm);
 
-  expect(vm.gp).toBe(3);
+    expect(vm.gp).toBe(3);
 
     gpopOp(vm);
 
-  expect(vm.gp).toBe(0);
-  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
+    expect(vm.gp).toBe(0);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
   });
 
   test('gmark + gsweep restore GP to saved mark', () => {
@@ -102,25 +102,25 @@ describe('Global heap primitives', () => {
 
     vm.push(22);
     gpushOp(vm);
-  expect(vm.gp).toBeGreaterThan(mark);
+    expect(vm.gp).toBeGreaterThan(mark);
 
     vm.push(mark);
     gsweepOp(vm);
 
-  expect(vm.gp).toBe(mark);
+    expect(vm.gp).toBe(mark);
   });
 
   test('gpush follows nested DATA_REF handles', () => {
     vm.push(7);
     gpushOp(vm);
-  const originalRef = vm.peek();
-  const stackCellAbs = vm.sp - 1;
-  const nestedRef = createDataRefAbs(stackCellAbs);
+    const originalRef = vm.peek();
+    const stackCellAbs = vm.sp - 1;
+    const nestedRef = createDataRefAbs(stackCellAbs);
     vm.push(nestedRef);
 
     gpushOp(vm);
 
-  expect(vm.gp).toBe(2);
+    expect(vm.gp).toBe(2);
     const duplicateRef = vm.peek();
     const { absoluteCellIndex: originalAbs } = decodeDataRefAbs(originalRef);
     const { absoluteCellIndex: duplicateAbs } = decodeDataRefAbs(duplicateRef);
@@ -138,7 +138,7 @@ describe('Global heap primitives', () => {
 
   test('gpeek rejects non-global references', () => {
     vm.push(5);
-  const stackRef = createDataRefAbs(vm.sp - 1);
+    const stackRef = createDataRefAbs(vm.sp - 1);
     vm.push(stackRef);
     expect(() => gpeekOp(vm)).toThrow(/global heap reference/);
   });
@@ -170,7 +170,7 @@ describe('Global heap primitives', () => {
   test('gpop rejects non-global references', () => {
     vm.push(4);
     gpushOp(vm);
-  const stackRef = createDataRefAbs(STACK_BASE / CELL_SIZE + 0);
+    const stackRef = createDataRefAbs(STACK_BASE / CELL_SIZE + 0);
     vm.pop();
     vm.push(stackRef);
     expect(() => gpopOp(vm)).toThrow(/global heap reference/);
@@ -193,7 +193,7 @@ describe('Global heap primitives', () => {
 
   test('gpush reports exhaustion when heap is full', () => {
     const capacity = GLOBAL_SIZE / CELL_SIZE;
-  vm.gp = capacity;
+    vm.gp = capacity;
     vm.push(123);
     expect(() => gpushOp(vm)).toThrow(/Global heap exhausted/);
   });
