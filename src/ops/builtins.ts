@@ -296,10 +296,21 @@ export function varRefOp(vm: VM): void {
 /**
  * Debug opcode to dump current stack frame state
  */
+import { STACK_BASE_CELLS } from '@src/core';
+
 export function dumpFrameOp(vm: VM): void {
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
-  console.log('RSP(cells):', vm.RSP, 'SP(cells):', vm.SP, 'BP(cells):', vm.BP, 'GP(cells):', vm.GP);
+  console.log(
+    'RSP(cells):',
+    vm.RSP,
+    'SP(cells):',
+  vm.sp - STACK_BASE_CELLS,
+    'BP(cells):',
+    vm.BP,
+    'GP(cells):',
+    vm.GP,
+  );
 
   if (vm.BP > 0) {
     const localCount = vm.symbolTable.getLocalCount();

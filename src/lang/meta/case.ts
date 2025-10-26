@@ -1,4 +1,11 @@
-import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel } from '@src/core';
+import {
+  SyntaxError,
+  Tag,
+  fromTaggedValue,
+  toTaggedValue,
+  Sentinel,
+  STACK_BASE_CELLS,
+} from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
@@ -8,7 +15,7 @@ const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
 const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
 
 function assertOpenCase(word: string): void {
-  if (vm.SP === 0) {
+  if (vm.sp - STACK_BASE_CELLS === 0) {
     throw new SyntaxError(`${word} without open case`, vm.getStackData());
   }
   const closer = vm.peek();

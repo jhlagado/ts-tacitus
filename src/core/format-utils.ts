@@ -139,7 +139,7 @@ function formatListFromMemory(vm: VM, address: number): string {
   const originalSP = vm.sp;
 
   for (let i = 0; i < slotCount; i++) {
-  const elementAddr = address - (slotCount - i) * CELL_SIZE;
+    const elementAddr = address - (slotCount - i) * CELL_SIZE;
     const element = vm.memory.readFloat32(SEG_DATA, elementAddr);
     vm.push(element);
   }

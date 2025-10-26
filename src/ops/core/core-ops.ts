@@ -23,6 +23,7 @@ import {
   fromTaggedValue,
   RSTACK_SIZE,
   SyntaxError,
+  STACK_BASE_CELLS,
 } from '@src/core';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
@@ -346,7 +347,7 @@ export const endOfOp: Verb = (vm: VM) => {
     throw new SyntaxError('endof invalid predicate placeholder', vm.getStackData());
   }
 
-  if (vm.SP === 0) {
+  if (vm.sp - STACK_BASE_CELLS === 0) {
     throw new SyntaxError('clause closer without of', vm.getStackData());
   }
 
@@ -471,7 +472,8 @@ export const groupLeftOp: Verb = (vm: VM) => {
   if ((vm.RSP + 1) * CELL_SIZE > RSTACK_SIZE) {
     throw new ReturnStackOverflowError('group-left', vm.getStackData());
   }
-  vm.rpush(vm.SP);
+  // Save current data stack depth in cells (relative to STACK_BASE)
+  vm.rpush(vm.sp - STACK_BASE_CELLS);
 };
 
 /**
@@ -503,7 +505,7 @@ export const groupRightOp: Verb = (vm: VM) => {
       throw new ReturnStackUnderflowError('group-right', vm.getStackData());
     }
     const sp0 = vm.rpop();
-    const sp1 = vm.SP;
+  const sp1 = vm.sp - STACK_BASE_CELLS;
     const d = sp1 - sp0;
     vm.push(d);
   } catch (e) {
