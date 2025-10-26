@@ -16,6 +16,7 @@ import {
   SEG_DATA,
   RSTACK_BASE,
   CELL_SIZE,
+  RSTACK_BASE_CELLS,
 } from '@src/core';
 
 import {
@@ -125,8 +126,9 @@ export function literalCodeOp(vm: VM): void {
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     vm.rpush(vm.IP);
-    vm.rpush(vm.BP);
-    vm.BP = vm.RSP;
+    // Save BP as relative cells
+    vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+    vm.bp = vm.rsp;
     vm.IP = opcode;
     return;
   }
@@ -255,7 +257,7 @@ export function reserveOp(vm: VM): void {
   // Reserve local slots: advance RSP in CELLS. RP (bytes) remains a compatible view
   // via the `RP` accessor so external callers/tests that read `vm.RP` will see the
   // equivalent byte offset (RSP * CELL_SIZE).
-  vm.RSP += slotCount;
+  vm.rsp += slotCount;
 }
 
 /**
@@ -273,7 +275,7 @@ export function initVarOp(vm: VM): void {
   const value = vm.peek();
   // Compute slot address using BP (cells) and convert to bytes at the boundary
   // Use CELL_SIZE instead of magic 4 for address computation
-  const slotAddr = (vm.BP + slotNumber) * CELL_SIZE;
+  const slotAddr = (vm.bp - RSTACK_BASE_CELLS + slotNumber) * CELL_SIZE;
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
@@ -303,21 +305,21 @@ export function dumpFrameOp(vm: VM): void {
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
     'RSP(cells):',
-    vm.RSP,
+    vm.rsp - RSTACK_BASE_CELLS,
     'SP(cells):',
     vm.sp - STACK_BASE_CELLS,
     'BP(cells):',
-    vm.BP,
+    vm.bp - RSTACK_BASE_CELLS,
     'GP(cells):',
-    vm.GP,
+    vm.gp,
   );
 
-  if (vm.BP > 0) {
+  if (vm.bp > RSTACK_BASE_CELLS) {
     const localCount = vm.symbolTable.getLocalCount();
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotAddr = (vm.BP + i) * CELL_SIZE;
+      const slotAddr = (vm.bp - RSTACK_BASE_CELLS + i) * CELL_SIZE;
       const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
