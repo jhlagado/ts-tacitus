@@ -1,11 +1,12 @@
-import { vm } from './src/core/globalState';
+import { vm, initializeInterpreter } from './src/lang/runtime';
 import { parse } from './src/lang/parser';
 import { Tokenizer } from './src/lang/tokenizer';
 import { Op } from './src/ops/opcodes';
 import { SEG_CODE } from './src/core/constants';
 
-// Reset VM to clean state
-vm.IP = 0;
+// Initialize VM and compiler (global vm singleton)
+initializeInterpreter();
+vm.IP = 0; // ensure clean IP for this debug run
 
 console.log('=== Initial Setup ===');
 console.log('Built-in function indices:');

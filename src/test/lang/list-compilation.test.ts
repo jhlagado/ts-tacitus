@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
+import { SEG_CODE } from '../../core';
 import { initializeInterpreter, vm } from '../../core/global-state';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -21,7 +22,13 @@ describe('LIST Literal Compilation', () => {
 
   it('compiles a simple LIST literal: ( 1 2 3 )', () => {
     parse(new Tokenizer('( 1 2 3 )'));
-    const code = vm.getCompileData();
+    const code = (() => {
+      const result: number[] = [];
+      for (let i = 0; i < vm.compiler.CP; i++) {
+        result.push(vm.memory.read8(SEG_CODE, i));
+      }
+      return result;
+    })();
 
     let i = 0;
     expect(code[i++]).toBe(Op.OpenList);
@@ -39,7 +46,13 @@ describe('LIST Literal Compilation', () => {
 
   it('compiles nested LIST literal: ( 1 ( 2 3 ) 4 )', () => {
     parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
-    const code = vm.getCompileData();
+    const code = (() => {
+      const result: number[] = [];
+      for (let i = 0; i < vm.compiler.CP; i++) {
+        result.push(vm.memory.read8(SEG_CODE, i));
+      }
+      return result;
+    })();
 
     let i = 0;
     expect(code[i++]).toBe(Op.OpenList);

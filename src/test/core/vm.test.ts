@@ -1,4 +1,4 @@
-import { VM, STACK_SIZE, RSTACK_SIZE } from '../../core';
+import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
 import { SymbolTable } from '@src/strings';
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
@@ -108,11 +108,15 @@ describe('VM', () => {
       expect(vm.symbolTable).toBeDefined();
       expect(vm.symbolTable instanceof SymbolTable).toBe(true);
     });
-    test('should return compiled data with getCompileData', () => {
+    test('should expose compiled bytes in code segment', () => {
       vm.compiler.compile8(0x12);
       vm.compiler.compile8(0x34);
       vm.compiler.compile8(0x56);
-      expect(vm.getCompileData()).toEqual([0x12, 0x34, 0x56]);
+      const bytes: number[] = [];
+      for (let i = 0; i < vm.compiler.CP; i++) {
+        bytes.push(vm.memory.read8(SEG_CODE, i));
+      }
+      expect(bytes).toEqual([0x12, 0x34, 0x56]);
     });
   });
 });
