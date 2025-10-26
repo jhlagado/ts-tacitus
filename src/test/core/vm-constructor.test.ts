@@ -58,7 +58,7 @@ describe('VM Constructor Initialization', () => {
     // or explicitly after VM construction. So, it won't be set directly in the constructor.
     // We need to simulate the initialization process.
     const compiler = new Compiler(vm);
-    vm.initializeCompiler(compiler);
+    vm.compiler = compiler;
     expect(vm.compiler).toBeInstanceOf(Compiler);
   });
 });

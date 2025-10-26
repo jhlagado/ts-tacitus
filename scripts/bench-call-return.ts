@@ -14,7 +14,7 @@ function compile(vm: VM, code: string) {
 
 function bench(iterations: number) {
   const vm = new VM();
-  vm.initializeCompiler(new Compiler(vm));
+  vm.compiler = new Compiler(vm);
   vm.debug = false;
 
   // Define a simple recursive-like function (non-recursive loop via repeat)

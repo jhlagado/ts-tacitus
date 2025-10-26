@@ -49,7 +49,7 @@ describe('Compiler - Branch Coverage', () => {
       const largeOpcode = MIN_USER_OPCODE + 1000;
       vm.compiler.compileOpcode(largeOpcode);
 
-      vm.reset();
+      vm.IP = 0;
       const firstByte = vm.next8();
       const secondByte = vm.next8();
 
@@ -80,7 +80,7 @@ describe('Compiler - Branch Coverage', () => {
     test('should properly encode user word call with MSB set', () => {
       vm.compiler.compileUserWordCall(100);
 
-      vm.reset();
+      vm.IP = 0;
       const firstByte = vm.next8();
 
       expect(firstByte & 0x80).toBe(0x80);
@@ -102,7 +102,7 @@ describe('Compiler - Branch Coverage', () => {
 
       vm.compiler.patchOpcode(patchAddress, 5);
 
-      vm.reset();
+      vm.IP = 0;
       vm.IP = patchAddress;
       expect(vm.next8()).toBe(5);
     });
@@ -115,7 +115,7 @@ describe('Compiler - Branch Coverage', () => {
       const largeOpcode = MIN_USER_OPCODE + 100;
       vm.compiler.patchOpcode(patchAddress, largeOpcode);
 
-      vm.reset();
+      vm.IP = 0;
       vm.IP = patchAddress;
       const firstByte = vm.next8();
       const secondByte = vm.next8();
@@ -180,7 +180,7 @@ describe('Compiler - Branch Coverage', () => {
 
       vm.compiler.patchOpcode(1, 99);
 
-      vm.reset();
+      vm.IP = 0;
       expect(vm.next8()).toBe(1);
       expect(vm.next8()).toBe(99);
       expect(vm.next8()).toBe(3);

@@ -5,7 +5,7 @@ import { Op } from './src/ops/opcodes';
 import { SEG_CODE } from './src/core/constants';
 
 // Reset VM to clean state
-vm.reset();
+vm.IP = 0;
 
 console.log('=== Initial Setup ===');
 console.log('Built-in function indices:');
@@ -32,7 +32,7 @@ for (const [name, value] of Object.entries(Op)) {
 for (let i = 0; i < vm.compiler.CP; i++) {
   const byte = vm.memory.read8(SEG_CODE, i);
   let description = `raw byte ${byte}`;
-  
+
   // Try to identify what this byte represents
   if (opcodeNames[byte]) {
     description = `Op.${opcodeNames[byte]}`;
@@ -41,7 +41,7 @@ for (let i = 0; i < vm.compiler.CP; i++) {
     const dupIndex = vm.symbolTable.find('dup');
     const mulIndex = vm.symbolTable.find('mul');
     const starIndex = vm.symbolTable.find('*');
-    
+
     if (byte === dupIndex) {
       description = `dup (function index ${byte})`;
     } else if (byte === mulIndex) {
@@ -52,8 +52,10 @@ for (let i = 0; i < vm.compiler.CP; i++) {
       description = `high-byte opcode marker (${byte})`;
     }
   }
-  
-  console.log(`[${i.toString().padStart(2)}]: 0x${byte.toString(16).padStart(2, '0')} (${byte.toString().padStart(3)}) - ${description}`);
+
+  console.log(
+    `[${i.toString().padStart(2)}]: 0x${byte.toString(16).padStart(2, '0')} (${byte.toString().padStart(3)}) - ${description}`,
+  );
 }
 
 // Show symbol table entry for square
@@ -80,7 +82,7 @@ if (squareAddr !== undefined) {
     const firstByte = vm.memory.read8(SEG_CODE, pos);
     let opcode = firstByte;
     let bytesUsed = 1;
-    
+
     if ((firstByte & 0x80) !== 0) {
       // Multi-byte opcode
       const secondByte = vm.memory.read8(SEG_CODE, pos + 1);
@@ -89,7 +91,7 @@ if (squareAddr !== undefined) {
       opcode = highBits | lowBits;
       bytesUsed = 2;
     }
-    
+
     let description = `opcode ${opcode}`;
     if (opcodeNames[opcode]) {
       description = `Op.${opcodeNames[opcode]}`;
@@ -98,13 +100,17 @@ if (squareAddr !== undefined) {
     } else if (opcode === vm.symbolTable.find('mul') || opcode === vm.symbolTable.find('*')) {
       description = `mul/* (${opcode})`;
     }
-    
-    const byteDesc = bytesUsed === 1 ? 
-      `0x${firstByte.toString(16).padStart(2, '0')}` :
-      `0x${firstByte.toString(16).padStart(2, '0')} 0x${vm.memory.read8(SEG_CODE, pos + 1).toString(16).padStart(2, '0')}`;
-      
+
+    const byteDesc =
+      bytesUsed === 1
+        ? `0x${firstByte.toString(16).padStart(2, '0')}`
+        : `0x${firstByte.toString(16).padStart(2, '0')} 0x${vm.memory
+            .read8(SEG_CODE, pos + 1)
+            .toString(16)
+            .padStart(2, '0')}`;
+
     console.log(`  Step ${step}: [${pos}] ${byteDesc} -> ${description}`);
-    
+
     pos += bytesUsed;
     step++;
   }
