@@ -283,8 +283,8 @@ export const swapOp: Verb = (vm: VM) => {
     const [_topNextSlot, topSlots] = findElement(vm, 0);
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
-  const totalSlots = topSlots + secondSlots;
-  const startSlot = vm.depth() - totalSlots;
+    const totalSlots = topSlots + secondSlots;
+    const startSlot = vm.depth() - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
@@ -315,9 +315,9 @@ export const rotOp: Verb = (vm: VM) => {
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-  const totalSlots = topSlots + midSlots + bottomSlots;
-  const rotationSlots = midSlots + topSlots;
-  const startSlot = vm.depth() - totalSlots;
+    const totalSlots = topSlots + midSlots + bottomSlots;
+    const rotationSlots = midSlots + topSlots;
+    const startSlot = vm.depth() - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, rotationSlots);
   } catch (error) {
@@ -348,8 +348,8 @@ export const revrotOp: Verb = (vm: VM) => {
     const [_midNextSlot, midSlots] = findElement(vm, topSlots);
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
-  const totalSlots = topSlots + midSlots + bottomSlots;
-  const startSlot = vm.depth() - totalSlots;
+    const totalSlots = topSlots + midSlots + bottomSlots;
+    const startSlot = vm.depth() - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {

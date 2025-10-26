@@ -534,7 +534,6 @@ export const groupRightOp: Verb = (vm: VM) => {
  * of values, including lists and other complex data structures.
  */
 export const printOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'print');
   const d = vm.pop();
   console.log(formatValue(vm, d));
 };
