@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, toTaggedValue, Tag } from '../../core';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { findElement } from '../../ops/stack';
 
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
@@ -7,10 +8,10 @@ function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
 }
 
 function createList(vm: VM, ...values: number[]): { start: number; end: number } {
-  const start = vm.SP;
+  const start = vm.sp - STACK_BASE / CELL_SIZE;
   values.forEach(val => pushValue(vm, val));
   pushValue(vm, values.length, Tag.LIST);
-  return { start, end: vm.SP };
+  return { start, end: vm.sp - STACK_BASE / CELL_SIZE };
 }
 
 describe('findElement', () => {
@@ -93,7 +94,7 @@ describe('findElement', () => {
   });
 
   test('should handle out of bounds access', () => {
-    vm.SP = 0;
+    vm.sp = STACK_BASE / CELL_SIZE;
     const [_next1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
 

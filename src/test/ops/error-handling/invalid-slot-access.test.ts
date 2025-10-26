@@ -27,14 +27,14 @@ describe('Invalid Slot Access Error Handling', () => {
   test('should throw ReturnStackUnderflowError if BP is corrupted and points to invalid location', () => {
     // Simulate a function call setup that would lead to exitOp trying to restore BP/IP
     vm.rpush(vm.IP);
-    vm.rpush(vm.BP);
+    vm.rpush(vm.bp);
     // Establish new frame base pointer from current return stack (cells -> bytes)
-    vm.BP = vm.RSP; // set BP cells
+    vm.bp = vm.rsp; // set BP cells
 
     // Now corrupt BP to cause underflow on exit
     vm.unsafeSetBPBytes(0); // baseline
     // Corrupt by forcing negative simulated bytes (wrap via unsafe not supporting negative; simulate via direct cells)
-    vm.BP = 0; // keep at 0; corruption path now relies on exitOp validation elsewhere
+  vm.bp = 0; // keep at 0; corruption path now relies on exitOp validation elsewhere
 
     expect(() => executeOp(vm, Op.Exit)).toThrow(ReturnStackUnderflowError);
   });

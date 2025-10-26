@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
@@ -28,16 +28,17 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
 
 export function runImmediateCode(address: number): void {
   const savedIP = vm.IP;
-  const savedBP = vm.BP;
-  const savedRSP = vm.RSP;
+  const savedBP = vm.bp;
+  const savedRSPRel = vm.rsp - RSTACK_BASE_CELLS;
   const savedRunning = vm.running;
   const savedCP = vm.compiler.CP;
   const savedBCP = vm.compiler.BCP;
   const savedPreserve = vm.compiler.preserve;
 
   vm.rpush(savedIP);
-  vm.rpush(vm.BP);
-  vm.BP = vm.RSP;
+  // Save BP (relative cells) and set new frame
+  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+  vm.bp = vm.rsp;
   vm.IP = address;
   vm.running = true;
 
@@ -46,14 +47,14 @@ export function runImmediateCode(address: number): void {
     const isUserDefined = (firstByte & 0x80) !== 0;
     const opcode = vm.nextOpcode();
     executeOp(vm, opcode as Op, isUserDefined);
-    if (vm.IP === savedIP && vm.RSP === savedRSP) {
+    if (vm.IP === savedIP && (vm.rsp - RSTACK_BASE_CELLS) === savedRSPRel) {
       break;
     }
   }
 
   vm.running = savedRunning;
   vm.IP = savedIP;
-  vm.BP = savedBP;
+  vm.bp = savedBP;
   vm.compiler.CP = savedCP;
   vm.compiler.BCP = savedBCP;
   vm.compiler.preserve = savedPreserve;

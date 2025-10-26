@@ -5,6 +5,7 @@ import {
   toTaggedValue,
   Sentinel,
   STACK_BASE_CELLS,
+  RSTACK_BASE_CELLS,
 } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
@@ -28,7 +29,8 @@ function assertOpenCase(word: string): void {
 export function beginCaseImmediate(): void {
   requireParserState();
 
-  vm.push(vm.RSP);
+  // Push saved return stack snapshot as relative cells
+  vm.push(vm.rsp - RSTACK_BASE_CELLS);
   vm.push(ENDCASE_CODE_REF);
 }
 

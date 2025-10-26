@@ -15,6 +15,7 @@
  */
 
 import { vm } from '../../core/global-state';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, createCodeRef } from '../../core';
@@ -238,7 +239,7 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
       expect(vm.getStackData()).toEqual([42, 42]);
 
-      vm.SP = 0;
+  vm.sp = STACK_BASE / CELL_SIZE;
       vm.push(5);
 
       const codeBlockRef = createCodeRef(100);

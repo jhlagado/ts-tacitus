@@ -124,7 +124,7 @@ export const callOp: Verb = (vm: VM) => {
   const callAddress = vm.nextInt16();
   vm.rpush(vm.IP);
   // Save BP as relative cells on the return stack for compatibility
-  vm.rpush(vm.BP);
+  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
   vm.bp = vm.rsp;
   vm.IP = callAddress;
 };
@@ -237,7 +237,7 @@ export const evalOp: Verb = (vm: VM) => {
       } else {
         vm.rpush(vm.IP);
         // Save BP as relative cells on the return stack for compatibility
-        vm.rpush(vm.BP);
+        vm.rpush(vm.bp - RSTACK_BASE_CELLS);
         vm.bp = vm.rsp;
         vm.IP = addr;
       }

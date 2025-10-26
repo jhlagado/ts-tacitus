@@ -101,35 +101,6 @@ export class VM {
     registerBuiltins(this, this.symbolTable);
   }
 
-  /**
-   * Canonical stack pointer accessor (measured in cells).
-   */
-  /** @deprecated Use vm.sp (absolute cells). */
-  get SP(): number {
-    return this._spCells - this.stackBaseCells;
-  }
-  /** @deprecated Use vm.sp (absolute cells). */
-  set SP(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0 || cells > this.stackTopCells - this.stackBaseCells) {
-      throw new Error(`SP set to invalid value: ${cells}`);
-    }
-    this._spCells = this.stackBaseCells + cells;
-  }
-
-  /**
-   * Return stack pointer (canonical, cells). Byte-based RP accessor removed after migration.
-   */
-  /** @deprecated Use vm.rsp (absolute cells). */
-  get RSP(): number {
-    return this._rspCells - this.rstackBaseCells;
-  }
-  /** @deprecated Use vm.rsp (absolute cells). */
-  set RSP(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
-      throw new Error(`RSP set to invalid value: ${cells}`);
-    }
-    this._rspCells = this.rstackBaseCells + cells;
-  }
 
   /**
    * Initializes the compiler for the VM.
@@ -139,34 +110,7 @@ export class VM {
     this.compiler = compiler;
   }
 
-  /**
-   * Base pointer accessors (cell-based canonical representation)
-   */
-  /** @deprecated Use vm.bp (absolute cells). */
-  get BP(): number {
-    return this._bpCells - this.rstackBaseCells;
-  }
-  /** @deprecated Use vm.bp (absolute cells). */
-  set BP(cells: number) {
-    const maxDepth = this.rstackTopCells - this.rstackBaseCells;
-    if (!Number.isInteger(cells) || cells < 0 || cells > maxDepth) {
-      throw new Error(`BP (cells) set to invalid value: ${cells}`);
-    }
-    this._bpCells = this.rstackBaseCells + cells;
-  }
-
-  /** Global segment bump pointer (cells). */
-  /** @deprecated Use vm.gp (absolute cells). */
-  get GP(): number {
-    return this._gpCells;
-  }
-  /** @deprecated Use vm.gp (absolute cells). */
-  set GP(cells: number) {
-    if (!Number.isInteger(cells) || cells < 0) {
-      throw new Error(`GP set to invalid value: ${cells}`);
-    }
-    this._gpCells = cells;
-  }
+  // Uppercase SP/RSP/BP/GP shims removed: use sp/rsp/bp/gp (absolute cells)
 
   /**
    * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
@@ -200,6 +144,13 @@ export class VM {
       !Number.isInteger(this._bpCells)
     ) {
       throw new Error('Invariant violation: non-integer stack pointer');
+    }
+    // Global pointer sanity (non-negative integer)
+    if (this._gpCells < 0) {
+      throw new Error('Invariant violation: negative global pointer');
+    }
+    if (!Number.isInteger(this._gpCells)) {
+      throw new Error('Invariant violation: non-integer global pointer');
     }
     // Bounds vs configured sizes
     if (this._spCells < this.stackBaseCells || this._spCells > this.stackTopCells) {
