@@ -1,4 +1,12 @@
-import { VM, Tag, fromTaggedValue, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
+import {
+  VM,
+  Tag,
+  fromTaggedValue,
+  getListBounds,
+  getListLength,
+  CELL_SIZE,
+  SEG_DATA,
+} from '@src/core';
 
 export interface CapsuleLayout {
   absBaseAddrBytes: number; // absolute byte address of slot0 (first payload cell)

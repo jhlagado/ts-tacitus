@@ -213,7 +213,7 @@ export function emitWord(value: string, state: ParserState): void {
   }
 
   if (tag === Tag.DATA_REF) {
-  if (getRefRegion(entryValue) !== 'global') {
+    if (getRefRegion(entryValue) !== 'global') {
       throw new UndefinedWordError(value, vm.getStackData());
     }
 
@@ -287,7 +287,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
       return;
     }
     if (tag === Tag.DATA_REF) {
-  if (getRefRegion(taggedValue) !== 'global') {
+      if (getRefRegion(taggedValue) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
       vm.compiler.compileOpcode(Op.LiteralNumber);
@@ -444,7 +444,7 @@ export function emitAssignment(state: ParserState): void {
     return;
   }
   if (tag === Tag.DATA_REF) {
-  if (getRefRegion(taggedValue) !== 'global') {
+    if (getRefRegion(taggedValue) !== 'global') {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',
         vm.getStackData(),

@@ -1,4 +1,13 @@
-import { VM, getTag, Tag, fromTaggedValue, getListBounds, getListLength, SEG_DATA, CELL_SIZE } from '@src/core';
+import {
+  VM,
+  getTag,
+  Tag,
+  fromTaggedValue,
+  getListBounds,
+  getListLength,
+  SEG_DATA,
+  CELL_SIZE,
+} from '@src/core';
 
 /**
  * Asserts that the provided value is a well-formed capsule list.

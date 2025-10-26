@@ -98,8 +98,8 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
     execute(vm.compiler.BCP);
     const entryRef = vm.symbolTable.getDictionaryEntryRef('alpha');
     expect(entryRef).toBeDefined();
-  const { absoluteCellIndex: headerAbsCellIndex } = decodeDataRef(entryRef!);
-  expect(getRefRegion(entryRef!)).toBe('global');
+    const { absoluteCellIndex: headerAbsCellIndex } = decodeDataRef(entryRef!);
+    expect(getRefRegion(entryRef!)).toBe('global');
     const headerCellIndex = headerAbsCellIndex - GLOBAL_BASE / CELL_SIZE;
 
     const payloadCellIndex = headerCellIndex - 3;
@@ -135,8 +135,8 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
 
     const firstEntryRef = vm.symbolTable.getDictionaryEntryRef('first');
     expect(firstEntryRef).toBeDefined();
-  const { absoluteCellIndex: firstAbsIndex } = decodeDataRef(firstEntryRef!);
-  expect(getRefRegion(firstEntryRef!)).toBe('global');
+    const { absoluteCellIndex: firstAbsIndex } = decodeDataRef(firstEntryRef!);
+    expect(getRefRegion(firstEntryRef!)).toBe('global');
     const firstHeaderIndex = firstAbsIndex - GLOBAL_BASE / CELL_SIZE;
 
     parse(
@@ -148,8 +148,8 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
 
     const secondEntryRef = vm.symbolTable.getDictionaryEntryRef('second');
     expect(secondEntryRef).toBeDefined();
-  const { absoluteCellIndex: secondAbsIndex } = decodeDataRef(secondEntryRef!);
-  expect(getRefRegion(secondEntryRef!)).toBe('global');
+    const { absoluteCellIndex: secondAbsIndex } = decodeDataRef(secondEntryRef!);
+    expect(getRefRegion(secondEntryRef!)).toBe('global');
     const secondHeaderIndex = secondAbsIndex - GLOBAL_BASE / CELL_SIZE;
     expect(secondHeaderIndex).toBeGreaterThan(firstHeaderIndex);
 
@@ -159,7 +159,7 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
     );
     expect(getTag(prevValue)).toBe(Tag.DATA_REF);
 
-  const { absoluteCellIndex: linkedAbsIndex } = decodeDataRef(prevValue);
+    const { absoluteCellIndex: linkedAbsIndex } = decodeDataRef(prevValue);
     const linkedHeaderIndex = linkedAbsIndex - GLOBAL_BASE / CELL_SIZE;
     expect(linkedHeaderIndex).toBe(firstHeaderIndex);
 

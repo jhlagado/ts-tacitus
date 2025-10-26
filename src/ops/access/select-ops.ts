@@ -26,7 +26,7 @@ export function createTargetRef(vm: VM): boolean {
 
   if (isList(target)) {
     // Create absolute DATA_REF to the list header cell
-  const targetRef = createDataRef(targetAbsCellIndex);
+    const targetRef = createDataRef(targetAbsCellIndex);
     vm.push(targetRef);
     return true;
   } else if (isRef(target)) {

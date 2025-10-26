@@ -19,7 +19,7 @@ describe('capsule dispatch runtime', () => {
     const codeRef = toTaggedValue(codeAddr, Tag.CODE);
     vm.rpush(codeRef);
     vm.rpush(toTaggedValue(locals.length + 1, Tag.LIST));
-  const handle = createDataRef(vm.rsp - 1);
+    const handle = createDataRef(vm.rsp - 1);
     return { handle, codeRef };
   };
 
@@ -52,7 +52,7 @@ describe('capsule dispatch runtime', () => {
 
   test('errors on non-capsule receiver', () => {
     vm.push(0);
-  vm.push(createDataRef(STACK_BASE / CELL_SIZE + 0));
+    vm.push(createDataRef(STACK_BASE / CELL_SIZE + 0));
     expect(() => dispatchOp(vm)).toThrow();
   });
 });
