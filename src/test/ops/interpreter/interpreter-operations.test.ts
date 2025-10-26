@@ -4,6 +4,7 @@ import { initializeInterpreter, vm } from '../../../core/global-state';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
+import { RSTACK_BASE, RSTACK_TOP, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 import {
   abortOp,
@@ -28,24 +29,26 @@ describe('Built-in Words', () => {
       const testAddress = 0x2345;
       // In the migrated model BP is cell-based. Simulate a call frame by
       // pushing return address then saved BP (cells) and setting BP to current RSP.
-      const originalBP = vm.BP; // capture current (cells)
+      const originalBP = vm.bp; // capture current (absolute cells)
       vm.rpush(testAddress);
-      vm.rpush(originalBP);
-      vm.BP = vm.RSP;
+      // Save BP as relative cells on the return stack
+      vm.rpush(originalBP - RSTACK_BASE / CELL_SIZE);
+      vm.bp = vm.rsp;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(vm.BP).toBe(originalBP);
+      expect(vm.bp).toBe(originalBP);
     });
     test('evalOp should push IP to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
       const originalIP = vm.IP;
-      const originalBP = vm.BP; // cells
+      const originalBP = vm.bp; // absolute cells
       vm.push(toTaggedValue(testAddress, Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
-      expect(vm.BP).toBe(vm.RSP);
+      expect(vm.bp).toBe(vm.rsp);
       const savedBP = vm.rpop();
-      expect(savedBP).toBe(originalBP);
+      // Saved BP is relative cells
+      expect(savedBP).toBe(originalBP - RSTACK_BASE / CELL_SIZE);
       const returnAddr = vm.rpop();
       expect(returnAddr).toBe(originalIP);
     });
@@ -57,14 +60,14 @@ describe('Built-in Words', () => {
     });
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.IP;
-      const originalBP = vm.BP;
+      const originalBP = vm.bp;
       const testAddress = 0x12345;
       vm.compiler.compile16(testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
-      expect(vm.BP).toBe(vm.RSP);
+      expect(vm.bp).toBe(vm.rsp);
       const savedBP = vm.rpop();
-      expect(savedBP).toBe(originalBP);
+      expect(savedBP).toBe(originalBP - RSTACK_BASE / CELL_SIZE);
       const returnAddr = vm.rpop();
       expect(returnAddr).toBe(originalIP + 2);
     });
@@ -122,10 +125,11 @@ describe('Built-in Words', () => {
   });
   describe('Grouping Operations', () => {
     test('groupLeftOp should push the current SP (cells) onto the return stack', () => {
-      const initialSP = vm.SP;
+      const initialSP = vm.sp;
       groupLeftOp(vm);
       const savedSP = vm.rpop();
-      expect(savedSP).toBe(initialSP);
+      // groupLeftOp stores relative cells (depth)
+      expect(savedSP).toBe(initialSP - STACK_BASE / CELL_SIZE);
     });
     test('groupRightOp should compute the number of stack cells pushed since group left', () => {
       groupLeftOp(vm);
@@ -156,12 +160,16 @@ describe('Built-in Words', () => {
       );
     });
     test('should handle return stack overflow', () => {
-      const maxDepth = vm.RSP; // already in cells
-      for (let i = 0; i < maxDepth; i++) {
+      // Fill return stack to leave exactly one free cell so evalOp's two rpushes overflow
+  const available = RSTACK_TOP / CELL_SIZE - vm.rsp; // remaining capacity in cells (public constants)
+      for (let i = 0; i < available - 1; i++) {
         vm.rpush(0);
       }
 
-      expect(() => evalOp(vm)).toThrow('Stack underflow');
+  // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
+  vm.push(toTaggedValue(0x1234, Tag.CODE));
+  // evalOp will attempt to push return IP and saved BP (relative), overflowing on second push
+  expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
     });
   });
 });

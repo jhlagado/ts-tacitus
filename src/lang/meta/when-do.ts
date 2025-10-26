@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, STACK_BASE_CELLS } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue, STACK_BASE_CELLS, RSTACK_BASE_CELLS } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
@@ -10,7 +10,8 @@ const ENDDO_CODE_REF = createBuiltinRef(Op.EndDo);
 export function beginWhenImmediate(): void {
   requireParserState();
 
-  vm.push(vm.RSP);
+  // Push saved return stack snapshot as relative cells
+  vm.push(vm.rsp - RSTACK_BASE_CELLS);
   vm.push(ENDWHEN_CODE_REF);
 }
 

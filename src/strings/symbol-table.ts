@@ -263,7 +263,7 @@ export class SymbolTable {
     const checkpoint: SymbolTableCheckpoint = {
       head: this.head,
       dictHead: vmInstance ? vmInstance.dictHead : NIL,
-      gp: vmInstance ? vmInstance.GP : 0,
+      gp: vmInstance ? vmInstance.gp : 0,
       localSlotCount: this.localSlotCount,
     };
     this.localSlotCount = 0;
@@ -288,7 +288,7 @@ export class SymbolTable {
     const vmInstance = this.vmRef;
     if (vmInstance) {
       vmInstance.dictHead = checkpoint.dictHead;
-      vmInstance.GP = checkpoint.gp;
+      vmInstance.gp = checkpoint.gp;
     }
   }
   /**

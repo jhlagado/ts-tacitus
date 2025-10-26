@@ -7,6 +7,7 @@
  */
 
 import { vm } from '../../core/global-state';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';
@@ -107,7 +108,7 @@ describe('VM Symbol Resolution', () => {
       vm.push(addRef!);
       evalOp(vm);
 
-      expect(vm.SP).toBe(1);
+      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
       expect(vm.pop()).toBe(8);
     });
 

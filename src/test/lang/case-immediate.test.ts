@@ -1,4 +1,5 @@
 import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../core/global-state';
 import {
@@ -31,14 +32,14 @@ describe('case immediates', () => {
   test('beginCaseImmediate pushes saved RSP and closer', () => {
     beginCaseImmediate();
 
-    expect(vm.SP).toBe(2);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
     const closer = vm.peek();
     const closerInfo = fromTaggedValue(closer);
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndCase);
 
-    const snapshot = vm.peekAt(1);
-    expect(snapshot).toBe(vm.RSP);
+  const snapshot = vm.peekAt(1);
+  expect(snapshot).toBe(vm.rsp - RSTACK_BASE / CELL_SIZE);
   });
 
   test('clauseOfImmediate emits comparison sequence and records placeholder', () => {
@@ -49,7 +50,7 @@ describe('case immediates', () => {
 
     clauseOfImmediate();
 
-    expect(vm.SP).toBe(4);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(4);
     const closerInfo = fromTaggedValue(vm.peek());
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndOf);
@@ -93,7 +94,7 @@ describe('case immediates', () => {
     beginCaseImmediate();
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
-    expect(vm.SP).toBeGreaterThanOrEqual(2);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBeGreaterThanOrEqual(2);
     const { tag, value } = fromTaggedValue(vm.peek());
     expect(tag).toBe(Tag.BUILTIN);
     expect(value).toBe(Op.EndCase);
@@ -119,7 +120,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // executes EndOf
 
-    expect(vm.SP).toBe(2);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
 
     const exitPos = vm.rpop();
     expect(exitPos).toBeGreaterThan(skipPos);
@@ -175,7 +176,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // EndCase
 
-    expect(vm.SP).toBe(0);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
 
     const finalDropPos = vm.compiler.CP - 1;
     expect(vm.memory.read8(SEG_CODE, finalDropPos)).toBe(Op.Drop);
@@ -193,7 +194,7 @@ describe('case immediates', () => {
 
     evalOp(vm);
 
-    expect(vm.SP).toBe(0);
+  expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
     expect(vm.memory.read8(SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
   });
 });

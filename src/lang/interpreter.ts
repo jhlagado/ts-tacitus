@@ -17,7 +17,7 @@
 import { executeOp } from '../ops/builtins';
 import { vm } from './runtime';
 import { parse } from './parser';
-import { toTaggedValue, Tag, SEG_CODE } from '@src/core';
+import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE_CELLS } from '@src/core';
 import { Tokenizer } from './tokenizer';
 
 // SEG_CODE imported from @src/core
@@ -110,9 +110,9 @@ export function callTacit(codePtr: number): void {
   // Frame migration complete: BP is cell-based and unified.
   // compatibility for code/tests still expecting byte-based BP frames.
   vm.rpush(toTaggedValue(returnIP, Tag.CODE));
-  // Unified cell-only frame prologue
-  vm.rpush(vm.BP);
-  vm.BP = vm.RSP;
+  // Unified cell-only frame prologue: save BP as relative cells
+  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+  vm.bp = vm.rsp;
 
   vm.IP = codePtr;
   vm.running = true;

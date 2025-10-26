@@ -4,6 +4,7 @@ import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
 import { SymbolTable } from '../../../src/strings/symbol-table';
 import { Compiler } from '../../../src/lang/compiler';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../../src/core/constants';
 
 describe('VM Constructor Initialization', () => {
   let vm: VM;
@@ -24,16 +25,16 @@ describe('VM Constructor Initialization', () => {
     expect(vm.running).toBe(true);
   });
 
-  test('should initialize SP to 0', () => {
-    expect(vm.SP).toBe(0);
+  test('should initialize SP to STACK_BASE_CELLS', () => {
+    expect(vm.sp).toBe(STACK_BASE / CELL_SIZE);
   });
 
-  test('should initialize RSP (return stack depth in cells) to 0', () => {
-    expect(vm.RSP).toBe(0);
+  test('should initialize RSP (absolute cells) to RSTACK_BASE_CELLS', () => {
+    expect(vm.rsp).toBe(RSTACK_BASE / CELL_SIZE);
   });
 
-  test('should initialize BP to 0', () => {
-    expect(vm.BP).toBe(0); // cells
+  test('should initialize BP (absolute cells) to RSTACK_BASE_CELLS', () => {
+    expect(vm.bp).toBe(RSTACK_BASE / CELL_SIZE);
   });
 
   test('should initialize digest as a Digest instance', () => {

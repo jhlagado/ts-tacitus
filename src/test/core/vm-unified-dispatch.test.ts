@@ -97,14 +97,14 @@ describe('VM Unified Dispatch', () => {
 
   describe('performance verification', () => {
     test('should execute built-ins without call frame overhead', () => {
-      const originalRSP = vm.RSP;
+      const originalRSP = vm.rsp;
 
       vm.push(2);
       vm.push(3);
       vm.push(createBuiltinRef(Op.Add));
       evalOp(vm);
 
-      expect(vm.RSP).toBe(originalRSP);
+      expect(vm.rsp).toBe(originalRSP);
       expect(vm.getStackData()).toEqual([5]);
     });
 

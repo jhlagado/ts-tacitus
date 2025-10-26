@@ -1,4 +1,5 @@
 import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../core/global-state';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
@@ -73,7 +74,7 @@ describe('conditional immediates', () => {
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
     beginIfImmediate();
-    expect(vm.SP).toBe(2);
+    expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
     // Top of stack should be EndIf closer
     verifyTaggedValue(vm.peek(), Tag.BUILTIN, Op.EndIf);
     // Also verify the element beneath top is a NUMBER (branch placeholder offset)

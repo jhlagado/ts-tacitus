@@ -1,5 +1,5 @@
 import { VM } from '../../core';
-import { STACK_SIZE, RSTACK_SIZE, CELL_SIZE } from '../../core';
+import { CELL_SIZE, STACK_BASE, STACK_TOP, RSTACK_BASE } from '../../core';
 
 describe('VM pointer validation', () => {
   let vm: VM;
@@ -8,42 +8,44 @@ describe('VM pointer validation', () => {
     vm = new VM();
   });
 
-  test('SP setter rejects negative values', () => {
-    expect(() => {
-      vm.SP = -1;
-    }).toThrow('SP set to invalid value');
+  test('SP outside lower bound triggers invariant', () => {
+    const baseCells = STACK_BASE / CELL_SIZE;
+    vm.sp = baseCells - 1;
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow('SP outside stack segment');
   });
 
-  test('SP setter rejects values beyond stack capacity', () => {
-    const maxCells = STACK_SIZE / CELL_SIZE;
-    expect(() => {
-      vm.SP = maxCells + 1;
-    }).toThrow('SP set to invalid value');
+  test('SP above upper bound triggers invariant', () => {
+    const topCells = STACK_TOP / CELL_SIZE;
+    vm.sp = topCells + 1;
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow('SP outside stack segment');
   });
 
-  test('SP setter rejects non-integer values', () => {
-    expect(() => {
-      vm.SP = 0.5;
-    }).toThrow('SP set to invalid value');
+  test('SP non-integer triggers invariant', () => {
+    const baseCells = STACK_BASE / CELL_SIZE;
+    vm.sp = baseCells + 0.5;
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow('non-integer stack pointer');
   });
 
-  test('RSP setter rejects negative values', () => {
-    expect(() => {
-      vm.RSP = -1;
-    }).toThrow('RSP set to invalid value');
+  test('RSP negative triggers invariant', () => {
+    vm.rsp = -1;
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow('negative stack pointer');
   });
 
-  test('BP setter rejects values beyond return stack depth', () => {
-    const maxCells = RSTACK_SIZE / CELL_SIZE;
-    expect(() => {
-      vm.BP = maxCells + 1;
-    }).toThrow('BP (cells) set to invalid value');
+  test('BP beyond RSP triggers invariant', () => {
+    vm.rsp = RSTACK_BASE / CELL_SIZE;
+    vm.bp = vm.rsp + 1;
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow(/BP \(.*\) > RSP \(.+\)/);
   });
 
-  test('GP setter rejects negative values', () => {
-    expect(() => {
-      vm.GP = -1;
-    }).toThrow('GP set to invalid value');
+  test('GP negative triggers invariant', () => {
+    vm.gp = -1 as unknown as number; // force invalid value
+    vm.debug = true;
+    expect(() => vm.ensureInvariants()).toThrow('negative global pointer');
   });
 
   test('unsafeSetBPBytes rejects non-aligned offsets', () => {

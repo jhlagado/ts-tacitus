@@ -7,6 +7,7 @@ import { vm, initializeInterpreter } from '../../../core/global-state';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeReference } from '../../../core/refs';
+import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 describe('Local Variables System', () => {
   beforeEach(() => {
@@ -16,7 +17,7 @@ describe('Local Variables System', () => {
 
   describe('Basic Operations', () => {
     test('should handle complete workflow: reserve → init → fetch', () => {
-      vm.BP = 16; // within current return-stack size
+  vm.bp = RSTACK_BASE / CELL_SIZE + 16; // within current return-stack size
 
       // Reserve 1 slot
       vm.compiler.compile16(1);
@@ -35,7 +36,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle different data types', () => {
-      vm.BP = 24;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 24;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -62,7 +63,7 @@ describe('Local Variables System', () => {
 
   describe('Multiple Variables', () => {
     test('should handle multiple variables without interference', () => {
-      vm.BP = 28;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 28;
       vm.compiler.compile16(5);
       reserveOp(vm);
 
@@ -88,7 +89,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle slot overwrites', () => {
-      vm.BP = 32;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 32;
       vm.compiler.compile16(2);
       reserveOp(vm);
 
@@ -112,7 +113,7 @@ describe('Local Variables System', () => {
   describe('Frame Isolation', () => {
     test('should isolate variables between different function frames', () => {
       // First frame
-      vm.BP = 16;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 16;
       vm.compiler.compile16(2);
       reserveOp(vm);
       vm.push(111);
@@ -128,7 +129,7 @@ describe('Local Variables System', () => {
       expect(vm.pop()).toBe(111);
 
       // Second frame (different BP)
-      vm.BP = 40;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 40;
       vm.compiler.compile16(2);
       reserveOp(vm);
       vm.push(333);
@@ -144,7 +145,7 @@ describe('Local Variables System', () => {
       expect(vm.pop()).toBe(333);
 
       // Switch back to first frame - should still have original values
-      vm.BP = 16;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 16;
       vm.push(getVarRef(vm, 0));
       fetchOp(vm);
       expect(vm.pop()).toBe(111);
@@ -153,7 +154,7 @@ describe('Local Variables System', () => {
 
   describe('Edge Cases', () => {
     test('should handle large slot numbers', () => {
-      vm.BP = 4;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 4;
       const maxSlot = 10;
 
       vm.compiler.compile16(maxSlot + 1);
@@ -169,7 +170,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle many variables efficiently', () => {
-      vm.BP = 6;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 6;
       const numVars = 16;
 
       vm.compiler.compile16(numVars);
@@ -193,7 +194,7 @@ describe('Local Variables System', () => {
 
   describe('Integration with Operations', () => {
     test('should work with arithmetic operations', () => {
-      vm.BP = 20;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 20;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -224,7 +225,7 @@ describe('Local Variables System', () => {
     });
 
     test('should work with do combinator', () => {
-      vm.BP = 24;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 24;
       vm.compiler.compile16(1);
       reserveOp(vm);
 
@@ -245,7 +246,7 @@ describe('Local Variables System', () => {
 
   describe('Variable Mutation', () => {
     test('should support variable mutation via writeReference', () => {
-      vm.BP = 28;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 28;
       vm.compiler.compile16(1);
       reserveOp(vm);
 
@@ -270,7 +271,7 @@ describe('Local Variables System', () => {
     });
 
     test('should handle multiple variable mutations', () => {
-      vm.BP = 32;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 32;
       vm.compiler.compile16(3);
       reserveOp(vm);
 
@@ -298,7 +299,7 @@ describe('Local Variables System', () => {
     });
 
     test('should maintain isolation during mixed read/write operations', () => {
-      vm.BP = 36;
+  vm.bp = RSTACK_BASE / CELL_SIZE + 36;
       vm.compiler.compile16(2);
       reserveOp(vm);
 
