@@ -9,7 +9,8 @@ import {
   SEG_DATA,
   STACK_BASE,
   RSTACK_BASE,
-  RSTACK_SIZE,
+  RSTACK_BASE_CELLS,
+  RSTACK_TOP_CELLS,
   GLOBAL_BASE,
   GLOBAL_SIZE,
   TOTAL_DATA_BYTES,
@@ -98,13 +99,12 @@ export function getVarRef(vm: VM, slotNumber: number): number {
     throw new Error('Slot number must be non-negative');
   }
 
-  const segmentCellIndex = vm.BP + slotNumber;
-  const maxCells = RSTACK_SIZE / CELL_SIZE;
-  if (segmentCellIndex < 0 || segmentCellIndex >= maxCells) {
+  // Compute absolute cell index directly from absolute bp
+  const absCellIndex = vm.bp + slotNumber;
+  // Bounds check against return stack window
+  if (absCellIndex < RSTACK_BASE_CELLS || absCellIndex >= RSTACK_TOP_CELLS) {
     throw new RangeError('Local reference outside return stack bounds');
   }
-  // Phase C: return absolute DATA_REF for local variable slot
-  const absCellIndex = RSTACK_BASE / CELL_SIZE + segmentCellIndex;
   return createDataRefAbs(absCellIndex);
 }
 

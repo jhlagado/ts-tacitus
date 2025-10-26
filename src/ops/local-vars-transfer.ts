@@ -12,6 +12,7 @@ import {
   isList,
   SEG_DATA,
   STACK_BASE,
+  STACK_BASE_CELLS,
   RSTACK_BASE,
   CELL_SIZE,
   dropList,
@@ -52,7 +53,7 @@ export function rpushList(vm: VM): number {
   }
 
   // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE) and stream-copy to RSTACK via rpush
-  let elementCell = vm.sp - STACK_BASE / CELL_SIZE - (slotCount + 1);
+  let elementCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + elementCell * CELL_SIZE);
     vm.rpush(value);
@@ -172,7 +173,7 @@ export function updateListInPlaceAbs(vm: VM, targetAbsHeaderAddr: number): void 
   }
 
   // Source cells from data stack (relative to STACK_BASE for reads below)
-  let sourceCell = vm.sp - STACK_BASE / CELL_SIZE - (slotCount + 1);
+  let sourceCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
   const targetBaseAbs = targetBaseCell * CELL_SIZE;
