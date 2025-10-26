@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
@@ -11,7 +11,7 @@ export function beginWhenImmediate(): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
-  vm.push(vm.rsp - RSTACK_BASE_CELLS);
+  vm.push(vm.rdepth());
   vm.push(ENDWHEN_CODE_REF);
 }
 
