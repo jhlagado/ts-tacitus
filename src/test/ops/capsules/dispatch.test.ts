@@ -19,14 +19,14 @@ describe('capsule dispatch runtime', () => {
     const codeRef = toTaggedValue(codeAddr, Tag.CODE);
     vm.rpush(codeRef);
     vm.rpush(toTaggedValue(locals.length + 1, Tag.LIST));
-  const handle = createDataRefAbs(vm.rsp - 1);
+    const handle = createDataRefAbs(vm.rsp - 1);
     return { handle, codeRef };
   };
 
   test('prologue consumes receiver only, preserves method and args', () => {
     const savedIP = 1234;
     vm.IP = savedIP;
-  vm.bp = RSTACK_BASE / CELL_SIZE + 0;
+    vm.bp = RSTACK_BASE / CELL_SIZE + 0;
     // Build capsule with 2 locals (10,20) and entry at 777
     const { handle } = pushCapsuleOnRStack([10, 20], 777);
     // Build data stack: 1 2 'meth handle
