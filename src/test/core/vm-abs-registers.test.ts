@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
 
 describe('VM absolute registers (Phase B shims)', () => {

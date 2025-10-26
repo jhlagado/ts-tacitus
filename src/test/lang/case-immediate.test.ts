@@ -1,7 +1,7 @@
 import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import {
   beginCaseImmediate,
   clauseOfImmediate,

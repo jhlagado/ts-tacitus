@@ -14,7 +14,7 @@
  * language-level features.
  */
 
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';

@@ -3,7 +3,7 @@
  * This focuses on error conditions and edge cases not covered in main compiler tests
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/global-state';
+import { vm, initializeInterpreter } from '../../lang/runtime';
 import { Compiler } from '../../lang/compiler';
 import { MIN_USER_OPCODE } from '../../core';
 

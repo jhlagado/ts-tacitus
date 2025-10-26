@@ -11,7 +11,7 @@ import {
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag } from '../../../core';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {

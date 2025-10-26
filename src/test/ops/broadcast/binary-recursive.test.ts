@@ -1,5 +1,5 @@
 import { fromTaggedValue, Tag } from '../../../../src/core';
-import { vm } from '../../../../src/core/global-state';
+import { vm } from '../../../../src/lang/runtime';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 
 describe('Recursive broadcasting: add', () => {

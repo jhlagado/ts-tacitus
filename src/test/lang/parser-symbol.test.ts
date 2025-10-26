@@ -19,7 +19,7 @@
  */
 
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { Tag, fromTaggedValue } from '../../core';
 
 describe('@symbol Parser/Compiler Integration - Step 14', () => {

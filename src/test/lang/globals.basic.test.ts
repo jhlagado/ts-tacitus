@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import {
   decodeDataRef,
   CELL_SIZE,

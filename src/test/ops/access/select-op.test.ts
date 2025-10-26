@@ -12,7 +12,7 @@ import {
 } from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef, getRefRegion } from '../../../core/refs';
-import { initializeInterpreter, vm } from '../../../core/global-state';
+import { initializeInterpreter, vm } from '../../../lang/runtime';
 // legacy segment id 0 denotes stack region in decodeDataRef classification
 
 describe('selectOp - Path-based address access', () => {

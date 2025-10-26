@@ -3,7 +3,7 @@
  * Tests both high-level '.' operation and low-level 'raw' operator
  */
 import { Tag, toTaggedValue } from '../../../core';
-import { vm } from '../../../core/global-state';
+import { vm } from '../../../lang/runtime';
 import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { resetVM, captureTacitOutput } from '../../utils/vm-test-utils';
 import { STACK_BASE, CELL_SIZE } from '../../../core/constants';

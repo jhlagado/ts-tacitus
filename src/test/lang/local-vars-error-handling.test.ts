@@ -2,7 +2,7 @@
  * Error handling and validation tests for local variables
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../core/global-state';
+import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { SyntaxError, UndefinedWordError } from '../../core';
 
@@ -88,7 +88,7 @@ describe('Local Variables Error Handling', () => {
       const result = executeTacitCode(`
         : unused-vars
             1 var a
-            2 var b  
+            2 var b
             3 var c
             999
         ;
@@ -156,7 +156,7 @@ describe('Local Variables Error Handling', () => {
       const result = executeTacitCode(`
         : rapid-test
             1 var a a
-            2 var b b  
+            2 var b b
             3 var c c
         ;
         rapid-test
@@ -196,7 +196,7 @@ describe('Local Variables Error Handling', () => {
     test('should handle variables in nested function calls', () => {
       const result = executeTacitCode(`
         : inner 100 add ;
-        : outer 
+        : outer
             50 var base
             base inner
         ;

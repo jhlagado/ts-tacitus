@@ -1,4 +1,4 @@
-import { initializeInterpreter, vm } from '../../core/global-state';
+import { initializeInterpreter, vm } from '../../lang/runtime';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
 import { Tag, toTaggedValue, createDataRef, SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core';
 

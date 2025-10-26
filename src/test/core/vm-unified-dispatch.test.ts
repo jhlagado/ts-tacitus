@@ -6,7 +6,7 @@
  * without any language changes - pure VM-level testing.
  */
 
-import { vm } from '../../core/global-state';
+import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
 import { createBuiltinRef } from '../../core';
 import { toTaggedValue, Tag } from '../../core';
