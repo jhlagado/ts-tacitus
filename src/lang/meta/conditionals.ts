@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, STACK_BASE_CELLS } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
@@ -39,7 +39,7 @@ export function beginIfImmediate(): void {
 export function beginElseImmediate(): void {
   requireParserState();
 
-  if (vm.sp - STACK_BASE_CELLS < 2) {
+  if (vm.depth() < 2) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
@@ -49,7 +49,7 @@ export function beginElseImmediate(): void {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
-  if (vm.sp - STACK_BASE_CELLS === 0) {
+  if (vm.depth() === 0) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
@@ -67,7 +67,7 @@ export function beginElseImmediate(): void {
 
 export function ensureNoOpenConditionals(): void {
   // Scan stack via VM.peekAt to avoid potential NaN canonicalization issues
-  const depth = vm.sp - STACK_BASE_CELLS;
+  const depth = vm.depth();
   for (let offset = 0; offset < depth; offset++) {
     const tval = vm.peekAt(offset); // 0 = TOS
     const { tag, value: opcode } = fromTaggedValue(tval);

@@ -63,31 +63,26 @@ export const negOp: Verb = (vm: VM) => {
 
 export const signOp: Verb = (vm: VM) => {
   // Not listed in broadcasting spec set, keep simple fast path for now
-  vm.ensureStackSize(1, 'sign');
   const a = vm.pop();
   vm.push(Math.sign(a));
 };
 
 export const expOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'exp');
   const a = vm.pop();
   vm.push(Math.exp(a));
 };
 
 export const lnOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'ln');
   const a = vm.pop();
   vm.push(Math.log(a));
 };
 
 export const logOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'log');
   const a = vm.pop();
   vm.push(Math.log10(a));
 };
 
 export const sqrtOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'sqrt');
   const a = vm.pop();
   vm.push(Math.sqrt(a));
 };
@@ -100,7 +95,6 @@ export const powOp: Verb = (vm: VM) => {
 };
 
 export const recipOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'recip');
   const a = vm.pop();
   vm.push(1 / a);
 };
