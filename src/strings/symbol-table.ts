@@ -4,17 +4,8 @@
  */
 
 import { Digest } from './digest';
-import {
-  Tag,
-  fromTaggedValue,
-  toTaggedValue,
-  createBuiltinRef,
-  createCodeRef,
-  Verb,
-  VM,
-  NIL,
-  pushDictionaryEntry,
-} from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL } from '@src/core';
+import { pushDictionaryEntry } from '@core/dictionary-heap';
 
 /**
  * Word implementation function type.
