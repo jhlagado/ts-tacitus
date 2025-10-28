@@ -142,7 +142,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
-  const headerAbsAddr = computeHeaderAddr(info.absBaseAddrBytes, slotCount);
+  const headerAbsAddr = computeHeaderAddr(info.baseAddrBytes, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - (i + 1) * CELL_SIZE);
     vm.push(slotValue);

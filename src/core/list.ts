@@ -6,7 +6,7 @@
 import { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
-import { isRef, getAbsoluteByteAddressFromRef } from './refs';
+import { isRef, getByteAddressFromRef } from './refs';
 
 /**
  * Checks if a value is a LIST.
@@ -142,30 +142,30 @@ export function reverseSpan(vm: VM, spanSize: number): void {
 export function getListBounds(
   vm: VM,
   value: number,
-): { header: number; absBaseAddrBytes: number; headerAbsAddrBytes: number } | null {
+): { header: number; baseAddrBytes: number; headerAddrBytes: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     const slotCount = getListLength(value);
     const headerCellAbs = vm.sp - 1;
     const baseCellAbs = headerCellAbs - slotCount;
-    const headerAbsAddrBytes = headerCellAbs * CELL_SIZE;
-    const absBaseAddrBytes = baseCellAbs * CELL_SIZE;
-    return { header: value, absBaseAddrBytes, headerAbsAddrBytes };
+    const headerAddrBytes = headerCellAbs * CELL_SIZE;
+    const baseAddrBytes = baseCellAbs * CELL_SIZE;
+    return { header: value, baseAddrBytes, headerAddrBytes };
   } else if (isRef(value)) {
     // Absolute dereferencing (support ref-to-ref indirection)
-    let headerAddrAbs = getAbsoluteByteAddressFromRef(value);
-    let header = vm.memory.readFloat32(SEG_DATA, headerAddrAbs);
+    let headerAddr = getByteAddressFromRef(value);
+    let header = vm.memory.readFloat32(SEG_DATA, headerAddr);
     if (isRef(header)) {
-      headerAddrAbs = getAbsoluteByteAddressFromRef(header);
-      header = vm.memory.readFloat32(SEG_DATA, headerAddrAbs);
+      headerAddr = getByteAddressFromRef(header);
+      header = vm.memory.readFloat32(SEG_DATA, headerAddr);
     }
 
     if (!isList(header)) {
       return null;
     }
     const slotCount = getListLength(header);
-    const absBaseAddrBytes = headerAddrAbs - slotCount * CELL_SIZE;
-    return { header, absBaseAddrBytes, headerAbsAddrBytes: headerAddrAbs };
+    const baseAddrBytes = headerAddr - slotCount * CELL_SIZE;
+    return { header, baseAddrBytes, headerAddrBytes: headerAddr };
   }
   return null;
 }
@@ -175,8 +175,8 @@ export function getListBounds(
  */
 // deprecated segment-relative computeHeaderAddr wrapper removed; use computeHeaderAddr
 
-export function computeHeaderAddr(absBaseAddrBytes: number, slotCount: number): number {
-  return absBaseAddrBytes + slotCount * CELL_SIZE;
+export function computeHeaderAddr(baseAddrBytes: number, slotCount: number): number {
+  return baseAddrBytes + slotCount * CELL_SIZE;
 }
 
 // Style aliases (Phase 1):

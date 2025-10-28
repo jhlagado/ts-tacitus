@@ -7,7 +7,7 @@ import {
   getRefSegment,
   RSTACK_BASE,
   RSTACK_SIZE,
-  getAbsoluteByteAddressFromRef,
+  getByteAddressFromRef,
 } from '../../../core';
 import { CELL_SIZE } from '../../../core/constants';
 
@@ -28,7 +28,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     expect(tag).toBe(Tag.DATA_REF);
     // Return-stack handle: classify without SEG_RSTACK constant
     expect(getRefSegment(handle)).toBe(1);
-    const abs = getAbsoluteByteAddressFromRef(handle);
+    const abs = getByteAddressFromRef(handle);
     expect(abs).toBeGreaterThanOrEqual(RSTACK_BASE);
     expect(abs).toBeLessThan(RSTACK_BASE + RSTACK_SIZE);
 

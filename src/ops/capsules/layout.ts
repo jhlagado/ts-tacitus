@@ -9,8 +9,8 @@ import {
 } from '@src/core';
 
 export interface CapsuleLayout {
-  absBaseAddrBytes: number; // absolute byte address of slot0 (first payload cell)
-  headerAbsAddrBytes: number; // absolute byte address of LIST header cell
+  baseAddrBytes: number; // byte address of slot0 (first payload cell)
+  headerAddrBytes: number; // byte address of LIST header cell
   slotCount: number; // total payload slots (locals… + CODE)
   codeRef: number; // the CODE reference stored at slot0
 }
@@ -26,7 +26,7 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
     throw new Error('capsule handle does not reference a LIST');
   }
 
-  const { header, absBaseAddrBytes } = info;
+  const { header, baseAddrBytes } = info;
 
   const slotCount = getListLength(header);
   if (slotCount < 1) {
@@ -34,12 +34,12 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
   }
 
   // Compute header address and read slot0 (immediately beneath the header).
-  const headerAbsAddr = absBaseAddrBytes + slotCount * CELL_SIZE;
-  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - CELL_SIZE);
+  const headerAddr = baseAddrBytes + slotCount * CELL_SIZE;
+  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAddr - CELL_SIZE);
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {
     throw new Error('capsule slot0 must be a CODE reference');
   }
 
-  return { absBaseAddrBytes, headerAbsAddrBytes: headerAbsAddr, slotCount, codeRef: codeCell };
+  return { baseAddrBytes, headerAddrBytes: headerAddr, slotCount, codeRef: codeCell };
 }

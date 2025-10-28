@@ -3,7 +3,7 @@
  * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
  */
 
-import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getAbsoluteByteAddressFromRef, validateListHeader } from '@src/core';
+import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader } from '@src/core';
 import { fetchOp } from '../lists';
 import { createGlobalRef } from '@src/core';
 
@@ -13,8 +13,8 @@ import { createGlobalRef } from '@src/core';
 // header address in bytes. Computes base once and delegates to pushListToGlobalHeap.
 function copyListAtHeaderAbs(vm: VM, h: number, hAbs: number): void {
   const n = getListLength(h);
-  const baseAbs = hAbs - n * CELL_SIZE;
-  pushListToGlobalHeap(vm, { header: h, absBaseAddrBytes: baseAbs });
+  const base = hAbs - n * CELL_SIZE;
+  pushListToGlobalHeap(vm, { header: h, baseAddrBytes: base });
 }
 
 export function gmarkOp(vm: VM): void {
@@ -42,8 +42,8 @@ export function gpushOp(vm: VM): void {
     const dv = readRefValue(vm, v);
     if (isList(dv)) {
       // Deep-copy list referenced by handle directly from memory, then pop handle
-      const hAbs = getAbsoluteByteAddressFromRef(v);
-      copyListAtHeaderAbs(vm, dv, hAbs);
+  const hAddr = getByteAddressFromRef(v);
+  copyListAtHeaderAbs(vm, dv, hAddr);
       vm.pop();
       return;
     }
@@ -57,8 +57,8 @@ export function gpushOp(vm: VM): void {
     // Ensure header and its payload are actually present on the data stack
     validateListHeader(vm);
     const h = v;
-    const hAbs = (vm.sp - 1) * CELL_SIZE;
-    copyListAtHeaderAbs(vm, h, hAbs);
+    const hAddr = (vm.sp - 1) * CELL_SIZE;
+    copyListAtHeaderAbs(vm, h, hAddr);
     dropList(vm);
     return;
   }

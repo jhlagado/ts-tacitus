@@ -4,7 +4,7 @@ import {
   createGlobalRef,
   isRef,
   getRefRegion,
-  getAbsoluteByteAddressFromRef,
+  getByteAddressFromRef,
   readRefValue,
   getVarRef,
   CELL_SIZE,
@@ -54,7 +54,7 @@ describe('DATA_REF utilities', () => {
     const bogus = toTaggedValue(invalidAbsolute, Tag.DATA_REF);
     // Use address resolver to validate bounds
     expect(() => decodeDataRef(bogus)).not.toThrow();
-    expect(() => getAbsoluteByteAddressFromRef(bogus)).toThrow('absolute out of bounds');
+    expect(() => getByteAddressFromRef(bogus)).toThrow('absolute out of bounds');
   });
 
   // Removed: segment-relative creation is deprecated
@@ -73,9 +73,9 @@ describe('DATA_REF utilities', () => {
     expect(abs).toBe(RSTACK_BASE / CELL_SIZE + 2);
   });
 
-  test('getAbsoluteByteAddressFromRef resolves absolute address', () => {
+  test('getByteAddressFromRef resolves absolute address', () => {
     const ref = createDataRef(GLOBAL_BASE / CELL_SIZE + 4);
-    const absByte = getAbsoluteByteAddressFromRef(ref);
+    const absByte = getByteAddressFromRef(ref);
     expect(absByte).toBe(GLOBAL_BASE + 4 * CELL_SIZE);
   });
 

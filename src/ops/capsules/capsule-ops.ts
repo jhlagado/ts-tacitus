@@ -60,7 +60,7 @@ export function dispatchOp(_vm: VM): void {
   // Save BP as relative cells for uniform frame convention
   _vm.rpush(_vm.bp - RSTACK_BASE_CELLS);
   // Capsule lives on RSTACK; convert absolute base byte address to frame-relative BP (in cells)
-  _vm.bp = RSTACK_BASE_CELLS + Math.trunc((layout.absBaseAddrBytes - RSTACK_BASE) / CELL_SIZE);
+  _vm.bp = RSTACK_BASE_CELLS + Math.trunc((layout.baseAddrBytes - RSTACK_BASE) / CELL_SIZE);
 
   // Jump to dispatch entry address (CODE slot0)
   const { value: entryAddr } = fromTaggedValue(layout.codeRef);
