@@ -3,42 +3,18 @@
  * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
  */
 
-import {
-  VM,
-  getTag,
-  Tag,
-  isRef,
-  SEG_DATA,
-  GLOBAL_BASE,
-  CELL_SIZE,
-  dropList,
-  getListBounds,
-  isList,
-  getListLength,
-  pushListToGlobalHeap,
-  pushSimpleToGlobalHeap,
-  readRefValue,
-  getAbsoluteCellIndexFromRef,
-} from '@src/core';
+import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getAbsoluteByteAddressFromRef, validateListHeader } from '@src/core';
 import { fetchOp } from '../lists';
+import { createGlobalRef } from '@src/core';
 
-function ensureGlobalRef(vm: VM, ref: number): { absCellIndex: number } {
-  const absCellIndex = getAbsoluteCellIndexFromRef(ref);
-  const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
-  if (absCellIndex < globalBaseCell || absCellIndex >= globalBaseCell + (vm.gp || 0)) {
-    throw new Error('Expected global heap reference');
-  }
-  return { absCellIndex };
-}
+// No reference validation helpers needed in the simplified model
 
-function copyListOntoHeap(vm: VM, boundsReturn: ReturnType<typeof getListBounds>): number {
-  if (!boundsReturn) {
-    throw new Error('List bounds unavailable for heap copy');
-  }
-  return pushListToGlobalHeap(vm, {
-    header: boundsReturn.header,
-    absBaseAddrBytes: boundsReturn.absBaseAddrBytes,
-  });
+// Internal helper: copy a LIST to the global heap given its header value and absolute
+// header address in bytes. Computes base once and delegates to pushListToGlobalHeap.
+function copyListAtHeaderAbs(vm: VM, h: number, hAbs: number): void {
+  const n = getListLength(h);
+  const baseAbs = hAbs - n * CELL_SIZE;
+  pushListToGlobalHeap(vm, { header: h, absBaseAddrBytes: baseAbs });
 }
 
 export function gmarkOp(vm: VM): void {
@@ -60,69 +36,59 @@ export function gsweepOp(vm: VM): void {
 
 export function gpushOp(vm: VM): void {
   vm.ensureStackSize(1, 'gpush');
-  const value = vm.peek();
-  const listInfo = getListBounds(vm, value);
-  if (listInfo) {
-    const ref = copyListOntoHeap(vm, listInfo);
-    const valueTag = getTag(value);
-    if (valueTag === Tag.LIST) {
-      dropList(vm);
-    } else {
+  // If TOS is a ref: deep-copy list directly; for simples, copy resolved value now
+  const v = vm.peek();
+  if (isRef(v)) {
+    const dv = readRefValue(vm, v);
+    if (isList(dv)) {
+      // Deep-copy list referenced by handle directly from memory, then pop handle
+      const hAbs = getAbsoluteByteAddressFromRef(v);
+      copyListAtHeaderAbs(vm, dv, hAbs);
       vm.pop();
+      return;
     }
-    vm.push(ref);
-    return;
-  }
-
-  if (isRef(value)) {
-    let simple = readRefValue(vm, value);
-    if (isRef(simple)) {
-      simple = readRefValue(vm, simple);
-    }
-    const heapRef = pushSimpleToGlobalHeap(vm, simple);
+    // Simple alias: copy resolved value and pop original handle
+    pushSimpleToGlobalHeap(vm, dv);
     vm.pop();
-    vm.push(heapRef);
     return;
   }
-
-  const heapRef = pushSimpleToGlobalHeap(vm, value);
+  // Case 1: direct LIST on stack — copy payload+header using stack layout
+  if (isList(v)) {
+    // Ensure header and its payload are actually present on the data stack
+    validateListHeader(vm);
+    const h = v;
+    const hAbs = (vm.sp - 1) * CELL_SIZE;
+    copyListAtHeaderAbs(vm, h, hAbs);
+    dropList(vm);
+    return;
+  }
+  
+  // Case 2: any non-LIST value — copy the single cell value and pop once
+  pushSimpleToGlobalHeap(vm, v);
   vm.pop();
-  vm.push(heapRef);
 }
 
 export function gpeekOp(vm: VM): void {
-  vm.ensureStackSize(1, 'gpeek');
-  const ref = vm.peek();
-  if (!isRef(ref)) {
-    throw new Error('gpeek expects DATA_REF');
+  if (vm.gp === 0) {
+    throw new Error('gpeek on empty heap');
   }
-  ensureGlobalRef(vm, ref);
+  const topCell = GLOBAL_BASE / CELL_SIZE + (vm.gp - 1);
+  const ref = createGlobalRef(topCell - GLOBAL_BASE / CELL_SIZE);
   vm.push(ref);
   fetchOp(vm);
 }
 
 export function gpopOp(vm: VM): void {
-  vm.ensureStackSize(1, 'gpop');
   if (vm.gp === 0) {
     throw new Error('gpop on empty heap');
   }
-
-  const ref = vm.pop();
-  if (!isRef(ref)) {
-    throw new Error('gpop expects DATA_REF');
-  }
-  const { absCellIndex } = ensureGlobalRef(vm, ref);
-  const globalBaseCell = GLOBAL_BASE / CELL_SIZE;
-  const topAbsCellIndex = globalBaseCell + vm.gp - 1;
-  if (absCellIndex !== topAbsCellIndex) {
-    throw new Error('gpop expects reference to heap top');
-  }
-
+  const gBase = GLOBAL_BASE / CELL_SIZE;
+  const topCell = gBase + vm.gp - 1;
   // Read header via unified data segment (absolute byte offset)
-  const headerValue = vm.memory.readFloat32(SEG_DATA, absCellIndex * CELL_SIZE);
+  const headerValue = vm.memory.readFloat32(SEG_DATA, topCell * CELL_SIZE);
   if (isList(headerValue)) {
-    const span = getListLength(headerValue) + 1;
-    vm.gp -= span;
+    const spanCells = getListLength(headerValue) + 1;
+    vm.gp -= spanCells;
     return;
   }
   vm.gp = vm.gp - 1;

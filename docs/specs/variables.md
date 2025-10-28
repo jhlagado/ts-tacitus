@@ -10,9 +10,9 @@ Tacit's global heap is a foundational structure that underpins the entire memory
 
 The global heap is **managed by the GP register**, which always points to the next open cell. Growth and reclamation happen through Tacit-native primitives that treat the heap as a disciplined stack:
 
-- `gpush` copies the value at TOS onto the heap (materialising LIST payloads as needed) and pushes the resulting `DATA_REF` handle back to the data stack.
-- `gpop` rewinds the heap by a single push, discarding the most recent entry when callers need a quick undo.
-- `gpeek` reads the heap top without rewinding and copies the value back to the data stack.
+- `gpush` copies the value at TOS onto the heap (materialising LIST payloads as needed) and does not return a value (stack-only effect: consumes TOS).
+- `gpop` rewinds the heap by a single push span (1 for simple values, `N+1` for `LIST:N`) and does not interact with the data stack.
+- `gpeek` materialises the current heap top onto the data stack (pushes simple value or `LIST` payload+header) without altering `GP`.
 - `gmark` pushes the current `GP` (cell index) onto the data stack so callers can checkpoint the heap state.
 - `gsweep` consumes a mark (`GP` cell index) and resets `vm.GP` to that value, discarding everything above the checkpoint.
 

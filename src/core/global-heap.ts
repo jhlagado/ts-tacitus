@@ -7,7 +7,6 @@ import { VM } from './vm';
 import { CELL_SIZE, GLOBAL_SIZE, SEG_DATA, GLOBAL_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
-import { toTaggedValue, Tag, NIL } from './tagged';
 
 const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE / CELL_SIZE;
 
@@ -58,34 +57,4 @@ export function getGlobalHeapSpan(vm: VM, headerValue: number): number {
   return getListLength(headerValue) + 1;
 }
 
-export interface DictionaryEntryHandles {
-  entryRef: number;
-  payloadRef: number;
-}
-
-export function pushDictionaryEntry(
-  vm: VM,
-  payload: number,
-  name: number,
-  prev: number = NIL,
-): DictionaryEntryHandles {
-  const slotCount = 3;
-  const span = slotCount + 1;
-  ensureGlobalCapacity(vm, span);
-  const baseCell = vm.gp;
-
-  vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseCell + 0) * CELL_SIZE, payload);
-  vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseCell + 1) * CELL_SIZE, name);
-  vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (baseCell + 2) * CELL_SIZE, prev);
-  const headerCellIndex = baseCell + slotCount;
-  vm.memory.writeFloat32(
-    SEG_DATA,
-    GLOBAL_BASE + headerCellIndex * CELL_SIZE,
-    toTaggedValue(slotCount, Tag.LIST),
-  );
-
-  vm.gp = baseCell + span;
-  const entryRef = createGlobalRef(headerCellIndex);
-  const payloadRef = createGlobalRef(baseCell);
-  return { entryRef, payloadRef };
-}
+// Dictionary composition intentionally lives in dictionary-heap.ts
