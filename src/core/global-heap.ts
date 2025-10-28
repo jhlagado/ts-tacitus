@@ -14,7 +14,7 @@ export interface ListSource {
   /** LIST header value to write at destination */
   header: number;
   /** Absolute byte address of the first payload cell in the source */
-  absBaseAddrBytes: number;
+  baseAddrBytes: number;
 }
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
@@ -39,10 +39,10 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   const destBaseCell = vm.gp;
 
   // Absolute-only source base for unified reads
-  const srcBaseAbs = source.absBaseAddrBytes;
+  const srcBase = source.baseAddrBytes;
 
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, srcBaseAbs + i * CELL_SIZE);
+    const value = vm.memory.readFloat32(SEG_DATA, srcBase + i * CELL_SIZE);
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + (destBaseCell + i) * CELL_SIZE, value);
   }
 

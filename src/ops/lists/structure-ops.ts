@@ -31,7 +31,7 @@ export function tailOp(vm: VM): void {
     return;
   }
 
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const firstElemAbsAddr = headerAbsAddr - CELL_SIZE;
   const firstElem = vm.memory.readFloat32(SEG_DATA, firstElemAbsAddr);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
@@ -80,7 +80,7 @@ export function headOp(vm: VM): void {
 
   vm.pop();
 
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const firstElementAbsAddr = headerAbsAddr - CELL_SIZE;
   const firstElement = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr);
 
@@ -131,7 +131,7 @@ export function reverseOp(vm: VM): void {
     return;
   }
 
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   let currentAbsAddr = headerAbsAddr - CELL_SIZE;
   let remainingSlots = slotCount;
   const elements: Array<{ start: number; span: number }> = [];
@@ -198,7 +198,7 @@ export function concatOp(vm: VM): void {
   const materializeSlots = (
     op:
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; absBaseAddrBytes: number }
+      | { header: number; baseAddrBytes: number }
       | null,
     size: number,
     topCell: number,
@@ -213,9 +213,9 @@ export function concatOp(vm: VM): void {
       }
       return slots;
     }
-    if (op && 'absBaseAddrBytes' in op) {
+    if (op && 'baseAddrBytes' in op) {
       const s = getListLength(op.header);
-      const headerAbsAddr = op.absBaseAddrBytes + s * CELL_SIZE;
+      const headerAbsAddr = op.baseAddrBytes + s * CELL_SIZE;
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
         const absAddr = headerAbsAddr - (i + 1) * CELL_SIZE;
@@ -229,7 +229,7 @@ export function concatOp(vm: VM): void {
   const lhsSlots = materializeSlots(
     (lhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; absBaseAddrBytes: number }
+      | { header: number; baseAddrBytes: number }
       | null) ?? null,
     lhsSize,
     lhsTop,
@@ -238,7 +238,7 @@ export function concatOp(vm: VM): void {
   const rhsSlots = materializeSlots(
     (rhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; absBaseAddrBytes: number }
+      | { header: number; baseAddrBytes: number }
       | null) ?? null,
     rhsSize,
     rhsTop,

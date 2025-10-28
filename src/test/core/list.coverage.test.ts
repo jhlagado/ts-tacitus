@@ -81,7 +81,7 @@ describe('core/list additional coverage', () => {
     const bounds = getListBounds(vm, outerRef);
     expect(bounds).not.toBeNull();
     expect(bounds?.header).toBe(header);
-    expect(bounds?.absBaseAddrBytes).toBe(GLOBAL_BASE + baseIndex * CELL_SIZE);
+    expect(bounds?.baseAddrBytes).toBe(GLOBAL_BASE + baseIndex * CELL_SIZE);
   });
 
   test('getListElemAddr traverses GLOBAL list via unified read', () => {

@@ -57,6 +57,11 @@ export function getAbsoluteByteAddressFromRef(ref: number): number {
   return getAbsoluteCellIndexFromRef(ref) * CELL_SIZE;
 }
 
+// Preferred alias: unified address space, no need to say "absolute"
+export function getByteAddressFromRef(ref: number): number {
+  return getAbsoluteByteAddressFromRef(ref);
+}
+
 export function readRefValue(vm: VM, ref: number): number {
   const byteAddr = getAbsoluteByteAddressFromRef(ref);
   return vm.memory.readFloat32(SEG_DATA, byteAddr);

@@ -2,22 +2,7 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import {
-  VM,
-  Verb,
-  toTaggedValue,
-  fromTaggedValue,
-  getTag,
-  Tag,
-  getVarRef,
-  createDataRef,
-  getAbsoluteByteAddressFromRef,
-  isRef,
-  SEG_DATA,
-  RSTACK_BASE,
-  CELL_SIZE,
-  RSTACK_BASE_CELLS,
-} from '@src/core';
+import { VM, Verb, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
 
 import {
   literalNumberOp,
@@ -326,7 +311,7 @@ export function dumpFrameOp(vm: VM): void {
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
-        const absAddrBytes = getAbsoluteByteAddressFromRef(slotValue);
+        const absAddrBytes = getByteAddressFromRef(slotValue);
         const targetValue = vm.memory.readFloat32(SEG_DATA, absAddrBytes);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);

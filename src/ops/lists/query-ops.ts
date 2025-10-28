@@ -15,7 +15,7 @@ import {
 import { getListLength, isList } from '@src/core';
 import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds } from './core-helpers';
-import { isRef, createDataRef, getAbsoluteByteAddressFromRef, readRefValue } from '@src/core';
+import { isRef, createDataRef, getByteAddressFromRef, readRefValue } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
@@ -52,14 +52,14 @@ export function sizeOp(vm: VM): void {
   }
   // Absolute-only traversal using unified SEG_DATA
   let elementCount = 0;
-  let currentAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
+  let currAddr = info.baseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
   let remainingSlots = slotCount;
   while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(SEG_DATA, currentAbsAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, currAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
-    currentAbsAddr -= span * CELL_SIZE;
+    currAddr -= span * CELL_SIZE;
   }
   dropOp(vm);
   vm.push(elementCount);
@@ -80,8 +80,8 @@ export function slotOp(vm: VM): void {
     return;
   }
   // Absolute addressing: compute header absolute byte address and derive element address
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
-  const addr = headerAbsAddr - (idx + 1) * CELL_SIZE;
+  const headerAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
+  const addr = headerAddr - (idx + 1) * CELL_SIZE;
   const absCellIndex = addr / CELL_SIZE;
   vm.push(createDataRef(absCellIndex));
 }
@@ -101,7 +101,7 @@ export function elemOp(vm: VM): void {
     return;
   }
   // Absolute header address and scan using unified SEG_DATA
-  let currentAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
+  let currentAddr = info.baseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE;
   let currentLogicalIndex = 0;
   let remainingSlots = slotCount;
 
@@ -135,12 +135,12 @@ export function fetchOp(vm: VM): void {
     throw new Error('fetch expects DATA_REF address');
   }
   // Absolute dereference
-  const absAddr = getAbsoluteByteAddressFromRef(addressValue);
-  const value = vm.memory.readFloat32(SEG_DATA, absAddr);
+  const addr = getByteAddressFromRef(addressValue);
+  const value = vm.memory.readFloat32(SEG_DATA, addr);
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_DATA, absAddr - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, addr - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -167,20 +167,20 @@ export function loadOp(vm: VM): void {
   }
 
   // Absolute first dereference
-  let absAddr = getAbsoluteByteAddressFromRef(input);
-  let value = vm.memory.readFloat32(SEG_DATA, absAddr);
+  let addr2 = getByteAddressFromRef(input);
+  let value = vm.memory.readFloat32(SEG_DATA, addr2);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
-    absAddr = getAbsoluteByteAddressFromRef(value);
-    value = vm.memory.readFloat32(SEG_DATA, absAddr);
+    addr2 = getByteAddressFromRef(value);
+    value = vm.memory.readFloat32(SEG_DATA, addr2);
   }
 
   // Materialize if final value is a LIST header
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readFloat32(SEG_DATA, absAddr - (i + 1) * CELL_SIZE);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, addr2 - (i + 1) * CELL_SIZE);
       vm.push(slotValue);
     }
     vm.push(value);
@@ -203,7 +203,7 @@ interface SlotInfo {
 
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   // Absolute-only resolution of slot location and (optional) one-level indirection
-  const rootAbsAddr = getAbsoluteByteAddressFromRef(addressValue);
+  const rootAbsAddr = getByteAddressFromRef(addressValue);
   const rootValue = vm.memory.readFloat32(SEG_DATA, rootAbsAddr);
 
   // Classify absolute address to legacy segment/address pair for compatibility
@@ -220,7 +220,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   let resolvedAbsAddr = rootAbsAddr;
   let existingValue = rootValue;
   if (isRef(rootValue)) {
-    resolvedAbsAddr = getAbsoluteByteAddressFromRef(rootValue);
+    resolvedAbsAddr = getByteAddressFromRef(rootValue);
     existingValue = vm.memory.readFloat32(SEG_DATA, resolvedAbsAddr);
   }
 
@@ -240,7 +240,7 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
 function initializeGlobalCompound(
   vm: VM,
   slot: SlotInfo,
-  rhsInfo: { header: number; absBaseAddrBytes: number },
+  rhsInfo: { header: number; baseAddrBytes: number },
   rhsTag: Tag,
 ): void {
   // Absolute-only global allocation of compound
@@ -252,12 +252,12 @@ function initializeGlobalCompound(
 
 function copyCompoundFromReference(
   vm: VM,
-  rhsInfo: { header: number; absBaseAddrBytes: number },
+  rhsInfo: { header: number; baseAddrBytes: number },
   targetAbsHeaderAddr: number,
   slotCount: number,
 ): void {
   // Absolute-only copy using unified data segment
-  const srcBaseAbs = rhsInfo.absBaseAddrBytes;
+  const srcBaseAbs = rhsInfo.baseAddrBytes;
   const targetBaseAbs = targetAbsHeaderAddr - slotCount * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
@@ -373,7 +373,7 @@ export function walkOp(vm: VM): void {
     return;
   }
   // Absolute addressing via unified data segment
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const cellAbsAddr = headerAbsAddr - (idx + 1) * CELL_SIZE;
   const v = vm.memory.readFloat32(SEG_DATA, cellAbsAddr);
   const nextIdx = idx + 1;
@@ -400,7 +400,7 @@ export function findOp(vm: VM): void {
     vm.push(NIL);
     return;
   }
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   let defaultValueAddr = -1;
   for (let i = 0; i < slotCount; i += 2) {
     const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * CELL_SIZE;
@@ -449,7 +449,7 @@ export function keysOp(vm: VM): void {
     return;
   }
   const keyCount = slotCount / 2;
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   for (let i = keyCount - 1; i >= 0; i--) {
     const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * 2 * CELL_SIZE;
     const keyValue = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
@@ -480,7 +480,7 @@ export function valuesOp(vm: VM): void {
     return;
   }
   const valueCount = slotCount / 2;
-  const headerAbsAddr = info.absBaseAddrBytes + slotCount * CELL_SIZE;
+  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   for (let i = valueCount - 1; i >= 0; i--) {
     const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
     const valueValue = vm.memory.readFloat32(SEG_DATA, valueAbsAddr);
