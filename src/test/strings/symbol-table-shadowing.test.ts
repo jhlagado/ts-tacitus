@@ -3,17 +3,17 @@
  * Tests for natural Forth-style shadowing in SymbolTable
  */
 
-import { SymbolTable, Digest } from '../../strings';
+import { createSymbolTable, Digest } from '../../strings';
 import { Memory, fromTaggedValue, isLocal, Tag } from '../../core';
 
 describe('SymbolTable Natural Shadowing', () => {
   let digest: Digest;
-  let symbolTable: SymbolTable;
+  let symbolTable: ReturnType<typeof createSymbolTable>;
 
   beforeEach(() => {
     const memory = new Memory();
     digest = new Digest(memory);
-    symbolTable = new SymbolTable(digest);
+    symbolTable = createSymbolTable(digest);
   });
 
   test('should shadow globals naturally', () => {

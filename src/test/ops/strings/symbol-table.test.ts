@@ -1,16 +1,16 @@
 import { Memory } from '../../../core/memory';
-import { SymbolTable, SymbolTableCheckpoint } from '../../../../src/strings/symbol-table';
+import { createSymbolTable, SymbolTableCheckpoint } from '../../../../src/strings/symbol-table';
 import { Digest } from '../../../../src/strings/digest';
 import { VM } from '../../../core/vm';
 import { registerBuiltins } from '../../../ops/builtins-register';
 import { fromTaggedValue } from '../../../core';
 
 describe('SymbolTable', () => {
-  let symbolTable: SymbolTable;
+  let symbolTable: ReturnType<typeof createSymbolTable>;
   let initialCheckpoint: SymbolTableCheckpoint;
   const dummyFunctionIndex = 200;
   beforeEach(() => {
-    symbolTable = new SymbolTable(new Digest(new Memory()));
+    symbolTable = createSymbolTable(new Digest(new Memory()));
     const vm = new VM();
     registerBuiltins(vm, symbolTable);
     initialCheckpoint = symbolTable.mark();

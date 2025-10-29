@@ -4,7 +4,7 @@
  */
 
 import { Compiler } from '../lang/compiler';
-import { SymbolTable } from '../strings/symbol-table';
+import { createSymbolTable, SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import {
   SEG_CODE,
@@ -86,7 +86,7 @@ export class VM {
     this.dictLocalSlots = 0;
     this.localCount = 0;
 
-    this.symbolTable = new SymbolTable(this.digest);
+    this.symbolTable = createSymbolTable(this.digest);
     this.symbolTable.attachVM(this);
     registerBuiltins(this, this.symbolTable);
   }

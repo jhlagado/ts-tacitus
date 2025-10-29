@@ -8,18 +8,18 @@
 
 import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
-import { SymbolTable, Digest } from '../../strings';
+import { createSymbolTable, Digest } from '../../strings';
 import { Tag, fromTaggedValue } from '../../core';
 import { Op } from '../../ops/opcodes';
 
 describe('SymbolTable Direct Addressing', () => {
-  let symbolTable: SymbolTable;
+  let symbolTable: ReturnType<typeof createSymbolTable>;
   let digest: Digest;
 
   beforeEach(() => {
     resetVM();
     digest = new Digest(vm.memory);
-    symbolTable = new SymbolTable(digest);
+    symbolTable = createSymbolTable(digest);
   });
 
   describe('defineBuiltin method', () => {

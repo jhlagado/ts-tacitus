@@ -3,17 +3,17 @@
  * Tests for local variable functionality in SymbolTable
  */
 
-import { SymbolTable, Digest } from '../../strings';
+import { createSymbolTable, Digest } from '../../strings';
 import { Memory, fromTaggedValue, isLocal } from '../../core';
 
 describe('SymbolTable Local Variables', () => {
   let digest: Digest;
-  let symbolTable: SymbolTable;
+  let symbolTable: ReturnType<typeof createSymbolTable>;
 
   beforeEach(() => {
     const memory = new Memory();
     digest = new Digest(memory);
-    symbolTable = new SymbolTable(digest);
+    symbolTable = createSymbolTable(digest);
   });
 
   test('should auto-assign slot numbers', () => {
@@ -76,7 +76,11 @@ describe('SymbolTable Local Variables', () => {
   test('should handle 16-bit slot numbers', () => {
     symbolTable.mark();
     // Test near 16-bit boundary
-    symbolTable['localSlotCount'] = 65534; // Access private field for testing
+    // Adjust internal counter via defineLocal calls to reach near 16-bit boundary
+    for (let i = 0; i < 65534; i++) {
+      // Use short names to keep digest growth minimal
+      symbolTable.defineLocal('v');
+    }
     symbolTable.defineLocal('maxVar');
 
     const maxRef = symbolTable.findTaggedValue('maxVar');
