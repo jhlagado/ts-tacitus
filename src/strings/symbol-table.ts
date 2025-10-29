@@ -34,6 +34,7 @@ export interface SymbolTableCheckpoint {
   dictHead: number;
   gp: number;
   localSlotCount: number;
+  newDictHead?: number;
 }
 /**
  * Symbol table for managing word definitions.
@@ -337,6 +338,7 @@ export class SymbolTable {
       dictHead: vmInstance ? vmInstance.dictHead : NIL,
       gp: vmInstance ? vmInstance.gp : 0,
       localSlotCount: this.localSlotCount,
+      newDictHead: vmInstance ? vmInstance.newDictHead : NIL,
     };
     this.localSlotCount = 0;
     return checkpoint;
@@ -361,6 +363,9 @@ export class SymbolTable {
     if (vmInstance) {
       vmInstance.dictHead = checkpoint.dictHead;
       vmInstance.gp = checkpoint.gp;
+      if (typeof checkpoint.newDictHead === 'number') {
+        vmInstance.newDictHead = checkpoint.newDictHead;
+      }
     }
   }
   /**
