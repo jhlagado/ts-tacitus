@@ -15,7 +15,7 @@ What shipped
   - Mirroring of builtins and colon definitions into the heap dictionary
   - Dict-first lookup (default ON) with legacy fallback for parity
   - Checkpoint/restore includes `newDictHead` and `gp`
-  - Globals now allocate a global DATA_REF and mirror into the heap dictionary (no legacy dict-head writes)
+  - Global variables are disabled in this phase; no global keyword or allocation path
 - Removed legacy components:
   - `src/core/dictionary-heap.ts` deleted and export removed
   - `vm.dictHead` removed; checkpoints cleaned up
@@ -24,7 +24,7 @@ What shipped
 Compatibility and behavior
 - Parser/compiler behavior unchanged; symbol resolution returns the same tagged values
 - Dict-first parity verified for builtins and colon definitions
-- Global variable behavior and list semantics preserved
+- Global variable keyword removed; future global design deferred; list semantics preserved
 
 Tests (representative)
 - Dictionary ops: define/lookup/shadowing, mark/forget
@@ -46,4 +46,3 @@ Acceptance criteria (met)
 Notes
 - `dump-dict` aids diagnosing dictionary state at runtime
 - Future: optional internal index to accelerate compile-time lookups if needed
-

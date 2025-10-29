@@ -24,6 +24,7 @@ import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { initializeInterpreter, vm } from '../../lang/runtime';
+import { registerBuiltins } from '../../ops/builtins-register';
 import { NIL } from '../../core';
 /**
  * Reset VM to clean state for testing
@@ -55,6 +56,8 @@ export function resetVM(): void {
   for (let i = 0; i < GLOBAL_SIZE; i++) {
     vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
   }
+  // Re-register builtins to repopulate heap-backed dictionary after wipe
+  registerBuiltins(vm, vm.symbolTable);
 }
 
 /**
