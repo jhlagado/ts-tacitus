@@ -5,6 +5,7 @@
 
 import { Digest } from './digest';
 import { Tag, fromTaggedValue, toTaggedValue, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
+import { defineBuiltin as dictDefineBuiltin } from './symbols';
 import { isList, getListLength } from '@src/core';
 import { getByteAddressFromRef } from '@src/core';
 // Legacy dictionary-heap removed from global definition path
@@ -352,7 +353,10 @@ export class SymbolTable {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     // Always record fallback to support parser/VM resolution independent of heap state
     this.fallbackDefs.unshift({ key: this.digest.intern(name), tval });
-    // Do not mirror builtins to heap here; keep heap pristine until user definitions
+    // Mirror builtins to the heap-backed dictionary so the dictionary contains all words
+    if (this.vmRef) {
+      dictDefineBuiltin(this.vmRef, name, opcode, isImmediate);
+    }
     if (implementation) {
       const key = this.digest.intern(name);
       this.impls.unshift({ key, fn: implementation });

@@ -134,12 +134,6 @@ export function lookupOp(vm: VM): void {
 
     cur = isRef(prevRef) ? prevRef : NIL;
   }
-  // Fallback: consult SymbolTable for transitional phase; return tagged value directly
-  const fallback = vm.symbolTable.findTaggedValue(targetName);
-  if (fallback !== undefined) {
-    vm.push(fallback);
-    return;
-  }
   vm.push(NIL);
 }
 
