@@ -61,6 +61,8 @@ export class VM {
   // New heap-backed dictionary head (linked list of entries on global heap)
   newDictHead: number;
   dictLocalSlots: number;
+  // Compile-time locals counter (preferred over SymbolTable-local state)
+  localCount: number;
 
   // Note: previously tiny getters returned *_BASE/TOP divided by CELL_SIZE.
   // We now use precomputed *_CELLS constants from ./constants for clarity and speed.
@@ -82,6 +84,7 @@ export class VM {
     this.listDepth = 0;
     this.newDictHead = NIL;
     this.dictLocalSlots = 0;
+    this.localCount = 0;
 
     this.symbolTable = new SymbolTable(this.digest);
     this.symbolTable.attachVM(this);
