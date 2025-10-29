@@ -1,6 +1,6 @@
 import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
-import { SymbolTable } from '../../strings';
+// Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
 
 describe('VM', () => {
@@ -106,7 +106,7 @@ describe('VM', () => {
     });
     test('should initialize the symbolTable', () => {
       expect(vm.symbolTable).toBeDefined();
-      expect(vm.symbolTable instanceof SymbolTable).toBe(true);
+      expect(typeof vm.symbolTable.attachVM).toBe('function');
     });
     test('should expose compiled bytes in code segment', () => {
       vm.compiler.compile8(0x12);

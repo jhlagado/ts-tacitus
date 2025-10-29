@@ -50,7 +50,7 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize symbolTable as a SymbolTable instance', () => {
-    expect(vm.symbolTable).toBeInstanceOf(SymbolTable);
+    expect(typeof vm.symbolTable.attachVM).toBe('function');
   });
 
   test('should initialize compiler property after constructor call', () => {
