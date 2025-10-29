@@ -99,8 +99,8 @@ Frame Layout on RSTACK (top → bottom after prologue):
 ├───────────────┤  RSP-2 : Saved Caller BP (cell index)
 │ Saved BP      │
 ├───────────────┤  (grows downward as locals reserved by Reserve)
-│ Local Slot 0  │  (absolute cell index = BP + 0)
-│ Local Slot 1  │  (absolute cell index = BP + 1)
+│ Local Slot 0  │  (cell index = BP + 0)
+│ Local Slot 1  │  (cell index = BP + 1)
 │ ...           │
 └───────────────┘
 ```
@@ -112,8 +112,8 @@ Corruption / Testing: A helper `unsafeSetBPBytes(byteIndex)` (alignment‑checke
 ## References & Addressing
 
 - STACK_REF — address of a data stack cell (cell index encoded as payload).
-- RSTACK_REF — address of a return stack cell (absolute cell index).
-- GLOBAL_REF — address of a global cell (absolute cell index in the global segment).
+- RSTACK_REF — address of a return stack cell (cell index).
+- GLOBAL_REF — address of a global cell (cell index in the global segment).
 
 Reference helpers (see `core/refs.ts`):
 

@@ -53,17 +53,12 @@ export function getAbsoluteCellIndexFromRef(ref: number): number {
   return value;
 }
 
-export function getAbsoluteByteAddressFromRef(ref: number): number {
+export function getByteAddressFromRef(ref: number): number {
   return getAbsoluteCellIndexFromRef(ref) * CELL_SIZE;
 }
 
-// Preferred alias: unified address space, no need to say "absolute"
-export function getByteAddressFromRef(ref: number): number {
-  return getAbsoluteByteAddressFromRef(ref);
-}
-
 export function readRefValue(vm: VM, ref: number): number {
-  const byteAddr = getAbsoluteByteAddressFromRef(ref);
+  const byteAddr = getByteAddressFromRef(ref);
   return vm.memory.readFloat32(SEG_DATA, byteAddr);
 }
 
@@ -77,7 +72,7 @@ export function isDataRef(tval: number): boolean {
 
 export function getRefSegment(ref: number): number {
   // Phase C: classify by absolute byte address against unified data windows
-  const absByte = getAbsoluteByteAddressFromRef(ref);
+  const absByte = getByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 2;
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 0;
   return 1;
@@ -88,7 +83,7 @@ export function getRefSegment(ref: number): number {
  * Use for guards/validation; not for addressing.
  */
 export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
-  const absByte = getAbsoluteByteAddressFromRef(ref);
+  const absByte = getByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 'global';
   if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 'stack';
   return 'rstack';
@@ -120,14 +115,14 @@ export function createGlobalRef(cellIndex: number): number {
 /**
  * Result of reference resolution containing memory address and segment.
  */
-// Removed legacy resolveReference; use getAbsoluteByteAddressFromRef instead
+// Removed legacy resolveReference; use getByteAddressFromRef instead
 
 /**
  * Reads a value from memory using a polymorphic reference.
  */
 export function readReference(vm: VM, ref: number): number {
   // Phase C: absolute-only dereference via unified SEG_DATA
-  const address = getAbsoluteByteAddressFromRef(ref);
+  const address = getByteAddressFromRef(ref);
   return vm.memory.readFloat32(SEG_DATA, address);
 }
 
@@ -136,6 +131,6 @@ export function readReference(vm: VM, ref: number): number {
  */
 export function writeReference(vm: VM, ref: number, value: number): void {
   // Phase C: absolute-only dereference via unified SEG_DATA
-  const address = getAbsoluteByteAddressFromRef(ref);
+  const address = getByteAddressFromRef(ref);
   vm.memory.writeFloat32(SEG_DATA, address, value);
 }

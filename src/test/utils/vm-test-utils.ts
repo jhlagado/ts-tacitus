@@ -29,10 +29,10 @@ import { initializeInterpreter, vm } from '../../lang/runtime';
  */
 export function resetVM(): void {
   initializeInterpreter();
-  // Initialize absolute registers to segment bases; uppercase shims derive depth from these
+  // Initialize cell-based registers to segment bases; uppercase shims derive depth from these
   vm.sp = STACK_BASE / CELL_SIZE;
-  vm.rsp = RSTACK_BASE / CELL_SIZE; // Reset return stack (absolute)
-  vm.bp = RSTACK_BASE / CELL_SIZE; // reset BP (absolute)
+  vm.rsp = RSTACK_BASE / CELL_SIZE; // Reset return stack (cells)
+  vm.bp = RSTACK_BASE / CELL_SIZE; // reset BP (cells)
   vm.IP = 0;
   vm.listDepth = 0;
   vm.running = true;
@@ -73,7 +73,7 @@ export interface VMStateSnapshot {
 export function captureVMState(): VMStateSnapshot {
   const stack = vm.getStackData();
   const returnStack: number[] = [];
-  // vm.rsp is absolute (cells). Snapshot values relative to RSTACK_BASE.
+  // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE.
   const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
   for (let i = rstackBaseCells; i < vm.rsp; i++) {
     returnStack.push(vm.memory.readFloat32(SEG_DATA, i * CELL_SIZE));
@@ -397,14 +397,14 @@ export function verifyVMState(vm: VM): void {
 }
 
 /**
- * Compute data stack depth (cells) from absolute registers
+ * Compute data stack depth (cells) from cell-index registers
  */
 export function dataDepth(vm: VM): number {
   return vm.sp - STACK_BASE / CELL_SIZE;
 }
 
 /**
- * Compute return stack depth (cells) from absolute registers
+ * Compute return stack depth (cells) from cell-index registers
  */
 export function returnDepth(vm: VM): number {
   return vm.rsp - RSTACK_BASE / CELL_SIZE;
