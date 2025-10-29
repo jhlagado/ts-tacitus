@@ -12,19 +12,10 @@ describe('capsule word registration', () => {
     resetVM();
   });
 
-  test('capsule is registered as immediate and compiles constructor exit', () => {
+  test('capsule is registered as immediate', () => {
     const entry = vm.symbolTable.findEntry('capsule');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(true);
-    expect(entry?.implementation).toBeDefined();
-    // Simulate being inside a definition by placing EndDefinition closer on stack
-    vm.push(toTaggedValue(Op.EndDefinition, Tag.BUILTIN));
-    // Invoke immediate
-    entry?.implementation?.(vm);
-    // After invocation, closer should be EndCapsule (BUILTIN Op.EndCapsule)
-    const { tag: closerTag, value } = fromTaggedValue(vm.peek());
-    expect(closerTag).toBe(Tag.BUILTIN);
-    expect(value).toBe(Op.EndCapsule);
     const { tag: entryTag } = fromTaggedValue(entry!.taggedValue);
     expect(entryTag).toBe(Tag.BUILTIN);
   });

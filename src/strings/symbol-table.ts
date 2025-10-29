@@ -22,7 +22,7 @@ export interface SymbolTableCheckpoint {
   localSlotCount: number;
   newDictHead?: number;
   fallbackDepth?: number;
-  implDepth?: number;
+    implDepth?: number;
   localDepth?: number;
 }
 
