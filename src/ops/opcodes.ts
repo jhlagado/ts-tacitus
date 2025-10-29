@@ -287,4 +287,9 @@ export enum Op {
   Mark,
   /** Dictionary forget: ( ref — ) */
   Forget,
+
+  /** Toggle dict-first symbol lookup on */
+  DictFirstOn,
+  /** Toggle dict-first symbol lookup off */
+  DictFirstOff,
 }

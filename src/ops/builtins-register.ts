@@ -105,6 +105,9 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('lookup', Op.Lookup, dictLookupOp);
   symbolTable.defineBuiltin('mark', Op.Mark, dictMarkOp);
   symbolTable.defineBuiltin('forget', Op.Forget, dictForgetOp);
+  // Toggle dict-first symbol lookup resolution
+  symbolTable.defineBuiltin('dict-first-on', Op.DictFirstOn, vm => vm.symbolTable.setDictFirstLookup(true));
+  symbolTable.defineBuiltin('dict-first-off', Op.DictFirstOff, vm => vm.symbolTable.setDictFirstLookup(false));
 
   symbolTable.defineBuiltin('add', Op.Add);
   symbolTable.defineBuiltin('sub', Op.Minus);
