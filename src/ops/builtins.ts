@@ -77,6 +77,7 @@ import { ifFalseBranchOp } from './control';
 import { selectOp } from './access';
 import { isList, rpushList } from './local-vars-transfer';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
+import { defineOp as dictDefineOp, lookupOp as dictLookupOp, markOp as dictMarkOp, forgetOp as dictForgetOp } from './dict';
 
 // Temp register and related opcodes have been removed.
 
@@ -197,6 +198,10 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.GPush]: gpushOp,
     [Op.GPop]: gpopOp,
     [Op.GPeek]: gpeekOp,
+    [Op.Define]: dictDefineOp,
+    [Op.Lookup]: dictLookupOp,
+    [Op.Mark]: dictMarkOp,
+    [Op.Forget]: dictForgetOp,
     [Op.EndDefinition]: endDefinitionOp,
     [Op.EndIf]: endIfOp,
     [Op.EndDo]: endDoOp,

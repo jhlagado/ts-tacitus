@@ -36,6 +36,7 @@ import {
   beginCapsuleImmediate,
 } from '../lang/meta';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
+import { defineOp as dictDefineOp, lookupOp as dictLookupOp, markOp as dictMarkOp, forgetOp as dictForgetOp } from './dict';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -98,6 +99,12 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('gpush', Op.GPush, gpushOp);
   symbolTable.defineBuiltin('gpop', Op.GPop, gpopOp);
   symbolTable.defineBuiltin('gpeek', Op.GPeek, gpeekOp);
+
+  // Heap-backed dictionary ops (experimental, independent of legacy dictionary-heap/symbol-table)
+  symbolTable.defineBuiltin('define', Op.Define, dictDefineOp);
+  symbolTable.defineBuiltin('lookup', Op.Lookup, dictLookupOp);
+  symbolTable.defineBuiltin('mark', Op.Mark, dictMarkOp);
+  symbolTable.defineBuiltin('forget', Op.Forget, dictForgetOp);
 
   symbolTable.defineBuiltin('add', Op.Add);
   symbolTable.defineBuiltin('sub', Op.Minus);

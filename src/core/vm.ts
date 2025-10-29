@@ -59,6 +59,8 @@ export class VM {
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
   dictHead: number;
+  // New heap-backed dictionary head (linked list of entries on global heap)
+  newDictHead: number;
   dictLocalSlots: number;
 
   // Note: previously tiny getters returned *_BASE/TOP divided by CELL_SIZE.
@@ -80,6 +82,7 @@ export class VM {
     this.debug = false;
     this.listDepth = 0;
     this.dictHead = NIL;
+    this.newDictHead = NIL;
     this.dictLocalSlots = 0;
 
     this.symbolTable = new SymbolTable(this.digest);

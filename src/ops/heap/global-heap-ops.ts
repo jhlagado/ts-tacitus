@@ -3,9 +3,9 @@
  * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
  */
 
-import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader } from '@src/core';
+import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader, createGlobalRef, getAbsoluteCellIndexFromRef } from '@src/core';
 import { fetchOp } from '../lists';
-import { createGlobalRef } from '@src/core';
+// createGlobalRef now imported from core in the line above
 
 // No reference validation helpers needed in the simplified model
 
@@ -62,7 +62,7 @@ export function gpushOp(vm: VM): void {
     dropList(vm);
     return;
   }
-  
+
   // Case 2: any non-LIST value — copy the single cell value and pop once
   pushSimpleToGlobalHeap(vm, v);
   vm.pop();
@@ -92,4 +92,29 @@ export function gpopOp(vm: VM): void {
     return;
   }
   vm.gp = vm.gp - 1;
+}
+
+// New ops: markOp/forgetOp — heap marks using DATA_REF handles
+export function markOp(vm: VM): void {
+  // Push a global DATA_REF that encodes the current GP (next free global cell)
+  const ref = createGlobalRef(vm.gp);
+  vm.push(ref);
+}
+
+export function forgetOp(vm: VM): void {
+  vm.ensureStackSize(1, 'forget');
+  const ref = vm.pop();
+  if (!isRef(ref)) {
+    throw new Error('forget expects DATA_REF');
+  }
+  const absIndex = getAbsoluteCellIndexFromRef(ref);
+  const gBase = GLOBAL_BASE / CELL_SIZE;
+  const gpNew = absIndex - gBase;
+  if (!Number.isInteger(gpNew) || gpNew < 0) {
+    throw new Error('forget mark out of range');
+  }
+  if (gpNew > vm.gp) {
+    throw new Error('forget mark beyond current heap top');
+  }
+  vm.gp = gpNew;
 }
