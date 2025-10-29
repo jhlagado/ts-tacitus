@@ -4,7 +4,7 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA } from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { getByteAddressFromRef } from '@src/core';
 import { pushDictionaryEntry } from '@core/dictionary-heap';
@@ -71,7 +71,7 @@ export class SymbolTable {
     const vm = this.vmRef;
     if (!vm) return undefined;
     let cur = vm.newDictHead;
-    while (cur !== NIL) {
+    while (!isNIL(cur)) {
       const hAddr = getByteAddressFromRef(cur);
       const header = vm.memory.readFloat32(SEG_DATA, hAddr);
       if (!isList(header) || getListLength(header) !== 3) break;
