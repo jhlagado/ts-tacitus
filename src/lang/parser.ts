@@ -160,10 +160,7 @@ export function emitWord(value: string, state: ParserState): void {
     return;
   }
 
-  if (value === 'global') {
-    emitGlobalDecl(state);
-    return;
-  }
+  // 'global' keyword has been removed; treat as undefined or standard word if defined elsewhere.
 
   if (value === '+>') {
     emitIncrement(state);
@@ -355,36 +352,7 @@ export function emitVarDecl(state: ParserState): void {
  * Syntax: value global name
  * Behavior: registers a global slot for 'name' and stores TOS into it at runtime.
  */
-export function emitGlobalDecl(state: ParserState): void {
-  if (state.currentDefinition) {
-    throw new SyntaxError(
-      'Global declarations not allowed inside function definitions',
-      vm.getStackData(),
-    );
-  }
-
-  const nameToken = state.tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after global', vm.getStackData());
-  }
-
-  const varName = nameToken.value as string;
-
-  if (
-    varName.length === 0 ||
-    varName === ':' ||
-    varName === ';' ||
-    (varName.length === 1 && isSpecialChar(varName))
-  ) {
-    throw new SyntaxError('Expected variable name after global', vm.getStackData());
-  }
-  // Define global symbol and get its DATA_REF handle
-  const globalRef = vm.symbolTable.defineGlobal(varName);
-  // Emit: LiteralNumber(DATA_REF) → Store
-  vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(globalRef);
-  vm.compiler.compileOpcode(Op.Store);
-}
+// emitGlobalDecl removed: globals are not supported in this phase.
 
 /**
  * Process assignment operator '->'.
