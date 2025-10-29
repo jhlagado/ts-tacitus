@@ -49,9 +49,7 @@ export function resetVM(): void {
   // Reset globals allocation pointer and clear global segment
   vm.gp = 0;
   // Reset heap-backed dictionary head
-  // Note: legacy symbolTable/dictHead remains untouched here
-  // to mirror current tests that exercise legacy path.
-  // New dictionary uses vm.newDictHead which should be cleared on reset.
+  // Heap-backed dictionary uses vm.newDictHead; clear on reset
   // @ts-ignore new field present on VM in core
   vm.newDictHead = NIL;
   for (let i = 0; i < GLOBAL_SIZE; i++) {

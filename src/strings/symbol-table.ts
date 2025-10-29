@@ -31,7 +31,6 @@ interface SymbolTableNode extends SymbolTableEntry {
 
 export interface SymbolTableCheckpoint {
   head: SymbolTableNode | null;
-  dictHead: number;
   gp: number;
   localSlotCount: number;
   newDictHead?: number;
@@ -324,7 +323,6 @@ export class SymbolTable {
     const vmInstance = this.vmRef;
     const checkpoint: SymbolTableCheckpoint = {
       head: this.head,
-      dictHead: vmInstance ? vmInstance.dictHead : NIL,
       gp: vmInstance ? vmInstance.gp : 0,
       localSlotCount: this.localSlotCount,
       newDictHead: vmInstance ? vmInstance.newDictHead : NIL,
@@ -350,7 +348,6 @@ export class SymbolTable {
     this.head = checkpoint.head;
     const vmInstance = this.vmRef;
     if (vmInstance) {
-      vmInstance.dictHead = checkpoint.dictHead;
       vmInstance.gp = checkpoint.gp;
       if (typeof checkpoint.newDictHead === 'number') {
         vmInstance.newDictHead = checkpoint.newDictHead;
