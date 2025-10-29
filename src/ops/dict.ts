@@ -162,3 +162,12 @@ export function forgetOp(vm: VM): void {
   }
   vm.gp = gpNew;
 }
+
+// Dict-first lookup toggles (no stack effect)
+export function dictFirstOnOp(vm: VM): void {
+  vm.symbolTable.setDictFirstLookup(true);
+}
+
+export function dictFirstOffOp(vm: VM): void {
+  vm.symbolTable.setDictFirstLookup(false);
+}
