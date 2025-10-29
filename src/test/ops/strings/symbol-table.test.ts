@@ -3,6 +3,7 @@ import { SymbolTable, SymbolTableCheckpoint } from '../../../../src/strings/symb
 import { Digest } from '../../../../src/strings/digest';
 import { VM } from '../../../core/vm';
 import { registerBuiltins } from '../../../ops/builtins-register';
+import { fromTaggedValue } from '../../../core';
 
 describe('SymbolTable', () => {
   let symbolTable: SymbolTable;
@@ -19,22 +20,26 @@ describe('SymbolTable', () => {
     test('should define a new word and find it', () => {
       const newFunctionIndex = 201;
       symbolTable.defineCode('newWord', newFunctionIndex);
-      expect(symbolTable.find('newWord')).toBe(newFunctionIndex);
+      const tv = symbolTable.findTaggedValue('newWord');
+      expect(tv).toBeDefined();
+      expect(fromTaggedValue(tv!).value).toBe(newFunctionIndex);
     });
 
     test('should override an existing word', () => {
       const originalIndex = 202;
       const newIndex = 203;
       symbolTable.defineCode('overrideWord', originalIndex);
-      expect(symbolTable.find('overrideWord')).toBe(originalIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('overrideWord')!).value).toBe(
+        originalIndex,
+      );
       symbolTable.defineCode('overrideWord', newIndex);
-      expect(symbolTable.find('overrideWord')).toBe(newIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('overrideWord')!).value).toBe(newIndex);
     });
   });
 
   describe('Find words', () => {
     test('should return undefined for a non-existent word', () => {
-      expect(symbolTable.find('nonExistentWord')).toBeUndefined();
+      expect(symbolTable.findTaggedValue('nonExistentWord')).toBeUndefined();
     });
 
     test('should find the most recently defined word', () => {
@@ -42,7 +47,9 @@ describe('SymbolTable', () => {
       const secondIndex = 205;
       symbolTable.defineCode('duplicateWord', firstIndex);
       symbolTable.defineCode('duplicateWord', secondIndex);
-      expect(symbolTable.find('duplicateWord')).toBe(secondIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('duplicateWord')!).value).toBe(
+        secondIndex,
+      );
     });
   });
 
@@ -50,29 +57,43 @@ describe('SymbolTable', () => {
     test('should revert to a previous state', () => {
       const checkpoint1 = symbolTable.mark();
       symbolTable.defineCode('word1', dummyFunctionIndex);
-      expect(symbolTable.find('word1')).toBe(dummyFunctionIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('word1')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.revert(checkpoint1);
-      expect(symbolTable.find('word1')).toBeUndefined();
-      expect(symbolTable.find('add')).toBeDefined();
+      expect(symbolTable.findTaggedValue('word1')).toBeUndefined();
+      expect(symbolTable.findTaggedValue('add')).toBeDefined();
     });
 
     test('should handle multiple checkpoints and reverts', () => {
       symbolTable.defineCode('wordA', dummyFunctionIndex);
       const checkpointA = symbolTable.mark();
-      expect(symbolTable.find('wordA')).toBe(dummyFunctionIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordA')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.defineCode('wordB', dummyFunctionIndex + 1);
       const checkpointB = symbolTable.mark();
-      expect(symbolTable.find('wordB')).toBe(dummyFunctionIndex + 1);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordB')!).value).toBe(
+        dummyFunctionIndex + 1,
+      );
       symbolTable.defineCode('wordC', dummyFunctionIndex + 2);
-      expect(symbolTable.find('wordC')).toBe(dummyFunctionIndex + 2);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordC')!).value).toBe(
+        dummyFunctionIndex + 2,
+      );
       symbolTable.revert(checkpointB);
-      expect(symbolTable.find('wordC')).toBeUndefined();
-      expect(symbolTable.find('wordB')).toBe(dummyFunctionIndex + 1);
-      expect(symbolTable.find('wordA')).toBe(dummyFunctionIndex);
+      expect(symbolTable.findTaggedValue('wordC')).toBeUndefined();
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordB')!).value).toBe(
+        dummyFunctionIndex + 1,
+      );
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordA')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.revert(checkpointA);
-      expect(symbolTable.find('wordC')).toBeUndefined();
-      expect(symbolTable.find('wordB')).toBeUndefined();
-      expect(symbolTable.find('wordA')).toBe(dummyFunctionIndex);
+      expect(symbolTable.findTaggedValue('wordC')).toBeUndefined();
+      expect(symbolTable.findTaggedValue('wordB')).toBeUndefined();
+      expect(fromTaggedValue(symbolTable.findTaggedValue('wordA')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.revert(initialCheckpoint);
       expect(symbolTable.find('wordC')).toBeUndefined();
       expect(symbolTable.find('wordB')).toBeUndefined();
@@ -83,13 +104,17 @@ describe('SymbolTable', () => {
     test('should allow defining words after reverting', () => {
       const checkpoint = symbolTable.mark();
       symbolTable.defineCode('tempWord', dummyFunctionIndex);
-      expect(symbolTable.find('tempWord')).toBe(dummyFunctionIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('tempWord')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.revert(checkpoint);
-      expect(symbolTable.find('tempWord')).toBeUndefined();
+      expect(symbolTable.findTaggedValue('tempWord')).toBeUndefined();
       symbolTable.defineCode('newWordAfterRevert', dummyFunctionIndex);
-      expect(symbolTable.find('newWordAfterRevert')).toBe(dummyFunctionIndex);
+      expect(fromTaggedValue(symbolTable.findTaggedValue('newWordAfterRevert')!).value).toBe(
+        dummyFunctionIndex,
+      );
       symbolTable.revert(checkpoint);
-      expect(symbolTable.find('newWordAfterRevert')).toBeUndefined();
+      expect(symbolTable.findTaggedValue('newWordAfterRevert')).toBeUndefined();
     });
   });
 

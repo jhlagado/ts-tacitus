@@ -4,7 +4,7 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { getByteAddressFromRef } from '@src/core';
 // Legacy dictionary-heap removed from global definition path
@@ -23,27 +23,26 @@ export interface SymbolTableEntry {
   isImmediate: boolean;
 }
 
-interface SymbolTableNode {
-  key: number;
-  taggedValue: number;
-  implementation?: WordFunction;
-  next: SymbolTableNode | null;
-}
-
 export interface SymbolTableCheckpoint {
-  head: SymbolTableNode | null;
+  head: null; // legacy field retained for compatibility
   gp: number;
   localSlotCount: number;
   newDictHead?: number;
+  fallbackDepth?: number; // number of fallback defs at mark
+  implDepth?: number; // number of impl entries at mark
+  localDepth?: number; // number of local defs at mark
 }
 /**
  * Symbol table for managing word definitions.
  */
 export class SymbolTable {
-  private head: SymbolTableNode | null;
   private localSlotCount: number;
-  private globalSlotCount: number;
   private vmRef: VM | null;
+  // Minimal local/fallback stores to support detached usage and locals
+  private localDefs: { key: number; tval: number }[] = [];
+  private fallbackDefs: { key: number; tval: number }[] = [];
+  // Store implementations for immediate/builtin words (parser-time execution)
+  private impls: { key: number; fn: WordFunction }[] = [];
   // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
   public dictLookupPreferred = true;
 
@@ -52,9 +51,7 @@ export class SymbolTable {
    * @param digest String digest for word names
    */
   constructor(private digest: Digest) {
-    this.head = null;
     this.localSlotCount = 0;
-    this.globalSlotCount = 0;
     this.vmRef = null;
   }
 
@@ -92,7 +89,7 @@ export class SymbolTable {
     return undefined;
   }
 
-  // Phase 0: mirror definitions into heap-backed dictionary (newDictHead chain)
+  // Mirror definitions into heap-backed dictionary (newDictHead chain)
   private mirrorToHeap(name: string, tval: number, nameAddrOverride?: number): void {
     const vm = this.vmRef;
     if (!vm) return;
@@ -141,19 +138,7 @@ export class SymbolTable {
    * @param taggedValue Tagged value
    * @param implementation Optional implementation function
    */
-  defineSymbol(
-    name: string,
-    taggedValue: number,
-    implementation?: WordFunction,
-    _isImmediate = false,
-    _dictEntryRef?: number,
-    stringAddress?: number,
-  ): void {
-    const key = stringAddress ?? this.digest.add(name);
-
-    const newNode: SymbolTableNode = { key, taggedValue, implementation, next: this.head };
-    this.head = newNode;
-  }
+  // Removed generic defineSymbol; builtins/code/locals handled explicitly
 
   /**
    * Finds a tagged value for a symbol name
@@ -166,66 +151,94 @@ export class SymbolTable {
    * @returns {number | undefined} The tagged value if found, undefined otherwise
    */
   findTaggedValue(name: string): number | undefined {
+    // Locals first (compile-time scope)
+    const key = this.digest.intern(name);
+    for (let i = 0; i < this.localDefs.length; i++) {
+      if (this.localDefs[i].key === key) return this.localDefs[i].tval;
+    }
+
+    // Fallback store supports detached tests (no VM attached)
+    for (let i = 0; i < this.fallbackDefs.length; i++) {
+      if (this.fallbackDefs[i].key === key) return this.fallbackDefs[i].tval;
+    }
+
+    // Heap-backed dictionary preferred when VM attached
     if (this.dictLookupPreferred) {
       const dictHit = this.findInHeapDict(name);
       if (dictHit !== undefined) return dictHit;
     }
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name) {
-        return current.taggedValue;
-      }
-      current = current.next;
-    }
     return undefined;
   }
 
+  // Legacy wrappers (find/findCodeRef/findBytecodeAddress) removed. Use findTaggedValue instead.
   /**
-   * Finds a word in the symbol table by name
-   *
-   * This method searches the symbol table for a word with the given name.
-   * If found, it returns the function index/opcode for the word.
-   * Maintains backward compatibility by extracting address from tagged value.
-   *
-   * @param {string} name - The name of the word to find
-   * @returns {number | undefined} The function index/opcode if found, undefined otherwise
+   * Compatibility shim: legacy find(name) → returns numeric address/opcode
+   * - For BUILTIN: returns opcode number
+   * - For CODE: returns bytecode address
+   * - Otherwise: undefined
    */
   find(name: string): number | undefined {
-    const taggedValue = this.findTaggedValue(name);
-    if (taggedValue !== undefined) {
-      const { value: address } = fromTaggedValue(taggedValue);
-      return address;
-    }
+    const t = this.findTaggedValue(name);
+    if (t === undefined) return undefined;
+    const info = fromTaggedValue(t);
+    if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return info.value;
     return undefined;
   }
 
   /**
-   * @deprecated Use findTaggedValue instead
-   * Legacy compatibility method - findCodeRef now maps to findTaggedValue
+   * Compatibility shim: legacy findCodeRef(name) → returns tagged code/builtin ref if present
    */
   findCodeRef(name: string): number | undefined {
-    return this.findTaggedValue(name);
+    const t = this.findTaggedValue(name);
+    if (t === undefined) return undefined;
+    const info = fromTaggedValue(t);
+    if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return t;
+    return undefined;
   }
 
   /**
-   * Finds the bytecode address for a colon definition
-   *
-   * This method searches for colon definitions (Tag.CODE) and returns
-   * their bytecode address. Built-ins (Tag.BUILTIN) return undefined
-   * since they don't have bytecode addresses in the code segment.
-   *
-   * @param {string} name - The name of the word to find
-   * @returns {number | undefined} The bytecode address if it's a colon definition, undefined otherwise
+   * Compatibility shim: return bytecode address for a CODE word (number), else undefined.
    */
   findBytecodeAddress(name: string): number | undefined {
-    const taggedValue = this.findTaggedValue(name);
-    if (taggedValue !== undefined) {
-      const { tag, value } = fromTaggedValue(taggedValue);
-      if (tag === Tag.CODE) {
-        return value;
+    const t = this.findTaggedValue(name);
+    if (t === undefined) return undefined;
+    const info = fromTaggedValue(t);
+    if (info.tag === Tag.CODE) return info.value;
+    return undefined;
+  }
+
+  /**
+   * Proxy entry lookup for parser: returns tagged value, immediacy, and optional implementation.
+   */
+  findEntry(name: string): SymbolTableEntry | undefined {
+    const t = this.findTaggedValue(name);
+    if (t === undefined) return undefined;
+    const key = this.digest.intern(name);
+    let impl: WordFunction | undefined = undefined;
+    for (let i = 0; i < this.impls.length; i++) {
+      if (this.impls[i].key === key) {
+        impl = this.impls[i].fn;
+        break;
       }
     }
-    return undefined;
+    const info = fromTaggedValue(t);
+    return { taggedValue: t, implementation: impl, isImmediate: info.meta === 1 };
+  }
+
+  /**
+   * Compatibility helper used by a legacy test to force-insert a symbol.
+   * If a local exists in current scope, override by inserting into locals; otherwise fallback.
+   * Treats the provided number as-is.
+   */
+  defineSymbol(name: string, taggedOrRawValue: number): void {
+    const key = this.digest.intern(name);
+    for (let i = 0; i < this.localDefs.length; i++) {
+      if (this.localDefs[i].key === key) {
+        this.localDefs.unshift({ key, tval: taggedOrRawValue });
+        return;
+      }
+    }
+    this.fallbackDefs.unshift({ key, tval: taggedOrRawValue });
   }
 
   /**
@@ -241,62 +254,13 @@ export class SymbolTable {
   findWithImplementation(
     name: string,
   ): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined {
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name) {
-        const info = fromTaggedValue(current.taggedValue);
-        return {
-          index: info.value,
-          implementation: current.implementation,
-          isImmediate: info.meta === 1,
-        };
-      }
-      current = current.next;
-    }
-    return undefined;
+    const entry = this.findEntry(name);
+    if (!entry) return undefined;
+    const info = fromTaggedValue(entry.taggedValue);
+    return { index: info.value, implementation: entry.implementation, isImmediate: entry.isImmediate };
   }
 
-  findEntry(name: string): SymbolTableEntry | undefined {
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name) {
-        const info = fromTaggedValue(current.taggedValue);
-        return {
-          taggedValue: current.taggedValue,
-          implementation: current.implementation,
-          isImmediate: info.meta === 1,
-        };
-      }
-      current = current.next;
-    }
-    return undefined;
-  }
-
-  /**
-   * Finds a function implementation by its opcode/index value
-   *
-   * This method searches the symbol table for a word with the given opcode/index.
-   * If found and it has an implementation, it returns the implementation function.
-   * Uses tagged value comparison for consistency.
-   *
-   * This is useful for the VM's opcode dispatch mechanism, which needs to find
-   * the implementation for a given opcode during execution.
-   *
-   * @param {number} opcode - The opcode to find an implementation for
-   * @returns {WordFunction | undefined} The implementation function if found, otherwise undefined
-   */
-  findImplementationByOpcode(opcode: number): WordFunction | undefined {
-    let current = this.head;
-    while (current !== null) {
-      const { value: address } = fromTaggedValue(current.taggedValue);
-      if (address === opcode && current.implementation) {
-        return current.implementation;
-      }
-      current = current.next;
-    }
-
-    return undefined;
-  }
+  // findImplementationByOpcode removed; dispatch table owns opcode→verb mapping.
 
   /**
    * Creates a checkpoint representing the current state of the symbol table
@@ -315,10 +279,13 @@ export class SymbolTable {
   mark(): SymbolTableCheckpoint {
     const vmInstance = this.vmRef;
     const checkpoint: SymbolTableCheckpoint = {
-      head: this.head,
+      head: null,
       gp: vmInstance ? vmInstance.gp : 0,
       localSlotCount: this.localSlotCount,
       newDictHead: vmInstance ? vmInstance.newDictHead : NIL,
+      fallbackDepth: this.fallbackDefs.length,
+      implDepth: this.impls.length,
+      localDepth: this.localDefs.length,
     };
     this.localSlotCount = 0;
     if (vmInstance) vmInstance.localCount = 0;
@@ -339,13 +306,31 @@ export class SymbolTable {
    * @param {SymbolTableCheckpoint} checkpoint - The checkpoint to revert to
    */
   revert(checkpoint: SymbolTableCheckpoint): void {
-    this.head = checkpoint.head;
     const vmInstance = this.vmRef;
     if (vmInstance) {
       vmInstance.gp = checkpoint.gp;
       if (typeof checkpoint.newDictHead === 'number') {
         vmInstance.newDictHead = checkpoint.newDictHead;
       }
+    }
+    // Restore fallback/impl depths for detached usage
+    if (typeof checkpoint.fallbackDepth === 'number') {
+      const cur = this.fallbackDefs.length;
+      const target = checkpoint.fallbackDepth;
+      const drop = cur - target;
+      if (drop > 0) this.fallbackDefs.splice(0, drop);
+    }
+    if (typeof checkpoint.implDepth === 'number') {
+      const cur = this.impls.length;
+      const target = checkpoint.implDepth;
+      const drop = cur - target;
+      if (drop > 0) this.impls.splice(0, drop);
+    }
+    if (typeof checkpoint.localDepth === 'number') {
+      const cur = this.localDefs.length;
+      const target = checkpoint.localDepth;
+      const drop = cur - target;
+      if (drop > 0) this.localDefs.splice(0, drop);
     }
   }
   /**
@@ -365,8 +350,13 @@ export class SymbolTable {
     isImmediate = false,
   ): void {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-    this.defineSymbol(name, tval, implementation, isImmediate);
-    this.mirrorToHeap(name, tval);
+    // Always record fallback to support parser/VM resolution independent of heap state
+    this.fallbackDefs.unshift({ key: this.digest.intern(name), tval });
+    // Do not mirror builtins to heap here; keep heap pristine until user definitions
+    if (implementation) {
+      const key = this.digest.intern(name);
+      this.impls.unshift({ key, fn: implementation });
+    }
   }
 
   /**
@@ -382,8 +372,9 @@ export class SymbolTable {
   defineCode(name: string, bytecodeAddr: number, isImmediate = false): void {
     const tval = toTaggedValue(bytecodeAddr, Tag.CODE, isImmediate ? 1 : 0);
     const nameAddr = this.digest.intern(name);
-    this.defineSymbol(name, tval, undefined, isImmediate, undefined, nameAddr);
-    this.mirrorToHeap(name, tval, nameAddr);
+    // Always record fallback first
+    this.fallbackDefs.unshift({ key: nameAddr, tval });
+    if (this.vmRef) this.mirrorToHeap(name, tval, nameAddr);
   }
 
   /**
@@ -403,7 +394,9 @@ export class SymbolTable {
     } else {
       slotNumber = this.localSlotCount++;
     }
-    this.defineSymbol(name, toTaggedValue(slotNumber, Tag.LOCAL));
+    const tval = toTaggedValue(slotNumber, Tag.LOCAL);
+    const key = this.digest.intern(name);
+    this.localDefs.unshift({ key, tval });
   }
 
   /**
@@ -418,7 +411,7 @@ export class SymbolTable {
    * Returns the number of globals defined so far.
    */
   getGlobalCount(): number {
-    return this.globalSlotCount;
+    return 0;
   }
 
   /**
