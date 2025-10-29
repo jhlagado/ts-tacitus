@@ -278,4 +278,13 @@ export enum Op {
   GPop,
   /** Peek at a global heap entry without mutation */
   GPeek,
+
+  /** Dictionary ops (heap-backed): ( value name — ) */
+  Define,
+  /** Dictionary lookup: ( name — ref|NIL ) */
+  Lookup,
+  /** Dictionary mark: ( — ref ) */
+  Mark,
+  /** Dictionary forget: ( ref — ) */
+  Forget,
 }
