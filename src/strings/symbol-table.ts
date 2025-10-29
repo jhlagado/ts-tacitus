@@ -7,7 +7,7 @@ import { Digest } from './digest';
 import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { getByteAddressFromRef } from '@src/core';
-import { pushDictionaryEntry } from '@core/dictionary-heap';
+// Legacy dictionary-heap removed from global definition path
 
 /**
  * Word implementation function type.
@@ -280,17 +280,6 @@ export class SymbolTable {
     return undefined;
   }
 
-  getDictionaryEntryRef(name: string): number | undefined {
-    let current = this.head;
-    while (current !== null) {
-      if (this.digest.get(current.key) === name) {
-        return current.dictEntryRef;
-      }
-      current = current.next;
-    }
-    return undefined;
-  }
-
   /**
    * Finds a function implementation by its opcode/index value
    *
@@ -434,13 +423,12 @@ export class SymbolTable {
 
     const nameAddr = this.digest.intern(name);
     const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-    const prevEntry = vmInstance.dictHead ?? NIL;
-    const { entryRef, payloadRef } = pushDictionaryEntry(vmInstance, NIL, nameTagged, prevEntry);
-    vmInstance.dictHead = entryRef;
-
+    // Allocate a global payload cell initialized to NIL
+    const payloadRef = pushSimpleToGlobalHeap(vmInstance, NIL);
+    // Define in symbol table
     this.globalSlotCount++;
-    this.defineSymbol(name, payloadRef, undefined, false, entryRef, nameAddr);
-    // Mirror into heap-backed dictionary as well for unified dictionary view
+    this.defineSymbol(name, payloadRef, undefined, false, undefined, nameAddr);
+    // Create heap-backed dictionary entry [prevRef, valueRef, name]
     this.mirrorToHeap(name, payloadRef, nameAddr);
     return payloadRef;
   }
