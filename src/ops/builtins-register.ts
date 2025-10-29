@@ -108,6 +108,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   // Toggle dict-first symbol lookup resolution
   symbolTable.defineBuiltin('dict-first-on', Op.DictFirstOn, vm => vm.symbolTable.setDictFirstLookup(true));
   symbolTable.defineBuiltin('dict-first-off', Op.DictFirstOff, vm => vm.symbolTable.setDictFirstLookup(false));
+  // Debug
+  symbolTable.defineBuiltin('dump-dict', Op.DumpDict);
 
   symbolTable.defineBuiltin('add', Op.Add);
   symbolTable.defineBuiltin('sub', Op.Minus);

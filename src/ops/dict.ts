@@ -171,3 +171,29 @@ export function dictFirstOnOp(vm: VM): void {
 export function dictFirstOffOp(vm: VM): void {
   vm.symbolTable.setDictFirstLookup(false);
 }
+
+// Debug: dump heap-backed dictionary
+export function dumpDictOp(vm: VM): void {
+  const lines: string[] = [];
+  let cur = vm.newDictHead;
+  let i = 0;
+  while (!isNIL(cur)) {
+    const hAddr = getByteAddressFromRef(cur);
+    const header = vm.memory.readFloat32(SEG_DATA, hAddr);
+    if (!isList(header) || getListLength(header) !== 3) break;
+    const base = hAddr - 3 * CELL_SIZE;
+    const prevRef = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
+    const valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
+    const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
+    const nameInfo = fromTaggedValue(entryName);
+    const nameStr = nameInfo.tag === Tag.STRING ? vm.digest.get(nameInfo.value) : `?tag:${nameInfo.tag}`;
+    const headerCell = hAddr / CELL_SIZE;
+    const prevStr = isNIL(prevRef) ? 'NIL' : `ref@${getAbsoluteCellIndexFromRef(prevRef)}`;
+    lines.push(`${i}: ${nameStr} -> prev:${prevStr} headerCell:${headerCell}`);
+    cur = prevRef;
+    i++;
+  }
+  // Print from head to tail
+  if (lines.length === 0) console.log('[dict] (empty)');
+  else console.log('[dict]\n' + lines.join('\n'));
+}

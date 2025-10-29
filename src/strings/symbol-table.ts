@@ -45,7 +45,7 @@ export class SymbolTable {
   private globalSlotCount: number;
   private vmRef: VM | null;
   // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
-  public dictLookupPreferred = false;
+  public dictLookupPreferred = true;
 
   /**
    * Creates a new SymbolTable instance.
@@ -432,7 +432,7 @@ export class SymbolTable {
       throw new Error('SymbolTable VM reference unavailable; attach VM before defining globals');
     }
 
-    const nameAddr = this.digest.add(name);
+    const nameAddr = this.digest.intern(name);
     const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
     const prevEntry = vmInstance.dictHead ?? NIL;
     const { entryRef, payloadRef } = pushDictionaryEntry(vmInstance, NIL, nameTagged, prevEntry);
@@ -440,6 +440,8 @@ export class SymbolTable {
 
     this.globalSlotCount++;
     this.defineSymbol(name, payloadRef, undefined, false, entryRef, nameAddr);
+    // Mirror into heap-backed dictionary as well for unified dictionary view
+    this.mirrorToHeap(name, payloadRef, nameAddr);
     return payloadRef;
   }
 
