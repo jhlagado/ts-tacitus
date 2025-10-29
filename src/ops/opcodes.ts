@@ -292,4 +292,7 @@ export enum Op {
   DictFirstOn,
   /** Toggle dict-first symbol lookup off */
   DictFirstOff,
+
+  /** Dump heap-backed dictionary chain to console */
+  DumpDict,
 }
