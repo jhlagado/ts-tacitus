@@ -43,7 +43,6 @@ export class SymbolTable {
   private localSlotCount: number;
   private globalSlotCount: number;
   private vmRef: VM | null;
-  private immediateMap: Map<string, { implementation?: WordFunction; isImmediate: boolean }>;
   // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
   public dictLookupPreferred = true;
 
@@ -56,7 +55,6 @@ export class SymbolTable {
     this.localSlotCount = 0;
     this.globalSlotCount = 0;
     this.vmRef = null;
-    this.immediateMap = new Map();
   }
 
   attachVM(vm: VM): void {
@@ -249,49 +247,30 @@ export class SymbolTable {
   findWithImplementation(
     name: string,
   ): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined {
-    const imm = this.immediateMap.get(name);
-    if (imm) {
-      const tagged = this.findTaggedValue(name);
-      if (tagged !== undefined) {
-        const { value: address } = fromTaggedValue(tagged);
-        return { index: address, implementation: imm.implementation, isImmediate: true };
-      }
-      return { index: 0, implementation: imm.implementation, isImmediate: true };
-    }
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
-        const { value: address } = fromTaggedValue(current.taggedValue);
+        const info = fromTaggedValue(current.taggedValue);
         return {
-          index: address,
+          index: info.value,
           implementation: current.implementation,
-          isImmediate: current.isImmediate,
+          isImmediate: info.meta === 1,
         };
       }
-
       current = current.next;
     }
-
     return undefined;
   }
 
   findEntry(name: string): SymbolTableEntry | undefined {
-    const imm = this.immediateMap.get(name);
-    if (imm) {
-      const tagged = this.findTaggedValue(name);
-      return {
-        taggedValue: tagged ?? NIL,
-        implementation: imm.implementation,
-        isImmediate: true,
-      };
-    }
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
+        const info = fromTaggedValue(current.taggedValue);
         return {
           taggedValue: current.taggedValue,
           implementation: current.implementation,
-          isImmediate: current.isImmediate,
+          isImmediate: info.meta === 1,
         };
       }
       current = current.next;
@@ -391,9 +370,8 @@ export class SymbolTable {
     implementation?: WordFunction,
     isImmediate = false,
   ): void {
-    const tval = createBuiltinRef(opcode);
+    const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     this.defineSymbol(name, tval, implementation, isImmediate);
-    if (isImmediate) this.immediateMap.set(name, { implementation, isImmediate: true });
     this.mirrorToHeap(name, tval);
   }
 
@@ -408,7 +386,7 @@ export class SymbolTable {
    * @param {number} bytecodeAddr - The bytecode address where the definition starts
    */
   defineCode(name: string, bytecodeAddr: number, isImmediate = false): void {
-    const tval = createCodeRef(bytecodeAddr);
+    const tval = toTaggedValue(bytecodeAddr, Tag.CODE, isImmediate ? 1 : 0);
     const nameAddr = this.digest.intern(name);
     this.defineSymbol(name, tval, undefined, isImmediate, undefined, nameAddr);
     this.mirrorToHeap(name, tval, nameAddr);
