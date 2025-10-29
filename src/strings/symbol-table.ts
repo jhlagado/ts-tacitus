@@ -4,7 +4,9 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef } from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA } from '@src/core';
+import { isList, getListLength } from '@src/core';
+import { getByteAddressFromRef } from '@src/core';
 import { pushDictionaryEntry } from '@core/dictionary-heap';
 
 /**
@@ -41,6 +43,8 @@ export class SymbolTable {
   private localSlotCount: number;
   private globalSlotCount: number;
   private vmRef: VM | null;
+  // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
+  public dictLookupPreferred = false;
 
   /**
    * Creates a new SymbolTable instance.
@@ -55,6 +59,36 @@ export class SymbolTable {
 
   attachVM(vm: VM): void {
     this.vmRef = vm;
+  }
+
+  // Optional: enable/disable heap-backed dictionary lookups (Phase 1)
+  setDictFirstLookup(enabled: boolean): void {
+    this.dictLookupPreferred = enabled;
+  }
+
+  // Traverse heap-backed dictionary and return tagged value if found
+  private findInHeapDict(name: string): number | undefined {
+    const vm = this.vmRef;
+    if (!vm) return undefined;
+    let cur = vm.newDictHead;
+    while (cur !== NIL) {
+      const hAddr = getByteAddressFromRef(cur);
+      const header = vm.memory.readFloat32(SEG_DATA, hAddr);
+      if (!isList(header) || getListLength(header) !== 3) break;
+      const base = hAddr - 3 * CELL_SIZE;
+      const valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
+      const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
+      const entryStr = vm.digest.get(fromTaggedValue(entryName).value);
+      if (entryStr === name) {
+        // Deref once to return the stored tagged value (builtins/code are simple cells)
+        const vAddr = getByteAddressFromRef(valueRef);
+        return vm.memory.readFloat32(SEG_DATA, vAddr);
+      }
+      // Move to prev
+      const prevRef = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
+      cur = prevRef;
+    }
+    return undefined;
   }
 
   // Phase 0: mirror definitions into heap-backed dictionary (newDictHead chain)
@@ -138,6 +172,10 @@ export class SymbolTable {
    * @returns {number | undefined} The tagged value if found, undefined otherwise
    */
   findTaggedValue(name: string): number | undefined {
+    if (this.dictLookupPreferred) {
+      const dictHit = this.findInHeapDict(name);
+      if (dictHit !== undefined) return dictHit;
+    }
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
