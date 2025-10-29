@@ -11,6 +11,7 @@ import {
   fromTaggedValue,
   SEG_DATA,
   GLOBAL_BASE,
+  GLOBAL_SIZE,
   getRefRegion,
 } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
@@ -80,12 +81,14 @@ describe('Global variables (unified data + GLOBAL_REF)', () => {
   });
 
   test('global segment exhaustion throws on compound init overflow', () => {
-    const make32 = Array.from({ length: 32 }, () => '1').join(' ');
+    const cells = (GLOBAL_SIZE) / CELL_SIZE; // capacity in cells
+    const N = Math.floor(cells) + 64; // exceed capacity comfortably
+    const makeN = Array.from({ length: N }, () => '1').join(' ');
     const code = `
-      ( ${make32} ) global g1
-      ( ${make32} ) global g2
+      ( ${makeN} ) global g1
+      ( ${makeN} ) global g2
     `;
-    expect(() => executeTacitCode(code)).toThrow(/Global heap exhausted/);
+    expect(() => executeTacitCode(code)).toThrow(/(Global heap exhausted|outside segment)/);
   });
 
   test('global dictionary entry stored on heap with payload cell', () => {

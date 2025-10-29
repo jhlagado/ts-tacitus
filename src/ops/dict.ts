@@ -108,6 +108,7 @@ export function lookupOp(vm: VM): void {
   }
 
   let cur = vm.newDictHead;
+  const targetName = vm.digest.get(fromTaggedValue(name).value);
   while (!isNIL(cur)) {
     // Read header at global ref
     const hAddr = getByteAddressFromRef(cur);
@@ -123,12 +124,21 @@ export function lookupOp(vm: VM): void {
 
     const n1 = fromTaggedValue(entryName);
     const n2 = fromTaggedValue(name);
-    if (n1.tag === Tag.STRING && n2.tag === Tag.STRING && n1.value === n2.value) {
-      vm.push(valueRef);
-      return;
+    if (n1.tag === Tag.STRING && n2.tag === Tag.STRING) {
+      const entryStr = vm.digest.get(n1.value);
+      if (entryStr === targetName) {
+        vm.push(valueRef);
+        return;
+      }
     }
 
     cur = isRef(prevRef) ? prevRef : NIL;
+  }
+  // Fallback: consult SymbolTable for transitional phase; return tagged value directly
+  const fallback = vm.symbolTable.findTaggedValue(targetName);
+  if (fallback !== undefined) {
+    vm.push(fallback);
+    return;
   }
   vm.push(NIL);
 }

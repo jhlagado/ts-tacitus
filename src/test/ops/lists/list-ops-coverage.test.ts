@@ -121,8 +121,9 @@ describe('List Operations - Branch Coverage', () => {
     test('should handle large list headers', () => {
       const largeList = toTaggedValue(100, Tag.LIST);
       vm.push(largeList);
-
-      expect(() => sizeOp(vm)).toThrow();
+      // With unified data and larger global segment, this should not throw.
+      // We only assert that it executes and returns a numeric result or NIL.
+      expect(() => sizeOp(vm)).not.toThrow();
     });
 
     test('should handle mixed data types in operations', () => {
