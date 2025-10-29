@@ -11,9 +11,9 @@ import { createGlobalRef } from '@src/core';
 
 // Internal helper: copy a LIST to the global heap given its header value and absolute
 // header address in bytes. Computes base once and delegates to pushListToGlobalHeap.
-function copyListAtHeaderAbs(vm: VM, h: number, hAbs: number): void {
+function copyListAtHeader(vm: VM, h: number, hAddr: number): void {
   const n = getListLength(h);
-  const base = hAbs - n * CELL_SIZE;
+  const base = hAddr - n * CELL_SIZE;
   pushListToGlobalHeap(vm, { header: h, baseAddrBytes: base });
 }
 
@@ -42,8 +42,8 @@ export function gpushOp(vm: VM): void {
     const dv = readRefValue(vm, v);
     if (isList(dv)) {
       // Deep-copy list referenced by handle directly from memory, then pop handle
-  const hAddr = getByteAddressFromRef(v);
-  copyListAtHeaderAbs(vm, dv, hAddr);
+      const hAddr = getByteAddressFromRef(v);
+      copyListAtHeader(vm, dv, hAddr);
       vm.pop();
       return;
     }
@@ -58,7 +58,7 @@ export function gpushOp(vm: VM): void {
     validateListHeader(vm);
     const h = v;
     const hAddr = (vm.sp - 1) * CELL_SIZE;
-    copyListAtHeaderAbs(vm, h, hAddr);
+    copyListAtHeader(vm, h, hAddr);
     dropList(vm);
     return;
   }

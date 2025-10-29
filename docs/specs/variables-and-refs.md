@@ -12,7 +12,7 @@ Status: Authoritative spec for variables (locals and globals) and data reference
 ## 1. Overview and Terminology
 
 - Variable: named storage in the VM. Two kinds: local (function-frame slot) and global (module-scope cell in the global heap window).
-- Ref (data): a tagged handle using `Tag.DATA_REF`; its payload stores the absolute cell index inside the unified data arena. Segment ownership is inferred by comparing that index against the global, data-stack, and return-stack windows. Data refs are not code and are never executed.
+- Ref (data): a tagged handle using `Tag.DATA_REF`; its payload stores the cell index inside the unified data arena. Window ownership is inferred by comparing that index against the global, data‑stack, and return‑stack ranges. Data refs are not code and are never executed.
 - Code ref: a tagged handle to builtins or compiled bytecode (from `@symbol`); evaluated via `eval`.
 - Load (value-by-default): produce a value from a value-or-ref; identity on non-refs; dereferences up to two levels; materializes lists.
 - Fetch (strict address read): read the value at a reference address; materializes lists when the read cell is a LIST header.
@@ -35,13 +35,13 @@ Tacit stores globals, the data stack, and the return stack inside a single data 
 - **Data-stack window** — operand storage (indexed by `SP`)
 - **Return-stack window** — frames and locals (indexed by `RSP`/`BP`)
 
-Runtime references use the unified `Tag.DATA_REF`. Its 16-bit payload stores an absolute cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data-stack, and return-stack bounds.
+Runtime references use the unified `Tag.DATA_REF`. Its 16‑bit payload stores a cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data‑stack, and return‑stack bounds.
 
 Helpers
 
-- `createDataRef(segment, cellIndex)` → `DATA_REF`
-- `resolveReference(vm, ref)` → { segment, address }
-- `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at resolved address
+- `createDataRef(cellIndex)` → `DATA_REF`
+- `getByteAddressFromRef(ref)` → byte address in the unified arena
+- `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at that address
 
 ### 2.1 Reference Taxonomy
 
@@ -58,7 +58,7 @@ Heap-backed dictionary nodes therefore bridge all three tag families—`DATA_REF
 
 - Declared inside functions with `value var name`. Each `var` consumes the value at TOS and initializes a fixed-size slot in the current frame.
 - Storage: one 32-bit slot holding a simple value or a `DATA_REF` pointing to local compound storage above the slot.
-- Addressing: `&x` forms a `DATA_REF` whose payload is the absolute cell index `(BP + slot)` in the unified arena.
+- Addressing: `&x` forms a `DATA_REF` whose payload is the cell index `(BP + slot)` in the unified arena.
 - Access: `x` yields the value (VarRef+Load); `&x` yields the slot address; `&x fetch` reads the slot content; `&x load` yields the slot value.
 
 - Declared at top level with `value global name`.
