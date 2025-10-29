@@ -25,10 +25,7 @@ describe('Reference Sigil (&x) Parsing', () => {
     expect(resultValue).not.toEqual(resultRef);
   });
 
-  test('should allow &global at top level', () => {
-    const result = executeTacitCode('42 global g &g fetch');
-    expect(result).toEqual([42]);
-  });
+  // Global references are disabled in this phase; top-level &global is not supported.
 
   test('should reject &x for undefined names at top level', () => {
     expect(() => {

@@ -93,10 +93,5 @@ describe('SymbolTable', () => {
     });
   });
 
-  describe('Global definitions', () => {
-    test('should require attached VM for defineGlobal', () => {
-      const orphanTable = new SymbolTable(new Digest(new Memory()));
-      expect(() => orphanTable.defineGlobal('orphan')).toThrow(/attach VM/);
-    });
-  });
+  // Global definitions removed in heap-backed dictionary migration
 });
