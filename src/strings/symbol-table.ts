@@ -23,9 +23,10 @@ export interface SymbolTableEntry {
   isImmediate: boolean;
 }
 
-interface SymbolTableNode extends SymbolTableEntry {
+interface SymbolTableNode {
   key: number;
-  dictEntryRef?: number;
+  taggedValue: number;
+  implementation?: WordFunction;
   next: SymbolTableNode | null;
 }
 
@@ -144,20 +145,13 @@ export class SymbolTable {
     name: string,
     taggedValue: number,
     implementation?: WordFunction,
-    isImmediate = false,
-    dictEntryRef?: number,
+    _isImmediate = false,
+    _dictEntryRef?: number,
     stringAddress?: number,
   ): void {
     const key = stringAddress ?? this.digest.add(name);
 
-    const newNode: SymbolTableNode = {
-      key,
-      taggedValue,
-      implementation,
-      isImmediate,
-      dictEntryRef,
-      next: this.head,
-    };
+    const newNode: SymbolTableNode = { key, taggedValue, implementation, next: this.head };
     this.head = newNode;
   }
 
