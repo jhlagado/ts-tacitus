@@ -1,21 +1,70 @@
-import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS, STACK_BASE_CELLS } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
+import { evalOp } from '../../ops/core';
 import type { SymbolTableEntry } from '../../strings/symbol-table';
 import { vm } from '../runtime';
+import {
+  beginDefinitionImmediate,
+  beginIfImmediate,
+  beginElseImmediate,
+  beginWhenImmediate,
+  beginDoImmediate,
+  beginCaseImmediate,
+  clauseOfImmediate,
+  defaultImmediate,
+  nilImmediate,
+  beginCapsuleImmediate,
+} from './index';
 
 export function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
-  if (entry.implementation) {
-    entry.implementation(vm);
-    return;
-  }
-
   const { tag, value } = fromTaggedValue(entry.taggedValue);
 
   if (tag === Tag.BUILTIN) {
-    executeOp(vm, value as Op);
-    return;
+    // Dispatch known meta-immediate words by name (compile-time actions)
+    switch (name) {
+      case ':':
+        beginDefinitionImmediate();
+        return;
+      case 'if':
+        beginIfImmediate();
+        return;
+      case ';':
+        if (vm.sp - STACK_BASE_CELLS === 0) {
+          throw new SyntaxError('Unexpected semicolon', vm.getStackData());
+        }
+        evalOp(vm);
+        return;
+      case 'else':
+        beginElseImmediate();
+        return;
+      case 'when':
+        beginWhenImmediate();
+        return;
+      case 'do':
+        beginDoImmediate();
+        return;
+      case 'case':
+        beginCaseImmediate();
+        return;
+      case 'of':
+        clauseOfImmediate();
+        return;
+      case 'DEFAULT':
+        defaultImmediate();
+        return;
+      case 'NIL':
+        nilImmediate();
+        return;
+      case 'capsule':
+        beginCapsuleImmediate();
+        return;
+      default:
+        // Immediate builtin with runtime semantics (e.g., immdup)
+        executeOp(vm, value as Op);
+        return;
+    }
   }
 
   if (tag === Tag.CODE) {
