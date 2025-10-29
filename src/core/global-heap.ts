@@ -57,4 +57,4 @@ export function getGlobalHeapSpan(vm: VM, headerValue: number): number {
   return getListLength(headerValue) + 1;
 }
 
-// Dictionary composition intentionally lives in dictionary-heap.ts
+// Dictionary composition now lives in heap-backed dictionary ops (see src/ops/dict.ts)

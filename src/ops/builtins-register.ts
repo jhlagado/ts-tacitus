@@ -100,7 +100,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
   symbolTable.defineBuiltin('gpop', Op.GPop, gpopOp);
   symbolTable.defineBuiltin('gpeek', Op.GPeek, gpeekOp);
 
-  // Heap-backed dictionary ops (experimental, independent of legacy dictionary-heap/symbol-table)
+  // Heap-backed dictionary ops (independent of legacy internals)
   symbolTable.defineBuiltin('define', Op.Define, dictDefineOp);
   symbolTable.defineBuiltin('lookup', Op.Lookup, dictLookupOp);
   symbolTable.defineBuiltin('mark', Op.Mark, dictMarkOp);
