@@ -96,20 +96,24 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
 
 ## Phases
 
-1) Inventory (read‑only)
+1. Inventory (read‑only)
+
 - Locate all `SymbolTable` method uses and dict fallbacks (e.g., in `src/ops/dict.ts`).
 
-2) Implement function library (heap‑only)
+2. Implement function library (heap‑only)
+
 - Create `symbols.ts` with pure functions on `vm.memory` and the dictionary chain (`vm.newDictHead`).
 - Implement `define*` composing `[prevRef, valueRef, name]` entries on heap and advancing `vm.newDictHead`.
 - Implement `findTaggedValue` by traversing heap only. Remove any JS‑state dependencies.
 - Implement `mark/revert` by restoring `{ gp, newDictHead }` exactly.
 
-3) Adapter swap (class removal)
+3. Adapter swap (class removal)
+
 - Replace class with thin wrappers delegating to functions. Remove any redundant state or flags.
 - Run focused suites (dict, parser, symbol‑table, heap, capsules).
 
-4) Remove adapter (optional)
+4. Remove adapter (optional)
+
 - Update imports to function module and delete wrappers.
 - Full suite, lint, format.
 
@@ -140,3 +144,51 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
 ## Rollback
 
 - Restore the previous class implementation (via adapter) and discard `symbols.ts`. No data migration required.
+
+---
+
+## Addendum — No‑GC Enforcement and Migration Notes (2025‑10‑30)
+
+This addendum tightens Plan 44 to eliminate all GC‑managed runtime state and object‑returning APIs in the symbol path while preserving a safe migration route.
+
+### Hard constraints (reinforced)
+
+- No object returns from runtime APIs. In particular, checkpoint functions must not return objects.
+- No JS arrays/objects in the SymbolTable facade (e.g., `localDefs`, `fallbackDefs`, `impls`) — use the heap‑backed dictionary only.
+- Do not store implementation functions in the symbol system. Resolve opcode→implementation via the central dispatch table, not via SymbolTable.
+
+### Checkpoints: numeric‑only interface
+
+- Replace `mark(): { gp, newDictHead }` and `revert(cp)` with:
+  - `markNoAlloc(vm): void` — store `gp`, `newDictHead` (and `localCount` if used) in numeric scratch fields on `vm`.
+  - `revertNoAlloc(vm): void` — restore those numeric fields. No objects created or returned.
+
+### Transitional facade (temporary)
+
+- Keep `src/strings/symbol-table.ts` as a zero‑state delegate to `src/strings/symbols.ts` until call sites migrate. It must not maintain any arrays/objects and must not return objects.
+- `setDictFirstLookup` is deprecated. If tests depend on it, implement as a numeric `vm.dictFirst` shim or a no‑op; plan removal after migration.
+
+### Immediate tasks (ordered)
+
+1. Sanitize facade now
+   - Purge JS mirrors: remove `localDefs`, `fallbackDefs`, `impls` and delete `defineSymbol`.
+   - Forward all define/find calls to `symbols.ts`.
+   - Add `markNoAlloc(vm)` / `revertNoAlloc(vm)`; deprecate the object‑returning `mark/revert` and migrate callers.
+
+2. Migrate call sites
+   - Order: `src/lang/definitions.ts` (checkpoints) → `src/ops/builtins-register.ts` (defineBuiltin/defineCode) → `src/lang/parser.ts` (defineLocal) → tests (strings/lang/dict) → `src/core/vm.ts` (facade wiring).
+   - After migration, delete the facade and import `symbols.ts` directly.
+
+### Acceptance updates
+
+- Symbol path contains no GC‑managed state (no arrays/objects) and no object‑returning functions.
+- Checkpoints are numeric‑only via `markNoAlloc/revertNoAlloc`.
+- All definitions and lookups operate on the heap dictionary (`vm.newDictHead`) via `symbols.ts`.
+- Implementation functions are not stored in the symbol subsystem; dispatch table remains the authority.
+
+### Verification notes
+
+- Grep the symbol facade for forbidden patterns: `localDefs|fallbackDefs|impls|return\\s*{`.
+- Focused test runs during migration:
+  - `yarn test --silent src/test/strings src/test/lang/parser.test.ts src/test/ops/dict`
+  - Then full suite summary: `yarn test --silent --coverage=false --verbose=false | egrep '^(Test Suites:|Tests:|Snapshots:|Time:)'`
