@@ -10,24 +10,7 @@ describe('Immediate words', () => {
     resetVM();
   });
 
-  test('executes builtin immediate with custom implementation during parsing', () => {
-    let counter = 0;
-
-    vm.symbolTable.defineBuiltin(
-      'immtest',
-      Op.Eval,
-      () => {
-        counter += 1;
-      },
-      true,
-    );
-
-    parse(new Tokenizer('immtest'));
-    expect(counter).toBe(1);
-
-    execute(vm.compiler.BCP);
-    expect(counter).toBe(1);
-  });
+  // Custom immediate implementations removed; rely on opcode/code immediates only
 
   test('executes builtin opcode immediates immediately', () => {
     vm.push(42);

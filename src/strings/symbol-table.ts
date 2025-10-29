@@ -30,7 +30,7 @@ export interface SymbolTableCheckpoint {
   localSlotCount: number;
   newDictHead?: number;
   fallbackDepth?: number; // number of fallback defs at mark
-  implDepth?: number; // number of impl entries at mark
+  implDepth?: number; // number of immediate impl entries at mark
   localDepth?: number; // number of local defs at mark
 }
 /**
@@ -42,7 +42,7 @@ export class SymbolTable {
   // Minimal local/fallback stores to support detached usage and locals
   private localDefs: { key: number; tval: number }[] = [];
   private fallbackDefs: { key: number; tval: number }[] = [];
-  // Store implementations for immediate/builtin words (parser-time execution)
+  // Immediate implementation registry (parser-time only).
   private impls: { key: number; fn: WordFunction }[] = [];
   // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
   public dictLookupPreferred = true;
@@ -214,8 +214,9 @@ export class SymbolTable {
   findEntry(name: string): SymbolTableEntry | undefined {
     const t = this.findTaggedValue(name);
     if (t === undefined) return undefined;
+    // Lookup optional immediate implementation
     const key = this.digest.intern(name);
-    let impl: WordFunction | undefined = undefined;
+    let impl: WordFunction | undefined;
     for (let i = 0; i < this.impls.length; i++) {
       if (this.impls[i].key === key) {
         impl = this.impls[i].fn;
