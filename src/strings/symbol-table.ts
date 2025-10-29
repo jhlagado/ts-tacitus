@@ -43,6 +43,7 @@ export class SymbolTable {
   private localSlotCount: number;
   private globalSlotCount: number;
   private vmRef: VM | null;
+  private immediateMap: Map<string, { implementation?: WordFunction; isImmediate: boolean }>;
   // Phase 1 flag: when true, prefer heap-backed dictionary for lookups
   public dictLookupPreferred = true;
 
@@ -55,6 +56,7 @@ export class SymbolTable {
     this.localSlotCount = 0;
     this.globalSlotCount = 0;
     this.vmRef = null;
+    this.immediateMap = new Map();
   }
 
   attachVM(vm: VM): void {
@@ -247,6 +249,15 @@ export class SymbolTable {
   findWithImplementation(
     name: string,
   ): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined {
+    const imm = this.immediateMap.get(name);
+    if (imm) {
+      const tagged = this.findTaggedValue(name);
+      if (tagged !== undefined) {
+        const { value: address } = fromTaggedValue(tagged);
+        return { index: address, implementation: imm.implementation, isImmediate: true };
+      }
+      return { index: 0, implementation: imm.implementation, isImmediate: true };
+    }
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
@@ -265,6 +276,15 @@ export class SymbolTable {
   }
 
   findEntry(name: string): SymbolTableEntry | undefined {
+    const imm = this.immediateMap.get(name);
+    if (imm) {
+      const tagged = this.findTaggedValue(name);
+      return {
+        taggedValue: tagged ?? NIL,
+        implementation: imm.implementation,
+        isImmediate: true,
+      };
+    }
     let current = this.head;
     while (current !== null) {
       if (this.digest.get(current.key) === name) {
@@ -328,6 +348,7 @@ export class SymbolTable {
       newDictHead: vmInstance ? vmInstance.newDictHead : NIL,
     };
     this.localSlotCount = 0;
+    if (vmInstance) vmInstance.localCount = 0;
     return checkpoint;
   }
 
@@ -372,6 +393,7 @@ export class SymbolTable {
   ): void {
     const tval = createBuiltinRef(opcode);
     this.defineSymbol(name, tval, implementation, isImmediate);
+    if (isImmediate) this.immediateMap.set(name, { implementation, isImmediate: true });
     this.mirrorToHeap(name, tval);
   }
 
@@ -402,7 +424,13 @@ export class SymbolTable {
    * @param {string} name - The name of the local variable (e.g., "x", "radius")
    */
   defineLocal(name: string): void {
-    const slotNumber = this.localSlotCount++;
+    // Prefer VM-owned counter when attached; fallback to internal for detached tests
+    let slotNumber: number;
+    if (this.vmRef) {
+      slotNumber = this.vmRef.localCount++;
+    } else {
+      slotNumber = this.localSlotCount++;
+    }
     this.defineSymbol(name, toTaggedValue(slotNumber, Tag.LOCAL));
   }
 
@@ -412,23 +440,7 @@ export class SymbolTable {
    * Globals persist for the lifetime of the program and are not reset by mark()/revert().
    * The tagged value is a GLOBAL_REF with payload = global cell index (slot number).
    */
-  defineGlobal(name: string): number {
-    const vmInstance = this.vmRef;
-    if (!vmInstance) {
-      throw new Error('SymbolTable VM reference unavailable; attach VM before defining globals');
-    }
-
-    const nameAddr = this.digest.intern(name);
-    const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-    // Allocate a global payload cell initialized to NIL
-    const payloadRef = pushSimpleToGlobalHeap(vmInstance, NIL);
-    // Define in symbol table
-    this.globalSlotCount++;
-    this.defineSymbol(name, payloadRef, undefined, false, undefined, nameAddr);
-    // Create heap-backed dictionary entry [prevRef, valueRef, name]
-    this.mirrorToHeap(name, payloadRef, nameAddr);
-    return payloadRef;
-  }
+  // defineGlobal removed: globals are disabled in this phase.
 
   /**
    * Returns the number of globals defined so far.
@@ -446,6 +458,6 @@ export class SymbolTable {
    * @returns {number} The current local slot count
    */
   getLocalCount(): number {
-    return this.localSlotCount;
+    return this.vmRef ? this.vmRef.localCount : this.localSlotCount;
   }
 }
