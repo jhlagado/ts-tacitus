@@ -4,7 +4,7 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL } from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef } from '@src/core';
 import { pushDictionaryEntry } from '@core/dictionary-heap';
 
 /**
@@ -55,6 +55,49 @@ export class SymbolTable {
 
   attachVM(vm: VM): void {
     this.vmRef = vm;
+  }
+
+  // Phase 0: mirror definitions into heap-backed dictionary (newDictHead chain)
+  private mirrorToHeap(name: string, tval: number, nameAddrOverride?: number): void {
+    const vm = this.vmRef;
+    if (!vm) return;
+    const nameAddr = nameAddrOverride ?? this.digest.intern(name);
+    const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
+
+    // Materialize valueRef: preserve DATA_REF, otherwise copy simple value
+    let valueRef: number;
+    if (isRef(tval)) {
+      valueRef = tval;
+    } else {
+      // Capacity check: 1 cell for value + 4 cells for entry list
+      const cap = GLOBAL_SIZE / CELL_SIZE;
+      const need = 1 + 4;
+      if (vm.gp + need > cap) return; // skip mirroring under pressure
+      valueRef = pushSimpleToGlobalHeap(vm, tval);
+    }
+
+    const prevRef = vm.newDictHead ?? NIL;
+    // Capacity check: 4 cells for entry list
+    {
+      const cap = GLOBAL_SIZE / CELL_SIZE;
+      const need = 4;
+      if (vm.gp + need > cap) return; // skip mirroring under pressure
+    }
+    // Build entry [prevRef, valueRef, name] on stack, then copy to global heap
+    vm.push(prevRef);
+    vm.push(valueRef);
+    vm.push(nameTagged);
+    const header = toTaggedValue(3, Tag.LIST);
+    vm.push(header);
+    const baseCell = vm.sp - 1 - 3;
+    const baseAddrBytes = baseCell * CELL_SIZE;
+    const entryRef = pushListToGlobalHeap(vm, { header, baseAddrBytes });
+    // Drop temporary list from stack
+    vm.pop();
+    vm.pop();
+    vm.pop();
+    vm.pop();
+    vm.newDictHead = entryRef;
   }
 
   /**
@@ -298,7 +341,9 @@ export class SymbolTable {
     implementation?: WordFunction,
     isImmediate = false,
   ): void {
-    this.defineSymbol(name, createBuiltinRef(opcode), implementation, isImmediate);
+    const tval = createBuiltinRef(opcode);
+    this.defineSymbol(name, tval, implementation, isImmediate);
+    this.mirrorToHeap(name, tval);
   }
 
   /**
@@ -312,7 +357,10 @@ export class SymbolTable {
    * @param {number} bytecodeAddr - The bytecode address where the definition starts
    */
   defineCode(name: string, bytecodeAddr: number, isImmediate = false): void {
-    this.defineSymbol(name, createCodeRef(bytecodeAddr), undefined, isImmediate);
+    const tval = createCodeRef(bytecodeAddr);
+    const nameAddr = this.digest.intern(name);
+    this.defineSymbol(name, tval, undefined, isImmediate, undefined, nameAddr);
+    this.mirrorToHeap(name, tval, nameAddr);
   }
 
   /**

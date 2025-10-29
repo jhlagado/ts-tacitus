@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../../lang/runtime';
+import { resetVM } from '../../utils/vm-test-utils';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
 import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA, STACK_BASE } from '../../../core/constants';
 import { createDataRef } from '../../../core/refs';
@@ -7,7 +8,7 @@ import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Global heap primitives', () => {
   beforeEach(() => {
-    initializeInterpreter();
+    resetVM();
     vm.debug = false;
   });
 

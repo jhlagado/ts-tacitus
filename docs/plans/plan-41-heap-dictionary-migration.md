@@ -83,3 +83,25 @@ Checkpoints
 Notes
 - Keep `gmark/gsweep` for raw heap; use `mark/forget` for dictionary flows.
 - Keep legacy dictionary-heap/symbol-table until final cutover.
+
+Implementation Checklist (Phase 0)
+- Code changes
+  - Add a private mirror helper in SymbolTable: `mirrorToHeap(name: string, tval: number, vm: VM)` that:
+    - Computes `valueRef` without using ops: if `isRef(tval)` keep; if `isList(tval)` deep-copy via `pushListToGlobalHeap`; else copy via `pushSimpleToGlobalHeap`.
+    - Builds a 3-cell entry `[prevRef, valueRef, name]` on the data stack, pushes to global heap with `pushListToGlobalHeap`, and updates `vm.newDictHead` to the new header ref.
+    - Uses only core APIs (`@core/*`), not runtime ops, to avoid circular deps.
+  - Invoke `mirrorToHeap` from:
+    - `SymbolTable.defineBuiltin(name, opcode, verb)` using the tagged builtin value.
+    - `SymbolTable.define(name, tval)`.
+    - The colon-definition completion path (same point where the symbol table inserts the word after body compilation), passing the final tagged code pointer.
+  - Guard mirroring behind an internal flag if needed (default on for tests), but do not change lookups.
+- Tests (non-breaking)
+  - Builtin mirroring: after startup, `'dup lookup fetch` equals the tagged builtin value; dictionary chain not empty.
+  - Colon definition: `: inc 1 + ;` mirrors to heap; `'inc lookup fetch` yields a `Tag.CODE` pointer matching SymbolTable’s value.
+  - Shadowing: re-defining same name updates head; `lookup` returns latest while previous remains linked via `prevRef`.
+  - Reset: `resetVM()` clears `vm.newDictHead` to `NIL` and leaves legacy SymbolTable intact.
+  - Heap pressure (optional): ensure mirroring throws or is safely skipped when global heap is exhausted (decide policy; prefer throwing in tests).
+- Safety/compat
+  - Do not switch `findTaggedValue` to use the heap yet; SymbolTable remains source of truth for lookups.
+  - Avoid importing `src/ops/dict.ts` from SymbolTable; keep the mirroring logic local using core helpers.
+  - Keep error messages aligned with existing tests; mirroring should not alter compile-time behavior.

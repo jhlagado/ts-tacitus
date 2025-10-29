@@ -30,7 +30,7 @@ export const STACK_SIZE = 0x0100;
 
 export const RSTACK_SIZE = 0x0100;
 
-export const GLOBAL_SIZE = 0x0100;
+export const GLOBAL_SIZE = 0x2000;
 
 export const STRING_SIZE = 0x0800;
 
