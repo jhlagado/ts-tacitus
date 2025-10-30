@@ -3,67 +3,46 @@
  * Function-only, heap-only dictionary facade (C/Forth-style).
  * No classes, no closures, no JS state beyond numeric VM fields.
  *
- * Dictionary entry format (LIST length 3): [prevRef, valueRef, name]
+ * Dictionary entry format (LIST length 3): [prevRef, payloadTagged, name]
  * - prevRef: DATA_REF | NIL to previous entry header
- * - valueRef: DATA_REF to value cell (tagged simple or LIST header)
+ * - payloadTagged: tagged value (BUILTIN/CODE/LOCAL/DATA_REF/etc.)
  * - name: STRING tagged value
  */
 
-import {
-  VM,
-  NIL,
-  Tag,
-  toTaggedValue,
-  fromTaggedValue,
-  isList,
-  isRef,
-  isNIL,
-  getListLength,
-  pushListToGlobalHeap,
-  pushSimpleToGlobalHeap,
-  createGlobalRef,
-} from '@src/core';
-import { CELL_SIZE, SEG_DATA, GLOBAL_BASE } from '@src/core/constants';
+import { VM, NIL, Tag, toTaggedValue, fromTaggedValue, isList, isRef, isNIL, getListLength, createGlobalRef } from '@src/core';
+import { CELL_SIZE, SEG_DATA } from '@src/core/constants';
 import { getByteAddressFromRef } from '@src/core/refs';
 
-// Internal: build entry by pushing 3 payload cells then LIST:3 header onto the global window.
-// Returns a DATA_REF to the header cell (TOS of the entry on the heap).
-function pushEntry(vm: VM, prevRef: number, valueRef: number, nameTagged: number): number {
+// Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.newDictHead.
+function pushEntry(vm: VM, payloadTagged: number, nameTagged: number): void {
+  const prevRef = vm.newDictHead ?? NIL;
   vm.gpush(prevRef);
-  vm.gpush(valueRef);
+  vm.gpush(payloadTagged);
   vm.gpush(nameTagged);
   vm.gpush(toTaggedValue(3, Tag.LIST));
-  // header is the last pushed cell; gp is one past top
-  return createGlobalRef(vm.gp - 1);
+  // header is top (gp-1): update dictionary head
+  vm.newDictHead = createGlobalRef(vm.gp - 1);
 }
 
-// Internal: ensure value is stored on heap and return DATA_REF to it
-function toValueRef(vm: VM, taggedValue: number): number {
-  if (isRef(taggedValue)) return taggedValue;
-  if (isList(taggedValue)) {
-    const n = getListLength(taggedValue);
-    const baseCell = vm.sp - 1 - n;
-    const baseAddr = baseCell * CELL_SIZE;
-    const ref = pushListToGlobalHeap(vm, { header: taggedValue, baseAddrBytes: baseAddr });
-    // Drop original list from stack (payload + header)
-    for (let i = 0; i < n + 1; i++) vm.pop();
-    return ref;
+// Optional convenience for call sites that prefer (name, payload) ordering.
+function addEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
+  pushEntry(vm, payloadTagged, nameTagged);
+}
+
+// Dictionary-scope checkpointing (numeric-only):
+// mark returns the current gp (cells used). We assume calls occur when the
+// current top (gp-1) is a dictionary header. forget restores gp and head.
+export function mark(vm: VM): number {
+  return vm.gp;
+}
+
+export function forget(vm: VM, markCells: number): void {
+  if (!Number.isInteger(markCells) || markCells < 0 || markCells > vm.gp) {
+    throw new Error('forget: mark out of range');
   }
-  return pushSimpleToGlobalHeap(vm, taggedValue);
-}
-
-export interface DictCheckpoint {
-  gp: number;
-  newDictHead: number;
-}
-
-export function mark(vm: VM): DictCheckpoint {
-  return { gp: vm.gp, newDictHead: vm.newDictHead };
-}
-
-export function revert(vm: VM, cp: DictCheckpoint): void {
-  vm.gp = cp.gp;
-  vm.newDictHead = cp.newDictHead;
+  vm.gp = markCells;
+  // If heap is now empty, clear head; otherwise head is the header at gp-1.
+  vm.newDictHead = vm.gp === 0 ? NIL : createGlobalRef(vm.gp - 1);
 }
 
 export function defineBuiltin(
@@ -75,20 +54,14 @@ export function defineBuiltin(
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-  const valueRef = toValueRef(vm, tagged);
-  const prev = vm.newDictHead ?? NIL;
-  const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
-  vm.newDictHead = entryRef;
+  pushEntry(vm, tagged, nameTagged);
 }
 
 export function defineCode(vm: VM, name: string, address: number, isImmediate = false): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(address, Tag.CODE, isImmediate ? 1 : 0);
-  const valueRef = toValueRef(vm, tagged);
-  const prev = vm.newDictHead ?? NIL;
-  const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
-  vm.newDictHead = entryRef;
+  pushEntry(vm, tagged, nameTagged);
 }
 
 export function defineLocal(vm: VM, name: string): void {
@@ -96,20 +69,14 @@ export function defineLocal(vm: VM, name: string): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(slot, Tag.LOCAL);
-  const valueRef = toValueRef(vm, tagged);
-  const prev = vm.newDictHead ?? NIL;
-  const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
-  vm.newDictHead = entryRef;
+  pushEntry(vm, tagged, nameTagged);
 }
 
 // Unified define (internal callers): accept a fully‑formed tagged payload and create an entry.
 export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-  const valueRef = toValueRef(vm, payloadTagged);
-  const prev = vm.newDictHead ?? NIL;
-  const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
-  vm.newDictHead = entryRef;
+  pushEntry(vm, payloadTagged, nameTagged);
 }
 
 export function findTaggedValue(vm: VM, name: string): number | undefined {
@@ -120,13 +87,17 @@ export function findTaggedValue(vm: VM, name: string): number | undefined {
     const header = vm.memory.readFloat32(SEG_DATA, hAddr);
     if (!isList(header) || getListLength(header) !== 3) break;
     const base = hAddr - 3 * CELL_SIZE;
-    const valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
+    const valueCell = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
     const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
     const ni = fromTaggedValue(entryName);
     if (ni.tag === Tag.STRING && ni.value === target) {
-      // Deref valueRef and return the stored tagged value (or DATA_REF if desired by caller)
-      const vAddr = getByteAddressFromRef(valueRef);
-      return vm.memory.readFloat32(SEG_DATA, vAddr);
+      // Return the stored tagged payload; maintain compatibility if older entries
+      // stored a DATA_REF by dereferencing once.
+      if (isRef(valueCell)) {
+        const vAddr = getByteAddressFromRef(valueCell);
+        return vm.memory.readFloat32(SEG_DATA, vAddr);
+      }
+      return valueCell;
     }
     const prevRef = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
     cur = isRef(prevRef) ? prevRef : NIL;
