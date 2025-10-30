@@ -4,7 +4,21 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, Verb, VM, NIL, CELL_SIZE, GLOBAL_SIZE, pushSimpleToGlobalHeap, pushListToGlobalHeap, isRef, SEG_DATA, isNIL } from '@src/core';
+import {
+  Tag,
+  fromTaggedValue,
+  toTaggedValue,
+  Verb,
+  VM,
+  NIL,
+  CELL_SIZE,
+  GLOBAL_SIZE,
+  pushSimpleToGlobalHeap,
+  pushListToGlobalHeap,
+  isRef,
+  SEG_DATA,
+  isNIL,
+} from '@src/core';
 import { defineBuiltin as dictDefineBuiltin } from './symbols';
 import { isList, getListLength } from '@src/core';
 import { getByteAddressFromRef } from '@src/core';
@@ -22,7 +36,7 @@ export interface SymbolTableCheckpoint {
   localSlotCount: number;
   newDictHead?: number;
   fallbackDepth?: number;
-    implDepth?: number;
+  implDepth?: number;
   localDepth?: number;
 }
 
@@ -34,9 +48,16 @@ export interface SymbolTable {
   findCodeRef(name: string): number | undefined;
   findBytecodeAddress(name: string): number | undefined;
   findEntry(name: string): SymbolTableEntry | undefined;
-  findWithImplementation(name: string): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined;
+  findWithImplementation(
+    name: string,
+  ): { index: number; implementation?: WordFunction; isImmediate: boolean } | undefined;
   defineSymbol(name: string, taggedOrRawValue: number): void;
-  defineBuiltin(name: string, opcode: number, implementation?: WordFunction, isImmediate?: boolean): void;
+  defineBuiltin(
+    name: string,
+    opcode: number,
+    implementation?: WordFunction,
+    isImmediate?: boolean,
+  ): void;
   defineCode(name: string, addr: number, isImmediate?: boolean): void;
   defineLocal(name: string): void;
   mark(): SymbolTableCheckpoint;
@@ -109,13 +130,18 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const baseCell = vm.sp - 1 - 3;
     const baseAddrBytes = baseCell * CELL_SIZE;
     const entryRef = pushListToGlobalHeap(vm, { header, baseAddrBytes });
-    vm.pop(); vm.pop(); vm.pop(); vm.pop();
+    vm.pop();
+    vm.pop();
+    vm.pop();
+    vm.pop();
     vm.newDictHead = entryRef;
   }
   function findTaggedValue(name: string): number | undefined {
     const key = state.digest.intern(name);
-    for (let i = 0; i < state.localDefs.length; i++) if (state.localDefs[i].key === key) return state.localDefs[i].tval;
-    for (let i = 0; i < state.fallbackDefs.length; i++) if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
+    for (let i = 0; i < state.localDefs.length; i++)
+      if (state.localDefs[i].key === key) return state.localDefs[i].tval;
+    for (let i = 0; i < state.fallbackDefs.length; i++)
+      if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
     if (state.dictLookupPreferred) {
       const dictHit = findInHeapDict(name);
       if (dictHit !== undefined) return dictHit;
@@ -153,14 +179,27 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const entry = findEntry(name);
     if (!entry) return undefined;
     const info = fromTaggedValue(entry.taggedValue);
-    return { index: info.value, implementation: entry.implementation, isImmediate: entry.isImmediate };
+    return {
+      index: info.value,
+      implementation: entry.implementation,
+      isImmediate: entry.isImmediate,
+    };
   }
   function defineSymbol(name: string, taggedOrRawValue: number): void {
     const key = state.digest.intern(name);
-    for (let i = 0; i < state.localDefs.length; i++) if (state.localDefs[i].key === key) { state.localDefs.unshift({ key, tval: taggedOrRawValue }); return; }
+    for (let i = 0; i < state.localDefs.length; i++)
+      if (state.localDefs[i].key === key) {
+        state.localDefs.unshift({ key, tval: taggedOrRawValue });
+        return;
+      }
     state.fallbackDefs.unshift({ key, tval: taggedOrRawValue });
   }
-  function defineBuiltin(name: string, opcode: number, implementation?: WordFunction, isImmediate = false): void {
+  function defineBuiltin(
+    name: string,
+    opcode: number,
+    implementation?: WordFunction,
+    isImmediate = false,
+  ): void {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     state.fallbackDefs.unshift({ key: state.digest.intern(name), tval });
     if (state.vmRef) dictDefineBuiltin(state.vmRef, name, opcode, isImmediate);
@@ -199,11 +238,17 @@ export function createSymbolTable(digest: Digest): SymbolTable {
       vm.gp = cp.gp;
       if (typeof cp.newDictHead === 'number') vm.newDictHead = cp.newDictHead;
     }
-    if (typeof cp.fallbackDepth === 'number') state.fallbackDefs.splice(0, state.fallbackDefs.length - cp.fallbackDepth);
-    if (typeof cp.localDepth === 'number') state.localDefs.splice(0, state.localDefs.length - cp.localDepth);
+    if (typeof cp.fallbackDepth === 'number')
+      state.fallbackDefs.splice(0, state.fallbackDefs.length - cp.fallbackDepth);
+    if (typeof cp.localDepth === 'number')
+      state.localDefs.splice(0, state.localDefs.length - cp.localDepth);
   }
-  function getGlobalCount(): number { return 0; }
-  function getLocalCount(): number { return state.vmRef ? state.vmRef.localCount : state.localSlotCount; }
+  function getGlobalCount(): number {
+    return 0;
+  }
+  function getLocalCount(): number {
+    return state.vmRef ? state.vmRef.localCount : state.localSlotCount;
+  }
 
   return {
     attachVM,
