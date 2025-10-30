@@ -89,6 +89,8 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function findInHeapDict(name: string): number | undefined {
     const vm = state.vmRef;
     if (!vm) return undefined;
+    // Compare by interned string id to avoid string reconstruction differences
+    const target = vm.digest.intern(name);
     let cur = vm.newDictHead;
     let guard = 0;
     while (!isNIL(cur) && guard < 10000) {
@@ -98,8 +100,8 @@ export function createSymbolTable(digest: Digest): SymbolTable {
       const base = hAddr - 3 * CELL_SIZE;
       const valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
       const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
-      const entryStr = vm.digest.get(fromTaggedValue(entryName).value);
-      if (entryStr === name) {
+      const ni = fromTaggedValue(entryName);
+      if (ni.tag === Tag.STRING && ni.value === target) {
         const vAddr = getByteAddressFromRef(valueRef);
         return vm.memory.readFloat32(SEG_DATA, vAddr);
       }
