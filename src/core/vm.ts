@@ -88,7 +88,8 @@ export class VM {
 
     this.symbolTable = createSymbolTable(this.digest);
     this.symbolTable.attachVM(this);
-    registerBuiltins(this, this.symbolTable);
+  registerBuiltins(this, this.symbolTable);
+  // Keep fallback enabled by default for stability; can be toggled via builtins when testing
   }
 
   // Compiler is wired by assigning vm.compiler directly to reduce OO ceremony.
