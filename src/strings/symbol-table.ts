@@ -53,7 +53,6 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     dictLookupPreferred: true,
     localDefs: [] as { key: number; tval: number }[],
     fallbackDefs: [] as { key: number; tval: number }[],
-    impls: [] as { key: number; fn: WordFunction }[],
   };
 
   function attachVM(vm: VM): void {
@@ -147,11 +146,8 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function findEntry(name: string): SymbolTableEntry | undefined {
     const t = findTaggedValue(name);
     if (t === undefined) return undefined;
-    const key = state.digest.intern(name);
-    let impl: WordFunction | undefined;
-    for (let i = 0; i < state.impls.length; i++) if (state.impls[i].key === key) { impl = state.impls[i].fn; break; }
     const info = fromTaggedValue(t);
-    return { taggedValue: t, implementation: impl, isImmediate: info.meta === 1 };
+    return { taggedValue: t, implementation: undefined, isImmediate: info.meta === 1 };
   }
   function findWithImplementation(name: string) {
     const entry = findEntry(name);
@@ -168,7 +164,6 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     state.fallbackDefs.unshift({ key: state.digest.intern(name), tval });
     if (state.vmRef) dictDefineBuiltin(state.vmRef, name, opcode, isImmediate);
-    if (implementation) state.impls.unshift({ key: state.digest.intern(name), fn: implementation });
   }
   function defineCode(name: string, addr: number, isImmediate = false): void {
     const tval = toTaggedValue(addr, Tag.CODE, isImmediate ? 1 : 0);
@@ -192,7 +187,6 @@ export function createSymbolTable(digest: Digest): SymbolTable {
       localSlotCount: state.localSlotCount,
       newDictHead: vm ? vm.newDictHead : NIL,
       fallbackDepth: state.fallbackDefs.length,
-      implDepth: state.impls.length,
       localDepth: state.localDefs.length,
     };
     state.localSlotCount = 0;
@@ -206,7 +200,6 @@ export function createSymbolTable(digest: Digest): SymbolTable {
       if (typeof cp.newDictHead === 'number') vm.newDictHead = cp.newDictHead;
     }
     if (typeof cp.fallbackDepth === 'number') state.fallbackDefs.splice(0, state.fallbackDefs.length - cp.fallbackDepth);
-    if (typeof cp.implDepth === 'number') state.impls.splice(0, state.impls.length - cp.implDepth);
     if (typeof cp.localDepth === 'number') state.localDefs.splice(0, state.localDefs.length - cp.localDepth);
   }
   function getGlobalCount(): number { return 0; }
