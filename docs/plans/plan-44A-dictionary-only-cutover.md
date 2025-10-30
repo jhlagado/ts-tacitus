@@ -96,7 +96,7 @@ Immediates (builtins/code):
 - Compiler/Parser:
   - Function defs: `symbols.defineCode(vm, name, addr, isImmediate)`
   - Locals (compile‑time only): `symbols.defineLocal(vm, name)`; use `vm.localCount` for slots
-  - Scope boundaries: on function start, `const cp = symbols.mark(vm)`; on function end (success/fail), `symbols.revert(vm, cp)`; compiler resets `vm.localCount` to 0 for the next function.
+  - Scope boundaries: on function start, `const m = symbols.mark(vm)`; on function end (success/fail), `symbols.forget(vm, m)`; compiler resets `vm.localCount` to 0 for the next function.
   - VM symbol resolution:
     - Replace `symbolTable.findTaggedValue(name)` with `symbols.findTaggedValue(vm, name)`
 
@@ -111,7 +111,7 @@ Immediates (builtins/code):
 ## Acceptance Criteria
 - No arrays/maps/objects used for runtime symbol state; dictionary chain is the only dictionary.
 - Builtins, user code, and locals are present as dictionary entries on the global heap.
-- Mark/revert restores only `vm.gp` and `vm.newDictHead` (numeric‑only). Compiler resets `vm.localCount` at scope boundaries. Local entries do not outlive the compile scope.
+- Mark/forget restores only `vm.gp` and `vm.newDictHead` (numeric‑only). We assume mark is taken when the heap top (gp-1) is a dictionary header; forget restores gp and sets head to `gp-1` (or NIL when empty). Compiler resets `vm.localCount` at scope boundaries. Local entries do not outlive the compile scope.
 - All lookups resolve by walking the heap chain.
 - All tests pass; no toggles/fallbacks remain in the symbol path.
 

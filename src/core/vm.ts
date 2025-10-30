@@ -252,7 +252,7 @@ export class VM {
     }
     const byteOffset = GLOBAL_BASE + (this.gp - 1) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, byteOffset);
-    }
+  }
 
   /** Pop one cell from the global window and return it. */
   gpop(): number {
