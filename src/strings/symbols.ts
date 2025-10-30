@@ -14,7 +14,7 @@ import { CELL_SIZE, SEG_DATA } from '@src/core/constants';
 import { getByteAddressFromRef } from '@src/core/refs';
 
 // Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.newDictHead.
-function pushEntry(vm: VM, payloadTagged: number, nameTagged: number): void {
+function pushEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
   const prevRef = vm.newDictHead ?? NIL;
   vm.gpush(prevRef);
   vm.gpush(payloadTagged);
@@ -22,11 +22,6 @@ function pushEntry(vm: VM, payloadTagged: number, nameTagged: number): void {
   vm.gpush(toTaggedValue(3, Tag.LIST));
   // header is top (gp-1): update dictionary head
   vm.newDictHead = createGlobalRef(vm.gp - 1);
-}
-
-// Optional convenience for call sites that prefer (name, payload) ordering.
-function addEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
-  pushEntry(vm, payloadTagged, nameTagged);
 }
 
 // Dictionary-scope checkpointing (numeric-only):
@@ -54,14 +49,14 @@ export function defineBuiltin(
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-  pushEntry(vm, tagged, nameTagged);
+  pushEntry(vm, nameTagged, tagged);
 }
 
 export function defineCode(vm: VM, name: string, address: number, isImmediate = false): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(address, Tag.CODE, isImmediate ? 1 : 0);
-  pushEntry(vm, tagged, nameTagged);
+  pushEntry(vm, nameTagged, tagged);
 }
 
 export function defineLocal(vm: VM, name: string): void {
@@ -69,14 +64,14 @@ export function defineLocal(vm: VM, name: string): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(slot, Tag.LOCAL);
-  pushEntry(vm, tagged, nameTagged);
+  pushEntry(vm, nameTagged, tagged);
 }
 
 // Unified define (internal callers): accept a fully‑formed tagged payload and create an entry.
 export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-  pushEntry(vm, payloadTagged, nameTagged);
+  pushEntry(vm, nameTagged, payloadTagged);
 }
 
 export function findTaggedValue(vm: VM, name: string): number | undefined {
