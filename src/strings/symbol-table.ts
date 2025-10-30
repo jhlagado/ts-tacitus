@@ -112,7 +112,10 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function mirrorToHeap(name: string, tval: number, nameAddrOverride?: number): void {
     const vm = state.vmRef;
     if (!vm) return;
-    const nameAddr = nameAddrOverride ?? state.digest.intern(name);
+    // Always use the VM's digest for names stored in the heap-backed dictionary
+    const nameAddr = vm.digest
+      ? vm.digest.intern(name)
+      : (nameAddrOverride ?? state.digest.intern(name));
     const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
     let valueRef: number;
     if (isRef(tval)) valueRef = tval;
