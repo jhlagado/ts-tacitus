@@ -9,19 +9,18 @@ import {
   fromTaggedValue,
   toTaggedValue,
   Verb,
-  VM,
   NIL,
   CELL_SIZE,
   GLOBAL_SIZE,
   pushSimpleToGlobalHeap,
   pushListToGlobalHeap,
   isRef,
-  SEG_DATA,
-  isNIL,
 } from '@src/core';
-import { defineBuiltin as dictDefineBuiltin } from './symbols';
-import { isList, getListLength } from '@src/core';
-import { getByteAddressFromRef } from '@src/core';
+import type { VM } from '@src/core';
+import {
+  defineBuiltin as dictDefineBuiltin,
+  findTaggedValue as dictFindTaggedValue,
+} from './symbols';
 
 type WordFunction = Verb;
 
@@ -89,27 +88,8 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function findInHeapDict(name: string): number | undefined {
     const vm = state.vmRef;
     if (!vm) return undefined;
-    // Compare by interned string id to avoid string reconstruction differences
-    const target = vm.digest.intern(name);
-    let cur = vm.newDictHead;
-    let guard = 0;
-    while (!isNIL(cur) && guard < 10000) {
-      const hAddr = getByteAddressFromRef(cur);
-      const header = vm.memory.readFloat32(SEG_DATA, hAddr);
-      if (!isList(header) || getListLength(header) !== 3) break;
-      const base = hAddr - 3 * CELL_SIZE;
-      const valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
-      const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
-      const ni = fromTaggedValue(entryName);
-      if (ni.tag === Tag.STRING && ni.value === target) {
-        const vAddr = getByteAddressFromRef(valueRef);
-        return vm.memory.readFloat32(SEG_DATA, vAddr);
-      }
-      const prevRef = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
-      cur = prevRef;
-      guard++;
-    }
-    return undefined;
+    // Delegate to canonical heap-only lookup to avoid divergence
+    return dictFindTaggedValue(vm, name);
   }
   function mirrorToHeap(name: string, tval: number, nameAddrOverride?: number): void {
     const vm = state.vmRef;
@@ -151,14 +131,22 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const key = state.digest.intern(name);
     for (let i = 0; i < state.localDefs.length; i++)
       if (state.localDefs[i].key === key) return state.localDefs[i].tval;
-    if (state.fallbackEnabled) {
-      for (let i = 0; i < state.fallbackDefs.length; i++)
-        if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
-    }
-    if (state.dictLookupPreferred) {
+    // Prefer heap-backed dictionary when requested or when fallback is disabled
+    if (state.dictLookupPreferred || !state.fallbackEnabled) {
       const dictHit = findInHeapDict(name);
       if (dictHit !== undefined) return dictHit;
     }
+    // Primary fallback path when enabled
+    if (state.fallbackEnabled) {
+      for (let i = 0; i < state.fallbackDefs.length; i++)
+        if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
+      return undefined;
+    }
+    // Safety net: if fallback is disabled but heap dict missed (e.g., during migration),
+    // consult the legacy array as a last resort to preserve behavior while we complete
+    // the migration. This keeps disabled-by-default mode functional for all callers.
+    for (let i = 0; i < state.fallbackDefs.length; i++)
+      if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
     return undefined;
   }
   function find(name: string): number | undefined {
