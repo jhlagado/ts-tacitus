@@ -17,6 +17,8 @@ import {
   STACK_TOP_CELLS,
   RSTACK_BASE_CELLS,
   RSTACK_TOP_CELLS,
+  GLOBAL_BASE,
+  GLOBAL_SIZE_CELLS,
 } from './constants';
 import { fromTaggedValue, NIL } from './tagged';
 import { Digest } from '../strings/digest';
@@ -229,6 +231,37 @@ export class VM {
     }
 
     return result;
+  }
+
+  // ---------------- Global data window (heap-as-stack) minimal API ----------------
+
+  /** Push one cell to the global window. */
+  gpush(value: number): void {
+    if (this.gp >= GLOBAL_SIZE_CELLS) {
+      throw new Error('gpush on full heap');
+    }
+    const byteOffset = GLOBAL_BASE + this.gp * CELL_SIZE_BYTES;
+    this.memory.writeFloat32(SEG_DATA, byteOffset, value);
+    this.gp += 1;
+  }
+
+  /** Peek top cell from the global window (no pop). */
+  gpeek(): number {
+    if (this.gp === 0) {
+      throw new Error('gpeek on empty heap');
+    }
+    const byteOffset = GLOBAL_BASE + (this.gp - 1) * CELL_SIZE_BYTES;
+    return this.memory.readFloat32(SEG_DATA, byteOffset);
+    }
+
+  /** Pop one cell from the global window and return it. */
+  gpop(): number {
+    if (this.gp === 0) {
+      throw new Error('gpop on empty heap');
+    }
+    this.gp -= 1;
+    const byteOffset = GLOBAL_BASE + this.gp * CELL_SIZE_BYTES;
+    return this.memory.readFloat32(SEG_DATA, byteOffset);
   }
 
   /**

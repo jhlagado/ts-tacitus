@@ -21,26 +21,20 @@ import {
   getListLength,
   pushListToGlobalHeap,
   pushSimpleToGlobalHeap,
+  createGlobalRef,
 } from '@src/core';
-import { CELL_SIZE, SEG_DATA } from '@src/core/constants';
+import { CELL_SIZE, SEG_DATA, GLOBAL_BASE } from '@src/core/constants';
 import { getByteAddressFromRef } from '@src/core/refs';
 
-// Internal: push an entry [prevRef, valueRef, name] and return header ref
+// Internal: build entry by pushing 3 payload cells then LIST:3 header onto the global window.
+// Returns a DATA_REF to the header cell (TOS of the entry on the heap).
 function pushEntry(vm: VM, prevRef: number, valueRef: number, nameTagged: number): number {
-  vm.push(prevRef);
-  vm.push(valueRef);
-  vm.push(nameTagged);
-  const header = toTaggedValue(3, Tag.LIST);
-  vm.push(header);
-  const baseCell = vm.sp - 1 - 3;
-  const baseAddr = baseCell * CELL_SIZE;
-  const ref = pushListToGlobalHeap(vm, { header, baseAddrBytes: baseAddr });
-  // Drop temporary list from stack (3 payload + 1 header)
-  vm.pop();
-  vm.pop();
-  vm.pop();
-  vm.pop();
-  return ref;
+  vm.gpush(prevRef);
+  vm.gpush(valueRef);
+  vm.gpush(nameTagged);
+  vm.gpush(toTaggedValue(3, Tag.LIST));
+  // header is the last pushed cell; gp is one past top
+  return createGlobalRef(vm.gp - 1);
 }
 
 // Internal: ensure value is stored on heap and return DATA_REF to it
@@ -103,6 +97,16 @@ export function defineLocal(vm: VM, name: string): void {
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(slot, Tag.LOCAL);
   const valueRef = toValueRef(vm, tagged);
+  const prev = vm.newDictHead ?? NIL;
+  const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
+  vm.newDictHead = entryRef;
+}
+
+// Unified define (internal callers): accept a fully‑formed tagged payload and create an entry.
+export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
+  const nameAddr = vm.digest.intern(name);
+  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
+  const valueRef = toValueRef(vm, payloadTagged);
   const prev = vm.newDictHead ?? NIL;
   const entryRef = pushEntry(vm, prev, valueRef, nameTagged);
   vm.newDictHead = entryRef;
@@ -176,4 +180,3 @@ export function findWithImplementation(
   const info = fromTaggedValue(t);
   return { index: info.value, isImmediate: info.meta === 1 };
 }
-
