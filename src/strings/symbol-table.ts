@@ -36,13 +36,13 @@ export interface SymbolTableCheckpoint {
   localSlotCount: number;
   newDictHead?: number;
   fallbackDepth?: number;
-  implDepth?: number;
   localDepth?: number;
 }
 
 export interface SymbolTable {
   attachVM(vm: VM): void;
   setDictFirstLookup(enabled: boolean): void;
+  setFallbackEnabled(enabled: boolean): void;
   findTaggedValue(name: string): number | undefined;
   find(name: string): number | undefined;
   findCodeRef(name: string): number | undefined;
@@ -72,6 +72,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     vmRef: null as VM | null,
     localSlotCount: 0,
     dictLookupPreferred: true,
+    fallbackEnabled: true,
     localDefs: [] as { key: number; tval: number }[],
     fallbackDefs: [] as { key: number; tval: number }[],
   };
@@ -82,11 +83,15 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function setDictFirstLookup(enabled: boolean): void {
     state.dictLookupPreferred = enabled;
   }
+  function setFallbackEnabled(enabled: boolean): void {
+    state.fallbackEnabled = enabled;
+  }
   function findInHeapDict(name: string): number | undefined {
     const vm = state.vmRef;
     if (!vm) return undefined;
     let cur = vm.newDictHead;
-    while (!isNIL(cur)) {
+    let guard = 0;
+    while (!isNIL(cur) && guard < 10000) {
       const hAddr = getByteAddressFromRef(cur);
       const header = vm.memory.readFloat32(SEG_DATA, hAddr);
       if (!isList(header) || getListLength(header) !== 3) break;
@@ -100,6 +105,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
       }
       const prevRef = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
       cur = prevRef;
+      guard++;
     }
     return undefined;
   }
@@ -140,8 +146,10 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const key = state.digest.intern(name);
     for (let i = 0; i < state.localDefs.length; i++)
       if (state.localDefs[i].key === key) return state.localDefs[i].tval;
-    for (let i = 0; i < state.fallbackDefs.length; i++)
-      if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
+    if (state.fallbackEnabled) {
+      for (let i = 0; i < state.fallbackDefs.length; i++)
+        if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
+    }
     if (state.dictLookupPreferred) {
       const dictHit = findInHeapDict(name);
       if (dictHit !== undefined) return dictHit;
@@ -193,6 +201,15 @@ export function createSymbolTable(digest: Digest): SymbolTable {
         return;
       }
     state.fallbackDefs.unshift({ key, tval: taggedOrRawValue });
+    // Prepare for fallback removal: ensure definitions are mirrored to the heap dictionary
+    // when a VM is attached so lookups can succeed with fallback disabled.
+    if (state.vmRef) {
+      const info = fromTaggedValue(taggedOrRawValue);
+      // Avoid mirroring locals into the global dictionary here; locals are handled by defineLocal.
+      if (info.tag !== Tag.LOCAL) {
+        mirrorToHeap(name, taggedOrRawValue, key);
+      }
+    }
   }
   function defineBuiltin(
     name: string,
@@ -253,6 +270,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   return {
     attachVM,
     setDictFirstLookup,
+    setFallbackEnabled,
     findTaggedValue,
     find,
     findCodeRef,
