@@ -6,7 +6,7 @@ Owner: Lang/Core
 
 ## Context
 
-- The heap‑resident dictionary (linked list rooted at `vm.newDictHead`) is the only dictionary.
+- The heap‑resident dictionary (linked list rooted at `vm.head`) is the only dictionary.
 - All words (builtins, colon definitions, and scoped locals) are dictionary entries in flat memory.
 - No parallel symbol systems, no JS containers; globals (language feature) remain disabled.
 
@@ -17,7 +17,7 @@ Owner: Lang/Core
   - Entry format (LIST length 3, already used): `[prevRef, valueRef, name]`.
   - Builtins and colon definitions are inserted into the dictionary during initialization/definition.
   - Locals are Tag.LOCAL values added as dictionary entries for the scope and removed via `mark/revert`.
-  - mark/revert restores only numeric state: `vm.gp` and `vm.newDictHead`.
+- mark/revert restores only numeric state: `vm.gp` and `vm.head`.
 
 ## Non‑Goals
 
@@ -35,7 +35,7 @@ Owner: Lang/Core
 These rules are mandatory for all work under this plan and future related tasks. They exist to keep the prototype directly portable to C or assembler.
 
 - Only numeric globals
-  - Long‑lived state must be numbers (e.g., `vm.gp`, `vm.newDictHead`). No arrays, objects, maps, or sets as globals.
+- Long‑lived state must be numbers (e.g., `vm.gp`, `vm.head`). No arrays, objects, maps, or sets as globals.
 
 - No GC‑managed runtime structures
   - Do not introduce JS arrays/objects for symbol/runtime state. All dictionary state lives in the heap (SEG_DATA) as numeric cells.
@@ -49,7 +49,7 @@ These rules are mandatory for all work under this plan and future related tasks.
   - Favor explicit memory operations and tagged values; treat the VM memory as the source of truth.
 
 - Single dictionary
-  - The heap‑resident list rooted at `vm.newDictHead` is the only dictionary. All words (BUILTIN, CODE, LOCAL) are entries.
+- The heap‑resident list rooted at `vm.head` is the only dictionary. All words (BUILTIN, CODE, LOCAL) are entries.
   - No parallel symbol tables or mirrors. Remove any remaining fallbacks incrementally as part of this plan.
 
 - Scope and lifetime
@@ -61,7 +61,7 @@ These rules are mandatory for all work under this plan and future related tasks.
 To prevent drift into JS‑heavy patterns, all work must follow these reporting rules:
 
 - Pre‑change summary
-  - Before non‑trivial edits, append a short note to this plan (or a linked sub‑note) describing: intent, affected files, expected side effects on `gp/newDictHead`.
+- Before non‑trivial edits, append a short note to this plan (or a linked sub‑note) describing: intent, affected files, expected side effects on `gp/head`.
 
 - Preambles for actions
   - When running commands or changing files, include a concise preamble message describing immediate next actions and why they’re necessary.
@@ -74,7 +74,7 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
   - Provide short, high‑signal progress updates (one–two sentences) at logical checkpoints: after implementing functions, after wiring mark/revert, after removing a fallback, etc.
 
 - Change logs in PR description
-  - List: what changed, why, impacted invariants (e.g., `gp`, `newDictHead`), any deviations from plan (should be none), and test status.
+- List: what changed, why, impacted invariants (e.g., `gp`, `head`), any deviations from plan (should be none), and test status.
 
 - Gate on constraints
   - For each change, explicitly confirm adherence to constraints: no new arrays/objects as globals, no classes/closures, functions‑only surface, heap‑only dictionary.
@@ -86,7 +86,7 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
 
 - `src/strings/symbols.ts` (function‑only; heap‑only):
   - `attachVM(vm)`
-  - `mark(): { gp, newDictHead }`; `revert(cp)`
+- `mark(): { gp, head }`; `revert(cp)`
   - `defineBuiltin(name, opcode, impl?, isImmediate)` → create dictionary entry on heap
   - `defineCode(name, address, isImmediate)` → create dictionary entry on heap
   - `defineLocal(name)` → Tag.LOCAL entry (slot from `vm.localCount`), lives in dictionary for the scope
@@ -102,10 +102,10 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
 
 2. Implement function library (heap‑only)
 
-- Create `symbols.ts` with pure functions on `vm.memory` and the dictionary chain (`vm.newDictHead`).
-- Implement `define*` composing `[prevRef, valueRef, name]` entries on heap and advancing `vm.newDictHead`.
+- Create `symbols.ts` with pure functions on `vm.memory` and the dictionary chain (`vm.head`).
+- Implement `define*` composing `[prevRef, valueRef, name]` entries on heap and advancing `vm.head`.
 - Implement `findTaggedValue` by traversing heap only. Remove any JS‑state dependencies.
-- Implement `mark/revert` by restoring `{ gp, newDictHead }` exactly.
+- Implement `mark/revert` by restoring `{ gp, head }` exactly.
 
 3. Adapter swap (class removal)
 
@@ -121,13 +121,13 @@ To prevent drift into JS‑heavy patterns, all work must follow these reporting 
 
 - No JS arrays/maps/objects for runtime symbol state; heap dictionary is the sole dictionary.
 - Builtins, CODE, and LOCAL entries are present in the heap dictionary chain.
-- `mark/revert` restores only numeric state: `gp` and `newDictHead`.
+- `mark/revert` restores only numeric state: `gp` and `head`.
 - All tests pass with no parallel symbol paths remaining.
 
 ## Risks & Mitigations
 
 - Immediate execution regressions → immediate builtins via opcode dispatch and tagged meta bit; compat helpers remain pure functions.
-- Scoping regressions → restore `{ gp, newDictHead }` exactly; add nested mark/forget tests.
+- Scoping regressions → restore `{ gp, head }` exactly; add nested mark/forget tests.
 - Residual fallbacks → remove fallbacks to `SymbolTable` in dict ops and elsewhere as part of this plan.
 
 ## Test Strategy
