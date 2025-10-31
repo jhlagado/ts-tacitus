@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
 import { Tag, fromTaggedValue, NIL } from '../../core';
-import { defineBuiltin, lookup, mark, forget } from '../../strings/symbols';
+import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
   beforeEach(() => resetVM());
