@@ -98,10 +98,7 @@ export class VM {
     this.symbolTable = createSymbolTable(this.digest);
     this.symbolTable.attachVM(this);
     registerBuiltins(this, this.symbolTable);
-    // Prefer heap-backed dictionary lookups over fallback arrays by default
-    // (locals still resolved via localDefs). Builtins and code defs are mirrored
-    // to the heap dict, so disabling fallback should be safe.
-    this.symbolTable.setFallbackEnabled(false);
+    // Do not force dictionary-first resolution; keep symbol table standalone
   }
 
   // Compiler is wired by assigning vm.compiler directly to reduce OO ceremony.
