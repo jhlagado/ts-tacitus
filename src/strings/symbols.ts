@@ -15,12 +15,12 @@ import { getByteAddressFromRef } from '@src/core/refs';
 
 // Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.head.
 function pushEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
-  const prevRef = vm.head ?? NIL;
+  const prevRef = vm.head;
   vm.gpush(prevRef);
   vm.gpush(payloadTagged);
   vm.gpush(nameTagged);
   vm.gpush(toTaggedValue(3, Tag.LIST));
-  // header is top (gp-1): update dictionary head
+  // header is the last pushed cell
   vm.head = createGlobalRef(vm.gp - 1);
 }
 
@@ -50,6 +50,7 @@ export function defineBuiltin(
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
   pushEntry(vm, nameTagged, tagged);
+  // console.log('defineBuiltin isNIL======>', isNIL(vm.head));
 }
 
 export function defineCode(vm: VM, name: string, address: number, isImmediate = false): void {
@@ -74,7 +75,8 @@ export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
   pushEntry(vm, nameTagged, payloadTagged);
 }
 
-export function findTaggedValue(vm: VM, name: string): number | undefined {
+export function lookup(vm: VM, name: string): number | undefined {
+  // console.log('lookup isNIL======>', isNIL(vm.head));
   const target = vm.digest.intern(name);
   let cur = vm.head;
   while (!isNIL(cur)) {
@@ -100,9 +102,12 @@ export function findTaggedValue(vm: VM, name: string): number | undefined {
   return undefined;
 }
 
+// Back-compat alias
+export const findTaggedValue = lookup;
+
 // Compatibility helpers
 export function find(vm: VM, name: string): number | undefined {
-  const t = findTaggedValue(vm, name);
+  const t = lookup(vm, name);
   if (t === undefined) return undefined;
   const info = fromTaggedValue(t);
   if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return info.value;
@@ -110,7 +115,7 @@ export function find(vm: VM, name: string): number | undefined {
 }
 
 export function findCodeRef(vm: VM, name: string): number | undefined {
-  const t = findTaggedValue(vm, name);
+  const t = lookup(vm, name);
   if (t === undefined) return undefined;
   const info = fromTaggedValue(t);
   if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return t;
@@ -118,7 +123,7 @@ export function findCodeRef(vm: VM, name: string): number | undefined {
 }
 
 export function findBytecodeAddress(vm: VM, name: string): number | undefined {
-  const t = findTaggedValue(vm, name);
+  const t = lookup(vm, name);
   if (t === undefined) return undefined;
   const info = fromTaggedValue(t);
   if (info.tag === Tag.CODE) return info.value;
@@ -131,7 +136,7 @@ export interface SymbolEntry {
 }
 
 export function findEntry(vm: VM, name: string): SymbolEntry | undefined {
-  const t = findTaggedValue(vm, name);
+  const t = lookup(vm, name);
   if (t === undefined) return undefined;
   const info = fromTaggedValue(t);
   return { taggedValue: t, isImmediate: info.meta === 1 };
@@ -141,7 +146,7 @@ export function findWithImplementation(
   vm: VM,
   name: string,
 ): { index: number; isImmediate: boolean } | undefined {
-  const t = findTaggedValue(vm, name);
+  const t = lookup(vm, name);
   if (t === undefined) return undefined;
   const info = fromTaggedValue(t);
   return { index: info.value, isImmediate: info.meta === 1 };

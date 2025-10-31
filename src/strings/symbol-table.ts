@@ -4,23 +4,9 @@
  */
 
 import { Digest } from './digest';
-import {
-  Tag,
-  fromTaggedValue,
-  toTaggedValue,
-  Verb,
-  NIL,
-  CELL_SIZE,
-  GLOBAL_SIZE,
-  pushSimpleToGlobalHeap,
-  pushListToGlobalHeap,
-  isRef,
-} from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, Verb, NIL } from '@src/core';
 import type { VM } from '@src/core';
-import {
-  defineBuiltin as dictDefineBuiltin,
-  findTaggedValue as dictFindTaggedValue,
-} from './symbols';
+// Decoupled from heap-backed dictionary: no imports from './symbols'
 
 type WordFunction = Verb;
 
@@ -31,9 +17,7 @@ export interface SymbolTableEntry {
 }
 export interface SymbolTableCheckpoint {
   head: null;
-  gp: number;
   localSlotCount: number;
-  newDictHead?: number;
   fallbackDepth?: number;
   localDepth?: number;
 }
@@ -70,8 +54,8 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     digest,
     vmRef: null as VM | null,
     localSlotCount: 0,
-    dictLookupPreferred: true,
-    fallbackEnabled: true,
+    dictLookupPreferred: true, // retained for API compatibility; unused
+    fallbackEnabled: true, // retained for API compatibility; unused
     localDefs: [] as { key: number; tval: number }[],
     fallbackDefs: [] as { key: number; tval: number }[],
   };
@@ -85,66 +69,11 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   function setFallbackEnabled(enabled: boolean): void {
     state.fallbackEnabled = enabled;
   }
-  function findInHeapDict(name: string): number | undefined {
-    const vm = state.vmRef;
-    if (!vm) return undefined;
-    // Delegate to canonical heap-only lookup to avoid divergence
-    return dictFindTaggedValue(vm, name);
-  }
-  function mirrorToHeap(name: string, tval: number, nameAddrOverride?: number): void {
-    const vm = state.vmRef;
-    if (!vm) return;
-    // Always use the VM's digest for names stored in the heap-backed dictionary
-    const nameAddr = vm.digest
-      ? vm.digest.intern(name)
-      : (nameAddrOverride ?? state.digest.intern(name));
-    const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-    let valueRef: number;
-    if (isRef(tval)) valueRef = tval;
-    else {
-      const cap = GLOBAL_SIZE / CELL_SIZE;
-      const need = 1 + 4;
-      if (vm.gp + need > cap) return;
-      valueRef = pushSimpleToGlobalHeap(vm, tval);
-    }
-    const prevRef = vm.newDictHead ?? NIL;
-    {
-      const cap = GLOBAL_SIZE / CELL_SIZE;
-      const need = 4;
-      if (vm.gp + need > cap) return;
-    }
-    vm.push(prevRef);
-    vm.push(valueRef);
-    vm.push(nameTagged);
-    const header = toTaggedValue(3, Tag.LIST);
-    vm.push(header);
-    const baseCell = vm.sp - 1 - 3;
-    const baseAddrBytes = baseCell * CELL_SIZE;
-    const entryRef = pushListToGlobalHeap(vm, { header, baseAddrBytes });
-    vm.pop();
-    vm.pop();
-    vm.pop();
-    vm.pop();
-    vm.newDictHead = entryRef;
-  }
   function findTaggedValue(name: string): number | undefined {
     const key = state.digest.intern(name);
     for (let i = 0; i < state.localDefs.length; i++)
       if (state.localDefs[i].key === key) return state.localDefs[i].tval;
-    // Prefer heap-backed dictionary when requested or when fallback is disabled
-    if (state.dictLookupPreferred || !state.fallbackEnabled) {
-      const dictHit = findInHeapDict(name);
-      if (dictHit !== undefined) return dictHit;
-    }
-    // Primary fallback path when enabled
-    if (state.fallbackEnabled) {
-      for (let i = 0; i < state.fallbackDefs.length; i++)
-        if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
-      return undefined;
-    }
-    // Safety net: if fallback is disabled but heap dict missed (e.g., during migration),
-    // consult the legacy array as a last resort to preserve behavior while we complete
-    // the migration. This keeps disabled-by-default mode functional for all callers.
+    // Self-contained resolution: locals first, then fallbackDefs
     for (let i = 0; i < state.fallbackDefs.length; i++)
       if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
     return undefined;
@@ -194,15 +123,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
         return;
       }
     state.fallbackDefs.unshift({ key, tval: taggedOrRawValue });
-    // Prepare for fallback removal: ensure definitions are mirrored to the heap dictionary
-    // when a VM is attached so lookups can succeed with fallback disabled.
-    if (state.vmRef) {
-      const info = fromTaggedValue(taggedOrRawValue);
-      // Avoid mirroring locals into the global dictionary here; locals are handled by defineLocal.
-      if (info.tag !== Tag.LOCAL) {
-        mirrorToHeap(name, taggedOrRawValue, key);
-      }
-    }
+    // Standalone: no mirroring to heap dictionary
   }
   function defineBuiltin(
     name: string,
@@ -212,13 +133,11 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   ): void {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     state.fallbackDefs.unshift({ key: state.digest.intern(name), tval });
-    if (state.vmRef) dictDefineBuiltin(state.vmRef, name, opcode, isImmediate);
   }
   function defineCode(name: string, addr: number, isImmediate = false): void {
     const tval = toTaggedValue(addr, Tag.CODE, isImmediate ? 1 : 0);
     const key = state.digest.intern(name);
     state.fallbackDefs.unshift({ key, tval });
-    mirrorToHeap(name, tval, key);
   }
   function defineLocal(name: string): void {
     let slot: number;
@@ -229,25 +148,18 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     state.localDefs.unshift({ key, tval });
   }
   function mark(): SymbolTableCheckpoint {
-    const vm = state.vmRef;
     const cp: SymbolTableCheckpoint = {
       head: null,
-      gp: vm ? vm.gp : 0,
       localSlotCount: state.localSlotCount,
-      newDictHead: vm ? vm.newDictHead : NIL,
       fallbackDepth: state.fallbackDefs.length,
       localDepth: state.localDefs.length,
     };
     state.localSlotCount = 0;
-    if (vm) vm.localCount = 0;
+    if (state.vmRef) state.vmRef.localCount = 0;
     return cp;
   }
   function revert(cp: SymbolTableCheckpoint): void {
-    const vm = state.vmRef;
-    if (vm) {
-      vm.gp = cp.gp;
-      if (typeof cp.newDictHead === 'number') vm.newDictHead = cp.newDictHead;
-    }
+    // Standalone: do not touch VM heap/dictionary state
     if (typeof cp.fallbackDepth === 'number')
       state.fallbackDefs.splice(0, state.fallbackDefs.length - cp.fallbackDepth);
     if (typeof cp.localDepth === 'number')
