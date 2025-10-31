@@ -10,33 +10,38 @@
  */
 
 import { VM, NIL, Tag, toTaggedValue, fromTaggedValue, isList, isRef, isNIL, getListLength, createGlobalRef } from '@src/core';
-import { CELL_SIZE, SEG_DATA } from '@src/core/constants';
-import { getByteAddressFromRef } from '@src/core/refs';
+import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_CELLS } from '@src/core/constants';
+import { getByteAddressFromRef, getAbsoluteCellIndexFromRef } from '@src/core/refs';
 
-// Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.head.
-function pushEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
+// Unified define (internal callers): accept a fully‑formed tagged payload and create an entry.
+export function define(vm: VM, name: string, payloadTagged: number): void {
+  const nameAddr = vm.digest.intern(name);
+  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const prevRef = vm.head;
   vm.gpush(prevRef);
   vm.gpush(payloadTagged);
   vm.gpush(nameTagged);
   vm.gpush(toTaggedValue(3, Tag.LIST));
-  // header is the last pushed cell
   vm.head = createGlobalRef(vm.gp - 1);
 }
 
-// Dictionary-scope checkpointing (numeric-only):
-// mark returns the current gp (cells used). We assume calls occur when the
-// current top (gp-1) is a dictionary header. forget restores gp and head.
+// Dictionary-scope checkpointing (ref-based):
+// mark returns a DATA_REF to the next free global cell; forget restores gp from that ref.
 export function mark(vm: VM): number {
-  return vm.gp;
+  return createGlobalRef(vm.gp);
 }
 
-export function forget(vm: VM, markCells: number): void {
-  if (!Number.isInteger(markCells) || markCells < 0 || markCells > vm.gp) {
-    throw new Error('forget: mark out of range');
+export function forget(vm: VM, markRef: number): void {
+  // Expect a DATA_REF pointing within the global window
+  const absIndex = getAbsoluteCellIndexFromRef(markRef);
+  const gpNew = absIndex - GLOBAL_BASE_CELLS;
+  if (!Number.isInteger(gpNew) || gpNew < 0) {
+    throw new Error('forget mark out of range');
   }
-  vm.gp = markCells;
-  // If heap is now empty, clear head; otherwise head is the header at gp-1.
+  if (gpNew > vm.gp) {
+    throw new Error('forget mark beyond current heap top');
+  }
+  vm.gp = gpNew;
   vm.head = vm.gp === 0 ? NIL : createGlobalRef(vm.gp - 1);
 }
 
@@ -46,37 +51,22 @@ export function defineBuiltin(
   opcode: number,
   isImmediate = false,
 ): void {
-  const nameAddr = vm.digest.intern(name);
-  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-  pushEntry(vm, nameTagged, tagged);
-  // console.log('defineBuiltin isNIL======>', isNIL(vm.head));
+  define(vm, name, tagged);
 }
 
 export function defineCode(vm: VM, name: string, address: number, isImmediate = false): void {
-  const nameAddr = vm.digest.intern(name);
-  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(address, Tag.CODE, isImmediate ? 1 : 0);
-  pushEntry(vm, nameTagged, tagged);
+  define(vm, name, tagged);
 }
 
 export function defineLocal(vm: VM, name: string): void {
   const slot = vm.localCount++;
-  const nameAddr = vm.digest.intern(name);
-  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   const tagged = toTaggedValue(slot, Tag.LOCAL);
-  pushEntry(vm, nameTagged, tagged);
-}
-
-// Unified define (internal callers): accept a fully‑formed tagged payload and create an entry.
-export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
-  const nameAddr = vm.digest.intern(name);
-  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-  pushEntry(vm, nameTagged, payloadTagged);
+  define(vm, name, tagged);
 }
 
 export function lookup(vm: VM, name: string): number | undefined {
-  // console.log('lookup isNIL======>', isNIL(vm.head));
   const target = vm.digest.intern(name);
   let cur = vm.head;
   while (!isNIL(cur)) {

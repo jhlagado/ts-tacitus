@@ -10,18 +10,16 @@ describe('dictionary-only builtins', () => {
   test('defineBuiltin then lookup returns BUILTIN with opcode', () => {
     const name = 'my-add-op';
     const opcode = 99;
-    // const scope = mark(vm);
     defineBuiltin(vm, name, opcode, false);
-    // const tv = lookup(vm, name);
-    // expect(tv).toBeDefined();
-    // const info = fromTaggedValue(tv!);
-    // expect(info.tag).toBe(Tag.BUILTIN);
-    // expect(info.value).toBe(opcode);
-    // expect(info.meta).toBe(0);
-    // forget(vm, scope);
+    const tv = lookup(vm, name);
+    expect(tv).toBeDefined();
+    const info = fromTaggedValue(tv!);
+    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.value).toBe(opcode);
+    expect(info.meta).toBe(0);
   });
 
-  test.skip('defineBuiltin (immediate) then lookup returns BUILTIN with meta=1', () => {
+  test('defineBuiltin (immediate) then lookup returns BUILTIN with meta=1', () => {
     const name = 'imm-op';
     const opcode = 7;
     const scope = mark(vm);
@@ -37,7 +35,7 @@ describe('dictionary-only builtins', () => {
     forget(vm, scope);
   });
 
-  test.skip('lookup walks to previous entry (two entries)', () => {
+  test('lookup walks to previous entry (two entries)', () => {
     const a = { name: 'opA', opcode: 10 };
     const b = { name: 'opB', opcode: 20 };
     const scope = mark(vm);
