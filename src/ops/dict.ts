@@ -94,9 +94,9 @@ export function defineOp(vm: VM): void {
   }
 
   // Build entry list and update new dictionary head
-  const prevRef = vm.newDictHead ?? NIL;
+  const prevRef = vm.head ?? NIL;
   const entryRef = pushEntryToHeap(vm, prevRef, valueRef, name);
-  vm.newDictHead = entryRef;
+  vm.head = entryRef;
 }
 
 // lookup: ( name — ref|NIL )
@@ -107,7 +107,7 @@ export function lookupOp(vm: VM): void {
     throw new Error('lookup expects STRING name');
   }
 
-  let cur = vm.newDictHead;
+  let cur = vm.head;
   const targetName = vm.digest.get(fromTaggedValue(name).value);
   while (!isNIL(cur)) {
     // Read header at global ref
@@ -169,7 +169,7 @@ export function dictFirstOffOp(vm: VM): void {
 // Debug: dump heap-backed dictionary
 export function dumpDictOp(vm: VM): void {
   const lines: string[] = [];
-  let cur = vm.newDictHead;
+  let cur = vm.head;
   let i = 0;
   while (!isNIL(cur)) {
     const hAddr = getByteAddressFromRef(cur);

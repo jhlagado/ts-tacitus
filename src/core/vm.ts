@@ -60,8 +60,15 @@ export class VM {
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
-  // New heap-backed dictionary head (linked list of entries on global heap)
-  newDictHead: number;
+  // Heap-backed dictionary head (DATA_REF to latest entry header)
+  head: number;
+  // Back-compat alias for legacy code: vm.newDictHead proxies to vm.head
+  get newDictHead(): number {
+    return this.head;
+  }
+  set newDictHead(v: number) {
+    this.head = v;
+  }
   dictLocalSlots: number;
   // Compile-time locals counter (preferred over SymbolTable-local state)
   localCount: number;
@@ -84,7 +91,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.newDictHead = NIL;
+    this.head = NIL;
     this.dictLocalSlots = 0;
     this.localCount = 0;
 

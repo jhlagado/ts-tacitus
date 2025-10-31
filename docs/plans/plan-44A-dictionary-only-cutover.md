@@ -97,7 +97,7 @@ Immediates (builtins/code):
   - Function defs: `symbols.defineCode(vm, name, addr, isImmediate)`
   - Locals (compile‑time only): `symbols.defineLocal(vm, name)`; use `vm.localCount` for slots
   - Scope boundaries: on function start, `const m = symbols.mark(vm)`; on function end (success/fail), `symbols.forget(vm, m)`; compiler resets `vm.localCount` to 0 for the next function.
-  - VM symbol resolution:
+- VM symbol resolution:
     - Replace `symbolTable.findTaggedValue(name)` with `symbols.findTaggedValue(vm, name)`
 
 3) Remove facade

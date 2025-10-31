@@ -13,15 +13,15 @@ import { VM, NIL, Tag, toTaggedValue, fromTaggedValue, isList, isRef, isNIL, get
 import { CELL_SIZE, SEG_DATA } from '@src/core/constants';
 import { getByteAddressFromRef } from '@src/core/refs';
 
-// Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.newDictHead.
+// Internal: build entry by pushing 3 payload cells then LIST:3 header; updates vm.head.
 function pushEntry(vm: VM, nameTagged: number, payloadTagged: number): void {
-  const prevRef = vm.newDictHead ?? NIL;
+  const prevRef = vm.head ?? NIL;
   vm.gpush(prevRef);
   vm.gpush(payloadTagged);
   vm.gpush(nameTagged);
   vm.gpush(toTaggedValue(3, Tag.LIST));
   // header is top (gp-1): update dictionary head
-  vm.newDictHead = createGlobalRef(vm.gp - 1);
+  vm.head = createGlobalRef(vm.gp - 1);
 }
 
 // Dictionary-scope checkpointing (numeric-only):
@@ -37,7 +37,7 @@ export function forget(vm: VM, markCells: number): void {
   }
   vm.gp = markCells;
   // If heap is now empty, clear head; otherwise head is the header at gp-1.
-  vm.newDictHead = vm.gp === 0 ? NIL : createGlobalRef(vm.gp - 1);
+  vm.head = vm.gp === 0 ? NIL : createGlobalRef(vm.gp - 1);
 }
 
 export function defineBuiltin(
@@ -76,7 +76,7 @@ export function defineEntry(vm: VM, name: string, payloadTagged: number): void {
 
 export function findTaggedValue(vm: VM, name: string): number | undefined {
   const target = vm.digest.intern(name);
-  let cur = vm.newDictHead;
+  let cur = vm.head;
   while (!isNIL(cur)) {
     const hAddr = getByteAddressFromRef(cur);
     const header = vm.memory.readFloat32(SEG_DATA, hAddr);
