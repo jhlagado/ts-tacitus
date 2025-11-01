@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
-import { Tag, fromTaggedValue, NIL } from '../../core';
+import { Tag, fromTaggedValue, NIL, isNIL } from '../../core';
 import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
@@ -12,7 +12,7 @@ describe('dictionary-only builtins', () => {
     const opcode = 99;
     defineBuiltin(vm, name, opcode, false);
     const tv = lookup(vm, name);
-    expect(tv).toBeDefined();
+    expect(isNIL(tv)).toBe(false);
     const info = fromTaggedValue(tv!);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(opcode);
@@ -27,7 +27,7 @@ describe('dictionary-only builtins', () => {
     vm.head = NIL;
     defineBuiltin(vm, name, opcode, true);
     const tv = lookup(vm, name);
-    expect(tv).toBeDefined();
+    expect(isNIL(tv)).toBe(false);
     const info = fromTaggedValue(tv!);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(opcode);
@@ -47,14 +47,14 @@ describe('dictionary-only builtins', () => {
 
     // Lookup head (B)
     let tv = lookup(vm, b.name);
-    expect(tv).toBeDefined();
+    expect(isNIL(tv)).toBe(false);
     let info = fromTaggedValue(tv!);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(b.opcode);
 
     // Lookup previous (A)
     tv = lookup(vm, a.name);
-    expect(tv).toBeDefined();
+    expect(isNIL(tv)).toBe(false);
     info = fromTaggedValue(tv!);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(a.opcode);

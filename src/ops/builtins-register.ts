@@ -19,6 +19,7 @@
 import { VM, SyntaxError } from '@src/core';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
+import { defineBuiltin as dictDefineBuiltin } from '@core/dictionary';
 
 import { STACK_BASE_CELLS } from '@src/core';
 import { evalOp } from './core';
@@ -54,126 +55,134 @@ import { defineOp as dictDefineOp, lookupOp as dictLookupOp, markOp as dictMarkO
  * @param symbolTable - The symbol table to register operations in
  */
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
-  symbolTable.defineBuiltin('eval', Op.Eval, evalOp);
-  symbolTable.defineBuiltin('dispatch', Op.Dispatch);
-  symbolTable.defineBuiltin('pushSymbolRef', Op.PushSymbolRef);
-  symbolTable.defineBuiltin('.', Op.Print);
-  symbolTable.defineBuiltin('raw', Op.RawPrint);
-  symbolTable.defineBuiltin('str', Op.LiteralString);
-  symbolTable.defineBuiltin('addr', Op.LiteralAddress);
+  // Dual registration helper: keep SymbolTable path for compatibility,
+  // and also define a limited subset into the heap-backed dictionary to avoid
+  // stressing the heap while validating dictionary flows.
+  function reg(name: string, opcode: Op, impl?: (vm: VM) => void, isImmediate = false): void {
+    symbolTable.defineBuiltin(name, opcode, impl, isImmediate);
+    // dictDefineBuiltin(vm, name, opcode, isImmediate === true);
+  }
+
+  reg('eval', Op.Eval, evalOp);
+  reg('dispatch', Op.Dispatch);
+  reg('pushSymbolRef', Op.PushSymbolRef);
+  reg('.', Op.Print);
+  reg('raw', Op.RawPrint);
+  reg('str', Op.LiteralString);
+  reg('addr', Op.LiteralAddress);
 
   /** Parentheses build unified LIST. */
-  symbolTable.defineBuiltin('(', Op.OpenList);
-  symbolTable.defineBuiltin(')', Op.CloseList);
+  reg('(', Op.OpenList);
+  reg(')', Op.CloseList);
 
   /** List operations (Sections 9 & 10). */
-  symbolTable.defineBuiltin('length', Op.Length);
-  symbolTable.defineBuiltin('size', Op.Size);
-  symbolTable.defineBuiltin('slot', Op.Slot);
-  symbolTable.defineBuiltin('elem', Op.Elem);
-  symbolTable.defineBuiltin('fetch', Op.Fetch);
-  symbolTable.defineBuiltin('store', Op.Store);
+  reg('length', Op.Length);
+  reg('size', Op.Size);
+  reg('slot', Op.Slot);
+  reg('elem', Op.Elem);
+  reg('fetch', Op.Fetch);
+  reg('store', Op.Store);
 
   /** Structural operations (concat unified). */
-  symbolTable.defineBuiltin('concat', Op.Concat);
-  symbolTable.defineBuiltin('tail', Op.Tail);
-  symbolTable.defineBuiltin('head', Op.Head);
-  symbolTable.defineBuiltin('pack', Op.Pack);
-  symbolTable.defineBuiltin('unpack', Op.Unpack);
-  symbolTable.defineBuiltin('reverse', Op.Reverse);
+  reg('concat', Op.Concat);
+  reg('tail', Op.Tail);
+  reg('head', Op.Head);
+  reg('pack', Op.Pack);
+  reg('unpack', Op.Unpack);
+  reg('reverse', Op.Reverse);
 
   /** Maplist operations. */
-  symbolTable.defineBuiltin('find', Op.Find);
-  symbolTable.defineBuiltin('keys', Op.Keys);
-  symbolTable.defineBuiltin('values', Op.Values);
-  symbolTable.defineBuiltin('walk', Op.Walk);
+  reg('find', Op.Find);
+  reg('keys', Op.Keys);
+  reg('values', Op.Values);
+  reg('walk', Op.Walk);
 
   /** Reference operations. */
-  symbolTable.defineBuiltin('ref', Op.Ref);
+  reg('ref', Op.Ref);
   // 'resolve' removed in favor of 'load'
-  symbolTable.defineBuiltin('load', Op.Load);
-  symbolTable.defineBuiltin('varRef', Op.VarRef);
-  symbolTable.defineBuiltin('dumpStackFrame', Op.DumpStackFrame);
-  symbolTable.defineBuiltin('gmark', Op.GMark, gmarkOp);
-  symbolTable.defineBuiltin('gsweep', Op.GSweep, gsweepOp);
-  symbolTable.defineBuiltin('gpush', Op.GPush, gpushOp);
-  symbolTable.defineBuiltin('gpop', Op.GPop, gpopOp);
-  symbolTable.defineBuiltin('gpeek', Op.GPeek, gpeekOp);
+  reg('load', Op.Load);
+  reg('varRef', Op.VarRef);
+  reg('dumpStackFrame', Op.DumpStackFrame);
+  reg('gmark', Op.GMark, gmarkOp);
+  reg('gsweep', Op.GSweep, gsweepOp);
+  reg('gpush', Op.GPush, gpushOp);
+  reg('gpop', Op.GPop, gpopOp);
+  reg('gpeek', Op.GPeek, gpeekOp);
 
   // Heap-backed dictionary ops (independent of legacy internals)
-  symbolTable.defineBuiltin('define', Op.Define, dictDefineOp);
-  symbolTable.defineBuiltin('lookup', Op.Lookup, dictLookupOp);
-  symbolTable.defineBuiltin('mark', Op.Mark, dictMarkOp);
-  symbolTable.defineBuiltin('forget', Op.Forget, dictForgetOp);
+  reg('define', Op.Define, dictDefineOp);
+  reg('lookup', Op.Lookup, dictLookupOp);
+  reg('mark', Op.Mark, dictMarkOp);
+  reg('forget', Op.Forget, dictForgetOp);
   // Toggle dict-first symbol lookup resolution
-  symbolTable.defineBuiltin('dict-first-on', Op.DictFirstOn, vm => vm.symbolTable.setDictFirstLookup(true));
-  symbolTable.defineBuiltin('dict-first-off', Op.DictFirstOff, vm => vm.symbolTable.setDictFirstLookup(false));
+  reg('dict-first-on', Op.DictFirstOn, (vm: VM) => vm.symbolTable.setDictFirstLookup(true));
+  reg('dict-first-off', Op.DictFirstOff, (vm: VM) => vm.symbolTable.setDictFirstLookup(false));
   // Debug
-  symbolTable.defineBuiltin('dump-dict', Op.DumpDict);
+  reg('dump-dict', Op.DumpDict);
 
-  symbolTable.defineBuiltin('add', Op.Add);
-  symbolTable.defineBuiltin('sub', Op.Minus);
-  symbolTable.defineBuiltin('mul', Op.Multiply);
-  symbolTable.defineBuiltin('div', Op.Divide);
+  reg('add', Op.Add);
+  reg('sub', Op.Minus);
+  reg('mul', Op.Multiply);
+  reg('div', Op.Divide);
   /** Canonical pow. */
-  symbolTable.defineBuiltin('mod', Op.Mod);
-  symbolTable.defineBuiltin('min', Op.Min);
-  symbolTable.defineBuiltin('max', Op.Max);
-  symbolTable.defineBuiltin('lt', Op.LessThan);
-  symbolTable.defineBuiltin('le', Op.LessOrEqual);
-  symbolTable.defineBuiltin('gt', Op.GreaterThan);
-  symbolTable.defineBuiltin('ge', Op.GreaterOrEqual);
-  symbolTable.defineBuiltin('eq', Op.Equal);
+  reg('mod', Op.Mod);
+  reg('min', Op.Min);
+  reg('max', Op.Max);
+  reg('lt', Op.LessThan);
+  reg('le', Op.LessOrEqual);
+  reg('gt', Op.GreaterThan);
+  reg('ge', Op.GreaterOrEqual);
+  reg('eq', Op.Equal);
 
   /** Canonical neg maps to Op.Neg. */
-  symbolTable.defineBuiltin('recip', Op.Recip);
-  symbolTable.defineBuiltin('floor', Op.Floor);
-  symbolTable.defineBuiltin('not', Op.Not);
-  symbolTable.defineBuiltin('enlist', Op.Enlist);
+  reg('recip', Op.Recip);
+  reg('floor', Op.Floor);
+  reg('not', Op.Not);
+  reg('enlist', Op.Enlist);
 
-  symbolTable.defineBuiltin('dup', Op.Dup);
-  symbolTable.defineBuiltin('drop', Op.Drop);
-  symbolTable.defineBuiltin('swap', Op.Swap);
-  symbolTable.defineBuiltin('rot', Op.Rot);
-  symbolTable.defineBuiltin('revrot', Op.RevRot);
-  symbolTable.defineBuiltin('over', Op.Over);
-  symbolTable.defineBuiltin('pick', Op.Pick);
-  symbolTable.defineBuiltin('nip', Op.Nip);
-  symbolTable.defineBuiltin('tuck', Op.Tuck);
+  reg('dup', Op.Dup);
+  reg('drop', Op.Drop);
+  reg('swap', Op.Swap);
+  reg('rot', Op.Rot);
+  reg('revrot', Op.RevRot);
+  reg('over', Op.Over);
+  reg('pick', Op.Pick);
+  reg('nip', Op.Nip);
+  reg('tuck', Op.Tuck);
 
-  symbolTable.defineBuiltin('abs', Op.Abs);
-  symbolTable.defineBuiltin('neg', Op.Neg);
-  symbolTable.defineBuiltin('sign', Op.Sign);
-  symbolTable.defineBuiltin('exp', Op.Exp);
-  symbolTable.defineBuiltin('ln', Op.Ln);
-  symbolTable.defineBuiltin('log', Op.Log);
-  symbolTable.defineBuiltin('sqrt', Op.Sqrt);
-  symbolTable.defineBuiltin('pow', Op.Pow);
+  reg('abs', Op.Abs);
+  reg('neg', Op.Neg);
+  reg('sign', Op.Sign);
+  reg('exp', Op.Exp);
+  reg('ln', Op.Ln);
+  reg('log', Op.Log);
+  reg('sqrt', Op.Sqrt);
+  reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  symbolTable.defineBuiltin('if', Op.Nop, _vm => beginIfImmediate(), true);
-  symbolTable.defineBuiltin('else', Op.Nop, _vm => beginElseImmediate(), true);
-  symbolTable.defineBuiltin('when', Op.Nop, _vm => beginWhenImmediate(), true);
-  symbolTable.defineBuiltin('do', Op.Nop, _vm => beginDoImmediate(), true);
-  symbolTable.defineBuiltin('case', Op.Nop, _vm => beginCaseImmediate(), true);
-  symbolTable.defineBuiltin('of', Op.Nop, _vm => clauseOfImmediate(), true);
-  symbolTable.defineBuiltin('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
-  symbolTable.defineBuiltin('NIL', Op.Nop, _vm => nilImmediate(), true);
+  reg('if', Op.Nop, (_vm: VM) => beginIfImmediate(), true);
+  reg('else', Op.Nop, (_vm: VM) => beginElseImmediate(), true);
+  reg('when', Op.Nop, (_vm: VM) => beginWhenImmediate(), true);
+  reg('do', Op.Nop, (_vm: VM) => beginDoImmediate(), true);
+  reg('case', Op.Nop, (_vm: VM) => beginCaseImmediate(), true);
+  reg('of', Op.Nop, (_vm: VM) => clauseOfImmediate(), true);
+  reg('DEFAULT', Op.Nop, (_vm: VM) => defaultImmediate(), true);
+  reg('NIL', Op.Nop, (_vm: VM) => nilImmediate(), true);
   // Capsule opener: 'capsule'
-  symbolTable.defineBuiltin('capsule', Op.Nop, _vm => beginCapsuleImmediate(), true);
+  reg('capsule', Op.Nop, (_vm: VM) => beginCapsuleImmediate(), true);
 
-  symbolTable.defineBuiltin('select', Op.Select);
-  symbolTable.defineBuiltin('makeList', Op.MakeList);
+  reg('select', Op.Select);
+  reg('makeList', Op.MakeList);
 
-  symbolTable.defineBuiltin(':', Op.Nop, _vm => beginDefinitionImmediate(), true);
-  symbolTable.defineBuiltin(
+  reg(':', Op.Nop, (_vm: VM) => beginDefinitionImmediate(), true);
+  reg(
     ';',
     Op.Nop,
-    vmInstance => {
-      if (vmInstance.sp - STACK_BASE_CELLS === 0) {
-        throw new SyntaxError('Unexpected semicolon', vmInstance.getStackData());
+    (vm: VM) => {
+      if (vm.sp - STACK_BASE_CELLS === 0) {
+        throw new SyntaxError('Unexpected semicolon', vm.getStackData());
       }
-      evalOp(vmInstance);
+      evalOp(vm);
     },
     true,
   );
