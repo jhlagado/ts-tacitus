@@ -3,9 +3,14 @@ import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
 import { Tag, fromTaggedValue, NIL, isNIL } from '../../core';
 import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
+import { Op } from '../../ops/opcodes';
 
 describe('dictionary-only builtins', () => {
-  beforeEach(() => resetVM());
+  beforeEach(() => {
+    resetVM()
+    // defineBuiltin(vm, 'eval', Op.Eval, false);
+    // defineBuiltin(vm, 'eval', Op.Eval, false);
+  });
 
   test('defineBuiltin then lookup returns BUILTIN with opcode', () => {
     const name = 'my-add-op';
@@ -20,9 +25,9 @@ describe('dictionary-only builtins', () => {
   });
 
   test('defineBuiltin (immediate) then lookup returns BUILTIN with meta=1', () => {
+    // defineBuiltin(vm, 'eval', Op.Eval, false);
     const name = 'imm-op';
     const opcode = 7;
-    const scope = mark(vm);
     // @ts-ignore test-only
     vm.head = NIL;
     defineBuiltin(vm, name, opcode, true);
@@ -32,18 +37,19 @@ describe('dictionary-only builtins', () => {
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(opcode);
     expect(info.meta).toBe(1);
-    forget(vm, scope);
   });
 
   test('lookup walks to previous entry (two entries)', () => {
+    // defineBuiltin(vm, 'eval', Op.Eval, false);
     const a = { name: 'opA', opcode: 10 };
     const b = { name: 'opB', opcode: 20 };
-    const scope = mark(vm);
+    const c = { name: 'opC', opcode: 30 };
     // @ts-ignore test-only
     vm.head = NIL;
     // Define two entries; head is B, then A
     defineBuiltin(vm, a.name, a.opcode, false);
     defineBuiltin(vm, b.name, b.opcode, false);
+    defineBuiltin(vm, c.name, c.opcode, false);
 
     // Lookup head (B)
     let tv = lookup(vm, b.name);
@@ -58,7 +64,6 @@ describe('dictionary-only builtins', () => {
     info = fromTaggedValue(tv!);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(a.opcode);
-    forget(vm, scope);
   });
 
 });

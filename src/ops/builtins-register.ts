@@ -19,7 +19,7 @@
 import { VM, SyntaxError } from '@src/core';
 import { Op } from './opcodes';
 import { SymbolTable } from '../strings/symbol-table';
-import { defineBuiltin as dictDefineBuiltin } from '@core/dictionary';
+import { defineBuiltin } from '@core/dictionary';
 
 import { STACK_BASE_CELLS } from '@src/core';
 import { evalOp } from './core';
@@ -63,6 +63,7 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
     // dictDefineBuiltin(vm, name, opcode, isImmediate === true);
   }
 
+  // defineBuiltin(vm, 'eval', Op.Eval, false);
   reg('eval', Op.Eval, evalOp);
   reg('dispatch', Op.Dispatch);
   reg('pushSymbolRef', Op.PushSymbolRef);
@@ -186,4 +187,8 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
     },
     true,
   );
+
+  // defineBuiltin(vm, 'eval', Op.Eval, false);
+  // defineBuiltin(vm, 'eval', Op.Eval, false);
+
 }

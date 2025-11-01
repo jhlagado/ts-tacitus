@@ -53,9 +53,9 @@ export function resetVM(): void {
   // Heap-backed dictionary uses vm.head; clear on reset
   // @ts-ignore field present on VM in core
   vm.head = NIL;
-  for (let i = 0; i < GLOBAL_SIZE; i++) {
-    vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
-  }
+  // for (let i = 0; i < GLOBAL_SIZE; i++) {
+  //   vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
+  // }
   // Re-register builtins to repopulate heap-backed dictionary after wipe
   registerBuiltins(vm, vm.symbolTable);
 }
