@@ -20,7 +20,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE_CELLS,
 } from './constants';
-import { fromTaggedValue, NIL } from './tagged';
+import { fromTaggedValue } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -60,7 +60,7 @@ export class VM {
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
-  // Heap-backed dictionary head (DATA_REF to latest entry header)
+  // Heap-backed dictionary head (cell index relative to GLOBAL_BASE_CELLS, 0 = NIL/empty)
   head: number;
   // Back-compat alias for legacy code: vm.newDictHead proxies to vm.head
   get newDictHead(): number {
@@ -91,7 +91,7 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.head = NIL;
+    this.head = 0; // cell index (0 = NIL, empty dictionary)
     this.dictLocalSlots = 0;
     this.localCount = 0;
 
