@@ -2,7 +2,7 @@ import { describe, beforeEach, test, expect } from '@jest/globals';
 import { resetVM } from '../../utils/vm-test-utils';
 import { vm } from '../../../lang/runtime';
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core';
-import { defineOp, lookupOp } from '../../../ops/dict';
+import { defineOp, lookupOp } from '../../../core/dictionary';
 import { getByteAddressFromRef, isRef } from '../../../core/refs';
 import { SEG_DATA } from '../../../core/constants';
 

@@ -4,7 +4,7 @@
  */
 
 import { Digest } from './digest';
-import { Tag, fromTaggedValue, toTaggedValue, Verb, NIL } from '@src/core';
+import { Tag, fromTaggedValue, toTaggedValue, Verb } from '@src/core';
 import type { VM } from '@src/core';
 // Decoupled from heap-backed dictionary: no imports from './symbols'
 

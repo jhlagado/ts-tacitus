@@ -50,9 +50,9 @@ export function resetVM(): void {
   // Reset globals allocation pointer and clear global segment
   vm.gp = 0;
   // Reset heap-backed dictionary head
-  // Heap-backed dictionary uses vm.head; clear on reset
+  // Heap-backed dictionary uses vm.head; clear on reset (0 = NIL/empty)
   // @ts-ignore field present on VM in core
-  vm.head = NIL;
+  vm.head = 0;
   for (let i = 0; i < GLOBAL_SIZE; i++) {
     vm.memory.write8(SEG_DATA, GLOBAL_BASE + i, 0);
   }
