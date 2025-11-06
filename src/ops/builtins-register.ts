@@ -61,43 +61,13 @@ import {
  *
  * @param vm - The virtual machine instance
  * @param symbolTable - The symbol table to register operations in
+ * @param enableAnalytics - Whether to print analytics (default: true, set to false in tests)
  */
 export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
-  // Analytics tracking
-  const analytics = {
-    count: 0,
-    entries: [] as Array<{
-      name: string;
-      gpBefore: number;
-      gpAfter: number;
-      headBefore: number;
-      headAfter: number;
-    }>,
-  };
 
   function reg(name: string, opcode: number, implementation?: Verb, isImmediate = false): void {
-    const gpBefore = vm.gp;
-    const headBefore = vm.head;
-
     symbolTable.defineBuiltin(name, opcode, implementation, isImmediate);
     defineBuiltin(vm, name, opcode, isImmediate);
-
-    const gpAfter = vm.gp;
-    const headAfter = vm.head;
-
-    analytics.count++;
-    analytics.entries.push({
-      name,
-      gpBefore,
-      gpAfter,
-      headBefore,
-      headAfter,
-    });
-
-    // Print analytics for each registration
-    console.log(
-      `[reg #${analytics.count}] ${name.padEnd(20)} GP: ${gpBefore.toString().padStart(4)} → ${gpAfter.toString().padStart(4)} (+${gpAfter - gpBefore}) | head: ${headBefore.toString().padStart(4)} → ${headAfter.toString().padStart(4)}`,
-    );
   }
 
   reg('eval', Op.Eval, evalOp);
@@ -223,15 +193,4 @@ export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
     },
     true,
   );
-
-  // Print summary analytics
-  console.log('\n=== Builtin Registration Analytics ===');
-  console.log(`Total builtins registered: ${analytics.count}`);
-  console.log(`Final GP: ${vm.gp} (${vm.gp * 4} bytes)`);
-  console.log(`Final head: ${vm.head}`);
-  console.log(`Dictionary entries: ${vm.head === 0 ? 0 : 'chain from head ' + vm.head}`);
-  console.log(
-    `Average cells per entry: ${analytics.count > 0 ? (vm.gp / analytics.count).toFixed(2) : 0}`,
-  );
-  console.log('=======================================\n');
 }

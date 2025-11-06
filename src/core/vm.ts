@@ -20,7 +20,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE_CELLS,
 } from './constants';
-import { fromTaggedValue } from './tagged';
+import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -62,14 +62,16 @@ export class VM {
 
   // Heap-backed dictionary head (cell index relative to GLOBAL_BASE_CELLS, 0 = NIL/empty)
   head: number;
-  // Back-compat alias for legacy code: vm.newDictHead proxies to vm.head
-  get newDictHead(): number {
-    return this.head;
-  }
-  set newDictHead(v: number) {
-    this.head = v;
-  }
-  dictLocalSlots: number;
+  // Head as SENTINEL tagged value (for analytics/debugging)
+  headRef: number;
+  // // Back-compat alias for legacy code: vm.newDictHead proxies to vm.head
+  // get newDictHead(): number {
+  //   return this.head;
+  // }
+  // set newDictHead(v: number) {
+  //   this.head = v;
+  // }
+  // dictLocalSlots: number;
   // Compile-time locals counter (preferred over SymbolTable-local state)
   localCount: number;
 
@@ -91,13 +93,16 @@ export class VM {
     this.digest = new Digest(this.memory);
     this.debug = false;
     this.listDepth = 0;
-    this.head = 0; // cell index (0 = NIL, empty dictionary)
-    this.dictLocalSlots = 0;
     this.localCount = 0;
 
+    this.head = 0; // cell index (0 = NIL, empty dictionary)
+    this.headRef = toTaggedValue(0, Tag.SENTINEL); // head as SENTINEL tagged value
     this.symbolTable = createSymbolTable(this.digest);
     this.symbolTable.attachVM(this);
-    registerBuiltins(this, this.symbolTable);
+    this.compiler = new Compiler(this);
+    // Disable analytics in test environment
+    const enableAnalytics = process.env.NODE_ENV !== 'test';
+    registerBuiltins(this, this.symbolTable, enableAnalytics);
     // Do not force dictionary-first resolution; keep symbol table standalone
   }
 
