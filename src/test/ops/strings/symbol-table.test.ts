@@ -12,7 +12,7 @@ describe('SymbolTable', () => {
   beforeEach(() => {
     symbolTable = createSymbolTable(new Digest(new Memory()));
     const vm = new VM();
-    registerBuiltins(vm, symbolTable);
+    registerBuiltins(vm, symbolTable, false);
     initialCheckpoint = symbolTable.mark();
   });
 

@@ -42,6 +42,18 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
   vm.gpush(toTaggedValue(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE_CELLS)
   vm.head = vm.gp - 1;
+  vm.headRef = toTaggedValue(vm.gp - 1, Tag.SENTINEL);
+
+  // console.log(
+  //   'define',
+  //   name,
+  //   'vm.gp',
+  //   vm.gp,
+  //   'vm.head',
+  //   vm.head,
+  //   'vm.headRef',
+  //   fromTaggedValue(vm.headRef).value,
+  // );
 }
 
 export function defineBuiltin(vm: VM, name: string, opcode: number, isImmediate = false): void {
@@ -103,6 +115,7 @@ export function forget(vm: VM, markCellIndex: number): void {
   vm.gp = gpNew;
   // Update head to point to the most recent entry, or 0 if heap is empty
   vm.head = vm.gp === 0 ? 0 : vm.gp - 1;
+  vm.headRef = toTaggedValue(vm.head, Tag.SENTINEL);
 }
 
 // ============================================================================
@@ -178,6 +191,7 @@ export function defineOp(vm: VM): void {
   const prevCell = vm.head; // cell index (0 = NIL)
   const headerCellIndex = pushEntryToHeap(vm, prevCell, valueRef, name);
   vm.head = headerCellIndex; // Store cell index, not ref
+  vm.headRef = toTaggedValue(vm.head, Tag.SENTINEL);
 }
 
 // lookup: ( name — ref|NIL )
@@ -208,6 +222,7 @@ export function forgetOp(vm: VM): void {
     throw new Error('forget expects NUMBER (cell index)');
   }
   forget(vm, markCellIndex);
+  // headRef is updated inside forget()
 }
 
 // Dict-first lookup toggles (no stack effect)

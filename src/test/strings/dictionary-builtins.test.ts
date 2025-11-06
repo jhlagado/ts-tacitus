@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
-import { Tag, fromTaggedValue } from '../../core';
+import { Tag, fromTaggedValue, toTaggedValue } from '../../core';
 import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
@@ -25,6 +25,8 @@ describe('dictionary-only builtins', () => {
     const scope = mark(vm);
     // @ts-ignore test-only
     vm.head = 0; // 0 = NIL/empty dictionary
+    // @ts-ignore test-only
+    vm.headRef = toTaggedValue(0, Tag.SENTINEL);
     defineBuiltin(vm, name, opcode, true);
     const tv = lookup(vm, name);
     expect(tv).toBeDefined();
@@ -41,6 +43,8 @@ describe('dictionary-only builtins', () => {
     const scope = mark(vm);
     // @ts-ignore test-only
     vm.head = 0; // 0 = NIL/empty dictionary
+    // @ts-ignore test-only
+    vm.headRef = toTaggedValue(0, Tag.SENTINEL);
     // Define two entries; head is B, then A
     defineBuiltin(vm, a.name, a.opcode, false);
     defineBuiltin(vm, b.name, b.opcode, false);

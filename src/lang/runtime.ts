@@ -25,10 +25,6 @@ export let vm: VM;
  */
 export function setupRuntime(): void {
   vm = new VM();
-  const compiler = new Compiler(vm);
-  vm.compiler = compiler;
-  // Register built-in operations at composition time
-  registerBuiltins(vm, vm.symbolTable);
 }
 
 // Backward-compatible alias for legacy imports/tests

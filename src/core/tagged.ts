@@ -77,14 +77,14 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
     if (value < -32768 || value > 32767) {
       throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for SENTINEL tag');
     }
-
-    encodedValue = value & 0xffff;
+    // Explicitly truncate to integer to avoid precision loss from bitwise operations
+    encodedValue = Math.trunc(value) & 0xffff;
   } else {
     if (value < 0 || value > 65535) {
       throw new Error('Value must be 16-bit unsigned integer (0 to 65535)');
     }
-
-    encodedValue = value;
+    // Explicitly truncate to integer to avoid precision loss from bitwise operations
+    encodedValue = Math.trunc(value) & 0xffff;
   }
 
   const mantissaTagBits = (tag & 0x3f) << 16;
