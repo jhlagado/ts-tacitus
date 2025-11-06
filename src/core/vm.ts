@@ -100,15 +100,9 @@ export class VM {
     this.symbolTable = createSymbolTable(this.digest);
     this.symbolTable.attachVM(this);
     this.compiler = new Compiler(this);
-    // Disable analytics in test environment
-    const enableAnalytics = process.env.NODE_ENV !== 'test';
-    registerBuiltins(this, this.symbolTable, enableAnalytics);
-    // Do not force dictionary-first resolution; keep symbol table standalone
+    registerBuiltins(this, this.symbolTable);
   }
 
-  // Compiler is wired by assigning vm.compiler directly to reduce OO ceremony.
-
-  // Uppercase SP/RSP/BP/GP shims removed: use sp/rsp/bp/gp (absolute cells)
 
   /**
    * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.

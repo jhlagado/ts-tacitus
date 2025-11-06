@@ -2,8 +2,8 @@
  * @file src/core/dictionary.ts
  * Heap-backed dictionary (core). Simple, C-like cell operations.
  *
- * Entry layout (LIST length 3): [prevCell, payloadTagged, name]
- * - prevCell: cell index (number) to previous entry header, 0 = NIL (end of chain)
+ * Entry layout (LIST length 3): [prevRef, payloadTagged, name]
+ * - prevRef: DATA_REF to previous entry header, or NIL (end of chain)
  * - payloadTagged: any tagged value (BUILTIN/CODE/LOCAL/DATA_REF/...)
  * - name: STRING (interned)
  *
@@ -16,14 +16,14 @@ import {
   Tag,
   toTaggedValue,
   fromTaggedValue,
-  isNumber,
   isString,
   isNumber as isNumberTagged,
+  isNIL,
 } from './tagged';
 import { isList, getListLength, validateListHeader } from './list';
-import { isRef } from './refs';
+import { isRef, createGlobalRef, decodeDataRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
-import { CELL_SIZE, SEG_DATA, GLOBAL_BASE } from './constants';
+import { CELL_SIZE, SEG_DATA, GLOBAL_BASE, GLOBAL_BASE_CELLS } from './constants';
 
 // Helper to get byte address from cell index (relative to GLOBAL_BASE_CELLS)
 function getByteAddressFromCellIndex(cellIndex: number): number {
@@ -34,26 +34,15 @@ function getByteAddressFromCellIndex(cellIndex: number): number {
 export function define(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-  const prevCell = vm.head; // cell index (0 = NIL)
-  // Store prevCell as a NUMBER (cell index)
-  vm.gpush(prevCell);
+  // Create prevRef as DATA_REF (or NIL if head is 0)
+  const prevRef = vm.head === 0 ? NIL : createGlobalRef(vm.head);
+  vm.gpush(prevRef);
   vm.gpush(payloadTagged);
   vm.gpush(nameTagged);
   vm.gpush(toTaggedValue(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE_CELLS)
   vm.head = vm.gp - 1;
   vm.headRef = toTaggedValue(vm.gp - 1, Tag.SENTINEL);
-
-  // console.log(
-  //   'define',
-  //   name,
-  //   'vm.gp',
-  //   vm.gp,
-  //   'vm.head',
-  //   vm.head,
-  //   'vm.headRef',
-  //   fromTaggedValue(vm.headRef).value,
-  // );
 }
 
 export function defineBuiltin(vm: VM, name: string, opcode: number, isImmediate = false): void {
@@ -93,9 +82,20 @@ export function lookup(vm: VM, name: string): number {
       return vm.memory.readFloat32(SEG_DATA, base + PAYLOAD * CELL_SIZE);
     }
 
-    const prevCellValue = vm.memory.readFloat32(SEG_DATA, base + PREV * CELL_SIZE);
-    // prevCell is stored as a NUMBER (cell index)
-    cur = isNumber(prevCellValue) ? prevCellValue : 0;
+    const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + PREV * CELL_SIZE);
+    // prevRef is stored as DATA_REF (or NIL)
+    if (isNIL(prevRefValue)) {
+      cur = 0;
+    } else {
+      const { tag } = fromTaggedValue(prevRefValue);
+      if (tag === Tag.DATA_REF) {
+        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+        // Convert absolute cell index back to relative (relative to GLOBAL_BASE_CELLS)
+        cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
+      } else {
+        cur = 0;
+      }
+    }
   }
 
   return NIL;
@@ -143,11 +143,13 @@ function materializeValueRef(vm: VM, value: number): number {
   return ref;
 }
 
-// Build a LIST entry [prevCell, valueRef, name] on data stack and copy to global heap.
+// Build a LIST entry [prevRef, valueRef, name] on data stack and copy to global heap.
 // Returns cell index of the header (relative to GLOBAL_BASE_CELLS)
 function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: number): number {
-  // Payload order: prevCell (as NUMBER), valueRef, name, then LIST header of length 3
-  vm.push(prevCell); // Store as NUMBER (cell index)
+  // Create prevRef as DATA_REF (or NIL if prevCell is 0)
+  const prevRef = prevCell === 0 ? NIL : createGlobalRef(prevCell);
+  // Payload order: prevRef (as DATA_REF or NIL), valueRef, name, then LIST header of length 3
+  vm.push(prevRef);
   vm.push(valueRef);
   vm.push(name);
   const header = toTaggedValue(3, Tag.LIST);
@@ -244,16 +246,36 @@ export function dumpDictOp(vm: VM): void {
     const header = vm.memory.readFloat32(SEG_DATA, hAddr);
     if (!isList(header) || getListLength(header) !== 3) break;
     const base = hAddr - 3 * CELL_SIZE;
-    const prevCellValue = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
+    const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
     const _valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
     const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
     const nameInfo = fromTaggedValue(entryName);
     const nameStr =
       nameInfo.tag === Tag.STRING ? vm.digest.get(nameInfo.value) : `?tag:${nameInfo.tag}`;
-    const prevStr =
-      isNumberTagged(prevCellValue) && prevCellValue !== 0 ? `cell@${prevCellValue}` : 'NIL';
+    let prevStr = 'NIL';
+    if (!isNIL(prevRefValue)) {
+      const { tag } = fromTaggedValue(prevRefValue);
+      if (tag === Tag.DATA_REF) {
+        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+        const relativeCellIndex = absoluteCellIndex - GLOBAL_BASE_CELLS;
+        prevStr = `cell@${relativeCellIndex}`;
+      } else {
+        prevStr = `?tag:${tag}`;
+      }
+    }
     lines.push(`${i}: ${nameStr} -> prev:${prevStr} headerCell:${cur}`);
-    cur = isNumberTagged(prevCellValue) ? prevCellValue : 0;
+    // Decode prevRef to get next cell index
+    if (isNIL(prevRefValue)) {
+      cur = 0;
+    } else {
+      const { tag } = fromTaggedValue(prevRefValue);
+      if (tag === Tag.DATA_REF) {
+        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+        cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
+      } else {
+        cur = 0;
+      }
+    }
     i++;
   }
   // Print from head to tail
