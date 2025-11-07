@@ -4,7 +4,7 @@
  */
 import type { VM, Verb } from '@src/core';
 import { toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
-import { nextUint16, nextInt16 } from '../core/vm';
+import { nextUint16, nextInt16, rdepth, depth } from '../core/vm';
 
 import {
   literalNumberOp,
@@ -310,9 +310,9 @@ export function dumpFrameOp(vm: VM): void {
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
   console.log(
     'RSP(cells):',
-    vm.rdepth(),
+    rdepth(vm),
     'SP(cells):',
-    vm.depth(),
+    depth(vm),
     'BP(cells):',
     vm.bp - RSTACK_BASE_CELLS,
     'GP(cells):',

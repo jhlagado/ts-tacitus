@@ -3,7 +3,7 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
-import { peekAt } from '../../core/vm';
+import { peekAt, depth } from '../../core/vm';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 
@@ -40,7 +40,7 @@ export function beginIfImmediate(): void {
 export function beginElseImmediate(): void {
   requireParserState();
 
-  if (vm.depth() < 2) {
+  if (depth(vm) < 2) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
@@ -50,7 +50,7 @@ export function beginElseImmediate(): void {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
-  if (vm.depth() === 0) {
+  if (depth(vm) === 0) {
     throw new SyntaxError('ELSE without IF', vm.getStackData());
   }
 
@@ -68,8 +68,8 @@ export function beginElseImmediate(): void {
 
 export function ensureNoOpenConditionals(): void {
   // Scan stack via VM.peekAt to avoid potential NaN canonicalization issues
-  const depth = vm.depth();
-  for (let offset = 0; offset < depth; offset++) {
+  const stackDepth = depth(vm);
+  for (let offset = 0; offset < stackDepth; offset++) {
     const tval = peekAt(vm, offset); // 0 = TOS
     const { tag, value: opcode } = fromTaggedValue(tval);
     if (tag === Tag.BUILTIN) {

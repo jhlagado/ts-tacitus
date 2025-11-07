@@ -15,6 +15,7 @@ import {
   VMError,
   STACK_BASE_CELLS,
 } from '@src/core';
+import { depth } from '../../core/vm';
 
 /**
  * Stack argument info: [nextSlot, size].
@@ -28,10 +29,10 @@ export type StackArgInfo = [number, number];
  * @returns [nextSlot, size] tuple
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
-  const depth = vm.depth();
-  const slotIndexFromBase = depth - startSlot - 1;
+  const stackDepth = depth(vm);
+    const slotIndexFromBase = stackDepth - startSlot - 1;
 
-  if (slotIndexFromBase < 0 || slotIndexFromBase >= depth) {
+  if (slotIndexFromBase < 0 || slotIndexFromBase >= stackDepth) {
     return [startSlot + 1, 1];
   }
 
@@ -136,15 +137,15 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
   let currentSlot = 0;
 
   for (let i = 0; i <= index; i++) {
-    const depth = vm.depth();
-    if (currentSlot >= depth) {
+    const stackDepth = depth(vm);
+    if (currentSlot >= stackDepth) {
       throw new StackUnderflowError('pick', index + 1, vm.getStackData());
     }
 
     const [nextSlot, size] = findElement(vm, currentSlot);
 
     if (i === index) {
-      const targetStartSlot = vm.depth() - nextSlot;
+      const targetStartSlot = depth(vm) - nextSlot;
       return [targetStartSlot, size];
     }
 
@@ -170,8 +171,8 @@ return;
   let currentSlot = 0;
 
   for (let i = 0; i < requiredElements; i++) {
-    const depth = vm.depth();
-    if (currentSlot >= depth) {
+    const stackDepth = depth(vm);
+    if (currentSlot >= stackDepth) {
       throw new StackUnderflowError(operationName, requiredElements, vm.getStackData());
     }
 
@@ -295,7 +296,7 @@ export const swapOp: Verb = (vm: VM) => {
     const [_secondNextSlot, secondSlots] = findElement(vm, topSlots);
 
     const totalSlots = topSlots + secondSlots;
-    const startSlot = vm.depth() - totalSlots;
+    const startSlot = depth(vm) - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {
@@ -328,7 +329,7 @@ export const rotOp: Verb = (vm: VM) => {
 
     const totalSlots = topSlots + midSlots + bottomSlots;
     const rotationSlots = midSlots + topSlots;
-    const startSlot = vm.depth() - totalSlots;
+    const startSlot = depth(vm) - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, rotationSlots);
   } catch (error) {
@@ -360,7 +361,7 @@ export const revrotOp: Verb = (vm: VM) => {
     const [_bottomNextSlot, bottomSlots] = findElement(vm, topSlots + midSlots);
 
     const totalSlots = topSlots + midSlots + bottomSlots;
-    const startSlot = vm.depth() - totalSlots;
+    const startSlot = depth(vm) - totalSlots;
 
     cellsRoll(vm, startSlot, totalSlots, topSlots);
   } catch (error) {

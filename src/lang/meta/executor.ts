@@ -9,7 +9,7 @@ type SymbolTableEntry = {
   isImmediate: boolean;
 }
 import { vm } from '../runtime';
-import { nextOpcode } from '../../core/vm';
+import { nextOpcode, rdepth } from '../../core/vm';
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
@@ -83,7 +83,7 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
 export function runImmediateCode(address: number): void {
   const savedIP = vm.IP;
   const savedBP = vm.bp;
-  const savedRSPRel = vm.rdepth();
+  const savedRSPRel = rdepth(vm);
   const savedRunning = vm.running;
   const savedCP = vm.compiler.CP;
   const savedBCP = vm.compiler.BCP;
@@ -101,7 +101,7 @@ export function runImmediateCode(address: number): void {
     const isUserDefined = (firstByte & 0x80) !== 0;
     const opcode = nextOpcode(vm);
     executeOp(vm, opcode as Op, isUserDefined);
-    if (vm.IP === savedIP && vm.rdepth() === savedRSPRel) {
+    if (vm.IP === savedIP && rdepth(vm) === savedRSPRel) {
       break;
     }
   }

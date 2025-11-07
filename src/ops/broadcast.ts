@@ -10,6 +10,7 @@ import type { VM } from '@src/core';
 import { isList, getListLength } from '@src/core';
 import { toTaggedValue, Tag } from '@src/core';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
+import { depth } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
@@ -301,7 +302,7 @@ throw new Error('broadcast type mismatch');
   dupOp(vm);
 
   // Transform the top copy in place using direct memory writes
-  const headerAddr = (vm.depth() - 1) * CELL_SIZE;
+  const headerAddr = (depth(vm) - 1) * CELL_SIZE;
   const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + headerAddr);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {

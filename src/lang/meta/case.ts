@@ -3,12 +3,13 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
+import { depth, rdepth } from '../../core/vm';
 
 const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
 const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
 
 function assertOpenCase(word: string): void {
-  if (vm.depth() === 0) {
+  if (depth(vm) === 0) {
     throw new SyntaxError(`${word} without open case`, vm.getStackData());
   }
   const closer = vm.peek();
@@ -22,7 +23,7 @@ export function beginCaseImmediate(): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
-  vm.push(vm.rdepth());
+  vm.push(rdepth(vm));
   vm.push(ENDCASE_CODE_REF);
 }
 

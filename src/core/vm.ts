@@ -224,16 +224,6 @@ export class VM {
     return stackData;
   }
 
-  /** Returns current data stack depth in slots (cells). */
-  depth(): number {
-    return this.sp - STACK_BASE_CELLS;
-  }
-
-  /** Returns current return stack depth in slots (cells). */
-  rdepth(): number {
-    return this.rsp - RSTACK_BASE_CELLS;
-  }
-
   /**
    * Ensures stack has minimum number of elements.
    * @param size Required stack depth
@@ -536,4 +526,22 @@ export function nextFloat32(vm: { memory: Memory; IP: number }): number {
  */
 export function nextUint16(vm: { memory: Memory; IP: number }): number {
   return nextUint16FromCode(vm);
+}
+
+/**
+ * Returns current data stack depth in slots (cells).
+ * @param vm VM instance
+ * @returns Stack depth in cells
+ */
+export function depth(vm: { sp: number }): number {
+  return vm.sp - STACK_BASE_CELLS;
+}
+
+/**
+ * Returns current return stack depth in slots (cells).
+ * @param vm VM instance
+ * @returns Return stack depth in cells
+ */
+export function rdepth(vm: { rsp: number }): number {
+  return vm.rsp - RSTACK_BASE_CELLS;
 }
