@@ -18,8 +18,7 @@ export interface SymbolTableEntry {
 export interface SymbolTableCheckpoint {
   head: null;
   localSlotCount: number;
-  fallbackDepth?: number;
-  localDepth?: number;
+  defsDepth: number; // Depth of unified defs array
 }
 
 export interface SymbolTable {
@@ -56,8 +55,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     localSlotCount: 0,
     dictLookupPreferred: true, // retained for API compatibility; unused
     fallbackEnabled: true, // retained for API compatibility; unused
-    localDefs: [] as { key: number; tval: number }[],
-    fallbackDefs: [] as { key: number; tval: number }[],
+    defs: [] as { key: number; tval: number }[],
   };
 
   function attachVM(vm: VM): void {
@@ -71,11 +69,9 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   }
   function findTaggedValue(name: string): number | undefined {
     const key = state.digest.intern(name);
-    for (let i = 0; i < state.localDefs.length; i++)
-      if (state.localDefs[i].key === key) return state.localDefs[i].tval;
-    // Self-contained resolution: locals first, then fallbackDefs
-    for (let i = 0; i < state.fallbackDefs.length; i++)
-      if (state.fallbackDefs[i].key === key) return state.fallbackDefs[i].tval;
+    // Search unified array - locals come first due to insertion order
+    for (let i = 0; i < state.defs.length; i++)
+      if (state.defs[i].key === key) return state.defs[i].tval;
     return undefined;
   }
   function find(name: string): number | undefined {
@@ -117,12 +113,14 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   }
   function defineSymbol(name: string, taggedOrRawValue: number): void {
     const key = state.digest.intern(name);
-    for (let i = 0; i < state.localDefs.length; i++)
-      if (state.localDefs[i].key === key) {
-        state.localDefs.unshift({ key, tval: taggedOrRawValue });
+    // Check if already exists and shadow it
+    for (let i = 0; i < state.defs.length; i++)
+      if (state.defs[i].key === key) {
+        state.defs.unshift({ key, tval: taggedOrRawValue });
         return;
       }
-    state.fallbackDefs.unshift({ key, tval: taggedOrRawValue });
+    // New definition - add to front (LIFO order)
+    state.defs.unshift({ key, tval: taggedOrRawValue });
     // Standalone: no mirroring to heap dictionary
   }
   function defineBuiltin(
@@ -132,12 +130,12 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     isImmediate = false,
   ): void {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-    state.fallbackDefs.unshift({ key: state.digest.intern(name), tval });
+    state.defs.unshift({ key: state.digest.intern(name), tval });
   }
   function defineCode(name: string, addr: number, isImmediate = false): void {
     const tval = toTaggedValue(addr, Tag.CODE, isImmediate ? 1 : 0);
     const key = state.digest.intern(name);
-    state.fallbackDefs.unshift({ key, tval });
+    state.defs.unshift({ key, tval });
   }
   function defineLocal(name: string): void {
     let slot: number;
@@ -145,14 +143,14 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     else slot = state.localSlotCount++;
     const tval = toTaggedValue(slot, Tag.LOCAL);
     const key = state.digest.intern(name);
-    state.localDefs.unshift({ key, tval });
+    // Locals are added to front - they'll be found first during lookup
+    state.defs.unshift({ key, tval });
   }
   function mark(): SymbolTableCheckpoint {
     const cp: SymbolTableCheckpoint = {
       head: null,
       localSlotCount: state.localSlotCount,
-      fallbackDepth: state.fallbackDefs.length,
-      localDepth: state.localDefs.length,
+      defsDepth: state.defs.length,
     };
     state.localSlotCount = 0;
     if (state.vmRef) state.vmRef.localCount = 0;
@@ -160,10 +158,7 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   }
   function revert(cp: SymbolTableCheckpoint): void {
     // Standalone: do not touch VM heap/dictionary state
-    if (typeof cp.fallbackDepth === 'number')
-      state.fallbackDefs.splice(0, state.fallbackDefs.length - cp.fallbackDepth);
-    if (typeof cp.localDepth === 'number')
-      state.localDefs.splice(0, state.localDefs.length - cp.localDepth);
+    if (typeof cp.defsDepth === 'number') state.defs.splice(0, state.defs.length - cp.defsDepth);
   }
   function getGlobalCount(): number {
     return 0;
