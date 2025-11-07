@@ -4,6 +4,7 @@
  */
 
 import type { VM } from './vm';
+import { peek, pop, ensureStackSize } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
 import { isRef, getByteAddressFromRef } from './refs';
@@ -38,11 +39,11 @@ export function getListLength(header: number): number {
 export function dropList(vm: VM): void {
   validateListHeader(vm);
 
-  const header = vm.peek();
+  const header = peek(vm);
   const slotCount = getListLength(header);
 
   for (let i = 0; i < slotCount + 1; i++) {
-    vm.pop();
+    pop(vm);
   }
 }
 
@@ -52,15 +53,15 @@ export function dropList(vm: VM): void {
  * @throws Error if TOS is not valid LIST
  */
 export function validateListHeader(vm: VM): void {
-  vm.ensureStackSize(1, 'LIST header validation');
+  ensureStackSize(vm, 1, 'LIST header validation');
 
-  const header = vm.peek();
+  const header = peek(vm);
   if (!isList(header)) {
     throw new Error('Expected LIST header at TOS');
   }
 
   const slotCount = getListLength(header);
-  vm.ensureStackSize(slotCount + 1, 'LIST payload validation');
+  ensureStackSize(vm, slotCount + 1, 'LIST payload validation');
 }
 
 /**
@@ -121,7 +122,7 @@ export function reverseSpan(vm: VM, spanSize: number): void {
 return;
 }
 
-  vm.ensureStackSize(spanSize, 'reverse span operation');
+  ensureStackSize(vm, spanSize, 'reverse span operation');
   // Reverse using absolute cell indices via u32 view
   const endCellExclusive = vm.sp;
   const startCellAbs = endCellExclusive - spanSize;

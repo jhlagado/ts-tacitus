@@ -1,5 +1,6 @@
 import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError } from '@src/core';
 import { vm } from './runtime';
+import { getStackData } from '../core/vm';
 import { TokenType } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ParserState, ActiveDefinition } from './state';
@@ -7,18 +8,18 @@ import { markWithLocalReset, defineCode } from '../core/dictionary';
 
 export function beginDefinition(state: ParserState): void {
   if (state.currentDefinition) {
-    throw new NestedDefinitionError(vm.getStackData());
+    throw new NestedDefinitionError(getStackData(vm));
   }
 
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
-    throw new SyntaxError('Expected word name after :', vm.getStackData());
+    throw new SyntaxError('Expected word name after :', getStackData(vm));
   }
 
   const wordName = String(nameToken.value);
 
   if (wordName === ':' || wordName === ';') {
-    throw new SyntaxError('Expected word name after :', vm.getStackData());
+    throw new SyntaxError('Expected word name after :', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Branch);
@@ -39,7 +40,7 @@ export function beginDefinition(state: ParserState): void {
 
 export function endDefinition(state: ParserState): void {
   if (!state.currentDefinition) {
-    throw new SyntaxError('Unexpected semicolon', vm.getStackData());
+    throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Exit);
@@ -56,7 +57,7 @@ export function endDefinition(state: ParserState): void {
 
 export function ensureNoOpenDefinition(state: ParserState): void {
   if (state.currentDefinition) {
-    throw new UnclosedDefinitionError(state.currentDefinition.name, vm.getStackData());
+    throw new UnclosedDefinitionError(state.currentDefinition.name, getStackData(vm));
   }
 }
 

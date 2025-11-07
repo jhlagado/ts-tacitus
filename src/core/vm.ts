@@ -12,7 +12,6 @@ import {
   CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
-  // Derived cell constants for direct use (avoid tiny getters)
   STACK_BASE_CELLS,
   STACK_TOP_CELLS,
   RSTACK_BASE_CELLS,
@@ -33,145 +32,71 @@ import {
 const CELL_SIZE_BYTES = CELL_SIZE;
 
 /**
- * Virtual Machine for executing Tacit bytecode.
+ * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
  */
-export class VM {
+export interface VM {
+  /** Memory instance for unified data segment access */
   memory: Memory;
-
-  // Canonical stack and heap registers measured in cells (plain fields)
-  public sp: number; // data stack pointer (one past TOS)
-  public rsp: number; // return stack pointer (one past RTOS)
-  public bp: number; // current frame base pointer (absolute cells)
-  public gp: number; // global heap bump pointer (cells)
-
+  /** Data stack pointer in cells (one past top of stack) */
+  sp: number;
+  /** Return stack pointer in cells (one past top of return stack) */
+  rsp: number;
+  /** Current frame base pointer in absolute cells */
+  bp: number;
+  /** Global heap bump pointer in cells */
+  gp: number;
+  /** Instruction pointer (byte offset into code segment) */
   IP: number;
+  /** Execution state flag */
   running: boolean;
-  compiler!: Compiler;
+  /** Compiler instance for bytecode generation */
+  compiler: Compiler;
+  /** String digest for string interning */
   digest: Digest;
+  /** Debug mode flag (enables invariant checks) */
   debug: boolean;
+  /** Current list nesting depth */
   listDepth: number;
+  /** Dictionary head cell index (0 = NIL/empty dictionary) */
   head: number;
+  /** Current local variable count */
   localCount: number;
-
-  /**
-   * Creates a new VM instance with initialized memory and built-in operations.
-   */
-  constructor() {
-    this.memory = new Memory();
-    this.IP = 0;
-    this.running = true;
-    this.sp = STACK_BASE_CELLS;
-    this.rsp = RSTACK_BASE_CELLS;
-    this.bp = RSTACK_BASE_CELLS;
-    this.gp = 0;
-
-    this.digest = new Digest(this.memory);
-    this.debug = false;
-    this.listDepth = 0;
-    this.localCount = 0;
-
-    this.head = 0; // cell index (0 = NIL, empty dictionary)
-    this.compiler = new Compiler(this);
-    registerBuiltins(this);
-  }
-
-  /**
-   * Pushes a value onto the data stack.
-   * @param value The value to push
-   * @throws {StackOverflowError} If stack overflow occurs
-   */
-  push(value: number): void {
-    push(this, value);
-  }
-
-  /**
-   * Pops a value from the data stack.
-   * @returns The popped value
-   * @throws {StackUnderflowError} If stack underflow occurs
-   */
-  pop(): number {
-    return pop(this);
-  }
-
-  /**
-   * Peeks at the top stack value.
-   * @returns The top value
-   * @throws {StackUnderflowError} If stack is empty
-   */
-  peek(): number {
-    return peek(this);
-  }
-
-  // ---------------- Global data window (heap-as-stack) minimal API ----------------
-
-  /**
-   * Pushes a value onto the return stack.
-   * @param value The value to push
-   * @throws {ReturnStackOverflowError} If return stack overflow occurs
-   */
-  rpush(value: number): void {
-    rpush(this, value);
-  }
-
-  /**
-   * Pops a value from the return stack.
-   * @returns The popped value
-   * @throws {ReturnStackUnderflowError} If return stack underflow occurs
-   */
-  rpop(): number {
-    return rpop(this);
-  }
-
-  /**
-   * Gets the current data stack contents.
-   * @returns Array of stack values
-   */
-  getStackData(): number[] {
-    return getStackData(this);
-  }
-
-  /**
-   * Ensures stack has minimum number of elements.
-   * @param size Required stack depth
-   * @param operation Operation name for error reporting
-   * @throws {StackUnderflowError} If insufficient stack elements
-   */
-  ensureStackSize(size: number, operation: string): void {
-    ensureStackSize(this, size, operation);
-  }
-
-  /**
-   * Gets the current compiled bytecode.
-   * @returns Array of code bytes
-   */
-
-  /**
-   * Resolves a symbol name to a tagged value.
-   * @param name The symbol name to resolve
-   * @returns Tagged value for the symbol, or undefined if not found
-   */
-  resolveSymbol(name: string): number | undefined {
-    return resolveSymbol(this, name);
-  }
-
-  /**
-   * Pushes a symbol reference onto the stack.
-   * @param name The symbol name to resolve and push
-   * @throws Error if the symbol is not found
-   */
-  pushSymbolRef(name: string): void {
-    pushSymbolRef(this, name);
-  }
 }
 
-// Registers are plain public fields (sp, rsp, bp, gp). No special accessors required.
-
-// ---------- Pure helpers to decouple logic from VM class ----------
+/**
+ * Creates and returns a new initialized VM instance as a plain object.
+ * This is the standard way to create a VM.
+ *
+ * @returns A new VM instance with all fields initialized
+ */
+export function createVM(): VM {
+  const memory = new Memory();
+  const digest = new Digest(memory);
+  const vm: VM = {
+    memory,
+    IP: 0,
+    running: true,
+    sp: STACK_BASE_CELLS,
+    rsp: RSTACK_BASE_CELLS,
+    bp: RSTACK_BASE_CELLS,
+    gp: 0,
+    digest,
+    debug: false,
+    listDepth: 0,
+    localCount: 0,
+    head: 0,
+    compiler: null as unknown as Compiler,
+  };
+  vm.compiler = new Compiler(vm);
+  registerBuiltins(vm);
+  return vm;
+}
 
 /**
  * Pushes a value onto the data stack.
- * @param vm VM instance
- * @param value The value to push
+ *
+ * @param vm - VM instance
+ * @param value - The value to push
  * @throws {StackOverflowError} If stack overflow occurs
  */
 export function push(vm: VM, value: number): void {
@@ -180,7 +105,6 @@ export function push(vm: VM, value: number): void {
   }
 
   const offsetBytes = (vm.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
-  // Write via unified data segment
   vm.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
   vm.sp += 1;
   if (vm.debug) {
@@ -190,7 +114,8 @@ export function push(vm: VM, value: number): void {
 
 /**
  * Pops a value from the data stack.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The popped value
  * @throws {StackUnderflowError} If stack underflow occurs
  */
@@ -204,13 +129,13 @@ export function pop(vm: VM): number {
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  // Read via unified data segment
   return vm.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
 }
 
 /**
  * Peeks at the top stack value.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The top value
  * @throws {StackUnderflowError} If stack is empty
  */
@@ -225,8 +150,9 @@ export function peek(vm: VM): number {
 
 /**
  * Pushes a value onto the return stack.
- * @param vm VM instance
- * @param value The value to push
+ *
+ * @param vm - VM instance
+ * @param value - The value to push
  * @throws {ReturnStackOverflowError} If return stack overflow occurs
  */
 export function rpush(vm: VM, value: number): void {
@@ -235,7 +161,6 @@ export function rpush(vm: VM, value: number): void {
   }
 
   const offsetBytes = (vm.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
-  // Write via unified data segment
   vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
   vm.rsp += 1;
   if (vm.debug) {
@@ -245,7 +170,8 @@ export function rpush(vm: VM, value: number): void {
 
 /**
  * Pops a value from the return stack.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The popped value
  * @throws {ReturnStackUnderflowError} If return stack underflow occurs
  */
@@ -259,20 +185,19 @@ export function rpop(vm: VM): number {
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  // Read via unified data segment
   return vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
 }
 
 /**
  * Gets the current data stack contents.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns Array of stack values
  */
 export function getStackData(vm: VM): number[] {
   const stackData: number[] = [];
   const depthCells = vm.sp - STACK_BASE_CELLS;
   for (let i = 0; i < depthCells; i += 1) {
-    // Read via unified data segment for forward-compatibility
     const byteOffset = STACK_BASE + i * CELL_SIZE_BYTES;
     stackData.push(vm.memory.readFloat32(SEG_DATA, byteOffset));
   }
@@ -282,9 +207,10 @@ export function getStackData(vm: VM): number[] {
 
 /**
  * Ensures stack has minimum number of elements.
- * @param vm VM instance
- * @param size Required stack depth
- * @param operation Operation name for error reporting
+ *
+ * @param vm - VM instance
+ * @param size - Required stack depth
+ * @param operation - Operation name for error reporting
  * @throws {StackUnderflowError} If insufficient stack elements
  */
 export function ensureStackSize(vm: VM, size: number, operation: string): void {
@@ -295,8 +221,9 @@ export function ensureStackSize(vm: VM, size: number, operation: string): void {
 
 /**
  * Resolves a symbol name to a tagged value.
- * @param vm VM instance
- * @param name The symbol name to resolve
+ *
+ * @param vm - VM instance
+ * @param name - The symbol name to resolve
  * @returns Tagged value for the symbol, or undefined if not found
  */
 export function resolveSymbol(vm: VM, name: string): number | undefined {
@@ -306,9 +233,10 @@ export function resolveSymbol(vm: VM, name: string): number | undefined {
 
 /**
  * Pushes a symbol reference onto the stack.
- * @param vm VM instance
- * @param name The symbol name to resolve and push
- * @throws Error if the symbol is not found
+ *
+ * @param vm - VM instance
+ * @param name - The symbol name to resolve and push
+ * @throws {Error} If the symbol is not found
  */
 export function pushSymbolRef(vm: VM, name: string): void {
   const taggedValue = resolveSymbol(vm, name);
@@ -318,51 +246,42 @@ export function pushSymbolRef(vm: VM, name: string): void {
   push(vm, taggedValue);
 }
 
-export function ensureInvariantsPure(vmLike: {
-  sp: number;
-  rsp: number;
-  bp: number;
-  gp: number;
-}): void {
-  if (vmLike.sp < 0 || vmLike.rsp < 0 || vmLike.bp < 0) {
+function checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): void {
+  if (vm.sp < 0 || vm.rsp < 0 || vm.bp < 0) {
     throw new Error('Invariant violation: negative stack pointer');
   }
-  if (
-    !Number.isInteger(vmLike.sp) ||
-    !Number.isInteger(vmLike.rsp) ||
-    !Number.isInteger(vmLike.bp)
-  ) {
+  if (!Number.isInteger(vm.sp) || !Number.isInteger(vm.rsp) || !Number.isInteger(vm.bp)) {
     throw new Error('Invariant violation: non-integer stack pointer');
   }
-  if (vmLike.gp < 0) {
+  if (vm.gp < 0) {
     throw new Error('Invariant violation: negative global pointer');
   }
-  if (!Number.isInteger(vmLike.gp)) {
+  if (!Number.isInteger(vm.gp)) {
     throw new Error('Invariant violation: non-integer global pointer');
   }
-  if (vmLike.sp < STACK_BASE_CELLS || vmLike.sp > STACK_TOP_CELLS) {
+  if (vm.sp < STACK_BASE_CELLS || vm.sp > STACK_TOP_CELLS) {
     throw new Error('Invariant violation: SP outside stack segment');
   }
-  if (vmLike.rsp < RSTACK_BASE_CELLS || vmLike.rsp > RSTACK_TOP_CELLS) {
+  if (vm.rsp < RSTACK_BASE_CELLS || vm.rsp > RSTACK_TOP_CELLS) {
     throw new Error('Invariant violation: RSP outside return stack segment');
   }
-  if (vmLike.bp > vmLike.rsp) {
-    throw new Error(`Invariant violation: BP (${vmLike.bp}) > RSP (${vmLike.rsp})`);
+  if (vm.bp > vm.rsp) {
+    throw new Error(`Invariant violation: BP (${vm.bp}) > RSP (${vm.rsp})`);
   }
 }
 
-export function next8FromCode(vmLike: { memory: Memory; IP: number }): number {
-  const value = vmLike.memory.read8(SEG_CODE, vmLike.IP);
-  vmLike.IP += 1;
+function read8(vm: { memory: Memory; IP: number }): number {
+  const value = vm.memory.read8(SEG_CODE, vm.IP);
+  vm.IP += 1;
   return value;
 }
 
-export function nextOpcodeFromCode(vmLike: { memory: Memory; IP: number }): number {
-  const firstByte = vmLike.memory.read8(SEG_CODE, vmLike.IP);
-  vmLike.IP += 1;
+function readOp(vm: { memory: Memory; IP: number }): number {
+  const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+  vm.IP += 1;
   if ((firstByte & 0x80) !== 0) {
-    const secondByte = vmLike.memory.read8(SEG_CODE, vmLike.IP);
-    vmLike.IP += 1;
+    const secondByte = vm.memory.read8(SEG_CODE, vm.IP);
+    vm.IP += 1;
     const lowBits = firstByte & 0x7f;
     const highBits = secondByte << 7;
     return highBits | lowBits;
@@ -370,27 +289,27 @@ export function nextOpcodeFromCode(vmLike: { memory: Memory; IP: number }): numb
   return firstByte;
 }
 
-export function nextInt16FromCode(vmLike: { memory: Memory; IP: number }): number {
-  const unsignedValue = vmLike.memory.read16(SEG_CODE, vmLike.IP);
+function readI16(vm: { memory: Memory; IP: number }): number {
+  const unsignedValue = vm.memory.read16(SEG_CODE, vm.IP);
   const signedValue = (unsignedValue << 16) >> 16;
-  vmLike.IP += 2;
+  vm.IP += 2;
   return signedValue;
 }
 
-export function nextUint16FromCode(vmLike: { memory: Memory; IP: number }): number {
-  const value = vmLike.memory.read16(SEG_CODE, vmLike.IP);
-  vmLike.IP += 2;
+function readU16(vm: { memory: Memory; IP: number }): number {
+  const value = vm.memory.read16(SEG_CODE, vm.IP);
+  vm.IP += 2;
   return value;
 }
 
-export function nextFloat32FromCode(vmLike: { memory: Memory; IP: number }): number {
-  const value = vmLike.memory.readFloat32(SEG_CODE, vmLike.IP);
-  vmLike.IP += CELL_SIZE;
+function readF32(vm: { memory: Memory; IP: number }): number {
+  const value = vm.memory.readFloat32(SEG_CODE, vm.IP);
+  vm.IP += CELL_SIZE;
   return value;
 }
 
-export function nextAddressFromCode(vmLike: { memory: Memory; IP: number }): number {
-  const tagNum = nextFloat32FromCode(vmLike);
+function readAddr(vm: { memory: Memory; IP: number }): number {
+  const tagNum = readF32(vm);
   const { value: pointer } = fromTaggedValue(tagNum);
   return pointer;
 }
@@ -401,8 +320,9 @@ export function nextAddressFromCode(vmLike: { memory: Memory; IP: number }): num
  * malformed frames. Caller must ensure provided bytes are within overall return stack
  * segment range. Alignment is still enforced (throws if not cell-aligned) to avoid
  * undefined behavior in core logic.
- * @param vm VM instance
- * @param rawBytes Byte offset to force as BP
+ *
+ * @param vm - VM instance
+ * @param rawBytes - Byte offset to force as BP
  */
 export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
   if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
@@ -417,8 +337,9 @@ export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
 
 /**
  * Pops multiple values from the stack.
- * @param vm VM instance
- * @param size Number of values to pop
+ *
+ * @param vm - VM instance
+ * @param size - Number of values to pop
  * @returns Array of values in stack order
  * @throws {StackUnderflowError} If stack underflow occurs
  */
@@ -444,9 +365,10 @@ export function popArray(
 
 /**
  * Ensures return stack has minimum number of elements.
- * @param vm VM instance
- * @param size Required return stack depth
- * @param operation Operation name for error reporting
+ *
+ * @param vm - VM instance
+ * @param size - Required return stack depth
+ * @param operation - Operation name for error reporting
  * @throws {ReturnStackUnderflowError} If insufficient return stack elements
  */
 export function ensureRStackSize(
@@ -461,27 +383,26 @@ export function ensureRStackSize(
 
 /**
  * Reads the next address from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The decoded code pointer
  */
 export function nextAddress(vm: VM): number {
-  return nextAddressFromCode(vm);
+  return readAddr(vm);
 }
 
 /**
  * Peeks at a value at a specific slot offset from the top of the stack.
- * @param vm VM instance
- * @param slotOffset Number of slots from the top (0 = top, 1 = second from top, etc.)
+ *
+ * @param vm - VM instance
+ * @param slotOffset - Number of slots from the top (0 = top, 1 = second from top, etc.)
  * @returns The value at the specified offset
  * @throws {StackUnderflowError} If the stack doesn't have enough values
  */
-export function peekAt(
-  vm: { sp: number; memory: Memory; getStackData: () => number[] },
-  slotOffset: number,
-): number {
+export function peekAt(vm: VM, slotOffset: number): number {
   const requiredCells = slotOffset + 1;
   if (vm.sp - STACK_BASE_CELLS < requiredCells) {
-    throw new StackUnderflowError('peekAt', requiredCells, vm.getStackData());
+    throw new StackUnderflowError('peekAt', requiredCells, getStackData(vm));
   }
 
   const offsetBytes = (vm.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
@@ -490,8 +411,9 @@ export function peekAt(
 
 /**
  * Push one cell to the global window.
- * @param vm VM instance
- * @param value Value to push
+ *
+ * @param vm - VM instance
+ * @param value - Value to push
  */
 export function gpush(vm: VM, value: number): void {
   if (vm.gp >= GLOBAL_SIZE_CELLS) {
@@ -504,7 +426,8 @@ export function gpush(vm: VM, value: number): void {
 
 /**
  * Peek top cell from the global window (no pop).
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The top value
  */
 export function gpeek(vm: VM): number {
@@ -517,7 +440,8 @@ export function gpeek(vm: VM): number {
 
 /**
  * Pop one cell from the global window and return it.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The popped value
  */
 export function gpop(vm: VM): number {
@@ -531,52 +455,58 @@ export function gpop(vm: VM): number {
 
 /**
  * Reads the next byte from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The byte value
  */
 export function next8(vm: VM): number {
-  return next8FromCode(vm);
+  return read8(vm);
 }
 
 /**
  * Reads the next opcode from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The decoded opcode or user-defined word address
  */
 export function nextOpcode(vm: VM): number {
-  return nextOpcodeFromCode(vm);
+  return readOp(vm);
 }
 
 /**
  * Reads the next 16-bit signed integer from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The signed integer value
  */
 export function nextInt16(vm: VM): number {
-  return nextInt16FromCode(vm);
+  return readI16(vm);
 }
 
 /**
  * Reads the next float from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The float value
  */
 export function nextFloat32(vm: VM): number {
-  return nextFloat32FromCode(vm);
+  return readF32(vm);
 }
 
 /**
  * Reads the next 16-bit unsigned integer from code and advances IP.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns The unsigned integer value
  */
 export function nextUint16(vm: VM): number {
-  return nextUint16FromCode(vm);
+  return readU16(vm);
 }
 
 /**
  * Returns current data stack depth in slots (cells).
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns Stack depth in cells
  */
 export function depth(vm: VM): number {
@@ -585,7 +515,8 @@ export function depth(vm: VM): number {
 
 /**
  * Returns current return stack depth in slots (cells).
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  * @returns Return stack depth in cells
  */
 export function rdepth(vm: VM): number {
@@ -595,31 +526,28 @@ export function rdepth(vm: VM): number {
 /**
  * Development-only invariant checks (enabled when vm.debug === true).
  * Validates relationships among SP, RSP, BP and segment bounds.
- * @param vm VM instance
+ *
+ * @param vm - VM instance
  */
 export function ensureInvariants(vm: VM): void {
-  // Non-negative integers
   if (vm.sp < 0 || vm.rsp < 0 || vm.bp < 0) {
     throw new Error('Invariant violation: negative stack pointer');
   }
   if (!Number.isInteger(vm.sp) || !Number.isInteger(vm.rsp) || !Number.isInteger(vm.bp)) {
     throw new Error('Invariant violation: non-integer stack pointer');
   }
-  // Global pointer sanity (non-negative integer)
   if (vm.gp < 0) {
     throw new Error('Invariant violation: negative global pointer');
   }
   if (!Number.isInteger(vm.gp)) {
     throw new Error('Invariant violation: non-integer global pointer');
   }
-  // Bounds vs configured sizes
   if (vm.sp < STACK_BASE_CELLS || vm.sp > STACK_TOP_CELLS) {
     throw new Error('Invariant violation: SP outside stack segment');
   }
   if (vm.rsp < RSTACK_BASE_CELLS || vm.rsp > RSTACK_TOP_CELLS) {
     throw new Error('Invariant violation: RSP outside return stack segment');
   }
-  // BP within [0, RSP]
   if (vm.bp > vm.rsp) {
     throw new Error(`Invariant violation: BP (${vm.bp}) > RSP (${vm.rsp})`);
   }

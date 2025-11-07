@@ -9,6 +9,9 @@ This document codifies conventions for naming public functions and shaping small
 - Keep public surfaces stable; evolve via aliases + deprecation windows.
 
 ## Function Naming Rules
+- **Terse names only**: Function and variable names must be 1-3 syllables maximum. No sentence-like camelCase.
+  - Good: `read8`, `readOp`, `readI16`, `readF32`, `readAddr`, `checkInv`
+  - Bad: `next8FromCode`, `nextOpcodeFromCode`, `nextInt16FromCode`, `ensureInvariantsPure`
 - Public ops: imperative verb + `Op` suffix (e.g., `fetchOp`, `printOp`).
 - Public helpers: 1–2 word camelCase names. Avoid names that read like sentences.
   - Good: `getListBounds`, `getListElemAddr`, `computeHeaderAddr`.

@@ -16,6 +16,8 @@ import { registerBuiltins } from '../ops/builtins-register';
  */
 export let vm: VM;
 
+import { createVM } from '../core/vm';
+
 /**
  * Initializes the interpreter runtime.
  *
@@ -24,7 +26,7 @@ export let vm: VM;
  * (CLI, REPL, file processor) before executing any Tacit code.
  */
 export function setupRuntime(): void {
-  vm = new VM();
+  vm = createVM();
 }
 
 // Backward-compatible alias for legacy imports/tests

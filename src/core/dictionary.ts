@@ -24,7 +24,7 @@ import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, decodeDataRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE, GLOBAL_BASE_CELLS } from './constants';
-import { gpush, peekAt } from './vm';
+import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
 // Helper to get byte address from cell index (relative to GLOBAL_BASE_CELLS)
 function getByteAddressFromCellIndex(cellIndex: number): number {
@@ -165,14 +165,14 @@ function materializeValueRef(vm: VM, value: number): number {
   }
   if (isList(value)) {
     validateListHeader(vm);
-    const header = vm.peek();
+    const header = peek(vm);
     const n = getListLength(header);
     const baseCell = vm.sp - 1 - n;
     const baseAddrBytes = baseCell * CELL_SIZE;
     const ref = pushListToGlobalHeap(vm, { header, baseAddrBytes });
     // Drop the original list from the data stack
     for (let i = 0; i < n + 1; i++) {
-      vm.pop();
+      pop(vm);
     }
     return ref;
   }
@@ -187,18 +187,18 @@ function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: numbe
   // Create prevRef as DATA_REF (or NIL if prevCell is 0)
   const prevRef = prevCell === 0 ? NIL : createGlobalRef(prevCell);
   // Payload order: prevRef (as DATA_REF or NIL), valueRef, name, then LIST header of length 3
-  vm.push(prevRef);
-  vm.push(valueRef);
-  vm.push(name);
+  push(vm, prevRef);
+  push(vm, valueRef);
+  push(vm, name);
   const header = toTaggedValue(3, Tag.LIST);
-  vm.push(header);
+  push(vm, header);
   const baseCell = vm.sp - 1 - 3;
   const baseAddrBytes = baseCell * CELL_SIZE;
   pushListToGlobalHeap(vm, { header, baseAddrBytes });
   validateListHeader(vm);
   // Remove temporary list from data stack
   for (let i = 0; i < 4; i++) {
-    vm.pop();
+    pop(vm);
   }
   // Header is at gp - 1 after push
   return vm.gp - 1;
@@ -206,27 +206,27 @@ function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: numbe
 
 // define: ( value name — )
 export function defineOp(vm: VM): void {
-  vm.ensureStackSize(2, 'define');
-  const name = vm.peek();
+  ensureStackSize(vm, 2, 'define');
+  const name = peek(vm);
   if (!isString(name)) {
     throw new Error('define expects STRING name');
   }
   const value = peekAt(vm, 1);
 
   // Pop name to expose value (especially for LIST path)
-  vm.pop();
+  pop(vm);
 
   let valueRef: number;
   if (isList(value)) {
     valueRef = materializeValueRef(vm, value);
   } else if (isRef(value)) {
     // Remove original value from stack
-    vm.pop();
+    pop(vm);
     valueRef = value;
   } else {
     valueRef = pushSimpleToGlobalHeap(vm, value);
     // Remove original value from stack
-    vm.pop();
+    pop(vm);
   }
 
   // Build entry list and update new dictionary head
@@ -237,28 +237,28 @@ export function defineOp(vm: VM): void {
 
 // lookup: ( name — ref|NIL )
 export function lookupOp(vm: VM): void {
-  vm.ensureStackSize(1, 'lookup');
-  const name = vm.pop();
+  ensureStackSize(vm, 1, 'lookup');
+  const name = pop(vm);
   if (!isString(name)) {
     throw new Error('lookup expects STRING name');
   }
 
   const nameStr = vm.digest.get(fromTaggedValue(name).value);
   const result = lookup(vm, nameStr);
-  vm.push(result);
+  push(vm, result);
 }
 
 // mark: ( — cellIndex )
 // Returns cell index (NUMBER) as mark, not a ref
 export function markOp(vm: VM): void {
-  vm.push(mark(vm)); // Push cell index as NUMBER
+  push(vm, mark(vm)); // Push cell index as NUMBER
 }
 
 // forget: ( cellIndex — )
 // Accepts cell index (NUMBER) as mark
 export function forgetOp(vm: VM): void {
-  vm.ensureStackSize(1, 'forget');
-  const markCellIndex = vm.pop();
+  ensureStackSize(vm, 1, 'forget');
+  const markCellIndex = pop(vm);
   if (!isNumberTagged(markCellIndex)) {
     throw new Error('forget expects NUMBER (cell index)');
   }

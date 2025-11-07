@@ -1,4 +1,4 @@
-import { VM } from '../../../../core';
+import { VM, createVM } from '../../../../core';
 import { toTaggedValue, Tag, isRef } from '../../../../core';
 import { push, peek } from '../../../../core/vm';
 import { refOp } from '../../../../ops/lists/query-ops';
@@ -6,7 +6,7 @@ import { refOp } from '../../../../ops/lists/query-ops';
 describe('refOp coverage', () => {
   let vm: VM;
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('refOp pushes reference for LIST at TOS', () => {

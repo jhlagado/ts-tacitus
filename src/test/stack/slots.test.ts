@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../core';
+import { VM, createVM } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { cellsRoll, cellsReverse } from '../../ops/stack';
 import { push, pop } from '../../core/vm';
@@ -8,7 +8,7 @@ describe('rangeRoll', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('should handle empty range', () => {
@@ -73,7 +73,7 @@ describe('reverseRange', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('should reverse a range of elements', () => {
