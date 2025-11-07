@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
-import { Tag, fromTaggedValue, isNIL } from '../../core';
+import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../core';
 import {
   defineBuiltin,
   defineCode,
@@ -377,6 +377,11 @@ describe('Dictionary payload types', () => {
     });
 
     test('forget with empty dictionary sets head to 0', () => {
+      // Clear dictionary and reset heap to get empty state
+      vm.head = 0;
+      vm.gp = 0;
+      vm.headRef = toTaggedValue(0, Tag.SENTINEL);
+
       const markPos = mark(vm);
       expect(vm.head).toBe(0);
       expect(vm.gp).toBe(0);
