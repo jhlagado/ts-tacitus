@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
 import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
+import { push, rpush } from '../../core/vm';
 
 describe('VM absolute registers (Phase B shims)', () => {
   beforeEach(() => {
@@ -23,10 +24,10 @@ describe('VM absolute registers (Phase B shims)', () => {
     const stackBaseCells = STACK_BASE / CELL_SIZE;
     const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
 
-    vm.push(1);
+    push(vm, 1);
     expect(vm.sp).toBe(stackBaseCells + 1);
 
-    vm.rpush(2);
+    rpush(vm, 2);
     expect(vm.rsp).toBe(rstackBaseCells + 1);
   });
 });

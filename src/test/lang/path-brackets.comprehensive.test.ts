@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { initializeInterpreter, vm } from '../../lang/runtime';
 import { executeProgram } from '../../lang/interpreter';
+import { getStackData } from '../../core/vm';
 
 describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
   beforeEach(() => {
@@ -10,19 +11,19 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('retrieve simple value: x[0 1] => 2', () => {
     executeProgram(': f ((1 2)(3 4)) var x x[0 1] ; f');
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack[stack.length - 1]).toBe(2);
   });
 
   test('retrieve compound value: x[0 0] is a list (length 2)', () => {
     executeProgram(': f (( (9 8) ) 7) var x x[0 0] length ; f');
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack[stack.length - 1]).toBe(2);
   });
 
   test('postfix path on arbitrary expression: (1 2 3)[0] => 1', () => {
     executeProgram('(1 2 3) [0]');
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(tos).toBe(1);
   });
 
@@ -31,7 +32,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
     // Here: ( 'stats ( 'count 2 ) )
     const code = ": f ( 'stats ( 'count 2 ) ) var obj obj['stats 'count] ; f";
     executeProgram(code);
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(tos).toBe(2);
   });
 
@@ -45,19 +46,19 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
       f
     `;
     executeProgram(code);
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(tos).toBe(7);
   });
 
   test('update simple value: 5 -> x[1 1] then x[1 1] == 5', () => {
     executeProgram(': f ((1 2)(3 4)) var x 5 -> x[1 1] x[1 1] ; f');
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack[stack.length - 1]).toBe(5);
   });
 
   test('update compound compatible: (1 2 3) -> x[0 0], length becomes 3', () => {
     executeProgram(': f ( ( (9 9 9) 8 ) ) var x (1 2 3) -> x[0 0] x[0 0] length ; f');
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack[stack.length - 1]).toBe(3);
   });
 
@@ -83,13 +84,13 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
       f
     `;
     executeProgram(code);
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack[stack.length - 1]).toBe(111);
   });
 
   test('empty path retrieval yields NIL', () => {
     executeProgram(': f (1 2) var x x[] ; f');
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(Number.isNaN(tos)).toBe(true); // NIL
   });
 
@@ -100,7 +101,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('whitespace inside brackets is tolerated', () => {
     executeProgram(': f ((1 2)(3 4)) var x x[ 0   1 ] ; f');
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(tos).toBe(2);
   });
 
@@ -112,7 +113,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
 
   test('negative index retrieval returns NIL', () => {
     executeProgram(': f (10 20) var x x[-1] ; f');
-    const tos = vm.getStackData().at(-1)!;
+    const tos = getStackData(vm).at(-1)!;
     expect(Number.isNaN(tos)).toBe(true);
   });
 
@@ -132,7 +133,7 @@ describe('Path bracket syntax: x[ ... ] and value -> x[ ... ]', () => {
       f
     `;
     executeProgram(code);
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     const a = stack[stack.length - 2];
     const b = stack[stack.length - 1];
     expect(a).toBe(7);

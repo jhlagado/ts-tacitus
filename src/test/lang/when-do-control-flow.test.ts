@@ -3,6 +3,7 @@ import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
 import { vm } from '../../lang/runtime';
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
+import { getStackData } from '../../core/vm';
 
 describe('when/do control flow', () => {
   beforeEach(() => {
@@ -73,7 +74,7 @@ describe('when/do control flow', () => {
     try {
       parse(new Tokenizer('when dup 0 eq do drop 1 ;'));
       // If parse did not throw, the construct must still be marked open.
-      expect(vm.getStackData().some((value: number) => Number.isNaN(value))).toBe(true);
+      expect(getStackData(vm).some((value: number) => Number.isNaN(value))).toBe(true);
       expect(() => ensureNoOpenConditionals()).toThrow('Unclosed `when`');
     } catch (err) {
       expect((err as Error).message).toContain('Unclosed `when`');

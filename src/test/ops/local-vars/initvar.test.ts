@@ -5,6 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../lang/runtime';
 import { initVarOp } from '../../../ops/builtins';
 import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
+import { push, getStackData } from '../../../core/vm';
 
 describe('InitVar Opcode', () => {
   beforeEach(() => {
@@ -18,7 +19,7 @@ describe('InitVar Opcode', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 6;
 
     // Push test value onto stack
-    vm.push(42);
+    push(vm, 42);
 
     // Write slot number to bytecode
     vm.compiler.compile16(5); // slot 5
@@ -32,12 +33,12 @@ describe('InitVar Opcode', () => {
     expect(storedValue).toBe(42);
 
     // Verify stack is empty
-    expect(vm.getStackData()).toEqual([]);
+    expect(getStackData(vm)).toEqual([]);
   });
 
   test('should handle slot 0', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 8;
-    vm.push(123);
+    push(vm, 123);
 
     vm.compiler.compile16(0); // slot 0
     initVarOp(vm);
@@ -48,7 +49,7 @@ describe('InitVar Opcode', () => {
 
   test('should handle negative values', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 10;
-    vm.push(-99.5);
+    push(vm, -99.5);
 
     vm.compiler.compile16(3); // slot 3
     initVarOp(vm);
@@ -60,7 +61,7 @@ describe('InitVar Opcode', () => {
 
   test('should handle large slot numbers', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 12;
-    vm.push(777);
+    push(vm, 777);
 
     vm.compiler.compile16(20); // large slot number within bounds
     initVarOp(vm);
@@ -72,7 +73,7 @@ describe('InitVar Opcode', () => {
 
   test('should handle floating point values', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 14;
-    vm.push(3.14159);
+    push(vm, 3.14159);
 
     vm.compiler.compile16(7); // slot 7
     initVarOp(vm);
@@ -95,17 +96,17 @@ describe('InitVar Opcode', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 16;
 
     // Initialize slot 0 with value 10
-    vm.push(10);
+    push(vm, 10);
     vm.compiler.compile16(0);
     initVarOp(vm);
 
     // Initialize slot 1 with value 20
-    vm.push(20);
+    push(vm, 20);
     vm.compiler.compile16(1);
     initVarOp(vm);
 
     // Initialize slot 2 with value 30
-    vm.push(30);
+    push(vm, 30);
     vm.compiler.compile16(2);
     initVarOp(vm);
 
@@ -115,19 +116,19 @@ describe('InitVar Opcode', () => {
     expect(vm.memory.readFloat32(SEG_DATA, vm.bp * CELL_SIZE + 2 * CELL_SIZE)).toBe(30);
 
     // Stack should be empty
-    expect(vm.getStackData()).toEqual([]);
+    expect(getStackData(vm)).toEqual([]);
   });
 
   test('should overwrite existing slot values', () => {
     vm.bp = RSTACK_BASE / CELL_SIZE + 18;
 
     // Initialize slot 5 with first value
-    vm.push(100);
+    push(vm, 100);
     vm.compiler.compile16(5);
     initVarOp(vm);
 
     // Overwrite slot 5 with new value
-    vm.push(200);
+    push(vm, 200);
     vm.compiler.compile16(5);
     initVarOp(vm);
 

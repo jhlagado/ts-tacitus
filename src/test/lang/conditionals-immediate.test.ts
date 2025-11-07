@@ -2,7 +2,7 @@ import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../lang/runtime';
-import { peekAt } from '../../core/vm';
+import { peekAt, push, peek } from '../../core/vm';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
 import { setParserState } from '../../lang/state';
 import { Tokenizer } from '../../lang/tokenizer';
@@ -28,28 +28,28 @@ describe('conditional immediates', () => {
   });
 
   test('ELSE rejects mismatched closer', () => {
-    vm.push(0);
-    vm.push(createBuiltinRef(Op.EndCase));
+    push(vm, 0);
+    push(vm, createBuiltinRef(Op.EndCase));
 
     expect(() => beginElseImmediate()).toThrow('ELSE without IF');
   });
 
   test('ELSE requires placeholder beneath closer', () => {
-    vm.push(createBuiltinRef(Op.EndIf));
+    push(vm, createBuiltinRef(Op.EndIf));
 
     expect(() => beginElseImmediate()).toThrow('ELSE without IF');
   });
 
   test('ELSE complains about missing branch placeholder', () => {
-    vm.push(Number.NaN);
-    vm.push(createBuiltinRef(Op.EndIf));
+    push(vm, Number.NaN);
+    push(vm, createBuiltinRef(Op.EndIf));
 
     expect(() => beginElseImmediate()).toThrow('ELSE missing branch placeholder');
   });
 
   test('ELSE complains about invalid branch placeholder', () => {
-    vm.push(-1);
-    vm.push(createBuiltinRef(Op.EndIf));
+    push(vm, -1);
+    push(vm, createBuiltinRef(Op.EndIf));
 
     expect(() => beginElseImmediate()).toThrow('ELSE invalid branch placeholder');
   });
@@ -70,14 +70,14 @@ describe('conditional immediates', () => {
     expect(exitPlaceholder).toBe(cpBeforeElse + 1);
 
     // Verify closer is EndIf on the stack top
-    verifyTaggedValue(vm.peek(), Tag.BUILTIN, Op.EndIf);
+    verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);
   });
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
     beginIfImmediate();
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
     // Top of stack should be EndIf closer
-    verifyTaggedValue(vm.peek(), Tag.BUILTIN, Op.EndIf);
+    verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);
     // Also verify the element beneath top is a NUMBER (branch placeholder offset)
     const belowTop = fromTaggedValue(peekAt(vm, 1));
     expect(belowTop.tag).toBe(Tag.NUMBER);
@@ -85,7 +85,7 @@ describe('conditional immediates', () => {
   });
 
   test('ensureNoOpenConditionals detects unclosed when', () => {
-    vm.push(createBuiltinRef(Op.EndWhen));
+    push(vm, createBuiltinRef(Op.EndWhen));
     expect(() => ensureNoOpenConditionals()).toThrow('Unclosed `when`');
   });
 

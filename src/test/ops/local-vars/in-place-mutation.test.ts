@@ -11,6 +11,7 @@ import {
 import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
 import { SEG_DATA, CELL_SIZE, RSTACK_BASE, STACK_BASE } from '../../../core/constants';
+import { push } from '../../../core/vm';
 
 describe('In-Place Compound Mutation', () => {
   beforeEach(() => {
@@ -130,7 +131,7 @@ describe('In-Place Compound Mutation', () => {
 
     test('should reject non-compound mutation attempts', () => {
       // Setup: Try to mutate with simple value
-      vm.push(42); // Simple value, not compound
+      push(vm, 42); // Simple value, not compound
 
       const targetAddr = 100;
       const existingHeader = toTaggedValue(1, Tag.LIST);

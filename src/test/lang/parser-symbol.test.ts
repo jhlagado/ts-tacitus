@@ -21,6 +21,7 @@
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
 import { vm } from '../../lang/runtime';
 import { Tag, fromTaggedValue } from '../../core';
+import { getStackData } from '../../core/vm';
 
 describe('@symbol Parser/Compiler Integration - Step 14', () => {
   beforeEach(() => {
@@ -71,19 +72,19 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
   describe('@symbol without eval (tagged values on stack)', () => {
     it('should push Tag.BUILTIN for built-ins', () => {
       executeTacitCode('@add');
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
 
-      const { tag, value: _value } = fromTaggedValue(stack[0]);
+      const { tag } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.BUILTIN);
     });
 
     it('should push Tag.CODE for colon definitions', () => {
       executeTacitCode(': test 42 ; @test');
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
 
-      const { tag, value: _value2 } = fromTaggedValue(stack[0]);
+      const { tag } = fromTaggedValue(stack[0]);
       expect(tag).toBe(Tag.CODE);
     });
   });

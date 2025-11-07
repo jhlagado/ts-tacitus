@@ -1,5 +1,6 @@
 import { VM } from '../../../../core';
 import { toTaggedValue, Tag, isRef } from '../../../../core';
+import { push, peek } from '../../../../core/vm';
 import { refOp } from '../../../../ops/lists/query-ops';
 
 describe('refOp coverage', () => {
@@ -10,26 +11,26 @@ describe('refOp coverage', () => {
 
   test('refOp pushes reference for LIST at TOS', () => {
     // Build a simple list (1 2) on the stack: payload then header
-    vm.push(1);
-    vm.push(2);
-    vm.push(toTaggedValue(2, Tag.LIST));
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, toTaggedValue(2, Tag.LIST));
     const spBefore = vm.sp;
 
     refOp(vm);
 
     expect(vm.sp).toBe(spBefore + 1);
-    const top = vm.peek();
+    const top = peek(vm);
     expect(isRef(top)).toBe(true);
   });
 
   test('refOp no-op for non-LIST TOS', () => {
-    vm.push(42);
+    push(vm, 42);
     const spBefore = vm.sp;
 
     refOp(vm);
 
     // No change to stack
     expect(vm.sp).toBe(spBefore);
-    expect(vm.peek()).toBe(42);
+    expect(peek(vm)).toBe(42);
   });
 });

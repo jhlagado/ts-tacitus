@@ -2,7 +2,7 @@ import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../lang/runtime';
-import { peekAt } from '../../core/vm';
+import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
 import {
   beginCaseImmediate,
   clauseOfImmediate,
@@ -34,7 +34,7 @@ describe('case immediates', () => {
     beginCaseImmediate();
 
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
-    const closer = vm.peek();
+    const closer = peek(vm);
     const closerInfo = fromTaggedValue(closer);
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndCase);
@@ -52,7 +52,7 @@ describe('case immediates', () => {
     clauseOfImmediate();
 
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(4);
-    const closerInfo = fromTaggedValue(vm.peek());
+    const closerInfo = fromTaggedValue(peek(vm));
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndOf);
 
@@ -96,7 +96,7 @@ describe('case immediates', () => {
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBeGreaterThanOrEqual(2);
-    const { tag, value } = fromTaggedValue(vm.peek());
+    const { tag, value } = fromTaggedValue(peek(vm));
     expect(tag).toBe(Tag.BUILTIN);
     expect(value).toBe(Op.EndCase);
 
@@ -123,9 +123,9 @@ describe('case immediates', () => {
 
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
 
-    const exitPos = vm.rpop();
+    const exitPos = rpop(vm);
     expect(exitPos).toBeGreaterThan(skipPos);
-    vm.rpush(exitPos);
+    rpush(vm, exitPos);
 
     const skipOffset = vm.memory.read16(SEG_CODE, skipPos);
     expect(skipOffset).toBe(exitPos - skipPos);
@@ -141,19 +141,19 @@ describe('case immediates', () => {
     vm.compiler.compileFloat32(20);
 
     clauseOfImmediate();
-    const endOfRef = vm.pop();
-    vm.push(Number.NaN);
-    vm.push(endOfRef);
+    const endOfRef = pop(vm);
+    push(vm, Number.NaN);
+    push(vm, endOfRef);
 
     expect(() => evalOp(vm)).toThrow('endof missing predicate placeholder');
   });
 
   test('endOfOp validates surrounding case metadata', () => {
     beginCaseImmediate();
-    vm.pop(); // remove EndCase to simulate misuse
+    pop(vm); // remove EndCase to simulate misuse
 
-    vm.push(42);
-    vm.push(createBuiltinRef(Op.EndOf));
+    push(vm, 42);
+    push(vm, createBuiltinRef(Op.EndOf));
 
     expect(() => evalOp(vm)).toThrow('clause closer without of');
   });
@@ -172,8 +172,8 @@ describe('case immediates', () => {
 
     evalOp(vm); // EndOf
 
-    const exitPos = vm.rpop();
-    vm.rpush(exitPos);
+    const exitPos = rpop(vm);
+    rpush(vm, exitPos);
 
     evalOp(vm); // EndCase
 

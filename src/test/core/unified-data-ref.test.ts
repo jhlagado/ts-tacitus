@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
+import { push, pop } from '../../core/vm';
 import {
   createDataRef,
   createGlobalRef,
@@ -89,16 +90,16 @@ describe('DATA_REF utilities', () => {
     const cellIndex = 15;
     vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 777.5);
     const ref = createDataRef(GLOBAL_BASE / CELL_SIZE + cellIndex);
-    vm.push(ref);
+    push(vm, ref);
     fetchOp(vm);
-    expect(vm.pop()).toBeCloseTo(777.5);
+    expect(pop(vm)).toBeCloseTo(777.5);
   });
 
   test('storeOp writes value via DATA_REF', () => {
     const cellIndex = 18;
     const ref = createDataRef(GLOBAL_BASE / CELL_SIZE + cellIndex);
-    vm.push(123.456);
-    vm.push(ref);
+    push(vm, 123.456);
+    push(vm, ref);
     storeOp(vm);
     expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBeCloseTo(
       123.456,

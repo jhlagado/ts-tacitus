@@ -21,6 +21,7 @@ import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
+import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../../core/vm';
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
 jest.retryTimes(2);
@@ -36,29 +37,29 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
       const start1 = performance.now();
       for (let i = 0; i < iterations; i++) {
-        vm.push(5);
-        vm.push(3);
-        vm.push(toTaggedValue(Op.Add, Tag.BUILTIN));
+        push(vm, 5);
+        push(vm, 3);
+        push(vm, toTaggedValue(Op.Add, Tag.BUILTIN));
         evalOp(vm);
-        vm.pop();
+        pop(vm);
       }
       const directTime = performance.now() - start1;
 
       const start2 = performance.now();
       for (let i = 0; i < iterations; i++) {
-        vm.push(5);
-        vm.push(3);
-        vm.pushSymbolRef('add');
+        push(vm, 5);
+        push(vm, 3);
+        pushSymbolRef(vm, 'add');
         evalOp(vm);
-        vm.pop();
+        pop(vm);
       }
       const symbolTime = performance.now() - start2;
 
-      vm.push(10);
-      vm.push(20);
-      vm.pushSymbolRef('add');
+      push(vm, 10);
+      push(vm, 20);
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.pop()).toBe(30);
+      expect(pop(vm)).toBe(30);
 
       expect(directTime).toBeLessThan(1000);
       expect(symbolTime).toBeLessThan(1000);
@@ -66,23 +67,23 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
     it('should handle rapid symbol resolution without memory leaks', () => {
       const iterations = 5000;
-      const initialStackSize = vm.getStackData().length;
+      const initialStackSize = getStackData(vm).length;
 
       for (let i = 0; i < iterations; i++) {
         try {
-          vm.pushSymbolRef('dup');
-          vm.pop();
+          pushSymbolRef(vm, 'dup');
+          pop(vm);
         } catch {
           /* empty */
         }
       }
 
-      expect(vm.getStackData().length).toBe(initialStackSize);
+      expect(getStackData(vm).length).toBe(initialStackSize);
 
-      vm.push(42);
-      vm.pushSymbolRef('dup');
+      push(vm, 42);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 42]);
+      expect(getStackData(vm)).toEqual([42, 42]);
     });
   });
 
@@ -93,15 +94,15 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
       defineCode(vm, colonDefName, startAddress);
 
-      const taggedValue = vm.resolveSymbol(colonDefName);
+      const taggedValue = resolveSymbol(vm, colonDefName);
       expect(taggedValue).toBeDefined();
 
       const { tag, value } = fromTaggedValue(taggedValue!);
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(startAddress);
 
-      vm.pushSymbolRef(colonDefName);
-      const stackValue = vm.peek();
+      pushSymbolRef(vm, colonDefName);
+      const stackValue = peek(vm);
       expect(stackValue).toBe(taggedValue);
     });
 
@@ -121,11 +122,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
       }
 
       for (const symbol of symbols) {
-        const resolved = vm.resolveSymbol(symbol);
+        const resolved = resolveSymbol(vm, symbol);
         expect(resolved).toBeDefined();
 
-        vm.pushSymbolRef(symbol);
-        const stackValue = vm.pop();
+        pushSymbolRef(vm, symbol);
+        const stackValue = pop(vm);
         expect(stackValue).toBe(resolved);
       }
     });
@@ -147,8 +148,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
         const symbols = useBuiltin ? builtinSymbols : codeSymbols;
         const symbol = symbols[i % symbols.length];
 
-        vm.pushSymbolRef(symbol);
-        const { tag } = fromTaggedValue(vm.pop());
+        pushSymbolRef(vm, symbol);
+        const { tag } = fromTaggedValue(pop(vm));
 
         if (useBuiltin) {
           expect(tag).toBe(Tag.BUILTIN);
@@ -164,61 +165,61 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const invalidSymbols = ['', 'nonexistent', '   ', 'undefined', 'null'];
 
       invalidSymbols.forEach(symbol => {
-        expect(() => vm.pushSymbolRef(symbol)).toThrow();
+        expect(() => pushSymbolRef(vm, symbol)).toThrow();
 
-        expect(vm.getStackData().length).toBe(0);
+        expect(getStackData(vm).length).toBe(0);
       });
     });
 
     it('should handle stack underflow during symbol execution', () => {
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       expect(() => evalOp(vm)).toThrow();
 
-      vm.push(5);
-      vm.pushSymbolRef('add');
+      push(vm, 5);
+      pushSymbolRef(vm, 'add');
       expect(() => evalOp(vm)).toThrow();
 
-      vm.push(3);
-      vm.pushSymbolRef('add');
+      push(vm, 3);
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.pop()).toBe(8);
+      expect(pop(vm)).toBe(8);
     });
 
     it('should handle complex execution chains without corruption', () => {
-      vm.push(5);
+      push(vm, 5);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 5]);
+      expect(getStackData(vm)).toEqual([5, 5]);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10]);
+      expect(getStackData(vm)).toEqual([10]);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 10]);
+      expect(getStackData(vm)).toEqual([10, 10]);
 
-      vm.push(2);
-      vm.pushSymbolRef('add');
+      push(vm, 2);
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 12]);
+      expect(getStackData(vm)).toEqual([10, 12]);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([22]);
+      expect(getStackData(vm)).toEqual([22]);
     });
 
     it('should handle symbol resolution with corrupted internal state', () => {
       defineBuiltin(vm, 'test', Op.Add);
 
-      vm.push(999);
-      vm.push(-999);
-      vm.pop();
-      vm.pop();
+      push(vm, 999);
+      push(vm, -999);
+      pop(vm);
+      pop(vm);
 
-      vm.pushSymbolRef('test');
-      const { tag, value } = fromTaggedValue(vm.pop());
+      pushSymbolRef(vm, 'test');
+      const { tag, value } = fromTaggedValue(pop(vm));
       expect(tag).toBe(Tag.BUILTIN);
       expect(value).toBe(Op.Add);
     });
@@ -229,45 +230,45 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const iterations = 10000;
 
       for (let i = 0; i < iterations; i++) {
-        vm.push(1);
-        vm.pushSymbolRef('dup');
+        push(vm, 1);
+        pushSymbolRef(vm, 'dup');
         evalOp(vm);
 
-        vm.pop();
-        vm.pop();
+        pop(vm);
+        pop(vm);
       }
 
-      vm.push(42);
-      vm.pushSymbolRef('dup');
+      push(vm, 42);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 42]);
+      expect(getStackData(vm)).toEqual([42, 42]);
     });
 
     it('should handle nested symbol execution patterns', () => {
       const symbols = ['add', 'dup', 'swap'];
 
       for (let depth = 0; depth < 100; depth++) {
-        vm.push(depth);
+        push(vm, depth);
 
         for (let i = 0; i < 3; i++) {
           const symbol = symbols[i % symbols.length];
           try {
-            vm.pushSymbolRef(symbol);
-            vm.pop();
+            pushSymbolRef(vm, symbol);
+            pop(vm);
           } catch {
             /* empty */
           }
         }
 
-        while (vm.getStackData().length > 0) {
-          vm.pop();
+        while (getStackData(vm).length > 0) {
+          pop(vm);
         }
       }
 
-      vm.push(100);
-      vm.pushSymbolRef('dup');
+      push(vm, 100);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([100, 100]);
+      expect(getStackData(vm)).toEqual([100, 100]);
     });
   });
 
@@ -278,19 +279,19 @@ describe('VM Comprehensive Testing - Step 12', () => {
       defineCode(vm, 'square', 5000);
       defineCode(vm, 'double', 5100);
 
-      vm.push(3);
-      vm.push(4);
-      vm.pushSymbolRef('add');
+      push(vm, 3);
+      push(vm, 4);
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.peek()).toBe(7);
+      expect(peek(vm)).toBe(7);
 
-      vm.push(2);
-      vm.pushSymbolRef('mul');
+      push(vm, 2);
+      pushSymbolRef(vm, 'mul');
       evalOp(vm);
-      expect(vm.peek()).toBe(14);
+      expect(peek(vm)).toBe(14);
 
-      vm.pushSymbolRef('square');
-      const { tag, value } = fromTaggedValue(vm.pop());
+      pushSymbolRef(vm, 'square');
+      const { tag, value } = fromTaggedValue(pop(vm));
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(5000);
     });
@@ -316,14 +317,14 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
         if (useBuiltin) {
           const op = builtins[i % builtins.length];
-          vm.pushSymbolRef(op.name);
-          const { tag, value } = fromTaggedValue(vm.pop());
+          pushSymbolRef(vm, op.name);
+          const { tag, value } = fromTaggedValue(pop(vm));
           expect(tag).toBe(Tag.BUILTIN);
           expect(value).toBe(op.code);
         } else {
           const def = codeDefs[i % codeDefs.length];
-          vm.pushSymbolRef(def.name);
-          const { tag, value } = fromTaggedValue(vm.pop());
+          pushSymbolRef(vm, def.name);
+          const { tag, value } = fromTaggedValue(pop(vm));
           expect(tag).toBe(Tag.CODE);
           expect(value).toBe(def.addr);
         }
@@ -331,56 +332,56 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should integrate properly with existing VM operations', () => {
-      vm.push(10);
-      vm.push(20);
-      vm.push(30);
-      expect(vm.getStackData()).toEqual([10, 20, 30]);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 30);
+      expect(getStackData(vm)).toEqual([10, 20, 30]);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 20, 30, 30]);
+      expect(getStackData(vm)).toEqual([10, 20, 30, 30]);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 20, 60]);
+      expect(getStackData(vm)).toEqual([10, 20, 60]);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 80]);
+      expect(getStackData(vm)).toEqual([10, 80]);
 
-      vm.push(5);
-      vm.pushSymbolRef('mul');
+      push(vm, 5);
+      pushSymbolRef(vm, 'mul');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([10, 400]);
+      expect(getStackData(vm)).toEqual([10, 400]);
     });
 
     it('should maintain stack integrity across complex operations', () => {
-      vm.push(5);
-      vm.pushSymbolRef('dup');
+      push(vm, 5);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 5]);
+      expect(getStackData(vm)).toEqual([5, 5]);
 
-      vm.push(3);
-      vm.pushSymbolRef('add');
+      push(vm, 3);
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 8]);
+      expect(getStackData(vm)).toEqual([5, 8]);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 8, 8]);
+      expect(getStackData(vm)).toEqual([5, 8, 8]);
 
-      vm.push(2);
-      vm.pushSymbolRef('mul');
+      push(vm, 2);
+      pushSymbolRef(vm, 'mul');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 8, 16]);
+      expect(getStackData(vm)).toEqual([5, 8, 16]);
 
-      vm.pushSymbolRef('swap');
+      pushSymbolRef(vm, 'swap');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 16, 8]);
+      expect(getStackData(vm)).toEqual([5, 16, 8]);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([5, 24]);
+      expect(getStackData(vm)).toEqual([5, 24]);
     });
   });
 
@@ -389,48 +390,48 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const initialSP = vm.sp;
       const initialRSP = vm.rsp; // absolute return stack cells
 
-      vm.push(42);
-      vm.pushSymbolRef('dup');
+      push(vm, 42);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
 
-      vm.pop();
+      pop(vm);
 
       expect(vm.rsp).toBe(initialRSP);
       expect(vm.sp).toBe(initialSP);
 
-      vm.push(100);
-      vm.pushSymbolRef('dup');
+      push(vm, 100);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([100, 100]);
+      expect(getStackData(vm)).toEqual([100, 100]);
     });
 
     it('should handle error recovery gracefully', () => {
-      const initialStackSize = vm.getStackData().length;
+      const initialStackSize = getStackData(vm).length;
 
       const errorCases = [
-        () => vm.pushSymbolRef('nonexistent'),
+        () => pushSymbolRef(vm, 'nonexistent'),
         () => {
-          vm.pushSymbolRef('add');
+          pushSymbolRef(vm, 'add');
           evalOp(vm);
         },
-        () => vm.pushSymbolRef(''),
+        () => pushSymbolRef(vm, ''),
       ];
 
       errorCases.forEach(errorCase => {
         try {
           errorCase();
         } catch (_error) {
-          expect(vm.getStackData().length).toBe(initialStackSize);
+          expect(getStackData(vm).length).toBe(initialStackSize);
         }
       });
 
-      vm.push(99);
-      vm.pushSymbolRef('dup');
+      push(vm, 99);
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([99, 99]);
+      expect(getStackData(vm)).toEqual([99, 99]);
     });
   });
 });

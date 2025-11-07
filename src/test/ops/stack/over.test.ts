@@ -2,6 +2,7 @@ import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../lang/runtime';
 import { overOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
+import { push, getStackData } from '../../../core/vm';
 
 describe('over Operation', () => {
   beforeEach(() => {
@@ -10,23 +11,23 @@ describe('over Operation', () => {
 
   describe('simple values', () => {
     test('should duplicate the second item (simple values)', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
       overOp(vm);
 
-      expect(vm.getStackData()).toEqual([1, 2, 1]);
+      expect(getStackData(vm)).toEqual([1, 2, 1]);
     });
 
     test('should work with multiple values on stack', () => {
-      vm.push(10);
-      vm.push(20);
-      vm.push(30);
-      vm.push(40);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 30);
+      push(vm, 40);
 
       overOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(5);
       expect(stack[0]).toBe(10);
       expect(stack[1]).toBe(20);
@@ -38,31 +39,31 @@ describe('over Operation', () => {
 
   describe('list operations (LIST semantics)', () => {
     test('should duplicate a value over a list', () => {
-      vm.push(42);
-      vm.push(10);
-      vm.push(20);
-      vm.push(toTaggedValue(2, Tag.LIST));
+      push(vm, 42);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, toTaggedValue(2, Tag.LIST));
 
       overOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(5);
       expect(stack[0]).toBe(42);
       expect(stack[stack.length - 1]).toBe(42);
     });
 
     test('should handle nested lists correctly', () => {
-      vm.push(2);
-      vm.push(3);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(1);
-      vm.push(toTaggedValue(2, Tag.LIST));
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 1);
+      push(vm, toTaggedValue(2, Tag.LIST));
 
-      vm.push(99);
+      push(vm, 99);
 
       overOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
 
       expect(stack.length).toBeGreaterThan(4);
     });
@@ -70,7 +71,7 @@ describe('over Operation', () => {
 
   describe('error cases', () => {
     test('should throw on insufficient stack', () => {
-      vm.push(42);
+      push(vm, 42);
       expect(() => overOp(vm)).toThrow('Stack underflow');
     });
 

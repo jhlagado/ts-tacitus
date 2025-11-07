@@ -3,7 +3,7 @@ import { initializeInterpreter, vm } from '../../lang/runtime';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { executeProgram } from '../../lang/interpreter';
-import { next8, nextInt16, nextFloat32 } from '../../core/vm';
+import { next8, nextInt16, nextFloat32, resolveSymbol, pop } from '../../core/vm';
 
 describe('Comprehensive Parser Tests', () => {
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe('Comprehensive Parser Tests', () => {
   describe('Word Definitions', () => {
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
-      const emptyWord = vm.resolveSymbol('empty');
+      const emptyWord = resolveSymbol(vm, 'empty');
       expect(emptyWord).toBeDefined();
       vm.IP = 0;
       expect(next8(vm)).toBe(Op.Branch);
@@ -37,12 +37,12 @@ describe('Comprehensive Parser Tests', () => {
     });
     test('should handle words with special characters in name', () => {
       parse(new Tokenizer(': test-word! add sub ;'));
-      expect(vm.resolveSymbol('test-word!')).toBeDefined();
+      expect(resolveSymbol(vm, 'test-word!')).toBeDefined();
     });
     test('should handle word names that start with numbers', () => {
       vm.IP = 0;
       executeProgram(': 2x 2 mul ; 5 2x');
-      expect(vm.pop()).toBe(10);
+      expect(pop(vm)).toBe(10);
     });
   });
   describe('Lists', () => {

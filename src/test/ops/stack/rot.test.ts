@@ -2,6 +2,7 @@ import { Tag, toTaggedValue } from '../../../core/tagged';
 import { vm } from '../../../lang/runtime';
 import { rotOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
+import { push, getStackData } from '../../../core/vm';
 
 describe('rot Operation', () => {
   beforeEach(() => {
@@ -10,13 +11,13 @@ describe('rot Operation', () => {
 
   describe('simple values', () => {
     test('should rotate three simple values', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
 
       rotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(2);
       expect(stack[1]).toBe(3);
@@ -24,15 +25,15 @@ describe('rot Operation', () => {
     });
 
     test('should rotate with more values on stack', () => {
-      vm.push(10);
-      vm.push(20);
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
 
       rotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(5);
 
       expect(stack).toBeDefined();
@@ -41,55 +42,55 @@ describe('rot Operation', () => {
 
   describe('list operations (LIST semantics)', () => {
     test('should rotate a list with two simple values', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(3);
-      vm.push(4);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 3);
+      push(vm, 4);
 
       rotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(5);
     });
 
     test('should rotate three lists', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(3);
-      vm.push(4);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(5);
-      vm.push(6);
-      vm.push(toTaggedValue(2, Tag.LIST));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 3);
+      push(vm, 4);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 5);
+      push(vm, 6);
+      push(vm, toTaggedValue(2, Tag.LIST));
 
       rotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(9);
     });
 
     test('should handle nested lists', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
-      vm.push(toTaggedValue(3, Tag.LIST));
-      vm.push(4);
-      vm.push(5);
-      vm.push(toTaggedValue(3, Tag.LIST));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, 4);
+      push(vm, 5);
+      push(vm, toTaggedValue(3, Tag.LIST));
 
       rotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(7);
     });
   });
 
   describe('error cases', () => {
     test('should throw on insufficient stack depth', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
       expect(() => rotOp(vm)).toThrow('Stack underflow');
     });

@@ -8,6 +8,8 @@ import { vm } from '../../../../lang/runtime';
 import { pickOp } from '../../../../ops/stack';
 import { elemOp } from '../../../../ops/lists';
 import { isRef } from '../../../../core/refs';
+import { getStackData, peek } from '../../../../core/vm';
+import { push } from '../../../../core/vm';
 import { getTag, isNIL } from '../../../../core/tagged';
 
 describe('List Operations', () => {
@@ -63,11 +65,11 @@ describe('List Operations', () => {
     });
 
     test('should pick a list from the stack', () => {
-      vm.push(10);
-      vm.push(20);
-      vm.push(1);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 1);
       pickOp(vm);
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack[stack.length - 1]).toBe(10);
     });
   });
@@ -130,11 +132,11 @@ describe('List Operations', () => {
 
       // Step 2: Use that reference to access element 0
       // Current stack: ( ( 10 20 ) ( 30 40 ) ) ref-to-(30 40)
-      vm.push(0); // Add index 0
+      push(vm, 0); // Add index 0
 
       elemOp(vm); // Should give us ref to element 0 of (30 40), which is 30
 
-      const finalRef = vm.peek();
+      const finalRef = peek(vm);
 
       // This is the assertion that should pass but currently fails in select-ops
       expect(isNIL(finalRef)).toBe(false);

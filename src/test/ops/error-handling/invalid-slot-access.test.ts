@@ -5,7 +5,7 @@ import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
 import { executeOp } from '../../../ops/builtins';
 import { Op } from '../../../ops/opcodes';
-import { unsafeSetBPBytes } from '../../../core/vm';
+import { unsafeSetBPBytes, rpush } from '../../../core/vm';
 
 const CELL_SIZE = 4;
 
@@ -27,8 +27,8 @@ describe('Invalid Slot Access Error Handling', () => {
 
   test('should throw ReturnStackUnderflowError if BP is corrupted and points to invalid location', () => {
     // Simulate a function call setup that would lead to exitOp trying to restore BP/IP
-    vm.rpush(vm.IP);
-    vm.rpush(vm.bp);
+    rpush(vm, vm.IP);
+    rpush(vm, vm.bp);
     // Establish new frame base pointer from current return stack (cells -> bytes)
     vm.bp = vm.rsp; // set BP cells
 

@@ -13,6 +13,7 @@ import {
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef, getRefRegion } from '../../../core/refs';
 import { initializeInterpreter, vm } from '../../../lang/runtime';
+import { peek } from '../../../core/vm';
 // legacy segment id 0 denotes stack region in decodeDataRef classification
 
 describe('selectOp - Path-based address access', () => {
@@ -39,7 +40,7 @@ describe('selectOp - Path-based address access', () => {
       expect(success).toBe(true);
 
       // Should have: target path target-ref
-      const targetRef = vm.peek();
+      const targetRef = peek(vm);
       expect(isRef(targetRef)).toBe(true);
       expect(getRefRegion(targetRef)).toBe('stack');
     });
@@ -80,7 +81,7 @@ describe('selectOp - Path-based address access', () => {
       expect(success).toBe(true);
       // Should have: target path result-ref
       expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(7); // 4 for target + 2 for path + 1 for result-ref
-      const resultRef = vm.peek();
+      const resultRef = peek(vm);
       expect(isRef(resultRef)).toBe(true);
     });
 
@@ -101,12 +102,12 @@ describe('selectOp - Path-based address access', () => {
         expect(success2).toBe(true);
 
         expect(success2).toBe(true);
-        const finalRef = vm.peek();
+        const finalRef = peek(vm);
         expect(isRef(finalRef)).toBe(true);
 
         // Fetch the actual value and assert it is 30
         fetchOp(vm);
-        const fetched = vm.peek();
+        const fetched = peek(vm);
         expect(fetched).toBe(30);
       }
     });
@@ -121,7 +122,7 @@ describe('selectOp - Path-based address access', () => {
 
       expect(success).toBe(false);
       expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5);
-      const result = vm.peek();
+      const result = peek(vm);
       expect(result).toBe(NIL);
     });
   });
@@ -136,7 +137,7 @@ describe('selectOp - Path-based address access', () => {
 
       // Should have: target final-ref
       expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5); // 4 for target + 1 for final-ref
-      const finalRef = vm.peek();
+      const finalRef = peek(vm);
       expect(isRef(finalRef)).toBe(true);
     });
   });

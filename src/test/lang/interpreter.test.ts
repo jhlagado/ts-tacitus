@@ -2,9 +2,10 @@ import { execute, executeProgram } from '../../lang/interpreter';
 import { vm, initializeInterpreter } from '../../lang/runtime';
 import * as math from '../../ops/math/arithmetic-ops';
 import { SEG_CODE } from '../../core';
+import { getStackData } from '../../core/vm';
 
 function expectStack(expected: number[]): void {
-  expect(vm.getStackData()).toEqual(expected);
+  expect(getStackData(vm)).toEqual(expected);
 }
 
 describe('Interpreter', () => {
@@ -88,7 +89,7 @@ describe('Interpreter', () => {
       try {
         executeProgram('5 3 0 div add');
       } catch (_) {
-        expect(vm.getStackData()).toEqual([5, 3, 0]);
+        expect(getStackData(vm)).toEqual([5, 3, 0]);
       }
     });
     test('should skip definition body during normal execution', () => {

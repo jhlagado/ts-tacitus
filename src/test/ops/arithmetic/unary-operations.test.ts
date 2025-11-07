@@ -6,6 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../../lang/runtime';
 import { negOp, recipOp, floorOp, notOp, signOp } from '../../../ops/math';
 import { enlistOp } from '../../../ops/lists';
+import { pop, push } from '../../../core/vm';
 
 function resetVM(): void {
   initializeInterpreter();
@@ -19,93 +20,93 @@ describe('Unary Operations', () => {
 
   describe('simple values', () => {
     test('should negate a positive number', () => {
-      vm.push(5);
+      push(vm, 5);
       negOp(vm);
-      expect(vm.pop()).toBe(-5);
+      expect(pop(vm)).toBe(-5);
     });
 
     test('should negate a negative number', () => {
-      vm.push(-10);
+      push(vm, -10);
       negOp(vm);
-      expect(vm.pop()).toBe(10);
+      expect(pop(vm)).toBe(10);
     });
 
     test('should negate zero', () => {
-      vm.push(0);
+      push(vm, 0);
       negOp(vm);
-      expect(vm.pop()).toBe(-0);
+      expect(pop(vm)).toBe(-0);
     });
 
     test('should calculate reciprocal of positive number', () => {
-      vm.push(5);
+      push(vm, 5);
       recipOp(vm);
-      expect(vm.pop()).toBeCloseTo(0.2);
+      expect(pop(vm)).toBeCloseTo(0.2);
     });
 
     test('should calculate reciprocal of negative number', () => {
-      vm.push(-2);
+      push(vm, -2);
       recipOp(vm);
-      expect(vm.pop()).toBe(-0.5);
+      expect(pop(vm)).toBe(-0.5);
     });
 
     test('should handle reciprocal division by zero', () => {
-      vm.push(0);
+      push(vm, 0);
       recipOp(vm);
-      expect(vm.pop()).toBe(Infinity);
+      expect(pop(vm)).toBe(Infinity);
     });
 
     test('should floor positive numbers', () => {
-      vm.push(5.7);
+      push(vm, 5.7);
       floorOp(vm);
-      expect(vm.pop()).toBe(5);
+      expect(pop(vm)).toBe(5);
     });
 
     test('should floor negative numbers', () => {
-      vm.push(-2.3);
+      push(vm, -2.3);
       floorOp(vm);
-      expect(vm.pop()).toBe(-3);
+      expect(pop(vm)).toBe(-3);
     });
 
     test('should floor whole numbers unchanged', () => {
-      vm.push(5);
+      push(vm, 5);
       floorOp(vm);
-      expect(vm.pop()).toBe(5);
+      expect(pop(vm)).toBe(5);
     });
 
     test('should return 1 for logical not of zero', () => {
-      vm.push(0);
+      push(vm, 0);
       notOp(vm);
-      expect(vm.pop()).toBe(1);
+      expect(pop(vm)).toBe(1);
     });
 
     test('should return 0 for logical not of non-zero values', () => {
-      vm.push(5);
+      push(vm, 5);
       notOp(vm);
-      expect(vm.pop()).toBe(0);
+      expect(pop(vm)).toBe(0);
     });
 
     test('should return 0 for logical not of negative numbers', () => {
-      vm.push(-3);
+      push(vm, -3);
       notOp(vm);
-      expect(vm.pop()).toBe(0);
+      expect(pop(vm)).toBe(0);
     });
 
     test('should return 1 for signum of positive numbers', () => {
-      vm.push(5);
+      push(vm, 5);
       signOp(vm);
-      expect(vm.pop()).toBe(1);
+      expect(pop(vm)).toBe(1);
     });
 
     test('should return -1 for signum of negative numbers', () => {
-      vm.push(-3);
+      push(vm, -3);
       signOp(vm);
-      expect(vm.pop()).toBe(-1);
+      expect(pop(vm)).toBe(-1);
     });
 
     test('should return 0 for signum of zero', () => {
-      vm.push(0);
+      push(vm, 0);
       signOp(vm);
-      expect(vm.pop()).toBe(0);
+      expect(pop(vm)).toBe(0);
     });
   });
 

@@ -2,7 +2,7 @@
  * @file src/test/core/vm-symbol-resolution.test.ts
  *
  * Tests for VM-level symbol resolution functionality.
- * Verifies the vm.resolveSymbol() method works correctly with
+ * Verifies the resolveSymbol(vm, ) method works correctly with
  * both built-in operations and colon definitions.
  */
 
@@ -12,6 +12,7 @@ import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';
 import { createBuiltinRef, createCodeRef } from '../../core';
+import { resolveSymbol, push, pop } from '../../core/vm';
 import {
   defineBuiltin,
   defineCode,
@@ -34,7 +35,7 @@ describe('VM Symbol Resolution', () => {
 
   describe('resolveSymbol method', () => {
     test('should return undefined for non-existent symbols', () => {
-      const result = vm.resolveSymbol('nonexistent');
+      const result = resolveSymbol(vm, 'nonexistent');
 
       expect(result).toBeUndefined();
     });
@@ -42,7 +43,7 @@ describe('VM Symbol Resolution', () => {
     test('should resolve built-in symbols to Tag.BUILTIN tagged values', () => {
       defineBuiltin(vm, 'add', Op.Add);
 
-      const result = vm.resolveSymbol('add');
+      const result = resolveSymbol(vm, 'add');
 
       expect(result).toBeDefined();
       expect(isBuiltinRef(result!)).toBe(true);
@@ -58,7 +59,7 @@ describe('VM Symbol Resolution', () => {
 
       defineCode(vm, 'square', testAddr);
 
-      const result = vm.resolveSymbol('square');
+      const result = resolveSymbol(vm, 'square');
 
       expect(result).toBeDefined();
       expect(isFuncRef(result!)).toBe(true);
@@ -75,19 +76,19 @@ describe('VM Symbol Resolution', () => {
       defineCode(vm, 'square', 1000);
       defineCode(vm, 'cube', 2000);
 
-      const addResult = vm.resolveSymbol('add');
+      const addResult = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addResult!)).toBe(true);
       expect(getBuiltinOpcode(addResult!)).toBe(Op.Add);
 
-      const dupResult = vm.resolveSymbol('dup');
+      const dupResult = resolveSymbol(vm, 'dup');
       expect(isBuiltinRef(dupResult!)).toBe(true);
       expect(getBuiltinOpcode(dupResult!)).toBe(Op.Dup);
 
-      const squareResult = vm.resolveSymbol('square');
+      const squareResult = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareResult!)).toBe(true);
       expect(getCodeAddress(squareResult!)).toBe(1000);
 
-      const cubeResult = vm.resolveSymbol('cube');
+      const cubeResult = resolveSymbol(vm, 'cube');
       expect(isFuncRef(cubeResult!)).toBe(true);
       expect(getCodeAddress(cubeResult!)).toBe(2000);
     });
@@ -96,7 +97,7 @@ describe('VM Symbol Resolution', () => {
       defineBuiltin(vm, 'test', Op.Add);
       defineCode(vm, 'test', 5000);
 
-      const result = vm.resolveSymbol('test');
+      const result = resolveSymbol(vm, 'test');
 
       expect(isFuncRef(result!)).toBe(true);
       expect(getCodeAddress(result!)).toBe(5000);
@@ -106,29 +107,29 @@ describe('VM Symbol Resolution', () => {
       defineBuiltin(vm, 'add', Op.Add);
       defineBuiltin(vm, 'dup', Op.Dup);
 
-      vm.push(5);
-      vm.push(3);
+      push(vm, 5);
+      push(vm, 3);
 
-      const addRef = vm.resolveSymbol('add');
+      const addRef = resolveSymbol(vm, 'add');
       expect(addRef).toBeDefined();
 
-      vm.push(addRef!);
+      push(vm, addRef!);
       evalOp(vm);
 
       expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(1);
-      expect(vm.pop()).toBe(8);
+      expect(pop(vm)).toBe(8);
     });
 
     test('should maintain consistency with code-ref utilities', () => {
       defineBuiltin(vm, 'multiply', Op.Multiply);
       defineCode(vm, 'test', 1500);
 
-      const multiplyResolved = vm.resolveSymbol('multiply');
+      const multiplyResolved = resolveSymbol(vm, 'multiply');
       const multiplyDirect = createBuiltinRef(Op.Multiply);
 
       expect(multiplyResolved).toBe(multiplyDirect);
 
-      const testResolved = vm.resolveSymbol('test');
+      const testResolved = resolveSymbol(vm, 'test');
       const testDirect = createCodeRef(1500);
 
       expect(testResolved).toBe(testDirect);
@@ -142,19 +143,19 @@ describe('VM Symbol Resolution', () => {
 
       defineCode(vm, 'square', 1000);
 
-      expect(vm.resolveSymbol('add')).toBeDefined();
-      expect(vm.resolveSymbol('square')).toBeDefined();
+      expect(resolveSymbol(vm, 'add')).toBeDefined();
+      expect(resolveSymbol(vm, 'square')).toBeDefined();
 
       forget(vm, checkpoint);
 
-      expect(vm.resolveSymbol('add')).toBeDefined();
-      expect(vm.resolveSymbol('square')).toBeUndefined();
+      expect(resolveSymbol(vm, 'add')).toBeDefined();
+      expect(resolveSymbol(vm, 'square')).toBeUndefined();
     });
 
     test('should resolve symbols defined with unified define method', () => {
       defineCode(vm, 'oldStyle', 200);
 
-      const resolved = vm.resolveSymbol('oldStyle');
+      const resolved = resolveSymbol(vm, 'oldStyle');
       expect(resolved).toBeDefined();
 
       expect(isFuncRef(resolved!)).toBe(true);
@@ -166,19 +167,19 @@ describe('VM Symbol Resolution', () => {
 
   describe('error handling', () => {
     test('should handle empty symbol names gracefully', () => {
-      const result = vm.resolveSymbol('');
+      const result = resolveSymbol(vm, '');
       expect(result).toBeUndefined();
     });
 
     test('should handle whitespace symbol names gracefully', () => {
-      const result = vm.resolveSymbol('   ');
+      const result = resolveSymbol(vm, '   ');
       expect(result).toBeUndefined();
     });
 
     test('should handle symbols with unusual characters', () => {
-      expect(vm.resolveSymbol('symbol-with-dash')).toBeUndefined();
-      expect(vm.resolveSymbol('symbol_with_underscore')).toBeUndefined();
-      expect(vm.resolveSymbol('symbol123')).toBeUndefined();
+      expect(resolveSymbol(vm, 'symbol-with-dash')).toBeUndefined();
+      expect(resolveSymbol(vm, 'symbol_with_underscore')).toBeUndefined();
+      expect(resolveSymbol(vm, 'symbol123')).toBeUndefined();
     });
   });
 });

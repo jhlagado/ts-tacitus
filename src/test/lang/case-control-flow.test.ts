@@ -3,6 +3,7 @@ import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
 import { vm } from '../../lang/runtime';
 import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
+import { getStackData } from '../../core/vm';
 
 describe('case control flow', () => {
   beforeEach(() => {
@@ -87,7 +88,7 @@ describe('case control flow', () => {
   test('detects unclosed case constructs during final validation', () => {
     try {
       parse(new Tokenizer('1 case 1 of 2 ;'));
-      expect(vm.getStackData().some((value: unknown) => Number.isNaN(value as number))).toBe(true);
+      expect(getStackData(vm).some((value: unknown) => Number.isNaN(value as number))).toBe(true);
       expect(() => ensureNoOpenConditionals()).toThrow('Unclosed case');
     } catch (error) {
       expect((error as Error).message).toContain('Unclosed case');

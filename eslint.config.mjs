@@ -11,9 +11,10 @@ const config = [
     ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/*.js.map', '**/*.d.ts'],
   },
 
-  // TypeScript files configuration
+  // TypeScript files configuration (non-test files with type-aware linting)
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -92,7 +93,15 @@ const config = [
       '@typescript-eslint/no-invalid-void-type': 'error',
       '@typescript-eslint/no-this-alias': 'error',
       '@typescript-eslint/no-unused-expressions': 'error',
-      '@typescript-eslint/no-use-before-define': 'error',
+      '@typescript-eslint/no-use-before-define': [
+        'error',
+        {
+          functions: false, // Don't check functions (they are hoisted, so allow use before definition)
+          classes: false, // Don't check classes (they are hoisted, so allow use before definition)
+          variables: true, // Still enforce for variables
+          typedefs: true, // Still enforce for type definitions
+        },
+      ],
       '@typescript-eslint/triple-slash-reference': 'error',
 
       // ===== BEST PRACTICES =====
@@ -212,10 +221,46 @@ const config = [
     },
   },
 
-  // Test files - relaxed rules for testing flexibility
+  // Exception: VM owns the Compiler, so it's allowed to import it
+  {
+    files: ['src/core/vm.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/dist/**', '**/coverage/**'],
+              message: 'Do not import from build artifacts',
+            },
+            // Note: ../lang/compiler is allowed for VM since it owns the compiler
+          ],
+        },
+      ],
+    },
+  },
+
+  // Test files - relaxed rules for testing flexibility (no type-aware linting)
   {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        // No project option - test files are excluded from tsconfig.json
+      },
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
     rules: {
+      // Base ESLint rules
+      ...js.configs.recommended.rules,
       // Allow console.log in tests for debugging
       'no-console': 'off',
       // Allow non-null assertions in tests (common for test setup)

@@ -2,7 +2,7 @@ import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
-import { nextAddress, nextInt16 } from '../../core/vm';
+import { nextAddress, nextInt16, push, pop, getStackData, rpush, rpop } from '../../core/vm';
 
 describe('VM', () => {
   let vm: VM;
@@ -14,36 +14,36 @@ describe('VM', () => {
 
   describe('Stack operations', () => {
     test('should push and pop 20-bit values from the stack', () => {
-      vm.push(1.2);
-      vm.push(2.4);
-      expect(vm.pop()).toBeCloseTo(2.4);
-      expect(vm.pop()).toBeCloseTo(1.2);
+      push(vm, 1.2);
+      push(vm, 2.4);
+      expect(pop(vm)).toBeCloseTo(2.4);
+      expect(pop(vm)).toBeCloseTo(1.2);
     });
     test('should push and pop 32-bit floats from the stack', () => {
-      vm.push(3.14);
-      vm.push(-123.456);
-      expect(vm.pop()).toBeCloseTo(-123.456);
-      expect(vm.pop()).toBeCloseTo(3.14);
+      push(vm, 3.14);
+      push(vm, -123.456);
+      expect(pop(vm)).toBeCloseTo(-123.456);
+      expect(pop(vm)).toBeCloseTo(3.14);
     });
     test('should throw an error on stack overflow', () => {
       for (let i = 0; i < STACK_SIZE / 4; i++) {
-        vm.push(i);
+        push(vm, i);
       }
 
-      expect(() => vm.push(42)).toThrow('Stack overflow');
+      expect(() => push(vm, 42)).toThrow('Stack overflow');
     });
     test('should throw an error on stack underflow', () => {
-      expect(() => vm.pop()).toThrow('Stack underflow');
+      expect(() => pop(vm)).toThrow('Stack underflow');
     });
     test('should return the correct stack data', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
-      expect(vm.getStackData()).toEqual([1, 2, 3]);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      expect(getStackData(vm)).toEqual([1, 2, 3]);
     });
     test('should handle address tagging', () => {
-      vm.push(toTaggedValue(0x2345, Tag.CODE));
-      const { value, tag } = fromTaggedValue(vm.pop());
+      push(vm, toTaggedValue(0x2345, Tag.CODE));
+      const { value, tag } = fromTaggedValue(pop(vm));
       expect(value).toBe(0x2345);
       expect(tag).toBe(Tag.CODE);
     });
@@ -51,30 +51,30 @@ describe('VM', () => {
 
   describe('Return stack operations', () => {
     test('should push and pop 20-bit values from the return stack', () => {
-      vm.rpush(100);
-      vm.rpush(200);
-      expect(vm.rpop()).toBe(200);
-      expect(vm.rpop()).toBe(100);
+      rpush(vm, 100);
+      rpush(vm, 200);
+      expect(rpop(vm)).toBe(200);
+      expect(rpop(vm)).toBe(100);
     });
     test('should throw an error on return stack overflow', () => {
       for (let i = 0; i < RSTACK_SIZE / 4; i++) {
-        vm.rpush(i);
+        rpush(vm, i);
       }
 
-      expect(() => vm.rpush(42)).toThrow('Return stack (RSP) overflow');
+      expect(() => rpush(vm, 42)).toThrow('Return stack (RSP) overflow');
     });
     test('should throw an error on return stack underflow', () => {
-      expect(() => vm.rpop()).toThrow('Return stack (RSP) underflow');
+      expect(() => rpop(vm)).toThrow('Return stack (RSP) underflow');
     });
     test('should handle address tagging on return stack', () => {
-      vm.rpush(toTaggedValue(0x4321, Tag.CODE));
-      const { value, tag } = fromTaggedValue(vm.rpop());
+      rpush(vm, toTaggedValue(0x4321, Tag.CODE));
+      const { value, tag } = fromTaggedValue(rpop(vm));
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(0x4321);
     });
     test('should handle integer tagging on return stack', () => {
-      vm.rpush(0x2345);
-      expect(vm.rpop()).toBe(0x2345);
+      rpush(vm, 0x2345);
+      expect(rpop(vm)).toBe(0x2345);
     });
   });
 

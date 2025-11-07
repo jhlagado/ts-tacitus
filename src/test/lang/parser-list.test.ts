@@ -4,9 +4,10 @@ import { executeProgram } from '../../lang/interpreter';
 import { fromTaggedValue, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
+import { getStackData } from '../../core/vm';
 
 function top(): number {
-  return vm.getStackData()[vm.getStackData().length - 1];
+  return getStackData(vm)[getStackData(vm).length - 1];
 }
 
 describe('Parser LIST Integration (() )', () => {
@@ -16,7 +17,7 @@ describe('Parser LIST Integration (() )', () => {
 
   it('parses simple LIST literal: ( 1 2 3 ) and builds LIST on stack', () => {
     executeProgram('( 1 2 3 )');
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack.length).toBe(4);
     const { tag, value } = fromTaggedValue(top());
     expect(tag).toBe(Tag.LIST);

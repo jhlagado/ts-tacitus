@@ -14,6 +14,7 @@ import {
 } from '../../core';
 import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core';
 import { createList } from '../utils/core-test-utils';
+import { getStackData, peek, push, pop } from '../../core/vm';
 
 function resetVM(): VM {
   const vm = new VM();
@@ -22,7 +23,7 @@ function resetVM(): VM {
 }
 
 function getStackDepth(vm: VM): number {
-  return vm.getStackData().length;
+  return getStackData(vm).length;
 }
 
 describe('LIST Core Utilities', () => {
@@ -79,7 +80,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, []);
 
       expect(getStackDepth(vm)).toBe(1);
-      const header = vm.peek();
+      const header = peek(vm);
       expect(getListLength(header)).toBe(0);
     });
 
@@ -89,7 +90,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, [value]);
 
       expect(getStackDepth(vm)).toBe(2);
-      const header = vm.peek();
+      const header = peek(vm);
       expect(getListLength(header)).toBe(1);
 
       const payload = vm.memory.readFloat32(SEG_DATA, (vm.sp - 1) * CELL_SIZE);
@@ -106,7 +107,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, [val1, val2, val3]);
 
       expect(getStackDepth(vm)).toBe(4);
-      const header = vm.peek();
+      const header = peek(vm);
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
@@ -130,7 +131,7 @@ describe('LIST Core Utilities', () => {
       createList(vm, [intVal, numVal, strVal]);
 
       expect(getStackDepth(vm)).toBe(4);
-      const header = vm.peek();
+      const header = peek(vm);
       expect(getListLength(header)).toBe(3);
     });
   });
@@ -198,7 +199,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on non-LIST at TOS', () => {
       const vm = resetVM();
-      vm.push(5);
+      push(vm, 5);
 
       expect(() => dropList(vm)).toThrow('Expected LIST header at TOS');
     });
@@ -220,7 +221,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on non-LIST at TOS', () => {
       const vm = resetVM();
-      vm.push(5);
+      push(vm, 5);
 
       expect(() => validateListHeader(vm)).toThrow('Expected LIST header at TOS');
     });
@@ -228,7 +229,7 @@ describe('LIST Core Utilities', () => {
     it('should throw on insufficient payload space', () => {
       const vm = resetVM();
       const invalidHeader = toTaggedValue(10, Tag.LIST);
-      vm.push(invalidHeader);
+      push(vm, invalidHeader);
 
       expect(() => validateListHeader(vm)).toThrow('LIST payload validation');
     });
@@ -237,7 +238,7 @@ describe('LIST Core Utilities', () => {
       const vm = resetVM();
       try {
         const invalidHeader = toTaggedValue(65536, Tag.LIST);
-        vm.push(invalidHeader);
+        push(vm, invalidHeader);
         expect(() => validateListHeader(vm)).toThrow('exceeds maximum of 65535');
       } catch (e) {
         expect((e as Error).message).toContain('16-bit');
@@ -249,11 +250,11 @@ describe('LIST Core Utilities', () => {
     it('should handle single element (no change)', () => {
       const vm = resetVM();
       const value = 42;
-      vm.push(value);
+      push(vm, value);
 
       reverseSpan(vm, 1);
 
-      expect(vm.peek()).toBe(value);
+      expect(peek(vm)).toBe(value);
     });
 
     it('should handle zero elements (no change)', () => {
@@ -267,14 +268,14 @@ describe('LIST Core Utilities', () => {
       const val1 = 1;
       const val2 = 2;
 
-      vm.push(val1);
-      vm.push(val2);
+      push(vm, val1);
+      push(vm, val2);
 
       reverseSpan(vm, 2);
 
-      expect(vm.peek()).toBe(val1);
-      vm.pop();
-      expect(vm.peek()).toBe(val2);
+      expect(peek(vm)).toBe(val1);
+      pop(vm);
+      expect(peek(vm)).toBe(val2);
     });
 
     it('should reverse multiple elements', () => {
@@ -284,17 +285,17 @@ describe('LIST Core Utilities', () => {
       const val3 = 3;
       const val4 = 4;
 
-      vm.push(val1);
-      vm.push(val2);
-      vm.push(val3);
-      vm.push(val4);
+      push(vm, val1);
+      push(vm, val2);
+      push(vm, val3);
+      push(vm, val4);
 
       reverseSpan(vm, 4);
 
-      expect(vm.pop()).toBe(val1);
-      expect(vm.pop()).toBe(val2);
-      expect(vm.pop()).toBe(val3);
-      expect(vm.pop()).toBe(val4);
+      expect(pop(vm)).toBe(val1);
+      expect(pop(vm)).toBe(val2);
+      expect(pop(vm)).toBe(val3);
+      expect(pop(vm)).toBe(val4);
     });
 
     it('should reverse odd number of elements', () => {
@@ -303,20 +304,20 @@ describe('LIST Core Utilities', () => {
       const val2 = 2;
       const val3 = 3;
 
-      vm.push(val1);
-      vm.push(val2);
-      vm.push(val3);
+      push(vm, val1);
+      push(vm, val2);
+      push(vm, val3);
 
       reverseSpan(vm, 3);
 
-      expect(vm.pop()).toBe(val1);
-      expect(vm.pop()).toBe(val2);
-      expect(vm.pop()).toBe(val3);
+      expect(pop(vm)).toBe(val1);
+      expect(pop(vm)).toBe(val2);
+      expect(pop(vm)).toBe(val3);
     });
 
     it('should throw on insufficient stack', () => {
       const vm = resetVM();
-      vm.push(1);
+      push(vm, 1);
 
       expect(() => reverseSpan(vm, 5)).toThrow('reverse span operation');
     });
@@ -343,15 +344,15 @@ describe('LIST Core Utilities', () => {
       createList(vm, innerValues);
       validateListHeader(vm);
 
-      const innerListValue = vm.pop();
-      while (vm.getStackData().length > 0) {
-        vm.pop();
+      const innerListValue = pop(vm);
+      while (getStackData(vm).length > 0) {
+        pop(vm);
       }
 
       const outerValues = [0, innerListValue, 3];
       createList(vm, outerValues);
 
-      const outerHeader = vm.peek();
+      const outerHeader = peek(vm);
       expect(getListLength(outerHeader)).toBe(3);
 
       validateListHeader(vm);

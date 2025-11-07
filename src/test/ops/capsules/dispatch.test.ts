@@ -9,16 +9,17 @@ import {
   STACK_BASE,
   CELL_SIZE,
 } from '../../../core';
+import { push, rpush, getStackData } from '../../../core/vm';
 
 describe('capsule dispatch runtime', () => {
   beforeEach(() => resetVM());
 
   const pushCapsuleOnRStack = (locals: number[], codeAddr: number) => {
     // Caller frame begins at current RSP; append locals, CODE, LIST on RSTACK
-    for (let i = 0; i < locals.length; i++) vm.rpush(locals[i]);
+    for (let i = 0; i < locals.length; i++) rpush(vm, locals[i]);
     const codeRef = toTaggedValue(codeAddr, Tag.CODE);
-    vm.rpush(codeRef);
-    vm.rpush(toTaggedValue(locals.length + 1, Tag.LIST));
+    rpush(vm, codeRef);
+    rpush(vm, toTaggedValue(locals.length + 1, Tag.LIST));
     const handle = createDataRef(vm.rsp - 1);
     return { handle, codeRef };
   };
@@ -30,15 +31,15 @@ describe('capsule dispatch runtime', () => {
     // Build capsule with 2 locals (10,20) and entry at 777
     const { handle } = pushCapsuleOnRStack([10, 20], 777);
     // Build data stack: 1 2 'meth handle
-    vm.push(1);
-    vm.push(2);
-    vm.push(42); // pretend method symbol placeholder
-    vm.push(handle);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 42); // pretend method symbol placeholder
+    push(vm, handle);
 
     dispatchOp(vm);
 
     // method + args remain (receiver consumed)
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack).toEqual([1, 2, 42]);
 
     // IP jumped to entry address
@@ -51,8 +52,8 @@ describe('capsule dispatch runtime', () => {
   });
 
   test('errors on non-capsule receiver', () => {
-    vm.push(0);
-    vm.push(createDataRef(STACK_BASE / CELL_SIZE + 0));
+    push(vm, 0);
+    push(vm, createDataRef(STACK_BASE / CELL_SIZE + 0));
     expect(() => dispatchOp(vm)).toThrow();
   });
 });

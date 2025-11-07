@@ -5,6 +5,7 @@ import { Tag, toTaggedValue, fromTaggedValue } from '../../../core';
 import { defineOp, lookupOp } from '../../../core/dictionary';
 import { getByteAddressFromRef, isRef } from '../../../core/refs';
 import { SEG_DATA } from '../../../core/constants';
+import { push, pop } from '../../../core/vm';
 
 describe('dict define/lookup builtin (happy path)', () => {
   beforeEach(() => resetVM());
@@ -18,14 +19,14 @@ describe('dict define/lookup builtin (happy path)', () => {
     const builtinTagged = toTaggedValue(opcode, Tag.BUILTIN, 0);
 
     // ( value name — ) define
-    vm.push(builtinTagged);
-    vm.push(nameTagged);
+    push(vm, builtinTagged);
+    push(vm, nameTagged);
     defineOp(vm);
 
     // ( name — ref|NIL ) lookup
-    vm.push(nameTagged);
+    push(vm, nameTagged);
     lookupOp(vm);
-    const ref = vm.pop();
+    const ref = pop(vm);
     expect(isRef(ref)).toBe(true);
 
     // Dereference and verify stored payload
@@ -36,4 +37,3 @@ describe('dict define/lookup builtin (happy path)', () => {
     expect(info.value).toBe(opcode);
   });
 });
-

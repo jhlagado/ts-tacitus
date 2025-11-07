@@ -1,6 +1,7 @@
 import { initializeInterpreter, vm } from '../../lang/runtime';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
 import { Tag, toTaggedValue, createDataRef, SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core';
+import { push } from '../../core/vm';
 
 describe('format-utils additional coverage', () => {
   beforeEach(() => {
@@ -63,7 +64,7 @@ describe('format-utils additional coverage', () => {
   test('formatValue handles empty LIST header on stack (formatListFromStack early return)', () => {
     // Push only a LIST header with zero slots at TOS
     const emptyHeader = toTaggedValue(0, Tag.LIST);
-    vm.push(emptyHeader);
+    push(vm, emptyHeader);
     expect(formatValue(vm, emptyHeader)).toBe('()');
   });
 
@@ -84,10 +85,10 @@ describe('format-utils additional coverage', () => {
     const innerHeader = toTaggedValue(2, Tag.LIST);
     const outerHeader = toTaggedValue(1, Tag.LIST);
 
-    vm.push(two);
-    vm.push(three);
-    vm.push(innerHeader);
-    vm.push(outerHeader);
+    push(vm, two);
+    push(vm, three);
+    push(vm, innerHeader);
+    push(vm, outerHeader);
 
     expect(formatValue(vm, outerHeader)).toBe('( ( 3 2 ) )');
   });

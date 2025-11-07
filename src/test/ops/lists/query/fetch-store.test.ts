@@ -3,6 +3,7 @@ import { vm, initializeInterpreter } from '../../../../lang/runtime';
 import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
 import { fetchOp, storeOp, loadOp } from '../../../../ops/lists';
 import { getTag, Tag } from '../../../../core/tagged';
+import { push, peek } from '../../../../core/vm';
 
 // Behavioral tests for fetch/store using references
 
@@ -28,13 +29,13 @@ describe('List reference operations: fetch/store', () => {
     // Build list, take ref to slot 1 (value 20), then store 99 into it
     const stack = executeTacitCode('( 10 20 30 ) 1 slot');
     const addr = stack[stack.length - 1];
-    vm.push(99);
-    vm.push(addr);
+    push(vm, 99);
+    push(vm, addr);
     storeOp(vm);
     // Now fetch via same addr
-    vm.push(addr);
+    push(vm, addr);
     fetchOp(vm);
-    const fetched = vm.peek();
+    const fetched = peek(vm);
     expect(fetched).toBe(99);
   });
 
@@ -48,7 +49,7 @@ describe('List reference operations: fetch/store', () => {
     executeTacitCode(': f ( 1 2 ) var x &x ; f');
     // Top of stack is a DATA_REF into RSTACK; load should materialize the list
     loadOp(vm);
-    const tos = vm.peek();
+    const tos = peek(vm);
     expect(getTag(tos)).toBe(Tag.LIST);
   });
 });

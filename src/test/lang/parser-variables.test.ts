@@ -6,6 +6,7 @@ import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Tag, fromTaggedValue } from '../../core';
 import { markWithLocalReset, defineLocal, forget, defineBuiltin } from '../../core/dictionary';
+import { resolveSymbol } from '../../core/vm';
 
 describe('Parser Variable Support', () => {
   beforeEach(() => {
@@ -63,7 +64,7 @@ describe('Parser Variable Support', () => {
       // Simulate parsing "42 var x"
       defineLocal(vm, 'x');
 
-      const xRef = vm.resolveSymbol('x');
+      const xRef = resolveSymbol(vm, 'x');
       expect(xRef).toBeDefined();
 
       const { tag } = fromTaggedValue(xRef!);
@@ -83,13 +84,13 @@ describe('Parser Variable Support', () => {
       defineLocal(vm, 'x');
 
       // Local should shadow global
-      const xRef = vm.resolveSymbol('x');
+      const xRef = resolveSymbol(vm, 'x');
       const { tag } = fromTaggedValue(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
       // Restore global scope
       forget(vm, checkpoint);
-      const globalXRef = vm.resolveSymbol('x');
+      const globalXRef = resolveSymbol(vm, 'x');
       const { tag: globalTag } = fromTaggedValue(globalXRef!);
       expect(globalTag).toBe(Tag.BUILTIN);
     });

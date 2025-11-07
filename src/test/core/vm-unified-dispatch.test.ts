@@ -7,6 +7,7 @@
  */
 
 import { vm } from '../../lang/runtime';
+import { push, getStackData } from '../../core/vm';
 import { resetVM } from '../utils/vm-test-utils';
 import { createBuiltinRef } from '../../core';
 import { toTaggedValue, Tag } from '../../core';
@@ -20,43 +21,43 @@ describe('VM Unified Dispatch', () => {
 
   describe('Tag.BUILTIN dispatch via evalOp', () => {
     test('should execute built-in Add operation directly', () => {
-      vm.push(2);
-      vm.push(3);
-      vm.push(createBuiltinRef(Op.Add));
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, createBuiltinRef(Op.Add));
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([5]);
+      expect(getStackData(vm)).toEqual([5]);
     });
 
     test('should execute built-in Dup operation directly', () => {
-      vm.push(42);
-      vm.push(createBuiltinRef(Op.Dup));
+      push(vm, 42);
+      push(vm, createBuiltinRef(Op.Dup));
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([42, 42]);
+      expect(getStackData(vm)).toEqual([42, 42]);
     });
 
     test('should execute built-in Swap operation', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(createBuiltinRef(Op.Swap));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, createBuiltinRef(Op.Swap));
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([2, 1]);
+      expect(getStackData(vm)).toEqual([2, 1]);
     });
 
     test('should execute built-in Drop operation', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
-      vm.push(createBuiltinRef(Op.Drop));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, createBuiltinRef(Op.Drop));
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([1, 2]);
+      expect(getStackData(vm)).toEqual([1, 2]);
     });
   });
 
@@ -66,11 +67,11 @@ describe('VM Unified Dispatch', () => {
 
       nonExecutableValues.forEach(value => {
         resetVM();
-        vm.push(value);
+        push(vm, value);
 
         evalOp(vm);
 
-        expect(vm.getStackData()).toEqual([value]);
+        expect(getStackData(vm)).toEqual([value]);
       });
     });
   });
@@ -78,14 +79,14 @@ describe('VM Unified Dispatch', () => {
   describe('error cases', () => {
     test('should handle invalid built-in opcodes gracefully', () => {
       const invalidBuiltinRef = toTaggedValue(200, Tag.BUILTIN);
-      vm.push(invalidBuiltinRef);
+      push(vm, invalidBuiltinRef);
 
       expect(() => evalOp(vm)).toThrow();
     });
 
     test('should handle stack underflow in built-ins', () => {
-      vm.push(5);
-      vm.push(createBuiltinRef(Op.Add));
+      push(vm, 5);
+      push(vm, createBuiltinRef(Op.Add));
 
       expect(() => evalOp(vm)).toThrow();
     });
@@ -99,30 +100,30 @@ describe('VM Unified Dispatch', () => {
     test('should execute built-ins without call frame overhead', () => {
       const originalRSP = vm.rsp;
 
-      vm.push(2);
-      vm.push(3);
-      vm.push(createBuiltinRef(Op.Add));
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, createBuiltinRef(Op.Add));
       evalOp(vm);
 
       expect(vm.rsp).toBe(originalRSP);
-      expect(vm.getStackData()).toEqual([5]);
+      expect(getStackData(vm)).toEqual([5]);
     });
 
     test('should handle complex sequences efficiently', () => {
-      vm.push(2);
-      vm.push(3);
-      vm.push(createBuiltinRef(Op.Add));
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, createBuiltinRef(Op.Add));
       evalOp(vm);
 
-      vm.push(4);
-      vm.push(5);
-      vm.push(createBuiltinRef(Op.Add));
+      push(vm, 4);
+      push(vm, 5);
+      push(vm, createBuiltinRef(Op.Add));
       evalOp(vm);
 
-      vm.push(createBuiltinRef(Op.Multiply));
+      push(vm, createBuiltinRef(Op.Multiply));
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([45]);
+      expect(getStackData(vm)).toEqual([45]);
     });
   });
 });

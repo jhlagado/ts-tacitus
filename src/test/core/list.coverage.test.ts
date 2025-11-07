@@ -1,6 +1,7 @@
 import { initializeInterpreter, vm } from '../../lang/runtime';
 import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
 import { Tag, toTaggedValue, CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE } from '../../core';
+import { push, getStackData } from '../../core/vm';
 
 describe('core/list additional coverage', () => {
   beforeEach(() => {
@@ -14,11 +15,11 @@ describe('core/list additional coverage', () => {
   });
 
   test('reverseSpan reverses last N values in place', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
     reverseSpan(vm, 3);
-    expect(vm.getStackData()).toEqual([3, 2, 1]);
+    expect(getStackData(vm)).toEqual([3, 2, 1]);
   });
 
   test('getListElemAddr returns -1 for negative index', () => {

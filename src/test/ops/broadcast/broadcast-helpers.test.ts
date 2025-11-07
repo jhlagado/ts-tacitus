@@ -7,6 +7,7 @@ import {
   pushTestList,
   executeTacitCode,
 } from '../../utils/vm-test-utils';
+import { getStackData, push } from '../../../core/vm';
 
 describe('broadcast helpers', () => {
   beforeEach(() => {
@@ -15,9 +16,9 @@ describe('broadcast helpers', () => {
 
   describe('unaryFlat', () => {
     test('applies function to simple scalar', () => {
-      vm.push(5);
+      push(vm, 5);
       unaryFlat(vm, 'neg', x => -x);
-      expect(vm.getStackData()).toEqual([-5]);
+      expect(getStackData(vm)).toEqual([-5]);
     });
 
     test('transforms list payload in place', () => {
@@ -25,7 +26,7 @@ describe('broadcast helpers', () => {
 
       unaryFlat(vm, 'abs', Math.abs);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
       const header = fromTaggedValue(stack[headerIndex]);
       expect(header.tag).toBe(Tag.LIST);
@@ -38,7 +39,7 @@ describe('broadcast helpers', () => {
 
       unaryFlat(vm, 'abs', Math.abs);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
       const header = fromTaggedValue(stack[0]);
       expect(header.tag).toBe(Tag.LIST);
@@ -52,12 +53,12 @@ describe('broadcast helpers', () => {
 
   describe('binaryFlat', () => {
     test('simple × simple delegates to numeric op', () => {
-      vm.push(4);
-      vm.push(5);
+      push(vm, 4);
+      push(vm, 5);
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      expect(vm.getStackData()).toEqual([9]);
+      expect(getStackData(vm)).toEqual([9]);
     });
 
     test('list × list cycles shorter operand', () => {
@@ -65,7 +66,7 @@ describe('broadcast helpers', () => {
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
       const header = fromTaggedValue(stack[headerIndex]);
       expect(header.tag).toBe(Tag.LIST);
@@ -79,7 +80,7 @@ describe('broadcast helpers', () => {
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
       const actual = extractListFromStack(stack, headerIndex);
       expect(actual.slice().reverse()).toEqual([6, 7, 8]);
@@ -90,7 +91,7 @@ describe('broadcast helpers', () => {
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
       const header = fromTaggedValue(stack[0]);
       expect(header.tag).toBe(Tag.LIST);
@@ -102,7 +103,7 @@ describe('broadcast helpers', () => {
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
       const actual = extractListFromStack(stack, headerIndex);
       expect(actual.slice().reverse()).toEqual([5, 7, 9]);
@@ -113,7 +114,7 @@ describe('broadcast helpers', () => {
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
       const header = fromTaggedValue(stack[0]);
       expect(header.tag).toBe(Tag.LIST);
@@ -121,7 +122,7 @@ describe('broadcast helpers', () => {
     });
 
     test('throws stack underflow when operands missing', () => {
-      vm.push(1);
+      push(vm, 1);
       expect(() => binaryFlat(vm, 'add', (a, b) => a + b)).toThrow(/Stack underflow/);
     });
   });
@@ -130,11 +131,11 @@ describe('broadcast helpers', () => {
     test('duplicates list and increments every numeric payload cell', () => {
       executeTacitCode('( ( 1 2 ) 3 )');
 
-      const before = vm.getStackData();
+      const before = getStackData(vm);
 
       unaryRecursive(vm, 'inc', x => x + 1);
 
-      const after = vm.getStackData();
+      const after = getStackData(vm);
       expect(after).toHaveLength(before.length);
 
       const decoded = after.map(value => fromTaggedValue(value));
@@ -153,7 +154,7 @@ describe('broadcast helpers', () => {
     });
 
     test('throws when scalar operand is non-numeric', () => {
-      vm.push(toTaggedValue(0, Tag.STRING));
+      push(vm, toTaggedValue(0, Tag.STRING));
       expect(() => unaryRecursive(vm, 'sqrt', Math.sqrt)).toThrow('broadcast type mismatch');
     });
   });
@@ -164,7 +165,7 @@ describe('broadcast helpers', () => {
 
       binaryRecursive(vm, 'add', (a, b) => a + b);
 
-      const snapshot = vm.getStackData().map(value => fromTaggedValue(value));
+      const snapshot = getStackData(vm).map(value => fromTaggedValue(value));
       expect(snapshot).toEqual([
         { tag: Tag.LIST, value: 2, meta: 0 },
         { tag: Tag.NUMBER, value: 6, meta: 0 },
@@ -175,14 +176,14 @@ describe('broadcast helpers', () => {
     });
 
     test('raises mismatch when encountering non-number in list payload', () => {
-      vm.push(2);
+      push(vm, 2);
       pushTestList(vm, [toTaggedValue(0, Tag.STRING)]);
       expect(() => binaryRecursive(vm, 'add', (a, b) => a + b)).toThrow('broadcast type mismatch');
     });
 
     test('raises mismatch for simple × simple non-numeric pair', () => {
-      vm.push(toTaggedValue(0, Tag.STRING));
-      vm.push(toTaggedValue(1, Tag.STRING));
+      push(vm, toTaggedValue(0, Tag.STRING));
+      push(vm, toTaggedValue(1, Tag.STRING));
       expect(() => binaryRecursive(vm, 'add', (a, b) => a + b)).toThrow('broadcast type mismatch');
     });
   });

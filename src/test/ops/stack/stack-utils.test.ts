@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { cellsRoll, findElement } from '../../../ops/stack';
+import { push, getStackData } from '../../../core/vm';
 
 describe('Stack Utils', () => {
   let vm: VM;
@@ -12,10 +13,10 @@ describe('Stack Utils', () => {
 
   describe('rangeRoll', () => {
     test('should handle empty ranges', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
       cellsRoll(vm, 0, 0, 1);
-      expect(vm.getStackData()).toEqual([1, 2]);
+      expect(getStackData(vm)).toEqual([1, 2]);
     });
 
     test('should handle zero shift amount', () => {});
@@ -31,7 +32,7 @@ describe('Stack Utils', () => {
 
   describe('findElement', () => {
     function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-      vm.push(toTaggedValue(value, tag));
+      push(vm, toTaggedValue(value, tag));
     }
 
     function createList(...values: number[]): void {

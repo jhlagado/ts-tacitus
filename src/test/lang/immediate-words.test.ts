@@ -5,6 +5,7 @@ import { vm } from '../../lang/runtime';
 import { Op } from '../../ops/opcodes';
 import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
 import { defineBuiltin, findBytecodeAddress, defineCode } from '../../core/dictionary';
+import { push, getStackData } from '../../core/vm';
 
 describe('Immediate words', () => {
   beforeEach(() => {
@@ -14,13 +15,13 @@ describe('Immediate words', () => {
   // Custom immediate implementations removed; rely on opcode/code immediates only
 
   test('executes builtin opcode immediates immediately', () => {
-    vm.push(42);
+    push(vm, 42);
 
     defineBuiltin(vm, 'immdup', Op.Dup, true);
 
     parse(new Tokenizer('immdup'));
 
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack.length).toBe(2);
     expect(stack[0]).toBe(42);
     expect(stack[1]).toBe(42);
@@ -34,10 +35,10 @@ describe('Immediate words', () => {
 
     defineCode(vm, 'inc1!', addr!, true);
 
-    vm.push(5);
+    push(vm, 5);
     parse(new Tokenizer('inc1!'));
 
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     expect(stack.length).toBe(1);
     expect(stack[0]).toBe(6);
   });

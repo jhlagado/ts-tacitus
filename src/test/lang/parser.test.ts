@@ -4,7 +4,7 @@ import { initializeInterpreter, vm } from '../../lang/runtime';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue } from '../../core/tagged';
-import { next8, nextFloat32, nextInt16 } from '../../core/vm';
+import { next8, nextFloat32, nextInt16, resolveSymbol } from '../../core/vm';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;
@@ -59,7 +59,7 @@ describe('Parser with Tokenizer', () => {
   describe('Colon definitions', () => {
     test('should parse simple word definitions', () => {
       parse(new Tokenizer(': double dup add ;'));
-      const doubleWord = vm.resolveSymbol('double');
+      const doubleWord = resolveSymbol(vm, 'double');
       expect(doubleWord).toBeDefined();
       vm.IP = 0;
       expect(next8(vm)).toBe(Op.Branch);
@@ -71,16 +71,16 @@ describe('Parser with Tokenizer', () => {
     });
     test('should parse word definitions with numbers in name', () => {
       parse(new Tokenizer(': plus2 2 add ;'));
-      expect(vm.resolveSymbol('plus2')).toBeDefined();
+      expect(resolveSymbol(vm, 'plus2')).toBeDefined();
     });
     test('should parse word definitions with numbers as name', () => {
       parse(new Tokenizer(': 123 dup mul ;'));
-      expect(vm.resolveSymbol('123')).toBeDefined();
+      expect(resolveSymbol(vm, '123')).toBeDefined();
     });
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
-      expect(vm.resolveSymbol('empty')).toBeDefined();
-      const emptyRef = vm.resolveSymbol('empty');
+      expect(resolveSymbol(vm, 'empty')).toBeDefined();
+      const emptyRef = resolveSymbol(vm, 'empty');
       expect(emptyRef).toBeDefined();
       if (emptyRef !== undefined) {
         const { value } = fromTaggedValue(emptyRef);
@@ -105,13 +105,13 @@ describe('Parser with Tokenizer', () => {
   describe('Multiple definitions', () => {
     test('should handle multiple word definitions', () => {
       parse(new Tokenizer(': double dup add ; : triple dup dup add add ;'));
-      expect(vm.resolveSymbol('double')).toBeDefined();
-      expect(vm.resolveSymbol('triple')).toBeDefined();
+      expect(resolveSymbol(vm, 'double')).toBeDefined();
+      expect(resolveSymbol(vm, 'triple')).toBeDefined();
     });
     test('should allow words to use previously defined words', () => {
       parse(new Tokenizer(': double dup add ; : quadruple double double ;'));
-      expect(vm.resolveSymbol('double')).toBeDefined();
-      expect(vm.resolveSymbol('quadruple')).toBeDefined();
+      expect(resolveSymbol(vm, 'double')).toBeDefined();
+      expect(resolveSymbol(vm, 'quadruple')).toBeDefined();
     });
   });
 
@@ -134,26 +134,26 @@ describe('Parser with Tokenizer', () => {
     });
     test('should define and find simple words', () => {
       parse(new Tokenizer(': double dup add ;'));
-      expect(vm.resolveSymbol('double')).toBeDefined();
+      expect(resolveSymbol(vm, 'double')).toBeDefined();
     });
     test('should handle multiple word definitions', () => {
       parse(new Tokenizer(': double dup add ; : square dup mul ;'));
-      expect(vm.resolveSymbol('double')).toBeDefined();
-      expect(vm.resolveSymbol('square')).toBeDefined();
+      expect(resolveSymbol(vm, 'double')).toBeDefined();
+      expect(resolveSymbol(vm, 'square')).toBeDefined();
     });
     test('should handle words with numbers in name', () => {
       parse(new Tokenizer(': x2 2 mul ;'));
-      expect(vm.resolveSymbol('x2')).toBeDefined();
+      expect(resolveSymbol(vm, 'x2')).toBeDefined();
       try {
         parse(new Tokenizer(': 2times 2 mul ;'));
-        expect(vm.resolveSymbol('2times')).toBeDefined();
+        expect(resolveSymbol(vm, '2times')).toBeDefined();
       } catch (e) {
         // Words starting with numbers might not be supported
       }
     });
     test('should handle words with special characters', () => {
       parse(new Tokenizer(': double? dup 0 gt ;'));
-      expect(vm.resolveSymbol('double?')).toBeDefined();
+      expect(resolveSymbol(vm, 'double?')).toBeDefined();
     });
   });
 
