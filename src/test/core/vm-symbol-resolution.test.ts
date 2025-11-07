@@ -13,6 +13,13 @@ import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';
 import { createBuiltinRef, createCodeRef } from '../../core';
 import {
+  defineBuiltin,
+  defineCode,
+  markWithLocalReset,
+  forget,
+  findBytecodeAddress,
+} from '../../core/dictionary';
+import {
   isBuiltinRef,
   isFuncRef,
   getBuiltinOpcode,
@@ -33,7 +40,7 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve built-in symbols to Tag.BUILTIN tagged values', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
+      defineBuiltin(vm, 'add', Op.Add);
 
       const result = vm.resolveSymbol('add');
 
@@ -49,7 +56,7 @@ describe('VM Symbol Resolution', () => {
     test('should resolve code symbols to Tag.CODE tagged values', () => {
       const testAddr = 1000;
 
-      vm.symbolTable.defineCode('square', testAddr);
+      defineCode(vm, 'square', testAddr);
 
       const result = vm.resolveSymbol('square');
 
@@ -63,10 +70,10 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve multiple different symbol types', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
-      vm.symbolTable.defineCode('square', 1000);
-      vm.symbolTable.defineCode('cube', 2000);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'dup', Op.Dup);
+      defineCode(vm, 'square', 1000);
+      defineCode(vm, 'cube', 2000);
 
       const addResult = vm.resolveSymbol('add');
       expect(isBuiltinRef(addResult!)).toBe(true);
@@ -86,8 +93,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should handle symbol shadowing correctly', () => {
-      vm.symbolTable.defineBuiltin('test', Op.Add);
-      vm.symbolTable.defineCode('test', 5000);
+      defineBuiltin(vm, 'test', Op.Add);
+      defineCode(vm, 'test', 5000);
 
       const result = vm.resolveSymbol('test');
 
@@ -96,8 +103,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('resolved values should be executable by VM', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'dup', Op.Dup);
 
       vm.push(5);
       vm.push(3);
@@ -113,8 +120,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should maintain consistency with code-ref utilities', () => {
-      vm.symbolTable.defineBuiltin('multiply', Op.Multiply);
-      vm.symbolTable.defineCode('test', 1500);
+      defineBuiltin(vm, 'multiply', Op.Multiply);
+      defineCode(vm, 'test', 1500);
 
       const multiplyResolved = vm.resolveSymbol('multiply');
       const multiplyDirect = createBuiltinRef(Op.Multiply);
@@ -130,22 +137,22 @@ describe('VM Symbol Resolution', () => {
 
   describe('integration with symbol table', () => {
     test('should work with symbol table checkpoint and revert', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      const checkpoint = vm.symbolTable.mark();
+      defineBuiltin(vm, 'add', Op.Add);
+      const checkpoint = markWithLocalReset(vm);
 
-      vm.symbolTable.defineCode('square', 1000);
+      defineCode(vm, 'square', 1000);
 
       expect(vm.resolveSymbol('add')).toBeDefined();
       expect(vm.resolveSymbol('square')).toBeDefined();
 
-      vm.symbolTable.revert(checkpoint);
+      forget(vm, checkpoint);
 
       expect(vm.resolveSymbol('add')).toBeDefined();
       expect(vm.resolveSymbol('square')).toBeUndefined();
     });
 
     test('should resolve symbols defined with unified define method', () => {
-      vm.symbolTable.defineCode('oldStyle', 200);
+      defineCode(vm, 'oldStyle', 200);
 
       const resolved = vm.resolveSymbol('oldStyle');
       expect(resolved).toBeDefined();
@@ -153,7 +160,7 @@ describe('VM Symbol Resolution', () => {
       expect(isFuncRef(resolved!)).toBe(true);
       expect(getCodeAddress(resolved!)).toBe(200);
 
-      expect(vm.symbolTable.find('oldStyle')).toBe(200);
+      expect(findBytecodeAddress(vm, 'oldStyle')).toBe(200);
     });
   });
 

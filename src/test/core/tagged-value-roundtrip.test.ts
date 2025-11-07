@@ -15,11 +15,6 @@ describe('dictionary-only builtins', () => {
       // Decode back to get the value
       const decoded = fromTaggedValue(tagged);
 
-      // Print results
-      console.log(
-        `Value: ${i.toString().padStart(4)} → Tagged: ${tagged} → Decoded: tag=${decoded.tag}, value=${decoded.value}, meta=${decoded.meta}`,
-      );
-
       // Verify the roundtrip
       expect(decoded.tag).toBe(Tag.SENTINEL);
       expect(decoded.value).toBe(i);

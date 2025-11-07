@@ -5,6 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Tag, fromTaggedValue } from '../../core';
+import { markWithLocalReset, defineLocal, forget, defineBuiltin } from '../../core/dictionary';
 
 describe('Parser Variable Support', () => {
   beforeEach(() => {
@@ -56,39 +57,39 @@ describe('Parser Variable Support', () => {
 
   describe('Symbol table integration', () => {
     test('should define local variable in symbol table', () => {
-      // Create a function with a variable and check symbol table state
-      const checkpoint = vm.symbolTable.mark(); // Simulate function start
+      // Create a function with a variable and check dictionary state
+      const checkpoint = markWithLocalReset(vm); // Simulate function start
 
       // Simulate parsing "42 var x"
-      vm.symbolTable.defineLocal('x');
+      defineLocal(vm, 'x');
 
-      const xRef = vm.symbolTable.findTaggedValue('x');
+      const xRef = vm.resolveSymbol('x');
       expect(xRef).toBeDefined();
 
       const { tag } = fromTaggedValue(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
-      expect(vm.symbolTable.getLocalCount()).toBe(1);
+      expect(vm.localCount).toBe(1);
 
-      vm.symbolTable.revert(checkpoint); // Clean up
+      forget(vm, checkpoint); // Clean up
     });
 
     test('should handle natural shadowing', () => {
       // Define a builtin (simulate global)
-      vm.symbolTable.defineBuiltin('x', 42);
+      defineBuiltin(vm, 'x', 42);
 
       // Start function and define local with same name
-      const checkpoint = vm.symbolTable.mark();
-      vm.symbolTable.defineLocal('x');
+      const checkpoint = markWithLocalReset(vm);
+      defineLocal(vm, 'x');
 
       // Local should shadow global
-      const xRef = vm.symbolTable.findTaggedValue('x');
+      const xRef = vm.resolveSymbol('x');
       const { tag } = fromTaggedValue(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
       // Restore global scope
-      vm.symbolTable.revert(checkpoint);
-      const globalXRef = vm.symbolTable.findTaggedValue('x');
+      forget(vm, checkpoint);
+      const globalXRef = vm.resolveSymbol('x');
       const { tag: globalTag } = fromTaggedValue(globalXRef!);
       expect(globalTag).toBe(Tag.BUILTIN);
     });

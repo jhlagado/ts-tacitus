@@ -380,7 +380,6 @@ describe('Dictionary payload types', () => {
       // Clear dictionary and reset heap to get empty state
       vm.head = 0;
       vm.gp = 0;
-      vm.headRef = toTaggedValue(0, Tag.SENTINEL);
 
       const markPos = mark(vm);
       expect(vm.head).toBe(0);
@@ -395,18 +394,17 @@ describe('Dictionary payload types', () => {
       expect(vm.gp).toBe(0);
     });
 
-    test('forget updates headRef correctly', () => {
+    test('forget updates head correctly', () => {
       defineBuiltin(vm, 'test', 1, false);
       const markPos = mark(vm);
-      const headRefBefore = vm.headRef;
+      const headBefore = vm.head;
 
       defineLocal(vm, 'local');
       forget(vm, markPos);
 
-      expect(vm.headRef).toBe(headRefBefore);
-      const headRefInfo = fromTaggedValue(vm.headRef);
-      expect(headRefInfo.tag).toBe(Tag.SENTINEL);
-      expect(headRefInfo.value).toBe(vm.head);
+      expect(vm.head).toBe(headBefore);
+      // Verify head is a valid cell index
+      expect(vm.head).toBeGreaterThanOrEqual(0);
     });
   });
 

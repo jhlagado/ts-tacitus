@@ -2,6 +2,7 @@ import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
 import { Op } from '../../../ops/opcodes';
 import { vm, initializeInterpreter } from '../../../lang/runtime';
 import { resetVM } from '../../utils/vm-test-utils';
+import { findEntry } from '../../../core/dictionary';
 
 beforeAll(() => {
   initializeInterpreter();
@@ -13,7 +14,7 @@ describe('capsule word registration', () => {
   });
 
   test('capsule is registered as immediate', () => {
-    const entry = vm.symbolTable.findEntry('capsule');
+    const entry = findEntry(vm, 'capsule');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(true);
     const { tag: entryTag } = fromTaggedValue(entry!.taggedValue);
@@ -23,7 +24,7 @@ describe('capsule word registration', () => {
   // 'does' alias removed; only 'capsule' is supported
 
   test('dispatch builtin maps to opcode', () => {
-    const entry = vm.symbolTable.findEntry('dispatch');
+    const entry = findEntry(vm, 'dispatch');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(false);
     const { tag, value } = fromTaggedValue(entry!.taggedValue);

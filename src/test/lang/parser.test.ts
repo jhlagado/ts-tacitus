@@ -3,6 +3,7 @@ import { Op } from '../../ops/opcodes';
 import { initializeInterpreter, vm } from '../../lang/runtime';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
+import { fromTaggedValue } from '../../core/tagged';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;
@@ -57,7 +58,7 @@ describe('Parser with Tokenizer', () => {
   describe('Colon definitions', () => {
     test('should parse simple word definitions', () => {
       parse(new Tokenizer(': double dup add ;'));
-      const doubleWord = vm.symbolTable.find('double');
+      const doubleWord = vm.resolveSymbol('double');
       expect(doubleWord).toBeDefined();
       vm.IP = 0;
       expect(vm.next8()).toBe(Op.Branch);
@@ -69,24 +70,21 @@ describe('Parser with Tokenizer', () => {
     });
     test('should parse word definitions with numbers in name', () => {
       parse(new Tokenizer(': plus2 2 add ;'));
-      expect(vm.symbolTable.find('plus2')).toBeDefined();
+      expect(vm.resolveSymbol('plus2')).toBeDefined();
     });
     test('should parse word definitions with numbers as name', () => {
       parse(new Tokenizer(': 123 dup mul ;'));
-      expect(vm.symbolTable.find('123')).toBeDefined();
+      expect(vm.resolveSymbol('123')).toBeDefined();
     });
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
-      expect(vm.symbolTable.find('empty')).toBeDefined();
-      const emptyFunctionIndex = vm.symbolTable.find('empty');
-      expect(() => {
-        if (emptyFunctionIndex !== undefined) {
-          const result = vm.symbolTable.findWithImplementation('empty');
-          if (result && result.implementation) {
-            result.implementation(vm);
-          }
-        }
-      }).not.toThrow();
+      expect(vm.resolveSymbol('empty')).toBeDefined();
+      const emptyRef = vm.resolveSymbol('empty');
+      expect(emptyRef).toBeDefined();
+      if (emptyRef !== undefined) {
+        const { value } = fromTaggedValue(emptyRef);
+        expect(value).toBeDefined();
+      }
     });
     test('should throw an error for unclosed definitions', () => {
       expect(() => parse(new Tokenizer(': square dup mul'))).toThrow(
@@ -106,13 +104,13 @@ describe('Parser with Tokenizer', () => {
   describe('Multiple definitions', () => {
     test('should handle multiple word definitions', () => {
       parse(new Tokenizer(': double dup add ; : triple dup dup add add ;'));
-      expect(vm.symbolTable.find('double')).toBeDefined();
-      expect(vm.symbolTable.find('triple')).toBeDefined();
+      expect(vm.resolveSymbol('double')).toBeDefined();
+      expect(vm.resolveSymbol('triple')).toBeDefined();
     });
     test('should allow words to use previously defined words', () => {
       parse(new Tokenizer(': double dup add ; : quadruple double double ;'));
-      expect(vm.symbolTable.find('double')).toBeDefined();
-      expect(vm.symbolTable.find('quadruple')).toBeDefined();
+      expect(vm.resolveSymbol('double')).toBeDefined();
+      expect(vm.resolveSymbol('quadruple')).toBeDefined();
     });
   });
 
@@ -135,26 +133,26 @@ describe('Parser with Tokenizer', () => {
     });
     test('should define and find simple words', () => {
       parse(new Tokenizer(': double dup add ;'));
-      expect(vm.symbolTable.find('double')).toBeDefined();
+      expect(vm.resolveSymbol('double')).toBeDefined();
     });
     test('should handle multiple word definitions', () => {
       parse(new Tokenizer(': double dup add ; : square dup mul ;'));
-      expect(vm.symbolTable.find('double')).toBeDefined();
-      expect(vm.symbolTable.find('square')).toBeDefined();
+      expect(vm.resolveSymbol('double')).toBeDefined();
+      expect(vm.resolveSymbol('square')).toBeDefined();
     });
     test('should handle words with numbers in name', () => {
       parse(new Tokenizer(': x2 2 mul ;'));
-      expect(vm.symbolTable.find('x2')).toBeDefined();
+      expect(vm.resolveSymbol('x2')).toBeDefined();
       try {
         parse(new Tokenizer(': 2times 2 mul ;'));
-        expect(vm.symbolTable.find('2times')).toBeDefined();
+        expect(vm.resolveSymbol('2times')).toBeDefined();
       } catch (e) {
-        console.log('Note: Words starting with numbers might not be supported');
+        // Words starting with numbers might not be supported
       }
     });
     test('should handle words with special characters', () => {
       parse(new Tokenizer(': double? dup 0 gt ;'));
-      expect(vm.symbolTable.find('double?')).toBeDefined();
+      expect(vm.resolveSymbol('double?')).toBeDefined();
     });
   });
 

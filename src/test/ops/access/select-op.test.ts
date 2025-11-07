@@ -57,7 +57,6 @@ describe('selectOp - Path-based address access', () => {
     test('should verify elemOp works with simple list', () => {
       // Simple test: ( 10 20 30 ) 1 elem should give reference to 20
       const result = executeTacitCode('( 10 20 30 ) 1 elem');
-      console.log('elemOp result:', result);
       expect(result.length).toBeGreaterThan(3); // Should have list + reference
       const ref = result[result.length - 1];
       expect(isRef(ref)).toBe(true);
@@ -66,7 +65,6 @@ describe('selectOp - Path-based address access', () => {
     test('should verify elemOp works with element 0', () => {
       // Test: ( 30 40 ) 0 elem should give reference to 30
       const result = executeTacitCode('( 30 40 ) 0 elem');
-      console.log('elemOp element 0 result:', result);
       expect(result.length).toBeGreaterThan(2); // Should have list + reference
       const ref = result[result.length - 1];
       expect(isRef(ref)).toBe(true);
@@ -90,21 +88,17 @@ describe('selectOp - Path-based address access', () => {
       // Set up nested target: ( ( 10 20 ) ( 30 40 ) )
       // Path: ( 1 0 ) - get element 1 (which is (30 40)), then element 0 (which is 30)
       executeTacitCode('( ( 10 20 ) ( 30 40 ) ) ( 1 0 )');
-      console.log('Initial stack:', vm.getStackData());
 
       createTargetRef(vm);
-      console.log('After createTargetRef:', vm.getStackData());
 
       // First step: process path element 1 (should get ref to (30 40))
       const success1 = processPathStep(vm, 1);
-      console.log('After first processPathStep(1):', vm.getStackData());
-      console.log('Success 1:', success1);
+      expect(success1).toBe(true);
 
       if (success1) {
         // Second step: process path element 0 (should get ref to 30)
         const success2 = processPathStep(vm, 0);
-        console.log('After second processPathStep(0):', vm.getStackData());
-        console.log('Success 2:', success2);
+        expect(success2).toBe(true);
 
         expect(success2).toBe(true);
         const finalRef = vm.peek();
@@ -167,10 +161,10 @@ describe('selectOp - Path-based address access', () => {
 
   test('should handle two-element numeric path', () => {
     const elem0 = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) 0 elem fetch');
-    console.log('elem 0 result:', elem0.slice(-3));
+    expect(elem0.length).toBeGreaterThan(0);
 
     const elem1 = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) 1 elem fetch');
-    console.log('elem 1 result:', elem1.slice(-3));
+    expect(elem1.length).toBeGreaterThan(0);
 
     const result = executeTacitCode('( ( 1 2 3 ) ( 4 5 6 ) ) ( 1 0 ) select fetch');
     expect(result[result.length - 1]).toBe(4);

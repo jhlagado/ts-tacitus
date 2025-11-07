@@ -3,7 +3,11 @@ import { SEG_CODE } from '@src/core/constants';
 import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
-import type { SymbolTableEntry } from '../../strings/symbol-table';
+// SymbolTableEntry interface moved inline (symbol table removed)
+interface SymbolTableEntry {
+  taggedValue: number;
+  isImmediate: boolean;
+}
 import { vm } from '../runtime';
 import {
   beginDefinitionImmediate,

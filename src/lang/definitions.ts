@@ -3,6 +3,7 @@ import { vm } from './runtime';
 import { TokenType } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ParserState, ActiveDefinition } from './state';
+import { markWithLocalReset, defineCode } from '../core/dictionary';
 
 export function beginDefinition(state: ParserState): void {
   if (state.currentDefinition) {
@@ -24,7 +25,7 @@ export function beginDefinition(state: ParserState): void {
   const branchPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  const checkpoint = vm.symbolTable.mark();
+  const checkpoint = markWithLocalReset(vm);
   const definition: ActiveDefinition = {
     name: wordName,
     branchPos,
@@ -48,7 +49,7 @@ export function endDefinition(state: ParserState): void {
 
   const { name, branchPos } = state.currentDefinition;
   const defStart = branchPos + 2;
-  vm.symbolTable.defineCode(name, defStart);
+  defineCode(vm, name, defStart);
 
   state.currentDefinition = null;
 }

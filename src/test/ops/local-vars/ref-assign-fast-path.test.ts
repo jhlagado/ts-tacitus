@@ -25,9 +25,6 @@ function expectTopIsListWith(values: number[], stack: number[]) {
   }
   // Fallback: if not found (flaky ordering issue), attempt linear forward scan
   if (headerIndex === -1) {
-    if (process.env.DEBUG_TESTS === '1') {
-      console.log('Tags by element (reverse):', stack.map(v => fromTaggedValue(v).tag).reverse());
-    }
     for (let i = 0; i < stack.length; i++) {
       const { tag } = fromTaggedValue(stack[i]);
       if (tag === Tag.LIST) {

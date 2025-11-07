@@ -26,7 +26,7 @@ import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
-import { lookup } from '../core/dictionary';
+import { lookup, defineLocal } from '../core/dictionary';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -343,8 +343,8 @@ export function emitVarDecl(state: ParserState): void {
 
   vm.compiler.emitReserveIfNeeded();
 
-  vm.symbolTable.defineLocal(varName);
-  const slotNumber = vm.symbolTable.getLocalCount() - 1;
+  defineLocal(vm, varName);
+  const slotNumber = vm.localCount - 1;
 
   vm.compiler.compileOpcode(Op.InitVar);
   vm.compiler.compile16(slotNumber);

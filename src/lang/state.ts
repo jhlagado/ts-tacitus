@@ -1,12 +1,11 @@
 import { SyntaxError } from '@src/core';
-import type { SymbolTableCheckpoint } from '../strings/symbol-table';
 import { vm } from './runtime';
 import type { Tokenizer } from './tokenizer';
 
 export interface ActiveDefinition {
   name: string;
   branchPos: number;
-  checkpoint: SymbolTableCheckpoint;
+  checkpoint: number; // Dictionary mark (heap position)
 }
 
 export interface ParserState {
