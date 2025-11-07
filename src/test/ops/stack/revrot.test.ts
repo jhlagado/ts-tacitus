@@ -2,6 +2,7 @@ import { toTaggedValue, Tag } from '../../../core/tagged';
 import { vm } from '../../../lang/runtime';
 import { revrotOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
+import { push, getStackData } from '../../../core/vm';
 
 describe('revrot Operation', () => {
   beforeEach(() => {
@@ -10,13 +11,13 @@ describe('revrot Operation', () => {
 
   describe('simple values', () => {
     test('should reverse rotate three simple values', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
 
       revrotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(3);
       expect(stack[1]).toBe(1);
@@ -25,15 +26,15 @@ describe('revrot Operation', () => {
 
     it('should reverse rotate with more values on stack', () => {
       resetVM();
-      vm.push(10);
-      vm.push(20);
-      vm.push(3);
-      vm.push(1);
-      vm.push(2);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 3);
+      push(vm, 1);
+      push(vm, 2);
 
       revrotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(5);
 
       expect(typeof stack[0]).toBe('number');
@@ -47,55 +48,55 @@ describe('revrot Operation', () => {
   describe('list operations', () => {
     it('should reverse rotate a list with two simple values', () => {
       resetVM();
-      vm.push(1);
-      vm.push(2);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(5);
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 5);
 
       revrotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(4);
     });
 
     test('should handle nested lists', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(3);
-      vm.push(toTaggedValue(3, Tag.LIST));
-      vm.push(toTaggedValue(1, Tag.LIST));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, toTaggedValue(1, Tag.LIST));
 
-      vm.push(4);
-      vm.push(5);
+      push(vm, 4);
+      push(vm, 5);
 
       revrotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBeGreaterThan(0);
     });
 
     test('should reverse rotate three lists', () => {
-      vm.push(1);
-      vm.push(2);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(3);
-      vm.push(4);
-      vm.push(toTaggedValue(2, Tag.LIST));
-      vm.push(5);
-      vm.push(6);
-      vm.push(toTaggedValue(2, Tag.LIST));
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 3);
+      push(vm, 4);
+      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, 5);
+      push(vm, 6);
+      push(vm, toTaggedValue(2, Tag.LIST));
 
       revrotOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(9);
     });
   });
 
   describe('error cases', () => {
     test('should throw on insufficient stack depth', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
       expect(() => revrotOp(vm)).toThrow('Stack underflow');
     });

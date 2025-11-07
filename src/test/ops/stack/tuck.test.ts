@@ -8,6 +8,7 @@
 
 import { vm } from '../../../lang/runtime';
 import { tuckOp } from '../../../ops/stack';
+import { push, getStackData } from '../../../core/vm';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 
@@ -18,32 +19,32 @@ describe('tuck Operation', () => {
 
   describe('simple values', () => {
     test('should duplicate top element under second with simple values', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
       tuckOp(vm);
 
-      expect(vm.getStackData()).toEqual([2, 1, 2]);
+      expect(getStackData(vm)).toEqual([2, 1, 2]);
     });
 
     test('should work with multiple simple values on stack', () => {
       resetVM();
-      vm.push(10);
-      vm.push(20);
-      vm.push(30);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 30);
 
       tuckOp(vm);
 
-      expect(vm.getStackData()).toEqual([10, 30, 20, 30]);
+      expect(getStackData(vm)).toEqual([10, 30, 20, 30]);
     });
 
     test('should work with negative numbers', () => {
-      vm.push(-5.5);
-      vm.push(3.14);
+      push(vm, -5.5);
+      push(vm, 3.14);
 
       tuckOp(vm);
 
-      const result = vm.getStackData();
+      const result = getStackData(vm);
       expect(result.length).toBe(3);
       expect(result[0]).toBeCloseTo(3.14, 5);
       expect(result[1]).toBeCloseTo(-5.5, 5);
@@ -51,12 +52,12 @@ describe('tuck Operation', () => {
     });
 
     test('should work with exactly two elements', () => {
-      vm.push(100);
-      vm.push(200);
+      push(vm, 100);
+      push(vm, 200);
 
       tuckOp(vm);
 
-      expect(vm.getStackData()).toEqual([200, 100, 200]);
+      expect(getStackData(vm)).toEqual([200, 100, 200]);
     });
   });
 
@@ -111,13 +112,13 @@ describe('tuck Operation', () => {
     });
 
     test('should throw on stack underflow with only one element', () => {
-      vm.push(42);
+      push(vm, 42);
       expect(() => tuckOp(vm)).toThrow();
     });
 
     test('should throw on stack underflow with only one list', () => {
-      vm.push(42);
-      vm.push(toTaggedValue(1, Tag.LIST));
+      push(vm, 42);
+      push(vm, toTaggedValue(1, Tag.LIST));
       expect(() => tuckOp(vm)).toThrow();
     });
   });

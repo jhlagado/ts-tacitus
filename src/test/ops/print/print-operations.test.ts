@@ -7,6 +7,7 @@ import { vm } from '../../../lang/runtime';
 import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { resetVM, captureTacitOutput } from '../../utils/vm-test-utils';
 import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { push } from '../../../core/vm';
 
 describe('Print Operations', () => {
   beforeEach(() => {
@@ -124,7 +125,7 @@ describe('Print Operations', () => {
 
     test('printOp reports formatter failures and leaves stack consistent', () => {
       resetVM();
-      vm.push(42);
+      push(vm, 42);
       const originalPop = vm.pop.bind(vm);
       const popSpy = jest.spyOn(vm, 'pop');
       popSpy.mockImplementationOnce(() => {
@@ -143,7 +144,7 @@ describe('Print Operations', () => {
 
     test('rawPrintOp handles unexpected errors gracefully', () => {
       resetVM();
-      vm.push(toTaggedValue(1, Tag.NUMBER));
+      push(vm, toTaggedValue(1, Tag.NUMBER));
       const popSpy = jest.spyOn(vm, 'pop').mockImplementation(() => {
         throw new Error('boom');
       });

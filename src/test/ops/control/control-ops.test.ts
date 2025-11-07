@@ -7,6 +7,7 @@ import { ifFalseBranchOp } from '../../../ops/control';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import * as vmModule from '../../../core/vm';
 import * as conditionalOpsModule from '../../../ops/control/conditional-ops';
+import { push } from '../../../core/vm';
 
 describe('Control Operations - Branch Coverage', () => {
   beforeEach(() => {
@@ -20,7 +21,7 @@ describe('Control Operations - Branch Coverage', () => {
       const originalNextInt16 = vmModule.nextInt16;
       (vmModule as any).nextInt16 = () => 10;
 
-      vm.push(toTaggedValue(100, Tag.CODE));
+      push(vm, toTaggedValue(100, Tag.CODE));
 
       const originalIP = vm.IP;
 
@@ -35,7 +36,7 @@ describe('Control Operations - Branch Coverage', () => {
       const originalNextInt16 = vmModule.nextInt16;
       (vmModule as any).nextInt16 = () => 10;
 
-      vm.push(5);
+      push(vm, 5);
 
       const originalIP = vm.IP;
 
@@ -50,7 +51,7 @@ describe('Control Operations - Branch Coverage', () => {
       const originalNextInt16 = vmModule.nextInt16;
       (vmModule as any).nextInt16 = () => 15;
 
-      vm.push(0);
+      push(vm, 0);
 
       const originalIP = vm.IP;
 

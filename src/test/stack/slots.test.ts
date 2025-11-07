@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { cellsRoll, cellsReverse } from '../../ops/stack';
+import { push, pop } from '../../core/vm';
 
 describe('rangeRoll', () => {
   let vm: VM;
@@ -11,60 +12,60 @@ describe('rangeRoll', () => {
   });
 
   test('should handle empty range', () => {
-    vm.push(1);
+    push(vm, 1);
     const start = vm.sp - STACK_BASE / CELL_SIZE;
 
     cellsRoll(vm, start, 0, 1);
 
-    expect(vm.pop()).toBe(1);
+    expect(pop(vm)).toBe(1);
   });
 
   test('should handle zero shift', () => {
-    vm.push(1);
-    vm.push(2);
+    push(vm, 1);
+    push(vm, 2);
     const start = vm.sp - STACK_BASE / CELL_SIZE - 1;
 
     cellsRoll(vm, start, 2, 0);
 
-    expect(vm.pop()).toBe(2);
-    expect(vm.pop()).toBe(1);
+    expect(pop(vm)).toBe(2);
+    expect(pop(vm)).toBe(1);
   });
 
   test('should roll simple values right', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
-    vm.push(4);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
+    push(vm, 4);
 
     cellsRoll(vm, 0, 4, 1);
-    expect(vm.pop()).toBe(3);
-    expect(vm.pop()).toBe(2);
-    expect(vm.pop()).toBe(1);
-    expect(vm.pop()).toBe(4);
+    expect(pop(vm)).toBe(3);
+    expect(pop(vm)).toBe(2);
+    expect(pop(vm)).toBe(1);
+    expect(pop(vm)).toBe(4);
   });
 
   test('should roll simple values left', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
-    vm.push(4);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
+    push(vm, 4);
 
     cellsRoll(vm, 0, 4, -1);
-    expect(vm.pop()).toBe(1);
-    expect(vm.pop()).toBe(4);
-    expect(vm.pop()).toBe(3);
-    expect(vm.pop()).toBe(2);
+    expect(pop(vm)).toBe(1);
+    expect(pop(vm)).toBe(4);
+    expect(pop(vm)).toBe(3);
+    expect(pop(vm)).toBe(2);
   });
 
   test('should handle shift amounts larger than range size', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
 
     cellsRoll(vm, 0, 3, 3);
-    expect(vm.pop()).toBe(3);
-    expect(vm.pop()).toBe(2);
-    expect(vm.pop()).toBe(1);
+    expect(pop(vm)).toBe(3);
+    expect(pop(vm)).toBe(2);
+    expect(pop(vm)).toBe(1);
   });
 });
 
@@ -76,39 +77,39 @@ describe('reverseRange', () => {
   });
 
   test('should reverse a range of elements', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
-    vm.push(4);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
+    push(vm, 4);
 
     const start = 1;
     cellsReverse(vm, start, 2);
 
-    expect(vm.pop()).toBe(4);
-    expect(vm.pop()).toBe(2);
-    expect(vm.pop()).toBe(3);
-    expect(vm.pop()).toBe(1);
+    expect(pop(vm)).toBe(4);
+    expect(pop(vm)).toBe(2);
+    expect(pop(vm)).toBe(3);
+    expect(pop(vm)).toBe(1);
   });
 
   test('should handle empty range', () => {
-    vm.push(42);
+    push(vm, 42);
     const start = 0;
 
     cellsReverse(vm, start, 0);
 
-    expect(vm.pop()).toBe(42);
+    expect(pop(vm)).toBe(42);
   });
 
   test('should handle single element range', () => {
-    vm.push(1);
-    vm.push(2);
-    vm.push(3);
+    push(vm, 1);
+    push(vm, 2);
+    push(vm, 3);
 
     const start = 1;
     cellsReverse(vm, start, 1);
 
-    expect(vm.pop()).toBe(3);
-    expect(vm.pop()).toBe(2);
-    expect(vm.pop()).toBe(1);
+    expect(pop(vm)).toBe(3);
+    expect(pop(vm)).toBe(2);
+    expect(pop(vm)).toBe(1);
   });
 });

@@ -9,6 +9,7 @@
 import { vm } from '../../../lang/runtime';
 import { nipOp } from '../../../ops/stack';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { push, getStackData } from '../../../core/vm';
 
 describe('nip Operation', () => {
   beforeEach(() => {
@@ -17,42 +18,42 @@ describe('nip Operation', () => {
 
   describe('simple values', () => {
     test('should remove second element with simple values', () => {
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
       nipOp(vm);
 
-      expect(vm.getStackData()).toEqual([2]);
+      expect(getStackData(vm)).toEqual([2]);
     });
 
     test('should work with multiple simple values on stack', () => {
-      vm.push(10);
-      vm.push(20);
-      vm.push(30);
+      push(vm, 10);
+      push(vm, 20);
+      push(vm, 30);
 
       nipOp(vm);
 
-      expect(vm.getStackData()).toEqual([10, 30]);
+      expect(getStackData(vm)).toEqual([10, 30]);
     });
 
     test('should work with negative numbers', () => {
-      vm.push(-5.5);
-      vm.push(3.14);
+      push(vm, -5.5);
+      push(vm, 3.14);
 
       nipOp(vm);
 
-      const result = vm.getStackData();
+      const result = getStackData(vm);
       expect(result.length).toBe(1);
       expect(result[0]).toBeCloseTo(3.14, 5);
     });
 
     test('should work with exactly two elements', () => {
-      vm.push(100);
-      vm.push(200);
+      push(vm, 100);
+      push(vm, 200);
 
       nipOp(vm);
 
-      expect(vm.getStackData()).toEqual([200]);
+      expect(getStackData(vm)).toEqual([200]);
     });
   });
 
@@ -96,7 +97,7 @@ describe('nip Operation', () => {
     });
 
     test('should throw on stack underflow with only one element', () => {
-      vm.push(42);
+      push(vm, 42);
       expect(() => nipOp(vm)).toThrow();
     });
 

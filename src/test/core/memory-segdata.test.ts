@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm } from '../../lang/runtime';
 import { resetVM } from '../utils/vm-test-utils';
 import { SEG_DATA, CELL_SIZE } from '../../core/constants';
+import { push, rpush } from '../../core/vm';
 
 describe('SEG_DATA unified access (Phase B)', () => {
   beforeEach(() => {
@@ -9,7 +10,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
   });
 
   test('read stack TOS via SEG_DATA', () => {
-    vm.push(42);
+    push(vm, 42);
     const depthAbs = vm.sp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
     const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
@@ -17,7 +18,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
   });
 
   test('read return stack TOS via SEG_DATA', () => {
-    vm.rpush(7);
+    rpush(vm, 7);
     const depthAbs = vm.rsp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
     const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);

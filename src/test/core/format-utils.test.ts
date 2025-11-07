@@ -1,5 +1,6 @@
 import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '../../core';
 import { initializeInterpreter, vm } from '../../lang/runtime';
+import { push, getStackData } from '../../core/vm';
 
 describe('Format Utils', () => {
   beforeEach(() => {
@@ -131,11 +132,11 @@ describe('Format Utils', () => {
     describe('integration tests', () => {
       test('should handle mixed data types in complex structures', () => {
         const strAddr = vm.digest.intern('hello');
-        vm.push(3.14);
-        vm.push(42);
-        vm.push(toTaggedValue(strAddr, Tag.STRING));
-        vm.push(toTaggedValue(3, Tag.LIST));
-        const header = vm.getStackData()[vm.getStackData().length - 1];
+        push(vm, 3.14);
+        push(vm, 42);
+        push(vm, toTaggedValue(strAddr, Tag.STRING));
+        push(vm, toTaggedValue(3, Tag.LIST));
+        const header = getStackData(vm)[getStackData(vm).length - 1];
         const result = formatValue(vm, header);
         expect(result).toBe('( "hello" 42 3.14 )');
       });

@@ -5,6 +5,7 @@ import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
 import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA, STACK_BASE } from '../../../core/constants';
 import { createDataRef } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
+import { push, pop, getStackData } from '../../../core/vm';
 
 describe('Global heap primitives', () => {
   let baseGp = 0;
@@ -15,7 +16,7 @@ describe('Global heap primitives', () => {
   });
 
   test('gpush copies simple value to heap and leaves no result', () => {
-    vm.push(42);
+    push(vm, 42);
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 1);
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
@@ -24,9 +25,9 @@ describe('Global heap primitives', () => {
   });
 
   test('gpush copies list payload and leaves no result', () => {
-    vm.push(2);
-    vm.push(1);
-    vm.push(toTaggedValue(2, Tag.LIST));
+    push(vm, 2);
+    push(vm, 1);
+    push(vm, toTaggedValue(2, Tag.LIST));
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 3);
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(0);
@@ -38,21 +39,21 @@ describe('Global heap primitives', () => {
   });
 
   test('gpeek materialises list contents without altering heap', () => {
-    vm.push(2);
-    vm.push(1);
-    vm.push(toTaggedValue(2, Tag.LIST));
+    push(vm, 2);
+    push(vm, 1);
+    push(vm, toTaggedValue(2, Tag.LIST));
     gpushOp(vm);
     gpeekOp(vm);
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(3);
-    const values = vm.getStackData();
+    const values = getStackData(vm);
     expect(values).toEqual([2, 1, toTaggedValue(2, Tag.LIST)]);
     expect(vm.gp).toBe(baseGp + 3);
   });
 
   test('gpop rewinds heap to previous state', () => {
-    vm.push(10);
+    push(vm, 10);
     gpushOp(vm);
-    vm.push(20);
+    push(vm, 20);
     gpushOp(vm);
     gpopOp(vm);
     expect(vm.gp).toBe(baseGp + 1);
@@ -60,9 +61,9 @@ describe('Global heap primitives', () => {
   });
 
   test('gpop rewinds list payload spans', () => {
-    vm.push(2);
-    vm.push(1);
-    vm.push(toTaggedValue(2, Tag.LIST));
+    push(vm, 2);
+    push(vm, 1);
+    push(vm, toTaggedValue(2, Tag.LIST));
     gpushOp(vm);
 
     expect(vm.gp).toBe(baseGp + 3);
@@ -74,27 +75,27 @@ describe('Global heap primitives', () => {
   });
 
   test('gmark + gsweep restore GP to saved mark', () => {
-    vm.push(11);
+    push(vm, 11);
     gpushOp(vm);
     gmarkOp(vm);
-    const mark = vm.pop();
+    const mark = pop(vm);
 
-    vm.push(22);
+    push(vm, 22);
     gpushOp(vm);
     expect(vm.gp).toBeGreaterThan(mark);
 
-    vm.push(mark);
+    push(vm, mark);
     gsweepOp(vm);
 
     expect(vm.gp).toBe(mark);
   });
 
   test('gpush resolves DATA_REF of simple and copies the value', () => {
-    vm.push(7);
+    push(vm, 7);
     gpushOp(vm);
     // Create a ref to the first heap cell on the stack and push it
     const nestedRef = createDataRef(GLOBAL_BASE / CELL_SIZE + baseGp);
-    vm.push(nestedRef);
+    push(vm, nestedRef);
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 2);
     // The second heap cell stores the resolved simple value
@@ -103,13 +104,13 @@ describe('Global heap primitives', () => {
 
   test('gpeek rejects empty heap', () => {
     // Sweep to absolute 0 to simulate empty heap
-    vm.push(0);
+    push(vm, 0);
     gsweepOp(vm);
     expect(() => gpeekOp(vm)).toThrow(/empty heap/);
   });
 
   test('gpop throws on empty heap', () => {
-    vm.push(0);
+    push(vm, 0);
     gsweepOp(vm);
     expect(() => gpopOp(vm)).toThrow(/empty heap/);
   });
@@ -117,24 +118,24 @@ describe('Global heap primitives', () => {
   // gpop no longer accepts input; reference validation tests removed
 
   test('gsweep rejects non-integer marks', () => {
-    vm.push(0.5);
+    push(vm, 0.5);
     expect(() => gsweepOp(vm)).toThrow(/integer heap mark/);
   });
 
   test('gsweep rejects out-of-range marks', () => {
-    vm.push(-1);
+    push(vm, -1);
     expect(() => gsweepOp(vm)).toThrow(/mark out of range/);
   });
 
   test('gsweep rejects marks above current heap top', () => {
-    vm.push(vm.gp + 1);
+    push(vm, vm.gp + 1);
     expect(() => gsweepOp(vm)).toThrow(/mark out of range/);
   });
 
   test('gpush reports exhaustion when heap is full', () => {
     const capacity = GLOBAL_SIZE / CELL_SIZE;
     vm.gp = capacity;
-    vm.push(123);
+    push(vm, 123);
     expect(() => gpushOp(vm)).toThrow(/Global heap exhausted/);
   });
 });

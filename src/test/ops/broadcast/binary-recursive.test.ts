@@ -1,13 +1,14 @@
 import { fromTaggedValue, Tag } from '../../../../src/core';
 import { vm } from '../../../../src/lang/runtime';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { getStackData } from '../../../../src/core/vm';
 
 describe('Recursive broadcasting: add', () => {
   afterEach(() => {
     resetVM();
   });
 
-  const snapshotValues = () => vm.getStackData().map((v: number) => fromTaggedValue(v));
+  const snapshotValues = () => getStackData(vm).map((v: number) => fromTaggedValue(v));
 
   test('scalar broadcast over nested list (scalar on left)', () => {
     executeTacitCode('5 ( ( 1 2 ) 3 ) add');

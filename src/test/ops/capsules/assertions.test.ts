@@ -2,6 +2,7 @@ import { Tag, toTaggedValue } from '../../../core';
 import { vm } from '../../../lang/runtime';
 import { assertCapsuleShape } from '../../../ops/capsules/assertions';
 import { resetVM, pushTestList } from '../../utils/vm-test-utils';
+import { push, peek } from '../../../core/vm';
 
 describe('capsule assertions', () => {
   beforeEach(() => {
@@ -11,18 +12,18 @@ describe('capsule assertions', () => {
   test('accepts well-formed capsule', () => {
     const codeRef = toTaggedValue(42, Tag.CODE);
     pushTestList(vm, [1, 2, codeRef]);
-    const header = vm.peek();
+    const header = peek(vm);
     expect(() => assertCapsuleShape(vm, header)).not.toThrow();
   });
 
   test('rejects non-list values', () => {
-    vm.push(123);
-    expect(() => assertCapsuleShape(vm, vm.peek())).toThrow('LIST');
+    push(vm, 123);
+    expect(() => assertCapsuleShape(vm, peek(vm))).toThrow('LIST');
   });
 
   test('rejects capsule without code reference', () => {
     pushTestList(vm, [1, 2, 3]);
-    const header = vm.peek();
+    const header = peek(vm);
     expect(() => assertCapsuleShape(vm, header)).toThrow('CODE_REF');
   });
 });

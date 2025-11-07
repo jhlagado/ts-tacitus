@@ -6,7 +6,7 @@
  * This test file implements Step 7 of the unified code reference system:
  * - Manually register built-in symbols: defineBuiltin(vm, "add", Op.Add)
  * - Manually register code symbols: defineCode(vm, "test", 1000)
- * - Test vm.resolveSymbol() returns correct tagged values
+ * - Test resolveSymbol(vm, ) returns correct tagged values
  * - Test resolved values work with evalOp
  *
  * These tests simulate what the @ prefix will eventually do automatically,
@@ -27,6 +27,7 @@ import {
   getCodeAddress,
 } from '../utils/core-test-utils';
 import { evalOp } from '../../ops/core';
+import { resolveSymbol, push, getStackData, pop } from '../../core/vm';
 
 describe('Symbol Table Integration Tests', () => {
   beforeEach(() => {
@@ -37,7 +38,7 @@ describe('Symbol Table Integration Tests', () => {
     test('should handle add operation end-to-end', () => {
       defineBuiltin(vm, 'add', Op.Add);
 
-      const addRef = vm.resolveSymbol('add');
+      const addRef = resolveSymbol(vm, 'add');
       expect(addRef).toBeDefined();
       expect(isBuiltinRef(addRef!)).toBe(true);
       expect(getBuiltinOpcode(addRef!)).toBe(Op.Add);
@@ -46,13 +47,13 @@ describe('Symbol Table Integration Tests', () => {
       expect(tag).toBe(Tag.BUILTIN);
       expect(value).toBe(Op.Add);
 
-      vm.push(2);
-      vm.push(3);
-      vm.push(addRef!);
+      push(vm, 2);
+      push(vm, 3);
+      push(vm, addRef!);
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([5]);
+      expect(getStackData(vm)).toEqual([5]);
     });
 
     test('should handle multiple built-in operations', () => {
@@ -60,22 +61,22 @@ describe('Symbol Table Integration Tests', () => {
       defineBuiltin(vm, 'swap', Op.Swap);
       defineBuiltin(vm, 'drop', Op.Drop);
 
-      vm.push(42);
-      const dupRef = vm.resolveSymbol('dup');
-      vm.push(dupRef!);
+      push(vm, 42);
+      const dupRef = resolveSymbol(vm, 'dup');
+      push(vm, dupRef!);
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 42]);
+      expect(getStackData(vm)).toEqual([42, 42]);
 
-      vm.push(99);
-      const swapRef = vm.resolveSymbol('swap');
-      vm.push(swapRef!);
+      push(vm, 99);
+      const swapRef = resolveSymbol(vm, 'swap');
+      push(vm, swapRef!);
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 99, 42]);
+      expect(getStackData(vm)).toEqual([42, 99, 42]);
 
-      const dropRef = vm.resolveSymbol('drop');
-      vm.push(dropRef!);
+      const dropRef = resolveSymbol(vm, 'drop');
+      push(vm, dropRef!);
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 99]);
+      expect(getStackData(vm)).toEqual([42, 99]);
     });
 
     test('should handle arithmetic operations sequence', () => {
@@ -83,23 +84,23 @@ describe('Symbol Table Integration Tests', () => {
       defineBuiltin(vm, 'mul', Op.Multiply);
       defineBuiltin(vm, 'dup', Op.Dup);
 
-      vm.push(3);
+      push(vm, 3);
 
-      const dupRef = vm.resolveSymbol('dup');
-      vm.push(dupRef!);
+      const dupRef = resolveSymbol(vm, 'dup');
+      push(vm, dupRef!);
       evalOp(vm);
 
-      const mulRef = vm.resolveSymbol('mul');
-      vm.push(mulRef!);
+      const mulRef = resolveSymbol(vm, 'mul');
+      push(vm, mulRef!);
       evalOp(vm);
 
-      vm.push(4);
+      push(vm, 4);
 
-      const addRef = vm.resolveSymbol('add');
-      vm.push(addRef!);
+      const addRef = resolveSymbol(vm, 'add');
+      push(vm, addRef!);
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([13]);
+      expect(getStackData(vm)).toEqual([13]);
     });
   });
 
@@ -107,7 +108,7 @@ describe('Symbol Table Integration Tests', () => {
     test('should register and resolve code symbols with correct tagged values', () => {
       defineCode(vm, 'test', 1000);
 
-      const testRef = vm.resolveSymbol('test');
+      const testRef = resolveSymbol(vm, 'test');
       expect(testRef).toBeDefined();
       expect(isFuncRef(testRef!)).toBe(true);
       expect(getCodeAddress(testRef!)).toBe(1000);
@@ -122,15 +123,15 @@ describe('Symbol Table Integration Tests', () => {
       defineCode(vm, 'cube', 2048);
       defineCode(vm, 'factorial', 4096);
 
-      const squareRef = vm.resolveSymbol('square');
+      const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
       expect(getCodeAddress(squareRef!)).toBe(1024);
 
-      const cubeRef = vm.resolveSymbol('cube');
+      const cubeRef = resolveSymbol(vm, 'cube');
       expect(isFuncRef(cubeRef!)).toBe(true);
       expect(getCodeAddress(cubeRef!)).toBe(2048);
 
-      const factorialRef = vm.resolveSymbol('factorial');
+      const factorialRef = resolveSymbol(vm, 'factorial');
       expect(isFuncRef(factorialRef!)).toBe(true);
       expect(getCodeAddress(factorialRef!)).toBe(4096);
     });
@@ -138,7 +139,7 @@ describe('Symbol Table Integration Tests', () => {
     test('should maintain symbol table backward compatibility', () => {
       defineCode(vm, 'test', 1500);
 
-      const codeRef = vm.resolveSymbol('test');
+      const codeRef = resolveSymbol(vm, 'test');
       expect(codeRef).toBeDefined();
       const { tag, value: addr } = fromTaggedValue(codeRef!);
       expect(tag).toBe(Tag.CODE);
@@ -153,19 +154,19 @@ describe('Symbol Table Integration Tests', () => {
       defineCode(vm, 'square', 2000);
       defineCode(vm, 'double', 3000);
 
-      const addRef = vm.resolveSymbol('add');
+      const addRef = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addRef!)).toBe(true);
       expect(getBuiltinOpcode(addRef!)).toBe(Op.Add);
 
-      const dupRef = vm.resolveSymbol('dup');
+      const dupRef = resolveSymbol(vm, 'dup');
       expect(isBuiltinRef(dupRef!)).toBe(true);
       expect(getBuiltinOpcode(dupRef!)).toBe(Op.Dup);
 
-      const squareRef = vm.resolveSymbol('square');
+      const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
       expect(getCodeAddress(squareRef!)).toBe(2000);
 
-      const doubleRef = vm.resolveSymbol('double');
+      const doubleRef = resolveSymbol(vm, 'double');
       expect(isFuncRef(doubleRef!)).toBe(true);
       expect(getCodeAddress(doubleRef!)).toBe(3000);
     });
@@ -174,15 +175,15 @@ describe('Symbol Table Integration Tests', () => {
       defineBuiltin(vm, 'add', Op.Add);
       defineCode(vm, 'square', 1500);
 
-      vm.push(10);
-      vm.push(5);
-      const addRef = vm.resolveSymbol('add');
-      vm.push(addRef!);
+      push(vm, 10);
+      push(vm, 5);
+      const addRef = resolveSymbol(vm, 'add');
+      push(vm, addRef!);
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([15]);
+      expect(getStackData(vm)).toEqual([15]);
 
-      const squareRef = vm.resolveSymbol('square');
+      const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
       expect(getCodeAddress(squareRef!)).toBe(1500);
     });
@@ -190,22 +191,22 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Error Handling', () => {
     test('should handle non-existent symbols', () => {
-      const result = vm.resolveSymbol('nonexistent');
+      const result = resolveSymbol(vm, 'nonexistent');
       expect(result).toBeUndefined();
     });
 
     test('should handle invalid symbol names', () => {
-      const result1 = vm.resolveSymbol('');
+      const result1 = resolveSymbol(vm, '');
       expect(result1).toBeUndefined();
 
-      const result2 = vm.resolveSymbol('   ');
+      const result2 = resolveSymbol(vm, '   ');
       expect(result2).toBeUndefined();
     });
 
     test('should not interfere with existing symbol table functionality', () => {
       defineBuiltin(vm, 'custom_add', Op.Add);
 
-      const customRef = vm.resolveSymbol('custom_add');
+      const customRef = resolveSymbol(vm, 'custom_add');
       expect(customRef).toBeDefined();
       expect(isBuiltinRef(customRef!)).toBe(true);
     });
@@ -215,39 +216,39 @@ describe('Symbol Table Integration Tests', () => {
     test('should simulate future @symbol eval workflow', () => {
       defineBuiltin(vm, 'add', Op.Add);
 
-      vm.push(2);
-      vm.push(3);
+      push(vm, 2);
+      push(vm, 3);
 
-      const addRef = vm.resolveSymbol('add');
+      const addRef = resolveSymbol(vm, 'add');
       expect(addRef).toBeDefined();
 
-      vm.push(addRef!);
+      push(vm, addRef!);
 
       evalOp(vm);
 
-      expect(vm.getStackData()).toEqual([5]);
+      expect(getStackData(vm)).toEqual([5]);
     });
 
     test('should demonstrate unified eval behavior with different code types', () => {
       defineBuiltin(vm, 'dup', Op.Dup);
 
-      vm.push(42);
-      const dupRef = vm.resolveSymbol('dup');
-      vm.push(dupRef!);
+      push(vm, 42);
+      const dupRef = resolveSymbol(vm, 'dup');
+      push(vm, dupRef!);
       evalOp(vm);
-      expect(vm.getStackData()).toEqual([42, 42]);
+      expect(getStackData(vm)).toEqual([42, 42]);
 
       vm.sp = STACK_BASE / CELL_SIZE;
-      vm.push(5);
+      push(vm, 5);
 
       const codeBlockRef = createCodeRef(100);
-      vm.push(codeBlockRef);
+      push(vm, codeBlockRef);
 
-      const poppedRef = vm.pop();
+      const poppedRef = pop(vm);
       expect(isFuncRef(poppedRef)).toBe(true);
       expect(getCodeAddress(poppedRef)).toBe(100);
 
-      expect(vm.getStackData()).toEqual([5]);
+      expect(getStackData(vm)).toEqual([5]);
     });
   });
 
@@ -263,27 +264,27 @@ describe('Symbol Table Integration Tests', () => {
         }
       }
 
-      const builtin42 = vm.resolveSymbol('builtin_42');
+      const builtin42 = resolveSymbol(vm, 'builtin_42');
       expect(isBuiltinRef(builtin42!)).toBe(true);
       expect(getBuiltinOpcode(builtin42!)).toBe(42);
 
-      const code43 = vm.resolveSymbol('code_43');
+      const code43 = resolveSymbol(vm, 'code_43');
       expect(isFuncRef(code43!)).toBe(true);
       expect(getCodeAddress(code43!)).toBe(1043);
 
-      expect(vm.resolveSymbol('nonexistent')).toBeUndefined();
+      expect(resolveSymbol(vm, 'nonexistent')).toBeUndefined();
     });
 
     test('should maintain consistent memory usage patterns', () => {
-      const initialStackSize = vm.getStackData().length;
+      const initialStackSize = getStackData(vm).length;
 
       defineBuiltin(vm, 'test1', Op.Add);
       defineCode(vm, 'test2', 500);
 
-      const ref1 = vm.resolveSymbol('test1');
-      const ref2 = vm.resolveSymbol('test2');
+      const ref1 = resolveSymbol(vm, 'test1');
+      const ref2 = resolveSymbol(vm, 'test2');
 
-      expect(vm.getStackData().length).toBe(initialStackSize);
+      expect(getStackData(vm).length).toBe(initialStackSize);
 
       expect(ref1).toBeDefined();
       expect(ref2).toBeDefined();

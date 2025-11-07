@@ -12,6 +12,7 @@ import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
+import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
 
 describe('VM pushSymbolRef method', () => {
   beforeEach(() => {
@@ -22,13 +23,13 @@ describe('VM pushSymbolRef method', () => {
     test('should push built-in add reference and execute correctly', () => {
       defineBuiltin(vm, 'add', Op.Add);
 
-      vm.push(2);
-      vm.push(3);
+      push(vm, 2);
+      push(vm, 3);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
       evalOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(5);
     });
@@ -36,12 +37,12 @@ describe('VM pushSymbolRef method', () => {
     test('should push built-in dup reference and execute correctly', () => {
       defineBuiltin(vm, 'dup', Op.Dup);
 
-      vm.push(42);
+      push(vm, 42);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(42);
       expect(stack[1]).toBe(42);
@@ -50,13 +51,13 @@ describe('VM pushSymbolRef method', () => {
     test('should push built-in swap reference and execute correctly', () => {
       defineBuiltin(vm, 'swap', Op.Swap);
 
-      vm.push(1);
-      vm.push(2);
+      push(vm, 1);
+      push(vm, 2);
 
-      vm.pushSymbolRef('swap');
+      pushSymbolRef(vm, 'swap');
       evalOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(2);
       expect(stack[0]).toBe(2);
       expect(stack[1]).toBe(1);
@@ -65,15 +66,15 @@ describe('VM pushSymbolRef method', () => {
     it('should push correct Tag.BUILTIN tagged value', () => {
       resetVM();
 
-      vm.pushSymbolRef('mul');
+      pushSymbolRef(vm, 'mul');
 
-      const stackSize = vm.getStackData().length;
+      const stackSize = getStackData(vm).length;
       expect(stackSize).toBe(1);
 
-      const taggedValue = vm.peek();
+      const taggedValue = peek(vm);
       const { tag, value } = fromTaggedValue(taggedValue);
 
-      const resolvedValue = vm.resolveSymbol('mul');
+      const resolvedValue = resolveSymbol(vm, 'mul');
       expect(resolvedValue).toBeDefined();
       expect(resolvedValue).not.toBeNull();
 
@@ -94,10 +95,10 @@ describe('VM pushSymbolRef method', () => {
       defineCode(vm, 'square', 1500);
       defineCode(vm, 'double', 1600);
 
-      vm.pushSymbolRef('add');
-      vm.pushSymbolRef('square');
-      vm.pushSymbolRef('dup');
-      vm.pushSymbolRef('double');
+      pushSymbolRef(vm, 'add');
+      pushSymbolRef(vm, 'square');
+      pushSymbolRef(vm, 'dup');
+      pushSymbolRef(vm, 'double');
 
       const stackDepth = vm.sp - STACK_BASE / CELL_SIZE;
       expect(stackDepth).toBe(4);
@@ -116,15 +117,15 @@ describe('VM pushSymbolRef method', () => {
       defineBuiltin(vm, 'dup', Op.Dup);
       defineBuiltin(vm, 'mul', Op.Multiply);
 
-      vm.push(5);
+      push(vm, 5);
 
-      vm.pushSymbolRef('dup');
+      pushSymbolRef(vm, 'dup');
       evalOp(vm);
 
-      vm.pushSymbolRef('mul');
+      pushSymbolRef(vm, 'mul');
       evalOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(25);
     });
@@ -133,24 +134,24 @@ describe('VM pushSymbolRef method', () => {
   describe('error cases', () => {
     test('should throw error for non-existent symbol', () => {
       expect(() => {
-        vm.pushSymbolRef('nonexistent');
+        pushSymbolRef(vm, 'nonexistent');
       }).toThrow('Symbol not found: nonexistent');
     });
 
     test('should throw error for empty symbol name', () => {
       expect(() => {
-        vm.pushSymbolRef('');
+        pushSymbolRef(vm, '');
       }).toThrow('Symbol not found: ');
     });
 
     test('should not affect stack when symbol not found', () => {
-      vm.push(42);
+      push(vm, 42);
 
       expect(() => {
-        vm.pushSymbolRef('unknown');
+        pushSymbolRef(vm, 'unknown');
       }).toThrow('Symbol not found: unknown');
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(42);
     });
@@ -160,14 +161,14 @@ describe('VM pushSymbolRef method', () => {
     test('should simulate complete @symbol eval workflow', () => {
       defineBuiltin(vm, 'add', Op.Add);
 
-      vm.push(3);
-      vm.push(7);
+      push(vm, 3);
+      push(vm, 7);
 
-      vm.pushSymbolRef('add');
+      pushSymbolRef(vm, 'add');
 
       evalOp(vm);
 
-      const stack = vm.getStackData();
+      const stack = getStackData(vm);
       expect(stack.length).toBe(1);
       expect(stack[0]).toBe(10);
     });

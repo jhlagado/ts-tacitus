@@ -8,9 +8,9 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { vm } from '../../../lang/runtime';
 import { exitOp, evalOp } from '../../../ops/core';
+import { push, rpush, rpop, pop, getStackData, unsafeSetBPBytes } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
-import { unsafeSetBPBytes } from '../../../core/vm';
 
 describe('Core Operations Branch Coverage', () => {
   beforeEach(() => {
@@ -35,10 +35,8 @@ describe('Core Operations Branch Coverage', () => {
       unsafeSetBPBytes(vm, 16); // Set base pointer (bytes -> cells)
       vm.rsp = 4; // 4 cells = 16 bytes to match BP
       // Save BP as relative cells (depth)
-      vm.rpush(
-        vm.bp - RSTACK_BASE / CELL_SIZE,
-      ); // BP saved (relative)
-      vm.rpush(1000); // Non-code return address (number, not tagged as CODE)
+      rpush(vm, vm.bp - RSTACK_BASE / CELL_SIZE); // BP saved (relative)
+      rpush(vm, 1000); // Non-code return address (number, not tagged as CODE)
 
       exitOp(vm);
 
@@ -51,11 +49,11 @@ describe('Core Operations Branch Coverage', () => {
   describe('evalOp branch coverage', () => {
     test('should handle non-executable values (line 338)', () => {
       // Push a non-executable value (not CODE or BUILTIN)
-      vm.push(toTaggedValue(42, Tag.NUMBER));
+      push(vm, toTaggedValue(42, Tag.NUMBER));
 
-      const stackBefore = vm.getStackData();
+      const stackBefore = getStackData(vm);
       evalOp(vm);
-      const stackAfter = vm.getStackData();
+      const stackAfter = getStackData(vm);
 
       // Should have pushed the value back (non-executable branch)
       expect(stackAfter.length).toBe(stackBefore.length);
@@ -64,23 +62,23 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should handle string values in eval', () => {
       // Test string tag in evalOp
-      vm.push(toTaggedValue(100, Tag.STRING));
+      push(vm, toTaggedValue(100, Tag.STRING));
 
       evalOp(vm);
 
       // String should be treated as non-executable and pushed back
-      const result = vm.pop();
+      const result = pop(vm);
       expect(result).toBe(toTaggedValue(100, Tag.STRING));
     });
 
     test('should handle list values in eval', () => {
       // Test list tag in evalOp
-      vm.push(toTaggedValue(4, Tag.LIST));
+      push(vm, toTaggedValue(4, Tag.LIST));
 
       evalOp(vm);
 
       // List should be treated as non-executable and pushed back
-      const result = vm.pop();
+      const result = pop(vm);
       expect(result).toBe(toTaggedValue(4, Tag.LIST));
     });
 
@@ -88,7 +86,7 @@ describe('Core Operations Branch Coverage', () => {
       // meta=1 branch in evalOp should rpush return address and jump to addr
       const addr = 12345;
       vm.IP = 77;
-      vm.push(toTaggedValue(addr, Tag.CODE, 1));
+      push(vm, toTaggedValue(addr, Tag.CODE, 1));
       evalOp(vm);
       expect(vm.IP).toBe(addr);
     });
@@ -143,11 +141,11 @@ describe('Core Operations Branch Coverage', () => {
       const codeBlock = toTaggedValue(2000, Tag.CODE, 1); // Block
 
       // Just ensure these don't crash when processed
-      vm.push(codeFunc);
-      expect(vm.getStackData().length).toBe(1);
+      push(vm, codeFunc);
+      expect(getStackData(vm).length).toBe(1);
 
-      vm.push(codeBlock);
-      expect(vm.getStackData().length).toBe(2);
+      push(vm, codeBlock);
+      expect(getStackData(vm).length).toBe(2);
     });
   });
 
@@ -157,21 +155,21 @@ describe('Core Operations Branch Coverage', () => {
 
       // Deep stack
       for (let i = 0; i < 10; i++) {
-        vm.push(i);
+        push(vm, i);
       }
 
       // Push and pop to exercise stack operations
-      const last = vm.pop();
+      const last = pop(vm);
       expect(last).toBe(9);
 
       // Multiple return stack entries
-      vm.rpush(100);
-      vm.rpush(200);
-      vm.rpush(300);
+      rpush(vm, 100);
+      rpush(vm, 200);
+      rpush(vm, 300);
 
-      expect(vm.rpop()).toBe(300);
-      expect(vm.rpop()).toBe(200);
-      expect(vm.rpop()).toBe(100);
+      expect(rpop(vm)).toBe(300);
+      expect(rpop(vm)).toBe(200);
+      expect(rpop(vm)).toBe(100);
     });
   });
 });

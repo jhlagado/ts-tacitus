@@ -6,6 +6,7 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../lang/runtime';
 import { execute, executeProgram, callTacit as callTacitFunction } from '../../lang/interpreter';
 import { SEG_CODE } from '../../core';
+import { push, getStackData } from '../../core/vm';
 
 describe('Interpreter - Branch Coverage', () => {
   beforeEach(() => {
@@ -41,8 +42,8 @@ describe('Interpreter - Branch Coverage', () => {
     });
 
     test('should preserve stack state when encountering errors', () => {
-      vm.push(42);
-      vm.push(24);
+      push(vm, 42);
+      push(vm, 24);
 
       const codeAddr = vm.compiler.CP;
       vm.memory.write8(SEG_CODE, codeAddr, 200);
@@ -51,7 +52,7 @@ describe('Interpreter - Branch Coverage', () => {
       try {
         execute(codeAddr);
       } catch (error) {
-        expect(vm.getStackData()).toEqual([42, 24]);
+        expect(getStackData(vm)).toEqual([42, 24]);
         expect((error as Error).message).toContain('Invalid opcode: 200');
       }
     });
