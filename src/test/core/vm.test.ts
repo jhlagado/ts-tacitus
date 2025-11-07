@@ -2,7 +2,7 @@ import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
-import { nextAddress } from '../../core/vm';
+import { nextAddress, nextInt16 } from '../../core/vm';
 
 describe('VM', () => {
   let vm: VM;
@@ -83,13 +83,13 @@ describe('VM', () => {
       vm.compiler.compile16(5);
       vm.compiler.compile16(10);
       vm.compiler.compile16(15);
-      expect(vm.nextInt16()).toBe(5);
-      expect(vm.nextInt16()).toBe(10);
-      expect(vm.nextInt16()).toBe(15);
+      expect(nextInt16(vm)).toBe(5);
+      expect(nextInt16(vm)).toBe(10);
+      expect(nextInt16(vm)).toBe(15);
     });
     test('should increment the instruction pointer after reading', () => {
       vm.compiler.compile16(42);
-      vm.nextInt16();
+      nextInt16(vm);
       expect(vm.IP).toBe(2);
     });
     test('should handle nextAddress correctly', () => {

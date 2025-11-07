@@ -131,8 +131,8 @@ export class VM {
     this.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
     this.sp += 1;
     if (this.debug) {
-this.ensureInvariants();
-}
+      this.ensureInvariants();
+    }
   }
 
   /**
@@ -148,8 +148,8 @@ this.ensureInvariants();
     this.sp -= 1;
     const offsetBytes = (this.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
     if (this.debug) {
-this.ensureInvariants();
-}
+      this.ensureInvariants();
+    }
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
@@ -168,52 +168,7 @@ this.ensureInvariants();
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
 
-  /**
-   * Peeks at a value at a specific slot offset from the top of the stack.
-   * @param slotOffset Number of slots from the top (0 = top, 1 = second from top, etc.)
-   * @returns The value at the specified offset
-   * @throws {StackUnderflowError} If the stack doesn't have enough values
-   */
-  peekAt(slotOffset: number): number {
-    const requiredCells = slotOffset + 1;
-    if (this.sp - STACK_BASE_CELLS < requiredCells) {
-      throw new StackUnderflowError('peekAt', requiredCells, this.getStackData());
-    }
-
-    const offsetBytes = (this.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
-    return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
-  }
-
   // ---------------- Global data window (heap-as-stack) minimal API ----------------
-
-  /** Push one cell to the global window. */
-  gpush(value: number): void {
-    if (this.gp >= GLOBAL_SIZE_CELLS) {
-      throw new Error('gpush on full heap');
-    }
-    const byteOffset = GLOBAL_BASE + this.gp * CELL_SIZE_BYTES;
-    this.memory.writeFloat32(SEG_DATA, byteOffset, value);
-    this.gp += 1;
-  }
-
-  /** Peek top cell from the global window (no pop). */
-  gpeek(): number {
-    if (this.gp === 0) {
-      throw new Error('gpeek on empty heap');
-    }
-    const byteOffset = GLOBAL_BASE + (this.gp - 1) * CELL_SIZE_BYTES;
-    return this.memory.readFloat32(SEG_DATA, byteOffset);
-  }
-
-  /** Pop one cell from the global window and return it. */
-  gpop(): number {
-    if (this.gp === 0) {
-      throw new Error('gpop on empty heap');
-    }
-    this.gp -= 1;
-    const byteOffset = GLOBAL_BASE + this.gp * CELL_SIZE_BYTES;
-    return this.memory.readFloat32(SEG_DATA, byteOffset);
-  }
 
   /**
    * Pushes a value onto the return stack.
@@ -230,8 +185,8 @@ this.ensureInvariants();
     this.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
     this.rsp += 1;
     if (this.debug) {
-this.ensureInvariants();
-}
+      this.ensureInvariants();
+    }
   }
 
   /**
@@ -247,50 +202,10 @@ this.ensureInvariants();
     this.rsp -= 1;
     const offsetBytes = (this.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
     if (this.debug) {
-this.ensureInvariants();
-}
+      this.ensureInvariants();
+    }
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
-  }
-
-  /**
-   * Reads the next byte from code and advances IP.
-   * @returns The byte value
-   */
-  next8(): number {
-    return next8FromCode(this);
-  }
-
-  /**
-   * Reads the next opcode from code and advances IP.
-   * @returns The decoded opcode or user-defined word address
-   */
-  nextOpcode(): number {
-    return nextOpcodeFromCode(this);
-  }
-
-  /**
-   * Reads the next 16-bit signed integer from code and advances IP.
-   * @returns The signed integer value
-   */
-  nextInt16(): number {
-    return nextInt16FromCode(this);
-  }
-
-  /**
-   * Reads the next float from code and advances IP.
-   * @returns The float value
-   */
-  nextFloat32(): number {
-    return nextFloat32FromCode(this);
-  }
-
-  /**
-   * Reads the next 16-bit unsigned integer from code and advances IP.
-   * @returns The unsigned integer value
-   */
-  nextUint16(): number {
-    return nextUint16FromCode(this);
   }
 
   /**
@@ -460,8 +375,8 @@ export function unsafeSetBPBytes(
   const relativeCells = rawBytes / CELL_SIZE_BYTES;
   vm.bp = RSTACK_BASE_CELLS + relativeCells;
   if (vm.debug) {
-vm.ensureInvariants();
-}
+    vm.ensureInvariants();
+  }
 }
 
 /**
@@ -515,4 +430,110 @@ export function ensureRStackSize(
  */
 export function nextAddress(vm: { memory: Memory; IP: number }): number {
   return nextAddressFromCode(vm);
+}
+
+/**
+ * Peeks at a value at a specific slot offset from the top of the stack.
+ * @param vm VM instance
+ * @param slotOffset Number of slots from the top (0 = top, 1 = second from top, etc.)
+ * @returns The value at the specified offset
+ * @throws {StackUnderflowError} If the stack doesn't have enough values
+ */
+export function peekAt(
+  vm: { sp: number; memory: Memory; getStackData: () => number[] },
+  slotOffset: number,
+): number {
+  const requiredCells = slotOffset + 1;
+  if (vm.sp - STACK_BASE_CELLS < requiredCells) {
+    throw new StackUnderflowError('peekAt', requiredCells, vm.getStackData());
+  }
+
+  const offsetBytes = (vm.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
+  return vm.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
+}
+
+/**
+ * Push one cell to the global window.
+ * @param vm VM instance
+ * @param value Value to push
+ */
+export function gpush(vm: { gp: number; memory: Memory }, value: number): void {
+  if (vm.gp >= GLOBAL_SIZE_CELLS) {
+    throw new Error('gpush on full heap');
+  }
+  const byteOffset = GLOBAL_BASE + vm.gp * CELL_SIZE_BYTES;
+  vm.memory.writeFloat32(SEG_DATA, byteOffset, value);
+  vm.gp += 1;
+}
+
+/**
+ * Peek top cell from the global window (no pop).
+ * @param vm VM instance
+ * @returns The top value
+ */
+export function gpeek(vm: { gp: number; memory: Memory }): number {
+  if (vm.gp === 0) {
+    throw new Error('gpeek on empty heap');
+  }
+  const byteOffset = GLOBAL_BASE + (vm.gp - 1) * CELL_SIZE_BYTES;
+  return vm.memory.readFloat32(SEG_DATA, byteOffset);
+}
+
+/**
+ * Pop one cell from the global window and return it.
+ * @param vm VM instance
+ * @returns The popped value
+ */
+export function gpop(vm: { gp: number; memory: Memory }): number {
+  if (vm.gp === 0) {
+    throw new Error('gpop on empty heap');
+  }
+  vm.gp -= 1;
+  const byteOffset = GLOBAL_BASE + vm.gp * CELL_SIZE_BYTES;
+  return vm.memory.readFloat32(SEG_DATA, byteOffset);
+}
+
+/**
+ * Reads the next byte from code and advances IP.
+ * @param vm VM instance
+ * @returns The byte value
+ */
+export function next8(vm: { memory: Memory; IP: number }): number {
+  return next8FromCode(vm);
+}
+
+/**
+ * Reads the next opcode from code and advances IP.
+ * @param vm VM instance
+ * @returns The decoded opcode or user-defined word address
+ */
+export function nextOpcode(vm: { memory: Memory; IP: number }): number {
+  return nextOpcodeFromCode(vm);
+}
+
+/**
+ * Reads the next 16-bit signed integer from code and advances IP.
+ * @param vm VM instance
+ * @returns The signed integer value
+ */
+export function nextInt16(vm: { memory: Memory; IP: number }): number {
+  return nextInt16FromCode(vm);
+}
+
+/**
+ * Reads the next float from code and advances IP.
+ * @param vm VM instance
+ * @returns The float value
+ */
+export function nextFloat32(vm: { memory: Memory; IP: number }): number {
+  return nextFloat32FromCode(vm);
+}
+
+/**
+ * Reads the next 16-bit unsigned integer from code and advances IP.
+ * @param vm VM instance
+ * @returns The unsigned integer value
+ */
+export function nextUint16(vm: { memory: Memory; IP: number }): number {
+  return nextUint16FromCode(vm);
 }

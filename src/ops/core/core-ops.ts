@@ -29,7 +29,7 @@ import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
-import { ensureRStackSize } from '../../core/vm';
+import { ensureRStackSize, nextFloat32, nextInt16 } from '../../core/vm';
 
 /**
  * Implements the literal number operation.
@@ -48,7 +48,7 @@ import { ensureRStackSize } from '../../core/vm';
  *
  */
 export const literalNumberOp: Verb = (vm: VM) => {
-  const num = vm.nextFloat32();
+  const num = nextFloat32(vm);
   vm.push(num);
 };
 
@@ -70,7 +70,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
  *
  */
 export const literalStringOp: Verb = (vm: VM) => {
-  const address = vm.nextInt16();
+  const address = nextInt16(vm);
   const taggedString = toTaggedValue(address, Tag.STRING);
   vm.push(taggedString);
 };
@@ -93,7 +93,7 @@ export const literalStringOp: Verb = (vm: VM) => {
  *
  */
 export const skipDefOp: Verb = (vm: VM) => {
-  const offset = vm.nextInt16();
+  const offset = nextInt16(vm);
   vm.IP += offset;
 };
 
@@ -122,7 +122,7 @@ export const skipDefOp: Verb = (vm: VM) => {
  * 4. Jumping to the function's address
  */
 export const callOp: Verb = (vm: VM) => {
-  const callAddress = vm.nextInt16();
+  const callAddress = nextInt16(vm);
   vm.rpush(vm.IP);
   // Save BP as relative cells on the return stack for compatibility
   vm.rpush(vm.bp - RSTACK_BASE_CELLS);

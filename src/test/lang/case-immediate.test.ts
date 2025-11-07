@@ -2,6 +2,7 @@ import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { vm } from '../../lang/runtime';
+import { peekAt } from '../../core/vm';
 import {
   beginCaseImmediate,
   clauseOfImmediate,
@@ -38,7 +39,7 @@ describe('case immediates', () => {
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndCase);
 
-    const snapshot = vm.peekAt(1);
+    const snapshot = peekAt(vm, 1);
     expect(snapshot).toBe(vm.rsp - RSTACK_BASE / CELL_SIZE);
   });
 
@@ -55,7 +56,7 @@ describe('case immediates', () => {
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndOf);
 
-    const skipPos = vm.peekAt(1);
+    const skipPos = peekAt(vm, 1);
     expect(typeof skipPos).toBe('number');
     expect(vm.memory.read16(SEG_CODE, skipPos)).toBe(0);
 
@@ -114,7 +115,7 @@ describe('case immediates', () => {
 
     clauseOfImmediate();
 
-    const skipPos = vm.peekAt(1);
+    const skipPos = peekAt(vm, 1);
 
     vm.compiler.compileOpcode(Op.Nop);
 
@@ -164,7 +165,7 @@ describe('case immediates', () => {
     vm.compiler.compileFloat32(1);
 
     clauseOfImmediate();
-    const skipPos = vm.peekAt(1);
+    const skipPos = peekAt(vm, 1);
     expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 
     vm.compiler.compileOpcode(Op.Nop);

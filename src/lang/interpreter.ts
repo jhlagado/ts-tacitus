@@ -19,6 +19,7 @@ import { vm } from './runtime';
 import { parse } from './parser';
 import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE_CELLS } from '@src/core';
 import { Tokenizer } from './tokenizer';
+import { nextOpcode } from '../core/vm';
 
 // SEG_CODE imported from @src/core
 
@@ -46,7 +47,7 @@ export function execute(start: number): void {
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
 
-    const functionIndex = vm.nextOpcode();
+    const functionIndex = nextOpcode(vm);
 
     if (vm.debug) {
 console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));

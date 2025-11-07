@@ -9,6 +9,7 @@ type SymbolTableEntry = {
   isImmediate: boolean;
 }
 import { vm } from '../runtime';
+import { nextOpcode } from '../../core/vm';
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
@@ -98,7 +99,7 @@ export function runImmediateCode(address: number): void {
   while (vm.running) {
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
-    const opcode = vm.nextOpcode();
+    const opcode = nextOpcode(vm);
     executeOp(vm, opcode as Op, isUserDefined);
     if (vm.IP === savedIP && vm.rdepth() === savedRSPRel) {
       break;

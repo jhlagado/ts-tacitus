@@ -4,6 +4,7 @@ import { initializeInterpreter, vm } from '../../lang/runtime';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { fromTaggedValue } from '../../core/tagged';
+import { next8, nextFloat32, nextInt16 } from '../../core/vm';
 
 const getCompiledCode = (): Uint8Array => {
   const cp = vm.compiler.CP;
@@ -18,40 +19,40 @@ describe('Parser with Tokenizer', () => {
     test('should parse numbers correctly', () => {
       parse(new Tokenizer('42 -3.14 +5'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(42);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(-3.14);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(5);
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBeCloseTo(42);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBeCloseTo(-3.14);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBeCloseTo(5);
+      expect(next8(vm)).toBe(Op.Abort);
     });
     test('should parse built-in words correctly', () => {
       parse(new Tokenizer('dup drop swap add sub'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.Dup);
-      expect(vm.next8()).toBe(Op.Drop);
-      expect(vm.next8()).toBe(Op.Swap);
-      expect(vm.next8()).toBe(Op.Add);
-      expect(vm.next8()).toBe(Op.Minus);
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.Dup);
+      expect(next8(vm)).toBe(Op.Drop);
+      expect(next8(vm)).toBe(Op.Swap);
+      expect(next8(vm)).toBe(Op.Add);
+      expect(next8(vm)).toBe(Op.Minus);
+      expect(next8(vm)).toBe(Op.Abort);
     });
     test('should parse mixed content correctly', () => {
       parse(new Tokenizer('10 dup mul 5 add'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(10);
-      expect(vm.next8()).toBe(Op.Dup);
-      expect(vm.next8()).toBe(Op.Multiply);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBeCloseTo(5);
-      expect(vm.next8()).toBe(Op.Add);
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBeCloseTo(10);
+      expect(next8(vm)).toBe(Op.Dup);
+      expect(next8(vm)).toBe(Op.Multiply);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBeCloseTo(5);
+      expect(next8(vm)).toBe(Op.Add);
+      expect(next8(vm)).toBe(Op.Abort);
     });
     test('should handle empty input', () => {
       parse(new Tokenizer(''));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.Abort);
     });
   });
 
@@ -61,12 +62,12 @@ describe('Parser with Tokenizer', () => {
       const doubleWord = vm.resolveSymbol('double');
       expect(doubleWord).toBeDefined();
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.Branch);
-      const skipOffset = vm.nextInt16();
-      expect(vm.next8()).toBe(Op.Dup);
-      expect(vm.next8()).toBe(Op.Add);
-      expect(vm.next8()).toBe(Op.Exit);
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.Branch);
+      const skipOffset = nextInt16(vm);
+      expect(next8(vm)).toBe(Op.Dup);
+      expect(next8(vm)).toBe(Op.Add);
+      expect(next8(vm)).toBe(Op.Exit);
+      expect(next8(vm)).toBe(Op.Abort);
     });
     test('should parse word definitions with numbers in name', () => {
       parse(new Tokenizer(': plus2 2 add ;'));
