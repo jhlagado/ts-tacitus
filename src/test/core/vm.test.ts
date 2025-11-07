@@ -1,4 +1,4 @@
-import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
+import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE, createVM } from '../../core';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
@@ -7,9 +7,7 @@ import { nextAddress, nextInt16, push, pop, getStackData, rpush, rpop } from '..
 describe('VM', () => {
   let vm: VM;
   beforeEach(() => {
-    vm = new VM();
-    const compiler = new Compiler(vm);
-    vm.compiler = compiler;
+    vm = createVM();
   });
 
   describe('Stack operations', () => {

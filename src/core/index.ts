@@ -1,5 +1,5 @@
 // Stable facade for core exports. Keep minimal to avoid cycles.
-export { VM } from './vm';
+export { VM, createVM } from './vm';
 export { Memory } from './memory';
 export * from './constants';
 export * from './tagged';

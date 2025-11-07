@@ -18,8 +18,16 @@
 
 ### Terminology Rules
 
-- **No LHS/RHS**: Do not use “LHS”/“RHS” (left/right hand side). Tacit is RPN; use “destination” (where a write happens) and “source” (what is written).
+- **No LHS/RHS**: Do not use "LHS"/"RHS" (left/right hand side). Tacit is RPN; use "destination" (where a write happens) and "source" (what is written).
 - **Acronym restraint**: Prefer plain English over acronyms. Acronyms are acceptable for widely understood terms (e.g., RAM, CPU, VM). Otherwise spell out on first use and avoid inventing new acronyms for niche concepts.
+
+### Naming Rules (CRITICAL)
+
+- **Terse names only**: Function and variable names must be 1-3 syllables maximum. No sentence-like camelCase.
+  - Good: `read8`, `readOp`, `readI16`, `readF32`, `readAddr`, `checkInv`, `readU16`
+  - Bad: `next8FromCode`, `nextOpcodeFromCode`, `nextInt16FromCode`, `ensureInvariantsPure`, `vmLike`
+- **No verbose suffixes**: Avoid suffixes like `FromCode`, `Like`, `Pure` that add syllables without clarity.
+- **This is not Java**: We are not doing Java-style naming. Keep it terse and functional.
 
 ### Code Quality Standards
 

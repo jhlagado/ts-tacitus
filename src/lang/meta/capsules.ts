@@ -1,5 +1,6 @@
 import { SyntaxError, fromTaggedValue, Tag } from '@src/core';
 import { vm } from '../runtime';
+import { getStackData, peek, pop, push } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
 import { depth } from '../../core/vm';
@@ -12,18 +13,18 @@ import { depth } from '../../core/vm';
  */
 export function beginCapsuleImmediate(): void {
   if (depth(vm) === 0) {
-    throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));
   }
 
-  const tos = vm.peek();
+  const tos = peek(vm);
   const { tag, value } = fromTaggedValue(tos);
   if (tag !== Tag.BUILTIN || value !== Op.EndDefinition) {
-    throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
+    throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));
   }
 
   // Swap closer: EndDefinition -> EndCapsule
-  vm.pop();
-  vm.push(createBuiltinRef(Op.EndCapsule));
+  pop(vm);
+  push(vm, createBuiltinRef(Op.EndCapsule));
 
   // Emit constructor-exit opcode
   vm.compiler.compileOpcode(Op.ExitConstructor);

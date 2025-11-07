@@ -1,4 +1,4 @@
-import { VM } from '../../../../core';
+import { VM, createVM } from '../../../../core';
 import { toTaggedValue, Tag } from '../../../../core';
 import { push, pop } from '../../../../core/vm';
 import { findOp, fetchOp } from '../../../../ops/lists/query-ops';
@@ -10,7 +10,7 @@ import { stringCreate } from '../../../../strings';
 describe('findOp default branch coverage', () => {
   let vm: VM;
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('find returns default value reference when key not found', () => {

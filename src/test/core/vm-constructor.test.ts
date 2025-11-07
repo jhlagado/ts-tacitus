@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../../src/core/vm';
+import { VM, createVM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
 import { Compiler } from '../../../src/lang/compiler';
@@ -9,7 +9,7 @@ describe('VM Constructor Initialization', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('should initialize memory as a Memory instance', () => {

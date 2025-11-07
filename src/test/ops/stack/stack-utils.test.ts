@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM } from '../../../core/vm';
+import { VM, createVM } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { cellsRoll, findElement } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
@@ -8,7 +8,7 @@ describe('Stack Utils', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   describe('rangeRoll', () => {
@@ -41,7 +41,7 @@ describe('Stack Utils', () => {
     }
 
     beforeEach(() => {
-      vm = new VM();
+      vm = createVM();
     });
 
     test('should find elements in sequence', () => {

@@ -7,6 +7,7 @@ import { SEG_DATA, CELL_SIZE, STACK_BASE_CELLS } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getByteAddressFromRef } from './refs';
 import { getListLength } from './list';
+import { pop, push, getStackData } from './vm';
 
 /**
  * Formats float with reasonable precision.
@@ -82,7 +83,7 @@ export function formatList(vm: VM, headerValue: number): string {
 
   // Work in absolute cells: vm.sp is one past TOS; data segment starts at STACK_BASE_CELLS
   while (consumed < totalSlots && vm.sp > STACK_BASE_CELLS) {
-    const cell = vm.pop();
+    const cell = pop(vm);
     const cellDecoded = fromTaggedValue(cell);
     if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
@@ -147,7 +148,7 @@ function formatListFromMemory(vm: VM, address: number): string {
   for (let i = 0; i < slotCount; i++) {
     const elementAddr = address - (slotCount - i) * CELL_SIZE;
     const element = vm.memory.readFloat32(SEG_DATA, elementAddr);
-    vm.push(element);
+      push(vm, element);
   }
 
   const formatted = formatList(vm, header);
@@ -177,7 +178,7 @@ export function formatValue(vm: VM, value: number): string {
   const { tag, value: tagValue } = fromTaggedValue(value);
 
   if (getTag(value) === Tag.LIST) {
-    const stack = vm.getStackData();
+    const stack = getStackData(vm);
     const headerIndex = stack.length - 1;
     return formatListFromStack(vm, stack, headerIndex);
   }

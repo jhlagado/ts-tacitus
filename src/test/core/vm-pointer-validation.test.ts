@@ -1,4 +1,4 @@
-import { VM } from '../../core';
+import { VM, createVM } from '../../core';
 import { CELL_SIZE, STACK_BASE, STACK_TOP, RSTACK_BASE } from '../../core';
 import { unsafeSetBPBytes, ensureInvariants } from '../../core/vm';
 
@@ -6,7 +6,7 @@ describe('VM pointer validation', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('SP outside lower bound triggers invariant', () => {

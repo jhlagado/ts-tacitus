@@ -12,12 +12,12 @@ import {
   SEG_DATA,
   STACK_BASE,
 } from '../../core';
-import { getListLength, dropList, validateListHeader, reverseSpan, isList } from '../../core';
+import { getListLength, dropList, validateListHeader, reverseSpan, isList, createVM } from '../../core';
 import { createList } from '../utils/core-test-utils';
 import { getStackData, peek, push, pop } from '../../core/vm';
 
 function resetVM(): VM {
-  const vm = new VM();
+  const vm = createVM();
   vm.IP = 0;
   return vm;
 }

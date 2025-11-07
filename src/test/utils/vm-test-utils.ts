@@ -19,52 +19,31 @@ import {
   STACK_BASE,
   RSTACK_BASE,
   GLOBAL_BASE,
+  createVM,
 } from '../../core';
+import { getStackData, push as pushFn } from '../../core/vm';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { initializeInterpreter, vm } from '../../lang/runtime';
-import { registerBuiltins } from '../../ops/builtins-register';
-import { NIL } from '../../core';
+import { vm } from '../../lang/runtime';
+
 /**
- * Reset VM to clean state for testing
+ * Reset VM to clean state for testing - replaced with createVM().
+ * @deprecated Use `vm = createVM()` instead
  */
 export function resetVM(): void {
-  initializeInterpreter();
-  // Initialize cell-based registers to segment bases; uppercase shims derive depth from these
-  vm.sp = STACK_BASE / CELL_SIZE;
-  vm.rsp = RSTACK_BASE / CELL_SIZE; // Reset return stack (cells)
-  vm.bp = RSTACK_BASE / CELL_SIZE; // reset BP (cells)
-  vm.IP = 0;
-  vm.listDepth = 0;
-  vm.running = true;
-  vm.compiler.reset();
-  vm.compiler.BCP = 0;
-  vm.compiler.CP = 0;
-
-  const stackData = vm.getStackData();
-  for (let i = 0; i < stackData.length; i++) {
-    vm.pop();
-  }
-
-  // Reset globals allocation pointer and clear global segment
-  vm.gp = 0;
-  // Reset heap-backed dictionary head
-  // Heap-backed dictionary uses vm.head; clear on reset (0 = NIL/empty)
-  // @ts-ignore field present on VM in core
-  vm.head = 0;
-  // Re-register builtins after clearing dictionary
-  registerBuiltins(vm);
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  vm = createVM();
 }
 
 /**
  * Execute Tacit code and return final stack state
  */
 export function executeTacitCode(code: string): number[] {
-  resetVM();
+  vm = createVM();
   parse(new Tokenizer(code));
   execute(vm.compiler.BCP);
-  return vm.getStackData();
+  return getStackData(vm);
 }
 
 export type VMStateSnapshot = {
@@ -73,10 +52,10 @@ export type VMStateSnapshot = {
   sp: number;
   rsp: number;
   bp: number;
-}
+};
 
 export function captureVMState(): VMStateSnapshot {
-  const stack = vm.getStackData();
+  const stack = getStackData(vm);
   const returnStack: number[] = [];
   // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE.
   const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
@@ -101,11 +80,11 @@ export function executeTacitWithState(code: string): VMStateSnapshot {
  * Get formatted stack for debugging (shows actual values instead of null)
  */
 export function getFormattedStack(): string[] {
-  const stack = vm.getStackData();
+  const stack = getStackData(vm);
   return stack.map(value => {
     if (!isNaN(value)) {
-return value.toString();
-}
+      return value.toString();
+    }
     const { tag, value: tagValue } = fromTaggedValue(value);
     switch (tag) {
       case Tag.STRING: {
@@ -188,22 +167,22 @@ export function captureTacitOutput(code: string): string[] {
  */
 export function pushValues(vm: VM, ...values: number[]): void {
   values.forEach(v => {
- vm.push(v);
-});
+    pushFn(vm, v);
+  });
 }
 
 /**
  * Push tagged value onto VM stack
  */
 export function pushTaggedValue(vm: VM, value: number, tag: Tag): void {
-  vm.push(toTaggedValue(value, tag));
+  pushFn(vm, toTaggedValue(value, tag));
 }
 
 /**
  * Get stack contents with tag information for debugging
  */
 export function getStackWithTags(vm: VM): { value: number; tag: string }[] {
-  return vm.getStackData().map(v => {
+  return getStackData(vm).map(v => {
     try {
       const { value, tag } = fromTaggedValue(v);
       return { value, tag: Tag[tag] };
@@ -236,9 +215,9 @@ export class TestList {
    */
   copyToStack(vm: VM): void {
     for (const value of this.values) {
-      vm.push(value);
+      pushFn(vm, value);
     }
-    vm.push(toTaggedValue(this.values.length, Tag.LIST));
+    pushFn(vm, toTaggedValue(this.values.length, Tag.LIST));
   }
 
   getValues(): number[] {
@@ -293,8 +272,8 @@ export function countListsOnStack(stack: number[]): number {
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
     if (tag === Tag.LIST) {
-count++;
-}
+      count++;
+    }
   }
   return count;
 }
@@ -304,7 +283,7 @@ export type OperationTestCase = {
   operation: string | ((vm: VM) => void);
   expectedStack?: number[];
   verify?: (stack: number[]) => void;
-}
+};
 
 /**
  * Run multiple operation test cases
@@ -313,8 +292,8 @@ export function runOperationTests(testCases: OperationTestCase[], setup?: () => 
   testCases.forEach(testCase => {
     it(testCase.name, () => {
       if (setup) {
-setup();
-}
+        setup();
+      }
       resetVM();
 
       testCase.setup(vm);
@@ -325,7 +304,7 @@ setup();
         testCase.operation(vm);
       }
 
-      const result = vm.getStackData();
+      const result = getStackData(vm);
 
       if (testCase.expectedStack) {
         expect(result).toEqual(testCase.expectedStack);
@@ -383,17 +362,17 @@ export function logStack(stack: number[], label = 'Stack'): void {
  * Expect operation to throw stack underflow
  */
 export function expectStackUnderflow(operation: (vm: VM) => void): void {
-  const testVm = new VM();
+  const testVm = createVM();
   expect(() => {
- operation(testVm);
-}).toThrow(/underflow|not enough/i);
+    operation(testVm);
+  }).toThrow(/underflow|not enough/i);
 }
 
 /**
  * Verify stack has expected depth
  */
 export function verifyStackDepth(vm: VM, expectedDepth: number): void {
-  expect(vm.getStackData().length).toBe(expectedDepth);
+  expect(getStackData(vm).length).toBe(expectedDepth);
 }
 
 /**

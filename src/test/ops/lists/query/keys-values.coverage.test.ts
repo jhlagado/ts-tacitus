@@ -1,4 +1,4 @@
-import { VM } from '../../../../core';
+import { VM, createVM } from '../../../../core';
 import { toTaggedValue, Tag, NIL } from '../../../../core';
 import { push, pop, peek } from '../../../../core/vm';
 import { keysOp, valuesOp } from '../../../../ops/lists/query-ops';
@@ -6,7 +6,7 @@ import { keysOp, valuesOp } from '../../../../ops/lists/query-ops';
 describe('keysOp/valuesOp branch coverage', () => {
   let vm: VM;
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('keysOp on empty list returns empty list header', () => {

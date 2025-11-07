@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM, toTaggedValue, Tag } from '../../core';
+import { VM, toTaggedValue, Tag, createVM } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { findElement } from '../../ops/stack';
 import { push } from '../../core/vm';
@@ -19,7 +19,7 @@ describe('findElement', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('should find a simple list', () => {
@@ -138,7 +138,7 @@ describe('findElement', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = new VM();
+    vm = createVM();
   });
 
   test('should find elements in sequence', () => {

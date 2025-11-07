@@ -19,7 +19,7 @@ import { vm } from './runtime';
 import { parse } from './parser';
 import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE_CELLS } from '@src/core';
 import { Tokenizer } from './tokenizer';
-import { nextOpcode } from '../core/vm';
+import { nextOpcode, getStackData, rpush } from '../core/vm';
 
 // SEG_CODE imported from @src/core
 
@@ -62,7 +62,7 @@ console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
 
       executeOp(vm, functionIndex, isUserDefined);
     } catch (error) {
-      const stackState = JSON.stringify(vm.getStackData());
+      const stackState = JSON.stringify(getStackData(vm));
       const errorMessage =
         `Error executing word (stack: ${stackState})${
         error instanceof Error ? `: ${error.message}` : ''}`;
@@ -114,9 +114,9 @@ export function callTacit(codePtr: number): void {
   // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
   // Frame migration complete: BP is cell-based and unified.
   // compatibility for code/tests still expecting byte-based BP frames.
-  vm.rpush(toTaggedValue(returnIP, Tag.CODE));
+  rpush(vm, toTaggedValue(returnIP, Tag.CODE));
   // Unified cell-only frame prologue: save BP as relative cells
-  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
   vm.bp = vm.rsp;
 
   vm.IP = codePtr;
