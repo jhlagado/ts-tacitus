@@ -13,11 +13,12 @@ import {
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { readCapsuleLayoutFromHandle } from './layout';
+import { rdepth } from '../../core/vm';
 
 export function exitConstructorOp(vm: VM): void {
   // Number of locals currently reserved in this frame (cells)
   const oldBpRel = vm.bp - RSTACK_BASE_CELLS;
-  const localCount = vm.rdepth() - oldBpRel;
+  const localCount = rdepth(vm) - oldBpRel;
 
   // Wrap current IP as CODE entry for dispatch body
   const entryAddr = vm.IP;
@@ -28,7 +29,7 @@ export function exitConstructorOp(vm: VM): void {
 
   // Push DATA_REF handle to the capsule header on data stack
   // Use absolute DATA_REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
-  const headerCellIndex = vm.rdepth() - 1;
+  const headerCellIndex = rdepth(vm) - 1;
   const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
   vm.push(createDataRef(absHeaderCellIndex));
 

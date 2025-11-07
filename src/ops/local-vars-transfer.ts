@@ -18,6 +18,7 @@ import {
   CELL_SIZE,
   dropList,
 } from '@src/core';
+import { rdepth } from '../core/vm';
 
 // Helpers for cell-oriented reasoning on return-stack-resident compounds
 function headerAddrToHeaderCell(headerAddrBytes: number): number {
@@ -47,7 +48,7 @@ export function rpushList(vm: VM): number {
 
   if (slotCount === 0) {
     // Compute header byte address from cell-oriented RSP to avoid direct RP usage
-    const headerAddr = vm.rdepth() * CELL_SIZE;
+    const headerAddr = rdepth(vm) * CELL_SIZE;
     vm.rpush(header);
     dropList(vm);
     return headerAddr;
@@ -61,7 +62,7 @@ export function rpushList(vm: VM): number {
     elementCell += 1;
   }
   // Compute header byte address from cell-oriented RSP (RP accessor removed)
-  const headerAddr = vm.rdepth() * CELL_SIZE;
+  const headerAddr = rdepth(vm) * CELL_SIZE;
   vm.rpush(header);
   dropList(vm);
 

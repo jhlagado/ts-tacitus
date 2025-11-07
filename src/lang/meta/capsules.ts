@@ -2,6 +2,7 @@ import { SyntaxError, fromTaggedValue, Tag } from '@src/core';
 import { vm } from '../runtime';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
+import { depth } from '../../core/vm';
 
 /**
  * `capsule` opener (immediate):
@@ -10,7 +11,7 @@ import { Op } from '@src/ops/opcodes';
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
 export function beginCapsuleImmediate(): void {
-  if (vm.depth() === 0) {
+  if (depth(vm) === 0) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', vm.getStackData());
   }
 

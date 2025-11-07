@@ -3,6 +3,7 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
+import { rdepth, depth } from '../../core/vm';
 
 const ENDWHEN_CODE_REF = createBuiltinRef(Op.EndWhen);
 const ENDDO_CODE_REF = createBuiltinRef(Op.EndDo);
@@ -11,14 +12,14 @@ export function beginWhenImmediate(): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
-  vm.push(vm.rdepth());
+  vm.push(rdepth(vm));
   vm.push(ENDWHEN_CODE_REF);
 }
 
 export function beginDoImmediate(): void {
   requireParserState();
 
-  if (vm.depth() === 0) {
+  if (depth(vm) === 0) {
     throw new SyntaxError('do without when', vm.getStackData());
   }
 

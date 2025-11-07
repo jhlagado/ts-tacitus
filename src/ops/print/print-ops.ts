@@ -11,6 +11,7 @@
 import type { VM } from '@src/core';
 import { fromTaggedValue, Tag } from '@src/core';
 import { formatValue as coreFormatValue, formatList } from '@src/core';
+import { depth } from '../../core/vm';
 /**
  * Formats a LIST structure by consuming elements from the stack.
  *
@@ -43,7 +44,7 @@ import { formatValue as coreFormatValue, formatList } from '@src/core';
  */
 export function printOp(vm: VM): void {
   try {
-    if (vm.depth() < 1) {
+    if (depth(vm) < 1) {
       console.log('[Error: Stack empty]');
       return;
     }
@@ -64,7 +65,7 @@ export function printOp(vm: VM): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.log(`[Print error: ${errorMessage}]`);
 
-    if (vm.depth() >= 1) {
+    if (depth(vm) >= 1) {
       try {
         vm.pop();
       } catch {
@@ -91,7 +92,7 @@ export function printOp(vm: VM): void {
  */
 export function rawPrintOp(vm: VM): void {
   try {
-    if (vm.depth() < 1) {
+    if (depth(vm) < 1) {
       console.log('[Error: Stack empty]');
       return;
     }

@@ -29,7 +29,7 @@ import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
-import { ensureRStackSize, nextFloat32, nextInt16 } from '../../core/vm';
+import { ensureRStackSize, nextFloat32, nextInt16, depth } from '../../core/vm';
 
 /**
  * Implements the literal number operation.
@@ -348,7 +348,7 @@ export const endOfOp: Verb = (vm: VM) => {
     throw new SyntaxError('endof invalid predicate placeholder', vm.getStackData());
   }
 
-  if (vm.depth() === 0) {
+  if (depth(vm) === 0) {
     throw new SyntaxError('clause closer without of', vm.getStackData());
   }
 
@@ -473,7 +473,7 @@ export const endCaseOp: Verb = (vm: VM) => {
  */
 export const groupLeftOp: Verb = (vm: VM) => {
   // Save current data stack depth in cells (relative to STACK_BASE)
-  vm.rpush(vm.depth());
+  vm.rpush(depth(vm));
 };
 
 /**
@@ -503,7 +503,7 @@ export const groupRightOp: Verb = (vm: VM) => {
   try {
     ensureRStackSize(vm, 1, 'group-right');
     const sp0 = vm.rpop();
-    const sp1 = vm.depth();
+    const sp1 = depth(vm);
     const d = sp1 - sp0;
     vm.push(d);
   } catch (e) {
