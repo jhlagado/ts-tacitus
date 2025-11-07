@@ -153,7 +153,6 @@ describe('List Operations', () => {
     });
 
     test('should show step by step what happens', () => {
-
       // Target: ( ( 10 20 ) ( 30 40 ) )
       // Element 0 is ( 10 20 )
       // Element 1 is ( 30 40 )

@@ -119,7 +119,9 @@ export function callTacit(codePtr: number): void {
   execute(vm.IP);
 
   if (vm.IP !== returnIP) {
-    console.warn(`Warning: IP mismatch after function call. Expected ${returnIP}, got ${vm.IP}`);
+    if (vm.debug) {
+      console.warn(`Warning: IP mismatch after function call. Expected ${returnIP}, got ${vm.IP}`);
+    }
     vm.IP = returnIP;
   }
 }

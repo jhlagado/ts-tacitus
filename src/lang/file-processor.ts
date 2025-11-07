@@ -47,7 +47,6 @@ export function processFile(filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
   try {
     const absolutePath = path.resolve(filePathWithExt);
-    console.log(`Processing Tacit file: ${absolutePath}`);
     if (!fs.existsSync(absolutePath)) {
       console.error(`File not found: ${absolutePath}`);
       return false;
@@ -103,7 +102,6 @@ export function processFiles(
   processFileFn: (filePath: string) => boolean = processFile,
 ): boolean {
   setupInterpreter();
-  console.log('Tacit file processing mode:');
   let allSucceeded = true;
   for (const file of files) {
     const success = processFileFn(file);
