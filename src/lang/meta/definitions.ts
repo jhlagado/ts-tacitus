@@ -7,7 +7,9 @@ import { requireParserState } from '../state';
 
 const ENDDEF_CODE_REF = createBuiltinRef(Op.EndDefinition);
 
-setEndDefinitionHandler(() => endDefinition(requireParserState()));
+setEndDefinitionHandler(() => {
+ endDefinition(requireParserState());
+});
 
 export function beginDefinitionImmediate(): void {
   const state = requireParserState();

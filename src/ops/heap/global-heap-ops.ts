@@ -3,7 +3,8 @@
  * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
  */
 
-import { VM, SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader, createGlobalRef, getAbsoluteCellIndexFromRef } from '@src/core';
+import type { VM } from '@src/core';
+import { SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader, createGlobalRef, getAbsoluteCellIndexFromRef } from '@src/core';
 import { fetchOp } from '../lists';
 // createGlobalRef now imported from core in the line above
 

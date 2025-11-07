@@ -5,6 +5,7 @@ import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
 import { executeOp } from '../../../ops/builtins';
 import { Op } from '../../../ops/opcodes';
+import { unsafeSetBPBytes } from '../../../core/vm';
 
 const CELL_SIZE = 4;
 
@@ -16,7 +17,7 @@ describe('Invalid Slot Access Error Handling', () => {
 
   test('should throw error when accessing unallocated local variable slot (beyond total memory)', () => {
     // Simulate a function frame
-    vm.unsafeSetBPBytes(0); // Start BP at 0
+    unsafeSetBPBytes(vm, 0); // Start BP at 0
     // Create a slot number so large that the calculated address exceeds total MEMORY_SIZE
     const extremelyLargeSlot = MEMORY_SIZE / CELL_SIZE + 1000;
     expect(() => getVarRef(vm, extremelyLargeSlot)).toThrow(

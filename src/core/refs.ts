@@ -3,7 +3,7 @@
  * Reference utilities for polymorphic memory addressing.
  */
 
-import { VM } from './vm';
+import type { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import {
   SEG_DATA,
@@ -47,9 +47,12 @@ export function decodeDataRef(ref: number): { absoluteCellIndex: number } {
  */
 export function getAbsoluteCellIndexFromRef(ref: number): number {
   const { value, tag } = fromTaggedValue(ref);
-  if (tag !== Tag.DATA_REF) throw new Error('Expected DATA_REF');
-  if (value < 0 || value >= TOTAL_DATA_CELLS)
-    throw new RangeError('DATA_REF absolute out of bounds');
+  if (tag !== Tag.DATA_REF) {
+throw new Error('Expected DATA_REF');
+}
+  if (value < 0 || value >= TOTAL_DATA_CELLS) {
+throw new RangeError('DATA_REF absolute out of bounds');
+}
   return value;
 }
 
@@ -73,8 +76,12 @@ export function isDataRef(tval: number): boolean {
 export function getRefSegment(ref: number): number {
   // Phase C: classify by absolute byte address against unified data windows
   const absByte = getByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 2;
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 0;
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+return 2;
+}
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+return 0;
+}
   return 1;
 }
 
@@ -84,8 +91,12 @@ export function getRefSegment(ref: number): number {
  */
 export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
   const absByte = getByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) return 'global';
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) return 'stack';
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+return 'global';
+}
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+return 'stack';
+}
   return 'rstack';
 }
 

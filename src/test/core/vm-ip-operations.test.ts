@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, toTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { initializeInterpreter, vm } from '../../lang/runtime';
+import { nextAddress } from '../../core/vm';
 
 const CELL_SIZE = 4;
 
@@ -53,7 +54,7 @@ describe('VM Instruction Pointer Operations', () => {
   test('nextAddress should read a tagged address and advance IP by CELL_SIZE', () => {
     const testAddress = 0x1234;
     vm.memory.writeFloat32(SEG_CODE, 0, toTaggedValue(testAddress, Tag.CODE));
-    const address = vm.nextAddress();
+    const address = nextAddress(vm);
     expect(address).toBe(testAddress);
     expect(vm.IP).toBe(CELL_SIZE);
   });

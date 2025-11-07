@@ -6,7 +6,7 @@
  * the VM's operation system.
  */
 
-import { VM } from './vm';
+import type { VM } from './vm';
 
 /**
  * A function that operates on the VM.

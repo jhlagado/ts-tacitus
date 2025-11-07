@@ -2,7 +2,8 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import { VM, Verb, toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
+import type { VM, Verb } from '@src/core';
+import { toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
 
 import {
   literalNumberOp,
@@ -316,7 +317,7 @@ export function dumpFrameOp(vm: VM): void {
   );
 
   if (vm.bp > RSTACK_BASE_CELLS) {
-    const localCount = vm.localCount;
+    const { localCount } = vm;
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {

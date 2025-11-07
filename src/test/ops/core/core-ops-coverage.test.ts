@@ -10,6 +10,7 @@ import { vm } from '../../../lang/runtime';
 import { exitOp, evalOp } from '../../../ops/core';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { unsafeSetBPBytes } from '../../../core/vm';
 
 describe('Core Operations Branch Coverage', () => {
   beforeEach(() => {
@@ -31,7 +32,7 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should handle non-code return address (line 214)', () => {
       // Set up return stack properly with enough entries
-      vm.unsafeSetBPBytes(16); // Set base pointer (bytes -> cells)
+      unsafeSetBPBytes(vm, 16); // Set base pointer (bytes -> cells)
       vm.rsp = 4; // 4 cells = 16 bytes to match BP
       // Save BP as relative cells (depth)
       vm.rpush(

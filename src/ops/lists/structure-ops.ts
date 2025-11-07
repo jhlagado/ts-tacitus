@@ -3,7 +3,8 @@
  * Structural list operations: head, tail, reverse, concat.
  */
 
-import { VM, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
+import type { VM } from '@src/core';
+import { toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
@@ -134,7 +135,7 @@ export function reverseOp(vm: VM): void {
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   let currentAbsAddr = headerAbsAddr - CELL_SIZE;
   let remainingSlots = slotCount;
-  const elements: Array<{ start: number; span: number }> = [];
+  const elements: { start: number; span: number }[] = [];
   while (remainingSlots > 0) {
     const v = vm.memory.readFloat32(SEG_DATA, currentAbsAddr);
     const span = isList(v) ? getListLength(v) + 1 : 1;
@@ -256,7 +257,11 @@ export function concatOp(vm: VM): void {
 
   vm.sp -= lhsDrop + rhsDrop;
 
-  for (let i = rhsSlots.length - 1; i >= 0; i--) vm.push(rhsSlots[i]);
-  for (let i = lhsSlots.length - 1; i >= 0; i--) vm.push(lhsSlots[i]);
+  for (let i = rhsSlots.length - 1; i >= 0; i--) {
+vm.push(rhsSlots[i]);
+}
+  for (let i = lhsSlots.length - 1; i >= 0; i--) {
+vm.push(lhsSlots[i]);
+}
   vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
 }

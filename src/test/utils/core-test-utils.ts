@@ -3,7 +3,8 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA } from '../../core';
+import type { VM } from '../../core';
+import { fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA } from '../../core';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -33,7 +34,9 @@ export function createList(vm: VM, values: number[]): void {
 }
 
 function reverseSpan(vm: VM, spanSize: number): void {
-  if (spanSize <= 1) return;
+  if (spanSize <= 1) {
+return;
+}
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
 

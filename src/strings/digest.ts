@@ -13,7 +13,7 @@
  * - N bytes: Character data (each character is 1 byte)
  */
 
-import { Memory } from '../core/memory';
+import type { Memory } from '../core/memory';
 import { SEG_STRING, STRING_SIZE } from '../core/constants';
 
 /**

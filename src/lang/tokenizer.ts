@@ -32,7 +32,7 @@ export type TokenValue = number | string | null;
 /**
  * Token in the Tacit language.
  */
-export interface Token {
+export type Token = {
   type: TokenType;
   value: TokenValue;
   position?: number;

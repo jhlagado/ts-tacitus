@@ -30,7 +30,7 @@ export enum Sentinel {
   DEFAULT = 1,
 }
 
-export const tagNames: { [key in Tag]: string } = {
+export const tagNames: Record<Tag, string> = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
   [Tag.CODE]: 'CODE',

@@ -2,7 +2,8 @@
  * Conditional control-flow helpers (branching primitives shared by immediates).
  */
 
-import { VM, Verb, isNumber } from '@src/core';
+import type { VM, Verb } from '@src/core';
+import { isNumber } from '@src/core';
 
 /**
  * Implements the short-circuit branch used by the `if`/`when` family.

@@ -3,7 +3,7 @@
  * Core utilities for Tacit Reverse Lists.
  */
 
-import { VM } from './vm';
+import type { VM } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
 import { isRef, getByteAddressFromRef } from './refs';
@@ -82,7 +82,9 @@ export function getListElemAddr(
   }
 
   const totalSlots = getListLength(header);
-  if (logicalIndex < 0) return -1;
+  if (logicalIndex < 0) {
+return -1;
+}
 
   let currentAddr = headerAbsAddr - CELL_SIZE;
   let currentLogicalIndex = 0;
@@ -91,7 +93,7 @@ export function getListElemAddr(
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, currentAddr);
     let stepSize = 1;
-    let elementStartAddr = currentAddr;
+    const elementStartAddr = currentAddr;
 
     if (isList(currentValue)) {
       stepSize = getListLength(currentValue) + 1;
@@ -115,7 +117,9 @@ export function getListElemAddr(
  * @param spanSize Number of stack slots to reverse
  */
 export function reverseSpan(vm: VM, spanSize: number): void {
-  if (spanSize <= 1) return;
+  if (spanSize <= 1) {
+return;
+}
 
   vm.ensureStackSize(spanSize, 'reverse span operation');
   // Reverse using absolute cell indices via u32 view

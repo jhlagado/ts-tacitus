@@ -48,7 +48,9 @@ export function execute(start: number): void {
 
     const functionIndex = vm.nextOpcode();
 
-    if (vm.debug) console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
+    if (vm.debug) {
+console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
+}
 
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
@@ -61,9 +63,11 @@ export function execute(start: number): void {
     } catch (error) {
       const stackState = JSON.stringify(vm.getStackData());
       const errorMessage =
-        `Error executing word (stack: ${stackState})` +
-        (error instanceof Error ? `: ${error.message}` : '');
-      if (vm.debug) console.log((error as Error).stack);
+        `Error executing word (stack: ${stackState})${
+        error instanceof Error ? `: ${error.message}` : ''}`;
+      if (vm.debug) {
+console.log((error as Error).stack);
+}
       vm.compiler.reset();
       vm.compiler.preserve = false;
       throw new Error(errorMessage);

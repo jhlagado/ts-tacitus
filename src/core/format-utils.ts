@@ -2,7 +2,7 @@
  * @file src/core/format-utils.ts
  * Utility functions for formatting Tacit VM values.
  */
-import { VM } from './vm';
+import type { VM } from './vm';
 import { SEG_DATA, CELL_SIZE, STACK_BASE_CELLS } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getByteAddressFromRef } from './refs';
@@ -14,8 +14,12 @@ import { getListLength } from './list';
  * @returns Formatted string
  */
 function formatFloat(value: number): string {
-  if (isNaN(value)) return 'NaN';
-  if (!isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity';
+  if (isNaN(value)) {
+return 'NaN';
+}
+  if (!isFinite(value)) {
+return value > 0 ? 'Infinity' : '-Infinity';
+}
 
   if (Math.abs(value) > 0.0001 && Math.abs(Math.round(value) - value) < 0.0001) {
     return Math.round(value).toString();
@@ -111,7 +115,9 @@ function formatListFromStack(vm: VM, stack: number[], headerIndex: number): stri
   const parts: string[] = [];
   for (let i = 0; i < slotCount; i++) {
     const valueIndex = headerIndex - 1 - i;
-    if (valueIndex < 0) break;
+    if (valueIndex < 0) {
+break;
+}
 
     const element = stack[valueIndex];
     if (getTag(element) === Tag.LIST) {

@@ -3,9 +3,10 @@
  * Stack manipulation operations for the Tacit VM.
  */
 
-import {
+import type {
   VM,
-  Verb,
+  Verb } from '@src/core';
+import {
   fromTaggedValue,
   Tag,
   SEG_DATA,
@@ -54,7 +55,9 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
  */
 // startSlot: offset from STACK_BASE (in cells)
 export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
-  if (slotCount <= 0) return;
+  if (slotCount <= 0) {
+return;
+}
 
   for (let i = 0; i < slotCount; i++) {
     const absByte = (STACK_BASE_CELLS + startSlot + i) * CELL_SIZE;
@@ -72,7 +75,9 @@ export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
  */
 // startSlot: offset from STACK_BASE (in cells)
 export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void {
-  if (slotCount <= 1) return;
+  if (slotCount <= 1) {
+return;
+}
 
   let leftByte = (STACK_BASE_CELLS + startSlot) * CELL_SIZE;
   let rightByte = (STACK_BASE_CELLS + startSlot + slotCount - 1) * CELL_SIZE;
@@ -99,10 +104,14 @@ export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void
  */
 // startSlot: offset from STACK_BASE (in cells)
 export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
-  if (rangeSize <= 1) return;
+  if (rangeSize <= 1) {
+return;
+}
 
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
-  if (normalizedShift === 0) return;
+  if (normalizedShift === 0) {
+return;
+}
 
   const splitPoint = rangeSize - normalizedShift;
   cellsReverse(vm, startSlot, splitPoint);
@@ -149,7 +158,9 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
  * Validates that the stack has at least the specified number of elements.
  */
 function validateStackDepth(vm: VM, requiredElements: number, operationName: string): void {
-  if (requiredElements <= 0) return;
+  if (requiredElements <= 0) {
+return;
+}
 
   if (requiredElements > 2) {
     vm.ensureStackSize(requiredElements, operationName);

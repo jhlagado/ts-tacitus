@@ -18,7 +18,7 @@ expect.extend({
     }
 
     const pass = received.every(
-      (value, index) => Math.abs(value - expected[index]) < Math.pow(10, -precision),
+      (value, index) => Math.abs(value - expected[index]) < 10 ** -precision,
     );
 
     return {
