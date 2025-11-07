@@ -55,6 +55,8 @@ export function resetVM(): void {
   vm.head = 0;
   // @ts-ignore field present on VM in core
   vm.headRef = toTaggedValue(0, Tag.SENTINEL);
+  // Re-register builtins after clearing dictionary
+  registerBuiltins(vm, vm.symbolTable);
 }
 
 /**

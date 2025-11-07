@@ -20,12 +20,13 @@
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
 import { Token, Tokenizer, TokenType } from './tokenizer';
-import { isSpecialChar, fromTaggedValue, Tag, getRefRegion } from '@src/core';
+import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ParserState, setParserState } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
+import { lookup } from '../core/dictionary';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -169,18 +170,21 @@ export function emitWord(value: string, state: ParserState): void {
 
   // backtick removed
 
-  const entry = vm.symbolTable.findEntry(value);
-  if (!entry) {
+  const tval = lookup(vm, value);
+  if (isNIL(tval)) {
     throw new UndefinedWordError(value, vm.getStackData());
   }
 
-  if (entry.isImmediate) {
-    executeImmediateWord(value, entry);
+  const info = fromTaggedValue(tval);
+  const isImmediate = info.meta === 1;
+
+  if (isImmediate) {
+    executeImmediateWord(value, { taggedValue: tval, isImmediate });
     return;
   }
 
-  const { tag, value: tagValue } = fromTaggedValue(entry.taggedValue);
-  const entryValue = entry.taggedValue;
+  const { tag, value: tagValue } = info;
+  const entryValue = tval;
 
   if (tag === Tag.CODE) {
     vm.compiler.compileUserWordCall(tagValue);
@@ -268,12 +272,12 @@ export function emitAtSymbol(symbolName: string): void {
  * @throws {Error} If variable is undefined or not a local variable
  */
 export function emitRefSigil(varName: string, state: ParserState): void {
-  const taggedValue = vm.symbolTable.findTaggedValue(varName);
-  if (taggedValue === undefined) {
+  const tval = lookup(vm, varName);
+  if (isNIL(tval)) {
     throw new UndefinedWordError(varName, vm.getStackData());
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  const { tag, value: slotNumber } = fromTaggedValue(tval);
 
   // Inside function: allow locals and globals
   if (state.currentDefinition) {
@@ -284,11 +288,11 @@ export function emitRefSigil(varName: string, state: ParserState): void {
       return;
     }
     if (tag === Tag.DATA_REF) {
-      if (getRefRegion(taggedValue) !== 'global') {
+      if (getRefRegion(tval) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
       vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(taggedValue);
+      vm.compiler.compileFloat32(tval);
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
@@ -296,9 +300,9 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.DATA_REF && getRefRegion(taggedValue) === 'global') {
+  if (tag === Tag.DATA_REF && getRefRegion(tval) === 'global') {
     vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(taggedValue);
+    vm.compiler.compileFloat32(tval);
     return;
   }
   throw new Error(`${varName} is not a global variable`);
@@ -381,12 +385,12 @@ export function emitAssignment(state: ParserState): void {
     throw new SyntaxError('Expected variable name after ->', vm.getStackData());
   }
 
-  const taggedValue = vm.symbolTable.findTaggedValue(varName);
-  if (taggedValue === undefined) {
+  const tval = lookup(vm, varName);
+  if (isNIL(tval)) {
     throw new Error(`Undefined local or global variable: ${varName}`);
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  const { tag, value: slotNumber } = fromTaggedValue(tval);
   if (tag === Tag.LOCAL) {
     // Check for bracketed path assignment: value -> x[ ... ]
     const maybeBracket = state.tokenizer.nextToken();
@@ -412,7 +416,7 @@ export function emitAssignment(state: ParserState): void {
     return;
   }
   if (tag === Tag.DATA_REF) {
-    if (getRefRegion(taggedValue) !== 'global') {
+    if (getRefRegion(tval) !== 'global') {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',
         vm.getStackData(),
@@ -421,7 +425,7 @@ export function emitAssignment(state: ParserState): void {
     const maybeBracket = state.tokenizer.nextToken();
     if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(taggedValue);
+      vm.compiler.compileFloat32(tval);
       vm.compiler.compileOpcode(Op.Fetch);
       compileBracketPathAsList(state);
       vm.compiler.compileOpcode(Op.Select);
@@ -432,7 +436,7 @@ export function emitAssignment(state: ParserState): void {
       state.tokenizer.pushBack(maybeBracket);
     }
     vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(taggedValue);
+    vm.compiler.compileFloat32(tval);
     vm.compiler.compileOpcode(Op.Store);
     return;
   }
@@ -471,12 +475,12 @@ export function emitIncrement(state: ParserState): void {
 
   const varName = nameToken.value as string;
 
-  const taggedValue = vm.symbolTable.findTaggedValue(varName);
-  if (taggedValue === undefined) {
+  const tval = lookup(vm, varName);
+  if (isNIL(tval)) {
     throw new Error(`Undefined local variable: ${varName}`);
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(taggedValue);
+  const { tag, value: slotNumber } = fromTaggedValue(tval);
   if (tag !== Tag.LOCAL) {
     throw new Error(`${varName} is not a local variable`);
   }

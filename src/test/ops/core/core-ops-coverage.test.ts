@@ -9,6 +9,7 @@ import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { vm } from '../../../lang/runtime';
 import { exitOp, evalOp } from '../../../ops/core';
 import { toTaggedValue, Tag } from '../../../core/tagged';
+import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 describe('Core Operations Branch Coverage', () => {
   beforeEach(() => {
@@ -34,9 +35,7 @@ describe('Core Operations Branch Coverage', () => {
       vm.rsp = 4; // 4 cells = 16 bytes to match BP
       // Save BP as relative cells (depth)
       vm.rpush(
-        vm.bp -
-          require('../../../core/constants').RSTACK_BASE /
-            require('../../../core/constants').CELL_SIZE,
+        vm.bp - RSTACK_BASE / CELL_SIZE,
       ); // BP saved (relative)
       vm.rpush(1000); // Non-code return address (number, not tagged as CODE)
 

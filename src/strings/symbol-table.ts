@@ -6,6 +6,7 @@
 import { Digest } from './digest';
 import { Tag, fromTaggedValue, toTaggedValue, Verb } from '@src/core';
 import type { VM } from '@src/core';
+import { define, defineBuiltin as dictDefineBuiltin, mark as dictMark, forget as dictForget } from '../core/dictionary';
 // Decoupled from heap-backed dictionary: no imports from './symbols'
 
 type WordFunction = Verb;
@@ -19,6 +20,7 @@ export interface SymbolTableCheckpoint {
   head: null;
   localSlotCount: number;
   defsDepth: number; // Depth of unified defs array
+  dictMark?: number; // Dictionary mark (heap position) if VM is attached
 }
 
 export interface SymbolTable {
@@ -117,11 +119,18 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     for (let i = 0; i < state.defs.length; i++)
       if (state.defs[i].key === key) {
         state.defs.unshift({ key, tval: taggedOrRawValue });
+        // Also update dictionary
+        if (state.vmRef) {
+          define(state.vmRef, name, taggedOrRawValue);
+        }
         return;
       }
     // New definition - add to front (LIFO order)
     state.defs.unshift({ key, tval: taggedOrRawValue });
-    // Standalone: no mirroring to heap dictionary
+    // Also update dictionary for parser lookup
+    if (state.vmRef) {
+      define(state.vmRef, name, taggedOrRawValue);
+    }
   }
   function defineBuiltin(
     name: string,
@@ -131,11 +140,19 @@ export function createSymbolTable(digest: Digest): SymbolTable {
   ): void {
     const tval = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
     state.defs.unshift({ key: state.digest.intern(name), tval });
+    // Also update dictionary for parser lookup
+    if (state.vmRef) {
+      dictDefineBuiltin(state.vmRef, name, opcode, isImmediate);
+    }
   }
   function defineCode(name: string, addr: number, isImmediate = false): void {
     const tval = toTaggedValue(addr, Tag.CODE, isImmediate ? 1 : 0);
     const key = state.digest.intern(name);
     state.defs.unshift({ key, tval });
+    // Also update dictionary for parser lookup
+    if (state.vmRef) {
+      define(state.vmRef, name, tval);
+    }
   }
   function defineLocal(name: string): void {
     let slot: number;
@@ -145,20 +162,29 @@ export function createSymbolTable(digest: Digest): SymbolTable {
     const key = state.digest.intern(name);
     // Locals are added to front - they'll be found first during lookup
     state.defs.unshift({ key, tval });
+    // Also update dictionary for parser lookup
+    if (state.vmRef) {
+      define(state.vmRef, name, tval);
+    }
   }
   function mark(): SymbolTableCheckpoint {
     const cp: SymbolTableCheckpoint = {
       head: null,
       localSlotCount: state.localSlotCount,
       defsDepth: state.defs.length,
+      dictMark: state.vmRef ? dictMark(state.vmRef) : undefined,
     };
     state.localSlotCount = 0;
     if (state.vmRef) state.vmRef.localCount = 0;
     return cp;
   }
   function revert(cp: SymbolTableCheckpoint): void {
-    // Standalone: do not touch VM heap/dictionary state
+    // Revert symbol table entries
     if (typeof cp.defsDepth === 'number') state.defs.splice(0, state.defs.length - cp.defsDepth);
+    // Also revert dictionary if mark was saved
+    if (state.vmRef && typeof cp.dictMark === 'number') {
+      dictForget(state.vmRef, cp.dictMark);
+    }
   }
   function getGlobalCount(): number {
     return 0;

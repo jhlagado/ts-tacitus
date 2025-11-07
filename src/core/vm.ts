@@ -6,6 +6,7 @@
 import { Compiler } from '../lang/compiler';
 import { createSymbolTable, SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
+import { lookup } from './dictionary';
 import {
   SEG_CODE,
   SEG_DATA,
@@ -20,7 +21,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE_CELLS,
 } from './constants';
-import { fromTaggedValue, toTaggedValue, Tag } from './tagged';
+import { fromTaggedValue, toTaggedValue, Tag, isNIL } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -102,7 +103,6 @@ export class VM {
     this.compiler = new Compiler(this);
     registerBuiltins(this, this.symbolTable);
   }
-
 
   /**
    * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
@@ -410,7 +410,8 @@ export class VM {
    * @returns Tagged value for the symbol, or undefined if not found
    */
   resolveSymbol(name: string): number | undefined {
-    return this.symbolTable.findTaggedValue(name);
+    const result = lookup(this, name);
+    return isNIL(result) ? undefined : result;
   }
 
   /**
