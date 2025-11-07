@@ -3,6 +3,7 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
+import { peekAt } from '../../core/vm';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 
@@ -69,7 +70,7 @@ export function ensureNoOpenConditionals(): void {
   // Scan stack via VM.peekAt to avoid potential NaN canonicalization issues
   const depth = vm.depth();
   for (let offset = 0; offset < depth; offset++) {
-    const tval = vm.peekAt(offset); // 0 = TOS
+    const tval = peekAt(vm, offset); // 0 = TOS
     const { tag, value: opcode } = fromTaggedValue(tval);
     if (tag === Tag.BUILTIN) {
       if (opcode === Op.EndIf) {

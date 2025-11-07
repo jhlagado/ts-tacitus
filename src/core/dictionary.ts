@@ -24,6 +24,7 @@ import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, decodeDataRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE, GLOBAL_BASE_CELLS } from './constants';
+import { gpush, peekAt } from './vm';
 
 // Helper to get byte address from cell index (relative to GLOBAL_BASE_CELLS)
 function getByteAddressFromCellIndex(cellIndex: number): number {
@@ -36,10 +37,10 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
   // Create prevRef as DATA_REF (or NIL if head is 0)
   const prevRef = vm.head === 0 ? NIL : createGlobalRef(vm.head);
-  vm.gpush(prevRef);
-  vm.gpush(payloadTagged);
-  vm.gpush(nameTagged);
-  vm.gpush(toTaggedValue(3, Tag.LIST));
+  gpush(vm, prevRef);
+  gpush(vm, payloadTagged);
+  gpush(vm, nameTagged);
+  gpush(vm, toTaggedValue(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE_CELLS)
   vm.head = vm.gp - 1;
 }
@@ -73,8 +74,8 @@ export function lookup(vm: VM, name: string): number {
     const hAddr = getByteAddressFromCellIndex(cur);
     const hdr = vm.memory.readFloat32(SEG_DATA, hAddr);
     if (!isList(hdr) || getListLength(hdr) !== SLOTS) {
-break;
-}
+      break;
+    }
 
     const base = hAddr - SLOTS * CELL_SIZE;
     const nameCell = vm.memory.readFloat32(SEG_DATA, base + NAME * CELL_SIZE);
@@ -118,12 +119,12 @@ export function markWithLocalReset(vm: VM): number {
 export function findBytecodeAddress(vm: VM, name: string): number | undefined {
   const result = lookup(vm, name);
   if (isNIL(result)) {
-return undefined;
-}
+    return undefined;
+  }
   const info = fromTaggedValue(result);
   if (info.tag === Tag.CODE) {
-return info.value;
-}
+    return info.value;
+  }
   return undefined;
 }
 
@@ -133,8 +134,8 @@ export function findEntry(
 ): { taggedValue: number; isImmediate: boolean } | undefined {
   const result = lookup(vm, name);
   if (isNIL(result)) {
-return undefined;
-}
+    return undefined;
+  }
   const info = fromTaggedValue(result);
   return { taggedValue: result, isImmediate: info.meta === 1 };
 }
@@ -143,11 +144,11 @@ export function forget(vm: VM, markCellIndex: number): void {
   // markCellIndex is a NUMBER (cell index relative to GLOBAL_BASE_CELLS)
   const gpNew = markCellIndex;
   if (!Number.isInteger(gpNew) || gpNew < 0) {
-throw new Error('forget mark out of range');
-}
+    throw new Error('forget mark out of range');
+  }
   if (gpNew > vm.gp) {
-throw new Error('forget mark beyond current heap top');
-}
+    throw new Error('forget mark beyond current heap top');
+  }
   vm.gp = gpNew;
   // Update head to point to the most recent entry, or 0 if heap is empty
   vm.head = vm.gp === 0 ? 0 : vm.gp - 1;
@@ -171,8 +172,8 @@ function materializeValueRef(vm: VM, value: number): number {
     const ref = pushListToGlobalHeap(vm, { header, baseAddrBytes });
     // Drop the original list from the data stack
     for (let i = 0; i < n + 1; i++) {
-vm.pop();
-}
+      vm.pop();
+    }
     return ref;
   }
   // Simple scalar: copy one cell to heap and consume it from stack
@@ -197,8 +198,8 @@ function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: numbe
   validateListHeader(vm);
   // Remove temporary list from data stack
   for (let i = 0; i < 4; i++) {
-vm.pop();
-}
+    vm.pop();
+  }
   // Header is at gp - 1 after push
   return vm.gp - 1;
 }
@@ -210,7 +211,7 @@ export function defineOp(vm: VM): void {
   if (!isString(name)) {
     throw new Error('define expects STRING name');
   }
-  const value = vm.peekAt(1);
+  const value = peekAt(vm, 1);
 
   // Pop name to expose value (especially for LIST path)
   vm.pop();
@@ -283,8 +284,8 @@ export function dumpDictOp(vm: VM): void {
     const hAddr = getByteAddressFromCellIndex(cur);
     const header = vm.memory.readFloat32(SEG_DATA, hAddr);
     if (!isList(header) || getListLength(header) !== 3) {
-break;
-}
+      break;
+    }
     const base = hAddr - 3 * CELL_SIZE;
     const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
     const _valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
@@ -320,8 +321,8 @@ break;
   }
   // Print from head to tail
   if (lines.length === 0) {
-console.log('[dict] (empty)');
-} else {
-console.log(`[dict]\n${ lines.join('\n')}`);
-}
+    console.log('[dict] (empty)');
+  } else {
+    console.log(`[dict]\n${lines.join('\n')}`);
+  }
 }

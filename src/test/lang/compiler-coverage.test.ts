@@ -6,6 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../lang/runtime';
 import { Compiler } from '../../lang/compiler';
 import { MIN_USER_OPCODE } from '../../core';
+import { next8 } from '../../core/vm';
 
 describe('Compiler - Branch Coverage', () => {
   beforeEach(() => {
@@ -50,8 +51,8 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.compileOpcode(largeOpcode);
 
       vm.IP = 0;
-      const firstByte = vm.next8();
-      const secondByte = vm.next8();
+      const firstByte = next8(vm);
+      const secondByte = next8(vm);
 
       expect(firstByte & 0x80).toBe(0x80);
 
@@ -81,7 +82,7 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.compileUserWordCall(100);
 
       vm.IP = 0;
-      const firstByte = vm.next8();
+      const firstByte = next8(vm);
 
       expect(firstByte & 0x80).toBe(0x80);
     });
@@ -104,7 +105,7 @@ describe('Compiler - Branch Coverage', () => {
 
       vm.IP = 0;
       vm.IP = patchAddress;
-      expect(vm.next8()).toBe(5);
+      expect(next8(vm)).toBe(5);
     });
 
     test('should handle two-byte opcode patching', () => {
@@ -117,8 +118,8 @@ describe('Compiler - Branch Coverage', () => {
 
       vm.IP = 0;
       vm.IP = patchAddress;
-      const firstByte = vm.next8();
-      const secondByte = vm.next8();
+      const firstByte = next8(vm);
+      const secondByte = next8(vm);
 
       expect(firstByte & 0x80).toBe(0x80);
       const decodedOpcode = ((secondByte & 0xff) << 7) | (firstByte & 0x7f);
@@ -181,9 +182,9 @@ describe('Compiler - Branch Coverage', () => {
       vm.compiler.patchOpcode(1, 99);
 
       vm.IP = 0;
-      expect(vm.next8()).toBe(1);
-      expect(vm.next8()).toBe(99);
-      expect(vm.next8()).toBe(3);
+      expect(next8(vm)).toBe(1);
+      expect(next8(vm)).toBe(99);
+      expect(next8(vm)).toBe(3);
     });
   });
 

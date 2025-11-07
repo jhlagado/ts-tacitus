@@ -33,7 +33,7 @@ describe('Invalid Slot Access Error Handling', () => {
     vm.bp = vm.rsp; // set BP cells
 
     // Now corrupt BP to cause underflow on exit
-    vm.unsafeSetBPBytes(0); // baseline
+    unsafeSetBPBytes(vm, 0); // baseline
     // Corrupt by forcing negative simulated bytes (wrap via unsafe not supporting negative; simulate via direct cells)
     vm.bp = 0; // keep at 0; corruption path now relies on exitOp validation elsewhere
 

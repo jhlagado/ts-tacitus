@@ -3,6 +3,7 @@ import { initializeInterpreter, vm } from '../../lang/runtime';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { executeProgram } from '../../lang/interpreter';
+import { next8, nextInt16, nextFloat32 } from '../../core/vm';
 
 describe('Comprehensive Parser Tests', () => {
   beforeEach(() => {
@@ -30,9 +31,9 @@ describe('Comprehensive Parser Tests', () => {
       const emptyWord = vm.resolveSymbol('empty');
       expect(emptyWord).toBeDefined();
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.Branch);
-      vm.nextInt16();
-      expect(vm.next8()).toBe(Op.Exit);
+      expect(next8(vm)).toBe(Op.Branch);
+      nextInt16(vm);
+      expect(next8(vm)).toBe(Op.Exit);
     });
     test('should handle words with special characters in name', () => {
       parse(new Tokenizer(': test-word! add sub ;'));
@@ -48,43 +49,43 @@ describe('Comprehensive Parser Tests', () => {
     test('should parse empty lists', () => {
       parse(new Tokenizer('( )'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.OpenList);
-      expect(vm.next8()).toBe(Op.CloseList);
+      expect(next8(vm)).toBe(Op.OpenList);
+      expect(next8(vm)).toBe(Op.CloseList);
     });
     test('should parse lists with elements', () => {
       parse(new Tokenizer('( 1 2 )'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.OpenList);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(1);
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(2);
-      expect(vm.next8()).toBe(Op.CloseList);
+      expect(next8(vm)).toBe(Op.OpenList);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBe(1);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBe(2);
+      expect(next8(vm)).toBe(Op.CloseList);
     });
   });
   describe('Control Structures', () => {
     test('should parse IF-ELSE-THEN', () => {
       parse(new Tokenizer('1 if 2 else 3 ;'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(1);
-      expect(vm.next8()).toBe(Op.IfFalseBranch);
-      vm.nextInt16();
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(2);
-      expect(vm.next8()).toBe(Op.Branch);
-      vm.nextInt16();
-      expect(vm.next8()).toBe(Op.LiteralNumber);
-      expect(vm.nextFloat32()).toBe(3);
-      expect(vm.next8()).toBe(Op.Abort);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBe(1);
+      expect(next8(vm)).toBe(Op.IfFalseBranch);
+      nextInt16(vm);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBe(2);
+      expect(next8(vm)).toBe(Op.Branch);
+      nextInt16(vm);
+      expect(next8(vm)).toBe(Op.LiteralNumber);
+      expect(nextFloat32(vm)).toBe(3);
+      expect(next8(vm)).toBe(Op.Abort);
     });
   });
   describe('String Literals', () => {
     test('should parse empty string literals', () => {
       parse(new Tokenizer('""'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralString);
-      const addr = vm.nextInt16();
+      expect(next8(vm)).toBe(Op.LiteralString);
+      const addr = nextInt16(vm);
       expect(addr).toBeGreaterThan(0);
       const str = vm.digest.get(addr);
       expect(str).toBe('');
@@ -92,8 +93,8 @@ describe('Comprehensive Parser Tests', () => {
     test('should parse string literals with spaces', () => {
       parse(new Tokenizer('"hello world"'));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralString);
-      const addr = vm.nextInt16();
+      expect(next8(vm)).toBe(Op.LiteralString);
+      const addr = nextInt16(vm);
       const str = vm.digest.get(addr);
       expect(str).toBe('hello world');
     });
@@ -103,8 +104,8 @@ describe('Comprehensive Parser Tests', () => {
       // parse only the apostrophe shorthand
       parse(new Tokenizer("'test-symbol"));
       vm.IP = 0;
-      expect(vm.next8()).toBe(Op.LiteralString);
-      const addr = vm.nextInt16();
+      expect(next8(vm)).toBe(Op.LiteralString);
+      const addr = nextInt16(vm);
       const str = vm.digest.get(addr);
       expect(str).toBe('test-symbol');
     });

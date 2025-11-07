@@ -4,6 +4,7 @@
  */
 import type { VM, Verb } from '@src/core';
 import { toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
+import { nextUint16, nextInt16 } from '../core/vm';
 
 import {
   literalNumberOp,
@@ -113,7 +114,8 @@ const nopOp: Verb = () => {};
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalCodeOp(vm: VM): void {
-  const address = vm.nextUint16();
+  const { nextUint16 } = require('../../core/vm');
+  const address = nextUint16(vm);
   const tagged = toTaggedValue(address, Tag.CODE, 1);
   vm.push(tagged);
 }
@@ -242,7 +244,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalAddressOp(vm: VM): void {
-  const address = vm.nextUint16();
+  const { nextUint16 } = require('../../core/vm');
+  const address = nextUint16(vm);
   vm.push(address);
 }
 
@@ -255,7 +258,7 @@ export function literalAddressOp(vm: VM): void {
  * @param {VM} vm - The virtual machine instance.
  */
 export function reserveOp(vm: VM): void {
-  const slotCount = vm.nextUint16();
+  const slotCount = nextUint16(vm);
   // Reserve local slots: advance RSP in CELLS. RP (bytes) remains a compatible view
   // via the `RP` accessor so external callers/tests that read `vm.RP` will see the
   // equivalent byte offset (RSP * CELL_SIZE).
@@ -271,7 +274,7 @@ export function reserveOp(vm: VM): void {
  * @param {VM} vm - The virtual machine instance.
  */
 export function initVarOp(vm: VM): void {
-  const slotNumber = vm.nextInt16();
+  const slotNumber = nextInt16(vm);
   vm.ensureStackSize(1, 'InitVar');
 
   const value = vm.peek();
@@ -293,7 +296,7 @@ export function initVarOp(vm: VM): void {
 }
 
 export function varRefOp(vm: VM): void {
-  const slotNumber = vm.nextInt16();
+  const slotNumber = nextInt16(vm);
   vm.push(getVarRef(vm, slotNumber));
 }
 

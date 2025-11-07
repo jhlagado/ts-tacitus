@@ -66,12 +66,15 @@ const config = [
       '@typescript-eslint/no-redundant-type-constituents': 'error',
       '@typescript-eslint/no-useless-empty-export': 'error',
       '@typescript-eslint/no-var-requires': 'error', // Ban require() in TypeScript
-      '@typescript-eslint/ban-ts-comment': ['error', {
-        'ts-expect-error': 'allow-with-description',
-        'ts-ignore': true,
-        'ts-nocheck': true,
-        'ts-check': false,
-      }],
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+        },
+      ],
 
       // ===== CODE QUALITY =====
       '@typescript-eslint/no-unused-vars': [
@@ -108,10 +111,13 @@ const config = [
       'prefer-template': 'error',
       'prefer-spread': 'error',
       'prefer-rest-params': 'error',
-      'prefer-destructuring': ['error', {
-        array: true,
-        object: true,
-      }],
+      'prefer-destructuring': [
+        'error',
+        {
+          array: true,
+          object: true,
+        },
+      ],
       'no-param-reassign': 'error',
       'no-return-assign': 'error',
       'no-sequences': 'error',
@@ -126,7 +132,7 @@ const config = [
       'prefer-exponentiation-operator': 'error',
       'prefer-numeric-literals': 'error',
       'prefer-object-spread': 'error',
-      'yoda': 'error',
+      yoda: 'error',
 
       // ===== IMPORT/EXPORT RULES =====
       'no-restricted-imports': [
@@ -161,8 +167,8 @@ const config = [
       ],
 
       // ===== STYLING & CONSISTENCY =====
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
-      'curly': ['error', 'all'],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      curly: ['error', 'all'],
       'brace-style': ['error', '1tbs', { allowSingleLine: false }],
       'comma-dangle': ['error', 'always-multiline'],
       'comma-spacing': 'error',
@@ -175,21 +181,28 @@ const config = [
       'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
       'no-trailing-spaces': 'error',
       'object-curly-spacing': ['error', 'always'],
-      'semi': ['error', 'always'],
+      semi: ['error', 'always'],
       'semi-spacing': 'error',
       'space-before-blocks': 'error',
-      'space-before-function-paren': ['error', {
-        anonymous: 'always',
-        named: 'never',
-        asyncArrow: 'always',
-      }],
+      'space-before-function-paren': [
+        'error',
+        {
+          anonymous: 'always',
+          named: 'never',
+          asyncArrow: 'always',
+        },
+      ],
       'space-in-parens': 'error',
       'space-infix-ops': 'error',
       'space-unary-ops': 'error',
-      'spaced-comment': ['error', 'always', {
-        exceptions: ['-', '+'],
-        markers: ['/'],
-      }],
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          exceptions: ['-', '+'],
+          markers: ['/'],
+        },
+      ],
 
       // Turn off base ESLint rules that are covered by TypeScript
       'no-unused-vars': 'off', // Use @typescript-eslint version instead
