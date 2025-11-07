@@ -81,6 +81,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
         if (error instanceof Error) {
           console.error(`  ${error.message}`);
         }
+        console.log('File processing encountered errors but REPL will continue.');
       }
       rl.prompt();
       return;
