@@ -8,7 +8,7 @@
  * by their address, which is then tagged with the STRING tag to create a tagged value.
  */
 
-import { Digest } from './digest';
+import type { Digest } from './digest';
 import { Tag, toTaggedValue } from '../core/tagged';
 
 /**

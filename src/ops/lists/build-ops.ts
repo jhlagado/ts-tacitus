@@ -3,10 +3,12 @@
  * List construction and conversion operations (builders).
  */
 
-import { VM, fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE, Verb } from '@src/core';
+import type { VM, Verb } from '@src/core';
+import { fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';
+import { ensureRStackSize } from '../../core/vm';
 
 /**
  * Opens LIST construction.
@@ -23,7 +25,7 @@ export function openListOp(vm: VM): void {
  * Closes LIST construction.
  */
 export function closeListOp(vm: VM): void {
-  vm.ensureRStackSize(1, 'closeListOp');
+  ensureRStackSize(vm, 1, 'closeListOp');
 
   const headerAbsAddr = vm.rpop();
   const headerCellAbs = headerAbsAddr / CELL_SIZE;

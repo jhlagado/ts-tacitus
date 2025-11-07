@@ -7,6 +7,7 @@ import {
   StackUnderflowError,
 } from '../../core';
 import { initializeInterpreter, vm } from '../../lang/runtime';
+import { popArray } from '../../core/vm';
 
 const CELL_SIZE = 4;
 
@@ -84,12 +85,12 @@ describe('VM Stack Operations Error Handling', () => {
 
   test('should throw StackUnderflowError when popArray is called with insufficient elements', () => {
     vm.push(1); // Push one element
-    expect(() => vm.popArray(2)).toThrow(StackUnderflowError);
-    expect(() => vm.popArray(2)).toThrow(/Stack underflow: 'popArray' requires 2 operands/);
+    expect(() => popArray(vm, 2)).toThrow(StackUnderflowError);
+    expect(() => popArray(vm, 2)).toThrow(/Stack underflow: 'popArray' requires 2 operands/);
   });
 
   test('should throw StackUnderflowError when popArray is called on empty stack', () => {
-    expect(() => vm.popArray(1)).toThrow(StackUnderflowError);
-    expect(() => vm.popArray(1)).toThrow(/Stack underflow: 'popArray' requires 1 operand/);
+    expect(() => popArray(vm, 1)).toThrow(StackUnderflowError);
+    expect(() => popArray(vm, 1)).toThrow(/Stack underflow: 'popArray' requires 1 operand/);
   });
 });

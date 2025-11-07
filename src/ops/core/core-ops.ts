@@ -13,10 +13,11 @@
  * for implementing higher-level language constructs.
  */
 
-import {
+import type {
   VM,
+  Verb } from '@src/core';
+import {
   ReturnStackUnderflowError,
-  Verb,
   toTaggedValue,
   Tag,
   fromTaggedValue,
@@ -28,6 +29,7 @@ import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
+import { ensureRStackSize } from '../../core/vm';
 
 /**
  * Implements the literal number operation.
@@ -499,7 +501,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
  */
 export const groupRightOp: Verb = (vm: VM) => {
   try {
-    vm.ensureRStackSize(1, 'group-right');
+    ensureRStackSize(vm, 1, 'group-right');
     const sp0 = vm.rpop();
     const sp1 = vm.depth();
     const d = sp1 - sp0;

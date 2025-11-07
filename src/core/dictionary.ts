@@ -10,7 +10,7 @@
  * Head is stored as a cell index (like gp), with 0 meaning empty dictionary.
  */
 
-import { VM } from './vm';
+import type { VM } from './vm';
 import {
   NIL,
   Tag,
@@ -72,7 +72,9 @@ export function lookup(vm: VM, name: string): number {
   while (cur !== 0) {
     const hAddr = getByteAddressFromCellIndex(cur);
     const hdr = vm.memory.readFloat32(SEG_DATA, hAddr);
-    if (!isList(hdr) || getListLength(hdr) !== SLOTS) break;
+    if (!isList(hdr) || getListLength(hdr) !== SLOTS) {
+break;
+}
 
     const base = hAddr - SLOTS * CELL_SIZE;
     const nameCell = vm.memory.readFloat32(SEG_DATA, base + NAME * CELL_SIZE);
@@ -115,9 +117,13 @@ export function markWithLocalReset(vm: VM): number {
 // Helper functions for test compatibility (not used in actual code)
 export function findBytecodeAddress(vm: VM, name: string): number | undefined {
   const result = lookup(vm, name);
-  if (isNIL(result)) return undefined;
+  if (isNIL(result)) {
+return undefined;
+}
   const info = fromTaggedValue(result);
-  if (info.tag === Tag.CODE) return info.value;
+  if (info.tag === Tag.CODE) {
+return info.value;
+}
   return undefined;
 }
 
@@ -126,7 +132,9 @@ export function findEntry(
   name: string,
 ): { taggedValue: number; isImmediate: boolean } | undefined {
   const result = lookup(vm, name);
-  if (isNIL(result)) return undefined;
+  if (isNIL(result)) {
+return undefined;
+}
   const info = fromTaggedValue(result);
   return { taggedValue: result, isImmediate: info.meta === 1 };
 }
@@ -134,8 +142,12 @@ export function findEntry(
 export function forget(vm: VM, markCellIndex: number): void {
   // markCellIndex is a NUMBER (cell index relative to GLOBAL_BASE_CELLS)
   const gpNew = markCellIndex;
-  if (!Number.isInteger(gpNew) || gpNew < 0) throw new Error('forget mark out of range');
-  if (gpNew > vm.gp) throw new Error('forget mark beyond current heap top');
+  if (!Number.isInteger(gpNew) || gpNew < 0) {
+throw new Error('forget mark out of range');
+}
+  if (gpNew > vm.gp) {
+throw new Error('forget mark beyond current heap top');
+}
   vm.gp = gpNew;
   // Update head to point to the most recent entry, or 0 if heap is empty
   vm.head = vm.gp === 0 ? 0 : vm.gp - 1;
@@ -158,7 +170,9 @@ function materializeValueRef(vm: VM, value: number): number {
     const baseAddrBytes = baseCell * CELL_SIZE;
     const ref = pushListToGlobalHeap(vm, { header, baseAddrBytes });
     // Drop the original list from the data stack
-    for (let i = 0; i < n + 1; i++) vm.pop();
+    for (let i = 0; i < n + 1; i++) {
+vm.pop();
+}
     return ref;
   }
   // Simple scalar: copy one cell to heap and consume it from stack
@@ -182,7 +196,9 @@ function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: numbe
   pushListToGlobalHeap(vm, { header, baseAddrBytes });
   validateListHeader(vm);
   // Remove temporary list from data stack
-  for (let i = 0; i < 4; i++) vm.pop();
+  for (let i = 0; i < 4; i++) {
+vm.pop();
+}
   // Header is at gp - 1 after push
   return vm.gp - 1;
 }
@@ -266,7 +282,9 @@ export function dumpDictOp(vm: VM): void {
   while (cur !== 0) {
     const hAddr = getByteAddressFromCellIndex(cur);
     const header = vm.memory.readFloat32(SEG_DATA, hAddr);
-    if (!isList(header) || getListLength(header) !== 3) break;
+    if (!isList(header) || getListLength(header) !== 3) {
+break;
+}
     const base = hAddr - 3 * CELL_SIZE;
     const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
     const _valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
@@ -301,6 +319,9 @@ export function dumpDictOp(vm: VM): void {
     i++;
   }
   // Print from head to tail
-  if (lines.length === 0) console.log('[dict] (empty)');
-  else console.log('[dict]\n' + lines.join('\n'));
+  if (lines.length === 0) {
+console.log('[dict] (empty)');
+} else {
+console.log(`[dict]\n${ lines.join('\n')}`);
+}
 }

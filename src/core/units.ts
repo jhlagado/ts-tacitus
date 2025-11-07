@@ -6,7 +6,7 @@
  */
 
 import { CELL_SIZE } from './constants';
-import { Memory } from './memory';
+import type { Memory } from './memory';
 
 // Branded numeric types to avoid mixing units inadvertently
 type Brand<T, B extends string> = T & { readonly __brand: B };
@@ -17,17 +17,23 @@ export type ByteIndex = Brand<number, 'ByteIndex'>; // index within a segment, i
 
 // Constructors (lightweight; runtime is just number)
 export function cells(n: number): CellCount {
-  if (!Number.isInteger(n) || n < 0) throw new Error(`cells(): invalid count ${n}`);
+  if (!Number.isInteger(n) || n < 0) {
+throw new Error(`cells(): invalid count ${n}`);
+}
   return n as CellCount;
 }
 
 export function cellIndex(n: number): CellIndex {
-  if (!Number.isInteger(n) || n < 0) throw new Error(`cellIndex(): invalid index ${n}`);
+  if (!Number.isInteger(n) || n < 0) {
+throw new Error(`cellIndex(): invalid index ${n}`);
+}
   return n as CellIndex;
 }
 
 export function bytes(n: number): ByteIndex {
-  if (!Number.isInteger(n) || n < 0) throw new Error(`bytes(): invalid index ${n}`);
+  if (!Number.isInteger(n) || n < 0) {
+throw new Error(`bytes(): invalid index ${n}`);
+}
   return n as ByteIndex;
 }
 
@@ -65,7 +71,9 @@ export function copyCells(
   const dstNum = dst as unknown as number;
   const srcNum = src as unknown as number;
   const count = len as unknown as number;
-  if (count <= 0 || dstNum === srcNum) return;
+  if (count <= 0 || dstNum === srcNum) {
+return;
+}
 
   // Compute absolute cell indices in the unified buffer and use copyWithin
   const baseByte = mem.resolveAddress(segment, 0);

@@ -16,7 +16,8 @@
  * - Arithmetic operations (abs, exp, sqrt, etc.)
  * - Conditional operations (if)
  */
-import { VM, SyntaxError, Verb } from '@src/core';
+import type { VM, Verb } from '@src/core';
+import { SyntaxError } from '@src/core';
 import { Op } from './opcodes';
 
 import { STACK_BASE_CELLS } from '@src/core';
@@ -164,21 +165,41 @@ export function registerBuiltins(vm: VM): void {
   reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  reg('if', Op.Nop, _vm => beginIfImmediate(), true);
-  reg('else', Op.Nop, _vm => beginElseImmediate(), true);
-  reg('when', Op.Nop, _vm => beginWhenImmediate(), true);
-  reg('do', Op.Nop, _vm => beginDoImmediate(), true);
-  reg('case', Op.Nop, _vm => beginCaseImmediate(), true);
-  reg('of', Op.Nop, _vm => clauseOfImmediate(), true);
-  reg('DEFAULT', Op.Nop, _vm => defaultImmediate(), true);
-  reg('NIL', Op.Nop, _vm => nilImmediate(), true);
+  reg('if', Op.Nop, _vm => {
+ beginIfImmediate();
+}, true);
+  reg('else', Op.Nop, _vm => {
+ beginElseImmediate();
+}, true);
+  reg('when', Op.Nop, _vm => {
+ beginWhenImmediate();
+}, true);
+  reg('do', Op.Nop, _vm => {
+ beginDoImmediate();
+}, true);
+  reg('case', Op.Nop, _vm => {
+ beginCaseImmediate();
+}, true);
+  reg('of', Op.Nop, _vm => {
+ clauseOfImmediate();
+}, true);
+  reg('DEFAULT', Op.Nop, _vm => {
+ defaultImmediate();
+}, true);
+  reg('NIL', Op.Nop, _vm => {
+ nilImmediate();
+}, true);
   // Capsule opener: 'capsule'
-  reg('capsule', Op.Nop, _vm => beginCapsuleImmediate(), true);
+  reg('capsule', Op.Nop, _vm => {
+ beginCapsuleImmediate();
+}, true);
 
   reg('select', Op.Select);
   reg('makeList', Op.MakeList);
 
-  reg(':', Op.Nop, _vm => beginDefinitionImmediate(), true);
+  reg(':', Op.Nop, _vm => {
+ beginDefinitionImmediate();
+}, true);
   reg(
     ';',
     Op.Nop,

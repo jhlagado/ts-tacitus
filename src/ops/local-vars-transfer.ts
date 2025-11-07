@@ -3,8 +3,9 @@
  * Compound data transfer operations for local variables
  */
 
+import type {
+  VM } from '@src/core';
 import {
-  VM,
   getTag,
   Tag,
   getListLength,

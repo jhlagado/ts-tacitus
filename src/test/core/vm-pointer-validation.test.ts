@@ -1,5 +1,6 @@
 import { VM } from '../../core';
 import { CELL_SIZE, STACK_BASE, STACK_TOP, RSTACK_BASE } from '../../core';
+import { unsafeSetBPBytes } from '../../core/vm';
 
 describe('VM pointer validation', () => {
   let vm: VM;
@@ -49,7 +50,7 @@ describe('VM pointer validation', () => {
   });
 
   test('unsafeSetBPBytes rejects non-aligned offsets', () => {
-    expect(() => vm.unsafeSetBPBytes(2)).toThrow('unsafeSetBPBytes: non-cell-aligned value 2');
+    expect(() => unsafeSetBPBytes(vm, 2)).toThrow('unsafeSetBPBytes: non-cell-aligned value 2');
   });
 
   test('ensureInvariants catches negative stack pointers', () => {

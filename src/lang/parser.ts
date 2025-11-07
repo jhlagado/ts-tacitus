@@ -19,11 +19,13 @@
 
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
-import { Token, Tokenizer, TokenType } from './tokenizer';
+import type { Token, Tokenizer } from './tokenizer';
+import { TokenType } from './tokenizer';
 import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL } from '@src/core';
 import { UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
-import { ParserState, setParserState } from './state';
+import type { ParserState } from './state';
+import { setParserState } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 import { lookup, defineLocal } from '../core/dictionary';
@@ -588,7 +590,9 @@ function parseApostropheString(state: ParserState): void {
   while (state.tokenizer.position < state.tokenizer.input.length) {
     const ch = state.tokenizer.input[state.tokenizer.position];
     // reuse core helpers via emitString path; stop on space or grouping
-    if (isSpecialChar(ch) || ch.trim() === '') break;
+    if (isSpecialChar(ch) || ch.trim() === '') {
+break;
+}
     s += ch;
     state.tokenizer.position++;
     state.tokenizer.column++;

@@ -3,7 +3,7 @@
  * Mathematical operations for the Tacit VM.
  */
 
-import { VM, Verb } from '@src/core';
+import type { VM, Verb } from '@src/core';
 import { unaryRecursive, binaryRecursive } from '../broadcast';
 // no utils needed here; comparison ops live in comparison-ops.ts
 export const addOp: Verb = (vm: VM) => {
@@ -91,7 +91,7 @@ export const powOp: Verb = (vm: VM) => {
   vm.ensureStackSize(2, 'pow');
   const b = vm.pop();
   const a = vm.pop();
-  vm.push(Math.pow(a, b));
+  vm.push(a ** b);
 };
 
 export const recipOp: Verb = (vm: VM) => {

@@ -19,6 +19,8 @@ const config = [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
+        project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname || process.cwd(),
       },
       globals: {
         ...globals.node,
@@ -32,33 +34,184 @@ const config = [
       // Base ESLint rules
       ...js.configs.recommended.rules,
 
-      // TypeScript-specific rules
+      // ===== STRICT TYPE SAFETY =====
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/no-implied-eval': 'error',
+      '@typescript-eslint/prefer-includes': 'error',
+      '@typescript-eslint/prefer-string-starts-ends-with': 'error',
+      '@typescript-eslint/explicit-function-return-type': 'error',
+      '@typescript-eslint/explicit-module-boundary-types': 'error',
+      '@typescript-eslint/no-inferrable-types': 'error', // Enforce explicit types
+      '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/consistent-indexed-object-style': ['error', 'record'],
+      '@typescript-eslint/array-type': ['error', { default: 'array' }],
+      '@typescript-eslint/prefer-for-of': 'error',
+      '@typescript-eslint/prefer-function-type': 'error',
+      '@typescript-eslint/prefer-namespace-keyword': 'error',
+      '@typescript-eslint/prefer-literal-enum-member': 'error',
+      '@typescript-eslint/prefer-as-const': 'error',
+      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-meaningless-void-operator': 'error',
+      '@typescript-eslint/no-redundant-type-constituents': 'error',
+      '@typescript-eslint/no-useless-empty-export': 'error',
+      '@typescript-eslint/no-var-requires': 'error', // Ban require() in TypeScript
+      '@typescript-eslint/ban-ts-comment': ['error', {
+        'ts-expect-error': 'allow-with-description',
+        'ts-ignore': true,
+        'ts-nocheck': true,
+        'ts-check': false,
+      }],
+
+      // ===== CODE QUALITY =====
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-inferrable-types': 'warn',
-      // Layering boundaries
+      '@typescript-eslint/no-empty-function': 'error',
+      '@typescript-eslint/no-empty-interface': 'error',
+      '@typescript-eslint/no-extraneous-class': 'error',
+      '@typescript-eslint/no-invalid-void-type': 'error',
+      '@typescript-eslint/no-this-alias': 'error',
+      '@typescript-eslint/no-unused-expressions': 'error',
+      '@typescript-eslint/no-use-before-define': 'error',
+      '@typescript-eslint/triple-slash-reference': 'error',
+
+      // ===== BEST PRACTICES =====
+      'no-console': ['error', { allow: ['warn', 'error'] }], // Only allow console.warn/error
+      'no-debugger': 'error',
+      'no-alert': 'error',
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-wrappers': 'error',
+      'no-throw-literal': 'error',
+      'no-return-await': 'error',
+      'prefer-promise-reject-errors': 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'prefer-arrow-callback': 'error',
+      'prefer-template': 'error',
+      'prefer-spread': 'error',
+      'prefer-rest-params': 'error',
+      'prefer-destructuring': ['error', {
+        array: true,
+        object: true,
+      }],
+      'no-param-reassign': 'error',
+      'no-return-assign': 'error',
+      'no-sequences': 'error',
+      'no-unneeded-ternary': 'error',
+      'no-useless-call': 'error',
+      'no-useless-computed-key': 'error',
+      'no-useless-concat': 'error',
+      'no-useless-constructor': 'error',
+      'no-useless-rename': 'error',
+      'no-useless-return': 'error',
+      'object-shorthand': 'error',
+      'prefer-exponentiation-operator': 'error',
+      'prefer-numeric-literals': 'error',
+      'prefer-object-spread': 'error',
+      'yoda': 'error',
+
+      // ===== IMPORT/EXPORT RULES =====
       'no-restricted-imports': [
         'error',
         {
-          name: '../lang/*',
-          message: 'Core/Ops must not import from Lang.'
+          patterns: [
+            {
+              group: ['**/dist/**', '**/coverage/**'],
+              message: 'Do not import from build artifacts',
+            },
+            {
+              group: ['../lang/*'],
+              message: 'Core/Ops must not import from Lang.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.name="require"]',
+          message: 'require() is not allowed in TypeScript. Use ES6 import statements instead.',
+        },
+        {
+          selector: 'MemberExpression[object.name="module"][property.name="exports"]',
+          message: 'module.exports is not allowed. Use ES6 export statements instead.',
+        },
+        {
+          selector: 'AssignmentExpression[left.object.name="exports"]',
+          message: 'exports.foo = ... is not allowed. Use ES6 export statements instead.',
         },
       ],
 
-      // Relaxed rules for test files
-      'no-console': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
+      // ===== STYLING & CONSISTENCY =====
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      'curly': ['error', 'all'],
+      'brace-style': ['error', '1tbs', { allowSingleLine: false }],
+      'comma-dangle': ['error', 'always-multiline'],
+      'comma-spacing': 'error',
+      'comma-style': 'error',
+      'computed-property-spacing': 'error',
+      'func-call-spacing': 'error',
+      'key-spacing': 'error',
+      'keyword-spacing': 'error',
+      'no-multi-spaces': 'error',
+      'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
+      'no-trailing-spaces': 'error',
+      'object-curly-spacing': ['error', 'always'],
+      'semi': ['error', 'always'],
+      'semi-spacing': 'error',
+      'space-before-blocks': 'error',
+      'space-before-function-paren': ['error', {
+        anonymous: 'always',
+        named: 'never',
+        asyncArrow: 'always',
+      }],
+      'space-in-parens': 'error',
+      'space-infix-ops': 'error',
+      'space-unary-ops': 'error',
+      'spaced-comment': ['error', 'always', {
+        exceptions: ['-', '+'],
+        markers: ['/'],
+      }],
 
       // Turn off base ESLint rules that are covered by TypeScript
       'no-unused-vars': 'off', // Use @typescript-eslint version instead
       'no-undef': 'off', // TypeScript handles this
+      'no-redeclare': 'off', // TypeScript handles this
+      'no-duplicate-imports': 'error', // Prevent duplicate imports
+    },
+  },
+
+  // Test files - relaxed rules for testing flexibility
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts'],
+    rules: {
+      // Allow console.log in tests for debugging
+      'no-console': 'off',
+      // Allow non-null assertions in tests (common for test setup)
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      // Relax explicit return types for test helpers
+      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+      // Allow any in tests for mocking
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 

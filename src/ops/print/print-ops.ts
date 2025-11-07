@@ -8,7 +8,8 @@
  *
  * Both operations pop values from the stack and output them to console.
  */
-import { VM, fromTaggedValue, Tag } from '@src/core';
+import type { VM } from '@src/core';
+import { fromTaggedValue, Tag } from '@src/core';
 import { formatValue as coreFormatValue, formatList } from '@src/core';
 /**
  * Formats a LIST structure by consuming elements from the stack.

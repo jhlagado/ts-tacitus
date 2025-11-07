@@ -1,5 +1,6 @@
+import type {
+  VM } from '@src/core';
 import {
-  VM,
   getTag,
   Tag,
   fromTaggedValue,

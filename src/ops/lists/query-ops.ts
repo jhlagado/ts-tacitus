@@ -3,8 +3,9 @@
  * Read-only and address-returning list operations (segment-aware).
  */
 
+import type {
+  VM } from '@src/core';
 import {
-  VM,
   fromTaggedValue,
   toTaggedValue,
   Tag,
@@ -108,7 +109,7 @@ export function elemOp(vm: VM): void {
   while (remainingSlots > 0 && currentLogicalIndex <= idx) {
     const currentValue = vm.memory.readFloat32(SEG_DATA, currentAddr);
     let stepSize = 1;
-    let elementStartAddr = currentAddr;
+    const elementStartAddr = currentAddr;
 
     if (isList(currentValue)) {
       stepSize = getListLength(currentValue) + 1;
@@ -192,7 +193,7 @@ export function loadOp(vm: VM): void {
 
 type SlotAddress = { segment: number; address: number };
 
-interface SlotInfo {
+type SlotInfo = {
   root: SlotAddress;
   rootValue: number;
   resolved: SlotAddress;

@@ -85,23 +85,6 @@ export class VM {
   }
 
   /**
-   * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
-   * This bypasses normal validation to allow corruption/underflow tests to simulate
-   * malformed frames. Caller must ensure provided bytes are within overall return stack
-   * segment range. Alignment is still enforced (throws if not cell-aligned) to avoid
-   * undefined behavior in core logic.
-   * @param rawBytes Byte offset to force as BP
-   */
-  unsafeSetBPBytes(rawBytes: number) {
-    if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
-      throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
-    }
-    const relativeCells = rawBytes / CELL_SIZE_BYTES;
-    this.bp = RSTACK_BASE_CELLS + relativeCells;
-    if (this.debug) this.ensureInvariants();
-  }
-
-  /**
    * Development-only invariant checks (enabled when vm.debug === true).
    * Validates relationships among SP, RSP, BP and segment bounds.
    */
@@ -147,7 +130,9 @@ export class VM {
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, STACK_BASE + offsetBytes, value);
     this.sp += 1;
-    if (this.debug) this.ensureInvariants();
+    if (this.debug) {
+this.ensureInvariants();
+}
   }
 
   /**
@@ -162,7 +147,9 @@ export class VM {
 
     this.sp -= 1;
     const offsetBytes = (this.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
-    if (this.debug) this.ensureInvariants();
+    if (this.debug) {
+this.ensureInvariants();
+}
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
   }
@@ -195,25 +182,6 @@ export class VM {
 
     const offsetBytes = (this.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
     return this.memory.readFloat32(SEG_DATA, STACK_BASE + offsetBytes);
-  }
-
-  /**
-   * Pops multiple values from the stack.
-   * @param size Number of values to pop
-   * @returns Array of values in stack order
-   * @throws {StackUnderflowError} If stack underflow occurs
-   */
-  popArray(size: number): number[] {
-    if (this.sp - STACK_BASE_CELLS < size) {
-      throw new StackUnderflowError('popArray', size, this.getStackData());
-    }
-
-    const result: number[] = [];
-    for (let i = 0; i < size; i++) {
-      result.unshift(this.pop());
-    }
-
-    return result;
   }
 
   // ---------------- Global data window (heap-as-stack) minimal API ----------------
@@ -261,7 +229,9 @@ export class VM {
     // Write via unified data segment
     this.memory.writeFloat32(SEG_DATA, RSTACK_BASE + offsetBytes, value);
     this.rsp += 1;
-    if (this.debug) this.ensureInvariants();
+    if (this.debug) {
+this.ensureInvariants();
+}
   }
 
   /**
@@ -276,7 +246,9 @@ export class VM {
 
     this.rsp -= 1;
     const offsetBytes = (this.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
-    if (this.debug) this.ensureInvariants();
+    if (this.debug) {
+this.ensureInvariants();
+}
     // Read via unified data segment
     return this.memory.readFloat32(SEG_DATA, RSTACK_BASE + offsetBytes);
   }
@@ -311,14 +283,6 @@ export class VM {
    */
   nextFloat32(): number {
     return nextFloat32FromCode(this);
-  }
-
-  /**
-   * Reads the next address from code and advances IP.
-   * @returns The decoded code pointer
-   */
-  nextAddress(): number {
-    return nextAddressFromCode(this);
   }
 
   /**
@@ -364,18 +328,6 @@ export class VM {
   ensureStackSize(size: number, operation: string): void {
     if (this.sp - STACK_BASE_CELLS < size) {
       throw new StackUnderflowError(operation, size, this.getStackData());
-    }
-  }
-
-  /**
-   * Ensures return stack has minimum number of elements.
-   * @param size Required return stack depth
-   * @param operation Operation name for error reporting
-   * @throws {ReturnStackUnderflowError} If insufficient return stack elements
-   */
-  ensureRStackSize(size: number, operation: string): void {
-    if (this.rsp - RSTACK_BASE_CELLS < size) {
-      throw new ReturnStackUnderflowError(operation, this.getStackData());
     }
   }
 
@@ -487,4 +439,80 @@ export function nextAddressFromCode(vmLike: { memory: Memory; IP: number }): num
   const tagNum = nextFloat32FromCode(vmLike);
   const { value: pointer } = fromTaggedValue(tagNum);
   return pointer;
+}
+
+/**
+ * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
+ * This bypasses normal validation to allow corruption/underflow tests to simulate
+ * malformed frames. Caller must ensure provided bytes are within overall return stack
+ * segment range. Alignment is still enforced (throws if not cell-aligned) to avoid
+ * undefined behavior in core logic.
+ * @param vm VM instance
+ * @param rawBytes Byte offset to force as BP
+ */
+export function unsafeSetBPBytes(
+  vm: { bp: number; debug: boolean; ensureInvariants: () => void },
+  rawBytes: number,
+): void {
+  if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
+    throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
+  }
+  const relativeCells = rawBytes / CELL_SIZE_BYTES;
+  vm.bp = RSTACK_BASE_CELLS + relativeCells;
+  if (vm.debug) {
+vm.ensureInvariants();
+}
+}
+
+/**
+ * Pops multiple values from the stack.
+ * @param vm VM instance
+ * @param size Number of values to pop
+ * @returns Array of values in stack order
+ * @throws {StackUnderflowError} If stack underflow occurs
+ */
+export function popArray(
+  vm: {
+    sp: number;
+    getStackData: () => number[];
+    pop: () => number;
+  },
+  size: number,
+): number[] {
+  if (vm.sp - STACK_BASE_CELLS < size) {
+    throw new StackUnderflowError('popArray', size, vm.getStackData());
+  }
+
+  const result: number[] = [];
+  for (let i = 0; i < size; i++) {
+    result.unshift(vm.pop());
+  }
+
+  return result;
+}
+
+/**
+ * Ensures return stack has minimum number of elements.
+ * @param vm VM instance
+ * @param size Required return stack depth
+ * @param operation Operation name for error reporting
+ * @throws {ReturnStackUnderflowError} If insufficient return stack elements
+ */
+export function ensureRStackSize(
+  vm: { rsp: number; getStackData: () => number[] },
+  size: number,
+  operation: string,
+): void {
+  if (vm.rsp - RSTACK_BASE_CELLS < size) {
+    throw new ReturnStackUnderflowError(operation, vm.getStackData());
+  }
+}
+
+/**
+ * Reads the next address from code and advances IP.
+ * @param vm VM instance
+ * @returns The decoded code pointer
+ */
+export function nextAddress(vm: { memory: Memory; IP: number }): number {
+  return nextAddressFromCode(vm);
 }

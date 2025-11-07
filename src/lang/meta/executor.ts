@@ -1,10 +1,10 @@
 import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS, STACK_BASE_CELLS } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
-import { Op } from '../../ops/opcodes';
+import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
 // SymbolTableEntry interface moved inline (symbol table removed)
-interface SymbolTableEntry {
+type SymbolTableEntry = {
   taggedValue: number;
   isImmediate: boolean;
 }

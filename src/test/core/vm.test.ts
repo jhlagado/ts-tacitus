@@ -2,6 +2,7 @@ import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE } from '../../core';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
+import { nextAddress } from '../../core/vm';
 
 describe('VM', () => {
   let vm: VM;
@@ -95,7 +96,7 @@ describe('VM', () => {
       const addr = 0x2345;
       vm.compiler.compileFloat32(toTaggedValue(addr, Tag.CODE));
       vm.IP = 0;
-      expect(vm.nextAddress()).toBe(addr);
+      expect(nextAddress(vm)).toBe(addr);
     });
   });
 

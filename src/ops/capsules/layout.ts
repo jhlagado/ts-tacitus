@@ -1,5 +1,6 @@
+import type {
+  VM } from '@src/core';
 import {
-  VM,
   Tag,
   fromTaggedValue,
   getListBounds,
@@ -8,7 +9,7 @@ import {
   SEG_DATA,
 } from '@src/core';
 
-export interface CapsuleLayout {
+export type CapsuleLayout = {
   baseAddrBytes: number; // byte address of slot0 (first payload cell)
   headerAddrBytes: number; // byte address of LIST header cell
   slotCount: number; // total payload slots (locals… + CODE)

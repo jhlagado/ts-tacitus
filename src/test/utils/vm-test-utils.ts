@@ -67,7 +67,7 @@ export function executeTacitCode(code: string): number[] {
   return vm.getStackData();
 }
 
-export interface VMStateSnapshot {
+export type VMStateSnapshot = {
   stack: number[];
   returnStack: number[];
   sp: number;
@@ -103,7 +103,9 @@ export function executeTacitWithState(code: string): VMStateSnapshot {
 export function getFormattedStack(): string[] {
   const stack = vm.getStackData();
   return stack.map(value => {
-    if (!isNaN(value)) return value.toString();
+    if (!isNaN(value)) {
+return value.toString();
+}
     const { tag, value: tagValue } = fromTaggedValue(value);
     switch (tag) {
       case Tag.STRING: {
@@ -185,7 +187,9 @@ export function captureTacitOutput(code: string): string[] {
  * Push values onto VM stack
  */
 export function pushValues(vm: VM, ...values: number[]): void {
-  values.forEach(v => vm.push(v));
+  values.forEach(v => {
+ vm.push(v);
+});
 }
 
 /**
@@ -198,7 +202,7 @@ export function pushTaggedValue(vm: VM, value: number, tag: Tag): void {
 /**
  * Get stack contents with tag information for debugging
  */
-export function getStackWithTags(vm: VM): Array<{ value: number; tag: string }> {
+export function getStackWithTags(vm: VM): { value: number; tag: string }[] {
   return vm.getStackData().map(v => {
     try {
       const { value, tag } = fromTaggedValue(v);
@@ -288,11 +292,13 @@ export function countListsOnStack(stack: number[]): number {
   let count = 0;
   for (const item of stack) {
     const { tag } = fromTaggedValue(item);
-    if (tag === Tag.LIST) count++;
+    if (tag === Tag.LIST) {
+count++;
+}
   }
   return count;
 }
-export interface OperationTestCase {
+export type OperationTestCase = {
   name: string;
   setup: (vm: VM) => void;
   operation: string | ((vm: VM) => void);
@@ -306,7 +312,9 @@ export interface OperationTestCase {
 export function runOperationTests(testCases: OperationTestCase[], setup?: () => void): void {
   testCases.forEach(testCase => {
     it(testCase.name, () => {
-      if (setup) setup();
+      if (setup) {
+setup();
+}
       resetVM();
 
       testCase.setup(vm);
@@ -376,7 +384,9 @@ export function logStack(stack: number[], label = 'Stack'): void {
  */
 export function expectStackUnderflow(operation: (vm: VM) => void): void {
   const testVm = new VM();
-  expect(() => operation(testVm)).toThrow(/underflow|not enough/i);
+  expect(() => {
+ operation(testVm);
+}).toThrow(/underflow|not enough/i);
 }
 
 /**

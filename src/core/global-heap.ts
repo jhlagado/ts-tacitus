@@ -3,14 +3,14 @@
  * Helpers for working with the Tacit global heap (stack-like global segment).
  */
 
-import { VM } from './vm';
+import type { VM } from './vm';
 import { CELL_SIZE, GLOBAL_SIZE, SEG_DATA, GLOBAL_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 
 const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE / CELL_SIZE;
 
-export interface ListSource {
+export type ListSource = {
   /** LIST header value to write at destination */
   header: number;
   /** Absolute byte address of the first payload cell in the source */

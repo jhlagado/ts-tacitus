@@ -2,13 +2,13 @@ import { SyntaxError } from '@src/core';
 import { vm } from './runtime';
 import type { Tokenizer } from './tokenizer';
 
-export interface ActiveDefinition {
+export type ActiveDefinition = {
   name: string;
   branchPos: number;
   checkpoint: number; // Dictionary mark (heap position)
 }
 
-export interface ParserState {
+export type ParserState = {
   tokenizer: Tokenizer;
   currentDefinition: ActiveDefinition | null;
 }

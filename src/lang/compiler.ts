@@ -3,8 +3,9 @@
  * Bytecode compiler for the Tacit language.
  */
 
+import type {
+  VM } from '@src/core';
 import {
-  VM,
   Tag,
   toTaggedValue,
   SEG_CODE,
@@ -235,7 +236,7 @@ export class Compiler {
    */
   exitFunction(): void {
     if (this.isInFunction && this.reservePatchAddr !== -1) {
-      const localCount = this.vm.localCount;
+      const { localCount } = this.vm;
       this.patch16(this.reservePatchAddr, localCount);
     }
 

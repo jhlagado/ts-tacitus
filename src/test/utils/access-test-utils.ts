@@ -93,10 +93,10 @@ export class PerformanceTester {
   static testScalability(
     operationTemplate: (size: number) => string,
     sizes: number[],
-  ): Array<{
+  ): {
     size: number;
     time: number;
-  }> {
+  }[] {
     return sizes.map(size => ({
       size,
       time: this.measureOperation(operationTemplate(size), 100),
@@ -178,12 +178,12 @@ export class ComparatorTester {
   /**
    * Generate test cases for comparator validation
    */
-  static generateComparatorTests(): Array<{
+  static generateComparatorTests(): {
     description: string;
     setup: string;
     comparator: string;
     expectedBehavior: string;
-  }> {
+  }[] {
     return [
       {
         description: 'Numeric ascending sort',
