@@ -99,14 +99,14 @@ describe('VM', () => {
     });
   });
 
-  describe('Compiler and symbolTable initialization', () => {
+  describe('Compiler and dictionary initialization', () => {
     test('should initialize the compiler with the VM instance', () => {
       expect(vm.compiler).toBeDefined();
       expect(vm.compiler instanceof Compiler).toBe(true);
     });
-    test('should initialize the symbolTable', () => {
-      expect(vm.symbolTable).toBeDefined();
-      expect(typeof vm.symbolTable.attachVM).toBe('function');
+    test('should initialize the dictionary with builtins', () => {
+      // Builtins are registered during VM initialization, so head should be > 0
+      expect(vm.head).toBeGreaterThan(0);
     });
     test('should expose compiled bytes in code segment', () => {
       vm.compiler.compile8(0x12);

@@ -5,6 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
+import { defineBuiltin } from '../../core/dictionary';
 
 describe('End-to-End Local Variables Integration', () => {
   beforeEach(() => {
@@ -62,7 +63,7 @@ describe('End-to-End Local Variables Integration', () => {
 
     test('should handle variable shadowing correctly', () => {
       // Define a global-like builtin first
-      vm.symbolTable.defineBuiltin('x', 99);
+      defineBuiltin(vm, 'x', 99);
 
       const result = executeTacitCode(`
         : test-shadow

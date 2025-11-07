@@ -4,6 +4,7 @@ import { execute } from '../../lang/interpreter';
 import { vm } from '../../lang/runtime';
 import { Op } from '../../ops/opcodes';
 import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
+import { defineBuiltin, findBytecodeAddress, defineCode } from '../../core/dictionary';
 
 describe('Immediate words', () => {
   beforeEach(() => {
@@ -15,7 +16,7 @@ describe('Immediate words', () => {
   test('executes builtin opcode immediates immediately', () => {
     vm.push(42);
 
-    vm.symbolTable.defineBuiltin('immdup', Op.Dup, undefined, true);
+    defineBuiltin(vm, 'immdup', Op.Dup, true);
 
     parse(new Tokenizer('immdup'));
 
@@ -28,10 +29,10 @@ describe('Immediate words', () => {
   test('executes immediate colon definitions via code references', () => {
     parse(new Tokenizer(': inc1 1 add ;'));
 
-    const addr = vm.symbolTable.findBytecodeAddress('inc1');
+    const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
 
-    vm.symbolTable.defineCode('inc1!', addr!, true);
+    defineCode(vm, 'inc1!', addr!, true);
 
     vm.push(5);
     parse(new Tokenizer('inc1!'));

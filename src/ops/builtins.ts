@@ -316,7 +316,7 @@ export function dumpFrameOp(vm: VM): void {
   );
 
   if (vm.bp > RSTACK_BASE_CELLS) {
-    const localCount = vm.symbolTable.getLocalCount();
+    const localCount = vm.localCount;
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {

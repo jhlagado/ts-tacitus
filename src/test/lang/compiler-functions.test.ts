@@ -6,6 +6,7 @@ import { vm, initializeInterpreter } from '../../lang/runtime';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
+import { markWithLocalReset, defineLocal, forget } from '../../core/dictionary';
 
 describe('Compiler Function Context', () => {
   beforeEach(() => {
@@ -46,10 +47,10 @@ describe('Compiler Function Context', () => {
 
     test('should patch slot count on exitFunction', () => {
       // Simulate function with 2 local variables
-      const checkpoint = vm.symbolTable.mark();
-      vm.symbolTable.defineLocal('x');
-      vm.symbolTable.defineLocal('y');
-      expect(vm.symbolTable.getLocalCount()).toBe(2);
+      const checkpoint = markWithLocalReset(vm);
+      defineLocal(vm, 'x');
+      defineLocal(vm, 'y');
+      expect(vm.localCount).toBe(2);
 
       vm.compiler.enterFunction();
       vm.compiler.emitReserveIfNeeded(); // Emit the Reserve opcode
@@ -63,7 +64,7 @@ describe('Compiler Function Context', () => {
       // Should be patched with actual local count (2)
       expect(vm.memory.read16(SEG_CODE, patchAddr)).toBe(2);
 
-      vm.symbolTable.revert(checkpoint);
+      forget(vm, checkpoint);
     });
   });
 

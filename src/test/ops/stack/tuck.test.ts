@@ -32,9 +32,7 @@ describe('tuck Operation', () => {
       vm.push(20);
       vm.push(30);
 
-      console.log('Before tuck:', vm.getStackData());
       tuckOp(vm);
-      console.log('After tuck:', vm.getStackData());
 
       expect(vm.getStackData()).toEqual([10, 30, 20, 30]);
     });

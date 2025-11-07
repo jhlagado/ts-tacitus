@@ -11,6 +11,7 @@ import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core/constants';
+import { defineBuiltin, defineCode } from '../../core/dictionary';
 
 describe('VM pushSymbolRef method', () => {
   beforeEach(() => {
@@ -19,7 +20,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('built-in operations', () => {
     test('should push built-in add reference and execute correctly', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
+      defineBuiltin(vm, 'add', Op.Add);
 
       vm.push(2);
       vm.push(3);
@@ -33,7 +34,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in dup reference and execute correctly', () => {
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
+      defineBuiltin(vm, 'dup', Op.Dup);
 
       vm.push(42);
 
@@ -47,7 +48,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in swap reference and execute correctly', () => {
-      vm.symbolTable.defineBuiltin('swap', Op.Swap);
+      defineBuiltin(vm, 'swap', Op.Swap);
 
       vm.push(1);
       vm.push(2);
@@ -88,10 +89,10 @@ describe('VM pushSymbolRef method', () => {
 
   describe('mixed scenarios', () => {
     test('should handle both built-ins and colon definitions together', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
-      vm.symbolTable.defineCode('square', 1500);
-      vm.symbolTable.defineCode('double', 1600);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'dup', Op.Dup);
+      defineCode(vm, 'square', 1500);
+      defineCode(vm, 'double', 1600);
 
       vm.pushSymbolRef('add');
       vm.pushSymbolRef('square');
@@ -112,8 +113,8 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should enable chained execution with evalOp', () => {
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
-      vm.symbolTable.defineBuiltin('mul', Op.Multiply);
+      defineBuiltin(vm, 'dup', Op.Dup);
+      defineBuiltin(vm, 'mul', Op.Multiply);
 
       vm.push(5);
 
@@ -157,7 +158,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('workflow simulation', () => {
     test('should simulate complete @symbol eval workflow', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
+      defineBuiltin(vm, 'add', Op.Add);
 
       vm.push(3);
       vm.push(7);

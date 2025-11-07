@@ -20,6 +20,7 @@ import { vm } from '../../lang/runtime';
 import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
+import { defineBuiltin, defineCode } from '../../core/dictionary';
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
 jest.retryTimes(2);
@@ -90,7 +91,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const colonDefName = 'testSquare';
       const startAddress = 1000;
 
-      vm.symbolTable.defineCode(colonDefName, startAddress);
+      defineCode(vm, colonDefName, startAddress);
 
       const taggedValue = vm.resolveSymbol(colonDefName);
       expect(taggedValue).toBeDefined();
@@ -113,9 +114,9 @@ describe('VM Comprehensive Testing - Step 12', () => {
         symbols.push(symbolName);
 
         if (i % 2 === 0) {
-          vm.symbolTable.defineBuiltin(symbolName, Op.Add);
+          defineBuiltin(vm, symbolName, Op.Add);
         } else {
-          vm.symbolTable.defineCode(symbolName, 2000 + i);
+          defineCode(vm, symbolName, 2000 + i);
         }
       }
 
@@ -134,11 +135,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const codeSymbols = ['square', 'double', 'triple', 'quad'];
 
       builtinSymbols.forEach((name, index) => {
-        vm.symbolTable.defineBuiltin(name, index + 1);
+        defineBuiltin(vm, name, index + 1);
       });
 
       codeSymbols.forEach((name, index) => {
-        vm.symbolTable.defineCode(name, 3000 + index * 100);
+        defineCode(vm, name, 3000 + index * 100);
       });
 
       for (let i = 0; i < 100; i++) {
@@ -209,7 +210,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle symbol resolution with corrupted internal state', () => {
-      vm.symbolTable.defineBuiltin('test', Op.Add);
+      defineBuiltin(vm, 'test', Op.Add);
 
       vm.push(999);
       vm.push(-999);
@@ -272,10 +273,10 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Integration Workflow Testing', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('mul', Op.Multiply);
-      vm.symbolTable.defineCode('square', 5000);
-      vm.symbolTable.defineCode('double', 5100);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'mul', Op.Multiply);
+      defineCode(vm, 'square', 5000);
+      defineCode(vm, 'double', 5100);
 
       vm.push(3);
       vm.push(4);
@@ -307,8 +308,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
         { name: 'def3', addr: 6200 },
       ];
 
-      builtins.forEach(op => vm.symbolTable.defineBuiltin(op.name, op.code));
-      codeDefs.forEach(def => vm.symbolTable.defineCode(def.name, def.addr));
+      builtins.forEach(op => defineBuiltin(vm, op.name, op.code));
+      codeDefs.forEach(def => defineCode(vm, def.name, def.addr));
 
       for (let i = 0; i < 100; i++) {
         const useBuiltin = i % 2 === 0;

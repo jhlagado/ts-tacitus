@@ -3,6 +3,8 @@ import { parse } from './src/lang/parser';
 import { Tokenizer } from './src/lang/tokenizer';
 import { Op } from './src/ops/opcodes';
 import { SEG_CODE } from './src/core/constants';
+import { findBytecodeAddress } from './src/core/dictionary';
+import { fromTaggedValue } from './src/core';
 
 // Initialize VM and compiler (global vm singleton)
 initializeInterpreter();
@@ -10,9 +12,12 @@ vm.IP = 0; // ensure clean IP for this debug run
 
 console.log('=== Initial Setup ===');
 console.log('Built-in function indices:');
-console.log('  dup:', vm.symbolTable.find('dup'));
-console.log('  mul:', vm.symbolTable.find('mul'));
-console.log('  *:', vm.symbolTable.find('*'));
+const dupRef = vm.resolveSymbol('dup');
+const mulRef = vm.resolveSymbol('mul');
+const starRef = vm.resolveSymbol('*');
+console.log('  dup:', dupRef ? fromTaggedValue(dupRef).value : 'undefined');
+console.log('  mul:', mulRef ? fromTaggedValue(mulRef).value : 'undefined');
+console.log('  *:', starRef ? fromTaggedValue(starRef).value : 'undefined');
 
 // Parse the square definition
 console.log('\n=== Parsing ": square dup mul ;" ===');
@@ -39,9 +44,12 @@ for (let i = 0; i < vm.compiler.CP; i++) {
     description = `Op.${opcodeNames[byte]}`;
   } else {
     // Check if it's a built-in function index
-    const dupIndex = vm.symbolTable.find('dup');
-    const mulIndex = vm.symbolTable.find('mul');
-    const starIndex = vm.symbolTable.find('*');
+    const dupRef = vm.resolveSymbol('dup');
+    const mulRef = vm.resolveSymbol('mul');
+    const starRef = vm.resolveSymbol('*');
+    const dupIndex = dupRef ? fromTaggedValue(dupRef).value : undefined;
+    const mulIndex = mulRef ? fromTaggedValue(mulRef).value : undefined;
+    const starIndex = starRef ? fromTaggedValue(starRef).value : undefined;
 
     if (byte === dupIndex) {
       description = `dup (function index ${byte})`;
@@ -59,9 +67,9 @@ for (let i = 0; i < vm.compiler.CP; i++) {
   );
 }
 
-// Show symbol table entry for square
-console.log('\n=== Symbol Table ===');
-const squareAddr = vm.symbolTable.findBytecodeAddress('square');
+// Show dictionary entry for square
+console.log('\n=== Dictionary ===');
+const squareAddr = findBytecodeAddress(vm, 'square');
 console.log('square bytecode address:', squareAddr);
 
 // Analyze the branch structure
@@ -96,10 +104,18 @@ if (squareAddr !== undefined) {
     let description = `opcode ${opcode}`;
     if (opcodeNames[opcode]) {
       description = `Op.${opcodeNames[opcode]}`;
-    } else if (opcode === vm.symbolTable.find('dup')) {
-      description = `dup (${opcode})`;
-    } else if (opcode === vm.symbolTable.find('mul') || opcode === vm.symbolTable.find('*')) {
-      description = `mul/* (${opcode})`;
+    } else {
+      const dupRef = vm.resolveSymbol('dup');
+      const mulRef = vm.resolveSymbol('mul');
+      const starRef = vm.resolveSymbol('*');
+      const dupIndex = dupRef ? fromTaggedValue(dupRef).value : undefined;
+      const mulIndex = mulRef ? fromTaggedValue(mulRef).value : undefined;
+      const starIndex = starRef ? fromTaggedValue(starRef).value : undefined;
+      if (opcode === dupIndex) {
+        description = `dup (${opcode})`;
+      } else if (opcode === mulIndex || opcode === starIndex) {
+        description = `mul/* (${opcode})`;
+      }
     }
 
     const byteDesc =

@@ -2,7 +2,6 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
-import { SymbolTable } from '../../../src/strings/symbol-table';
 import { Compiler } from '../../../src/lang/compiler';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../../src/core/constants';
 
@@ -49,8 +48,10 @@ describe('VM Constructor Initialization', () => {
     expect(vm.listDepth).toBe(0);
   });
 
-  test('should initialize symbolTable as a SymbolTable instance', () => {
-    expect(typeof vm.symbolTable.attachVM).toBe('function');
+  test('should initialize dictionary with builtins (head > 0)', () => {
+    // Builtins are registered during VM construction, so head should be > 0
+    expect(vm.head).toBeGreaterThan(0);
+    expect(typeof vm.head).toBe('number');
   });
 
   test('should initialize compiler property after constructor call', () => {

@@ -27,7 +27,7 @@ describe('Comprehensive Parser Tests', () => {
   describe('Word Definitions', () => {
     test('should handle empty word definitions', () => {
       parse(new Tokenizer(': empty ;'));
-      const emptyWord = vm.symbolTable.find('empty');
+      const emptyWord = vm.resolveSymbol('empty');
       expect(emptyWord).toBeDefined();
       vm.IP = 0;
       expect(vm.next8()).toBe(Op.Branch);
@@ -36,7 +36,7 @@ describe('Comprehensive Parser Tests', () => {
     });
     test('should handle words with special characters in name', () => {
       parse(new Tokenizer(': test-word! add sub ;'));
-      expect(vm.symbolTable.find('test-word!')).toBeDefined();
+      expect(vm.resolveSymbol('test-word!')).toBeDefined();
     });
     test('should handle word names that start with numbers', () => {
       vm.IP = 0;

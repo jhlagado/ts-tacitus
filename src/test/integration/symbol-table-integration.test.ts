@@ -1,11 +1,11 @@
 /**
  * @file src/test/integration/symbol-table-integration.test.ts
  *
- * Integration tests for Symbol Table + VM Symbol Resolution + evalOp.
+ * Integration tests for Dictionary + VM Symbol Resolution + evalOp.
  *
  * This test file implements Step 7 of the unified code reference system:
- * - Manually register built-in symbols: symbolTable.defineBuiltin("add", Op.Add)
- * - Manually register code symbols: symbolTable.defineCode("test", 1000)
+ * - Manually register built-in symbols: defineBuiltin(vm, "add", Op.Add)
+ * - Manually register code symbols: defineCode(vm, "test", 1000)
  * - Test vm.resolveSymbol() returns correct tagged values
  * - Test resolved values work with evalOp
  *
@@ -19,6 +19,7 @@ import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, createCodeRef } from '../../core';
+import { defineBuiltin, defineCode } from '../../core/dictionary';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -34,7 +35,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Built-in Symbol Integration: register → resolve → execute', () => {
     test('should handle add operation end-to-end', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
+      defineBuiltin(vm, 'add', Op.Add);
 
       const addRef = vm.resolveSymbol('add');
       expect(addRef).toBeDefined();
@@ -55,9 +56,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle multiple built-in operations', () => {
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
-      vm.symbolTable.defineBuiltin('swap', Op.Swap);
-      vm.symbolTable.defineBuiltin('drop', Op.Drop);
+      defineBuiltin(vm, 'dup', Op.Dup);
+      defineBuiltin(vm, 'swap', Op.Swap);
+      defineBuiltin(vm, 'drop', Op.Drop);
 
       vm.push(42);
       const dupRef = vm.resolveSymbol('dup');
@@ -78,9 +79,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle arithmetic operations sequence', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('mul', Op.Multiply);
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'mul', Op.Multiply);
+      defineBuiltin(vm, 'dup', Op.Dup);
 
       vm.push(3);
 
@@ -104,7 +105,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Code Symbol Integration: register → resolve → verify', () => {
     test('should register and resolve code symbols with correct tagged values', () => {
-      vm.symbolTable.defineCode('test', 1000);
+      defineCode(vm, 'test', 1000);
 
       const testRef = vm.resolveSymbol('test');
       expect(testRef).toBeDefined();
@@ -117,9 +118,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle multiple code symbols with different addresses', () => {
-      vm.symbolTable.defineCode('square', 1024);
-      vm.symbolTable.defineCode('cube', 2048);
-      vm.symbolTable.defineCode('factorial', 4096);
+      defineCode(vm, 'square', 1024);
+      defineCode(vm, 'cube', 2048);
+      defineCode(vm, 'factorial', 4096);
 
       const squareRef = vm.resolveSymbol('square');
       expect(isFuncRef(squareRef!)).toBe(true);
@@ -135,12 +136,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should maintain symbol table backward compatibility', () => {
-      vm.symbolTable.defineCode('test', 1500);
+      defineCode(vm, 'test', 1500);
 
-      const functionIndex = vm.symbolTable.find('test');
-      expect(functionIndex).toBe(1500);
-
-      const codeRef = vm.symbolTable.findTaggedValue('test');
+      const codeRef = vm.resolveSymbol('test');
       expect(codeRef).toBeDefined();
       const { tag, value: addr } = fromTaggedValue(codeRef!);
       expect(tag).toBe(Tag.CODE);
@@ -150,10 +148,10 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Mixed Symbol Types Integration', () => {
     test('should handle both built-ins and code symbols in same symbol table', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
-      vm.symbolTable.defineCode('square', 2000);
-      vm.symbolTable.defineCode('double', 3000);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineBuiltin(vm, 'dup', Op.Dup);
+      defineCode(vm, 'square', 2000);
+      defineCode(vm, 'double', 3000);
 
       const addRef = vm.resolveSymbol('add');
       expect(isBuiltinRef(addRef!)).toBe(true);
@@ -173,8 +171,8 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should execute built-ins while preserving code symbol references', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
-      vm.symbolTable.defineCode('square', 1500);
+      defineBuiltin(vm, 'add', Op.Add);
+      defineCode(vm, 'square', 1500);
 
       vm.push(10);
       vm.push(5);
@@ -205,7 +203,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should not interfere with existing symbol table functionality', () => {
-      vm.symbolTable.defineBuiltin('custom_add', Op.Add);
+      defineBuiltin(vm, 'custom_add', Op.Add);
 
       const customRef = vm.resolveSymbol('custom_add');
       expect(customRef).toBeDefined();
@@ -215,7 +213,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Complete Workflow Simulation', () => {
     test('should simulate future @symbol eval workflow', () => {
-      vm.symbolTable.defineBuiltin('add', Op.Add);
+      defineBuiltin(vm, 'add', Op.Add);
 
       vm.push(2);
       vm.push(3);
@@ -231,7 +229,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should demonstrate unified eval behavior with different code types', () => {
-      vm.symbolTable.defineBuiltin('dup', Op.Dup);
+      defineBuiltin(vm, 'dup', Op.Dup);
 
       vm.push(42);
       const dupRef = vm.resolveSymbol('dup');
@@ -259,9 +257,9 @@ describe('Symbol Table Integration Tests', () => {
 
       for (let i = 0; i < numSymbols; i++) {
         if (i % 2 === 0) {
-          vm.symbolTable.defineBuiltin(`builtin_${i}`, i % 128);
+          defineBuiltin(vm, `builtin_${i}`, i % 128);
         } else {
-          vm.symbolTable.defineCode(`code_${i}`, 1000 + i);
+          defineCode(vm, `code_${i}`, 1000 + i);
         }
       }
 
@@ -279,8 +277,8 @@ describe('Symbol Table Integration Tests', () => {
     test('should maintain consistent memory usage patterns', () => {
       const initialStackSize = vm.getStackData().length;
 
-      vm.symbolTable.defineBuiltin('test1', Op.Add);
-      vm.symbolTable.defineCode('test2', 500);
+      defineBuiltin(vm, 'test1', Op.Add);
+      defineCode(vm, 'test2', 500);
 
       const ref1 = vm.resolveSymbol('test1');
       const ref2 = vm.resolveSymbol('test2');

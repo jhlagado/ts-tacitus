@@ -235,7 +235,7 @@ export class Compiler {
    */
   exitFunction(): void {
     if (this.isInFunction && this.reservePatchAddr !== -1) {
-      const localCount = this.vm.symbolTable.getLocalCount();
+      const localCount = this.vm.localCount;
       this.patch16(this.reservePatchAddr, localCount);
     }
 

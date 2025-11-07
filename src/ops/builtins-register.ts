@@ -18,7 +18,6 @@
  */
 import { VM, SyntaxError, Verb } from '@src/core';
 import { Op } from './opcodes';
-import { SymbolTable } from '../strings/symbol-table';
 
 import { STACK_BASE_CELLS } from '@src/core';
 import { evalOp } from './core';
@@ -60,13 +59,11 @@ import {
  * and test coverage.
  *
  * @param vm - The virtual machine instance
- * @param symbolTable - The symbol table to register operations in
  * @param enableAnalytics - Whether to print analytics (default: true, set to false in tests)
  */
-export function registerBuiltins(vm: VM, symbolTable: SymbolTable): void {
-
+export function registerBuiltins(vm: VM): void {
+  // All registration goes directly to dictionary
   function reg(name: string, opcode: number, implementation?: Verb, isImmediate = false): void {
-    symbolTable.defineBuiltin(name, opcode, implementation, isImmediate);
     defineBuiltin(vm, name, opcode, isImmediate);
   }
 

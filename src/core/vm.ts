@@ -4,7 +4,6 @@
  */
 
 import { Compiler } from '../lang/compiler';
-import { createSymbolTable, SymbolTable } from '../strings/symbol-table';
 import { Memory } from './memory';
 import { lookup } from './dictionary';
 import {
@@ -21,7 +20,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE_CELLS,
 } from './constants';
-import { fromTaggedValue, toTaggedValue, Tag, isNIL } from './tagged';
+import { fromTaggedValue, isNIL } from './tagged';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -55,29 +54,13 @@ export class VM {
 
   debug: boolean;
 
-  symbolTable: SymbolTable;
-
   listDepth: number;
 
   // Phase 2: frameBpInCells removed; frames are always cell-based.
 
   // Heap-backed dictionary head (cell index relative to GLOBAL_BASE_CELLS, 0 = NIL/empty)
   head: number;
-  // Head as SENTINEL tagged value (for analytics/debugging)
-  headRef: number;
-  // // Back-compat alias for legacy code: vm.newDictHead proxies to vm.head
-  // get newDictHead(): number {
-  //   return this.head;
-  // }
-  // set newDictHead(v: number) {
-  //   this.head = v;
-  // }
-  // dictLocalSlots: number;
-  // Compile-time locals counter (preferred over SymbolTable-local state)
   localCount: number;
-
-  // Note: previously tiny getters returned *_BASE/TOP divided by CELL_SIZE.
-  // We now use precomputed *_CELLS constants from ./constants for clarity and speed.
 
   /**
    * Creates a new VM instance with initialized memory and built-in operations.
@@ -97,11 +80,8 @@ export class VM {
     this.localCount = 0;
 
     this.head = 0; // cell index (0 = NIL, empty dictionary)
-    this.headRef = toTaggedValue(0, Tag.SENTINEL); // head as SENTINEL tagged value
-    this.symbolTable = createSymbolTable(this.digest);
-    this.symbolTable.attachVM(this);
     this.compiler = new Compiler(this);
-    registerBuiltins(this, this.symbolTable);
+    registerBuiltins(this);
   }
 
   /**
