@@ -147,10 +147,10 @@ All tagged values must:
 
 ## Related Specifications
 
-- `specs/vm-architecture.md` – Memory segments & stack layout
-- `specs/lists.md` – Reverse list representation and traversal
-- `specs/variables-and-refs.md` – Locals/globals, references, assignment, +>
-- `specs/capsules.md` – Capsule structure built on lists (draft)
+- `docs/specs/vm-architecture.md` – Memory segments & stack layout
+- `docs/specs/lists.md` – Reverse list representation and traversal
+- `docs/specs/variables-and-refs.md` – Locals/globals, references, assignment, +>
+- `docs/specs/capsules.md` – Capsule structure built on lists
 
 ## Runtime Invariants (Normative)
 
@@ -196,9 +196,9 @@ length                     \ -> 3
 
 ## Consistency Cross-Check
 
-| Aspect              | This Spec                   | Referenced Spec                               |
-| ------------------- | --------------------------- | --------------------------------------------- |
-| Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
-| Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                         |
+| Aspect              | This Spec                   | Referenced Spec                                    |
+| ------------------- | --------------------------- | -------------------------------------------------- |
+| Reverse list layout | LIST header + payload slots | `docs/specs/lists.md` (§5–§11)                     |
+| Address bounds      | CODE within segment bounds  | `docs/specs/vm-architecture.md` (implementation-defined) |
+| NIL definition      | SENTINEL 0                  | `docs/specs/lists.md` (Maplists)                   |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |

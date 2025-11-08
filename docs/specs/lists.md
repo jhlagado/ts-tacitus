@@ -336,6 +336,10 @@ Use `store ( value addr -- )` for in-place updates.
 
 ## 15. Sorting
 
+> **⚠️ STATUS: NOT YET IMPLEMENTED**  
+> This feature is specified but not yet implemented in the current codebase.  
+> The `sort` operation and its comparator syntax are not present in the source code.
+
 ### Overview
 
 `sort` returns a new list whose elements are stably reordered according to a comparator. Elements (including compounds) move as whole units; the original list is unchanged.
@@ -383,6 +387,10 @@ list  sort cmp ;   ->  list'
 ---
 
 ## 16. Binary search (bfind)
+
+> **⚠️ STATUS: NOT YET IMPLEMENTED**  
+> This feature is specified but not yet implemented in the current codebase.  
+> The `bfind` operation is not present in the source code.
 
 This is the list case of the unified `bfind` (see this section for list semantics).
 
@@ -571,17 +579,17 @@ Structure convention
 
 Core operations
 
-- keys ( maplist — keys ) → Extract keys at even positions into a flat list.
-- values ( maplist — values ) → Extract values at odd positions into a flat list.
-- mapsort ( maplist kcmp ; — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units.
+- keys ( maplist — keys ) → Extract keys at even positions into a flat list. ✅ **Implemented**
+- values ( maplist — values ) → Extract values at odd positions into a flat list. ✅ **Implemented**
+- mapsort ( maplist kcmp ; — maplist' ) → Stable sort by keys; moves `(key value)` pairs as units. ⚠️ **Not Yet Implemented**
   - Comparator: `( k1 k2 — r )` (same sign rules as list sort).
   - Enables `bfind` on sorted maplists with consistent key comparator.
 
 Lookup and addressing (see Access spec)
 
-- find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address.
-- bfind: `( sorted-maplist key kcmp ; — addr | nil )` → binary search over keys.
-- hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix).
+- find: `( maplist key — addr | default-addr | nil )` → linear search over keys; returns value address. ✅ **Implemented**
+- bfind: `( sorted-maplist key kcmp ; — addr | nil )` → binary search over keys. ⚠️ **Not Yet Implemented**
+- hfind: `( maplist index key — addr | default-addr | nil )` → hashed lookup; requires `hindex` (see Access Appendix). ⚠️ **Not Yet Implemented**
 - Combine with `fetch`/`store` for reads/writes; writes to simple slots only, or compatible compound replacement at compound headers; no structural edits that change slot counts.
 
 Default key convention

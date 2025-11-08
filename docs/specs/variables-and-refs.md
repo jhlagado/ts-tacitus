@@ -220,7 +220,7 @@ Symbol resolution priority
 
 Compile-time vs runtime tags
 
-- Parser marks locals with a compile-time `LOCAL_VAR` kind; runtime addressing uses `DATA_REF` handles (no `Tag.LOCAL` at runtime).
+- Parser marks locals with a compile-time `Tag.LOCAL` in dictionary entries; runtime addressing uses `DATA_REF` handles (no `Tag.LOCAL` on data stack at runtime).
 
 ---
 
@@ -246,7 +246,7 @@ Safety guarantees
 
 ## 11. Errors and Diagnostics
 
-Principles (see `docs/specs/core-invariants.md` for mutation rules and `docs/reference/known-issues.md` for documented failure cases.)
+Principles (see `docs/specs/core-invariants.md` for mutation rules.)
 
 - Reads soft-fail where applicable; writes throw on failure.
 
@@ -319,7 +319,7 @@ Increment (locals-only)
 Compile-time scope
 
 - Mark at function start; revert at function end. The compiler maintains a scoped dictionary for names.
-- Each `var` registers the symbol with kind `LOCAL_VAR` and its slot number.
+- Each `var` registers the symbol with `Tag.LOCAL` payload and its slot number in the dictionary.
 
 Symbol resolution priority
 
@@ -333,7 +333,7 @@ Symbol kinds
 | ----------- | ---------------------- | ---------------- |
 | BUILTIN     | Built-in operations    | Opcode number    |
 | USER_DEF    | User-defined functions | Bytecode address |
-| LOCAL_VAR   | Local variables        | Slot number      |
+| Tag.LOCAL   | Local variables        | Slot number      |
 
 ---
 

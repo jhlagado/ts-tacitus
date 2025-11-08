@@ -62,7 +62,7 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
 `capsule` lowers to a dedicated freeze + constructor exit sequence:
 
 1. **Validate and swap closer (compile-time)**
-   - Ensure a colon definition is open: the data stack must contain `Op.EndDef`.
+   - Ensure a colon definition is open: the data stack must contain `Op.EndDefinition`.
    - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
 2. **Emit `Op.ExitConstructor`**
@@ -71,7 +71,7 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
 
-- Pushes `createDataRef(SEG_RSTACK, RSP_before_header)` (encoded as `Tag.DATA_REF`) onto the data stack so the caller receives a handle. The payload is an **absolute cell index** inside the unified arena, so no segment-relative adjustment is required when dereferencing later.
+- Pushes `createDataRef(absHeaderCellIndex)` (encoded as `Tag.DATA_REF`) onto the data stack so the caller receives a handle. The payload is an **absolute cell index** inside the unified arena, calculated as `RSTACK_BASE_CELLS + headerCellIndex`. No segment-relative adjustment is required when dereferencing later.
   - Reads the caller's saved BP from (BP-1) and return address from (BP-2), restores them, and jumps to the caller's return address – leaving `RSP` untouched so the capsule payload remains appended to the caller's frame.
 
 Everything compiled after `capsule` is the dispatch routine and runs only when the returned `DATA_REF` handle is supplied to `dispatch`.

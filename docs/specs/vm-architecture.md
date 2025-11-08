@@ -244,16 +244,16 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 
 ## Cross‑References
 
-- Tagged values: `specs/tagged.md`
-- Lists & traversal: `specs/lists.md`
-- Addressing & paths: see `specs/lists.md` (Addressing & Bracket Paths)
-- Local variables & frames: `specs/variables-and-refs.md`
+- Tagged values: `docs/specs/tagged.md`
+- Lists & traversal: `docs/specs/lists.md`
+- Addressing & paths: see `docs/specs/lists.md` (Addressing & Bracket Paths)
+- Local variables & frames: `docs/specs/variables-and-refs.md`
 
 ## Related Specifications
 
-- `specs/tagged.md` - Value representation
-- `specs/README.md` - Stack primer and index
-- `specs/core-invariants.md` - Shared invariants and rules
+- `docs/specs/tagged.md` - Value representation
+- `docs/specs/README.md` - Stack primer and index
+- `docs/specs/core-invariants.md` - Shared invariants and rules
 
 ---
 
@@ -273,6 +273,5 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 
 ## Future Hardening
 
-- Remove any residual transitional comments
 - Add optional runtime invariant assertions in debug builds
 - Microbenchmark call/return path
