@@ -30,13 +30,18 @@ import { execute } from '../../lang/interpreter';
  * Execute Tacit code and return final stack state.
  * Uses the provided VM instance directly.
  * Resets the stack and return stack pointers before execution to ensure each call is independent.
+ * @param resetStack - If true (default), resets stack state before execution. Set to false to preserve stack between calls.
  */
-export function executeTacitCode(vm: VM, code: string): number[] {
+export function executeTacitCode(vm: VM, code: string, resetStack = true): number[] {
   // Reset stack and return stack to ensure each call is independent
-  vm.sp = STACK_BASE_CELLS;
-  vm.rsp = RSTACK_BASE_CELLS;
-  vm.bp = RSTACK_BASE_CELLS;
-  vm.listDepth = 0;
+  // Note: beforeEach already creates a fresh VM, so this is mainly for within-test stack management
+  if (resetStack) {
+    vm.sp = STACK_BASE_CELLS;
+    vm.rsp = RSTACK_BASE_CELLS;
+    vm.bp = RSTACK_BASE_CELLS;
+    vm.listDepth = 0;
+  }
+  // parse() will handle compiler reset, so we don't need to manage compiler state here
   parse(vm, new Tokenizer(code));
   execute(vm, vm.compiler.BCP);
   return getStackData(vm);
