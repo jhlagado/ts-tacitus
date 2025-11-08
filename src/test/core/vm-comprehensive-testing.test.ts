@@ -7,12 +7,12 @@
  * built in Steps 1-11, testing all functionality without requiring parser/tokenizer changes.
  *
  * Test Coverage:
- * - Performance testing to ensure no regressions
  * - Memory usage patterns and function table elimination verification
  * - Edge cases: invalid symbols, stack conditions, complex execution chains
- * - Stress testing with large numbers of symbol references
  * - Integration testing of the complete pushSymbolRef() → evalOp() workflow
  * - Mixed scenarios with built-ins, colon definitions, and standalone blocks
+ *
+ * Note: Performance and stress tests have been moved to src/test/performance/
  */
 
 import { createVM, type VM } from '../../core/vm';
@@ -32,61 +32,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
     vm = createVM();
   });
 
-  describe('Performance Testing', () => {
-    it('should have no performance regression for built-in operations', () => {
-      const iterations = 100;
-
-      const start1 = performance.now();
-      for (let i = 0; i < iterations; i++) {
-        push(vm, 5);
-        push(vm, 3);
-        push(vm, toTaggedValue(Op.Add, Tag.BUILTIN));
-        evalOp(vm);
-        pop(vm);
-      }
-      const directTime = performance.now() - start1;
-
-      const start2 = performance.now();
-      for (let i = 0; i < iterations; i++) {
-        push(vm, 5);
-        push(vm, 3);
-        pushSymbolRef(vm, 'add');
-        evalOp(vm);
-        pop(vm);
-      }
-      const symbolTime = performance.now() - start2;
-
-      push(vm, 10);
-      push(vm, 20);
-      pushSymbolRef(vm, 'add');
-      evalOp(vm);
-      expect(pop(vm)).toBe(30);
-
-      expect(directTime).toBeLessThan(1000);
-      expect(symbolTime).toBeLessThan(1000);
-    });
-
-    it('should handle rapid symbol resolution without memory leaks', () => {
-      const iterations = 100; // Reduced from 5000 for faster tests
-      const initialStackSize = getStackData(vm).length;
-
-      for (let i = 0; i < iterations; i++) {
-        try {
-          pushSymbolRef(vm, 'dup');
-          pop(vm);
-        } catch {
-          /* empty */
-        }
-      }
-
-      expect(getStackData(vm).length).toBe(initialStackSize);
-
-      push(vm, 42);
-      pushSymbolRef(vm, 'dup');
-      evalOp(vm);
-      expect(getStackData(vm)).toEqual([42, 42]);
-    });
-  });
 
   describe('Memory Usage Patterns', () => {
     it('should demonstrate function table can be eliminated for colon definitions', () => {
@@ -226,52 +171,6 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
   });
 
-  describe('Stress Testing', () => {
-    it('should handle sequential symbol references', () => {
-      const iterations = 100; // Reduced from 10000 for faster tests
-
-      for (let i = 0; i < iterations; i++) {
-        push(vm, 1);
-        pushSymbolRef(vm, 'dup');
-        evalOp(vm);
-
-        pop(vm);
-        pop(vm);
-      }
-
-      push(vm, 42);
-      pushSymbolRef(vm, 'dup');
-      evalOp(vm);
-      expect(getStackData(vm)).toEqual([42, 42]);
-    });
-
-    it('should handle nested symbol execution patterns', () => {
-      const symbols = ['add', 'dup', 'swap'];
-
-      for (let depth = 0; depth < 10; depth++) { // Reduced from 100
-        push(vm, depth);
-
-        for (let i = 0; i < 3; i++) {
-          const symbol = symbols[i % symbols.length];
-          try {
-            pushSymbolRef(vm, symbol);
-            pop(vm);
-          } catch {
-            /* empty */
-          }
-        }
-
-        while (getStackData(vm).length > 0) {
-          pop(vm);
-        }
-      }
-
-      push(vm, 100);
-      pushSymbolRef(vm, 'dup');
-      evalOp(vm);
-      expect(getStackData(vm)).toEqual([100, 100]);
-    });
-  });
 
   describe('Integration Workflow Testing', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {

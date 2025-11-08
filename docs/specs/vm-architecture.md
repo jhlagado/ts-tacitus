@@ -201,9 +201,10 @@ Invariants
 
 Reference helpers (see `core/refs.ts`):
 
-- `createDataRef(segment, cellIndex)` → `DATA_REF`
-- `resolveReference(vm, ref)` → `{ segment, address }`
+- `createDataRef(absoluteCellIndex)` → `DATA_REF` (absolute cell index in unified arena)
+- `getByteAddressFromRef(ref)` → absolute byte address
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
+- `getRefRegion(ref)` → `'global' | 'stack' | 'rstack'` (inferred from address range)
 
 All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
 

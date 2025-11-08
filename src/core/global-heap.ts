@@ -23,6 +23,13 @@ function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
   }
 }
 
+/**
+ * Pushes a simple value to the global heap and returns a DATA_REF.
+ * @param vm - VM instance
+ * @param value - Value to push
+ * @returns DATA_REF to the allocated global cell
+ * @throws {Error} If global heap is exhausted
+ */
 export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
   const cellIndex = vm.gp;
@@ -32,13 +39,19 @@ export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   return createGlobalRef(cellIndex);
 }
 
+/**
+ * Pushes a list to the global heap and returns a DATA_REF to the header.
+ * @param vm - VM instance
+ * @param source - List source containing header and base address
+ * @returns DATA_REF to the list header in global heap
+ * @throws {Error} If global heap is exhausted
+ */
 export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   const slotCount = getListLength(source.header);
   const span = slotCount + 1;
   ensureGlobalCapacity(vm, span);
   const destBaseCell = vm.gp;
 
-  // Absolute-only source base for unified reads
   const srcBase = source.baseAddrBytes;
 
   for (let i = 0; i < slotCount; i++) {
@@ -53,8 +66,12 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   return createGlobalRef(headerCellIndex);
 }
 
+/**
+ * Gets the span (cell count) for a list in the global heap.
+ * @param _vm - VM instance (unused)
+ * @param headerValue - LIST header tagged value
+ * @returns Number of cells occupied (payload + header)
+ */
 export function getGlobalHeapSpan(_vm: VM, headerValue: number): number {
   return getListLength(headerValue) + 1;
 }
-
-// Dictionary composition now lives in heap-backed dictionary (see src/core/dictionary.ts)

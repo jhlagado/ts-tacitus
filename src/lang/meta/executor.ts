@@ -25,6 +25,15 @@ import {
   beginCapsuleImmediate,
 } from './index';
 
+/**
+ * Executes an immediate word during parsing.
+ * Immediate words execute at compile time rather than runtime.
+ * @param vm - VM instance
+ * @param name - Name of the immediate word
+ * @param entry - Symbol table entry for the word
+ * @param tokenizer - Tokenizer instance
+ * @param currentDefinition - Current definition context
+ */
 export function executeImmediateWord(
   vm: VM,
   name: string,

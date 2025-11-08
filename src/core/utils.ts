@@ -8,6 +8,9 @@ import { fromTaggedValue, Tag, Sentinel } from './tagged';
 /**
  * Compares two tagged values for equality.
  * Handles both regular numbers and NaN-boxed tagged values.
+ * @param a - First value to compare
+ * @param b - Second value to compare
+ * @returns True if values are equal
  */
 export function areValuesEqual(a: number, b: number): boolean {
   if (!isNaN(a) && !isNaN(b)) {
