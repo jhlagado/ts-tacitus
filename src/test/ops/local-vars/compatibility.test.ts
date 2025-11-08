@@ -2,7 +2,7 @@
  * Tests for compound variable compatibility checking
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import { isCompatible } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag } from '../../../core/tagged';
@@ -76,17 +76,17 @@ describe('Compound Compatibility Checking', () => {
       // another single-element list and verify materialized value matches.
       // This avoids brittle direct comparisons of NaN-boxed headers.
       resetVM();
-      const result = executeTacitCode(': f ( 42 ) var y ( 99 ) -> y &y load head ; f');
+      const result = executeTacitCode(vm, ': f ( 42 ) var y ( 99 ) -> y &y load head ; f');
       // After materializing the list and taking head, TOS should be 99
       expect(result[result.length - 1]).toBe(99);
     });
 
     test('should distinguish empty vs single-element lists', () => {
       resetVM();
-      const empty = executeTacitCode('()');
+      const empty = executeTacitCode(vm, '()');
 
       resetVM();
-      const single = executeTacitCode('(1)');
+      const single = executeTacitCode(vm, '(1)');
 
       const emptyHeader = empty[empty.length - 1];
       const singleHeader = single[single.length - 1];
@@ -99,14 +99,17 @@ describe('Compound Compatibility Checking', () => {
     test('should work with same-content lists (behavioral assignment)', () => {
       // Initialize a local with (1 2 3), then assign (1 2 3) and verify head = 1
       resetVM();
-      const result = executeTacitCode(': f ( 1 2 3 ) var y ( 1 2 3 ) -> y &y load head ; f');
+      const result = executeTacitCode(vm, ': f ( 1 2 3 ) var y ( 1 2 3 ) -> y &y load head ; f');
       expect(result[result.length - 1]).toBe(1);
     });
 
     test('should work with different-content but same-length lists (behavioral assignment)', () => {
       // Initialize with (10 20 30), assign (-1 -2 -3) (same length), verify head = -1
       resetVM();
-      const result = executeTacitCode(': f ( 10 20 30 ) var y ( -1 -2 -3 ) -> y &y load head ; f');
+      const result = executeTacitCode(
+        vm,
+        ': f ( 10 20 30 ) var y ( -1 -2 -3 ) -> y &y load head ; f',
+      );
       expect(result[result.length - 1]).toBe(-1);
     });
   });

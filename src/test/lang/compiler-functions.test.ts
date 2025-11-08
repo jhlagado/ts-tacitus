@@ -2,16 +2,17 @@
  * Tests for compiler function context and Reserve back-patching
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../lang/runtime';
+import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
 import { markWithLocalReset, defineLocal, forget } from '../../core/dictionary';
 
 describe('Compiler Function Context', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
-    vm.debug = false;
+    vm = createVM();
   });
 
   describe('Function context tracking', () => {
@@ -71,7 +72,7 @@ describe('Compiler Function Context', () => {
   describe('Integration with function parsing', () => {
     test('should automatically emit Reserve for functions with variables', () => {
       // This test verifies that the parser integration works
-      const result = executeTacitCode(': test-fn 42 var x 10 var y x y add ; test-fn');
+      const result = executeTacitCode(vm, ': test-fn 42 var x 10 var y x y add ; test-fn');
 
       // Function should execute without error and return reasonable result
       expect(typeof result[0]).toBe('number');
@@ -80,7 +81,7 @@ describe('Compiler Function Context', () => {
 
     test('should handle functions without variables', () => {
       // Functions without variables should still work
-      const result = executeTacitCode(': double 2 mul ; 5 double');
+      const result = executeTacitCode(vm, ': double 2 mul ; 5 double');
 
       expect(result[0]).toBe(10);
     });
@@ -89,11 +90,14 @@ describe('Compiler Function Context', () => {
       // Just test that nested functions with variables compile and run without errors
       // The exact computation doesn't matter for this test
       expect(() => {
-        const result = executeTacitCode(`
+        const result = executeTacitCode(
+          vm,
+          `
           : helper 10 var temp temp ;
           : caller 5 var value value helper add ;
           caller
-        `);
+        `,
+        );
         // Should produce some numeric result
         expect(typeof result[0]).toBe('number');
       }).not.toThrow();
@@ -101,12 +105,15 @@ describe('Compiler Function Context', () => {
 
     test('should handle multiple functions with different variable counts', () => {
       expect(() => {
-        executeTacitCode(`
+        executeTacitCode(
+          vm,
+          `
           : fn1 1 var a ;
           : fn2 1 var x 2 var y ;
           : fn3 ;
           fn1 fn2 fn3
-        `);
+        `,
+        );
       }).not.toThrow();
     });
   });

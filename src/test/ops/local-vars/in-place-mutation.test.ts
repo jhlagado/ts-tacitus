@@ -2,7 +2,7 @@
  * Tests for in-place compound mutation functionality
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
 import {
   updateListInPlace as mutateCompoundInPlace,
@@ -23,7 +23,7 @@ describe('In-Place Compound Mutation', () => {
     test('should mutate empty list in place', () => {
       // Setup: Create empty list on data stack and existing empty list in memory
       resetVM();
-      const newEmptyResult = executeTacitCode('()');
+      const newEmptyResult = executeTacitCode(vm, '()');
       const newHeader = newEmptyResult[newEmptyResult.length - 1];
 
       // Simulate existing empty list at return stack location
@@ -51,7 +51,7 @@ describe('In-Place Compound Mutation', () => {
     test('should mutate single-element list in place', () => {
       // Setup: Create new single-element list
       resetVM();
-      executeTacitCode('(42)');
+      executeTacitCode(vm, '(42)');
 
       // Setup existing single-element list at target location
       const targetAddr = 100;
@@ -77,7 +77,7 @@ describe('In-Place Compound Mutation', () => {
     test('should mutate multi-element list in place', () => {
       // Setup: Create new three-element list (1 2 3)
       resetVM();
-      executeTacitCode('(1 2 3)');
+      executeTacitCode(vm, '(1 2 3)');
 
       // Setup existing three-element list at target location with different values
       const targetAddr = 100;
@@ -116,7 +116,7 @@ describe('In-Place Compound Mutation', () => {
     test('should reject incompatible slot counts', () => {
       // Setup: Try to replace LIST:2 with LIST:3
       resetVM();
-      executeTacitCode('(1 2 3)'); // LIST:3
+      executeTacitCode(vm, '(1 2 3)'); // LIST:3
 
       // Setup existing LIST:2 at target
       const targetAddr = 100;
@@ -150,7 +150,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Create mutation scenario
       resetVM();
-      executeTacitCode('(10 20)');
+      executeTacitCode(vm, '(10 20)');
 
       const targetAddr = 200;
       const existingHeader = toTaggedValue(2, Tag.LIST);
@@ -179,7 +179,7 @@ describe('In-Place Compound Mutation', () => {
     test('should handle nested list mutation correctly', () => {
       // Setup: Create nested list with same total slot count as flat list
       resetVM();
-      executeTacitCode('(1 (2) 3)'); // LIST:4 total
+      executeTacitCode(vm, '(1 (2) 3)'); // LIST:4 total
 
       // Setup existing flat list with same slot count
       const targetAddr = 120;
@@ -197,7 +197,7 @@ describe('In-Place Compound Mutation', () => {
     test('should maintain data integrity during mutation', () => {
       // Test that partial failures don't corrupt memory
       resetVM();
-      executeTacitCode('(100 200 300)');
+      executeTacitCode(vm, '(100 200 300)');
 
       const targetAddr = 200;
       const existingHeader = toTaggedValue(3, Tag.LIST);

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
-import { initializeInterpreter, vm } from '../../../lang/runtime';
+import { initializeInterpreter, vm } from '../../utils/vm-test-utils';
 import { resetVM } from '../../utils/vm-test-utils';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
 import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA, STACK_BASE } from '../../../core/constants';

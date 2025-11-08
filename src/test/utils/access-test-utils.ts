@@ -58,7 +58,7 @@ export class PerformanceTester {
 
     for (let i = 0; i < iterations; i++) {
       resetVM();
-      executeTacitCode(operation);
+      executeTacitCode(vm, operation);
     }
 
     const end = Date.now();
@@ -114,7 +114,7 @@ export class BehavioralTester {
   static testOperationWorks(operation: string): boolean {
     try {
       resetVM();
-      const result = executeTacitCode(operation);
+      const result = executeTacitCode(vm, operation);
       return result.length > 0;
     } catch {
       return false;
@@ -126,8 +126,8 @@ export class BehavioralTester {
    */
   static testIdempotency(setup: string, operation: string): boolean {
     try {
-      const once = executeTacitCode(`${setup} ${operation}`);
-      const twice = executeTacitCode(`${setup} ${operation} ${operation}`);
+      const once = executeTacitCode(vm, `${setup} ${operation}`);
+      const twice = executeTacitCode(vm, `${setup} ${operation} ${operation}`);
 
       return JSON.stringify(once) === JSON.stringify(twice);
     } catch {
@@ -140,8 +140,8 @@ export class BehavioralTester {
    */
   static testStructurePreservation(operation: string): boolean {
     try {
-      const before = executeTacitCode('( 1 2 3 4 5 )');
-      const after = executeTacitCode(`( 1 2 3 4 5 ) ${operation}`);
+      const before = executeTacitCode(vm, '( 1 2 3 4 5 )');
+      const after = executeTacitCode(vm, `( 1 2 3 4 5 ) ${operation}`);
 
       return after.length >= before.length;
     } catch {
@@ -154,8 +154,8 @@ export class BehavioralTester {
    */
   static testInverseOperations(setup: string, forward: string, reverse: string): boolean {
     try {
-      const original = executeTacitCode(setup);
-      const roundTrip = executeTacitCode(`${setup} ${forward} ${reverse}`);
+      const original = executeTacitCode(vm, setup);
+      const roundTrip = executeTacitCode(vm, `${setup} ${forward} ${reverse}`);
 
       return JSON.stringify(original) === JSON.stringify(roundTrip);
     } catch {

@@ -4,7 +4,7 @@
  */
 
 import { reserveOp } from '../../../ops/builtins';
-import { initializeInterpreter, vm } from '../../../lang/runtime';
+import { initializeInterpreter, vm } from '../../utils/vm-test-utils';
 
 describe('Reserve Operation', () => {
   beforeEach(() => {

@@ -37,7 +37,7 @@ describe('Cross-segment ref-to-list store', () => {
       ;
       f
     `;
-    const stack = executeTacitCode(code);
+    const stack = executeTacitCode(vm, code);
     // Expect (1 2 3) semantics; payload order matches VM's reverse-list layout
     expectTopIsListWith([3, 2, 1], stack);
   });
@@ -52,7 +52,7 @@ describe('Cross-segment ref-to-list store', () => {
       ;
       f
     `;
-    const stack = executeTacitCode(code);
+    const stack = executeTacitCode(vm, code);
     expectTopIsListWith([6, 5, 4], stack);
   });
 });

@@ -1,4 +1,4 @@
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { resetVM } from '../../utils/vm-test-utils';
 import { groupLeftOp, groupRightOp, endIfOp, endDoOp, exitOp } from '../../../ops/core/core-ops';
 import { SEG_CODE } from '../../../core';

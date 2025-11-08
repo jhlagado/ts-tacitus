@@ -29,7 +29,20 @@ import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 
 import { formatValue } from '@src/core';
-import { ensureRStackSize, nextFloat32, nextInt16, depth } from '../../core/vm';
+import {
+  ensureRStackSize,
+  nextFloat32,
+  nextInt16,
+  depth,
+  getStackData,
+  rpop,
+  rpush,
+  ensureStackSize,
+  pop,
+  push,
+  peek,
+  pushSymbolRef,
+} from '../../core/vm';
 
 /**
  * Implements the literal number operation.
@@ -49,7 +62,7 @@ import { ensureRStackSize, nextFloat32, nextInt16, depth } from '../../core/vm';
  */
 export const literalNumberOp: Verb = (vm: VM) => {
   const num = nextFloat32(vm);
-  vm.push(num);
+  push(vm, num);
 };
 
 /**
@@ -72,7 +85,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
 export const literalStringOp: Verb = (vm: VM) => {
   const address = nextInt16(vm);
   const taggedString = toTaggedValue(address, Tag.STRING);
-  vm.push(taggedString);
+  push(vm, taggedString);
 };
 
 /**
@@ -123,9 +136,9 @@ export const skipDefOp: Verb = (vm: VM) => {
  */
 export const callOp: Verb = (vm: VM) => {
   const callAddress = nextInt16(vm);
-  vm.rpush(vm.IP);
+  rpush(vm, vm.IP);
   // Save BP as relative cells on the return stack for compatibility
-  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
   vm.bp = vm.rsp;
   vm.IP = callAddress;
 };
@@ -189,12 +202,12 @@ export const exitOp: Verb = (vm: VM) => {
     // current return stack depth (or negative) treat as underflow corruption.
     const bpCells = vm.bp;
     if (bpCells < RSTACK_BASE_CELLS || bpCells > vm.rsp) {
-      throw new ReturnStackUnderflowError('exit', vm.getStackData());
+      throw new ReturnStackUnderflowError('exit', getStackData(vm));
     }
     vm.rsp = bpCells;
     // Saved BP is stored as relative cells; convert to absolute before restore
-    vm.bp = vm.rpop() + RSTACK_BASE_CELLS;
-    vm.IP = vm.rpop();
+    vm.bp = rpop(vm) + RSTACK_BASE_CELLS;
+    vm.IP = rpop(vm);
   } catch (e) {
     vm.running = false;
     throw e;
@@ -226,19 +239,19 @@ export const exitOp: Verb = (vm: VM) => {
  * It allows code blocks to be passed around as values and executed on demand.
  */
 export const evalOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'eval');
-  const value = vm.pop();
+  ensureStackSize(vm, 1, 'eval');
+  const value = pop(vm);
   const { tag, value: addr, meta } = fromTaggedValue(value);
 
   switch (tag) {
     case Tag.CODE:
       if (meta === 1) {
-        vm.rpush(vm.IP);
+        rpush(vm, vm.IP);
         vm.IP = addr;
       } else {
-        vm.rpush(vm.IP);
+        rpush(vm, vm.IP);
         // Save BP as relative cells on the return stack for compatibility
-        vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+        rpush(vm, vm.bp - RSTACK_BASE_CELLS);
         vm.bp = vm.rsp;
         vm.IP = addr;
       }
@@ -249,7 +262,7 @@ export const evalOp: Verb = (vm: VM) => {
       break;
 
     default:
-      vm.push(value);
+      push(vm, value);
       break;
   }
 };
@@ -272,16 +285,16 @@ export const endDefinitionOp: Verb = () => {
  * position and patches the placeholder before returning control to the parser.
  */
 export const endIfOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'endif');
+  ensureStackSize(vm, 1, 'endif');
 
-  const placeholder = vm.pop();
+  const placeholder = pop(vm);
   if (!Number.isFinite(placeholder)) {
-    throw new SyntaxError('ENDIF missing branch placeholder', vm.getStackData());
+    throw new SyntaxError('ENDIF missing branch placeholder', getStackData(vm));
   }
 
   const branchPos = Math.trunc(placeholder);
   if (branchPos < 0) {
-    throw new SyntaxError('Invalid branch placeholder for ENDIF', vm.getStackData());
+    throw new SyntaxError('Invalid branch placeholder for ENDIF', getStackData(vm));
   }
 
   const endAddress = vm.compiler.CP;
@@ -302,23 +315,23 @@ export const endIfOp: Verb = (vm: VM) => {
  * compile pointer, and restores the stack to `[... savedRSP, EndWhen]`.
  */
 export const endDoOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'enddo');
+  ensureStackSize(vm, 1, 'enddo');
 
-  const rawSkipPos = vm.pop();
+  const rawSkipPos = pop(vm);
   if (!Number.isFinite(rawSkipPos)) {
-    throw new SyntaxError('enddo missing predicate placeholder', vm.getStackData());
+    throw new SyntaxError('enddo missing predicate placeholder', getStackData(vm));
   }
 
   const skipPos = Math.trunc(rawSkipPos);
   if (skipPos <= 0) {
-    throw new SyntaxError('enddo invalid predicate placeholder', vm.getStackData());
+    throw new SyntaxError('enddo invalid predicate placeholder', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Branch);
   const exitOperandPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  vm.rpush(exitOperandPos);
+  rpush(vm, exitOperandPos);
 
   const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
   const prevCP = vm.compiler.CP;
@@ -336,33 +349,33 @@ export const endDoOp: Verb = (vm: VM) => {
  * comparisons fall through to the next clause.
  */
 export const endOfOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'endof');
+  ensureStackSize(vm, 1, 'endof');
 
-  const rawSkipPos = vm.pop();
+  const rawSkipPos = pop(vm);
   if (!Number.isFinite(rawSkipPos)) {
-    throw new SyntaxError('endof missing predicate placeholder', vm.getStackData());
+    throw new SyntaxError('endof missing predicate placeholder', getStackData(vm));
   }
 
   const skipPos = Math.trunc(rawSkipPos);
   if (skipPos <= 0) {
-    throw new SyntaxError('endof invalid predicate placeholder', vm.getStackData());
+    throw new SyntaxError('endof invalid predicate placeholder', getStackData(vm));
   }
 
   if (depth(vm) === 0) {
-    throw new SyntaxError('clause closer without of', vm.getStackData());
+    throw new SyntaxError('clause closer without of', getStackData(vm));
   }
 
-  const closer = vm.peek();
+  const closer = peek(vm);
   const { tag, value } = fromTaggedValue(closer);
   if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
-    throw new SyntaxError('clause closer without of', vm.getStackData());
+    throw new SyntaxError('clause closer without of', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Branch);
   const exitOperandPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  vm.rpush(exitOperandPos);
+  rpush(vm, exitOperandPos);
 
   const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
   const prevCP = vm.compiler.CP;
@@ -380,20 +393,20 @@ export const endOfOp: Verb = (vm: VM) => {
  * construct.
  */
 export const endWhenOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'endwhen');
+  ensureStackSize(vm, 1, 'endwhen');
 
-  const rawSavedRSP = vm.pop();
+  const rawSavedRSP = pop(vm);
   if (!Number.isFinite(rawSavedRSP)) {
-    throw new SyntaxError('endwhen missing saved RSP', vm.getStackData());
+    throw new SyntaxError('endwhen missing saved RSP', getStackData(vm));
   }
 
   const savedRSPRel = Math.trunc(rawSavedRSP);
   const savedRSPAbs = RSTACK_BASE_CELLS + savedRSPRel;
 
   while (vm.rsp > savedRSPAbs) {
-    const rawExitPos = vm.rpop();
+    const rawExitPos = rpop(vm);
     if (!Number.isFinite(rawExitPos)) {
-      throw new SyntaxError('endwhen invalid exit placeholder', vm.getStackData());
+      throw new SyntaxError('endwhen invalid exit placeholder', getStackData(vm));
     }
 
     const exitPos = Math.trunc(rawExitPos);
@@ -406,7 +419,7 @@ export const endWhenOp: Verb = (vm: VM) => {
   }
 
   if (vm.rsp !== savedRSPAbs) {
-    throw new SyntaxError('endwhen corrupted return stack', vm.getStackData());
+    throw new SyntaxError('endwhen corrupted return stack', getStackData(vm));
   }
 };
 
@@ -419,11 +432,11 @@ export const endWhenOp: Verb = (vm: VM) => {
  * clauses skip that drop.
  */
 export const endCaseOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'endcase');
+  ensureStackSize(vm, 1, 'endcase');
 
-  const rawSavedRSP = vm.pop();
+  const rawSavedRSP = pop(vm);
   if (!Number.isFinite(rawSavedRSP)) {
-    throw new SyntaxError('endcase missing saved RSP', vm.getStackData());
+    throw new SyntaxError('endcase missing saved RSP', getStackData(vm));
   }
 
   const savedRSPRel = Math.trunc(rawSavedRSP);
@@ -433,9 +446,9 @@ export const endCaseOp: Verb = (vm: VM) => {
   const exitTarget = vm.compiler.CP;
 
   while (vm.rsp > savedRSPAbs) {
-    const rawExitPos = vm.rpop();
+    const rawExitPos = rpop(vm);
     if (!Number.isFinite(rawExitPos)) {
-      throw new SyntaxError('endcase invalid exit placeholder', vm.getStackData());
+      throw new SyntaxError('endcase invalid exit placeholder', getStackData(vm));
     }
 
     const exitPos = Math.trunc(rawExitPos);
@@ -448,7 +461,7 @@ export const endCaseOp: Verb = (vm: VM) => {
   }
 
   if (vm.rsp !== savedRSPAbs) {
-    throw new SyntaxError('case corrupted return stack', vm.getStackData());
+    throw new SyntaxError('case corrupted return stack', getStackData(vm));
   }
 };
 
@@ -473,7 +486,7 @@ export const endCaseOp: Verb = (vm: VM) => {
  */
 export const groupLeftOp: Verb = (vm: VM) => {
   // Save current data stack depth in cells (relative to STACK_BASE)
-  vm.rpush(depth(vm));
+  rpush(vm, depth(vm));
 };
 
 /**
@@ -502,10 +515,10 @@ export const groupLeftOp: Verb = (vm: VM) => {
 export const groupRightOp: Verb = (vm: VM) => {
   try {
     ensureRStackSize(vm, 1, 'group-right');
-    const sp0 = vm.rpop();
+    const sp0 = rpop(vm);
     const sp1 = depth(vm);
     const d = sp1 - sp0;
-    vm.push(d);
+    push(vm, d);
   } catch (e) {
     vm.running = false;
     throw e;
@@ -536,7 +549,8 @@ export const groupRightOp: Verb = (vm: VM) => {
  * of values, including lists and other complex data structures.
  */
 export const printOp: Verb = (vm: VM) => {
-  const d = vm.pop();
+  const d = pop(vm);
+  // eslint-disable-next-line no-console
   console.log(formatValue(vm, d));
 };
 
@@ -556,9 +570,9 @@ export const printOp: Verb = (vm: VM) => {
  * @param {VM} vm - The virtual machine instance
  */
 export const pushSymbolRefOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'pushSymbolRef');
+  ensureStackSize(vm, 1, 'pushSymbolRef');
 
-  const stringTaggedValue = vm.pop();
+  const stringTaggedValue = pop(vm);
   const { tag, value } = fromTaggedValue(stringTaggedValue);
 
   if (tag !== Tag.STRING) {
@@ -570,5 +584,5 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
     throw new Error(`String not found in digest: ${value}`);
   }
 
-  vm.pushSymbolRef(symbolName);
+  pushSymbolRef(vm, symbolName);
 };

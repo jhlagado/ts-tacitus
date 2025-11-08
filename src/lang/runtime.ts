@@ -6,9 +6,7 @@
  * Core → Lang coupling or import-time side effects.
  */
 
-import { VM } from '@src/core';
-import { Compiler } from './compiler';
-import { registerBuiltins } from '../ops/builtins-register';
+import type { VM } from '@src/core';
 
 /**
  * Global VM instance used by the interpreter.

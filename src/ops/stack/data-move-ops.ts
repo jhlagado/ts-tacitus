@@ -15,7 +15,14 @@ import {
   VMError,
   STACK_BASE_CELLS,
 } from '@src/core';
-import { depth } from '../../core/vm';
+import {
+  depth,
+  push,
+  pop,
+  peek,
+  ensureStackSize,
+  getStackData,
+} from '../../core/vm';
 
 /**
  * Stack argument info: [nextSlot, size].
@@ -63,7 +70,7 @@ return;
   for (let i = 0; i < slotCount; i++) {
     const absByte = (STACK_BASE_CELLS + startSlot + i) * CELL_SIZE;
     const slot = vm.memory.readFloat32(SEG_DATA, absByte);
-    vm.push(slot);
+    push(vm, slot);
   }
 }
 
@@ -139,7 +146,7 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
   for (let i = 0; i <= index; i++) {
     const stackDepth = depth(vm);
     if (currentSlot >= stackDepth) {
-      throw new StackUnderflowError('pick', index + 1, vm.getStackData());
+      throw new StackUnderflowError('pick', index + 1, getStackData(vm));
     }
 
     const [nextSlot, size] = findElement(vm, currentSlot);
@@ -152,7 +159,7 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
     currentSlot = nextSlot;
   }
 
-  throw new VMError(`Failed to find element at index ${index}`, vm.getStackData());
+  throw new VMError(`Failed to find element at index ${index}`, getStackData(vm));
 }
 
 /**
@@ -164,7 +171,7 @@ return;
 }
 
   if (requiredElements > 2) {
-    vm.ensureStackSize(requiredElements, operationName);
+    ensureStackSize(vm, requiredElements, operationName);
     return;
   }
 
@@ -173,7 +180,7 @@ return;
   for (let i = 0; i < requiredElements; i++) {
     const stackDepth = depth(vm);
     if (currentSlot >= stackDepth) {
-      throw new StackUnderflowError(operationName, requiredElements, vm.getStackData());
+      throw new StackUnderflowError(operationName, requiredElements, getStackData(vm));
     }
 
     const [nextSlot] = findElement(vm, currentSlot);
@@ -196,7 +203,7 @@ function safeStackOperation(vm: VM, operation: () => void, operationName: string
     } else {
       throw new VMError(
         `${operationName} failed: ${error instanceof Error ? error.message : String(error)}`,
-        vm.getStackData(),
+        getStackData(vm),
       );
     }
   }
@@ -234,7 +241,7 @@ export const overOp: Verb = (vm: VM) => {
 
     for (let i = 0; i < secondSlots; i++) {
       const value = vm.memory.readFloat32(SEG_DATA, (secondAbsCell + i) * CELL_SIZE);
-      vm.push(value);
+      push(vm, value);
     }
   } catch (error) {
     vm.sp = originalSP;
@@ -250,7 +257,7 @@ export const overOp: Verb = (vm: VM) => {
 export const pickOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'pick');
 
-  const index = vm.pop();
+  const index = pop(vm);
 
   if (index < 0) {
     throw new Error(`Invalid index for pick: ${index}`);
@@ -271,14 +278,14 @@ export const pickOp: Verb = (vm: VM) => {
  */
 export const dropOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'drop');
-  const topValue = vm.peek();
+  const topValue = peek(vm);
   const { tag, value } = fromTaggedValue(topValue);
   if (tag === Tag.LIST) {
     const totalSlots = value + 1;
     vm.sp -= totalSlots;
     return;
   }
-  vm.pop();
+  pop(vm);
 };
 
 /**
@@ -306,7 +313,7 @@ export const swapOp: Verb = (vm: VM) => {
     } else {
       throw new VMError(
         `swap failed: ${error instanceof Error ? error.message : String(error)}`,
-        vm.getStackData(),
+        getStackData(vm),
       );
     }
   }
@@ -339,7 +346,7 @@ export const rotOp: Verb = (vm: VM) => {
     } else {
       throw new VMError(
         `rot failed: ${error instanceof Error ? error.message : String(error)}`,
-        vm.getStackData(),
+        getStackData(vm),
       );
     }
   }
@@ -371,7 +378,7 @@ export const revrotOp: Verb = (vm: VM) => {
     } else {
       throw new VMError(
         `revrot failed: ${error instanceof Error ? error.message : String(error)}`,
-        vm.getStackData(),
+        getStackData(vm),
       );
     }
   }

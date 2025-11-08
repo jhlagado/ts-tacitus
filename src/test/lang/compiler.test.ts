@@ -1,5 +1,5 @@
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { fromTaggedValue } from '../../core';
 import { nextInt16, nextFloat32, next8 } from '../../core/vm';
 

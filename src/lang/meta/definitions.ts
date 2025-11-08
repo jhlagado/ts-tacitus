@@ -1,6 +1,7 @@
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
+import { push } from '../../core/vm';
 import { setEndDefinitionHandler } from '../compiler-hooks';
 import { beginDefinition, endDefinition } from '../definitions';
 import { requireParserState } from '../state';
@@ -14,5 +15,5 @@ setEndDefinitionHandler(() => {
 export function beginDefinitionImmediate(): void {
   const state = requireParserState();
   beginDefinition(state);
-  vm.push(ENDDEF_CODE_REF);
+  push(vm, ENDDEF_CODE_REF);
 }

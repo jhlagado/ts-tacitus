@@ -18,7 +18,7 @@ import {
   GLOBAL_BASE,
   STACK_BASE,
 } from '../../core';
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { fetchOp, storeOp } from '../../ops/lists';
 
 describe('DATA_REF utilities', () => {

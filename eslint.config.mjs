@@ -85,6 +85,8 @@ const config = [
           varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
           destructuredArrayIgnorePattern: '^_',
+          args: 'all',
+          ignoreRestSiblings: true,
         },
       ],
       '@typescript-eslint/no-empty-function': 'error',
@@ -215,6 +217,7 @@ const config = [
 
       // Turn off base ESLint rules that are covered by TypeScript
       'no-unused-vars': 'off', // Use @typescript-eslint version instead
+      'no-unused-args': 'off', // Handled by @typescript-eslint/no-unused-vars
       'no-undef': 'off', // TypeScript handles this
       'no-redeclare': 'off', // TypeScript handles this
       'no-duplicate-imports': 'error', // Prevent duplicate imports
@@ -270,6 +273,20 @@ const config = [
       '@typescript-eslint/explicit-module-boundary-types': 'warn',
       // Allow any in tests for mocking
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Unused vars/args starting with _ are ignored
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          args: 'all',
+          ignoreRestSiblings: true,
+        },
+      ],
+      // Turn off base ESLint no-unused-vars (use TypeScript version)
+      'no-unused-vars': 'off',
     },
   },
 

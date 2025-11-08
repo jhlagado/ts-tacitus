@@ -19,10 +19,10 @@
 
 import { Op } from '../ops/opcodes';
 import { vm } from './runtime';
+import { getStackData } from '../core/vm';
 import type { Token, Tokenizer } from './tokenizer';
 import { TokenType } from './tokenizer';
-import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL } from '@src/core';
-import { UndefinedWordError, SyntaxError } from '@src/core';
+import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL, UndefinedWordError, SyntaxError } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import type { ParserState } from './state';
 import { setParserState } from './state';
@@ -91,7 +91,7 @@ export function validateFinalState(state: ParserState): void {
   ensureNoOpenConditionals();
 
   if (vm.listDepth !== 0) {
-    throw new SyntaxError('Unclosed list or LIST', vm.getStackData());
+    throw new SyntaxError('Unclosed list or LIST', getStackData(vm));
   }
 }
 
@@ -174,7 +174,7 @@ export function emitWord(value: string, state: ParserState): void {
 
   const tval = lookup(vm, value);
   if (isNIL(tval)) {
-    throw new UndefinedWordError(value, vm.getStackData());
+    throw new UndefinedWordError(value, getStackData(vm));
   }
 
   const info = fromTaggedValue(tval);
@@ -217,7 +217,7 @@ export function emitWord(value: string, state: ParserState): void {
 
   if (tag === Tag.DATA_REF) {
     if (getRefRegion(entryValue) !== 'global') {
-      throw new UndefinedWordError(value, vm.getStackData());
+      throw new UndefinedWordError(value, getStackData(vm));
     }
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
@@ -238,7 +238,7 @@ export function emitWord(value: string, state: ParserState): void {
     return;
   }
 
-  throw new UndefinedWordError(value, vm.getStackData());
+  throw new UndefinedWordError(value, getStackData(vm));
 }
 
 /**
@@ -276,7 +276,7 @@ export function emitAtSymbol(symbolName: string): void {
 export function emitRefSigil(varName: string, state: ParserState): void {
   const tval = lookup(vm, varName);
   if (isNIL(tval)) {
-    throw new UndefinedWordError(varName, vm.getStackData());
+    throw new UndefinedWordError(varName, getStackData(vm));
   }
 
   const { tag, value: slotNumber } = fromTaggedValue(tval);
@@ -323,13 +323,13 @@ export function emitVarDecl(state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
-      vm.getStackData(),
+      getStackData(vm),
     );
   }
 
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after var', vm.getStackData());
+    throw new SyntaxError('Expected variable name after var', getStackData(vm));
   }
 
   const varName = nameToken.value as string;
@@ -340,7 +340,7 @@ export function emitVarDecl(state: ParserState): void {
     varName === ';' ||
     (varName.length === 1 && isSpecialChar(varName))
   ) {
-    throw new SyntaxError('Expected variable name after var', vm.getStackData());
+    throw new SyntaxError('Expected variable name after var', getStackData(vm));
   }
 
   vm.compiler.emitReserveIfNeeded();
@@ -373,7 +373,7 @@ export function emitVarDecl(state: ParserState): void {
 export function emitAssignment(state: ParserState): void {
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after ->', vm.getStackData());
+    throw new SyntaxError('Expected variable name after ->', getStackData(vm));
   }
 
   const varName = nameToken.value as string;
@@ -384,7 +384,7 @@ export function emitAssignment(state: ParserState): void {
     varName === ';' ||
     (varName.length === 1 && isSpecialChar(varName))
   ) {
-    throw new SyntaxError('Expected variable name after ->', vm.getStackData());
+    throw new SyntaxError('Expected variable name after ->', getStackData(vm));
   }
 
   const tval = lookup(vm, varName);
@@ -421,7 +421,7 @@ export function emitAssignment(state: ParserState): void {
     if (getRefRegion(tval) !== 'global') {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',
-        vm.getStackData(),
+        getStackData(vm),
       );
     }
     const maybeBracket = state.tokenizer.nextToken();
@@ -445,7 +445,7 @@ export function emitAssignment(state: ParserState): void {
   // Otherwise, not a recognized assignable
   throw new SyntaxError(
     'Assignment operator (->) only allowed for locals or globals',
-    vm.getStackData(),
+    getStackData(vm),
   );
 }
 
@@ -466,13 +466,13 @@ export function emitIncrement(state: ParserState): void {
   if (!state.currentDefinition) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
-      vm.getStackData(),
+      getStackData(vm),
     );
   }
 
   const nameToken = state.tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after +>', vm.getStackData());
+    throw new SyntaxError('Expected variable name after +>', getStackData(vm));
   }
 
   const varName = nameToken.value as string;
@@ -545,7 +545,7 @@ function compileBracketPathAsList(state: ParserState): void {
     // Allow empty path [] or numbers only for now
     throw new SyntaxError(
       'Only numeric indices or string keys are supported in bracket paths',
-      vm.getStackData(),
+      getStackData(vm),
     );
   }
   vm.compiler.compileOpcode(Op.CloseList);
@@ -624,7 +624,7 @@ export function beginList(_state: ParserState): void {
  */
 export function endList(_state: ParserState): void {
   if (vm.listDepth <= 0) {
-    throw new SyntaxError('Unexpected closing parenthesis', vm.getStackData());
+    throw new SyntaxError('Unexpected closing parenthesis', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.CloseList);

@@ -4,11 +4,10 @@
  */
 
 import type { VM, Verb } from '@src/core';
-import { Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
-import { getListLength, isList } from '@src/core';
-import { isRef, createDataRef } from '@src/core';
+import { Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createDataRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
+import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
 /**
  * Creates initial target reference for path traversal.
@@ -28,11 +27,11 @@ export function createTargetRef(vm: VM): boolean {
   if (isList(target)) {
     // Create absolute DATA_REF to the list header cell
     const targetRef = createDataRef(targetCell);
-    vm.push(targetRef);
+    push(vm, targetRef);
     return true;
   } else if (isRef(target)) {
     // Copy existing ref
-    vm.push(target);
+    push(vm, target);
     return true;
   } else {
     // Simple target - can't traverse
@@ -51,7 +50,7 @@ export function createTargetRef(vm: VM): boolean {
  */
 export function processPathStep(vm: VM, pathElement: number): boolean {
   // Stack: ( target path current-ref )
-  vm.push(pathElement);
+  push(vm, pathElement);
   // Stack: ( target path current-ref path-element )
 
   if (getTag(pathElement) === Tag.NUMBER) {
@@ -61,18 +60,18 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
   }
   // Stack: ( target path current-ref new-ref )
 
-  const newRef = vm.pop();
+  const newRef = pop(vm);
 
   // Check only for actual NIL failure (not all NaN values!)
   if (isNIL(newRef)) {
-    vm.pop(); // remove current-ref
+    pop(vm); // remove current-ref
     dropOp(vm); // remove path
-    vm.push(NIL); // target NIL
+    push(vm, NIL); // target NIL
     return false;
   }
 
   // Stack: ( target path current-ref )
-  vm.push(newRef);
+  push(vm, newRef);
   // Stack: ( target path current-ref new-ref )
   nipOp(vm); // remove current-ref, keep new-ref
   // Stack: ( target path new-ref )
@@ -97,9 +96,9 @@ export function traverseMultiPath(vm: VM): void {
 
   // Stack: ( target path final-ref )
   // We need to remove the path that's in the middle, not the final-ref at the top
-  const finalRef = vm.pop(); // Remove final-ref temporarily
+  const finalRef = pop(vm); // Remove final-ref temporarily
   dropOp(vm); // remove path
-  vm.push(finalRef); // Put final-ref back
+  push(vm, finalRef); // Put final-ref back
   // Stack: ( target final-ref )
 }
 
@@ -108,9 +107,9 @@ export function traverseMultiPath(vm: VM): void {
  * Stack: ( target path -- target address|NIL )
  */
 export const selectOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(2, 'select');
+  ensureStackSize(vm, 2, 'select');
 
-  const path = vm.peek();
+  const path = peek(vm);
 
   // Convert simple path to single-element list
   if (!isList(path)) {
@@ -118,10 +117,10 @@ export const selectOp: Verb = (vm: VM) => {
   }
 
   // Now we always have a list path
-  const pathLength = getListLength(vm.peek());
+  const pathLength = getListLength(peek(vm));
   if (pathLength === 0 || !createTargetRef(vm)) {
-    vm.pop(); // remove empty path
-    vm.push(NIL);
+    pop(vm); // remove empty path
+    push(vm, NIL);
     return;
   }
 

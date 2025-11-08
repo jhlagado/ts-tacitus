@@ -3,7 +3,7 @@
  * Tests for in-place compound variable mutation.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
 
 describe('Compound Variable Mutation', () => {
@@ -21,7 +21,7 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    const result = executeTacitCode(code);
+    const result = executeTacitCode(vm, code);
 
     // Expected: the new list (4 5 6) should be on the stack
     // Stack layout for (4 5 6) is [6, 5, 4, LIST:3]
@@ -36,7 +36,7 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow(
+    expect(() => executeTacitCode(vm, code)).toThrow(
       'Incompatible compound assignment: slot count or type mismatch',
     );
   });
@@ -49,7 +49,7 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow(
+    expect(() => executeTacitCode(vm, code)).toThrow(
       'Cannot assign simple to compound or compound to simple',
     );
   });
@@ -62,7 +62,7 @@ describe('Compound Variable Mutation', () => {
       ;
       main
     `;
-    expect(() => executeTacitCode(code)).toThrow(
+    expect(() => executeTacitCode(vm, code)).toThrow(
       'Cannot assign simple to compound or compound to simple',
     );
   });

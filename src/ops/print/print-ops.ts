@@ -11,7 +11,7 @@
 import type { VM } from '@src/core';
 import { fromTaggedValue, Tag } from '@src/core';
 import { formatValue as coreFormatValue, formatList } from '@src/core';
-import { depth } from '../../core/vm';
+import { depth, pop, peek } from '../../core/vm';
 /**
  * Formats a LIST structure by consuming elements from the stack.
  *
@@ -40,34 +40,38 @@ import { depth } from '../../core/vm';
  * For single values, it will just pop the value.
  *
  * @param vm - The virtual machine instance
- * @throws {Error} Indirectly via vm.pop() if the stack is empty
+ * @throws {Error} Indirectly via pop(vm) if the stack is empty
  */
 export function printOp(vm: VM): void {
   try {
     if (depth(vm) < 1) {
+      // eslint-disable-next-line no-console
       console.log('[Error: Stack empty]');
       return;
     }
 
-    const topValue = vm.peek();
+    const topValue = peek(vm);
     const decoded = fromTaggedValue(topValue);
 
     if (decoded.tag === Tag.LIST) {
-      const headerVal = vm.pop();
+      const headerVal = pop(vm);
       const formatted = formatList(vm, headerVal);
+      // eslint-disable-next-line no-console
       console.log(formatted);
       return;
     }
 
-    vm.pop();
+    pop(vm);
+    // eslint-disable-next-line no-console
     console.log(coreFormatValue(vm, topValue));
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
     console.log(`[Print error: ${errorMessage}]`);
 
     if (depth(vm) >= 1) {
       try {
-        vm.pop();
+        pop(vm);
       } catch {
         /* empty */
       }
@@ -88,26 +92,30 @@ export function printOp(vm: VM): void {
  * stored in the VM.
  *
  * @param vm - The virtual machine instance
- * @throws {Error} Indirectly via vm.pop() if the stack is empty
+ * @throws {Error} Indirectly via pop(vm) if the stack is empty
  */
 export function rawPrintOp(vm: VM): void {
   try {
     if (depth(vm) < 1) {
+      // eslint-disable-next-line no-console
       console.log('[Error: Stack empty]');
       return;
     }
 
-    const value = vm.pop();
+    const value = pop(vm);
 
     const { tag, value: tagValue } = fromTaggedValue(value);
 
     if (tag === Tag.NUMBER) {
+      // eslint-disable-next-line no-console
       console.log(String(tagValue));
     } else {
       const tagName = Tag[tag] || `UNKNOWN(${tag})`;
+      // eslint-disable-next-line no-console
       console.log(`${tagName}:${tagValue}`);
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.log(`[Raw print error: ${error instanceof Error ? error.message : String(error)}]`);
   }
 }

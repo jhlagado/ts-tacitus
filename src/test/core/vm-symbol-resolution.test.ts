@@ -6,7 +6,7 @@
  * both built-in operations and colon definitions.
  */
 
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';

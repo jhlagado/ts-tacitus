@@ -3,8 +3,22 @@
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
 import type { VM, Verb } from '@src/core';
-import { toTaggedValue, fromTaggedValue, getTag, Tag, getVarRef, createDataRef, getByteAddressFromRef, isRef, SEG_DATA, RSTACK_BASE, CELL_SIZE, RSTACK_BASE_CELLS } from '@src/core';
-import { nextUint16, nextInt16, rdepth, depth } from '../core/vm';
+import {
+  toTaggedValue,
+  fromTaggedValue,
+  getTag,
+  Tag,
+  getVarRef,
+  createDataRef,
+  getByteAddressFromRef,
+  isRef,
+  SEG_DATA,
+  RSTACK_BASE,
+  CELL_SIZE,
+  RSTACK_BASE_CELLS,
+  InvalidOpcodeError,
+} from '@src/core';
+import { nextUint16, nextInt16, rdepth, depth, push, pop, peek, rpush, ensureStackSize, getStackData } from '../core/vm';
 
 import {
   literalNumberOp,
@@ -73,7 +87,6 @@ import {
 } from './capsules/capsule-ops';
 
 import { Op } from './opcodes';
-import { InvalidOpcodeError } from '@src/core';
 
 import { ifFalseBranchOp } from './control';
 import { selectOp } from './access';
@@ -114,17 +127,16 @@ const nopOp: Verb = () => {};
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalCodeOp(vm: VM): void {
-  const { nextUint16 } = require('../../core/vm');
   const address = nextUint16(vm);
   const tagged = toTaggedValue(address, Tag.CODE, 1);
-  vm.push(tagged);
+  push(vm, tagged);
 }
 
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
-    vm.rpush(vm.IP);
+    rpush(vm, vm.IP);
     // Save BP as relative cells
-    vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+    rpush(vm, vm.bp - RSTACK_BASE_CELLS);
     vm.bp = vm.rsp;
     vm.IP = opcode;
     return;
@@ -230,7 +242,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
 
   const impl = OPCODE_TO_VERB[opcode];
   if (!impl) {
-    throw new InvalidOpcodeError(opcode, vm.getStackData());
+    throw new InvalidOpcodeError(opcode, getStackData(vm));
   }
   impl(vm);
 }
@@ -244,9 +256,8 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalAddressOp(vm: VM): void {
-  const { nextUint16 } = require('../../core/vm');
   const address = nextUint16(vm);
-  vm.push(address);
+  push(vm, address);
 }
 
 /**
@@ -275,9 +286,9 @@ export function reserveOp(vm: VM): void {
  */
 export function initVarOp(vm: VM): void {
   const slotNumber = nextInt16(vm);
-  vm.ensureStackSize(1, 'InitVar');
+  ensureStackSize(vm, 1, 'InitVar');
 
-  const value = vm.peek();
+  const value = peek(vm);
   // Compute slot address using BP (cells) and convert to bytes at the boundary
   // Use CELL_SIZE instead of magic 4 for address computation
   const slotAddr = (vm.bp - RSTACK_BASE_CELLS + slotNumber) * CELL_SIZE;
@@ -290,14 +301,14 @@ export function initVarOp(vm: VM): void {
 
     vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, localRef);
   } else {
-    const simpleValue = vm.pop();
+    const simpleValue = pop(vm);
     vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, simpleValue);
   }
 }
 
 export function varRefOp(vm: VM): void {
   const slotNumber = nextInt16(vm);
-  vm.push(getVarRef(vm, slotNumber));
+  push(vm, getVarRef(vm, slotNumber));
 }
 
 /**
@@ -306,8 +317,10 @@ export function varRefOp(vm: VM): void {
 // (no longer using STACK_BASE_CELLS in debug dump)
 
 export function dumpFrameOp(vm: VM): void {
+  // eslint-disable-next-line no-console
   console.log('\n=== STACK FRAME DUMP ===');
   // Cell-based representation only (Plan 26 Phase 3 cleanup)
+  // eslint-disable-next-line no-console
   console.log(
     'RSP(cells):',
     rdepth(vm),
@@ -321,6 +334,7 @@ export function dumpFrameOp(vm: VM): void {
 
   if (vm.bp > RSTACK_BASE_CELLS) {
     const { localCount } = vm;
+    // eslint-disable-next-line no-console
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
@@ -328,6 +342,7 @@ export function dumpFrameOp(vm: VM): void {
       const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
+      // eslint-disable-next-line no-console
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
@@ -335,13 +350,16 @@ export function dumpFrameOp(vm: VM): void {
         const targetValue = vm.memory.readFloat32(SEG_DATA, absAddrBytes);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
+        // eslint-disable-next-line no-console
         console.log(
           `    -> Points to absolute addr ${absAddrBytes / CELL_SIZE} (cells), tag: ${Tag[targetTag]}, value: ${targetVal}`,
         );
       }
     }
   } else {
+    // eslint-disable-next-line no-console
     console.log('No active stack frame');
   }
+  // eslint-disable-next-line no-console
   console.log('========================\n');
 }

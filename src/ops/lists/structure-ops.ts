@@ -9,26 +9,27 @@ import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
+import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
 const stackAddrFromTopAbs = (vm: VM, offsetSlots: number): number =>
   (vm.sp - (offsetSlots + 1)) * CELL_SIZE;
 
 export function tailOp(vm: VM): void {
-  vm.ensureStackSize(1, 'tail');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'tail');
+  const target = peek(vm);
   const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
 
   const slotCount = getListLength(info.header);
   if (slotCount === 0) {
-    vm.pop();
-    vm.push(toTaggedValue(0, Tag.LIST));
+    pop(vm);
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
 
@@ -38,48 +39,48 @@ export function tailOp(vm: VM): void {
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
   const newSlotCount = slotCount - firstElemSpan;
 
-  vm.pop();
+  pop(vm);
 
   if (newSlotCount <= 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
 
   if (targetIsDirectList) {
     vm.sp -= firstElemSpan;
-    vm.push(toTaggedValue(newSlotCount, Tag.LIST));
+    push(vm, toTaggedValue(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
       const elemAbsAddr = firstElemAbsAddr - firstElemSpan * CELL_SIZE - i * CELL_SIZE;
       const elem = vm.memory.readFloat32(SEG_DATA, elemAbsAddr);
-      vm.push(elem);
+      push(vm, elem);
     }
-    vm.push(toTaggedValue(newSlotCount, Tag.LIST));
+    push(vm, toTaggedValue(newSlotCount, Tag.LIST));
   }
 }
 
 export const dropHeadOp = tailOp;
 
 export function headOp(vm: VM): void {
-  vm.ensureStackSize(1, 'head');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'head');
+  const target = peek(vm);
   const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
 
   const slotCount = getListLength(info.header);
   if (slotCount === 0) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
 
-  vm.pop();
+  pop(vm);
 
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const firstElementAbsAddr = headerAbsAddr - CELL_SIZE;
@@ -92,7 +93,7 @@ export function headOp(vm: VM): void {
       vm.sp -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
         const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - i * CELL_SIZE);
-        vm.push(slotValue);
+        push(vm, slotValue);
       }
     } else {
       for (let i = 0; i < elementSlotCount; i++) {
@@ -100,35 +101,35 @@ export function headOp(vm: VM): void {
           SEG_DATA,
           firstElementAbsAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
         );
-        vm.push(slotValue);
+        push(vm, slotValue);
       }
-      vm.push(firstElement);
+      push(vm, firstElement);
     }
   } else {
     if (targetIsDirectList) {
       vm.sp -= 1;
     }
-    vm.push(firstElement);
+    push(vm, firstElement);
   }
 }
 
 export function reverseOp(vm: VM): void {
-  vm.ensureStackSize(1, 'reverse');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'reverse');
+  const target = peek(vm);
   const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
 
   const slotCount = getListLength(info.header);
-  vm.pop();
+  pop(vm);
 
   if (slotCount === 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
 
@@ -152,23 +153,23 @@ export function reverseOp(vm: VM): void {
     const { start, span } = elements[e];
     if (span === 1) {
       const val = vm.memory.readFloat32(SEG_DATA, start);
-      vm.push(val);
+      push(vm, val);
     } else {
       const payloadSlots = span - 1;
       for (let i = payloadSlots - 1; i >= 0; i--) {
         const slotVal = vm.memory.readFloat32(SEG_DATA, start - (i + 1) * CELL_SIZE);
-        vm.push(slotVal);
+        push(vm, slotVal);
       }
       const headerVal = vm.memory.readFloat32(SEG_DATA, start);
-      vm.push(headerVal);
+      push(vm, headerVal);
     }
   }
 
-  vm.push(toTaggedValue(slotCount, Tag.LIST));
+  push(vm, toTaggedValue(slotCount, Tag.LIST));
 }
 
 export function concatOp(vm: VM): void {
-  vm.ensureStackSize(2, 'concat');
+  ensureStackSize(vm, 2, 'concat');
 
   const [, rhsSize] = findElement(vm, 0);
   const [, lhsSize] = findElement(vm, rhsSize);
@@ -201,8 +202,8 @@ export function concatOp(vm: VM): void {
       | { kind: 'stack-list'; header: number; headerAddr: number }
       | { header: number; baseAddrBytes: number }
       | null,
-    size: number,
-    topCell: number,
+    _size: number,
+    _topCell: number,
     topOffset: number,
   ): number[] => {
     if (op && 'kind' in op && op.kind === 'stack-list') {
@@ -258,10 +259,10 @@ export function concatOp(vm: VM): void {
   vm.sp -= lhsDrop + rhsDrop;
 
   for (let i = rhsSlots.length - 1; i >= 0; i--) {
-vm.push(rhsSlots[i]);
+push(vm, rhsSlots[i]);
 }
   for (let i = lhsSlots.length - 1; i >= 0; i--) {
-vm.push(lhsSlots[i]);
+push(vm, lhsSlots[i]);
 }
-  vm.push(toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
+  push(vm, toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
 }

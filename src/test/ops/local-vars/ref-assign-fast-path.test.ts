@@ -11,7 +11,7 @@ import {
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag } from '../../../core';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
@@ -55,7 +55,7 @@ describe('Ref-to-list assignment fast path', () => {
       ;
       f
     `;
-    executeTacitCode(code);
+    executeTacitCode(vm, code);
     const formatted = getFormattedStack();
     // Expect top-of-stack is a LIST:3 with payload 3,2,1 beneath it
     expect(formatted.slice(-4)).toEqual(['3', '2', '1', 'LIST:3']);
@@ -70,7 +70,7 @@ describe('Ref-to-list assignment fast path', () => {
       ;
       f
     `;
-    executeTacitCode(code);
+    executeTacitCode(vm, code);
     const decoded = Array.from({ length: vm.sp - STACK_BASE / CELL_SIZE }, (_, i) =>
       fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE + i * CELL_SIZE)),
     );
@@ -88,7 +88,7 @@ describe('Ref-to-list assignment fast path', () => {
       ;
       f
     `;
-    const stack = executeTacitCode(code);
+    const stack = executeTacitCode(vm, code);
     expectTopIsListWith([8, 9], stack);
   });
 });

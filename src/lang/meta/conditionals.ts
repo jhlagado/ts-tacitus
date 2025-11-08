@@ -3,18 +3,18 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
-import { peekAt, depth } from '../../core/vm';
+import { peekAt, depth, getStackData, pop, push } from '../../core/vm';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 
 function patchPlaceholder(rawPos: number, word: string): void {
   if (!Number.isFinite(rawPos)) {
-    throw new SyntaxError(`${word} missing branch placeholder`, vm.getStackData());
+    throw new SyntaxError(`${word} missing branch placeholder`, getStackData(vm));
   }
 
   const branchPos = Math.trunc(rawPos);
   if (branchPos < 0) {
-    throw new SyntaxError(`${word} invalid branch placeholder`, vm.getStackData());
+    throw new SyntaxError(`${word} invalid branch placeholder`, getStackData(vm));
   }
 
   const endAddress = vm.compiler.CP;
@@ -33,28 +33,28 @@ export function beginIfImmediate(): void {
   const falseBranchPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  vm.push(falseBranchPos);
-  vm.push(ENDIF_CODE_REF);
+  push(vm, falseBranchPos);
+  push(vm, ENDIF_CODE_REF);
 }
 
 export function beginElseImmediate(): void {
   requireParserState();
 
   if (depth(vm) < 2) {
-    throw new SyntaxError('ELSE without IF', vm.getStackData());
+    throw new SyntaxError('ELSE without IF', getStackData(vm));
   }
 
-  const closer = vm.pop();
+  const closer = pop(vm);
   const closerInfo = fromTaggedValue(closer);
   if (closerInfo.tag !== Tag.BUILTIN || closerInfo.value !== Op.EndIf) {
-    throw new SyntaxError('ELSE without IF', vm.getStackData());
+    throw new SyntaxError('ELSE without IF', getStackData(vm));
   }
 
   if (depth(vm) === 0) {
-    throw new SyntaxError('ELSE without IF', vm.getStackData());
+    throw new SyntaxError('ELSE without IF', getStackData(vm));
   }
 
-  const placeholder = vm.pop();
+  const placeholder = pop(vm);
 
   vm.compiler.compileOpcode(Op.Branch);
   const exitBranchPos = vm.compiler.CP;
@@ -62,8 +62,8 @@ export function beginElseImmediate(): void {
 
   patchPlaceholder(placeholder, 'ELSE');
 
-  vm.push(exitBranchPos);
-  vm.push(closer);
+  push(vm, exitBranchPos);
+  push(vm, closer);
 }
 
 export function ensureNoOpenConditionals(): void {
@@ -74,13 +74,13 @@ export function ensureNoOpenConditionals(): void {
     const { tag, value: opcode } = fromTaggedValue(tval);
     if (tag === Tag.BUILTIN) {
       if (opcode === Op.EndIf) {
-        throw new SyntaxError('Unclosed IF', vm.getStackData());
+        throw new SyntaxError('Unclosed IF', getStackData(vm));
       }
       if (opcode === Op.EndWhen) {
-        throw new SyntaxError('Unclosed `when`', vm.getStackData());
+        throw new SyntaxError('Unclosed `when`', getStackData(vm));
       }
       if (opcode === Op.EndCase) {
-        throw new SyntaxError('Unclosed case', vm.getStackData());
+        throw new SyntaxError('Unclosed case', getStackData(vm));
       }
     }
   }

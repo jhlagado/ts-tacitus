@@ -1,15 +1,18 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { vm } from '../../lang/runtime';
+import { createVM, VM } from '../../core';
 import { Op } from '../../ops/opcodes';
-import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
+import { executeTacitCode } from '../utils/vm-test-utils';
 import { defineBuiltin, findBytecodeAddress, defineCode } from '../../core/dictionary';
 import { push, getStackData } from '../../core/vm';
 
 describe('Immediate words', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   // Custom immediate implementations removed; rely on opcode/code immediates only
@@ -44,24 +47,27 @@ describe('Immediate words', () => {
   });
 
   test('colon definition words execute immediately', () => {
-    const stack = executeTacitCode(': double dup add ; 2 double');
+    const stack = executeTacitCode(vm, ': double dup add ; 2 double');
     expect(stack).toEqual([4]);
   });
 
   test('if immediate compiles single-branch conditionals', () => {
-    const negateTrue = executeTacitCode('-5 dup 0 lt if neg ;');
+    const negateTrue = executeTacitCode(vm, '-5 dup 0 lt if neg ;');
     expect(negateTrue).toEqual([5]);
 
-    const negateFalse = executeTacitCode(': maybe-negate dup 0 lt if neg ; ; 4 maybe-negate');
+    const negateFalse = executeTacitCode(
+      vm,
+      ': maybe-negate dup 0 lt if neg ; ; 4 maybe-negate',
+    );
     expect(negateFalse).toEqual([4]);
   });
 
   test('if/else immediate compiles dual-branch conditionals', () => {
-    // const positive = executeTacitCode(': sign 0 lt if -1 else 1 ; ; 3 sign');
-    const positive = executeTacitCode('3 0 lt if -1 else 1 ;');
+    // const positive = executeTacitCode(vm,  ': sign 0 lt if -1 else 1 ; ; 3 sign');
+    const positive = executeTacitCode(vm, '3 0 lt if -1 else 1 ;');
     expect(positive).toEqual([1]);
 
-    const negative = executeTacitCode('-7 0 lt if -1 else 1 ;');
+    const negative = executeTacitCode(vm, '-7 0 lt if -1 else 1 ;');
     expect(negative).toEqual([-1]);
   });
 

@@ -1,18 +1,21 @@
-import { fromTaggedValue, Tag } from '../../../../src/core';
-import { vm } from '../../../../src/lang/runtime';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { fromTaggedValue, Tag, createVM, VM } from '../../../../src/core';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import { getStackData } from '../../../../src/core/vm';
 
 describe('Recursive broadcasting: add', () => {
-  afterEach(() => {
-    resetVM();
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
   });
 
-  const snapshotValues = () => getStackData(vm).map((v: number) => fromTaggedValue(v));
+  const snapshotValues = (testVM: VM) =>
+    getStackData(testVM).map((v: number) => fromTaggedValue(v));
 
   test('scalar broadcast over nested list (scalar on left)', () => {
-    executeTacitCode('5 ( ( 1 2 ) 3 ) add');
-    const summary = snapshotValues();
+    executeTacitCode(vm, '5 ( ( 1 2 ) 3 ) add');
+    const summary = snapshotValues(vm);
     expect(summary).toEqual([
       { value: 2, tag: Tag.LIST, meta: 0 },
       { value: 6, tag: Tag.NUMBER, meta: 0 },
@@ -25,6 +28,6 @@ describe('Recursive broadcasting: add', () => {
   // Removed unfinished recursive broadcasting tests (former test.skip)
 
   test('type mismatch surfaces broadcast error', () => {
-    expect(() => executeTacitCode('"foo" 1 add')).toThrow('broadcast type mismatch');
+    expect(() => executeTacitCode(vm, '"foo" 1 add')).toThrow('broadcast type mismatch');
   });
 });

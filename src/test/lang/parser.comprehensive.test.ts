@@ -1,5 +1,5 @@
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { executeProgram } from '../../lang/interpreter';

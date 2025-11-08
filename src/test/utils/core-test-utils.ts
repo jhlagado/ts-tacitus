@@ -5,6 +5,7 @@
 
 import type { VM } from '../../core';
 import { fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA } from '../../core';
+import { push, ensureStackSize } from '../../core/vm';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -22,23 +23,23 @@ export function createList(vm: VM, values: number[]): void {
   const slotCount = values.length;
 
   for (const value of values) {
-    vm.push(value);
+    push(vm, value);
   }
 
   if (slotCount > 1) {
-    reverseSpan(vm, slotCount);
+    _reverseSpan(vm, slotCount);
   }
 
   const header = toTaggedValue(slotCount, Tag.LIST);
-  vm.push(header);
+  push(vm, header);
 }
 
-function reverseSpan(vm: VM, spanSize: number): void {
+function _reverseSpan(vm: VM, spanSize: number): void {
   if (spanSize <= 1) {
 return;
 }
 
-  vm.ensureStackSize(spanSize, 'reverse span operation');
+  ensureStackSize(vm, spanSize, 'reverse span operation');
 
   // Use absolute cell indices
   const startCell = vm.sp - spanSize;

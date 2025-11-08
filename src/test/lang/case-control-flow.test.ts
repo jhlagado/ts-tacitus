@@ -1,32 +1,41 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
-import { vm } from '../../lang/runtime';
-import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
+import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
 
 describe('case control flow', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('executes matching clause and consumes the discriminant', () => {
-    const stack = executeTacitCode(`
+    const stack = executeTacitCode(
+      vm,
+      `
       42 case
         42 of 111 ;
       ;
-    `);
+    `,
+    );
 
     expect(stack).toEqual([111]);
   });
 
   test('falls back to default when no predicates match', () => {
-    const stack = executeTacitCode(`
+    const stack = executeTacitCode(
+      vm,
+      `
       3 case
         1 of 111 ;
         DEFAULT of 222 ;
       ;
-    `);
+    `,
+    );
 
     expect(stack).toEqual([222]);
   });
@@ -40,13 +49,13 @@ describe('case control flow', () => {
       ;
     `;
 
-    const negative = executeTacitCode(`-1 ${program}`);
+    const negative = executeTacitCode(vm, `-1 ${program}`);
     expect(negative).toEqual([111]);
 
-    const zero = executeTacitCode(`0 ${program}`);
+    const zero = executeTacitCode(vm, `0 ${program}`);
     expect(zero).toEqual([222]);
 
-    const other = executeTacitCode(`5 ${program}`);
+    const other = executeTacitCode(vm, `5 ${program}`);
     expect(other).toEqual([333]);
   });
 
@@ -63,20 +72,23 @@ describe('case control flow', () => {
       ;
     `;
 
-    const nestedMatch = executeTacitCode(`0 ${program}`);
+    const nestedMatch = executeTacitCode(vm, `0 ${program}`);
     expect(nestedMatch).toEqual([999]);
 
-    const nestedDefault = executeTacitCode(`5 ${program}`);
+    const nestedDefault = executeTacitCode(vm, `5 ${program}`);
     expect(nestedDefault).toEqual([200]);
   });
 
   test('first DEFAULT wins when multiple defaults are present', () => {
-    const stack = executeTacitCode(`
+    const stack = executeTacitCode(
+      vm,
+      `
       7 case
         DEFAULT of 10 ;
         DEFAULT of 20 ;
       ;
-    `);
+    `,
+    );
 
     expect(stack).toEqual([10]);
   });

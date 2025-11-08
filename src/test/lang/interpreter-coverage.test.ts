@@ -3,7 +3,7 @@
  * This file focuses on edge cases and error conditions not covered in main interpreter tests
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../lang/runtime';
+import { vm, initializeInterpreter } from '../utils/vm-test-utils';
 import { execute, executeProgram, callTacit as callTacitFunction } from '../../lang/interpreter';
 import { SEG_CODE } from '../../core';
 import { push, getStackData } from '../../core/vm';

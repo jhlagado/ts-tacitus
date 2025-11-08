@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../core';
 import {
   defineBuiltin,

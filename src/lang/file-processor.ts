@@ -107,6 +107,7 @@ export function processFiles(
     const success = processFileFn(file);
     if (!success) {
       allSucceeded = false;
+      // eslint-disable-next-line no-console
       console.log('Processing stopped due to error.');
       if (exitOnError) {
         process.exit(1);
@@ -117,6 +118,7 @@ export function processFiles(
   }
 
   if (allSucceeded) {
+    // eslint-disable-next-line no-console
     console.log('All Tacit files processed successfully.');
   }
 

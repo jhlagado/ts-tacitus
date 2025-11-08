@@ -3,7 +3,7 @@ Tests for conditional operations - Tacit's control flow operations
 IF/ELSE statements that execute code blocks based on stack conditions
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../lang/runtime';
+import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
 import { executeProgram } from '../../../lang/interpreter';
 import { getStackData } from '../../../core/vm';
 

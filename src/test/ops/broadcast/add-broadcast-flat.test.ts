@@ -1,6 +1,14 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('Binary broadcasting: add (flat)', () => {
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
+
   test('comprehensive scenarios (single execution to avoid flakiness)', () => {
     const program = [
       // simple + simple
@@ -16,7 +24,7 @@ describe('Binary broadcasting: add (flat)', () => {
       '1 0 pack add length',
     ].join(' ');
 
-    const stack = executeTacitCode(program);
+    const stack = executeTacitCode(vm, program);
     expect(stack).toEqual([
       // simple + simple
       3,

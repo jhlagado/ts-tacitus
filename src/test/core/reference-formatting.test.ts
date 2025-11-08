@@ -1,9 +1,12 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
+import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Reference Formatting', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('should format local variable references correctly', () => {
@@ -11,10 +14,14 @@ describe('Reference Formatting', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      executeTacitCode(`
+      executeTacitCode(
+        vm,
+        vm,
+        `
         : test-local-ref (1 2 3) var x x . ;
         test-local-ref
-      `);
+      `,
+      );
 
       // Should print the actual list content, not metadata
       expect(consoleSpy).toHaveBeenCalledTimes(1);
@@ -29,7 +36,7 @@ describe('Reference Formatting', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      executeTacitCode(': f2 (1 2) var x x . ; f2');
+      executeTacitCode(vm, ': f2 (1 2) var x x . ; f2');
 
       // Should print the correct list content in the right order
       expect(consoleSpy).toHaveBeenCalledTimes(1);
@@ -44,10 +51,14 @@ describe('Reference Formatting', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      executeTacitCode(`
+      executeTacitCode(
+        vm,
+        vm,
+        `
         : test-simple-ref 42 var x x . ;
         test-simple-ref
-      `);
+      `,
+      );
 
       // Should print the simple value correctly
       expect(consoleSpy).toHaveBeenCalledTimes(1);
@@ -63,7 +74,7 @@ describe('Reference Formatting', () => {
 
     try {
       // Test the f2 case - should print ( 1 2 ), not ( 2 1 ) or metadata
-      executeTacitCode(': f2 (1 2) var x x . ; f2');
+      executeTacitCode(vm, ': f2 (1 2) var x x . ; f2');
 
       // Should have called console.log once with the correct output
       expect(consoleSpy).toHaveBeenCalledTimes(1);
@@ -72,14 +83,14 @@ describe('Reference Formatting', () => {
       consoleSpy.mockClear();
 
       // Test different list size
-      executeTacitCode(': f3 (1 2 3 4) var x x . ; f3');
+      executeTacitCode(vm, ': f3 (1 2 3 4) var x x . ; f3');
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       expect(consoleSpy).toHaveBeenCalledWith('( 1 2 3 4 )');
 
       consoleSpy.mockClear();
 
       // Test simple value reference
-      executeTacitCode(': f4 42 var x x . ; f4');
+      executeTacitCode(vm, ': f4 42 var x x . ; f4');
       expect(consoleSpy).toHaveBeenCalledTimes(1);
       expect(consoleSpy).toHaveBeenCalledWith('42');
     } finally {

@@ -9,7 +9,7 @@ type SymbolTableEntry = {
   isImmediate: boolean;
 }
 import { vm } from '../runtime';
-import { nextOpcode, rdepth } from '../../core/vm';
+import { nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
@@ -37,7 +37,7 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
         return;
       case ';':
         if (vm.sp - STACK_BASE_CELLS === 0) {
-          throw new SyntaxError('Unexpected semicolon', vm.getStackData());
+          throw new SyntaxError('Unexpected semicolon', getStackData(vm));
         }
         evalOp(vm);
         return;
@@ -77,7 +77,7 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
     return;
   }
 
-  throw new SyntaxError(`Immediate word ${name} is not executable`, vm.getStackData());
+  throw new SyntaxError(`Immediate word ${name} is not executable`, getStackData(vm));
 }
 
 export function runImmediateCode(address: number): void {
@@ -89,9 +89,9 @@ export function runImmediateCode(address: number): void {
   const savedBCP = vm.compiler.BCP;
   const savedPreserve = vm.compiler.preserve;
 
-  vm.rpush(savedIP);
+  rpush(vm, savedIP);
   // Save BP (relative cells) and set new frame
-  vm.rpush(vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
   vm.bp = vm.rsp;
   vm.IP = address;
   vm.running = true;
