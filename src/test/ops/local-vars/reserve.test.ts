@@ -4,11 +4,13 @@
  */
 
 import { reserveOp } from '../../../ops/builtins';
-import { initializeInterpreter, vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 
 describe('Reserve Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   test('should allocate slots correctly', () => {

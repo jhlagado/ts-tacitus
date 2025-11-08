@@ -1,14 +1,16 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, toTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { nextAddress, next8, nextOpcode, nextInt16, nextFloat32, nextUint16 } from '../../core/vm';
 
 const CELL_SIZE = 4;
 
 describe('VM Instruction Pointer Operations', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
     vm.IP = 0; // Ensure IP starts at 0 for each test
     vm.compiler.CP = 0; // Reset compiler pointer for clean bytecode writing

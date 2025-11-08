@@ -1,16 +1,13 @@
 import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
 import { Op } from '../../../ops/opcodes';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
-import { resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { findEntry } from '../../../core/dictionary';
 
-beforeAll(() => {
-  initializeInterpreter();
-});
-
 describe('capsule word registration', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('capsule is registered as immediate', () => {

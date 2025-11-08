@@ -3,7 +3,8 @@
  * Cross-segment direct copies (stack ↔ return stack DATA_REFs) via storeOp fast path.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM, extractListFromStack } from '../../utils/vm-test-utils';
+import { executeTacitCode, extractListFromStack } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { fromTaggedValue, Tag } from '../../../core/tagged';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
@@ -23,8 +24,10 @@ function expectTopIsListWith(values: number[], stack: number[]) {
 }
 
 describe('Cross-segment ref-to-list store', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('Stack DATA_REF -> return-stack DATA_REF (literal list ref into local)', () => {

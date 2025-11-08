@@ -1,11 +1,15 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM } from '../../utils/vm-test-utils';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { fromTaggedValue, Tag } from '../../../core';
 import { resolveSymbol } from '../../../core/vm';
 
 describe('find add after reset', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
+
   test('add is resolvable', () => {
     const tv = resolveSymbol(vm, 'add');
     expect(tv).toBeDefined();

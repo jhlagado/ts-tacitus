@@ -2,14 +2,16 @@
  * Tests for compound variable compatibility checking
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import { isCompatible } from '../../../ops/local-vars-transfer';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 
 describe('Compound Compatibility Checking', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
     vm.debug = false;
   });
 

@@ -1,17 +1,20 @@
 import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError } from '@src/core';
-import { getStackData } from '../core/vm';
-import type { VM } from '../core/vm';
-import { TokenType } from './tokenizer';
+import { getStackData, type VM } from '../core/vm';
+import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
-import type { ParserState, ActiveDefinition } from './state';
+import type { ActiveDefinition } from './state';
 import { markWithLocalReset, defineCode } from '../core/dictionary';
 
-export function beginDefinition(vm: VM, state: ParserState): void {
-  if (state.currentDefinition) {
+export function beginDefinition(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  if (currentDefinition.current) {
     throw new NestedDefinitionError(getStackData(vm));
   }
 
-  const nameToken = state.tokenizer.nextToken();
+  const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
     throw new SyntaxError('Expected word name after :', getStackData(vm));
   }
@@ -32,34 +35,37 @@ export function beginDefinition(vm: VM, state: ParserState): void {
     branchPos,
     checkpoint,
   };
-  state.currentDefinition = definition;
+  currentDefinition.current = definition;
 
   vm.compiler.preserve = true;
   vm.compiler.enterFunction();
 }
 
-export function endDefinition(state: ParserState): void {
-  const vm = state.vm;
-  if (!state.currentDefinition) {
+export function endDefinition(
+  vm: VM,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  if (!currentDefinition.current) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Exit);
   vm.compiler.exitFunction();
 
-  patchBranchOffset(vm, state.currentDefinition.branchPos);
+  patchBranchOffset(vm, currentDefinition.current.branchPos);
 
-  const { name, branchPos } = state.currentDefinition;
+  const { name, branchPos } = currentDefinition.current;
   const defStart = branchPos + 2;
   defineCode(vm, name, defStart);
 
-  state.currentDefinition = null;
+  currentDefinition.current = null;
 }
 
-export function ensureNoOpenDefinition(state: ParserState): void {
-  const vm = state.vm;
-  if (state.currentDefinition) {
-    throw new UnclosedDefinitionError(state.currentDefinition.name, getStackData(vm));
+export function ensureNoOpenDefinition(currentDefinition: {
+  current: ActiveDefinition | null;
+}): void {
+  if (currentDefinition.current) {
+    throw new UnclosedDefinitionError(currentDefinition.current.name, []);
   }
 }
 

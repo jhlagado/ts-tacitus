@@ -273,8 +273,8 @@ export const evalOp: Verb = (vm: VM) => {
  * At runtime this opcode should never be reached; it exists so that the generic
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
-export const endDefinitionOp: Verb = () => {
-  invokeEndDefinitionHandler();
+export const endDefinitionOp: Verb = (vm) => {
+  invokeEndDefinitionHandler(vm);
 };
 
 /**

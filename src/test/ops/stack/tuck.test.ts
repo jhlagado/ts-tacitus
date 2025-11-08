@@ -6,15 +6,17 @@
  * under the second element.
  */
 
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { tuckOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
 import { Tag, toTaggedValue } from '../../../core/tagged';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('tuck Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {
@@ -28,7 +30,6 @@ describe('tuck Operation', () => {
     });
 
     test('should work with multiple simple values on stack', () => {
-      resetVM();
       push(vm, 10);
       push(vm, 20);
       push(vm, 30);

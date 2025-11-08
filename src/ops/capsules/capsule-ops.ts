@@ -73,5 +73,5 @@ export function endCapsuleOp(vm: VM): void {
   // Emit the capsule-specific epilogue for the dispatch body
   vm.compiler.compileOpcode(Op.ExitDispatch);
   // Finalise the surrounding colon definition (replaces EndDefinition closer)
-  invokeEndDefinitionHandler();
+  invokeEndDefinitionHandler(vm);
 }

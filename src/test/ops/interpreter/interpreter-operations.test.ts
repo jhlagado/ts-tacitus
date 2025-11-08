@@ -1,6 +1,6 @@
 import { addOp } from '../../../ops/math';
 import { dupOp, swapOp } from '../../../ops/stack';
-import { initializeInterpreter, vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
@@ -18,8 +18,10 @@ import {
   groupRightOp,
 } from '../../../ops/core';
 describe('Built-in Words', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
   describe('Control Flow Operations', () => {
     test('abortOp should stop execution', () => {

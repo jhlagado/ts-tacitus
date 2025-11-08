@@ -34,7 +34,7 @@ describe('Lists.md Specification Compliance', () => {
       let stack = executeTacitCode(vm, '( ) length');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
 
-      resetVM();
+      vm = createVM();
       stack = executeTacitCode(vm, '( ) size');
       expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
     });

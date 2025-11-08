@@ -1,22 +1,27 @@
 import { jest } from '@jest/globals';
+import { createVM } from '../../core/vm';
+import type { ActiveDefinition } from '../../lang/state';
 
 describe('compiler-hooks', () => {
-  beforeEach(() => {
-    jest.resetModules();
+  it('invokes the end definition handler', () => {
+    const vm = createVM();
+    // Create a mock definition so endDefinition doesn't throw "Unexpected semicolon"
+    const mockDefinition: ActiveDefinition = {
+      name: 'test',
+      branchPos: 0,
+      checkpoint: { localCount: 0, head: 0 },
+    };
+    const currentDefinition: { current: ActiveDefinition | null } = { current: mockDefinition };
+    (vm as typeof vm & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition = currentDefinition;
+
+    const { invokeEndDefinitionHandler } = require('../../lang/compiler-hooks');
+    // Should not throw when currentDefinition is set with a valid definition
+    expect(() => invokeEndDefinitionHandler(vm)).not.toThrow();
   });
 
-  const loadHooks = () => import('@src/lang/compiler-hooks');
-
-  it('invokes the registered handler', async () => {
-    const hooks = await loadHooks();
-    const handler = jest.fn();
-    hooks.setEndDefinitionHandler(handler);
-    hooks.invokeEndDefinitionHandler();
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
-
-  it('throws when no handler is registered', async () => {
-    const { invokeEndDefinitionHandler } = await loadHooks();
-    expect(() => invokeEndDefinitionHandler()).toThrow('End-definition handler not installed');
+  it('throws when no handler is registered', () => {
+    const vm = createVM();
+    const { invokeEndDefinitionHandler } = require('../../lang/compiler-hooks');
+    expect(() => invokeEndDefinitionHandler(vm)).toThrow('End-definition handler not installed');
   });
 });

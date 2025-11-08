@@ -24,18 +24,7 @@ import { Op } from './opcodes';
 import { STACK_BASE_CELLS } from '@src/core';
 import { evalOp } from './core';
 
-import {
-  beginDefinitionImmediate,
-  beginIfImmediate,
-  beginElseImmediate,
-  beginWhenImmediate,
-  beginDoImmediate,
-  beginCaseImmediate,
-  clauseOfImmediate,
-  defaultImmediate,
-  nilImmediate,
-  beginCapsuleImmediate,
-} from '../lang/meta';
+// Immediate word functions are handled in executeImmediateWord, not here
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
 import {
   defineOp,
@@ -166,91 +155,21 @@ export function registerBuiltins(vm: VM): void {
   reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  reg(
-    'if',
-    Op.Nop,
-    _vm => {
-      beginIfImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'else',
-    Op.Nop,
-    _vm => {
-      beginElseImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'when',
-    Op.Nop,
-    _vm => {
-      beginWhenImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'do',
-    Op.Nop,
-    _vm => {
-      beginDoImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'case',
-    Op.Nop,
-    _vm => {
-      beginCaseImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'of',
-    Op.Nop,
-    _vm => {
-      clauseOfImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'DEFAULT',
-    Op.Nop,
-    _vm => {
-      defaultImmediate(vm);
-    },
-    true,
-  );
-  reg(
-    'NIL',
-    Op.Nop,
-    _vm => {
-      nilImmediate(vm);
-    },
-    true,
-  );
+  reg('if', Op.Nop, undefined, true);
+  reg('else', Op.Nop, undefined, true);
+  reg('when', Op.Nop, undefined, true);
+  reg('do', Op.Nop, undefined, true);
+  reg('case', Op.Nop, undefined, true);
+  reg('of', Op.Nop, undefined, true);
+  reg('DEFAULT', Op.Nop, undefined, true);
+  reg('NIL', Op.Nop, undefined, true);
   // Capsule opener: 'capsule'
-  reg(
-    'capsule',
-    Op.Nop,
-    _vm => {
-      beginCapsuleImmediate(vm);
-    },
-    true,
-  );
+  reg('capsule', Op.Nop, undefined, true);
 
   reg('select', Op.Select);
   reg('makeList', Op.MakeList);
 
-  reg(
-    ':',
-    Op.Nop,
-    _vm => {
-      beginDefinitionImmediate(vm);
-    },
-    true,
-  );
+  reg(':', Op.Nop, undefined, true);
   reg(
     ';',
     Op.Nop,

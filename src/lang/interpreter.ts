@@ -110,9 +110,10 @@ export function executeProgram(vm: VM, code: string): void {
  * useful for implementing foreign function interfaces and for the re-entrant
  * execution of resumable functions.
  *
+ * @param {VM} vm - The VM instance
  * @param {number} codePtr - The starting address (instruction pointer) of the Tacit code to execute
  */
-export function callTacit(codePtr: number): void {
+export function callTacit(vm: VM, codePtr: number): void {
   const returnIP = vm.IP;
   // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
   // Frame migration complete: BP is cell-based and unified.

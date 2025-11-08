@@ -3,22 +3,17 @@
  * Provides hook registration for compiler-time operations that need to be invoked from VM opcodes.
  */
 
-let endDefinitionHandler: (() => void) | null = null;
+import type { VM } from '../core/vm';
+import type { ActiveDefinition } from './state';
+import { endDefinition } from './definitions';
 
 /**
- * Registers the handler that finalises a colon definition when `enddef` executes.
+ * Invokes the end-definition handler using the currentDefinition stored on vm.
+ * Throws if vm doesn't have currentDefinition set.
  */
-export function setEndDefinitionHandler(handler: () => void): void {
-  endDefinitionHandler = handler;
-}
-
-/**
- * Invokes the registered end-definition handler.
- * Throws if no handler has been registered.
- */
-export function invokeEndDefinitionHandler(): void {
-  if (!endDefinitionHandler) {
+export function invokeEndDefinitionHandler(vm: VM & { _currentDefinition?: { current: ActiveDefinition | null } }): void {
+  if (!vm._currentDefinition) {
     throw new Error('End-definition handler not installed');
   }
-  endDefinitionHandler();
+  endDefinition(vm, vm._currentDefinition);
 }
