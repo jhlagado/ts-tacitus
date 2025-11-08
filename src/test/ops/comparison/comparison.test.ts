@@ -155,9 +155,9 @@ describe('Comparison Operations', () => {
 
       ops.forEach(({ op, name }) => {
         vm = createVM();
-        push(vm, 5);
+      push(vm, 5);
         expect(() => op(vm)).toThrow('Stack underflow');
-      });
+    });
     });
   });
 });

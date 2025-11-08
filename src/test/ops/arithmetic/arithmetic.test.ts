@@ -207,7 +207,7 @@ describe('Arithmetic Operations', () => {
 
       binaryOps.forEach(({ op, name }) => {
         vm = createVM();
-        push(vm, 5);
+      push(vm, 5);
         expect(() => op(vm)).toThrow('Stack underflow');
       });
     });
@@ -224,7 +224,7 @@ describe('Arithmetic Operations', () => {
       ];
 
       unaryOps.forEach(({ op, name }) => {
-        vm = createVM();
+      vm = createVM();
         expect(() => op(vm)).toThrow('Stack underflow');
       });
     });

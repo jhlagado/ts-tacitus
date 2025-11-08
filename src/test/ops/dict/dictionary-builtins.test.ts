@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, type VM } from '../../core/vm';
-import { Tag, fromTaggedValue, toTaggedValue } from '../../core';
-import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
+import { createVM, type VM } from '../../../core/vm';
+import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
+import { defineBuiltin, lookup, mark, forget } from '../../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
   let vm: VM;
