@@ -41,7 +41,7 @@ Helpers
 
 - `createRef(cellIndex)` → `REF`
 - `getByteAddressFromRef(ref)` → byte address in the unified arena
-- `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at that address
+- `readRefValue(vm, ref)` / `writeReference(vm, ref)` → value I/O at that address
 
 ### 2.1 Reference Taxonomy
 
