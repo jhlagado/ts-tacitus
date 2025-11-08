@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { cellsRoll, findElement } from '../../../ops/stack';
-import { push, getStackData } from '../../../core/vm';
+import { cellsRoll, findElement, cellsCopy, cellsReverse } from '../../../ops/stack';
+import { push, getStackData, depth } from '../../../core/vm';
 
 describe('Stack Utils', () => {
   let vm: VM;
@@ -19,7 +19,66 @@ describe('Stack Utils', () => {
       expect(getStackData(vm)).toEqual([1, 2]);
     });
 
-    test('should handle zero shift amount', () => {});
+    test('should handle zero shift amount', () => {
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      const initialStack = getStackData(vm);
+      cellsRoll(vm, 0, 3, 0);
+      expect(getStackData(vm)).toEqual(initialStack);
+    });
+  });
+
+  describe('cellsCopy', () => {
+    test('should handle zero slot count (no-op)', () => {
+      push(vm, 1);
+      push(vm, 2);
+      const initialStack = getStackData(vm);
+      cellsCopy(vm, 0, 0);
+      expect(getStackData(vm)).toEqual(initialStack);
+    });
+
+    test('should handle negative slot count (no-op)', () => {
+      push(vm, 1);
+      push(vm, 2);
+      const initialStack = getStackData(vm);
+      cellsCopy(vm, 0, -1);
+      expect(getStackData(vm)).toEqual(initialStack);
+    });
+
+    test('should copy single element', () => {
+      push(vm, 42);
+      const stackDepth = depth(vm);
+      cellsCopy(vm, 0, 1);
+      expect(depth(vm)).toBe(stackDepth + 1);
+      expect(getStackData(vm)[0]).toBe(getStackData(vm)[1]);
+    });
+
+    test('should copy multiple elements', () => {
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      const stackDepth = depth(vm);
+      cellsCopy(vm, 0, 3);
+      expect(depth(vm)).toBe(stackDepth + 3);
+    });
+  });
+
+  describe('cellsReverse', () => {
+    test('should handle zero slot count (no-op)', () => {
+      push(vm, 1);
+      push(vm, 2);
+      const initialStack = getStackData(vm);
+      cellsReverse(vm, 0, 0);
+      expect(getStackData(vm)).toEqual(initialStack);
+    });
+
+    test('should handle single slot (no-op)', () => {
+      push(vm, 42);
+      const initialStack = getStackData(vm);
+      cellsReverse(vm, 0, 1);
+      expect(getStackData(vm)).toEqual(initialStack);
+    });
   });
 
   describe('findElement', () => {
