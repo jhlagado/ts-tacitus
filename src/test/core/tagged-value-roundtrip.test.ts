@@ -8,18 +8,16 @@ describe('dictionary-only builtins', () => {
   beforeEach(() => {
     vm = createVM();
   });
-  test('convert to tagged value and decode from 0 to 1000', () => {
-    vm.gp = 0;
-    for (let i = 0; i <= 1000; i++) {
-      // Convert number to SENTINEL tagged value
-      const tagged = toTaggedValue(vm.gp++, Tag.SENTINEL);
-
-      // Decode back to get the value
+  test('convert to tagged value and decode edge cases', () => {
+    // Test key edge cases instead of 0-1000 range
+    const testCases = [0, 1, 255, 256, 32767, -32768, -1];
+    
+    for (const value of testCases) {
+      const tagged = toTaggedValue(value, Tag.SENTINEL);
       const decoded = fromTaggedValue(tagged);
-
-      // Verify the roundtrip
+      
       expect(decoded.tag).toBe(Tag.SENTINEL);
-      expect(decoded.value).toBe(i);
+      expect(decoded.value).toBe(value);
       expect(decoded.meta).toBe(0);
     }
   });

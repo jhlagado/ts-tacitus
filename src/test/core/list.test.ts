@@ -11,10 +11,21 @@ import {
   CELL_SIZE,
   SEG_DATA,
   STACK_BASE,
+  GLOBAL_BASE,
 } from '../../core';
-import { getListLength, dropList, validateListHeader, reverseSpan, isList, createVM } from '../../core';
+import {
+  getListLength,
+  dropList,
+  validateListHeader,
+  reverseSpan,
+  isList,
+  createVM,
+  getListElemAddr,
+  getListBounds,
+} from '../../core';
 import { createList } from '../utils/core-test-utils';
 import { getStackData, peek, push, pop } from '../../core/vm';
+import { createDataRef } from '../../core/refs';
 
 function resetVM(): VM {
   const vm = createVM();
@@ -359,6 +370,44 @@ describe('LIST Core Utilities', () => {
 
       dropList(vm);
       expect(getStackDepth(vm)).toBe(0);
+    });
+  });
+
+  describe('Additional Coverage', () => {
+    it('getListElemAddr returns -1 for negative index', () => {
+      const vm = resetVM();
+      const header = toTaggedValue(1, Tag.LIST);
+      const headerAbsAddr = STACK_BASE + 100;
+      expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
+    });
+
+    it('getListElemAddr computes correct addresses for flat list', () => {
+      const vm = resetVM();
+      const cellHeader = 8;
+      const headerAddr = cellHeader * 4;
+      const header = toTaggedValue(3, Tag.LIST);
+      const e1 = toTaggedValue(11, Tag.NUMBER);
+      const e2 = toTaggedValue(22, Tag.NUMBER);
+      const e3 = toTaggedValue(33, Tag.NUMBER);
+
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 3) * 4, e1);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 2) * 4, e2);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 1) * 4, e3);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, header);
+
+      const headerAbsAddr = STACK_BASE + headerAddr;
+      expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE + headerAddr - 4);
+      expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE + headerAddr - 8);
+      expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE + headerAddr - 12);
+    });
+
+    it('getListBounds returns null for ref pointing to non-list', () => {
+      const vm = resetVM();
+      const cellIndex = 10;
+      vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
+      const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
+      const ref = createDataRef(absCellIndex);
+      expect(getListBounds(vm, ref)).toBeNull();
     });
   });
 });

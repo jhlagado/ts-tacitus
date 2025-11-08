@@ -1,4 +1,4 @@
-import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '../../core';
+import { formatAtomicValue, formatValue, formatList, Tag, toTaggedValue } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
 
@@ -142,8 +142,36 @@ describe('Format Utils', () => {
         const result = formatValue(vm, header);
         expect(result).toBe('( "hello" 42 3.14 )');
       });
+    });
 
-      // empty containers formatting test removed (non-essential)
+    describe('edge cases and coverage', () => {
+      test('formats near-integer floats by rounding', () => {
+        const v = toTaggedValue(3.00005, Tag.NUMBER);
+        expect(formatAtomicValue(vm, v)).toBe('3');
+      });
+
+      test('formats tiny floats with fixed then trim', () => {
+        const v = toTaggedValue(0.00009, Tag.NUMBER);
+        expect(formatAtomicValue(vm, v)).toBe('0');
+      });
+
+      test('formats strings with carriage return escape', () => {
+        const s = 'line1\rline2';
+        const addr = vm.digest.intern(s);
+        const tagged = toTaggedValue(addr, Tag.STRING);
+        expect(formatValue(vm, tagged)).toBe('"line1\\rline2"');
+      });
+
+      test('formatList returns empty list when SP insufficient', () => {
+        const header = toTaggedValue(1, Tag.LIST);
+        expect(formatList(vm, header)).toBe('(  )');
+      });
+
+      test('formatValue handles empty LIST header on stack', () => {
+        const emptyHeader = toTaggedValue(0, Tag.LIST);
+        push(vm, emptyHeader);
+        expect(formatValue(vm, emptyHeader)).toBe('()');
+      });
     });
   });
 });
