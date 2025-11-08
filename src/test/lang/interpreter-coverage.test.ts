@@ -3,14 +3,16 @@
  * This file focuses on edge cases and error conditions not covered in main interpreter tests
  */
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { vm, initializeInterpreter } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
 import { execute, executeProgram, callTacit as callTacitFunction } from '../../lang/interpreter';
 import { SEG_CODE } from '../../core';
 import { push, getStackData } from '../../core/vm';
 
 describe('Interpreter - Branch Coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 
@@ -19,7 +21,7 @@ describe('Interpreter - Branch Coverage', () => {
       vm.debug = true;
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-      executeProgram('5 3 add');
+      executeProgram(vm, '5 3 add');
 
       expect(consoleSpy).toHaveBeenCalled();
 
@@ -32,7 +34,7 @@ describe('Interpreter - Branch Coverage', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       try {
-        executeProgram('drop');
+        executeProgram(vm, 'drop');
       } catch {
         expect(consoleSpy).toHaveBeenCalled();
       }
@@ -50,7 +52,7 @@ describe('Interpreter - Branch Coverage', () => {
       vm.compiler.CP += 1;
 
       try {
-        execute(codeAddr);
+        execute(vm, codeAddr);
       } catch (error) {
         expect(getStackData(vm)).toEqual([42, 24]);
         expect((error as Error).message).toContain('Invalid opcode: 200');
@@ -61,7 +63,7 @@ describe('Interpreter - Branch Coverage', () => {
       vm.compiler.preserve = true;
 
       try {
-        executeProgram('drop');
+        executeProgram(vm, 'drop');
       } catch {
         expect(vm.compiler.preserve).toBe(false);
       }
@@ -76,11 +78,11 @@ describe('Interpreter - Branch Coverage', () => {
 
   describe('executeProgram edge cases', () => {
     test('should handle empty code string', () => {
-      expect(() => executeProgram('')).not.toThrow();
+      expect(() => executeProgram(vm, '')).not.toThrow();
     });
 
     test('should handle code with only whitespace and comments', () => {
-      expect(() => executeProgram('   \n\t  ')).not.toThrow();
+      expect(() => executeProgram(vm, '   \n\t  ')).not.toThrow();
     });
   });
 });

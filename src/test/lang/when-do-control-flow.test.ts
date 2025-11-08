@@ -76,15 +76,15 @@ describe('when/do control flow', () => {
   });
 
   test('raises when do appears without a surrounding when', () => {
-    expect(() => parse(new Tokenizer('do ;'))).toThrow('do without when');
+    expect(() => parse(vm, new Tokenizer('do ;'))).toThrow('do without when');
   });
 
   test('raises when when is not closed by final semicolon', () => {
     try {
-      parse(new Tokenizer('when dup 0 eq do drop 1 ;'));
+      parse(vm, new Tokenizer('when dup 0 eq do drop 1 ;'));
       // If parse did not throw, the construct must still be marked open.
       expect(getStackData(vm).some((value: number) => Number.isNaN(value))).toBe(true);
-      expect(() => ensureNoOpenConditionals()).toThrow('Unclosed `when`');
+      expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `when`');
     } catch (err) {
       expect((err as Error).message).toContain('Unclosed `when`');
     }

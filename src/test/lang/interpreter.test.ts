@@ -72,7 +72,7 @@ describe('Interpreter', () => {
       let errorMessage = '';
 
       try {
-        execute(vm.compiler.BCP);
+        execute(vm, vm.compiler.BCP);
       } catch (error) {
         errorThrown = true;
         errorMessage = error instanceof Error ? error.message : String(error);

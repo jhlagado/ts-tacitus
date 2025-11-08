@@ -31,7 +31,7 @@ describe('case immediates', () => {
   });
 
   test('beginCaseImmediate pushes saved RSP and closer', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
     const closer = peek(vm);
@@ -44,12 +44,12 @@ describe('case immediates', () => {
   });
 
   test('clauseOfImmediate emits comparison sequence and records placeholder', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(42);
 
-    clauseOfImmediate();
+    clauseOfImmediate(vm);
 
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(4);
     const closerInfo = fromTaggedValue(peek(vm));
@@ -65,7 +65,7 @@ describe('case immediates', () => {
   });
 
   test('defaultImmediate compiles sentinel literal', () => {
-    defaultImmediate();
+    defaultImmediate(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
@@ -77,7 +77,7 @@ describe('case immediates', () => {
   });
 
   test('nilImmediate compiles NIL sentinel literal', () => {
-    nilImmediate();
+    nilImmediate(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
@@ -92,7 +92,7 @@ describe('case immediates', () => {
     resetVM();
     setDummyParserState();
 
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBeGreaterThanOrEqual(2);
@@ -100,20 +100,20 @@ describe('case immediates', () => {
     expect(tag).toBe(Tag.BUILTIN);
     expect(value).toBe(Op.EndCase);
 
-    expect(() => ensureNoOpenConditionals()).toThrow('Unclosed case');
+    expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');
   });
 
   test('of without case raises error', () => {
-    expect(() => clauseOfImmediate()).toThrow("'of' without open case");
+    expect(() => clauseOfImmediate(vm)).toThrow("'of' without open case");
   });
 
   test('endOfOp patches predicate skip and records exit branch', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(10);
 
-    clauseOfImmediate();
+    clauseOfImmediate(vm);
 
     const skipPos = peekAt(vm, 1);
 
@@ -135,12 +135,12 @@ describe('case immediates', () => {
   });
 
   test('endOfOp guards against missing predicate placeholder', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(20);
 
-    clauseOfImmediate();
+    clauseOfImmediate(vm);
     const endOfRef = pop(vm);
     push(vm, Number.NaN);
     push(vm, endOfRef);
@@ -149,7 +149,7 @@ describe('case immediates', () => {
   });
 
   test('endOfOp validates surrounding case metadata', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
     pop(vm); // remove EndCase to simulate misuse
 
     push(vm, 42);
@@ -159,12 +159,12 @@ describe('case immediates', () => {
   });
 
   test('endCaseOp emits final drop and patches exits', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(1);
 
-    clauseOfImmediate();
+    clauseOfImmediate(vm);
     const skipPos = peekAt(vm, 1);
     expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 
@@ -191,7 +191,7 @@ describe('case immediates', () => {
   });
 
   test('endCaseOp handles empty case by emitting lone drop', () => {
-    beginCaseImmediate();
+    beginCaseImmediate(vm);
 
     evalOp(vm);
 

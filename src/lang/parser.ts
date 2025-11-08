@@ -43,6 +43,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.compiler.reset();
 
   const state: ParserState = {
+    vm,
     tokenizer,
     currentDefinition: null,
   };
@@ -89,10 +90,10 @@ export function parseProgram(state: ParserState): void {
  */
 export function validateFinalState(state: ParserState): void {
   ensureNoOpenDefinition(state);
-  ensureNoOpenConditionals();
+  ensureNoOpenConditionals(state.vm);
 
-  if (vm.listDepth !== 0) {
-    throw new SyntaxError('Unclosed list or LIST', getStackData(vm));
+  if (state.vm.listDepth !== 0) {
+    throw new SyntaxError('Unclosed list or LIST', getStackData(state.vm));
   }
 }
 
@@ -182,7 +183,7 @@ export function emitWord(value: string, state: ParserState): void {
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
-    executeImmediateWord(value, { taggedValue: tval, isImmediate });
+    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate });
     return;
   }
 

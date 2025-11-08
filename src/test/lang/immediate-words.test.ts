@@ -1,13 +1,11 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
-import { execute } from '../../lang/interpreter';
 import { createVM, VM } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { defineBuiltin, findBytecodeAddress, defineCode } from '../../core/dictionary';
 import { push, getStackData } from '../../core/vm';
-import { setupRuntime, vm as runtimeVM } from '../../lang/runtime';
 
 describe('Immediate words', () => {
   let vm: VM;
@@ -23,10 +21,7 @@ describe('Immediate words', () => {
 
     defineBuiltin(vm, 'immdup', Op.Dup, true);
 
-    setupRuntime();
-    Object.assign(runtimeVM, vm);
-    parse(new Tokenizer('immdup'));
-    Object.assign(vm, runtimeVM);
+    parse(vm, new Tokenizer('immdup'));
 
     const stack = getStackData(vm);
     expect(stack.length).toBe(2);
@@ -35,10 +30,7 @@ describe('Immediate words', () => {
   });
 
   test('executes immediate colon definitions via code references', () => {
-    setupRuntime();
-    Object.assign(runtimeVM, vm);
-    parse(new Tokenizer(': inc1 1 add ;'));
-    Object.assign(vm, runtimeVM);
+    parse(vm, new Tokenizer(': inc1 1 add ;'));
 
     const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
@@ -46,10 +38,7 @@ describe('Immediate words', () => {
     defineCode(vm, 'inc1!', addr!, true);
 
     push(vm, 5);
-    setupRuntime();
-    Object.assign(runtimeVM, vm);
-    parse(new Tokenizer('inc1!'));
-    Object.assign(vm, runtimeVM);
+    parse(vm, new Tokenizer('inc1!'));
 
     const stack = getStackData(vm);
     expect(stack.length).toBe(1);
@@ -79,8 +68,6 @@ describe('Immediate words', () => {
   });
 
   test('else without if raises syntax error', () => {
-    setupRuntime();
-    Object.assign(runtimeVM, vm);
-    expect(() => parse(new Tokenizer(': stray else ;'))).toThrow('ELSE without IF');
+    expect(() => parse(vm, new Tokenizer(': stray else ;'))).toThrow('ELSE without IF');
   });
 });

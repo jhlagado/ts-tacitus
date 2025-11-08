@@ -1,22 +1,24 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
 import { executeProgram } from '../../lang/interpreter';
 import { fromTaggedValue, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { getStackData } from '../../core/vm';
 
-function top(): number {
-  return getStackData(vm)[getStackData(vm).length - 1];
-}
-
 describe('Parser LIST Integration (() )', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
+  function top(): number {
+    return getStackData(vm)[getStackData(vm).length - 1];
+  }
+
   it('parses simple LIST literal: ( 1 2 3 ) and builds LIST on stack', () => {
-    executeProgram('( 1 2 3 )');
+    executeProgram(vm, '( 1 2 3 )');
     const stack = getStackData(vm);
     expect(stack.length).toBe(4);
     const { tag, value } = fromTaggedValue(top());
@@ -25,7 +27,7 @@ describe('Parser LIST Integration (() )', () => {
   });
 
   it('parses nested LIST: ( 1 ( 2 3 ) 4 )', () => {
-    executeProgram('( 1 ( 2 3 ) 4 )');
+    executeProgram(vm, '( 1 ( 2 3 ) 4 )');
     const header = top();
     const { tag, value } = fromTaggedValue(header);
     expect(tag).toBe(Tag.LIST);
@@ -33,10 +35,10 @@ describe('Parser LIST Integration (() )', () => {
   });
 
   it('throws on unmatched LIST closing bracket', () => {
-    expect(() => parse(new Tokenizer(')'))).toThrow();
+    expect(() => parse(vm, new Tokenizer(')'))).toThrow();
   });
 
   it('throws on unmatched LIST opening bracket', () => {
-    expect(() => parse(new Tokenizer('( 1 2 3'))).toThrow();
+    expect(() => parse(vm, new Tokenizer('( 1 2 3'))).toThrow();
   });
 });

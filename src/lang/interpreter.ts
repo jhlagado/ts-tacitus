@@ -124,7 +124,7 @@ export function callTacit(codePtr: number): void {
 
   vm.IP = codePtr;
   vm.running = true;
-  execute(vm.IP);
+  execute(vm, vm.IP);
 
   if (vm.IP !== returnIP) {
     if (vm.debug) {

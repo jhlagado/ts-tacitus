@@ -1,12 +1,12 @@
 import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError } from '@src/core';
-import { vm } from './runtime';
 import { getStackData } from '../core/vm';
+import type { VM } from '../core/vm';
 import { TokenType } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ParserState, ActiveDefinition } from './state';
 import { markWithLocalReset, defineCode } from '../core/dictionary';
 
-export function beginDefinition(state: ParserState): void {
+export function beginDefinition(vm: VM, state: ParserState): void {
   if (state.currentDefinition) {
     throw new NestedDefinitionError(getStackData(vm));
   }
@@ -39,6 +39,7 @@ export function beginDefinition(state: ParserState): void {
 }
 
 export function endDefinition(state: ParserState): void {
+  const vm = state.vm;
   if (!state.currentDefinition) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
@@ -46,7 +47,7 @@ export function endDefinition(state: ParserState): void {
   vm.compiler.compileOpcode(Op.Exit);
   vm.compiler.exitFunction();
 
-  patchBranchOffset(state.currentDefinition.branchPos);
+  patchBranchOffset(vm, state.currentDefinition.branchPos);
 
   const { name, branchPos } = state.currentDefinition;
   const defStart = branchPos + 2;
@@ -56,12 +57,13 @@ export function endDefinition(state: ParserState): void {
 }
 
 export function ensureNoOpenDefinition(state: ParserState): void {
+  const vm = state.vm;
   if (state.currentDefinition) {
     throw new UnclosedDefinitionError(state.currentDefinition.name, getStackData(vm));
   }
 }
 
-export function patchBranchOffset(branchPos: number): void {
+export function patchBranchOffset(vm: VM, branchPos: number): void {
   const endAddress = vm.compiler.CP;
   const branchOffset = endAddress - (branchPos + 2);
 
