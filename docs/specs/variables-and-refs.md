@@ -109,7 +109,7 @@ value -> x   ( — )              \ assignment
 value -> name( — )              \ assignment
 ```
 
-> Migration note: until the parser switch lands, `LiteralNumber(Tag.GLOBAL_REF(slot))` may still appear in bytecode. The runtime treats it as the `DATA_REF` form that resolves to the global heap window, so semantics remain identical.
+> Note: All global references now use `DATA_REF` with absolute cell indices. The runtime infers the window (global/stack/rstack) by comparing the index against segment boundaries.
 
 Load / Fetch / Store
 
@@ -199,18 +199,18 @@ Canonical details and low-level addressing ops live in docs/specs/lists.md.
 
 Reserve & init
 
-- `RESERVE N` allocates N local slots in the frame (cells).
-- `INIT_VAR_SLOT slot` pops TOS and stores into the slot (simple direct, compound copies into the return-stack window and stores a `DATA_REF` handle).
+- `Reserve N` allocates N local slots in the frame (cells).
+- `InitVar slot` pops TOS and stores into the slot (simple direct, compound copies into the return-stack window and stores a `DATA_REF` handle).
 
 Addressing
 
-- `LOCAL_VAR_ADDR slot` pushes the absolute address `(BP + slot)` as a `DATA_REF` for `&x`.
+- `VarRef slot` pushes the absolute address `(BP + slot)` as a `DATA_REF` for `&x`.
 
 Compilation pattern
 
-1. Function prologue emits `RESERVE` with placeholder count.
-2. Each `var` registers a local symbol with its slot number and emits `INIT_VAR_SLOT slot`.
-3. Compiler back-patches the final slot count into `RESERVE`.
+1. Function prologue emits `Reserve` with placeholder count.
+2. Each `var` registers a local symbol with its slot number and emits `InitVar slot`.
+3. Compiler back-patches the final slot count into `Reserve`.
 
 Symbol resolution priority
 
@@ -341,21 +341,21 @@ Symbol kinds
 
 | Opcode         | Purpose                  | Encoding                     | Operation                                |
 | -------------- | ------------------------ | ---------------------------- | ---------------------------------------- |
-| RESERVE        | Allocate local slots     | `RESERVE slot_count`         | Advance RSP by `slot_count` cells        |
-| INIT_VAR_SLOT  | Initialize variable slot | `INIT_VAR_SLOT slot_number`  | Pop TOS, store in slot with tagging      |
-| LOCAL_VAR_ADDR | Push slot address        | `LOCAL_VAR_ADDR slot_number` | Push `DATA_REF` resolving to `BP + slot` |
+| Reserve        | Allocate local slots     | `Reserve slot_count`         | Advance RSP by `slot_count` cells        |
+| InitVar        | Initialize variable slot | `InitVar slot_number`        | Pop TOS, store in slot with tagging      |
+| VarRef         | Push slot address        | `VarRef slot_number`         | Push `DATA_REF` resolving to `BP + slot` |
 
-RESERVE
+Reserve
 
-- Limits: 8-bit slot count (0–255 locals per function)
+- Limits: 16-bit slot count (0–65535 locals per function, see `src/ops/opcodes.ts`)
 - Timing: executed once per function call during prologue
 
-INIT_VAR_SLOT
+InitVar
 
 - Simple: store directly into `(BP + slot)`
 - Compound: transfer list into the return-stack window and store a `DATA_REF` that resolves to the header in the slot
 
-LOCAL_VAR_ADDR
+VarRef
 
 - Address calculation: `BP + slot` (cell index)
 - Used for `&x` and as a base for bracket-path destination construction

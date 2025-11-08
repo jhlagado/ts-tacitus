@@ -5,6 +5,11 @@ Here’s a fully expanded and internally consistent version:
 
 # Specification: Finally Block Compilation via Wrapper Rebinding
 
+> **⚠️ STATUS: NOT YET IMPLEMENTED**  
+> This specification describes a planned feature that has not been implemented in the current codebase.  
+> The `ERR` and `IN_FINALLY` registers, wrapper rebinding compilation, and `finally` keyword handling are not present in the source code.  
+> This document is preserved for future implementation reference.
+
 ---
 
 ### 1. Purpose

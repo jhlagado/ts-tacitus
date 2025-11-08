@@ -28,11 +28,6 @@ import { getStackData, peek, push, pop } from '../../core/vm';
 import { createDataRef } from '../../core/refs';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
-function resetVM(): VM {
-  const vm = createVM();
-  vm.IP = 0;
-  return vm;
-}
 
 function getStackDepth(vm: VM): number {
   return getStackData(vm).length;
@@ -88,7 +83,7 @@ describe('LIST Core Utilities', () => {
 
   describe('createList', () => {
     it('should create empty LIST', () => {
-      const vm = resetVM();
+      const vm = createVM();
       createList(vm, []);
 
       expect(getStackDepth(vm)).toBe(1);
@@ -97,7 +92,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should create LIST with single value', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const value = 42;
       createList(vm, [value]);
 
@@ -111,7 +106,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should create LIST with multiple values in reverse order', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const val1 = 1;
       const val2 = 2;
       const val3 = 3;
@@ -135,7 +130,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should handle mixed tag types', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const intVal = 42;
       const numVal = 3.14;
       const strVal = toTaggedValue(100, Tag.STRING);
@@ -172,7 +167,7 @@ describe('LIST Core Utilities', () => {
 
   describe('dropList', () => {
     it('should skip empty LIST', () => {
-      const vm = resetVM();
+      const vm = createVM();
       createList(vm, []);
 
       const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
@@ -184,7 +179,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should skip LIST with single value', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const value = 42;
       createList(vm, [value]);
 
@@ -197,7 +192,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should skip LIST with multiple values', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const values = [1, 2, 3];
       createList(vm, values);
 
@@ -210,7 +205,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should throw on non-LIST at TOS', () => {
-      const vm = resetVM();
+      const vm = createVM();
       push(vm, 5);
 
       expect(() => dropList(vm)).toThrow('Expected LIST header at TOS');
@@ -219,27 +214,27 @@ describe('LIST Core Utilities', () => {
 
   describe('validateListHeader', () => {
     it('should validate correct LIST header', () => {
-      const vm = resetVM();
+      const vm = createVM();
       createList(vm, [42]);
 
       expect(() => validateListHeader(vm)).not.toThrow();
     });
 
     it('should throw on empty stack', () => {
-      const vm = resetVM();
+      const vm = createVM();
 
       expect(() => validateListHeader(vm)).toThrow('LIST header validation');
     });
 
     it('should throw on non-LIST at TOS', () => {
-      const vm = resetVM();
+      const vm = createVM();
       push(vm, 5);
 
       expect(() => validateListHeader(vm)).toThrow('Expected LIST header at TOS');
     });
 
     it('should throw on insufficient payload space', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const invalidHeader = toTaggedValue(10, Tag.LIST);
       push(vm, invalidHeader);
 
@@ -247,7 +242,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should throw on slot count exceeding maximum', () => {
-      const vm = resetVM();
+      const vm = createVM();
       try {
         const invalidHeader = toTaggedValue(65536, Tag.LIST);
         push(vm, invalidHeader);
@@ -260,7 +255,7 @@ describe('LIST Core Utilities', () => {
 
   describe('reverseSpan', () => {
     it('should handle single element (no change)', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const value = 42;
       push(vm, value);
 
@@ -270,13 +265,13 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should handle zero elements (no change)', () => {
-      const vm = resetVM();
+      const vm = createVM();
 
       expect(() => reverseSpan(vm, 0)).not.toThrow();
     });
 
     it('should reverse two elements', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const val1 = 1;
       const val2 = 2;
 
@@ -291,7 +286,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should reverse multiple elements', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const val1 = 1;
       const val2 = 2;
       const val3 = 3;
@@ -311,7 +306,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should reverse odd number of elements', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const val1 = 1;
       const val2 = 2;
       const val3 = 3;
@@ -328,7 +323,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should throw on insufficient stack', () => {
-      const vm = resetVM();
+      const vm = createVM();
       push(vm, 1);
 
       expect(() => reverseSpan(vm, 5)).toThrow('reverse span operation');
@@ -337,7 +332,7 @@ describe('LIST Core Utilities', () => {
 
   describe('Integration Tests', () => {
     it('should create, validate, and skip LIST in sequence', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const values = [10, 20];
 
       createList(vm, values);
@@ -350,7 +345,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should handle nested LIST creation workflow', () => {
-      const vm = resetVM();
+      const vm = createVM();
 
       const innerValues = [1, 2];
       createList(vm, innerValues);
@@ -376,14 +371,14 @@ describe('LIST Core Utilities', () => {
 
   describe('Additional Coverage', () => {
     it('getListElemAddr returns -1 for negative index', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const header = toTaggedValue(1, Tag.LIST);
       const headerAbsAddr = STACK_BASE + 100;
       expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
     });
 
     it('getListElemAddr computes correct addresses for flat list', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const cellHeader = 8;
       const headerAddr = cellHeader * 4;
       const header = toTaggedValue(3, Tag.LIST);
@@ -403,7 +398,7 @@ describe('LIST Core Utilities', () => {
     });
 
     it('getListBounds returns null for ref pointing to non-list', () => {
-      const vm = resetVM();
+      const vm = createVM();
       const cellIndex = 10;
       vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
       const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;

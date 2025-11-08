@@ -11,6 +11,7 @@ module.exports = {
   },
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' }),
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/performance/'],
   verbose: true,
   collectCoverage: true,
   collectCoverageFrom: [
