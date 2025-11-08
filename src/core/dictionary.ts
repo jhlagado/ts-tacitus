@@ -267,11 +267,11 @@ export function forgetOp(vm: VM): void {
 
 // Dict-first lookup toggles (no stack effect)
 // No-op: dictionary is now the only lookup source
-export function dictFirstOnOp(vm: VM): void {
+export function dictFirstOnOp(_vm: VM): void {
   // Dictionary is always the lookup source
 }
 
-export function dictFirstOffOp(vm: VM): void {
+export function dictFirstOffOp(_vm: VM): void {
   // Dictionary is always the lookup source
 }
 
@@ -321,8 +321,10 @@ export function dumpDictOp(vm: VM): void {
   }
   // Print from head to tail
   if (lines.length === 0) {
+    // eslint-disable-next-line no-console
     console.log('[dict] (empty)');
   } else {
+    // eslint-disable-next-line no-console
     console.log(`[dict]\n${lines.join('\n')}`);
   }
 }

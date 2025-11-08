@@ -1,5 +1,5 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { rotOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';

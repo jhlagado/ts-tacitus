@@ -1,7 +1,15 @@
-import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
+import { executeTacitCode } from '../../utils/vm-test-utils';
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { createVM, VM } from '../../../core';
 
 describe('Capsule stored in function local (frame extension)', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test('function creates counter capsule, stores in local, dispatches', () => {
     const code = `
@@ -23,7 +31,7 @@ describe('Capsule stored in function local (frame extension)', () => {
       use-counter
     `;
 
-    const stack = executeTacitCode(code);
+    const stack = executeTacitCode(vm, code);
     // After calling use-counter, the last value should be 2
     expect(stack[stack.length - 1]).toBe(2);
   });

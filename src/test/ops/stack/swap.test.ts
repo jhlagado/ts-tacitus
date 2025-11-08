@@ -1,5 +1,5 @@
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { swapOp } from '../../../ops/stack';
 import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';

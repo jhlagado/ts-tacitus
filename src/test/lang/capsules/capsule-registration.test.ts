@@ -1,6 +1,6 @@
 import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
 import { Op } from '../../../ops/opcodes';
-import { vm, initializeInterpreter } from '../../../lang/runtime';
+import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
 import { resetVM } from '../../utils/vm-test-utils';
 import { findEntry } from '../../../core/dictionary';
 

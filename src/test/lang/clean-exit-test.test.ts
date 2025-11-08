@@ -2,13 +2,14 @@
  * Clean test for exitOp behavior with proper function calls
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../lang/runtime';
+import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Function Exit Behavior', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
-    vm.debug = false;
+    vm = createVM();
   });
 
   test('should properly restore BP after function call', () => {
@@ -17,10 +18,13 @@ describe('Function Exit Behavior', () => {
     const initialRSP = vm.rsp;
 
     // Execute a simple function call
-    const result = executeTacitCode(`
+    const result = executeTacitCode(
+      vm,
+      `
       : simple-func 42 ;
       simple-func
-    `);
+    `,
+    );
 
     // Function should return correct value
     expect(result).toEqual([42]);
@@ -34,10 +38,13 @@ describe('Function Exit Behavior', () => {
     const initialBP = vm.bp;
     const initialRSP = vm.rsp;
 
-    const result = executeTacitCode(`
+    const result = executeTacitCode(
+      vm,
+      `
       : func-with-vars 42 var x x ;
       func-with-vars
-    `);
+    `,
+    );
 
     expect(result).toEqual([42]);
 
@@ -50,11 +57,14 @@ describe('Function Exit Behavior', () => {
     const initialBP = vm.bp;
     const initialRSP = vm.rsp;
 
-    const result = executeTacitCode(`
+    const result = executeTacitCode(
+      vm,
+      `
       : inner 1 add ;
       : outer 10 inner ;
       5 outer
-    `);
+    `,
+    );
 
     expect(result).toEqual([5, 11]); // 5 + 10 + 1
     expect(vm.bp).toBe(initialBP);

@@ -6,14 +6,16 @@
  * leaving only the top element.
  */
 
-import { vm } from '../../../lang/runtime';
 import { nipOp } from '../../../ops/stack';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { executeTacitCode, resetVM, getVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';
 
 describe('nip Operation', () => {
+  let vm: ReturnType<typeof getVM>;
+
   beforeEach(() => {
     resetVM();
+    vm = getVM();
   });
 
   describe('simple values', () => {
@@ -59,7 +61,7 @@ describe('nip Operation', () => {
 
   describe('list operations (LIST semantics)', () => {
     test('should remove simple value under a list (keeping list)', () => {
-      const stack = executeTacitCode('42 ( 10 20 ) nip');
+      const stack = executeTacitCode(vm, '42 ( 10 20 ) nip');
 
       expect(stack).not.toContain(42);
       expect(stack).toContain(10);
@@ -67,12 +69,12 @@ describe('nip Operation', () => {
     });
 
     test('should remove list under simple value (keeping simple value)', () => {
-      const stack = executeTacitCode('( 99 88 ) 42 nip');
+      const stack = executeTacitCode(vm, '( 99 88 ) 42 nip');
       expect(stack).toEqual([42]);
     });
 
     test('should remove list under another list', () => {
-      const stack = executeTacitCode('( 100 200 ) ( 300 400 ) nip');
+      const stack = executeTacitCode(vm, '( 100 200 ) ( 300 400 ) nip');
       expect(stack).not.toContain(100);
       expect(stack).not.toContain(200);
       expect(stack).toContain(300);
@@ -80,12 +82,12 @@ describe('nip Operation', () => {
     });
 
     test('should handle multi-element lists', () => {
-      const stack = executeTacitCode('( 10 20 30 40 ) 999 nip');
+      const stack = executeTacitCode(vm, '( 10 20 30 40 ) 999 nip');
       expect(stack).toEqual([999]);
     });
 
     test('should handle nested lists correctly', () => {
-      const stack = executeTacitCode('123 ( 1 ( 2 3 ) 4 ) nip');
+      const stack = executeTacitCode(vm, '123 ( 1 ( 2 3 ) 4 ) nip');
       expect(stack.length).toBeGreaterThan(0);
       expect(stack).not.toContain(123);
     });
@@ -102,7 +104,7 @@ describe('nip Operation', () => {
     });
 
     test('should throw on stack underflow with only one list', () => {
-      const stack = executeTacitCode('( 42 )');
+      const stack = executeTacitCode(vm, '( 42 )');
       expect(stack.length).toBe(2);
       expect(() => nipOp(vm)).toThrow();
     });

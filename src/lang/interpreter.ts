@@ -50,6 +50,7 @@ export function execute(start: number): void {
     const functionIndex = nextOpcode(vm);
 
     if (vm.debug) {
+// eslint-disable-next-line no-console
 console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
 }
 
@@ -67,6 +68,7 @@ console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
         `Error executing word (stack: ${stackState})${
         error instanceof Error ? `: ${error.message}` : ''}`;
       if (vm.debug) {
+// eslint-disable-next-line no-console
 console.log((error as Error).stack);
 }
       vm.compiler.reset();

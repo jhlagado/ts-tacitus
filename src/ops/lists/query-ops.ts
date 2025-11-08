@@ -20,35 +20,36 @@ import { isRef, createDataRef, getByteAddressFromRef, readRefValue } from '@src/
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
+import { push, pop, peek, ensureStackSize } from '../../core/vm';
 // (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
 export function lengthOp(vm: VM): void {
-  vm.ensureStackSize(1, 'length');
-  const value = vm.peek();
+  ensureStackSize(vm, 1, 'length');
+  const value = peek(vm);
   const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   dropOp(vm);
-  vm.push(slotCount);
+  push(vm, slotCount);
 }
 
 export function sizeOp(vm: VM): void {
-  vm.ensureStackSize(1, 'size');
-  const value = vm.peek();
+  ensureStackSize(vm, 1, 'size');
+  const value = peek(vm);
   const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     dropOp(vm);
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (slotCount === 0) {
     dropOp(vm);
-    vm.push(0);
+    push(vm, 0);
     return;
   }
   // Absolute-only traversal using unified SEG_DATA
@@ -63,42 +64,42 @@ export function sizeOp(vm: VM): void {
     currAddr -= span * CELL_SIZE;
   }
   dropOp(vm);
-  vm.push(elementCount);
+  push(vm, elementCount);
 }
 
 export function slotOp(vm: VM): void {
-  vm.ensureStackSize(2, 'slot');
-  const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek();
+  ensureStackSize(vm, 2, 'slot');
+  const { value: idx } = fromTaggedValue(pop(vm));
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (idx < 0 || idx >= slotCount) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   // Absolute addressing: compute header absolute byte address and derive element address
   const headerAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const addr = headerAddr - (idx + 1) * CELL_SIZE;
   const absCellIndex = addr / CELL_SIZE;
-  vm.push(createDataRef(absCellIndex));
+  push(vm, createDataRef(absCellIndex));
 }
 
 export function elemOp(vm: VM): void {
-  vm.ensureStackSize(2, 'elem');
-  const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek();
+  ensureStackSize(vm, 2, 'elem');
+  const { value: idx } = fromTaggedValue(pop(vm));
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (idx < 0) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   // Absolute header address and scan using unified SEG_DATA
@@ -117,7 +118,7 @@ export function elemOp(vm: VM): void {
 
     if (currentLogicalIndex === idx) {
       const absCellIndex = elementStartAddr / CELL_SIZE;
-      vm.push(createDataRef(absCellIndex));
+      push(vm, createDataRef(absCellIndex));
       return;
     }
 
@@ -126,12 +127,12 @@ export function elemOp(vm: VM): void {
     currentLogicalIndex++;
   }
 
-  vm.push(NIL);
+  push(vm, NIL);
 }
 
 export function fetchOp(vm: VM): void {
-  vm.ensureStackSize(1, 'fetch');
-  const addressValue = vm.pop();
+  ensureStackSize(vm, 1, 'fetch');
+  const addressValue = pop(vm);
   if (!isRef(addressValue)) {
     throw new Error('fetch expects DATA_REF address');
   }
@@ -142,11 +143,11 @@ export function fetchOp(vm: VM): void {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
       const slotValue = vm.memory.readFloat32(SEG_DATA, addr - (i + 1) * CELL_SIZE);
-      vm.push(slotValue);
+      push(vm, slotValue);
     }
-    vm.push(value);
+    push(vm, value);
   } else {
-    vm.push(value);
+    push(vm, value);
   }
 }
 
@@ -158,12 +159,12 @@ export function fetchOp(vm: VM): void {
  *   if the final value is a LIST header, materialize payload+header; else push the simple value.
  */
 export function loadOp(vm: VM): void {
-  vm.ensureStackSize(1, 'load');
-  const input = vm.pop();
+  ensureStackSize(vm, 1, 'load');
+  const input = pop(vm);
 
   // Identity on non-refs
   if (!isRef(input)) {
-    vm.push(input);
+    push(vm, input);
     return;
   }
 
@@ -182,13 +183,13 @@ export function loadOp(vm: VM): void {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
       const slotValue = vm.memory.readFloat32(SEG_DATA, addr2 - (i + 1) * CELL_SIZE);
-      vm.push(slotValue);
+      push(vm, slotValue);
     }
-    vm.push(value);
+    push(vm, value);
     return;
   }
 
-  vm.push(value);
+  push(vm, value);
 }
 
 type SlotAddress = { segment: number; address: number };
@@ -235,7 +236,7 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
     dropList(vm);
     return;
   }
-  vm.pop();
+  pop(vm);
 }
 
 function initializeGlobalCompound(
@@ -302,7 +303,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   // Absolute copy into resolved header location
   copyCompoundFromReference(vm, rhsInfoAbs, slot.resolvedAbsAddr, slotCount);
-  vm.pop();
+  pop(vm);
   return true;
 }
 
@@ -310,26 +311,26 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   let value = rhsValue;
   if (isRef(value)) {
     value = readRefValue(vm, value);
-    vm.pop();
-    vm.push(value);
+    pop(vm);
+    push(vm, value);
   }
 
   const valueIsCompound = isList(value);
   const existingIsCompound = isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
-    vm.pop();
+    pop(vm);
     vm.memory.writeFloat32(SEG_DATA, slot.rootAbsAddr, value);
     return;
   }
 
-  vm.pop();
+  pop(vm);
   throw new Error('Cannot assign simple to compound or compound to simple');
 }
 
 export function storeOp(vm: VM): void {
-  vm.ensureStackSize(2, 'store');
-  const addressValue = vm.pop();
-  const rhsTop = vm.peek();
+  ensureStackSize(vm, 2, 'store');
+  const addressValue = pop(vm);
+  const rhsTop = peek(vm);
 
   if (!isRef(addressValue)) {
     throw new Error('store expects DATA_REF address');
@@ -357,20 +358,20 @@ export function storeOp(vm: VM): void {
  *    - Returns `NIL` and resets `idx' = 0` for convenient looping.
  */
 export function walkOp(vm: VM): void {
-  vm.ensureStackSize(2, 'walk');
-  const { value: idx } = fromTaggedValue(vm.pop());
-  const target = vm.peek();
+  ensureStackSize(vm, 2, 'walk');
+  const { value: idx } = fromTaggedValue(pop(vm));
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || Tag.LIST !== Tag.LIST) {
     // Leave target, push idx (reset) and NIL
-    vm.push(0);
-    vm.push(NIL);
+    push(vm, 0);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (idx >= slotCount || idx < 0) {
-    vm.push(0);
-    vm.push(NIL);
+    push(vm, 0);
+    push(vm, NIL);
     return;
   }
   // Absolute addressing via unified data segment
@@ -378,27 +379,27 @@ export function walkOp(vm: VM): void {
   const cellAbsAddr = headerAbsAddr - (idx + 1) * CELL_SIZE;
   const v = vm.memory.readFloat32(SEG_DATA, cellAbsAddr);
   const nextIdx = idx + 1;
-  vm.push(nextIdx);
+  push(vm, nextIdx);
   if (isList(v)) {
     const absCellIndex = cellAbsAddr / CELL_SIZE;
-    vm.push(createDataRef(absCellIndex));
+    push(vm, createDataRef(absCellIndex));
   } else {
-    vm.push(v);
+    push(vm, v);
   }
 }
 
 export function findOp(vm: VM): void {
-  vm.ensureStackSize(2, 'find');
-  const key = vm.pop();
-  const target = vm.peek();
+  ensureStackSize(vm, 2, 'find');
+  const key = pop(vm);
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (slotCount % 2 !== 0 || slotCount === 0) {
-    vm.push(NIL);
+    push(vm, NIL);
     return;
   }
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
@@ -409,7 +410,7 @@ export function findOp(vm: VM): void {
     const currentKey = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     if (areValuesEqual(currentKey, key)) {
       const absCellIndex = valueAbsAddr / CELL_SIZE;
-      vm.push(createDataRef(absCellIndex));
+      push(vm, createDataRef(absCellIndex));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
@@ -422,31 +423,31 @@ export function findOp(vm: VM): void {
   }
   if (defaultValueAddr !== -1) {
     const absCellIndex = defaultValueAddr / CELL_SIZE;
-    vm.push(createDataRef(absCellIndex));
+    push(vm, createDataRef(absCellIndex));
     return;
   }
-  vm.push(NIL);
+  push(vm, NIL);
 }
 
 export function keysOp(vm: VM): void {
-  vm.ensureStackSize(1, 'keys');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'keys');
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (slotCount % 2 !== 0) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
-  vm.pop();
-  vm.push(info.header);
+  pop(vm);
+  push(vm, info.header);
   if (slotCount === 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
   const keyCount = slotCount / 2;
@@ -454,30 +455,30 @@ export function keysOp(vm: VM): void {
   for (let i = keyCount - 1; i >= 0; i--) {
     const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * 2 * CELL_SIZE;
     const keyValue = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
-    vm.push(keyValue);
+    push(vm, keyValue);
   }
-  vm.push(toTaggedValue(keyCount, Tag.LIST));
+  push(vm, toTaggedValue(keyCount, Tag.LIST));
 }
 
 export function valuesOp(vm: VM): void {
-  vm.ensureStackSize(1, 'values');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'values');
+  const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
   const slotCount = getListLength(info.header);
   if (slotCount % 2 !== 0) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
-  vm.pop();
-  vm.push(info.header);
+  pop(vm);
+  push(vm, info.header);
   if (slotCount === 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
   const valueCount = slotCount / 2;
@@ -485,19 +486,19 @@ export function valuesOp(vm: VM): void {
   for (let i = valueCount - 1; i >= 0; i--) {
     const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
     const valueValue = vm.memory.readFloat32(SEG_DATA, valueAbsAddr);
-    vm.push(valueValue);
+    push(vm, valueValue);
   }
-  vm.push(toTaggedValue(valueCount, Tag.LIST));
+  push(vm, toTaggedValue(valueCount, Tag.LIST));
 }
 
 export function refOp(vm: VM): void {
-  vm.ensureStackSize(1, 'ref');
-  const value = vm.peek();
+  ensureStackSize(vm, 1, 'ref');
+  const value = peek(vm);
   const tag = getTag(value);
   if (tag === Tag.LIST) {
     // sp is an absolute cell index; build absolute DATA_REF
     const headerCellIndex = vm.sp - 1;
-    vm.push(createDataRef(headerCellIndex));
+    push(vm, createDataRef(headerCellIndex));
   }
 }
 

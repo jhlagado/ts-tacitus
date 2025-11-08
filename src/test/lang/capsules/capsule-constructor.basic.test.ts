@@ -1,4 +1,4 @@
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { resetVM, executeTacitWithState } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import {

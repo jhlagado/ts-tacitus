@@ -2,7 +2,7 @@ import { describe, test, expect } from '@jest/globals';
 import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
 
 import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 
 describe('dictionary-only builtins', () => {
   beforeEach(() => resetVM());

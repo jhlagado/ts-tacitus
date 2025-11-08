@@ -53,7 +53,7 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   return createGlobalRef(headerCellIndex);
 }
 
-export function getGlobalHeapSpan(vm: VM, headerValue: number): number {
+export function getGlobalHeapSpan(_vm: VM, headerValue: number): number {
   return getListLength(headerValue) + 1;
 }
 

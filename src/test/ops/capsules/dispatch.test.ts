@@ -1,4 +1,4 @@
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { resetVM } from '../../utils/vm-test-utils';
 import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
 import {

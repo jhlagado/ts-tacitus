@@ -1,4 +1,4 @@
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
 import { Tag, toTaggedValue, CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE } from '../../core';
 import { push, getStackData } from '../../core/vm';

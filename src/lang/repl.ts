@@ -33,6 +33,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
   setupInterpreter();
   let allFilesProcessed = true;
   if (files.length > 0) {
+    // eslint-disable-next-line no-console
     console.log(`Loading ${files.length} file(s)...`);
     for (const file of files) {
       const success = processFile(file);
@@ -43,8 +44,10 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     }
 
     if (allFilesProcessed) {
+      // eslint-disable-next-line no-console
       console.log('All files loaded successfully.');
     } else {
+      // eslint-disable-next-line no-console
       console.log('Some files had errors but REPL will continue.');
     }
   }
@@ -53,6 +56,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     return;
   }
 
+  // eslint-disable-next-line no-console
   console.log("Interactive mode (type 'exit' to quit, 'load <filepath>' to load a file):");
   const rl = createInterface({
     input: process.stdin,
@@ -64,7 +68,8 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
   rl.on('line', line => {
     const command = line.trim();
     if (command === 'exit') {
-      console.log('Goodbye!');
+        // eslint-disable-next-line no-console
+        console.log('Goodbye!');
       rl.close();
       return;
     }
@@ -74,6 +79,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
       try {
         const success = processFile(filePath);
         if (!success) {
+          // eslint-disable-next-line no-console
           console.log('File processing encountered errors but REPL will continue.');
         }
       } catch (error) {
@@ -95,6 +101,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
       } else {
+        // eslint-disable-next-line no-console
         console.error('Unknown error occurred');
       }
     }
@@ -113,6 +120,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     rl.prompt();
   });
   rl.on('close', () => {
+    // eslint-disable-next-line no-console
     console.log('REPL exited.');
   });
 }

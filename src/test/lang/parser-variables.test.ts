@@ -2,41 +2,42 @@
  * Tests for variable declaration and reference parsing
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../lang/runtime';
+import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Tag, fromTaggedValue } from '../../core';
 import { markWithLocalReset, defineLocal, forget, defineBuiltin } from '../../core/dictionary';
 import { resolveSymbol } from '../../core/vm';
 
 describe('Parser Variable Support', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
-    vm.debug = false;
+    vm = createVM();
   });
 
   describe('Variable declaration parsing', () => {
     test('should parse simple variable declaration', () => {
       // Test that we can parse "42 var x" without syntax errors
       expect(() => {
-        executeTacitCode(': test 42 var x ;');
+        executeTacitCode(vm, ': test 42 var x ;');
       }).not.toThrow();
     });
 
     test('should reject var outside function definition', () => {
       expect(() => {
-        executeTacitCode('42 var x');
+        executeTacitCode(vm, '42 var x');
       }).toThrow('Variable declarations only allowed inside function definitions');
     });
 
     test('should reject var without name', () => {
       expect(() => {
-        executeTacitCode(': test 42 var ;');
+        executeTacitCode(vm, ': test 42 var ;');
       }).toThrow('Expected variable name after var');
     });
 
     test('should reject var with invalid name token', () => {
       expect(() => {
-        executeTacitCode(': test 42 var 123 ;');
+        executeTacitCode(vm, ': test 42 var 123 ;');
       }).toThrow('Expected variable name after var');
     });
   });
@@ -45,13 +46,13 @@ describe('Parser Variable Support', () => {
     test('should parse variable reference within function', () => {
       // Test that variable references compile without errors
       expect(() => {
-        executeTacitCode(': test 42 var x x ;');
+        executeTacitCode(vm, ': test 42 var x x ;');
       }).not.toThrow();
     });
 
     test('should handle multiple variables in function', () => {
       expect(() => {
-        executeTacitCode(': test 10 var a 20 var b a b ;');
+        executeTacitCode(vm, ': test 10 var a 20 var b a b ;');
       }).not.toThrow();
     });
   });
@@ -101,7 +102,7 @@ describe('Parser Variable Support', () => {
       // This test verifies that functions with variables get proper slot allocation
       // We'll check that the compilation doesn't crash and produces valid bytecode
       expect(() => {
-        const result = executeTacitCode(': square 10 var x x x mul ; 5 square');
+        const result = executeTacitCode(vm, ': square 10 var x x x mul ; 5 square');
         // The result should be reasonable (though the function logic might be wrong)
         expect(typeof result[0]).toBe('number');
       }).not.toThrow();
@@ -110,14 +111,14 @@ describe('Parser Variable Support', () => {
     test('should generate InitVar opcode for variable declarations', () => {
       // Verify that variable declarations produce valid bytecode
       expect(() => {
-        executeTacitCode(': test 42 var x 7 var y ; test');
+        executeTacitCode(vm, ': test 42 var x 7 var y ; test');
       }).not.toThrow();
     });
 
     test('should generate LocalRef + Fetch for variable references', () => {
       // Verify that variable references produce valid bytecode
       expect(() => {
-        executeTacitCode(': getx 10 var x x ; getx');
+        executeTacitCode(vm, ': getx 10 var x x ; getx');
       }).not.toThrow();
     });
   });

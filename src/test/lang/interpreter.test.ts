@@ -1,61 +1,64 @@
-import { execute, executeProgram } from '../../lang/interpreter';
-import { vm, initializeInterpreter } from '../../lang/runtime';
-import * as math from '../../ops/math/arithmetic-ops';
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { createVM, VM } from '../../core';
+import { execute } from '../../lang/interpreter';
+import { addOp } from '../../ops/math/arithmetic-ops';
 import { SEG_CODE } from '../../core';
 import { getStackData } from '../../core/vm';
+import { executeTacitCode } from '../utils/vm-test-utils';
 
-function expectStack(expected: number[]): void {
+function expectStack(vm: VM, expected: number[]): void {
   expect(getStackData(vm)).toEqual(expected);
 }
 
 describe('Interpreter', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
-    vm.debug = false;
+    vm = createVM();
   });
 
   describe('Basic operations', () => {
     test('should execute simple addition', () => {
-      executeProgram('5 3 add');
-      expectStack([8]);
+      executeTacitCode(vm, '5 3 add');
+      expectStack(vm, [8]);
     });
     test('should handle subtraction', () => {
-      executeProgram('10 3 sub');
-      expectStack([7]);
+      executeTacitCode(vm, '10 3 sub');
+      expectStack(vm, [7]);
     });
     test('should handle multiplication', () => {
-      executeProgram('5 3 mul');
-      expectStack([15]);
+      executeTacitCode(vm, '5 3 mul');
+      expectStack(vm, [15]);
     });
     test('should handle division', () => {
-      executeProgram('15 3 div');
-      expectStack([5]);
+      executeTacitCode(vm, '15 3 div');
+      expectStack(vm, [5]);
     });
   });
 
   describe('Stack operations', () => {
     test('should handle dup', () => {
-      executeProgram('5 dup');
-      expectStack([5, 5]);
+      executeTacitCode(vm, '5 dup');
+      expectStack(vm, [5, 5]);
     });
     test('should handle drop', () => {
-      executeProgram('5 3 drop');
-      expectStack([5]);
+      executeTacitCode(vm, '5 3 drop');
+      expectStack(vm, [5]);
     });
     test('should handle swap', () => {
-      executeProgram('5 3 swap');
-      expectStack([3, 5]);
+      executeTacitCode(vm, '5 3 swap');
+      expectStack(vm, [3, 5]);
     });
     test('should handle complex stack operations', () => {
-      executeProgram('1 2 3 drop swap dup');
-      expectStack([2, 1, 1]);
+      executeTacitCode(vm, '1 2 3 drop swap dup');
+      expectStack(vm, [2, 1, 1]);
     });
   });
 
   describe('Control flow', () => {
     test('should handle empty program', () => {
-      executeProgram('');
-      expectStack([]);
+      executeTacitCode(vm, '');
+      expectStack(vm, []);
     });
   });
 
@@ -79,85 +82,101 @@ describe('Interpreter', () => {
       expect(errorMessage).toContain('Invalid opcode: 110');
     });
     test('should handle non-Error exceptions', () => {
-      jest.spyOn(math, 'addOp').mockImplementation(() => {
+      const addOpModule = require('../../ops/math/arithmetic-ops');
+      jest.spyOn(addOpModule, 'addOp').mockImplementation(() => {
         throw 'Raw string error';
       });
-      expect(() => executeProgram('5 3 add')).toThrow('Error executing word (stack: [5,3])');
+      expect(() => executeTacitCode(vm, '5 3 add')).toThrow('Error executing word (stack: [5,3])');
       jest.restoreAllMocks();
     });
     test('should preserve stack state on error', () => {
       try {
-        executeProgram('5 3 0 div add');
+        executeTacitCode(vm, '5 3 0 div add');
       } catch (_) {
         expect(getStackData(vm)).toEqual([5, 3, 0]);
       }
     });
     test('should skip definition body during normal execution', () => {
-      executeProgram(`
+      executeTacitCode(
+        vm,
+        `
         : double 2 mul ;
         5 double
-      `);
-      expectStack([10]);
+      `,
+      );
+      expectStack(vm, [10]);
     });
   });
 
   describe('Memory management', () => {
     test('should preserve memory when flag is set', () => {
       vm.compiler.preserve = true;
-      executeProgram('5 3 add');
+      executeTacitCode(vm, '5 3 add');
       expect(vm.compiler.BCP).toBe(vm.compiler.CP);
       expect(vm.compiler.preserve).toBe(false);
     });
     test('should reset memory when preserve is false', () => {
       const initialBCP = vm.compiler.BCP;
-      executeProgram('5 3 add');
+      executeTacitCode(vm, '5 3 add');
       expect(vm.compiler.CP).toBe(initialBCP);
     });
     test('should handle multiple preserve states', () => {
-      executeProgram('5 3 add');
+      executeTacitCode(vm, '5 3 add');
       const initialBCP = vm.compiler.BCP;
       vm.compiler.preserve = true;
-      executeProgram('2 2 add');
+      executeTacitCode(vm, '2 2 add');
       expect(vm.compiler.BCP).toBe(initialBCP + 12);
     });
   });
 
   describe('Colon definitions', () => {
     test('should execute simple colon definition', () => {
-      executeProgram(`: square dup mul ;
+      executeTacitCode(vm, `: square dup mul ;
       3 square`);
-      expectStack([9]);
+      expectStack(vm, [9]);
     });
     test('should handle multiple colon definitions', () => {
-      executeProgram(`
+      executeTacitCode(
+        vm,
+        `
         : square dup mul ;
         : cube dup square mul ;
         4 square
         3 cube
-      `);
-      expectStack([16, 27]);
+      `,
+      );
+      expectStack(vm, [16, 27]);
     });
     test('should allow colon definitions to use other definitions', () => {
-      executeProgram(`
+      executeTacitCode(
+        vm,
+        `
         : double 2 mul ;
         : quadruple double double ;
         5 quadruple
-      `);
-      expectStack([20]);
+      `,
+      );
+      expectStack(vm, [20]);
     });
     test('should handle colon definitions with stack manipulation', () => {
-      executeProgram(`
+      executeTacitCode(
+        vm,
+        `
         : swap-and-add swap add ;
         3 7 swap-and-add
-      `);
-      expectStack([10]);
+      `,
+      );
+      expectStack(vm, [10]);
     });
     test('should handle colon definitions with code blocks', () => {
-      executeProgram(`
+      executeTacitCode(
+        vm,
+        `
         : double 2 mul ;
         5 double
-      `);
-      expectStack([10]);
+      `,
+      );
+      expectStack(vm, [10]);
     });
   });
 });

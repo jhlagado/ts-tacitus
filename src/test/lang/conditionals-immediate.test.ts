@@ -1,7 +1,7 @@
 import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 import { peekAt, push, peek } from '../../core/vm';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
 import { setParserState } from '../../lang/state';

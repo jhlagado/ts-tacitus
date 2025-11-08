@@ -5,16 +5,18 @@
  * Lines 202-203, 214, 243-244, 252-256, 338, 369, 376-377, 405-407, 433, 439
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
-import { vm } from '../../../lang/runtime';
+import { createVM, VM } from '../../../core';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
 import { push, rpush, rpop, pop, getStackData, unsafeSetBPBytes } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 describe('Core Operations Branch Coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('exitOp edge cases', () => {
@@ -106,29 +108,41 @@ describe('Core Operations Branch Coverage', () => {
   describe('Integration tests to hit more branches', () => {
     test('should exercise function return paths', () => {
       // Test function definition and calling to hit return branches
-      const result = executeTacitCode(`
+      const result = executeTacitCode(
+        vm,
+        vm,
+        `
         : test-func 42 ;
         test-func
-      `);
+      `,
+      );
 
       expect(result[result.length - 1]).toBe(42);
     });
 
     test('should exercise eval with colon definition', () => {
-      const result = executeTacitCode(`
+      const result = executeTacitCode(
+        vm,
+        vm,
+        `
         : inc 1 add ;
         41 @inc eval
-      `);
+      `,
+      );
 
       expect(result).toEqual([42]);
     });
 
     test('should exercise function calls', () => {
       // Test function calls to hit return scenarios
-      const result = executeTacitCode(`
+      const result = executeTacitCode(
+        vm,
+        vm,
+        `
         : test-func 42 ;
         test-func
-      `);
+      `,
+      );
 
       expect(result[result.length - 1]).toBe(42);
     });

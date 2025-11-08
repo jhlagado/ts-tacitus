@@ -18,7 +18,7 @@ import {
   CELL_SIZE,
   dropList,
 } from '@src/core';
-import { rdepth } from '../core/vm';
+import { rdepth, push, peek, ensureStackSize, rpush } from '../core/vm';
 
 // Helpers for cell-oriented reasoning on return-stack-resident compounds
 function headerAddrToHeaderCell(headerAddrBytes: number): number {
@@ -43,13 +43,13 @@ function computeBaseCellFromHeader(headerCell: number, slotCount: number): numbe
  */
 export function rpushList(vm: VM): number {
   validateListHeader(vm);
-  const header = vm.peek();
+  const header = peek(vm);
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
     // Compute header byte address from cell-oriented RSP to avoid direct RP usage
     const headerAddr = rdepth(vm) * CELL_SIZE;
-    vm.rpush(header);
+    rpush(vm, header);
     dropList(vm);
     return headerAddr;
   }
@@ -58,12 +58,12 @@ export function rpushList(vm: VM): number {
   let elementCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + elementCell * CELL_SIZE);
-    vm.rpush(value);
+    rpush(vm, value);
     elementCell += 1;
   }
   // Compute header byte address from cell-oriented RSP (RP accessor removed)
   const headerAddr = rdepth(vm) * CELL_SIZE;
-  vm.rpush(header);
+  rpush(vm, header);
   dropList(vm);
 
   return headerAddr;
@@ -86,7 +86,7 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-    vm.push(header);
+    push(vm, header);
     return;
   }
 
@@ -94,9 +94,9 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
     const element = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (baseCell + i) * CELL_SIZE);
-    vm.push(element);
+    push(vm, element);
   }
-  vm.push(header);
+  push(vm, header);
 }
 
 /**
@@ -154,8 +154,8 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * @param targetAbsHeaderAddr Absolute byte address of existing compound data header (SEG_DATA)
  */
 export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
-  vm.ensureStackSize(1, 'updateListInPlace');
-  const header = vm.peek();
+  ensureStackSize(vm, 1, 'updateListInPlace');
+  const header = peek(vm);
 
   if (!isList(header)) {
     throw new Error('updateListInPlace expects list data');

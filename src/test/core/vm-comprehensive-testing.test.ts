@@ -16,7 +16,7 @@
  */
 
 import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';

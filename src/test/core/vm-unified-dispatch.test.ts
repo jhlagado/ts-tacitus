@@ -6,7 +6,7 @@
  * without any language changes - pure VM-level testing.
  */
 
-import { vm } from '../../lang/runtime';
+import { vm } from '../utils/vm-test-utils';
 import { push, getStackData } from '../../core/vm';
 import { resetVM } from '../utils/vm-test-utils';
 import { createBuiltinRef } from '../../core';

@@ -3,23 +3,26 @@
  * Tests the &x sigil parsing and compilation behavior
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM, executeTacitCode } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
+import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('Reference Sigil (&x) Parsing', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('should parse &x sigil for local variables', () => {
     // Test compilation doesn't crash
     expect(() => {
-      executeTacitCode(': test 42 var x &x drop ;');
+      executeTacitCode(vm, ': test 42 var x &x drop ;');
     }).not.toThrow();
   });
 
   test('should differentiate between x and &x behavior', () => {
-    const resultValue = executeTacitCode(': test (1 2 3) var mylist mylist ; test');
-    const resultRef = executeTacitCode(': test (1 2 3) var mylist &mylist ; test');
+    const resultValue = executeTacitCode(vm, ': test (1 2 3) var mylist mylist ; test');
+    const resultRef = executeTacitCode(vm, ': test (1 2 3) var mylist &mylist ; test');
 
     // They should produce different stack states
     expect(resultValue).not.toEqual(resultRef);
@@ -29,19 +32,19 @@ describe('Reference Sigil (&x) Parsing', () => {
 
   test('should reject &x for undefined names at top level', () => {
     expect(() => {
-      executeTacitCode('&undefined');
+      executeTacitCode(vm, '&undefined');
     }).toThrow(/Undefined word.*undefined/);
   });
 
   test('should reject &x for undefined variables', () => {
     expect(() => {
-      executeTacitCode(': test &undefined ;');
+      executeTacitCode(vm, ': test &undefined ;');
     }).toThrow(/Undefined word.*undefined/);
   });
 
   test('should reject &x for non-local variables', () => {
     expect(() => {
-      executeTacitCode(': helper 42 ; : test &helper ;');
+      executeTacitCode(vm, ': helper 42 ; : test &helper ;');
     }).toThrow(/is not a local variable/);
   });
 });

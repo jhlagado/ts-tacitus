@@ -1,5 +1,6 @@
 import { SyntaxError } from '@src/core';
 import { vm } from './runtime';
+import { getStackData } from '../core/vm';
 import type { Tokenizer } from './tokenizer';
 
 export type ActiveDefinition = {
@@ -27,7 +28,7 @@ export function requireParserState(): ParserState {
   if (!currentParserState) {
     throw new SyntaxError(
       'Definition opener/closer used outside of parser context',
-      vm.getStackData(),
+      getStackData(vm),
     );
   }
   return currentParserState;

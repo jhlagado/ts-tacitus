@@ -7,20 +7,18 @@
  */
 
 import type { VM } from '@src/core';
-import { isList, getListLength } from '@src/core';
-import { toTaggedValue, Tag } from '@src/core';
-import { SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
-import { depth } from '../core/vm';
+import { isList, getListLength, toTaggedValue, Tag, SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
+import { pop, push, peek, ensureStackSize, depth } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
 
 function popFlatListToArray(vm: VM): number[] {
-  const header = vm.pop();
+  const header = pop(vm);
   const slots = getListLength(header);
   const arr: number[] = new Array(slots);
   for (let i = 0; i < slots; i++) {
-    arr[i] = vm.pop();
+    arr[i] = pop(vm);
   }
   return arr; // element order e0..e(n-1)
 }
@@ -28,14 +26,14 @@ function popFlatListToArray(vm: VM): number[] {
 function pushFlatListFromArray(vm: VM, arr: number[]): void {
   const n = arr.length;
   for (let i = n - 1; i >= 0; i--) {
-vm.push(arr[i]);
+push(vm, arr[i]);
 }
-  vm.push(toTaggedValue(n, Tag.LIST));
+  push(vm, toTaggedValue(n, Tag.LIST));
 }
 
 export function unaryFlat(vm: VM, opName: string, f: NumberOp1): void {
-  vm.ensureStackSize(1, opName);
-  if (isList(vm.peek())) {
+  ensureStackSize(vm, 1, opName);
+  if (isList(peek(vm))) {
     const xs = popFlatListToArray(vm);
     if (xs.length === 0) {
       pushFlatListFromArray(vm, xs);
@@ -47,17 +45,17 @@ xs[i] = f(xs[i]);
     pushFlatListFromArray(vm, xs);
     return;
   }
-  const x = vm.pop();
-  vm.push(f(x));
+  const x = pop(vm);
+  push(vm, f(x));
 }
 
 export function binaryFlat(vm: VM, opName: string, f: NumberOp2): void {
-  vm.ensureStackSize(2, opName);
+  ensureStackSize(vm, 2, opName);
 
   // If top is a list → pop it first (that's RHS b)
-  if (isList(vm.peek())) {
+  if (isList(peek(vm))) {
     const bArr = popFlatListToArray(vm);
-    if (isList(vm.peek())) {
+    if (isList(peek(vm))) {
       // list × list with cycle-to-match
       const aArr = popFlatListToArray(vm);
       const m = aArr.length;
@@ -75,7 +73,7 @@ out[i] = f(aArr[i % m], bArr[i % n]);
       return;
     }
     // simple × list (scalar extension over bArr)
-    const a = vm.pop();
+    const a = pop(vm);
     if (bArr.length === 0) {
       pushFlatListFromArray(vm, bArr);
       return;
@@ -88,8 +86,8 @@ bArr[i] = f(a, bArr[i]);
   }
 
   // Top is simple; if below is a list → list × simple
-  const b = vm.pop();
-  if (isList(vm.peek())) {
+  const b = pop(vm);
+  if (isList(peek(vm))) {
     const aArr = popFlatListToArray(vm);
     if (aArr.length === 0) {
       pushFlatListFromArray(vm, aArr);
@@ -103,22 +101,22 @@ aArr[i] = f(aArr[i], b);
   }
 
   // simple × simple
-  const a = vm.pop();
-  vm.push(f(a, b));
+  const a = pop(vm);
+  push(vm, f(a, b));
 }
 
 // Wrapper to prepare for nested recursion; currently delegates to flat.
 export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
-  vm.ensureStackSize(2, opName);
+  ensureStackSize(vm, 2, opName);
 
   const isNum = (x: number) => isNumber(x);
 
   const popListSlots = (): number[] => {
-    const header = vm.pop();
+    const header = pop(vm);
     const slots = getListLength(header);
     const payload: number[] = new Array(slots);
     for (let i = 0; i < slots; i++) {
-payload[i] = vm.pop();
+payload[i] = pop(vm);
 } // pops slot0,slot1,...
     const out: number[] = new Array(slots + 1);
     out[0] = header;
@@ -134,9 +132,9 @@ out[i + 1] = payload[i];
     const payloadLen = slotsArr.length - 1;
     // Push payload in index order so bottom→top reads [slot0 .. slotN-1, header]
     for (let i = 0; i < payloadLen; i++) {
-vm.push(slotsArr[1 + i]);
+push(vm, slotsArr[1 + i]);
 }
-    vm.push(header);
+    push(vm, header);
   };
 
   const enumerateElements = (slotsArr: number[]): { start: number; span: number }[] => {
@@ -246,15 +244,15 @@ out[write++] = r[j];
   };
 
   // Dispatch based on top stack types
-  if (isList(vm.peek())) {
+  if (isList(peek(vm))) {
     const bSlots = popListSlots();
-    if (isList(vm.peek())) {
+    if (isList(peek(vm))) {
       const aSlots = popListSlots();
       const res = transformBinarySlots(aSlots, bSlots);
       pushListSlots(res);
       return;
     }
-    const a = vm.pop();
+    const a = pop(vm);
     if (!isNum(a)) {
 throw new Error('broadcast type mismatch');
 }
@@ -263,8 +261,8 @@ throw new Error('broadcast type mismatch');
     return;
   }
 
-  const b = vm.pop();
-  if (isList(vm.peek())) {
+  const b = pop(vm);
+  if (isList(peek(vm))) {
     if (!isNum(b)) {
 throw new Error('broadcast type mismatch');
 }
@@ -274,11 +272,11 @@ throw new Error('broadcast type mismatch');
     return;
   }
 
-  const a = vm.pop();
+  const a = pop(vm);
   if (!isNum(a) || !isNum(b)) {
 throw new Error('broadcast type mismatch');
 }
-  vm.push(f(a, b));
+  push(vm, f(a, b));
 }
 
 // -------- Recursive (nested) unary broadcasting --------
@@ -287,13 +285,13 @@ import { isNumber } from '@src/core';
 import { dupOp, nipOp } from './stack';
 
 export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
-  vm.ensureStackSize(1, opName);
-  if (!isList(vm.peek())) {
-    const x = vm.pop();
+  ensureStackSize(vm, 1, opName);
+  if (!isList(peek(vm))) {
+    const x = pop(vm);
     if (!isNumber(x)) {
 throw new Error('broadcast type mismatch');
 }
-    vm.push(f(x));
+    push(vm, f(x));
     return;
   }
 

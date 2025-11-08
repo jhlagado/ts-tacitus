@@ -9,40 +9,38 @@
  * - src/test/utils/operationsTestUtils.ts
  */
 import {
-  VM,
+  type VM,
   Tag,
   toTaggedValue,
   fromTaggedValue,
-  GLOBAL_SIZE,
   SEG_DATA,
   CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
-  GLOBAL_BASE,
   createVM,
 } from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { vm } from '../../lang/runtime';
+import { setupRuntime, vm as runtimeVM } from '../../lang/runtime';
 
 /**
- * Reset VM to clean state for testing - replaced with createVM().
- * @deprecated Use `vm = createVM()` instead
+ * Execute Tacit code and return final stack state.
+ * Creates a fresh VM for each execution to avoid state pollution.
  */
-export function resetVM(): void {
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  vm = createVM();
-}
-
-/**
- * Execute Tacit code and return final stack state
- */
-export function executeTacitCode(code: string): number[] {
-  vm = createVM();
+export function executeTacitCode(vm: VM, code: string): number[] {
+  // Create a fresh VM for this execution to avoid state pollution
+  const freshVM = createVM();
+  // Parser uses runtime VM, so sync fresh VM to it
+  setupRuntime();
+  Object.assign(runtimeVM, freshVM);
   parse(new Tokenizer(code));
-  execute(vm.compiler.BCP);
+  execute(runtimeVM.compiler.BCP);
+  // Sync back to get execution results
+  Object.assign(freshVM, runtimeVM);
+  // Update the passed VM with results
+  Object.assign(vm, freshVM);
   return getStackData(vm);
 }
 
@@ -54,7 +52,7 @@ export type VMStateSnapshot = {
   bp: number;
 };
 
-export function captureVMState(): VMStateSnapshot {
+export function captureVMState(vm: VM): VMStateSnapshot {
   const stack = getStackData(vm);
   const returnStack: number[] = [];
   // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE.
@@ -71,15 +69,19 @@ export function captureVMState(): VMStateSnapshot {
   };
 }
 
-export function executeTacitWithState(code: string): VMStateSnapshot {
-  executeTacitCode(code);
-  return captureVMState();
+export function executeTacitWithState(vm: VM, code: string): VMStateSnapshot {
+  setupRuntime();
+  Object.assign(runtimeVM, vm);
+  parse(new Tokenizer(code));
+  execute(runtimeVM.compiler.BCP);
+  Object.assign(vm, runtimeVM);
+  return captureVMState(vm);
 }
 
 /**
  * Get formatted stack for debugging (shows actual values instead of null)
  */
-export function getFormattedStack(): string[] {
+export function getFormattedStack(vm: VM): string[] {
   const stack = getStackData(vm);
   return stack.map(value => {
     if (!isNaN(value)) {
@@ -102,8 +104,8 @@ export function getFormattedStack(): string[] {
 /**
  * Execute Tacit code and verify expected stack state with detailed error messages
  */
-export function testTacitCode(code: string, expectedStack: number[]): void {
-  const result = executeTacitCode(code);
+export function testTacitCode(vm: VM, code: string, expectedStack: number[]): void {
+  const result = executeTacitCode(vm, code);
 
   if (result.length !== expectedStack.length) {
     throw new Error(
@@ -139,14 +141,14 @@ export function testTacitCode(code: string, expectedStack: number[]): void {
 /**
  * Execute Tacit code and return final stack state (alias for executeTacitCode)
  */
-export function runTacitTest(code: string): number[] {
-  return executeTacitCode(code);
+export function runTacitTest(vm: VM, code: string): number[] {
+  return executeTacitCode(vm, code);
 }
 
 /**
  * Execute Tacit code and capture console output
  */
-export function captureTacitOutput(code: string): string[] {
+export function captureTacitOutput(vm: VM, code: string): string[] {
   const output: string[] = [];
   const originalLog = console.log;
 
@@ -155,7 +157,7 @@ export function captureTacitOutput(code: string): string[] {
   };
 
   try {
-    executeTacitCode(code);
+    executeTacitCode(vm, code);
   } finally {
     console.log = originalLog;
   }
@@ -288,30 +290,33 @@ export type OperationTestCase = {
 /**
  * Run multiple operation test cases
  */
-export function runOperationTests(testCases: OperationTestCase[], setup?: () => void): void {
+export function runOperationTests(testCases: OperationTestCase[], setup?: (vm: VM) => void): void {
   testCases.forEach(testCase => {
     it(testCase.name, () => {
+      const vm = createVM();
       if (setup) {
-        setup();
+        setup(vm);
       }
-      resetVM();
 
       testCase.setup(vm);
 
       if (typeof testCase.operation === 'string') {
-        executeTacitCode(testCase.operation);
+        const result = executeTacitCode(vm, testCase.operation);
+        if (testCase.expectedStack) {
+          expect(result).toEqual(testCase.expectedStack);
+        }
+        if (testCase.verify) {
+          testCase.verify(result);
+        }
       } else {
         testCase.operation(vm);
-      }
-
-      const result = getStackData(vm);
-
-      if (testCase.expectedStack) {
-        expect(result).toEqual(testCase.expectedStack);
-      }
-
-      if (testCase.verify) {
-        testCase.verify(result);
+        const result = getStackData(vm);
+        if (testCase.expectedStack) {
+          expect(result).toEqual(testCase.expectedStack);
+        }
+        if (testCase.verify) {
+          testCase.verify(result);
+        }
       }
     });
   });

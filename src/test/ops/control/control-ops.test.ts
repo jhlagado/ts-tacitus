@@ -2,7 +2,7 @@
  * Tests for control-ops.ts - specifically targeting uncovered branches
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../../lang/runtime';
+import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
 import { ifFalseBranchOp } from '../../../ops/control';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import * as vmModule from '../../../core/vm';

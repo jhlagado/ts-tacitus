@@ -1,7 +1,15 @@
-import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
+import { executeTacitCode } from '../../utils/vm-test-utils';
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { createVM, VM } from '../../../core';
 
 describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test.skip('counter capsule dispatches using &global alias', () => {
     const code = `
@@ -19,7 +27,7 @@ describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
       &gc fetch ref 'get swap dispatch
     `;
 
-    const result = executeTacitCode(code);
+    const result = executeTacitCode(vm, code);
     const last = result[result.length - 1];
     expect(last).toBe(2);
   });

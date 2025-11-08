@@ -6,6 +6,7 @@
 import type { VM } from '@src/core';
 import { SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader, createGlobalRef, getAbsoluteCellIndexFromRef } from '@src/core';
 import { fetchOp } from '../lists';
+import { push, pop, peek, ensureStackSize } from '../../core/vm';
 // createGlobalRef now imported from core in the line above
 
 // No reference validation helpers needed in the simplified model
@@ -19,12 +20,12 @@ function copyListAtHeader(vm: VM, h: number, hAddr: number): void {
 }
 
 export function gmarkOp(vm: VM): void {
-  vm.push(vm.gp);
+  push(vm, vm.gp);
 }
 
 export function gsweepOp(vm: VM): void {
-  vm.ensureStackSize(1, 'gsweep');
-  const markValue = vm.pop();
+  ensureStackSize(vm, 1, 'gsweep');
+  const markValue = pop(vm);
   if (!Number.isFinite(markValue) || !Number.isInteger(markValue)) {
     throw new Error('gsweep expects integer heap mark');
   }
@@ -36,21 +37,21 @@ export function gsweepOp(vm: VM): void {
 }
 
 export function gpushOp(vm: VM): void {
-  vm.ensureStackSize(1, 'gpush');
+  ensureStackSize(vm, 1, 'gpush');
   // If TOS is a ref: deep-copy list directly; for simples, copy resolved value now
-  const v = vm.peek();
+  const v = peek(vm);
   if (isRef(v)) {
     const dv = readRefValue(vm, v);
     if (isList(dv)) {
       // Deep-copy list referenced by handle directly from memory, then pop handle
       const hAddr = getByteAddressFromRef(v);
       copyListAtHeader(vm, dv, hAddr);
-      vm.pop();
+      pop(vm);
       return;
     }
     // Simple alias: copy resolved value and pop original handle
     pushSimpleToGlobalHeap(vm, dv);
-    vm.pop();
+    pop(vm);
     return;
   }
   // Case 1: direct LIST on stack — copy payload+header using stack layout
@@ -66,7 +67,7 @@ export function gpushOp(vm: VM): void {
 
   // Case 2: any non-LIST value — copy the single cell value and pop once
   pushSimpleToGlobalHeap(vm, v);
-  vm.pop();
+  pop(vm);
 }
 
 export function gpeekOp(vm: VM): void {
@@ -75,7 +76,7 @@ export function gpeekOp(vm: VM): void {
   }
   const topCell = GLOBAL_BASE / CELL_SIZE + (vm.gp - 1);
   const ref = createGlobalRef(topCell - GLOBAL_BASE / CELL_SIZE);
-  vm.push(ref);
+  push(vm, ref);
   fetchOp(vm);
 }
 
@@ -99,12 +100,12 @@ export function gpopOp(vm: VM): void {
 export function markOp(vm: VM): void {
   // Push a global DATA_REF that encodes the current GP (next free global cell)
   const ref = createGlobalRef(vm.gp);
-  vm.push(ref);
+  push(vm, ref);
 }
 
 export function forgetOp(vm: VM): void {
-  vm.ensureStackSize(1, 'forget');
-  const ref = vm.pop();
+  ensureStackSize(vm, 1, 'forget');
+  const ref = pop(vm);
   if (!isRef(ref)) {
     throw new Error('forget expects DATA_REF');
   }

@@ -6,7 +6,7 @@
  * under the second element.
  */
 
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import { tuckOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
 import { Tag, toTaggedValue } from '../../../core/tagged';
@@ -63,7 +63,7 @@ describe('tuck Operation', () => {
 
   describe('list operations (LIST semantics)', () => {
     test('should duplicate simple value under a list', () => {
-      const stack = executeTacitCode('( 10 20 ) 42 tuck');
+      const stack = executeTacitCode(vm, '( 10 20 ) 42 tuck');
 
       expect(stack.filter(x => x === 42).length).toBe(2);
       expect(stack).toContain(10);
@@ -71,7 +71,7 @@ describe('tuck Operation', () => {
     });
 
     test('should duplicate list under simple value', () => {
-      const stack = executeTacitCode('42 ( 99 88 ) tuck');
+      const stack = executeTacitCode(vm, '42 ( 99 88 ) tuck');
 
       expect(stack).toContain(42);
       expect(stack).toContain(99);
@@ -81,7 +81,7 @@ describe('tuck Operation', () => {
     });
 
     test('should duplicate list under another list', () => {
-      const stack = executeTacitCode('( 100 200 ) ( 300 400 ) tuck');
+      const stack = executeTacitCode(vm, '( 100 200 ) ( 300 400 ) tuck');
       expect(stack).toContain(100);
       expect(stack).toContain(200);
       expect(stack).toContain(300);
@@ -91,7 +91,7 @@ describe('tuck Operation', () => {
     });
 
     test('should handle multi-element lists', () => {
-      const stack = executeTacitCode('999 ( 10 20 30 40 ) tuck');
+      const stack = executeTacitCode(vm, '999 ( 10 20 30 40 ) tuck');
       expect(stack).toContain(999);
       for (const v of [10, 20, 30, 40]) {
         expect(stack).toContain(v);
@@ -100,7 +100,7 @@ describe('tuck Operation', () => {
     });
 
     test('should handle nested lists correctly', () => {
-      const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) 123 tuck');
+      const stack = executeTacitCode(vm, '( 1 ( 2 3 ) 4 ) 123 tuck');
       for (const v of [1, 2, 3, 4]) expect(stack).toContain(v);
       expect(stack.filter(x => x === 123).length).toBe(2);
     });

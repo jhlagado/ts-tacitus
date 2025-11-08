@@ -34,7 +34,7 @@ const CELL_SIZE_BYTES = CELL_SIZE;
 /**
  * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
  */
-export interface VM {
+export type VM = {
   /** Memory instance for unified data segment access */
   memory: Memory;
   /** Data stack pointer in cells (one past top of stack) */
@@ -61,7 +61,7 @@ export interface VM {
   head: number;
   /** Current local variable count */
   localCount: number;
-}
+};
 
 /**
  * Creates and returns a new initialized VM instance as a plain object.
@@ -246,7 +246,7 @@ export function pushSymbolRef(vm: VM, name: string): void {
   push(vm, taggedValue);
 }
 
-function checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): void {
+function _checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): void {
   if (vm.sp < 0 || vm.rsp < 0 || vm.bp < 0) {
     throw new Error('Invariant violation: negative stack pointer');
   }
@@ -343,21 +343,14 @@ export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
  * @returns Array of values in stack order
  * @throws {StackUnderflowError} If stack underflow occurs
  */
-export function popArray(
-  vm: {
-    sp: number;
-    getStackData: () => number[];
-    pop: () => number;
-  },
-  size: number,
-): number[] {
+export function popArray(vm: VM, size: number): number[] {
   if (vm.sp - STACK_BASE_CELLS < size) {
-    throw new StackUnderflowError('popArray', size, vm.getStackData());
+    throw new StackUnderflowError('popArray', size, getStackData(vm));
   }
 
   const result: number[] = [];
   for (let i = 0; i < size; i++) {
-    result.unshift(vm.pop());
+    result.unshift(pop(vm));
   }
 
   return result;
@@ -371,13 +364,9 @@ export function popArray(
  * @param operation - Operation name for error reporting
  * @throws {ReturnStackUnderflowError} If insufficient return stack elements
  */
-export function ensureRStackSize(
-  vm: { rsp: number; getStackData: () => number[] },
-  size: number,
-  operation: string,
-): void {
+export function ensureRStackSize(vm: VM, size: number, operation: string): void {
   if (vm.rsp - RSTACK_BASE_CELLS < size) {
-    throw new ReturnStackUnderflowError(operation, vm.getStackData());
+    throw new ReturnStackUnderflowError(operation, getStackData(vm));
   }
 }
 

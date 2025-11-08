@@ -3,19 +3,19 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { vm } from '../runtime';
 import { requireParserState } from '../state';
-import { depth, rdepth } from '../../core/vm';
+import { depth, rdepth, getStackData, peek, push } from '../../core/vm';
 
 const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
 const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
 
 function assertOpenCase(word: string): void {
   if (depth(vm) === 0) {
-    throw new SyntaxError(`${word} without open case`, vm.getStackData());
+    throw new SyntaxError(`${word} without open case`, getStackData(vm));
   }
-  const closer = vm.peek();
+  const closer = peek(vm);
   const { tag, value } = fromTaggedValue(closer);
   if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
-    throw new SyntaxError(`${word} without open case`, vm.getStackData());
+    throw new SyntaxError(`${word} without open case`, getStackData(vm));
   }
 }
 
@@ -23,8 +23,8 @@ export function beginCaseImmediate(): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
-  vm.push(rdepth(vm));
-  vm.push(ENDCASE_CODE_REF);
+  push(vm, rdepth(vm));
+  push(vm, ENDCASE_CODE_REF);
 }
 
 export function clauseOfImmediate(): void {
@@ -38,8 +38,8 @@ export function clauseOfImmediate(): void {
   const skipPos = vm.compiler.CP;
   vm.compiler.compile16(0);
 
-  vm.push(skipPos);
-  vm.push(ENDOF_CODE_REF);
+  push(vm, skipPos);
+  push(vm, ENDOF_CODE_REF);
 
   vm.compiler.compileOpcode(Op.Drop);
 }

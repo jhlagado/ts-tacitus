@@ -8,14 +8,15 @@ describe('parser state helpers', () => {
     jest.resetAllMocks();
   });
 
-  const mockRuntime = (getStackData: jest.Mock) => ({
-    vm: {
-      getStackData,
-    },
+  const mockRuntime = (vmInstance: { sp: number; memory: unknown }) => ({
+    vm: vmInstance,
   });
 
-  const loadStateModule = async (getStackData: jest.Mock) => {
-    jest.doMock('../../lang/runtime', () => mockRuntime(getStackData));
+  const loadStateModule = async (getStackDataMock: jest.Mock) => {
+    jest.doMock('../../lang/runtime', () => mockRuntime({ sp: 0, memory: {} }));
+    jest.doMock('../../core/vm', () => ({
+      getStackData: getStackDataMock,
+    }));
     return import('../../lang/state');
   };
 

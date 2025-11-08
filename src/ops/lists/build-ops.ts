@@ -8,17 +8,26 @@ import { fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBounds, computeHeaderAddr } from './core-helpers';
 import { evalOp } from '../core';
-import { ensureRStackSize } from '../../core/vm';
+import {
+  ensureRStackSize,
+  push,
+  rpush,
+  rpop,
+  pop,
+  peek,
+  ensureStackSize,
+  getStackData,
+} from '../../core/vm';
 
 /**
  * Opens LIST construction.
  */
 export function openListOp(vm: VM): void {
   vm.listDepth++;
-  vm.push(toTaggedValue(0, Tag.LIST));
+  push(vm, toTaggedValue(0, Tag.LIST));
   // Absolute header byte address one past current TOS
   const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
-  vm.rpush(headerAbsAddr);
+  rpush(vm, headerAbsAddr);
 }
 
 /**
@@ -27,7 +36,7 @@ export function openListOp(vm: VM): void {
 export function closeListOp(vm: VM): void {
   ensureRStackSize(vm, 1, 'closeListOp');
 
-  const headerAbsAddr = vm.rpop();
+  const headerAbsAddr = rpop(vm);
   const headerCellAbs = headerAbsAddr / CELL_SIZE;
   const payloadSlots = vm.sp - headerCellAbs - 1;
 
@@ -50,19 +59,19 @@ export function closeListOp(vm: VM): void {
  * Stack effect: ( {block} -- list )
  */
 export function makeListOp(vm: VM): void {
-  vm.ensureStackSize(1, 'makeList');
+  ensureStackSize(vm, 1, 'makeList');
 
-  const blockAddr = vm.pop();
+  const blockAddr = pop(vm);
 
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
-  vm.push(placeholderHeader);
+  push(vm, placeholderHeader);
   const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
-  vm.rpush(headerAbsAddr);
+  rpush(vm, headerAbsAddr);
 
-  vm.push(blockAddr);
+  push(vm, blockAddr);
   evalOp(vm);
 
-  const retrievedHeaderAbsAddr = vm.rpop();
+  const retrievedHeaderAbsAddr = rpop(vm);
   const headerCellAbs = retrievedHeaderAbsAddr / CELL_SIZE;
   const payloadSlots = vm.sp - headerCellAbs - 1;
 
@@ -84,33 +93,33 @@ export function makeListOp(vm: VM): void {
  * Stack effect: ( item-n ... item-0 n -- list )
  */
 export function packOp(vm: VM): void {
-  vm.ensureStackSize(1, 'pack');
-  const { value: count } = fromTaggedValue(vm.pop());
+  ensureStackSize(vm, 1, 'pack');
+  const { value: count } = fromTaggedValue(pop(vm));
 
-  if (count < 0 || count > vm.getStackData().length) {
-    vm.push(NIL);
+  if (count < 0 || count > getStackData(vm).length) {
+    push(vm, NIL);
     return;
   }
 
   if (count === 0) {
-    vm.push(toTaggedValue(0, Tag.LIST));
+    push(vm, toTaggedValue(0, Tag.LIST));
     return;
   }
 
   const values: number[] = [];
   for (let i = 0; i < count; i++) {
-    if (vm.getStackData().length === 0) {
-      vm.push(NIL);
+    if (getStackData(vm).length === 0) {
+      push(vm, NIL);
       return;
     }
-    values.push(vm.pop());
+    values.push(pop(vm));
   }
 
   for (let i = values.length - 1; i >= 0; i--) {
-    vm.push(values[i]);
+    push(vm, values[i]);
   }
 
-  vm.push(toTaggedValue(count, Tag.LIST));
+  push(vm, toTaggedValue(count, Tag.LIST));
 }
 
 /**
@@ -119,20 +128,20 @@ export function packOp(vm: VM): void {
  * Inverse of pack (without count)
  */
 export function unpackOp(vm: VM): void {
-  vm.ensureStackSize(1, 'unpack');
-  const target = vm.peek();
+  ensureStackSize(vm, 1, 'unpack');
+  const target = peek(vm);
   const targetIsDirectList = isList(target);
 
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
-    vm.pop();
-    vm.push(NIL);
+    pop(vm);
+    push(vm, NIL);
     return;
   }
 
   const slotCount = getListLength(info.header);
   // Drop the original target (list header or ref)
-  vm.pop();
+  pop(vm);
 
   if (slotCount === 0) {
     return;
@@ -147,7 +156,7 @@ export function unpackOp(vm: VM): void {
   const headerAbsAddr = computeHeaderAddr(info.baseAddrBytes, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - (i + 1) * CELL_SIZE);
-    vm.push(slotValue);
+    push(vm, slotValue);
   }
 }
 
@@ -156,8 +165,8 @@ export function unpackOp(vm: VM): void {
  * Stack effect: ( value — LIST:1 )
  */
 export const enlistOp: Verb = (vm: VM) => {
-  vm.ensureStackSize(1, 'enlist');
-  const a = vm.pop();
-  vm.push(a);
-  vm.push(toTaggedValue(1, Tag.LIST));
+  ensureStackSize(vm, 1, 'enlist');
+  const a = pop(vm);
+  push(vm, a);
+  push(vm, toTaggedValue(1, Tag.LIST));
 };

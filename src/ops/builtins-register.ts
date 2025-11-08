@@ -18,6 +18,7 @@
  */
 import type { VM, Verb } from '@src/core';
 import { SyntaxError } from '@src/core';
+import { getStackData } from '../core/vm';
 import { Op } from './opcodes';
 
 import { STACK_BASE_CELLS } from '@src/core';
@@ -64,7 +65,7 @@ import {
  */
 export function registerBuiltins(vm: VM): void {
   // All registration goes directly to dictionary
-  function reg(name: string, opcode: number, implementation?: Verb, isImmediate = false): void {
+  function reg(name: string, opcode: number, _implementation?: Verb, isImmediate = false): void {
     defineBuiltin(vm, name, opcode, isImmediate);
   }
 
@@ -205,7 +206,7 @@ export function registerBuiltins(vm: VM): void {
     Op.Nop,
     vmInstance => {
       if (vmInstance.sp - STACK_BASE_CELLS === 0) {
-        throw new SyntaxError('Unexpected semicolon', vmInstance.getStackData());
+        throw new SyntaxError('Unexpected semicolon', getStackData(vmInstance));
       }
       evalOp(vmInstance);
     },

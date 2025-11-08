@@ -3,17 +3,19 @@
  * Focuses on end-to-end list functionality with Tacit language features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag } from '../../../../core/tagged';
-import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
+import { fromTaggedValue, Tag, createVM, VM } from '../../../../core';
+import { executeTacitCode } from '../../../utils/vm-test-utils';
 
 describe('List Integration Tests', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {
     test('should create and manipulate simple lists with Tacit syntax (LIST)', () => {
-      const stack = executeTacitCode('( 1 2 3 ) dup');
+      const stack = executeTacitCode(vm, '( 1 2 3 ) dup');
 
       expect(stack.length).toBeGreaterThan(4);
       expect(stack).toContain(1);
@@ -25,7 +27,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should perform list arithmetic operations', () => {
-      const stack = executeTacitCode('( 10 20 ) ( 30 40 ) swap');
+      const stack = executeTacitCode(vm, '( 10 20 ) ( 30 40 ) swap');
 
       expect(stack).toContain(10);
       expect(stack).toContain(20);
@@ -36,7 +38,7 @@ describe('List Integration Tests', () => {
 
   describe('list operations', () => {
     test('should handle deeply nested list structures', () => {
-      const stack = executeTacitCode('( ( ( 1 2 ) 3 ) ( 4 ( 5 6 ) ) )');
+      const stack = executeTacitCode(vm, '( ( ( 1 2 ) 3 ) ( 4 ( 5 6 ) ) )');
 
       expect(stack.length).toBeGreaterThan(8);
       expect(stack).toContain(1);
@@ -54,13 +56,13 @@ describe('List Integration Tests', () => {
     });
 
     test('should manipulate mixed data types in lists', () => {
-      const stack = executeTacitCode('( 1 ( 2 3 ) 4 ) drop');
+      const stack = executeTacitCode(vm, '( 1 ( 2 3 ) 4 ) drop');
 
       expect(stack.length).toBe(0);
     });
 
     test('should handle list composition and decomposition', () => {
-      const stack = executeTacitCode('( 1 2 ) ( 3 4 ) over');
+      const stack = executeTacitCode(vm, '( 1 2 ) ( 3 4 ) over');
 
       expect(stack).toContain(1);
       expect(stack).toContain(2);
@@ -74,7 +76,7 @@ describe('List Integration Tests', () => {
 
   describe('error cases', () => {
     test('should handle empty lists in complex operations', () => {
-      const stack = executeTacitCode('( ) ( 1 2 ) swap');
+      const stack = executeTacitCode(vm, '( ) ( 1 2 ) swap');
 
       expect(stack).toContain(1);
       expect(stack).toContain(2);
@@ -88,14 +90,14 @@ describe('List Integration Tests', () => {
 
     test('should gracefully handle malformed list operations', () => {
       expect(() => {
-        executeTacitCode('( 1 2 3 4 5 6 7 8 9 10 ) dup drop');
+        executeTacitCode(vm, '( 1 2 3 4 5 6 7 8 9 10 ) dup drop');
       }).not.toThrow();
     });
   });
 
   describe('integration tests', () => {
     test('should execute complex list manipulation chains', () => {
-      const stack = executeTacitCode('( 1 2 ) ( 3 4 ) ( 5 6 ) rot');
+      const stack = executeTacitCode(vm, '( 1 2 ) ( 3 4 ) ( 5 6 ) rot');
 
       expect(stack).toContain(1);
       expect(stack).toContain(2);
@@ -108,7 +110,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should handle mixed stack operations with lists and values', () => {
-      const stack = executeTacitCode('100 ( 200 300 ) 400 ( 500 600 ) tuck');
+      const stack = executeTacitCode(vm, '100 ( 200 300 ) 400 ( 500 600 ) tuck');
 
       expect(stack).toContain(100);
       expect(stack).toContain(200);
@@ -119,7 +121,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should preserve list integrity through multiple operations', () => {
-      const stack = executeTacitCode('( 42 ( 84 126 ) 168 ) dup swap drop');
+      const stack = executeTacitCode(vm, '( 42 ( 84 126 ) 168 ) dup swap drop');
 
       expect(stack).toContain(42);
       expect(stack).toContain(84);
@@ -131,7 +133,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should handle extreme nesting scenarios', () => {
-      const stack = executeTacitCode('( 1 ( 2 ( 3 ( 4 5 ) 6 ) 7 ) 8 )');
+      const stack = executeTacitCode(vm, '( 1 ( 2 ( 3 ( 4 5 ) 6 ) 7 ) 8 )');
 
       expect(stack).toContain(1);
       expect(stack).toContain(2);
@@ -150,7 +152,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should support list operations in conditional contexts', () => {
-      const stack = executeTacitCode('( 1 2 3 )');
+      const stack = executeTacitCode(vm, '( 1 2 3 )');
 
       expect(stack).toContain(1);
       expect(stack).toContain(2);
@@ -166,7 +168,7 @@ describe('List Integration Tests', () => {
 
   describe('parser + VM integration (LIST semantics)', () => {
     test('should build a simple list using ( ) syntax', () => {
-      const stack = executeTacitCode('( 1 2 3 )');
+      const stack = executeTacitCode(vm, '( 1 2 3 )');
       expect(stack.length).toBe(4);
 
       const header = stack[stack.length - 1];
@@ -184,7 +186,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should build nested lists correctly', () => {
-      const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
+      const stack = executeTacitCode(vm, '( 1 ( 2 3 ) 4 )');
 
       const outerHeader = stack[stack.length - 1];
       const { tag: outerTag, value: outerSlots } = fromTaggedValue(outerHeader);
@@ -206,7 +208,7 @@ describe('List Integration Tests', () => {
     });
 
     test('should lay out nested list stack as: 4 3 2 LIST:2 1 LIST:5 ← TOS', () => {
-      const stack = executeTacitCode('( 1 ( 2 3 ) 4 )');
+      const stack = executeTacitCode(vm, '( 1 ( 2 3 ) 4 )');
       const len = stack.length;
 
       expect(len).toBe(6);
@@ -226,7 +228,7 @@ describe('List Integration Tests', () => {
 
   describe('memory layout validation', () => {
     test('should keep list payload contiguous in memory', () => {
-      const stack = executeTacitCode('( 10 20 30 40 )');
+      const stack = executeTacitCode(vm, '( 10 20 30 40 )');
       const values = [
         stack[stack.length - 2],
         stack[stack.length - 3],

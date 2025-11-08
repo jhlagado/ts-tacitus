@@ -3,8 +3,7 @@
  * Bytecode compiler for the Tacit language.
  */
 
-import type {
-  VM } from '@src/core';
+import type { VM } from '@src/core';
 import {
   Tag,
   toTaggedValue,

@@ -4,7 +4,7 @@
 
 import type { VM, Verb } from '@src/core';
 import { isNumber } from '@src/core';
-import { nextInt16 } from '../../core/vm';
+import { nextInt16, pop, ensureStackSize } from '../../core/vm';
 
 /**
  * Implements the short-circuit branch used by the `if`/`when` family.
@@ -15,8 +15,8 @@ import { nextInt16 } from '../../core/vm';
  */
 export const ifFalseBranchOp: Verb = (vm: VM) => {
   const offset = nextInt16(vm);
-  vm.ensureStackSize(1, 'IF');
-  const cond = vm.pop();
+  ensureStackSize(vm, 1, 'IF');
+  const cond = pop(vm);
   if (!isNumber(cond) || cond === 0) {
     vm.IP += offset;
   }

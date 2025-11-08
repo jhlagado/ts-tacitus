@@ -1,5 +1,5 @@
 import { formatAtomicValue, formatValue, Tag, toTaggedValue } from '../../core';
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { push, getStackData } from '../../core/vm';
 
 describe('Format Utils', () => {

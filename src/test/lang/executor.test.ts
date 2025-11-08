@@ -2,12 +2,13 @@ import { executeLine, setupInterpreter } from '../../lang/executor';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { Tokenizer } from '../../lang/tokenizer';
-import { initializeInterpreter } from '../../lang/runtime';
+import * as runtime from '../../lang/runtime';
 
 jest.mock('../../lang/parser');
 jest.mock('../../lang/interpreter');
 jest.mock('../../lang/tokenizer');
 jest.mock('../../lang/runtime', () => ({
+  setupRuntime: jest.fn(),
   initializeInterpreter: jest.fn(),
   vm: {
     compiler: {
@@ -65,8 +66,9 @@ describe('Executor', () => {
   });
   describe('setupInterpreter', () => {
     test('should call initializeInterpreter', () => {
+      jest.clearAllMocks();
       setupInterpreter();
-      expect(initializeInterpreter).toHaveBeenCalledTimes(1);
+      expect(runtime.initializeInterpreter).toHaveBeenCalledTimes(1);
     });
   });
 });

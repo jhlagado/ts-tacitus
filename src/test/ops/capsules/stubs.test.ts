@@ -1,4 +1,4 @@
-import { vm } from '../../../lang/runtime';
+import { vm } from '../../utils/vm-test-utils';
 import {
   exitConstructorOp,
   exitDispatchOp,

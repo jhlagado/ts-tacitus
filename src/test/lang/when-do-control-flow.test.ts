@@ -1,33 +1,42 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
-import { vm } from '../../lang/runtime';
-import { executeTacitCode, resetVM } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
+import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
 
 describe('when/do control flow', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('executes first matching clause and skips default', () => {
-    const stack = executeTacitCode(`
+    const stack = executeTacitCode(
+      vm,
+      `
       10 when
         dup 9 gt do drop 111 ;
         drop 222
       ;
-    `);
+    `,
+    );
 
     expect(stack).toEqual([111]);
   });
 
   test('falls through to default when no predicates match', () => {
-    const stack = executeTacitCode(`
+    const stack = executeTacitCode(
+      vm,
+      `
       2 when
         dup 9 gt do drop 111 ;
         drop 222
       ;
-    `);
+    `,
+    );
 
     expect(stack).toEqual([222]);
   });
@@ -41,13 +50,13 @@ describe('when/do control flow', () => {
       ;
     `;
 
-    const moreThanNine = executeTacitCode(`12 ${program}`);
+    const moreThanNine = executeTacitCode(vm, `12 ${program}`);
     expect(moreThanNine).toEqual([111]);
 
-    const lessThanThree = executeTacitCode(`2 ${program}`);
+    const lessThanThree = executeTacitCode(vm, `2 ${program}`);
     expect(lessThanThree).toEqual([222]);
 
-    const otherwise = executeTacitCode(`5 ${program}`);
+    const otherwise = executeTacitCode(vm, `5 ${program}`);
     expect(otherwise).toEqual([333]);
   });
 
@@ -59,10 +68,10 @@ describe('when/do control flow', () => {
       ;
     `;
 
-    const nestedMatch = executeTacitCode(`1 ${program}`);
+    const nestedMatch = executeTacitCode(vm, `1 ${program}`);
     expect(nestedMatch).toEqual([200]);
 
-    const nestedDefault = executeTacitCode(`2 ${program}`);
+    const nestedDefault = executeTacitCode(vm, `2 ${program}`);
     expect(nestedDefault).toEqual([300]);
   });
 

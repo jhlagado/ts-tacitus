@@ -6,7 +6,7 @@ import {
   ReturnStackOverflowError,
   StackUnderflowError,
 } from '../../core';
-import { initializeInterpreter, vm } from '../../lang/runtime';
+import { initializeInterpreter, vm } from '../utils/vm-test-utils';
 import { popArray, push, rpush, getStackData, peek, pop } from '../../core/vm';
 
 const CELL_SIZE = 4;
