@@ -168,9 +168,14 @@ describe('Format Utils', () => {
       });
 
       test('formatValue handles empty LIST header on stack', () => {
+        // Empty LIST with 0 slots should format as '()'
+        // Push empty header at TOS - formatValue will find it there
         const emptyHeader = toTaggedValue(0, Tag.LIST);
         push(vm, emptyHeader);
-        expect(formatValue(vm, emptyHeader)).toBe('()');
+        // formatValue checks if value is LIST and uses stack[stack.length - 1]
+        // which should be our emptyHeader
+        const result = formatValue(vm, emptyHeader);
+        expect(result).toBe('()');
       });
     });
   });
