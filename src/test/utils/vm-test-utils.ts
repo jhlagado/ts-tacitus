@@ -17,6 +17,8 @@ import {
   CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
+  STACK_BASE_CELLS,
+  RSTACK_BASE_CELLS,
   createVM,
 } from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
@@ -27,8 +29,14 @@ import { execute } from '../../lang/interpreter';
 /**
  * Execute Tacit code and return final stack state.
  * Uses the provided VM instance directly.
+ * Resets the stack and return stack pointers before execution to ensure each call is independent.
  */
 export function executeTacitCode(vm: VM, code: string): number[] {
+  // Reset stack and return stack to ensure each call is independent
+  vm.sp = STACK_BASE_CELLS;
+  vm.rsp = RSTACK_BASE_CELLS;
+  vm.bp = RSTACK_BASE_CELLS;
+  vm.listDepth = 0;
   parse(vm, new Tokenizer(code));
   execute(vm, vm.compiler.BCP);
   return getStackData(vm);
