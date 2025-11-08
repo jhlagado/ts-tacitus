@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { ReturnStackUnderflowError } from '../../../core/errors';
 import { MEMORY_SIZE } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
@@ -10,8 +10,10 @@ import { unsafeSetBPBytes, rpush } from '../../../core/vm';
 const CELL_SIZE = 4;
 
 describe('Invalid Slot Access Error Handling', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 

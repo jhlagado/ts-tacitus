@@ -5,8 +5,6 @@ import { createVM, VM } from '../../../core';
 describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
   let vm: VM;
 
-  let vm: VM;
-
   beforeEach(() => {
     vm = createVM();
   });

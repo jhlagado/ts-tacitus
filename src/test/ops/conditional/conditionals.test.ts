@@ -68,7 +68,7 @@ describe('Conditional Operations', () => {
     });
 
     test('if/else handles multiple statements in branches', () => {
-      executeProgram(`
+      executeProgram(vm, `
         1 if
           2 3 mul
           4 5 mul

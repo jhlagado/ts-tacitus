@@ -1,12 +1,15 @@
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { groupLeftOp, groupRightOp, endIfOp, endDoOp, exitOp } from '../../../ops/core/core-ops';
 import { SEG_CODE } from '../../../core';
 import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { push, rpush, pop } from '../../../core/vm';
 
 describe('Core ops extra branch coverage', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test('groupRightOp underflow throws', () => {
     // No entries on return stack → underflow path

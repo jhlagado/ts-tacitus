@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../core';
 import {
   defineBuiltin,
@@ -16,7 +15,11 @@ import { createCodeRef } from '../../core/code-ref';
 import { GLOBAL_BASE_CELLS } from '../../core/constants';
 
 describe('Dictionary payload types', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   describe('Local variables (Tag.LOCAL)', () => {
     test('defineLocal creates LOCAL entry with slot number', () => {

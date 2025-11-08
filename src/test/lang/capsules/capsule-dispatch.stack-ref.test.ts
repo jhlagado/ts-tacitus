@@ -5,8 +5,6 @@ import { createVM, VM } from '../../../core';
 describe('Capsule dispatch via data-stack DATA_REF handle', () => {
   let vm: VM;
 
-  let vm: VM;
-
   beforeEach(() => {
     vm = createVM();
   });

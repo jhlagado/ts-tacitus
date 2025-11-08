@@ -1,5 +1,6 @@
 import type { ParserState } from '../../lang/state';
 import type { Tokenizer } from '../../lang/tokenizer';
+import type { VM } from '../../core/vm';
 import { jest } from '@jest/globals';
 
 describe('parser state helpers', () => {
@@ -8,33 +9,25 @@ describe('parser state helpers', () => {
     jest.resetAllMocks();
   });
 
-  const mockRuntime = (vmInstance: { sp: number; memory: unknown }) => ({
-    vm: vmInstance,
-  });
-
-  const loadStateModule = async (getStackDataMock: jest.Mock) => {
-    jest.doMock('../../lang/runtime', () => mockRuntime({ sp: 0, memory: {} }));
-    jest.doMock('../../core/vm', () => ({
-      getStackData: getStackDataMock,
-    }));
+  const loadStateModule = async () => {
     return import('../../lang/state');
   };
 
-  const makeState = (): ParserState => {
+  const makeState = (vmInstance?: unknown): ParserState => {
     const tokenizer = {
       input: 'noop',
       position: 0,
       column: 0,
     } as unknown as Tokenizer;
     return {
+      vm: (vmInstance || { sp: 0, memory: {} }) as VM,
       tokenizer,
       currentDefinition: null,
     };
   };
 
   it('setParserState controls getParserState', async () => {
-    const getStackData = jest.fn(() => []);
-    const { setParserState, getParserState } = await loadStateModule(getStackData);
+    const { setParserState, getParserState } = await loadStateModule();
     const state = makeState();
     setParserState(state);
     expect(getParserState()).toBe(state);
@@ -43,19 +36,16 @@ describe('parser state helpers', () => {
   });
 
   it('requireParserState returns active state', async () => {
-    const getStackData = jest.fn(() => []);
-    const { setParserState, requireParserState } = await loadStateModule(getStackData);
+    const { setParserState, requireParserState } = await loadStateModule();
     const state = makeState();
     setParserState(state);
     expect(requireParserState()).toBe(state);
   });
 
   it('requireParserState throws when state missing', async () => {
-    const getStackData = jest.fn(() => ['stack-snapshot']);
-    const { requireParserState } = await loadStateModule(getStackData);
+    const { requireParserState } = await loadStateModule();
     expect(() => requireParserState()).toThrow(
       'Definition opener/closer used outside of parser context',
     );
-    expect(getStackData).toHaveBeenCalledTimes(1);
   });
 });

@@ -9,7 +9,7 @@ describe('compiler-hooks', () => {
     const mockDefinition: ActiveDefinition = {
       name: 'test',
       branchPos: 0,
-      checkpoint: { localCount: 0, head: 0 },
+      checkpoint: 0, // Dictionary mark (heap position)
     };
     const currentDefinition: { current: ActiveDefinition | null } = { current: mockDefinition };
     (vm as typeof vm & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition = currentDefinition;

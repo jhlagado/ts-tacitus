@@ -51,7 +51,6 @@ describe('In-Place Compound Mutation', () => {
 
     test('should mutate single-element list in place', () => {
       // Setup: Create new single-element list
-      resetVM();
       executeTacitCode(vm, '(42)');
 
       // Setup existing single-element list at target location
@@ -77,7 +76,6 @@ describe('In-Place Compound Mutation', () => {
 
     test('should mutate multi-element list in place', () => {
       // Setup: Create new three-element list (1 2 3)
-      resetVM();
       executeTacitCode(vm, '(1 2 3)');
 
       // Setup existing three-element list at target location with different values
@@ -116,7 +114,6 @@ describe('In-Place Compound Mutation', () => {
   describe('Compatibility Enforcement', () => {
     test('should reject incompatible slot counts', () => {
       // Setup: Try to replace LIST:2 with LIST:3
-      resetVM();
       executeTacitCode(vm, '(1 2 3)'); // LIST:3
 
       // Setup existing LIST:2 at target
@@ -150,7 +147,6 @@ describe('In-Place Compound Mutation', () => {
       // Setup: Record initial RP
 
       // Create mutation scenario
-      resetVM();
       executeTacitCode(vm, '(10 20)');
 
       const targetAddr = 200;
@@ -179,7 +175,6 @@ describe('In-Place Compound Mutation', () => {
   describe('Edge Cases', () => {
     test('should handle nested list mutation correctly', () => {
       // Setup: Create nested list with same total slot count as flat list
-      resetVM();
       executeTacitCode(vm, '(1 (2) 3)'); // LIST:4 total
 
       // Setup existing flat list with same slot count
@@ -197,7 +192,6 @@ describe('In-Place Compound Mutation', () => {
 
     test('should maintain data integrity during mutation', () => {
       // Test that partial failures don't corrupt memory
-      resetVM();
       executeTacitCode(vm, '(100 200 300)');
 
       const targetAddr = 200;

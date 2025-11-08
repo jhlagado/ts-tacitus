@@ -3,14 +3,16 @@
  * This focuses on error conditions and edge cases not covered in main compiler tests
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { Compiler } from '../../lang/compiler';
 import { MIN_USER_OPCODE } from '../../core';
 import { next8 } from '../../core/vm';
 
 describe('Compiler - Branch Coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   describe('compileOpcode error conditions', () => {

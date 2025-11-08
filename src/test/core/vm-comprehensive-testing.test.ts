@@ -15,8 +15,7 @@
  * - Mixed scenarios with built-ins, colon definitions, and standalone blocks
  */
 
-import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
@@ -27,8 +26,10 @@ import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../
 jest.retryTimes(2);
 
 describe('VM Comprehensive Testing - Step 12', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('Performance Testing', () => {

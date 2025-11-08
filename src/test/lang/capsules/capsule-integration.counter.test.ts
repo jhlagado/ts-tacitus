@@ -5,8 +5,6 @@ import { createVM, VM } from '../../../core';
 describe('Counter capsule (case/of)', () => {
   let vm: VM;
 
-  let vm: VM;
-
   beforeEach(() => {
     vm = createVM();
   });

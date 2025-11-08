@@ -1,11 +1,13 @@
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { reverseSpan, getListElemAddr, getListBounds, createDataRef } from '../../core';
 import { Tag, toTaggedValue, CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE } from '../../core';
 import { push, getStackData } from '../../core/vm';
 
 describe('core/list additional coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   test('reverseSpan early return for spanSize <= 1', () => {

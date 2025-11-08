@@ -6,9 +6,8 @@
  * both built-in operations and colon definitions.
  */
 
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
-import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';
 import { createBuiltinRef, createCodeRef } from '../../core';
@@ -29,8 +28,10 @@ import {
 import { evalOp } from '../../ops/core';
 
 describe('VM Symbol Resolution', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('resolveSymbol method', () => {
