@@ -1,4 +1,12 @@
-# Global Memory, Dictionary, and Variable Semantics in Tacit
+# Dictionary Implementation Details
+
+> **Status:** Implementation reference documentation  
+> **Location:** `docs/reference/dictionary-implementation.md`  
+> **For user-facing spec:** See `docs/specs/variables-and-refs.md`
+
+This document describes the **implementation details** of Tacit's global memory model, dictionary structure, and variable handling. It focuses on internal mechanisms, data structures, and low-level operations rather than user-facing semantics.
+
+For the authoritative specification of variables and references from a user perspective, see `docs/specs/variables-and-refs.md`.
 
 This document summarises and formalises the discussions on Tacit's global memory model, dictionary structure, and handling of global and local variables. It reflects the current design direction and implementation strategy.
 

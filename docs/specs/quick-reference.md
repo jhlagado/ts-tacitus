@@ -4,7 +4,7 @@ This one‑page cheatsheet lists common patterns and their canonical lowerings.
 
 Variables
 - Locals — declare: `value var x`; access: `x` (value), `&x` (address)
-- Globals — declare: `value global name`; access: `name` (value), `&name` (address)
+- Globals — ⚠️ **Note:** The `global` keyword for declaration is not yet implemented. Global variables can be accessed and assigned via dictionary entries, but explicit `value global name` syntax is not supported in the current parser.
 
 Access & Write (lowering)
 ```tacit
