@@ -1,10 +1,11 @@
-import { describe, test, expect, beforeEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { execute } from '../../lang/interpreter';
-import { addOp } from '../../ops/math/arithmetic-ops';
+import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
 import { getStackData } from '../../core/vm';
 import { executeTacitCode } from '../utils/vm-test-utils';
+import * as builtins from '../../ops/builtins';
 
 function expectStack(vm: VM, expected: number[]): void {
   expect(getStackData(vm)).toEqual(expected);
@@ -82,11 +83,31 @@ describe('Interpreter', () => {
       expect(errorMessage).toContain('Invalid opcode: 110');
     });
     test('should handle non-Error exceptions', () => {
-      jest.spyOn({ addOp }, 'addOp').mockImplementation(() => {
-        throw 'Raw string error';
-      });
-      expect(() => executeTacitCode(vm, '5 3 add')).toThrow('Error executing word (stack: [5,3])');
-      jest.restoreAllMocks();
+      // Mock executeOp to intercept Op.Add and throw a raw string error
+      // Note: This test verifies that non-Error exceptions are caught and wrapped
+      const actualBuiltins = jest.requireActual<typeof builtins>('../../ops/builtins');
+      const originalExecuteOp = actualBuiltins.executeOp;
+
+      const executeOpSpy = jest
+        .spyOn(builtins, 'executeOp')
+        .mockImplementation((vm: VM, opcode: number, isUserDefined = false) => {
+          if (opcode === Op.Add && !isUserDefined) {
+            // Throw raw string error - stack should have [5,3] at this point
+            throw 'Raw string error';
+          } else {
+            // Call the original implementation for other opcodes (including literals)
+            // This ensures literals are pushed onto the stack before add is called
+            originalExecuteOp(vm, opcode, isUserDefined);
+          }
+        });
+
+      try {
+        expect(() => executeTacitCode(vm, '5 3 add')).toThrow(
+          'Error executing word (stack: [5,3])',
+        );
+      } finally {
+        executeOpSpy.mockRestore();
+      }
     });
     test('should preserve stack state on error', () => {
       try {
