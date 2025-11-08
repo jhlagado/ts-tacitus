@@ -1,14 +1,14 @@
 import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { vm } from '../runtime';
+import type { VM } from '../../core/vm';
 import { requireParserState } from '../state';
 import { rdepth, depth, getStackData, peek, push } from '../../core/vm';
 
 const ENDWHEN_CODE_REF = createBuiltinRef(Op.EndWhen);
 const ENDDO_CODE_REF = createBuiltinRef(Op.EndDo);
 
-export function beginWhenImmediate(): void {
+export function beginWhenImmediate(vm: VM): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
@@ -16,7 +16,7 @@ export function beginWhenImmediate(): void {
   push(vm, ENDWHEN_CODE_REF);
 }
 
-export function beginDoImmediate(): void {
+export function beginDoImmediate(vm: VM): void {
   requireParserState();
 
   if (depth(vm) === 0) {

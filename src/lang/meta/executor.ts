@@ -3,12 +3,12 @@ import { SEG_CODE } from '@src/core/constants';
 import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
+import type { VM } from '../../core/vm';
 // SymbolTableEntry interface moved inline (symbol table removed)
 type SymbolTableEntry = {
   taggedValue: number;
   isImmediate: boolean;
 }
-import { vm } from '../runtime';
 import { nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import {
   beginDefinitionImmediate,
@@ -23,17 +23,17 @@ import {
   beginCapsuleImmediate,
 } from './index';
 
-export function executeImmediateWord(name: string, entry: SymbolTableEntry): void {
+export function executeImmediateWord(vm: VM, name: string, entry: SymbolTableEntry): void {
   const { tag, value } = fromTaggedValue(entry.taggedValue);
 
   if (tag === Tag.BUILTIN) {
     // Dispatch known meta-immediate words by name (compile-time actions)
     switch (name) {
       case ':':
-        beginDefinitionImmediate();
+        beginDefinitionImmediate(vm);
         return;
       case 'if':
-        beginIfImmediate();
+        beginIfImmediate(vm);
         return;
       case ';':
         if (vm.sp - STACK_BASE_CELLS === 0) {
@@ -42,28 +42,28 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
         evalOp(vm);
         return;
       case 'else':
-        beginElseImmediate();
+        beginElseImmediate(vm);
         return;
       case 'when':
-        beginWhenImmediate();
+        beginWhenImmediate(vm);
         return;
       case 'do':
-        beginDoImmediate();
+        beginDoImmediate(vm);
         return;
       case 'case':
-        beginCaseImmediate();
+        beginCaseImmediate(vm);
         return;
       case 'of':
-        clauseOfImmediate();
+        clauseOfImmediate(vm);
         return;
       case 'DEFAULT':
-        defaultImmediate();
+        defaultImmediate(vm);
         return;
       case 'NIL':
-        nilImmediate();
+        nilImmediate(vm);
         return;
       case 'capsule':
-        beginCapsuleImmediate();
+        beginCapsuleImmediate(vm);
         return;
       default:
         // Immediate builtin with runtime semantics (e.g., immdup)
@@ -73,14 +73,14 @@ export function executeImmediateWord(name: string, entry: SymbolTableEntry): voi
   }
 
   if (tag === Tag.CODE) {
-    runImmediateCode(value);
+    runImmediateCode(vm, value);
     return;
   }
 
   throw new SyntaxError(`Immediate word ${name} is not executable`, getStackData(vm));
 }
 
-export function runImmediateCode(address: number): void {
+export function runImmediateCode(vm: VM, address: number): void {
   const savedIP = vm.IP;
   const savedBP = vm.bp;
   const savedRSPRel = rdepth(vm);

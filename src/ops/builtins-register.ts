@@ -166,41 +166,91 @@ export function registerBuiltins(vm: VM): void {
   reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  reg('if', Op.Nop, _vm => {
- beginIfImmediate();
-}, true);
-  reg('else', Op.Nop, _vm => {
- beginElseImmediate();
-}, true);
-  reg('when', Op.Nop, _vm => {
- beginWhenImmediate();
-}, true);
-  reg('do', Op.Nop, _vm => {
- beginDoImmediate();
-}, true);
-  reg('case', Op.Nop, _vm => {
- beginCaseImmediate();
-}, true);
-  reg('of', Op.Nop, _vm => {
- clauseOfImmediate();
-}, true);
-  reg('DEFAULT', Op.Nop, _vm => {
- defaultImmediate();
-}, true);
-  reg('NIL', Op.Nop, _vm => {
- nilImmediate();
-}, true);
+  reg(
+    'if',
+    Op.Nop,
+    _vm => {
+      beginIfImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'else',
+    Op.Nop,
+    _vm => {
+      beginElseImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'when',
+    Op.Nop,
+    _vm => {
+      beginWhenImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'do',
+    Op.Nop,
+    _vm => {
+      beginDoImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'case',
+    Op.Nop,
+    _vm => {
+      beginCaseImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'of',
+    Op.Nop,
+    _vm => {
+      clauseOfImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'DEFAULT',
+    Op.Nop,
+    _vm => {
+      defaultImmediate(vm);
+    },
+    true,
+  );
+  reg(
+    'NIL',
+    Op.Nop,
+    _vm => {
+      nilImmediate(vm);
+    },
+    true,
+  );
   // Capsule opener: 'capsule'
-  reg('capsule', Op.Nop, _vm => {
- beginCapsuleImmediate();
-}, true);
+  reg(
+    'capsule',
+    Op.Nop,
+    _vm => {
+      beginCapsuleImmediate(vm);
+    },
+    true,
+  );
 
   reg('select', Op.Select);
   reg('makeList', Op.MakeList);
 
-  reg(':', Op.Nop, _vm => {
- beginDefinitionImmediate();
-}, true);
+  reg(
+    ':',
+    Op.Nop,
+    _vm => {
+      beginDefinitionImmediate(vm);
+    },
+    true,
+  );
   reg(
     ';',
     Op.Nop,

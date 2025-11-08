@@ -94,14 +94,14 @@ describe('case control flow', () => {
   });
 
   test('raises when of appears without a surrounding case', () => {
-    expect(() => parse(new Tokenizer('1 of 2 ;'))).toThrow("'of' without open case");
+    expect(() => parse(vm, new Tokenizer('1 of 2 ;'))).toThrow("'of' without open case");
   });
 
   test('detects unclosed case constructs during final validation', () => {
     try {
-      parse(new Tokenizer('1 case 1 of 2 ;'));
+      parse(vm, new Tokenizer('1 case 1 of 2 ;'));
       expect(getStackData(vm).some((value: unknown) => Number.isNaN(value as number))).toBe(true);
-      expect(() => ensureNoOpenConditionals()).toThrow('Unclosed case');
+      expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');
     } catch (error) {
       expect((error as Error).message).toContain('Unclosed case');
     }

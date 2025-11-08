@@ -1,14 +1,13 @@
 import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { vm } from '../runtime';
 import { requireParserState } from '../state';
-import { depth, rdepth, getStackData, peek, push } from '../../core/vm';
+import { VM, depth, rdepth, getStackData, peek, push } from '../../core/vm';
 
 const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
 const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
 
-function assertOpenCase(word: string): void {
+function assertOpenCase(vm: VM, word: string): void {
   if (depth(vm) === 0) {
     throw new SyntaxError(`${word} without open case`, getStackData(vm));
   }
@@ -19,7 +18,7 @@ function assertOpenCase(word: string): void {
   }
 }
 
-export function beginCaseImmediate(): void {
+export function beginCaseImmediate(vm: VM): void {
   requireParserState();
 
   // Push saved return stack snapshot as relative cells
@@ -27,10 +26,10 @@ export function beginCaseImmediate(): void {
   push(vm, ENDCASE_CODE_REF);
 }
 
-export function clauseOfImmediate(): void {
+export function clauseOfImmediate(vm: VM): void {
   requireParserState();
 
-  assertOpenCase("'of'");
+  assertOpenCase(vm, "'of'");
 
   vm.compiler.compileOpcode(Op.Over);
   vm.compiler.compileOpcode(Op.Equal);
@@ -44,17 +43,17 @@ export function clauseOfImmediate(): void {
   vm.compiler.compileOpcode(Op.Drop);
 }
 
-function compileSentinelLiteral(value: Sentinel): void {
+function compileSentinelLiteral(vm: VM, value: Sentinel): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
   vm.compiler.compileFloat32(toTaggedValue(value, Tag.SENTINEL));
 }
 
-export function defaultImmediate(): void {
+export function defaultImmediate(vm: VM): void {
   requireParserState();
-  compileSentinelLiteral(Sentinel.DEFAULT);
+  compileSentinelLiteral(vm, Sentinel.DEFAULT);
 }
 
-export function nilImmediate(): void {
+export function nilImmediate(vm: VM): void {
   requireParserState();
-  compileSentinelLiteral(Sentinel.NIL);
+  compileSentinelLiteral(vm, Sentinel.NIL);
 }

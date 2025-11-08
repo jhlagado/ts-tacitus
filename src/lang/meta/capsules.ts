@@ -1,5 +1,5 @@
 import { SyntaxError, fromTaggedValue, Tag } from '@src/core';
-import { vm } from '../runtime';
+import type { VM } from '../../core/vm';
 import { getStackData, peek, pop, push } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
@@ -11,7 +11,7 @@ import { depth } from '../../core/vm';
  * - Swaps the definition closer with EndCapsule so the shared `;` will close the capsule body
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
-export function beginCapsuleImmediate(): void {
+export function beginCapsuleImmediate(vm: VM): void {
   if (depth(vm) === 0) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));
   }

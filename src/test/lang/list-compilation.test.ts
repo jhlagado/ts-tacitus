@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE } from '../../core';
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, VM } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { Op } from '../../ops/opcodes';
@@ -16,12 +16,14 @@ function decodeFloatLE(bytes: number[], offset: number): number {
 }
 
 describe('LIST Literal Compilation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   it('compiles a simple LIST literal: ( 1 2 3 )', () => {
-    parse(new Tokenizer('( 1 2 3 )'));
+    parse(vm, new Tokenizer('( 1 2 3 )'));
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
@@ -45,7 +47,7 @@ describe('LIST Literal Compilation', () => {
   });
 
   it('compiles nested LIST literal: ( 1 ( 2 3 ) 4 )', () => {
-    parse(new Tokenizer('( 1 ( 2 3 ) 4 )'));
+    parse(vm, new Tokenizer('( 1 ( 2 3 ) 4 )'));
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
