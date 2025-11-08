@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM, toTaggedValue, Tag, createVM } from '../../core';
-import { STACK_BASE, CELL_SIZE } from '../../core/constants';
-import { findElement } from '../../ops/stack';
-import { push } from '../../core/vm';
+import { VM, toTaggedValue, Tag, createVM } from '../../../core';
+import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { findElement } from '../../../ops/stack';
+import { push } from '../../../core/vm';
 
 function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
   push(vm, toTaggedValue(value, tag));

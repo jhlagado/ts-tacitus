@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, type VM } from '../../core/vm';
-import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../core';
+import { createVM, type VM } from '../../../core/vm';
+import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../../core';
 import {
   defineBuiltin,
   defineCode,
@@ -9,10 +9,10 @@ import {
   mark,
   forget,
   define,
-} from '../../core/dictionary';
-import { createDataRef, createGlobalRef, decodeDataRef } from '../../core/refs';
-import { createCodeRef } from '../../core/code-ref';
-import { GLOBAL_BASE_CELLS } from '../../core/constants';
+} from '../../../core/dictionary';
+import { createDataRef, createGlobalRef, decodeDataRef } from '../../../core/refs';
+import { createCodeRef } from '../../../core/code-ref';
+import { GLOBAL_BASE_CELLS } from '../../../core/constants';
 
 describe('Dictionary payload types', () => {
   let vm: VM;
