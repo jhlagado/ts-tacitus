@@ -120,8 +120,10 @@ describe('Compound Variables - Empty Lists', () => {
 });
 
 describe('Compound Variables - Single Element Lists', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
     vm.debug = false;
   });
 

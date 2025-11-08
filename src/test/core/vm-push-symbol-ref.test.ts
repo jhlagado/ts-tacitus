@@ -5,8 +5,7 @@
  * that enables pushing symbol references directly onto the stack for unified dispatch.
  */
 
-import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
@@ -15,8 +14,10 @@ import { defineBuiltin, defineCode } from '../../core/dictionary';
 import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
 
 describe('VM pushSymbolRef method', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('built-in operations', () => {
@@ -64,7 +65,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     it('should push correct Tag.BUILTIN tagged value', () => {
-      resetVM();
+      vm = createVM();
 
       pushSymbolRef(vm, 'mul');
 

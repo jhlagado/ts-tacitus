@@ -1,12 +1,13 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
-import { vm } from '../utils/vm-test-utils';
-import { resetVM } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { push, rpush } from '../../core/vm';
 
 describe('VM absolute registers (Phase B shims)', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('sp/rsp/bp/gp reflect absolute cell indices after reset', () => {

@@ -6,17 +6,18 @@
  * without any language changes - pure VM-level testing.
  */
 
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
-import { resetVM } from '../utils/vm-test-utils';
 import { createBuiltinRef } from '../../core';
 import { toTaggedValue, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
 
 describe('VM Unified Dispatch', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('Tag.BUILTIN dispatch via evalOp', () => {
@@ -66,7 +67,7 @@ describe('VM Unified Dispatch', () => {
       const nonExecutableValues = [42, toTaggedValue(100, Tag.STRING), toTaggedValue(5, Tag.LIST)];
 
       nonExecutableValues.forEach(value => {
-        resetVM();
+        vm = createVM();
         push(vm, value);
 
         evalOp(vm);

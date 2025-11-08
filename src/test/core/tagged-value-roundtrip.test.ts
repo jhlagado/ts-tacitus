@@ -1,11 +1,13 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { toTaggedValue, fromTaggedValue, Tag } from '../../core/tagged';
-
-import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 
 describe('dictionary-only builtins', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
   test('convert to tagged value and decode from 0 to 1000', () => {
     vm.gp = 0;
     for (let i = 0; i <= 1000; i++) {

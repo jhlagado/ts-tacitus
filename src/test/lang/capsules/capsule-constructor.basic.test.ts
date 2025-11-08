@@ -1,5 +1,5 @@
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM, executeTacitWithState } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
+import { executeTacitWithState } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import {
   fromTaggedValue,
@@ -12,7 +12,11 @@ import {
 import { CELL_SIZE } from '../../../core/constants';
 
 describe('Capsule constructor (language-level) — minimal to locals', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test('zero locals: capsule returns return-stack DATA_REF handle; layout LIST:1 (CODE only)', () => {
     const code = `
@@ -21,7 +25,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
         ;
         mk
     `;
-    const state = executeTacitWithState(code);
+    const state = executeTacitWithState(vm, code);
     expect(state.stack.length).toBe(1);
     const handle = state.stack[0];
     const { tag } = fromTaggedValue(handle);
@@ -45,7 +49,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
         ;
         mk2
     `;
-    const state = executeTacitWithState(code);
+    const state = executeTacitWithState(vm, code);
     expect(state.stack.length).toBe(1);
     const handle = state.stack[0];
     const { tag } = fromTaggedValue(handle);

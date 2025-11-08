@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { resetVM } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 
 function captureOutput(run: () => void): string[] {
   const logs: string[] = [];
@@ -16,12 +16,14 @@ function captureOutput(run: () => void): string[] {
 }
 
 describe('Forth-style word redefinition (shadowing)', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('redefinition shadows previous and new body can call old one', () => {
-    const out = captureOutput(() => executeProgram(': x 123 . ; x : x x x ; x'));
+    const out = captureOutput(() => executeProgram(vm, ': x 123 . ; x : x x x ; x'));
     expect(out).toEqual(['123', '123', '123']);
   });
 });

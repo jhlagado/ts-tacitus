@@ -1,11 +1,13 @@
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { formatAtomicValue, formatValue, formatList } from '../../core';
 import { Tag, toTaggedValue, createDataRef, SEG_DATA, STACK_BASE, CELL_SIZE } from '../../core';
 import { push } from '../../core/vm';
 
 describe('format-utils additional coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   test('formats near-integer floats by rounding', () => {

@@ -18,12 +18,14 @@ import {
   GLOBAL_BASE,
   STACK_BASE,
 } from '../../core';
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { fetchOp, storeOp } from '../../ops/lists';
 
 describe('DATA_REF utilities', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
   });
 
   test('createDataRef encodes absolute cell indices and region classification', () => {

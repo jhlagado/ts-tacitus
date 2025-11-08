@@ -1,12 +1,14 @@
 import { Tag, toTaggedValue } from '../../../core';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { assertCapsuleShape } from '../../../ops/capsules/assertions';
-import { resetVM, pushTestList } from '../../utils/vm-test-utils';
+import { pushTestList } from '../../utils/vm-test-utils';
 import { push, peek } from '../../../core/vm';
 
 describe('capsule assertions', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('accepts well-formed capsule', () => {

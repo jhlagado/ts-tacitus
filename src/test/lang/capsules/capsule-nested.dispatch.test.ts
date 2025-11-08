@@ -5,8 +5,6 @@ import { createVM, VM } from '../../../core';
 describe('Nested capsules - outer dispatch triggers inner dispatch', () => {
   let vm: VM;
 
-  let vm: VM;
-
   beforeEach(() => {
     vm = createVM();
   });

@@ -16,7 +16,6 @@ describe('Reference Formatting', () => {
     try {
       executeTacitCode(
         vm,
-        vm,
         `
         : test-local-ref (1 2 3) var x x . ;
         test-local-ref
@@ -52,7 +51,6 @@ describe('Reference Formatting', () => {
 
     try {
       executeTacitCode(
-        vm,
         vm,
         `
         : test-simple-ref 42 var x x . ;

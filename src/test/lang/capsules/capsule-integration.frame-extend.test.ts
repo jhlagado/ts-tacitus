@@ -5,8 +5,6 @@ import { createVM, VM } from '../../../core';
 describe('Capsule stored in function local (frame extension)', () => {
   let vm: VM;
 
-  let vm: VM;
-
   beforeEach(() => {
     vm = createVM();
   });

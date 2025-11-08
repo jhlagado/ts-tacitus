@@ -1,11 +1,14 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { resetVM } from '../utils/vm-test-utils';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { Tag, fromTaggedValue, toTaggedValue } from '../../core';
 import { defineBuiltin, lookup, mark, forget } from '../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test('defineBuiltin then lookup returns BUILTIN with opcode', () => {
     const name = 'my-add-op';

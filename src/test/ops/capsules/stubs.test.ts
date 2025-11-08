@@ -1,4 +1,4 @@
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import {
   exitConstructorOp,
   exitDispatchOp,
@@ -6,12 +6,13 @@ import {
   endCapsuleOp,
 } from '../../../ops/capsules/capsule-ops';
 import { decodeDataRef, RSTACK_BASE, CELL_SIZE } from '../../../core';
-import { resetVM } from '../../utils/vm-test-utils';
 import { rpush, peek } from '../../../core/vm';
 
 describe('capsule opcode stubs', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('exitConstructorOp produces capsule handle and restores caller', () => {

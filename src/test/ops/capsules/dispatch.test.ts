@@ -1,5 +1,4 @@
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
 import {
   Tag,
@@ -12,7 +11,11 @@ import {
 import { push, rpush, getStackData } from '../../../core/vm';
 
 describe('capsule dispatch runtime', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   const pushCapsuleOnRStack = (locals: number[], codeAddr: number) => {
     // Caller frame begins at current RSP; append locals, CODE, LIST on RSTACK

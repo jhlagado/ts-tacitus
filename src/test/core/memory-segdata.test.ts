@@ -1,12 +1,13 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../utils/vm-test-utils';
-import { resetVM } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { SEG_DATA, CELL_SIZE } from '../../core/constants';
 import { push, rpush } from '../../core/vm';
 
 describe('SEG_DATA unified access (Phase B)', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('read stack TOS via SEG_DATA', () => {

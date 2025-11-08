@@ -1,5 +1,4 @@
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import { push, rpush } from '../../../core/vm';
 import {
@@ -12,8 +11,10 @@ import {
 } from '../../../core';
 
 describe('capsule layout (handle-based)', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   const pushCapsuleLike = (locals: number[], codeAddr: number) => {
