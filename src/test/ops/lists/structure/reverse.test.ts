@@ -5,11 +5,14 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
+import { executeTacitCode } from '../../../utils/vm-test-utils';
+import { createVM, VM } from '../../../../core';
 
 describe('List reverse operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('reverse empty list returns empty list', () => {

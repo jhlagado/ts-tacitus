@@ -110,7 +110,6 @@ describe('Core Operations Branch Coverage', () => {
       // Test function definition and calling to hit return branches
       const result = executeTacitCode(
         vm,
-        vm,
         `
         : test-func 42 ;
         test-func
@@ -122,7 +121,6 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should exercise eval with colon definition', () => {
       const result = executeTacitCode(
-        vm,
         vm,
         `
         : inc 1 add ;
@@ -136,7 +134,6 @@ describe('Core Operations Branch Coverage', () => {
     test('should exercise function calls', () => {
       // Test function calls to hit return scenarios
       const result = executeTacitCode(
-        vm,
         vm,
         `
         : test-func 42 ;

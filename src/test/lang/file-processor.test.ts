@@ -2,24 +2,19 @@ const originalExit = process.exit;
 
 jest.mock('fs');
 jest.mock('path');
-jest.mock('../../lang/executor');
+jest.mock('../../lang/parser');
+jest.mock('../../lang/interpreter');
 
 const mockExit = jest.fn();
 
 process.exit = mockExit as unknown as typeof process.exit;
 
-jest.mock('../../lang/file-processor', () => {
-  const actual = jest.requireActual('../../lang/file-processor');
-  return {
-    ...actual,
-    processFile: jest.fn((filePath: string) => actual.processFile(filePath)),
-  };
-});
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { processFile, processFiles, TACIT_FILE_EXTENSION } from '../../lang/file-processor';
-import { executeLine, setupInterpreter } from '../../lang/executor';
+import { createVM } from '../../core';
+import { parse } from '../../lang/parser';
+import { execute } from '../../lang/interpreter';
 
 const originalConsoleLog = console.log;
 
@@ -45,21 +40,28 @@ describe('processFile', () => {
   test('should add .tacit extension when missing', () => {
     (fs.readFileSync as jest.Mock).mockReturnValue('test content');
     (path.extname as jest.Mock).mockReturnValue('');
-    processFile('testfile');
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {});
+    const vm = createVM();
+    processFile(vm, 'testfile');
     expect(fs.existsSync).toHaveBeenCalledWith(`/resolved/testfile${TACIT_FILE_EXTENSION}`);
   });
 
   test('should not add .tacit extension when already present', () => {
     (fs.readFileSync as jest.Mock).mockReturnValue('test content');
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
-    processFile('testfile' + TACIT_FILE_EXTENSION);
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {});
+    const vm = createVM();
+    processFile(vm, 'testfile' + TACIT_FILE_EXTENSION);
     expect(fs.existsSync).toHaveBeenCalledWith(`/resolved/testfile${TACIT_FILE_EXTENSION}`);
   });
 
   test('should return false when file does not exist', () => {
     (fs.existsSync as jest.Mock).mockReturnValue(false);
     (path.extname as jest.Mock).mockReturnValue('');
-    const result = processFile('nonexistent');
+    const vm = createVM();
+    const result = processFile(vm, 'nonexistent');
     expect(result).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('File not found'));
   });
@@ -68,22 +70,26 @@ describe('processFile', () => {
     const fileContent = 'line1\n   \nline2';
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
-    processFile('file.tacit');
-    expect(executeLine).toHaveBeenCalledTimes(2);
-    expect(executeLine).toHaveBeenNthCalledWith(1, 'line1');
-    expect(executeLine).toHaveBeenNthCalledWith(2, 'line2');
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {});
+    const vm = createVM();
+    processFile(vm, 'file.tacit');
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(execute).toHaveBeenCalledTimes(2);
   });
 
   test('should return false on execution error', () => {
     const fileContent = 'line1\nline2\nline3';
     (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
     (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
-    (executeLine as jest.Mock)
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock)
       .mockImplementationOnce(() => {})
       .mockImplementationOnce(() => {
         throw new Error('Execution error');
       });
-    const result = processFile('file.tacit');
+    const vm = createVM();
+    const result = processFile(vm, 'file.tacit');
     expect(result).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error in file'));
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('at line 2:'));
@@ -94,7 +100,8 @@ describe('processFile', () => {
       throw new Error('Read error');
     });
     (path.extname as jest.Mock).mockReturnValue('');
-    const result = processFile('file');
+    const vm = createVM();
+    const result = processFile(vm, 'file');
     expect(result).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to read file'));
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Read error'));
@@ -106,7 +113,6 @@ describe('processFiles', () => {
     jest.clearAllMocks();
     console.log = jest.fn();
     console.error = jest.fn();
-    (setupInterpreter as jest.Mock).mockClear();
   });
 
   afterEach(() => {
@@ -118,8 +124,9 @@ describe('processFiles', () => {
     const mockProcessFile = jest.fn().mockReturnValue(true);
     const files = ['file1.tacit', 'file2.tacit'];
     const result = processFiles(files, true, mockProcessFile);
-    expect(setupInterpreter).toHaveBeenCalledTimes(1);
     expect(mockProcessFile).toHaveBeenCalledTimes(files.length);
+    expect(mockProcessFile).toHaveBeenNthCalledWith(1, expect.any(Object), 'file1.tacit');
+    expect(mockProcessFile).toHaveBeenNthCalledWith(2, expect.any(Object), 'file2.tacit');
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('All Tacit files processed successfully'),
     );
@@ -129,8 +136,8 @@ describe('processFiles', () => {
   test('should exit on first file error when exitOnError is true', () => {
     const mockProcessFile = jest
       .fn()
-      .mockImplementationOnce(() => true)
-      .mockImplementationOnce(() => false);
+      .mockImplementationOnce((_vm, _file) => true)
+      .mockImplementationOnce((_vm, _file) => false);
     const files = ['file1.tacit', 'file2.tacit', 'file3.tacit'];
     const result = processFiles(files, true, mockProcessFile);
     expect(mockProcessFile).toHaveBeenCalledTimes(2);
@@ -144,9 +151,9 @@ describe('processFiles', () => {
   test('should not exit on file error when exitOnError is false', () => {
     const mockProcessFile = jest
       .fn()
-      .mockImplementationOnce(() => true)
-      .mockImplementationOnce(() => false)
-      .mockImplementationOnce(() => true);
+      .mockImplementationOnce((_vm, _file) => true)
+      .mockImplementationOnce((_vm, _file) => false)
+      .mockImplementationOnce((_vm, _file) => true);
     const files = ['file1.tacit', 'file2.tacit', 'file3.tacit'];
     const result = processFiles(files, false, mockProcessFile);
     expect(mockProcessFile).toHaveBeenCalledTimes(2);

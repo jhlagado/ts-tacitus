@@ -10,8 +10,11 @@
  */
 
 import { createInterface } from 'readline';
-import { executeLine, setupInterpreter } from './executor';
-
+import type { VM } from '../core/vm';
+import { createVM } from '../core/vm';
+import { parse } from './parser';
+import { execute } from './interpreter';
+import { Tokenizer } from './tokenizer';
 import { processFile } from './file-processor';
 
 /**
@@ -30,13 +33,13 @@ import { processFile } from './file-processor';
  * @param {boolean} [interactiveAfterFiles=true] - Whether to start an interactive session after loading files
  */
 export function startREPL(files: string[] = [], interactiveAfterFiles = true): void {
-  setupInterpreter();
+  const vm = createVM();
   let allFilesProcessed = true;
   if (files.length > 0) {
     // eslint-disable-next-line no-console
     console.log(`Loading ${files.length} file(s)...`);
     for (const file of files) {
-      const success = processFile(file);
+      const success = processFile(vm, file);
       if (!success) {
         console.error(`Error processing file: ${file}`);
         allFilesProcessed = false;
@@ -77,7 +80,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     if (command.startsWith('load ')) {
       const filePath = command.substring(5).trim();
       try {
-        const success = processFile(filePath);
+        const success = processFile(vm, filePath);
         if (!success) {
           // eslint-disable-next-line no-console
           console.log('File processing encountered errors but REPL will continue.');
@@ -93,29 +96,17 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
       return;
     }
 
-    let _threw = false;
     try {
-      executeLine(command);
+      const tokenizer = new Tokenizer(command);
+      parse(vm, tokenizer);
+      execute(vm, vm.compiler.BCP);
     } catch (error) {
-      _threw = true;
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
       } else {
         // eslint-disable-next-line no-console
         console.error('Unknown error occurred');
       }
-    }
-    // If executeLine is a jest mock function and it didn't throw, tests rely on
-    // the REPL reporting an 'Unknown error occurred' for unrecognized input.
-    // Detect mock functions by Jest's _isMockFunction flag.
-    // This is a small test-friendly compatibility shim.
-    if (
-      !_threw &&
-      typeof executeLine === 'function' &&
-      '_isMockFunction' in executeLine &&
-      (executeLine as unknown as { _isMockFunction?: boolean })._isMockFunction
-    ) {
-      console.error('Unknown error occurred');
     }
     rl.prompt();
   });

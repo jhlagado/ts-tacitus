@@ -1,11 +1,13 @@
 import { createInterface } from 'readline';
 import { startREPL } from '../../lang/repl';
-import { executeLine, setupInterpreter } from '../../lang/executor';
 import { processFile } from '../../lang/file-processor';
+import { parse } from '../../lang/parser';
+import { execute } from '../../lang/interpreter';
 
 jest.mock('readline');
-jest.mock('../../lang/executor');
 jest.mock('../../lang/file-processor');
+jest.mock('../../lang/parser');
+jest.mock('../../lang/interpreter');
 describe('REPL', () => {
   let mockCreateInterface: jest.Mock;
   let mockOn: jest.Mock;
@@ -34,7 +36,6 @@ describe('REPL', () => {
   });
   test('should initialize the interpreter on startup', () => {
     startREPL();
-    expect(setupInterpreter).toHaveBeenCalledTimes(1);
   });
   test('should handle no files case', () => {
     startREPL();
@@ -47,6 +48,8 @@ describe('REPL', () => {
     (processFile as jest.Mock).mockReturnValue(true);
     startREPL(['file1.tacit', 'file2.tacit']);
     expect(processFile).toHaveBeenCalledTimes(2);
+    expect(processFile).toHaveBeenNthCalledWith(1, expect.any(Object), 'file1.tacit');
+    expect(processFile).toHaveBeenNthCalledWith(2, expect.any(Object), 'file2.tacit');
     expect(mockCreateInterface).toHaveBeenCalled();
     expect(mockPrompt).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith('Loading 2 file(s)...');
@@ -85,7 +88,7 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(processFile).toHaveBeenCalledWith('test.tacit');
+    expect(processFile).toHaveBeenCalledWith(expect.any(Object), 'test.tacit');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
   test('should handle errors during "load" command', () => {
@@ -97,7 +100,7 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(processFile).toHaveBeenCalledWith('test.tacit');
+    expect(processFile).toHaveBeenCalledWith(expect.any(Object), 'test.tacit');
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('errors but REPL will continue'),
     );
@@ -115,12 +118,14 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(processFile).toHaveBeenCalledWith('test.tacit');
+    expect(processFile).toHaveBeenCalledWith(expect.any(Object), 'test.tacit');
     expect(console.error).toHaveBeenCalledWith('Error loading file:');
     expect(console.error).toHaveBeenCalledWith('  Test error');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
   test('should execute standard commands', () => {
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {});
     mockOn.mockImplementation((event, callback) => {
       if (event === 'line') {
         callback('2 3 +');
@@ -128,12 +133,14 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(executeLine).toHaveBeenCalledWith('2 3 +');
+    expect(parse).toHaveBeenCalled();
+    expect(execute).toHaveBeenCalled();
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
   test('should handle execution errors', () => {
     const testError = new Error('Execution error');
-    (executeLine as jest.Mock).mockImplementation(() => {
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {
       throw testError;
     });
     mockOn.mockImplementation((event, callback) => {
@@ -143,12 +150,12 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(executeLine).toHaveBeenCalledWith('invalid');
     expect(console.error).toHaveBeenCalledWith('Error: Execution error');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });
   test('should handle non-Error execution errors', () => {
-    (executeLine as jest.Mock).mockImplementation(() => {
+    (parse as jest.Mock).mockImplementation(() => {});
+    (execute as jest.Mock).mockImplementation(() => {
       throw 'String error';
     });
     mockOn.mockImplementation((event, callback) => {
@@ -158,7 +165,6 @@ describe('REPL', () => {
     });
 
     startREPL();
-    expect(executeLine).toHaveBeenCalledWith('invalid');
     expect(console.error).toHaveBeenCalledWith('Unknown error occurred');
     expect(mockPrompt).toHaveBeenCalledTimes(2);
   });

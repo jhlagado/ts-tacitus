@@ -15,11 +15,11 @@
  */
 
 import { executeOp } from '../ops/builtins';
-import { vm } from './runtime';
 import { parse } from './parser';
 import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE_CELLS } from '@src/core';
 import { Tokenizer } from './tokenizer';
 import { nextOpcode, getStackData, rpush } from '../core/vm';
+import type { VM } from '../core/vm';
 
 // SEG_CODE imported from @src/core
 
@@ -35,11 +35,12 @@ import { nextOpcode, getStackData, rpush } from '../core/vm';
  * The execution can be configured to break when reaching a specific instruction
  * address, which is useful for debugging and implementing breakpoints.
  *
+ * @param {VM} vm - The VM instance to execute on
  * @param {number} start - The starting address (instruction pointer) for execution
  * @param {number} [breakAtIP] - Optional address at which to halt execution
  * @throws {Error} If an invalid opcode is encountered or execution fails
  */
-export function execute(start: number): void {
+export function execute(vm: VM, start: number): void {
   vm.IP = start;
   vm.running = true;
 
@@ -87,12 +88,12 @@ console.log((error as Error).stack);
  * This function provides a high-level entry point for running Tacit programs.
  * It tokenizes and parses the input code, then executes the resulting bytecode.
  *
+ * @param {VM} vm - The VM instance to use
  * @param {string} code - The Tacit source code to execute
  */
-export function executeProgram(code: string): void {
-  parse(new Tokenizer(code));
-
-  execute(0);
+export function executeProgram(vm: VM, code: string): void {
+  parse(vm, new Tokenizer(code));
+  execute(vm, vm.compiler.BCP);
 }
 
 /**

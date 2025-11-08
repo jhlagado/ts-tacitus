@@ -5,13 +5,11 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import {
   executeTacitCode,
-  resetVM,
   extractListFromStack,
   getFormattedStack,
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
-import { fromTaggedValue, Tag } from '../../../core';
-import { vm } from '../../utils/vm-test-utils';
+import { fromTaggedValue, Tag, createVM, VM } from '../../../core';
 import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
@@ -41,8 +39,10 @@ function expectTopIsListWith(values: number[], stack: number[]) {
 }
 
 describe('Ref-to-list assignment fast path', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('`&x -> y` copies list without materializing x', () => {
@@ -56,7 +56,7 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     executeTacitCode(vm, code);
-    const formatted = getFormattedStack();
+    const formatted = getFormattedStack(vm);
     // Expect top-of-stack is a LIST:3 with payload 3,2,1 beneath it
     expect(formatted.slice(-4)).toEqual(['3', '2', '1', 'LIST:3']);
   });

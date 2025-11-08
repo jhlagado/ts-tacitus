@@ -1,23 +1,23 @@
-import { executeLine, setupInterpreter } from '../../lang/executor';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 import { Tokenizer } from '../../lang/tokenizer';
-import * as runtime from '../../lang/runtime';
+import { createVM, VM } from '../../core';
 
 jest.mock('../../lang/parser');
 jest.mock('../../lang/interpreter');
 jest.mock('../../lang/tokenizer');
-jest.mock('../../lang/runtime', () => ({
-  setupRuntime: jest.fn(),
-  initializeInterpreter: jest.fn(),
-  vm: {
-    compiler: {
-      BCP: 123,
-    },
-  },
-}));
+
+function executeLine(vm: VM, input: string): void {
+  const tokenizer = new Tokenizer(input);
+  parse(vm, tokenizer);
+  execute(vm, vm.compiler.BCP);
+}
+
 describe('Executor', () => {
+  let vm: VM;
+
   beforeEach(() => {
+    vm = createVM();
     jest.clearAllMocks();
     (Tokenizer as jest.Mock).mockImplementation(() => ({ input: '' }));
     (parse as jest.Mock).mockImplementation(() => {});
@@ -27,10 +27,10 @@ describe('Executor', () => {
     test('should tokenize, parse, and execute the input', () => {
       const input = '2 3 +';
       (Tokenizer as jest.Mock).mockImplementation(() => ({ input }));
-      executeLine(input);
+      executeLine(vm, input);
       expect(Tokenizer).toHaveBeenCalledWith(input);
-      expect(parse).toHaveBeenCalledWith(expect.objectContaining({ input }));
-      expect(execute).toHaveBeenCalledWith(123);
+      expect(parse).toHaveBeenCalledWith(vm, expect.objectContaining({ input }));
+      expect(execute).toHaveBeenCalledWith(vm, vm.compiler.BCP);
     });
     test('should propagate errors from tokenizer', () => {
       const input = 'invalid';
@@ -39,7 +39,7 @@ describe('Executor', () => {
         throw error;
       });
 
-      expect(() => executeLine(input)).toThrow('Tokenizer error');
+      expect(() => executeLine(vm, input)).toThrow('Tokenizer error');
       expect(parse).not.toHaveBeenCalled();
       expect(execute).not.toHaveBeenCalled();
     });
@@ -49,7 +49,7 @@ describe('Executor', () => {
         throw new Error('Parser error');
       });
 
-      expect(() => executeLine(input)).toThrow('Parser error');
+      expect(() => executeLine(vm, input)).toThrow('Parser error');
       expect(execute).not.toHaveBeenCalled();
     });
     test('should propagate errors from execute', () => {
@@ -58,17 +58,10 @@ describe('Executor', () => {
         throw new Error('Execute error');
       });
 
-      expect(() => executeLine(input)).toThrow('Execute error');
+      expect(() => executeLine(vm, input)).toThrow('Execute error');
     });
     test('should handle empty input gracefully', () => {
-      expect(() => executeLine('')).not.toThrow();
-    });
-  });
-  describe('setupInterpreter', () => {
-    test('should call initializeInterpreter', () => {
-      jest.clearAllMocks();
-      setupInterpreter();
-      expect(runtime.initializeInterpreter).toHaveBeenCalledTimes(1);
+      expect(() => executeLine(vm, '')).not.toThrow();
     });
   });
 });

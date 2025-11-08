@@ -3,10 +3,13 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode } from '../../../utils/vm-test-utils';
+import { createVM, VM } from '../../../../core';
 
 describe('Polymorphic concat Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    // Test setup if needed
+    vm = createVM();
   });
 
   describe('Type dispatch verification', () => {
