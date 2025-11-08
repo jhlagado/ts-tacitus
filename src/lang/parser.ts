@@ -18,8 +18,8 @@
  */
 
 import { Op } from '../ops/opcodes';
-import { vm } from './runtime';
 import { getStackData } from '../core/vm';
+import type { VM } from '../core/vm';
 import type { Token, Tokenizer } from './tokenizer';
 import { TokenType } from './tokenizer';
 import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL, UndefinedWordError, SyntaxError } from '@src/core';
@@ -36,9 +36,10 @@ import { lookup, defineLocal } from '../core/dictionary';
  * This function initializes the parser state, processes the entire program,
  * validates the final state, and adds an abort instruction at the end.
  *
+ * @param {VM} vm - The VM instance to use for compilation
  * @param {Tokenizer} tokenizer - The tokenizer that provides the stream of tokens to parse
  */
-export function parse(tokenizer: Tokenizer): void {
+export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.compiler.reset();
 
   const state: ParserState = {

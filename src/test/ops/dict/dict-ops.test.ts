@@ -27,7 +27,6 @@ describe('Heap-backed dictionary ops', () => {
   test('mark + forget removes entries after mark', () => {
     const stack = executeTacitCode(
       vm,
-      vm,
       "1 'a define mark 2 'b define forget 'b lookup 'a lookup fetch",
     );
     expect(stack).toEqual([NIL, 1]);

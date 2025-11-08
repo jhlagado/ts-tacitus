@@ -1,5 +1,5 @@
-import { vm } from '../../utils/vm-test-utils';
-import { executeProgram } from '../../../lang/interpreter';
+import { createVM, VM } from '../../../core';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import { push, pop, getStackData } from '../../../core/vm';
 import {
   addOp,
@@ -18,11 +18,12 @@ import {
   logOp,
   sqrtOp,
 } from '../../../ops/math';
-import { resetVM } from '../../utils/vm-test-utils';
 
 describe('Arithmetic Operations', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {
@@ -323,103 +324,103 @@ describe('Arithmetic Operations', () => {
 
   describe('integration tests', () => {
     test('should handle add operation with Tacit syntax', () => {
-      executeProgram('5 3 add');
+      executeTacitCode(vm, '5 3 add');
       expect(getStackData(vm)).toEqual([8]);
     });
 
     test('should handle sub operation with Tacit syntax', () => {
-      executeProgram('10 4 sub');
+      executeTacitCode(vm, '10 4 sub');
       expect(getStackData(vm)).toEqual([6]);
     });
 
     test('should handle mul operation with Tacit syntax', () => {
-      executeProgram('5 4 mul');
+      executeTacitCode(vm, '5 4 mul');
       expect(getStackData(vm)).toEqual([20]);
     });
 
     test('should handle div operation with Tacit syntax', () => {
-      executeProgram('10 2 div');
+      executeTacitCode(vm, '10 2 div');
       expect(getStackData(vm)).toEqual([5]);
     });
 
     test('should handle min operation with Tacit syntax', () => {
-      executeProgram('10 5 min');
+      executeTacitCode(vm, '10 5 min');
       expect(getStackData(vm)).toEqual([5]);
-      resetVM();
-      executeProgram('3 8 min');
+      vm = createVM();
+      executeTacitCode(vm, '3 8 min');
       expect(getStackData(vm)).toEqual([3]);
     });
 
     test('should handle max operation with Tacit syntax', () => {
-      executeProgram('10 5 max');
+      executeTacitCode(vm, '10 5 max');
       expect(getStackData(vm)).toEqual([10]);
-      resetVM();
-      executeProgram('3 8 max');
+      vm = createVM();
+      executeTacitCode(vm, '3 8 max');
       expect(getStackData(vm)).toEqual([8]);
     });
 
     test('should handle pow operation with Tacit syntax', () => {
-      executeProgram('2 3 pow');
+      executeTacitCode(vm, '2 3 pow');
       expect(getStackData(vm)).toEqual([8]);
     });
 
     test('should handle eq operation with Tacit syntax', () => {
-      executeProgram('5 5 eq');
+      executeTacitCode(vm, '5 5 eq');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('5 6 eq');
+      vm = createVM();
+      executeTacitCode(vm, '5 6 eq');
       expect(getStackData(vm)).toEqual([0]);
     });
 
     test('should handle lt operation with Tacit syntax', () => {
-      executeProgram('5 10 lt');
+      executeTacitCode(vm, '5 10 lt');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('10 5 lt');
+      vm = createVM();
+      executeTacitCode(vm, '10 5 lt');
       expect(getStackData(vm)).toEqual([0]);
-      resetVM();
-      executeProgram('5 5 lt');
+      vm = createVM();
+      executeTacitCode(vm, '5 5 lt');
       expect(getStackData(vm)).toEqual([0]);
     });
 
     test('should handle le operation with Tacit syntax', () => {
-      executeProgram('5 10 le');
+      executeTacitCode(vm, '5 10 le');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('10 5 le');
+      vm = createVM();
+      executeTacitCode(vm, '10 5 le');
       expect(getStackData(vm)).toEqual([0]);
-      resetVM();
-      executeProgram('5 5 le');
+      vm = createVM();
+      executeTacitCode(vm, '5 5 le');
       expect(getStackData(vm)).toEqual([1]);
     });
 
     test('should handle gt operation with Tacit syntax', () => {
-      executeProgram('10 5 gt');
+      executeTacitCode(vm, '10 5 gt');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('5 10 gt');
+      vm = createVM();
+      executeTacitCode(vm, '5 10 gt');
       expect(getStackData(vm)).toEqual([0]);
-      resetVM();
-      executeProgram('5 5 gt');
+      vm = createVM();
+      executeTacitCode(vm, '5 5 gt');
       expect(getStackData(vm)).toEqual([0]);
     });
 
     test('should handle ge operation with Tacit syntax', () => {
-      executeProgram('10 5 ge');
+      executeTacitCode(vm, '10 5 ge');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('5 10 ge');
+      vm = createVM();
+      executeTacitCode(vm, '5 10 ge');
       expect(getStackData(vm)).toEqual([0]);
-      resetVM();
-      executeProgram('5 5 ge');
+      vm = createVM();
+      executeTacitCode(vm, '5 5 ge');
       expect(getStackData(vm)).toEqual([1]);
     });
 
     test('should handle mod operation with Tacit syntax', () => {
-      executeProgram('10 3 mod');
+      executeTacitCode(vm, '10 3 mod');
       expect(getStackData(vm)).toEqual([1]);
-      resetVM();
-      executeProgram('10 5 mod');
+      vm = createVM();
+      executeTacitCode(vm, '10 5 mod');
       expect(getStackData(vm)).toEqual([0]);
     });
   });

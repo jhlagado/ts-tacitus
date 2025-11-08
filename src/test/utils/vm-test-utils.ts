@@ -23,24 +23,14 @@ import { getStackData, push as pushFn } from '../../core/vm';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
-import { setupRuntime, vm as runtimeVM } from '../../lang/runtime';
 
 /**
  * Execute Tacit code and return final stack state.
- * Creates a fresh VM for each execution to avoid state pollution.
+ * Uses the provided VM instance directly.
  */
 export function executeTacitCode(vm: VM, code: string): number[] {
-  // Create a fresh VM for this execution to avoid state pollution
-  const freshVM = createVM();
-  // Parser uses runtime VM, so sync fresh VM to it
-  setupRuntime();
-  Object.assign(runtimeVM, freshVM);
-  parse(new Tokenizer(code));
-  execute(runtimeVM.compiler.BCP);
-  // Sync back to get execution results
-  Object.assign(freshVM, runtimeVM);
-  // Update the passed VM with results
-  Object.assign(vm, freshVM);
+  parse(vm, new Tokenizer(code));
+  execute(vm, vm.compiler.BCP);
   return getStackData(vm);
 }
 
@@ -70,11 +60,8 @@ export function captureVMState(vm: VM): VMStateSnapshot {
 }
 
 export function executeTacitWithState(vm: VM, code: string): VMStateSnapshot {
-  setupRuntime();
-  Object.assign(runtimeVM, vm);
-  parse(new Tokenizer(code));
-  execute(runtimeVM.compiler.BCP);
-  Object.assign(vm, runtimeVM);
+  parse(vm, new Tokenizer(code));
+  execute(vm, vm.compiler.BCP);
   return captureVMState(vm);
 }
 
@@ -367,9 +354,9 @@ export function logStack(stack: number[], label = 'Stack'): void {
  * Expect operation to throw stack underflow
  */
 export function expectStackUnderflow(operation: (vm: VM) => void): void {
-  const testVm = createVM();
+  const vm = createVM();
   expect(() => {
-    operation(testVm);
+    operation(vm);
   }).toThrow(/underflow|not enough/i);
 }
 

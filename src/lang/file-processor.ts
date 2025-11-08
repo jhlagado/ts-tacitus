@@ -11,7 +11,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { executeLine, setupInterpreter } from './executor';
+import type { VM } from '../core/vm';
+import { createVM } from '../core/vm';
+import { parse } from './parser';
+import { execute } from './interpreter';
+import { Tokenizer } from './tokenizer';
 
 /** The standard file extension for Tacit source files */
 export const TACIT_FILE_EXTENSION = '.tacit';
@@ -40,10 +44,11 @@ function ensureFileExtension(filePath: string): string {
  * It skips empty lines and comments (lines starting with \\). If an error occurs during
  * execution, it reports the error with the line number and returns false.
  *
+ * @param {VM} vm - The VM instance to use for execution
  * @param {string} filePath - The path to the Tacit file to process
  * @returns {boolean} True if the file was processed successfully, false if errors occurred
  */
-export function processFile(filePath: string): boolean {
+export function processFile(vm: VM, filePath: string): boolean {
   const filePathWithExt = ensureFileExtension(filePath);
   try {
     const absolutePath = path.resolve(filePathWithExt);
@@ -61,7 +66,9 @@ export function processFile(filePath: string): boolean {
       }
 
       try {
-        executeLine(line);
+        const tokenizer = new Tokenizer(line);
+        parse(vm, tokenizer);
+        execute(vm, vm.compiler.BCP);
       } catch (error) {
         console.error(`Error in file ${filePathWithExt} at line ${i + 1}:`);
         if (error instanceof Error) {
@@ -87,24 +94,25 @@ export function processFile(filePath: string): boolean {
 /**
  * Processes multiple Tacit files in sequence.
  *
- * This function initializes the interpreter environment and then processes each file
- * in the provided array. If a file fails to process and exitOnError is true, the process
- * will exit with an error code. Otherwise, it will continue with the next file.
+ * This function creates a VM and then processes each file in the provided array.
+ * If a file fails to process and exitOnError is true, the process will exit with
+ * an error code. Otherwise, it will continue with the next file.
  *
  * @param {string[]} files - Array of file paths to process
  * @param {boolean} [exitOnError=true] - Whether to exit the process if an error occurs
- * @param {Function} [processFileFn=processFile] - Function to use for processing each file
+ * @param {Function} [processFileFn] - Function to use for processing each file
  * @returns {boolean} True if all files were processed successfully, false otherwise
  */
 export function processFiles(
   files: string[],
   exitOnError = true,
-  processFileFn: (filePath: string) => boolean = processFile,
+  processFileFn?: (vm: VM, filePath: string) => boolean,
 ): boolean {
-  setupInterpreter();
+  const vm = createVM();
+  const fn = processFileFn || processFile;
   let allSucceeded = true;
   for (const file of files) {
-    const success = processFileFn(file);
+    const success = fn(vm, file);
     if (!success) {
       allSucceeded = false;
       // eslint-disable-next-line no-console

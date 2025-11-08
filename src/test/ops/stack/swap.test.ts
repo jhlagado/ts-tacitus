@@ -1,12 +1,14 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
-import { vm } from '../../utils/vm-test-utils';
 import { swapOp } from '../../../ops/stack';
-import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';
+import { createVM, VM } from '../../../core';
 
 describe('swap Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {

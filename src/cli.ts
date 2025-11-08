@@ -15,8 +15,6 @@
 import { startREPL } from './lang/repl';
 import { processFiles } from './lang/file-processor';
 
-import { initializeInterpreter } from './lang/runtime';
-
 /**
  * Main entry point for the CLI.
  *
@@ -41,7 +39,6 @@ import { initializeInterpreter } from './lang/runtime';
  * $ node dist/cli.js examples/file1.tacit examples/file2.tacit --no-interactive
  */
 export function main(): void {
-  initializeInterpreter();
   const args = process.argv.slice(2);
   const noInteractiveIndex = args.indexOf('--no-interactive');
   const interactiveAfterFiles = noInteractiveIndex === -1;

@@ -3,16 +3,10 @@
  */
 import { jest } from '@jest/globals';
 
-// Mock executor and file-processor to avoid side-effects and I/O
-jest.mock('../../lang/executor', () => ({
-  setupInterpreter: jest.fn(),
-  executeLine: jest.fn(),
-}));
-
 // Keep typing simple to avoid TS generic issues across ts-jest
 const processFileMock = jest.fn();
 jest.mock('../../lang/file-processor', () => ({
-  processFile: (file: string) => processFileMock(file),
+  processFile: (vm: unknown, file: string) => processFileMock(file),
 }));
 
 import { startREPL } from '../../lang/repl';

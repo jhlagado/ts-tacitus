@@ -1,11 +1,14 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { executeTacitCode, resetVM } from '../../../utils/vm-test-utils';
+import { executeTacitCode } from '../../../utils/vm-test-utils';
+import { createVM, VM } from '../../../../core';
 
 // Head/Tail behavioral tests. Uncons is intentionally skipped/pending.
 
 describe('List structure operations: head/tail', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   test('head on simple list returns first element (top of stack)', () => {

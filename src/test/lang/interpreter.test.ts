@@ -82,8 +82,7 @@ describe('Interpreter', () => {
       expect(errorMessage).toContain('Invalid opcode: 110');
     });
     test('should handle non-Error exceptions', () => {
-      const addOpModule = require('../../ops/math/arithmetic-ops');
-      jest.spyOn(addOpModule, 'addOp').mockImplementation(() => {
+      jest.spyOn({ addOp }, 'addOp').mockImplementation(() => {
         throw 'Raw string error';
       });
       expect(() => executeTacitCode(vm, '5 3 add')).toThrow('Error executing word (stack: [5,3])');
@@ -131,8 +130,11 @@ describe('Interpreter', () => {
 
   describe('Colon definitions', () => {
     test('should execute simple colon definition', () => {
-      executeTacitCode(vm, `: square dup mul ;
-      3 square`);
+      executeTacitCode(
+        vm,
+        `: square dup mul ;
+      3 square`,
+      );
       expectStack(vm, [9]);
     });
     test('should handle multiple colon definitions', () => {
