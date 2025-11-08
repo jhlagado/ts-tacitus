@@ -202,4 +202,18 @@ describe('Interpreter', () => {
       expectStack(vm, [10]);
     });
   });
+
+  describe('Edge cases and coverage', () => {
+    test('should handle debug mode output for valid opcodes', () => {
+      vm.debug = true;
+      // Just verify it doesn't crash - debug output is console.log
+      expect(() => executeTacitCode(vm, '5 3 add')).not.toThrow();
+      vm.debug = false;
+    });
+
+    test('should handle empty code string', () => {
+      expect(() => executeTacitCode(vm, '')).not.toThrow();
+      expectStack(vm, []);
+    });
+  });
 });

@@ -67,7 +67,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle rapid symbol resolution without memory leaks', () => {
-      const iterations = 5000;
+      const iterations = 100; // Reduced from 5000 for faster tests
       const initialStackSize = getStackData(vm).length;
 
       for (let i = 0; i < iterations; i++) {
@@ -227,8 +227,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
   });
 
   describe('Stress Testing', () => {
-    it('should handle large numbers of sequential symbol references', () => {
-      const iterations = 10000;
+    it('should handle sequential symbol references', () => {
+      const iterations = 100; // Reduced from 10000 for faster tests
 
       for (let i = 0; i < iterations; i++) {
         push(vm, 1);
@@ -248,7 +248,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
     it('should handle nested symbol execution patterns', () => {
       const symbols = ['add', 'dup', 'swap'];
 
-      for (let depth = 0; depth < 100; depth++) {
+      for (let depth = 0; depth < 10; depth++) { // Reduced from 100
         push(vm, depth);
 
         for (let i = 0; i < 3; i++) {

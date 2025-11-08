@@ -1,6 +1,6 @@
 import { Op } from '../../ops/opcodes';
 import { createVM, type VM } from '../../core/vm';
-import { fromTaggedValue } from '../../core';
+import { fromTaggedValue, MIN_USER_OPCODE } from '../../core';
 import { nextInt16, nextFloat32, next8 } from '../../core/vm';
 
 describe('Compiler', () => {
@@ -43,5 +43,28 @@ describe('Compiler', () => {
     vm.compiler.compileFloat32(42);
     vm.compiler.reset();
     expect(vm.compiler.BCP).toBe(vm.compiler.CP);
+  });
+
+  describe('Error conditions and boundaries', () => {
+    test('should throw error for invalid opcode addresses', () => {
+      expect(() => vm.compiler.compileOpcode(-1)).toThrow('Invalid opcode address');
+      expect(() => vm.compiler.compileOpcode(32768)).toThrow('Invalid opcode address');
+      expect(() => vm.compiler.compileOpcode(32767)).not.toThrow();
+    });
+
+    test('should use correct encoding for built-in vs user opcodes', () => {
+      const initialCP = vm.compiler.CP;
+      vm.compiler.compileOpcode(5);
+      expect(vm.compiler.CP).toBe(initialCP + 1);
+
+      vm.compiler.CP = initialCP;
+      vm.compiler.compileOpcode(MIN_USER_OPCODE);
+      expect(vm.compiler.CP).toBe(initialCP + 2);
+    });
+
+    test('should throw error for invalid compileUserWordCall addresses', () => {
+      expect(() => vm.compiler.compileUserWordCall(-1)).toThrow('Invalid opcode address');
+      expect(() => vm.compiler.compileUserWordCall(32768)).toThrow('Invalid opcode address');
+    });
   });
 });
