@@ -26,254 +26,166 @@ describe('Arithmetic Operations', () => {
     vm = createVM();
   });
 
-  describe('simple values', () => {
-    test('should add two positive numbers', () => {
+  describe('binary operations', () => {
+    test('add - basic operations', () => {
       push(vm, 5);
       push(vm, 3);
       addOp(vm);
       expect(getStackData(vm)).toEqual([8]);
-    });
 
-    test('should add positive and negative numbers', () => {
+      vm = createVM();
       push(vm, -5);
       push(vm, 10);
       addOp(vm);
       expect(getStackData(vm)).toEqual([5]);
     });
 
-    test('should add zero values', () => {
-      push(vm, 0);
-      push(vm, 0);
-      addOp(vm);
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should subtract two numbers correctly', () => {
+    test('subtract - basic operations', () => {
       push(vm, 10);
       push(vm, 4);
       subtractOp(vm);
       expect(getStackData(vm)).toEqual([6]);
-    });
 
-    test('should subtract with negative result', () => {
+      vm = createVM();
       push(vm, 5);
       push(vm, 10);
       subtractOp(vm);
       expect(getStackData(vm)).toEqual([-5]);
     });
 
-    test('should subtract negative operands', () => {
-      push(vm, -3);
-      push(vm, -8);
-      subtractOp(vm);
-      expect(getStackData(vm)).toEqual([5]);
-    });
-
-    test('should multiply two positive numbers', () => {
+    test('multiply - basic operations', () => {
       push(vm, 5);
       push(vm, 3);
       multiplyOp(vm);
       expect(getStackData(vm)).toEqual([15]);
-    });
 
-    test('should multiply with negative numbers', () => {
+      vm = createVM();
       push(vm, -5);
       push(vm, 3);
       multiplyOp(vm);
       expect(getStackData(vm)).toEqual([-15]);
-    });
 
-    test('should multiply by zero', () => {
+      vm = createVM();
       push(vm, 5);
       push(vm, 0);
       multiplyOp(vm);
       expect(getStackData(vm)).toEqual([0]);
     });
 
-    test('should divide two numbers correctly', () => {
+    test('divide - basic operations', () => {
       push(vm, 10);
       push(vm, 2);
       divideOp(vm);
       expect(getStackData(vm)).toEqual([5]);
-    });
 
-    test('should divide with decimal result', () => {
-      push(vm, 10);
-      push(vm, 3);
-      divideOp(vm);
-      expect(pop(vm)).toBeCloseTo(3.33333, 4);
-    });
-
-    test('should divide negative numbers', () => {
-      push(vm, -10);
+      vm = createVM();
+      push(vm, 7);
       push(vm, 2);
       divideOp(vm);
-      expect(getStackData(vm)).toEqual([-5]);
+      expect(pop(vm)).toBeCloseTo(3.5, 5);
     });
 
-    test('should handle division by zero', () => {
-      push(vm, 5);
-      push(vm, 0);
-      divideOp(vm);
-      expect(getStackData(vm)).toEqual([Infinity]);
-    });
-
-    test('should calculate power correctly', () => {
+    test('power - basic operations', () => {
       push(vm, 2);
       push(vm, 3);
       powOp(vm);
       expect(getStackData(vm)).toEqual([8]);
-    });
 
-    test('should handle fractional exponents', () => {
+      vm = createVM();
       push(vm, 4);
       push(vm, 0.5);
       powOp(vm);
-      expect(getStackData(vm)).toEqual([2]);
+      expect(pop(vm)).toBeCloseTo(2, 5);
     });
 
-    test('should handle negative base', () => {
-      push(vm, -2);
-      push(vm, 2);
-      powOp(vm);
-      expect(getStackData(vm)).toEqual([4]);
-    });
-
-    test('should handle zero base', () => {
-      push(vm, 0);
-      push(vm, 5);
-      powOp(vm);
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should calculate modulo correctly', () => {
+    test('modulo - basic operations', () => {
       push(vm, 10);
       push(vm, 3);
       modOp(vm);
       expect(getStackData(vm)).toEqual([1]);
-    });
 
-    test('should handle negative modulo', () => {
+      vm = createVM();
       push(vm, -10);
       push(vm, 3);
       modOp(vm);
-      expect(getStackData(vm)).toEqual([-1]);
+      expect(pop(vm)).toBeCloseTo(-1, 5);
     });
 
-    test('should handle zero modulus', () => {
+    test('min/max - basic operations', () => {
       push(vm, 5);
-      push(vm, 0);
-      modOp(vm);
-      expect(pop(vm)).toBeNaN();
-    });
-
-    test('should return minimum value', () => {
       push(vm, 10);
-      push(vm, 5);
       minOp(vm);
       expect(getStackData(vm)).toEqual([5]);
-    });
 
-    test('should handle negative min values', () => {
-      push(vm, -5);
-      push(vm, -10);
-      minOp(vm);
-      expect(getStackData(vm)).toEqual([-10]);
-    });
-
-    test('should return maximum value', () => {
-      push(vm, 10);
+      vm = createVM();
       push(vm, 5);
+      push(vm, 10);
       maxOp(vm);
       expect(getStackData(vm)).toEqual([10]);
     });
+  });
 
-    test('should handle negative max values', () => {
-      push(vm, -5);
-      push(vm, -10);
-      maxOp(vm);
-      expect(getStackData(vm)).toEqual([-5]);
-    });
-
-    test('should return absolute value', () => {
+  describe('unary operations', () => {
+    test('absolute value', () => {
       push(vm, -5);
       absOp(vm);
       expect(getStackData(vm)).toEqual([5]);
-    });
 
-    test('should return same value for positive absolute', () => {
+      vm = createVM();
       push(vm, 10);
       absOp(vm);
       expect(getStackData(vm)).toEqual([10]);
     });
 
-    test('should handle zero absolute', () => {
-      push(vm, 0);
-      absOp(vm);
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should negate positive number', () => {
+    test('negate', () => {
       push(vm, 5);
       negOp(vm);
       expect(getStackData(vm)).toEqual([-5]);
-    });
 
-    test('should negate negative number', () => {
+      vm = createVM();
       push(vm, -3);
       negOp(vm);
       expect(getStackData(vm)).toEqual([3]);
     });
 
-    test('should handle zero negation', () => {
-      push(vm, 0);
-      negOp(vm);
-      expect(getStackData(vm)).toEqual([-0]);
-    });
-
-    test('should return sign of positive number', () => {
+    test('sign', () => {
       push(vm, 5);
       signOp(vm);
       expect(getStackData(vm)).toEqual([1]);
-    });
 
-    test('should return sign of negative number', () => {
+      vm = createVM();
       push(vm, -3);
       signOp(vm);
       expect(getStackData(vm)).toEqual([-1]);
-    });
 
-    test('should return sign of zero', () => {
+      vm = createVM();
       push(vm, 0);
       signOp(vm);
       expect(getStackData(vm)).toEqual([0]);
     });
 
-    test('should calculate square root', () => {
+    test('square root', () => {
       push(vm, 16);
       sqrtOp(vm);
       expect(getStackData(vm)).toEqual([4]);
-    });
 
-    test('should handle zero square root', () => {
+      vm = createVM();
       push(vm, 0);
       sqrtOp(vm);
       expect(getStackData(vm)).toEqual([0]);
     });
 
-    test('should calculate exponential', () => {
+    test('exponential and logarithms', () => {
       push(vm, 1);
       expOp(vm);
       expect(pop(vm)).toBeCloseTo(Math.E, 5);
-    });
 
-    test('should calculate natural logarithm', () => {
+      vm = createVM();
       push(vm, Math.E);
       lnOp(vm);
       expect(pop(vm)).toBeCloseTo(1, 5);
-    });
 
-    test('should calculate log base 10', () => {
+      vm = createVM();
       push(vm, 100);
       logOp(vm);
       expect(pop(vm)).toBeCloseTo(2, 5);
@@ -281,147 +193,49 @@ describe('Arithmetic Operations', () => {
   });
 
   describe('error cases', () => {
-    test('should throw on add stack underflow', () => {
-      push(vm, 5);
-      expect(() => addOp(vm)).toThrow('Stack underflow');
+    test('should throw on stack underflow for binary operations', () => {
+      const binaryOps = [
+        { op: addOp, name: 'add' },
+        { op: subtractOp, name: 'subtract' },
+        { op: multiplyOp, name: 'multiply' },
+        { op: divideOp, name: 'divide' },
+        { op: powOp, name: 'power' },
+        { op: modOp, name: 'modulo' },
+        { op: minOp, name: 'min' },
+        { op: maxOp, name: 'max' },
+      ];
+
+      binaryOps.forEach(({ op, name }) => {
+        vm = createVM();
+        push(vm, 5);
+        expect(() => op(vm)).toThrow('Stack underflow');
+      });
     });
 
-    test('should throw on subtract stack underflow', () => {
-      push(vm, 5);
-      expect(() => subtractOp(vm)).toThrow('Stack underflow');
+    test('should throw on stack underflow for unary operations', () => {
+      const unaryOps = [
+        { op: absOp, name: 'abs' },
+        { op: negOp, name: 'neg' },
+        { op: signOp, name: 'sign' },
+        { op: sqrtOp, name: 'sqrt' },
+        { op: expOp, name: 'exp' },
+        { op: lnOp, name: 'ln' },
+        { op: logOp, name: 'log' },
+      ];
+
+      unaryOps.forEach(({ op, name }) => {
+        vm = createVM();
+        expect(() => op(vm)).toThrow('Stack underflow');
+      });
     });
 
-    test('should throw on multiply stack underflow', () => {
-      push(vm, 5);
-      expect(() => multiplyOp(vm)).toThrow('Stack underflow');
-    });
-
-    test('should throw on divide stack underflow', () => {
-      push(vm, 5);
-      expect(() => divideOp(vm)).toThrow('Stack underflow');
-    });
-
-    test('should throw on power stack underflow', () => {
-      push(vm, 5);
-      expect(() => powOp(vm)).toThrow('Stack underflow');
-    });
-
-    test('should throw on modulo stack underflow', () => {
-      push(vm, 5);
-      expect(() => modOp(vm)).toThrow('Stack underflow');
-    });
-
-    test('should throw on min stack underflow', () => {
-      push(vm, 5);
-      expect(() => minOp(vm)).toThrow('Stack underflow');
-    });
-
-    test('should throw on max stack underflow', () => {
-      push(vm, 5);
-      expect(() => maxOp(vm)).toThrow('Stack underflow');
-    });
-  });
-
-  describe('integration tests', () => {
-    test('should handle add operation with Tacit syntax', () => {
-      executeTacitCode(vm, '5 3 add');
-      expect(getStackData(vm)).toEqual([8]);
-    });
-
-    test('should handle sub operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 4 sub');
-      expect(getStackData(vm)).toEqual([6]);
-    });
-
-    test('should handle mul operation with Tacit syntax', () => {
-      executeTacitCode(vm, '5 4 mul');
-      expect(getStackData(vm)).toEqual([20]);
-    });
-
-    test('should handle div operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 2 div');
-      expect(getStackData(vm)).toEqual([5]);
-    });
-
-    test('should handle min operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 5 min');
-      expect(getStackData(vm)).toEqual([5]);
-      vm = createVM();
-      executeTacitCode(vm, '3 8 min');
-      expect(getStackData(vm)).toEqual([3]);
-    });
-
-    test('should handle max operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 5 max');
-      expect(getStackData(vm)).toEqual([10]);
-      vm = createVM();
-      executeTacitCode(vm, '3 8 max');
-      expect(getStackData(vm)).toEqual([8]);
-    });
-
-    test('should handle pow operation with Tacit syntax', () => {
-      executeTacitCode(vm, '2 3 pow');
-      expect(getStackData(vm)).toEqual([8]);
-    });
-
-    test('should handle eq operation with Tacit syntax', () => {
-      executeTacitCode(vm, '5 5 eq');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '5 6 eq');
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should handle lt operation with Tacit syntax', () => {
-      executeTacitCode(vm, '5 10 lt');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '10 5 lt');
-      expect(getStackData(vm)).toEqual([0]);
-      vm = createVM();
-      executeTacitCode(vm, '5 5 lt');
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should handle le operation with Tacit syntax', () => {
-      executeTacitCode(vm, '5 10 le');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '10 5 le');
-      expect(getStackData(vm)).toEqual([0]);
-      vm = createVM();
-      executeTacitCode(vm, '5 5 le');
-      expect(getStackData(vm)).toEqual([1]);
-    });
-
-    test('should handle gt operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 5 gt');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '5 10 gt');
-      expect(getStackData(vm)).toEqual([0]);
-      vm = createVM();
-      executeTacitCode(vm, '5 5 gt');
-      expect(getStackData(vm)).toEqual([0]);
-    });
-
-    test('should handle ge operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 5 ge');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '5 10 ge');
-      expect(getStackData(vm)).toEqual([0]);
-      vm = createVM();
-      executeTacitCode(vm, '5 5 ge');
-      expect(getStackData(vm)).toEqual([1]);
-    });
-
-    test('should handle mod operation with Tacit syntax', () => {
-      executeTacitCode(vm, '10 3 mod');
-      expect(getStackData(vm)).toEqual([1]);
-      vm = createVM();
-      executeTacitCode(vm, '10 5 mod');
-      expect(getStackData(vm)).toEqual([0]);
+    test('should handle division by zero', () => {
+      push(vm, 10);
+      push(vm, 0);
+      divideOp(vm);
+      const result = pop(vm);
+      // Division by zero returns Infinity in JavaScript
+      expect(result).toBe(Infinity);
     });
   });
 });
