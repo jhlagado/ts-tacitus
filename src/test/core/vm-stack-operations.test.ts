@@ -6,15 +6,16 @@ import {
   ReturnStackOverflowError,
   StackUnderflowError,
 } from '../../core';
-import { initializeInterpreter, vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { popArray, push, rpush, getStackData, peek, pop } from '../../core/vm';
 
 const CELL_SIZE = 4;
 
 describe('VM Stack Operations Error Handling', () => {
-  // Changed describe block name
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 

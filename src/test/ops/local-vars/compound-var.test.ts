@@ -2,13 +2,15 @@
  * Tests for compound local variables - starting with empty lists
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../utils/vm-test-utils';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import { isList, getListLength } from '../../../core/list';
 
 describe('Compound Variables - Empty Lists', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
     vm.debug = false;
   });
 

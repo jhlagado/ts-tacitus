@@ -2,7 +2,7 @@
  * Tests for control-ops.ts - specifically targeting uncovered branches
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { ifFalseBranchOp } from '../../../ops/control';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import * as vmModule from '../../../core/vm';
@@ -10,8 +10,10 @@ import * as conditionalOpsModule from '../../../ops/control/conditional-ops';
 import { push } from '../../../core/vm';
 
 describe('Control Operations - Branch Coverage', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 

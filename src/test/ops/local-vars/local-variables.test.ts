@@ -3,7 +3,7 @@
  * Tests the complete local variable system: Reserve → InitVar → VarRef → Fetch
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeReference } from '../../../core/refs';
@@ -11,8 +11,10 @@ import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { push, getStackData, pop } from '../../../core/vm';
 
 describe('Local Variables System', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 

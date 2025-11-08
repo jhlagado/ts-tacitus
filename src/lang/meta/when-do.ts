@@ -2,22 +2,28 @@ import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import type { VM } from '../../core/vm';
-import { requireParserState } from '../state';
+import type { Tokenizer } from '../tokenizer';
+import type { ActiveDefinition } from '../state';
 import { rdepth, depth, getStackData, peek, push } from '../../core/vm';
 
 const ENDWHEN_CODE_REF = createBuiltinRef(Op.EndWhen);
 const ENDDO_CODE_REF = createBuiltinRef(Op.EndDo);
 
-export function beginWhenImmediate(vm: VM): void {
-  requireParserState();
-
+export function beginWhenImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   // Push saved return stack snapshot as relative cells
   push(vm, rdepth(vm));
   push(vm, ENDWHEN_CODE_REF);
 }
 
-export function beginDoImmediate(vm: VM): void {
-  requireParserState();
+export function beginDoImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
 
   if (depth(vm) === 0) {
     throw new SyntaxError('do without when', getStackData(vm));

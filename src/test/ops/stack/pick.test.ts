@@ -1,12 +1,13 @@
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { pickOp } from '../../../ops/stack';
-import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';
 
 describe('pick Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {

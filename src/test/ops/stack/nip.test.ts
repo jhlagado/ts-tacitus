@@ -7,15 +7,14 @@
  */
 
 import { nipOp } from '../../../ops/stack';
-import { executeTacitCode, resetVM, getVM } from '../../utils/vm-test-utils';
-import { push, getStackData } from '../../../core/vm';
+import { executeTacitCode } from '../../utils/vm-test-utils';
+import { createVM, type VM, push, getStackData } from '../../../core/vm';
 
 describe('nip Operation', () => {
-  let vm: ReturnType<typeof getVM>;
+  let vm: VM;
 
   beforeEach(() => {
-    resetVM();
-    vm = getVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {

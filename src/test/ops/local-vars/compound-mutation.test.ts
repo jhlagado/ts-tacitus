@@ -3,12 +3,14 @@
  * Tests for in-place compound variable mutation.
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../utils/vm-test-utils';
-import { executeTacitCode, resetVM } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('Compound Variable Mutation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
     vm.debug = false;
   });
 

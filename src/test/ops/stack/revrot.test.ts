@@ -1,12 +1,13 @@
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { revrotOp } from '../../../ops/stack';
-import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';
 
 describe('revrot Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {
@@ -25,7 +26,6 @@ describe('revrot Operation', () => {
     });
 
     it('should reverse rotate with more values on stack', () => {
-      resetVM();
       push(vm, 10);
       push(vm, 20);
       push(vm, 3);
@@ -47,7 +47,6 @@ describe('revrot Operation', () => {
 
   describe('list operations', () => {
     it('should reverse rotate a list with two simple values', () => {
-      resetVM();
       push(vm, 1);
       push(vm, 2);
       push(vm, toTaggedValue(2, Tag.LIST));

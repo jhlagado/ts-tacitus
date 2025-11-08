@@ -1,8 +1,9 @@
 import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { requireParserState } from '../state';
 import { VM, depth, rdepth, getStackData, peek, push } from '../../core/vm';
+import type { Tokenizer } from '../tokenizer';
+import type { ActiveDefinition } from '../state';
 
 const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
 const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
@@ -18,16 +19,21 @@ function assertOpenCase(vm: VM, word: string): void {
   }
 }
 
-export function beginCaseImmediate(vm: VM): void {
-  requireParserState();
-
+export function beginCaseImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   // Push saved return stack snapshot as relative cells
   push(vm, rdepth(vm));
   push(vm, ENDCASE_CODE_REF);
 }
 
-export function clauseOfImmediate(vm: VM): void {
-  requireParserState();
+export function clauseOfImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
 
   assertOpenCase(vm, "'of'");
 
@@ -48,12 +54,18 @@ function compileSentinelLiteral(vm: VM, value: Sentinel): void {
   vm.compiler.compileFloat32(toTaggedValue(value, Tag.SENTINEL));
 }
 
-export function defaultImmediate(vm: VM): void {
-  requireParserState();
+export function defaultImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   compileSentinelLiteral(vm, Sentinel.DEFAULT);
 }
 
-export function nilImmediate(vm: VM): void {
-  requireParserState();
+export function nilImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   compileSentinelLiteral(vm, Sentinel.NIL);
 }

@@ -14,9 +14,8 @@
  * language-level features.
  */
 
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
-import { resetVM } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, createCodeRef } from '../../core';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
@@ -30,8 +29,10 @@ import { evalOp } from '../../ops/core';
 import { resolveSymbol, push, getStackData, pop } from '../../core/vm';
 
 describe('Symbol Table Integration Tests', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('Built-in Symbol Integration: register → resolve → execute', () => {

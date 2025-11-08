@@ -2,7 +2,8 @@ import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import type { VM } from '../../core/vm';
-import { requireParserState } from '../state';
+import type { Tokenizer } from '../tokenizer';
+import type { ActiveDefinition } from '../state';
 import { peekAt, depth, getStackData, pop, push } from '../../core/vm';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
@@ -26,9 +27,11 @@ function patchPlaceholder(vm: VM, rawPos: number, word: string): void {
   vm.compiler.CP = prevCP;
 }
 
-export function beginIfImmediate(vm: VM): void {
-  requireParserState();
-
+export function beginIfImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   vm.compiler.compileOpcode(Op.IfFalseBranch);
   const falseBranchPos = vm.compiler.CP;
   vm.compiler.compile16(0);
@@ -37,8 +40,11 @@ export function beginIfImmediate(vm: VM): void {
   push(vm, ENDIF_CODE_REF);
 }
 
-export function beginElseImmediate(vm: VM): void {
-  requireParserState();
+export function beginElseImmediate(
+  vm: VM,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
 
   if (depth(vm) < 2) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));

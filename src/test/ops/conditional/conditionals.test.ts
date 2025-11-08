@@ -3,49 +3,51 @@ Tests for conditional operations - Tacit's control flow operations
 IF/ELSE statements that execute code blocks based on stack conditions
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { executeProgram } from '../../../lang/interpreter';
 import { getStackData } from '../../../core/vm';
 
 describe('Conditional Operations', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 
   describe('simple values', () => {
     test('if executes then-branch when condition is true', () => {
-      executeProgram('1 if 2 3 add ;');
+      executeProgram(vm, '1 if 2 3 add ;');
       expect(getStackData(vm)).toEqual([5]);
     });
 
     test('if skips then-branch when condition is false', () => {
-      executeProgram('0 if 2 3 add ;');
+      executeProgram(vm, '0 if 2 3 add ;');
       expect(getStackData(vm)).toEqual([]);
     });
 
     test('if handles empty then-branch', () => {
-      executeProgram('1 if ;');
+      executeProgram(vm, '1 if ;');
       expect(getStackData(vm)).toEqual([]);
     });
 
     test('if/else executes then-branch when condition is true', () => {
-      executeProgram('1 if 10 else 20 ;');
+      executeProgram(vm, '1 if 10 else 20 ;');
       expect(getStackData(vm)).toEqual([10]);
     });
 
     test('if/else executes else-branch when condition is false', () => {
-      executeProgram('0 if 10 else 20 ;');
+      executeProgram(vm, '0 if 10 else 20 ;');
       expect(getStackData(vm)).toEqual([20]);
     });
 
     test('if/else handles empty else-branch', () => {
-      executeProgram('0 if 10 else ;');
+      executeProgram(vm, '0 if 10 else ;');
       expect(getStackData(vm)).toEqual([]);
     });
 
     test('if/else works with comparison operators', () => {
-      executeProgram('5 10 lt if 100 else 200 ;');
+      executeProgram(vm, '5 10 lt if 100 else 200 ;');
       expect(getStackData(vm)).toEqual([100]);
     });
   });
@@ -56,12 +58,12 @@ describe('Conditional Operations', () => {
 
   describe('integration tests', () => {
     test('if handles nested conditionals', () => {
-      executeProgram('1 if 2 0 if 3 ; ;');
+      executeProgram(vm, '1 if 2 0 if 3 ; ;');
       expect(getStackData(vm)).toEqual([2]);
     });
 
     test('if/else handles complex expressions', () => {
-      executeProgram('5 3 gt if 2 3 mul else 2 3 add ;');
+      executeProgram(vm, '5 3 gt if 2 3 mul else 2 3 add ;');
       expect(getStackData(vm)).toEqual([6]);
     });
 
@@ -79,7 +81,7 @@ describe('Conditional Operations', () => {
     });
 
     test('if/else works with multiple conditions', () => {
-      executeProgram('3 3 eq if 7 7 eq if 42 else 24 ; else 0 ;');
+      executeProgram(vm, '3 3 eq if 7 7 eq if 42 else 24 ; else 0 ;');
       expect(getStackData(vm)).toEqual([42]);
     });
   });

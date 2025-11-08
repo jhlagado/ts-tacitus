@@ -1,67 +1,61 @@
 import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
-import { vm } from '../utils/vm-test-utils';
+import { createVM, type VM } from '../../core/vm';
 import { peekAt, push, peek } from '../../core/vm';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
-import { setParserState } from '../../lang/state';
 import { Tokenizer } from '../../lang/tokenizer';
 import { Op } from '../../ops/opcodes';
-import { resetVM, verifyTaggedValue } from '../utils/vm-test-utils';
-
-function setDummyParserState(): void {
-  setParserState({ tokenizer: new Tokenizer(''), currentDefinition: null });
-}
+import { verifyTaggedValue } from '../utils/vm-test-utils';
 
 describe('conditional immediates', () => {
-  beforeEach(() => {
-    resetVM();
-    setDummyParserState();
-  });
+  let vm: VM;
+  const tokenizer = new Tokenizer('');
+  const currentDefinition = { current: null };
 
-  afterEach(() => {
-    setParserState(null);
+  beforeEach(() => {
+    vm = createVM();
   });
 
   test('ELSE without open IF throws', () => {
-    expect(() => beginElseImmediate(vm)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
   });
 
   test('ELSE rejects mismatched closer', () => {
     push(vm, 0);
     push(vm, createBuiltinRef(Op.EndCase));
 
-    expect(() => beginElseImmediate(vm)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
   });
 
   test('ELSE requires placeholder beneath closer', () => {
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
   });
 
   test('ELSE complains about missing branch placeholder', () => {
     push(vm, Number.NaN);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm)).toThrow('ELSE missing branch placeholder');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE missing branch placeholder');
   });
 
   test('ELSE complains about invalid branch placeholder', () => {
     push(vm, -1);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm)).toThrow('ELSE invalid branch placeholder');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE invalid branch placeholder');
   });
 
   test('ELSE patches placeholder and installs exit branch', () => {
-    beginIfImmediate(vm);
+    beginIfImmediate(vm, tokenizer, currentDefinition);
     const falseBranchPos = peekAt(vm, 1);
 
     vm.compiler.compileOpcode(Op.Nop);
     const cpBeforeElse = vm.compiler.CP;
 
-    beginElseImmediate(vm);
+    beginElseImmediate(vm, tokenizer, currentDefinition);
 
     const patchedOffset = vm.memory.read16(SEG_CODE, falseBranchPos);
     expect(patchedOffset).toBe(vm.compiler.CP - (falseBranchPos + 2));
@@ -74,7 +68,7 @@ describe('conditional immediates', () => {
   });
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
-    beginIfImmediate(vm);
+    beginIfImmediate(vm, tokenizer, currentDefinition);
     expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(2);
     // Top of stack should be EndIf closer
     verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);

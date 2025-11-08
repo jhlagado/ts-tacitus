@@ -2,14 +2,16 @@
  * Tests for InitVar opcode implementation
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm, initializeInterpreter } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { initVarOp } from '../../../ops/builtins';
 import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
 import { push, getStackData } from '../../../core/vm';
 
 describe('InitVar Opcode', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    initializeInterpreter();
+    vm = createVM();
     vm.debug = false;
   });
 

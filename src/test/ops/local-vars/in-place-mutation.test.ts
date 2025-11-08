@@ -2,8 +2,8 @@
  * Tests for in-place compound mutation functionality
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { vm } from '../../utils/vm-test-utils';
-import { resetVM, executeTacitCode } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
+import { executeTacitCode } from '../../utils/vm-test-utils';
 import {
   updateListInPlace as mutateCompoundInPlace,
   isCompatible as isCompatibleCompound,
@@ -14,15 +14,16 @@ import { SEG_DATA, CELL_SIZE, RSTACK_BASE, STACK_BASE } from '../../../core/cons
 import { push } from '../../../core/vm';
 
 describe('In-Place Compound Mutation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
     vm.debug = false;
   });
 
   describe('Basic In-Place Mutation', () => {
     test('should mutate empty list in place', () => {
       // Setup: Create empty list on data stack and existing empty list in memory
-      resetVM();
       const newEmptyResult = executeTacitCode(vm, '()');
       const newHeader = newEmptyResult[newEmptyResult.length - 1];
 

@@ -1,6 +1,5 @@
 import { describe, beforeEach, test, expect } from '@jest/globals';
-import { resetVM } from '../../utils/vm-test-utils';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core';
 import { defineOp, lookupOp } from '../../../core/dictionary';
 import { getByteAddressFromRef, isRef } from '../../../core/refs';
@@ -8,7 +7,11 @@ import { SEG_DATA } from '../../../core/constants';
 import { push, pop } from '../../../core/vm';
 
 describe('dict define/lookup builtin (happy path)', () => {
-  beforeEach(() => resetVM());
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
 
   test('define builtin then lookup returns DATA_REF to stored BUILTIN', () => {
     const name = 'my_builtin';

@@ -1,7 +1,14 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 
 describe('Increment operator +> (locals-only)', () => {
+  let vm: VM;
+
+  beforeEach(() => {
+    vm = createVM();
+  });
+
   describe('happy path', () => {
     test('basic increment by 1', () => {
       const result = executeTacitCode(

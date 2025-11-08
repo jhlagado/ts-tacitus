@@ -22,10 +22,17 @@ import { getStackData } from '../core/vm';
 import type { VM } from '../core/vm';
 import type { Token, Tokenizer } from './tokenizer';
 import { TokenType } from './tokenizer';
-import { isSpecialChar, fromTaggedValue, Tag, getRefRegion, isNIL, UndefinedWordError, SyntaxError } from '@src/core';
+import {
+  isSpecialChar,
+  fromTaggedValue,
+  Tag,
+  getRefRegion,
+  isNIL,
+  UndefinedWordError,
+  SyntaxError,
+} from '@src/core';
 import { emitNumber, emitString } from './literals';
-import type { ParserState } from './state';
-import { setParserState } from './state';
+import type { ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 import { lookup, defineLocal } from '../core/dictionary';
@@ -42,21 +49,17 @@ import { lookup, defineLocal } from '../core/dictionary';
 export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.compiler.reset();
 
-  const state: ParserState = {
-    vm,
-    tokenizer,
-    currentDefinition: null,
-  };
+  const currentDefinition: { current: ActiveDefinition | null } = { current: null };
+  (vm as VM & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition = currentDefinition;
 
-  setParserState(state);
   try {
-    parseProgram(state);
+    parseProgram(vm, tokenizer, currentDefinition);
 
-    validateFinalState(state);
+    validateFinalState(vm, currentDefinition);
 
     vm.compiler.compileOpcode(Op.Abort);
   } finally {
-    setParserState(null);
+    delete (vm as VM & { _currentDefinition?: { current: ActiveDefinition | null } })._currentDefinition;
   }
 }
 
@@ -68,14 +71,18 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
  *
  * @param {ParserState} state - The current parser state
  */
-export function parseProgram(state: ParserState): void {
+export function parseProgram(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
   while (true) {
-    const token = state.tokenizer.nextToken();
+    const token = tokenizer.nextToken();
     if (token.type === TokenType.EOF) {
       break;
     }
 
-    processToken(token, state);
+    processToken(vm, token, tokenizer, currentDefinition);
   }
 }
 
@@ -88,12 +95,15 @@ export function parseProgram(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If there are any unclosed definitions
  */
-export function validateFinalState(state: ParserState): void {
-  ensureNoOpenDefinition(state);
-  ensureNoOpenConditionals(state.vm);
+export function validateFinalState(
+  vm: VM,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  ensureNoOpenDefinition(currentDefinition);
+  ensureNoOpenConditionals(vm);
 
-  if (state.vm.listDepth !== 0) {
-    throw new SyntaxError('Unclosed list or LIST', getStackData(state.vm));
+  if (vm.listDepth !== 0) {
+    throw new SyntaxError('Unclosed list or LIST', getStackData(vm));
   }
 }
 
@@ -111,25 +121,30 @@ export function validateFinalState(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a quoted word is undefined
  */
-export function processToken(token: Token, state: ParserState): void {
+export function processToken(
+  vm: VM,
+  token: Token,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
   switch (token.type) {
     case TokenType.NUMBER:
-      emitNumber(token.value as number);
+      emitNumber(vm, token.value as number);
       break;
     case TokenType.STRING:
-      emitString(token.value as string);
+      emitString(vm, token.value as string);
       break;
     case TokenType.SPECIAL:
-      handleSpecial(token.value as string, state);
+      handleSpecial(vm, token.value as string, tokenizer, currentDefinition);
       break;
     case TokenType.WORD:
-      emitWord(token.value as string, state);
+      emitWord(vm, token.value as string, tokenizer, currentDefinition);
       break;
     case TokenType.SYMBOL:
-      emitAtSymbol(token.value as string);
+      emitAtSymbol(vm, token.value as string, tokenizer, currentDefinition);
       break;
     case TokenType.REF_SIGIL:
-      emitRefSigil(token.value as string, state);
+      emitRefSigil(vm, token.value as string, tokenizer, currentDefinition);
       break;
     // WORD_QUOTE removed: backtick word-address literals no longer supported
   }
@@ -154,26 +169,30 @@ export function processToken(token: Token, state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
-export function emitWord(value: string, state: ParserState): void {
+export function emitWord(
+  vm: VM,
+  value: string,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
   if (value === 'var') {
-    emitVarDecl(state);
+    emitVarDecl(vm, tokenizer, currentDefinition);
     return;
   }
 
   if (value === '->') {
-    emitAssignment(state);
+    emitAssignment(vm, tokenizer, currentDefinition);
     return;
   }
 
   // 'global' keyword has been removed; treat as undefined or standard word if defined elsewhere.
 
   if (value === '+>') {
-    emitIncrement(state);
+    emitIncrement(vm, tokenizer, currentDefinition);
     return;
   }
 
   // backtick removed
-
   const tval = lookup(vm, value);
   if (isNIL(tval)) {
     throw new UndefinedWordError(value, getStackData(vm));
@@ -183,7 +202,7 @@ export function emitWord(value: string, state: ParserState): void {
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
-    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate });
+    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate }, tokenizer, currentDefinition);
     return;
   }
 
@@ -205,14 +224,14 @@ export function emitWord(value: string, state: ParserState): void {
     vm.compiler.compile16(tagValue);
     vm.compiler.compileOpcode(Op.Load);
 
-    const nextToken = state.tokenizer.nextToken();
-    if (nextToken && nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(state);
+    const nextToken = tokenizer.nextToken();
+    if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
+      compileBracketPathAsList(vm, tokenizer, currentDefinition);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Load);
       vm.compiler.compileOpcode(Op.Nip);
-    } else if (nextToken) {
-      state.tokenizer.pushBack(nextToken);
+    } else {
+      tokenizer.pushBack(nextToken);
     }
     return;
   }
@@ -225,16 +244,14 @@ export function emitWord(value: string, state: ParserState): void {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(entryValue);
 
-    const nextToken = state.tokenizer.nextToken();
-    if (nextToken && nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(state);
+    const nextToken = tokenizer.nextToken();
+    if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
+      compileBracketPathAsList(vm, tokenizer, currentDefinition);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Load);
       vm.compiler.compileOpcode(Op.Nip);
-    } else if (nextToken) {
-      state.tokenizer.pushBack(nextToken);
-      vm.compiler.compileOpcode(Op.Load);
     } else {
+      tokenizer.pushBack(nextToken);
       vm.compiler.compileOpcode(Op.Load);
     }
     return;
@@ -257,7 +274,12 @@ export function emitWord(value: string, state: ParserState): void {
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-export function emitAtSymbol(symbolName: string): void {
+export function emitAtSymbol(
+  vm: VM,
+  symbolName: string,
+  _tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
   vm.compiler.compile16(stringAddress);
@@ -275,7 +297,12 @@ export function emitAtSymbol(symbolName: string): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If variable is undefined or not a local variable
  */
-export function emitRefSigil(varName: string, state: ParserState): void {
+export function emitRefSigil(
+  vm: VM,
+  varName: string,
+  _tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
   const tval = lookup(vm, varName);
   if (isNIL(tval)) {
     throw new UndefinedWordError(varName, getStackData(vm));
@@ -284,7 +311,7 @@ export function emitRefSigil(varName: string, state: ParserState): void {
   const { tag, value: slotNumber } = fromTaggedValue(tval);
 
   // Inside function: allow locals and globals
-  if (state.currentDefinition) {
+  if (currentDefinition.current) {
     if (tag === Tag.LOCAL) {
       vm.compiler.compileOpcode(Op.VarRef);
       vm.compiler.compile16(slotNumber);
@@ -321,15 +348,19 @@ export function emitRefSigil(varName: string, state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function emitVarDecl(state: ParserState): void {
-  if (!state.currentDefinition) {
+export function emitVarDecl(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  if (!currentDefinition.current) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
       getStackData(vm),
     );
   }
 
-  const nameToken = state.tokenizer.nextToken();
+  const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after var', getStackData(vm));
   }
@@ -372,8 +403,12 @@ export function emitVarDecl(state: ParserState): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function emitAssignment(state: ParserState): void {
-  const nameToken = state.tokenizer.nextToken();
+export function emitAssignment(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after ->', getStackData(vm));
   }
@@ -397,21 +432,21 @@ export function emitAssignment(state: ParserState): void {
   const { tag, value: slotNumber } = fromTaggedValue(tval);
   if (tag === Tag.LOCAL) {
     // Check for bracketed path assignment: value -> x[ ... ]
-    const maybeBracket = state.tokenizer.nextToken();
-    if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+    const maybeBracket = tokenizer.nextToken();
+    if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       // Compile &x semantics for path-based assignment
       vm.compiler.compileOpcode(Op.VarRef);
       vm.compiler.compile16(slotNumber);
       vm.compiler.compileOpcode(Op.Fetch);
-      compileBracketPathAsList(state);
+      compileBracketPathAsList(vm, tokenizer, currentDefinition);
       // Inline update: select → nip → store
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Nip);
       vm.compiler.compileOpcode(Op.Store);
       return;
-    } else if (maybeBracket) {
+    } else {
       // No bracket; put the token back
-      state.tokenizer.pushBack(maybeBracket);
+      tokenizer.pushBack(maybeBracket);
     }
     // Simple variable assignment
     vm.compiler.compileOpcode(Op.VarRef);
@@ -426,18 +461,18 @@ export function emitAssignment(state: ParserState): void {
         getStackData(vm),
       );
     }
-    const maybeBracket = state.tokenizer.nextToken();
-    if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+    const maybeBracket = tokenizer.nextToken();
+    if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       vm.compiler.compileOpcode(Op.LiteralNumber);
       vm.compiler.compileFloat32(tval);
       vm.compiler.compileOpcode(Op.Fetch);
-      compileBracketPathAsList(state);
+      compileBracketPathAsList(vm, tokenizer, currentDefinition);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Nip);
       vm.compiler.compileOpcode(Op.Store);
       return;
-    } else if (maybeBracket) {
-      state.tokenizer.pushBack(maybeBracket);
+    } else {
+      tokenizer.pushBack(maybeBracket);
     }
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(tval);
@@ -464,15 +499,19 @@ export function emitAssignment(state: ParserState): void {
  *   Swap
  *   Store
  */
-export function emitIncrement(state: ParserState): void {
-  if (!state.currentDefinition) {
+export function emitIncrement(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  if (!currentDefinition.current) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
       getStackData(vm),
     );
   }
 
-  const nameToken = state.tokenizer.nextToken();
+  const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after +>', getStackData(vm));
   }
@@ -490,13 +529,13 @@ export function emitIncrement(state: ParserState): void {
   }
 
   // Check for optional bracketed path: value +> x[ ... ]
-  const maybeBracket = state.tokenizer.nextToken();
-  if (maybeBracket && maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
+  const maybeBracket = tokenizer.nextToken();
+  if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
     // Build destination sub-address from local list slot: &x fetch [path] select nip
     vm.compiler.compileOpcode(Op.VarRef);
     vm.compiler.compile16(slotNumber);
     vm.compiler.compileOpcode(Op.Fetch);
-    compileBracketPathAsList(state);
+    compileBracketPathAsList(vm, tokenizer, currentDefinition);
     vm.compiler.compileOpcode(Op.Select);
     vm.compiler.compileOpcode(Op.Nip);
 
@@ -508,9 +547,9 @@ export function emitIncrement(state: ParserState): void {
     vm.compiler.compileOpcode(Op.Swap);
     vm.compiler.compileOpcode(Op.Store);
     return;
-  } else if (maybeBracket) {
+  } else {
     // No bracket; put the token back for outer parsing
-    state.tokenizer.pushBack(maybeBracket);
+    tokenizer.pushBack(maybeBracket);
   }
 
   // Simple locals-only increment sugar: value x add -> x
@@ -529,19 +568,23 @@ export function emitIncrement(state: ParserState): void {
  * Compiles a bracket path like [0 1] into a list literal on the stack.
  * Supports numeric indices; closes on ']'.
  */
-function compileBracketPathAsList(state: ParserState): void {
+function compileBracketPathAsList(
+  vm: VM,
+  tokenizer: Tokenizer,
+  _currentDefinition: { current: ActiveDefinition | null },
+): void {
   // Build list: OpenList, emit elements, CloseList
   vm.compiler.compileOpcode(Op.OpenList);
   while (true) {
-    const tok = state.tokenizer.nextToken();
+    const tok = tokenizer.nextToken();
     if (tok.type === TokenType.SPECIAL && tok.value === ']') {
       break;
     }
     if (tok.type === TokenType.NUMBER) {
-      emitNumber(tok.value as number);
+      emitNumber(vm, tok.value as number);
       continue;
     } else if (tok.type === TokenType.STRING) {
-      emitString(tok.value as string);
+      emitString(vm, tok.value as string);
       continue;
     }
     // Allow empty path [] or numbers only for now
@@ -565,18 +608,23 @@ function compileBracketPathAsList(state: ParserState): void {
  * @param {string} value - The special token value
  * @param {ParserState} state - The current parser state
  */
-export function handleSpecial(value: string, state: ParserState): void {
+export function handleSpecial(
+  vm: VM,
+  value: string,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
   if (value === '(') {
-    beginList(state);
+    beginList(vm);
   } else if (value === ')') {
-    endList(state);
+    endList(vm);
   } else if (value === "'") {
     // Apostrophe shorthand: read next non-space, non-grouping run as a string
-    parseApostropheString(state);
+    parseApostropheString(vm, tokenizer);
   } else if (value === '[') {
     // General postfix bracket path for any expression on stack: expr[ ... ]
     // Compile path list and then value-by-default retrieval via select→load→nip
-    compileBracketPathAsList(state);
+    compileBracketPathAsList(vm, tokenizer, currentDefinition);
     vm.compiler.compileOpcode(Op.Select);
     vm.compiler.compileOpcode(Op.Load);
     vm.compiler.compileOpcode(Op.Nip);
@@ -587,19 +635,19 @@ export function handleSpecial(value: string, state: ParserState): void {
  * Parse apostrophe-based bare string shorthand: 'key → LiteralString("key")
  * Reads characters directly until whitespace or grouping.
  */
-function parseApostropheString(state: ParserState): void {
+function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
   let s = '';
-  while (state.tokenizer.position < state.tokenizer.input.length) {
-    const ch = state.tokenizer.input[state.tokenizer.position];
+  while (tokenizer.position < tokenizer.input.length) {
+    const ch = tokenizer.input[tokenizer.position];
     // reuse core helpers via emitString path; stop on space or grouping
     if (isSpecialChar(ch) || ch.trim() === '') {
-break;
-}
+      break;
+    }
     s += ch;
-    state.tokenizer.position++;
-    state.tokenizer.column++;
+    tokenizer.position++;
+    tokenizer.column++;
   }
-  emitString(s);
+  emitString(vm, s);
 }
 
 /**
@@ -615,7 +663,7 @@ break;
  * Begin an LIST with opening bracket ([).
  * Mirrors beginList but targets LIST ops.
  */
-export function beginList(_state: ParserState): void {
+export function beginList(vm: VM): void {
   vm.listDepth++;
   vm.compiler.compileOpcode(Op.OpenList);
 }
@@ -624,7 +672,7 @@ export function beginList(_state: ParserState): void {
  * End an LIST with closing bracket (]).
  * Mirrors endList but targets LIST ops.
  */
-export function endList(_state: ParserState): void {
+export function endList(vm: VM): void {
   if (vm.listDepth <= 0) {
     throw new SyntaxError('Unexpected closing parenthesis', getStackData(vm));
   }

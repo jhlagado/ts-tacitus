@@ -1,12 +1,13 @@
 import { Tag, toTaggedValue } from '../../../core/tagged';
-import { vm } from '../../utils/vm-test-utils';
+import { createVM, type VM } from '../../../core/vm';
 import { rotOp } from '../../../ops/stack';
-import { resetVM } from '../../utils/vm-test-utils';
 import { push, getStackData } from '../../../core/vm';
 
 describe('rot Operation', () => {
+  let vm: VM;
+
   beforeEach(() => {
-    resetVM();
+    vm = createVM();
   });
 
   describe('simple values', () => {
