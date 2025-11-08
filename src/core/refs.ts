@@ -92,15 +92,6 @@ export function isRef(tval: number): boolean {
   return getTag(tval) === Tag.REF;
 }
 
-/**
- * Checks if a tagged value is a REF (alias for isRef).
- * @param tval - Tagged value to check
- * @returns True if value is a REF
- * @deprecated Use isRef() instead
- */
-export function isDataRef(tval: number): boolean {
-  return isRef(tval);
-}
 
 /**
  * Gets the region name for a REF based on its address range.
@@ -204,16 +195,6 @@ export function createGlobalRef(cellIndex: number): number {
   return createRef(absCellIndex);
 }
 
-/**
- * Reads a value from memory using a REF.
- * @param vm - VM instance
- * @param ref - REF tagged value
- * @returns Value read from memory
- */
-export function readReference(vm: VM, ref: number): number {
-  const address = getByteAddressFromRef(ref);
-  return vm.memory.readFloat32(SEG_DATA, address);
-}
 
 /**
  * Writes a value to memory using a REF.

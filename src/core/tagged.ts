@@ -147,12 +147,6 @@ export function isNIL(tval: number): boolean {
   return tag === Tag.SENTINEL && value === 0;
 }
 
-/**
- * Unused helper. Always returns false.
- */
-export function isRefCounted(_value: number): boolean {
-  return false;
-}
 
 /**
  * Checks if a value is a NUMBER.

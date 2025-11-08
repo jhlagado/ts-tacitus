@@ -203,7 +203,7 @@ Reference helpers (see `core/refs.ts`):
 
 - `createRef(absoluteCellIndex)` → `REF` (absolute cell index in unified arena)
 - `getByteAddressFromRef(ref)` → absolute byte address
-- `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
+- `readRefValue(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 - `getRefRegion(ref)` → `'global' | 'stack' | 'rstack'` (inferred from address range)
 
 All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
