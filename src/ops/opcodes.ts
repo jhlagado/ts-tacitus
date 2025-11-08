@@ -215,7 +215,7 @@ export enum Op {
   /** Debug: dumps current stack frame state - ( -- ) */
   DumpStackFrame,
 
-  /** Converts list on data stack to DATA_REF - ( list -- DATA_REF ) */
+  /** Converts list on stack to REF - ( list -- REF ) */
   Ref,
   /** Path-based address access - ( target path -- target addr|NIL ) */
   Select,
@@ -272,7 +272,7 @@ export enum Op {
   GMark,
   /** Sweep global heap back to provided mark */
   GSweep,
-  /** Copy value to global heap and return DATA_REF */
+  /** Copy value to global heap and return REF */
   GPush,
   /** Pop the most recent global heap entry */
   GPop,

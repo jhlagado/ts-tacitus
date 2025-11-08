@@ -31,6 +31,7 @@ This TypeScript prototype demonstrates the language design while maintaining C p
 ## Technical Architecture
 
 ### Memory Model
+
 ```
 ┌─────────┐
 │ STACK   │  Main data stack
@@ -44,12 +45,14 @@ This TypeScript prototype demonstrates the language design while maintaining C p
 ```
 
 ### Type System
+
 - **Tagged values** using NaN-boxing (32-bit cells)
 - **No heap allocation** - all data stack-resident or in static segments
-- **Explicit references** (`DATA_REF` handles) for indirect access
+- **Explicit references** (`REF` handles) for indirect access
 - **Immutable lists** with reverse layout (header at high address)
 
 ### Control Flow
+
 - **Immediate words** for compile-time control (`if/else`, `case/of`, `when/do`)
 - **Code quotations** for higher-order functions
 - **Stack-based calling convention** with explicit frame management
@@ -96,17 +99,20 @@ yarn start
 ## Documentation
 
 ### Core Specifications
+
 - [`docs/specs/vm-architecture.md`](docs/specs/vm-architecture.md) - Memory layout and execution model
 - [`docs/specs/tagged.md`](docs/specs/tagged.md) - Type system and value encoding
 - [`docs/specs/lists.md`](docs/specs/lists.md) - List structures and operations
 - [`docs/specs/variables-and-refs.md`](docs/specs/variables-and-refs.md) - Local variables and references
 
 ### Language Features
+
 - [`docs/specs/case-control-flow.md`](docs/specs/case-control-flow.md) - Case/of control structure
 - [`docs/specs/capsules.md`](docs/specs/capsules.md) - Object-like capsules with dispatch
 - [`docs/specs/metaprogramming.md`](docs/specs/metaprogramming.md) - Immediate words and compilation
 
 ### Getting Started
+
 - [`docs/specs/README.md`](docs/specs/README.md) - Specification overview
 - [`docs/learn/`](docs/learn/) - Tutorials and learning materials
 
@@ -125,6 +131,7 @@ yarn start
 ## Porting Strategy
 
 The TypeScript implementation enforces C-portable constraints:
+
 - No garbage collection
 - Explicit memory management
 - Stack-based resource allocation

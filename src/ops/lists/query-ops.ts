@@ -16,7 +16,7 @@ import {
 import { getListLength, isList } from '@src/core';
 import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
 import { getListBounds } from './core-helpers';
-import { isRef, createDataRef, getByteAddressFromRef, readRefValue } from '@src/core';
+import { isRef, createRef, getByteAddressFromRef, readRefValue } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
 import { areValuesEqual, getTag } from '@src/core';
@@ -85,7 +85,7 @@ export function slotOp(vm: VM): void {
   const headerAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
   const addr = headerAddr - (idx + 1) * CELL_SIZE;
   const absCellIndex = addr / CELL_SIZE;
-  push(vm, createDataRef(absCellIndex));
+  push(vm, createRef(absCellIndex));
 }
 
 export function elemOp(vm: VM): void {
@@ -118,7 +118,7 @@ export function elemOp(vm: VM): void {
 
     if (currentLogicalIndex === idx) {
       const absCellIndex = elementStartAddr / CELL_SIZE;
-      push(vm, createDataRef(absCellIndex));
+      push(vm, createRef(absCellIndex));
       return;
     }
 
@@ -134,7 +134,7 @@ export function fetchOp(vm: VM): void {
   ensureStackSize(vm, 1, 'fetch');
   const addressValue = pop(vm);
   if (!isRef(addressValue)) {
-    throw new Error('fetch expects DATA_REF address');
+    throw new Error('fetch expects REF address');
   }
   // Absolute dereference
   const addr = getByteAddressFromRef(addressValue);
@@ -333,7 +333,7 @@ export function storeOp(vm: VM): void {
   const rhsTop = peek(vm);
 
   if (!isRef(addressValue)) {
-    throw new Error('store expects DATA_REF address');
+    throw new Error('store expects REF address');
   }
 
   const slot = resolveSlot(vm, addressValue);
@@ -382,7 +382,7 @@ export function walkOp(vm: VM): void {
   push(vm, nextIdx);
   if (isList(v)) {
     const absCellIndex = cellAbsAddr / CELL_SIZE;
-    push(vm, createDataRef(absCellIndex));
+    push(vm, createRef(absCellIndex));
   } else {
     push(vm, v);
   }
@@ -410,7 +410,7 @@ export function findOp(vm: VM): void {
     const currentKey = vm.memory.readFloat32(SEG_DATA, keyAbsAddr);
     if (areValuesEqual(currentKey, key)) {
       const absCellIndex = valueAbsAddr / CELL_SIZE;
-      push(vm, createDataRef(absCellIndex));
+      push(vm, createRef(absCellIndex));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
@@ -423,7 +423,7 @@ export function findOp(vm: VM): void {
   }
   if (defaultValueAddr !== -1) {
     const absCellIndex = defaultValueAddr / CELL_SIZE;
-    push(vm, createDataRef(absCellIndex));
+    push(vm, createRef(absCellIndex));
     return;
   }
   push(vm, NIL);
@@ -496,9 +496,9 @@ export function refOp(vm: VM): void {
   const value = peek(vm);
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    // sp is an absolute cell index; build absolute DATA_REF
+    // sp is an absolute cell index; build absolute REF
     const headerCellIndex = vm.sp - 1;
-    push(vm, createDataRef(headerCellIndex));
+    push(vm, createRef(headerCellIndex));
   }
 }
 

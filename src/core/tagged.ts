@@ -16,10 +16,10 @@ export enum Tag {
   BUILTIN = 7,
 
   LIST = 8,
-  DATA_REF = 12, // Unified data-arena reference (absolute cell index)
+  REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
 }
 
-export const MAX_TAG = Tag.DATA_REF;
+export const MAX_TAG = Tag.REF;
 
 /**
  * Enumerates the canonical sentinel payload values carried by `Tag.SENTINEL`.
@@ -38,7 +38,7 @@ export const tagNames: Record<Tag, string> = {
   [Tag.LOCAL]: 'LOCAL',
   [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
-  [Tag.DATA_REF]: 'DATA_REF',
+  [Tag.REF]: 'REF',
 };
 
 const VALUE_BITS = 16;

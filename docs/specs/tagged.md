@@ -35,7 +35,7 @@ export enum Tag {
   LOCAL = 6, // Compile‑time local symbol (parser only)
   BUILTIN = 7, // Built‑in opcode (0–127)
   LIST = 8, // Reverse list header (payload slot count)
-  DATA_REF = 12, // Unified data-arena reference (absolute cell index)
+  REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
 }
 ```
 
@@ -43,16 +43,16 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 
 ### Tag Table
 
-| Tag        | Payload Meaning                                             | Mutable In-Place                       | Printable Form                 | Notes                                                                 |
-| ---------- | ----------------------------------------------------------- | -------------------------------------- | ------------------------------ | --------------------------------------------------------------------- |
-| NUMBER     | Raw IEEE‑754 float32 (non‑NaN)                              | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                                   |
-| SENTINEL   | Named sentinel (e.g., NIL=0, DEFAULT=1)                     | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved                       |
-| CODE       | Bytecode address (0..8191 current)                          | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`                     |
-| STRING     | String segment offset                                       | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table               |
-| LOCAL      | Local slot number (compile‑time only)                       | n/a                                    | —                              | Parser/symbol table only; never a runtime ref                         |
-| BUILTIN    | Opcode (0..127)                                             | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table              |
-| LIST       | Payload slot count (0..65535)                               | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                |
-| DATA_REF   | Unified data-arena absolute cell index                       | n/a                                    | `DATA_REF:<abs-idx>`           | Helper routines map the index to global/data/return windows           |
+| Tag      | Payload Meaning                         | Mutable In-Place                       | Printable Form                 | Notes                                                       |
+| -------- | --------------------------------------- | -------------------------------------- | ------------------------------ | ----------------------------------------------------------- |
+| NUMBER   | Raw IEEE‑754 float32 (non‑NaN)          | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                         |
+| SENTINEL | Named sentinel (e.g., NIL=0, DEFAULT=1) | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved             |
+| CODE     | Bytecode address (0..8191 current)      | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`           |
+| STRING   | String segment offset                   | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table     |
+| LOCAL    | Local slot number (compile‑time only)   | n/a                                    | —                              | Parser/symbol table only; never a runtime ref               |
+| BUILTIN  | Opcode (0..127)                         | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table    |
+| LIST     | Payload slot count (0..65535)           | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                      |
+| REF      | Reference into data segment (absolute cell index) | n/a                                    | `REF:<abs-idx>`                | Helper routines map the index to global/stack/return stack windows |
 
 ## Memory Layout
 
@@ -121,7 +121,7 @@ The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE` and `Tag.BUI
 
 All tagged values must:
 
-- Use a defined tag (≤ `Tag.DATA_REF`)
+- Use a defined tag (≤ `Tag.REF`)
 - Stay within payload limits
 - Maintain NaN-box invariants
 - Preserve type safety across operations
@@ -143,7 +143,7 @@ All tagged values must:
 
 ### Compile-time vs Runtime Tags
 
-- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognise local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `DATA_REF` handles whose payloads are classified into the appropriate window. `Tag.LOCAL` must not appear on the data stack during execution.
+- `Tag.LOCAL` is a symbol‑table/compile‑time tag used during parsing to recognise local variables and emit the correct opcodes (e.g., `VarRef` + `Fetch/Store`). At runtime, locals and globals are addressed via `REF` handles whose payloads are classified into the appropriate window. `Tag.LOCAL` must not appear on the data stack during execution.
 
 ## Related Specifications
 
@@ -154,7 +154,7 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, DATA_REF}. `LOCAL` is compile‑time only.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, REF}. `LOCAL` is compile‑time only.
 2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
@@ -196,9 +196,9 @@ length                     \ -> 3
 
 ## Consistency Cross-Check
 
-| Aspect              | This Spec                   | Referenced Spec                                    |
-| ------------------- | --------------------------- | -------------------------------------------------- |
-| Reverse list layout | LIST header + payload slots | `docs/specs/lists.md` (§5–§11)                     |
+| Aspect              | This Spec                   | Referenced Spec                                          |
+| ------------------- | --------------------------- | -------------------------------------------------------- |
+| Reverse list layout | LIST header + payload slots | `docs/specs/lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `docs/specs/vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `docs/specs/lists.md` (Maplists)                   |
-| Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |
+| NIL definition      | SENTINEL 0                  | `docs/specs/lists.md` (Maplists)                         |
+| Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                               |

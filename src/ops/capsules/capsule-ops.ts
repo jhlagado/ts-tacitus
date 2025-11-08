@@ -8,7 +8,7 @@ import {
   SEG_DATA,
   RSTACK_BASE,
   RSTACK_BASE_CELLS,
-  createDataRef,
+  createRef,
 } from '@src/core';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
@@ -27,11 +27,11 @@ export function exitConstructorOp(vm: VM): void {
   // Append LIST header: payload = locals + 1 (CODE)
   rpush(vm, toTaggedValue(localCount + 1, Tag.LIST));
 
-  // Push DATA_REF handle to the capsule header on data stack
-  // Use absolute DATA_REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
+  // Push REF handle to the capsule header on data stack
+  // Use absolute REF: absoluteCell = (RSTACK_BASE / CELL_SIZE) + headerCellIndex
   const headerCellIndex = rdepth(vm) - 1;
   const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
-  push(vm, createDataRef(absHeaderCellIndex));
+  push(vm, createRef(absHeaderCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
   const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (oldBpRel - 1) * CELL_SIZE);

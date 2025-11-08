@@ -3,7 +3,7 @@ import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
 import {
   Tag,
   toTaggedValue,
-  createDataRef,
+  createRef,
   RSTACK_BASE,
   STACK_BASE,
   CELL_SIZE,
@@ -23,7 +23,7 @@ describe('capsule dispatch runtime', () => {
     const codeRef = toTaggedValue(codeAddr, Tag.CODE);
     rpush(vm, codeRef);
     rpush(vm, toTaggedValue(locals.length + 1, Tag.LIST));
-    const handle = createDataRef(vm.rsp - 1);
+    const handle = createRef(vm.rsp - 1);
     return { handle, codeRef };
   };
 
@@ -56,7 +56,7 @@ describe('capsule dispatch runtime', () => {
 
   test('errors on non-capsule receiver', () => {
     push(vm, 0);
-    push(vm, createDataRef(STACK_BASE / CELL_SIZE + 0));
+    push(vm, createRef(STACK_BASE / CELL_SIZE + 0));
     expect(() => dispatchOp(vm)).toThrow();
   });
 });

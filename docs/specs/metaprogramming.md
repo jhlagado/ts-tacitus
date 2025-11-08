@@ -1,6 +1,7 @@
 # Immediate Metaprogramming & Control Flow (Normative)
 
 ## Status
+
 - **Stage:** normative (tracks current implementation).
 - **Scope:** compile-time immediates, the shared `;` terminator, colon definitions, conditional families (`if/else`, `when/do`, `case/of`).
 - **Audience:** compiler/runtime implementors, language designers, and anyone extending Tacit's immediate-word system.
@@ -8,6 +9,7 @@
 This specification supersedes the older drafts `immediate-words-and-terminators.md`, `cond-control-flow.md`, `when-do-control-flow.md`, and consolidates content from `case-control-flow.md`.
 
 ## Overview
+
 Tacit adopts a Forth-like metaprogramming model:
 
 - Words marked **immediate** run during parsing. They execute with full access to the VM’s data (`SP`) and return (`RSP`) stacks—both expressed in **cells**. If an immediate needs raw byte addresses it must derive them explicitly (e.g. `SP * CELL_SIZE`).
@@ -19,7 +21,9 @@ The sections below detail the infrastructure and each control construct.
 ## Immediate-word infrastructure
 
 ### Dictionary entries
+
 Each dictionary entry stores an `isImmediate` flag. When the parser encounters a word:
+
 1. Look up the dictionary entry.
 2. If immediate, execute the entry immediately (for builtins this calls the TypeScript verb; for CODE references the VM temporarily jumps to the bytecode and returns on completion).
 3. Otherwise emit bytecode normally.
@@ -27,13 +31,16 @@ Each dictionary entry stores an `isImmediate` flag. When the parser encounters a
 Immediate words run inside the VM instance used for compilation—no shadow interpreter. They may push values, emit opcodes, or manipulate placeholders exactly as runtime code would.
 
 ### Generic terminator `;`
+
 - Defined as `eval` with the immediate flag set.
 - Requires the data stack to be non-empty; otherwise raises `Unexpected semicolon`.
 - Pops the top value and evaluates it. Openers are responsible for pushing a suitable closer reference (usually `createBuiltinRef(opcode)`); if the value is not executable, `eval` simply pushes it back, so mis-matched `;` produce errors rapidly.
 - Because closers live on the data stack, nested constructs naturally unwind LIFO-style.
 
 ### Compile-time stack discipline
+
 Immediate openers and closers share the VM stacks with runtime code:
+
 - **Data stack:** holds branch placeholders, closer references, and any temporary metadata the opener needs.
 - **Return stack:** available for bookkeeping (e.g. `when` snapshots `RSP` so it can later count pending exit placeholders). Openers must restore any state they save.
 
@@ -42,6 +49,7 @@ Closers validate invariants when invoked. Missing placeholders or unexpected sta
 ## Colon definitions (`:` … `;`)
 
 ### `:` opener (immediate)
+
 1. Ensure we are not already inside a definition; throw if nested.
 2. Read the next token as the word name; reject `:`/`;` or missing names.
 3. Emit `Branch +0` to skip over the body during runtime entry; record the operand address for later patching.
@@ -50,7 +58,9 @@ Closers validate invariants when invoked. Missing placeholders or unexpected sta
 6. Push `createBuiltinRef(Op.EndDefinition)` onto the data stack so the next `;` will resolve it.
 
 ### Closer (`enddef`)
+
 When `;` executes `Op.EndDefinition` it:
+
 1. Emits a trailing `Exit` and finalises the function prologue/epilogue.
 2. Patches the initial `Branch` to point at the code after the definition body.
 3. Registers the word in the symbol table at the computed bytecode address.
@@ -61,13 +71,16 @@ Errors (nested definitions, missing names, stray `;`) are reported immediately b
 ## Conditional control flow (`if` / `else` / `;`)
 
 ### Surface syntax
+
 ```
 cond  if   …true-branch…   ;
 cond  if   …true-branch…   else   …false-branch…   ;
 ```
+
 `else` is optional. Each construct must end with `;`.
 
 ### Compile-time lowering
+
 1. **`if` (immediate)**
    - Emit `IfFalseBranch +0`; push the operand address (`p_false`) onto the data stack.
    - Push `createBuiltinRef(Op.EndIf)` so the terminator can execute it later.
@@ -83,10 +96,12 @@ cond  if   …true-branch…   else   …false-branch…   ;
    - Pops the closer and executes `Op.EndIf`, which patches any outstanding placeholders (the final `Branch`, the original `IfFalseBranch`) and restores compile-time state.
 
 ### Runtime behaviour
+
 - The guard is produced before `if`. At runtime `IfFalseBranch` pops it; zero (or non-numeric) skips the true branch.
 - If an `else` was emitted, the true branch’s trailing `Branch` jumps over the false branch after executing it.
 
 ### Error handling
+
 - `do` without `if` equivalent: `else` checks that the closer on TOS is `EndIf`, otherwise raises `ELSE without IF`.
 - A stray `;` with no executable on TOS raises `Unexpected semicolon`.
 - Unclosed `if` constructs are detected when final validation runs (`ensureNoOpenConditionals`) or earlier if the terminator encounters the wrong placeholder layout.
@@ -94,6 +109,7 @@ cond  if   …true-branch…   else   …false-branch…   ;
 ## Guarded multi-branch (`when` … `do` … `;`)
 
 ### Surface syntax
+
 ```
 when
   predicate do  …body…  ;
@@ -101,10 +117,12 @@ when
   …optional default code…
 ;
 ```
+
 - Each clause consists of a predicate followed by `do` and its body, terminated by `;`.
 - The final `;` closes the construct. Code between the last clause and that terminator acts as the default.
 
 ### Compile-time invariants
+
 - **Data stack (TOS → right):**
   - Open construct: `[…, savedRSP, EndWhen]`
   - Inside clause body: `[…, savedRSP, EndWhen, p_skip, EndDo]`
@@ -113,6 +131,7 @@ when
   - Each clause terminator pushes one forward-branch operand (`p_exit`) addressing the shared exit.
 
 ### Immediate words
+
 1. **`when`**
    - Snapshot `RSP` and push the `savedRSP` value onto the data stack.
    - Push `EndWhen` so the final `;` can resolve it. No bytecode is emitted at this point.
@@ -133,22 +152,26 @@ when
      3. The loop leaves `RSP == savedRSP`; the data stack returns to its pre-`when` shape.
 
 ### Runtime behaviour
+
 - Each clause’s predicate runs just before `do`; it must produce a numeric truth value.
 - Failing the predicate causes the compiled `IfFalseBranch` to skip the body and its closing logic.
 - When a clause body completes, its back-branch jumps to the shared exit (after the whole construct). Default code executes only if every predicate fails.
 
 ### Error handling
+
 - `do` without an open `when` → “do without when”.
 - Clause `;` without a pending predicate skip → “clause closer without do/predicate”.
 - Final `;` without `EndWhen` on TOS → “when not open”.
 - Return-stack under/overflow during closing raises dedicated VM errors; under normal use `savedRSP` guarantees balance.
 
 ### Nested forms
+
 `when` can appear inside clause bodies or default regions. Each nested construct snapshots its own `savedRSP`, leaving outer placeholders untouched until the inner construct has closed.
 
 ## Switch-style multi-branch (`case` … `of` … `;`)
 
 ### Surface syntax
+
 ```
 <discriminant> case
   <constant> of   …body…   ;
@@ -170,14 +193,14 @@ when
 
 #### Stack snapshots
 
-| Moment | Data stack (rightmost = TOS) |
-| --- | --- |
-| Before `case` | `[..., discriminant]` |
-| After `case` opener | `[..., savedRSP, EndCase, discriminant]` |
-| Inside clause body (true branch) | `[..., savedRSP, EndCase]` |
-| Between clauses (false branch) | `[..., savedRSP, EndCase, discriminant]` |
+| Moment                                  | Data stack (rightmost = TOS)                |
+| --------------------------------------- | ------------------------------------------- |
+| Before `case`                           | `[..., discriminant]`                       |
+| After `case` opener                     | `[..., savedRSP, EndCase, discriminant]`    |
+| Inside clause body (true branch)        | `[..., savedRSP, EndCase]`                  |
+| Between clauses (false branch)          | `[..., savedRSP, EndCase, discriminant]`    |
 | After final terminator (matched clause) | prior state restored, discriminant consumed |
-| After final terminator (no match) | prior state restored, discriminant dropped |
+| After final terminator (no match)       | prior state restored, discriminant dropped  |
 
 ### Immediate word semantics
 
@@ -262,21 +285,24 @@ case
 - `DEFAULT` acts as a wildcard via the sentinel value; multiple defaults are legal (the first will match, subsequent defaults are effectively dead code).
 
 ## Closer summary
-| Construct | Opener pushes | Closer word (executed via `;`) | Compile-time duties |
-|-----------|---------------|-------------------------------|---------------------|
-| `:` … `;` | `Op.EndDefinition` | `endDefinitionOp` | Emit `Exit`, patch prologue branch, register definition |
-| `if` … `;` | `Op.EndIf` | `endIfOp` | Patch `IfFalseBranch` and optional trailing `Branch` |
-| `when` … `;` | `Op.EndWhen` (clauses push `Op.EndDo`) | `endWhenOp`, `endDoOp` | Record/patch clause skips, backpatch exit branches |
-| `case` … `;` | `Op.EndCase` (clauses push `Op.EndOf`) | `endCaseOp`, `endOfOp` | Compare discriminant, manage clause exits, drop unmatched discriminant |
-| `capsule` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp` | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition |
+
+| Construct       | Opener pushes                                       | Closer word (executed via `;`) | Compile-time duties                                                                                                             |
+| --------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `:` … `;`       | `Op.EndDefinition`                                  | `endDefinitionOp`              | Emit `Exit`, patch prologue branch, register definition                                                                         |
+| `if` … `;`      | `Op.EndIf`                                          | `endIfOp`                      | Patch `IfFalseBranch` and optional trailing `Branch`                                                                            |
+| `when` … `;`    | `Op.EndWhen` (clauses push `Op.EndDo`)              | `endWhenOp`, `endDoOp`         | Record/patch clause skips, backpatch exit branches                                                                              |
+| `case` … `;`    | `Op.EndCase` (clauses push `Op.EndOf`)              | `endCaseOp`, `endOfOp`         | Compare discriminant, manage clause exits, drop unmatched discriminant                                                          |
+| `capsule` … `;` | `Op.EndCapsule` (opener emits `Op.ExitConstructor`) | `endCapsuleOp`                 | Swap closer `EndDefinition→EndCapsule`, compile `ExitConstructor`; closer compiles `ExitDispatch` then finalises the definition |
 
 All closers live in `src/ops/core/core-ops.ts` and are dispatched through the generic terminator.
 
 ## Diagnostics & validation
+
 - The parser’s final validation pass invokes `ensureNoOpenConditionals`, which now flags any leftover `Op.EndIf` **or** `Op.EndWhen` markers to catch unclosed constructs.
 - Individual openers detect misuse early (e.g. nested `:`) to provide precise error messages.
 
 ## Future work
+
 - Expose a user-level `immediate` word to mark freshly defined colon definitions as immediates.
 - Migrate remaining legacy combinators (e.g. repeat-style loops) onto the immediate infrastructure or retire them.
 - Expand this spec with additional structures (loop families, pattern match variants) as they are ported.
@@ -288,7 +314,7 @@ All closers live in `src/ops/core/core-ops.ts` and are dispatched through the ge
 - Opener (`capsule`):
   - Validates a colon definition is open (TOS must be `Op.EndDefinition`).
   - Swaps the closer on TOS to `Op.EndCapsule` so the shared `;` will close the capsule body.
-  - Emits `Op.ExitConstructor`, which at runtime freezes the current locals in place, appends `[CODE_REF(entry), LIST:(locals+1)]` to the caller’s return frame, pushes a `DATA_REF` handle to the data stack, and restores the caller.
+  - Emits `Op.ExitConstructor`, which at runtime freezes the current locals in place, appends `[CODE_REF(entry), LIST:(locals+1)]` to the caller’s return frame, pushes a `REF` handle to the data stack, and restores the caller.
 
 - Closer (`endCapsuleOp` via `;`):
   - Emits `Op.ExitDispatch`, the custom epilogue used by capsule dispatch bodies to restore the caller without touching the payload.

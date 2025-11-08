@@ -24,10 +24,10 @@ function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
 }
 
 /**
- * Pushes a simple value to the global heap and returns a DATA_REF.
+ * Pushes a simple value to the global heap and returns a REF.
  * @param vm - VM instance
  * @param value - Value to push
- * @returns DATA_REF to the allocated global cell
+ * @returns REF to the allocated global cell
  * @throws {Error} If global heap is exhausted
  */
 export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
@@ -40,10 +40,10 @@ export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
 }
 
 /**
- * Pushes a list to the global heap and returns a DATA_REF to the header.
+ * Pushes a list to the global heap and returns a REF to the header.
  * @param vm - VM instance
  * @param source - List source containing header and base address
- * @returns DATA_REF to the list header in global heap
+ * @returns REF to the list header in global heap
  * @throws {Error} If global heap is exhausted
  */
 export function pushListToGlobalHeap(vm: VM, source: ListSource): number {

@@ -5,7 +5,7 @@ import {
   dispatchOp,
   endCapsuleOp,
 } from '../../../ops/capsules/capsule-ops';
-import { decodeDataRef, RSTACK_BASE, CELL_SIZE } from '../../../core';
+import { decodeRef, RSTACK_BASE, CELL_SIZE } from '../../../core';
 import { rpush, peek } from '../../../core/vm';
 
 describe('capsule opcode stubs', () => {
@@ -30,7 +30,7 @@ describe('capsule opcode stubs', () => {
 
     // Data stack: handle to RSTACK header
     const handle = peek(vm);
-    const { absoluteCellIndex } = decodeDataRef(handle);
+    const { absoluteCellIndex } = decodeRef(handle);
     const expectedAbsCellIndex = vm.rsp - 1;
     expect(absoluteCellIndex).toBe(expectedAbsCellIndex);
 

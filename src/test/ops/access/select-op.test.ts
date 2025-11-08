@@ -15,7 +15,7 @@ import {
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef, getRefRegion } from '../../../core/refs';
 import { peek } from '../../../core/vm';
-// legacy segment id 0 denotes stack region in decodeDataRef classification
+// legacy segment id 0 denotes stack region in decodeRef classification
 
 describe('selectOp - Path-based address access', () => {
   let vm: VM;
@@ -189,12 +189,12 @@ describe('selectOp - Path-based address access', () => {
     expect(getTag(last)).toBe(Tag.STRING);
   });
 
-  test('should handle selection on data-stack DATA_REF target', () => {
+  test('should handle selection on stack REF target', () => {
     const result = executeTacitCode(vm, '( ( 10 20 ) ( 30 40 ) ) ref ( 1 0 ) select fetch');
     expect(result[result.length - 1]).toBe(30);
   });
 
-  test('should handle selection on return-stack DATA_REF target', () => {
+  test('should handle selection on return-stack REF target', () => {
     const result = executeTacitCode(
       vm,
       ': f ( ( 10 20 ) ( 30 40 ) ) var xs &xs ( 1 0 ) select fetch ; f',

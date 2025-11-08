@@ -9,7 +9,7 @@ import {
   getTag,
   Tag,
   getVarRef,
-  createDataRef,
+  createRef,
   getByteAddressFromRef,
   isRef,
   SEG_DATA,
@@ -297,7 +297,7 @@ export function initVarOp(vm: VM): void {
     const headerAddr = rpushList(vm);
     const headerCellIndex = headerAddr / CELL_SIZE;
     const absHeaderCellIndex = RSTACK_BASE / CELL_SIZE + headerCellIndex;
-    const localRef = createDataRef(absHeaderCellIndex);
+    const localRef = createRef(absHeaderCellIndex);
 
     vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, localRef);
   } else {

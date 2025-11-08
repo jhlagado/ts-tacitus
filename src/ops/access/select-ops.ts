@@ -4,7 +4,7 @@
  */
 
 import type { VM, Verb } from '@src/core';
-import { Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createDataRef } from '@src/core';
+import { Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -25,8 +25,8 @@ export function createTargetRef(vm: VM): boolean {
   const target = vm.memory.readFloat32(SEG_DATA, targetByteAddr);
 
   if (isList(target)) {
-    // Create absolute DATA_REF to the list header cell
-    const targetRef = createDataRef(targetCell);
+    // Create absolute REF to the list header cell
+    const targetRef = createRef(targetCell);
     push(vm, targetRef);
     return true;
   } else if (isRef(target)) {

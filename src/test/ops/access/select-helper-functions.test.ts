@@ -20,7 +20,7 @@ describe('selectOp Helper Functions', () => {
       expect(result.length).toBe(5); // original 3 + list + ref
     });
 
-    test('should handle existing DATA_REF target', () => {
+    test('should handle existing REF target', () => {
       // Test that existing refs can be copied
       const result = executeTacitCode(vm, '( 1 2 3 ) ref dup');
       expect(result.length).toBe(6); // original 3 + list + ref + ref

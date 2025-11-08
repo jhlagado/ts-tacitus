@@ -47,7 +47,7 @@ describe('List reference operations: fetch/store', () => {
   test('load materializes list from return-stack reference (&local)', () => {
     // Build a function that creates a local list and pushes &x (ref) to stack
     executeTacitCode(vm, ': f ( 1 2 ) var x &x ; f');
-    // Top of stack is a DATA_REF into RSTACK; load should materialize the list
+    // Top of stack is a REF into RSTACK; load should materialize the list
     loadOp(vm);
     const tos = peek(vm);
     expect(getTag(tos)).toBe(Tag.LIST);
