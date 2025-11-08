@@ -236,7 +236,7 @@ export function emitWord(
     return;
   }
 
-  if (tag === Tag.DATA_REF) {
+  if (tag === Tag.REF) {
     if (getRefRegion(entryValue) !== 'global') {
       throw new UndefinedWordError(value, getStackData(vm));
     }
@@ -291,7 +291,7 @@ export function emitAtSymbol(
  * Process &variable tokens for explicit reference access.
  *
  * This function handles &variable syntax by compiling VarRef + Fetch
- * to create a DATA_REF to the local variable slot.
+ * to create a REF to the local variable slot.
  *
  * @param {string} varName - The variable name after & (without the & prefix)
  * @param {ParserState} state - The current parser state
@@ -318,7 +318,7 @@ export function emitRefSigil(
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
-    if (tag === Tag.DATA_REF) {
+    if (tag === Tag.REF) {
       if (getRefRegion(tval) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
@@ -331,7 +331,7 @@ export function emitRefSigil(
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.DATA_REF && getRefRegion(tval) === 'global') {
+  if (tag === Tag.REF && getRefRegion(tval) === 'global') {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(tval);
     return;
@@ -454,7 +454,7 @@ export function emitAssignment(
     vm.compiler.compileOpcode(Op.Store);
     return;
   }
-  if (tag === Tag.DATA_REF) {
+  if (tag === Tag.REF) {
     if (getRefRegion(tval) !== 'global') {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',

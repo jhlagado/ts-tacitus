@@ -135,7 +135,7 @@ Syntax
 Lowering (normative)
 
 - Read (liberal source): `expr[ … ]` compiles to `Select` → `Load` → `Nip` over the value already on the stack. Invalid paths produce `NIL`.
-- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (DATA_REF resolving to the global heap), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
+- Write (strict destination): `value -> x[ … ]` compiles to `&x` (VarRef + Fetch), then `Select` → `Nip` → `Store`; for globals `value -> name[ … ]` compiles to `&name` (REF resolving to the global heap), then `Select` → `Nip` → `Store`. Destination must be an address; invalid paths throw.
 
 Semantics
 
@@ -195,18 +195,18 @@ Notes
 
 - Returns the **address** (absolute cell index) of a payload slot at **slot index `idx`**.
 - **Preconditions:** `0 ≤ idx < s`.
-- **Result:** returns a `DATA_REF` that resolves to the data-stack window at the payload slot index `idx`.
+- **Result:** returns a `REF` that resolves to the data-stack window at the payload slot index `idx`.
 - **Cost:** O(1).
 
 ### elem ( idx -- addr )
 
 - Returns the **address** of the **start slot** for **element index `idx`**.
-- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `DATA_REF` (data-stack window) to the element start slot.
+- **Method:** traverse from `SP-1`, stepping by `1` for simple or by `span(header)` for compound, until `idx` elements have been skipped; returns a `REF` (data-stack window) to the element start slot.
 - **Cost:** O(s) worst-case.
 
 ### fetch ( addr -- value )
 
-- Strict reference read: expects a `DATA_REF` (any window). Errors on non-reference input.
+- Strict reference read: expects a `REF` (any window). Errors on non-reference input.
 - If the value at `addr` is **simple** (single-slot), returns that slot's value.
 - If the value at `addr` is the start of a **compound** (its header), materializes the entire list: pushes all payload slots (in reverse order from deepest to shallowest), then pushes the header. Result is a stack-resident list.
 - **Cost:** O(1) for simple; O(span) to materialize a compound.
@@ -220,7 +220,7 @@ Notes
 
 ### store ( value addr -- )
 
-- Writes `value` into the slot at stack address `addr` in place. `addr` is a data-stack `DATA_REF` carrying an absolute cell index.
+- Writes `value` into the slot at stack address `addr` in place. `addr` is a data-stack `REF` carrying an absolute cell index.
 - Simple targets only; for compound targets see Compatibility Rule below.
 - **Cost:** O(1) for simple; O(span) to materialize a compound on fetch or to copy a compatible compound on store.
 - **Example:** `100 list 2 elem store` overwrites element 2 when that element is simple.

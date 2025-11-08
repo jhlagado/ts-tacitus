@@ -4,7 +4,7 @@ import { push, rpush } from '../../../core/vm';
 import {
   Tag,
   toTaggedValue,
-  createDataRef,
+  createRef,
   CELL_SIZE,
   RSTACK_BASE,
   STACK_BASE,
@@ -30,11 +30,11 @@ describe('capsule layout (handle-based)', () => {
     rpush(vm, header);
 
     const headerCellIndex = vm.rsp - 1; // absolute cell index at top of RSTACK
-    const handle = createDataRef(headerCellIndex);
+    const handle = createRef(headerCellIndex);
     return { handle, slotCount, codeRef };
   };
 
-  test('reads valid capsule layout from DATA_REF handle', () => {
+  test('reads valid capsule layout from REF handle', () => {
     const codeAddr = 1234;
     const { handle, slotCount, codeRef } = pushCapsuleLike([10, 20], codeAddr);
 
@@ -51,13 +51,13 @@ describe('capsule layout (handle-based)', () => {
     rpush(vm, 42); // not CODE
     rpush(vm, toTaggedValue(3, Tag.LIST));
     const headerIdx = vm.rsp - 1;
-    const handle = createDataRef(headerIdx);
+    const handle = createRef(headerIdx);
 
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('slot0 must be a CODE');
   });
 
   test('errors on non-list handle (bad reference)', () => {
-    const bad = createDataRef(STACK_BASE / CELL_SIZE + 0);
+    const bad = createRef(STACK_BASE / CELL_SIZE + 0);
     expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('does not reference a LIST');
   });
 
@@ -68,7 +68,7 @@ describe('capsule layout (handle-based)', () => {
     push(vm, codeRef);
     push(vm, toTaggedValue(2, Tag.LIST));
     const headerCellIndex = vm.sp - 1; // absolute data stack cell index
-    const stackHandle = createDataRef(headerCellIndex);
+    const stackHandle = createRef(headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
     expect(layout.baseAddrBytes).toBeGreaterThanOrEqual(STACK_BASE);
     expect(layout.baseAddrBytes).toBeLessThan(RSTACK_BASE);
@@ -79,13 +79,13 @@ describe('capsule layout (handle-based)', () => {
   test('errors when payload slot count is zero', () => {
     // header LIST:0 on RSTACK (no payload)
     rpush(vm, toTaggedValue(0, Tag.LIST));
-    const handle = createDataRef(vm.rsp - 1);
+    const handle = createRef(vm.rsp - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('include CODE slot');
   });
 
-  test('errors when return-stack DATA_REF does not point to a LIST header', () => {
+  test('errors when return-stack REF does not point to a LIST header', () => {
     rpush(vm, 12345); // simple value on RSTACK
-    const handle = createDataRef(vm.rsp - 1);
+    const handle = createRef(vm.rsp - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('does not reference a LIST');
   });
 });

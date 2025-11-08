@@ -2,7 +2,7 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 
-describe('Capsule dispatch via data-stack DATA_REF handle', () => {
+describe('Capsule dispatch via stack REF handle', () => {
   let vm: VM;
 
   beforeEach(() => {

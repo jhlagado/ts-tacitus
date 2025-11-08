@@ -17,7 +17,7 @@ describe('List query: walk', () => {
     const out = captureTacitOutput(vm, `( 1 ( 2 3 ) 4 ) ref 0 walk raw walk raw walk raw walk raw`);
     // First output must be 1; among the next three outputs one is a ref, and the other two are 2 and 3 (order may vary)
     expect(out[0]).toBe('1');
-    expect(out.slice(1).some(s => /^DATA_REF:/.test(s))).toBe(true);
+    expect(out.slice(1).some(s => /^REF:/.test(s))).toBe(true);
     expect(out).toContain('2');
     expect(out).toContain('3');
   });

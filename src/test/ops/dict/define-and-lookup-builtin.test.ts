@@ -13,7 +13,7 @@ describe('dict define/lookup builtin (happy path)', () => {
     vm = createVM();
   });
 
-  test('define builtin then lookup returns DATA_REF to stored BUILTIN', () => {
+  test('define builtin then lookup returns REF to stored BUILTIN', () => {
     const name = 'my_builtin';
     const opcode = 123;
 

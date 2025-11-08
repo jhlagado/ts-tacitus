@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
 import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, SEG_DATA, STACK_BASE } from '../../../core/constants';
-import { createDataRef } from '../../../core/refs';
+import { createRef } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { push, pop, getStackData } from '../../../core/vm';
 
@@ -91,11 +91,11 @@ describe('Global heap primitives', () => {
     expect(vm.gp).toBe(mark);
   });
 
-  test('gpush resolves DATA_REF of simple and copies the value', () => {
+  test('gpush resolves REF of simple and copies the value', () => {
     push(vm, 7);
     gpushOp(vm);
     // Create a ref to the first heap cell on the stack and push it
-    const nestedRef = createDataRef(GLOBAL_BASE / CELL_SIZE + baseGp);
+    const nestedRef = createRef(GLOBAL_BASE / CELL_SIZE + baseGp);
     push(vm, nestedRef);
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 2);

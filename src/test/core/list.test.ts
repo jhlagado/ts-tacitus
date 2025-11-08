@@ -25,7 +25,7 @@ import {
 } from '../../core';
 import { createList } from '../utils/core-test-utils';
 import { getStackData, peek, push, pop } from '../../core/vm';
-import { createDataRef } from '../../core/refs';
+import { createRef } from '../../core/refs';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
 
@@ -402,7 +402,7 @@ describe('LIST Core Utilities', () => {
       const cellIndex = 10;
       vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
       const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
-      const ref = createDataRef(absCellIndex);
+      const ref = createRef(absCellIndex);
       expect(getListBounds(vm, ref)).toBeNull();
     });
   });

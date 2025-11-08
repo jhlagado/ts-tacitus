@@ -30,7 +30,7 @@ Although the heap is not a stack in the traditional sense, it behaves like one: 
 
 ### Global Availability and Lifetime
 
-References to items in the global heap are assumed to be **global and persistent**. When a value is stored in the dictionary (such as a global variable or a function definition), the dictionary entry typically includes the `DATA_REF` handle returned by `gpush`. Once created, such a reference remains valid for the **entire lifetime of the program** unless a `gsweep` deliberately rewinds past that allocation.
+References to items in the global heap are assumed to be **global and persistent**. When a value is stored in the dictionary (such as a global variable or a function definition), the dictionary entry typically includes the `REF` handle returned by `gpush`. Once created, such a reference remains valid for the **entire lifetime of the program** unless a `gsweep` deliberately rewinds past that allocation.
 
 ### Contents of the Global Heap
 

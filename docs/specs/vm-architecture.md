@@ -175,12 +175,12 @@ Locals
 
 - Allocation via `Reserve` advances `RSP` by slot count (cells) after the frame root is established.
 - Initialization via `InitVar` writes into `(BP + slot) * CELL_SIZE` within the return-stack window.
-- References (`&x`) compile to a `DATA_REF` whose payload stores the absolute cell index `(BP + slot)` within the unified data arena.
+- References (`&x`) compile to a `REF` whose payload stores the absolute cell index `(BP + slot)` within the unified data arena.
 
 Compound Locals (Lists)
 
 - Lists are stored on the return-stack window in reverse layout: `[payload cells...] [LIST header]`.
-- When initializing a LIST local, the materialized LIST on the data stack is transferred to the return stack; the slot receives a `DATA_REF` whose payload resolves to the header cell inside the return-stack window.
+- When initializing a LIST local, the materialized LIST on the data stack is transferred to the return stack; the slot receives a `REF` whose payload resolves to the header cell inside the return-stack window.
 - Fast path for ref-to-list assignment copies payload + header directly when the source is already in the return-stack region; slot reference is preserved.
 
 Corruption Testing
@@ -197,11 +197,11 @@ Invariants
 
 ## References & Addressing
 
-- `Tag.DATA_REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload stores the absolute cell index; helpers infer which window (global heap, data stack, return stack) owns that index by comparing against segment bounds.
+- `Tag.REF` is the canonical runtime handle for any cell in the data arena. Its 16-bit payload stores the absolute cell index; helpers infer which window (global heap, data stack, return stack) owns that index by comparing against segment bounds.
 
 Reference helpers (see `core/refs.ts`):
 
-- `createDataRef(absoluteCellIndex)` → `DATA_REF` (absolute cell index in unified arena)
+- `createRef(absoluteCellIndex)` → `REF` (absolute cell index in unified arena)
 - `getByteAddressFromRef(ref)` → absolute byte address
 - `readReference(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 - `getRefRegion(ref)` → `'global' | 'stack' | 'rstack'` (inferred from address range)
@@ -218,7 +218,7 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 
 - `@symbol` pushes a tagged reference: `Tag.BUILTIN(op)` for builtins or `Tag.CODE(addr)` for colon definitions/compiled blocks.
 - `eval` executes tagged references: BUILTIN dispatches native implementation; CODE jumps to bytecode address (block/function per meta flag).
-- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `DATA_REF` handles that resolve into the return-stack window (see locals spec).
+- `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `REF` handles that resolve into the return-stack window (see locals spec).
 
 ## Operations
 

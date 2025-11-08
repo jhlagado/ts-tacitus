@@ -5,14 +5,14 @@ Orientation
 - Start with core invariants: docs/specs/core-invariants.md
 - Lists and bracket paths: docs/specs/lists.md
 
-Status: Authoritative spec for variables (locals and globals) and data references in Tacit.
+Status: Authoritative spec for variables (locals and globals) and references in Tacit.
 
 ---
 
 ## 1. Overview and Terminology
 
 - Variable: named storage in the VM. Two kinds: local (function-frame slot) and global (module-scope cell in the global heap window).
-- Ref (data): a tagged handle using `Tag.DATA_REF`; its payload stores the cell index inside the unified data arena. Window ownership is inferred by comparing that index against the global, data‑stack, and return‑stack ranges. Data refs are not code and are never executed.
+- Ref: a tagged handle using `Tag.REF`; its payload stores the cell index inside the unified data arena. Window ownership is inferred by comparing that index against the global, data‑stack, and return‑stack ranges. Refs are not code and are never executed.
 - Code ref: a tagged handle to builtins or compiled bytecode (from `@symbol`); evaluated via `eval`.
 - Load (value-by-default): produce a value from a value-or-ref; identity on non-refs; dereferences up to two levels; materializes lists.
 - Fetch (strict address read): read the value at a reference address; materializes lists when the read cell is a LIST header.
@@ -35,36 +35,36 @@ Tacit stores globals, the data stack, and the return stack inside a single data 
 - **Data-stack window** — operand storage (indexed by `SP`)
 - **Return-stack window** — frames and locals (indexed by `RSP`/`BP`)
 
-Runtime references use the unified `Tag.DATA_REF`. Its 16‑bit payload stores a cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data‑stack, and return‑stack bounds.
+Runtime references use the unified `Tag.REF`. Its 16‑bit payload stores a cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data‑stack, and return‑stack bounds.
 
 Helpers
 
-- `createDataRef(cellIndex)` → `DATA_REF`
+- `createRef(cellIndex)` → `REF`
 - `getByteAddressFromRef(ref)` → byte address in the unified arena
 - `readReference(vm, ref)` / `writeReference(vm, ref)` → value I/O at that address
 
 ### 2.1 Reference Taxonomy
 
-- **Heap entries:** dictionary payloads always store `Tag.DATA_REF` values. For globals they refer to the global heap window; for locals they carry `Tag.LOCAL` slot numbers that are resolved to return-stack cells at run time.
+- **Heap entries:** dictionary payloads always store `Tag.REF` values. For globals they refer to the global heap window; for locals they carry `Tag.LOCAL` slot numbers that are resolved to return-stack cells at run time.
 - **Names:** the `name` field in each dictionary entry is a `Tag.STRING` offset into the interned string digest. Shadowing relies on pointer equality against those offsets.
 - **Code/Immediates:** function payloads store either `Tag.CODE` (user bytecode) or `Tag.BUILTIN` (native implementation). The sign bit carries the `IMMEDIATE` flag.
 - **Sentinels:** the `prev` field of the oldest entry is `Tag.SENTINEL` (`NIL`) so a single equality check terminates dictionary walks without special cases.
 
-Heap-backed dictionary nodes therefore bridge all three tag families—`DATA_REF` for data, `STRING` for keys, `CODE`/`BUILTIN` for behaviour—without introducing new runtime tags.
+Heap-backed dictionary nodes therefore bridge all three tag families—`REF` for data, `STRING` for keys, `CODE`/`BUILTIN` for behaviour—without introducing new runtime tags.
 
 ---
 
 ## 3. Variable Model: Locals and Globals
 
 - Declared inside functions with `value var name`. Each `var` consumes the value at TOS and initializes a fixed-size slot in the current frame.
-- Storage: one 32-bit slot holding a simple value or a `DATA_REF` pointing to local compound storage above the slot.
-- Addressing: `&x` forms a `DATA_REF` whose payload is the cell index `(BP + slot)` in the unified arena.
+- Storage: one 32-bit slot holding a simple value or a `REF` pointing to local compound storage above the slot.
+- Addressing: `&x` forms a `REF` whose payload is the cell index `(BP + slot)` in the unified arena.
 - Access: `x` yields the value (VarRef+Load); `&x` yields the slot address; `&x fetch` reads the slot content; `&x load` yields the slot value.
 
 - Declared at top level with `value global name`.
 - Lifetime: persist for the VM/program lifetime.
-- Storage: live in the global-heap window; simple values stored directly; compounds copied into the heap with dictionary payloads holding a `DATA_REF` that resolves to the heap header.
-- Access: `name` yields the value (value-by-default); `&name` yields a `DATA_REF` address; `value -> name` overwrites; bracket-path writes allowed (`value -> name[ … ]`).
+- Storage: live in the global-heap window; simple values stored directly; compounds copied into the heap with dictionary payloads holding a `REF` that resolves to the heap header.
+- Access: `name` yields the value (value-by-default); `&name` yields a `REF` address; `value -> name` overwrites; bracket-path writes allowed (`value -> name[ … ]`).
 
 Local vs Global symmetry
 
@@ -80,7 +80,7 @@ Frame root and slots (cells)
 
 - Function prologue saves return address and caller BP, then sets `BP = RSP`.
 - `Reserve` allocates N local slots: `RSP += N` (cells). Slot `i` resides at cell index `BP + i`.
-- Compounds for locals live above the slots within the return-stack window; slots store `DATA_REF` handles that resolve to those payloads.
+- Compounds for locals live above the slots within the return-stack window; slots store `REF` handles that resolve to those payloads.
 
 See docs/specs/vm-architecture.md (Frames & BP) for full layout, diagrams, and invariants.
 
@@ -93,23 +93,23 @@ Target compilation (locals/globals)
 ```tacit
 x        → VarRef + Load              (value-by-default)
 &x       → VarRef + Fetch             (slot address)
-name     → LiteralNumber(DATA_REF(global-slot)) + Load
-&name    → LiteralNumber(DATA_REF(global-slot)) + Fetch
+name     → LiteralNumber(REF(global-slot)) + Load
+&name    → LiteralNumber(REF(global-slot)) + Fetch
 value -> x     → VarRef + Store       (assignment)
-value -> name  → LiteralNumber(DATA_REF(global-slot)) + Store
+value -> name  → LiteralNumber(REF(global-slot)) + Store
 ```
 
 Stack effects (logical)
 
 ```tacit
 x, name      ( — value )        \ value of variable (simple or compound)
-&x           ( — DATA_REF )     \ local slot address (resolves into return-stack window)
-&name        ( — DATA_REF )     \ global address (resolves into heap window)
+&x           ( — REF )     \ local slot address (resolves into return-stack window)
+&name        ( — REF )     \ global address (resolves into heap window)
 value -> x   ( — )              \ assignment
 value -> name( — )              \ assignment
 ```
 
-> Note: All global references now use `DATA_REF` with absolute cell indices. The runtime infers the window (global/stack/rstack) by comparing the index against segment boundaries.
+> Note: All global references now use `REF` with absolute cell indices. The runtime infers the window (global/stack/rstack) by comparing the index against segment boundaries.
 
 Load / Fetch / Store
 
@@ -138,11 +138,11 @@ Compatibility rule (compound→compound)
 Locals (normative)
 
 - Simple locals: overwrite slot `(BP + slot)` directly (after materializing source).
-- Compound locals: slot holds a `DATA_REF` that resolves to the return-stack window; compatible assignment copies payload then header in-place at that address; slot’s reference is unchanged.
+- Compound locals: slot holds a `REF` that resolves to the return-stack window; compatible assignment copies payload then header in-place at that address; slot’s reference is unchanged.
 
 Globals
 
-- Same compatibility rule; storage lives in the global-heap window; `DATA_REF` addresses are resolved before write; compatible compound assignments mutate in place.
+- Same compatibility rule; storage lives in the global-heap window; `REF` addresses are resolved before write; compatible compound assignments mutate in place.
 
 ---
 
@@ -200,11 +200,11 @@ Canonical details and low-level addressing ops live in docs/specs/lists.md.
 Reserve & init
 
 - `Reserve N` allocates N local slots in the frame (cells).
-- `InitVar slot` pops TOS and stores into the slot (simple direct, compound copies into the return-stack window and stores a `DATA_REF` handle).
+- `InitVar slot` pops TOS and stores into the slot (simple direct, compound copies into the return-stack window and stores a `REF` handle).
 
 Addressing
 
-- `VarRef slot` pushes the absolute address `(BP + slot)` as a `DATA_REF` for `&x`.
+- `VarRef slot` pushes the absolute address `(BP + slot)` as a `REF` for `&x`.
 
 Compilation pattern
 
@@ -220,7 +220,7 @@ Symbol resolution priority
 
 Compile-time vs runtime tags
 
-- Parser marks locals with a compile-time `Tag.LOCAL` in dictionary entries; runtime addressing uses `DATA_REF` handles (no `Tag.LOCAL` on data stack at runtime).
+- Parser marks locals with a compile-time `Tag.LOCAL` in dictionary entries; runtime addressing uses `REF` handles (no `Tag.LOCAL` on data stack at runtime).
 
 ---
 
@@ -252,10 +252,10 @@ Principles (see `docs/specs/core-invariants.md` for mutation rules.)
 
 Canonical errors
 
-- Bad address: "store expects DATA_REF address".
+- Bad address: "store expects REF address".
 - Type mismatch: "Cannot assign simple to compound or compound to simple".
 - Incompatible compound: "Incompatible compound assignment: slot count or type mismatch".
-- Strict read: "fetch expects DATA_REF address".
+- Strict read: "fetch expects REF address".
 - Increment out of scope: "Increment operator (+>) only allowed inside function definitions".
 
 ---
@@ -339,11 +339,11 @@ Symbol kinds
 
 ## Appendix B: Opcode Details (locals)
 
-| Opcode         | Purpose                  | Encoding                     | Operation                                |
-| -------------- | ------------------------ | ---------------------------- | ---------------------------------------- |
-| Reserve        | Allocate local slots     | `Reserve slot_count`         | Advance RSP by `slot_count` cells        |
-| InitVar        | Initialize variable slot | `InitVar slot_number`        | Pop TOS, store in slot with tagging      |
-| VarRef         | Push slot address        | `VarRef slot_number`         | Push `DATA_REF` resolving to `BP + slot` |
+| Opcode  | Purpose                  | Encoding              | Operation                           |
+| ------- | ------------------------ | --------------------- | ----------------------------------- |
+| Reserve | Allocate local slots     | `Reserve slot_count`  | Advance RSP by `slot_count` cells   |
+| InitVar | Initialize variable slot | `InitVar slot_number` | Pop TOS, store in slot with tagging |
+| VarRef  | Push slot address        | `VarRef slot_number`  | Push `REF` resolving to `BP + slot` |
 
 Reserve
 
@@ -353,7 +353,7 @@ Reserve
 InitVar
 
 - Simple: store directly into `(BP + slot)`
-- Compound: transfer list into the return-stack window and store a `DATA_REF` that resolves to the header in the slot
+- Compound: transfer list into the return-stack window and store a `REF` that resolves to the header in the slot
 
 VarRef
 
@@ -385,7 +385,7 @@ Testable assertions
 
 - `&x load` equals `x` value.
 - Polymorphic list ops return identical results for values and refs.
-- `ref` returns a `DATA_REF` pointing at the correct header.
+- `ref` returns a `REF` pointing at the correct header.
 - `load` materializes entire list per lists.md.
 - `store`/`set` materialize source refs before writing.
 
@@ -398,7 +398,7 @@ Glossary
 - Absolute cell index — integer payload in a ref; address = index × 4.
 - Borrowing — using a ref owned by another frame; safe to return to owner.
 - Code ref — handle to builtins/bytecode; evaluated via `eval`.
-- Data ref — unified handle to data in the arena; payload is an absolute cell index, and helpers map it to the appropriate window.
+- Ref — unified handle to data in the arena; payload is an absolute cell index, and helpers map it to the appropriate window (global, stack, or return stack).
 - Destination — the location being written (slot or addressed element).
 - Materialize/Resolve — convert a ref to its current value.
 - Owner — the frame that holds the slot to which the ref points.
@@ -465,10 +465,10 @@ value +> x[ … ]   → VarRef(slot) · Fetch · [path] · Select · Nip · Swap
 Globals
 
 ```tacit
-name              → LiteralNumber(DATA_REF(global-slot)) · Load
-&name             → LiteralNumber(DATA_REF(global-slot))
-value -> name     → LiteralNumber(DATA_REF(global-slot)) · Store
-value -> name[ … ]→ LiteralNumber(DATA_REF(global-slot)) · Fetch · [path] · Select · Nip · Store
+name              → LiteralNumber(REF(global-slot)) · Load
+&name             → LiteralNumber(REF(global-slot))
+value -> name     → LiteralNumber(REF(global-slot)) · Store
+value -> name[ … ]→ LiteralNumber(REF(global-slot)) · Fetch · [path] · Select · Nip · Store
 ```
 
 Bracket-path read (any expr)

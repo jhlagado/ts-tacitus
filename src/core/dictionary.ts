@@ -3,8 +3,8 @@
  * Heap-backed dictionary (core). Simple, C-like cell operations.
  *
  * Entry layout (LIST length 3): [prevRef, payloadTagged, name]
- * - prevRef: DATA_REF to previous entry header, or NIL (end of chain)
- * - payloadTagged: any tagged value (BUILTIN/CODE/LOCAL/DATA_REF/...)
+ * - prevRef: REF to previous entry header, or NIL (end of chain)
+ * - payloadTagged: any tagged value (BUILTIN/CODE/LOCAL/REF/...)
  * - name: STRING (interned)
  *
  * Head is stored as a cell index (like gp), with 0 meaning empty dictionary.
@@ -21,7 +21,7 @@ import {
   isNIL,
 } from './tagged';
 import { isList, getListLength, validateListHeader } from './list';
-import { isRef, createGlobalRef, decodeDataRef } from './refs';
+import { isRef, createGlobalRef, decodeRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE, GLOBAL_BASE_CELLS } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
@@ -35,7 +35,7 @@ function getByteAddressFromCellIndex(cellIndex: number): number {
 export function define(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
   const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-  // Create prevRef as DATA_REF (or NIL if head is 0)
+  // Create prevRef as REF (or NIL if head is 0)
   const prevRef = vm.head === 0 ? NIL : createGlobalRef(vm.head);
   gpush(vm, prevRef);
   gpush(vm, payloadTagged);
@@ -85,13 +85,13 @@ export function lookup(vm: VM, name: string): number {
     }
 
     const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + PREV * CELL_SIZE);
-    // prevRef is stored as DATA_REF (or NIL)
+    // prevRef is stored as REF (or NIL)
     if (isNIL(prevRefValue)) {
       cur = 0;
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
-      if (tag === Tag.DATA_REF) {
-        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+      if (tag === Tag.REF) {
+        const { absoluteCellIndex } = decodeRef(prevRefValue);
         // Convert absolute cell index back to relative (relative to GLOBAL_BASE_CELLS)
         cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
       } else {
@@ -158,7 +158,7 @@ export function forget(vm: VM, markCellIndex: number): void {
 // VM Operation Handlers (stack-based interface)
 // ============================================================================
 
-// Helper to materialize a value from stack to heap as DATA_REF
+// Helper to materialize a value from stack to heap as REF
 function materializeValueRef(vm: VM, value: number): number {
   if (isRef(value)) {
     return value;
@@ -184,9 +184,9 @@ function materializeValueRef(vm: VM, value: number): number {
 // Build a LIST entry [prevRef, valueRef, name] on data stack and copy to global heap.
 // Returns cell index of the header (relative to GLOBAL_BASE_CELLS)
 function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: number): number {
-  // Create prevRef as DATA_REF (or NIL if prevCell is 0)
+  // Create prevRef as REF (or NIL if prevCell is 0)
   const prevRef = prevCell === 0 ? NIL : createGlobalRef(prevCell);
-  // Payload order: prevRef (as DATA_REF or NIL), valueRef, name, then LIST header of length 3
+  // Payload order: prevRef (as REF or NIL), valueRef, name, then LIST header of length 3
   push(vm, prevRef);
   push(vm, valueRef);
   push(vm, name);
@@ -296,8 +296,8 @@ export function dumpDictOp(vm: VM): void {
     let prevStr = 'NIL';
     if (!isNIL(prevRefValue)) {
       const { tag } = fromTaggedValue(prevRefValue);
-      if (tag === Tag.DATA_REF) {
-        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+      if (tag === Tag.REF) {
+        const { absoluteCellIndex } = decodeRef(prevRefValue);
         const relativeCellIndex = absoluteCellIndex - GLOBAL_BASE_CELLS;
         prevStr = `cell@${relativeCellIndex}`;
       } else {
@@ -310,8 +310,8 @@ export function dumpDictOp(vm: VM): void {
       cur = 0;
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
-      if (tag === Tag.DATA_REF) {
-        const { absoluteCellIndex } = decodeDataRef(prevRefValue);
+      if (tag === Tag.REF) {
+        const { absoluteCellIndex } = decodeRef(prevRefValue);
         cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
       } else {
         cur = 0;

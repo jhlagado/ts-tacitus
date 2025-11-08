@@ -188,3 +188,7 @@ src/test/
 - **Easier navigation**: Related tests together
 - **Maintained coverage**: No loss of test coverage
 - **Faster tests**: Slightly faster due to less file overhead
+
+
+all tests must pass. 
+when complete do an audit of functions with a single line body. are they really necessary or can they just be inlined into the caller?

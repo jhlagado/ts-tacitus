@@ -96,9 +96,9 @@ export function gpopOp(vm: VM): void {
   vm.gp = vm.gp - 1;
 }
 
-// New ops: markOp/forgetOp — heap marks using DATA_REF handles
+// New ops: markOp/forgetOp — heap marks using REF handles
 export function markOp(vm: VM): void {
-  // Push a global DATA_REF that encodes the current GP (next free global cell)
+  // Push a global REF that encodes the current GP (next free global cell)
   const ref = createGlobalRef(vm.gp);
   push(vm, ref);
 }
@@ -107,7 +107,7 @@ export function forgetOp(vm: VM): void {
   ensureStackSize(vm, 1, 'forget');
   const ref = pop(vm);
   if (!isRef(ref)) {
-    throw new Error('forget expects DATA_REF');
+    throw new Error('forget expects REF');
   }
   const absIndex = getAbsoluteCellIndexFromRef(ref);
   const gBase = GLOBAL_BASE / CELL_SIZE;

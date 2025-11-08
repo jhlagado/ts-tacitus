@@ -20,52 +20,52 @@ import {
 const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
 
 /**
- * Creates a DATA_REF tagged value for an absolute cell index.
+ * Creates a REF tagged value for an absolute cell index.
  * @param absoluteCellIndex - Absolute cell index in unified data arena
- * @returns Tagged DATA_REF value
+ * @returns Tagged REF value
  * @throws {RangeError} If index is out of bounds
  */
-export function createDataRef(absoluteCellIndex: number): number {
+export function createRef(absoluteCellIndex: number): number {
   if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
-    throw new RangeError(`DATA_REF absolute cell index ${absoluteCellIndex} is out of bounds`);
+    throw new RangeError(`REF absolute cell index ${absoluteCellIndex} is out of bounds`);
   }
-  return toTaggedValue(absoluteCellIndex, Tag.DATA_REF);
+  return toTaggedValue(absoluteCellIndex, Tag.REF);
 }
 
 /**
- * Decodes a DATA_REF tagged value to extract the absolute cell index.
- * @param ref - DATA_REF tagged value
+ * Decodes a REF tagged value to extract the absolute cell index.
+ * @param ref - REF tagged value
  * @returns Object containing absolute cell index
- * @throws {Error} If value is not a DATA_REF
+ * @throws {Error} If value is not a REF
  */
-export function decodeDataRef(ref: number): { absoluteCellIndex: number } {
+export function decodeRef(ref: number): { absoluteCellIndex: number } {
   const { value, tag } = fromTaggedValue(ref);
-  if (tag !== Tag.DATA_REF) {
-    throw new Error('decodeDataRef called with non-DATA_REF value');
+  if (tag !== Tag.REF) {
+    throw new Error('decodeRef called with non-REF value');
   }
   return { absoluteCellIndex: value };
 }
 
 /**
- * Extracts absolute cell index from a DATA_REF.
- * @param ref - DATA_REF tagged value
+ * Extracts absolute cell index from a REF.
+ * @param ref - REF tagged value
  * @returns Absolute cell index
- * @throws {Error} If value is not a DATA_REF or index is out of bounds
+ * @throws {Error} If value is not a REF or index is out of bounds
  */
 export function getAbsoluteCellIndexFromRef(ref: number): number {
   const { value, tag } = fromTaggedValue(ref);
-  if (tag !== Tag.DATA_REF) {
-    throw new Error('Expected DATA_REF');
+  if (tag !== Tag.REF) {
+    throw new Error('Expected REF');
   }
   if (value < 0 || value >= TOTAL_DATA_CELLS) {
-    throw new RangeError('DATA_REF absolute out of bounds');
+    throw new RangeError('REF absolute out of bounds');
   }
   return value;
 }
 
 /**
- * Converts a DATA_REF to its absolute byte address.
- * @param ref - DATA_REF tagged value
+ * Converts a REF to its absolute byte address.
+ * @param ref - REF tagged value
  * @returns Absolute byte address
  */
 export function getByteAddressFromRef(ref: number): number {
@@ -73,9 +73,9 @@ export function getByteAddressFromRef(ref: number): number {
 }
 
 /**
- * Reads a value from memory using a DATA_REF.
+ * Reads a value from memory using a REF.
  * @param vm - VM instance
- * @param ref - DATA_REF tagged value
+ * @param ref - REF tagged value
  * @returns Value read from memory
  */
 export function readRefValue(vm: VM, ref: number): number {
@@ -84,42 +84,32 @@ export function readRefValue(vm: VM, ref: number): number {
 }
 
 /**
- * Checks if a tagged value is a DATA_REF.
+ * Checks if a tagged value is a REF.
  * @param tval - Tagged value to check
- * @returns True if value is a DATA_REF
+ * @returns True if value is a REF
  */
 export function isRef(tval: number): boolean {
-  return getTag(tval) === Tag.DATA_REF;
+  return getTag(tval) === Tag.REF;
 }
 
 /**
- * Checks if a tagged value is a DATA_REF (alias for isRef).
+ * Checks if a tagged value is a REF (alias for isRef).
  * @param tval - Tagged value to check
- * @returns True if value is a DATA_REF
+ * @returns True if value is a REF
+ * @deprecated Use isRef() instead
  */
 export function isDataRef(tval: number): boolean {
   return isRef(tval);
 }
 
 /**
- * Gets the segment number for a DATA_REF based on its address range.
- * @param ref - DATA_REF tagged value
- * @returns Segment number (0=stack, 1=rstack, 2=global)
- */
-export function getRefSegment(ref: number): number {
-  const absByte = getByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
-    return 2;
-  }
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
-    return 0;
-  }
-  return 1;
-}
-
-/**
- * Gets the region name for a DATA_REF based on its address range.
- * @param ref - DATA_REF tagged value
+ * Gets the region name for a REF based on its address range.
+ * The data segment consists of three contiguous regions:
+ * - Global: lowest region, starting at 0, limited to 64K cells
+ * - Stack: data stack region
+ * - RStack: return stack region
+ *
+ * @param ref - REF tagged value
  * @returns Region name ('global', 'stack', or 'rstack')
  */
 export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
@@ -134,10 +124,57 @@ export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
 }
 
 /**
- * Creates a DATA_REF to a local variable slot in the current frame.
+ * Checks if a REF points into the global region.
+ * @param ref - REF tagged value
+ * @returns True if ref is in the global region
+ */
+export function isGlobalRef(ref: number): boolean {
+  const absByte = getByteAddressFromRef(ref);
+  return absByte >= GLOBAL_BASE && absByte < STACK_BASE;
+}
+
+/**
+ * Checks if a REF points into the data stack region.
+ * @param ref - REF tagged value
+ * @returns True if ref is in the data stack region
+ */
+export function isStackRef(ref: number): boolean {
+  const absByte = getByteAddressFromRef(ref);
+  return absByte >= STACK_BASE && absByte < RSTACK_BASE;
+}
+
+/**
+ * Checks if a REF points into the return stack region.
+ * @param ref - REF tagged value
+ * @returns True if ref is in the return stack region
+ */
+export function isRStackRef(ref: number): boolean {
+  const absByte = getByteAddressFromRef(ref);
+  return absByte >= RSTACK_BASE;
+}
+
+/**
+ * Gets the segment number for a REF based on its address range.
+ * @param ref - REF tagged value
+ * @returns Segment number (0=global, 1=stack, 2=rstack)
+ * @deprecated Prefer using getRefRegion() or the boolean functions (isGlobalRef, isStackRef, isRStackRef)
+ */
+export function getRefSegment(ref: number): number {
+  const absByte = getByteAddressFromRef(ref);
+  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+    return 0; // global
+  }
+  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+    return 1; // stack
+  }
+  return 2; // rstack
+}
+
+/**
+ * Creates a REF to a local variable slot in the current frame.
  * @param vm - VM instance
  * @param slotNumber - Local variable slot number (0-based)
- * @returns DATA_REF tagged value
+ * @returns REF tagged value
  * @throws {Error} If slot number is negative
  * @throws {RangeError} If reference is outside return stack bounds
  */
@@ -150,13 +187,13 @@ export function getVarRef(vm: VM, slotNumber: number): number {
   if (absCellIndex < RSTACK_BASE_CELLS || absCellIndex >= RSTACK_TOP_CELLS) {
     throw new RangeError('Local reference outside return stack bounds');
   }
-  return createDataRef(absCellIndex);
+  return createRef(absCellIndex);
 }
 
 /**
- * Creates a DATA_REF to a global heap cell.
+ * Creates a REF to a global heap cell.
  * @param cellIndex - Global cell index (relative to global base)
- * @returns DATA_REF tagged value
+ * @returns REF tagged value
  * @throws {RangeError} If cell index is out of bounds
  */
 export function createGlobalRef(cellIndex: number): number {
@@ -164,13 +201,13 @@ export function createGlobalRef(cellIndex: number): number {
     throw new RangeError('Global reference outside global segment bounds');
   }
   const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
-  return createDataRef(absCellIndex);
+  return createRef(absCellIndex);
 }
 
 /**
- * Reads a value from memory using a DATA_REF.
+ * Reads a value from memory using a REF.
  * @param vm - VM instance
- * @param ref - DATA_REF tagged value
+ * @param ref - REF tagged value
  * @returns Value read from memory
  */
 export function readReference(vm: VM, ref: number): number {
@@ -179,9 +216,9 @@ export function readReference(vm: VM, ref: number): number {
 }
 
 /**
- * Writes a value to memory using a DATA_REF.
+ * Writes a value to memory using a REF.
  * @param vm - VM instance
- * @param ref - DATA_REF tagged value
+ * @param ref - REF tagged value
  * @param value - Value to write
  */
 export function writeReference(vm: VM, ref: number, value: number): void {

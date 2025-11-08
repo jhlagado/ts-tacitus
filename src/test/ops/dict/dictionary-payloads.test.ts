@@ -10,7 +10,7 @@ import {
   forget,
   define,
 } from '../../../core/dictionary';
-import { createDataRef, createGlobalRef, decodeDataRef } from '../../../core/refs';
+import { createRef, createGlobalRef, decodeRef } from '../../../core/refs';
 import { createCodeRef } from '../../../core/code-ref';
 import { GLOBAL_BASE_CELLS } from '../../../core/constants';
 
@@ -88,42 +88,42 @@ describe('Dictionary payload types', () => {
     });
   });
 
-  describe('DATA_REF entries (Tag.DATA_REF)', () => {
-    test('define with DATA_REF creates entry with DATA_REF payload', () => {
+  describe('REF entries (Tag.REF)', () => {
+    test('define with REF creates entry with REF payload', () => {
       const name = 'my-ref';
-      // Create a DATA_REF pointing to a global cell
+      // Create a REF pointing to a global cell
       const globalCellIndex = 5; // Relative to GLOBAL_BASE_CELLS
-      const dataRef = createGlobalRef(globalCellIndex);
+      const ref = createGlobalRef(globalCellIndex);
 
-      define(vm, name, dataRef);
+      define(vm, name, ref);
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
       expect(isNIL(tv)).toBe(false);
 
       const info = fromTaggedValue(tv);
-      expect(info.tag).toBe(Tag.DATA_REF);
+      expect(info.tag).toBe(Tag.REF);
 
       // Decode and verify the absolute cell index
-      const { absoluteCellIndex } = decodeDataRef(tv);
+      const { absoluteCellIndex } = decodeRef(tv);
       expect(absoluteCellIndex).toBe(GLOBAL_BASE_CELLS + globalCellIndex);
     });
 
-    test('DATA_REF can reference any data segment cell', () => {
-      const name = 'data-ref';
-      // Create a DATA_REF with an absolute cell index
+    test('REF can reference any data segment cell', () => {
+      const name = 'ref';
+      // Create a REF with an absolute cell index
       const absoluteCellIndex = GLOBAL_BASE_CELLS + 10;
-      const dataRef = createDataRef(absoluteCellIndex);
+      const ref = createRef(absoluteCellIndex);
 
-      define(vm, name, dataRef);
+      define(vm, name, ref);
       const tv = lookup(vm, name);
       const info = fromTaggedValue(tv);
-      expect(info.tag).toBe(Tag.DATA_REF);
+      expect(info.tag).toBe(Tag.REF);
 
-      const { absoluteCellIndex: decoded } = decodeDataRef(tv);
+      const { absoluteCellIndex: decoded } = decodeRef(tv);
       expect(decoded).toBe(absoluteCellIndex);
     });
 
-    test('multiple DATA_REF entries can reference different cells', () => {
+    test('multiple REF entries can reference different cells', () => {
       const ref1 = createGlobalRef(0);
       const ref2 = createGlobalRef(1);
       const ref3 = createGlobalRef(2);
@@ -136,24 +136,24 @@ describe('Dictionary payload types', () => {
       const tv2 = lookup(vm, 'ref1');
       const tv3 = lookup(vm, 'ref2');
 
-      const { absoluteCellIndex: idx1 } = decodeDataRef(tv1);
-      const { absoluteCellIndex: idx2 } = decodeDataRef(tv2);
-      const { absoluteCellIndex: idx3 } = decodeDataRef(tv3);
+      const { absoluteCellIndex: idx1 } = decodeRef(tv1);
+      const { absoluteCellIndex: idx2 } = decodeRef(tv2);
+      const { absoluteCellIndex: idx3 } = decodeRef(tv3);
 
       expect(idx1).toBe(GLOBAL_BASE_CELLS + 0);
       expect(idx2).toBe(GLOBAL_BASE_CELLS + 1);
       expect(idx3).toBe(GLOBAL_BASE_CELLS + 2);
     });
 
-    test('DATA_REF can be looked up and decoded correctly', () => {
+    test('REF can be looked up and decoded correctly', () => {
       const globalCellIndex = 42;
-      const dataRef = createGlobalRef(globalCellIndex);
-      define(vm, 'pointer', dataRef);
+      const ref = createGlobalRef(globalCellIndex);
+      define(vm, 'pointer', ref);
 
       const tv = lookup(vm, 'pointer');
       expect(isNIL(tv)).toBe(false);
 
-      const { absoluteCellIndex } = decodeDataRef(tv);
+      const { absoluteCellIndex } = decodeRef(tv);
       expect(absoluteCellIndex).toBe(GLOBAL_BASE_CELLS + globalCellIndex);
     });
   });
@@ -245,41 +245,41 @@ describe('Dictionary payload types', () => {
       expect(local.tag).toBe(Tag.LOCAL);
     });
 
-    test('can define BUILTIN, CODE, LOCAL, and DATA_REF in same dictionary', () => {
+    test('can define BUILTIN, CODE, LOCAL, and REF in same dictionary', () => {
       defineBuiltin(vm, 'add-op', 42, false);
       defineCode(vm, 'user-func', 0x1000, false);
       defineLocal(vm, 'local-var');
-      const dataRef = createGlobalRef(10);
-      define(vm, 'data-pointer', dataRef);
+      const testRef = createGlobalRef(10);
+      define(vm, 'pointer', testRef);
 
       const builtin = fromTaggedValue(lookup(vm, 'add-op')!);
       const code = fromTaggedValue(lookup(vm, 'user-func')!);
       const local = fromTaggedValue(lookup(vm, 'local-var')!);
-      const ref = fromTaggedValue(lookup(vm, 'data-pointer')!);
+      const ref = fromTaggedValue(lookup(vm, 'pointer')!);
 
       expect(builtin.tag).toBe(Tag.BUILTIN);
       expect(code.tag).toBe(Tag.CODE);
       expect(local.tag).toBe(Tag.LOCAL);
-      expect(ref.tag).toBe(Tag.DATA_REF);
+      expect(ref.tag).toBe(Tag.REF);
     });
 
-    test('can define BUILTIN, CODE_REF, LOCAL, and DATA_REF in same dictionary', () => {
+    test('can define BUILTIN, CODE_REF, LOCAL, and REF in same dictionary', () => {
       defineBuiltin(vm, 'add-op', 42, false);
       const codeRef = createCodeRef(0x2000);
       define(vm, 'code-ref', codeRef);
       defineLocal(vm, 'local-var');
-      const dataRef = createGlobalRef(10);
-      define(vm, 'data-pointer', dataRef);
+      const testRef = createGlobalRef(10);
+      define(vm, 'pointer', testRef);
 
       const builtin = fromTaggedValue(lookup(vm, 'add-op')!);
       const code = fromTaggedValue(lookup(vm, 'code-ref')!);
       const local = fromTaggedValue(lookup(vm, 'local-var')!);
-      const ref = fromTaggedValue(lookup(vm, 'data-pointer')!);
+      const ref = fromTaggedValue(lookup(vm, 'pointer')!);
 
       expect(builtin.tag).toBe(Tag.BUILTIN);
       expect(code.tag).toBe(Tag.CODE);
       expect(local.tag).toBe(Tag.LOCAL);
-      expect(ref.tag).toBe(Tag.DATA_REF);
+      expect(ref.tag).toBe(Tag.REF);
     });
 
     test('lookup finds most recent entry (LIFO order)', () => {

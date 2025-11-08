@@ -153,7 +153,7 @@ describe('Compound Variables - Single Element Lists', () => {
       test-single-ref
     `,
     );
-    expect(refResult).toHaveLength(1); // Should be DATA_REF resolving to return stack
+    expect(refResult).toHaveLength(1); // Should be REF resolving to return stack
   });
 
   test('should work with length operation on single-element list', () => {
