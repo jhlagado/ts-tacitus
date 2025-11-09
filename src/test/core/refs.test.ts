@@ -10,13 +10,15 @@ import {
   getVarRef,
   CELL_SIZE,
   TOTAL_DATA_BYTES,
+  TOTAL_DATA_CELLS,
   toTaggedValue,
   Tag,
   decodeRef,
-  RSTACK_BASE,
+  RSTACK_BASE_CELLS,
   SEG_DATA,
-  GLOBAL_BASE,
-  STACK_BASE,
+  GLOBAL_BASE_BYTES,
+  GLOBAL_BASE_CELLS,
+  STACK_BASE_CELLS,
 } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { fetchOp, storeOp } from '../../ops/lists';
@@ -31,9 +33,9 @@ describe('REF utilities', () => {
 
   test('createRef encodes absolute cell indices and area classification', () => {
     const entries = [
-      { region: 'global' as const, absIndex: GLOBAL_BASE / CELL_SIZE + 3 },
-      { region: 'stack' as const, absIndex: STACK_BASE / CELL_SIZE + 5 },
-      { region: 'rstack' as const, absIndex: RSTACK_BASE / CELL_SIZE + 7 },
+      { region: 'global' as const, absIndex: GLOBAL_BASE_CELLS + 3 },
+      { region: 'stack' as const, absIndex: STACK_BASE_CELLS + 5 },
+      { region: 'rstack' as const, absIndex: RSTACK_BASE_CELLS + 7 },
     ];
 
     for (const { region, absIndex } of entries) {
@@ -46,7 +48,7 @@ describe('REF utilities', () => {
   });
 
   test('createRef validates absolute bounds', () => {
-    const maxCell = TOTAL_DATA_BYTES / CELL_SIZE;
+    const maxCell = TOTAL_DATA_CELLS;
     expect(() => createRef(maxCell)).toThrow('absolute cell index');
     expect(() => createRef(-1)).toThrow('absolute cell index');
   });
@@ -54,7 +56,7 @@ describe('REF utilities', () => {
   // No unsupported segments in absolute model; area classification covers the three areas
 
   test('getAbsoluteCellIndexFromRef enforces arena bounds', () => {
-    const invalidAbsolute = TOTAL_DATA_BYTES / CELL_SIZE + 5;
+    const invalidAbsolute = TOTAL_DATA_CELLS + 5;
     const bogus = toTaggedValue(invalidAbsolute, Tag.REF);
     // Use address resolver to validate bounds
     expect(() => decodeRef(bogus)).not.toThrow();
@@ -67,32 +69,32 @@ describe('REF utilities', () => {
     const ref = createGlobalRef(12);
     const info = decodeRef(ref);
     expect(getRefRegion(ref)).toBe('global');
-    expect(info.absoluteCellIndex).toBe(GLOBAL_BASE / CELL_SIZE + 12);
+    expect(info.absoluteCellIndex).toBe(GLOBAL_BASE_CELLS + 12);
   });
 
   test('getVarRef returns REF to return-stack slot', () => {
-    vm.bp = RSTACK_BASE / CELL_SIZE + 0;
+    vm.bp = RSTACK_BASE_CELLS + 0;
     const ref = getVarRef(vm, 2);
     const abs = decodeRef(ref).absoluteCellIndex;
-    expect(abs).toBe(RSTACK_BASE / CELL_SIZE + 2);
+    expect(abs).toBe(RSTACK_BASE_CELLS + 2);
   });
 
   test('getByteAddressFromRef resolves absolute address', () => {
-    const ref = createRef(GLOBAL_BASE / CELL_SIZE + 4);
+    const ref = createRef(GLOBAL_BASE_CELLS + 4);
     const absByte = getByteAddressFromRef(ref);
-    expect(absByte).toBe(GLOBAL_BASE + 4 * CELL_SIZE);
+    expect(absByte).toBe(GLOBAL_BASE_BYTES + 4 * CELL_SIZE);
   });
 
   test('readRefValue operates via REF', () => {
-    const ref = createRef(GLOBAL_BASE / CELL_SIZE + 10);
-    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + 10 * CELL_SIZE, 321.25);
+    const ref = createRef(GLOBAL_BASE_CELLS + 10);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + 10 * CELL_SIZE, 321.25);
     expect(readRefValue(vm, ref)).toBeCloseTo(321.25);
   });
 
   test('fetchOp materializes value via REF', () => {
     const cellIndex = 15;
-    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 777.5);
-    const ref = createRef(GLOBAL_BASE / CELL_SIZE + cellIndex);
+    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE, 777.5);
+    const ref = createRef(GLOBAL_BASE_CELLS + cellIndex);
     push(vm, ref);
     fetchOp(vm);
     expect(pop(vm)).toBeCloseTo(777.5);
@@ -100,11 +102,11 @@ describe('REF utilities', () => {
 
   test('storeOp writes value via REF', () => {
     const cellIndex = 18;
-    const ref = createRef(GLOBAL_BASE / CELL_SIZE + cellIndex);
+    const ref = createRef(GLOBAL_BASE_CELLS + cellIndex);
     push(vm, 123.456);
     push(vm, ref);
     storeOp(vm);
-    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE)).toBeCloseTo(
+    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE)).toBeCloseTo(
       123.456,
     );
   });
@@ -119,7 +121,7 @@ describe('Absolute REF helpers (Phase A)', () => {
   });
 
   test('createRef throws on out-of-bounds', () => {
-    const outOfBounds = TOTAL_DATA_BYTES / CELL_SIZE; // one past last valid cell index
+    const outOfBounds = TOTAL_DATA_CELLS; // one past last valid cell index
     expect(() => createRef(outOfBounds)).toThrow(/out of bounds/);
   });
 

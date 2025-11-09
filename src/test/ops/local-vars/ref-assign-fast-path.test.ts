@@ -10,7 +10,7 @@ import {
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { fromTaggedValue, Tag, createVM, VM } from '../../../core';
-import { SEG_DATA, STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
@@ -71,8 +71,8 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     executeTacitCode(vm, code);
-    const decoded = Array.from({ length: vm.sp - STACK_BASE / CELL_SIZE }, (_, i) =>
-      fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE + i * CELL_SIZE)),
+    const decoded = Array.from({ length: vm.sp - STACK_BASE_CELLS }, (_, i) =>
+      fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + i * CELL_SIZE)),
     );
 
     expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);

@@ -8,11 +8,11 @@ import {
   SEG_CODE,
   SEG_STRING,
   SEG_DATA,
-  RSTACK_TOP,
+  RSTACK_TOP_BYTES,
   STRING_SIZE,
   CODE_SIZE,
-  DATA_BASE,
-  DATA_TOP,
+  DATA_BASE_BYTES,
+  DATA_TOP_BYTES,
 } from './constants';
 
 /**
@@ -51,15 +51,15 @@ export class Memory {
 
     switch (segment) {
       case SEG_DATA:
-        base = DATA_BASE;
-        size = DATA_TOP - DATA_BASE;
+        base = DATA_BASE_BYTES;
+        size = DATA_TOP_BYTES - DATA_BASE_BYTES;
         break;
       case SEG_STRING:
-        base = RSTACK_TOP;
+        base = RSTACK_TOP_BYTES;
         size = STRING_SIZE;
         break;
       case SEG_CODE:
-        base = RSTACK_TOP + STRING_SIZE;
+        base = RSTACK_TOP_BYTES + STRING_SIZE;
         size = CODE_SIZE;
         break;
       default:

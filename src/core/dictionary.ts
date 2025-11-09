@@ -23,12 +23,12 @@ import {
 import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, decodeRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
-import { CELL_SIZE, SEG_DATA, GLOBAL_BASE, GLOBAL_BASE_CELLS } from './constants';
+import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE_CELLS } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
 // Helper to get byte address from cell index (relative to GLOBAL_BASE_CELLS)
 function getByteAddressFromCellIndex(cellIndex: number): number {
-  return GLOBAL_BASE + cellIndex * CELL_SIZE;
+  return GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE;
 }
 
 // Unified define: store a fully-formed tagged payload under an interned name

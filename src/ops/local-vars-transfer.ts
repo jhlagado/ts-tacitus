@@ -12,9 +12,9 @@ import {
   validateListHeader,
   isList,
   SEG_DATA,
-  STACK_BASE,
+  STACK_BASE_BYTES,
   STACK_BASE_CELLS,
-  RSTACK_BASE,
+  RSTACK_BASE_BYTES,
   CELL_SIZE,
   dropList,
 } from '@src/core';
@@ -54,10 +54,10 @@ export function rpushList(vm: VM): number {
     return headerAddr;
   }
 
-  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE) and stream-copy to RSTACK via rpush
+  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE_BYTES) and stream-copy to RSTACK via rpush
   let elementCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + elementCell * CELL_SIZE);
+    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + elementCell * CELL_SIZE);
     rpush(vm, value);
     elementCell += 1;
   }
@@ -77,7 +77,7 @@ export function rpushList(vm: VM): number {
  * Stack effect: ( -- list ) [materializes from return stack]
  */
 export function loadListFromReturn(vm: VM, headerAddr: number): void {
-  const header = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + headerAddr);
+  const header = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + headerAddr);
 
   if (!isList(header)) {
     throw new Error('Expected LIST header at return stack address');
@@ -93,7 +93,7 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const headerCell = headerAddrToHeaderCell(headerAddr);
   const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
-    const element = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + (baseCell + i) * CELL_SIZE);
+    const element = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + (baseCell + i) * CELL_SIZE);
     push(vm, element);
   }
   push(vm, header);
@@ -174,14 +174,14 @@ export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
     return;
   }
 
-  // Source cells from data stack (relative to STACK_BASE for reads below)
+  // Source cells from data stack (relative to STACK_BASE_BYTES for reads below)
   let sourceCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
   const targetBaseAbs = targetBaseCell * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE + sourceCell * CELL_SIZE);
+    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + sourceCell * CELL_SIZE);
     vm.memory.writeFloat32(SEG_DATA, targetBaseAbs + i * CELL_SIZE, value);
     sourceCell += 1;
   }

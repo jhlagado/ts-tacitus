@@ -6,8 +6,10 @@ import {
   toTaggedValue,
   createRef,
   CELL_SIZE,
-  RSTACK_BASE,
-  STACK_BASE,
+  RSTACK_BASE_BYTES,
+  RSTACK_BASE_CELLS,
+  STACK_BASE_BYTES,
+  STACK_BASE_CELLS,
 } from '../../../core';
 
 describe('capsule layout (handle-based)', () => {
@@ -57,7 +59,7 @@ describe('capsule layout (handle-based)', () => {
   });
 
   test('errors on non-list handle (bad reference)', () => {
-    const bad = createRef(STACK_BASE / CELL_SIZE + 0);
+    const bad = createRef(STACK_BASE_CELLS + 0);
     expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('does not reference a LIST');
   });
 
@@ -70,8 +72,8 @@ describe('capsule layout (handle-based)', () => {
     const headerCellIndex = vm.sp - 1; // absolute data stack cell index
     const stackHandle = createRef(headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
-    expect(layout.baseAddrBytes).toBeGreaterThanOrEqual(STACK_BASE);
-    expect(layout.baseAddrBytes).toBeLessThan(RSTACK_BASE);
+    expect(layout.baseAddrBytes).toBeGreaterThanOrEqual(STACK_BASE_BYTES);
+    expect(layout.baseAddrBytes).toBeLessThan(RSTACK_BASE_BYTES);
     expect(layout.codeRef).toBe(codeRef);
     expect(layout.slotCount).toBe(2);
   });

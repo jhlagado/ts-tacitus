@@ -4,7 +4,22 @@
  */
 
 import type { VM } from '@src/core';
-import { SEG_DATA, GLOBAL_BASE, CELL_SIZE, dropList, isList, getListLength, pushListToGlobalHeap, pushSimpleToGlobalHeap, isRef, readRefValue, getByteAddressFromRef, validateListHeader, createGlobalRef, getAbsoluteCellIndexFromRef } from '@src/core';
+import {
+  SEG_DATA,
+  GLOBAL_BASE_CELLS,
+  CELL_SIZE,
+  dropList,
+  isList,
+  getListLength,
+  pushListToGlobalHeap,
+  pushSimpleToGlobalHeap,
+  isRef,
+  readRefValue,
+  getByteAddressFromRef,
+  validateListHeader,
+  createGlobalRef,
+  getAbsoluteCellIndexFromRef,
+} from '@src/core';
 import { fetchOp } from '../lists';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 // createGlobalRef now imported from core in the line above
@@ -74,8 +89,8 @@ export function gpeekOp(vm: VM): void {
   if (vm.gp === 0) {
     throw new Error('gpeek on empty heap');
   }
-  const topCell = GLOBAL_BASE / CELL_SIZE + (vm.gp - 1);
-  const ref = createGlobalRef(topCell - GLOBAL_BASE / CELL_SIZE);
+  const topCell = GLOBAL_BASE_CELLS + (vm.gp - 1);
+  const ref = createGlobalRef(topCell - GLOBAL_BASE_CELLS);
   push(vm, ref);
   fetchOp(vm);
 }
@@ -84,7 +99,7 @@ export function gpopOp(vm: VM): void {
   if (vm.gp === 0) {
     throw new Error('gpop on empty heap');
   }
-  const gBase = GLOBAL_BASE / CELL_SIZE;
+  const gBase = GLOBAL_BASE_CELLS;
   const topCell = gBase + vm.gp - 1;
   // Read header via unified data segment (absolute byte offset)
   const headerValue = vm.memory.readFloat32(SEG_DATA, topCell * CELL_SIZE);
@@ -110,7 +125,7 @@ export function forgetOp(vm: VM): void {
     throw new Error('forget expects REF');
   }
   const absIndex = getAbsoluteCellIndexFromRef(ref);
-  const gBase = GLOBAL_BASE / CELL_SIZE;
+  const gBase = GLOBAL_BASE_CELLS;
   const gpNew = absIndex - gBase;
   if (!Number.isInteger(gpNew) || gpNew < 0) {
     throw new Error('forget mark out of range');

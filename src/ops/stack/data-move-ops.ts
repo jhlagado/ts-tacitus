@@ -61,7 +61,7 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
  * @param startSlot Starting slot index
  * @param slotCount Number of slots to copy
  */
-// startSlot: offset from STACK_BASE (in cells)
+// startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) {
 return;
@@ -81,7 +81,7 @@ return;
  * @param startSlot - The starting slot index (0-based, relative to the stack top).
  * @param slotCount - The number of slots to reverse.
  */
-// startSlot: offset from STACK_BASE (in cells)
+// startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) {
 return;
@@ -110,7 +110,7 @@ return;
  * @param rangeSize - The number of slots in the range to rotate.
  * @param shiftSlots - The number of positions to rotate (positive for right rotation, negative for left).
  */
-// startSlot: offset from STACK_BASE (in cells)
+// startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) {
 return;

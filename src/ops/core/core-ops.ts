@@ -485,7 +485,7 @@ export const endCaseOp: Verb = (vm: VM) => {
  * the number of items pushed onto the stack between the two operations.
  */
 export const groupLeftOp: Verb = (vm: VM) => {
-  // Save current data stack depth in cells (relative to STACK_BASE)
+  // Save current data stack depth in cells (relative to STACK_BASE_BYTES)
   rpush(vm, depth(vm));
 };
 

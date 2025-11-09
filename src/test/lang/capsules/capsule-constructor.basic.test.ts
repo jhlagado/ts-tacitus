@@ -5,7 +5,8 @@ import {
   fromTaggedValue,
   Tag,
   isRStackRef,
-  RSTACK_BASE,
+  RSTACK_BASE_BYTES,
+  RSTACK_BASE_CELLS,
   RSTACK_SIZE,
   getByteAddressFromRef,
 } from '../../../core';
@@ -33,8 +34,8 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     // Return-stack handle: classify without SEG_RSTACK constant
     expect(isRStackRef(handle)).toBe(true);
     const abs = getByteAddressFromRef(handle);
-    expect(abs).toBeGreaterThanOrEqual(RSTACK_BASE);
-    expect(abs).toBeLessThan(RSTACK_BASE + RSTACK_SIZE);
+    expect(abs).toBeGreaterThanOrEqual(RSTACK_BASE_BYTES);
+    expect(abs).toBeLessThan(RSTACK_BASE_BYTES + RSTACK_SIZE);
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(1); // CODE only
@@ -59,6 +60,6 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(3); // a, b, CODE
     // Caller BP restored (top-level remains at base)
-    expect(vm.bp).toBe(RSTACK_BASE / CELL_SIZE + 0);
+    expect(vm.bp).toBe(RSTACK_BASE_CELLS + 0);
   });
 });

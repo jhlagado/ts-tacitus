@@ -14,7 +14,7 @@ import {
   pushListToGlobalHeap,
 } from '@src/core';
 import { getListLength, isList } from '@src/core';
-import { CELL_SIZE, SEG_DATA, STACK_BASE, GLOBAL_BASE, RSTACK_BASE } from '@src/core';
+import { CELL_SIZE, SEG_DATA, STACK_BASE_BYTES, GLOBAL_BASE_BYTES, RSTACK_BASE_BYTES } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef, createRef, getByteAddressFromRef, readRefValue } from '@src/core';
 import { dropOp } from '../stack';
@@ -210,13 +210,13 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
 
   // Classify absolute address to legacy segment/address pair for compatibility
   const classify = (absAddr: number): SlotAddress => {
-    if (absAddr >= GLOBAL_BASE && absAddr < STACK_BASE) {
-      return { segment: 2, address: absAddr - GLOBAL_BASE };
+    if (absAddr >= GLOBAL_BASE_BYTES && absAddr < STACK_BASE_BYTES) {
+      return { segment: 2, address: absAddr - GLOBAL_BASE_BYTES };
     }
-    if (absAddr >= STACK_BASE && absAddr < RSTACK_BASE) {
-      return { segment: 0, address: absAddr - STACK_BASE };
+    if (absAddr >= STACK_BASE_BYTES && absAddr < RSTACK_BASE_BYTES) {
+      return { segment: 0, address: absAddr - STACK_BASE_BYTES };
     }
-    return { segment: 1, address: absAddr - RSTACK_BASE };
+    return { segment: 1, address: absAddr - RSTACK_BASE_BYTES };
   };
 
   let resolvedAbsAddr = rootAbsAddr;
@@ -282,7 +282,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   if (!existingIsCompound) {
     // Prefer absolute address window over legacy segment label
-    if (slot.rootAbsAddr >= GLOBAL_BASE && slot.rootAbsAddr < STACK_BASE) {
+    if (slot.rootAbsAddr >= GLOBAL_BASE_BYTES && slot.rootAbsAddr < STACK_BASE_BYTES) {
       initializeGlobalCompound(vm, slot, rhsInfoAbs, rhsTag);
       return true;
     }

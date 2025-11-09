@@ -7,7 +7,7 @@
  */
 
 import type { VM } from '@src/core';
-import { isList, getListLength, toTaggedValue, Tag, SEG_DATA, STACK_BASE, CELL_SIZE } from '@src/core';
+import { isList, getListLength, toTaggedValue, Tag, SEG_DATA, STACK_BASE_BYTES, CELL_SIZE } from '@src/core';
 import { pop, push, peek, ensureStackSize, depth } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
@@ -301,18 +301,18 @@ throw new Error('broadcast type mismatch');
 
   // Transform the top copy in place using direct memory writes
   const headerAddr = (depth(vm) - 1) * CELL_SIZE;
-  const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE + headerAddr);
+  const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + headerAddr);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {
     const cellAddr = headerAddr - (i + 1) * CELL_SIZE;
-    const v = vm.memory.readFloat32(SEG_DATA, STACK_BASE + cellAddr);
+    const v = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + cellAddr);
     if (isList(v)) {
 continue;
 } // leave headers untouched
     if (!isNumber(v)) {
 throw new Error('broadcast type mismatch');
 }
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE + cellAddr, f(v));
+    vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + cellAddr, f(v));
   }
 
   // Remove the original list under the transformed copy
