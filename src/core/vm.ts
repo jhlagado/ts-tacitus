@@ -8,15 +8,12 @@ import { Memory } from './memory';
 import { lookup } from './dictionary';
 import {
   SEG_CODE,
-  SEG_DATA,
   CELL_SIZE,
-  STACK_BASE_BYTES,
-  RSTACK_BASE_BYTES,
   STACK_BASE_CELLS,
   STACK_TOP_CELLS,
   RSTACK_BASE_CELLS,
   RSTACK_TOP_CELLS,
-  GLOBAL_BASE_BYTES,
+  GLOBAL_BASE_CELLS,
   GLOBAL_SIZE_CELLS,
 } from './constants';
 import { fromTaggedValue, isNIL } from './tagged';
@@ -158,8 +155,7 @@ export function push(vm: VM, value: number): void {
     throw new StackOverflowError('push', getStackData(vm));
   }
 
-  const offsetBytes = (vm.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
-  vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + offsetBytes, value);
+  vm.memory.writeCell(vm.sp, value);
   vm.sp += 1;
   if (vm.debug) {
     ensureInvariants(vm);
@@ -179,11 +175,10 @@ export function pop(vm: VM): number {
   }
 
   vm.sp -= 1;
-  const offsetBytes = (vm.sp - STACK_BASE_CELLS) * CELL_SIZE_BYTES;
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  return vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + offsetBytes);
+  return vm.memory.readCell(vm.sp);
 }
 
 /**
@@ -198,8 +193,7 @@ export function peek(vm: VM): number {
     throw new StackUnderflowError('peek', 1, getStackData(vm));
   }
 
-  const offsetBytes = (vm.sp - STACK_BASE_CELLS - 1) * CELL_SIZE_BYTES;
-  return vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + offsetBytes);
+  return vm.memory.readCell(vm.sp - 1);
 }
 
 /**
@@ -214,8 +208,7 @@ export function rpush(vm: VM, value: number): void {
     throw new ReturnStackOverflowError('rpush', getStackData(vm));
   }
 
-  const offsetBytes = (vm.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
-  vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + offsetBytes, value);
+  vm.memory.writeCell(vm.rsp, value);
   vm.rsp += 1;
   if (vm.debug) {
     ensureInvariants(vm);
@@ -235,11 +228,10 @@ export function rpop(vm: VM): number {
   }
 
   vm.rsp -= 1;
-  const offsetBytes = (vm.rsp - RSTACK_BASE_CELLS) * CELL_SIZE_BYTES;
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  return vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + offsetBytes);
+  return vm.memory.readCell(vm.rsp);
 }
 
 /**
@@ -252,8 +244,7 @@ export function getStackData(vm: VM): number[] {
   const stackData: number[] = [];
   const depthCells = vm.sp - STACK_BASE_CELLS;
   for (let i = 0; i < depthCells; i += 1) {
-    const byteOffset = STACK_BASE_BYTES + i * CELL_SIZE_BYTES;
-    stackData.push(vm.memory.readFloat32(SEG_DATA, byteOffset));
+    stackData.push(vm.memory.readCell(STACK_BASE_CELLS + i));
   }
 
   return stackData;
@@ -448,8 +439,7 @@ export function peekAt(vm: VM, slotOffset: number): number {
     throw new StackUnderflowError('peekAt', requiredCells, getStackData(vm));
   }
 
-  const offsetBytes = (vm.sp - STACK_BASE_CELLS - requiredCells) * CELL_SIZE_BYTES;
-  return vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + offsetBytes);
+  return vm.memory.readCell(vm.sp - requiredCells);
 }
 
 /**
@@ -462,8 +452,7 @@ export function gpush(vm: VM, value: number): void {
   if (vm.gp >= GLOBAL_SIZE_CELLS) {
     throw new Error('gpush on full heap');
   }
-  const byteOffset = GLOBAL_BASE_BYTES + vm.gp * CELL_SIZE_BYTES;
-  vm.memory.writeFloat32(SEG_DATA, byteOffset, value);
+  vm.memory.writeCell(GLOBAL_BASE_CELLS + vm.gp, value);
   vm.gp += 1;
 }
 
@@ -477,8 +466,7 @@ export function gpeek(vm: VM): number {
   if (vm.gp === 0) {
     throw new Error('gpeek on empty heap');
   }
-  const byteOffset = GLOBAL_BASE_BYTES + (vm.gp - 1) * CELL_SIZE_BYTES;
-  return vm.memory.readFloat32(SEG_DATA, byteOffset);
+  return vm.memory.readCell(GLOBAL_BASE_CELLS + vm.gp - 1);
 }
 
 /**
@@ -492,8 +480,7 @@ export function gpop(vm: VM): number {
     throw new Error('gpop on empty heap');
   }
   vm.gp -= 1;
-  const byteOffset = GLOBAL_BASE_BYTES + vm.gp * CELL_SIZE_BYTES;
-  return vm.memory.readFloat32(SEG_DATA, byteOffset);
+  return vm.memory.readCell(GLOBAL_BASE_CELLS + vm.gp);
 }
 
 /**

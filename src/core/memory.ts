@@ -13,6 +13,7 @@ import {
   CODE_SIZE_BYTES,
   DATA_BASE_BYTES,
   DATA_TOP_BYTES,
+  DATA_TOP_CELLS,
   CELL_SIZE,
 } from './constants';
 
@@ -157,62 +158,35 @@ export class Memory {
   }
 
   /**
-   * Resolves segmented cell address to linear byte address.
-   * @param segment The segment ID
-   * @param cellOffset The cell offset within segment
-   * @returns The linear byte address
-   * @throws {RangeError} If segment ID is invalid or cell offset is out of bounds
-   */
-  private resolveCellAddress(segment: number, cellOffset: number): number {
-    let base = 0;
-    let sizeCells = 0;
-
-    switch (segment) {
-      case SEG_DATA:
-        base = DATA_BASE_BYTES;
-        sizeCells = (DATA_TOP_BYTES - DATA_BASE_BYTES) / CELL_SIZE;
-        break;
-      case SEG_STRING:
-        base = RSTACK_TOP_BYTES;
-        sizeCells = STRING_SIZE_BYTES / CELL_SIZE;
-        break;
-      case SEG_CODE:
-        base = RSTACK_TOP_BYTES + STRING_SIZE_BYTES;
-        sizeCells = CODE_SIZE_BYTES / CELL_SIZE;
-        break;
-      default:
-        throw new RangeError(`Invalid segment ID: ${segment}`);
-    }
-
-    if (cellOffset < 0 || cellOffset >= sizeCells) {
-      throw new RangeError(`Cell offset ${cellOffset} is outside segment ${segment} bounds`);
-    }
-
-    return base + cellOffset * CELL_SIZE;
-  }
-
-  /**
-   * Writes a cell (32-bit float) to memory using cell addressing.
-   * @param segment The segment ID
-   * @param cellOffset The cell offset within segment
+   * Writes a cell (32-bit float) to memory using absolute cell addressing in the DATA segment.
+   * @param cellIndex Absolute cell index in the unified data arena
    * @param value The cell value (float)
-   * @throws {RangeError} If cell offset is out of bounds
+   * @throws {RangeError} If cell index is out of bounds
    */
-  writeCell(segment: number, cellOffset: number, value: number): void {
-    const address = this.resolveCellAddress(segment, cellOffset);
-    this.dataView.setFloat32(address, value, true);
+  writeCell(cellIndex: number, value: number): void {
+    if (cellIndex < 0 || cellIndex >= DATA_TOP_CELLS) {
+      throw new RangeError(
+        `Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP_CELLS})`,
+      );
+    }
+    const byteAddress = cellIndex * CELL_SIZE;
+    this.dataView.setFloat32(byteAddress, value, true);
   }
 
   /**
-   * Reads a cell (32-bit float) from memory using cell addressing.
-   * @param segment The segment ID
-   * @param cellOffset The cell offset within segment
+   * Reads a cell (32-bit float) from memory using absolute cell addressing in the DATA segment.
+   * @param cellIndex Absolute cell index in the unified data arena
    * @returns The cell value (float)
-   * @throws {RangeError} If cell offset is out of bounds
+   * @throws {RangeError} If cell index is out of bounds
    */
-  readCell(segment: number, cellOffset: number): number {
-    const address = this.resolveCellAddress(segment, cellOffset);
-    return this.dataView.getFloat32(address, true);
+  readCell(cellIndex: number): number {
+    if (cellIndex < 0 || cellIndex >= DATA_TOP_CELLS) {
+      throw new RangeError(
+        `Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP_CELLS})`,
+      );
+    }
+    const byteAddress = cellIndex * CELL_SIZE;
+    return this.dataView.getFloat32(byteAddress, true);
   }
 
   /**

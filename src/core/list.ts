@@ -87,14 +87,14 @@ export function getListElemAddr(
 return -1;
 }
 
-  let currentAddr = headerAbsAddr - CELL_SIZE;
+  let currentAddrCells = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readFloat32(SEG_DATA, currentAddr);
+    const currentValue = vm.memory.readCell(currentAddrCells);
     let stepSize = 1;
-    const elementStartAddr = currentAddr;
+    const elementStartAddr = currentAddrCells * CELL_SIZE;
 
     if (isList(currentValue)) {
       stepSize = getListLength(currentValue) + 1;
@@ -104,7 +104,7 @@ return -1;
       return elementStartAddr;
     }
 
-    currentAddr -= stepSize * CELL_SIZE;
+    currentAddrCells -= stepSize;
     remainingSlots -= stepSize;
     currentLogicalIndex++;
   }
