@@ -3,18 +3,15 @@
  * Compound data transfer operations for local variables
  */
 
-import type {
-  VM } from '@src/core';
 import {
+  type VM,
   getTag,
   Tag,
   getListLength,
   validateListHeader,
   isList,
-  SEG_DATA,
-  STACK_BASE_BYTES,
   STACK_BASE_CELLS,
-  RSTACK_BASE_BYTES,
+  RSTACK_BASE_CELLS,
   CELL_SIZE,
   dropList,
 } from '@src/core';
@@ -54,10 +51,10 @@ export function rpushList(vm: VM): number {
     return headerAddr;
   }
 
-  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE_BYTES) and stream-copy to RSTACK via rpush
+  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE_CELLS) and stream-copy to RSTACK via rpush
   let elementCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + elementCell * CELL_SIZE);
+    const value = vm.memory.readCell(STACK_BASE_CELLS + elementCell);
     rpush(vm, value);
     elementCell += 1;
   }
@@ -77,7 +74,8 @@ export function rpushList(vm: VM): number {
  * Stack effect: ( -- list ) [materializes from return stack]
  */
 export function loadListFromReturn(vm: VM, headerAddr: number): void {
-  const header = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + headerAddr);
+  const headerCellIndex = RSTACK_BASE_CELLS + headerAddr / CELL_SIZE;
+  const header = vm.memory.readCell(headerCellIndex);
 
   if (!isList(header)) {
     throw new Error('Expected LIST header at return stack address');
@@ -93,7 +91,7 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const headerCell = headerAddrToHeaderCell(headerAddr);
   const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
-    const element = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + (baseCell + i) * CELL_SIZE);
+    const element = vm.memory.readCell(RSTACK_BASE_CELLS + baseCell + i);
     push(vm, element);
   }
   push(vm, header);
@@ -163,29 +161,28 @@ export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
 
   validateListHeader(vm);
   const slotCount = getListLength(header);
-  const existingHeader = vm.memory.readFloat32(SEG_DATA, targetAbsHeaderAddr);
+  const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
+  const existingHeader = vm.memory.readCell(targetHeaderCell);
   if (!isCompatible(existingHeader, header)) {
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 
   if (slotCount === 0) {
-    vm.memory.writeFloat32(SEG_DATA, targetAbsHeaderAddr, header);
+    vm.memory.writeCell(targetHeaderCell, header);
     dropList(vm);
     return;
   }
 
-  // Source cells from data stack (relative to STACK_BASE_BYTES for reads below)
+  // Source cells from data stack (relative to STACK_BASE_CELLS for reads below)
   let sourceCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
-  const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
-  const targetBaseAbs = targetBaseCell * CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + sourceCell * CELL_SIZE);
-    vm.memory.writeFloat32(SEG_DATA, targetBaseAbs + i * CELL_SIZE, value);
+    const value = vm.memory.readCell(STACK_BASE_CELLS + sourceCell);
+    vm.memory.writeCell(targetBaseCell + i, value);
     sourceCell += 1;
   }
-  vm.memory.writeFloat32(SEG_DATA, targetAbsHeaderAddr, header);
+  vm.memory.writeCell(targetHeaderCell, header);
   dropList(vm);
 }
 

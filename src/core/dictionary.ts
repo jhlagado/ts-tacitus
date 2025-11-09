@@ -26,11 +26,6 @@ import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE_CELLS } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
-// Helper to get byte address from cell index (relative to GLOBAL_BASE_CELLS)
-function getByteAddressFromCellIndex(cellIndex: number): number {
-  return GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE;
-}
-
 // Unified define: store a fully-formed tagged payload under an interned name
 export function define(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
@@ -71,20 +66,19 @@ export function lookup(vm: VM, name: string): number {
   let cur = vm.head; // cell index (0 = NIL)
 
   while (cur !== 0) {
-    const hAddr = getByteAddressFromCellIndex(cur);
-    const hdr = vm.memory.readFloat32(SEG_DATA, hAddr);
+    const hdr = vm.memory.readCell(cur);
     if (!isList(hdr) || getListLength(hdr) !== SLOTS) {
       break;
     }
 
-    const base = hAddr - SLOTS * CELL_SIZE;
-    const nameCell = vm.memory.readFloat32(SEG_DATA, base + NAME * CELL_SIZE);
+    const baseCell = cur - SLOTS;
+    const nameCell = vm.memory.readCell(baseCell + NAME);
     const ni = fromTaggedValue(nameCell);
     if (ni.tag === Tag.STRING && ni.value === target) {
-      return vm.memory.readFloat32(SEG_DATA, base + PAYLOAD * CELL_SIZE);
+      return vm.memory.readCell(baseCell + PAYLOAD);
     }
 
-    const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + PREV * CELL_SIZE);
+    const prevRefValue = vm.memory.readCell(baseCell + PREV);
     // prevRef is stored as REF (or NIL)
     if (isNIL(prevRefValue)) {
       cur = 0;
@@ -281,15 +275,14 @@ export function dumpDictOp(vm: VM): void {
   let cur = vm.head; // cell index (0 = NIL)
   let i = 0;
   while (cur !== 0) {
-    const hAddr = getByteAddressFromCellIndex(cur);
-    const header = vm.memory.readFloat32(SEG_DATA, hAddr);
+    const header = vm.memory.readCell(cur);
     if (!isList(header) || getListLength(header) !== 3) {
       break;
     }
-    const base = hAddr - 3 * CELL_SIZE;
-    const prevRefValue = vm.memory.readFloat32(SEG_DATA, base + 0 * CELL_SIZE);
-    const _valueRef = vm.memory.readFloat32(SEG_DATA, base + 1 * CELL_SIZE);
-    const entryName = vm.memory.readFloat32(SEG_DATA, base + 2 * CELL_SIZE);
+    const baseCell = cur - 3;
+    const prevRefValue = vm.memory.readCell(baseCell + 0);
+    const _valueRef = vm.memory.readCell(baseCell + 1);
+    const entryName = vm.memory.readCell(baseCell + 2);
     const nameInfo = fromTaggedValue(entryName);
     const nameStr =
       nameInfo.tag === Tag.STRING ? vm.digest.get(nameInfo.value) : `?tag:${nameInfo.tag}`;

@@ -10,7 +10,7 @@ import {
   Tag,
   getVarRef,
   createRef,
-  getByteAddressFromRef,
+  getAbsoluteCellIndexFromRef,
   isRef,
   SEG_DATA,
   RSTACK_BASE_BYTES,
@@ -289,9 +289,7 @@ export function initVarOp(vm: VM): void {
   ensureStackSize(vm, 1, 'InitVar');
 
   const value = peek(vm);
-  // Compute slot address using BP (cells) and convert to bytes at the boundary
-  // Use CELL_SIZE instead of magic 4 for address computation
-  const slotAddr = (vm.bp - RSTACK_BASE_CELLS + slotNumber) * CELL_SIZE;
+  const slotCellIndex = vm.bp + slotNumber;
 
   if (isList(value)) {
     const headerAddr = rpushList(vm);
@@ -299,10 +297,10 @@ export function initVarOp(vm: VM): void {
     const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
     const localRef = createRef(absHeaderCellIndex);
 
-    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr, localRef);
+    vm.memory.writeCell(slotCellIndex, localRef);
   } else {
     const simpleValue = pop(vm);
-    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr, simpleValue);
+    vm.memory.writeCell(slotCellIndex, simpleValue);
   }
 }
 
@@ -338,21 +336,20 @@ export function dumpFrameOp(vm: VM): void {
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotAddr = (vm.bp - RSTACK_BASE_CELLS + i) * CELL_SIZE;
-      const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr);
+      const slotValue = vm.memory.readCell(vm.bp + i);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
       // eslint-disable-next-line no-console
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
-        const absAddrBytes = getByteAddressFromRef(slotValue);
-        const targetValue = vm.memory.readFloat32(SEG_DATA, absAddrBytes);
+        const absCellIndex = getAbsoluteCellIndexFromRef(slotValue);
+        const targetValue = vm.memory.readCell(absCellIndex);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);
         // eslint-disable-next-line no-console
         console.log(
-          `    -> Points to absolute addr ${absAddrBytes / CELL_SIZE} (cells), tag: ${Tag[targetTag]}, value: ${targetVal}`,
+          `    -> Points to absolute addr ${absCellIndex} (cells), tag: ${Tag[targetTag]}, value: ${targetVal}`,
         );
       }
     }

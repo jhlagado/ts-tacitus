@@ -102,7 +102,7 @@ export function gpopOp(vm: VM): void {
   const gBase = GLOBAL_BASE_CELLS;
   const topCell = gBase + vm.gp - 1;
   // Read header via unified data segment (absolute byte offset)
-  const headerValue = vm.memory.readFloat32(SEG_DATA, topCell * CELL_SIZE);
+  const headerValue = vm.memory.readCell(topCell);
   if (isList(headerValue)) {
     const spanCells = getListLength(headerValue) + 1;
     vm.gp -= spanCells;

@@ -1,7 +1,8 @@
 import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { VM, depth, rdepth, getStackData, peek, push } from '../../core/vm';
+import type { VM } from '../../core/vm';
+import { depth, rdepth, getStackData, peek, push } from '../../core/vm';
 import type { Tokenizer } from '../tokenizer';
 import type { ActiveDefinition } from '../state';
 
