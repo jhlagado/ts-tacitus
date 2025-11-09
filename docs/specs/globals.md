@@ -285,13 +285,12 @@ The payload is a genuine runtime `REF`, not a compile-time `Tag.LOCAL`. When the
 
 ### 3.6 Error Handling
 
-| Condition                        | Message                                         | Phase   |
-| -------------------------------- | ----------------------------------------------- | ------- |
-| Inside function                  | “Global declarations only allowed at top level” | compile |
-| Redeclaration of existing global | “Global `<name>` already defined”               | compile |
-| Invalid identifier               | “Expected variable name after global”           | compile |
-| Exceeded 64K area                | "Global variable limit exceeded (64K)"          | compile |
-| Runtime boundary mismatch        | "REF points outside global area"                | runtime |
+| Condition                 | Message                                         | Phase   |
+| ------------------------- | ----------------------------------------------- | ------- |
+| Inside function           | "Global declarations only allowed at top level" | compile |
+| Invalid identifier        | "Expected variable name after global"           | compile |
+| Exceeded 64K area         | "Global variable limit exceeded (64K)"          | compile |
+| Runtime boundary mismatch | "REF points outside global area"                | runtime |
 
 These guardrails make global declarations deterministic and memory-safe within the VM's static global area.
 
@@ -339,9 +338,8 @@ This mechanism uses the same address-range discrimination already present in `va
 Tacit follows straightforward shadowing rules to preserve determinism:
 
 - **Global vs builtin:** a global name overrides a builtin of the same spelling; the builtin remains accessible through its opcode or alternate alias.
-- **Global vs function:** globals and colon definitions share the namespace. Redeclaring an existing function as a global (or vice-versa) is an error:
-  `"Global already defined"` or `"Name already used for code symbol"`.
-- **Redeclaration:** re-using a global name after it’s defined is forbidden; use `->` for reassignment instead.
+- **Global vs function:** globals and colon definitions share the namespace. Any symbol can be redefined, including redefining a function with a global or vice-versa. The most recent definition takes precedence.
+- **Redeclaration:** re-using a global name after it's defined is allowed; the new declaration replaces the previous one. Use `->` for reassignment if you want to update an existing global's value without redeclaring.
 - **Visibility inside functions:** once defined, globals are visible everywhere, including function bodies, since dictionary lookup is flat and global entries persist for the entire VM lifetime.
 
 ### 4.4 Boundary Validation at Runtime
@@ -666,7 +664,6 @@ This dual rule avoids ambiguous writes: a `Store` always knows the address it’
 | | - | - |
 | Inside function | `"Global declarations only allowed at top level"` | Prevents frame-bound lifetime confusion. |
 | Invalid identifier | `"Expected variable name after global"` | Parser check for legal word tokens. |
-| Redeclaration | `"Global <name> already defined"` | Duplicate entry in dictionary. |
 | Exceeded 64K area | `"Global variable limit exceeded (64K)"` | Offset overflow beyond 16-bit capacity. |
 
 **Runtime Guard:**

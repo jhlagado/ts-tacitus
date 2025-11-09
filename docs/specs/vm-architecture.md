@@ -15,15 +15,15 @@ Execution pipeline (high level):
 
 Tacit allocates a single data arena sized at compile time. Three contiguous windows inside that arena provide storage for globals, the data stack, and the return stack. Their byte boundaries are defined in `src/core/constants.ts`:
 
-| Constant           | Meaning                                                      |
-| ------------------ | ------------------------------------------------------------ |
-| `GLOBAL_BASE_BYTES` | Absolute byte offset for the first global-heap cell          |
-| `GLOBAL_TOP_BYTES` | End (exclusive) of the global-heap window                    |
-| `STACK_BASE_BYTES` | Start of the data-stack window                               |
-| `STACK_TOP_BYTES`  | End (exclusive) of the data-stack window                     |
-| `RSTACK_BASE_BYTES` | Start of the return-stack window                             |
-| `RSTACK_TOP_BYTES` | End (exclusive) of the return-stack window                   |
-| `TOTAL_DATA_BYTES` | Total byte capacity of the unified data arena (`RSTACK_TOP_BYTES`) |
+| Constant            | Meaning                                                            |
+| ------------------- | ------------------------------------------------------------------ |
+| `GLOBAL_BASE_BYTES` | Absolute byte offset for the first global-heap cell                |
+| `GLOBAL_TOP_BYTES`  | End (exclusive) of the global-heap window                          |
+| `STACK_BASE_BYTES`  | Start of the data-stack window                                     |
+| `STACK_TOP_BYTES`   | End (exclusive) of the data-stack window                           |
+| `RSTACK_BASE_BYTES` | Start of the return-stack window                                   |
+| `RSTACK_TOP_BYTES`  | End (exclusive) of the return-stack window                         |
+| `TOTAL_DATA_BYTES`  | Total byte capacity of the unified data arena (`RSTACK_TOP_BYTES`) |
 
 Adjusting capacities only requires editing these constants; runtime code operates on absolute cell indices and does not bake in window sizes.
 
