@@ -147,7 +147,6 @@ export function isNIL(tval: number): boolean {
   return tag === Tag.SENTINEL && value === 0;
 }
 
-
 /**
  * Checks if a value is a NUMBER.
  * @param tval The value to check

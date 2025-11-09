@@ -7,7 +7,7 @@ import type { VM } from './vm';
 import { peek, pop, ensureStackSize } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
-import { isRef, getByteAddressFromRef } from './refs';
+import { isRef, getAbsoluteCellIndexFromRef } from './refs';
 
 /**
  * Checks if a value is a LIST.
@@ -158,19 +158,20 @@ export function getListBounds(
     return { header: value, baseAddrBytes, headerAddrBytes };
   } else if (isRef(value)) {
     // Absolute dereferencing (support ref-to-ref indirection)
-    let headerAddr = getByteAddressFromRef(value);
-    let header = vm.memory.readFloat32(SEG_DATA, headerAddr);
+    let headerCellIndex = getAbsoluteCellIndexFromRef(value);
+    let header = vm.memory.readCell(headerCellIndex);
     if (isRef(header)) {
-      headerAddr = getByteAddressFromRef(header);
-      header = vm.memory.readFloat32(SEG_DATA, headerAddr);
+      headerCellIndex = getAbsoluteCellIndexFromRef(header);
+      header = vm.memory.readCell(headerCellIndex);
     }
 
     if (!isList(header)) {
       return null;
     }
     const slotCount = getListLength(header);
-    const baseAddrBytes = headerAddr - slotCount * CELL_SIZE;
-    return { header, baseAddrBytes, headerAddrBytes: headerAddr };
+    const headerAddrBytes = headerCellIndex * CELL_SIZE;
+    const baseAddrBytes = (headerCellIndex - slotCount) * CELL_SIZE;
+    return { header, baseAddrBytes, headerAddrBytes };
   }
   return null;
 }

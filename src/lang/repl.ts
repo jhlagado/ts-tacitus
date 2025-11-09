@@ -104,7 +104,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
       } else {
-        // eslint-disable-next-line no-console
+
         console.error('Unknown error occurred');
       }
     }
