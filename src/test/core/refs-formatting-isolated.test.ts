@@ -97,4 +97,3 @@ describe('Reference Formatting (Isolated)', () => {
     }
   });
 });
-
