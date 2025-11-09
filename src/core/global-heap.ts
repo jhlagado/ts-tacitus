@@ -4,7 +4,7 @@
  */
 
 import type { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE_CELLS, SEG_DATA, GLOBAL_BASE_BYTES } from './constants';
+import { CELL_SIZE, GLOBAL_SIZE_CELLS, GLOBAL_BASE_CELLS } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 
@@ -33,8 +33,7 @@ function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
 export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
   const cellIndex = vm.gp;
-  const byteOffset = cellIndex * CELL_SIZE;
-  vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + byteOffset, value);
+  vm.memory.writeCell(GLOBAL_BASE_CELLS + cellIndex, value);
   vm.gp = cellIndex + 1;
   return createGlobalRef(cellIndex);
 }
@@ -52,15 +51,15 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   ensureGlobalCapacity(vm, span);
   const destBaseCell = vm.gp;
 
-  const srcBase = source.baseAddrBytes;
+  const srcBaseCells = source.baseAddrBytes / CELL_SIZE;
 
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readFloat32(SEG_DATA, srcBase + i * CELL_SIZE);
-    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + (destBaseCell + i) * CELL_SIZE, value);
+    const value = vm.memory.readCell(srcBaseCells + i);
+    vm.memory.writeCell(GLOBAL_BASE_CELLS + destBaseCell + i, value);
   }
 
   const headerCellIndex = destBaseCell + slotCount;
-  vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + headerCellIndex * CELL_SIZE, source.header);
+  vm.memory.writeCell(GLOBAL_BASE_CELLS + headerCellIndex, source.header);
 
   vm.gp = destBaseCell + span;
   return createGlobalRef(headerCellIndex);

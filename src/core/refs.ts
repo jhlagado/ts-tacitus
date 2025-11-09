@@ -80,8 +80,8 @@ export function getByteAddressFromRef(ref: number): number {
  * @returns Value read from memory
  */
 export function readRefValue(vm: VM, ref: number): number {
-  const byteAddr = getByteAddressFromRef(ref);
-  return vm.memory.readFloat32(SEG_DATA, byteAddr);
+  const cellIndex = getAbsoluteCellIndexFromRef(ref);
+  return vm.memory.readCell(cellIndex);
 }
 
 /**
@@ -202,6 +202,6 @@ export function createGlobalRef(cellIndex: number): number {
  * @param value - Value to write
  */
 export function writeReference(vm: VM, ref: number, value: number): void {
-  const address = getByteAddressFromRef(ref);
-  vm.memory.writeFloat32(SEG_DATA, address, value);
+  const cellIndex = getAbsoluteCellIndexFromRef(ref);
+  vm.memory.writeCell(cellIndex, value);
 }
