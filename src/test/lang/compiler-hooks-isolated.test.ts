@@ -2,8 +2,9 @@ import { jest } from '@jest/globals';
 import { createVM } from '../../core/vm';
 import type { ActiveDefinition } from '../../lang/state';
 
-describe('compiler-hooks', () => {
+describe('compiler-hooks (Isolated)', () => {
   it('invokes the end definition handler', () => {
+    // Disable caching for this test to avoid isolation issues
     const vm = createVM();
     // Create a mock definition so endDefinition doesn't throw "Unexpected semicolon"
     const mockDefinition: ActiveDefinition = {
@@ -20,8 +21,10 @@ describe('compiler-hooks', () => {
   });
 
   it('throws when no handler is registered', () => {
-    const vm = createVM();
+    // Disable caching for this test to avoid isolation issues
+    const vm = createVM(false);
     const { invokeEndDefinitionHandler } = require('../../lang/compiler-hooks');
     expect(() => invokeEndDefinitionHandler(vm)).toThrow('End-definition handler not installed');
   });
 });
+
