@@ -114,9 +114,9 @@ Together, these constraints make globals feel like "locals with a different addr
 
 Tacit's VM uses one **unified data arena**, a contiguous range of 32-bit cells. The arena is organized into three contiguous areas:
 
-1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE_BYTES` to `GLOBAL_TOP_BYTES`).
-2. **Data-stack area** – transient operand storage (from `STACK_BASE_BYTES` to `STACK_TOP_BYTES`).
-3. **Return-stack area** – function frames and locals (from `RSTACK_BASE_BYTES` to `RSTACK_TOP_BYTES`).
+1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE_CELLS` to `GLOBAL_TOP_CELLS`).
+2. **Data-stack area** – transient operand storage (from `STACK_BASE_CELLS` to `STACK_TOP_CELLS`).
+3. **Return-stack area** – function frames and locals (from `RSTACK_BASE_CELLS` to `RSTACK_TOP_CELLS`).
 
 Globals live exclusively in the **global area** of the data segment, starting at `GLOBAL_BASE_CELLS`.
 Each cell in this area may contain either:
