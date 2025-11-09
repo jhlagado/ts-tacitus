@@ -14,7 +14,7 @@
  */
 
 import type { Memory } from '../core/memory';
-import { SEG_STRING, STRING_SIZE } from '../core/constants';
+import { SEG_STRING, STRING_SIZE_BYTES } from '../core/constants';
 
 /**
  * Maximum length of a string that can be stored in the digest (255 characters)
@@ -72,7 +72,7 @@ export class Digest {
     }
 
     const requiredSpace = STRING_HEADER_SIZE + str.length;
-    if (this.SBP + requiredSpace > STRING_SIZE) {
+    if (this.SBP + requiredSpace > STRING_SIZE_BYTES) {
       throw new Error('String digest overflow');
     }
 
@@ -95,7 +95,7 @@ export class Digest {
    * @throws {Error} If the address is outside the string segment bounds
    */
   length(address: number): number {
-    if (address < 0 || address >= 0 + STRING_SIZE) {
+    if (address < 0 || address >= STRING_SIZE_BYTES) {
       throw new Error('Address is outside memory bounds');
     }
 
@@ -113,14 +113,14 @@ export class Digest {
    * @throws {Error} If the address or string data is outside the string segment bounds
    */
   get(address: number): string {
-    if (address < 0 || address >= 0 + STRING_SIZE) {
+    if (address < 0 || address >= STRING_SIZE_BYTES) {
       throw new Error('Address is outside memory bounds');
     }
 
     let pointer = address;
     const length = this.memory.read8(SEG_STRING, pointer++);
 
-    if (pointer + length > 0 + STRING_SIZE) {
+    if (pointer + length > STRING_SIZE_BYTES) {
       throw new Error('Address is outside memory bounds');
     }
 
@@ -138,7 +138,7 @@ export class Digest {
    * @returns {number} The number of bytes available in the string segment
    */
   get remainingSpace(): number {
-    return 0 + STRING_SIZE - this.SBP;
+    return STRING_SIZE_BYTES - this.SBP;
   }
 
   /**
@@ -157,7 +157,7 @@ export class Digest {
     while (pointer < this.SBP) {
       const length = this.memory.read8(SEG_STRING, pointer);
 
-      if (pointer + STRING_HEADER_SIZE + length > 0 + STRING_SIZE) {
+      if (pointer + STRING_HEADER_SIZE + length > STRING_SIZE_BYTES) {
         throw new Error('Address is outside memory bounds');
       }
 

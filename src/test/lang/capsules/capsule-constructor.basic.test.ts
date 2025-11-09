@@ -7,7 +7,7 @@ import {
   isRStackRef,
   RSTACK_BASE_BYTES,
   RSTACK_BASE_CELLS,
-  RSTACK_SIZE,
+  RSTACK_SIZE_BYTES,
   getByteAddressFromRef,
 } from '../../../core';
 import { CELL_SIZE } from '../../../core/constants';
@@ -35,7 +35,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     expect(isRStackRef(handle)).toBe(true);
     const abs = getByteAddressFromRef(handle);
     expect(abs).toBeGreaterThanOrEqual(RSTACK_BASE_BYTES);
-    expect(abs).toBeLessThan(RSTACK_BASE_BYTES + RSTACK_SIZE);
+    expect(abs).toBeLessThan(RSTACK_BASE_BYTES + RSTACK_SIZE_BYTES);
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(1); // CODE only

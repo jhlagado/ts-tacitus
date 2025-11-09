@@ -4,15 +4,16 @@
  */
 
 import {
-  MEMORY_SIZE,
+  MEMORY_SIZE_BYTES,
   SEG_CODE,
   SEG_STRING,
   SEG_DATA,
   RSTACK_TOP_BYTES,
-  STRING_SIZE,
-  CODE_SIZE,
+  STRING_SIZE_BYTES,
+  CODE_SIZE_BYTES,
   DATA_BASE_BYTES,
   DATA_TOP_BYTES,
+  CELL_SIZE,
 } from './constants';
 
 /**
@@ -37,10 +38,10 @@ export class Memory {
    * Creates a new Memory instance with initialized segments.
    */
   constructor() {
-    this.buffer = new Uint8Array(MEMORY_SIZE);
+    this.buffer = new Uint8Array(MEMORY_SIZE_BYTES);
     this.u8 = this.buffer;
     // Ensure u32 view spans the whole buffer; alignment is 4 by design.
-    this.u32 = new Uint32Array(this.buffer.buffer, 0, Math.floor(MEMORY_SIZE / 4));
+    this.u32 = new Uint32Array(this.buffer.buffer, 0, Math.floor(MEMORY_SIZE_BYTES / 4));
     this.dataView = new DataView(this.buffer.buffer);
     this.view = this.dataView;
   }
@@ -56,11 +57,11 @@ export class Memory {
         break;
       case SEG_STRING:
         base = RSTACK_TOP_BYTES;
-        size = STRING_SIZE;
+        size = STRING_SIZE_BYTES;
         break;
       case SEG_CODE:
-        base = RSTACK_TOP_BYTES + STRING_SIZE;
-        size = CODE_SIZE;
+        base = RSTACK_TOP_BYTES + STRING_SIZE_BYTES;
+        size = CODE_SIZE_BYTES;
         break;
       default:
         throw new RangeError(`Invalid segment ID: ${segment}`);
@@ -146,12 +147,71 @@ export class Memory {
   /**
    * Reads a 32-bit float from memory.
    * @param segment The segment ID
-   * @param offset The offset within segment
+   * @param offset The offset within segment (in bytes)
    * @returns The float value
    * @throws {RangeError} If address is out of bounds
    */
   readFloat32(segment: number, offset: number): number {
     const address = this.resolveAddressWithWidth(segment, offset, 4);
+    return this.dataView.getFloat32(address, true);
+  }
+
+  /**
+   * Resolves segmented cell address to linear byte address.
+   * @param segment The segment ID
+   * @param cellOffset The cell offset within segment
+   * @returns The linear byte address
+   * @throws {RangeError} If segment ID is invalid or cell offset is out of bounds
+   */
+  private resolveCellAddress(segment: number, cellOffset: number): number {
+    let base = 0;
+    let sizeCells = 0;
+
+    switch (segment) {
+      case SEG_DATA:
+        base = DATA_BASE_BYTES;
+        sizeCells = (DATA_TOP_BYTES - DATA_BASE_BYTES) / CELL_SIZE;
+        break;
+      case SEG_STRING:
+        base = RSTACK_TOP_BYTES;
+        sizeCells = STRING_SIZE_BYTES / CELL_SIZE;
+        break;
+      case SEG_CODE:
+        base = RSTACK_TOP_BYTES + STRING_SIZE_BYTES;
+        sizeCells = CODE_SIZE_BYTES / CELL_SIZE;
+        break;
+      default:
+        throw new RangeError(`Invalid segment ID: ${segment}`);
+    }
+
+    if (cellOffset < 0 || cellOffset >= sizeCells) {
+      throw new RangeError(`Cell offset ${cellOffset} is outside segment ${segment} bounds`);
+    }
+
+    return base + cellOffset * CELL_SIZE;
+  }
+
+  /**
+   * Writes a cell (32-bit float) to memory using cell addressing.
+   * @param segment The segment ID
+   * @param cellOffset The cell offset within segment
+   * @param value The cell value (float)
+   * @throws {RangeError} If cell offset is out of bounds
+   */
+  writeCell(segment: number, cellOffset: number, value: number): void {
+    const address = this.resolveCellAddress(segment, cellOffset);
+    this.dataView.setFloat32(address, value, true);
+  }
+
+  /**
+   * Reads a cell (32-bit float) from memory using cell addressing.
+   * @param segment The segment ID
+   * @param cellOffset The cell offset within segment
+   * @returns The cell value (float)
+   * @throws {RangeError} If cell offset is out of bounds
+   */
+  readCell(segment: number, cellOffset: number): number {
+    const address = this.resolveCellAddress(segment, cellOffset);
     return this.dataView.getFloat32(address, true);
   }
 
@@ -163,7 +223,7 @@ export class Memory {
    * @throws {RangeError} If range is invalid
    */
   dump(start: number, end = 32): string {
-    if (start < 0 || end >= MEMORY_SIZE || start > end) {
+    if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
 
@@ -184,7 +244,7 @@ export class Memory {
    * @throws {RangeError} If range is invalid
    */
   dumpChars(start: number, end = 32): string {
-    if (start < 0 || end >= MEMORY_SIZE || start > end) {
+    if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
       throw new RangeError(`Invalid memory range [${start}, ${end}]`);
     }
 

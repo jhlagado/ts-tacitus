@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from '../../../ops/heap';
-import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE_BYTES, GLOBAL_BASE_CELLS, SEG_DATA, STACK_BASE_CELLS } from '../../../core/constants';
+import { CELL_SIZE, GLOBAL_SIZE_CELLS, GLOBAL_BASE_BYTES, GLOBAL_BASE_CELLS, SEG_DATA, STACK_BASE_CELLS } from '../../../core/constants';
 import { createRef } from '../../../core/refs';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { push, pop, getStackData } from '../../../core/vm';
@@ -134,7 +134,7 @@ describe('Global heap primitives', () => {
   });
 
   test('gpush reports exhaustion when heap is full', () => {
-    const capacity = GLOBAL_SIZE / CELL_SIZE;
+    const capacity = GLOBAL_SIZE_CELLS;
     vm.gp = capacity;
     push(vm, 123);
     expect(() => gpushOp(vm)).toThrow(/Global heap exhausted/);

@@ -3,9 +3,9 @@
  * Core constants for the Tacit VM.
  */
 
-export const SEG_SIZE = 0x10000;
+export const SEG_SIZE_BYTES = 0x10000;
 
-export const INVALID = SEG_SIZE - 1;
+export const INVALID = SEG_SIZE_BYTES - 1;
 
 export const FALSE = 0;
 
@@ -13,7 +13,7 @@ export const TRUE = 1;
 
 export const CELL_SIZE = 4;
 
-export const MEMORY_SIZE = 65536;
+export const MEMORY_SIZE_BYTES = 65536;
 
 // Legacy per-window segment identifiers (SEG_STACK, SEG_RSTACK, SEG_GLOBAL) have been removed.
 // Use SEG_DATA with absolute byte addresses and area base constants (GLOBAL_BASE_BYTES/STACK_BASE_BYTES/RSTACK_BASE_BYTES)
@@ -26,25 +26,25 @@ export const SEG_CODE = 4;
 
 export const SEG_STRING = 5;
 
-export const STACK_SIZE = 0x0100;
+export const STACK_SIZE_BYTES = 0x0100;
 
-export const RSTACK_SIZE = 0x0100;
+export const RSTACK_SIZE_BYTES = 0x0100;
 
-export const GLOBAL_SIZE = 0x2000;
+export const GLOBAL_SIZE_BYTES = 0x2000;
 
-export const STRING_SIZE = 0x0800;
+export const STRING_SIZE_BYTES = 0x0800;
 
-export const CODE_SIZE = 0x2000;
+export const CODE_SIZE_BYTES = 0x2000;
 
 // Unified arena boundaries (byte offsets)
 export const GLOBAL_BASE_BYTES = 0x0000;
-export const GLOBAL_TOP_BYTES = GLOBAL_BASE_BYTES + GLOBAL_SIZE;
+export const GLOBAL_TOP_BYTES = GLOBAL_BASE_BYTES + GLOBAL_SIZE_BYTES;
 
 export const STACK_BASE_BYTES = GLOBAL_TOP_BYTES;
-export const STACK_TOP_BYTES = STACK_BASE_BYTES + STACK_SIZE;
+export const STACK_TOP_BYTES = STACK_BASE_BYTES + STACK_SIZE_BYTES;
 
 export const RSTACK_BASE_BYTES = STACK_TOP_BYTES;
-export const RSTACK_TOP_BYTES = RSTACK_BASE_BYTES + RSTACK_SIZE;
+export const RSTACK_TOP_BYTES = RSTACK_BASE_BYTES + RSTACK_SIZE_BYTES;
 
 export const TOTAL_DATA_BYTES = RSTACK_TOP_BYTES;
 

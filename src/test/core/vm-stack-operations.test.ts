@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import {
-  STACK_SIZE,
-  RSTACK_SIZE,
+  STACK_SIZE_BYTES,
+  RSTACK_SIZE_BYTES,
   StackOverflowError,
   ReturnStackOverflowError,
   StackUnderflowError,
@@ -20,7 +20,7 @@ describe('VM Stack Operations Error Handling', () => {
   });
 
   test('should throw StackOverflowError when data stack overflows', () => {
-    const maxElements = STACK_SIZE / CELL_SIZE;
+    const maxElements = STACK_SIZE_BYTES / CELL_SIZE;
     for (let i = 0; i < maxElements; i++) {
       push(vm, i);
     }
@@ -30,7 +30,7 @@ describe('VM Stack Operations Error Handling', () => {
   });
 
   test('should throw ReturnStackOverflowError when return stack overflows', () => {
-    const maxElements = RSTACK_SIZE / CELL_SIZE;
+    const maxElements = RSTACK_SIZE_BYTES / CELL_SIZE;
     for (let i = 0; i < maxElements; i++) {
       rpush(vm, i);
     }
@@ -42,7 +42,7 @@ describe('VM Stack Operations Error Handling', () => {
   });
 
   test('StackOverflowError should contain correct stack state', () => {
-    const maxElements = STACK_SIZE / CELL_SIZE;
+    const maxElements = STACK_SIZE_BYTES / CELL_SIZE;
     for (let i = 0; i < maxElements; i++) {
       push(vm, i);
     }
@@ -57,7 +57,7 @@ describe('VM Stack Operations Error Handling', () => {
   });
 
   test('ReturnStackOverflowError should contain correct stack state', () => {
-    const maxElements = RSTACK_SIZE / CELL_SIZE;
+    const maxElements = RSTACK_SIZE_BYTES / CELL_SIZE;
     for (let i = 0; i < maxElements; i++) {
       rpush(vm, i);
     }
