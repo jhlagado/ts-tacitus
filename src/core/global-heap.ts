@@ -4,11 +4,11 @@
  */
 
 import type { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES } from './constants';
+import { CELL_SIZE, GLOBAL_SIZE_CELLS, SEG_DATA, GLOBAL_BASE_BYTES } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 
-const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE / CELL_SIZE;
+const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE_CELLS;
 
 export type ListSource = {
   /** LIST header value to write at destination */

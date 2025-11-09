@@ -1,4 +1,4 @@
-import { VM, STACK_SIZE, RSTACK_SIZE, SEG_CODE, createVM } from '../../core';
+import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM } from '../../core';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
@@ -24,7 +24,7 @@ describe('VM', () => {
       expect(pop(vm)).toBeCloseTo(3.14);
     });
     test('should throw an error on stack overflow', () => {
-      for (let i = 0; i < STACK_SIZE / 4; i++) {
+      for (let i = 0; i < STACK_SIZE_BYTES / 4; i++) {
         push(vm, i);
       }
 
@@ -55,7 +55,7 @@ describe('VM', () => {
       expect(rpop(vm)).toBe(100);
     });
     test('should throw an error on return stack overflow', () => {
-      for (let i = 0; i < RSTACK_SIZE / 4; i++) {
+      for (let i = 0; i < RSTACK_SIZE_BYTES / 4; i++) {
         rpush(vm, i);
       }
 

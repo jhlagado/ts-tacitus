@@ -13,12 +13,12 @@ import {
   RSTACK_TOP_CELLS,
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE_CELLS,
-  GLOBAL_SIZE,
+  GLOBAL_SIZE_BYTES,
+  GLOBAL_SIZE_CELLS,
   TOTAL_DATA_BYTES,
   TOTAL_DATA_CELLS,
   CELL_SIZE,
 } from './constants';
-
 
 /**
  * Creates a REF tagged value for an absolute cell index.
@@ -92,7 +92,6 @@ export function readRefValue(vm: VM, ref: number): number {
 export function isRef(tval: number): boolean {
   return getTag(tval) === Tag.REF;
 }
-
 
 /**
  * Gets the area name for a REF based on its address range.
@@ -189,13 +188,12 @@ export function getVarRef(vm: VM, slotNumber: number): number {
  * @throws {RangeError} If cell index is out of bounds
  */
 export function createGlobalRef(cellIndex: number): number {
-  if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE / CELL_SIZE) {
+  if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE_CELLS) {
     throw new RangeError('Global reference outside global segment bounds');
   }
   const absCellIndex = GLOBAL_BASE_CELLS + cellIndex;
   return createRef(absCellIndex);
 }
-
 
 /**
  * Writes a value to memory using a REF.

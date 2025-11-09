@@ -1,6 +1,6 @@
 import { Digest } from '../../../../src/strings/digest';
 import { Memory } from '../../../core/memory';
-import { STRING_SIZE } from '../../../core/constants';
+import { STRING_SIZE_BYTES } from '../../../core/constants';
 
 describe('Digest', () => {
   let memory: Memory;
@@ -37,7 +37,7 @@ describe('Digest', () => {
   });
   test('should throw an error if there is not enough space in memory', () => {
     const smallString = 'a'.repeat(255);
-    const numStrings = Math.floor(STRING_SIZE / (smallString.length + 1));
+    const numStrings = Math.floor(STRING_SIZE_BYTES / (smallString.length + 1));
     for (let i = 0; i < numStrings; i++) {
       digest.add(smallString);
     }
@@ -68,7 +68,7 @@ describe('Digest', () => {
   });
   test('should throw an error when reading from an invalid address', () => {
     expect(() => digest.get(-1)).toThrow('Address is outside memory bounds');
-    expect(() => digest.get(STRING_SIZE)).toThrow('Address is outside memory bounds');
+    expect(() => digest.get(STRING_SIZE_BYTES)).toThrow('Address is outside memory bounds');
   });
   test('should correctly report remaining space', () => {
     const initialSpace = digest.remainingSpace;

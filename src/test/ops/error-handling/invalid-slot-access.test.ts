@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { ReturnStackUnderflowError } from '../../../core/errors';
-import { MEMORY_SIZE } from '../../../core/constants';
+import { MEMORY_SIZE_BYTES } from '../../../core/constants';
 import { getVarRef } from '../../../core/refs';
 import { executeOp } from '../../../ops/builtins';
 import { Op } from '../../../ops/opcodes';
@@ -21,7 +21,7 @@ describe('Invalid Slot Access Error Handling', () => {
     // Simulate a function frame
     unsafeSetBPBytes(vm, 0); // Start BP at 0
     // Create a slot number so large that the calculated address exceeds total MEMORY_SIZE
-    const extremelyLargeSlot = MEMORY_SIZE / CELL_SIZE + 1000;
+    const extremelyLargeSlot = MEMORY_SIZE_BYTES / CELL_SIZE + 1000;
     expect(() => getVarRef(vm, extremelyLargeSlot)).toThrow(
       'Local reference outside return stack bounds',
     );
