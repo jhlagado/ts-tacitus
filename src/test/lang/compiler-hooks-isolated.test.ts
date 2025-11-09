@@ -13,7 +13,9 @@ describe('compiler-hooks (Isolated)', () => {
       checkpoint: 0, // Dictionary mark (heap position)
     };
     const currentDefinition: { current: ActiveDefinition | null } = { current: mockDefinition };
-    (vm as typeof vm & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition = currentDefinition;
+    (
+      vm as typeof vm & { _currentDefinition: { current: ActiveDefinition | null } }
+    )._currentDefinition = currentDefinition;
 
     const { invokeEndDefinitionHandler } = require('../../lang/compiler-hooks');
     // Should not throw when currentDefinition is set with a valid definition
@@ -27,4 +29,3 @@ describe('compiler-hooks (Isolated)', () => {
     expect(() => invokeEndDefinitionHandler(vm)).toThrow('End-definition handler not installed');
   });
 });
-
