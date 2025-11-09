@@ -17,13 +17,13 @@ Tacit allocates a single data arena sized at compile time. Three contiguous wind
 
 | Constant           | Meaning                                                      |
 | ------------------ | ------------------------------------------------------------ |
-| `GLOBAL_BASE`      | Absolute byte offset for the first global-heap cell          |
-| `GLOBAL_TOP`       | End (exclusive) of the global-heap window                    |
-| `STACK_BASE`       | Start of the data-stack window                               |
-| `STACK_TOP`        | End (exclusive) of the data-stack window                     |
-| `RSTACK_BASE`      | Start of the return-stack window                             |
-| `RSTACK_TOP`       | End (exclusive) of the return-stack window                   |
-| `TOTAL_DATA_BYTES` | Total byte capacity of the unified data arena (`RSTACK_TOP`) |
+| `GLOBAL_BASE_BYTES` | Absolute byte offset for the first global-heap cell          |
+| `GLOBAL_TOP_BYTES` | End (exclusive) of the global-heap window                    |
+| `STACK_BASE_BYTES` | Start of the data-stack window                               |
+| `STACK_TOP_BYTES`  | End (exclusive) of the data-stack window                     |
+| `RSTACK_BASE_BYTES` | Start of the return-stack window                             |
+| `RSTACK_TOP_BYTES` | End (exclusive) of the return-stack window                   |
+| `TOTAL_DATA_BYTES` | Total byte capacity of the unified data arena (`RSTACK_TOP_BYTES`) |
 
 Adjusting capacities only requires editing these constants; runtime code operates on absolute cell indices and does not bake in window sizes.
 
@@ -56,13 +56,13 @@ Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 value
 VM registers store **absolute cell indices** inside the unified arena; public accessors
 expose relative depths by subtracting the relevant window base:
 
-- SP — data stack pointer (`_spCells`), initialised to `STACK_BASE / CELL_SIZE`
-- RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE / CELL_SIZE`
-- BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE / CELL_SIZE`
-- GP — global bump pointer (cell offset from `GLOBAL_BASE / CELL_SIZE`)
+- SP — data stack pointer (`_spCells`), initialised to `STACK_BASE_CELLS`
+- RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE_CELLS`
+- BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE_CELLS`
+- GP — global bump pointer (cell offset from `GLOBAL_BASE_CELLS`)
 - IP — instruction pointer (byte address in CODE)
 
-`SP`, `RSP`, and `BP` are stored internally as absolute cell indices within the unified arena. `GP` remains window-relative: a value of 0 represents `GLOBAL_BASE`, and helpers add the base offset when forming byte addresses for the global heap.
+`SP`, `RSP`, and `BP` are stored internally as absolute cell indices within the unified arena. `GP` remains window-relative: a value of 0 represents `GLOBAL_BASE_CELLS`, and helpers add the base offset when forming byte addresses for the global heap.
 
 ## Execution Model
 
@@ -206,7 +206,7 @@ Reference helpers (see `core/refs.ts`):
 - `readRefValue(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 - `getRefRegion(ref)` → `'global' | 'stack' | 'rstack'` (inferred from address range)
 
-All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE…RSTACK_TOP`). Zero therefore still represents “first cell of the arena” for diagnostics while allowing non-zero bases per window.
+All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE_CELLS…RSTACK_TOP_CELLS`). Zero therefore still represents "first cell of the arena" for diagnostics while allowing non-zero bases per window.
 
 ## Lists (Reverse Layout)
 
