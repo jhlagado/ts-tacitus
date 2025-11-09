@@ -35,7 +35,7 @@ Tacit stores globals, the data stack, and the return stack inside a single data 
 - **Data-stack window** — operand storage (indexed by `SP`)
 - **Return-stack window** — frames and locals (indexed by `RSP`/`BP`)
 
-Runtime references use the unified `Tag.REF`. Its 16‑bit payload stores a cell index in the range `0 ≤ index < TOTAL_DATA_BYTES / CELL_SIZE`. Helpers infer which window owns that index by comparing against the global, data‑stack, and return‑stack bounds.
+Runtime references use the unified `Tag.REF`. Its 16‑bit payload stores a cell index in the range `0 ≤ index < TOTAL_DATA_CELLS`. Helpers infer which window owns that index by comparing against the global, data‑stack, and return‑stack bounds.
 
 Helpers
 

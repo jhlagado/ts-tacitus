@@ -114,9 +114,9 @@ Together, these constraints make globals feel like "locals with a different addr
 
 Tacit's VM uses one **unified data arena**, a contiguous range of 32-bit cells. The arena is organized into three contiguous areas:
 
-1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE` to `GLOBAL_TOP`).
-2. **Data-stack area** – transient operand storage (from `STACK_BASE` to `STACK_TOP`).
-3. **Return-stack area** – function frames and locals (from `RSTACK_BASE` to `RSTACK_TOP`).
+1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE_BYTES` to `GLOBAL_TOP_BYTES`).
+2. **Data-stack area** – transient operand storage (from `STACK_BASE_BYTES` to `STACK_TOP_BYTES`).
+3. **Return-stack area** – function frames and locals (from `RSTACK_BASE_BYTES` to `RSTACK_TOP_BYTES`).
 
 Globals live exclusively in the **global area** of the data segment, starting at `GLOBAL_BASE_CELLS`.
 Each cell in this area may contain either:
@@ -769,13 +769,13 @@ If a compound global is reassigned with a new structure of identical size, the w
 
 ### 8.5 Relative Cost vs. Locals
 
-| Operation            | Locals                       | Globals                |
-| -------------------- | ---------------------------- | ---------------------- |
-| **Address creation** | `BP + slot`                  | `GLOBAL_BASE + offset` |
-| **Read (load)**      | 2 ops                        | 2 ops                  |
-| **Write (store)**    | 2 ops                        | 2 ops                  |
-| **Frame setup**      | requires `Reserve`/`InitVar` | none                   |
-| **Lifetime mgmt**    | auto on return               | static for VM lifetime |
+| Operation            | Locals                       | Globals                      |
+| -------------------- | ---------------------------- | ---------------------------- |
+| **Address creation** | `BP + slot`                  | `GLOBAL_BASE_CELLS + offset` |
+| **Read (load)**      | 2 ops                        | 2 ops                        |
+| **Write (store)**    | 2 ops                        | 2 ops                        |
+| **Frame setup**      | requires `Reserve`/`InitVar` | none                         |
+| **Lifetime mgmt**    | auto on return               | static for VM lifetime       |
 
 So while locals incur frame prologue/epilogue costs, globals pay nothing per function call.
 For heavily reused constants or configuration data, globals are faster overall.
