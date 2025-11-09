@@ -152,7 +152,7 @@ export function captureTacitOutput(vm: VM, code: string): string[] {
   const output: string[] = [];
   const originalLog = console.log;
 
-  console.log = (...args: unknown[]) => {
+  console.log = (...args: unknown[]): void => {
     output.push(args.join(' '));
   };
 

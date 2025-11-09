@@ -94,14 +94,14 @@ export function isRef(tval: number): boolean {
 
 
 /**
- * Gets the region name for a REF based on its address range.
- * The data segment consists of three contiguous regions:
- * - Global: lowest region, starting at 0, limited to 64K cells
- * - Stack: data stack region
- * - RStack: return stack region
+ * Gets the area name for a REF based on its address range.
+ * The data segment consists of three contiguous areas:
+ * - Global: lowest area, starting at 0, limited to 64K cells
+ * - Stack: data stack area
+ * - RStack: return stack area
  *
  * @param ref - REF tagged value
- * @returns Region name ('global', 'stack', or 'rstack')
+ * @returns Area name ('global', 'stack', or 'rstack')
  */
 export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
   const absByte = getByteAddressFromRef(ref);
@@ -115,9 +115,9 @@ export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
 }
 
 /**
- * Checks if a REF points into the global region.
+ * Checks if a REF points into the global area.
  * @param ref - REF tagged value
- * @returns True if ref is in the global region
+ * @returns True if ref is in the global area
  */
 export function isGlobalRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);
@@ -125,9 +125,9 @@ export function isGlobalRef(ref: number): boolean {
 }
 
 /**
- * Checks if a REF points into the data stack region.
+ * Checks if a REF points into the data stack area.
  * @param ref - REF tagged value
- * @returns True if ref is in the data stack region
+ * @returns True if ref is in the data stack area
  */
 export function isStackRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);
@@ -135,9 +135,9 @@ export function isStackRef(ref: number): boolean {
 }
 
 /**
- * Checks if a REF points into the return stack region.
+ * Checks if a REF points into the return stack area.
  * @param ref - REF tagged value
- * @returns True if ref is in the return stack region
+ * @returns True if ref is in the return stack area
  */
 export function isRStackRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);

@@ -17,7 +17,7 @@ export const MEMORY_SIZE = 65536;
 
 // Legacy per-window segment identifiers (SEG_STACK, SEG_RSTACK, SEG_GLOBAL) have been removed.
 // Use SEG_DATA with absolute byte addresses and window base constants (GLOBAL_BASE/STACK_BASE/RSTACK_BASE)
-// for all memory I/O; classification-sensitive code should infer region by address range.
+// for all memory I/O; classification-sensitive code should infer area by address range.
 
 // Unified data segment identifier (compat placeholder for Phase A). Not yet used broadly.
 export const SEG_DATA = 3;

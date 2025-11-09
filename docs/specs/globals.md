@@ -17,7 +17,7 @@
    - 1.3 [Core Invariants](#13-core-invariants-assumed-by-this-spec)
 
 2. [Storage Model](#2-storage-model)
-   - 2.1 [Unified Data Arena and Global Window](#21-unified-data-arena-and-global-window)
+   - 2.1 [Unified Data Arena and Global Area](#21-unified-data-arena-and-global-area)
    - 2.2 [Global Cell Format](#22-global-cell-format)
    - 2.3 [Allocation Model and Addressing](#23-allocation-model-and-addressing)
    - 2.4 [64K Limit and Rationale](#24-64k-limit-and-rationale)
@@ -35,7 +35,7 @@
    - 4.1 [Entry Payload and Metadata](#41-entry-payload-and-metadata)
    - 4.2 [Lookup Resolution and Compilation](#42-lookup-resolution-and-compilation)
    - 4.3 [Shadowing and Redefinition](#43-shadowing-and-redefinition)
-   - 4.4 [Region Validation at Runtime](#44-region-validation-at-runtime)
+   - 4.4 [Boundary Validation at Runtime](#44-boundary-validation-at-runtime)
    - 4.5 [Persistence and Reloading](#45-persistence-and-reloading)
 
 5. [Opcodes and Lowering](#5-opcodes-and-lowering)
@@ -81,7 +81,7 @@
 
 ### 1.1 Purpose and Scope
 
-Global variables provide persistent, module-scope storage for Tacit programs. Each global occupies a single 32-bit cell within the global heap window of the unified data arena. A global cell can hold either a simple value (number, code ref, builtin, string ref) or a reference pointing to a compound stored in the global heap (for example, a list). This spec defines the addressing model, declaration rules, dictionary integration, opcode lowering, and runtime invariants for globals. It assumes the platform’s core rules for refs, value-by-default, lists, and compatibility.
+Global variables provide persistent, module-scope storage for Tacit programs. Each global occupies a single 32-bit cell within the global area of the unified data segment. A global cell can hold either a simple value (number, code ref, builtin, string ref) or a reference pointing to a compound stored in the global area (for example, a list). This spec defines the addressing model, declaration rules, dictionary integration, opcode lowering, and runtime invariants for globals. It assumes the platform's core rules for refs, value-by-default, lists, and compatibility.
 
 ### 1.2 Relationship to Locals
 
@@ -93,38 +93,38 @@ Globals mirror locals wherever possible to reduce cognitive overhead:
 
 Key differences, driven by lifetime:
 
-- **Addressing**: locals use frame-relative slots via `VarRef(slot)`; globals use absolute cell indices within the global window via `GlobalRef(offset)`. Both are Tag.REF under the absolute addressing model.
-- **Storage locality**: local compounds live above the frame in the return-stack window and the slot stores a ref; global compounds live in the global heap and the global cell stores a ref to that heap header.
+- **Addressing**: locals use frame-relative slots via `VarRef(slot)`; globals use absolute cell indices within the global area via `GlobalRef(offset)`. Both are Tag.REF under the absolute addressing model.
+- **Storage locality**: local compounds live above the frame in the return-stack area and the slot stores a ref; global compounds live in the global area and the global cell stores a ref to that compound's header.
 - **Increment operator**: `+>` works identically for both locals and globals. The bytecode sequence is the same, differing only in the first opcode (`VarRef` vs `GlobalRef`). Both compile to: `VarRef/GlobalRef; Swap; Over; Fetch; Add; Swap; Store`.
 
 ### 1.3 Core Invariants (assumed by this spec)
 
 This spec relies on the canonical invariants:
 
-- **Unified REF model**: a ref’s 16-bit payload is an absolute cell index into the shared arena; the runtime infers whether the address lies in the global, data-stack, or return-stack window by comparing boundaries. Globals therefore must point into the global window; region mismatches are errors.
+- **Unified REF model**: a ref's 16-bit payload is an absolute cell index into the shared arena; the runtime infers which area (global, data-stack, or return-stack) owns an address by comparing against boundary constants. Globals must point into the global area; mismatches are errors.
 - **Value-by-default semantics**: `load` dereferences up to two levels and materializes lists; `fetch` is a strict address read that materializes when it encounters a list header. These rules apply identically to globals and locals.
 - **Compound compatibility**: in-place mutation of a compound destination is allowed only when source and destination are the same structural type with the same slot count; list headers and compound starts are immutable targets for simple writes. This governs bracket-path writes into global compounds.
 - **Bracket-path lowering**: writes to `name[ … ]` compile to `&name; Select; Nip; Store`. Reads compile to `Select; Load; Nip`. These forms are shared with locals.
 
-Together, these constraints make globals feel like “locals with a different address space,” while preserving deterministic lifetime and region safety.
+Together, these constraints make globals feel like "locals with a different address space," while preserving deterministic lifetime and memory safety.
 
 ## 2. Storage Model
 
-### 2.1 Unified Data Arena and Global Window
+### 2.1 Unified Data Arena and Global Area
 
-Tacit’s VM uses one **unified data arena**, a contiguous range of 32-bit cells divided into three logical windows:
+Tacit's VM uses one **unified data arena**, a contiguous range of 32-bit cells. The arena is organized into three contiguous areas:
 
-1. **Global heap window** – persistent, module-scope data.
-2. **Data-stack window** – transient operand storage.
-3. **Return-stack window** – function frames and locals.
+1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE` to `GLOBAL_TOP`).
+2. **Data-stack area** – transient operand storage (from `STACK_BASE` to `STACK_TOP`).
+3. **Return-stack area** – function frames and locals (from `RSTACK_BASE` to `RSTACK_TOP`).
 
-Globals live exclusively in the **global heap window**, a fixed region whose lower boundary is `GLOBAL_BASE_CELLS`.
-Each cell in this region may contain either:
+Globals live exclusively in the **global area** of the data segment, starting at `GLOBAL_BASE_CELLS`.
+Each cell in this area may contain either:
 
 - A **simple value** (number, string address, builtin ref, code ref), or
 - A **compound reference** — a `Tag.REF` whose payload indexes another structure (e.g. list, map, capsule) that also resides in the global heap.
 
-The global heap grows **upward** as new globals are declared. A dedicated register `GP` (global pointer) always indicates the next free cell in that window.
+The global area grows **upward** as new globals are declared. A dedicated register `GP` (global pointer) always indicates the next free cell in that area.
 
 ### 2.2 Global Cell Format
 
@@ -143,7 +143,7 @@ The compound’s payload remains contiguous in the heap, and the global cell’s
 
 ### 2.3 Allocation Model and Addressing
 
-Every new global declaration consumes the next available cell in the heap window.
+Every new global declaration consumes the next available cell in the global area.
 Address computation is fixed and lightweight:
 
 ```
@@ -165,15 +165,15 @@ Because offsets are 16 bit, the VM supports **65 536** global cells:
 - **Practical implication:** ample for configuration constants, shared lists, and long-lived capsules.
 
 Exceeding this range raises `Global variable limit exceeded (64K)` at compile time.
-Future extensions could switch to 24-bit offsets or segmented heaps but the current flat 64K window favors simplicity and direct addressing.
+Future extensions could switch to 24-bit offsets or segmented heaps but the current flat 64K area favors simplicity and direct addressing.
 
 ### 2.5 Lifetime, Aliasing, and Safety
 
 - **Lifetime:** globals persist for the entire VM session. They are initialized once at load-time and reclaimed only when the VM resets.
 - **Aliasing:** `&name` returns a stable `REF` whose payload always points to the same cell. It may be passed to functions or stored in lists freely.
-- **Region enforcement:** the VM validates that a global’s ref payload lies within `[GLOBAL_BASE_CELLS, GLOBAL_BASE_CELLS + 65535]`. Anything outside that window is a region error.
-- **Compound placement:** when storing a compound whose origin is on the data or return stack, the VM copies it into the global heap (via helper `pushListToGlobalHeap` or `GPushList`) and replaces the cell content with a `REF` to the new header.
-- **No leakage of locals:** a local compound’s address must never be written directly into a global cell. If a function attempts to do so, the runtime copies the structure into the global heap instead, preserving lifetime safety.
+- **Boundary enforcement:** the VM validates that a global's ref payload lies within `[GLOBAL_BASE_CELLS, GLOBAL_BASE_CELLS + 65535]`. Anything outside the global area is an error.
+- **Compound placement:** when storing a compound whose origin is on the data or return stack, the VM copies it into the global area (via helper `pushListToGlobalHeap` or `GPushList`) and replaces the cell content with a `REF` to the new header.
+- **No leakage of locals:** a local compound's address must never be written directly into a global cell. If a function attempts to do so, the runtime copies the structure into the global area instead, preserving lifetime safety.
 
 This strict separation ensures that globals can always be dereferenced safely regardless of call-stack state.
 
@@ -263,8 +263,8 @@ Store
 Runtime:
 
 1. The list `(1 2 3)` exists temporarily on the data stack.
-2. `Store` detects that the destination address is in the global region.
-3. The VM copies the list’s header and payload into the global heap using the same contiguous layout rules as lists on the stack.
+2. `Store` detects that the destination address is in the global area.
+3. The VM copies the list's header and payload into the global area using the same contiguous layout rules as lists on the stack.
 4. A new `Tag.REF` to that header is written into the global cell.
 5. The temporary stack copy is dropped.
 
@@ -290,10 +290,10 @@ The payload is a genuine runtime `REF`, not a compile-time `Tag.LOCAL`. When the
 | Inside function                  | “Global declarations only allowed at top level” | compile |
 | Redeclaration of existing global | “Global `<name>` already defined”               | compile |
 | Invalid identifier               | “Expected variable name after global”           | compile |
-| Exceeded 64K window              | “Global variable limit exceeded (64K)”          | compile |
-| Runtime region mismatch          | “REF points outside global heap”                | runtime |
+| Exceeded 64K area                | "Global variable limit exceeded (64K)"          | compile |
+| Runtime boundary mismatch        | "REF points outside global area"                | runtime |
 
-These guardrails make global declarations deterministic and memory-safe within the VM’s static global window.
+These guardrails make global declarations deterministic and memory-safe within the VM's static global area.
 
 ## 4. Dictionary Integration
 
@@ -332,7 +332,7 @@ When the compiler encounters a bare word `name`, lookup proceeds as usual:
 
 Offset = `absoluteIndex - GLOBAL_BASE_CELLS`, stored as a 16-bit operand.
 
-This mechanism uses the same ref-window discrimination already present in `variables-and-refs.md`, ensuring that no explicit type flag is needed to tell globals from locals.
+This mechanism uses the same address-range discrimination already present in `variables-and-refs.md`, ensuring that no explicit type flag is needed to tell globals from locals.
 
 ### 4.3 Shadowing and Redefinition
 
@@ -344,13 +344,13 @@ Tacit follows straightforward shadowing rules to preserve determinism:
 - **Redeclaration:** re-using a global name after it’s defined is forbidden; use `->` for reassignment instead.
 - **Visibility inside functions:** once defined, globals are visible everywhere, including function bodies, since dictionary lookup is flat and global entries persist for the entire VM lifetime.
 
-### 4.4 Region Validation at Runtime
+### 4.4 Boundary Validation at Runtime
 
-When executing any global reference instruction, the VM validates that the target address is inside the global heap window:
+When executing any global reference instruction, the VM validates that the target address is inside the global area:
 
 ```
 if (cellIndex < GLOBAL_BASE_CELLS || cellIndex >= GLOBAL_BASE_CELLS + 65536)
-    throw "REF points outside global heap"
+    throw "REF points outside global area"
 ```
 
 This guarantees that no corrupted dictionary entry or user error can direct a global ref into stack or return-stack memory.
@@ -358,10 +358,10 @@ This guarantees that no corrupted dictionary entry or user error can direct a gl
 ### 4.5 Persistence and Reloading
 
 Dictionary entries for globals survive across resets of the data and return stacks.
-When the VM performs a “soft reset” (clearing call stacks but preserving heap data), global entries remain linked.
-On a full VM reload, global heap and dictionary may be serialized together to reconstruct identical addresses on restore.
+When the VM performs a "soft reset" (clearing call stacks but preserving heap data), global entries remain linked.
+On a full VM reload, global area and dictionary may be serialized together to reconstruct identical addresses on restore.
 
-This persistence design aligns globals with the VM’s module system: a compiled module may pre-populate its global heap region, then export those dictionary entries for external linkage.
+This persistence design aligns globals with the VM's module system: a compiled module may pre-populate its global area, then export those dictionary entries for external linkage.
 
 ## 5. Opcodes and Lowering
 
@@ -399,8 +399,8 @@ function opGlobalRef(vm) {
 **Invariant checks**
 
 - Offset must be within `[0, 65535]`.
-- Absolute index must fall inside the global heap window.
-- Ref payloads outside this range raise `"REF points outside global heap"`.
+- Absolute index must fall inside the global area (between `GLOBAL_BASE_CELLS` and `GLOBAL_BASE_CELLS + 65535`).
+- Ref payloads outside this range raise `"REF points outside global area"`.
 
 ### 5.2 Read (Value-By-Default)
 
@@ -543,14 +543,14 @@ Compact addressing keeps globals inexpensive in both code size and runtime laten
 
 ### 6.1 Compound Storage Location
 
-When a compound (list, maplist, capsule) is assigned to a global variable, the VM must guarantee that the structure resides entirely within the **global heap window**.
-If the compound currently lives on the **data stack** or **return stack**, the runtime performs a _copy-up_ into the heap before writing the global’s header reference.
+When a compound (list, maplist, capsule) is assigned to a global variable, the VM must guarantee that the structure resides entirely within the **global area**.
+If the compound currently lives on the **data stack** or **return stack**, the runtime performs a _copy-up_ into the global area before writing the global's header reference.
 
 Mechanics:
 
-1. Detect compound type by inspecting the top value’s tag.
-2. If `Tag.LIST` or another compound header is found and its address is not inside the global heap window, call `pushListToGlobalHeap` (or equivalent) to duplicate it in heap space.
-3. Replace the value on the stack with a `Tag.REF` whose payload is the new header’s absolute index.
+1. Detect compound type by inspecting the top value's tag.
+2. If `Tag.LIST` or another compound header is found and its address is not inside the global area, call `pushListToGlobalHeap` (or equivalent) to duplicate it in the global area.
+3. Replace the value on the stack with a `Tag.REF` whose payload is the new header's absolute index.
 4. Perform the normal `Store` into the target global cell.
 
 This ensures all compound globals are permanent and never reference transient stack memory.
@@ -595,7 +595,7 @@ To preserve predictable memory layouts and avoid accidental heap leaks:
 - Converting a compound global to a simple type (`(1 2 3)` → `42`) is illegal without explicit clearing.
 - Likewise, converting a simple global to a compound (`42 -> items`) raises a type error unless the implementation supports `clear name` semantics (future).
 
-This prevents half-written states where a global cell points to an invalid or deallocated region.
+This prevents half-written states where a global cell points to an invalid or deallocated area.
 
 ### 6.5 Compound Declarations vs. Assignments
 
@@ -640,10 +640,10 @@ Compatibility rules apply to the final `Store` operation to prevent mismatched e
 
 ### 6.7 Safety Guarantees
 
-1. **Region enforcement:** All compound payloads reachable from globals must reside in the global heap window.
+1. **Boundary enforcement:** All compound payloads reachable from globals must reside in the global area.
 2. **Lifetime stability:** Once written, the compound exists for the entire VM session unless explicitly destroyed.
-3. **Isolation:** No compound in the global heap may reference data- or return-stack memory through embedded refs.
-4. **Deterministic traversal:** All compounds in heap space obey the same header-and-span invariant as stack lists, ensuring predictable iteration and printing.
+3. **Isolation:** No compound in the global area may reference data- or return-stack memory through embedded refs.
+4. **Deterministic traversal:** All compounds in the global area obey the same header-and-span invariant as stack lists, ensuring predictable iteration and printing.
 
 These rules make compound globals as safe and composable as their stack-resident equivalents while preserving lifetime correctness.
 
@@ -654,7 +654,7 @@ These rules make compound globals as safe and composable as their stack-resident
 Global variables inherit the **same write discipline** as locals:
 
 - **Sources** (the values you assign _from_) are liberal. They may be simple values, references, or compounds. The VM will dereference and materialize them as needed before writing.
-- **Destinations** (the globals you assign _to_) are strict. They must always be `Tag.REF` addresses that point inside the global heap window. Destinations are never materialized.
+- **Destinations** (the globals you assign _to_) are strict. They must always be `Tag.REF` addresses that point inside the global area. Destinations are never materialized.
 
 This dual rule avoids ambiguous writes: a `Store` always knows the address it’s mutating, and a `Load` always returns a full value or compound copy.
 
@@ -667,13 +667,13 @@ This dual rule avoids ambiguous writes: a `Store` always knows the address it’
 | Inside function | `"Global declarations only allowed at top level"` | Prevents frame-bound lifetime confusion. |
 | Invalid identifier | `"Expected variable name after global"` | Parser check for legal word tokens. |
 | Redeclaration | `"Global <name> already defined"` | Duplicate entry in dictionary. |
-| Exceeded 64K window | `"Global variable limit exceeded (64K)"` | Offset overflow beyond 16-bit capacity. |
+| Exceeded 64K area | `"Global variable limit exceeded (64K)"` | Offset overflow beyond 16-bit capacity. |
 
 **Runtime Guard:**
 
-| Condition         | Error Message                      |
-| ----------------- | ---------------------------------- |
-| Bad region in REF | `"REF points outside global heap"` |
+| Condition          | Error Message                      |
+| ------------------ | ---------------------------------- |
+| Bad address in REF | `"REF points outside global area"` |
 
 These checks ensure deterministic allocation and valid addressing.
 
@@ -685,7 +685,7 @@ If either fails, the VM throws a fatal runtime error and leaves the destination 
 | Condition                        | Message                                                           | Handling                            |
 | -------------------------------- | ----------------------------------------------------------------- | ----------------------------------- |
 | Destination not REF              | `"store expects REF address"`                                     | Operand type error; aborts write.   |
-| REF outside global heap          | `"Invalid global address"`                                        | Region check failure.               |
+| REF outside global area          | `"Invalid global address"`                                        | Boundary check failure.             |
 | Type mismatch (simple↔compound) | `"Cannot assign simple to compound or compound to simple"`        | Structural compatibility violation. |
 | Incompatible compound shapes     | `"Incompatible compound assignment: slot count or type mismatch"` | Rejected before copy.               |
 
@@ -697,9 +697,9 @@ All compound writes are atomic at the level of the header: either the new payloa
 | - | -- | |
 | Undefined global name | `"Undefined global: <name>"` | No dictionary entry found. |
 | Undefined word (general) | `"Undefined word: <name>"` | Standard parser error for unknown symbols. |
-| REF points to non-global region | `"<name> is not a global variable"` | Payload lies outside global window. |
+| REF points outside global area | `"<name> is not a global variable"` | Payload lies outside global area. |
 
-Runtime lookup performs a region check before emitting a `GlobalRef` operand; failure means the symbol is mis-tagged or corrupted.
+Runtime lookup performs a boundary check before emitting a `GlobalRef` operand; failure means the symbol is mis-tagged or corrupted.
 
 ### 7.5 Bracket-Path and Selection Errors
 
@@ -726,7 +726,7 @@ Globals themselves do not own cleanup semantics; they persist even after an erro
 - No silent type coercion.
 - Clear textual diagnostics for each category (declaration, assignment, access).
 
-Together, these rules keep the global region safe, predictable, and resilient under Tacit’s unified memory model.
+Together, these rules keep the global area safe, predictable, and resilient under Tacit's unified memory model.
 
 ## 8. Performance Considerations
 
@@ -751,17 +751,17 @@ If large numbers of globals cause compile-time slowdown, optimizations like pref
 
 ### 8.3 Memory Locality and Contiguity
 
-Globals are laid out contiguously in the **global heap window**, giving them excellent spatial locality.
+Globals are laid out contiguously in the **global area**, giving them excellent spatial locality.
 Sequential reads or writes to nearby globals tend to hit the same cache lines.
 
-When global compounds (lists, maplists) are copied into the heap, their payloads are also contiguous, preserving cache-friendly traversal for iteration, sorting, or printing operations.
+When global compounds (lists, maplists) are copied into the global area, their payloads are also contiguous, preserving cache-friendly traversal for iteration, sorting, or printing operations.
 
 ### 8.4 Allocation and Fragmentation
 
 Global allocation is monotonic:
 
 - Each new declaration increments `GP` by one cell.
-- Compounds are copied contiguously above that region.
+- Compounds are copied contiguously within the global area.
 - No free-list or GC overhead occurs during normal execution.
 
 Fragmentation is negligible since globals are fixed-size (one cell) and compounds are appended once, not resized.
@@ -803,7 +803,7 @@ Globals therefore add minimal runtime overhead while providing stable, persisten
 
 ## 9. Summary
 
-Global variables form the last pillar of Tacit’s memory model. They unify the constant and persistent data domains with the same low-level semantics that govern locals, lists, and capsules. Each global is simply a cell in the global heap window—addressed by an absolute index, referenced through a `Tag.REF`, and managed through the same three primitives: `Load`, `Fetch`, and `Store`. Nothing about their operation introduces new rules; the entire mechanism extends naturally from the invariants already established in `core-invariants.md` and `variables-and-refs.md`.
+Global variables form the last pillar of Tacit's memory model. They unify the constant and persistent data domains with the same low-level semantics that govern locals, lists, and capsules. Each global is simply a cell in the global area—addressed by an absolute index, referenced through a `Tag.REF`, and managed through the same three primitives: `Load`, `Fetch`, and `Store`. Nothing about their operation introduces new rules; the entire mechanism extends naturally from the invariants already established in `core-invariants.md` and `variables-and-refs.md`.
 
 At the language surface, `value global name` provides a literal mirror of `value var name`. The only distinction is lifetime. Locals expire with their frame; globals survive until the VM halts. This simple shift in allocation base—`BP` for locals, `GLOBAL_BASE_CELLS` for globals—lets the compiler treat both uniformly. Each becomes an addressable slot inside the unified arena, differing only in which boundary check the VM performs.
 
@@ -812,7 +812,7 @@ Conceptually, this is a very narrow feature: there is no notion of package state
 1. **Value-by-default reads.** Everything dereferences itself until it becomes a value, ensuring predictable load behaviour across types.
 2. **Strict destinations.** All writes require explicit addresses and never materialize their targets.
 3. **Compound compatibility.** Structural updates happen in place only when shapes and types match.
-4. **Deterministic lifetime.** No heap allocation outlives the region that owns it unless explicitly copied to the global heap.
+4. **Deterministic lifetime.** No stack allocation outlives its frame unless explicitly copied to the global area.
 
 These guarantees mean that the global heap can be reasoned about just like a permanent frame: one contiguous block whose addresses never change. Programs can therefore rely on globals for constants, shared configurations, and long-lived data structures without risk of aliasing or corruption when stack frames unwind.
 
@@ -826,6 +826,6 @@ This design also reinforces Tacit’s broader philosophy:
 
 The absence of special behaviour is the point. Globals behave exactly as locals would if they never went out of scope. They share the same instructions, the same error model, and the same constraints. That symmetry keeps Tacit’s semantics small, testable, and portable across implementations.
 
-From a systems view, globals are the connective tissue between ephemeral computation and stable program state. They anchor long-lived data, hold configuration constants, and provide the shared context necessary for higher-level abstractions such as module loaders or persistent capsules. Yet their implementation remains mechanical: one register, one region, one tag.
+From a systems view, globals are the connective tissue between ephemeral computation and stable program state. They anchor long-lived data, hold configuration constants, and provide the shared context necessary for higher-level abstractions such as module loaders or persistent capsules. Yet their implementation remains mechanical: one register, one area, one tag.
 
 In summary, Tacit’s global variables are not a new subsystem but a disciplined extension of the existing memory model. They achieve persistence without introducing mutability hazards, and they enable module-level reasoning without polluting lexical scope. The result is a language where permanence is a spatial decision, not a semantic exception—another expression of Tacit’s guiding principle that _everything is data, and data is always explicit_.

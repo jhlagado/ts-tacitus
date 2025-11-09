@@ -15,7 +15,7 @@ import {
 import { fetchOp } from '../../../ops/lists/query-ops';
 import { isRef, getRefRegion } from '../../../core/refs';
 import { peek } from '../../../core/vm';
-// legacy segment id 0 denotes stack region in decodeRef classification
+// legacy segment id 0 denotes stack area in decodeRef classification
 
 describe('selectOp - Path-based address access', () => {
   let vm: VM;
