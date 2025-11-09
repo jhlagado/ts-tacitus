@@ -29,7 +29,7 @@ describe('REF utilities', () => {
     vm = createVM();
   });
 
-  test('createRef encodes absolute cell indices and region classification', () => {
+  test('createRef encodes absolute cell indices and area classification', () => {
     const entries = [
       { region: 'global' as const, absIndex: GLOBAL_BASE / CELL_SIZE + 3 },
       { region: 'stack' as const, absIndex: STACK_BASE / CELL_SIZE + 5 },
@@ -51,7 +51,7 @@ describe('REF utilities', () => {
     expect(() => createRef(-1)).toThrow('absolute cell index');
   });
 
-  // No unsupported segments in absolute model; region classification covers windows
+  // No unsupported segments in absolute model; area classification covers the three areas
 
   test('getAbsoluteCellIndexFromRef enforces arena bounds', () => {
     const invalidAbsolute = TOTAL_DATA_BYTES / CELL_SIZE + 5;
@@ -63,7 +63,7 @@ describe('REF utilities', () => {
 
   // Removed: segment-relative creation is deprecated
 
-  test('createGlobalRef produces REF in global region', () => {
+  test('createGlobalRef produces REF in global area', () => {
     const ref = createGlobalRef(12);
     const info = decodeRef(ref);
     expect(getRefRegion(ref)).toBe('global');

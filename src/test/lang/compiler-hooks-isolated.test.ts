@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { createVM } from '../../core/vm';
 import type { ActiveDefinition } from '../../lang/state';
 
