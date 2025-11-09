@@ -64,12 +64,66 @@ export type VM = {
 };
 
 /**
+ * Cached VM instance for test use (only used when useCache=true).
+ */
+let cachedTestVM: VM | null = null;
+let builtinSnapshot: { head: number; gp: number } | null = null;
+
+/**
  * Creates and returns a new initialized VM instance as a plain object.
  * This is the standard way to create a VM.
  *
+ * @param useCache - If true (default), reuses a cached VM instance with registers reset (tests only). Set to false to disable caching.
  * @returns A new VM instance with all fields initialized
  */
-export function createVM(): VM {
+export function createVM(useCache = true): VM {
+  if (useCache) {
+    // Test mode: reuse cached VM with registers reset
+    if (cachedTestVM === null || builtinSnapshot === null) {
+      // First call: create VM normally, then snapshot state after builtins
+      const memory = new Memory();
+      const digest = new Digest(memory);
+      const vm: VM = {
+        memory,
+        IP: 0,
+        running: true,
+        sp: STACK_BASE_CELLS,
+        rsp: RSTACK_BASE_CELLS,
+        bp: RSTACK_BASE_CELLS,
+        gp: 0,
+        digest,
+        debug: false,
+        listDepth: 0,
+        localCount: 0,
+        head: 0,
+        compiler: null as unknown as Compiler,
+      };
+      vm.compiler = new Compiler(vm);
+      registerBuiltins(vm);
+      // Snapshot state AFTER builtins are registered
+      cachedTestVM = vm;
+      builtinSnapshot = {
+        head: vm.head, // Already set correctly by define() during registerBuiltins()
+        gp: vm.gp,
+      };
+    } else {
+      // Reset registers to initial state, restore dictionary to builtin snapshot
+      cachedTestVM.IP = 0;
+      cachedTestVM.running = true;
+      cachedTestVM.sp = STACK_BASE_CELLS;
+      cachedTestVM.rsp = RSTACK_BASE_CELLS;
+      cachedTestVM.bp = RSTACK_BASE_CELLS;
+      cachedTestVM.debug = false;
+      cachedTestVM.listDepth = 0;
+      cachedTestVM.localCount = 0;
+      cachedTestVM.gp = builtinSnapshot.gp;
+      cachedTestVM.head = builtinSnapshot.head;
+      cachedTestVM.compiler = new Compiler(cachedTestVM);
+    }
+    return cachedTestVM;
+  }
+
+  // Normal mode: create fresh VM (no caching)
   const memory = new Memory();
   const digest = new Digest(memory);
   const vm: VM = {
