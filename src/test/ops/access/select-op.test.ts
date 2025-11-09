@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
-import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
 import { getTag, NIL, Tag } from '../../../core/tagged';
 import {
   createTargetRef,
@@ -83,7 +83,7 @@ describe('selectOp - Path-based address access', () => {
 
       expect(success).toBe(true);
       // Should have: target path result-ref
-      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(7); // 4 for target + 2 for path + 1 for result-ref
+      expect(vm.sp - STACK_BASE_CELLS).toBe(7); // 4 for target + 2 for path + 1 for result-ref
       const resultRef = peek(vm);
       expect(isRef(resultRef)).toBe(true);
     });
@@ -124,7 +124,7 @@ describe('selectOp - Path-based address access', () => {
       const success = processPathStep(vm, 99);
 
       expect(success).toBe(false);
-      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5);
+      expect(vm.sp - STACK_BASE_CELLS).toBe(5);
       const result = peek(vm);
       expect(result).toBe(NIL);
     });
@@ -139,7 +139,7 @@ describe('selectOp - Path-based address access', () => {
       traverseMultiPath(vm);
 
       // Should have: target final-ref
-      expect(vm.sp - STACK_BASE / CELL_SIZE).toBe(5); // 4 for target + 1 for final-ref
+      expect(vm.sp - STACK_BASE_CELLS).toBe(5); // 4 for target + 1 for final-ref
       const finalRef = peek(vm);
       expect(isRef(finalRef)).toBe(true);
     });

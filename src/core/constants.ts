@@ -16,7 +16,7 @@ export const CELL_SIZE = 4;
 export const MEMORY_SIZE = 65536;
 
 // Legacy per-window segment identifiers (SEG_STACK, SEG_RSTACK, SEG_GLOBAL) have been removed.
-// Use SEG_DATA with absolute byte addresses and window base constants (GLOBAL_BASE/STACK_BASE/RSTACK_BASE)
+// Use SEG_DATA with absolute byte addresses and area base constants (GLOBAL_BASE_BYTES/STACK_BASE_BYTES/RSTACK_BASE_BYTES)
 // for all memory I/O; classification-sensitive code should infer area by address range.
 
 // Unified data segment identifier (compat placeholder for Phase A). Not yet used broadly.
@@ -37,38 +37,38 @@ export const STRING_SIZE = 0x0800;
 export const CODE_SIZE = 0x2000;
 
 // Unified arena boundaries (byte offsets)
-export const GLOBAL_BASE = 0x0000;
-export const GLOBAL_TOP = GLOBAL_BASE + GLOBAL_SIZE;
+export const GLOBAL_BASE_BYTES = 0x0000;
+export const GLOBAL_TOP_BYTES = GLOBAL_BASE_BYTES + GLOBAL_SIZE;
 
-export const STACK_BASE = GLOBAL_TOP;
-export const STACK_TOP = STACK_BASE + STACK_SIZE;
+export const STACK_BASE_BYTES = GLOBAL_TOP_BYTES;
+export const STACK_TOP_BYTES = STACK_BASE_BYTES + STACK_SIZE;
 
-export const RSTACK_BASE = STACK_TOP;
-export const RSTACK_TOP = RSTACK_BASE + RSTACK_SIZE;
+export const RSTACK_BASE_BYTES = STACK_TOP_BYTES;
+export const RSTACK_TOP_BYTES = RSTACK_BASE_BYTES + RSTACK_SIZE;
 
-export const TOTAL_DATA_BYTES = RSTACK_TOP;
+export const TOTAL_DATA_BYTES = RSTACK_TOP_BYTES;
 
 // Unified data segment boundaries (aliasing the whole data arena)
-export const DATA_BASE = GLOBAL_BASE;
-export const DATA_TOP = TOTAL_DATA_BYTES;
+export const DATA_BASE_BYTES = GLOBAL_BASE_BYTES;
+export const DATA_TOP_BYTES = TOTAL_DATA_BYTES;
 
 // Derived cell-based constants (no behavior change)
 // Use these to keep arithmetic in cells and avoid repeated divisions by CELL_SIZE.
-export const GLOBAL_BASE_CELLS = GLOBAL_BASE / CELL_SIZE;
-export const GLOBAL_TOP_CELLS = GLOBAL_TOP / CELL_SIZE;
+export const GLOBAL_BASE_CELLS = GLOBAL_BASE_BYTES / CELL_SIZE;
+export const GLOBAL_TOP_CELLS = GLOBAL_TOP_BYTES / CELL_SIZE;
 
-export const STACK_BASE_CELLS = STACK_BASE / CELL_SIZE;
-export const STACK_TOP_CELLS = STACK_TOP / CELL_SIZE;
+export const STACK_BASE_CELLS = STACK_BASE_BYTES / CELL_SIZE;
+export const STACK_TOP_CELLS = STACK_TOP_BYTES / CELL_SIZE;
 
-export const RSTACK_BASE_CELLS = RSTACK_BASE / CELL_SIZE;
-export const RSTACK_TOP_CELLS = RSTACK_TOP / CELL_SIZE;
+export const RSTACK_BASE_CELLS = RSTACK_BASE_BYTES / CELL_SIZE;
+export const RSTACK_TOP_CELLS = RSTACK_TOP_BYTES / CELL_SIZE;
 
-export const DATA_BASE_CELLS = DATA_BASE / CELL_SIZE;
-export const DATA_TOP_CELLS = DATA_TOP / CELL_SIZE;
+export const DATA_BASE_CELLS = DATA_BASE_BYTES / CELL_SIZE;
+export const DATA_TOP_CELLS = DATA_TOP_BYTES / CELL_SIZE;
 
-export const GLOBAL_SIZE_CELLS = (GLOBAL_TOP - GLOBAL_BASE) / CELL_SIZE;
-export const STACK_SIZE_CELLS = (STACK_TOP - STACK_BASE) / CELL_SIZE;
-export const RSTACK_SIZE_CELLS = (RSTACK_TOP - RSTACK_BASE) / CELL_SIZE;
+export const GLOBAL_SIZE_CELLS = (GLOBAL_TOP_BYTES - GLOBAL_BASE_BYTES) / CELL_SIZE;
+export const STACK_SIZE_CELLS = (STACK_TOP_BYTES - STACK_BASE_BYTES) / CELL_SIZE;
+export const RSTACK_SIZE_CELLS = (RSTACK_TOP_BYTES - RSTACK_BASE_BYTES) / CELL_SIZE;
 
 export const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
 

@@ -10,8 +10,10 @@ import {
   fromTaggedValue,
   CELL_SIZE,
   SEG_DATA,
-  STACK_BASE,
-  GLOBAL_BASE,
+  STACK_BASE_BYTES,
+  STACK_BASE_CELLS,
+  GLOBAL_BASE_BYTES,
+  GLOBAL_BASE_CELLS,
 } from '../../core';
 import {
   getListLength,
@@ -170,9 +172,9 @@ describe('LIST Core Utilities', () => {
       const vm = createVM();
       createList(vm, []);
 
-      const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const initialSP = vm.sp - STACK_BASE_CELLS;
       dropList(vm);
-      const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const finalSP = vm.sp - STACK_BASE_CELLS;
 
       expect(initialSP - finalSP).toBe(1);
       expect(getStackDepth(vm)).toBe(0);
@@ -183,9 +185,9 @@ describe('LIST Core Utilities', () => {
       const value = 42;
       createList(vm, [value]);
 
-      const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const initialSP = vm.sp - STACK_BASE_CELLS;
       dropList(vm);
-      const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const finalSP = vm.sp - STACK_BASE_CELLS;
 
       expect(initialSP - finalSP).toBe(2);
       expect(getStackDepth(vm)).toBe(0);
@@ -196,9 +198,9 @@ describe('LIST Core Utilities', () => {
       const values = [1, 2, 3];
       createList(vm, values);
 
-      const initialSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const initialSP = vm.sp - STACK_BASE_CELLS;
       dropList(vm);
-      const finalSP = vm.sp - STACK_BASE / CELL_SIZE;
+      const finalSP = vm.sp - STACK_BASE_CELLS;
 
       expect(initialSP - finalSP).toBe(4);
       expect(getStackDepth(vm)).toBe(0);
@@ -373,7 +375,7 @@ describe('LIST Core Utilities', () => {
     it('getListElemAddr returns -1 for negative index', () => {
       const vm = createVM();
       const header = toTaggedValue(1, Tag.LIST);
-      const headerAbsAddr = STACK_BASE + 100;
+      const headerAbsAddr = STACK_BASE_BYTES + 100;
       expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
     });
 
@@ -386,22 +388,22 @@ describe('LIST Core Utilities', () => {
       const e2 = toTaggedValue(22, Tag.NUMBER);
       const e3 = toTaggedValue(33, Tag.NUMBER);
 
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 3) * 4, e1);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 2) * 4, e2);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + (cellHeader - 1) * 4, e3);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE + headerAddr, header);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 3) * 4, e1);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 2) * 4, e2);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 1) * 4, e3);
+      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + headerAddr, header);
 
-      const headerAbsAddr = STACK_BASE + headerAddr;
-      expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE + headerAddr - 4);
-      expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE + headerAddr - 8);
-      expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE + headerAddr - 12);
+      const headerAbsAddr = STACK_BASE_BYTES + headerAddr;
+      expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE_BYTES + headerAddr - 4);
+      expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE_BYTES + headerAddr - 8);
+      expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(STACK_BASE_BYTES + headerAddr - 12);
     });
 
     it('getListBounds returns null for ref pointing to non-list', () => {
       const vm = createVM();
       const cellIndex = 10;
-      vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE + cellIndex * CELL_SIZE, 123.456);
-      const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
+      vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE, 123.456);
+      const absCellIndex = GLOBAL_BASE_CELLS + cellIndex;
       const ref = createRef(absCellIndex);
       expect(getListBounds(vm, ref)).toBeNull();
     });

@@ -13,7 +13,7 @@ import {
   getByteAddressFromRef,
   isRef,
   SEG_DATA,
-  RSTACK_BASE,
+  RSTACK_BASE_BYTES,
   CELL_SIZE,
   RSTACK_BASE_CELLS,
   InvalidOpcodeError,
@@ -296,13 +296,13 @@ export function initVarOp(vm: VM): void {
   if (isList(value)) {
     const headerAddr = rpushList(vm);
     const headerCellIndex = headerAddr / CELL_SIZE;
-    const absHeaderCellIndex = RSTACK_BASE / CELL_SIZE + headerCellIndex;
+    const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
     const localRef = createRef(absHeaderCellIndex);
 
-    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, localRef);
+    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr, localRef);
   } else {
     const simpleValue = pop(vm);
-    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE + slotAddr, simpleValue);
+    vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr, simpleValue);
   }
 }
 
@@ -339,7 +339,7 @@ export function dumpFrameOp(vm: VM): void {
 
     for (let i = 0; i < localCount; i++) {
       const slotAddr = (vm.bp - RSTACK_BASE_CELLS + i) * CELL_SIZE;
-      const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE + slotAddr);
+      const slotValue = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + slotAddr);
       const tag = getTag(slotValue);
       const { value } = fromTaggedValue(slotValue);
       // eslint-disable-next-line no-console

@@ -4,7 +4,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { Tag, toTaggedValue } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
-import { RSTACK_BASE, RSTACK_TOP, STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE_CELLS, RSTACK_TOP_CELLS, STACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
 import { rpush, push, rpop, getStackData, pop } from '../../../core/vm';
 
 import {
@@ -35,7 +35,7 @@ describe('Built-in Words', () => {
       const originalBP = vm.bp; // capture current (absolute cells)
       rpush(vm, testAddress);
       // Save BP as relative cells on the return stack
-      rpush(vm, originalBP - RSTACK_BASE / CELL_SIZE);
+      rpush(vm, originalBP - RSTACK_BASE_CELLS);
       vm.bp = vm.rsp;
       exitOp(vm);
       expect(vm.IP).toBe(testAddress);
@@ -51,7 +51,7 @@ describe('Built-in Words', () => {
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
       // Saved BP is relative cells
-      expect(savedBP).toBe(originalBP - RSTACK_BASE / CELL_SIZE);
+      expect(savedBP).toBe(originalBP - RSTACK_BASE_CELLS);
       const returnAddr = rpop(vm);
       expect(returnAddr).toBe(originalIP);
     });
@@ -70,7 +70,7 @@ describe('Built-in Words', () => {
       expect(vm.IP).toBe(toUnsigned16(testAddress));
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
-      expect(savedBP).toBe(originalBP - RSTACK_BASE / CELL_SIZE);
+      expect(savedBP).toBe(originalBP - RSTACK_BASE_CELLS);
       const returnAddr = rpop(vm);
       expect(returnAddr).toBe(originalIP + 2);
     });
@@ -132,7 +132,7 @@ describe('Built-in Words', () => {
       groupLeftOp(vm);
       const savedSP = rpop(vm);
       // groupLeftOp stores relative cells (depth)
-      expect(savedSP).toBe(initialSP - STACK_BASE / CELL_SIZE);
+      expect(savedSP).toBe(initialSP - STACK_BASE_CELLS);
     });
     test('groupRightOp should compute the number of stack cells pushed since group left', () => {
       groupLeftOp(vm);
@@ -164,7 +164,7 @@ describe('Built-in Words', () => {
     });
     test('should handle return stack overflow', () => {
       // Fill return stack to leave exactly one free cell so evalOp's two rpushes overflow
-      const available = RSTACK_TOP / CELL_SIZE - vm.rsp; // remaining capacity in cells (public constants)
+      const available = RSTACK_TOP_CELLS - vm.rsp; // remaining capacity in cells (public constants)
       for (let i = 0; i < available - 1; i++) {
         rpush(vm, 0);
       }

@@ -7,17 +7,18 @@ import type { VM } from './vm';
 import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
 import {
   SEG_DATA,
-  STACK_BASE,
-  RSTACK_BASE,
+  STACK_BASE_BYTES,
+  RSTACK_BASE_BYTES,
   RSTACK_BASE_CELLS,
   RSTACK_TOP_CELLS,
-  GLOBAL_BASE,
+  GLOBAL_BASE_BYTES,
+  GLOBAL_BASE_CELLS,
   GLOBAL_SIZE,
   TOTAL_DATA_BYTES,
+  TOTAL_DATA_CELLS,
   CELL_SIZE,
 } from './constants';
 
-const TOTAL_DATA_CELLS = TOTAL_DATA_BYTES / CELL_SIZE;
 
 /**
  * Creates a REF tagged value for an absolute cell index.
@@ -105,10 +106,10 @@ export function isRef(tval: number): boolean {
  */
 export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
   const absByte = getByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+  if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
     return 'global';
   }
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+  if (absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES) {
     return 'stack';
   }
   return 'rstack';
@@ -121,7 +122,7 @@ export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
  */
 export function isGlobalRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);
-  return absByte >= GLOBAL_BASE && absByte < STACK_BASE;
+  return absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES;
 }
 
 /**
@@ -131,7 +132,7 @@ export function isGlobalRef(ref: number): boolean {
  */
 export function isStackRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);
-  return absByte >= STACK_BASE && absByte < RSTACK_BASE;
+  return absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES;
 }
 
 /**
@@ -141,7 +142,7 @@ export function isStackRef(ref: number): boolean {
  */
 export function isRStackRef(ref: number): boolean {
   const absByte = getByteAddressFromRef(ref);
-  return absByte >= RSTACK_BASE;
+  return absByte >= RSTACK_BASE_BYTES;
 }
 
 /**
@@ -152,10 +153,10 @@ export function isRStackRef(ref: number): boolean {
  */
 export function getRefSegment(ref: number): number {
   const absByte = getByteAddressFromRef(ref);
-  if (absByte >= GLOBAL_BASE && absByte < STACK_BASE) {
+  if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
     return 0; // global
   }
-  if (absByte >= STACK_BASE && absByte < RSTACK_BASE) {
+  if (absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES) {
     return 1; // stack
   }
   return 2; // rstack
@@ -191,7 +192,7 @@ export function createGlobalRef(cellIndex: number): number {
   if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE / CELL_SIZE) {
     throw new RangeError('Global reference outside global segment bounds');
   }
-  const absCellIndex = GLOBAL_BASE / CELL_SIZE + cellIndex;
+  const absCellIndex = GLOBAL_BASE_CELLS + cellIndex;
   return createRef(absCellIndex);
 }
 

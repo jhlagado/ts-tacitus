@@ -1,4 +1,4 @@
-import { Memory, SEG_DATA, STACK_BASE } from '../../core';
+import { Memory, SEG_DATA, STACK_BASE_BYTES, STACK_BASE_CELLS } from '../../core';
 import {
   cells,
   cellIndex,
@@ -37,14 +37,14 @@ describe('cell unit helpers', () => {
   });
 
   test('loadCell and storeCell operate on cell granularity', () => {
-    const baseCell = STACK_BASE / 4;
+    const baseCell = STACK_BASE_CELLS;
     const idx = cellIndex(baseCell + 2);
     storeCell(mem, SEG_DATA, idx, 42.5);
     expect(loadCell(mem, SEG_DATA, idx)).toBeCloseTo(42.5);
   });
 
   test('copyCells handles no-ops and overlapping ranges', () => {
-    const baseCell = STACK_BASE / 4;
+    const baseCell = STACK_BASE_CELLS;
     for (let i = 0; i < 5; i++) {
       mem.writeFloat32(SEG_DATA, (baseCell + i) * 4, i + 1);
     }
@@ -69,7 +69,7 @@ describe('cell unit helpers', () => {
   });
 
   test('fillCells writes repeated values', () => {
-    const baseCell = STACK_BASE / 4;
+    const baseCell = STACK_BASE_CELLS;
     fillCells(mem, SEG_DATA, cellIndex(baseCell + 1), cells(3), 9.75);
     expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBeCloseTo(9.75);
     expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBeCloseTo(9.75);

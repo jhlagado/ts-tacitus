@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
+import { STACK_BASE_CELLS, RSTACK_BASE_CELLS, CELL_SIZE } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { push, rpush } from '../../core/vm';
 
@@ -11,8 +11,8 @@ describe('VM absolute registers (Phase B shims)', () => {
   });
 
   test('sp/rsp/bp/gp reflect absolute cell indices after reset', () => {
-    const stackBaseCells = STACK_BASE / CELL_SIZE;
-    const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+    const stackBaseCells = STACK_BASE_CELLS;
+    const rstackBaseCells = RSTACK_BASE_CELLS;
 
     expect(vm.sp).toBe(stackBaseCells);
     expect(vm.rsp).toBe(rstackBaseCells);
@@ -22,8 +22,8 @@ describe('VM absolute registers (Phase B shims)', () => {
   });
 
   test('push/rpush update sp/rsp fields', () => {
-    const stackBaseCells = STACK_BASE / CELL_SIZE;
-    const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+    const stackBaseCells = STACK_BASE_CELLS;
+    const rstackBaseCells = RSTACK_BASE_CELLS;
 
     push(vm, 1);
     expect(vm.sp).toBe(stackBaseCells + 1);

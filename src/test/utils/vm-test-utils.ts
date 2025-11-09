@@ -15,8 +15,6 @@ import {
   fromTaggedValue,
   SEG_DATA,
   CELL_SIZE,
-  STACK_BASE,
-  RSTACK_BASE,
   STACK_BASE_CELLS,
   RSTACK_BASE_CELLS,
   createVM,
@@ -58,8 +56,8 @@ export type VMStateSnapshot = {
 export function captureVMState(vm: VM): VMStateSnapshot {
   const stack = getStackData(vm);
   const returnStack: number[] = [];
-  // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE.
-  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE_BYTES.
+  const rstackBaseCells = RSTACK_BASE_CELLS;
   for (let i = rstackBaseCells; i < vm.rsp; i++) {
     returnStack.push(vm.memory.readFloat32(SEG_DATA, i * CELL_SIZE));
   }
@@ -385,8 +383,8 @@ export function verifyStackDepth(vm: VM, expectedDepth: number): void {
  */
 export function verifyVMState(vm: VM): void {
   // Absolute pointers must not go below their respective bases
-  const stackBaseCells = STACK_BASE / CELL_SIZE;
-  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  const stackBaseCells = STACK_BASE_CELLS;
+  const rstackBaseCells = RSTACK_BASE_CELLS;
   expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
   expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
@@ -399,22 +397,22 @@ export function verifyVMState(vm: VM): void {
  * Compute data stack depth (cells) from cell-index registers
  */
 export function dataDepth(vm: VM): number {
-  return vm.sp - STACK_BASE / CELL_SIZE;
+  return vm.sp - STACK_BASE_CELLS;
 }
 
 /**
  * Compute return stack depth (cells) from cell-index registers
  */
 export function returnDepth(vm: VM): number {
-  return vm.rsp - RSTACK_BASE / CELL_SIZE;
+  return vm.rsp - RSTACK_BASE_CELLS;
 }
 
 /**
  * Assert that stack pointers have not underflowed their bases
  */
 export function assertNoUnderflow(vm: VM): void {
-  const stackBaseCells = STACK_BASE / CELL_SIZE;
-  const rstackBaseCells = RSTACK_BASE / CELL_SIZE;
+  const stackBaseCells = STACK_BASE_CELLS;
+  const rstackBaseCells = RSTACK_BASE_CELLS;
   expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
   expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
