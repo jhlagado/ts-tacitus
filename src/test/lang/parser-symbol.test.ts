@@ -73,23 +73,10 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
   });
 
   describe('@symbol without eval (tagged values on stack)', () => {
-    it('should push Tag.BUILTIN for built-ins', () => {
-      executeTacitCode(vm, '@add');
-      const stack = getStackData(vm);
-      expect(stack.length).toBe(1);
-
-      const { tag } = fromTaggedValue(stack[0]);
-      expect(tag).toBe(Tag.BUILTIN);
-    });
-
-    it('should push Tag.CODE for colon definitions', () => {
-      executeTacitCode(vm, ': test 42 ; @test');
-      const stack = getStackData(vm);
-      expect(stack.length).toBe(1);
-
-      const { tag } = fromTaggedValue(stack[0]);
-      expect(tag).toBe(Tag.CODE);
-    });
+    // Moved to parser-symbol-builtin.test.ts
+    // it('should push Tag.BUILTIN for built-ins', () => { ... });
+    // Moved to parser-symbol-code.test.ts
+    // it('should push Tag.CODE for colon definitions', () => { ... });
   });
 
   describe('@symbol metaprogramming scenarios', () => {

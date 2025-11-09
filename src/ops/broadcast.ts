@@ -300,7 +300,8 @@ throw new Error('broadcast type mismatch');
   dupOp(vm);
 
   // Transform the top copy in place using direct memory writes
-  const headerCell = vm.sp - depth(vm);
+  // vm.sp points to one past TOS, so header is at vm.sp - 1
+  const headerCell = vm.sp - 1;
   const headerVal = vm.memory.readCell(headerCell);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {

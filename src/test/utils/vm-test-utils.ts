@@ -59,7 +59,7 @@ export function captureVMState(vm: VM): VMStateSnapshot {
   // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE_BYTES.
   const rstackBaseCells = RSTACK_BASE_CELLS;
   for (let i = rstackBaseCells; i < vm.rsp; i++) {
-    returnStack.push(vm.memory.readFloat32(SEG_DATA, i * CELL_SIZE));
+    returnStack.push(vm.memory.readCell(i));
   }
   return {
     stack,
