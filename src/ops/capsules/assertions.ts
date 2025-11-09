@@ -31,7 +31,7 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
 
   const slotCount = getListLength(info.header);
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - CELL_SIZE);
+  const codeCell = vm.memory.readCell((headerAbsAddr - CELL_SIZE) / CELL_SIZE);
 
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {

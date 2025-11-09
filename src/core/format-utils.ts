@@ -136,7 +136,7 @@ break;
  */
 function formatListFromMemory(vm: VM, address: number): string {
   // Phase C: unified data access via SEG_DATA and absolute byte address
-  const header = vm.memory.readFloat32(SEG_DATA, address);
+  const header = vm.memory.readCell(address / CELL_SIZE);
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
@@ -147,7 +147,7 @@ function formatListFromMemory(vm: VM, address: number): string {
 
   for (let i = 0; i < slotCount; i++) {
     const elementAddr = address - (slotCount - i) * CELL_SIZE;
-    const element = vm.memory.readFloat32(SEG_DATA, elementAddr);
+    const element = vm.memory.readCell(elementAddr / CELL_SIZE);
       push(vm, element);
   }
 

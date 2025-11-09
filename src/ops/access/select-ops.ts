@@ -21,8 +21,7 @@ export function createTargetRef(vm: VM): boolean {
   // findElement examined the cell at: vm.SP - pathSize - 1
   // Use absolute addressing: vm.sp is absolute cell index (one past TOS)
   const targetCell = vm.sp - pathSize - 1;
-  const targetByteAddr = targetCell * CELL_SIZE;
-  const target = vm.memory.readFloat32(SEG_DATA, targetByteAddr);
+  const target = vm.memory.readCell(targetCell);
 
   if (isList(target)) {
     // Create absolute REF to the list header cell
@@ -81,12 +80,12 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 export function traverseMultiPath(vm: VM): void {
   // Read path header using absolute cell-based indexing
   const pathHeaderCell = vm.sp - 2;
-  const pathHeader = vm.memory.readFloat32(SEG_DATA, pathHeaderCell * CELL_SIZE);
+  const pathHeader = vm.memory.readCell(pathHeaderCell);
   const pathLength = getListLength(pathHeader);
   let pathElemCell = vm.sp - 3;
 
   for (let i = 0; i < pathLength; i++) {
-    const pathElement = vm.memory.readFloat32(SEG_DATA, pathElemCell * CELL_SIZE);
+    const pathElement = vm.memory.readCell(pathElemCell);
     pathElemCell -= 1;
 
     if (!processPathStep(vm, pathElement)) {
