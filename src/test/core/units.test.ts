@@ -46,33 +46,33 @@ describe('cell unit helpers', () => {
   test('copyCells handles no-ops and overlapping ranges', () => {
     const baseCell = STACK_BASE_CELLS;
     for (let i = 0; i < 5; i++) {
-      mem.writeFloat32(SEG_DATA, (baseCell + i) * 4, i + 1);
+      mem.writeCell(baseCell + i, i + 1);
     }
 
     copyCells(mem, SEG_DATA, cellIndex(baseCell + 1), cellIndex(baseCell + 1), cells(0));
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBe(2);
+    expect(mem.readCell(baseCell + 1)).toBe(2);
 
     copyCells(mem, SEG_DATA, cellIndex(baseCell + 2), cellIndex(baseCell + 2), cells(2));
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBe(3);
+    expect(mem.readCell(baseCell + 2)).toBe(3);
 
     copyCells(mem, SEG_DATA, cellIndex(baseCell + 4), cellIndex(baseCell + 0), cells(1));
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 4) * 4)).toBe(1);
+    expect(mem.readCell(baseCell + 4)).toBe(1);
 
     for (let i = 0; i < 5; i++) {
-      mem.writeFloat32(SEG_DATA, (baseCell + i) * 4, i + 1);
+      mem.writeCell(baseCell + i, i + 1);
     }
 
     copyCells(mem, SEG_DATA, cellIndex(baseCell + 0), cellIndex(baseCell + 2), cells(3));
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 0) * 4)).toBe(3);
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBe(4);
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBe(5);
+    expect(mem.readCell(baseCell + 0)).toBe(3);
+    expect(mem.readCell(baseCell + 1)).toBe(4);
+    expect(mem.readCell(baseCell + 2)).toBe(5);
   });
 
   test('fillCells writes repeated values', () => {
     const baseCell = STACK_BASE_CELLS;
     fillCells(mem, SEG_DATA, cellIndex(baseCell + 1), cells(3), 9.75);
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 1) * 4)).toBeCloseTo(9.75);
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 2) * 4)).toBeCloseTo(9.75);
-    expect(mem.readFloat32(SEG_DATA, (baseCell + 3) * 4)).toBeCloseTo(9.75);
+    expect(mem.readCell(baseCell + 1)).toBeCloseTo(9.75);
+    expect(mem.readCell(baseCell + 2)).toBeCloseTo(9.75);
+    expect(mem.readCell(baseCell + 3)).toBeCloseTo(9.75);
   });
 });

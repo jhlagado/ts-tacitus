@@ -102,7 +102,7 @@ describe('LIST Core Utilities', () => {
       const header = peek(vm);
       expect(getListLength(header)).toBe(1);
 
-      const payload = vm.memory.readFloat32(SEG_DATA, (vm.sp - 1) * CELL_SIZE);
+      const payload = vm.memory.readCell(vm.sp - 1);
       expect(isList(payload)).toBe(true);
       expect(getListLength(payload)).toBe(1);
     });
@@ -120,10 +120,10 @@ describe('LIST Core Utilities', () => {
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
-      const payload0 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 1) * CELL_SIZE);
-      const payload1 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 2) * CELL_SIZE);
-      const payload2 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 3) * CELL_SIZE);
-      const payload3 = vm.memory.readFloat32(SEG_DATA, (vm.sp - 4) * CELL_SIZE);
+      const payload0 = vm.memory.readCell(vm.sp - 1);
+      const payload1 = vm.memory.readCell(vm.sp - 2);
+      const payload2 = vm.memory.readCell(vm.sp - 3);
+      const payload3 = vm.memory.readCell(vm.sp - 4);
 
       expect(isList(payload0)).toBe(true);
       expect(payload1).toBe(val1);
@@ -388,10 +388,10 @@ describe('LIST Core Utilities', () => {
       const e2 = toTaggedValue(22, Tag.NUMBER);
       const e3 = toTaggedValue(33, Tag.NUMBER);
 
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 3) * 4, e1);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 2) * 4, e2);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + (cellHeader - 1) * 4, e3);
-      vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + headerAddr, header);
+      vm.memory.writeCell(cellHeader - 3, e1);
+      vm.memory.writeCell(cellHeader - 2, e2);
+      vm.memory.writeCell(cellHeader - 1, e3);
+      vm.memory.writeCell(headerAddr / CELL_SIZE, header);
 
       const headerAbsAddr = STACK_BASE_BYTES + headerAddr;
       expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE_BYTES + headerAddr - 4);
@@ -402,7 +402,7 @@ describe('LIST Core Utilities', () => {
     it('getListBounds returns null for ref pointing to non-list', () => {
       const vm = createVM();
       const cellIndex = 10;
-      vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE, 123.456);
+      vm.memory.writeCell(GLOBAL_BASE_CELLS + cellIndex, 123.456);
       const absCellIndex = GLOBAL_BASE_CELLS + cellIndex;
       const ref = createRef(absCellIndex);
       expect(getListBounds(vm, ref)).toBeNull();

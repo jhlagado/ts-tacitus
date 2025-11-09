@@ -5,7 +5,7 @@
 import type { VM } from './vm';
 import { SEG_DATA, CELL_SIZE, STACK_BASE_CELLS } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { isRef, getByteAddressFromRef } from './refs';
+import { isRef, getAbsoluteCellIndexFromRef } from './refs';
 import { getListLength } from './list';
 import { pop, push, getStackData } from './vm';
 
@@ -166,11 +166,10 @@ function formatListFromMemory(vm: VM, address: number): string {
  */
 export function formatValue(vm: VM, value: number): string {
   if (isRef(value)) {
-    const address = getByteAddressFromRef(value);
-    const segment = SEG_DATA; // unified data segment
-    const header = vm.memory.readFloat32(segment, address);
+    const cellIndex = getAbsoluteCellIndexFromRef(value);
+    const header = vm.memory.readCell(cellIndex);
     if (getTag(header) === Tag.LIST) {
-      return formatListFromMemory(vm, address);
+      return formatListFromMemory(vm, cellIndex * CELL_SIZE);
     }
     return formatAtomicValue(vm, header);
   }

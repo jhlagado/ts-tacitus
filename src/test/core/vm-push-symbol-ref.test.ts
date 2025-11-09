@@ -105,7 +105,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>
-        fromTaggedValue(vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + i * CELL_SIZE)),
+        fromTaggedValue(vm.memory.readCell(STACK_BASE_CELLS + i)),
       );
 
       expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });

@@ -3,7 +3,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { Tag, toTaggedValue, fromTaggedValue } from '../../../core';
 import { defineOp, lookupOp } from '../../../core/dictionary';
 import { getByteAddressFromRef, isRef } from '../../../core/refs';
-import { SEG_DATA } from '../../../core/constants';
+import { SEG_DATA, CELL_SIZE } from '../../../core/constants';
 import { push, pop } from '../../../core/vm';
 
 describe('dict define/lookup builtin (happy path)', () => {
@@ -34,7 +34,7 @@ describe('dict define/lookup builtin (happy path)', () => {
 
     // Dereference and verify stored payload
     const addr = getByteAddressFromRef(ref);
-    const stored = vm.memory.readFloat32(SEG_DATA, addr);
+    const stored = vm.memory.readCell(addr / CELL_SIZE);
     const info = fromTaggedValue(stored);
     expect(info.tag).toBe(Tag.BUILTIN);
     expect(info.value).toBe(opcode);

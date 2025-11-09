@@ -14,7 +14,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
     push(vm, 42);
     const depthAbs = vm.sp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
-    const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
+    const viaData = vm.memory.readCell(offsetBytes / CELL_SIZE);
     expect(viaData).toBe(42);
   });
 
@@ -22,7 +22,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
     rpush(vm, 7);
     const depthAbs = vm.rsp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
-    const viaData = vm.memory.readFloat32(SEG_DATA, offsetBytes);
+    const viaData = vm.memory.readCell(offsetBytes / CELL_SIZE);
     expect(viaData).toBe(7);
   });
 });

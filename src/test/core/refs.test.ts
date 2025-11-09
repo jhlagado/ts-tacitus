@@ -87,13 +87,13 @@ describe('REF utilities', () => {
 
   test('readRefValue operates via REF', () => {
     const ref = createRef(GLOBAL_BASE_CELLS + 10);
-    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + 10 * CELL_SIZE, 321.25);
+    vm.memory.writeCell(GLOBAL_BASE_CELLS + 10, 321.25);
     expect(readRefValue(vm, ref)).toBeCloseTo(321.25);
   });
 
   test('fetchOp materializes value via REF', () => {
     const cellIndex = 15;
-    vm.memory.writeFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE, 777.5);
+    vm.memory.writeCell(GLOBAL_BASE_CELLS + cellIndex, 777.5);
     const ref = createRef(GLOBAL_BASE_CELLS + cellIndex);
     push(vm, ref);
     fetchOp(vm);
@@ -106,9 +106,7 @@ describe('REF utilities', () => {
     push(vm, 123.456);
     push(vm, ref);
     storeOp(vm);
-    expect(vm.memory.readFloat32(SEG_DATA, GLOBAL_BASE_BYTES + cellIndex * CELL_SIZE)).toBeCloseTo(
-      123.456,
-    );
+    expect(vm.memory.readCell(GLOBAL_BASE_CELLS + cellIndex)).toBeCloseTo(123.456);
   });
 });
 

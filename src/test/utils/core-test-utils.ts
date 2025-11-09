@@ -49,11 +49,11 @@ return;
     const leftAddr = (startCell + i) * CELL_SIZE;
     const rightAddr = (endCell - i) * CELL_SIZE;
 
-    const leftValue = vm.memory.readFloat32(SEG_DATA, leftAddr);
-    const rightValue = vm.memory.readFloat32(SEG_DATA, rightAddr);
+    const leftValue = vm.memory.readCell(leftAddr / CELL_SIZE);
+    const rightValue = vm.memory.readCell(rightAddr / CELL_SIZE);
 
-    vm.memory.writeFloat32(SEG_DATA, leftAddr, rightValue);
-    vm.memory.writeFloat32(SEG_DATA, rightAddr, leftValue);
+    vm.memory.writeCell(leftAddr / CELL_SIZE, rightValue);
+    vm.memory.writeCell(rightAddr / CELL_SIZE, leftValue);
   }
 }
 

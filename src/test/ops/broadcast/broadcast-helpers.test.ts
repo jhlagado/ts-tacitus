@@ -38,7 +38,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[0]);
+      const header = fromTaggedValue(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
@@ -87,12 +87,21 @@ describe('broadcast helpers', () => {
     });
 
     test('scalar × list applies op across RHS payload', () => {
-      executeTacitCode(vm, '5 ( 1 2 3 )');
+      executeTacitCode(vm, '5 ( 1 2 3 )', true);
 
       binaryFlat(vm, 'add', (a, b) => a + b);
 
       const stack = getStackData(vm);
-      const headerIndex = stack.length - 1;
+      // Find the LIST header (should be at TOS)
+      let headerIndex = -1;
+      for (let i = stack.length - 1; i >= 0; i--) {
+        const { tag } = fromTaggedValue(stack[i]);
+        if (tag === Tag.LIST) {
+          headerIndex = i;
+          break;
+        }
+      }
+      expect(headerIndex).toBeGreaterThanOrEqual(0);
       const actual = extractListFromStack(stack, headerIndex);
       expect(actual.slice().reverse()).toEqual([6, 7, 8]);
     });
@@ -104,7 +113,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[0]);
+      const header = fromTaggedValue(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
@@ -127,7 +136,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[0]);
+      const header = fromTaggedValue(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
