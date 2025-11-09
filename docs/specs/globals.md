@@ -43,9 +43,10 @@
    - 5.2 [Read (Value-By-Default)](#52-read-value-by-default)
    - 5.3 [Address-Of (Strict Fetch)](#53-address-of-strict-fetch)
    - 5.4 [Assignment](#54-assignment)
-   - 5.5 [Bracket-Path Assignment](#55-bracket-path-assignment)
-   - 5.6 [Reading Compound Elements](#56-reading-compound-elements)
-   - 5.7 [Bytecode Footprint](#57-bytecode-footprint)
+   - 5.5 [Increment Operator](#55-increment-operator)
+   - 5.6 [Bracket-Path Assignment](#56-bracket-path-assignment)
+   - 5.7 [Reading Compound Elements](#57-reading-compound-elements)
+   - 5.8 [Bytecode Footprint](#58-bytecode-footprint)
 
 6. [Compound Handling](#6-compound-handling)
    - 6.1 [Compound Storage Location](#61-compound-storage-location)
@@ -94,7 +95,7 @@ Key differences, driven by lifetime:
 
 - **Addressing**: locals use frame-relative slots via `VarRef(slot)`; globals use absolute cell indices within the global window via `GlobalRef(offset)`. Both are Tag.REF under the absolute addressing model.
 - **Storage locality**: local compounds live above the frame in the return-stack window and the slot stores a ref; global compounds live in the global heap and the global cell stores a ref to that heap header.
-- **Increment operator**: `+>` is locals-only; globals use explicit read-modify-write with `->`.
+- **Increment operator**: `+>` works identically for both locals and globals. The bytecode sequence is the same, differing only in the first opcode (`VarRef` vs `GlobalRef`). Both compile to: `VarRef/GlobalRef; Swap; Over; Fetch; Add; Swap; Store`.
 
 ### 1.3 Core Invariants (assumed by this spec)
 
@@ -456,7 +457,33 @@ Store
 - If `value` is a compound originating on the stack → copy it into the global heap before writing a new `Tag.REF` to the header.
 - If incompatible types (`simple`→`compound` or mismatch in compound slot count) → throw `"Incompatible type for reassignment"`.
 
-### 5.5 Bracket-Path Assignment
+### 5.5 Increment Operator
+
+**Surface Form:** `value +> name`
+**Stack Effect:** `( value — )`
+
+**Lowering:**
+
+```
+GlobalRef <offset>
+Swap
+Over
+Fetch
+Add
+Swap
+Store
+```
+
+**Runtime Semantics:**
+
+- Equivalent to `value name add -> name` (syntactic sugar for read-modify-write).
+- Reads current value from global cell, adds `value` to it, writes result back.
+- Works identically to local variable increment; only difference is using `GlobalRef` instead of `VarRef`.
+- Supports bracket paths: `value +> name[path]` compiles to `GlobalRef; Fetch; <path>; Select; Nip; Swap; Over; Fetch; Add; Swap; Store`.
+
+**Note:** The current implementation restricts `+>` to locals only, but there is no technical reason for this limitation. The bytecode sequence is identical except for the first opcode (`VarRef` vs `GlobalRef`). This restriction should be removed to maintain symmetry with locals.
+
+### 5.6 Bracket-Path Assignment
 
 **Surface Form:** `value -> name[ path ]`
 **Stack Effect:** `( value — )`
@@ -482,7 +509,7 @@ Store
 
 Behaviour mirrors locals’ bracket-path lowering but targets global heap addresses.
 
-### 5.6 Reading Compound Elements
+### 5.7 Reading Compound Elements
 
 **Surface Form:** `name[ path ]`
 **Stack Effect:** `( — value )`
@@ -500,7 +527,7 @@ Nip
 
 Provides value-by-default read access into global compound structures such as lists or maplists.
 
-### 5.7 Bytecode Footprint
+### 5.8 Bytecode Footprint
 
 | Operation | Bytes | Stack Effect |
 | -- | | - |
