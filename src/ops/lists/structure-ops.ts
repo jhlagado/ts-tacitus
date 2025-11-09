@@ -34,8 +34,8 @@ export function tailOp(vm: VM): void {
   }
 
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const firstElemAbsAddr = headerAbsAddr - CELL_SIZE;
-  const firstElem = vm.memory.readFloat32(SEG_DATA, firstElemAbsAddr);
+  const firstElemCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  const firstElem = vm.memory.readCell(firstElemCell);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
   const newSlotCount = slotCount - firstElemSpan;
 
@@ -51,8 +51,8 @@ export function tailOp(vm: VM): void {
     push(vm, toTaggedValue(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
-      const elemAbsAddr = firstElemAbsAddr - firstElemSpan * CELL_SIZE - i * CELL_SIZE;
-      const elem = vm.memory.readFloat32(SEG_DATA, elemAbsAddr);
+      const elemCell = firstElemCell - firstElemSpan - i;
+      const elem = vm.memory.readCell(elemCell);
       push(vm, elem);
     }
     push(vm, toTaggedValue(newSlotCount, Tag.LIST));
@@ -83,8 +83,8 @@ export function headOp(vm: VM): void {
   pop(vm);
 
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const firstElementAbsAddr = headerAbsAddr - CELL_SIZE;
-  const firstElement = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr);
+  const firstElementCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  const firstElement = vm.memory.readCell(firstElementCell);
 
   if (isList(firstElement)) {
     const elementSlotCount = getListLength(firstElement);
@@ -92,15 +92,12 @@ export function headOp(vm: VM): void {
     if (targetIsDirectList) {
       vm.sp -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readFloat32(SEG_DATA, firstElementAbsAddr - i * CELL_SIZE);
+        const slotValue = vm.memory.readCell(firstElementCell - i);
         push(vm, slotValue);
       }
     } else {
       for (let i = 0; i < elementSlotCount; i++) {
-        const slotValue = vm.memory.readFloat32(
-          SEG_DATA,
-          firstElementAbsAddr - (elementSlotCount - 1 - i) * CELL_SIZE,
-        );
+        const slotValue = vm.memory.readCell(firstElementCell - (elementSlotCount - 1 - i));
         push(vm, slotValue);
       }
       push(vm, firstElement);
@@ -134,14 +131,14 @@ export function reverseOp(vm: VM): void {
   }
 
   const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  let currentAbsAddr = headerAbsAddr - CELL_SIZE;
+  let currentCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
   let remainingSlots = slotCount;
   const elements: { start: number; span: number }[] = [];
   while (remainingSlots > 0) {
-    const v = vm.memory.readFloat32(SEG_DATA, currentAbsAddr);
+    const v = vm.memory.readCell(currentCell);
     const span = isList(v) ? getListLength(v) + 1 : 1;
-    elements.push({ start: currentAbsAddr, span });
-    currentAbsAddr -= span * CELL_SIZE;
+    elements.push({ start: currentCell, span });
+    currentCell -= span;
     remainingSlots -= span;
   }
 
@@ -152,15 +149,15 @@ export function reverseOp(vm: VM): void {
   for (let e = elements.length - 1; e >= 0; e--) {
     const { start, span } = elements[e];
     if (span === 1) {
-      const val = vm.memory.readFloat32(SEG_DATA, start);
+      const val = vm.memory.readCell(start);
       push(vm, val);
     } else {
       const payloadSlots = span - 1;
       for (let i = payloadSlots - 1; i >= 0; i--) {
-        const slotVal = vm.memory.readFloat32(SEG_DATA, start - (i + 1) * CELL_SIZE);
+        const slotVal = vm.memory.readCell(start - (i + 1));
         push(vm, slotVal);
       }
-      const headerVal = vm.memory.readFloat32(SEG_DATA, start);
+      const headerVal = vm.memory.readCell(start);
       push(vm, headerVal);
     }
   }
@@ -176,7 +173,7 @@ export function concatOp(vm: VM): void {
 
   const readCellAtOffset = (offsetSlots: number): number => {
     const absAddr = stackAddrFromTopAbs(vm, offsetSlots);
-    return vm.memory.readFloat32(SEG_DATA, absAddr);
+    return vm.memory.readCell(absAddr / CELL_SIZE);
   };
 
   const rhsTop = readCellAtOffset(0);
@@ -210,8 +207,8 @@ export function concatOp(vm: VM): void {
       const s = getListLength(op.header);
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
-        const absAddr = op.headerAddr - (i + 1) * CELL_SIZE;
-        slots.push(vm.memory.readFloat32(SEG_DATA, absAddr));
+        const cellIndex = (op.headerAddr - (i + 1) * CELL_SIZE) / CELL_SIZE;
+        slots.push(vm.memory.readCell(cellIndex));
       }
       return slots;
     }
@@ -220,8 +217,8 @@ export function concatOp(vm: VM): void {
       const headerAbsAddr = op.baseAddrBytes + s * CELL_SIZE;
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
-        const absAddr = headerAbsAddr - (i + 1) * CELL_SIZE;
-        slots.push(vm.memory.readFloat32(SEG_DATA, absAddr));
+        const cellIndex = (headerAbsAddr - (i + 1) * CELL_SIZE) / CELL_SIZE;
+        slots.push(vm.memory.readCell(cellIndex));
       }
       return slots;
     }

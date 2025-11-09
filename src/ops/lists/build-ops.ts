@@ -41,7 +41,7 @@ export function closeListOp(vm: VM): void {
   const payloadSlots = vm.sp - headerCellAbs - 1;
 
   // Write header at absolute address
-  vm.memory.writeFloat32(SEG_DATA, headerAbsAddr, toTaggedValue(payloadSlots, Tag.LIST));
+  vm.memory.writeCell(headerCellAbs, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
@@ -80,7 +80,7 @@ export function makeListOp(vm: VM): void {
   }
 
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeFloat32(SEG_DATA, retrievedHeaderAbsAddr, finalizedHeader);
+  vm.memory.writeCell(headerCellAbs, finalizedHeader);
 
   const totalSpan = vm.sp - headerCellAbs;
   if (totalSpan > 1) {
@@ -154,8 +154,9 @@ export function unpackOp(vm: VM): void {
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
   const headerAbsAddr = computeHeaderAddr(info.baseAddrBytes, slotCount);
+  const headerCell = headerAbsAddr / CELL_SIZE;
   for (let i = slotCount - 1; i >= 0; i--) {
-    const slotValue = vm.memory.readFloat32(SEG_DATA, headerAbsAddr - (i + 1) * CELL_SIZE);
+    const slotValue = vm.memory.readCell(headerCell - (i + 1));
     push(vm, slotValue);
   }
 }

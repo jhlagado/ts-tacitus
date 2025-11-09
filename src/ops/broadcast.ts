@@ -300,19 +300,19 @@ throw new Error('broadcast type mismatch');
   dupOp(vm);
 
   // Transform the top copy in place using direct memory writes
-  const headerAddr = (depth(vm) - 1) * CELL_SIZE;
-  const headerVal = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + headerAddr);
+  const headerCell = vm.sp - depth(vm);
+  const headerVal = vm.memory.readCell(headerCell);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {
-    const cellAddr = headerAddr - (i + 1) * CELL_SIZE;
-    const v = vm.memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + cellAddr);
+    const cellIndex = headerCell - (i + 1);
+    const v = vm.memory.readCell(cellIndex);
     if (isList(v)) {
 continue;
 } // leave headers untouched
     if (!isNumber(v)) {
 throw new Error('broadcast type mismatch');
 }
-    vm.memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + cellAddr, f(v));
+    vm.memory.writeCell(cellIndex, f(v));
   }
 
   // Remove the original list under the transformed copy

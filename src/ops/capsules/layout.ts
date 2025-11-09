@@ -36,7 +36,7 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
 
   // Compute header address and read slot0 (immediately beneath the header).
   const headerAddr = baseAddrBytes + slotCount * CELL_SIZE;
-  const codeCell = vm.memory.readFloat32(SEG_DATA, headerAddr - CELL_SIZE);
+  const codeCell = vm.memory.readCell((headerAddr - CELL_SIZE) / CELL_SIZE);
   const { tag: codeTag } = fromTaggedValue(codeCell);
   if (codeTag !== Tag.CODE) {
     throw new Error('capsule slot0 must be a CODE reference');

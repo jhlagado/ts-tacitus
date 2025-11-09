@@ -34,8 +34,8 @@ export function exitConstructorOp(vm: VM): void {
   push(vm, createRef(absHeaderCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
-  const savedBP = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + (oldBpRel - 1) * CELL_SIZE);
-  const returnAddr = vm.memory.readFloat32(SEG_DATA, RSTACK_BASE_BYTES + (oldBpRel - 2) * CELL_SIZE);
+  const savedBP = vm.memory.readCell(RSTACK_BASE_CELLS + oldBpRel - 1);
+  const returnAddr = vm.memory.readCell(RSTACK_BASE_CELLS + oldBpRel - 2);
 
   // Saved BP stored as relative cells on return stack; restore as absolute
   vm.bp = Math.trunc(savedBP) + RSTACK_BASE_CELLS;
