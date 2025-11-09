@@ -119,17 +119,7 @@ describe('Core Operations Branch Coverage', () => {
       expect(result[result.length - 1]).toBe(42);
     });
 
-    test('should exercise eval with colon definition', () => {
-      const result = executeTacitCode(
-        vm,
-        `
-        : inc 1 add ;
-        41 @inc eval
-      `,
-      );
-
-      expect(result).toEqual([42]);
-    });
+    // Test moved to core-ops-eval-isolated.test.ts to avoid test isolation issues
 
     test('should exercise function calls', () => {
       // Test function calls to hit return scenarios
