@@ -3,21 +3,20 @@ import { SEG_CODE } from '@src/core/constants';
 import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
-import type { VM } from '../../core/vm';
+import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import type { Tokenizer } from '../tokenizer';
 import type { ActiveDefinition } from '../state';
 // SymbolTableEntry interface moved inline (symbol table removed)
 type SymbolTableEntry = {
   taggedValue: number;
   isImmediate: boolean;
-}
-import { nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
+};
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
   beginElseImmediate,
-  beginWhenImmediate,
-  beginDoImmediate,
+  beginMatchImmediate,
+  beginWithImmediate,
   beginCaseImmediate,
   clauseOfImmediate,
   defaultImmediate,
@@ -61,11 +60,11 @@ export function executeImmediateWord(
       case 'else':
         beginElseImmediate(vm, tokenizer, currentDefinition);
         return;
-      case 'when':
-        beginWhenImmediate(vm, tokenizer, currentDefinition);
+      case 'match':
+        beginMatchImmediate(vm, tokenizer, currentDefinition);
         return;
-      case 'do':
-        beginDoImmediate(vm, tokenizer, currentDefinition);
+      case 'with':
+        beginWithImmediate(vm, tokenizer, currentDefinition);
         return;
       case 'case':
         beginCaseImmediate(vm, tokenizer, currentDefinition);
@@ -113,6 +112,7 @@ export function runImmediateCode(vm: VM, address: number): void {
   vm.IP = address;
   vm.running = true;
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (vm.running) {
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;

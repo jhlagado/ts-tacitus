@@ -86,9 +86,9 @@ describe('conditional immediates', () => {
     expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed IF');
   });
 
-  test('ensureNoOpenConditionals detects unclosed when', () => {
-    push(vm, createBuiltinRef(Op.EndWhen));
-    expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `when`');
+  test('ensureNoOpenConditionals detects unclosed match', () => {
+    push(vm, createBuiltinRef(Op.EndMatch));
+    expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `match`');
   });
 
   test('ensureNoOpenConditionals passes on clean stack', () => {
@@ -96,7 +96,7 @@ describe('conditional immediates', () => {
   });
 });
 
-describe('when/do control flow', () => {
+describe('match/with control flow', () => {
   let vm: VM;
 
   beforeEach(() => {
@@ -107,8 +107,8 @@ describe('when/do control flow', () => {
     const stack = executeTacitCode(
       vm,
       `
-      10 when
-        dup 9 gt do drop 111 ;
+      10 match
+        dup 9 gt with drop 111 ;
         drop 222
       ;
     `,
@@ -121,8 +121,8 @@ describe('when/do control flow', () => {
     const stack = executeTacitCode(
       vm,
       `
-      2 when
-        dup 9 gt do drop 111 ;
+      2 match
+        dup 9 gt with drop 111 ;
         drop 222
       ;
     `,
@@ -133,9 +133,9 @@ describe('when/do control flow', () => {
 
   test('supports multiple clauses with shared exit', () => {
     const program = `
-      when
-        dup 9 gt do drop 111 ;
-        dup 3 lt do drop 222 ;
+      match
+        dup 9 gt with drop 111 ;
+        dup 3 lt with drop 222 ;
         drop 333
       ;
     `;
@@ -150,11 +150,11 @@ describe('when/do control flow', () => {
     expect(otherwise).toEqual([333]);
   });
 
-  test('allows nested when blocks inside the default area', () => {
+  test('allows nested match blocks inside the default area', () => {
     const program = `
-      when
-        dup 0 eq do drop 100 ;
-        when dup 1 eq do drop 200 ; drop 300 ;
+      match
+        dup 0 eq with drop 100 ;
+        match dup 1 eq with drop 200 ; drop 300 ;
       ;
     `;
 
@@ -165,18 +165,18 @@ describe('when/do control flow', () => {
     expect(nestedDefault).toEqual([300]);
   });
 
-  test('raises when do appears without a surrounding when', () => {
-    expect(() => parse(vm, new Tokenizer('do ;'))).toThrow('do without when');
+  test('raises when with appears without a surrounding match', () => {
+    expect(() => parse(vm, new Tokenizer('with ;'))).toThrow('with without match');
   });
 
-  test('raises when when is not closed by final semicolon', () => {
+  test('raises when match is not closed by final semicolon', () => {
     try {
-      parse(vm, new Tokenizer('when dup 0 eq do drop 1 ;'));
+      parse(vm, new Tokenizer('match dup 0 eq with drop 1 ;'));
       // If parse did not throw, the construct must still be marked open.
       expect(getStackData(vm).some((value: number) => Number.isNaN(value))).toBe(true);
-      expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `when`');
+      expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `match`');
     } catch (err) {
-      expect((err as Error).message).toContain('Unclosed `when`');
+      expect((err as Error).message).toContain('Unclosed `match`');
     }
   });
 });

@@ -155,8 +155,8 @@ export function registerBuiltins(vm: VM): void {
 
   reg('if', Op.Nop, undefined, true);
   reg('else', Op.Nop, undefined, true);
-  reg('when', Op.Nop, undefined, true);
-  reg('do', Op.Nop, undefined, true);
+  reg('match', Op.Nop, undefined, true);
+  reg('with', Op.Nop, undefined, true);
   reg('case', Op.Nop, undefined, true);
   reg('of', Op.Nop, undefined, true);
   reg('DEFAULT', Op.Nop, undefined, true);
