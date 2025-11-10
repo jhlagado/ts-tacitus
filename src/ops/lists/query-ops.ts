@@ -24,6 +24,7 @@ import {
   readRefValue,
   areValuesEqual,
   getTag,
+  formatValue,
 } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { dropOp } from '../stack';
@@ -218,7 +219,6 @@ export function loadOp(vm: VM): void {
   }
 
   // Materialize if final value is a LIST header
-  // Debug: check if value is actually a list
   if (isList(value)) {
     const slotCount = getListLength(value);
     // Read payload slots (they are stored before the header)

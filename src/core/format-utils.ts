@@ -2,12 +2,11 @@
  * @file src/core/format-utils.ts
  * Utility functions for formatting Tacit VM values.
  */
-import type { VM } from './vm';
-import { SEG_DATA, CELL_SIZE, STACK_BASE } from './constants';
+import { CELL_SIZE, STACK_BASE } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getAbsoluteCellIndexFromRef } from './refs';
 import { getListLength } from './list';
-import { pop, push, getStackData } from './vm';
+import { type VM, pop, push, getStackData } from './vm';
 
 /**
  * Formats float with reasonable precision.

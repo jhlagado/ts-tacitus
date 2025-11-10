@@ -19,8 +19,7 @@ import {
   GLOBAL_BASE,
   GLOBAL_TOP,
   createGlobalRef,
-  pushListToGlobalHeap,
-  getListLength,
+  gpushList,
 } from '@src/core';
 import {
   nextUint16,
@@ -379,22 +378,9 @@ export function initGlobalOp(vm: VM): void {
   }
 
   if (isList(value)) {
-    // For compounds, we need to copy to global heap and store REF
+    // For compounds, copy to global heap and store REF
     // This matches InitVar's behavior for compounds
-    const header = value;
-    const slotCount = getListLength(header);
-    const headerCellIndex = vm.sp - 1;
-    const baseCellIndex = headerCellIndex - slotCount;
-    const baseAddrBytes = baseCellIndex * CELL_SIZE;
-
-    const heapRef = pushListToGlobalHeap(vm, { header, baseAddrBytes });
-
-    // Drop the original list from the data stack
-    for (let i = 0; i < slotCount + 1; i++) {
-      pop(vm);
-    }
-
-    // Write the REF to the global cell
+    const heapRef = gpushList(vm);
     vm.memory.writeCell(absoluteCellIndex, heapRef);
   } else {
     const simpleValue = pop(vm);
