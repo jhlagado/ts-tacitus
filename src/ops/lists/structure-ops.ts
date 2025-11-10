@@ -180,13 +180,13 @@ export function concatOp(vm: VM): void {
   const lhsTop = readCellAtOffset(rhsSize);
 
   const rhsInfo = isList(rhsTop)
-    ? { kind: 'stack-list' as const, header: rhsTop, headerAddr: (vm.sp - 1) * CELL_SIZE }
+    ? { kind: 'stack-list' as const, header: rhsTop, headerCell: vm.sp - 1 }
     : isRef(rhsTop)
       ? getListBounds(vm, rhsTop)
       : null;
-  const lhsHeaderAddr = (vm.sp - (rhsSize + 1)) * CELL_SIZE;
+  const lhsHeaderCell = vm.sp - (rhsSize + 1);
   const lhsInfo = isList(lhsTop)
-    ? { kind: 'stack-list' as const, header: lhsTop, headerAddr: lhsHeaderAddr }
+    ? { kind: 'stack-list' as const, header: lhsTop, headerCell: lhsHeaderCell }
     : isRef(lhsTop)
       ? getListBounds(vm, lhsTop)
       : null;
@@ -196,7 +196,7 @@ export function concatOp(vm: VM): void {
 
   const materializeSlots = (
     op:
-      | { kind: 'stack-list'; header: number; headerAddr: number }
+      | { kind: 'stack-list'; header: number; headerCell: number }
       | { header: number; baseCell: number }
       | null,
     _size: number,
@@ -207,8 +207,7 @@ export function concatOp(vm: VM): void {
       const s = getListLength(op.header);
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
-        const hdr = op.headerAddr / CELL_SIZE;
-        const cellIndex = hdr - 1 - i;
+        const cellIndex = op.headerCell - 1 - i;
         slots.push(vm.memory.readCell(cellIndex));
       }
       return slots;
@@ -228,7 +227,7 @@ export function concatOp(vm: VM): void {
 
   const lhsSlots = materializeSlots(
     (lhsInfo as
-      | { kind: 'stack-list'; header: number; headerAddr: number }
+      | { kind: 'stack-list'; header: number; headerCell: number }
       | { header: number; baseCell: number }
       | null) ?? null,
     lhsSize,
@@ -237,7 +236,7 @@ export function concatOp(vm: VM): void {
   );
   const rhsSlots = materializeSlots(
     (rhsInfo as
-      | { kind: 'stack-list'; header: number; headerAddr: number }
+      | { kind: 'stack-list'; header: number; headerCell: number }
       | { header: number; baseCell: number }
       | null) ?? null,
     rhsSize,
