@@ -65,4 +65,59 @@ describe('Global Variable Access', () => {
     const stack = executeTacitCode(vm, 'x');
     expect(stack[stack.length - 1]).toBe(20);
   });
+
+  test('should access global inside function', () => {
+    executeTacitCode(vm, '42 global globalVar');
+    const code = `
+      : useGlobal
+        globalVar
+      ;
+      useGlobal
+    `;
+    const stack = executeTacitCode(vm, code);
+    expect(stack[stack.length - 1]).toBe(42);
+  });
+
+  test('should allow local variable to shadow global variable', () => {
+    executeTacitCode(vm, '100 global x');
+    const code = `
+      : shadow
+        200 var x
+        x
+      ;
+      shadow
+    `;
+    const stack = executeTacitCode(vm, code);
+    // Local x (200) should shadow global x (100)
+    expect(stack[stack.length - 1]).toBe(200);
+  });
+
+  test('should access global when local is not defined', () => {
+    executeTacitCode(vm, '42 global x');
+    const code = `
+      : useGlobal
+        x
+      ;
+      useGlobal
+    `;
+    const stack = executeTacitCode(vm, code);
+    // Should access global x since no local x exists
+    expect(stack[stack.length - 1]).toBe(42);
+  });
+
+  test('should access global after local goes out of scope', () => {
+    executeTacitCode(vm, '100 global x');
+    const code = `
+      : withLocal
+        200 var x
+        x
+      ;
+      withLocal
+      x
+    `;
+    const stack = executeTacitCode(vm, code);
+    // First call returns local (200), second access returns global (100)
+    expect(stack[stack.length - 2]).toBe(200);
+    expect(stack[stack.length - 1]).toBe(100);
+  });
 });

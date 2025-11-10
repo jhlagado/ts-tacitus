@@ -1,10 +1,9 @@
 # Plan 48: Global Variables Implementation
 
 **Status:** In Progress (Phases 1-5, 7 complete; Phase 6 next)  
-**Last Updated:** 2025-01-XX (Phase 3 verified - all tests pass)  
 **Priority:** High  
 **Owner:** VM + Parser + Compiler  
-**Last Updated:** 2025-01-XX  
+**Last Updated:** 2025-01-XX (Phase 3 verified - all tests pass)  
 **Related Specs:** `docs/specs/globals.md`, `docs/specs/vm-architecture.md`, `docs/specs/variables-and-refs.md`
 
 ## Current Status Summary
@@ -211,7 +210,7 @@ This hybrid approach ensures globals work correctly while maintaining flexibilit
 
 **Tests:**
 
-- ✅ `src/test/lang/globals/access.test.ts` - Read access, address-of, inside functions, shadowing, redefinition
+- ✅ `src/test/lang/globals/access.test.ts` - Read access, address-of, inside functions, shadowing, redefinition, local shadowing of globals, global access after local scope
 - ✅ `src/test/lang/globals/access-address-of-in-function.test.ts` - Address-of inside function (isolated test)
 
 **Exit Criteria:**
