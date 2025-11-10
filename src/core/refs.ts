@@ -9,10 +9,10 @@ import {
   SEG_DATA,
   STACK_BASE_BYTES,
   RSTACK_BASE_BYTES,
-  RSTACK_BASE_CELLS,
-  RSTACK_TOP_CELLS,
+  RSTACK_BASE,
+  RSTACK_TOP,
   GLOBAL_BASE_BYTES,
-  GLOBAL_BASE_CELLS,
+  GLOBAL_BASE,
   GLOBAL_SIZE_BYTES,
   GLOBAL_SIZE_CELLS,
   TOTAL_DATA_BYTES,
@@ -175,7 +175,7 @@ export function getVarRef(vm: VM, slotNumber: number): number {
   }
 
   const absCellIndex = vm.bp + slotNumber;
-  if (absCellIndex < RSTACK_BASE_CELLS || absCellIndex >= RSTACK_TOP_CELLS) {
+  if (absCellIndex < RSTACK_BASE || absCellIndex >= RSTACK_TOP) {
     throw new RangeError('Local reference outside return stack bounds');
   }
   return createRef(absCellIndex);
@@ -191,7 +191,7 @@ export function createGlobalRef(cellIndex: number): number {
   if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE_CELLS) {
     throw new RangeError('Global reference outside global segment bounds');
   }
-  const absCellIndex = GLOBAL_BASE_CELLS + cellIndex;
+  const absCellIndex = GLOBAL_BASE + cellIndex;
   return createRef(absCellIndex);
 }
 

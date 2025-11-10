@@ -4,7 +4,7 @@
  */
 
 import type { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE_CELLS, GLOBAL_BASE_CELLS } from './constants';
+import { CELL_SIZE, GLOBAL_SIZE_CELLS, GLOBAL_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 
@@ -33,7 +33,7 @@ function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
 export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
   const cellIndex = vm.gp;
-  vm.memory.writeCell(GLOBAL_BASE_CELLS + cellIndex, value);
+  vm.memory.writeCell(GLOBAL_BASE + cellIndex, value);
   vm.gp = cellIndex + 1;
   return createGlobalRef(cellIndex);
 }
@@ -55,11 +55,11 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
 
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readCell(srcBaseCells + i);
-    vm.memory.writeCell(GLOBAL_BASE_CELLS + destBaseCell + i, value);
+    vm.memory.writeCell(GLOBAL_BASE + destBaseCell + i, value);
   }
 
   const headerCellIndex = destBaseCell + slotCount;
-  vm.memory.writeCell(GLOBAL_BASE_CELLS + headerCellIndex, source.header);
+  vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, source.header);
 
   vm.gp = destBaseCell + span;
   return createGlobalRef(headerCellIndex);

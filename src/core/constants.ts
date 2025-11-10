@@ -52,19 +52,20 @@ export const TOTAL_DATA_BYTES = RSTACK_TOP_BYTES;
 export const DATA_BASE_BYTES = GLOBAL_BASE_BYTES;
 export const DATA_TOP_BYTES = TOTAL_DATA_BYTES;
 
-// Derived cell-based constants (no behavior change)
+// Data segment boundaries (cell indices)
 // Use these to keep arithmetic in cells and avoid repeated divisions by CELL_SIZE.
-export const GLOBAL_BASE_CELLS = GLOBAL_BASE_BYTES / CELL_SIZE;
-export const GLOBAL_TOP_CELLS = GLOBAL_TOP_BYTES / CELL_SIZE;
+// Note: Byte-based constants (*_BYTES) are available for memory I/O operations.
+export const GLOBAL_BASE = GLOBAL_BASE_BYTES / CELL_SIZE;
+export const GLOBAL_TOP = GLOBAL_TOP_BYTES / CELL_SIZE;
 
-export const STACK_BASE_CELLS = STACK_BASE_BYTES / CELL_SIZE;
-export const STACK_TOP_CELLS = STACK_TOP_BYTES / CELL_SIZE;
+export const STACK_BASE = STACK_BASE_BYTES / CELL_SIZE;
+export const STACK_TOP = STACK_TOP_BYTES / CELL_SIZE;
 
-export const RSTACK_BASE_CELLS = RSTACK_BASE_BYTES / CELL_SIZE;
-export const RSTACK_TOP_CELLS = RSTACK_TOP_BYTES / CELL_SIZE;
+export const RSTACK_BASE = RSTACK_BASE_BYTES / CELL_SIZE;
+export const RSTACK_TOP = RSTACK_TOP_BYTES / CELL_SIZE;
 
-export const DATA_BASE_CELLS = DATA_BASE_BYTES / CELL_SIZE;
-export const DATA_TOP_CELLS = DATA_TOP_BYTES / CELL_SIZE;
+export const DATA_BASE = DATA_BASE_BYTES / CELL_SIZE;
+export const DATA_TOP = DATA_TOP_BYTES / CELL_SIZE;
 
 export const GLOBAL_SIZE_CELLS = (GLOBAL_TOP_BYTES - GLOBAL_BASE_BYTES) / CELL_SIZE;
 export const STACK_SIZE_CELLS = (STACK_TOP_BYTES - STACK_BASE_BYTES) / CELL_SIZE;

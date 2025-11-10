@@ -158,20 +158,22 @@ That reference unambiguously identifies the global cell and lets `fetch`, `load`
 
 ### 2.4 64K Limit and Rationale
 
-Because offsets are 16 bit, the VM supports **65 536** global cells:
+The `GlobalRef` opcode uses a **16-bit unsigned offset** operand, which limits the maximum number of globals to **65,536** (0xFFFF). However, the actual runtime boundary is determined by the `GLOBAL_TOP_CELLS` constant, which may be smaller than this theoretical maximum.
 
-- **Address range:** 0 – 65535
-- **Total bytes:** ≈ 256 KiB (4 × 65 536)
-- **Practical implication:** ample for configuration constants, shared lists, and long-lived capsules.
+- **Compile-time limit:** 65,536 globals (due to 16-bit offset encoding)
+- **Runtime boundary:** `GLOBAL_TOP_CELLS` (actual end of global area, may be < 65,536)
+- **Address range:** `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)` (exclusive upper bound)
+- **Total bytes (max):** ≈ 256 KiB (4 × 65,536)
 
-Exceeding this range raises `Global variable limit exceeded (64K)` at compile time.
-Future extensions could switch to 24-bit offsets or segmented heaps but the current flat 64K area favors simplicity and direct addressing.
+The compiler validates that `offset < 65536` when emitting `GlobalRef` opcodes. At runtime, the VM validates that the computed absolute cell index falls within `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)`. If `GLOBAL_TOP_CELLS` is less than `GLOBAL_BASE_CELLS + 65536`, the effective limit is determined by the smaller of these constraints.
+
+**Practical implication:** The 64K limit provides ample capacity for configuration constants, shared lists, and long-lived capsules. Future extensions could switch to 24-bit offsets or segmented heaps, but the current flat 64K area favors simplicity and direct addressing.
 
 ### 2.5 Lifetime, Aliasing, and Safety
 
 - **Lifetime:** globals persist for the entire VM session. They are initialized once at load-time and reclaimed only when the VM resets.
 - **Aliasing:** `&name` returns a stable `REF` whose payload always points to the same cell. It may be passed to functions or stored in lists freely.
-- **Boundary enforcement:** the VM validates that a global's ref payload lies within `[GLOBAL_BASE_CELLS, GLOBAL_BASE_CELLS + 65535]`. Anything outside the global area is an error.
+- **Boundary enforcement:** the VM validates that a global's ref payload lies within `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)`. Anything outside the global area is an error.
 - **Compound placement:** when storing a compound whose origin is on the data or return stack, the VM copies it into the global area (via helper `pushListToGlobalHeap` or `GPushList`) and replaces the cell content with a `REF` to the new header.
 - **No leakage of locals:** a local compound's address must never be written directly into a global cell. If a function attempts to do so, the runtime copies the structure into the global area instead, preserving lifetime safety.
 
@@ -225,7 +227,10 @@ Runtime behaviour:
 function compileGlobal(vm, tokenName, valueExpr) {
   if (vm.scopeDepth > 0) throw new Error('Global declarations only allowed at top level');
   const offset = vm.gp - GLOBAL_BASE_CELLS;
+  // Check 16-bit offset limit (compile-time constraint)
   if (offset > 0xffff) throw new Error('Global variable limit exceeded (64K)');
+  // Check runtime boundary (may be smaller than 64K)
+  if (vm.gp >= GLOBAL_TOP_CELLS) throw new Error('Global area exhausted');
   vm.gp += 1;
   compile(valueExpr); // emit value-producing ops
   emit(Op.GlobalRef);
@@ -289,7 +294,8 @@ The payload is a genuine runtime `REF`, not a compile-time `Tag.LOCAL`. When the
 | ------------------------- | ----------------------------------------------- | ------- |
 | Inside function           | "Global declarations only allowed at top level" | compile |
 | Invalid identifier        | "Expected variable name after global"           | compile |
-| Exceeded 64K area         | "Global variable limit exceeded (64K)"          | compile |
+| Exceeded 16-bit offset    | "Global variable limit exceeded (64K)"          | compile |
+| Exceeded runtime boundary | "Global area exhausted"                         | compile |
 | Runtime boundary mismatch | "REF points outside global area"                | runtime |
 
 These guardrails make global declarations deterministic and memory-safe within the VM's static global area.
@@ -347,7 +353,7 @@ Tacit follows straightforward shadowing rules to preserve determinism:
 When executing any global reference instruction, the VM validates that the target address is inside the global area:
 
 ```
-if (cellIndex < GLOBAL_BASE_CELLS || cellIndex >= GLOBAL_BASE_CELLS + 65536)
+if (cellIndex < GLOBAL_BASE_CELLS || cellIndex >= GLOBAL_TOP_CELLS)
     throw "REF points outside global area"
 ```
 
@@ -396,9 +402,11 @@ function opGlobalRef(vm) {
 
 **Invariant checks**
 
-- Offset must be within `[0, 65535]`.
-- Absolute index must fall inside the global area (between `GLOBAL_BASE_CELLS` and `GLOBAL_BASE_CELLS + 65535`).
-- Ref payloads outside this range raise `"REF points outside global area"`.
+- **Compile-time:** Offset must be within `[0, 65535]` (16-bit unsigned limit).
+- **Runtime:** Absolute index must fall inside the global area: `cellIndex >= GLOBAL_BASE_CELLS && cellIndex < GLOBAL_TOP_CELLS`.
+- Ref payloads outside the `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)` range raise `"REF points outside global area"`.
+
+**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP_CELLS`, which may be smaller. Both constraints are enforced.
 
 ### 5.2 Read (Value-By-Default)
 
