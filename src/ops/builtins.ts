@@ -11,7 +11,7 @@ import {
   Tag,
   getVarRef,
   createRef,
-  getAbsoluteCellIndexFromRef,
+  getCellFromRef,
   isRef,
   CELL_SIZE,
   RSTACK_BASE,
@@ -420,7 +420,7 @@ export function dumpFrameOp(vm: VM): void {
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
-        const absCellIndex = getAbsoluteCellIndexFromRef(slotValue);
+        const absCellIndex = getCellFromRef(slotValue);
         const targetValue = vm.memory.readCell(absCellIndex);
         const targetTag = getTag(targetValue);
         const { value: targetVal } = fromTaggedValue(targetValue);

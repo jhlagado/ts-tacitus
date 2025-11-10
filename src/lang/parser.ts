@@ -34,7 +34,7 @@ import {
   GLOBAL_TOP,
   GLOBAL_SIZE,
   createGlobalRef,
-  getAbsoluteCellIndexFromRef,
+  getCellFromRef,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import type { ActiveDefinition } from './state';
@@ -258,7 +258,7 @@ export function emitWord(
     }
 
     // Calculate offset from absolute cell index: offset = absoluteCellIndex - GLOBAL_BASE
-    const absoluteCellIndex = getAbsoluteCellIndexFromRef(entryValue);
+    const absoluteCellIndex = getCellFromRef(entryValue);
     const offset = absoluteCellIndex - GLOBAL_BASE;
 
     vm.compiler.compileOpcode(Op.GlobalRef);
@@ -343,7 +343,7 @@ export function emitRefSigil(
         throw new Error(`${varName} is not a local variable`);
       }
       // Calculate offset from absolute cell index
-      const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+      const absoluteCellIndex = getCellFromRef(tval);
       const offset = absoluteCellIndex - GLOBAL_BASE;
       vm.compiler.compileOpcode(Op.GlobalRef);
       vm.compiler.compile16(offset);
@@ -356,7 +356,7 @@ export function emitRefSigil(
   // Top level: allow &global; locals are invalid (no frame)
   if (tag === Tag.REF && getRefArea(tval) === 'global') {
     // Calculate offset from absolute cell index
-    const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+    const absoluteCellIndex = getCellFromRef(tval);
     const offset = absoluteCellIndex - GLOBAL_BASE;
     vm.compiler.compileOpcode(Op.GlobalRef);
     vm.compiler.compile16(offset);
@@ -550,7 +550,7 @@ export function emitAssignment(
       );
     }
     // Calculate offset from absolute cell index
-    const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+    const absoluteCellIndex = getCellFromRef(tval);
     const offset = absoluteCellIndex - GLOBAL_BASE;
 
     const maybeBracket = tokenizer.nextToken();

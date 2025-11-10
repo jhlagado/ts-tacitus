@@ -28,36 +28,39 @@ export type ListSource = {
  * @returns REF to the allocated global cell
  * @throws {Error} If global heap is exhausted
  */
-export function pushSimpleToGlobalHeap(vm: VM, value: number): number {
+export function gpushVal(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
-  const cellIndex = vm.gp;
-  vm.memory.writeCell(GLOBAL_BASE + cellIndex, value);
-  vm.gp = cellIndex + 1;
-  return createGlobalRef(cellIndex);
+  const idx = vm.gp;
+  vm.memory.writeCell(GLOBAL_BASE + idx, value);
+  vm.gp = idx + 1;
+  return createGlobalRef(idx);
 }
 
+/** @deprecated Use gpushVal instead */
+export const pushSimpleToGlobalHeap = gpushVal;
+
 /**
- * Pushes a list to the global heap and returns a REF to the header.
+ * Pushes a list to the global heap from a memory source and returns a REF to the header.
  * @param vm - VM instance
  * @param source - List source containing header and base address
  * @returns REF to the list header in global heap
  * @throws {Error} If global heap is exhausted
  */
-export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
-  const slotCount = getListLength(source.header);
-  const span = slotCount + 1;
+export function gpushListFrom(vm: VM, source: ListSource): number {
+  const n = getListLength(source.header);
+  const span = n + 1;
   ensureGlobalCapacity(vm, span);
-  const destBaseCell = vm.gp;
-
-  const srcBaseCells = source.baseAddrBytes / CELL_SIZE;
-  copyListPayload(vm, srcBaseCells, GLOBAL_BASE + destBaseCell, slotCount);
-
-  const headerCellIndex = destBaseCell + slotCount;
-  vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, source.header);
-
-  vm.gp = destBaseCell + span;
-  return createGlobalRef(headerCellIndex);
+  const dst = vm.gp;
+  const src = source.baseAddrBytes / CELL_SIZE;
+  copyListPayload(vm, src, GLOBAL_BASE + dst, n);
+  const hdr = dst + n;
+  vm.memory.writeCell(GLOBAL_BASE + hdr, source.header);
+  vm.gp = dst + span;
+  return createGlobalRef(hdr);
 }
+
+/** @deprecated Use gpushListFrom instead */
+export const pushListToGlobalHeap = gpushListFrom;
 
 
 /**
@@ -72,32 +75,25 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
  */
 export function gpushList(vm: VM): number {
   validateListHeader(vm);
-  const header = peek(vm);
-  const slotCount = getListLength(header);
+  const h = peek(vm);
+  const n = getListLength(h);
 
-  if (slotCount === 0) {
-    // Empty list: just write header and return REF
+  if (n === 0) {
     ensureGlobalCapacity(vm, 1);
-    const headerCellIndex = vm.gp;
-    vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, header);
-    vm.gp = headerCellIndex + 1;
+    const hdr = vm.gp;
+    vm.memory.writeCell(GLOBAL_BASE + hdr, h);
+    vm.gp = hdr + 1;
     dropList(vm);
-    return createGlobalRef(headerCellIndex);
+    return createGlobalRef(hdr);
   }
 
-  // Copy payload slots from data stack to global heap
-  ensureGlobalCapacity(vm, slotCount + 1);
-  const destBaseCell = vm.gp;
-
-  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE)
-  const srcBaseCell = vm.sp - STACK_BASE - (slotCount + 1);
-  copyListPayload(vm, STACK_BASE + srcBaseCell, GLOBAL_BASE + destBaseCell, slotCount);
-
-  // Write header and update gp
-  const headerCellIndex = destBaseCell + slotCount;
-  vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, header);
-  vm.gp = headerCellIndex + 1;
-
+  ensureGlobalCapacity(vm, n + 1);
+  const dst = vm.gp;
+  const src = vm.sp - STACK_BASE - (n + 1);
+  copyListPayload(vm, STACK_BASE + src, GLOBAL_BASE + dst, n);
+  const hdr = dst + n;
+  vm.memory.writeCell(GLOBAL_BASE + hdr, h);
+  vm.gp = hdr + 1;
   dropList(vm);
-  return createGlobalRef(headerCellIndex);
+  return createGlobalRef(hdr);
 }
