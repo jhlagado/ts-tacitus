@@ -342,8 +342,11 @@ export function emitRefSigil(
       if (getRefArea(tval) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
-      vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(tval);
+      // Calculate offset from absolute cell index
+      const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+      const offset = absoluteCellIndex - GLOBAL_BASE;
+      vm.compiler.compileOpcode(Op.GlobalRef);
+      vm.compiler.compile16(offset);
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
@@ -352,8 +355,12 @@ export function emitRefSigil(
 
   // Top level: allow &global; locals are invalid (no frame)
   if (tag === Tag.REF && getRefArea(tval) === 'global') {
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(tval);
+    // Calculate offset from absolute cell index
+    const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+    const offset = absoluteCellIndex - GLOBAL_BASE;
+    vm.compiler.compileOpcode(Op.GlobalRef);
+    vm.compiler.compile16(offset);
+    vm.compiler.compileOpcode(Op.Fetch);
     return;
   }
   throw new Error(`${varName} is not a global variable`);
@@ -542,10 +549,14 @@ export function emitAssignment(
         getStackData(vm),
       );
     }
+    // Calculate offset from absolute cell index
+    const absoluteCellIndex = getAbsoluteCellIndexFromRef(tval);
+    const offset = absoluteCellIndex - GLOBAL_BASE;
+
     const maybeBracket = tokenizer.nextToken();
     if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-      vm.compiler.compileOpcode(Op.LiteralNumber);
-      vm.compiler.compileFloat32(tval);
+      vm.compiler.compileOpcode(Op.GlobalRef);
+      vm.compiler.compile16(offset);
       vm.compiler.compileOpcode(Op.Fetch);
       compileBracketPathAsList(vm, tokenizer, currentDefinition);
       vm.compiler.compileOpcode(Op.Select);
@@ -555,8 +566,8 @@ export function emitAssignment(
     } else {
       tokenizer.pushBack(maybeBracket);
     }
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(tval);
+    vm.compiler.compileOpcode(Op.GlobalRef);
+    vm.compiler.compile16(offset);
     vm.compiler.compileOpcode(Op.Store);
     return;
   }

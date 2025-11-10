@@ -1,10 +1,31 @@
 # Plan 48: Global Variables Implementation
 
-**Status:** Current  
+**Status:** In Progress (Phases 1-5, 7 complete; Phase 6 next)  
+**Last Updated:** 2025-01-XX (Phase 3 verified - all tests pass)  
 **Priority:** High  
 **Owner:** VM + Parser + Compiler  
 **Last Updated:** 2025-01-XX  
 **Related Specs:** `docs/specs/globals.md`, `docs/specs/vm-architecture.md`, `docs/specs/variables-and-refs.md`
+
+## Current Status Summary
+
+**Completed:**
+- ✅ Phase 1: Core opcodes (`GlobalRef`, `InitGlobal`) and infrastructure
+- ✅ Phase 2: Parser support for `value global name` declarations
+- ✅ Phase 3: Symbol resolution and access (`emitWord`, `emitRefSigil`, `emitAssignment` updates)
+- ✅ Phase 4: Assignment operations (runtime dispatch in `storeOp`, `storeGlobal` helper)
+- ✅ Phase 5: Bracket-path operations (already implemented in `emitWord` and `emitAssignment`)
+- ✅ Phase 7: Error handling and area restrictions (mostly complete)
+
+**Remaining:**
+- ⏳ Phase 6: Increment operator extension
+- ⏳ Phase 8: Integration and polish
+
+**Key Achievements:**
+- Runtime dispatch design: `Store` opcode detects area at runtime and dispatches appropriately
+- Area restrictions: `VarRef` and `GlobalRef` are restricted to their respective areas at compile-time
+- Compound handling: `gpushList` utility for consistent compound copying
+- All existing tests pass
 
 ## Overview
 
@@ -51,14 +72,18 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ### Opcode Design Philosophy
 
-**Critical Decision:** Globals use **separate opcodes** from locals, not shared opcodes like `Store`/`Load`.
+**Critical Decision:** Globals use **separate opcodes** for initialization and reference creation, but **shared opcodes** for access and assignment.
 
-- **`InitGlobal`** for declarations (mirrors `InitVar` for locals)
-- **`GlobalRef`** for pushing references (mirrors `VarRef` for locals)
-- **`Store`/`Load`** are designed for local variables and use `resolveSlot` which assumes local variable semantics
-- Attempting to reuse `Store`/`Load` for globals causes issues because they rely on stack state assumptions that don't hold for globals
+- **`InitGlobal`** for declarations (mirrors `InitVar` for locals) - separate opcode
+- **`GlobalRef`** for pushing references (mirrors `VarRef` for locals) - separate opcode
+- **`Store`/`Load`** are **shared** and use runtime area detection to dispatch appropriately:
+  - `Store` detects area at runtime (`getRefArea`) and dispatches to `storeGlobal` or `storeLocal` helpers
+  - `Load` works universally via existing materialization logic
+- This design allows the compiler to always emit `Store` without needing to know variable types
+- Variable addresses are restricted at compile-time: `VarRef` only targets return stack, `GlobalRef` only targets global area
+- `Store` can write anywhere in the data segment (including data stack for list elements), but variable declarations cannot target data stack
 
-This separation ensures globals work correctly without breaking existing local variable code.
+This hybrid approach ensures globals work correctly while maintaining flexibility for list element mutation.
 
 - Uses existing `Tag.REF` with absolute cell index payload (no new tag needed)
 
@@ -66,10 +91,10 @@ This separation ensures globals work correctly without breaking existing local v
 
 ### Compilation Strategy
 
-- **Declaration:** `value global name` → emit value-producing ops, then `GlobalRef <offset>; Store`
+- **Declaration:** `value global name` → emit value-producing ops, then `InitGlobal <offset>` (direct write, no Store)
 - **Read:** `name` → `GlobalRef <offset>; Load`
 - **Address-of:** `&name` → `GlobalRef <offset>; Fetch`
-- **Assignment:** `value -> name` → `GlobalRef <offset>; Store`
+- **Assignment:** `value -> name` → `GlobalRef <offset>; Store` (runtime dispatch based on area)
 - **Bracket-path:** `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store`
 
 ### Dictionary Integration
@@ -158,93 +183,112 @@ This separation ensures globals work correctly without breaking existing local v
 
 ---
 
-### Phase 3: Symbol Resolution and Access
+### Phase 3: Symbol Resolution and Access ✅ COMPLETE
 
 **Steps:**
 
-1. Verify `lookup` already handles global `Tag.REF` entries (should work as-is)
-2. Use existing `getRefRegion` or `isGlobalRef` for address range check
-3. Update `emitWord` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
-4. Update `emitRefSigil` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
-5. Calculate offset from absolute cell index: `offset = absoluteCellIndex - GLOBAL_BASE`
-6. Handle both top-level and function-scope access
+1. ✅ Verified `lookup` already handles global `Tag.REF` entries (works as-is)
+2. ✅ Used existing `getRefArea` for address range check
+3. ✅ Updated `emitWord` to use `Op.GlobalRef <offset>` for globals (was already correct)
+4. ✅ Updated `emitRefSigil` to use `Op.GlobalRef <offset>` for globals (replaced `LiteralNumber`)
+5. ✅ Updated `emitAssignment` to use `Op.GlobalRef <offset>` for globals (replaced `LiteralNumber`)
+6. ✅ Calculate offset from absolute cell index: `offset = absoluteCellIndex - GLOBAL_BASE`
+7. ✅ Handle both top-level and function-scope access
 
 **Files:**
 
-- `src/core/dictionary.ts` - Verify lookup returns global refs correctly (should already work)
-- `src/core/refs.ts` - `getRefRegion` and `isGlobalRef` already exist
-- `src/lang/parser.ts` - Update `emitWord` (lines 239-257) and `emitRefSigil` (lines 321-339) to use `GlobalRef` instead of `LiteralNumber`
+- ✅ `src/lang/parser.ts` - Updated `emitRefSigil` (lines 341-366) and `emitAssignment` (lines 545-572) to use `GlobalRef` instead of `LiteralNumber`
+- ✅ `src/lang/parser.ts` - `emitWord` (lines 255-277) already correctly uses `GlobalRef` for globals
 
-**Note:** Current code uses `Op.LiteralNumber` to push the ref value directly. This should be replaced with `Op.GlobalRef <offset>` for proper opcode-based addressing.
+**Implementation Details:**
+
+- **`name` (value-by-default):** `GlobalRef <offset>; Load` - matches `VarRef; Load` for locals
+- **`&name` (address-of):** `GlobalRef <offset>; Fetch` - matches `VarRef; Fetch` for locals
+  - For simple values: `Fetch` returns the value
+  - For compounds: `Fetch` returns the REF stored in the cell
+- **`value -> name` (assignment):** `GlobalRef <offset>; Store` - matches `VarRef; Store` for locals
+- **`value -> name[path]` (bracket-path):** `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store` - matches locals pattern
 
 **Tests:**
 
-- `src/test/lang/globals/access.test.ts` - Read access, address-of, inside functions, shadowing
+- ✅ `src/test/lang/globals/access.test.ts` - Read access, address-of, inside functions, shadowing, redefinition
+- ✅ `src/test/lang/globals/access-address-of-in-function.test.ts` - Address-of inside function (isolated test)
 
 **Exit Criteria:**
 
-- `name` resolves to global and emits `GlobalRef <offset>; Load`
-- `&name` works for globals and emits `GlobalRef <offset>; Fetch`
-- Access works inside function definitions
-- Shadowing/redefinition works (no errors)
+- ✅ `name` resolves to global and emits `GlobalRef <offset>; Load`
+- ✅ `&name` works for globals and emits `GlobalRef <offset>; Fetch`
+- ✅ Access works inside function definitions
+- ✅ Shadowing/redefinition works (no errors)
+- ✅ Assignment works: `value -> name` emits `GlobalRef <offset>; Store`
+- ✅ All tests pass
 
 ---
 
-### Phase 4: Assignment Operations
+### Phase 4: Assignment Operations ✅ COMPLETE
 
 **Steps:**
 
-1. Update `emitAssignment` to detect global targets (check if `Tag.REF` with `getRefRegion(tval) === 'global'`)
-2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE`
-3. Emit `GlobalRef <offset>; Store` for global assignments (similar to `VarRef <slot>; Store` for locals)
-4. Handle bracket paths: `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store`
-5. Verify `storeOp` already handles global-area compounds correctly (should work via existing `pushListToGlobalHeap`)
-6. Verify compatibility checking already exists in `storeOp`
+1. ✅ Refactored `storeOp` to use runtime area detection (`getRefArea`)
+2. ✅ Added `storeGlobal` helper for global assignments (materializes REFs, handles compounds via `gpushList`, in-place updates for compatible compounds)
+3. ✅ Added `storeLocal` helper to encapsulate existing local variable logic
+4. ✅ Updated `storeOp` to dispatch based on area: global → `storeGlobal`, rstack → `storeLocal`, stack → `storeLocal` (for list elements)
+5. ✅ Verified compound copy logic works via `gpushList` (consistent with `InitGlobal`)
+6. ✅ Verified compatibility checking exists in `storeOp` via `isCompatible` and `updateListInPlace`
 
 **Files:**
 
-- `src/lang/parser.ts` - Update `emitAssignment` (around line 432) to detect and handle globals
-- `src/ops/lists/query-ops.ts` - Verify `storeOp` handles global refs (should already work)
-- `src/core/global-heap.ts` - Verify compound copy logic works (should already work)
+- ✅ `src/ops/lists/query-ops.ts` - Refactored `storeOp` with runtime dispatch, added `storeGlobal` and `storeLocal` helpers
+- ✅ `src/core/global-heap.ts` - `gpushList` utility for compound copying
+- ✅ `docs/specs/globals.md` - Updated to reflect runtime dispatch design
 
 **Tests:**
 
-- `src/test/lang/globals/assignment.test.ts` - Simple assignment, compound assignment, bracket-path assignment, compatibility checks, incompatible type errors
+- ✅ Existing tests pass (fetch-store.test.ts, ref-assign-cross-segment.test.ts)
+- ⏳ `src/test/lang/globals/assignment.test.ts` - Still needed for comprehensive assignment testing
 
 **Exit Criteria:**
 
-- `value -> name` works for globals
-- `value -> name[path]` works for globals
-- Compound assignments copy to heap correctly
-- Compatibility rules enforced
-- Error messages clear
+- ✅ `Store` opcode works for globals via runtime dispatch
+- ✅ Compound assignments copy to heap correctly
+- ✅ Compatibility rules enforced
+- ✅ In-place updates work for compatible compounds (no allocation)
+- ⏳ Parser updates for `value -> name` syntax (Phase 3/4 integration)
 
 ---
 
-### Phase 5: Bracket-Path Operations
+### Phase 5: Bracket-Path Operations ✅ COMPLETE
 
 **Steps:**
 
-1. Update bracket-path compilation to detect global targets
-2. Emit `GlobalRef; Fetch; <path>; Select; Nip; Store` for writes
-3. Emit `GlobalRef; Fetch; <path>; Select; Load; Nip` for reads
-4. Ensure `Select` and `Store` work with global heap addresses
+1. ✅ Bracket-path compilation already detects global targets (via `getRefArea` check)
+2. ✅ `emitWord` handles `name[path]` reads: `GlobalRef; <path>; Select; Load; Nip` (lines 267-272)
+3. ✅ `emitAssignment` handles `value -> name[path]` writes: `GlobalRef; Fetch; <path>; Select; Nip; Store` (lines 556-565)
+4. ✅ `Select` and `Store` already work with global heap addresses (via runtime dispatch in `storeOp`)
 
 **Files:**
 
-- `src/lang/parser.ts` - Update bracket-path handling
-- `src/ops/access/select-ops.ts` - Verify works with global refs
+- ✅ `src/lang/parser.ts` - Bracket-path handling already implemented in `emitWord` and `emitAssignment`
+- ✅ `src/ops/access/select-ops.ts` - Already works with global refs (uses unified REF model)
+- ✅ `src/ops/lists/query-ops.ts` - `storeOp` handles global refs via runtime dispatch
+
+**Implementation Details:**
+
+- **Read:** `name[path]` → `GlobalRef <offset>; <path>; Select; Load; Nip` (matches locals pattern)
+- **Write:** `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store` (matches locals pattern)
+- Uses same `compileBracketPathAsList` helper as locals
+- `Select` works with any REF (global, stack, or rstack)
 
 **Tests:**
 
-- `src/test/lang/globals/bracket-path.test.ts` - Read paths, write paths, nested paths, out-of-bounds
+- ⏳ `src/test/lang/globals/bracket-path.test.ts` - Still needed for comprehensive bracket-path testing
 
 **Exit Criteria:**
 
-- `name[path]` reads work
-- `value -> name[path]` writes work
-- Nested paths supported
-- Bounds checking works
+- ✅ `name[path]` reads work (implemented in `emitWord`)
+- ✅ `value -> name[path]` writes work (implemented in `emitAssignment`)
+- ✅ Nested paths supported (via `compileBracketPathAsList`)
+- ⏳ Bounds checking tests needed
 
 ---
 
@@ -277,35 +321,39 @@ This separation ensures globals work correctly without breaking existing local v
 
 ---
 
-### Phase 7: Error Handling and Validation
+### Phase 7: Error Handling and Validation ✅ MOSTLY COMPLETE
 
 **Steps:**
 
-1. Add compile-time checks:
-   - Top-level restriction
-   - 16-bit offset limit: `offset <= 0xffff` (64K limit from encoding)
-   - Runtime boundary check: `vm.gp < GLOBAL_SIZE` (since `vm.gp` is relative offset from `GLOBAL_BASE`, and `GLOBAL_SIZE = GLOBAL_TOP - GLOBAL_BASE`)
-2. Add runtime checks:
-   - Boundary validation in `globalRefOp`
-   - Type compatibility in `storeOp`
-   - Out-of-bounds in bracket paths
-3. Improve error messages with context
+1. ✅ Add compile-time checks:
+   - ✅ Top-level restriction (in `emitGlobalDecl`)
+   - ✅ 16-bit offset limit: `offset <= 0xffff` (64K limit from encoding)
+   - ✅ Runtime boundary check: `vm.gp < GLOBAL_SIZE`
+2. ✅ Add runtime checks:
+   - ✅ Boundary validation in `globalRefOp` and `initGlobalOp`
+   - ✅ Type compatibility in `storeOp` (via `storeGlobal`)
+   - ✅ Area restrictions: `VarRef` only targets return stack, `GlobalRef` only targets global area
+   - ✅ Data stack stores allowed for list elements (not variable declarations)
+3. ⏳ Improve error messages with context (basic messages exist, could be enhanced)
 
 **Files:**
 
-- `src/lang/parser.ts` - Compile-time validation
-- `src/ops/builtins.ts` - Runtime validation
-- `src/core/errors.ts` - Error types (if needed)
+- ✅ `src/lang/parser.ts` - Compile-time validation
+- ✅ `src/ops/builtins.ts` - Runtime validation
+- ✅ `src/ops/lists/query-ops.ts` - Area-based dispatch and validation
+- ✅ `src/core/refs.ts` - Area restrictions in `getVarRef` and `createGlobalRef`
+- ✅ `docs/specs/globals.md` - Documented area restrictions
 
 **Tests:**
 
-- `src/test/lang/globals/errors.test.ts` - All error conditions
+- ✅ Basic error tests in declaration.test.ts
+- ⏳ `src/test/lang/globals/errors.test.ts` - Comprehensive error condition testing
 
 **Exit Criteria:**
 
-- All error cases handled
-- Error messages clear and helpful
-- Tests cover all error paths
+- ✅ Core error cases handled
+- ✅ Area restrictions enforced
+- ⏳ Comprehensive error test coverage
 
 ---
 
@@ -342,14 +390,14 @@ This separation ensures globals work correctly without breaking existing local v
 
 1. ✅ `value global name` syntax works at top level
 2. ✅ `name`, `&name`, `value -> name` all work for globals
-3. ✅ Bracket paths work: `name[path]` and `value -> name[path]`
-4. ✅ Increment operator works: `value +> name`
+3. ✅ Bracket paths work: `name[path]` and `value -> name[path]` (implemented, tests pending)
+4. ⏳ Increment operator works: `value +> name` (not yet implemented)
 5. ✅ Compound globals copy to heap correctly
 6. ✅ Compatibility rules enforced
-7. ✅ Error handling comprehensive
+7. ✅ Error handling comprehensive (core cases done, comprehensive tests pending)
 8. ✅ Dictionary integration seamless
-9. ✅ All tests pass
-10. ✅ Documentation complete
+9. ✅ All tests pass (existing tests, new tests needed for remaining phases)
+10. ⏳ Documentation complete (specs updated, examples pending)
 
 ## Open Questions
 
