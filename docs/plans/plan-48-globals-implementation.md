@@ -47,7 +47,7 @@ This plan implements full global variable support according to `docs/specs/globa
 
 - `GlobalRef` opcode takes 16-bit unsigned offset: `absoluteIndex = GLOBAL_BASE + offset`
 - **Compile-time limit:** Offset must be `[0, 65535]` (16-bit encoding constraint)
-- **Runtime boundary:** `cellIndex >= GLOBAL_BASE && cellIndex < GLOBAL_TOP` (actual area limit)
+- **Runtime boundary:** `cellIndex >= GLOBAL_BASE && cellIndex < GLOBAL_TOP` (actual area limit, exclusive upper bound)
 - Uses existing `Tag.REF` with absolute cell index payload (no new tag needed)
 
 **Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced: compile-time checks the 16-bit limit, runtime checks the `GLOBAL_TOP` boundary.
@@ -69,10 +69,16 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ### Compound Semantics
 
+- **Value semantics:** All assignments to globals create independent copies (never aliases)
 - Stack-originating compounds are copied to global heap via `pushListToGlobalHeap`
 - Global cell stores `Tag.REF` to heap-resident header
 - In-place mutation requires compatible structure (same type, same slot count)
 - Bracket-path operations work on heap-resident compounds
+- **Access patterns:**
+  - `name` (value-by-default): Materializes compound to stack (copy)
+  - `&name` (address-of): Pushes REF (no copy, passes reference)
+- **Assignment:** Always copies compound data, even when source is already in global area
+- **Function calls:** Value-by-default copies; address-of passes REF
 
 ## Implementation Phases
 
@@ -111,7 +117,7 @@ This plan implements full global variable support according to `docs/specs/globa
 3. Add top-level scope check: `if (currentDefinition.current) throw error`
 4. Calculate offset: `offset = vm.gp - GLOBAL_BASE`
 5. Check 16-bit offset limit: `if (offset > 0xffff) throw "Global variable limit exceeded (64K)"`
-6. Check runtime boundary: `if (vm.gp >= GLOBAL_TOP) throw "Global area exhausted"`
+6. Check runtime boundary: `if (vm.gp >= GLOBAL_SIZE) throw "Global area exhausted"` (since `vm.gp` is relative offset, and `GLOBAL_SIZE = GLOBAL_TOP - GLOBAL_BASE`)
 7. Emit value-producing ops (already on stack), then `GlobalRef <offset>; Store`
 8. Register in dictionary: `define(vm, name, createGlobalRef(offset))`
 9. Increment `vm.gp` after successful declaration
@@ -264,7 +270,7 @@ This plan implements full global variable support according to `docs/specs/globa
 1. Add compile-time checks:
    - Top-level restriction
    - 16-bit offset limit: `offset <= 0xffff` (64K limit from encoding)
-   - Runtime boundary check: `vm.gp < GLOBAL_TOP` (actual area limit)
+   - Runtime boundary check: `vm.gp < GLOBAL_SIZE` (since `vm.gp` is relative offset from `GLOBAL_BASE`, and `GLOBAL_SIZE = GLOBAL_TOP - GLOBAL_BASE`)
 2. Add runtime checks:
    - Boundary validation in `globalRefOp`
    - Type compatibility in `storeOp`
