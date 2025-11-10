@@ -26,7 +26,6 @@ import {
   ReturnStackOverflowError,
 } from './errors';
 
-const CELL_SIZE_BYTES = CELL_SIZE;
 
 /**
  * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
@@ -369,15 +368,19 @@ function readAddr(vm: { memory: Memory; IP: number }): number {
  * @param vm - VM instance
  * @param rawBytes - Byte offset to force as BP
  */
-export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
-  if ((rawBytes & (CELL_SIZE_BYTES - 1)) !== 0) {
-    throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
-  }
-  const relativeCells = rawBytes / CELL_SIZE_BYTES;
+export function unsafeSetBP(vm: VM, relativeCells: number): void {
   vm.bp = RSTACK_BASE + relativeCells;
   if (vm.debug) {
     ensureInvariants(vm);
   }
+}
+
+/** @deprecated Use unsafeSetBP instead */
+export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
+  if ((rawBytes & (CELL_SIZE - 1)) !== 0) {
+    throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
+  }
+  unsafeSetBP(vm, rawBytes / CELL_SIZE);
 }
 
 /**

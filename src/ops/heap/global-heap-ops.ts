@@ -25,10 +25,10 @@ import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
 // No reference validation helpers needed in the simplified model
 
-function copyListAtHeader(vm: VM, h: number, hAddr: number): void {
+function copyListAtHeader(vm: VM, h: number, hdr: number): void {
   const n = getListLength(h);
-  const base = hAddr - n * CELL_SIZE;
-  gpushListFrom(vm, { header: h, baseAddrBytes: base });
+  const base = hdr - n;
+  gpushListFrom(vm, { header: h, baseCell: base });
 }
 
 export function gpushOp(vm: VM): void {
@@ -38,9 +38,8 @@ export function gpushOp(vm: VM): void {
   if (isRef(v)) {
     const dv = readRefValue(vm, v);
     if (isList(dv)) {
-      // Deep-copy list referenced by handle directly from memory, then pop handle
-      const hAddr = getByteAddressFromRef(v);
-      copyListAtHeader(vm, dv, hAddr);
+      const hdr = getCellFromRef(v);
+      copyListAtHeader(vm, dv, hdr);
       pop(vm);
       return;
     }
@@ -51,11 +50,10 @@ export function gpushOp(vm: VM): void {
   }
   // Case 1: direct LIST on stack — copy payload+header using stack layout
   if (isList(v)) {
-    // Ensure header and its payload are actually present on the data stack
     validateListHeader(vm);
     const h = v;
-    const hAddr = (vm.sp - 1) * CELL_SIZE;
-    copyListAtHeader(vm, h, hAddr);
+    const hdr = vm.sp - 1;
+    copyListAtHeader(vm, h, hdr);
     dropList(vm);
     return;
   }

@@ -17,8 +17,8 @@ function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
 export type ListSource = {
   /** LIST header value to write at destination */
   header: number;
-  /** Absolute byte address of the first payload cell in the source */
-  baseAddrBytes: number;
+  /** Cell index of the first payload cell in the source */
+  baseCell: number;
 };
 
 /**
@@ -51,8 +51,7 @@ export function gpushListFrom(vm: VM, source: ListSource): number {
   const span = n + 1;
   ensureGlobalCapacity(vm, span);
   const dst = vm.gp;
-  const src = source.baseAddrBytes / CELL_SIZE;
-  copyListPayload(vm, src, GLOBAL_BASE + dst, n);
+  copyListPayload(vm, source.baseCell, GLOBAL_BASE + dst, n);
   const hdr = dst + n;
   vm.memory.writeCell(GLOBAL_BASE + hdr, source.header);
   vm.gp = dst + span;

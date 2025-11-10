@@ -24,7 +24,7 @@ import { rdepth, push, peek, ensureStackSize, rpush } from '../core/vm';
  * Maintains Tacit's stack-native list encoding during transfer.
  *
  * Stack effect: ( list -- ) [transfers to return stack]
- * Returns: byte address of LIST header on return stack
+ * Returns: relative cell index of LIST header on return stack (from RSTACK_BASE)
  *
  * Example:
  * - Data stack: [3, 2, 1, LIST:3] ← TOS
@@ -37,37 +37,34 @@ export function rpushList(vm: VM): number {
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
-    // Compute header byte address from cell-oriented RSP to avoid direct RP usage
-    const headerAddr = rdepth(vm) * CELL_SIZE;
+    const headerCell = rdepth(vm);
     rpush(vm, header);
     dropList(vm);
-    return headerAddr;
+    return headerCell;
   }
 
-  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE) and stream-copy to RSTACK via rpush
   let elementCell = vm.sp - STACK_BASE - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
     const value = vm.memory.readCell(STACK_BASE + elementCell);
     rpush(vm, value);
     elementCell += 1;
   }
-  // Compute header byte address from cell-oriented RSP (RP accessor removed)
-  const headerAddr = rdepth(vm) * CELL_SIZE;
+  const headerCell = rdepth(vm);
   rpush(vm, header);
   dropList(vm);
 
-  return headerAddr;
+  return headerCell;
 }
 
 /**
  * Transfers compound data from return stack back to data stack.
  * Used for materializing compound local variables.
  *
- * Parameters: headerAddr - byte address of LIST header on return stack
+ * Parameters: headerCell - relative cell index of LIST header on return stack (from RSTACK_BASE)
  * Stack effect: ( -- list ) [materializes from return stack]
  */
-export function loadListFromReturn(vm: VM, headerAddr: number): void {
-  const headerCellIndex = RSTACK_BASE + headerAddr / CELL_SIZE;
+export function loadListFromReturn(vm: VM, headerCell: number): void {
+  const headerCellIndex = RSTACK_BASE + headerCell;
   const header = vm.memory.readCell(headerCellIndex);
 
   if (!isList(header)) {
@@ -81,7 +78,6 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
     return;
   }
 
-  const headerCell = headerAddr / CELL_SIZE;
   const baseCell = headerCell - slotCount;
   for (let i = 0; i < slotCount; i++) {
     const element = vm.memory.readCell(RSTACK_BASE + baseCell + i);
@@ -127,9 +123,9 @@ export function isCompatible(existing: number, newValue: number): boolean {
  * - For variable mutation, not initialization
  *
  * @param vm The VM instance
- * @param targetAbsHeaderAddr Absolute byte address of existing compound data header (SEG_DATA)
+ * @param targetHeaderCell Cell index of existing compound data header
  */
-export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
+export function updateListInPlace(vm: VM, targetHeaderCell: number): void {
   ensureStackSize(vm, 1, 'updateListInPlace');
   const header = peek(vm);
 
@@ -139,7 +135,6 @@ export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
 
   validateListHeader(vm);
   const slotCount = getListLength(header);
-  const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const existingHeader = vm.memory.readCell(targetHeaderCell);
   if (!isCompatible(existingHeader, header)) {
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
