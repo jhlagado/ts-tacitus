@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
-import { gpushOp, gpopOp, gpeekOp, gmarkOp, gforgetOp } from '../../../ops/heap';
+import { gpushOp, gpopOp, gpeekOp } from '../../../ops/heap';
 import {
   CELL_SIZE,
   GLOBAL_SIZE,
@@ -82,22 +82,6 @@ describe('Global heap primitives', () => {
     expect(vm.sp - STACK_BASE).toBe(0);
   });
 
-  test('gmark + gforget restore GP to saved mark', () => {
-    push(vm, 11);
-    gpushOp(vm);
-    gmarkOp(vm);
-    const mark = pop(vm);
-
-    push(vm, 22);
-    gpushOp(vm);
-    expect(vm.gp).toBeGreaterThan(mark);
-
-    push(vm, mark);
-    gforgetOp(vm);
-
-    expect(vm.gp).toBe(mark);
-  });
-
   test('gpush resolves REF of simple and copies the value', () => {
     push(vm, 7);
     gpushOp(vm);
@@ -111,34 +95,17 @@ describe('Global heap primitives', () => {
   });
 
   test('gpeek rejects empty heap', () => {
-    // Forget to absolute 0 to simulate empty heap
-    push(vm, 0);
-    gforgetOp(vm);
+    // Set GP to 0 to simulate empty heap
+    vm.gp = 0;
     expect(() => gpeekOp(vm)).toThrow(/empty heap/);
   });
 
   test('gpop throws on empty heap', () => {
-    push(vm, 0);
-    gforgetOp(vm);
+    vm.gp = 0;
     expect(() => gpopOp(vm)).toThrow(/empty heap/);
   });
 
   // gpop no longer accepts input; reference validation tests removed
-
-  test('gforget rejects non-integer marks', () => {
-    push(vm, 0.5);
-    expect(() => gforgetOp(vm)).toThrow(/integer heap mark/);
-  });
-
-  test('gforget rejects out-of-range marks', () => {
-    push(vm, -1);
-    expect(() => gforgetOp(vm)).toThrow(/mark out of range/);
-  });
-
-  test('gforget rejects marks above current heap top', () => {
-    push(vm, vm.gp + 1);
-    expect(() => gforgetOp(vm)).toThrow(/mark out of range/);
-  });
 
   test('gpush reports exhaustion when heap is full', () => {
     const capacity = GLOBAL_SIZE;

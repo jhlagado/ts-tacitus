@@ -113,7 +113,7 @@ import { Op } from './opcodes';
 import { ifFalseBranchOp } from './control';
 import { selectOp } from './access';
 import { isList, rpushList } from './local-vars-transfer';
-import { gpushOp, gpopOp, gpeekOp, gmarkOp, gforgetOp } from './heap';
+import { gpushOp, gpopOp, gpeekOp } from './heap';
 import {
   defineOp,
   lookupOp,
@@ -242,8 +242,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.DumpStackFrame]: dumpFrameOp,
     [Op.Ref]: refOp,
     [Op.Load]: loadOp,
-    [Op.GMark]: gmarkOp,
-    [Op.GForget]: gforgetOp,
     [Op.GPush]: gpushOp,
     [Op.GPop]: gpopOp,
     [Op.GPeek]: gpeekOp,
