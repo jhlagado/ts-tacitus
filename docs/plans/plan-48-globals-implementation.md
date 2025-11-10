@@ -45,9 +45,12 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ### Addressing
 
-- `GlobalRef` opcode takes 16-bit offset: `absoluteIndex = GLOBAL_BASE_CELLS + offset`
-- Runtime validates: `cellIndex >= GLOBAL_BASE_CELLS && cellIndex < GLOBAL_BASE_CELLS + 65536`
+- `GlobalRef` opcode takes 16-bit unsigned offset: `absoluteIndex = GLOBAL_BASE_CELLS + offset`
+- **Compile-time limit:** Offset must be `[0, 65535]` (16-bit encoding constraint)
+- **Runtime boundary:** `cellIndex >= GLOBAL_BASE_CELLS && cellIndex < GLOBAL_TOP_CELLS` (actual area limit)
 - Uses existing `Tag.REF` with absolute cell index payload (no new tag needed)
+
+**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP_CELLS`, which may be smaller. Both constraints are enforced: compile-time checks the 16-bit limit, runtime checks the `GLOBAL_TOP_CELLS` boundary.
 
 ### Compilation Strategy
 
@@ -84,9 +87,8 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Files:**
 
-- `src/core/opcodes.ts` - Add `GlobalRef` opcode
-- `src/ops/builtins.ts` - Implement `globalRefOp` function
-- `src/ops/builtins-register.ts` - Register opcode (if needed)
+- `src/ops/opcodes.ts` - Add `GlobalRef` opcode (after `VarRef`)
+- `src/ops/builtins.ts` - Implement `globalRefOp` function and add to `OPCODE_TO_VERB` table
 
 **Tests:**
 
@@ -104,28 +106,34 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Steps:**
 
-1. Add `global` keyword recognition in tokenizer (if not already present)
-2. Implement `emitGlobalDecl` function in parser
-3. Add top-level scope check (globals only at top level)
-4. Calculate offset from `vm.gp`
-5. Emit `GlobalRef <offset>; Store` sequence
-6. Register in dictionary with `createGlobalRef`
-7. Increment `vm.gp`
+1. Add `global` keyword recognition in tokenizer (check if already present)
+2. Implement `emitGlobalDecl` function in parser (similar to `emitVarDecl`)
+3. Add top-level scope check: `if (currentDefinition.current) throw error`
+4. Calculate offset: `offset = vm.gp - GLOBAL_BASE_CELLS`
+5. Check 16-bit offset limit: `if (offset > 0xffff) throw "Global variable limit exceeded (64K)"`
+6. Check runtime boundary: `if (vm.gp >= GLOBAL_TOP_CELLS) throw "Global area exhausted"`
+7. Emit value-producing ops (already on stack), then `GlobalRef <offset>; Store`
+8. Register in dictionary: `define(vm, name, createGlobalRef(offset))`
+9. Increment `vm.gp` after successful declaration
 
 **Files:**
 
-- `src/lang/parser.ts` - Add `emitGlobalDecl` function
+- `src/lang/parser.ts` - Add `emitGlobalDecl` function (after `emitVarDecl`)
 - `src/lang/tokenizer.ts` - Ensure `global` is recognized (may already be)
+- `src/lang/parser.ts` - Update `emitWord` to call `emitGlobalDecl` when `value === 'global'`
+
+**Note:** `createGlobalRef` takes a relative cell index (offset from GLOBAL_BASE_CELLS), not absolute. The `define` function already exists and can be used to register globals.
 
 **Tests:**
 
-- `src/test/lang/globals/declaration.test.ts` - Simple declarations, compound declarations, top-level restriction, redeclaration errors
+- `src/test/lang/globals/declaration.test.ts` - Simple declarations, compound declarations, top-level restriction, redeclaration (should succeed, not error)
 
 **Exit Criteria:**
 
 - `value global name` syntax works
 - Simple and compound declarations succeed
 - Top-level restriction enforced
+- Redeclaration allowed (replaces previous definition)
 - Dictionary entries created correctly
 
 ---
@@ -134,17 +142,20 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Steps:**
 
-1. Update `lookup` to handle global `Tag.REF` entries
-2. Implement address range check (`getRefRegion` or similar)
-3. Update `emitWord` to emit `GlobalRef; Load` for globals
-4. Update `emitRefSigil` to emit `GlobalRef; Fetch` for globals
-5. Handle both top-level and function-scope access
+1. Verify `lookup` already handles global `Tag.REF` entries (should work as-is)
+2. Use existing `getRefRegion` or `isGlobalRef` for address range check
+3. Update `emitWord` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
+4. Update `emitRefSigil` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
+5. Calculate offset from absolute cell index: `offset = absoluteCellIndex - GLOBAL_BASE_CELLS`
+6. Handle both top-level and function-scope access
 
 **Files:**
 
-- `src/core/dictionary.ts` - Ensure lookup returns global refs correctly
-- `src/core/refs.ts` - Verify `getRefRegion` works for globals
-- `src/lang/parser.ts` - Update `emitWord` and `emitRefSigil`
+- `src/core/dictionary.ts` - Verify lookup returns global refs correctly (should already work)
+- `src/core/refs.ts` - `getRefRegion` and `isGlobalRef` already exist
+- `src/lang/parser.ts` - Update `emitWord` (lines 239-257) and `emitRefSigil` (lines 321-339) to use `GlobalRef` instead of `LiteralNumber`
+
+**Note:** Current code uses `Op.LiteralNumber` to push the ref value directly. This should be replaced with `Op.GlobalRef <offset>` for proper opcode-based addressing.
 
 **Tests:**
 
@@ -152,10 +163,10 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Exit Criteria:**
 
-- `name` resolves to global and emits correct bytecode
-- `&name` works for globals
+- `name` resolves to global and emits `GlobalRef <offset>; Load`
+- `&name` works for globals and emits `GlobalRef <offset>; Fetch`
 - Access works inside function definitions
-- Shadowing rules enforced
+- Shadowing/redefinition works (no errors)
 
 ---
 
@@ -163,24 +174,27 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Steps:**
 
-1. Update `emitAssignment` to detect global targets
-2. Emit `GlobalRef <offset>; Store` for global assignments
-3. Ensure `Store` handles global-area compounds correctly
-4. Add compatibility checking for compound reassignments
+1. Update `emitAssignment` to detect global targets (check if `Tag.REF` with `getRefRegion(tval) === 'global'`)
+2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE_CELLS`
+3. Emit `GlobalRef <offset>; Store` for global assignments (similar to `VarRef <slot>; Store` for locals)
+4. Handle bracket paths: `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store`
+5. Verify `storeOp` already handles global-area compounds correctly (should work via existing `pushListToGlobalHeap`)
+6. Verify compatibility checking already exists in `storeOp`
 
 **Files:**
 
-- `src/lang/parser.ts` - Update `emitAssignment`
-- `src/ops/lists/query-ops.ts` - Verify `storeOp` handles global refs
-- `src/core/global-heap.ts` - Ensure compound copy logic works
+- `src/lang/parser.ts` - Update `emitAssignment` (around line 432) to detect and handle globals
+- `src/ops/lists/query-ops.ts` - Verify `storeOp` handles global refs (should already work)
+- `src/core/global-heap.ts` - Verify compound copy logic works (should already work)
 
 **Tests:**
 
-- `src/test/lang/globals/assignment.test.ts` - Simple assignment, compound assignment, compatibility checks, incompatible type errors
+- `src/test/lang/globals/assignment.test.ts` - Simple assignment, compound assignment, bracket-path assignment, compatibility checks, incompatible type errors
 
 **Exit Criteria:**
 
 - `value -> name` works for globals
+- `value -> name[path]` works for globals
 - Compound assignments copy to heap correctly
 - Compatibility rules enforced
 - Error messages clear
@@ -218,24 +232,27 @@ This plan implements full global variable support according to `docs/specs/globa
 
 **Steps:**
 
-1. Update `emitIncrementOp` to detect global targets
-2. Emit `GlobalRef; Swap; Over; Fetch; Add; Swap; Store` sequence
-3. Support bracket paths: `value +> name[path]`
-4. Remove locals-only restriction
+1. Update `emitIncrement` to detect global targets (check if `Tag.REF` with `getRefRegion(tval) === 'global'`)
+2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE_CELLS`
+3. Remove top-level restriction: allow `+>` at top level for globals
+4. Emit `GlobalRef <offset>; Swap; Over; Fetch; Add; Swap; Store` sequence (mirrors `VarRef` sequence)
+5. Support bracket paths: `value +> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Swap; Over; Fetch; Add; Swap; Store`
+6. Remove locals-only restriction check (line 527: `if (tag !== Tag.LOCAL)` should also allow globals)
 
 **Files:**
 
-- `src/lang/parser.ts` - Update `emitIncrementOp`
-- Remove any locals-only checks
+- `src/lang/parser.ts` - Update `emitIncrement` (around line 502) to detect and handle globals
+
+**Note:** Currently `emitIncrement` only allows locals and throws error for non-locals. Need to add global support.
 
 **Tests:**
 
-- `src/test/lang/globals/increment.test.ts` - Simple increment, bracket-path increment
+- `src/test/lang/globals/increment.test.ts` - Simple increment, bracket-path increment, top-level increment
 
 **Exit Criteria:**
 
-- `value +> name` works for globals
-- Bracket paths work
+- `value +> name` works for globals (both inside functions and at top level)
+- Bracket paths work: `value +> name[path]`
 - No locals-only restriction
 
 ---
@@ -246,8 +263,8 @@ This plan implements full global variable support according to `docs/specs/globa
 
 1. Add compile-time checks:
    - Top-level restriction
-   - 64K limit check
-   - Redeclaration detection
+   - 16-bit offset limit: `offset <= 0xffff` (64K limit from encoding)
+   - Runtime boundary check: `vm.gp < GLOBAL_TOP_CELLS` (actual area limit)
 2. Add runtime checks:
    - Boundary validation in `globalRefOp`
    - Type compatibility in `storeOp`
@@ -316,10 +333,10 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ## Open Questions
 
-1. **Scope tracking:** Do we need explicit `vm.scopeDepth` or can we infer from `currentDefinition.current`?
-2. **Dictionary persistence:** Should global dictionary entries survive VM reset? (Spec says yes for soft reset)
-3. **Performance:** Any optimizations needed for dictionary lookup of globals?
-4. **Debugging:** Should we add inspection utilities for globals?
+1. **Scope tracking:** Use `currentDefinition.current` to detect top-level (null = top level, non-null = inside function)
+2. **Dictionary persistence:** Global dictionary entries survive VM reset per spec (soft reset preserves heap)
+3. **Performance:** Dictionary lookup is O(n) but compile-time only; runtime uses fixed offsets
+4. **Debugging:** Consider adding inspection utilities for globals in future
 
 ## Dependencies
 

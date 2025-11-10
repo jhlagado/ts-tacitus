@@ -9,11 +9,11 @@ import { lookup } from './dictionary';
 import {
   SEG_CODE,
   CELL_SIZE,
-  STACK_BASE_CELLS,
-  STACK_TOP_CELLS,
-  RSTACK_BASE_CELLS,
-  RSTACK_TOP_CELLS,
-  GLOBAL_BASE_CELLS,
+  STACK_BASE,
+  STACK_TOP,
+  RSTACK_BASE,
+  RSTACK_TOP,
+  GLOBAL_BASE,
   GLOBAL_SIZE_CELLS,
 } from './constants';
 import { fromTaggedValue, isNIL } from './tagged';
@@ -84,9 +84,9 @@ export function createVM(useCache = true): VM {
         memory,
         IP: 0,
         running: true,
-        sp: STACK_BASE_CELLS,
-        rsp: RSTACK_BASE_CELLS,
-        bp: RSTACK_BASE_CELLS,
+        sp: STACK_BASE,
+        rsp: RSTACK_BASE,
+        bp: RSTACK_BASE,
         gp: 0,
         digest,
         debug: false,
@@ -107,9 +107,9 @@ export function createVM(useCache = true): VM {
       // Reset registers to initial state, restore dictionary to builtin snapshot
       cachedTestVM.IP = 0;
       cachedTestVM.running = true;
-      cachedTestVM.sp = STACK_BASE_CELLS;
-      cachedTestVM.rsp = RSTACK_BASE_CELLS;
-      cachedTestVM.bp = RSTACK_BASE_CELLS;
+      cachedTestVM.sp = STACK_BASE;
+      cachedTestVM.rsp = RSTACK_BASE;
+      cachedTestVM.bp = RSTACK_BASE;
       cachedTestVM.debug = false;
       cachedTestVM.listDepth = 0;
       cachedTestVM.localCount = 0;
@@ -127,9 +127,9 @@ export function createVM(useCache = true): VM {
     memory,
     IP: 0,
     running: true,
-    sp: STACK_BASE_CELLS,
-    rsp: RSTACK_BASE_CELLS,
-    bp: RSTACK_BASE_CELLS,
+    sp: STACK_BASE,
+    rsp: RSTACK_BASE,
+    bp: RSTACK_BASE,
     gp: 0,
     digest,
     debug: false,
@@ -151,7 +151,7 @@ export function createVM(useCache = true): VM {
  * @throws {StackOverflowError} If stack overflow occurs
  */
 export function push(vm: VM, value: number): void {
-  if (vm.sp >= STACK_TOP_CELLS) {
+  if (vm.sp >= STACK_TOP) {
     throw new StackOverflowError('push', getStackData(vm));
   }
 
@@ -170,7 +170,7 @@ export function push(vm: VM, value: number): void {
  * @throws {StackUnderflowError} If stack underflow occurs
  */
 export function pop(vm: VM): number {
-  if (vm.sp <= STACK_BASE_CELLS) {
+  if (vm.sp <= STACK_BASE) {
     throw new StackUnderflowError('pop', 1, getStackData(vm));
   }
 
@@ -189,7 +189,7 @@ export function pop(vm: VM): number {
  * @throws {StackUnderflowError} If stack is empty
  */
 export function peek(vm: VM): number {
-  if (vm.sp <= STACK_BASE_CELLS) {
+  if (vm.sp <= STACK_BASE) {
     throw new StackUnderflowError('peek', 1, getStackData(vm));
   }
 
@@ -204,7 +204,7 @@ export function peek(vm: VM): number {
  * @throws {ReturnStackOverflowError} If return stack overflow occurs
  */
 export function rpush(vm: VM, value: number): void {
-  if (vm.rsp >= RSTACK_TOP_CELLS) {
+  if (vm.rsp >= RSTACK_TOP) {
     throw new ReturnStackOverflowError('rpush', getStackData(vm));
   }
 
@@ -223,7 +223,7 @@ export function rpush(vm: VM, value: number): void {
  * @throws {ReturnStackUnderflowError} If return stack underflow occurs
  */
 export function rpop(vm: VM): number {
-  if (vm.rsp <= RSTACK_BASE_CELLS) {
+  if (vm.rsp <= RSTACK_BASE) {
     throw new ReturnStackUnderflowError('rpop', getStackData(vm));
   }
 
@@ -242,9 +242,9 @@ export function rpop(vm: VM): number {
  */
 export function getStackData(vm: VM): number[] {
   const stackData: number[] = [];
-  const depthCells = vm.sp - STACK_BASE_CELLS;
+  const depthCells = vm.sp - STACK_BASE;
   for (let i = 0; i < depthCells; i += 1) {
-    stackData.push(vm.memory.readCell(STACK_BASE_CELLS + i));
+    stackData.push(vm.memory.readCell(STACK_BASE + i));
   }
 
   return stackData;
@@ -259,7 +259,7 @@ export function getStackData(vm: VM): number[] {
  * @throws {StackUnderflowError} If insufficient stack elements
  */
 export function ensureStackSize(vm: VM, size: number, operation: string): void {
-  if (vm.sp - STACK_BASE_CELLS < size) {
+  if (vm.sp - STACK_BASE < size) {
     throw new StackUnderflowError(operation, size, getStackData(vm));
   }
 }
@@ -304,10 +304,10 @@ function _checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): voi
   if (!Number.isInteger(vm.gp)) {
     throw new Error('Invariant violation: non-integer global pointer');
   }
-  if (vm.sp < STACK_BASE_CELLS || vm.sp > STACK_TOP_CELLS) {
+  if (vm.sp < STACK_BASE || vm.sp > STACK_TOP) {
     throw new Error('Invariant violation: SP outside stack segment');
   }
-  if (vm.rsp < RSTACK_BASE_CELLS || vm.rsp > RSTACK_TOP_CELLS) {
+  if (vm.rsp < RSTACK_BASE || vm.rsp > RSTACK_TOP) {
     throw new Error('Invariant violation: RSP outside return stack segment');
   }
   if (vm.bp > vm.rsp) {
@@ -374,7 +374,7 @@ export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
     throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
   }
   const relativeCells = rawBytes / CELL_SIZE_BYTES;
-  vm.bp = RSTACK_BASE_CELLS + relativeCells;
+  vm.bp = RSTACK_BASE + relativeCells;
   if (vm.debug) {
     ensureInvariants(vm);
   }
@@ -389,7 +389,7 @@ export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
  * @throws {StackUnderflowError} If stack underflow occurs
  */
 export function popArray(vm: VM, size: number): number[] {
-  if (vm.sp - STACK_BASE_CELLS < size) {
+  if (vm.sp - STACK_BASE < size) {
     throw new StackUnderflowError('popArray', size, getStackData(vm));
   }
 
@@ -410,7 +410,7 @@ export function popArray(vm: VM, size: number): number[] {
  * @throws {ReturnStackUnderflowError} If insufficient return stack elements
  */
 export function ensureRStackSize(vm: VM, size: number, operation: string): void {
-  if (vm.rsp - RSTACK_BASE_CELLS < size) {
+  if (vm.rsp - RSTACK_BASE < size) {
     throw new ReturnStackUnderflowError(operation, getStackData(vm));
   }
 }
@@ -435,7 +435,7 @@ export function nextAddress(vm: VM): number {
  */
 export function peekAt(vm: VM, slotOffset: number): number {
   const requiredCells = slotOffset + 1;
-  if (vm.sp - STACK_BASE_CELLS < requiredCells) {
+  if (vm.sp - STACK_BASE < requiredCells) {
     throw new StackUnderflowError('peekAt', requiredCells, getStackData(vm));
   }
 
@@ -452,7 +452,7 @@ export function gpush(vm: VM, value: number): void {
   if (vm.gp >= GLOBAL_SIZE_CELLS) {
     throw new Error('gpush on full heap');
   }
-  vm.memory.writeCell(GLOBAL_BASE_CELLS + vm.gp, value);
+  vm.memory.writeCell(GLOBAL_BASE + vm.gp, value);
   vm.gp += 1;
 }
 
@@ -466,7 +466,7 @@ export function gpeek(vm: VM): number {
   if (vm.gp === 0) {
     throw new Error('gpeek on empty heap');
   }
-  return vm.memory.readCell(GLOBAL_BASE_CELLS + vm.gp - 1);
+  return vm.memory.readCell(GLOBAL_BASE + vm.gp - 1);
 }
 
 /**
@@ -480,7 +480,7 @@ export function gpop(vm: VM): number {
     throw new Error('gpop on empty heap');
   }
   vm.gp -= 1;
-  return vm.memory.readCell(GLOBAL_BASE_CELLS + vm.gp);
+  return vm.memory.readCell(GLOBAL_BASE + vm.gp);
 }
 
 /**
@@ -540,7 +540,7 @@ export function nextUint16(vm: VM): number {
  * @returns Stack depth in cells
  */
 export function depth(vm: VM): number {
-  return vm.sp - STACK_BASE_CELLS;
+  return vm.sp - STACK_BASE;
 }
 
 /**
@@ -550,7 +550,7 @@ export function depth(vm: VM): number {
  * @returns Return stack depth in cells
  */
 export function rdepth(vm: VM): number {
-  return vm.rsp - RSTACK_BASE_CELLS;
+  return vm.rsp - RSTACK_BASE;
 }
 
 /**
@@ -572,10 +572,10 @@ export function ensureInvariants(vm: VM): void {
   if (!Number.isInteger(vm.gp)) {
     throw new Error('Invariant violation: non-integer global pointer');
   }
-  if (vm.sp < STACK_BASE_CELLS || vm.sp > STACK_TOP_CELLS) {
+  if (vm.sp < STACK_BASE || vm.sp > STACK_TOP) {
     throw new Error('Invariant violation: SP outside stack segment');
   }
-  if (vm.rsp < RSTACK_BASE_CELLS || vm.rsp > RSTACK_TOP_CELLS) {
+  if (vm.rsp < RSTACK_BASE || vm.rsp > RSTACK_TOP) {
     throw new Error('Invariant violation: RSP outside return stack segment');
   }
   if (vm.bp > vm.rsp) {
