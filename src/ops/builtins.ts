@@ -19,6 +19,8 @@ import {
   GLOBAL_BASE,
   GLOBAL_TOP,
   createGlobalRef,
+  pushListToGlobalHeap,
+  getListLength,
 } from '@src/core';
 import {
   nextUint16,
@@ -237,6 +239,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.InitVar]: initVarOp,
     [Op.VarRef]: varRefOp,
     [Op.GlobalRef]: globalRefOp,
+    [Op.InitGlobal]: initGlobalOp,
     [Op.DumpStackFrame]: dumpFrameOp,
     [Op.Ref]: refOp,
     [Op.Load]: loadOp,
@@ -352,6 +355,51 @@ export function globalRefOp(vm: VM): void {
   }
 
   push(vm, createGlobalRef(offset));
+}
+
+/**
+ * InitGlobal opcode: Initializes a global variable slot with value from stack.
+ * Similar to InitVar for locals, but for globals.
+ * Stack: ( value -- )
+ * Reads 16-bit unsigned offset from bytecode.
+ * Directly writes value to global cell (no Store opcode, no compatibility checks).
+ */
+export function initGlobalOp(vm: VM): void {
+  const offset = nextUint16(vm);
+  ensureStackSize(vm, 1, 'InitGlobal');
+
+  const value = peek(vm);
+  const absoluteCellIndex = GLOBAL_BASE + offset;
+
+  // Runtime boundary validation
+  if (absoluteCellIndex < GLOBAL_BASE || absoluteCellIndex >= GLOBAL_TOP) {
+    throw new Error(
+      `InitGlobal: offset ${offset} results in cell index ${absoluteCellIndex} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
+    );
+  }
+
+  if (isList(value)) {
+    // For compounds, we need to copy to global heap and store REF
+    // This matches InitVar's behavior for compounds
+    const header = value;
+    const slotCount = getListLength(header);
+    const headerCellIndex = vm.sp - 1;
+    const baseCellIndex = headerCellIndex - slotCount;
+    const baseAddrBytes = baseCellIndex * CELL_SIZE;
+
+    const heapRef = pushListToGlobalHeap(vm, { header, baseAddrBytes });
+
+    // Drop the original list from the data stack
+    for (let i = 0; i < slotCount + 1; i++) {
+      pop(vm);
+    }
+
+    // Write the REF to the global cell
+    vm.memory.writeCell(absoluteCellIndex, heapRef);
+  } else {
+    const simpleValue = pop(vm);
+    vm.memory.writeCell(absoluteCellIndex, simpleValue);
+  }
 }
 
 /**

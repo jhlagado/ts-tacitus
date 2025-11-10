@@ -3,26 +3,40 @@
  * Read-only and address-returning list operations (segment-aware).
  */
 
-import type {
-  VM } from '@src/core';
 import {
+  type VM,
   fromTaggedValue,
   toTaggedValue,
   Tag,
   NIL,
+  isNIL,
   dropList,
   pushListToGlobalHeap,
+  getListLength,
+  isList,
+  CELL_SIZE,
+  STACK_BASE_BYTES,
+  GLOBAL_BASE_BYTES,
+  RSTACK_BASE_BYTES,
+  isRef,
+  createRef,
+  getAbsoluteCellIndexFromRef,
+  readRefValue,
+  areValuesEqual,
+  getTag,
 } from '@src/core';
-import { getListLength, isList } from '@src/core';
-import { CELL_SIZE, SEG_DATA, STACK_BASE_BYTES, GLOBAL_BASE_BYTES, RSTACK_BASE_BYTES } from '@src/core';
 import { getListBounds } from './core-helpers';
-import { isRef, createRef, getAbsoluteCellIndexFromRef, readRefValue } from '@src/core';
 import { dropOp } from '../stack';
 import { isCompatible, updateListInPlace } from '../local-vars-transfer';
-import { areValuesEqual, getTag } from '@src/core';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 // (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
+/**
+ * length: Returns the number of payload slots in a list.
+ * Stack: ( list -- count ) or ( x -- NIL )
+ * - If input is a list: returns slot count (number of payload elements)
+ * - If input is not a list: returns NIL
+ */
 export function lengthOp(vm: VM): void {
   ensureStackSize(vm, 1, 'length');
   const value = peek(vm);
@@ -37,6 +51,12 @@ export function lengthOp(vm: VM): void {
   push(vm, slotCount);
 }
 
+/**
+ * size: Returns the number of logical elements in a list (counting nested lists as single elements).
+ * Stack: ( list -- count ) or ( x -- NIL )
+ * - If input is a list: returns element count (nested lists count as 1)
+ * - If input is not a list: returns NIL
+ */
 export function sizeOp(vm: VM): void {
   ensureStackSize(vm, 1, 'size');
   const value = peek(vm);
@@ -67,6 +87,12 @@ export function sizeOp(vm: VM): void {
   push(vm, elementCount);
 }
 
+/**
+ * slot: Returns a REF to the payload slot at the given index.
+ * Stack: ( list idx -- ref ) or ( x idx -- NIL )
+ * - If input is a list and idx is valid [0, slotCount): returns REF to slot at idx
+ * - Otherwise: returns NIL
+ */
 export function slotOp(vm: VM): void {
   ensureStackSize(vm, 2, 'slot');
   const { value: idx } = fromTaggedValue(pop(vm));
@@ -88,6 +114,13 @@ export function slotOp(vm: VM): void {
   push(vm, createRef(absCellIndex));
 }
 
+/**
+ * elem: Returns a REF to the logical element at the given index (counting nested lists as single elements).
+ * Stack: ( list idx -- ref ) or ( x idx -- NIL )
+ * - If input is a list and idx is valid: returns REF to element at logical index idx
+ * - Otherwise: returns NIL
+ * - Nested lists count as single elements
+ */
 export function elemOp(vm: VM): void {
   ensureStackSize(vm, 2, 'elem');
   const { value: idx } = fromTaggedValue(pop(vm));
@@ -129,6 +162,13 @@ export function elemOp(vm: VM): void {
   push(vm, NIL);
 }
 
+/**
+ * fetch: Strict address read (single-level dereference with list materialization).
+ * Stack: ( ref -- value... header ) or ( ref -- value )
+ * - Reads value at address (single dereference)
+ * - If value is a LIST header: materializes payload slots + header to stack
+ * - Otherwise: pushes value unchanged
+ */
 export function fetchOp(vm: VM): void {
   ensureStackSize(vm, 1, 'fetch');
   const addressValue = pop(vm);
@@ -178,16 +218,21 @@ export function loadOp(vm: VM): void {
   }
 
   // Materialize if final value is a LIST header
+  // Debug: check if value is actually a list
   if (isList(value)) {
     const slotCount = getListLength(value);
+    // Read payload slots (they are stored before the header)
+    // Use same formula as fetchOp: addr2Cell - (i + 1)
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readCell(addr2Cell - (i + 1));
+      const payloadCellIndex = addr2Cell - (i + 1);
+      const slotValue = vm.memory.readCell(payloadCellIndex);
       push(vm, slotValue);
     }
-    push(vm, value);
+    push(vm, value); // Push header last (TOS)
     return;
   }
 
+  // If we get here, value is not a list - just push it
   push(vm, value);
 }
 
@@ -200,7 +245,7 @@ type SlotInfo = {
   existingValue: number;
   rootAbsAddr: number;
   resolvedAbsAddr: number;
-}
+};
 
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   // Absolute-only resolution of slot location and (optional) one-level indirection
@@ -285,7 +330,8 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   const rhsTag = getTag(rhsValue);
   const slotCount = getListLength(rhsInfoAbs.header);
-  const existingIsCompound = isList(slot.existingValue);
+  // Treat NIL (0) or uninitialized as non-compound for new globals
+  const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
 
   if (!existingIsCompound) {
     // Prefer absolute address window over legacy segment label
@@ -323,7 +369,8 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   }
 
   const valueIsCompound = isList(value);
-  const existingIsCompound = isList(slot.existingValue);
+  // Treat NIL (0) or uninitialized as non-compound for new globals
+  const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     pop(vm);
     vm.memory.writeCell(slot.rootAbsAddr / CELL_SIZE, value);
@@ -334,6 +381,15 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   throw new Error('Cannot assign simple to compound or compound to simple');
 }
 
+/**
+ * store: Writes value to memory address (designed for local variables).
+ * Stack: ( value ref -- )
+ * - Pops address (REF) and value
+ * - Writes value to address (handles compounds by copying to appropriate area)
+ * - For compounds: copies to heap/stack area and stores REF
+ * - For simple values: writes directly
+ * - Note: Designed for local variables; uses resolveSlot which assumes local semantics
+ */
 export function storeOp(vm: VM): void {
   ensureStackSize(vm, 2, 'store');
   const addressValue = pop(vm);
@@ -369,7 +425,7 @@ export function walkOp(vm: VM): void {
   const { value: idx } = fromTaggedValue(pop(vm));
   const target = peek(vm);
   const info = getListBounds(vm, target);
-  if (!info || Tag.LIST !== Tag.LIST) {
+  if (!info || !isList(info.header)) {
     // Leave target, push idx (reset) and NIL
     push(vm, 0);
     push(vm, NIL);
@@ -395,6 +451,13 @@ export function walkOp(vm: VM): void {
   }
 }
 
+/**
+ * find: Finds a key-value pair in a maplist and returns REF to the value.
+ * Stack: ( list key -- ref ) or ( x key -- NIL )
+ * - If input is a maplist (even slot count) and key is found: returns REF to value
+ * - If key not found but 'default' key exists: returns REF to default value
+ * - Otherwise: returns NIL
+ */
 export function findOp(vm: VM): void {
   ensureStackSize(vm, 2, 'find');
   const key = pop(vm);
@@ -436,6 +499,13 @@ export function findOp(vm: VM): void {
   push(vm, NIL);
 }
 
+/**
+ * keys: Extracts all keys from a maplist.
+ * Stack: ( maplist -- keys_list ) or ( x -- NIL )
+ * - If input is a maplist (even slot count): returns list of keys
+ * - If input is empty maplist: returns empty list
+ * - Otherwise: returns NIL
+ */
 export function keysOp(vm: VM): void {
   ensureStackSize(vm, 1, 'keys');
   const target = peek(vm);
@@ -467,6 +537,13 @@ export function keysOp(vm: VM): void {
   push(vm, toTaggedValue(keyCount, Tag.LIST));
 }
 
+/**
+ * values: Extracts all values from a maplist.
+ * Stack: ( maplist -- values_list ) or ( x -- NIL )
+ * - If input is a maplist (even slot count): returns list of values
+ * - If input is empty maplist: returns empty list
+ * - Otherwise: returns NIL
+ */
 export function valuesOp(vm: VM): void {
   ensureStackSize(vm, 1, 'values');
   const target = peek(vm);
@@ -498,6 +575,12 @@ export function valuesOp(vm: VM): void {
   push(vm, toTaggedValue(valueCount, Tag.LIST));
 }
 
+/**
+ * ref: Creates a REF to the list header on top of stack.
+ * Stack: ( list -- ref ) or ( x -- x )
+ * - If input is a LIST header: replaces it with REF to header cell
+ * - Otherwise: leaves value unchanged (identity)
+ */
 export function refOp(vm: VM): void {
   ensureStackSize(vm, 1, 'ref');
   const value = peek(vm);

@@ -210,37 +210,34 @@ it emits bytecode equivalent to:
 
 ```
 <value-emission>
-GlobalRef <offset>
-Store
+InitGlobal <offset>
 ```
 
 Runtime behaviour:
 
 1. **Value**: top-of-stack holds the value to assign — simple or compound.
-2. **Address creation**: `GlobalRef` constructs a `Tag.REF` to the cell at `GLOBAL_BASE + offset`.
-3. **Write**: `Store` pops the value and writes it to that cell.
+2. **Write**: `InitGlobal` pops the value and writes it directly to the global cell at `GLOBAL_BASE + offset`.
    - If the value is simple → copied directly.
    - If compound → copied to the global heap, and the cell receives a `REF` to the new header.
 
-4. **Dictionary registration**: compiler records `name` → `Tag.REF(globalCellIndex)` so later references to `name` emit `GlobalRef <offset>`.
-5. **Advance pointer**: `GP` increments by one cell to mark the next free slot.
+3. **Dictionary registration**: compiler records `name` → `Tag.REF(globalCellIndex)` so later references to `name` emit `GlobalRef <offset>`.
+4. **Advance pointer**: `GP` increments by one cell to mark the next free slot.
 
 ### 3.3 Compiler Path (pseudo-implementation)
 
 ```typescript
 function compileGlobal(vm, tokenName, valueExpr) {
   if (vm.scopeDepth > 0) throw new Error('Global declarations only allowed at top level');
-  const offset = vm.gp - GLOBAL_BASE;
+  const offset = vm.gp;
   // Check 16-bit offset limit (compile-time constraint)
   if (offset > 0xffff) throw new Error('Global variable limit exceeded (64K)');
   // Check runtime boundary (may be smaller than 64K)
   if (vm.gp >= GLOBAL_TOP) throw new Error('Global area exhausted');
-  vm.gp += 1;
+  vm.gp += 1; // Reserve global cell
   compile(valueExpr); // emit value-producing ops
-  emit(Op.GlobalRef);
+  emit(Op.InitGlobal);
   emit16(offset);
-  emit(Op.Store);
-  const globalRef = createRef(GLOBAL_BASE + offset);
+  const globalRef = createGlobalRef(offset);
   define(vm, tokenName, globalRef); // dictionary entry
 }
 ```
@@ -265,14 +262,13 @@ LiteralNumber 1
 LiteralNumber 2
 LiteralNumber 3
 CloseList
-GlobalRef <offset>
-Store
+InitGlobal <offset>
 ```
 
 Runtime:
 
 1. The list `(1 2 3)` exists temporarily on the data stack.
-2. `Store` detects that the destination address is in the global area.
+2. `InitGlobal` detects that the value is a compound (list header).
 3. The VM copies the list's header and payload into the global area using the same contiguous layout rules as lists on the stack.
 4. A new `Tag.REF` to that header is written into the global cell.
 5. The temporary stack copy is dropped.
@@ -373,7 +369,56 @@ This persistence design aligns globals with the VM's module system: a compiled m
 
 ## 5. Opcodes and Lowering
 
-### 5.1 `GlobalRef` — Reference to Global Heap Cell
+### 5.1 `InitGlobal` — Initialize Global Variable
+
+**Opcode:** `Op.InitGlobal`
+**Operands:** 16-bit unsigned integer `offset`
+**Stack Effect:** `( value — )`
+
+**Purpose**
+Initializes a global variable slot with a value from the stack. Similar to `InitVar` for locals, but for globals. Directly writes to the global cell without using `Store` opcode.
+
+**Semantics**
+
+1. Read `offset` (u16) from bytecode stream.
+2. Compute `absoluteIndex = GLOBAL_BASE + offset`.
+3. Peek at value on stack (don't pop yet).
+4. If value is a compound (list):
+   - Calculate list bounds from stack (`vm.sp - 1` for header, `vm.sp - 1 - slotCount` for base)
+   - Copy list to global heap via `pushListToGlobalHeap`
+   - Pop list from stack (header + payload)
+   - Write `REF` to global cell
+5. If value is simple:
+   - Pop value from stack
+   - Write directly to global cell
+
+**Implementation Sketch**
+
+```typescript
+function initGlobalOp(vm) {
+  const offset = nextUint16(vm);
+  const value = peek(vm);
+  const absoluteIndex = GLOBAL_BASE + offset;
+
+  if (isList(value)) {
+    const slotCount = getListLength(value);
+    const headerCellIndex = vm.sp - 1;
+    const baseCellIndex = headerCellIndex - slotCount;
+    const baseAddrBytes = baseCellIndex * CELL_SIZE;
+    const heapRef = pushListToGlobalHeap(vm, { header: value, baseAddrBytes });
+    // Drop list from stack
+    for (let i = 0; i < slotCount + 1; i++) pop(vm);
+    vm.memory.writeCell(absoluteIndex, heapRef);
+  } else {
+    const simpleValue = pop(vm);
+    vm.memory.writeCell(absoluteIndex, simpleValue);
+  }
+}
+```
+
+**Note:** This opcode is used only for initial declarations (`value global name`). Assignment to existing globals uses `GlobalRef; Store` (see section 5.5).
+
+### 5.2 `GlobalRef` — Reference to Global Heap Cell
 
 **Opcode:** `Op.GlobalRef`
 **Operands:** 16-bit unsigned integer `offset`
@@ -412,7 +457,7 @@ function opGlobalRef(vm) {
 
 **Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced.
 
-### 5.2 Read (Value-By-Default)
+### 5.3 Read (Value-By-Default)
 
 **Surface Form:** `name`
 **Stack Effect:** `( — value )`
@@ -430,7 +475,7 @@ Load
 - `Load` dereferences once or twice and materializes if it encounters a compound header.
   This matches locals’ behaviour exactly.
 
-### 5.3 Address-Of (Strict Fetch)
+### 5.4 Address-Of (Strict Fetch)
 
 **Surface Form:** `&name`
 **Stack Effect:** `( — value )`
@@ -448,7 +493,7 @@ Fetch
 - Returns a simple value or a `Tag.REF` for compound globals.
   Useful for bracket-path destinations or explicit address manipulation.
 
-### 5.4 Assignment
+### 5.5 Assignment
 
 **Surface Form:** `value -> name`
 **Stack Effect:** `( value — )`
@@ -467,7 +512,7 @@ Store
 - If `value` is a compound originating on the stack → copy it into the global heap before writing a new `Tag.REF` to the header.
 - If incompatible types (`simple`→`compound` or mismatch in compound slot count) → throw `"Incompatible type for reassignment"`.
 
-### 5.5 Increment Operator
+### 5.6 Increment Operator
 
 **Surface Form:** `value +> name`
 **Stack Effect:** `( value — )`
@@ -493,7 +538,7 @@ Store
 
 **Note:** The current implementation restricts `+>` to locals only, but there is no technical reason for this limitation. The bytecode sequence is identical except for the first opcode (`VarRef` vs `GlobalRef`). This restriction should be removed to maintain symmetry with locals.
 
-### 5.6 Bracket-Path Assignment
+### 5.7 Bracket-Path Assignment
 
 **Surface Form:** `value -> name[ path ]`
 **Stack Effect:** `( value — )`
@@ -519,7 +564,7 @@ Store
 
 Behaviour mirrors locals’ bracket-path lowering but targets global heap addresses.
 
-### 5.7 Reading Compound Elements
+### 5.8 Reading Compound Elements
 
 **Surface Form:** `name[ path ]`
 **Stack Effect:** `( — value )`
@@ -537,7 +582,7 @@ Nip
 
 Provides value-by-default read access into global compound structures such as lists or maplists.
 
-### 5.8 Bytecode Footprint
+### 5.9 Bytecode Footprint
 
 | Operation | Bytes | Stack Effect |
 | -- | | - |
