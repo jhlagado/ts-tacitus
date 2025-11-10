@@ -12,7 +12,7 @@ import {
 } from '../../../core/dictionary';
 import { createRef, createGlobalRef, decodeRef } from '../../../core/refs';
 import { createCodeRef } from '../../../core/code-ref';
-import { GLOBAL_BASE_CELLS } from '../../../core/constants';
+import { GLOBAL_BASE } from '../../../core/constants';
 
 describe('Dictionary payload types', () => {
   let vm: VM;
@@ -92,7 +92,7 @@ describe('Dictionary payload types', () => {
     test('define with REF creates entry with REF payload', () => {
       const name = 'my-ref';
       // Create a REF pointing to a global cell
-      const globalCellIndex = 5; // Relative to GLOBAL_BASE_CELLS
+      const globalCellIndex = 5; // Relative to GLOBAL_BASE
       const ref = createGlobalRef(globalCellIndex);
 
       define(vm, name, ref);
@@ -105,13 +105,13 @@ describe('Dictionary payload types', () => {
 
       // Decode and verify the absolute cell index
       const { absoluteCellIndex } = decodeRef(tv);
-      expect(absoluteCellIndex).toBe(GLOBAL_BASE_CELLS + globalCellIndex);
+      expect(absoluteCellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
 
     test('REF can reference any data segment cell', () => {
       const name = 'ref';
       // Create a REF with an absolute cell index
-      const absoluteCellIndex = GLOBAL_BASE_CELLS + 10;
+      const absoluteCellIndex = GLOBAL_BASE + 10;
       const ref = createRef(absoluteCellIndex);
 
       define(vm, name, ref);
@@ -140,9 +140,9 @@ describe('Dictionary payload types', () => {
       const { absoluteCellIndex: idx2 } = decodeRef(tv2);
       const { absoluteCellIndex: idx3 } = decodeRef(tv3);
 
-      expect(idx1).toBe(GLOBAL_BASE_CELLS + 0);
-      expect(idx2).toBe(GLOBAL_BASE_CELLS + 1);
-      expect(idx3).toBe(GLOBAL_BASE_CELLS + 2);
+      expect(idx1).toBe(GLOBAL_BASE + 0);
+      expect(idx2).toBe(GLOBAL_BASE + 1);
+      expect(idx3).toBe(GLOBAL_BASE + 2);
     });
 
     test('REF can be looked up and decoded correctly', () => {
@@ -154,7 +154,7 @@ describe('Dictionary payload types', () => {
       expect(isNIL(tv)).toBe(false);
 
       const { absoluteCellIndex } = decodeRef(tv);
-      expect(absoluteCellIndex).toBe(GLOBAL_BASE_CELLS + globalCellIndex);
+      expect(absoluteCellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
   });
 

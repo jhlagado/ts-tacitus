@@ -15,15 +15,15 @@ Execution pipeline (high level):
 
 Tacit allocates a single data arena sized at compile time. Three contiguous windows inside that arena provide storage for globals, the data stack, and the return stack. Their cell boundaries are defined in `src/core/constants.ts`:
 
-| Constant            | Meaning                                                            |
-| ------------------- | ------------------------------------------------------------------ |
-| `GLOBAL_BASE_CELLS` | Absolute cell index for the first global-heap cell                 |
-| `GLOBAL_TOP_CELLS`  | End (exclusive) of the global-heap window (cell index)             |
-| `STACK_BASE_CELLS`  | Start of the data-stack window (cell index)                        |
-| `STACK_TOP_CELLS`   | End (exclusive) of the data-stack window (cell index)              |
-| `RSTACK_BASE_CELLS` | Start of the return-stack window (cell index)                      |
-| `RSTACK_TOP_CELLS`  | End (exclusive) of the return-stack window (cell index)            |
-| `TOTAL_DATA_CELLS`  | Total cell capacity of the unified data arena (`RSTACK_TOP_CELLS`) |
+| Constant      | Meaning                                                      |
+| ------------- | ------------------------------------------------------------ |
+| `GLOBAL_BASE` | Absolute cell index for the first global-heap cell           |
+| `GLOBAL_TOP`  | End (exclusive) of the global-heap window (cell index)       |
+| `STACK_BASE`  | Start of the data-stack window (cell index)                  |
+| `STACK_TOP`   | End (exclusive) of the data-stack window (cell index)        |
+| `RSTACK_BASE` | Start of the return-stack window (cell index)                |
+| `RSTACK_TOP`  | End (exclusive) of the return-stack window (cell index)      |
+| `TOTAL_DATA`  | Total cell capacity of the unified data arena (`RSTACK_TOP`) |
 
 Byte-based constants (`*_BYTES`) are also available for memory I/O operations, but cell-based constants are preferred for data segment addressing. Adjusting capacities only requires editing these constants; runtime code operates on absolute cell indices and does not bake in window sizes.
 
@@ -56,13 +56,13 @@ Cell size: 4 bytes (word-aligned). All stack elements are 32‑bit float32 value
 VM registers store **absolute cell indices** inside the unified arena; public accessors
 expose relative depths by subtracting the relevant window base:
 
-- SP — data stack pointer (`_spCells`), initialised to `STACK_BASE_CELLS`
-- RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE_CELLS`
-- BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE_CELLS`
-- GP — global bump pointer (cell offset from `GLOBAL_BASE_CELLS`)
+- SP — data stack pointer (`_spCells`), initialised to `STACK_BASE`
+- RSP — return stack pointer (`_rspCells`), initialised to `RSTACK_BASE`
+- BP — base pointer for the current frame (`_bpCells`), initialised to `RSTACK_BASE`
+- GP — global bump pointer (cell offset from `GLOBAL_BASE`)
 - IP — instruction pointer (byte address in CODE)
 
-`SP`, `RSP`, and `BP` are stored internally as absolute cell indices within the unified arena. `GP` remains window-relative: a value of 0 represents `GLOBAL_BASE_CELLS`, and helpers add the base offset when forming byte addresses for the global heap.
+`SP`, `RSP`, and `BP` are stored internally as absolute cell indices within the unified arena. `GP` remains window-relative: a value of 0 represents `GLOBAL_BASE`, and helpers add the base offset when forming byte addresses for the global heap.
 
 ## Execution Model
 
@@ -191,7 +191,7 @@ Invariants
 
 - `BP`, `SP`, `RSP` are non-negative integers (cells)
 - `BP <= RSP`
-- Frame locals occupy `[BP, RSP)`
+- Frame locals occupy `[BP, RSP]`
 - `Reserve` never reduces `RSP`
 - No hidden `/4` or `*4` arithmetic outside explicit address formation
 
@@ -206,7 +206,7 @@ Reference helpers (see `core/refs.ts`):
 - `readRefValue(vm, ref)` / `writeReference(vm, ref)` read/write via resolved address
 - `getRefRegion(ref)` → `'global' | 'stack' | 'rstack'` (inferred from address range)
 
-All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds (`GLOBAL_BASE_CELLS…RSTACK_TOP_CELLS`). Zero therefore still represents "first cell of the arena" for diagnostics while allowing non-zero bases per window.
+All reference payloads use arena-absolute cell indices. Decoding maps the payload to the correct window and enforces the bounds `[GLOBAL_BASE, RSTACK_TOP]`. Zero therefore still represents "first cell of the arena" for diagnostics while allowing non-zero bases per window.
 
 ## Lists (Reverse Layout)
 

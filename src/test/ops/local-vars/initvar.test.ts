@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { initVarOp } from '../../../ops/builtins';
-import { SEG_DATA, CELL_SIZE, RSTACK_BASE_CELLS } from '../../../core/constants';
+import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
 import { push, getStackData } from '../../../core/vm';
 
 describe('InitVar Opcode', () => {
@@ -18,7 +18,7 @@ describe('InitVar Opcode', () => {
   test('should store value in correct slot', () => {
     // Set up BP to simulate being inside a function
     // BP in tests previously used relative cells; vm.bp is absolute
-    vm.bp = RSTACK_BASE_CELLS + 6;
+    vm.bp = RSTACK_BASE + 6;
 
     // Push test value onto stack
     push(vm, 42);
@@ -38,7 +38,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle slot 0', () => {
-    vm.bp = RSTACK_BASE_CELLS + 8;
+    vm.bp = RSTACK_BASE + 8;
     push(vm, 123);
 
     vm.compiler.compile16(0); // slot 0
@@ -49,7 +49,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle negative values', () => {
-    vm.bp = RSTACK_BASE_CELLS + 10;
+    vm.bp = RSTACK_BASE + 10;
     push(vm, -99.5);
 
     vm.compiler.compile16(3); // slot 3
@@ -60,7 +60,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle large slot numbers', () => {
-    vm.bp = RSTACK_BASE_CELLS + 12;
+    vm.bp = RSTACK_BASE + 12;
     push(vm, 777);
 
     vm.compiler.compile16(20); // large slot number within bounds
@@ -71,7 +71,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle floating point values', () => {
-    vm.bp = RSTACK_BASE_CELLS + 14;
+    vm.bp = RSTACK_BASE + 14;
     push(vm, 3.14159);
 
     vm.compiler.compile16(7); // slot 7
@@ -82,7 +82,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should throw on stack underflow', () => {
-    vm.bp = RSTACK_BASE_CELLS + 6;
+    vm.bp = RSTACK_BASE + 6;
     // Don't push anything to stack
 
     vm.compiler.compile16(1); // slot 1
@@ -91,7 +91,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should handle multiple sequential initializations', () => {
-    vm.bp = RSTACK_BASE_CELLS + 16;
+    vm.bp = RSTACK_BASE + 16;
 
     // Initialize slot 0 with value 10
     push(vm, 10);
@@ -118,7 +118,7 @@ describe('InitVar Opcode', () => {
   });
 
   test('should overwrite existing slot values', () => {
-    vm.bp = RSTACK_BASE_CELLS + 18;
+    vm.bp = RSTACK_BASE + 18;
 
     // Initialize slot 5 with first value
     push(vm, 100);

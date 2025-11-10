@@ -7,9 +7,9 @@ import {
   createRef,
   CELL_SIZE,
   RSTACK_BASE_BYTES,
-  RSTACK_BASE_CELLS,
+  RSTACK_BASE,
   STACK_BASE_BYTES,
-  STACK_BASE_CELLS,
+  STACK_BASE,
 } from '../../../core';
 
 describe('capsule layout (handle-based)', () => {
@@ -59,7 +59,7 @@ describe('capsule layout (handle-based)', () => {
   });
 
   test('errors on non-list handle (bad reference)', () => {
-    const bad = createRef(STACK_BASE_CELLS + 0);
+    const bad = createRef(STACK_BASE + 0);
     expect(() => readCapsuleLayoutFromHandle(vm, bad)).toThrow('does not reference a LIST');
   });
 

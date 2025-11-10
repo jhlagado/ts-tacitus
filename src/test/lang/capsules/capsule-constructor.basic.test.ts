@@ -6,7 +6,7 @@ import {
   Tag,
   isRStackRef,
   RSTACK_BASE_BYTES,
-  RSTACK_BASE_CELLS,
+  RSTACK_BASE,
   RSTACK_SIZE_BYTES,
   getByteAddressFromRef,
 } from '../../../core';
@@ -60,6 +60,6 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(3); // a, b, CODE
     // Caller BP restored (top-level remains at base)
-    expect(vm.bp).toBe(RSTACK_BASE_CELLS + 0);
+    expect(vm.bp).toBe(RSTACK_BASE + 0);
   });
 });

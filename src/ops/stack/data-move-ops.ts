@@ -3,9 +3,7 @@
  * Stack manipulation operations for the Tacit VM.
  */
 
-import type {
-  VM,
-  Verb } from '@src/core';
+import type { VM, Verb } from '@src/core';
 import {
   fromTaggedValue,
   Tag,
@@ -13,16 +11,9 @@ import {
   CELL_SIZE,
   StackUnderflowError,
   VMError,
-  STACK_BASE_CELLS,
+  STACK_BASE,
 } from '@src/core';
-import {
-  depth,
-  push,
-  pop,
-  peek,
-  ensureStackSize,
-  getStackData,
-} from '../../core/vm';
+import { depth, push, pop, peek, ensureStackSize, getStackData } from '../../core/vm';
 
 /**
  * Stack argument info: [nextSlot, size].
@@ -37,7 +28,7 @@ export type StackArgInfo = [number, number];
  */
 export function findElement(vm: VM, startSlot = 0): [number, number] {
   const stackDepth = depth(vm);
-    const slotIndexFromBase = stackDepth - startSlot - 1;
+  const slotIndexFromBase = stackDepth - startSlot - 1;
 
   if (slotIndexFromBase < 0 || slotIndexFromBase >= stackDepth) {
     return [startSlot + 1, 1];
@@ -64,11 +55,11 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
 // startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 0) {
-return;
-}
+    return;
+  }
 
   for (let i = 0; i < slotCount; i++) {
-    const slot = vm.memory.readCell(STACK_BASE_CELLS + startSlot + i);
+    const slot = vm.memory.readCell(STACK_BASE + startSlot + i);
     push(vm, slot);
   }
 }
@@ -83,11 +74,11 @@ return;
 // startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void {
   if (slotCount <= 1) {
-return;
-}
+    return;
+  }
 
-  let leftCell = STACK_BASE_CELLS + startSlot;
-  let rightCell = STACK_BASE_CELLS + startSlot + slotCount - 1;
+  let leftCell = STACK_BASE + startSlot;
+  let rightCell = STACK_BASE + startSlot + slotCount - 1;
 
   while (leftCell < rightCell) {
     const temp = vm.memory.readCell(leftCell);
@@ -112,13 +103,13 @@ return;
 // startSlot: offset from STACK_BASE_BYTES (in cells)
 export function cellsRoll(vm: VM, startSlot: number, rangeSize: number, shiftSlots: number): void {
   if (rangeSize <= 1) {
-return;
-}
+    return;
+  }
 
   const normalizedShift = ((shiftSlots % rangeSize) + rangeSize) % rangeSize;
   if (normalizedShift === 0) {
-return;
-}
+    return;
+  }
 
   const splitPoint = rangeSize - normalizedShift;
   cellsReverse(vm, startSlot, splitPoint);
@@ -166,8 +157,8 @@ function findElementAtIndex(vm: VM, index: number): [number, number] {
  */
 function validateStackDepth(vm: VM, requiredElements: number, operationName: string): void {
   if (requiredElements <= 0) {
-return;
-}
+    return;
+  }
 
   if (requiredElements > 2) {
     ensureStackSize(vm, requiredElements, operationName);

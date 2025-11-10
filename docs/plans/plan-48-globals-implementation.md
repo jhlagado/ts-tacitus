@@ -38,19 +38,19 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ### Storage Model
 
-- Globals live in the **global area** of the unified data arena (`GLOBAL_BASE_CELLS` to `GLOBAL_TOP_CELLS`)
+- Globals live in the **global area** of the unified data arena (`GLOBAL_BASE` to `GLOBAL_TOP`)
 - Each global occupies exactly **one 32-bit cell**
 - Global pointer `GP` tracks next free cell (already exists in VM)
 - Maximum 65,536 globals (16-bit offset limit)
 
 ### Addressing
 
-- `GlobalRef` opcode takes 16-bit unsigned offset: `absoluteIndex = GLOBAL_BASE_CELLS + offset`
+- `GlobalRef` opcode takes 16-bit unsigned offset: `absoluteIndex = GLOBAL_BASE + offset`
 - **Compile-time limit:** Offset must be `[0, 65535]` (16-bit encoding constraint)
-- **Runtime boundary:** `cellIndex >= GLOBAL_BASE_CELLS && cellIndex < GLOBAL_TOP_CELLS` (actual area limit)
+- **Runtime boundary:** `cellIndex >= GLOBAL_BASE && cellIndex < GLOBAL_TOP` (actual area limit)
 - Uses existing `Tag.REF` with absolute cell index payload (no new tag needed)
 
-**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP_CELLS`, which may be smaller. Both constraints are enforced: compile-time checks the 16-bit limit, runtime checks the `GLOBAL_TOP_CELLS` boundary.
+**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced: compile-time checks the 16-bit limit, runtime checks the `GLOBAL_TOP` boundary.
 
 ### Compilation Strategy
 
@@ -109,9 +109,9 @@ This plan implements full global variable support according to `docs/specs/globa
 1. Add `global` keyword recognition in tokenizer (check if already present)
 2. Implement `emitGlobalDecl` function in parser (similar to `emitVarDecl`)
 3. Add top-level scope check: `if (currentDefinition.current) throw error`
-4. Calculate offset: `offset = vm.gp - GLOBAL_BASE_CELLS`
+4. Calculate offset: `offset = vm.gp - GLOBAL_BASE`
 5. Check 16-bit offset limit: `if (offset > 0xffff) throw "Global variable limit exceeded (64K)"`
-6. Check runtime boundary: `if (vm.gp >= GLOBAL_TOP_CELLS) throw "Global area exhausted"`
+6. Check runtime boundary: `if (vm.gp >= GLOBAL_TOP) throw "Global area exhausted"`
 7. Emit value-producing ops (already on stack), then `GlobalRef <offset>; Store`
 8. Register in dictionary: `define(vm, name, createGlobalRef(offset))`
 9. Increment `vm.gp` after successful declaration
@@ -122,7 +122,7 @@ This plan implements full global variable support according to `docs/specs/globa
 - `src/lang/tokenizer.ts` - Ensure `global` is recognized (may already be)
 - `src/lang/parser.ts` - Update `emitWord` to call `emitGlobalDecl` when `value === 'global'`
 
-**Note:** `createGlobalRef` takes a relative cell index (offset from GLOBAL_BASE_CELLS), not absolute. The `define` function already exists and can be used to register globals.
+**Note:** `createGlobalRef` takes a relative cell index (offset from GLOBAL_BASE), not absolute. The `define` function already exists and can be used to register globals.
 
 **Tests:**
 
@@ -146,7 +146,7 @@ This plan implements full global variable support according to `docs/specs/globa
 2. Use existing `getRefRegion` or `isGlobalRef` for address range check
 3. Update `emitWord` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
 4. Update `emitRefSigil` to replace `Op.LiteralNumber` with `Op.GlobalRef <offset>` for globals
-5. Calculate offset from absolute cell index: `offset = absoluteCellIndex - GLOBAL_BASE_CELLS`
+5. Calculate offset from absolute cell index: `offset = absoluteCellIndex - GLOBAL_BASE`
 6. Handle both top-level and function-scope access
 
 **Files:**
@@ -175,7 +175,7 @@ This plan implements full global variable support according to `docs/specs/globa
 **Steps:**
 
 1. Update `emitAssignment` to detect global targets (check if `Tag.REF` with `getRefRegion(tval) === 'global'`)
-2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE_CELLS`
+2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE`
 3. Emit `GlobalRef <offset>; Store` for global assignments (similar to `VarRef <slot>; Store` for locals)
 4. Handle bracket paths: `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store`
 5. Verify `storeOp` already handles global-area compounds correctly (should work via existing `pushListToGlobalHeap`)
@@ -233,7 +233,7 @@ This plan implements full global variable support according to `docs/specs/globa
 **Steps:**
 
 1. Update `emitIncrement` to detect global targets (check if `Tag.REF` with `getRefRegion(tval) === 'global'`)
-2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE_CELLS`
+2. Calculate offset: `offset = getAbsoluteCellIndexFromRef(tval) - GLOBAL_BASE`
 3. Remove top-level restriction: allow `+>` at top level for globals
 4. Emit `GlobalRef <offset>; Swap; Over; Fetch; Add; Swap; Store` sequence (mirrors `VarRef` sequence)
 5. Support bracket paths: `value +> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Swap; Over; Fetch; Add; Swap; Store`
@@ -264,7 +264,7 @@ This plan implements full global variable support according to `docs/specs/globa
 1. Add compile-time checks:
    - Top-level restriction
    - 16-bit offset limit: `offset <= 0xffff` (64K limit from encoding)
-   - Runtime boundary check: `vm.gp < GLOBAL_TOP_CELLS` (actual area limit)
+   - Runtime boundary check: `vm.gp < GLOBAL_TOP` (actual area limit)
 2. Add runtime checks:
    - Boundary validation in `globalRefOp`
    - Type compatibility in `storeOp`

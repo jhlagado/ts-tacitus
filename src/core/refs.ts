@@ -14,9 +14,9 @@ import {
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
   GLOBAL_SIZE_BYTES,
-  GLOBAL_SIZE_CELLS,
+  GLOBAL_SIZE,
   TOTAL_DATA_BYTES,
-  TOTAL_DATA_CELLS,
+  TOTAL_DATA,
   CELL_SIZE,
 } from './constants';
 
@@ -27,7 +27,7 @@ import {
  * @throws {RangeError} If index is out of bounds
  */
 export function createRef(absoluteCellIndex: number): number {
-  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA_CELLS) {
+  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA) {
     throw new RangeError(`REF absolute cell index ${absoluteCellIndex} is out of bounds`);
   }
   return toTaggedValue(absoluteCellIndex, Tag.REF);
@@ -58,7 +58,7 @@ export function getAbsoluteCellIndexFromRef(ref: number): number {
   if (tag !== Tag.REF) {
     throw new Error('Expected REF');
   }
-  if (value < 0 || value >= TOTAL_DATA_CELLS) {
+  if (value < 0 || value >= TOTAL_DATA) {
     throw new RangeError('REF absolute out of bounds');
   }
   return value;
@@ -188,7 +188,7 @@ export function getVarRef(vm: VM, slotNumber: number): number {
  * @throws {RangeError} If cell index is out of bounds
  */
 export function createGlobalRef(cellIndex: number): number {
-  if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE_CELLS) {
+  if (cellIndex < 0 || cellIndex >= GLOBAL_SIZE) {
     throw new RangeError('Global reference outside global segment bounds');
   }
   const absCellIndex = GLOBAL_BASE + cellIndex;

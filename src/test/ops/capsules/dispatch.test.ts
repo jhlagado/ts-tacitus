@@ -1,13 +1,6 @@
 import { createVM, type VM } from '../../../core/vm';
 import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
-import {
-  Tag,
-  toTaggedValue,
-  createRef,
-  RSTACK_BASE_CELLS,
-  STACK_BASE_CELLS,
-  CELL_SIZE,
-} from '../../../core';
+import { Tag, toTaggedValue, createRef, RSTACK_BASE, STACK_BASE, CELL_SIZE } from '../../../core';
 import { push, rpush, getStackData } from '../../../core/vm';
 
 describe('capsule dispatch runtime', () => {
@@ -30,7 +23,7 @@ describe('capsule dispatch runtime', () => {
   test('prologue consumes receiver only, preserves method and args', () => {
     const savedIP = 1234;
     vm.IP = savedIP;
-    vm.bp = RSTACK_BASE_CELLS + 0;
+    vm.bp = RSTACK_BASE + 0;
     // Build capsule with 2 locals (10,20) and entry at 777
     const { handle } = pushCapsuleOnRStack([10, 20], 777);
     // Build data stack: 1 2 'meth handle
@@ -56,7 +49,7 @@ describe('capsule dispatch runtime', () => {
 
   test('errors on non-capsule receiver', () => {
     push(vm, 0);
-    push(vm, createRef(STACK_BASE_CELLS + 0));
+    push(vm, createRef(STACK_BASE + 0));
     expect(() => dispatchOp(vm)).toThrow();
   });
 });

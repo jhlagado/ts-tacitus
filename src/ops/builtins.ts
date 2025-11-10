@@ -15,10 +15,21 @@ import {
   SEG_DATA,
   RSTACK_BASE_BYTES,
   CELL_SIZE,
-  RSTACK_BASE_CELLS,
+  RSTACK_BASE,
   InvalidOpcodeError,
 } from '@src/core';
-import { nextUint16, nextInt16, rdepth, depth, push, pop, peek, rpush, ensureStackSize, getStackData } from '../core/vm';
+import {
+  nextUint16,
+  nextInt16,
+  rdepth,
+  depth,
+  push,
+  pop,
+  peek,
+  rpush,
+  ensureStackSize,
+  getStackData,
+} from '../core/vm';
 
 import {
   literalNumberOp,
@@ -136,7 +147,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
   if (isUserDefined) {
     rpush(vm, vm.IP);
     // Save BP as relative cells
-    rpush(vm, vm.bp - RSTACK_BASE_CELLS);
+    rpush(vm, vm.bp - RSTACK_BASE);
     vm.bp = vm.rsp;
     vm.IP = opcode;
     return;
@@ -294,7 +305,7 @@ export function initVarOp(vm: VM): void {
   if (isList(value)) {
     const headerAddr = rpushList(vm);
     const headerCellIndex = headerAddr / CELL_SIZE;
-    const absHeaderCellIndex = RSTACK_BASE_CELLS + headerCellIndex;
+    const absHeaderCellIndex = RSTACK_BASE + headerCellIndex;
     const localRef = createRef(absHeaderCellIndex);
 
     vm.memory.writeCell(slotCellIndex, localRef);
@@ -312,7 +323,7 @@ export function varRefOp(vm: VM): void {
 /**
  * Debug opcode to dump current stack frame state
  */
-// (no longer using STACK_BASE_CELLS in debug dump)
+// (no longer using STACK_BASE in debug dump)
 
 export function dumpFrameOp(vm: VM): void {
   // eslint-disable-next-line no-console
@@ -325,12 +336,12 @@ export function dumpFrameOp(vm: VM): void {
     'SP(cells):',
     depth(vm),
     'BP(cells):',
-    vm.bp - RSTACK_BASE_CELLS,
+    vm.bp - RSTACK_BASE,
     'GP(cells):',
     vm.gp,
   );
 
-  if (vm.bp > RSTACK_BASE_CELLS) {
+  if (vm.bp > RSTACK_BASE) {
     const { localCount } = vm;
     // eslint-disable-next-line no-console
     console.log('Local variable count:', localCount);

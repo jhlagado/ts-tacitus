@@ -14,7 +14,7 @@ import {
   RSTACK_BASE,
   RSTACK_TOP,
   GLOBAL_BASE,
-  GLOBAL_SIZE_CELLS,
+  GLOBAL_SIZE,
 } from './constants';
 import { fromTaggedValue, isNIL } from './tagged';
 import { Digest } from '../strings/digest';
@@ -449,7 +449,7 @@ export function peekAt(vm: VM, slotOffset: number): number {
  * @param value - Value to push
  */
 export function gpush(vm: VM, value: number): void {
-  if (vm.gp >= GLOBAL_SIZE_CELLS) {
+  if (vm.gp >= GLOBAL_SIZE) {
     throw new Error('gpush on full heap');
   }
   vm.memory.writeCell(GLOBAL_BASE + vm.gp, value);

@@ -67,7 +67,7 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
 
 2. **Emit `Op.ExitConstructor`**
    - `capsule` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:
-     - Leaves the callee's locals where they already live (`[BP … RSP)`).
+     - Leaves the callee's locals where they already live (`[BP, RSP]`).
      - Wraps the current `vm.IP` (the instruction immediately after the opcode) as `CODE_REF(entryAddr)`.
      - `rpush`es that `CODE_REF`, then `rpush`es the list header `LIST:(locals+1)` so `RSP` now points at the capsule header.
 
@@ -298,7 +298,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 
 | Invariant         | Description                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
-| Capsule layout    | `[ locals…, CODE_REF, LIST:(locals+1) ]` appended to caller frame                                |
+| Capsule layout    | `[ locals..., CODE_REF, LIST:(locals+1) ]` appended to caller frame                                |
 | Constructor exit  | `capsule` emits `Op.ExitConstructor` (restores BP/IP, keeps RSP)                                 |
 | Dispatch prologue | Consumes receiver only; leaves message/args intact                                               |
 | Dispatch epilogue | `Op.ExitDispatch` restores caller BP/IP without collapsing locals                                |

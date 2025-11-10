@@ -16,7 +16,7 @@
 
 import { executeOp } from '../ops/builtins';
 import { parse } from './parser';
-import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE_CELLS } from '@src/core';
+import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
 import { Tokenizer } from './tokenizer';
 import { nextOpcode, getStackData, rpush } from '../core/vm';
 import type { VM } from '../core/vm';
@@ -51,9 +51,9 @@ export function execute(vm: VM, start: number): void {
     const functionIndex = nextOpcode(vm);
 
     if (vm.debug) {
-// eslint-disable-next-line no-console
-console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
-}
+      // eslint-disable-next-line no-console
+      console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
+    }
 
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
@@ -65,13 +65,13 @@ console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
       executeOp(vm, functionIndex, isUserDefined);
     } catch (error) {
       const stackState = JSON.stringify(getStackData(vm));
-      const errorMessage =
-        `Error executing word (stack: ${stackState})${
-        error instanceof Error ? `: ${error.message}` : ''}`;
+      const errorMessage = `Error executing word (stack: ${stackState})${
+        error instanceof Error ? `: ${error.message}` : ''
+      }`;
       if (vm.debug) {
-// eslint-disable-next-line no-console
-console.log((error as Error).stack);
-}
+        // eslint-disable-next-line no-console
+        console.log((error as Error).stack);
+      }
       vm.compiler.reset();
       vm.compiler.preserve = false;
       throw new Error(errorMessage);
@@ -120,7 +120,7 @@ export function callTacit(vm: VM, codePtr: number): void {
   // compatibility for code/tests still expecting byte-based BP frames.
   rpush(vm, toTaggedValue(returnIP, Tag.CODE));
   // Unified cell-only frame prologue: save BP as relative cells
-  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
 
   vm.IP = codePtr;

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
-import { STACK_BASE_CELLS, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { createVM, type VM } from '../../core/vm';
 import { peekAt, push, peek } from '../../core/vm';
@@ -42,14 +42,18 @@ describe('conditional immediates', () => {
     push(vm, Number.NaN);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE missing branch placeholder');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow(
+      'ELSE missing branch placeholder',
+    );
   });
 
   test('ELSE complains about invalid branch placeholder', () => {
     push(vm, -1);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE invalid branch placeholder');
+    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow(
+      'ELSE invalid branch placeholder',
+    );
   });
 
   test('ELSE patches placeholder and installs exit branch', () => {
@@ -73,7 +77,7 @@ describe('conditional immediates', () => {
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
     beginIfImmediate(vm, tokenizer, currentDefinition);
-    expect(vm.sp - STACK_BASE_CELLS).toBe(2);
+    expect(vm.sp - STACK_BASE).toBe(2);
     // Top of stack should be EndIf closer
     verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);
     // Also verify the element beneath top is a NUMBER (branch placeholder offset)
@@ -176,4 +180,3 @@ describe('when/do control flow', () => {
     }
   });
 });
-

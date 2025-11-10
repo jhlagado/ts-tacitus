@@ -15,8 +15,8 @@ import {
   fromTaggedValue,
   SEG_DATA,
   CELL_SIZE,
-  STACK_BASE_CELLS,
-  RSTACK_BASE_CELLS,
+  STACK_BASE,
+  RSTACK_BASE,
   createVM,
 } from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
@@ -34,9 +34,9 @@ export function executeTacitCode(vm: VM, code: string, resetStack = true): numbe
   // Reset stack and return stack to ensure each call is independent
   // Note: beforeEach already creates a fresh VM, so this is mainly for within-test stack management
   if (resetStack) {
-    vm.sp = STACK_BASE_CELLS;
-    vm.rsp = RSTACK_BASE_CELLS;
-    vm.bp = RSTACK_BASE_CELLS;
+    vm.sp = STACK_BASE;
+    vm.rsp = RSTACK_BASE;
+    vm.bp = RSTACK_BASE;
     vm.listDepth = 0;
   }
   // parse() will handle compiler reset, so we don't need to manage compiler state here
@@ -57,7 +57,7 @@ export function captureVMState(vm: VM): VMStateSnapshot {
   const stack = getStackData(vm);
   const returnStack: number[] = [];
   // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE_BYTES.
-  const rstackBaseCells = RSTACK_BASE_CELLS;
+  const rstackBaseCells = RSTACK_BASE;
   for (let i = rstackBaseCells; i < vm.rsp; i++) {
     returnStack.push(vm.memory.readCell(i));
   }
@@ -383,8 +383,8 @@ export function verifyStackDepth(vm: VM, expectedDepth: number): void {
  */
 export function verifyVMState(vm: VM): void {
   // Absolute pointers must not go below their respective bases
-  const stackBaseCells = STACK_BASE_CELLS;
-  const rstackBaseCells = RSTACK_BASE_CELLS;
+  const stackBaseCells = STACK_BASE;
+  const rstackBaseCells = RSTACK_BASE;
   expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
   expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
@@ -397,22 +397,22 @@ export function verifyVMState(vm: VM): void {
  * Compute data stack depth (cells) from cell-index registers
  */
 export function dataDepth(vm: VM): number {
-  return vm.sp - STACK_BASE_CELLS;
+  return vm.sp - STACK_BASE;
 }
 
 /**
  * Compute return stack depth (cells) from cell-index registers
  */
 export function returnDepth(vm: VM): number {
-  return vm.rsp - RSTACK_BASE_CELLS;
+  return vm.rsp - RSTACK_BASE;
 }
 
 /**
  * Assert that stack pointers have not underflowed their bases
  */
 export function assertNoUnderflow(vm: VM): void {
-  const stackBaseCells = STACK_BASE_CELLS;
-  const rstackBaseCells = RSTACK_BASE_CELLS;
+  const stackBaseCells = STACK_BASE;
+  const rstackBaseCells = RSTACK_BASE;
   expect(vm.sp).toBeGreaterThanOrEqual(stackBaseCells);
   expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);

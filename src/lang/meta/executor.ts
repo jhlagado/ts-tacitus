@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE_CELLS, STACK_BASE_CELLS } from '@src/core';
+import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
@@ -53,7 +53,7 @@ export function executeImmediateWord(
         beginIfImmediate(vm, tokenizer, currentDefinition);
         return;
       case ';':
-        if (vm.sp - STACK_BASE_CELLS === 0) {
+        if (vm.sp - STACK_BASE === 0) {
           throw new SyntaxError('Unexpected semicolon', getStackData(vm));
         }
         evalOp(vm);
@@ -108,7 +108,7 @@ export function runImmediateCode(vm: VM, address: number): void {
 
   rpush(vm, savedIP);
   // Save BP (relative cells) and set new frame
-  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
   vm.IP = address;
   vm.running = true;
