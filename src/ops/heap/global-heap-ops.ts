@@ -1,6 +1,6 @@
 /**
  * @file src/ops/heap/global-heap-ops.ts
- * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gforget).
+ * Implements Tacit global heap primitives (gpush, gpop, gpeek).
  */
 
 import {
@@ -31,23 +31,6 @@ function copyListAtHeader(vm: VM, h: number, hAddr: number): void {
   const n = getListLength(h);
   const base = hAddr - n * CELL_SIZE;
   pushListToGlobalHeap(vm, { header: h, baseAddrBytes: base });
-}
-
-export function gmarkOp(vm: VM): void {
-  push(vm, vm.gp);
-}
-
-export function gforgetOp(vm: VM): void {
-  ensureStackSize(vm, 1, 'gforget');
-  const markValue = pop(vm);
-  if (!Number.isFinite(markValue) || !Number.isInteger(markValue)) {
-    throw new Error('gforget expects integer heap mark');
-  }
-  const mark = markValue;
-  if (mark < 0 || mark > vm.gp) {
-    throw new Error('gforget mark out of range');
-  }
-  vm.gp = mark;
 }
 
 export function gpushOp(vm: VM): void {
