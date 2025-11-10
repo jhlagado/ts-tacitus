@@ -4,18 +4,18 @@
  */
 
 import type { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE_CELLS, GLOBAL_BASE } from './constants';
+import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength } from './list';
 
-const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE_CELLS;
+const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE;
 
 export type ListSource = {
   /** LIST header value to write at destination */
   header: number;
   /** Absolute byte address of the first payload cell in the source */
   baseAddrBytes: number;
-}
+};
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
   if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_CELL_CAPACITY) {

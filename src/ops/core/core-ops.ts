@@ -13,16 +13,14 @@
  * for implementing higher-level language constructs.
  */
 
-import type {
-  VM,
-  Verb } from '@src/core';
+import type { VM, Verb } from '@src/core';
 import {
   ReturnStackUnderflowError,
   toTaggedValue,
   Tag,
   fromTaggedValue,
   SyntaxError,
-  RSTACK_BASE_CELLS,
+  RSTACK_BASE,
 } from '@src/core';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
@@ -138,7 +136,7 @@ export const callOp: Verb = (vm: VM) => {
   const callAddress = nextInt16(vm);
   rpush(vm, vm.IP);
   // Save BP as relative cells on the return stack for compatibility
-  rpush(vm, vm.bp - RSTACK_BASE_CELLS);
+  rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
   vm.IP = callAddress;
 };
@@ -194,19 +192,19 @@ export const abortOp: Verb = (vm: VM) => {
 export const exitOp: Verb = (vm: VM) => {
   try {
     // Require at least [returnAddr, savedBP] on return stack (depth in cells)
-    if (vm.rsp - RSTACK_BASE_CELLS < 2) {
+    if (vm.rsp - RSTACK_BASE < 2) {
       vm.running = false;
       return;
     }
     // Unified cell-only epilogue with corruption guard: if BP points outside
     // current return stack depth (or negative) treat as underflow corruption.
     const bpCells = vm.bp;
-    if (bpCells < RSTACK_BASE_CELLS || bpCells > vm.rsp) {
+    if (bpCells < RSTACK_BASE || bpCells > vm.rsp) {
       throw new ReturnStackUnderflowError('exit', getStackData(vm));
     }
     vm.rsp = bpCells;
     // Saved BP is stored as relative cells; convert to absolute before restore
-    vm.bp = rpop(vm) + RSTACK_BASE_CELLS;
+    vm.bp = rpop(vm) + RSTACK_BASE;
     vm.IP = rpop(vm);
   } catch (e) {
     vm.running = false;
@@ -251,7 +249,7 @@ export const evalOp: Verb = (vm: VM) => {
       } else {
         rpush(vm, vm.IP);
         // Save BP as relative cells on the return stack for compatibility
-        rpush(vm, vm.bp - RSTACK_BASE_CELLS);
+        rpush(vm, vm.bp - RSTACK_BASE);
         vm.bp = vm.rsp;
         vm.IP = addr;
       }
@@ -273,7 +271,7 @@ export const evalOp: Verb = (vm: VM) => {
  * At runtime this opcode should never be reached; it exists so that the generic
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
-export const endDefinitionOp: Verb = (vm) => {
+export const endDefinitionOp: Verb = vm => {
   invokeEndDefinitionHandler(vm);
 };
 
@@ -401,7 +399,7 @@ export const endWhenOp: Verb = (vm: VM) => {
   }
 
   const savedRSPRel = Math.trunc(rawSavedRSP);
-  const savedRSPAbs = RSTACK_BASE_CELLS + savedRSPRel;
+  const savedRSPAbs = RSTACK_BASE + savedRSPRel;
 
   while (vm.rsp > savedRSPAbs) {
     const rawExitPos = rpop(vm);
@@ -440,7 +438,7 @@ export const endCaseOp: Verb = (vm: VM) => {
   }
 
   const savedRSPRel = Math.trunc(rawSavedRSP);
-  const savedRSPAbs = RSTACK_BASE_CELLS + savedRSPRel;
+  const savedRSPAbs = RSTACK_BASE + savedRSPRel;
 
   vm.compiler.compileOpcode(Op.Drop);
   const exitTarget = vm.compiler.CP;

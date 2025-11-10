@@ -21,7 +21,7 @@ import { SyntaxError } from '@src/core';
 import { getStackData } from '../core/vm';
 import { Op } from './opcodes';
 
-import { STACK_BASE_CELLS } from '@src/core';
+import { STACK_BASE } from '@src/core';
 import { evalOp } from './core';
 
 // Immediate word functions are handled in executeImmediateWord, not here
@@ -174,7 +174,7 @@ export function registerBuiltins(vm: VM): void {
     ';',
     Op.Nop,
     vmInstance => {
-      if (vmInstance.sp - STACK_BASE_CELLS === 0) {
+      if (vmInstance.sp - STACK_BASE === 0) {
         throw new SyntaxError('Unexpected semicolon', getStackData(vmInstance));
       }
       evalOp(vmInstance);

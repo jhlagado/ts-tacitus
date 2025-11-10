@@ -9,7 +9,7 @@ import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
-import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE_CELLS, CELL_SIZE } from '../../core/constants';
+import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
 import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
 
@@ -101,11 +101,11 @@ describe('VM pushSymbolRef method', () => {
       pushSymbolRef(vm, 'dup');
       pushSymbolRef(vm, 'double');
 
-      const stackDepth = vm.sp - STACK_BASE_CELLS;
+      const stackDepth = vm.sp - STACK_BASE;
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>
-        fromTaggedValue(vm.memory.readCell(STACK_BASE_CELLS + i)),
+        fromTaggedValue(vm.memory.readCell(STACK_BASE + i)),
       );
 
       expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });

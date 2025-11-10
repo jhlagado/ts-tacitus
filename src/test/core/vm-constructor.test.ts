@@ -3,7 +3,7 @@ import { VM, createVM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
 import { Compiler } from '../../../src/lang/compiler';
-import { STACK_BASE_CELLS, RSTACK_BASE_CELLS, CELL_SIZE } from '../../../src/core/constants';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../../src/core/constants';
 
 describe('VM Constructor Initialization', () => {
   let vm: VM;
@@ -24,16 +24,16 @@ describe('VM Constructor Initialization', () => {
     expect(vm.running).toBe(true);
   });
 
-  test('should initialize SP to STACK_BASE_CELLS', () => {
-    expect(vm.sp).toBe(STACK_BASE_CELLS);
+  test('should initialize SP to STACK_BASE', () => {
+    expect(vm.sp).toBe(STACK_BASE);
   });
 
-  test('should initialize RSP (absolute cells) to RSTACK_BASE_CELLS', () => {
-    expect(vm.rsp).toBe(RSTACK_BASE_CELLS);
+  test('should initialize RSP (absolute cells) to RSTACK_BASE', () => {
+    expect(vm.rsp).toBe(RSTACK_BASE);
   });
 
-  test('should initialize BP (absolute cells) to RSTACK_BASE_CELLS', () => {
-    expect(vm.bp).toBe(RSTACK_BASE_CELLS);
+  test('should initialize BP (absolute cells) to RSTACK_BASE', () => {
+    expect(vm.bp).toBe(RSTACK_BASE);
   });
 
   test('should initialize digest as a Digest instance', () => {

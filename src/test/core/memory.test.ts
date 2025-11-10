@@ -1,4 +1,12 @@
-import { Memory, MEMORY_SIZE_BYTES, SEG_DATA, STACK_SIZE_BYTES, CELL_SIZE, STACK_BASE_BYTES, STACK_BASE_CELLS } from '../../core';
+import {
+  Memory,
+  MEMORY_SIZE_BYTES,
+  SEG_DATA,
+  STACK_SIZE_BYTES,
+  CELL_SIZE,
+  STACK_BASE_BYTES,
+  STACK_BASE,
+} from '../../core';
 
 describe('Memory', () => {
   let memory: Memory;
@@ -44,7 +52,9 @@ describe('Memory', () => {
   });
   test('should throw RangeError for 16-bit boundary violations', () => {
     const overflowOffset = MEMORY_SIZE_BYTES - STACK_BASE_BYTES - 1;
-    expect(() => memory.write16(SEG_DATA, STACK_BASE_BYTES + overflowOffset, 0x1234)).toThrow(RangeError);
+    expect(() => memory.write16(SEG_DATA, STACK_BASE_BYTES + overflowOffset, 0x1234)).toThrow(
+      RangeError,
+    );
     expect(() => memory.read16(SEG_DATA, STACK_BASE_BYTES + overflowOffset)).toThrow(RangeError);
   });
   test('should handle invalid dump ranges', () => {

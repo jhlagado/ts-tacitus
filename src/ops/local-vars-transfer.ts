@@ -10,8 +10,8 @@ import {
   getListLength,
   validateListHeader,
   isList,
-  STACK_BASE_CELLS,
-  RSTACK_BASE_CELLS,
+  STACK_BASE,
+  RSTACK_BASE,
   CELL_SIZE,
   dropList,
 } from '@src/core';
@@ -51,10 +51,10 @@ export function rpushList(vm: VM): number {
     return headerAddr;
   }
 
-  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE_CELLS) and stream-copy to RSTACK via rpush
-  let elementCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
+  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE) and stream-copy to RSTACK via rpush
+  let elementCell = vm.sp - STACK_BASE - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(STACK_BASE_CELLS + elementCell);
+    const value = vm.memory.readCell(STACK_BASE + elementCell);
     rpush(vm, value);
     elementCell += 1;
   }
@@ -74,7 +74,7 @@ export function rpushList(vm: VM): number {
  * Stack effect: ( -- list ) [materializes from return stack]
  */
 export function loadListFromReturn(vm: VM, headerAddr: number): void {
-  const headerCellIndex = RSTACK_BASE_CELLS + headerAddr / CELL_SIZE;
+  const headerCellIndex = RSTACK_BASE + headerAddr / CELL_SIZE;
   const header = vm.memory.readCell(headerCellIndex);
 
   if (!isList(header)) {
@@ -91,7 +91,7 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const headerCell = headerAddrToHeaderCell(headerAddr);
   const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
   for (let i = 0; i < slotCount; i++) {
-    const element = vm.memory.readCell(RSTACK_BASE_CELLS + baseCell + i);
+    const element = vm.memory.readCell(RSTACK_BASE + baseCell + i);
     push(vm, element);
   }
   push(vm, header);
@@ -173,12 +173,12 @@ export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
     return;
   }
 
-  // Source cells from data stack (relative to STACK_BASE_CELLS for reads below)
-  let sourceCell = vm.sp - STACK_BASE_CELLS - (slotCount + 1);
+  // Source cells from data stack (relative to STACK_BASE for reads below)
+  let sourceCell = vm.sp - STACK_BASE - (slotCount + 1);
   const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
 
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(STACK_BASE_CELLS + sourceCell);
+    const value = vm.memory.readCell(STACK_BASE + sourceCell);
     vm.memory.writeCell(targetBaseCell + i, value);
     sourceCell += 1;
   }

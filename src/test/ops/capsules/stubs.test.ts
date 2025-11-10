@@ -5,7 +5,7 @@ import {
   dispatchOp,
   endCapsuleOp,
 } from '../../../ops/capsules/capsule-ops';
-import { decodeRef, RSTACK_BASE_CELLS, CELL_SIZE } from '../../../core';
+import { decodeRef, RSTACK_BASE, CELL_SIZE } from '../../../core';
 import { rpush, peek } from '../../../core/vm';
 
 describe('capsule opcode stubs', () => {
@@ -37,7 +37,7 @@ describe('capsule opcode stubs', () => {
     // RSTACK: appended CODE + LIST, so grew by 2
     expect(vm.rsp).toBe(prevRSP + 2);
     // Restored caller registers
-    expect(vm.bp).toBe(RSTACK_BASE_CELLS + 0);
+    expect(vm.bp).toBe(RSTACK_BASE + 0);
     expect(vm.IP).toBe(9999);
   });
 

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../core';
-import { STACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { cellsRoll, cellsReverse } from '../../../ops/stack';
 import { push, pop } from '../../../core/vm';
 
@@ -13,7 +13,7 @@ describe('rangeRoll', () => {
 
   test('should handle empty range', () => {
     push(vm, 1);
-    const start = vm.sp - STACK_BASE_CELLS;
+    const start = vm.sp - STACK_BASE;
 
     cellsRoll(vm, start, 0, 1);
 
@@ -23,7 +23,7 @@ describe('rangeRoll', () => {
   test('should handle zero shift', () => {
     push(vm, 1);
     push(vm, 2);
-    const start = vm.sp - STACK_BASE_CELLS - 1;
+    const start = vm.sp - STACK_BASE - 1;
 
     cellsRoll(vm, start, 2, 0);
 

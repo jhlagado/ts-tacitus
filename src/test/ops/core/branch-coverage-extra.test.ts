@@ -1,7 +1,7 @@
 import { createVM, type VM } from '../../../core/vm';
 import { groupLeftOp, groupRightOp, endIfOp, endDoOp, exitOp } from '../../../ops/core/core-ops';
 import { SEG_CODE } from '../../../core';
-import { RSTACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { push, rpush, pop } from '../../../core/vm';
 
 describe('Core ops extra branch coverage', () => {
@@ -42,7 +42,7 @@ describe('Core ops extra branch coverage', () => {
 
   test('exitOp stops VM when no caller frame', () => {
     vm.running = true;
-    vm.rsp = RSTACK_BASE_CELLS; // no saved BP/RA (absolute base)
+    vm.rsp = RSTACK_BASE; // no saved BP/RA (absolute base)
     exitOp(vm);
     expect(vm.running).toBe(false);
   });
@@ -51,7 +51,7 @@ describe('Core ops extra branch coverage', () => {
     // Simulate a frame with RA=77 (raw number) and saved BP=0 at indices [0,1]
     rpush(vm, 77);
     rpush(vm, 0);
-    vm.bp = RSTACK_BASE_CELLS + 2; // frame root points just above saved cells
+    vm.bp = RSTACK_BASE + 2; // frame root points just above saved cells
     exitOp(vm);
     expect(vm.IP).toBe(77);
   });
@@ -59,7 +59,7 @@ describe('Core ops extra branch coverage', () => {
   test('exitOp restores return address when numeric', () => {
     rpush(vm, 88);
     rpush(vm, 0);
-    vm.bp = RSTACK_BASE_CELLS + 2;
+    vm.bp = RSTACK_BASE + 2;
     exitOp(vm);
     expect(vm.IP).toBe(88);
   });

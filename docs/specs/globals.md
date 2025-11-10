@@ -114,11 +114,11 @@ Together, these constraints make globals feel like "locals with a different addr
 
 Tacit's VM uses one **unified data arena**, a contiguous range of 32-bit cells. The arena is organized into three contiguous areas:
 
-1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE_CELLS` to `GLOBAL_TOP_CELLS`).
-2. **Data-stack area** – transient operand storage (from `STACK_BASE_CELLS` to `STACK_TOP_CELLS`).
-3. **Return-stack area** – function frames and locals (from `RSTACK_BASE_CELLS` to `RSTACK_TOP_CELLS`).
+1. **Global area** – persistent, module-scope data (from `GLOBAL_BASE` to `GLOBAL_TOP`).
+2. **Data-stack area** – transient operand storage (from `STACK_BASE` to `STACK_TOP`).
+3. **Return-stack area** – function frames and locals (from `RSTACK_BASE` to `RSTACK_TOP`).
 
-Globals live exclusively in the **global area** of the data segment, starting at `GLOBAL_BASE_CELLS`.
+Globals live exclusively in the **global area** of the data segment, starting at `GLOBAL_BASE`.
 Each cell in this area may contain either:
 
 - A **simple value** (number, string address, builtin ref, code ref), or
@@ -147,10 +147,10 @@ Every new global declaration consumes the next available cell in the global area
 Address computation is fixed and lightweight:
 
 ```
-absoluteIndex = GLOBAL_BASE_CELLS + offset
+absoluteIndex = GLOBAL_BASE + offset
 ```
 
-where `offset = GP - GLOBAL_BASE_CELLS` at the moment of allocation.
+where `offset = GP - GLOBAL_BASE` at the moment of allocation.
 The compiler emits that 16-bit offset as the operand to `Op.GlobalRef`.
 
 At runtime, `GlobalRef` reconstructs the absolute index and wraps it in a `Tag.REF`.
@@ -158,14 +158,14 @@ That reference unambiguously identifies the global cell and lets `fetch`, `load`
 
 ### 2.4 64K Limit and Rationale
 
-The `GlobalRef` opcode uses a **16-bit unsigned offset** operand, which limits the maximum number of globals to **65,536** (0xFFFF). However, the actual runtime boundary is determined by the `GLOBAL_TOP_CELLS` constant, which may be smaller than this theoretical maximum.
+The `GlobalRef` opcode uses a **16-bit unsigned offset** operand, which limits the maximum number of globals to **65,536** (0xFFFF). However, the actual runtime boundary is determined by the `GLOBAL_TOP` constant, which may be smaller than this theoretical maximum.
 
 - **Compile-time limit:** 65,536 globals (due to 16-bit offset encoding)
-- **Runtime boundary:** `GLOBAL_TOP_CELLS` (actual end of global area, may be < 65,536)
-- **Address range:** `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)` (exclusive upper bound)
+- **Runtime boundary:** `GLOBAL_TOP` (actual end of global area, may be < 65,536)
+- **Address range:** `[GLOBAL_BASE, GLOBAL_TOP]` (inclusive bounds)
 - **Total bytes (max):** ≈ 256 KiB (4 × 65,536)
 
-The compiler validates that `offset < 65536` when emitting `GlobalRef` opcodes. At runtime, the VM validates that the computed absolute cell index falls within `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)`. If `GLOBAL_TOP_CELLS` is less than `GLOBAL_BASE_CELLS + 65536`, the effective limit is determined by the smaller of these constraints.
+The compiler validates that `offset < 65536` when emitting `GlobalRef` opcodes. At runtime, the VM validates that the computed absolute cell index falls within `[GLOBAL_BASE, GLOBAL_TOP]`. If `GLOBAL_TOP` is less than `GLOBAL_BASE + 65536`, the effective limit is determined by the smaller of these constraints.
 
 **Practical implication:** The 64K limit provides ample capacity for configuration constants, shared lists, and long-lived capsules. Future extensions could switch to 24-bit offsets or segmented heaps, but the current flat 64K area favors simplicity and direct addressing.
 
@@ -173,7 +173,7 @@ The compiler validates that `offset < 65536` when emitting `GlobalRef` opcodes. 
 
 - **Lifetime:** globals persist for the entire VM session. They are initialized once at load-time and reclaimed only when the VM resets.
 - **Aliasing:** `&name` returns a stable `REF` whose payload always points to the same cell. It may be passed to functions or stored in lists freely.
-- **Boundary enforcement:** the VM validates that a global's ref payload lies within `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)`. Anything outside the global area is an error.
+- **Boundary enforcement:** the VM validates that a global's ref payload lies within `[GLOBAL_BASE, GLOBAL_TOP]`. Anything outside the global area is an error.
 - **Compound placement:** when storing a compound whose origin is on the data or return stack, the VM copies it into the global area (via helper `pushListToGlobalHeap` or `GPushList`) and replaces the cell content with a `REF` to the new header.
 - **No leakage of locals:** a local compound's address must never be written directly into a global cell. If a function attempts to do so, the runtime copies the structure into the global area instead, preserving lifetime safety.
 
@@ -213,7 +213,7 @@ Store
 Runtime behaviour:
 
 1. **Value**: top-of-stack holds the value to assign — simple or compound.
-2. **Address creation**: `GlobalRef` constructs a `Tag.REF` to the cell at `GLOBAL_BASE_CELLS + offset`.
+2. **Address creation**: `GlobalRef` constructs a `Tag.REF` to the cell at `GLOBAL_BASE + offset`.
 3. **Write**: `Store` pops the value and writes it to that cell.
    - If the value is simple → copied directly.
    - If compound → copied to the global heap, and the cell receives a `REF` to the new header.
@@ -226,17 +226,17 @@ Runtime behaviour:
 ```typescript
 function compileGlobal(vm, tokenName, valueExpr) {
   if (vm.scopeDepth > 0) throw new Error('Global declarations only allowed at top level');
-  const offset = vm.gp - GLOBAL_BASE_CELLS;
+  const offset = vm.gp - GLOBAL_BASE;
   // Check 16-bit offset limit (compile-time constraint)
   if (offset > 0xffff) throw new Error('Global variable limit exceeded (64K)');
   // Check runtime boundary (may be smaller than 64K)
-  if (vm.gp >= GLOBAL_TOP_CELLS) throw new Error('Global area exhausted');
+  if (vm.gp >= GLOBAL_TOP) throw new Error('Global area exhausted');
   vm.gp += 1;
   compile(valueExpr); // emit value-producing ops
   emit(Op.GlobalRef);
   emit16(offset);
   emit(Op.Store);
-  const globalRef = createRef(GLOBAL_BASE_CELLS + offset);
+  const globalRef = createRef(GLOBAL_BASE + offset);
   define(vm, tokenName, globalRef); // dictionary entry
 }
 ```
@@ -335,7 +335,7 @@ When the compiler encounters a bare word `name`, lookup proceeds as usual:
 | `&name` | `GlobalRef <offset>; Fetch` |
 | `value -> name` | `GlobalRef <offset>; Store` |
 
-Offset = `absoluteIndex - GLOBAL_BASE_CELLS`, stored as a 16-bit operand.
+Offset = `absoluteIndex - GLOBAL_BASE`, stored as a 16-bit operand.
 
 This mechanism uses the same address-range discrimination already present in `variables-and-refs.md`, ensuring that no explicit type flag is needed to tell globals from locals.
 
@@ -353,7 +353,7 @@ Tacit follows straightforward shadowing rules to preserve determinism:
 When executing any global reference instruction, the VM validates that the target address is inside the global area:
 
 ```
-if (cellIndex < GLOBAL_BASE_CELLS || cellIndex >= GLOBAL_TOP_CELLS)
+if (cellIndex < GLOBAL_BASE || cellIndex > GLOBAL_TOP)
     throw "REF points outside global area"
 ```
 
@@ -379,7 +379,7 @@ This persistence design aligns globals with the VM's module system: a compiled m
 Pushes a reference (`Tag.REF`) to a specific global cell. The absolute cell index is computed as:
 
 ```
-absoluteIndex = GLOBAL_BASE_CELLS + offset
+absoluteIndex = GLOBAL_BASE + offset
 ```
 
 **Semantics**
@@ -394,7 +394,7 @@ absoluteIndex = GLOBAL_BASE_CELLS + offset
 ```typescript
 function opGlobalRef(vm) {
   const offset = nextUint16(vm);
-  const absoluteIndex = GLOBAL_BASE_CELLS + offset;
+  const absoluteIndex = GLOBAL_BASE + offset;
   const ref = createRef(absoluteIndex);
   push(vm, ref);
 }
@@ -403,10 +403,10 @@ function opGlobalRef(vm) {
 **Invariant checks**
 
 - **Compile-time:** Offset must be within `[0, 65535]` (16-bit unsigned limit).
-- **Runtime:** Absolute index must fall inside the global area: `cellIndex >= GLOBAL_BASE_CELLS && cellIndex < GLOBAL_TOP_CELLS`.
-- Ref payloads outside the `[GLOBAL_BASE_CELLS, GLOBAL_TOP_CELLS)` range raise `"REF points outside global area"`.
+- **Runtime:** Absolute index must fall inside the global area: `cellIndex >= GLOBAL_BASE && cellIndex <= GLOBAL_TOP`.
+- Ref payloads outside the `[GLOBAL_BASE, GLOBAL_TOP]` range raise `"REF points outside global area"`.
 
-**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP_CELLS`, which may be smaller. Both constraints are enforced.
+**Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced.
 
 ### 5.2 Read (Value-By-Default)
 
@@ -739,11 +739,11 @@ Together, these rules keep the global area safe, predictable, and resilient unde
 
 The **`GlobalRef`** opcode is extremely lightweight.
 
-- **Fetch cost:** a single 16-bit operand fetch followed by one addition (`GLOBAL_BASE_CELLS + offset`).
+- **Fetch cost:** a single 16-bit operand fetch followed by one addition (`GLOBAL_BASE + offset`).
 - **Result:** a `Tag.REF` pushed to the data stack.
 - **Total size:** 3 bytes (1 opcode + 2 operand bytes).
 
-This makes global access roughly equivalent to local access via `VarRef(slot)`; the only difference is that locals use a frame-relative base (`BP`) while globals use an absolute heap base (`GLOBAL_BASE_CELLS`).
+This makes global access roughly equivalent to local access via `VarRef(slot)`; the only difference is that locals use a frame-relative base (`BP`) while globals use an absolute heap base (`GLOBAL_BASE`).
 
 There are no hash lookups or dynamic tables at runtime: once compiled, globals resolve to fixed offsets. This keeps both execution and code size compact.
 
@@ -774,13 +774,13 @@ If a compound global is reassigned with a new structure of identical size, the w
 
 ### 8.5 Relative Cost vs. Locals
 
-| Operation            | Locals                       | Globals                      |
-| -------------------- | ---------------------------- | ---------------------------- |
-| **Address creation** | `BP + slot`                  | `GLOBAL_BASE_CELLS + offset` |
-| **Read (load)**      | 2 ops                        | 2 ops                        |
-| **Write (store)**    | 2 ops                        | 2 ops                        |
-| **Frame setup**      | requires `Reserve`/`InitVar` | none                         |
-| **Lifetime mgmt**    | auto on return               | static for VM lifetime       |
+| Operation            | Locals                       | Globals                |
+| -------------------- | ---------------------------- | ---------------------- |
+| **Address creation** | `BP + slot`                  | `GLOBAL_BASE + offset` |
+| **Read (load)**      | 2 ops                        | 2 ops                  |
+| **Write (store)**    | 2 ops                        | 2 ops                  |
+| **Frame setup**      | requires `Reserve`/`InitVar` | none                   |
+| **Lifetime mgmt**    | auto on return               | static for VM lifetime |
 
 So while locals incur frame prologue/epilogue costs, globals pay nothing per function call.
 For heavily reused constants or configuration data, globals are faster overall.
@@ -810,7 +810,7 @@ Globals therefore add minimal runtime overhead while providing stable, persisten
 
 Global variables form the last pillar of Tacit's memory model. They unify the constant and persistent data domains with the same low-level semantics that govern locals, lists, and capsules. Each global is simply a cell in the global area—addressed by an absolute index, referenced through a `Tag.REF`, and managed through the same three primitives: `Load`, `Fetch`, and `Store`. Nothing about their operation introduces new rules; the entire mechanism extends naturally from the invariants already established in `core-invariants.md` and `variables-and-refs.md`.
 
-At the language surface, `value global name` provides a literal mirror of `value var name`. The only distinction is lifetime. Locals expire with their frame; globals survive until the VM halts. This simple shift in allocation base—`BP` for locals, `GLOBAL_BASE_CELLS` for globals—lets the compiler treat both uniformly. Each becomes an addressable slot inside the unified arena, differing only in which boundary check the VM performs.
+At the language surface, `value global name` provides a literal mirror of `value var name`. The only distinction is lifetime. Locals expire with their frame; globals survive until the VM halts. This simple shift in allocation base—`BP` for locals, `GLOBAL_BASE` for globals—lets the compiler treat both uniformly. Each becomes an addressable slot inside the unified arena, differing only in which boundary check the VM performs.
 
 Conceptually, this is a very narrow feature: there is no notion of package state, mutable environment frames, or implicit side effects. A global variable is not a namespace; it is a persistent cell. Its safety depends on the same four principles that define the rest of Tacit’s execution semantics:
 
@@ -821,7 +821,7 @@ Conceptually, this is a very narrow feature: there is no notion of package state
 
 These guarantees mean that the global heap can be reasoned about just like a permanent frame: one contiguous block whose addresses never change. Programs can therefore rely on globals for constants, shared configurations, and long-lived data structures without risk of aliasing or corruption when stack frames unwind.
 
-At runtime, the distinction between global and local access vanishes into a handful of instructions. The opcode `GlobalRef` simply computes `GLOBAL_BASE_CELLS + offset`, pushes a reference, and leaves the rest to the existing memory machinery. Reads and writes that follow obey the same cost model and tagging rules as any other cell. The result is a form of persistence that costs almost nothing in performance or conceptual weight.
+At runtime, the distinction between global and local access vanishes into a handful of instructions. The opcode `GlobalRef` simply computes `GLOBAL_BASE + offset`, pushes a reference, and leaves the rest to the existing memory machinery. Reads and writes that follow obey the same cost model and tagging rules as any other cell. The result is a form of persistence that costs almost nothing in performance or conceptual weight.
 
 This design also reinforces Tacit’s broader philosophy:
 

@@ -6,7 +6,7 @@ import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
 import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
-import { STACK_BASE_CELLS, RSTACK_BASE_CELLS, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
 import {
@@ -133,14 +133,14 @@ describe('case immediates', () => {
   test('beginCaseImmediate pushes saved RSP and closer', () => {
     beginCaseImmediate(vm, tokenizer, currentDefinition);
 
-    expect(vm.sp - STACK_BASE_CELLS).toBe(2);
+    expect(vm.sp - STACK_BASE).toBe(2);
     const closer = peek(vm);
     const closerInfo = fromTaggedValue(closer);
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndCase);
 
     const snapshot = peekAt(vm, 1);
-    expect(snapshot).toBe(vm.rsp - RSTACK_BASE_CELLS);
+    expect(snapshot).toBe(vm.rsp - RSTACK_BASE);
   });
 
   test('clauseOfImmediate emits comparison sequence and records placeholder', () => {
@@ -151,7 +151,7 @@ describe('case immediates', () => {
 
     clauseOfImmediate(vm, tokenizer, currentDefinition);
 
-    expect(vm.sp - STACK_BASE_CELLS).toBe(4);
+    expect(vm.sp - STACK_BASE).toBe(4);
     const closerInfo = fromTaggedValue(peek(vm));
     expect(closerInfo.tag).toBe(Tag.BUILTIN);
     expect(closerInfo.value).toBe(Op.EndOf);
@@ -192,7 +192,7 @@ describe('case immediates', () => {
     beginCaseImmediate(vm, tokenizer, currentDefinition);
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
-    expect(vm.sp - STACK_BASE_CELLS).toBeGreaterThanOrEqual(2);
+    expect(vm.sp - STACK_BASE).toBeGreaterThanOrEqual(2);
     const { tag, value } = fromTaggedValue(peek(vm));
     expect(tag).toBe(Tag.BUILTIN);
     expect(value).toBe(Op.EndCase);
@@ -201,7 +201,9 @@ describe('case immediates', () => {
   });
 
   test('of without case raises error', () => {
-    expect(() => clauseOfImmediate(vm, tokenizer, currentDefinition)).toThrow("'of' without open case");
+    expect(() => clauseOfImmediate(vm, tokenizer, currentDefinition)).toThrow(
+      "'of' without open case",
+    );
   });
 
   test('endOfOp patches predicate skip and records exit branch', () => {
@@ -218,7 +220,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // executes EndOf
 
-    expect(vm.sp - STACK_BASE_CELLS).toBe(2);
+    expect(vm.sp - STACK_BASE).toBe(2);
 
     const exitPos = rpop(vm);
     expect(exitPos).toBeGreaterThan(skipPos);
@@ -274,7 +276,7 @@ describe('case immediates', () => {
 
     evalOp(vm); // EndCase
 
-    expect(vm.sp - STACK_BASE_CELLS).toBe(0);
+    expect(vm.sp - STACK_BASE).toBe(0);
 
     const finalDropPos = vm.compiler.CP - 1;
     expect(vm.memory.read8(SEG_CODE, finalDropPos)).toBe(Op.Drop);
@@ -292,7 +294,7 @@ describe('case immediates', () => {
 
     evalOp(vm);
 
-    expect(vm.sp - STACK_BASE_CELLS).toBe(0);
+    expect(vm.sp - STACK_BASE).toBe(0);
     expect(vm.memory.read8(SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
   });
 });
@@ -310,4 +312,3 @@ describe('case end corruption branch', () => {
     expect(() => endCaseOp(vm)).toThrow('case corrupted return stack');
   });
 });
-

@@ -10,7 +10,7 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
 import { push, rpush, rpop, pop, getStackData, unsafeSetBPBytes } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { RSTACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 describe('Core Operations Branch Coverage', () => {
   let vm: VM;
@@ -37,7 +37,7 @@ describe('Core Operations Branch Coverage', () => {
       unsafeSetBPBytes(vm, 16); // Set base pointer (bytes -> cells)
       vm.rsp = 4; // 4 cells = 16 bytes to match BP
       // Save BP as relative cells (depth)
-      rpush(vm, vm.bp - RSTACK_BASE_CELLS); // BP saved (relative)
+      rpush(vm, vm.bp - RSTACK_BASE); // BP saved (relative)
       rpush(vm, 1000); // Non-code return address (number, not tagged as CODE)
 
       exitOp(vm);

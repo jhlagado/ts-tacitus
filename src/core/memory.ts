@@ -13,7 +13,7 @@ import {
   CODE_SIZE_BYTES,
   DATA_BASE_BYTES,
   DATA_TOP_BYTES,
-  DATA_TOP_CELLS,
+  DATA_TOP,
   CELL_SIZE,
 } from './constants';
 
@@ -164,10 +164,8 @@ export class Memory {
    * @throws {RangeError} If cell index is out of bounds
    */
   writeCell(cellIndex: number, value: number): void {
-    if (cellIndex < 0 || cellIndex >= DATA_TOP_CELLS) {
-      throw new RangeError(
-        `Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP_CELLS})`,
-      );
+    if (cellIndex < 0 || cellIndex >= DATA_TOP) {
+      throw new RangeError(`Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP})`);
     }
     const byteAddress = cellIndex * CELL_SIZE;
     this.dataView.setFloat32(byteAddress, value, true);
@@ -180,10 +178,8 @@ export class Memory {
    * @throws {RangeError} If cell index is out of bounds
    */
   readCell(cellIndex: number): number {
-    if (cellIndex < 0 || cellIndex >= DATA_TOP_CELLS) {
-      throw new RangeError(
-        `Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP_CELLS})`,
-      );
+    if (cellIndex < 0 || cellIndex >= DATA_TOP) {
+      throw new RangeError(`Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP})`);
     }
     const byteAddress = cellIndex * CELL_SIZE;
     return this.dataView.getFloat32(byteAddress, true);

@@ -7,7 +7,7 @@
  */
 
 import { createVM, type VM } from '../../core/vm';
-import { STACK_BASE_CELLS, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue } from '../../core';
 import { createBuiltinRef, createCodeRef } from '../../core';
@@ -117,7 +117,7 @@ describe('VM Symbol Resolution', () => {
       push(vm, addRef!);
       evalOp(vm);
 
-      expect(vm.sp - STACK_BASE_CELLS).toBe(1);
+      expect(vm.sp - STACK_BASE).toBe(1);
       expect(pop(vm)).toBe(8);
     });
 

@@ -15,7 +15,7 @@
  */
 
 import { createVM, type VM } from '../../core/vm';
-import { STACK_BASE_CELLS, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, createCodeRef } from '../../core';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
@@ -239,7 +239,7 @@ describe('Symbol Table Integration Tests', () => {
       evalOp(vm);
       expect(getStackData(vm)).toEqual([42, 42]);
 
-      vm.sp = STACK_BASE_CELLS;
+      vm.sp = STACK_BASE;
       push(vm, 5);
 
       const codeBlockRef = createCodeRef(100);

@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tag, toTaggedValue, createVM, VM } from '../../../core';
 import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { captureTacitOutput } from '../../utils/vm-test-utils';
-import { STACK_BASE_CELLS, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { push, pop } from '../../../core/vm';
 import * as vmFunctions from '../../../core/vm';
 
@@ -138,7 +138,7 @@ describe('Print Operations', () => {
       printOp(vm);
 
       expect(logSpy).toHaveBeenCalledWith('[Print error: pop fail]');
-      expect(vm.sp - STACK_BASE_CELLS).toBe(0);
+      expect(vm.sp - STACK_BASE).toBe(0);
 
       popSpy.mockRestore();
     });
@@ -152,7 +152,7 @@ describe('Print Operations', () => {
       rawPrintOp(vm);
 
       expect(logSpy).toHaveBeenCalledWith('[Raw print error: boom]');
-      expect(vm.sp - STACK_BASE_CELLS).toBe(1);
+      expect(vm.sp - STACK_BASE).toBe(1);
 
       popSpy.mockRestore();
     });

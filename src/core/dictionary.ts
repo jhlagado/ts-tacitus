@@ -23,7 +23,7 @@ import {
 import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, decodeRef } from './refs';
 import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
-import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE_CELLS } from './constants';
+import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
 // Unified define: store a fully-formed tagged payload under an interned name
@@ -36,7 +36,7 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
   gpush(vm, payloadTagged);
   gpush(vm, nameTagged);
   gpush(vm, toTaggedValue(3, Tag.LIST));
-  // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE_CELLS)
+  // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE)
   vm.head = vm.gp - 1;
 }
 
@@ -86,8 +86,8 @@ export function lookup(vm: VM, name: string): number {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
         const { absoluteCellIndex } = decodeRef(prevRefValue);
-        // Convert absolute cell index back to relative (relative to GLOBAL_BASE_CELLS)
-        cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
+        // Convert absolute cell index back to relative (relative to GLOBAL_BASE)
+        cur = absoluteCellIndex - GLOBAL_BASE;
       } else {
         cur = 0;
       }
@@ -135,7 +135,7 @@ export function findEntry(
 }
 
 export function forget(vm: VM, markCellIndex: number): void {
-  // markCellIndex is a NUMBER (cell index relative to GLOBAL_BASE_CELLS)
+  // markCellIndex is a NUMBER (cell index relative to GLOBAL_BASE)
   const gpNew = markCellIndex;
   if (!Number.isInteger(gpNew) || gpNew < 0) {
     throw new Error('forget mark out of range');
@@ -176,7 +176,7 @@ function materializeValueRef(vm: VM, value: number): number {
 }
 
 // Build a LIST entry [prevRef, valueRef, name] on data stack and copy to global heap.
-// Returns cell index of the header (relative to GLOBAL_BASE_CELLS)
+// Returns cell index of the header (relative to GLOBAL_BASE)
 function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: number): number {
   // Create prevRef as REF (or NIL if prevCell is 0)
   const prevRef = prevCell === 0 ? NIL : createGlobalRef(prevCell);
@@ -291,7 +291,7 @@ export function dumpDictOp(vm: VM): void {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
         const { absoluteCellIndex } = decodeRef(prevRefValue);
-        const relativeCellIndex = absoluteCellIndex - GLOBAL_BASE_CELLS;
+        const relativeCellIndex = absoluteCellIndex - GLOBAL_BASE;
         prevStr = `cell@${relativeCellIndex}`;
       } else {
         prevStr = `?tag:${tag}`;
@@ -305,7 +305,7 @@ export function dumpDictOp(vm: VM): void {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
         const { absoluteCellIndex } = decodeRef(prevRefValue);
-        cur = absoluteCellIndex - GLOBAL_BASE_CELLS;
+        cur = absoluteCellIndex - GLOBAL_BASE;
       } else {
         cur = 0;
       }
