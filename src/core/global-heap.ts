@@ -3,12 +3,18 @@
  * Helpers for working with the Tacit global heap (stack-like global segment).
  */
 
-import type { VM } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE } from './constants';
+import { type VM, peek } from './vm';
+import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, STACK_BASE } from './constants';
 import { createGlobalRef } from './refs';
-import { getListLength } from './list';
+import { getListLength, validateListHeader, dropList } from './list';
 
 const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE;
+
+function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
+  if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_CELL_CAPACITY) {
+    throw new Error('Global heap exhausted');
+  }
+}
 
 export type ListSource = {
   /** LIST header value to write at destination */
@@ -16,12 +22,6 @@ export type ListSource = {
   /** Absolute byte address of the first payload cell in the source */
   baseAddrBytes: number;
 };
-
-function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
-  if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_CELL_CAPACITY) {
-    throw new Error('Global heap exhausted');
-  }
-}
 
 /**
  * Pushes a simple value to the global heap and returns a REF.
@@ -73,4 +73,50 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
  */
 export function getGlobalHeapSpan(_vm: VM, headerValue: number): number {
   return getListLength(headerValue) + 1;
+}
+
+/**
+ * Transfers compound data from data stack to global heap.
+ * Mirrors rpushList but for global heap instead of return stack.
+ *
+ * Stack effect: ( list -- ) [transfers to global heap]
+ * Returns: REF to the LIST header in global heap
+ *
+ * @param vm - VM instance
+ * @returns REF to the list header in global heap
+ */
+export function gpushList(vm: VM): number {
+  validateListHeader(vm);
+  const header = peek(vm);
+  const slotCount = getListLength(header);
+
+  if (slotCount === 0) {
+    // Empty list: just write header and return REF
+    ensureGlobalCapacity(vm, 1);
+    const headerCellIndex = vm.gp;
+    vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, header);
+    vm.gp = headerCellIndex + 1;
+    dropList(vm);
+    return createGlobalRef(headerCellIndex);
+  }
+
+  // Copy payload slots from data stack to global heap
+  ensureGlobalCapacity(vm, slotCount + 1);
+  const destBaseCell = vm.gp;
+
+  // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE)
+  let elementCell = vm.sp - STACK_BASE - (slotCount + 1);
+  for (let i = 0; i < slotCount; i++) {
+    const value = vm.memory.readCell(STACK_BASE + elementCell);
+    vm.memory.writeCell(GLOBAL_BASE + destBaseCell + i, value);
+    elementCell += 1;
+  }
+
+  // Write header and update gp
+  const headerCellIndex = destBaseCell + slotCount;
+  vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, header);
+  vm.gp = headerCellIndex + 1;
+
+  dropList(vm);
+  return createGlobalRef(headerCellIndex);
 }

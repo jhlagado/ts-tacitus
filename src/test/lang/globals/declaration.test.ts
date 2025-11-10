@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, VM } from '../../../core';
+import { createVM, formatValue, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('Global Variable Declaration', () => {
@@ -41,13 +41,13 @@ describe('Global Variable Declaration', () => {
     });
   });
 
-  describe.skip('compound declarations', () => {
+  describe('compound declarations', () => {
     test('should declare global with list', () => {
-      executeTacitCode(vm, '[1 2 3] global myList');
+      executeTacitCode(vm, '(1 2 3) global myList');
 
       const result = executeTacitCode(vm, 'myList');
       expect(result.length).toBe(4); // 3 elements + header
-      expect(result[result.length - 1]).toBe(3); // header (length)
+      expect(result[result.length - 2]).toBe(1); // NOS is first element
     });
   });
 
