@@ -10,7 +10,7 @@ import {
   forget,
   define,
 } from '../../../core/dictionary';
-import { createRef, createGlobalRef, decodeRef } from '../../../core/refs';
+import { createRef, createGlobalRef, getCellFromRef } from '../../../core/refs';
 import { createCodeRef } from '../../../core/code-ref';
 import { GLOBAL_BASE } from '../../../core/constants';
 
@@ -104,7 +104,7 @@ describe('Dictionary payload types', () => {
       expect(info.tag).toBe(Tag.REF);
 
       // Decode and verify the absolute cell index
-      const { cellIndex } = decodeRef(tv);
+      const cellIndex = getCellFromRef(tv);
       expect(cellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
 
@@ -119,7 +119,7 @@ describe('Dictionary payload types', () => {
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.REF);
 
-      const { cellIndex: decoded } = decodeRef(tv);
+      const decoded = getCellFromRef(tv);
       expect(decoded).toBe(cellIndex);
     });
 
@@ -136,9 +136,9 @@ describe('Dictionary payload types', () => {
       const tv2 = lookup(vm, 'ref1');
       const tv3 = lookup(vm, 'ref2');
 
-      const { cellIndex: idx1 } = decodeRef(tv1);
-      const { cellIndex: idx2 } = decodeRef(tv2);
-      const { cellIndex: idx3 } = decodeRef(tv3);
+      const idx1 = getCellFromRef(tv1);
+      const idx2 = getCellFromRef(tv2);
+      const idx3 = getCellFromRef(tv3);
 
       expect(idx1).toBe(GLOBAL_BASE + 0);
       expect(idx2).toBe(GLOBAL_BASE + 1);
@@ -153,7 +153,7 @@ describe('Dictionary payload types', () => {
       const tv = lookup(vm, 'pointer');
       expect(isNIL(tv)).toBe(false);
 
-      const { cellIndex } = decodeRef(tv);
+      const cellIndex = getCellFromRef(tv);
       expect(cellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
   });

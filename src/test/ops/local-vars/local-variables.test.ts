@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
-import { getVarRef, writeReference } from '../../../core/refs';
+import { getVarRef, writeRef } from '../../../core/refs';
 import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { push, getStackData, pop } from '../../../core/vm';
 
@@ -248,7 +248,7 @@ describe('Local Variables System', () => {
   });
 
   describe('Variable Mutation', () => {
-    test('should support variable mutation via writeReference', () => {
+    test('should support variable mutation via writeRef', () => {
       vm.bp = RSTACK_BASE + 28;
       vm.compiler.compile16(1);
       reserveOp(vm);
@@ -263,9 +263,9 @@ describe('Local Variables System', () => {
       fetchOp(vm);
       expect(pop(vm)).toBe(42);
 
-      // Mutate using writeReference
+      // Mutate using writeRef
       const varRef = getVarRef(vm, 0);
-      writeReference(vm, varRef, 99);
+      writeRef(vm, varRef, 99);
 
       // Verify mutation
       push(vm, getVarRef(vm, 0));
@@ -290,7 +290,7 @@ describe('Local Variables System', () => {
       const newValues = [100, 200, 300];
       newValues.forEach((value, slot) => {
         const varRef = getVarRef(vm, slot);
-        writeReference(vm, varRef, value);
+        writeRef(vm, varRef, value);
       });
 
       // Verify all mutations
@@ -319,7 +319,7 @@ describe('Local Variables System', () => {
       fetchOp(vm);
       pop(vm);
 
-      writeReference(vm, getVarRef(vm, 1), 999);
+      writeRef(vm, getVarRef(vm, 1), 999);
 
       // Verify first unchanged, second mutated
       push(vm, getVarRef(vm, 0));

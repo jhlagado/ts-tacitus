@@ -22,44 +22,55 @@ This document analyzes all functions across the codebase, identifies patterns an
 
 ## Rationalization Plan
 
-### Phase 1: Remove Deprecated Aliases
+### Phase 1: Remove Deprecated Aliases ✅ COMPLETE
 
 **Goal:** Remove deprecated function aliases that add no value.
 
-**Functions to Remove:**
+**Functions Removed:**
 
-- `readRefValue` (alias of `readRef`)
-- `writeReference` (alias of `writeRef`)
+- `readRefValue` (alias of `readRef`) ✅
+- `writeReference` (alias of `writeRef`) ✅
 
-**Steps:**
+**Changes Made:**
 
-1. Find all usages of deprecated aliases
-2. Replace with primary function names
-3. Remove deprecated exports
+1. ✅ Replaced `readRefValue` with `readRef` in:
+   - `src/test/core/refs.test.ts`
+   - `src/ops/heap/global-heap-ops.ts`
+2. ✅ Replaced `writeReference` with `writeRef` in:
+   - `src/test/ops/local-vars/local-variables.test.ts`
+3. ✅ Removed deprecated exports from `src/core/refs.ts`
 
-**Benefits:**
+**Results:**
 
-- Cleaner API
-- No confusion about which function to use
-- Reduces 2 functions
+- ✅ All tests pass
+- ✅ Cleaner API (no deprecated aliases)
+- ✅ No confusion about which function to use
+- ✅ Reduced 2 functions
 
-### Phase 2: Simplify REF Extraction
+### Phase 2: Simplify REF Extraction ✅ COMPLETE
 
 **Goal:** Remove redundant `decodeRef` wrapper.
 
 **Issue:** `decodeRef(ref)` returns `{ cellIndex: number }` while `getCellFromRef(ref)` returns `number` directly. Most call sites destructure immediately.
 
-**Steps:**
+**Changes Made:**
 
-1. Find all `decodeRef` usages
-2. Replace with `getCellFromRef`
-3. Remove `decodeRef` function
+1. ✅ Replaced `decodeRef` with `getCellFromRef` in:
+   - `src/test/core/refs.test.ts` (7 usages)
+   - `src/core/dictionary.ts` (3 usages)
+   - `src/test/ops/capsules/stubs.test.ts` (1 usage)
+   - `src/test/ops/dict/dictionary-payloads.test.ts` (4 usages)
+   - `src/test/ops/access/select-op.test.ts` (comment only)
+2. ✅ Removed `decodeRef` function from `src/core/refs.ts`
+3. ✅ Updated test expectations (error messages changed from "non-REF" to "Expected REF")
+4. ✅ Fixed test that expected `decodeRef` to not validate bounds (now `getCellFromRef` properly validates)
 
-**Benefits:**
+**Results:**
 
-- Simpler API (direct return vs object)
-- One less function to maintain
-- Reduces 2 functions to 1
+- ✅ All tests pass
+- ✅ Simpler API (direct return vs object destructuring)
+- ✅ One less function to maintain
+- ✅ Reduced 2 functions to 1
 
 ### Phase 3: Simplify Reference Area Checks
 

@@ -21,7 +21,7 @@ import {
   isNIL,
 } from './tagged';
 import { isList, getListLength, validateListHeader } from './list';
-import { isRef, createGlobalRef, decodeRef } from './refs';
+import { isRef, createGlobalRef, getCellFromRef } from './refs';
 import { gpushListFrom, gpushVal } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
@@ -85,7 +85,7 @@ export function lookup(vm: VM, name: string): number {
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { cellIndex } = decodeRef(prevRefValue);
+        const cellIndex = getCellFromRef(prevRefValue);
         cur = cellIndex - GLOBAL_BASE;
       } else {
         cur = 0;
@@ -274,7 +274,7 @@ export function dumpDictOp(vm: VM): void {
     if (!isNIL(prevRefValue)) {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { cellIndex } = decodeRef(prevRefValue);
+        const cellIndex = getCellFromRef(prevRefValue);
         const relativeCellIndex = cellIndex - GLOBAL_BASE;
         prevStr = `cell@${relativeCellIndex}`;
       } else {
@@ -288,7 +288,7 @@ export function dumpDictOp(vm: VM): void {
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { cellIndex } = decodeRef(prevRefValue);
+        const cellIndex = getCellFromRef(prevRefValue);
         cur = cellIndex - GLOBAL_BASE;
       } else {
         cur = 0;

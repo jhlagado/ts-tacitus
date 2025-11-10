@@ -13,7 +13,7 @@ import {
   gpushListFrom,
   gpushVal,
   isRef,
-  readRefValue,
+  readRef,
   refToByte,
   validateListHeader,
   createGlobalRef,
@@ -36,7 +36,7 @@ export function gpushOp(vm: VM): void {
   // If TOS is a ref: deep-copy list directly; for simples, copy resolved value now
   const v = peek(vm);
   if (isRef(v)) {
-    const dv = readRefValue(vm, v);
+    const dv = readRef(vm, v);
     if (isList(dv)) {
       const hdr = getCellFromRef(v);
       copyListAtHeader(vm, dv, hdr);

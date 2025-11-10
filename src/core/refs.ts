@@ -33,19 +33,6 @@ export function createRef(cellIndex: number): number {
   return toTaggedValue(cellIndex, Tag.REF);
 }
 
-/**
- * Decodes a REF tagged value to extract the cell index.
- * @param ref - REF tagged value
- * @returns Object containing cell index
- * @throws {Error} If value is not a REF
- */
-export function decodeRef(ref: number): { cellIndex: number } {
-  const { value, tag } = fromTaggedValue(ref);
-  if (tag !== Tag.REF) {
-    throw new Error('decodeRef called with non-REF value');
-  }
-  return { cellIndex: value };
-}
 
 /**
  * Extracts cell index from a REF.
@@ -84,10 +71,6 @@ export function readRef(vm: VM, ref: number): number {
   return vm.memory.readCell(cell);
 }
 
-/**
- * @deprecated Use readRef instead
- */
-export const readRefValue = readRef;
 
 /**
  * Checks if a tagged value is a REF.
@@ -211,7 +194,3 @@ export function writeRef(vm: VM, ref: number, value: number): void {
   vm.memory.writeCell(cell, value);
 }
 
-/**
- * @deprecated Use writeRef instead
- */
-export const writeReference = writeRef;

@@ -6,13 +6,13 @@ import {
   isRef,
   getRefArea,
   refToByte,
-  readRefValue,
+  readRef,
+  getCellFromRef,
   getVarRef,
   CELL_SIZE,
   TOTAL_DATA,
   toTaggedValue,
   Tag,
-  decodeRef,
   RSTACK_BASE,
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
@@ -39,7 +39,7 @@ describe('REF utilities', () => {
       const ref = createRef(absIndex);
       expect(isRef(ref)).toBe(true);
       expect(getRefArea(ref)).toBe(area);
-      const { cellIndex } = decodeRef(ref);
+      const cellIndex = getCellFromRef(ref);
       expect(cellIndex).toBe(absIndex);
     }
   });
@@ -55,24 +55,24 @@ describe('REF utilities', () => {
   test('getCellFromRef enforces arena bounds', () => {
     const invalidAbsolute = TOTAL_DATA + 5;
     const bogus = toTaggedValue(invalidAbsolute, Tag.REF);
-    // Use address resolver to validate bounds
-    expect(() => decodeRef(bogus)).not.toThrow();
-    expect(() => refToByte(bogus)).toThrow('absolute out of bounds');
+    // getCellFromRef validates bounds and throws
+    expect(() => getCellFromRef(bogus)).toThrow('out of bounds');
+    expect(() => refToByte(bogus)).toThrow('out of bounds');
   });
 
   // Removed: segment-relative creation is deprecated
 
   test('createGlobalRef produces REF in global area', () => {
     const ref = createGlobalRef(12);
-    const info = decodeRef(ref);
+    const cellIndex = getCellFromRef(ref);
     expect(getRefArea(ref)).toBe('global');
-    expect(info.cellIndex).toBe(GLOBAL_BASE + 12);
+    expect(cellIndex).toBe(GLOBAL_BASE + 12);
   });
 
   test('getVarRef returns REF to return-stack slot', () => {
     vm.bp = RSTACK_BASE + 0;
     const ref = getVarRef(vm, 2);
-    const abs = decodeRef(ref).cellIndex;
+    const abs = getCellFromRef(ref);
     expect(abs).toBe(RSTACK_BASE + 2);
   });
 
@@ -82,10 +82,10 @@ describe('REF utilities', () => {
     expect(absByte).toBe(GLOBAL_BASE_BYTES + 4 * CELL_SIZE);
   });
 
-  test('readRefValue operates via REF', () => {
+  test('readRef operates via REF', () => {
     const ref = createRef(GLOBAL_BASE + 10);
     vm.memory.writeCell(GLOBAL_BASE + 10, 321.25);
-    expect(readRefValue(vm, ref)).toBeCloseTo(321.25);
+    expect(readRef(vm, ref)).toBeCloseTo(321.25);
   });
 
   test('fetchOp materializes value via REF', () => {
@@ -108,10 +108,10 @@ describe('REF utilities', () => {
 });
 
 describe('Absolute REF helpers (Phase A)', () => {
-  test('createRef and decodeRef round-trip', () => {
+  test('createRef and getCellFromRef round-trip', () => {
     const absIndex = 0; // first cell
     const ref = createRef(absIndex);
-    const { cellIndex } = decodeRef(ref);
+    const cellIndex = getCellFromRef(ref);
     expect(cellIndex).toBe(absIndex);
   });
 
@@ -124,9 +124,9 @@ describe('Absolute REF helpers (Phase A)', () => {
     expect(() => createRef(-1)).toThrow(/out of bounds/);
   });
 
-  test('decodeRef rejects non-REF values', () => {
+  test('getCellFromRef rejects non-REF values', () => {
     const notRef = toTaggedValue(0, Tag.LIST);
-    expect(() => decodeRef(notRef)).toThrow(/non-REF/);
+    expect(() => getCellFromRef(notRef)).toThrow(/Expected REF/);
   });
 });
 
