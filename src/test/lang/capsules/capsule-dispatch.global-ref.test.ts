@@ -9,7 +9,7 @@ describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
     vm = createVM();
   });
 
-  test.skip('counter capsule dispatches using &global alias', () => {
+  test('counter capsule dispatches using global variable', () => {
     const code = `
       : make-counter
         0 var count
@@ -20,9 +20,9 @@ describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
       ;
 
       make-counter global gc
-      &gc fetch ref 'inc swap dispatch
-      &gc fetch ref 'inc swap dispatch
-      &gc fetch ref 'get swap dispatch
+      'inc &gc dispatch
+      'inc &gc dispatch
+      'get &gc dispatch
     `;
 
     const result = executeTacitCode(vm, code);
