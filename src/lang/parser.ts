@@ -30,12 +30,17 @@ import {
   isNIL,
   UndefinedWordError,
   SyntaxError,
+  GLOBAL_BASE,
+  GLOBAL_TOP,
+  GLOBAL_SIZE,
+  createGlobalRef,
+  getAbsoluteCellIndexFromRef,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import type { ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
-import { lookup, defineLocal } from '../core/dictionary';
+import { lookup, defineLocal, define } from '../core/dictionary';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -50,7 +55,8 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.compiler.reset();
 
   const currentDefinition: { current: ActiveDefinition | null } = { current: null };
-  (vm as VM & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition = currentDefinition;
+  (vm as VM & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition =
+    currentDefinition;
 
   try {
     parseProgram(vm, tokenizer, currentDefinition);
@@ -59,7 +65,8 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
 
     vm.compiler.compileOpcode(Op.Abort);
   } finally {
-    delete (vm as VM & { _currentDefinition?: { current: ActiveDefinition | null } })._currentDefinition;
+    delete (vm as VM & { _currentDefinition?: { current: ActiveDefinition | null } })
+      ._currentDefinition;
   }
 }
 
@@ -185,7 +192,10 @@ export function emitWord(
     return;
   }
 
-  // 'global' keyword has been removed; treat as undefined or standard word if defined elsewhere.
+  if (value === 'global') {
+    emitGlobalDecl(vm, tokenizer, currentDefinition);
+    return;
+  }
 
   if (value === '+>') {
     emitIncrement(vm, tokenizer, currentDefinition);
@@ -202,7 +212,13 @@ export function emitWord(
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
-    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate }, tokenizer, currentDefinition);
+    executeImmediateWord(
+      vm,
+      value,
+      { taggedValue: tval, isImmediate },
+      tokenizer,
+      currentDefinition,
+    );
     return;
   }
 
@@ -241,8 +257,12 @@ export function emitWord(
       throw new UndefinedWordError(value, getStackData(vm));
     }
 
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(entryValue);
+    // Calculate offset from absolute cell index: offset = absoluteCellIndex - GLOBAL_BASE
+    const absoluteCellIndex = getAbsoluteCellIndexFromRef(entryValue);
+    const offset = absoluteCellIndex - GLOBAL_BASE;
+
+    vm.compiler.compileOpcode(Op.GlobalRef);
+    vm.compiler.compile16(offset);
 
     const nextToken = tokenizer.nextToken();
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
@@ -390,8 +410,69 @@ export function emitVarDecl(
  *
  * Syntax: value global name
  * Behavior: registers a global slot for 'name' and stores TOS into it at runtime.
+ *
+ * Steps:
+ * 1. Check top-level scope (must NOT be inside function)
+ * 2. Read variable name
+ * 3. Calculate offset: offset = vm.gp (relative to GLOBAL_BASE)
+ * 4. Check 16-bit offset limit: offset <= 0xffff
+ * 5. Check runtime boundary: vm.gp < GLOBAL_SIZE
+ * 6. Emit GlobalRef <offset>; Store
+ * 7. Register in dictionary: define(vm, name, createGlobalRef(offset))
+ * 8. Increment vm.gp after successful declaration
  */
-// emitGlobalDecl removed: globals are not supported in this phase.
+export function emitGlobalDecl(
+  vm: VM,
+  tokenizer: Tokenizer,
+  currentDefinition: { current: ActiveDefinition | null },
+): void {
+  // Top-level restriction: must NOT be inside function
+  if (currentDefinition.current) {
+    throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
+  }
+
+  const nameToken = tokenizer.nextToken();
+  if (nameToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after global', getStackData(vm));
+  }
+
+  const varName = nameToken.value as string;
+
+  if (
+    varName.length === 0 ||
+    varName === ':' ||
+    varName === ';' ||
+    (varName.length === 1 && isSpecialChar(varName))
+  ) {
+    throw new SyntaxError('Expected variable name after global', getStackData(vm));
+  }
+
+  // Calculate offset: vm.gp is already relative to GLOBAL_BASE
+  const offset = vm.gp;
+
+  // Check 16-bit offset limit (compile-time constraint)
+  if (offset > 0xffff) {
+    throw new SyntaxError('Global variable limit exceeded (64K)', getStackData(vm));
+  }
+
+  // Check runtime boundary (actual area limit)
+  if (vm.gp >= GLOBAL_SIZE) {
+    throw new SyntaxError('Global area exhausted', getStackData(vm));
+  }
+
+  // Reserve the global cell by incrementing gp FIRST
+  // This ensures the cell is allocated before dictionary registration
+  vm.gp += 1;
+
+  // Register in dictionary (uses the offset we calculated before incrementing)
+  const globalRef = createGlobalRef(offset);
+  define(vm, varName, globalRef);
+
+  // Emit InitGlobal opcode (matches InitVar pattern for locals)
+  // Directly writes to global cell without Store opcode compatibility checks
+  vm.compiler.compileOpcode(Op.InitGlobal);
+  vm.compiler.compile16(offset);
+}
 
 /**
  * Process assignment operator '->'.

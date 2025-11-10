@@ -48,6 +48,18 @@ This plan implements full global variable support according to `docs/specs/globa
 - `GlobalRef` opcode takes 16-bit unsigned offset: `absoluteIndex = GLOBAL_BASE + offset`
 - **Compile-time limit:** Offset must be `[0, 65535]` (16-bit encoding constraint)
 - **Runtime boundary:** `cellIndex >= GLOBAL_BASE && cellIndex < GLOBAL_TOP` (actual area limit, exclusive upper bound)
+
+### Opcode Design Philosophy
+
+**Critical Decision:** Globals use **separate opcodes** from locals, not shared opcodes like `Store`/`Load`.
+
+- **`InitGlobal`** for declarations (mirrors `InitVar` for locals)
+- **`GlobalRef`** for pushing references (mirrors `VarRef` for locals)
+- **`Store`/`Load`** are designed for local variables and use `resolveSlot` which assumes local variable semantics
+- Attempting to reuse `Store`/`Load` for globals causes issues because they rely on stack state assumptions that don't hold for globals
+
+This separation ensures globals work correctly without breaking existing local variable code.
+
 - Uses existing `Tag.REF` with absolute cell index payload (no new tag needed)
 
 **Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced: compile-time checks the 16-bit limit, runtime checks the `GLOBAL_TOP` boundary.
@@ -82,65 +94,67 @@ This plan implements full global variable support according to `docs/specs/globa
 
 ## Implementation Phases
 
-### Phase 1: Core Opcode and Infrastructure
+### Phase 1: Core Opcode and Infrastructure ✅ COMPLETE
 
 **Steps:**
 
-1. Add `Op.GlobalRef` to opcode enum
-2. Implement `globalRefOp` in builtins dispatcher
-3. Add boundary validation in `globalRefOp`
-4. Update opcode table and registration
+1. ✅ Add `Op.GlobalRef` to opcode enum
+2. ✅ Implement `globalRefOp` in builtins dispatcher
+3. ✅ Add boundary validation in `globalRefOp`
+4. ✅ Update opcode table and registration
 
 **Files:**
 
-- `src/ops/opcodes.ts` - Add `GlobalRef` opcode (after `VarRef`)
-- `src/ops/builtins.ts` - Implement `globalRefOp` function and add to `OPCODE_TO_VERB` table
+- ✅ `src/ops/opcodes.ts` - Added `GlobalRef` opcode (after `VarRef`)
+- ✅ `src/ops/builtins.ts` - Implemented `globalRefOp` function and added to `OPCODE_TO_VERB` table
 
 **Tests:**
 
-- `src/test/ops/globals/globalref-op.test.ts` - Opcode execution, boundary checks, offset validation
+- ✅ `src/test/ops/globals/globalref-op.test.ts` - Opcode execution, boundary checks, offset validation
 
 **Exit Criteria:**
 
-- `GlobalRef` opcode executes correctly
-- Boundary validation works
-- Tests pass
+- ✅ `GlobalRef` opcode executes correctly
+- ✅ Boundary validation works
+- ✅ Tests pass
 
 ---
 
-### Phase 2: Parser Support for Declaration
+### Phase 2: Parser Support for Declaration ✅ COMPLETE
 
 **Steps:**
 
-1. Add `global` keyword recognition in tokenizer (check if already present)
-2. Implement `emitGlobalDecl` function in parser (similar to `emitVarDecl`)
-3. Add top-level scope check: `if (currentDefinition.current) throw error`
-4. Calculate offset: `offset = vm.gp - GLOBAL_BASE`
-5. Check 16-bit offset limit: `if (offset > 0xffff) throw "Global variable limit exceeded (64K)"`
-6. Check runtime boundary: `if (vm.gp >= GLOBAL_SIZE) throw "Global area exhausted"` (since `vm.gp` is relative offset, and `GLOBAL_SIZE = GLOBAL_TOP - GLOBAL_BASE`)
-7. Emit value-producing ops (already on stack), then `GlobalRef <offset>; Store`
-8. Register in dictionary: `define(vm, name, createGlobalRef(offset))`
-9. Increment `vm.gp` after successful declaration
+1. ✅ Add `global` keyword recognition in `emitWord` (tokenizer already recognizes words)
+2. ✅ Implement `emitGlobalDecl` function in parser (similar to `emitVarDecl`)
+3. ✅ Add top-level scope check: `if (currentDefinition.current) throw error`
+4. ✅ Calculate offset: `offset = vm.gp` (vm.gp is already relative to GLOBAL_BASE)
+5. ✅ Check 16-bit offset limit: `if (offset > 0xffff) throw "Global variable limit exceeded (64K)"`
+6. ✅ Check runtime boundary: `if (vm.gp >= GLOBAL_SIZE) throw "Global area exhausted"`
+7. ✅ Reserve global cell: `vm.gp += 1` (before dictionary registration to avoid overwrite)
+8. ✅ Register in dictionary: `define(vm, name, createGlobalRef(offset))`
+9. ✅ Emit `InitGlobal <offset>` opcode (matches `InitVar` pattern - direct write, no Store compatibility checks)
 
 **Files:**
 
-- `src/lang/parser.ts` - Add `emitGlobalDecl` function (after `emitVarDecl`)
-- `src/lang/tokenizer.ts` - Ensure `global` is recognized (may already be)
-- `src/lang/parser.ts` - Update `emitWord` to call `emitGlobalDecl` when `value === 'global'`
+- ✅ `src/ops/opcodes.ts` - Added `InitGlobal` opcode (matches `InitVar` pattern)
+- ✅ `src/ops/builtins.ts` - Implemented `initGlobalOp` function (direct write, handles compounds)
+- ✅ `src/lang/parser.ts` - Added `emitGlobalDecl` function (after `emitVarDecl`)
+- ✅ `src/lang/parser.ts` - Updated `emitWord` to call `emitGlobalDecl` when `value === 'global'`
+- ✅ `src/ops/lists/query-ops.ts` - Added NIL checks in `storeSimpleValue` and `tryStoreCompound` (for future assignments)
 
 **Note:** `createGlobalRef` takes a relative cell index (offset from GLOBAL_BASE), not absolute. The `define` function already exists and can be used to register globals.
 
 **Tests:**
 
-- `src/test/lang/globals/declaration.test.ts` - Simple declarations, compound declarations, top-level restriction, redeclaration (should succeed, not error)
+- ✅ `src/test/lang/globals/declaration.test.ts` - Simple declarations, compound declarations, top-level restriction, redeclaration (should succeed, not error)
 
 **Exit Criteria:**
 
-- `value global name` syntax works
-- Simple and compound declarations succeed
-- Top-level restriction enforced
-- Redeclaration allowed (replaces previous definition)
-- Dictionary entries created correctly
+- ✅ `value global name` syntax works
+- ✅ Simple and compound declarations succeed
+- ✅ Top-level restriction enforced
+- ✅ Redeclaration allowed (replaces previous definition)
+- ✅ Dictionary entries created correctly
 
 ---
 
