@@ -29,7 +29,7 @@ import {
 } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { dropOp } from '../stack';
-import { isCompatible, updateListInPlace } from '../local-vars-transfer';
+import { isCompatible, updateList } from '../local-vars-transfer';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 // (no longer using copyCells/cellIndex/cells in absolute migration paths)
 
@@ -173,7 +173,7 @@ export function fetchOp(vm: VM): void {
   if (!isRef(addressValue)) {
     throw new Error('fetch expects REF address');
   }
-  // Absolute dereference
+  // Dereference
   const addrCell = getCellFromRef(addressValue);
   const value = vm.memory.readCell(addrCell);
   if (isList(value)) {
@@ -205,7 +205,7 @@ export function loadOp(vm: VM): void {
     return;
   }
 
-  // Absolute first dereference
+  // First dereference
   let addr2Cell = getCellFromRef(input);
   let value = vm.memory.readCell(addr2Cell);
 
@@ -252,7 +252,7 @@ type SlotInfo = {
  * @returns Slot information including root and resolved addresses
  */
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
-  // Absolute-only resolution of slot location and (optional) one-level indirection
+  // Resolution of slot location and (optional) one-level indirection
   const rootAbsCell = getCellFromRef(addressValue);
   const rootValue = vm.memory.readCell(rootAbsCell);
 
@@ -315,10 +315,10 @@ function initializeGlobalCompound(vm: VM, cell: number): void {
  * Copies a compound value from a reference location to a target location.
  * @param vm - VM instance
  * @param rhsInfo - Source list information (header and base address)
- * @param targetAbsHeaderAddr - Target absolute header address in bytes
+ * @param targetHeaderCell - Target header cell index
  * @param slotCount - Number of payload slots to copy
  */
-function copyCompoundFromReference(
+function copyFromRef(
   vm: VM,
   rhsInfo: { header: number; baseCell: number },
   targetHeaderCell: number,
@@ -356,13 +356,13 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   }
 
   if (rhsTag === Tag.LIST) {
-    // Absolute in-place update for locals
-    updateListInPlace(vm, slot.resolvedCell);
+    // In-place update for locals
+    updateList(vm, slot.resolvedCell);
     return true;
   }
 
-  // Absolute copy into resolved header location
-    copyCompoundFromReference(vm, rhsInfo, slot.resolvedCell, slotCount);
+  // Copy into resolved header location
+    copyFromRef(vm, rhsInfo, slot.resolvedCell, slotCount);
   pop(vm);
   return true;
 }
@@ -447,7 +447,7 @@ function storeGlobal(vm: VM, cell: number, rhsValue: number): void {
       throw new Error('Expected REF in global cell for compound');
     }
     const existingHeaderCell = getCellFromRef(existingRef);
-    updateListInPlace(vm, existingHeaderCell);
+    updateList(vm, existingHeaderCell);
     return;
   }
 

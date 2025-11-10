@@ -41,4 +41,3 @@ export function beginWithImmediate(
   push(vm, skipPos);
   push(vm, ENDWITH_CODE_REF);
 }
-

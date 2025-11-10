@@ -56,12 +56,12 @@ export function endDefinition(
 
   const { name, branchPos, checkpoint } = currentDefinition.current;
   const defStart = branchPos + 2;
-  
+
   // Restore dictionary to checkpoint to remove local variable entries
   // This must happen BEFORE defineCode so the function definition itself is preserved
   // This allows globals to be accessible after function definition
   forget(vm, checkpoint);
-  
+
   defineCode(vm, name, defStart);
 
   currentDefinition.current = null;

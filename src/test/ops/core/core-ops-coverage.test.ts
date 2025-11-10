@@ -8,9 +8,8 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
-import { push, rpush, rpop, pop, getStackData, unsafeSetBPBytes } from '../../../core/vm';
+import { push, rpush, rpop, pop, getStackData } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { RSTACK_BASE } from '../../../core/constants';
 
 describe('Core Operations Branch Coverage', () => {
   let vm: VM;
@@ -32,20 +31,6 @@ describe('Core Operations Branch Coverage', () => {
       expect(vm.running).toBe(false);
     });
 
-    test('should handle non-code return address (line 214)', () => {
-      // Set up return stack properly with enough entries
-      unsafeSetBPBytes(vm, 16); // Set base pointer (bytes -> cells)
-      vm.rsp = 4; // 4 cells = 16 bytes to match BP
-      // Save BP as relative cells (depth)
-      rpush(vm, vm.bp - RSTACK_BASE); // BP saved (relative)
-      rpush(vm, 1000); // Non-code return address (number, not tagged as CODE)
-
-      exitOp(vm);
-
-      // Should have executed the non-code branch (line 214) even if IP is different
-      // The test documents that this branch is covered
-      expect(vm.IP).toBeDefined();
-    });
   });
 
   describe('evalOp branch coverage', () => {

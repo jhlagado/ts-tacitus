@@ -149,7 +149,9 @@ export function formatValue(vm: VM, value: number): string {
     const parts: string[] = [];
     for (let i = 0; i < slotCount; i++) {
       const elemIdx = headerIndex - 1 - i;
-      if (elemIdx < 0) break;
+      if (elemIdx < 0) {
+break;
+}
       const elem = stack[elemIdx];
       if (getTag(elem) === Tag.LIST) {
         parts.push(formatValue(vm, elem));
@@ -181,4 +183,3 @@ export function formatValue(vm: VM, value: number): string {
       return formatAtomicValue(vm, value);
   }
 }
-

@@ -257,9 +257,9 @@ export function emitWord(
       throw new UndefinedWordError(value, getStackData(vm));
     }
 
-    // Calculate offset from absolute cell index: offset = absoluteCellIndex - GLOBAL_BASE
-    const absoluteCellIndex = getCellFromRef(entryValue);
-    const offset = absoluteCellIndex - GLOBAL_BASE;
+    // Calculate offset from cell index: offset = cellIndex - GLOBAL_BASE
+    const cellIndex = getCellFromRef(entryValue);
+    const offset = cellIndex - GLOBAL_BASE;
 
     vm.compiler.compileOpcode(Op.GlobalRef);
     vm.compiler.compile16(offset);

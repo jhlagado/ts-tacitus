@@ -3,8 +3,7 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import type { VM } from '../../core';
-import { fromTaggedValue, toTaggedValue, Tag, tagNames, CELL_SIZE, SEG_DATA } from '../../core';
+import { type VM, fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core';
 import { push, ensureStackSize } from '../../core/vm';
 
 /**
@@ -12,7 +11,7 @@ import { push, ensureStackSize } from '../../core/vm';
  * Previously exported from src/core/printer.ts.
  */
 export function prn(title: string, tval: number): void {
-  console.warn(`${title ?? ''}: ${formatValue(tval, 0)}`);
+  console.warn(`${title}: ${formatValue(tval, 0)}`);
 }
 
 /**
@@ -36,24 +35,23 @@ export function createList(vm: VM, values: number[]): void {
 
 function _reverseSpan(vm: VM, spanSize: number): void {
   if (spanSize <= 1) {
-return;
-}
+    return;
+  }
 
   ensureStackSize(vm, spanSize, 'reverse span operation');
 
-  // Use absolute cell indices
-  const startCell = vm.sp - spanSize;
-  const endCell = vm.sp - 1;
+  const start = vm.sp - spanSize;
+  const end = vm.sp - 1;
 
   for (let i = 0; i < Math.floor(spanSize / 2); i++) {
-    const leftAddr = (startCell + i) * CELL_SIZE;
-    const rightAddr = (endCell - i) * CELL_SIZE;
+    const left = start + i;
+    const right = end - i;
 
-    const leftValue = vm.memory.readCell(leftAddr / CELL_SIZE);
-    const rightValue = vm.memory.readCell(rightAddr / CELL_SIZE);
+    const leftVal = vm.memory.readCell(left);
+    const rightVal = vm.memory.readCell(right);
 
-    vm.memory.writeCell(leftAddr / CELL_SIZE, rightValue);
-    vm.memory.writeCell(rightAddr / CELL_SIZE, leftValue);
+    vm.memory.writeCell(left, rightVal);
+    vm.memory.writeCell(right, leftVal);
   }
 }
 

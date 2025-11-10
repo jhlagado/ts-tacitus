@@ -14,7 +14,7 @@ import {
   gpushVal,
   isRef,
   readRefValue,
-  getByteAddressFromRef,
+  refToByte,
   validateListHeader,
   createGlobalRef,
   getCellFromRef,

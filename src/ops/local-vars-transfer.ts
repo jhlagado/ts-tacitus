@@ -18,7 +18,6 @@ import {
 } from '@src/core';
 import { rdepth, push, peek, ensureStackSize, rpush } from '../core/vm';
 
-
 /**
  * Transfers compound data from data stack to return stack.
  * Maintains Tacit's stack-native list encoding during transfer.
@@ -86,7 +85,6 @@ export function loadListFromReturn(vm: VM, headerCell: number): void {
   push(vm, header);
 }
 
-
 /**
  * Checks if two compound values are compatible for mutation.
  *
@@ -116,21 +114,21 @@ export function isCompatible(existing: number, newValue: number): boolean {
 }
 
 /**
- * Updates list in-place at absolute address.
+ * Updates list in-place at target cell.
  * Key differences from rpushList:
  * - NO RSP advancement (overwrites existing space)
- * - Uses provided targetAddr instead of current RSP
+ * - Uses provided target cell instead of current RSP
  * - For variable mutation, not initialization
  *
  * @param vm The VM instance
  * @param targetHeaderCell Cell index of existing compound data header
  */
-export function updateListInPlace(vm: VM, targetHeaderCell: number): void {
-  ensureStackSize(vm, 1, 'updateListInPlace');
+export function updateList(vm: VM, targetHeaderCell: number): void {
+  ensureStackSize(vm, 1, 'updateList');
   const header = peek(vm);
 
   if (!isList(header)) {
-    throw new Error('updateListInPlace expects list data');
+    throw new Error('updateList expects list data');
   }
 
   validateListHeader(vm);

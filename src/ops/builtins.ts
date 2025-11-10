@@ -341,12 +341,12 @@ export function varRefOp(vm: VM): void {
  */
 export function globalRefOp(vm: VM): void {
   const offset = nextUint16(vm);
-  const absoluteCellIndex = GLOBAL_BASE + offset;
+  const cell = GLOBAL_BASE + offset;
 
   // Runtime boundary validation
-  if (absoluteCellIndex < GLOBAL_BASE || absoluteCellIndex >= GLOBAL_TOP) {
+  if (cell < GLOBAL_BASE || cell >= GLOBAL_TOP) {
     throw new Error(
-      `GlobalRef: offset ${offset} results in cell index ${absoluteCellIndex} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
+      `GlobalRef: offset ${offset} results in cell index ${cell} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
     );
   }
 
@@ -365,12 +365,12 @@ export function initGlobalOp(vm: VM): void {
   ensureStackSize(vm, 1, 'InitGlobal');
 
   const value = peek(vm);
-  const absoluteCellIndex = GLOBAL_BASE + offset;
+  const cell = GLOBAL_BASE + offset;
 
   // Runtime boundary validation
-  if (absoluteCellIndex < GLOBAL_BASE || absoluteCellIndex >= GLOBAL_TOP) {
+  if (cell < GLOBAL_BASE || cell >= GLOBAL_TOP) {
     throw new Error(
-      `InitGlobal: offset ${offset} results in cell index ${absoluteCellIndex} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
+      `InitGlobal: offset ${offset} results in cell index ${cell} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
     );
   }
 
@@ -378,10 +378,10 @@ export function initGlobalOp(vm: VM): void {
     // For compounds, copy to global heap and store REF
     // This matches InitVar's behavior for compounds
     const heapRef = gpushList(vm);
-    vm.memory.writeCell(absoluteCellIndex, heapRef);
+    vm.memory.writeCell(cell, heapRef);
   } else {
     const simpleValue = pop(vm);
-    vm.memory.writeCell(absoluteCellIndex, simpleValue);
+    vm.memory.writeCell(cell, simpleValue);
   }
 }
 

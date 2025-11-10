@@ -358,31 +358,6 @@ function readAddr(vm: { memory: Memory; IP: number }): number {
 }
 
 /**
- * Test-only helper: forcibly set BP using a raw byte offset without alignment coercion.
- * This bypasses normal validation to allow corruption/underflow tests to simulate
- * malformed frames. Caller must ensure provided bytes are within overall return stack
- * segment range. Alignment is still enforced (throws if not cell-aligned) to avoid
- * undefined behavior in core logic.
- *
- * @param vm - VM instance
- * @param rawBytes - Byte offset to force as BP
- */
-export function unsafeSetBP(vm: VM, relativeCells: number): void {
-  vm.bp = RSTACK_BASE + relativeCells;
-  if (vm.debug) {
-    ensureInvariants(vm);
-  }
-}
-
-/** @deprecated Use unsafeSetBP instead */
-export function unsafeSetBPBytes(vm: VM, rawBytes: number): void {
-  if ((rawBytes & (CELL_SIZE - 1)) !== 0) {
-    throw new Error(`unsafeSetBPBytes: non-cell-aligned value ${rawBytes}`);
-  }
-  unsafeSetBP(vm, rawBytes / CELL_SIZE);
-}
-
-/**
  * Pops multiple values from the stack.
  *
  * @param vm - VM instance
