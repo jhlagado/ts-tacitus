@@ -14,8 +14,8 @@ describe('Nested capsules - outer dispatch triggers inner dispatch', () => {
       : make-inner
         0 var innerCount
         capsule case
-          'inc of 1 +> innerCount ;
-          'get of innerCount ;
+          'inc do 1 +> innerCount ;
+          'get do innerCount ;
         ;
       ;
 
@@ -23,9 +23,9 @@ describe('Nested capsules - outer dispatch triggers inner dispatch', () => {
         make-inner var child
         0 var outerCount
         capsule case
-          'inc of 1 +> outerCount 'inc &child dispatch ;
-          'get of outerCount ;
-          'child-get of 'get &child dispatch ;
+          'inc do 1 +> outerCount 'inc &child dispatch ;
+          'get do outerCount ;
+          'child-get do 'get &child dispatch ;
         ;
       ;
 

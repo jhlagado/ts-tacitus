@@ -11,7 +11,7 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
 import {
   beginCaseImmediate,
-  clauseOfImmediate,
+  clauseDoImmediate,
   defaultImmediate,
   nilImmediate,
 } from '../../lang/meta/case';
@@ -31,7 +31,7 @@ describe('case control flow', () => {
       vm,
       `
       42 case
-        42 of 111 ;
+        42 do 111 ;
       ;
     `,
     );
@@ -44,8 +44,8 @@ describe('case control flow', () => {
       vm,
       `
       3 case
-        1 of 111 ;
-        DEFAULT of 222 ;
+        1 do 111 ;
+        DEFAULT do 222 ;
       ;
     `,
     );
@@ -56,9 +56,9 @@ describe('case control flow', () => {
   test('supports multiple clauses with shared exit and default', () => {
     const program = `
       case
-        -1 of 111 ;
-        0 of 222 ;
-        DEFAULT of 333 ;
+        -1 do 111 ;
+        0 do 222 ;
+        DEFAULT do 333 ;
       ;
     `;
 
@@ -75,13 +75,13 @@ describe('case control flow', () => {
   test('allows nested case constructs inside clause bodies', () => {
     const program = `
       case
-        0 of
+        0 do
           1 case
-            1 of 999 ;
-            DEFAULT of 100 ;
+            1 do 999 ;
+            DEFAULT do 100 ;
           ;
         ;
-        DEFAULT of 200 ;
+        DEFAULT do 200 ;
       ;
     `;
 
@@ -97,8 +97,8 @@ describe('case control flow', () => {
       vm,
       `
       7 case
-        DEFAULT of 10 ;
-        DEFAULT of 20 ;
+        DEFAULT do 10 ;
+        DEFAULT do 20 ;
       ;
     `,
     );
@@ -106,13 +106,13 @@ describe('case control flow', () => {
     expect(stack).toEqual([10]);
   });
 
-  test('raises when of appears without a surrounding case', () => {
-    expect(() => parse(vm, new Tokenizer('1 of 2 ;'))).toThrow("'of' without open case");
+  test('raises when do appears without a surrounding case', () => {
+    expect(() => parse(vm, new Tokenizer('1 do 2 ;'))).toThrow("'do' without open case");
   });
 
   test('detects unclosed case constructs during final validation', () => {
     try {
-      parse(vm, new Tokenizer('1 case 1 of 2 ;'));
+      parse(vm, new Tokenizer('1 case 1 do 2 ;'));
       expect(getStackData(vm).some((value: unknown) => Number.isNaN(value as number))).toBe(true);
       expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');
     } catch (error) {
@@ -143,13 +143,13 @@ describe('case immediates', () => {
     expect(snapshot).toBe(vm.rsp - RSTACK_BASE);
   });
 
-  test('clauseOfImmediate emits comparison sequence and records placeholder', () => {
+  test('clauseDoImmediate emits comparison sequence and records placeholder', () => {
     beginCaseImmediate(vm, tokenizer, currentDefinition);
 
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(42);
 
-    clauseOfImmediate(vm, tokenizer, currentDefinition);
+    clauseDoImmediate(vm, tokenizer, currentDefinition);
 
     expect(vm.sp - STACK_BASE).toBe(4);
     const closerInfo = fromTaggedValue(peek(vm));
@@ -200,9 +200,9 @@ describe('case immediates', () => {
     expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');
   });
 
-  test('of without case raises error', () => {
-    expect(() => clauseOfImmediate(vm, tokenizer, currentDefinition)).toThrow(
-      "'of' without open case",
+  test('do without case raises error', () => {
+    expect(() => clauseDoImmediate(vm, tokenizer, currentDefinition)).toThrow(
+      "'do' without open case",
     );
   });
 
@@ -212,7 +212,7 @@ describe('case immediates', () => {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(10);
 
-    clauseOfImmediate(vm, tokenizer, currentDefinition);
+    clauseDoImmediate(vm, tokenizer, currentDefinition);
 
     const skipPos = peekAt(vm, 1);
 
@@ -239,7 +239,7 @@ describe('case immediates', () => {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(20);
 
-    clauseOfImmediate(vm, tokenizer, currentDefinition);
+    clauseDoImmediate(vm, tokenizer, currentDefinition);
     const endOfRef = pop(vm);
     push(vm, Number.NaN);
     push(vm, endOfRef);
@@ -254,7 +254,7 @@ describe('case immediates', () => {
     push(vm, 42);
     push(vm, createBuiltinRef(Op.EndOf));
 
-    expect(() => evalOp(vm)).toThrow('clause closer without of');
+    expect(() => evalOp(vm)).toThrow('clause closer without do');
   });
 
   test('endCaseOp emits final drop and patches exits', () => {
@@ -263,7 +263,7 @@ describe('case immediates', () => {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(1);
 
-    clauseOfImmediate(vm, tokenizer, currentDefinition);
+    clauseDoImmediate(vm, tokenizer, currentDefinition);
     const skipPos = peekAt(vm, 1);
     expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 

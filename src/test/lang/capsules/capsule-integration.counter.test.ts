@@ -2,7 +2,7 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 
-describe('Counter capsule (case/of)', () => {
+describe('Counter capsule (case/do)', () => {
   let vm: VM;
 
   beforeEach(() => {
@@ -15,8 +15,8 @@ describe('Counter capsule (case/of)', () => {
         0 var count
 
         capsule case
-          'inc of 1 +> count ;
-          'get of count ;
+          'inc do 1 +> count ;
+          'get do count ;
         ;
       ;
 
