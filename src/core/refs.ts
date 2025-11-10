@@ -103,7 +103,7 @@ export function isRef(tval: number): boolean {
  * @param ref - REF tagged value
  * @returns Area name ('global', 'stack', or 'rstack')
  */
-export function getRefRegion(ref: number): 'global' | 'stack' | 'rstack' {
+export function getRefArea(ref: number): 'global' | 'stack' | 'rstack' {
   const absByte = getByteAddressFromRef(ref);
   if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
     return 'global';
@@ -148,7 +148,7 @@ export function isRStackRef(ref: number): boolean {
  * Gets the segment number for a REF based on its address range.
  * @param ref - REF tagged value
  * @returns Segment number (0=global, 1=stack, 2=rstack)
- * @deprecated Prefer using getRefRegion() or the boolean functions (isGlobalRef, isStackRef, isRStackRef)
+ * @deprecated Prefer using getRefArea() or the boolean functions (isGlobalRef, isStackRef, isRStackRef)
  */
 export function getRefSegment(ref: number): number {
   const absByte = getByteAddressFromRef(ref);

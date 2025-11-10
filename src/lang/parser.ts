@@ -26,7 +26,7 @@ import {
   isSpecialChar,
   fromTaggedValue,
   Tag,
-  getRefRegion,
+  getRefArea,
   isNIL,
   UndefinedWordError,
   SyntaxError,
@@ -253,7 +253,7 @@ export function emitWord(
   }
 
   if (tag === Tag.REF) {
-    if (getRefRegion(entryValue) !== 'global') {
+    if (getRefArea(entryValue) !== 'global') {
       throw new UndefinedWordError(value, getStackData(vm));
     }
 
@@ -339,7 +339,7 @@ export function emitRefSigil(
       return;
     }
     if (tag === Tag.REF) {
-      if (getRefRegion(tval) !== 'global') {
+      if (getRefArea(tval) !== 'global') {
         throw new Error(`${varName} is not a local variable`);
       }
       vm.compiler.compileOpcode(Op.LiteralNumber);
@@ -351,7 +351,7 @@ export function emitRefSigil(
   }
 
   // Top level: allow &global; locals are invalid (no frame)
-  if (tag === Tag.REF && getRefRegion(tval) === 'global') {
+  if (tag === Tag.REF && getRefArea(tval) === 'global') {
     vm.compiler.compileOpcode(Op.LiteralNumber);
     vm.compiler.compileFloat32(tval);
     return;
@@ -536,7 +536,7 @@ export function emitAssignment(
     return;
   }
   if (tag === Tag.REF) {
-    if (getRefRegion(tval) !== 'global') {
+    if (getRefArea(tval) !== 'global') {
       throw new SyntaxError(
         'Assignment operator (->) only allowed for locals or globals',
         getStackData(vm),
