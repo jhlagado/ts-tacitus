@@ -1,6 +1,6 @@
 /**
  * @file src/ops/heap/global-heap-ops.ts
- * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
+ * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gforget).
  */
 
 import {
@@ -37,15 +37,15 @@ export function gmarkOp(vm: VM): void {
   push(vm, vm.gp);
 }
 
-export function gsweepOp(vm: VM): void {
-  ensureStackSize(vm, 1, 'gsweep');
+export function gforgetOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'gforget');
   const markValue = pop(vm);
   if (!Number.isFinite(markValue) || !Number.isInteger(markValue)) {
-    throw new Error('gsweep expects integer heap mark');
+    throw new Error('gforget expects integer heap mark');
   }
   const mark = markValue;
   if (mark < 0 || mark > vm.gp) {
-    throw new Error('gsweep mark out of range');
+    throw new Error('gforget mark out of range');
   }
   vm.gp = mark;
 }

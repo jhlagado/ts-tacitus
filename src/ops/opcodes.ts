@@ -272,8 +272,8 @@ export enum Op {
   BufShift,
   /** Push current global heap pointer onto the data stack */
   GMark,
-  /** Sweep global heap back to provided mark */
-  GSweep,
+  /** Forget global heap back to provided mark */
+  GForget,
   /** Copy value to global heap and return REF */
   GPush,
   /** Pop the most recent global heap entry */

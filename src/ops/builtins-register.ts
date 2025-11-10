@@ -25,7 +25,7 @@ import { STACK_BASE } from '@src/core';
 import { evalOp } from './core';
 
 // Immediate word functions are handled in executeImmediateWord, not here
-import { gpushOp, gpopOp, gpeekOp, gmarkOp, gsweepOp } from './heap';
+import { gpushOp, gpopOp, gpeekOp, gmarkOp, gforgetOp } from './heap';
 import {
   defineOp,
   lookupOp,
@@ -99,7 +99,7 @@ export function registerBuiltins(vm: VM): void {
   reg('varRef', Op.VarRef);
   reg('dumpStackFrame', Op.DumpStackFrame);
   reg('gmark', Op.GMark, gmarkOp);
-  reg('gsweep', Op.GSweep, gsweepOp);
+  reg('gforget', Op.GForget, gforgetOp);
   reg('gpush', Op.GPush, gpushOp);
   reg('gpop', Op.GPop, gpopOp);
   reg('gpeek', Op.GPeek, gpeekOp);
