@@ -20,11 +20,12 @@ import {
   RSTACK_BASE_BYTES,
   isRef,
   createRef,
-  getAbsoluteCellIndexFromRef,
-  readRefValue,
+  getCellFromRef,
+  readRef,
   areValuesEqual,
   getTag,
   getRefArea,
+  copyListPayload,
 } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { dropOp } from '../stack';
@@ -177,7 +178,7 @@ export function fetchOp(vm: VM): void {
     throw new Error('fetch expects REF address');
   }
   // Absolute dereference
-  const addrCell = getAbsoluteCellIndexFromRef(addressValue);
+  const addrCell = getCellFromRef(addressValue);
   const value = vm.memory.readCell(addrCell);
   if (isList(value)) {
     const slotCount = getListLength(value);
@@ -209,12 +210,12 @@ export function loadOp(vm: VM): void {
   }
 
   // Absolute first dereference
-  let addr2Cell = getAbsoluteCellIndexFromRef(input);
+  let addr2Cell = getCellFromRef(input);
   let value = vm.memory.readCell(addr2Cell);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
-    addr2Cell = getAbsoluteCellIndexFromRef(value);
+    addr2Cell = getCellFromRef(value);
     value = vm.memory.readCell(addr2Cell);
   }
 
@@ -247,9 +248,16 @@ type SlotInfo = {
   resolvedAbsAddr: number;
 };
 
+/**
+ * Resolves a slot address to its location and current value.
+ * Handles one level of indirection if the slot contains a REF.
+ * @param vm - VM instance
+ * @param addressValue - REF to the slot
+ * @returns Slot information including root and resolved addresses
+ */
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   // Absolute-only resolution of slot location and (optional) one-level indirection
-  const rootAbsCell = getAbsoluteCellIndexFromRef(addressValue);
+  const rootAbsCell = getCellFromRef(addressValue);
   const rootValue = vm.memory.readCell(rootAbsCell);
 
   // Classify absolute address to legacy segment/address pair for compatibility
@@ -267,7 +275,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   let resolvedAbsCell = rootAbsCell;
   let existingValue = rootValue;
   if (isRef(rootValue)) {
-    resolvedAbsCell = getAbsoluteCellIndexFromRef(rootValue);
+    resolvedAbsCell = getCellFromRef(rootValue);
     existingValue = vm.memory.readCell(resolvedAbsCell);
   }
 
@@ -283,6 +291,11 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   };
 }
 
+/**
+ * Discards compound source from stack after failed assignment.
+ * @param vm - VM instance
+ * @param rhsTag - Tag of the right-hand side value
+ */
 function discardCompoundSource(vm: VM, rhsTag: Tag): void {
   if (rhsTag === Tag.LIST) {
     dropList(vm);
@@ -291,27 +304,34 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
   pop(vm);
 }
 
+/**
+ * Initializes a new compound value in a global variable slot.
+ * Copies the list from data stack to global heap.
+ * @param vm - VM instance
+ * @param absoluteCellIndex - Absolute cell index of the global slot
+ */
 function initializeGlobalCompound(vm: VM, absoluteCellIndex: number): void {
-  // For new compound assignments to globals, use gpushList (simpler, matches initGlobalOp)
   const heapRef = gpushList(vm);
   vm.memory.writeCell(absoluteCellIndex, heapRef);
 }
 
+/**
+ * Copies a compound value from a reference location to a target location.
+ * @param vm - VM instance
+ * @param rhsInfo - Source list information (header and base address)
+ * @param targetAbsHeaderAddr - Target absolute header address in bytes
+ * @param slotCount - Number of payload slots to copy
+ */
 function copyCompoundFromReference(
   vm: VM,
   rhsInfo: { header: number; baseAddrBytes: number },
   targetAbsHeaderAddr: number,
   slotCount: number,
 ): void {
-  // Absolute-only copy using unified data segment
   const srcBaseCell = rhsInfo.baseAddrBytes / CELL_SIZE;
   const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = targetHeaderCell - slotCount;
-
-  for (let i = 0; i < slotCount; i++) {
-    const v = vm.memory.readCell(srcBaseCell + i);
-    vm.memory.writeCell(targetBaseCell + i, v);
-  }
+  copyListPayload(vm, srcBaseCell, targetBaseCell, slotCount);
   vm.memory.writeCell(targetHeaderCell, rhsInfo.header);
 }
 
@@ -356,19 +376,21 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 /**
  * Stores a value to a global variable.
  * Handles simple values and compounds (new and compatible updates).
+ * Materializes REFs before assignment (per spec section 6.3).
+ * @param vm - VM instance
+ * @param absoluteCellIndex - Absolute cell index of the global slot
+ * @param rhsValue - Value to store (may be a REF)
  */
 function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void {
-  // Materialize refs first (per spec section 6.3)
-  // If rhsValue is a REF, we need to materialize it (loadOp semantics)
   if (isRef(rhsValue)) {
     // Pop the REF and materialize using loadOp logic
     pop(vm);
-    const addrCell = getAbsoluteCellIndexFromRef(rhsValue);
+    const addrCell = getCellFromRef(rhsValue);
     let value = vm.memory.readCell(addrCell);
 
     // Optional second dereference if the loaded value is itself a reference
     if (isRef(value)) {
-      const addr2Cell = getAbsoluteCellIndexFromRef(value);
+      const addr2Cell = getCellFromRef(value);
       value = vm.memory.readCell(addr2Cell);
 
       // If it's a list, materialize it
@@ -430,7 +452,7 @@ function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void 
       dropList(vm);
       throw new Error('Expected REF in global cell for compound');
     }
-    const existingHeaderAddr = getAbsoluteCellIndexFromRef(existingRef) * CELL_SIZE;
+    const existingHeaderAddr = getCellFromRef(existingRef) * CELL_SIZE;
     updateListInPlace(vm, existingHeaderAddr);
     return;
   }
@@ -441,8 +463,11 @@ function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void 
 }
 
 /**
- * Stores a value to a local variable (return stack).
+ * Stores a value to a local variable (return stack area).
  * Uses existing local variable logic via resolveSlot.
+ * @param vm - VM instance
+ * @param addressValue - REF to the local variable slot
+ * @param rhsValue - Value to store
  */
 function storeLocal(vm: VM, addressValue: number, rhsValue: number): void {
   const slot = resolveSlot(vm, addressValue);
@@ -454,10 +479,17 @@ function storeLocal(vm: VM, addressValue: number, rhsValue: number): void {
   storeSimpleValue(vm, slot, rhsValue);
 }
 
+/**
+ * Stores a simple (non-compound) value to a slot.
+ * @param vm - VM instance
+ * @param slot - Slot information from resolveSlot
+ * @param rhsValue - Simple value to store
+ * @throws {Error} If attempting to assign compound to simple or vice versa
+ */
 function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   let value = rhsValue;
   if (isRef(value)) {
-    value = readRefValue(vm, value);
+    value = readRef(vm, value);
     pop(vm);
     push(vm, value);
   }
@@ -493,7 +525,7 @@ export function storeOp(vm: VM): void {
 
   // Detect area at runtime
   const area = getRefArea(addressValue);
-  const absoluteCellIndex = getAbsoluteCellIndexFromRef(addressValue);
+  const absoluteCellIndex = getCellFromRef(addressValue);
 
   if (area === 'global') {
     storeGlobal(vm, absoluteCellIndex, rhsTop);

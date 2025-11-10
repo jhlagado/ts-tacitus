@@ -1,7 +1,7 @@
 import { createVM, type VM } from '../../../core/vm';
 import { groupLeftOp, groupRightOp, endIfOp, endWithOp, exitOp } from '../../../ops/core/core-ops';
 import { SEG_CODE } from '../../../core';
-import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE } from '../../../core/constants';
 import { push, rpush, pop } from '../../../core/vm';
 
 describe('Core ops extra branch coverage', () => {

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
-import { STACK_BASE, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { createVM, type VM } from '../../core/vm';
 import { peekAt, push, peek } from '../../core/vm';

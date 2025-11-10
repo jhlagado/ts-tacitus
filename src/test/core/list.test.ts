@@ -162,7 +162,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on non-LIST header', () => {
       const nonList = toTaggedValue(5, Tag.STRING);
-      expect(() => getListLength(nonList)).toThrow('Value is not an LIST header');
+      expect(() => getListLength(nonList)).toThrow('Expected LIST header');
     });
   });
 
@@ -209,7 +209,7 @@ describe('LIST Core Utilities', () => {
       const vm = createVM();
       push(vm, 5);
 
-      expect(() => dropList(vm)).toThrow('Expected LIST header at TOS');
+      expect(() => dropList(vm)).toThrow('Expected LIST header');
     });
   });
 
@@ -231,7 +231,7 @@ describe('LIST Core Utilities', () => {
       const vm = createVM();
       push(vm, 5);
 
-      expect(() => validateListHeader(vm)).toThrow('Expected LIST header at TOS');
+      expect(() => validateListHeader(vm)).toThrow('Expected LIST header');
     });
 
     it('should throw on insufficient payload space', () => {
