@@ -150,7 +150,7 @@ describe('when/do control flow', () => {
     expect(otherwise).toEqual([333]);
   });
 
-  test('allows nested when blocks inside the default region', () => {
+  test('allows nested when blocks inside the default area', () => {
     const program = `
       when
         dup 0 eq do drop 100 ;

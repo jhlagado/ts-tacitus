@@ -13,7 +13,7 @@ import {
   processPathStep,
 } from '../../../ops/access/select-ops';
 import { fetchOp } from '../../../ops/lists/query-ops';
-import { isRef, getRefRegion } from '../../../core/refs';
+import { isRef, getRefArea } from '../../../core/refs';
 import { peek } from '../../../core/vm';
 // legacy segment id 0 denotes stack area in decodeRef classification
 
@@ -45,7 +45,7 @@ describe('selectOp - Path-based address access', () => {
       // Should have: target path target-ref
       const targetRef = peek(vm);
       expect(isRef(targetRef)).toBe(true);
-      expect(getRefRegion(targetRef)).toBe('stack');
+      expect(getRefArea(targetRef)).toBe('stack');
     });
 
     test('should return false for simple target', () => {

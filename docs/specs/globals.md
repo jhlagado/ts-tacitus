@@ -384,37 +384,12 @@ Initializes a global variable slot with a value from the stack. Similar to `Init
 2. Compute `absoluteIndex = GLOBAL_BASE + offset`.
 3. Peek at value on stack (don't pop yet).
 4. If value is a compound (list):
-   - Calculate list bounds from stack (`vm.sp - 1` for header, `vm.sp - 1 - slotCount` for base)
-   - Copy list to global heap via `pushListToGlobalHeap`
+   - Copy list structure from data stack to global heap
    - Pop list from stack (header + payload)
-   - Write `REF` to global cell
+   - Write `REF` to the new global heap header into the global cell
 5. If value is simple:
    - Pop value from stack
    - Write directly to global cell
-
-**Implementation Sketch**
-
-```typescript
-function initGlobalOp(vm) {
-  const offset = nextUint16(vm);
-  const value = peek(vm);
-  const absoluteIndex = GLOBAL_BASE + offset;
-
-  if (isList(value)) {
-    const slotCount = getListLength(value);
-    const headerCellIndex = vm.sp - 1;
-    const baseCellIndex = headerCellIndex - slotCount;
-    const baseAddrBytes = baseCellIndex * CELL_SIZE;
-    const heapRef = pushListToGlobalHeap(vm, { header: value, baseAddrBytes });
-    // Drop list from stack
-    for (let i = 0; i < slotCount + 1; i++) pop(vm);
-    vm.memory.writeCell(absoluteIndex, heapRef);
-  } else {
-    const simpleValue = pop(vm);
-    vm.memory.writeCell(absoluteIndex, simpleValue);
-  }
-}
-```
 
 **Note:** This opcode is used only for initial declarations (`value global name`). Assignment to existing globals uses `GlobalRef; Store` (see section 5.5).
 
@@ -454,6 +429,12 @@ function opGlobalRef(vm) {
 - **Compile-time:** Offset must be within `[0, 65535]` (16-bit unsigned limit).
 - **Runtime:** Absolute index must fall inside the global area: `cellIndex >= GLOBAL_BASE && cellIndex <= GLOBAL_TOP`.
 - Ref payloads outside the `[GLOBAL_BASE, GLOBAL_TOP]` range raise `"REF points outside global area"`.
+
+**Area Restriction:**
+
+- `GlobalRef` can only create references to the global area (`[GLOBAL_BASE, GLOBAL_TOP]`).
+- It cannot create references to the data stack area or return stack area.
+- This ensures variable addresses are restricted to their designated areas at compile-time.
 
 **Note:** The 16-bit offset encoding limits the maximum number of globals to 65,536, but the actual runtime boundary is `GLOBAL_TOP`, which may be smaller. Both constraints are enforced.
 
@@ -507,10 +488,29 @@ Store
 
 **Runtime Semantics:**
 
-- Pops `value`, writes into addressed global cell.
-- If `value` is a ref → materialize first.
-- If `value` is a compound originating on the stack → copy it into the global heap before writing a new `Tag.REF` to the header.
-- If incompatible types (`simple`→`compound` or mismatch in compound slot count) → throw `"Incompatible type for reassignment"`.
+The `Store` opcode detects at runtime which area the REF points to and dispatches accordingly:
+
+- **Global area** (`[GLOBAL_BASE, STACK_BASE)`):
+  - Materializes REFs first (per spec section 6.3)
+  - Simple values: direct write to global cell
+  - New compounds: allocates in global heap (matches `InitGlobal` pattern)
+  - Compatible compounds: in-place update (no allocation, more efficient)
+  - Incompatible types → error
+
+- **Return stack area** (`[RSTACK_BASE, RSTACK_TOP]`):
+  - Uses existing local variable logic
+
+- **Data stack area** (`[STACK_BASE, RSTACK_BASE)`):
+  - **Allowed**: `Store` can write to any address in the data segment, including data stack area
+  - **Restriction**: Variable addresses are restricted at compile-time: `InitVar` only targets return stack area, `InitGlobal` only targets global area
+  - Uses same logic as return stack area (resolveSlot + tryStoreCompound/storeSimpleValue)
+
+**Design Notes:**
+
+- Runtime area detection allows the compiler to always emit `Store` without needing to know the variable type
+- Global assignment does NOT allocate memory for compatible compounds (in-place update only)
+- Only new compound assignments allocate
+- Data stack stores are allowed for list element mutation (variable declarations are prevented at compile-time via InitVar/InitGlobal)
 
 ### 5.6 Increment Operator
 
@@ -892,12 +892,13 @@ These checks ensure deterministic allocation and valid addressing.
 Assignments validate both **address** and **type compatibility**.
 If either fails, the VM throws a fatal runtime error and leaves the destination unchanged.
 
-| Condition                        | Message                                                           | Handling                            |
-| -------------------------------- | ----------------------------------------------------------------- | ----------------------------------- |
-| Destination not REF              | `"store expects REF address"`                                     | Operand type error; aborts write.   |
-| REF outside global area          | `"Invalid global address"`                                        | Boundary check failure.             |
-| Type mismatch (simple↔compound) | `"Cannot assign simple to compound or compound to simple"`        | Structural compatibility violation. |
-| Incompatible compound shapes     | `"Incompatible compound assignment: slot count or type mismatch"` | Rejected before copy.               |
+| Condition                                       | Message                                                           | Handling                                                             |
+| ----------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Destination not REF                             | `"store expects REF address"`                                     | Operand type error; aborts write.                                    |
+| REF points to data stack (variable declaration) | `"Global declarations only allowed at top level"` or similar      | Variable declarations cannot target data stack (compile-time check). |
+| REF outside global area                         | `"Invalid global address"`                                        | Boundary check failure.                                              |
+| Type mismatch (simple↔compound)                | `"Cannot assign simple to compound or compound to simple"`        | Structural compatibility violation.                                  |
+| Incompatible compound shapes                    | `"Incompatible compound assignment: slot count or type mismatch"` | Rejected before copy.                                                |
 
 All compound writes are atomic at the level of the header: either the new payload is fully copied and header replaced, or the destination remains intact.
 

@@ -11,7 +11,7 @@ import {
   NIL,
   isNIL,
   dropList,
-  pushListToGlobalHeap,
+  gpushList,
   getListLength,
   isList,
   CELL_SIZE,
@@ -24,7 +24,7 @@ import {
   readRefValue,
   areValuesEqual,
   getTag,
-  formatValue,
+  getRefArea,
 } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { dropOp } from '../stack';
@@ -291,17 +291,10 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
   pop(vm);
 }
 
-function initializeGlobalCompound(
-  vm: VM,
-  slot: SlotInfo,
-  rhsInfo: { header: number; baseAddrBytes: number },
-  rhsTag: Tag,
-): void {
-  // Absolute-only global allocation of compound
-  const heapRef = pushListToGlobalHeap(vm, rhsInfo);
-  // Write directly via absolute address
-  vm.memory.writeCell(slot.rootAbsAddr / CELL_SIZE, heapRef);
-  discardCompoundSource(vm, rhsTag);
+function initializeGlobalCompound(vm: VM, absoluteCellIndex: number): void {
+  // For new compound assignments to globals, use gpushList (simpler, matches initGlobalOp)
+  const heapRef = gpushList(vm);
+  vm.memory.writeCell(absoluteCellIndex, heapRef);
 }
 
 function copyCompoundFromReference(
@@ -322,6 +315,11 @@ function copyCompoundFromReference(
   vm.memory.writeCell(targetHeaderCell, rhsInfo.header);
 }
 
+/**
+ * Tries to store a compound value to a local variable slot.
+ * Used by storeLocal for local variable compound assignment.
+ * Returns true if compound was stored, false if not a compound.
+ */
 function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   const rhsInfoAbs = getListBounds(vm, rhsValue);
   if (!rhsInfoAbs || !isList(rhsInfoAbs.header)) {
@@ -330,15 +328,10 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
 
   const rhsTag = getTag(rhsValue);
   const slotCount = getListLength(rhsInfoAbs.header);
-  // Treat NIL (0) or uninitialized as non-compound for new globals
   const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
 
   if (!existingIsCompound) {
-    // Prefer absolute address window over legacy segment label
-    if (slot.rootAbsAddr >= GLOBAL_BASE_BYTES && slot.rootAbsAddr < STACK_BASE_BYTES) {
-      initializeGlobalCompound(vm, slot, rhsInfoAbs, rhsTag);
-      return true;
-    }
+    // New compound for local: use existing local variable logic
     discardCompoundSource(vm, rhsTag);
     throw new Error('Cannot assign simple to compound or compound to simple');
   }
@@ -349,7 +342,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   }
 
   if (rhsTag === Tag.LIST) {
-    // Absolute in-place update
+    // Absolute in-place update for locals
     updateListInPlace(vm, slot.resolvedAbsAddr);
     return true;
   }
@@ -358,6 +351,107 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   copyCompoundFromReference(vm, rhsInfoAbs, slot.resolvedAbsAddr, slotCount);
   pop(vm);
   return true;
+}
+
+/**
+ * Stores a value to a global variable.
+ * Handles simple values and compounds (new and compatible updates).
+ */
+function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void {
+  // Materialize refs first (per spec section 6.3)
+  // If rhsValue is a REF, we need to materialize it (loadOp semantics)
+  if (isRef(rhsValue)) {
+    // Pop the REF and materialize using loadOp logic
+    pop(vm);
+    const addrCell = getAbsoluteCellIndexFromRef(rhsValue);
+    let value = vm.memory.readCell(addrCell);
+
+    // Optional second dereference if the loaded value is itself a reference
+    if (isRef(value)) {
+      const addr2Cell = getAbsoluteCellIndexFromRef(value);
+      value = vm.memory.readCell(addr2Cell);
+
+      // If it's a list, materialize it
+      if (isList(value)) {
+        const slotCount = getListLength(value);
+        for (let i = slotCount - 1; i >= 0; i--) {
+          const payloadCellIndex = addr2Cell - (i + 1);
+          const slotValue = vm.memory.readCell(payloadCellIndex);
+          push(vm, slotValue);
+        }
+        push(vm, value);
+        // Now value on stack is the list, continue below
+      } else {
+        push(vm, value);
+      }
+    } else if (isList(value)) {
+      // Materialize list from first dereference
+      const slotCount = getListLength(value);
+      for (let i = slotCount - 1; i >= 0; i--) {
+        const payloadCellIndex = addrCell - (i + 1);
+        const slotValue = vm.memory.readCell(payloadCellIndex);
+        push(vm, slotValue);
+      }
+      push(vm, value);
+    } else {
+      push(vm, value);
+    }
+  }
+
+  const existingValue = vm.memory.readCell(absoluteCellIndex);
+  const valueIsCompound = isList(peek(vm));
+  const existingIsCompound = !isNIL(existingValue) && isList(existingValue);
+
+  // Simple value assignment
+  if (!valueIsCompound && !existingIsCompound) {
+    const simpleValue = pop(vm);
+    vm.memory.writeCell(absoluteCellIndex, simpleValue);
+    return;
+  }
+
+  // Compound assignment
+  if (valueIsCompound) {
+    if (!existingIsCompound) {
+      // New compound: allocate in global heap
+      initializeGlobalCompound(vm, absoluteCellIndex);
+      return;
+    }
+
+    // Compatible compound: in-place update (per spec section 6.3)
+    const currentHeader = peek(vm);
+    if (!isCompatible(existingValue, currentHeader)) {
+      dropList(vm);
+      throw new Error('Incompatible compound assignment: slot count or type mismatch');
+    }
+
+    // In-place update (more efficient than copying)
+    const existingRef = existingValue;
+    if (!isRef(existingRef)) {
+      dropList(vm);
+      throw new Error('Expected REF in global cell for compound');
+    }
+    const existingHeaderAddr = getAbsoluteCellIndexFromRef(existingRef) * CELL_SIZE;
+    updateListInPlace(vm, existingHeaderAddr);
+    return;
+  }
+
+  // Error: simple to compound or compound to simple
+  pop(vm);
+  throw new Error('Cannot assign simple to compound or compound to simple');
+}
+
+/**
+ * Stores a value to a local variable (return stack).
+ * Uses existing local variable logic via resolveSlot.
+ */
+function storeLocal(vm: VM, addressValue: number, rhsValue: number): void {
+  const slot = resolveSlot(vm, addressValue);
+
+  if (tryStoreCompound(vm, slot, rhsValue)) {
+    return;
+  }
+
+  storeSimpleValue(vm, slot, rhsValue);
 }
 
 function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
@@ -382,13 +476,11 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
 }
 
 /**
- * store: Writes value to memory address (designed for local variables).
+ * store: Writes value to memory address (works for both locals and globals).
  * Stack: ( value ref -- )
  * - Pops address (REF) and value
- * - Writes value to address (handles compounds by copying to appropriate area)
- * - For compounds: copies to heap/stack area and stores REF
- * - For simple values: writes directly
- * - Note: Designed for local variables; uses resolveSlot which assumes local semantics
+ * - Detects area at runtime (global vs local/rstack)
+ * - Dispatches to appropriate helper: storeGlobal or storeLocal
  */
 export function storeOp(vm: VM): void {
   ensureStackSize(vm, 2, 'store');
@@ -399,13 +491,26 @@ export function storeOp(vm: VM): void {
     throw new Error('store expects REF address');
   }
 
-  const slot = resolveSlot(vm, addressValue);
+  // Detect area at runtime
+  const area = getRefArea(addressValue);
+  const absoluteCellIndex = getAbsoluteCellIndexFromRef(addressValue);
 
-  if (tryStoreCompound(vm, slot, rhsTop)) {
-    return;
+  if (area === 'global') {
+    storeGlobal(vm, absoluteCellIndex, rhsTop);
+  } else if (area === 'stack') {
+    // Data stack: Store can write anywhere in the data segment
+    // Variable addresses are restricted at compile-time (InitVar/InitGlobal only target rstack/global)
+    // Store to stack is allowed for list element mutation and other legitimate uses
+    // Use resolveSlot to handle potential indirection, then storeLocal logic
+    const slot = resolveSlot(vm, addressValue);
+    if (tryStoreCompound(vm, slot, rhsTop)) {
+      return;
+    }
+    storeSimpleValue(vm, slot, rhsTop);
+  } else {
+    // rstack (locals): use existing local variable logic
+    storeLocal(vm, addressValue, rhsTop);
   }
-
-  storeSimpleValue(vm, slot, rhsTop);
 }
 
 /**

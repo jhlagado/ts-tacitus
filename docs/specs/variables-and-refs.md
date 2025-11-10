@@ -205,6 +205,9 @@ Reserve & init
 Addressing
 
 - `VarRef slot` pushes the absolute address `(BP + slot)` as a `REF` for `&x`.
+- **Area Restriction:** `VarRef` can only create references to the return stack area (`[RSTACK_BASE, RSTACK_TOP]`).
+- It validates that `(BP + slot)` falls within return stack bounds; references outside this range raise an error.
+- It cannot create references to the global area or data stack area.
 
 Compilation pattern
 

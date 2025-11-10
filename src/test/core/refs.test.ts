@@ -4,7 +4,7 @@ import {
   createRef,
   createGlobalRef,
   isRef,
-  getRefRegion,
+  getRefArea,
   getByteAddressFromRef,
   readRefValue,
   getVarRef,
@@ -33,15 +33,15 @@ describe('REF utilities', () => {
 
   test('createRef encodes absolute cell indices and area classification', () => {
     const entries = [
-      { region: 'global' as const, absIndex: GLOBAL_BASE + 3 },
-      { region: 'stack' as const, absIndex: STACK_BASE + 5 },
-      { region: 'rstack' as const, absIndex: RSTACK_BASE + 7 },
+      { area: 'global' as const, absIndex: GLOBAL_BASE + 3 },
+      { area: 'stack' as const, absIndex: STACK_BASE + 5 },
+      { area: 'rstack' as const, absIndex: RSTACK_BASE + 7 },
     ];
 
-    for (const { region, absIndex } of entries) {
+    for (const { area, absIndex } of entries) {
       const ref = createRef(absIndex);
       expect(isRef(ref)).toBe(true);
-      expect(getRefRegion(ref)).toBe(region);
+      expect(getRefArea(ref)).toBe(area);
       const { absoluteCellIndex } = decodeRef(ref);
       expect(absoluteCellIndex).toBe(absIndex);
     }
@@ -68,7 +68,7 @@ describe('REF utilities', () => {
   test('createGlobalRef produces REF in global area', () => {
     const ref = createGlobalRef(12);
     const info = decodeRef(ref);
-    expect(getRefRegion(ref)).toBe('global');
+    expect(getRefArea(ref)).toBe('global');
     expect(info.absoluteCellIndex).toBe(GLOBAL_BASE + 12);
   });
 
