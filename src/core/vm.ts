@@ -26,7 +26,6 @@ import {
   ReturnStackOverflowError,
 } from './errors';
 
-
 /**
  * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
  */
