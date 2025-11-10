@@ -266,9 +266,10 @@ if (getTag(value) === Tag.LIST) {  // redundant with isRef check above
 4. ✅ **Simplify `formatValue` branching** - COMPLETE (removed redundant checks, cleaner flow)
 
 ### Priority 3: Low Impact, High Risk
-1. **Rename `pushSimpleToGlobalHeap`** to shorter name
-2. **Consider consolidating** `pushListToGlobalHeap` and `gpushList`
-3. **Shorten variable names** throughout (do incrementally)
+1. ✅ **Rename `pushSimpleToGlobalHeap`** to shorter name - COMPLETE (renamed to `gpushVal`)
+2. ✅ **Consider consolidating** `pushListToGlobalHeap` and `gpushList` - COMPLETE (renamed `pushListToGlobalHeap` to `gpushListFrom`, kept both as they serve different purposes: `gpushList` from stack, `gpushListFrom` from memory)
+3. ✅ **Shorten variable names** throughout (do incrementally) - COMPLETE (shortened names in `global-heap.ts`, `dictionary.ts`, `global-heap-ops.ts`: `headerCellIndex`→`hdr`, `destBaseCell`→`dst`, `srcBaseCell`→`src`, `slotCount`→`n`, `valueRef`→`valRef`, `topCell`→`top`, `headerValue`→`h`, `spanCells`→`span`, etc.)
+4. ✅ **Review and optimize hot paths** - COMPLETE (removed redundant variables, simplified expressions, improved readability)
 
 ---
 

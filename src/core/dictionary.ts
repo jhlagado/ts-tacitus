@@ -22,7 +22,7 @@ import {
 } from './tagged';
 import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, decodeRef } from './refs';
-import { pushListToGlobalHeap, pushSimpleToGlobalHeap } from './global-heap';
+import { gpushListFrom, gpushVal } from './global-heap';
 import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE } from './constants';
 import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
@@ -159,42 +159,31 @@ function materializeValueRef(vm: VM, value: number): number {
   }
   if (isList(value)) {
     validateListHeader(vm);
-    const header = peek(vm);
-    const n = getListLength(header);
-    const baseCell = vm.sp - 1 - n;
-    const baseAddrBytes = baseCell * CELL_SIZE;
-    const ref = pushListToGlobalHeap(vm, { header, baseAddrBytes });
-    // Drop the original list from the data stack
+    const h = peek(vm);
+    const n = getListLength(h);
+    const base = (vm.sp - 1 - n) * CELL_SIZE;
+    const ref = gpushListFrom(vm, { header: h, baseAddrBytes: base });
     for (let i = 0; i < n + 1; i++) {
       pop(vm);
     }
     return ref;
   }
-  // Simple scalar: copy one cell to heap and consume it from stack
-  const ref = pushSimpleToGlobalHeap(vm, value);
-  return ref;
+  return gpushVal(vm, value);
 }
 
-// Build a LIST entry [prevRef, valueRef, name] on data stack and copy to global heap.
-// Returns cell index of the header (relative to GLOBAL_BASE)
-function pushEntryToHeap(vm: VM, prevCell: number, valueRef: number, name: number): number {
-  // Create prevRef as REF (or NIL if prevCell is 0)
-  const prevRef = prevCell === 0 ? NIL : createGlobalRef(prevCell);
-  // Payload order: prevRef (as REF or NIL), valueRef, name, then LIST header of length 3
+function pushEntryToHeap(vm: VM, prev: number, val: number, name: number): number {
+  const prevRef = prev === 0 ? NIL : createGlobalRef(prev);
   push(vm, prevRef);
-  push(vm, valueRef);
+  push(vm, val);
   push(vm, name);
-  const header = toTaggedValue(3, Tag.LIST);
-  push(vm, header);
-  const baseCell = vm.sp - 1 - 3;
-  const baseAddrBytes = baseCell * CELL_SIZE;
-  pushListToGlobalHeap(vm, { header, baseAddrBytes });
+  const h = toTaggedValue(3, Tag.LIST);
+  push(vm, h);
+  const base = (vm.sp - 1 - 3) * CELL_SIZE;
+  gpushListFrom(vm, { header: h, baseAddrBytes: base });
   validateListHeader(vm);
-  // Remove temporary list from data stack
   for (let i = 0; i < 4; i++) {
     pop(vm);
   }
-  // Header is at gp - 1 after push
   return vm.gp - 1;
 }
 
@@ -207,26 +196,22 @@ export function defineOp(vm: VM): void {
   }
   const value = peekAt(vm, 1);
 
-  // Pop name to expose value (especially for LIST path)
   pop(vm);
 
-  let valueRef: number;
+  let valRef: number;
   if (isList(value)) {
-    valueRef = materializeValueRef(vm, value);
+    valRef = materializeValueRef(vm, value);
   } else if (isRef(value)) {
-    // Remove original value from stack
     pop(vm);
-    valueRef = value;
+    valRef = value;
   } else {
-    valueRef = pushSimpleToGlobalHeap(vm, value);
-    // Remove original value from stack
+    valRef = gpushVal(vm, value);
     pop(vm);
   }
 
-  // Build entry list and update new dictionary head
-  const prevCell = vm.head; // cell index (0 = NIL)
-  const headerCellIndex = pushEntryToHeap(vm, prevCell, valueRef, name);
-  vm.head = headerCellIndex; // Store cell index, not ref
+  const prev = vm.head;
+  const hdr = pushEntryToHeap(vm, prev, valRef, name);
+  vm.head = hdr;
 }
 
 // lookup: ( name — ref|NIL )

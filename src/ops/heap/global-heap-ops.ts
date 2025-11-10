@@ -10,14 +10,14 @@ import {
   dropList,
   isList,
   getListLength,
-  pushListToGlobalHeap,
-  pushSimpleToGlobalHeap,
+  gpushListFrom,
+  gpushVal,
   isRef,
   readRefValue,
   getByteAddressFromRef,
   validateListHeader,
   createGlobalRef,
-  getAbsoluteCellIndexFromRef,
+  getCellFromRef,
 } from '@src/core';
 import { fetchOp } from '../lists';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -25,12 +25,10 @@ import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
 // No reference validation helpers needed in the simplified model
 
-// Internal helper: copy a LIST to the global heap given its header value and absolute
-// header address in bytes. Computes base once and delegates to pushListToGlobalHeap.
 function copyListAtHeader(vm: VM, h: number, hAddr: number): void {
   const n = getListLength(h);
   const base = hAddr - n * CELL_SIZE;
-  pushListToGlobalHeap(vm, { header: h, baseAddrBytes: base });
+  gpushListFrom(vm, { header: h, baseAddrBytes: base });
 }
 
 export function gpushOp(vm: VM): void {
@@ -47,7 +45,7 @@ export function gpushOp(vm: VM): void {
       return;
     }
     // Simple alias: copy resolved value and pop original handle
-    pushSimpleToGlobalHeap(vm, dv);
+    gpushVal(vm, dv);
     pop(vm);
     return;
   }
@@ -63,7 +61,7 @@ export function gpushOp(vm: VM): void {
   }
 
   // Case 2: any non-LIST value — copy the single cell value and pop once
-  pushSimpleToGlobalHeap(vm, v);
+  gpushVal(vm, v);
   pop(vm);
 }
 
@@ -71,8 +69,8 @@ export function gpeekOp(vm: VM): void {
   if (vm.gp === 0) {
     throw new Error('gpeek on empty heap');
   }
-  const topCell = GLOBAL_BASE + (vm.gp - 1);
-  const ref = createGlobalRef(topCell - GLOBAL_BASE);
+  const top = GLOBAL_BASE + (vm.gp - 1);
+  const ref = createGlobalRef(top - GLOBAL_BASE);
   push(vm, ref);
   fetchOp(vm);
 }
@@ -81,16 +79,14 @@ export function gpopOp(vm: VM): void {
   if (vm.gp === 0) {
     throw new Error('gpop on empty heap');
   }
-  const gBase = GLOBAL_BASE;
-  const topCell = gBase + vm.gp - 1;
-  // Read header via unified data segment (absolute byte offset)
-  const headerValue = vm.memory.readCell(topCell);
-  if (isList(headerValue)) {
-    const spanCells = getListLength(headerValue) + 1;
-    vm.gp -= spanCells;
+  const top = GLOBAL_BASE + vm.gp - 1;
+  const h = vm.memory.readCell(top);
+  if (isList(h)) {
+    const span = getListLength(h) + 1;
+    vm.gp -= span;
     return;
   }
-  vm.gp = vm.gp - 1;
+  vm.gp -= 1;
 }
 
 // New ops: markOp/forgetOp — heap marks using REF handles
@@ -106,9 +102,8 @@ export function forgetOp(vm: VM): void {
   if (!isRef(ref)) {
     throw new Error('forget expects REF');
   }
-  const absIndex = getAbsoluteCellIndexFromRef(ref);
-  const gBase = GLOBAL_BASE;
-  const gpNew = absIndex - gBase;
+  const idx = getCellFromRef(ref);
+  const gpNew = idx - GLOBAL_BASE;
   if (!Number.isInteger(gpNew) || gpNew < 0) {
     throw new Error('forget mark out of range');
   }
