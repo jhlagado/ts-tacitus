@@ -37,7 +37,6 @@ export function gpushVal(vm: VM, value: number): number {
 }
 
 /** @deprecated Use gpushVal instead */
-export const pushSimpleToGlobalHeap = gpushVal;
 
 /**
  * Pushes a list to the global heap from a memory source and returns a REF to the header.
@@ -57,10 +56,6 @@ export function gpushListFrom(vm: VM, source: ListSource): number {
   vm.gp = dst + span;
   return createGlobalRef(hdr);
 }
-
-/** @deprecated Use gpushListFrom instead */
-export const pushListToGlobalHeap = gpushListFrom;
-
 
 /**
  * Transfers compound data from data stack to global heap.

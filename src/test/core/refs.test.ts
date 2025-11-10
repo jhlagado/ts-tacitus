@@ -5,24 +5,21 @@ import {
   createGlobalRef,
   isRef,
   getRefArea,
-  getByteAddressFromRef,
+  refToByte,
   readRefValue,
   getVarRef,
   CELL_SIZE,
-  TOTAL_DATA_BYTES,
   TOTAL_DATA,
   toTaggedValue,
   Tag,
   decodeRef,
   RSTACK_BASE,
-  SEG_DATA,
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
   STACK_BASE,
 } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { fetchOp, storeOp } from '../../ops/lists';
-import { executeTacitCode } from '../utils/vm-test-utils';
 
 describe('REF utilities', () => {
   let vm: VM;
@@ -42,25 +39,25 @@ describe('REF utilities', () => {
       const ref = createRef(absIndex);
       expect(isRef(ref)).toBe(true);
       expect(getRefArea(ref)).toBe(area);
-      const { absoluteCellIndex } = decodeRef(ref);
-      expect(absoluteCellIndex).toBe(absIndex);
+      const { cellIndex } = decodeRef(ref);
+      expect(cellIndex).toBe(absIndex);
     }
   });
 
-  test('createRef validates absolute bounds', () => {
+  test('createRef validates bounds', () => {
     const maxCell = TOTAL_DATA;
-    expect(() => createRef(maxCell)).toThrow('absolute cell index');
-    expect(() => createRef(-1)).toThrow('absolute cell index');
+    expect(() => createRef(maxCell)).toThrow('cell index');
+    expect(() => createRef(-1)).toThrow('cell index');
   });
 
   // No unsupported segments in absolute model; area classification covers the three areas
 
-  test('getAbsoluteCellIndexFromRef enforces arena bounds', () => {
+  test('getCellFromRef enforces arena bounds', () => {
     const invalidAbsolute = TOTAL_DATA + 5;
     const bogus = toTaggedValue(invalidAbsolute, Tag.REF);
     // Use address resolver to validate bounds
     expect(() => decodeRef(bogus)).not.toThrow();
-    expect(() => getByteAddressFromRef(bogus)).toThrow('absolute out of bounds');
+    expect(() => refToByte(bogus)).toThrow('absolute out of bounds');
   });
 
   // Removed: segment-relative creation is deprecated
@@ -69,19 +66,19 @@ describe('REF utilities', () => {
     const ref = createGlobalRef(12);
     const info = decodeRef(ref);
     expect(getRefArea(ref)).toBe('global');
-    expect(info.absoluteCellIndex).toBe(GLOBAL_BASE + 12);
+    expect(info.cellIndex).toBe(GLOBAL_BASE + 12);
   });
 
   test('getVarRef returns REF to return-stack slot', () => {
     vm.bp = RSTACK_BASE + 0;
     const ref = getVarRef(vm, 2);
-    const abs = decodeRef(ref).absoluteCellIndex;
+    const abs = decodeRef(ref).cellIndex;
     expect(abs).toBe(RSTACK_BASE + 2);
   });
 
-  test('getByteAddressFromRef resolves absolute address', () => {
+  test('refToByte resolves byte address', () => {
     const ref = createRef(GLOBAL_BASE + 4);
-    const absByte = getByteAddressFromRef(ref);
+    const absByte = refToByte(ref);
     expect(absByte).toBe(GLOBAL_BASE_BYTES + 4 * CELL_SIZE);
   });
 
@@ -114,8 +111,8 @@ describe('Absolute REF helpers (Phase A)', () => {
   test('createRef and decodeRef round-trip', () => {
     const absIndex = 0; // first cell
     const ref = createRef(absIndex);
-    const { absoluteCellIndex } = decodeRef(ref);
-    expect(absoluteCellIndex).toBe(absIndex);
+    const { cellIndex } = decodeRef(ref);
+    expect(cellIndex).toBe(absIndex);
   });
 
   test('createRef throws on out-of-bounds', () => {

@@ -104,23 +104,23 @@ describe('Dictionary payload types', () => {
       expect(info.tag).toBe(Tag.REF);
 
       // Decode and verify the absolute cell index
-      const { absoluteCellIndex } = decodeRef(tv);
-      expect(absoluteCellIndex).toBe(GLOBAL_BASE + globalCellIndex);
+      const { cellIndex } = decodeRef(tv);
+      expect(cellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
 
     test('REF can reference any data segment cell', () => {
       const name = 'ref';
       // Create a REF with an absolute cell index
-      const absoluteCellIndex = GLOBAL_BASE + 10;
-      const ref = createRef(absoluteCellIndex);
+      const cellIndex = GLOBAL_BASE + 10;
+      const ref = createRef(cellIndex);
 
       define(vm, name, ref);
       const tv = lookup(vm, name);
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.REF);
 
-      const { absoluteCellIndex: decoded } = decodeRef(tv);
-      expect(decoded).toBe(absoluteCellIndex);
+      const { cellIndex: decoded } = decodeRef(tv);
+      expect(decoded).toBe(cellIndex);
     });
 
     test('multiple REF entries can reference different cells', () => {
@@ -136,9 +136,9 @@ describe('Dictionary payload types', () => {
       const tv2 = lookup(vm, 'ref1');
       const tv3 = lookup(vm, 'ref2');
 
-      const { absoluteCellIndex: idx1 } = decodeRef(tv1);
-      const { absoluteCellIndex: idx2 } = decodeRef(tv2);
-      const { absoluteCellIndex: idx3 } = decodeRef(tv3);
+      const { cellIndex: idx1 } = decodeRef(tv1);
+      const { cellIndex: idx2 } = decodeRef(tv2);
+      const { cellIndex: idx3 } = decodeRef(tv3);
 
       expect(idx1).toBe(GLOBAL_BASE + 0);
       expect(idx2).toBe(GLOBAL_BASE + 1);
@@ -153,8 +153,8 @@ describe('Dictionary payload types', () => {
       const tv = lookup(vm, 'pointer');
       expect(isNIL(tv)).toBe(false);
 
-      const { absoluteCellIndex } = decodeRef(tv);
-      expect(absoluteCellIndex).toBe(GLOBAL_BASE + globalCellIndex);
+      const { cellIndex } = decodeRef(tv);
+      expect(cellIndex).toBe(GLOBAL_BASE + globalCellIndex);
     });
   });
 

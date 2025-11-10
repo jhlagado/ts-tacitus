@@ -21,36 +21,36 @@ import {
 } from './constants';
 
 /**
- * Creates a REF tagged value for an absolute cell index.
- * @param absoluteCellIndex - Absolute cell index in unified data arena
+ * Creates a REF tagged value from a cell index.
+ * @param cellIndex - Cell index in unified data arena
  * @returns Tagged REF value
  * @throws {RangeError} If index is out of bounds
  */
-export function createRef(absoluteCellIndex: number): number {
-  if (absoluteCellIndex < 0 || absoluteCellIndex >= TOTAL_DATA) {
-    throw new RangeError(`REF absolute cell index ${absoluteCellIndex} is out of bounds`);
+export function createRef(cellIndex: number): number {
+  if (cellIndex < 0 || cellIndex >= TOTAL_DATA) {
+    throw new RangeError(`REF cell index ${cellIndex} is out of bounds`);
   }
-  return toTaggedValue(absoluteCellIndex, Tag.REF);
+  return toTaggedValue(cellIndex, Tag.REF);
 }
 
 /**
- * Decodes a REF tagged value to extract the absolute cell index.
+ * Decodes a REF tagged value to extract the cell index.
  * @param ref - REF tagged value
- * @returns Object containing absolute cell index
+ * @returns Object containing cell index
  * @throws {Error} If value is not a REF
  */
-export function decodeRef(ref: number): { absoluteCellIndex: number } {
+export function decodeRef(ref: number): { cellIndex: number } {
   const { value, tag } = fromTaggedValue(ref);
   if (tag !== Tag.REF) {
     throw new Error('decodeRef called with non-REF value');
   }
-  return { absoluteCellIndex: value };
+  return { cellIndex: value };
 }
 
 /**
- * Extracts absolute cell index from a REF.
+ * Extracts cell index from a REF.
  * @param ref - REF tagged value
- * @returns Absolute cell index
+ * @returns Cell index
  * @throws {Error} If value is not a REF or index is out of bounds
  */
 export function getCellFromRef(ref: number): number {
@@ -65,23 +65,13 @@ export function getCellFromRef(ref: number): number {
 }
 
 /**
- * @deprecated Use getCellFromRef instead
- */
-export const getAbsoluteCellIndexFromRef = getCellFromRef;
-
-/**
- * Converts a REF to its absolute byte address.
+ * Converts a REF to its byte address.
  * @param ref - REF tagged value
- * @returns Absolute byte address
+ * @returns Byte address
  */
 export function refToByte(ref: number): number {
   return getCellFromRef(ref) * CELL_SIZE;
 }
-
-/**
- * @deprecated Use refToByte instead
- */
-export const getByteAddressFromRef = refToByte;
 
 /**
  * Reads a value from memory using a REF.

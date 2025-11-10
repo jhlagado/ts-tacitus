@@ -111,17 +111,6 @@ export function getListElemCell(
   return -1;
 }
 
-/** @deprecated Use getListElemCell instead */
-export function getListElemAddr(
-  vm: VM,
-  header: number,
-  headerAbsAddr: number,
-  logicalIndex: number,
-): number {
-  const cell = getListElemCell(vm, header, headerAbsAddr / CELL_SIZE, logicalIndex);
-  return cell === -1 ? -1 : cell * CELL_SIZE;
-}
-
 /**
  * Reverses span of values on stack in-place.
  * @param vm The virtual machine instance
@@ -220,4 +209,3 @@ export function getListInfoOrFail(
   }
   return info;
 }
-

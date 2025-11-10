@@ -30,9 +30,9 @@ describe('capsule opcode stubs', () => {
 
     // Data stack: handle to RSTACK header
     const handle = peek(vm);
-    const { absoluteCellIndex } = decodeRef(handle);
-    const expectedAbsCellIndex = vm.rsp - 1;
-    expect(absoluteCellIndex).toBe(expectedAbsCellIndex);
+    const { cellIndex } = decodeRef(handle);
+    const expectedCellIndex = vm.rsp - 1;
+    expect(cellIndex).toBe(expectedCellIndex);
 
     // RSTACK: appended CODE + LIST, so grew by 2
     expect(vm.rsp).toBe(prevRSP + 2);

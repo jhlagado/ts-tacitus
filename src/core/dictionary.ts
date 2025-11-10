@@ -85,9 +85,8 @@ export function lookup(vm: VM, name: string): number {
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { absoluteCellIndex } = decodeRef(prevRefValue);
-        // Convert absolute cell index back to relative (relative to GLOBAL_BASE)
-        cur = absoluteCellIndex - GLOBAL_BASE;
+        const { cellIndex } = decodeRef(prevRefValue);
+        cur = cellIndex - GLOBAL_BASE;
       } else {
         cur = 0;
       }
@@ -275,8 +274,8 @@ export function dumpDictOp(vm: VM): void {
     if (!isNIL(prevRefValue)) {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { absoluteCellIndex } = decodeRef(prevRefValue);
-        const relativeCellIndex = absoluteCellIndex - GLOBAL_BASE;
+        const { cellIndex } = decodeRef(prevRefValue);
+        const relativeCellIndex = cellIndex - GLOBAL_BASE;
         prevStr = `cell@${relativeCellIndex}`;
       } else {
         prevStr = `?tag:${tag}`;
@@ -289,8 +288,8 @@ export function dumpDictOp(vm: VM): void {
     } else {
       const { tag } = fromTaggedValue(prevRefValue);
       if (tag === Tag.REF) {
-        const { absoluteCellIndex } = decodeRef(prevRefValue);
-        cur = absoluteCellIndex - GLOBAL_BASE;
+        const { cellIndex } = decodeRef(prevRefValue);
+        cur = cellIndex - GLOBAL_BASE;
       } else {
         cur = 0;
       }

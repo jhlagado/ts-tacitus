@@ -22,7 +22,7 @@ import {
   reverseSpan,
   isList,
   createVM,
-  getListElemAddr,
+  getListElemCell,
   getListBounds,
 } from '../../core';
 import { createList } from '../utils/core-test-utils';
@@ -371,17 +371,16 @@ describe('LIST Core Utilities', () => {
   });
 
   describe('Additional Coverage', () => {
-    it('getListElemAddr returns -1 for negative index', () => {
+    it('getListElemCell returns -1 for negative index', () => {
       const vm = createVM();
       const header = toTaggedValue(1, Tag.LIST);
-      const headerAbsAddr = STACK_BASE_BYTES + 100;
-      expect(getListElemAddr(vm, header, headerAbsAddr, -1)).toBe(-1);
+      const headerCell = 8;
+      expect(getListElemCell(vm, header, headerCell, -1)).toBe(-1);
     });
 
-    it('getListElemAddr computes correct addresses for flat list', () => {
+    it('getListElemCell computes correct cell indices for flat list', () => {
       const vm = createVM();
       const cellHeader = 8;
-      const headerAddr = cellHeader * 4;
       const header = toTaggedValue(3, Tag.LIST);
       const e1 = toTaggedValue(11, Tag.NUMBER);
       const e2 = toTaggedValue(22, Tag.NUMBER);
@@ -390,14 +389,11 @@ describe('LIST Core Utilities', () => {
       vm.memory.writeCell(cellHeader - 3, e1);
       vm.memory.writeCell(cellHeader - 2, e2);
       vm.memory.writeCell(cellHeader - 1, e3);
-      vm.memory.writeCell(headerAddr / CELL_SIZE, header);
+      vm.memory.writeCell(cellHeader, header);
 
-      const headerAbsAddr = STACK_BASE_BYTES + headerAddr;
-      expect(getListElemAddr(vm, header, headerAbsAddr, 0)).toBe(STACK_BASE_BYTES + headerAddr - 4);
-      expect(getListElemAddr(vm, header, headerAbsAddr, 1)).toBe(STACK_BASE_BYTES + headerAddr - 8);
-      expect(getListElemAddr(vm, header, headerAbsAddr, 2)).toBe(
-        STACK_BASE_BYTES + headerAddr - 12,
-      );
+      expect(getListElemCell(vm, header, cellHeader, 0)).toBe(cellHeader - 1);
+      expect(getListElemCell(vm, header, cellHeader, 1)).toBe(cellHeader - 2);
+      expect(getListElemCell(vm, header, cellHeader, 2)).toBe(cellHeader - 3);
     });
 
     it('getListBounds returns null for ref pointing to non-list', () => {

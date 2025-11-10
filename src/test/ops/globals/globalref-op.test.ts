@@ -7,7 +7,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { globalRefOp } from '../../../ops/builtins';
 import { GLOBAL_BASE, GLOBAL_TOP, GLOBAL_SIZE } from '../../../core/constants';
-import { getAbsoluteCellIndexFromRef, isRef } from '../../../core/refs';
+import { getCellFromRef, isRef } from '../../../core/refs';
 import { getStackData } from '../../../core/vm';
 
 describe('GlobalRef opcode', () => {
@@ -28,7 +28,7 @@ describe('GlobalRef opcode', () => {
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
       
-      const absCellIndex = getAbsoluteCellIndexFromRef(ref);
+      const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE);
     });
 
@@ -42,7 +42,7 @@ describe('GlobalRef opcode', () => {
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
       
-      const absCellIndex = getAbsoluteCellIndexFromRef(ref);
+      const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE + offset);
     });
 
@@ -56,7 +56,7 @@ describe('GlobalRef opcode', () => {
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
       
-      const absCellIndex = getAbsoluteCellIndexFromRef(ref);
+      const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE + maxOffset);
       expect(absCellIndex).toBeLessThan(GLOBAL_TOP);
     });
@@ -71,7 +71,7 @@ describe('GlobalRef opcode', () => {
     });
 
     test('should throw error for offset that results in absolute index >= GLOBAL_TOP', () => {
-      const offset = GLOBAL_SIZE; // This would make absoluteCellIndex = GLOBAL_BASE + GLOBAL_SIZE = GLOBAL_TOP
+      const offset = GLOBAL_SIZE; // This would make cellIndex = GLOBAL_BASE + GLOBAL_SIZE = GLOBAL_TOP
       vm.compiler.compile16(offset);
 
       expect(() => globalRefOp(vm)).toThrow(/outside global area/);
@@ -84,7 +84,7 @@ describe('GlobalRef opcode', () => {
       expect(() => globalRefOp(vm)).not.toThrow();
       const stack = getStackData(vm);
       const ref = stack[0];
-      const absCellIndex = getAbsoluteCellIndexFromRef(ref);
+      const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_TOP - 1);
     });
   });
