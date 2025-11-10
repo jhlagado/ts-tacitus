@@ -2,14 +2,14 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 
-describe('Capsule dispatch via global ref (GLOBAL_REF)', () => {
+describe('Capsule with global variable', () => {
   let vm: VM;
 
   beforeEach(() => {
     vm = createVM();
   });
 
-  test('counter capsule dispatches using global variable', () => {
+  test('capsule stored in global can be dispatched', () => {
     const code = `
       : make-counter
         0 var count
