@@ -48,14 +48,18 @@
    - 5.7 [Reading Compound Elements](#57-reading-compound-elements)
    - 5.8 [Bytecode Footprint](#58-bytecode-footprint)
 
-6. [Compound Handling](#6-compound-handling)
-   - 6.1 [Compound Storage Location](#61-compound-storage-location)
-   - 6.2 [Compatibility and In-Place Mutation](#62-compatibility-and-in-place-mutation)
-   - 6.3 [Compound Reads and Materialization](#63-compound-reads-and-materialization)
-   - 6.4 [Prohibited Simple↔Compound Rebinding](#64-prohibited-simplecompound-rebinding)
-   - 6.5 [Compound Declarations vs. Assignments](#65-compound-declarations-vs-assignments)
-   - 6.6 [Bracket-Path Semantics on Compounds](#66-bracket-path-semantics-on-compounds)
-   - 6.7 [Safety Guarantees](#67-safety-guarantees)
+6. [Global Variable Semantics: Copy vs. Reference](#6-global-variable-semantics-copy-vs-reference)
+   - 6.1 [Core Principle: Value Semantics](#61-core-principle-value-semantics)
+   - 6.2 [Access Patterns](#62-access-patterns)
+   - 6.3 [Assignment Semantics](#63-assignment-semantics)
+   - 6.4 [Function Call Semantics](#64-function-call-semantics)
+   - 6.5 [Compound Storage Location](#65-compound-storage-location)
+   - 6.6 [Compatibility and In-Place Mutation](#66-compatibility-and-in-place-mutation)
+   - 6.7 [Compound Reads and Materialization](#67-compound-reads-and-materialization)
+   - 6.8 [Prohibited Simple↔Compound Rebinding](#68-prohibited-simplecompound-rebinding)
+   - 6.9 [Compound Declarations vs. Assignments](#69-compound-declarations-vs-assignments)
+   - 6.10 [Bracket-Path Semantics on Compounds](#610-bracket-path-semantics-on-compounds)
+   - 6.11 [Safety Guarantees](#611-safety-guarantees)
 
 7. [Error Model](#7-error-model)
    - 7.1 [Liberal Sources, Strict Destinations](#71-liberal-sources-strict-destinations)
@@ -545,9 +549,165 @@ Provides value-by-default read access into global compound structures such as li
 
 Compact addressing keeps globals inexpensive in both code size and runtime latency.
 
-## 6. Compound Handling
+## 6. Global Variable Semantics: Copy vs. Reference
 
-### 6.1 Compound Storage Location
+### 6.1 Core Principle: Value Semantics
+
+**Nearly all global variable operations copy values rather than pass references.** The only exception is when explicitly using the address-of operator (`&`), which passes a `Tag.REF`.
+
+This design ensures:
+
+- **Lifetime safety:** Globals never reference transient stack or local variable memory
+- **Mutability isolation:** Mutating a global compound does not affect the source
+- **Predictable behavior:** Operations create snapshots, not aliases (unless explicitly using `&`)
+
+### 6.2 Access Patterns
+
+#### Value-by-Default (`name`)
+
+**Surface Form:** `name`  
+**Stack Effect:** `( — value )`  
+**Lowering:** `GlobalRef <offset>; Load`
+
+**Semantics:**
+
+- `Load` dereferences up to two levels of refs
+- If the final value is a compound header, the VM **materializes** the full structure to the stack (header + payload)
+- This creates a **copy** of the compound on the data stack
+- Simple values are pushed directly
+
+**Example:**
+
+```tacit
+myList        \ (list global)
+GlobalRef <offset>
+Load          \ pushes full list structure (copy)
+```
+
+**Use Cases:**
+
+- Reading a global for computation
+- Passing a global as a function argument (creates copy)
+- Assigning to a local: `globalVar -> localVar` (materializes global, then copies to local)
+
+#### Address-of (`&name`)
+
+**Surface Form:** `&name`  
+**Stack Effect:** `( — ref )`  
+**Lowering:** `GlobalRef <offset>; Fetch`
+
+**Semantics:**
+
+- `Fetch` reads the raw cell content without materialization
+- Returns a simple value or a `Tag.REF` for compound globals
+- **No copy is made** — the REF points directly to the global cell or compound header
+
+**Example:**
+
+```tacit
+&myList       \ pushes REF to global cell
+GlobalRef <offset>
+Fetch         \ pushes REF (no materialization)
+```
+
+**Use Cases:**
+
+- Bracket-path operations: `&myList` provides the base REF for `Select`
+- Passing a reference to a function (allows direct access to global)
+- Explicit reference manipulation
+
+### 6.3 Assignment Semantics
+
+#### Assignment to Global (`value -> name`)
+
+**Surface Form:** `value -> name`  
+**Stack Effect:** `( value — )`  
+**Lowering:** `GlobalRef <offset>; Store`
+
+**Semantics:**
+
+- **All assignments to globals create independent copies**
+- If source is a compound on data stack: Copy to global heap via `pushListToGlobalHeap`
+- If source is a REF pointing to:
+  - **Global area:** Copy compound data (not the REF) to destination
+  - **Data stack:** Copy compound data from stack to global area
+  - **Return stack (local):** Copy compound data from local to global area
+- If destination is compatible (same type, same slot count): Copy in-place
+- If destination is empty: Allocate new global compound and copy
+
+**Design Decision:** We always copy compound data, never just copy REFs, to maintain value semantics and prevent unexpected aliasing.
+
+**Examples:**
+
+```tacit
+[1 2 3] -> myList              \ Stack compound → global (copy)
+otherGlobal -> myList          \ Global → global (copy data, not REF)
+&localVar -> myList            \ Local → global (copy, local escapes scope)
+```
+
+#### Assignment to Local from Global (`globalVar -> localVar`)
+
+**Surface Form:** `globalVar -> localVar`  
+**Stack Effect:** `( — )`
+
+**Semantics:**
+
+1. `globalVar` is accessed via value-by-default (`GlobalRef; Load`)
+2. If compound: Materializes to data stack (copy)
+3. Assignment to local copies from data stack to return stack
+4. Result: Independent copy in local variable
+
+**Example:**
+
+```tacit
+: foo
+  myGlobal -> localVar
+;
+```
+
+- `myGlobal` materializes to stack (copy)
+- `localVar` receives copy on return stack
+- Mutating `localVar` does not affect `myGlobal`
+
+### 6.4 Function Call Semantics
+
+#### Passing Global as Argument
+
+**Value-by-Default (`name` as argument):**
+
+```tacit
+: foo ( x -- )
+  x .
+;
+
+myGlobal foo
+```
+
+**Semantics:**
+
+1. `myGlobal` compiles to `GlobalRef; Load`
+2. If compound: Materializes to stack (copy)
+3. Function receives the materialized value
+4. Parameter `x` is a local copy
+
+**Address-of (`&name` as argument):**
+
+```tacit
+: bar ( ref -- )
+  ref Load .        \ materialize and print
+;
+
+&myGlobal bar
+```
+
+**Semantics:**
+
+1. `&myGlobal` compiles to `GlobalRef; Fetch`
+2. Pushes `Tag.REF` to stack (no copy)
+3. Function receives the REF
+4. Function can access global directly via `Load` or `Fetch`
+
+### 6.5 Compound Storage Location
 
 When a compound (list, maplist, capsule) is assigned to a global variable, the VM must guarantee that the structure resides entirely within the **global area**.
 If the compound currently lives on the **data stack** or **return stack**, the runtime performs a _copy-up_ into the global area before writing the global's header reference.
@@ -561,7 +721,7 @@ Mechanics:
 
 This ensures all compound globals are permanent and never reference transient stack memory.
 
-### 6.2 Compatibility and In-Place Mutation
+### 6.6 Compatibility and In-Place Mutation
 
 Global compounds obey the same **compatibility rule** defined for locals:
 
@@ -576,7 +736,7 @@ Therefore:
 
 The destination reference (`&xs`) never changes, preserving alias stability: any other refs to the same compound will now see the updated contents.
 
-### 6.3 Compound Reads and Materialization
+### 6.7 Compound Reads and Materialization
 
 Reading a compound global through `Load` or bracket-path access follows Tacit’s **value-by-default** rule:
 
@@ -594,7 +754,7 @@ Load                \ pushes full list structure
 
 produces a stack copy of the list’s contents in reverse-layout form, safe for iteration or transient manipulation.
 
-### 6.4 Prohibited Simple↔Compound Rebinding
+### 6.8 Prohibited Simple↔Compound Rebinding
 
 To preserve predictable memory layouts and avoid accidental heap leaks:
 
@@ -603,13 +763,13 @@ To preserve predictable memory layouts and avoid accidental heap leaks:
 
 This prevents half-written states where a global cell points to an invalid or deallocated area.
 
-### 6.5 Compound Declarations vs. Assignments
+### 6.9 Compound Declarations vs. Assignments
 
 At declaration time `(1 2 3) global xs`, the VM automatically copies the compound to heap and stores a `REF` to it.
 At assignment time `(4 5 6) -> xs`, the runtime performs an in-place overwrite _if_ compatible, or rejects the operation if incompatible.
 This symmetry allows functional initialization but safe, structural mutation later.
 
-### 6.6 Bracket-Path Semantics on Compounds
+### 6.10 Bracket-Path Semantics on Compounds
 
 Globals that reference lists or maplists can be accessed element-wise using standard bracket syntax:
 
@@ -644,7 +804,7 @@ Nip
 Both forms operate directly on the global heap copy of the list.
 Compatibility rules apply to the final `Store` operation to prevent mismatched element shapes.
 
-### 6.7 Safety Guarantees
+### 6.11 Safety Guarantees
 
 1. **Boundary enforcement:** All compound payloads reachable from globals must reside in the global area.
 2. **Lifetime stability:** Once written, the compound exists for the entire VM session unless explicitly destroyed.
