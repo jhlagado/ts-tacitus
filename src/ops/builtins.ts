@@ -316,9 +316,8 @@ export function initVarOp(vm: VM): void {
   const slotCellIndex = vm.bp + slotNumber;
 
   if (isList(value)) {
-    const headerAddr = rpushList(vm);
-    const headerCellIndex = headerAddr / CELL_SIZE;
-    const absHeaderCellIndex = RSTACK_BASE + headerCellIndex;
+    const headerCell = rpushList(vm);
+    const absHeaderCellIndex = RSTACK_BASE + headerCell;
     const localRef = createRef(absHeaderCellIndex);
 
     vm.memory.writeCell(slotCellIndex, localRef);

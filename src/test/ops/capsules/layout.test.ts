@@ -43,8 +43,8 @@ describe('capsule layout (handle-based)', () => {
     const layout = readCapsuleLayoutFromHandle(vm, handle);
     expect(layout.slotCount).toBe(slotCount);
     expect(layout.codeRef).toBe(codeRef);
-    // Header absolute address must be base + slotCount * CELL_SIZE
-    expect(layout.headerAddrBytes).toBe(layout.baseAddrBytes + slotCount * CELL_SIZE);
+    // Header cell must be base + slotCount
+    expect(layout.headerCell).toBe(layout.baseCell + slotCount);
   });
 
   test('errors on non-capsule handle (slot0 not CODE)', () => {
@@ -72,8 +72,8 @@ describe('capsule layout (handle-based)', () => {
     const headerCellIndex = vm.sp - 1; // absolute data stack cell index
     const stackHandle = createRef(headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
-    expect(layout.baseAddrBytes).toBeGreaterThanOrEqual(STACK_BASE_BYTES);
-    expect(layout.baseAddrBytes).toBeLessThan(RSTACK_BASE_BYTES);
+    expect(layout.baseCell * CELL_SIZE).toBeGreaterThanOrEqual(STACK_BASE_BYTES);
+    expect(layout.baseCell * CELL_SIZE).toBeLessThan(RSTACK_BASE_BYTES);
     expect(layout.codeRef).toBe(codeRef);
     expect(layout.slotCount).toBe(2);
   });

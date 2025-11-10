@@ -161,8 +161,8 @@ function materializeValueRef(vm: VM, value: number): number {
     validateListHeader(vm);
     const h = peek(vm);
     const n = getListLength(h);
-    const base = (vm.sp - 1 - n) * CELL_SIZE;
-    const ref = gpushListFrom(vm, { header: h, baseAddrBytes: base });
+    const base = vm.sp - 1 - n;
+    const ref = gpushListFrom(vm, { header: h, baseCell: base });
     for (let i = 0; i < n + 1; i++) {
       pop(vm);
     }
@@ -178,8 +178,8 @@ function pushEntryToHeap(vm: VM, prev: number, val: number, name: number): numbe
   push(vm, name);
   const h = toTaggedValue(3, Tag.LIST);
   push(vm, h);
-  const base = (vm.sp - 1 - 3) * CELL_SIZE;
-  gpushListFrom(vm, { header: h, baseAddrBytes: base });
+  const base = vm.sp - 1 - 3;
+  gpushListFrom(vm, { header: h, baseCell: base });
   validateListHeader(vm);
   for (let i = 0; i < 4; i++) {
     pop(vm);

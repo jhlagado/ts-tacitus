@@ -65,17 +65,17 @@ export function validateListHeader(vm: VM): void {
 }
 
 /**
- * Finds memory address of logical element in LIST.
+ * Finds cell index of logical element in LIST.
  * @param vm The virtual machine instance
  * @param header The LIST header value
- * @param headerAddr Memory address of LIST header
+ * @param headerCell Cell index of LIST header
  * @param logicalIndex The logical index (0-based)
- * @returns Memory address or -1 if out of bounds
+ * @returns Cell index or -1 if out of bounds
  */
-export function getListElemAddr(
+export function getListElemCell(
   vm: VM,
   header: number,
-  headerAbsAddr: number,
+  headerCell: number,
   logicalIndex: number,
 ): number {
   if (!isList(header)) {
@@ -84,32 +84,42 @@ export function getListElemAddr(
 
   const totalSlots = getListLength(header);
   if (logicalIndex < 0) {
-return -1;
-}
+    return -1;
+  }
 
-  let currentAddrCells = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  let currentCell = headerCell - 1;
   let currentLogicalIndex = 0;
   let remainingSlots = totalSlots;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readCell(currentAddrCells);
+    const currentValue = vm.memory.readCell(currentCell);
     let stepSize = 1;
-    const elementStartAddr = currentAddrCells * CELL_SIZE;
 
     if (isList(currentValue)) {
       stepSize = getListLength(currentValue) + 1;
     }
 
     if (currentLogicalIndex === logicalIndex) {
-      return elementStartAddr;
+      return currentCell;
     }
 
-    currentAddrCells -= stepSize;
+    currentCell -= stepSize;
     remainingSlots -= stepSize;
     currentLogicalIndex++;
   }
 
   return -1;
+}
+
+/** @deprecated Use getListElemCell instead */
+export function getListElemAddr(
+  vm: VM,
+  header: number,
+  headerAbsAddr: number,
+  logicalIndex: number,
+): number {
+  const cell = getListElemCell(vm, header, headerAbsAddr / CELL_SIZE, logicalIndex);
+  return cell === -1 ? -1 : cell * CELL_SIZE;
 }
 
 /**
@@ -147,40 +157,36 @@ return;
 export function getListBounds(
   vm: VM,
   value: number,
-): { header: number; baseAddrBytes: number; headerAddrBytes: number } | null {
+): { header: number; baseCell: number; headerCell: number } | null {
   const tag = getTag(value);
   if (tag === Tag.LIST) {
-    const slotCount = getListLength(value);
-    const headerCellAbs = vm.sp - 1;
-    const baseCellAbs = headerCellAbs - slotCount;
-    const headerAddrBytes = headerCellAbs * CELL_SIZE;
-    const baseAddrBytes = baseCellAbs * CELL_SIZE;
-    return { header: value, baseAddrBytes, headerAddrBytes };
+    const n = getListLength(value);
+    const hdr = vm.sp - 1;
+    const base = hdr - n;
+    return { header: value, baseCell: base, headerCell: hdr };
   } else if (isRef(value)) {
-    // Absolute dereferencing (support ref-to-ref indirection)
-    let headerCellIndex = getCellFromRef(value);
-    let header = vm.memory.readCell(headerCellIndex);
+    let hdr = getCellFromRef(value);
+    let header = vm.memory.readCell(hdr);
     if (isRef(header)) {
-      headerCellIndex = getCellFromRef(header);
-      header = vm.memory.readCell(headerCellIndex);
+      hdr = getCellFromRef(header);
+      header = vm.memory.readCell(hdr);
     }
 
     if (!isList(header)) {
       return null;
     }
-    const slotCount = getListLength(header);
-    const headerAddrBytes = headerCellIndex * CELL_SIZE;
-    const baseAddrBytes = (headerCellIndex - slotCount) * CELL_SIZE;
-    return { header, baseAddrBytes, headerAddrBytes };
+    const n = getListLength(header);
+    const base = hdr - n;
+    return { header, baseCell: base, headerCell: hdr };
   }
   return null;
 }
 
 /**
- * Computes header address given base address and slot count.
+ * Computes header cell index given base cell index and slot count.
  */
-export function computeHeaderAddr(baseAddrBytes: number, slotCount: number): number {
-  return baseAddrBytes + slotCount * CELL_SIZE;
+export function computeHeaderCell(baseCell: number, slotCount: number): number {
+  return baseCell + slotCount;
 }
 
 /**
@@ -207,7 +213,7 @@ export function copyListPayload(vm: VM, srcBaseCell: number, destBaseCell: numbe
 export function getListInfoOrFail(
   vm: VM,
   value: number,
-): { header: number; baseAddrBytes: number; headerAddrBytes: number } {
+): { header: number; baseCell: number; headerCell: number } {
   const info = getListBounds(vm, value);
   if (!info || !isList(info.header)) {
     throw new Error('Expected LIST');

@@ -11,8 +11,8 @@ import { isRef } from '@src/core';
 import { findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
-const stackAddrFromTopAbs = (vm: VM, offsetSlots: number): number =>
-  (vm.sp - (offsetSlots + 1)) * CELL_SIZE;
+const stackCellFromTop = (vm: VM, offsetSlots: number): number =>
+  vm.sp - (offsetSlots + 1);
 
 export function tailOp(vm: VM): void {
   ensureStackSize(vm, 1, 'tail');
@@ -33,8 +33,8 @@ export function tailOp(vm: VM): void {
     return;
   }
 
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const firstElemCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  const hdr = info.headerCell;
+  const firstElemCell = hdr - 1;
   const firstElem = vm.memory.readCell(firstElemCell);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
   const newSlotCount = slotCount - firstElemSpan;
@@ -82,8 +82,8 @@ export function headOp(vm: VM): void {
 
   pop(vm);
 
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const firstElementCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  const hdr = info.headerCell;
+  const firstElementCell = hdr - 1;
   const firstElement = vm.memory.readCell(firstElementCell);
 
   if (isList(firstElement)) {
@@ -130,8 +130,8 @@ export function reverseOp(vm: VM): void {
     return;
   }
 
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  let currentCell = (headerAbsAddr - CELL_SIZE) / CELL_SIZE;
+  const hdr = info.headerCell;
+  let currentCell = hdr - 1;
   let remainingSlots = slotCount;
   const elements: { start: number; span: number }[] = [];
   while (remainingSlots > 0) {
@@ -172,8 +172,8 @@ export function concatOp(vm: VM): void {
   const [, lhsSize] = findElement(vm, rhsSize);
 
   const readCellAtOffset = (offsetSlots: number): number => {
-    const absAddr = stackAddrFromTopAbs(vm, offsetSlots);
-    return vm.memory.readCell(absAddr / CELL_SIZE);
+    const cell = stackCellFromTop(vm, offsetSlots);
+    return vm.memory.readCell(cell);
   };
 
   const rhsTop = readCellAtOffset(0);
@@ -197,7 +197,7 @@ export function concatOp(vm: VM): void {
   const materializeSlots = (
     op:
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; baseAddrBytes: number }
+      | { header: number; baseCell: number }
       | null,
     _size: number,
     _topCell: number,
@@ -207,18 +207,19 @@ export function concatOp(vm: VM): void {
       const s = getListLength(op.header);
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
-        const cellIndex = (op.headerAddr - (i + 1) * CELL_SIZE) / CELL_SIZE;
+        const hdr = op.headerAddr / CELL_SIZE;
+        const cellIndex = hdr - 1 - i;
         slots.push(vm.memory.readCell(cellIndex));
       }
       return slots;
     }
-    if (op && 'baseAddrBytes' in op) {
+    if (op && 'baseCell' in op) {
       const s = getListLength(op.header);
-      const headerAbsAddr = op.baseAddrBytes + s * CELL_SIZE;
+      const hdr = op.baseCell + s;
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
-        const cellIndex = (headerAbsAddr - (i + 1) * CELL_SIZE) / CELL_SIZE;
-        slots.push(vm.memory.readCell(cellIndex));
+        const cell = hdr - 1 - i;
+        slots.push(vm.memory.readCell(cell));
       }
       return slots;
     }
@@ -228,7 +229,7 @@ export function concatOp(vm: VM): void {
   const lhsSlots = materializeSlots(
     (lhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; baseAddrBytes: number }
+      | { header: number; baseCell: number }
       | null) ?? null,
     lhsSize,
     lhsTop,
@@ -237,7 +238,7 @@ export function concatOp(vm: VM): void {
   const rhsSlots = materializeSlots(
     (rhsInfo as
       | { kind: 'stack-list'; header: number; headerAddr: number }
-      | { header: number; baseAddrBytes: number }
+      | { header: number; baseCell: number }
       | null) ?? null,
     rhsSize,
     rhsTop,

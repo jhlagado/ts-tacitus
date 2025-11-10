@@ -43,8 +43,8 @@ describe('In-Place Compound Mutation', () => {
         expect(isCompatibleCompound(existingHeader, newHeader)).toBe(true);
       }
 
-      // Perform mutation
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      // Perform mutation (convert byte address to cell index)
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify header was written
       const resultHeader = vm.memory.readCell(RSTACK_BASE + targetAddr / CELL_SIZE);
@@ -65,8 +65,8 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 1, 999); // Old value
 
-      // Perform mutation
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      // Perform mutation (convert byte address to cell index)
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify header was updated
       const resultHeader = vm.memory.readCell(RSTACK_BASE + targetAddr / CELL_SIZE);
@@ -92,8 +92,8 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 2, 888); // elem1 (old)
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 1, 777); // elem2 (old)
 
-      // Perform mutation
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      // Perform mutation (convert byte address to cell index)
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify header unchanged (same slot count)
       const resultHeader = vm.memory.readCell(RSTACK_BASE + targetAddr / CELL_SIZE);
@@ -129,7 +129,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Should throw compatibility error
       expect(() => {
-        mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+        mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
       }).toThrow('Incompatible compound assignment');
     });
 
@@ -143,7 +143,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Should throw error for non-compound data
       expect(() => {
-        mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+        mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
       }).toThrow('updateListInPlace expects list data');
     });
   });
@@ -162,8 +162,8 @@ describe('In-Place Compound Mutation', () => {
       // Record RSP (return stack in cells) before mutation
       const rspBeforeMutation = vm.rsp;
 
-      // Perform mutation
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      // Perform mutation (convert byte address to cell index)
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify RP unchanged (key difference from transferCompoundToReturnStack)
       // Verify RSP unchanged (key difference from transferCompoundToReturnStack)
@@ -189,7 +189,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + targetAddr, existingFlatHeader);
 
       // Should work since slot counts match
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify mutation succeeded
       const resultHeader = vm.memory.readCell(RSTACK_BASE + targetAddr / CELL_SIZE);
@@ -210,7 +210,7 @@ describe('In-Place Compound Mutation', () => {
       vm.memory.writeFloat32(SEG_DATA, RSTACK_BASE_BYTES + targetAddr - 1 * CELL_SIZE, 333);
 
       // Perform successful mutation
-      mutateCompoundInPlace(vm, RSTACK_BASE_BYTES + targetAddr);
+      mutateCompoundInPlace(vm, RSTACK_BASE + targetAddr / CELL_SIZE);
 
       // Verify all elements updated correctly
       // Stack order for (100 200 300) is [300, 200, 100, header]

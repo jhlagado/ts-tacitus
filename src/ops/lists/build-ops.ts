@@ -6,7 +6,7 @@
 import type { VM, Verb } from '@src/core';
 import { fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
-import { getListBounds, computeHeaderAddr } from './core-helpers';
+import { getListBounds, computeHeaderCell } from './core-helpers';
 import { evalOp } from '../core';
 import {
   ensureRStackSize,
@@ -25,9 +25,8 @@ import {
 export function openListOp(vm: VM): void {
   vm.listDepth++;
   push(vm, toTaggedValue(0, Tag.LIST));
-  // Absolute header byte address one past current TOS
-  const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
-  rpush(vm, headerAbsAddr);
+  const headerCell = vm.sp - 1;
+  rpush(vm, headerCell);
 }
 
 /**
@@ -36,16 +35,14 @@ export function openListOp(vm: VM): void {
 export function closeListOp(vm: VM): void {
   ensureRStackSize(vm, 1, 'closeListOp');
 
-  const headerAbsAddr = rpop(vm);
-  const headerCellAbs = headerAbsAddr / CELL_SIZE;
-  const payloadSlots = vm.sp - headerCellAbs - 1;
+  const headerCell = rpop(vm);
+  const payloadSlots = vm.sp - headerCell - 1;
 
-  // Write header at absolute address
-  vm.memory.writeCell(headerCellAbs, toTaggedValue(payloadSlots, Tag.LIST));
+  vm.memory.writeCell(headerCell, toTaggedValue(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
-    const totalSpan = vm.sp - headerCellAbs;
+    const totalSpan = vm.sp - headerCell;
     if (totalSpan > 1) {
       reverseSpan(vm, totalSpan);
     }
@@ -65,24 +62,23 @@ export function makeListOp(vm: VM): void {
 
   const placeholderHeader = toTaggedValue(0, Tag.LIST);
   push(vm, placeholderHeader);
-  const headerAbsAddr = (vm.sp - 1) * CELL_SIZE;
-  rpush(vm, headerAbsAddr);
+  const headerCell = vm.sp - 1;
+  rpush(vm, headerCell);
 
   push(vm, blockAddr);
   evalOp(vm);
 
-  const retrievedHeaderAbsAddr = rpop(vm);
-  const headerCellAbs = retrievedHeaderAbsAddr / CELL_SIZE;
-  const payloadSlots = vm.sp - headerCellAbs - 1;
+  const retrievedHeaderCell = rpop(vm);
+  const payloadSlots = vm.sp - retrievedHeaderCell - 1;
 
   if (payloadSlots < 0) {
     throw new Error('makeList: negative payload slot count detected');
   }
 
   const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
-  vm.memory.writeCell(headerCellAbs, finalizedHeader);
+  vm.memory.writeCell(retrievedHeaderCell, finalizedHeader);
 
-  const totalSpan = vm.sp - headerCellAbs;
+  const totalSpan = vm.sp - retrievedHeaderCell;
   if (totalSpan > 1) {
     reverseSpan(vm, totalSpan);
   }
@@ -153,8 +149,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
-  const headerAbsAddr = computeHeaderAddr(info.baseAddrBytes, slotCount);
-  const headerCell = headerAbsAddr / CELL_SIZE;
+  const headerCell = computeHeaderCell(info.baseCell, slotCount);
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readCell(headerCell - (i + 1));
     push(vm, slotValue);

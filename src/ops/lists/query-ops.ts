@@ -74,9 +74,8 @@ export function sizeOp(vm: VM): void {
     push(vm, 0);
     return;
   }
-  // Absolute-only traversal using unified SEG_DATA
   let elementCount = 0;
-  let currCell = (info.baseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE) / CELL_SIZE;
+  let currCell = info.headerCell - 1;
   let remainingSlots = slotCount;
   while (remainingSlots > 0) {
     const v = vm.memory.readCell(currCell);
@@ -109,11 +108,9 @@ export function slotOp(vm: VM): void {
     push(vm, NIL);
     return;
   }
-  // Absolute addressing: compute header absolute byte address and derive element address
-  const headerAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const addr = headerAddr - (idx + 1) * CELL_SIZE;
-  const absCellIndex = addr / CELL_SIZE;
-  push(vm, createRef(absCellIndex));
+  const hdr = info.headerCell;
+  const cell = hdr - (idx + 1);
+  push(vm, createRef(cell));
 }
 
 /**
@@ -137,8 +134,7 @@ export function elemOp(vm: VM): void {
     push(vm, NIL);
     return;
   }
-  // Absolute header address and scan using unified SEG_DATA
-  let currentCell = (info.baseAddrBytes + slotCount * CELL_SIZE - CELL_SIZE) / CELL_SIZE;
+  let currentCell = info.headerCell - 1;
   let currentLogicalIndex = 0;
   let remainingSlots = slotCount;
 
@@ -244,8 +240,8 @@ type SlotInfo = {
   rootValue: number;
   resolved: SlotAddress;
   existingValue: number;
-  rootAbsAddr: number;
-  resolvedAbsAddr: number;
+  rootCell: number;
+  resolvedCell: number;
 };
 
 /**
@@ -261,33 +257,33 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   const rootValue = vm.memory.readCell(rootAbsCell);
 
   // Classify absolute address to legacy segment/address pair for compatibility
-  const classify = (absCell: number): SlotAddress => {
-    const absAddr = absCell * CELL_SIZE;
-    if (absAddr >= GLOBAL_BASE_BYTES && absAddr < STACK_BASE_BYTES) {
-      return { segment: 2, address: absAddr - GLOBAL_BASE_BYTES };
+  const classify = (cell: number): SlotAddress => {
+    const addr = cell * CELL_SIZE;
+    if (addr >= GLOBAL_BASE_BYTES && addr < STACK_BASE_BYTES) {
+      return { segment: 2, address: addr - GLOBAL_BASE_BYTES };
     }
-    if (absAddr >= STACK_BASE_BYTES && absAddr < RSTACK_BASE_BYTES) {
-      return { segment: 0, address: absAddr - STACK_BASE_BYTES };
+    if (addr >= STACK_BASE_BYTES && addr < RSTACK_BASE_BYTES) {
+      return { segment: 0, address: addr - STACK_BASE_BYTES };
     }
-    return { segment: 1, address: absAddr - RSTACK_BASE_BYTES };
+    return { segment: 1, address: addr - RSTACK_BASE_BYTES };
   };
 
-  let resolvedAbsCell = rootAbsCell;
+  let resolvedCell = rootAbsCell;
   let existingValue = rootValue;
   if (isRef(rootValue)) {
-    resolvedAbsCell = getCellFromRef(rootValue);
-    existingValue = vm.memory.readCell(resolvedAbsCell);
+    resolvedCell = getCellFromRef(rootValue);
+    existingValue = vm.memory.readCell(resolvedCell);
   }
 
   const root = classify(rootAbsCell);
-  const resolved = classify(resolvedAbsCell);
+  const resolved = classify(resolvedCell);
   return {
     root,
     rootValue,
     resolved,
     existingValue,
-    rootAbsAddr: rootAbsCell * CELL_SIZE,
-    resolvedAbsAddr: resolvedAbsCell * CELL_SIZE,
+    rootCell: rootAbsCell,
+    resolvedCell,
   };
 }
 
@@ -308,11 +304,11 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
  * Initializes a new compound value in a global variable slot.
  * Copies the list from data stack to global heap.
  * @param vm - VM instance
- * @param absoluteCellIndex - Absolute cell index of the global slot
+ * @param cell - Cell index of the global slot
  */
-function initializeGlobalCompound(vm: VM, absoluteCellIndex: number): void {
+function initializeGlobalCompound(vm: VM, cell: number): void {
   const heapRef = gpushList(vm);
-  vm.memory.writeCell(absoluteCellIndex, heapRef);
+  vm.memory.writeCell(cell, heapRef);
 }
 
 /**
@@ -324,14 +320,12 @@ function initializeGlobalCompound(vm: VM, absoluteCellIndex: number): void {
  */
 function copyCompoundFromReference(
   vm: VM,
-  rhsInfo: { header: number; baseAddrBytes: number },
-  targetAbsHeaderAddr: number,
+  rhsInfo: { header: number; baseCell: number },
+  targetHeaderCell: number,
   slotCount: number,
 ): void {
-  const srcBaseCell = rhsInfo.baseAddrBytes / CELL_SIZE;
-  const targetHeaderCell = targetAbsHeaderAddr / CELL_SIZE;
   const targetBaseCell = targetHeaderCell - slotCount;
-  copyListPayload(vm, srcBaseCell, targetBaseCell, slotCount);
+  copyListPayload(vm, rhsInfo.baseCell, targetBaseCell, slotCount);
   vm.memory.writeCell(targetHeaderCell, rhsInfo.header);
 }
 
@@ -341,13 +335,13 @@ function copyCompoundFromReference(
  * Returns true if compound was stored, false if not a compound.
  */
 function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
-  const rhsInfoAbs = getListBounds(vm, rhsValue);
-  if (!rhsInfoAbs || !isList(rhsInfoAbs.header)) {
+  const rhsInfo = getListBounds(vm, rhsValue);
+  if (!rhsInfo || !isList(rhsInfo.header)) {
     return false;
   }
 
   const rhsTag = getTag(rhsValue);
-  const slotCount = getListLength(rhsInfoAbs.header);
+  const slotCount = getListLength(rhsInfo.header);
   const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
 
   if (!existingIsCompound) {
@@ -356,19 +350,19 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
     throw new Error('Cannot assign simple to compound or compound to simple');
   }
 
-  if (!isCompatible(slot.existingValue, rhsInfoAbs.header)) {
+  if (!isCompatible(slot.existingValue, rhsInfo.header)) {
     discardCompoundSource(vm, rhsTag);
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 
   if (rhsTag === Tag.LIST) {
     // Absolute in-place update for locals
-    updateListInPlace(vm, slot.resolvedAbsAddr);
+    updateListInPlace(vm, slot.resolvedCell);
     return true;
   }
 
   // Absolute copy into resolved header location
-  copyCompoundFromReference(vm, rhsInfoAbs, slot.resolvedAbsAddr, slotCount);
+    copyCompoundFromReference(vm, rhsInfo, slot.resolvedCell, slotCount);
   pop(vm);
   return true;
 }
@@ -378,10 +372,10 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
  * Handles simple values and compounds (new and compatible updates).
  * Materializes REFs before assignment (per spec section 6.3).
  * @param vm - VM instance
- * @param absoluteCellIndex - Absolute cell index of the global slot
+ * @param cell - Cell index of the global slot
  * @param rhsValue - Value to store (may be a REF)
  */
-function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void {
+function storeGlobal(vm: VM, cell: number, rhsValue: number): void {
   if (isRef(rhsValue)) {
     // Pop the REF and materialize using loadOp logic
     pop(vm);
@@ -420,14 +414,14 @@ function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void 
     }
   }
 
-  const existingValue = vm.memory.readCell(absoluteCellIndex);
+  const existingValue = vm.memory.readCell(cell);
   const valueIsCompound = isList(peek(vm));
   const existingIsCompound = !isNIL(existingValue) && isList(existingValue);
 
   // Simple value assignment
   if (!valueIsCompound && !existingIsCompound) {
     const simpleValue = pop(vm);
-    vm.memory.writeCell(absoluteCellIndex, simpleValue);
+    vm.memory.writeCell(cell, simpleValue);
     return;
   }
 
@@ -435,7 +429,7 @@ function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void 
   if (valueIsCompound) {
     if (!existingIsCompound) {
       // New compound: allocate in global heap
-      initializeGlobalCompound(vm, absoluteCellIndex);
+      initializeGlobalCompound(vm, cell);
       return;
     }
 
@@ -452,8 +446,8 @@ function storeGlobal(vm: VM, absoluteCellIndex: number, rhsValue: number): void 
       dropList(vm);
       throw new Error('Expected REF in global cell for compound');
     }
-    const existingHeaderAddr = getCellFromRef(existingRef) * CELL_SIZE;
-    updateListInPlace(vm, existingHeaderAddr);
+    const existingHeaderCell = getCellFromRef(existingRef);
+    updateListInPlace(vm, existingHeaderCell);
     return;
   }
 
@@ -499,7 +493,7 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     pop(vm);
-    vm.memory.writeCell(slot.rootAbsAddr / CELL_SIZE, value);
+    vm.memory.writeCell(slot.rootCell, value);
     return;
   }
 
@@ -525,10 +519,10 @@ export function storeOp(vm: VM): void {
 
   // Detect area at runtime
   const area = getRefArea(addressValue);
-  const absoluteCellIndex = getCellFromRef(addressValue);
+  const cell = getCellFromRef(addressValue);
 
   if (area === 'global') {
-    storeGlobal(vm, absoluteCellIndex, rhsTop);
+    storeGlobal(vm, cell, rhsTop);
   } else if (area === 'stack') {
     // Data stack: Store can write anywhere in the data segment
     // Variable addresses are restricted at compile-time (InitVar/InitGlobal only target rstack/global)
@@ -574,15 +568,13 @@ export function walkOp(vm: VM): void {
     push(vm, NIL);
     return;
   }
-  // Absolute addressing via unified data segment
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  const cellAbsAddr = headerAbsAddr - (idx + 1) * CELL_SIZE;
-  const v = vm.memory.readCell(cellAbsAddr / CELL_SIZE);
+  const hdr = info.headerCell;
+  const cell = hdr - (idx + 1);
+  const v = vm.memory.readCell(cell);
   const nextIdx = idx + 1;
   push(vm, nextIdx);
   if (isList(v)) {
-    const absCellIndex = cellAbsAddr / CELL_SIZE;
-    push(vm, createRef(absCellIndex));
+    push(vm, createRef(cell));
   } else {
     push(vm, v);
   }
@@ -609,28 +601,26 @@ export function findOp(vm: VM): void {
     push(vm, NIL);
     return;
   }
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
-  let defaultValueAddr = -1;
+  const hdr = info.headerCell;
+  let defaultCell = -1;
   for (let i = 0; i < slotCount; i += 2) {
-    const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * CELL_SIZE;
-    const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i + 1) * CELL_SIZE;
-    const currentKey = vm.memory.readCell(keyAbsAddr / CELL_SIZE);
+    const keyCell = hdr - 1 - i;
+    const valCell = hdr - 1 - (i + 1);
+    const currentKey = vm.memory.readCell(keyCell);
     if (areValuesEqual(currentKey, key)) {
-      const absCellIndex = valueAbsAddr / CELL_SIZE;
-      push(vm, createRef(absCellIndex));
+      push(vm, createRef(valCell));
       return;
     }
     const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
     if (keyTag === Tag.STRING) {
       const keyStr = vm.digest.get(keyValue);
       if (keyStr === 'default') {
-        defaultValueAddr = valueAbsAddr;
+        defaultCell = valCell;
       }
     }
   }
-  if (defaultValueAddr !== -1) {
-    const absCellIndex = defaultValueAddr / CELL_SIZE;
-    push(vm, createRef(absCellIndex));
+  if (defaultCell !== -1) {
+    push(vm, createRef(defaultCell));
     return;
   }
   push(vm, NIL);
@@ -665,10 +655,10 @@ export function keysOp(vm: VM): void {
     return;
   }
   const keyCount = slotCount / 2;
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
+  const hdr = info.headerCell;
   for (let i = keyCount - 1; i >= 0; i--) {
-    const keyAbsAddr = headerAbsAddr - CELL_SIZE - i * 2 * CELL_SIZE;
-    const keyValue = vm.memory.readCell(keyAbsAddr / CELL_SIZE);
+    const keyCell = hdr - 1 - i * 2;
+    const keyValue = vm.memory.readCell(keyCell);
     push(vm, keyValue);
   }
   push(vm, toTaggedValue(keyCount, Tag.LIST));
@@ -703,10 +693,10 @@ export function valuesOp(vm: VM): void {
     return;
   }
   const valueCount = slotCount / 2;
-  const headerAbsAddr = info.baseAddrBytes + slotCount * CELL_SIZE;
+  const hdr = info.headerCell;
   for (let i = valueCount - 1; i >= 0; i--) {
-    const valueAbsAddr = headerAbsAddr - CELL_SIZE - (i * 2 + 1) * CELL_SIZE;
-    const valueValue = vm.memory.readCell(valueAbsAddr / CELL_SIZE);
+    const valCell = hdr - 1 - (i * 2 + 1);
+    const valueValue = vm.memory.readCell(valCell);
     push(vm, valueValue);
   }
   push(vm, toTaggedValue(valueCount, Tag.LIST));
