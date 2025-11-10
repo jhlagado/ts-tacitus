@@ -2,8 +2,9 @@
  * @file src/ops/builtins.ts
  * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
  */
-import type { VM, Verb } from '@src/core';
 import {
+  type VM,
+  type Verb,
   toTaggedValue,
   fromTaggedValue,
   getTag,
@@ -12,11 +13,12 @@ import {
   createRef,
   getAbsoluteCellIndexFromRef,
   isRef,
-  SEG_DATA,
-  RSTACK_BASE_BYTES,
   CELL_SIZE,
   RSTACK_BASE,
   InvalidOpcodeError,
+  GLOBAL_BASE,
+  GLOBAL_TOP,
+  createGlobalRef,
 } from '@src/core';
 import {
   nextUint16,
@@ -72,11 +74,14 @@ import {
   floorOp,
   notOp,
 } from './math';
-import { enlistOp, keysOp, valuesOp } from './lists';
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print';
-import { openListOp, closeListOp } from './lists';
 import {
+  enlistOp,
+  keysOp,
+  valuesOp,
+  openListOp,
+  closeListOp,
   lengthOp,
   sizeOp,
   slotOp,
@@ -86,10 +91,15 @@ import {
   findOp,
   loadOp,
   walkOp,
+  makeListOp,
+  packOp,
+  unpackOp,
+  refOp,
+  headOp as _headOp,
+  tailOp,
+  reverseOp,
+  concatOp,
 } from './lists';
-import { makeListOp, packOp, unpackOp } from './lists';
-import { refOp } from './lists';
-import { headOp as _headOp, tailOp, reverseOp, concatOp } from './lists';
 import {
   exitConstructorOp,
   exitDispatchOp,
@@ -115,7 +125,9 @@ import {
 
 // Temp register and related opcodes have been removed.
 
-const nopOp: Verb = () => {};
+const nopOp: Verb = () => {
+  // No operation - intentionally empty
+};
 
 /**
  * Executes a specific operation based on the given opcode.
@@ -143,7 +155,7 @@ export function literalCodeOp(vm: VM): void {
   push(vm, tagged);
 }
 
-export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
+export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
   if (isUserDefined) {
     rpush(vm, vm.IP);
     // Save BP as relative cells
@@ -224,6 +236,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false) {
     [Op.Reserve]: reserveOp,
     [Op.InitVar]: initVarOp,
     [Op.VarRef]: varRefOp,
+    [Op.GlobalRef]: globalRefOp,
     [Op.DumpStackFrame]: dumpFrameOp,
     [Op.Ref]: refOp,
     [Op.Load]: loadOp,
@@ -318,6 +331,27 @@ export function initVarOp(vm: VM): void {
 export function varRefOp(vm: VM): void {
   const slotNumber = nextInt16(vm);
   push(vm, getVarRef(vm, slotNumber));
+}
+
+/**
+ * GlobalRef opcode: Pushes a REF to a global variable cell.
+ * Stack: ( -- ref )
+ * Reads 16-bit unsigned offset from bytecode.
+ * Computes absolute cell index: GLOBAL_BASE + offset
+ * Validates boundary: cellIndex >= GLOBAL_BASE && cellIndex < GLOBAL_TOP
+ */
+export function globalRefOp(vm: VM): void {
+  const offset = nextUint16(vm);
+  const absoluteCellIndex = GLOBAL_BASE + offset;
+
+  // Runtime boundary validation
+  if (absoluteCellIndex < GLOBAL_BASE || absoluteCellIndex >= GLOBAL_TOP) {
+    throw new Error(
+      `GlobalRef: offset ${offset} results in cell index ${absoluteCellIndex} outside global area [${GLOBAL_BASE}, ${GLOBAL_TOP})`,
+    );
+  }
+
+  push(vm, createGlobalRef(offset));
 }
 
 /**

@@ -19,9 +19,8 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { createVM, VM, Tag, fromTaggedValue } from '../../core';
+import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { getStackData } from '../../core/vm';
 
 describe('@symbol Parser/Compiler Integration - Step 14', () => {
   let vm: VM;

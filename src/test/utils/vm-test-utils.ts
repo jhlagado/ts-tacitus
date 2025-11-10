@@ -13,8 +13,6 @@ import {
   Tag,
   toTaggedValue,
   fromTaggedValue,
-  SEG_DATA,
-  CELL_SIZE,
   STACK_BASE,
   RSTACK_BASE,
   createVM,
