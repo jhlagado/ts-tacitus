@@ -6,12 +6,10 @@
 import { type VM, peek } from './vm';
 import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, STACK_BASE } from './constants';
 import { createGlobalRef } from './refs';
-import { getListLength, validateListHeader, dropList } from './list';
-
-const GLOBAL_CELL_CAPACITY = GLOBAL_SIZE;
+import { getListLength, validateListHeader, dropList, copyListPayload } from './list';
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
-  if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_CELL_CAPACITY) {
+  if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_SIZE) {
     throw new Error('Global heap exhausted');
   }
 }
@@ -52,11 +50,7 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   const destBaseCell = vm.gp;
 
   const srcBaseCells = source.baseAddrBytes / CELL_SIZE;
-
-  for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(srcBaseCells + i);
-    vm.memory.writeCell(GLOBAL_BASE + destBaseCell + i, value);
-  }
+  copyListPayload(vm, srcBaseCells, GLOBAL_BASE + destBaseCell, slotCount);
 
   const headerCellIndex = destBaseCell + slotCount;
   vm.memory.writeCell(GLOBAL_BASE + headerCellIndex, source.header);
@@ -65,15 +59,6 @@ export function pushListToGlobalHeap(vm: VM, source: ListSource): number {
   return createGlobalRef(headerCellIndex);
 }
 
-/**
- * Gets the span (cell count) for a list in the global heap.
- * @param _vm - VM instance (unused)
- * @param headerValue - LIST header tagged value
- * @returns Number of cells occupied (payload + header)
- */
-export function getGlobalHeapSpan(_vm: VM, headerValue: number): number {
-  return getListLength(headerValue) + 1;
-}
 
 /**
  * Transfers compound data from data stack to global heap.
@@ -105,12 +90,8 @@ export function gpushList(vm: VM): number {
   const destBaseCell = vm.gp;
 
   // Data stack is cell-indexed; compute first element cell (relative to STACK_BASE)
-  let elementCell = vm.sp - STACK_BASE - (slotCount + 1);
-  for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(STACK_BASE + elementCell);
-    vm.memory.writeCell(GLOBAL_BASE + destBaseCell + i, value);
-    elementCell += 1;
-  }
+  const srcBaseCell = vm.sp - STACK_BASE - (slotCount + 1);
+  copyListPayload(vm, STACK_BASE + srcBaseCell, GLOBAL_BASE + destBaseCell, slotCount);
 
   // Write header and update gp
   const headerCellIndex = destBaseCell + slotCount;

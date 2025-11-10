@@ -14,17 +14,10 @@ import {
   RSTACK_BASE,
   CELL_SIZE,
   dropList,
+  copyListPayload,
 } from '@src/core';
 import { rdepth, push, peek, ensureStackSize, rpush } from '../core/vm';
 
-// Helpers for cell-oriented reasoning on return-stack-resident compounds
-function headerAddrToHeaderCell(headerAddrBytes: number): number {
-  return headerAddrBytes / CELL_SIZE;
-}
-
-function computeBaseCellFromHeader(headerCell: number, slotCount: number): number {
-  return headerCell - slotCount;
-}
 
 /**
  * Transfers compound data from data stack to return stack.
@@ -78,7 +71,7 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   const header = vm.memory.readCell(headerCellIndex);
 
   if (!isList(header)) {
-    throw new Error('Expected LIST header at return stack address');
+    throw new Error('Expected LIST header');
   }
 
   const slotCount = getListLength(header);
@@ -88,8 +81,8 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
     return;
   }
 
-  const headerCell = headerAddrToHeaderCell(headerAddr);
-  const baseCell = computeBaseCellFromHeader(headerCell, slotCount);
+  const headerCell = headerAddr / CELL_SIZE;
+  const baseCell = headerCell - slotCount;
   for (let i = 0; i < slotCount; i++) {
     const element = vm.memory.readCell(RSTACK_BASE + baseCell + i);
     push(vm, element);
@@ -97,10 +90,6 @@ export function loadListFromReturn(vm: VM, headerAddr: number): void {
   push(vm, header);
 }
 
-/**
- * Checks if a value is compound data that needs special transfer handling.
- */
-// isList exported from core should be used for type checks
 
 /**
  * Checks if two compound values are compatible for mutation.
@@ -131,22 +120,11 @@ export function isCompatible(existing: number, newValue: number): boolean {
 }
 
 /**
- * Mutates compound data in-place at a specific memory location.
- *
- * Key differences from transferCompoundToReturnStack:
+ * Updates list in-place at absolute address.
+ * Key differences from rpushList:
  * - NO RSP advancement (overwrites existing space)
  * - Uses provided targetAddr instead of current RSP
  * - For variable mutation, not initialization
- *
- * @param vm The VM instance
- * @param targetAddr Byte address of existing compound data header
- * @param segment Memory segment (return stack for local variables)
- * @param newValue The new compound value from data stack (LIST header at TOS)
- */
-// Note: legacy updateListInPlace(segment-based) removed; use updateListInPlace instead.
-
-/**
- * Absolute-address variant of updateListInPlace for unified SEG_DATA writes.
  *
  * @param vm The VM instance
  * @param targetAbsHeaderAddr Absolute byte address of existing compound data header (SEG_DATA)
@@ -174,24 +152,11 @@ export function updateListInPlace(vm: VM, targetAbsHeaderAddr: number): void {
   }
 
   // Source cells from data stack (relative to STACK_BASE for reads below)
-  let sourceCell = vm.sp - STACK_BASE - (slotCount + 1);
-  const targetBaseCell = computeBaseCellFromHeader(targetHeaderCell, slotCount);
-
-  for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(STACK_BASE + sourceCell);
-    vm.memory.writeCell(targetBaseCell + i, value);
-    sourceCell += 1;
-  }
+  const srcBaseCell = vm.sp - STACK_BASE - (slotCount + 1);
+  const targetBaseCell = targetHeaderCell - slotCount;
+  copyListPayload(vm, STACK_BASE + srcBaseCell, targetBaseCell, slotCount);
   vm.memory.writeCell(targetHeaderCell, header);
   dropList(vm);
 }
-
-/**
- * Backward-compat shim: segment-relative in-place mutation API.
- * Converts (segment, targetAddr) to absolute SEG_DATA address and forwards to updateListInPlace.
- *
- * This preserves existing test imports and older call sites during Phase C migrations.
- */
-// Legacy segment-based API removed after tests migrated to Abs variant.
 
 export { isList } from '@src/core';

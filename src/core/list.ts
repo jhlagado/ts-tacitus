@@ -7,7 +7,7 @@ import type { VM } from './vm';
 import { peek, pop, ensureStackSize } from './vm';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
-import { isRef, getAbsoluteCellIndexFromRef } from './refs';
+import { isRef, getCellFromRef } from './refs';
 
 /**
  * Checks if a value is a LIST.
@@ -27,7 +27,7 @@ export function isList(tval: number): boolean {
  */
 export function getListLength(header: number): number {
   if (!isList(header)) {
-    throw new Error('Value is not an LIST header');
+    throw new Error('Expected LIST header');
   }
   return fromTaggedValue(header).value;
 }
@@ -79,7 +79,7 @@ export function getListElemAddr(
   logicalIndex: number,
 ): number {
   if (!isList(header)) {
-    throw new Error('Invalid LIST header provided to getListElemAddr');
+    throw new Error('Expected LIST header');
   }
 
   const totalSlots = getListLength(header);
@@ -158,10 +158,10 @@ export function getListBounds(
     return { header: value, baseAddrBytes, headerAddrBytes };
   } else if (isRef(value)) {
     // Absolute dereferencing (support ref-to-ref indirection)
-    let headerCellIndex = getAbsoluteCellIndexFromRef(value);
+    let headerCellIndex = getCellFromRef(value);
     let header = vm.memory.readCell(headerCellIndex);
     if (isRef(header)) {
-      headerCellIndex = getAbsoluteCellIndexFromRef(header);
+      headerCellIndex = getCellFromRef(header);
       header = vm.memory.readCell(headerCellIndex);
     }
 
@@ -179,11 +179,39 @@ export function getListBounds(
 /**
  * Computes header address given base address and slot count.
  */
-// deprecated segment-relative computeHeaderAddr wrapper removed; use computeHeaderAddr
-
 export function computeHeaderAddr(baseAddrBytes: number, slotCount: number): number {
   return baseAddrBytes + slotCount * CELL_SIZE;
 }
 
-// Style aliases (Phase 1):
-// old alias exports removed
+/**
+ * Copies list payload slots from source to destination.
+ * @param vm - VM instance
+ * @param srcBaseCell - Source absolute cell index (first payload slot)
+ * @param destBaseCell - Destination absolute cell index (first payload slot)
+ * @param slots - Number of slots to copy
+ */
+export function copyListPayload(vm: VM, srcBaseCell: number, destBaseCell: number, slots: number): void {
+  for (let i = 0; i < slots; i++) {
+    const val = vm.memory.readCell(srcBaseCell + i);
+    vm.memory.writeCell(destBaseCell + i, val);
+  }
+}
+
+/**
+ * Gets list bounds or throws if value is not a list.
+ * @param vm - VM instance
+ * @param value - Value to check
+ * @returns List bounds info
+ * @throws {Error} If value is not a list
+ */
+export function getListInfoOrFail(
+  vm: VM,
+  value: number,
+): { header: number; baseAddrBytes: number; headerAddrBytes: number } {
+  const info = getListBounds(vm, value);
+  if (!info || !isList(info.header)) {
+    throw new Error('Expected LIST');
+  }
+  return info;
+}
+

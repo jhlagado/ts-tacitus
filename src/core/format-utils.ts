@@ -4,7 +4,7 @@
  */
 import { CELL_SIZE, STACK_BASE } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
-import { isRef, getAbsoluteCellIndexFromRef } from './refs';
+import { isRef, getCellFromRef } from './refs';
 import { getListLength } from './list';
 import { type VM, pop, push, getStackData } from './vm';
 
@@ -99,43 +99,13 @@ export function formatList(vm: VM, headerValue: number): string {
 }
 
 /**
- * Formats a LIST structure from stack data.
- *
- * @param vm VM instance for memory access
- * @param stack Current stack data
- * @param headerIndex Index of LIST header in stack
- * @returns Formatted string representation
+ * Formats a LIST structure from memory address by materializing to stack.
+ * @param vm VM instance
+ * @param headerCellAddr Absolute cell address of LIST header
+ * @returns Formatted string
  */
-function formatListFromStack(vm: VM, stack: number[], headerIndex: number): string {
-  const slotCount = getListLength(stack[headerIndex]);
-  if (slotCount === 0) {
-    return '()';
-  }
-
-  const parts: string[] = [];
-  for (let i = 0; i < slotCount; i++) {
-    const valueIndex = headerIndex - 1 - i;
-    if (valueIndex < 0) {
-break;
-}
-
-    const element = stack[valueIndex];
-    if (getTag(element) === Tag.LIST) {
-      parts.push(formatListFromStack(vm, stack, valueIndex));
-    } else {
-      parts.push(formatAtomicValue(vm, element));
-    }
-  }
-
-  return `( ${parts.join(' ')} )`;
-}
-
-/**
- * Formats a LIST structure from reference in memory by materializing to stack.
- */
-function formatListFromMemory(vm: VM, address: number): string {
-  // Phase C: unified data access via SEG_DATA and absolute byte address
-  const header = vm.memory.readCell(address / CELL_SIZE);
+function formatListFromMemory(vm: VM, headerCellAddr: number): string {
+  const header = vm.memory.readCell(headerCellAddr);
   const slotCount = getListLength(header);
 
   if (slotCount === 0) {
@@ -143,15 +113,14 @@ function formatListFromMemory(vm: VM, address: number): string {
   }
 
   const originalSP = vm.sp;
+  const baseCell = headerCellAddr - slotCount;
 
   for (let i = 0; i < slotCount; i++) {
-    const elementAddr = address - (slotCount - i) * CELL_SIZE;
-    const element = vm.memory.readCell(elementAddr / CELL_SIZE);
-      push(vm, element);
+    const elem = vm.memory.readCell(baseCell + i);
+    push(vm, elem);
   }
 
   const formatted = formatList(vm, header);
-
   vm.sp = originalSP;
 
   return formatted;
@@ -164,35 +133,52 @@ function formatListFromMemory(vm: VM, address: number): string {
  * @returns Formatted string representation
  */
 export function formatValue(vm: VM, value: number): string {
+  const tag = getTag(value);
+
+  if (tag === Tag.LIST) {
+    const stack = getStackData(vm);
+    if (stack.length === 0) {
+      return '()';
+    }
+    const headerIndex = stack.length - 1;
+    const slotCount = getListLength(value);
+    if (slotCount === 0) {
+      return '()';
+    }
+
+    const parts: string[] = [];
+    for (let i = 0; i < slotCount; i++) {
+      const elemIdx = headerIndex - 1 - i;
+      if (elemIdx < 0) break;
+      const elem = stack[elemIdx];
+      if (getTag(elem) === Tag.LIST) {
+        parts.push(formatValue(vm, elem));
+      } else {
+        parts.push(formatAtomicValue(vm, elem));
+      }
+    }
+    return `( ${parts.join(' ')} )`;
+  }
+
   if (isRef(value)) {
-    const cellIndex = getAbsoluteCellIndexFromRef(value);
-    const header = vm.memory.readCell(cellIndex);
+    const cell = getCellFromRef(value);
+    const header = vm.memory.readCell(cell);
     if (getTag(header) === Tag.LIST) {
-      return formatListFromMemory(vm, cellIndex * CELL_SIZE);
+      return formatListFromMemory(vm, cell);
     }
     return formatAtomicValue(vm, header);
   }
 
-  const { tag, value: tagValue } = fromTaggedValue(value);
-
-  if (getTag(value) === Tag.LIST) {
-    const stack = getStackData(vm);
-    const headerIndex = stack.length - 1;
-    return formatListFromStack(vm, stack, headerIndex);
-  }
-
+  const { value: tagValue } = fromTaggedValue(value);
   switch (tag) {
     case Tag.STRING: {
       const str = vm.digest.get(tagValue);
       return str ? formatString(str) : `[String:${tagValue}]`;
     }
-
     case Tag.NUMBER:
       return formatFloat(tagValue);
-
     default:
       return formatAtomicValue(vm, value);
   }
 }
 
-// old alias removed

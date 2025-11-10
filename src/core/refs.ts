@@ -53,7 +53,7 @@ export function decodeRef(ref: number): { absoluteCellIndex: number } {
  * @returns Absolute cell index
  * @throws {Error} If value is not a REF or index is out of bounds
  */
-export function getAbsoluteCellIndexFromRef(ref: number): number {
+export function getCellFromRef(ref: number): number {
   const { value, tag } = fromTaggedValue(ref);
   if (tag !== Tag.REF) {
     throw new Error('Expected REF');
@@ -65,13 +65,23 @@ export function getAbsoluteCellIndexFromRef(ref: number): number {
 }
 
 /**
+ * @deprecated Use getCellFromRef instead
+ */
+export const getAbsoluteCellIndexFromRef = getCellFromRef;
+
+/**
  * Converts a REF to its absolute byte address.
  * @param ref - REF tagged value
  * @returns Absolute byte address
  */
-export function getByteAddressFromRef(ref: number): number {
-  return getAbsoluteCellIndexFromRef(ref) * CELL_SIZE;
+export function refToByte(ref: number): number {
+  return getCellFromRef(ref) * CELL_SIZE;
 }
+
+/**
+ * @deprecated Use refToByte instead
+ */
+export const getByteAddressFromRef = refToByte;
 
 /**
  * Reads a value from memory using a REF.
@@ -79,10 +89,15 @@ export function getByteAddressFromRef(ref: number): number {
  * @param ref - REF tagged value
  * @returns Value read from memory
  */
-export function readRefValue(vm: VM, ref: number): number {
-  const cellIndex = getAbsoluteCellIndexFromRef(ref);
-  return vm.memory.readCell(cellIndex);
+export function readRef(vm: VM, ref: number): number {
+  const cell = getCellFromRef(ref);
+  return vm.memory.readCell(cell);
 }
+
+/**
+ * @deprecated Use readRef instead
+ */
+export const readRefValue = readRef;
 
 /**
  * Checks if a tagged value is a REF.
@@ -104,7 +119,7 @@ export function isRef(tval: number): boolean {
  * @returns Area name ('global', 'stack', or 'rstack')
  */
 export function getRefArea(ref: number): 'global' | 'stack' | 'rstack' {
-  const absByte = getByteAddressFromRef(ref);
+  const absByte = refToByte(ref);
   if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
     return 'global';
   }
@@ -120,7 +135,7 @@ export function getRefArea(ref: number): 'global' | 'stack' | 'rstack' {
  * @returns True if ref is in the global area
  */
 export function isGlobalRef(ref: number): boolean {
-  const absByte = getByteAddressFromRef(ref);
+  const absByte = refToByte(ref);
   return absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES;
 }
 
@@ -130,7 +145,7 @@ export function isGlobalRef(ref: number): boolean {
  * @returns True if ref is in the data stack area
  */
 export function isStackRef(ref: number): boolean {
-  const absByte = getByteAddressFromRef(ref);
+  const absByte = refToByte(ref);
   return absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES;
 }
 
@@ -140,7 +155,7 @@ export function isStackRef(ref: number): boolean {
  * @returns True if ref is in the return stack area
  */
 export function isRStackRef(ref: number): boolean {
-  const absByte = getByteAddressFromRef(ref);
+  const absByte = refToByte(ref);
   return absByte >= RSTACK_BASE_BYTES;
 }
 
@@ -151,7 +166,7 @@ export function isRStackRef(ref: number): boolean {
  * @deprecated Prefer using getRefArea() or the boolean functions (isGlobalRef, isStackRef, isRStackRef)
  */
 export function getRefSegment(ref: number): number {
-  const absByte = getByteAddressFromRef(ref);
+  const absByte = refToByte(ref);
   if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
     return 0; // global
   }
@@ -201,7 +216,12 @@ export function createGlobalRef(cellIndex: number): number {
  * @param ref - REF tagged value
  * @param value - Value to write
  */
-export function writeReference(vm: VM, ref: number, value: number): void {
-  const cellIndex = getAbsoluteCellIndexFromRef(ref);
-  vm.memory.writeCell(cellIndex, value);
+export function writeRef(vm: VM, ref: number, value: number): void {
+  const cell = getCellFromRef(ref);
+  vm.memory.writeCell(cell, value);
 }
+
+/**
+ * @deprecated Use writeRef instead
+ */
+export const writeReference = writeRef;
