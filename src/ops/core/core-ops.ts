@@ -305,24 +305,24 @@ export const endIfOp: Verb = (vm: VM) => {
 };
 
 /**
- * Closes a single `when` clause body during compilation.
+ * Closes a single `match` clause body during compilation.
  *
  * Expects the predicate skip placeholder on the data stack (left there by the
- * immediate `do`). Emits a forward branch to the shared exit, records that
- * branch on the return stack, patches the predicate’s skip to the current
- * compile pointer, and restores the stack to `[... savedRSP, EndWhen]`.
+ * immediate `with`). Emits a forward branch to the shared exit, records that
+ * branch on the return stack, patches the predicate's skip to the current
+ * compile pointer, and restores the stack to `[... savedRSP, EndMatch]`.
  */
-export const endDoOp: Verb = (vm: VM) => {
-  ensureStackSize(vm, 1, 'enddo');
+export const endWithOp: Verb = (vm: VM) => {
+  ensureStackSize(vm, 1, 'endwith');
 
   const rawSkipPos = pop(vm);
   if (!Number.isFinite(rawSkipPos)) {
-    throw new SyntaxError('enddo missing predicate placeholder', getStackData(vm));
+    throw new SyntaxError('endwith missing predicate placeholder', getStackData(vm));
   }
 
   const skipPos = Math.trunc(rawSkipPos);
   if (skipPos <= 0) {
-    throw new SyntaxError('enddo invalid predicate placeholder', getStackData(vm));
+    throw new SyntaxError('endwith invalid predicate placeholder', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Branch);
@@ -383,19 +383,19 @@ export const endOfOp: Verb = (vm: VM) => {
 };
 
 /**
- * Closes an entire `when` construct during compilation.
+ * Closes an entire `match` construct during compilation.
  *
  * Expects the saved return-stack pointer snapshot on the data stack (pushed by
- * the immediate `when`). Pops it, then back-patches every pending exit branch
+ * the immediate `match`). Pops it, then back-patches every pending exit branch
  * recorded by clause terminators so they land at the common exit after the
  * construct.
  */
-export const endWhenOp: Verb = (vm: VM) => {
-  ensureStackSize(vm, 1, 'endwhen');
+export const endMatchOp: Verb = (vm: VM) => {
+  ensureStackSize(vm, 1, 'endmatch');
 
   const rawSavedRSP = pop(vm);
   if (!Number.isFinite(rawSavedRSP)) {
-    throw new SyntaxError('endwhen missing saved RSP', getStackData(vm));
+    throw new SyntaxError('endmatch missing saved RSP', getStackData(vm));
   }
 
   const savedRSPRel = Math.trunc(rawSavedRSP);
@@ -404,7 +404,7 @@ export const endWhenOp: Verb = (vm: VM) => {
   while (vm.rsp > savedRSPAbs) {
     const rawExitPos = rpop(vm);
     if (!Number.isFinite(rawExitPos)) {
-      throw new SyntaxError('endwhen invalid exit placeholder', getStackData(vm));
+      throw new SyntaxError('endmatch invalid exit placeholder', getStackData(vm));
     }
 
     const exitPos = Math.trunc(rawExitPos);
@@ -417,7 +417,7 @@ export const endWhenOp: Verb = (vm: VM) => {
   }
 
   if (vm.rsp !== savedRSPAbs) {
-    throw new SyntaxError('endwhen corrupted return stack', getStackData(vm));
+    throw new SyntaxError('endmatch corrupted return stack', getStackData(vm));
   }
 };
 

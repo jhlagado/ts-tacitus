@@ -82,8 +82,8 @@ export function ensureNoOpenConditionals(vm: VM): void {
       if (opcode === Op.EndIf) {
         throw new SyntaxError('Unclosed IF', getStackData(vm));
       }
-      if (opcode === Op.EndWhen) {
-        throw new SyntaxError('Unclosed `when`', getStackData(vm));
+      if (opcode === Op.EndMatch) {
+        throw new SyntaxError('Unclosed `match`', getStackData(vm));
       }
       if (opcode === Op.EndCase) {
         throw new SyntaxError('Unclosed case', getStackData(vm));

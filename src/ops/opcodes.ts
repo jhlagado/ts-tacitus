@@ -231,11 +231,11 @@ export enum Op {
   /** Ends an IF/ELSE construct during compilation (invoked via generic `;`). */
   EndIf,
 
-  /** Ends a `when` clause body during compilation (invoked via generic `;`). */
-  EndDo,
+  /** Ends a `match` clause body during compilation (invoked via generic `;`). */
+  EndWith,
 
-  /** Ends a `when` construct during compilation (invoked via generic `;`). */
-  EndWhen,
+  /** Ends a `match` construct during compilation (invoked via generic `;`). */
+  EndMatch,
 
   /** Ends a `case` clause body during compilation (invoked via generic `;`). */
   EndOf,
