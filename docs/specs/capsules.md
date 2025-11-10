@@ -43,7 +43,7 @@ They behave much like delimited continuations or reified closures but remain ful
 
 ### 2.1 Syntax
 
-A capsule is produced inside a colon definition by executing `capsule`. The source after `capsule` belongs to the dispatch routine, often—but not necessarily—a `case/of` structure:
+A capsule is produced inside a colon definition by executing `capsule`. The source after `capsule` belongs to the dispatch routine, often—but not necessarily—a `case/do` structure:
 
 ```tacit
 : makePoint
@@ -51,8 +51,8 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
   200 var y
 
   capsule case        \ constructor terminates here
-    'move of +> y +> x ;
-    'draw of x y native_draw ;
+    'move do +> y +> x ;
+    'draw do x y native_draw ;
   ;
 ;
 ```
@@ -84,10 +84,10 @@ Everything compiled after `capsule` is the dispatch routine and runs only when t
   1  var step
 
   capsule case
-    'inc of step +> count ;
-    'get of count ;
-    'set of -> count ;
-    DEFAULT of 'unknown . ;
+    'inc do step +> count ;
+    'get do count ;
+    'set do -> count ;
+    DEFAULT do 'unknown . ;
   ;
 ;
 ```
@@ -211,10 +211,10 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var x0
 
   capsule case
-    'translate of
+    'translate do
       rot rot +> x0 +> y0 ;    \ expecting dx dy
-    'coords of x0 y0 ;         \ pushes coords
-    DEFAULT of drop 'unknown . ;
+    'coords do x0 y0 ;         \ pushes coords
+    DEFAULT do drop 'unknown . ;
   ;
 ;
 
@@ -236,14 +236,14 @@ Reading `&point` later is cheap; duplicating the capsule list repeatedly would b
   var current
 
   capsule case
-    'next of
+    'next do
       current limit ge if
         drop NIL
       else
         current dup 1 +-> current
       ;
-    'reset of -> current ;
-    DEFAULT of drop 'unknown . ;
+    'reset do -> current ;
+    DEFAULT do drop 'unknown . ;
   ;
 ;
 ```
@@ -288,8 +288,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 
 - **lists.md**: Capsule payload obeys normal list semantics (header + payload cells).
 - **variables-and-refs.md**: Capsule creation relies on local-variable frame layout (contiguous cells above BP).
-- **case-control-flow.md**: Dispatch bodies commonly use `case/of` but are not restricted to it.
-- **metaprogramming.md**: `capsule`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
+- **metaprogramming.md**: Dispatch bodies commonly use `case/do` but are not restricted to it. `capsule`, `dispatch`, `Op.ExitConstructor`, `Op.EndCapsule`, and `Op.ExitDispatch` extend the immediate command set.
 - **vm-architecture.md**: Frame layout (BP-1 = saved BP, BP-2 = return address) matches `Op.ExitConstructor` assumptions.
 
 ---
@@ -314,7 +313,7 @@ No locals move; the capsule simply extends the caller's frame. When `dispatch` r
 - Leaving the capsule environment in place on the return stack avoids alloc/free churn and still gives callers a first-class reference they can store like any other `REF` handle.
 - By enforcing a fixed dispatch signature (`args... method receiver dispatch`), the system cleanly separates concerns:
   - `dispatch` only needs the receiver and method symbol.
-  - `case` (or other dispatch bodies) only inspect the discriminant.
+  - `case/do` (or other dispatch bodies) only inspect the discriminant.
   - Arguments remain untouched until the clause consumes them.
 
 Capsules therefore deliver resumable, stateful behaviour within Tacit's pure stack discipline, aligning well with Forth-like ergonomics while offering object-like expressiveness.

@@ -3,7 +3,7 @@
 ## Status
 
 - **Stage:** normative (tracks current implementation).
-- **Scope:** compile-time immediates, the shared `;` terminator, colon definitions, conditional families (`if/else`, `when/do`, `case/of`).
+- **Scope:** compile-time immediates, the shared `;` terminator, colon definitions, conditional families (`if/else`, `match/with`, `case/do`).
 - **Audience:** compiler/runtime implementors, language designers, and anyone extending Tacit's immediate-word system.
 
 This specification supersedes the older drafts `immediate-words-and-terminators.md`, `cond-control-flow.md`, `when-do-control-flow.md`, and consolidates content from `case-control-flow.md`.
@@ -14,7 +14,7 @@ Tacit adopts a Forth-like metaprogramming model:
 
 - Words marked **immediate** run during parsing. They execute with full access to the VM’s data (`SP`) and return (`RSP`) stacks—both expressed in **cells**. If an immediate needs raw byte addresses it must derive them explicitly (e.g. `SP * CELL_SIZE`).
 - A single shared terminator `;` executes the closer that the opener pushed onto the stack. Closers are plain words (usually builtins) that patch placeholders and restore compile-time invariants.
-- Colon definitions, conditionals, and the new multi-branch `when/do` construct are all built on this pattern.
+- Colon definitions, conditionals, and the new multi-branch `match/with` construct are all built on this pattern.
 
 The sections below detail the infrastructure and each control construct.
 
@@ -106,77 +106,77 @@ cond  if   …true-branch…   else   …false-branch…   ;
 - A stray `;` with no executable on TOS raises `Unexpected semicolon`.
 - Unclosed `if` constructs are detected when final validation runs (`ensureNoOpenConditionals`) or earlier if the terminator encounters the wrong placeholder layout.
 
-## Guarded multi-branch (`when` … `do` … `;`)
+## Guarded multi-branch (`match` … `with` … `;`)
 
 ### Surface syntax
 
 ```
-when
-  predicate do  …body…  ;
-  predicate do  …body…  ;
+match
+  predicate with  …body…  ;
+  predicate with  …body…  ;
   …optional default code…
 ;
 ```
 
-- Each clause consists of a predicate followed by `do` and its body, terminated by `;`.
+- Each clause consists of a predicate followed by `with` and its body, terminated by `;`.
 - The final `;` closes the construct. Code between the last clause and that terminator acts as the default.
 
 ### Compile-time invariants
 
 - **Data stack (TOS → right):**
-  - Open construct: `[…, savedRSP, EndWhen]`
-  - Inside clause body: `[…, savedRSP, EndWhen, p_skip, EndDo]`
+  - Open construct: `[…, savedRSP, EndMatch]`
+  - Inside clause body: `[…, savedRSP, EndMatch, p_skip, EndWith]`
 - **Return stack:**
-  - Snapshot `RSP` when `when` starts (`savedRSP`).
+  - Snapshot `RSP` when `match` starts (`savedRSP`).
   - Each clause terminator pushes one forward-branch operand (`p_exit`) addressing the shared exit.
 
 ### Immediate words
 
-1. **`when`**
+1. **`match`**
    - Snapshot `RSP` and push the `savedRSP` value onto the data stack.
-   - Push `EndWhen` so the final `;` can resolve it. No bytecode is emitted at this point.
-2. **`do`**
-   - Require the data stack to contain `[…, savedRSP, EndWhen]`; otherwise raise “do without when”.
+   - Push `EndMatch` so the final `;` can resolve it. No bytecode is emitted at this point.
+2. **`with`**
+   - Require the data stack to contain `[…, savedRSP, EndMatch]`; otherwise raise "with without match".
    - Emit `IfFalseBranch +0`; record its operand address as `p_skip` and push it.
-   - Push `EndDo` so the clause terminator can execute it.
+   - Push `EndWith` so the clause terminator can execute it.
 3. **Clause terminator `;`**
-   - Executes `EndDo`:
+   - Executes `EndWith`:
      1. Verify a skip placeholder is present.
      2. Emit `Branch +0`; push its operand address (`p_exit`) onto the return stack.
      3. Patch `p_skip` to fall through to the next clause/default.
-     4. Drop `p_skip`, restoring `[…, savedRSP, EndWhen]`.
+     4. Drop `p_skip`, restoring `[…, savedRSP, EndMatch]`.
 4. **Final `;`**
-   - Executes `EndWhen`:
+   - Executes `EndMatch`:
      1. Pop `savedRSP`.
      2. While `RSP > savedRSP`, pop each recorded `p_exit` and patch it to the shared exit (`CP - (p_exit + 2)`).
-     3. The loop leaves `RSP == savedRSP`; the data stack returns to its pre-`when` shape.
+     3. The loop leaves `RSP == savedRSP`; the data stack returns to its pre-`match` shape.
 
 ### Runtime behaviour
 
-- Each clause’s predicate runs just before `do`; it must produce a numeric truth value.
+- Each clause's predicate runs just before `with`; it must produce a numeric truth value.
 - Failing the predicate causes the compiled `IfFalseBranch` to skip the body and its closing logic.
 - When a clause body completes, its back-branch jumps to the shared exit (after the whole construct). Default code executes only if every predicate fails.
 
 ### Error handling
 
-- `do` without an open `when` → “do without when”.
-- Clause `;` without a pending predicate skip → “clause closer without do/predicate”.
-- Final `;` without `EndWhen` on TOS → “when not open”.
+- `with` without an open `match` → "with without match".
+- Clause `;` without a pending predicate skip → "clause closer without with/predicate".
+- Final `;` without `EndMatch` on TOS → "match not open".
 - Return-stack under/overflow during closing raises dedicated VM errors; under normal use `savedRSP` guarantees balance.
 
 ### Nested forms
 
-`when` can appear inside clause bodies or default regions. Each nested construct snapshots its own `savedRSP`, leaving outer placeholders untouched until the inner construct has closed.
+`match` can appear inside clause bodies or default regions. Each nested construct snapshots its own `savedRSP`, leaving outer placeholders untouched until the inner construct has closed.
 
-## Switch-style multi-branch (`case` … `of` … `;`)
+## Switch-style multi-branch (`case` … `do` … `;`)
 
 ### Surface syntax
 
 ```
 <discriminant> case
-  <constant> of   …body…   ;
-  <constant> of   …body…   ;
-  DEFAULT   of   …body…   ;   \ optional
+  <constant> do   …body…   ;
+  <constant> do   …body…   ;
+  DEFAULT   do   …body…   ;   \ optional
 ;
 ```
 
@@ -188,7 +188,7 @@ when
 ### Runtime stack discipline
 
 - The discriminant is present on the data stack when `case` executes and remains there until a clause body consumes it.
-- Clause bodies do **not** see the discriminant; `of` arranges for it to be automatically dropped on the true path.
+- Clause bodies do **not** see the discriminant; `do` arranges for it to be automatically dropped on the true path.
 - If no clause matches and there is no default, the final closer ensures the discriminant is removed before control resumes.
 
 #### Stack snapshots
@@ -210,11 +210,11 @@ when
 2. Pushes `savedRSP` and the closer reference `EndCase` onto the data stack.
 3. Leaves the discriminant on the data stack beneath the case metadata. No bytecode emitted at this stage.
 
-#### `of` (immediate)
+#### `do` (immediate, in case context)
 
 Executed for each clause header:
 
-1. Validates that the data stack ends with `[…, savedRSP, EndCase, discriminant, constant]`. If not, raises "`of` without `case`".
+1. Validates that the data stack ends with `[…, savedRSP, EndCase, discriminant, constant]`. If not, raises "`do` without `case`".
 2. Compiles the runtime comparison sequence **in this precise order**:
    - Emit `over` so the discriminant is duplicated while the clause constant remains at TOS.
    - Emit the equality builtin (`eq`). At runtime `eq` must treat the designated wildcard sentinel (used by `DEFAULT`) as matching any discriminant.
@@ -222,11 +222,11 @@ Executed for each clause header:
 3. Pushes `p_skip` followed by the clause closer reference `EndOf` onto the data stack. The two entries ensure the matching closer can patch the predicate skip and restore the stack shape.
 4. Emits a `drop`. On the true path this removes the duplicated discriminant before the clause body executes. On the false path the `IfFalseBranch` transfers control past this drop, preserving the original discriminant for subsequent clauses.
 
-Because the `DEFAULT` clause pushes a runtime sentinel constant, the sequence above is emitted unchanged. The equality builtin is responsible for recognising the sentinel and returning `true`, so the body is entered without any `of`-specific branching logic.
+Because the `DEFAULT` clause pushes a runtime sentinel constant, the sequence above is emitted unchanged. The equality builtin is responsible for recognising the sentinel and returning `true`, so the body is entered without any `do`-specific branching logic.
 
 #### Clause terminator `;` (executes `EndOf`)
 
-1. Pops the stored `p_skip`; verifies the stack is `[…, savedRSP, EndCase]` after removal. Otherwise raises "clause closer without `of`".
+1. Pops the stored `p_skip`; verifies the stack is `[…, savedRSP, EndCase]` after removal. Otherwise raises "clause closer without `do`".
 2. Emits `Branch +0` to skip remaining clauses once the current one succeeds; records its operand (`p_exit`) on the return stack.
 3. Patches `p_skip` so a failed comparison falls through to the next clause (i.e., sets offset to reach the instruction immediately after the branch placeholder and before the trailing `drop`).
 4. Restores the data stack to `[…, savedRSP, EndCase, discriminant]`, ready for the next clause or default.
@@ -253,15 +253,15 @@ For a simple two-clause case with default:
 ; prior code leaves discriminant on stack
 case
   const1 literal
-  of       ; emits: over, eq, IfFalseBranch p1, drop
+  do       ; emits: over, eq, IfFalseBranch p1, drop
     …body1…
   ;        ; emits: Branch p2, patch p1
   const2 literal
-  of       ; emits: over, eq, IfFalseBranch p3, drop
+  do       ; emits: over, eq, IfFalseBranch p3, drop
     …body2…
   ;        ; emits: Branch p4, patch p3
   DEFAULT literal
-  of       ; emits: over, eq (wildcard match), IfFalseBranch p5, drop
+  do       ; emits: over, eq (wildcard match), IfFalseBranch p5, drop
     …default body…
   ;        ; emits: Branch p6 (patch no-op)
 ; final closer drops discriminant if still present, then patches p2/p4/p6
@@ -269,18 +269,18 @@ case
 
 ### Error handling
 
-- `of` outside an open `case`
-  - Immediate can check that the next-on-stack entry is `EndCase`; otherwise signal `SyntaxError("'of' without open case")`.
+- `do` outside an open `case`
+  - Immediate can check that the next-on-stack entry is `EndCase`; otherwise signal `SyntaxError("'do' without open case")`.
 - Clause body terminator `;` without a pending predicate placeholder
-  - When the terminator attempts to pop a skip placeholder and finds none, raise `SyntaxError("clause closer without of")`.
+  - When the terminator attempts to pop a skip placeholder and finds none, raise `SyntaxError("clause closer without do")`.
 - Final `;` without `EndCase` on TOS
   - Terminator validates the closer on TOS; absence triggers `SyntaxError("case not open")`.
 - Return stack mismatch when unwinding
-  - Optional assertion mirroring `when/do`; implementers may raise `SyntaxError("case corrupted return stack")` if the snapshot invariant fails.
+  - Optional assertion mirroring `match/with`; implementers may raise `SyntaxError("case corrupted return stack")` if the snapshot invariant fails.
 
 ### Interaction with other immediates
 
-- Cases may nest inside other immediate constructs (e.g., inside `when` clauses) because each opener snapshots and restores `RSP` independently.
+- Cases may nest inside other immediate constructs (e.g., inside `match` clauses) because each opener snapshots and restores `RSP` independently.
 - Clause bodies can freely open additional immediate constructs; they execute after the discriminant has been dropped.
 - `DEFAULT` acts as a wildcard via the sentinel value; multiple defaults are legal (the first will match, subsequent defaults are effectively dead code).
 
