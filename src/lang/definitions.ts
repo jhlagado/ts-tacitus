@@ -3,7 +3,7 @@ import { getStackData, type VM } from '../core/vm';
 import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ActiveDefinition } from './state';
-import { markWithLocalReset, defineCode } from '../core/dictionary';
+import { markWithLocalReset, defineCode, forget } from '../core/dictionary';
 
 export function beginDefinition(
   vm: VM,
@@ -54,8 +54,14 @@ export function endDefinition(
 
   patchBranchOffset(vm, currentDefinition.current.branchPos);
 
-  const { name, branchPos } = currentDefinition.current;
+  const { name, branchPos, checkpoint } = currentDefinition.current;
   const defStart = branchPos + 2;
+  
+  // Restore dictionary to checkpoint to remove local variable entries
+  // This must happen BEFORE defineCode so the function definition itself is preserved
+  // This allows globals to be accessible after function definition
+  forget(vm, checkpoint);
+  
   defineCode(vm, name, defStart);
 
   currentDefinition.current = null;
