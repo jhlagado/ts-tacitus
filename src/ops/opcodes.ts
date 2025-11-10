@@ -212,6 +212,7 @@ export enum Op {
   InitVar,
   /** Pushes local variable slot address - ( -- addr ) reads 16-bit slot number */
   VarRef,
+  GlobalRef,
   /** Debug: dumps current stack frame state - ( -- ) */
   DumpStackFrame,
 

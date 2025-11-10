@@ -6,7 +6,7 @@ import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
 import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
-import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE, RSTACK_BASE  } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
 import {

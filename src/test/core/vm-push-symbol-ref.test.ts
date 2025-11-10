@@ -9,7 +9,7 @@ import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag } from '../../core';
-import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE } from '../../core/constants';
 import { defineBuiltin, defineCode } from '../../core/dictionary';
 import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
 

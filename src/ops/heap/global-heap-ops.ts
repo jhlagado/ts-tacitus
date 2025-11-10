@@ -3,9 +3,8 @@
  * Implements Tacit global heap primitives (gpush, gpop, gpeek, gmark, gsweep).
  */
 
-import type { VM } from '@src/core';
 import {
-  SEG_DATA,
+  type VM,
   GLOBAL_BASE,
   CELL_SIZE,
   dropList,

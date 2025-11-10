@@ -10,7 +10,7 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
 import { push, rpush, rpop, pop, getStackData, unsafeSetBPBytes } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
-import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE } from '../../../core/constants';
 
 describe('Core Operations Branch Coverage', () => {
   let vm: VM;
