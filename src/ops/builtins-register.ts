@@ -158,7 +158,7 @@ export function registerBuiltins(vm: VM): void {
   reg('match', Op.Nop, undefined, true);
   reg('with', Op.Nop, undefined, true);
   reg('case', Op.Nop, undefined, true);
-  reg('of', Op.Nop, undefined, true);
+  reg('do', Op.Nop, undefined, true);
   reg('DEFAULT', Op.Nop, undefined, true);
   reg('NIL', Op.Nop, undefined, true);
   // Capsule opener: 'capsule'

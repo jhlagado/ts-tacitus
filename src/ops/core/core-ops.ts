@@ -342,7 +342,7 @@ export const endWithOp: Verb = (vm: VM) => {
  * Closes a single `case` clause body during compilation.
  *
  * Expects the predicate skip placeholder on the data stack (left there by the
- * immediate `of`). Emits a forward branch to the shared exit, records that
+ * immediate `do`). Emits a forward branch to the shared exit, records that
  * branch location on the return stack, and patches the predicate skip so failed
  * comparisons fall through to the next clause.
  */
@@ -360,13 +360,13 @@ export const endOfOp: Verb = (vm: VM) => {
   }
 
   if (depth(vm) === 0) {
-    throw new SyntaxError('clause closer without of', getStackData(vm));
+    throw new SyntaxError('clause closer without do', getStackData(vm));
   }
 
   const closer = peek(vm);
   const { tag, value } = fromTaggedValue(closer);
   if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
-    throw new SyntaxError('clause closer without of', getStackData(vm));
+    throw new SyntaxError('clause closer without do', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Branch);

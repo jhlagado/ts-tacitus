@@ -15,8 +15,8 @@ describe('Capsule stored in function local (frame extension)', () => {
         0 var count
 
         capsule case
-          'inc of 1 +> count ;
-          'get of count ;
+          'inc do 1 +> count ;
+          'get do count ;
         ;
       ;
 

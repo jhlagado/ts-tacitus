@@ -30,13 +30,12 @@ export function beginCaseImmediate(
   push(vm, ENDCASE_CODE_REF);
 }
 
-export function clauseOfImmediate(
+export function clauseDoImmediate(
   vm: VM,
   _tokenizer: Tokenizer,
   _currentDefinition: { current: ActiveDefinition | null },
 ): void {
-
-  assertOpenCase(vm, "'of'");
+  assertOpenCase(vm, "'do'");
 
   vm.compiler.compileOpcode(Op.Over);
   vm.compiler.compileOpcode(Op.Equal);

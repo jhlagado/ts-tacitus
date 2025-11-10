@@ -14,8 +14,8 @@ describe('Capsule with global variable', () => {
       : make-counter
         0 var count
         capsule case
-          'inc of 1 +> count ;
-          'get of count ;
+          'inc do 1 +> count ;
+          'get do count ;
         ;
       ;
 

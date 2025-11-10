@@ -18,7 +18,7 @@ import {
   beginMatchImmediate,
   beginWithImmediate,
   beginCaseImmediate,
-  clauseOfImmediate,
+  clauseDoImmediate,
   defaultImmediate,
   nilImmediate,
   beginCapsuleImmediate,
@@ -69,8 +69,10 @@ export function executeImmediateWord(
       case 'case':
         beginCaseImmediate(vm, tokenizer, currentDefinition);
         return;
-      case 'of':
-        clauseOfImmediate(vm, tokenizer, currentDefinition);
+      case 'do':
+        // 'do' is used for case clauses (dispatch/mapping)
+        // clauseDoImmediate validates that we're in a case context
+        clauseDoImmediate(vm, tokenizer, currentDefinition);
         return;
       case 'DEFAULT':
         defaultImmediate(vm, tokenizer, currentDefinition);
