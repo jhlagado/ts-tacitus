@@ -1,7 +1,7 @@
 # Function Rationalization Plan
 
 **Date:** 2025-01-XX  
-**Status:** Phases 1-5, 7 Complete; Phase 6 Not Needed; Phase 8 Pending
+**Status:** Phases 1-5, 7, 8 Complete; Phase 6 Not Needed
 
 ## Executive Summary
 
@@ -208,28 +208,42 @@ define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
 **Status:** ✅ COMPLETE - All tests pass
 
-### Phase 8: Audit One-Line Functions
+### Phase 8: Audit One-Line Functions ✅ COMPLETE
 
 **Goal:** Audit all one-line functions to justify their existence vs inlining.
 
 **Process:**
 
-1. Identify all one-line functions across codebase
-2. For each function, determine:
+1. ✅ Identified all one-line functions across codebase
+2. ✅ For each function, determined:
    - Usage count
    - Whether it provides semantic value
    - Whether it's part of a consistent API pattern
    - Whether it has validation/error handling
-3. Inline trivial wrappers that add no value
-4. Keep functions that provide API stability or semantic clarity
+3. ✅ Inlined trivial wrappers that add no value
+4. ✅ Kept functions that provide API stability or semantic clarity
 
-**See:** `docs/ONE_LINE_FUNCTION_AUDIT.md` for detailed analysis
+**Changes Made:**
+
+1. ✅ **Inlined `computeHeaderCell`** - Trivial calculation (`baseCell + slotCount`)
+   - Removed from `src/core/list.ts`
+   - Removed export from `src/ops/lists/core-helpers.ts`
+   - Inlined at call site in `src/ops/lists/build-ops.ts`
+   - Reduced 1 function
+
+2. ✅ **Kept all other one-line functions** - They provide semantic value:
+   - Type checkers (`is*` functions) - Essential for type checking
+   - Accessors (`get*` functions) - Cleaner than inline destructuring
+   - `next*` functions - Consistent public API for IP advancement
+   - REF utilities - Semantic clarity for memory access
 
 **Benefits:**
 
-- Removes unnecessary indirection
-- Keeps valuable abstractions
-- Improves code clarity
+- Removed unnecessary indirection (1 function inlined)
+- Kept valuable abstractions (all semantic functions preserved)
+- Improved code clarity
+
+**Status:** ✅ COMPLETE - All tests pass (1280/1280)
 
 ## API Design Principles
 
