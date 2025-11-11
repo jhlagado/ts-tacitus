@@ -6,7 +6,7 @@
 import type { VM, Verb } from '@src/core';
 import { fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
-import { getListBounds, computeHeaderCell } from './core-helpers';
+import { getListBounds } from './core-helpers';
 import { evalOp } from '../core';
 import {
   ensureRStackSize,
@@ -149,7 +149,7 @@ export function unpackOp(vm: VM): void {
   }
 
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
-  const headerCell = computeHeaderCell(info.baseCell, slotCount);
+  const headerCell = info.baseCell + slotCount;
   for (let i = slotCount - 1; i >= 0; i--) {
     const slotValue = vm.memory.readCell(headerCell - (i + 1));
     push(vm, slotValue);

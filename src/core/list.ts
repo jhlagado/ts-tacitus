@@ -171,12 +171,6 @@ export function getListBounds(
   return null;
 }
 
-/**
- * Computes header cell index given base cell index and slot count.
- */
-export function computeHeaderCell(baseCell: number, slotCount: number): number {
-  return baseCell + slotCount;
-}
 
 /**
  * Copies list payload slots from source to destination.
