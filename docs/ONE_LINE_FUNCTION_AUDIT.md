@@ -106,41 +106,19 @@ Audit all one-line functions across the codebase to determine if they should be:
 - `refToByte`, `readRef`, `writeRef` - Provide semantic clarity and abstraction
 - `computeHeaderCell` - Provides semantic clarity
 
-## Implementation Plan ⚠️ REVISED
+## Implementation Plan ✅ COMPLETE
 
-### Phase 1: Inline Dictionary Define Variants (REVISED - More Careful)
+### Phase 1: Inline Dictionary Define Variants ✅ COMPLETE
 
-**⚠️ IMPORTANT:** This phase was attempted but caused test failures. Revised approach needed.
+**Status:** ✅ COMPLETE - Completed as Phase 4 of FUNCTION_RATIONALIZATION_PLAN.md
 
-**Lessons Learned:**
-- Must test incrementally (one file at a time)
-- Must understand address semantics before changing code
-- Must verify all usages are updated before removing functions
-- Current wrapper functions work correctly - only inline if we can maintain exact behavior
+**Results:**
+- ✅ Updated 10 test files incrementally
+- ✅ Updated 3 source files (builtins-register.ts, definitions.ts, parser.ts)
+- ✅ Removed `defineBuiltin`, `defineCode`, `defineLocal` wrapper functions
+- ✅ All tests pass (1280/1280)
 
-**Revised Steps:**
-
-1. **Phase 1a: Test Files (One at a time)**
-   - Start with isolated test files
-   - Replace `defineBuiltin`/`defineCode`/`defineLocal` with direct `define` calls
-   - Run tests after each file: `yarn test <file> --no-coverage`
-   - Fix any issues before proceeding
-
-2. **Phase 1b: Source Files (One at a time)**
-   - Update `src/ops/builtins-register.ts` (test after)
-   - Update `src/lang/definitions.ts` (test after)
-   - Update `src/lang/parser.ts` (test after)
-   - Run full test suite after each: `yarn test --no-coverage`
-
-3. **Phase 1c: Remove Functions (Only after all pass)**
-   - Verify no remaining usages: `grep -r "defineBuiltin\|defineCode\|defineLocal" src/`
-   - Remove functions from `src/core/dictionary.ts`
-   - Run full test suite: `yarn test --no-coverage`
-   - All tests must pass before considering complete
-
-**Estimated Impact:** ~150+ call sites to update, but removes 3 wrapper functions
-
-**Status:** ⚠️ PENDING - Requires careful incremental approach
+**See:** `FUNCTION_RATIONALIZATION_PLAN.md` Phase 4 for complete details
 
 ### Phase 2: Review Other One-Liners
 After Phase 1, review remaining one-liners to see if any others should be inlined based on usage patterns.

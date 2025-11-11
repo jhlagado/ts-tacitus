@@ -23,15 +23,17 @@ describe('Memory', () => {
   });
   test('should write and read Float32 values correctly', () => {
     const value = 3.14159;
-    memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + 30, value);
-    expect(memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + 30)).toBeCloseTo(value, 5);
+    const cellIndex = STACK_BASE + Math.floor(30 / CELL_SIZE);
+    memory.writeCell(cellIndex, value);
+    expect(memory.readCell(cellIndex)).toBeCloseTo(value, 5);
   });
   test('should throw error for out-of-bounds access', () => {
     // Outside DATA segment bounds
     expect(() => memory.write8(SEG_DATA, MEMORY_SIZE_BYTES, 1)).toThrow(RangeError);
     expect(() => memory.read8(SEG_DATA, MEMORY_SIZE_BYTES)).toThrow(RangeError);
-    expect(() => memory.writeFloat32(SEG_DATA, MEMORY_SIZE_BYTES - 3, 1.23)).toThrow(RangeError);
-    expect(() => memory.readFloat32(SEG_DATA, MEMORY_SIZE_BYTES - 3)).toThrow(RangeError);
+    const outOfBoundsCell = Math.floor(MEMORY_SIZE_BYTES / CELL_SIZE);
+    expect(() => memory.writeCell(outOfBoundsCell, 1.23)).toThrow(RangeError);
+    expect(() => memory.readCell(outOfBoundsCell)).toThrow(RangeError);
   });
   test('should dump memory for debugging', () => {
     memory.write8(SEG_DATA, STACK_BASE_BYTES + 0, 0xaa);
@@ -63,13 +65,11 @@ describe('Memory', () => {
     expect(() => memory.dump(0, MEMORY_SIZE_BYTES)).toThrow(RangeError);
   });
   test('should handle full float boundary conditions', () => {
-    const lastFloatOffset = STACK_SIZE_BYTES - CELL_SIZE;
-    memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + lastFloatOffset, 1.234);
-    expect(memory.readFloat32(SEG_DATA, STACK_BASE_BYTES + lastFloatOffset)).toBeCloseTo(1.234);
-    const overflowOffset = MEMORY_SIZE_BYTES - STACK_BASE_BYTES - (CELL_SIZE - 1);
-    expect(() => memory.writeFloat32(SEG_DATA, STACK_BASE_BYTES + overflowOffset, 5.678)).toThrow(
-      RangeError,
-    );
+    const lastCellIndex = STACK_BASE + (STACK_SIZE_BYTES / CELL_SIZE) - 1;
+    memory.writeCell(lastCellIndex, 1.234);
+    expect(memory.readCell(lastCellIndex)).toBeCloseTo(1.234);
+    const overflowCellIndex = Math.floor((MEMORY_SIZE_BYTES - (CELL_SIZE - 1)) / CELL_SIZE);
+    expect(() => memory.writeCell(overflowCellIndex, 5.678)).toThrow(RangeError);
   });
 
   test('should handle dumping memory as characters', () => {

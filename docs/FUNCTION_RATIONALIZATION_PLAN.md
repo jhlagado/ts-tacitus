@@ -165,35 +165,26 @@ define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
 **Status:** ✅ COMPLETE
 
-### Phase 6: Generalize Copy Operations
+### Phase 6: Generalize Copy Operations ⚠️ NOT NEEDED
 
 **Goal:** Generalize `copyListPayload` to `copyCells`.
 
 **Issue:** `copyListPayload` is specific to lists but the pattern is generic cell copying.
 
-**Proposed:**
+**Analysis:**
 
-```typescript
-function copyCells(vm: VM, src: number, dst: number, count: number): void {
-  for (let i = 0; i < count; i++) {
-    const val = vm.memory.readCell(src + i);
-    vm.memory.writeCell(dst + i, val);
-  }
-}
+- `copyCells` already exists in `src/core/units.ts` but uses a different API (Memory, segment, CellIndex types, uses `copyWithin` for efficiency)
+- `copyListPayload` in `src/core/list.ts` uses VM API and `readCell`/`writeCell` - simpler and appropriate for its use case
+- They serve different purposes:
+  - `copyCells`: Low-level efficient copy using `copyWithin` (for units/utilities)
+  - `copyListPayload`: Higher-level VM helper using `readCell`/`writeCell` (for list operations)
+- No duplication - they're used in different contexts
 
-// Keep copyListPayload as convenience wrapper:
-export function copyListPayload(vm: VM, src: number, dst: number, slots: number): void {
-  copyCells(vm, src, dst, slots);
-}
-```
+**Decision:** Keep both functions as they serve different purposes with different APIs.
 
-**Benefits:**
+**Status:** ⚠️ NOT NEEDED - Functions serve different purposes, no rationalization needed
 
-- More reusable utility
-- Can be used for non-list copying
-- Reduces duplication potential
-
-### Phase 7: Inline Format Helper
+### Phase 7: Inline Format Helper ✅ COMPLETE
 
 **Goal:** Remove `formatListFromMemory` internal helper.
 
@@ -201,14 +192,21 @@ export function copyListPayload(vm: VM, src: number, dst: number, slots: number)
 
 **Steps:**
 
-1. Inline `formatListFromMemory` logic into `formatValue`
-2. Remove `formatListFromMemory`
+1. ✅ Inlined `formatListFromMemory` logic into `formatValue`
+2. ✅ Removed `formatListFromMemory` function
+
+**Changes Made:**
+
+1. ✅ Inlined the logic from `formatListFromMemory` directly into `formatValue` where it was called
+2. ✅ Removed `formatListFromMemory` function from `src/core/format-utils.ts`
 
 **Benefits:**
 
 - Simpler code structure
 - One less function
-- Reduces 1 function
+- Reduced 1 function
+
+**Status:** ✅ COMPLETE - All tests pass
 
 ### Phase 8: Audit One-Line Functions
 

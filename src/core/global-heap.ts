@@ -36,8 +36,6 @@ export function gpushVal(vm: VM, value: number): number {
   return createGlobalRef(idx);
 }
 
-/** @deprecated Use gpushVal instead */
-
 /**
  * Pushes a list to the global heap from a memory source and returns a REF to the header.
  * @param vm - VM instance
