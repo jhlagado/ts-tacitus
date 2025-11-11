@@ -17,8 +17,8 @@
 import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
-import { Tag, fromTaggedValue, createCodeRef } from '../../core';
-import { defineBuiltin, defineCode } from '../../core/dictionary';
+import { Tag, fromTaggedValue, createCodeRef, toTaggedValue } from '../../core';
+import { define } from '../../core/dictionary';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -37,7 +37,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Built-in Symbol Integration: register → resolve → execute', () => {
     test('should handle add operation end-to-end', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       const addRef = resolveSymbol(vm, 'add');
       expect(addRef).toBeDefined();
@@ -58,9 +58,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle multiple built-in operations', () => {
-      defineBuiltin(vm, 'dup', Op.Dup);
-      defineBuiltin(vm, 'swap', Op.Swap);
-      defineBuiltin(vm, 'drop', Op.Drop);
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.BUILTIN, 0));
+      define(vm, 'drop', toTaggedValue(Op.Drop, Tag.BUILTIN, 0));
 
       push(vm, 42);
       const dupRef = resolveSymbol(vm, 'dup');
@@ -81,9 +81,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle arithmetic operations sequence', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'mul', Op.Multiply);
-      defineBuiltin(vm, 'dup', Op.Dup);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
       push(vm, 3);
 
@@ -107,7 +107,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Code Symbol Integration: register → resolve → verify', () => {
     test('should register and resolve code symbols with correct tagged values', () => {
-      defineCode(vm, 'test', 1000);
+      define(vm, 'test', toTaggedValue(1000, Tag.CODE, 0));
 
       const testRef = resolveSymbol(vm, 'test');
       expect(testRef).toBeDefined();
@@ -120,9 +120,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle multiple code symbols with different addresses', () => {
-      defineCode(vm, 'square', 1024);
-      defineCode(vm, 'cube', 2048);
-      defineCode(vm, 'factorial', 4096);
+      define(vm, 'square', toTaggedValue(1024, Tag.CODE, 0));
+      define(vm, 'cube', toTaggedValue(2048, Tag.CODE, 0));
+      define(vm, 'factorial', toTaggedValue(4096, Tag.CODE, 0));
 
       const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
@@ -138,7 +138,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should maintain symbol table backward compatibility', () => {
-      defineCode(vm, 'test', 1500);
+      define(vm, 'test', toTaggedValue(1500, Tag.CODE, 0));
 
       const codeRef = resolveSymbol(vm, 'test');
       expect(codeRef).toBeDefined();
@@ -150,10 +150,10 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Mixed Symbol Types Integration', () => {
     test('should handle both built-ins and code symbols in same symbol table', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'dup', Op.Dup);
-      defineCode(vm, 'square', 2000);
-      defineCode(vm, 'double', 3000);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'square', toTaggedValue(2000, Tag.CODE, 0));
+      define(vm, 'double', toTaggedValue(3000, Tag.CODE, 0));
 
       const addRef = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addRef!)).toBe(true);
@@ -173,8 +173,8 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should execute built-ins while preserving code symbol references', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineCode(vm, 'square', 1500);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'square', toTaggedValue(1500, Tag.CODE, 0));
 
       push(vm, 10);
       push(vm, 5);
@@ -205,7 +205,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should not interfere with existing symbol table functionality', () => {
-      defineBuiltin(vm, 'custom_add', Op.Add);
+      define(vm, 'custom_add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       const customRef = resolveSymbol(vm, 'custom_add');
       expect(customRef).toBeDefined();
@@ -215,7 +215,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Complete Workflow Simulation', () => {
     test('should simulate future @symbol eval workflow', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       push(vm, 2);
       push(vm, 3);
@@ -231,7 +231,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should demonstrate unified eval behavior with different code types', () => {
-      defineBuiltin(vm, 'dup', Op.Dup);
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
       push(vm, 42);
       const dupRef = resolveSymbol(vm, 'dup');
@@ -259,9 +259,9 @@ describe('Symbol Table Integration Tests', () => {
 
       for (let i = 0; i < numSymbols; i++) {
         if (i % 2 === 0) {
-          defineBuiltin(vm, `builtin_${i}`, i % 128);
+          define(vm, `builtin_${i}`, toTaggedValue(i % 128, Tag.BUILTIN, 0));
         } else {
-          defineCode(vm, `code_${i}`, 1000 + i);
+          define(vm, `code_${i}`, toTaggedValue(1000 + i, Tag.CODE, 0));
         }
       }
 
@@ -279,8 +279,8 @@ describe('Symbol Table Integration Tests', () => {
     test('should maintain consistent memory usage patterns', () => {
       const initialStackSize = getStackData(vm).length;
 
-      defineBuiltin(vm, 'test1', Op.Add);
-      defineCode(vm, 'test2', 500);
+      define(vm, 'test1', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'test2', toTaggedValue(500, Tag.CODE, 0));
 
       const ref1 = resolveSymbol(vm, 'test1');
       const ref2 = resolveSymbol(vm, 'test2');

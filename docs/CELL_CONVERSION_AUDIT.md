@@ -208,3 +208,4 @@ VM registers are already in cells, so no conversion needed.
 - Some operations may need to verify that addresses are cell-aligned before conversion
 - The `writeCell` and `readCell` methods currently only support `SEG_DATA`
 - All conversions should maintain the same behavior, just using cell addressing instead of byte addressing
+

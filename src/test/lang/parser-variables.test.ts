@@ -4,8 +4,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { Tag, fromTaggedValue } from '../../core';
-import { markWithLocalReset, defineLocal, forget, defineBuiltin } from '../../core/dictionary';
+import { Tag, fromTaggedValue, toTaggedValue } from '../../core';
+import { markWithLocalReset, forget, define } from '../../core/dictionary';
 import { resolveSymbol } from '../../core/vm';
 
 describe('Parser Variable Support', () => {
@@ -63,7 +63,8 @@ describe('Parser Variable Support', () => {
       const checkpoint = markWithLocalReset(vm); // Simulate function start
 
       // Simulate parsing "42 var x"
-      defineLocal(vm, 'x');
+      const slot = vm.localCount++;
+      define(vm, 'x', toTaggedValue(slot, Tag.LOCAL));
 
       const xRef = resolveSymbol(vm, 'x');
       expect(xRef).toBeDefined();
@@ -78,11 +79,12 @@ describe('Parser Variable Support', () => {
 
     test('should handle natural shadowing', () => {
       // Define a builtin (simulate global)
-      defineBuiltin(vm, 'x', 42);
+      define(vm, 'x', toTaggedValue(42, Tag.BUILTIN, 0));
 
       // Start function and define local with same name
       const checkpoint = markWithLocalReset(vm);
-      defineLocal(vm, 'x');
+      const slot = vm.localCount++;
+      define(vm, 'x', toTaggedValue(slot, Tag.LOCAL));
 
       // Local should shadow global
       const xRef = resolveSymbol(vm, 'x');

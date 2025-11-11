@@ -6,7 +6,8 @@ import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
-import { markWithLocalReset, defineLocal, forget } from '../../core/dictionary';
+import { markWithLocalReset, forget, define } from '../../core/dictionary';
+import { toTaggedValue, Tag } from '../../core';
 
 describe('Compiler Function Context', () => {
   let vm: VM;
@@ -49,8 +50,10 @@ describe('Compiler Function Context', () => {
     test('should patch slot count on exitFunction', () => {
       // Simulate function with 2 local variables
       const checkpoint = markWithLocalReset(vm);
-      defineLocal(vm, 'x');
-      defineLocal(vm, 'y');
+      const slotX = vm.localCount++;
+      define(vm, 'x', toTaggedValue(slotX, Tag.LOCAL));
+      const slotY = vm.localCount++;
+      define(vm, 'y', toTaggedValue(slotY, Tag.LOCAL));
       expect(vm.localCount).toBe(2);
 
       vm.compiler.enterFunction();

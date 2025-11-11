@@ -9,12 +9,10 @@
 import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
-import { Tag, fromTaggedValue } from '../../core';
-import { createBuiltinRef, createCodeRef } from '../../core';
+import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef } from '../../core';
 import { resolveSymbol, push, pop } from '../../core/vm';
 import {
-  defineBuiltin,
-  defineCode,
+  define,
   markWithLocalReset,
   forget,
   findBytecodeAddress,
@@ -42,7 +40,7 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve built-in symbols to Tag.BUILTIN tagged values', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       const result = resolveSymbol(vm, 'add');
 
@@ -58,7 +56,7 @@ describe('VM Symbol Resolution', () => {
     test('should resolve code symbols to Tag.CODE tagged values', () => {
       const testAddr = 1000;
 
-      defineCode(vm, 'square', testAddr);
+      define(vm, 'square', toTaggedValue(testAddr, Tag.CODE, 0));
 
       const result = resolveSymbol(vm, 'square');
 
@@ -72,10 +70,10 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve multiple different symbol types', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'dup', Op.Dup);
-      defineCode(vm, 'square', 1000);
-      defineCode(vm, 'cube', 2000);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'square', toTaggedValue(1000, Tag.CODE, 0));
+      define(vm, 'cube', toTaggedValue(2000, Tag.CODE, 0));
 
       const addResult = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addResult!)).toBe(true);
@@ -95,8 +93,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should handle symbol shadowing correctly', () => {
-      defineBuiltin(vm, 'test', Op.Add);
-      defineCode(vm, 'test', 5000);
+      define(vm, 'test', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'test', toTaggedValue(5000, Tag.CODE, 0));
 
       const result = resolveSymbol(vm, 'test');
 
@@ -105,8 +103,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('resolved values should be executable by VM', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'dup', Op.Dup);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
       push(vm, 5);
       push(vm, 3);
@@ -122,8 +120,8 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should maintain consistency with code-ref utilities', () => {
-      defineBuiltin(vm, 'multiply', Op.Multiply);
-      defineCode(vm, 'test', 1500);
+      define(vm, 'multiply', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
+      define(vm, 'test', toTaggedValue(1500, Tag.CODE, 0));
 
       const multiplyResolved = resolveSymbol(vm, 'multiply');
       const multiplyDirect = createBuiltinRef(Op.Multiply);
@@ -139,10 +137,10 @@ describe('VM Symbol Resolution', () => {
 
   describe('integration with symbol table', () => {
     test('should work with symbol table checkpoint and revert', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
       const checkpoint = markWithLocalReset(vm);
 
-      defineCode(vm, 'square', 1000);
+      define(vm, 'square', toTaggedValue(1000, Tag.CODE, 0));
 
       expect(resolveSymbol(vm, 'add')).toBeDefined();
       expect(resolveSymbol(vm, 'square')).toBeDefined();
@@ -154,7 +152,7 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve symbols defined with unified define method', () => {
-      defineCode(vm, 'oldStyle', 200);
+      define(vm, 'oldStyle', toTaggedValue(200, Tag.CODE, 0));
 
       const resolved = resolveSymbol(vm, 'oldStyle');
       expect(resolved).toBeDefined();

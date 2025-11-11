@@ -8,9 +8,9 @@
 import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
-import { fromTaggedValue, Tag } from '../../core';
+import { fromTaggedValue, Tag, toTaggedValue } from '../../core';
 import { STACK_BASE } from '../../core/constants';
-import { defineBuiltin, defineCode } from '../../core/dictionary';
+import { define } from '../../core/dictionary';
 import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
 
 describe('VM pushSymbolRef method', () => {
@@ -22,7 +22,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('built-in operations', () => {
     test('should push built-in add reference and execute correctly', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       push(vm, 2);
       push(vm, 3);
@@ -36,7 +36,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in dup reference and execute correctly', () => {
-      defineBuiltin(vm, 'dup', Op.Dup);
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 
       push(vm, 42);
 
@@ -50,7 +50,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in swap reference and execute correctly', () => {
-      defineBuiltin(vm, 'swap', Op.Swap);
+      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.BUILTIN, 0));
 
       push(vm, 1);
       push(vm, 2);
@@ -91,10 +91,10 @@ describe('VM pushSymbolRef method', () => {
 
   describe('mixed scenarios', () => {
     test('should handle both built-ins and colon definitions together', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'dup', Op.Dup);
-      defineCode(vm, 'square', 1500);
-      defineCode(vm, 'double', 1600);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'square', toTaggedValue(1500, Tag.CODE, 0));
+      define(vm, 'double', toTaggedValue(1600, Tag.CODE, 0));
 
       pushSymbolRef(vm, 'add');
       pushSymbolRef(vm, 'square');
@@ -115,8 +115,8 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should enable chained execution with evalOp', () => {
-      defineBuiltin(vm, 'dup', Op.Dup);
-      defineBuiltin(vm, 'mul', Op.Multiply);
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
 
       push(vm, 5);
 
@@ -160,7 +160,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('workflow simulation', () => {
     test('should simulate complete @symbol eval workflow', () => {
-      defineBuiltin(vm, 'add', Op.Add);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       push(vm, 3);
       push(vm, 7);

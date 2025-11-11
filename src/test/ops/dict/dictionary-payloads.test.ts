@@ -2,9 +2,6 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { Tag, fromTaggedValue, isNIL, toTaggedValue } from '../../../core';
 import {
-  defineBuiltin,
-  defineCode,
-  defineLocal,
   lookup,
   mark,
   forget,
@@ -24,7 +21,8 @@ describe('Dictionary payload types', () => {
   describe('Local variables (Tag.LOCAL)', () => {
     test('defineLocal creates LOCAL entry with slot number', () => {
       const name = 'x';
-      defineLocal(vm, name);
+      const slot = vm.localCount++;
+      define(vm, name, toTaggedValue(slot, Tag.LOCAL));
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
       expect(isNIL(tv)).toBe(false);
@@ -36,9 +34,12 @@ describe('Dictionary payload types', () => {
     });
 
     test('multiple locals get sequential slot numbers', () => {
-      defineLocal(vm, 'a');
-      defineLocal(vm, 'b');
-      defineLocal(vm, 'c');
+      const slotA = vm.localCount++;
+      define(vm, 'a', toTaggedValue(slotA, Tag.LOCAL));
+      const slotB = vm.localCount++;
+      define(vm, 'b', toTaggedValue(slotB, Tag.LOCAL));
+      const slotC = vm.localCount++;
+      define(vm, 'c', toTaggedValue(slotC, Tag.LOCAL));
 
       const a = fromTaggedValue(lookup(vm, 'a')!);
       const b = fromTaggedValue(lookup(vm, 'b')!);
@@ -53,7 +54,8 @@ describe('Dictionary payload types', () => {
     });
 
     test('locals can be looked up by name', () => {
-      defineLocal(vm, 'counter');
+      const slot = vm.localCount++;
+      define(vm, 'counter', toTaggedValue(slot, Tag.LOCAL));
       const tv = lookup(vm, 'counter');
       expect(isNIL(tv)).toBe(false);
       const info = fromTaggedValue(tv);
@@ -65,7 +67,7 @@ describe('Dictionary payload types', () => {
     test('defineCode creates CODE entry with bytecode address', () => {
       const name = 'my-func';
       const address = 0x1234;
-      defineCode(vm, name, address, false);
+      define(vm, name, toTaggedValue(address, Tag.CODE, 0));
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
       expect(isNIL(tv)).toBe(false);
@@ -79,7 +81,7 @@ describe('Dictionary payload types', () => {
     test('defineCode with immediate flag sets meta=1', () => {
       const name = 'imm-func';
       const address = 0x5678;
-      defineCode(vm, name, address, true);
+      define(vm, name, toTaggedValue(address, Tag.CODE, 1));
       const tv = lookup(vm, name);
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.CODE);
@@ -216,7 +218,7 @@ describe('Dictionary payload types', () => {
       define(vm, 'via-ref', codeRef);
 
       // Compare with defineCode
-      defineCode(vm, 'via-define', bytecodeAddr, false);
+      define(vm, 'via-define', toTaggedValue(bytecodeAddr, Tag.CODE, 0));
 
       const refTv = lookup(vm, 'via-ref');
       const defineTv = lookup(vm, 'via-define');
@@ -232,9 +234,10 @@ describe('Dictionary payload types', () => {
 
   describe('Mixed payload types', () => {
     test('can define BUILTIN, CODE, and LOCAL in same dictionary', () => {
-      defineBuiltin(vm, 'add-op', 42, false);
-      defineCode(vm, 'user-func', 0x1000, false);
-      defineLocal(vm, 'local-var');
+      define(vm, 'add-op', toTaggedValue(42, Tag.BUILTIN, 0));
+      define(vm, 'user-func', toTaggedValue(0x1000, Tag.CODE, 0));
+      const slot = vm.localCount++;
+      define(vm, 'local-var', toTaggedValue(slot, Tag.LOCAL));
 
       const builtin = fromTaggedValue(lookup(vm, 'add-op')!);
       const code = fromTaggedValue(lookup(vm, 'user-func')!);
@@ -246,9 +249,10 @@ describe('Dictionary payload types', () => {
     });
 
     test('can define BUILTIN, CODE, LOCAL, and REF in same dictionary', () => {
-      defineBuiltin(vm, 'add-op', 42, false);
-      defineCode(vm, 'user-func', 0x1000, false);
-      defineLocal(vm, 'local-var');
+      define(vm, 'add-op', toTaggedValue(42, Tag.BUILTIN, 0));
+      define(vm, 'user-func', toTaggedValue(0x1000, Tag.CODE, 0));
+      const slot = vm.localCount++;
+      define(vm, 'local-var', toTaggedValue(slot, Tag.LOCAL));
       const testRef = createGlobalRef(10);
       define(vm, 'pointer', testRef);
 
@@ -264,10 +268,11 @@ describe('Dictionary payload types', () => {
     });
 
     test('can define BUILTIN, CODE_REF, LOCAL, and REF in same dictionary', () => {
-      defineBuiltin(vm, 'add-op', 42, false);
+      define(vm, 'add-op', toTaggedValue(42, Tag.BUILTIN, 0));
       const codeRef = createCodeRef(0x2000);
       define(vm, 'code-ref', codeRef);
-      defineLocal(vm, 'local-var');
+      const slot = vm.localCount++;
+      define(vm, 'local-var', toTaggedValue(slot, Tag.LOCAL));
       const testRef = createGlobalRef(10);
       define(vm, 'pointer', testRef);
 
@@ -284,9 +289,10 @@ describe('Dictionary payload types', () => {
 
     test('lookup finds most recent entry (LIFO order)', () => {
       // Define same name with different types
-      defineBuiltin(vm, 'foo', 10, false);
-      defineCode(vm, 'foo', 0x2000, false);
-      defineLocal(vm, 'foo');
+      define(vm, 'foo', toTaggedValue(10, Tag.BUILTIN, 0));
+      define(vm, 'foo', toTaggedValue(0x2000, Tag.CODE, 0));
+      const slot = vm.localCount++;
+      define(vm, 'foo', toTaggedValue(slot, Tag.LOCAL));
 
       // Should find the most recent (LOCAL)
       const tv = lookup(vm, 'foo');
@@ -301,8 +307,8 @@ describe('Dictionary payload types', () => {
       const initialHead = vm.head;
 
       // Define some entries
-      defineBuiltin(vm, 'global1', 1, false);
-      defineBuiltin(vm, 'global2', 2, false);
+      define(vm, 'global1', toTaggedValue(1, Tag.BUILTIN, 0));
+      define(vm, 'global2', toTaggedValue(2, Tag.BUILTIN, 0));
       const gpAfter = vm.gp;
       const headAfter = vm.head;
 
@@ -314,15 +320,17 @@ describe('Dictionary payload types', () => {
 
     test('forget reverts heap and dictionary to mark position', () => {
       // Define some global entries
-      defineBuiltin(vm, 'global-a', 10, false);
-      defineBuiltin(vm, 'global-b', 20, false);
+      define(vm, 'global-a', toTaggedValue(10, Tag.BUILTIN, 0));
+      define(vm, 'global-b', toTaggedValue(20, Tag.BUILTIN, 0));
       const markPos = mark(vm);
       const headAtMark = vm.head;
 
       // Define local entries (should be removed by forget)
-      defineLocal(vm, 'local-x');
-      defineLocal(vm, 'local-y');
-      defineBuiltin(vm, 'temp-op', 99, false);
+      const slotX = vm.localCount++;
+      define(vm, 'local-x', toTaggedValue(slotX, Tag.LOCAL));
+      const slotY = vm.localCount++;
+      define(vm, 'local-y', toTaggedValue(slotY, Tag.LOCAL));
+      define(vm, 'temp-op', toTaggedValue(99, Tag.BUILTIN, 0));
 
       // Verify they exist
       expect(isNIL(lookup(vm, 'local-x'))).toBe(false);
@@ -348,20 +356,23 @@ describe('Dictionary payload types', () => {
 
     test('forget handles nested scopes correctly', () => {
       // Outer scope
-      defineBuiltin(vm, 'outer1', 1, false);
+      define(vm, 'outer1', toTaggedValue(1, Tag.BUILTIN, 0));
       const outerMark = mark(vm);
 
       // Inner scope 1
-      defineLocal(vm, 'inner1-x');
-      defineLocal(vm, 'inner1-y');
+      const slot1X = vm.localCount++;
+      define(vm, 'inner1-x', toTaggedValue(slot1X, Tag.LOCAL));
+      const slot1Y = vm.localCount++;
+      define(vm, 'inner1-y', toTaggedValue(slot1Y, Tag.LOCAL));
       const inner1Mark = mark(vm);
 
       // Inner scope 2
-      defineLocal(vm, 'inner2-a');
+      const slot2A = vm.localCount++;
+      define(vm, 'inner2-a', toTaggedValue(slot2A, Tag.LOCAL));
       const inner2Mark = mark(vm);
 
       // Deepest scope
-      defineBuiltin(vm, 'deep-op', 100, false);
+      define(vm, 'deep-op', toTaggedValue(100, Tag.BUILTIN, 0));
 
       // Revert inner2
       forget(vm, inner2Mark);
@@ -389,7 +400,8 @@ describe('Dictionary payload types', () => {
       expect(vm.gp).toBe(0);
 
       // Add and remove entries
-      defineLocal(vm, 'temp');
+      const slot = vm.localCount++;
+      define(vm, 'temp', toTaggedValue(slot, Tag.LOCAL));
       expect(vm.head).not.toBe(0);
       forget(vm, markPos);
 
@@ -398,11 +410,12 @@ describe('Dictionary payload types', () => {
     });
 
     test('forget updates head correctly', () => {
-      defineBuiltin(vm, 'test', 1, false);
+      define(vm, 'test', toTaggedValue(1, Tag.BUILTIN, 0));
       const markPos = mark(vm);
       const headBefore = vm.head;
 
-      defineLocal(vm, 'local');
+      const slot = vm.localCount++;
+      define(vm, 'local', toTaggedValue(slot, Tag.LOCAL));
       forget(vm, markPos);
 
       expect(vm.head).toBe(headBefore);
@@ -414,16 +427,20 @@ describe('Dictionary payload types', () => {
   describe('Local variable slot allocation', () => {
     test('localCount increments for each local', () => {
       expect(vm.localCount).toBe(0);
-      defineLocal(vm, 'a');
+      const slotA = vm.localCount++;
+      define(vm, 'a', toTaggedValue(slotA, Tag.LOCAL));
       expect(vm.localCount).toBe(1);
-      defineLocal(vm, 'b');
+      const slotB = vm.localCount++;
+      define(vm, 'b', toTaggedValue(slotB, Tag.LOCAL));
       expect(vm.localCount).toBe(2);
-      defineLocal(vm, 'c');
+      const slotC = vm.localCount++;
+      define(vm, 'c', toTaggedValue(slotC, Tag.LOCAL));
       expect(vm.localCount).toBe(3);
     });
 
     test('localCount persists after mark (mark only tracks heap position)', () => {
-      defineLocal(vm, 'x');
+      const slotX = vm.localCount++;
+      define(vm, 'x', toTaggedValue(slotX, Tag.LOCAL));
       expect(vm.localCount).toBe(1);
 
       const _markPos = mark(vm);
@@ -431,18 +448,22 @@ describe('Dictionary payload types', () => {
       // Symbol table mark() would reset it, but we're testing dictionary directly
       expect(vm.localCount).toBe(1);
 
-      defineLocal(vm, 'y');
+      const slotY = vm.localCount++;
+      define(vm, 'y', toTaggedValue(slotY, Tag.LOCAL));
       expect(vm.localCount).toBe(2);
     });
 
     test('localCount persists across forget (forget only reverts heap)', () => {
-      defineLocal(vm, 'a');
-      defineLocal(vm, 'b');
+      const slotA = vm.localCount++;
+      define(vm, 'a', toTaggedValue(slotA, Tag.LOCAL));
+      const slotB = vm.localCount++;
+      define(vm, 'b', toTaggedValue(slotB, Tag.LOCAL));
       const _markPos = mark(vm);
       // localCount is 2 (a and b were defined)
       expect(vm.localCount).toBe(2);
 
-      defineLocal(vm, 'c');
+      const slotC = vm.localCount++;
+      define(vm, 'c', toTaggedValue(slotC, Tag.LOCAL));
       expect(vm.localCount).toBe(3);
       forget(vm, _markPos);
       // localCount is not reset by forget - it only reverts heap/dictionary
@@ -458,15 +479,16 @@ describe('Dictionary payload types', () => {
     });
 
     test('forget with invalid mark throws error', () => {
-      defineBuiltin(vm, 'test', 1, false);
+      define(vm, 'test', toTaggedValue(1, Tag.BUILTIN, 0));
       expect(() => forget(vm, -1)).toThrow('forget mark out of range');
       expect(() => forget(vm, vm.gp + 1)).toThrow('forget mark beyond current heap top');
     });
 
     test('multiple entries with same name - lookup finds most recent', () => {
-      defineBuiltin(vm, 'dup', 10, false);
-      defineCode(vm, 'dup', 0x3000, false);
-      defineLocal(vm, 'dup');
+      define(vm, 'dup', toTaggedValue(10, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(0x3000, Tag.CODE, 0));
+      const slot = vm.localCount++;
+      define(vm, 'dup', toTaggedValue(slot, Tag.LOCAL));
 
       const tv = lookup(vm, 'dup');
       const info = fromTaggedValue(tv);

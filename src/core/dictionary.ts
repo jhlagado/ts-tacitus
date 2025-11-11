@@ -10,7 +10,6 @@
  * Head is stored as a cell index (like gp), with 0 meaning empty dictionary.
  */
 
-import type { VM } from './vm';
 import {
   NIL,
   Tag,
@@ -23,8 +22,8 @@ import {
 import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, getCellFromRef } from './refs';
 import { gpushListFrom, gpushVal } from './global-heap';
-import { CELL_SIZE, SEG_DATA, GLOBAL_BASE_BYTES, GLOBAL_BASE } from './constants';
-import { gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
+import { GLOBAL_BASE } from './constants';
+import { type VM, gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 
 // Unified define: store a fully-formed tagged payload under an interned name
 export function define(vm: VM, name: string, payloadTagged: number): void {
