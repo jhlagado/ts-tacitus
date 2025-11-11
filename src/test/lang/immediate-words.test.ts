@@ -47,24 +47,60 @@ describe('Immediate words', () => {
   });
 
   test('colon definition words execute immediately', () => {
-    const stack = executeTacitCode(vm, ': double dup add ; 2 double');
+    const stack = executeTacitCode(
+      vm,
+      `
+      : double
+        # ( n — n*2 )
+        dup add
+      ;
+      2 double        # ( 2 — 4 )
+    `,
+    );
     expect(stack).toEqual([4]);
   });
 
   test('if immediate compiles single-branch conditionals', () => {
-    const negateTrue = executeTacitCode(vm, '-5 dup 0 lt if neg ;');
+    const negateTrue = executeTacitCode(
+      vm,
+      `
+      # If negative, negate it
+      -5 dup 0 lt if neg ;    # ( -5 — 5 )
+    `,
+    );
     expect(negateTrue).toEqual([5]);
 
-    const negateFalse = executeTacitCode(vm, ': maybe-negate dup 0 lt if neg ; ; 4 maybe-negate');
+    const negateFalse = executeTacitCode(
+      vm,
+      `
+      : maybe-negate
+        # ( n — |n| if n < 0, else n )
+        dup 0 lt if neg ;
+      ;
+      4 maybe-negate   # ( 4 — 4 ) since 4 >= 0
+    `,
+    );
     expect(negateFalse).toEqual([4]);
   });
 
   test('if/else immediate compiles dual-branch conditionals', () => {
     // const positive = executeTacitCode(vm,  ': sign 0 lt if -1 else 1 ; ; 3 sign');
-    const positive = executeTacitCode(vm, '3 0 lt if -1 else 1 ;');
+    const positive = executeTacitCode(
+      vm,
+      `
+      # Sign function: return -1 if negative, else 1
+      3 0 lt if -1 else 1 ;    # ( 3 — 1 )
+    `,
+    );
     expect(positive).toEqual([1]);
 
-    const negative = executeTacitCode(vm, '-7 0 lt if -1 else 1 ;');
+    const negative = executeTacitCode(
+      vm,
+      `
+      # Sign function: return -1 if negative, else 1
+      -7 0 lt if -1 else 1 ;   # ( -7 — -1 )
+    `,
+    );
     expect(negative).toEqual([-1]);
   });
 

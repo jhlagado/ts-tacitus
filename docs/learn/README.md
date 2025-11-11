@@ -14,8 +14,8 @@ Essentials
 
 Notation
 
-- Stack effects `( before — after )` are documentation only. In code fences, they are written as `\ ( — … )` so examples are valid Tacit.
-- Tacit comments use backslash `\` to end-of-line. `//`, `#`, and `;` are not comment markers.
+- Stack effects `( before — after )` are documentation only. In code fences, they are written as `# ( — … )` so examples are valid Tacit.
+- Tacit comments use hash `#` to end-of-line. `//`, `\`, and `;` are not comment markers.
 
 Learning Guide (source files)
 
@@ -28,22 +28,22 @@ Try it (quick hands‑on)
 
 ```tacit
 42 global answer
-answer                \ -> 42
+answer                # -> 42
 
 ( 10 20 ) global xs
-7 -> xs[1]           \ xs becomes ( 10 7 )
+7 -> xs[1]           # xs becomes ( 10 7 )
 
 : inc
   0 var x
-  1 +> x             \ same as: 1 x add -> x
+  1 +> x             # same as: 1 x add -> x
   x
 ;
 
 : abs dup 0 lt if neg ; ;
--7 abs               \ -> 7
+-7 abs               # -> 7
 ```
 
 Common pitfalls
 
 - TOS is rightmost in stack effects and diagrams.
-- Only `\` is a comment in Tacit examples; `//` and `#` are not.
+- Only `#` is a comment in Tacit examples; `//` and `\` are not.

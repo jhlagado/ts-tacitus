@@ -30,11 +30,11 @@ Top-of-Stack (TOS)
 Stack effects
 
 ```tacit
-( before — after )
-dup   ( a — a a )
-swap  ( a b — b a )
-drop  ( a — )
-add   ( a b — a+b )   \ b is TOS
+# Stack effects are shown in comments:
+# dup   ( a — a a )
+# swap  ( a b — b a )
+# drop  ( a — )
+# add   ( a b — a+b )   # b is TOS
 ```
 
 Immediate execution (RPN)
@@ -45,8 +45,8 @@ Immediate execution (RPN)
 LIFO output is normal
 
 ```tacit
-1 2 3        \ stack: [ 1 2 3 ] (3 is TOS)
-. . .        \ prints: 3 2 1
+1 2 3        # stack: [ 1 2 3 ] (3 is TOS)
+. . .        # prints: 3 2 1
 ```
 
 Registers (cells)
@@ -60,8 +60,8 @@ References and values
 
 Notation
 
-- Stack effects `( before — after )` are documentation only. Inside code fences they are written as `\ ( — … )` so examples remain valid Tacit.
-- Tacit comments use backslash `\` to end-of-line. `//`, `#`, and `;` are not comment markers.
+- Stack effects `( before — after )` are documentation only. Inside code fences they are written as `# ( — … )` so examples remain valid Tacit.
+- Tacit comments use hash `#` to end-of-line. `//`, `\`, and `;` are not comment markers.
 
 ### Visualization
 
@@ -81,33 +81,34 @@ Critical rule: all operations act at TOS (rightmost in effects).
 Nullary
 
 ```tacit
-42     ( — 42 )
+# 42     ( — 42 )
+42
 ```
 
 Unary
 
 ```tacit
-dup    ( a — a a )
-abs    ( a — |a| )
-not    ( a — ¬a )
+# dup    ( a — a a )
+# abs    ( a — |a| )
+# not    ( a — ¬a )
 ```
 
 Binary
 
 ```tacit
-add    ( a b — a+b )
-sub    ( a b — a-b )
-mul    ( a b — a*b )
-div    ( a b — a/b )
+# add    ( a b — a+b )
+# sub    ( a b — a-b )
+# mul    ( a b — a*b )
+# div    ( a b — a/b )
 ```
 
 Stack manipulation
 
 ```tacit
-drop   ( a — )
-swap   ( a b — b a )
-over   ( a b — a b a )
-rot    ( a b c — b c a )
+# drop   ( a — )
+# swap   ( a b — b a )
+# over   ( a b — a b a )
+# rot    ( a b c — b c a )
 ```
 
 ### Critical Mental Model Rules
@@ -151,7 +152,7 @@ Collection
 ### Composition
 
 ```tacit
-( — a )  ( a — b )  ( b — c )  ≡  ( — c )
+# ( — a )  ( a — b )  ( b — c )  ≡  ( — c )
 ```
 
 ### Tacit-Specifics
@@ -168,7 +169,7 @@ Immediate control words such as `if … else … ;` execute during parsing to ge
 Symbols
 
 ```
-@add           \ ( — symbol-ref )
+@add           # ( — symbol-ref )
 ```
 
 - `@symbol` yields BUILTIN/CODE; `eval` executes.

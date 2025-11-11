@@ -82,7 +82,7 @@ Tips
   tags or inspect state.
 - Keep snippets self‑contained. If you define a word (`: f … ;`), call it in the same snippet
   to avoid cross‑test coupling.
-- Use Tacit comments (`\`) sparingly inside snippets to keep stack traces readable.
+- Use Tacit comments (`#`) sparingly inside snippets to keep stack traces readable.
 - For long flows, split into multiple tests with fresh resets so failures isolate cleanly.
 
 ### Failure diagnostics (fast feedback)
@@ -452,7 +452,7 @@ For stack ops, refs are opaque values; no implicit deref (spec: `variables-and-r
 
 Tips
 
-- Add comments with stack effects near snippets (`\ ( a b — b a )`).
+- Add comments with stack effects near snippets (`# ( a b — b a )`).
 - For underflow, also assert `SP` unchanged after the error to verify exception safety.
 - Assert on final stack not intermediate states unless semantics require it.
 
