@@ -108,8 +108,7 @@ export function getRefArea(ref: number): 'global' | 'stack' | 'rstack' {
  * @returns True if ref is in the global area
  */
 export function isGlobalRef(ref: number): boolean {
-  const absByte = refToByte(ref);
-  return absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES;
+  return getRefArea(ref) === 'global';
 }
 
 /**
@@ -118,8 +117,7 @@ export function isGlobalRef(ref: number): boolean {
  * @returns True if ref is in the data stack area
  */
 export function isStackRef(ref: number): boolean {
-  const absByte = refToByte(ref);
-  return absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES;
+  return getRefArea(ref) === 'stack';
 }
 
 /**
@@ -128,8 +126,7 @@ export function isStackRef(ref: number): boolean {
  * @returns True if ref is in the return stack area
  */
 export function isRStackRef(ref: number): boolean {
-  const absByte = refToByte(ref);
-  return absByte >= RSTACK_BASE_BYTES;
+  return getRefArea(ref) === 'rstack';
 }
 
 /**

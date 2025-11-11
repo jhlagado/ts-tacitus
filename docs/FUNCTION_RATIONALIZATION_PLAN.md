@@ -72,45 +72,55 @@ This document analyzes all functions across the codebase, identifies patterns an
 - ✅ One less function to maintain
 - ✅ Reduced 2 functions to 1
 
-### Phase 3: Simplify Reference Area Checks
+### Phase 3: Simplify Reference Area Checks ✅ COMPLETE
 
 **Goal:** Implement area check functions as simple one-liners using `getRefArea`.
 
-**Current:** Each function duplicates the byte address calculation and range checks.
+**Current:** Each function duplicated the byte address calculation and range checks.
 
-**Proposed:**
+**Changes Made:**
 
-```typescript
-export function isGlobalRef(ref: number): boolean {
-  return getRefArea(ref) === 'global';
-}
+1. ✅ Simplified `isGlobalRef` to use `getRefArea(ref) === 'global'`
+2. ✅ Simplified `isStackRef` to use `getRefArea(ref) === 'stack'`
+3. ✅ Simplified `isRStackRef` to use `getRefArea(ref) === 'rstack'`
 
-export function isStackRef(ref: number): boolean {
-  return getRefArea(ref) === 'stack';
-}
+**Results:**
 
-export function isRStackRef(ref: number): boolean {
-  return getRefArea(ref) === 'rstack';
-}
-```
+- ✅ All tests pass
+- ✅ Single source of truth (`getRefArea`)
+- ✅ Simpler implementations (one-liners)
+- ✅ Easier to maintain (area classification logic in one place)
+- ✅ No function count reduction (kept separate for clarity), but code simplified
 
-**Benefits:**
-
-- Single source of truth (`getRefArea`)
-- Simpler implementations
-- Easier to maintain
-
-### Phase 4: Inline Dictionary Define Variants
+### Phase 4: Inline Dictionary Define Variants ⚠️ REVISED
 
 **Goal:** Remove `defineBuiltin`, `defineCode`, `defineLocal` wrappers.
 
 **Issue:** These functions just call `define` with different tagged values. The tagging logic is trivial.
 
-**Steps:**
+**⚠️ IMPORTANT LESSONS LEARNED:**
 
-1. Find all usages of `defineBuiltin`, `defineCode`, `defineLocal`
-2. Replace with direct `define` calls + tagged value creation
-3. Remove wrapper functions
+1. **Test incrementally:** Update one file at a time, run tests after each change
+2. **Address semantics:** Understand that `vm.head` is stored as relative to `GLOBAL_BASE`, but `readCell` expects absolute addresses. Currently works because `GLOBAL_BASE = 0`, but code should be correct for future non-zero values.
+3. **Don't break working code:** The wrapper functions work correctly. Only inline if we can maintain exact same behavior.
+
+**Steps (REVISED - More Careful Approach):**
+
+1. **Phase 4a:** Update test files first (one file at a time, test after each)
+   - Start with isolated test files
+   - Replace `defineBuiltin`/`defineCode`/`defineLocal` with direct `define` calls
+   - Run tests after each file
+   
+2. **Phase 4b:** Update source files (one file at a time, test after each)
+   - Update `src/ops/builtins-register.ts`
+   - Update `src/lang/definitions.ts`
+   - Update `src/lang/parser.ts`
+   - Run full test suite after each file
+   
+3. **Phase 4c:** Remove wrapper functions only after ALL call sites updated
+   - Verify no remaining usages with `grep`
+   - Remove functions from `src/core/dictionary.ts`
+   - Run full test suite
 
 **Example:**
 
@@ -119,7 +129,7 @@ export function isRStackRef(ref: number): boolean {
 defineBuiltin(vm, 'dup', Op.Dup);
 
 // After:
-const tagged = toTaggedValue(Op.Dup, Tag.BUILTIN);
+const tagged = toTaggedValue(Op.Dup, Tag.BUILTIN, 0);
 define(vm, 'dup', tagged);
 ```
 
@@ -129,7 +139,9 @@ define(vm, 'dup', tagged);
 - Clearer what's happening
 - Reduces 3 functions
 
-### Phase 5: Inline List Info Helper
+**Status:** ⚠️ PENDING - Requires careful incremental approach
+
+### Phase 5: Inline List Info Helper ✅ COMPLETE
 
 **Goal:** Remove `getListInfoOrFail` wrapper.
 
@@ -137,15 +149,22 @@ define(vm, 'dup', tagged);
 
 **Steps:**
 
-1. Find all `getListInfoOrFail` usages
-2. Replace with `getListBounds` + explicit null check
-3. Remove `getListInfoOrFail`
+1. ✅ Find all `getListInfoOrFail` usages
+2. ✅ Replace with `getListBounds` + explicit null check
+3. ✅ Remove `getListInfoOrFail`
+
+**Changes Made:**
+
+1. ✅ Removed `getListInfoOrFail` from `src/core/list.ts`
+2. ✅ Updated all call sites to use `getListBounds` directly with inline error checks
 
 **Benefits:**
 
 - Less indirection
 - Clearer error handling
 - Reduces 2 functions to 1
+
+**Status:** ✅ COMPLETE
 
 ### Phase 6: Generalize Copy Operations
 
@@ -191,6 +210,29 @@ export function copyListPayload(vm: VM, src: number, dst: number, slots: number)
 - Simpler code structure
 - One less function
 - Reduces 1 function
+
+### Phase 8: Audit One-Line Functions
+
+**Goal:** Audit all one-line functions to justify their existence vs inlining.
+
+**Process:**
+
+1. Identify all one-line functions across codebase
+2. For each function, determine:
+   - Usage count
+   - Whether it provides semantic value
+   - Whether it's part of a consistent API pattern
+   - Whether it has validation/error handling
+3. Inline trivial wrappers that add no value
+4. Keep functions that provide API stability or semantic clarity
+
+**See:** `docs/ONE_LINE_FUNCTION_AUDIT.md` for detailed analysis
+
+**Benefits:**
+
+- Removes unnecessary indirection
+- Keeps valuable abstractions
+- Improves code clarity
 
 ## API Design Principles
 
@@ -249,12 +291,32 @@ Keep function names clear. Don't unify operations that are conceptually differen
 
 ## Implementation Strategy
 
-### Incremental Approach
+### Incremental Approach ⚠️ REVISED
 
-1. **Add new unified functions** alongside existing ones (if needed)
-2. **Update call sites incrementally** (file by file)
-3. **Remove redundant functions** after all call sites updated
-4. **Run tests after each step** to ensure no regressions
+1. **Understand the code first:** Read the code carefully, understand address semantics (absolute vs relative), understand how functions work
+2. **Test incrementally:** Update one file at a time, run tests after each change
+3. **Don't break working code:** If something works, understand WHY before changing it
+4. **Update call sites incrementally** (file by file, test after each)
+5. **Remove redundant functions** only after ALL call sites updated and ALL tests pass
+6. **Run full test suite** after each phase completion
+
+### Critical Lessons Learned
+
+1. **Address Semantics Matter:**
+   - `vm.gp` is relative to `GLOBAL_BASE`
+   - `vm.head` is stored as relative to `GLOBAL_BASE` 
+   - `readCell()` expects absolute cell indices
+   - Currently works because `GLOBAL_BASE = 0`, but code should be correct for future non-zero values
+
+2. **Test After Every Change:**
+   - Don't make multiple changes and then test
+   - Test after each file update
+   - Use `grep` to verify no remaining usages before removing functions
+
+3. **Don't Assume:**
+   - Don't assume relative/absolute without checking
+   - Don't assume functions work the same way without reading the code
+   - Don't change working code without understanding why it works
 
 ### Testing Strategy
 

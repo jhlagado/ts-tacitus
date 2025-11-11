@@ -4,7 +4,8 @@ import { parse } from '../../lang/parser';
 import { createVM, VM } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { defineBuiltin, findBytecodeAddress, defineCode } from '../../core/dictionary';
+import { define, findBytecodeAddress } from '../../core/dictionary';
+import { toTaggedValue, Tag } from '../../core';
 import { push, getStackData } from '../../core/vm';
 
 describe('Immediate words', () => {
@@ -19,7 +20,7 @@ describe('Immediate words', () => {
   test('executes builtin opcode immediates immediately', () => {
     push(vm, 42);
 
-    defineBuiltin(vm, 'immdup', Op.Dup, true);
+    define(vm, 'immdup', toTaggedValue(Op.Dup, Tag.BUILTIN, 1));
 
     parse(vm, new Tokenizer('immdup'));
 
@@ -35,7 +36,7 @@ describe('Immediate words', () => {
     const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
 
-    defineCode(vm, 'inc1!', addr!, true);
+    define(vm, 'inc1!', toTaggedValue(addr!, Tag.CODE, 1));
 
     push(vm, 5);
     parse(vm, new Tokenizer('inc1!'));

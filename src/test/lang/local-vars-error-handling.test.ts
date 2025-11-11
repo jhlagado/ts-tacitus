@@ -4,7 +4,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { defineBuiltin } from '../../core/dictionary';
+import { define } from '../../core/dictionary';
+import { toTaggedValue, Tag } from '../../core';
 import { SyntaxError, UndefinedWordError } from '../../core';
 
 describe('Local Variables Error Handling', () => {
@@ -161,7 +162,7 @@ describe('Local Variables Error Handling', () => {
 
     test('should handle variable shadowing edge cases', () => {
       // Define a global using a valid builtin opcode (Add = 5)
-      defineBuiltin(vm, 'global_var', 5);
+      define(vm, 'global_var', toTaggedValue(5, Tag.BUILTIN, 0));
 
       const result = executeTacitCode(
         vm,

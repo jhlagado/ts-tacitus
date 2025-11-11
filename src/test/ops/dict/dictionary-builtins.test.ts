@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
-import { defineBuiltin, lookup, mark, forget } from '../../../core/dictionary';
+import { define, lookup, mark, forget } from '../../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
   let vm: VM;
@@ -13,7 +13,7 @@ describe('dictionary-only builtins', () => {
   test('defineBuiltin then lookup returns BUILTIN with opcode', () => {
     const name = 'my-add-op';
     const opcode = 99;
-    defineBuiltin(vm, name, opcode, false);
+    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, 0));
     const tv = lookup(vm, name);
     expect(tv).toBeDefined();
     const info = fromTaggedValue(tv!);
@@ -29,7 +29,7 @@ describe('dictionary-only builtins', () => {
     // @ts-ignore test-only
     vm.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
-    defineBuiltin(vm, name, opcode, true);
+    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, 1));
     const tv = lookup(vm, name);
     expect(tv).toBeDefined();
     const info = fromTaggedValue(tv!);
@@ -47,8 +47,8 @@ describe('dictionary-only builtins', () => {
     vm.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
     // Define two entries; head is B, then A
-    defineBuiltin(vm, a.name, a.opcode, false);
-    defineBuiltin(vm, b.name, b.opcode, false);
+    define(vm, a.name, toTaggedValue(a.opcode, Tag.BUILTIN, 0));
+    define(vm, b.name, toTaggedValue(b.opcode, Tag.BUILTIN, 0));
 
     // Lookup head (B)
     let tv = lookup(vm, b.name);
