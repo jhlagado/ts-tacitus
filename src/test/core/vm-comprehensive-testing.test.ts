@@ -19,7 +19,7 @@ import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
-import { defineBuiltin, defineCode } from '../../core/dictionary';
+import { define } from '../../core/dictionary';
 import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../../core/vm';
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
@@ -38,7 +38,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const colonDefName = 'testSquare';
       const startAddress = 1000;
 
-      defineCode(vm, colonDefName, startAddress);
+      define(vm, colonDefName, toTaggedValue(startAddress, Tag.CODE, 0));
 
       const taggedValue = resolveSymbol(vm, colonDefName);
       expect(taggedValue).toBeDefined();
@@ -61,9 +61,9 @@ describe('VM Comprehensive Testing - Step 12', () => {
         symbols.push(symbolName);
 
         if (i % 2 === 0) {
-          defineBuiltin(vm, symbolName, Op.Add);
+          define(vm, symbolName, toTaggedValue(Op.Add, Tag.BUILTIN, 0));
         } else {
-          defineCode(vm, symbolName, 2000 + i);
+          define(vm, symbolName, toTaggedValue(2000 + i, Tag.CODE, 0));
         }
       }
 
@@ -82,11 +82,11 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const codeSymbols = ['square', 'double', 'triple', 'quad'];
 
       builtinSymbols.forEach((name, index) => {
-        defineBuiltin(vm, name, index + 1);
+        define(vm, name, toTaggedValue(index + 1, Tag.BUILTIN, 0));
       });
 
       codeSymbols.forEach((name, index) => {
-        defineCode(vm, name, 3000 + index * 100);
+        define(vm, name, toTaggedValue(3000 + index * 100, Tag.CODE, 0));
       });
 
       for (let i = 0; i < 100; i++) {
@@ -157,7 +157,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle symbol resolution with corrupted internal state', () => {
-      defineBuiltin(vm, 'test', Op.Add);
+      define(vm, 'test', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
 
       push(vm, 999);
       push(vm, -999);
@@ -174,10 +174,10 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Integration Workflow Testing', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
-      defineBuiltin(vm, 'add', Op.Add);
-      defineBuiltin(vm, 'mul', Op.Multiply);
-      defineCode(vm, 'square', 5000);
-      defineCode(vm, 'double', 5100);
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
+      define(vm, 'square', toTaggedValue(5000, Tag.CODE, 0));
+      define(vm, 'double', toTaggedValue(5100, Tag.CODE, 0));
 
       push(vm, 3);
       push(vm, 4);
@@ -209,8 +209,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
         { name: 'def3', addr: 6200 },
       ];
 
-      builtins.forEach(op => defineBuiltin(vm, op.name, op.code));
-      codeDefs.forEach(def => defineCode(vm, def.name, def.addr));
+      builtins.forEach(op => define(vm, op.name, toTaggedValue(op.code, Tag.BUILTIN, 0)));
+      codeDefs.forEach(def => define(vm, def.name, toTaggedValue(def.addr, Tag.CODE, 0)));
 
       for (let i = 0; i < 100; i++) {
         const useBuiltin = i % 2 === 0;

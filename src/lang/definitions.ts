@@ -3,7 +3,8 @@ import { getStackData, type VM } from '../core/vm';
 import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ActiveDefinition } from './state';
-import { markWithLocalReset, defineCode, forget } from '../core/dictionary';
+import { markWithLocalReset, define, forget } from '../core/dictionary';
+import { toTaggedValue, Tag } from '@src/core';
 
 export function beginDefinition(
   vm: VM,
@@ -58,11 +59,11 @@ export function endDefinition(
   const defStart = branchPos + 2;
 
   // Restore dictionary to checkpoint to remove local variable entries
-  // This must happen BEFORE defineCode so the function definition itself is preserved
+  // This must happen BEFORE define so the function definition itself is preserved
   // This allows globals to be accessible after function definition
   forget(vm, checkpoint);
 
-  defineCode(vm, name, defStart);
+  define(vm, name, toTaggedValue(defStart, Tag.CODE, 0));
 
   currentDefinition.current = null;
 }
