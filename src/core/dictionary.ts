@@ -39,22 +39,6 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
   vm.head = vm.gp - 1;
 }
 
-export function defineBuiltin(vm: VM, name: string, opcode: number, isImmediate = false): void {
-  const tagged = toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0);
-  define(vm, name, tagged);
-}
-
-export function defineCode(vm: VM, name: string, address: number, isImmediate = false): void {
-  const tagged = toTaggedValue(address, Tag.CODE, isImmediate ? 1 : 0);
-  define(vm, name, tagged);
-}
-
-export function defineLocal(vm: VM, name: string): void {
-  const slot = vm.localCount++;
-  const tagged = toTaggedValue(slot, Tag.LOCAL);
-  define(vm, name, tagged);
-}
-
 export function lookup(vm: VM, name: string): number {
   const PREV = 0;
   const PAYLOAD = 1;

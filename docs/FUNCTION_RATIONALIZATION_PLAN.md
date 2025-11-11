@@ -92,7 +92,7 @@ This document analyzes all functions across the codebase, identifies patterns an
 - ✅ Easier to maintain (area classification logic in one place)
 - ✅ No function count reduction (kept separate for clarity), but code simplified
 
-### Phase 4: Inline Dictionary Define Variants ⚠️ REVISED
+### Phase 4: Inline Dictionary Define Variants ✅ COMPLETE
 
 **Goal:** Remove `defineBuiltin`, `defineCode`, `defineLocal` wrappers.
 
@@ -104,23 +104,23 @@ This document analyzes all functions across the codebase, identifies patterns an
 2. **Address semantics:** Understand that `vm.head` is stored as relative to `GLOBAL_BASE`, but `readCell` expects absolute addresses. Currently works because `GLOBAL_BASE = 0`, but code should be correct for future non-zero values.
 3. **Don't break working code:** The wrapper functions work correctly. Only inline if we can maintain exact same behavior.
 
-**Steps (REVISED - More Careful Approach):**
+**Steps (COMPLETED):**
 
-1. **Phase 4a:** Update test files first (one file at a time, test after each)
-   - Start with isolated test files
-   - Replace `defineBuiltin`/`defineCode`/`defineLocal` with direct `define` calls
-   - Run tests after each file
-   
-2. **Phase 4b:** Update source files (one file at a time, test after each)
-   - Update `src/ops/builtins-register.ts`
-   - Update `src/lang/definitions.ts`
-   - Update `src/lang/parser.ts`
-   - Run full test suite after each file
-   
-3. **Phase 4c:** Remove wrapper functions only after ALL call sites updated
-   - Verify no remaining usages with `grep`
-   - Remove functions from `src/core/dictionary.ts`
-   - Run full test suite
+1. ✅ **Phase 4a:** Updated test files (one file at a time, tested after each)
+   - Updated 10 test files
+   - Replaced `defineBuiltin`/`defineCode`/`defineLocal` with direct `define` calls
+   - All tests passed after each file
+
+2. ✅ **Phase 4b:** Updated source files (one file at a time, tested after each)
+   - Updated `src/ops/builtins-register.ts`
+   - Updated `src/lang/definitions.ts`
+   - Updated `src/lang/parser.ts`
+   - All tests passed after each file
+
+3. ✅ **Phase 4c:** Removed wrapper functions after ALL call sites updated
+   - Verified no remaining usages with `grep`
+   - Removed functions from `src/core/dictionary.ts`
+   - All tests pass (1280/1280)
 
 **Example:**
 
@@ -129,17 +129,16 @@ This document analyzes all functions across the codebase, identifies patterns an
 defineBuiltin(vm, 'dup', Op.Dup);
 
 // After:
-const tagged = toTaggedValue(Op.Dup, Tag.BUILTIN, 0);
-define(vm, 'dup', tagged);
+define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
 ```
 
 **Benefits:**
 
 - Less indirection
 - Clearer what's happening
-- Reduces 3 functions
+- Reduced 3 functions to 0 (removed entirely)
 
-**Status:** ⚠️ PENDING - Requires careful incremental approach
+**Status:** ✅ COMPLETE - All tests pass, all call sites updated, wrapper functions removed
 
 ### Phase 5: Inline List Info Helper ✅ COMPLETE
 

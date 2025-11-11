@@ -35,12 +35,13 @@ import {
   GLOBAL_SIZE,
   createGlobalRef,
   getCellFromRef,
+  toTaggedValue,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import type { ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
-import { lookup, defineLocal, define } from '../core/dictionary';
+import { lookup, define } from '../core/dictionary';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -405,8 +406,9 @@ export function emitVarDecl(
 
   vm.compiler.emitReserveIfNeeded();
 
-  defineLocal(vm, varName);
-  const slotNumber = vm.localCount - 1;
+  const slot = vm.localCount++;
+  define(vm, varName, toTaggedValue(slot, Tag.LOCAL));
+  const slotNumber = slot;
 
   vm.compiler.compileOpcode(Op.InitVar);
   vm.compiler.compile16(slotNumber);

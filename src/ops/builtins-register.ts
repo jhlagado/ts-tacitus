@@ -34,8 +34,9 @@ import {
   dictFirstOnOp,
   dictFirstOffOp,
   dumpDictOp,
-  defineBuiltin,
+  define,
 } from '@src/core/dictionary';
+import { toTaggedValue, Tag } from '@src/core';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -55,7 +56,7 @@ import {
 export function registerBuiltins(vm: VM): void {
   // All registration goes directly to dictionary
   function reg(name: string, opcode: number, _implementation?: Verb, isImmediate = false): void {
-    defineBuiltin(vm, name, opcode, isImmediate);
+    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0));
   }
 
   reg('eval', Op.Eval, evalOp);
