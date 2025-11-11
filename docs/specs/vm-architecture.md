@@ -78,10 +78,14 @@ Opcode encoding & dispatch:
 
 - Builtins (0–127): single‑byte opcodes.
   - Encoded as: `opcode` (single byte, 0x00-0x7F, bit 7 = 0)
-- User words (bytecode addresses 0–32767): two‑byte encoding with MSB set.
-  - First byte: `0x80 | (address & 0x7f)` - low 7 bits with bit 7 set
-  - Second byte: `(address >> 7) & 0xff` - high 8 bits
+- User words (bytecode addresses 0–32767): two‑byte encoding using **X1516 format**.
+  - **X1516 Format**: 15-bit address encoded over a 16-bit carrier where bit 7 is always 1.
+  - **Encoding**: First byte `0x80 | (address & 0x7f)`, second byte `(address >> 7) & 0xff`
+  - **Two-byte sequence interpretation**:
+    - If bit 7 is 0: Second byte can be ignored (builtin opcode, single byte)
+    - If bit 7 is 1: Number is stored in X1516 format (user code address, two bytes)
   - Examples:
+    - Address 0x0000 (0): `0x80 0x00` → 16-bit `0x0080`
     - Address 0x40 (64): `0xC0 0x00` → 16-bit `0x00C0`
     - Address 0x80 (128): `0x80 0x01` → 16-bit `0x0180`
     - Address 0x0100 (256): `0x80 0x02` → 16-bit `0x0280`
