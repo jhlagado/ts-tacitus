@@ -61,7 +61,7 @@
 
 ## Implementation Plan
 
-**Note:** This proposal assumes `Tag.CODE` and `Tag.BUILTIN` have been unified into `Tag.CODE` (see `UNIFY_CODE_BUILTIN_PROPOSAL.md`). After unification, all code references use `Tag.CODE` with address range determining behavior.
+**Note:** This proposal assumes `Tag.CODE` and `Tag.BUILTIN` have been unified (see `OPCODE_MIGRATION_PLAN.md`). The current plan uses `Tag.OPCODE` to unify both tags, with address range determining behavior.
 
 ### Phase 1: Extend `emitRefSigil`
 1. After `lookup`, check if result is `Tag.CODE`
@@ -165,7 +165,7 @@ export function emitRefSigil(...) {
 - Simpler than original proposal: one opcode (`LiteralCode`) instead of two
 
 ### Dependencies
-- **Requires:** `Tag.CODE` and `Tag.BUILTIN` unification (see `UNIFY_CODE_BUILTIN_PROPOSAL.md`)
+- **Requires:** `Tag.CODE` and `Tag.BUILTIN` unification (see `OPCODE_MIGRATION_PLAN.md` - uses `Tag.OPCODE`)
 - After unification, all code references use `Tag.CODE`
 - Helper functions `createBuiltinRef` and `createCodeRef` both create `Tag.CODE` values
 

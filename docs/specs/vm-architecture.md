@@ -77,8 +77,18 @@ expose relative depths by subtracting the relevant window base:
 Opcode encoding & dispatch:
 
 - Builtins (0–127): single‑byte opcodes.
-- User words (bytecode addresses ≥128): two‑byte encoding with MSB set. The compiler encodes 15 bits of address space (0–32767) while the current `CODE_SIZE` (0x2000) bounds active bytecode to 0–8191. The extra range is reserved for future expansion.
+  - Encoded as: `opcode` (single byte, 0x00-0x7F, bit 7 = 0)
+- User words (bytecode addresses 0–32767): two‑byte encoding with MSB set.
+  - First byte: `0x80 | (address & 0x7f)` - low 7 bits with bit 7 set
+  - Second byte: `(address >> 7) & 0xff` - high 8 bits
+  - Examples:
+    - Address 0x40 (64): `0xC0 0x00` → 16-bit `0x00C0`
+    - Address 0x80 (128): `0x80 0x01` → 16-bit `0x0180`
+    - Address 0x0100 (256): `0x80 0x02` → 16-bit `0x0280`
+    - Address 0x4000 (16384): `0x80 0x80` → 16-bit `0x8080`
+  - The compiler encodes 15 bits of address space (0–32767) while the current `CODE_SIZE` (0x2000) bounds active bytecode to 0–8191. The extra range is reserved for future expansion.
 - Dispatch is unified: builtins resolve through the symbol table; user words execute by jumping to bytecode addresses. See `Compiler.compileOpcode` and VM `nextOpcode`.
+- Bit 7 in the first byte distinguishes builtins (0) from user code (1), allowing addresses 0–127 to be encoded as either single-byte builtins or two-byte user code.
 
 ## Address Spaces
 
