@@ -99,7 +99,7 @@ export class Tokenizer {
     const char = this.input[this.position];
     const startPos = this.position;
 
-    if (char === '\\') {
+    if (char === '#') {
       this.skipComment();
       return this.nextToken();
     }
@@ -275,7 +275,7 @@ export class Tokenizer {
   /**
    * Skips over a line comment in the input stream.
    *
-   * Comments in Tacit start with a backslash (\) and continue until the end of the line.
+   * Comments in Tacit start with a hash (#) and continue until the end of the line.
    * This method advances the tokenizer's position to the end of the current line.
    *
    * @private

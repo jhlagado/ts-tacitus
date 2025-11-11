@@ -75,7 +75,18 @@ describe('Compiler Function Context', () => {
   describe('Integration with function parsing', () => {
     test('should automatically emit Reserve for functions with variables', () => {
       // This test verifies that the parser integration works
-      const result = executeTacitCode(vm, ': test-fn 42 var x 10 var y x y add ; test-fn');
+      const result = executeTacitCode(
+        vm,
+        `
+        : test-fn
+          # ( — 52 )
+          42 var x    # Initialize x with 42
+          10 var y    # Initialize y with 10
+          x y add     # ( x y — x+y )
+        ;
+        test-fn       # Call the function
+      `,
+      );
 
       // Function should execute without error and return reasonable result
       expect(typeof result[0]).toBe('number');
@@ -84,7 +95,16 @@ describe('Compiler Function Context', () => {
 
     test('should handle functions without variables', () => {
       // Functions without variables should still work
-      const result = executeTacitCode(vm, ': double 2 mul ; 5 double');
+      const result = executeTacitCode(
+        vm,
+        `
+        : double
+          # ( n — n*2 )
+          2 mul
+        ;
+        5 double      # ( 5 — 10 )
+      `,
+      );
 
       expect(result[0]).toBe(10);
     });

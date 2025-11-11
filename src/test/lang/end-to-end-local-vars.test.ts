@@ -21,7 +21,8 @@ describe('End-to-End Local Variables Integration', () => {
         vm,
         `
         : no-vars
-            42
+          # ( — 42 )
+          42
         ;
         no-vars
       `,
@@ -35,8 +36,9 @@ describe('End-to-End Local Variables Integration', () => {
         vm,
         `
         : simple-test
-            42 var x
-            x
+          # ( — 42 )
+          42 var x    # Declare and initialize local variable
+          x           # Return the variable value
         ;
         simple-test
       `,

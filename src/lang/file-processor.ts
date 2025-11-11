@@ -41,7 +41,7 @@ function ensureFileExtension(filePath: string): string {
  * Processes a single Tacit file.
  *
  * This function reads a Tacit source file, processes it line by line, and executes each line.
- * It skips empty lines and comments (lines starting with \\). If an error occurs during
+ * It skips empty lines and comments (lines starting with #). If an error occurs during
  * execution, it reports the error with the line number and returns false.
  *
  * @param {VM} vm - The VM instance to use for execution
@@ -61,7 +61,7 @@ export function processFile(vm: VM, filePath: string): boolean {
     const lines = content.split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (line === '' || line.startsWith('\\')) {
+      if (line === '' || line.startsWith('#')) {
         continue;
       }
 

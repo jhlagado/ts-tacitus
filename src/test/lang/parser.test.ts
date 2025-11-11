@@ -185,11 +185,11 @@ describe('Parser with Tokenizer', () => {
 
   describe('Comments and whitespace', () => {
     test('should ignore comments', () => {
-      parse(vm, new Tokenizer('1 2 \\ This is a comment\n3'));
+      parse(vm, new Tokenizer('1 2 # This is a comment\n3'));
       expect(true).toBeTruthy();
     });
     test('should handle inline comments', () => {
-      parse(vm, new Tokenizer('1 2 \\ comment\n3 4 \\ another comment'));
+      parse(vm, new Tokenizer('1 2 # comment\n3 4 # another comment'));
       expect(true).toBeTruthy();
     });
     test('should handle empty lines', () => {

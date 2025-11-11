@@ -108,11 +108,11 @@ describe('Tokenizer', () => {
     expect(values).toEqual([5, 3, 'add']);
   });
   test('should skip lines with only comments', () => {
-    const values = getTokenValues('\\ Comment 1\n\\ Comment 2\n5 3 add');
+    const values = getTokenValues('# Comment 1\n# Comment 2\n5 3 add');
     expect(values).toEqual([5, 3, 'add']);
   });
   test('should skip inline comments', () => {
-    const values = getTokenValues('5 3 add \\ This is a comment');
+    const values = getTokenValues('5 3 add # This is a comment');
     expect(values).toEqual([5, 3, 'add']);
   });
   test('should handle multiple spaces and empty words', () => {
@@ -124,7 +124,7 @@ describe('Tokenizer', () => {
     expect(values).toEqual(['(', -345, ')', 'swap', 'drop', 42.5, 'add']);
   });
   test('should handle multiple lines with mixed content', () => {
-    const values = getTokenValues('5 3 add\n\\ Comment\n10 20 sub\nswap');
+    const values = getTokenValues('5 3 add\n# Comment\n10 20 sub\nswap');
     expect(values).toEqual([5, 3, 'add', 10, 20, 'sub', 'swap']);
   });
   test('should handle empty input', () => {
@@ -265,6 +265,20 @@ describe('Tokenizer', () => {
     expect(tokens).toHaveLength(1);
     expect(tokens[0].type).toBe(TokenType.STRING);
     expect(tokens[0].value).toBe('line1\nline2\ttab"quote\\backslash');
+  });
+  test('should treat # as regular character inside strings', () => {
+    const tokens = getAllTokens('"hello # world" 5');
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0].type).toBe(TokenType.STRING);
+    expect(tokens[0].value).toBe('hello # world');
+    expect(tokens[1].type).toBe(TokenType.NUMBER);
+    expect(tokens[1].value).toBe(5);
+  });
+  test('should handle # comment after string', () => {
+    const tokens = getAllTokens('"hello" # comment');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].type).toBe(TokenType.STRING);
+    expect(tokens[0].value).toBe('hello');
   });
   test('should handle strings at the end of input', () => {
     const tokens = getAllTokens('42 "the end"');
