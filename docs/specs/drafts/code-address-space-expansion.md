@@ -2,7 +2,7 @@
 
 **Status:** Draft  
 **Date:** 2025-01-XX  
-**Related:** `UNIFY_CODE_BUILTIN_PROPOSAL.md`, `vm-architecture.md`
+**Related:** `OPCODE_MIGRATION_PLAN.md`, `vm-architecture.md`
 
 ## Current State
 
@@ -228,4 +228,4 @@ Need to verify:
 - Current tag system: `src/core/tagged.ts`
 - Current IP usage: `src/core/vm.ts`
 - Current branching: `src/ops/core/core-ops.ts`
-- Related proposal: `UNIFY_CODE_BUILTIN_PROPOSAL.md`
+- Related proposal: `OPCODE_MIGRATION_PLAN.md` (uses `Tag.OPCODE` instead of unifying into `Tag.CODE`)
