@@ -99,34 +99,6 @@ export function formatList(vm: VM, headerValue: number): string {
 }
 
 /**
- * Formats a LIST structure from memory address by materializing to stack.
- * @param vm VM instance
- * @param headerCellAddr Absolute cell address of LIST header
- * @returns Formatted string
- */
-function formatListFromMemory(vm: VM, headerCellAddr: number): string {
-  const header = vm.memory.readCell(headerCellAddr);
-  const slotCount = getListLength(header);
-
-  if (slotCount === 0) {
-    return '()';
-  }
-
-  const originalSP = vm.sp;
-  const baseCell = headerCellAddr - slotCount;
-
-  for (let i = 0; i < slotCount; i++) {
-    const elem = vm.memory.readCell(baseCell + i);
-    push(vm, elem);
-  }
-
-  const formatted = formatList(vm, header);
-  vm.sp = originalSP;
-
-  return formatted;
-}
-
-/**
  * Formats any Tacit VM value.
  * @param vm VM instance
  * @param value Tagged value to format
@@ -166,7 +138,19 @@ break;
     const cell = getCellFromRef(value);
     const header = vm.memory.readCell(cell);
     if (getTag(header) === Tag.LIST) {
-      return formatListFromMemory(vm, cell);
+      const slotCount = getListLength(header);
+      if (slotCount === 0) {
+        return '()';
+      }
+      const originalSP = vm.sp;
+      const baseCell = cell - slotCount;
+      for (let i = 0; i < slotCount; i++) {
+        const elem = vm.memory.readCell(baseCell + i);
+        push(vm, elem);
+      }
+      const formatted = formatList(vm, header);
+      vm.sp = originalSP;
+      return formatted;
     }
     return formatAtomicValue(vm, header);
   }
