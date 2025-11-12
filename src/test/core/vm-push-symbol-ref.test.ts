@@ -110,9 +110,10 @@ describe('VM pushSymbolRef method', () => {
       );
 
       expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });
-      expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: 1500 });
+      // Tag.CODE values are stored with X1516 encoded addresses
+      expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1500) });
       expect(decoded[2]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Dup });
-      expect(decoded[3]).toMatchObject({ tag: Tag.CODE, value: 1600 });
+      expect(decoded[3]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1600) });
     });
 
     test('should enable chained execution with evalOp', () => {

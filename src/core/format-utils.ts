@@ -16,11 +16,11 @@ import { decodeX1516 } from './code-ref';
  */
 function formatFloat(value: number): string {
   if (isNaN(value)) {
-return 'NaN';
-}
+    return 'NaN';
+  }
   if (!isFinite(value)) {
-return value > 0 ? 'Infinity' : '-Infinity';
-}
+    return value > 0 ? 'Infinity' : '-Infinity';
+  }
 
   if (Math.abs(value) > 0.0001 && Math.abs(Math.round(value) - value) < 0.0001) {
     return Math.round(value).toString();
@@ -129,8 +129,8 @@ export function formatValue(vm: VM, value: number): string {
     for (let i = 0; i < slotCount; i++) {
       const elemIdx = headerIndex - 1 - i;
       if (elemIdx < 0) {
-break;
-}
+        break;
+      }
       const elem = stack[elemIdx];
       if (getTag(elem) === Tag.LIST) {
         parts.push(formatValue(vm, elem));
