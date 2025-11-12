@@ -1,5 +1,6 @@
 import { prn } from '../utils/core-test-utils';
 import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 
 let consoleOutput: string[] = [];
 const originalConsoleWarn = console.warn;
@@ -27,7 +28,7 @@ describe('Printer', () => {
     });
 
     test('should print CODE tagged values', () => {
-      const codeValue = toTaggedValue(50, Tag.CODE);
+      const codeValue = toTaggedValue(encodeX1516(50), Tag.CODE);
       prn('Test Code', codeValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -120,12 +121,12 @@ describe('Printer', () => {
     });
 
     test('should handle edge case values for different tag types', () => {
-      const smallCode = toTaggedValue(0, Tag.CODE);
+      const smallCode = toTaggedValue(encodeX1516(0), Tag.CODE);
       prn('Small Code', smallCode);
       expect(consoleOutput[0]).toMatch(/Small Code: CODE: <code>/);
 
       consoleOutput = [];
-      const largeCode = toTaggedValue(1000, Tag.CODE);
+      const largeCode = toTaggedValue(encodeX1516(1000), Tag.CODE);
       prn('Large Code', largeCode);
       expect(consoleOutput[0]).toMatch(/Large Code: CODE: <code>/);
     });

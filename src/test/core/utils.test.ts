@@ -9,8 +9,10 @@ import {
   and,
   or,
   xor,
+  fromTaggedValue,
 } from '../../core';
 import { formatValue } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { toTaggedValue, Tag, NIL, VM } from '../../core';
 
 const testVM = {
@@ -115,7 +117,8 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, NIL)).toBe('[SENTINEL:0]');
     });
     test('formats CODE tagged value', () => {
-      const taggedCode = toTaggedValue(1234, Tag.CODE);
+      const taggedCode = toTaggedValue(encodeX1516(1234), Tag.CODE);
+      // formatValue decodes X1516 to show the actual bytecode address
       expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
     });
     test('formats STRING tagged value successfully', () => {

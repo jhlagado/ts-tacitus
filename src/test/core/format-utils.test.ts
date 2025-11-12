@@ -1,4 +1,5 @@
 import { formatAtomicValue, formatValue, formatList, Tag, toTaggedValue } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
 
@@ -62,7 +63,7 @@ describe('Format Utils', () => {
 
     describe('other tag types', () => {
       test('should format CODE tags with tag name and value', () => {
-        const codeValue = toTaggedValue(100, Tag.CODE);
+        const codeValue = toTaggedValue(encodeX1516(100), Tag.CODE);
         expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
@@ -106,12 +107,12 @@ describe('Format Utils', () => {
 
     describe('other value types', () => {
       test('should format CODE values', () => {
-        const codeValue = toTaggedValue(100, Tag.CODE);
+        const codeValue = toTaggedValue(encodeX1516(100), Tag.CODE);
         expect(formatValue(vm, codeValue)).toBe('[CODE:100]');
       });
 
       test('should format unknown tag types', () => {
-        const unknownValue = toTaggedValue(123, Tag.CODE);
+        const unknownValue = toTaggedValue(encodeX1516(123), Tag.CODE);
         expect(formatValue(vm, unknownValue)).toBe('[CODE:123]');
       });
     });

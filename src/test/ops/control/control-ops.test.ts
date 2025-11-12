@@ -8,6 +8,7 @@ import { toTaggedValue, Tag } from '../../../core/tagged';
 import * as vmModule from '../../../core/vm';
 import * as conditionalOpsModule from '../../../ops/control/conditional-ops';
 import { push } from '../../../core/vm';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('Control Operations - Branch Coverage', () => {
   let vm: VM;
@@ -23,7 +24,7 @@ describe('Control Operations - Branch Coverage', () => {
       const originalNextInt16 = vmModule.nextInt16;
       (vmModule as any).nextInt16 = () => 10;
 
-      push(vm, toTaggedValue(100, Tag.CODE));
+      push(vm, toTaggedValue(encodeX1516(100), Tag.CODE));
 
       const originalIP = vm.IP;
 

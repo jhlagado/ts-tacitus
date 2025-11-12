@@ -2,6 +2,7 @@ import { Op } from '../../ops/opcodes';
 import { createVM, type VM } from '../../core/vm';
 import { fromTaggedValue, MIN_USER_OPCODE } from '../../core';
 import { nextInt16, nextFloat32, next8 } from '../../core/vm';
+import { encodeX1516 } from '../../core/code-ref';
 
 describe('Compiler', () => {
   let vm: VM;
@@ -20,11 +21,13 @@ describe('Compiler', () => {
     expect(nextInt16(vm)).toBe(-42);
   });
   test('should compile an address as a tagged pointer', () => {
-    vm.compiler.compileAddress(0x2345);
+    const address = 0x2345;
+    vm.compiler.compileAddress(address);
     vm.IP = 0;
     const tagNum = nextFloat32(vm);
     const { value: pointer } = fromTaggedValue(tagNum);
-    expect(pointer).toBe(0x2345);
+    // compileAddress encodes the address using X1516 format
+    expect(pointer).toBe(encodeX1516(address));
   });
   test('should compile a literal number', () => {
     vm.compiler.compile8(Op.LiteralNumber);

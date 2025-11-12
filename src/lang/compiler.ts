@@ -4,6 +4,7 @@
  */
 
 import type { VM } from '@src/core';
+import { encodeX1516 } from '../core/code-ref';
 import {
   Tag,
   toTaggedValue,
@@ -92,7 +93,8 @@ export class Compiler {
    * @param value The address value to compile and tag
    */
   compileAddress(value: number): void {
-    const tagNum = toTaggedValue(value, Tag.CODE);
+    const encoded = encodeX1516(value);
+    const tagNum = toTaggedValue(encoded, Tag.CODE);
     this.compileFloat32(tagNum);
   }
 

@@ -3,6 +3,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { assertCapsuleShape } from '../../../ops/capsules/assertions';
 import { pushTestList } from '../../utils/vm-test-utils';
 import { push, peek } from '../../../core/vm';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('capsule assertions', () => {
   let vm: VM;
@@ -12,7 +13,7 @@ describe('capsule assertions', () => {
   });
 
   test('accepts well-formed capsule', () => {
-    const codeRef = toTaggedValue(42, Tag.CODE);
+    const codeRef = toTaggedValue(encodeX1516(42), Tag.CODE);
     pushTestList(vm, [1, 2, codeRef]);
     const header = peek(vm);
     expect(() => assertCapsuleShape(vm, header)).not.toThrow();

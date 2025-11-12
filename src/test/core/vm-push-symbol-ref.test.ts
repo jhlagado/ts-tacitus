@@ -9,6 +9,7 @@ import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
 import { fromTaggedValue, Tag, toTaggedValue } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { STACK_BASE } from '../../core/constants';
 import { define } from '../../core/dictionary';
 import { push, getStackData, pushSymbolRef, peek, resolveSymbol } from '../../core/vm';
@@ -93,8 +94,8 @@ describe('VM pushSymbolRef method', () => {
     test('should handle both built-ins and colon definitions together', () => {
       define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
       define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
-      define(vm, 'square', toTaggedValue(1500, Tag.CODE, 0));
-      define(vm, 'double', toTaggedValue(1600, Tag.CODE, 0));
+      define(vm, 'square', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'double', toTaggedValue(encodeX1516(1600), Tag.CODE, 0));
 
       pushSymbolRef(vm, 'add');
       pushSymbolRef(vm, 'square');

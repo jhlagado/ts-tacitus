@@ -7,6 +7,7 @@ import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getCellFromRef } from './refs';
 import { getListLength } from './list';
 import { type VM, pop, push, getStackData } from './vm';
+import { decodeX1516 } from './code-ref';
 
 /**
  * Formats float with reasonable precision.
@@ -60,6 +61,12 @@ export function formatAtomicValue(vm: VM, value: number): string {
         return formatString(str);
       }
       return `[String:${tagValue}]`;
+    }
+
+    case Tag.CODE: {
+      // Decode X1516 encoded address to show actual bytecode address
+      const decodedAddress = decodeX1516(tagValue);
+      return `[CODE:${decodedAddress}]`;
     }
 
     default:
