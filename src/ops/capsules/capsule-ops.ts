@@ -1,5 +1,5 @@
 import type { VM } from '@src/core';
-import { encodeX1516 } from '../../core/code-ref';
+import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import {
   Tag,
   toTaggedValue,
@@ -64,7 +64,9 @@ export function dispatchOp(vm: VM): void {
   vm.bp = RSTACK_BASE + (layout.baseCell - RSTACK_BASE);
 
   // Jump to dispatch entry address (CODE slot0)
-  const { value: entryAddr } = fromTaggedValue(layout.codeRef);
+  const { value: encodedAddr } = fromTaggedValue(layout.codeRef);
+  // Decode X1516 encoded address to get actual bytecode address
+  const entryAddr = decodeX1516(encodedAddr);
   vm.IP = entryAddr;
 }
 

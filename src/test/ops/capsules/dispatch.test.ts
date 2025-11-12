@@ -39,8 +39,8 @@ describe('capsule dispatch runtime', () => {
     const stack = getStackData(vm);
     expect(stack).toEqual([1, 2, 42]);
 
-    // IP jumped to entry address
-    expect(vm.IP).toBe(encodeX1516(777));
+    // IP jumped to entry address (decoded from X1516)
+    expect(vm.IP).toBe(777);
 
     // Return stack now has saved return address and BP on top
     // Exit epilogue restores IP and BP
