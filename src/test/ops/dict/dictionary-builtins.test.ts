@@ -13,11 +13,11 @@ describe('dictionary-only builtins', () => {
   test('defineBuiltin then lookup returns BUILTIN with opcode', () => {
     const name = 'my-add-op';
     const opcode = 99;
-    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, 0));
+    define(vm, name, toTaggedValue(opcode, Tag.CODE, 0));
     const tv = lookup(vm, name);
     expect(tv).toBeDefined();
     const info = fromTaggedValue(tv!);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(opcode);
     expect(info.meta).toBe(0);
   });
@@ -29,11 +29,11 @@ describe('dictionary-only builtins', () => {
     // @ts-ignore test-only
     vm.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
-    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, 1));
+    define(vm, name, toTaggedValue(opcode, Tag.CODE, 1));
     const tv = lookup(vm, name);
     expect(tv).toBeDefined();
     const info = fromTaggedValue(tv!);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(opcode);
     expect(info.meta).toBe(1);
     forget(vm, scope);
@@ -47,21 +47,21 @@ describe('dictionary-only builtins', () => {
     vm.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
     // Define two entries; head is B, then A
-    define(vm, a.name, toTaggedValue(a.opcode, Tag.BUILTIN, 0));
-    define(vm, b.name, toTaggedValue(b.opcode, Tag.BUILTIN, 0));
+    define(vm, a.name, toTaggedValue(a.opcode, Tag.CODE, 0));
+    define(vm, b.name, toTaggedValue(b.opcode, Tag.CODE, 0));
 
     // Lookup head (B)
     let tv = lookup(vm, b.name);
     expect(tv).toBeDefined();
     let info = fromTaggedValue(tv!);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(b.opcode);
 
     // Lookup previous (A)
     tv = lookup(vm, a.name);
     expect(tv).toBeDefined();
     info = fromTaggedValue(tv!);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(a.opcode);
     forget(vm, scope);
   });

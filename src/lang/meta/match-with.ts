@@ -30,9 +30,8 @@ export function beginWithImmediate(
 
   const top = peek(vm);
   const { tag, value } = fromTaggedValue(top);
-  // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
-  const isBuiltin = tag === Tag.BUILTIN || (tag === Tag.CODE && value < 128);
-  if (!isBuiltin || value !== Op.EndMatch) {
+  // Check Tag.CODE < 128 (represents builtin opcode)
+  if (tag !== Tag.CODE || value >= 128 || value !== Op.EndMatch) {
     throw new SyntaxError('with without match', getStackData(vm));
   }
 

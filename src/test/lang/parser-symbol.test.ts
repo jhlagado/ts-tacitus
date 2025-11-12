@@ -73,7 +73,7 @@ describe('@symbol Parser/Compiler Integration - Step 14', () => {
 
   describe('@symbol without eval (tagged values on stack)', () => {
     // Moved to parser-symbol-builtin.test.ts
-    // it('should push Tag.BUILTIN for built-ins', () => { ... });
+    // it('should push Tag.CODE for built-ins', () => { ... });
     // Moved to parser-symbol-code.test.ts
     // it('should push Tag.CODE for colon definitions', () => { ... });
   });

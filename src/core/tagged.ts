@@ -13,8 +13,6 @@ export enum Tag {
 
   LOCAL = 6,
 
-  BUILTIN = 7,
-
   LIST = 8,
   REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
 }
@@ -36,7 +34,6 @@ export const tagNames: Record<Tag, string> = {
   [Tag.CODE]: 'CODE',
   [Tag.STRING]: 'STRING',
   [Tag.LOCAL]: 'LOCAL',
-  [Tag.BUILTIN]: 'BUILTIN',
   [Tag.LIST]: 'LIST',
   [Tag.REF]: 'REF',
 };

@@ -94,7 +94,7 @@ describe('Tagged NaN Encoding', () => {
 
     test('should not identify non-LOCAL values as LOCAL', () => {
       expect(isLocal(toTaggedValue(42, Tag.NUMBER))).toBe(false);
-      expect(isLocal(toTaggedValue(100, Tag.BUILTIN))).toBe(false);
+      expect(isLocal(toTaggedValue(100, Tag.CODE))).toBe(false);
       expect(isLocal(toTaggedValue(encodeX1516(200), Tag.CODE))).toBe(false);
       expect(isLocal(toTaggedValue(300, Tag.STRING))).toBe(false);
     });
@@ -144,7 +144,7 @@ describe('Tagged NaN Encoding', () => {
       const testCases = [
         { value: 100, tag: Tag.CODE },
         { value: 200, tag: Tag.STRING },
-        { value: 42, tag: Tag.BUILTIN },
+        { value: 42, tag: Tag.CODE },
         { value: 5, tag: Tag.LIST },
       ];
 
@@ -186,8 +186,8 @@ describe('Tagged NaN Encoding', () => {
         { value: 42, tag: Tag.SENTINEL, meta: 1 },
         { value: 1000, tag: Tag.CODE, meta: 0 },
         { value: 1000, tag: Tag.CODE, meta: 1 },
-        { value: 50, tag: Tag.BUILTIN, meta: 0 },
-        { value: 50, tag: Tag.BUILTIN, meta: 1 },
+        { value: 50, tag: Tag.CODE, meta: 0 },
+        { value: 50, tag: Tag.CODE, meta: 1 },
       ];
 
       for (const testCase of testCases) {

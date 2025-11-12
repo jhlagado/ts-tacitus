@@ -27,7 +27,7 @@ describe('VM Performance Tests', () => {
       for (let i = 0; i < iterations; i++) {
         push(vm, 5);
         push(vm, 3);
-        push(vm, toTaggedValue(Op.Add, Tag.BUILTIN));
+        push(vm, toTaggedValue(Op.Add, Tag.CODE));
         evalOp(vm);
         pop(vm);
       }

@@ -194,7 +194,7 @@ export enum Op {
   /** Generic block-to-list converter: executes block and converts results to list */
   MakeList,
 
-  /** Pushes a symbol reference (Tag.BUILTIN or Tag.CODE) onto the stack for metaprogramming */
+  /** Pushes a symbol reference (Tag.CODE) onto the stack for metaprogramming */
   PushSymbolRef,
   /** Drop logical head element: ( list — list' ) */
   DropHead,

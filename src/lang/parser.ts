@@ -240,11 +240,6 @@ export function emitWord(
     return;
   }
 
-  if (tag === Tag.BUILTIN) {
-    vm.compiler.compileOpcode(tagValue);
-    return;
-  }
-
   if (tag === Tag.LOCAL) {
     vm.compiler.compileOpcode(Op.VarRef);
     vm.compiler.compile16(tagValue);
@@ -294,11 +289,11 @@ export function emitWord(
  * Process @symbol tokens for unified code references.
  *
  * This function handles @symbol syntax by calling vm.pushSymbolRef() to resolve
- * the symbol to either a Tag.BUILTIN or Tag.CODE tagged value and push it to the stack.
+ * the symbol to a Tag.CODE tagged value and push it to the stack.
  * The resulting tagged value can be used with 'eval' for metaprogramming.
  *
  * Examples:
- * - @add → Tag.BUILTIN(Op.Add)
+ * - @add → Tag.CODE(Op.Add) (value < 128, stored directly)
  * - @square → Tag.CODE(bytecode_addr)
  *
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
