@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { createVM, VM } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { define, findBytecodeAddress } from '../../core/dictionary';
@@ -36,7 +37,7 @@ describe('Immediate words', () => {
     const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
 
-    define(vm, 'inc1!', toTaggedValue(addr!, Tag.CODE, 1));
+    define(vm, 'inc1!', toTaggedValue(encodeX1516(addr!), Tag.CODE, 1));
 
     push(vm, 5);
     parse(vm, new Tokenizer('inc1!'));

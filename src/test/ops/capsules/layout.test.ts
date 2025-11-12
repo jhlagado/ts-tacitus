@@ -11,6 +11,7 @@ import {
   STACK_BASE_BYTES,
   STACK_BASE,
 } from '../../../core';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('capsule layout (handle-based)', () => {
   let vm: VM;
@@ -25,7 +26,7 @@ describe('capsule layout (handle-based)', () => {
       rpush(vm, locals[i]);
     }
     // Push CODE ref then LIST header (payload = locals + 1)
-    const codeRef = toTaggedValue(codeAddr, Tag.CODE);
+    const codeRef = toTaggedValue(encodeX1516(codeAddr), Tag.CODE);
     rpush(vm, codeRef);
     const slotCount = locals.length + 1;
     const header = toTaggedValue(slotCount, Tag.LIST);
@@ -65,7 +66,7 @@ describe('capsule layout (handle-based)', () => {
 
   test('reads capsule layout when list lives on STACK segment', () => {
     // Build a capsule-like list on the data stack: ( CODE 1 )
-    const codeRef = toTaggedValue(99, Tag.CODE);
+    const codeRef = toTaggedValue(encodeX1516(99), Tag.CODE);
     push(vm, 1);
     push(vm, codeRef);
     push(vm, toTaggedValue(2, Tag.LIST));

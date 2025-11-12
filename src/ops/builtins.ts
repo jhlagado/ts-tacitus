@@ -21,6 +21,7 @@ import {
   createGlobalRef,
   gpushList,
 } from '@src/core';
+import { encodeX1516 } from '@src/core/code-ref';
 import {
   nextUint16,
   nextInt16,
@@ -152,7 +153,8 @@ const nopOp: Verb = () => {
  */
 export function literalCodeOp(vm: VM): void {
   const address = nextUint16(vm);
-  const tagged = toTaggedValue(address, Tag.CODE, 1);
+  const encoded = encodeX1516(address);
+  const tagged = toTaggedValue(encoded, Tag.CODE, 1);
   push(vm, tagged);
 }
 

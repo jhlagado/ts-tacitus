@@ -4,6 +4,7 @@ import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
 import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
+import { decodeX1516 } from '../../core/code-ref';
 import type { Tokenizer } from '../tokenizer';
 import type { ActiveDefinition } from '../state';
 // SymbolTableEntry interface moved inline (symbol table removed)
@@ -91,7 +92,9 @@ export function executeImmediateWord(
   }
 
   if (tag === Tag.CODE) {
-    runImmediateCode(vm, value);
+    // Decode X1516 encoded address to get actual bytecode address
+    const decodedAddress = decodeX1516(value);
+    runImmediateCode(vm, decodedAddress);
     return;
   }
 

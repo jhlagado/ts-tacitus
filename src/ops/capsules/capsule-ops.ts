@@ -1,4 +1,5 @@
 import type { VM } from '@src/core';
+import { encodeX1516 } from '../../core/code-ref';
 import {
   Tag,
   toTaggedValue,
@@ -21,7 +22,7 @@ export function exitConstructorOp(vm: VM): void {
 
   // Wrap current IP as CODE entry for dispatch body
   const entryAddr = vm.IP;
-  rpush(vm, toTaggedValue(entryAddr, Tag.CODE));
+  rpush(vm, toTaggedValue(encodeX1516(entryAddr), Tag.CODE));
 
   // Append LIST header: payload = locals + 1 (CODE)
   rpush(vm, toTaggedValue(localCount + 1, Tag.LIST));

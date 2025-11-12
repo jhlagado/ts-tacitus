@@ -16,7 +16,8 @@ import {
   GLOBAL_BASE,
   GLOBAL_SIZE,
 } from './constants';
-import { fromTaggedValue, isNIL } from './tagged';
+import { fromTaggedValue, isNIL, Tag } from './tagged';
+import { decodeX1516 } from './code-ref';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
@@ -353,7 +354,11 @@ function readF32(vm: { memory: Memory; IP: number }): number {
 
 function readAddr(vm: { memory: Memory; IP: number }): number {
   const tagNum = readF32(vm);
-  const { value: pointer } = fromTaggedValue(tagNum);
+  const { value: pointer, tag } = fromTaggedValue(tagNum);
+  // If it's a CODE tag, decode the X1516 encoded address
+  if (tag === Tag.CODE) {
+    return decodeX1516(pointer);
+  }
   return pointer;
 }
 

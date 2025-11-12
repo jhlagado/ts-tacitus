@@ -5,6 +5,7 @@
 
 import { type VM, fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core';
 import { push, ensureStackSize } from '../../core/vm';
+import { decodeX1516 } from '../../core/code-ref';
 
 /**
  * Print function for debugging tagged values during tests.
@@ -127,6 +128,7 @@ export function getBuiltinOpcode(builtinRef: number): number {
 
 /**
  * Extracts the bytecode address from a code reference.
+ * Decodes the X1516 encoded value back to the original address.
  * Test-only function.
  */
 export function getCodeAddress(codeRef: number): number {
@@ -134,5 +136,5 @@ export function getCodeAddress(codeRef: number): number {
     throw new Error('Value is not a code reference');
   }
   const { value } = fromTaggedValue(codeRef);
-  return value;
+  return decodeX1516(value);
 }

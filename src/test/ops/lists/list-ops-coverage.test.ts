@@ -8,6 +8,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { openListOp, closeListOp, sizeOp } from '../../../ops/lists';
 import { toTaggedValue, Tag } from '../../../core/tagged';
 import { getStackData, push, pop, peek } from '../../../core/vm';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('List Operations - Branch Coverage', () => {
   let vm: VM;
@@ -130,7 +131,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed data types in operations', () => {
-      push(vm, toTaggedValue(100, Tag.CODE));
+      push(vm, toTaggedValue(encodeX1516(100), Tag.CODE));
       sizeOp(vm);
       const result = pop(vm);
       expect(isNIL(result)).toBe(true);

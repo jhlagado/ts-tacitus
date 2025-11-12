@@ -6,6 +6,7 @@ import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
 import { RSTACK_BASE, RSTACK_TOP, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 import { rpush, push, rpop, getStackData, pop } from '../../../core/vm';
+import { encodeX1516 } from '../../../core/code-ref';
 
 import {
   abortOp,
@@ -45,7 +46,7 @@ describe('Built-in Words', () => {
       const testAddress = 0x2345;
       const originalIP = vm.IP;
       const originalBP = vm.bp; // absolute cells
-      push(vm, toTaggedValue(testAddress, Tag.CODE));
+      push(vm, toTaggedValue(encodeX1516(testAddress), Tag.CODE));
       evalOp(vm);
       expect(vm.IP).toBe(testAddress);
       expect(vm.bp).toBe(vm.rsp);
@@ -120,7 +121,7 @@ describe('Built-in Words', () => {
       expect(pop(vm)).toBe(42);
     });
     test('should handle tagged pointers', () => {
-      const addr = toTaggedValue(0x2345, Tag.CODE);
+      const addr = toTaggedValue(encodeX1516(0x2345), Tag.CODE);
       vm.compiler.compileFloat32(addr);
       literalNumberOp(vm);
       expect(pop(vm)).toBe(addr);
@@ -170,7 +171,7 @@ describe('Built-in Words', () => {
       }
 
       // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
-      push(vm, toTaggedValue(0x1234, Tag.CODE));
+      push(vm, toTaggedValue(encodeX1516(0x1234), Tag.CODE));
       // evalOp will attempt to push return IP and saved BP (relative), overflowing on second push
       expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
     });

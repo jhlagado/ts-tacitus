@@ -8,7 +8,7 @@ import {
   define,
 } from '../../../core/dictionary';
 import { createRef, createGlobalRef, getCellFromRef } from '../../../core/refs';
-import { createCodeRef } from '../../../core/code-ref';
+import { createCodeRef, encodeX1516 } from '../../../core/code-ref';
 import { GLOBAL_BASE } from '../../../core/constants';
 
 describe('Dictionary payload types', () => {
@@ -67,25 +67,25 @@ describe('Dictionary payload types', () => {
     test('defineCode creates CODE entry with bytecode address', () => {
       const name = 'my-func';
       const address = 0x1234;
-      define(vm, name, toTaggedValue(address, Tag.CODE, 0));
+      define(vm, name, toTaggedValue(encodeX1516(address), Tag.CODE, 0));
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
       expect(isNIL(tv)).toBe(false);
 
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.CODE);
-      expect(info.value).toBe(address);
+      expect(info.value).toBe(encodeX1516(address)); // Value is X1516 encoded
       expect(info.meta).toBe(0);
     });
 
     test('defineCode with immediate flag sets meta=1', () => {
       const name = 'imm-func';
       const address = 0x5678;
-      define(vm, name, toTaggedValue(address, Tag.CODE, 1));
+      define(vm, name, toTaggedValue(encodeX1516(address), Tag.CODE, 1));
       const tv = lookup(vm, name);
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.CODE);
-      expect(info.value).toBe(address);
+      expect(info.value).toBe(encodeX1516(address)); // Value is X1516 encoded
       expect(info.meta).toBe(1);
     });
   });
@@ -173,7 +173,7 @@ describe('Dictionary payload types', () => {
 
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.CODE);
-      expect(info.value).toBe(bytecodeAddr);
+      expect(info.value).toBe(encodeX1516(bytecodeAddr)); // Value is X1516 encoded
       expect(info.meta).toBe(0);
     });
 
@@ -194,9 +194,9 @@ describe('Dictionary payload types', () => {
       const tv2 = lookup(vm, 'func2');
       const tv3 = lookup(vm, 'func3');
 
-      expect(fromTaggedValue(tv1).value).toBe(addr1);
-      expect(fromTaggedValue(tv2).value).toBe(addr2);
-      expect(fromTaggedValue(tv3).value).toBe(addr3);
+      expect(fromTaggedValue(tv1).value).toBe(encodeX1516(addr1)); // Value is X1516 encoded
+      expect(fromTaggedValue(tv2).value).toBe(encodeX1516(addr2)); // Value is X1516 encoded
+      expect(fromTaggedValue(tv3).value).toBe(encodeX1516(addr3)); // Value is X1516 encoded
     });
 
     test('CODE_REF can be looked up and decoded correctly', () => {
@@ -209,16 +209,16 @@ describe('Dictionary payload types', () => {
 
       const info = fromTaggedValue(tv);
       expect(info.tag).toBe(Tag.CODE);
-      expect(info.value).toBe(bytecodeAddr);
+      expect(info.value).toBe(encodeX1516(bytecodeAddr)); // Value is X1516 encoded
     });
 
     test('CODE_REF is equivalent to defineCode result', () => {
-      const bytecodeAddr = 0xabcd;
+      const bytecodeAddr = 0x2000; // Use valid address (0-32767)
       const codeRef = createCodeRef(bytecodeAddr);
       define(vm, 'via-ref', codeRef);
 
       // Compare with defineCode
-      define(vm, 'via-define', toTaggedValue(bytecodeAddr, Tag.CODE, 0));
+      define(vm, 'via-define', toTaggedValue(encodeX1516(bytecodeAddr), Tag.CODE, 0));
 
       const refTv = lookup(vm, 'via-ref');
       const defineTv = lookup(vm, 'via-define');
@@ -235,7 +235,7 @@ describe('Dictionary payload types', () => {
   describe('Mixed payload types', () => {
     test('can define BUILTIN, CODE, and LOCAL in same dictionary', () => {
       define(vm, 'add-op', toTaggedValue(42, Tag.BUILTIN, 0));
-      define(vm, 'user-func', toTaggedValue(0x1000, Tag.CODE, 0));
+      define(vm, 'user-func', toTaggedValue(encodeX1516(0x1000), Tag.CODE, 0));
       const slot = vm.localCount++;
       define(vm, 'local-var', toTaggedValue(slot, Tag.LOCAL));
 
@@ -250,7 +250,7 @@ describe('Dictionary payload types', () => {
 
     test('can define BUILTIN, CODE, LOCAL, and REF in same dictionary', () => {
       define(vm, 'add-op', toTaggedValue(42, Tag.BUILTIN, 0));
-      define(vm, 'user-func', toTaggedValue(0x1000, Tag.CODE, 0));
+      define(vm, 'user-func', toTaggedValue(encodeX1516(0x1000), Tag.CODE, 0));
       const slot = vm.localCount++;
       define(vm, 'local-var', toTaggedValue(slot, Tag.LOCAL));
       const testRef = createGlobalRef(10);
@@ -290,7 +290,7 @@ describe('Dictionary payload types', () => {
     test('lookup finds most recent entry (LIFO order)', () => {
       // Define same name with different types
       define(vm, 'foo', toTaggedValue(10, Tag.BUILTIN, 0));
-      define(vm, 'foo', toTaggedValue(0x2000, Tag.CODE, 0));
+      define(vm, 'foo', toTaggedValue(encodeX1516(0x2000), Tag.CODE, 0));
       const slot = vm.localCount++;
       define(vm, 'foo', toTaggedValue(slot, Tag.LOCAL));
 
@@ -486,7 +486,7 @@ describe('Dictionary payload types', () => {
 
     test('multiple entries with same name - lookup finds most recent', () => {
       define(vm, 'dup', toTaggedValue(10, Tag.BUILTIN, 0));
-      define(vm, 'dup', toTaggedValue(0x3000, Tag.CODE, 0));
+      define(vm, 'dup', toTaggedValue(encodeX1516(0x3000), Tag.CODE, 0));
       const slot = vm.localCount++;
       define(vm, 'dup', toTaggedValue(slot, Tag.LOCAL));
 

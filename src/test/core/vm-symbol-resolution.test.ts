@@ -10,6 +10,7 @@ import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
 import { Tag, fromTaggedValue, toTaggedValue, createBuiltinRef, createCodeRef } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { resolveSymbol, push, pop } from '../../core/vm';
 import {
   define,
@@ -56,7 +57,7 @@ describe('VM Symbol Resolution', () => {
     test('should resolve code symbols to Tag.CODE tagged values', () => {
       const testAddr = 1000;
 
-      define(vm, 'square', toTaggedValue(testAddr, Tag.CODE, 0));
+      define(vm, 'square', toTaggedValue(encodeX1516(testAddr), Tag.CODE, 0));
 
       const result = resolveSymbol(vm, 'square');
 
@@ -66,14 +67,14 @@ describe('VM Symbol Resolution', () => {
 
       const { tag, value } = fromTaggedValue(result!);
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(testAddr);
+      expect(value).toBe(encodeX1516(testAddr));
     });
 
     test('should resolve multiple different symbol types', () => {
       define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
       define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
-      define(vm, 'square', toTaggedValue(1000, Tag.CODE, 0));
-      define(vm, 'cube', toTaggedValue(2000, Tag.CODE, 0));
+      define(vm, 'square', toTaggedValue(encodeX1516(1000), Tag.CODE, 0));
+      define(vm, 'cube', toTaggedValue(encodeX1516(2000), Tag.CODE, 0));
 
       const addResult = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addResult!)).toBe(true);
@@ -94,7 +95,7 @@ describe('VM Symbol Resolution', () => {
 
     test('should handle symbol shadowing correctly', () => {
       define(vm, 'test', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
-      define(vm, 'test', toTaggedValue(5000, Tag.CODE, 0));
+      define(vm, 'test', toTaggedValue(encodeX1516(5000), Tag.CODE, 0));
 
       const result = resolveSymbol(vm, 'test');
 
@@ -121,7 +122,7 @@ describe('VM Symbol Resolution', () => {
 
     test('should maintain consistency with code-ref utilities', () => {
       define(vm, 'multiply', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
-      define(vm, 'test', toTaggedValue(1500, Tag.CODE, 0));
+      define(vm, 'test', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
 
       const multiplyResolved = resolveSymbol(vm, 'multiply');
       const multiplyDirect = createBuiltinRef(Op.Multiply);
@@ -140,7 +141,7 @@ describe('VM Symbol Resolution', () => {
       define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
       const checkpoint = markWithLocalReset(vm);
 
-      define(vm, 'square', toTaggedValue(1000, Tag.CODE, 0));
+      define(vm, 'square', toTaggedValue(encodeX1516(1000), Tag.CODE, 0));
 
       expect(resolveSymbol(vm, 'add')).toBeDefined();
       expect(resolveSymbol(vm, 'square')).toBeDefined();
@@ -152,7 +153,7 @@ describe('VM Symbol Resolution', () => {
     });
 
     test('should resolve symbols defined with unified define method', () => {
-      define(vm, 'oldStyle', toTaggedValue(200, Tag.CODE, 0));
+      define(vm, 'oldStyle', toTaggedValue(encodeX1516(200), Tag.CODE, 0));
 
       const resolved = resolveSymbol(vm, 'oldStyle');
       expect(resolved).toBeDefined();

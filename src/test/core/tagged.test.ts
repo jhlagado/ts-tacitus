@@ -10,6 +10,7 @@ import {
   isLocal,
   MAX_TAG,
 } from '../../core';
+import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
@@ -38,7 +39,7 @@ describe('Tagged NaN Encoding', () => {
   });
   test('should validate unsigned value ranges for non-INTEGER types', () => {
     expect(() => toTaggedValue(-1, Tag.CODE)).toThrow();
-    expect(() => toTaggedValue(65536, Tag.CODE)).toThrow();
+    expect(() => toTaggedValue(encodeX1516(65536), Tag.CODE)).toThrow();
     expect(() => toTaggedValue(-1, Tag.STRING)).toThrow();
     expect(() => toTaggedValue(65536, Tag.STRING)).toThrow();
   });
@@ -52,19 +53,19 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should return the correct tag using getTag', () => {
-    const encoded = toTaggedValue(123, Tag.CODE);
+    const encoded = toTaggedValue(encodeX1516(123), Tag.CODE);
     expect(getTag(encoded)).toBe(Tag.CODE);
   });
   test('should return the correct value using getValue', () => {
-    const encoded = toTaggedValue(456, Tag.CODE);
-    expect(getValue(encoded)).toBe(456);
+    const encoded = toTaggedValue(encodeX1516(456), Tag.CODE);
+    expect(getValue(encoded)).toBe(encodeX1516(456));
   });
   test('should correctly identify NIL using isNIL', () => {
     expect(isNIL(toTaggedValue(0, Tag.SENTINEL))).toBe(true);
     expect(isNIL(toTaggedValue(1, Tag.SENTINEL))).toBe(false);
   });
   test('should correctly identify code types', () => {
-    const code = toTaggedValue(123, Tag.CODE);
+    const code = toTaggedValue(encodeX1516(123), Tag.CODE);
     const str = toTaggedValue(789, Tag.STRING);
     expect(isCode(code)).toBe(true);
     expect(isCode(str)).toBe(false);
@@ -94,7 +95,7 @@ describe('Tagged NaN Encoding', () => {
     test('should not identify non-LOCAL values as LOCAL', () => {
       expect(isLocal(toTaggedValue(42, Tag.NUMBER))).toBe(false);
       expect(isLocal(toTaggedValue(100, Tag.BUILTIN))).toBe(false);
-      expect(isLocal(toTaggedValue(200, Tag.CODE))).toBe(false);
+      expect(isLocal(toTaggedValue(encodeX1516(200), Tag.CODE))).toBe(false);
       expect(isLocal(toTaggedValue(300, Tag.STRING))).toBe(false);
     });
 

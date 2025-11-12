@@ -14,6 +14,7 @@
  */
 
 import type { VM, Verb } from '@src/core';
+import { decodeX1516 } from '@src/core/code-ref';
 import {
   ReturnStackUnderflowError,
   toTaggedValue,
@@ -243,15 +244,16 @@ export const evalOp: Verb = (vm: VM) => {
 
   switch (tag) {
     case Tag.CODE:
+      const decodedAddr = decodeX1516(addr); // Decode X1516 to get actual address
       if (meta === 1) {
         rpush(vm, vm.IP);
-        vm.IP = addr;
+        vm.IP = decodedAddr;
       } else {
         rpush(vm, vm.IP);
         // Save BP as relative cells on the return stack for compatibility
         rpush(vm, vm.bp - RSTACK_BASE);
         vm.bp = vm.rsp;
-        vm.IP = addr;
+        vm.IP = decodedAddr;
       }
       break;
 

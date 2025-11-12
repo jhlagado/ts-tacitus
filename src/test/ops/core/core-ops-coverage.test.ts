@@ -10,6 +10,7 @@ import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
 import { push, rpush, rpop, pop, getStackData } from '../../../core/vm';
 import { toTaggedValue, Tag } from '../../../core/tagged';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('Core Operations Branch Coverage', () => {
   let vm: VM;
@@ -73,7 +74,7 @@ describe('Core Operations Branch Coverage', () => {
       // meta=1 branch in evalOp should rpush return address and jump to addr
       const addr = 12345;
       vm.IP = 77;
-      push(vm, toTaggedValue(addr, Tag.CODE, 1));
+      push(vm, toTaggedValue(encodeX1516(addr), Tag.CODE, 1));
       evalOp(vm);
       expect(vm.IP).toBe(addr);
     });
@@ -123,8 +124,8 @@ describe('Core Operations Branch Coverage', () => {
   describe('Code tag variations', () => {
     test('should handle CODE tag with different meta values', () => {
       // Test CODE tag with meta=0 (function) vs meta=1 (block)
-      const codeFunc = toTaggedValue(1000, Tag.CODE, 0); // Function
-      const codeBlock = toTaggedValue(2000, Tag.CODE, 1); // Block
+      const codeFunc = toTaggedValue(encodeX1516(1000), Tag.CODE, 0); // Function
+      const codeBlock = toTaggedValue(encodeX1516(2000), Tag.CODE, 1); // Block
 
       // Just ensure these don't crash when processed
       push(vm, codeFunc);

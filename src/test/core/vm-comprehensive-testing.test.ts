@@ -21,6 +21,7 @@ import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { define } from '../../core/dictionary';
 import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../../core/vm';
+import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
 jest.retryTimes(2);
@@ -38,14 +39,14 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const colonDefName = 'testSquare';
       const startAddress = 1000;
 
-      define(vm, colonDefName, toTaggedValue(startAddress, Tag.CODE, 0));
+      define(vm, colonDefName, toTaggedValue(encodeX1516(startAddress), Tag.CODE, 0));
 
       const taggedValue = resolveSymbol(vm, colonDefName);
       expect(taggedValue).toBeDefined();
 
       const { tag, value } = fromTaggedValue(taggedValue!);
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(startAddress);
+      expect(value).toBe(encodeX1516(startAddress));
 
       pushSymbolRef(vm, colonDefName);
       const stackValue = peek(vm);
@@ -63,7 +64,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         if (i % 2 === 0) {
           define(vm, symbolName, toTaggedValue(Op.Add, Tag.BUILTIN, 0));
         } else {
-          define(vm, symbolName, toTaggedValue(2000 + i, Tag.CODE, 0));
+          define(vm, symbolName, toTaggedValue(encodeX1516(2000 + i), Tag.CODE, 0));
         }
       }
 
@@ -86,7 +87,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       });
 
       codeSymbols.forEach((name, index) => {
-        define(vm, name, toTaggedValue(3000 + index * 100, Tag.CODE, 0));
+        define(vm, name, toTaggedValue(encodeX1516(3000 + index * 100), Tag.CODE, 0));
       });
 
       for (let i = 0; i < 100; i++) {
@@ -176,8 +177,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
       define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
       define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
-      define(vm, 'square', toTaggedValue(5000, Tag.CODE, 0));
-      define(vm, 'double', toTaggedValue(5100, Tag.CODE, 0));
+      define(vm, 'square', toTaggedValue(encodeX1516(5000), Tag.CODE, 0));
+      define(vm, 'double', toTaggedValue(encodeX1516(5100), Tag.CODE, 0));
 
       push(vm, 3);
       push(vm, 4);
@@ -193,7 +194,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       pushSymbolRef(vm, 'square');
       const { tag, value } = fromTaggedValue(pop(vm));
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(5000);
+      expect(value).toBe(encodeX1516(5000));
     });
 
     it('should handle rapid symbol type switching', () => {
@@ -210,7 +211,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       ];
 
       builtins.forEach(op => define(vm, op.name, toTaggedValue(op.code, Tag.BUILTIN, 0)));
-      codeDefs.forEach(def => define(vm, def.name, toTaggedValue(def.addr, Tag.CODE, 0)));
+      codeDefs.forEach(def => define(vm, def.name, toTaggedValue(encodeX1516(def.addr), Tag.CODE, 0)));
 
       for (let i = 0; i < 100; i++) {
         const useBuiltin = i % 2 === 0;
@@ -226,7 +227,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
           pushSymbolRef(vm, def.name);
           const { tag, value } = fromTaggedValue(pop(vm));
           expect(tag).toBe(Tag.CODE);
-          expect(value).toBe(def.addr);
+          expect(value).toBe(encodeX1516(def.addr));
         }
       }
     });

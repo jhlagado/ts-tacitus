@@ -19,6 +19,7 @@ import {
   isNumber as isNumberTagged,
   isNIL,
 } from './tagged';
+import { decodeX1516 } from './code-ref';
 import { isList, getListLength, validateListHeader } from './list';
 import { isRef, createGlobalRef, getCellFromRef } from './refs';
 import { gpushListFrom, gpushVal } from './global-heap';
@@ -99,7 +100,8 @@ export function findBytecodeAddress(vm: VM, name: string): number | undefined {
   }
   const info = fromTaggedValue(result);
   if (info.tag === Tag.CODE) {
-    return info.value;
+    // Decode X1516 encoded address to return the actual bytecode address
+    return decodeX1516(info.value);
   }
   return undefined;
 }

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, toTaggedValue, Tag } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { createVM, type VM } from '../../core/vm';
 import { nextAddress, next8, nextOpcode, nextInt16, nextFloat32, nextUint16 } from '../../core/vm';
@@ -55,9 +56,9 @@ describe('VM Instruction Pointer Operations', () => {
 
   test('nextAddress should read a tagged address and advance IP by CELL_SIZE', () => {
     const testAddress = 0x1234;
-    vm.memory.writeFloat32(SEG_CODE, 0, toTaggedValue(testAddress, Tag.CODE));
+    vm.memory.writeFloat32(SEG_CODE, 0, toTaggedValue(encodeX1516(testAddress), Tag.CODE));
     const address = nextAddress(vm);
-    expect(address).toBe(testAddress);
+    expect(address).toBe(testAddress); // nextAddress decodes the X1516 value
     expect(vm.IP).toBe(CELL_SIZE);
   });
 

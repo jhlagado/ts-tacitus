@@ -1,4 +1,5 @@
 import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM } from '../../core';
+import { encodeX1516 } from '../../core/code-ref';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
 import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
@@ -40,9 +41,10 @@ describe('VM', () => {
       expect(getStackData(vm)).toEqual([1, 2, 3]);
     });
     test('should handle address tagging', () => {
-      push(vm, toTaggedValue(0x2345, Tag.CODE));
+      const address = 0x2345;
+      push(vm, toTaggedValue(encodeX1516(address), Tag.CODE));
       const { value, tag } = fromTaggedValue(pop(vm));
-      expect(value).toBe(0x2345);
+      expect(value).toBe(encodeX1516(address)); // Value is X1516 encoded
       expect(tag).toBe(Tag.CODE);
     });
   });
@@ -65,10 +67,11 @@ describe('VM', () => {
       expect(() => rpop(vm)).toThrow('Return stack (RSP) underflow');
     });
     test('should handle address tagging on return stack', () => {
-      rpush(vm, toTaggedValue(0x4321, Tag.CODE));
+      const address = 0x4321;
+      rpush(vm, toTaggedValue(encodeX1516(address), Tag.CODE));
       const { value, tag } = fromTaggedValue(rpop(vm));
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(0x4321);
+      expect(value).toBe(encodeX1516(address)); // Value is X1516 encoded
     });
     test('should handle integer tagging on return stack', () => {
       rpush(vm, 0x2345);
@@ -92,9 +95,9 @@ describe('VM', () => {
     });
     test('should handle nextAddress correctly', () => {
       const addr = 0x2345;
-      vm.compiler.compileFloat32(toTaggedValue(addr, Tag.CODE));
+      vm.compiler.compileAddress(addr); // compileAddress encodes using X1516
       vm.IP = 0;
-      expect(nextAddress(vm)).toBe(addr);
+      expect(nextAddress(vm)).toBe(addr); // nextAddress decodes it
     });
   });
 
