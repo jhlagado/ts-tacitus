@@ -59,15 +59,21 @@ export function createBuiltinRef(opcode: number): number {
 
 /**
  * Creates a tagged reference to bytecode at a specific address.
- * The address is encoded using X1516 format before storing in Tag.CODE.
+ * For addresses < 128, stores the value directly (invalid X1516 format, treated as builtin opcode).
+ * For addresses >= 128, encodes using X1516 format before storing in Tag.CODE.
  * @param bytecodeAddr The bytecode address in code segment (0-32767)
- * @returns A Tag.CODE tagged value containing X1516 encoded address
+ * @returns A Tag.CODE tagged value
  * @throws {Error} If address is out of range
  */
 export function createCodeRef(bytecodeAddr: number): number {
   if (bytecodeAddr < 0 || bytecodeAddr > 32767) {
     throw new Error(`Invalid bytecode address: ${bytecodeAddr}. Must be in range 0-32767.`);
   }
+  // If address < 128, store directly (invalid X1516, will be treated as builtin opcode)
+  if (bytecodeAddr < 128) {
+    return toTaggedValue(bytecodeAddr, Tag.CODE);
+  }
+  // Otherwise, encode using X1516 format
   const encoded = encodeX1516(bytecodeAddr);
   return toTaggedValue(encoded, Tag.CODE);
 }

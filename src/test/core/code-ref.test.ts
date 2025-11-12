@@ -134,7 +134,7 @@ describe('Code Reference Utilities', () => {
       expect(getCodeAddress(codeRef)).toBe(1000); // But getCodeAddress decodes it
     });
 
-    test('should handle various valid addresses with X1516 encoding', () => {
+    test('should handle various valid addresses with X1516 encoding (or direct for < 128)', () => {
       const testAddresses = [0, 1, 8192, 32767];
 
       testAddresses.forEach(addr => {
@@ -142,8 +142,14 @@ describe('Code Reference Utilities', () => {
         const { tag, value } = fromTaggedValue(ref);
 
         expect(tag).toBe(Tag.CODE);
-        expect(value).toBe(encodeX1516(addr)); // Value is X1516 encoded
-        expect(getCodeAddress(ref)).toBe(addr); // But getCodeAddress decodes it
+        // For addresses < 128, value is stored directly (not X1516 encoded)
+        // For addresses >= 128, value is X1516 encoded
+        if (addr < 128) {
+          expect(value).toBe(addr); // Stored directly
+        } else {
+          expect(value).toBe(encodeX1516(addr)); // X1516 encoded
+        }
+        expect(getCodeAddress(ref)).toBe(addr); // getCodeAddress handles both cases
       });
     });
 
@@ -291,6 +297,38 @@ describe('Code Reference Utilities', () => {
 
       expect(extractedOpcode).toBe(originalOpcode);
       expect(extractedAddr).toBe(originalAddr);
+    });
+  });
+
+  describe('Tag.CODE < 128 as builtin opcodes', () => {
+    test('should store addresses < 128 directly (not X1516 encoded)', () => {
+      const opcode = Op.Add; // < 128
+      const codeRef = createCodeRef(opcode);
+      const { tag, value } = fromTaggedValue(codeRef);
+
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBe(opcode); // Stored directly, not encoded
+      expect(getCodeAddress(codeRef)).toBe(opcode);
+    });
+
+    test('should store addresses >= 128 with X1516 encoding', () => {
+      const addr = 1000; // >= 128
+      const codeRef = createCodeRef(addr);
+      const { tag, value } = fromTaggedValue(codeRef);
+
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBe(encodeX1516(addr)); // X1516 encoded
+      expect(getCodeAddress(codeRef)).toBe(addr);
+    });
+
+    test('should allow direct creation of Tag.CODE with opcode < 128', () => {
+      const opcode = Op.Dup; // < 128
+      const codeRef = toTaggedValue(opcode, Tag.CODE);
+      const { tag, value } = fromTaggedValue(codeRef);
+
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBe(opcode); // Stored directly
+      expect(getCodeAddress(codeRef)).toBe(opcode);
     });
   });
 });
