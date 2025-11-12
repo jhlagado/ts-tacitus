@@ -172,7 +172,7 @@ Symbols
 @add           # ( — symbol-ref )
 ```
 
-- `@symbol` yields BUILTIN/CODE; `eval` executes.
+- `@symbol` yields CODE (value < 128 = builtin, >= 128 = bytecode); `eval` executes.
 
 ### Pitfalls (Quick)
 

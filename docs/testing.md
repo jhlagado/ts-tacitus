@@ -238,7 +238,7 @@ Read
 
 Do
 
-- Replicate a simple tag round‑trip from `src/test/core/tagged.test.ts` and add one more case (e.g., another SENTINEL boundary or BUILTIN upper bound).
+- Replicate a simple tag round‑trip from `src/test/core/tagged.test.ts` and add one more case (e.g., another SENTINEL boundary or CODE builtin upper bound).
 - Add an effect‑based assertion to a list test using `src/test/ops/lists/list-spec-compliance.test.ts`; assert lengths/sizes for a new nested shape instead of raw structure.
 
 Verify

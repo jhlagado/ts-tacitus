@@ -33,7 +33,6 @@ export enum Tag {
   CODE = 2, // Bytecode address (direct dispatch)
   STRING = 4, // String segment reference
   LOCAL = 6, // Compile‑time local symbol (parser only)
-  BUILTIN = 7, // Built‑in opcode (0–127)
   LIST = 8, // Reverse list header (payload slot count)
   REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
 }
@@ -47,10 +46,9 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 | -------- | --------------------------------------- | -------------------------------------- | ------------------------------ | ----------------------------------------------------------- |
 | NUMBER   | Raw IEEE‑754 float32 (non‑NaN)          | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                         |
 | SENTINEL | Named sentinel (e.g., NIL=0, DEFAULT=1) | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved             |
-| CODE     | Bytecode address (0..8191 current)      | No (structural)                        | `@name` or bytecode addr       | Sign bit encodes `IMMEDIATE`; executed via `eval`           |
+| CODE     | Builtin opcode (0..127) or bytecode address (128..32767) | No                                     | `@name` or bytecode addr       | Value < 128: builtin opcode (stored directly); Value >= 128: bytecode address (X1516 encoded); Sign bit encodes `IMMEDIATE` |
 | STRING   | String segment offset                   | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table     |
 | LOCAL    | Local slot number (compile‑time only)   | n/a                                    | —                              | Parser/symbol table only; never a runtime ref               |
-| BUILTIN  | Opcode (0..127)                         | No                                     | builtin name                   | Sign bit encodes `IMMEDIATE`; dispatch via builtin table    |
 | LIST     | Payload slot count (0..65535)           | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                      |
 | REF      | Reference into data segment (absolute cell index) | n/a                                    | `REF:<abs-idx>`                | Helper routines map the index to global/stack/return stack windows |
 
@@ -79,7 +77,7 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 
 - **Numbers**: Full IEEE 754 float (no tag needed)
 - **Addresses**: Tag.CODE + 16-bit bytecode address
-- **Built-ins**: Tag.BUILTIN + opcode (0-127)
+- **Built-ins**: Tag.CODE + opcode (0-127, stored directly, not X1516 encoded)
 - **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
 
 ### String Shorthand
@@ -91,21 +89,21 @@ Tacit supports a shorthand for simple string keys without spaces or grouping cha
 
 ### Dispatch Semantics
 
-`@symbol` produces either:
+`@symbol` produces:
 
-- `Tag.BUILTIN(op)` if the symbol names a builtin opcode (0–127)
-- `Tag.CODE(addr)` if the symbol names a colon definition (bytecode) or a compiled quotation
+- `Tag.CODE(op)` if the symbol names a builtin opcode (0–127, stored directly)
+- `Tag.CODE(addr)` if the symbol names a colon definition (bytecode, X1516 encoded, value >= 128)
 
-`eval` inspects the tag:
+`eval` inspects the tag and value:
 
-- BUILTIN → invokes native op implementation
-- CODE → jumps to bytecode address
+- CODE with value < 128 → invokes native op implementation (builtin)
+- CODE with value >= 128 → decodes X1516 and jumps to bytecode address
 
 This is the unified mechanism used for dispatch.
 
 ### CODE Meta Semantics
 
-The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE` and `Tag.BUILTIN`. Tacit uses that bit as the **`IMMEDIATE`** flag: when set, the word executes during compilation. VM dispatch MUST mask the sign bit before interpreting the payload as a bytecode address or builtin opcode; compiler helpers set or clear it when registering dictionary entries.
+The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE`. Tacit uses that bit as the **`IMMEDIATE`** flag: when set, the word executes during compilation. VM dispatch MUST mask the sign bit before interpreting the payload as a bytecode address or builtin opcode; compiler helpers set or clear it when registering dictionary entries.
 
 ### STRING Meta Semantics
 
@@ -115,7 +113,7 @@ The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE` and `Tag.BUI
 
 - Payload (non‑number) is 16 bits. Unless otherwise noted, values are unsigned (0–65535).
 - SENTINEL payload is signed 16‑bit for convenience; named values currently used are: NIL=0 and DEFAULT=1.
-- CODE payload, BUILTIN payload, LIST payload, and reference payloads follow their respective ranges.
+- CODE payload (builtin opcodes 0-127 stored directly, bytecode addresses 128-32767 X1516 encoded), LIST payload, and reference payloads follow their respective ranges.
 
 ## Validation
 
@@ -136,7 +134,7 @@ All tagged values must:
 ## Implementation Notes
 
 - `toTaggedValue(value, tag)` / `fromTaggedValue()` implement encoding/decoding
-- Helper routines MUST mask sign-bit metadata when converting CODE, BUILTIN, or STRING payloads to raw addresses, opcodes, or string offsets.
+- Helper routines MUST mask sign-bit metadata when converting CODE or STRING payloads to raw addresses, opcodes, or string offsets.
 - Reverse lists depend only on header payload count; traversal uses span rule (see `lists.md §11`)
 - Parser-generated code (colon definitions, meta constructs) yields `Tag.CODE` references; there is no separate `CODE_BLOCK` tag
 - Addressing operations (`elem`, `slot`, `find`) consume tagged headers uniformly
@@ -154,13 +152,13 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, BUILTIN, LIST, REF}. `LOCAL` is compile‑time only.
-2. `Tag.BUILTIN` payload MUST be < 128; execution MUST NOT treat it as a bytecode address.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, LIST, REF}. `LOCAL` is compile‑time only.
+2. `Tag.CODE` payload < 128 MUST be treated as builtin opcode; payload >= 128 MUST be X1516 decoded to get bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.
 5. NIL is defined exactly as `(tag=SENTINEL, value=0)`; DEFAULT is `(tag=SENTINEL, value=1)` and is used as a case wildcard sentinel.
 6. Tags MUST be valid for all newly constructed values; detection of unsupported tags constitutes a validation error.
-7. Simple in‑place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, SENTINEL, CODE, STRING, BUILTIN) value; LIST headers and compound starts are immutable.
+7. Simple in‑place mutation (`store`) is allowed only when target slot holds a simple (NUMBER, SENTINEL, CODE, STRING) value; LIST headers and compound starts are immutable.
 
 ## Worked Examples
 
@@ -171,7 +169,7 @@ All tagged values must:
 @square                  \ pushes Tag.CODE(A)
 5 @square eval           \ -> 25
 
-@add                     \ builtin (e.g., opcode 3) Tag.BUILTIN(3)
+@add                     \ builtin (e.g., opcode 3) Tag.CODE(3) (value < 128, stored directly)
 2 3 @add eval            \ -> 5
 
 : abs dup 0 lt if neg ; ;
@@ -201,4 +199,4 @@ length                     \ -> 3
 | Reverse list layout | LIST header + payload slots | `docs/specs/lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `docs/specs/vm-architecture.md` (implementation-defined) |
 | NIL definition      | SENTINEL 0                  | `docs/specs/lists.md` (Maplists)                         |
-| Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                               |
+| Unified dispatch    | CODE via eval (value < 128 = builtin, >= 128 = bytecode) | Language parser & executor                               |

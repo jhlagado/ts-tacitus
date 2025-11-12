@@ -56,7 +56,7 @@ Sign (1 bit) | Exponent (8 bits) | NaN bit (1 bit) | Tag (3 bits) | Value (19 bi
 - `CODE = 2`
 - `STRING = 4`
 - `LOCAL = 6`
-- `BUILTIN = 7` (will be removed after unification with `CODE`)
+- `BUILTIN = 7` (removed - unified with `CODE`)
 - `LIST = 8`
 - `REF = 12`
 
@@ -64,7 +64,7 @@ Sign (1 bit) | Exponent (8 bits) | NaN bit (1 bit) | Tag (3 bits) | Value (19 bi
 
 **After unification and with 3-bit tags** (compact numbering 0-7):
 
-After `Tag.CODE` and `Tag.BUILTIN` unification, we'll have 8 tag values (0-7):
+After `Tag.CODE` and `Tag.BUILTIN` unification (completed), we have 7 tag values (0-6, 8, 12):
 
 - `0` = `NaN` (canonical NaN needs to be valid as a tagged value)
 - `1` = `SENTINEL` (remapped from 1)
@@ -190,7 +190,7 @@ If we expand to 18-19 bit addresses, encoding them in opcodes would require 3 by
 
 ### Tag Type Limit
 
-With 3-bit tags, we're limited to 8 tag types (0-7). After unifying `Tag.CODE` and `Tag.BUILTIN` (removing `BUILTIN`), we'll have 8 tag values:
+With 3-bit tags, we're limited to 8 tag types (0-7). After unifying `Tag.CODE` and `Tag.BUILTIN` (completed, `BUILTIN` removed), we have 7 tag values:
 
 - `0` = `NaN` (canonical NaN needs to be valid as a tagged value)
 - `1` = `SENTINEL` (remapped from 1)

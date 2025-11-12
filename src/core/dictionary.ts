@@ -4,7 +4,7 @@
  *
  * Entry layout (LIST length 3): [prevRef, payloadTagged, name]
  * - prevRef: REF to previous entry header, or NIL (end of chain)
- * - payloadTagged: any tagged value (BUILTIN/CODE/LOCAL/REF/...)
+ * - payloadTagged: any tagged value (CODE/LOCAL/REF/...)
  * - name: STRING (interned)
  *
  * Head is stored as a cell index (like gp), with 0 meaning empty dictionary.

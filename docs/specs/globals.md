@@ -139,7 +139,7 @@ That cell’s content may be:
 | -------------------------- | ----------------------------------------- | -------------------- |
 | `Tag.NUMBER`               | Plain scalar                              | `42 global count`    |
 | `Tag.STRING`               | Pointer into string segment               | `"hello" global msg` |
-| `Tag.CODE` / `Tag.BUILTIN` | Function or builtin reference             | `@square global fn`  |
+| `Tag.CODE`                 | Function or builtin reference (value < 128 = builtin, >= 128 = bytecode) | `@square global fn`  |
 | `Tag.REF`                  | Pointer to compound header in global heap | `(1 2 3) global xs`  |
 
 This model keeps globals _flat_; even complex data is addressed through a single level of indirection.
@@ -311,7 +311,7 @@ This unifies global variable names with the same lookup system that handles user
 | | -- | |
 | `name` | `Tag.STRING` | Pointer to the interned symbol for the variable name. |
 | `payload` | `Tag.REF` | Absolute cell index of the global heap slot. |
-| `flags` | — | Marks entry as “data,” not executable (`CODE` or `BUILTIN`). |
+| `flags` | — | Marks entry as "data," not executable (`CODE`). |
 | `prev` | `Tag.REF` / `NIL` | Link to prior entry for chaining. |
 
 This means globals are ordinary dictionary entries whose value field happens to reference a persistent cell instead of a code address.
