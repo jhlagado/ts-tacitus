@@ -42,6 +42,7 @@ import type { ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 import { lookup, define } from '../core/dictionary';
+import { decodeX1516 } from '../core/code-ref';
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -227,7 +228,9 @@ export function emitWord(
   const entryValue = tval;
 
   if (tag === Tag.CODE) {
-    vm.compiler.compileUserWordCall(tagValue);
+    // Decode X1516 encoded address to get actual bytecode address
+    const decodedAddress = decodeX1516(tagValue);
+    vm.compiler.compileUserWordCall(decodedAddress);
     return;
   }
 
