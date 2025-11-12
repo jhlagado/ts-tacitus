@@ -2,7 +2,7 @@
  * @file src/core/format-utils.ts
  * Utility functions for formatting Tacit VM values.
  */
-import { CELL_SIZE, STACK_BASE } from './constants';
+import { STACK_BASE } from './constants';
 import { fromTaggedValue, Tag, getTag } from './tagged';
 import { isRef, getCellFromRef } from './refs';
 import { getListLength } from './list';

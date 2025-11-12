@@ -4,20 +4,15 @@
  */
 export enum Tag {
   NUMBER = 0,
-
   SENTINEL = 1,
-
-  CODE = 2,
-
-  STRING = 4,
-
-  LOCAL = 6,
-
-  LIST = 8,
-  REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
+  STRING = 2,
+  CODE = 3,
+  REF = 4,
+  LIST = 5,
+  LOCAL = 7,
 }
 
-export const MAX_TAG = Tag.REF;
+export const MAX_TAG = Tag.LOCAL;
 
 /**
  * Enumerates the canonical sentinel payload values carried by `Tag.SENTINEL`.
