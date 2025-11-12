@@ -162,7 +162,7 @@ describe('Local Variables Error Handling', () => {
 
     test('should handle variable shadowing edge cases', () => {
       // Define a global using a valid builtin opcode (Add = 5)
-      define(vm, 'global_var', toTaggedValue(5, Tag.BUILTIN, 0));
+      define(vm, 'global_var', toTaggedValue(5, Tag.CODE, 0));
 
       const result = executeTacitCode(
         vm,

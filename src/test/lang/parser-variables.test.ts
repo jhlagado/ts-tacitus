@@ -79,7 +79,7 @@ describe('Parser Variable Support', () => {
 
     test('should handle natural shadowing', () => {
       // Define a builtin (simulate global)
-      define(vm, 'x', toTaggedValue(42, Tag.BUILTIN, 0));
+      define(vm, 'x', toTaggedValue(42, Tag.CODE, 0));
 
       // Start function and define local with same name
       const checkpoint = markWithLocalReset(vm);
@@ -95,7 +95,7 @@ describe('Parser Variable Support', () => {
       forget(vm, checkpoint);
       const globalXRef = resolveSymbol(vm, 'x');
       const { tag: globalTag } = fromTaggedValue(globalXRef!);
-      expect(globalTag).toBe(Tag.BUILTIN);
+      expect(globalTag).toBe(Tag.CODE);
     });
   });
 

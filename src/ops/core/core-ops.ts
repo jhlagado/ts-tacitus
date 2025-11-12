@@ -264,10 +264,6 @@ export const evalOp: Verb = (vm: VM) => {
       }
       break;
 
-    case Tag.BUILTIN:
-      executeOp(vm, addr);
-      break;
-
     default:
       push(vm, value);
       break;
@@ -374,9 +370,8 @@ export const endOfOp: Verb = (vm: VM) => {
 
   const closer = peek(vm);
   const { tag, value } = fromTaggedValue(closer);
-  // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
-  const isBuiltin = tag === Tag.BUILTIN || (tag === Tag.CODE && value < 128);
-  if (!isBuiltin || value !== Op.EndCase) {
+  // Check Tag.CODE < 128 (represents builtin opcode)
+  if (tag !== Tag.CODE || value >= 128 || value !== Op.EndCase) {
     throw new SyntaxError('clause closer without do', getStackData(vm));
   }
 
@@ -567,13 +562,13 @@ export const printOp: Verb = (vm: VM) => {
  * Implements the pushSymbolRef operation for @symbol syntax support.
  *
  * Expects a string on the stack containing the symbol name.
- * Resolves the symbol to a tagged value (Tag.BUILTIN or Tag.CODE) and pushes it.
+ * Resolves the symbol to a tagged value (Tag.CODE) and pushes it.
  * This enables metaprogramming by creating references to operations and colon definitions.
  *
  * Stack effect: ( string -- tagged_value )
  *
  * Examples:
- * - "add" pushSymbolRef → Tag.BUILTIN(Op.Add)
+ * - "add" pushSymbolRef → Tag.CODE(Op.Add) (value < 128, stored directly)
  * - "square" pushSymbolRef → Tag.CODE(bytecode_addr)
  *
  * @param {VM} vm - The virtual machine instance

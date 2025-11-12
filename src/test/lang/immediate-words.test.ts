@@ -21,7 +21,7 @@ describe('Immediate words', () => {
   test('executes builtin opcode immediates immediately', () => {
     push(vm, 42);
 
-    define(vm, 'immdup', toTaggedValue(Op.Dup, Tag.BUILTIN, 1));
+    define(vm, 'immdup', toTaggedValue(Op.Dup, Tag.CODE, 1));
 
     parse(vm, new Tokenizer('immdup'));
 

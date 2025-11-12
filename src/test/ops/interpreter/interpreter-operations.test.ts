@@ -76,30 +76,30 @@ describe('Built-in Words', () => {
       expect(returnAddr).toBe(originalIP + 2);
     });
   });
-  describe('evalOp with Tag.BUILTIN', () => {
-    test('should execute built-in add operation via Tag.BUILTIN', () => {
+  describe('evalOp with Tag.CODE', () => {
+    test('should execute built-in add operation via Tag.CODE', () => {
       push(vm, 2);
       push(vm, 3);
-      push(vm, toTaggedValue(Op.Add, Tag.BUILTIN));
+      push(vm, toTaggedValue(Op.Add, Tag.CODE));
 
       evalOp(vm);
 
       expect(getStackData(vm)).toEqual([5]);
     });
 
-    test('should execute built-in dup operation via Tag.BUILTIN', () => {
+    test('should execute built-in dup operation via Tag.CODE', () => {
       push(vm, 42);
-      push(vm, toTaggedValue(Op.Dup, Tag.BUILTIN));
+      push(vm, toTaggedValue(Op.Dup, Tag.CODE));
 
       evalOp(vm);
 
       expect(getStackData(vm)).toEqual([42, 42]);
     });
 
-    test('should execute built-in multiply operation via Tag.BUILTIN', () => {
+    test('should execute built-in multiply operation via Tag.CODE', () => {
       push(vm, 7);
       push(vm, 8);
-      push(vm, toTaggedValue(Op.Multiply, Tag.BUILTIN));
+      push(vm, toTaggedValue(Op.Multiply, Tag.CODE));
 
       evalOp(vm);
 

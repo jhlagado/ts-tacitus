@@ -43,58 +43,10 @@ export function executeImmediateWord(
 ): void {
   const { tag, value } = fromTaggedValue(entry.taggedValue);
 
-  if (tag === Tag.BUILTIN) {
-    // Dispatch known meta-immediate words by name (compile-time actions)
-    switch (name) {
-      case ':':
-        beginDefinitionImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'if':
-        beginIfImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case ';':
-        if (vm.sp - STACK_BASE === 0) {
-          throw new SyntaxError('Unexpected semicolon', getStackData(vm));
-        }
-        evalOp(vm);
-        return;
-      case 'else':
-        beginElseImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'match':
-        beginMatchImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'with':
-        beginWithImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'case':
-        beginCaseImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'do':
-        // 'do' is used for case clauses (dispatch/mapping)
-        // clauseDoImmediate validates that we're in a case context
-        clauseDoImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'DEFAULT':
-        defaultImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'NIL':
-        nilImmediate(vm, tokenizer, currentDefinition);
-        return;
-      case 'capsule':
-        beginCapsuleImmediate(vm, tokenizer, currentDefinition);
-        return;
-      default:
-        // Immediate builtin with runtime semantics (e.g., immdup)
-        executeOp(vm, value as Op);
-        return;
-    }
-  }
-
   if (tag === Tag.CODE) {
     // If encoded value < 128, it's invalid X1516 format, so treat as builtin immediate word
     if (value < 128) {
-      // Dispatch by name (same as Tag.BUILTIN case)
+      // Dispatch by name
       switch (name) {
         case ':':
           beginDefinitionImmediate(vm, tokenizer, currentDefinition);

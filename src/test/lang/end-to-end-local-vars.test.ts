@@ -76,7 +76,7 @@ describe('End-to-End Local Variables Integration', () => {
 
     test('should handle variable shadowing correctly', () => {
       // Define a global-like builtin first
-      define(vm, 'x', toTaggedValue(99, Tag.BUILTIN, 0));
+      define(vm, 'x', toTaggedValue(99, Tag.CODE, 0));
 
       const result = executeTacitCode(
         vm,

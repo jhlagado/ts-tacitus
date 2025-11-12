@@ -23,7 +23,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('built-in operations', () => {
     test('should push built-in add reference and execute correctly', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
 
       push(vm, 2);
       push(vm, 3);
@@ -37,7 +37,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in dup reference and execute correctly', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
 
       push(vm, 42);
 
@@ -51,7 +51,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in swap reference and execute correctly', () => {
-      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.BUILTIN, 0));
+      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.CODE, 0));
 
       push(vm, 1);
       push(vm, 2);
@@ -120,8 +120,8 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should enable chained execution with evalOp', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
-      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
+      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.CODE, 0));
 
       push(vm, 5);
 
@@ -165,7 +165,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('workflow simulation', () => {
     test('should simulate complete @symbol eval workflow', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
 
       push(vm, 3);
       push(vm, 7);

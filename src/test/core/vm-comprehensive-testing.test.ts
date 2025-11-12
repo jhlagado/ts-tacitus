@@ -62,7 +62,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         symbols.push(symbolName);
 
         if (i % 2 === 0) {
-          define(vm, symbolName, toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+          define(vm, symbolName, toTaggedValue(Op.Add, Tag.CODE, 0));
         } else {
           define(vm, symbolName, toTaggedValue(encodeX1516(2000 + i), Tag.CODE, 0));
         }
@@ -83,7 +83,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       const codeSymbols = ['square', 'double', 'triple', 'quad'];
 
       builtinSymbols.forEach((name, index) => {
-        define(vm, name, toTaggedValue(index + 1, Tag.BUILTIN, 0));
+        define(vm, name, toTaggedValue(index + 1, Tag.CODE, 0));
       });
 
       codeSymbols.forEach((name, index) => {
@@ -99,7 +99,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         const { tag } = fromTaggedValue(pop(vm));
 
         if (useBuiltin) {
-          expect(tag).toBe(Tag.BUILTIN);
+          expect(tag).toBe(Tag.CODE);
         } else {
           expect(tag).toBe(Tag.CODE);
         }
@@ -158,7 +158,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
     });
 
     it('should handle symbol resolution with corrupted internal state', () => {
-      define(vm, 'test', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
+      define(vm, 'test', toTaggedValue(Op.Add, Tag.CODE, 0));
 
       push(vm, 999);
       push(vm, -999);
@@ -167,7 +167,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
       pushSymbolRef(vm, 'test');
       const { tag, value } = fromTaggedValue(pop(vm));
-      expect(tag).toBe(Tag.BUILTIN);
+      expect(tag).toBe(Tag.CODE);
       expect(value).toBe(Op.Add);
     });
   });
@@ -175,8 +175,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
 
   describe('Integration Workflow Testing', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
-      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.BUILTIN, 0));
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.CODE, 0));
       define(vm, 'square', toTaggedValue(encodeX1516(5000), Tag.CODE, 0));
       define(vm, 'double', toTaggedValue(encodeX1516(5100), Tag.CODE, 0));
 
@@ -210,7 +210,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
         { name: 'def3', addr: 6200 },
       ];
 
-      builtins.forEach(op => define(vm, op.name, toTaggedValue(op.code, Tag.BUILTIN, 0)));
+      builtins.forEach(op => define(vm, op.name, toTaggedValue(op.code, Tag.CODE, 0)));
       codeDefs.forEach(def => define(vm, def.name, toTaggedValue(encodeX1516(def.addr), Tag.CODE, 0)));
 
       for (let i = 0; i < 100; i++) {
@@ -220,7 +220,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
           const op = builtins[i % builtins.length];
           pushSymbolRef(vm, op.name);
           const { tag, value } = fromTaggedValue(pop(vm));
-          expect(tag).toBe(Tag.BUILTIN);
+          expect(tag).toBe(Tag.CODE);
           expect(value).toBe(op.code);
         } else {
           const def = codeDefs[i % codeDefs.length];

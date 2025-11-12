@@ -19,7 +19,7 @@ describe('dict define/lookup builtin (happy path)', () => {
 
     const nameAddr = vm.digest.intern(name);
     const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
-    const builtinTagged = toTaggedValue(opcode, Tag.BUILTIN, 0);
+    const builtinTagged = toTaggedValue(opcode, Tag.CODE, 0);
 
     // ( value name — ) define
     push(vm, builtinTagged);
@@ -36,7 +36,7 @@ describe('dict define/lookup builtin (happy path)', () => {
     const addr = refToByte(ref);
     const stored = vm.memory.readCell(addr / CELL_SIZE);
     const info = fromTaggedValue(stored);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(opcode);
   });
 });
