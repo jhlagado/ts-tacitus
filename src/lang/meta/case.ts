@@ -15,7 +15,9 @@ function assertOpenCase(vm: VM, word: string): void {
   }
   const closer = peek(vm);
   const { tag, value } = fromTaggedValue(closer);
-  if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
+  // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
+  const isBuiltin = tag === Tag.BUILTIN || (tag === Tag.CODE && value < 128);
+  if (!isBuiltin || value !== Op.EndCase) {
     throw new SyntaxError(`${word} without open case`, getStackData(vm));
   }
 }

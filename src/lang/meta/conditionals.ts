@@ -52,7 +52,9 @@ export function beginElseImmediate(
 
   const closer = pop(vm);
   const closerInfo = fromTaggedValue(closer);
-  if (closerInfo.tag !== Tag.BUILTIN || closerInfo.value !== Op.EndIf) {
+  // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
+  const isBuiltin = closerInfo.tag === Tag.BUILTIN || (closerInfo.tag === Tag.CODE && closerInfo.value < 128);
+  if (!isBuiltin || closerInfo.value !== Op.EndIf) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));
   }
 
@@ -78,7 +80,9 @@ export function ensureNoOpenConditionals(vm: VM): void {
   for (let offset = 0; offset < stackDepth; offset++) {
     const tval = peekAt(vm, offset); // 0 = TOS
     const { tag, value: opcode } = fromTaggedValue(tval);
-    if (tag === Tag.BUILTIN) {
+    // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
+    const isBuiltin = tag === Tag.BUILTIN || (tag === Tag.CODE && opcode < 128);
+    if (isBuiltin) {
       if (opcode === Op.EndIf) {
         throw new SyntaxError('Unclosed IF', getStackData(vm));
       }

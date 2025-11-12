@@ -71,15 +71,15 @@ describe('conditional immediates', () => {
     const exitPlaceholder = peekAt(vm, 1);
     expect(exitPlaceholder).toBe(cpBeforeElse + 1);
 
-    // Verify closer is EndIf on the stack top
-    verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);
+    // Verify closer is EndIf on the stack top (now stored as Tag.CODE)
+    verifyTaggedValue(peek(vm), Tag.CODE, Op.EndIf);
   });
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
     beginIfImmediate(vm, tokenizer, currentDefinition);
     expect(vm.sp - STACK_BASE).toBe(2);
-    // Top of stack should be EndIf closer
-    verifyTaggedValue(peek(vm), Tag.BUILTIN, Op.EndIf);
+    // Top of stack should be EndIf closer (now stored as Tag.CODE)
+    verifyTaggedValue(peek(vm), Tag.CODE, Op.EndIf);
     // Also verify the element beneath top is a NUMBER (branch placeholder offset)
     const belowTop = fromTaggedValue(peekAt(vm, 1));
     expect(belowTop.tag).toBe(Tag.NUMBER);

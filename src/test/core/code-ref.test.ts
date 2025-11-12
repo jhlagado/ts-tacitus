@@ -95,23 +95,25 @@ describe('Code Reference Utilities', () => {
   });
 
   describe('createBuiltinRef', () => {
-    test('should create valid builtin references', () => {
+    test('should create valid builtin references (now returns Tag.CODE)', () => {
       const addRef = createBuiltinRef(Op.Add);
       const { tag, value } = fromTaggedValue(addRef);
 
-      expect(tag).toBe(Tag.BUILTIN);
-      expect(value).toBe(Op.Add);
+      // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN for unified dispatch
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBe(Op.Add); // Stored directly, not X1516 encoded
     });
 
-    test('should handle various valid opcodes', () => {
+    test('should handle various valid opcodes (now returns Tag.CODE)', () => {
       const testOpcodes = [0, 1, 50, 100, 127];
 
       testOpcodes.forEach(opcode => {
         const ref = createBuiltinRef(opcode);
         const { tag, value } = fromTaggedValue(ref);
 
-        expect(tag).toBe(Tag.BUILTIN);
-        expect(value).toBe(opcode);
+        // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
+        expect(tag).toBe(Tag.CODE);
+        expect(value).toBe(opcode); // Stored directly, not X1516 encoded
       });
     });
 
@@ -192,11 +194,14 @@ describe('Code Reference Utilities', () => {
     });
 
     test('should reject non-code references', () => {
-      const builtinRef = createBuiltinRef(Op.Add);
+      // createBuiltinRef now returns Tag.CODE, so it IS a code reference
       const numberValue = 42;
       const stringRef = toTaggedValue(100, Tag.STRING);
 
-      expect(isFuncRef(builtinRef)).toBe(false);
+      // Builtin refs are now Tag.CODE, so they are code references
+      const builtinRef = createBuiltinRef(Op.Add);
+      expect(isFuncRef(builtinRef)).toBe(true);
+      
       expect(isFuncRef(numberValue)).toBe(false);
       expect(isFuncRef(stringRef)).toBe(false);
     });
@@ -262,10 +267,12 @@ describe('Code Reference Utilities', () => {
     });
 
     test('should reject non-code references', () => {
+      // createBuiltinRef now returns Tag.CODE, so it IS a code reference
       const builtinRef = createBuiltinRef(Op.Add);
       const numberValue = 42;
 
-      expect(() => getCodeAddress(builtinRef)).toThrow('Value is not a code reference');
+      // Builtin refs are now Tag.CODE, so getCodeAddress works on them
+      expect(getCodeAddress(builtinRef)).toBe(Op.Add);
       expect(() => getCodeAddress(numberValue)).toThrow('Value is not a code reference');
     });
   });
@@ -278,8 +285,9 @@ describe('Code Reference Utilities', () => {
       const { tag: builtinTag, value: builtinValue } = fromTaggedValue(builtinRef);
       const { tag: codeTag, value: codeValue } = fromTaggedValue(codeRef);
 
-      expect(builtinTag).toBe(Tag.BUILTIN);
-      expect(builtinValue).toBe(Op.Add);
+      // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
+      expect(builtinTag).toBe(Tag.CODE);
+      expect(builtinValue).toBe(Op.Add); // Stored directly, not X1516 encoded
       expect(codeTag).toBe(Tag.CODE);
       expect(codeValue).toBe(encodeX1516(1000)); // Value is X1516 encoded
       expect(getCodeAddress(codeRef)).toBe(1000); // But getCodeAddress decodes it

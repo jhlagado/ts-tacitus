@@ -1,14 +1,14 @@
 /**
- * @fileoverview Test for @symbol pushing Tag.BUILTIN for built-ins
+ * @fileoverview Test for @symbol pushing Tag.CODE for built-ins
  * 
- * This test is isolated due to a failure that needs investigation.
+ * Builtins are now stored as Tag.CODE (with value < 128) for unified dispatch.
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM, Tag, fromTaggedValue } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 
-describe('@symbol Parser/Compiler Integration - Tag.BUILTIN', () => {
+describe('@symbol Parser/Compiler Integration - Tag.CODE for builtins', () => {
   let vm: VM;
 
   beforeEach(() => {
@@ -16,12 +16,14 @@ describe('@symbol Parser/Compiler Integration - Tag.BUILTIN', () => {
   });
 
   describe('@symbol without eval (tagged values on stack)', () => {
-    it('should push Tag.BUILTIN for built-ins', () => {
+    it('should push Tag.CODE for built-ins (unified dispatch)', () => {
       const stack = executeTacitCode(vm, '@add');
       expect(stack.length).toBe(1);
 
-      const { tag } = fromTaggedValue(stack[stack.length - 1]);
-      expect(tag).toBe(Tag.BUILTIN);
+      const { tag, value } = fromTaggedValue(stack[stack.length - 1]);
+      // Builtins are now stored as Tag.CODE with value < 128
+      expect(tag).toBe(Tag.CODE);
+      expect(value).toBeLessThan(128); // Stored directly, not X1516 encoded
     });
   });
 });
