@@ -65,7 +65,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stack[1]).toBe(1);
     });
 
-    it('should push correct Tag.BUILTIN tagged value', () => {
+    it('should push correct Tag.CODE tagged value for builtins', () => {
       vm = createVM();
 
       pushSymbolRef(vm, 'mul');
@@ -80,8 +80,9 @@ describe('VM pushSymbolRef method', () => {
       expect(resolvedValue).toBeDefined();
       expect(resolvedValue).not.toBeNull();
 
-      if (tag === Tag.BUILTIN && value === Op.Multiply) {
-        expect(tag).toBe(Tag.BUILTIN);
+      // Builtins are now stored as Tag.CODE with value < 128
+      if (tag === Tag.CODE && value < 128 && value === Op.Multiply) {
+        expect(tag).toBe(Tag.CODE);
         expect(value).toBe(Op.Multiply);
       } else {
         expect(typeof taggedValue).toBe('number');
@@ -92,8 +93,9 @@ describe('VM pushSymbolRef method', () => {
 
   describe('mixed scenarios', () => {
     test('should handle both built-ins and colon definitions together', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.BUILTIN, 0));
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+      // Use Tag.CODE for builtins (unified dispatch)
+      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
       define(vm, 'square', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
       define(vm, 'double', toTaggedValue(encodeX1516(1600), Tag.CODE, 0));
 
@@ -109,10 +111,11 @@ describe('VM pushSymbolRef method', () => {
         fromTaggedValue(vm.memory.readCell(STACK_BASE + i)),
       );
 
-      expect(decoded[0]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Add });
-      // Tag.CODE values are stored with X1516 encoded addresses
+      // Builtins are now stored as Tag.CODE with value < 128 (stored directly, not X1516 encoded)
+      expect(decoded[0]).toMatchObject({ tag: Tag.CODE, value: Op.Add });
+      // Tag.CODE values >= 128 are stored with X1516 encoded addresses
       expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1500) });
-      expect(decoded[2]).toMatchObject({ tag: Tag.BUILTIN, value: Op.Dup });
+      expect(decoded[2]).toMatchObject({ tag: Tag.CODE, value: Op.Dup });
       expect(decoded[3]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1600) });
     });
 

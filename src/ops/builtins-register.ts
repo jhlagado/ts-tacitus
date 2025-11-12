@@ -56,7 +56,9 @@ import { toTaggedValue, Tag } from '@src/core';
 export function registerBuiltins(vm: VM): void {
   // All registration goes directly to dictionary
   function reg(name: string, opcode: number, _implementation?: Verb, isImmediate = false): void {
-    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0));
+    // Use Tag.CODE instead of Tag.BUILTIN for unified dispatch
+    // Values < 128 are stored directly and treated as builtin opcodes
+    define(vm, name, toTaggedValue(opcode, Tag.CODE, isImmediate ? 1 : 0));
   }
 
   reg('eval', Op.Eval, evalOp);

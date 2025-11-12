@@ -86,8 +86,9 @@ function scalarRepr(tval: number): string {
  */
 export function isBuiltinRef(value: number): boolean {
   try {
-    const { tag } = fromTaggedValue(value);
-    return tag === Tag.BUILTIN;
+    const { tag, value: tagValue } = fromTaggedValue(value);
+    // Check both Tag.BUILTIN and Tag.CODE < 128 (both represent builtin opcodes)
+    return tag === Tag.BUILTIN || (tag === Tag.CODE && tagValue < 128);
   } catch {
     return false;
   }

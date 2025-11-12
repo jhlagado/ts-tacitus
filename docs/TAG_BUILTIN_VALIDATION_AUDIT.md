@@ -72,10 +72,12 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
 ```
 
 **Validation:** ❌ Only checks `value < 0 || value > 65535` (16-bit unsigned range)
+
 - **Does NOT check** that `Tag.BUILTIN` values are ≤ 127
 - Accepts values 0-65535 for `Tag.BUILTIN`, but semantically should only accept 0-127
 
 **Test Evidence:** `src/test/core/builtin-tag.test.ts:25-34` shows this:
+
 ```25:34:src/test/core/builtin-tag.test.ts
   test('should validate BUILTIN value ranges', () => {
     expect(() => toTaggedValue(0, Tag.BUILTIN)).not.toThrow();
@@ -104,6 +106,7 @@ All of these bypass validation and can create invalid `Tag.BUILTIN` values ≥ 1
    ```typescript
    define(vm, name, toTaggedValue(opcode, Tag.BUILTIN, isImmediate ? 1 : 0));
    ```
+
    - **Risk:** Low - Uses `Op` enum values which should all be < 128
    - **Validation:** None - relies on `Op` enum correctness
 
@@ -140,28 +143,34 @@ All test files use `toTaggedValue(..., Tag.BUILTIN)` directly without validation
 ### Runtime Checks (not validation, but usage)
 
 1. **`src/ops/core/core-ops.ts:260`** - `evalOp` dispatches builtins
+
    ```typescript
    case Tag.BUILTIN:
      // Uses value directly as opcode index
    ```
+
    - **Risk:** If value ≥ 128, will index out of bounds in opcode table
 
 2. **`src/lang/meta/conditionals.ts:55`** - Checks for `Op.EndIf`
+
    ```typescript
    if (closerInfo.tag !== Tag.BUILTIN || closerInfo.value !== Op.EndIf) {
    ```
 
 3. **`src/lang/meta/match-with.ts:33`** - Checks for `Op.EndMatch`
+
    ```typescript
    if (tag !== Tag.BUILTIN || value !== Op.EndMatch) {
    ```
 
 4. **`src/lang/meta/case.ts:18`** - Checks for `Op.EndCase`
+
    ```typescript
    if (tag !== Tag.BUILTIN || value !== Op.EndCase) {
    ```
 
 5. **`src/lang/meta/capsules.ts:26`** - Checks for `Op.EndDefinition`
+
    ```typescript
    if (tag !== Tag.BUILTIN || value !== Op.EndDefinition) {
    ```
@@ -187,7 +196,9 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
 
   if (tag === Tag.BUILTIN) {
     if (value < 0 || value > MAX_BUILTIN_OPCODE) {
-      throw new Error(`Invalid builtin opcode: ${value}. Must be in range 0-${MAX_BUILTIN_OPCODE}.`);
+      throw new Error(
+        `Invalid builtin opcode: ${value}. Must be in range 0-${MAX_BUILTIN_OPCODE}.`,
+      );
     }
   }
 
@@ -196,6 +207,7 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
 ```
 
 **Impact:**
+
 - ✅ Prevents invalid `Tag.BUILTIN` values at creation time
 - ⚠️ **BREAKING:** Will break `src/test/core/builtin-tag.test.ts:29-30` (expects invalid values to not throw)
 - ⚠️ **BREAKING:** Will break `src/test/core/vm-unified-dispatch.test.ts:82` (uses value 200)
@@ -205,6 +217,7 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
 Replace all `toTaggedValue(..., Tag.BUILTIN)` with `createBuiltinRef()`.
 
 **Impact:**
+
 - ✅ Centralized validation
 - ⚠️ Requires updating ~76 test locations
 - ⚠️ Requires updating `src/ops/builtins-register.ts:59`
@@ -222,6 +235,7 @@ case Tag.BUILTIN:
 ```
 
 **Impact:**
+
 - ✅ Catches invalid values at runtime
 - ❌ Doesn't prevent creation of invalid values
 - ❌ Runtime errors instead of creation-time errors
@@ -230,13 +244,13 @@ case Tag.BUILTIN:
 
 ## Current State Summary
 
-| Location | Validation | Risk Level |
-|----------|-----------|-----------|
-| `createBuiltinRef()` | ✅ Validates 0-127 | ✅ Safe |
-| `toTaggedValue()` | ❌ No validation | ⚠️ Medium |
-| `builtins-register.ts` | ❌ None (relies on Op enum) | ✅ Low (Op enum should be safe) |
-| Test files | ❌ None | ⚠️ Medium (some use invalid values) |
-| `evalOp` dispatch | ❌ None | ⚠️ High (could index out of bounds) |
+| Location               | Validation                  | Risk Level                          |
+| ---------------------- | --------------------------- | ----------------------------------- |
+| `createBuiltinRef()`   | ✅ Validates 0-127          | ✅ Safe                             |
+| `toTaggedValue()`      | ❌ No validation            | ⚠️ Medium                           |
+| `builtins-register.ts` | ❌ None (relies on Op enum) | ✅ Low (Op enum should be safe)     |
+| Test files             | ❌ None                     | ⚠️ Medium (some use invalid values) |
+| `evalOp` dispatch      | ❌ None                     | ⚠️ High (could index out of bounds) |
 
 ---
 
@@ -253,4 +267,3 @@ case Tag.BUILTIN:
 
 - `MAX_BUILTIN_OPCODE = 127` (defined in `src/core/constants.ts:77`)
 - `MIN_USER_OPCODE = 128` (defined in `src/core/constants.ts:80`)
-

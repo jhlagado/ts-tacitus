@@ -136,7 +136,8 @@ describe('case immediates', () => {
     expect(vm.sp - STACK_BASE).toBe(2);
     const closer = peek(vm);
     const closerInfo = fromTaggedValue(closer);
-    expect(closerInfo.tag).toBe(Tag.BUILTIN);
+    // Builtins are now stored as Tag.CODE with value < 128
+    expect(closerInfo.tag).toBe(Tag.CODE);
     expect(closerInfo.value).toBe(Op.EndCase);
 
     const snapshot = peekAt(vm, 1);
@@ -153,7 +154,8 @@ describe('case immediates', () => {
 
     expect(vm.sp - STACK_BASE).toBe(4);
     const closerInfo = fromTaggedValue(peek(vm));
-    expect(closerInfo.tag).toBe(Tag.BUILTIN);
+    // Builtins are now stored as Tag.CODE with value < 128
+    expect(closerInfo.tag).toBe(Tag.CODE);
     expect(closerInfo.value).toBe(Op.EndOf);
 
     const skipPos = peekAt(vm, 1);
@@ -194,7 +196,8 @@ describe('case immediates', () => {
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
     expect(vm.sp - STACK_BASE).toBeGreaterThanOrEqual(2);
     const { tag, value } = fromTaggedValue(peek(vm));
-    expect(tag).toBe(Tag.BUILTIN);
+    // Builtins are now stored as Tag.CODE with value < 128
+    expect(tag).toBe(Tag.CODE);
     expect(value).toBe(Op.EndCase);
 
     expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');

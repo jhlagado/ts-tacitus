@@ -14,6 +14,7 @@ describe('find add after reset', () => {
     const tv = resolveSymbol(vm, 'add');
     expect(tv).toBeDefined();
     const info = fromTaggedValue(tv!);
-    expect(info.tag).toBe(Tag.BUILTIN);
+    // Builtins are now stored as Tag.CODE with value < 128
+    expect(info.tag).toBe(Tag.CODE);
   });
 });
