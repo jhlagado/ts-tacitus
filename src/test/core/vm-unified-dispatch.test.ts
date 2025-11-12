@@ -77,6 +77,53 @@ describe('VM Unified Dispatch', () => {
     });
   });
 
+  describe('Tag.CODE < 128 dispatch via evalOp', () => {
+    test('should execute built-in Add operation via Tag.CODE < 128', () => {
+      push(vm, 2);
+      push(vm, 3);
+      // Create Tag.CODE with encoded value < 128 (stored directly, not X1516)
+      const codeRef = toTaggedValue(Op.Add, Tag.CODE);
+      push(vm, codeRef);
+
+      evalOp(vm);
+
+      expect(getStackData(vm)).toEqual([5]);
+    });
+
+    test('should execute built-in Dup operation via Tag.CODE < 128', () => {
+      push(vm, 42);
+      const codeRef = toTaggedValue(Op.Dup, Tag.CODE);
+      push(vm, codeRef);
+
+      evalOp(vm);
+
+      expect(getStackData(vm)).toEqual([42, 42]);
+    });
+
+    test('should execute built-in Swap operation via Tag.CODE < 128', () => {
+      push(vm, 1);
+      push(vm, 2);
+      const codeRef = toTaggedValue(Op.Swap, Tag.CODE);
+      push(vm, codeRef);
+
+      evalOp(vm);
+
+      expect(getStackData(vm)).toEqual([2, 1]);
+    });
+
+    test('should execute built-in Drop operation via Tag.CODE < 128', () => {
+      push(vm, 1);
+      push(vm, 2);
+      push(vm, 3);
+      const codeRef = toTaggedValue(Op.Drop, Tag.CODE);
+      push(vm, codeRef);
+
+      evalOp(vm);
+
+      expect(getStackData(vm)).toEqual([1, 2]);
+    });
+  });
+
   describe('error cases', () => {
     test('should handle invalid built-in opcodes gracefully', () => {
       const invalidBuiltinRef = toTaggedValue(200, Tag.BUILTIN);

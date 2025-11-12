@@ -128,7 +128,8 @@ export function getBuiltinOpcode(builtinRef: number): number {
 
 /**
  * Extracts the bytecode address from a code reference.
- * Decodes the X1516 encoded value back to the original address.
+ * For values < 128, returns the value directly (invalid X1516, treated as builtin opcode).
+ * For values >= 128, decodes the X1516 encoded value back to the original address.
  * Test-only function.
  */
 export function getCodeAddress(codeRef: number): number {
@@ -136,5 +137,10 @@ export function getCodeAddress(codeRef: number): number {
     throw new Error('Value is not a code reference');
   }
   const { value } = fromTaggedValue(codeRef);
+  // If value < 128, it's stored directly (not X1516 encoded)
+  if (value < 128) {
+    return value;
+  }
+  // Otherwise, decode X1516
   return decodeX1516(value);
 }

@@ -228,7 +228,13 @@ export function emitWord(
   const entryValue = tval;
 
   if (tag === Tag.CODE) {
-    // Decode X1516 encoded address to get actual bytecode address
+    // If encoded value < 128, it's invalid X1516 format, so treat as builtin opcode
+    if (tagValue < 128) {
+      // Use encoded value directly as opcode (0-127), emit single byte
+      vm.compiler.compileOpcode(tagValue);
+      return;
+    }
+    // Otherwise, decode X1516 and compile as user word call (two bytes)
     const decodedAddress = decodeX1516(tagValue);
     vm.compiler.compileUserWordCall(decodedAddress);
     return;

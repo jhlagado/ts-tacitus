@@ -92,7 +92,53 @@ export function executeImmediateWord(
   }
 
   if (tag === Tag.CODE) {
-    // Decode X1516 encoded address to get actual bytecode address
+    // If encoded value < 128, it's invalid X1516 format, so treat as builtin immediate word
+    if (value < 128) {
+      // Dispatch by name (same as Tag.BUILTIN case)
+      switch (name) {
+        case ':':
+          beginDefinitionImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'if':
+          beginIfImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case ';':
+          if (vm.sp - STACK_BASE === 0) {
+            throw new SyntaxError('Unexpected semicolon', getStackData(vm));
+          }
+          evalOp(vm);
+          return;
+        case 'else':
+          beginElseImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'match':
+          beginMatchImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'with':
+          beginWithImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'case':
+          beginCaseImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'do':
+          clauseDoImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'DEFAULT':
+          defaultImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'NIL':
+          nilImmediate(vm, tokenizer, currentDefinition);
+          return;
+        case 'capsule':
+          beginCapsuleImmediate(vm, tokenizer, currentDefinition);
+          return;
+        default:
+          // Immediate builtin with runtime semantics (e.g., immdup)
+          executeOp(vm, value as Op);
+          return;
+      }
+    }
+    // Otherwise, decode X1516 and run as immediate code block
     const decodedAddress = decodeX1516(value);
     runImmediateCode(vm, decodedAddress);
     return;

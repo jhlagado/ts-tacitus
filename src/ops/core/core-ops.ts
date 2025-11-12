@@ -244,7 +244,14 @@ export const evalOp: Verb = (vm: VM) => {
 
   switch (tag) {
     case Tag.CODE:
-      const decodedAddr = decodeX1516(addr); // Decode X1516 to get actual address
+      // If encoded value < 128, it's invalid X1516 format, so treat as builtin opcode
+      if (addr < 128) {
+        // Use encoded value directly as opcode (0-127)
+        executeOp(vm, addr);
+        break;
+      }
+      // Otherwise, decode X1516 and jump to bytecode (existing behavior)
+      const decodedAddr = decodeX1516(addr);
       if (meta === 1) {
         rpush(vm, vm.IP);
         vm.IP = decodedAddr;
