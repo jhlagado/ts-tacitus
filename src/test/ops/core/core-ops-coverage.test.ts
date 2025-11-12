@@ -31,12 +31,11 @@ describe('Core Operations Branch Coverage', () => {
       // Should have stopped VM execution
       expect(vm.running).toBe(false);
     });
-
   });
 
   describe('evalOp branch coverage', () => {
     test('should handle non-executable values (line 338)', () => {
-      // Push a non-executable value (not CODE or BUILTIN)
+      // Push a non-executable value (not CODE)
       push(vm, toTaggedValue(42, Tag.NUMBER));
 
       const stackBefore = getStackData(vm);

@@ -61,7 +61,7 @@
 
 ## Implementation Plan
 
-**Note:** This proposal assumes `Tag.CODE` and `Tag.BUILTIN` have been unified (see `OPCODE_MIGRATION_PLAN.md`). The current plan uses `Tag.OPCODE` to unify both tags, with address range determining behavior.
+**Note:** This proposal assumes `Tag.CODE` and `Tag.BUILTIN` have been unified (completed). `Tag.CODE` now handles both builtins (value < 128) and user code (value >= 128, X1516 encoded).
 
 ### Phase 1: Extend `emitRefSigil`
 1. After `lookup`, check if result is `Tag.CODE`

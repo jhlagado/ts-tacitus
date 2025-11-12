@@ -129,7 +129,7 @@ This document analyzes all functions across the codebase, identifies patterns an
 defineBuiltin(vm, 'dup', Op.Dup);
 
 // After:
-define(vm, 'dup', toTaggedValue(Op.Dup, Tag.BUILTIN, 0));
+define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
 ```
 
 **Benefits:**
@@ -255,7 +255,7 @@ Don't create wrapper functions that just call another function with different pa
 
 ```typescript
 function defineBuiltin(vm: VM, name: string, opcode: number): void {
-  const tagged = toTaggedValue(opcode, Tag.BUILTIN);
+  const tagged = toTaggedValue(opcode, Tag.CODE);
   define(vm, name, tagged);
 }
 ```

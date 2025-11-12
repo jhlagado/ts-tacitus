@@ -4,7 +4,7 @@ This short document centralizes the rules all other specs assume.
 
 - Reverse list layout: lists are compounds with header at TOS and payload slots beneath. Span = payload slots + 1.
 - Traversal by span: element stepping uses simple=1, compound=span(header). Never assume fixed widths for compounds.
-- Refs: references use the unified `REF` tag. The payload stores the absolute cell index within the shared data arena; segment discrimination happens by comparing that index against the global, data-stack, and return-stack windows. Code refs remain separate (`BUILTIN`, `CODE`).
+- Refs: references use the unified `REF` tag. The payload stores the absolute cell index within the shared data arena; segment discrimination happens by comparing that index against the global, data-stack, and return-stack windows. Code refs use `CODE` tag (value < 128 for builtins, >= 128 for bytecode addresses).
 - Value-by-default: `load` dereferences refs up to two levels (i.e., ref → value, or ref → ref → value) and materializes lists; `fetch` strictly reads by address and materializes lists when the slot read is a LIST header.
 - Analogy: treat refs like symlinks rather than raw pointers — structure-aware operations follow them transparently; stack ops manipulate the ref value itself; use `load` to “follow the link”, and `store` materializes source refs before writing.
 - Assignment materializes sources: when writing, if the source is a ref, materialize to a value before comparing/applying. Do not materialize the destination; destinations are mutated in place.

@@ -230,8 +230,8 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 
 ## Symbol Table & @symbol
 
-- `@symbol` pushes a tagged reference: `Tag.BUILTIN(op)` for builtins or `Tag.CODE(addr)` for colon definitions/compiled blocks.
-- `eval` executes tagged references: BUILTIN dispatches native implementation; CODE jumps to bytecode address (block/function per meta flag).
+- `@symbol` pushes a tagged reference: `Tag.CODE(op)` for builtins (value < 128, stored directly) or `Tag.CODE(addr)` for colon definitions/compiled blocks (value >= 128, X1516 encoded).
+- `eval` executes tagged references: CODE < 128 dispatches native implementation; CODE >= 128 jumps to bytecode address (block/function per meta flag).
 - `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `REF` handles that resolve into the return-stack window (see locals spec).
 
 ## Operations
