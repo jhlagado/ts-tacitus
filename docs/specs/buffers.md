@@ -96,14 +96,14 @@ Absolute Address | Content        | Logical Index | Note
 - **Aliases**: `push` (for familiarity with stack terminology)
 - **Note**: Consumes both inputs (buffer is typically stored in a local/global)
 - **Behavior** (stack semantics using write pointer):
-  - Read `writePtr` from `headerCell - 2`
-  - Read `readPtr` from `headerCell - 1` (for full check)
-  - Calculate `dataBase = headerCell - (N + 2)`
+  - Read `writePtr` (logical index 0..N-1) from `headerCell - 2`
+  - Read `readPtr` (logical index 0..N-1) from `headerCell - 1` (for full check)
+  - Calculate `dataBase = headerCell - (N + 2)` (needed because pointers are relative, not absolute)
   - If full (`(writePtr + 1) % N == readPtr`), **throw error**
   - Otherwise:
     1. Write `x` to `data[writePtr]` at absolute address `dataBase + writePtr`
-    2. `writePtr = (writePtr + 1) % N` (increment, append direction)
-    3. Write updated `writePtr` back to `headerCell - 2`
+    2. `writePtr = (writePtr + 1) % N` (increment, wrap around if needed)
+    3. Write updated `writePtr` (still a logical index) back to `headerCell - 2`
 - **Memory access**:
   - Read pointers: `writePtr = vm.memory.readCell(headerCell - 2)`, `readPtr = vm.memory.readCell(headerCell - 1)`
   - Calculate base: `dataBase = headerCell - (N + 2)`
@@ -213,6 +213,28 @@ Absolute Address | Content        | Logical Index | Note
    - Read pointer value: `readPtrValue = vm.memory.readCell(headerCell - 1)`
    - Calculate data base: `dataBase = headerCell - (N + 2)`
    - Access data: `data[readPtrValue]` = `vm.memory.readCell(dataBase + readPtrValue)`
+
+   **Why relative (logical indices) instead of absolute addresses?**
+
+   **Relative pointers (current design - logical indices 0..N-1):**
+   - ✅ **Simple wraparound**: `(writePtr + 1) % N` — no need to convert back to index
+   - ✅ **Portable**: Works if buffer moves in memory (though buffers don't move in Tacit)
+   - ✅ **Small values**: Pointers fit in small integer range (0..N-1)
+   - ✅ **Clear semantics**: Pointer value directly represents logical position
+   - ❌ **Calculation overhead**: Must compute `dataBase = headerCell - (N + 2)` on every operation
+
+   **Absolute pointers (alternative - store absolute cell addresses):**
+   - ✅ **Direct access**: `vm.memory.readCell(writePtr)` — no calculation needed
+   - ✅ **Potentially faster**: One less arithmetic operation per access
+   - ❌ **Complex wraparound**: Must convert to index, wrap, convert back: `writePtr = ((writePtr - dataBase) + 1) % N + dataBase`
+   - ❌ **Larger values**: Pointers are absolute addresses (larger integers)
+   - ❌ **Less clear**: Pointer value doesn't directly represent logical position
+
+   **Decision**: Use **relative pointers (logical indices)** because:
+   - Wraparound logic is simpler and more readable
+   - The `dataBase` calculation (`headerCell - (N + 2)`) is a single subtraction
+   - Logical indices make the code more maintainable
+   - The performance difference is negligible (one subtraction vs. direct access)
 
 4. **LIST header**: The `LIST:(N+2)` header is created for allocation purposes only. Once allocated, buffer operations ignore LIST semantics and use direct memory access.
 
