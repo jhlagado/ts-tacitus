@@ -50,7 +50,7 @@ The plan is organized as **8 major phases** broken down into **22 manageable mic
 **Tasks**:
 
 - ✅ Add `Tag.LOCAL` to existing Tag enum
-- ✅ Reuse existing `toTaggedValue(slotNumber, Tag.LOCAL)` pattern
+- ✅ Reuse existing `Tagged(slotNumber, Tag.LOCAL)` pattern
 - ✅ No new interfaces needed - leverage existing tagged value system
 - ✅ Add `isLocal(value)` type guard (inline implementation)
 
@@ -64,9 +64,9 @@ The plan is organized as **8 major phases** broken down into **22 manageable mic
 
 ```typescript
 test('should create LOCAL tagged value with slot number', () => {
-  const localRef = toTaggedValue(5, Tag.LOCAL);
+  const localRef = Tagged(5, Tag.LOCAL);
   expect(isLocal(localRef)).toBe(true);
-  expect(fromTaggedValue(localRef).value).toBe(5);
+  expect(getTaggedInfo(localRef).value).toBe(5);
 });
 ```
 
@@ -96,7 +96,7 @@ test('should create LOCAL tagged value with slot number', () => {
 - Modified `mark()` method to reset localSlotCount to 0 at function start
 - Added `defineLocal(name)` method with auto-slot assignment using `localSlotCount++`
 - Added `getLocalCount()` method returning current slot count
-- Uses `toTaggedValue(slotNumber, Tag.LOCAL)` for consistency
+- Uses `Tagged(slotNumber, Tag.LOCAL)` for consistency
 - Created comprehensive test suite with 6 tests covering auto-assignment, scoping, and 16-bit support
 - All tests pass (234 tests), no regressions
 
@@ -117,7 +117,7 @@ test('should auto-assign slot numbers', () => {
   expect(symbolTable.getLocalCount()).toBe(2);
 
   const xRef = symbolTable.findTaggedValue('x');
-  expect(fromTaggedValue(xRef).value).toBe(0);
+  expect(getTaggedInfo(xRef).value).toBe(0);
 });
 
 test('should reset slot count on revert', () => {
@@ -164,7 +164,7 @@ test('should shadow globals naturally', () => {
 
   symbolTable.revert();
   const globalResolved = symbolTable.findTaggedValue('x');
-  expect(fromTaggedValue(globalResolved).tag).toBe(Tag.BUILTIN); // Global restored
+  expect(getTaggedInfo(globalResolved).tag).toBe(Tag.BUILTIN); // Global restored
 });
 ```
 
@@ -286,7 +286,7 @@ test('should allocate slots correctly', () => {
 - **SENTINEL hack removed**: Was legacy compatibility for old `elemOp` that used `Tag.INTEGER` addresses
 - **Unified approach**: `Tag.STACK_REF`, `Tag.RSTACK_REF`, `Tag.GLOBAL_REF` extend conceptual `REF` base
 - **Polymorphic operations**: `fetchOp` handles all reference types via switch statement
-- **Local variables**: Use `toTaggedValue(slot, Tag.RSTACK_REF)` instead of raw addresses
+- **Local variables**: Use `Tagged(slot, Tag.RSTACK_REF)` instead of raw addresses
 - **Future-ready**: System supports heap references and other storage types
 
 #### 2.5 Reference Tag Implementation (2 hours) ✅ COMPLETED
@@ -687,7 +687,7 @@ if (isCompoundData(value)) {
   vm.RP += CELL_SIZE; // Advance past header
 
   // Store RSTACK_REF in slot pointing to header
-  const localRef = toTaggedValue(headerCellIndex, Tag.RSTACK_REF);
+  const localRef = Tagged(headerCellIndex, Tag.RSTACK_REF);
   vm.memory.writeFloat32(SEG_RSTACK, slotAddr, localRef);
 }
 ```

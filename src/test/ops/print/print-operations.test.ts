@@ -3,7 +3,7 @@
  * Tests both high-level '.' operation and low-level 'raw' operator
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, toTaggedValue, createVM, VM } from '../../../core';
+import { Tag, Tagged, createVM, VM } from '../../../core';
 import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { captureTacitOutput } from '../../utils/vm-test-utils';
 import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
@@ -144,7 +144,7 @@ describe('Print Operations', () => {
     });
 
     test('rawPrintOp handles unexpected errors gracefully', () => {
-      push(vm, toTaggedValue(1, Tag.NUMBER));
+      push(vm, Tagged(1, Tag.NUMBER));
       const popSpy = jest.spyOn(vmFunctions, 'pop').mockImplementation(() => {
         throw new Error('boom');
       });

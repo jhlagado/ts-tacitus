@@ -1,4 +1,4 @@
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { createVM, type VM } from '../../../core/vm';
 import { overOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
@@ -43,7 +43,7 @@ describe('over Operation', () => {
       push(vm, 42);
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       overOp(vm);
 
@@ -56,9 +56,9 @@ describe('over Operation', () => {
     test('should handle nested lists correctly', () => {
       push(vm, 2);
       push(vm, 3);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 1);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       push(vm, 99);
 

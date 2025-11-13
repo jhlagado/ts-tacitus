@@ -1,20 +1,12 @@
-import type {
-  VM } from '@src/core';
-import {
-  Tag,
-  fromTaggedValue,
-  getListBounds,
-  getListLength,
-  CELL_SIZE,
-  SEG_DATA,
-} from '@src/core';
+import type { VM } from '@src/core';
+import { Tag, getTaggedInfo, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
 
 export type CapsuleLayout = {
   baseCell: number; // cell index of slot0 (first payload cell)
   headerCell: number; // cell index of LIST header cell
   slotCount: number; // total payload slots (locals… + CODE)
   codeRef: number; // the CODE reference stored at slot0
-}
+};
 
 /**
  * Reads and validates a capsule layout from a REF handle.
@@ -35,7 +27,7 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
   }
 
   const codeCell = vm.memory.readCell(headerCell - 1);
-  const { tag: codeTag } = fromTaggedValue(codeCell);
+  const { tag: codeTag } = getTaggedInfo(codeCell);
   if (codeTag !== Tag.CODE) {
     throw new Error('capsule slot0 must be a CODE reference');
   }

@@ -2,7 +2,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { executeTacitWithState } from '../../utils/vm-test-utils';
 import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import {
-  fromTaggedValue,
+  getTaggedInfo,
   Tag,
   isRStackRef,
   RSTACK_BASE_BYTES,
@@ -29,7 +29,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const state = executeTacitWithState(vm, code);
     expect(state.stack.length).toBe(1);
     const handle = state.stack[0];
-    const { tag } = fromTaggedValue(handle);
+    const { tag } = getTaggedInfo(handle);
     expect(tag).toBe(Tag.REF);
     // Return-stack handle: classify without SEG_RSTACK constant
     expect(isRStackRef(handle)).toBe(true);
@@ -53,7 +53,7 @@ describe('Capsule constructor (language-level) — minimal to locals', () => {
     const state = executeTacitWithState(vm, code);
     expect(state.stack.length).toBe(1);
     const handle = state.stack[0];
-    const { tag } = fromTaggedValue(handle);
+    const { tag } = getTaggedInfo(handle);
     expect(tag).toBe(Tag.REF);
     expect(isRStackRef(handle)).toBe(true);
 

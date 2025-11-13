@@ -6,7 +6,7 @@
 
 import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
-import { fromTaggedValue, Tag, toTaggedValue } from '../../core/tagged';
+import { getTaggedInfo, Tag, Tagged } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { pushSymbolRef, push, pop, getStackData } from '../../core/vm';
 
@@ -27,7 +27,7 @@ describe('VM Performance Tests', () => {
       for (let i = 0; i < iterations; i++) {
         push(vm, 5);
         push(vm, 3);
-        push(vm, toTaggedValue(Op.Add, Tag.CODE));
+        push(vm, Tagged(Op.Add, Tag.CODE));
         evalOp(vm);
         pop(vm);
       }
@@ -123,5 +123,3 @@ describe('VM Performance Tests', () => {
     });
   });
 });
-
-

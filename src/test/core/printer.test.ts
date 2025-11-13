@@ -1,5 +1,5 @@
 import { prn } from '../utils/core-test-utils';
-import { toTaggedValue, Tag, MAX_TAG, tagNames } from '../../core';
+import { Tagged, Tag, MAX_TAG, tagNames } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 
 let consoleOutput: string[] = [];
@@ -19,7 +19,7 @@ describe('Printer', () => {
 
   describe('prn', () => {
     test('should print NUMBER tagged values', () => {
-      const numberValue = toTaggedValue(42, Tag.NUMBER);
+      const numberValue = Tagged(42, Tag.NUMBER);
       prn('Test Number', numberValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -28,7 +28,7 @@ describe('Printer', () => {
     });
 
     test('should print CODE tagged values', () => {
-      const codeValue = toTaggedValue(encodeX1516(50), Tag.CODE);
+      const codeValue = Tagged(encodeX1516(50), Tag.CODE);
       prn('Test Code', codeValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -36,7 +36,7 @@ describe('Printer', () => {
     });
 
     test('should print STRING tagged values', () => {
-      const stringValue = toTaggedValue(287, Tag.STRING);
+      const stringValue = Tagged(287, Tag.STRING);
       prn('Test String', stringValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -44,7 +44,7 @@ describe('Printer', () => {
     });
 
     test('should print LIST tagged values', () => {
-      const listValue = toTaggedValue(3, Tag.LIST);
+      const listValue = Tagged(3, Tag.LIST);
       prn('Test List', listValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -95,7 +95,7 @@ describe('Printer', () => {
 
       expect(maxValidTag).toBe(MAX_TAG);
 
-      const highTagValue = toTaggedValue(42, maxValidTag);
+      const highTagValue = Tagged(42, maxValidTag);
       prn('High Tag', highTagValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -113,7 +113,7 @@ describe('Printer', () => {
     });
 
     test('should handle large string indices', () => {
-      const largeStringValue = toTaggedValue(65535, Tag.STRING);
+      const largeStringValue = Tagged(65535, Tag.STRING);
       prn('Large String Index', largeStringValue);
 
       expect(consoleOutput).toHaveLength(1);
@@ -121,23 +121,23 @@ describe('Printer', () => {
     });
 
     test('should handle edge case values for different tag types', () => {
-      const smallCode = toTaggedValue(encodeX1516(0), Tag.CODE);
+      const smallCode = Tagged(encodeX1516(0), Tag.CODE);
       prn('Small Code', smallCode);
       expect(consoleOutput[0]).toMatch(/Small Code: CODE: <code>/);
 
       consoleOutput = [];
-      const largeCode = toTaggedValue(encodeX1516(1000), Tag.CODE);
+      const largeCode = Tagged(encodeX1516(1000), Tag.CODE);
       prn('Large Code', largeCode);
       expect(consoleOutput[0]).toMatch(/Large Code: CODE: <code>/);
     });
 
     test('should work with LIST tag values of different sizes', () => {
-      const smallList = toTaggedValue(0, Tag.LIST);
+      const smallList = Tagged(0, Tag.LIST);
       prn('Empty List', smallList);
       expect(consoleOutput[0]).toMatch(/Empty List: LIST:/);
 
       consoleOutput = [];
-      const largeList = toTaggedValue(1000, Tag.LIST);
+      const largeList = Tagged(1000, Tag.LIST);
       prn('Large List', largeList);
       expect(consoleOutput[0]).toMatch(/Large List: LIST:/);
     });
@@ -154,7 +154,7 @@ describe('Printer', () => {
 
       testCases.forEach(({ tag, value, title }) => {
         consoleOutput = [];
-        const taggedValue = toTaggedValue(value, tag);
+        const taggedValue = Tagged(value, tag);
         prn(title, taggedValue);
 
         expect(consoleOutput).toHaveLength(1);

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { executeTacitCode } from '../../utils/vm-test-utils';
-import { Tag, getTag } from '../../../core/tagged';
+import { Tag, getTaggedInfo } from '../../../core/tagged';
 
 describe('Global Variable Access', () => {
   let vm: VM;
@@ -21,7 +21,8 @@ describe('Global Variable Access', () => {
     const stack = executeTacitCode(vm, 'myList');
     // Should materialize the list
     const header = stack[stack.length - 1];
-    expect(getTag(header)).toBe(Tag.LIST);
+    const { tag: headerTag } = getTaggedInfo(header);
+    expect(headerTag).toBe(Tag.LIST);
   });
 
   test('should get address-of global with &', () => {
@@ -37,7 +38,8 @@ describe('Global Variable Access', () => {
     const stack = executeTacitCode(vm, '&myList');
     // For compounds, the cell contains a REF, so Fetch returns that REF
     const ref = stack[stack.length - 1];
-    expect(getTag(ref)).toBe(Tag.REF);
+    const { tag: refTag } = getTaggedInfo(ref);
+    expect(refTag).toBe(Tag.REF);
   });
 
   test('should access global inside function', () => {

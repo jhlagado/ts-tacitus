@@ -7,7 +7,15 @@
  */
 
 import type { VM } from '@src/core';
-import { isList, getListLength, toTaggedValue, Tag, SEG_DATA, STACK_BASE_BYTES, CELL_SIZE } from '@src/core';
+import {
+  isList,
+  getListLength,
+  Tagged,
+  Tag,
+  SEG_DATA,
+  STACK_BASE_BYTES,
+  CELL_SIZE,
+} from '@src/core';
 import { pop, push, peek, ensureStackSize, depth } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
@@ -26,9 +34,9 @@ function popFlatListToArray(vm: VM): number[] {
 function pushFlatListFromArray(vm: VM, arr: number[]): void {
   const n = arr.length;
   for (let i = n - 1; i >= 0; i--) {
-push(vm, arr[i]);
-}
-  push(vm, toTaggedValue(n, Tag.LIST));
+    push(vm, arr[i]);
+  }
+  push(vm, Tagged(n, Tag.LIST));
 }
 
 export function unaryFlat(vm: VM, opName: string, f: NumberOp1): void {
@@ -40,8 +48,8 @@ export function unaryFlat(vm: VM, opName: string, f: NumberOp1): void {
       return;
     }
     for (let i = 0; i < xs.length; i++) {
-xs[i] = f(xs[i]);
-}
+      xs[i] = f(xs[i]);
+    }
     pushFlatListFromArray(vm, xs);
     return;
   }
@@ -67,8 +75,8 @@ export function binaryFlat(vm: VM, opName: string, f: NumberOp2): void {
       }
       const out: number[] = new Array(L);
       for (let i = 0; i < L; i++) {
-out[i] = f(aArr[i % m], bArr[i % n]);
-}
+        out[i] = f(aArr[i % m], bArr[i % n]);
+      }
       pushFlatListFromArray(vm, out);
       return;
     }
@@ -79,8 +87,8 @@ out[i] = f(aArr[i % m], bArr[i % n]);
       return;
     }
     for (let i = 0; i < bArr.length; i++) {
-bArr[i] = f(a, bArr[i]);
-}
+      bArr[i] = f(a, bArr[i]);
+    }
     pushFlatListFromArray(vm, bArr);
     return;
   }
@@ -94,8 +102,8 @@ bArr[i] = f(a, bArr[i]);
       return;
     }
     for (let i = 0; i < aArr.length; i++) {
-aArr[i] = f(aArr[i], b);
-}
+      aArr[i] = f(aArr[i], b);
+    }
     pushFlatListFromArray(vm, aArr);
     return;
   }
@@ -116,14 +124,14 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
     const slots = getListLength(header);
     const payload: number[] = new Array(slots);
     for (let i = 0; i < slots; i++) {
-payload[i] = pop(vm);
-} // pops slot0,slot1,...
+      payload[i] = pop(vm);
+    } // pops slot0,slot1,...
     const out: number[] = new Array(slots + 1);
     out[0] = header;
     // payload is already index-order (slot0..slotN-1)
     for (let i = 0; i < slots; i++) {
-out[i + 1] = payload[i];
-}
+      out[i + 1] = payload[i];
+    }
     return out; // [header, payload index-order]
   };
 
@@ -132,8 +140,8 @@ out[i + 1] = payload[i];
     const payloadLen = slotsArr.length - 1;
     // Push payload in index order so bottom→top reads [slot0 .. slotN-1, header]
     for (let i = 0; i < payloadLen; i++) {
-push(vm, slotsArr[1 + i]);
-}
+      push(vm, slotsArr[1 + i]);
+    }
     push(vm, header);
   };
 
@@ -146,8 +154,8 @@ push(vm, slotsArr[1 + i]);
       const v = slotsArr[p];
       let span = 1;
       if (isList(v)) {
-span = getListLength(v) + 1;
-}
+        span = getListLength(v) + 1;
+      }
       out.push({ start: p, span });
       p += span;
       remaining -= span;
@@ -169,15 +177,15 @@ span = getListLength(v) + 1;
       if (span === 1) {
         const v = listSlots[start];
         if (!isNum(v)) {
-throw new Error('broadcast type mismatch');
-}
+          throw new Error('broadcast type mismatch');
+        }
         out[write++] = left ? f(scalar, v) : f(v, scalar);
       } else {
         const sub = listSlots.slice(start, start + span);
         const rec = transformScalarOverSlots(scalar, sub, left);
         for (let i = 0; i < rec.length; i++) {
-out[write++] = rec[i];
-}
+          out[write++] = rec[i];
+        }
       }
     }
     return out;
@@ -189,7 +197,7 @@ out[write++] = rec[i];
     const m = aElems.length;
     const n = bElems.length;
     if (m === 0 || n === 0) {
-      return [toTaggedValue(0, Tag.LIST)];
+      return [Tagged(0, Tag.LIST)];
     }
     const L = m > n ? m : n;
     // First pass to collect element results and total payload span
@@ -205,21 +213,21 @@ out[write++] = rec[i];
         const av = aSlots[ea.start];
         const bv = bSlots[eb.start];
         if (!isNum(av) || !isNum(bv)) {
-throw new Error('broadcast type mismatch');
-}
+          throw new Error('broadcast type mismatch');
+        }
         elemSlots = [f(av, bv)];
       } else if (aSpan === 1 && bSpan > 1) {
         const av = aSlots[ea.start];
         if (!isNum(av)) {
-throw new Error('broadcast type mismatch');
-}
+          throw new Error('broadcast type mismatch');
+        }
         const subB = bSlots.slice(eb.start, eb.start + bSpan);
         elemSlots = transformScalarOverSlots(av, subB, true);
       } else if (aSpan > 1 && bSpan === 1) {
         const bv = bSlots[eb.start];
         if (!isNum(bv)) {
-throw new Error('broadcast type mismatch');
-}
+          throw new Error('broadcast type mismatch');
+        }
         const subA = aSlots.slice(ea.start, ea.start + aSpan);
         elemSlots = transformScalarOverSlots(bv, subA, false);
       } else {
@@ -232,13 +240,13 @@ throw new Error('broadcast type mismatch');
     }
     // Build output slots [header, payload...]
     const out: number[] = new Array(1 + totalPayload);
-    out[0] = toTaggedValue(totalPayload, Tag.LIST);
+    out[0] = Tagged(totalPayload, Tag.LIST);
     let write = 1;
     for (let i = 0; i < L; i++) {
       const r = results[i];
       for (let j = 0; j < r.length; j++) {
-out[write++] = r[j];
-}
+        out[write++] = r[j];
+      }
     }
     return out;
   };
@@ -254,8 +262,8 @@ out[write++] = r[j];
     }
     const a = pop(vm);
     if (!isNum(a)) {
-throw new Error('broadcast type mismatch');
-}
+      throw new Error('broadcast type mismatch');
+    }
     const res = transformScalarOverSlots(a, bSlots, true);
     pushListSlots(res);
     return;
@@ -264,8 +272,8 @@ throw new Error('broadcast type mismatch');
   const b = pop(vm);
   if (isList(peek(vm))) {
     if (!isNum(b)) {
-throw new Error('broadcast type mismatch');
-}
+      throw new Error('broadcast type mismatch');
+    }
     const aSlots = popListSlots();
     const res = transformScalarOverSlots(b, aSlots, false);
     pushListSlots(res);
@@ -274,8 +282,8 @@ throw new Error('broadcast type mismatch');
 
   const a = pop(vm);
   if (!isNum(a) || !isNum(b)) {
-throw new Error('broadcast type mismatch');
-}
+    throw new Error('broadcast type mismatch');
+  }
   push(vm, f(a, b));
 }
 
@@ -289,8 +297,8 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   if (!isList(peek(vm))) {
     const x = pop(vm);
     if (!isNumber(x)) {
-throw new Error('broadcast type mismatch');
-}
+      throw new Error('broadcast type mismatch');
+    }
     push(vm, f(x));
     return;
   }
@@ -308,11 +316,11 @@ throw new Error('broadcast type mismatch');
     const cellIndex = headerCell - (i + 1);
     const v = vm.memory.readCell(cellIndex);
     if (isList(v)) {
-continue;
-} // leave headers untouched
+      continue;
+    } // leave headers untouched
     if (!isNumber(v)) {
-throw new Error('broadcast type mismatch');
-}
+      throw new Error('broadcast type mismatch');
+    }
     vm.memory.writeCell(cellIndex, f(v));
   }
 

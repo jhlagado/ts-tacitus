@@ -9,7 +9,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
 import { createBuiltinRef } from '../../core';
-import { toTaggedValue, Tag } from '../../core';
+import { Tagged, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
 
@@ -64,7 +64,7 @@ describe('VM Unified Dispatch', () => {
 
   describe('non-executable values', () => {
     test('should push back non-executable values unchanged', () => {
-      const nonExecutableValues = [42, toTaggedValue(100, Tag.STRING), toTaggedValue(5, Tag.LIST)];
+      const nonExecutableValues = [42, Tagged(100, Tag.STRING), Tagged(5, Tag.LIST)];
 
       nonExecutableValues.forEach(value => {
         vm = createVM();
@@ -82,7 +82,7 @@ describe('VM Unified Dispatch', () => {
       push(vm, 2);
       push(vm, 3);
       // Create Tag.CODE with encoded value < 128 (stored directly, not X1516)
-      const codeRef = toTaggedValue(Op.Add, Tag.CODE);
+      const codeRef = Tagged(Op.Add, Tag.CODE);
       push(vm, codeRef);
 
       evalOp(vm);
@@ -92,7 +92,7 @@ describe('VM Unified Dispatch', () => {
 
     test('should execute built-in Dup operation via Tag.CODE < 128', () => {
       push(vm, 42);
-      const codeRef = toTaggedValue(Op.Dup, Tag.CODE);
+      const codeRef = Tagged(Op.Dup, Tag.CODE);
       push(vm, codeRef);
 
       evalOp(vm);
@@ -103,7 +103,7 @@ describe('VM Unified Dispatch', () => {
     test('should execute built-in Swap operation via Tag.CODE < 128', () => {
       push(vm, 1);
       push(vm, 2);
-      const codeRef = toTaggedValue(Op.Swap, Tag.CODE);
+      const codeRef = Tagged(Op.Swap, Tag.CODE);
       push(vm, codeRef);
 
       evalOp(vm);
@@ -115,7 +115,7 @@ describe('VM Unified Dispatch', () => {
       push(vm, 1);
       push(vm, 2);
       push(vm, 3);
-      const codeRef = toTaggedValue(Op.Drop, Tag.CODE);
+      const codeRef = Tagged(Op.Drop, Tag.CODE);
       push(vm, codeRef);
 
       evalOp(vm);
@@ -129,7 +129,7 @@ describe('VM Unified Dispatch', () => {
       // Value 200 (0xC8) is >= 128, so it will be treated as X1516 encoded bytecode address
       // Decoding 0xC8 gives us a bytecode address, which may be out of bounds
       // Use a value that decodes to an invalid address
-      const invalidCodeRef = toTaggedValue(0xFFFF, Tag.CODE); // Max X1516 value, decodes to 32767
+      const invalidCodeRef = Tagged(0xffff, Tag.CODE); // Max X1516 value, decodes to 32767
       push(vm, invalidCodeRef);
 
       // This will decode and try to jump to bytecode address 32767, which may be out of bounds

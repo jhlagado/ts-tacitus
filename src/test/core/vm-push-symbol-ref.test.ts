@@ -8,7 +8,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
-import { fromTaggedValue, Tag, toTaggedValue } from '../../core';
+import { getTaggedInfo, Tag, Tagged } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { STACK_BASE } from '../../core/constants';
 import { define } from '../../core/dictionary';
@@ -23,7 +23,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('built-in operations', () => {
     test('should push built-in add reference and execute correctly', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
 
       push(vm, 2);
       push(vm, 3);
@@ -37,7 +37,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in dup reference and execute correctly', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
 
       push(vm, 42);
 
@@ -51,7 +51,7 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should push built-in swap reference and execute correctly', () => {
-      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.CODE, 0));
+      define(vm, 'swap', Tagged(Op.Swap, Tag.CODE, 0));
 
       push(vm, 1);
       push(vm, 2);
@@ -74,7 +74,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stackSize).toBe(1);
 
       const taggedValue = peek(vm);
-      const { tag, value } = fromTaggedValue(taggedValue);
+      const { tag, value } = getTaggedInfo(taggedValue);
 
       const resolvedValue = resolveSymbol(vm, 'mul');
       expect(resolvedValue).toBeDefined();
@@ -94,10 +94,10 @@ describe('VM pushSymbolRef method', () => {
   describe('mixed scenarios', () => {
     test('should handle both built-ins and colon definitions together', () => {
       // Use Tag.CODE for builtins (unified dispatch)
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
-      define(vm, 'square', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
-      define(vm, 'double', toTaggedValue(encodeX1516(1600), Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'double', Tagged(encodeX1516(1600), Tag.CODE, 0));
 
       pushSymbolRef(vm, 'add');
       pushSymbolRef(vm, 'square');
@@ -108,7 +108,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>
-        fromTaggedValue(vm.memory.readCell(STACK_BASE + i)),
+        getTaggedInfo(vm.memory.readCell(STACK_BASE + i)),
       );
 
       // Builtins are now stored as Tag.CODE with value < 128 (stored directly, not X1516 encoded)
@@ -120,8 +120,8 @@ describe('VM pushSymbolRef method', () => {
     });
 
     test('should enable chained execution with evalOp', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
-      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
+      define(vm, 'mul', Tagged(Op.Multiply, Tag.CODE, 0));
 
       push(vm, 5);
 
@@ -165,7 +165,7 @@ describe('VM pushSymbolRef method', () => {
 
   describe('workflow simulation', () => {
     test('should simulate complete @symbol eval workflow', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
 
       push(vm, 3);
       push(vm, 7);

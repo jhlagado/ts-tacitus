@@ -9,11 +9,11 @@ import {
   and,
   or,
   xor,
-  fromTaggedValue,
+  getTaggedInfo,
 } from '../../core';
 import { formatValue } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
-import { toTaggedValue, Tag, NIL, VM } from '../../core';
+import { Tagged, Tag, NIL, VM } from '../../core';
 
 const testVM = {
   digest: {
@@ -117,17 +117,17 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, NIL)).toBe('[SENTINEL:0]');
     });
     test('formats CODE tagged value', () => {
-      const taggedCode = toTaggedValue(encodeX1516(1234), Tag.CODE);
+      const taggedCode = Tagged(encodeX1516(1234), Tag.CODE);
       // formatValue decodes X1516 to show the actual bytecode address
       expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = testVM.digest.add('TestString');
-      const taggedString = toTaggedValue(strAddr, Tag.STRING);
+      const taggedString = Tagged(strAddr, Tag.STRING);
       expect(formatValue(testVM, taggedString)).toBe('"TestString"');
     });
     test('formats STRING tagged value when digest.get throws', () => {
-      const taggedString = toTaggedValue(999, Tag.STRING);
+      const taggedString = Tagged(999, Tag.STRING);
       expect(formatValue(testVM as VM, taggedString)).toBe('[String:999]');
     });
   });

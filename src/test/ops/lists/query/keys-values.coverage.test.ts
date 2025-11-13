@@ -1,5 +1,5 @@
 import { VM, createVM } from '../../../../core';
-import { toTaggedValue, Tag, NIL } from '../../../../core';
+import { Tagged, Tag, NIL } from '../../../../core';
 import { push, pop, peek } from '../../../../core/vm';
 import { keysOp, valuesOp } from '../../../../ops/lists/query-ops';
 
@@ -10,18 +10,18 @@ describe('keysOp/valuesOp branch coverage', () => {
   });
 
   test('keysOp on empty list returns empty list header', () => {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     keysOp(vm);
     // After keysOp: should push original header then empty list header
     const top = pop(vm);
-    expect(top).toBe(toTaggedValue(0, Tag.LIST));
+    expect(top).toBe(Tagged(0, Tag.LIST));
   });
 
   test('valuesOp on empty list returns empty list header', () => {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     valuesOp(vm);
     const top = pop(vm);
-    expect(top).toBe(toTaggedValue(0, Tag.LIST));
+    expect(top).toBe(Tagged(0, Tag.LIST));
   });
 
   test('keysOp on odd slotCount returns NIL', () => {
@@ -29,7 +29,7 @@ describe('keysOp/valuesOp branch coverage', () => {
     push(vm, 1);
     push(vm, 2);
     push(vm, 3);
-    push(vm, toTaggedValue(3, Tag.LIST));
+    push(vm, Tagged(3, Tag.LIST));
     keysOp(vm);
     expect(peek(vm)).toBe(NIL);
   });
@@ -38,7 +38,7 @@ describe('keysOp/valuesOp branch coverage', () => {
     push(vm, 1);
     push(vm, 2);
     push(vm, 3);
-    push(vm, toTaggedValue(3, Tag.LIST));
+    push(vm, Tagged(3, Tag.LIST));
     valuesOp(vm);
     expect(peek(vm)).toBe(NIL);
   });

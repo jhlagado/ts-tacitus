@@ -108,7 +108,7 @@ Implementation- ✅ **DOCUMENTATION**: Known test isolation issues documented in
 
 - ✅ Add `BUILTIN = 7` to `Tag` enum in `tagged.ts`
 - ✅ Update `tagNames` mapping for debugging
-- ✅ Add validation in `toTaggedValue()` for new tag
+- ✅ Add validation in `Tagged()` for new tag
 - ✅ Update affected tests (tagged.test.ts, printer.test.ts)
 - ✅ Create comprehensive test suite for Tag.BUILTIN functionality
 - ✅ **IMPROVEMENT**: Add `MAX_TAG` constant to avoid hardcoded enum values in tests
@@ -395,7 +395,7 @@ Implementation- ✅ **DOCUMENTATION**: Known test isolation issues documented in
 
 - ✅ **Step 10**: Updated to use `symbolTable.findTaggedValue()` for lookups
 - ✅ **Step 11**: Updated to clarify tagged value handling in `vm.pushSymbolRef()`
-- ✅ **Step 16**: Added note about using `fromTaggedValue()` pattern for any remaining `.tag`/`.addr` access
+- ✅ **Step 16**: Added note about using `getTaggedInfo()` pattern for any remaining `.tag`/`.addr` access
 
 **Steps Already Compatible:**
 
@@ -412,7 +412,7 @@ expect(codeRef?.tag).toBe(Tag.BUILTIN);
 
 // NEW PATTERN (use this going forward):
 const taggedValue = symbolTable.findTaggedValue('symbol');
-const { tag, value } = fromTaggedValue(taggedValue!);
+const { tag, value } = getTaggedInfo(taggedValue!);
 expect(tag).toBe(Tag.BUILTIN);
 ```
 

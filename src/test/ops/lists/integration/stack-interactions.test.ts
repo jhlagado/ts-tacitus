@@ -10,7 +10,7 @@ import { elemOp } from '../../../../ops/lists';
 import { isRef } from '../../../../core/refs';
 import { getStackData, peek } from '../../../../core/vm';
 import { push } from '../../../../core/vm';
-import { getTag, isNIL } from '../../../../core/tagged';
+import { isNIL } from '../../../../core/tagged';
 
 describe('List Operations', () => {
   let vm: VM;

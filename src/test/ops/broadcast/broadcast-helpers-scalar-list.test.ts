@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, fromTaggedValue, createVM, VM } from '../../../core';
+import { Tag, getTaggedInfo, createVM, VM } from '../../../core';
 import { binaryFlat } from '../../../ops/broadcast';
 import { extractListFromStack, executeTacitCode } from '../../utils/vm-test-utils';
 import { getStackData } from '../../../core/vm';
@@ -20,7 +20,7 @@ describe('broadcast helpers - scalar × list', () => {
     // Find the LIST header (should be at TOS)
     let headerIndex = -1;
     for (let i = stack.length - 1; i >= 0; i--) {
-      const { tag } = fromTaggedValue(stack[i]);
+      const { tag } = getTaggedInfo(stack[i]);
       if (tag === Tag.LIST) {
         headerIndex = i;
         break;

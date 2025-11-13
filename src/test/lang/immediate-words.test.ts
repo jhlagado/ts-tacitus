@@ -6,7 +6,7 @@ import { encodeX1516 } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { define, findBytecodeAddress } from '../../core/dictionary';
-import { toTaggedValue, Tag } from '../../core';
+import { Tagged, Tag } from '../../core';
 import { push, getStackData } from '../../core/vm';
 
 describe('Immediate words', () => {
@@ -21,7 +21,7 @@ describe('Immediate words', () => {
   test('executes builtin opcode immediates immediately', () => {
     push(vm, 42);
 
-    define(vm, 'immdup', toTaggedValue(Op.Dup, Tag.CODE, 1));
+    define(vm, 'immdup', Tagged(Op.Dup, Tag.CODE, 1));
 
     parse(vm, new Tokenizer('immdup'));
 
@@ -37,7 +37,7 @@ describe('Immediate words', () => {
     const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
 
-    define(vm, 'inc1!', toTaggedValue(encodeX1516(addr!), Tag.CODE, 1));
+    define(vm, 'inc1!', Tagged(encodeX1516(addr!), Tag.CODE, 1));
 
     push(vm, 5);
     parse(vm, new Tokenizer('inc1!'));

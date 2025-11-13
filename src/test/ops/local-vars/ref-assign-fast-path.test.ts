@@ -9,13 +9,13 @@ import {
   getFormattedStack,
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
-import { fromTaggedValue, Tag, createVM, VM } from '../../../core';
+import { getTaggedInfo, Tag, createVM, VM } from '../../../core';
 import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE, CELL_SIZE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
   for (let i = stack.length - 1; i >= 0; i--) {
-    const { tag } = fromTaggedValue(stack[i]);
+    const { tag } = getTaggedInfo(stack[i]);
     if (tag === Tag.LIST) {
       headerIndex = i;
       break;
@@ -24,7 +24,7 @@ function expectTopIsListWith(values: number[], stack: number[]) {
   // Fallback: if not found (flaky ordering issue), attempt linear forward scan
   if (headerIndex === -1) {
     for (let i = 0; i < stack.length; i++) {
-      const { tag } = fromTaggedValue(stack[i]);
+      const { tag } = getTaggedInfo(stack[i]);
       if (tag === Tag.LIST) {
         headerIndex = i;
         break;
@@ -32,7 +32,7 @@ function expectTopIsListWith(values: number[], stack: number[]) {
     }
   }
   expect(headerIndex).toBeGreaterThanOrEqual(0);
-  const { value: slotCount } = fromTaggedValue(stack[headerIndex]);
+  const { value: slotCount } = getTaggedInfo(stack[headerIndex]);
   expect(slotCount).toBe(values.length);
   const payload = extractListFromStack(stack, headerIndex);
   expect(payload).toEqual(values);
@@ -72,7 +72,7 @@ describe('Ref-to-list assignment fast path', () => {
     `;
     executeTacitCode(vm, code);
     const decoded = Array.from({ length: vm.sp - STACK_BASE }, (_, i) =>
-      fromTaggedValue(vm.memory.readCell(STACK_BASE + i)),
+      getTaggedInfo(vm.memory.readCell(STACK_BASE + i)),
     );
 
     expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);

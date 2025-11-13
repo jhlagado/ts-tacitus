@@ -5,7 +5,7 @@
 
 import type { VM } from './vm';
 import { peek, pop, ensureStackSize } from './vm';
-import { fromTaggedValue, Tag, getTag } from './tagged';
+import { getTaggedInfo, Tag } from './tagged';
 import { SEG_DATA, CELL_SIZE } from './constants';
 import { isRef, getCellFromRef } from './refs';
 
@@ -15,7 +15,7 @@ import { isRef, getCellFromRef } from './refs';
  * @returns true if the value is a LIST
  */
 export function isList(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.LIST;
 }
 
@@ -29,7 +29,7 @@ export function getListLength(header: number): number {
   if (!isList(header)) {
     throw new Error('Expected LIST header');
   }
-  return fromTaggedValue(header).value;
+  return getTaggedInfo(header).value;
 }
 
 /**
@@ -118,8 +118,8 @@ export function getListElemCell(
  */
 export function reverseSpan(vm: VM, spanSize: number): void {
   if (spanSize <= 1) {
-return;
-}
+    return;
+  }
 
   ensureStackSize(vm, spanSize, 'reverse span operation');
   // Reverse using absolute cell indices via u32 view
@@ -147,7 +147,7 @@ export function getListBounds(
   vm: VM,
   value: number,
 ): { header: number; baseCell: number; headerCell: number } | null {
-  const tag = getTag(value);
+  const { tag } = getTaggedInfo(value);
   if (tag === Tag.LIST) {
     const n = getListLength(value);
     const hdr = vm.sp - 1;
@@ -171,7 +171,6 @@ export function getListBounds(
   return null;
 }
 
-
 /**
  * Copies list payload slots from source to destination.
  * @param vm - VM instance
@@ -179,7 +178,12 @@ export function getListBounds(
  * @param destBaseCell - Destination absolute cell index (first payload slot)
  * @param slots - Number of slots to copy
  */
-export function copyListPayload(vm: VM, srcBaseCell: number, destBaseCell: number, slots: number): void {
+export function copyListPayload(
+  vm: VM,
+  srcBaseCell: number,
+  destBaseCell: number,
+  slots: number,
+): void {
   for (let i = 0; i < slots; i++) {
     const val = vm.memory.readCell(srcBaseCell + i);
     vm.memory.writeCell(destBaseCell + i, val);

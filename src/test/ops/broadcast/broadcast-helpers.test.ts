@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, fromTaggedValue, toTaggedValue, createVM, VM } from '../../../core';
+import { Tag, getTaggedInfo, Tagged, createVM, VM } from '../../../core';
 import { binaryFlat, binaryRecursive, unaryFlat, unaryRecursive } from '../../../ops/broadcast';
 import { extractListFromStack, pushTestList, executeTacitCode } from '../../utils/vm-test-utils';
 import { getStackData, push } from '../../../core/vm';
@@ -25,7 +25,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
-      const header = fromTaggedValue(stack[headerIndex]);
+      const header = getTaggedInfo(stack[headerIndex]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(3);
       expect(extractListFromStack(stack, headerIndex)).toEqual([1, 2, 3]);
@@ -38,7 +38,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[stack.length - 1]);
+      const header = getTaggedInfo(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
@@ -68,7 +68,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       const headerIndex = stack.length - 1;
-      const header = fromTaggedValue(stack[headerIndex]);
+      const header = getTaggedInfo(stack[headerIndex]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(3);
       const actual = extractListFromStack(stack, headerIndex);
@@ -93,7 +93,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[stack.length - 1]);
+      const header = getTaggedInfo(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
@@ -116,7 +116,7 @@ describe('broadcast helpers', () => {
 
       const stack = getStackData(vm);
       expect(stack).toHaveLength(1);
-      const header = fromTaggedValue(stack[stack.length - 1]);
+      const header = getTaggedInfo(stack[stack.length - 1]);
       expect(header.tag).toBe(Tag.LIST);
       expect(header.value).toBe(0);
     });
@@ -138,7 +138,7 @@ describe('broadcast helpers', () => {
       const after = getStackData(vm);
       expect(after).toHaveLength(before.length);
 
-      const decoded = after.map(value => fromTaggedValue(value));
+      const decoded = after.map(value => getTaggedInfo(value));
       const listHeaders = decoded
         .filter(entry => entry.tag === Tag.LIST)
         .map(entry => entry.value)
@@ -154,7 +154,7 @@ describe('broadcast helpers', () => {
     });
 
     test('throws when scalar operand is non-numeric', () => {
-      push(vm, toTaggedValue(0, Tag.STRING));
+      push(vm, Tagged(0, Tag.STRING));
       expect(() => unaryRecursive(vm, 'sqrt', Math.sqrt)).toThrow('broadcast type mismatch');
     });
   });
@@ -165,7 +165,7 @@ describe('broadcast helpers', () => {
 
       binaryRecursive(vm, 'add', (a, b) => a + b);
 
-      const snapshot = getStackData(vm).map(value => fromTaggedValue(value));
+      const snapshot = getStackData(vm).map(value => getTaggedInfo(value));
       expect(snapshot).toEqual([
         { tag: Tag.LIST, value: 2, meta: 0 },
         { tag: Tag.NUMBER, value: 6, meta: 0 },
@@ -177,13 +177,13 @@ describe('broadcast helpers', () => {
 
     test('raises mismatch when encountering non-number in list payload', () => {
       push(vm, 2);
-      pushTestList(vm, [toTaggedValue(0, Tag.STRING)]);
+      pushTestList(vm, [Tagged(0, Tag.STRING)]);
       expect(() => binaryRecursive(vm, 'add', (a, b) => a + b)).toThrow('broadcast type mismatch');
     });
 
     test('raises mismatch for simple × simple non-numeric pair', () => {
-      push(vm, toTaggedValue(0, Tag.STRING));
-      push(vm, toTaggedValue(1, Tag.STRING));
+      push(vm, Tagged(0, Tag.STRING));
+      push(vm, Tagged(1, Tag.STRING));
       expect(() => binaryRecursive(vm, 'add', (a, b) => a + b)).toThrow('broadcast type mismatch');
     });
   });

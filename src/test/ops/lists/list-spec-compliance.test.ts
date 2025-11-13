@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
-import { fromTaggedValue, isNIL } from '../../../core/tagged';
+import { getTaggedInfo, isNIL } from '../../../core/tagged';
 import { isList } from '../../../core/list';
 
 describe('Lists.md Specification Compliance', () => {
@@ -32,11 +32,11 @@ describe('Lists.md Specification Compliance', () => {
 
     test('empty list length and size both return 0', () => {
       let stack = executeTacitCode(vm, '( ) length');
-      expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
+      expect(getTaggedInfo(stack[stack.length - 1]).value).toBe(0);
 
       vm = createVM();
       stack = executeTacitCode(vm, '( ) size');
-      expect(fromTaggedValue(stack[stack.length - 1]).value).toBe(0);
+      expect(getTaggedInfo(stack[stack.length - 1]).value).toBe(0);
     });
   });
 
@@ -53,7 +53,7 @@ describe('Lists.md Specification Compliance', () => {
       const stack = executeTacitCode(vm, '( 42 99 ) 0 elem fetch');
 
       const result = stack[stack.length - 1];
-      const decoded = fromTaggedValue(result);
+      const decoded = getTaggedInfo(result);
       expect(decoded.value).toBe(42);
     });
   });
@@ -62,7 +62,7 @@ describe('Lists.md Specification Compliance', () => {
     test('head returns first element', () => {
       const stack = executeTacitCode(vm, '( 1 2 3 ) head');
       const result = stack[stack.length - 1];
-      const decoded = fromTaggedValue(result);
+      const decoded = getTaggedInfo(result);
       expect(decoded.value).toBe(1);
     });
 
@@ -113,22 +113,22 @@ describe('Lists.md Specification Compliance', () => {
       const restored = executeTacitCode(vm, '1 ( 2 3 ) concat tail');
       const origHeader = original[original.length - 1];
       const restHeader = restored[restored.length - 1];
-      expect(fromTaggedValue(origHeader).value).toBe(fromTaggedValue(restHeader).value);
+      expect(getTaggedInfo(origHeader).value).toBe(getTaggedInfo(restHeader).value);
     });
 
     test('pack with 0 count creates empty list', () => {
       const stack = executeTacitCode(vm, '0 pack');
       const header = stack[stack.length - 1];
       expect(isList(header)).toBe(true);
-      expect(fromTaggedValue(header).value).toBe(0);
+      expect(getTaggedInfo(header).value).toBe(0);
     });
 
     test('unpack pushes list elements to stack', () => {
       const stack = executeTacitCode(vm, '( 1 2 3 ) unpack');
       expect(stack.length).toBe(3);
-      expect(fromTaggedValue(stack[0]).value).toBe(3);
-      expect(fromTaggedValue(stack[1]).value).toBe(2);
-      expect(fromTaggedValue(stack[2]).value).toBe(1);
+      expect(getTaggedInfo(stack[0]).value).toBe(3);
+      expect(getTaggedInfo(stack[1]).value).toBe(2);
+      expect(getTaggedInfo(stack[2]).value).toBe(1);
     });
 
     test('pack and unpack are inverses', () => {

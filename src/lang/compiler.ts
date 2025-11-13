@@ -5,13 +5,7 @@
 
 import type { VM } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
-import {
-  Tag,
-  toTaggedValue,
-  SEG_CODE,
-  MIN_USER_OPCODE,
-  InvalidOpcodeAddressError,
-} from '@src/core';
+import { Tag, Tagged, SEG_CODE, MIN_USER_OPCODE, InvalidOpcodeAddressError } from '@src/core';
 import { Op } from '../ops/opcodes';
 
 /**
@@ -94,7 +88,7 @@ export class Compiler {
    */
   compileAddress(value: number): void {
     const encoded = encodeX1516(value);
-    const tagNum = toTaggedValue(encoded, Tag.CODE);
+    const tagNum = Tagged(encoded, Tag.CODE);
     this.compileFloat32(tagNum);
   }
 

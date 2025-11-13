@@ -41,6 +41,15 @@ const VALUE_MASK = (1 << VALUE_BITS) - 1;
 const EXPONENT_MASK = 0xff << 23;
 
 /**
+ * Information extracted from a tagged value.
+ */
+export type TaggedInfo = {
+  value: number;
+  tag: Tag;
+  meta: number;
+};
+
+/**
  * Encodes a value and tag into a NaN-boxed 32-bit float.
  * @param value The value to encode
  * @param tag The tag type
@@ -48,7 +57,7 @@ const EXPONENT_MASK = 0xff << 23;
  * @returns NaN-boxed tagged value
  * @throws {Error} If parameters are invalid
  */
-export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
+export function Tagged(value: number, tag: Tag, meta = 0): number {
   if (tag < Tag.NUMBER || tag > MAX_TAG) {
     throw new Error(`Invalid tag: ${tag}`);
   }
@@ -88,21 +97,21 @@ export function toTaggedValue(value: number, tag: Tag, meta = 0): number {
   return view.getFloat32(0, true);
 }
 
-export const NIL = toTaggedValue(Sentinel.NIL, Tag.SENTINEL);
+export const NIL = Tagged(Sentinel.NIL, Tag.SENTINEL);
 
 /**
  * Decodes a NaN-boxed value into components.
- * @param nanValue The NaN-boxed value
+ * @param tagged The NaN-boxed value
  * @returns Object with value, tag, and meta components
  */
-export function fromTaggedValue(nanValue: number): { value: number; tag: Tag; meta: number } {
-  if (!isNaN(nanValue)) {
-    return { value: nanValue, tag: Tag.NUMBER, meta: 0 };
+export function getTaggedInfo(tagged: number): TaggedInfo {
+  if (!isNaN(tagged)) {
+    return { value: tagged, tag: Tag.NUMBER, meta: 0 };
   }
 
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
-  view.setFloat32(0, nanValue, true);
+  view.setFloat32(0, tagged, true);
   const bits = view.getUint32(0, true);
   const meta = (bits >>> 31) & 1;
   const tagBits = ((bits & TAG_MANTISSA_MASK) >>> 16) & 0x3f;
@@ -112,30 +121,12 @@ export function fromTaggedValue(nanValue: number): { value: number; tag: Tag; me
 }
 
 /**
- * Extracts the tag from a NaN-boxed value.
- * @param nanValue The NaN-boxed value
- * @returns The tag enum value
- */
-export function getTag(nanValue: number): number {
-  return fromTaggedValue(nanValue).tag;
-}
-
-/**
- * Extracts the value from a NaN-boxed value.
- * @param nanValue The NaN-boxed value
- * @returns The decoded numerical value
- */
-export function getValue(nanValue: number): number {
-  return fromTaggedValue(nanValue).value;
-}
-
-/**
  * Checks if a value represents NIL.
  * @param tval The value to check
  * @returns true if the value is NIL
  */
 export function isNIL(tval: number): boolean {
-  const { tag, value } = fromTaggedValue(tval);
+  const { tag, value } = getTaggedInfo(tval);
   return tag === Tag.SENTINEL && value === 0;
 }
 
@@ -145,7 +136,7 @@ export function isNIL(tval: number): boolean {
  * @returns true if the value is a NUMBER
  */
 export function isNumber(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.NUMBER;
 }
 
@@ -155,7 +146,7 @@ export function isNumber(tval: number): boolean {
  * @returns true if the value is a SENTINEL
  */
 export function isSentinel(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.SENTINEL;
 }
 
@@ -165,7 +156,7 @@ export function isSentinel(tval: number): boolean {
  * @returns true if the value is CODE
  */
 export function isCode(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.CODE;
 }
 
@@ -175,7 +166,7 @@ export function isCode(tval: number): boolean {
  * @returns true if the value is a STRING
  */
 export function isString(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.STRING;
 }
 
@@ -185,7 +176,7 @@ export function isString(tval: number): boolean {
  * @returns true if the value is a LOCAL
  */
 export function isLocal(tval: number): boolean {
-  const { tag } = fromTaggedValue(tval);
+  const { tag } = getTaggedInfo(tval);
   return tag === Tag.LOCAL;
 }
 

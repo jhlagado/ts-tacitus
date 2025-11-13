@@ -42,9 +42,19 @@ describe('Reference Sigil (&x) Parsing', () => {
     }).toThrow(/Undefined word.*undefined/);
   });
 
-  test('should reject &x for non-local variables', () => {
+  test('should allow &x for functions (code references)', () => {
+    // &helper should now work - it returns a code reference
     expect(() => {
-      executeTacitCode(vm, ': helper 42 ; : test &helper ;');
-    }).toThrow(/is not a local variable/);
+      executeTacitCode(vm, ': helper 42 ; : test &helper eval ; test');
+    }).not.toThrow();
+  });
+
+  test('should allow &add for builtins (code references)', () => {
+    // &add should work - it returns a code reference to the builtin
+    expect(() => {
+      executeTacitCode(vm, '2 3 &add eval');
+    }).not.toThrow();
+    const result = executeTacitCode(vm, '2 3 &add eval');
+    expect(result).toEqual([5]); // executeTacitCode returns array
   });
 });

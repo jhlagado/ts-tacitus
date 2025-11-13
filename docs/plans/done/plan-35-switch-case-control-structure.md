@@ -29,7 +29,7 @@ Deliver a discriminant-based multi-branch construct built entirely with immediat
 ### Phase 1b — Sentinel constants (optional synergy)
 
 - Introduce a minimal set of sentinel immediate words (e.g., `DEFAULT`, `NIL`) if they do not already exist:
-  - Implement as immediates that push tagged sentinel values (e.g., `toTaggedValue(Sentinel.DEFAULT, Tag.SENTINEL)`), relying on the shared `Sentinel` enum.
+  - Implement as immediates that push tagged sentinel values (e.g., `Tagged(Sentinel.DEFAULT, Tag.SENTINEL)`), relying on the shared `Sentinel` enum.
   - Decide on naming convention: either uppercase bare words (`DEFAULT`, `NIL`) or reserved sigil-prefixed forms (such as `#default`, `#nil`). The simplest path is uppercase bare words registered in the dictionary so they behave like literals.
 - Document these immediates in the spec and add unit tests ensuring equality treats the wildcard sentinel as expected. ✅ _(Immediate helpers and tests in Phase 1 cover the literal emission; registration will follow in Phase 3.)_
 

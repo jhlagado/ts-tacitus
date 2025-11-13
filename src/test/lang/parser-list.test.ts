@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeProgram } from '../../lang/interpreter';
-import { fromTaggedValue, Tag } from '../../core';
+import { getTaggedInfo, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { getStackData } from '../../core/vm';
@@ -21,7 +21,7 @@ describe('Parser LIST Integration (() )', () => {
     executeProgram(vm, '( 1 2 3 )');
     const stack = getStackData(vm);
     expect(stack.length).toBe(4);
-    const { tag, value } = fromTaggedValue(top());
+    const { tag, value } = getTaggedInfo(top());
     expect(tag).toBe(Tag.LIST);
     expect(value).toBe(3);
   });
@@ -29,7 +29,7 @@ describe('Parser LIST Integration (() )', () => {
   it('parses nested LIST: ( 1 ( 2 3 ) 4 )', () => {
     executeProgram(vm, '( 1 ( 2 3 ) 4 )');
     const header = top();
-    const { tag, value } = fromTaggedValue(header);
+    const { tag, value } = getTaggedInfo(header);
     expect(tag).toBe(Tag.LIST);
     expect(value).toBeGreaterThan(0);
   });

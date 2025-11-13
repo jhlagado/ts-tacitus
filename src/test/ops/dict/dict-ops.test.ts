@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
-import { NIL, Tag, toTaggedValue, createVM, VM } from '../../../core';
+import { NIL, Tag, Tagged, createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('Heap-backed dictionary ops', () => {

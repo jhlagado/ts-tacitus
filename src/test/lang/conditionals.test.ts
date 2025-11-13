@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { SEG_CODE, Tag, fromTaggedValue } from '../../core';
+import { SEG_CODE, Tag, getTaggedInfo } from '../../core';
 import { STACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { createVM, type VM } from '../../core/vm';
@@ -81,7 +81,7 @@ describe('conditional immediates', () => {
     // Top of stack should be EndIf closer (now stored as Tag.CODE)
     verifyTaggedValue(peek(vm), Tag.CODE, Op.EndIf);
     // Also verify the element beneath top is a NUMBER (branch placeholder offset)
-    const belowTop = fromTaggedValue(peekAt(vm, 1));
+    const belowTop = getTaggedInfo(peekAt(vm, 1));
     expect(belowTop.tag).toBe(Tag.NUMBER);
     expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed IF');
   });

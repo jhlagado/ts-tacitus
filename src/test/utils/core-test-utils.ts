@@ -3,7 +3,7 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { type VM, fromTaggedValue, toTaggedValue, Tag, tagNames } from '../../core';
+import { type VM, getTaggedInfo, Tagged, Tag, tagNames } from '../../core';
 import { push, ensureStackSize } from '../../core/vm';
 import { decodeX1516 } from '../../core/code-ref';
 
@@ -30,7 +30,7 @@ export function createList(vm: VM, values: number[]): void {
     _reverseSpan(vm, slotCount);
   }
 
-  const header = toTaggedValue(slotCount, Tag.LIST);
+  const header = Tagged(slotCount, Tag.LIST);
   push(vm, header);
 }
 
@@ -57,7 +57,7 @@ function _reverseSpan(vm: VM, spanSize: number): void {
 }
 
 function formatValue(tval: number, indent = 0): string {
-  const { value: _value, tag } = fromTaggedValue(tval);
+  const { value: _value, tag } = getTaggedInfo(tval);
   const name = toTagName(tag);
   const prefix = `${'  '.repeat(indent)}${name}: `;
   return `${prefix}${scalarRepr(tval)}`;
@@ -68,7 +68,7 @@ function toTagName(tag: number): string {
 }
 
 function scalarRepr(tval: number): string {
-  const { tag, value } = fromTaggedValue(tval);
+  const { tag, value } = getTaggedInfo(tval);
   switch (tag) {
     case Tag.SENTINEL:
       return `${value}`;
@@ -86,7 +86,7 @@ function scalarRepr(tval: number): string {
  */
 export function isBuiltinRef(value: number): boolean {
   try {
-    const { tag, value: tagValue } = fromTaggedValue(value);
+    const { tag, value: tagValue } = getTaggedInfo(value);
     // Check Tag.CODE < 128 (represents builtin opcode)
     return tag === Tag.CODE && tagValue < 128;
   } catch {
@@ -100,7 +100,7 @@ export function isBuiltinRef(value: number): boolean {
  */
 export function isFuncRef(value: number): boolean {
   try {
-    const { tag } = fromTaggedValue(value);
+    const { tag } = getTaggedInfo(value);
     return tag === Tag.CODE;
   } catch {
     return false;
@@ -123,7 +123,7 @@ export function getBuiltinOpcode(builtinRef: number): number {
   if (!isBuiltinRef(builtinRef)) {
     throw new Error('Value is not a built-in reference');
   }
-  const { value } = fromTaggedValue(builtinRef);
+  const { value } = getTaggedInfo(builtinRef);
   return value;
 }
 
@@ -137,7 +137,7 @@ export function getCodeAddress(codeRef: number): number {
   if (!isFuncRef(codeRef)) {
     throw new Error('Value is not a code reference');
   }
-  const { value } = fromTaggedValue(codeRef);
+  const { value } = getTaggedInfo(codeRef);
   // If value < 128, it's stored directly (not X1516 encoded)
   if (value < 128) {
     return value;

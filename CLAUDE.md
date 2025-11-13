@@ -33,7 +33,7 @@ Before implementing any features related to these areas, you MUST read these spe
 - **Run `yarn lint` before completion** - maintain code quality
 - **Use `resetVM()` in test setup** - ensures clean state
 - **Test error conditions** - invalid inputs, edge cases, empty stacks
-- **CRITICAL: Never use `fromTaggedValue` in tests** - causes NaN-boxing corruption in Jest environment
+- **CRITICAL: Never use `getTaggedInfo` in tests** - causes NaN-boxing corruption in Jest environment
 - **Use behavioral testing only** - test operation results, not internal tagged structure
 - **PREFER Tacit CODE OVER FUNCTION TESTS** - test `executeTacitCode(': f (1 2) var x x . ; f')` with `jest.spyOn(console, 'log')` instead of calling `formatValue()` directly
 
@@ -68,11 +68,12 @@ const unpacked = executeTacitCode('1 2 3 3 pack unpack');
 
 ```typescript
 // ❌ NEVER - causes NaN-boxing corruption in Jest
-const { tag, value } = fromTaggedValue(stack[0]);
+const { tag, value } = getTaggedInfo(stack[0]);
 expect(tag).toBe(Tag.LIST);
 
 // ❌ NEVER - any direct tag checking
-expect(getTag(value)).toBe(Tag.INTEGER);
+const { tag } = getTaggedInfo(value);
+expect(tag).toBe(Tag.INTEGER);
 ```
 
 #### 🔧 **Alternative Verification Methods**
@@ -149,7 +150,7 @@ yarn dev     # REPL for testing
 - Heap allocation in hot paths, garbage collection dependencies
 - Circular dependencies, multiple abstraction layers
 - Modifying specs, breaking stack contracts, unnecessary comments
-- **Manual list construction** - Never use `toTaggedValue(n, Tag.LIST)` directly
+- **Manual list construction** - Never use `Tagged(n, Tag.LIST)` directly
 - **Assuming slot counts** - Lists use total slot count, not element count
 
 **FOLLOW:**

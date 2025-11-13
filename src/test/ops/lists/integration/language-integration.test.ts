@@ -3,7 +3,7 @@
  * Focuses on end-to-end list functionality with Tacit language features
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag, createVM, VM } from '../../../../core';
+import { getTaggedInfo, Tag, createVM, VM } from '../../../../core';
 import { executeTacitCode } from '../../../utils/vm-test-utils';
 
 describe('List Integration Tests', () => {
@@ -22,7 +22,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(2);
       expect(stack).toContain(3);
 
-      const headers = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
+      const headers = stack.map(getTaggedInfo).filter(d => d.tag === Tag.LIST);
       expect(headers.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -49,7 +49,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(6);
 
       const listTags = stack.filter(item => {
-        const { tag } = fromTaggedValue(item);
+        const { tag } = getTaggedInfo(item);
         return tag === Tag.LIST;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(4);
@@ -82,7 +82,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(2);
 
       const listTags = stack.filter(item => {
-        const { tag, value } = fromTaggedValue(item);
+        const { tag, value } = getTaggedInfo(item);
         return tag === Tag.LIST && value === 0;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(1);
@@ -128,7 +128,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(126);
       expect(stack).toContain(168);
 
-      const headersAfter = stack.map(fromTaggedValue).filter(d => d.tag === Tag.LIST);
+      const headersAfter = stack.map(getTaggedInfo).filter(d => d.tag === Tag.LIST);
       expect(headersAfter.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -145,7 +145,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(8);
 
       const listTags = stack.filter(item => {
-        const { tag } = fromTaggedValue(item);
+        const { tag } = getTaggedInfo(item);
         return tag === Tag.LIST;
       });
       expect(listTags.length).toBeGreaterThanOrEqual(4);
@@ -159,7 +159,7 @@ describe('List Integration Tests', () => {
       expect(stack).toContain(3);
 
       const listTags = stack.filter(item => {
-        const { tag } = fromTaggedValue(item);
+        const { tag } = getTaggedInfo(item);
         return tag === Tag.LIST;
       });
       expect(listTags.length).toBe(1);
@@ -172,7 +172,7 @@ describe('List Integration Tests', () => {
       expect(stack.length).toBe(4);
 
       const header = stack[stack.length - 1];
-      const { tag: headerTag, value: slots } = fromTaggedValue(header);
+      const { tag: headerTag, value: slots } = getTaggedInfo(header);
       expect(headerTag).toBe(Tag.LIST);
       expect(slots).toBe(3);
 
@@ -180,29 +180,29 @@ describe('List Integration Tests', () => {
       const payload1 = stack[stack.length - 3];
       const payload2 = stack[stack.length - 4];
 
-      expect(fromTaggedValue(payload0)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
-      expect(fromTaggedValue(payload1)).toMatchObject({ tag: Tag.NUMBER, value: 2 });
-      expect(fromTaggedValue(payload2)).toMatchObject({ tag: Tag.NUMBER, value: 3 });
+      expect(getTaggedInfo(payload0)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
+      expect(getTaggedInfo(payload1)).toMatchObject({ tag: Tag.NUMBER, value: 2 });
+      expect(getTaggedInfo(payload2)).toMatchObject({ tag: Tag.NUMBER, value: 3 });
     });
 
     test('should build nested lists correctly', () => {
       const stack = executeTacitCode(vm, '( 1 ( 2 3 ) 4 )');
 
       const outerHeader = stack[stack.length - 1];
-      const { tag: outerTag, value: outerSlots } = fromTaggedValue(outerHeader);
+      const { tag: outerTag, value: outerSlots } = getTaggedInfo(outerHeader);
       expect(outerTag).toBe(Tag.LIST);
       expect(outerSlots).toBeGreaterThan(0);
 
       const firstLogical = stack[stack.length - 2];
-      expect(fromTaggedValue(firstLogical)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
+      expect(getTaggedInfo(firstLogical)).toMatchObject({ tag: Tag.NUMBER, value: 1 });
 
       const innerHeaderIndex = stack.findIndex((v, i) => {
         if (i >= stack.length - 1) return false;
-        const d = fromTaggedValue(v);
+        const d = getTaggedInfo(v);
         return d.tag === Tag.LIST && i !== stack.length - 1;
       });
       expect(innerHeaderIndex).toBeGreaterThanOrEqual(0);
-      const { tag: innerTag, value: innerSlots } = fromTaggedValue(stack[innerHeaderIndex]);
+      const { tag: innerTag, value: innerSlots } = getTaggedInfo(stack[innerHeaderIndex]);
       expect(innerTag).toBe(Tag.LIST);
       expect(innerSlots).toBe(2);
     });
@@ -213,7 +213,7 @@ describe('List Integration Tests', () => {
 
       expect(len).toBe(6);
 
-      const decode = fromTaggedValue;
+      const decode = getTaggedInfo;
 
       const outerHeader = stack[len - 1];
       expect(decode(outerHeader)).toMatchObject({ tag: Tag.LIST, value: 5 });
@@ -234,7 +234,7 @@ describe('List Integration Tests', () => {
         stack[stack.length - 3],
         stack[stack.length - 4],
         stack[stack.length - 5],
-      ].map(v => fromTaggedValue(v).value);
+      ].map(v => getTaggedInfo(v).value);
       expect(values).toEqual([10, 20, 30, 40]);
     });
   });

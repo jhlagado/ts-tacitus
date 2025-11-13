@@ -1,5 +1,5 @@
 import { VM, createVM } from '../../../../core';
-import { toTaggedValue, Tag } from '../../../../core';
+import { Tagged, Tag } from '../../../../core';
 import { push, pop } from '../../../../core/vm';
 import { findOp, fetchOp } from '../../../../ops/lists/query-ops';
 import { stringCreate } from '../../../../strings';
@@ -25,7 +25,7 @@ describe('findOp default branch coverage', () => {
     push(vm, def);
     push(vm, 1);
     push(vm, a);
-    push(vm, toTaggedValue(6, Tag.LIST));
+    push(vm, Tagged(6, Tag.LIST));
 
     // Push missing key and perform find (find expects ( key target -- ref ))
     const missing = stringCreate(vm.digest, 'nope');

@@ -5,9 +5,8 @@
 import {
   type VM,
   type Verb,
-  toTaggedValue,
-  fromTaggedValue,
-  getTag,
+  Tagged,
+  getTaggedInfo,
   Tag,
   getVarRef,
   createRef,
@@ -146,15 +145,21 @@ const nopOp: Verb = () => {
 /**
  * Implements the LiteralCode operation.
  *
- * Reads a 16-bit address from the instruction stream, tags it as Tag.CODE, and pushes it onto the stack.
- * This is used for pushing quotations (code pointers) onto the stack.
+ * Reads a 16-bit value from the instruction stream, tags it as Tag.CODE, and pushes it onto the stack.
+ * The value is already in the correct format:
+ * - < 128: Builtin opcode (stored directly, not X1516 encoded)
+ * - >= 128: User code address (already X1516 encoded)
+ *
+ * This is used for pushing code references (quotations) onto the stack.
  *
  * @param {VM} vm - The virtual machine instance.
  */
 export function literalCodeOp(vm: VM): void {
-  const address = nextUint16(vm);
-  const encoded = encodeX1516(address);
-  const tagged = toTaggedValue(encoded, Tag.CODE, 1);
+  const value = nextUint16(vm);
+  // Value is already in correct format:
+  // - < 128: builtin opcode (store directly)
+  // - >= 128: user code address (already X1516 encoded)
+  const tagged = Tagged(value, Tag.CODE, 1);
   push(vm, tagged);
 }
 
@@ -415,16 +420,14 @@ export function dumpFrameOp(vm: VM): void {
 
     for (let i = 0; i < localCount; i++) {
       const slotValue = vm.memory.readCell(vm.bp + i);
-      const tag = getTag(slotValue);
-      const { value } = fromTaggedValue(slotValue);
+      const { tag, value } = getTaggedInfo(slotValue);
       // eslint-disable-next-line no-console
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
         const absCellIndex = getCellFromRef(slotValue);
         const targetValue = vm.memory.readCell(absCellIndex);
-        const targetTag = getTag(targetValue);
-        const { value: targetVal } = fromTaggedValue(targetValue);
+        const { tag: targetTag, value: targetVal } = getTaggedInfo(targetValue);
         // eslint-disable-next-line no-console
         console.log(
           `    -> Points to absolute addr ${absCellIndex} (cells), tag: ${Tag[targetTag]}, value: ${targetVal}`,

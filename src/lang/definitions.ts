@@ -4,7 +4,7 @@ import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import type { ActiveDefinition } from './state';
 import { markWithLocalReset, define, forget } from '../core/dictionary';
-import { toTaggedValue, Tag } from '@src/core';
+import { Tagged, Tag } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 
 export function beginDefinition(
@@ -64,7 +64,7 @@ export function endDefinition(
   // This allows globals to be accessible after function definition
   forget(vm, checkpoint);
 
-  define(vm, name, toTaggedValue(encodeX1516(defStart), Tag.CODE, 0));
+  define(vm, name, Tagged(encodeX1516(defStart), Tag.CODE, 0));
 
   currentDefinition.current = null;
 }

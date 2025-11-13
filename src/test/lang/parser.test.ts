@@ -2,7 +2,7 @@ import { Op } from '../../ops/opcodes';
 import { createVM, VM } from '../../core';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
-import { fromTaggedValue } from '../../core/tagged';
+import { getTaggedInfo } from '../../core/tagged';
 import { next8, nextFloat32, nextInt16, resolveSymbol } from '../../core/vm';
 
 describe('Parser with Tokenizer', () => {
@@ -85,7 +85,7 @@ describe('Parser with Tokenizer', () => {
       const emptyRef = resolveSymbol(vm, 'empty');
       expect(emptyRef).toBeDefined();
       if (emptyRef !== undefined) {
-        const { value } = fromTaggedValue(emptyRef);
+        const { value } = getTaggedInfo(emptyRef);
         expect(value).toBeDefined();
       }
     });

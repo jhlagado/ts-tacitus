@@ -179,9 +179,8 @@ Never compare raw NaN‑boxed floats. Decode first (spec: `tagged.md`).
 
 ```ts
 // src/test/core/tagged.test.ts
-const encoded = toTaggedValue(123, Tag.CODE);
-expect(getTag(encoded)).toBe(Tag.CODE);
-const { tag, value } = fromTaggedValue(encoded);
+const encoded = Tagged(123, Tag.CODE);
+const { tag, value } = getTaggedInfo(encoded);
 expect(tag).toBe(Tag.CODE);
 expect(value).toBe(123);
 ```
@@ -192,7 +191,7 @@ Symbol table locals vs globals (compile‑time `LOCAL`):
 // src/test/strings/symbol-table-shadowing.test.ts
 const resolved = symbolTable.findTaggedValue('x');
 expect(resolved).toBeDefined();
-const { tag, value } = fromTaggedValue(resolved!);
+const { tag, value } = getTaggedInfo(resolved!);
 expect(tag).toBe(Tag.LOCAL);
 expect(value).toBe(0);
 ```
@@ -201,8 +200,8 @@ Prefer effect‑based assertions (stack contents, lengths) when possible to avoi
 
 Do / Don’t (tagged values)
 
-- Do: `const { tag, value } = fromTaggedValue(v)` when asserting on type/payload.
-- Do: `getTag(v)` for a quick tag check when payload is irrelevant.
+- Do: `const { tag, value } = getTaggedInfo(v)` when asserting on type/payload.
+- Do: `const { tag } = getTaggedInfo(v)` for a quick tag check when payload is irrelevant.
 - Don’t: compare NaN‑boxed values directly with `toBe`/`toEqual` — payload bits collapse.
 - Don’t: pass boxed values into helpers that compare numerics without decoding first.
 
@@ -211,7 +210,7 @@ Low‑level assertions (rare)
 ```ts
 // Use raw cell reads only in low‑level suites
 const cell = vm.memory.readFloat32(segment, cellIndex * CELL_SIZE);
-const { tag, value } = fromTaggedValue(cell);
+const { tag, value } = getTaggedInfo(cell);
 expect(tag).toBe(Tag.LIST);
 ```
 
@@ -220,13 +219,13 @@ Optional helper (keep local to tests)
 ```ts
 // Tiny helper to assert tag/payload without repeating decode calls
 const expectTagged = (v: number, tag: Tag, payload?: number) => {
-  const decoded = fromTaggedValue(v);
+  const decoded = getTaggedInfo(v);
   expect(decoded.tag).toBe(tag);
   if (payload !== undefined) expect(decoded.value).toBe(payload);
 };
 
 // Usage
-const codeRef = toTaggedValue(42, Tag.CODE);
+const codeRef = Tagged(42, Tag.CODE);
 expectTagged(codeRef, Tag.CODE, 42);
 ```
 
@@ -389,10 +388,10 @@ Structural ops `head`/`tail`/`concat`:
 ```ts
 // src/test/ops/lists/list-spec-compliance.test.ts
 const head = executeTacitCode('( 1 2 3 ) head').at(-1)!;
-expect(fromTaggedValue(head).value).toBe(1);
+expect(getTaggedInfo(head).value).toBe(1);
 
 const packed = executeTacitCode('0 pack').at(-1)!;
-expect(fromTaggedValue(packed).value).toBe(0);
+expect(getTaggedInfo(packed).value).toBe(0);
 
 const restored = executeTacitCode('1 2 3 3 pack unpack');
 expect(restored).toEqual(executeTacitCode('1 2 3'));
@@ -538,7 +537,7 @@ Follow this sequence for each new test:
 1. Read the relevant spec (`docs/specs/**`) and note edge cases.
 2. Reset state (`resetVM()` or fresh instances for isolated units).
 3. Drive via Tacit snippets; keep one behaviour per test.
-4. Decode tagged values (`fromTaggedValue`, `getTag`) — never compare boxed NaNs.
+4. Decode tagged values (`getTaggedInfo`) — never compare boxed NaNs. Access tag/value via destructuring: `const { tag, value } = getTaggedInfo(tagged)`.
 5. Inspect heap deliberately when needed (`decodeDataRef`, compute offsets carefully).
 6. Cover success and failure paths (`expect(() => …).toThrow(/…/)`).
 7. Run `yarn test` to catch regressions immediately.

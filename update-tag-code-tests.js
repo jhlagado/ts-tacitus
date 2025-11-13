@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Helper script to update test files for X1516 encoding
- * Updates toTaggedValue(..., Tag.CODE) to use encodeX1516
+ * Updates Tagged(..., Tag.CODE) to use encodeX1516
  */
 
 const fs = require('fs');
@@ -10,8 +10,8 @@ const { execSync } = require('child_process');
 
 // Find all test files with Tag.CODE usage
 const testFiles = execSync(
-  'find src/test -name "*.test.ts" -exec grep -l "toTaggedValue.*Tag\\.CODE" {} \\;',
-  { encoding: 'utf-8' }
+  'find src/test -name "*.test.ts" -exec grep -l "Tagged.*Tag\\.CODE" {} \\;',
+  { encoding: 'utf-8' },
 )
   .trim()
   .split('\n')
@@ -33,24 +33,24 @@ for (const file of testFiles) {
         // Add encodeX1516 import
         const newImport = importLine.replace(
           /from ['"]\.\.\/\.\.\/core['"]/,
-          "from '../../core/code-ref'"
+          "from '../../core/code-ref'",
         );
         content = content.replace(
           importLine,
-          `${importLine}\nimport { encodeX1516 } from '../../core/code-ref';`
+          `${importLine}\nimport { encodeX1516 } from '../../core/code-ref';`,
         );
         modified = true;
       }
     }
   }
 
-  // Update toTaggedValue(address, Tag.CODE, ...) to toTaggedValue(encodeX1516(address), Tag.CODE, ...)
+  // Update Tagged(address, Tag.CODE, ...) to Tagged(encodeX1516(address), Tag.CODE, ...)
   // This is a simple pattern match - be careful with edge cases
-  const pattern = /toTaggedValue\((\s*)([0-9xXa-fA-F_]+)(\s*),\s*Tag\.CODE/g;
+  const pattern = /Tagged\((\s*)([0-9xXa-fA-F_]+)(\s*),\s*Tag\.CODE/g;
   const replacement = (match, space1, address, space2) => {
     // Skip if already wrapped
     if (match.includes('encodeX1516')) return match;
-    return `toTaggedValue(${space1}encodeX1516(${address})${space2}, Tag.CODE`;
+    return `Tagged(${space1}encodeX1516(${address})${space2}, Tag.CODE`;
   };
 
   const newContent = content.replace(pattern, replacement);
@@ -66,4 +66,3 @@ for (const file of testFiles) {
 }
 
 console.log('Done!');
-

@@ -11,7 +11,7 @@ import {
   getVarRef,
   CELL_SIZE,
   TOTAL_DATA,
-  toTaggedValue,
+  Tagged,
   Tag,
   RSTACK_BASE,
   GLOBAL_BASE_BYTES,
@@ -54,7 +54,7 @@ describe('REF utilities', () => {
 
   test('getCellFromRef enforces arena bounds', () => {
     const invalidAbsolute = TOTAL_DATA + 5;
-    const bogus = toTaggedValue(invalidAbsolute, Tag.REF);
+    const bogus = Tagged(invalidAbsolute, Tag.REF);
     // getCellFromRef validates bounds and throws
     expect(() => getCellFromRef(bogus)).toThrow('out of bounds');
     expect(() => refToByte(bogus)).toThrow('out of bounds');
@@ -125,7 +125,7 @@ describe('Absolute REF helpers (Phase A)', () => {
   });
 
   test('getCellFromRef rejects non-REF values', () => {
-    const notRef = toTaggedValue(0, Tag.LIST);
+    const notRef = Tagged(0, Tag.LIST);
     expect(() => getCellFromRef(notRef)).toThrow(/Expected REF/);
   });
 });

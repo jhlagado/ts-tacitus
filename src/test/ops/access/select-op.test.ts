@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
-import { getTag, NIL, Tag } from '../../../core/tagged';
+import { getTaggedInfo, NIL, Tag } from '../../../core/tagged';
 import {
   createTargetRef,
   traverseMultiPath,
@@ -186,7 +186,8 @@ describe('selectOp - Path-based address access', () => {
     );
     // Fetch returns a STRING tagged value; verify tag (content check via digest is outside this test)
     const last = result[result.length - 1];
-    expect(getTag(last)).toBe(Tag.STRING);
+    const { tag: lastTag } = getTaggedInfo(last);
+    expect(lastTag).toBe(Tag.STRING);
   });
 
   test('should handle selection on stack REF target', () => {

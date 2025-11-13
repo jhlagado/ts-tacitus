@@ -142,7 +142,7 @@ If we expand to 18-19 bit addresses, encoding them in opcodes would require 3 by
 
 1. Reduce tag encoding from 6 bits to 3 bits
 2. Remap existing tags to 0-7 range
-3. Update `toTaggedValue` and `fromTaggedValue` to use 3-bit tags
+3. Update `Tagged` and `getTaggedInfo` to use 3-bit tags
 4. Verify all 8 tag types fit in 3 bits
 
 ### Phase 2: Value Payload Expansion

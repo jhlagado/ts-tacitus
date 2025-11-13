@@ -9,7 +9,7 @@
 import { createVM, type VM } from '../../../core/vm';
 import { tuckOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
-import { Tag, toTaggedValue } from '../../../core/tagged';
+import { Tag, Tagged } from '../../../core/tagged';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('tuck Operation', () => {
@@ -119,7 +119,7 @@ describe('tuck Operation', () => {
 
     test('should throw on stack underflow with only one list', () => {
       push(vm, 42);
-      push(vm, toTaggedValue(1, Tag.LIST));
+      push(vm, Tagged(1, Tag.LIST));
       expect(() => tuckOp(vm)).toThrow();
     });
   });

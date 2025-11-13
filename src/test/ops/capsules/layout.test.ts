@@ -3,7 +3,7 @@ import { readCapsuleLayoutFromHandle } from '../../../ops/capsules/layout';
 import { push, rpush } from '../../../core/vm';
 import {
   Tag,
-  toTaggedValue,
+  Tagged,
   createRef,
   CELL_SIZE,
   RSTACK_BASE_BYTES,
@@ -26,10 +26,10 @@ describe('capsule layout (handle-based)', () => {
       rpush(vm, locals[i]);
     }
     // Push CODE ref then LIST header (payload = locals + 1)
-    const codeRef = toTaggedValue(encodeX1516(codeAddr), Tag.CODE);
+    const codeRef = Tagged(encodeX1516(codeAddr), Tag.CODE);
     rpush(vm, codeRef);
     const slotCount = locals.length + 1;
-    const header = toTaggedValue(slotCount, Tag.LIST);
+    const header = Tagged(slotCount, Tag.LIST);
     rpush(vm, header);
 
     const headerCellIndex = vm.rsp - 1; // absolute cell index at top of RSTACK
@@ -52,7 +52,7 @@ describe('capsule layout (handle-based)', () => {
     // Construct LIST where slot0 is a NUMBER instead of CODE
     for (const v of [1, 2]) rpush(vm, v);
     rpush(vm, 42); // not CODE
-    rpush(vm, toTaggedValue(3, Tag.LIST));
+    rpush(vm, Tagged(3, Tag.LIST));
     const headerIdx = vm.rsp - 1;
     const handle = createRef(headerIdx);
 
@@ -66,10 +66,10 @@ describe('capsule layout (handle-based)', () => {
 
   test('reads capsule layout when list lives on STACK segment', () => {
     // Build a capsule-like list on the data stack: ( CODE 1 )
-    const codeRef = toTaggedValue(encodeX1516(99), Tag.CODE);
+    const codeRef = Tagged(encodeX1516(99), Tag.CODE);
     push(vm, 1);
     push(vm, codeRef);
-    push(vm, toTaggedValue(2, Tag.LIST));
+    push(vm, Tagged(2, Tag.LIST));
     const headerCellIndex = vm.sp - 1; // absolute data stack cell index
     const stackHandle = createRef(headerCellIndex);
     const layout = readCapsuleLayoutFromHandle(vm, stackHandle as unknown as number);
@@ -81,7 +81,7 @@ describe('capsule layout (handle-based)', () => {
 
   test('errors when payload slot count is zero', () => {
     // header LIST:0 on RSTACK (no payload)
-    rpush(vm, toTaggedValue(0, Tag.LIST));
+    rpush(vm, Tagged(0, Tag.LIST));
     const handle = createRef(vm.rsp - 1);
     expect(() => readCapsuleLayoutFromHandle(vm, handle)).toThrow('include CODE slot');
   });

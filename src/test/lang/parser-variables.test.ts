@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
-import { Tag, fromTaggedValue, toTaggedValue } from '../../core';
+import { Tag, getTaggedInfo, Tagged } from '../../core';
 import { markWithLocalReset, forget, define } from '../../core/dictionary';
 import { resolveSymbol } from '../../core/vm';
 
@@ -64,12 +64,12 @@ describe('Parser Variable Support', () => {
 
       // Simulate parsing "42 var x"
       const slot = vm.localCount++;
-      define(vm, 'x', toTaggedValue(slot, Tag.LOCAL));
+      define(vm, 'x', Tagged(slot, Tag.LOCAL));
 
       const xRef = resolveSymbol(vm, 'x');
       expect(xRef).toBeDefined();
 
-      const { tag } = fromTaggedValue(xRef!);
+      const { tag } = getTaggedInfo(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
       expect(vm.localCount).toBe(1);
@@ -79,22 +79,22 @@ describe('Parser Variable Support', () => {
 
     test('should handle natural shadowing', () => {
       // Define a builtin (simulate global)
-      define(vm, 'x', toTaggedValue(42, Tag.CODE, 0));
+      define(vm, 'x', Tagged(42, Tag.CODE, 0));
 
       // Start function and define local with same name
       const checkpoint = markWithLocalReset(vm);
       const slot = vm.localCount++;
-      define(vm, 'x', toTaggedValue(slot, Tag.LOCAL));
+      define(vm, 'x', Tagged(slot, Tag.LOCAL));
 
       // Local should shadow global
       const xRef = resolveSymbol(vm, 'x');
-      const { tag } = fromTaggedValue(xRef!);
+      const { tag } = getTaggedInfo(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
       // Restore global scope
       forget(vm, checkpoint);
       const globalXRef = resolveSymbol(vm, 'x');
-      const { tag: globalTag } = fromTaggedValue(globalXRef!);
+      const { tag: globalTag } = getTaggedInfo(globalXRef!);
       expect(globalTag).toBe(Tag.CODE);
     });
   });

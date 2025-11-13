@@ -24,7 +24,7 @@ import type { Token, Tokenizer } from './tokenizer';
 import { TokenType } from './tokenizer';
 import {
   isSpecialChar,
-  fromTaggedValue,
+  getTaggedInfo,
   Tag,
   getRefArea,
   isNIL,
@@ -35,7 +35,7 @@ import {
   GLOBAL_SIZE,
   createGlobalRef,
   getCellFromRef,
-  toTaggedValue,
+  Tagged,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import type { ActiveDefinition } from './state';
@@ -210,7 +210,7 @@ export function emitWord(
     throw new UndefinedWordError(value, getStackData(vm));
   }
 
-  const info = fromTaggedValue(tval);
+  const info = getTaggedInfo(tval);
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
@@ -333,19 +333,27 @@ export function emitRefSigil(
     throw new UndefinedWordError(varName, getStackData(vm));
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(tval);
+  const { tag, value } = getTaggedInfo(tval);
 
+  // NEW: Handle code references (unified Tag.CODE)
+  if (tag === Tag.CODE) {
+    vm.compiler.compileOpcode(Op.LiteralCode);
+    vm.compiler.compile16(value); // Tag.CODE value (builtin < 128 or X1516 encoded >= 128)
+    return;
+  }
+
+  // Existing variable reference logic...
   // Inside function: allow locals and globals
   if (currentDefinition.current) {
     if (tag === Tag.LOCAL) {
       vm.compiler.compileOpcode(Op.VarRef);
-      vm.compiler.compile16(slotNumber);
+      vm.compiler.compile16(value);
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
     if (tag === Tag.REF) {
       if (getRefArea(tval) !== 'global') {
-        throw new Error(`${varName} is not a local variable`);
+        throw new Error(`${varName} is not a variable or function`);
       }
       // Calculate offset from absolute cell index
       const absoluteCellIndex = getCellFromRef(tval);
@@ -355,7 +363,7 @@ export function emitRefSigil(
       vm.compiler.compileOpcode(Op.Fetch);
       return;
     }
-    throw new Error(`${varName} is not a local variable`);
+    throw new Error(`${varName} is not a variable or function`);
   }
 
   // Top level: allow &global; locals are invalid (no frame)
@@ -368,7 +376,7 @@ export function emitRefSigil(
     vm.compiler.compileOpcode(Op.Fetch);
     return;
   }
-  throw new Error(`${varName} is not a global variable`);
+  throw new Error(`${varName} is not a variable or function`);
 }
 
 /**
@@ -411,7 +419,7 @@ export function emitVarDecl(
   vm.compiler.emitReserveIfNeeded();
 
   const slot = vm.localCount++;
-  define(vm, varName, toTaggedValue(slot, Tag.LOCAL));
+  define(vm, varName, Tagged(slot, Tag.LOCAL));
   const slotNumber = slot;
 
   vm.compiler.compileOpcode(Op.InitVar);
@@ -523,7 +531,7 @@ export function emitAssignment(
     throw new Error(`Undefined local or global variable: ${varName}`);
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(tval);
+  const { tag, value: slotNumber } = getTaggedInfo(tval);
   if (tag === Tag.LOCAL) {
     // Check for bracketed path assignment: value -> x[ ... ]
     const maybeBracket = tokenizer.nextToken();
@@ -621,7 +629,7 @@ export function emitIncrement(
     throw new Error(`Undefined local variable: ${varName}`);
   }
 
-  const { tag, value: slotNumber } = fromTaggedValue(tval);
+  const { tag, value: slotNumber } = getTaggedInfo(tval);
   if (tag !== Tag.LOCAL) {
     throw new Error(`${varName} is not a local variable`);
   }

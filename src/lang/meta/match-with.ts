@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
+import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import type { VM } from '../../core/vm';
@@ -29,7 +29,7 @@ export function beginWithImmediate(
   }
 
   const top = peek(vm);
-  const { tag, value } = fromTaggedValue(top);
+  const { tag, value } = getTaggedInfo(top);
   // Check Tag.CODE < 128 (represents builtin opcode)
   if (tag !== Tag.CODE || value >= 128 || value !== Op.EndMatch) {
     throw new SyntaxError('with without match', getStackData(vm));

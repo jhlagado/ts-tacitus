@@ -13,8 +13,8 @@
 import {
   NIL,
   Tag,
-  toTaggedValue,
-  fromTaggedValue,
+  Tagged,
+  getTaggedInfo,
   isString,
   isNumber as isNumberTagged,
   isNIL,
@@ -29,13 +29,13 @@ import { type VM, gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
 // Unified define: store a fully-formed tagged payload under an interned name
 export function define(vm: VM, name: string, payloadTagged: number): void {
   const nameAddr = vm.digest.intern(name);
-  const nameTagged = toTaggedValue(nameAddr, Tag.STRING);
+  const nameTagged = Tagged(nameAddr, Tag.STRING);
   // Create prevRef as REF (or NIL if head is 0)
   const prevRef = vm.head === 0 ? NIL : createGlobalRef(vm.head);
   gpush(vm, prevRef);
   gpush(vm, payloadTagged);
   gpush(vm, nameTagged);
-  gpush(vm, toTaggedValue(3, Tag.LIST));
+  gpush(vm, Tagged(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE)
   vm.head = vm.gp - 1;
 }
@@ -57,7 +57,7 @@ export function lookup(vm: VM, name: string): number {
 
     const baseCell = cur - SLOTS;
     const nameCell = vm.memory.readCell(baseCell + NAME);
-    const ni = fromTaggedValue(nameCell);
+    const ni = getTaggedInfo(nameCell);
     if (ni.tag === Tag.STRING && ni.value === target) {
       return vm.memory.readCell(baseCell + PAYLOAD);
     }
@@ -67,7 +67,7 @@ export function lookup(vm: VM, name: string): number {
     if (isNIL(prevRefValue)) {
       cur = 0;
     } else {
-      const { tag } = fromTaggedValue(prevRefValue);
+      const { tag } = getTaggedInfo(prevRefValue);
       if (tag === Tag.REF) {
         const cellIndex = getCellFromRef(prevRefValue);
         cur = cellIndex - GLOBAL_BASE;
@@ -98,7 +98,7 @@ export function findBytecodeAddress(vm: VM, name: string): number | undefined {
   if (isNIL(result)) {
     return undefined;
   }
-  const info = fromTaggedValue(result);
+  const info = getTaggedInfo(result);
   if (info.tag === Tag.CODE) {
     // Decode X1516 encoded address to return the actual bytecode address
     return decodeX1516(info.value);
@@ -114,7 +114,7 @@ export function findEntry(
   if (isNIL(result)) {
     return undefined;
   }
-  const info = fromTaggedValue(result);
+  const info = getTaggedInfo(result);
   return { taggedValue: result, isImmediate: info.meta === 1 };
 }
 
@@ -160,7 +160,7 @@ function pushEntryToHeap(vm: VM, prev: number, val: number, name: number): numbe
   push(vm, prevRef);
   push(vm, val);
   push(vm, name);
-  const h = toTaggedValue(3, Tag.LIST);
+  const h = Tagged(3, Tag.LIST);
   push(vm, h);
   const base = vm.sp - 1 - 3;
   gpushListFrom(vm, { header: h, baseCell: base });
@@ -206,7 +206,7 @@ export function lookupOp(vm: VM): void {
     throw new Error('lookup expects STRING name');
   }
 
-  const nameStr = vm.digest.get(fromTaggedValue(name).value);
+  const nameStr = vm.digest.get(getTaggedInfo(name).value);
   const result = lookup(vm, nameStr);
   push(vm, result);
 }
@@ -252,12 +252,12 @@ export function dumpDictOp(vm: VM): void {
     const prevRefValue = vm.memory.readCell(baseCell + 0);
     const _valueRef = vm.memory.readCell(baseCell + 1);
     const entryName = vm.memory.readCell(baseCell + 2);
-    const nameInfo = fromTaggedValue(entryName);
+    const nameInfo = getTaggedInfo(entryName);
     const nameStr =
       nameInfo.tag === Tag.STRING ? vm.digest.get(nameInfo.value) : `?tag:${nameInfo.tag}`;
     let prevStr = 'NIL';
     if (!isNIL(prevRefValue)) {
-      const { tag } = fromTaggedValue(prevRefValue);
+      const { tag } = getTaggedInfo(prevRefValue);
       if (tag === Tag.REF) {
         const cellIndex = getCellFromRef(prevRefValue);
         const relativeCellIndex = cellIndex - GLOBAL_BASE;
@@ -271,7 +271,7 @@ export function dumpDictOp(vm: VM): void {
     if (isNIL(prevRefValue)) {
       cur = 0;
     } else {
-      const { tag } = fromTaggedValue(prevRefValue);
+      const { tag } = getTaggedInfo(prevRefValue);
       if (tag === Tag.REF) {
         const cellIndex = getCellFromRef(prevRefValue);
         cur = cellIndex - GLOBAL_BASE;

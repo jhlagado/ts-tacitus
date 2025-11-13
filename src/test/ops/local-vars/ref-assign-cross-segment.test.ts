@@ -5,19 +5,19 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { executeTacitCode, extractListFromStack } from '../../utils/vm-test-utils';
 import { createVM, type VM } from '../../../core/vm';
-import { fromTaggedValue, Tag } from '../../../core/tagged';
+import { getTaggedInfo, Tag } from '../../../core/tagged';
 
 function expectTopIsListWith(values: number[], stack: number[]) {
   let headerIndex = -1;
   for (let i = stack.length - 1; i >= 0; i--) {
-    const { tag } = fromTaggedValue(stack[i]);
+    const { tag } = getTaggedInfo(stack[i]);
     if (tag === Tag.LIST) {
       headerIndex = i;
       break;
     }
   }
   expect(headerIndex).toBeGreaterThanOrEqual(0);
-  const { value: slotCount } = fromTaggedValue(stack[headerIndex]);
+  const { value: slotCount } = getTaggedInfo(stack[headerIndex]);
   expect(slotCount).toBe(values.length);
   const payload = extractListFromStack(stack, headerIndex);
   expect(payload).toEqual(values);

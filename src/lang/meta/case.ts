@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, toTaggedValue, Sentinel } from '@src/core';
+import { SyntaxError, Tag, getTaggedInfo, Tagged, Sentinel } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import type { VM } from '../../core/vm';
@@ -14,7 +14,7 @@ function assertOpenCase(vm: VM, word: string): void {
     throw new SyntaxError(`${word} without open case`, getStackData(vm));
   }
   const closer = peek(vm);
-  const { tag, value } = fromTaggedValue(closer);
+  const { tag, value } = getTaggedInfo(closer);
   // Check Tag.CODE < 128 (represents builtin opcode)
   if (tag !== Tag.CODE || value >= 128 || value !== Op.EndCase) {
     throw new SyntaxError(`${word} without open case`, getStackData(vm));
@@ -52,7 +52,7 @@ export function clauseDoImmediate(
 
 function compileSentinelLiteral(vm: VM, value: Sentinel): void {
   vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(toTaggedValue(value, Tag.SENTINEL));
+  vm.compiler.compileFloat32(Tagged(value, Tag.SENTINEL));
 }
 
 export function defaultImmediate(

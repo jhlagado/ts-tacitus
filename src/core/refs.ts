@@ -4,7 +4,7 @@
  */
 
 import type { VM } from './vm';
-import { fromTaggedValue, toTaggedValue, getTag, Tag } from './tagged';
+import { getTaggedInfo, Tagged, Tag } from './tagged';
 import {
   SEG_DATA,
   STACK_BASE_BYTES,
@@ -30,9 +30,8 @@ export function createRef(cellIndex: number): number {
   if (cellIndex < 0 || cellIndex >= TOTAL_DATA) {
     throw new RangeError(`REF cell index ${cellIndex} is out of bounds`);
   }
-  return toTaggedValue(cellIndex, Tag.REF);
+  return Tagged(cellIndex, Tag.REF);
 }
-
 
 /**
  * Extracts cell index from a REF.
@@ -41,7 +40,7 @@ export function createRef(cellIndex: number): number {
  * @throws {Error} If value is not a REF or index is out of bounds
  */
 export function getCellFromRef(ref: number): number {
-  const { value, tag } = fromTaggedValue(ref);
+  const { value, tag } = getTaggedInfo(ref);
   if (tag !== Tag.REF) {
     throw new Error('Expected REF');
   }
@@ -71,14 +70,14 @@ export function readRef(vm: VM, ref: number): number {
   return vm.memory.readCell(cell);
 }
 
-
 /**
  * Checks if a tagged value is a REF.
  * @param tval - Tagged value to check
  * @returns True if value is a REF
  */
 export function isRef(tval: number): boolean {
-  return getTag(tval) === Tag.REF;
+  const { tag } = getTaggedInfo(tval);
+  return tag === Tag.REF;
 }
 
 /**
@@ -190,4 +189,3 @@ export function writeRef(vm: VM, ref: number, value: number): void {
   const cell = getCellFromRef(ref);
   vm.memory.writeCell(cell, value);
 }
-

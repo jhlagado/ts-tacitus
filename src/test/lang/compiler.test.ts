@@ -1,6 +1,6 @@
 import { Op } from '../../ops/opcodes';
 import { createVM, type VM } from '../../core/vm';
-import { fromTaggedValue, MIN_USER_OPCODE } from '../../core';
+import { getTaggedInfo, MIN_USER_OPCODE } from '../../core';
 import { nextInt16, nextFloat32, next8 } from '../../core/vm';
 import { encodeX1516 } from '../../core/code-ref';
 
@@ -25,7 +25,7 @@ describe('Compiler', () => {
     vm.compiler.compileAddress(address);
     vm.IP = 0;
     const tagNum = nextFloat32(vm);
-    const { value: pointer } = fromTaggedValue(tagNum);
+    const { value: pointer } = getTaggedInfo(tagNum);
     // compileAddress encodes the address using X1516 format
     expect(pointer).toBe(encodeX1516(address));
   });
@@ -33,13 +33,13 @@ describe('Compiler', () => {
     vm.compiler.compile8(Op.LiteralNumber);
     vm.compiler.compileFloat32(42);
     vm.IP = 0;
-      expect(next8(vm)).toBe(Op.LiteralNumber);
-      expect(nextFloat32(vm)).toBeCloseTo(42);
+    expect(next8(vm)).toBe(Op.LiteralNumber);
+    expect(nextFloat32(vm)).toBeCloseTo(42);
   });
   test('should compile a built-in word', () => {
     vm.compiler.compile8(Op.Add);
     vm.IP = 0;
-      expect(next8(vm)).toBe(Op.Add);
+    expect(next8(vm)).toBe(Op.Add);
   });
   test('should preserve compiled code when preserve is true', () => {
     vm.compiler.preserve = true;

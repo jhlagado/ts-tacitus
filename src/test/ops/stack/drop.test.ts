@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, toTaggedValue } from '../../../core/tagged';
+import { Tag, Tagged } from '../../../core/tagged';
 import { dropOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
 import { createVM, VM } from '../../../core';
@@ -41,7 +41,7 @@ describe('drop Operation', () => {
     test('should drop an entire simple list', () => {
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       dropOp(vm);
       expect(getStackData(vm)).toEqual([]);
     });
@@ -50,7 +50,7 @@ describe('drop Operation', () => {
       push(vm, 5);
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       dropOp(vm);
       const stack = getStackData(vm);
       expect(stack).toEqual([5]);
@@ -59,10 +59,10 @@ describe('drop Operation', () => {
     test('should drop multiple lists consecutively', () => {
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 30);
       push(vm, 40);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       dropOp(vm);
       let stack = getStackData(vm);

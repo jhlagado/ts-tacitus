@@ -2,7 +2,7 @@ import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM } from '../
 import { encodeX1516 } from '../../core/code-ref';
 import { Compiler } from '../../lang/compiler';
 // Symbol table is now a function-based facade; verify presence by surface
-import { fromTaggedValue, toTaggedValue, Tag } from '../../core';
+import { getTaggedInfo, Tagged, Tag } from '../../core';
 import { nextAddress, nextInt16, push, pop, getStackData, rpush, rpop } from '../../core/vm';
 
 describe('VM', () => {
@@ -42,8 +42,8 @@ describe('VM', () => {
     });
     test('should handle address tagging', () => {
       const address = 0x2345;
-      push(vm, toTaggedValue(encodeX1516(address), Tag.CODE));
-      const { value, tag } = fromTaggedValue(pop(vm));
+      push(vm, Tagged(encodeX1516(address), Tag.CODE));
+      const { value, tag } = getTaggedInfo(pop(vm));
       expect(value).toBe(encodeX1516(address)); // Value is X1516 encoded
       expect(tag).toBe(Tag.CODE);
     });
@@ -68,8 +68,8 @@ describe('VM', () => {
     });
     test('should handle address tagging on return stack', () => {
       const address = 0x4321;
-      rpush(vm, toTaggedValue(encodeX1516(address), Tag.CODE));
-      const { value, tag } = fromTaggedValue(rpop(vm));
+      rpush(vm, Tagged(encodeX1516(address), Tag.CODE));
+      const { value, tag } = getTaggedInfo(rpop(vm));
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(encodeX1516(address)); // Value is X1516 encoded
     });

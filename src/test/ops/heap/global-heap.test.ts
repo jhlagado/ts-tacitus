@@ -10,7 +10,7 @@ import {
   STACK_BASE,
 } from '../../../core/constants';
 import { createRef } from '../../../core/refs';
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { push, pop, getStackData } from '../../../core/vm';
 
 describe('Global heap primitives', () => {
@@ -35,13 +35,13 @@ describe('Global heap primitives', () => {
   test('gpush copies list payload and leaves no result', () => {
     push(vm, 2);
     push(vm, 1);
-    push(vm, toTaggedValue(2, Tag.LIST));
+    push(vm, Tagged(2, Tag.LIST));
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 3);
     expect(vm.sp - STACK_BASE).toBe(0);
     const cellIndex = baseGp + 2; // header at baseGp+2 after pushing 2 values
     const header = vm.memory.readCell(GLOBAL_BASE + cellIndex);
-    expect(header).toBe(toTaggedValue(2, Tag.LIST));
+    expect(header).toBe(Tagged(2, Tag.LIST));
     expect(vm.memory.readCell(GLOBAL_BASE + cellIndex - 1)).toBe(1);
     expect(vm.memory.readCell(GLOBAL_BASE + cellIndex - 2)).toBe(2);
   });
@@ -49,12 +49,12 @@ describe('Global heap primitives', () => {
   test('gpeek materialises list contents without altering heap', () => {
     push(vm, 2);
     push(vm, 1);
-    push(vm, toTaggedValue(2, Tag.LIST));
+    push(vm, Tagged(2, Tag.LIST));
     gpushOp(vm);
     gpeekOp(vm);
     expect(vm.sp - STACK_BASE).toBe(3);
     const values = getStackData(vm);
-    expect(values).toEqual([2, 1, toTaggedValue(2, Tag.LIST)]);
+    expect(values).toEqual([2, 1, Tagged(2, Tag.LIST)]);
     expect(vm.gp).toBe(baseGp + 3);
   });
 
@@ -71,7 +71,7 @@ describe('Global heap primitives', () => {
   test('gpop rewinds list payload spans', () => {
     push(vm, 2);
     push(vm, 1);
-    push(vm, toTaggedValue(2, Tag.LIST));
+    push(vm, Tagged(2, Tag.LIST));
     gpushOp(vm);
 
     expect(vm.gp).toBe(baseGp + 3);
