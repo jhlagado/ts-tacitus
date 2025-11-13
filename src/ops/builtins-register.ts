@@ -95,6 +95,21 @@ export function registerBuiltins(vm: VM): void {
   reg('values', Op.Values);
   reg('walk', Op.Walk);
 
+  /** Buffer operations. */
+  reg('buffer', Op.Buffer);
+  reg('buf-size', Op.BufSize);
+  reg('is-empty', Op.BufEmpty);
+  reg('is-full', Op.BufFull);
+  reg('write', Op.BufPush);
+  reg('unwrite', Op.BufPop);
+  reg('read', Op.BufShift);
+  reg('unread', Op.BufUnshift);
+  // Aliases
+  reg('push', Op.BufPush); // Alias for write
+  reg('pop', Op.BufPop); // Alias for unwrite
+  reg('shift', Op.BufShift); // Alias for read
+  reg('unshift', Op.BufUnshift); // Alias for unread
+
   /** Reference operations. */
   reg('ref', Op.Ref);
   // 'resolve' removed in favor of 'load'

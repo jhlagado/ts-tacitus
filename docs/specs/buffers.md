@@ -92,7 +92,7 @@ Absolute Address | Content        | Logical Index | Note
 
 ### `write` (stack operation - write)
 
-- **Stack**: `( buffer/ref x -- )`
+- **Stack**: `( x buffer/ref -- )`
 - **Aliases**: `push` (for familiarity with stack terminology)
 - **Note**: Consumes both inputs (buffer is typically stored in a local/global)
 - **Behavior** (stack semantics using write pointer):
@@ -154,7 +154,7 @@ Absolute Address | Content        | Logical Index | Note
 
 ### `unread` (queue operation - push back value)
 
-- **Stack**: `( buffer/ref x -- )`
+- **Stack**: `( x buffer/ref -- )`
 - **Aliases**: `unshift` (for familiarity with array terminology)
 - **Note**: Consumes both inputs (similar to pushing back into input stream in a tokenizer)
 - **Behavior** (push value back into buffer):
@@ -254,8 +254,8 @@ Absolute Address | Content        | Logical Index | Note
 
 ```
 10 buffer var buf    \ Allocate 10-element buffer, store in local buf
-&buf 42 write        \ Write 42 (consumes &buf and 42, writes to data[0], writePtr becomes 1)
-&buf 43 write        \ Write 43 (consumes &buf and 43, writes to data[1], writePtr becomes 2)
+42 &buf write        \ Write 42 (consumes 42 and &buf, writes to data[0], writePtr becomes 1)
+43 &buf write        \ Write 43 (consumes 43 and &buf, writes to data[1], writePtr becomes 2)
 &buf unwrite         \ Unwrite (consumes &buf, writePtr becomes 1, returns data[1]=43)
 &buf unwrite         \ Unwrite (consumes &buf, writePtr becomes 0, returns data[0]=42)
 ```
@@ -263,19 +263,19 @@ Absolute Address | Content        | Logical Index | Note
 **Using aliases** (push/pop/shift/unshift following JavaScript array terminology):
 
 ```
-&buf 42 push         \ Alias for write (consumes &buf and 42)
+42 &buf push         \ Alias for write (consumes 42 and &buf)
 &buf pop             \ Alias for unwrite (consumes &buf, returns value)
 &buf shift           \ Alias for read (consumes &buf, returns value)
-&buf 100 unshift     \ Alias for unread (consumes &buf and 100)
+100 &buf unshift     \ Alias for unread (consumes 100 and &buf)
 ```
 
 **Queue operations** (using read pointer for reading, write pointer for writing):
 
 ```
-&buf 100 write       \ Write 100 (consumes &buf and 100, writes to data[0], writePtr becomes 1)
-&buf 101 write       \ Write 101 (consumes &buf and 101, writes to data[1], writePtr becomes 2)
+100 &buf write       \ Write 100 (consumes 100 and &buf, writes to data[0], writePtr becomes 1)
+101 &buf write       \ Write 101 (consumes 101 and &buf, writes to data[1], writePtr becomes 2)
 &buf read            \ Read (consumes &buf, reads data[0]=100, readPtr becomes 1)
-&buf 100 unread      \ Unread (consumes &buf and 100, readPtr becomes 0, writes 100 back)
+100 &buf unread      \ Unread (consumes 100 and &buf, readPtr becomes 0, writes 100 back)
 &buf read            \ Read again (consumes &buf, reads data[0]=100, readPtr becomes 1)
 &buf read            \ Read (consumes &buf, reads data[1]=101, readPtr becomes 2)
 ```
