@@ -5,9 +5,9 @@
 
 import {
   VM,
-  toTaggedValue,
+  Tagged,
   Tag,
-  fromTaggedValue,
+  getTaggedInfo,
   CELL_SIZE,
   SEG_DATA,
   STACK_BASE_BYTES,
@@ -36,7 +36,7 @@ function getStackDepth(vm: VM): number {
 
 describe('LIST Core Utilities', () => {
   test('should correctly identify LIST types', () => {
-    const list = toTaggedValue(5, Tag.LIST);
+    const list = Tagged(5, Tag.LIST);
     const integer = 5;
 
     expect(isList(list)).toBe(true);
@@ -44,26 +44,26 @@ describe('LIST Core Utilities', () => {
   });
 
   test('should handle LIST with zero slot count', () => {
-    const emptyList = toTaggedValue(0, Tag.LIST);
+    const emptyList = Tagged(0, Tag.LIST);
     expect(isList(emptyList)).toBe(true);
 
-    const decoded = fromTaggedValue(emptyList);
+    const decoded = getTaggedInfo(emptyList);
     expect(decoded.tag).toBe(Tag.LIST);
     expect(decoded.value).toBe(0);
   });
 
   test('should handle LIST with maximum slot count', () => {
-    const maxList = toTaggedValue(65535, Tag.LIST);
+    const maxList = Tagged(65535, Tag.LIST);
     expect(isList(maxList)).toBe(true);
 
-    const decoded = fromTaggedValue(maxList);
+    const decoded = getTaggedInfo(maxList);
     expect(decoded.tag).toBe(Tag.LIST);
     expect(decoded.value).toBe(65535);
   });
 
   test('should validate LIST value ranges', () => {
-    expect(() => toTaggedValue(-1, Tag.LIST)).toThrow();
-    expect(() => toTaggedValue(65536, Tag.LIST)).toThrow();
+    expect(() => Tagged(-1, Tag.LIST)).toThrow();
+    expect(() => Tagged(65536, Tag.LIST)).toThrow();
   });
 
   test('should include LIST in encoded/decoded round-trip tests', () => {
@@ -74,8 +74,8 @@ describe('LIST Core Utilities', () => {
     ];
 
     tests.forEach(({ tag, value }) => {
-      const encoded = toTaggedValue(value, tag);
-      const decoded = fromTaggedValue(encoded);
+      const encoded = Tagged(value, tag);
+      const decoded = getTaggedInfo(encoded);
       expect(decoded.tag).toBe(tag);
       expect(decoded.value).toBe(value);
       expect(isList(encoded)).toBe(true);
@@ -134,7 +134,7 @@ describe('LIST Core Utilities', () => {
       const vm = createVM();
       const intVal = 42;
       const numVal = 3.14;
-      const strVal = toTaggedValue(100, Tag.STRING);
+      const strVal = Tagged(100, Tag.STRING);
 
       createList(vm, [intVal, numVal, strVal]);
 
@@ -146,22 +146,22 @@ describe('LIST Core Utilities', () => {
 
   describe('getListSlotCount', () => {
     it('should extract slot count from LIST header', () => {
-      const header = toTaggedValue(5, Tag.LIST);
+      const header = Tagged(5, Tag.LIST);
       expect(getListLength(header)).toBe(5);
     });
 
     it('should handle zero slot count', () => {
-      const header = toTaggedValue(0, Tag.LIST);
+      const header = Tagged(0, Tag.LIST);
       expect(getListLength(header)).toBe(0);
     });
 
     it('should handle maximum slot count', () => {
-      const header = toTaggedValue(65535, Tag.LIST);
+      const header = Tagged(65535, Tag.LIST);
       expect(getListLength(header)).toBe(65535);
     });
 
     it('should throw on non-LIST header', () => {
-      const nonList = toTaggedValue(5, Tag.STRING);
+      const nonList = Tagged(5, Tag.STRING);
       expect(() => getListLength(nonList)).toThrow('Expected LIST header');
     });
   });
@@ -236,7 +236,7 @@ describe('LIST Core Utilities', () => {
 
     it('should throw on insufficient payload space', () => {
       const vm = createVM();
-      const invalidHeader = toTaggedValue(10, Tag.LIST);
+      const invalidHeader = Tagged(10, Tag.LIST);
       push(vm, invalidHeader);
 
       expect(() => validateListHeader(vm)).toThrow('LIST payload validation');
@@ -245,7 +245,7 @@ describe('LIST Core Utilities', () => {
     it('should throw on slot count exceeding maximum', () => {
       const vm = createVM();
       try {
-        const invalidHeader = toTaggedValue(65536, Tag.LIST);
+        const invalidHeader = Tagged(65536, Tag.LIST);
         push(vm, invalidHeader);
         expect(() => validateListHeader(vm)).toThrow('exceeds maximum of 65535');
       } catch (e) {
@@ -373,7 +373,7 @@ describe('LIST Core Utilities', () => {
   describe('Additional Coverage', () => {
     it('getListElemCell returns -1 for negative index', () => {
       const vm = createVM();
-      const header = toTaggedValue(1, Tag.LIST);
+      const header = Tagged(1, Tag.LIST);
       const headerCell = 8;
       expect(getListElemCell(vm, header, headerCell, -1)).toBe(-1);
     });
@@ -381,10 +381,10 @@ describe('LIST Core Utilities', () => {
     it('getListElemCell computes correct cell indices for flat list', () => {
       const vm = createVM();
       const cellHeader = 8;
-      const header = toTaggedValue(3, Tag.LIST);
-      const e1 = toTaggedValue(11, Tag.NUMBER);
-      const e2 = toTaggedValue(22, Tag.NUMBER);
-      const e3 = toTaggedValue(33, Tag.NUMBER);
+      const header = Tagged(3, Tag.LIST);
+      const e1 = Tagged(11, Tag.NUMBER);
+      const e2 = Tagged(22, Tag.NUMBER);
+      const e3 = Tagged(33, Tag.NUMBER);
 
       vm.memory.writeCell(cellHeader - 3, e1);
       vm.memory.writeCell(cellHeader - 2, e2);

@@ -3,7 +3,7 @@
  * Code reference utilities for unified @symbol system.
  */
 
-import { Tag, toTaggedValue } from './tagged';
+import { Tag, Tagged } from './tagged';
 import { MAX_BUILTIN_OPCODE } from './constants';
 
 /**
@@ -47,7 +47,7 @@ export function decodeX1516(encoded: number): number {
 /**
  * Creates a tagged reference to a built-in operation.
  * @deprecated This function now returns Tag.CODE instead of Tag.BUILTIN for unified dispatch.
- * Use createCodeRef() or toTaggedValue(opcode, Tag.CODE) for new code.
+ * Use createCodeRef() or Tagged(opcode, Tag.CODE) for new code.
  * @param opcode The opcode of the built-in operation (0-127)
  * @returns A Tag.CODE tagged value (stored directly, not X1516 encoded)
  * @throws {Error} If opcode is out of range
@@ -57,7 +57,7 @@ export function createBuiltinRef(opcode: number): number {
     throw new Error(`Invalid builtin opcode: ${opcode}. Must be in range 0-${MAX_BUILTIN_OPCODE}.`);
   }
   // Return Tag.CODE instead of Tag.BUILTIN for unified dispatch
-  return toTaggedValue(opcode, Tag.CODE);
+  return Tagged(opcode, Tag.CODE);
 }
 
 /**
@@ -74,9 +74,9 @@ export function createCodeRef(bytecodeAddr: number): number {
   }
   // If address < 128, store directly (invalid X1516, will be treated as builtin opcode)
   if (bytecodeAddr < 128) {
-    return toTaggedValue(bytecodeAddr, Tag.CODE);
+    return Tagged(bytecodeAddr, Tag.CODE);
   }
   // Otherwise, encode using X1516 format
   const encoded = encodeX1516(bytecodeAddr);
-  return toTaggedValue(encoded, Tag.CODE);
+  return Tagged(encoded, Tag.CODE);
 }

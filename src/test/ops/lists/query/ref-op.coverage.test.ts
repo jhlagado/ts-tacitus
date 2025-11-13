@@ -1,5 +1,5 @@
 import { VM, createVM } from '../../../../core';
-import { toTaggedValue, Tag, isRef } from '../../../../core';
+import { Tagged, Tag, isRef } from '../../../../core';
 import { push, peek } from '../../../../core/vm';
 import { refOp } from '../../../../ops/lists/query-ops';
 
@@ -13,7 +13,7 @@ describe('refOp coverage', () => {
     // Build a simple list (1 2) on the stack: payload then header
     push(vm, 1);
     push(vm, 2);
-    push(vm, toTaggedValue(2, Tag.LIST));
+    push(vm, Tagged(2, Tag.LIST));
     const spBefore = vm.sp;
 
     refOp(vm);

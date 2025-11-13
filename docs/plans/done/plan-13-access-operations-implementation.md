@@ -201,7 +201,7 @@ This plan provides a clean foundation for Tacit's unified data access architectu
 
 ### Testing Strategy
 
-- **Behavioral testing only:** Avoid `fromTaggedValue` usage per established guidelines
+- **Behavioral testing only:** Avoid `getTaggedInfo` usage per established guidelines
 - **Cross-operation verification:** Test complete workflows end-to-end
 - **Performance benchmarking:** Validate complexity claims with real data
 

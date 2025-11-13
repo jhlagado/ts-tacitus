@@ -16,7 +16,7 @@
 
 import { executeOp } from '../ops/builtins';
 import { parse } from './parser';
-import { toTaggedValue, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
+import { Tagged, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 import { Tokenizer } from './tokenizer';
 import { nextOpcode, getStackData, rpush } from '../core/vm';
@@ -119,7 +119,7 @@ export function callTacit(vm: VM, codePtr: number): void {
   // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
   // Frame migration complete: BP is cell-based and unified.
   // compatibility for code/tests still expecting byte-based BP frames.
-  rpush(vm, toTaggedValue(encodeX1516(returnIP), Tag.CODE));
+  rpush(vm, Tagged(encodeX1516(returnIP), Tag.CODE));
   // Unified cell-only frame prologue: save BP as relative cells
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;

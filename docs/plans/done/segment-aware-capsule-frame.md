@@ -37,26 +37,30 @@
 ### 4.1 Normalise receiver to a header ref
 
 In `dispatchOp`:
+
 ```ts
 if (isRef(receiver)) {
-  const { address, segment } = resolveReference(vm, receiver);   // slot address
-  const cellValue = vm.memory.readFloat32(segment, address);     // slot contents
+  const { address, segment } = resolveReference(vm, receiver); // slot address
+  const cellValue = vm.memory.readFloat32(segment, address); // slot contents
   if (isRef(cellValue)) {
-    receiver = cellValue;                                       // alias → header ref
+    receiver = cellValue; // alias → header ref
   } else {
     throw new Error('capsule handle does not reference a LIST');
   }
 }
 ```
+
 (We never see a LIST header stored directly in the slot.)
 
 ### 4.2 Bind the frame base to that ref
 
 Instead of treating BP as “cells”, let it hold either:
+
 - a plain number (colon frames, current behaviour), or
 - a capsule handle (tagged ref).
 
 Concrete steps:
+
 1. **Save caller base:** push `vm.BP` as-is onto the return stack (`vm.rpush(vm.BP)`).
 2. **Bind capsule base:** assign `vm.BP = receiver` (the header ref).
 3. **Restore:** pop the saved value; if `isRef(value)` return true, keep the ref; otherwise set BP back to the numeric cell index.
@@ -72,7 +76,7 @@ if (isRef(base)) {
 }
 
 const baseCell = Math.trunc(base); // numeric colon frame
-return toTaggedValue(baseCell + slotNumber, Tag.RSTACK_REF);
+return Tagged(baseCell + slotNumber, Tag.RSTACK_REF);
 ```
 
 Other sites that read/write locals (e.g. `initVarOp`, diagnostics) should use the same branch: resolve when BP is a ref; otherwise treat BP as the traditional cell index.

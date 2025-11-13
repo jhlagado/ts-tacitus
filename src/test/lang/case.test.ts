@@ -5,8 +5,8 @@ import { ensureNoOpenConditionals } from '../../lang/meta';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
-import { SEG_CODE, Tag, fromTaggedValue, Sentinel } from '../../core';
-import { STACK_BASE, RSTACK_BASE  } from '../../core/constants';
+import { SEG_CODE, Tag, getTaggedInfo, Sentinel } from '../../core';
+import { STACK_BASE, RSTACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
 import {
@@ -135,7 +135,7 @@ describe('case immediates', () => {
 
     expect(vm.sp - STACK_BASE).toBe(2);
     const closer = peek(vm);
-    const closerInfo = fromTaggedValue(closer);
+    const closerInfo = getTaggedInfo(closer);
     // Builtins are now stored as Tag.CODE with value < 128
     expect(closerInfo.tag).toBe(Tag.CODE);
     expect(closerInfo.value).toBe(Op.EndCase);
@@ -153,7 +153,7 @@ describe('case immediates', () => {
     clauseDoImmediate(vm, tokenizer, currentDefinition);
 
     expect(vm.sp - STACK_BASE).toBe(4);
-    const closerInfo = fromTaggedValue(peek(vm));
+    const closerInfo = getTaggedInfo(peek(vm));
     // Builtins are now stored as Tag.CODE with value < 128
     expect(closerInfo.tag).toBe(Tag.CODE);
     expect(closerInfo.value).toBe(Op.EndOf);
@@ -173,7 +173,7 @@ describe('case immediates', () => {
     expect(opcode).toBe(Op.LiteralNumber);
 
     const encoded = vm.memory.readFloat32(SEG_CODE, 1);
-    const decoded = fromTaggedValue(encoded);
+    const decoded = getTaggedInfo(encoded);
     expect(decoded.tag).toBe(Tag.SENTINEL);
     expect(decoded.value).toBe(Sentinel.DEFAULT);
   });
@@ -184,7 +184,7 @@ describe('case immediates', () => {
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
     const encoded = vm.memory.readFloat32(SEG_CODE, 1);
-    const decoded = fromTaggedValue(encoded);
+    const decoded = getTaggedInfo(encoded);
     expect(decoded.tag).toBe(Tag.SENTINEL);
     expect(decoded.value).toBe(Sentinel.NIL);
   });
@@ -195,7 +195,7 @@ describe('case immediates', () => {
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
     expect(vm.sp - STACK_BASE).toBeGreaterThanOrEqual(2);
-    const { tag, value } = fromTaggedValue(peek(vm));
+    const { tag, value } = getTaggedInfo(peek(vm));
     // Builtins are now stored as Tag.CODE with value < 128
     expect(tag).toBe(Tag.CODE);
     expect(value).toBe(Op.EndCase);

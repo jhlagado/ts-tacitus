@@ -1,4 +1,4 @@
-import { Tag, toTaggedValue } from '../../../core';
+import { Tag, Tagged } from '../../../core';
 import { createVM, type VM } from '../../../core/vm';
 import { assertCapsuleShape } from '../../../ops/capsules/assertions';
 import { pushTestList } from '../../utils/vm-test-utils';
@@ -13,7 +13,7 @@ describe('capsule assertions', () => {
   });
 
   test('accepts well-formed capsule', () => {
-    const codeRef = toTaggedValue(encodeX1516(42), Tag.CODE);
+    const codeRef = Tagged(encodeX1516(42), Tag.CODE);
     pushTestList(vm, [1, 2, codeRef]);
     const header = peek(vm);
     expect(() => assertCapsuleShape(vm, header)).not.toThrow();

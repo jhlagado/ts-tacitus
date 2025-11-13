@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../core/vm';
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { cellsRoll, findElement, cellsCopy, cellsReverse } from '../../../ops/stack';
 import { push, getStackData, depth } from '../../../core/vm';
 
@@ -91,7 +91,7 @@ describe('Stack Utils', () => {
 
   describe('findElement', () => {
     function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-      push(vm, toTaggedValue(value, tag));
+      push(vm, Tagged(value, tag));
     }
 
     function createList(...values: number[]): void {

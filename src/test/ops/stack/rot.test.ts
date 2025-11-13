@@ -1,4 +1,4 @@
-import { Tag, toTaggedValue } from '../../../core/tagged';
+import { Tag, Tagged } from '../../../core/tagged';
 import { createVM, type VM } from '../../../core/vm';
 import { rotOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
@@ -45,7 +45,7 @@ describe('rot Operation', () => {
     test('should rotate a list with two simple values', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 3);
       push(vm, 4);
 
@@ -58,13 +58,13 @@ describe('rot Operation', () => {
     test('should rotate three lists', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 3);
       push(vm, 4);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 5);
       push(vm, 6);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       rotOp(vm);
 
@@ -76,10 +76,10 @@ describe('rot Operation', () => {
       push(vm, 1);
       push(vm, 2);
       push(vm, 3);
-      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
       push(vm, 4);
       push(vm, 5);
-      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
 
       rotOp(vm);
 

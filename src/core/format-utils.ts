@@ -3,7 +3,7 @@
  * Utility functions for formatting Tacit VM values.
  */
 import { STACK_BASE } from './constants';
-import { fromTaggedValue, Tag, getTag } from './tagged';
+import { getTaggedInfo, Tag } from './tagged';
 import { isRef, getCellFromRef } from './refs';
 import { getListLength } from './list';
 import { type VM, pop, push, getStackData } from './vm';
@@ -45,7 +45,7 @@ function formatString(str: string): string {
  * @returns Formatted string
  */
 export function formatAtomicValue(vm: VM, value: number): string {
-  const { tag, value: tagValue } = fromTaggedValue(value);
+  const { tag, value: tagValue } = getTaggedInfo(value);
 
   switch (tag) {
     case Tag.NUMBER:
@@ -79,7 +79,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
  * This is the same logic as in print-ops.ts but adapted for format-utils.
  */
 export function formatList(vm: VM, headerValue: number): string {
-  const decoded = fromTaggedValue(headerValue);
+  const decoded = getTaggedInfo(headerValue);
   const totalSlots = decoded.value;
   if (totalSlots === 0) {
     return '()';
@@ -90,7 +90,7 @@ export function formatList(vm: VM, headerValue: number): string {
   // Work in absolute cells: vm.sp is one past TOS; data segment starts at STACK_BASE
   while (consumed < totalSlots && vm.sp > STACK_BASE) {
     const cell = pop(vm);
-    const cellDecoded = fromTaggedValue(cell);
+    const cellDecoded = getTaggedInfo(cell);
     if (cellDecoded.tag === Tag.LIST) {
       const nestedSlots = cellDecoded.value;
       const nested = formatList(vm, cell);
@@ -112,7 +112,7 @@ export function formatList(vm: VM, headerValue: number): string {
  * @returns Formatted string representation
  */
 export function formatValue(vm: VM, value: number): string {
-  const tag = getTag(value);
+  const { tag } = getTaggedInfo(value);
 
   if (tag === Tag.LIST) {
     const stack = getStackData(vm);
@@ -132,7 +132,8 @@ export function formatValue(vm: VM, value: number): string {
         break;
       }
       const elem = stack[elemIdx];
-      if (getTag(elem) === Tag.LIST) {
+      const { tag: elemTag } = getTaggedInfo(elem);
+      if (elemTag === Tag.LIST) {
         parts.push(formatValue(vm, elem));
       } else {
         parts.push(formatAtomicValue(vm, elem));
@@ -144,7 +145,8 @@ export function formatValue(vm: VM, value: number): string {
   if (isRef(value)) {
     const cell = getCellFromRef(value);
     const header = vm.memory.readCell(cell);
-    if (getTag(header) === Tag.LIST) {
+    const { tag: headerTag } = getTaggedInfo(header);
+    if (headerTag === Tag.LIST) {
       const slotCount = getListLength(header);
       if (slotCount === 0) {
         return '()';
@@ -162,7 +164,7 @@ export function formatValue(vm: VM, value: number): string {
     return formatAtomicValue(vm, header);
   }
 
-  const { value: tagValue } = fromTaggedValue(value);
+  const { value: tagValue } = getTaggedInfo(value);
   switch (tag) {
     case Tag.STRING: {
       const str = vm.digest.get(tagValue);

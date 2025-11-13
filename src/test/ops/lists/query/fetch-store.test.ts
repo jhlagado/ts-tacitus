@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../../core';
 import { executeTacitCode } from '../../../utils/vm-test-utils';
 import { fetchOp, storeOp, loadOp } from '../../../../ops/lists';
-import { getTag, Tag } from '../../../../core/tagged';
+import { getTaggedInfo, Tag } from '../../../../core/tagged';
 import { push, peek } from '../../../../core/vm';
 
 // Behavioral tests for fetch/store using references
@@ -23,7 +23,8 @@ describe('List reference operations: fetch/store', () => {
     const result = executeTacitCode(vm, '( ( 5 6 ) 7 ) 0 elem fetch');
     // Expect top of stack to be LIST header; preceding slots are payload
     const last = result[result.length - 1];
-    expect(getTag(last)).toBe(Tag.LIST);
+    const { tag: lastTag } = getTaggedInfo(last);
+    expect(lastTag).toBe(Tag.LIST);
   });
 
   test('store simple value into slot ref', () => {
@@ -50,6 +51,7 @@ describe('List reference operations: fetch/store', () => {
     // Top of stack is a REF into RSTACK; load should materialize the list
     loadOp(vm);
     const tos = peek(vm);
-    expect(getTag(tos)).toBe(Tag.LIST);
+    const { tag: tosTag } = getTaggedInfo(tos);
+    expect(tosTag).toBe(Tag.LIST);
   });
 });

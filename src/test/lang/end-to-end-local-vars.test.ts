@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { define } from '../../core/dictionary';
-import { toTaggedValue, Tag } from '../../core';
+import { Tagged, Tag } from '../../core';
 
 describe('End-to-End Local Variables Integration', () => {
   let vm: VM;
@@ -76,7 +76,7 @@ describe('End-to-End Local Variables Integration', () => {
 
     test('should handle variable shadowing correctly', () => {
       // Define a global-like builtin first
-      define(vm, 'x', toTaggedValue(99, Tag.CODE, 0));
+      define(vm, 'x', Tagged(99, Tag.CODE, 0));
 
       const result = executeTacitCode(
         vm,

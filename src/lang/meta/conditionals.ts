@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue } from '@src/core';
+import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import type { VM } from '../../core/vm';
@@ -45,13 +45,12 @@ export function beginElseImmediate(
   _tokenizer: Tokenizer,
   _currentDefinition: { current: ActiveDefinition | null },
 ): void {
-
   if (depth(vm) < 2) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));
   }
 
   const closer = pop(vm);
-  const closerInfo = fromTaggedValue(closer);
+  const closerInfo = getTaggedInfo(closer);
   // Check Tag.CODE < 128 (represents builtin opcode)
   if (closerInfo.tag !== Tag.CODE || closerInfo.value >= 128 || closerInfo.value !== Op.EndIf) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));
@@ -78,7 +77,7 @@ export function ensureNoOpenConditionals(vm: VM): void {
   const stackDepth = depth(vm);
   for (let offset = 0; offset < stackDepth; offset++) {
     const tval = peekAt(vm, offset); // 0 = TOS
-    const { tag, value: opcode } = fromTaggedValue(tval);
+    const { tag, value: opcode } = getTaggedInfo(tval);
     // Check Tag.CODE < 128 (represents builtin opcode)
     if (tag === Tag.CODE && opcode < 128) {
       if (opcode === Op.EndIf) {

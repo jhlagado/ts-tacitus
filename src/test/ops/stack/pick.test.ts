@@ -1,4 +1,4 @@
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { createVM, type VM } from '../../../core/vm';
 import { pickOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
@@ -53,7 +53,7 @@ describe('pick Operation', () => {
     test('should pick a list from the stack', () => {
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 5);
       push(vm, 1);
 
@@ -68,7 +68,7 @@ describe('pick Operation', () => {
       push(vm, 42);
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 1);
 
       pickOp(vm);

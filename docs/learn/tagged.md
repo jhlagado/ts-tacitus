@@ -1,6 +1,7 @@
 # Tacit Tagged Values Specification
 
 Orientation
+
 - Start with core invariants: docs/specs/core-invariants.md
   (See docs/specs/variables-and-refs.md for refs/load/fetch/store.)
 
@@ -41,14 +42,14 @@ Active tags are listed below; this definition takes precedence.
 
 ### Tag Table
 
-| Tag      | Payload Meaning                    | Mutable In-Place                           | Printable Form                         | Notes                                  |
-| -------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------- |
-| NUMBER   | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal                        | Not NaN-box encoded                    |
-| SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                                    | Single legitimate value: NIL (0)       |
-| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or bytecode addr               | Executed via `eval`                    |
-| STRING   | String segment offset              | No                                         | string literal                         | Immutable contents                     |
-| BUILTIN  | Opcode (0..127)                    | No                                         | builtin name                           | Dispatch via builtin table             |
-| LIST     | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                                | Reverse layout; payload beneath header |
+| Tag      | Payload Meaning                    | Mutable In-Place                           | Printable Form           | Notes                                  |
+| -------- | ---------------------------------- | ------------------------------------------ | ------------------------ | -------------------------------------- |
+| NUMBER   | Raw IEEE-754 float32 (non-NaN)     | n/a (value itself)                         | numeric literal          | Not NaN-box encoded                    |
+| SENTINEL | Reserved sentinel (payload 0 only) | Yes (slot overwrite where used as NIL)     | NIL                      | Single legitimate value: NIL (0)       |
+| CODE     | Bytecode address (0..8191 current) | No (structural)                            | `@name` or bytecode addr | Executed via `eval`                    |
+| STRING   | String segment offset              | No                                         | string literal           | Immutable contents                     |
+| BUILTIN  | Opcode (0..127)                    | No                                         | builtin name             | Dispatch via builtin table             |
+| LIST     | Payload slot count (0..65535)      | Header itself no; simple payload slots yes | `( … )`                  | Reverse layout; payload beneath header |
 
 ## Memory Layout
 
@@ -119,7 +120,7 @@ All tagged values must:
 
 ## Implementation Notes
 
-- `toTaggedValue(value, tag)` / `fromTaggedValue()` implement encoding/decoding
+- `Tagged(value, tag)` / `getTaggedInfo()` implement encoding/decoding
 - Reverse lists depend only on header payload count; traversal uses span rule (see `lists.md §11`)
 - Parser-generated code (colon definitions, meta constructs) yields `Tag.CODE` references; there is no separate `CODE_BLOCK` tag
 - Addressing operations (`elem`, `slot`, `find`) consume tagged headers uniformly
@@ -193,5 +194,5 @@ length                     \ -> 3
 | ------------------- | --------------------------- | --------------------------------------------- |
 | Reverse list layout | LIST header + payload slots | `lists.md` (§5–§11)                           |
 | Address bounds      | CODE within segment bounds  | `vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                          |
+| NIL definition      | SENTINEL 0                  | `lists.md` (Maplists)                         |
 | Unified dispatch    | BUILTIN/CODE via eval       | Language parser & executor                    |

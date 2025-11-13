@@ -5,7 +5,7 @@
 
 import type { VM, Verb } from '@src/core';
 import {
-  fromTaggedValue,
+  getTaggedInfo,
   Tag,
   SEG_DATA,
   CELL_SIZE,
@@ -36,7 +36,7 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
 
   const cellIndex = vm.sp - startSlot - 1;
   const value = vm.memory.readCell(cellIndex);
-  const { tag, value: tagValue } = fromTaggedValue(value);
+  const { tag, value: tagValue } = getTaggedInfo(value);
 
   if (tag === Tag.LIST) {
     const elementSize = tagValue + 1;
@@ -269,7 +269,7 @@ export const pickOp: Verb = (vm: VM) => {
 export const dropOp: Verb = (vm: VM) => {
   validateStackDepth(vm, 1, 'drop');
   const topValue = peek(vm);
-  const { tag, value } = fromTaggedValue(topValue);
+  const { tag, value } = getTaggedInfo(topValue);
   if (tag === Tag.LIST) {
     const totalSlots = value + 1;
     vm.sp -= totalSlots;

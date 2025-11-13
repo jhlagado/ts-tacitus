@@ -4,15 +4,14 @@
  */
 
 import type { VM } from '@src/core';
-import { toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
+import { Tagged, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
 import { findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
-const stackCellFromTop = (vm: VM, offsetSlots: number): number =>
-  vm.sp - (offsetSlots + 1);
+const stackCellFromTop = (vm: VM, offsetSlots: number): number => vm.sp - (offsetSlots + 1);
 
 export function tailOp(vm: VM): void {
   ensureStackSize(vm, 1, 'tail');
@@ -29,7 +28,7 @@ export function tailOp(vm: VM): void {
   const slotCount = getListLength(info.header);
   if (slotCount === 0) {
     pop(vm);
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
 
@@ -42,20 +41,20 @@ export function tailOp(vm: VM): void {
   pop(vm);
 
   if (newSlotCount <= 0) {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
 
   if (targetIsDirectList) {
     vm.sp -= firstElemSpan;
-    push(vm, toTaggedValue(newSlotCount, Tag.LIST));
+    push(vm, Tagged(newSlotCount, Tag.LIST));
   } else {
     for (let i = 0; i < newSlotCount; i++) {
       const elemCell = firstElemCell - firstElemSpan - i;
       const elem = vm.memory.readCell(elemCell);
       push(vm, elem);
     }
-    push(vm, toTaggedValue(newSlotCount, Tag.LIST));
+    push(vm, Tagged(newSlotCount, Tag.LIST));
   }
 }
 
@@ -126,7 +125,7 @@ export function reverseOp(vm: VM): void {
   pop(vm);
 
   if (slotCount === 0) {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
 
@@ -162,7 +161,7 @@ export function reverseOp(vm: VM): void {
     }
   }
 
-  push(vm, toTaggedValue(slotCount, Tag.LIST));
+  push(vm, Tagged(slotCount, Tag.LIST));
 }
 
 export function concatOp(vm: VM): void {
@@ -256,10 +255,10 @@ export function concatOp(vm: VM): void {
   vm.sp -= lhsDrop + rhsDrop;
 
   for (let i = rhsSlots.length - 1; i >= 0; i--) {
-push(vm, rhsSlots[i]);
-}
+    push(vm, rhsSlots[i]);
+  }
   for (let i = lhsSlots.length - 1; i >= 0; i--) {
-push(vm, lhsSlots[i]);
-}
-  push(vm, toTaggedValue(lhsSlots.length + rhsSlots.length, Tag.LIST));
+    push(vm, lhsSlots[i]);
+  }
+  push(vm, Tagged(lhsSlots.length + rhsSlots.length, Tag.LIST));
 }

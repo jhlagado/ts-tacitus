@@ -1,9 +1,7 @@
-import type {
-  VM } from '@src/core';
+import type { VM } from '@src/core';
 import {
-  getTag,
   Tag,
-  fromTaggedValue,
+  getTaggedInfo,
   getListBounds,
   getListLength,
   SEG_DATA,
@@ -15,7 +13,7 @@ import {
  * Throws a descriptive error if invariants are violated.
  */
 export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): void {
-  const tag = getTag(value);
+  const { tag } = getTaggedInfo(value);
   if (tag !== Tag.LIST) {
     throw new Error(`Expected ${label} to be a LIST, found ${Tag[tag] ?? 'unknown tag'}`);
   }
@@ -32,7 +30,7 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
   const slotCount = getListLength(info.header);
   const codeCell = vm.memory.readCell(info.headerCell - 1);
 
-  const { tag: codeTag } = fromTaggedValue(codeCell);
+  const { tag: codeTag } = getTaggedInfo(codeCell);
   if (codeTag !== Tag.CODE) {
     throw new Error(
       `Expected ${label} slot0 to be CODE_REF, found ${Tag[codeTag] ?? 'unknown tag'}`,

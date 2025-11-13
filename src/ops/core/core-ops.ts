@@ -17,9 +17,9 @@ import type { VM, Verb } from '@src/core';
 import { decodeX1516 } from '@src/core/code-ref';
 import {
   ReturnStackUnderflowError,
-  toTaggedValue,
+  Tagged,
   Tag,
-  fromTaggedValue,
+  getTaggedInfo,
   SyntaxError,
   RSTACK_BASE,
 } from '@src/core';
@@ -83,7 +83,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
  */
 export const literalStringOp: Verb = (vm: VM) => {
   const address = nextInt16(vm);
-  const taggedString = toTaggedValue(address, Tag.STRING);
+  const taggedString = Tagged(address, Tag.STRING);
   push(vm, taggedString);
 };
 
@@ -240,7 +240,7 @@ export const exitOp: Verb = (vm: VM) => {
 export const evalOp: Verb = (vm: VM) => {
   ensureStackSize(vm, 1, 'eval');
   const value = pop(vm);
-  const { tag, value: addr, meta } = fromTaggedValue(value);
+  const { tag, value: addr, meta } = getTaggedInfo(value);
 
   switch (tag) {
     case Tag.CODE:
@@ -369,7 +369,7 @@ export const endOfOp: Verb = (vm: VM) => {
   }
 
   const closer = peek(vm);
-  const { tag, value } = fromTaggedValue(closer);
+  const { tag, value } = getTaggedInfo(closer);
   // Check Tag.CODE < 128 (represents builtin opcode)
   if (tag !== Tag.CODE || value >= 128 || value !== Op.EndCase) {
     throw new SyntaxError('clause closer without do', getStackData(vm));
@@ -577,7 +577,7 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
   ensureStackSize(vm, 1, 'pushSymbolRef');
 
   const stringTaggedValue = pop(vm);
-  const { tag, value } = fromTaggedValue(stringTaggedValue);
+  const { tag, value } = getTaggedInfo(stringTaggedValue);
 
   if (tag !== Tag.STRING) {
     throw new Error('pushSymbolRef expects a string on the stack');

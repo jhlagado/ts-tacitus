@@ -13,7 +13,7 @@ import {
   getBuiltinOpcode,
   getCodeAddress,
 } from '../utils/core-test-utils';
-import { toTaggedValue, fromTaggedValue, Tag } from '../../core';
+import { Tagged, getTaggedInfo, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { MIN_USER_OPCODE } from '../../core';
 
@@ -97,7 +97,7 @@ describe('Code Reference Utilities', () => {
   describe('createBuiltinRef', () => {
     test('should create valid builtin references (now returns Tag.CODE)', () => {
       const addRef = createBuiltinRef(Op.Add);
-      const { tag, value } = fromTaggedValue(addRef);
+      const { tag, value } = getTaggedInfo(addRef);
 
       // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN for unified dispatch
       expect(tag).toBe(Tag.CODE);
@@ -109,7 +109,7 @@ describe('Code Reference Utilities', () => {
 
       testOpcodes.forEach(opcode => {
         const ref = createBuiltinRef(opcode);
-        const { tag, value } = fromTaggedValue(ref);
+        const { tag, value } = getTaggedInfo(ref);
 
         // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
         expect(tag).toBe(Tag.CODE);
@@ -129,7 +129,7 @@ describe('Code Reference Utilities', () => {
   describe('createCodeRef', () => {
     test('should create valid code references with X1516 encoding', () => {
       const codeRef = createCodeRef(1000);
-      const { tag, value } = fromTaggedValue(codeRef);
+      const { tag, value } = getTaggedInfo(codeRef);
 
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(encodeX1516(1000)); // Value is X1516 encoded
@@ -141,7 +141,7 @@ describe('Code Reference Utilities', () => {
 
       testAddresses.forEach(addr => {
         const ref = createCodeRef(addr);
-        const { tag, value } = fromTaggedValue(ref);
+        const { tag, value } = getTaggedInfo(ref);
 
         expect(tag).toBe(Tag.CODE);
         // For addresses < 128, value is stored directly (not X1516 encoded)
@@ -172,7 +172,7 @@ describe('Code Reference Utilities', () => {
     test('should reject non-builtin references', () => {
       const codeRef = createCodeRef(1000);
       const numberValue = 42;
-      const stringRef = toTaggedValue(100, Tag.STRING);
+      const stringRef = Tagged(100, Tag.STRING);
 
       expect(isBuiltinRef(codeRef)).toBe(false);
       expect(isBuiltinRef(numberValue)).toBe(false);
@@ -196,12 +196,12 @@ describe('Code Reference Utilities', () => {
     test('should reject non-code references', () => {
       // createBuiltinRef now returns Tag.CODE, so it IS a code reference
       const numberValue = 42;
-      const stringRef = toTaggedValue(100, Tag.STRING);
+      const stringRef = Tagged(100, Tag.STRING);
 
       // Builtin refs are now Tag.CODE, so they are code references
       const builtinRef = createBuiltinRef(Op.Add);
       expect(isFuncRef(builtinRef)).toBe(true);
-      
+
       expect(isFuncRef(numberValue)).toBe(false);
       expect(isFuncRef(stringRef)).toBe(false);
     });
@@ -224,8 +224,8 @@ describe('Code Reference Utilities', () => {
 
     test('should reject non-executable values', () => {
       const numberValue = 42;
-      const stringRef = toTaggedValue(100, Tag.STRING);
-      const listRef = toTaggedValue(3, Tag.LIST);
+      const stringRef = Tagged(100, Tag.STRING);
+      const listRef = Tagged(3, Tag.LIST);
 
       expect(isExecutableRef(numberValue)).toBe(false);
       expect(isExecutableRef(stringRef)).toBe(false);
@@ -282,8 +282,8 @@ describe('Code Reference Utilities', () => {
       const builtinRef = createBuiltinRef(Op.Add);
       const codeRef = createCodeRef(1000);
 
-      const { tag: builtinTag, value: builtinValue } = fromTaggedValue(builtinRef);
-      const { tag: codeTag, value: codeValue } = fromTaggedValue(codeRef);
+      const { tag: builtinTag, value: builtinValue } = getTaggedInfo(builtinRef);
+      const { tag: codeTag, value: codeValue } = getTaggedInfo(codeRef);
 
       // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
       expect(builtinTag).toBe(Tag.CODE);
@@ -312,7 +312,7 @@ describe('Code Reference Utilities', () => {
     test('should store addresses < 128 directly (not X1516 encoded)', () => {
       const opcode = Op.Add; // < 128
       const codeRef = createCodeRef(opcode);
-      const { tag, value } = fromTaggedValue(codeRef);
+      const { tag, value } = getTaggedInfo(codeRef);
 
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(opcode); // Stored directly, not encoded
@@ -322,7 +322,7 @@ describe('Code Reference Utilities', () => {
     test('should store addresses >= 128 with X1516 encoding', () => {
       const addr = 1000; // >= 128
       const codeRef = createCodeRef(addr);
-      const { tag, value } = fromTaggedValue(codeRef);
+      const { tag, value } = getTaggedInfo(codeRef);
 
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(encodeX1516(addr)); // X1516 encoded
@@ -331,8 +331,8 @@ describe('Code Reference Utilities', () => {
 
     test('should allow direct creation of Tag.CODE with opcode < 128', () => {
       const opcode = Op.Dup; // < 128
-      const codeRef = toTaggedValue(opcode, Tag.CODE);
-      const { tag, value } = fromTaggedValue(codeRef);
+      const codeRef = Tagged(opcode, Tag.CODE);
+      const { tag, value } = getTaggedInfo(codeRef);
 
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(opcode); // Stored directly

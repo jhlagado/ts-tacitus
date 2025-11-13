@@ -9,7 +9,7 @@
  * Both operations pop values from the stack and output them to console.
  */
 import type { VM } from '@src/core';
-import { fromTaggedValue, Tag } from '@src/core';
+import { getTaggedInfo, Tag } from '@src/core';
 import { formatValue as coreFormatValue, formatList } from '@src/core';
 import { depth, pop, peek } from '../../core/vm';
 /**
@@ -51,7 +51,7 @@ export function printOp(vm: VM): void {
     }
 
     const topValue = peek(vm);
-    const decoded = fromTaggedValue(topValue);
+    const decoded = getTaggedInfo(topValue);
 
     if (decoded.tag === Tag.LIST) {
       const headerVal = pop(vm);
@@ -104,7 +104,7 @@ export function rawPrintOp(vm: VM): void {
 
     const value = pop(vm);
 
-    const { tag, value: tagValue } = fromTaggedValue(value);
+    const { tag, value: tagValue } = getTaggedInfo(value);
 
     if (tag === Tag.NUMBER) {
       // eslint-disable-next-line no-console

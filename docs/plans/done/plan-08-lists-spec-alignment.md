@@ -183,7 +183,7 @@ export function lengthOp(vm: VM): void {
 
   const slotCount = getListSlotCount(header);
   if (slotCount === 0) {
-    vm.push(toTaggedValue(0, Tag.INTEGER));
+    vm.push(Tagged(0, Tag.INTEGER));
     return;
   }
 
@@ -201,7 +201,7 @@ export function lengthOp(vm: VM): void {
     currentAddr -= span * CELL_SIZE;
   }
 
-  vm.push(toTaggedValue(elementCount, Tag.INTEGER));
+  vm.push(Tagged(elementCount, Tag.INTEGER));
 }
 ```
 
@@ -247,7 +247,7 @@ describe('length operation', () => {
  */
 export function slotOp(vm: VM): void {
   vm.ensureStackSize(2, 'slot');
-  const { value: idx } = fromTaggedValue(vm.pop());
+  const { value: idx } = getTaggedInfo(vm.pop());
   const header = vm.peek(); // Keep list on stack
 
   if (!isList(header)) {
@@ -263,7 +263,7 @@ export function slotOp(vm: VM): void {
 
   // Direct slot addressing: SP-1-idx (where SP-1 is first payload slot)
   const addr = vm.SP - 4 - idx * CELL_SIZE;
-  vm.push(toTaggedValue(addr, Tag.INTEGER));
+  vm.push(Tagged(addr, Tag.INTEGER));
 }
 
 /**
@@ -273,7 +273,7 @@ export function slotOp(vm: VM): void {
  */
 export function elemOp(vm: VM): void {
   vm.ensureStackSize(2, 'elem');
-  const { value: idx } = fromTaggedValue(vm.pop());
+  const { value: idx } = getTaggedInfo(vm.pop());
   const header = vm.peek(); // Keep list on stack
 
   if (!isList(header)) {
@@ -287,7 +287,7 @@ export function elemOp(vm: VM): void {
     return;
   }
 
-  vm.push(toTaggedValue(addr, Tag.INTEGER));
+  vm.push(Tagged(addr, Tag.INTEGER));
 }
 ```
 
@@ -303,7 +303,7 @@ export function elemOp(vm: VM): void {
  */
 export function fetchOp(vm: VM): void {
   vm.ensureStackSize(1, 'fetch');
-  const { value: addr } = fromTaggedValue(vm.pop());
+  const { value: addr } = getTaggedInfo(vm.pop());
 
   const value = vm.memory.readFloat32(SEG_STACK, addr);
 
@@ -328,7 +328,7 @@ export function fetchOp(vm: VM): void {
  */
 export function storeOp(vm: VM): void {
   vm.ensureStackSize(2, 'store');
-  const { value: addr } = fromTaggedValue(vm.pop());
+  const { value: addr } = getTaggedInfo(vm.pop());
   const value = vm.pop();
 
   const existing = vm.memory.readFloat32(SEG_STACK, addr);
@@ -414,7 +414,7 @@ export function unconsOp(vm: VM): void {
   const header = vm.pop();
 
   if (!isList(header)) {
-    vm.push(toTaggedValue(0, Tag.LIST)); // empty list
+    vm.push(Tagged(0, Tag.LIST)); // empty list
     vm.push(NIL); // nil head
     return;
   }
@@ -433,7 +433,7 @@ export function unconsOp(vm: VM): void {
 
   // Create tail list (remaining payload)
   const tailSlotCount = slotCount - span;
-  const tailHeader = toTaggedValue(tailSlotCount, Tag.LIST);
+  const tailHeader = Tagged(tailSlotCount, Tag.LIST);
 
   // Move SP past first element to position tail
   vm.SP -= span * CELL_SIZE;
@@ -465,7 +465,7 @@ export function unconsOp(vm: VM): void {
  */
 export function packOp(vm: VM): void {
   vm.ensureStackSize(1, 'pack');
-  const { value: count } = fromTaggedValue(vm.pop());
+  const { value: count } = getTaggedInfo(vm.pop());
 
   if (count < 0 || count > vm.getStackData().length) {
     vm.push(NIL);
@@ -481,7 +481,7 @@ export function packOp(vm: VM): void {
   for (const value of values) {
     vm.push(value);
   }
-  vm.push(toTaggedValue(count, Tag.LIST));
+  vm.push(Tagged(count, Tag.LIST));
 }
 
 /**
@@ -502,7 +502,7 @@ export function unpackOp(vm: VM): void {
 
   // Values are already on stack in reverse order
   // Just push count of values
-  vm.push(toTaggedValue(slotCount, Tag.INTEGER));
+  vm.push(Tagged(slotCount, Tag.INTEGER));
 }
 ```
 
@@ -531,12 +531,12 @@ function executeComparator(vm: VM, comparatorCode: number, a: number, b: number)
   vm.push(b);
 
   // Execute comparator code block
-  vm.IP = fromTaggedValue(comparatorCode).value;
+  vm.IP = getTaggedInfo(comparatorCode).value;
   // ... execute until return ...
 
   // Get result
   const result = vm.pop();
-  const { value: comparison } = fromTaggedValue(result);
+  const { value: comparison } = getTaggedInfo(result);
 
   // Restore state
   vm.IP = savedIP;
@@ -604,7 +604,7 @@ export function sortOp(vm: VM): void {
     }
   }
 
-  vm.push(toTaggedValue(slotCount, Tag.LIST));
+  vm.push(Tagged(slotCount, Tag.LIST));
 }
 ```
 
@@ -644,7 +644,7 @@ export function bfindOp(vm: VM): void {
 
     if (comparison === 0) {
       // Found: return address of matching element
-      vm.push(toTaggedValue(elements[mid].addr, Tag.INTEGER));
+      vm.push(Tagged(elements[mid].addr, Tag.INTEGER));
       return;
     } else if (comparison < 0) {
       right = mid - 1;

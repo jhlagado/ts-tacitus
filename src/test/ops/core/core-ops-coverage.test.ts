@@ -9,7 +9,7 @@ import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { exitOp, evalOp } from '../../../ops/core';
 import { push, rpush, rpop, pop, getStackData } from '../../../core/vm';
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { encodeX1516 } from '../../../core/code-ref';
 
 describe('Core Operations Branch Coverage', () => {
@@ -36,7 +36,7 @@ describe('Core Operations Branch Coverage', () => {
   describe('evalOp branch coverage', () => {
     test('should handle non-executable values (line 338)', () => {
       // Push a non-executable value (not CODE)
-      push(vm, toTaggedValue(42, Tag.NUMBER));
+      push(vm, Tagged(42, Tag.NUMBER));
 
       const stackBefore = getStackData(vm);
       evalOp(vm);
@@ -44,36 +44,36 @@ describe('Core Operations Branch Coverage', () => {
 
       // Should have pushed the value back (non-executable branch)
       expect(stackAfter.length).toBe(stackBefore.length);
-      expect(stackAfter[stackAfter.length - 1]).toBe(toTaggedValue(42, Tag.NUMBER));
+      expect(stackAfter[stackAfter.length - 1]).toBe(Tagged(42, Tag.NUMBER));
     });
 
     test('should handle string values in eval', () => {
       // Test string tag in evalOp
-      push(vm, toTaggedValue(100, Tag.STRING));
+      push(vm, Tagged(100, Tag.STRING));
 
       evalOp(vm);
 
       // String should be treated as non-executable and pushed back
       const result = pop(vm);
-      expect(result).toBe(toTaggedValue(100, Tag.STRING));
+      expect(result).toBe(Tagged(100, Tag.STRING));
     });
 
     test('should handle list values in eval', () => {
       // Test list tag in evalOp
-      push(vm, toTaggedValue(4, Tag.LIST));
+      push(vm, Tagged(4, Tag.LIST));
 
       evalOp(vm);
 
       // List should be treated as non-executable and pushed back
       const result = pop(vm);
-      expect(result).toBe(toTaggedValue(4, Tag.LIST));
+      expect(result).toBe(Tagged(4, Tag.LIST));
     });
 
     test('should execute CODE with meta=1 (block) path', () => {
       // meta=1 branch in evalOp should rpush return address and jump to addr
       const addr = 12345;
       vm.IP = 77;
-      push(vm, toTaggedValue(encodeX1516(addr), Tag.CODE, 1));
+      push(vm, Tagged(encodeX1516(addr), Tag.CODE, 1));
       evalOp(vm);
       expect(vm.IP).toBe(addr);
     });
@@ -123,8 +123,8 @@ describe('Core Operations Branch Coverage', () => {
   describe('Code tag variations', () => {
     test('should handle CODE tag with different meta values', () => {
       // Test CODE tag with meta=0 (function) vs meta=1 (block)
-      const codeFunc = toTaggedValue(encodeX1516(1000), Tag.CODE, 0); // Function
-      const codeBlock = toTaggedValue(encodeX1516(2000), Tag.CODE, 1); // Block
+      const codeFunc = Tagged(encodeX1516(1000), Tag.CODE, 0); // Function
+      const codeBlock = Tagged(encodeX1516(2000), Tag.CODE, 1); // Block
 
       // Just ensure these don't crash when processed
       push(vm, codeFunc);

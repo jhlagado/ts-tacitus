@@ -1,4 +1,4 @@
-import { fromTaggedValue, isNIL } from '../../../core/tagged';
+import { getTaggedInfo, isNIL } from '../../../core/tagged';
 /**
  * Tests for list-ops.ts - targeting uncovered branches
  * This focuses on error conditions, edge cases, and debug output not covered in main list tests
@@ -6,7 +6,7 @@ import { fromTaggedValue, isNIL } from '../../../core/tagged';
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { openListOp, closeListOp, sizeOp } from '../../../ops/lists';
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { getStackData, push, pop, peek } from '../../../core/vm';
 import { encodeX1516 } from '../../../core/code-ref';
 
@@ -43,7 +43,7 @@ describe('List Operations - Branch Coverage', () => {
       expect(getStackData(vm)).toHaveLength(2);
 
       const header = peek(vm);
-      const { tag, value } = fromTaggedValue(header);
+      const { tag, value } = getTaggedInfo(header);
       expect(tag).toBe(Tag.LIST);
       expect(value).toBe(1);
     });
@@ -53,7 +53,7 @@ describe('List Operations - Branch Coverage', () => {
       closeListOp(vm);
 
       const header = peek(vm);
-      const { tag, value } = fromTaggedValue(header);
+      const { tag, value } = getTaggedInfo(header);
       expect(tag).toBe(Tag.LIST);
       expect(value).toBe(0);
     });
@@ -84,7 +84,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should return 0 for empty lists', () => {
-      const emptyList = toTaggedValue(0, Tag.LIST);
+      const emptyList = Tagged(0, Tag.LIST);
       push(vm, emptyList);
 
       sizeOp(vm);
@@ -106,7 +106,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = pop(vm);
-      const { value: length } = fromTaggedValue(lengthTagged);
+      const { value: length } = getTaggedInfo(lengthTagged);
       expect(length).toBe(3);
     });
   });
@@ -123,7 +123,7 @@ describe('List Operations - Branch Coverage', () => {
 
   describe('List validation and type checking', () => {
     test('should handle large list headers', () => {
-      const largeList = toTaggedValue(100, Tag.LIST);
+      const largeList = Tagged(100, Tag.LIST);
       push(vm, largeList);
       // With unified data and larger global segment, this should not throw.
       // We only assert that it executes and returns a numeric result or NIL.
@@ -131,7 +131,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed data types in operations', () => {
-      push(vm, toTaggedValue(encodeX1516(100), Tag.CODE));
+      push(vm, Tagged(encodeX1516(100), Tag.CODE));
       sizeOp(vm);
       const result = pop(vm);
       expect(isNIL(result)).toBe(true);
@@ -151,7 +151,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = pop(vm);
-      const { value: length } = fromTaggedValue(lengthTagged);
+      const { value: length } = getTaggedInfo(lengthTagged);
       expect(length).toBe(1);
     });
 
@@ -167,7 +167,7 @@ describe('List Operations - Branch Coverage', () => {
       sizeOp(vm);
 
       const lengthTagged = pop(vm);
-      const { value: length } = fromTaggedValue(lengthTagged);
+      const { value: length } = getTaggedInfo(lengthTagged);
       expect(length).toBe(50);
     });
   });

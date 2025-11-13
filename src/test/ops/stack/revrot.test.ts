@@ -1,4 +1,4 @@
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 import { createVM, type VM } from '../../../core/vm';
 import { revrotOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
@@ -49,7 +49,7 @@ describe('revrot Operation', () => {
     it('should reverse rotate a list with two simple values', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 5);
 
       revrotOp(vm);
@@ -62,8 +62,8 @@ describe('revrot Operation', () => {
       push(vm, 1);
       push(vm, 2);
       push(vm, 3);
-      push(vm, toTaggedValue(3, Tag.LIST));
-      push(vm, toTaggedValue(1, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
+      push(vm, Tagged(1, Tag.LIST));
 
       push(vm, 4);
       push(vm, 5);
@@ -77,13 +77,13 @@ describe('revrot Operation', () => {
     test('should reverse rotate three lists', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 3);
       push(vm, 4);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 5);
       push(vm, 6);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       revrotOp(vm);
 

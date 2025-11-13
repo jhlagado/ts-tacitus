@@ -42,15 +42,15 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 
 ### Tag Table
 
-| Tag      | Payload Meaning                         | Mutable In-Place                       | Printable Form                 | Notes                                                       |
-| -------- | --------------------------------------- | -------------------------------------- | ------------------------------ | ----------------------------------------------------------- |
-| NUMBER   | Raw IEEE‑754 float32 (non‑NaN)          | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                         |
-| SENTINEL | Named sentinel (e.g., NIL=0, DEFAULT=1) | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved             |
+| Tag      | Payload Meaning                                          | Mutable In-Place                       | Printable Form                 | Notes                                                                                                                       |
+| -------- | -------------------------------------------------------- | -------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| NUMBER   | Raw IEEE‑754 float32 (non‑NaN)                           | n/a (value itself)                     | numeric literal                | Not NaN‑box encoded                                                                                                         |
+| SENTINEL | Named sentinel (e.g., NIL=0, DEFAULT=1)                  | Yes (slot overwrite where used as NIL) | NIL, DEFAULT                   | Encoded as 16‑bit signed; other values reserved                                                                             |
 | CODE     | Builtin opcode (0..127) or bytecode address (128..32767) | No                                     | `@name` or bytecode addr       | Value < 128: builtin opcode (stored directly); Value >= 128: bytecode address (X1516 encoded); Sign bit encodes `IMMEDIATE` |
-| STRING   | String segment offset                   | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table     |
-| LOCAL    | Local slot number (compile‑time only)   | n/a                                    | —                              | Parser/symbol table only; never a runtime ref               |
-| LIST     | Payload slot count (0..65535)           | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                      |
-| REF      | Reference into data segment (absolute cell index) | n/a                                    | `REF:<abs-idx>`                | Helper routines map the index to global/stack/return stack windows |
+| STRING   | String segment offset                                    | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table                                                                     |
+| LOCAL    | Local slot number (compile‑time only)                    | n/a                                    | —                              | Parser/symbol table only; never a runtime ref                                                                               |
+| LIST     | Payload slot count (0..65535)                            | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                                                                      |
+| REF      | Reference into data segment (absolute cell index)        | n/a                                    | `REF:<abs-idx>`                | Helper routines map the index to global/stack/return stack windows                                                          |
 
 ## Memory Layout
 
@@ -133,7 +133,8 @@ All tagged values must:
 
 ## Implementation Notes
 
-- `toTaggedValue(value, tag)` / `fromTaggedValue()` implement encoding/decoding
+- `Tagged(value, tag)` encodes values; `getTaggedInfo(tagged)` decodes and returns `{ value, tag, meta }`
+- Access tag or value via destructuring: `const { tag } = getTaggedInfo(tagged)` or `const { value } = getTaggedInfo(tagged)`
 - Helper routines MUST mask sign-bit metadata when converting CODE or STRING payloads to raw addresses, opcodes, or string offsets.
 - Reverse lists depend only on header payload count; traversal uses span rule (see `lists.md §11`)
 - Parser-generated code (colon definitions, meta constructs) yields `Tag.CODE` references; there is no separate `CODE_BLOCK` tag
@@ -194,9 +195,9 @@ length                     \ -> 3
 
 ## Consistency Cross-Check
 
-| Aspect              | This Spec                   | Referenced Spec                                          |
-| ------------------- | --------------------------- | -------------------------------------------------------- |
-| Reverse list layout | LIST header + payload slots | `docs/specs/lists.md` (§5–§11)                           |
-| Address bounds      | CODE within segment bounds  | `docs/specs/vm-architecture.md` (implementation-defined) |
-| NIL definition      | SENTINEL 0                  | `docs/specs/lists.md` (Maplists)                         |
+| Aspect              | This Spec                                                | Referenced Spec                                          |
+| ------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| Reverse list layout | LIST header + payload slots                              | `docs/specs/lists.md` (§5–§11)                           |
+| Address bounds      | CODE within segment bounds                               | `docs/specs/vm-architecture.md` (implementation-defined) |
+| NIL definition      | SENTINEL 0                                               | `docs/specs/lists.md` (Maplists)                         |
 | Unified dispatch    | CODE via eval (value < 128 = builtin, >= 128 = bytecode) | Language parser & executor                               |

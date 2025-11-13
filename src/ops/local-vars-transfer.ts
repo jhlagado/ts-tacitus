@@ -5,7 +5,7 @@
 
 import {
   type VM,
-  getTag,
+  getTaggedInfo,
   Tag,
   getListLength,
   validateListHeader,
@@ -98,8 +98,8 @@ export function loadListFromReturn(vm: VM, headerCell: number): void {
  * @returns true if compatible, false otherwise
  */
 export function isCompatible(existing: number, newValue: number): boolean {
-  const existingTag = getTag(existing);
-  const newTag = getTag(newValue);
+  const { tag: existingTag } = getTaggedInfo(existing);
+  const { tag: newTag } = getTaggedInfo(newValue);
 
   if (existingTag !== newTag) {
     return false;

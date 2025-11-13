@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag, createVM, VM } from '../../../../src/core';
+import { getTaggedInfo, Tag, createVM, VM } from '../../../../src/core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { getStackData } from '../../../../src/core/vm';
 
@@ -10,8 +10,7 @@ describe('Recursive broadcasting: add', () => {
     vm = createVM();
   });
 
-  const snapshotValues = (testVM: VM) =>
-    getStackData(testVM).map((v: number) => fromTaggedValue(v));
+  const snapshotValues = (testVM: VM) => getStackData(testVM).map((v: number) => getTaggedInfo(v));
 
   test('scalar broadcast over nested list (scalar on left)', () => {
     executeTacitCode(vm, '5 ( ( 1 2 ) 3 ) add');

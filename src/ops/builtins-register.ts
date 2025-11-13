@@ -36,7 +36,7 @@ import {
   dumpDictOp,
   define,
 } from '@src/core/dictionary';
-import { toTaggedValue, Tag } from '@src/core';
+import { Tagged, Tag } from '@src/core';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -58,7 +58,7 @@ export function registerBuiltins(vm: VM): void {
   function reg(name: string, opcode: number, _implementation?: Verb, isImmediate = false): void {
     // Use Tag.CODE instead of Tag.BUILTIN for unified dispatch
     // Values < 128 are stored directly and treated as builtin opcodes
-    define(vm, name, toTaggedValue(opcode, Tag.CODE, isImmediate ? 1 : 0));
+    define(vm, name, Tagged(opcode, Tag.CODE, isImmediate ? 1 : 0));
   }
 
   reg('eval', Op.Eval, evalOp);

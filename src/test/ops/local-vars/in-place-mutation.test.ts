@@ -8,13 +8,9 @@ import {
   updateList as mutateCompoundInPlace,
   isCompatible as isCompatibleCompound,
 } from '../../../ops/local-vars-transfer';
-import { toTaggedValue, Tag, getTag } from '../../../core/tagged';
+import { Tagged, Tag, getTaggedInfo } from '../../../core/tagged';
 import { getListLength } from '../../../core/list';
-import {
-  CELL_SIZE,
-  RSTACK_BASE,
-  STACK_BASE,
-} from '../../../core/constants';
+import { CELL_SIZE, RSTACK_BASE, STACK_BASE } from '../../../core/constants';
 import { push } from '../../../core/vm';
 
 describe('In-Place Compound Mutation', () => {
@@ -33,11 +29,12 @@ describe('In-Place Compound Mutation', () => {
 
       // Simulate existing empty list at return stack location
       const targetAddr = 100; // Arbitrary address
-      const existingHeader = toTaggedValue(0, Tag.LIST); // Empty list
+      const existingHeader = Tagged(0, Tag.LIST); // Empty list
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
 
       // Verify compatibility first (skip if newHeader is not LIST due to test environment quirk)
-      if (getTag(newHeader) === Tag.LIST) {
+      const { tag: newHeaderTag } = getTaggedInfo(newHeader);
+      if (newHeaderTag === Tag.LIST) {
         expect(isCompatibleCompound(existingHeader, newHeader)).toBe(true);
       }
 
@@ -46,7 +43,8 @@ describe('In-Place Compound Mutation', () => {
 
       // Verify header was written
       const resultHeader = vm.memory.readCell(RSTACK_BASE + targetAddr / CELL_SIZE);
-      expect(getTag(resultHeader)).toBe(Tag.LIST);
+      const { tag: resultHeaderTag } = getTaggedInfo(resultHeader);
+      expect(resultHeaderTag).toBe(Tag.LIST);
       expect(getListLength(resultHeader)).toBe(0);
 
       // Verify data stack was cleaned up
@@ -59,7 +57,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Setup existing single-element list at target location
       const targetAddr = 100;
-      const existingHeader = toTaggedValue(1, Tag.LIST);
+      const existingHeader = Tagged(1, Tag.LIST);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 1, 999); // Old value
 
@@ -84,7 +82,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Setup existing three-element list at target location with different values
       const targetAddr = 100;
-      const existingHeader = toTaggedValue(3, Tag.LIST);
+      const existingHeader = Tagged(3, Tag.LIST);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 3, 999); // elem0 (old)
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE - 2, 888); // elem1 (old)
@@ -122,7 +120,7 @@ describe('In-Place Compound Mutation', () => {
 
       // Setup existing LIST:2 at target
       const targetAddr = 100;
-      const existingHeader = toTaggedValue(2, Tag.LIST); // Different slot count
+      const existingHeader = Tagged(2, Tag.LIST); // Different slot count
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
 
       // Should throw compatibility error
@@ -136,7 +134,7 @@ describe('In-Place Compound Mutation', () => {
       push(vm, 42); // Simple value, not compound
 
       const targetAddr = 100;
-      const existingHeader = toTaggedValue(1, Tag.LIST);
+      const existingHeader = Tagged(1, Tag.LIST);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
 
       // Should throw error for non-compound data
@@ -154,7 +152,7 @@ describe('In-Place Compound Mutation', () => {
       executeTacitCode(vm, '(10 20)');
 
       const targetAddr = 200;
-      const existingHeader = toTaggedValue(2, Tag.LIST);
+      const existingHeader = Tagged(2, Tag.LIST);
       vm.memory.writeCell(RSTACK_BASE + targetAddr / CELL_SIZE, existingHeader);
 
       // Record RSP (return stack in cells) before mutation
@@ -184,7 +182,7 @@ describe('In-Place Compound Mutation', () => {
       // Setup existing flat list with same slot count
       const targetAddr = 120;
       const targetCell = targetAddr / CELL_SIZE;
-      const existingFlatHeader = toTaggedValue(4, Tag.LIST); // Same slot count
+      const existingFlatHeader = Tagged(4, Tag.LIST); // Same slot count
       vm.memory.writeCell(RSTACK_BASE + targetCell, existingFlatHeader);
 
       // Should work since slot counts match
@@ -201,7 +199,7 @@ describe('In-Place Compound Mutation', () => {
 
       const targetAddr = 200;
       const targetCell = targetAddr / CELL_SIZE;
-      const existingHeader = toTaggedValue(3, Tag.LIST);
+      const existingHeader = Tagged(3, Tag.LIST);
       vm.memory.writeCell(RSTACK_BASE + targetCell, existingHeader);
 
       // Fill with known values

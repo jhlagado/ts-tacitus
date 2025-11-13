@@ -107,19 +107,19 @@ Tag.BUILTIN = 7; // For built-in operations (@add, @dup, etc.)
 
 **Encoding**:
 
-- `@add` → `toTaggedValue(5, Tag.BUILTIN)` // Opcode 5
-- `@square` → `toTaggedValue(1024, Tag.CODE)` // Bytecode address
+- `@add` → `Tagged(5, Tag.BUILTIN)` // Opcode 5
+- `@square` → `Tagged(1024, Tag.CODE)` // Bytecode address
 
 **Evaluation**:
 
 ```typescript
 export const evalOp: Verb = (vm: VM) => {
   const value = vm.pop();
-  const { tag, value: addr } = fromTaggedValue(value);
+  const { tag, value: addr } = getTaggedInfo(value);
 
   if (tag === Tag.CODE || tag === Tag.CODE_BLOCK) {
     // Bytecode: set up call frame and jump
-    vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+    vm.rpush(Tagged(vm.IP, Tag.CODE));
     vm.rpush(vm.BP);
     vm.BP = vm.RP;
     vm.IP = addr;
@@ -186,13 +186,13 @@ export enum Tag {
 export const evalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
-  const { tag, value: addr } = fromTaggedValue(value);
+  const { tag, value: addr } = getTaggedInfo(value);
 
   switch (tag) {
     case Tag.CODE:
     case Tag.CODE_BLOCK:
       // Bytecode: set up call frame and jump to address
-      vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+      vm.rpush(Tagged(vm.IP, Tag.CODE));
       vm.rpush(vm.BP);
       vm.BP = vm.RP;
       vm.IP = addr; // Direct bytecode address (0-32767)
@@ -223,10 +223,10 @@ export const atPrefixOp: Verb = (vm: VM) => {
 
   if (symbolData.isBuiltin) {
     // Built-in: push opcode with BUILTIN tag
-    vm.push(toTaggedValue(symbolData.opcode, Tag.BUILTIN));
+    vm.push(Tagged(symbolData.opcode, Tag.BUILTIN));
   } else {
     // Colon definition: push bytecode address with CODE tag
-    vm.push(toTaggedValue(symbolData.bytecodeAddr, Tag.CODE));
+    vm.push(Tagged(symbolData.bytecodeAddr, Tag.CODE));
   }
 };
 ```
@@ -268,13 +268,13 @@ export const CODE_SIZE = 0x40000; // 256KB = 65536 × 4-byte words
 export const evalOp: Verb = (vm: VM) => {
   vm.ensureStackSize(1, 'eval');
   const value = vm.pop();
-  const { tag, value: addr } = fromTaggedValue(value);
+  const { tag, value: addr } = getTaggedInfo(value);
 
   switch (tag) {
     case Tag.CODE:
     case Tag.CODE_BLOCK:
       // Bytecode execution (colon definitions, standalone blocks)
-      vm.rpush(toTaggedValue(vm.IP, Tag.CODE));
+      vm.rpush(Tagged(vm.IP, Tag.CODE));
       vm.rpush(vm.BP);
       vm.BP = vm.RP;
       vm.IP = addr;
@@ -306,7 +306,7 @@ export const atPrefixOp: Verb = (vm: VM) => {
 
   if (symbolIndex < 128) {
     // Built-in operation
-    vm.push(toTaggedValue(symbolIndex, Tag.BUILTIN));
+    vm.push(Tagged(symbolIndex, Tag.BUILTIN));
   } else {
     // Colon definition - need to get actual bytecode address
     const implementation = vm.symbolTable.findImplementationByOpcode(symbolIndex);
@@ -314,7 +314,7 @@ export const atPrefixOp: Verb = (vm: VM) => {
       // This is where we need the direct bytecode address!
       // Currently hidden behind function table indirection
       const bytecodeAddr = getBytecodeAddress(symbolIndex);
-      vm.push(toTaggedValue(bytecodeAddr, Tag.CODE));
+      vm.push(Tagged(bytecodeAddr, Tag.CODE));
     }
   }
 };
@@ -445,7 +445,7 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
 1. **✅ COMPLETE: Add Tag.BUILTIN to tagged value system**
    - ✅ Add `BUILTIN = 7` to `Tag` enum in `tagged.ts`
    - ✅ Update `tagNames` mapping for debugging
-   - ✅ Add validation in `toTaggedValue()` for new tag
+   - ✅ Add validation in `Tagged()` for new tag
    - ✅ Update affected tests (tagged.test.ts, printer.test.ts)
    - ✅ Create comprehensive test suite for Tag.BUILTIN functionality
    - ✅ **IMPROVEMENT**: Add `MAX_TAG` constant to avoid hardcoded enum values in tests

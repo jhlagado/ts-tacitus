@@ -2,8 +2,8 @@ import type { VM } from '@src/core';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import {
   Tag,
-  toTaggedValue,
-  fromTaggedValue,
+  Tagged,
+  getTaggedInfo,
   CELL_SIZE,
   SEG_DATA,
   RSTACK_BASE_BYTES,
@@ -22,10 +22,10 @@ export function exitConstructorOp(vm: VM): void {
 
   // Wrap current IP as CODE entry for dispatch body
   const entryAddr = vm.IP;
-  rpush(vm, toTaggedValue(encodeX1516(entryAddr), Tag.CODE));
+  rpush(vm, Tagged(encodeX1516(entryAddr), Tag.CODE));
 
   // Append LIST header: payload = locals + 1 (CODE)
-  rpush(vm, toTaggedValue(localCount + 1, Tag.LIST));
+  rpush(vm, Tagged(localCount + 1, Tag.LIST));
 
   // Push REF handle to the capsule header on data stack
   // Use absolute REF: absoluteCell = (RSTACK_BASE) + headerCellIndex
@@ -64,7 +64,7 @@ export function dispatchOp(vm: VM): void {
   vm.bp = RSTACK_BASE + (layout.baseCell - RSTACK_BASE);
 
   // Jump to dispatch entry address (CODE slot0)
-  const { value: encodedAddr } = fromTaggedValue(layout.codeRef);
+  const { value: encodedAddr } = getTaggedInfo(layout.codeRef);
   // Decode X1516 encoded address to get actual bytecode address
   const entryAddr = decodeX1516(encodedAddr);
   vm.IP = entryAddr;

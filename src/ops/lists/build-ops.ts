@@ -4,7 +4,7 @@
  */
 
 import type { VM, Verb } from '@src/core';
-import { fromTaggedValue, toTaggedValue, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
+import { getTaggedInfo, Tagged, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { evalOp } from '../core';
@@ -24,7 +24,7 @@ import {
  */
 export function openListOp(vm: VM): void {
   vm.listDepth++;
-  push(vm, toTaggedValue(0, Tag.LIST));
+  push(vm, Tagged(0, Tag.LIST));
   const headerCell = vm.sp - 1;
   rpush(vm, headerCell);
 }
@@ -38,7 +38,7 @@ export function closeListOp(vm: VM): void {
   const headerCell = rpop(vm);
   const payloadSlots = vm.sp - headerCell - 1;
 
-  vm.memory.writeCell(headerCell, toTaggedValue(payloadSlots, Tag.LIST));
+  vm.memory.writeCell(headerCell, Tagged(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
@@ -60,7 +60,7 @@ export function makeListOp(vm: VM): void {
 
   const blockAddr = pop(vm);
 
-  const placeholderHeader = toTaggedValue(0, Tag.LIST);
+  const placeholderHeader = Tagged(0, Tag.LIST);
   push(vm, placeholderHeader);
   const headerCell = vm.sp - 1;
   rpush(vm, headerCell);
@@ -75,7 +75,7 @@ export function makeListOp(vm: VM): void {
     throw new Error('makeList: negative payload slot count detected');
   }
 
-  const finalizedHeader = toTaggedValue(payloadSlots, Tag.LIST);
+  const finalizedHeader = Tagged(payloadSlots, Tag.LIST);
   vm.memory.writeCell(retrievedHeaderCell, finalizedHeader);
 
   const totalSpan = vm.sp - retrievedHeaderCell;
@@ -90,7 +90,7 @@ export function makeListOp(vm: VM): void {
  */
 export function packOp(vm: VM): void {
   ensureStackSize(vm, 1, 'pack');
-  const { value: count } = fromTaggedValue(pop(vm));
+  const { value: count } = getTaggedInfo(pop(vm));
 
   if (count < 0 || count > getStackData(vm).length) {
     push(vm, NIL);
@@ -98,7 +98,7 @@ export function packOp(vm: VM): void {
   }
 
   if (count === 0) {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
 
@@ -115,7 +115,7 @@ export function packOp(vm: VM): void {
     push(vm, values[i]);
   }
 
-  push(vm, toTaggedValue(count, Tag.LIST));
+  push(vm, Tagged(count, Tag.LIST));
 }
 
 /**
@@ -164,5 +164,5 @@ export const enlistOp: Verb = (vm: VM) => {
   ensureStackSize(vm, 1, 'enlist');
   const a = pop(vm);
   push(vm, a);
-  push(vm, toTaggedValue(1, Tag.LIST));
+  push(vm, Tagged(1, Tag.LIST));
 };

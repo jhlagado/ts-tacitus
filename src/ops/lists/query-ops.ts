@@ -5,8 +5,8 @@
 
 import {
   type VM,
-  fromTaggedValue,
-  toTaggedValue,
+  getTaggedInfo,
+  Tagged,
   Tag,
   NIL,
   isNIL,
@@ -23,7 +23,6 @@ import {
   getCellFromRef,
   readRef,
   areValuesEqual,
-  getTag,
   getRefArea,
   copyListPayload,
 } from '@src/core';
@@ -96,7 +95,7 @@ export function sizeOp(vm: VM): void {
  */
 export function slotOp(vm: VM): void {
   ensureStackSize(vm, 2, 'slot');
-  const { value: idx } = fromTaggedValue(pop(vm));
+  const { value: idx } = getTaggedInfo(pop(vm));
   const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -122,7 +121,7 @@ export function slotOp(vm: VM): void {
  */
 export function elemOp(vm: VM): void {
   ensureStackSize(vm, 2, 'elem');
-  const { value: idx } = fromTaggedValue(pop(vm));
+  const { value: idx } = getTaggedInfo(pop(vm));
   const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -340,7 +339,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
     return false;
   }
 
-  const rhsTag = getTag(rhsValue);
+  const { tag: rhsTag } = getTaggedInfo(rhsValue);
   const slotCount = getListLength(rhsInfo.header);
   const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
 
@@ -362,7 +361,7 @@ function tryStoreCompound(vm: VM, slot: SlotInfo, rhsValue: number): boolean {
   }
 
   // Copy into resolved header location
-    copyFromRef(vm, rhsInfo, slot.resolvedCell, slotCount);
+  copyFromRef(vm, rhsInfo, slot.resolvedCell, slotCount);
   pop(vm);
   return true;
 }
@@ -553,7 +552,7 @@ export function storeOp(vm: VM): void {
  */
 export function walkOp(vm: VM): void {
   ensureStackSize(vm, 2, 'walk');
-  const { value: idx } = fromTaggedValue(pop(vm));
+  const { value: idx } = getTaggedInfo(pop(vm));
   const target = peek(vm);
   const info = getListBounds(vm, target);
   if (!info || !isList(info.header)) {
@@ -611,7 +610,7 @@ export function findOp(vm: VM): void {
       push(vm, createRef(valCell));
       return;
     }
-    const { tag: keyTag, value: keyValue } = fromTaggedValue(currentKey);
+    const { tag: keyTag, value: keyValue } = getTaggedInfo(currentKey);
     if (keyTag === Tag.STRING) {
       const keyStr = vm.digest.get(keyValue);
       if (keyStr === 'default') {
@@ -651,7 +650,7 @@ export function keysOp(vm: VM): void {
   pop(vm);
   push(vm, info.header);
   if (slotCount === 0) {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
   const keyCount = slotCount / 2;
@@ -661,7 +660,7 @@ export function keysOp(vm: VM): void {
     const keyValue = vm.memory.readCell(keyCell);
     push(vm, keyValue);
   }
-  push(vm, toTaggedValue(keyCount, Tag.LIST));
+  push(vm, Tagged(keyCount, Tag.LIST));
 }
 
 /**
@@ -689,7 +688,7 @@ export function valuesOp(vm: VM): void {
   pop(vm);
   push(vm, info.header);
   if (slotCount === 0) {
-    push(vm, toTaggedValue(0, Tag.LIST));
+    push(vm, Tagged(0, Tag.LIST));
     return;
   }
   const valueCount = slotCount / 2;
@@ -699,7 +698,7 @@ export function valuesOp(vm: VM): void {
     const valueValue = vm.memory.readCell(valCell);
     push(vm, valueValue);
   }
-  push(vm, toTaggedValue(valueCount, Tag.LIST));
+  push(vm, Tagged(valueCount, Tag.LIST));
 }
 
 /**
@@ -711,7 +710,7 @@ export function valuesOp(vm: VM): void {
 export function refOp(vm: VM): void {
   ensureStackSize(vm, 1, 'ref');
   const value = peek(vm);
-  const tag = getTag(value);
+  const { tag } = getTaggedInfo(value);
   if (tag === Tag.LIST) {
     // sp is an absolute cell index; build absolute REF
     const headerCellIndex = vm.sp - 1;

@@ -5,7 +5,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 import { isCompatible } from '../../../ops/local-vars-transfer';
-import { toTaggedValue, Tag } from '../../../core/tagged';
+import { Tagged, Tag } from '../../../core/tagged';
 
 describe('Compound Compatibility Checking', () => {
   let vm: VM;
@@ -18,16 +18,16 @@ describe('Compound Compatibility Checking', () => {
   describe('Basic Compatibility Rules', () => {
     test('should be compatible for same-length lists', () => {
       // Create two LIST:3 headers (both have 3 payload slots)
-      const list1 = toTaggedValue(3, Tag.LIST);
-      const list2 = toTaggedValue(3, Tag.LIST);
+      const list1 = Tagged(3, Tag.LIST);
+      const list2 = Tagged(3, Tag.LIST);
 
       expect(isCompatible(list1, list2)).toBe(true);
     });
 
     test('should be incompatible for different-length lists', () => {
       // LIST:2 vs LIST:3 (different payload slot counts)
-      const list2 = toTaggedValue(2, Tag.LIST);
-      const list3 = toTaggedValue(3, Tag.LIST);
+      const list2 = Tagged(2, Tag.LIST);
+      const list3 = Tagged(3, Tag.LIST);
 
       expect(isCompatible(list2, list3)).toBe(false);
       expect(isCompatible(list3, list2)).toBe(false);
@@ -35,16 +35,16 @@ describe('Compound Compatibility Checking', () => {
 
     test('should be compatible for empty lists', () => {
       // Both LIST:0 (empty lists)
-      const empty1 = toTaggedValue(0, Tag.LIST);
-      const empty2 = toTaggedValue(0, Tag.LIST);
+      const empty1 = Tagged(0, Tag.LIST);
+      const empty2 = Tagged(0, Tag.LIST);
 
       expect(isCompatible(empty1, empty2)).toBe(true);
     });
 
     test('should be incompatible for different compound types', () => {
       // LIST vs non-LIST (simulate future MAPLIST)
-      const list = toTaggedValue(3, Tag.LIST);
-      const nonList = toTaggedValue(3, Tag.STRING); // Different type
+      const list = Tagged(3, Tag.LIST);
+      const nonList = Tagged(3, Tag.STRING); // Different type
 
       expect(isCompatible(list, nonList)).toBe(false);
       expect(isCompatible(nonList, list)).toBe(false);
@@ -52,8 +52,8 @@ describe('Compound Compatibility Checking', () => {
 
     test('should be incompatible for non-compound types', () => {
       // NUMBER vs LIST
-      const number = toTaggedValue(42, Tag.NUMBER);
-      const list = toTaggedValue(3, Tag.LIST);
+      const number = Tagged(42, Tag.NUMBER);
+      const list = Tagged(3, Tag.LIST);
 
       expect(isCompatible(number, list)).toBe(false);
       expect(isCompatible(list, number)).toBe(false);
@@ -65,9 +65,9 @@ describe('Compound Compatibility Checking', () => {
   describe('Edge Cases', () => {
     test('should handle maximum sized lists', () => {
       // Test with large slot counts (within 16-bit range)
-      const large1 = toTaggedValue(65535, Tag.LIST); // Maximum 16-bit value
-      const large2 = toTaggedValue(65535, Tag.LIST);
-      const smaller = toTaggedValue(65534, Tag.LIST);
+      const large1 = Tagged(65535, Tag.LIST); // Maximum 16-bit value
+      const large2 = Tagged(65535, Tag.LIST);
+      const smaller = Tagged(65534, Tag.LIST);
 
       expect(isCompatible(large1, large2)).toBe(true);
       expect(isCompatible(large1, smaller)).toBe(false);

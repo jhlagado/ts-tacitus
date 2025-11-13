@@ -1,4 +1,4 @@
-import { SyntaxError, Tag, fromTaggedValue, RSTACK_BASE, STACK_BASE } from '@src/core';
+import { SyntaxError, Tag, getTaggedInfo, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
@@ -41,7 +41,7 @@ export function executeImmediateWord(
   tokenizer: Tokenizer,
   currentDefinition: { current: ActiveDefinition | null },
 ): void {
-  const { tag, value } = fromTaggedValue(entry.taggedValue);
+  const { tag, value } = getTaggedInfo(entry.taggedValue);
 
   if (tag === Tag.CODE) {
     // If encoded value < 128, it's invalid X1516 format, so treat as builtin immediate word

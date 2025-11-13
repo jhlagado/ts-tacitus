@@ -7,7 +7,7 @@ import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
 import { markWithLocalReset, forget, define } from '../../core/dictionary';
-import { toTaggedValue, Tag } from '../../core';
+import { Tagged, Tag } from '../../core';
 
 describe('Compiler Function Context', () => {
   let vm: VM;
@@ -51,9 +51,9 @@ describe('Compiler Function Context', () => {
       // Simulate function with 2 local variables
       const checkpoint = markWithLocalReset(vm);
       const slotX = vm.localCount++;
-      define(vm, 'x', toTaggedValue(slotX, Tag.LOCAL));
+      define(vm, 'x', Tagged(slotX, Tag.LOCAL));
       const slotY = vm.localCount++;
-      define(vm, 'y', toTaggedValue(slotY, Tag.LOCAL));
+      define(vm, 'y', Tagged(slotY, Tag.LOCAL));
       expect(vm.localCount).toBe(2);
 
       vm.compiler.enterFunction();

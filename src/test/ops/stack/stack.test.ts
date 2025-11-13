@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, toTaggedValue, fromTaggedValue } from '../../../core/tagged';
+import { Tag, Tagged, getTaggedInfo } from '../../../core/tagged';
 import {
   dupOp,
   dropOp,
@@ -33,10 +33,10 @@ describe('Stack Operations', () => {
     test('should duplicate a list', () => {
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       dupOp(vm);
       const stack = getStackData(vm);
-      expect(stack.slice(-6)).toEqual([10, 20, toTaggedValue(2, Tag.LIST), 10, 20, toTaggedValue(2, Tag.LIST)]);
+      expect(stack.slice(-6)).toEqual([10, 20, Tagged(2, Tag.LIST), 10, 20, Tagged(2, Tag.LIST)]);
     });
   });
 
@@ -51,7 +51,7 @@ describe('Stack Operations', () => {
     test('should drop entire list', () => {
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       dropOp(vm);
       expect(getStackData(vm)).toEqual([]);
     });
@@ -83,7 +83,7 @@ describe('Stack Operations', () => {
       push(vm, 5);
       push(vm, 20);
       push(vm, 30);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 10);
       swapOp(vm);
       const stack = getStackData(vm);
@@ -95,7 +95,7 @@ describe('Stack Operations', () => {
       push(vm, 10);
       push(vm, 20);
       push(vm, 30);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       swapOp(vm);
       const stack = getStackData(vm);
       expect(stack.length).toBe(5);
@@ -107,10 +107,10 @@ describe('Stack Operations', () => {
       push(vm, 5);
       push(vm, 10);
       push(vm, 20);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 30);
       push(vm, 40);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       swapOp(vm);
       const stack = getStackData(vm);
       expect(stack.length).toBe(7);
@@ -120,12 +120,12 @@ describe('Stack Operations', () => {
     test('should handle empty lists during swap', () => {
       push(vm, 5);
       push(vm, 42);
-      push(vm, toTaggedValue(0, Tag.LIST));
+      push(vm, Tagged(0, Tag.LIST));
       swapOp(vm);
       const stack = getStackData(vm);
       expect(stack.length).toBe(3);
       expect(stack[0]).toBe(5);
-      expect(fromTaggedValue(stack[1])).toMatchObject({ tag: Tag.LIST, value: 0 });
+      expect(getTaggedInfo(stack[1])).toMatchObject({ tag: Tag.LIST, value: 0 });
       expect(stack[2]).toBe(42);
     });
   });
@@ -226,7 +226,7 @@ describe('Stack Operations', () => {
   describe('stack utilities', () => {
     test('findElement should find elements in sequence', () => {
       function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-        push(vm, toTaggedValue(value, tag));
+        push(vm, Tagged(value, tag));
       }
 
       function createList(...values: number[]): void {
@@ -259,4 +259,3 @@ describe('Stack Operations', () => {
     });
   });
 });
-

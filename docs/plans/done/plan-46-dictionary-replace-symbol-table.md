@@ -8,41 +8,43 @@ The heap-backed dictionary is now feature-complete and can replace the in-memory
 
 ### Symbol Table Features
 
-| Feature | Symbol Table | Dictionary | Status |
-|---------|-------------|------------|--------|
-| **Lookup** | | | |
-| `findTaggedValue(name)` | Returns tagged value or undefined | `lookup(vm, name)` returns tagged value or NIL | ✅ Equivalent |
-| `find(name)` | Returns opcode/address for BUILTIN/CODE | Can decode from tagged value | ⚠️ Needs wrapper |
-| `findCodeRef(name)` | Returns tagged value if BUILTIN/CODE | Can check tag after lookup | ⚠️ Needs wrapper |
-| `findBytecodeAddress(name)` | Returns address if CODE | Can decode from tagged value | ⚠️ Needs wrapper |
-| `findEntry(name)` | Returns entry with taggedValue, isImmediate | Can decode from tagged value | ⚠️ Needs wrapper |
-| `findWithImplementation(name)` | Returns index, implementation, isImmediate | Implementation not stored | ❌ Missing |
-| **Definition** | | | |
-| `defineSymbol(name, taggedValue)` | Stores in localDefs or fallbackDefs | `define(vm, name, taggedValue)` | ✅ Equivalent |
-| `defineBuiltin(name, opcode, impl?, immediate?)` | Stores BUILTIN | `defineBuiltin(vm, name, opcode, immediate?)` | ⚠️ Implementation not stored |
-| `defineCode(name, addr, immediate?)` | Stores CODE | `defineCode(vm, name, addr, immediate?)` | ✅ Equivalent |
-| `defineLocal(name)` | Stores LOCAL, increments localCount | `defineLocal(vm, name)` | ✅ Equivalent |
-| **Scope Management** | | | |
-| `mark()` | Creates checkpoint, resets localCount | Returns heap position (gp) | ⚠️ Doesn't reset localCount |
-| `revert(cp)` | Removes entries from arrays | `forget(vm, markCellIndex)` reverts heap | ✅ Equivalent |
-| **Metadata** | | | |
-| `getLocalCount()` | Returns localCount | `vm.localCount` | ✅ Equivalent |
-| `getGlobalCount()` | Returns 0 (unused) | N/A | ✅ Not needed |
-| **Storage Model** | | | |
-| Separate arrays | `localDefs[]` and `fallbackDefs[]` | Single linked list | ⚠️ Different model |
-| Lookup order | Locals first, then fallback | LIFO (most recent first) | ⚠️ Different order |
-| Shadowing | Unshift to add duplicates | LIFO naturally shadows | ✅ Works differently |
+| Feature                                          | Symbol Table                                | Dictionary                                     | Status                       |
+| ------------------------------------------------ | ------------------------------------------- | ---------------------------------------------- | ---------------------------- |
+| **Lookup**                                       |                                             |                                                |                              |
+| `findTaggedValue(name)`                          | Returns tagged value or undefined           | `lookup(vm, name)` returns tagged value or NIL | ✅ Equivalent                |
+| `find(name)`                                     | Returns opcode/address for BUILTIN/CODE     | Can decode from tagged value                   | ⚠️ Needs wrapper             |
+| `findCodeRef(name)`                              | Returns tagged value if BUILTIN/CODE        | Can check tag after lookup                     | ⚠️ Needs wrapper             |
+| `findBytecodeAddress(name)`                      | Returns address if CODE                     | Can decode from tagged value                   | ⚠️ Needs wrapper             |
+| `findEntry(name)`                                | Returns entry with taggedValue, isImmediate | Can decode from tagged value                   | ⚠️ Needs wrapper             |
+| `findWithImplementation(name)`                   | Returns index, implementation, isImmediate  | Implementation not stored                      | ❌ Missing                   |
+| **Definition**                                   |                                             |                                                |                              |
+| `defineSymbol(name, taggedValue)`                | Stores in localDefs or fallbackDefs         | `define(vm, name, taggedValue)`                | ✅ Equivalent                |
+| `defineBuiltin(name, opcode, impl?, immediate?)` | Stores BUILTIN                              | `defineBuiltin(vm, name, opcode, immediate?)`  | ⚠️ Implementation not stored |
+| `defineCode(name, addr, immediate?)`             | Stores CODE                                 | `defineCode(vm, name, addr, immediate?)`       | ✅ Equivalent                |
+| `defineLocal(name)`                              | Stores LOCAL, increments localCount         | `defineLocal(vm, name)`                        | ✅ Equivalent                |
+| **Scope Management**                             |                                             |                                                |                              |
+| `mark()`                                         | Creates checkpoint, resets localCount       | Returns heap position (gp)                     | ⚠️ Doesn't reset localCount  |
+| `revert(cp)`                                     | Removes entries from arrays                 | `forget(vm, markCellIndex)` reverts heap       | ✅ Equivalent                |
+| **Metadata**                                     |                                             |                                                |                              |
+| `getLocalCount()`                                | Returns localCount                          | `vm.localCount`                                | ✅ Equivalent                |
+| `getGlobalCount()`                               | Returns 0 (unused)                          | N/A                                            | ✅ Not needed                |
+| **Storage Model**                                |                                             |                                                |                              |
+| Separate arrays                                  | `localDefs[]` and `fallbackDefs[]`          | Single linked list                             | ⚠️ Different model           |
+| Lookup order                                     | Locals first, then fallback                 | LIFO (most recent first)                       | ⚠️ Different order           |
+| Shadowing                                        | Unshift to add duplicates                   | LIFO naturally shadows                         | ✅ Works differently         |
 
 ## Key Differences
 
 ### 1. Storage Model
 
 **Symbol Table:**
+
 - Two separate arrays: `localDefs` and `fallbackDefs`
 - Locals checked first, then fallback
 - In-memory JavaScript arrays
 
 **Dictionary:**
+
 - Single linked list in global heap
 - LIFO order (most recent entry found first)
 - Persistent heap-backed storage
@@ -50,11 +52,13 @@ The heap-backed dictionary is now feature-complete and can replace the in-memory
 ### 2. Scope Management
 
 **Symbol Table:**
+
 - `mark()` resets `localCount` to 0
 - `revert()` removes entries from arrays
 - Separate tracking of local vs fallback depth
 
 **Dictionary:**
+
 - `mark()` only returns heap position (doesn't reset `localCount`)
 - `forget()` reverts heap and updates head
 - `localCount` managed separately (by symbol table currently)
@@ -62,10 +66,12 @@ The heap-backed dictionary is now feature-complete and can replace the in-memory
 ### 3. Implementation Storage
 
 **Symbol Table:**
+
 - Can store `implementation` function pointer (currently unused)
 - `findWithImplementation()` returns implementation
 
 **Dictionary:**
+
 - No storage for implementation functions
 - Implementation lookup not supported
 
@@ -116,7 +122,7 @@ export function findTaggedValue(vm: VM, name: string): number | undefined {
 export function find(vm: VM, name: string): number | undefined {
   const t = findTaggedValue(vm, name);
   if (t === undefined) return undefined;
-  const info = fromTaggedValue(t);
+  const info = getTaggedInfo(t);
   if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return info.value;
   return undefined;
 }
@@ -124,7 +130,7 @@ export function find(vm: VM, name: string): number | undefined {
 export function findCodeRef(vm: VM, name: string): number | undefined {
   const t = findTaggedValue(vm, name);
   if (t === undefined) return undefined;
-  const info = fromTaggedValue(t);
+  const info = getTaggedInfo(t);
   if (info.tag === Tag.BUILTIN || info.tag === Tag.CODE) return t;
   return undefined;
 }
@@ -132,15 +138,18 @@ export function findCodeRef(vm: VM, name: string): number | undefined {
 export function findBytecodeAddress(vm: VM, name: string): number | undefined {
   const t = findTaggedValue(vm, name);
   if (t === undefined) return undefined;
-  const info = fromTaggedValue(t);
+  const info = getTaggedInfo(t);
   if (info.tag === Tag.CODE) return info.value;
   return undefined;
 }
 
-export function findEntry(vm: VM, name: string): { taggedValue: number; isImmediate: boolean } | undefined {
+export function findEntry(
+  vm: VM,
+  name: string,
+): { taggedValue: number; isImmediate: boolean } | undefined {
   const t = findTaggedValue(vm, name);
   if (t === undefined) return undefined;
-  const info = fromTaggedValue(t);
+  const info = getTaggedInfo(t);
   return { taggedValue: t, isImmediate: info.meta === 1 };
 }
 
@@ -207,6 +216,7 @@ Recommendation: Option 1 (wrapper function) for backward compatibility.
 ### Checkpoint Format
 
 **Current (Symbol Table):**
+
 ```typescript
 interface SymbolTableCheckpoint {
   head: null;
@@ -217,6 +227,7 @@ interface SymbolTableCheckpoint {
 ```
 
 **New (Dictionary):**
+
 ```typescript
 // Just a number (heap position)
 type DictionaryCheckpoint = number;
@@ -285,4 +296,3 @@ Recommendation: Remove from API since unused.
 3. Test wrapper functions
 4. Proceed with Phase 2-5 incrementally
 5. Monitor for regressions
-

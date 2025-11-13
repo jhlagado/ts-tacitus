@@ -3,7 +3,7 @@
  * Previous files: list-creation.test.ts, lists-creation.test.ts, lists-creation-isolated.test.ts, list-nested.test.ts
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { fromTaggedValue, Tag, createVM, VM } from '../../../../core';
+import { getTaggedInfo, Tag, createVM, VM } from '../../../../core';
 import { executeTacitCode, logStack } from '../../../utils/vm-test-utils';
 
 describe('List Creation Operations', () => {
@@ -26,7 +26,7 @@ describe('List Creation Operations', () => {
       const stack = executeTacitCode(vm, '( )');
 
       expect(stack.length).toBe(1);
-      const { tag, value } = fromTaggedValue(stack[0]);
+      const { tag, value } = getTaggedInfo(stack[0]);
 
       // Handle both correct case and test contamination case
       const tagName = Tag[tag];
@@ -51,9 +51,9 @@ describe('List Creation Operations', () => {
       expect(stack.length).toBe(6);
       const len = stack.length;
 
-      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 5 });
-      expect(fromTaggedValue(stack[len - 2])).toMatchObject({ tag: Tag.NUMBER, value: 1 });
-      expect(fromTaggedValue(stack[0])).toMatchObject({ tag: Tag.NUMBER, value: 4 });
+      expect(getTaggedInfo(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 5 });
+      expect(getTaggedInfo(stack[len - 2])).toMatchObject({ tag: Tag.NUMBER, value: 1 });
+      expect(getTaggedInfo(stack[0])).toMatchObject({ tag: Tag.NUMBER, value: 4 });
     });
 
     test('should handle multiple nested lists at the same level', () => {
@@ -61,7 +61,7 @@ describe('List Creation Operations', () => {
 
       expect(stack.length).toBe(7);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 6 });
+      expect(getTaggedInfo(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 6 });
     });
   });
 
@@ -73,7 +73,7 @@ describe('List Creation Operations', () => {
 
       expect(stack.length).toBe(9);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1]).tag).toBe(Tag.LIST);
+      expect(getTaggedInfo(stack[len - 1]).tag).toBe(Tag.LIST);
     });
 
     test('should handle deeply nested lists (3+ levels)', () => {
@@ -81,7 +81,7 @@ describe('List Creation Operations', () => {
 
       expect(stack.length).toBe(9);
       const len = stack.length;
-      expect(fromTaggedValue(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 8 });
+      expect(getTaggedInfo(stack[len - 1])).toMatchObject({ tag: Tag.LIST, value: 8 });
     });
   });
 });

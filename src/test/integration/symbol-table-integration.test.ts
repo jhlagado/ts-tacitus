@@ -17,7 +17,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE, CELL_SIZE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
-import { Tag, fromTaggedValue, createCodeRef, toTaggedValue } from '../../core';
+import { Tag, getTaggedInfo, createCodeRef, Tagged } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { define } from '../../core/dictionary';
 import {
@@ -38,14 +38,14 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Built-in Symbol Integration: register → resolve → execute', () => {
     test('should handle add operation end-to-end', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
 
       const addRef = resolveSymbol(vm, 'add');
       expect(addRef).toBeDefined();
       expect(isBuiltinRef(addRef!)).toBe(true);
       expect(getBuiltinOpcode(addRef!)).toBe(Op.Add);
 
-      const { tag, value } = fromTaggedValue(addRef!);
+      const { tag, value } = getTaggedInfo(addRef!);
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(Op.Add);
 
@@ -59,9 +59,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle multiple built-in operations', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
-      define(vm, 'swap', toTaggedValue(Op.Swap, Tag.CODE, 0));
-      define(vm, 'drop', toTaggedValue(Op.Drop, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
+      define(vm, 'swap', Tagged(Op.Swap, Tag.CODE, 0));
+      define(vm, 'drop', Tagged(Op.Drop, Tag.CODE, 0));
 
       push(vm, 42);
       const dupRef = resolveSymbol(vm, 'dup');
@@ -82,9 +82,9 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should handle arithmetic operations sequence', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
-      define(vm, 'mul', toTaggedValue(Op.Multiply, Tag.CODE, 0));
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
+      define(vm, 'mul', Tagged(Op.Multiply, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
 
       push(vm, 3);
 
@@ -108,22 +108,22 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Code Symbol Integration: register → resolve → verify', () => {
     test('should register and resolve code symbols with correct tagged values', () => {
-      define(vm, 'test', toTaggedValue(encodeX1516(1000), Tag.CODE, 0));
+      define(vm, 'test', Tagged(encodeX1516(1000), Tag.CODE, 0));
 
       const testRef = resolveSymbol(vm, 'test');
       expect(testRef).toBeDefined();
       expect(isFuncRef(testRef!)).toBe(true);
       expect(getCodeAddress(testRef!)).toBe(1000);
 
-      const { tag, value } = fromTaggedValue(testRef!);
+      const { tag, value } = getTaggedInfo(testRef!);
       expect(tag).toBe(Tag.CODE);
       expect(value).toBe(encodeX1516(1000)); // Value is X1516 encoded
     });
 
     test('should handle multiple code symbols with different addresses', () => {
-      define(vm, 'square', toTaggedValue(encodeX1516(1024), Tag.CODE, 0));
-      define(vm, 'cube', toTaggedValue(encodeX1516(2048), Tag.CODE, 0));
-      define(vm, 'factorial', toTaggedValue(encodeX1516(4096), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(1024), Tag.CODE, 0));
+      define(vm, 'cube', Tagged(encodeX1516(2048), Tag.CODE, 0));
+      define(vm, 'factorial', Tagged(encodeX1516(4096), Tag.CODE, 0));
 
       const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
@@ -139,11 +139,11 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should maintain symbol table backward compatibility', () => {
-      define(vm, 'test', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'test', Tagged(encodeX1516(1500), Tag.CODE, 0));
 
       const codeRef = resolveSymbol(vm, 'test');
       expect(codeRef).toBeDefined();
-      const { tag, value: addr } = fromTaggedValue(codeRef!);
+      const { tag, value: addr } = getTaggedInfo(codeRef!);
       expect(tag).toBe(Tag.CODE);
       expect(addr).toBe(encodeX1516(1500)); // Value is X1516 encoded
     });
@@ -151,10 +151,10 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Mixed Symbol Types Integration', () => {
     test('should handle both built-ins and code symbols in same symbol table', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
-      define(vm, 'square', toTaggedValue(encodeX1516(2000), Tag.CODE, 0));
-      define(vm, 'double', toTaggedValue(encodeX1516(3000), Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(2000), Tag.CODE, 0));
+      define(vm, 'double', Tagged(encodeX1516(3000), Tag.CODE, 0));
 
       const addRef = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addRef!)).toBe(true);
@@ -174,8 +174,8 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should execute built-ins while preserving code symbol references', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
-      define(vm, 'square', toTaggedValue(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(1500), Tag.CODE, 0));
 
       push(vm, 10);
       push(vm, 5);
@@ -206,7 +206,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should not interfere with existing symbol table functionality', () => {
-      define(vm, 'custom_add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'custom_add', Tagged(Op.Add, Tag.CODE, 0));
 
       const customRef = resolveSymbol(vm, 'custom_add');
       expect(customRef).toBeDefined();
@@ -216,7 +216,7 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Complete Workflow Simulation', () => {
     test('should simulate future @symbol eval workflow', () => {
-      define(vm, 'add', toTaggedValue(Op.Add, Tag.CODE, 0));
+      define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
 
       push(vm, 2);
       push(vm, 3);
@@ -232,7 +232,7 @@ describe('Symbol Table Integration Tests', () => {
     });
 
     test('should demonstrate unified eval behavior with different code types', () => {
-      define(vm, 'dup', toTaggedValue(Op.Dup, Tag.CODE, 0));
+      define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
 
       push(vm, 42);
       const dupRef = resolveSymbol(vm, 'dup');
@@ -260,9 +260,9 @@ describe('Symbol Table Integration Tests', () => {
 
       for (let i = 0; i < numSymbols; i++) {
         if (i % 2 === 0) {
-          define(vm, `builtin_${i}`, toTaggedValue(i % 128, Tag.CODE, 0));
+          define(vm, `builtin_${i}`, Tagged(i % 128, Tag.CODE, 0));
         } else {
-          define(vm, `code_${i}`, toTaggedValue(encodeX1516(1000 + i), Tag.CODE, 0));
+          define(vm, `code_${i}`, Tagged(encodeX1516(1000 + i), Tag.CODE, 0));
         }
       }
 
@@ -280,8 +280,8 @@ describe('Symbol Table Integration Tests', () => {
     test('should maintain consistent memory usage patterns', () => {
       const initialStackSize = getStackData(vm).length;
 
-      define(vm, 'test1', toTaggedValue(Op.Add, Tag.CODE, 0));
-      define(vm, 'test2', toTaggedValue(encodeX1516(500), Tag.CODE, 0));
+      define(vm, 'test1', Tagged(Op.Add, Tag.CODE, 0));
+      define(vm, 'test2', Tagged(encodeX1516(500), Tag.CODE, 0));
 
       const ref1 = resolveSymbol(vm, 'test1');
       const ref2 = resolveSymbol(vm, 'test2');

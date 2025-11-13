@@ -4,7 +4,7 @@ import { Tokenizer } from './src/lang/tokenizer';
 import { Op } from './src/ops/opcodes';
 import { SEG_CODE } from './src/core/constants';
 import { findBytecodeAddress } from './src/core/dictionary';
-import { fromTaggedValue } from './src/core';
+import { getTaggedInfo } from './src/core';
 
 // Initialize VM and compiler (global vm singleton)
 initializeInterpreter();
@@ -15,9 +15,9 @@ console.log('Built-in function indices:');
 const dupRef = vm.resolveSymbol('dup');
 const mulRef = vm.resolveSymbol('mul');
 const starRef = vm.resolveSymbol('*');
-console.log('  dup:', dupRef ? fromTaggedValue(dupRef).value : 'undefined');
-console.log('  mul:', mulRef ? fromTaggedValue(mulRef).value : 'undefined');
-console.log('  *:', starRef ? fromTaggedValue(starRef).value : 'undefined');
+console.log('  dup:', dupRef ? getTaggedInfo(dupRef).value : 'undefined');
+console.log('  mul:', mulRef ? getTaggedInfo(mulRef).value : 'undefined');
+console.log('  *:', starRef ? getTaggedInfo(starRef).value : 'undefined');
 
 // Parse the square definition
 console.log('\n=== Parsing ": square dup mul ;" ===');
@@ -47,9 +47,9 @@ for (let i = 0; i < vm.compiler.CP; i++) {
     const dupRef = vm.resolveSymbol('dup');
     const mulRef = vm.resolveSymbol('mul');
     const starRef = vm.resolveSymbol('*');
-    const dupIndex = dupRef ? fromTaggedValue(dupRef).value : undefined;
-    const mulIndex = mulRef ? fromTaggedValue(mulRef).value : undefined;
-    const starIndex = starRef ? fromTaggedValue(starRef).value : undefined;
+    const dupIndex = dupRef ? getTaggedInfo(dupRef).value : undefined;
+    const mulIndex = mulRef ? getTaggedInfo(mulRef).value : undefined;
+    const starIndex = starRef ? getTaggedInfo(starRef).value : undefined;
 
     if (byte === dupIndex) {
       description = `dup (function index ${byte})`;
@@ -108,9 +108,9 @@ if (squareAddr !== undefined) {
       const dupRef = vm.resolveSymbol('dup');
       const mulRef = vm.resolveSymbol('mul');
       const starRef = vm.resolveSymbol('*');
-      const dupIndex = dupRef ? fromTaggedValue(dupRef).value : undefined;
-      const mulIndex = mulRef ? fromTaggedValue(mulRef).value : undefined;
-      const starIndex = starRef ? fromTaggedValue(starRef).value : undefined;
+      const dupIndex = dupRef ? getTaggedInfo(dupRef).value : undefined;
+      const mulIndex = mulRef ? getTaggedInfo(mulRef).value : undefined;
+      const starIndex = starRef ? getTaggedInfo(starRef).value : undefined;
       if (opcode === dupIndex) {
         description = `dup (${opcode})`;
       } else if (opcode === mulIndex || opcode === starIndex) {

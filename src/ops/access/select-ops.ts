@@ -4,7 +4,7 @@
  */
 
 import type { VM, Verb } from '@src/core';
-import { Tag, getTag, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createRef } from '@src/core';
+import { Tag, getTaggedInfo, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -52,7 +52,8 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
   push(vm, pathElement);
   // Stack: ( target path current-ref path-element )
 
-  if (getTag(pathElement) === Tag.NUMBER) {
+  const { tag } = getTaggedInfo(pathElement);
+  if (tag === Tag.NUMBER) {
     elemOp(vm); // ( ref index -- ref new-ref )
   } else {
     findOp(vm); // ( ref key -- ref new-ref )

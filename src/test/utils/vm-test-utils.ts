@@ -8,15 +8,7 @@
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
  */
-import {
-  type VM,
-  Tag,
-  toTaggedValue,
-  fromTaggedValue,
-  STACK_BASE,
-  RSTACK_BASE,
-  createVM,
-} from '../../core';
+import { type VM, Tag, Tagged, getTaggedInfo, STACK_BASE, RSTACK_BASE, createVM } from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -83,7 +75,7 @@ export function getFormattedStack(vm: VM): string[] {
     if (!isNaN(value)) {
       return value.toString();
     }
-    const { tag, value: tagValue } = fromTaggedValue(value);
+    const { tag, value: tagValue } = getTaggedInfo(value);
     switch (tag) {
       case Tag.STRING: {
         const s = vm.digest.get(tagValue);
@@ -173,7 +165,7 @@ export function pushValues(vm: VM, ...values: number[]): void {
  * Push tagged value onto VM stack
  */
 export function pushTaggedValue(vm: VM, value: number, tag: Tag): void {
-  pushFn(vm, toTaggedValue(value, tag));
+  pushFn(vm, Tagged(value, tag));
 }
 
 /**
@@ -182,7 +174,7 @@ export function pushTaggedValue(vm: VM, value: number, tag: Tag): void {
 export function getStackWithTags(vm: VM): { value: number; tag: string }[] {
   return getStackData(vm).map(v => {
     try {
-      const { value, tag } = fromTaggedValue(v);
+      const { value, tag } = getTaggedInfo(v);
       return { value, tag: Tag[tag] };
     } catch {
       return { value: v, tag: 'RAW' };
@@ -215,7 +207,7 @@ export class TestList {
     for (const value of this.values) {
       pushFn(vm, value);
     }
-    pushFn(vm, toTaggedValue(this.values.length, Tag.LIST));
+    pushFn(vm, Tagged(this.values.length, Tag.LIST));
   }
 
   getValues(): number[] {
@@ -246,7 +238,7 @@ export function pushTestList(vm: VM, values: number[]): void {
  * Extract list values from stack following LIST semantics
  */
 export function extractListFromStack(stack: number[], headerIndex: number): number[] {
-  const { tag, value: slotCount } = fromTaggedValue(stack[headerIndex]);
+  const { tag, value: slotCount } = getTaggedInfo(stack[headerIndex]);
   if (tag !== Tag.LIST) {
     throw new Error(`Expected LIST header at index ${headerIndex}, got ${Tag[tag]}`);
   }
@@ -268,7 +260,7 @@ export function extractListFromStack(stack: number[], headerIndex: number): numb
 export function countListsOnStack(stack: number[]): number {
   let count = 0;
   for (const item of stack) {
-    const { tag } = fromTaggedValue(item);
+    const { tag } = getTaggedInfo(item);
     if (tag === Tag.LIST) {
       count++;
     }
@@ -325,7 +317,7 @@ export function verifyTaggedValue(
   expectedTag: Tag,
   expectedValue?: number,
 ): void {
-  const { tag, value } = fromTaggedValue(taggedValue);
+  const { tag, value } = getTaggedInfo(taggedValue);
   expect(tag).toBe(expectedTag);
   if (expectedValue !== undefined) {
     expect(value).toBe(expectedValue);
@@ -350,7 +342,7 @@ export function logStack(stack: number[], label = 'Stack'): void {
     stack
       .map(v => {
         try {
-          const { value, tag } = fromTaggedValue(v);
+          const { value, tag } = getTaggedInfo(v);
           return `${value}(${Tag[tag]})`;
         } catch {
           return `${v}(RAW)`;

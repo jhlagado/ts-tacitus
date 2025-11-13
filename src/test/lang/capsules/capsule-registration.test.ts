@@ -1,4 +1,4 @@
-import { Tag, fromTaggedValue, toTaggedValue } from '../../../core';
+import { Tag, getTaggedInfo, Tagged } from '../../../core';
 import { Op } from '../../../ops/opcodes';
 import { createVM, type VM } from '../../../core/vm';
 import { findEntry } from '../../../core/dictionary';
@@ -14,7 +14,7 @@ describe('capsule word registration', () => {
     const entry = findEntry(vm, 'capsule');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(true);
-    const { tag: entryTag } = fromTaggedValue(entry!.taggedValue);
+    const { tag: entryTag } = getTaggedInfo(entry!.taggedValue);
     // Builtins are now stored as Tag.CODE with value < 128
     expect(entryTag).toBe(Tag.CODE);
   });
@@ -25,7 +25,7 @@ describe('capsule word registration', () => {
     const entry = findEntry(vm, 'dispatch');
     expect(entry).toBeDefined();
     expect(entry?.isImmediate).toBe(false);
-    const { tag, value } = fromTaggedValue(entry!.taggedValue);
+    const { tag, value } = getTaggedInfo(entry!.taggedValue);
     // Builtins are now stored as Tag.CODE with value < 128
     expect(tag).toBe(Tag.CODE);
     expect(value).toBe(Op.Dispatch);

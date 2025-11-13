@@ -1,4 +1,4 @@
-import { SyntaxError, fromTaggedValue, Tag } from '@src/core';
+import { SyntaxError, getTaggedInfo, Tag } from '@src/core';
 import type { VM } from '../../core/vm';
 import { getStackData, peek, pop, push, depth } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
@@ -22,7 +22,7 @@ export function beginCapsuleImmediate(
   }
 
   const tos = peek(vm);
-  const { tag, value } = fromTaggedValue(tos);
+  const { tag, value } = getTaggedInfo(tos);
   // Check Tag.CODE < 128 (represents builtin opcode)
   if (tag !== Tag.CODE || value >= 128 || value !== Op.EndDefinition) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));

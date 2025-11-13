@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tag, toTaggedValue } from '../../../core/tagged';
+import { Tag, Tagged } from '../../../core/tagged';
 import { dupOp } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
 import { createVM, VM } from '../../../core';
@@ -30,7 +30,7 @@ describe('dup Operation', () => {
       push(vm, 10);
       push(vm, 20);
       push(vm, 30);
-      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
 
       dupOp(vm);
 
@@ -39,37 +39,30 @@ describe('dup Operation', () => {
         10,
         20,
         30,
-        toTaggedValue(3, Tag.LIST),
+        Tagged(3, Tag.LIST),
         10,
         20,
         30,
-        toTaggedValue(3, Tag.LIST),
+        Tagged(3, Tag.LIST),
       ]);
     });
 
     test('should duplicate a simple list', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
 
       dupOp(vm);
 
       const stack = getStackData(vm);
-      expect(stack.slice(-6)).toEqual([
-        1,
-        2,
-        toTaggedValue(2, Tag.LIST),
-        1,
-        2,
-        toTaggedValue(2, Tag.LIST),
-      ]);
+      expect(stack.slice(-6)).toEqual([1, 2, Tagged(2, Tag.LIST), 1, 2, Tagged(2, Tag.LIST)]);
     });
 
     test('should duplicate a larger list', () => {
       push(vm, 10);
       push(vm, 20);
       push(vm, 30);
-      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
 
       dupOp(vm);
 
@@ -78,21 +71,21 @@ describe('dup Operation', () => {
         10,
         20,
         30,
-        toTaggedValue(3, Tag.LIST),
+        Tagged(3, Tag.LIST),
         10,
         20,
         30,
-        toTaggedValue(3, Tag.LIST),
+        Tagged(3, Tag.LIST),
       ]);
     });
 
     test('should duplicate a nested list', () => {
       push(vm, 2);
       push(vm, 3);
-      push(vm, toTaggedValue(2, Tag.LIST));
+      push(vm, Tagged(2, Tag.LIST));
       push(vm, 1);
       push(vm, 4);
-      push(vm, toTaggedValue(3, Tag.LIST));
+      push(vm, Tagged(3, Tag.LIST));
 
       const before = getStackData(vm).length;
       dupOp(vm);
