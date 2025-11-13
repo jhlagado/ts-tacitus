@@ -71,6 +71,10 @@ Absolute Address | Content        | Logical Index | Note
 
 ## Operations
 
+**Input validation**: All buffer operations (except `buffer`) accept either a LIST header or a REF. Use `getListBounds(vm, value)` to resolve polymorphically. If it returns `null`, throw `Error("Expected buffer (LIST or REF)")`.
+
+**Extracting capacity**: After resolving the buffer, extract capacity `N` from the LIST header: `N = getListLength(header) - 2` (header stores `N+2` payload slots: readPtr + writePtr + N data slots).
+
 ### `buffer` (creation)
 
 - **Stack**: `( N -- buffer )`
@@ -212,10 +216,15 @@ Absolute Address | Content        | Logical Index | Note
 
 4. **LIST header**: The `LIST:(N+2)` header is created for allocation purposes only. Once allocated, buffer operations ignore LIST semantics and use direct memory access.
 
-5. **Ref support**: When operating via a ref (local/global):
-   - If input is a LIST header directly on stack: `headerCell = vm.sp` (current SP)
-   - If input is a ref: resolve ref to get absolute cell address: `headerCell = getCellFromRef(ref)`
-   - Then use the same address calculations as above
+5. **Polymorphic input handling** (REFs are automatically dereferenced):
+   - All buffer operations accept either a **LIST header** (on stack) or a **REF** (to a LIST header)
+   - Use `getListBounds(vm, value)` to resolve the input polymorphically:
+     - If input is a LIST tag: returns `{ header, baseCell, headerCell }` where `headerCell = vm.sp - 1`
+     - If input is a REF: automatically dereferences to get the absolute cell address of the LIST header
+     - If input is neither LIST nor REF: returns `null` → **throw error** (`"Expected buffer (LIST or REF)"`)
+   - Once resolved, use the same address calculations for both cases (polymorphic model)
+   - **In practice, REFs will be used 99% of the time** (buffers stored in locals/globals)
+   - This allows all operations to work equally well with LIST headers or REFs without separate code paths
 
 ## Example Usage
 
