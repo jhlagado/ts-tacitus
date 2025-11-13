@@ -15,8 +15,8 @@ For a buffer with capacity `N` elements:
 - **Total slots**: `N + 3` (header + readPtr + writePtr + N data slots)
 - **Header**: `LIST:(N+2)` at TOS (SP) — **used only for allocation**
 - **Payload layout** (once allocated, treat as raw memory with address-increasing order):
-  - `readPtr` at `headerCell - 1` (absolute address)
-  - `writePtr` at `headerCell - 2` (absolute address)
+  - `readPtr` **cell** at `headerCell - 1` (absolute address of storage location; stores logical index 0..N-1)
+  - `writePtr` **cell** at `headerCell - 2` (absolute address of storage location; stores logical index 0..N-1)
   - Data base address: `dataBase = headerCell - (N + 2)` (lowest address)
   - `data[0]` at `dataBase` (lowest address, index 0)
   - `data[1]` at `dataBase + 1` (address increases)
@@ -31,8 +31,8 @@ If `SP = 100` and we allocate a 13-slot buffer (N=10 elements):
 Absolute Address | Content        | Logical Index | Note
 ----------------|----------------|---------------|------------------
 100             | LIST:12        | Header        | TOS (SP) - anchor for addressing
-99              | readPtr        | Metadata      | Initially 0 (points to data[0])
-98              | writePtr       | Metadata      | Initially 0 (points to data[0])
+99              | readPtr        | Metadata      | Stores logical index (initially 0, points to data[0])
+98              | writePtr       | Metadata      | Stores logical index (initially 0, points to data[0])
 97              | data[9]        | Index 9       | Highest address (address-increasing order)
 96              | data[8]        | Index 8       |
 95              | data[7]        | Index 7       |
