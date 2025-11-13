@@ -6,7 +6,6 @@
 import {
   type VM,
   GLOBAL_BASE,
-  CELL_SIZE,
   dropList,
   isList,
   getListLength,
@@ -14,7 +13,6 @@ import {
   gpushVal,
   isRef,
   readRef,
-  refToByte,
   validateListHeader,
   createGlobalRef,
   getCellFromRef,

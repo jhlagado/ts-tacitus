@@ -5,7 +5,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
-import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE } from '../../../core/constants';
 import { getTaggedInfo, NIL, Tag } from '../../../core/tagged';
 import {
   createTargetRef,

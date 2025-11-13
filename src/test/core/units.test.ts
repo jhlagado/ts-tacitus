@@ -1,4 +1,4 @@
-import { Memory, SEG_DATA, STACK_BASE_BYTES, STACK_BASE } from '../../core';
+import { Memory, SEG_DATA, STACK_BASE } from '../../core';
 import {
   cells,
   cellIndex,

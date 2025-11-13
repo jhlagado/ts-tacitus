@@ -12,7 +12,6 @@ import {
   createRef,
   getCellFromRef,
   isRef,
-  CELL_SIZE,
   RSTACK_BASE,
   InvalidOpcodeError,
   GLOBAL_BASE,
@@ -20,7 +19,6 @@ import {
   createGlobalRef,
   gpushList,
 } from '@src/core';
-import { encodeX1516 } from '@src/core/code-ref';
 import {
   nextUint16,
   nextInt16,

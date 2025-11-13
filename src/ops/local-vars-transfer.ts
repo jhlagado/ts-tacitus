@@ -12,7 +12,6 @@ import {
   isList,
   STACK_BASE,
   RSTACK_BASE,
-  CELL_SIZE,
   dropList,
   copyListPayload,
 } from '@src/core';

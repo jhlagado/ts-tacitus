@@ -18,10 +18,8 @@
  */
 
 import { Op } from '../ops/opcodes';
-import { getStackData } from '../core/vm';
-import type { VM } from '../core/vm';
-import type { Token, Tokenizer } from './tokenizer';
-import { TokenType } from './tokenizer';
+import { type VM, getStackData } from '../core/vm';
+import { type Token, type Tokenizer, TokenType } from './tokenizer';
 import {
   isSpecialChar,
   getTaggedInfo,
@@ -31,14 +29,13 @@ import {
   UndefinedWordError,
   SyntaxError,
   GLOBAL_BASE,
-  GLOBAL_TOP,
   GLOBAL_SIZE,
   createGlobalRef,
   getCellFromRef,
   Tagged,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
-import type { ActiveDefinition } from './state';
+import { type ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 import { lookup, define } from '../core/dictionary';
@@ -85,6 +82,7 @@ export function parseProgram(
   tokenizer: Tokenizer,
   currentDefinition: { current: ActiveDefinition | null },
 ): void {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const token = tokenizer.nextToken();
     if (token.type === TokenType.EOF) {
@@ -681,6 +679,7 @@ function compileBracketPathAsList(
 ): void {
   // Build list: OpenList, emit elements, CloseList
   vm.compiler.compileOpcode(Op.OpenList);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const tok = tokenizer.nextToken();
     if (tok.type === TokenType.SPECIAL && tok.value === ']') {

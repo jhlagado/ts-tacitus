@@ -1,12 +1,12 @@
 import { SyntaxError, Tag, getTaggedInfo, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
-import type { Op } from '../../ops/opcodes';
+import { type Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
 import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import { decodeX1516 } from '../../core/code-ref';
-import type { Tokenizer } from '../tokenizer';
-import type { ActiveDefinition } from '../state';
+import { type Tokenizer } from '../tokenizer';
+import { type ActiveDefinition } from '../state';
 // SymbolTableEntry interface moved inline (symbol table removed)
 type SymbolTableEntry = {
   taggedValue: number;

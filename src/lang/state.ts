@@ -1,7 +1,6 @@
 import { SyntaxError } from '@src/core';
-import { getStackData } from '../core/vm';
-import type { VM } from '../core/vm';
-import type { Tokenizer } from './tokenizer';
+import { type VM } from '../core/vm';
+import { type Tokenizer } from './tokenizer';
 
 export type ActiveDefinition = {
   name: string;

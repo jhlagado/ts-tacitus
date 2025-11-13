@@ -5,7 +5,7 @@ import {
   dispatchOp,
   endCapsuleOp,
 } from '../../../ops/capsules/capsule-ops';
-import { getCellFromRef, RSTACK_BASE, CELL_SIZE } from '../../../core';
+import { getCellFromRef, RSTACK_BASE } from '../../../core';
 import { rpush, peek } from '../../../core/vm';
 
 describe('capsule opcode stubs', () => {

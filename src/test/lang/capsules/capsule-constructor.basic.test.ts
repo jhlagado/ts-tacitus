@@ -10,7 +10,6 @@ import {
   RSTACK_SIZE_BYTES,
   refToByte,
 } from '../../../core';
-import { CELL_SIZE } from '../../../core/constants';
 
 describe('Capsule constructor (language-level) — minimal to locals', () => {
   let vm: VM;

@@ -220,7 +220,7 @@ const config = [
       'no-unused-args': 'off', // Handled by @typescript-eslint/no-unused-vars
       'no-undef': 'off', // TypeScript handles this
       'no-redeclare': 'off', // TypeScript handles this
-      'no-duplicate-imports': 'error', // Prevent duplicate imports
+      'no-duplicate-imports': 'off', // Disabled: conflicts with consistent-type-imports. TypeScript catches real duplicates.
     },
   },
 
@@ -266,13 +266,13 @@ const config = [
       ...js.configs.recommended.rules,
       // Allow console.log in tests for debugging
       'no-console': 'off',
-      // Allow non-null assertions in tests (common for test setup)
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      // Relax explicit return types for test helpers
-      '@typescript-eslint/explicit-function-return-type': 'warn',
-      '@typescript-eslint/explicit-module-boundary-types': 'warn',
-      // Allow any in tests for mocking
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // Allow non-null assertions in tests (common and safe in test setup)
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      // Allow type inference for test helpers (explicit return types add verbosity without value)
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      // Allow any in tests for mocking (necessary for test utilities)
+      '@typescript-eslint/no-explicit-any': 'off',
       // Unused vars/args starting with _ are ignored
       '@typescript-eslint/no-unused-vars': [
         'warn',

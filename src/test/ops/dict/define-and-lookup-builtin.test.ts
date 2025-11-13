@@ -3,7 +3,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { Tag, Tagged, getTaggedInfo } from '../../../core';
 import { defineOp, lookupOp } from '../../../core/dictionary';
 import { refToByte, isRef } from '../../../core/refs';
-import { SEG_DATA, CELL_SIZE } from '../../../core/constants';
+import { CELL_SIZE } from '../../../core/constants';
 import { push, pop } from '../../../core/vm';
 
 describe('dict define/lookup builtin (happy path)', () => {

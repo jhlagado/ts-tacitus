@@ -3,9 +3,8 @@
  * Bytecode compiler for the Tacit language.
  */
 
-import type { VM } from '@src/core';
+import { type VM, Tag, Tagged, SEG_CODE, MIN_USER_OPCODE, InvalidOpcodeAddressError } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
-import { Tag, Tagged, SEG_CODE, MIN_USER_OPCODE, InvalidOpcodeAddressError } from '@src/core';
 import { Op } from '../ops/opcodes';
 
 /**

@@ -13,7 +13,7 @@ import {
   cellsRoll,
   findElement,
 } from '../../../ops/stack';
-import { push, getStackData, pop } from '../../../core/vm';
+import { push, getStackData } from '../../../core/vm';
 import { createVM, VM } from '../../../core';
 
 describe('Stack Operations', () => {
@@ -203,7 +203,7 @@ describe('Stack Operations', () => {
         { op: nipOp, name: 'nip' },
       ];
 
-      binaryOps.forEach(({ op, name }) => {
+      binaryOps.forEach(({ op }) => {
         vm = createVM();
         push(vm, 1);
         expect(() => op(vm)).toThrow('Stack underflow');
@@ -216,7 +216,7 @@ describe('Stack Operations', () => {
         { op: dropOp, name: 'drop' },
       ];
 
-      unaryOps.forEach(({ op, name }) => {
+      unaryOps.forEach(({ op }) => {
         vm = createVM();
         expect(() => op(vm)).toThrow('Stack underflow');
       });

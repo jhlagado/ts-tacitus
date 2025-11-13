@@ -1,5 +1,4 @@
-import type { VM } from '@src/core';
-import { Tag, getTaggedInfo, getListBounds, getListLength, CELL_SIZE, SEG_DATA } from '@src/core';
+import { type VM, Tag, getTaggedInfo, getListBounds, getListLength } from '@src/core';
 
 export type CapsuleLayout = {
   baseCell: number; // cell index of slot0 (first payload cell)
@@ -21,8 +20,7 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
 
   const { header, baseCell, headerCell } = info;
 
-  const slotCount = getListLength(header);
-  if (slotCount < 1) {
+  if (getListLength(header) < 1) {
     throw new Error('capsule payload must include CODE slot');
   }
 
@@ -32,5 +30,5 @@ export function readCapsuleLayoutFromHandle(vm: VM, handle: number): CapsuleLayo
     throw new Error('capsule slot0 must be a CODE reference');
   }
 
-  return { baseCell, headerCell, slotCount, codeRef: codeCell };
+  return { baseCell, headerCell, slotCount: getListLength(header), codeRef: codeCell };
 }

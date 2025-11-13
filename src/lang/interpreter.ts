@@ -19,8 +19,7 @@ import { parse } from './parser';
 import { Tagged, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 import { Tokenizer } from './tokenizer';
-import { nextOpcode, getStackData, rpush } from '../core/vm';
-import type { VM } from '../core/vm';
+import { type VM, nextOpcode, getStackData, rpush } from '../core/vm';
 
 // SEG_CODE imported from @src/core
 
@@ -45,6 +44,7 @@ export function execute(vm: VM, start: number): void {
   vm.IP = start;
   vm.running = true;
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (vm.running && vm.IP < vm.compiler.CP) {
     const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;

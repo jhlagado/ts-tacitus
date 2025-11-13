@@ -7,7 +7,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeRef } from '../../../core/refs';
-import { RSTACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE } from '../../../core/constants';
 import { push, getStackData, pop } from '../../../core/vm';
 
 describe('Local Variables System', () => {

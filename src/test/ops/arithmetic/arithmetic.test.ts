@@ -1,5 +1,4 @@
 import { createVM, VM } from '../../../core';
-import { executeTacitCode } from '../../utils/vm-test-utils';
 import { push, pop, getStackData } from '../../../core/vm';
 import {
   addOp,
@@ -205,7 +204,7 @@ describe('Arithmetic Operations', () => {
         { op: maxOp, name: 'max' },
       ];
 
-      binaryOps.forEach(({ op, name }) => {
+      binaryOps.forEach(({ op }) => {
         vm = createVM();
       push(vm, 5);
         expect(() => op(vm)).toThrow('Stack underflow');
@@ -223,7 +222,7 @@ describe('Arithmetic Operations', () => {
         { op: logOp, name: 'log' },
       ];
 
-      unaryOps.forEach(({ op, name }) => {
+      unaryOps.forEach(({ op }) => {
       vm = createVM();
         expect(() => op(vm)).toThrow('Stack underflow');
       });

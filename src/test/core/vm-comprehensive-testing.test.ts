@@ -21,7 +21,7 @@ import { getTaggedInfo, Tag, Tagged } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { define } from '../../core/dictionary';
 import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../../core/vm';
-import { encodeX1516, decodeX1516 } from '../../core/code-ref';
+import { encodeX1516 } from '../../core/code-ref';
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
 jest.retryTimes(2);

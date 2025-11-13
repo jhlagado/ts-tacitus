@@ -3,19 +3,16 @@
  * Reference utilities for polymorphic memory addressing.
  */
 
-import type { VM } from './vm';
+import { type VM } from './vm';
 import { getTaggedInfo, Tagged, Tag } from './tagged';
 import {
-  SEG_DATA,
   STACK_BASE_BYTES,
   RSTACK_BASE_BYTES,
   RSTACK_BASE,
   RSTACK_TOP,
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
-  GLOBAL_SIZE_BYTES,
   GLOBAL_SIZE,
-  TOTAL_DATA_BYTES,
   TOTAL_DATA,
   CELL_SIZE,
 } from './constants';

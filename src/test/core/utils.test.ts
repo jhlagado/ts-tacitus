@@ -9,9 +9,8 @@ import {
   and,
   or,
   xor,
-  getTaggedInfo,
+  formatValue,
 } from '../../core';
-import { formatValue } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { Tagged, Tag, NIL, VM } from '../../core';
 

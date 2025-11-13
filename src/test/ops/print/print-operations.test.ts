@@ -6,7 +6,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { Tag, Tagged, createVM, VM } from '../../../core';
 import { printOp, rawPrintOp } from '../../../ops/print/print-ops';
 import { captureTacitOutput } from '../../utils/vm-test-utils';
-import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE } from '../../../core/constants';
 import { push, pop } from '../../../core/vm';
 import * as vmFunctions from '../../../core/vm';
 

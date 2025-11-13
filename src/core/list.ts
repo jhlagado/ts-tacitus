@@ -3,10 +3,8 @@
  * Core utilities for Tacit Reverse Lists.
  */
 
-import type { VM } from './vm';
-import { peek, pop, ensureStackSize } from './vm';
+import { type VM, peek, pop, ensureStackSize } from './vm';
 import { getTaggedInfo, Tag } from './tagged';
-import { SEG_DATA, CELL_SIZE } from './constants';
 import { isRef, getCellFromRef } from './refs';
 
 /**

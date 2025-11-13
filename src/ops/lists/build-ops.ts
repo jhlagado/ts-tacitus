@@ -3,8 +3,7 @@
  * List construction and conversion operations (builders).
  */
 
-import type { VM, Verb } from '@src/core';
-import { getTaggedInfo, Tagged, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
+import { type VM, type Verb, getTaggedInfo, Tagged, Tag, NIL } from '@src/core';
 import { getListLength, reverseSpan, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { evalOp } from '../core';

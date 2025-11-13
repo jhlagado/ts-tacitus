@@ -1,5 +1,5 @@
 import { VM, createVM } from '../../core';
-import { CELL_SIZE, STACK_BASE, STACK_TOP, RSTACK_BASE } from '../../core';
+import { STACK_BASE, STACK_TOP, RSTACK_BASE } from '../../core';
 import { ensureInvariants } from '../../core/vm';
 
 describe('VM pointer validation', () => {

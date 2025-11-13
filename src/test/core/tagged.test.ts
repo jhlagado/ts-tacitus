@@ -1,6 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Tag, Tagged, getTaggedInfo, isNIL, isCode, isLocal, MAX_TAG } from '../../core';
-import { encodeX1516, decodeX1516 } from '../../core/code-ref';
+import {
+  Tag,
+  Tagged,
+  getTaggedInfo,
+  isNIL,
+  isCode,
+  isLocal,
+  MAX_TAG,
+  encodeX1516,
+} from '../../core';
 
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {

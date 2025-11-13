@@ -10,9 +10,9 @@ import {
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
 import { getTaggedInfo, Tag, createVM, VM } from '../../../core';
-import { SEG_DATA, STACK_BASE_BYTES, STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE } from '../../../core/constants';
 
-function expectTopIsListWith(values: number[], stack: number[]) {
+function expectTopIsListWith(values: number[], stack: number[]): void {
   let headerIndex = -1;
   for (let i = stack.length - 1; i >= 0; i--) {
     const { tag } = getTaggedInfo(stack[i]);
@@ -71,8 +71,9 @@ describe('Ref-to-list assignment fast path', () => {
       f
     `;
     executeTacitCode(vm, code);
-    const decoded = Array.from({ length: vm.sp - STACK_BASE }, (_, i) =>
-      getTaggedInfo(vm.memory.readCell(STACK_BASE + i)),
+    const decoded = Array.from(
+      { length: vm.sp - STACK_BASE },
+      (_i): ReturnType<typeof getTaggedInfo> => getTaggedInfo(vm.memory.readCell(STACK_BASE + _i)),
     );
 
     expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);

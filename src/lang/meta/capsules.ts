@@ -1,10 +1,9 @@
 import { SyntaxError, getTaggedInfo, Tag } from '@src/core';
-import type { VM } from '../../core/vm';
-import { getStackData, peek, pop, push, depth } from '../../core/vm';
+import { type VM, getStackData, peek, pop, push, depth } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
-import type { Tokenizer } from '../tokenizer';
-import type { ActiveDefinition } from '../state';
+import { type Tokenizer } from '../tokenizer';
+import { type ActiveDefinition } from '../state';
 
 /**
  * `capsule` opener (immediate):
