@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, formatValue, VM } from '../../../core';
+import { createVM, VM } from '../../../core';
 import { executeTacitCode } from '../../utils/vm-test-utils';
 
 describe('Global Variable Declaration', () => {

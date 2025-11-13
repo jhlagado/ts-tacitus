@@ -251,6 +251,7 @@ export const evalOp: Verb = (vm: VM) => {
         break;
       }
       // Otherwise, decode X1516 and jump to bytecode (existing behavior)
+      // eslint-disable-next-line no-case-declarations
       const decodedAddr = decodeX1516(addr);
       if (meta === 1) {
         rpush(vm, vm.IP);
@@ -584,9 +585,6 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
   }
 
   const symbolName = vm.digest.get(value);
-  if (symbolName === undefined) {
-    throw new Error(`String not found in digest: ${value}`);
-  }
 
   pushSymbolRef(vm, symbolName);
 };

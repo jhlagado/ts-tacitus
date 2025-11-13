@@ -6,7 +6,7 @@
 
 import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
-import { getTaggedInfo, Tag, Tagged } from '../../core/tagged';
+import { Tag, Tagged } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { pushSymbolRef, push, pop, getStackData } from '../../core/vm';
 

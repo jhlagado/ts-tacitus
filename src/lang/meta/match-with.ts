@@ -1,10 +1,9 @@
 import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import type { VM } from '../../core/vm';
-import type { Tokenizer } from '../tokenizer';
-import type { ActiveDefinition } from '../state';
-import { rdepth, depth, getStackData, peek, push } from '../../core/vm';
+import { type VM, rdepth, depth, getStackData, peek, push } from '../../core/vm';
+import { type Tokenizer } from '../tokenizer';
+import { type ActiveDefinition } from '../state';
 
 const ENDMATCH_CODE_REF = createBuiltinRef(Op.EndMatch);
 const ENDWITH_CODE_REF = createBuiltinRef(Op.EndWith);

@@ -4,7 +4,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { initVarOp } from '../../../ops/builtins';
-import { SEG_DATA, CELL_SIZE, RSTACK_BASE } from '../../../core/constants';
+import { RSTACK_BASE } from '../../../core/constants';
 import { push, getStackData } from '../../../core/vm';
 
 describe('InitVar Opcode', () => {

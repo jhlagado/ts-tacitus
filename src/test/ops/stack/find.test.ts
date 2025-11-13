@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, Tagged, Tag, createVM } from '../../../core';
-import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE } from '../../../core/constants';
 import { findElement } from '../../../ops/stack';
 import { push } from '../../../core/vm';
 

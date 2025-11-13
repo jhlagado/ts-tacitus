@@ -65,7 +65,7 @@ describe('Parser with Tokenizer', () => {
       expect(doubleWord).toBeDefined();
       vm.IP = 0;
       expect(next8(vm)).toBe(Op.Branch);
-      const skipOffset = nextInt16(vm);
+      nextInt16(vm); // skipOffset
       expect(next8(vm)).toBe(Op.Dup);
       expect(next8(vm)).toBe(Op.Add);
       expect(next8(vm)).toBe(Op.Exit);
@@ -150,7 +150,7 @@ describe('Parser with Tokenizer', () => {
       try {
         parse(vm, new Tokenizer(': 2times 2 mul ;'));
         expect(resolveSymbol(vm, '2times')).toBeDefined();
-      } catch (e) {
+      } catch (_e) {
         // Words starting with numbers might not be supported
       }
     });

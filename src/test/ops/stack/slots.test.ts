@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../core';
-import { STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { STACK_BASE } from '../../../core/constants';
 import { cellsRoll, cellsReverse } from '../../../ops/stack';
 import { push, pop } from '../../../core/vm';
 

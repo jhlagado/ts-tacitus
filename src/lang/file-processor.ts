@@ -11,8 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import type { VM } from '../core/vm';
-import { createVM } from '../core/vm';
+import { type VM, createVM } from '../core/vm';
 import { parse } from './parser';
 import { execute } from './interpreter';
 import { Tokenizer } from './tokenizer';
@@ -109,7 +108,7 @@ export function processFiles(
   processFileFn?: (vm: VM, filePath: string) => boolean,
 ): boolean {
   const vm = createVM();
-  const fn = processFileFn || processFile;
+  const fn = processFileFn ?? processFile;
   let allSucceeded = true;
   for (const file of files) {
     const success = fn(vm, file);

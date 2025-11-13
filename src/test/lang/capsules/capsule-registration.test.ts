@@ -1,4 +1,4 @@
-import { Tag, getTaggedInfo, Tagged } from '../../../core';
+import { Tag, getTaggedInfo } from '../../../core';
 import { Op } from '../../../ops/opcodes';
 import { createVM, type VM } from '../../../core/vm';
 import { findEntry } from '../../../core/dictionary';

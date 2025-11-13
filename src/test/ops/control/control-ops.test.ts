@@ -6,7 +6,6 @@ import { createVM, type VM } from '../../../core/vm';
 import { ifFalseBranchOp } from '../../../ops/control';
 import { Tagged, Tag } from '../../../core/tagged';
 import * as vmModule from '../../../core/vm';
-import * as conditionalOpsModule from '../../../ops/control/conditional-ops';
 import { push } from '../../../core/vm';
 import { encodeX1516 } from '../../../core/code-ref';
 

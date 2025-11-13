@@ -3,7 +3,7 @@ import { VM, createVM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
 import { Compiler } from '../../../src/lang/compiler';
-import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../../src/core/constants';
+import { STACK_BASE, RSTACK_BASE } from '../../../src/core/constants';
 
 describe('VM Constructor Initialization', () => {
   let vm: VM;

@@ -1,10 +1,9 @@
-import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError } from '@src/core';
-import { getStackData, type VM } from '../core/vm';
+import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError, Tagged, Tag } from '@src/core';
+import { type VM, getStackData } from '../core/vm';
 import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
-import type { ActiveDefinition } from './state';
+import { type ActiveDefinition } from './state';
 import { markWithLocalReset, define, forget } from '../core/dictionary';
-import { Tagged, Tag } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 
 export function beginDefinition(

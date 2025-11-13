@@ -10,7 +10,6 @@
  */
 
 import { createInterface } from 'readline';
-import type { VM } from '../core/vm';
 import { createVM } from '../core/vm';
 import { parse } from './parser';
 import { execute } from './interpreter';
@@ -90,6 +89,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
         if (error instanceof Error) {
           console.error(`  ${error.message}`);
         }
+        // eslint-disable-next-line no-console
         console.log('File processing encountered errors but REPL will continue.');
       }
       rl.prompt();

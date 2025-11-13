@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { STACK_BASE, RSTACK_BASE, CELL_SIZE } from '../../core';
+import { STACK_BASE, RSTACK_BASE } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { push, rpush } from '../../core/vm';
 

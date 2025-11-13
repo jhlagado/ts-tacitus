@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../core/vm';
-import { SEG_DATA, CELL_SIZE } from '../../core/constants';
+import { CELL_SIZE } from '../../core/constants';
 import { push, rpush } from '../../core/vm';
 
 describe('SEG_DATA unified access (Phase B)', () => {

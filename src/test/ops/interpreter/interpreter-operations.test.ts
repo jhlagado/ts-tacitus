@@ -4,7 +4,7 @@ import { createVM, type VM } from '../../../core/vm';
 import { Tag, Tagged } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
-import { RSTACK_BASE, RSTACK_TOP, STACK_BASE, CELL_SIZE } from '../../../core/constants';
+import { RSTACK_BASE, RSTACK_TOP, STACK_BASE } from '../../../core/constants';
 import { rpush, push, rpop, getStackData, pop } from '../../../core/vm';
 import { encodeX1516 } from '../../../core/code-ref';
 

@@ -1,8 +1,8 @@
 import { createVM, type VM } from '../../../core/vm';
 import { dispatchOp, exitDispatchOp } from '../../../ops/capsules/capsule-ops';
-import { Tag, Tagged, createRef, RSTACK_BASE, STACK_BASE, CELL_SIZE } from '../../../core';
+import { Tag, Tagged, createRef, RSTACK_BASE, STACK_BASE } from '../../../core';
 import { push, rpush, getStackData } from '../../../core/vm';
-import { decodeX1516, encodeX1516 } from '../../../core/code-ref';
+import { encodeX1516 } from '../../../core/code-ref';
 
 describe('capsule dispatch runtime', () => {
   let vm: VM;

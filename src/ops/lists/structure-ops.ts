@@ -3,8 +3,7 @@
  * Structural list operations: head, tail, reverse, concat.
  */
 
-import type { VM } from '@src/core';
-import { Tagged, Tag, NIL, SEG_DATA, CELL_SIZE } from '@src/core';
+import { type VM, Tagged, Tag, NIL } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { isRef } from '@src/core';
@@ -190,9 +189,6 @@ export function concatOp(vm: VM): void {
       ? getListBounds(vm, lhsTop)
       : null;
 
-  const lhsIsList = !!lhsInfo;
-  const rhsIsList = !!rhsInfo;
-
   const materializeSlots = (
     op:
       | { kind: 'stack-list'; header: number; headerCell: number }
@@ -202,7 +198,7 @@ export function concatOp(vm: VM): void {
     _topCell: number,
     topOffset: number,
   ): number[] => {
-    if (op && 'kind' in op && op.kind === 'stack-list') {
+    if (op && 'kind' in op) {
       const s = getListLength(op.header);
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
@@ -244,12 +240,12 @@ export function concatOp(vm: VM): void {
   );
 
   const lhsDrop =
-    lhsIsList && lhsInfo && 'kind' in lhsInfo
-      ? getListLength((lhsInfo as { kind: 'stack-list'; header: number }).header) + 1
+    lhsInfo && 'kind' in lhsInfo
+      ? getListLength(lhsInfo.header) + 1
       : lhsSize;
   const rhsDrop =
-    rhsIsList && rhsInfo && 'kind' in rhsInfo
-      ? getListLength((rhsInfo as { kind: 'stack-list'; header: number }).header) + 1
+    rhsInfo && 'kind' in rhsInfo
+      ? getListLength(rhsInfo.header) + 1
       : rhsSize;
 
   vm.sp -= lhsDrop + rhsDrop;

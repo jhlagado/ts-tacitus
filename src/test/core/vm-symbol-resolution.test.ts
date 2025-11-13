@@ -7,7 +7,7 @@
  */
 
 import { createVM, type VM } from '../../core/vm';
-import { STACK_BASE, CELL_SIZE } from '../../core/constants';
+import { STACK_BASE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
 import { Tag, getTaggedInfo, Tagged, createBuiltinRef, createCodeRef } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';

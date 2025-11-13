@@ -6,7 +6,7 @@ import { jest } from '@jest/globals';
 // Keep typing simple to avoid TS generic issues across ts-jest
 const processFileMock = jest.fn();
 jest.mock('../../lang/file-processor', () => ({
-  processFile: (vm: unknown, file: string) => processFileMock(file),
+  processFile: (_vm: unknown, file: string) => processFileMock(file),
 }));
 
 import { startREPL } from '../../lang/repl';

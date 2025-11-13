@@ -7,7 +7,6 @@ import {
   createRef,
   CELL_SIZE,
   RSTACK_BASE_BYTES,
-  RSTACK_BASE,
   STACK_BASE_BYTES,
   STACK_BASE,
 } from '../../../core';

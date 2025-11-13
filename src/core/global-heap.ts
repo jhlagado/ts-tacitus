@@ -4,7 +4,7 @@
  */
 
 import { type VM, peek } from './vm';
-import { CELL_SIZE, GLOBAL_SIZE, GLOBAL_BASE, STACK_BASE } from './constants';
+import { GLOBAL_SIZE, GLOBAL_BASE, STACK_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength, validateListHeader, dropList, copyListPayload } from './list';
 

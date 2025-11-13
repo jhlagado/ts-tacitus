@@ -8,11 +8,7 @@ import {
   Tagged,
   Tag,
   getTaggedInfo,
-  CELL_SIZE,
-  SEG_DATA,
-  STACK_BASE_BYTES,
   STACK_BASE,
-  GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
 } from '../../core';
 import {

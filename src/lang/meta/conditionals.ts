@@ -1,10 +1,9 @@
 import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import type { VM } from '../../core/vm';
-import type { Tokenizer } from '../tokenizer';
-import type { ActiveDefinition } from '../state';
-import { peekAt, depth, getStackData, pop, push } from '../../core/vm';
+import { type VM, peekAt, depth, getStackData, pop, push } from '../../core/vm';
+import { type Tokenizer } from '../tokenizer';
+import { type ActiveDefinition } from '../state';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 

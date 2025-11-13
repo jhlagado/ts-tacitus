@@ -2,16 +2,13 @@ import { beforeEach, describe, expect, test } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
 import { gpushOp, gpopOp, gpeekOp } from '../../../ops/heap';
 import {
-  CELL_SIZE,
   GLOBAL_SIZE,
-  GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
-  SEG_DATA,
   STACK_BASE,
 } from '../../../core/constants';
 import { createRef } from '../../../core/refs';
 import { Tagged, Tag } from '../../../core/tagged';
-import { push, pop, getStackData } from '../../../core/vm';
+import { push, getStackData } from '../../../core/vm';
 
 describe('Global heap primitives', () => {
   let vm: VM;

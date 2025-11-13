@@ -3,12 +3,11 @@
  * Stack manipulation operations for the Tacit VM.
  */
 
-import type { VM, Verb } from '@src/core';
 import {
+  type VM,
+  type Verb,
   getTaggedInfo,
   Tag,
-  SEG_DATA,
-  CELL_SIZE,
   StackUnderflowError,
   VMError,
   STACK_BASE,

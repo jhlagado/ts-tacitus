@@ -6,17 +6,8 @@
  * behind these helpers without touching individual op implementations.
  */
 
-import type { VM } from '@src/core';
-import {
-  isList,
-  getListLength,
-  Tagged,
-  Tag,
-  SEG_DATA,
-  STACK_BASE_BYTES,
-  CELL_SIZE,
-} from '@src/core';
-import { pop, push, peek, ensureStackSize, depth } from '../core/vm';
+import { type VM, isList, getListLength, Tagged, Tag, isNumber } from '@src/core';
+import { pop, push, peek, ensureStackSize } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
 type NumberOp2 = (a: number, b: number) => number;
@@ -117,7 +108,7 @@ export function binaryFlat(vm: VM, opName: string, f: NumberOp2): void {
 export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
   ensureStackSize(vm, 2, opName);
 
-  const isNum = (x: number) => isNumber(x);
+  const isNum = (x: number): boolean => isNumber(x);
 
   const popListSlots = (): number[] => {
     const header = pop(vm);
@@ -135,8 +126,8 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
     return out; // [header, payload index-order]
   };
 
-  const pushListSlots = (slotsArr: number[]) => {
-    const header = slotsArr[0];
+  const pushListSlots = (slotsArr: number[]): void => {
+    const [header] = slotsArr;
     const payloadLen = slotsArr.length - 1;
     // Push payload in index order so bottom→top reads [slot0 .. slotN-1, header]
     for (let i = 0; i < payloadLen; i++) {
@@ -170,7 +161,8 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
   ): number[] => {
     // listSlots: [header, payload...]
     const out: number[] = new Array(listSlots.length);
-    out[0] = listSlots[0];
+    const [header] = listSlots;
+    out[0] = header;
     const elems = enumerateElements(listSlots);
     let write = 1;
     for (const { start, span } of elems) {
@@ -183,8 +175,8 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
       } else {
         const sub = listSlots.slice(start, start + span);
         const rec = transformScalarOverSlots(scalar, sub, left);
-        for (let i = 0; i < rec.length; i++) {
-          out[write++] = rec[i];
+        for (const element of rec) {
+          out[write++] = element;
         }
       }
     }
@@ -242,8 +234,10 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
     const out: number[] = new Array(1 + totalPayload);
     out[0] = Tagged(totalPayload, Tag.LIST);
     let write = 1;
+
     for (let i = 0; i < L; i++) {
       const r = results[i];
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of -- need index for write position
       for (let j = 0; j < r.length; j++) {
         out[write++] = r[j];
       }
@@ -289,7 +283,6 @@ export function binaryRecursive(vm: VM, opName: string, f: NumberOp2): void {
 
 // -------- Recursive (nested) unary broadcasting --------
 
-import { isNumber } from '@src/core';
 import { dupOp, nipOp } from './stack';
 
 export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {

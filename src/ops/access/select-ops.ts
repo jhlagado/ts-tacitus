@@ -3,8 +3,7 @@
  * Path-based address selection operations for the Tacit VM.
  */
 
-import type { VM, Verb } from '@src/core';
-import { Tag, getTaggedInfo, isNIL, NIL, SEG_DATA, CELL_SIZE, getListLength, isList, isRef, createRef } from '@src/core';
+import { type VM, type Verb, Tag, getTaggedInfo, isNIL, NIL, getListLength, isList, isRef, createRef } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';

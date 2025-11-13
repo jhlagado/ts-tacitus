@@ -3,7 +3,7 @@
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../../../core';
-import { executeTacitCode, getFormattedStack } from '../../../utils/vm-test-utils';
+import { executeTacitCode } from '../../../utils/vm-test-utils';
 
 describe('Basic Maplist Tests', () => {
   let vm: VM;

@@ -1,15 +1,5 @@
-import type { VM } from '@src/core';
+import { type VM, Tag, Tagged, getTaggedInfo, RSTACK_BASE, createRef } from '@src/core';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
-import {
-  Tag,
-  Tagged,
-  getTaggedInfo,
-  CELL_SIZE,
-  SEG_DATA,
-  RSTACK_BASE_BYTES,
-  RSTACK_BASE,
-  createRef,
-} from '@src/core';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { readCapsuleLayoutFromHandle } from './layout';

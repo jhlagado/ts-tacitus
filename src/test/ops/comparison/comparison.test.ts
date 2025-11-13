@@ -153,7 +153,7 @@ describe('Comparison Operations', () => {
         { op: greaterOrEqualOp, name: 'greaterOrEqual' },
       ];
 
-      ops.forEach(({ op, name }) => {
+      ops.forEach(({ op }) => {
         vm = createVM();
       push(vm, 5);
         expect(() => op(vm)).toThrow('Stack underflow');
