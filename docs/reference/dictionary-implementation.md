@@ -40,7 +40,7 @@ The global heap may contain:
 
 - **Compound types**:
   - **Lists**: the core compound type in Tacit. Lists are contiguous blocks of elements stored in reverse order, with a header at the top and payload beneath.
-  - **Buffers**: mutable list-like structures that allow in-place update and growth patterns. Buffers are implemented on top of lists with additional behavioral conventions.
+  - **Buffers**: fixed-capacity ring buffers that use LIST headers for allocation but treat memory as raw blocks with array semantics (address-increasing order). See `docs/specs/buffers.md` for details.
   - **Dictionary records**: including both function entries and global variables. These records are stored in the heap and linked via backward pointers to form the live dictionary.
 
 In all cases, the heap preserves structure and reference integrity. Once a compound structure is pushed, its layout is stable. This enables references to be freely shared across the runtime, embedded in capsules, or accessed via named dictionary entries. Scoped heap usage (e.g., temporary data created during compilation) should capture a mark before performing `gpush` and invoke `gsweep` afterward to release their footprint.
