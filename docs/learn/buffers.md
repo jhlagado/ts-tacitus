@@ -67,6 +67,7 @@ Example:
 
 - **`write`**: Write using write pointer (same as stack)
 - **`read`**: Read using read pointer (separate from stack operations)
+- **`unread`**: Push value back (decrement read pointer, write value) — useful for tokenizer pushback
 
 Example:
 
@@ -74,6 +75,8 @@ Example:
 &buf 100 write       \ Write 100
 &buf 101 write       \ Write 101
 &buf read            \ Returns 100 (FIFO order)
+&buf 100 unread      \ Push back — readPtr decrements, writes 100 back
+&buf read            \ Returns 100 again
 &buf read            \ Returns 101
 ```
 
@@ -92,6 +95,8 @@ Example:
 ### Queue Operations
 
 - **`read`**: `( buffer/ref -- v )` — Reads from read pointer, consumes buffer input
+- **`unread`**: `( buffer/ref x -- )` — Pushes value back (decrements read pointer, writes value), consumes both inputs
+- **Aliases**: `shift` = `read`, `unshift` = `unread` (following JavaScript array terminology)
 
 ### Query Operations
 
@@ -108,6 +113,7 @@ Buffers use **strict error handling** — operations throw exceptions on overflo
 - `write` on full buffer → `Error("Buffer overflow")`
 - `unwrite` on empty buffer → `Error("Buffer underflow")`
 - `read` on empty buffer → `Error("Buffer underflow")`
+- `unread` on full buffer → `Error("Buffer full, cannot unread")`
 
 ## 7. Address-Increasing Order
 
