@@ -76,6 +76,16 @@ import {
 import { dupOp, dropOp, swapOp, rotOp, revrotOp, overOp, nipOp, tuckOp } from './stack';
 import { printOp, rawPrintOp } from './print';
 import {
+  bufferOp,
+  bufSizeOp,
+  isEmptyOp,
+  isFullOp,
+  writeOp,
+  unwriteOp,
+  readOp,
+  unreadOp,
+} from './buffers';
+import {
   enlistOp,
   keysOp,
   valuesOp,
@@ -267,6 +277,14 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.ExitConstructor]: exitConstructorOp,
     [Op.ExitDispatch]: exitDispatchOp,
     [Op.Dispatch]: dispatchOp,
+    [Op.Buffer]: bufferOp,
+    [Op.BufSize]: bufSizeOp,
+    [Op.BufEmpty]: isEmptyOp,
+    [Op.BufFull]: isFullOp,
+    [Op.BufPush]: writeOp,
+    [Op.BufPop]: unwriteOp,
+    [Op.BufShift]: readOp,
+    [Op.BufUnshift]: unreadOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];
