@@ -67,6 +67,7 @@ Absolute Address | Content        | Logical Index | Note
   - `unwrite`: `writePtr = (writePtr - 1 + N) % N` (decrement, prepend), then read from `data[writePtr]`
 - **Read pointer**: Used for **queue semantics** or other read patterns
   - `read`: read from `data[readPtr]`, then `readPtr = (readPtr + 1) % N` (increment, append)
+  - `unread`: `readPtr = (readPtr - 1 + N) % N` (decrement), then write `x` to `data[readPtr]` — useful for tokenizer pushback
 
 ## Operations
 
@@ -129,6 +130,7 @@ Absolute Address | Content        | Logical Index | Note
 ### `read` (queue operation - read from read pointer)
 
 - **Stack**: `( buffer/ref -- v )`
+- **Aliases**: `shift` (for familiarity with array terminology)
 - **Note**: Consumes buffer input, returns the value
 - **Behavior** (queue semantics using read pointer):
   - Read `readPtr` from `headerCell - 1`
@@ -144,6 +146,27 @@ Absolute Address | Content        | Logical Index | Note
   - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`
   - Calculate base: `dataBase = headerCell - (N + 2)`
   - Read data: `value = vm.memory.readCell(dataBase + readPtr)`
+  - Update pointer: `vm.memory.writeCell(headerCell - 1, newReadPtr)`
+
+### `unread` (queue operation - push back value)
+
+- **Stack**: `( buffer/ref x -- )`
+- **Aliases**: `unshift` (for familiarity with array terminology)
+- **Note**: Consumes both inputs (similar to pushing back into input stream in a tokenizer)
+- **Behavior** (push value back into buffer):
+  - Read `readPtr` from `headerCell - 1`
+  - Read `writePtr` from `headerCell - 2` (for full check)
+  - Calculate `dataBase = headerCell - (N + 2)`
+  - If buffer is full (`(readPtr - 1 + N) % N == writePtr`), **throw error**
+  - Otherwise:
+    1. `readPtr = (readPtr - 1 + N) % N` (decrement, undo append direction)
+    2. Write `x` to `data[readPtr]` at absolute address `dataBase + readPtr`
+    3. Write updated `readPtr` back to `headerCell - 1`
+- **Memory access**:
+  - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`
+  - Calculate base: `dataBase = headerCell - (N + 2)`
+  - Update pointer: `readPtr = (readPtr - 1 + N) % N`
+  - Write data: `vm.memory.writeCell(dataBase + readPtr, x)`
   - Update pointer: `vm.memory.writeCell(headerCell - 1, newReadPtr)`
 
 ### Query Operations
@@ -168,6 +191,7 @@ Absolute Address | Content        | Logical Index | Note
 - `write` on full buffer → throw `Error("Buffer overflow")`
 - `unwrite` on empty buffer → throw `Error("Buffer underflow")`
 - `read` on empty buffer → throw `Error("Buffer underflow")`
+- `unread` on full buffer → throw `Error("Buffer full, cannot unread")`
 
 ## Implementation Notes
 
@@ -205,11 +229,13 @@ Absolute Address | Content        | Logical Index | Note
 &buf unwrite         \ Unwrite (consumes &buf, writePtr becomes 0, returns data[0]=42)
 ```
 
-**Using aliases** (push/pop for familiarity):
+**Using aliases** (push/pop/shift/unshift following JavaScript array terminology):
 
 ```
 &buf 42 push         \ Alias for write (consumes &buf and 42)
 &buf pop             \ Alias for unwrite (consumes &buf, returns value)
+&buf shift           \ Alias for read (consumes &buf, returns value)
+&buf 100 unshift     \ Alias for unread (consumes &buf and 100)
 ```
 
 **Queue operations** (using read pointer for reading, write pointer for writing):
@@ -218,6 +244,8 @@ Absolute Address | Content        | Logical Index | Note
 &buf 100 write       \ Write 100 (consumes &buf and 100, writes to data[0], writePtr becomes 1)
 &buf 101 write       \ Write 101 (consumes &buf and 101, writes to data[1], writePtr becomes 2)
 &buf read            \ Read (consumes &buf, reads data[0]=100, readPtr becomes 1)
+&buf 100 unread      \ Unread (consumes &buf and 100, readPtr becomes 0, writes 100 back)
+&buf read            \ Read again (consumes &buf, reads data[0]=100, readPtr becomes 1)
 &buf read            \ Read (consumes &buf, reads data[1]=101, readPtr becomes 2)
 ```
 
