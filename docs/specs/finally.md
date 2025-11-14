@@ -57,7 +57,7 @@ This guarantees cleanup execution *on every exit path* — whether by normal ret
 
 ### 3. Runtime Model
 
-The Tacit VM maintains two registers to coordinate errors and cleanup execution:
+The Tacit VM maintains two registers to coordinate errors and cleanup execution. `ERR` starts as `NIL`; once set to a non-`NIL` value it is carried all the way to the top of the call stack unless a cleanup block explicitly clears it as part of an intentional recovery strategy.
 
 | Register     | Type         | Purpose                                                                            |
 | ------------ | ------------ | ---------------------------------------------------------------------------------- |
@@ -73,9 +73,12 @@ No additional frame fields or pointers are introduced; all behavior is expressed
 
 #### 3.2 Error Event
 
-* When an operation sets `ERR` to a non-`NIL` value, the current function returns immediately to its caller.
-* If the caller’s entry point corresponds to a wrapper function (compiled from a `finally`), control transfers into its cleanup section.
-* The interpreter sets `IN_FINALLY := true` before executing that cleanup.
+When an operation sets `ERR` to a non-`NIL` value the interpreter performs a structured unwind:
+
+1. The active opcode completes without executing any further body code.
+2. Control returns to the most recent caller.
+3. If that caller is a `finally` wrapper, the dispatcher sets `IN_FINALLY := true`, jumps to the cleanup block, and continues executing instructions even though `ERR` remains set.
+4. If there is no wrapper, the interpreter continues unwinding until it either finds one or reaches the top-level loop.
 
 #### 3.3 Inside Cleanup
 
@@ -85,11 +88,11 @@ No additional frame fields or pointers are introduced; all behavior is expressed
 
 #### 3.4 Error Inside Cleanup
 
-* If a new error occurs inside cleanup while `IN_FINALLY` is true:
+If cleanup itself raises an error while `IN_FINALLY` is true:
 
-  1. The **new error replaces** the existing one (`latest error wins`).
-  2. `IN_FINALLY` is immediately cleared.
-  3. The VM performs a normal return, allowing the next enclosing `finally` (if any) to run its own cleanup.
+1. The interpreter clears `IN_FINALLY` immediately.
+2. Control returns to the next caller in the stack (skipping the remainder of the current cleanup block).
+3. `ERR` keeps its previous non-`NIL` value unless the cleanup block explicitly overwrote it before the failure. In other words, cleanup errors do not hide the original failure; they simply short-circuit any remaining cleanup at that level.
 
 This ensures error propagation continues upward without recursion or infinite unwinding.
 
@@ -150,6 +153,7 @@ After compilation with `finally`, the payload is replaced:
 | `payload` | `<func1>`        | `<func1finally>` |
 
 The rebinding occurs immediately after the cleanup code is emitted, requiring no runtime indirection.
+> **Note:** Any code that captured the original body pointer before rebinding will continue to bypass the wrapper. Implementations that rely on cleanup semantics must avoid caching the pre-wrapper address (or must refresh those references after compilation).
 
 ---
 
@@ -161,17 +165,20 @@ Tacit’s runtime cleanup behavior is defined entirely by two global conditions:
 | ------------------------------------ | -------------------- | --------------------------------------------------------- |
 | `ERR == NIL`                         | Normal execution     | Instructions execute normally                             |
 | `ERR != NIL and IN_FINALLY == false` | Error in body        | Function returns immediately to caller                    |
-| `ERR != NIL and IN_FINALLY == true`  | Error inside cleanup | Replace old error, clear `IN_FINALLY`, return immediately |
+| `ERR != NIL and IN_FINALLY == true`  | Error inside cleanup | Clear `IN_FINALLY`, return immediately, keep existing `ERR` |
 | `ERR == NIL and IN_FINALLY == true`  | Normal cleanup       | Cleanup continues to completion, then resets `IN_FINALLY` |
 
 Exit instructions (`exit`, `exitDef`, `exitCapsule`, etc.) always clear `IN_FINALLY` before returning.
 
-This makes cleanup behavior both predictable and idempotent:
-the VM never “skips ahead” and does not re-enter a `finally` block.
+This makes cleanup behavior both predictable and idempotent: `IN_FINALLY` never leaks beyond the block that set it, and normal exit instructions always restore the flag to `false`.
 
 ---
 
-### 7. Nested Finally Wrappers
+### 7. Termination vs. Recovery
+
+By default the `ERR` register propagates to the top of the stack: the VM exits with failure after all applicable cleanup blocks have run. Cleanup code is free to inspect `ERR` (for logging, telemetry, etc.), but it should leave the value untouched unless it deliberately intends to convert the failure into a success. Any cleanup that wishes to recover must explicitly set `ERR := NIL` before returning; this is an advanced pattern and is documented separately in Appendix A.
+
+### 8. Nested Finally Wrappers
 
 Each `finally` wrapper acts as an independent frame:
 
@@ -198,7 +205,7 @@ This pattern allows arbitrary nesting of cleanup sequences with no new data stru
 
 ---
 
-### 8. Error Propagation and Consistency
+### 9. Error Propagation and Consistency
 
 Errors propagate upward through the call chain until all wrappers have executed.
 Each wrapper guarantees that:
@@ -211,7 +218,7 @@ This establishes **flat, composable unwinding semantics** — a single active er
 
 ---
 
-### 9. Implementation Invariants
+### 10. Implementation Invariants
 
 To ensure correctness, the following invariants hold:
 
@@ -224,7 +231,18 @@ To ensure correctness, the following invariants hold:
 
 ---
 
-### 10. Advantages
+### 11. Verification Strategy
+
+To ensure the implementation matches this specification, the following test coverage is required:
+
+- **Wrapper rebinding:** unit tests that confirm a function defined with `finally` invokes the wrapper and that direct invocations of the body are no longer reachable through the dictionary.
+- **Single-level cleanup:** cases where the body succeeds, fails, and the cleanup runs without mutating `ERR`.
+- **Nested wrappers:** scenarios where an inner `finally` fails and the outer cleanup still executes, verifying `IN_FINALLY` transitions.
+- **Cleanup failure:** tests that throw inside `finally` and ensure the original `ERR` persists while the cleanup aborts.
+- **Termination propagation:** integration tests that let `ERR` reach the top of the stack so the VM halts with the flagged error.
+- **Optional recovery (if used):** demonstrations that a cleanup can clear `ERR` intentionally and that this restores normal execution.
+
+### 12. Advantages
 
 * **Zero new stack fields:** No per-frame pointers or unwind tables.
 * **Boolean simplicity:** A single `IN_FINALLY` flag suffices for all cleanup tracking.
@@ -236,7 +254,13 @@ To ensure correctness, the following invariants hold:
 
 ---
 
-### 11. Summary
+### 13. Summary
+
+---
+
+## Appendix A — Optional Recovery Patterns
+
+Occasionally a `finally` block may need to suppress an error (for example, when retry logic or local compensation succeeds). Such code must explicitly clear `ERR` to signal success before returning. Implementers should document these cases carefully and include tests that cover both the failing and recovering paths so that the altered control flow remains intentional.
 
 The `finally` mechanism in Tacit is a **compile-time structural rewrite** combined with a minimal **runtime error model**.
 By generating a wrapper that encloses the original function, rewiring its dictionary entry, and coordinating error flow via the `ERR` and `IN_FINALLY` registers, Tacit achieves:
