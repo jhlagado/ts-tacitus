@@ -15,8 +15,8 @@ For a buffer with capacity `N` elements:
 - **Total slots**: `N + 3` (header + readPtr + writePtr + N data slots)
 - **Header**: `LIST:(N+2)` at TOS (SP) — **used only for allocation**
 - **Payload layout** (once allocated, treat as raw memory with address-increasing order):
-  - `readPtr` **cell** at `headerCell - 1` (absolute address of storage location; stores logical index 0..N-1)
-  - `writePtr` **cell** at `headerCell - 2` (absolute address of storage location; stores logical index 0..N-1)
+  - `readPtr` **cell** at `headerCell - 1` (absolute address of storage location; stores a logical counter, initialised to 0)
+  - `writePtr` **cell** at `headerCell - 2` (absolute address of storage location; stores a logical counter, initialised to 0)
   - Data base address: `dataBase = headerCell - (N + 2)` (lowest address)
   - `data[0]` at `dataBase` (lowest address, index 0)
   - `data[1]` at `dataBase + 1` (address increases)
@@ -62,12 +62,14 @@ Absolute Address | Content        | Logical Index | Note
 
 ## Pointer Semantics
 
-- **Write pointer**: Used for **stack semantics** (write/unwrite operations)
-  - `write`: write to `data[writePtr]`, then `writePtr = (writePtr + 1) % N` (increment, append)
-  - `unwrite`: `writePtr = (writePtr - 1 + N) % N` (decrement, prepend), then read from `data[writePtr]`
-- **Read pointer**: Used for **queue semantics** or other read patterns
-  - `read`: read from `data[readPtr]`, then `readPtr = (readPtr + 1) % N` (increment, append)
-  - `unread`: `readPtr = (readPtr - 1 + N) % N` (decrement), then write `x` to `data[readPtr]` — useful for tokenizer pushback
+- **Logical counters**: `writePtr` and `readPtr` are monotonically updated integers. They are not confined to `0..N-1`; instead, the effective slot is computed with `index = ((ptr % N) + N) % N` whenever data is read or written.
+- **Write pointer** (stack-style operations):
+  - `write`: write to `data[index(writePtr)]`, then increment `writePtr += 1` (append direction).
+  - `unwrite`: decrement `writePtr -= 1`, then read from `data[index(writePtr)]` (prepend direction).
+- **Read pointer** (queue-style operations):
+  - `read`: read from `data[index(readPtr)]`, then increment `readPtr += 1`.
+  - `unread`: decrement `readPtr -= 1`, then write `x` to `data[index(readPtr)]` (useful for tokenizer pushback).
+- **Size & guards**: Buffer occupancy is `size = writePtr - readPtr`. Strict overflow/underflow checks ensure `0 ≤ size ≤ N`, so the physical slot computation always lands inside the data window.
 
 ## Operations
 
@@ -96,19 +98,19 @@ Absolute Address | Content        | Logical Index | Note
 - **Aliases**: `push` (for familiarity with stack terminology)
 - **Note**: Consumes both inputs (buffer is typically stored in a local/global)
 - **Behavior** (stack semantics using write pointer):
-  - Read `writePtr` (logical index 0..N-1) from `headerCell - 2`
-  - Read `readPtr` (logical index 0..N-1) from `headerCell - 1` (for full check)
-  - Calculate `dataBase = headerCell - (N + 2)` (needed because pointers are relative, not absolute)
-  - If full (`(writePtr + 1) % N == readPtr`), **throw error**
+  - Read `writePtr` from `headerCell - 2`.
+  - Read `readPtr` from `headerCell - 1` for the capacity guard (`writePtr - readPtr === N` ⇒ **throw error**).
+  - Calculate `dataBase = headerCell - (N + 2)`.
+  - Compute `slot = ((writePtr % N) + N) % N`.
   - Otherwise:
-    1. Write `x` to `data[writePtr]` at absolute address `dataBase + writePtr`
-    2. `writePtr = (writePtr + 1) % N` (increment, wrap around if needed)
-    3. Write updated `writePtr` (still a logical index) back to `headerCell - 2`
+    1. Write `x` to `data[slot]` at absolute address `dataBase + slot`.
+    2. Increment logical pointer: `writePtr += 1`.
+    3. Store updated `writePtr` back to `headerCell - 2`.
 - **Memory access**:
-  - Read pointers: `writePtr = vm.memory.readCell(headerCell - 2)`, `readPtr = vm.memory.readCell(headerCell - 1)`
-  - Calculate base: `dataBase = headerCell - (N + 2)`
-  - Write data: `vm.memory.writeCell(dataBase + writePtr, x)`
-  - Update pointer: `vm.memory.writeCell(headerCell - 2, newWritePtr)`
+  - Read pointers: `writePtr = vm.memory.readCell(headerCell - 2)`, `readPtr = vm.memory.readCell(headerCell - 1)`.
+  - Calculate base: `dataBase = headerCell - (N + 2)`.
+  - Write data: `vm.memory.writeCell(dataBase + slot, x)`.
+  - Update pointer: `vm.memory.writeCell(headerCell - 2, writePtr + 1)`.
 
 ### `unwrite` (stack operation - unwrite)
 
@@ -116,20 +118,15 @@ Absolute Address | Content        | Logical Index | Note
 - **Aliases**: `pop` (for familiarity with stack terminology)
 - **Note**: Consumes buffer input, returns the value
 - **Behavior** (stack semantics using write pointer):
-  - Read `writePtr` from `headerCell - 2`
-  - Read `readPtr` from `headerCell - 1` (for empty check)
-  - Calculate `dataBase = headerCell - (N + 2)`
-  - If empty (`writePtr == readPtr`), **throw error**
-  - Otherwise:
-    1. `writePtr = (writePtr - 1 + N) % N` (decrement, prepend direction)
-    2. Read `data[writePtr]` from absolute address `dataBase + writePtr`
-    3. Write updated `writePtr` back to `headerCell - 2`
-    4. Return value
+  - Read `writePtr` and `readPtr`; if they are equal, the buffer is empty ⇒ **throw error**.
+  - Set `nextWritePtr = writePtr - 1`.
+  - Calculate `dataBase = headerCell - (N + 2)` and `slot = ((nextWritePtr % N) + N) % N`.
+  - Read the value from `dataBase + slot`.
+  - Store `nextWritePtr` back to `headerCell - 2`.
 - **Memory access**:
-  - Read pointers: `writePtr = vm.memory.readCell(headerCell - 2)`, `readPtr = vm.memory.readCell(headerCell - 1)`
-  - Calculate base: `dataBase = headerCell - (N + 2)`
-  - Update pointer: `vm.memory.writeCell(headerCell - 2, newWritePtr)`
-  - Read data: `value = vm.memory.readCell(dataBase + newWritePtr)`
+  - Read pointers: `writePtr = vm.memory.readCell(headerCell - 2)`, `readPtr = vm.memory.readCell(headerCell - 1)`.
+  - Write pointer: `vm.memory.writeCell(headerCell - 2, nextWritePtr)`.
+  - Read data: `value = vm.memory.readCell(dataBase + slot)`.
 
 ### `read` (queue operation - read from read pointer)
 
@@ -137,20 +134,14 @@ Absolute Address | Content        | Logical Index | Note
 - **Aliases**: `shift` (for familiarity with array terminology)
 - **Note**: Consumes buffer input, returns the value
 - **Behavior** (queue semantics using read pointer):
-  - Read `readPtr` from `headerCell - 1`
-  - Read `writePtr` from `headerCell - 2` (for empty check)
-  - Calculate `dataBase = headerCell - (N + 2)`
-  - If empty (`readPtr == writePtr`), **throw error**
-  - Otherwise:
-    1. Read `data[readPtr]` from absolute address `dataBase + readPtr`
-    2. `readPtr = (readPtr + 1) % N` (increment, append direction)
-    3. Write updated `readPtr` back to `headerCell - 1`
-    4. Return value
+  - Read `readPtr` and `writePtr`; if equal, the buffer is empty ⇒ **throw error**.
+  - Calculate `dataBase = headerCell - (N + 2)` and `slot = ((readPtr % N) + N) % N`.
+  - Read the value from `dataBase + slot`.
+  - Store `readPtr + 1` back to `headerCell - 1`.
 - **Memory access**:
-  - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`
-  - Calculate base: `dataBase = headerCell - (N + 2)`
-  - Read data: `value = vm.memory.readCell(dataBase + readPtr)`
-  - Update pointer: `vm.memory.writeCell(headerCell - 1, newReadPtr)`
+  - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`.
+  - Read data: `value = vm.memory.readCell(dataBase + slot)`.
+  - Update pointer: `vm.memory.writeCell(headerCell - 1, readPtr + 1)`.
 
 ### `unread` (queue operation - push back value)
 
@@ -158,27 +149,22 @@ Absolute Address | Content        | Logical Index | Note
 - **Aliases**: `unshift` (for familiarity with array terminology)
 - **Note**: Consumes both inputs (similar to pushing back into input stream in a tokenizer)
 - **Behavior** (push value back into buffer):
-  - Read `readPtr` from `headerCell - 1`
-  - Read `writePtr` from `headerCell - 2` (for full check)
-  - Calculate `dataBase = headerCell - (N + 2)`
-  - If buffer is full (`(readPtr - 1 + N) % N == writePtr`), **throw error**
-  - Otherwise:
-    1. `readPtr = (readPtr - 1 + N) % N` (decrement, undo append direction)
-    2. Write `x` to `data[readPtr]` at absolute address `dataBase + readPtr`
-    3. Write updated `readPtr` back to `headerCell - 1`
+  - Read `readPtr` and `writePtr`; if `(writePtr - readPtr) == N`, the buffer is full ⇒ **throw error**.
+  - Set `nextReadPtr = readPtr - 1`.
+  - Calculate `dataBase = headerCell - (N + 2)` and `slot = ((nextReadPtr % N) + N) % N`.
+  - Write `x` to `dataBase + slot`.
+  - Store `nextReadPtr` back to `headerCell - 1`.
 - **Memory access**:
-  - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`
-  - Calculate base: `dataBase = headerCell - (N + 2)`
-  - Update pointer: `readPtr = (readPtr - 1 + N) % N`
-  - Write data: `vm.memory.writeCell(dataBase + readPtr, x)`
-  - Update pointer: `vm.memory.writeCell(headerCell - 1, newReadPtr)`
+  - Read pointers: `readPtr = vm.memory.readCell(headerCell - 1)`, `writePtr = vm.memory.readCell(headerCell - 2)`.
+  - Write pointer: `vm.memory.writeCell(headerCell - 1, nextReadPtr)`.
+  - Write data: `vm.memory.writeCell(dataBase + slot, x)`.
 
 ### Query Operations
 
 - `buf-size`: `( buffer/ref -- n )`
   - **Note**: Consumes buffer input, returns size
   - Read `readPtr` from `headerCell - 1`, `writePtr` from `headerCell - 2`
-  - Returns `(writePtr - readPtr + N) % N`
+  - Returns `writePtr - readPtr` (guards guarantee `0 ≤ size ≤ N`)
 - `is-empty`: `( buffer/ref -- 0|1 )`
   - **Note**: Consumes buffer input, returns boolean (0=false, 1=true)
   - Read `readPtr` from `headerCell - 1`, `writePtr` from `headerCell - 2`
@@ -186,7 +172,7 @@ Absolute Address | Content        | Logical Index | Note
 - `is-full`: `( buffer/ref -- 0|1 )`
   - **Note**: Consumes buffer input, returns boolean (0=false, 1=true)
   - Read `readPtr` from `headerCell - 1`, `writePtr` from `headerCell - 2`
-  - Returns `1` if `(writePtr + 1) % N == readPtr`, else `0`
+  - Returns `1` if `writePtr - readPtr == N`, else `0`
 
 ## Error Handling
 
@@ -203,38 +189,20 @@ Absolute Address | Content        | Logical Index | Note
 
 2. **Address calculation** (address-increasing data layout):
    - Buffer header at `headerCell` (absolute address)
-   - `readPtr` cell = `headerCell - 1` (stores index 0..N-1)
-   - `writePtr` cell = `headerCell - 2` (stores index 0..N-1)
-   - Data base address: `dataBase = headerCell - (N + 2)` (lowest address)
-   - `data[i]` cell = `dataBase + i` = `headerCell - (N + 2) + i` where `i` is the logical index (0..N-1)
-   - Example with N=10, headerCell=100: `dataBase = 100 - 12 = 88`, so `data[0]` = 88, `data[1]` = 89, ..., `data[9]` = 97
 
-3. **Pointer values**: Pointers store **logical indices** (0..N-1), not absolute addresses. To access the data:
-   - Read pointer value: `readPtrValue = vm.memory.readCell(headerCell - 1)`
-   - Calculate data base: `dataBase = headerCell - (N + 2)`
-   - Access data: `data[readPtrValue]` = `vm.memory.readCell(dataBase + readPtrValue)`
+- `readPtr` cell = `headerCell - 1` (logical counter)
+- `writePtr` cell = `headerCell - 2` (logical counter)
+- Data base address: `dataBase = headerCell - (N + 2)` (lowest address)
+- `data[i]` cell = `dataBase + i` = `headerCell - (N + 2) + i` where `i` is interpreted as the slot index after modulo reduction
+- Example with N=10, headerCell=100: `dataBase = 100 - 12 = 88`, so `data[0]` = 88, `data[1]` = 89, ..., `data[9]` = 97
 
-   **Why relative (logical indices) instead of absolute addresses?**
+3. **Pointer values**: The pointer cells store **logical counters**, not bounded indices. Access proceeds as:
+   - Read the counter: `ptr = vm.memory.readCell(headerCell - offset)`.
+   - Calculate base: `dataBase = headerCell - (N + 2)`.
+   - Reduce to a slot: `slot = ((ptr % N) + N) % N`.
+   - Touch memory at `dataBase + slot`.
 
-   **Relative pointers (current design - logical indices 0..N-1):**
-   - ✅ **Simple wraparound**: `(writePtr + 1) % N` — no need to convert back to index
-   - ✅ **Portable**: Works if buffer moves in memory (though buffers don't move in Tacit)
-   - ✅ **Small values**: Pointers fit in small integer range (0..N-1)
-   - ✅ **Clear semantics**: Pointer value directly represents logical position
-   - ❌ **Calculation overhead**: Must compute `dataBase = headerCell - (N + 2)` on every operation
-
-   **Absolute pointers (alternative - store absolute cell addresses):**
-   - ✅ **Direct access**: `vm.memory.readCell(writePtr)` — no calculation needed
-   - ✅ **Potentially faster**: One less arithmetic operation per access
-   - ❌ **Complex wraparound**: Must convert to index, wrap, convert back: `writePtr = ((writePtr - dataBase) + 1) % N + dataBase`
-   - ❌ **Larger values**: Pointers are absolute addresses (larger integers)
-   - ❌ **Less clear**: Pointer value doesn't directly represent logical position
-
-   **Decision**: Use **relative pointers (logical indices)** because:
-   - Wraparound logic is simpler and more readable
-   - The `dataBase` calculation (`headerCell - (N + 2)`) is a single subtraction
-   - Logical indices make the code more maintainable
-   - The performance difference is negligible (one subtraction vs. direct access)
+   This keeps the wrap logic isolated to the moment we touch memory, while the occupancy check relies on the simple arithmetic difference `writePtr - readPtr`.
 
 4. **LIST header**: The `LIST:(N+2)` header is created for allocation purposes only. Once allocated, buffer operations ignore LIST semantics and use direct memory access.
 
@@ -294,3 +262,13 @@ Absolute Address | Content        | Logical Index | Note
 - Traversal stacks: bounded LIFO storage
 - Token queues: FIFO storage with separate read/write pointers
 - Sliding windows: fixed-capacity rolling history
+
+## Appendix A — Future Mode Bit Encoding
+
+The current implementation treats every buffer as _strict_: attempts to write to a full buffer or read from an empty buffer result in exceptions. If a tolerant policy (for example, allowing overwrite-on-full) is ever needed, the LIST header’s meta bit can encode that policy without changing the payload shape:
+
+- Interpret the meta bit on the buffer header (`LIST:(N+2)` with the high bit set) as a **tolerant mode** flag.
+- Allocation (`buffer`) could set or clear the bit based on the desired policy; helper words could flip it after allocation if runtime toggling is required.
+- Runtime operations would mask off the meta bit when deriving capacity (`N = (header & 0x7FFF) - 2`) and branch on the flag to decide whether to throw or to tolerate overflow/underflow (e.g. advance the opposite pointer instead of raising).
+
+This preserves compatibility with existing helpers (such as `getListBounds` or `length`) as long as they ignore the meta bit when computing slot counts. No implementation work has been scheduled; the appendix simply records the option for future designs.

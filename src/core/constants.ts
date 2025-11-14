@@ -26,9 +26,9 @@ export const SEG_CODE = 4;
 
 export const SEG_STRING = 5;
 
-export const STACK_SIZE_BYTES = 0x0100;
+export const STACK_SIZE_BYTES = 0x2000;
 
-export const RSTACK_SIZE_BYTES = 0x0100;
+export const RSTACK_SIZE_BYTES = 0x2000;
 
 export const GLOBAL_SIZE_BYTES = 0x2000;
 

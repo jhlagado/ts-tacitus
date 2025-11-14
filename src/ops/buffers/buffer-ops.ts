@@ -15,12 +15,15 @@ import {
   getListBounds,
   isList,
   NIL,
+  STACK_BASE,
 } from '@src/core';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 import { Tagged } from '@src/core';
+import { dropOp } from '../stack';
 
 /**
  * Resolves a buffer input (LIST header or REF) and extracts buffer metadata.
+ * Works exactly like other list operations - uses getListBounds polymorphically.
  * @param vm VM instance
  * @param value Input value (LIST header or REF)
  * @returns Buffer metadata or null if invalid
@@ -29,21 +32,16 @@ function resolveBuffer(
   vm: VM,
   value: number,
 ): { header: number; headerCell: number; capacity: number } | null {
+  // Use getListBounds exactly like other list operations (lengthOp, walkOp, etc.)
   const bounds = getListBounds(vm, value);
-  if (!bounds) {
+  if (!bounds || !isList(bounds.header)) {
     return null;
   }
 
   const { header, headerCell } = bounds;
-  if (!isList(header)) {
-    return null;
-  }
-
-  // Extract capacity: header stores N+2 payload slots (readPtr + writePtr + N data slots)
   const totalPayloadSlots = getListLength(header);
   const capacity = totalPayloadSlots - 2;
 
-  // Validate capacity (must be >= 1)
   if (capacity < 1) {
     return null;
   }
@@ -74,6 +72,85 @@ function getDataBase(headerCell: number, capacity: number): number {
 }
 
 /**
+ * Calculates the span (number of stack cells) occupied by a single element.
+ * Simple values occupy one cell; LIST headers occupy payload slots + header.
+ */
+function getElementSpan(value: number): number {
+  const { tag, value: payloadSlots } = getTaggedInfo(value);
+  if (tag === Tag.LIST) {
+    return payloadSlots + 1;
+  }
+  return 1;
+}
+
+/**
+ * Extracts the value directly beneath the buffer element on the stack.
+ * Returns metadata required to remove both elements after the operation.
+ */
+function getValueBelowBuffer(
+  vm: VM,
+  bufferSpan: number,
+  opName: string,
+): { value: number; valueSpan: number; valueStart: number } {
+  const bufferHeaderIndex = vm.sp - 1;
+  const valueHeaderIndex = bufferHeaderIndex - bufferSpan;
+
+  if (valueHeaderIndex < STACK_BASE) {
+    throw new Error(`${opName}: expected value before buffer`);
+  }
+
+  const value = vm.memory.readCell(valueHeaderIndex);
+  const valueSpan = getElementSpan(value);
+  const valueStart = valueHeaderIndex - (valueSpan - 1);
+
+  if (valueStart < STACK_BASE) {
+    throw new Error(`${opName}: malformed value for ${opName}`);
+  }
+
+  return { value, valueSpan, valueStart };
+}
+
+/**
+ * Normalizes an absolute pointer index into the buffer's data window.
+ */
+function normalizeIndex(index: number, capacity: number): number {
+  if (capacity === 0) {
+    return 0;
+  }
+  const mod = index % capacity;
+  return mod < 0 ? mod + capacity : mod;
+}
+
+/**
+ * Removes the consumed value while preserving the buffer on the stack when it was passed directly.
+ */
+function cleanupAfterValue(
+  vm: VM,
+  isDirectList: boolean,
+  bufferSpan: number,
+  valueSpan: number,
+  valueStart: number,
+): void {
+  if (valueSpan <= 0) {
+    return;
+  }
+
+  if (!isDirectList) {
+    vm.sp = valueStart;
+    return;
+  }
+
+  const bufferStart = vm.sp - bufferSpan;
+  for (let i = 0; i < bufferSpan; i++) {
+    const sourceIndex = bufferStart + i;
+    const destIndex = valueStart + i;
+    const cell = vm.memory.readCell(sourceIndex);
+    vm.memory.writeCell(destIndex, cell);
+  }
+  vm.sp -= valueSpan;
+}
+
+/**
  * buffer: Allocates a ring buffer with capacity N.
  * Stack: ( N -- buffer )
  */
@@ -84,7 +161,7 @@ export function bufferOp(vm: VM): void {
   const { value: n, tag } = getTaggedInfo(capacity);
 
   if (tag !== Tag.NUMBER || n < 1) {
-    throw new Error(`buffer: capacity must be >= 1, got ${n}`);
+    throw new Error('capacity must be >= 1');
   }
 
   // Allocate LIST with N+2 payload slots (readPtr + writePtr + N data slots)
@@ -96,14 +173,16 @@ export function bufferOp(vm: VM): void {
     push(vm, NIL);
   }
 
-  // Initialize readPtr = 0 at headerCell - 1
-  const headerCell = vm.sp - 1;
-  vm.memory.writeCell(headerCell - 1, 0); // readPtr
-  vm.memory.writeCell(headerCell - 2, 0); // writePtr
-
-  // Push LIST header
+  // Push LIST header first (header is at TOS)
   const header = Tagged(payloadSlots, Tag.LIST);
   push(vm, header);
+
+  // Now calculate headerCell (TOS after pushing header)
+  const headerCell = vm.sp - 1;
+
+  // Initialize readPtr = 0 at headerCell - 1 (store as raw number, logical index)
+  vm.memory.writeCell(headerCell - 1, 0); // readPtr
+  vm.memory.writeCell(headerCell - 2, 0); // writePtr
 }
 
 /**
@@ -113,18 +192,20 @@ export function bufferOp(vm: VM): void {
 export function bufSizeOp(vm: VM): void {
   ensureStackSize(vm, 1, 'buf-size');
 
-  const value = pop(vm);
+  const value = peek(vm);
   const bufferInfo = resolveBuffer(vm, value);
 
   if (!bufferInfo) {
     throw new Error('buf-size: Expected buffer (LIST or REF)');
   }
 
-  const { headerCell, capacity } = bufferInfo;
+  const { headerCell } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
 
-  // Size = (writePtr - readPtr + N) % N
-  const size = (writePtr - readPtr + capacity) % capacity;
+  // Consume input using dropOp (works for both LIST headers and REFs, like other list ops)
+  dropOp(vm);
+
+  const size = writePtr - readPtr;
   push(vm, Tagged(size, Tag.NUMBER));
 }
 
@@ -135,7 +216,7 @@ export function bufSizeOp(vm: VM): void {
 export function isEmptyOp(vm: VM): void {
   ensureStackSize(vm, 1, 'is-empty');
 
-  const value = pop(vm);
+  const value = peek(vm);
   const bufferInfo = resolveBuffer(vm, value);
 
   if (!bufferInfo) {
@@ -144,6 +225,9 @@ export function isEmptyOp(vm: VM): void {
 
   const { headerCell } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
+
+  // Consume input using dropOp (works for both LIST headers and REFs, like other list ops)
+  dropOp(vm);
 
   // Empty when readPtr == writePtr
   const isEmpty = readPtr === writePtr ? 1 : 0;
@@ -157,7 +241,7 @@ export function isEmptyOp(vm: VM): void {
 export function isFullOp(vm: VM): void {
   ensureStackSize(vm, 1, 'is-full');
 
-  const value = pop(vm);
+  const value = peek(vm);
   const bufferInfo = resolveBuffer(vm, value);
 
   if (!bufferInfo) {
@@ -167,9 +251,10 @@ export function isFullOp(vm: VM): void {
   const { headerCell, capacity } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
 
-  // Full when (writePtr + 1) % N == readPtr
-  const nextWritePtr = (writePtr + 1) % capacity;
-  const isFull = nextWritePtr === readPtr ? 1 : 0;
+  // Consume input using dropOp (works for both LIST headers and REFs, like other list ops)
+  dropOp(vm);
+
+  const isFull = writePtr - readPtr === capacity ? 1 : 0;
   push(vm, Tagged(isFull, Tag.NUMBER));
 }
 
@@ -181,32 +266,42 @@ export function isFullOp(vm: VM): void {
 export function writeOp(vm: VM): void {
   ensureStackSize(vm, 2, 'write');
 
-  const value = pop(vm); // buffer/ref (closer to op)
-  const x = pop(vm); // value (from earlier operations)
-  const bufferInfo = resolveBuffer(vm, value);
+  const bufferValue = peek(vm);
+  const bufferSpan = getElementSpan(bufferValue);
+  const isDirectList = getTaggedInfo(bufferValue).tag === Tag.LIST;
+
+  const { value: x, valueSpan, valueStart } = getValueBelowBuffer(vm, bufferSpan, 'write');
+  const cleanup = (): void => {
+    cleanupAfterValue(vm, isDirectList, bufferSpan, valueSpan, valueStart);
+  };
+
+  if (valueSpan !== 1) {
+    cleanup();
+    throw new Error('write: value must be single cell');
+  }
+
+  const bufferInfo = resolveBuffer(vm, bufferValue);
 
   if (!bufferInfo) {
+    cleanup();
     throw new Error('write: Expected buffer (LIST or REF)');
   }
 
   const { headerCell, capacity } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
+  const currentSize = writePtr - readPtr;
 
-  // Check if full: (writePtr + 1) % N == readPtr
-  const nextWritePtr = (writePtr + 1) % capacity;
-  if (nextWritePtr === readPtr) {
+  if (currentSize === capacity) {
+    cleanup();
     throw new Error('Buffer overflow');
   }
 
-  // Calculate data base address
   const dataBase = getDataBase(headerCell, capacity);
+  const slotIndex = normalizeIndex(writePtr, capacity);
+  vm.memory.writeCell(dataBase + slotIndex, x);
+  vm.memory.writeCell(headerCell - 2, writePtr + 1);
 
-  // Write x to data[writePtr]
-  vm.memory.writeCell(dataBase + writePtr, x);
-
-  // Update writePtr: (writePtr + 1) % N
-  const newWritePtr = nextWritePtr;
-  vm.memory.writeCell(headerCell - 2, newWritePtr);
+  cleanup();
 }
 
 /**
@@ -217,7 +312,7 @@ export function writeOp(vm: VM): void {
 export function unwriteOp(vm: VM): void {
   ensureStackSize(vm, 1, 'unwrite');
 
-  const value = pop(vm);
+  const value = peek(vm);
   const bufferInfo = resolveBuffer(vm, value);
 
   if (!bufferInfo) {
@@ -227,24 +322,18 @@ export function unwriteOp(vm: VM): void {
   const { headerCell, capacity } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
 
-  // Check if empty: writePtr == readPtr
   if (writePtr === readPtr) {
+    dropOp(vm);
     throw new Error('Buffer underflow');
   }
 
-  // Calculate data base address
   const dataBase = getDataBase(headerCell, capacity);
+  const newWritePtr = writePtr - 1;
+  const slotIndex = normalizeIndex(newWritePtr, capacity);
+  const result = vm.memory.readCell(dataBase + slotIndex);
 
-  // Decrement writePtr: (writePtr - 1 + N) % N
-  const newWritePtr = (writePtr - 1 + capacity) % capacity;
-
-  // Read from data[newWritePtr]
-  const result = vm.memory.readCell(dataBase + newWritePtr);
-
-  // Update writePtr
   vm.memory.writeCell(headerCell - 2, newWritePtr);
-
-  // Return value
+  dropOp(vm);
   push(vm, result);
 }
 
@@ -256,7 +345,7 @@ export function unwriteOp(vm: VM): void {
 export function readOp(vm: VM): void {
   ensureStackSize(vm, 1, 'read');
 
-  const value = pop(vm);
+  const value = peek(vm);
   const bufferInfo = resolveBuffer(vm, value);
 
   if (!bufferInfo) {
@@ -266,22 +355,17 @@ export function readOp(vm: VM): void {
   const { headerCell, capacity } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
 
-  // Check if empty: readPtr == writePtr
   if (readPtr === writePtr) {
+    dropOp(vm);
     throw new Error('Buffer underflow');
   }
 
-  // Calculate data base address
   const dataBase = getDataBase(headerCell, capacity);
+  const slotIndex = normalizeIndex(readPtr, capacity);
+  const result = vm.memory.readCell(dataBase + slotIndex);
 
-  // Read from data[readPtr]
-  const result = vm.memory.readCell(dataBase + readPtr);
-
-  // Update readPtr: (readPtr + 1) % N
-  const newReadPtr = (readPtr + 1) % capacity;
-  vm.memory.writeCell(headerCell - 1, newReadPtr);
-
-  // Return value
+  vm.memory.writeCell(headerCell - 1, readPtr + 1);
+  dropOp(vm);
   push(vm, result);
 }
 
@@ -293,33 +377,41 @@ export function readOp(vm: VM): void {
 export function unreadOp(vm: VM): void {
   ensureStackSize(vm, 2, 'unread');
 
-  const value = pop(vm); // buffer/ref (closer to op)
-  const x = pop(vm); // value (from earlier operations)
-  const bufferInfo = resolveBuffer(vm, value);
+  const bufferValue = peek(vm);
+  const bufferSpan = getElementSpan(bufferValue);
+  const isDirectList = getTaggedInfo(bufferValue).tag === Tag.LIST;
+
+  const { value: x, valueSpan, valueStart } = getValueBelowBuffer(vm, bufferSpan, 'unread');
+  const cleanup = (): void => {
+    cleanupAfterValue(vm, isDirectList, bufferSpan, valueSpan, valueStart);
+  };
+
+  if (valueSpan !== 1) {
+    cleanup();
+    throw new Error('unread: value must be single cell');
+  }
+
+  const bufferInfo = resolveBuffer(vm, bufferValue);
 
   if (!bufferInfo) {
+    cleanup();
     throw new Error('unread: Expected buffer (LIST or REF)');
   }
 
   const { headerCell, capacity } = bufferInfo;
   const [readPtr, writePtr] = getBufferPointers(vm, headerCell);
+  const currentSize = writePtr - readPtr;
 
-  // Check if full: (readPtr - 1 + N) % N == writePtr
-  const prevReadPtr = (readPtr - 1 + capacity) % capacity;
-  if (prevReadPtr === writePtr) {
+  if (currentSize === capacity) {
+    cleanup();
     throw new Error('Buffer full, cannot unread');
   }
 
-  // Calculate data base address
   const dataBase = getDataBase(headerCell, capacity);
-
-  // Decrement readPtr: (readPtr - 1 + N) % N
-  const newReadPtr = prevReadPtr;
-
-  // Write x to data[newReadPtr]
-  vm.memory.writeCell(dataBase + newReadPtr, x);
-
-  // Update readPtr
+  const newReadPtr = readPtr - 1;
+  const slotIndex = normalizeIndex(newReadPtr, capacity);
+  vm.memory.writeCell(dataBase + slotIndex, x);
   vm.memory.writeCell(headerCell - 1, newReadPtr);
-}
 
+  cleanup();
+}

@@ -342,6 +342,7 @@ export function emitRefSigil(
 
   // Existing variable reference logic...
   // Inside function: allow locals and globals
+  // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
   if (currentDefinition.current) {
     if (tag === Tag.LOCAL) {
       vm.compiler.compileOpcode(Op.VarRef);
