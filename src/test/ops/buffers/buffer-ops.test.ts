@@ -207,7 +207,9 @@ describe('Buffer Operations', () => {
       const code = `
         : f
           3 buffer var buf
-          1 &buf write 2 &buf write 3 &buf write
+          1 &buf write
+          2 &buf write
+          3 &buf write
           &buf read drop
           4 &buf write
           &buf buf-size
@@ -362,7 +364,9 @@ describe('Buffer Operations', () => {
       const code = `
         : f
           3 buffer var buf
-          1 &buf write 2 &buf write 3 &buf write
+          1 &buf write
+          2 &buf write
+          3 &buf write
           4 &buf unread
         ;
         f
