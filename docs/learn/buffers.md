@@ -28,7 +28,7 @@ A buffer with capacity `N` elements has:
 
 - **Total slots**: `N + 3` (header + readPtr + writePtr + N data slots)
 - **Header**: `LIST:(N+2)` at TOS (SP) — used only for allocation
-- **Pointers**: `readPtr` and `writePtr` stored at `SP-1` and `SP-2`
+- **Pointers**: `readPtr` and `writePtr` stored at `SP-1` and `SP-2`; these are logical counters that grow/shrink as you read and write. The buffer computes the correct slot internally by taking each pointer modulo the capacity, so wrap-around happens automatically.
 - **Data**: `data[0]` through `data[N-1]` stored in address-increasing order
 
 **Memory layout example** (SP=100, N=10):
@@ -115,7 +115,17 @@ Buffers use **strict error handling** — operations throw exceptions on overflo
 - `read` on empty buffer → `Error("Buffer underflow")`
 - `unread` on full buffer → `Error("Buffer full, cannot unread")`
 
-## 7. Address-Increasing Order
+## 7. Avoiding Overflow and Underflow
+
+Because buffers fail fast by default, programs should check the buffer state before mutating it:
+
+- **Before writing**: call `is-full` (or compare `buf-size` against the capacity) and handle the “full” case explicitly.
+- **Before reading**: call `is-empty` (or check `buf-size > 0`) so you can pause, retry, or supply a default value.
+- **Batch operations**: when enqueueing or dequeuing multiple elements, ensure the remaining headroom/occupancy can accommodate the batch (`buf-size + n ≤ capacity` before writes, `buf-size ≥ n` before reads).
+
+These guards let you decide whether to block, drop data, or trigger a higher-level policy instead of triggering the built-in exceptions.
+
+## 8. Address-Increasing Order
 
 The key feature of buffers is **address-increasing order** for data storage:
 
@@ -130,7 +140,7 @@ This makes buffers ideal for:
 - Sequential data access patterns
 - Memory-mapped I/O scenarios
 
-## 8. Integration with Locals and Globals
+## 9. Integration with Locals and Globals
 
 Buffers are typically stored in local variables or globals:
 
@@ -142,13 +152,13 @@ Buffers are typically stored in local variables or globals:
 
 The buffer operations consume the ref, so you need to pass `&buf` each time you want to operate on it.
 
-## 9. Use Cases
+## 10. Use Cases
 
 - **Text buffers**: Sequential character storage with address-increasing order
 - **Traversal stacks**: Bounded LIFO storage
 - **Token queues**: FIFO storage with separate read/write pointers
 - **Sliding windows**: Fixed-capacity rolling history
 
-## 10. Reference
+## 11. Reference
 
 For complete specification details, see `docs/specs/buffers.md`.
