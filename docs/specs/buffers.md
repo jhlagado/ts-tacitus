@@ -272,3 +272,13 @@ The current implementation treats every buffer as _strict_: attempts to write to
 - Runtime operations would mask off the meta bit when deriving capacity (`N = (header & 0x7FFF) - 2`) and branch on the flag to decide whether to throw or to tolerate overflow/underflow (e.g. advance the opposite pointer instead of raising).
 
 This preserves compatibility with existing helpers (such as `getListBounds` or `length`) as long as they ignore the meta bit when computing slot counts. No implementation work has been scheduled; the appendix simply records the option for future designs.
+
+### Overflow/Underflow strategy gradations
+
+If tolerances become configurable, the spec will need to define how each mode behaves:
+
+- **Strict** – current behaviour; `write`/`unread` throw on overflow, `read`/`unwrite` throw on underflow.
+- **Moderate** – detectable structural no-ops; overflow/underflow requests return early (e.g. push a flag or leave the stack untouched) so callers can retry or fall back.
+- **Lax** – destructive tolerance; overflow advances `readPtr` (dropping the oldest data) or truncates the incoming payload, while underflow yields a sentinel value (e.g. `NIL`) and keeps operating.
+
+Compound payloads introduce an additional sizing check: a helper such as `write-list` would materialize the full list into buffer-owned storage, but only after verifying that `(listCells ≤ capacity - currentSize)` or after applying the chosen policy (strict/moderate/lax) when space is insufficient. Any non-strict mode must document whether it drops oldest data, rejects the write, or truncates the list, and the corresponding dequeue semantics (e.g. whether the consumer can observe partial lists).
