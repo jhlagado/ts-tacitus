@@ -37,7 +37,6 @@ describe('Buffer Operations', () => {
 
     test('initializes pointers to 0', () => {
       executeTacitCode(vm, '5 buffer');
-      const header = vm.memory.readCell(vm.sp - 1);
       const headerCell = vm.sp - 1;
       const readPtr = vm.memory.readCell(headerCell - 1);
       const writePtr = vm.memory.readCell(headerCell - 2);
@@ -178,7 +177,9 @@ describe('Buffer Operations', () => {
       const code = `
         : f
           10 buffer var buf
-          42 &buf write 43 &buf write 44 &buf write
+          42 &buf write
+          43 &buf write
+          44 &buf write
           &buf buf-size
         ;
         f
@@ -190,7 +191,12 @@ describe('Buffer Operations', () => {
       const code = `
         : f
           5 buffer var buf
-          1 &buf write 2 &buf write 3 &buf write 4 &buf write 5 &buf write 6 &buf write
+          1 &buf write
+          2 &buf write
+          3 &buf write
+          4 &buf write
+          5 &buf write
+          6 &buf write
         ;
         f
       `;
