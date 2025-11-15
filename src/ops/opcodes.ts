@@ -314,4 +314,22 @@ export enum Op {
   BeginCapsuleImmediate,
   /** Fetch next token for Tacit compile loop */
   TokenNext,
+  /** Encode integer payload as Tag.SENTINEL */
+  SentinelEncode,
+  /** Emit numeric literal during compilation */
+  EmitNumberWord,
+  /** Emit string literal during compilation */
+  EmitStringWord,
+  /** Handle special token during compilation */
+  HandleSpecialWord,
+  /** Emit standard word during compilation */
+  EmitWordCall,
+  /** Emit @symbol token during compilation */
+  EmitSymbolWord,
+  /** Emit ref sigil token during compilation */
+  EmitRefSigilWord,
+  /** Finalize compilation (validation + Abort) */
+  FinalizeCompile,
+  /** Raise unexpected token error */
+  UnexpectedTokenWord,
 }

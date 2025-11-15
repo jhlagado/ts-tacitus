@@ -50,6 +50,17 @@ import {
 } from './core';
 import { tokenNextOp } from '../lang/meta/token-bridge';
 import {
+  sentinelOp,
+  emitNumberOp,
+  emitStringOp,
+  handleSpecialOp,
+  emitWordOp,
+  emitSymbolOp,
+  emitRefSigilOp,
+  finalizeCompileOp,
+  unexpectedTokenOp,
+} from '../lang/meta/compiler-bridge';
+import {
   addOp,
   subtractOp,
   multiplyOp,
@@ -287,6 +298,15 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.BufShift]: readOp,
     [Op.BufUnshift]: unreadOp,
   [Op.TokenNext]: tokenNextOp,
+    [Op.SentinelEncode]: sentinelOp,
+    [Op.EmitNumberWord]: emitNumberOp,
+    [Op.EmitStringWord]: emitStringOp,
+    [Op.HandleSpecialWord]: handleSpecialOp,
+    [Op.EmitWordCall]: emitWordOp,
+    [Op.EmitSymbolWord]: emitSymbolOp,
+    [Op.EmitRefSigilWord]: emitRefSigilOp,
+    [Op.FinalizeCompile]: finalizeCompileOp,
+    [Op.UnexpectedTokenWord]: unexpectedTokenOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];
