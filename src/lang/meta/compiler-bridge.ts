@@ -1,0 +1,120 @@
+import { Tagged, Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
+import type { VM } from '@src/core';
+import { ensureStackSize, pop, push, getStackData, emitOpcode } from '../../core/vm';
+import { Op } from '../../ops/opcodes';
+import { emitNumber, emitString } from '../literals';
+import { handleSpecial, emitWord, emitAtSymbol, emitRefSigil, validateFinalState } from '../parser';
+import { getActiveTokenizer } from '../parser';
+
+function decodeString(vm: VM, raw: number, context: string): string {
+  const info = getTaggedInfo(raw);
+  if (info.tag !== Tag.STRING) {
+    throw new Error(`${context}: expected STRING`);
+  }
+  return vm.digest.get(info.value);
+}
+
+export function sentinelOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'sentinel');
+  const raw = pop(vm);
+  const value = Math.trunc(raw);
+  push(vm, Tagged(value, Tag.SENTINEL));
+}
+
+export function emitNumberOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'emit-number');
+  const value = pop(vm);
+  emitNumber(vm, value);
+}
+
+export function emitStringOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'emit-string');
+  const raw = pop(vm);
+  const text = decodeString(vm, raw, 'emit-string');
+  emitString(vm, text);
+}
+
+export function handleSpecialOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'handle-special');
+  const raw = pop(vm);
+  const text = decodeString(vm, raw, 'handle-special');
+  const tokenizer = getActiveTokenizer();
+  if (!tokenizer) {
+    throw new Error('handle-special: no active tokenizer');
+  }
+  handleSpecial(vm, text, tokenizer);
+}
+
+export function emitWordOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'emit-word');
+  const raw = pop(vm);
+  const text = decodeString(vm, raw, 'emit-word');
+  const tokenizer = getActiveTokenizer();
+  if (!tokenizer) {
+    throw new Error('emit-word: no active tokenizer');
+  }
+  emitWord(vm, text, tokenizer);
+}
+
+export function emitSymbolOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'emit-symbol');
+  const raw = pop(vm);
+  const text = decodeString(vm, raw, 'emit-symbol');
+  const tokenizer = getActiveTokenizer();
+  if (!tokenizer) {
+    throw new Error('emit-symbol: no active tokenizer');
+  }
+  emitAtSymbol(vm, text, tokenizer);
+}
+
+export function emitRefSigilOp(vm: VM): void {
+  ensureStackSize(vm, 1, 'emit-ref-sigil');
+  const raw = pop(vm);
+  const text = decodeString(vm, raw, 'emit-ref-sigil');
+  const tokenizer = getActiveTokenizer();
+  if (!tokenizer) {
+    throw new Error('emit-ref-sigil: no active tokenizer');
+  }
+  emitRefSigil(vm, text, tokenizer);
+}
+
+export function finalizeCompileOp(vm: VM): void {
+  validateFinalState(vm);
+  emitOpcode(vm, Op.Abort);
+}
+
+const TOKEN_TYPE_NAMES: Record<number, string> = {
+  0: 'NUMBER',
+  1: 'WORD',
+  2: 'STRING',
+  3: 'SPECIAL',
+  4: 'SYMBOL',
+  5: 'REF_SIGIL',
+  6: 'EOF',
+};
+
+function formatTokenValue(vm: VM, raw: number): string {
+  const info = getTaggedInfo(raw);
+  switch (info.tag) {
+    case Tag.STRING:
+      return vm.digest.get(info.value);
+    case Tag.SENTINEL:
+      return `sentinel(${info.value})`;
+    default:
+      return String(info.value);
+  }
+}
+
+export function unexpectedTokenOp(vm: VM): void {
+  ensureStackSize(vm, 2, 'unexpected-token');
+  const rawValue = pop(vm);
+  const typeTagged = pop(vm);
+  const info = getTaggedInfo(typeTagged);
+  if (info.tag !== Tag.SENTINEL) {
+    throw new Error('unexpected-token: expected sentinel type descriptor');
+  }
+  const typeName = TOKEN_TYPE_NAMES[info.value] ?? `type-${info.value}`;
+  const tokenLexeme = formatTokenValue(vm, rawValue);
+  throw new UnexpectedTokenError(`${typeName} ${tokenLexeme}`, getStackData(vm));
+}
+

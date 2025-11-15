@@ -35,7 +35,6 @@ import {
   type ImmediateHandler,
 } from '../lang/meta';
 import { tokenNextOp } from '../lang/meta/token-bridge';
-
 import { gpushOp, gpopOp, gpeekOp } from './heap';
 import {
   defineOp,
@@ -48,6 +47,8 @@ import {
   define,
 } from '@src/core/dictionary';
 import { Tagged, Tag } from '@src/core';
+import { Tokenizer } from '../lang/tokenizer';
+import { parse } from '../lang/parser';
 
 /**
  * Registers all built-in operations in the VM's symbol table.
@@ -152,6 +153,15 @@ export function registerBuiltins(vm: VM): void {
   // Debug
   reg('dump-dict', Op.DumpDict, dumpDictOp);
   reg('token-next', Op.TokenNext, tokenNextOp);
+  reg('sentinel', Op.SentinelEncode);
+  reg('emit-number', Op.EmitNumberWord);
+  reg('emit-string', Op.EmitStringWord);
+  reg('handle-special', Op.HandleSpecialWord);
+  reg('emit-word', Op.EmitWordCall);
+  reg('emit-symbol', Op.EmitSymbolWord);
+  reg('emit-ref-sigil', Op.EmitRefSigilWord);
+  reg('finalize-compile', Op.FinalizeCompile);
+  reg('unexpected-token', Op.UnexpectedTokenWord);
 
   reg('add', Op.Add);
   reg('sub', Op.Minus);
@@ -209,4 +219,6 @@ export function registerBuiltins(vm: VM): void {
 
   reg(':', Op.BeginDefinitionImmediate, undefined, true, beginDefinitionImmediate);
   reg(';', Op.SemicolonImmediate, undefined, true, semicolonImmediate);
+
+  // Tacit compile loop will be injected once the Tacit-side definitions exist.
 }
