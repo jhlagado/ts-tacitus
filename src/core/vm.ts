@@ -3,7 +3,21 @@
  * Core Virtual Machine implementation for Tacit bytecode execution.
  */
 
-import { Compiler } from '../lang/compiler';
+import {
+  type CompilerState,
+  createCompilerState,
+  compilerCompileOpcode,
+  compilerCompile16,
+  compilerCompileFloat32,
+  compilerCompileUserWordCall,
+  compilerCompileAddress,
+  compilerEmitReserveIfNeeded,
+  compilerEnterFunction,
+  compilerExitFunction,
+  compilerPatch16,
+  compilerPatchOpcode,
+  compilerReset,
+} from '../lang/compiler';
 import type { ActiveDefinition } from '../lang/state';
 import { Memory } from './memory';
 import { lookup } from './dictionary';
@@ -46,8 +60,8 @@ export type VM = {
   IP: number;
   /** Execution state flag */
   running: boolean;
-  /** Compiler instance for bytecode generation */
-  compiler: Compiler;
+  /** Compiler state for bytecode generation */
+  compiler: CompilerState;
   /** String digest for string interning */
   digest: Digest;
   /** Debug mode flag (enables invariant checks) */
@@ -96,9 +110,8 @@ export function createVM(useCache = true): VM {
         localCount: 0,
         head: 0,
         currentDefinition: null,
-        compiler: null as unknown as Compiler,
+        compiler: createCompilerState(),
       };
-      vm.compiler = new Compiler(vm);
       registerBuiltins(vm);
       // Snapshot state AFTER builtins are registered
       cachedTestVM = vm;
@@ -119,7 +132,7 @@ export function createVM(useCache = true): VM {
       cachedTestVM.currentDefinition = null;
       cachedTestVM.gp = builtinSnapshot.gp;
       cachedTestVM.head = builtinSnapshot.head;
-      cachedTestVM.compiler = new Compiler(cachedTestVM);
+      cachedTestVM.compiler = createCompilerState();
     }
     return cachedTestVM;
   }
@@ -141,9 +154,8 @@ export function createVM(useCache = true): VM {
     localCount: 0,
     head: 0,
     currentDefinition: null,
-    compiler: null as unknown as Compiler,
+    compiler: createCompilerState(),
   };
-  vm.compiler = new Compiler(vm);
   registerBuiltins(vm);
   return vm;
 }
@@ -575,56 +587,63 @@ export function ensureInvariants(vm: VM): void {
  * Emits an opcode to the current compilation buffer.
  */
 export function emitOpcode(vm: VM, opcode: number): void {
-  vm.compiler.compileOpcode(opcode);
+  compilerCompileOpcode(vm, vm.compiler, opcode);
 }
 
 /**
  * Emits a 16-bit unsigned value to the code buffer.
  */
 export function emitUint16(vm: VM, value: number): void {
-  vm.compiler.compile16(value);
+  compilerCompile16(vm, vm.compiler, value);
 }
 
 /**
  * Emits a 32-bit float to the code buffer.
  */
 export function emitFloat32(vm: VM, value: number): void {
-  vm.compiler.compileFloat32(value);
+  compilerCompileFloat32(vm, vm.compiler, value);
 }
 
 /**
  * Emits a user word call using X1516 encoding regardless of address range.
  */
 export function emitUserWordCall(vm: VM, address: number): void {
-  vm.compiler.compileUserWordCall(address);
+  compilerCompileUserWordCall(vm, vm.compiler, address);
 }
 
 /**
  * Emits a tagged address literal into the code buffer.
  */
 export function emitTaggedAddress(vm: VM, address: number): void {
-  vm.compiler.compileAddress(address);
+  compilerCompileAddress(vm, vm.compiler, address);
 }
 
 /**
  * Ensures a Reserve opcode has been emitted for locals in the current function.
  */
 export function ensureReserveEmitted(vm: VM): void {
-  vm.compiler.emitReserveIfNeeded();
+  compilerEmitReserveIfNeeded(vm, vm.compiler);
 }
 
 /**
  * Marks the beginning of a function body for compilation.
  */
 export function beginFunctionCompile(vm: VM): void {
-  vm.compiler.enterFunction();
+  compilerEnterFunction(vm.compiler);
 }
 
 /**
  * Marks the end of a function body for compilation.
  */
 export function finishFunctionCompile(vm: VM): void {
-  vm.compiler.exitFunction();
+  compilerExitFunction(vm, vm.compiler);
+}
+
+/**
+ * Resets the compiler's compile pointer based on the preserve flag.
+ */
+export function resetCompiler(vm: VM): void {
+  compilerReset(vm.compiler);
 }
 
 /**
@@ -652,12 +671,12 @@ export function setCompilePointer(vm: VM, address: number): void {
  * Patches a 16-bit value at the specified code address.
  */
 export function patchUint16(vm: VM, address: number, value: number): void {
-  vm.compiler.patch16(address, value);
+  compilerPatch16(vm, vm.compiler, address, value);
 }
 
 /**
  * Patches an opcode at the specified code address.
  */
 export function patchOpcode(vm: VM, address: number, opcode: number): void {
-  vm.compiler.patchOpcode(address, opcode);
+  compilerPatchOpcode(vm, vm.compiler, address, opcode);
 }

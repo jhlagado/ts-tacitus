@@ -2,7 +2,6 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../src/core/vm';
 import { Memory } from '../../../src/core/memory';
 import { Digest } from '../../../src/strings/digest';
-import { Compiler } from '../../../src/lang/compiler';
 import { STACK_BASE, RSTACK_BASE } from '../../../src/core/constants';
 
 describe('VM Constructor Initialization', () => {
@@ -54,12 +53,10 @@ describe('VM Constructor Initialization', () => {
     expect(typeof vm.head).toBe('number');
   });
 
-  test('should initialize compiler property after constructor call', () => {
-    // The compiler is initialized by initializeInterpreter, which is called globally
-    // or explicitly after VM construction. So, it won't be set directly in the constructor.
-    // We need to simulate the initialization process.
-    const compiler = new Compiler(vm);
-    vm.compiler = compiler;
-    expect(vm.compiler).toBeInstanceOf(Compiler);
+  test('should initialize compiler state after constructor call', () => {
+    expect(vm.compiler).toBeDefined();
+    expect(vm.compiler).toHaveProperty('CP', 0);
+    expect(vm.compiler).toHaveProperty('BCP', 0);
+    expect(vm.compiler).toHaveProperty('preserve', false);
   });
 });

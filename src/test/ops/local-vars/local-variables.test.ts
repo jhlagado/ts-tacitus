@@ -3,7 +3,7 @@
  * Tests the complete local variable system: Reserve → InitVar → VarRef → Fetch
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, type VM } from '../../../core/vm';
+import { createVM, type VM, emitUint16 } from '../../../core/vm';
 import { reserveOp, initVarOp } from '../../../ops/builtins';
 import { fetchOp } from '../../../ops/lists';
 import { getVarRef, writeRef } from '../../../core/refs';
@@ -23,12 +23,12 @@ describe('Local Variables System', () => {
       vm.bp = RSTACK_BASE + 16; // within current return-stack size
 
       // Reserve 1 slot
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       reserveOp(vm);
 
       // Initialize slot 0 with value 42
       push(vm, 42);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
 
       // Fetch value using variable reference
@@ -40,14 +40,14 @@ describe('Local Variables System', () => {
 
     test('should handle different data types', () => {
       vm.bp = RSTACK_BASE + 24;
-      vm.compiler.compile16(3);
+      emitUint16(vm, 3);
       reserveOp(vm);
 
       // Test integer, float, negative
       const testValues = [42, 3.14159, -99.5];
       testValues.forEach((value, slot) => {
         push(vm, value);
-        vm.compiler.compile16(slot);
+        emitUint16(vm, slot);
         initVarOp(vm);
       });
 
@@ -67,14 +67,14 @@ describe('Local Variables System', () => {
   describe('Multiple Variables', () => {
     test('should handle multiple variables without interference', () => {
       vm.bp = RSTACK_BASE + 28;
-      vm.compiler.compile16(5);
+      emitUint16(vm, 5);
       reserveOp(vm);
 
       // Initialize with different values
       const values = [10, 20, 30, 40, 50];
       values.forEach((value, slot) => {
         push(vm, value);
-        vm.compiler.compile16(slot);
+        emitUint16(vm, slot);
         initVarOp(vm);
       });
 
@@ -93,17 +93,17 @@ describe('Local Variables System', () => {
 
     test('should handle slot overwrites', () => {
       vm.bp = RSTACK_BASE + 32;
-      vm.compiler.compile16(2);
+      emitUint16(vm, 2);
       reserveOp(vm);
 
       // Initialize slot 0
       push(vm, 100);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
 
       // Overwrite slot 0
       push(vm, 200);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
 
       // Should get new value
@@ -117,13 +117,13 @@ describe('Local Variables System', () => {
     test('should isolate variables between different function frames', () => {
       // First frame
       vm.bp = RSTACK_BASE + 16;
-      vm.compiler.compile16(2);
+      emitUint16(vm, 2);
       reserveOp(vm);
       push(vm, 111);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
       push(vm, 222);
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       initVarOp(vm);
 
       // Verify first frame
@@ -133,13 +133,13 @@ describe('Local Variables System', () => {
 
       // Second frame (different BP)
       vm.bp = RSTACK_BASE + 40;
-      vm.compiler.compile16(2);
+      emitUint16(vm, 2);
       reserveOp(vm);
       push(vm, 333);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
       push(vm, 444);
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       initVarOp(vm);
 
       // Verify second frame
@@ -160,11 +160,11 @@ describe('Local Variables System', () => {
       vm.bp = RSTACK_BASE + 4;
       const maxSlot = 10;
 
-      vm.compiler.compile16(maxSlot + 1);
+      emitUint16(vm, maxSlot + 1);
       reserveOp(vm);
 
       push(vm, 999);
-      vm.compiler.compile16(maxSlot);
+      emitUint16(vm, maxSlot);
       initVarOp(vm);
 
       push(vm, getVarRef(vm, maxSlot));
@@ -176,13 +176,13 @@ describe('Local Variables System', () => {
       vm.bp = RSTACK_BASE + 6;
       const numVars = 16;
 
-      vm.compiler.compile16(numVars);
+      emitUint16(vm, numVars);
       reserveOp(vm);
 
       // Initialize all variables
       for (let i = 0; i < numVars; i++) {
         push(vm, i * 10);
-        vm.compiler.compile16(i);
+        emitUint16(vm, i);
         initVarOp(vm);
       }
 
@@ -198,15 +198,15 @@ describe('Local Variables System', () => {
   describe('Integration with Operations', () => {
     test('should work with arithmetic operations', () => {
       vm.bp = RSTACK_BASE + 20;
-      vm.compiler.compile16(3);
+      emitUint16(vm, 3);
       reserveOp(vm);
 
       // Store operands
       push(vm, 15);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm); // a = 15
       push(vm, 25);
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       initVarOp(vm); // b = 25
 
       // Calculate: a + b
@@ -218,7 +218,7 @@ describe('Local Variables System', () => {
 
       // Store result
       push(vm, sum);
-      vm.compiler.compile16(2);
+      emitUint16(vm, 2);
       initVarOp(vm);
 
       // Verify result
@@ -229,11 +229,11 @@ describe('Local Variables System', () => {
 
     test('should work with do combinator', () => {
       vm.bp = RSTACK_BASE + 24;
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       reserveOp(vm);
 
       push(vm, 42);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
 
       // Simple operation using local variable
@@ -250,12 +250,12 @@ describe('Local Variables System', () => {
   describe('Variable Mutation', () => {
     test('should support variable mutation via writeRef', () => {
       vm.bp = RSTACK_BASE + 28;
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       reserveOp(vm);
 
       // Initialize with 42
       push(vm, 42);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
 
       // Verify initial value
@@ -275,14 +275,14 @@ describe('Local Variables System', () => {
 
     test('should handle multiple variable mutations', () => {
       vm.bp = RSTACK_BASE + 32;
-      vm.compiler.compile16(3);
+      emitUint16(vm, 3);
       reserveOp(vm);
 
       // Initialize variables
       const initialValues = [10, 20, 30];
       initialValues.forEach((value, slot) => {
         push(vm, value);
-        vm.compiler.compile16(slot);
+        emitUint16(vm, slot);
         initVarOp(vm);
       });
 
@@ -303,15 +303,15 @@ describe('Local Variables System', () => {
 
     test('should maintain isolation during mixed read/write operations', () => {
       vm.bp = RSTACK_BASE + 36;
-      vm.compiler.compile16(2);
+      emitUint16(vm, 2);
       reserveOp(vm);
 
       // Initialize variables
       push(vm, 111);
-      vm.compiler.compile16(0);
+      emitUint16(vm, 0);
       initVarOp(vm);
       push(vm, 222);
-      vm.compiler.compile16(1);
+      emitUint16(vm, 1);
       initVarOp(vm);
 
       // Read first, mutate second

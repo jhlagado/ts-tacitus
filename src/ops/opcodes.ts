@@ -293,4 +293,23 @@ export enum Op {
 
   /** Dump heap-backed dictionary chain to console */
   DumpDict,
+
+  /** Begin colon definition (immediate) */
+  BeginDefinitionImmediate,
+  /** Semicolon handler (immediate) */
+  SemicolonImmediate,
+  /** Begin IF construct (immediate) */
+  BeginIfImmediate,
+  /** Begin ELSE construct (immediate) */
+  BeginElseImmediate,
+  /** Begin MATCH construct (immediate) */
+  BeginMatchImmediate,
+  /** Begin WITH clause (immediate) */
+  BeginWithImmediate,
+  /** Begin CASE construct (immediate) */
+  BeginCaseImmediate,
+  /** CASE clause `do` (immediate) */
+  ClauseDoImmediate,
+  /** Begin capsule definition (immediate) */
+  BeginCapsuleImmediate,
 }

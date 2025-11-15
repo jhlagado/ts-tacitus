@@ -4,7 +4,7 @@
  */
 
 import { reserveOp } from '../../../ops/builtins';
-import { createVM, type VM } from '../../../core/vm';
+import { createVM, type VM, emitUint16 } from '../../../core/vm';
 
 describe('Reserve Operation', () => {
   let vm: VM;
@@ -17,7 +17,7 @@ describe('Reserve Operation', () => {
     const initialRSP = vm.rsp; // absolute cells
 
     // Write immediate argument to bytecode (follows existing test pattern)
-    vm.compiler.compile16(1000); // Writes 1000 at vm.IP location
+    emitUint16(vm, 1000); // Writes 1000 at vm.IP location
 
     // Call opcode function - nextInt16(vm) reads the 1000 we just wrote
     reserveOp(vm);
@@ -28,7 +28,7 @@ describe('Reserve Operation', () => {
   test('should allocate zero slots', () => {
     const initialRSP = vm.rsp;
 
-    vm.compiler.compile16(0); // 0 slots
+    emitUint16(vm, 0); // 0 slots
     reserveOp(vm);
 
     expect(vm.rsp).toBe(initialRSP); // No change (0 slots)
@@ -37,7 +37,7 @@ describe('Reserve Operation', () => {
   test('should allocate single slot', () => {
     const initialRSP = vm.rsp;
 
-    vm.compiler.compile16(1); // 1 slot
+    emitUint16(vm, 1); // 1 slot
     reserveOp(vm);
 
     expect(vm.rsp).toBe(initialRSP + 1); // 1 slot (cell)
@@ -46,7 +46,7 @@ describe('Reserve Operation', () => {
   test('should allocate maximum 16-bit slots', () => {
     const initialRSP = vm.rsp;
 
-    vm.compiler.compile16(65535); // Maximum 16-bit value
+    emitUint16(vm, 65535); // Maximum 16-bit value
     reserveOp(vm);
 
     expect(vm.rsp).toBe(initialRSP + 65535); // 65535 slots (cells)
@@ -56,12 +56,12 @@ describe('Reserve Operation', () => {
     const initialRSP = vm.rsp;
 
     // First allocation
-    vm.compiler.compile16(10);
+    emitUint16(vm, 10);
     reserveOp(vm);
     expect(vm.rsp).toBe(initialRSP + 10); // first allocation
 
     // Second allocation (cumulative)
-    vm.compiler.compile16(5);
+    emitUint16(vm, 5);
     reserveOp(vm);
     expect(vm.rsp).toBe(initialRSP + 15); // cumulative 15 slots
   });
@@ -69,7 +69,7 @@ describe('Reserve Operation', () => {
   test('should advance IP correctly', () => {
     const initialIP = vm.IP;
 
-    vm.compiler.compile16(100);
+    emitUint16(vm, 100);
     reserveOp(vm);
 
     // IP should advance by 2 bytes (16-bit read)

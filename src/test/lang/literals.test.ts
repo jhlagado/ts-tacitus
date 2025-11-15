@@ -1,34 +1,30 @@
 import { jest } from '@jest/globals';
 import { Op } from '../../ops/opcodes';
 import { emitNumber, emitString } from '../../lang/literals';
+import { createVM, type VM } from '../../core/vm';
+import { SEG_CODE } from '../../core';
 
 describe('literal emission helpers', () => {
-  const createVmMocks = () => ({
-    compiler: {
-      compileOpcode: jest.fn(),
-      compileFloat32: jest.fn(),
-      compile16: jest.fn(),
-    },
-    digest: {
-      intern: jest.fn(),
-      add: jest.fn(),
-    },
-  } as any);
+  let vm: VM;
 
-  it('emitNumber compiles numeric literal opcodes', () => {
-    const vmMocks = createVmMocks();
-    emitNumber(vmMocks, 21.5);
-    expect(vmMocks.compiler.compileOpcode).toHaveBeenCalledWith(Op.LiteralNumber);
-    expect(vmMocks.compiler.compileFloat32).toHaveBeenCalledWith(21.5);
+  beforeEach(() => {
+    vm = createVM();
+  });
+
+  it('emitNumber compiles numeric literal opcode and payload', () => {
+    const start = vm.compiler.CP;
+    emitNumber(vm, 21.5);
+    expect(vm.memory.read8(SEG_CODE, start)).toBe(Op.LiteralNumber);
+    expect(vm.memory.readFloat32(SEG_CODE, start + 1)).toBeCloseTo(21.5);
   });
 
   it('emitString interns the string and compiles address', () => {
-    const vmMocks = createVmMocks();
-    vmMocks.digest.intern.mockReturnValue(42);
-    emitString(vmMocks, 'hello');
-    expect(vmMocks.digest.intern).toHaveBeenCalledWith('hello');
-    expect(vmMocks.compiler.compileOpcode).toHaveBeenCalledWith(Op.LiteralString);
-    expect(vmMocks.compiler.compile16).toHaveBeenCalledWith(42);
+    const internSpy = jest.spyOn(vm.digest, 'intern').mockReturnValue(42);
+    const start = vm.compiler.CP;
+    emitString(vm, 'hello');
+    expect(internSpy).toHaveBeenCalledWith('hello');
+    expect(vm.memory.read8(SEG_CODE, start)).toBe(Op.LiteralString);
+    expect(vm.memory.read16(SEG_CODE, start + 1)).toBe(42);
   });
 
   // Backtick parsing removed; apostrophe shorthand is handled inside parser

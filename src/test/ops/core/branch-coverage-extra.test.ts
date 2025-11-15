@@ -1,4 +1,4 @@
-import { createVM, type VM } from '../../../core/vm';
+import { createVM, type VM, emitUint16 } from '../../../core/vm';
 import { groupLeftOp, groupRightOp, endIfOp, endWithOp, exitOp } from '../../../ops/core/core-ops';
 import { SEG_CODE } from '../../../core';
 import { RSTACK_BASE } from '../../../core/constants';
@@ -67,7 +67,7 @@ describe('Core ops extra branch coverage', () => {
   test('endIfOp patches a branch placeholder correctly', () => {
     // Place a dummy 16-bit placeholder at current CP and push its position
     const pos = vm.compiler.CP;
-    vm.compiler.compile16(0);
+    emitUint16(vm, 0);
     push(vm, pos);
     endIfOp(vm);
     // Should have patched the placeholder to point to current CP (fallthrough)
