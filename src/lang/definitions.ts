@@ -9,9 +9,8 @@ import { encodeX1516 } from '../core/code-ref';
 export function beginDefinition(
   vm: VM,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
-  if (currentDefinition.current) {
+  if (vm.currentDefinition) {
     throw new NestedDefinitionError(getStackData(vm));
   }
 
@@ -36,7 +35,7 @@ export function beginDefinition(
     branchPos,
     checkpoint,
   };
-  currentDefinition.current = definition;
+  vm.currentDefinition = definition;
 
   vm.compiler.preserve = true;
   vm.compiler.enterFunction();
@@ -44,18 +43,17 @@ export function beginDefinition(
 
 export function endDefinition(
   vm: VM,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
-  if (!currentDefinition.current) {
+  if (!vm.currentDefinition) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   vm.compiler.compileOpcode(Op.Exit);
   vm.compiler.exitFunction();
 
-  patchBranchOffset(vm, currentDefinition.current.branchPos);
+  patchBranchOffset(vm, vm.currentDefinition.branchPos);
 
-  const { name, branchPos, checkpoint } = currentDefinition.current;
+  const { name, branchPos, checkpoint } = vm.currentDefinition;
   const defStart = branchPos + 2;
 
   // Restore dictionary to checkpoint to remove local variable entries
@@ -65,14 +63,12 @@ export function endDefinition(
 
   define(vm, name, Tagged(encodeX1516(defStart), Tag.CODE, 0));
 
-  currentDefinition.current = null;
+  vm.currentDefinition = null;
 }
 
-export function ensureNoOpenDefinition(currentDefinition: {
-  current: ActiveDefinition | null;
-}): void {
-  if (currentDefinition.current) {
-    throw new UnclosedDefinitionError(currentDefinition.current.name, []);
+export function ensureNoOpenDefinition(currentDefinition: ActiveDefinition | null): void {
+  if (currentDefinition) {
+    throw new UnclosedDefinitionError(currentDefinition.name, []);
   }
 }
 

@@ -15,34 +15,33 @@ import { getStackData } from '../../core/vm';
 describe('conditional immediates', () => {
   let vm: VM;
   const tokenizer = new Tokenizer('');
-  const currentDefinition = { current: null };
 
   beforeEach(() => {
     vm = createVM();
   });
 
   test('ELSE without open IF throws', () => {
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer)).toThrow('ELSE without IF');
   });
 
   test('ELSE rejects mismatched closer', () => {
     push(vm, 0);
     push(vm, createBuiltinRef(Op.EndCase));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer)).toThrow('ELSE without IF');
   });
 
   test('ELSE requires placeholder beneath closer', () => {
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow('ELSE without IF');
+    expect(() => beginElseImmediate(vm, tokenizer)).toThrow('ELSE without IF');
   });
 
   test('ELSE complains about missing branch placeholder', () => {
     push(vm, Number.NaN);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow(
+    expect(() => beginElseImmediate(vm, tokenizer)).toThrow(
       'ELSE missing branch placeholder',
     );
   });
@@ -51,19 +50,19 @@ describe('conditional immediates', () => {
     push(vm, -1);
     push(vm, createBuiltinRef(Op.EndIf));
 
-    expect(() => beginElseImmediate(vm, tokenizer, currentDefinition)).toThrow(
+    expect(() => beginElseImmediate(vm, tokenizer)).toThrow(
       'ELSE invalid branch placeholder',
     );
   });
 
   test('ELSE patches placeholder and installs exit branch', () => {
-    beginIfImmediate(vm, tokenizer, currentDefinition);
+    beginIfImmediate(vm, tokenizer);
     const falseBranchPos = peekAt(vm, 1);
 
     vm.compiler.compileOpcode(Op.Nop);
     const cpBeforeElse = vm.compiler.CP;
 
-    beginElseImmediate(vm, tokenizer, currentDefinition);
+    beginElseImmediate(vm, tokenizer);
 
     const patchedOffset = vm.memory.read16(SEG_CODE, falseBranchPos);
     expect(patchedOffset).toBe(vm.compiler.CP - (falseBranchPos + 2));
@@ -76,7 +75,7 @@ describe('conditional immediates', () => {
   });
 
   test('ensureNoOpenConditionals detects unclosed IF', () => {
-    beginIfImmediate(vm, tokenizer, currentDefinition);
+    beginIfImmediate(vm, tokenizer);
     expect(vm.sp - STACK_BASE).toBe(2);
     // Top of stack should be EndIf closer (now stored as Tag.CODE)
     verifyTaggedValue(peek(vm), Tag.CODE, Op.EndIf);

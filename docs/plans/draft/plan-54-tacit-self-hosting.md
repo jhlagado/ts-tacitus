@@ -83,6 +83,18 @@
 3. Restructure parser/compiler glue so those helpers are accessible without duplicating VM state.
 4. Migrate parser dispatch for the targeted immediates to dictionary lookup, running the full test suite after each incremental change.
 
+## Appendix A — Immediate Word Stack/State Summary
+
+| Immediate word       | Stack effect (logical)                                  | VM/compiler state touched                                                                                                       | Notes                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `beginDefinition`    | `( — EndDefinitionCloser )`                             | `vm.compiler` (`compileOpcode`, `compile16`, `preserve`, `enterFunction`); `markWithLocalReset`; `currentDefinition` assignment | Emits forward branch placeholder, marks dictionary checkpoint, enables preserve, tracks active definition, pushes `@EndDefinition` closer onto data stack.                         |
+| `endDefinition`      | `( EndDefinitionCloser — )`                             | `vm.compiler` (`compileOpcode`, `exitFunction`); `patchBranchOffset`; `forget`; `define`; `currentDefinition` clear             | Requires the closer on top of stack (consumed by caller before invocation); patches forward branch to start of definition, restores dictionary to checkpoint, installs CODE entry. |
+| `beginIf`            | `( — placeholder EndIfCloser )`                         | `vm.compiler` (`compileOpcode`, `compile16`, `CP` read); data stack via `push`                                                  | Emits `IfFalseBranch` with zero placeholder, pushes branch position and `@EndIf` closer onto stack.                                                                                |
+| `beginElse`          | `( placeholder EndIfCloser — placeholder EndIfCloser )` | Pops/pushes via `pop`/`push`; `vm.compiler` (`compileOpcode`, `compile16`, `CP` mutate via `patchPlaceholder`)                  | Validates closer/opcode, patches prior false-branch target, emits unconditional forward branch, replaces placeholder with new exit placeholder while keeping closer on stack.      |
+| `endIf` (builtin op) | `( placeholder EndIfCloser — )`                         | Handled in `src/ops/builtins.ts` via `endIfOp`, which patches final placeholder, pops closer                                    | Not an immediate word but finalizes the stack discipline established above; relies on the same placeholder/closer layout.                                                          |
+
+All routines rely on a shared `vm.currentDefinition` field (to replace the current wrapper object) and expect the compiler helpers listed in Phase 0.
+
 ## Advanced / Future Work
 
 ### Phase A — Compile Mode Toggle

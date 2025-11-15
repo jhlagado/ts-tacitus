@@ -4,6 +4,7 @@
  */
 
 import { Compiler } from '../lang/compiler';
+import type { ActiveDefinition } from '../lang/state';
 import { Memory } from './memory';
 import { lookup } from './dictionary';
 import {
@@ -57,6 +58,8 @@ export type VM = {
   head: number;
   /** Current local variable count */
   localCount: number;
+  /** Active colon definition during compilation (null when idle) */
+  currentDefinition: ActiveDefinition | null;
 };
 
 /**
@@ -92,6 +95,7 @@ export function createVM(useCache = true): VM {
         listDepth: 0,
         localCount: 0,
         head: 0,
+        currentDefinition: null,
         compiler: null as unknown as Compiler,
       };
       vm.compiler = new Compiler(vm);
@@ -112,6 +116,7 @@ export function createVM(useCache = true): VM {
       cachedTestVM.debug = false;
       cachedTestVM.listDepth = 0;
       cachedTestVM.localCount = 0;
+      cachedTestVM.currentDefinition = null;
       cachedTestVM.gp = builtinSnapshot.gp;
       cachedTestVM.head = builtinSnapshot.head;
       cachedTestVM.compiler = new Compiler(cachedTestVM);
@@ -135,6 +140,7 @@ export function createVM(useCache = true): VM {
     listDepth: 0,
     localCount: 0,
     head: 0,
+    currentDefinition: null,
     compiler: null as unknown as Compiler,
   };
   vm.compiler = new Compiler(vm);
