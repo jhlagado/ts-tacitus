@@ -166,13 +166,13 @@ Immediate control words such as `if … else … ;` execute during parsing to ge
 
 - Blocks are references; execute via `eval`.
 
-Symbols
+Code references
 
 ```
-@add           # ( — symbol-ref )
+&add           # ( — code-ref )
 ```
 
-- `@symbol` yields CODE (value < 128 = builtin, >= 128 = bytecode); `eval` executes.
+- `&symbol` emits a string literal and `PushSymbolRef`; at runtime the VM pushes `Tag.CODE` (value < 128 for builtins, ≥ 128 with X1516 address for compiled code). Use `eval` to execute the reference.
 
 ### Pitfalls (Quick)
 

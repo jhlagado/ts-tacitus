@@ -63,7 +63,7 @@ Opcode encoding & dispatch:
 
 - Bytecode addresses: implementation‑defined (byte‑addressed), validated at runtime.
 - String addresses: implementation‑defined (segment‑relative), validated at runtime.
- - String literals: use double quotes for general strings; apostrophe shorthand `'key` is equivalent to `"key"` for bare, space‑less keys.
+- String literals: use double quotes for general strings; apostrophe shorthand `'key` is equivalent to `"key"` for bare, space‑less keys.
 - Stack addresses: word‑aligned (4‑byte elements).
 
 ## Constraints
@@ -89,7 +89,7 @@ Opcode encoding & dispatch:
   1. Push return address (next IP)
   2. Push caller BP (cells)
   3. Set BP = RSP (frame root at current top)
-  Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
+     Epilogue (`Exit`) validates saved BP cell index, restores `RSP = savedBP`, restores `BP = previousBP`, then resumes at popped return address.
 
 Frame Layout on RSTACK (top → bottom after prologue):
 
@@ -126,9 +126,12 @@ Reference helpers (see `core/refs.ts`):
 - Element traversal uses span rule: LIST → span = payload + 1; simple values → span = 1.
 - Address‑returning operations (`slot`, `elem`, `find`) compose with `fetch`/`store` to read/write values.
 
-## Symbol Table & @symbol
+## Symbol Table & Code References
 
-- `@symbol` pushes a tagged reference: `Tag.BUILTIN(op)` for builtins or `Tag.CODE(addr)` for colon definitions/compiled blocks.
+- `&symbol` compiles to `LiteralString` + `PushSymbolRef`.
+- `PushSymbolRef` resolves names at runtime:
+  - Builtins → `Tag.BUILTIN(op)` (0–127)
+  - Colon definitions → `Tag.CODE(addr)` (bytecode address, X1516 encoded)
 - `eval` executes tagged references: BUILTIN dispatches native implementation; CODE jumps to bytecode address (block/function per meta flag).
 - `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `RSTACK_REF` (see locals spec).
 

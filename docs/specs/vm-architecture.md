@@ -228,10 +228,12 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 - Element traversal uses span rule: LIST → span = payload + 1; simple values → span = 1.
 - Address‑returning operations (`slot`, `elem`, `find`) compose with `fetch`/`store` to read/write values.
 
-## Symbol Table & @symbol
+## Symbol Table & Code References
 
-- `@symbol` pushes a tagged reference: `Tag.CODE(op)` for builtins (value < 128, stored directly) or `Tag.CODE(addr)` for colon definitions/compiled blocks (value >= 128, X1516 encoded).
-- `eval` executes tagged references: CODE < 128 dispatches native implementation; CODE >= 128 jumps to bytecode address (block/function per meta flag).
+- `&symbol` compiles to `LiteralString` + `PushSymbolRef`. At runtime the VM resolves the name:
+  - Builtins → `Tag.CODE(op)` (value < 128, stored directly)
+  - Colon definitions → `Tag.CODE(addr)` (X1516 encoded address, value ≥ 128)
+- `eval` executes tagged references: CODE < 128 dispatches native implementation; CODE ≥ 128 jumps to bytecode address (block/function per meta flag).
 - `Tag.LOCAL` marks local variables at compile time in the symbol table; runtime locals are addressed via `REF` handles that resolve into the return-stack window (see locals spec).
 
 ## Operations

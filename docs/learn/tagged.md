@@ -81,17 +81,17 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 
 ### Dispatch Semantics
 
-`@symbol` produces either:
+`&symbol` compiles to `LiteralString` + `PushSymbolRef`. At runtime:
 
-- `Tag.BUILTIN(op)` if the symbol names a builtin opcode (0–127)
-- `Tag.CODE(addr)` if the symbol names a colon definition (bytecode) or a compiled quotation
+- Builtin names resolve to `Tag.BUILTIN(op)` (0–127)
+- Colon definitions resolve to `Tag.CODE(addr)` (bytecode address, X1516 encoded)
 
 `eval` inspects the tag:
 
-- BUILTIN → invokes native op implementation
+- BUILTIN → invokes native implementation
 - CODE → jumps to bytecode address
 
-This is the unified mechanism used for dispatch.
+This is the unified mechanism Tacit uses for code references.
 
 ### CODE Meta Semantics
 
