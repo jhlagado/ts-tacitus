@@ -1,7 +1,18 @@
 import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { type VM, peekAt, depth, getStackData, pop, push } from '../../core/vm';
+import {
+  type VM,
+  peekAt,
+  depth,
+  getStackData,
+  pop,
+  push,
+  emitOpcode,
+  emitUint16,
+  getCompilePointer,
+  patchUint16,
+} from '../../core/vm';
 import { type Tokenizer } from '../tokenizer';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
@@ -16,22 +27,17 @@ function patchPlaceholder(vm: VM, rawPos: number, word: string): void {
     throw new SyntaxError(`${word} invalid branch placeholder`, getStackData(vm));
   }
 
-  const endAddress = vm.compiler.CP;
-  const branchOffset = endAddress - (branchPos + 2);
-
-  const prevCP = vm.compiler.CP;
-  vm.compiler.CP = branchPos;
-  vm.compiler.compile16(branchOffset);
-  vm.compiler.CP = prevCP;
+  const branchOffset = getCompilePointer(vm) - (branchPos + 2);
+  patchUint16(vm, branchPos, branchOffset);
 }
 
 export function beginIfImmediate(
   vm: VM,
   _tokenizer: Tokenizer,
 ): void {
-  vm.compiler.compileOpcode(Op.IfFalseBranch);
-  const falseBranchPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitOpcode(vm, Op.IfFalseBranch);
+  const falseBranchPos = getCompilePointer(vm);
+  emitUint16(vm, 0);
 
   push(vm, falseBranchPos);
   push(vm, ENDIF_CODE_REF);
@@ -58,9 +64,9 @@ export function beginElseImmediate(
 
   const placeholder = pop(vm);
 
-  vm.compiler.compileOpcode(Op.Branch);
-  const exitBranchPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitOpcode(vm, Op.Branch);
+  const exitBranchPos = getCompilePointer(vm);
+  emitUint16(vm, 0);
 
   patchPlaceholder(vm, placeholder, 'ELSE');
 
