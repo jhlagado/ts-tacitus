@@ -1,5 +1,13 @@
 import { SyntaxError, getTaggedInfo, Tag } from '@src/core';
-import { type VM, getStackData, peek, pop, push, depth } from '../../core/vm';
+import {
+  type VM,
+  getStackData,
+  peek,
+  pop,
+  push,
+  depth,
+  emitOpcode,
+} from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
 import { type Tokenizer } from '../tokenizer';
@@ -27,5 +35,5 @@ export function beginCapsuleImmediate(vm: VM, _tokenizer: Tokenizer): void {
   push(vm, createBuiltinRef(Op.EndCapsule));
 
   // Emit constructor-exit opcode
-  vm.compiler.compileOpcode(Op.ExitConstructor);
+  emitOpcode(vm, Op.ExitConstructor);
 }
