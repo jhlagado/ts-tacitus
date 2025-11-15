@@ -1,7 +1,7 @@
 # References (Refs) — Specification
 
-
 Try it (refs vs values)
+
 ```tacit
 : show
   10 var x
@@ -12,12 +12,14 @@ Try it (refs vs values)
 ```
 
 Try it (stack ref to list)
+
 ```tacit
 ( 1 2 ) ref    \ -> ( 1 2 ) STACK_REF
 load           \ -> ( 1 2 )
 ```
 
 Orientation
+
 - Start with core invariants: docs/specs/core-invariants.md
 - Quick usage (summary):
   - `load ( x — v )`: value-by-default; identity on non-refs; deref up to two levels; materializes lists.
@@ -26,6 +28,7 @@ Orientation
   - Locals: `x` (VarRef+Load), `&x` (VarRef+Fetch), `&x fetch`, `&x load`.
 
 Capsule receivers and `&alias`
+
 - Capsules return an `RSTACK_REF` handle. Store it in a local and use `&alias` when dispatching to avoid copying:
   ```tacit
   : make-counter 0 var count capsule 'inc of 1 +> count ; ;
@@ -56,12 +59,13 @@ Non-goals:
 ## 1. Overview and Terminology
 
 - Ref (data): A tagged, NaN-boxed handle whose payload is an absolute cell index into a specific VM memory segment. Data refs are never code and are never executed.
-- Code ref: A tagged handle to builtins or compiled bytecode (e.g., from `@symbol`). Code refs are separate from data refs and must be explicitly evaluated (`eval`).
+- Code ref: A tagged handle to builtins or compiled bytecode (e.g., from `&symbol`). Code refs are separate from data refs and must be explicitly evaluated (`eval`).
 - Load (value-by-default): Converting a reference to its current value; identity on non-refs. Performs one dereference (plus one additional deref if the first read yields a ref). If the final value is a LIST header, materializes header+payload.
 - Destination: The location being written (e.g., a slot, an addressed list element).
 - Source: The data being written (could be a value or a ref that must be resolved).
 
 Analogy — Symlinks vs Pointers
+
 - Think of data refs more like filesystem symbolic links than C pointers.
   - Many structure-aware operations (e.g., list ops like `length`, `elem`, `head`) behave like syscalls that follow symlinks transparently (they dereference as needed).
   - Pure stack operations treat refs as opaque, like manipulating a path string or the symlink inode itself (no automatic deref).
@@ -220,24 +224,27 @@ Stack ops (`dup`, `drop`, `swap`, `rot`, `over`, `nip`, `tuck`, `pick`) treat re
 ## 12. Polymorphic Semantics (Consolidated)
 
 Principles
+
 - Stack operations are reference-transparent: they copy/move the reference value, not the referenced data.
 - Structure-aware list operations accept values or refs and internally dereference when needed (use `resolveReference()` pattern established by `length`/`size`).
 - Convenience: use `ref` to create a short‑lived `STACK_REF` to a list on the data stack; use `load` for value‑by‑default deref (identity on non‑refs; two‑level deref; materialize lists).
 
 Examples
+
 - `RSTACK_REF(5) dup` → `RSTACK_REF(5) RSTACK_REF(5)` (no deref)
 - `STACK_REF→(1 2 3) head` → `1` (internal deref)
 - `RSTACK_REF→(1 2 3) 4 concat` → modifies referenced list (element‑unit)
 - `RSTACK_REF→42 load` → `42`; `STACK_REF→(1 2) load` → `( 1 2 )`
 
 Implementation guideline
+
 - For list ops expecting a list: if given a ref, resolve to segment/address and read the header; if it’s a list, proceed as direct.
 - For strict address reads/writes: `fetch`/`store` resolve addresses and operate without hidden deref beyond the address cell; `store` must materialize source refs before type checks and writes.
 
 Testing notes
+
 - Verify stack ops keep refs opaque.
 - Verify list ops behave identically for direct lists and refs to lists.
-
 
 ## 8. Errors and Diagnostics
 
@@ -269,7 +276,7 @@ Borrowing across calls:
 
 Lists and refs:
 
-- `(1 2 3) ref` → list, STACK_REF  
+- `(1 2 3) ref` → list, STACK_REF
 - `load` → materialize a ref to its value (identity on non-refs)
 - `length`/`head` → operate on value or ref identically
 
@@ -286,6 +293,7 @@ Target:
 - Sources that are refs are materialized before assignment/storage.
 
 In-place locals (normative clarification)
+
 - Destination locality: When the destination is a local variable, updates occur in place in the return stack segment (SEG_RSTACK). The destination is not materialized to the data stack for mutation.
 - Mechanism: Compound locals store an `RSTACK_REF` to their header. `store` resolves that ref and overwrites the existing region (payload then header) if compatible; simple locals are overwritten directly in their slot.
 - Implications: Aliasing through `&x` is preserved across assignments; assignment does not rebind the slot for compounds, it mutates the existing region.
@@ -328,7 +336,7 @@ Cross-References:
 **Key Operations:**
 
 - `VarRef` — pushes `RSTACK_REF(BP + slotNumber)` (underpins `&x`)
-- `load` — value-by-default materialization; identity on non-refs  
+- `load` — value-by-default materialization; identity on non-refs
 - `fetch` — reads value at ref address; errors on non-ref
 - `store` — writes to ref address; materializes source refs before writing
 
@@ -336,6 +344,7 @@ Cross-References:
 All list operations (`length`, `head`, `elem`, `slot`, `find`, etc.) accept values or refs transparently via `resolveReference()` internally.
 
 **Frame Layout:**
+
 ```
 [ return addr ]
 [ saved BP    ] ← BP (cell index)

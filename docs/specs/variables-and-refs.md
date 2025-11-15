@@ -13,7 +13,7 @@ Status: Authoritative spec for variables (locals and globals) and references in 
 
 - Variable: named storage in the VM. Two kinds: local (function-frame slot) and global (module-scope cell in the global heap window).
 - Ref: a tagged handle using `Tag.REF`; its payload stores the cell index inside the unified data arena. Window ownership is inferred by comparing that index against the global, data‑stack, and return‑stack ranges. Refs are not code and are never executed.
-- Code ref: a tagged handle to builtins or compiled bytecode (from `@symbol`); evaluated via `eval`.
+- Code ref: a tagged handle to builtins or compiled bytecode (from `&symbol`); evaluated via `eval`.
 - Load (value-by-default): produce a value from a value-or-ref; identity on non-refs; dereferences up to two levels; materializes lists.
 - Fetch (strict address read): read the value at a reference address; materializes lists when the read cell is a LIST header.
 - Store (write): destination must be an address; sources that are refs are materialized before the write; compound writes require compatibility.

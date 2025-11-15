@@ -89,17 +89,22 @@ Tacit supports a shorthand for simple string keys without spaces or grouping cha
 
 ### Dispatch Semantics
 
-`@symbol` produces:
+`&symbol` produces a code reference by emitting two opcodes:
 
-- `Tag.CODE(op)` if the symbol names a builtin opcode (0–127, stored directly)
-- `Tag.CODE(addr)` if the symbol names a colon definition (bytecode, X1516 encoded, value >= 128)
+1. `LiteralString` — pushes the interned name (`Tag.STRING(addr)`)
+2. `PushSymbolRef` — resolves the name at runtime and pushes `Tag.CODE`
 
-`eval` inspects the tag and value:
+`PushSymbolRef` consults the dictionary:
 
-- CODE with value < 128 → invokes native op implementation (builtin)
-- CODE with value >= 128 → decodes X1516 and jumps to bytecode address
+- If the name refers to a builtin, it returns `Tag.CODE(op)` with opcode < 128
+- If it refers to a colon definition, it returns `Tag.CODE(addr)` with the X1516 bytecode address (value ≥ 128)
 
-This is the unified mechanism used for dispatch.
+`eval` inspects the tag payload:
+
+- `Tag.CODE` < 128 → invoke native builtin implementation
+- `Tag.CODE` ≥ 128 → decode X1516 and jump to user bytecode
+
+This is the unified dispatch path for code references introduced via `&symbol`.
 
 ### CODE Meta Semantics
 
